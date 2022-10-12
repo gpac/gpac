@@ -1202,13 +1202,13 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//we're good to go, declare our output pid
 	ctx->in_pid = pid;
 	if (!ctx->out_pid) {
-		char szCodecName[1000];
 		ctx->out_pid = gf_filter_pid_new(filter);
-
-		//to change once we implement on-the-fly codec change
+		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
+	}
+	{
+		char szCodecName[1000];
 		sprintf(szCodecName, "ffdec:%s", ctx->decoder->codec->name ? ctx->decoder->codec->name : "unknown");
 		gf_filter_set_name(filter, szCodecName);
-		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
 	}
 
 reuse_codec_context:
