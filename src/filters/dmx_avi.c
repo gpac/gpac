@@ -114,7 +114,9 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		codecid = GF_CODECID_AVC;
 		unframed = GF_FALSE;
 	} else if (!stricmp(comp, "DIV3") || !stricmp(comp, "DIV4")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not compliant with MPEG-4 Visual - please recompress the file first\n", comp));
+//		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not compliant with MPEG-4 Visual - please recompress the file first\n", comp));
+		codecid = GF_CODECID_MSPEG4_V3;
+		unframed = GF_FALSE;
 	} else if (!comp[0]) {
 		codecid = GF_CODECID_RAW;
 		pfmt = GF_PIXEL_BGR;
@@ -360,7 +362,7 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		ctx->ipid = pid;
 
 		//we work with full file only, send a play event on source to indicate that
-		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+		GF_FEVT_INIT(fevt, GF_FEVT_PLAY_HINT, pid);
 		fevt.play.start_range = 0;
 		fevt.base.on_pid = ctx->ipid;
 		fevt.play.full_file_only = GF_TRUE;
@@ -438,7 +440,7 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			for (i=0; i<gf_list_count(ctx->audios); i++) {
 				AVIAstream *st = gf_list_get(ctx->audios, i);
 				if (st->opid != evt->base.on_pid) continue;
-				st->playing = GF_TRUE;
+				st->playing = GF_FALSE;
 			}
 		}
 		//don't cancel event
@@ -626,6 +628,7 @@ void avidmx_finalize(GF_Filter *filter)
 static const char * avidmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	if (size<12) return NULL;
+	*score = GF_FPROBE_NOT_SUPPORTED;
 	if (strncmp(data, "RIFF", 4)) return NULL;
 	if (strncmp(data+8, "AVI ", 4)) return NULL;
 	*score = GF_FPROBE_SUPPORTED;
