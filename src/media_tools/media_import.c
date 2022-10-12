@@ -345,7 +345,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				gf_free(lang);
 				lang = NULL;
 			}
-			gf_media_get_rfc_6381_codec_name(import->orig, i+1, import->tk_info[i].szCodecProfile, GF_FALSE, GF_FALSE);
+			gf_media_get_rfc_6381_codec_name(import->orig, i+1, 1, import->tk_info[i].szCodecProfile, GF_FALSE, GF_FALSE);
 
 			import->nb_tracks ++;
 		}

@@ -86,12 +86,13 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id);
  * Get RFC 6381 description for a given track.
 \param isom_file source ISOBMF file
 \param trackNumber track to check
+ \param sample_desc_index sample description index to check
 \param szCodec a pointer to an already allocated string of size RFC6381_CODEC_NAME_SIZE_MAX bytes.
 \param force_inband_xps force inband signaling of parameter sets.
 \param force_sbr forces using explicit signaling for SBR.
 \return error if any.
  */
-GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *isom_file, u32 trackNumber, char *szCodec, Bool force_inband_xps, Bool force_sbr);
+GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_desc_index, char *szCodec, Bool force_inband_xps, Bool force_sbr);
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
