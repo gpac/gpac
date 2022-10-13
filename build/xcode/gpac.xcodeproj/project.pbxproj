@@ -3008,8 +3008,8 @@
 					../../include,
 					/opt/local/include,
 					/usr/local/include,
-					"/opt/local/include/openjpeg-1.5",
-					"/usr/local/include/openjpeg-1.5",
+					"/opt/local/include/openjpeg-2.5",
+					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
 					"/opt/homebrew/include/openjpeg-2.5",
 				);
@@ -3086,6 +3086,7 @@
 					CoreServices,
 					"-framework",
 					Metal,
+					"-lvvdec",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3138,8 +3139,8 @@
 					../../include,
 					/opt/local/include,
 					/usr/local/include,
-					"/opt/local/include/openjpeg-1.5",
-					"/usr/local/include/openjpeg-1.5",
+					"/opt/local/include/openjpeg-2.5",
+					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
 					"/opt/homebrew/include/openjpeg-2.5",
 				);
@@ -3216,6 +3217,7 @@
 					CoreServices,
 					"-framework",
 					Metal,
+					"-lvvdec",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
