@@ -286,7 +286,7 @@ static void restamp_config_timing(GF_Filter *filter, RestampCtx *ctx)
 {
 	Bool not_ready=GF_FALSE;
 	Bool has_blocking=GF_FALSE;
-	u64 min_ts;
+	u64 min_ts=0;
 	u32 min_timescale=0;
 
 	if ((ctx->tsinit.num<0) || !ctx->tsinit.den) {
