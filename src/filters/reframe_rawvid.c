@@ -441,7 +441,8 @@ static const char *rawvidreframe_probe_data(const u8 *data, u32 size, GF_FilterP
 		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return "video/x-yuv4mpeg";
 	}
-	return NULL;
+	*score = GF_FPROBE_EXT_MATCH;
+	return gf_pixel_fmt_all_shortnames();
 }
 
 static GF_FilterCapability RawVidReframeCaps[] =

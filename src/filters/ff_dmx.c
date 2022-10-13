@@ -1038,11 +1038,12 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 	}
 
 	if (!probe_fmt) return NULL;
-	//TODO try to refine based on ffprobe score
-	*score = GF_FPROBE_MAYBE_SUPPORTED;
 	if (probe_fmt->mime_type) {
+		//TODO try to refine based on ffprobe score
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return probe_fmt->mime_type;
 	}
+	*score = GF_FPROBE_MAYBE_NOT_SUPPORTED;
 	return "video/x-ffmpeg";
 }
 
