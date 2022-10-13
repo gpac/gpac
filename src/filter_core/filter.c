@@ -4042,10 +4042,15 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 					}
 				}
 			} else if (score==GF_FPROBE_EXT_MATCH) {
-				if (a_mime && ext_len && strstr(a_mime, tmp_ext)) {
-					ext_not_trusted = GF_FALSE;
-					probe_mime = NULL;
-					break;
+				if (a_mime && ext_len) {
+					char *has_ext = strstr(a_mime, tmp_ext);
+					if (has_ext && (has_ext>a_mime) && (has_ext[-1] != '|')) has_ext = NULL;
+					if (has_ext && (has_ext[ext_len]!=',') && (has_ext[ext_len]!='|')) has_ext = NULL;
+					if (has_ext) {
+						ext_not_trusted = GF_FALSE;
+						probe_mime = NULL;
+						break;
+					}
 				}
 			} else {
 				if (a_mime) {
