@@ -129,7 +129,9 @@ This section documents the base data types of GPAC.
 #elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
 
 #define GPAC_HAS_IPV6
+//#if !defined(__arm64__)
 #define GPAC_HAS_SSL
+//#endif
 #define GPAC_HAS_SOCK_UN
 
 //64-bits OSX

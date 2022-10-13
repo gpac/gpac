@@ -566,13 +566,6 @@
 			remoteGlobalIDString = 92AAF16418D6F40400E2FF12;
 			remoteInfo = ft_font;
 		};
-		92C403E02181F1F100331F39 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 92C403D62181F10500331F39;
-			remoteInfo = openhevc_dec;
-		};
 		92C403E42181F20800331F39 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
@@ -586,13 +579,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 92AAF16418D6F40400E2FF12;
 			remoteInfo = ft_font;
-		};
-		92C403E82181F21000331F39 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 92C403D62181F10500331F39;
-			remoteInfo = openhevc_dec;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -2278,7 +2264,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				92C403E12181F1F100331F39 /* PBXTargetDependency */,
 				92C403DF2181F1ED00331F39 /* PBXTargetDependency */,
 				92BD5563205AB89D007C4C06 /* PBXTargetDependency */,
 			);
@@ -2332,7 +2317,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				92C403E92181F21000331F39 /* PBXTargetDependency */,
 				92C403E72181F20C00331F39 /* PBXTargetDependency */,
 				92C403E52181F20800331F39 /* PBXTargetDependency */,
 			);
@@ -2874,11 +2858,6 @@
 			target = 92AAF16418D6F40400E2FF12 /* ft_font */;
 			targetProxy = 92C403DE2181F1ED00331F39 /* PBXContainerItemProxy */;
 		};
-		92C403E12181F1F100331F39 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 92C403D62181F10500331F39 /* openhevc_dec */;
-			targetProxy = 92C403E02181F1F100331F39 /* PBXContainerItemProxy */;
-		};
 		92C403E52181F20800331F39 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 92AAF0D218D6DB2D00E2FF12 /* sdl_out */;
@@ -2888,11 +2867,6 @@
 			isa = PBXTargetDependency;
 			target = 92AAF16418D6F40400E2FF12 /* ft_font */;
 			targetProxy = 92C403E62181F20C00331F39 /* PBXContainerItemProxy */;
-		};
-		92C403E92181F21000331F39 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 92C403D62181F10500331F39 /* openhevc_dec */;
-			targetProxy = 92C403E82181F21000331F39 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -2920,6 +2894,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				EXCLUDED_ARCHS = "";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
@@ -2965,6 +2940,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				EXCLUDED_ARCHS = "";
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
@@ -2991,11 +2967,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -3013,8 +2990,6 @@
 					GPAC_HAS_LIBA52,
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
-					GPAC_HAS_OPENSVC,
-					GPAC_HAS_OPENHEVC,
 					GPAC_HAS_FFMPEG,
 					FFMPEG_ENABLE_VVC,
 				);
@@ -3035,10 +3010,13 @@
 					/usr/local/include,
 					"/opt/local/include/openjpeg-1.5",
 					"/usr/local/include/openjpeg-1.5",
+					/opt/homebrew/include,
+					"/opt/homebrew/include/openjpeg-2.5",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
+					/opt/homebrew/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
@@ -3061,7 +3039,6 @@
 					"-lx265",
 					"-lavdevice",
 					"-lpostproc",
-					"-lavresample",
 					"-lavfilter",
 					"-ldav1d",
 					"-liconv",
@@ -3076,11 +3053,10 @@
 					"-lfaad",
 					"-lmad",
 					"-lxvidcore",
-					"-lopenjpeg",
+					"-lopenjp2",
 					"-la52",
 					"-lvorbis",
 					"-ltheora",
-					"-lOpenSVCDec",
 					"-lxcb",
 					"-lxcb-shm",
 					"-lxcb-shape",
@@ -3092,7 +3068,6 @@
 					"-lkvazaar",
 					"-lnghttp2",
 					"-lvmaf",
-					"-lvvdec",
 					"-lc++",
 					"-lxml2",
 					"-lmp3lame",
@@ -3123,12 +3098,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
@@ -3164,13 +3140,17 @@
 					/usr/local/include,
 					"/opt/local/include/openjpeg-1.5",
 					"/usr/local/include/openjpeg-1.5",
+					/opt/homebrew/include,
+					"/opt/homebrew/include/openjpeg-2.5",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
+					/opt/homebrew/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-Wno-conversion";
 				OTHER_LDFLAGS = (
 					"-w",
@@ -3189,7 +3169,6 @@
 					"-lx265",
 					"-lavdevice",
 					"-lpostproc",
-					"-lavresample",
 					"-lavfilter",
 					"-ldav1d",
 					"-liconv",
@@ -3204,11 +3183,10 @@
 					"-lfaad",
 					"-lmad",
 					"-lxvidcore",
-					"-lopenjpeg",
+					"-lopenjp2",
 					"-la52",
 					"-lvorbis",
 					"-ltheora",
-					"-lOpenSVCDec",
 					"-lxcb",
 					"-lxcb-shm",
 					"-lxcb-shape",
@@ -3220,7 +3198,6 @@
 					"-lkvazaar",
 					"-lnghttp2",
 					"-lvmaf",
-					"-lvvdec",
 					"-lc++",
 					"-lxml2",
 					"-lmp3lame",
@@ -3251,7 +3228,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -3264,6 +3241,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Q46G522WGV;
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -3276,6 +3254,7 @@
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -3285,7 +3264,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
@@ -3299,12 +3278,14 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Q46G522WGV;
 				ENABLE_NS_ASSERTIONS = NO;
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -3314,10 +3295,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = gm_;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3341,11 +3323,13 @@
 					../../include,
 					/usr/local/include/SDL2,
 					/opt/local/include/SDL2,
+					/opt/homebrew/include/SDL2,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
+					/opt/homebrew/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3359,11 +3343,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = gm_;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -3380,13 +3365,16 @@
 					../../include,
 					/usr/local/include/SDL2,
 					/opt/local/include/SDL2,
+					/opt/homebrew/include/SDL2,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
+					/opt/homebrew/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-lSDL2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3397,10 +3385,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -3420,11 +3409,13 @@
 					../../include,
 					/opt/local/include/freetype2,
 					/usr/local/include/freetype2,
+					/opt/homebrew/include/freetype2,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					/opt/local/lib,
 					/usr/local/lib,
+					/opt/homebrew/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3438,11 +3429,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
@@ -3455,13 +3447,16 @@
 					../../include,
 					/opt/local/include/freetype2,
 					/usr/local/include/freetype2,
+					/opt/homebrew/include/freetype2,
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					/opt/local/lib,
 					/usr/local/lib,
+					/opt/homebrew/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-lfreetype";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3472,10 +3467,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
@@ -3505,11 +3501,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -3521,6 +3518,7 @@
 				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SYMROOT = ../../bin/osx/;
@@ -3531,7 +3529,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -3552,6 +3550,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "";
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = gf_;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -3577,6 +3576,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-lopenhevc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3588,7 +3588,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = x86_64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -3610,6 +3610,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "";
 				ENABLE_NS_ASSERTIONS = NO;
+				EXCLUDED_ARCHS = "";
 				EXECUTABLE_PREFIX = gf_;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -3632,6 +3633,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-lopenhevc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
