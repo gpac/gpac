@@ -6396,7 +6396,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	u32 num_units_in_tick = 0;
 	u32 time_scale = 0;
 	//AVC
-	Bool fixed_frame_rate_flag;
+	Bool fixed_frame_rate_flag=GF_FALSE;
 	//HEVC
 	Bool poc_proportional_to_timing_flag = GF_FALSE;
 	u32 vui_num_ticks_poc_diff_one_minus1 = 0;
