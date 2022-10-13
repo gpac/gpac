@@ -421,7 +421,8 @@ static const char *pcmreframe_probe_data(const u8 *data, u32 size, GF_FilterProb
 		}
 	}
 	gf_bs_del(bs);
-	return NULL;
+	*score = GF_FPROBE_EXT_MATCH;
+	return gf_audio_fmt_all_shortnames();
 }
 
 

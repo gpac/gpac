@@ -4113,6 +4113,9 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "application/x-shockwave-flash")
 	}
+	if (!strncmp(data, "[Script Info", 12)) {
+		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ssa")
+	}
 
 	if ((data[0]=='{') && strstr(data, "}{")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/sub")
