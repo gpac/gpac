@@ -2725,10 +2725,9 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 
 void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc_num, u32 tc_den, u32 tmcd_fpt, char szFmt[100]);
 
-static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool dump_m4sys, u32 mtype, u32 stsd_idx)
+static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool dump_m4sys, u32 mtype, u32 stsd_idx, Bool *is_od_track)
 {
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
-	Bool is_od_track = 0;
 	u32 i, j, msub_type, sr, nb_ch, count, bps, pfmt, codecid;
 	GF_ESD *esd;
 
@@ -2810,7 +2809,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			}
 
 			if (esd->decoderConfig->streamType==GF_STREAM_OD)
-				is_od_track=1;
+				*is_od_track=1;
 
 			if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
 				u32 w, h;
@@ -3730,7 +3729,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		count = 1;
 	}
 	for (i=0; i<count; i++) {
-		DumpStsdInfo(file, trackNum, full_dump, dump_m4sys, mtype, i+1);
+		DumpStsdInfo(file, trackNum, full_dump, dump_m4sys, mtype, i+1, &is_od_track);
 	}
 
 	switch (gf_isom_has_sync_points(file, trackNum)) {
