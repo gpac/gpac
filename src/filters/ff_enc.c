@@ -1946,7 +1946,7 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	char szOverrideOpt[1000];
-	Bool do_override = GF_FALSE;
+	GF_PropertyValue arg_val_override;
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
 
 	if (!strcmp(arg_name, "rld")) return GF_OK;
@@ -1974,7 +1974,9 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 			ctx->target_rate *= 1000;
 
 		sprintf(szOverrideOpt, "%d", ctx->target_rate);
-		do_override = GF_TRUE;
+		arg_val_override.type = GF_PROP_STRING;
+		arg_val_override.value.string = szOverrideOpt;
+		arg_val = &arg_val_override;
 	}
 
 	//initial parsing of arguments
