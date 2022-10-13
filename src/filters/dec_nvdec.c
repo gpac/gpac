@@ -28,6 +28,10 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#if defined(GPAC_CONFIG_DARWIN) && defined(__arm64__)
+#define GPAC_DISABLE_NVDEC
+#endif
+
 #if (!defined(GPAC_STATIC_BUILD) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))
 
 #include "dec_nvdec_sdk.h"
