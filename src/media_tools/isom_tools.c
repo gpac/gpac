@@ -4100,6 +4100,42 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 	return GF_OK;
 }
 
+GF_Err rfc_6381_get_codec_stpp(char *szCodec, u32 subtype,
+                               const char *xmlnamespace,
+                               const char *xml_schema_loc,
+                               const char *mimes)
+{
+    // we ignore schema location and auxiliary mime types
+    // we focus on the provided list of namespaces
+    if (xmlnamespace != NULL) {
+        // Selected (namespace,identifier) pairs from https://www.w3.org/TR/ttml-profile-registry/
+        // ordered in decreasing order of preference
+        const int TTML_NAMESPACES_COUNT = 10;
+        char *ttml_namespaces[TTML_NAMESPACES_COUNT] = {
+            "im3t", "http://www.w3.org/ns/ttml/profile/imsc1.2/text",
+            "im2t", "http://www.w3.org/ns/ttml/profile/imsc1.1/text",
+            "im2i", "http://www.w3.org/ns/ttml/profile/imsc1.1/image",
+            "im1t", "http://www.w3.org/ns/ttml/profile/imsc1/text",
+            "im1i", "http://www.w3.org/ns/ttml/profile/imsc1/image"
+        };
+        int i;
+        for (i = 0; i < TTML_NAMESPACES_COUNT; i+=2) {
+            if(strstr(xmlnamespace, ttml_namespaces[i+1]) != NULL) {
+                snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s.%s", gf_4cc_to_str(subtype), "ttml", ttml_namespaces[i]);
+                return GF_OK;
+            }
+        }
+        // if none of the namespaces above have been found, search the default TTML namespace
+        if(strstr(xmlnamespace, "http://www.w3.org/ns/ttml")) {
+            snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), "ttml");
+            return GF_OK;
+        }
+    }
+    // None of the known namespaces are found, default
+    snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+    return GF_OK;
+}
+
 GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id)
 {
 	if (codec_id && (codec_id<GF_CODECID_LAST_MPEG4_MAPPING)) {
@@ -4334,6 +4370,18 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		return e;
 	}
 
+    case GF_ISOM_SUBTYPE_STPP:
+    {
+        const char *xmlnamespace;
+        const char *xml_schema_loc;
+        const char *mimes;
+        GF_Err e = gf_isom_xml_subtitle_get_description(movie, track, stsd_idx,
+                                             &xmlnamespace, &xml_schema_loc, &mimes);
+        if (e == GF_OK) {
+            rfc_6381_get_codec_stpp(szCodec, subtype, xmlnamespace, xml_schema_loc, mimes);
+        }
+        return e;
+    }
 	default:
 		return rfc6381_codec_name_default(szCodec, subtype, gf_codec_id_from_isobmf(subtype));
 
