@@ -1033,7 +1033,8 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-	return SetTrackDuration(trak);
+	//do not update track duration yet, this is don one close
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -1308,7 +1309,8 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	trak->Media->mediaHeader->duration = mdur;
-	return SetTrackDuration(trak);
+	//do not update track duration yet, this is don one close
+	return GF_OK;
 }
 
 GF_EXPORT

@@ -2914,6 +2914,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			gf_set_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}
+		gf_isom_update_duration(dest);
+
 		/*scene description and text: compute last sample duration based on original media duration*/
 		if (!use_ts_dur) {
 			u64 extend_dur = gf_isom_get_media_duration(orig, i+1) - last_DTS;
