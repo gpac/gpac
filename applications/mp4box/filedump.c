@@ -2738,11 +2738,14 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 	pfmt = gf_pixel_fmt_from_qt_type(msub_type);
 	codecid = gf_codec_id_from_isobmf(msub_type);
 
+	u32 stsd_type = msub_type;
+	if (msub_type==GF_ISOM_SUBTYPE_MPEG4)
+		stsd_type = gf_isom_get_mpeg4_subtype(file, trackNum, stsd_idx);
 	if (full_dump) {
 		if (stsd_idx>1) fprintf(stderr, "\n");
-		fprintf(stderr, "Sample Description #%u - %s:%s\n", stsd_idx, gf_4cc_to_str(mtype), gf_4cc_to_str(msub_type));
+		fprintf(stderr, "Sample Description #%u - %s:%s\n", stsd_idx, gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type));
 	} else {
-		fprintf(stderr, "Media Type: %s:%s\n", gf_4cc_to_str(mtype), gf_4cc_to_str(msub_type));
+		fprintf(stderr, "Media Type: %s:%s\n", gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type));
 	}
 
 	if (!gf_isom_is_self_contained(file, trackNum, stsd_idx)) {
