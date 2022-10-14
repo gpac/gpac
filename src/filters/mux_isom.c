@@ -139,6 +139,7 @@ typedef struct
 	u32 constant_IV_size;
 	Bool cenc_multikey;
 	Bool cenc_frag_protected;
+	u32 skip_byte_block, crypt_byte_block;
 
 	Bool fake_track;
 
@@ -1027,6 +1028,15 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		tkw->enh_cfg_crc = 0;
 		if (!needs_sample_entry)
 			needs_sample_entry = 2;
+	}
+
+	//store current cenc pattern if any
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PATTERN);
+	if (p) {
+		tkw->skip_byte_block = p->value.frac.num;
+		tkw->crypt_byte_block = p->value.frac.den;
+	} else {
+		tkw->skip_byte_block = tkw->crypt_byte_block = 0;
 	}
 
 	//TODO: try to merge PPS/SPS for AVC and HEVC rather than creating a new sample description
@@ -3650,10 +3660,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	const GF_PropertyValue *p;
 	GF_Err e;
 	Bool pck_is_encrypted;
-	u32 skip_byte_block=0, crypt_byte_block=0;
 	u32 IV_size=0;
-	u32 scheme_type=0;
-	u32 scheme_version=0;
 	u8 *fake_sai = NULL;
 	u8 *sai = NULL;
 	u32 sai_size = 0;
@@ -3663,11 +3670,6 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	if (tkw->cenc_state == CENC_SETUP_ERROR)
 		return GF_SERVICE_ERROR;
 
-	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PATTERN);
-	if (p) {
-		skip_byte_block = p->value.frac.num;
-		crypt_byte_block = p->value.frac.den;
-	}
 
 	if (pck) {
 		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_SAI);
@@ -3678,15 +3680,17 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	}
 
 
-	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
-	if (p) scheme_type = p->value.uint;
-	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
-	if (p) scheme_version = p->value.uint;
-
 	//initial setup
 	if (tkw->cenc_state==CENC_NEED_SETUP) {
+		u32 scheme_type=0;
+		u32 scheme_version=0;
 		u32 cenc_stsd_mode=0;
 		u32 container_type = GF_ISOM_BOX_TYPE_SENC;
+
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+		if (p) scheme_type = p->value.uint;
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
+		if (p) scheme_version = p->value.uint;
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_STSD_MODE);
 		if (p) cenc_stsd_mode = p->value.uint;
@@ -3717,11 +3721,13 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 				tkw->clear_stsd_idx = clone_stsd_idx;
 			}
 		}
+		tkw->def_crypt_byte_block = tkw->crypt_byte_block;
+		tkw->def_skip_byte_block = tkw->skip_byte_block;
 
 		tkw->cenc_state = CENC_SETUP_DONE;
 		tkw->def_cenc_key_info_crc = tkw->cenc_key_info_crc;
 		if (tkw->cenc_ki) {
-			e = gf_isom_set_cenc_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, pck_is_encrypted, crypt_byte_block, skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
+			e = gf_isom_set_cenc_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, pck_is_encrypted, tkw->def_crypt_byte_block, tkw->def_skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Missing CENC Key config, cannot mux\n"));
 			tkw->cenc_state = CENC_SETUP_ERROR;
@@ -3735,9 +3741,6 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 		if (ctx->psshs == MP4MX_PSSH_MOOV)
 			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, GF_FALSE);
-
-		tkw->def_crypt_byte_block = crypt_byte_block;
-		tkw->def_skip_byte_block = skip_byte_block;
 
 		if (!tkw->has_brands && (scheme_type==GF_ISOM_OMADRM_SCHEME))
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_OPF2, GF_TRUE);
@@ -3798,15 +3801,15 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		//multikey ALWAYS uses seig
 		if (tkw->cenc_ki->value.data.ptr[0])
 			needs_seig = GF_TRUE;
-		else if (tkw->def_crypt_byte_block != crypt_byte_block)
+		else if (tkw->def_crypt_byte_block != tkw->crypt_byte_block)
 			needs_seig = GF_TRUE;
-		else if (tkw->def_skip_byte_block != skip_byte_block)
+		else if (tkw->def_skip_byte_block != tkw->skip_byte_block)
 			needs_seig = GF_TRUE;
 		else if (tkw->def_cenc_key_info_crc != tkw->cenc_key_info_crc)
 			needs_seig = GF_TRUE;
 
 		if (needs_seig) {
-			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, sample_num, 1, crypt_byte_block, skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
+			e = gf_isom_set_sample_cenc_group(ctx->file, tkw->track_num, sample_num, 1, tkw->crypt_byte_block, tkw->skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
 			tkw->has_seig = GF_TRUE;
 		} else if (tkw->has_seig) {
 			e = gf_isom_set_sample_cenc_default_group(ctx->file, tkw->track_num, sample_num);
