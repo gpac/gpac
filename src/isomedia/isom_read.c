@@ -561,10 +561,21 @@ GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 
 
 GF_EXPORT
-GF_Err gf_isom_write(GF_ISOFile *movie) {
+GF_Err gf_isom_write(GF_ISOFile *movie)
+{
 	GF_Err e;
 	if (movie == NULL) return GF_ISOM_INVALID_FILE;
 	e = GF_OK;
+
+	//update duration of each track
+	if (movie->moov) {
+		u32 i, count = gf_list_count(movie->moov->trackList);
+		for (i=0; i<count; i++) {
+			GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+			e = SetTrackDuration(trak);
+			if (e) return e;
+		}
+	}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	//write our movie to the file

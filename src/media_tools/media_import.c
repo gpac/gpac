@@ -282,6 +282,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	gf_set_progress("Importing SC3DMC", 1, 1);
 
 	gf_isom_sample_del(&samp);
+	gf_isom_update_duration(import->dest);
 
 exit:
 	gf_free(data);
@@ -741,6 +742,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			if (e) goto exit;
 		}
 	}
+	gf_isom_update_duration(import->dest);
 
 exit:
 	if (sai_buffer) gf_free(sai_buffer);

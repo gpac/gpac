@@ -2044,7 +2044,7 @@ are of same sizes (typically in 3GP speech tracks)
 */
 GF_Err gf_isom_refresh_size_info(GF_ISOFile *isom_file, u32 trackNumber);
 
-/*! updates the duration of the movie
+/*! updates the duration of the movie.This is done automatically when storing the file or editing timesales/edit list, but it is not done when adding samples.
 \param isom_file the target ISO file
 \return error if any
 */

@@ -994,6 +994,7 @@ force_scene_rap:
 			esd = NULL;
 		}
 	}
+	gf_isom_update_duration(mp4);
 
 	/*to do - proper PL setup according to node used...*/
 	gf_isom_set_pl_indication(mp4, GF_ISOM_PL_SCENE, 1);
@@ -1368,6 +1369,8 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			rap_codec = NULL;
 		}
 	}
+	gf_isom_update_duration(mp4);
+
 	e = gf_isom_set_pl_indication(mp4, GF_ISOM_PL_OD, 1);
 
 err_exit:
