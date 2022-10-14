@@ -438,7 +438,7 @@ function update_play()
 
 	h = Math.floor(last_ts/3600);
 	m = Math.floor(last_ts/60 - h*60);
-	s = Math.floor(last_ts - h*360) - m*60;
+	s = Math.floor(last_ts - h*3600) - m*60;
 	let str = reverse ? '-' : ' ';
 
 	if (duration>=3600) {
