@@ -7773,7 +7773,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) return GF_OK;
-			u64 ts = gf_filter_pck_get_cts(pck) + ds->pts_minus_cts;
+			u64 ts = gf_filter_pck_get_cts(pck);
+			//only adjust if delay is negative (skip), otherwise (delay) keep mints as is.
+			//Not doing so will set the rep PTO to the delay, canceling the delay ...
+			if (ds->pts_minus_cts<0)
+				ts = ts + ds->pts_minus_cts;
 			if (!min_ts || gf_timestamp_less(ts, ds->timescale, min_ts, min_timescale)) {
 				min_ts = ts;
 				min_timescale = ds->timescale;
