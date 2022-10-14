@@ -4100,6 +4100,18 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 	return GF_OK;
 }
 
+// Selected (namespace,identifier) pairs from https://www.w3.org/TR/ttml-profile-registry/
+// ordered in decreasing order of preference
+static const char *ttml_namespaces[] = {
+	"im3t", "http://www.w3.org/ns/ttml/profile/imsc1.2/text",
+	"im2t", "http://www.w3.org/ns/ttml/profile/imsc1.1/text",
+	"im2i", "http://www.w3.org/ns/ttml/profile/imsc1.1/image",
+	"im1t", "http://www.w3.org/ns/ttml/profile/imsc1/text",
+	"im1i", "http://www.w3.org/ns/ttml/profile/imsc1/image"
+};
+static const int TTML_NAMESPACES_COUNT = GF_ARRAY_LENGTH(ttml_namespaces);
+
+
 GF_Err rfc_6381_get_codec_stpp(char *szCodec, u32 subtype,
                                const char *xmlnamespace,
                                const char *xml_schema_loc,
@@ -4108,16 +4120,6 @@ GF_Err rfc_6381_get_codec_stpp(char *szCodec, u32 subtype,
     // we ignore schema location and auxiliary mime types
     // we focus on the provided list of namespaces
     if (xmlnamespace != NULL) {
-        // Selected (namespace,identifier) pairs from https://www.w3.org/TR/ttml-profile-registry/
-        // ordered in decreasing order of preference
-        const int TTML_NAMESPACES_COUNT = 10;
-        char *ttml_namespaces[TTML_NAMESPACES_COUNT] = {
-            "im3t", "http://www.w3.org/ns/ttml/profile/imsc1.2/text",
-            "im2t", "http://www.w3.org/ns/ttml/profile/imsc1.1/text",
-            "im2i", "http://www.w3.org/ns/ttml/profile/imsc1.1/image",
-            "im1t", "http://www.w3.org/ns/ttml/profile/imsc1/text",
-            "im1i", "http://www.w3.org/ns/ttml/profile/imsc1/image"
-        };
         int i;
         for (i = 0; i < TTML_NAMESPACES_COUNT; i+=2) {
             if(strstr(xmlnamespace, ttml_namespaces[i+1]) != NULL) {
