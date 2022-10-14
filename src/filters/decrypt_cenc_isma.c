@@ -2012,6 +2012,8 @@ static Bool cenc_dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			cenc_dec_access_isma(ctx, cstr, is_play);
 		}
+		if (!is_play)
+			cstr->crypt_init = GF_FALSE;
 		break;
 	default:
 		break;
