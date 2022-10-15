@@ -305,7 +305,7 @@ EOF
 cat << EOF
 
 Features for libgpac configuration:
-Feature FOO can be enabled with --enable-FOO or disabled with --enable-FOO
+Feature FOO can be enabled with --enable-FOO or disabled with --disable-FOO
 EOF
 
 idx=1
