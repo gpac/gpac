@@ -114,6 +114,13 @@ static void animationstream_activate(AnimationStreamStack *stack, M_AnimationStr
 
 static void animationstream_deactivate(AnimationStreamStack *stack, M_AnimationStream *as)
 {
+	Bool no_redraw = GF_FALSE;
+	//if dynamic root scene and this no more active streams, do not force a redraw
+	if (stack->stream && stack->stream->odm && stack->compositor->root_scene->is_dynamic_scene) {
+		if (!gf_list_count(stack->compositor->systems_pids))
+			no_redraw = GF_TRUE;
+	}
+	
 	if (as->isActive) {
 		as->isActive = 0;
 		gf_node_event_out((GF_Node*)as, 6/*"isActive"*/);
@@ -124,7 +131,8 @@ static void animationstream_deactivate(AnimationStreamStack *stack, M_AnimationS
 		gf_mo_stop(&stack->stream);
 	}
 	stack->time_handle.needs_unregister = 1;
-	gf_sc_invalidate(stack->compositor, NULL);
+	if (!no_redraw)
+		gf_sc_invalidate(stack->compositor, NULL);
 }
 
 static void animationstream_update_time(GF_TimeNode *st)

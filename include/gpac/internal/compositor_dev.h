@@ -308,8 +308,8 @@ struct __tag_compositor
 	s32 subtx, subty, subd, audd;
 	u32 subfs;
 
-	u64 hint_extra_scene_cts;
-	u32 hint_extra_scene_dur;
+	u64 hint_extra_scene_cts_plus_one;
+	u32 hint_extra_scene_dur_plus_one;
 
 	/*display size*/
 	u32 display_width, display_height;

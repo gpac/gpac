@@ -3060,13 +3060,13 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					}
 					gf_filter_pck_set_cts(pck, frame_ts);
 
-					if (compositor->hint_extra_scene_cts) {
-						gf_filter_pck_set_cts(pck, compositor->hint_extra_scene_cts);
-						compositor->hint_extra_scene_cts = 0;
+					if (compositor->hint_extra_scene_cts_plus_one) {
+						gf_filter_pck_set_cts(pck, compositor->hint_extra_scene_cts_plus_one-1);
+						compositor->hint_extra_scene_cts_plus_one = 0;
 					}
-					if (compositor->hint_extra_scene_dur) {
-						gf_filter_pck_set_duration(pck, compositor->hint_extra_scene_dur);
-						compositor->hint_extra_scene_dur = 0;
+					if (compositor->hint_extra_scene_dur_plus_one) {
+						gf_filter_pck_set_duration(pck, compositor->hint_extra_scene_dur_plus_one-1);
+						compositor->hint_extra_scene_dur_plus_one = 0;
 					}
 				}
 			}
@@ -4269,8 +4269,8 @@ Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid 
 	if (scene->compositor->vfr) {
 		u32 ts = scene->compositor->timescale;
 		if (!ts) ts = scene->compositor->fps.num;
-		scene->compositor->hint_extra_scene_cts = gf_timestamp_rescale(cts_in_ms, 1000, ts);
-		scene->compositor->hint_extra_scene_dur = gf_timestamp_rescale(dur_in_ms, 1000, ts);
+		scene->compositor->hint_extra_scene_cts_plus_one = 1 + gf_timestamp_rescale(cts_in_ms, 1000, ts);
+		scene->compositor->hint_extra_scene_dur_plus_one = 1 + gf_timestamp_rescale(dur_in_ms, 1000, ts);
 	}
 	return GF_TRUE;
 }
