@@ -115,7 +115,7 @@ function parseCueSettings(cueSettings){
 		if (compositeCueSettings.line.match(/\%/)) {
 			obj.linePosition = parseFloat(compositeCueSettings.line.replace(/\%/ig,""));
 			if (isNaN(obj.linePosition)) {
-				obj.linePosition = nbCues*lineSpaceFactor*fontSize;
+				obj.linePosition = (nbCues + 0.5) * lineSpaceFactor*fontSize;
 			} else {
 				if (obj.linePosition<0) obj.linePosition=100;
 				else if (obj.linePosition>100) obj.linePosition=100;
@@ -126,7 +126,7 @@ function parseCueSettings(cueSettings){
 		} else {
 			obj.linePosition = parseFloat(compositeCueSettings.line);
 			if (isNaN(obj.linePosition)) {
-				obj.linePosition = nbCues*lineSpaceFactor*fontSize;
+				obj.linePosition = (nbCues + 0.5) * lineSpaceFactor*fontSize;
 			} else {
 				let h = (height - 2*fontSize) / lineSpaceFactor*fontSize;
 				obj.linePosition *= lineSpaceFactor*fontSize;
@@ -138,7 +138,7 @@ function parseCueSettings(cueSettings){
 			}
 		}
 	} else {
-		obj.linePosition = nbCues*lineSpaceFactor*fontSize;
+		obj.linePosition = (nbCues + 0.5) * lineSpaceFactor*fontSize;
 	}
 
 	let position_auto=true;

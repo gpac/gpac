@@ -438,14 +438,19 @@ static GF_Err vttd_process(GF_Filter *filter)
 		return GF_OK;
 
 	if (ctx->cue_end) {
+		u64 old_cue_end = ctx->cue_end;
 		u32 obj_time = gf_clock_time(ctx->odm->ck);
 		if (gf_clock_diff(ctx->odm->ck, obj_time, (u32) ctx->cue_end)<=0) {
 			vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
 			ctx->cue_end = 0;
 		}
 		if (!pck) {
-			if (ctx->cue_end && gf_filter_pid_is_eos(ctx->ipid))
-				gf_sc_sys_frame_pending(ctx->scene->compositor, (u32) ctx->cue_end, obj_time, filter);
+			if (gf_filter_pid_is_eos(ctx->ipid)) {
+				if (ctx->cue_end)
+					gf_sc_sys_frame_pending(ctx->scene->compositor, (u32) ctx->cue_end, obj_time, filter);
+				else
+					gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, old_cue_end, 0);
+			}
 			return GF_OK;
 		}
 	}
