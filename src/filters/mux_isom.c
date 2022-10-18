@@ -672,6 +672,43 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		tag_idx = gf_itags_find_by_name(tag_name);
 		if (tag_idx>=0) {
 			itag = gf_itags_get_itag(tag_idx);
+		} else if (!strnicmp(tag_name, "qtt_", 4)) {
+			tag_name += 4;
+
+			switch (tag->type) {
+			case GF_PROP_DATA:
+			case GF_PROP_CONST_DATA:
+			case GF_PROP_DATA_NO_COPY:
+			{
+				GF_QT_UDTAKey key;
+				key.type = GF_QT_KEY_OPAQUE;
+				key.name = tag_name;
+				key.ns = GF_4CC('m','d','t','a');
+				char *sep = strchr(tag_name, '@');
+				if (sep) {
+					key.name = sep+1;
+					key.ns = GF_4CC(tag_name[0], tag_name[1],tag_name[2],tag_name[3]);
+				}
+				key.value.data.data = tag->value.data.ptr;
+				key.value.data.data_len = tag->value.data.size;
+				e = gf_isom_set_qt_key(ctx->file, &key);
+			}
+				break;
+			case GF_PROP_POINTER:
+				e = GF_NOT_SUPPORTED;
+				break;
+			default:
+			{
+				char szDump[GF_PROP_DUMP_ARG_SIZE];
+				const char *str = gf_props_dump_val(tag, szDump, GF_PROP_DUMP_DATA_NONE, NULL);
+				e = gf_media_isom_apply_qt_key(ctx->file, tag_name, str);
+			}
+				break;
+			}
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set QT tag: %s\n", gf_error_to_string(e)));
+			}
+			continue;
 		} else {
 			if (ctx->itags==TAG_STRICT)
 				continue;
@@ -7372,6 +7409,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"# Tagging\n"
 	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming PID.\n"
 	"The built-in tag names are indicated by `MP4Box -h tags`.\n"
+	"QT tags can be specified using `qtt_NAME` property names, and will be added using formatting specified in `MP4Box -h tags`.\n"
 	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-tags]() is set to `all` using:\n"
 	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
 	"- `NAME` as a box 4CC if `NAME` is 3 characters long, and will be prefixed by 0xA9\n"

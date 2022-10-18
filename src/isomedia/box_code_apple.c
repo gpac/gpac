@@ -364,7 +364,7 @@ GF_Err wide_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
+GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, u32 meta_type)
 {
 	u32 i;
 	GF_UserDataMap *map;
@@ -372,26 +372,31 @@ GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 	if (!mov || !mov->moov) return NULL;
 
 	if (!mov->moov->udta) return NULL;
-	map = udta_getEntry(mov->moov->udta, for_xtra ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META, NULL);
+	map = udta_getEntry(mov->moov->udta, (meta_type==1) ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META, NULL);
 	if (!map) return NULL;
 
 	for(i = 0; i < gf_list_count(map->boxes); i++) {
 		GF_MetaBox *meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
-		if (for_xtra && (meta->type==GF_ISOM_BOX_TYPE_XTRA)) return (GF_Box *) meta;
+		if ((meta_type==1) && (meta->type==GF_ISOM_BOX_TYPE_XTRA)) return (GF_Box *) meta;
 
-		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return (GF_Box *) meta;
+		if (meta && meta->handler) {
+			if ( (meta_type==0) && (meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR))
+				return (GF_Box *) meta;
+			if ( (meta_type==2) && (meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDTA))
+				return (GF_Box *) meta;
+		}
 	}
 	return NULL;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
+GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, u32 meta_type)
 {
 	GF_Err e;
 	u32 i;
 	GF_MetaBox *meta;
 	GF_UserDataMap *map;
-	u32 udta_subtype = for_xtra ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META;
+	u32 udta_subtype = (meta_type==1) ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META;
 
 	if (!mov || !mov->moov) return NULL;
 
@@ -404,9 +409,12 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 	if (map) {
 		for (i=0; i<gf_list_count(map->boxes); i++) {
 			meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
-			if (for_xtra) return (GF_Box *) meta;
+			if (meta_type==1) return (GF_Box *) meta;
 
-			if (meta && meta->handler && (meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR)) return (GF_Box *) meta;
+			if (meta && meta->handler) {
+				if ((meta_type==0) && (meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR)) return (GF_Box *) meta;
+				if ((meta_type==2) && (meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDTA)) return (GF_Box *) meta;
+			}
 		}
 	}
 
@@ -415,13 +423,13 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 
 	if (meta) {
 		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE);
-		if (!for_xtra) {
+		if (meta_type!=1) {
 			meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 			if(meta->handler == NULL) {
 				gf_isom_box_del((GF_Box *)meta);
 				return NULL;
 			}
-			meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
+			meta->handler->handlerType = (meta_type==2) ? GF_ISOM_HANDLER_TYPE_MDTA : GF_ISOM_HANDLER_TYPE_MDIR;
 			gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
 		}
 	}
@@ -972,5 +980,91 @@ GF_Err load_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+void keys_box_del(GF_Box *s)
+{
+	GF_MetaKeysBox *ptr = (GF_MetaKeysBox *)s;
+	if (ptr == NULL) return;
+	while (gf_list_count(ptr->keys)) {
+		GF_MetaKey *k = gf_list_pop_back(ptr->keys);
+		if (k->data) gf_free(k->data);
+		gf_free(k);
+	}
+	gf_list_del(ptr->keys);
+	gf_free(ptr);
+}
+
+GF_Err keys_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i, nb_keys;
+	GF_MetaKeysBox *ptr = (GF_MetaKeysBox *)s;
+
+	ISOM_DECREASE_SIZE(ptr, 4);
+	nb_keys = gf_bs_read_u32(bs);
+	for (i=0; i<nb_keys; i++) {
+		GF_MetaKey *k;
+		ISOM_DECREASE_SIZE(ptr, 8);
+		u32 ksize = gf_bs_read_u32(bs);
+		if (ksize<8) return GF_ISOM_INVALID_FILE;
+		u32 ns = gf_bs_read_u32(bs);
+		ISOM_DECREASE_SIZE(ptr, ksize-8);
+		GF_SAFEALLOC(k, GF_MetaKey);
+		if (!k) return GF_OUT_OF_MEM;
+		gf_list_add(ptr->keys, k);
+		k->ns = ns;
+		k->size = ksize-8;
+		k->data = gf_malloc(k->size+1);
+		if (!k->data) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, k->data, k->size);
+		k->data[k->size]=0;
+	}
+	return GF_OK;
+}
+
+GF_Box *keys_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MetaKeysBox, GF_ISOM_BOX_TYPE_KEYS);
+	tmp->keys = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err keys_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i, nb_keys;
+	GF_MetaKeysBox *ptr = (GF_MetaKeysBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	nb_keys = gf_list_count(ptr->keys);
+	gf_bs_write_u32(bs, nb_keys);
+	for (i=0; i<nb_keys; i++) {
+		GF_MetaKey *k = gf_list_get(ptr->keys, i);
+		gf_bs_write_u32(bs, k->size+8);
+		gf_bs_write_u32(bs, k->ns);
+		if (k->data)
+			gf_bs_write_data(bs, k->data, k->size);
+	}
+	return GF_OK;
+}
+
+
+GF_Err keys_box_size(GF_Box *s)
+{
+	u32 i, nb_keys;
+	GF_MetaKeysBox *ptr = (GF_MetaKeysBox *)s;
+	ptr->size += 4;
+	nb_keys = gf_list_count(ptr->keys);
+	for (i=0; i<nb_keys; i++) {
+		GF_MetaKey *k = gf_list_get(ptr->keys, i);
+		if (!k->data) k->size = 0;
+		ptr->size += 8 + k->size;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM*/

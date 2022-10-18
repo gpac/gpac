@@ -6241,6 +6241,215 @@ GF_Err gf_isom_wma_set_tag(GF_ISOFile *mov, char *name, char *value)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
+{
+	GF_Err e;
+	GF_MetaBox *meta;
+	GF_ItemListBox *ilst;
+	GF_MetaKeysBox *keys;
+	u32 i, nb_keys;
+
+	if (!movie) return GF_BAD_PARAM;
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) {
+		gf_isom_set_last_error(movie, e);
+		return 0;
+	}
+	e = gf_isom_insert_moov(movie);
+	if (e) return e;
+
+	meta = (GF_MetaBox *) gf_isom_create_meta_extensions(movie, 2);
+	if (!meta) return GF_BAD_PARAM;
+
+	keys = (GF_MetaKeysBox *) gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_KEYS, NULL);
+	if (!keys) {
+		keys = (GF_MetaKeysBox *) gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_KEYS);
+		meta->keys = keys;
+	}
+	ilst = (GF_ItemListBox *) gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
+	if (!ilst) {
+		ilst = (GF_ItemListBox *) gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
+	}
+	if (!keys || !ilst) return GF_OUT_OF_MEM;
+
+	nb_keys = gf_list_count(keys->keys);
+	if (!key) {
+		u32 i, nb_keys = gf_list_count(keys->keys);
+		gf_isom_box_del_parent(&meta->child_boxes, (GF_Box *) keys);
+		for (i=0; i<gf_list_count(ilst->child_boxes); i++) {
+			GF_ListItemBox *info = gf_list_get(ilst->child_boxes, i);
+			if (info->type <= nb_keys) {
+				gf_isom_box_del_parent(&ilst->child_boxes, (GF_Box *) info);
+				i--;
+			}
+		}
+		if (!gf_list_count(ilst->child_boxes)) {
+			gf_isom_box_del_parent(&meta->child_boxes, (GF_Box *) ilst);
+			//if last, delete udta - we may still have a handler box remaining
+			if ((gf_list_count(meta->child_boxes) <= 1) && (gf_list_count(movie->moov->udta->recordList)==1)) {
+				gf_isom_box_del_parent(&movie->moov->child_boxes, (GF_Box *) movie->moov->udta);
+				movie->moov->udta = NULL;
+			}
+		}
+		return GF_OK;
+	}
+	//locate key
+	GF_MetaKey *o_key = NULL;
+	u32 ksize = (u32) strlen(key->name);
+	for (i=0; i<nb_keys; i++) {
+		o_key = gf_list_get(keys->keys, i);
+		if ((o_key->ns == key->ns) && (o_key->size==ksize) && !strcmp(o_key->data, key->name))
+			break;
+		o_key = NULL;
+	}
+	if (!o_key) {
+		if (key->type==GF_QT_KEY_REMOVE) return GF_OK;
+		GF_SAFEALLOC(o_key, GF_MetaKey);
+		o_key->ns = key->ns;
+		o_key->data = gf_strdup(key->name);
+		o_key->size = ksize;
+		gf_list_add(keys->keys, o_key);
+	}
+	u32 key_idx = gf_list_find(keys->keys, o_key)+1;
+	GF_UnknownBox *info=NULL;
+	for (i=0; i<gf_list_count(ilst->child_boxes); i++) {
+		info = gf_list_get(ilst->child_boxes, i);
+		if (info->original_4cc == key_idx) break;
+		info = NULL;
+	}
+
+	if (key->type==GF_QT_KEY_REMOVE) {
+		gf_list_del_item(keys->keys, o_key);
+		if (o_key->data) gf_free(o_key->data);
+		gf_free(o_key);
+		for (i=0; i<gf_list_count(ilst->child_boxes); i++) {
+			info = gf_list_get(ilst->child_boxes, i);
+			if (info->type!=GF_ISOM_BOX_TYPE_UNKNOWN) continue;
+			if (info->original_4cc==key_idx) {
+				gf_isom_box_del_parent(&ilst->child_boxes, (GF_Box *)info);
+				i--;
+				continue;
+			}
+			if (info->original_4cc>key_idx) {
+				info->original_4cc--;
+			}
+		}
+		return GF_OK;
+	}
+	if (!info) {
+		info = (GF_UnknownBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_UNKNOWN);
+		if (!info) return GF_OUT_OF_MEM;
+		if (!ilst->child_boxes) ilst->child_boxes = gf_list_new();
+		gf_list_add(ilst->child_boxes, info);
+	}
+
+	GF_DataBox *dbox = (GF_DataBox *) gf_isom_box_find_child(info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+	if (!dbox) {
+		dbox = (GF_DataBox *)gf_isom_box_new_parent(&info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+		if (!dbox) {
+			gf_isom_box_del((GF_Box *)info);
+			return GF_OUT_OF_MEM;
+		}
+	}
+	u32 nb_bits=0;
+	info->original_4cc = key_idx;
+	dbox->version = 0;
+	dbox->flags = key->type;
+	//serialize
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	switch (key->type) {
+	case GF_QT_KEY_UTF8:
+	case GF_QT_KEY_UTF8_SORT:
+		if (key->value.string)
+			gf_bs_write_data(bs, key->value.string, strlen(key->value.string));
+		break;
+
+	case GF_QT_KEY_SIGNED_VSIZE:
+		if (ABS(key->value.sint)<=0x7F) nb_bits=8;
+		else if (ABS(key->value.sint)<=0x7FFF) nb_bits=16;
+		else if (ABS(key->value.sint)<=0x7FFFFF) nb_bits=24;
+		else nb_bits = 32;
+		gf_bs_write_int(bs, key->value.sint, nb_bits);
+		break;
+	case GF_QT_KEY_UNSIGNED_VSIZE:
+		if (key->value.uint<=0xFF) nb_bits=8;
+		else if (key->value.uint<=0xFFFF) nb_bits=16;
+		else if (key->value.uint<=0xFFFFFF) nb_bits=24;
+		else nb_bits = 32;
+		gf_bs_write_int(bs, key->value.uint, nb_bits);
+		break;
+	case GF_QT_KEY_FLOAT:
+		gf_bs_write_float(bs, key->value.number);
+		break;
+	case GF_QT_KEY_DOUBLE:
+		gf_bs_write_double(bs, key->value.number);
+		break;
+	case GF_QT_KEY_SIGNED_8:
+		gf_bs_write_int(bs, key->value.sint, 8);
+		break;
+	case GF_QT_KEY_SIGNED_16:
+		gf_bs_write_int(bs, key->value.sint, 16);
+		break;
+	case GF_QT_KEY_SIGNED_32:
+		gf_bs_write_int(bs, key->value.sint, 32);
+		break;
+	case GF_QT_KEY_SIGNED_64:
+		gf_bs_write_long_int(bs, key->value.sint, 64);
+		break;
+	case GF_QT_KEY_POINTF:
+	case GF_QT_KEY_SIZEF:
+		gf_bs_write_float(bs, key->value.pos_size.x);
+		gf_bs_write_float(bs, key->value.pos_size.y);
+		break;
+	case GF_QT_KEY_RECTF:
+		gf_bs_write_float(bs, key->value.rect.x);
+		gf_bs_write_float(bs, key->value.rect.y);
+		gf_bs_write_float(bs, key->value.rect.w);
+		gf_bs_write_float(bs, key->value.rect.h);
+		break;
+
+	case GF_QT_KEY_UNSIGNED_8:
+		gf_bs_write_int(bs, key->value.uint, 8);
+		break;
+	case GF_QT_KEY_UNSIGNED_16:
+		gf_bs_write_int(bs, key->value.uint, 16);
+		break;
+	case GF_QT_KEY_UNSIGNED_32:
+		gf_bs_write_int(bs, key->value.uint, 32);
+		break;
+	case GF_QT_KEY_UNSIGNED_64:
+		gf_bs_write_long_int(bs, key->value.uint, 64);
+		break;
+	case GF_QT_KEY_MATRIXF:
+		for (i=0; i<9; i++)
+			gf_bs_write_float(bs, key->value.matrix[i] );
+		break;
+
+	case GF_QT_KEY_OPAQUE:
+	case GF_QT_KEY_UTF16_BE:
+	case GF_QT_KEY_JIS:
+	case GF_QT_KEY_UTF16_SORT:
+	case GF_QT_KEY_JPEG:
+	case GF_QT_KEY_PNG:
+	case GF_QT_KEY_BMP:
+	case GF_QT_KEY_METABOX:
+	default:
+		gf_bs_write_data(bs, key->value.data.data, key->value.data.data_len);
+		break;
+	}
+	//write extra 0 at end, not serialized
+	gf_bs_write_u8(bs, 0);
+	if (dbox->data) gf_free(dbox->data);
+
+	gf_bs_get_content(bs, &dbox->data, &i);
+	if (i) i--;
+	dbox->dataSize = i;
+	gf_bs_del(bs);
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_set_alternate_group_id(GF_ISOFile *movie, u32 trackNumber, u32 groupId)

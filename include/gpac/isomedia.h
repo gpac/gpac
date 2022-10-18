@@ -6424,6 +6424,7 @@ typedef enum
 	GF_ISOM_ITUNE_THANKS	 	= GF_4CC( 0xA9, 't', 'h', 'x' ),
 	GF_ISOM_ITUNE_ONLINE	 	= GF_4CC( 0xA9, 'u', 'r', 'l' ),
 	GF_ISOM_ITUNE_EXEC_PRODUCER	= GF_4CC( 0xA9, 'x', 'p', 'd' ),
+	GF_ISOM_ITUNE_LOCATION	 	= GF_4CC( 0xA9, 'x', 'y', 'z' ),
 
 
 	GF_ISOM_ITUNE_ITUNES_DATA 	= GF_4CC( '-', '-', '-', '-' ),
@@ -6482,6 +6483,99 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *isom_file, u32 idx, GF_ISOiTunesTag *o
 */
 GF_Err gf_isom_wma_enum_tag(GF_ISOFile *isom_file, u32 idx, char **out_tag, const u8 **data, u32 *data_len, u32 *version, u32 *data_type);
 
+/*! QT key types */
+typedef enum
+{
+	GF_QT_KEY_OPAQUE=0,
+	GF_QT_KEY_UTF8=1,
+	GF_QT_KEY_UTF16_BE=2,
+	GF_QT_KEY_JIS=3,
+	GF_QT_KEY_UTF8_SORT=4,
+	GF_QT_KEY_UTF16_SORT=5,
+	GF_QT_KEY_JPEG=13,
+	GF_QT_KEY_PNG=14,
+	GF_QT_KEY_SIGNED_VSIZE=21,
+	GF_QT_KEY_UNSIGNED_VSIZE=22,
+	GF_QT_KEY_FLOAT=23,
+	GF_QT_KEY_DOUBLE=24,
+	GF_QT_KEY_BMP=27,
+	GF_QT_KEY_METABOX=28,
+	GF_QT_KEY_SIGNED_8=65,
+	GF_QT_KEY_SIGNED_16=66,
+	GF_QT_KEY_SIGNED_32=67,
+	GF_QT_KEY_POINTF=70,
+	GF_QT_KEY_SIZEF=71,
+	GF_QT_KEY_RECTF=72,
+	GF_QT_KEY_SIGNED_64=74,
+	GF_QT_KEY_UNSIGNED_8=75,
+	GF_QT_KEY_UNSIGNED_16=76,
+	GF_QT_KEY_UNSIGNED_32=77,
+	GF_QT_KEY_UNSIGNED_64=78,
+	GF_QT_KEY_MATRIXF=79,
+
+	//used to remove a key
+	GF_QT_KEY_REMOVE=0xFFFFFFFF
+} GF_QTKeyType;
+
+
+/*! QT userdata key*/
+typedef struct
+{
+	/*! key name*/
+	const char *name;
+	/*! key namespace 4CC*/
+	u32 ns;
+
+	/*! key type*/
+	GF_QTKeyType type;
+	union {
+		/*! UTF-8 string, for GF_QT_KEY_UTF8 and GF_QT_KEY_UTF8_SORT */
+		const char *string;
+		/*! data, for unsupported types, image types, UTF16 types and metabox */
+		struct _tag_data {
+			/*! data */
+			const u8 *data;
+			/*! size */
+			u32 data_len;
+		} data;
+		/*! unsigned integer value*/
+		u64 uint;
+		/*! signed integer value*/
+		s64 sint;
+		/*! number value for GF_QT_KEY_FLOAT and GF_QT_KEY_DOUBLE*/
+		Double number;
+		/*! 2D float value, for GF_QT_KEY_POINTF and GF_QT_KEY_SIZEFF*/
+		struct _tag_vec2 {
+			/*! x-coord*/
+			Float x;
+			/*! y-coord*/
+			Float y;
+		} pos_size;
+		/*! 4D value, for GF_QT_KEY_RECTF*/
+		struct _tag_rec {
+			/*! x-coord*/
+			Float x;
+			/*! y-coord*/
+			Float y;
+			/*! width*/
+			Float w;
+			/*! height*/
+			Float h;
+		} rect;
+		/*! 2x3 matrix */
+		Double matrix[9];
+	} value;
+} GF_QT_UDTAKey;
+
+/*! enumerate QT keys tags.
+
+\param isom_file the target ISO file
+\param idx 0-based index of the tag to get
+\param out_key key to be filled with key at given index
+\return error if any (GF_URL_ERROR if no more tags)
+*/
+GF_Err gf_isom_enum_udta_keys(GF_ISOFile *isom_file, u32 idx, GF_QT_UDTAKey *out_key);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*! sets the given tag info.
 
@@ -6505,6 +6599,12 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u
 */
 GF_Err gf_isom_wma_set_tag(GF_ISOFile *isom_file, char *name, char *value);
 
+/*! sets key (QT style metadata)
+\param isom_file the target ISO file
+\param key the key to use. if NULL, removes ALL keys
+\return error if any
+*/
+GF_Err gf_isom_set_qt_key(GF_ISOFile *isom_file, GF_QT_UDTAKey *key);
 
 /*! sets compatibility tag on AVC tracks (needed by iPod to play files... hurray for standards)
 \param isom_file the target ISO file

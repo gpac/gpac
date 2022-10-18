@@ -2225,14 +2225,14 @@ static char *format_date(u64 time, char *szTime)
 	return szTime;
 }
 
-void print_udta(GF_ISOFile *file, u32 track_number, Bool has_itags)
+void print_udta(GF_ISOFile *file, u32 track_number, Bool has_meta_tags)
 {
 	u32 i, count;
 
 	count =  gf_isom_get_udta_count(file, track_number);
 	if (!count) return;
 
-	if (has_itags) {
+	if (has_meta_tags) {
 		for (i=0; i<count; i++) {
 			u32 type;
 			bin128 uuid;
@@ -2254,18 +2254,32 @@ void print_udta(GF_ISOFile *file, u32 track_number, Bool has_itags)
 		nb_items = gf_isom_get_user_data_count(file, track_number, type, uuid);
 		if (!nb_items) continue;
 
-		fprintf(stderr, "\n\t%s: ", gf_4cc_to_str(type));
+		s32 itag = gf_itags_find_by_itag(type);
+
+		fprintf(stderr, "\n\t%s: ", (itag<0) ? gf_4cc_to_str(type) : gf_itags_get_name(itag));
 		for (j=0; j<nb_items; j++) {
-			u8 *udta=NULL;
+			u8 *udta=NULL, *str;
 			u32 udta_size;
 			gf_isom_get_user_data(file, track_number, type, uuid, j+1, &udta, &udta_size);
 			if (!udta) continue;
 			if (j) fprintf(stderr, ", ");
-			if (udta_size && gf_utf8_is_legal(udta, udta_size)) {
+
+			str = udta;
+			if (itag>=0) {
+				u32 s = udta[0];
+				s <<= 8;
+				s |= udta[1];
+				if (s+4 == udta_size) {
+					udta_size = s;
+					str = udta+4;
+				}
+			}
+
+			if (udta_size && gf_utf8_is_legal(str, udta_size)) {
 				u32 idx;
 				for (idx=0; idx<udta_size; idx++) {
-					if (!udta[idx]) break;
-					fprintf(stderr, "%c", udta[idx]);
+					if (!str[idx]) break;
+					fprintf(stderr, "%c", str[idx]);
 				}
 			} else {
 				fprintf(stderr, " unknown type (%d bytes)", udta_size);
@@ -3849,7 +3863,7 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 	u32 i, brand, min, timescale, count, data_len;
 	const u8 *data;
 	u64 create, modif;
-	Bool has_itags = GF_FALSE;
+	Bool has_meta_tags = GF_FALSE;
 	char szDur[50];
 
 	DumpMetaItem(file, 1, 0, "# File Meta");
@@ -3957,8 +3971,8 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 	}
 
 	if (gf_isom_apple_get_tag(file, 0, &data, &data_len) == GF_OK) {
-		has_itags = GF_TRUE;
-		fprintf(stderr, "\niTunes Info:\n");
+		has_meta_tags = GF_TRUE;
+		fprintf(stderr, "\nMeta-Data Tags:\n");
 
 		i=0;
 		while (1) {
@@ -4010,6 +4024,61 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 			fprintf(stderr, "\n");
 		}
 	}
+
+	i=0;
+	while (1) {
+		GF_QT_UDTAKey key;
+		u32 j;
+		GF_Err e = gf_isom_enum_udta_keys(file, i, &key);
+		if (e) break;
+		if (!i && !has_meta_tags) {
+			fprintf(stderr, "\nMeta-Data Tags:\n");
+		}
+		has_meta_tags=GF_TRUE;
+		i++;
+		fprintf(stderr, "\t%s", key.name);
+		if (key.ns && (key.ns!=GF_4CC('m','d','t','a')))
+			fprintf(stderr, " (ns %s)", gf_4cc_to_str(key.ns));
+		fprintf(stderr, ": ");
+		switch (key.type) {
+		case GF_QT_KEY_PNG: fprintf(stderr, "PNG Image (%d bytes)", key.value.data.data_len); break;
+		case GF_QT_KEY_JPEG: fprintf(stderr, "JPG Image (%d bytes)", key.value.data.data_len); break;
+		case GF_QT_KEY_BMP: fprintf(stderr, "BMP Image (%d bytes)", key.value.data.data_len); break;
+		case GF_QT_KEY_UTF8:
+		case GF_QT_KEY_UTF8_SORT: fprintf(stderr, "%s", key.value.string); break;
+
+		case GF_QT_KEY_FLOAT:
+		case GF_QT_KEY_DOUBLE:
+			fprintf(stderr, "%g", key.value.number); break;
+
+		case GF_QT_KEY_SIGNED_8:
+		case GF_QT_KEY_SIGNED_16:
+		case GF_QT_KEY_SIGNED_32:
+		case GF_QT_KEY_SIGNED_64:
+		case GF_QT_KEY_SIGNED_VSIZE:
+			fprintf(stderr, LLD, key.value.sint); break;
+		case GF_QT_KEY_UNSIGNED_8:
+		case GF_QT_KEY_UNSIGNED_16:
+		case GF_QT_KEY_UNSIGNED_32:
+		case GF_QT_KEY_UNSIGNED_64:
+		case GF_QT_KEY_UNSIGNED_VSIZE:
+			fprintf(stderr, LLU, key.value.uint); break;
+		case GF_QT_KEY_POINTF:
+		case GF_QT_KEY_SIZEF:
+			fprintf(stderr, "%gx%g", key.value.pos_size.x, key.value.pos_size.y); break;
+		case GF_QT_KEY_RECTF:
+			fprintf(stderr, "%gx%g@%gx%g", key.value.rect.x, key.value.rect.y, key.value.rect.w, key.value.rect.h); break;
+		case GF_QT_KEY_MATRIXF:
+			for (j=0; j<9; j++) {
+				fprintf(stderr, " %g", key.value.matrix[j]);
+			}
+			break;
+		default:
+			fprintf(stderr, "type %d size %d", key.type, key.value.data.data_len); break;
+		}
+		fprintf(stderr, "\n");
+	}
+
 	i=0;
 	while (1) {
 		u32 type, version;
@@ -4041,7 +4110,7 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 	}
 
 
-	print_udta(file, 0, has_itags);
+	print_udta(file, 0, has_meta_tags);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		DumpTrackInfo(file, i+1, full_dump, GF_TRUE, dump_m4sys);

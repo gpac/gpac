@@ -95,6 +95,10 @@ GF_Err meta_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_GRPL:
 		BOX_FIELD_ASSIGN(groups_list, GF_GroupListBox)
 		break;
+	case GF_ISOM_BOX_TYPE_KEYS:
+		BOX_FIELD_ASSIGN(keys, GF_MetaKeysBox)
+		ptr->keys->meta = ptr;
+		break;
 	}
 	return GF_OK;
 }
@@ -161,6 +165,7 @@ GF_Err meta_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->item_refs, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->item_props, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->groups_list, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->keys, &pos);
 
 	if (!ptr->write_qt)
 		s->size+=4;

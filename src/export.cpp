@@ -914,6 +914,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_get_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_enum_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_wma_enum_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_udta_keys) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_data_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_omadrm_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_omadrm_media) )
@@ -1141,6 +1142,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apple_set_tag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_wma_set_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_qt_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_next_alternate_group_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ipod_compatible) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_inplace_rewrite) )
@@ -1457,6 +1459,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_remove_non_rap) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_update_bitrate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_isom_apply_qt_key) )
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_nal_rewrite_samples) )
