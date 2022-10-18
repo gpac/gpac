@@ -46,7 +46,7 @@ extern u32 compositor_mode;
 
 #ifndef GPAC_DISABLE_DOC
 const char *gpac_doc =
-"# General\n"
+"# Overview\n"
 "Filters are configurable processing units consuming and producing data packets. These packets are carried "
 "between filters through a data channel called __PID__. A PID is in charge of allocating/tracking data packets, "
 "and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. "
@@ -1438,7 +1438,6 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 		gf_fclose(helpout);
 		helpout = gf_fopen(szName, "w");
-		fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » %s\n", reg_desc);
 		fprintf(helpout, "%s", auto_gen_md_warning);
 
 		if (!sidebar_md) {
@@ -2158,12 +2157,37 @@ void dump_all_props(char *pname)
 
 
 		idx=0;
-		gf_sys_format_help(helpout, help_flags, "# CICP code points for audio channel layout\n");
+		gf_sys_format_help(helpout, help_flags, "# Audio channel layout code points (ISO/IEC 23091-3)\n");
 		gf_sys_format_help(helpout, help_flags, " Name | Integer value | ChannelMask  \n");
 		gf_sys_format_help(helpout, help_flags, " --- | ---  | ---  \n");
 		while ( (cicp = gf_audio_fmt_cicp_enum(idx, &name, &layout)) ) {
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %d | 0x%016"LLX_SUF"  \n", name, cicp, layout);
 			idx++;
+		}
+
+		gf_sys_format_help(helpout, help_flags, "# Color Primaries code points (ISO/IEC 23091-2)\n");
+		gf_sys_format_help(helpout, help_flags, " Name | Integer value \n");
+		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
+		for (i=0; i<GF_CICP_PRIM_LAST; i++) {
+			const char *name = gf_cicp_color_primaries_name(i);
+			if (!name || !strcmp(name, "unknown")) continue;
+			gf_sys_format_help(helpout, help_flags, " %s | %d \n", name, i);
+		}
+		gf_sys_format_help(helpout, help_flags, "# Transfer Characteristics code points (ISO/IEC 23091-2)\n");
+		gf_sys_format_help(helpout, help_flags, " Name | Integer value \n");
+		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
+		for (i=0; i<GF_CICP_TRANSFER_LAST; i++) {
+			const char *name = gf_cicp_color_transfer_name(i);
+			if (!name) continue;
+			gf_sys_format_help(helpout, help_flags, " %s | %d \n", name, i);
+		}
+		gf_sys_format_help(helpout, help_flags, "# Matrix Coefficients code points (ISO/IEC 23091-2)\n");
+		gf_sys_format_help(helpout, help_flags, " Name | Integer value \n");
+		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
+		for (i=0; i<GF_CICP_MX_LAST; i++) {
+			const char *name = gf_cicp_color_matrix_name(i);
+			if (!name) continue;
+			gf_sys_format_help(helpout, help_flags, " %s | %d \n", name, i);
 		}
 	} else if (gen_doc==2) {
 		u32 idx=0, cicp;

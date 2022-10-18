@@ -967,8 +967,8 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("rate", NULL, "force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("stz2", NULL, "`S` use compact size table (for low-bitrates)", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("bitdepth", NULL, "set bit depth to VAL for imported video content (default is 24)", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("colr", NULL, "`S` set color profile for imported video content (see ISO/IEC 23001-8). Value is formatted as:\n"
-		"  - nclc,p,t,m: with p colour primary (int or string), t transfer characteristics (int or string) and m matrix coef (int or string)\n"
+	GF_DEF_ARG("colr", NULL, "`S` set color profile for imported video content. Value is formatted as:\n"
+		"  - nclc,p,t,m: with `p` colour primary (int or string), `t` transfer characteristics (int or string) and `m` matrix coef (int or string), cf `-h cicp`\n"
 		"  - nclx,p,t,m,r: same as `nclx` with r full range flag (`yes`, `on` or `no`, `off`)\n"
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile\n"
@@ -3185,7 +3185,6 @@ u32 parse_gendoc(char *name, u32 opt)
 		help_flags = GF_PRINTARG_MD | GF_PRINTARG_IS_APP;
 		helpout = gf_fopen("mp4box-gen-opts.md", "w");
 
-		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » General");
 		fprintf(helpout, DOC_AUTOGEN_WARNING);
 		fprintf(helpout, "# Syntax\n");
 		gf_sys_format_help(helpout, help_flags, "MP4Box [option] input [option] [other_dash_inputs]\n"
@@ -3203,19 +3202,16 @@ u32 parse_gendoc(char *name, u32 opt)
 		gf_fclose(helpout);
 
 		helpout = gf_fopen("mp4box-import-opts.md", "w");
-		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Media Import");
 		fprintf(helpout, DOC_AUTOGEN_WARNING);
 		PrintImportUsage();
 		gf_fclose(helpout);
 
 		helpout = gf_fopen("mp4box-dash-opts.md", "w");
-		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Media DASH");
 		fprintf(helpout, DOC_AUTOGEN_WARNING);
 		PrintDASHUsage();
 		gf_fclose(helpout);
 
 		helpout = gf_fopen("mp4box-dump-opts.md", "w");
-		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Media Dump and Export");
 		fprintf(helpout, DOC_AUTOGEN_WARNING);
 		PrintExtractUsage();
 		PrintDumpUsage();
@@ -3223,14 +3219,12 @@ u32 parse_gendoc(char *name, u32 opt)
 		gf_fclose(helpout);
 
 		helpout = gf_fopen("mp4box-meta-opts.md", "w");
-		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Meta and HEIF/IFF");
 		fprintf(helpout, DOC_AUTOGEN_WARNING);
 		PrintMetaUsage();
 		gf_fclose(helpout);
 
 
 		helpout = gf_fopen("mp4box-scene-opts.md", "w");
-		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Scene Description");
 		fprintf(helpout, DOC_AUTOGEN_WARNING);
 		PrintEncodeUsage();
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
@@ -3240,7 +3234,6 @@ u32 parse_gendoc(char *name, u32 opt)
 		gf_fclose(helpout);
 
 		helpout = gf_fopen("mp4box-other-opts.md", "w");
-		fprintf(helpout, "[**HOME**](Home) » [**MP4Box**](MP4Box) » Other Features");
 		fprintf(helpout, DOC_AUTOGEN_WARNING);
 		PrintHintUsage();
 		PrintTags();
