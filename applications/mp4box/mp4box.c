@@ -540,7 +540,7 @@ MP4BoxArg m4b_gen_args[] =
 	MP4BOX_ARG_S("kind", "tkID=schemeURI=value", "set kind for the track or for all tracks using `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_SET_KIND, ARG_IS_FUN),
 	MP4BOX_ARG_S("kind-rem", "tkID=schemeURI=value", "remove kind if given schemeID for the track or for all tracks with `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_REM_KIND, ARG_IS_FUN),
  	MP4BOX_ARG_S("name", "tkID=NAME", "set track handler name to NAME (UTF-8 string)", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_HANDLER_NAME, ARG_IS_FUN),
- 	MP4BOX_ARG("itags", "set iTunes tags to file, see `-h tags`", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &itunes_tags, 0, ARG_OPEN_EDIT),
+	MP4BOX_ARG_ALT("tags", "itags", "set iTunes tags to file, see `-h tags`", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &itunes_tags, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("group-add", "create a new grouping information in the file. Format is a colon-separated list of following options:\n"
 	        "- refTrack=ID: track used as a group reference. If not set, the track will belong to the same group as the "
 	        "previous trackID specified. If 0 or no previous track specified, a new alternate group will be created\n"
@@ -1510,7 +1510,31 @@ void PrintTags()
 	"  \n"
 	"If tag name starts with `WM/`, the tag is added to `Xtra` box (WMA tag, string only).\n"
 	"  \n"
-	"Supported tag names, values, types, aliases:\n"
+	"## QT metadata key\n"
+	"The tag is added as a QT metadata key if:\n"
+	"- `tag_name` starts with `QT/`\n"
+	"- or `tag_name` is not recognized and longer than 4 characters\n"
+	"  \n"
+	"The `tag_name` can optionnally be prefixed with `HDLR@`, indicating the tag namespace 4CC, the default namespace being `mdta`.\n"
+	"The `tag_value` can be prefixed with:\n"
+	"- S: force string encoding (must be placed first) instead of parsing the tag value\n"
+	"- b: use 8-bit encoding for signed or unsigned int\n"
+	"- s: use 16-bit encoding for signed or unsigned int\n"
+	"- l: use 32-bit encoding for signed or unsigned int\n"
+	"- L: use 64-bit encoding for signed or unsigned int\n"
+	"- f: force float encoding for numbers\n"
+	"Numbers are converted by default and stored in variable-size mode.\n"
+	"To force a positive integer to use signed storage, add `+` in front of the number.\n"
+	"EX -tags io.gpac.some_tag=s+32\n"
+	"This will force storing value `32` in signed 16 bit format.\n"
+	"The `tag_value` can also be formatted as:\n"
+	"- XxY@WxH: a rectangle type\n"
+	"- XxY: a point type\n"
+	"- W@H: a size type\n"
+	"- A,B,C,D,E,F,G,H,I: a 3x3 matrix\n"
+	"- FNAME: data is loaded from `FNAME`, type set to jpeg or png if needed\n"
+	"  \n"
+	"## Supported tag names (name, value, type, aliases)\n"
 	);
 
 	while (1) {
@@ -5572,6 +5596,16 @@ static GF_Err do_track_act()
 	return GF_OK;
 }
 
+
+
+static Bool do_qt_keys(char *name, char *val)
+{
+	GF_Err e = gf_media_isom_apply_qt_key(file, name, val);
+	if (e) return GF_FALSE;
+	do_save = GF_TRUE;
+	return GF_TRUE;
+}
+
 static GF_Err do_itunes_tag()
 {
 	GF_Err e;
@@ -5589,6 +5623,7 @@ static GF_Err do_itunes_tag()
 		char *val;
 		Bool clear = GF_FALSE;
 		Bool is_wma = GF_FALSE;
+		Bool is_qt = GF_FALSE;
 		u32 tlen, tagtype=0, itag = 0;
 		s32 tag_idx=-1;
 		char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags, '=');
@@ -5624,6 +5659,9 @@ static GF_Err do_itunes_tag()
 			clear = GF_TRUE;
 		} else if (!strncmp(tags, "WM/", 3) ) {
 			is_wma = GF_TRUE;
+		} else if (!strncmp(tags, "QT/", 3) ) {
+			is_qt = GF_TRUE;
+			tags+=3;
 		} else {
 			tag_idx = gf_itags_find_by_name(tags);
 			if (tag_idx<0) {
@@ -5636,17 +5674,20 @@ static GF_Err do_itunes_tag()
 				}
 			}
 		}
-		if (val) {
-			val[0] = '=';
-			val++;
-		}
 		if (!itag && !clear && !is_wma) {
 			if (tag_idx<0) {
-				M4_LOG(GF_LOG_WARNING, ("Invalid iTune tag name \"%s\" - ignoring\n", tags));
-				break;
+				if (!do_qt_keys(tags, val+1)) {
+					M4_LOG(GF_LOG_WARNING, ("Invalid iTune tag name \"%s\" - ignoring\n", tags));
+				}
+				if (val) val[0] = '=';
+				goto tag_done;
 			}
 			itag = gf_itags_get_itag(tag_idx);
 			tagtype = gf_itags_get_type(tag_idx);
+		}
+		if (val) {
+			val[0] = '=';
+			val++;
 		}
 		if (!val || (val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 
@@ -5661,6 +5702,7 @@ static GF_Err do_itunes_tag()
 
 		if (clear) {
 			e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_RESET, NULL, 0, 0, 0);
+			e |= gf_isom_set_qt_key(file, NULL);
 		}
 		else if (is_wma) {
 			if (val) val[-1] = 0;
@@ -5688,6 +5730,7 @@ static GF_Err do_itunes_tag()
 
 		do_save = GF_TRUE;
 
+tag_done:
 		if (sep) {
 			sep[0] = itunes_data ? '\n' : ':';
 			tags = sep+1;

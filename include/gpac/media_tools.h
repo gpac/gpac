@@ -150,6 +150,15 @@ void gf_media_update_bitrate(GF_ISOFile *isom_file, u32 trackNumber);
 */
 GF_Err gf_media_av1_layer_size_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u8 op_index, u32 layer_size[3]);
 
+
+/*! sets keys from name and value, as defined in MP4Box -h tags
+\param isom_file the target ISO file
+\param name the tag name
+\param value the tag value
+\return error if any
+*/
+GF_Err gf_media_isom_apply_qt_key(GF_ISOFile *isom_file, const char *name, const char *value);
+
 #endif
 
 /*! @} */

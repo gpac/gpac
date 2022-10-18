@@ -350,6 +350,7 @@ enum
 	GF_ISOM_HANDLER_TYPE_MDIR	= GF_4CC( 'm', 'd', 'i', 'r' ),
 	GF_ISOM_BOX_TYPE_CHAP	= GF_4CC( 'c', 'h', 'a', 'p' ),
 	GF_ISOM_BOX_TYPE_TEXT	= GF_4CC( 't', 'e', 'x', 't' ),
+	GF_ISOM_HANDLER_TYPE_MDTA	= GF_4CC( 'm', 'd', 't', 'a' ),
 
 	/*OMA (P)DCF boxes*/
 	GF_ISOM_BOX_TYPE_OHDR	= GF_4CC( 'o', 'h', 'd', 'r' ),
@@ -534,6 +535,8 @@ enum
 
 	//opaque data container
 	GF_ISOM_BOX_TYPE_GDAT	= GF_4CC( 'g', 'd', 'a', 't' ),
+
+	GF_ISOM_BOX_TYPE_KEYS = GF_4CC( 'k', 'e', 'y', 's' ),
 };
 
 enum
@@ -2491,6 +2494,20 @@ typedef struct {
 	GF_ISOM_BOX
 } GF_GroupListBox;
 
+typedef struct
+{
+	u32 ns;
+	u32 size;
+	u8 *data;
+} GF_MetaKey;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+
+	GF_List *keys;
+	struct __tag_meta_box *meta;
+} GF_MetaKeysBox;
+
 typedef struct __tag_meta_box
 {
 	GF_ISOM_FULL_BOX
@@ -2504,6 +2521,7 @@ typedef struct __tag_meta_box
 	GF_ItemPropertiesBox *item_props;
 	GF_ItemReferenceBox *item_refs;
 	GF_GroupListBox *groups_list;
+	GF_MetaKeysBox *keys;
 
 	u8 use_item_sample_sharing, use_item_item_sharing, is_qt, write_qt;
 } GF_MetaBox;
@@ -4644,11 +4662,15 @@ GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace);
 
 void gf_isom_registry_disable(u32 boxCode, Bool disable);
 
-/*Apple extensions*/
-GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, Bool for_xtra);
+/*Apple extensions
+type 0: itunes
+type 1: XTRA (wma)
+type 2: QT mdta
+*/
+GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, u32 type);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra);
+GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, u32 meta_type);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

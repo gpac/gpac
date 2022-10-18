@@ -283,7 +283,7 @@ remove kind if given schemeID for the track or for all tracks with all=schemeURI
 set track handler name to NAME (UTF-8 string)
 .br
 .TP
-.B \-itags (string)
+.B \-tags,-itags (string)
 .br
 set iTunes tags to file, see -h tags
 .br
@@ -2647,7 +2647,59 @@ If tag name starts with WM/, the tag is added to Xtra box (WMA tag, string only)
 .br
   
 .br
-Supported tag names, values, types, aliases:
+.SS QT metadata key
+.br
+The tag is added as a QT metadata key if:
+.br
+- tag_name starts with QT/
+.br
+- or tag_name is not recognized and longer than 4 characters
+.br
+  
+.br
+The tag_name can optionnally be prefixed with HDLR@, indicating the tag namespace 4CC, the default namespace being mdta.
+.br
+The tag_value can be prefixed with:
+.br
+* S: force string encoding (must be placed first) instead of parsing the tag value
+.br
+* b: use 8-bit encoding for signed or unsigned int
+.br
+* s: use 16-bit encoding for signed or unsigned int
+.br
+* l: use 32-bit encoding for signed or unsigned int
+.br
+* L: use 64-bit encoding for signed or unsigned int
+.br
+* f: force float encoding for numbers
+.br
+Numbers are converted by default and stored in variable-size mode.
+.br
+To force a positive integer to use signed storage, add + in front of the number.
+.br
+Example
+.br
+-tags io.gpac.some_tag=s+32
+.br
+
+.br
+This will force storing value 32 in signed 16 bit format.
+.br
+The tag_value can also be formatted as:
+.br
+* XxY@WxH: a rectangle type
+.br
+* XxY: a point type
+.br
+* W@H: a size type
+.br
+* A,B,C,D,E,F,G,H,I: a 3x3 matrix
+.br
+* FNAME: data is loaded from FNAME, type set to jpeg or png if needed
+.br
+  
+.br
+.SS Supported tag names (name, value, type, aliases)
 .br
 title (A9nam) string (alias name)
 .br
@@ -2777,6 +2829,8 @@ exec_producer (A9xpd) string
 .br
 genre (A9gen) string (ID3 genre tag)
 .br
+location (A9xyz) string
+.br
 .SH Live Scene Encoder Options
 .LP
 .br
@@ -2870,7 +2924,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev401-gc19eecd20-master
+build: 2.1-DEV-rev421-gf4c57f77f-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

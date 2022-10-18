@@ -883,6 +883,7 @@ ISOM_BOX_IMPL_DECL(prhd)
 ISOM_BOX_IMPL_DECL(proj_type)
 //ISOM_BOX_IMPL_DECL(mesh)
 
+ISOM_BOX_IMPL_DECL(keys)
 
 #define BOX_DEFINE(__type, b_rad, __par) { __type, b_rad##_box_new, b_rad##_box_del, b_rad##_box_read, b_rad##_box_write, b_rad##_box_size, b_rad##_box_dump, 0, 0, 0, __par, "p12", GF_FALSE}
 
@@ -1448,6 +1449,7 @@ static struct box_registry_entry {
 	ITUNES_TAG(GF_ISOM_ITUNE_THANKS),
 	ITUNES_TAG(GF_ISOM_ITUNE_ONLINE),
 	ITUNES_TAG(GF_ISOM_ITUNE_EXEC_PRODUCER),
+	ITUNES_TAG(GF_ISOM_ITUNE_LOCATION),
 
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_GMHD, def_parent, "minf", "apple"),
@@ -1593,6 +1595,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CBMP, proj_type, "proj", 0, "youtube"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EQUI, proj_type, "proj", 0, "youtube"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_MESH, proj_type, "proj", 0, "youtube"),
+
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_KEYS, keys, "meta", 0, "apple"),
 
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),

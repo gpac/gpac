@@ -6574,4 +6574,32 @@ GF_Err proj_type_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err keys_box_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_MetaKey *k;
+	GF_MetaKeysBox *ptr = (GF_MetaKeysBox *)a;
+	gf_isom_box_dump_start(a, "KeysBox", trace);
+	gf_fprintf(trace, ">\n");
+
+	i=0;
+	while ( (k = (GF_MetaKey*)gf_list_enum(ptr->keys, &i))) {
+		gf_fprintf(trace, " <Key ns=\"%s\"", gf_4cc_to_str(k->ns) );
+		if (k->data) {
+			if (gf_utf8_is_legal(k->data, k->size)) {
+				gf_fprintf(trace, " name=\"");
+				dump_data_string(trace, k->data, k->size);
+				gf_fprintf(trace, "\"");
+			} else if (k->size<100) {
+				dump_data_attribute(trace, "name", k->data, k->size);
+			} else {
+				gf_fprintf(trace, " nameSize=\"%u\"", k->size);
+			}
+		}
+		gf_fprintf(trace, "/>\n");
+	}
+	gf_isom_box_dump_done("KeysBox", NULL, trace);
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

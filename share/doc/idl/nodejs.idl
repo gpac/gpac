@@ -455,7 +455,7 @@ interface FilterStatistics {
 
 /*! Statistics object for pid as defined in libgpac.
 
-Fields have the same types, names and semantics as \ref GF_FilterPidStatistics:
+Fields have the same types, names and semantics as \ref GF_FilterPidStatistics
 */
 interface PidStatistics {
 

@@ -4465,4 +4465,135 @@ GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample
 #endif
 }
 
+GF_EXPORT
+GF_Err gf_media_isom_apply_qt_key(GF_ISOFile *movie, const char *name, const char *val)
+{
+	GF_Err e;
+	u8 *data=NULL;
+	GF_QT_UDTAKey key;
+	if (!name) return GF_BAD_PARAM;
+
+	memset(&key, 0, sizeof(GF_QT_UDTAKey));
+	key.name = (char *) name;
+	key.ns = GF_4CC('m','d','t','a');
+	char *sep = strchr(name, '@');
+	if (sep) {
+		sep[0] = 0;
+		key.name = sep+1;
+		if (strlen(name)!=4) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Unrecognize namespace \"%s\" for key %s\n", name, sep+1));
+			return GF_BAD_PARAM;
+		}
+		key.ns = GF_4CC(name[0], name[1],name[2],name[3]);
+		sep[0] = '@';
+	}
+
+	if (!val || !val[0]) {
+		key.type = GF_QT_KEY_REMOVE;
+	} else if (!strcmp(val, "NULL")) {
+		key.type = GF_QT_KEY_REMOVE;
+	} else {
+		key.type = GF_QT_KEY_UTF8;
+		key.value.string = val;
+
+		if (gf_file_exists(val)) {
+			GF_Err e = gf_file_load_data(val, &data, &key.value.data.data_len);
+			if (e!=GF_OK) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Failed to load file \"%s\" for key %s: %s\n", val, name, gf_error_to_string(e)));
+				return e;
+			}
+			key.value.data.data = data;
+			key.type = GF_QT_KEY_OPAQUE;
+			if (strstr(val, ".bmp")|| strstr(val, ".BMP")) {
+				key.type = GF_QT_KEY_BMP;
+			} else if (key.value.data.data_len>3) {
+				if ((data[0]==0xFF) && (data[1]==0xD8) && (data[2]==0xFF)) {
+					key.type = GF_QT_KEY_JPEG;
+				} else if ((data[0]==0x89) && (data[1]==0x50) && (data[2]==0x4E)) {
+					key.type = GF_QT_KEY_PNG;
+				}
+			}
+		} else {
+			char *force_str=NULL;
+			if (val[0] == 'S') {
+				force_str = (char*)val+1;
+				val++;
+			}
+			char *rect_sep = strchr(val, '@');
+			char *pos_sep = strchr(val, 'x');
+			char *arr_sep = strchr(val, ',');
+			if (rect_sep && pos_sep && (sscanf(val, "%gx%g@%gx%g", &key.value.rect.x, &key.value.rect.y, &key.value.rect.w, &key.value.rect.h) == 4)) {
+				key.type = GF_QT_KEY_RECTF;
+			} else if (rect_sep && (sscanf(val, "%g@%g", &key.value.pos_size.x, &key.value.pos_size.y)==2)) {
+				key.type = GF_QT_KEY_SIZEF;
+			} else if (pos_sep && (sscanf(val, "%gx%g", &key.value.pos_size.x, &key.value.pos_size.y)==2)) {
+				key.type = GF_QT_KEY_POINTF;
+			} else if (arr_sep && strchr(arr_sep, ',')
+				&& (sscanf(val, "%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg", &key.value.matrix[0], &key.value.matrix[1], &key.value.matrix[2]
+				, &key.value.matrix[3], &key.value.matrix[4], &key.value.matrix[5]
+				, &key.value.matrix[6], &key.value.matrix[7], &key.value.matrix[8]
+				)==9)
+			) {
+				key.type = GF_QT_KEY_MATRIXF;
+			} else {
+				Bool force_flt=GF_FALSE,force_dbl=GF_FALSE,force_sign=GF_FALSE;
+				u32 force_size=0;
+				while (1) {
+					char c = val[0];
+					if (c=='f') force_flt = GF_TRUE;
+					else if (c=='d') force_dbl = GF_TRUE;
+					else if (c=='+') force_sign = GF_TRUE;
+					else if (c=='b') force_size = 1;
+					else if (c=='s') force_size = 2;
+					else if (c=='l') force_size = 3;
+					else if (c=='L') force_size = 4;
+					else
+						break;
+					val++;
+				}
+				if (arr_sep || strchr(val, '.') || force_dbl || force_flt) {
+					Double res;
+					if (sscanf(val, "%lg", &res)==1) {
+						key.value.number = res;
+						key.type = force_flt ? GF_QT_KEY_FLOAT : GF_QT_KEY_DOUBLE;
+					}
+				}
+				else {
+					s64 res;
+					if (sscanf(val, LLD, &res)==1) {
+						key.value.sint = res;
+						if (!force_sign && (key.value.sint>0)) {
+							key.value.uint = key.value.sint;
+							if (force_size==1) key.type = GF_QT_KEY_UNSIGNED_8;
+							else if (force_size==2) key.type = GF_QT_KEY_UNSIGNED_16;
+							else if (force_size==3) key.type = GF_QT_KEY_UNSIGNED_32;
+							else if (force_size==4) key.type = GF_QT_KEY_UNSIGNED_64;
+							else key.type = GF_QT_KEY_UNSIGNED_VSIZE;
+
+						} else {
+							if (force_size==1) key.type = GF_QT_KEY_SIGNED_8;
+							else if (force_size==2) key.type = GF_QT_KEY_SIGNED_16;
+							else if (force_size==3) key.type = GF_QT_KEY_SIGNED_32;
+							else if (force_size==4) key.type = GF_QT_KEY_SIGNED_64;
+							else key.type = GF_QT_KEY_SIGNED_VSIZE;
+						}
+					}
+				}
+			}
+			if (force_str && (key.type != GF_QT_KEY_UTF8)) {
+				key.type = GF_QT_KEY_UTF8;
+				key.value.string = force_str;
+			}
+		}
+	}
+
+	e = gf_isom_set_qt_key(movie, &key);
+	if (data) gf_free(data);
+
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Failed to add key %s: %s\n", name, gf_error_to_string(e) ));
+	}
+	return e;
+}
+
 #endif //GPAC_DISABLE_ISOM

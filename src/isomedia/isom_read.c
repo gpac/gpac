@@ -4255,7 +4255,7 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 **da
 	*data = NULL;
 	*data_len = 0;
 
-	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, GF_FALSE);
+	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, 0);
 	if (!meta) return GF_URL_ERROR;
 
 	ilst = gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
@@ -4304,7 +4304,7 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 	*out_int_val2 = 0;
 	*out_flags = 0;
 
-	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, GF_FALSE);
+	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, 0);
 	if (!meta) return GF_URL_ERROR;
 
 	ilst = gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
@@ -4433,6 +4433,132 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_enum_udta_keys(GF_ISOFile *mov, u32 idx, GF_QT_UDTAKey *okey)
+{
+	u32 i, count;
+
+	GF_MetaBox *meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, 2);
+	if (!meta || !meta->keys) return GF_URL_ERROR;
+
+	GF_MetaKey *k = gf_list_get(meta->keys->keys, idx);
+	if (!k) return GF_URL_ERROR;
+	if (!okey) return GF_OK;
+
+	memset(okey, 0, sizeof(GF_QT_UDTAKey) );
+	okey->name = k->data;
+	okey->ns = k->ns;
+
+	GF_ListItemBox *ilst = (GF_ListItemBox *) gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
+	if (!ilst) return GF_OK;
+
+	GF_DataBox *data_box = NULL;
+	count = gf_list_count(ilst->child_boxes);
+	for (i=0; i<count; i++) {
+		GF_UnknownBox *u = gf_list_get(ilst->child_boxes, i);
+		if (u->type!=GF_ISOM_BOX_TYPE_UNKNOWN) continue;
+		if (u->original_4cc==idx+1) {
+			data_box = (GF_DataBox *) gf_isom_box_find_child(u->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+		}
+	}
+
+	okey->type=GF_QT_KEY_OPAQUE;
+	if (!data_box || (data_box->version!=0)) {
+		if (data_box) {
+			okey->value.data.data = data_box->data;
+			okey->value.data.data_len = data_box->dataSize;
+		}
+		return GF_OK;
+	}
+	okey->type = data_box->flags;
+
+	u32 nb_bits = 8 * data_box->dataSize;
+	GF_BitStream *bs = gf_bs_new(data_box->data, data_box->dataSize, GF_BITSTREAM_READ);
+	switch (okey->type) {
+	case GF_QT_KEY_UTF8:
+	case GF_QT_KEY_UTF8_SORT:
+		okey->value.string = data_box->data;
+		break;
+
+	case GF_QT_KEY_SIGNED_VSIZE:
+	{
+		u32 val = gf_bs_read_int(bs, nb_bits);
+		if (nb_bits==8) okey->value.sint = (s64) (s8) val;
+		else if (nb_bits==16) okey->value.sint = (s64) (s16) val;
+		else if (nb_bits==32) okey->value.sint = (s64) (s32) val;
+		else if (nb_bits==64) okey->value.sint = (s64) val;
+	}
+		break;
+	case GF_QT_KEY_UNSIGNED_VSIZE:
+		okey->value.uint = (s32) gf_bs_read_int(bs, nb_bits);
+		break;
+	case GF_QT_KEY_FLOAT:
+		okey->value.number = gf_bs_read_float(bs);
+		break;
+	case GF_QT_KEY_DOUBLE:
+		okey->value.number = gf_bs_read_double(bs);
+		break;
+	case GF_QT_KEY_SIGNED_8:
+		okey->value.sint = (s64) (s8) gf_bs_read_int(bs, 8);
+		break;
+	case GF_QT_KEY_SIGNED_16:
+		okey->value.sint = (s64) (s16) gf_bs_read_int(bs, 16);
+		break;
+	case GF_QT_KEY_SIGNED_32:
+		okey->value.sint = (s64) (s32) gf_bs_read_int(bs, 32);
+		break;
+	case GF_QT_KEY_SIGNED_64:
+		okey->value.sint = (s64) gf_bs_read_long_int(bs, 64);
+		break;
+	case GF_QT_KEY_POINTF:
+	case GF_QT_KEY_SIZEF:
+		okey->value.pos_size.x = gf_bs_read_float(bs);
+		okey->value.pos_size.y = gf_bs_read_float(bs);
+		break;
+	case GF_QT_KEY_RECTF:
+		okey->value.rect.x = gf_bs_read_float(bs);
+		okey->value.rect.y = gf_bs_read_float(bs);
+		okey->value.rect.w = gf_bs_read_float(bs);
+		okey->value.rect.h = gf_bs_read_float(bs);
+		break;
+
+	case GF_QT_KEY_UNSIGNED_8:
+		okey->value.uint = gf_bs_read_int(bs, 8);
+		break;
+	case GF_QT_KEY_UNSIGNED_16:
+		okey->value.uint = gf_bs_read_int(bs, 16);
+		break;
+	case GF_QT_KEY_UNSIGNED_32:
+		okey->value.uint = gf_bs_read_int(bs, 32);
+		break;
+	case GF_QT_KEY_UNSIGNED_64:
+		okey->value.uint = gf_bs_read_int(bs, 64);
+		break;
+	case GF_QT_KEY_MATRIXF:
+		for (i=0; i<9; i++)
+			okey->value.matrix[i] = gf_bs_read_float(bs);
+		break;
+
+	case GF_QT_KEY_OPAQUE:
+	case GF_QT_KEY_UTF16_BE:
+	case GF_QT_KEY_JIS:
+	case GF_QT_KEY_UTF16_SORT:
+	case GF_QT_KEY_JPEG:
+	case GF_QT_KEY_PNG:
+	case GF_QT_KEY_BMP:
+	case GF_QT_KEY_METABOX:
+		okey->value.data.data = data_box->data;
+		okey->value.data.data_len = data_box->dataSize;
+		break;
+	case GF_QT_KEY_REMOVE:
+		break;
+	}
+	GF_Err e = GF_OK;
+	if (gf_bs_is_overflow(bs))
+		e = GF_ISOM_INVALID_FILE;
+	gf_bs_del(bs);
+	return e;
+}
 
 GF_EXPORT
 GF_Err gf_isom_wma_enum_tag(GF_ISOFile *mov, u32 idx, char **out_tag, const u8 **data, u32 *data_len, u32 *version, u32 *data_type)
@@ -4446,7 +4572,7 @@ GF_Err gf_isom_wma_enum_tag(GF_ISOFile *mov, u32 idx, char **out_tag, const u8 *
 	*version = 0;
 	*data_type = 0;
 
-	xtra = (GF_XtraBox *) gf_isom_get_meta_extensions(mov, GF_TRUE);
+	xtra = (GF_XtraBox *) gf_isom_get_meta_extensions(mov, 1);
 	if (!xtra) return GF_URL_ERROR;
 
 	tag = gf_list_get(xtra->tags, idx);
