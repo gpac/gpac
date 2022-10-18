@@ -1618,13 +1618,6 @@ desc=QCP file writer
 desc_crc=4002996549
 exporter=compatibility with old exporter, displays export results
 exporter_crc=4138638672
-[writevtt]
-desc=WebVTT file writer
-desc_crc=3958797601
-exporter=compatibility with old exporter, displays export results
-exporter_crc=4138638672
-merge=merges VTT cue if needed
-merge_crc=1535119373
 [nhntw]
 desc=NHNT file writer
 desc_crc=4129389049

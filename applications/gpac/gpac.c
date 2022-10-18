@@ -557,7 +557,6 @@ int gpac_main(int argc, char **argv)
 				gen_doc = 1;
 				help_flags = GF_PRINTARG_MD;
 				helpout = gf_fopen("gpac_general.md", "w");
-				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » Usage\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 				fprintf(helpout, "# General Usage of gpac\n");
 			} else {
@@ -582,7 +581,6 @@ int gpac_main(int argc, char **argv)
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("core_config.md", "w");
-				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » Configuration\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 			}
 			gpac_config_help();
@@ -590,7 +588,6 @@ int gpac_main(int argc, char **argv)
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("core_options.md", "w");
-				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » Core Options\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 				fprintf(helpout, "# GPAC Core Options\n");
 			}
@@ -599,7 +596,6 @@ int gpac_main(int argc, char **argv)
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("core_logs.md", "w");
-				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » Logging System\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 				fprintf(helpout, "# GPAC Log System\n");
 			}
@@ -608,7 +604,6 @@ int gpac_main(int argc, char **argv)
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("filters_general.md", "w");
-				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » General Concepts\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 			}
 			gf_sys_format_help(helpout, help_flags, "%s", gpac_doc);
@@ -616,7 +611,6 @@ int gpac_main(int argc, char **argv)
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("filters_properties.md", "w");
-				fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » Built-in Properties\n");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 			}
 			gf_sys_format_help(helpout, help_flags, "# GPAC Built-in properties\n");
