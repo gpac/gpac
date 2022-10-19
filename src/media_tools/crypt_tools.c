@@ -219,10 +219,10 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				else
 					tkc->IsEncrypted = 0;
 			}
-			else if (!stricmp(att->name, "IV_size")) {
+			else if (!stricmp(att->name, "IV_size") && (tkc->scheme_type != GF_CRYPT_TYPE_CBCS)) {
 				tkc->keys[0].IV_size = atoi(att->value);
 			}
-			else if (!stricmp(att->name, "first_IV")) {
+			else if (!stricmp(att->name, "first_IV") && (tkc->scheme_type != GF_CRYPT_TYPE_CBCS)) {
 				char *sKey = att->value;
 				if (!strnicmp(sKey, "0x", 2)) sKey += 2;
 				if ((strlen(sKey) == 16) || (strlen(sKey) == 32)) {
@@ -294,13 +294,17 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			else if (!stricmp(att->name, "clear_bytes")) {
 				tkc->clear_bytes = atoi(att->value);
 			}
-			else if (!stricmp(att->name, "constant_IV_size")) {
+			else if (!stricmp(att->name, "constant_IV_size")
+				|| (!stricmp(att->name, "IV_size") && (tkc->scheme_type == GF_CRYPT_TYPE_CBCS))
+			) {
 				tkc->keys[0].constant_IV_size = atoi(att->value);
 				if ((tkc->keys[0].constant_IV_size != 8) && (tkc->keys[0].constant_IV_size != 16)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CENC] Constant IV size %d is not 8 or 16\n", att->value));
 				}
 			}
-			else if (!stricmp(att->name, "constant_IV")) {
+			else if (!stricmp(att->name, "constant_IV")
+				|| (!stricmp(att->name, "first_IV") && (tkc->scheme_type == GF_CRYPT_TYPE_CBCS))
+			) {
 				char *sKey = att->value;
 				if (!strnicmp(sKey, "0x", 2)) sKey += 2;
 				if ((strlen(sKey) == 16) || (strlen(sKey) == 32)) {
