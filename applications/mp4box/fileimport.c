@@ -2593,7 +2593,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	aligned_to_DTS_frac.num = 0;
 	aligned_to_DTS_frac.den = 1;
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
-		u64 track_dur = gf_isom_get_media_duration(dest, i+1);
+		u32 last_samp = gf_isom_get_sample_count(dest, i+1);
+		if (!last_samp) continue;
+		//get next sample DTS - we do NOT use media duration as CTS offset could shift up everything
+		u64 track_dur = gf_isom_get_sample_dts(dest, i+1, last_samp);
+		track_dur += gf_isom_get_sample_duration(dest, i+1, last_samp);
 		u32 track_ts = gf_isom_get_media_timescale(dest, i+1);
 		if (gf_timestamp_less(aligned_to_DTS_frac.num, aligned_to_DTS_frac.den, track_dur, track_ts)) {
 			aligned_to_DTS_frac.num = track_dur;
