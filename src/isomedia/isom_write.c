@@ -1033,7 +1033,18 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-	//do not update track duration yet, this is don one close
+
+	//update media duration
+	if (sample->DTS + sample->CTS_Offset>=0) {
+		GF_TimeToSampleBox *stts = trak->Media->information->sampleTable->TimeToSample;
+		u64 dur = sample->DTS + sample->CTS_Offset;
+		dur += stts->entries[stts->nb_entries-1].sampleDelta;
+
+		if (dur > trak->Media->mediaHeader->duration) {
+			trak->Media->mediaHeader->duration = dur;
+		}
+	}
+	//do not update track duration yet, this is done on close
 	return GF_OK;
 }
 
@@ -1308,8 +1319,11 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 	}
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-	trak->Media->mediaHeader->duration = mdur;
-	//do not update track duration yet, this is don one close
+
+	//update media duration if duration was set
+	if (trak->Media->mediaHeader->duration)
+		trak->Media->mediaHeader->duration = mdur;
+	//do not update track duration yet, this is done on close
 	return GF_OK;
 }
 
@@ -4905,6 +4919,8 @@ GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offse
 		/*we're in unpack mode: one entry per sample*/
 		trak->Media->information->sampleTable->CompositionOffset->entries[i].decodingOffset -= offset_shift;
 	}
+	if (trak->Media->mediaHeader->duration >= -offset_shift)
+		trak->Media->mediaHeader->duration -= offset_shift;
 	return GF_OK;
 }
 
