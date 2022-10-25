@@ -270,7 +270,7 @@ Bool gf_fs_filter_exists(GF_FilterSession *session, const char *name);
 
 /*! Runs the session
 
-If the session is non-blocking ( created with \ref GF_FS_FLAG_NON_BLOCKING), process all tasks of oldest scheduled filter, process any pending PID connections and returns.
+If the session is non-blocking (created with \ref GF_FS_FLAG_NON_BLOCKING), process all tasks of oldest scheduled filter, process any pending PID connections and returns.
 Otherwise (session is blocking), runs until session is over or aborted.
 
 \param session filter session
@@ -4043,7 +4043,7 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *PID, GF_FilterPacket *pck
 */
 GF_FilterPacket *gf_filter_pck_new_copy(GF_FilterPid *PID, GF_FilterPacket *pck_source, u8 **data);
 
-/*! Creates a  read-only detached copy of a packet from a source packet and copy all source properties to output.
+/*! Creates a read-only detached copy of a packet from a source packet and copy all source properties to output.
 
 If the source packet uses a frame interface object or has no associated data, returns a copy of the packet.
 If the source packet is referenced more than once (ie more than just the caller), a new packet on the output PID is allocated with source data copied.

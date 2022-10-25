@@ -380,7 +380,7 @@ struct __gf_filter_session
 	Bool direct_mode;
 	volatile u32 tasks_in_process;
 	Bool requires_solved_graph;
-	//non blicking session mode:
+	//non blocking session mode:
 	//0: session is blocking
 	//1: session is non-blocking and first call to gf_fs_run (extra threads not started)
 	//2: session is non-blocking and not first call to gf_fs_run (extra threads started)
