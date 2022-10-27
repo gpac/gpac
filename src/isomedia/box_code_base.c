@@ -2916,6 +2916,12 @@ GF_Err mdat_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MediaDataBox *ptr = (GF_MediaDataBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
+	if (ptr->type==GF_ISOM_BOX_TYPE_IMDA) {
+		ptr->type = GF_ISOM_BOX_TYPE_MDAT;
+		ptr->is_imda = 1;
+		ISOM_DECREASE_SIZE(s, 4)
+		ptr->imda_id = gf_bs_read_u32(bs);
+	}
 
 	ptr->dataSize = s->size;
 	ptr->bsOffset = gf_bs_get_position(bs);
@@ -2946,8 +2952,16 @@ GF_Err mdat_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_MediaDataBox *ptr = (GF_MediaDataBox *)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
+	if (ptr->is_imda) {
+		s->type = GF_ISOM_BOX_TYPE_IMDA;
+		e = gf_isom_box_write_header(s, bs);
+		s->type = GF_ISOM_BOX_TYPE_MDAT;
+		if (e) return e;
+		gf_bs_write_u32(bs, ptr->imda_id);
+	} else {
+		e = gf_isom_box_write_header(s, bs);
+		if (e) return e;
+	}
 
 	//make sure we have some data ...
 	//if not, we handle that independently (edit files)
@@ -2961,6 +2975,8 @@ GF_Err mdat_box_size(GF_Box *s)
 {
 	GF_MediaDataBox *ptr = (GF_MediaDataBox *)s;
 	ptr->size += ptr->dataSize;
+	if (ptr->is_imda)
+		ptr->size += 4;
 	return GF_OK;
 }
 

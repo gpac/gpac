@@ -61,6 +61,7 @@ enum
 	GF_ISOM_BOX_TYPE_ELNG	= GF_4CC( 'e', 'l', 'n', 'g' ),
 	GF_ISOM_BOX_TYPE_MDAT	= GF_4CC( 'm', 'd', 'a', 't' ),
 	GF_ISOM_BOX_TYPE_IDAT	= GF_4CC( 'i', 'd', 'a', 't' ),
+	GF_ISOM_BOX_TYPE_IMDA	= GF_4CC( 'i', 'm', 'd', 'a' ),
 	GF_ISOM_BOX_TYPE_MDHD	= GF_4CC( 'm', 'd', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_MINF	= GF_4CC( 'm', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_MOOV	= GF_4CC( 'm', 'o', 'o', 'v' ),
@@ -708,6 +709,9 @@ typedef struct
 	/* store the file offset when parsing to access the raw data */
 	u64 bsOffset;
 	u8 *data;
+
+	u32 imda_id;
+	u8 is_imda;
 } GF_MediaDataBox;
 
 typedef struct

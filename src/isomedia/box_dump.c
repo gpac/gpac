@@ -210,7 +210,15 @@ GF_Err mdat_box_dump(GF_Box *a, FILE * trace)
 	GF_MediaDataBox *p;
 	const char *name = (a->type==GF_ISOM_BOX_TYPE_IDAT ? "ItemDataBox" : "MediaDataBox");
 	p = (GF_MediaDataBox *)a;
-	gf_isom_box_dump_start(a, name, trace);
+	if (p->is_imda) {
+		name = "IdentifiedMediaDataBox";
+		p->type = GF_ISOM_BOX_TYPE_IMDA;
+		gf_isom_box_dump_start(a, name, trace);
+		gf_fprintf(trace, "imda_identifier=\"%d\" ", p->imda_id);
+		p->type = GF_ISOM_BOX_TYPE_MDAT;
+	} else {
+		gf_isom_box_dump_start(a, name, trace);
+	}
 	gf_fprintf(trace, "dataSize=\""LLD"\">\n", p->dataSize);
 	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
