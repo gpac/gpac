@@ -6213,8 +6213,7 @@ int mp4box_main(int argc, char **argv)
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
 				gf_isom_open_progressive(inName, 0, 0, GF_FALSE, &file, &missing_bytes);
-				if (missing_bytes)
-					M4_LOG(GF_LOG_ERROR, ("Truncated file - missing "LLD" bytes\n", missing_bytes));
+				M4_LOG(GF_LOG_ERROR, ("Incomplete file - missing "LLD" bytes\n", missing_bytes));
 			}
 
 			if (!file) {

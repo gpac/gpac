@@ -986,6 +986,8 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 
 	//OK, let's parse the movie...
 	mov->LastError = gf_isom_parse_movie_boxes(mov, NULL, &bytes, 0);
+	if (((OpenMode & 0xFF) == GF_ISOM_OPEN_READ_DUMP) && (mov->LastError==GF_ISOM_INCOMPLETE_FILE))
+		mov->LastError = GF_OK;
 
 #if 0
 	if (!mov->LastError && (OpenMode == GF_ISOM_OPEN_CAT_FRAGMENTS)) {
