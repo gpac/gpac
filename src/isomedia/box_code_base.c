@@ -12736,7 +12736,10 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 			return GF_ISOM_INVALID_FILE;
 		}
 		ptr->patterns[i].sample_group_description_indices = gf_malloc(sizeof(u32) * ptr->patterns[i].length);
-		if (!ptr->patterns[i].sample_group_description_indices) return GF_OUT_OF_MEM;
+		if (!ptr->patterns[i].sample_group_description_indices) {
+			ptr->pattern_count = i>0 ? i-1 : 0;
+			return GF_OUT_OF_MEM;
+		}
 	}
 	bits = 0;
 	gidx_mask = ((u32)1) << (index_size-1);
