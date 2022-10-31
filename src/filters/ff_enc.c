@@ -1911,7 +1911,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	av_dict_copy(&options, ctx->options, 0);
-	res = avcodec_open2(ctx->encoder, codec, &options );
+	res = avcodec_open2(ctx->encoder, codec, &options);
 	if (res < 0) {
 		if (options) av_dict_free(&options);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
