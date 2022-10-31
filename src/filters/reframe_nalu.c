@@ -3560,7 +3560,6 @@ naldmx_flush:
 			}
 
 			if (slice_poc < ctx->poc_shift) {
-
 				u32 i, count = gf_list_count(ctx->pck_queue);
 				for (i=0; i<count; i++) {
 					u64 dts, cts;
