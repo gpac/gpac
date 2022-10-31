@@ -34,7 +34,7 @@ GPAC is best-known for its wide MP4/ISOBMFF capabilities and is popular among vi
 
 For more information, visit [GPAC website](http://gpac.io)
 
-GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.gpac-licensing.com).
+GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.motionspell.com/gpac-licensing).
 
 Please ! _cite_ ! our work in your research:
 - "GPAC Filters" (https://doi.org/10.1145/3339825.3394929) for recent versions (0.9 or above) 
