@@ -789,7 +789,9 @@ u32 gf_audio_fmt_to_isobmf(GF_AudioFormat afmt)
 GF_EXPORT
 u32 gf_audio_fmt_get_cicp_layout(u32 nb_chan, u32 nb_surr, u32 nb_lfe)
 {
-	if ( !nb_chan && !nb_surr && !nb_lfe) return 0;
+	if (nb_chan <= nb_surr+nb_lfe) return 0;
+	else nb_chan -= nb_surr+nb_lfe;
+	if (!nb_chan && !nb_surr && !nb_lfe) return 0;
 	else if ((nb_chan==1) && !nb_surr && !nb_lfe) return 1;
 	else if ((nb_chan==2) && !nb_surr && !nb_lfe) return 2;
 	else if ((nb_chan==3) && !nb_surr && !nb_lfe) return 3;

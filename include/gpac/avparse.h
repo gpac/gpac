@@ -684,11 +684,16 @@ Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 */
 u32 gf_eac3_get_chan_loc_count(u32 chan_loc);
 
-/*! gets the number of channels in an AC3 frame
+/*! gets the total number of channels in an AC3 frame, including surround but not lfe
 \param acmod acmod of the associated frame header
 \return number of channels
 */
-u32 gf_ac3_get_channels(u32 acmod);
+u32 gf_ac3_get_total_channels(u32 acmod);
+/*! gets the number of surround channels in an AC3 frame
+\param acmod acmod of the associated frame header
+\return number of surround channels
+*/
+u32 gf_ac3_get_surround_channels(u32 acmod);
 /*! gets the bitrate of an AC3 frame
 \param brcode brcode of the associated frame header
 \return bitrate in bps

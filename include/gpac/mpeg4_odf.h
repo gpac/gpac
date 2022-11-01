@@ -1581,8 +1581,10 @@ typedef struct __ec3_stream
 	u8 lfon;
 	/*! asvc mode, only for EC3*/
 	u8 asvc;
-	/*! number of channels, including lfe*/
+	/*! number of channels, including lfe and surround channels */
 	u8 channels;
+	/*! number of surround channels */
+	u8 surround_channels;
 	/*! number of dependent substreams, only for EC3*/
 	u8 nb_dep_sub;
 	/*! channel locations for dependent substreams, only for EC3*/

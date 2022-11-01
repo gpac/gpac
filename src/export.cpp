@@ -1550,7 +1550,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_parser_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channels) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_total_channels) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_surround_channels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_bitrate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_eac3_get_chan_loc_count) )
 
