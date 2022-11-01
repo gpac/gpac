@@ -913,7 +913,7 @@ u32 gf_audio_fmt_to_isobmf(GF_AudioFormat afmt);
 GF_AudioFormat gf_audio_fmt_enum(u32 *idx, const char **name, const char **fileext, const char **desc);
 
 /*! get CICP layout code point from audio configuration
-\param nb_chan number of channels
+\param nb_chan total number of channels
 \param nb_surr number of surround channels
 \param nb_lfe number of LFE channels
 \return CICP layout code point format or 0 if unknown
