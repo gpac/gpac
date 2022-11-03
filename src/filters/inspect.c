@@ -2172,7 +2172,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	}
 }
 
-static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, PidCtx *pctx, u64 pck_num)
+static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, PidCtx *pctx, u64 pck_num)
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 	u32 size=0;
@@ -2408,6 +2408,9 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			} else {
 				inspect_printf(dump, "N/A");
 			}
+		}
+		else if (!strcmp(key, "fn")) {
+			inspect_printf(dump, "%s", gf_filter_get_name(filter) );
 		}
 		else {
 			const GF_PropertyValue *prop = NULL;
@@ -4124,7 +4127,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 				ctx->hdr_done=GF_TRUE;
 				//dump header on main output file, not on pid one!
 				if (ctx->hdr && ctx->fmt && !ctx->xml)
-					inspect_dump_packet_fmt(ctx, ctx->dump, NULL, 0, 0);
+					inspect_dump_packet_fmt(filter, ctx, ctx->dump, NULL, 0, 0);
 			}
 		}
 		if (!pck) continue;
@@ -4139,7 +4142,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inspect] PID %d (codec %s) dump packet CTS "LLU"\n", pctx->idx, gf_codecid_name(pctx->codec_id), gf_filter_pck_get_cts(pck) ));
 				if (ctx->fmt) {
-					inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
+					inspect_dump_packet_fmt(filter, ctx, pctx->tmp, pck, pctx, pctx->pck_num);
 				} else {
 					inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num, pctx);
 				}
@@ -4544,6 +4547,7 @@ const GF_FilterRegister InspectRegister = {
 	"- PropName: Name of packet property\n"
 	"- pid.P4CC: 4CC of PID property\n"
 	"- pid.PropName: Name of PID property\n"
+	"- fn: Filter name\n"
 	"\n"
 	"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
 	"This dumps packet number, cts and dts as follows: `PID 1 packet 10 DTS 100 CTS 108 \\n`\n"
