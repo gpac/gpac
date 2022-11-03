@@ -126,6 +126,8 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * pid.PropName: Name of PID property
 .br
+* fn: Filter name
+.br
 
 .br
 Example
@@ -978,6 +980,8 @@ block_size (uint, default: 100000): block size used to read file
 .br
 cache (enum, default: disk):   set cache mode
 .br
+* auto: cache to disk if content length is known, no cache otherwise
+.br
 * disk: cache to disk,  discard once session is no longer used
 .br
 * keep: cache to disk and keep
@@ -997,6 +1001,8 @@ range (lfrac, default: 0-0):   set byte range, as fraction
 ext (cstr):                    override file extension
 .br
 mime (cstr):                   set file mime type
+.br
+blockio (bool, default: false): use blocking IO
 .br
 
 .br
@@ -2922,7 +2928,9 @@ This filter handles SDP/RTSP/RTP input reading. It supports:
 .br
  
 .br
-The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).
+The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS). 
+.br
+The filter will use RTSP over HTTP tunnel if server port is 80 or 8080 or if protocol scheme is rtsph://.
 .br
 
 .br
@@ -2941,7 +2949,7 @@ reorder_len (uint, default: 1000): reorder length in packets
 .br
 reorder_delay (uint, default: 50): max delay in RTP re-orderer, packets will be dispatched after that
 .br
-block_size (uint, default: 0x200000): buffer size for RTP/UDP or RTSP when interleaved
+block_size (uint, default: 0100000): buffer size for RTP/UDP or RTSP when interleaved
 .br
 disable_rtcp (bool, default: false): disable RTCP reporting
 .br
@@ -2957,15 +2965,19 @@ default_port (uint, default: 554, minmax: 0-65535): set default RTSP port
 .br
 satip_port (uint, default: 1400, minmax: 0-65535): set default port for SATIP
 .br
-interleave (bool, default: false): set RTP over RTSP
+interleave (enum, default: auto): set RTP over RTSP
+.br
+* auto: set interleave on if HTTP tunnel is used, off otherwise and retry in interleaved mode if UDP timeout
+.br
+* on: enable RTP over RTSP
+.br
+* off: disable RTP over RTSP
+.br
+
 .br
 udp_timeout (uint, default: 10000): default timeout before considering UDP is down
 .br
-rtsp_timeout (uint, default: 3000): default timeout before considering RTSP is down
-.br
 rtcp_timeout (uint, default: 5000): default timeout for RTCP traffic in ms. After this timeout, playback will start out of sync. If 0 always wait for RTCP
-.br
-autortsp (bool, default: true): automatically reconfig RTSP interleaving if UDP timeout
 .br
 first_packet_drop (uint, default: 0, updatable): set number of first RTP packet to drop (0 if no drop)
 .br
@@ -3891,6 +3903,8 @@ owsize (v2di):                 output window size (readonly)
 buffer_done (bool):            buffer done indication (readonly)
 .br
 rebuffer (luint):              system time in us at which last rebuffer started, 0 if not rebuffering (readonly)
+.br
+vjs (bool, default: true):     use default JS script for vout control
 .br
 vflip (enum, default: no, updatable): flip video (GL only)
 .br
@@ -6416,6 +6430,9 @@ The server supports both RTP over UDP delivery and RTP interleaved over RTSP del
 .br
 
 .br
+.SH Sink mode
+.LP
+.br
 The filter can work as a simple output filter by specifying the .I dst option:
 .br
 Example
@@ -6429,6 +6446,9 @@ gpac -i source -o rtsp://myip/sessionname
 In this mode, only one session is possible. It is possible to .I loop the input source(s).
 .br
 
+.br
+.SH Server mode
+.LP
 .br
 The filter can work as a regular RTSP server by specifying the .I mounts option to indicate paths of media file to be served:
 .br
@@ -6465,6 +6485,15 @@ Consequently, only DESCRIBE methods are processed for such sessions, other metho
 
 .br
 The scheduling algorithm and RTP options are the same as the RTP output filter, see gpac -h rtpout
+.br
+
+.br
+.SH HTTP Tunnel
+.LP
+.br
+The server mode supports handling RTSP over HTTP tunnel by default. This can be disabled using .I htun.
+.br
+The tunnel conforms to QT specification, and only HTTP 1.0 and 1.1 tunnels are supported.
 .br
 
 .br
@@ -6507,7 +6536,7 @@ maxc (uint, default: 100):     maximum number of connections
 .br
 user_agent (str, default: $GUA): user agent string, by default solved from GPAC preferences
 .br
-close (bool, default: true):   close RTSP connection after each request, except when RTP over RTSP is used
+close (bool, default: false):  close RTSP connection after each request, except when RTP over RTSP is used
 .br
 loop (bool, default: true):    loop all streams in session (not always possible depending on source type)
 .br
@@ -6522,6 +6551,10 @@ mcast (enum, default: off):    control multicast setup of a session
 * mirror: clients can create a multicast session. Any later request to the same URL will use that multicast session
 .br
 
+.br
+quit (bool, default: false):   exit server once first session is over (for test purposes)
+.br
+htun (bool, default: true):    enable RTSP over HTTP tunnel
 .br
 
 .br
@@ -6573,10 +6606,6 @@ Listing can be enabled on server using .I dlist.
 When disabled, a GET on a directory will fail.
 .br
 When enabled, a GET on a directory will return a simple HTML listing of the content inspired from Apache.
-.br
-  
-.br
-Warning: the server is currently using blocking IOs for sockets and will likely not scale for many input clients.
 .br
   
 .br
@@ -6806,7 +6835,7 @@ cert (str):                    certificate file in PEM format to use for TLS mod
 .br
 pkey (str):                    private key file in PEM format to use for TLS mode
 .br
-block_size (uint, default: 100000): block size used to read and write TCP socket
+block_size (uint, default: 10000): block size used to read and write TCP socket
 .br
 user_agent (str, default: $GUA): user agent string, by default solved from GPAC preferences
 .br
@@ -6863,6 +6892,10 @@ max_client_errors (uint, default: 20): force disconnection after specified numbe
 max_cache_segs (sint, default: 5): maximum number of segments cached per HAS quality (see filter help)
 .br
 reopen (bool, default: false): in server mode with no read dir, accept requests on files already over but with input pid not in end of stream
+.br
+max_async_buf (uint, default: 100000): maximum async buffer size in bytes when sharing output over multiple connection without file IO
+.br
+blockio (bool, default: false): use blocking IO in push or source mode or in server mode with no read dir
 .br
 
 .br
@@ -10813,7 +10846,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev423-g3fd532629-master
+build: 2.1-DEV-rev431-g85158d26a-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

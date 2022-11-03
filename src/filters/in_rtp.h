@@ -42,6 +42,13 @@
 typedef struct _rtsp_session GF_RTPInRTSP;
 typedef struct __rtpin_stream GF_RTPInStream;
 
+enum
+{
+	RTP_RTSP_AUTO=0,
+	RTP_RTSP_ON,
+	RTP_RTSP_OFF,
+};
+
 /*the rtsp/rtp client*/
 typedef struct
 {
@@ -53,12 +60,12 @@ typedef struct
 	u32 bandwidth, reorder_len, reorder_delay, nat_keepalive, block_size;
 	Bool disable_rtcp;
 	u32 default_port;
-	u32 rtsp_timeout, udp_timeout, rtcp_timeout, stats;
+	u32 udp_timeout, rtcp_timeout, stats;
 	Bool forceagg;
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
 	u32 interleave;
 	s32 max_sleep, loss_rate;
-	Bool autortsp, rtcpsync;
+	Bool rtcpsync;
 
 	//internal
 

@@ -63,7 +63,7 @@ typedef struct
 
 
 	/*loaded AU info*/
-	GF_FilterPacket *pck;
+	Bool has_pck;
 	u64 current_dts, current_cts, min_dts;
 	u32 current_sap, current_duration;
 

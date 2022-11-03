@@ -81,7 +81,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 	com->method = gf_strdup(GF_RTSP_SETUP);
 
 	//setup ports if unicast non interleaved or multicast
-	if (gf_rtp_is_unicast(stream->rtp_ch) && (stream->rtpin->interleave != 1) && !gf_rtp_is_interleaved(stream->rtp_ch) ) {
+	if (gf_rtp_is_unicast(stream->rtp_ch) && (stream->rtpin->interleave != RTP_RTSP_ON) && !gf_rtp_is_interleaved(stream->rtp_ch) ) {
 		gf_rtp_set_ports(stream->rtp_ch, stream->rtpin->firstport);
 	} else if (stream->rtpin->force_mcast) {
 		gf_rtp_set_ports(stream->rtp_ch, stream->rtpin->firstport);

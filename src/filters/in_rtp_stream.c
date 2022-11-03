@@ -44,7 +44,7 @@ GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly)
 	if (!ResetOnly) {
 		GF_Err e;
 		const char *ip_ifce = NULL;
-		if (!stream->rtpin->interleave) {
+		if (stream->rtpin->interleave==RTP_RTSP_OFF) {
 			ip_ifce = stream->rtpin->ifce;
 		}
 		if (stream->rtp_ch->rtp)
@@ -765,10 +765,10 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 				} else {
 					if (! (stream->flags & RTP_EOS) && !stream->rtpin->retry_tcp) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms on stream %d%s\n", diff, stream->ES_ID,
-						(stream->rtpin->session && stream->rtpin->autortsp) ? ", retrying using TCP" : ""));
+						(stream->rtpin->session && (stream->rtpin->interleave==RTP_RTSP_AUTO)) ? ", retrying using TCP" : ""));
 					}
 
-					if (stream->rtpin->autortsp && stream->rtpin->session && !stream->rtpin->retry_tcp) {
+					if ((stream->rtpin->interleave==RTP_RTSP_AUTO) && stream->rtpin->session && !stream->rtpin->retry_tcp) {
 						stream->rtpin->retry_tcp = GF_TRUE;
 					} else {
 						stream->flags |= RTP_EOS;

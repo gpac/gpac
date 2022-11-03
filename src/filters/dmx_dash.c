@@ -578,17 +578,17 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 	//not from file system, set cache option
 	if (url_type) {
+		char szOpt[100];
+		char sep_name = gf_filter_get_sep(ctx->filter, GF_FS_SEP_NAME);
 		if (!ctx->segstore) {
 			if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
 			//if operating in mem mode and we load a file decryptor, only store in mem cache the first seg, and no cache for segments
-			if (crypto_type==1)
-				gf_dynstrcat(&sURL, "cache=none_keep", szSep);
-			else
-				gf_dynstrcat(&sURL, "cache=mem_keep", szSep);
-		}
-		else if (ctx->segstore==2) {
+			sprintf(szOpt, "cache%c%s", sep_name, (crypto_type==1) ? "none_keep" : "mem_keep");
+			gf_dynstrcat(&sURL, szOpt, szSep);
+		} else {
+			sprintf(szOpt, "cache%c%s", sep_name, (ctx->segstore==2) ? "keep" : "disk");
 			if (!has_sep) { gf_dynstrcat(&sURL, "gpac", szSep); has_sep = GF_TRUE; }
-			gf_dynstrcat(&sURL, "cache=keep", szSep);
+			gf_dynstrcat(&sURL, szOpt, szSep);
 		}
 	}
 
@@ -659,6 +659,8 @@ void dashdmx_io_delete_cache_file(GF_DASHFileIO *dashio, GF_DASHFileIOSession se
 	gf_dm_delete_cached_file_entry_session((GF_DownloadSession *)session, cache_url);
 }
 
+void gf_dm_sess_force_blocking(GF_DownloadSession *sess);
+
 GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, const char *url, s32 group_idx)
 {
 	GF_DownloadSession *sess;
@@ -676,6 +678,7 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
 		if (p) {
 			sess = (GF_DownloadSession *) p->value.ptr;
+			gf_dm_sess_force_blocking(sess);
 			if (!ctx->segstore) {
 				gf_dm_sess_force_memory_mode(sess, 1);
 			}
@@ -2439,14 +2442,19 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 				//to remove once we manage to keep the service alive
 				/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
-				if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
+				if (gf_dash_get_period_switch_status(ctx->dash)) {
+					ctx->nb_playing++;
+					return GF_TRUE;
+				}
 			}
 		}
 		//otherwise in static mode, perform a group seek
 		else if (!initial_play && !gf_dash_is_dynamic_mpd(ctx->dash) ) {
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
-			if (gf_dash_get_period_switch_status(ctx->dash)) return GF_TRUE;
-
+			if (gf_dash_get_period_switch_status(ctx->dash)) {
+				ctx->nb_playing++;
+				return GF_TRUE;
+			}
 			//seek on a single group
 
 			gf_dash_group_seek(ctx->dash, group->idx, fevt->play.start_range);

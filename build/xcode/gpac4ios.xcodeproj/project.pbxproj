@@ -292,7 +292,6 @@
 		71CCF3E912770A8C00339E12 /* nodes_mpeg4.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF39A12770A8C00339E12 /* nodes_mpeg4.h */; };
 		71CCF3EA12770A8C00339E12 /* nodes_svg.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF39B12770A8C00339E12 /* nodes_svg.h */; };
 		71CCF3EB12770A8C00339E12 /* nodes_x3d.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF39C12770A8C00339E12 /* nodes_x3d.h */; };
-		71CCF3ED12770A8C00339E12 /* options.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF39E12770A8C00339E12 /* options.h */; };
 		71CCF3EE12770A8C00339E12 /* path2d.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF39F12770A8C00339E12 /* path2d.h */; };
 		71CCF3EF12770A8C00339E12 /* rtp_streamer.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3A012770A8C00339E12 /* rtp_streamer.h */; };
 		71CCF3F012770A8C00339E12 /* scene_engine.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3A112770A8C00339E12 /* scene_engine.h */; };
@@ -889,7 +888,6 @@
 		71CCF39A12770A8C00339E12 /* nodes_mpeg4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nodes_mpeg4.h; sourceTree = "<group>"; };
 		71CCF39B12770A8C00339E12 /* nodes_svg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nodes_svg.h; sourceTree = "<group>"; };
 		71CCF39C12770A8C00339E12 /* nodes_x3d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nodes_x3d.h; sourceTree = "<group>"; };
-		71CCF39E12770A8C00339E12 /* options.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = options.h; sourceTree = "<group>"; };
 		71CCF39F12770A8C00339E12 /* path2d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = path2d.h; sourceTree = "<group>"; };
 		71CCF3A012770A8C00339E12 /* rtp_streamer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rtp_streamer.h; sourceTree = "<group>"; };
 		71CCF3A112770A8C00339E12 /* scene_engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = scene_engine.h; sourceTree = "<group>"; };
@@ -1748,7 +1746,6 @@
 				71CCF39A12770A8C00339E12 /* nodes_mpeg4.h */,
 				71CCF39B12770A8C00339E12 /* nodes_svg.h */,
 				71CCF39C12770A8C00339E12 /* nodes_x3d.h */,
-				71CCF39E12770A8C00339E12 /* options.h */,
 				71CCF39F12770A8C00339E12 /* path2d.h */,
 				71CCF3A012770A8C00339E12 /* rtp_streamer.h */,
 				71CCF3A112770A8C00339E12 /* scene_engine.h */,
@@ -2145,7 +2142,6 @@
 				71CCF3EA12770A8C00339E12 /* nodes_svg.h in Headers */,
 				71CCF3EB12770A8C00339E12 /* nodes_x3d.h in Headers */,
 				9298677A2357A0DA008A2CC6 /* webgl.h in Headers */,
-				71CCF3ED12770A8C00339E12 /* options.h in Headers */,
 				71CCF3EE12770A8C00339E12 /* path2d.h in Headers */,
 				71CCF3EF12770A8C00339E12 /* rtp_streamer.h in Headers */,
 				71CCF3F012770A8C00339E12 /* scene_engine.h in Headers */,

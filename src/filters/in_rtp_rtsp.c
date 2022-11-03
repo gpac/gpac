@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -74,7 +74,9 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 			sess->flags &= ~RTSP_WAIT_REPLY;
 			sess->command_time = 0;
 		} else {
-			u32 time_out = sess->rtpin->rtsp_timeout;
+			u32 time_out = gf_opts_get_int("core", "req-timeout");
+			if (!time_out) time_out = 10000;
+
 			/*evaluate timeout*/
 			time = gf_sys_clock() - sess->command_time;
 
@@ -147,7 +149,7 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 	}
 	e = gf_rtsp_send_command(sess->session, com);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPIn] Cannot send %s\n", com->method ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPIn] Cannot send %s: %s\n", com->method, gf_error_to_string(e) ));
 		rtpin_rtsp_process_response(sess, com, e);
 	} else {
 		sess->command_time = gf_sys_clock();
@@ -233,7 +235,7 @@ GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
 	tmp->rtpin = rtp;
 	tmp->session = rtsp;
 
-	if (rtp->interleave) {
+	if (rtp->interleave==RTP_RTSP_ON) {
 		gf_rtsp_set_buffer_size(rtsp, rtp->block_size);
 	} else {
 		gf_rtsp_set_buffer_size(rtsp, RTSP_BUFFER_SIZE);
@@ -268,7 +270,11 @@ GF_Err rtpin_add_stream(GF_RTPIn *rtp, GF_RTPInStream *stream, char *session_con
 	/*setup through SDP with control - assume this is RTSP and try to create a session*/
 	if (stream->control) {
 		/*stream control is relative to main session*/
-		if (strnicmp(stream->control, "rtsp://", 7) && strnicmp(stream->control, "rtspu://", 8) && strnicmp(stream->control, "satip://", 8)) {
+		if (strnicmp(stream->control, "rtsp://", 7)
+			&& strnicmp(stream->control, "rtspu://", 8)
+			&& strnicmp(stream->control, "rtsph://", 8)
+			&& strnicmp(stream->control, "satip://", 8)
+		) {
 			/*locate session by control - if no control was provided for the session, use default
 			session*/
 			if (!in_session) in_session = rtpin_rtsp_check(rtp, session_control ? session_control : "*");
@@ -348,7 +354,8 @@ static void rtpin_rtsp_reset(GF_RTPInRTSP *sess, GF_Err e)
 		//first = 0;
 	}
 	/*reset session state*/
-	gf_rtsp_session_reset(sess->session, GF_TRUE);
+	if (sess->session)
+		gf_rtsp_session_reset(sess->session, GF_TRUE);
 	sess->flags &= ~RTSP_WAIT_REPLY;
 }
 

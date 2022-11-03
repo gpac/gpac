@@ -530,6 +530,12 @@ void gf_rtsp_reset_aggregation(GF_RTSPSession *sess);
 */
 GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com);
 
+/*! checks connection status - should be called before processing any RTSP for non-blocking IO
+\param sess the target RTSP session
+\return GF_IP_NETWORK_EMPTY if connection is still pending or data cannot be flushed, GF_OK if connected and no more data to send or error if any
+*/
+GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess);
+
 
 /*! callback function for interleaved RTSP/TCP transport
 \param sess the target RTSP session
@@ -573,14 +579,17 @@ u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID);
 /*! creates a new RTSP session from an existing socket in listen state. If no pending connection
 	is detected, return NULL
 \param rtsp_listener the listening server socket
+\param allow_http_tunnel indicate if HTTP tunnel should be enabled
 \return the newly allocated RTSP session if any, NULL otherwise
 */
-GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener);
+GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_http_tunnel);
 
+/*! special error code for \ref gf_rtsp_get_command*/
+#define GF_RTSP_TUNNEL_POST	-1000
 /*! fetches an RTSP request
 \param sess the target RTSP session
 \param com the RTSP command to fill with the command. This will be reseted before fetch
-\return error if any
+\return error if any or GF_RTSP_TUNNEL_POST if this is a POST on a HTPP tunnel
 */
 GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com);
 
@@ -619,6 +628,19 @@ GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buffer);
 \return error if any
 */
 GF_Err gf_rtsp_session_write_interleaved(GF_RTSPSession *sess, u32 idx, u8 *pck, u32 pck_size);
+
+/*! gets sessioncookie for HTTP tunnel
+\param sess the target RTSP session
+\return cookie or NULL if none
+*/
+const char *gf_rtsp_get_session_cookie(GF_RTSPSession *sess);
+
+/*! move TCP connection of a POST HTTP tunnel link to main session
+\param sess the target RTSP session
+\param post_sess the target RTSP POST http tunnel session - the session is not destroyed, only its connection is detached
+\return error if any
+*/
+GF_Err gf_rtsp_merge_tunnel(GF_RTSPSession *sess, GF_RTSPSession *post_sess);
 
 /*
 		RTP LIB EXPORTS

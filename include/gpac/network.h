@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -435,6 +435,20 @@ Sends a buffer on the socket. The socket must be in a bound or connected mode
 \return error if any
  */
 GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length);
+
+/*!
+\brief data emission
+
+Sends a buffer on the socket. The socket must be in a bound or connected mode. This function is usually needed for non-blocking sockets
+\param sock the socket object
+\param buffer the data buffer to send
+\param length the data length to send
+\param written set to number of written bytes - may be NULL
+\return error if any
+ */
+GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written);
+
+
 /*!
 \brief data reception
 
@@ -550,31 +564,6 @@ Tests whether an IP address is a multicast one or not
 u32 gf_sk_is_multicast_address(const char *multi_ip_add);
 
 /*!
-\brief send data with wait delay
-
-Sends data with a max wait delay. This is used for http / ftp sockets mainly. The socket must be connected.
-\param sock the socket object
-\param buffer the data buffer to send
-\param length the data length to send
-\param delay_sec the maximum delay in second to wait before aborting
-\return If the operation timed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
- */
-GF_Err gf_sk_send_wait(GF_Socket *sock, const u8 *buffer, u32 length, u32 delay_sec);
-/* receive data with a max wait delay of Second - used for http / ftp sockets mainly*/
-/*!
-\brief receive data with wait delay
-
-Fetches data with a max wait delay. This is used for http / ftp sockets mainly. The socket must be connected.
-\param sock the socket object
-\param buffer the reception buffer where data is written
-\param length the allocated size of the reception buffer
-\param read the actual number of bytes received
-\param delay_sec the maximum delay in second to wait before aborting
-\return If the operation timed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
- */
-GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *read, u32 delay_sec);
-
-/*!
 \brief gets socket handle
 
 Gets the socket low-level handle as used by OpenSSL.
@@ -611,11 +600,11 @@ GF_Err gf_sk_probe(GF_Socket *sock);
 /*! socket selection mode*/
 typedef enum
 {
-	/*! select for both read and write operations */
+	/*! select for either read or write operations */
 	GF_SK_SELECT_BOTH=0,
-	/*! select for both read operations */
+	/*! select for read operations */
 	GF_SK_SELECT_READ,
-	/*! select for both write operations */
+	/*! select for write operations */
 	GF_SK_SELECT_WRITE,
 } GF_SockSelectMode;
 
@@ -623,7 +612,7 @@ typedef enum
 Checks if socket can is ready for read or write
 \param sock the socket object
 \param mode the operation mode desired
-\return GF_OK if ready, GF_IP_SOCK_WOULD_BLOCK if not ready, otherwise error if any (GF_IP_CONNECTION_CLOSED if connection is closed)
+\return GF_OK if ready, GF_IP_NETWORK_EMPTY if not ready, otherwise error if any (GF_IP_CONNECTION_CLOSED if connection is closed)
  */
 GF_Err gf_sk_select(GF_Socket *sock, GF_SockSelectMode mode);
 
@@ -661,7 +650,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk);
 /*!
 Performs a select (wait) on the socket group
 \param sg socket group object
-\param wait_usec microseconds to wait (can be larger than one second)
+\param wait_usec microseconds to wait (must be less than one second)
 \param mode the operation mode desired
 \return error if any
  */

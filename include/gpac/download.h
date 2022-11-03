@@ -194,6 +194,10 @@ typedef enum
 	GF_NETIO_SESSION_KEEP_CACHE = 1<<5,
 	/*! do not delete files after download of first resource (used for init segments)*/
 	GF_NETIO_SESSION_KEEP_FIRST_CACHE = 1<<6,
+	/*! session data is cached if content length is known */
+	GF_NETIO_SESSION_AUTO_CACHE = 1<<7,
+	/*! use non-blocking IOs*/
+	GF_NETIO_SESSION_NO_BLOCK = 1<<8,
 } GF_NetIOFlags;
 
 

@@ -329,7 +329,6 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to create UDP socket\n"));
 		return NULL;
 	}
-	gf_sk_group_register(routedmx->active_sockets, routedmx->atsc_sock);
 
 	gf_sk_set_usec_wait(routedmx->atsc_sock, 1);
 	e = gf_sk_setup_multicast(routedmx->atsc_sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 1, GF_FALSE, (char *) ifce);
@@ -340,6 +339,8 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	}
 	gf_sk_set_buffer_size(routedmx->atsc_sock, GF_FALSE, sock_buffer_size);
 	//gf_sk_set_block_mode(routedmx->sock, GF_TRUE);
+
+	gf_sk_group_register(routedmx->active_sockets, routedmx->atsc_sock);
 	return routedmx;
 }
 

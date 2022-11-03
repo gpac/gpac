@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -393,7 +393,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		goto exit;
 
 	//get the reply
-	gf_rtsp_get_body_info(sess, &BodyStart, &size);
+	gf_rtsp_get_body_info(sess, &BodyStart, &size, GF_FALSE);
 	e = RTSP_ParseResponseHeader(sess, rsp, BodyStart);
 
 	//copy the body if any
@@ -470,7 +470,7 @@ exit:
 		sess->connection = NULL;
 
 		//destroy the http tunnel if any
-		if (sess->HasTunnel && sess->http) {
+		if (sess->http) {
 			gf_sk_del(sess->http);
 			sess->http = NULL;
 		}

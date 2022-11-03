@@ -894,6 +894,7 @@ Bool gf_sys_has_filter_global_meta_args()
 
 static u32 gpac_quiet = 0;
 char gf_prog_lf = '\r';
+extern Bool gpac_use_poll;
 
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
@@ -902,6 +903,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 	if (!gpac_argc) {
 		Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e);
 		void gf_cfg_load_restrict();
+
+		gpac_use_poll = GF_TRUE;
 
 		for (i=1; i<argc; i++) {
 			Bool consumed;
@@ -966,6 +969,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gpac_old_arch = bool_value;
 			} else if (!stricmp(arg, "-no-save")) {
 				gpac_discard_config = bool_value;
+			} else if (!stricmp(arg, "-no-poll")) {
+				gpac_use_poll = bool_value;
 			} else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;
 				gf_net_set_ntp_shift(shift);

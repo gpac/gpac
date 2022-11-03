@@ -119,7 +119,6 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Failed to open socket for %s\n", ctx->src));
 		return GF_IO_ERR;
 	}
-	gf_sk_group_register(ctx->active_sockets, ctx->sock_c.socket);
 
 	/*setup port and src*/
 	port = ctx->port;
@@ -130,6 +129,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		port = atoi(str+1);
 		str[0] = 0;
 	}
+
 
 	/*do we have a source ?*/
 	if (gf_sk_is_multicast_address(url)) {
@@ -167,6 +167,8 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		ctx->sock_c.socket = NULL;
 		return e;
 	}
+
+	gf_sk_group_register(ctx->active_sockets, ctx->sock_c.socket);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] opening %s%s\n", ctx->src, ctx->listen ? " in server mode" : ""));
 
