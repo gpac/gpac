@@ -3158,13 +3158,13 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 	stbl_RemoveSize(stbl, 1, nb_samples);
 	stbl_RemoveChunk(stbl, 1, nb_samples);
 	stbl_RemoveRedundant(stbl, 1, nb_samples);
+	stbl_RemoveRAPs(stbl, nb_samples);
 
 	//then remove sample per sample for the rest, which is either
 	//- sparse data
 	//- allocated structure rather than memmove-able array
 	//- not very frequent info (paddind bits)
 	while (nb_samples) {
-		stbl_RemoveRAP(stbl, 1);
 		stbl_RemoveShadow(stbl, 1);
 		stbl_RemoveSubSample(stbl, 1);
 		stbl_RemovePaddingBits(stbl, 1);

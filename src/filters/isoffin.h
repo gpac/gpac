@@ -124,6 +124,7 @@ typedef struct
 	u32 mem_load_mode;
 	u8 *mem_url;
 	GF_Blob mem_blob;
+	u32 mem_blob_alloc;
 	u64 bytes_removed;
 	u64 last_min_offset;
 	GF_Err in_error;

@@ -4284,6 +4284,7 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber, u32 nb_samples);
 GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
+GF_Err stbl_RemoveRAPs(GF_SampleTableBox *stbl, u32 nb_samples);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
