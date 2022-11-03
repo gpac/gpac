@@ -250,7 +250,7 @@ GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err
 \param jitter_rtp_ts inter-arrival jitter in RTP channel timescale
 \param loss_rate loss rate in per-thousands
 */
-typedef void (*gf_rtcp_rr_callback)(void *cbk, u32 ssrc, u32 rtt_ms, u32 jitter_rtp_ts, u32 loss_rate);
+typedef void (*gf_rtcp_rr_callback)(void *cbk, u32 ssrc, u32 rtt_ms, u64 jitter_rtp_ts, u32 loss_rate);
 
 /*! process rtcp reports if any
 \param streamer the target RTP streamer

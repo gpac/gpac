@@ -842,14 +842,14 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 	return GF_TRUE;
 }
 
-static void rtpout_process_rtcp(void *cbk, u32 ssrc, u32 rtt_ms, u32 jitter_rtp_ts, u32 loss_rate)
+static void rtpout_process_rtcp(void *cbk, u32 ssrc, u32 rtt_ms, u64 jitter_rtp_ts, u32 loss_rate)
 {
 	GF_RTPOutStream *stream = cbk;
 	if (ssrc) return;
 	u64 jitter_us = gf_timestamp_rescale(jitter_rtp_ts, stream->rtp_timescale, 1000000);
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTCP stats for PID %s: rtt %u ms jitter "LLU" us loss rate %d / 1000\n\n", gf_filter_pid_get_name(stream->pid), rtt_ms, jitter_us, loss_rate));
 
-	gf_filter_pid_set_rt_stats(stream->pid, rtt_ms, jitter_us, loss_rate);
+	gf_filter_pid_set_rt_stats(stream->pid, rtt_ms, (u32) jitter_us, loss_rate);
 }
 
 

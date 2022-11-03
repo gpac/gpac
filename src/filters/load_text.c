@@ -2268,7 +2268,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		}
 
 
-		if (!ctx->first_samp && (ctx->end < interval->begin)) {
+		if (!ctx->first_samp && ((s64)ctx->end < interval->begin)) {
 			ttml_send_empty_sample(ctx, ctx->end, interval->begin);
 		}
 

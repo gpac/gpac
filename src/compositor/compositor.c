@@ -4270,7 +4270,7 @@ Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid 
 		u32 ts = scene->compositor->timescale;
 		if (!ts) ts = scene->compositor->fps.num;
 		scene->compositor->hint_extra_scene_cts_plus_one = 1 + gf_timestamp_rescale(cts_in_ms, 1000, ts);
-		scene->compositor->hint_extra_scene_dur_plus_one = 1 + gf_timestamp_rescale(dur_in_ms, 1000, ts);
+		scene->compositor->hint_extra_scene_dur_plus_one = (u32) ( 1 + gf_timestamp_rescale(dur_in_ms, 1000, ts));
 	}
 	return GF_TRUE;
 }

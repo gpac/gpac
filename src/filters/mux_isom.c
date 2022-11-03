@@ -6133,7 +6133,7 @@ static void del_service_info(GF_List *services)
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust)
 {
 	//compute offsets
-	u64 dts_diff = gf_timestamp_rescale(min_ts_service, 1000000, tkw->src_timescale);
+	s64 dts_diff = gf_timestamp_rescale(min_ts_service, 1000000, tkw->src_timescale);
 
 	if (!skip_adjust) {
 		dts_diff = (s64) tkw->ts_shift - dts_diff;
