@@ -1106,30 +1106,6 @@ restart:
 		gpac_print_report(session, GF_TRUE, GF_FALSE);
 	}
 
-	if (!session_js) {
-		u32 j;
-		Bool has_vout = GF_FALSE;
-		Bool has_compositor = GF_FALSE;
-		for (j=0; j<gf_list_count(loaded_filters); j++) {
-			GF_FilterStats stats;
-			GF_Filter *f = gf_list_get(loaded_filters, j);
-			gf_filter_get_stats(f, &stats);
-			if (!stats.reg_name) continue;
-			if (!strcmp(stats.reg_name, "vout")) has_vout=GF_TRUE;
-			//if compositor in player mode, don't load script
-			else if (!strcmp(stats.reg_name, "compositor")) {
-				GF_PropertyValue p;
-				gf_filter_get_arg(f, "player", &p);
-				if (p.value.uint!=0)
-					has_compositor=GF_TRUE;
-			}
-		}
-		if (has_vout && !has_compositor) {
-			session_js = "$GSHARE/scripts/vout.js";
-			gf_fs_load_script(session, session_js);
-		}
-	}
-
 	if (use_step_mode) {
 		do {
 			gf_fs_run(session);
@@ -2390,8 +2366,6 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	u16 port;
 	//to remove once we have rtsp server back
 	gf_sk_get_local_info(NULL, &port, &fam);
-	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
-	gf_sk_send_wait(NULL, NULL, 0, 1);
 
 	//path2D
 	GF_Path *path = gf_path_new();

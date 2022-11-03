@@ -4497,7 +4497,6 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_IP_NETWORK_FAILURE)
 	DEF_CONST(GF_IP_CONNECTION_CLOSED)
 	DEF_CONST(GF_IP_NETWORK_EMPTY)
-	DEF_CONST(GF_IP_SOCK_WOULD_BLOCK)
 	DEF_CONST(GF_IP_UDP_TIMEOUT)
 	DEF_CONST(GF_AUTHENTICATION_FAILURE)
 	DEF_CONST(GF_SCRIPT_NOT_READY)
@@ -4892,8 +4891,15 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 	jsf->disable_filter = GF_TRUE;
+	Bool temp_assign = GF_FALSE;
+	if (!jsf->filter->session->js_ctx) {
+		jsf->filter->session->js_ctx = jsf->ctx;
+		temp_assign = GF_TRUE;
+	}
 	ret = JS_Eval(jsf->ctx, (char *)buf, buf_len, jsf->js, flags);
 	gf_free(buf);
+	if (temp_assign)
+		jsf->filter->session->js_ctx = NULL;
 
 	if (JS_IsException(ret)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script %s\n", jsf->js));

@@ -36,12 +36,22 @@ print("Type 'h' in window for command list");
 let aout = null
 let vout = null
 
-let i;
-for (i=0; i< session.nb_filters; i++) {
- 	let f = session.get_filter(i);
- 	if (f.type==="aout") aout = f;
- 	else if (f.type==="vout") vout = f;
+function check_filters()
+{
+	if (aout && aout) return;
+	let i;
+	for (i=0; i< session.nb_filters; i++) {
+		let f = session.get_filter(i);
+		if (f.type==="aout") aout = f;
+		else if (f.type==="vout") vout = f;
+	}
+	if (vout) {
+		speed = vout.get_arg('speed');
+		drop = vout.get_arg('drop');
+		fullscreen = vout.get_arg('fullscreen');
+	}
 }
+check_filters();
 
 let speed=0;
 let drop=0;
@@ -141,33 +151,30 @@ function setup_overlay()
 	return true;
 }
 
-if (vout) {
-	speed = vout.get_arg('speed');
-	drop = vout.get_arg('drop');
-	fullscreen = vout.get_arg('fullscreen');
-
-	session.post_task( () => {
-		if (session.last_task) {
-			return false;
-		}
-		if (vout.nb_ipid) {
-			audio_only=false;
-			return false;
-		}
-		if (aout) {
-			if (!aout.nb_ipid || !session.connected) {
-				return 100;
-			}
-
-			if (!audio_only) {
-				overlay_type=OL_PLAY;
-				audio_only=true;
-				toggle_overlay();
-			}
-		}
+session.post_task( () => {
+	if (session.last_task) {
 		return false;
-	}, "check_vout_pids");
-}
+	}
+	check_filters();
+	if (!vout) return 1000;
+
+	if (vout.nb_ipid) {
+		audio_only=false;
+		return false;
+	}
+	if (aout) {
+		if (!aout.nb_ipid || !session.connected) {
+			return 100;
+		}
+
+		if (!audio_only) {
+			overlay_type=OL_PLAY;
+			audio_only=true;
+			toggle_overlay();
+		}
+	}
+	return false;
+}, "check_vout_pids");
 
 let last_x=0, last_y=0;
 

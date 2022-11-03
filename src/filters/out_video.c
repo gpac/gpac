@@ -96,7 +96,7 @@ typedef struct
 	//options
 	char *drv;
 	GF_VideoOutMode disp;
-	Bool vsync, linear, fullscreen, drop, hide, step;
+	Bool vsync, linear, fullscreen, drop, hide, step, vjs;
 	GF_Fraction64 dur;
 	Double speed, hold;
 	u32 back, vflip, vrot;
@@ -904,6 +904,8 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter);
 Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, GF_VideoOutput *vout);
 
+void gf_filter_load_script(GF_Filter *filter, const char *js_file, const char *filters_blacklist);
+
 static GF_Err vout_initialize(GF_Filter *filter)
 {
 	const char *sOpt;
@@ -999,6 +1001,10 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	gf_filter_set_event_target(filter, GF_TRUE);
 
 	gf_filter_post_process_task(filter);
+
+	if (ctx->vjs) {
+		gf_filter_load_script(filter, "$GSHARE/scripts/vout.js", "compositor");
+	}
 	return GF_OK;
 }
 
@@ -1632,7 +1638,12 @@ static GF_Err vout_process(GF_Filter *filter)
 		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
+
+		if (gf_filter_has_connect_errors(filter))
+			return GF_EOS;
+		//when we use vout+aout on audio only, we want the filter to still be active to process events
 		gf_filter_post_process_task(filter);
+
 		return ctx->oldata.ptr ? GF_OK : GF_EOS;
 	}
 
@@ -2093,7 +2104,7 @@ GF_Err vout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 		}
 		return GF_OK;
 	}
-	if (!strcmp(arg_name, "vrot")) {
+	if (!strcmp(arg_name, "vrot") || !strcmp(arg_name, "vflip")) {
 		if (ctx->disp<MODE_2D)
 			ctx->force_reconfig_pid = GF_TRUE;
 		return GF_OK;
@@ -2168,6 +2179,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(owsize), "output window size (readonly)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(rebuffer), "system time in us at which last rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(vjs), "use default JS script for vout control", GF_PROP_BOOL, "true", NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(vflip), "flip video (GL only)\n"
 		"- no: no flipping\n"

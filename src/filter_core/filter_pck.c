@@ -1446,6 +1446,7 @@ GF_EXPORT
 const u8 *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size)
 {
 	assert(pck);
+	assert(pck->pck);
 	assert(size);
 	//get true packet pointer
 	pck=pck->pck;

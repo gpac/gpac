@@ -2688,6 +2688,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		if (f->multi_sink_target) continue;
 		if (gf_list_find(filters_done, f)>=0) continue;
+		if (f->disabled==GF_FILTER_DISABLED_HIDE) continue;
 		if (!has_undefined) {
 			has_undefined = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters in unknown connection state:\n"));
@@ -3227,6 +3228,8 @@ restart:
 			//to remember our connection target
 			filter->target_filter = dst_filter;
 		}
+		if (dst_filter)
+			filter->subsession_id = dst_filter->subsession_id;
 	} else {
 		gf_free(args);
 	}

@@ -1805,6 +1805,8 @@ skip_date:
 				|| !strcmp("gfreg", szArg)
 				//non inherited options
 				|| !strcmp("gfloc", szArg)
+				//sep
+				|| !strcmp("gpac", szArg)
 			) {
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
@@ -3179,6 +3181,8 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	if (notif_filter->setup_notified) return;
 	notif_filter->setup_notified = GF_TRUE;
 
+	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s failed to setup: %s\n", notif_filter->name, gf_error_to_string(reason)));
+
 	gf_filter_notification_failure(notif_filter, reason, GF_TRUE);
 	//if we used the source, also send a notif failure on the filter (to trigger removal)
 	if (notif_filter != filter) {
@@ -3255,6 +3259,8 @@ void gf_filter_remove_task(GF_FSTask *task)
 
 void gf_filter_post_remove(GF_Filter *filter)
 {
+	//session about to be destroy, don't post task
+	if (filter->session->run_status==GF_EOS) return;
 	assert(!filter->swap_pidinst_dst);
 	assert(!filter->swap_pidinst_src);
 	assert(!filter->finalized);
@@ -3365,9 +3371,19 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 			}
 		}
 	}
-	if (keep_end_connections) return;
-
 	gf_mx_p(filter->tasks_mx);
+
+	if (!filter->num_output_pids && !filter->num_input_pids) {
+		gf_filter_post_remove(filter);
+		gf_mx_v(filter->tasks_mx);
+		return;
+	}
+
+	if (keep_end_connections) {
+		gf_mx_v(filter->tasks_mx);
+		return;
+	}
+
 	//check all pids connected to this filter, ensure their owner is only connected to this filter
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPid *pid;
@@ -4054,7 +4070,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 				}
 			} else {
 				if (a_mime) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Data Prober (filter %s) detected format is%s mime %s\n", freg->name, (score==GF_FPROBE_SUPPORTED) ? "" :  "maybe", a_mime));
+					GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Data Prober (filter %s) detected format is%s mime %s\n", freg->name, (score==GF_FPROBE_SUPPORTED) ? "" :  " maybe", a_mime));
 				}
 				if (a_mime && (score > max_score)) {
 					probe_mime = a_mime;
@@ -4926,4 +4942,11 @@ GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source
 	else
 		filter->subsource_id = 1 + source_id;
 	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_filter_has_connect_errors(GF_Filter *filter)
+{
+	if (filter && filter->session->last_connect_error) return GF_TRUE;
+	return GF_FALSE;
 }
