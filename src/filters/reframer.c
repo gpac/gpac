@@ -159,6 +159,7 @@ typedef struct
 	GF_List *streams;
 	RTStream *clock;
 
+	Double rt_speed;
 	u64 reschedule_in;
 	u64 clock_val;
 
@@ -744,8 +745,8 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				do_send = GF_TRUE;
 			} else {
 				u64 diff = cts_us - st_clock->cts_us_at_init;
-				if (ctx->speed>0) diff = (u64) ( diff / ctx->speed);
-				else if (ctx->speed<0) diff = (u64) ( diff / -ctx->speed);
+				if (ctx->rt_speed>0) diff = (u64) ( diff / ctx->rt_speed);
+				else if (ctx->rt_speed<0) diff = (u64) ( diff / -ctx->rt_speed);
 
 				clock -= st_clock->sys_clock_at_init;
 				if (clock + RT_PRECISION_US >= diff) {
@@ -2577,7 +2578,8 @@ static GF_Err reframer_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] `xround=seek` can only be used for single range extraction\n"));
 		return GF_BAD_PARAM;
 	}
-
+	if (ctx->speed != 0)
+		ctx->rt_speed = ctx->speed;
 
 	reframer_load_range(ctx);
 
@@ -2626,8 +2628,14 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		st->is_playing = GF_TRUE;
 		if (ctx->eos_state==1)
 			ctx->eos_state = 0;
+		if (ctx->speed==0)
+			ctx->rt_speed = evt->play.speed;
+
 	} else if (evt->base.type==GF_FEVT_STOP) {
 		st->is_playing = GF_FALSE;
+	} else if (evt->base.type==GF_FEVT_SET_SPEED) {
+		if (ctx->speed==0)
+			ctx->rt_speed = evt->play.speed;
 	}
 
 	gf_filter_pid_send_event(st->ipid, &fevt);
@@ -2670,7 +2678,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- sync: enables real-time regulation one clock for all PIDs", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(saps), "list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(speed), "speed for real-time regulation mode", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(speed), "speed for real-time regulation mode, a value of 0 uses speed from play commands", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input AV streams to be in raw format\n"
 	"- no: do not force decoding of inputs\n"
 	"- av: force decoding of audio and video inputs\n"
