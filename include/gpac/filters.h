@@ -3165,6 +3165,12 @@ If filters do not have the same sourceID, they cannot link to each other except 
 */
 GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source_id);
 
+/*! Check if connect errors happened in the filter parent session
+\param filter target filter
+\return GF_TRUE if parent session has seen connection errors, GF_FALSE otherwise
+*/
+Bool gf_filter_has_connect_errors(GF_Filter *filter);
+
 /*! @} */
 
 
@@ -3676,6 +3682,10 @@ Bool gf_filter_pid_first_packet_is_blocking_ref(GF_FilterPid *PID);
 /*! Gets the first packet in the input PID buffer.
 This may trigger a reconfigure signal on the filter. If reconfigure is not OK, returns NULL and the PID passed to the filter NO LONGER EXISTS (implicit remove)
 The packet is still present in the PID buffer until explicitly removed by \ref gf_filter_pid_drop_packet
+
+The returned packet is only valid for the current filter execution (process callback, task, ...), and may be discarded in-between calls, typically when the session is aborted.
+If a filter needs to keep a packet across calls, it must use \ref gf_filter_pck_ref and \ref gf_filter_pck_unref
+
 \param PID the target filter PID
 \return packet or NULL of empty or reconfigure error
 */

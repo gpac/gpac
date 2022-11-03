@@ -30,6 +30,7 @@
 
 #ifdef GPAC_HAS_QJS
 
+static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSContext *in_ctx);
 
 
 static JSClassID fs_class_id;
@@ -1506,8 +1507,7 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
     return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
+static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSContext *in_ctx)
 {
 	GF_Err e;
     JSValue global_obj;
@@ -1519,24 +1519,27 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 
 
 	if (!fs) return GF_BAD_PARAM;
-	if (fs->js_ctx) return GF_NOT_SUPPORTED;
+	if (!in_ctx) {
+		if (fs->js_ctx) return GF_NOT_SUPPORTED;
 
 #ifdef GPAC_HAS_QJS
-	ctx = gf_js_create_context();
-	if (!ctx) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
-		return GF_IO_ERR;
+		ctx = gf_js_create_context();
+		if (!ctx) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Failed to load QuickJS context\n"));
+			return GF_IO_ERR;
+		}
+		JS_SetContextOpaque(ctx, fs);
+
+		global_obj = JS_GetGlobalObject(ctx);
+		gf_fs_load_js_api(ctx, fs);
+		fs->js_ctx = ctx;
+
+		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_log_name", JS_NewString(fs->js_ctx, gf_file_basename(jsfile) ) );
+		JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_script_src", JS_NewString(fs->js_ctx, jsfile ) );
+		JS_FreeValue(fs->js_ctx, global_obj);
+	} else {
+		ctx = in_ctx;
 	}
-	JS_SetContextOpaque(ctx, fs);
-
-    global_obj = JS_GetGlobalObject(ctx);
-	gf_fs_load_js_api(ctx, fs);
-	fs->js_ctx = ctx;
-
-	JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_log_name", JS_NewString(fs->js_ctx, gf_file_basename(jsfile) ) );
-	JS_SetPropertyStr(fs->js_ctx, global_obj, "_gpac_script_src", JS_NewString(fs->js_ctx, jsfile ) );
-    JS_FreeValue(fs->js_ctx, global_obj);
-
 
 	//load script
 	if (!strncmp(jsfile, "$GSHARE/", 8)) {
@@ -1555,26 +1558,33 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 		return e;
 	}
 
- 	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
-		qjs_init_all_modules(fs->js_ctx, GF_FALSE, GF_FALSE);
+	if (in_ctx || (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len))) {
+		qjs_init_all_modules(ctx, GF_FALSE, GF_FALSE);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 
-	ret = JS_Eval(fs->js_ctx, (char *)buf, buf_len, jsfile, flags);
+	ret = JS_Eval(ctx, (char *)buf, buf_len, jsfile, flags);
 	gf_free(buf);
 
 	if (JS_IsException(ret)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script %s\n", jsfile));
-        js_dump_error(fs->js_ctx);
-		JS_FreeValue(fs->js_ctx, ret);
+        js_dump_error(ctx);
+		JS_FreeValue(ctx, ret);
 		return GF_BAD_PARAM;
 	}
-	JS_FreeValue(fs->js_ctx, ret);
-	js_std_loop(fs->js_ctx);
+	JS_FreeValue(ctx, ret);
+	js_std_loop(ctx);
 	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;
 #endif
+
+}
+
+GF_EXPORT
+GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
+{
+	return gf_fs_load_script_ex(fs, jsfile, NULL);
 
 }
 
@@ -1613,6 +1623,28 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		fs->jstasks = NULL;
 	}
 }
+void gf_filter_load_script(GF_Filter *filter, const char *js_file, const char *filters_blacklist)
+{
+	gf_mx_p(filter->session->filters_mx);
+	if (filters_blacklist) {
+		u32 i, count = gf_list_count(filter->session->filters);
+		for (i=0; i<count; i++) {
+			GF_Filter *af = gf_list_get(filter->session->filters, i);
+			if (!strstr(filters_blacklist, af->freg->name)) continue;
+
+			if (!strcmp(af->freg->name, "compositor")) {
+				GF_PropertyValue p;
+				gf_filter_get_arg(af, "player", &p);
+				if (p.value.uint==0) continue;
+			}
+
+			gf_mx_v(filter->session->filters_mx);
+			return;
+		}
+	}
+	gf_fs_load_script_ex(filter->session, js_file, filter->session->js_ctx);
+	gf_mx_v(filter->session->filters_mx);
+}
 
 #else
 GF_EXPORT
@@ -1621,6 +1653,10 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 	return GF_NOT_SUPPORTED;
 }
 void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
+{
+
+}
+void gf_filter_load_script(GF_Filter *filter, const char *js_file, const char *filters_blacklist)
 {
 
 }

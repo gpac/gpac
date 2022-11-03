@@ -6204,7 +6204,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	pcki = gf_fq_pop(pidinst->packets);
 
 	if (!pcki) {
-		if (pidinst->filter && !pidinst->filter->finalized) {
+		if (pidinst->filter && !pidinst->filter->finalized && !pidinst->discard_packets) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to discard a packet already discarded in filter %s\n", pid->filter->name));
 		}
 		return;
