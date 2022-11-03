@@ -913,9 +913,7 @@ const char *gf_error_to_string(GF_Err e)
 		return "Network Unreachable";
 
 	case GF_IP_NETWORK_EMPTY:
-		return "Network Timeout";
-	case GF_IP_SOCK_WOULD_BLOCK:
-		return "Socket Would Block";
+		return "Network Empty";
 	case GF_IP_CONNECTION_CLOSED:
 		return "Connection to server closed";
 	case GF_IP_UDP_TIMEOUT:

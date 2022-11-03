@@ -182,8 +182,7 @@ typedef enum
 	GF_IP_CONNECTION_CLOSED					= -43,
 	/*! The network operation has failed because no data is available*/
 	GF_IP_NETWORK_EMPTY						= -44,
-	/*! The network operation has been discarded because it would be a blocking one*/
-	GF_IP_SOCK_WOULD_BLOCK					= -45,
+
 	/*! UDP connection did not receive any data at all. Signaled by client services to reconfigure network if possible*/
 	GF_IP_UDP_TIMEOUT						= -46,
 

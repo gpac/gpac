@@ -262,6 +262,8 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (pck_data) {
 		e = gf_sk_send(dst_sock, pck_data, pck_size);
+		if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_URL_REMOVED)) return GF_IP_CONNECTION_CLOSED;
+
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Write error: %s\n", gf_error_to_string(e) ));
 		}
@@ -314,6 +316,14 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 	return GF_OK;
 }
 
+static void sockout_stop(GF_Filter *filter, GF_SockOutCtx *ctx)
+{
+	GF_FilterEvent evt;
+	GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
+	gf_filter_pid_send_event(ctx->pid, &evt);
+	gf_sk_del(ctx->socket);
+	ctx->socket = NULL;
+}
 
 static GF_Err sockout_process(GF_Filter *filter)
 {
@@ -447,6 +457,34 @@ static GF_Err sockout_process(GF_Filter *filter)
 		}
 		ctx->pck_pending = GF_FALSE;
 
+		for (i=0; i<nb_clients; i++) {
+			GF_SockOutClient *sc = gf_list_get(ctx->clients, i);
+			if (!sc->socket) continue;
+
+			if (!sc->is_tuned) {
+
+			}
+			if (had_pck_pending && !sc->pck_pending) {
+				continue;
+			}
+			sc->pck_pending = GF_FALSE;
+
+			e = sockout_send_packet(ctx, pck, sc->socket);
+			if (e==GF_IP_CONNECTION_CLOSED) {
+				gf_sk_del(sc->socket);
+				sc->socket = NULL;
+				gf_list_rem(ctx->clients, i);
+				gf_free(sc);
+				i--;
+				nb_clients--;
+				continue;
+			}
+			if (e == GF_BUFFER_TOO_SMALL) {
+				sc->pck_pending = GF_TRUE;
+				ctx->pck_pending = GF_TRUE;
+			}
+		}
+
 		if (!nb_clients) {
 			//client disconnected, drop packet if needed
 			if (ctx->had_clients && !ctx->kp) {
@@ -459,27 +497,12 @@ static GF_Err sockout_process(GF_Filter *filter)
 			}
 			return GF_OK;
 		}
-		for (i=0; i<nb_clients; i++) {
-			GF_SockOutClient *sc = gf_list_get(ctx->clients, i);
-			if (!sc->is_tuned) {
-
-			}
-			if (had_pck_pending && !sc->pck_pending) {
-				continue;
-			}
-			sc->pck_pending = GF_FALSE;
-
-			e = sockout_send_packet(ctx, pck, sc->socket);
-			if (e == GF_BUFFER_TOO_SMALL) {
-				sc->pck_pending = GF_TRUE;
-				ctx->pck_pending = GF_TRUE;
-			}
-		}
 		if (ctx->pck_pending) return GF_OK;
 
 	} else {
 		e = sockout_send_packet(ctx, pck, ctx->socket);
 		if (e == GF_BUFFER_TOO_SMALL) return GF_OK;
+		if (e==GF_IP_CONNECTION_CLOSED) sockout_stop(filter, ctx);
 	}
 
 	ctx->nb_pck_processed++;

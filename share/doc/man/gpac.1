@@ -710,6 +710,11 @@ default documents directoty (for GUI on iOS and Android)
 last working directory (for GUI)
 .br
 .TP
+.B \-no-poll
+.br
+disable poll and use select for socket groups
+.br
+.TP
 .B \-cache (string)
 .br
 cache directory location
@@ -755,14 +760,14 @@ indicate if HTTP cache should be clean upon launch/exit
 specify cache size in bytes
 .br
 .TP
-.B \-head-timeout (int, default: 5000)
+.B \-tcp-timeout (int, default: 5000)
 .br
-set HTTP head request timeout in milliseconds
+time in milliseconds to wait for HTTP/RTSP connect before error
 .br
 .TP
-.B \-req-timeout (int, default: 20000)
+.B \-req-timeout (int, default: 10000)
 .br
-set HTTP/RTSP request timeout in milliseconds
+time in milliseconds to wait on HTTP/RTSP request before error
 .br
 .TP
 .B \-no-timeout
@@ -4728,7 +4733,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev423-g3fd532629-master
+build: 2.1-DEV-rev431-g85158d26a-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

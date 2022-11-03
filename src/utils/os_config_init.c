@@ -1320,8 +1320,9 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("startup-file", NULL, "startup file of compositor in GUI mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("docs-dir", NULL, "default documents directoty (for GUI on iOS and Android)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("last-dir", NULL, "last working directory (for GUI)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
-
-
+#ifdef GPAC_HAS_POLL
+ GF_DEF_ARG("no-poll", NULL, "disable poll and use select for socket groups", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+#endif
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-on", NULL, "enable HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-name", NULL, "set HTTP proxy address", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
@@ -1331,8 +1332,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("offline-cache", NULL, "enable offline HTTP caching (no re-validation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("clean-cache", NULL, "indicate if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("cache-size", NULL, "specify cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("head-timeout", NULL, "set HTTP head request timeout in milliseconds", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("req-timeout", NULL, "set HTTP/RTSP request timeout in milliseconds", "20000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("tcp-timeout", NULL, "time in milliseconds to wait for HTTP/RTSP connect before error", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("req-timeout", NULL, "time in milliseconds to wait on HTTP/RTSP request before error", "10000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-timeout", NULL, "ignore HTTP 1.1 timeout in keep-alive", "false", NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("broken-cert", NULL, "enable accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-agent", "ua", "set user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),

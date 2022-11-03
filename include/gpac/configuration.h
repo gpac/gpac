@@ -147,6 +147,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_GLU
 #define GPAC_HAS_VTB
 #define GPAC_HAS_HTTP2
+#define GPAC_HAS_POLL
 
 #define GPAC_MEMORY_TRACKING
 
@@ -186,6 +187,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_STRLCPY
 #define GPAC_HAS_VTB
 #define GPAC_HAS_HTTP2
+#define GPAC_HAS_POLL
 
 /*Configuration for Symbian*/
 #elif defined(__SYMBIAN32__)

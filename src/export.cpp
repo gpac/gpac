@@ -320,8 +320,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_get_remote_address) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_setup_multicast) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_is_multicast_address) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sk_send_wait) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sk_receive_wait) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_receive_no_select) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_set_usec_wait) )
 
@@ -1342,7 +1340,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_remote_address) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_session_port) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_session_write_interleaved) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_http_tunnel_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_setup_transport) )
@@ -2499,6 +2496,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_sink ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_tag_subsession ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_has_connect_errors ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )

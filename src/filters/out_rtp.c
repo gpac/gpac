@@ -607,7 +607,7 @@ static u16 rtpout_check_next_port(GF_RTPOutCtx *ctx, u16 first_port)
 void rtpout_del_stream(GF_RTPOutStream *st)
 {
 	if (st->rtp) gf_rtp_streamer_del(st->rtp);
-	if (st->pck) gf_filter_pid_drop_packet(st->pid);
+	if (st->has_pck) gf_filter_pid_drop_packet(st->pid);
 	if (st->avcc)
 		gf_odf_avc_cfg_del(st->avcc);
 	if (st->hvcc)
@@ -861,7 +861,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 	s64 diff;
 	u64 clock;
 	const char *pck_data;
-	u32 pck_size;
+	u32 pck_size=0;
 	u32 dts, cts;
 
 	/*browse all inputs and locate most mature stream*/
@@ -878,11 +878,11 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 			gf_rtp_streamer_read_rtcp(stream->rtp, rtpout_process_rtcp, stream);
 
 			/*load next AU*/
-			if (!stream->pck) {
+			if (!stream->has_pck) {
 				u64 ts;
-				stream->pck = gf_filter_pid_get_packet(stream->pid);
+				GF_FilterPacket *pck = gf_filter_pid_get_packet(stream->pid);
 
-				if (!stream->pck) {
+				if (!pck) {
 					if (gf_filter_pid_is_eos(stream->pid)) {
 						//flush stream
 						if (!stream->bye_sent) {
@@ -894,14 +894,14 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					}
 					continue;
 				}
-				stream->current_dts = gf_filter_pck_get_dts(stream->pck);
+				stream->current_dts = gf_filter_pck_get_dts(pck);
 				//if CTS is not set, use prev packet CTS
-				ts = gf_filter_pck_get_cts(stream->pck);
+				ts = gf_filter_pck_get_cts(pck);
 				if (ts==GF_FILTER_NO_TS) ts = stream->current_cts;
 				stream->current_cts = ts;
 
-				stream->current_sap = gf_filter_pck_get_sap(stream->pck);
-				duration = gf_filter_pck_get_duration(stream->pck);
+				stream->current_sap = gf_filter_pck_get_sap(pck);
+				duration = gf_filter_pck_get_duration(pck);
 				if (duration) stream->current_duration = duration;
 				if (stream->current_dts==GF_FILTER_NO_TS)
 					stream->current_dts = stream->current_cts;
@@ -924,10 +924,11 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 				if (stream->current_sap>GF_FILTER_SAP_3) stream->current_sap = 0;
 				stream->pck_num++;
 				*wait_for_loop = GF_FALSE;
+				stream->has_pck = GF_TRUE;
 			}
 
 			/*check timing*/
-			if (stream->pck) {
+			if (stream->has_pck) {
 				if (*active_min_ts_microsec > stream->microsec_dts) {
 					*active_min_ts_microsec = stream->microsec_dts;
 					*active_stream = stream;
@@ -1003,10 +1004,11 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 	}
 
 	/*send packets*/
-	pck_data = gf_filter_pck_get_data(stream->pck, &pck_size);
+	GF_FilterPacket *pck = gf_filter_pid_get_packet(stream->pid);
+	pck_data = pck ? gf_filter_pck_get_data(pck, &pck_size) : NULL;
 	if (!pck_size) {
 		gf_filter_pid_drop_packet(stream->pid);
-		stream->pck = NULL;
+		stream->has_pck = GF_FALSE;
 		*active_stream = NULL;
 		return GF_OK;
 	}
@@ -1051,7 +1053,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 
 		for (i=0; i<count; i++) {
 			GF_RTPOutStream *astream = gf_list_get(streams, i);
-			if (!astream->pck) break;
+			if (!astream->has_pck) break;
 
 			u32 ts = (u32) (astream->current_cts + astream->ts_offset + astream->rtp_ts_offset);
 			gf_rtp_streamer_send_rtcp(stream->rtp, GF_TRUE, ts, ntp_type, ntp_sec, ntp_frac);
@@ -1112,7 +1114,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		e = gf_rtp_streamer_send_data(stream->rtp, (char *) pck_data, pck_size, pck_size, cts, dts, stream->current_sap ? 1 : 0, 1, 1, stream->pck_num, duration, stream->sample_desc_index);
 	}
 	gf_filter_pid_drop_packet(stream->pid);
-	stream->pck = NULL;
+	stream->has_pck = GF_FALSE;
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Error sending RTP packet %d: %s\n", stream->pck_num, gf_error_to_string(e) ));
@@ -1142,7 +1144,7 @@ static GF_Err rtpout_process(GF_Filter *filter)
 			for (i=0; i<count; i++) {
 				GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
 				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
-				stream->pck = NULL;
+				stream->has_pck = GF_FALSE;
 			}
 			if (ctx->opid) gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;

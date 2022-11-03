@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -98,13 +98,13 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 			switch (stream->depacketizer->sl_map.StreamType) {
 			case GF_STREAM_VISUAL:
 			case GF_STREAM_AUDIO:
-				if ((rtp->interleave==1) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
+				if ((rtp->interleave==RTP_RTSP_ON) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
 					gf_rtsp_set_buffer_size(stream->rtsp->session, stream->rtpin->block_size);
 					stream->rtsp->flags |= RTSP_FORCE_INTER;
 				}
 				break;
 			default:
-				if (rtp->interleave && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
+				if ((rtp->interleave==RTP_RTSP_ON) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
 					gf_rtsp_set_buffer_size(stream->rtsp->session, stream->rtpin->block_size);
 					stream->rtsp->flags |= RTSP_FORCE_INTER;
 				}
@@ -339,6 +339,9 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 	e = gf_sdp_info_parse(sdp, sdp_text, sdp_len);
 
 	if (e == GF_OK) e = rtpin_setup_sdp(rtp, sdp, stream);
+
+	if (!gf_list_count(rtp->streams))
+		e = GF_NOT_SUPPORTED;
 
 	if (e != GF_OK) {
 		if (!stream) {

@@ -69,7 +69,7 @@ typedef struct
 	s32 runfor, tso;
 	u32 maxc;
 	u32 block_size;
-	Bool close, loop, dynurl, mpeg4;
+	Bool close, loop, dynurl, mpeg4, quit, htun;
 	u32 mcast;
 	Bool latm;
 
@@ -102,7 +102,7 @@ typedef struct __rtspout_session
 	u32 play_state;
 	Double start_range;
 	u32 last_cseq;
-	Bool interleave;
+	Bool interleave, is_tunnel;
 
 	/*base stream if this stream contains a media decoding dependency, 0 otherwise*/
 	u32 base_pid_id;
@@ -138,12 +138,12 @@ static void rtspout_send_response(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 {
 	sess->response->User_Agent = ctx->user_agent;
 	sess->response->Session = sess->sessionID;
-	if (ctx->close && !sess->interleave)
+	if (ctx->close && !sess->interleave && !sess->is_tunnel)
 		sess->response->Connection = "close";
 	gf_rtsp_send_response(sess->rtsp, sess->response);
 	sess->response->User_Agent = NULL;
 	sess->response->Session = NULL;
-	if (ctx->close && !sess->interleave) {
+	if (ctx->close && !sess->interleave && !sess->is_tunnel) {
 		sess->response->Connection = NULL;
 		gf_rtsp_session_del(sess->rtsp);
 		sess->rtsp = NULL;
@@ -199,11 +199,17 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 
 static void rtspout_del_stream(GF_RTPOutStream *st)
 {
+	if (st->pid) {
+		GF_FilterEvent fevt;
+		gf_filter_pid_set_discard(st->pid, GF_TRUE);
+		GF_FEVT_INIT(fevt, GF_FEVT_STOP, st->pid);
+		gf_filter_pid_send_event(st->pid, &fevt);
+	}
 	rtpout_del_stream(st);
 }
 
 
-static void rtspout_del_session(GF_RTSPOutSession *sess)
+static void rtspout_del_session(GF_Filter *filter, GF_RTSPOutSession *sess)
 {
 	//server mode, cleanup
 	while (gf_list_count(sess->streams)) {
@@ -216,11 +222,21 @@ static void rtspout_del_session(GF_RTSPOutSession *sess)
 		gf_free(sess->service_name);
 	if (sess->sessionID)
 		gf_free(sess->sessionID);
+
+	if (filter) {
+		while (gf_list_count(sess->filter_srcs)) {
+			GF_Filter *fsrc = gf_list_pop_back(sess->filter_srcs);
+			gf_filter_remove_src(filter, fsrc);
+		}
+	}
 	gf_list_del(sess->filter_srcs);
 	gf_rtsp_session_del(sess->rtsp);
 	gf_rtsp_command_del(sess->command);
 	gf_rtsp_response_del(sess->response);
 	gf_list_del_item(sess->ctx->sessions, sess);
+	if (sess->ctx->quit && !gf_list_count(sess->ctx->sessions))
+		sess->ctx->done = GF_TRUE;
+
 	if (sess->multicast_ip) gf_free(sess->multicast_ip);
 	gf_free(sess);
 }
@@ -261,9 +277,9 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	const GF_PropertyValue *p;
 
 	sess = rtspout_locate_session_for_pid(filter, ctx, pid);
-	if (!sess) return GF_SERVICE_ERROR;
 
 	if (is_remove) {
+		if (!sess) return GF_OK;
 		GF_RTPOutStream *t = gf_filter_pid_get_udta(pid);
 		if (t) {
 			if (sess->active_stream==t) sess->active_stream = NULL;
@@ -271,10 +287,11 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			rtspout_del_stream(t);
 		}
 		if (!gf_list_count(sess->streams)) {
-			rtspout_del_session(sess);
+			rtspout_del_session(filter, sess);
 		}
 		return GF_OK;
 	}
+	if (!sess) return GF_SERVICE_ERROR;
 	stream = gf_filter_pid_get_udta(pid);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -330,7 +347,7 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	GF_RTSPSession *new_sess = NULL;
 
 	if (!single_session) {
-		new_sess = gf_rtsp_session_new_server(ctx->server_sock);
+		new_sess = gf_rtsp_session_new_server(ctx->server_sock, ctx->htun);
 		if (!new_sess) return GF_OK;
 	}
 
@@ -427,7 +444,7 @@ static void rtspout_finalize(GF_Filter *filter)
 
 	while (gf_list_count(ctx->sessions)) {
 		GF_RTSPOutSession *tmp = gf_list_get(ctx->sessions, 0);
-		rtspout_del_session(tmp);
+		rtspout_del_session(NULL, tmp);
 	}
 	gf_list_del(ctx->sessions);
 
@@ -530,10 +547,12 @@ static void rtspout_send_event(GF_RTSPOutSession *sess, Bool send_stop, Bool sen
 		if (send_stop && stream->is_playing) {
 			stream->is_playing = GF_FALSE;
 			fevt.base.type = GF_FEVT_STOP;
+			gf_filter_pid_set_discard(stream->pid, GF_TRUE);
 			gf_filter_pid_send_event(stream->pid, &fevt);
 		}
 		if (send_play && !stream->is_playing) {
 			stream->is_playing = GF_TRUE;
+			gf_filter_pid_set_discard(stream->pid, GF_FALSE);
 			fevt.base.type = GF_FEVT_PLAY;
 			fevt.play.start_range = start_range;
 			gf_filter_pid_send_event(stream->pid, &fevt);
@@ -562,9 +581,18 @@ static GF_Err rtspout_process_rtp(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSP
 			for (i=0; i<count; i++) {
 				GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
 				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
-				stream->pck = NULL;
 			}
 			return GF_EOS;
+		}
+	}
+
+	if (sess->rtsp) {
+		e = gf_rtsp_check_connection(sess->rtsp);
+		if (e==GF_IP_NETWORK_EMPTY) {
+			ctx->next_wake_us = 100;
+			return GF_OK;
+		} else if (e) {
+			return e;
 		}
 	}
 
@@ -603,7 +631,7 @@ Bool rtspout_on_filter_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_E
 		sess->response->CSeq = sess->command->CSeq;
 		rtspout_send_response(sess->ctx, sess);
 	}
-	rtspout_del_session(sess);
+	rtspout_del_session(NULL, sess);
 	//we don't notify error at our session level if the request fails
 	return GF_TRUE;
 }
@@ -805,7 +833,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 			sess->rtsp = NULL;
 			sess->command = NULL;
 			memcpy(a_sess->peer_address, sess->peer_address, sizeof(char)*GF_MAX_IP_NAME_LEN);
-			rtspout_del_session(sess);
+			rtspout_del_session(NULL, sess);
 			*sess_ptr = sess = a_sess;
 			break;
 		}
@@ -1184,7 +1212,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 
 		rtspout_send_event(sess, GF_TRUE, GF_FALSE, 0);
 
-		rtspout_del_session(sess);
+		rtspout_del_session(filter, sess);
 		rtspout_check_last_sess(ctx);
 		*sess_ptr = NULL;
 		return GF_OK;
@@ -1192,6 +1220,40 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 	return GF_OK;
 }
 
+void rtspout_merge_http_tunnel(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
+{
+	u32 i, count;
+	char sip[GF_MAX_IP_NAME_LEN];
+	const char *session_cookie = gf_rtsp_get_session_cookie(sess->rtsp);
+	gf_rtsp_get_session_ip(sess->rtsp, sip);
+	if (!session_cookie) {
+		rtspout_del_session(NULL, sess);
+		return;
+	}
+	count = gf_list_count(ctx->sessions);
+	for (i=0; i<count; i++) {
+		GF_RTSPOutSession *a_sess = gf_list_get(ctx->sessions, i);
+		if (!a_sess->rtsp) continue;
+		char a_sip[GF_MAX_IP_NAME_LEN];
+		const char *a_session_cookie = gf_rtsp_get_session_cookie(sess->rtsp);
+		if (!a_session_cookie) continue;
+		if (strcmp(a_session_cookie, session_cookie)) continue;
+		gf_rtsp_get_session_ip(sess->rtsp, a_sip);
+		if (strcmp(a_sip, sip)) continue;
+
+		GF_Err e = gf_rtsp_merge_tunnel(a_sess->rtsp, sess->rtsp);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPOut] Failed to setup HTTP tunnel session from host %s: %s\n", sip, gf_error_to_string(e)));
+			rtspout_del_session(filter, a_sess);
+		} else {
+			a_sess->is_tunnel = GF_TRUE;
+		}
+		rtspout_del_session(NULL, sess);
+		return;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPOut] Invalid HTTP tunnel session from host %s, discarding session\n", sip));
+	rtspout_del_session(NULL, sess);
+}
 
 static GF_Err rtspout_process(GF_Filter *filter)
 {
@@ -1213,6 +1275,13 @@ static GF_Err rtspout_process(GF_Filter *filter)
 		GF_Err sess_err;
 		GF_RTSPOutSession *sess = gf_list_get(ctx->sessions, i);
 		sess_err = rtspout_process_session_signaling(filter, ctx, &sess);
+		if (sess_err == GF_RTSP_TUNNEL_POST) {
+			gf_list_rem(ctx->sessions, i);
+			rtspout_merge_http_tunnel(filter, ctx, sess);
+			i--;
+			count--;
+			continue;
+		}
 		if (sess_err) e |= sess_err;
 
 		if (sess && sess->play_state) {
@@ -1222,7 +1291,8 @@ static GF_Err rtspout_process(GF_Filter *filter)
 	}
 
 	if (e==GF_EOS) {
-		if (ctx->dst) return GF_EOS;
+		if (ctx->dst)
+			return GF_EOS;
 		e=GF_OK;
 	}
 
@@ -1235,6 +1305,7 @@ static GF_Err rtspout_process(GF_Filter *filter)
 static GF_FilterProbeScore rtspout_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "rtsp://", 7)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "rtsph://", 7)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -1270,7 +1341,7 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(block_size), "block size used to read TCP socket", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxc), "maximum number of connections", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
-	{ OFFS(close), "close RTSP connection after each request, except when RTP over RTSP is used", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(close), "close RTSP connection after each request, except when RTP over RTSP is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dynurl), "allow dynamic service assembly", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mcast), "control multicast setup of a session\n"
@@ -1278,7 +1349,8 @@ static const GF_FilterArgs RTSPOutArgs[] =
 				"- on: clients can create multicast sessions\n"
 				"- mirror: clients can create a multicast session. Any later request to the same URL will use that multicast session"
 		, GF_PROP_UINT, "off", "off|on|mirror", GF_FS_ARG_HINT_EXPERT},
-
+	{ OFFS(quit), "exit server once first session is over (for test purposes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(htun), "enable RTSP over HTTP tunnel", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1292,11 +1364,13 @@ GF_FilterRegister RTSPOutRegister = {
 		"The server only runs on TCP, and handles request in sequence: it will not probe for commands until previous response is sent.\n"
 		"The server supports both RTP over UDP delivery and RTP interleaved over RTSP delivery.\n"
 		"\n"
+		"# Sink mode\n"
 		"The filter can work as a simple output filter by specifying the [-dst]() option:\n"
 		"EX gpac -i source -o rtsp://myip/sessionname\n"
 		"EX gpac -i source -o rtsp://myip/sessionname\n"
 		"In this mode, only one session is possible. It is possible to [-loop]() the input source(s).\n"
 		"\n"
+		"# Server mode\n"
 		"The filter can work as a regular RTSP server by specifying the [-mounts]() option to indicate paths of media file to be served:\n"
 		"EX gpac rtspout:mounts=mydir1,mydir2\n"
 		"In server mode, it is possible to load any source supported by gpac by setting the option [-dynurl]().\n"
@@ -1311,6 +1385,10 @@ GF_FilterRegister RTSPOutRegister = {
 		"Consequently, only DESCRIBE methods are processed for such sessions, other methods will return Unauthorized.\n"
 		"\n"
 		"The scheduling algorithm and RTP options are the same as the RTP output filter, see [gpac -h rtpout](rtpout)\n"
+		"\n"
+		"# HTTP Tunnel\n"
+		"The server mode supports handling RTSP over HTTP tunnel by default. This can be disabled using [-htun]().\n"
+		"The tunnel conforms to QT specification, and only HTTP 1.0 and 1.1 tunnels are supported.\n"
 	)
 	.private_size = sizeof(GF_RTSPOutCtx),
 	.max_extra_pids = -1,

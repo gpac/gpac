@@ -57,8 +57,9 @@ static GF_FilterProbeScore rtpin_probe_url(const char *url, const char *mime)
 	/*we need rtsp/tcp , rtsp/udp or direct RTP sender (no control)*/
 	if (!strnicmp(url, "rtsp://", 7)
 		|| !strnicmp(url, "rtspu://", 8)
+		|| !strnicmp(url, "rtsph://", 8)
 		|| !strnicmp(url, "rtp://", 6)
-		|| !strnicmp(url, "satip://", 6))
+		|| !strnicmp(url, "satip://", 8))
 	{
 		return GF_FPROBE_SUPPORTED;
 	}
@@ -469,13 +470,28 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		rtpin_rtsp_usercom_send(stream->rtsp, stream, &evt);
 	}
 
+	if (ctx->session) {
+		GF_Err e = gf_rtsp_check_connection(ctx->session->session);
+		if (e==GF_IP_NETWORK_EMPTY) {
+			gf_filter_post_process_task(filter);
+			return GF_OK;
+		} else if (e) {
+			if (e==GF_IP_CONNECTION_FAILURE) {
+				gf_filter_setup_failure(filter, e);
+				gf_rtsp_session_del(ctx->session->session);
+				ctx->session->session = NULL;
+			}
+			return e;
+		}
+	}
+
 
 	if (ctx->retry_tcp && ctx->session) {
 		GF_FilterEvent evt;
 		Bool send_agg_play = GF_TRUE;
 		GF_List *streams = gf_list_new();
 		ctx->retry_tcp = GF_FALSE;
-		ctx->interleave = 1;
+		ctx->interleave = RTP_RTSP_ON;
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
 			if (stream->status >= RTP_Setup) {
@@ -651,8 +667,12 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 	ctx->streams = gf_list_new();
 	ctx->filter = filter;
 	//turn on interleave on http port
-	if ((ctx->default_port == 80) || (ctx->default_port == 8080))
-		ctx->interleave = 1;
+	if (ctx->interleave==RTP_RTSP_AUTO) {
+		if ((ctx->default_port == 80) || (ctx->default_port == 8080))
+			ctx->interleave = RTP_RTSP_ON;
+		if (ctx->src && !strnicmp(ctx->src, "rtsph://", 8))
+			ctx->interleave = RTP_RTSP_ON;
+	}
 
 	ctx->last_start_range = -1.0;
 
@@ -786,7 +806,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(ttl), "multicast TTL", GF_PROP_UINT, "127", "0-127", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder_len), "reorder length in packets", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder_delay), "max delay in RTP re-orderer, packets will be dispatched after that", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(block_size), "buffer size for RTP/UDP or RTSP when interleaved", GF_PROP_UINT, "0x200000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(block_size), "buffer size for RTP/UDP or RTSP when interleaved", GF_PROP_UINT, "0100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disable_rtcp), "disable RTCP reporting", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nat_keepalive), "delay in ms of NAT keepalive, disabled by default (except for SatIP, set to 30s by default)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_mcast), "force multicast on indicated IP in RTSP setup", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -794,11 +814,12 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(bandwidth), "set bandwidth param for RTSP requests", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(default_port), "set default RTSP port", GF_PROP_UINT, "554", "0-65535", 0},
 	{ OFFS(satip_port), "set default port for SATIP", GF_PROP_UINT, "1400", "0-65535", 0},
-	{ OFFS(interleave), "set RTP over RTSP", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(interleave), "set RTP over RTSP\n"
+		"- auto: set interleave on if HTTP tunnel is used, off otherwise and retry in interleaved mode if UDP timeout\n"
+		"- on: enable RTP over RTSP\n"
+		"- off: disable RTP over RTSP", GF_PROP_UINT, "auto", "auto|on|off", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(udp_timeout), "default timeout before considering UDP is down", GF_PROP_UINT, "10000", NULL, 0},
-	{ OFFS(rtsp_timeout), "default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, 0},
 	{ OFFS(rtcp_timeout), "default timeout for RTCP traffic in ms. After this timeout, playback will start out of sync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(autortsp), "automatically reconfig RTSP interleaving if UDP timeout", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(first_packet_drop), "set number of first RTP packet to drop (0 if no drop)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(frequency_drop), "drop 1 out of N packet (0 disable dropping)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(loss_rate), "loss rate to signal in RTCP, -1 means real loss rate, otherwise a per-thousand of packet lost", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
@@ -822,7 +843,10 @@ GF_FilterRegister RTPInRegister = {
 	"- RTP direct url through `rtp://` protocol scheme\n"
 	"- RTSP session processing through `rtsp://` and `satip://` protocol schemes\n"
 	" \n"
-	"The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).")
+	"The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS)."
+	" \n"
+	"The filter will use RTSP over HTTP tunnel if server port is 80 or 8080 or if protocol scheme is `rtsph://`.\n"
+	)
 	.private_size = sizeof(GF_RTPIn),
 	.args = RTPInArgs,
 	.initialize = rtpin_initialize,
@@ -842,7 +866,7 @@ const GF_FilterRegister *rtpin_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_STREAMING
 	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
-		gf_opts_set_key("temp_in_proto", RTPInRegister.name, "rtp,rtsp,rtspu,satip");
+		gf_opts_set_key("temp_in_proto", RTPInRegister.name, "rtp,rtsp,rtspu,rtsph,satip");
 	}
 	return &RTPInRegister;
 #else

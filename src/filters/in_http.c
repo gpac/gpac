@@ -30,7 +30,8 @@
 
 typedef enum
 {
-	GF_HTTPIN_STORE_DISK=0,
+	GF_HTTPIN_STORE_AUTO=0,
+	GF_HTTPIN_STORE_DISK,
 	GF_HTTPIN_STORE_DISK_KEEP,
 	GF_HTTPIN_STORE_MEM,
 	GF_HTTPIN_STORE_MEM_KEEP,
@@ -54,6 +55,8 @@ typedef struct
 	GF_Fraction64 range;
 	char *ext;
 	char *mime;
+	Bool blockio;
+
 
 	//internal
 	Bool initial_ack_done;
@@ -111,6 +114,8 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		flags |= GF_NETIO_SESSION_NOT_CACHED;
 	else if (ctx->cache==GF_HTTPIN_STORE_DISK_KEEP)
 		flags |= GF_NETIO_SESSION_KEEP_CACHE;
+	else if (ctx->cache==GF_HTTPIN_STORE_AUTO)
+		flags |= GF_NETIO_SESSION_AUTO_CACHE;
 	else if (ctx->cache==GF_HTTPIN_STORE_MEM_KEEP) {
 		flags |= GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
 		ctx->cache = GF_HTTPIN_STORE_MEM;
@@ -120,6 +125,9 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		ctx->cache = GF_HTTPIN_STORE_NONE;
 	}
 	gf_filter_set_blocking(filter, GF_TRUE);
+
+	if (!ctx->blockio)
+		flags |= GF_NETIO_SESSION_NO_BLOCK;
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
@@ -601,16 +609,18 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
+	"- auto: cache to disk if content length is known, no cache otherwise\n"
 	"- disk: cache to disk,  discard once session is no longer used\n"
 	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
 	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"
 	"- none: no cache\n"
 	"- none_keep: stores to memory, keep after session is reassigned but move to `none` after first download"
-	, GF_PROP_UINT, "disk", "disk|keep|mem|mem_keep|none|none_keep", GF_FS_ARG_HINT_ADVANCED},
+	, GF_PROP_UINT, "disk", "auto|disk|keep|mem|mem_keep|none|none_keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "set byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(blockio), "use blocking IO", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

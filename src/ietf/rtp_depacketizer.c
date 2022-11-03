@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP input module
@@ -1249,6 +1249,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_LHVC;
 	else if (!stricmp(map->payload_name, "H266")) return GF_RTP_PAYT_VVC;
 	else if (!stricmp(map->payload_name, "opus")) return GF_RTP_PAYT_OPUS;
+	else if (!stricmp(map->payload_name, "QCELP")) return GF_RTP_PAYT_QCELP;
 	else return 0;
 }
 

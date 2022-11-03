@@ -44,6 +44,10 @@
 #pragma comment(lib, "ws2_32")
 #endif
 
+#ifdef GPAC_HAS_POLL
+#define GF_POLLFD	WSAPOLLFD
+#endif
+
 #endif
 
 #include <windows.h>
@@ -74,6 +78,8 @@
 #define EISCONN				WSAEISCONN
 #define ENOTCONN			WSAENOTCONN
 #define ECONNRESET			WSAECONNRESET
+#define EINPROGRESS			WSAEINPROGRESS
+#define EALREADY			WSAEALREADY
 #define EMSGSIZE			WSAEMSGSIZE
 #define ECONNABORTED		WSAECONNABORTED
 #define ENETDOWN			WSAENETDOWN
@@ -128,6 +134,13 @@ static int wsa_init = 0;
 
 typedef s32 SOCKET;
 #define closesocket(v) close(v)
+
+#ifdef GPAC_HAS_POLL
+#include <poll.h>
+
+#define GF_POLLFD	struct pollfd
+
+#endif
 
 #endif /*WIN32||_WIN32_WCE*/
 
@@ -375,6 +388,9 @@ struct __tag_socket
 	u32 dest_addr_len;
 
 	u32 usec_wait;
+#ifdef GPAC_HAS_POLL
+	u32 poll_idx;
+#endif
 };
 
 
@@ -768,9 +784,24 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
 			ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
+				int err = LASTSOCKERROR;
+				if (sock->flags & GF_SOCK_NON_BLOCKING) {
+					if (err==EINPROGRESS) {
+						freeaddrinfo(res);
+						if (lip) freeaddrinfo(lip);
+						return GF_IP_NETWORK_EMPTY;
+					}
+					if ((err==EISCONN) ||(err==EALREADY)) {
+						freeaddrinfo(res);
+						if (lip) freeaddrinfo(lip);
+						if (gf_sk_select(sock, GF_SK_SELECT_WRITE)==GF_OK)
+							return GF_OK;
+						return GF_IP_NETWORK_EMPTY;
+					}
+				}
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(LASTSOCKERROR) ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(err) ));
 				continue;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
@@ -836,11 +867,11 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Sock_IPV4] Couldn't connect socket: %s\n", gf_errno_str(res) ));
 		switch (res) {
 		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
+			return GF_IP_NETWORK_EMPTY;
 #ifdef WIN32
 		case WSAEINVAL:
 			if (sock->flags & GF_SOCK_NON_BLOCKING)
-				return GF_IP_SOCK_WOULD_BLOCK;
+				return GF_IP_NETWORK_EMPTY;
 #endif
 		case EISCONN:
 			return GF_OK;
@@ -1081,47 +1112,100 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 #endif
 }
 
-//send length bytes of a buffer
-GF_EXPORT
-GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
+Bool gpac_use_poll=GF_TRUE;
+
+static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec)
 {
-	u32 count;
-	s32 res;
-	Bool not_ready = GF_FALSE;
 #ifndef __SYMBIAN32__
 	int ready;
 	struct timeval timeout;
-	fd_set Group;
+
+#ifdef GPAC_HAS_POLL
+	if (gpac_use_poll) {
+		struct pollfd pfd;
+		pfd.fd = sock->socket;
+		pfd.revents = 0;
+		if (mode == GF_SK_SELECT_WRITE) pfd.events = POLLOUT;
+		else if (mode == GF_SK_SELECT_READ) pfd.events = POLLIN;
+		else pfd.events = POLLIN|POLLOUT;
+
+		ready = poll(&pfd, 1, usec/1000);
+		if (ready<0) {
+			switch (LASTSOCKERROR) {
+			case EAGAIN:
+				return GF_IP_NETWORK_EMPTY;
+			default:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot poll: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				return GF_IP_NETWORK_FAILURE;
+			}
+		}
+		if (!ready)
+			return GF_IP_NETWORK_EMPTY;
+
+		if ((mode == GF_SK_SELECT_WRITE) && !(pfd.revents & POLLOUT))
+			return GF_IP_NETWORK_EMPTY;
+		if ((mode == GF_SK_SELECT_READ) && !(pfd.revents & POLLIN))
+			return GF_IP_NETWORK_EMPTY;
+
+		return GF_OK;
+	}
 #endif
 
-	//the socket must be bound or connected
-	if (!sock || !sock->socket)
-		return GF_BAD_PARAM;
+	fd_set rgroup, wgroup;
 
-#ifndef __SYMBIAN32__
 	//can we write?
-	FD_ZERO(&Group);
-	FD_SET(sock->socket, &Group);
+	FD_ZERO(&rgroup);
+	FD_ZERO(&wgroup);
+	if (mode != GF_SK_SELECT_WRITE)
+		FD_SET(sock->socket, &rgroup);
+	if (mode != GF_SK_SELECT_READ)
+		FD_SET(sock->socket, &wgroup);
 	timeout.tv_sec = 0;
-	timeout.tv_usec = sock->usec_wait;
+	timeout.tv_usec = usec;
 
-	//TODO CHECK IF THIS IS CORRECT
-	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
+	ready = select((int) sock->socket+1,
+		(mode != GF_SK_SELECT_WRITE) ? &rgroup : NULL,
+		(mode != GF_SK_SELECT_READ) ? &wgroup : NULL,
+		 NULL, &timeout);
+
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
+			return GF_IP_NETWORK_EMPTY;
 		default:
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] select failure: %s\n", gf_errno_str(LASTSOCKERROR)));
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
-
-	//should never happen (to check: is writeability is guaranteed for not-connected sockets)
-	if (!ready || !FD_ISSET(sock->socket, &Group)) {
-		not_ready = GF_TRUE;
-	}
+	if (!ready)
+		return GF_IP_NETWORK_EMPTY;
+	if ((mode == GF_SK_SELECT_WRITE) && !FD_ISSET(sock->socket, &wgroup))
+		return GF_IP_NETWORK_EMPTY;
+	if ((mode == GF_SK_SELECT_READ) && !FD_ISSET(sock->socket, &rgroup))
+		return GF_IP_NETWORK_EMPTY;
+	//if mode is both and we are ready, let's go
+	return GF_OK;
 #endif
+}
+
+//send length bytes of a buffer
+GF_EXPORT
+GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written)
+{
+	u32 count;
+	s32 res;
+
+	if (written) *written = 0;
+
+	//the socket must be bound or connected
+	if (!sock || !sock->socket)
+		return GF_BAD_PARAM;
+
+	if (! (sock->flags & GF_SOCK_NON_BLOCKING)) {
+		//check write
+		GF_Err e = poll_select(sock, GF_SK_SELECT_WRITE, sock->usec_wait);
+		if (e) return e;
+	}
 
 	//direct writing
 	count = 0;
@@ -1136,12 +1220,9 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 			res = (s32) send(sock->socket, (char *) buffer+count, length - count, sflags);
 		}
 		if (res == SOCKET_ERROR) {
-			if (not_ready)
-				return GF_IP_NETWORK_EMPTY;
-
 			switch (res = LASTSOCKERROR) {
 			case EAGAIN:
-				return GF_IP_SOCK_WOULD_BLOCK;
+				return GF_IP_NETWORK_EMPTY;
 #ifndef __SYMBIAN32__
 			case ENOTCONN:
 			case ECONNRESET:
@@ -1152,7 +1233,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 
 #ifndef __DARWIN__
 			case EPROTOTYPE:
-				return GF_IP_SOCK_WOULD_BLOCK;
+				return GF_IP_NETWORK_EMPTY;
 #endif
 			case ENOBUFS:
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] send failure: %s\n", gf_errno_str(LASTSOCKERROR)));
@@ -1163,57 +1244,26 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 			}
 		}
 		count += res;
+		if (written) *written += res;
 	}
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
+{
+	return gf_sk_send_ex(sock, buffer, length, NULL);
+
+}
+
 GF_Err gf_sk_select(GF_Socket *sock, u32 mode)
 {
-#ifndef __SYMBIAN32__
-	int ready;
-	struct timeval timeout;
-	fd_set RGroup;
-	fd_set WGroup;
-#endif
-
 	//the socket must be bound or connected
 	if (!sock || !sock->socket)
 		return GF_BAD_PARAM;
 
-#ifndef __SYMBIAN32__
-	//can we write?
-	FD_ZERO(&RGroup);
-	FD_ZERO(&WGroup);
-	if (mode != GF_SK_SELECT_WRITE)
-		FD_SET(sock->socket, &RGroup);
-	if (mode != GF_SK_SELECT_READ)
-		FD_SET(sock->socket, &WGroup);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = sock->usec_wait;
-
-	//TODO CHECK IF THIS IS CORRECT
-	ready = select((int) sock->socket+1, &RGroup, &WGroup, NULL, &timeout);
-	if (ready == SOCKET_ERROR) {
-		switch (LASTSOCKERROR) {
-		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
-		default:
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] select failure: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_NETWORK_FAILURE;
-		}
-	}
-
-	//should never happen (to check: is writeability is guaranteed for not-connected sockets)
-	if (!ready)
-		return GF_IP_SOCK_WOULD_BLOCK;
-	if ((mode != GF_SK_SELECT_WRITE) && !FD_ISSET(sock->socket, &RGroup))
-		return GF_IP_SOCK_WOULD_BLOCK;
-	if ((mode != GF_SK_SELECT_READ) && !FD_ISSET(sock->socket, &WGroup))
-		return GF_IP_SOCK_WOULD_BLOCK;
-	return GF_OK;
-#else
-	return GF_IP_SOCK_WOULD_BLOCK;
-#endif
+	//check write and read
+	return poll_select(sock, mode, sock->usec_wait);
 }
 
 
@@ -1462,6 +1512,13 @@ struct __tag_sock_group
 {
 	GF_List *sockets;
 	fd_set rgroup, wgroup;
+
+#ifdef GPAC_HAS_POLL
+	u32 last_mask;
+	u32 nb_fds, alloc_fds;
+	GF_POLLFD *fds;
+#endif
+
 };
 
 GF_SockGroup *gf_sk_group_new()
@@ -1469,43 +1526,123 @@ GF_SockGroup *gf_sk_group_new()
 	GF_SockGroup *tmp;
 	GF_SAFEALLOC(tmp, GF_SockGroup);
 	if (!tmp) return NULL;
-	tmp->sockets = gf_list_new();
 	FD_ZERO(&tmp->rgroup);
 	FD_ZERO(&tmp->wgroup);
+
+#ifdef GPAC_HAS_POLL
+	tmp->last_mask = POLLIN;
+#endif
 	return tmp;
 }
 
 void gf_sk_group_del(GF_SockGroup *sg)
 {
 	gf_list_del(sg->sockets);
+#ifdef GPAC_HAS_POLL
+	if (sg->fds) gf_free(sg->fds);
+#endif
 	gf_free(sg);
 }
 
 void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 {
-	if (sg && sk) {
-		if (gf_list_find(sg->sockets, sk)<0)
-			gf_list_add(sg->sockets, sk);
+	if (!sg || !sk) return;
+	if (!sg->sockets) sg->sockets = gf_list_new();
+	if (gf_list_find(sg->sockets, sk)>=0) return;
+	gf_list_add(sg->sockets, sk);
+#ifdef GPAC_HAS_POLL
+	if (!sg->fds && !gpac_use_poll)
+		return;
+
+	if (sg->nb_fds + 1 > sg->alloc_fds) {
+		sg->fds = gf_realloc(sg->fds, (sg->nb_fds+1) * sizeof(GF_POLLFD));
+		sg->alloc_fds = sg->nb_fds+1;
 	}
+	sg->fds[sg->nb_fds].fd = sk->socket;
+	sg->fds[sg->nb_fds].events = sg->last_mask;
+	sg->fds[sg->nb_fds].revents = 0;
+	sk->poll_idx = sg->nb_fds;
+	assert(sg->fds[sg->nb_fds].fd != 0);
+	sg->nb_fds++;
+#endif
 }
+
 void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 {
-	if (sg && sk) {
-		gf_list_del_item(sg->sockets, sk);
+	if (!sg || !sk) return;
+	s32 pidx = gf_list_del_item(sg->sockets, sk);
+	if (!gf_list_count(sg->sockets)) {
+		gf_list_del(sg->sockets);
+		sg->sockets = NULL;
+#ifdef GPAC_HAS_POLL
+		if (sg->fds) {
+			gf_free(sg->fds);
+			sg->fds = NULL;
+			sg->nb_fds = sg->alloc_fds = 0;
+		}
+#endif
+		return;
 	}
+	if (pidx<0) return;
+
+#ifdef GPAC_HAS_POLL
+	if (!sg->fds) return;
+	memmove(&sg->fds[pidx], &sg->fds[pidx+1], sizeof(GF_POLLFD) * (sg->nb_fds-pidx-1));
+	//reassign poll file descriptors and poll index
+	sg->nb_fds--;
+	while (1) {
+		GF_Socket *asock = gf_list_get(sg->sockets, pidx);
+		if (!asock) break;
+		sg->fds[pidx].fd = asock->socket;
+		asock->poll_idx = pidx;
+		pidx++;
+	}
+#endif
 }
 
 GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mode)
 {
 	s32 ready;
-	u32 i=0;
+	u32 i;
 	struct timeval timeout;
-	u32 max_fd=0;
 	GF_Socket *sock;
-	fd_set *rgroup=NULL, *wgroup=NULL;
 
-	if (!gf_list_count(sg->sockets))
+	if (!sg->sockets)
 		return GF_IP_NETWORK_EMPTY;
+
+#ifdef GPAC_HAS_POLL
+	if (sg->fds) {
+		u32 mask = 0;
+		if (mode == GF_SK_SELECT_BOTH) mask = POLLIN | POLLOUT;
+		else if (mode == GF_SK_SELECT_READ) mask = POLLIN;
+		else mask = POLLOUT;
+		if (sg->last_mask != mask) {
+			sg->last_mask = mask;
+			for (i=0; i<sg->nb_fds; i++) {
+				sg->fds[i].events = mask;
+				assert(sg->fds[i].fd != 0);
+			}
+		}
+		int res = poll(sg->fds, sg->nb_fds, usec_wait/1000);
+		if (res<0) {
+			switch (LASTSOCKERROR) {
+			case EAGAIN:
+				return GF_IP_NETWORK_EMPTY;
+			default:
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot poll: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				return GF_IP_NETWORK_FAILURE;
+			}
+		}
+
+		if (!res)
+			return GF_IP_NETWORK_EMPTY;
+		return GF_OK;
+	}
+#endif
+
+	i=0;
+	u32 max_fd=0;
+	fd_set *rgroup=NULL, *wgroup=NULL;
 
 	FD_ZERO(&sg->rgroup);
 	FD_ZERO(&sg->wgroup);
@@ -1531,13 +1668,8 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 
 		if (max_fd < (u32) sock->socket) max_fd = (u32) sock->socket;
 	}
-	if (usec_wait>=1000000) {
-		timeout.tv_sec = usec_wait/1000000;
-		timeout.tv_usec = (u32) (usec_wait - (timeout.tv_sec*1000000));
-	} else {
-		timeout.tv_sec = 0;
-		timeout.tv_usec = usec_wait;
-	}
+	timeout.tv_sec = 0;
+	timeout.tv_usec = usec_wait;
 	ready = select((int) max_fd+1, rgroup, wgroup, NULL, &timeout);
 
 	if (ready == SOCKET_ERROR) {
@@ -1546,9 +1678,9 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select, BAD descriptor\n"));
 			return GF_IP_CONNECTION_CLOSED;
 		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
+			return GF_IP_NETWORK_EMPTY;
 		case EINTR:
-			/* Interrupted system call, not really important... */
+			/* Interrupted system call*/
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] network is lost\n"));
 			return GF_IP_NETWORK_EMPTY;
 		default:
@@ -1565,12 +1697,32 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 
 Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode mode)
 {
-	if (sg && sk) {
-		if ((mode!=GF_SK_SELECT_WRITE) && FD_ISSET(sk->socket, &sg->rgroup))
+	if (!sg || !sk) return GF_FALSE;
+
+#ifdef GPAC_HAS_POLL
+	if (sg->fds) {
+		GF_POLLFD *pfd = &sg->fds[sk->poll_idx];
+		//disconnected, consider ready to read/write
+		if (pfd->revents & POLLHUP)
 			return GF_TRUE;
-		if ((mode!=GF_SK_SELECT_READ) && FD_ISSET(sk->socket, &sg->wgroup))
+
+		if ((mode!=GF_SK_SELECT_WRITE) && (pfd->revents & POLLIN))
 			return GF_TRUE;
+
+		if ((mode!=GF_SK_SELECT_READ) && (pfd->revents & POLLOUT))
+			return GF_TRUE;
+
+//		if (gf_sk_probe(sk) == GF_IP_CONNECTION_CLOSED)
+//			return GF_TRUE;
+		return GF_FALSE;
 	}
+#endif
+
+	if ((mode!=GF_SK_SELECT_WRITE) && FD_ISSET(sk->socket, &sg->rgroup))
+		return GF_TRUE;
+	if ((mode!=GF_SK_SELECT_READ) && FD_ISSET(sk->socket, &sg->wgroup))
+		return GF_TRUE;
+
 	return GF_FALSE;
 }
 
@@ -1581,46 +1733,15 @@ Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode 
 GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *BytesRead, Bool do_select)
 {
 	s32 res;
-#ifndef __SYMBIAN32__
-	s32 ready;
-	struct timeval timeout;
-	fd_set Group;
-#endif
 
 	if (BytesRead) *BytesRead = 0;
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
-#ifndef __SYMBIAN32__
-	if (do_select) {
-		//can we read?
-		timeout.tv_sec = 0;
-		timeout.tv_usec = sock->usec_wait;
-		FD_ZERO(&Group);
-		FD_SET(sock->socket, &Group);
-		ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
-
-		if (ready == SOCKET_ERROR) {
-			switch (LASTSOCKERROR) {
-			case EBADF:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select, BAD descriptor\n"));
-				return GF_IP_CONNECTION_CLOSED;
-			case EAGAIN:
-				return GF_IP_SOCK_WOULD_BLOCK;
-			case EINTR:
-				/* Interrupted system call, not really important... */
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] network is lost\n"));
-				return GF_IP_NETWORK_EMPTY;
-			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select: %s\n", gf_errno_str(LASTSOCKERROR) ));
-				return GF_IP_NETWORK_FAILURE;
-			}
-		}
-		if (!ready || !FD_ISSET(sock->socket, &Group)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] nothing to be read - ready %d\n", ready));
-			return GF_IP_NETWORK_EMPTY;
-		}
+	if (do_select && !(sock->flags & GF_SOCK_NON_BLOCKING)) {
+		//check read
+		GF_Err e = poll_select(sock, GF_SK_SELECT_READ, sock->usec_wait);
+		if (e) return e;
 	}
-#endif
 	if (!buffer) return GF_OK;
 
 	if (sock->flags & GF_SOCK_HAS_PEER)
@@ -1635,12 +1756,12 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		res = LASTSOCKERROR;
 		switch (res) {
 		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
+			return GF_IP_NETWORK_EMPTY;
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 		//may happen if no select
 		case WSAEWOULDBLOCK:
-			return GF_IP_SOCK_WOULD_BLOCK;
+			return GF_IP_NETWORK_EMPTY;
 #endif
 
 #ifndef __SYMBIAN32__
@@ -1682,7 +1803,9 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 {
 	s32 i;
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
-	if (MaxConnection >= SOMAXCONN) MaxConnection = SOMAXCONN;
+	if (!MaxConnection || (MaxConnection >= SOMAXCONN)) {
+		MaxConnection = SOMAXCONN;
+	}
 	i = listen(sock->socket, MaxConnection);
 	if (i == SOCKET_ERROR) return GF_IP_NETWORK_FAILURE;
 	sock->flags |= GF_SOCK_IS_LISTENING;
@@ -1694,34 +1817,12 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 {
 	u32 client_address_size;
 	SOCKET sk;
-#ifndef __SYMBIAN32__
-	s32 ready;
-	struct timeval timeout;
-	fd_set Group;
-#endif
 	*newConnection = NULL;
 	if (!sock || !(sock->flags & GF_SOCK_IS_LISTENING) ) return GF_BAD_PARAM;
 
-#ifndef __SYMBIAN32__
-	//can we read?
-	FD_ZERO(&Group);
-	FD_SET(sock->socket, &Group);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = sock->usec_wait;
-
-	//TODO - check if this is correct
-	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
-	if (ready == SOCKET_ERROR) {
-		switch (LASTSOCKERROR) {
-		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] select error: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_NETWORK_FAILURE;
-		}
-	}
-	if (!ready || !FD_ISSET(sock->socket, &Group)) return GF_IP_NETWORK_EMPTY;
-#endif
+	//check read
+	GF_Err e = poll_select(sock, GF_SK_SELECT_READ, sock->usec_wait);
+	if (e) return e;
 
 #ifdef GPAC_HAS_IPV6
 	client_address_size = sizeof(struct sockaddr_in6);
@@ -1732,10 +1833,9 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 
 	//we either have an error or we have no connections
 	if (sk == INVALID_SOCKET) {
-//		if (sock->flags & GF_SOCK_NON_BLOCKING) return GF_IP_NETWORK_FAILURE;
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
+			return GF_IP_NETWORK_EMPTY;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] accept error: %s\n", gf_errno_str(LASTSOCKERROR)));
 			return GF_IP_NETWORK_FAILURE;
@@ -1858,37 +1958,14 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	struct sockaddr_in remote_add;
 	struct hostent *Host;
 #endif
-#ifndef __SYMBIAN32__
-	s32 ready;
-	struct timeval timeout;
-	fd_set Group;
-#endif
 
 	//the socket must be bound or connected
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 	if (remoteHost && !remotePort) return GF_BAD_PARAM;
 
-#ifndef __SYMBIAN32__
-	//can we write?
-	FD_ZERO(&Group);
-	FD_SET(sock->socket, &Group);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = sock->usec_wait;
-
-	//TODO - check if this is correct
-	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
-	if (ready == SOCKET_ERROR) {
-		switch (LASTSOCKERROR) {
-		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] select error: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_NETWORK_FAILURE;
-		}
-	}
-	if (!ready || !FD_ISSET(sock->socket, &Group)) return GF_IP_NETWORK_EMPTY;
-#endif
-
+	//check write
+	GF_Err e = poll_select(sock, GF_SK_SELECT_WRITE, sock->usec_wait);
+	if (e) return e;
 
 	/*setup the address*/
 #ifdef GPAC_HAS_IPV6
@@ -1930,7 +2007,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 		if (res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
-				return GF_IP_SOCK_WOULD_BLOCK;
+				return GF_IP_NETWORK_EMPTY;
 			default:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] sendto error: %s\n", gf_errno_str(LASTSOCKERROR)));
 				return GF_IP_NETWORK_FAILURE;
@@ -1945,36 +2022,15 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 GF_EXPORT
 GF_Err gf_sk_probe(GF_Socket *sock)
 {
-#ifndef __SYMBIAN32__
-	s32 ready;
-	struct timeval timeout;
-	fd_set Group;
-#endif
 	s32 res;
 	u8 buffer[1];
 	if (!sock) return GF_BAD_PARAM;
 
-#ifndef __SYMBIAN32__
-	//can we read?
-	FD_ZERO(&Group);
-	FD_SET(sock->socket, &Group);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 100;
+	//check read
+	GF_Err e = poll_select(sock, GF_SK_SELECT_READ, 100);
+	if (e) return e;
 
-	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
-	if (ready == SOCKET_ERROR) {
-		switch (LASTSOCKERROR) {
-		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] select error: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_CONNECTION_CLOSED;
-		}
-	}
-	if (!FD_ISSET(sock->socket, &Group)) {
-		return GF_IP_NETWORK_EMPTY;
-	}
-#endif
+	//peek message
 	res = (s32) recv(sock->socket, buffer, 1, MSG_PEEK);
 	if (res > 0) return GF_OK;
 #if 0
@@ -1991,118 +2047,6 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 	return GF_IP_CONNECTION_CLOSED;
 #endif
 
-	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_sk_receive_wait(GF_Socket *sock, u8 *buffer, u32 length, u32 *BytesRead, u32 Second )
-{
-	s32 res;
-#ifndef __SYMBIAN32__
-	s32 ready;
-	struct timeval timeout;
-	fd_set Group;
-#endif
-
-	if (!sock || !sock->socket || !buffer || !BytesRead) return GF_BAD_PARAM;
-	*BytesRead = 0;
-
-#ifndef __SYMBIAN32__
-	//can we read?
-	FD_ZERO(&Group);
-	FD_SET(sock->socket, &Group);
-	timeout.tv_sec = Second;
-	timeout.tv_usec = sock->usec_wait;
-
-	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
-	if (ready == SOCKET_ERROR) {
-		switch (LASTSOCKERROR) {
-		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] select error: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_NETWORK_FAILURE;
-		}
-	}
-	if (!FD_ISSET(sock->socket, &Group)) {
-		return GF_IP_NETWORK_EMPTY;
-	}
-#endif
-
-	res = (s32) recv(sock->socket, (char *) buffer, length, 0);
-	if (res == SOCKET_ERROR) {
-		switch (LASTSOCKERROR) {
-		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] recv error: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_NETWORK_FAILURE;
-		}
-	}
-	*BytesRead = res;
-	return GF_OK;
-}
-
-
-//send length bytes of a buffer
-GF_EXPORT
-GF_Err gf_sk_send_wait(GF_Socket *sock, const u8 *buffer, u32 length, u32 Second )
-{
-	u32 count;
-	s32 res;
-#ifndef __SYMBIAN32__
-	s32 ready;
-	struct timeval timeout;
-	fd_set Group;
-#endif
-
-	//the socket must be bound or connected
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
-
-#ifndef __SYMBIAN32__
-	//can we write?
-	FD_ZERO(&Group);
-	FD_SET(sock->socket, &Group);
-	timeout.tv_sec = Second;
-	timeout.tv_usec = sock->usec_wait;
-
-	//TODO - check if this is correct
-	ready = select((int) sock->socket+1, NULL, &Group, NULL, &timeout);
-	if (ready == SOCKET_ERROR) {
-		switch (LASTSOCKERROR) {
-		case EAGAIN:
-			return GF_IP_SOCK_WOULD_BLOCK;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] select error: %s\n", gf_errno_str(LASTSOCKERROR)));
-			return GF_IP_NETWORK_FAILURE;
-		}
-	}
-	//should never happen (to check: is writeability is guaranteed for not-connected sockets)
-	if (!ready || !FD_ISSET(sock->socket, &Group)) {
-		return GF_IP_NETWORK_EMPTY;
-	}
-#endif
-
-	//direct writing
-	count = 0;
-	while (count < length) {
-		res = (s32) send(sock->socket, (char *) buffer+count, length - count, 0);
-		if (res == SOCKET_ERROR) {
-			switch (LASTSOCKERROR) {
-			case EAGAIN:
-				return GF_IP_SOCK_WOULD_BLOCK;
-#ifndef __SYMBIAN32__
-			case ECONNRESET:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] send error: %s\n", gf_errno_str(LASTSOCKERROR)));
-				return GF_IP_CONNECTION_CLOSED;
-#endif
-			default:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] send error: %s\n", gf_errno_str(LASTSOCKERROR)));
-				return GF_IP_NETWORK_FAILURE;
-			}
-		}
-		count += res;
-	}
 	return GF_OK;
 }
 

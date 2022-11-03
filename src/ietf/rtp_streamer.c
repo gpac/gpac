@@ -788,6 +788,8 @@ GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, 
 GF_EXPORT
 GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
 {
+	if (!rtp->channel) return data ? GF_BAD_PARAM : GF_EOS;
+
 	rtp->packetizer->sl_header.compositionTimeStamp = gf_timestamp_rescale(cts, rtp->in_timescale, rtp->channel->TimeScale);
 	rtp->packetizer->sl_header.decodingTimeStamp = gf_timestamp_rescale(dts, rtp->in_timescale, rtp->channel->TimeScale);
 	rtp->packetizer->sl_header.randomAccessPointFlag = is_rap;
@@ -850,6 +852,7 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 GF_EXPORT
 GF_Err gf_rtp_streamer_send_bye(GF_RTPStreamer *streamer)
 {
+	if (!streamer->channel) return GF_OK;
 	return gf_rtp_send_bye(streamer->channel);
 }
 

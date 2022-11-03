@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -29,6 +29,7 @@
 #ifndef GPAC_DISABLE_STREAMING
 
 #include <gpac/token.h>
+#include <gpac/base_coding.h>
 
 GF_EXPORT
 GF_RTSPCommand *gf_rtsp_command_new()
@@ -501,7 +502,7 @@ GF_EXPORT
 GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 {
 	GF_Err e;
-	u32 BodyStart, size;
+	u32 BodyStart, size, com_buf_size;
 	if (!sess || !com) return GF_BAD_PARAM;
 
 	//reset the command
@@ -513,9 +514,8 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	//fill TCP buffer
 	e = gf_rtsp_fill_buffer(sess);
 	if (e) goto exit;
-	if (sess->TCPChannels)
 	//this is upcoming, interleaved data
-	if (sess->interleaved) {
+	if (sess->TCPChannels && sess->interleaved) {
 		u32 i=0;
 		Bool sync = GF_FALSE;
 		while (RTSP_DEFINED_METHODS[i]) {
@@ -532,9 +532,19 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	e = gf_rtsp_read_reply(sess);
 	if (e) goto exit;
 
+	gf_rtsp_get_body_info(sess, &BodyStart, &size, GF_FALSE);
+	com_buf_size=0;
+	if (sess->tunnel_mode==RTSP_HTTP_SERVER) {
+		//no body start, this means no '=' at the end of the base64 string, assume we got the entire message
+		if (!BodyStart) BodyStart = sess->CurrentSize - sess->CurrentPos;
+		com_buf_size = BodyStart;
+		u32 dsize = gf_base64_decode(sess->tcp_buffer+sess->CurrentPos, BodyStart, sess->tcp_buffer+sess->CurrentPos, BodyStart);
+		sess->tcp_buffer[sess->CurrentPos + dsize] = 0;
+		gf_rtsp_get_body_info(sess, &BodyStart, &size, GF_TRUE);
+	}
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Command:\n%s\n", sess->tcp_buffer+sess->CurrentPos));
 
-	gf_rtsp_get_body_info(sess, &BodyStart, &size);
 	e = RTSP_ParseCommandHeader(sess, com, BodyStart);
 	//before returning an error we MUST reset the TCP buffer
 
@@ -550,7 +560,39 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 		memcpy(com->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, com->Content_Length);
 	}
 	//reset TCP buffer
-	sess->CurrentPos += BodyStart + com->Content_Length;
+	if (!com_buf_size) com_buf_size = BodyStart + com->Content_Length;
+	sess->CurrentPos += com_buf_size;
+
+	if (!sess->CSeq && !sess->HTTP_Cookie //first request , cookie not set
+		&& (sess->tunnel_mode!=RTSP_HTTP_DISABLE) //not disabled
+		&& (!strncmp(sess->tcp_buffer, "GET ", 4) || !strncmp(sess->tcp_buffer, "POST ", 5))
+	) {
+		char *sess_cookie = strstr(sess->tcp_buffer, "x-sessioncookie");
+		if (sess_cookie) sess_cookie = strchr(sess_cookie, ':');
+		if (sess_cookie) {
+			while (strchr(" :", sess_cookie[0]))
+				sess_cookie++;
+			char *sep = strchr(sess_cookie, '\r');
+			if (sep) {
+				sep[0] = 0;
+				sess->HTTP_Cookie = gf_strdup(sess_cookie);
+				sep[0] = '\r';
+
+				if (!strncmp(sess->tcp_buffer, "GET ", 4)) {
+					char szCom[501];
+					snprintf(szCom, 500, "HTTP/1.0 200 OK\r\nServer: %s\r\nCache-Control: no-store\r\nPragma: no-cache\r\nContent-Type: application/x- rtsp- tunnelled\r\n\r\n", sess->Server);
+					szCom[500] = 0;
+
+					e = gf_rtsp_send_data(sess, szCom, (u32) strlen(szCom));
+					if (e && (e!= GF_IP_NETWORK_EMPTY)) return e;
+					return GF_IP_NETWORK_EMPTY;
+				}
+				//post
+				return GF_RTSP_TUNNEL_POST;
+			}
+		}
+	}
+
 
 	if (!com->CSeq)
 		com->StatusCode = NC_RTSP_Bad_Request;
@@ -589,7 +631,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 		sess->connection = NULL;
 
 		//destroy the http tunnel if any
-		if (sess->HasTunnel && sess->http) {
+		if (sess->http) {
 			gf_sk_del(sess->http);
 			sess->http = NULL;
 		}

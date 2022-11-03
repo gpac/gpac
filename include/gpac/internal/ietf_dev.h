@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -259,6 +259,14 @@ typedef struct
 	void *ch_ptr;
 } GF_TCPChan;
 
+typedef enum
+{
+	RTSP_HTTP_NONE = 0,
+	RTSP_HTTP_CLIENT,
+	RTSP_HTTP_SERVER,
+	RTSP_HTTP_DISABLE
+} RTSP_HTTP_Tunnel;
+
 /**************************************
 		RTSP Session
 ***************************************/
@@ -276,17 +284,17 @@ struct _tag_rtsp_session
 	/*TCP interleaving ID*/
 	u8 InterID;
 	/*http tunnel*/
-	Bool HasTunnel;
+	RTSP_HTTP_Tunnel tunnel_mode;
 	GF_Socket *http;
-	char HTTP_Cookie[30];
-	u32 CookieRadLen;
+	char *HTTP_Cookie;
+	u32 tunnel_state;
 
 	/*RTSP CHANNEL*/
 	GF_Socket *connection;
 	u32 SockBufferSize;
 	/*needs connection*/
 	u32 NeedConnection;
-
+	u32 timeout_in;
 	/*the RTSP sequence number*/
 	u32 CSeq;
 	/*this is for aggregated request in order to check SeqNum*/
@@ -314,12 +322,13 @@ struct _tag_rtsp_session
 	/*all RTP channels in an interleaved RTP on RTSP session*/
 	GF_List *TCPChannels;
 	Bool interleaved;
+
+	u8 *async_buf;
+	u32 async_buf_size, async_buf_alloc;
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
 
-/*check connection status*/
-GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess);
 /*send data on RTSP*/
 GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, u8 *buffer, u32 Size);
 
@@ -328,7 +337,7 @@ GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, u8 *buffer, u32 Size);
 */
 
 /*locate body-start and body size in response/commands*/
-void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size);
+void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size, Bool skip_tunnel);
 /*read TCP until a full command/response is received*/
 GF_Err gf_rtsp_read_reply(GF_RTSPSession *sess);
 /*fill the TCP buffer*/
@@ -341,10 +350,6 @@ GF_RTSPTransport *gf_rtsp_transport_parse(u8 *buffer);
 GF_Err gf_rtsp_parse_header(u8 *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp);
 void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value);
 void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value);
-/*deinterleave a data packet*/
-GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess);
-/*start session through HTTP tunnel (QTSS)*/
-GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent);
 
 
 
