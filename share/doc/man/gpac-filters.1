@@ -36,6 +36,9 @@ Note: specifying .I xml, .I analyze, .I fmt or using -for-test will force .I ful
 .br
 
 .br
+.SH Custom property duming
+.LP
+.br
 The packet inspector can be configured to dump specific properties of packets using .I fmt.
 .br
 When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed. You may use '$', '@' or '%' for TOKEN separator. TOKEN can be:
@@ -148,6 +151,27 @@ Note: when dumping in interleaved mode, there is no guarantee that the packets w
 .br
 
 .br
+.SH Note on playback
+.LP
+.br
+Buffering can be enabled to check the input filter chain behaviour, e.g. check HAS adaptation logic.
+.br
+The various buffering options control when packets are consumed. Buffering events are logged using media@info for state changes and media@debug for media filling events.
+.br
+The .I speed option is only used to configure the filter chain but is ignored by the filter when consuming packets.
+.br
+If real-time consumption is required, a reframer filter must be setup before the inspect filter.
+.br
+Example
+.br
+gpac -i SRC reframer:rt=on inspect:buffer=10000:rbuffer=1000:mbuffer=30000:speed=2
+.br
+
+.br
+This will play the session at 2x speed, using 30s of maximum buffering, consumming packets after 10s of media are ready and rebuffering if less than 1s of media.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -211,7 +235,11 @@ fftmcd (bool, default: false, updatable): consider timecodes use ffmpeg-compatib
 .br
 dtype (bool, default: false, updatable): dump property type
 .br
-buffer (uint, default: 0):     set buffer in ms (mostly used for testing DASH algo)
+buffer (uint, default: 0):     set playback buffer in ms
+.br
+mbuffer (uint, default: 0):    set max buffer occupancy in ms. If less than buffer, use buffer
+.br
+rbuffer (uint, default: 0, updatable): rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering
 .br
 test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
@@ -3416,7 +3444,7 @@ saps (uintl, minmax: 0|1|2|3|4): list of SAP types (0,1,2,3,4) to forward, other
 .br
 refs (bool, default: false):   forward only frames used as reference frames, if indicated in the input stream
 .br
-speed (dbl, default: 1.0):     speed for real-time regulation mode
+speed (dbl, default: 0.0):     speed for real-time regulation mode, a value of 0 uses speed from play commands
 .br
 raw (enum, default: no):       force input AV streams to be in raw format
 .br
@@ -10846,7 +10874,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev431-g85158d26a-master
+build: 2.1-DEV-rev435-g8b3997d0c-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

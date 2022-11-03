@@ -5616,7 +5616,6 @@ static GF_Err do_itunes_tag()
 		char *val;
 		Bool clear = GF_FALSE;
 		Bool is_wma = GF_FALSE;
-		Bool is_qt = GF_FALSE;
 		u32 tlen, tagtype=0, itag = 0;
 		s32 tag_idx=-1;
 		char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags, '=');
@@ -5653,7 +5652,6 @@ static GF_Err do_itunes_tag()
 		} else if (!strncmp(tags, "WM/", 3) ) {
 			is_wma = GF_TRUE;
 		} else if (!strncmp(tags, "QT/", 3) ) {
-			is_qt = GF_TRUE;
 			tags+=3;
 		} else {
 			tag_idx = gf_itags_find_by_name(tags);

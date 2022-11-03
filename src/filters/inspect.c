@@ -69,7 +69,7 @@ typedef struct
 
 	u32 csize;
 	Bool buffer_done, no_analysis;
-
+	u32 buf_start_time;
 	u64 last_pcr;
 	GF_FilterClockType last_clock_type;
 } PidCtx;
@@ -117,7 +117,7 @@ typedef struct
 	GF_Fraction dur;
 	Bool crc, dtype;
 	Bool fftmcd;
-	u32 buffer;
+	u32 buffer, mbuffer, rbuffer;
 
 	FILE *dump;
 	Bool dump_log;
@@ -2739,6 +2739,8 @@ static void inspect_dump_packet_as_info(GF_InspectCtx *ctx, FILE *dump, GF_Filte
 	GF_FilterClockType ck_type;
 	GF_FilterFrameInterface *fifce=NULL;
 
+	if (!ctx->dump_log && !dump) return;
+
 	gf_filter_pck_get_data(pck, &size);
 	ck_type = ctx->pcr ? gf_filter_pck_get_clock_type(pck) : 0;
 	if (!size && !ck_type) {
@@ -2794,6 +2796,8 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	GF_FilterFrameInterface *fifce=NULL;
 	Bool start, end;
 	u8 *data;
+
+	if (!ctx->dump_log && !dump) return;
 
 	if (!ctx->deep && !ctx->fmt) return;
 	if (!ctx->full) {
@@ -3168,6 +3172,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	Bool is_raw=GF_FALSE;
 	Bool is_protected=GF_FALSE;
 	u32 codec_id=0;
+
+	if (!ctx->dump_log && !dump) return;
+
 	inspect_printf(dump, "PID");
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
@@ -3531,6 +3538,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	const GF_PropertyValue *p, *dsi, *dsi_enh;
 
 	if (ctx->test==INSPECT_TEST_NOPROP) return;
+	if (!ctx->dump_log && !dump) return;
 
 	if (!ctx->full) {
 		inspect_dump_pid_as_info(ctx, dump, pid, pid_idx, is_connect, is_remove, pck_for_config, is_info, pctx);
@@ -4107,14 +4115,31 @@ static GF_Err inspect_process(GF_Filter *filter)
 		if (pctx->aborted)
 			continue;
 
-		if (!pctx->buffer_done) {
-			if (pck && !ctx->has_seen_eos) {
-				u64 dur = gf_filter_pid_query_buffer_duration(pctx->src_pid, GF_FALSE);
-				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(pctx->src_pid)) {
+		if (!pctx->buffer_done || ctx->rbuffer) {
+			u64 dur=0;
+			if (pck && !ctx->has_seen_eos && !gf_filter_pid_eos_received(pctx->src_pid)) {
+				dur = gf_filter_pid_query_buffer_duration(pctx->src_pid, GF_FALSE);
+				if (!pctx->buffer_done) {
+					if ((dur < ctx->buffer * 1000)) {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inspect] PID %d buffering buffer %u ms %.02f %%\n", pctx->idx, (u32) (dur/1000), dur*1.0/(ctx->buffer * 10.0)));
+						continue;
+					}
+				} else if (ctx->rbuffer && (dur < ctx->rbuffer * 1000)) {
+					pctx->buffer_done = GF_FALSE;
+					pctx->buf_start_time = gf_sys_clock();
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] PID %d rebuffering buffer %u ms less than rebuffer %u\n", pctx->idx, (u32) (dur/1000), ctx->rbuffer));
 					continue;
 				}
 			}
-			pctx->buffer_done = GF_TRUE;
+			if (!pctx->buffer_done) {
+				if (!dur) {
+					dur = gf_filter_pid_query_buffer_duration(pctx->src_pid, GF_FALSE);
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] PID %d buffering aborted after %u ms - level %u ms %.02f %%\n", pctx->idx, gf_sys_clock() - pctx->buf_start_time, (u32) (dur/1000), dur*1.0/(ctx->buffer * 10.0)));
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] PID %d buffering done in %u ms - level %u ms %.02f %%\n", pctx->idx, gf_sys_clock() - pctx->buf_start_time, (u32) (dur/1000), dur*1.0/(ctx->buffer * 10.0)));
+				}
+				pctx->buffer_done = GF_TRUE;
+			}
 		}
 
 		if (pctx->dump_pid) {
@@ -4140,7 +4165,6 @@ static GF_Err inspect_process(GF_Filter *filter)
 			if (ctx->is_prober) {
 				nb_done++;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inspect] PID %d (codec %s) dump packet CTS "LLU"\n", pctx->idx, gf_codecid_name(pctx->codec_id), gf_filter_pck_get_cts(pck) ));
 				if (ctx->fmt) {
 					inspect_dump_packet_fmt(filter, ctx, pctx->tmp, pck, pctx, pctx->pck_num);
 				} else {
@@ -4224,10 +4248,18 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		pctx->buffer_done = GF_TRUE;
 	} else {
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
-		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
+		evt.buffer_req.max_playout_us = evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
+		if (ctx->mbuffer >= ctx->buffer)
+			evt.buffer_req.max_buffer_us = ctx->mbuffer * 1000;
+		if (ctx->rbuffer<ctx->buffer)
+			evt.buffer_req.min_playout_us = ctx->rbuffer * 1000;
+		else
+			ctx->rbuffer = 0;
+
 		//if pid is decoded media, don't ask for buffer requirement on pid, set it at decoder level
 		evt.buffer_req.pid_only = gf_filter_pid_has_decoder(pid) ? GF_FALSE : GF_TRUE;
 		gf_filter_pid_send_event(pid, &evt);
+		pctx->buf_start_time = gf_sys_clock();
 	}
 
 
@@ -4471,7 +4503,10 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(crc), "dump crc of samples of subsamples (NALU or OBU) when analyzing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(dtype), "dump property type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(buffer), "set buffer in ms (mostly used for testing DASH algo)", GF_PROP_UINT, "0", NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(buffer), "set playback buffer in ms", GF_PROP_UINT, "0", NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(mbuffer), "set max buffer occupancy in ms. If less than buffer, use buffer", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(rbuffer), "rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
 		"- noprop: all properties/info changes on PID are skipped, only packets are dumped\n"
@@ -4501,6 +4536,7 @@ const GF_FilterRegister InspectRegister = {
 	"Otherwise, all properties are dumped.\n"
 	"Note: specifying [-xml](), [-analyze](), [-fmt]() or using `-for-test` will force [-full]() to true.\n"
 	"\n"
+	"# Custom property duming\n"
 	"The packet inspector can be configured to dump specific properties of packets using [-fmt]().\n"
 	"When the option is not present, all properties are dumped. Otherwise, only properties identified by `$TOKEN$` "
 	"are printed. You may use '$', '@' or '%' for `TOKEN` separator. `TOKEN` can be:\n"
@@ -4554,7 +4590,17 @@ const GF_FilterRegister InspectRegister = {
 	"  \n"
 	"An unrecognized keyword or missing property will resolve to an empty string.\n"
 	"\n"
-	"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.\n")
+	"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.\n"
+	"\n"
+	"# Note on playback\n"
+	"Buffering can be enabled to check the input filter chain behaviour, e.g. check HAS adaptation logic.\n"
+	"The various buffering options control when packets are consumed. Buffering events are logged using `media@info` for state changes and `media@debug` for media filling events.\n"
+	"The [-speed]() option is only used to configure the filter chain but is ignored by the filter when consuming packets.\n"
+	"If real-time consumption is required, a reframer filter must be setup before the inspect filter.\n"
+	"EX gpac -i SRC reframer:rt=on inspect:buffer=10000:rbuffer=1000:mbuffer=30000:speed=2\n"
+	"This will play the session at 2x speed, using 30s of maximum buffering, consumming packets after 10s of media are ready and rebuffering if less than 1s of media.\n"
+	"\n"
+	)
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
