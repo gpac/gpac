@@ -466,7 +466,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	else cts = 0;
 	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
 
-	u32 dur = gf_timestamp_rescale( gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
+	u32 dur = (u32) gf_timestamp_rescale( gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
 	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts, dur))
 		return GF_OK;
 

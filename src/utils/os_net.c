@@ -44,8 +44,15 @@
 #pragma comment(lib, "ws2_32")
 #endif
 
+#if defined(POLLIN)
+#ifndef GPAC_HAS_POLL
+#define GPAC_HAS_POLL
+#endif
+#endif
+
 #ifdef GPAC_HAS_POLL
 #define GF_POLLFD	WSAPOLLFD
+#define poll WSAPoll
 #endif
 
 #endif

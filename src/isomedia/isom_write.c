@@ -6379,7 +6379,7 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 	case GF_QT_KEY_UTF8:
 	case GF_QT_KEY_UTF8_SORT:
 		if (key->value.string)
-			gf_bs_write_data(bs, key->value.string, strlen(key->value.string));
+			gf_bs_write_data(bs, key->value.string, (u32) strlen(key->value.string));
 		break;
 
 	case GF_QT_KEY_SIGNED_VSIZE:
@@ -6387,29 +6387,29 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 		else if (ABS(key->value.sint)<=0x7FFF) nb_bits=16;
 		else if (ABS(key->value.sint)<=0x7FFFFF) nb_bits=24;
 		else nb_bits = 32;
-		gf_bs_write_int(bs, key->value.sint, nb_bits);
+		gf_bs_write_int(bs, (s32) key->value.sint, nb_bits);
 		break;
 	case GF_QT_KEY_UNSIGNED_VSIZE:
 		if (key->value.uint<=0xFF) nb_bits=8;
 		else if (key->value.uint<=0xFFFF) nb_bits=16;
 		else if (key->value.uint<=0xFFFFFF) nb_bits=24;
 		else nb_bits = 32;
-		gf_bs_write_int(bs, key->value.uint, nb_bits);
+		gf_bs_write_int(bs, (u32) key->value.uint, nb_bits);
 		break;
 	case GF_QT_KEY_FLOAT:
-		gf_bs_write_float(bs, key->value.number);
+		gf_bs_write_float(bs, (Float) key->value.number);
 		break;
 	case GF_QT_KEY_DOUBLE:
 		gf_bs_write_double(bs, key->value.number);
 		break;
 	case GF_QT_KEY_SIGNED_8:
-		gf_bs_write_int(bs, key->value.sint, 8);
+		gf_bs_write_int(bs, (s32) key->value.sint, 8);
 		break;
 	case GF_QT_KEY_SIGNED_16:
-		gf_bs_write_int(bs, key->value.sint, 16);
+		gf_bs_write_int(bs, (s32) key->value.sint, 16);
 		break;
 	case GF_QT_KEY_SIGNED_32:
-		gf_bs_write_int(bs, key->value.sint, 32);
+		gf_bs_write_int(bs, (s32) key->value.sint, 32);
 		break;
 	case GF_QT_KEY_SIGNED_64:
 		gf_bs_write_long_int(bs, key->value.sint, 64);
@@ -6427,20 +6427,20 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 		break;
 
 	case GF_QT_KEY_UNSIGNED_8:
-		gf_bs_write_int(bs, key->value.uint, 8);
+		gf_bs_write_int(bs, (s32) key->value.uint, 8);
 		break;
 	case GF_QT_KEY_UNSIGNED_16:
-		gf_bs_write_int(bs, key->value.uint, 16);
+		gf_bs_write_int(bs, (s32) key->value.uint, 16);
 		break;
 	case GF_QT_KEY_UNSIGNED_32:
-		gf_bs_write_int(bs, key->value.uint, 32);
+		gf_bs_write_int(bs, (s32) key->value.uint, 32);
 		break;
 	case GF_QT_KEY_UNSIGNED_64:
 		gf_bs_write_long_int(bs, key->value.uint, 64);
 		break;
 	case GF_QT_KEY_MATRIXF:
 		for (i=0; i<9; i++)
-			gf_bs_write_float(bs, key->value.matrix[i] );
+			gf_bs_write_float(bs, (Float) key->value.matrix[i] );
 		break;
 
 	case GF_QT_KEY_OPAQUE:

@@ -357,6 +357,21 @@ static void init_prng (void)
 
 #endif
 
+#if 0
+#define SET_LAST_ERR(_e) \
+	{\
+	GF_Err __e = _e;\
+	if (__e==GF_IP_NETWORK_EMPTY) {\
+		assert(sess->status != GF_NETIO_STATE_ERROR); \
+	}\
+	sess->last_error = _e;\
+	}\
+
+#else
+
+#define SET_LAST_ERR(_e) sess->last_error = _e;
+
+#endif
 
 /*HTTP2 callbacks*/
 #ifdef GPAC_HAS_HTTP2
@@ -430,22 +445,6 @@ void h2_detach_session(GF_H2_Session *h2_sess, GF_DownloadSession *sess)
 	sess->h2_sess = NULL;
 	sess->mx = NULL;
 }
-
-#if 0
-#define SET_LAST_ERR(_e) \
-	{\
-	GF_Err __e = _e;\
-	if (__e==GF_IP_NETWORK_EMPTY) {\
-		assert(sess->status != GF_NETIO_STATE_ERROR); \
-	}\
-	sess->last_error = _e;\
-	}\
-
-#else
-
-#define SET_LAST_ERR(_e) sess->last_error = _e;
-
-#endif
 
 static GF_Err h2_session_send(GF_DownloadSession *sess)
 {
@@ -686,7 +685,7 @@ static int h2_error_callback(nghttp2_session *session, const char *msg, size_t l
 
 static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size_t length)
 {
-	GF_Err e = dm_sess_write(sess, data, length);
+	GF_Err e = dm_sess_write(sess, data, (u32) length);
 	switch (e) {
 	case GF_OK:
 		return length;

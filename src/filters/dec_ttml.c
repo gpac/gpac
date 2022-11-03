@@ -358,7 +358,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 
 	gf_odm_check_buffering(ctx->odm, ctx->ipid);
 	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
-	dur = gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
+	dur = (u32) gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
 
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
