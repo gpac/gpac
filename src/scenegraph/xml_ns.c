@@ -443,9 +443,13 @@ u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, GF_NamespaceTyp
 			case TAG_SVG_animateMotion:
 			case TAG_SVG_animateTransform:
 			case TAG_SVG_animation:
+			case TAG_SVG_set:
+				return xml_attributes[i].tag;
 			case TAG_SVG_audio:
 			case TAG_SVG_video:
-			case TAG_SVG_set:
+				//"type" on audio and video is mime type, not smil anim type
+				if (xml_attributes[i].tag == TAG_SVG_ATT_transform_type)
+					break;
 				return xml_attributes[i].tag;
 			default:
 				break;

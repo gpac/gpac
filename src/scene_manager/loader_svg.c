@@ -887,8 +887,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			if (!stricmp(att_name, "scale") ) {
 				if (gf_node_get_attribute_by_tag((GF_Node *)elt, TAG_SVG_ATT_transform, GF_TRUE, GF_TRUE, &info)==GF_OK) {
 					SVG_Point pt;
+					GF_Err e;
 					SVG_Transform *mat = (SVG_Transform *)info.far_ptr;
-					svg_parse_point(&pt, att->value);
+					svg_parse_point(&pt, att->value, &e);
 					gf_mx2d_add_scale(&mat->mat, pt.x, pt.y);
 					continue;
 				}
@@ -896,8 +897,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			if (!stricmp(att_name, "translation") ) {
 				if (gf_node_get_attribute_by_tag((GF_Node *)elt, TAG_SVG_ATT_transform, GF_TRUE, GF_TRUE, &info)==GF_OK) {
 					SVG_Point pt;
+					GF_Err e;
 					SVG_Transform *mat = (SVG_Transform *)info.far_ptr;
-					svg_parse_point(&pt, att->value);
+					svg_parse_point(&pt, att->value, &e);
 					gf_mx2d_add_translation(&mat->mat, pt.x, pt.y);
 					continue;
 				}
@@ -923,6 +925,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		/* General attribute creation and parsing */
 		if (gf_node_get_attribute_by_name((GF_Node *)elt, att_name, ns, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 #ifndef SKIP_ATTS_PARSING
+			if (!info.name) info.name = att_name;
 			GF_Err e = gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
 			if (e) {
 				svg_report(parser, e, "Error parsing attribute %s on node %s", att->name, name);
@@ -1279,7 +1282,8 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 		if (atInteger) parser->command->send_event_integer = atoi(atInteger);
 		if (atPoint) {
 			SVG_Point pt;
-			svg_parse_point(&pt, atPoint);
+			GF_Err e;
+			svg_parse_point(&pt, atPoint, &e);
 			parser->command->send_event_x = FIX2INT(pt.x);
 			parser->command->send_event_y = FIX2INT(pt.y);
 		}

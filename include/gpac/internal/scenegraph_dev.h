@@ -918,7 +918,7 @@ void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
 Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute);
 
 /*exported for LASeR paring*/
-u32 svg_parse_point(SVG_Point *p, char *value_string);
+u32 svg_parse_point(SVG_Point *p, char *value_string, GF_Err *out_e);
 
 /*activates node. This is used by LASeR:activate and whenever a node is inserted in the scene
 through DOM*/
