@@ -32,6 +32,8 @@
 //for NTP clock
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
+#include <libavutil/mastering_display_metadata.h>
+#include <libavutil/dovi_meta.h>
 
 enum
 {
@@ -138,6 +140,113 @@ static void ffdmx_set_decoder_config(GF_FilterPid *pid, const u8 *exdata, u32 ex
 	GF_Err e = ffmpeg_extradata_to_gpac(gpac_codec_id, exdata, exdata_size, &dsi, &dsi_size);
 	if (!e)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY( dsi, dsi_size) );
+}
+
+static inline int64_t rescale_mdcv(AVRational q, int b)
+{
+    return av_rescale(q.num, b, q.den);
+}
+
+static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
+{
+	switch (sd->type) {
+	case AV_PKT_DATA_PALETTE:
+		break;
+	case AV_PKT_DATA_NEW_EXTRADATA:
+		break;
+	case AV_PKT_DATA_PARAM_CHANGE:
+		break;
+	case AV_PKT_DATA_H263_MB_INFO:
+		break;
+	case AV_PKT_DATA_REPLAYGAIN:
+		break;
+	case AV_PKT_DATA_DISPLAYMATRIX:
+	{
+		GF_PropertyValue p;
+		memset(&p, 0, sizeof(GF_PropertyValue));
+		p.type = GF_PROP_SINT_LIST;
+		p.value.uint_list.nb_items = 9;
+		p.value.uint_list.vals = (u32 *)sd->data;
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ISOM_TRACK_MATRIX, &p);
+
+	}
+		break;
+	case AV_PKT_DATA_STEREO3D:
+		break;
+	case AV_PKT_DATA_AUDIO_SERVICE_TYPE:
+		break;
+	case AV_PKT_DATA_QUALITY_STATS:
+		break;
+	case AV_PKT_DATA_CPB_PROPERTIES:
+		break;
+	case AV_PKT_DATA_MASTERING_DISPLAY_METADATA:
+	{
+		u8 mdcv[24];
+		const int chroma_den = 50000;
+		const int luma_den = 10000;
+		memset(mdcv, 0, sizeof(u8)*24);
+		const AVMasteringDisplayMetadata *metadata = (const AVMasteringDisplayMetadata *)sd->data;
+		GF_BitStream *bs = gf_bs_new(mdcv, 24, GF_BITSTREAM_WRITE);
+		gf_bs_write_u16(bs, rescale_mdcv(metadata->display_primaries[1][0], chroma_den));
+		gf_bs_write_u16(bs, rescale_mdcv(metadata->display_primaries[1][1], chroma_den));
+    	gf_bs_write_u16(bs, rescale_mdcv(metadata->display_primaries[2][0], chroma_den));
+    	gf_bs_write_u16(bs, rescale_mdcv(metadata->display_primaries[2][1], chroma_den));
+    	gf_bs_write_u16(bs, rescale_mdcv(metadata->display_primaries[0][0], chroma_den));
+    	gf_bs_write_u16(bs, rescale_mdcv(metadata->display_primaries[0][1], chroma_den));
+    	gf_bs_write_u16(bs, rescale_mdcv(metadata->white_point[0], chroma_den));
+    	gf_bs_write_u16(bs, rescale_mdcv(metadata->white_point[1], chroma_den));
+    	gf_bs_write_u32(bs, rescale_mdcv(metadata->max_luminance, luma_den));
+    	gf_bs_write_u32(bs, rescale_mdcv(metadata->min_luminance, luma_den));
+    	gf_bs_del(bs);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(mdcv, 24));
+	}
+		break;
+	case AV_PKT_DATA_SPHERICAL:
+		break;
+	case AV_PKT_DATA_CONTENT_LIGHT_LEVEL:
+	{
+		u8 clli[4];
+		memset(clli, 0, sizeof(u8)*4);
+		const AVContentLightMetadata *metadata = (const AVContentLightMetadata *)sd->data;
+		GF_BitStream *bs = gf_bs_new(clli, 4, GF_BITSTREAM_WRITE);
+		gf_bs_write_u16(bs, metadata->MaxCLL);
+		gf_bs_write_u16(bs, metadata->MaxFALL);
+    	gf_bs_del(bs);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(clli, 4));
+	}
+		break;
+	case AV_PKT_DATA_ICC_PROFILE:
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ICC_PROFILE, &PROP_DATA(sd->data, sd->size));
+		break;
+	case AV_PKT_DATA_DOVI_CONF:
+	{
+		u8 dv_cfg[24];
+		const AVDOVIDecoderConfigurationRecord *dovi = (const AVDOVIDecoderConfigurationRecord *)sd->data;
+		memset(dv_cfg, 0, sizeof(u8)*24);
+		GF_BitStream *bs = gf_bs_new(dv_cfg, 24, GF_BITSTREAM_WRITE);
+		gf_bs_write_u8(bs, dovi->dv_version_major);
+		gf_bs_write_u8(bs, dovi->dv_version_minor);
+		gf_bs_write_int(bs, dovi->dv_profile, 7);
+		gf_bs_write_int(bs, dovi->dv_level, 6);
+		gf_bs_write_int(bs, dovi->rpu_present_flag, 1);
+		gf_bs_write_int(bs, dovi->el_present_flag, 1);
+		gf_bs_write_int(bs, dovi->bl_present_flag, 1);
+		gf_bs_write_int(bs, dovi->dv_bl_signal_compatibility_id, 4);
+		//the rest is zero-reserved
+		gf_bs_write_int(bs, 0, 28);
+		gf_bs_write_u32(bs, 0);
+		gf_bs_write_u32(bs, 0);
+		gf_bs_write_u32(bs, 0);
+		gf_bs_write_u32(bs, 0);
+		gf_bs_del(bs);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_DOLBY_VISION, &PROP_DATA(dv_cfg, 24));
+	}
+		break;
+	case AV_PKT_DATA_S12M_TIMECODE:
+		break;
+	default:
+		break;
+	}
 }
 
 static GF_Err ffdmx_process(GF_Filter *filter)
@@ -294,6 +403,9 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 				check_webvtt = pctx->mkv_webvtt;
 			}
 			//todo, map the rest ?
+			else {
+				ffdmx_parse_side_data(sd, pctx->pid);
+			}
 		}
 	}
 
@@ -539,6 +651,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 	nb_a = nb_v = nb_t = 0;
 	for (i = 0; i < ctx->demuxer->nb_streams; i++) {
 		GF_FilterPid *pid=NULL;
+		u32 j;
 		u32 force_reframer = 0;
 		Bool expose_ffdec=GF_FALSE;
 		u32 gpac_codec_id;
@@ -793,6 +906,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (codec_blockalign)
 			gf_filter_pid_set_property_str(pid, "ffdmx:blockalign", &PROP_UINT(codec_blockalign));
 
+
+		for (j=0; j<stream->nb_side_data; j++) {
+			ffdmx_parse_side_data(&stream->side_data[i], pid);
+		}
 	}
 
 	if (!nb_a && !nb_v && !nb_t)

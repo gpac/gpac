@@ -1039,6 +1039,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAR, &PROP_FRAC_INT(hspace, vspace) );
 
 		{
+			const u8 *icc;
+			u32 icc_size;
 			u32 colour_type;
 			u16 colour_primaries, transfer_characteristics, matrix_coefficients;
 			Bool full_range_flag;
@@ -1048,6 +1050,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(transfer_characteristics));
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_COLR_MX, &PROP_UINT(matrix_coefficients));
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range_flag));
+			}
+			if (gf_isom_get_icc_profile(read->mov, track, stsd_idx, NULL, &icc, &icc_size)==GF_OK) {
+				if (icc && icc_size)
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ICC_PROFILE, &PROP_DATA((u8*)icc, icc_size) );
 			}
 		}
 

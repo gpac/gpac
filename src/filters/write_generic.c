@@ -1248,7 +1248,9 @@ GF_Err writegen_process(GF_Filter *filter)
 			gf_filter_pck_set_readonly(dst_pck);
 		}
 		gf_filter_pck_merge_properties(pck, dst_pck);
-		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
+		if (!ctx->unframe_only)
+			gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
+
 		if (ctx->first) {
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->sample_num) );
 			ctx->sample_num--;
@@ -1470,7 +1472,8 @@ GF_Err writegen_process(GF_Filter *filter)
 		gf_filter_pck_set_framing(dst_pck, ctx->first, ctx->need_ttxt_footer ? GF_FALSE : GF_TRUE);
 		ctx->first = GF_TRUE;
 	} else {
-		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
+		if (!ctx->unframe_only)
+			gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
 	}
 
@@ -1824,6 +1827,17 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "y4m"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/x-yuv4mpeg"),
+	{0},
+
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_DTS_CA),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_DTS_X),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_DTS_HD_HR),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_DTS_HD_MASTER),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_DTS_LBR),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "dts"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/dts"),
 	{0},
 
 	//anything else: only for explicit dump (filter loaded on purpose), otherwise don't load for filter link resolution

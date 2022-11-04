@@ -371,6 +371,13 @@ enum
 	/*GPAC extensions*/
 	GF_ISOM_SUBTYPE_DVB_SUBS	= GF_4CC( 'd', 'v', 'b', 's' ),
 	GF_ISOM_SUBTYPE_DVB_TELETEXT	= GF_4CC( 'd', 'v', 'b', 't' ),
+
+
+	GF_ISOM_SUBTYPE_DTSC = GF_4CC('d','t','s','c'),
+	GF_ISOM_SUBTYPE_DTSH = GF_4CC('d','t','s','h'),
+	GF_ISOM_SUBTYPE_DTSL = GF_4CC('d','t','s','l'),
+	GF_ISOM_SUBTYPE_DTSE = GF_4CC('d','t','s','e'),
+
 };
 
 
@@ -1500,6 +1507,16 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *isom_file, u32 trackNumber, u3
 \return error if any*/
 GF_Err gf_isom_get_color_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag);
 
+
+/*! gets ICC profile
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index (1-based)
+\param icc_restricted  set to GF_TRUE of restricted ICC profile, GF_FALSE otherwise
+\param icc  set to profile data, NULL if none
+\param icc_size  set to profile size, 0 if none
+\return error if any*/
+GF_Err gf_isom_get_icc_profile(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, Bool *icc_restricted, const u8 **icc, u32 *icc_size);
 
 /*! gets clean aperture (crop window, see ISO/IEC 14496-12) for a sample description
 \param isom_file the target ISO file

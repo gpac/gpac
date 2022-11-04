@@ -663,6 +663,12 @@ GF_CodecID gf_codecid_from_oti(u32 stream_type, u32 oti);
 */
 u32 gf_codecid_4cc_type(GF_CodecID codecid);
 
+/*! Checks if reframer/unframer exists for this codec in gpac
+\param codecid target codec ID
+\return GF_TRUE if reframer/unframer exist (bitstream reparse is possible), GF_FALSE otherwise
+*/
+Bool gf_codecid_has_unframer(GF_CodecID codecid);
+
 /*! Gets the codecid given the associated short name
 \param cname target codec short name
 \return codecid codec ID

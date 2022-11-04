@@ -1970,6 +1970,15 @@ sample_entry_setup:
 		comp_name = "Dolby TrueHD";
 		break;
 
+	case GF_CODECID_DTS_CA:
+	case GF_CODECID_DTS_X:
+	case GF_CODECID_DTS_HD_HR:
+	case GF_CODECID_DTS_HD_MASTER:
+	case GF_CODECID_DTS_LBR:
+		m_subtype = GF_ISOM_SUBTYPE_DTSC;
+		//comp_name = "Dolby TrueHD";
+		break;
+
 
 	case GF_CODECID_BIFS:
 /* ==  GF_CODECID_OD_V1:*/
@@ -3166,7 +3175,6 @@ sample_entry_done:
 				else
 					colr_mode = GF_4CC('n','c','l','x');
 
-
 				//other conditions were set above, here we force 1:1 pasp box even if no sar or 1:1
 				if (!sar.den || (sar.num == 1)) {
 					gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, -1, -1, GF_TRUE);
@@ -3206,8 +3214,13 @@ sample_entry_done:
 				if (colour_primaries || transfer_characteristics || matrix_coefficients) {
 					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC('n','c','l','x'), colour_primaries, transfer_characteristics, matrix_coefficients, full_range_flag, NULL, 0);
 				}
-
 			}
+			//check if we have an icc profile
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ICC_PROFILE);
+			if (p && (p->type==GF_PROP_DATA) && p->value.data.ptr) {
+				gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, 0, 0, GF_FALSE, p->value.data.ptr, p->value.data.size);
+			}
+
 
 			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CONTENT_LIGHT_LEVEL);
 			const GF_PropertyValue *p2 = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MASTER_DISPLAY_COLOUR);
