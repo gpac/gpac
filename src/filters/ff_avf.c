@@ -478,6 +478,8 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			return GF_OK;
 		return ffavf_setup_filter(filter, ctx);
 	}
+	if (!ctx->nb_playing)
+		return GF_OK;
 
 	//push input
 	nb_eos = 0;
@@ -984,16 +986,19 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 static Bool ffavf_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FFAVFilterCtx *ctx = gf_filter_get_udta(filter);
-	if (ctx->nb_inputs) return GF_FALSE;
 
 	if (evt->base.type == GF_FEVT_PLAY) {
-		if (!ctx->nb_playing) ctx->done = GF_FALSE;
+		if (!ctx->nb_playing && !ctx->nb_inputs) ctx->done = GF_FALSE;
 		ctx->nb_playing++;
 	}
 	else if (evt->base.type == GF_FEVT_STOP) {
-		ctx->nb_playing--;
-		if (!ctx->nb_playing) ctx->done = GF_TRUE;
+		if (ctx->nb_playing) {
+			ctx->nb_playing--;
+			if (!ctx->nb_playing && !ctx->nb_inputs) ctx->done = GF_TRUE;
+		}
 	}
+
+	if (ctx->nb_inputs) return GF_FALSE;
 	return GF_TRUE;
 }
 
