@@ -1341,12 +1341,14 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
 					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
+					ds->nb_surround = gf_ac3_get_surround_channels(ac3.streams[0].acmod);
 					ds->atmos_complexity_type = ac3.is_ec3 ? ac3.complexity_index_type : 0;
-					_nb_ch = gf_ac3_get_channels(ac3.streams[0].acmod);
+					_nb_ch = gf_ac3_get_total_channels(ac3.streams[0].acmod);
 					for (i=0; i<ac3.streams[0].nb_dep_sub; ++i) {
 						assert(ac3.streams[0].nb_dep_sub == 1);
-						_nb_ch += gf_ac3_get_channels(ac3.streams[0].chan_loc);
+						_nb_ch += gf_eac3_get_chan_loc_count(ac3.streams[0].chan_loc);
 					}
+                    if (ds->nb_lfe) _nb_ch++;
 				}
 				break;
 			}

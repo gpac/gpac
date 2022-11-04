@@ -2449,7 +2449,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_filter_reconnect_output(NULL);
 	gf_filter_pid_get_udta_flags(NULL);
 
-	gf_audio_fmt_get_cicp_layout(2, 1, 1);
+	gf_audio_fmt_get_cicp_layout(4, 1, 1);
 	gf_audio_fmt_get_layout_from_cicp(3);
 	gf_audio_fmt_get_layout_name_from_cicp(3);
 	gf_audio_fmt_get_cicp_from_layout(GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
