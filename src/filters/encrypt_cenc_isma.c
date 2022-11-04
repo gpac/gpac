@@ -495,6 +495,16 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		}
 
 		bs = gf_bs_new(specInfo, specInfoSize, GF_BITSTREAM_READ);
+		u32 bsize = gf_bs_read_u32(bs);
+		u32 btype = gf_bs_read_u32(bs);
+		if ((bsize==specInfoSize) && (btype == GF_ISOM_BOX_TYPE_PSSH)) {
+			version = gf_bs_read_u8(bs);
+			/*flags*/ gf_bs_read_int(bs, 24);
+		} else {
+			gf_bs_seek(bs, 0);
+			btype = 0;
+		}
+
 		gf_bs_read_data(bs, (char *)systemID, 16);
 		if (version) {
 			KID_count = gf_bs_read_u32(bs);
@@ -520,6 +530,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			KID_count = 0;
 			KIDs = NULL;
 		}
+
 		if (specInfoSize < 16 + (version ? 4 + 16*KID_count : 0)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
 
@@ -528,7 +539,11 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			if (KIDs) gf_free(KIDs);
 			continue;
 		}
-		len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);
+		if (btype)
+			len = gf_bs_read_u32(bs);
+		else
+			len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);
+
 		data = (char *)gf_malloc(len*sizeof(char));
 		if (!data) {
 			e = GF_OUT_OF_MEM;
