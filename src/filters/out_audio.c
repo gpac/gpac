@@ -456,6 +456,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			buffer_req_changed = GF_TRUE;
 		}
 	}
+	ctx->pid = pid;
 
 	if ((ctx->sr!=sr) || (ctx->afmt != afmt) || (ctx->nb_ch != nb_ch)) {
 		buffer_req_changed = GF_TRUE;
@@ -505,8 +506,6 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->speed = evt.play.speed;
 		ctx->start = evt.play.start_range;
 	}
-
-	ctx->pid = pid;
 	ctx->sr = sr;
 	ctx->afmt = afmt;
 	ctx->nb_ch = nb_ch;
@@ -617,6 +616,9 @@ static GF_Err aout_process(GF_Filter *filter)
 	}
 
 	if (ctx->th || ctx->audio_out->SelfThreaded) {
+		//not configured, force fetching first packet
+		if (!ctx->sr && ctx->pid)
+			gf_filter_pid_get_packet(ctx->pid);
 		if (ctx->is_eos) return GF_EOS;
 		gf_filter_ask_rt_reschedule(filter, 100000);
 		return GF_OK;
