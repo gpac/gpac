@@ -336,6 +336,7 @@ static void svg_delete_deferred_anim(SVG_DeferredAnimation *anim, GF_List *defer
 {
 	if (deferred_animations) gf_list_del_item(deferred_animations, anim);
 
+	if (anim->animation_elt) gf_node_unregister((GF_Node*)anim->animation_elt, NULL);
 	if (anim->target_id) gf_free(anim->target_id);
 	if (anim->to) gf_free(anim->to);
 	if (anim->from) gf_free(anim->from);
@@ -351,12 +352,14 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 	u32 tag;
 	u8 anim_value_type = 0;
 
+	if (!anim->animation_elt)
+		return GF_FALSE;
 	if (anim->resolve_stage==0) {
 		/* Stage 0: parsing the animation attribute values
 					for that we need to resolve the target first */
 
 		/* if we don't have a target, try to get it */
-		if (!anim->target)
+		if (!anim->target && anim->target_id)
 			anim->target = (SVG_Element *) gf_sg_find_node_by_name(sg, anim->target_id + 1);
 
 		/* if now we have a target, create the xlink:href attribute on the animation element and set it to the found target */
@@ -740,6 +743,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		}
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
+		gf_node_register((GF_Node*)elt, NULL);
 		if (!parent) {
 			if (parser->command) {
 				anim->target = anim->anim_parent = (SVG_Element*) parser->command->node;
@@ -757,6 +761,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		}
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
+		gf_node_register((GF_Node*)elt, NULL);
 		if (!parent) {
 			if (parser->command) {
 				anim->target = anim->anim_parent = (SVG_Element*) parser->command->node;
