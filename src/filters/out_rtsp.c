@@ -1275,7 +1275,7 @@ static GF_Err rtspout_process(GF_Filter *filter)
 		GF_Err sess_err;
 		GF_RTSPOutSession *sess = gf_list_get(ctx->sessions, i);
 		sess_err = rtspout_process_session_signaling(filter, ctx, &sess);
-		if (sess_err == GF_RTSP_TUNNEL_POST) {
+		if ((s32)sess_err == GF_RTSP_TUNNEL_POST) {
 			gf_list_rem(ctx->sessions, i);
 			rtspout_merge_http_tunnel(filter, ctx, sess);
 			i--;
