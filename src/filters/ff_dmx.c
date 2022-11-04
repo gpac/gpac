@@ -33,7 +33,6 @@
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
 #include <libavutil/mastering_display_metadata.h>
-#include <libavutil/dovi_meta.h>
 
 enum
 {
@@ -147,6 +146,18 @@ static inline int64_t rescale_mdcv(AVRational q, int b)
     return av_rescale(q.num, b, q.den);
 }
 
+//dovi_meta.h not exported in old releases, just redefine
+typedef struct {
+    u8 dv_version_major;
+    u8 dv_version_minor;
+    u8 dv_profile;
+    u8 dv_level;
+    u8 rpu_present_flag;
+    u8 el_present_flag;
+    u8 bl_present_flag;
+    u8 dv_bl_signal_compatibility_id;
+} Ref_FFAVDoviRecord;
+
 static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 {
 	switch (sd->type) {
@@ -221,7 +232,7 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 	case AV_PKT_DATA_DOVI_CONF:
 	{
 		u8 dv_cfg[24];
-		const AVDOVIDecoderConfigurationRecord *dovi = (const AVDOVIDecoderConfigurationRecord *)sd->data;
+		const Ref_FFAVDoviRecord *dovi = (const Ref_FFAVDoviRecord *)sd->data;
 		memset(dv_cfg, 0, sizeof(u8)*24);
 		GF_BitStream *bs = gf_bs_new(dv_cfg, 24, GF_BITSTREAM_WRITE);
 		gf_bs_write_u8(bs, dovi->dv_version_major);
