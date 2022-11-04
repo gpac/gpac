@@ -3870,15 +3870,71 @@ GF_Err gf_isom_get_color_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	if (entry->internal_type!=GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 		return GF_BAD_PARAM;
 	}
-	GF_ColourInformationBox *clr = (GF_ColourInformationBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_COLR);
-	if (!clr) return GF_NOT_FOUND;
 
-	if (colour_type) *colour_type = clr->colour_type;
-	if (colour_primaries) *colour_primaries = clr->colour_primaries;
-	if (transfer_characteristics) *transfer_characteristics = clr->transfer_characteristics;
-	if (matrix_coefficients) *matrix_coefficients = clr->matrix_coefficients;
-	if (full_range_flag) *full_range_flag = clr->full_range_flag;
-	return GF_OK;
+	u32 i, count = gf_list_count(entry->child_boxes);
+	for (i=0; i<count; i++) {
+		GF_ColourInformationBox *clr = (GF_ColourInformationBox *) gf_list_get(entry->child_boxes, i);
+		if (clr->type != GF_ISOM_BOX_TYPE_COLR) continue;
+		if (clr->is_jp2) continue;
+		if (clr->opaque_size) continue;
+
+		if (colour_type) *colour_type = clr->colour_type;
+		if (colour_primaries) *colour_primaries = clr->colour_primaries;
+		if (transfer_characteristics) *transfer_characteristics = clr->transfer_characteristics;
+		if (matrix_coefficients) *matrix_coefficients = clr->matrix_coefficients;
+		if (full_range_flag) *full_range_flag = clr->full_range_flag;
+		return GF_OK;
+	}
+	return GF_NOT_FOUND;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_icc_profile(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, Bool *icc_restricted, const u8 **icc, u32 *icc_size)
+{
+	GF_TrackBox *trak;
+	GF_VisualSampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+
+	if (!icc || !icc_size) return GF_BAD_PARAM;
+	*icc = NULL;
+	*icc_size = 0;
+	if (icc_restricted) *icc_restricted = GF_FALSE;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->child_boxes)) return movie->LastError = GF_BAD_PARAM;
+
+	entry = (GF_VisualSampleEntryBox *)gf_list_get(stsd->child_boxes, StreamDescriptionIndex - 1);
+	//no support for generic sample entries (eg, no MPEG4 descriptor)
+	if (entry == NULL) return GF_OK;
+
+	//valid for MPEG visual, JPG and 3GPP H263
+	if (entry->internal_type!=GF_ISOM_SAMPLE_ENTRY_VIDEO) {
+		return GF_BAD_PARAM;
+	}
+
+	u32 i, count = gf_list_count(entry->child_boxes);
+	for (i=0; i<count; i++) {
+		GF_ColourInformationBox *clr = (GF_ColourInformationBox *) gf_list_get(entry->child_boxes, i);
+		if (clr->type != GF_ISOM_BOX_TYPE_COLR) continue;
+		if (clr->is_jp2) continue;
+		if (!clr->opaque_size) continue;
+
+		if (clr->colour_type==GF_4CC('r', 'I', 'C', 'C')) {
+			if (icc_restricted) *icc_restricted = GF_TRUE;
+			*icc = clr->opaque;
+			*icc_size = clr->opaque_size;
+		}
+		else if (clr->colour_type==GF_4CC('p', 'r', 'o', 'f')) {
+			*icc = clr->opaque;
+			*icc_size = clr->opaque_size;
+		}
+		return GF_OK;
+	}
+	return GF_NOT_FOUND;
 }
 
 GF_EXPORT

@@ -1828,6 +1828,12 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 		if (clr) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *)clr);
 		return GF_OK;
 	}
+	if (clr) {
+		//create another color box
+		if (clr->opaque && !icc_data) clr = NULL;
+		else if (!clr->opaque && icc_data) clr = NULL;
+	}
+
 	if (!clr) {
 		clr = (GF_ColourInformationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_COLR);
 		if (!clr) return GF_OUT_OF_MEM;

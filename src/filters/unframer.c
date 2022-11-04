@@ -58,30 +58,19 @@ static GF_Err unframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		case GF_STREAM_AUDIO:
 		case GF_STREAM_TEXT:
 		case GF_STREAM_VISUAL:
+			p =gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+			if (!p || !gf_codecid_has_unframer(p->value.uint))
+				no_unframe = GF_TRUE;
 			break;
 		default:
 			no_unframe = GF_TRUE;
 			break;
 		}
+	} else {
+		//no stream type defined, cannot unframe
+		no_unframe = GF_TRUE;
 	}
 
-	p = no_unframe ? NULL : gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (p) {
-		switch (p->value.uint) {
-		case GF_CODECID_AMR:
-		case GF_CODECID_AMR_WB:
-		case GF_CODECID_EVRC:
-		case GF_CODECID_EVRC_PV:
-		case GF_CODECID_SMV:
-		case GF_CODECID_FFV1:
-		case GF_CODECID_FFMPEG:
-		case GF_CODECID_THEORA:
-		case GF_CODECID_SPEEX:
-		case GF_CODECID_VORBIS:
-			no_unframe = GF_TRUE;
-			break;
-		}
-	}
 	if (no_unframe)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, NULL);
 	return GF_OK;
@@ -116,6 +105,7 @@ static const GF_FilterCapability UnframerCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT | GF_CAPFLAG_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT | GF_CAPFLAG_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_FALSE),
 };
 
 GF_FilterRegister UnframerRegister = {
