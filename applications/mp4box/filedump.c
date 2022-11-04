@@ -3254,7 +3254,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, stsd_idx);
 		if (ac3) {
-			nb_ch = gf_ac3_get_channels(ac3->streams[0].acmod);
+			nb_ch = gf_ac3_get_total_channels(ac3->streams[0].acmod);
 			if (ac3->streams[0].nb_dep_sub) {
 				nb_ch += gf_eac3_get_chan_loc_count(ac3->streams[0].chan_loc);
 			}

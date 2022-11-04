@@ -8947,15 +8947,27 @@ static const u32 ac3_sizecod0_to_framesize[] = {
 	512, 640, 768, 896, 1024, 1152, 1280
 };
 
-static const u32 ac3_mod_to_chans[] = {
+static const u32 ac3_mod_to_total_chans[] = {
 	2, 1, 2, 3, 3, 4, 4, 5
 };
 
+static const u32 ac3_mod_to_surround_chans[] = {
+	0, 0, 0, 0, 1, 1, 2, 2
+};
+
 GF_EXPORT
-u32 gf_ac3_get_channels(u32 acmod)
+u32 gf_ac3_get_total_channels(u32 acmod)
 {
 	u32 nb_ch;
-	nb_ch = ac3_mod_to_chans[acmod];
+	nb_ch = ac3_mod_to_total_chans[acmod];
+	return nb_ch;
+}
+
+GF_EXPORT
+u32 gf_ac3_get_surround_channels(u32 acmod)
+{
+	u32 nb_ch;
+	nb_ch = ac3_mod_to_surround_chans[acmod];
 	return nb_ch;
 }
 
@@ -9034,10 +9046,11 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 		hdr->streams[0].fscod = fscod;
 		hdr->brcode = frmsizecod / 2;
 	}
-	if (ac3_mod >= 2 * sizeof(ac3_mod_to_chans) / sizeof(u32))
+	if (ac3_mod >= 2 * sizeof(ac3_mod_to_total_chans) / sizeof(u32))
 		return GF_FALSE;
 
-	hdr->streams[0].channels = ac3_mod_to_chans[ac3_mod];
+	hdr->streams[0].channels = ac3_mod_to_total_chans[ac3_mod];
+	hdr->streams[0].surround_channels = ac3_mod_to_surround_chans[ac3_mod];
 	if ((ac3_mod & 0x1) && (ac3_mod != 1)) gf_bs_read_int_log(bs, 2, "cmixlev");
 	if (ac3_mod & 0x4) gf_bs_read_int_log(bs, 2, "surmixlev");
 	if (ac3_mod == 0x2) gf_bs_read_int_log(bs, 2, "dsurmod");
@@ -9088,13 +9101,14 @@ static void eac3_update_channels(GF_AC3Config *hdr)
 {
 	u32 i;
 	for (i=0; i<hdr->nb_streams; i++) {
-		u32 nb_ch = ac3_mod_to_chans[hdr->streams[i].acmod];
+		u32 nb_ch = ac3_mod_to_total_chans[hdr->streams[i].acmod];
 		if (hdr->streams[i].nb_dep_sub) {
 			hdr->streams[i].chan_loc = eac3_chanmap_to_chan_loc(hdr->streams[i].chan_loc);
 			nb_ch += gf_eac3_get_chan_loc_count(hdr->streams[i].chan_loc);
 		}
 		if (hdr->streams[i].lfon) nb_ch++;
 		hdr->streams[i].channels = nb_ch;
+		hdr->streams[i].surround_channels = ac3_mod_to_surround_chans[hdr->streams[i].acmod];
 	}
 }
 
