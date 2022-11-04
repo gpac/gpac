@@ -2467,17 +2467,22 @@ static void svg_parse_boolean(SVG_Boolean *value, char *value_string)
 static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end_list)
 {
 	SMIL_Time *value;
-	char value_string[500];
+	char value_string[1025];
 	char *str = begin_or_end_list, *tmp;
 	u32 len;
 
 	/* get rid of leading spaces */
 	while (*str == ' ') str++;
 
+	value_string[1024] = 0;
 	while (1) {
 		tmp = strchr(str, ';');
 		if (tmp) len = (u32) (tmp-str);
 		else len = (u32) strlen(str);
+		if (len>1024) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] SMIL time list attribute too long, max supported 1024 bytes\n"));
+			goto err;
+		}
 		memcpy(value_string, str, len);
 		while ((len > 0) && (value_string[len - 1] == ' '))
 			len--;
