@@ -12690,7 +12690,7 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 	index_size = get_size_by_code( (ptr->flags & 0x3) );
 
 	if (((pattern_size==4) && (scount_size!=4)) || ((pattern_size!=4) && (scount_size==4))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern_size and sample_count_size mare not both 4 bits\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample group pattern_size and sample_count_size mare not both 4 bits\n"));
 		return GF_ISOM_INVALID_FILE;
 	}
 
@@ -12704,7 +12704,7 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 
 
 	if ( (ptr->size / ( (pattern_size + scount_size) / 8 ) < ptr->pattern_count) || (u64)ptr->pattern_count > (u64)SIZE_MAX/sizeof(GF_CompactSampleGroupPattern) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern_count value (%lu) invalid\n", ptr->pattern_count));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample group pattern_count value (%lu) invalid\n", ptr->pattern_count));
 		return GF_ISOM_INVALID_FILE;
 	}
 
@@ -12725,13 +12725,13 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		patterns_sizes+=ptr->patterns[i].length;
 		if (patterns_sizes * index_size > ptr->size*8) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern cumulated sizes "LLU" larger than box size "LLU"\n", patterns_sizes, ptr->size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample group pattern cumulated sizes "LLU" larger than box size "LLU"\n", patterns_sizes, ptr->size));
 			ptr->patterns[i].sample_group_description_indices = NULL;
 			return GF_ISOM_INVALID_FILE;
 		}
 
 		if ( (u64)ptr->patterns[i].length > (u64)SIZE_MAX/sizeof(u32) ) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern #%d value (%lu) invalid\n", i, ptr->patterns[i].length));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample group pattern #%d value (%lu) invalid\n", i, ptr->patterns[i].length));
 			ptr->patterns[i].sample_group_description_indices = NULL;
 			return GF_ISOM_INVALID_FILE;
 		}
