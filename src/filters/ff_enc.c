@@ -1582,7 +1582,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		u64 change_chan_layout = 0;
 		//check audio format
 		ctx->sample_fmt = ffmpeg_audio_fmt_from_gpac(afmt);
-		change_input_fmt = 0;
+		change_input_fmt = AV_SAMPLE_FMT_NONE;
 		while (codec->sample_fmts) {
 			if (codec->sample_fmts[i] == AV_SAMPLE_FMT_NONE) break;
 			if (codec->sample_fmts[i] == ctx->sample_fmt) {
@@ -1608,12 +1608,13 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		if (!ctx->channel_layout) {
 			ctx->channel_layout = gf_audio_fmt_get_layout_from_cicp(gf_audio_fmt_get_cicp_layout(ctx->channels, 0, 0));
 		}
+		u64 ff_ch_layout = ffmpeg_channel_layout_from_gpac(ctx->channel_layout);
 		if (!codec->channel_layouts)
 			change_chan_layout = ctx->channel_layout;
 
 		while (codec->channel_layouts) {
 			if (!codec->channel_layouts[i]) break;
-			if (codec->channel_layouts[i] == ffmpeg_channel_layout_from_gpac(ctx->channel_layout)) {
+			if (codec->channel_layouts[i] == ff_ch_layout) {
 				change_chan_layout = ctx->channel_layout;
 				break;
 			}
