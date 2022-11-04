@@ -1035,7 +1035,7 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	//update media duration
-	if (sample->DTS + sample->CTS_Offset>=0) {
+	if ((s64)sample->DTS + sample->CTS_Offset>=0) {
 		GF_TimeToSampleBox *stts = trak->Media->information->sampleTable->TimeToSample;
 		u64 dur = sample->DTS + sample->CTS_Offset;
 		dur += stts->entries[stts->nb_entries-1].sampleDelta;

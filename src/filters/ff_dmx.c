@@ -171,6 +171,14 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 		break;
 	case AV_PKT_DATA_REPLAYGAIN:
 		break;
+	case AV_PKT_DATA_STEREO3D:
+		break;
+	case AV_PKT_DATA_AUDIO_SERVICE_TYPE:
+		break;
+	case AV_PKT_DATA_QUALITY_STATS:
+		break;
+	case AV_PKT_DATA_CPB_PROPERTIES:
+		break;
 	case AV_PKT_DATA_DISPLAYMATRIX:
 	{
 		GF_PropertyValue p;
@@ -182,14 +190,11 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 
 	}
 		break;
-	case AV_PKT_DATA_STEREO3D:
+	case AV_PKT_DATA_SPHERICAL:
 		break;
-	case AV_PKT_DATA_AUDIO_SERVICE_TYPE:
-		break;
-	case AV_PKT_DATA_QUALITY_STATS:
-		break;
-	case AV_PKT_DATA_CPB_PROPERTIES:
-		break;
+
+#if (LIBAVCODEC_VERSION_MAJOR<=58) && (LIBAVCODEC_VERSION_MINOR<75)
+#else
 	case AV_PKT_DATA_MASTERING_DISPLAY_METADATA:
 	{
 		u8 mdcv[24];
@@ -212,8 +217,7 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(mdcv, 24));
 	}
 		break;
-	case AV_PKT_DATA_SPHERICAL:
-		break;
+
 	case AV_PKT_DATA_CONTENT_LIGHT_LEVEL:
 	{
 		u8 clli[4];
@@ -255,6 +259,7 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 		break;
 	case AV_PKT_DATA_S12M_TIMECODE:
 		break;
+#endif
 	default:
 		break;
 	}
