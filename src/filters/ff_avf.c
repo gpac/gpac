@@ -45,9 +45,10 @@ typedef struct
 {
 	AVFilterContext *io_filter_ctx;
 	GF_FilterPid *io_pid;
-	u32 timescale, pfmt, width, height, sr, nb_ch, bps;
+	u32 timescale, width, height, sr, nb_ch, bps;
 	Bool planar;
-	u64 ch_layout;
+	u32 pfmt; //ffmpeg pixel or audio format
+	u64 ch_layout; //ffmpeg channel layout
 	GF_Fraction sar;
 	u32 stride, stride_uv, nb_planes;
 	//output only
@@ -706,8 +707,9 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				update_props = GF_FALSE;
 			}
 			if (update_props) {
+				u64 gpac_ch_layout = ffmpeg_channel_layout_to_gpac(frame->channel_layout);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(frame->sample_rate));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(frame->channel_layout));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(gpac_ch_layout));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(frame->channels));
 				opid->gf_pfmt = ffmpeg_audio_fmt_to_gpac(frame->format);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(opid->gf_pfmt));
@@ -838,7 +840,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u64 ch_layout=0;
 		u32 sr, afmt, nb_ch;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
-		if (p) ch_layout = p->value.longuint;
+		if (p) ch_layout = ffmpeg_channel_layout_from_gpac(p->value.longuint);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 		if (!p) return GF_OK; //not ready yet
@@ -1019,6 +1021,11 @@ GF_FilterRegister FFAVFilterRegister = {
 		"Unlike other FFMPEG bindings in GPAC, this filter does not parse other libavfilter options, you must specify them directly in the filter chain, and the [-f]() option will have to be escaped.\n"
 		"EX ffavf::f=showspectrum=size=320x320 or ffavf::f=showspectrum=size=320x320::pfmt=rgb\n"
 		"EX ffavf::f=anullsrc=channel_layout=5.1:sample_rate=48000\n"
+		"\n"
+		"For complex filter graphs, it is possible to store options in a file (e.g. `opts.txt`):\n"
+		"EX :f=anullsrc=channel_layout=5.1:sample_rate=48000\n"
+		"And load arguments from file:\n"
+		"EX ffavf:opts.txt aout\n"
 		"\n"
 		"The filter will automatically create `buffer` and `buffersink` AV filters for data exchange between GPAC and libavfilter.\n"
 		"The builtin options ( [-pfmt](), [-afmt]() ...) can be used to configure the `buffersink` filter to set the output format of the filter.\n"
