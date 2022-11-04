@@ -2168,7 +2168,9 @@ Warning: Only local files are allowed.
 .br
 An option file is a simple text file containing one or more options or PID properties on one or more lines.
 .br
-A line beginning with "//" is a comment and is ignored.
+- A line beginning with "//" is a comment and is ignored (not configurable).
+.br
+- A line beginning with ":" indicates an escaped option (the entire line is parsed as a single option).
 .br
 Options in an option file may point to other option files, with a maximum redirection level of 5.
 .br
@@ -4733,7 +4735,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev441-g07c2e827a-master
+build: 2.1-DEV-rev443-g645b418d4-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
