@@ -1886,6 +1886,11 @@ skip_date:
 					FSESS_CHECK_THREAD(filter)
 					e = filter->freg->update_arg(filter, szArg, &argv);
 					if (argv.value.string) gf_free(argv.value.string);
+					//opaque arg not found for meta, report it
+					if ((e==GF_NOT_FOUND) && opaque_arg) {
+						opaque_arg = GF_FALSE;
+						found = GF_FALSE;
+					}
 				}
 				if (!(filter->freg->flags&GF_FS_REG_SCRIPT) && (e==GF_OK) ) {
 					found = GF_TRUE;
