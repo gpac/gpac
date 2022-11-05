@@ -29,6 +29,10 @@
 
 #include "ff_common.h"
 
+#if (LIBAVCODEC_VERSION_MAJOR < 58)
+#define FFMPEG_NO_SUBS
+#endif
+
 #include <libswscale/swscale.h>
 
 #define FF_CHECK_PROP(_name, _ffname, _type)	if (ctx->_name != ctx->decoder->_ffname) { \
@@ -798,6 +802,7 @@ dispatch_next:
 //	return ffdec_process_audio(filter, ctx);
 }
 
+#ifndef FFMPEG_NO_SUBS
 void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2);
 
 static void ffsub_packet_destructor(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck)
@@ -937,6 +942,7 @@ exit:
 	FF_RELEASE_PCK(pkt)
 	return GF_OK;
 }
+#endif
 
 static GF_Err ffdec_process(GF_Filter *filter)
 {
@@ -1321,7 +1327,7 @@ reuse_codec_context:
 			else
 				ctx->ts_offset = 0;
 		}
-
+#ifndef FFMPEG_NO_SUBS
 	} else {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT( GF_STREAM_VISUAL) );
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
@@ -1334,6 +1340,7 @@ reuse_codec_context:
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGBA));
 		}
 		ctx->process = ffdec_process_subtitle;
+#endif
 	}
 	return GF_OK;
 }
@@ -1387,6 +1394,7 @@ static const GF_FilterCapability FFDecodeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+#ifndef FFMPEG_NO_SUBS
 	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
@@ -1400,6 +1408,7 @@ static const GF_FilterCapability FFDecodeCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+#endif
 };
 
 GF_FilterRegister FFDecodeRegister = {
