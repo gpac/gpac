@@ -44,9 +44,9 @@
 #pragma comment(lib, "ws2_32")
 #endif
 
-#if defined(POLLIN)
-#ifndef GPAC_HAS_POLL
-#define GPAC_HAS_POLL
+#if !defined(POLLIN)
+#ifdef GPAC_HAS_POLL
+#undef GPAC_HAS_POLL
 #endif
 #endif
 
@@ -380,6 +380,7 @@ enum
 	/*socket is bound to a specific dest (server) or source (client) */
 	GF_SOCK_HAS_PEER = 1<<14,
 	GF_SOCK_IS_UN = 1<<15,
+	GF_SOCK_HAS_CONNECT = 1<<16,
 };
 
 struct __tag_socket
@@ -788,30 +789,51 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		}
 
 		if (sock->flags & GF_SOCK_IS_TCP) {
+
+#if defined(WIN32) || defined(_WIN32_WCE)
+			//on winsock we must check writability between two connects for non-blocking sockets
+			if (sock->flags & GF_SOCK_HAS_CONNECT) {
+				if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_IP_NETWORK_EMPTY)
+					return GF_IP_NETWORK_EMPTY;
+			}
+#endif
+
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
 			ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
 				int err = LASTSOCKERROR;
 				if (sock->flags & GF_SOCK_NON_BLOCKING) {
-					if (err==EINPROGRESS) {
+					if ((err==EINPROGRESS)
+#if defined(WIN32) || defined(_WIN32_WCE)
+					|| (err == WSAEWOULDBLOCK)
+#endif
+					) {
 						freeaddrinfo(res);
 						if (lip) freeaddrinfo(lip);
+						//remember we issued a first connect
+						sock->flags |= GF_SOCK_HAS_CONNECT;
 						return GF_IP_NETWORK_EMPTY;
 					}
-					if ((err==EISCONN) ||(err==EALREADY)) {
+					if ((err==EISCONN) || (err == EALREADY)
+#if defined(WIN32) || defined(_WIN32_WCE)
+						|| (err == WSAEISCONN)
+#endif
+					) {
+						if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
+							goto conn_ok;
 						freeaddrinfo(res);
 						if (lip) freeaddrinfo(lip);
-						if (gf_sk_select(sock, GF_SK_SELECT_WRITE)==GF_OK)
-							return GF_OK;
 						return GF_IP_NETWORK_EMPTY;
 					}
 				}
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV4] Failed to connect to host %s: %s - retrying\n", PeerName, gf_errno_str(err) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Sock_IPV6] Failed to connect to host %s: %s (%d) - retrying\n", PeerName, gf_errno_str(err), err ));
 				continue;
 			}
+conn_ok:
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
+			sock->flags &= ~GF_SOCK_HAS_CONNECT;
 
 #ifdef SO_NOSIGPIPE
 			int value = 1;
@@ -867,13 +889,46 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		return GF_OK;
 	}
 
+#if defined(WIN32) || defined(_WIN32_WCE)
+	//on winsock we must check writability between two connects for non-blocking sockets
+	if (sock->flags & GF_SOCK_HAS_CONNECT) {
+		if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_IP_NETWORK_EMPTY)
+			return GF_IP_NETWORK_EMPTY;
+	}
+#endif
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
 	ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 	if (ret == SOCKET_ERROR) {
 		u32 res = LASTSOCKERROR;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Sock_IPV4] Couldn't connect socket: %s\n", gf_errno_str(res) ));
+
+		if (sock->flags & GF_SOCK_NON_BLOCKING) {
+			if ((res == EINPROGRESS)
+#if defined(WIN32) || defined(_WIN32_WCE)
+				|| (res == WSAEWOULDBLOCK)
+#endif
+				) {
+				//remember we issued a first connect
+				sock->flags |= GF_SOCK_HAS_CONNECT;
+				return GF_IP_NETWORK_EMPTY;
+			}
+			if ((res == EISCONN) || (res == EALREADY)
+#if defined(WIN32) || defined(_WIN32_WCE)
+				|| (res == WSAEISCONN)
+#endif
+				) {
+				if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
+					return GF_OK;
+				return GF_IP_NETWORK_EMPTY;
+			}
+		}
+		sock->flags &= ~GF_SOCK_HAS_CONNECT;
+
 		switch (res) {
 		case EAGAIN:
+#if defined(WIN32) || defined(_WIN32_WCE)
+		case WSAEWOULDBLOCK:
+#endif
 			return GF_IP_NETWORK_EMPTY;
 #ifdef WIN32
 		case WSAEINVAL:
@@ -882,20 +937,12 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 #endif
 		case EISCONN:
 			return GF_OK;
-		case ENOTCONN:
-			return GF_IP_CONNECTION_FAILURE;
-		case ECONNRESET:
-			return GF_IP_CONNECTION_FAILURE;
-		case EMSGSIZE:
-			return GF_IP_CONNECTION_FAILURE;
-		case ECONNABORTED:
-			return GF_IP_CONNECTION_FAILURE;
-		case ENETDOWN:
-			return GF_IP_CONNECTION_FAILURE;
 		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Sock_IPV4] Couldn't connect socket: %s\n", gf_errno_str(res)));
 			return GF_IP_CONNECTION_FAILURE;
 		}
 	}
+	sock->flags &= ~GF_SOCK_HAS_CONNECT;
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connected to %s:%d\n", PeerName, PortNumber));
 #endif
 	return GF_OK;
