@@ -32,7 +32,10 @@
 //for NTP clock
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
+#if (LIBAVCODEC_VERSION_MAJOR<=58) && (LIBAVCODEC_VERSION_MINOR<75)
+#else
 #include <libavutil/mastering_display_metadata.h>
+#endif
 
 enum
 {
@@ -177,8 +180,6 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 		break;
 	case AV_PKT_DATA_QUALITY_STATS:
 		break;
-	case AV_PKT_DATA_CPB_PROPERTIES:
-		break;
 	case AV_PKT_DATA_DISPLAYMATRIX:
 	{
 		GF_PropertyValue p;
@@ -190,8 +191,14 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 
 	}
 		break;
+
+#if (LIBAVCODEC_VERSION_MAJOR >= 58)
+	case AV_PKT_DATA_CPB_PROPERTIES:
+		break;
 	case AV_PKT_DATA_SPHERICAL:
 		break;
+#endif
+
 
 #if (LIBAVCODEC_VERSION_MAJOR<=58) && (LIBAVCODEC_VERSION_MINOR<75)
 #else
