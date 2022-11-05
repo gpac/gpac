@@ -141,9 +141,9 @@ static void ffdmx_set_decoder_config(GF_FilterPid *pid, const u8 *exdata, u32 ex
 		gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY( dsi, dsi_size) );
 }
 
-static inline int64_t rescale_mdcv(AVRational q, int b)
+static inline u32 rescale_mdcv(AVRational q, int b)
 {
-    return av_rescale(q.num, b, q.den);
+    return (u32) av_rescale(q.num, b, q.den);
 }
 
 //dovi_meta.h not exported in old releases, just redefine
@@ -231,7 +231,7 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 	}
 		break;
 	case AV_PKT_DATA_ICC_PROFILE:
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ICC_PROFILE, &PROP_DATA(sd->data, sd->size));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ICC_PROFILE, &PROP_DATA(sd->data, (u32) sd->size));
 		break;
 	case AV_PKT_DATA_DOVI_CONF:
 	{
@@ -923,7 +923,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			gf_filter_pid_set_property_str(pid, "ffdmx:blockalign", &PROP_UINT(codec_blockalign));
 
 
-		for (j=0; j<stream->nb_side_data; j++) {
+		for (j=0; j<(u32) stream->nb_side_data; j++) {
 			ffdmx_parse_side_data(&stream->side_data[i], pid);
 		}
 	}

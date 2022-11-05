@@ -1059,7 +1059,7 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 
 	char *str = gf_malloc(sizeof(char)*(p->size+1));
 	if (!str) return GF_OUT_OF_MEM;
-	msize = p->size;
+	msize = (u32) p->size;
 	str[msize] = 0;
 	i=0;
 	str[0]=0;
