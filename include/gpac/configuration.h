@@ -74,6 +74,9 @@ This section documents the base data types of GPAC.
 /*Win32 IPv6 is evaluated at compile time, !! do not uncomment !!*/
 //#define GPAC_HAS_IPV6
 
+/*undefined at compil time if no poll support*/
+#define GPAC_HAS_POLL
+
 #define GPAC_HAS_GLU
 
 #ifndef GPAC_CONFIG_WIN32
