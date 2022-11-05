@@ -803,22 +803,22 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			if (ret == SOCKET_ERROR) {
 				int err = LASTSOCKERROR;
 				if (sock->flags & GF_SOCK_NON_BLOCKING) {
-					if ((err==EINPROGRESS)
+					switch (err) {
+					case EINPROGRESS:
 #if defined(WIN32) || defined(_WIN32_WCE)
-					|| (err == WSAEWOULDBLOCK)
+					case WSAEWOULDBLOCK:
 #endif
-					) {
 						freeaddrinfo(res);
 						if (lip) freeaddrinfo(lip);
 						//remember we issued a first connect
 						sock->flags |= GF_SOCK_HAS_CONNECT;
 						return GF_IP_NETWORK_EMPTY;
-					}
-					if ((err==EISCONN) || (err == EALREADY)
+
+					case EISCONN:
+					case EALREADY:
 #if defined(WIN32) || defined(_WIN32_WCE)
-						|| (err == WSAEISCONN)
+					case WSAEISCONN:
 #endif
-					) {
 						if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
 							goto conn_ok;
 						freeaddrinfo(res);
@@ -903,20 +903,19 @@ conn_ok:
 		u32 res = LASTSOCKERROR;
 
 		if (sock->flags & GF_SOCK_NON_BLOCKING) {
-			if ((res == EINPROGRESS)
+			switch (res) {
+			case EINPROGRESS:
 #if defined(WIN32) || defined(_WIN32_WCE)
-				|| (res == WSAEWOULDBLOCK)
+			case WSAEWOULDBLOCK:
 #endif
-				) {
 				//remember we issued a first connect
 				sock->flags |= GF_SOCK_HAS_CONNECT;
 				return GF_IP_NETWORK_EMPTY;
-			}
-			if ((res == EISCONN) || (res == EALREADY)
+			case EISCONN:
+			case EALREADY:
 #if defined(WIN32) || defined(_WIN32_WCE)
-				|| (res == WSAEISCONN)
+			case WSAEISCONN:
 #endif
-				) {
 				if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_OK)
 					return GF_OK;
 				return GF_IP_NETWORK_EMPTY;
