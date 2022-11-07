@@ -2994,7 +2994,7 @@ static void svg_parse_preserveaspectratio(SVG_PreserveAspectRatio *par, char *at
 	while (*content == ' ') content++;
 	if (strstr(content, "defer")) {
 		par->defer = 1;
-		content += 4;
+		content += 5;
 	} else {
 		content = attribute_content;
 	}
@@ -3587,11 +3587,14 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		*(SVG_String *)info->far_ptr = gf_strdup(attribute_content);
 		break;
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute %s\n", info->name ? info->name : ""));
-		break;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute \"%s\"\n", info->name ? info->name : ""));
+		return GF_OK;
 	}
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute %s value %s: %s\n", info->name ? info->name : "", attribute_content, gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute \"%s\" value %s: %s\n", info->name ? info->name : "", attribute_content, gf_error_to_string(e)));
+		//continue parsing if not test mode
+		if (!gf_sys_is_test_mode())
+			e = GF_OK;
 	}
 	return e;
 }
