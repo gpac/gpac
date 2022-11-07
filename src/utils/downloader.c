@@ -3270,7 +3270,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		proxy = sess->server_name;
 		proxy_port = sess->port;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connecting to %s:%d\n", proxy, proxy_port));
+	if (!sess->connect_pending) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connecting to %s:%d\n", proxy, proxy_port));
+	}
 
 	if ((sess->status == GF_NETIO_SETUP) && (sess->connect_pending<2)) {
 		u64 now;
@@ -3289,19 +3291,24 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, NULL);
 
 		/*retry*/
-		if ((e == GF_IP_NETWORK_EMPTY) && sess->num_retry) {
-			if (register_sock) gf_sk_group_register(sess->sock_group, sess->sock);
-			sess->status = GF_NETIO_SETUP;
-			if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
-				if ((now - sess->start_time) / 1000 > sess->conn_timeout) {
-					sess->num_retry = 0;
+		if (e == GF_IP_NETWORK_EMPTY) {
+			if (sess->num_retry) {
+				if (register_sock) gf_sk_group_register(sess->sock_group, sess->sock);
+				sess->status = GF_NETIO_SETUP;
+				if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
+					if ((now - sess->start_time) / 1000 > sess->conn_timeout) {
+						sess->num_retry = 0;
+					}
 				}
+				else {
+					sess->num_retry--;
+				}
+				sess->connect_pending = 1;
+				SET_LAST_ERR(GF_IP_NETWORK_EMPTY)
+					return;
 			} else {
-				sess->num_retry--;
+				e = GF_IP_CONNECTION_FAILURE;
 			}
-			sess->connect_pending = 1;
-			SET_LAST_ERR(GF_IP_NETWORK_EMPTY)
-			return;
 		}
 
 		sess->connect_pending = 0;

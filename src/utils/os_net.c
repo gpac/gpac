@@ -793,8 +793,11 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 #if defined(WIN32) || defined(_WIN32_WCE)
 			//on winsock we must check writability between two connects for non-blocking sockets
 			if (sock->flags & GF_SOCK_HAS_CONNECT) {
-				if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_IP_NETWORK_EMPTY)
+				if (gf_sk_select(sock, GF_SK_SELECT_WRITE) == GF_IP_NETWORK_EMPTY) {
+					GF_Err e = gf_sk_probe(sock);
+					if (e && (e != GF_IP_NETWORK_EMPTY)) return e;
 					return GF_IP_NETWORK_EMPTY;
+				}
 			}
 #endif
 
@@ -1167,14 +1170,14 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 
 Bool gpac_use_poll=GF_TRUE;
 
-static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec)
+static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec, Bool force_select)
 {
 #ifndef __SYMBIAN32__
 	int ready;
 	struct timeval timeout;
 
 #ifdef GPAC_HAS_POLL
-	if (gpac_use_poll) {
+	if (!force_select && gpac_use_poll) {
 		struct pollfd pfd;
 		pfd.fd = sock->socket;
 		pfd.revents = 0;
@@ -1256,7 +1259,7 @@ GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written
 
 	if (! (sock->flags & GF_SOCK_NON_BLOCKING)) {
 		//check write
-		GF_Err e = poll_select(sock, GF_SK_SELECT_WRITE, sock->usec_wait);
+		GF_Err e = poll_select(sock, GF_SK_SELECT_WRITE, sock->usec_wait, GF_FALSE);
 		if (e) return e;
 	}
 
@@ -1316,7 +1319,7 @@ GF_Err gf_sk_select(GF_Socket *sock, u32 mode)
 		return GF_BAD_PARAM;
 
 	//check write and read
-	return poll_select(sock, mode, sock->usec_wait);
+	return poll_select(sock, mode, sock->usec_wait, GF_FALSE);
 }
 
 
@@ -1792,7 +1795,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 
 	if (do_select && !(sock->flags & GF_SOCK_NON_BLOCKING)) {
 		//check read
-		GF_Err e = poll_select(sock, GF_SK_SELECT_READ, sock->usec_wait);
+		GF_Err e = poll_select(sock, GF_SK_SELECT_READ, sock->usec_wait, GF_FALSE);
 		if (e) return e;
 	}
 	if (!buffer) return GF_OK;
@@ -1874,7 +1877,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	if (!sock || !(sock->flags & GF_SOCK_IS_LISTENING) ) return GF_BAD_PARAM;
 
 	//check read
-	GF_Err e = poll_select(sock, GF_SK_SELECT_READ, sock->usec_wait);
+	GF_Err e = poll_select(sock, GF_SK_SELECT_READ, sock->usec_wait, GF_FALSE);
 	if (e) return e;
 
 #ifdef GPAC_HAS_IPV6
@@ -2017,7 +2020,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 	if (remoteHost && !remotePort) return GF_BAD_PARAM;
 
 	//check write
-	GF_Err e = poll_select(sock, GF_SK_SELECT_WRITE, sock->usec_wait);
+	GF_Err e = poll_select(sock, GF_SK_SELECT_WRITE, sock->usec_wait, GF_FALSE);
 	if (e) return e;
 
 	/*setup the address*/
@@ -2079,8 +2082,8 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 	u8 buffer[1];
 	if (!sock) return GF_BAD_PARAM;
 
-	//check read
-	GF_Err e = poll_select(sock, GF_SK_SELECT_READ, 100);
+	//check read - force using select at least for windows, for which poll returns nothing on connection abort
+	GF_Err e = poll_select(sock, GF_SK_SELECT_READ, 100, GF_TRUE);
 	if (e) return e;
 
 	//peek message
