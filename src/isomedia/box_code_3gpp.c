@@ -1046,6 +1046,7 @@ void dimC_box_del(GF_Box *s)
 
 GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e = GF_OK;
 	u32 i, msize;
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
 
@@ -1064,7 +1065,7 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 	i=0;
 	str[0]=0;
 	while (i < msize) {
-		ISOM_DECREASE_SIZE(p, 1);
+		ISOM_DECREASE_SIZE_GOTO_EXIT(p, 1);
 		str[i] = gf_bs_read_u8(bs);
 		if (!str[i]) break;
 		i++;
@@ -1079,7 +1080,7 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 	i=0;
 	str[0]=0;
 	while (i < msize) {
-		ISOM_DECREASE_SIZE(p, 1);
+		ISOM_DECREASE_SIZE_GOTO_EXIT(p, 1);
 		str[i] = gf_bs_read_u8(bs);
 		if (!str[i]) break;
 		i++;
@@ -1094,6 +1095,10 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 	if (!p->textEncoding || !p->contentEncoding)
 		return GF_OUT_OF_MEM;
 	return GF_OK;
+
+exit:
+	gf_free(str);
+	return e;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
