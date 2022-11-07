@@ -32,8 +32,7 @@
 //for NTP clock
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
-#if (LIBAVCODEC_VERSION_MAJOR<=58) && (LIBAVCODEC_VERSION_MINOR<75)
-#else
+#if (LIBAVCODEC_VERSION_MAJOR>58)
 #include <libavutil/mastering_display_metadata.h>
 #endif
 
@@ -200,8 +199,7 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 #endif
 
 
-#if (LIBAVCODEC_VERSION_MAJOR<=58) && (LIBAVCODEC_VERSION_MINOR<75)
-#else
+#if (LIBAVCODEC_VERSION_MAJOR>58)
 	case AV_PKT_DATA_MASTERING_DISPLAY_METADATA:
 	{
 		u8 mdcv[24];

@@ -116,7 +116,7 @@ void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid);
 
 void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 color_primaries, u32 transfer_characteristics, u32 colorspace, const u8 *data, u32 size);
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 58)
+#if (LIBAVCODEC_VERSION_MAJOR > 56)
 /*fills codecpar from pid properties. This assumes the codecpar was properly initialized.
 codec_id, codec_type, and extradata are NOT set by this function
 */
