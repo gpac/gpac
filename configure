@@ -775,7 +775,11 @@ EOF
 
     Darwin)
         CFLAGS_DIR="-I$prefix/include"
-        LDFLAGS="$LDFLAGS -L$prefix/$libdir"
+        if test "$static_bin" = "yes" ; then
+            LDFLAGS="-L$prefix/$libdir"
+        else
+            LDFLAGS="$LDFLAGS -L$prefix/$libdir"
+        fi
         if test -d /sw/bin ; then
             alt_macosx_dir="/sw"
             CFLAGS_DIR="-I/sw/include $CFLAGS_DIR"
