@@ -114,6 +114,7 @@ typedef struct
 
 	const char *mem_url;
 	GF_FileIO *mem_fileio;
+	u32 nb_sess_flush_pending;
 } GF_HTTPOutCtx;
 
 typedef struct __httpout_input
@@ -194,6 +195,7 @@ typedef struct __httpout_session
 	u64 file_size, file_pos, nb_bytes, bytes_in_req;
 	u8 *buffer;
 	Bool done;
+	u32 flush_close;
 	u64 last_file_modif;
 
 	u64 req_start_time;
@@ -387,7 +389,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess)
 {
 	Bool last_connection = GF_TRUE;
 	if (!sess->http_sess) return;
-
+	assert(!sess->flush_close);
 	if (sess->is_h2) {
 		u32 nb_sub_sess = gf_dm_sess_subsession_count(sess->http_sess);
 		if (nb_sub_sess > 1) {
@@ -411,6 +413,38 @@ static void httpout_close_session(GF_HTTPOutSession *sess)
 	sess->done = 1;
 
 	if (sess->in_source) sess->in_source->nb_dest--;
+}
+
+static void log_request_done(GF_HTTPOutSession *sess);
+
+static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session)
+{
+	if (!sess->ctx->blockio) {
+		//first attempt at closing, remember close_session flag
+		if (!sess->flush_close) {
+			sess->flush_close = close_session ? 2 : 1;
+			sess->ctx->nb_sess_flush_pending++;
+		}
+		if (gf_dm_sess_flush_async(sess->http_sess, GF_TRUE) == GF_IP_NETWORK_EMPTY)
+			return GF_FALSE;
+		//done closing, restore close_session flag
+		if (sess->flush_close == 2)
+			close_session = GF_TRUE;
+		sess->flush_close = 0;
+		sess->ctx->nb_sess_flush_pending--;
+	}
+	log_request_done(sess);
+	sess->done = GF_TRUE;
+
+	if (close_session) {
+		httpout_close_session(sess);
+	}
+	//might be NULL if quit was set
+	else if (sess->http_sess) {
+		sess->headers_done = GF_FALSE;
+		gf_dm_sess_server_reset(sess->http_sess);
+	}
+	return GF_TRUE;
 }
 
 static void httpout_format_date(u64 time, char szDate[200], Bool for_listing)
@@ -1532,6 +1566,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	gf_dm_sess_clear_headers(sess->http_sess);
 
+	if (sess->done) {
+		sess->done = GF_FALSE;
+		httpout_sess_flush_close(sess, GF_FALSE);
+	}
 	sess->last_active_time = gf_sys_clock_high_res();
 	return;
 
@@ -1601,9 +1639,10 @@ exit:
 
 	if (url) gf_free(url);
 	sess->upload_type = 0;
-	sess->done = GF_TRUE;
 	sess->canceled = GF_FALSE;
 	sess->headers_done = GF_FALSE;
+
+	httpout_sess_flush_close(sess, GF_FALSE);
 
 	if (!sess->is_h2 && (sess->ctx->close || (sess->nb_consecutive_errors == sess->ctx->max_client_errors))) {
 		sess->force_destroy = GF_TRUE;
@@ -2507,7 +2546,6 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		}
 
 		sess->last_active_time = gf_sys_clock_high_res();
-		sess->done = GF_TRUE;
 		sess->canceled = GF_FALSE;
 		sess->upload_type = 0;
 		sess->nb_consecutive_errors = 0;
@@ -2525,11 +2563,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			}
 		}
 
-		if (close_session) {
-			httpout_close_session(sess);
-		} else {
-			gf_dm_sess_server_reset(sess->http_sess);
-		}
+		httpout_sess_flush_close(sess, close_session);
 		return;
 	}
 
@@ -2727,9 +2761,10 @@ session_done:
 		log_request_done(sess);
 
 		//keep resource active
-		sess->done = GF_TRUE;
 		sess->canceled = GF_FALSE;
 
+		httpout_sess_flush_close(sess, close_session);
+		return;
 	}
 	if (close_session) {
 		httpout_close_session(sess);
@@ -3065,8 +3100,8 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 					//signal we're done sending the body
 					gf_dm_sess_send(sess->http_sess, NULL, 0);
 
-					log_request_done(sess);
-					sess->done = GF_TRUE;
+					//flush session
+					httpout_sess_flush_close(sess, GF_FALSE);
 				}
 			}
 		}
@@ -3773,7 +3808,7 @@ static GF_Err httpout_process(GF_Filter *filter)
 	u32 i, count;
 	GF_HTTPOutCtx *ctx = gf_filter_get_udta(filter);
 
-	if (ctx->done)
+	if (ctx->done && !ctx->nb_sess_flush_pending)
 		return GF_EOS;
 
 	//wakeup every 50ms when inactive
@@ -3789,6 +3824,11 @@ static GF_Err httpout_process(GF_Filter *filter)
 		count = gf_list_count(ctx->active_sessions);
 		for (i=0; i<count; i++) {
 			GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
+			if (sess->flush_close && !httpout_sess_flush_close(sess, GF_FALSE)) {
+				ctx->next_wake_us = 1;
+				gf_filter_post_process_task(filter);
+				continue;
+			}
 			//push
 			if (sess->in_source) continue;
 
