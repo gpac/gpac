@@ -1925,7 +1925,7 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 		gf_filter_pid_set_property(out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
 }
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 58)
+#if (LIBAVCODEC_VERSION_MAJOR > 56)
 
 GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar, u32 ffmpeg_timescale)
 {
