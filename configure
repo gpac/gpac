@@ -775,7 +775,7 @@ EOF
 
     Darwin)
         CFLAGS_DIR="-I$prefix/include"
-        LDFLAGS="-L$prefix/$libdir"
+        LDFLAGS="$LDFLAGS -L$prefix/$libdir"
         if test -d /sw/bin ; then
             alt_macosx_dir="/sw"
             CFLAGS_DIR="-I/sw/include $CFLAGS_DIR"
