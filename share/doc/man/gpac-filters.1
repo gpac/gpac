@@ -5015,6 +5015,12 @@ For low latency segmentation with fMP4, you will need to specify the following o
 .br
 * llhls: enable low latency for HLS
 .br
+
+.br
+Note: .I llhls will force CMAF to cmfc if .I cmaf is not set.
+.br
+
+.br
 If your sources are not real-time, insert a reframer filter with real-time regulation
 .br
 Example
@@ -6899,7 +6905,7 @@ hmode (enum, default: default): filter operation mode, ignored if .I wdir is set
 .br
 
 .br
-timeout (uint, default: 30):   timeout in seconds for persistent connections (0 disable timeout)
+timeout (uint, default: 5):    timeout in seconds for persistent connections (0 disable timeout)
 .br
 ext (cstr):                    set extension for graph resolution, regardless of file extension
 .br
@@ -10895,6 +10901,8 @@ views (uint, default: 1):      number of views
 .br
 rates (strl):                  number of target bitrates to assign, one per size
 .br
+logt (bool):                   log frame time to console
+.br
 
 .br
 .SH EXAMPLES
@@ -10906,7 +10914,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev468-gf045be580-master
+build: 2.1-DEV-rev474-g96df36716-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
