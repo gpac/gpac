@@ -33,12 +33,12 @@ _gpac_log_name="";
 
 print("Type 'h' in window for command list");
 
-let aout = null
-let vout = null
+let aout = null;
+let vout = null;
 
 function check_filters()
 {
-	if (aout && aout) return;
+	if (aout && vout) return;
 	let i;
 	for (i=0; i< session.nb_filters; i++) {
 		let f = session.get_filter(i);
@@ -157,7 +157,6 @@ session.post_task( () => {
 	}
 	check_filters();
 	if (!vout) return 1000;
-
 	if (vout.nb_ipid) {
 		audio_only=false;
 		return false;
