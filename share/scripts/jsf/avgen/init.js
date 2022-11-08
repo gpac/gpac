@@ -86,6 +86,7 @@ filter.set_arg({ name: "pack", desc: "packing mode for stereo views\n - no: no p
 filter.set_arg({ name: "disparity", desc: "disparity in pixels between left-most and right-most views", type: GF_PROP_UINT, def: "20"} );
 filter.set_arg({ name: "views", desc: "number of views", type: GF_PROP_UINT, def: "1"} );
 filter.set_arg({ name: "rates", desc: "number of target bitrates to assign, one per size", type: GF_PROP_STRING_LIST} );
+filter.set_arg({ name: "logt", desc: "log frame time to console", type: GF_PROP_BOOL} );
 
 let audio_osize=0;
 let audio_cts=0;
@@ -466,6 +467,8 @@ function process_audio()
 	}
 }
 
+let log_text = '';
+
 function process_video()
 {
 	if (!filter.copy) {
@@ -568,6 +571,10 @@ function process_video()
 				}
 			}
 		}
+	}
+
+	if (filter.logt) {
+		print(log_text + '\r');
 	}
 
 	video_cts += filter.fps.d;
@@ -689,6 +696,7 @@ function draw_view(vsrc, view_idx, col, col_idx, cycle_time, h, m, s, nbf, video
 	else t = t+'/'+nbf;
 
 	text.set_text(['Frame: '+(video_frame+nb_frame_init), t]);
+	log_text = t;
 
 	if (filter.pack || (filter.views>1)) {
 		mx.identity = true;
