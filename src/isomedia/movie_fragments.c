@@ -1224,6 +1224,9 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 
 	if (e) return e;
 
+	if (movie->on_last_block_start && !gf_list_count(movie->moof_list))
+		movie->on_last_block_start(movie->on_block_out_usr_data);
+		
 	//rewrite mdat after moof
 	if (movie->moof->mdat) {
 		gf_bs_write_data(bs, movie->moof->mdat, movie->moof->mdat_size);

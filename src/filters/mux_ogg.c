@@ -69,14 +69,32 @@ typedef struct
 	u32 seg_num, next_seg_num;
 	Bool wait_dash, copy_props;
 	u64 seg_start, seg_size;
+
+	Bool force_seg_sync;
+	u32 packets_pending;
 } OGGMuxCtx;
+
+static void oggmux_on_packet_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	OGGMuxCtx *ctx = gf_filter_get_udta(filter);
+	gf_filter_lock(filter, GF_TRUE);
+	if (ctx->packets_pending) ctx->packets_pending--;
+	if (!ctx->packets_pending) gf_filter_post_process_task(filter);
+	gf_filter_lock(filter, GF_FALSE);
+}
 
 static GF_Err oggmux_send_page(OGGMuxCtx *ctx, OGGMuxStream *pctx, GF_FilterPacket *in_pck)
 {
 	if (pctx->og.header_len+pctx->og.body_len == 0) return GF_OK;
 
 	u8 *output;
-	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, pctx->og.header_len+pctx->og.body_len, &output);
+	GF_FilterPacket *pck;
+	if (ctx->force_seg_sync) {
+		pck = gf_filter_pck_new_alloc_destructor(ctx->opid, pctx->og.header_len+pctx->og.body_len, &output, oggmux_on_packet_del);
+		if (pck) ctx->packets_pending++;
+	} else {
+		pck = gf_filter_pck_new_alloc(ctx->opid, pctx->og.header_len+pctx->og.body_len, &output);
+	}
 	if (!pck) return GF_OUT_OF_MEM;
 
 	memcpy(output, pctx->og.header, pctx->og.header_len);
@@ -266,6 +284,9 @@ static GF_Err oggmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OGGMux] DASH On-demand profile not specified for OGG segments\n"));
 			return GF_FILTER_NOT_SUPPORTED;
 		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FORCE_SEG_SYNC);
+		if (p && p->value.boolean)
+			ctx->force_seg_sync = GF_TRUE;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!p) {
@@ -422,6 +443,8 @@ static GF_Err oggmux_process(GF_Filter *filter)
 	else if (ctx->dash_mode) {
 		if (ctx->wait_dash) {
 			OGGMuxStream *pctx;
+			if (ctx->packets_pending)
+				return GF_OK;
 			if (nb_dash_done < count) return GF_OK;
 			ctx->wait_dash = GF_FALSE;
 			ctx->seg_num = ctx->next_seg_num;
