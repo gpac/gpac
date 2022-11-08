@@ -853,6 +853,7 @@ GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, u32 stream_id)
 	if (!sub_sess) return GF_OUT_OF_MEM;
 	sub_sess->socket = sess->socket;
 	sub_sess->ctx = sess->ctx;
+	sub_sess->last_active_time = gf_sys_clock_high_res();
 	//mark the subsession as being h2 right away so that we can process it even if no pending data on socket (cf httpout_process_session)
 	sub_sess->is_h2 = GF_TRUE;
 	strcpy(sub_sess->peer_address, sess->peer_address);
@@ -1941,6 +1942,7 @@ check_next_conn:
 	//we keep track of the socket for sock group (un)register
 	sess->socket = new_conn;
 	sess->ctx = ctx;
+	sess->last_active_time = gf_sys_clock_high_res();
 
 #ifdef GPAC_HAS_SSL
 	if (ctx->ssl_ctx) {
@@ -2203,6 +2205,8 @@ static void httpout_check_mem_path(GF_HTTPOutSession *sess, GF_HTTPOutInput *in)
 static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool final_flush)
 {
 	if (!in->hls_chunk) return;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Closing LL-HLS %s output\n", in->hls_chunk_path));
 
 	gf_fclose(in->hls_chunk);
 	in->hls_chunk = NULL;
@@ -3114,12 +3118,15 @@ static void httpout_close_input_llhls(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
 	GF_Err e;
 	if (!in->llhls_is_open) return;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Closing LL-HLS %s upload\n", in->llhls_url));
+
 	in->llhls_is_open = GF_FALSE;
 	//close prev session
 	if (!in->is_h2) {
 		e = gf_dm_sess_send(in->llhls_upload, "0\r\n\r\n", 5);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk of LLHLS part from %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk of LLHLS part %s: %s\n", in->llhls_url, gf_error_to_string(e) ));
 		}
 	}
 	//signal we're done sending the body
@@ -3996,7 +4003,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	"- default: run in server mode\n"
 	"- push: run in client mode using PUT or POST\n"
 	"- source: use server as source filter on incoming PUT/POST", GF_PROP_UINT, "default", "default|push|source", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timeout), "timeout in seconds for persistent connections (0 disable timeout)", GF_PROP_UINT, "30", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in seconds for persistent connections (0 disable timeout)", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(quit), "exit server once all input PIDs are done and client disconnects (for test purposes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
