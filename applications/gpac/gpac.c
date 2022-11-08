@@ -1138,7 +1138,8 @@ restart:
 		}
 		gpac_print_report(session, GF_FALSE, GF_TRUE);
 	}
-	gf_fs_print_non_connected_ex(session, alias_is_play);
+	if (!dump_graph)
+		gf_fs_print_non_connected_ex(session, alias_is_play);
 
 exit:
 	if (enable_reports==2) {
