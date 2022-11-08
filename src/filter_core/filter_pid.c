@@ -3203,6 +3203,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		//the initial resolution was done, unless the edge is marked as loaded destination filter only in which case
 		//we accept connection
 		if ((dst->bundle_idx_at_resolution>=0)
+			//if dest is a mux, don't check bundle idx
+			&& !dst->max_extra_pids
 			&& !(edge->loaded_filter_only & EDGE_LOADED_DEST_ONLY)
 			&& (edge->dst_cap_idx !=dst->bundle_idx_at_resolution)
 		) {
