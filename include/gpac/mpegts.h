@@ -1410,6 +1410,8 @@ enum
 	GF_ESI_STREAM_HLS_SAES	=	1<<6,
 	/*! stream uses non-backward DolbyVision signaling*/
 	GF_ESI_FORCE_DOLBY_VISION = 1<<7,
+	/*! sparse stream with currently no packets*/
+	GF_ESI_STREAM_SPARSE = 1<<8,
 };
 
 /*! elementary stream information*/

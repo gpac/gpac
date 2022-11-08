@@ -633,7 +633,12 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				if (e) return e;
 			}
 			if (!ipck) {
-				all_ready = GF_FALSE;
+				//don't wait for subtitles & other streams
+				if ((st->stream->codecpar->codec_type==AVMEDIA_TYPE_VIDEO)
+					|| (st->stream->codecpar->codec_type==AVMEDIA_TYPE_VIDEO)
+				) {
+					all_ready = GF_FALSE;
+				}
 				continue;
 			}
 
