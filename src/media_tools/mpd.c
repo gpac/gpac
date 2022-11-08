@@ -718,6 +718,7 @@ GF_MPD_Representation *gf_mpd_representation_new()
 	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
 	rep->base_URLs = gf_list_new();
 	rep->sub_representations = gf_list_new();
+	rep->hls_max_seg_dur.den = 1;
 	return rep;
 }
 
@@ -3587,7 +3588,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	sctx = gf_list_get(rep->state_seg_list, 0);
 
 	gf_fprintf(out,"#EXTM3U\n");
-	gf_fprintf(out,"#EXT-X-TARGETDURATION:%d\n", (u32) ((Double) rep->dash_dur.num) / rep->dash_dur.den);
+	gf_fprintf(out,"#EXT-X-TARGETDURATION:%d\n", (u32) gf_ceil( ((Double) rep->hls_max_seg_dur.num) / rep->hls_max_seg_dur.den) );
 	gf_fprintf(out,"#EXT-X-VERSION:%d\n", hls_version);
 	gf_fprintf(out,"#EXT-X-MEDIA-SEQUENCE:%d\n", sctx->seg_num);
 	if (as->use_hls_ll) {

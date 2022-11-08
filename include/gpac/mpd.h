@@ -657,6 +657,9 @@ typedef struct {
 	/*! tfdt of first segment*/
 	u64 first_tfdt_plus_one;
 	u32 first_tfdt_timescale;
+
+	GF_Fraction hls_max_seg_dur;
+
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/

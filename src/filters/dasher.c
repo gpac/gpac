@@ -6728,6 +6728,14 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		}
 		dasher_insert_timeline_entry(ctx, base_ds);
 
+		if (ctx->do_m3u8) {
+			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
+				base_ds->rep->hls_max_seg_dur.num = segdur;
+				base_ds->rep->hls_max_seg_dur.den = base_ds->timescale;
+			}
+		}
+
 		if (ctx->align) {
 			if (!set_ds->nb_rep_done || !set_ds->set_seg_duration) {
 				set_ds->set_seg_duration = seg_duration;
@@ -7078,6 +7086,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				ds->rep->groupID = p->value.string;
 
 			ds->rep->dash_dur = ds->dash_dur;
+			ds->rep->hls_max_seg_dur = ds->dash_dur;
 
 			if (!ds->rep->hls_single_file_name) {
 				switch (ctx->muxtype) {
