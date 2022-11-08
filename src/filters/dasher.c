@@ -9338,6 +9338,10 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	if ((ctx->tsb>=0) && (ctx->dmode!=GF_DASH_STATIC))
 		ctx->purge_segments = GF_TRUE;
 
+	if (ctx->llhls && !ctx->cmaf && !gf_sys_is_test_mode()) {
+		//cmaf is required for ll hls (at least tfdt per traf is)
+		ctx->cmaf = DASHER_CMAF_CMFC;
+	}
 	if (ctx->state && ctx->sreg) {
 		u32 diff;
 		u64 next_gen_ntp;
@@ -9708,6 +9712,9 @@ GF_FilterRegister DasherRegister = {
 "- cdur: set the fMP4 fragment duration\n"
 "- asto: set the availability time offset for DASH. This value should be equal or slightly greater than segment duration minus cdur\n"
 "- llhls: enable low latency for HLS\n"
+"\n"
+"Note: [-llhls]() will force CMAF to `cmfc` if [-cmaf]() is not set.\n"
+"\n"
 "If your sources are not real-time, insert a reframer filter with real-time regulation\n"
 "EX gpac -i source.mp4 reframer:rt=on -o live.mpd:segdur=2:cdur=0.2:asto=1.8:profile=live:dmode=dynamic\n"
 "This will create DASH segments of 2 seconds made of fragments of 200 ms and indicate to the client that requests can be made 1.8 seconds earlier than segment complete availability on server.\n"
