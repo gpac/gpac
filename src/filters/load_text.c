@@ -541,25 +541,27 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Duration probing not supported for format %d\n", ctx->fmt));
 }
 
-static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx, Bool gen_dsi_only)
 {
-	u32 ID, OCR_ES_ID, dsi_len, file_size;
+	u32 ID, OCR_ES_ID, dsi_len, file_size=0;
 	u8 *dsi;
 	GF_TextSampleDescriptor *sd;
 
-	if (!ctx->unframed)
-		ctx->src = gf_fopen(ctx->file_name, "rb");
+	if (!gen_dsi_only) {
+		if (!ctx->unframed)
+			ctx->src = gf_fopen(ctx->file_name, "rb");
 
-	if (!ctx->src) return GF_URL_ERROR;
+		if (!ctx->src) return GF_URL_ERROR;
 
-	file_size = (u32) gf_fsize(ctx->src);
+		file_size = (u32) gf_fsize(ctx->src);
 
-	ctx->unicode_type = gf_text_get_utf_type(ctx, ctx->src);
-	if (ctx->unicode_type<0) {
-		gf_fclose(ctx->src);
-		ctx->src = NULL;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Unsupported SRT UTF encoding\n"));
-		return GF_NOT_SUPPORTED;
+		ctx->unicode_type = gf_text_get_utf_type(ctx, ctx->src);
+		if (ctx->unicode_type<0) {
+			gf_fclose(ctx->src);
+			ctx->src = NULL;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Unsupported SRT UTF encoding\n"));
+			return GF_NOT_SUPPORTED;
+		}
 	}
 
 	if (!ctx->timescale) ctx->timescale = 1000;
@@ -570,7 +572,8 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_TX3G) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
+		if (file_size)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
 		if (!ID) ID = 1;
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
@@ -610,6 +613,8 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_len) );
 
 	gf_odf_desc_del((GF_Descriptor *)sd);
+
+	if (gen_dsi_only) return GF_OK;
 
 	ctx->default_color = ctx->style.text_color;
 	ctx->first_samp = GF_TRUE;
@@ -905,7 +910,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacke
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
-		GF_Err e = txtin_setup_srt(filter, ctx);
+		GF_Err e = txtin_setup_srt(filter, ctx, GF_FALSE);
 		if (e || !ctx->unframed) return e;
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
@@ -2507,7 +2512,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	//same setup as for srt
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
-		return txtin_setup_srt(filter, ctx);
+		return txtin_setup_srt(filter, ctx, GF_FALSE);
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
 	if (!ctx->playstate) return GF_OK;
@@ -2627,7 +2632,7 @@ static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	//same setup as for srt
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
-		GF_Err e = txtin_setup_srt(filter, ctx);
+		GF_Err e = txtin_setup_srt(filter, ctx, GF_FALSE);
 		if (e || !ctx->unframed) return e;
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
@@ -3872,6 +3877,8 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 {
 	GF_Err e;
 	u32 codec_id=0;
+	Bool gen_ttxt_dsi=GF_FALSE;
+	Bool gen_webvtt_dsi=GF_FALSE;
 	const char *src = NULL;
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	const GF_PropertyValue *prop;
@@ -3975,10 +3982,12 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	switch (ctx->fmt) {
 	case GF_TXTIN_MODE_SRT:
 		ctx->text_process = txtin_process_srt;
+		if (!ctx->is_setup && ctx->unframed) gen_ttxt_dsi = GF_TRUE;
 		break;
 #ifndef GPAC_DISABLE_VTT
 	case GF_TXTIN_MODE_WEBVTT:
 		ctx->text_process = txtin_process_webvtt;
+		if (!ctx->is_setup && ctx->unframed) gen_webvtt_dsi = GF_TRUE;
 		break;
 #endif
 	case GF_TXTIN_MODE_TTXT:
@@ -3989,12 +3998,14 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		break;
 	case GF_TXTIN_MODE_SUB:
 		ctx->text_process = gf_text_process_sub;
+		if (!ctx->is_setup && ctx->unframed) gen_ttxt_dsi = GF_TRUE;
 		break;
 	case GF_TXTIN_MODE_TTML:
 		ctx->text_process = gf_text_process_ttml;
 		break;
 	case GF_TXTIN_MODE_SSA:
 		ctx->text_process = gf_text_process_ssa;
+		if (!ctx->is_setup && ctx->unframed) gen_ttxt_dsi = GF_TRUE;
 		break;
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	case GF_TXTIN_MODE_SWF_SVG:
@@ -4005,6 +4016,12 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_BAD_PARAM;
 	}
 
+	if (gen_ttxt_dsi) {
+		txtin_setup_srt(filter, ctx, GF_TRUE);
+	}
+	if (gen_webvtt_dsi) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((u8 *) "WEBVTT", 7 ) );
+	}
 	return GF_OK;
 }
 
