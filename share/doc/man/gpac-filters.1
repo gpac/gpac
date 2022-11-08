@@ -4985,6 +4985,14 @@ The segmenter can also be configured to:
 .br
 
 .br
+The segmenter will by default announce a new segment in the manifest(s) as soon as its size/offset is known or its name is known, but the segment (or part in LL-HLS) may still not be completely written/sent.
+.br
+This may result in temporary mismatches between segment/part size currently received versus size as advertized in manifest.
+.br
+If the target destination cannot support this, use .I seg_sync to update manifest(s) only once segments/parts are completely flushed; this will however slightly increase the latency of manifest updates.
+.br
+
+.br
 .SS Dynamic (real-time live) Mode
 .br
 The dasher does not perform real-time regulation by default.
@@ -5273,6 +5281,8 @@ The segmenter adds the following properties to the output PIDs:
 .br
 * LLHLS: identifies LLHLS is used; the multiplexer must send fragment size events back to the dasher, and set LLHLSFragNum on the first packet of each fragment
 .br
+* SegSync: indicates that fragments/segments must be completely flushed before sending back size events
+.br
 
 .br
 .SH Options (expert):
@@ -5553,6 +5563,8 @@ hls_absu (enum, default: no):  use absolute url in HLS generation using first UR
 * both: use absolute URL everywhere
 .br
 
+.br
+seg_sync (bool, default: false): force waiting for last packet of fragment/segment to be written before announcing segment in DASH/HLS playlist
 .br
 cmaf (enum, default: no):      use cmaf guidelines
 .br
@@ -10894,7 +10906,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev451-g86f781721-master
+build: 2.1-DEV-rev468-gf045be580-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

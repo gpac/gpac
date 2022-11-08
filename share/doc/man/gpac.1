@@ -3275,6 +3275,11 @@ Name of mux source(s), set by dasher to direct its outputs
 DASH mode to be used by multiplexer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD
 .br
 .TP
+.B SegSync (DFSS,bool,D )
+.br
+Indicate segment must be completely flushed before sending segment/fragment size events
+.br
+.TP
 .B DashDur (DDUR,frac,D )
 .br
 DASH target segment duration in seconds
@@ -4740,7 +4745,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev451-g86f781721-master
+build: 2.1-DEV-rev468-gf045be580-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -154,6 +154,9 @@ typedef struct
 	u32 frag_offset, frag_size, frag_duration;
 	Bool frag_has_intra;
 
+	Bool force_seg_sync;
+	u32 pending_packets;
+
 } GF_TSMuxCtx;
 
 typedef struct
@@ -1095,6 +1098,10 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->dash_mode) {
 			ctx->mux->flush_pes_at_rap = GF_TRUE;
 			gf_m2ts_mux_set_initial_pcr(ctx->mux, 0);
+
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FORCE_SEG_SYNC);
+			if (p && p->value.boolean)
+				ctx->force_seg_sync = GF_TRUE;
 		}
 	}
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_LLHLS, &pe);
@@ -1469,6 +1476,19 @@ static void tsmux_flush_frag_hls(GF_TSMuxCtx *ctx, Bool is_last)
 	ctx->frag_has_intra = GF_FALSE;
 }
 
+static void ts_mux_on_packet_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	GF_TSMuxCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->force_seg_sync) {
+		gf_filter_lock(filter, GF_TRUE);
+		if (ctx->pending_packets)
+			ctx->pending_packets--;
+		if (!ctx->pending_packets)
+			gf_filter_post_process_task(filter);
+		gf_filter_lock(filter, GF_FALSE);
+	}
+}
+
 static GF_Err tsmux_process(GF_Filter *filter)
 {
 	u32 nb_pck_in_pack, nb_pck_in_call;
@@ -1515,6 +1535,10 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 
 	if (ctx->wait_dash_flush || ctx->wait_llhls_flush) {
+		//we are waiting for all packets to be flushed
+		if (ctx->pending_packets)
+			return GF_OK;
+
 		Bool is_llhls_flush = GF_FALSE;
 		Bool is_eods_flush = GF_FALSE;
 		u32 i, done=0, count = gf_list_count(ctx->pids);
@@ -1601,7 +1625,12 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			}
 		}
 		osize = nb_pck_in_pack * 188;
-		pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+		if (ctx->force_seg_sync) {
+			pck = gf_filter_pck_new_alloc_destructor(ctx->opid, osize, &output, ts_mux_on_packet_del);
+			if (pck) ctx->pending_packets++;
+		} else {
+			pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+		}
 		if (!pck) return GF_OUT_OF_MEM;
 		
 		memcpy(output, ts_pck, osize);

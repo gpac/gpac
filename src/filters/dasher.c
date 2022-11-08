@@ -169,7 +169,7 @@ typedef struct
 	u32 llhls;
 	//inherited from mp4mx
 	GF_Fraction cdur;
-	Bool ll_preload_hint, ll_rend_rep;
+	Bool ll_preload_hint, ll_rend_rep, seg_sync;
 	Bool gencues, force_init, gxns;
 	Double ll_part_hb;
 	u32 hls_absu;
@@ -3175,6 +3175,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_MUX_SRC, &PROP_STRING(szSRC) );
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_MODE, &PROP_UINT(ctx->sseg ? 2 : 1) );
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC(ds->dash_dur) );
+	if (ctx->seg_sync)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_FORCE_SEG_SYNC, &PROP_BOOL(GF_TRUE) );
 
 	if (ds->id != ds->pid_id) {
 		dasher_update_dep_list(ctx, ds, "isom:scal");
@@ -9563,6 +9565,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- mas: use absolute URL only in master playlist\n"
 	"- both: use absolute URL everywhere"
 		, GF_PROP_UINT, "no", "no|var|mas|both", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(seg_sync), "force waiting for last packet of fragment/segment to be written before announcing segment in DASH/HLS playlist", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(cmaf), "use cmaf guidelines\n"
 		"- no: CMAF not enforced\n"
@@ -9683,6 +9686,10 @@ GF_FilterRegister DasherRegister = {
 "- completely ignore SAP when segmenting using [-sap]().\n"
 "- ignore SAP on non-video streams when segmenting using [-strict_sap]().\n"
 "\n"
+"The segmenter will by default announce a new segment in the manifest(s) as soon as its size/offset is known or its name is known, but the segment (or part in LL-HLS) may still not be completely written/sent.\n"
+"This may result in temporary mismatches between segment/part size currently received versus size as advertized in manifest.\n"
+"If the target destination cannot support this, use [-seg_sync]() to update manifest(s) only once segments/parts are completely flushed; this will however slightly increase the latency of manifest updates.\n"
+"\n"
 "## Dynamic (real-time live) Mode\n"
 "The dasher does not perform real-time regulation by default.\n"
 "For regular segmentation, you should enable segment regulation [-sreg]() if your sources are not real-time.\n"
@@ -9798,6 +9805,7 @@ GF_FilterRegister DasherRegister = {
 "- DashMode: identifies VoD (single file with global index) or regular DASH mode used by segmenter\n"
 "- DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"
 "- LLHLS: identifies LLHLS is used; the multiplexer must send fragment size events back to the dasher, and set `LLHLSFragNum` on the first packet of each fragment\n"
+"- SegSync: indicates that fragments/segments must be completely flushed before sending back size events\n"
 			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,

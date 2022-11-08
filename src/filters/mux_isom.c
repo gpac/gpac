@@ -371,6 +371,10 @@ typedef struct
 
 	u64 wait_dts_plus_one;
 	u32 wait_dts_timescale;
+	Bool force_seg_sync;
+	u32 seg_flush_state;
+	u32 flush_idx_start_range, flush_idx_end_range;
+	Bool flush_ll_hls;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
@@ -1169,6 +1173,12 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	if (ctx->llhls_mode) {
 		ctx->tfdt_traf = GF_TRUE;
 		ctx->store = MP4MX_MODE_SFRAG;
+	}
+
+	if (ctx->dash_mode == MP4MX_DASH_ON) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FORCE_SEG_SYNC);
+		if (p && p->value.boolean)
+			ctx->force_seg_sync = GF_TRUE;
 	}
 
 	if (!ctx->cdur_set) {
@@ -4918,6 +4928,7 @@ static void mp4_mux_flush_frag_hls(GF_MP4MuxCtx *ctx)
 {
 	GF_FilterEvent evt;
 	TrackWriter *tkw = NULL;
+
 	//send event on first track only
 	tkw = gf_list_get(ctx->tracks, 0);
 	GF_FEVT_INIT(evt, GF_FEVT_FRAGMENT_SIZE, tkw->ipid);
@@ -6009,6 +6020,12 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num_plus_one - 1, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
+				//we need to wait for packet to be written
+				if (ctx->seg_flush_state) {
+					ctx->flush_idx_start_range = offset + idx_start_range;
+					ctx->flush_idx_end_range = idx_end_range ? offset + idx_end_range : 0;
+					return GF_OK;
+				}
 				mp4_mux_flush_seg(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
 			} else if (ctx->vodcache==MP4MX_VODCACHE_REPLACE) {
 				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
@@ -6029,6 +6046,14 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		//cannot flush in DASH mode if using sidx (vod single sidx or live 1 sidx/seg)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
+
+			//we need to wait for packet to be written
+			if (ctx->seg_flush_state) {
+				if (ctx->llhls_mode) ctx->flush_ll_hls = GF_TRUE;
+				return GF_OK;
+			}
 
 			if (ctx->llhls_mode) {
 				mp4_mux_flush_frag_hls(ctx);
@@ -6427,6 +6452,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 	if (status) gf_free(status);
 }
 
+static void mp4_mux_flush_seg_events(GF_MP4MuxCtx *ctx);
 
 GF_Err mp4_mux_process(GF_Filter *filter)
 {
@@ -6446,6 +6472,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	//fragmented mode
 	if (ctx->store>=MP4MX_MODE_FRAG) {
 		u32 done=0;
+		if (ctx->seg_flush_state==1) return GF_OK;
+		else if (ctx->seg_flush_state==2)
+			mp4_mux_flush_seg_events(ctx);
+
 		GF_Err e = mp4_mux_process_fragmented(filter, ctx);
 		if (e==GF_EOS) done=100;
 		mp4_mux_format_report(filter, ctx, done, done);
@@ -6587,6 +6617,47 @@ static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 fil
 	return GF_OK;
 }
 
+static void mp4_mux_flush_seg_events(GF_MP4MuxCtx *ctx)
+{
+	if (ctx->flush_ll_hls) {
+		mp4_mux_flush_frag_hls(ctx);
+	}
+
+	if (!ctx->dash_mode || ctx->flush_seg) {
+		mp4_mux_flush_seg(ctx, GF_FALSE, ctx->flush_idx_start_range, ctx->flush_idx_end_range);
+	}
+
+	ctx->fragment_started = GF_FALSE;
+
+	if (ctx->flush_seg) {
+		ctx->segment_started = GF_FALSE;
+		ctx->flush_seg = GF_FALSE;
+		ctx->dash_seg_num_plus_one = 0;
+		ctx->nb_segs++;
+		ctx->nb_frags_in_seg=0;
+	}
+	ctx->seg_flush_state = 0;
+	ctx->flush_idx_start_range = 0;
+	ctx->flush_idx_end_range = 0;
+	ctx->flush_ll_hls = GF_FALSE;
+}
+
+static void mp4_mux_on_packet_destruct(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck)
+{
+	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
+	//no need to lock filter here, only this callback modifies the state
+	ctx->seg_flush_state = 2;
+	gf_filter_post_process_task(filter);
+}
+
+static void mp4_mux_on_last_block_start(void *cbk)
+{
+	GF_Filter *filter = (GF_Filter *) cbk;
+	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->force_seg_sync)
+		ctx->seg_flush_state = 1;
+}
+
 static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 {
 	GF_Filter *filter = (GF_Filter *) cbk;
@@ -6651,7 +6722,11 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 	}
 
 	//allocate new one
-	ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
+	if (ctx->seg_flush_state) {
+		ctx->dst_pck = gf_filter_pck_new_alloc_destructor(ctx->opid, block_size, &output, mp4_mux_on_packet_destruct);
+	} else {
+		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
+	}
 	if (!ctx->dst_pck) return GF_OUT_OF_MEM;
 
 	memcpy(output, data, block_size);
@@ -6678,7 +6753,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 	ctx->first_pck_sent = GF_TRUE;
 	ctx->current_size += block_size;
 	//non-frag mode, send right away
-	if (ctx->store<MP4MX_MODE_FRAG) {
+	if ((ctx->store<MP4MX_MODE_FRAG) || ctx->seg_flush_state) {
 		mp4mux_send_output(ctx);
 	}
 	return GF_OK;
@@ -6718,7 +6793,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		ctx->file = gf_isom_open("_gpac_isobmff_redirect", open_mode, NULL);
 		if (!ctx->file) return GF_OUT_OF_MEM;
 
-		gf_isom_set_write_callback(ctx->file, mp4_mux_on_data, mp4_mux_on_data_patch, filter, ctx->block_size);
+		gf_isom_set_write_callback(ctx->file, mp4_mux_on_data, mp4_mux_on_data_patch, mp4_mux_on_last_block_start,  filter, ctx->block_size);
 
 		gf_isom_set_progress_callback(ctx->file, mp4_mux_progress_cbk, filter);
 

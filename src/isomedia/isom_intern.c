@@ -1010,6 +1010,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
  			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size),
 			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert),
+			void (*on_last_block_start)(void *usr_data),
  			void *usr_data,
  			u32 block_size)
 {
@@ -1019,6 +1020,7 @@ GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
 	else return GF_BAD_PARAM;
 	mov->on_block_out = on_block_out;
 	mov->on_block_patch = on_block_patch;
+	mov->on_last_block_start = on_last_block_start;
 	mov->on_block_out_usr_data = usr_data;
 	mov->on_block_out_block_size = block_size;
 	return GF_OK;
