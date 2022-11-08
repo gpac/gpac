@@ -6141,6 +6141,8 @@ struct _service_info
 {
 	u32 service_id;
 	u64 first_ts_min;
+	u32 nb_non_sparse, nb_non_sparse_ready;
+	u32 nb_sparse, nb_sparse_ready;
 };
 static struct _service_info *get_service_info(GF_List *services, TrackWriter *tkw)
 {
@@ -6207,6 +6209,12 @@ retry_all:
 	blocking_refs = GF_FALSE;
 	has_ready = GF_FALSE;
 
+	for (i=0; i<gf_list_count(services);i++) {
+		struct _service_info *si = gf_list_get(services, i);
+		si->nb_non_sparse = si->nb_non_sparse_ready = 0;
+		si->nb_sparse = si->nb_sparse_ready = 0;
+	}
+
 	//compute min dts of first packet on each track - this assume all tracks are synchronized, might need adjustment for MPEG4 Systems
 	for (i=0; i<count; i++) {
 		u64 ts, dts_min;
@@ -6270,6 +6278,15 @@ retry_pck:
 				}
 			}
 		}
+		switch (tkw->stream_type) {
+		case GF_STREAM_VISUAL:
+		case GF_STREAM_AUDIO:
+			si->nb_non_sparse++;
+			break;
+		default:
+			si->nb_sparse++;
+			break;
+		}
 
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
@@ -6286,9 +6303,17 @@ retry_pck:
 					gf_filter_pck_discard(tkw->dgl_copy);
 					tkw->dgl_copy = NULL;
 				}
+				switch (tkw->stream_type) {
+				case GF_STREAM_VISUAL:
+				case GF_STREAM_AUDIO:
+					si->nb_non_sparse_ready++;
+					break;
+				default:
+					si->nb_sparse_ready++;
+					break;
+				}
 				continue;
 			}
-			not_ready = GF_TRUE;
 			tkw->ts_shift = 0;
 			tkw->si_min_ts_plus_one = 1;
 			continue;
@@ -6309,8 +6334,31 @@ retry_pck:
 			si->first_ts_min = (u64) dts_min;
 			has_ready = GF_TRUE;
 		}
+
+		switch (tkw->stream_type) {
+		case GF_STREAM_VISUAL:
+		case GF_STREAM_AUDIO:
+			si->nb_non_sparse_ready++;
+			break;
+		default:
+			si->nb_sparse_ready++;
+			break;
+		}
+
 		tkw->ts_shift = ts;
 		tkw->si_min_ts_plus_one = 0;
+	}
+
+	for (i=0; i<gf_list_count(services); i++) {
+		struct _service_info *si = gf_list_get(services, i);
+		//if some non-sparse streams are not ready, try to wait
+		if (si->nb_non_sparse) {
+			if (si->nb_non_sparse > si->nb_non_sparse_ready) not_ready = GF_TRUE;
+		}
+		//otherwise (only sparse stream), wait until first
+		else if (si->nb_sparse) {
+			if (!si->nb_sparse_ready) not_ready = GF_TRUE;
+		}
 	}
 
 	if (not_ready) {
@@ -6501,6 +6549,9 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			if (tkw->aborted) {
 				nb_eos++;
 			}
+			if (ctx->store==MP4MX_MODE_FASTSTART) {
+				nb_skip++;
+			}
 			continue;
 		}
 
@@ -6536,7 +6587,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 		//basic regulation in case we do on-the-fly interleaving
 		//we need to regulate because sources do not produce packets at the same rate
-		if ((ctx->store==MP4MX_MODE_FASTSTART) && ctx->cdur.num) {
+		if (ctx->store==MP4MX_MODE_FASTSTART) {
 			u64 cts = gf_filter_pck_get_cts(pck);
 			if (ctx->is_rewind)
 				cts = tkw->ts_shift - cts;
@@ -6809,6 +6860,11 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 
 	if (!ctx->moovts)
 		ctx->moovts=600;
+
+	if ((ctx->store==MP4MX_MODE_FASTSTART) && (!ctx->cdur.num || !ctx->cdur.den)) {
+		ctx->cdur.num = 1;
+		ctx->cdur.den = 1;
+	}
 	if (!ctx->cdur.den) {
 		ctx->cdur.num = 0;
 		ctx->cdur.den = 1000;

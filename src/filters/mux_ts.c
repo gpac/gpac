@@ -157,6 +157,7 @@ typedef struct
 	Bool force_seg_sync;
 	u32 pending_packets;
 
+	u32 sync_init_time;
 } GF_TSMuxCtx;
 
 typedef struct
@@ -219,6 +220,7 @@ typedef struct __tsmx_pid
 
 	u32 suspended;
 	u64 llhls_dts_init;
+	Bool is_sparse;
 } M2Pid;
 
 static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
@@ -413,8 +415,11 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				if (tspid->ctx->dash_mode)
 					tspid->has_seen_eods = M2TS_EODS_FOUND;
 			}
+			if (tspid->is_sparse) ifce->caps |= GF_ESI_STREAM_SPARSE;
 			return GF_OK;
 		}
+		if (tspid->is_sparse) ifce->caps &= ~GF_ESI_STREAM_SPARSE;
+
 		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (tspid->ctx->dash_mode) {
 
@@ -1185,6 +1190,9 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
+	if (tspid->esi.stream_type != streamtype)
+		tspid->codec_id = 0;
+
 	//first setup
 	if (!tspid->codec_id) {
 		Bool is_pcr=GF_FALSE;
@@ -1214,6 +1222,20 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!ctx->mux->ref_pid || (streamtype==GF_STREAM_VISUAL))
 			ctx->mux->ref_pid = pes_pid;
 
+		tspid->is_sparse = GF_FALSE;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SPARSE);
+		if (p && p->value.boolean) {
+			tspid->is_sparse = GF_TRUE;
+		} else {
+			switch (tspid->esi.stream_type) {
+			case GF_STREAM_AUDIO:
+			case GF_STREAM_VISUAL:
+				break;
+			default:
+				tspid->is_sparse = GF_TRUE;
+				break;
+			}
+		}
 	}
 	//no changes in codec ID, update ifce, notify pmt update if needed and return
 	else if (tspid->codec_id == codec_id) {
@@ -1300,16 +1322,30 @@ static void tsmux_assign_pcr(GF_TSMuxCtx *ctx)
 
 static Bool tsmux_init_buffering(GF_Filter *filter, GF_TSMuxCtx *ctx)
 {
+	u32 not_ready=0;
 	u32 mbuf = ctx->breq*1000;
-	u32 i, count = gf_filter_get_ipid_count(filter);
+	u32 i, count = gf_list_count(ctx->pids);
 	for (i=0; i<count; i++) {
 		u32 buf;
 		Bool buf_ok;
-		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
-		buf_ok = gf_filter_pid_get_buffer_occupancy(pid, NULL, NULL, NULL, &buf);
-		if (buf_ok && (buf < mbuf) && !gf_filter_pid_has_seen_eos(pid))
-			return GF_FALSE;
+		M2Pid *tspid = gf_list_get(ctx->pids, i);
+		buf_ok = gf_filter_pid_get_buffer_occupancy(tspid->ipid, NULL, NULL, NULL, &buf);
+		if (buf_ok && (buf < mbuf) && !gf_filter_pid_has_seen_eos(tspid->ipid)) {
+			if (!tspid->is_sparse) not_ready++;
+		}
 	}
+	if (not_ready) {
+		u32 now = gf_sys_clock();
+		if (!ctx->sync_init_time) {
+			ctx->sync_init_time = now;
+		} else if (now - ctx->sync_init_time < 5000) {
+			return GF_FALSE;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[M2TSMux] Failed to fetch one sample on each stream after %d ms, skipping initial sync\n", now - ctx->sync_init_time));
+		}
+	}
+	ctx->sync_init_time=0;
+
 	ctx->init_buffering = GF_FALSE;
 	gf_m2ts_mux_update_config(ctx->mux, GF_TRUE);
 	return GF_TRUE;

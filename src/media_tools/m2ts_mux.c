@@ -534,16 +534,6 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux *mux, GF_M2TS_Mux_Stream *str
 	assert(section);
 
 	bs = mux->pck_bs;
-	gf_bs_reassign_buffer(bs, packet, 188);
-
-	gf_bs_write_int(bs,	0x47, 8); // sync
-	gf_bs_write_int(bs,	0, 1);    // error indicator
-	if (stream->current_section_offset == 0) {
-		gf_bs_write_int(bs,	1, 1);    // payload start indicator
-	} else {
-		/* No section concatenation yet!!!*/
-		gf_bs_write_int(bs,	0, 1);    // payload start indicator
-	}
 
 	if (!stream->current_section_offset) payload_length = 183;
 	else payload_length = 184;
@@ -580,6 +570,15 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux *mux, GF_M2TS_Mux_Stream *str
 		else stream->continuity_counter--;
 	}
 
+	gf_bs_reassign_buffer(bs, packet, 188);
+	gf_bs_write_int(bs,	0x47, 8); // sync
+	gf_bs_write_int(bs,	0, 1);    // error indicator
+	if (stream->current_section_offset == 0) {
+		gf_bs_write_int(bs,	1, 1);    // payload start indicator
+	} else {
+		/* No section concatenation yet!!!*/
+		gf_bs_write_int(bs,	0, 1);    // payload start indicator
+	}
 	gf_bs_write_int(bs,	0, 1);    /*priority indicator*/
 	gf_bs_write_int(bs,	stream->pid, 13); /*pid*/
 	gf_bs_write_int(bs,	0, 2);    /*scrambling indicator*/
@@ -1965,8 +1964,6 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	u32 adaptation_field_control, payload_length, payload_to_copy, padding_length, hdr_len, pos, copy_next;
 
 	assert(stream->pid);
-	bs = stream->program->mux->pck_bs;
-	gf_bs_reassign_buffer(bs, packet, 188);
 
 	if (stream->pcr_only_mode) {
 		payload_length = 184 - 8;
@@ -2107,6 +2104,11 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		else stream->continuity_counter--;
 	}
 
+	bs = stream->program->mux->pck_bs;
+	gf_bs_reassign_buffer(bs, packet, 188);
+
+	//small opt for formatting TS header for PES, don't use bitstream for header, slightly faster
+#if 0
 	gf_bs_write_int(bs,	0x47, 8); // sync byte
 	gf_bs_write_int(bs,	0, 1);    // error indicator
 	gf_bs_write_int(bs,	hdr_len ? 1 : 0, 1); // start ind
@@ -2115,6 +2117,14 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	gf_bs_write_int(bs,	0, 2);    // scrambling
 	gf_bs_write_int(bs,	adaptation_field_control, 2);    // we do not use adaptation field for sections
 	gf_bs_write_int(bs,	stream->continuity_counter, 4);   // continuity counter
+#else
+	packet[0] = 0x47; // sync byte
+	packet[1] = (stream->pid>>8) & 0x1F; //high bits of PID
+	if (hdr_len) packet[1] |= 0x40; // start ind
+	packet[2] = stream->pid & 0xFF; //low bits of PID
+	packet[3] = (adaptation_field_control<<4) | (stream->continuity_counter & 0xF); //AF + CC
+	gf_bs_seek(bs, 4);
+#endif
 
 	if (stream->continuity_counter < 15) stream->continuity_counter++;
 	else stream->continuity_counter=0;
@@ -2617,7 +2627,6 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_AV1;
 			stream->force_single_au = GF_TRUE;
 			break;
-
 		default:
 			if (!ifce->ra_code) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as PES private using codec 4CC %s in registration descriptor\n", gf_codecid_name(ifce->codecid), gf_4cc_to_str(ifce->codecid) ));
@@ -2667,6 +2676,16 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 			else
 				stream->mpeg2_stream_type = GF_M2TS_AUDIO_EC3;
 			break;
+
+		case GF_CODECID_DTS_CA:
+		case GF_CODECID_DTS_X:
+		case GF_CODECID_DTS_HD_HR:
+		case GF_CODECID_DTS_HD_MASTER:
+		case GF_CODECID_DTS_LBR:
+			stream->mpeg2_stream_type = GF_M2TS_AUDIO_DTS;
+			break;
+
+
 		default:
 			if (!ifce->ra_code) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as PES private using codec 4CC in registration descriptor\n", gf_codecid_name(ifce->codecid) ));
@@ -3159,7 +3178,7 @@ static Bool gf_m2ts_stream_too_early(GF_M2TS_Mux_Stream *stream, GF_M2TS_Mux *mu
 	}
 	//if PCR stream is over, flush
 	if (stream->program->pcr->ifce) {
-		if (stream->program->pcr->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER))
+		if (stream->program->pcr->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER|GF_ESI_STREAM_SPARSE))
 			return GF_FALSE;
 	}
 	//PCR is in pure pcr mode (no associated data), check is any stream is less than PCR
@@ -3171,7 +3190,7 @@ static Bool gf_m2ts_stream_too_early(GF_M2TS_Mux_Stream *stream, GF_M2TS_Mux *mu
 		while (a_stream) {
 			//a_stream time less than stream time, we must wait on stream to process a_stream
 			if ((a_stream != stream)
-				&& a_stream->ifce && !(a_stream->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER))
+				&& a_stream->ifce && !(a_stream->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER|GF_ESI_STREAM_SPARSE))
 				&& gf_m2ts_time_less(&a_stream->time, &stream->time)
 			) {
 				return GF_TRUE;
@@ -3181,7 +3200,7 @@ static Bool gf_m2ts_stream_too_early(GF_M2TS_Mux_Stream *stream, GF_M2TS_Mux *mu
 		return GF_FALSE;
 	}
 	//PCR done or flush, we're not too early
-	else if (stream->program->pcr->ifce && (stream->program->pcr->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER)))
+	else if (stream->program->pcr->ifce && (stream->program->pcr->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER|GF_ESI_STREAM_SPARSE)))
 		return GF_FALSE;
 
 	//not PCR, we're too early

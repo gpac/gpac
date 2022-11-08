@@ -154,6 +154,7 @@ typedef struct
 	Bool is_eos;
 
 	GF_Fraction64 cts_offset, dts_offset, wait_dts_plus_one, dts_sub_plus_one;
+	u32 sync_init_time;
 
 	u32 nb_repeat;
 	Double start, stop;
@@ -1944,7 +1945,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 	//init first timestamp
 	if (!ctx->dts_sub_plus_one.num) {
 		u32 nb_eos = 0;
-
+		u32 nb_ready_av=0, nb_not_ready_av=0, nb_not_ready_sparse=0;
 		for (i=0; i<gf_list_count(ctx->filter_srcs); i++) {
 			GF_Filter *fsrc = gf_list_get(ctx->filter_srcs, i);
 			if (gf_filter_has_pid_connection_pending(fsrc, filter)) {
@@ -1974,10 +1975,15 @@ static GF_Err filelist_process(GF_Filter *filter)
 					nb_eos++;
 					continue;
 				}
-				ctx->dts_sub_plus_one.num = 0;
-				return GF_OK;
+				if ((iopid->stream_type==GF_STREAM_AUDIO) || (iopid->stream_type==GF_STREAM_VISUAL))
+					nb_not_ready_av++;
+				else
+					nb_not_ready_sparse++;
+				continue;
 			}
-
+			if ((iopid->stream_type==GF_STREAM_AUDIO) || (iopid->stream_type==GF_STREAM_VISUAL)) {
+				nb_ready_av++;
+			}
 
 			dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS)
@@ -2025,6 +2031,19 @@ static GF_Err filelist_process(GF_Filter *filter)
 				ctx->dts_sub_plus_one.den = iopid->timescale;
 			}
 	 	}
+
+		if (nb_not_ready_av || (!nb_ready_av && nb_not_ready_sparse)) {
+			u32 now = gf_sys_clock();
+			if (!ctx->sync_init_time) {
+				ctx->sync_init_time = now;
+			} else if (now - ctx->sync_init_time < 5000) {
+				ctx->dts_sub_plus_one.num = 0;
+				return GF_OK;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Failed to fetch one sample on each stream after %d ms, skipping initial sync\n", now - ctx->sync_init_time));
+			}
+		}
+		ctx->sync_init_time = 0;
 	 	ctx->src_error = GF_FALSE;
 	 	if (nb_eos) {
 			if (nb_eos==count) {
