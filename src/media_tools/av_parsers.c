@@ -3367,7 +3367,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		if (frame_state->show_existing_frame == GF_TRUE) {
 			frame_state->frame_to_show_map_idx = gf_bs_read_int_log(bs, 3, "frame_to_show_map_idx");
 			frame_state->frame_type = state->RefFrameType[frame_state->frame_to_show_map_idx];
-
+			frame_state->order_hint = state->RefOrderHint[frame_state->frame_to_show_map_idx];
 			if (state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 				gf_bs_read_int_log(bs, state->frame_presentation_time_length, "frame_presentation_time");
 			}
