@@ -4040,7 +4040,7 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
 	u32 TileNum, tg_start = 0, tg_end = 0;
-	Bool numTiles = state->tileCols * state->tileRows;
+	u32 numTiles = state->tileCols * state->tileRows;
 	Bool tile_start_and_end_present_flag = GF_FALSE;
 	GF_Err e = GF_OK;
 	if (numTiles > 1)
