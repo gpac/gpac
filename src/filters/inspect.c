@@ -1331,8 +1331,12 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 				else if (av1->frame_state.frame_type==AV1_SWITCH_FRAME) inspect_printf(dump, "frame_type=\"switch\" ");
 				inspect_printf(dump, "refresh_frame_flags=\"%d\" ", av1->frame_state.refresh_frame_flags);
 
-				DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
-				DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
+				if (!av1->frame_state.show_existing_frame) {
+					DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
+				} else {
+					DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
+					DUMP_OBU_INT2("frame_to_show_map_idx", av1->frame_state.frame_to_show_map_idx);
+				}
 				DUMP_OBU_INT(width);
 				DUMP_OBU_INT(height);
 			}
