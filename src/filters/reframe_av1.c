@@ -1356,7 +1356,7 @@ static const GF_FilterArgs AV1DmxArgs[] =
 	{ OFFS(temporal_delim), "keep temporal delimiters in reconstructed frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 
-	{ OFFS(bsdbg), "debug NAL parsing in `parser@debug logs\n"
+	{ OFFS(bsdbg), "debug OBU parsing in `media@debug logs\n"
 		"- off: not enabled\n"
 		"- on: enabled\n"
 		"- full: enable with number of bits dumped", GF_PROP_UINT, "off", "off|on|full", GF_FS_ARG_HINT_EXPERT},
