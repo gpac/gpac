@@ -33,7 +33,7 @@
 #include <gpac/internal/ogg.h>
 #endif
 
-//uncomment/define globally to remove all bitstream parsing logging from code (this will break inspect mode ananlyze=bs)
+//uncomment/define globally to remove all bitstream parsing logging from code (this will break inspect mode analyze=bs)
 //#define GPAC_DISABLE_AVPARSE_LOGS
 
 #ifndef GPAC_DISABLE_AVPARSE_LOGS
