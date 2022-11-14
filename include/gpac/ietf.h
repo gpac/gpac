@@ -769,6 +769,16 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 */
 GF_Err gf_rtp_stop(GF_RTPChannel *ch);
 
+/*! sets source-specific IPs - this MUST be called before calling \ref gf_rtp_initialize
+\param ch the target RTP channel
+\param src_ip_inc IP of sources to receive from
+\param nb_src_ip_inc number of sources to receive from
+\param src_ip_exc IP of sources to exclude
+\param nb_src_ip_exc number of sources to exclude
+\return error if any
+*/
+GF_Err gf_rtp_set_ssm(GF_RTPChannel *ch, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc);
+
 /*! inits the RTP info after a PLAY or PAUSE, rtp_time is the rtp TimeStamp of the RTP packet
 with seq_num sequence number. This info is needed to compute the CurrentTime of the RTP channel
 ssrc may not be known if sender hasn't indicated it (use 0 then)

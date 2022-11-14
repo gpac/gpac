@@ -66,6 +66,7 @@ typedef struct
 	u32 interleave;
 	s32 max_sleep, loss_rate;
 	Bool rtcpsync;
+	GF_PropStringList ssm, ssmx;
 
 	//internal
 
@@ -112,6 +113,7 @@ typedef struct
 	GF_SockGroup *sockgroup;
 	Bool is_eos;
 	u32 eos_probe_start;
+	u32 nb_bytes_rcv;
 } GF_RTPIn;
 
 enum

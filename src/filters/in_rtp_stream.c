@@ -52,6 +52,8 @@ GF_Err rtpin_stream_init(GF_RTPInStream *stream, Bool ResetOnly)
 		if (stream->rtp_ch->rtcp)
 			gf_sk_group_unregister(stream->rtpin->sockgroup, stream->rtp_ch->rtcp);
 
+		gf_rtp_set_ssm(stream->rtp_ch, (const char **) stream->rtpin->ssm.vals, stream->rtpin->ssm.nb_items, (const char **) stream->rtpin->ssmx.vals, stream->rtpin->ssmx.nb_items);
+
 		e = gf_rtp_initialize(stream->rtp_ch, stream->rtpin->block_size, GF_FALSE, 0, stream->rtpin->reorder_len, stream->rtpin->reorder_delay, (char *)ip_ifce);
 		if (e) return e;
 
@@ -754,7 +756,7 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 	if (stream->rtpin->udp_timeout) {
 		if (!stream->last_udp_time) {
 			stream->last_udp_time = gf_sys_clock();
-		} else if (stream->rtp_bytes || stream->rtp_ch->net_info.IsUnicast) {
+		} else if (stream->rtp_bytes || !stream->rtp_ch->net_info.IsInterleaved) {
 			u32 diff = gf_sys_clock() - stream->last_udp_time;
 			if (diff >= stream->rtpin->udp_timeout) {
 				if (stream->rtp_bytes) {
