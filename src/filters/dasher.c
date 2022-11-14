@@ -6731,7 +6731,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		if (ctx->do_m3u8) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
-				base_ds->rep->hls_max_seg_dur.num = segdur;
+				base_ds->rep->hls_max_seg_dur.num = (s32) segdur;
 				base_ds->rep->hls_max_seg_dur.den = base_ds->timescale;
 			}
 		}
