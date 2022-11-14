@@ -2949,6 +2949,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	u32 i, count, user_args_len, arg_type;
 	char szForceReg[20];
 	char szMime[50];
+	char szForceExt[20];
 	GF_Err e;
 	const char *force_freg = NULL;
 	char *sURL, *mime_type, *args, *sep;
@@ -2962,6 +2963,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	}
 	if (err) *err = GF_OK;
 
+	szForceExt[0] = 0;
 	mime_type = NULL;
 	//destination, extract mime from arguments
 	if (!for_source) {
@@ -2976,6 +2978,15 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			sep = strchr(szMime, fsess->sep_args);
 			if (sep) sep[0] = 0;
 			mime_type = szMime;
+		}
+		sprintf(szForceExt, "%cext=", fsess->sep_args);
+		char *ext = strstr(url, szForceExt);
+		if (ext) {
+			ext+=5;
+			snprintf(szForceExt, 19, "test.%s", ext);
+			szForceExt[19]=0;
+			ext = strchr(szForceExt, fsess->sep_args);
+			if (ext) ext[0] = 0;
 		}
 	}
 	sURL = NULL;
@@ -3113,6 +3124,8 @@ restart:
 			continue;
 
 		s = freg->probe_url(sURL, mime_type);
+		if (szForceExt[0] && (s==GF_FPROBE_NOT_SUPPORTED))
+			s = freg->probe_url(szForceExt, mime_type);
 		/* destination meta filter: change GF_FPROBE_SUPPORTED to GF_FPROBE_MAYBE_SUPPORTED for internal mux formats
 		in order to avoid always giving the hand to the meta filter*/
 		if (!for_source && (s == GF_FPROBE_SUPPORTED) && (freg->flags & GF_FS_REG_META)) {

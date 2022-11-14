@@ -1135,6 +1135,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	}
 	file_out = NULL;
 	args = NULL;
+	Bool load_dest = GF_FALSE;
 
 	if (dumper->flags & GF_EXPORT_REMUX) {
 		file_out = gf_fs_load_destination(fsess, dumper->out_name, NULL, NULL, &e);
@@ -1193,6 +1194,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				e |= gf_dynstrcat(&args, ":ext=", NULL);
 				e |= gf_dynstrcat(&args, szExt, NULL);
 			}
+			load_dest = GF_TRUE;
 		} else if ((dumper->trackID || dumper->track_type) && use_dynext) {
 			e |= gf_dynstrcat(&args, ":dynext", NULL);
 		}
@@ -1203,7 +1205,12 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			return e;
 		}
 
-		file_out = gf_fs_load_filter(fsess, args, &e);
+		if (load_dest) {
+			//skip fout:dst= whenever we have an extension specified, to allow using meta filters (ffmx) 
+			file_out = gf_fs_load_destination(fsess, args+9, NULL, NULL, &e);
+		} else {
+			file_out = gf_fs_load_filter(fsess, args, &e);
+		}
 		if (!file_out) {
 			gf_fs_del(fsess);
 			if (args) gf_free(args);
