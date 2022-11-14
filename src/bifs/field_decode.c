@@ -302,7 +302,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field, Bool is_mem_com)
 {
 	GF_Node *new_node;
-	GF_Err e;
+	GF_Err e=GF_OK;
 	u8 endFlag, qp_local, qp_on, initial_qp;
 	GF_ChildNodeItem *last = NULL;
 	u32 nbF;
@@ -323,15 +323,15 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 	while (!endFlag  && (codec->LastError>=0)) {
 		if (field->fieldType != GF_SG_VRML_MFNODE) {
 			e = gf_sg_vrml_mf_append(field->far_ptr, field->fieldType, & sffield.far_ptr);
-			if (e) return e;
+			if (e) goto exit;
 			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, GF_FALSE);
-			if (e) return e;
+			if (e) goto exit;
 		} else {
 			new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 			//append
 			if (new_node) {
 				e = gf_node_register(new_node, is_mem_com ? NULL : node);
-				if (e) return e;
+				if (e) goto exit;
 
 				//regular coding
 				if (node) {
@@ -341,7 +341,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 						//we have a QP in the same scope, remove previous
 						if (qp_on) gf_bifs_dec_qp_remove(codec, GF_FALSE);
 						e = gf_bifs_dec_qp_set(codec, new_node);
-						if (e) return e;
+						if (e) goto exit;
 						qp_on = 1;
 						if (qp_local) qp_local = 2;
 						if (codec->force_keep_qp) {
@@ -361,10 +361,11 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 					e = gf_node_list_add_child_last( (GF_ChildNodeItem **)field->far_ptr, new_node, &last);
 				}
 			} else {
-				return codec->LastError;
+				e = codec->LastError;
+				goto exit;
 			}
 		}
-		if (e) return e;
+		if (e) goto exit;
 
 		endFlag = gf_bs_read_int(bs, 1);
 
@@ -382,9 +383,13 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 		}
 		nbF += 1;
 	}
+
+exit:
 	/*finally delete the QP if any (local or not) as we get out of this node
 	and reactivate previous one*/
 	if (qp_on) gf_bifs_dec_qp_remove(codec, initial_qp);
+	if (e) return e;
+
 	/*this is for QP 14*/
 	gf_bifs_dec_qp14_set_length(codec, nbF);
 	return GF_OK;
