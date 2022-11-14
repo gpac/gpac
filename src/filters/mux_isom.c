@@ -373,7 +373,7 @@ typedef struct
 	u32 wait_dts_timescale;
 	Bool force_seg_sync;
 	u32 seg_flush_state;
-	u32 flush_idx_start_range, flush_idx_end_range;
+	u64 flush_idx_start_range, flush_idx_end_range;
 	Bool flush_ll_hls;
 } GF_MP4MuxCtx;
 
