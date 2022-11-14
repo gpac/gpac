@@ -72,7 +72,7 @@ enum
 typedef struct
 {
 	//options
-	char *dst, *mime, *ffmt;
+	char *dst, *mime, *ffmt, *ext;
 	Double start, speed;
 	u32 block_size;
 	Bool interleave, nodisc, ffiles, noinit, keepts;
@@ -289,7 +289,7 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 	if (sep && strchr(sep+1, '$'))
 		use_templates = GF_TRUE;
 
-	ofmt = av_guess_format(ctx->ffmt, url, ctx->mime);
+	ofmt = av_guess_format(ctx->ext ? ctx->ext : ctx->ffmt, url, ctx->mime);
 	//if protocol is present, we may fail at guessing the format
 	if (!ofmt && !ctx->ffmt) {
 		u32 len;
@@ -1288,6 +1288,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(ffmt), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keepts), "do not shift input timeline back to 0", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ext), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes (see `gpac -hx ffmx` and `gpac -hx ffmx:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
