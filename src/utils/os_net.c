@@ -1476,9 +1476,14 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 		/*for all interfaces*/
 		for (aip=res; aip!=NULL; aip=aip->ai_next) {
 			if (type != (u32) aip->ai_socktype) continue;
-
-			if ((aip->ai_family!=PF_INET) && aip->ai_next && (aip->ai_next->ai_family==PF_INET) && !gf_net_is_ipv6(multi_IPAdd)) continue;
-
+			//we have a v4 multicast adress
+			if (!gf_net_is_ipv6(multi_IPAdd)) {
+				//if not v4 and next is v4, use next
+				if ((aip->ai_family!=PF_INET) && aip->ai_next && (aip->ai_next->ai_family==PF_INET)) continue;
+			} else {
+				//we want v6, if v4 and next is v6, use next
+				if ((aip->ai_family==PF_INET) && aip->ai_next && (aip->ai_next->ai_family==PF_INET6)) continue;
+			}
 			sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 			if (sock->socket == INVALID_SOCKET) {
 				sock->socket = NULL_SOCKET;
@@ -1567,7 +1572,10 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 
 		} else {
 			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &M_reqV6, sizeof(M_reqV6));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+			if (ret == SOCKET_ERROR) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] Failed to join multicast: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				return GF_IP_CONNECTION_FAILURE;
+			}
 		}
 
 		/*set TTL*/
