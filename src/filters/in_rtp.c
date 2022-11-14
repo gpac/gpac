@@ -638,7 +638,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			ctx->session->connect_error = GF_OK;
 		}
 	}
-
+	ctx->nb_bytes_rcv += tot_read;
 	//we had data, ask for immediate re-process
 	if (tot_read) {
 		gf_filter_post_process_task(filter);
@@ -648,7 +648,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	if (ctx->max_sleep<0)
 		gf_filter_ask_rt_reschedule(filter, (u32) ((-ctx->max_sleep) *1000) );
 	else if (!ctx->min_frame_dur_ms) {
-		gf_filter_ask_rt_reschedule(filter, 1000);
+		gf_filter_ask_rt_reschedule(filter, ctx->nb_bytes_rcv ? 1000 : 10000);
 	}
 	else {
 		assert(ctx->min_frame_dur_ms <= (u32) ctx->max_sleep);
@@ -831,6 +831,8 @@ static const GF_FilterArgs RTPInArgs[] =
 	"- a positive value `N` means to sleep at most `N` ms but will sleep less if frame duration is shorter", GF_PROP_SINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rtcpsync), "use RTCP to adjust synchronization", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(forceagg), "force RTSP control aggregation (patch for buggy servers)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ssm), "list of IP to include for source-specific multicast", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ssmx), "list of IP to exclude for source-specific multicast", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

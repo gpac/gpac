@@ -1479,7 +1479,10 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							if (sep2 && sep3 && (sep2>sep3)) {
 								sep2 = strchr(sep3, ':');
 							}
-							if (sep2 || sep3 || sep) {
+							//if in the form scheme://FOO/:, don't inspect FOO. This allows escaping port nmber or IPv6 double colon
+							if (sep3 && ((sep3[1]==':') || (sep3[1]==0)) ) {
+								sep = sep3+1;
+							} else if (sep2 || sep3 || sep) {
 								u32 port = 0;
 								if (sep2) {
 									sep2[0] = 0;

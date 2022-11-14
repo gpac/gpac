@@ -173,6 +173,17 @@ GF_Err gf_rtp_stop(GF_RTPChannel *ch)
 }
 
 GF_EXPORT
+GF_Err gf_rtp_set_ssm(GF_RTPChannel *ch, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc)
+{
+	if (!ch) return GF_BAD_PARAM;
+	ch->ssm = src_ip_inc;
+	ch->nb_ssm = nb_src_ip_inc;
+	ch->ssmx = src_ip_exc;
+	ch->nb_ssmx = nb_src_ip_exc;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_ip)
 {
 	u16 port;
@@ -238,7 +249,11 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			//Bind to multicast (auto-join the group).
 			//we do not bind the socket if this is a source-only channel because some servers
 			//don't like that on local loop ...
-			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, GF_FALSE, local_ip);
+			if (!IsSource && (ch->nb_ssm || ch->nb_ssmx)) {
+				e = gf_sk_setup_multicast_ex(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, GF_FALSE, local_ip, ch->ssm, ch->nb_ssm, ch->ssmx, ch->nb_ssmx);
+			} else {
+				e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, GF_FALSE, local_ip);
+			}
 			if (e) return e;
 		}
 		if (UDPBufferSize) gf_sk_set_buffer_size(ch->rtp, IsSource, UDPBufferSize);
@@ -270,7 +285,11 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		} else {
 			if (!ch->net_info.port_last) ch->net_info.port_last = ch->net_info.client_port_last;
 			//Bind to multicast (auto-join the group)
-			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, GF_FALSE, local_ip);
+			if (!IsSource && (ch->nb_ssm || ch->nb_ssmx)) {
+				e = gf_sk_setup_multicast_ex(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, GF_FALSE, local_ip, ch->ssm, ch->nb_ssm, ch->ssmx, ch->nb_ssmx);
+			} else {
+				e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, GF_FALSE, local_ip);
+			}
 			if (e) return e;
 		}
 	}

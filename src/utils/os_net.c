@@ -1352,8 +1352,91 @@ u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 #endif
 }
 
+static GF_Err sk_join_ipv4(GF_Socket *sock, struct ip_mreq *M_req, u32 TTL, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc)
+{
+	s32 ret;
+	u32 flag;
+
+	if (nb_src_ip_inc) {
+#ifdef IP_ADD_SOURCE_MEMBERSHIP
+		u32 i;
+		struct ip_mreq_source M_req_src;
+		M_req_src.imr_multiaddr = M_req->imr_multiaddr;
+		M_req_src.imr_interface = M_req->imr_interface;
+
+		for (i=0; i<nb_src_ip_inc; i++) {
+			if (gf_net_is_ipv6(src_ip_inc[i])) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] IPv6 SSM source on IPv4 Mcast adress, ignoring\n", src_ip_inc[i]));
+				continue;
+			}
+			M_req_src.imr_sourceaddr.s_addr = inet_addr(src_ip_inc[i]);
+			ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_SOURCE_MEMBERSHIP, (char *) &M_req_src, sizeof(M_req_src) );
+			if (ret == SOCKET_ERROR) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot add source membership for %s: %s\n", src_ip_inc[i], gf_errno_str(LASTSOCKERROR)));
+				return GF_IP_CONNECTION_FAILURE;
+			}
+		}
+#else
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] SSM IPv4 not supported\n"));
+		return GF_NOT_SUPPORTED;
+#endif
+	} else {
+		ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) M_req, sizeof(*M_req));
+		if (ret == SOCKET_ERROR) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot join multicast: %s\n", gf_errno_str(LASTSOCKERROR)));
+			return GF_IP_CONNECTION_FAILURE;
+		}
+	}
+	/*set the Time To Live*/
+	if (TTL) {
+		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
+		if (ret == SOCKET_ERROR) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot set TTL: %s\n", gf_errno_str(LASTSOCKERROR) ));
+			return GF_IP_CONNECTION_FAILURE;
+		}
+	}
+
+	/*enable loopback*/
+	flag = 1;
+	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
+	if (ret == SOCKET_ERROR) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot enable multicast loop: %s - ignoring\n", gf_errno_str(LASTSOCKERROR) ));
+	}
+
+#ifdef IP_BLOCK_SOURCE
+	if (nb_src_ip_exc) {
+		u32 i, j;
+		struct ip_mreq_source M_req_exc;
+		M_req_exc.imr_multiaddr = M_req->imr_multiaddr;
+		M_req_exc.imr_interface = M_req->imr_interface;
+		for (i=0; i<nb_src_ip_exc; i++) {
+			Bool match=GF_FALSE;
+			if (gf_net_is_ipv6(src_ip_exc[i])) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] IPv6 SSM source on IPv4 Mcast adress, ignoring\n", src_ip_exc[i]));
+				continue;
+			}
+			for (j=0; j<nb_src_ip_inc; j++) {
+				if (!strcmp(src_ip_inc[j], src_ip_exc[i])) match=GF_TRUE;
+			}
+			if (match) continue;
+
+			M_req_exc.imr_sourceaddr.s_addr = inet_addr(src_ip_exc[i]);
+			ret = setsockopt(sock->socket, IPPROTO_IP, IP_BLOCK_SOURCE, (char *) &M_req_exc, sizeof(M_req_exc) );
+			if (ret == SOCKET_ERROR) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot block source membership for %s: %s\n", src_ip_exc[i], gf_errno_str(LASTSOCKERROR)));
+				return GF_IP_CONNECTION_FAILURE;
+			}
+		}
+	}
+#else
+	GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[core] SSM IPv4 not supported\n"));
+#endif
+	return GF_OK;
+}
+
 GF_EXPORT
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
+GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip,
+	const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc)
 {
 	s32 ret;
 	u32 flag;
@@ -1365,6 +1448,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	Bool is_ipv6 = GF_FALSE;
 	u32 type;
 #endif
+	GF_Err e;
 	u32 local_add_id;
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;
@@ -1380,7 +1464,6 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 
 	if (is_ipv6) {
-
 		res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, type);
 		if (!res) {
 			if (local_interface_ip) {
@@ -1393,14 +1476,14 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		/*for all interfaces*/
 		for (aip=res; aip!=NULL; aip=aip->ai_next) {
 			if (type != (u32) aip->ai_socktype) continue;
+
+			if ((aip->ai_family!=PF_INET) && aip->ai_next && (aip->ai_next->ai_family==PF_INET) && !gf_net_is_ipv6(multi_IPAdd)) continue;
+
 			sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 			if (sock->socket == INVALID_SOCKET) {
 				sock->socket = NULL_SOCKET;
 				continue;
 			}
-
-			if ((aip->ai_family!=PF_INET) && aip->ai_next && (aip->ai_next->ai_family==PF_INET) && !gf_net_is_ipv6(multi_IPAdd)) continue;
-
 			/*enable address reuse*/
 			optval = 1;
 			setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
@@ -1431,45 +1514,102 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		freeaddrinfo(res);
 		if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
 
-		struct addrinfo *_res = gf_sk_get_ipv6_addr(multi_IPAdd, MultiPortNumber, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
-		if (!_res) return GF_IP_CONNECTION_FAILURE;
-		memcpy(&sock->dest_addr, _res->ai_addr, res->ai_addrlen);
-		sock->dest_addr_len = (u32) _res->ai_addrlen;
-		freeaddrinfo(_res);
+		res = gf_sk_get_ipv6_addr(multi_IPAdd, MultiPortNumber, AF_UNSPEC, 0, SOCK_DGRAM);
+		if (!res) return GF_IP_CONNECTION_FAILURE;
+		memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
+		sock->dest_addr_len = (u32) res->ai_addrlen;
+		freeaddrinfo(res);
 
 		addr = (struct sockaddr *)&sock->dest_addr;
 		if (addr->sa_family == AF_INET) {
 			M_req.imr_multiaddr.s_addr = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
 			M_req.imr_interface.s_addr = INADDR_ANY;
-			ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-			/*set TTL*/
-			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &TTL, sizeof(TTL));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-			/*Disable loopback*/
-			flag = 1;
-			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
+
+			e = sk_join_ipv4(sock, &M_req, TTL, src_ip_inc, nb_src_ip_inc, src_ip_exc, nb_src_ip_exc);
+			if (e) return e;
+			sock->flags |= GF_SOCK_IS_MULTICAST | GF_SOCK_HAS_PEER;
+			return GF_OK;
+		}
+		else if (addr->sa_family != AF_INET6) {
+			return GF_IP_CONNECTION_FAILURE;
+		}
+
+		struct ipv6_mreq M_reqV6;
+		memcpy(&M_reqV6.ipv6mr_multiaddr, &(((struct sockaddr_in6 *)addr)->sin6_addr), sizeof(struct in6_addr));
+		M_reqV6.ipv6mr_interface = 0;
+
+		if (nb_src_ip_inc) {
+#ifdef MCAST_JOIN_SOURCE_GROUP
+			u32 i;
+			struct group_source_req M_reqV6_src;
+			memset(&M_reqV6_src, 0, sizeof(struct group_source_req));
+			M_reqV6_src.gsr_interface = 0;
+			M_reqV6_src.gsr_group = sock->dest_addr;
+
+			for (i=0; i<nb_src_ip_inc; i++) {
+				res = gf_sk_get_ipv6_addr(src_ip_inc[i], MultiPortNumber, AF_UNSPEC, 0, SOCK_DGRAM);
+				if (!res) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] Failed to get address info for SSM source %s, ignoring\n", src_ip_inc[i]));
+					continue;
+				}
+				memcpy(&M_reqV6_src.gsr_source, res->ai_addr, res->ai_addrlen);
+				freeaddrinfo(res);
+				ret = setsockopt(sock->socket, IPPROTO_IPV6, MCAST_JOIN_SOURCE_GROUP, (char *) &M_reqV6_src, sizeof(M_reqV6_src) );
+				if (ret == SOCKET_ERROR) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot join source group %s: %s\n", src_ip_inc[i], gf_errno_str(LASTSOCKERROR)));
+					return GF_IP_CONNECTION_FAILURE;
+				}
+			}
+#else
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] SSM IPv6 not supported\n"));
+			return GF_NOT_SUPPORTED;
+#endif
+
+		} else {
+			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &M_reqV6, sizeof(M_reqV6));
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
 
-		if (addr->sa_family == AF_INET6) {
-			struct ipv6_mreq M_reqV6;
+		/*set TTL*/
+		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &TTL, sizeof(TTL));
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		/*enable loopback*/
+		flag = 1;
+		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
+		if (ret == SOCKET_ERROR) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disale multicast loop: %s\n", gf_errno_str(LASTSOCKERROR) ));
+		}
 
-			memcpy(&M_reqV6.ipv6mr_multiaddr, &(((struct sockaddr_in6 *)addr)->sin6_addr), sizeof(struct in6_addr));
-			M_reqV6.ipv6mr_interface = 0;
+		if (nb_src_ip_exc) {
+#ifdef MCAST_BLOCK_SOURCE
+			u32 i, j;
+			struct group_source_req M_reqV6_src;
+			M_reqV6_src.gsr_interface = 0;
+			M_reqV6_src.gsr_group = sock->dest_addr;
+			for (i=0; i<nb_src_ip_exc; i++) {
+				Bool match=GF_FALSE;
+				for (j=0; j<nb_src_ip_inc; j++) {
+					if (!strcmp(src_ip_inc[j], src_ip_exc[i])) match=GF_TRUE;
+				}
+				if (match) continue;
 
-			/*set TTL*/
-			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &TTL, sizeof(TTL));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-			/*enable loopback*/
-			flag = 1;
-			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
-			if (ret == SOCKET_ERROR) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disale multicast loop: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				res = gf_sk_get_ipv6_addr(src_ip_exc[i], MultiPortNumber, AF_UNSPEC, 0, SOCK_DGRAM);
+				if (!res) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] Failed to get address info for SSM excluded source %s, ignoring\n", src_ip_exc[i]));
+					continue;
+				}
+				memcpy(&M_reqV6_src.gsr_source, res->ai_addr, res->ai_addrlen);
+				freeaddrinfo(res);
+
+				ret = setsockopt(sock->socket, IPPROTO_IPV6, MCAST_BLOCK_SOURCE, (char *) &M_reqV6_src, sizeof(M_reqV6_src) );
+				if (ret == SOCKET_ERROR) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot block source membership for %s: %s\n", src_ip_exc[i], gf_errno_str(LASTSOCKERROR)));
+					return GF_IP_CONNECTION_FAILURE;
+				}
 			}
-
-			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &M_reqV6, sizeof(M_reqV6));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+#else
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[core] SSM IPv6 not supported\n"));
+#endif
 		}
 		sock->flags |= GF_SOCK_IS_MULTICAST | GF_SOCK_HAS_PEER;
 		return GF_OK;
@@ -1530,23 +1670,8 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
 	M_req.imr_interface.s_addr = local_add_id;
 
-	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
-	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot join multicast: %s\n", gf_errno_str(LASTSOCKERROR)));
-		return GF_IP_CONNECTION_FAILURE;
-	}
-	/*set the Time To Live*/
-	if (TTL) {
-		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
-		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-	}
-
-	/*enable loopback*/
-	flag = 1;
-	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
-	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disable multicast loop: %s\n", gf_errno_str(LASTSOCKERROR) ));
-	}
+	e = sk_join_ipv4(sock, &M_req, TTL, src_ip_inc, nb_src_ip_inc, src_ip_exc, nb_src_ip_exc);
+	if (e) return e;
 
 #ifdef GPAC_HAS_IPV6
 	((struct sockaddr_in *) &sock->dest_addr)->sin_family = AF_INET;
@@ -1561,6 +1686,13 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 	sock->flags |= GF_SOCK_IS_MULTICAST | GF_SOCK_HAS_PEER;
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
+{
+	return gf_sk_setup_multicast_ex(sock, multi_IPAdd, MultiPortNumber, TTL, NoBind, local_interface_ip, NULL, 0, NULL, 0);
+
 }
 
 #include <gpac/list.h>

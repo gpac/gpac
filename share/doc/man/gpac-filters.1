@@ -1450,6 +1450,10 @@ reorder_pck (uint, default: 100): number of packets delay for RTP reordering (M2
 .br
 reorder_delay (uint, default: 10): number of ms delay for RTP reordering (M2TS over RTP)
 .br
+ssm (strl):                    list of IP to include for source-specific multicast
+.br
+ssmx (strl):                   list of IP to exclude for source-specific multicast
+.br
 
 .br
 .SH dvbin
@@ -3030,6 +3034,10 @@ max_sleep (sint, default: 1000): set max sleep in milliseconds:
 rtcpsync (bool, default: true): use RTCP to adjust synchronization
 .br
 forceagg (bool, default: false): force RTSP control aggregation (patch for buggy servers)
+.br
+ssm (strl):                    list of IP to include for source-specific multicast
+.br
+ssmx (strl):                   list of IP to exclude for source-specific multicast
 .br
 
 .br
@@ -10914,7 +10922,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev474-g96df36716-master
+build: 2.1-DEV-rev482-g1016912db-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

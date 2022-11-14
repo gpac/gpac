@@ -182,6 +182,10 @@ struct __tag_rtp_channel
 
 	GF_RTCP_Report rtcp_rr[MAX_RTCP_RR];
 	u32 nb_rctp_rr;
+
+
+	const char **ssm, **ssmx;
+	u32 nb_ssm, nb_ssmx;
 };
 
 /*gets UTC in the channel RTP timescale*/
