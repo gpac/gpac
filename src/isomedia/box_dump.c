@@ -1493,6 +1493,37 @@ GF_Err elng_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+static GF_Err dump_alac(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "ALACConfigurationBox", trace);
+
+#define get_and_print(name, bits) \
+		val = gf_bs_read_int(bs, bits); \
+		gf_fprintf(trace, " "name"=\"%u\"", val);
+
+	get_and_print("version", 32)
+	get_and_print("frameLength", 32)
+	get_and_print("compatibleVersion", 8)
+	get_and_print("bitDepth", 8)
+	get_and_print("pb", 8)
+	get_and_print("mb", 8)
+	get_and_print("kb", 8)
+	get_and_print("numChannels", 8)
+	get_and_print("maxRun", 16)
+	get_and_print("maxFrameBytes", 32)
+	get_and_print("avgBitRate", 32)
+	get_and_print("sampleRate", 32)
+
+#undef get_and_print
+
+	gf_bs_del(bs);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("ALACConfigurationBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
 GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 {
 	Bool str_dump = GF_FALSE;
@@ -1506,6 +1537,8 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 	} else if (u->original_4cc==GF_4CC('m','e','a','n') && (u->dataSize>4) && !u->data[0] && !u->data[1] && !u->data[2] && !u->data[3]) {
 		name = "iTunesMean";
 		str_dump = GF_TRUE;
+	} else if (u->original_4cc==GF_QT_SUBTYPE_ALAC) {
+		return dump_alac(u, trace);
 	}
 
 	gf_isom_box_dump_start(a, name, trace);

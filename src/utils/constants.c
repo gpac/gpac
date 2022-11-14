@@ -168,6 +168,8 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_DVB_TELETEXT, 0, GF_STREAM_TEXT, "DVB-TeleText", "dvbs", NULL, NULL},
 	{GF_CODECID_MSPEG4_V3, 0, GF_STREAM_VISUAL, "MS-MPEG4 V3", "div3", NULL, NULL, GF_CODECID_MSPEG4_V3},
 
+	{GF_CODECID_ALAC, 0, GF_STREAM_AUDIO, "Apple Lossless Audio", "caf", NULL, NULL},
+
 };
 
 
@@ -299,6 +301,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 	case GF_ISOM_SUBTYPE_DTSH:
 	case GF_ISOM_SUBTYPE_DTSE:
 		return GF_CODECID_DTS_CA;
+	case GF_QT_SUBTYPE_ALAC:
+		return GF_CODECID_ALAC;
 	default:
 		break;
 	}

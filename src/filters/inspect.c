@@ -3075,6 +3075,32 @@ props_done:
 		case GF_CODECID_OPUS:
 			gf_inspect_dump_opus_internal(dump, data, size, 0, ctx->crc, pctx);
 			break;
+		case GF_CODECID_ALAC:
+		{
+			gf_bs_reassign_buffer(pctx->bs, data, size);
+			u32 val, partial;
+
+#define get_and_print(name, bits) \
+			val = gf_bs_read_int(pctx->bs, bits); \
+			inspect_printf(dump, " "name"=\"%u\"", val);
+
+			inspect_printf(dump, " <ALACSegment");
+
+			get_and_print("type", 3);
+			get_and_print("reserved", 12);
+			get_and_print("partial", 1);
+			partial=val;
+			get_and_print("shift_off", 2);
+			get_and_print("escape", 1);
+			if (partial) {
+				get_and_print("frameLength", 32);
+			}
+			inspect_printf(dump, "/>\n");
+
+#undef get_and_print
+
+		}
+			break;
 
 		}
 	}
@@ -4046,6 +4072,51 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			pctx->opus_channel_count = opcfg.StreamCount;
 			pctx->opus_channel_count = (opcfg.StreamCount ? opcfg.StreamCount : 1);
 			inspect_printf(dump, "/>\n");
+		} else {
+			inspect_printf(dump, "/>\n");
+			return;
+		}
+		break;
+
+	case GF_CODECID_ALAC:
+		if (dsi) {
+			GF_BitStream *bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+			inspect_printf(dump, ">\n");
+			inspect_printf(dump, "<ALACConfiguration");
+			while (gf_bs_available(bs)) {
+				u32 val;
+
+#define get_and_print(name, bits) \
+				val = gf_bs_read_int(bs, bits); \
+				inspect_printf(dump, " "name"=\"%u\"", val);
+
+				u32 size = gf_bs_read_u32(bs);
+				u32 type = gf_bs_read_u32(bs);
+				if (type==GF_4CC('a','l','a','c') && (size==36)) {
+
+					get_and_print("version", 32)
+					get_and_print("frameLength", 32)
+					get_and_print("compatibleVersion", 8)
+					get_and_print("bitDepth", 8)
+					get_and_print("pb", 8)
+					get_and_print("mb", 8)
+					get_and_print("kb", 8)
+					get_and_print("numChannels", 8)
+					get_and_print("maxRun", 16)
+					get_and_print("maxFrameBytes", 32)
+					get_and_print("avgBitRate", 32)
+					get_and_print("sampleRate", 32)
+				} else if (type==GF_4CC('c','h','a','n') && (size==24)) {
+					get_and_print("version", 32)
+					get_and_print("channelLayoutTag", 32)
+					get_and_print("reserved1", 32)
+					get_and_print("reserved2", 32)
+				}
+			}
+#undef get_and_print
+
+			inspect_printf(dump, "/>\n");
+			gf_bs_del(bs);
 		} else {
 			inspect_printf(dump, "/>\n");
 			return;

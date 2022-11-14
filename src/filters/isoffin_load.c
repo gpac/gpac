@@ -358,8 +358,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 					load_default = GF_TRUE;
 				}
 			}
-			else if (codec_id==GF_CODECID_FFV1)
+			//load dsi in any other case
+			else {
+			//if ((codec_id==GF_CODECID_FFV1) || (codec_id==GF_CODECID_ALAC))
 				load_default = GF_TRUE;
+			}
 			break;
 		}
 
@@ -1235,8 +1238,12 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property_str(ch->pid, "codec_version", &PROP_UINT(udesc->version));
 		gf_filter_pid_set_property_str(ch->pid, "codec_revision", &PROP_UINT(udesc->revision));
 		gf_filter_pid_set_property_str(ch->pid, "compressor_name", &PROP_STRING(udesc->compressor_name));
-		gf_filter_pid_set_property_str(ch->pid, "temporal_quality", &PROP_UINT(udesc->temporal_quality));
-		gf_filter_pid_set_property_str(ch->pid, "spatial_quality", &PROP_UINT(udesc->spatial_quality));
+		if (udesc->temporal_quality)
+			gf_filter_pid_set_property_str(ch->pid, "temporal_quality", &PROP_UINT(udesc->temporal_quality));
+
+		if (udesc->spatial_quality)
+			gf_filter_pid_set_property_str(ch->pid, "spatial_quality", &PROP_UINT(udesc->spatial_quality));
+
 		if (udesc->h_res) {
 			gf_filter_pid_set_property_str(ch->pid, "hres", &PROP_UINT(udesc->h_res));
 			gf_filter_pid_set_property_str(ch->pid, "vres", &PROP_UINT(udesc->v_res));
@@ -1260,7 +1267,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				break;
 			}
 		}
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(udesc->depth));
+		if (udesc->depth)
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(udesc->depth));
 
 		gf_free(udesc);
 	}

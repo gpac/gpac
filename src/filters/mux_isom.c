@@ -1986,7 +1986,9 @@ sample_entry_setup:
 	case GF_CODECID_DTS_HD_MASTER:
 	case GF_CODECID_DTS_LBR:
 		m_subtype = GF_ISOM_SUBTYPE_DTSC;
-		//comp_name = "Dolby TrueHD";
+		break;
+	case GF_CODECID_ALAC:
+		m_subtype = GF_QT_SUBTYPE_ALAC;
 		break;
 
 
