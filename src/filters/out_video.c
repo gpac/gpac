@@ -1643,6 +1643,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			return GF_EOS;
 		//when we use vout+aout on audio only, we want the filter to still be active to process events
 		gf_filter_post_process_task(filter);
+		gf_filter_ask_rt_reschedule(filter, 10000);
 
 		return ctx->oldata.ptr ? GF_OK : GF_EOS;
 	}
