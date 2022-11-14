@@ -1600,6 +1600,9 @@ static struct box_registry_entry {
 
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_KEYS, keys, "meta", 0, "apple"),
 
+	BOX_DEFINE_S(GF_QT_SUBTYPE_ALAC, unkn, "stsd", "apple"),
+	BOX_DEFINE_S(GF_ISOM_SUBTYPE_FFV1, unkn, "stsd", "ffmpeg"),
+
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
 	GF_ISOM_BOX_TYPE_EQUI	= GF_4CC( 'e', 'q', 'u', 'i' ),
@@ -1691,7 +1694,6 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 				break;
 			//some sample descritions are handled as generic ones but we know them, don't warn
 			case GF_ISOM_BOX_TYPE_STSD:
-				if (boxType==GF_ISOM_SUBTYPE_FFV1) break;
 				//fallthrough
 			default:
 				if (boxType==GF_ISOM_BOX_TYPE_GDAT) break;

@@ -361,7 +361,7 @@ enum
 	GF_QT_SUBTYPE_YVYU = GF_4CC('Y','V','Y','U'),
 	GF_QT_SUBTYPE_RGBA = GF_4CC('R','G','B','A'),
 	GF_QT_SUBTYPE_ABGR = GF_4CC('A','B','G','R'),
-
+	GF_QT_SUBTYPE_ALAC =  GF_4CC('a','l','a','c'),
 	GF_ISOM_SUBTYPE_FFV1		= GF_4CC( 'F', 'F', 'V', '1' ),
 
 	GF_ISOM_ITEM_TYPE_AUXI 	= GF_4CC('a', 'u', 'x', 'i'),

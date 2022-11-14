@@ -476,6 +476,7 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_DVB_TELETEXT, GF_CODECID_DVB_TELETEXT, 0},
 	{AV_CODEC_ID_MSMPEG4V3, GF_CODECID_MSPEG4_V3, 0},
 	{AV_CODEC_ID_DTS, GF_CODECID_DTS_CA, 0},
+	{AV_CODEC_ID_ALAC, GF_CODECID_ALAC, 0},
 	{0}
 };
 
@@ -491,6 +492,14 @@ u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag)
 		}
 		i++;
 	}
+	//try unmapped codecs
+	if (gf_codecid_type(codec_id)==GF_STREAM_UNKNOWN) {
+		const AVCodec *c = avcodec_find_decoder(codec_id);
+		if (c) return c->id;
+		c = avcodec_find_decoder_by_name(gf_4cc_to_str(codec_id));
+		if (c) return c->id;
+	}
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC codec %s\n", gf_codecid_name(codec_id) ));
 	return 0;
 }

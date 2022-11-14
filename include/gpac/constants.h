@@ -614,6 +614,8 @@ typedef enum
 
 	GF_CODECID_MSPEG4_V3 = GF_4CC('D','I','V','3'),
 
+	GF_CODECID_ALAC = GF_4CC('A','L','A','A'),
+
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
 } GF_CodecID;
