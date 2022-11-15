@@ -3169,7 +3169,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	}
 	assert(!sess->h2_sess);
 
-	if (sess->dm && !sess->dm->disable_http2 && !sess->sock) {
+	if (sess->dm && !sess->dm->disable_http2 && !sess->sock && (sess->h2_upgrade_state!=3)) {
 		u32 i, count = gf_list_count(sess->dm->sessions);
 		for (i=0; i<count; i++) {
 			GF_DownloadSession *a_sess = gf_list_get(sess->dm->sessions, i);
@@ -3360,12 +3360,32 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 				if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
 					SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
+
+				if (sess->h2_upgrade_state==3) {
+					SSL_set_alpn_protos(sess->ssl, NULL, 0);
+					sess->h2_upgrade_state = 0;
+				}
 			}
+
 			sess->connect_pending = 0;
 			ret = SSL_connect(sess->ssl);
 			if (ret<=0) {
 				ret = SSL_get_error(sess->ssl, ret);
 				if (ret==SSL_ERROR_SSL) {
+
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+					//error and we tried with alpn for h2, retry without (kill/reconnect)
+					if (!sess->h2_upgrade_state && !sess->dm->disable_http2) {
+						SSL_free(sess->ssl);
+						sess->ssl = NULL;
+						dm_sess_sk_del(sess);
+						sess->status = GF_NETIO_SETUP;
+						sess->h2_upgrade_state = 3;
+						gf_dm_connect(sess);
+						return;
+					}
+#endif
+
 					char msg[1024];
 					SSL_load_error_strings();
 					ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
