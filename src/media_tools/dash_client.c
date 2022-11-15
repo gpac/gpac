@@ -8710,6 +8710,73 @@ const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 idx, u3
 	return rep->playback.key_url;
 }
 
+const char *gf_dash_group_get_clearkey_uri(GF_DashClient *dash, u32 group_idx, bin128 *default_kid)
+{
+	GF_MPD_Descriptor *desc_kid=NULL;
+	GF_MPD_Descriptor *desc_ck=NULL;
+	GF_MPD_Representation *rep;
+	GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
+	if (!group) return NULL;
+
+	u32 i, count = gf_list_count(group->adaptation_set->content_protection);
+	for (i=0; i<count; i++) {
+		GF_MPD_Descriptor *cp = gf_list_get(group->adaptation_set->content_protection, i);
+		if (!strcmp(cp->scheme_id_uri, "urn:mpeg:dash:mp4protection:2011")) desc_kid = cp;
+		if (!strcmp(cp->scheme_id_uri, "urn:uuid:e2719d58-a985-b3c9-781a-b030af78d30e")) desc_ck = cp;
+	}
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	if (!rep) return NULL;
+	count = gf_list_count(rep->content_protection);
+	for (i=0; i<count; i++) {
+		GF_MPD_Descriptor *cp = gf_list_get(rep->content_protection, i);
+		if (!strcmp(cp->scheme_id_uri, "urn:mpeg:dash:mp4protection:2011")) desc_kid = cp;
+		if (!strcmp(cp->scheme_id_uri, "urn:uuid:e2719d58-a985-b3c9-781a-b030af78d30e")) desc_ck = cp;
+	}
+
+	if (!desc_ck) return NULL;
+	if (desc_kid && default_kid) {
+		char *key_id=NULL;
+		count = gf_list_count(desc_kid->x_attributes);
+		for (i=0; i<count; i++) {
+			GF_XMLAttribute *att = gf_list_get(desc_kid->x_attributes, i);
+			if (strstr(att->name, "default_KID")) key_id = att->value;
+		}
+		u32 idx=0;
+		memset(*default_kid, 0, sizeof(bin128) );
+		while (key_id && key_id[0]) {
+			if (key_id[0]=='-') {
+				key_id++;
+				continue;
+			}
+			char c = key_id[2];
+			key_id[2] = 0;
+			u32 val;
+			sscanf(key_id, "%02x", &val);
+			 (*default_kid)[idx] = (u8) val;
+			key_id[2] = c;
+			idx++;
+			key_id+=2;
+			if (idx==16) break;
+		}
+		if (idx!=16) return NULL;
+	}
+	count = gf_list_count(desc_ck->x_children);
+	for (i=0; i<count; i++) {
+		GF_XMLNode *n = gf_list_get(desc_ck->x_children, i);
+		if (!strcmp(n->name, "Laurl")) {
+			count = gf_list_count(n->content);
+			for (i=0; i<count; i++) {
+				GF_XMLNode *url = gf_list_get(n->content, i);
+				if (url->type==GF_XML_TEXT_TYPE) return url->name;
+			}
+			break;
+		}
+
+	}
+	return NULL;
+}
+
+
 Bool gf_dash_group_init_segment_is_media(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);

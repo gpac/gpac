@@ -165,6 +165,7 @@ typedef struct
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
+	char *ckurl;
 	GF_PropStringList hlsx;
 	u32 llhls;
 	//inherited from mp4mx
@@ -192,7 +193,7 @@ typedef struct
 	s32 period_idx;
 
 	GF_List *tpl_records;
-	Bool use_xlink, use_cenc, check_main_role;
+	Bool use_xlink, use_cenc, check_main_role, use_clearkey;
 
 	//options for muxers, constrained by profile
 	Bool no_fragments_defaults;
@@ -1571,13 +1572,14 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	char profiles_string[GF_MAX_PATH];
 	GF_XMLAttribute *cenc_att = NULL;
 	GF_XMLAttribute *xlink_att = NULL;
+	GF_XMLAttribute *ck_att = NULL;
 
 	u32 i, count=gf_list_count(ctx->mpd->x_attributes);
 	for (i=0; i<count; i++) {
 		GF_XMLAttribute * att = gf_list_get(ctx->mpd->x_attributes, i);
 		if (!strcmp(att->name, "xmlns:cenc")) cenc_att = att;
 		if (!strcmp(att->name, "xmlns:xlink")) xlink_att = att;
-
+		if (!strcmp(att->name, "xmlns:ck")) ck_att = att;
 	}
 	if (ctx->dmode==GF_MPD_TYPE_DYNAMIC) {
 		ctx->mpd->type = GF_MPD_TYPE_DYNAMIC;
@@ -1635,6 +1637,10 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	if (ctx->use_xlink && !xlink_att) {
 		xlink_att = gf_xml_dom_create_attribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
 		gf_list_add(ctx->mpd->x_attributes, xlink_att);
+	}
+	if (ctx->use_clearkey && !ck_att) {
+		ck_att = gf_xml_dom_create_attribute("xmlns:ck", "http://dashif.org/guidelines/clearKey");
+		gf_list_add(ctx->mpd->x_attributes, ck_att);
 	}
 
 	ctx->mpd->time_shift_buffer_depth = 0;
@@ -2137,6 +2143,26 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
 			if (!desc->x_attributes) desc->x_attributes = gf_list_new();
 			gf_list_add(desc->x_attributes, att);
+
+			char *ck_url = ctx->ckurl;
+			p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CLEARKEY_URI);
+			if (p && p->value.string) ck_url = p->value.string;
+			if (ck_url) {
+				desc = gf_mpd_descriptor_new(NULL, "urn:uuid:e2719d58-a985-b3c9-781a-b030af78d30e", "ClearKey1.0");
+				gf_list_add(res, desc);
+				GF_XMLNode *ck = gf_xml_dom_node_new("ck", "Laurl");
+
+				if (!desc->x_children) desc->x_children = gf_list_new();
+				gf_list_add(desc->x_children, ck);
+
+				GF_XMLNode *val = gf_xml_dom_node_new(NULL, NULL);
+				val->type = GF_XML_TEXT_TYPE;
+				val->name = gf_strdup(ck_url);
+				if (!ck->content) ck->content = gf_list_new();
+				gf_list_add(ck->content, val);
+				ctx->use_clearkey = GF_TRUE;
+			}
+
 
 			if ((ctx->pssh <= GF_DASH_PSSH_MOOF) || (ctx->pssh == GF_DASH_PSSH_NONE)) {
 				continue;
@@ -4532,6 +4558,7 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 	u32 i, count, nb_periods, nb_streams;
 	GF_XMLAttribute *cenc_att = NULL;
 	GF_XMLAttribute *xlink_att = NULL;
+	GF_XMLAttribute *ck_att = NULL;
 	FILE *tmp = NULL;
 	GF_MPD *mpd = gf_mpd_new();
 	GF_List *recompute_sets = NULL;
@@ -4597,6 +4624,7 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 		GF_XMLAttribute * att = gf_list_get(mpd->x_attributes, i);
 		if (!strcmp(att->name, "xmlns:cenc")) cenc_att = att;
 		if (!strcmp(att->name, "xmlns:xlink")) xlink_att = att;
+		if (!strcmp(att->name, "xmlns:ck")) ck_att = att;
 
 	}
 	if (ctx->use_cenc && !cenc_att) {
@@ -4607,6 +4635,11 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 		xlink_att = gf_xml_dom_create_attribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
 		gf_list_add(mpd->x_attributes, xlink_att);
 	}
+	if (ctx->use_clearkey && !ck_att) {
+		ck_att = gf_xml_dom_create_attribute("xmlns:ck", "http://dashif.org/guidelines/clearKey");
+		gf_list_add(mpd->x_attributes, ck_att);
+	}
+
 
 	dasher_check_chaining(ctx, "urn:mpeg:dash:mpd-chaining:2016", ctx->chain);
 	dasher_check_chaining(ctx, "urn:mpeg:dash:fallback:2016", ctx->chain_fbk);
@@ -9571,6 +9604,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ll_preload_hint), "inject preload hint for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ckurl), "set the ClearKey URL common to all encrypted streams (overriden by `CKUrl` pid property)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(hls_absu), "use absolute url in HLS generation using first URL in [base]()\n"
 	"- no: do not use absolute URL\n"

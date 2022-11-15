@@ -3420,6 +3420,11 @@ URI, KEYFORMAT and KEYFORMATVERSIONS for HLS full segment encryption creation, K
 Init Vector for HLS decode
 .br
 .TP
+.B CKUrl (CCKU,str,  )
+.br
+URL for ClearKey licence server
+.br
+.TP
 .B ColorPrimaries (CPRM,cprm,D )
 .br
 Color primaries
@@ -3605,7 +3610,7 @@ Clamping of frame for EQR as 0.32 fixed point (x is top, y is bottom, z is left 
 PID is a scene node decoder (AFX BitWrapper in BIFS)
 .br
 .TP
-.B OrigCryptoScheme (POCS,uint,  )
+.B OrigCryptoScheme (POCS,4cc,  )
 .br
 Original crypto scheme on a decrypted PID
 .br
@@ -4750,7 +4755,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev482-g1016912db-master
+build: 2.1-DEV-rev487-gbc9b929a3-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
