@@ -340,6 +340,12 @@ GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value
 GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child);
 
 
+/*! Create a node.
+\param ns the target namespace or NULL if none
+\param name the target name or NULL to create text node
+\return new node, NULL if error. 
+ */
+GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name);
 /*! Destroys a node, its attributes and its children
 
 \param node the node to free

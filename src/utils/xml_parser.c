@@ -2085,8 +2085,11 @@ GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
 	if (idx == -1) return GF_BAD_PARAM;
 	return gf_list_rem(node->content, idx);
 }
+#endif //unused
 
-GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
+
+GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name)
+{
 	GF_XMLNode* node;
 	GF_SAFEALLOC(node, GF_XMLNode);
 	if (!node) return NULL;
@@ -2105,10 +2108,12 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 			gf_free(node);
 			return NULL;
 		}
+		node->type = GF_XML_NODE_TYPE;
+	} else {
+		node->type = GF_XML_TEXT_TYPE;
 	}
 	return node;
 }
-#endif //unused
 
 #include <gpac/base_coding.h>
 

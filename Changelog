@@ -7,6 +7,7 @@
 - DVB subpictures in M2TS mux and demux
 - FFMPEG (mostly for Matroska) subtitle import and export (SRT/SSA to TX3G, TX3G to SRT, WebVTT and DVB subpictures)
 - EC3+Atmos signaling support
+- ALAC support
 
 ## Media player
 - subtitle delay and position adjustment
@@ -27,6 +28,10 @@
 - dual in-band and out-of-band parameter set support in dasher
 - non-blocking IO for RTSP and HTTP servers/clients
 - RTSP over HTTP in rtsp server
+- Source-Specific multicast for udp and rtp inputs
+
+## Encryption
+- ClearKey support in dasher and decryptor
 
 ## Misc
 - Removed GF_Terminal API

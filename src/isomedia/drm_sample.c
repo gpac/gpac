@@ -1307,6 +1307,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	case GF_ISOM_BOX_TYPE_SENC:
 	case 0:
 		senc = trak->sample_encryption;
+		if (!senc) return GF_BAD_PARAM;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

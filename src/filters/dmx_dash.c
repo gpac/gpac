@@ -1420,6 +1420,8 @@ static void dashdm_format_qinfo(char **q_desc, GF_DASHQualityInfo *qinfo)
 	}
 }
 
+const char *gf_dash_group_get_clearkey_uri(GF_DashClient *dash, u32 group_idx, bin128 *def_kid);
+
 static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid, Bool is_period_switch)
 {
 	GF_DASHQualityInfo qinfo;
@@ -1683,8 +1685,14 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	if (group->hls_key_uri) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_HLS_KMS, &PROP_STRING(group->hls_key_uri));
 		gf_filter_pid_set_property(opid, GF_PROP_PID_HLS_IV, &PROP_DATA(group->hls_key_IV, sizeof(bin128) ));
+	} else {
+		bin128 ck_kid;
+		const char *ckuri = gf_dash_group_get_clearkey_uri(ctx->dash, group_idx, &ck_kid);
+		if (ckuri) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CLEARKEY_URI, &PROP_STRING(ckuri));
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CLEARKEY_KID, &PROP_DATA(ck_kid, sizeof(bin128) ));
+		}
 	}
-
 	if (ctx->forward > DFWD_FILE) {
 		u64 pstart;
 		u32 timescale;

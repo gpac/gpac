@@ -125,6 +125,6 @@ Targets:
 - [ ] configure buffer level per filter
 - [ ] GUI cleanup ?
 - [ ] deprecate `:filemode` in ROUTE
-- [ ] support ClearKey Content Protection (CCP)
+- [x] support ClearKey Content Protection (CCP)
 - [x] FFMPEG subtitle support
 
