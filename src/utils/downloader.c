@@ -3361,10 +3361,12 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
 					SSL_set_mode(sess->ssl, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER|SSL_MODE_ENABLE_PARTIAL_WRITE);
 
+#ifdef GPAC_HAS_HTTP2
 				if (sess->h2_upgrade_state==3) {
 					SSL_set_alpn_protos(sess->ssl, NULL, 0);
 					sess->h2_upgrade_state = 0;
 				}
+#endif
 			}
 
 			sess->connect_pending = 0;
@@ -3373,7 +3375,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				ret = SSL_get_error(sess->ssl, ret);
 				if (ret==SSL_ERROR_SSL) {
 
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+#if (OPENSSL_VERSION_NUMBER >= 0x10002000L) && defined(GPAC_HAS_HTTP2)
 					//error and we tried with alpn for h2, retry without (kill/reconnect)
 					if (!sess->h2_upgrade_state && !sess->dm->disable_http2) {
 						SSL_free(sess->ssl);
