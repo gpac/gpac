@@ -814,6 +814,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			nb_streams++;
 			GF_AVCConfig *avcc = NULL;
 			GF_HEVCConfig *hvcc = NULL;
+			GF_AV1Config *av1c = NULL;
 
 			switch (es->mpeg2_stream_type) {
 			case GF_M2TS_AUDIO_AC3:
@@ -827,9 +828,13 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			case GF_M2TS_VIDEO_VC1:
 			case GF_M2TS_AUDIO_DTS:
 			case GF_M2TS_AUDIO_OPUS:
-			case GF_M2TS_VIDEO_AV1:
 				//reg desc
 				es_info_length += 2 + 4;
+				type = GF_M2TS_PRIVATE_DATA;
+				break;
+			case GF_M2TS_VIDEO_AV1:
+				//reg desc + private data specifier desc
+				es_info_length += 2 + 4 + 2 + 4;
 				type = GF_M2TS_PRIVATE_DATA;
 				break;
 			case GF_M2TS_VIDEO_HEVC:
@@ -871,6 +876,10 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			if (es->ifce->decoder_config && (es->mpeg2_stream_type==GF_M2TS_VIDEO_HEVC) && !es->ifce->depends_on_stream) {
 				hvcc = gf_odf_hevc_cfg_read(es->ifce->decoder_config, es->ifce->decoder_config_size, GF_FALSE);
 				if (hvcc) es_info_length += 15;
+			}
+			if (es->ifce->decoder_config && (es->mpeg2_stream_type==GF_M2TS_VIDEO_AV1)) {
+				av1c = gf_odf_av1_cfg_read(es->ifce->decoder_config, es->ifce->decoder_config_size);
+				if (av1c) es_info_length += 2 + 4;
 			}
 
 			gf_bs_write_int(bs,	type, 8);
@@ -983,6 +992,9 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
 				gf_bs_write_int(bs,	4, 8);
 				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_AV1);
+				gf_bs_write_int(bs, GF_M2TS_DVB_PRIVATE_DATA_SPECIFIER_DESCRIPTOR, 8);
+				gf_bs_write_int(bs, 4, 8);
+				gf_bs_write_u32(bs, GF_4CC('A', 'O', 'M', 'S'));
 				break;
 
 			default:
@@ -1060,6 +1072,30 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 					gf_bs_write_int(bs, 0, 3);
 					gf_bs_write_int(bs, 0, 8);
 				}
+			}
+			if (av1c) {
+				gf_bs_write_int(bs, 0x80 /* TODO check value */, 8);
+				gf_bs_write_int(bs, 4, 8); // specifier tag and AV1 config
+				gf_bs_write_int(bs, av1c->marker, 1);
+				gf_bs_write_int(bs, av1c->version, 7);
+				gf_bs_write_int(bs, av1c->seq_profile, 3);
+				gf_bs_write_int(bs, av1c->seq_level_idx_0, 5);
+				gf_bs_write_int(bs, av1c->seq_tier_0, 1);
+				gf_bs_write_int(bs, av1c->high_bitdepth, 1);
+				gf_bs_write_int(bs, av1c->twelve_bit, 1);
+				gf_bs_write_int(bs, av1c->monochrome, 1);
+				gf_bs_write_int(bs, av1c->chroma_subsampling_x, 1);
+				gf_bs_write_int(bs, av1c->chroma_subsampling_y, 1);
+				gf_bs_write_int(bs, av1c->chroma_sample_position, 2);
+				gf_bs_write_int(bs, 3, 2); // hdr_wcg_idc
+				gf_bs_write_int(bs, 0, 1); // reserved_zeros
+				gf_bs_write_int(bs, av1c->initial_presentation_delay_present, 1);
+				if (av1c->initial_presentation_delay_present) {
+					gf_bs_write_int(bs, av1c->initial_presentation_delay_minus_one, 4);
+				} else {
+					gf_bs_write_int(bs, 0, 4); // reserved_zeros
+				}
+				gf_odf_av1_cfg_del(av1c);
 			}
 
 
