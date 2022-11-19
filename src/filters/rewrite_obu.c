@@ -30,6 +30,13 @@
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+typedef enum {
+	FRAMING_OBU 	= 0,
+	FRAMING_AV1B 	= 1,
+	FRAMING_IVF 	= 2,
+	FRAMING_AV1TS	= 3
+} OBUFramingMode;
+
 typedef struct
 {
 	//opts
@@ -43,7 +50,7 @@ typedef struct
 	u32 crc;
 
 	Bool ivf_hdr;
-	u32 mode;
+	OBUFramingMode mode;
 	GF_BitStream *bs_w;
 	GF_BitStream *bs_r;
 	u32 w, h;
@@ -94,12 +101,14 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		//check output type OBU vs av1b
 		p = gf_filter_pid_caps_query(ctx->opid, GF_PROP_PID_FILE_EXT);
 		if (p) {
-			if (!strcmp(p->value.string, "obu")) ctx->mode = 0;
-			else if (!strcmp(p->value.string, "av1b") || !strcmp(p->value.string, "av1")) ctx->mode = 1;
+			if (!strcmp(p->value.string, "obu")) ctx->mode = FRAMING_OBU;
+			else if (!strcmp(p->value.string, "av1b") || !strcmp(p->value.string, "av1")) ctx->mode = FRAMING_AV1B;
 			//we might want to add a generic IVF read/write at some point
 			else if (!strcmp(p->value.string, "ivf")) {
-				ctx->mode = 2;
+				ctx->mode = FRAMING_IVF;
 				ctx->ivf_hdr = 1;
+			} else if (!strcmp(p->value.string, "ts")) {
+				ctx->mode = FRAMING_AV1TS;
 			}
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[OBUWrite] Couldn't guess desired output format type, assuming plain OBU\n"));
@@ -108,14 +117,14 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	case GF_CODECID_VP8:
 	case GF_CODECID_VP9:
 	case GF_CODECID_VP10:
-		ctx->mode = 2; //IVF only
+		ctx->mode = FRAMING_IVF;
 		ctx->ivf_hdr = 1;
 		break;
 	}
 
 	if (ctx->av1c) gf_odf_av1_cfg_del(ctx->av1c);
 	ctx->av1c = NULL;
-	if (ctx->mode==1) {
+	if (ctx->mode==FRAMING_AV1B) {
 		u32 i=0;
 		GF_AV1_OBUArrayEntry *obu;
 		ctx->av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
@@ -157,6 +166,175 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	return GF_OK;
 }
 
+// Create a new packet from the Bitstream
+// Set initial properties from source packet
+// Add packet to the list
+static GF_Err obumx_add_packet(GF_FilterPid *opid,
+							   GF_BitStream *bs,
+							   GF_FilterPacket *src_pck,
+							   GF_List *pcks)
+{
+	u8 *output = NULL;
+	GF_FilterPacket *pck = NULL;
+	u8 *pck_input_data;
+	u32 pck_input_data_size;
+
+	if (!pcks) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Packet list is null!!\n"));
+		return GF_BAD_PARAM;
+	}
+	gf_bs_get_content(bs, &pck_input_data, &pck_input_data_size);
+	if (!pck_input_data || !pck_input_data_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Trying to create an empty packet!!\n"));
+		return GF_BAD_PARAM;
+	}
+	pck = gf_filter_pck_new_alloc(opid, pck_input_data_size, &output);
+	if (!pck || !output) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Problem allocating new packet!!\n"));
+		return GF_OUT_OF_MEM;
+	}
+	memcpy(output, pck_input_data, pck_input_data_size);
+	if (src_pck) {
+		gf_filter_pck_merge_properties(src_pck, pck);
+	}
+	gf_list_add(pcks, pck);
+	return GF_OK;
+}
+
+// Generate MPEG-TS formatted OBU:
+// - add start code
+// - add emulation prevention bytes
+// NOTE: size fields are not modified
+static GF_Err format_obu_mpeg2ts(u8* in_data, u32 in_size, u8 **out_data, u32 *out_size) {
+	const u8 START_CODE_SIZE = 3;
+	u8 *pck_data_epb = NULL;
+	u32 pck_size_epb = 0;
+
+	if (!in_data || !in_size || !out_data || !out_size) {
+		return GF_BAD_PARAM;
+	}
+	pck_size_epb = START_CODE_SIZE + in_size + gf_media_nalu_emulation_bytes_add_count(in_data, in_size);
+	pck_data_epb = gf_malloc(pck_size_epb);
+	if (!pck_data_epb) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Could not allocate EPB buffer!!\n"));
+		return GF_OUT_OF_MEM;
+	}
+	pck_data_epb[0] = 0;
+	pck_data_epb[1] = 0;
+	pck_data_epb[2] = 1;
+	gf_media_nalu_add_emulation_bytes(in_data, pck_data_epb+3, in_size);
+	*out_data = pck_data_epb;
+	*out_size = pck_size_epb;
+	return GF_OK;
+}
+
+// Generate one or more output packet(s) from an input packet that contains a AV1 TU
+// One output packet is created for each frame (frame_header only or full frame)
+// All OBUs are transformed to add start code and emulation prevention bytes
+static GF_Err obumx_process_mpeg2au(GF_OBUMxCtx *ctx, GF_FilterPacket *src_pck, u8 *data, u32 src_pck_size) {
+	Bool first_frame_found = GF_FALSE;
+	u32 pck_count = 0;
+	Bool first_packet = GF_TRUE;
+	GF_List *pcks = gf_list_new();
+	u64 cts = gf_filter_pck_get_cts(src_pck);
+	u32 duration = gf_filter_pck_get_duration(src_pck);
+	u32 out_duration;
+	u64 out_cts;
+
+	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, src_pck_size, GF_BITSTREAM_READ);
+	else gf_bs_reassign_buffer(ctx->bs_r, data, src_pck_size);
+
+	if (ctx->bs_w) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Write bitstream should be null, deleting... !!\n"));
+		gf_bs_del(ctx->bs_w);
+	}
+	ctx->bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	while (gf_bs_available(ctx->bs_r)) {
+		ObuType obu_type;
+		u32 obu_size;
+		u32 read_size;
+		u8 *obu_data;
+		u8 *out_obu_data = NULL;
+		u32 out_obu_size = 0;
+		Bool obu_extension_flag, obu_has_size_field;
+		u8 temporal_id, spatial_id;
+		u64 obu_start = (u32) gf_bs_get_position(ctx->bs_r);
+		u32 obu_hdr_size;
+
+		gf_av1_parse_obu_header(ctx->bs_r, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
+		obu_hdr_size = gf_bs_get_position(ctx->bs_r) - obu_start;
+
+		if (obu_has_size_field) {
+			obu_size = (u32)gf_av1_leb128_read(ctx->bs_r, NULL);
+			obu_hdr_size = gf_bs_get_position(ctx->bs_r) - obu_start;
+		} else {
+			obu_size = src_pck_size - (u32) gf_bs_get_position(ctx->bs_r);
+		}
+		obu_size += obu_hdr_size;
+		gf_bs_seek(ctx->bs_r, obu_start);
+
+		if (obu_type == OBU_FRAME || obu_type == OBU_FRAME_HEADER) {
+			// start creating packet only after the first frame is found
+			if (first_frame_found) {
+				obumx_add_packet(ctx->opid, ctx->bs_w, src_pck, pcks);
+				gf_bs_del(ctx->bs_w);
+				ctx->bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			}
+			first_frame_found = GF_TRUE;
+		}
+		obu_data = gf_malloc(obu_size);
+		read_size = gf_bs_read_data(ctx->bs_r, obu_data, obu_size);
+		if (read_size != obu_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Could not read entire OBU %d vs %d !!\n", read_size, obu_size));
+		}
+		GF_Err e = format_obu_mpeg2ts(obu_data, read_size, &out_obu_data, &out_obu_size);
+		if (e != GF_OK || out_obu_data == NULL || out_obu_size == 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Problem formatting OBU for MPEG-2 TS!!\n"));
+		} else {
+			gf_bs_write_data(ctx->bs_w, out_obu_data, out_obu_size);
+		}
+	}
+	// create last packet from any pending data
+	obumx_add_packet(ctx->opid,ctx->bs_w, src_pck, pcks);
+	gf_bs_del(ctx->bs_w);
+	ctx->bs_w = NULL;
+
+	// Adjust CTS, flags and send
+	pck_count = gf_list_count(pcks);
+	out_duration = duration / pck_count;
+	out_cts = cts;
+	while (gf_list_count(pcks)) {
+		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_get(pcks, 0);
+		gf_list_rem(pcks, 0);
+		gf_filter_pck_set_cts(pck, out_cts);
+		out_cts += out_duration;
+		if (gf_list_count(pcks) != 0) {
+			gf_filter_pck_set_duration(pck, out_duration);
+		} else {
+			// adjust the duration of the last packet for rounding issues
+			gf_filter_pck_set_duration(pck, duration - (u32)(out_cts-cts));
+		}
+		if (first_packet) {
+			// The first output packet gets the timing, flags and sap type of the input packet
+			u8 sap_type = gf_filter_pck_get_sap(src_pck);
+			u8 flags = gf_filter_pck_get_dependency_flags(src_pck);
+			gf_filter_pck_set_sap(pck, sap_type);
+			gf_filter_pck_set_dependency_flags(pck, flags);
+			first_packet = GF_FALSE;
+		} else {
+			// all other output packets get no flags
+			gf_filter_pck_set_sap(pck, 0);
+			gf_filter_pck_set_dependency_flags(pck, 0);
+		}
+		gf_filter_pck_send(pck);
+	}
+	gf_list_del(pcks);
+
+	// we are done with the input packet
+	gf_filter_pid_drop_packet(ctx->ipid);
+	return GF_OK;
+}
 
 GF_Err obumx_process(GF_Filter *filter)
 {
@@ -166,7 +344,6 @@ GF_Err obumx_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *data, *output;
 	u32 pck_size, size, sap_type, hdr_size, av1b_frame_size=0;
-
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -188,6 +365,9 @@ GF_Err obumx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
+	if (ctx->mode == FRAMING_AV1TS) {
+		return obumx_process_mpeg2au(ctx, pck, data, pck_size);
+	}
 
 	hdr_size = 0;
 	size = pck_size;
@@ -207,11 +387,11 @@ GF_Err obumx_process(GF_Filter *filter)
 	}
 
 	memset(frame_sizes, 0, sizeof(u32)*128);
-	if (ctx->mode==2) {
+	if (ctx->mode==FRAMING_IVF) {
 		if (ctx->ivf_hdr) hdr_size += 32;
 		hdr_size += 12;
 	}
-	if (ctx->mode==1) {
+	if (ctx->mode==FRAMING_AV1B) {
 		u32 obu_sizes=0;
 		u32 frame_idx=0;
 
@@ -279,7 +459,7 @@ GF_Err obumx_process(GF_Filter *filter)
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, hdr_size+size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, output, hdr_size+size);
 
-	if (ctx->mode==1) {
+	if (ctx->mode==FRAMING_AV1B) {
 		u32 frame_idx = 0;
 		//temporal unit
 		gf_av1_leb128_write(ctx->bs_w, av1b_frame_size);
@@ -368,7 +548,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_u32_le(ctx->bs_w, 0);
 			ctx->ivf_hdr = 0;
 		}
-		if (ctx->mode==2) {
+		if (ctx->mode==FRAMING_IVF) {
 			u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
 			gf_bs_write_u32_le(ctx->bs_w, size);
 			gf_bs_write_u64_le(ctx->bs_w, cts);
