@@ -624,6 +624,14 @@ case "$cpu" in
     armv4l|arm)
         cpu="armv4l"
         ;;
+    aarch64)
+        cpu="aarch64"
+        if [ -z "`echo $CFLAGS | grep -- -m32`" ]; then
+            is_64="yes"
+            PIC_CFLAGS="-fPIC -DPIC"
+            want_pic="yes"
+        fi
+        ;;
     alpha)
         cpu="alpha"
         ;;
