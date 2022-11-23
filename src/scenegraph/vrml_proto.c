@@ -1292,7 +1292,10 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 
 		gf_node_get_field(r->ToNode, r->ToField.fieldIndex, &inf);
 		/*IS to another proto*/
-		if (r->ToNode->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_field_is_sftime_offset(r->ToNode, &inf);
+		if (r->ToNode->sgprivate->tag == TAG_ProtoNode) {
+			if (r->ToNode==node) continue;
+			return gf_sg_proto_field_is_sftime_offset(r->ToNode, &inf);
+		}
 		/*IS to a startTime/stopTime field*/
 		if (!stricmp(inf.name, "startTime") || !stricmp(inf.name, "stopTime")) return 1;
 	}
