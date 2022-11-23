@@ -1106,7 +1106,9 @@ second_pass:
 		freg->caps = NULL;
 		freg->nb_caps = 0;
 		//no help
+#ifndef GPAC_DISABLE_DOC
 		freg->help = NULL;
+#endif
 
 		gf_list_add(all_filters, freg);
 
@@ -1424,8 +1426,10 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 
 	ffmpeg_initialize();
 
+#ifndef GPAC_DISABLE_DOC
 	orig_reg->author = avfilter_configuration();
-	
+#endif
+
 	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
 	if (!load_meta_filters) {
 		orig_reg->args = default_args;
@@ -1438,7 +1442,9 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	else if (reg_type==FF_REG_TYPE_AVF) opt_type = 0xFFFFFFFF;
 
 	if ((reg_type==FF_REG_TYPE_ENCODE) || (reg_type==FF_REG_TYPE_DECODE)) {
+#ifndef GPAC_DISABLE_DOC
 		orig_reg->author = avcodec_configuration();
+#endif
 		codec_ctx = avcodec_alloc_context3(NULL);
 		av_class = codec_ctx->av_class;
 	} else if (reg_type==FF_REG_TYPE_AVF) {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -147,7 +147,12 @@ GF_EXPORT
 GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssrc)
 {
 	if (!ch) return GF_BAD_PARAM;
-	ch->CurrentTime = ch->rtp_time = seq_num ? (1 + rtp_time) : 0;
+	if (seq_num) {
+		ch->CurrentTime = rtp_time;
+		ch->rtp_time = 1 + rtp_time;
+	} else {
+		ch->CurrentTime = ch->rtp_time = 0;
+	}
 	ch->last_pck_sn = 0;
 	ch->rtp_first_SN = seq_num;
 	ch->num_sn_loops = 0;

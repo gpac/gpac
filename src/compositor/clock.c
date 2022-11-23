@@ -143,6 +143,7 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->init_timestamp = 0;
 	ck->start_time = 0;
 	ck->has_seen_eos = 0;
+	ck->has_media_time_shift = GF_FALSE;
 	//do NOT reset media timestamp mapping once the clock is init
 	//if discontinuities are found the media time mapping will be adjusted then
 	ck->timeline_id++;

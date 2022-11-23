@@ -3645,6 +3645,35 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 }
 
 GF_EXPORT
+Bool gf_filter_url_is_filter(GF_Filter *filter, const char *url, Bool *act_as_source)
+{
+	char *sep = strchr(url, filter->session->sep_args);
+	u32 len = sep ? (sep - url - 1) : (u32) strlen(url);
+	u32 i, count = gf_list_count(filter->session->registry);
+	for (i=0; i<count; i++) {
+		const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);
+		if (!freg) continue;
+		u32 flen = (u32) strlen(freg->name);
+		if ((len!=flen) || strncmp(freg->name, url, len)) continue;
+
+		if (act_as_source) {
+			if (freg->flags & GF_FS_REG_ACT_AS_SOURCE)
+				*act_as_source = GF_TRUE;
+			i=0;
+			while (freg->args && freg->args[i].arg_name) {
+				if (!strcmp(freg->args[i].arg_name, "src")) {
+					*act_as_source = GF_TRUE;
+					break;
+				}
+				i++;
+			}
+		}
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+GF_EXPORT
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
 {
 	GF_Filter *filter_src;
@@ -3701,7 +3730,11 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 		}
 	}
 
-	filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
+	if (gf_filter_url_is_filter(filter, url, NULL)) {
+		filter_src = gf_fs_load_filter(filter->session, url, err);
+	} else {
+		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
+	}
 	if (full_args) gf_free(full_args);
 
 	if (!filter_src) return NULL;

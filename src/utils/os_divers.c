@@ -3081,7 +3081,7 @@ Bool gf_read_line_input(char * line, int maxSize, Bool showContent) {
 				fprintf(stderr, "\b \b");
 				i--;
 			}
-		} else if (read > 32) {
+		} else if (read >= 32) {
 			fputc(showContent ? read : '*', stderr);
 			line[i++] = read;
 		}
@@ -3090,4 +3090,86 @@ Bool gf_read_line_input(char * line, int maxSize, Bool showContent) {
 	if (!read)
 		return GF_FALSE;
 	return GF_TRUE;
+}
+
+
+GF_EXPORT
+GF_Err gf_creds_check_password(const char *user, char *password)
+{
+	u32 i, len, v;
+	u8 passbuf[117];
+	u8 hash[20], ohash[20];
+	const char *cred_file = gf_opts_get_key("core", "users");
+	if (!cred_file) return GF_NOT_FOUND;
+	GF_Config *creds = gf_cfg_new(NULL, cred_file);
+	if (!creds) return GF_NOT_FOUND;
+	len = strlen(password);
+	const char *pass_hex = gf_cfg_get_key(creds, user, "password");
+	const char *salt_hex = gf_cfg_get_key(creds, user, "salt");
+	if (!salt_hex || !pass_hex || (strlen(salt_hex) != 32) || (strlen(pass_hex) != 40) || (len>=100)) {
+		gf_cfg_del(creds);
+		return GF_NOT_FOUND;
+	}
+
+	u8 salt[16];
+	for (i=0; i<16; i++) {
+		sscanf(salt_hex+2*i, "%02x", &v);
+		salt[i] = v;
+	}
+	for (i=0; i<20; i++) {
+		sscanf(pass_hex+2*i, "%02x", &v);
+		ohash[i] = v;
+	}
+
+	memcpy(passbuf, password, len);
+	passbuf[len]='@';
+	memcpy(passbuf+len+1, salt, 16);
+	len+=17;
+	gf_sha1_csum(passbuf, len, hash);
+	len=1;
+	for (i=0; i<20; i++) {
+		if (hash[i] != ohash[i]) len=0;
+	}
+
+	if (len) {
+		sprintf((char *)passbuf, LLU, gf_net_get_utc());
+		gf_cfg_set_key(creds, user, "last_auth", (char *)passbuf);
+		gf_cfg_save(creds);
+	}
+	gf_cfg_del(creds);
+
+	if (!len) return GF_AUTHENTICATION_FAILURE;
+	return GF_OK;
+}
+
+#include <gpac/token.h>
+
+GF_EXPORT
+Bool gf_creds_check_membership(const char *username, const char *users, const char *groups)
+{
+	if (!username) return GF_FALSE;
+	//users specified and username is listed
+	if (users && gf_token_find_word(users, username, ",")) return GF_TRUE;
+
+	if (!groups)
+		return users ? GF_TRUE : GF_FALSE;
+
+	//check all defined groups
+	const char *cred_file = gf_opts_get_key("core", "users");
+	if (!cred_file) return GF_FALSE;
+	GF_Config *creds = gf_cfg_new(NULL, cred_file);
+	if (!creds) return GF_FALSE;
+	u32 i, nb_groups = gf_cfg_get_key_count(creds, "groups");
+	for (i=0; i<nb_groups; i++) {
+		const char *g = gf_cfg_get_key_name(creds, "groups", i);
+		if (!gf_token_find_word(groups, g, ",")) continue;
+		//group is present in groups being checked, check user
+		const char *members = gf_cfg_get_key(creds, "groups", g);
+		if (gf_token_find_word(members, username, ",")) {
+			gf_cfg_del(creds);
+			return GF_TRUE;
+		}
+	}
+	gf_cfg_del(creds);
+	return GF_FALSE;
 }

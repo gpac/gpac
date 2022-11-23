@@ -64,6 +64,7 @@ void mp4c_help(u32 argmode);
 void gpac_filter_help(void);
 void gpac_modules_help(void);
 void gpac_alias_help(GF_SysArgMode argmode);
+void gpac_credentials_help(GF_SysArgMode argmode);
 void gpac_core_help(GF_SysArgMode mode, Bool for_logs);
 void gpac_usage(GF_SysArgMode argmode);
 void gpac_config_help(void);

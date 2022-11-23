@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 //
 //	Authors:	
-//          Jean Le Feuvre, (c) 2010-2020 Telecom Paris
+//          Jean Le Feuvre, (c) 2010-2022 Telecom Paris
 //
 /////////////////////////////////////////////////////////////////////////////////
 import {scene} from 'scenejs'
@@ -224,8 +224,8 @@ globalThis.initialize = function () {
     gwskin.enable_focus(true);
 
 
-	session.set_auth_fun( (site, user, pass, auth_cbk) => {
-        var popup = gw_new_window_full(null, true, 'Authentication for ' + site);
+	session.set_auth_fun( (site, user, pass, secure, auth_cbk) => {
+        var popup = gw_new_window_full(null, true, 'Authentication for ' + site + (secure ? " - secured" :  " - NOT SECURED"));
         popup.area = gw_new_grid_container(popup);
         popup.area.dlg = popup;
         popup.area.spread_h = true;

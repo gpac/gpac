@@ -106,6 +106,17 @@ void set_del_filter_fun(function callback);
 \param callback callback function - it is passed a single parameter set, an event instance of FilterEvent interface. The return value of the function should be as indicated for each event type*/
 void set_event_fun(function callback);
 
+/*! sets callback function to get authentication requests (see \ref gf_fs_set_ui_callback).
+\param callback callback function - the function takes 5 parameters and no return value type:
+	- server: name of server
+	- user: username
+	- pass: password if known
+	- secure: boolean indicating if connection is secured (TLS)
+	- auth_obj: object used to acknowledge authentication, with a single function `done()` taking up to 3 parameters: user, passord and boolean indicating if credentials should be stored. If user or password are not set, authentication fails
+*/
+void set_auth_fun(function callback);
+
+
 /*! fires a given event on all registered user event if no filter is specified, or on the filter
 \param evt the event to send
 \param filter the filter to send the event to

@@ -182,6 +182,8 @@ Note: The @ character can be used in place of the * character. String parameter 
 .br
 * modules: print available modules
 .br
+* creds: print credential help
+.br
 * filters: print name of all available filters
 .br
 * filters:*: print name of all available filters, including meta filters
@@ -267,6 +269,11 @@ write all filter options and all meta filter arguments in the config file unless
 .B \-xopt
 .br
 unrecognized options and filters declaration following this option are ignored - used to pass arguments to GUI
+.br
+.TP
+.B \-creds (string)
+.br
+setup credentials as used by servers
 .br
 
 .br
@@ -459,6 +466,111 @@ Alias documentation can be set using gpac -aliasdoc="NAME VALUE", with NAME the 
 Alias documentation will then appear in gpac help.
 .br
 
+.br
+.SH Credentials Setup
+.PL
+.SH Credentials
+.LP
+.br
+Some servers in GPAC can use user-based and group-based authentication.
+.br
+The information is stored by default in the file users.cfg located in the GPAC profile directory.
+.br
+The file can be overwritten using the .I -users option.
+.br
+
+.br
+By default, this file does not exists until at least one user has been configured.
+.br
+
+.br
+The .I creds option allows inspecting or modifying the users and groups inforation. The syntax for the option value is:
+.br
+* `show` or no value: prints the users.cfg file
+.br
+* `reset`: deletes the users.cfg file (i.e. deletes all users and groups)
+.br
+* `NAME`: show information of user NAME
+.br
+* `+NAME`: adds user NAME
+.br
+* `+NAME:I1=V1[,I2=V2]`: sets info I1 with value V1 to user NAME. the info name password resets password without prompt.
+.br
+* `-NAME`: removes user NAME
+.br
+* `_NAME`: force password change of user NAME
+.br
+* `@NAME`: show information of group NAME
+.br
+* `@+NAME[:u1[,u2]]`: adds group NAME if not existing and adds specified users to group
+.br
+* `@-NAME:u1[,u2]`: removes specified users from group NAME
+.br
+* `@-NAME`: removes group NAME
+.br
+
+.br
+By default all added users are members of the group users.
+.br
+Passwords are not stored, only a hash is stored.
+.br
+
+.br
+Servers using authentication rules can use a configuration file instead of a directory name.
+.br
+This configuration file is organized in sections, each section name descibing a directory.
+.br
+Example
+.br
+[somedir]
+.br
+ru=foo
+.br
+rg=bar
+.br
+
+.br
+
+.br
+The following keys are defined per directory, but may be ignored by the server depending on its operation mode:
+.br
+* ru: comma-separated list of user names with read access to the directory
+.br
+* rg: comma-separated list of group names with read access to the directory
+.br
+* wu: comma-separated list of user names with write access to the directory
+.br
+* wg: comma-separated list of group names with write access to the directory
+.br
+* mcast: comma-separated list of user names with multicast creation rights (RTSP server only)
+.br
+* filters: comma-separated list of filter names for which the share is valid. If not found or all, applies to all filters
+.br
+
+.br
+Rights can be configured on sub-directories by adding sections for the desired directories.
+.br
+Example
+.br
+[d1]
+.br
+rg=bar
+.br
+[d1/d2]
+.br
+ru=foo
+.br
+
+.br
+With this configuration:
+.br
+- the directory d1 will be readable by all members of group bar
+.br
+- the directory d1/d2 will be readable by user foo only
+.br
+
+.br
+Servers in GPAC currently only support the Basic HTTP authentication scheme, and should preferably be run over TLS.
 .br
 .SH Configuration file
 .LP
@@ -4755,7 +4867,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev487-gbc9b929a3-master
+build: 2.1-DEV-rev492-gbd1a8e990-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

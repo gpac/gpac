@@ -238,6 +238,8 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		if (sdp_media) {
 			gf_fprintf(sdp_out, "%s", sdp_media);
 			gf_free(sdp_media);
+		} else {
+			continue;
 		}
 		if (base_pid_id) {
 			u32 j;
@@ -266,7 +268,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		}
 
 		if (is_rtsp) {
-			gf_fprintf(sdp_out, "a=control:trackID=%d\n", stream->ctrl_id);
+			gf_fprintf(sdp_out, "a=control:%s=%d\n", stream->ctrl_name ? stream->ctrl_name : "trackID", stream->ctrl_id);
 		}
 	}
 	gf_fprintf(sdp_out, "\n");
@@ -825,6 +827,8 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 		for (i=0; i<count; i++) {
 			GF_RTPOutStream *stream = gf_list_get(ctx->streams, i);
 			stream->rtp_ts_offset = gf_rand();
+			while (stream->rtp_ts_offset>0xFFFFFFF)
+				stream->rtp_ts_offset/=2;
 			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP stream %d initial RTP TS set to %d\n", i+1, stream->rtp_ts_offset));
 		}
 	}
@@ -850,6 +854,10 @@ static void rtpout_process_rtcp(void *cbk, u32 ssrc, u32 rtt_ms, u64 jitter_rtp_
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTCP stats for PID %s: rtt %u ms jitter "LLU" us loss rate %d / 1000\n\n", gf_filter_pid_get_name(stream->pid), rtt_ms, jitter_us, loss_rate));
 
 	gf_filter_pid_set_rt_stats(stream->pid, rtt_ms, (u32) jitter_us, loss_rate);
+
+	if (stream->on_rtcp) {
+		stream->on_rtcp(stream->on_rtcp_udta);
+	}
 }
 
 
@@ -872,7 +880,10 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		*active_min_ts_microsec = (u64) -1;
 		for (i=0; i<count; i++) {
 			stream = gf_list_get(streams, i);
-			if (!stream->rtp) continue;
+			if (!stream->rtp) {
+				if (stream->state==RTPOUT_STREAM_STOP) nb_eos++;
+				continue;
+			}
 
 			//process rtcp (we only do that once we are done sending a full au
 			gf_rtp_streamer_read_rtcp(stream->rtp, rtpout_process_rtcp, stream);
@@ -883,12 +894,14 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 				GF_FilterPacket *pck = gf_filter_pid_get_packet(stream->pid);
 
 				if (!pck) {
-					if (gf_filter_pid_is_eos(stream->pid)) {
+					if (gf_filter_pid_is_eos(stream->pid) || (stream->state==RTPOUT_STREAM_STOP)) {
 						//flush stream
 						if (!stream->bye_sent) {
 							stream->bye_sent = GF_TRUE;
-							gf_rtp_streamer_send_au(stream->rtp, NULL, 0, 0, 0, GF_FALSE);
-							gf_rtp_streamer_send_bye(stream->rtp);
+							if (stream->rtp) {
+								gf_rtp_streamer_send_au(stream->rtp, NULL, 0, 0, 0, GF_FALSE);
+								gf_rtp_streamer_send_bye(stream->rtp);
+							}
 						}
 						nb_eos++;
 					}
@@ -1230,6 +1243,8 @@ GF_FilterRegister RTPOutRegister = {
 	"  - mapping this media time to the system clock\n"
 	"- determine the earliest packet to send next on each input PID, adding [-delay]() if any\n"
 	"- finally compare the packet mapped timestamp __TS__ to the system clock __SC__. When __TS__ - __SC__ is less than [-tt](), the RTP packets for the source packet are sent\n"
+	"\n"
+	"The filter does not check for RTCP timeout and will run until all input PIDs reach end of stream.\n"
 	)
 	.private_size = sizeof(GF_RTPOutCtx),
 	.max_extra_pids = -1,

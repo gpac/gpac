@@ -75,6 +75,16 @@ enum
 	CORS_ON,
 };
 
+
+typedef struct
+{
+	char *name;
+	u32 name_len;
+	char *path;
+	char *ru, *rg, *wu, *wg;
+	Bool is_subpath;
+} HTTP_DIRInfo;
+
 typedef struct
 {
 	//options
@@ -115,6 +125,9 @@ typedef struct
 	const char *mem_url;
 	GF_FileIO *mem_fileio;
 	u32 nb_sess_flush_pending;
+
+	GF_List *directories;
+	Bool has_read_dir, has_write_dir;
 } GF_HTTPOutCtx;
 
 typedef struct __httpout_input
@@ -225,6 +238,8 @@ typedef struct __httpout_session
 	Bool canceled;
 
 	Bool force_destroy;
+
+	HTTP_DIRInfo *dir_desc;
 } GF_HTTPOutSession;
 
 /*GF FileIO for mem mode*/
@@ -491,13 +506,21 @@ static void httpout_format_date(u64 time, char szDate[200], Bool for_listing)
 	}
 }
 
+typedef struct
+{
+	HTTP_DIRInfo *di;
+	char **listing;
+} HTTP_DirEnum;
+
 static Bool httpout_dir_file_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info, Bool is_dir)
 {
 	char szFmt[200];
 	u64 size;
 	u32 name_len;
 	char *unit=NULL;
-	char **listing = (char **) cbck;
+	Bool add_slash=GF_FALSE;
+	HTTP_DirEnum *denum = (HTTP_DirEnum *) cbck;
+	char **listing = (char **) denum->listing;
 
 	if (file_info && (file_info->hidden || file_info->system))
 		return GF_FALSE;
@@ -507,13 +530,17 @@ static Bool httpout_dir_file_enum(void *cbck, char *item_name, char *item_path, 
 	else
 		gf_dynstrcat(listing, "   <a href=\"", NULL);
 
+	if (is_dir) {
+		u32 len = (u32) strlen(item_name);
+		if (len && (item_name[len-1]!='/')) add_slash = GF_TRUE;
+	}
 	name_len = (u32) strlen(item_name);
-	if (is_dir) name_len++;
+	if (add_slash) name_len++;
 	gf_dynstrcat(listing, item_name, NULL);
-	if (is_dir) gf_dynstrcat(listing, "/", NULL);
+	if (add_slash) gf_dynstrcat(listing, "/", NULL);
 	gf_dynstrcat(listing, "\">", NULL);
 	gf_dynstrcat(listing, item_name, NULL);
-	if (is_dir) gf_dynstrcat(listing, "/", NULL);
+	if (add_slash) gf_dynstrcat(listing, "/", NULL);
 	gf_dynstrcat(listing, "</a>", NULL);
 	while (name_len<60) {
 		name_len++;
@@ -549,82 +576,85 @@ static Bool httpout_file_enum(void *cbck, char *item_name, char *item_path, GF_F
 	return httpout_dir_file_enum(cbck, item_name, item_path, file_info, GF_FALSE);
 }
 
-static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path)
+static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path, HTTP_DIRInfo *di)
 {
 	char szHost[GF_MAX_IP_NAME_LEN];
-	char *has_par, *dir;
-	u32 i, count = ctx->rdirs.nb_items;
+	char *has_par;
+	u32 len, i, count = gf_list_count(ctx->directories);
 	char *listing = NULL;
 	char *name = full_path;
+	char *www_name = NULL;
+	HTTP_DirEnum denum;
 
-	if (full_path && (full_path[0]=='.'))
+	len = di ? (u32) strlen(di->path) : 0;
+	if (di && di->name && !strncmp(full_path, di->path, len)) {
+		gf_dynstrcat(&www_name, "/", NULL);
+		gf_dynstrcat(&www_name, di->name, NULL);
+		if (full_path[len]=='/')
+			gf_dynstrcat(&www_name, full_path+len+1, NULL);
+		else
+			gf_dynstrcat(&www_name, full_path+len, NULL);
+		len = (u32) strlen(www_name);
+		if ((len>2) && (www_name[len-1]=='/') && (www_name[len-2]=='/'))
+			www_name[len-1] = 0;
+	} else {
+		www_name = gf_strdup(full_path);
+	}
+	name = www_name;
+	while (name && (name[0]=='.'))
 		name++;
 
+	denum.listing = &listing;
 	gf_dynstrcat(&listing, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n<html>\n<head>\n<title>Index of ", NULL);
 	gf_dynstrcat(&listing, name, NULL);
 	gf_dynstrcat(&listing, "</title>\n</head>\n<body><h1>Index of ", NULL);
 	gf_dynstrcat(&listing, name, NULL);
 	gf_dynstrcat(&listing, "</h1>\n<pre>Name                                                                Last modified      Size\n<hr>\n", NULL);
 
-	if (!full_path) {
+	has_par=NULL;
+	if (full_path) {
+		u32 len = (u32) strlen(www_name);
 		has_par=NULL;
-	} else {
-		u32 len = (u32) strlen(full_path);
-		if (len && strchr("/\\", full_path[len-1]))
-			full_path[len-1] = 0;
-		has_par = strrchr(full_path, '/');
+		if (len && strchr("/\\", www_name[len-1]))
+			www_name[len-1] = 0;
+
+		has_par = strrchr(www_name+1, '/');
 	}
+
 	if (has_par) {
 		u8 c = has_par[1];
 		has_par[1] = 0;
 
 		//retranslate server root
 		gf_dynstrcat(&listing, ".. <a href=\"", NULL);
-		for (i=0; i<count; i++) {
-			dir = ctx->rdirs.vals[i];
-			u32 dlen = (u32) strlen(dir);
-			if (!strncmp(dir, name, dlen) && ((name[dlen]=='/') || (name[dlen]==0))) {
-				gf_dynstrcat(&listing, "/", NULL);
-				if (count==1) name = NULL;
-				break;
-			}
-		}
-
 		if (name)
 			gf_dynstrcat(&listing, name, NULL);
 
 		gf_dynstrcat(&listing, "\">Parent Directory</a>\n", NULL);
 		has_par[1] = c;
+	} else if (di) {
+		gf_dynstrcat(&listing, ".. <a href=\"/", NULL);
+		gf_dynstrcat(&listing, "\">Parent Directory</a>\n", NULL);
 	}
+	gf_free(www_name);
 
-	if (!full_path || !strlen(full_path)) {
-		count = ctx->rdirs.nb_items;
-		if (count==1) {
-			dir = ctx->rdirs.vals[0];
-			gf_enum_directory(dir, GF_TRUE, httpout_dir_enum, &listing, NULL);
-			gf_enum_directory(dir, GF_FALSE, httpout_file_enum, &listing, NULL);
-		} else {
-			for (i=0; i<count; i++) {
-				dir = ctx->rdirs.vals[i];
-				httpout_dir_file_enum(&listing, dir, NULL, NULL, GF_TRUE);
+
+	if (!full_path || !strlen(full_path) || !strcmp(full_path, "/")) {
+		for (i=0; i<count; i++) {
+			HTTP_DIRInfo *di = gf_list_get(ctx->directories, i);
+			if (di->is_subpath) continue;
+			denum.di = di;
+			if (di->name) {
+				httpout_dir_file_enum(&denum, di->name, di->name, NULL, GF_TRUE);
+			} else {
+				gf_enum_directory(di->path, GF_TRUE, httpout_dir_enum, &denum, NULL);
+				gf_enum_directory(di->path, GF_FALSE, httpout_file_enum, &denum, NULL);
 			}
 		}
 	} else {
-		Bool insert_root = GF_FALSE;
-		if (count>1) {
-			for (i=0; i<count; i++) {
-				dir = ctx->rdirs.vals[i];
-				if (!strcmp(full_path, dir)) {
-					insert_root=GF_TRUE;
-					break;
-				}
-			}
-			if (insert_root) {
-				gf_dynstrcat(&listing, ".. <a href=\"/\">Parent Directory</a>                                 -\n", NULL);
-			}
-		}
-		gf_enum_directory(full_path, GF_TRUE, httpout_dir_enum, &listing, NULL);
-		gf_enum_directory(full_path, GF_FALSE, httpout_file_enum, &listing, NULL);
+		denum.di = NULL;
+		gf_enum_directory(full_path, GF_TRUE, httpout_dir_enum, &denum, NULL);
+		gf_enum_directory(full_path, GF_FALSE, httpout_file_enum, &denum, NULL);
 	}
 
 	gf_dynstrcat(&listing, "\n<hr></pre>\n<address>", NULL);
@@ -646,9 +676,9 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	u32 len;
 	assert(in->path);
 	//not recording
-	if (!ctx->rdirs.nb_items) return;
-
-	dir = ctx->rdirs.vals[0];
+	if (!ctx->has_read_dir) return;
+	HTTP_DIRInfo *di = gf_list_get(ctx->directories, 0);
+	dir = di->path;
 	if (!dir) return;
 	len = (u32) strlen(dir);
 	if (in->local_path) gf_free(in->local_path);
@@ -674,7 +704,7 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 	sess->range_idx = 0;
 	if (!range) return GF_TRUE;
 
-	if (sess->in_source && !sess->ctx->rdirs.nb_items)
+	if (sess->in_source && !sess->ctx->has_read_dir)
 		return GF_FALSE;
 
 	while (range) {
@@ -869,6 +899,46 @@ GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, u32 stream_id)
 }
 
 
+static u32 httpout_auth_check(HTTP_DIRInfo *di, const char *auth_header, Bool for_write)
+{
+	char *c_u=NULL, *c_g=NULL;
+	if (for_write) {
+		if (!di->wu && !di->wg) return 403;
+		if (di->wu && !strcmp(di->wu, "$NONE")) return 403;
+
+		if (di->wu && strcmp(di->wu, "$ALL")) c_u=di->wu;
+		if (di->wg && strcmp(di->wg, "$ALL")) c_g=di->wg;
+	} else {
+		if (di->ru && !strcmp(di->ru, "$NONE")) return 403;
+		c_u=di->ru;
+		c_g=di->rg;
+	}
+	if (!c_u && !c_g)
+		return 200;
+
+	//no auth info, return unauthorized
+	if (!auth_header)
+		return 401;
+
+	char *sep = strstr(auth_header, "Basic ");
+	if (!sep) return 403; //no support for other auth schemes, return forbidden
+
+	char szUsrPass[200], *user=NULL, *pass=NULL;
+
+	u32 len = gf_base64_decode(sep+6, (u32) strlen(sep)-6, szUsrPass, 100);
+	szUsrPass[len]=0;
+	sep = strchr(szUsrPass, ':');
+	if (!sep) return 400; //return bad request
+
+	pass = sep+1;
+	sep[0] = 0;
+	user = szUsrPass;
+	GF_Err creds_ok = gf_creds_check_password(user, pass);
+	if (creds_ok==GF_OK) return 200;
+	//return forbidden
+	return 403;
+}
+
 static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	const char *durl="";
@@ -896,6 +966,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	Bool source_pid_is_ll_hls_chunk = GF_FALSE;
 	GF_HTTPOutSession *source_sess = NULL;
 	GF_HTTPOutSession *sess = usr_cbk;
+	HTTP_DIRInfo *the_dir=NULL;
 
 	if (parameter->msg_type == GF_NETIO_REQUEST_SESSION) {
 		parameter->error = httpout_new_subsession(sess, parameter->reply);
@@ -942,20 +1013,51 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	sess->bytes_in_req = 0;
 	sess->nb_ranges = 0;
 	sess->do_log = httpout_do_log(sess, parameter->reply);
+	sess->dir_desc = NULL;
 
 	//resolve name against upload dir
 	if (is_upload) {
-		if (!sess->ctx->wdir && (sess->ctx->hmode!=MODE_SOURCE)) {
+		if (!sess->ctx->has_write_dir && (sess->ctx->hmode!=MODE_SOURCE)) {
 			sess->reply_code = 405;
 			gf_dynstrcat(&response_body, "No write directory enabled on server", NULL);
 			goto exit;
 		}
-		if (sess->ctx->wdir) {
-			u32 len = (u32) strlen(sess->ctx->wdir);
-			gf_dynstrcat(&full_path, sess->ctx->wdir, NULL);
-			if (!strchr("/\\", sess->ctx->wdir[len-1]))
+		if (sess->ctx->has_write_dir) {
+			HTTP_DIRInfo *di=NULL;
+			u32 di_len=0;
+			for (i=0; i<gf_list_count(sess->ctx->directories); i++) {
+				HTTP_DIRInfo *adi = gf_list_get(sess->ctx->directories, i);
+				if (!adi->wu && !adi->wg) continue;
+				if (adi->name && strncmp(adi->name, url+1, adi->name_len))
+					continue;
+				if (!adi->name || (adi->name_len>di_len)) {
+					di = adi;
+					di_len = adi->name_len;
+				}
+			}
+			if (!di) {
+				sess->reply_code = 400;
+				goto exit;
+			}
+
+			u32 len = (u32) strlen(di->path);
+			gf_dynstrcat(&full_path, di->path, NULL);
+			if (!strchr("/\\", di->path[len-1]))
 				gf_dynstrcat(&full_path, "/", NULL);
-			gf_dynstrcat(&full_path, url+1, NULL);
+
+			if (di->name) {
+				gf_dynstrcat(&full_path, url+di->name_len+1, NULL);
+			} else {
+				gf_dynstrcat(&full_path, url+1, NULL);
+			}
+			sess->dir_desc = di;
+
+			sess->reply_code = httpout_auth_check(di, gf_dm_sess_get_header(sess->http_sess, "Authorization"), GF_TRUE);
+			if (sess->reply_code != 200) {
+				gf_free(full_path);
+				full_path=NULL;
+				goto exit;
+			}
 		} else if (sess->ctx->hmode==MODE_SOURCE) {
 			full_path = gf_strdup(url+1);
 		}
@@ -1071,7 +1173,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		//if input pid done, try from file
 		if (!strcmp(in->path, url)) {
 			//source done in server mode with no storage, no longer available unless reopen is set
-			if (in->done && !sess->ctx->rdirs.nb_items && (!sess->ctx->reopen || gf_filter_pid_is_eos(in->ipid))) {
+			if (in->done && !sess->ctx->has_read_dir && (!sess->ctx->reopen || gf_filter_pid_is_eos(in->ipid))) {
 				no_longer_avail = GF_TRUE;
 			} else if (!in->done) {
 				source_pid = in;
@@ -1101,22 +1203,47 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	/*not resolved and no source matching, check file on disk*/
 	if (!source_pid && !full_path) {
-		count = sess->ctx->rdirs.nb_items;
+		count = gf_list_count(sess->ctx->directories);
 		for (i=0; i<count; i++) {
-			char *mdir = sess->ctx->rdirs.vals[i];
+			HTTP_DIRInfo *adi = gf_list_get(sess->ctx->directories, i);
+			//only check roots
+			if (adi->is_subpath) continue;
+			char *res_url = url+1;
+			if (adi->name) {
+				if (strncmp(adi->name, url+1, adi->name_len)) continue;
+				res_url += adi->name_len;
+			}
+
+			char *mdir = adi->path;
 			u32 len = (u32) strlen(mdir);
 			if (!len) continue;
-			if (count==1) {
-				gf_dynstrcat(&full_path, mdir, NULL);
-				if (!strchr("/\\", mdir[len-1]))
-					gf_dynstrcat(&full_path, "/", NULL);
-			}
-			gf_dynstrcat(&full_path, url+1, NULL);
+			gf_dynstrcat(&full_path, mdir, NULL);
+			if (!strchr("/\\", mdir[len-1]))
+				gf_dynstrcat(&full_path, "/", NULL);
 
-			if (gf_file_exists(full_path) || gf_dir_exists(full_path) )
+			gf_dynstrcat(&full_path, res_url, NULL);
+
+			if (gf_file_exists(full_path) || gf_dir_exists(full_path) ) {
+				the_dir = adi;
 				break;
+			}
 			gf_free(full_path);
 			full_path = NULL;
+		}
+		//browse for permissions
+		if (full_path) {
+			HTTP_DIRInfo *di = NULL;
+			u32 di_len = 0;
+			for (i=0; i<count; i++) {
+				HTTP_DIRInfo *adi = gf_list_get(sess->ctx->directories, i);
+				u32 adi_len = (u32) strlen(adi->path);
+				if (strncmp(adi->path, full_path, adi_len)) continue;
+				if (!di || (di_len < adi_len)) {
+					di_len = adi_len;
+					di = adi;
+				}
+			}
+			sess->dir_desc = di;
 		}
 	}
 
@@ -1137,6 +1264,14 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	if (is_options && (!url || !strcmp(url, "*"))) {
 		sess->reply_code = 204;
 		goto exit;
+	}
+
+	if (sess->dir_desc) {
+		sess->reply_code = httpout_auth_check(sess->dir_desc, gf_dm_sess_get_header(sess->http_sess, "Authorization"), GF_FALSE);
+		if (sess->reply_code != 200) {
+			if (full_path) gf_free(full_path);
+			goto exit;
+		}
 	}
 
 	if (!full_path && !source_pid) {
@@ -1285,9 +1420,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (sess->ctx->dlist) {
 				range = NULL;
 				if (!strcmp(url, "/")) {
-					response_body = httpout_create_listing(sess->ctx, (char *) url);
+					response_body = httpout_create_listing(sess->ctx, (char *) url, NULL);
 				} else {
-					response_body = httpout_create_listing(sess->ctx, full_path);
+					response_body = httpout_create_listing(sess->ctx, full_path, the_dir ? the_dir : sess->dir_desc);
 				}
 				sess->file_size = sess->file_pos = 0;
 			} else {
@@ -1420,7 +1555,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (sess->ctx->cache_control) {
 				gf_dm_sess_set_header(sess->http_sess, "Cache-Control", sess->ctx->cache_control);
 			}
-		} else if (sess->in_source && !sess->ctx->rdirs.nb_items) {
+		} else if (sess->in_source && !sess->ctx->has_read_dir) {
 			sess->nb_ranges = 0;
 			gf_dm_sess_set_header(sess->http_sess, "Cache-Control", "no-cache, no-store");
 		}
@@ -1576,7 +1711,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 exit:
 
-	if (cors_origin && (sess->reply_code==200))
+	if (cors_origin && ((sess->reply_code==200) || (sess->reply_code==401)))
 		send_cors = GF_TRUE;
 
 	gf_dm_sess_clear_headers(sess->http_sess);
@@ -1596,7 +1731,7 @@ exit:
 	if (is_options) {
 		if (sess->ctx->hmode==MODE_SOURCE) {
 			gf_dm_sess_set_header(sess->http_sess, "Allow", "POST,PUT,OPTIONS");
-		} else if (sess->ctx->wdir) {
+		} else if (sess->ctx->has_write_dir) {
 			gf_dm_sess_set_header(sess->http_sess, "Allow", "GET,POST,PUT,DELETE,HEAD,OPTIONS");
 		} else {
 			gf_dm_sess_set_header(sess->http_sess, "Allow", "GET,HEAD,OPTIONS");
@@ -1610,6 +1745,10 @@ exit:
 			gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Methods", "*");
 			gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Headers", "*");
 		}
+	}
+
+	if (sess->reply_code == 401) {
+		gf_dm_sess_set_header(sess->http_sess, "WWW-Authenticate", "Basic");
 	}
 
 	if (response_body) {
@@ -1801,7 +1940,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
 		if (p && p->value.boolean) {
 			pctx->is_manifest = GF_TRUE;
-			if (!ctx->hmode && !ctx->rdirs.nb_items) {
+			if (!ctx->hmode && !ctx->has_read_dir) {
 				if (!ctx->reopen) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set is meaningless\n"));
 					return GF_FILTER_NOT_SUPPORTED;
@@ -2059,22 +2198,109 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	if (ctx->wdir)
-		ctx->hmode = MODE_DEFAULT;
-
-	if (!url && !ctx->rdirs.nb_items && !ctx->wdir && (ctx->hmode!=MODE_SOURCE)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] No root dir(s) for server, no URL set and not configured as source, cannot run!\n" ));
-		return GF_BAD_PARAM;
-	}
-
+	//configure directories
 	if (ctx->rdirs.nb_items || ctx->wdir) {
 		gf_filter_make_sticky(filter);
 
-		if (ctx->rdirs.nb_items && !strcmp(ctx->rdirs.vals[0], "gmem")) {
+		u32 i;
+		Bool has_gmem = GF_FALSE;
+		ctx->has_read_dir = GF_FALSE;
+		ctx->has_write_dir = GF_FALSE;
+		ctx->directories = gf_list_new();
+		for (i=0; i<ctx->rdirs.nb_items; i++) {
+			char *dpath = ctx->rdirs.vals[i];
+			if (gf_file_exists(dpath)) {
+				GF_Config *rules = gf_cfg_new(NULL, dpath);
+				u32 j, count = gf_cfg_get_section_count(rules);
+				for (j=0; j<count; j++) {
+					const char *dname = gf_cfg_get_section_name(rules, j);
+					if (!strcmp(dpath, "gmem")) {
+						if (has_gmem) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[HTTPOut] Only a single gmem directory can be specified, ignoring rule\n"));
+							continue;
+						}
+						has_gmem = GF_TRUE;
+					} else if (!gf_dir_exists(dname)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[HTTPOut] No such directory %s, ignoring rule\n", dname));
+						continue;
+					}
+					const char *fnames = gf_cfg_get_key(rules, dname, "filters");
+					if (fnames && strcmp(fnames, "*") && strcmp(fnames, "all")) {
+						if (!strstr(fnames, "httpout")) continue;
+					}
+					HTTP_DIRInfo *di;
+					GF_SAFEALLOC(di, HTTP_DIRInfo);
+					di->path = gf_strdup(dname);
+					gf_list_add(ctx->directories, di);
+					di->name = (char*)gf_cfg_get_key(rules, dname, "name");
+					if (di->name) {
+						di->name = gf_strdup(di->name);
+						di->name_len = (u32) strlen(di->name);
+						if (di->name[di->name_len-1] != '/') {
+							gf_dynstrcat(&di->name, "/", NULL);
+							di->name_len += 1;
+						}
+					}
+					di->ru = (char*)gf_cfg_get_key(rules, dname, "ru");
+					if (di->ru) di->ru = gf_strdup(di->ru);
+					di->rg = (char*)gf_cfg_get_key(rules, dname, "rg");
+					if (di->rg) di->rg = gf_strdup(di->rg);
+					di->wu = (char*)gf_cfg_get_key(rules, dname, "wu");
+					if (di->wu) di->wu = gf_strdup(di->wu);
+					di->wg = (char*)gf_cfg_get_key(rules, dname, "wg");
+					if (di->wg) di->wg = gf_strdup(di->wg);
+
+					if (di->wu || di->wg) ctx->has_write_dir = GF_TRUE;
+					ctx->has_read_dir = GF_TRUE;
+				}
+				gf_cfg_del(rules);
+			} else if (gf_dir_exists(dpath) || !strcmp(dpath, "gmem")) {
+				HTTP_DIRInfo *di;
+				if (!strcmp(dpath, "gmem")) {
+					if (has_gmem) continue;
+					has_gmem = GF_TRUE;
+				}
+				GF_SAFEALLOC(di, HTTP_DIRInfo);
+				di->path = gf_strdup(dpath);
+				gf_list_add(ctx->directories, di);
+				ctx->has_read_dir = GF_TRUE;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[HTTPOut] No such directory %s, ignoring rule\n", dpath));
+			}
+		}
+		if (ctx->wdir) {
+			HTTP_DIRInfo *di;
+			GF_SAFEALLOC(di, HTTP_DIRInfo);
+			di->path = gf_strdup(ctx->wdir);
+			di->wu = gf_strdup("$ALL");
+			gf_list_add(ctx->directories, di);
+			ctx->has_write_dir = GF_TRUE;
+		}
+
+		u32 count = gf_list_count(ctx->directories);
+		for (i=0; i<count; i++) {
+			HTTP_DIRInfo *di = gf_list_get(ctx->directories, i);
+			u32 j, len = (u32) strlen(di->path);
+			for (j=0; j<count; j++) {
+				if (i==j) continue;
+				HTTP_DIRInfo *adi = gf_list_get(ctx->directories, j);
+				if (adi->is_subpath) continue;
+				u32 alen = (u32) strlen(adi->path);
+				if (alen>len) {
+					if (!strncmp(di->path, adi->path, len)) adi->is_subpath = GF_TRUE;
+				} else if (alen<len) {
+					if (!strncmp(adi->path, di->path, alen)) di->is_subpath = GF_TRUE;
+				}
+			}
+		}
+
+		if (has_gmem) {
 			ctx->mem_fileio = gf_fileio_new("gmem", NULL, httpio_open, httpio_seek, httpio_read, httpio_write, httpio_tell, httpio_eof, NULL);
 			ctx->mem_url = gf_fileio_url(ctx->mem_fileio);
 			if (ctx->max_cache_segs==0) ctx->max_cache_segs = 1;
 			else if (ctx->max_cache_segs<0) ctx->max_cache_segs = -ctx->max_cache_segs;
+
+			ctx->has_read_dir = GF_TRUE;
 
 #ifdef GPAC_ENABLE_COVERAGE
 			if (gf_sys_is_cov_mode()) {
@@ -2085,6 +2311,14 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 
 	} else if (ctx->hmode!=MODE_PUSH) {
 		ctx->single_mode = GF_TRUE;
+	}
+
+	if (ctx->has_write_dir)
+		ctx->hmode = MODE_DEFAULT;
+
+	if (!url && !ctx->has_read_dir && !ctx->has_write_dir && (ctx->hmode!=MODE_SOURCE)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] No root dir(s) for server, no URL set and not configured as source, cannot run!\n" ));
+		return GF_BAD_PARAM;
 	}
 
 	ctx->sessions = gf_list_new();
@@ -2311,6 +2545,19 @@ static void httpout_finalize(GF_Filter *filter)
 		gf_ssl_server_context_del(ctx->ssl_ctx);
 	}
 #endif
+
+
+	while (gf_list_count(ctx->directories)) {
+		HTTP_DIRInfo *di = gf_list_pop_back(ctx->directories);
+		gf_free(di->path);
+		if (di->name) gf_free(di->name);
+		if (di->ru) gf_free(di->ru);
+		if (di->rg) gf_free(di->rg);
+		if (di->wu) gf_free(di->wu);
+		if (di->wg) gf_free(di->wg);
+		gf_free(di);
+	}
+	gf_list_del(ctx->directories);
 }
 
 static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, u32 size)
@@ -2526,19 +2773,28 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 					gf_dm_sess_set_header(sess->http_sess, "Content-Location", loc);
 					gf_free(loc);
 				} else {
+					char *dpath=NULL;
 					char *spath = strchr(sess->path, '/');
 					if (spath) spath = spath+1;
 					else spath = sess->path;
 
-					if (ctx->wdir) {
-						u32 plen = (u32) strlen(ctx->wdir);
-						if ((ctx->wdir[plen-1] == '/') || (ctx->wdir[plen-1] == '\\'))
+					if (sess->dir_desc) {
+						char *path = sess->dir_desc->path;
+						u32 plen = (u32) strlen(path);
+						if ((path[plen-1] == '/') || (path[plen-1] == '\\'))
 							plen--;
-						if (!strncmp(ctx->wdir, sess->path, plen))
+						if (!strncmp(path, sess->path, plen)) {
 							spath = sess->path + plen;
+							if (sess->dir_desc->name) {
+								gf_dynstrcat(&dpath, "/", NULL);
+								gf_dynstrcat(&dpath, sess->dir_desc->name, NULL);
+								gf_dynstrcat(&dpath, spath, NULL);
+								spath = dpath;
+							}
+						}
 					}
-
 					gf_dm_sess_set_header(sess->http_sess, "Content-Location", spath);
+					if (dpath) gf_free(dpath);
 				}
 			}
 
@@ -2577,7 +2833,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		//check we have something to read if not http2
 		//if http2, data might have been received on this session while processing another session
 		if (!sess->is_h2 && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
-			ctx->next_wake_us=1;
+			ctx->next_wake_us = 2000;
 			return;
 		}
 		e = gf_dm_sess_process(sess->http_sess);
@@ -2825,11 +3081,12 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		}
         //server mode not recording, nothing to do
 		if (!ctx->rdirs.nb_items) return GF_FALSE;
-		dir = ctx->rdirs.vals[0];
-		if (!dir) return GF_FALSE;
-		len = (u32) strlen(dir);
+        //otherwise pickup first dir - this should be refined
+        HTTP_DIRInfo *di = gf_list_get(ctx->directories, 0);
+		if (!di || !di->path) return GF_FALSE;
+		len = (u32) strlen(di->path);
 		if (!len) return GF_FALSE;
-
+		dir = di->path;
         if (in->resource) return GF_FALSE;
     }
 
@@ -3322,7 +3579,7 @@ retry:
 static Bool httpout_input_write_ready(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
 	u32 i, count;
-	if (ctx->rdirs.nb_items)
+	if (ctx->has_read_dir)
 		return GF_TRUE;
 
 	if (in->upload) {
@@ -3450,7 +3707,7 @@ next_pck:
 		}
 
 		//no destination and holding for first connect, don't drop
-		if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest && in->hold) {
+		if (!ctx->hmode && !ctx->has_read_dir && !in->nb_dest && in->hold) {
 			continue;
 		}
 		if (gf_dm_sess_flush_async(in->upload, GF_TRUE) == GF_IP_NETWORK_EMPTY)
@@ -3569,7 +3826,7 @@ next_pck:
 				continue;
 			}
 
-			if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest) {
+			if (!ctx->hmode && !ctx->has_read_dir && !in->nb_dest) {
 				if ((gf_filter_pck_get_dependency_flags(pck)==0xFF) && (gf_filter_pck_get_carousel_version(pck)==1)) {
 					pck_data = gf_filter_pck_get_data(pck, &pck_size);
 					if (pck_data) {
@@ -3643,7 +3900,7 @@ next_pck:
 		}
 
 		//no destination and not holding packets (either first connection not here or disabled), trash packet
-		if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest && !in->hold) {
+		if (!ctx->hmode && !ctx->has_read_dir && !in->nb_dest && !in->hold) {
 			if (end) {
 				httpout_close_input(ctx, in);
 				httpout_close_input_llhls(ctx, in);
@@ -3792,7 +4049,7 @@ next_pck:
 	}
 
 	if (count && (nb_eos==count)) {
-		if (ctx->rdirs.nb_items) {
+		if (ctx->has_read_dir) {
 			if (gf_list_count(ctx->active_sessions))
 				gf_filter_post_process_task(ctx->filter);
 			else
@@ -3937,7 +4194,7 @@ static Bool httpout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (!in) return GF_TRUE;
 
 	//simple server mode (no record, no push), nothing to do
-	if (!in->upload && !ctx->rdirs.nb_items) return GF_TRUE;
+	if (!in->upload && !ctx->has_read_dir) return GF_TRUE;
 
 	if (!in->file_deletes)
 		in->file_deletes = gf_list_new();
@@ -4046,6 +4303,14 @@ GF_FilterRegister HTTPOutRegister = {
 		"When a single read directory is specified, the server root `/` is the content of this directory.\n"
 		"When multiple read directories are specified, the server root `/` contains the list of the mount points with their directory names.\n"
 		"When a write directory is specified, the upload resource name identifies a file in this directory (the write directory name is not present in the URL).\n"
+		"  \n"
+		"A directory rule file (cf `gpac -h creds`) can be specified in [-rdirs]() but NOT in [-wdir](). When rules are used:\n"
+		"- if a directory has a `name` rule, it will be used in the URL\n"
+		"- otherwise, the directory is directly available under server root `/`\n"
+		"- read and write access rights are checked\n"
+		"EX [foodir]\n"
+		"EX name=bar\n"
+		"Content `RES` of this directory is exposed as `http://SERVER/bar/RES`.\n"
 		"  \n"
 		"Listing can be enabled on server using [-dlist]().\n"
 		"When disabled, a GET on a directory will fail.\n"

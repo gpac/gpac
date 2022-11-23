@@ -38,6 +38,15 @@
 //common functions for rtpout and rtspout
 #include "out_rtp.h"
 
+#ifdef GPAC_HAS_SSL
+
+void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
+void *gf_ssl_server_context_new(const char *cert, const char *key);
+void gf_ssl_server_context_del(void *ssl_server_ctx);
+Bool gf_ssl_init_lib();
+
+#endif
+
 enum
 {
 	SDP_NONE = 0,
@@ -49,16 +58,33 @@ enum
 {
 	MCAST_OFF = 0,
 	MCAST_ON,
-	MCAST_MIRROR
+	MCAST_MIRROR,
+	//describe does not ened authenticate but multicast setup does
+	MCAST_AUTHENTICATE_SETUP,
 };
 
+enum
+{
+	TRP_BOTH=0,
+	TRP_UDP_ONLY,
+	TRP_TCP_ONLY
+};
+
+typedef struct
+{
+	char *name;
+	u32 name_len;
+	char *path;
+	char *ru, *rg;
+	char *mcast;
+} RTSP_DIRInfo;
 
 typedef struct
 {
 	//options
-	char *dst, *user_agent;
+	char *dst, *user_agent, *cert, *pkey;
 	GF_PropStringList mounts;
-	u32 port, firstport;
+	u32 port, firstport, timeout;
 	Bool xps;
 	u32 mtu;
 	u32 ttl;
@@ -69,8 +95,8 @@ typedef struct
 	s32 runfor, tso;
 	u32 maxc;
 	u32 block_size;
-	Bool close, loop, dynurl, mpeg4, quit, htun;
-	u32 mcast;
+	Bool close, loop, mpeg4, quit, htun, dynurl;
+	u32 mcast, trp;
 	Bool latm;
 
 	GF_Socket *server_sock;
@@ -78,9 +104,13 @@ typedef struct
 
 	u32 next_wake_us;
 	char *ip;
-	Bool done;
-} GF_RTSPOutCtx;
+	Bool done, is_active;
 
+	GF_List *directories;
+
+	void *ssl_ctx;
+	u32 ms_timeout;
+} GF_RTSPOutCtx;
 
 typedef struct __rtspout_session
 {
@@ -98,6 +128,7 @@ typedef struct __rtspout_session
 	char *service_name;
 	char *sessionID;
 	char peer_address[GF_MAX_IP_NAME_LEN];
+	char ctrl_name[10];
 
 	u32 play_state;
 	Double start_range;
@@ -131,8 +162,14 @@ typedef struct __rtspout_session
 	Bool request_pending;
 	char *multicast_ip;
 	u64 sdp_id;
+	u32 mcast_mode;
+	char *mcast_sname;
+
+	u32 last_active_time;
+	char *setup_ctrl;
 } GF_RTSPOutSession;
 
+static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess, char *ctrl);
 
 static void rtspout_send_response(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 {
@@ -143,6 +180,7 @@ static void rtspout_send_response(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 	gf_rtsp_send_response(sess->rtsp, sess->response);
 	sess->response->User_Agent = NULL;
 	sess->response->Session = NULL;
+	sess->last_active_time = gf_sys_clock();
 	if (ctx->close && !sess->interleave && !sess->is_tunnel) {
 		sess->response->Connection = NULL;
 		gf_rtsp_session_del(sess->rtsp);
@@ -153,7 +191,7 @@ static void rtspout_send_response(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 static void rtspout_check_last_sess(GF_RTSPOutCtx *ctx)
 {
 	if (gf_list_count(ctx->sessions) ) return;
-
+	ctx->is_active = GF_FALSE;
 	if (ctx->dst)
 		ctx->done = GF_TRUE;
 	else if (ctx->runfor>0)
@@ -165,6 +203,24 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 	FILE *sdp_out;
 	u32 fsize;
 	GF_Err e;
+
+	if (sess->setup_ctrl) {
+		sess->response->CSeq = sess->last_cseq;
+		//setup on resource not loaded, reassign control string based on setup query
+		//this typically happen after a seek when we teardown the session right away
+		if (!sess->sessionID || !sess->ctrl_name[0]) {
+			char *sep = strchr(sess->setup_ctrl, '=');
+			if (sep) sep[0] = 0;
+			strncpy(sess->ctrl_name, sess->setup_ctrl+1, 9);
+			sess->ctrl_name[9] = 0;
+			if (sep) sep[0] = '=';
+		}
+		e = rtspout_process_setup(sess->ctx, sess, sess->setup_ctrl);
+		gf_free(sess->setup_ctrl);
+		sess->setup_ctrl = NULL;
+		return e;
+	}
+
 	const char *ip = sess->ctx->ip;
 	if (!ip) ip = sess->ctx->ifce;
 	if (!ip) ip = "127.0.0.1";
@@ -204,6 +260,7 @@ static void rtspout_del_stream(GF_RTPOutStream *st)
 		gf_filter_pid_set_discard(st->pid, GF_TRUE);
 		GF_FEVT_INIT(fevt, GF_FEVT_STOP, st->pid);
 		gf_filter_pid_send_event(st->pid, &fevt);
+		st->has_pck = GF_FALSE;
 	}
 	rtpout_del_stream(st);
 }
@@ -238,6 +295,7 @@ static void rtspout_del_session(GF_Filter *filter, GF_RTSPOutSession *sess)
 		sess->ctx->done = GF_TRUE;
 
 	if (sess->multicast_ip) gf_free(sess->multicast_ip);
+	if (sess->setup_ctrl) gf_free(sess->setup_ctrl);
 	gf_free(sess);
 }
 
@@ -265,6 +323,12 @@ GF_RTSPOutSession *rtspout_locate_session_for_pid(GF_Filter *filter, GF_RTSPOutC
 	}
 
 	return NULL;
+}
+
+static void rtspout_on_rtcp(void *udta)
+{
+	GF_RTSPOutSession *sess = (GF_RTSPOutSession *) udta;
+	sess->last_active_time = gf_sys_clock();
 }
 
 static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -319,11 +383,13 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		stream->pid = pid;
 		stream->streamtype = streamType;
 		stream->min_dts = GF_FILTER_NO_TS;
+		stream->on_rtcp = rtspout_on_rtcp;
+		stream->on_rtcp_udta = sess;
 	 	gf_filter_pid_set_udta(pid, stream);
 	}
-
 	stream->ctrl_id = sess->next_stream_id+1;
 	sess->next_stream_id++;
+	stream->ctrl_name = sess->ctrl_name;
 
 	payt = ctx->payt + gf_list_find(sess->streams, stream);
 
@@ -347,7 +413,7 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	GF_RTSPSession *new_sess = NULL;
 
 	if (!single_session) {
-		new_sess = gf_rtsp_session_new_server(ctx->server_sock, ctx->htun);
+		new_sess = gf_rtsp_session_new_server(ctx->server_sock, ctx->htun, ctx->ssl_ctx);
 		if (!new_sess) return GF_OK;
 	}
 
@@ -361,16 +427,26 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	sess->response = gf_rtsp_response_new();
 	sess->streams = gf_list_new();
 	sess->filter_srcs = gf_list_new();
+	if (gf_sys_is_test_mode()) {
+		strcpy(sess->ctrl_name, "trackID");
+	} else {
+		u32 seed = gf_rand();
+		seed |= (u32) (u64) sess;
+		seed |= gf_sys_clock();
+		sprintf(sess->ctrl_name, "s%08X", seed);
+	}
 
 	if (new_sess) {
 		gf_rtsp_set_buffer_size(new_sess, ctx->block_size);
 		gf_rtsp_get_remote_address(new_sess, sess->peer_address);
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Accepting new connection from %s\n", sess->peer_address));
+		sess->last_active_time = gf_sys_clock();
 	} else {
 		sess->single_session = GF_TRUE;
 	}
 	sess->ctx = ctx;
 	gf_list_add(ctx->sessions, sess);
+	ctx->is_active = GF_TRUE;
 	return GF_OK;
 }
 
@@ -378,20 +454,20 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 {
 	char szIP[1024];
 	GF_Err e;
-	u16 port;
+	u32 i;
+	u16 port = 0;
 	char *ip;
 	GF_RTSPOutCtx *ctx = (GF_RTSPOutCtx *) gf_filter_get_udta(filter);
 	if (!ctx->payt) ctx->payt = 96;
-	if (!ctx->port) ctx->port = 554;
 	if (!ctx->firstport) ctx->firstport = 7000;
 	if (!ctx->mtu) ctx->mtu = 1450;
 	if (ctx->payt<96) ctx->payt = 96;
 	if (ctx->payt>127) ctx->payt = 127;
 	ctx->sessions = gf_list_new();
 
-	port = ctx->port;
 	ip = ctx->ifce;
-
+	//move to sec
+	ctx->ms_timeout = ctx->timeout * 1000;
 	if (!ctx->dst) {
 		if (! ctx->mounts.nb_items) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPOut] No root dir for server, cannot run\n" ));
@@ -409,7 +485,6 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 			sep = strchr(szIP, ':');
 			if (sep) {
 				port = atoi(sep+1);
-				if (!port) port = ctx->port;
 				sep[0] = 0;
 			}
 			if (strlen(szIP)) ip = szIP;
@@ -424,6 +499,46 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 	if (ip)
 		ctx->ip = gf_strdup(ip);
 
+	if (ctx->cert && !ctx->pkey) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[RTSPOut] missing server private key file\n"));
+		return GF_BAD_PARAM;
+	}
+	if (!ctx->cert && ctx->pkey) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[RTSPOut] missing server certificate file\n"));
+		return GF_BAD_PARAM;
+	}
+	if (ctx->cert && ctx->pkey) {
+#ifdef GPAC_HAS_SSL
+		if (!gf_file_exists(ctx->cert)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[RTSPOut] Certificate file %s not found\n", ctx->cert));
+			return GF_IO_ERR;
+		}
+		if (!gf_file_exists(ctx->pkey)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[RTSPOut] Private key file %s not found\n", ctx->pkey));
+			return GF_IO_ERR;
+		}
+		if (gf_ssl_init_lib()) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[RTSPOut] Failed to initialize OpenSSL library\n"));
+			return GF_IO_ERR;
+		}
+		ctx->ssl_ctx = gf_ssl_server_context_new(ctx->cert, ctx->pkey);
+		if (!ctx->ssl_ctx) return GF_IO_ERR;
+
+		if (!ctx->port || (ctx->port==554))
+			ctx->port = 322;
+#else
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] TLS key/certificate set but GPAC compiled without TLS support\n"));
+		return GF_NOT_SUPPORTED;
+
+#endif
+	}
+
+	if (!ctx->port)
+		ctx->port = 554;
+
+	if (!port)
+		port = ctx->port;
+
 	ctx->server_sock = gf_sk_new(GF_SOCK_TYPE_TCP);
 	e = gf_sk_bind(ctx->server_sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT);
 	if (!e) e = gf_sk_listen(ctx->server_sock, ctx->maxc);
@@ -433,8 +548,60 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 	}
 
 	gf_sk_server_mode(ctx->server_sock, GF_TRUE);
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPOut] Server running on port %d\n", ctx->port));
 	gf_filter_post_process_task(filter);
+
+	ctx->directories = gf_list_new();
+	for (i=0; i<ctx->mounts.nb_items; i++) {
+		char *dpath = ctx->mounts.vals[i];
+		if (gf_dir_exists(dpath)) {
+			RTSP_DIRInfo *di;
+			GF_SAFEALLOC(di, RTSP_DIRInfo);
+			di->path = gf_strdup(dpath);
+			gf_list_add(ctx->directories, di);
+		} else if (gf_file_exists(dpath)) {
+			GF_Config *rules = gf_cfg_new(NULL, dpath);
+			u32 j, count = gf_cfg_get_section_count(rules);
+			for (j=0; j<count; j++) {
+				const char *dname = gf_cfg_get_section_name(rules, j);
+				if (strcmp(dname, "$dynurl") && !gf_dir_exists(dname)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTSPOut] No such directory %s, ignoring rule\n", dname));
+					continue;
+				}
+				const char *fnames = gf_cfg_get_key(rules, dname, "filters");
+				if (fnames && strcmp(fnames, "*") && strcmp(fnames, "all")) {
+					if (!strstr(fnames, "rtspout")) continue;
+				}
+				RTSP_DIRInfo *di;
+				GF_SAFEALLOC(di, RTSP_DIRInfo);
+				di->path = gf_strdup(dname);
+				gf_list_add(ctx->directories, di);
+				di->name = (char*)gf_cfg_get_key(rules, dname, "name");
+				if (di->name) {
+					di->name = gf_strdup(di->name);
+					di->name_len = (u32) strlen(di->name);
+					if (di->name[di->name_len-1] != '/') {
+						gf_dynstrcat(&di->name, "/", NULL);
+						di->name_len += 1;
+					}
+				}
+				di->ru = (char*)gf_cfg_get_key(rules, dname, "ru");
+				if (di->ru) di->ru = gf_strdup(di->ru);
+				di->rg = (char*)gf_cfg_get_key(rules, dname, "rg");
+				if (di->rg) di->rg = gf_strdup(di->rg);
+				di->mcast = (char*)gf_cfg_get_key(rules, dname, "mcast");
+				if (di->mcast) di->mcast = gf_strdup(di->mcast);
+			}
+			gf_cfg_del(rules);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTSPOut] No such directory %s, ignoring rule\n", dpath));
+		}
+	}
+	if (!gf_list_count(ctx->directories) && !ctx->dst) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPOut] No root dir for server, cannot run\n" ));
+		return GF_BAD_PARAM;
+	}
 	return GF_OK;
 }
 
@@ -448,8 +615,25 @@ static void rtspout_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->sessions);
 
-	gf_sk_del(ctx->server_sock);
-	if (ctx->ip) gf_free(ctx->ip);	
+	if (ctx->server_sock) gf_sk_del(ctx->server_sock);
+	if (ctx->ip) gf_free(ctx->ip);
+
+#ifdef GPAC_HAS_SSL
+	if (ctx->ssl_ctx) {
+		gf_ssl_server_context_del(ctx->ssl_ctx);
+	}
+#endif
+
+	while (gf_list_count(ctx->directories)) {
+		RTSP_DIRInfo *di = gf_list_pop_back(ctx->directories);
+		gf_free(di->path);
+		if (di->name) gf_free(di->name);
+		if (di->ru) gf_free(di->ru);
+		if (di->rg) gf_free(di->rg);
+		if (di->mcast) gf_free(di->mcast);
+		gf_free(di);
+	}
+	gf_list_del(ctx->directories);
 }
 
 
@@ -498,6 +682,8 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 		for (i=0; i<count; i++) {
 			GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
 			stream->rtp_ts_offset = gf_rand();
+			while (stream->rtp_ts_offset>0xFFFFFFF)
+				stream->rtp_ts_offset/=2;
 			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPOut] Session %s: RTP stream %d initial RTP TS set to %d\n", sess->service_name, i+1, stream->rtp_ts_offset));
 		}
 	}
@@ -514,10 +700,15 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 
 		GF_SAFEALLOC(rtpi, GF_RTPInfo);
 		if (rtpi) {
+			u32 timescale;
 			rtpi->url = gf_malloc(sizeof(char) * (strlen(sess->service_name)+50));
-			sprintf(rtpi->url, "%s/trackID=%d", sess->service_name, stream->ctrl_id);
+			sprintf(rtpi->url, "%s/%s=%d", sess->service_name, sess->ctrl_name, stream->ctrl_id);
 			rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
 			rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
+
+			timescale = gf_rtp_streamer_get_timescale(stream->rtp);
+			if (timescale)
+				rtpi->rtp_time = (u32) gf_timestamp_rescale(rtpi->rtp_time, stream->timescale, timescale);
 
 			gf_list_add(sess->response->RTP_Infos, rtpi);
 		}
@@ -541,17 +732,26 @@ static void rtspout_send_event(GF_RTSPOutSession *sess, Bool send_stop, Bool sen
 
 	for (i=0; i<count; i++) {
 		GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
-		if (!stream->selected) continue;
-
 		fevt.base.on_pid = stream->pid;
-		if (send_stop && stream->is_playing) {
-			stream->is_playing = GF_FALSE;
+		if (!stream->selected) {
+			//send a play/stop event for this pid
+			fevt.base.type = GF_FEVT_PLAY;
+			gf_filter_pid_send_event(stream->pid, &fevt);
+			fevt.base.type = GF_FEVT_STOP;
+			gf_filter_pid_send_event(stream->pid, &fevt);
+			stream->state = RTPOUT_STREAM_STOP;
+			stream->has_pck = GF_FALSE;
+			continue;
+		}
+		if (send_stop && (stream->state!=RTPOUT_STREAM_STOP)) {
+			stream->state = RTPOUT_STREAM_STOP;
 			fevt.base.type = GF_FEVT_STOP;
 			gf_filter_pid_set_discard(stream->pid, GF_TRUE);
 			gf_filter_pid_send_event(stream->pid, &fevt);
+			stream->has_pck = GF_FALSE;
 		}
-		if (send_play && !stream->is_playing) {
-			stream->is_playing = GF_TRUE;
+		if (send_play && (stream->state!=RTPOUT_STREAM_PLAY)) {
+			stream->state = RTPOUT_STREAM_PLAY;
 			gf_filter_pid_set_discard(stream->pid, GF_FALSE);
 			fevt.base.type = GF_FEVT_PLAY;
 			fevt.play.start_range = start_range;
@@ -572,21 +772,7 @@ static GF_Err rtspout_process_rtp(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSP
 		if (!rtspout_init_clock(ctx, sess)) return GF_OK;
 	}
 
-	if (ctx->runfor>0) {
-		s64 diff = gf_sys_clock_high_res();
-		diff -= sess->sys_clock_at_init;
-		diff /= 1000;
-		if ((s32) diff > ctx->runfor) {
-			u32 i, count = gf_list_count(sess->streams);
-			for (i=0; i<count; i++) {
-				GF_RTPOutStream *stream = gf_list_get(sess->streams, i);
-				gf_filter_pid_set_discard(stream->pid, GF_TRUE);
-			}
-			return GF_EOS;
-		}
-	}
-
-	if (sess->rtsp) {
+	if (sess->rtsp && sess->interleave) {
 		e = gf_rtsp_check_connection(sess->rtsp);
 		if (e==GF_IP_NETWORK_EMPTY) {
 			ctx->next_wake_us = 100;
@@ -598,7 +784,16 @@ static GF_Err rtspout_process_rtp(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSP
 
 	e = rtpout_process_rtp(sess->streams, &sess->active_stream, sess->loop, ctx->delay, &sess->active_stream_idx, sess->sys_clock_at_init, &sess->active_min_ts_microsec, sess->microsec_ts_init, &sess->wait_for_loop, &repost_delay_us, &sess->first_RTCP_sent, sess->base_pid_id);
 
-	if (e) return e;
+	if (e) {
+		if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_IP_CONNECTION_FAILURE)) {
+			sess->play_state = 0;
+			rtspout_send_event(sess, GF_TRUE, GF_FALSE, 0);
+
+			rtspout_del_session(filter, sess);
+			rtspout_check_last_sess(ctx);
+		}
+		return e;
+	}
 	if (ctx->next_wake_us > repost_delay_us)
 		ctx->next_wake_us = (u32) repost_delay_us;
 	return GF_OK;
@@ -610,6 +805,8 @@ static GF_Err rtspout_interleave_packet(void *cbk1, void *cbk2, Bool is_rtcp, u8
 	GF_RTPOutStream *stream = (GF_RTPOutStream *)cbk2;
 
 	u32 idx = is_rtcp ? stream->rtcp_id : stream->rtp_id;
+	if (!sess->rtsp)
+		return GF_IP_CONNECTION_CLOSED;
 	return gf_rtsp_session_write_interleaved(sess->rtsp, idx, pck, pck_size);
 }
 
@@ -731,6 +928,9 @@ static GF_RTSPOutSession *rtspout_locate_mcast(GF_RTSPOutCtx *ctx, char *res_pat
 		char *a_sess_path=NULL;
 		GF_RTSPOutSession *a_sess = gf_list_get(ctx->sessions, i);
 		if (!a_sess->multicast_ip) continue;
+		if (a_sess->mcast_sname && !strcmp(a_sess->mcast_sname, res_path))
+			return a_sess;
+
 		if (!a_sess->service_name) continue;
 
 		a_sess_path = strstr(a_sess->service_name, "://");
@@ -742,29 +942,319 @@ static GF_RTSPOutSession *rtspout_locate_mcast(GF_RTSPOutCtx *ctx, char *res_pat
 	return NULL;
 }
 
-static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path)
+static char *rtspout_get_local_res_path(GF_RTSPOutCtx *ctx, char *res_path, GF_RTSPCommand *com, u32 *err_code, u32 *mcast_mode)
 {
-	u32 i;
+	u32 i, count, di_len;
+	RTSP_DIRInfo *di = NULL;
 	char *src_url=NULL;
-	for (i=0; i<ctx->mounts.nb_items; i++) {
-		char *mpoint = ctx->mounts.vals[i];
+	count = gf_list_count(ctx->directories);
 
-		gf_dynstrcat(&src_url, mpoint, NULL);
-		gf_dynstrcat(&src_url, res_path, "/");
-		if (gf_file_exists(src_url))
-			break;
-		gf_free(src_url);
-		src_url = NULL;
+	*err_code = NC_RTSP_Not_Found;
+	if (res_path) {
+		for (i=0; i<count; i++) {
+			char *res_path_loc = res_path;
+			di = gf_list_get(ctx->directories, i);
+			char *mpoint = di->path;
+			if (di->name) {
+				if (strncmp(res_path, di->name, di->name_len)) continue;
+				res_path_loc += di->name_len;
+			}
+
+			gf_dynstrcat(&src_url, mpoint, NULL);
+			gf_dynstrcat(&src_url, res_path_loc, "/");
+			if (gf_file_exists(src_url))
+				break;
+			gf_free(src_url);
+			src_url = NULL;
+		}
+		if (!src_url) return NULL;
+	}
+	if (src_url || !res_path) {
+		di = NULL;
+		di_len = 0;
+		for (i=0; i<count; i++) {
+			RTSP_DIRInfo *adi = gf_list_get(ctx->directories, i);
+			u32 plen = (u32) strlen(adi->path);
+			if (!src_url) {
+				if (strcmp(adi->path, "$dynurl"))
+					continue;
+			} else {
+				if (strncmp(src_url, adi->path, plen)) continue;
+			}
+			if (!di || (plen > di_len)) {
+				di = adi;
+				di_len = plen;
+			}
+		}
+	}
+	if (!di && !src_url) {
+		*err_code = NC_RTSP_Not_Found;
+		return NULL;
+	}
+
+	if (!di->ru && !di->rg && !com->Authorization) {
+		*err_code = NC_RTSP_OK;
+		if (di->mcast) *mcast_mode = MCAST_AUTHENTICATE_SETUP;
+		return src_url;
+	}
+	//check access rights and authentication
+	GF_Err creds_ok = GF_NOT_FOUND;
+	char szUsrPass[200], *user=NULL, *pass=NULL;
+	*err_code = NC_RTSP_Unauthorized;
+
+	if (!com->Authorization) {
+		if (src_url) gf_free(src_url);
+		return NULL;
+	}
+	if (!strncmp(com->Authorization, "Basic ", 6)) {
+		u32 len = gf_base64_decode(com->Authorization+6, (u32) strlen(com->Authorization)-6, szUsrPass, 200);
+		szUsrPass[len]=0;
+		char *sep = strchr(szUsrPass, ':');
+		if (!sep) {
+			*err_code = NC_RTSP_Bad_Request;
+			if (src_url) gf_free(src_url);
+			return NULL;
+		}
+		pass = sep+1;
+		sep[0] = 0;
+		user = szUsrPass;
+		creds_ok = gf_creds_check_password(user, pass);
+	} else {
+		if (src_url) gf_free(src_url);
+		return NULL;
+	}
+	//return unauthorized, so that we get a user name
+	if (!user) return NULL;
+
+	if (di->ru || di->rg) {
+		if (!gf_creds_check_membership(user, di->ru, di->rg)) {
+			*err_code = NC_RTSP_Forbidden;
+			if (src_url) gf_free(src_url);
+			return NULL;
+		}
+	}
+	//if wrong creds - return forbidden if invalid user name
+	if (creds_ok) {
+		if (creds_ok==GF_NOT_FOUND) *err_code = NC_RTSP_Forbidden;
+		if (src_url) gf_free(src_url);
+		return NULL;
+	}
+	*err_code = NC_RTSP_OK;
+	*mcast_mode = MCAST_OFF;
+	if (di->mcast) {
+		if (gf_creds_check_membership(user, di->mcast, di->mcast))
+			*mcast_mode = MCAST_ON;
+		else
+			*mcast_mode = MCAST_MIRROR;
 	}
 	return src_url;
 }
+
+static u32 rtspout_get_ctrl_id(GF_RTSPOutSession *sess, char *ctrl)
+{
+	u32 stream_ctrl_id=0;
+	if (ctrl && (ctrl[0]=='/')) {
+		u32 len = (u32) strlen(sess->ctrl_name);
+		if (!strncmp(ctrl+1, sess->ctrl_name, len)) {
+			if (sscanf(ctrl+1+len, "=%d", &stream_ctrl_id)<1) {
+				stream_ctrl_id=0;
+			}
+		}
+	}
+	return stream_ctrl_id;
+}
+
+static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess, char *ctrl)
+{
+	GF_Err e;
+	char remoteIP[GF_MAX_IP_NAME_LEN];
+	GF_RTPOutStream *stream = NULL;
+	GF_RTSPTransport *transport = gf_list_get(sess->command->Transports, 0);
+	u32 rsp_code=NC_RTSP_OK;
+	Bool enable_multicast = GF_FALSE;
+	Bool reset_transport_dest = GF_FALSE;
+
+	u32 stream_ctrl_id = rtspout_get_ctrl_id(sess, ctrl);
+
+	if (ctrl && (ctrl[0]=='/')) {
+		u32 len = (u32) strlen(sess->ctrl_name);
+		if (!strncmp(ctrl+1, sess->ctrl_name, len)) {
+			if (sscanf(ctrl+1+len, "=%d", &stream_ctrl_id)<1) {
+				stream_ctrl_id=0;
+			}
+		}
+	}
+
+	if (!ctrl || !transport) {
+		rsp_code = NC_RTSP_Bad_Request;
+	} else if (sess->sessionID && sess->command->Session && strcmp(sess->sessionID, sess->command->Session)) {
+		rsp_code = NC_RTSP_Bad_Request;
+	} else if (sess->sessionID && !sess->command->Session) {
+		rsp_code = NC_RTSP_Not_Implemented;
+	} else {
+		u32 i, count = gf_list_count(sess->streams);
+		for (i=0; i<count; i++) {
+			stream = gf_list_get(sess->streams, i);
+			if (stream_ctrl_id==stream->ctrl_id)
+				break;
+			stream=NULL;
+		}
+		if (!stream_ctrl_id || !stream)
+			rsp_code = NC_RTSP_Not_Found;
+	}
+
+	if (!stream) {
+		gf_rtsp_response_reset(sess->response);
+		sess->response->ResponseCode = rsp_code;
+		sess->response->CSeq = sess->command->CSeq;
+		rtspout_send_response(ctx, sess);
+
+		gf_rtsp_session_del(sess->rtsp);
+		sess->rtsp = NULL;
+		rtspout_check_last_sess(ctx);
+		return GF_OK;
+	}
+
+	gf_rtsp_response_reset(sess->response);
+	sess->response->CSeq = sess->command->CSeq;
+
+	stream->selected = GF_TRUE;
+	if (transport && (rsp_code==NC_RTSP_OK) ) {
+		if (!transport->IsInterleaved) {
+			if (ctx->trp == TRP_TCP_ONLY) {
+				rsp_code = NC_RTSP_Unsupported_Transport;
+			} else {
+				u32 st_idx = gf_list_find(sess->streams, stream);
+				transport->port_first = ctx->firstport + 2 * st_idx;
+				transport->port_last = transport->port_first + 1;
+				if (sess->interleave)
+					rsp_code = NC_RTSP_Not_Implemented;
+			}
+		} else {
+			if (ctx->trp == TRP_UDP_ONLY) {
+				rsp_code = NC_RTSP_Unsupported_Transport;
+			} else if (!sess->sessionID) {
+				sess->interleave = GF_TRUE;
+			} else if (!sess->interleave) {
+				rsp_code = NC_RTSP_Not_Implemented;
+			}
+		}
+		transport->SSRC = rand();
+		transport->is_sender = GF_TRUE;
+
+		if (transport->IsUnicast) {
+			if (transport->destination && gf_sk_is_multicast_address(transport->destination)) {
+				rsp_code = NC_RTSP_Bad_Request;
+			} else if (!transport->destination) {
+				transport->destination = sess->peer_address;
+				reset_transport_dest = GF_TRUE;
+			}
+			if (sess->multicast_ip)
+				rsp_code = NC_RTSP_Forbidden;
+
+			if (ctx->dst && (strstr(ctx->dst, "://127.0.0.1") || strstr(ctx->dst, "://localhost") || strstr(ctx->dst, "://::1/128") ) ) {
+				if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
+				transport->destination = "127.0.0.1";
+				reset_transport_dest = GF_TRUE;
+			}
+		}
+		else {
+			if (transport->destination && !gf_sk_is_multicast_address(transport->destination)) {
+				rsp_code = NC_RTSP_Bad_Request;
+			} else {
+				u32 mcast_mode = ctx->mcast;
+				if (sess->mcast_mode) mcast_mode = sess->mcast_mode;
+
+				if (mcast_mode==MCAST_AUTHENTICATE_SETUP) {
+					rtspout_get_local_res_path(ctx, NULL, sess->command, &rsp_code, &sess->mcast_mode);
+					mcast_mode = sess->mcast_mode;
+					//try once only
+					if (rsp_code==NC_RTSP_Forbidden)
+						mcast_mode = MCAST_OFF;
+				}
+
+				if (mcast_mode == MCAST_AUTHENTICATE_SETUP) {
+					rsp_code = NC_RTSP_Unauthorized;
+				}
+				else if (mcast_mode != MCAST_OFF) {
+					enable_multicast = GF_TRUE;
+					//we don't allow seting up streams on different mcast addresses
+					if (!sess->multicast_ip) {
+						sess->multicast_ip = transport->destination; //detach memory
+					}
+					transport->source = transport->destination = sess->multicast_ip;
+					reset_transport_dest = GF_TRUE;
+
+					transport->client_port_first = 0;
+					transport->client_port_last = 0;
+					if (ctx->ttl) transport->TTL = ctx->ttl;
+					if (!transport->TTL) transport->TTL = 1;
+					stream->mcast_port = transport->port_first;
+					rtspout_get_next_mcast_port(ctx, sess, &stream->mcast_port);
+					transport->port_first = stream->mcast_port;
+					transport->port_last = stream->mcast_port+1;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] SETUP requests a multicast to %s, not allowed\n", transport->destination));
+					rsp_code = NC_RTSP_Forbidden;
+				}
+			}
+		}
+	}
+
+	if (rsp_code != NC_RTSP_OK) {
+		sess->response->ResponseCode = rsp_code;
+		if (rsp_code == NC_RTSP_Unauthorized) {
+			sess->response->WWW_Authenticate = gf_strdup("Basic");
+			rsp_code = NC_RTSP_OK; //do not delete session
+		}
+	} else {
+		e = gf_rtp_streamer_init_rtsp(stream->rtp, ctx->mtu, transport, ctx->ifce);
+		if (e) {
+			sess->response->ResponseCode = NC_RTSP_Internal_Server_Error;
+		} else {
+			if (!sess->sessionID)
+				sess->sessionID = gf_rtsp_generate_session_id(sess->rtsp);
+
+			sess->response->ResponseCode = NC_RTSP_OK;
+			sess->response->Session = sess->sessionID;
+			if (!enable_multicast) {
+				gf_rtsp_get_session_ip(sess->rtsp, remoteIP);
+				if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
+				transport->destination = NULL;
+				transport->source = remoteIP;
+			}
+			gf_list_add(sess->response->Transports, transport);
+		}
+
+		if (sess->interleave) {
+			stream->rtp_id = transport->rtpID;
+			stream->rtcp_id = transport->rtcpID;
+			gf_rtp_streamer_set_interleave_callbacks(stream->rtp, rtspout_interleave_packet, sess, stream);
+		}
+	}
+
+	rtspout_send_response(ctx, sess);
+	gf_list_reset(sess->response->Transports);
+	sess->response->Session = NULL;
+	if (reset_transport_dest)
+		transport->destination = NULL;
+
+	transport->source = NULL;
+
+	if (rsp_code != NC_RTSP_OK) {
+		gf_rtsp_session_del(sess->rtsp);
+		sess->rtsp = NULL;
+		rtspout_check_last_sess(ctx);
+	}
+	return GF_OK;
+}
+
 
 static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSPOutSession **sess_ptr)
 {
 	GF_Err e;
 	GF_RTSPOutSession *sess = *sess_ptr;
 	char *ctrl=NULL;
-	u32 stream_ctrl_id=0;
 
 	//no rtsp connection on this session
 	if (!sess->rtsp) return GF_OK;
@@ -776,14 +1266,12 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 	if (sess->request_pending) return GF_OK;
 
 	e = gf_rtsp_get_command(sess->rtsp, sess->command);
-	if (e==GF_IP_NETWORK_EMPTY) {
-		return GF_OK;
-	}
-	//
+	if (e==GF_IP_NETWORK_EMPTY) return GF_OK;
+
+	//delete RTSP session but not the RTP traffic
 	if (e==GF_IP_CONNECTION_CLOSED) {
 		gf_rtsp_session_del(sess->rtsp);
 		sess->rtsp = NULL;
-		rtspout_check_last_sess(ctx);
 		return GF_OK;
 	}
 	if (e)
@@ -834,7 +1322,8 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 			sess->command = NULL;
 			memcpy(a_sess->peer_address, sess->peer_address, sizeof(char)*GF_MAX_IP_NAME_LEN);
 			rtspout_del_session(NULL, sess);
-			*sess_ptr = sess = a_sess;
+			sess = a_sess;
+			*sess_ptr = NULL;
 			break;
 		}
 	}
@@ -856,22 +1345,74 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 		sess->response->Public = NULL;
 		return GF_OK;
 	}
+	if (!strcmp(sess->command->method, GF_RTSP_GET_PARAMETER)
+		|| !strcmp(sess->command->method, GF_RTSP_SET_PARAMETER)
+	) {
+		gf_rtsp_response_reset(sess->response);
+		sess->response->ResponseCode = NC_RTSP_Invalid_parameter;
+		sess->response->CSeq = sess->command->CSeq;
+		rtspout_send_response(ctx, sess);
+		return GF_OK;
+	}
+	if (!strcmp(sess->command->method, GF_RTSP_ANNOUNCE) || !strcmp(sess->command->method, GF_RTSP_RECORD)) {
+		gf_rtsp_response_reset(sess->response);
+		sess->response->ResponseCode = NC_RTSP_Not_Implemented;
+		sess->response->CSeq = sess->command->CSeq;
+		rtspout_send_response(ctx, sess);
+		return GF_OK;
+	}
+	if (!strcmp(sess->command->method, GF_RTSP_REDIRECT)) {
+		gf_rtsp_response_reset(sess->response);
+		sess->response->ResponseCode = NC_RTSP_Method_Not_Allowed;
+		sess->response->CSeq = sess->command->CSeq;
+		rtspout_send_response(ctx, sess);
+		return GF_OK;
+	}
+
 
 	//process describe
-	if (!strcmp(sess->command->method, GF_RTSP_DESCRIBE)) {
+	if (!strcmp(sess->command->method, GF_RTSP_DESCRIBE)
+		|| (!sess->service_name && !sess->sessionID && !strcmp(sess->command->method, GF_RTSP_SETUP))
+	) {
 		u32 rsp_code = NC_RTSP_OK;
+		u32 mcast_mode=MCAST_OFF;
+		Bool is_setup = !strcmp(sess->command->method, GF_RTSP_SETUP);
+
 		char *res_path = NULL;
 		if (sess->command->service_name) {
 			res_path = strstr(sess->command->service_name, "://");
 			if (res_path) res_path = strchr(res_path+3, '/');
 			if (res_path) res_path++;
 		}
+		if (is_setup && res_path) {
+			ctrl = strrchr(res_path, '/');
+			if (!ctrl) {
+				gf_rtsp_response_reset(sess->response);
+				sess->response->ResponseCode = NC_RTSP_Bad_Request;
+				sess->response->CSeq = sess->command->CSeq;
+				rtspout_send_response(ctx, sess);
+				return  GF_OK;
+			}
+			ctrl[0] = 0;
+		}
 
-		if (res_path && (ctx->mcast==MCAST_MIRROR) ) {
+		if (res_path) {
+			mcast_mode = ctx->mcast;
+			//check if we have a running multicast for this resource setup after authentication
 			GF_RTSPOutSession *a_sess = rtspout_locate_mcast(ctx, res_path);
-			if (a_sess) {
+			if (a_sess && (a_sess->mcast_mode==MCAST_ON)) {
+				mcast_mode = MCAST_MIRROR;
+			}
+			if ((mcast_mode==MCAST_MIRROR) && a_sess) {
 				sess->mcast_mirror = a_sess;
-				rtspout_send_sdp(sess);
+				if (is_setup) {
+					gf_rtsp_response_reset(sess->response);
+					sess->response->ResponseCode = NC_RTSP_Method_Not_Allowed;
+					sess->response->CSeq = sess->command->CSeq;
+					rtspout_send_response(ctx, sess);
+				} else {
+					rtspout_send_sdp(sess);
+				}
 				return GF_OK;
 			}
 		}
@@ -888,10 +1429,20 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 			}
 		}
 		else if ((res_path[0] == '?') || (res_path[0] == '@') ) {
-			if (!ctx->dynurl) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTSP] client %s wants dynamic services, not enabled\n", sess->peer_address));
-				rsp_code = NC_RTSP_Forbidden;
+			Bool ok = GF_FALSE;
+			if (ctx->dynurl) {
+				ok = GF_TRUE;
 			} else {
+				rtspout_get_local_res_path(ctx, NULL, sess->command, &rsp_code, &mcast_mode);
+				if (rsp_code==NC_RTSP_OK) ok = GF_TRUE;
+				else if (rsp_code==NC_RTSP_Not_Found) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTSP] client %s wants dynamic services, not enabled\n", sess->peer_address));
+					rsp_code = NC_RTSP_Forbidden;
+				}
+			}
+
+			if (ok) {
+				char *mcast_sname = NULL;
 				GF_List *paths = gf_list_new();
 				rsp_code = NC_RTSP_OK;
 				res_path++;
@@ -904,19 +1455,19 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 						sep_c = sep[0];
 						sep[0] = 0;
 					}
-
-					if (!strstr(res_path, "://")) {
-						src_url = rtspout_get_local_res_path(ctx, res_path);
-						if (src_url) gf_list_add(paths, src_url);
-						else
-							rsp_code = NC_RTSP_Not_Found;
+					if (!strncmp(res_path, "name=", 5)) {
+						if (!mcast_sname) mcast_sname = gf_strdup(res_path+5);
+					} else if (!strchr(res_path, ':')) {
+						src_url = rtspout_get_local_res_path(ctx, res_path, sess->command, &rsp_code, &mcast_mode);
+					} else if (gf_filter_is_supported_source(filter, res_path, NULL)) {
+						src_url = gf_strdup(res_path);
+					} else if (gf_filter_url_is_filter(filter, res_path, NULL)) {
+						src_url = gf_strdup(res_path);
 					} else {
-						if (gf_filter_is_supported_source(filter, res_path, NULL)) {
-							src_url = gf_strdup(res_path);
-							gf_list_add(paths, src_url);
-						} else {
-							rsp_code = NC_RTSP_Service_Unavailable;
-						}
+						rsp_code = NC_RTSP_Service_Unavailable;
+					}
+					if (src_url) {
+						gf_list_add(paths, src_url);
 					}
 
 					if (!sep) break;
@@ -937,10 +1488,10 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 					gf_free(src_url);
 				}
 				gf_list_del(paths);
+				sess->mcast_sname = mcast_sname;
 			}
 		} else {
-			rsp_code = NC_RTSP_Not_Found;
-			char *src_url = rtspout_get_local_res_path(ctx, res_path);
+			char *src_url = rtspout_get_local_res_path(ctx, res_path, sess->command, &rsp_code, &mcast_mode);
 			if (src_url) {
 				rsp_code = NC_RTSP_OK;
 				//load media service
@@ -959,18 +1510,38 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 			gf_rtsp_response_reset(sess->response);
 			sess->response->ResponseCode = rsp_code;
 			sess->response->CSeq = sess->command->CSeq;
+			if (rsp_code==NC_RTSP_Unauthorized) {
+				sess->response->WWW_Authenticate = gf_strdup("Basic");
+			}
 			rtspout_send_response(ctx, sess);
 			return GF_OK;
+		}
+		if (ctrl) ctrl[0] = '/';
+
+		if (is_setup && ctrl) {
+			sess->setup_ctrl = gf_strdup(ctrl);
 		}
 
 		if (sess->sdp_state==SDP_LOADED) {
 			//single session, create SDP
+			if (is_setup) {
+				return rtspout_process_setup(ctx, sess, ctrl);
+			}
 			rtspout_send_sdp(sess);
 			return GF_OK;
 		}
 		//store cseq and wait for SDP to be loadable
 		sess->last_cseq = sess->command->CSeq;
 		sess->request_pending = GF_TRUE;
+		sess->mcast_mode = mcast_mode;
+		return GF_OK;
+	}
+
+	if (!sess->service_name) {
+		gf_rtsp_response_reset(sess->response);
+		sess->response->ResponseCode = NC_RTSP_Bad_Request;
+		sess->response->CSeq = sess->command->CSeq;
+		rtspout_send_response(ctx, sess);
 		return GF_OK;
 	}
 
@@ -995,154 +1566,17 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 	} else {
 		ctrl = strrchr(sess->command->service_name, '/');
 	}
-	if (ctrl) {
-		sscanf(ctrl, "/trackID=%d", &stream_ctrl_id);
-	}
 
 	//process setup
 	if (!strcmp(sess->command->method, GF_RTSP_SETUP)) {
-	 	char remoteIP[GF_MAX_IP_NAME_LEN];
-		GF_RTPOutStream *stream = NULL;
-		GF_RTSPTransport *transport = gf_list_get(sess->command->Transports, 0);
-		u32 rsp_code=NC_RTSP_OK;
-		Bool enable_multicast = GF_FALSE;
-		Bool reset_transport_dest = GF_FALSE;
-
-		if (!ctrl || !transport) {
-			rsp_code = NC_RTSP_Bad_Request;
-		} else if (sess->sessionID && sess->command->Session && strcmp(sess->sessionID, sess->command->Session)) {
-			rsp_code = NC_RTSP_Bad_Request;
-		} else if (sess->sessionID && !sess->command->Session) {
-			rsp_code = NC_RTSP_Not_Implemented;
-		} else {
-			u32 i, count = gf_list_count(sess->streams);
-			for (i=0; i<count; i++) {
-				stream = gf_list_get(sess->streams, i);
-				if (stream_ctrl_id==stream->ctrl_id)
-					break;
-				stream=NULL;
-			}
-			if (!stream_ctrl_id)
-				rsp_code = NC_RTSP_Not_Found;
-		}
-
-		if (!stream) {
-			gf_rtsp_response_reset(sess->response);
-			sess->response->ResponseCode = rsp_code;
-			sess->response->CSeq = sess->command->CSeq;
-			rtspout_send_response(ctx, sess);
-			return GF_OK;
-		}
-
-		gf_rtsp_response_reset(sess->response);
-		sess->response->CSeq = sess->command->CSeq;
-
-		stream->selected = GF_TRUE;
-		if (transport && (rsp_code==NC_RTSP_OK) ) {
-			if (!transport->IsInterleaved) {
-				u32 st_idx = gf_list_find(sess->streams, stream);
-				transport->port_first = ctx->firstport + 2 * st_idx;
-				transport->port_last = transport->port_first + 1;
-				if (sess->interleave)
-					rsp_code = NC_RTSP_Not_Implemented;
-			} else {
-				if (!sess->sessionID) {
-					sess->interleave = GF_TRUE;
-				} else if (!sess->interleave) {
-					rsp_code = NC_RTSP_Not_Implemented;
-				}
-			}
-			transport->SSRC = rand();
-			transport->is_sender = GF_TRUE;
-
-			if (transport->IsUnicast) {
-				if (transport->destination && gf_sk_is_multicast_address(transport->destination)) {
-					rsp_code = NC_RTSP_Bad_Request;
-				} else if (!transport->destination) {
-					transport->destination = sess->peer_address;
-					reset_transport_dest = GF_TRUE;
-				}
-				if (sess->multicast_ip)
-					rsp_code = NC_RTSP_Forbidden;
-
-				if (ctx->dst && (strstr(ctx->dst, "://127.0.0.1") || strstr(ctx->dst, "://localhost") || strstr(ctx->dst, "://::1/128") ) ) {
-					if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
-					transport->destination = "127.0.0.1";
-					reset_transport_dest = GF_TRUE;
-				}
-			}
-			else {
-				if (transport->destination && !gf_sk_is_multicast_address(transport->destination)) {
-					rsp_code = NC_RTSP_Bad_Request;
-				} else {
-					if (ctx->mcast != MCAST_OFF) {
-						enable_multicast = GF_TRUE;
-						//we don't allow seting up streams on different mcast addresses
-						if (!sess->multicast_ip) {
-							sess->multicast_ip = transport->destination; //detach memory
-						}
-						transport->source = transport->destination = sess->multicast_ip;
-						reset_transport_dest = GF_TRUE;
-
-						transport->client_port_first = 0;
-						transport->client_port_last = 0;
-						if (ctx->ttl) transport->TTL = ctx->ttl;
-						if (!transport->TTL) transport->TTL = 1;
-						stream->mcast_port = transport->port_first;
-						rtspout_get_next_mcast_port(ctx, sess, &stream->mcast_port);
-						transport->port_first = stream->mcast_port;
-						transport->port_last = stream->mcast_port+1;
-					} else {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] SETUP requests a multicast to %s, not allowed\n", transport->destination));
-						rsp_code = NC_RTSP_Forbidden;
-					}
-				}
-			}
-		}
-
-		if (rsp_code != NC_RTSP_OK) {
-			sess->response->ResponseCode = rsp_code;
-		} else {
-			e = gf_rtp_streamer_init_rtsp(stream->rtp, ctx->mtu, transport, ctx->ifce);
-			if (e) {
-				sess->response->ResponseCode = NC_RTSP_Internal_Server_Error;
-			} else {
-				if (!sess->sessionID)
-					sess->sessionID = gf_rtsp_generate_session_id(sess->rtsp);
-
-				sess->response->ResponseCode = NC_RTSP_OK;
-				sess->response->Session = sess->sessionID;
-				if (!enable_multicast) {
-					gf_rtsp_get_session_ip(sess->rtsp, remoteIP);
-					if (!reset_transport_dest && transport->destination) gf_free(transport->destination);
-					transport->destination = NULL;
-					transport->source = remoteIP;
-				}
-				gf_list_add(sess->response->Transports, transport);
-			}
-		}
-
-
-		if (sess->interleave) {
-			stream->rtp_id = transport->rtpID;
-			stream->rtcp_id = transport->rtcpID;
-			gf_rtp_streamer_set_interleave_callbacks(stream->rtp, rtspout_interleave_packet, sess, stream);
-		}
-
-		rtspout_send_response(ctx, sess);
-		gf_list_reset(sess->response->Transports);
-		sess->response->Session = NULL;
-		if (reset_transport_dest)
-			transport->destination = NULL;
-
-		transport->source = NULL;
-		return GF_OK;
+		return rtspout_process_setup(ctx, sess, ctrl);
 	}
 
 	//process play
 	if (!strcmp(sess->command->method, GF_RTSP_PLAY)) {
 		Double start_range=-1;
 		u32 rsp_code=NC_RTSP_OK;
+		u32 stream_ctrl_id = rtspout_get_ctrl_id(sess, ctrl);
 		if (sess->sessionID && sess->command->Session && strcmp(sess->sessionID, sess->command->Session)) {
 			rsp_code = NC_RTSP_Bad_Request;
 		} else if (!sess->command->Session || !sess->sessionID) {
@@ -1212,9 +1646,19 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 
 		rtspout_send_event(sess, GF_TRUE, GF_FALSE, 0);
 
-		rtspout_del_session(filter, sess);
-		rtspout_check_last_sess(ctx);
-		*sess_ptr = NULL;
+		if (ctx->dst) {
+			rtspout_del_session(filter, sess);
+			rtspout_check_last_sess(ctx);
+			*sess_ptr = NULL;
+		}
+		//keep session and setup small timeout - this speeds up seek by avoiding reloading the media source
+		else {
+			if (sess->sessionID) {
+				gf_free(sess->sessionID);
+				sess->sessionID = NULL;
+			}
+			sess->last_active_time = gf_sys_clock() - ctx->ms_timeout + 2000;
+		}
 		return GF_OK;
 	}
 	return GF_OK;
@@ -1258,7 +1702,7 @@ void rtspout_merge_http_tunnel(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSPOut
 static GF_Err rtspout_process(GF_Filter *filter)
 {
 	GF_Err e=GF_OK;
-	u32 i, count;
+	u32 i, count, now;
 	GF_RTSPOutCtx *ctx = gf_filter_get_udta(filter);
 
 	if (ctx->done)
@@ -1270,10 +1714,13 @@ static GF_Err rtspout_process(GF_Filter *filter)
 		e = GF_OK;
 	}
 
+	now = gf_sys_clock();
  	count = gf_list_count(ctx->sessions);
 	for (i=0; i<count; i++) {
 		GF_Err sess_err;
 		GF_RTSPOutSession *sess = gf_list_get(ctx->sessions, i);
+		if (!sess) break;
+
 		sess_err = rtspout_process_session_signaling(filter, ctx, &sess);
 		if ((s32)sess_err == GF_RTSP_TUNNEL_POST) {
 			gf_list_rem(ctx->sessions, i);
@@ -1283,29 +1730,54 @@ static GF_Err rtspout_process(GF_Filter *filter)
 			continue;
 		}
 		if (sess_err) e |= sess_err;
+		if (!sess) break;
 
-		if (sess && sess->play_state) {
+		if (sess->play_state==1) {
 			sess_err = rtspout_process_rtp(filter, ctx, sess);
 			if (sess_err) e |= sess_err;
 		}
+
+		if (ctx->runfor>0) {
+			s64 diff = gf_sys_clock_high_res();
+			diff -= sess->sys_clock_at_init;
+			diff /= 1000;
+			if ((s32) diff > ctx->runfor) {
+				rtspout_del_session(filter, sess);
+				e = GF_EOS;
+				ctx->done = GF_TRUE;
+				break;
+			}
+		}
+
+		if (sess->last_active_time && ctx->ms_timeout && (now > sess->last_active_time + ctx->ms_timeout)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Timeout on session %s after %d ms, aborting\n", sess->service_name, now-sess->last_active_time));
+			rtspout_del_session(filter, sess);
+			i--;
+			count--;
+		}
 	}
+	if (!count && ctx->dst)
+		return GF_EOS;
 
 	if (e==GF_EOS) {
 		if (ctx->dst)
 			return GF_EOS;
 		e=GF_OK;
 	}
-
-	if (ctx->next_wake_us)
+	//server mode, post task
+	if (!ctx->dst)
+		gf_filter_post_process_task(filter);
+	if (ctx->next_wake_us) {
 		gf_filter_ask_rt_reschedule(filter, ctx->next_wake_us);
-
+	}
 	return e;
 }
 
 static GF_FilterProbeScore rtspout_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "rtsp://", 7)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "rtsph://", 7)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "rtsph://", 8)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "rtsps://", 8)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -1340,6 +1812,7 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(mounts), "list of directories to expose in server mode", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read TCP socket", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxc), "maximum number of connections", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in seconds for inactive sessions (0 disable timeout)", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(close), "close RTSP connection after each request, except when RTP over RTSP is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -1351,6 +1824,12 @@ static const GF_FilterArgs RTSPOutArgs[] =
 		, GF_PROP_UINT, "off", "off|on|mirror", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(quit), "exit server once first session is over (for test purposes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(htun), "enable RTSP over HTTP tunnel", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(trp), "transport mode\n"
+	"- both: allow TCP or UDP traffic\n"
+	"- udp: only allow UDP traffic\n"
+	"- tcp: only allow TCP traffic", GF_PROP_UINT, "both", "both|udp|tcp", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cert), "certificate file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(pkey), "private key file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
 	{0}
 };
 
@@ -1364,6 +1843,11 @@ GF_FilterRegister RTSPOutRegister = {
 		"The server only runs on TCP, and handles request in sequence: it will not probe for commands until previous response is sent.\n"
 		"The server supports both RTP over UDP delivery and RTP interleaved over RTSP delivery.\n"
 		"\n"
+		"The scheduling algorithm and RTP options are the same as the RTP output filter, see [gpac -h rtpout](rtpout)\n"
+		"The server will disconnect UDP streaming sessions if no RTCP traffic has been received for [-timeout]() seconds.\n"
+		"\n"
+		"The server can run over TLS by specifying [-cert]() and [-pkey](), in which case the default [-port]() is 322.\n"
+		"\n"
 		"# Sink mode\n"
 		"The filter can work as a simple output filter by specifying the [-dst]() option:\n"
 		"EX gpac -i source -o rtsp://myip/sessionname\n"
@@ -1373,18 +1857,40 @@ GF_FilterRegister RTSPOutRegister = {
 		"# Server mode\n"
 		"The filter can work as a regular RTSP server by specifying the [-mounts]() option to indicate paths of media file to be served:\n"
 		"EX gpac rtspout:mounts=mydir1,mydir2\n"
-		"In server mode, it is possible to load any source supported by gpac by setting the option [-dynurl]().\n"
+		"In this case, content `RES` from any of the specified directory is exposed as `rtsp://SERVER/RES`\n"
+		"\n"
+		"The [-mounts]() option can also specify access rule file(s), see `gpac -h creds`. When rules are used:\n"
+		"- if a directory has a `name` rule, it will be used in the URL\n"
+		"- otherwise, the directory is directly available under server root `/`\n"
+		"- only read access and multicast rights are checked\n"
+		"EX [foodir]\n"
+		"EX name=bar\n"
+		"Content `RES` of this directory is exposed as `rtsp://SERVER/bar/RES`.\n"
+		"  \n"
+		"\n"
+		"In this mode, it is possible to load any source supported by gpac by setting the option [-dynurl]().\n"
 		"The expected syntax of the dynamic RTSP URLs is `rtsp://servername/?URL1[&URLN]` or `rtsp://servername/@URL1[@URLN]` \n"
 		"Each URL can be absolute or local, in which case it is resolved against the mount point(s).\n"
 		"EX gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]\n"
 		"The server will resolve this URL in a new session containing streams from `myfile.mp4` and streams from pipe `mynamepipe`.\n"
 		"When setting [-runfor]() in server mode, the server will exit at the end of the last session being closed.\n"
 		"\n"
+		"The parameter `name=VAL` is reserved to assign a session name in case multicast mirroring is used.\n"
+		"EX gpac -i rtsp://localhost/?name=live?pipe://mynamepipe&myfile.mp4 [dst filters]\n"
+		"\n"
+		"Usage of dynamic URLs can also be configured using the specific directory `$dynurl` in an access rule file.\n"
+		"EX[$dynurl]\n"
+		"ru=foo\n"
+		"This will allow dynamic URLs only for `foo` user.\n"
+		"\n"
+		"Note: If the [-dynurl]() is set, it is enabled for all users, without authentication.\n"
+		"\n"
+		"# Multicasting\n"
 		"In both modes, clients can setup multicast if the [-mcast]() option is `on` or `mirror`.\n"
 		"When [-mcast]() is set to `mirror` mode, any DESCRIBE command on a resource already delivered through a multicast session will use that multicast.\n"
 		"Consequently, only DESCRIBE methods are processed for such sessions, other methods will return Unauthorized.\n"
 		"\n"
-		"The scheduling algorithm and RTP options are the same as the RTP output filter, see [gpac -h rtpout](rtpout)\n"
+		"In server mode, multicast can be enabled per read directory using the `mcast` access rule of the directory configuration - see `gpac -h creds`.\n"
 		"\n"
 		"# HTTP Tunnel\n"
 		"The server mode supports handling RTSP over HTTP tunnel by default. This can be disabled using [-htun]().\n"
@@ -1405,7 +1911,7 @@ GF_FilterRegister RTSPOutRegister = {
 const GF_FilterRegister *rtspout_register(GF_FilterSession *session)
 {
 	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
-		gf_opts_set_key("temp_out_proto", RTSPOutRegister.name, "rtsp");
+		gf_opts_set_key("temp_out_proto", RTSPOutRegister.name, "rtsp,rtsph,rtsps");
 	}
 	return &RTSPOutRegister;
 }

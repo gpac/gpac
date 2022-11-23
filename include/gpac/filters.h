@@ -2554,6 +2554,15 @@ GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *er
 */
 Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const char *parent_url);
 
+/*! Checks if a URL describes a filter
+
+\param filter the target filter
+\param url filter description chain, with optional arguments.
+\param act_as_source set to GF_TRUE if filter described acts as a source - may be NULL.
+\return GF_TRUE if a filter is described by this url, GF_FALSE otherwise
+*/
+Bool gf_filter_url_is_filter(GF_Filter *filter, const char *url, Bool *act_as_source);
+
 /*! Gets the number of input PIDs connected to a filter
 \param filter the target filter
 \return number of input PIDs

@@ -39,7 +39,8 @@ typedef struct
 	Double speed, start;
 	u32 vol, pan, buffer, mbuffer, rbuffer;
 	GF_Fraction adelay;
-	
+	Double media_offset;
+
 	GF_FilterPid *pid;
 	u32 sr, afmt, nb_ch, timescale;
 	u64 ch_cfg;
@@ -289,6 +290,14 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			delay += gf_timestamp_rescale(ctx->adelay.num, ctx->adelay.den, ctx->timescale);
 
 		cts = gf_filter_pck_get_cts(pck);
+
+		const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MEDIA_TIME);
+		if (p) {
+			Double cts = (Double)  gf_filter_pck_get_cts(pck);
+			cts /= ctx->timescale;
+			ctx->media_offset = cts - p->value.number;
+		}
+
 		if (delay >= 0) {
 			cts += delay;
 		} else if (cts < (u64) -delay) {
@@ -696,6 +705,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(adelay), "set audio delay in sec", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(buffer_done), "buffer done indication (readonly, for user app)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(rebuffer), "system time in us at which last rebuffer started, 0 if not rebuffering (readonly, for user app)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(media_offset), "media offset (substract this value to CTS to get media time - readonly)", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

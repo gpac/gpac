@@ -36,6 +36,7 @@
 /*IETF lib*/
 #include <gpac/internal/ietf_dev.h>
 
+#include <gpac/download.h>
 
 #define RTSP_BUFFER_SIZE		5000
 
@@ -44,9 +45,17 @@ typedef struct __rtpin_stream GF_RTPInStream;
 
 enum
 {
-	RTP_RTSP_AUTO=0,
-	RTP_RTSP_ON,
-	RTP_RTSP_OFF,
+	RTP_TRANSPORT_AUTO=0,
+	RTP_TRANSPORT_TCP_ONLY,
+	RTP_TRANSPORT_UDP_ONLY,
+};
+
+enum
+{
+	RETRY_RTSP_NONE=0,
+	RETRY_RTSP_NORMAL,
+	RETRY_RTSP_FORCE_TCP,
+	RETRY_RTSP_PENDING = 1<<8,
 };
 
 /*the rtsp/rtp client*/
@@ -63,7 +72,7 @@ typedef struct
 	u32 udp_timeout, rtcp_timeout, stats;
 	Bool forceagg;
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
-	u32 interleave;
+	u32 transport;
 	s32 max_sleep, loss_rate;
 	Bool rtcpsync;
 	GF_PropStringList ssm, ssmx;
@@ -102,7 +111,8 @@ typedef struct
 
 	Double last_ntp;
 
-	Bool is_scalable, done, retry_tcp;
+	Bool is_scalable, done;
+	u32 retry_rtsp;
 
 	Double last_start_range;
 
@@ -114,6 +124,14 @@ typedef struct
 	Bool is_eos;
 	u32 eos_probe_start;
 	u32 nb_bytes_rcv;
+
+	GF_DownloadManager *dm;
+	char *auth_string;
+	//for async user pass
+	u32 check_creds;
+	GF_UserCredentials *creds;
+	GF_Err notif_error;
+	struct __rtpin_stream *auth_stream;
 } GF_RTPIn;
 
 enum
@@ -164,6 +182,8 @@ GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control);
 
 void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess);
 
+void rtpin_do_authenticate(GF_RTPIn *ctx);
+
 /*RTP channel state*/
 enum
 {
@@ -208,6 +228,8 @@ enum
 	/*EOS signaled (RTCP or range-based)*/
 	RTP_EOS = (1<<6),
 	RTP_EOS_FLUSHED = (1<<7),
+
+	RTP_AUTH_RESETUP = (1<<8),
 };
 
 enum
@@ -240,7 +262,7 @@ struct __rtpin_stream
 	GF_FilterPid *opid;
 
 	u32 status;
-
+	u32 ts_offset;
 	u32 last_stats_time;
 	
 	u32 ES_ID, OD_ID;
@@ -286,6 +308,8 @@ struct __rtpin_stream
 
 	u32 sr, nb_ch;
 	Bool map_utc, map_media_time;
+
+	GF_Err last_err;
 };
 
 /*creates new RTP stream from SDP info*/

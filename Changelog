@@ -29,6 +29,8 @@
 - non-blocking IO for RTSP and HTTP servers/clients
 - RTSP over HTTP in rtsp server
 - Source-Specific multicast for udp and rtp inputs
+- User Authentication for HTTP and RTSP servers
+- TLS support for RTSP client and server
 
 ## Encryption
 - ClearKey support in dasher and decryptor

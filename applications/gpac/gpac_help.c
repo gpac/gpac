@@ -671,6 +671,7 @@ static GF_GPACArg gpac_args[] =
 			"- cfg: print the GPAC configuration help\n"
 			"- prompt: print the GPAC prompt help when running in interactive mode (see [-k](GPAC) )\n"
 			"- modules: print available modules\n"
+			"- creds: print credential help\n"
 			"- filters: print name of all available filters\n"
 			"- filters:*: print name of all available filters, including meta filters\n"
 			"- codecs: print the supported builtin codecs - use `-hx` to include unmapped codecs (ffmpeg, ...)\n"
@@ -704,6 +705,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("unit-tests", NULL, "enable unit tests of some functions otherwise not covered by gpac test suite", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("xopt", NULL, "unrecognized options and filters declaration following this option are ignored - used to pass arguments to GUI", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("creds", NULL, "setup credentials as used by servers", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
 #ifdef GPAC_CONFIG_IOS
 	GF_DEF_ARG("req-gl", NULL, "forces loading SDL - iOS only", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
@@ -844,6 +846,68 @@ void gpac_config_help()
 
 	if (gen_doc) return;
 	gf_sys_format_help(helpout, help_flags, "\nCurrent configuration file is `%s`\n\n", gf_opts_get_filename());
+}
+
+#ifndef GPAC_DISABLE_DOC
+static const char *gpac_credentials =
+{
+"# Credentials\n"
+"Some servers in GPAC can use user-based and group-based authentication.\n"
+"The information is stored by default in the file `users.cfg` located in the GPAC profile directory.\n"
+"The file can be overwritten using the [-users](CORE) option.\n"
+"\n"
+"By default, this file does not exist until at least one user has been configured.\n"
+"\n"
+"The [-creds]() option allows inspecting or modifying the users and groups information. The syntax for the option value is:\n"
+"- `show` or no value: prints the `users.cfg` file\n"
+"- `reset`: deletes the `users.cfg` file (i.e. deletes all users and groups)\n"
+"- `NAME`: show information of user `NAME`\n"
+"- `+NAME`: adds user `NAME`\n"
+"- `+NAME:I1=V1[,I2=V2]`: sets info `I1` with value `V1` to user `NAME`. the info name `password` resets password without prompt.\n"
+"- `-NAME`: removes user `NAME`\n"
+"- `_NAME`: force password change of user `NAME`\n"
+"- `@NAME`: show information of group `NAME`\n"
+"- `@+NAME[:u1[,u2]]`: adds group `NAME` if not existing and adds specified users to group\n"
+"- `@-NAME:u1[,u2]`: removes specified users from group `NAME`\n"
+"- `@-NAME`: removes group `NAME`\n"
+"\n"
+"By default all added users are members of the group `users`.\n"
+"Passwords are not stored, only a hash is stored.\n"
+"\n"
+"Servers using authentication rules can use a configuration file instead of a directory name.\n"
+"This configuration file is organized in sections, each section name descibing a directory.\n"
+"EX [somedir]\n"
+"EX ru=foo\n"
+"EX rg=bar\n"
+"\n"
+"The following keys are defined per directory, but may be ignored by the server depending on its operation mode:\n"
+"- ru: comma-separated list of user names with read access to the directory\n"
+"- rg: comma-separated list of group names with read access to the directory\n"
+"- wu: comma-separated list of user names with write access to the directory\n"
+"- wg: comma-separated list of group names with write access to the directory\n"
+"- mcast: comma-separated list of user names with multicast creation rights (RTSP server only)\n"
+"- filters: comma-separated list of filter names for which the directory is valid. If not found or `all`, applies to all filters\n"
+"\n"
+"Rights can be configured on sub-directories by adding sections for the desired directories.\n"
+"EX [d1]\n"
+"EX rg=bar\n"
+"EX [d1/d2]\n"
+"EX ru=foo\n"
+"With this configuration:\n"
+"- the directory `d1` will be readable by all members of group `bar`\n"
+"- the directory `d1/d2` will be readable by user `foo` only\n"
+"\n"
+"Servers in GPAC currently only support the `Basic` HTTP authentication scheme, and should preferably be run over TLS.\n"
+};
+#endif
+
+void gpac_credentials_help(GF_SysArgMode argmode)
+{
+#ifndef GPAC_DISABLE_DOC
+		gf_sys_format_help(helpout, help_flags, "%s", gf_sys_localized("gpac", "credentials", gpac_credentials) );
+#else
+		gf_sys_format_help(helpout, help_flags, "%s", "GPAC compiled without built-in doc.\n");
+#endif
 }
 
 #include <gpac/network.h>
@@ -1406,7 +1470,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 {
 	u32 idx=0;
 	const GF_FilterArgs *args = NULL;
-	const char *reg_name, *reg_desc;
+	const char *reg_name, *reg_desc=NULL;
 #ifndef GPAC_DISABLE_DOC
 	const char *reg_help;
 #endif
@@ -1420,8 +1484,8 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 #endif
 	} else if (reg) {
 		reg_name = reg->name;
-		reg_desc = reg->description;
 #ifndef GPAC_DISABLE_DOC
+		reg_desc = reg->description;
 		reg_help = reg->help;
 #endif
 	} else {
@@ -1631,9 +1695,10 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			if (a->flags & GF_FS_ARG_META) continue;
 
 			u8 achar;
-			u32 j=0;
 			char szArg[100];
 			sprintf(szArg, " %s ", a->arg_name);
+#ifndef GPAC_DISABLE_DOC
+			u32 j=0;
 			char *quoted = reg_help ? strstr(reg_help, szArg) : NULL;
 			if (quoted) {
 				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link: \"... %s\"\n", reg_name, a->arg_name, quoted);
@@ -1649,6 +1714,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 					exit(1);
 				}
 			}
+#endif
 
 			if (a->min_max_enum) {
 				//check format
@@ -2018,6 +2084,7 @@ void dump_all_props(char *pname)
 		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
+			if (i==GF_PROP_STRING_LIST_COPY) continue;
 			if ((i>=GF_PROP_LAST_NON_ENUM) && (i<GF_PROP_FIRST_ENUM)) continue;
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s  \n", gf_props_get_type_name(i), gf_props_get_type_desc(i) );
 		}
@@ -2986,11 +3053,13 @@ int gpac_make_lang(char *filename)
 		i++;
 	}
 
+#ifndef GPAC_DISABLE_DOC
 	//print gpac doc
 	gpac_lang_set_key(cfg, "gpac", "doc", gpac_doc);
 
 	//print gpac alias doc
 	gpac_lang_set_key(cfg, "gpac", "alias", gpac_alias);
+#endif
 
 	//print libgpac core help
 	const GF_GPACArg *args = gf_sys_get_options();
@@ -3016,12 +3085,14 @@ int gpac_make_lang(char *filename)
 		u32 j=0;
 		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
 
+#ifndef GPAC_DISABLE_DOC
 		if (reg->description) {
 			gpac_lang_set_key(cfg, reg->name, "desc", reg->description);
 		}
 		if (reg->help) {
 			gpac_lang_set_key(cfg, reg->name, "help", reg->help);
 		}
+#endif
 		while (reg->args && reg->args[j].arg_name) {
 			gpac_lang_set_key(cfg, reg->name, reg->args[j].arg_name, reg->args[j].arg_desc);
 			j++;

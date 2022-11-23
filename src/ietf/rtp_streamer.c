@@ -49,6 +49,8 @@ struct __rtp_streamer
 
 	u32 in_timescale;
 	char rtcp_buf[RTCP_BUF_SIZE];
+
+	GF_Err last_err;
 };
 
 
@@ -65,6 +67,7 @@ static void rtp_stream_on_packet_done(void *cbk, GF_RTPHeader *header)
 
 #ifndef GPAC_DISABLE_LOG
 	if (e) {
+		rtp->last_err = e;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Error %s sending RTP packet SN %u - TS %u\n", gf_error_to_string(e), header->SequenceNumber, header->TimeStamp));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("RTP SN %u - TS %u - M %u - Size %u\n", header->SequenceNumber, header->TimeStamp, header->Marker, rtp->payload_len + 12));
@@ -549,8 +552,11 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 	if (!out_sdp_buffer) return GF_BAD_PARAM;
 
 	gf_rtp_builder_get_payload_name(rtp->packetizer, payloadName, mediaName);
-	if (!for_rtsp)
+	if (!for_rtsp) {
+		//this can happen when forwarding a multicast SDP from RTSP, where only a subset of streams have been setup
+		if (!rtp->channel) return GF_OK;
 		gf_rtp_get_ports(rtp->channel, &port, NULL);
+	}
 
 	sprintf(sdp, "m=%s %d RTP/%s %u\n", mediaName, for_rtsp ? 0 : port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
 	if (nb_channels > 1)
@@ -788,6 +794,7 @@ GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, 
 GF_EXPORT
 GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, u8 *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex)
 {
+	GF_Err e;
 	if (!rtp->channel) return data ? GF_BAD_PARAM : GF_EOS;
 
 	rtp->packetizer->sl_header.compositionTimeStamp = gf_timestamp_rescale(cts, rtp->in_timescale, rtp->channel->TimeScale);
@@ -799,7 +806,10 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, u8 *data, u32 size, u32 fu
 	sampleDuration = (u32) gf_timestamp_rescale(sampleDuration, rtp->in_timescale, rtp->channel->TimeScale);
 	if (au_start && size) rtp->packetizer->nb_aus++;
 
-	return gf_rtp_builder_process(rtp->packetizer, data, size, (u8) au_end, fullsize, sampleDuration, sampleDescIndex);
+	rtp->last_err = GF_OK;
+	e = gf_rtp_builder_process(rtp->packetizer, data, size, (u8) au_end, fullsize, sampleDuration, sampleDescIndex);
+	if (e) return e;
+	return rtp->last_err;
 }
 
 GF_EXPORT

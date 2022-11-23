@@ -934,6 +934,33 @@ static Bool delete_tmp_files(void *cbck, char *item_name, char *item_path, GF_Fi
 }
 #endif
 
+static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
+{
+	char key[16];
+	u64 v1, v2;
+	const char *opt = gf_cfg_get_key(cfg, "core", "cred");
+	if (opt) return;
+	strcat(szPath, "/creds.key");
+	if (gf_file_exists(szPath)) return;
+
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[core] Creating default credential key in %s, use -cred=PATH/TO_FILE to overwrite\n", szPath));
+
+	v1 = gf_rand(); v1<<=32; v1 |= gf_rand();
+	v2 = gf_rand(); v2<<=32; v2 |= gf_rand();
+	v1 |= gf_sys_clock_high_res();
+	v2 |= (u64) cfg;
+	v2 ^= (u64) szPath;
+	* ( (u64*) &key[0] ) = v1;
+	* ( (u64*) &key[7] ) = v2;
+	FILE *crd = gf_fopen(szPath, "w");
+	if (!crd) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Failed to create credential key in %s, credentials will not be stored\n", szPath));
+		return;
+	}
+	fwrite(key, 16, 1, crd);
+	fclose(crd);
+	gf_cfg_set_key(cfg, "core", "cred", szPath);
+}
 
 /*!
 \brief configuration file initialization
@@ -1060,6 +1087,7 @@ skip_cfg:
 #endif
 
 	check_modules_dir(cfg);
+	check_default_cred_file(cfg, szPath);
 
 	if (!gf_cfg_get_key(cfg, "core", "store-dir")) {
 		if (profile && !strcmp(profile, "0")) {
