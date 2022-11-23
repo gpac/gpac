@@ -1723,7 +1723,8 @@ u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pix_fmt)
 	for (i=0; i<count; i++) {
 		if (PixelsToQT[i].pfmt==pix_fmt) return PixelsToQT[i].qt4cc;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknown mapping to QT/ISOBMFF for pixel format %s\n", gf_pixel_fmt_name(pix_fmt)));
+	//uncomment to see list of unmapped codecs when generating doc
+	//GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknown mapping to QT/ISOBMFF for pixel format %s\n", gf_pixel_fmt_name(pix_fmt)));
 	return 0;
 }
 
