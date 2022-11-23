@@ -118,7 +118,7 @@ The v0.8.X release (the last one using the legacy architecture) is officially de
 ## V2.X
 Targets:
 - [x] drop MP4Client/Osmo4 and GF_Terminal API
-- [ ] User authentication for HTTP and RTSP servers
+- [x] User authentication for HTTP and RTSP servers
 - [ ] DASH event support
 - [ ] Web integration (emscripten, Remotery UI)
 - [ ] Better TTML2 / SMPTE ST 2052-1 support

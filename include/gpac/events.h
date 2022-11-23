@@ -319,6 +319,8 @@ typedef struct
 {
 	/*! GF_EVENT_AUTHORIZATION*/
 	u8 type;
+	/*! set to GF_TRUE if TLS is used*/
+	Bool secure;
 	/*! the URL the auth request is for*/
 	const char *site_url;
 	/*! user name (provided buffer can hold 50 bytes). It may already be formatted, or an empty ("") string*/

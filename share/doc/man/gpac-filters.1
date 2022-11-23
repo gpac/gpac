@@ -2962,7 +2962,13 @@ This filter handles SDP/RTSP/RTP input reading. It supports:
 .br
 The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS). 
 .br
-The filter will use RTSP over HTTP tunnel if server port is 80 or 8080 or if protocol scheme is rtsph://.
+The filter will use:
+.br
+- RTSP over HTTP tunnel if server port is 80 or 8080 or if protocol scheme is rtsph://.
+.br
+- RTSP over TLS if server port is 322 or if protocol scheme is rtsps://.
+.br
+- RTSP over HTTPS tunnel if server port is 443 and if protocol scheme is rtsph://.
 .br
 
 .br
@@ -2981,7 +2987,7 @@ reorder_len (uint, default: 1000): reorder length in packets
 .br
 reorder_delay (uint, default: 50): max delay in RTP re-orderer, packets will be dispatched after that
 .br
-block_size (uint, default: 0100000): buffer size for RTP/UDP or RTSP when interleaved
+block_size (uint, default: 0x100000): buffer size for RTP/UDP or RTSP when interleaved
 .br
 disable_rtcp (bool, default: false): disable RTCP reporting
 .br
@@ -2997,13 +3003,13 @@ default_port (uint, default: 554, minmax: 0-65535): set default RTSP port
 .br
 satip_port (uint, default: 1400, minmax: 0-65535): set default port for SATIP
 .br
-interleave (enum, default: auto): set RTP over RTSP
+transport (enum, default: auto): set RTP over RTSP
 .br
 * auto: set interleave on if HTTP tunnel is used, off otherwise and retry in interleaved mode if UDP timeout
 .br
-* on: enable RTP over RTSP
+* tcp: enable RTP over RTSP
 .br
-* off: disable RTP over RTSP
+* udp: disable RTP over RTSP
 .br
 
 .br
@@ -3806,6 +3812,8 @@ buffer_done (bool):            buffer done indication (readonly, for user app)
 .br
 rebuffer (luint):              system time in us at which last rebuffer started, 0 if not rebuffering (readonly, for user app)
 .br
+media_offset (dbl, default: 0): media offset (substract this value to CTS to get media time - readonly)
+.br
 
 .br
 .SH ufm4v
@@ -3941,6 +3949,8 @@ buffer_done (bool):            buffer done indication (readonly)
 rebuffer (luint):              system time in us at which last rebuffer started, 0 if not rebuffering (readonly)
 .br
 vjs (bool, default: true):     use default JS script for vout control
+.br
+media_offset (dbl, default: 0): media offset (substract this value to CTS to get media time - readonly)
 .br
 vflip (enum, default: no, updatable): flip video (GL only)
 .br
@@ -6428,6 +6438,10 @@ The real-time scheduling algorithm works as follows:
 .br
 
 .br
+The filter does not check for RTCP timeout and will run until all input PIDs reach end of stream.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -6486,6 +6500,16 @@ The server supports both RTP over UDP delivery and RTP interleaved over RTSP del
 .br
 
 .br
+The scheduling algorithm and RTP options are the same as the RTP output filter, see gpac -h rtpout
+.br
+The server will disconnect UDP streaming sessions if no RTCP traffic has been received for .I timeout seconds.
+.br
+
+.br
+The server can run over TLS by specifying .I cert and .I pkey, in which case the default .I port is 322.
+.br
+
+.br
 .SH Sink mode
 .LP
 .br
@@ -6514,7 +6538,31 @@ gpac rtspout:mounts=mydir1,mydir2
 .br
 
 .br
-In server mode, it is possible to load any source supported by gpac by setting the option .I dynurl.
+In this case, content RES from any of the specified directory is exposed as rtsp://SERVER/RES
+.br
+
+.br
+The .I mounts option can also specify access rule file(s), see gpac -h creds. When rules are used:
+.br
+- if a directory has a name rule, it will be used in the URL
+.br
+- otherwise, the directory is directly available under server root /
+.br
+Example
+.br
+[foodir]
+.br
+name=bar
+.br
+
+.br
+Content RES of this directory is exposed as rtsp://SERVER/bar/RES.
+.br
+  
+.br
+
+.br
+In this mode, it is possible to load any source supported by gpac by setting the option .I dynurl.
 .br
 The expected syntax of the dynamic RTSP URLs is rtsp://servername/?URL1[&URLN] or rtsp://servername/@URL1[@URLN] 
 .br
@@ -6532,6 +6580,33 @@ When setting .I runfor in server mode, the server will exit at the end of the la
 .br
 
 .br
+The parameter name=VAL is reserved to assign a session name in case multicast mirroring is used.
+.br
+Example
+.br
+gpac -i rtsp://localhost/?name=live?pipe://mynamepipe&myfile.mp4 [dst filters]
+.br
+
+.br
+
+.br
+Usage of dynamic URLs can also be configured using the specific directory $dynurl in an access rule file.
+.br
+EX[$dynurl]
+.br
+ru=foo
+.br
+This will allow dynamic URLs only for foo user.
+.br
+
+.br
+Note: If the .I dynurl is set, it is enabled for all users, without authentication.
+.br
+
+.br
+.SH Multicasting
+.LP
+.br
 In both modes, clients can setup multicast if the .I mcast option is on or mirror.
 .br
 When .I mcast is set to mirror mode, any DESCRIBE command on a resource already delivered through a multicast session will use that multicast.
@@ -6540,7 +6615,7 @@ Consequently, only DESCRIBE methods are processed for such sessions, other metho
 .br
 
 .br
-The scheduling algorithm and RTP options are the same as the RTP output filter, see gpac -h rtpout
+In server mode, multicast can be enabled per read directory using the mcast access rule of the directory configuration - see gpac -h creds.
 .br
 
 .br
@@ -6590,6 +6665,8 @@ block_size (uint, default: 10000): block size used to read TCP socket
 .br
 maxc (uint, default: 100):     maximum number of connections
 .br
+timeout (uint, default: 20):   timeout in seconds for inactive sessions (0 disable timeout)
+.br
 user_agent (str, default: $GUA): user agent string, by default solved from GPAC preferences
 .br
 close (bool, default: false):  close RTSP connection after each request, except when RTP over RTSP is used
@@ -6611,6 +6688,20 @@ mcast (enum, default: off):    control multicast setup of a session
 quit (bool, default: false):   exit server once first session is over (for test purposes)
 .br
 htun (bool, default: true):    enable RTSP over HTTP tunnel
+.br
+trp (enum, default: both):     transport mode
+.br
+* both: allow TCP or UDP traffic
+.br
+* udp: only allow UDP traffic
+.br
+* tcp: only allow TCP traffic
+.br
+
+.br
+cert (str):                    certificate file in PEM format to use for TLS mode
+.br
+pkey (str):                    private key file in PEM format to use for TLS mode
 .br
 
 .br
@@ -6654,6 +6745,24 @@ When a single read directory is specified, the server root / is the content of t
 When multiple read directories are specified, the server root / contains the list of the mount points with their directory names.
 .br
 When a write directory is specified, the upload resource name identifies a file in this directory (the write directory name is not present in the URL).
+.br
+  
+.br
+A directory rule file (cf gpac -h creds) can be specified in .I rdirs but NOT in .I wdir. When rules are used:
+.br
+- if a directory has a name rule, it will be used in the URL
+.br
+- otherwise, the directory is directly available under server root /
+.br
+Example
+.br
+[foodir]
+.br
+name=bar
+.br
+
+.br
+Content RES of this directory is exposed as http://SERVER/bar/RES.
 .br
   
 .br
@@ -10924,7 +11033,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev487-gbc9b929a3-master
+build: 2.1-DEV-rev492-gbd1a8e990-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

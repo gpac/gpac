@@ -111,6 +111,7 @@ typedef struct
 	GF_PropVec4i olwnd;
 	GF_PropVec2i olsize;
 	GF_PropData oldata;
+	Double media_offset;
 
 	GF_Filter *filter;
 	GF_FilterPid *pid;
@@ -1330,6 +1331,16 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	}
 
 	glViewport(0, 0, ctx->display_width, ctx->display_height);
+	if (ctx->has_alpha) {
+		Float r, g, b;
+		r = GF_COL_R(ctx->back); r /= 255;
+		g = GF_COL_G(ctx->back); g /= 255;
+		b = GF_COL_B(ctx->back); b /= 255;
+		glClearColor(r, g, b, 1.0);
+	} else {
+		glClearColor(0, 0, 0, 1.0);
+	}
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (!pck)
 		goto exit;
@@ -1342,16 +1353,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		goto exit;
 	}
 
-	if (ctx->has_alpha) {
-		Float r, g, b;
-		r = GF_COL_R(ctx->back); r /= 255;
-		g = GF_COL_G(ctx->back); g /= 255;
-		b = GF_COL_B(ctx->back); b /= 255;
-		glClearColor(r, g, b, 1.0);
-	} else {
-		glClearColor(0, 0, 0, 1.0);
-	}
-	glClear(GL_COLOR_BUFFER_BIT);
 
 	//we are not sure if we are the only ones using the gl context, reset our defaults
 	glDisable(GL_LIGHTING);
@@ -1383,9 +1384,10 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		//and draw
 		vout_draw_gl_quad(ctx, GF_FALSE);
 	}
-	glUseProgram(0);
 
 exit:
+
+	glUseProgram(0);
 
 	//we don't lock since most of the time overlay is not set
 	if (ctx->oldata.ptr && (ctx->olsize.x>0) && (ctx->olsize.y>0)) {
@@ -1982,6 +1984,12 @@ static GF_Err vout_process(GF_Filter *filter)
 		gf_filter_pck_unref(ctx->last_pck);
 	ctx->last_pck = pck;
 	ctx->nb_frames++;
+	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MEDIA_TIME);
+	if (p) {
+		Double cts = (Double)  gf_filter_pck_get_cts(pck);
+		cts /= ctx->timescale;
+		ctx->media_offset = cts - p->value.number;
+	}
 
 
 draw_frame:
@@ -2012,7 +2020,7 @@ draw_frame:
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx)
 {
 	ctx->force_release = GF_FALSE;
-	if ((ctx->pfmt && ctx->last_pck) || !ctx->pid) {
+	if ((ctx->pfmt && ctx->last_pck) || !ctx->pid || ctx->update_oldata) {
 #ifdef VOUT_USE_OPENGL
 		if (ctx->disp < MODE_2D) {
 			gf_rmt_begin_gl(vout_draw_gl);
@@ -2181,6 +2189,8 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(rebuffer), "system time in us at which last rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(vjs), "use default JS script for vout control", GF_PROP_BOOL, "true", NULL, GF_ARG_HINT_EXPERT},
+
+	{ OFFS(media_offset), "media offset (substract this value to CTS to get media time - readonly)", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(vflip), "flip video (GL only)\n"
 		"- no: no flipping\n"

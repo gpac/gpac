@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2021
+ *			Copyright (c) Telecom ParisTech 2020-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / vout default ui
@@ -188,6 +188,7 @@ session.set_event_fun( (evt)=> {
 
 	case GF_EVENT_MOUSEUP:
 		if ((last_x != evt.mouse_x) || (last_y != evt.mouse_y)) return 0;
+		if (overlay_type==OL_AUTH) return 0;
 
 		if (overlay_type==OL_PLAY) {
 			if (prog_interact(evt)) return 0;
@@ -225,6 +226,12 @@ session.set_event_fun( (evt)=> {
 					} else {
 						auth_state = 0;
 						toggle_overlay();
+
+						text.font = 'SERIF';
+						text.fontsize = 20;
+						text.baseline = GF_TEXT_BASELINE_HANGING;
+						text.align = GF_TEXT_ALIGN_LEFT;
+						text.lineSpacing = 20;
 						overlay_type = overlay_type_bck;
 						if (overlay_type) toggle_overlay();
 					}
@@ -322,8 +329,13 @@ function do_seek(val, mods, absolute)
 	let last_ts_f = vout.last_ts_drop;
 	if (last_ts_f==null) return;
 
+
 	let last_ts = last_ts_f.n;
 	last_ts /= last_ts_f.d;
+	if (audio_only)
+		last_ts -= aout.get_arg('media_offset');
+	else
+		last_ts -= vout.get_arg('media_offset');
 	last_ts += seek_to;	
 	if (last_ts<0) last_ts = 0;
 	else if (last_ts>duration) last_ts = duration-10;
@@ -439,6 +451,10 @@ function update_play()
 	let h, m, s;
 	let last_ts = last_ts_f.n;
 	last_ts /= last_ts_f.d;
+	if (audio_only)
+		last_ts -= aout.get_arg('media_offset');
+	else
+		last_ts -= vout.get_arg('media_offset');
 
 	if (reverse) last_ts = duration - last_ts;
 
@@ -483,7 +499,7 @@ function update_play()
 		ol_canvas.fill(brush);
 
 		let	progress_path = new evg.Path();
-		let progress = (last_ts_f.n/last_ts_f.d) / duration;
+		let progress = last_ts / duration;
 		brush.set_color('white');
 		progress_path.rectangle(prog_ox - prog_length/2, 9, prog_length*progress, 18, false);
 		ol_canvas.path = progress_path;
@@ -760,7 +776,7 @@ let auth_requests = [];
 function update_auth()
 {
 	if (init_wnd) {
-		let pos = '' + Math.floor(disp_size.x/2 - ol_width/2) + 'x' + Math.floor(ol_height/2 - disp_size.y/2) + 'x'+ol_width+'x'+ol_height;
+		let pos = '0x0x'+ol_width+'x'+ol_height;
 		vout.update('olwnd', pos);
 		init_wnd=false;
 		progress_bar_path=null;
@@ -774,6 +790,7 @@ function update_auth()
 
 	ol_canvas.clearf(1, 1, 1, 1);
 	let str = ['Authentication for ' + auth_requests[0].site];
+	str.push(auth_requests[0].secure ? "Secured Connection" : "NOT SECURED Connection");
 	if (auth_state) {
 		str.push('Enter password');
 		let p = '';
@@ -966,6 +983,7 @@ function process_keyboard(evt)
 		return true;
 
 	case GF_KEY_H:
+		if (overlay_type==OL_AUTH) break;
 		//hide player
 		if (audio_only && (overlay_type==OL_PLAY)) {
 			toggle_overlay();
@@ -979,6 +997,7 @@ function process_keyboard(evt)
 		}
 		return true;
 	case GF_KEY_I:
+		if (overlay_type==OL_AUTH) break;
 		//hide player
 		if (audio_only && (overlay_type==OL_PLAY)) {
 			toggle_overlay();
@@ -992,6 +1011,7 @@ function process_keyboard(evt)
 		}
 		return true;
 	case GF_KEY_P:
+		if (overlay_type==OL_AUTH) break;
 		//do not untoggle for audio only
 		if (audio_only) return;
 		overlay_type=OL_PLAY;
@@ -1024,12 +1044,13 @@ function process_keyboard(evt)
 	return false;
 }
 
-session.set_auth_fun( (site, user, pass, auth_cbk) => {
+session.set_auth_fun( (site, user, pass, secure, auth_cbk) => {
 	overlay_type_bck = overlay_type;
 	overlay_type = OL_AUTH;
 	auth_cbk.site = site;
 	auth_cbk.user = user ? user : "";
 	auth_cbk.pass = pass ? pass : "";
+	auth_cbk.secure = secure;
 	auth_requests.push(auth_cbk);
 
 	if (overlay_type_bck) toggle_overlay();

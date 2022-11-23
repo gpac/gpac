@@ -186,13 +186,15 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 			return GF_TRUE;
 #endif
 
-
+		if (gf_sys_is_test_mode()) {
+			return GF_FALSE;
+		}
 		assert( evt->type == GF_EVENT_AUTHORIZATION);
 		assert( evt->auth.user);
 		assert( evt->auth.password);
 		assert( evt->auth.site_url);
 
-		fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
+		fprintf(stderr, "**** Authorization required for site %s %s ****\n", evt->auth.site_url, evt->auth.secure ? "(secure)" : "- NOT SECURE");
 		fprintf(stderr, "login   : ");
 		if (!gf_read_line_input(evt->auth.user, 50, 1))
 			return GF_FALSE;
@@ -3645,11 +3647,12 @@ u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type)
 	}
 }
 
-static Bool gf_fsess_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta)
+static Bool gf_fsess_get_user_pass(void *usr_cbk, Bool secure, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta)
 {
 	GF_Event evt;
 	GF_FilterSession *fsess = (GF_FilterSession *)usr_cbk;
 	evt.type = GF_EVENT_AUTHORIZATION;
+	evt.auth.secure = secure;
 	evt.auth.site_url = site_url;
 	evt.auth.user = usr_name;
 	evt.auth.password = password;

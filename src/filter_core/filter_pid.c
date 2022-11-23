@@ -6974,9 +6974,15 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		free_evt(evt);
 		return;
 	}
-	//do not allow pause/resume if already paused
-	else if (nb_paused && ((evt->base.type == GF_FEVT_PAUSE) || (evt->base.type == GF_FEVT_RESUME)) ) {
+	//do not allow pause if already paused
+	else if ((nb_paused>1) && (evt->base.type == GF_FEVT_PAUSE) ) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already paused, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+		free_evt(evt);
+		return;
+	}
+	//do not allow resume if some instances are still paused
+	else if (nb_paused && (evt->base.type == GF_FEVT_RESUME) ) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but some PID instances are still paused, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
 		free_evt(evt);
 		return;
 	}

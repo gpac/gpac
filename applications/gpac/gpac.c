@@ -54,7 +54,9 @@ char separator_set[7] = GF_FS_DEFAULT_SEPS;
 /*
 	exported by gpac_help.c
 */
+#ifndef GPAC_DISABLE_DOC
 extern const char *gpac_doc;
+#endif
 
 /*
 	static vars
@@ -118,6 +120,7 @@ static BOOL WINAPI gpac_sig_handler(DWORD sig);
 #include <signal.h>
 static void gpac_sig_handler(int sig);
 #endif
+static int gpac_do_creds(char *creds_args);
 
 static Bool gpac_event_proc(void *opaque, GF_Event *event)
 {
@@ -324,6 +327,8 @@ int gpac_main(int argc, char **argv)
 	Bool prev_filter_is_not_source;
 	u32 current_subsession_id;
 	u32 current_source_id;
+	Bool do_creds = GF_FALSE;
+	char *creds_args=NULL;
 	Bool has_xopt = GF_FALSE;
 
 	helpout = stdout;
@@ -350,6 +355,9 @@ int gpac_main(int argc, char **argv)
 #endif
 		} else if (!strncmp(arg, "-p=", 3)) {
 			profile = arg+3;
+		} else if (!strncmp(arg, "-creds", 6)) {
+			do_creds = GF_TRUE;
+			if (!strncmp(arg, "-creds=", 7)) creds_args = arg+7;
 		} else if (!strncmp(arg, "-mkl=", 5)) {
 			return gpac_make_lang(arg+5);
 		}
@@ -363,6 +371,9 @@ int gpac_main(int argc, char **argv)
 	gf_opts_set_key("temp", "static-jsrt", "true");
 #endif
 
+	if (do_creds) {
+		return gpac_do_creds(creds_args);
+	}
 
 //	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	gf_log_set_tool_level(GF_LOG_APP, GF_LOG_INFO);
@@ -524,6 +535,9 @@ int gpac_main(int argc, char **argv)
 				}
 
 				i++;
+			} else if (!strcmp(argv[i+1], "creds")) {
+				gpac_credentials_help(argmode);
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "bin")) {
 				gf_sys_format_help(helpout, help_flags, "GPAC binary information:\n"
 					"Version: %s\n"
@@ -578,6 +592,14 @@ int gpac_main(int argc, char **argv)
 			}
 			gpac_alias_help(GF_ARGMODE_EXPERT);
 
+
+			if (gen_doc==1) {
+				fprintf(helpout, "# Credentials Setup\n");
+			} else {
+				fprintf(helpout, ".SH Credentials Setup\n.PL\n");
+			}
+			gpac_credentials_help(GF_ARGMODE_EXPERT);
+
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("core_config.md", "w");
@@ -606,7 +628,9 @@ int gpac_main(int argc, char **argv)
 				helpout = gf_fopen("filters_general.md", "w");
 				fprintf(helpout, "%s", auto_gen_md_warning);
 			}
+#ifndef GPAC_DISABLE_DOC
 			gf_sys_format_help(helpout, help_flags, "%s", gpac_doc);
+#endif
 
 			if (gen_doc==1) {
 				gf_fclose(helpout);
@@ -1515,7 +1539,7 @@ static void gpac_on_logs(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_too
 }
 
 static u64 last_report_clock_us = 0;
-static void print_date(u64 time)
+static void print_date_ex(u64 time, Bool full_print)
 {
 	time_t gtime;
 	struct tm *t;
@@ -1525,10 +1549,18 @@ static void print_date(u64 time)
 	sec = (u32)(time / 1000);
 	ms = (u32)(time - ((u64)sec) * 1000);
 	t = gf_gmtime(&gtime);
-//	fprintf(stderr, "[%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
-	fprintf(stderr, "[%02d:%02d:%02d.%03dZ] ", t->tm_hour, t->tm_min, t->tm_sec, ms);
+	if (full_print) {
+		fprintf(stdout, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
+	} else {
+		fprintf(stderr, "[%02d:%02d:%02d.%03dZ] ", t->tm_hour, t->tm_min, t->tm_sec, ms);
+	}
 }
 
+static void print_date(u64 time)
+{
+	print_date_ex(time, GF_FALSE);
+
+}
 static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_final)
 {
 	u32 i, count, nb_active;
@@ -2030,6 +2062,9 @@ rescan:
 					break;
 				case 0:
 					break;
+				case 'x':
+					exit(0);
+					break;
 				case '\n':
 					//prev was a command, flush \n
 					if (prev_was_cmd) {
@@ -2502,4 +2537,358 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 #endif
 	return 0;
+}
+
+#include <gpac/token.h>
+
+static void to_hex(u8 *data, u32 len, char *out)
+{
+	u32 i;
+	out[0] = 0;
+	for (i=0; i<len; i++) {
+		sprintf(out + 2*i, "%02x", data[i]);
+	}
+	out[2*i]=0;
+}
+
+static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd)
+{
+	u8 *pass;
+	char szVAL[50];
+	u8 hash[GF_SHA1_DIGEST_SIZE];
+	u8 salt[16];
+	u64 v1, v2;
+	v1 = gf_rand(); v1<<=32; v1 |= gf_rand();
+	v1 |= gf_sys_clock_high_res();
+	v2 = gf_rand(); v2<<=32; v2 |= gf_rand();
+	v2|= (u64) creds;
+	* ((u64*) &salt[0]) = v1;
+	* ((u64*) &salt[7]) = v2;
+	u32 len = strlen(passwd);
+	pass = gf_malloc(len+17);
+	memcpy(pass, passwd, len);
+	pass[len] = '@';
+	memcpy(pass + len + 1, salt, 16);
+	len += 17;
+	gf_sha1_csum(pass, len, hash);
+	to_hex(hash, GF_SHA1_DIGEST_SIZE, szVAL);
+	gf_cfg_set_key(creds, user, "password", szVAL);
+	to_hex(salt, 16, szVAL);
+	gf_cfg_set_key(creds, user, "salt", szVAL);
+
+	u64 now = gf_sys_clock_high_res();
+	sprintf(szVAL, LLU, now);
+	gf_cfg_set_key(creds, user, "pass_date", szVAL);
+	return now;
+}
+
+static void rem_user_from_group(GF_Config *creds, const char *group, const char *user)
+{
+	char *g = (char *) gf_cfg_get_key(creds, "groups", group);
+	char *grp=NULL;
+	while (g) {
+		char *sep = strchr(g, ',');
+		if (sep) sep[0] = 0;
+		if (strcmp(user, g))
+			gf_dynstrcat(&grp, g, ",");
+		if (!sep) break;
+		sep[0] = ',';
+		g = sep+1;
+	}
+	if (grp) {
+		gf_cfg_set_key(creds, "groups", group, grp);
+		gf_free(grp);
+	} else {
+		gf_cfg_set_key(creds, "groups", group, "");
+	}
+}
+static int gpac_do_creds(char *creds_args)
+{
+	GF_Config *creds = NULL;
+
+	const char *cred_file = gf_opts_get_key("core", "users");
+	if (!cred_file) {
+		char credFilePath[GF_MAX_PATH];
+		const char *p = gf_opts_get_filename();
+		if (!p) {
+			fprintf(stderr, "Failed to locate profile directory\n");
+			goto err_exit;
+		}
+
+		strcpy(credFilePath, p);
+		char *sep = strrchr(credFilePath, '/');
+		if (!sep) sep = strrchr(credFilePath, '\\');
+		if (sep) sep[0] = 0;
+		strcat(credFilePath, "/users.cfg");
+		gf_opts_set_key("core", "users", credFilePath);
+		cred_file = gf_opts_get_key("core", "users");
+		if (!cred_file) {
+			fprintf(stderr, "Failed to create credential file %s\n", credFilePath);
+			goto err_exit;
+		}
+	}
+
+	if (!creds_args || !strcmp(creds_args, "show")) {
+		if (gf_file_exists(cred_file)) {
+			u8 *cdata=NULL;
+			u32 clen;
+			gf_file_load_data(cred_file, &cdata, &clen);
+			fwrite(cdata, clen, 1, stdout);
+			gf_free(cdata);
+		} else {
+			fprintf(stdout, "Empty creds file %s\n", cred_file);
+		}
+		goto exit;
+	}
+	if (!strcmp(creds_args, "reset")) {
+		fprintf(stdout, "Deleting creds file %s\n", cred_file);
+		goto exit;
+	}
+
+	creds = gf_cfg_force_new(NULL, cred_file);
+	if (!creds) {
+		fprintf(stderr, "Failed to open creds file %s\n", cred_file);
+		goto err_exit;
+	}
+	Bool is_group=GF_FALSE;
+	u32 is_add=0;
+	Bool is_rem=GF_FALSE;
+	if (creds_args[0] == '@') { is_group = GF_TRUE; creds_args++; }
+	if (creds_args[0] == '+') { is_add = 1; creds_args++;}
+	if (creds_args[0] == '_') { is_add = 2; creds_args++; }
+	if (creds_args[0] == '-') { is_rem = GF_TRUE; creds_args++;}
+
+	char *param = strchr(creds_args, ':');
+	if (param) {
+		param[0] = 0;
+	}
+
+	if (is_group) {
+		if (is_rem) {
+			if (!strcmp(creds_args, "users")) {
+				fprintf(stderr, "Cannot remove group users\n");
+				goto err_exit;
+			}
+			char *g = (char *) gf_cfg_get_key(creds, "groups", creds_args);
+			if (g == NULL) {
+				fprintf(stderr, "No such group %s\n", creds_args);
+				goto err_exit;
+			}
+			if (param) {
+				param++;
+				char *user = (char *) gf_token_find_word(g, param, ",");
+				if (!user) {
+					fprintf(stdout, "user %s not member of group %s\n", param, creds_args);
+					goto err_exit;
+				}
+				rem_user_from_group(creds, creds_args, param);
+			} else {
+				fprintf(stdout, "Deleting group %s\n", creds_args);
+				gf_cfg_set_key(creds, "groups", creds_args, NULL);
+			}
+		}
+		else if (is_add) {
+			char *grp = NULL;
+			if (param) {
+				param++;
+				while (param) {
+					char *sep = strchr(param, ',');
+					if (sep) sep[0] = 0;
+					const char *u = gf_cfg_get_key(creds, param, "password");
+					if (!u) {
+						fprintf(stderr, "No user %s defined, not adding to group\n", param);
+					} else {
+						gf_dynstrcat(&grp, param, ",");
+					}
+					if (!sep) break;
+					param = sep+1;
+				}
+			}
+			if (grp) {
+				gf_cfg_set_key(creds, "groups", creds_args, grp);
+				gf_free(grp);
+			} else {
+				gf_cfg_set_key(creds, "groups", creds_args, "");
+			}
+		} else {
+			const char *g = gf_cfg_get_key(creds, "groups", creds_args);
+			if (g) {
+				fprintf(stdout, "Users in group: %s\n", g);
+			} else {
+				fprintf(stdout, "No such group %s\n", creds_args);
+				goto err_exit;
+			}
+		}
+		goto exit;
+	}
+
+	u32 keys = gf_cfg_get_key_count(creds, creds_args);
+	if (!keys && !is_add) {
+		fprintf(stderr, "No such user %s\n", creds_args);
+		goto err_exit;
+	}
+
+	//user add
+	if ((is_add==1) || ((is_add==2) && !param)) {
+		char szP1[117];
+		char szP2[117];
+		u64 now = gf_net_get_utc();
+
+		const char *pass = gf_cfg_get_key(creds, creds_args, "password");
+		if (!pass || (is_add==2)) {
+
+			if (pass) {
+				fprintf(stderr, "Enter old password for %s\n", creds_args);
+				if (!gf_read_line_input(szP2, 100, 0))
+					goto err_exit;
+				fprintf(stderr, "*********\n");
+
+				if (gf_creds_check_password(creds_args, szP2)!=GF_OK) {
+					fprintf(stderr, "Wrong password\n");
+					goto err_exit;
+				}
+			}
+
+			fprintf(stderr, "Enter new password for %s\n", creds_args);
+			if (!gf_read_line_input(szP1, 100, 0))
+				goto err_exit;
+			fprintf(stderr, "*********\n");
+			if (strlen(szP1)<8) {
+				fprintf(stderr, "passwords must be at least 8 characters\n");
+				goto err_exit;
+			}
+			fprintf(stderr, "Re-enter new password for %s\n", creds_args);
+			if (!gf_read_line_input(szP2, 100, 0))
+				goto err_exit;
+			fprintf(stderr, "*********\n");
+			if (strcmp(szP1, szP2)) {
+				fprintf(stderr, "passwords do not match\n");
+				goto err_exit;
+			}
+
+			now = creds_set_pass(creds, creds_args, szP2);
+		} else {
+			fprintf(stderr, "Updating user \"%s\" information\n", creds_args);
+		}
+
+		const char *val;
+#define UPDATE_FIELD(_prompt, _key) \
+		val = gf_cfg_get_key(creds, creds_args, _key);\
+		if (!val) val="";\
+		fprintf(stderr, "\nEnter %s (%s): \n", _prompt, val);\
+		if (gf_read_line_input(szP1, 50, 1) && szP1[0]) \
+			gf_cfg_set_key(creds, creds_args, _key, szP1); \
+
+
+		UPDATE_FIELD("first name", "first_name")
+		UPDATE_FIELD("last name", "last_name")
+		UPDATE_FIELD("email", "email")
+		UPDATE_FIELD("company", "company")
+
+		if (!pass) {
+			sprintf(szP1, LLU, now);
+			gf_cfg_set_key(creds, creds_args, "created", szP1);
+		}
+
+		gf_opts_save();
+
+		const char *g = gf_cfg_get_key(creds, "groups", "users");
+		if (!gf_token_find_word(g, creds_args, ",")) {
+			char *newg = NULL;
+			if (g) gf_dynstrcat(&newg, g, NULL);
+			gf_dynstrcat(&newg, creds_args, ",");
+			gf_cfg_set_key(creds, "groups", "users", newg);
+			gf_free(newg);
+		}
+	} else if (is_rem) {
+		fprintf(stdout, "Deleting user \"%s\"\n", creds_args);
+		gf_cfg_del_section(creds, creds_args);
+		u32 i, count = gf_cfg_get_key_count(creds, "groups");
+		for (i=0; i<count; i++) {
+			const char *group = gf_cfg_get_key_name(creds, "groups", i);
+			rem_user_from_group(creds, group, creds_args);
+		}
+	} else if (!param) {
+		fprintf(stdout, "User \"%s\" information:\n", creds_args);
+		u32 i, count = gf_cfg_get_key_count(creds, creds_args);
+		for (i=0; i<count; i++) {
+			const char *k = gf_cfg_get_key_name(creds, creds_args, i);
+			if (!strcmp(k, "password")) continue;
+			if (!strcmp(k, "salt")) continue;
+			u32 klen = (u32) strlen(k) + 1;
+
+			fprintf(stdout, "%s: ", k);
+			while (klen<15) {
+				fprintf(stdout, " ");
+				klen++;
+			}
+
+			if (!strcmp(k, "created") || !strcmp(k, "pass_date") || !strcmp(k, "last_auth")) {
+				u64 val;
+				const char *sval = gf_cfg_get_key(creds, creds_args, k);
+				if (!sval) continue;
+				sscanf(sval, LLU, &val);
+				print_date_ex(val, GF_TRUE);
+				continue;
+			}
+			fprintf(stdout, "%s\n", gf_cfg_get_key(creds, creds_args, k));
+		}
+		Bool first=GF_TRUE;
+		count = gf_cfg_get_key_count(creds, "groups");
+		for (i=0; i<count; i++) {
+			const char *gname = gf_cfg_get_key_name(creds, "groups", i);
+			const char *g = gf_cfg_get_key(creds, "groups", gname);
+			if (!gf_token_find_word(g, creds_args, ",")) continue;
+			if (first) {
+				fprintf(stdout, "In groups:     ");
+				first = GF_FALSE;
+			}
+			fprintf(stdout, " %s", gname);
+		}
+		if (!first) fprintf(stdout, "\n");
+	}
+
+	if (!is_rem && param) {
+		param++;
+		while (param) {
+			char *sep = strchr(param, ':');
+			if (sep) sep[0] = 0;
+			char *sep2 = strchr(param, '=');
+			if (sep2) {
+				sep2[0] = 0;
+				if (!strcmp(param, "salt")
+					|| !strcmp(param, "created")
+					|| !strcmp(param, "pass_date")
+					|| !strcmp(param, "last_auth")
+				) {
+					fprintf(stderr, "Cannot modify %s (reserved value)\n", param);
+					sep2[0] = '=';
+					if (sep) sep[0] = ':';
+					goto err_exit;
+				}
+				else if (!strcmp(param, "password")) {
+					creds_set_pass(creds, creds_args, sep2+1);
+				} else {
+					gf_cfg_set_key(creds, creds_args, param, sep2+1);
+				}
+				sep2[0] = '=';
+			}
+			if (!sep) break;
+			sep[0] = ':';
+			param = sep+1;
+		}
+	}
+
+
+exit:
+	if (creds) {
+		gf_cfg_save(creds);
+		gf_cfg_del(creds);
+	}
+	return 0;
+
+
+err_exit:
+	if (creds) gf_cfg_del(creds);
+	return 1;
 }

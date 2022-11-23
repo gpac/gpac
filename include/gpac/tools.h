@@ -2153,6 +2153,24 @@ const char *gf_opts_get_filename();
  */
 Bool gf_opts_default_shared_directory(char *path_buffer);
 
+
+/*!
+ * Checks given user and password are valid
+\param username user name
+\param password password
+\return GF_OK if success, GF_NOT_FOUND if no such user or GF_AUTHENTICATION_FAILURE if wrong password
+ */
+GF_Err gf_creds_check_password(const char *username, char *password);
+
+/*!
+ * Checks given user belongs to list of users or groups.
+\param username user name
+\param users comma-seprated list of users to check, may be NULL
+\param groups comma-seprated list of groups to check, may be NULL
+\return GF_TRUE if success, GF_FALSE otherwise
+ */
+Bool gf_creds_check_membership(const char *username, const char *users, const char *groups);
+
 /*! @} */
 
 

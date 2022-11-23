@@ -117,15 +117,6 @@ enum
 	GF_DOWNLOAD_SESSION_THREAD_DEAD = 1<<11
 };
 
-typedef struct __gf_user_credentials
-{
-	char site[1024];
-	char username[50];
-	char digest[1024];
-	Bool valid;
-	u32 async_state;
-} gf_user_credentials_struct;
-
 enum REQUEST_TYPE
 {
 	GET = 0,
@@ -176,7 +167,7 @@ struct __gf_download_session
 	char *orig_url;
 	char *orig_url_before_redirect;
 	char *remote_path;
-	gf_user_credentials_struct * creds;
+	GF_UserCredentials * creds;
 	char cookie[GF_MAX_PATH];
 	DownloadedCacheEntry cache_entry;
 	Bool reused_cache_entry, from_cache_only;
@@ -1059,22 +1050,25 @@ Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry);
 
 #include <gpac/crypt.h>
 
-static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password, Bool store_info);
+static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserCredentials * creds, const char * password, Bool store_info);
 
 /**
  * Find a User's credentials for a given site
  */
-static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_DownloadManager *dm, const char *server_name)
+GF_UserCredentials* gf_user_credentials_find_for_site(GF_DownloadManager *dm, const char *server_name, const char *user_name)
 {
-	gf_user_credentials_struct * cred;
+	GF_UserCredentials * cred;
 	u32 count, i;
 	if (!dm || !dm->credentials || !server_name || !strlen(server_name))
 		return NULL;
 	count = gf_list_count( dm->credentials);
 	for (i = 0 ; i < count; i++) {
-		cred = (gf_user_credentials_struct*)gf_list_get(dm->credentials, i );
+		cred = (GF_UserCredentials*)gf_list_get(dm->credentials, i );
 		assert( cred );
-		if (!strcmp(cred->site, server_name))
+		if (strcmp(cred->site, server_name))
+			continue;
+
+		if (!user_name || !strcmp(user_name, cred->username))
 			return cred;
 	}
 
@@ -1095,8 +1089,9 @@ static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_Download
 		char *sep = credk ? strrchr(key, ':') : NULL;
 		if (sep) {
 			char szP[1024];
-			GF_SAFEALLOC(cred, gf_user_credentials_struct);
+			GF_SAFEALLOC(cred, GF_UserCredentials);
 			if (!cred) return NULL;
+			cred->dm = dm;
 			sep[0] = 0;
 			strcpy(cred->username, key);
 			strcpy(szP, sep+1);
@@ -1106,7 +1101,6 @@ static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_Download
 			gf_crypt_init(gfc, k, NULL);
 			gf_crypt_decrypt(gfc, szP, (u32) strlen(szP));
 			gf_crypt_close(gfc);
-
 			gf_user_credentials_save_digest(dm, cred, szP, GF_FALSE);
 			return cred;
 		}
@@ -1120,7 +1114,7 @@ static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_Download
 \param creds The credentials to fill
 \param GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
-static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password, Bool store_info) {
+static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, GF_UserCredentials * creds, const char * password, Bool store_info) {
 	int size;
 	char *pass_buf = NULL;
 	char range_buf[1024];
@@ -1152,8 +1146,12 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Failed to open credential key %s, will not store password\n", cred));
 			return GF_OK;
 		}
-		gf_fread(k, 16, f);
+		u32 ksize = (u32) gf_fread(k, 16, f);
 		gf_fclose(f);
+		if (ksize!=16) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Invalid credential key %s: size %d but expecting 16 bytes, will not store password\n", cred, ksize));
+			return GF_OK;
+		}
 
 		GF_Crypt *gfc = gf_crypt_open(GF_AES_128, GF_CTR);
 		gf_crypt_init(gfc, k, NULL);
@@ -1174,24 +1172,23 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 
 static void on_user_pass(void *udta, const char *user, const char *pass, Bool store_info)
 {
-	GF_DownloadSession *sess = (GF_DownloadSession *)udta;
-	if (sess->creds) {
-		u32 len = user ? (u32) strlen(user) : 0;
-		if (len && (user != sess->creds->username)) {
-			if (len> 49) len = 49;
-			strncpy(sess->creds->username, user, len);
-			sess->creds->username[len]=0;
-		}
-		if (user && pass) {
-			GF_Err e = gf_user_credentials_save_digest(sess->dm, sess->creds, pass, store_info);
-			if (e != GF_OK) {
-				sess->creds->valid = GF_FALSE;
-			}
-		} else {
-			sess->creds->valid = GF_FALSE;
-		}
-		sess->creds->async_state = 2;
+	GF_UserCredentials *creds = (GF_UserCredentials *)udta;
+	if (!creds) return;
+	u32 len = user ? (u32) strlen(user) : 0;
+	if (len && (user != creds->username)) {
+		if (len> 49) len = 49;
+		strncpy(creds->username, user, len);
+		creds->username[len]=0;
 	}
+	if (user && pass) {
+		GF_Err e = gf_user_credentials_save_digest((GF_DownloadManager *)creds->dm, creds, pass, store_info);
+		if (e != GF_OK) {
+			creds->valid = GF_FALSE;
+		}
+	} else {
+		creds->valid = GF_FALSE;
+	}
+	creds->req_state = GF_CREDS_STATE_DONE;
 }
 
 /**
@@ -1200,35 +1197,33 @@ static void on_user_pass(void *udta, const char *user, const char *pass, Bool st
 \param creds The credentials to fill
 \param GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
-static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, gf_user_credentials_struct * creds, GF_DownloadSession *for_sess)
+static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, GF_UserCredentials * creds, Bool secure)
 {
 	char szPASS[50];
 	if (!dm || !creds)
 		return GF_BAD_PARAM;
 	memset(szPASS, 0, 50);
 	if (!dm->get_user_password) return GF_AUTHENTICATION_FAILURE;
-	for_sess->creds = creds;
-	creds->async_state = 1;
-	if (!dm->get_user_password(dm->usr_cbk, creds->site, creds->username, szPASS, on_user_pass, for_sess)) {
-		creds->async_state = 0;
-		for_sess->creds = NULL;
+	creds->req_state = GF_CREDS_STATE_PENDING;
+	if (!dm->get_user_password(dm->usr_cbk, secure, creds->site, creds->username, szPASS, on_user_pass, creds)) {
+		creds->req_state = GF_CREDS_STATE_NONE;
 		return GF_AUTHENTICATION_FAILURE;
 	}
 	return GF_OK;
 }
 
-static gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * dm, const char * server_name, const char * username, const char * password, Bool valid, GF_DownloadSession *for_sess)
+GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool secure, const char * server_name, const char * username, const char * password, Bool valid)
 {
-	gf_user_credentials_struct * creds;
+	GF_UserCredentials * creds;
 	if (!dm)
 		return NULL;
 	assert( server_name );
-	creds = gf_find_user_credentials_for_site(dm, server_name);
+	creds = gf_user_credentials_find_for_site(dm, server_name, username);
 	/* If none found, we create one */
 	if (!creds) {
-		creds = (gf_user_credentials_struct*)gf_malloc(sizeof( gf_user_credentials_struct));
-		if (!creds)
-			return NULL;
+		GF_SAFEALLOC(creds, GF_UserCredentials);
+		if (!creds) return NULL;
+		creds->dm = dm;
 		gf_list_insert(dm->credentials, creds, 0);
 	}
 	creds->valid = valid;
@@ -1240,10 +1235,10 @@ static gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadMana
 	if (username && password && valid)
 		gf_user_credentials_save_digest(dm, creds, password, GF_FALSE);
 	else {
-		if (GF_OK != gf_user_credentials_ask_password(dm, creds, for_sess)) {
+		if (GF_OK != gf_user_credentials_ask_password(dm, creds, secure)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP,
 			       ("[HTTP] Failed to get password information.\n"));
-			gf_list_rem( dm->credentials, 0);
+			gf_list_del_item( dm->credentials, creds);
 			gf_free( creds );
 			creds = NULL;
 		}
@@ -1416,19 +1411,20 @@ static void ssl_on_log(int write_p, int version, int content_type, const void *b
 }
 #endif //GPAC_DISABLE_LOG
 
-static int ssl_init(GF_DownloadManager *dm, u32 mode)
+void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 {
 #if OPENSSL_VERSION_NUMBER > 0x00909000
 	const
 #endif
 	SSL_METHOD *meth;
 
-	if (!dm) return 0;
+	if (!dm) return NULL;
+
 	gf_mx_p(dm->cache_mx);
 	/* The SSL has already been initialized. */
 	if (dm->ssl_ctx) {
 		gf_mx_v(dm->cache_mx);
-		return 1;
+		return dm->ssl_ctx;
 	}
 	/* Init the PRNG.  If that fails, bail out.  */
 	if (gf_ssl_init_lib()) {
@@ -1494,12 +1490,12 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	allow them in OpenSSL.  */
 	SSL_CTX_set_mode(dm->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
 	gf_mx_v(dm->cache_mx);
-	return 1;
+	return dm->ssl_ctx;
 error:
 	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
 	dm->ssl_ctx = NULL;
 	gf_mx_v(dm->cache_mx);
-	return 0;
+	return NULL;
 }
 
 #ifdef GPAC_HAS_HTTP2
@@ -1603,7 +1599,10 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 	*e = GF_OK;
 	return ssl;
 }
-
+void gf_ssl_del(void *ssl)
+{
+	if (ssl) SSL_free(ssl);
+}
 
 static GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size, u32 *written)
 {
@@ -2068,6 +2067,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	gf_dynstrcat(&rsp_buf, szFmt, NULL);
 	switch (reply_code) {
 	case 400: gf_dynstrcat(&rsp_buf, "Bad Request", NULL); break;
+	case 401: gf_dynstrcat(&rsp_buf, "Unauthorized", NULL); break;
 	case 403: gf_dynstrcat(&rsp_buf, "Forbidden", NULL); break;
 	case 405: gf_dynstrcat(&rsp_buf, "Not Allowed", NULL); break;
 	case 416: gf_dynstrcat(&rsp_buf, "Requested Range Not Satisfiable", NULL); break;
@@ -2081,7 +2081,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	case 200: gf_dynstrcat(&rsp_buf, "OK", NULL); break;
 	case 201: gf_dynstrcat(&rsp_buf, "Created", NULL); break;
 	default:
-		gf_dynstrcat(&rsp_buf, "OK", NULL); break;
+		gf_dynstrcat(&rsp_buf, "ERROR", NULL); break;
 	}
 	gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 	if (!rsp_buf) return GF_OUT_OF_MEM;
@@ -2647,7 +2647,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			if (! sess->dm) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] Did not found any download manager, credentials not supported\n"));
 			} else
-				sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, info.userName, info.password, info.userName && info.password, NULL);
+				sess->creds = gf_user_credentials_register(sess->dm, !strcmp("https://", info.protocol), sess->server_name, info.userName, info.password, info.userName && info.password);
 		}
 	}
 	if (free_proto) gf_free((char *) info.protocol);
@@ -3139,6 +3139,90 @@ static Bool rfc2818_match(const char *pattern, const char *string)
 
 #endif
 
+
+#ifdef GPAC_HAS_SSL
+Bool gf_ssl_check_cert(SSL *ssl, const char *server_name)
+{
+	Bool success;
+	X509 *cert = SSL_get_peer_certificate(ssl);
+	if (!cert) return GF_TRUE;
+
+	long vresult;
+	SSL_set_verify_result(ssl, 0);
+	vresult = SSL_get_verify_result(ssl);
+
+	if (vresult == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] Cannot locate issuer's certificate on the local system, will not attempt to validate\n"));
+		SSL_set_verify_result(ssl, 0);
+		vresult = SSL_get_verify_result(ssl);
+	}
+
+	if (vresult == X509_V_OK) {
+		char common_name[256];
+		STACK_OF(GENERAL_NAME) *altnames;
+		GF_List* valid_names;
+		int i;
+
+		valid_names = gf_list_new();
+
+		common_name[0] = 0;
+		X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
+		gf_list_add(valid_names, common_name);
+
+		altnames = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+		if (altnames) {
+			for (i = 0; i < sk_GENERAL_NAME_num(altnames); ++i) {
+				const GENERAL_NAME *altname = sk_GENERAL_NAME_value(altnames, i);
+				if (altname->type == GEN_DNS)
+				{
+					#if OPENSSL_VERSION_NUMBER < 0x10100000L
+						unsigned char *altname_str = ASN1_STRING_data(altname->d.ia5);
+					#else
+						unsigned char *altname_str = (unsigned char *)ASN1_STRING_get0_data(altname->d.ia5);
+					#endif
+					gf_list_add(valid_names, altname_str);
+				}
+			}
+		}
+
+		success = GF_FALSE;
+		for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
+			const char *valid_name = (const char*) gf_list_get(valid_names, i);
+			if (rfc2818_match(valid_name, server_name)) {
+				success = GF_TRUE;
+				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[SSL] Hostname %s matches %s\n", server_name, valid_name));
+				break;
+			}
+		}
+		if (!success) {
+			if ( gf_opts_get_bool("core", "broken-cert")) {
+				success = GF_TRUE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names: expected %s\n", server_name));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names, try using -broken-cert: expected %s\n", 	server_name));
+			}
+#ifndef GPAC_DISABLE_LOG
+			for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
+				const char *valid_name = (const char*) gf_list_get(valid_names, i);
+				GF_LOG(success ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Tried name: %s\n", valid_name));
+			}
+#endif
+		}
+
+		gf_list_del(valid_names);
+		GENERAL_NAMES_free(altnames);
+	} else {
+		success = GF_FALSE;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Error verifying certificate %x\n", vresult));
+	}
+
+	X509_free(cert);
+	return success;
+}
+
+#endif
+
+
 static void gf_dm_connect(GF_DownloadSession *sess)
 {
 	GF_Err e;
@@ -3345,11 +3429,10 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	if ((!sess->ssl || (sess->connect_pending==2)) && (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)) {
 		u64 now = gf_sys_clock_high_res();
 		if (sess->dm && !sess->dm->ssl_ctx)
-			ssl_init(sess->dm, 0);
+			gf_dm_ssl_init(sess->dm, 0);
 		/*socket is connected, configure SSL layer*/
 		if (sess->dm && sess->dm->ssl_ctx) {
 			int ret;
-			X509 *cert;
 			Bool success;
 
 			if (!sess->ssl) {
@@ -3429,86 +3512,12 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 #endif
 			}
 
-			cert = SSL_get_peer_certificate(sess->ssl);
-			/*if we have a cert, check it*/
-			if (cert) {
-				long vresult;
-				SSL_set_verify_result(sess->ssl, 0);
-				vresult = SSL_get_verify_result(sess->ssl);
-
-				if (vresult == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] Cannot locate issuer's certificate on the local system, will not attempt to validate\n"));
-					SSL_set_verify_result(sess->ssl, 0);
-					vresult = SSL_get_verify_result(sess->ssl);
-				}
-
-				if (vresult == X509_V_OK) {
-					char common_name[256];
-					STACK_OF(GENERAL_NAME) *altnames;
-					GF_List* valid_names;
-					int i;
-
-					valid_names = gf_list_new();
-
-					common_name[0] = 0;
-					X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
-					gf_list_add(valid_names, common_name);
-
-					altnames = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
-					if (altnames) {
-						for (i = 0; i < sk_GENERAL_NAME_num(altnames); ++i) {
-							const GENERAL_NAME *altname = sk_GENERAL_NAME_value(altnames, i);
-							if (altname->type == GEN_DNS)
-							{
-								#if OPENSSL_VERSION_NUMBER < 0x10100000L
-									unsigned char *altname_str = ASN1_STRING_data(altname->d.ia5);
-								#else
-									unsigned char *altname_str = (unsigned char *)ASN1_STRING_get0_data(altname->d.ia5);
-								#endif
-								gf_list_add(valid_names, altname_str);
-							}
-						}
-					}
-
-					success = GF_FALSE;
-					for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
-						const char *valid_name = (const char*) gf_list_get(valid_names, i);
-						if (rfc2818_match(valid_name, sess->server_name)) {
-							success = GF_TRUE;
-							GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[SSL] Hostname %s matches %s\n", sess->server_name, valid_name));
-							break;
-						}
-					}
-					if (!success) {
-						if (sess->dm && sess->dm->allow_broken_certificate) {
-							success = GF_TRUE;
-							GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names: expected %s\n", sess->server_name));
-						} else {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names, try using -broken-cert: expected %s\n", 	sess->server_name));
-						}
-#ifndef GPAC_DISABLE_LOG
-						for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
-							const char *valid_name = (const char*) gf_list_get(valid_names, i);
-							GF_LOG(success ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Tried name: %s\n", valid_name));
-						}
-#endif
-					}
-
-					gf_list_del(valid_names);
-					GENERAL_NAMES_free(altnames);
-				} else {
-					success = GF_FALSE;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Error verifying certificate %x\n", vresult));
-				}
-
-				X509_free(cert);
-
-				if (!success) {
-					gf_dm_disconnect(sess, HTTP_RESET_CONN);
-					sess->status = GF_NETIO_STATE_ERROR;
-					SET_LAST_ERR(GF_AUTHENTICATION_FAILURE)
-					gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
-				}
+			success = gf_ssl_check_cert(sess->ssl, sess->server_name);
+			if (!success) {
+				gf_dm_disconnect(sess, HTTP_RESET_CONN);
+				sess->status = GF_NETIO_STATE_ERROR;
+				SET_LAST_ERR(GF_AUTHENTICATION_FAILURE)
+				gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
 			}
 
 			sess->ssl_setup_time = (u32) (gf_sys_clock_high_res() - now);
@@ -3975,7 +3984,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 	dm->skip_proxy_servers = NULL;
 	assert( dm->credentials);
 	while (gf_list_count(dm->credentials)) {
-		gf_user_credentials_struct * cred = (gf_user_credentials_struct*)gf_list_get( dm->credentials, 0);
+		GF_UserCredentials * cred = (GF_UserCredentials*)gf_list_get( dm->credentials, 0);
 		gf_list_rem( dm->credentials, 0);
 		gf_free( cred );
 	}
@@ -4725,7 +4734,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 	/*setup authentification*/
 	strcpy(pass_buf, "");
-	sess->creds = gf_find_user_credentials_for_site( sess->dm, sess->server_name );
+	sess->creds = gf_user_credentials_find_for_site( sess->dm, sess->server_name, NULL);
 	if (sess->creds && sess->creds->valid) {
 		sprintf(pass_buf, "Basic %s", sess->creds->digest);
 	}
@@ -5233,10 +5242,10 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	Bool upgrade_to_http2 = GF_FALSE;
 #endif
 
-	if (sess->creds && sess->creds->async_state) {
-		if (sess->creds->async_state==1)
+	if (sess->creds && sess->creds->req_state) {
+		if (sess->creds->req_state==GF_CREDS_STATE_PENDING)
 			return GF_OK;
-		sess->creds->async_state = 0;
+		sess->creds->req_state = GF_CREDS_STATE_NONE;
 		if (!sess->creds->valid) {
 			gf_dm_disconnect(sess, HTTP_CLOSE);
 			sess->status = GF_NETIO_STATE_ERROR;
@@ -5968,8 +5977,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			gf_opts_set_key("credentials", sess->creds->site, NULL);
 			sess->creds->valid = GF_FALSE;
 		}
+		Bool secure = GF_FALSE;
+#ifdef GPAC_HAS_SSL
+		if (sess->ssl) secure = GF_TRUE;
+#endif
 		/* Do we have a credentials struct ? */
-		sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, NULL, NULL, GF_FALSE, sess);
+		sess->creds = gf_user_credentials_register(sess->dm, secure, sess->server_name, NULL, NULL, GF_FALSE);
 		if (!sess->creds) {
 			/* User credentials have not been filled properly, we have to abort */
 			gf_dm_disconnect(sess, HTTP_CLOSE);
@@ -5984,7 +5997,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		gf_dm_disconnect(sess, HTTP_NO_CLOSE);
 		sess->status = GF_NETIO_SETUP;
 
-		if (sess->creds->async_state==1) {
+		if (sess->creds->req_state==GF_CREDS_STATE_PENDING) {
 			//force a wait for reply until we have resolved user pass
 			sess->status = GF_NETIO_WAIT_FOR_REPLY;
 			return GF_OK;
@@ -6798,8 +6811,8 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 		gf_dm_refresh_cache_entry(NULL);
 		gf_dm_session_thread(NULL);
 		gf_user_credentials_save_digest(NULL, NULL, NULL, GF_FALSE);
-		gf_user_credentials_ask_password(NULL, NULL, NULL);
-		gf_user_credentials_register(NULL, NULL, NULL, NULL, GF_FALSE, NULL);
+		gf_user_credentials_ask_password(NULL, NULL);
+		gf_user_credentials_register(NULL, NULL, NULL, NULL, GF_FALSE);
 		gf_cache_are_headers_processed(NULL);
 		gf_cache_get_start_range(NULL);
 		gf_cache_get_end_range(NULL);

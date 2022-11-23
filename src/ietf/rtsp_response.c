@@ -238,8 +238,8 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 	else if (!stricmp(Header, "Unsupported")) rsp->Unsupported = gf_strdup(Value);
 	else if (!stricmp(Header, "User-Agent")) rsp->User_Agent = gf_strdup(Value);
 	else if (!stricmp(Header, "Vary")) rsp->Vary = gf_strdup(Value);
-	else if (!stricmp(Header, "Via")) rsp->Vary = gf_strdup(Value);
-	else if (!stricmp(Header, "WWW_Authenticate")) rsp->Vary = gf_strdup(Value);
+	else if (!stricmp(Header, "Via")) rsp->Via = gf_strdup(Value);
+	else if (!stricmp(Header, "WWW-Authenticate")) rsp->WWW_Authenticate = gf_strdup(Value);
 	else if (!stricmp(Header, "Transport")) {
 		LinePos = 0;
 		while (1) {
@@ -354,6 +354,7 @@ u32 IsRTSPMessage(char *buffer)
 	if (buffer[0]=='$') return 0;
 
 	if (!strncmp(buffer, "RTSP", 4)) return 1;
+	if (!strncmp(buffer, "HTTP", 4)) return 1;
 	if (!strncmp(buffer, "GET_PARAMETER", strlen("GET_PARAMETER"))) return 1;
 	if (!strncmp(buffer, "ANNOUNCE", strlen("ANNOUNCE"))) return 1;
 	if (!strncmp(buffer, "SET_PARAMETER", strlen("SET_PARAMETER"))) return 1;
@@ -394,6 +395,12 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 	//get the reply
 	gf_rtsp_get_body_info(sess, &BodyStart, &size, GF_FALSE);
+
+	if (!strncmp(sess->tcp_buffer+sess->CurrentPos, "HTTP", 4)) {
+		sess->CurrentPos += BodyStart + rsp->Content_Length;
+		e = GF_IP_NETWORK_EMPTY;
+		goto exit;
+	}
 	e = RTSP_ParseResponseHeader(sess, rsp, BodyStart);
 
 	//copy the body if any
@@ -412,6 +419,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 	//reset TCP buffer
 	sess->CurrentPos += BodyStart + rsp->Content_Length;
+
 
 	if (e) goto exit;
 
@@ -547,7 +555,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 
 	//Range, only NPT
 	if (rsp->Range && !rsp->Range->UseSMPTE) {
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Range: npt:");
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Range: npt=");
 		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Range->start);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
 		if (rsp->Range->end > rsp->Range->start) {
@@ -701,6 +709,7 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 	e = RTSP_WriteResponse(sess, rsp, (unsigned char **) &buffer, &size);
 	if (!e) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Sending response %s", buffer));
 		//send buffer
 		e = gf_rtsp_send_data(sess, buffer, size);
 	}

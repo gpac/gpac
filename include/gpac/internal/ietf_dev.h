@@ -232,7 +232,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	if (sig < 0) { \
 		sprintf(temp, "%d", d);		\
 	} else { \
-		sprintf(temp, "%d", d);		\
+		sprintf(temp, "%u", d);		\
 	}	\
 	RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, temp); \
 	}
@@ -271,6 +271,10 @@ typedef enum
 	RTSP_HTTP_DISABLE
 } RTSP_HTTP_Tunnel;
 
+#ifdef GPAC_HAS_SSL
+#include <openssl/ssl.h>
+#endif
+
 /**************************************
 		RTSP Session
 ***************************************/
@@ -282,6 +286,8 @@ struct _tag_rtsp_session
 	char *Server;
 	/*server port (extracted from URL)*/
 	u16 Port;
+
+	char *User, *Pass;
 
 	/*if RTSP is on UDP*/
 	u8 ConnectionType;
@@ -329,12 +335,21 @@ struct _tag_rtsp_session
 
 	u8 *async_buf;
 	u32 async_buf_size, async_buf_alloc;
+
+#ifdef GPAC_HAS_SSL
+	Bool use_ssl, ssl_connect_pending;
+	SSL_CTX *ssl_ctx;
+	SSL *ssl, *ssl_http;
+#endif
+
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
 
 /*send data on RTSP*/
 GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, u8 *buffer, u32 Size);
+
+GF_Err gf_rstp_do_read_sock(GF_RTSPSession *sess, GF_Socket *sock, u8 *data, u32 data_size, u32 *out_read);
 
 /*
 			Common RTSP tools

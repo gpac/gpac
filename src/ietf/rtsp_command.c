@@ -320,8 +320,11 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 
 
 	//update sequence number
-	sess->CSeq += 1;
-	sess->NbPending += 1;
+	if (!com->is_resend) {
+		sess->CSeq += 1;
+		sess->NbPending += 1;
+		com->is_resend = GF_FALSE;
+	}
 
 	if (!strcmp(com->method, GF_RTSP_OPTIONS)) {
 		sprintf(buffer, "OPTIONS %s %s\r\n", sCtrl, GF_RTSP_VERSION);
@@ -374,7 +377,8 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 
 	//send buffer
 	e = gf_rtsp_send_data(sess, result, size);
-	if (e) goto exit;
+	if (e)
+		goto exit;
 
 
 	//update our state
@@ -580,8 +584,10 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 
 				if (!strncmp(sess->tcp_buffer, "GET ", 4)) {
 					char szCom[501];
-					snprintf(szCom, 500, "HTTP/1.0 200 OK\r\nServer: %s\r\nCache-Control: no-store\r\nPragma: no-cache\r\nContent-Type: application/x- rtsp- tunnelled\r\n\r\n", sess->Server);
+					snprintf(szCom, 500, "HTTP/1.0 200 OK\r\nServer: %s\r\nCache-Control: no-store\r\nPragma: no-cache\r\nContent-Type: application/x-rtsp-tunnelled\r\n\r\n", sess->Server);
 					szCom[500] = 0;
+
+					GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Send reply %s\n", szCom));
 
 					e = gf_rtsp_send_data(sess, szCom, (u32) strlen(szCom));
 					if (e && (e!= GF_IP_NETWORK_EMPTY)) return e;

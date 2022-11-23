@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -95,6 +95,17 @@ Locates a pattern in the buffer
  */
 s32 gf_token_find(const char* Buffer, u32 Start, u32 Size, const char* Pattern);
 
+
+/*!
+\brief word location
+
+Locates a word in a string
+\param in_str source string to scan
+\param word word to locate
+\param charsep set of separators to use. If NULL, function acts as strstr
+\return first occurence of word, or NULL if none
+ */
+const char *gf_token_find_word(const char *in_str, const char *word, char *charsep);
 
 /*! @} */
 

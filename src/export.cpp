@@ -365,6 +365,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_find) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get_strip) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_token_find_word) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_force_new) )
@@ -393,6 +394,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_default_shared_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_save) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_creds_check_password) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_creds_check_membership) )
 
 
 #ifndef GPAC_DISABLE_PLAYER
@@ -2470,6 +2473,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_connect_destination ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_load_filter ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_supported_source ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_url_is_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_output_buffer_max ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_make_sticky ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_hint_single_clock ) )

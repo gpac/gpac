@@ -95,20 +95,9 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 
 		/*force interleaving whenever needed*/
 		if (stream->rtsp) {
-			switch (stream->depacketizer->sl_map.StreamType) {
-			case GF_STREAM_VISUAL:
-			case GF_STREAM_AUDIO:
-				if ((rtp->interleave==RTP_RTSP_ON) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
-					gf_rtsp_set_buffer_size(stream->rtsp->session, stream->rtpin->block_size);
-					stream->rtsp->flags |= RTSP_FORCE_INTER;
-				}
-				break;
-			default:
-				if ((rtp->interleave==RTP_RTSP_ON) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
-					gf_rtsp_set_buffer_size(stream->rtsp->session, stream->rtpin->block_size);
-					stream->rtsp->flags |= RTSP_FORCE_INTER;
-				}
-				break;
+			if ((rtp->transport==RTP_TRANSPORT_TCP_ONLY) && ! (stream->rtsp->flags & RTSP_FORCE_INTER) ) {
+				gf_rtsp_set_buffer_size(stream->rtsp->session, stream->rtpin->block_size);
+				stream->rtsp->flags |= RTSP_FORCE_INTER;
 			}
 		}
 

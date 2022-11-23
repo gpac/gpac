@@ -108,6 +108,47 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 }
 
 
+GF_Err gf_rstp_do_read_sock(GF_RTSPSession *sess, GF_Socket *sock, u8 *data, u32 data_size, u32 *out_read)
+{
+	GF_Err e;
+#ifdef GPAC_HAS_SSL
+	SSL *ssl_sock = (sock == sess->http) ? sess->ssl_http : sess->ssl;
+	if (ssl_sock) {
+		//receive on null buffer (select only, check if data available)
+		e = gf_sk_receive(sock, NULL, 0, NULL);
+		//empty and no pending bytes in SSL, network empty
+		if ((e==GF_IP_NETWORK_EMPTY) && !SSL_pending(sess->ssl))
+			return GF_IP_NETWORK_EMPTY;
+
+		int size = SSL_read(ssl_sock, data, data_size);
+		if (size < 0) {
+			*out_read = 0;
+			e = gf_sk_probe(sock);
+			if (!e) {
+				int err = SSL_get_error(ssl_sock, size);
+				if (err==SSL_ERROR_SSL) {
+					e = GF_IO_ERR;
+				} else {
+					e = GF_IP_NETWORK_FAILURE;
+				}
+			}
+		} else if (!size) {
+			e = GF_IP_NETWORK_EMPTY;
+		} else {
+			e = GF_OK;
+			data[size] = 0;
+			*out_read = size;
+		}
+	} else
+#endif
+	{
+		e = gf_sk_receive(sock, data, data_size, out_read);
+	}
+	return e;
+}
+
+
+
 GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 {
 	GF_Err e;
@@ -129,14 +170,13 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	sess->CurrentSize = res;
 
 	//now read from current pos
-	e = gf_sk_receive(sess->connection, sess->tcp_buffer + sess->CurrentSize, sess->SockBufferSize - sess->CurrentSize, &res);
+	e = gf_rstp_do_read_sock(sess, sess->connection, sess->tcp_buffer + sess->CurrentSize, sess->SockBufferSize - sess->CurrentSize, &res);
 
 	if (!e) {
 		sess->CurrentSize += res;
 	}
 	return e;
 }
-
 
 GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 {
@@ -146,9 +186,9 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 
 	if (sess->CurrentSize == sess->CurrentPos) {
 		if (sess->tunnel_mode==RTSP_HTTP_SERVER) {
-			e = gf_sk_receive(sess->http, sess->tcp_buffer, sess->SockBufferSize, &sess->CurrentSize);
+			e = gf_rstp_do_read_sock(sess, sess->http, sess->tcp_buffer, sess->SockBufferSize, &sess->CurrentSize);
 		} else {
-			e = gf_sk_receive(sess->connection, sess->tcp_buffer, sess->SockBufferSize, &sess->CurrentSize);
+			e = gf_rstp_do_read_sock(sess, sess->connection, sess->tcp_buffer, sess->SockBufferSize, &sess->CurrentSize);
 		}
 		sess->CurrentPos = 0;
 		sess->tcp_buffer[sess->CurrentSize] = 0;

@@ -308,6 +308,8 @@ typedef struct
 	char *service_name;
 	/*RTSP status code of the command as parsed. One of the above RTSP StatusCode*/
 	u32 StatusCode;
+
+	Bool is_resend;
 } GF_RTSPCommand;
 
 /*! creates an RTSP command
@@ -479,7 +481,21 @@ Bool gf_rtsp_is_my_session(GF_RTSPSession *sess, char *url);
 \param sess the target RTSP session
 \return the server name
 */
-char *gf_rtsp_get_server_name(GF_RTSPSession *sess);
+const char *gf_rtsp_get_server_name(GF_RTSPSession *sess);
+
+/*! gets user name of an RTSP session
+\param sess the target RTSP session
+\return the user name or NULL if none
+*/
+const char *gf_rtsp_get_user(GF_RTSPSession *sess);
+
+/*! gets password of an RTSP session
+\param sess the target RTSP session
+\return the password or NULL if none
+*/
+const char *gf_rtsp_get_password(GF_RTSPSession *sess);
+
+
 /*! gets server port of an RTSP session
 \param sess the target RTSP session
 \return the server port
@@ -580,9 +596,10 @@ u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID);
 	is detected, return NULL
 \param rtsp_listener the listening server socket
 \param allow_http_tunnel indicate if HTTP tunnel should be enabled
+\param ssl_ctx OpenSSL context
 \return the newly allocated RTSP session if any, NULL otherwise
 */
-GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_http_tunnel);
+GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_http_tunnel, void *ssl_ctx);
 
 /*! special error code for \ref gf_rtsp_get_command*/
 #define GF_RTSP_TUNNEL_POST	-1000

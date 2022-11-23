@@ -412,7 +412,7 @@ static const JSCFunctionListEntry jsf_auth_funcs[] = {
 
 Bool jsfs_on_auth(GF_FilterSession *fs, GF_Event *evt)
 {
-	JSValue args[4], ret, obj;
+	JSValue args[5], ret, obj;
 	Bool res = GF_TRUE;
 	JSContext *ctx;
 	assert(fs->on_auth_task);
@@ -433,14 +433,16 @@ Bool jsfs_on_auth(GF_FilterSession *fs, GF_Event *evt)
 	args[0] = JS_NewString(ctx, evt->auth.site_url);
 	args[1] = JS_NewString(ctx, evt->auth.user);
 	args[2] = JS_NewString(ctx, evt->auth.password);
-	args[3] = obj;
+	args[3] = JS_NewBool(ctx, evt->auth.secure);
+	args[4] = obj;
 
-	ret = JS_Call(ctx, fs->on_auth_task->fun, fs->on_auth_task->_obj, 4, args);
+	ret = JS_Call(ctx, fs->on_auth_task->fun, fs->on_auth_task->_obj, 5, args);
 
 	JS_FreeValue(ctx, args[0]);
 	JS_FreeValue(ctx, args[1]);
 	JS_FreeValue(ctx, args[2]);
 	JS_FreeValue(ctx, args[3]);
+	JS_FreeValue(ctx, args[4]);
 
 	if (JS_IsException(ret)) {
 		js_dump_error(ctx);

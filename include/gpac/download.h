@@ -122,6 +122,7 @@ typedef void (*gf_dm_on_usr_pass)(void *usr_cbk, const char *usr_name, const cha
 The gf_dm_get_usr_pass type is the type for the callback of the \ref gf_dm_set_auth_callback function used for password retrieval
 
 \param usr_cbk opaque user data
+\param secure indicates if TLS is used
 \param site_url url of the site the user and password are requested for
 \param usr_name the user name for this site. The allocated space for this buffer is 50 bytes. \note this varaibale may already be formatted.
 \param password the password for this site and user. The allocated space for this buffer is 50 bytes.
@@ -129,7 +130,7 @@ The gf_dm_get_usr_pass type is the type for the callback of the \ref gf_dm_set_a
 \param async_udta async user data to pass back to the async function. If NULL, sync call will be performed
 \return GF_FALSE if user didn't fill in the information which will result in an authentication failure, GF_TRUE otherwise (info was filled if not async, or request was posted).
 */
-typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta);
+typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, Bool secure, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta);
 
 /*!
 \brief password retrieval assignment
@@ -569,6 +570,56 @@ enum
 	/*! DELETE*/
 	GF_HTTP_DELETE
 };
+
+/*! User credential request state*/
+typedef enum
+{
+	//! no async request for this credential object
+	GF_CREDS_STATE_NONE=0,
+	//!  async request pending for this credential object (waiting for user input)
+	GF_CREDS_STATE_PENDING,
+	//! async request done for this credential object
+	GF_CREDS_STATE_DONE,
+} GF_CredentialRequestState;
+
+/*! user credential structure - all fields are setup by the credentials functions
+
+Credentials are currently handled indepentently from protocol scheme
+*/
+typedef struct
+{
+	/*! parent download manager where credentials are stored*/
+	const GF_DownloadManager *dm;
+	/*! site name*/
+	char site[1024];
+	/*! user name*/
+	char username[50];
+	/*! digest (only Basic for now, "Basic " not included in digest)*/
+	char digest[1024];
+	/*! indicate if the credentials are valid or not*/
+	Bool valid;
+	/*! indicate that the async state of the credential request*/
+	GF_CredentialRequestState req_state;
+} GF_UserCredentials;
+
+/*! Find credentials for given site and user
+ \param dm parent download manager
+ \param server_name sever name without protocol scheme - must not be NULL
+ \param user_name user name, can be NULL (will pick first credential for the site)
+ \return credential object or NULL if error
+*/
+GF_UserCredentials *gf_user_credentials_find_for_site(GF_DownloadManager *dm, const char *server_name, const char *user_name);
+
+/*! Register credentials for given site and user/pass
+ \param dm parent download manager
+ \param secure indicate if connection is over TLS
+ \param server_name sever name without protocol scheme - must not be NULL
+ \param username user name, must not be NULL
+ \param password user password, must not be NULL
+ \param valid indicates if credentials are valid (successfull authentication)
+ \return credential object or NULL if error
+*/
+GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool secure, const char * server_name, const char * username, const char * password, Bool valid);
 
 /*! @} */
 

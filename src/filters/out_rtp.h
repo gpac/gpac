@@ -36,7 +36,12 @@
 /*IETF lib*/
 #include <gpac/internal/ietf_dev.h>
 
-
+typedef enum
+{
+	RTPOUT_STREAM_NOT_ACTIVE=0,
+	RTPOUT_STREAM_PLAY,
+	RTPOUT_STREAM_STOP,
+} RTPOutStreamState;
 
 typedef struct
 {
@@ -56,7 +61,7 @@ typedef struct
 	u32 streamtype;
 	u32 timescale;
 	u32 nb_aus;
-	Bool is_playing;
+	RTPOutStreamState state;
 
 	u32 depends_on;
 	u32 cfg_crc;
@@ -92,10 +97,14 @@ typedef struct
 	/*RTSP state*/
 	Bool selected, send_rtpinfo;
 	u32 ctrl_id;
+	const char *ctrl_name;
 	u32 rtp_id, rtcp_id;
 	u32 mcast_port;
 
 	u32 rtp_timescale;
+
+	void (*on_rtcp)(void *udta);
+	void *on_rtcp_udta;
 } GF_RTPOutStream;
 
 GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const char *info, const char *sess_name, const char *url, const char *email, u32 base_pid_id, FILE **sdp_tmp, u64 *session_id);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -63,7 +63,10 @@ static void rtpin_rtsp_queue_command(GF_RTPInRTSP *sess, GF_RTPInStream *stream,
 			com->user_flags = 1;
 		}
 	}
-	gf_list_add(sess->rtsp_commands, com);
+	if (stream && (stream->flags & RTP_AUTH_RESETUP))
+		gf_list_insert(sess->rtsp_commands, com, 0);
+	else
+		gf_list_add(sess->rtsp_commands, com);
 }
 
 
@@ -81,7 +84,7 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 	com->method = gf_strdup(GF_RTSP_SETUP);
 
 	//setup ports if unicast non interleaved or multicast
-	if (gf_rtp_is_unicast(stream->rtp_ch) && (stream->rtpin->interleave != RTP_RTSP_ON) && !gf_rtp_is_interleaved(stream->rtp_ch) ) {
+	if (gf_rtp_is_unicast(stream->rtp_ch) && (stream->rtpin->transport != RTP_TRANSPORT_TCP_ONLY) && !gf_rtp_is_interleaved(stream->rtp_ch) ) {
 		gf_rtp_set_ports(stream->rtp_ch, stream->rtpin->firstport);
 	} else if (stream->rtpin->force_mcast) {
 		gf_rtp_set_ports(stream->rtp_ch, stream->rtpin->firstport);
@@ -130,7 +133,8 @@ void rtpin_rtsp_setup_send(GF_RTPInStream *stream)
 	through RTP/AVP/TCP profile so it's OK)*/
 //	trans->IsInterleaved = 0;
 	gf_list_add(com->Transports, trans);
-	if (strlen(stream->control)) com->ControlString = gf_strdup(stream->control);
+	if (strlen(stream->control))
+		com->ControlString = gf_strdup(stream->control);
 
 	com->user_data = stream;
 	stream->status = RTP_WaitingForAck;
@@ -189,6 +193,29 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 		break;
 	case NC_RTSP_Not_Found:
 		e = GF_STREAM_NOT_FOUND;
+		goto exit;
+	case NC_RTSP_Unsupported_Transport:
+		if (stream && !stream->rtp_ch->net_info.IsInterleaved) {
+			if (!stream->rtpin->retry_rtsp) {
+				stream->rtpin->retry_rtsp = RETRY_RTSP_FORCE_TCP;
+				GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] UDP transport not available, retrying with TCP\n"));
+			}
+			stream->status = RTP_Setup;
+		}
+		e = GF_STREAM_NOT_FOUND;
+		goto exit;
+	case NC_RTSP_Unauthorized:
+		e = GF_AUTHENTICATION_FAILURE;
+		if (!sess->rtpin->auth_string && sess->rtsp_rsp->WWW_Authenticate && strstr(sess->rtsp_rsp->WWW_Authenticate, "Basic")) {
+			stream->status = RTP_Setup;
+			sess->rtpin->auth_stream = stream;
+			rtpin_do_authenticate(sess->rtpin);
+			com->user_data = NULL;
+			return;
+		}
+		goto exit;
+	case NC_RTSP_Forbidden:
+		e = GF_URL_ERROR;
 		goto exit;
 	default:
 		e = GF_SERVICE_ERROR;
@@ -316,6 +343,16 @@ GF_Err rtpin_rtsp_describe_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_E
 		goto exit;
 	case NC_RTSP_OK:
 		break;
+	case NC_RTSP_Unauthorized:
+		if (sess->rtsp_rsp->WWW_Authenticate && strstr(sess->rtsp_rsp->WWW_Authenticate, "Basic"))
+			e = GF_AUTHENTICATION_FAILURE;
+		else
+			e = GF_URL_ERROR;
+		goto exit;
+	case NC_RTSP_Forbidden:
+		e = GF_URL_ERROR;
+		goto exit;
+
 	default:
 		//we should have a basic error code mapping here
 		e = GF_SERVICE_ERROR;
@@ -343,6 +380,10 @@ exit:
 	com->user_data = NULL;
 	if (e) {
 		if (!ch_desc) {
+			if (e==GF_AUTHENTICATION_FAILURE) {
+				rtpin_do_authenticate(sess->rtpin);
+				return GF_OK;
+			}
 			sess->connect_error = e;
 			return e;
 		} else if (stream) {
@@ -500,7 +541,7 @@ Bool rtpin_rtsp_usercom_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com)
 	if (!com->Session) {
 		/*re-SETUP failed*/
 		if (!strcmp(com->method, GF_RTSP_PLAY) || !strcmp(com->method, GF_RTSP_PAUSE)) {
-			e = GF_SERVICE_ERROR;
+			e = stream->last_err ? stream->last_err : GF_SERVICE_ERROR;
 			goto err_exit;
 		}
 		/*this is a stop, no need for SessionID just skip*/
@@ -575,6 +616,15 @@ void rtpin_rtsp_usercom_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err 
 		goto err_exit;
 	case NC_RTSP_OK:
 		break;
+
+	case NC_RTSP_Session_Not_Found:
+		if (!sess->rtpin->retry_rtsp) {
+			sess->rtpin->retry_rtsp = RETRY_RTSP_NORMAL;
+			gf_rtsp_session_reset(sess->session, GF_TRUE);
+		}
+		e = GF_OK;
+		goto err_exit;
+
 	default:
 		//we should have a basic error code mapping here
 		e = GF_SERVICE_ERROR;
@@ -594,6 +644,19 @@ process_reply:
 
 		//process all RTP infos
 		count = gf_list_count(sess->rtsp_rsp->RTP_Infos);
+
+		u32 rtp_t=0, rtp_ts=0;
+		for (i=0; i<count; i++) {
+			info = (GF_RTPInfo*)gf_list_get(sess->rtsp_rsp->RTP_Infos, i);
+			agg_st = rtpin_find_stream(sess->rtpin, NULL, 0, info->url, GF_FALSE);
+
+			if (!agg_st || (agg_st->rtsp != sess) ) continue;
+			if (!rtp_ts || gf_timestamp_less(info->rtp_time, agg_st->rtp_ch->TimeScale, rtp_t, rtp_ts)) {
+				rtp_ts = agg_st->rtp_ch->TimeScale;
+				rtp_t = info->rtp_time;
+			}
+		}
+
 		for (i=0; i<count; i++) {
 			info = (GF_RTPInfo*)gf_list_get(sess->rtsp_rsp->RTP_Infos, i);
 			agg_st = rtpin_find_stream(sess->rtpin, NULL, 0, info->url, GF_FALSE);
@@ -619,9 +682,13 @@ process_reply:
 
 			gf_rtp_set_info_rtp(agg_st->rtp_ch, info->seq, info->rtp_time, info->ssrc);
 			agg_st->status = RTP_Running;
+			agg_st->ts_offset = info->rtp_time - gf_timestamp_rescale(rtp_t, rtp_ts, agg_st->rtp_ch->TimeScale);
+			if (sess->rtsp_rsp->Range)
+				agg_st->current_start = sess->rtsp_rsp->Range->start;
 
 			/*skip next play command on this channel if aggregated control*/
-			if ((stream != agg_st) && stream && (stream->rtsp->flags & RTSP_AGG_CONTROL) ) agg_st->flags |= RTP_SKIP_NEXT_COM;
+			if ((stream != agg_st) && stream && (stream->rtsp->flags & RTSP_AGG_CONTROL) )
+				agg_st->flags |= RTP_SKIP_NEXT_COM;
 
 
 			if (gf_rtp_is_interleaved(agg_st->rtp_ch)) {
@@ -632,7 +699,7 @@ process_reply:
 			}
 		}
 		/*no rtp info (just in case), no time mapped - set to 0 and specify we're not interactive*/
-		if (stream && !i) {
+		if (stream && !i && (ch_ctrl->evt.base.type==GF_FEVT_PLAY)) {
 			stream->current_start = 0.0;
 			stream->check_rtp_time = RTP_SET_TIME_RTP;
 			rtpin_stream_init(stream, GF_TRUE);
@@ -675,7 +742,9 @@ err_exit:
 		gf_rtsp_reset_aggregation(stream->rtsp->session);
 		stream->check_rtp_time = RTP_SET_TIME_NONE;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Error processing user command %s\n", gf_error_to_string(e) ));
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Error processing user command %s\n", gf_error_to_string(e) ));
+	}
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
 	if (sess->flags & RTSP_TCP_FLUSH) {
@@ -736,6 +805,7 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 		com->method = gf_strdup(GF_RTSP_PLAY);
 
 		stream->paused = GF_FALSE;
+		stream->last_udp_time = 0;
 
 		/*specify pause range on resume - this is not mandatory but most servers need it*/
 		if (evt->base.type == GF_FEVT_RESUME) {
@@ -767,22 +837,24 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 		- a range was given in initial describe
 		- the command is not a RESUME
 		*/
-		if (!(stream->flags & RTP_HAS_RANGE) && (evt->base.type != GF_FEVT_RESUME) ) {
+		if ((evt->base.type == GF_FEVT_RESUME) || !(stream->flags & RTP_HAS_RANGE)) {
 			gf_rtsp_range_del(range);
 			com->Range = NULL;
 		} else {
 			com->Range = range;
 		}
 
-		if (sess->flags & RTSP_AGG_CONTROL)
+		if (sess->flags & RTSP_AGG_CONTROL) {
 			rtpin_rtsp_skip_command(stream);
-		else if (stream->control && strlen(stream->control))
-			com->ControlString = gf_strdup(stream->control);
+		} else {
+			if (stream->control && strlen(stream->control))
+				com->ControlString = gf_strdup(stream->control);
 
-		if (rtpin_rtsp_is_active(stream)) {
-			if (!com->ControlString && stream->control) com->ControlString = gf_strdup(stream->control);
+			if (rtpin_rtsp_is_active(stream)) {
+				if (!com->ControlString && stream->control)
+					com->ControlString = gf_strdup(stream->control);
+			}
 		}
-
 	} else if (evt->base.type == GF_FEVT_PAUSE) {
 		com->method = gf_strdup(GF_RTSP_PAUSE);
 		if (stream) {
@@ -842,7 +914,8 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 			com->method = gf_strdup(GF_RTSP_PAUSE);
 			com->Range = range;
 			/*only pause the specified stream*/
-			if (stream->control) com->ControlString = gf_strdup(stream->control);
+			if (stream->control)
+				com->ControlString = gf_strdup(stream->control);
 		}
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Unsupported command %s\n", gf_filter_event_name(evt->base.type) ));
@@ -872,6 +945,12 @@ void rtpin_rtsp_teardown_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err
 	} else {
 		if (sess->session_id) gf_free(sess->session_id);
 		sess->session_id = NULL;
+	}
+	//reset all pending commands
+	u32 i, count = gf_list_count(sess->rtsp_commands);
+	for (i=0; i<count; i++) {
+		GF_RTSPCommand *acom = gf_list_get(sess->rtsp_commands, i);
+		acom->Session = NULL;
 	}
 }
 
