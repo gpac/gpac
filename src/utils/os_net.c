@@ -1757,7 +1757,7 @@ void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 	sg->fds[sg->nb_fds].fd = sk->socket;
 	sg->fds[sg->nb_fds].events = sg->last_mask;
 	sg->fds[sg->nb_fds].revents = 0;
-	sk->poll_idx = sg->nb_fds;
+	sk->poll_idx = sg->nb_fds+1;
 	assert(sg->fds[sg->nb_fds].fd != 0);
 	sg->nb_fds++;
 #endif
@@ -1782,6 +1782,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 	if (pidx<0) return;
 
 #ifdef GPAC_HAS_POLL
+	sk->poll_idx=0;
 	if (!sg->fds) return;
 	memmove(&sg->fds[pidx], &sg->fds[pidx+1], sizeof(GF_POLLFD) * (sg->nb_fds-pidx-1));
 	//reassign poll file descriptors and poll index
@@ -1790,7 +1791,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 		GF_Socket *asock = gf_list_get(sg->sockets, pidx);
 		if (!asock) break;
 		sg->fds[pidx].fd = asock->socket;
-		asock->poll_idx = pidx;
+		asock->poll_idx = pidx+1;
 		pidx++;
 	}
 #endif
@@ -1896,8 +1897,8 @@ Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode 
 	if (!sg || !sk) return GF_FALSE;
 
 #ifdef GPAC_HAS_POLL
-	if (sg->fds) {
-		GF_POLLFD *pfd = &sg->fds[sk->poll_idx];
+	if (sg->fds && sk->poll_idx) {
+		GF_POLLFD *pfd = &sg->fds[sk->poll_idx-1];
 		//disconnected, consider ready to read/write
 		if (pfd->revents & POLLHUP)
 			return GF_TRUE;
