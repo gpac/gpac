@@ -579,13 +579,27 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	char buffer[20100], dsiString[20000];
 	u32 i, k;
 	Bool is_first = GF_TRUE;
+	char *sdp = NULL;
+	GF_Err e = GF_OK;
 
 	if ((builder->rtp_payt!=GF_RTP_PAYT_MPEG4) && (builder->rtp_payt!=GF_RTP_PAYT_LATM) ) return GF_BAD_PARAM;
 
-#define SDP_ADD_INT(_name, _val) { if (!is_first) strcat(sdpLine, "; "); sprintf(buffer, "%s=%d", _name, _val); strcat(sdpLine, buffer); is_first = 0;}
-#define SDP_ADD_STR(_name, _val) { if (!is_first) strcat(sdpLine, "; "); sprintf(buffer, "%s=%s", _name, _val); strcat(sdpLine, buffer); is_first = 0;}
+#define SDP_ADD_INT(_name, _val) {\
+		if (!is_first) gf_dynstrcat(&sdp, "; ", NULL); \
+		sprintf(buffer, "%s=%d", _name, _val);\
+		gf_dynstrcat(&sdp, buffer, NULL);\
+		is_first = 0;\
+	}
 
-	sprintf(sdpLine, "a=fmtp:%d ", builder->PayloadType);
+#define SDP_ADD_STR(_name, _val) {\
+		if (!is_first) gf_dynstrcat(&sdp, "; ", NULL);\
+		sprintf(buffer, "%s=%s", _name, _val);\
+		gf_dynstrcat(&sdp, buffer, NULL);\
+		is_first = 0;\
+	}
+
+	sprintf(buffer, "a=fmtp:%d ", builder->PayloadType);
+	gf_dynstrcat(&sdp, buffer, NULL);
 
 	/*mandatory fields*/
 	if (builder->slMap.PL_ID) SDP_ADD_INT("profile-level-id", builder->slMap.PL_ID);
@@ -594,6 +608,10 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 
 	if (dsi && dsi_size) {
 		k = 0;
+		if (dsi_size>10000) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 		for (i=0; i<dsi_size; i++) {
 			sprintf(&dsiString[k], "%02x", (unsigned char) dsi[i]);
 			k+=2;
@@ -601,7 +619,10 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 		dsiString[k] = 0;
 		SDP_ADD_STR("config", dsiString);
 	}
-	if (!strcmp(payload_name, "MP4V-ES") || (builder->rtp_payt == GF_RTP_PAYT_LATM) ) return GF_OK;
+	if (!strcmp(payload_name, "MP4V-ES") || (builder->rtp_payt == GF_RTP_PAYT_LATM) ) {
+		e = GF_OK;
+		goto exit;
+	}
 
 	SDP_ADD_INT("streamType", builder->slMap.StreamType);
 	if (strcmp(builder->slMap.mode, "") && strcmp(builder->slMap.mode, "default")) {
@@ -635,7 +656,20 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 		if (builder->slMap.KI_length) SDP_ADD_INT("ISMACrypKeyIndicatorLength", builder->slMap.KI_length);
 		if (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) SDP_ADD_INT("ISMACrypKeyIndicatorPerAU", 1);
 	}
-	return GF_OK;
+
+exit:
+	sdpLine[0] = 0;
+	if (sdp) {
+		k = (u32) strlen(sdp);
+		if (k<20000)
+			strcpy(sdpLine, sdp);
+		else
+			e = GF_OUT_OF_MEM;
+		gf_free(sdp);
+	} else {
+		e = GF_OUT_OF_MEM;
+	}
+	return e;
 }
 
 #endif /*GPAC_DISABLE_STREAMING*/
