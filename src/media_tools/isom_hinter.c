@@ -1024,14 +1024,16 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	}
 	/*MPEG-4 decoder config*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_MPEG4) {
+		GF_Err e;
 		esd = gf_isom_get_esd(tkHint->file, tkHint->TrackNum, 1);
 
 		if (esd && esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-			gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			e = gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		} else {
-			gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, NULL, 0);
+			e = gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, NULL, 0);
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
+		if (e) return e;
 
 		if (tkHint->rtp_p->slMap.IV_length) {
 			const char *kms;
