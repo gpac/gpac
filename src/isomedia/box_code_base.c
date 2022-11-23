@@ -815,6 +815,7 @@ GF_Err unkn_box_write(GF_Box *s, GF_BitStream *bs)
 	u32 type;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (!s) return GF_BAD_PARAM;
+	if (ptr->original_4cc == GF_ISOM_BOX_TYPE_UUID) return GF_BAD_PARAM;
 	type = s->type;
 	ptr->type = ptr->original_4cc;
 	e = gf_isom_box_write_header(s, bs);
@@ -1526,6 +1527,7 @@ GF_Err gnrm_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_GenericSampleEntryBox *ptr = (GF_GenericSampleEntryBox *)s;
 
 	//careful we are not writing the box type but the entry type so switch for write
+	if (ptr->EntryType == GF_ISOM_BOX_TYPE_UUID) return GF_BAD_PARAM;
 	ptr->type = ptr->EntryType;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -1576,6 +1578,7 @@ GF_Err gnrv_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_GenericVisualSampleEntryBox *ptr = (GF_GenericVisualSampleEntryBox *)s;
 
 	//careful we are not writing the box type but the entry type so switch for write
+	if (ptr->EntryType == GF_ISOM_BOX_TYPE_UUID) return GF_BAD_PARAM;
 	ptr->type = ptr->EntryType;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -1627,6 +1630,7 @@ GF_Err gnra_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_GenericAudioSampleEntryBox *ptr = (GF_GenericAudioSampleEntryBox *)s;
 
 	//careful we are not writing the box type but the entry type so switch for write
+	if (ptr->EntryType == GF_ISOM_BOX_TYPE_UUID) return GF_BAD_PARAM;
 	ptr->type = ptr->EntryType;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -7257,6 +7261,7 @@ GF_Err reftype_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u32 i;
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
+	if (ptr->reference_type == GF_ISOM_BOX_TYPE_UUID) return GF_BAD_PARAM;
 	ptr->type = ptr->reference_type;
 	e = gf_isom_box_write_header(s, bs);
 	ptr->type = GF_ISOM_BOX_TYPE_REFT;
@@ -10663,6 +10668,7 @@ GF_Err trgt_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_TrackGroupTypeBox *ptr = (GF_TrackGroupTypeBox *) s;
 	if (!s) return GF_BAD_PARAM;
+	if (ptr->group_type == GF_ISOM_BOX_TYPE_UUID) return GF_BAD_PARAM;
 	s->type = ptr->group_type;
 	e = gf_isom_full_box_write(s, bs);
 	s->type = GF_ISOM_BOX_TYPE_TRGT;
