@@ -309,7 +309,7 @@ struct _tag_rtsp_session
 	u32 CSeq;
 	/*this is for aggregated request in order to check SeqNum*/
 	u32 NbPending;
-
+	u32 nb_retry;
 	/*RTSP sessionID, arbitrary length, alpha-numeric*/
 	const char *last_session_id;
 

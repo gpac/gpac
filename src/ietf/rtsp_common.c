@@ -128,6 +128,8 @@ GF_Err gf_rstp_do_read_sock(GF_RTSPSession *sess, GF_Socket *sock, u8 *data, u32
 				int err = SSL_get_error(ssl_sock, size);
 				if (err==SSL_ERROR_SSL) {
 					e = GF_IO_ERR;
+				} else if ((err==SSL_ERROR_WANT_READ) || (err==SSL_ERROR_WANT_WRITE)) {
+					e = GF_IP_NETWORK_EMPTY;
 				} else {
 					e = GF_IP_NETWORK_FAILURE;
 				}

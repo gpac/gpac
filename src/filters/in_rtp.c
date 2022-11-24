@@ -496,6 +496,20 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			gf_filter_post_process_task(filter);
 			return GF_OK;
 		} else if (e) {
+
+			if (e==GF_IP_CONNECTION_CLOSED) {
+				if (gf_rtsp_session_reset(ctx->session->session, 1)<10) {
+#ifdef GPAC_HAS_SSL
+					if (gf_rtsp_session_needs_ssl(ctx->session->session) ) {
+						gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, 0) );
+					}
+#endif
+					e = GF_OK;
+				} else {
+					e = GF_IP_CONNECTION_FAILURE;
+				}
+			}
+
 			if (e==GF_IP_CONNECTION_FAILURE) {
 				gf_filter_setup_failure(filter, e);
 				gf_rtsp_session_del(ctx->session->session);
@@ -511,13 +525,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			if (user || force) {
 				const char *server_name = gf_rtsp_get_server_name(ctx->session->session);
 				const char *pass = gf_rtsp_get_password(ctx->session->session);
-				Bool secure = GF_FALSE;
-				if (ctx->src) {
-					if (!strncmp(ctx->src, "rtsps://", 8)) secure = GF_TRUE;
-					else if (!strnicmp(ctx->src, "rtsph://", 8) && (gf_rtsp_get_session_port(ctx->session->session)==443))
-						secure = GF_TRUE;
-				}
-
+				Bool secure = gf_rtsp_use_tls(ctx->session->session);
 				ctx->creds = gf_user_credentials_register(ctx->dm, secure, server_name, user, pass, GF_TRUE);
 				if (!ctx->creds) {
 					gf_filter_setup_failure(filter, GF_AUTHENTICATION_FAILURE);
@@ -760,11 +768,6 @@ void rtpin_do_authenticate(GF_RTPIn *ctx)
 	ctx->check_creds = 2;
 }
 
-#ifdef GPAC_HAS_SSL
-void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode);
-GF_Err gf_rtsp_set_ssl_ctx(GF_RTSPSession *sess, void *ssl_CTX);
-#endif
-
 static GF_Err rtpin_initialize(GF_Filter *filter)
 {
 	GF_RTPIn *ctx = gf_filter_get_udta(filter);
@@ -975,6 +978,8 @@ GF_FilterRegister RTPInRegister = {
 	"- RTSP over HTTP tunnel if server port is 80 or 8080 or if protocol scheme is `rtsph://`.\n"
 	"- RTSP over TLS if server port is 322 or if protocol scheme is `rtsps://`.\n"
 	"- RTSP over HTTPS tunnel if server port is 443 and if protocol scheme is `rtsph://`.\n"
+	" \n"
+	"The filter will attempt reconnecting in TLS mode after two consecutive initial connection failures.\n"
 	)
 	.private_size = sizeof(GF_RTPIn),
 	.args = RTPInArgs,

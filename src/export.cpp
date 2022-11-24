@@ -1344,6 +1344,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_session_ip) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_remote_address) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_get_session_port) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_use_tls) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_session_write_interleaved) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_del) )
