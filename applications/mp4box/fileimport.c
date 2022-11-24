@@ -3491,10 +3491,11 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			if (data) {
 				sprintf(szName, "%s-%02d-%02d.bifs", szRad, sc->ESID, j);
 				f = gf_fopen(szName, "wb");
-				gf_fwrite(data, data_len, f);
+				if (gf_fwrite(data, data_len, f) != data_len) e = GF_IO_ERR;
 				gf_fclose(f);
 				gf_free(data);
 			}
+			if (e) break;
 		}
 		if (delete_esd) gf_odf_desc_del((GF_Descriptor*)esd);
 	}

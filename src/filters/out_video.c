@@ -1228,12 +1228,15 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 
 		glReadPixels(0, 0, ctx->display_width, ctx->display_height, GL_RGB, GL_UNSIGNED_BYTE, ctx->dump_buffer);
 		GL_CHECK_ERR()
+		GF_Err e=GF_IO_ERR;
 		fout = gf_fopen(szFileName, "wb");
 		if (fout) {
-			gf_fwrite(ctx->dump_buffer, ctx->display_width*ctx->display_height*3, fout);
+			u32 dsize = ctx->display_width*ctx->display_height*3;
+			if (gf_fwrite(ctx->dump_buffer, dsize, fout) == dsize) e = GF_OK;
 			gf_fclose(fout);
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error writing frame %d buffer to %s\n", ctx->nb_frames, szFileName));
+		}
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Error writing frame %d buffer to %s: %s\n", ctx->nb_frames, szFileName, gf_error_to_string(e) ));
 		}
 	}
 }
@@ -1562,7 +1565,8 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			if (fout) {
 				u32 i;
 				for (i=0; i<backbuffer.height; i++) {
-					gf_fwrite(backbuffer.video_buffer + i*backbuffer.pitch_y, backbuffer.pitch_y, fout);
+					if (gf_fwrite(backbuffer.video_buffer + i*backbuffer.pitch_y, backbuffer.pitch_y, fout) != backbuffer.pitch_y)
+						e = GF_IO_ERR;
 				}
 				gf_fclose(fout);
 			} else {

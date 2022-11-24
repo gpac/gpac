@@ -1529,7 +1529,9 @@ static void mp4c_take_screenshot(Bool for_coverage)
 					fprintf(stderr, "Error writing file %s\n", szFileName);
 					nb_pass = 0;
 				} else {
-					gf_fwrite(dst, dst_size, png);
+					if (gf_fwrite(dst, dst_size, png) != dst_size) {
+						fprintf(stderr, "Error dumping screen buffer %s\n", gf_error_to_string(GF_IO_ERR) );
+					}
 					gf_fclose(png);
 					fprintf(stderr, "Dump to %s\n", szFileName);
 				}

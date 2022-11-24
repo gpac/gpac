@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -1816,6 +1816,7 @@ static GF_Err swf_def_sound(SWFReader *read)
 		char szName[1024];
 		u32 alloc_size, tot_size;
 		char *frame;
+		GF_Err e=GF_OK;
 
 		sprintf(szName, "swf_sound_%d.mp3", snd->ID);
 		if (read->localPath) {
@@ -1838,11 +1839,16 @@ static GF_Err swf_def_sound(SWFReader *read)
 			u32 toread = read->size - tot_size;
 			if (toread>alloc_size) toread = alloc_size;
 			swf_read_data(read, frame, toread);
-			gf_fwrite(frame, sizeof(char)*toread, snd->output);
+			if (gf_fwrite(frame, sizeof(char)*toread, snd->output) != toread)
+				e = GF_IO_ERR;
 			tot_size += toread;
 		}
 
 		gf_free(frame);
+		if (e) {
+			gf_free(snd);
+			return e;
+		}
 		return gf_list_add(read->sounds, snd);
 	}
 	case 3:
@@ -1982,6 +1988,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 	unsigned char bytes[4];
 	u32 hdr, alloc_size, size, tot_size, samplesPerFrame;
 	char *frame;
+	GF_Err e = GF_OK;
 
 	/*note we're doing only MP3*/
 	if (!read->sound_stream) return swf_func_skip(read);
@@ -2025,13 +2032,13 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		if (tot_size + size >= read->size) size = read->size - tot_size;
 
 		swf_read_data(read, frame, size-4);
-		gf_fwrite(bytes, sizeof(char)*4, read->sound_stream->output);
-		gf_fwrite(frame, sizeof(char)*(size-4), read->sound_stream->output);
+		if (gf_fwrite(bytes, sizeof(char)*4, read->sound_stream->output)!=4) e = GF_IO_ERR;
+		if (gf_fwrite(frame, sizeof(char)*(size-4), read->sound_stream->output) != size-4) e = GF_IO_ERR;
 		if (tot_size + size >= read->size) break;
 		tot_size += size;
 	}
 	gf_free(frame);
-	return GF_OK;
+	return e;
 #endif
 }
 
@@ -2062,6 +2069,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	u32 AlphaPlaneSize = 0;
 #endif
 	u32 size = read->size;
+	GF_Err e=GF_OK;
 
 	ID = swf_get_16(read);
 	size -= 2;
@@ -2086,15 +2094,18 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 	if (version==1 && read->jpeg_hdr_size) {
 		/*remove JPEG EOI*/
-		gf_fwrite(read->jpeg_hdr, read->jpeg_hdr_size-2, file);
+		if (gf_fwrite(read->jpeg_hdr, read->jpeg_hdr_size-2, file)!=read->jpeg_hdr_size-2)
+			return GF_IO_ERR;
 		/*remove JPEG SOI*/
 		swf_get_16(read);
 		size-=2;
 	}
 	buf = gf_malloc(sizeof(u8)*size);
+	if (!buf) return GF_OUT_OF_MEM;
 	swf_read_data(read, (char *) buf, size);
 	if (version==1) {
-		gf_fwrite(buf, size, file);
+		if (gf_fwrite(buf, size, file)!=size)
+			e = GF_IO_ERR;
 	} else {
 		u32 i;
 		for (i=0; i<size; i++) {
@@ -2110,16 +2121,21 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		if ((buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
 			skip = 2;
 		}
-		if (version==2)
-			gf_fwrite(buf+skip, size-skip, file);
+		if (version==2) {
+			if (gf_fwrite(buf+skip, size-skip, file) != size-skip) e = GF_IO_ERR;
+		}
 	}
 	if (version!=3)
 		gf_fclose(file);
 
+	if (e) {
+		gf_free(buf);
+		return e;
+	}
+
 	if (version==3) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		char *dst, *raw;
-		GF_Err e;
 		u32 codecid;
 		u32 osize, w, h, j, pf;
 		GF_BitStream *bs;
@@ -2131,10 +2147,14 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		osize = w*h*4;
 		raw = gf_malloc(sizeof(char)*osize);
+		if (!raw) {
+			gf_free(buf);
+			return GF_OUT_OF_MEM;
+		}
 		memset(raw, 0, sizeof(char)*osize);
 		e = gf_img_jpeg_dec(buf+skip, size-skip, &w, &h, &pf, raw, &osize, 4);
 		if (e != GF_OK) {
-			swf_report(read, e, "Cannopt decode JPEG image");
+			swf_report(read, e, "Cannot decode JPEG image");
 		}
 
 		/*read alpha map and decompress it*/
@@ -2162,13 +2182,14 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		gf_img_png_enc(raw, w, h, h*4, GF_PIXEL_RGBA, (char *)buf, &osize);
 
 		file = gf_fopen(szName, "wb");
-		gf_fwrite(buf, osize, file);
+		if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
 		gf_fclose(file);
 
 		gf_free(raw);
 #endif //GPAC_DISABLE_AV_PARSERS
 	}
 	gf_free(buf);
+	if (e) return e;
 
 	return read->setup_image(read, ID, szName);
 }

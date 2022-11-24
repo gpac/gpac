@@ -2782,7 +2782,7 @@ static JSValue js_file_write(JSContext *ctx, JSValueConst this_val, int argc, JS
 {
 	const u8 *data;
 	size_t size;
-	u32 read;
+	u32 written;
 	s32 nb_bytes=0;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
 	if (!f) return GF_JS_EXCEPTION(ctx);
@@ -2796,8 +2796,8 @@ static JSValue js_file_write(JSContext *ctx, JSValueConst this_val, int argc, JS
 	if (!nb_bytes) nb_bytes = (u32) size;
 	else if (nb_bytes > (s32) size) nb_bytes = (u32) size;
 
-	read = (u32) gf_fwrite((void *) data, nb_bytes, f);
-	return JS_NewInt64(ctx, read);
+	written = (u32) gf_fwrite((void *) data, nb_bytes, f);
+	return JS_NewInt64(ctx, written);
 }
 static JSValue js_file_puts(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {

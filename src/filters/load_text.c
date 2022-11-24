@@ -3816,7 +3816,8 @@ static GF_Err txtin_process(GF_Filter *filter)
 		e = GF_OK;
 		if (data && size) {
 			ctx->src = gf_file_temp(NULL);
-			gf_fwrite(data, size, ctx->src);
+			if (gf_fwrite(data, size, ctx->src) != size)
+				e = GF_IO_ERR;
 			gf_fseek(ctx->src, 0, SEEK_SET);
 			//init state as parsing SRT payload
 			ctx->state = 2;
@@ -3824,7 +3825,9 @@ static GF_Err txtin_process(GF_Filter *filter)
 			ctx->end = ctx->start + gf_filter_pck_get_duration(pck);
 			ctx->curLine = 0;
 
-			e = ctx->text_process(filter, ctx, pck);
+			if (!e)
+				e = ctx->text_process(filter, ctx, pck);
+
 			if (ctx->src) {
 				gf_fclose(ctx->src);
 				ctx->src = NULL;

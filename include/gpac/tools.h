@@ -894,7 +894,8 @@ Checks if logs are stored to file
 Bool gf_log_use_file();
 
 #ifdef GPAC_DISABLE_LOG
-#define GF_LOG(_ll, _lm, __args)
+void gf_log_check_error(u32 ll, u32 lt);
+#define GF_LOG(_ll, _lm, __args) gf_log_check_error(_ll, _lm);
 #else
 /*!
 \brief Message logging

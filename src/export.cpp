@@ -120,6 +120,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_log) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_va_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_lt) )
+#else
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_check_error) )
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_fsize) )

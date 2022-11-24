@@ -801,10 +801,22 @@ GF_EXPORT
 void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt)
 {
 }
+
+Bool log_exit_on_error=GF_FALSE;
 GF_EXPORT
 Bool gf_log_set_strict_error(Bool strict)
 {
-	return GF_FALSE;
+	Bool old = log_exit_on_error;
+	log_exit_on_error = strict;
+	return old;
+}
+
+GF_EXPORT
+void gf_log_check_error(GF_LOG_Level loglev, GF_LOG_Tool logtool)
+{
+	if (log_exit_on_error && (loglev==GF_LOG_ERROR) && (logtool != GF_LOG_MEMORY)) {
+		exit(1);
+	}
 }
 
 GF_EXPORT

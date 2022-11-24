@@ -4372,7 +4372,6 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			e = mp4_mux_cenc_update(ctx, tkw, pck, for_fragment ? CENC_ADD_FRAG : CENC_ADD_NORMAL, tkw->sample.dataLength, insert_subsample_dsi_size);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample CENC information: %s\n", gf_error_to_string(e) ));
-				return e;
 			}
 		}
 	}
@@ -6535,6 +6534,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	//regular mode
 	nb_suspended = 0;
 	for (i=0; i<count; i++) {
+		GF_Err e;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 
@@ -6610,15 +6610,16 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0, 0);
 
 		if (tkw->is_item) {
-			mp4_mux_process_item(ctx, tkw, pck);
+			e = mp4_mux_process_item(ctx, tkw, pck);
 		} else {
-			mp4_mux_process_sample(ctx, tkw, pck, GF_FALSE);
+			e = mp4_mux_process_sample(ctx, tkw, pck, GF_FALSE);
 		}
 
 		gf_filter_pid_drop_packet(tkw->ipid);
 		if (tkw->aborted) {
 			nb_eos++;
 		}
+		if (e) return e;
 	}
 	mp4_mux_format_report(filter, ctx, 0, 0);
 

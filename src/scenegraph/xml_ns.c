@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
@@ -1159,6 +1159,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	strcat(szFile, buf);
 	strcat(szFile, ext);
 
+	GF_Err e = GF_OK;
 	if (!existing) {
 		FILE *f = gf_fopen(szFile, "wb");
 		if (!f) {
@@ -1167,13 +1168,15 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 			iri->string = NULL;
 			return GF_IO_ERR;
 		}
-		gf_fwrite(data, data_size, f);
+		if (gf_fwrite(data, data_size, f)!=data_size) e = GF_IO_ERR;
 		gf_fclose(f);
 	}
 	gf_free(data);
 	gf_free(iri->string);
 	iri->string = gf_strdup(szFile);
-	return GF_OK;
+	if (!iri->string) e = GF_OUT_OF_MEM;
+
+	return e;
 }
 
 

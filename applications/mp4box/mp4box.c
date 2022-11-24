@@ -4194,6 +4194,7 @@ static GF_Err hash_file(char *name, u32 dump_std)
 static u32 do_raw_cat()
 {
 	char chunk[4096];
+	int ret=0;
 	FILE *fin, *fout;
 	s64 to_copy, done;
 	fin = gf_fopen(raw_cat, "rb");
@@ -4210,7 +4211,11 @@ static u32 do_raw_cat()
 	done = 0;
 	while (1) {
 		u32 nb_bytes = (u32) gf_fread(chunk, 4096, fin);
-		gf_fwrite(chunk, nb_bytes, fout);
+		if (gf_fwrite(chunk, nb_bytes, fout) != nb_bytes) {
+			ret = 1;
+			fprintf(stderr, "Error appengin file\n");
+			break;
+		}
 		done += nb_bytes;
 		fprintf(stderr, "Appending file %s - %02.2f done\r", raw_cat, 100.0*done/to_copy);
 		if (done >= to_copy) break;
@@ -4923,12 +4928,15 @@ static GF_Err do_dump_iod()
 			u8 *desc;
 			u32 size;
 			GF_BitStream *bs = gf_bs_from_file(iodf, GF_BITSTREAM_WRITE);
-			if (gf_odf_desc_write((GF_Descriptor *)iod, &desc, &size)==GF_OK) {
-				gf_fwrite(desc, size, iodf);
+			e = gf_odf_desc_write((GF_Descriptor *)iod, &desc, &size);
+			if (e==GF_OK) {
+				if (gf_fwrite(desc, size, iodf)!=size) e = GF_IO_ERR;
 				gf_free(desc);
 			} else {
-				M4_LOG(GF_LOG_ERROR, ("Error writing IOD %s\n", szName));
 				e = GF_IO_ERR;
+			}
+			if (e) {
+				M4_LOG(GF_LOG_ERROR, ("Error writing IOD %s\n", szName));
 			}
 			gf_bs_del(bs);
 			gf_fclose(iodf);

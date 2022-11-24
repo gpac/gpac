@@ -363,6 +363,7 @@ static void fileout_finalize(GF_Filter *filter)
 
 static GF_Err fileout_process(GF_Filter *filter)
 {
+	GF_Err e=GF_OK;
 	GF_FilterPacket *pck;
 	const GF_PropertyValue *fname, *p;
 	Bool start, end;
@@ -544,6 +545,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 						if (nb_write!=pck_size) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+							e = GF_IO_ERR;
 						}
 						cur_w = gf_ftell(ctx->file);
 
@@ -554,6 +556,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 						block = gf_malloc(ctx->mvbk);
 						if (!block) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] unable to allocate block of %d bytes\n", ctx->mvbk));
+							e = GF_IO_ERR;
 						} else {
 							while (cur_r > bo) {
 								u32 move_bytes = ctx->mvbk;
@@ -565,6 +568,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Read error, got %d bytes but had %d to read\n", nb_write, move_bytes));
+									e = GF_IO_ERR;
 								}
 
 								gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
@@ -572,6 +576,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
+									e = GF_IO_ERR;
 								}
 								cur_r -= move_bytes;
 								cur_w -= move_bytes;
@@ -586,12 +591,14 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 					if (nb_write!=pck_size) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+						e = GF_IO_ERR;
 					}
 				}
 			} else {
 				nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
 				if (nb_write!=pck_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+					e = GF_IO_ERR;
 				}
 				ctx->nb_write += nb_write;
 
@@ -599,6 +606,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 					nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->hls_chunk);
 					if (nb_write!=pck_size) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
+						e = GF_IO_ERR;
 					}
 				}
 			}
@@ -636,6 +644,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 						nb_write = (u32) gf_fwrite(out_ptr, lsize, ctx->file);
 						if (nb_write!=lsize) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
+							e = GF_IO_ERR;
 						}
 						ctx->nb_write += nb_write;
 						out_ptr += out_stride;
@@ -657,7 +666,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 		snprintf(szStatus, 1024, "%s: wrote % 16"LLD_SUF" bytes", gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
-	return GF_OK;
+	return e;
 }
 
 static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

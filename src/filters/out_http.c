@@ -2609,6 +2609,9 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 			break;
 		}
 		write = (u32) gf_fwrite(data, to_write, sess->resource);
+		if (write!=to_write)
+			return GF_IO_ERR;
+
 		sess->nb_bytes += write;
 		remain -= to_write;
 		sess->range_idx++;
@@ -3517,6 +3520,7 @@ retry:
 				u32 wb = (u32) gf_fwrite(pck_data, pck_size, in->hls_chunk);
 				if (wb != pck_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Write error for HLS chunk, wrote %d bytes but had %d to write\n", wb, pck_size));
+					out = 0; //to trigger IO err in process
 				}
 				gf_fflush(in->hls_chunk);
 			}
