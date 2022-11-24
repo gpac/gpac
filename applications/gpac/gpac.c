@@ -2623,6 +2623,7 @@ static int gpac_do_creds(char *creds_args)
 		if (sep) sep[0] = 0;
 		strcat(credFilePath, "/users.cfg");
 		gf_opts_set_key("core", "users", credFilePath);
+		gf_opts_save();
 		cred_file = gf_opts_get_key("core", "users");
 		if (!cred_file) {
 			fprintf(stderr, "Failed to create credential file %s\n", credFilePath);
