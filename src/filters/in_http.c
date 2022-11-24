@@ -635,6 +635,9 @@ GF_FilterRegister HTTPInRegister = {
 	GF_FS_SET_HELP("This filter dispatch raw blocks from a remote HTTP resource into a filter chain.\n"
 	"Block size can be adjusted using [-block_size](), and disk caching policies can be adjusted.\n"
 	"Content format can be forced through [-mime]() and file extension can be changed through [-ext]().\n"
+	"\n"
+	"The filter supports both http and https schemes, and will attempt reconnecting as TLS if TCP connection fails.\n"
+	"\n"
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
 	.private_size = sizeof(GF_HTTPInCtx),
 	.args = HTTPInArgs,

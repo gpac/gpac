@@ -245,7 +245,7 @@ void RemoveTCPChannels(GF_RTSPSession *sess)
 
 
 GF_EXPORT
-void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
+u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 {
 	sess->last_session_id = NULL;
 	sess->NeedConnection = 1;
@@ -258,8 +258,8 @@ void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 			sess->http = NULL;
 			if (sess->tunnel_mode<RTSP_HTTP_DISABLE)
 				sess->tunnel_mode = 0;
-			sess->tunnel_state = 0;
 		}
+		sess->tunnel_state = 0;
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
 			gf_ssl_del(sess->ssl);
@@ -274,14 +274,38 @@ void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 	}
 
 	sess->RTSP_State = GF_RTSP_STATE_INIT;
-//	sess->CSeq = sess->NbPending = 0;
 	sess->InterID = (u8) -1;
 	sess->pck_start = sess->payloadSize = 0;
 	sess->CurrentPos = sess->CurrentSize = 0;
 	strcpy(sess->RTSPLastRequest, "");
 	RemoveTCPChannels(sess);
+	//CSeq 1 is for regular rtsp -> rtsps switch, 0 is for rtsph->rtsph+tls
+	if (sess->CSeq<=1) {
+		sess->nb_retry++;
+
+#ifdef GPAC_HAS_SSL
+		if ((sess->nb_retry>2)
+			&& !sess->use_ssl
+			&& !gf_opts_get_bool("core", "no-tls-rcfg")
+		) {
+			sess->use_ssl = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Connection closed by server %s, retrying with TLS\n", sess->Server));
+		}
+#endif
+		return sess->nb_retry;
+	}
+	return 0;
 }
 
+
+Bool gf_rtsp_session_needs_ssl(GF_RTSPSession *sess)
+{
+	if (!sess) return GF_FALSE;
+#ifdef GPAC_HAS_SSL
+	if (sess->use_ssl && !sess->ssl_ctx) return GF_TRUE;
+#endif
+	return GF_FALSE;
+}
 
 GF_EXPORT
 void gf_rtsp_session_del(GF_RTSPSession *sess)
@@ -370,6 +394,15 @@ GF_EXPORT
 u16 gf_rtsp_get_session_port(GF_RTSPSession *sess)
 {
 	return (sess ? sess->Port : 0);
+}
+
+GF_EXPORT
+Bool gf_rtsp_use_tls(GF_RTSPSession *sess)
+{
+#ifdef GPAC_HAS_TLS
+	return (sess ? sess->use_tls : GF_FALSE);
+#endif
+	return GF_FALSE;
 }
 
 GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)

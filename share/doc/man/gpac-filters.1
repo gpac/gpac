@@ -995,6 +995,12 @@ Block size can be adjusted using .I block_size, and disk caching policies can be
 .br
 Content format can be forced through .I mime and file extension can be changed through .I ext.
 .br
+
+.br
+The filter supports both http and https schemes, and will attempt reconnecting as TLS if TCP connection fails.
+.br
+
+.br
 Note: Unless disabled at session level (see .I -no-probe ), file extensions are usually ignored and format probing is done on the first data block.
 .br
 
@@ -2969,6 +2975,10 @@ The filter will use:
 - RTSP over TLS if server port is 322 or if protocol scheme is rtsps://.
 .br
 - RTSP over HTTPS tunnel if server port is 443 and if protocol scheme is rtsph://.
+.br
+ 
+.br
+The filter will attempt reconnecting in TLS mode after two consecutive initial connection failures.
 .br
 
 .br
@@ -6548,6 +6558,8 @@ The .I mounts option can also specify access rule file(s), see gpac -h creds. Wh
 .br
 - otherwise, the directory is directly available under server root /
 .br
+- only read access and multicast rights are checked
+.br
 Example
 .br
 [foodir]
@@ -6753,6 +6765,8 @@ A directory rule file (cf gpac -h creds) can be specified in .I rdirs but NOT in
 - if a directory has a name rule, it will be used in the URL
 .br
 - otherwise, the directory is directly available under server root /
+.br
+- read and write access rights are checked
 .br
 Example
 .br
@@ -11033,7 +11047,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev492-gbd1a8e990-master
+build: 2.1-DEV-rev501-g91dc3c05f-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

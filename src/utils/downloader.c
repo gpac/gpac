@@ -69,7 +69,8 @@ typedef SSIZE_T ssize_t;
 #define SIZE_IN_STREAM ( 2 << 29 )
 
 
-#define SESSION_RETRY_COUNT	20
+#define SESSION_RETRY_COUNT	10
+#define SESSION_RETRY_SSL	8
 
 #include <gpac/revision.h>
 #define GF_DOWNLOAD_AGENT_NAME		"GPAC/"GPAC_VERSION "-rev" GPAC_GIT_REVISION
@@ -114,7 +115,8 @@ GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select);
 enum
 {
 	GF_DOWNLOAD_SESSION_USE_SSL     = 1<<10,
-	GF_DOWNLOAD_SESSION_THREAD_DEAD = 1<<11
+	GF_DOWNLOAD_SESSION_THREAD_DEAD = 1<<11,
+	GF_DOWNLOAD_SESSION_SSL_FORCED = 1<<12,
 };
 
 enum REQUEST_TYPE
@@ -3222,7 +3224,6 @@ Bool gf_ssl_check_cert(SSL *ssl, const char *server_name)
 
 #endif
 
-
 static void gf_dm_connect(GF_DownloadSession *sess)
 {
 	GF_Err e;
@@ -3307,7 +3308,6 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 	Bool register_sock = GF_FALSE;
 	if (!sess->sock) {
-		sess->num_retry = 40;
 		sess->sock = gf_sk_new(GF_SOCK_TYPE_TCP);
 
 		if (sess->sock && (sess->flags & GF_NETIO_SESSION_NO_BLOCK))
@@ -3426,7 +3426,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		sess->status = GF_NETIO_CONNECTED;
 
 #ifdef GPAC_HAS_SSL
-	if ((!sess->ssl || (sess->connect_pending==2)) && (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)) {
+	if ((!sess->ssl || (sess->connect_pending==2)) && (sess->flags & (GF_DOWNLOAD_SESSION_USE_SSL|GF_DOWNLOAD_SESSION_SSL_FORCED))) {
 		u64 now = gf_sys_clock_high_res();
 		if (sess->dm && !sess->dm->ssl_ctx)
 			gf_dm_ssl_init(sess->dm, 0);
@@ -5373,12 +5373,24 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connection closed by client\n", sess->remote_path));
 				return GF_IP_CONNECTION_CLOSED;
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connection closed by server when processing %s - retrying\n", sess->remote_path));
 			gf_dm_disconnect(sess, HTTP_RESET_CONN);
 
-			if (sess->num_retry)
+			if (sess->num_retry) {
+#ifdef GPAC_HAS_SSL
+				if ((sess->num_retry < SESSION_RETRY_SSL)
+					&& !(sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)
+					&& !gf_opts_get_bool("core", "no-tls-rcfg")
+				) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connection closed by server when processing %s - retrying using SSL\n", sess->remote_path));
+					sess->flags |= GF_DOWNLOAD_SESSION_SSL_FORCED;
+				} else
+#endif
+				{
+					GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connection closed by server when processing %s - retrying\n", sess->remote_path));
+				}
 				sess->status = GF_NETIO_SETUP;
-			else {
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connection closed by server when processing %s - aborting\n", sess->remote_path));
 				SET_LAST_ERR(e)
 				sess->status = GF_NETIO_STATE_ERROR;
 			}
@@ -6011,25 +6023,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 		return e;
 	}
-	case 404:
-		/* File not found */
-		gf_dm_sess_user_io(sess, &par);
-		if ((BodyStart < (s32) bytesRead)) {
-			sHTTP[bytesRead] = 0;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] Failure - body: %s\n", sHTTP + BodyStart));
-		}
-		notify_headers(sess, sHTTP, bytesRead, BodyStart);
-		e = GF_URL_ERROR;
-		goto exit;
-
-    case 416:
-		/* Range not accepted */
-		gf_dm_sess_user_io(sess, &par);
-
-		notify_headers(sess, sHTTP, bytesRead, BodyStart);
-		e = GF_SERVICE_ERROR;
-		goto exit;
-
     case 400:
 	case 501:
 		/* Method not implemented ! */
@@ -6063,23 +6056,36 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sess->status = GF_NETIO_SETUP;
 			return GF_OK;
 		}
-	case 204:
-		gf_dm_sess_user_io(sess, &par);
-		notify_headers(sess, sHTTP, bytesRead, BodyStart);
-		e = GF_EOS;
-		goto exit;
+		//fall-through
 
+/*	case 204:
     case 504:
-        /* gateway timeout, notified as URL error */
-        gf_dm_sess_user_io(sess, &par);
-        notify_headers(sess, sHTTP, bytesRead, BodyStart);
-        e = GF_URL_ERROR;
-        goto exit;
-
-	default:
+	case 404:
+    case 403:
+    case 416:
+*/
+    default:
 		gf_dm_sess_user_io(sess, &par);
+		if ((BodyStart < (s32) bytesRead)) {
+			sHTTP[bytesRead] = 0;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] Failure - body: %s\n", sHTTP + BodyStart));
+		}
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
-		e = GF_REMOTE_SERVICE_ERROR;
+
+		switch (rsp_code) {
+		case 204: e = GF_EOS; break;
+		/* File not found */
+		case 404: e = GF_URL_ERROR; break;
+		/* Forbidden */
+		case 403: e = GF_AUTHENTICATION_FAILURE; break;
+		/* Range not accepted */
+		case 416: e = GF_SERVICE_ERROR; break;
+		case 504: e = GF_URL_ERROR; break;
+		default:
+			if (rsp_code>=500) e = GF_REMOTE_SERVICE_ERROR;
+			else e = GF_SERVICE_ERROR;
+			break;
+		}
 		goto exit;
 	}
 

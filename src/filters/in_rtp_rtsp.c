@@ -106,6 +106,12 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTSP] Connection lost, resending last command\n"));
 				com->is_resend = GF_TRUE;
 				sess->flags &= ~RTSP_WAIT_REPLY;
+
+#ifdef GPAC_HAS_SSL
+				if (gf_rtsp_session_needs_ssl(sess->session) ) {
+					gf_rtsp_set_ssl_ctx(sess->session, gf_dm_ssl_init(sess->rtpin->dm, 0) );
+				}
+#endif
 				return;
 			}
 		}

@@ -467,8 +467,9 @@ for other protocols)
 \param sess the target RTSP session
 \param ResetConnection if set, this will destroy the associated TCP socket. This is useful in case of timeouts, because
 some servers do not restart with the right CSeq.
+\return number of retries for reset happening before first server reply, 0 otherwise
 */
-void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
+u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
 
 /*! checks if an RTSP session matches an RTSP URL
 \param sess the target RTSP session
@@ -501,6 +502,12 @@ const char *gf_rtsp_get_password(GF_RTSPSession *sess);
 \return the server port
 */
 u16 gf_rtsp_get_session_port(GF_RTSPSession *sess);
+
+/*! checks if RTSP connection is over TLS
+\param sess the target RTSP session
+\return GF_TRUE if connection is secured
+*/
+Bool gf_rtsp_use_tls(GF_RTSPSession *sess);
 
 /*! fetches an RTSP response from the server.  the GF_RTSPResponse will be reseted before fetch
 \param sess the target RTSP session
