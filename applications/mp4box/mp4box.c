@@ -4222,7 +4222,7 @@ static u32 do_raw_cat()
 	}
 	gf_fclose(fin);
 	gf_fclose(fout);
-	return mp4box_cleanup(0);
+	return mp4box_cleanup(ret);
 }
 
 static u32 do_write_udp()
