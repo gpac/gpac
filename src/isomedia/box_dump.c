@@ -2209,7 +2209,7 @@ GF_Err xml_box_dump(GF_Box *a, FILE * trace)
 	}
 	gf_fprintf(trace, "]]>\n");
 	gf_isom_box_dump_done("XMLBox", a, trace);
-	return GF_OK;
+	return e;
 }
 
 
