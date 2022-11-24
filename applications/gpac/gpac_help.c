@@ -851,7 +851,7 @@ void gpac_config_help()
 #ifndef GPAC_DISABLE_DOC
 static const char *gpac_credentials =
 {
-"# Credentials\n"
+"# User Credentials\n"
 "Some servers in GPAC can use user-based and group-based authentication.\n"
 "The information is stored by default in the file `users.cfg` located in the GPAC profile directory.\n"
 "The file can be overwritten using the [-users](CORE) option.\n"
@@ -872,7 +872,7 @@ static const char *gpac_credentials =
 "- `@-NAME`: removes group `NAME`\n"
 "\n"
 "By default all added users are members of the group `users`.\n"
-"Passwords are not stored, only a hash is stored.\n"
+"Passwords are not stored, only a SHA256 hash is stored.\n"
 "\n"
 "Servers using authentication rules can use a configuration file instead of a directory name.\n"
 "This configuration file is organized in sections, each section name descibing a directory.\n"

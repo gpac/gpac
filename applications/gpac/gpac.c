@@ -593,11 +593,6 @@ int gpac_main(int argc, char **argv)
 			gpac_alias_help(GF_ARGMODE_EXPERT);
 
 
-			if (gen_doc==1) {
-				fprintf(helpout, "# Credentials Setup\n");
-			} else {
-				fprintf(helpout, ".SH Credentials Setup\n.PL\n");
-			}
 			gpac_credentials_help(GF_ARGMODE_EXPERT);
 
 			if (gen_doc==1) {
@@ -2556,26 +2551,34 @@ static void to_hex(u8 *data, u32 len, char *out)
 static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd)
 {
 	u8 *pass;
-	char szVAL[50];
-	u8 hash[GF_SHA1_DIGEST_SIZE];
-	u8 salt[16];
-	u64 v1, v2;
+	char szVAL[100];
+	u8 hash[GF_SHA256_DIGEST_SIZE];
+	u8 salt[GF_SHA256_DIGEST_SIZE];
+	u64 v1, v2, v3, v4;
 	v1 = gf_rand(); v1<<=32; v1 |= gf_rand();
 	v1 |= gf_sys_clock_high_res();
 	v2 = gf_rand(); v2<<=32; v2 |= gf_rand();
-	v2|= (u64) creds;
+	v2 |= (u64) creds;
+	v3 = gf_rand(); v3<<=32; v3 |= gf_rand();
+	v3 |= (u64) creds_set_pass;
+	v4 = gf_rand(); v4<<=32; v4 |= gf_rand();
+	v4 |= (u64) to_hex;
+
 	* ((u64*) &salt[0]) = v1;
 	* ((u64*) &salt[7]) = v2;
+	* ((u64*) &salt[15]) = v3;
+	* ((u64*) &salt[23]) = v4;
+
 	u32 len = strlen(passwd);
-	pass = gf_malloc(len+17);
+	pass = gf_malloc(len+GF_SHA256_DIGEST_SIZE+1);
 	memcpy(pass, passwd, len);
 	pass[len] = '@';
-	memcpy(pass + len + 1, salt, 16);
-	len += 17;
-	gf_sha1_csum(pass, len, hash);
-	to_hex(hash, GF_SHA1_DIGEST_SIZE, szVAL);
+	memcpy(pass + len + 1, salt, GF_SHA256_DIGEST_SIZE);
+	len += GF_SHA256_DIGEST_SIZE+1;
+	gf_sha256_csum(pass, len, hash);
+	to_hex(hash, GF_SHA256_DIGEST_SIZE, szVAL);
 	gf_cfg_set_key(creds, user, "password", szVAL);
-	to_hex(salt, 16, szVAL);
+	to_hex(salt, GF_SHA256_DIGEST_SIZE, szVAL);
 	gf_cfg_set_key(creds, user, "salt", szVAL);
 
 	u64 now = gf_sys_clock_high_res();
