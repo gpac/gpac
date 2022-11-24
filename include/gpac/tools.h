@@ -2060,6 +2060,15 @@ GF_Err gf_sha1_file_ptr(FILE *file, u8 digest[GF_SHA1_DIGEST_SIZE] );
 void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
 /*! @} */
 
+/*! checksum size for SHA-256*/
+#define GF_SHA256_DIGEST_SIZE 32
+/*! gets SHA-256 of input buffer
+\param buf input buffer to hash
+\param buflen sizeo of input buffer in bytes
+\param digest buffer to store message digest
+ */
+void gf_sha256_csum(const void *buf, u64 buflen, u8 digest[GF_SHA256_DIGEST_SIZE]);
+
 
 /*!
 \addtogroup libsys_grp

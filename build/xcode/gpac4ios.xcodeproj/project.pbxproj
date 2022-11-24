@@ -358,6 +358,7 @@
 		9251E542251E39A300CEB84D /* scripts in Resources */ = {isa = PBXBuildFile; fileRef = 9251E541251E39A300CEB84D /* scripts */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
 		925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A31A0916DB0057FF04 /* libbz2.dylib */; };
+		925A7611292F998500664F38 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 925A7610292F998500664F38 /* sha256.c */; };
 		925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A31ABC53F30085B04C /* odf_parse_common.h */; };
 		925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A41ABC53F30085B04C /* smjs_api.h */; };
 		925FF2A71ABC55030085B04C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
@@ -961,6 +962,7 @@
 		9251E541251E39A300CEB84D /* scripts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = scripts; path = ../../share/scripts; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
+		925A7610292F998500664F38 /* sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha256.c; sourceTree = "<group>"; };
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
 		925FF2A41ABC53F30085B04C /* smjs_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smjs_api.h; sourceTree = "<group>"; };
 		9262B10B24B7791B009B059D /* core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = core.c; path = ../../src/jsmods/core.c; sourceTree = "<group>"; };
@@ -1648,14 +1650,11 @@
 		71CCF2291277045100339E12 /* utils */ = {
 			isa = PBXGroup;
 			children = (
-				8959AC8E211C9C77004D2C87 /* Remotery.c */,
-				92EB6E3A20E4EBDB00A97A49 /* constants.c */,
-				97FF065F138CE4C400D6C707 /* os_config_init.c */,
-				970A26D613434DAC0007362C /* unicode.c */,
-				7147425F12B918C900DB5A59 /* cache.c */,
 				7141FF2F1292CB9200FCB27D /* alloc.c */,
 				71CCF22A1277045100339E12 /* base_encoding.c */,
 				71CCF22B1277045100339E12 /* bitstream.c */,
+				92EB6E3A20E4EBDB00A97A49 /* constants.c */,
+				7147425F12B918C900DB5A59 /* cache.c */,
 				71CCF22C1277045100339E12 /* color.c */,
 				71CCF22D1277045100339E12 /* configfile.c */,
 				71CCF22F1277045100339E12 /* downloader.c */,
@@ -1664,10 +1663,11 @@
 				9298677E235A1587008A2CC6 /* gltools.c */,
 				71CCF2321277045100339E12 /* list.c */,
 				71CCF2331277045100339E12 /* math.c */,
+				71CCF2351277045100339E12 /* module_wrap.h */,
 				71CCF2341277045100339E12 /* module.c */,
+				97FF065F138CE4C400D6C707 /* os_config_init.c */,
 				92F930841A5ADC1A0072A85C /* os_divers.c */,
 				92F930851A5ADC1A0072A85C /* os_file.c */,
-				71CCF2351277045100339E12 /* module_wrap.h */,
 				71CCF2361277045100339E12 /* os_file.c */,
 				71CCF2371277045100339E12 /* os_module.c */,
 				71CCF2381277045100339E12 /* os_net.c */,
@@ -1675,8 +1675,11 @@
 				71CCF23A1277045100339E12 /* path2d.c */,
 				71CCF23B1277045100339E12 /* path2d_stroker.c */,
 				97DDAFEE1569631900528219 /* sha1.c */,
+				925A7610292F998500664F38 /* sha256.c */,
 				71CCF23E1277045100339E12 /* token.c */,
+				8959AC8E211C9C77004D2C87 /* Remotery.c */,
 				71CCF23F1277045100339E12 /* uni_bidi.c */,
+				970A26D613434DAC0007362C /* unicode.c */,
 				71CCF2401277045100339E12 /* url.c */,
 				71CCF2411277045100339E12 /* utf.c */,
 				71CCF2421277045100339E12 /* xml_parser.c */,
@@ -2579,6 +2582,7 @@
 				71CCF2F91277045100339E12 /* loader_xmt.c in Sources */,
 				71CCF2FA1277045100339E12 /* scene_dump.c in Sources */,
 				71CCF2FB1277045100339E12 /* scene_engine.c in Sources */,
+				925A7611292F998500664F38 /* sha256.c in Sources */,
 				92EB6DDA20E4E19700A97A49 /* dec_webvtt.c in Sources */,
 				71CCF2FC1277045100339E12 /* scene_manager.c in Sources */,
 				71CCF2FD1277045100339E12 /* scene_stats.c in Sources */,

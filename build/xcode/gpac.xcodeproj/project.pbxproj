@@ -229,6 +229,7 @@
 		925975042215BA3A0007E02B /* rast_soft.h in Headers */ = {isa = PBXBuildFile; fileRef = 925974FB2215BA3A0007E02B /* rast_soft.h */; };
 		925975052215BA3A0007E02B /* raster_yuv.c in Sources */ = {isa = PBXBuildFile; fileRef = 925974FC2215BA3A0007E02B /* raster_yuv.c */; };
 		925975082215BAC30007E02B /* evg.h in Headers */ = {isa = PBXBuildFile; fileRef = 925975072215BAC30007E02B /* evg.h */; };
+		925A760F292F965D00664F38 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 925A760E292F965D00664F38 /* sha256.c */; };
 		925CE3451FA2E642004EC6F5 /* decrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */; };
 		925E564C2798B87300BBD530 /* bs_agg.c in Sources */ = {isa = PBXBuildFile; fileRef = 925E564B2798B87300BBD530 /* bs_agg.c */; };
 		926209BF27F6026A0024415A /* write_tx3g.c in Sources */ = {isa = PBXBuildFile; fileRef = 926209BE27F6026A0024415A /* write_tx3g.c */; };
@@ -844,6 +845,7 @@
 		925974FB2215BA3A0007E02B /* rast_soft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rast_soft.h; path = evg/rast_soft.h; sourceTree = "<group>"; };
 		925974FC2215BA3A0007E02B /* raster_yuv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_yuv.c; path = evg/raster_yuv.c; sourceTree = "<group>"; };
 		925975072215BAC30007E02B /* evg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = evg.h; path = ../include/gpac/evg.h; sourceTree = "<group>"; };
+		925A760E292F965D00664F38 /* sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha256.c; sourceTree = "<group>"; };
 		925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = decrypt_cenc_isma.c; path = filters/decrypt_cenc_isma.c; sourceTree = "<group>"; };
 		925E564B2798B87300BBD530 /* bs_agg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_agg.c; path = filters/bs_agg.c; sourceTree = "<group>"; };
 		92609BD2252F56CC00DB821E /* export.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = export.cpp; sourceTree = "<group>"; };
@@ -1366,6 +1368,7 @@
 				920100A218D5A444003D1ACA /* path2d_stroker.c */,
 				92E164BA20F8F2860024A9CA /* Remotery.c */,
 				920100A418D5A444003D1ACA /* sha1.c */,
+				925A760E292F965D00664F38 /* sha256.c */,
 				920100A718D5A444003D1ACA /* token.c */,
 				920100A818D5A444003D1ACA /* uni_bidi.c */,
 				920100A918D5A444003D1ACA /* unicode.c */,
@@ -2485,6 +2488,7 @@
 				9201010B18D5A444003D1ACA /* rtp_pck_3gpp.c in Sources */,
 				92061A851FE0484600B5C464 /* reframer.c in Sources */,
 				9201010C18D5A444003D1ACA /* rtp_pck_mpeg12.c in Sources */,
+				925A760F292F965D00664F38 /* sha256.c in Sources */,
 				92B9A5821F8660D700A24FE4 /* hc_flash_shape.c in Sources */,
 				9246EE7524A0DA2700F72EAD /* filter_session_js.c in Sources */,
 				9201010D18D5A444003D1ACA /* rtp_pck_mpeg4.c in Sources */,

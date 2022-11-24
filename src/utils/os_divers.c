@@ -3097,8 +3097,8 @@ GF_EXPORT
 GF_Err gf_creds_check_password(const char *user, char *password)
 {
 	u32 i, len, v;
-	u8 passbuf[117];
-	u8 hash[20], ohash[20];
+	u8 passbuf[150];
+	u8 hash[GF_SHA256_DIGEST_SIZE], ohash[GF_SHA256_DIGEST_SIZE];
 	const char *cred_file = gf_opts_get_key("core", "users");
 	if (!cred_file) return GF_NOT_FOUND;
 	GF_Config *creds = gf_cfg_new(NULL, cred_file);
@@ -3106,28 +3106,28 @@ GF_Err gf_creds_check_password(const char *user, char *password)
 	len = strlen(password);
 	const char *pass_hex = gf_cfg_get_key(creds, user, "password");
 	const char *salt_hex = gf_cfg_get_key(creds, user, "salt");
-	if (!salt_hex || !pass_hex || (strlen(salt_hex) != 32) || (strlen(pass_hex) != 40) || (len>=100)) {
+	if (!salt_hex || !pass_hex || (strlen(salt_hex) != 64) || (strlen(pass_hex) != 64) || (len>=100)) {
 		gf_cfg_del(creds);
 		return GF_NOT_FOUND;
 	}
 
-	u8 salt[16];
-	for (i=0; i<16; i++) {
+	u8 salt[GF_SHA256_DIGEST_SIZE];
+	for (i=0; i<GF_SHA256_DIGEST_SIZE; i++) {
 		sscanf(salt_hex+2*i, "%02x", &v);
 		salt[i] = v;
 	}
-	for (i=0; i<20; i++) {
+	for (i=0; i<GF_SHA256_DIGEST_SIZE; i++) {
 		sscanf(pass_hex+2*i, "%02x", &v);
 		ohash[i] = v;
 	}
 
 	memcpy(passbuf, password, len);
 	passbuf[len]='@';
-	memcpy(passbuf+len+1, salt, 16);
-	len+=17;
-	gf_sha1_csum(passbuf, len, hash);
+	memcpy(passbuf+len+1, salt, GF_SHA256_DIGEST_SIZE);
+	len += GF_SHA256_DIGEST_SIZE+1;
+	gf_sha256_csum(passbuf, len, hash);
 	len=1;
-	for (i=0; i<20; i++) {
+	for (i=0; i<GF_SHA256_DIGEST_SIZE; i++) {
 		if (hash[i] != ohash[i]) len=0;
 	}
 
