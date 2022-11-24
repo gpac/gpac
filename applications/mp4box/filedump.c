@@ -129,10 +129,12 @@ GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name)
 	} else {
 		t = stdout;
 	}
-	gf_fwrite(tag, tag_len & 0x7FFFFFFF, t);
+	tag_len &= 0x7FFFFFFF;
+	if (gf_fwrite(tag, tag_len, t) != tag_len)
+		e = GF_IO_ERR;
 
 	if (inName) gf_fclose(t);
-	return GF_OK;
+	return e;
 }
 
 #ifndef GPAC_DISABLE_SCENE_DUMP

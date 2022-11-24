@@ -2198,12 +2198,15 @@ GF_Err meta_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err xml_box_dump(GF_Box *a, FILE * trace)
 {
+	GF_Err e=GF_OK;
 	GF_XMLBox *p = (GF_XMLBox *)a;
 	gf_isom_box_dump_start(a, "XMLBox", trace);
 	gf_fprintf(trace, ">\n");
 	gf_fprintf(trace, "<![CDATA[\n");
-	if (p->xml)
-		gf_fwrite(p->xml, strlen(p->xml), trace);
+	if (p->xml) {
+		u32 len = (u32) strlen(p->xml);
+		if (gf_fwrite(p->xml, len, trace)!=len) e = GF_IO_ERR;
+	}
 	gf_fprintf(trace, "]]>\n");
 	gf_isom_box_dump_done("XMLBox", a, trace);
 	return GF_OK;

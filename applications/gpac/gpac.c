@@ -1150,8 +1150,10 @@ restart:
 			e = gf_fs_get_last_process_error(session);
 			if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
 
-			e = evt_ret_val;
-			if (e < 0) fprintf(stderr, "UI last error %s\n", gf_error_to_string(e) );
+			if (evt_ret_val<0) {
+				e = evt_ret_val;
+				fprintf(stderr, "UI last error %s\n", gf_error_to_string(e) );
+			}
 		}
 		gpac_check_session_args();
 	}

@@ -149,21 +149,26 @@ static char *validator_create_snapshot(GF_Validator *validator)
 	} else {
 		u32 dst_size = fb.width*fb.height*3;
 		char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
+		if (!dst) e = GF_OUT_OF_MEM;
 
-		e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error encoding PNG %s\n", gf_error_to_string(e)));
-		} else {
+		if (!e)
+			e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
+
+		if (!e) {
 			FILE *png = gf_fopen(dumpname, "wb");
 			if (!png) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error writing file %s\n", dumpname));
+				e = GF_IO_ERR;
 			} else {
-				gf_fwrite(dst, dst_size, png);
+				if (gf_fwrite(dst, dst_size, png)!=dst_size) e = GF_IO_ERR;
 				gf_fclose(png);
-				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Validator] Writing file %s\n", dumpname));
 			}
 		}
 		if (dst) gf_free(dst);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error encoding PNG to %s: %s\n", dumpname, gf_error_to_string(e)));
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Validator] Writing file %s\n", dumpname));
+		}
 		gf_sc_release_screen_buffer(compositor, &fb);
 	}
 	validator->snapshot_number++;

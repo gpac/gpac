@@ -1744,7 +1744,10 @@ static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
 					szLine[1024] = 0;
 					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", szLine));
 				} else {
-					gf_fwrite(szLine, read, ctx->dump);
+					if (gf_fwrite(szLine, read, ctx->dump) != read) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] failed to concatenate trace: %s\n", gf_error_to_string(GF_IO_ERR)));
+						break;
+					}
 				}
 			}
 		}

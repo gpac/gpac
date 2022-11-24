@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -69,6 +69,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 {
 	u32 i, count;
 	FILE *didfile;
+	GF_Err e=GF_OK;
 	GF_XMLBox *xml = NULL;
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) return GF_BAD_PARAM;
@@ -86,11 +87,12 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 
 	didfile = gf_fopen(outName, "wb");
 	if (!didfile) return GF_IO_ERR;
-	gf_fwrite(xml->xml, strlen(xml->xml), didfile);
+	u32 len = (u32) strlen(xml->xml);
+	if (gf_fwrite(xml->xml, len, didfile)!=len) e = GF_IO_ERR;
 	gf_fclose(didfile);
 
 	if (is_binary) *is_binary = (xml->type==GF_ISOM_BOX_TYPE_BXML) ? 1 : 0;
-	return GF_OK;
+	return e;
 }
 
 #if 0 //unused

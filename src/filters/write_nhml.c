@@ -342,7 +342,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 
 
-static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
+static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 {
 	GF_FilterPacket *dst_pck;
 	char nhml[1024];
@@ -489,19 +489,19 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
-		return;
+		if (gf_fwrite(ctx->nhml_buffer, size, ctx->filep) != size) return GF_IO_ERR;
+		return GF_OK;
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
-	if (!dst_pck) return;
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	memcpy(output, ctx->nhml_buffer, size);
 	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
-	gf_filter_pck_send(dst_pck);
+	return gf_filter_pck_send(dst_pck);
 }
 
-static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *pck)
+static GF_Err nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *pck)
 {
 	char nhml[1024];
 	u32 size;
@@ -612,16 +612,16 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
-		return;
+		if (gf_fwrite(ctx->nhml_buffer, size, ctx->filep) != size) return GF_IO_ERR;
+		return GF_OK;
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
-	if (!dst_pck) return;
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	memcpy(output, ctx->nhml_buffer, size);
 	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
-	gf_filter_pck_send(dst_pck);
+	return gf_filter_pck_send(dst_pck);
 }
 
 
@@ -656,7 +656,7 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 }
 
-static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *pck)
+static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *pck)
 {
 	GF_FilterPacket *dst_pck;
 	char nhml[1024];
@@ -811,8 +811,8 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
-		gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
-		return;
+		if (gf_fwrite(ctx->nhml_buffer, size, ctx->filep) != size) return GF_IO_ERR;
+		return GF_OK;
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
@@ -827,7 +827,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	if (ctx->opid_mdia) {
 		//send the complete data packet
 		dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, 0, data_size, pck);
-		if (!dst_pck) return;
+		if (!dst_pck) return GF_OUT_OF_MEM;
 
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		//keep byte offset ?
@@ -836,6 +836,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		gf_filter_pck_send(dst_pck);
 	}
+	return GF_OK;
 }
 
 
@@ -845,6 +846,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	char *data;
 	u32 pck_size;
+	GF_Err e;
 
 	if (!ctx->side_streams_config) {
 		return nhmldump_config_side_stream(filter, ctx);
@@ -853,6 +855,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			e = GF_EOS;
 			if (ctx->bs_w && ctx->szRootName) {
 				char nhml[1024];
 				u32 size;
@@ -863,7 +866,8 @@ GF_Err nhmldump_process(GF_Filter *filter)
 				gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 				if (ctx->filep) {
-					gf_fwrite(ctx->nhml_buffer, size, ctx->filep);
+					if (gf_fwrite(ctx->nhml_buffer, size, ctx->filep) != size)
+						e = GF_IO_ERR;
 				} else {
 					GF_FilterPacket *dst_pck;
 					u8 *output;
@@ -871,7 +875,9 @@ GF_Err nhmldump_process(GF_Filter *filter)
 					if (dst_pck) {
 						memcpy(output, ctx->nhml_buffer, size);
 						gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
-						gf_filter_pck_send(dst_pck);
+						e = gf_filter_pck_send(dst_pck);
+					} else {
+						e = GF_OUT_OF_MEM;
 					}
 				}
 				ctx->szRootName = NULL;
@@ -879,7 +885,7 @@ GF_Err nhmldump_process(GF_Filter *filter)
 			if (ctx->opid_nhml) gf_filter_pid_set_eos(ctx->opid_nhml);
 			if (ctx->opid_mdia) gf_filter_pid_set_eos(ctx->opid_mdia);
 			if (ctx->opid_info) gf_filter_pid_set_eos(ctx->opid_info);
-			return GF_EOS;
+			return e;
 		}
 		return GF_OK;
 	}
@@ -888,7 +894,8 @@ GF_Err nhmldump_process(GF_Filter *filter)
 	else gf_bs_reassign_buffer(ctx->bs_w, ctx->nhml_buffer, ctx->nhml_buffer_size);
 
 	if (ctx->first) {
-		nhmldump_send_header(ctx);
+		e = nhmldump_send_header(ctx);
+		if (e) return e;
 		gf_bs_reassign_buffer(ctx->bs_w, ctx->nhml_buffer, ctx->nhml_buffer_size);
 	}
 
@@ -897,11 +904,12 @@ GF_Err nhmldump_process(GF_Filter *filter)
 
 	//send data
 	if (ctx->is_dims) {
-		nhmldump_send_dims(ctx, data, pck_size, pck);
+		e = nhmldump_send_dims(ctx, data, pck_size, pck);
 	} else {
-		nhmldump_send_frame(ctx, data, pck_size, pck);
+		e = nhmldump_send_frame(ctx, data, pck_size, pck);
 	}
 	ctx->first = GF_FALSE;
+	if (e) return e;
 
 
 	if (ctx->exporter) {

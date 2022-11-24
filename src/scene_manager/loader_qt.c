@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -65,7 +65,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	M_Group *gr;
 	GF_ODUpdate *odU;
 	GF_SceneGraph *sg;
-
+	GF_Err e=GF_OK;
 	if (!load->ctx) return GF_NOT_SUPPORTED;
 
 	src = gf_isom_open(load->fileName, GF_ISOM_OPEN_READ, NULL);
@@ -176,12 +176,13 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 
 		samp = gf_isom_get_sample(src, tk, i+1, &di);
 		img = gf_fopen(mi->file_name, "wb");
-		gf_fwrite(samp->data, samp->dataLength, img);
+		if (gf_fwrite(samp->data, samp->dataLength, img)!=samp->dataLength)
+			e = GF_IO_ERR;
 		gf_fclose(img);
 		gf_isom_sample_del(&samp);
 	}
 	gf_isom_delete(src);
-	return GF_OK;
+	return e;
 }
 
 #endif	/*GPAC_DISABLE_QTVR*/

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -273,18 +273,21 @@ void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch)
 	}
 }
 
-static void bs_flush_write_cache(GF_BitStream *bs)
+static Bool bs_flush_write_cache(GF_BitStream *bs)
 {
+	Bool res = GF_TRUE;
 	if (bs->buffer_written) {
 		u32 nb_write;
 		nb_write = (u32) gf_fwrite(bs->cache_write, bs->buffer_written, bs->stream);
-
+		if (nb_write != bs->buffer_written)
+			res = GF_FALSE;
 		//check we didn't rewind the bitstream
 		if (bs->size == bs->position)
 			bs->size += nb_write;
 		bs->position += nb_write;
 		bs->buffer_written = 0;
 	}
+	return res;
 }
 
 
@@ -1071,7 +1074,8 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 					return nbBytes;
 				}
 				//otherwise flush cache and use file write
-				bs_flush_write_cache(bs);
+				if (!bs_flush_write_cache(bs))
+					return 0;
 			}
 
 			if (gf_fwrite(data, nbBytes, bs->stream) != nbBytes) return 0;
