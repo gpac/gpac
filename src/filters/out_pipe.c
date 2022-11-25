@@ -526,7 +526,8 @@ GF_FilterRegister PipeOutRegister = {
 	.initialize = pipeout_initialize,
 	.finalize = pipeout_finalize,
 	.configure_pid = pipeout_configure_pid,
-	.process = pipeout_process
+	.process = pipeout_process,
+	.flags = GF_FS_REG_TEMP_INIT
 };
 
 

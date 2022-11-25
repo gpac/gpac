@@ -2194,7 +2194,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		}
 	}
 	/*this is an alias for our main filter, nothing to initialize*/
-	if (gf_filter_is_alias(filter)) {
+	if (gf_filter_is_alias(filter) || gf_filter_is_temporary(filter) ) {
 		return GF_OK;
 	}
 
@@ -4411,7 +4411,8 @@ GF_FilterRegister HTTPOutRegister = {
 	.configure_pid = httpout_configure_pid,
 	.process = httpout_process,
 	.process_event = httpout_process_event,
-	.use_alias = httpout_use_alias
+	.use_alias = httpout_use_alias,
+	.flags = GF_FS_REG_TEMP_INIT
 };
 
 

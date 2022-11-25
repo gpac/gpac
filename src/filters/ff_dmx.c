@@ -642,6 +642,12 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 	u32 nb_a, nb_v, nb_t, clock_id;
 	char szName[50];
 
+
+	if (gf_filter_is_temporary(filter)) {
+		gf_filter_meta_set_instances(filter, ctx->demuxer->av_class->class_name);
+		return GF_OK;
+	}
+
 #if (LIBAVCODEC_VERSION_MAJOR >= 59)
 	ctx->pkt = av_packet_alloc();
 #endif
@@ -961,6 +967,7 @@ static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)
 	return (int64_t) gf_fseek(ctx->gfio, offset, whence);
 }
 
+#include <libavutil/avstring.h>
 static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
@@ -1040,6 +1047,27 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		e = GF_NOT_SUPPORTED;
 		break;
 	}
+
+	if (e && gf_filter_is_temporary(filter)) {
+		char *ext = strrchr(ctx->src, '.');
+		const AVInputFormat *ifmt = av_find_input_format(ctx->src);
+		if (!ifmt && ext) ifmt = av_find_input_format(ext+1);
+		if (!ifmt && ext) {
+			const AVInputFormat *fmt = NULL;
+			void *i = 0;
+			while ((fmt = av_demuxer_iterate(&i))) {
+				if (av_match_name(ext+1, fmt->extensions)) {
+					ifmt = fmt;
+					break;
+				}
+			}
+		}
+		if (ifmt) {
+			gf_filter_meta_set_instances(filter, ifmt->name);
+			return GF_OK;
+		}
+	}
+
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Fail to open %s - error %s\n", ctx->fname, ctx->src, av_err2str(res) ));
 		avformat_close_input(&ctx->demuxer);
@@ -1054,6 +1082,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		e = GF_NOT_SUPPORTED;
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
+		ctx->demuxer = NULL;
 		if (options) av_dict_free(&options);
 		return e;
 	}
@@ -1229,8 +1258,7 @@ static const GF_FilterArgs FFDemuxArgs[] =
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
-	ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, 2, FF_REG_TYPE_DEMUX);
-	return &FFDemuxRegister;
+	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, 2, FF_REG_TYPE_DEMUX);
 }
 
 
@@ -1659,13 +1687,13 @@ static void ffavin_log_none(void *avcl, int level, const char *fmt, va_list vl)
 
 const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
-	ffmpeg_build_register(session, &FFAVInRegister, FFAVInArgs, FFAVIN_STATIC_ARGS, FF_REG_TYPE_DEV_IN);
+	GF_FilterRegister *res_reg = ffmpeg_build_register(session, &FFAVInRegister, FFAVInArgs, FFAVIN_STATIC_ARGS, FF_REG_TYPE_DEV_IN);
 
 	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
 		gf_opts_set_key("temp_in_proto", FFAVInRegister.name, "video,audio,av");
 	}
 	if (!gf_opts_get_bool("temp", "helponly") || gf_opts_get_bool("temp", "gendoc"))
-		return &FFAVInRegister;
+		return res_reg;
 	
 #ifdef FF_PROBE_DEVICES
 	Bool audio_pass=GF_FALSE;
@@ -1697,7 +1725,7 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 		ffmpeg_register_set_dyn_help(&FFAVInRegister);
 	}
 #endif
-	return &FFAVInRegister;
+	return res_reg;
 }
 
 #else

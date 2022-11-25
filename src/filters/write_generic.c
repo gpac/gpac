@@ -1928,7 +1928,8 @@ GF_FilterRegister GenDumpRegister = {
 	.finalize = writegen_finalize,
 	SETCAPS(GenDumpCaps),
 	.configure_pid = writegen_configure_pid,
-	.process = writegen_process
+	.process = writegen_process,
+	.flags = GF_FS_REG_TEMP_INIT
 };
 
 static const GF_FilterCapability FrameDumpCaps[] =

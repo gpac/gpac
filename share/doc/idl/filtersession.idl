@@ -136,6 +136,15 @@ void reporting(boolean enable);
 */
 JSFilter new_filter(DOMString name=null);
 
+
+/*! loads all arguments of of a filter description. This will load all arguments on meta filters (not visible otherwise)
+
+\param desciption description for the filter. Sources can be specified using `src=URL`, sinks can be specified using `dst=URL`.
+\return array of JSFSFilterArg
+*/
+Array filter_args(DOMString desciption);
+
+
 /*! number of filters in the session - see \ref gf_fs_get_filters_count. 
 This number is only valid when session is locked*/
 attribute long nb_filters;
@@ -273,6 +282,20 @@ Object ipid_stats(unsigned long idx, optional unsigned int mode=0);
 \return object matching \ref GF_FilterPidStatistics
 */
 Object opid_stats(unsigned long idx, optional unsigned int mode=0);
+
+
+/*! computes link from an output pid of the filter to a given filter description
+\param idx the index of the output pid to query
+\param description filter descrition, destination can be specified using dst=URL
+\param load_args if set, will load all possible arguments for each filter
+
+If arguments are loaded, the return value is an array of object with property `fname` set to the registry name and `args` set to an array of JSFSFilterArg, including arguments of meta filters (not visible otherwise)
+
+If arguments are not loaded, the return value is an array registry names
+
+\return array of found filters, NULL if not found
+*/
+Array compute_link(unsigned long idx, DOMString description, optional Boolean load_args=false);
 
 
 /*! Gets source filter for an input pid

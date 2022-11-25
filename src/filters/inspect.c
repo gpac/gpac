@@ -1784,7 +1784,7 @@ static void inspect_finalize(GF_Filter *filter)
 		}
 
 
-		if (!ctx->interleave) {
+		if (!ctx->interleave && ctx->dump) {
 			finalize_dump(ctx, GF_STREAM_AUDIO, concat);
 			finalize_dump(ctx, GF_STREAM_VISUAL, concat);
 			finalize_dump(ctx, GF_STREAM_SCENE, concat);
@@ -4482,25 +4482,10 @@ GF_Err inspect_initialize(GF_Filter *filter)
 
 	if (!ctx->log) return GF_BAD_PARAM;
 
-	if (!strcmp(ctx->log, "stderr")) ctx->dump = stderr;
-	else if (!strcmp(ctx->log, "stdout")) ctx->dump = stdout;
-	else if (!strcmp(ctx->log, "null")) ctx->dump = NULL;
-	else if (!ctx->dump_log) {
-		ctx->dump = gf_fopen(ctx->log, "wt");
-		if (!ctx->dump) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] Failed to open file %s\n", ctx->log));
-			return GF_IO_ERR;
-		}
-	}
 	if (ctx->analyze) {
 		ctx->xml = GF_TRUE;
 	}
 
-	if (ctx->xml && ctx->dump) {
-		ctx->fmt = NULL;
-		inspect_printf(ctx->dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-		inspect_printf(ctx->dump, "<GPACInspect>\n");
-	}
 
 	if (ctx->xml || ctx->analyze || gf_sys_is_test_mode() || ctx->fmt) {
 		ctx->full = GF_TRUE;
@@ -4518,6 +4503,24 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	default:
 		gf_filter_override_caps(filter, InspecterDemuxedCaps,  sizeof(InspecterDemuxedCaps)/sizeof(GF_FilterCapability) );
 		break;
+	}
+	if (gf_filter_is_temporary(filter))
+		return GF_OK;
+
+	if (!strcmp(ctx->log, "stderr")) ctx->dump = stderr;
+	else if (!strcmp(ctx->log, "stdout")) ctx->dump = stdout;
+	else if (!strcmp(ctx->log, "null")) ctx->dump = NULL;
+	else if (!ctx->dump_log) {
+		ctx->dump = gf_fopen(ctx->log, "wt");
+		if (!ctx->dump) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] Failed to open file %s\n", ctx->log));
+			return GF_IO_ERR;
+		}
+	}
+	if (ctx->xml && ctx->dump) {
+		ctx->fmt = NULL;
+		inspect_printf(ctx->dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		inspect_printf(ctx->dump, "<GPACInspect>\n");
 	}
 
 #ifdef GPAC_ENABLE_COVERAGE
@@ -4727,7 +4730,7 @@ const GF_FilterRegister ProbeRegister = {
 	"The filter outputs the number of input PIDs in the file specified by [-log]().\n"
 	"It is up to the app developer to query input PIDs of the prober and take appropriated decisions.")
 	.private_size = sizeof(GF_InspectCtx),
-	.flags = GF_FS_REG_EXPLICIT_ONLY,
+	.flags = GF_FS_REG_EXPLICIT_ONLY | GF_FS_REG_TEMP_INIT,
 	.max_extra_pids = (u32) -1,
 	.initialize = inspect_initialize,
 	.args = ProbeArgs,

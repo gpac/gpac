@@ -840,6 +840,8 @@ struct __gf_filter
 	//typically helps for tiling case with hundreds of tiles
 	GF_Filter *single_source;
 
+	char *meta_instances;
+
 #ifdef GPAC_HAS_QJS
 	char *iname;
 	JSValue jsval;
@@ -856,7 +858,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only);
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg);
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 
@@ -1184,6 +1186,10 @@ Bool gf_fs_check_filter_register_cap_ex(const GF_FilterRegister *f_reg, u32 inco
 
 Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const char *arg_value, Bool is_sync_call);
 
+
+GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst);
+
+GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, u32 type, const char *name, const char *value, const char *enum_values);
 #endif //_GF_FILTER_SESSION_H_
 
 

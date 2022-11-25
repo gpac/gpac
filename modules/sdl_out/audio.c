@@ -51,7 +51,6 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 	}
 }
 
-
 static GF_Err SDLAud_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	u32 flags;

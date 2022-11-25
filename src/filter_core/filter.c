@@ -290,6 +290,10 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->max_extra_pids = freg->max_extra_pids;
 	filter->dynamic_filter = is_dynamic_filter ? 1 : 0;
 
+#ifdef GPAC_HAS_QJS
+	filter->jsval = JS_UNDEFINED;
+#endif
+
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
 		filter->pcks_mx = gf_mx_new(szName);
@@ -498,6 +502,13 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 
 	gf_filter_parse_args(filter, args, arg_type, GF_FALSE);
 
+	if (filter->removed) {
+		if (!(filter->freg->flags & (GF_FS_REG_TEMP_INIT|GF_FS_REG_META))) {
+			filter->finalized = GF_TRUE;
+			return GF_OK;
+		}
+	}
+
 	if (filter->freg->initialize) {
 		GF_Err e;
 		FSESS_CHECK_THREAD(filter)
@@ -672,6 +683,9 @@ void gf_filter_del(GF_Filter *filter)
 		gf_free(filter->instance_author);
 	if (filter->instance_help)
 		gf_free(filter->instance_help);
+
+	if (filter->meta_instances)
+		gf_free(filter->meta_instances);
 
 #ifdef GPAC_HAS_QJS
 	if (filter->iname)
@@ -1027,12 +1041,12 @@ Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH])
 	return GF_FALSE;
 }
 
-static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u32 type, const char *name, const char *value, const char *enum_values)
+GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, u32 type, const char *name, const char *value, const char *enum_values)
 {
 	char szPath[GF_MAX_PATH];
 	GF_PropertyValue argv;
 
-	if (!value) return gf_props_parse_value(type, name, NULL, enum_values, filter->session->sep_list);
+	if (!value) return gf_props_parse_value(type, name, NULL, enum_values, fs->sep_list);
 
 
 	if (!strnicmp(value, "$GSHARE", 7)) {
@@ -1066,14 +1080,14 @@ static GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_Filter *filter, u3
 	else if (!strnicmp(value, "$GUA", 4)) {
 		value = gf_opts_get_key("core", "user-agent");
 		if (!value) value = "GPAC " GPAC_VERSION;
-	} else if (strstr(value, "$GINC(")) {
+	} else if (f && strstr(value, "$GINC(")) {
 		char *a_value = gf_strdup(value);
-		filter_translate_autoinc(filter, a_value);
-		argv = gf_props_parse_value(type, name, a_value, enum_values, filter->session->sep_list);
+		filter_translate_autoinc(f, a_value);
+		argv = gf_props_parse_value(type, name, a_value, enum_values, fs->sep_list);
 		gf_free(a_value);
 		return argv;
 	}
-	argv = gf_props_parse_value(type, name, value, enum_values, filter->session->sep_list);
+	argv = gf_props_parse_value(type, name, value, enum_values, fs->sep_list);
 	return argv;
 }
 
@@ -1106,7 +1120,7 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 			if (!is_sync_call) return GF_TRUE;
 		}
 
-		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, arg_value, a->min_max_enum);
+		argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, a->arg_type, a->arg_name, arg_value, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			GF_Err e = GF_OK;
@@ -1736,7 +1750,7 @@ skip_date:
 				GF_PropertyValue argv;
 				found=GF_TRUE;
 
-				argv = gf_filter_parse_prop_solve_env_var(filter, (a->flags & GF_FS_ARG_META) ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
+				argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, (a->flags & GF_FS_ARG_META) ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
 
 				if (reverse_bool && (argv.type==GF_PROP_BOOL))
 					argv.value.boolean = !argv.value.boolean;
@@ -1827,6 +1841,12 @@ skip_date:
 					if (filter->tag) gf_free(filter->tag);
 					filter->tag = value ? gf_strdup(value) : NULL;
 				}
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
+			//temporary filter
+			else if (!strcmp("_GFTMP", szArg)) {
+				filter->removed = GF_TRUE;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
@@ -1972,7 +1992,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 		if (!def_val) continue;
 
-		argv = gf_filter_parse_prop_solve_env_var(filter, a->arg_type, a->arg_name, def_val, a->min_max_enum);
+		argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, a->arg_type, a->arg_name, def_val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			if (!for_script && (a->offset_in_private>=0)) {
@@ -3002,6 +3022,8 @@ GF_EXPORT
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 {
 	u64 next_time;
+	if (filter->removed) return;
+
 	if (!filter->in_process_callback) {
 		if (filter->session->direct_mode) return;
 		if (filter->session->in_final_flush) {
@@ -3550,7 +3572,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 		filter->orig_args = NULL;
 	}
 
-	gf_fs_load_source_dest_internal(filter->session, src_url, src_args, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL);
+	gf_fs_load_source_dest_internal(filter->session, src_url, src_args, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL, NULL);
 	if (src_args) gf_free(src_args);
 
 	//we manage to reassign an input registry
@@ -3640,7 +3662,7 @@ Bool gf_filter_is_supported_source(GF_Filter *filter, const char *url, const cha
 {
 	GF_Err e;
 	Bool is_supported = GF_FALSE;
-	gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, &e, NULL, filter, GF_TRUE, GF_TRUE, &is_supported);
+	gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, &e, NULL, filter, GF_TRUE, GF_TRUE, &is_supported, NULL);
 	return is_supported;
 }
 
@@ -3733,7 +3755,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 	if (gf_filter_url_is_filter(filter, url, NULL)) {
 		filter_src = gf_fs_load_filter(filter->session, url, err);
 	} else {
-		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL);
+		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL, NULL);
 	}
 	if (full_args) gf_free(full_args);
 
@@ -3751,7 +3773,7 @@ GF_EXPORT
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
 	if (!filter) return NULL;
-	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL);
+	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL, NULL);
 }
 
 
@@ -4991,4 +5013,24 @@ Bool gf_filter_has_connect_errors(GF_Filter *filter)
 {
 	if (filter && filter->session->last_connect_error) return GF_TRUE;
 	return GF_FALSE;
+}
+
+GF_EXPORT
+Bool gf_filter_is_temporary(GF_Filter *filter)
+{
+	return filter ? filter->removed : GF_FALSE;
+}
+
+GF_EXPORT
+void gf_filter_meta_set_instances(GF_Filter *filter, const char *instance_names_list)
+{
+	if (!filter) return;
+	if (filter->meta_instances) gf_free(filter->meta_instances);
+	filter->meta_instances = gf_strdup(instance_names_list);
+}
+
+GF_EXPORT
+const char *gf_filter_meta_get_instances(GF_Filter *filter)
+{
+	return filter ? filter->meta_instances : NULL;
 }

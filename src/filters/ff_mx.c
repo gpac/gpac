@@ -314,6 +314,12 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 	ctx->muxer->oformat = FF_OFMT_CAST ofmt;
 
 	ctx->status = FFMX_STATE_ALLOC;
+
+	if (gf_filter_is_temporary(filter)) {
+		gf_filter_meta_set_instances(filter, ofmt->name);
+		return GF_OK;
+	}
+
 	//templates are used, we need to postpone opening the url until we have a PID and a first packet
 	if (use_templates)
 		return GF_OK;
@@ -1297,8 +1303,7 @@ const int FFMX_STATIC_ARGS = (sizeof (FFMuxArgs) / sizeof (GF_FilterArgs)) - 1;
 
 const GF_FilterRegister *ffmx_register(GF_FilterSession *session)
 {
-	ffmpeg_build_register(session, &FFMuxRegister, FFMuxArgs, FFMX_STATIC_ARGS, FF_REG_TYPE_MUX);
-	return &FFMuxRegister;
+	return ffmpeg_build_register(session, &FFMuxRegister, FFMuxArgs, FFMX_STATIC_ARGS, FF_REG_TYPE_MUX);
 }
 
 #else

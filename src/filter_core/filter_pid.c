@@ -3707,6 +3707,51 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
 	return chain_len;
 }
 
+
+GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst)
+{
+	GF_FilterSession *fsess = pid->filter->session;
+	GF_List *filter_chain;
+	char prefRegister[1001];
+	char szForceReg[20];
+
+	if (!fsess->max_resolve_chain_len) return NULL;
+	if (!dst) return NULL;
+
+	filter_chain = gf_list_new();
+
+	s32 dst_bundle_idx=-1;
+	if (gf_filter_pid_caps_match(pid, dst->freg, dst, NULL, &dst_bundle_idx, pid->filter->dst_filter, -1)) {
+		gf_list_add(filter_chain, (void*)dst->freg);
+		if ((dst_bundle_idx<0) || (dst_bundle_idx>=dst->freg->nb_caps))
+			dst_bundle_idx=0;
+
+		gf_list_add(filter_chain, (void*)&dst->freg->caps[dst_bundle_idx]);
+		return filter_chain;
+	}
+
+	sprintf(szForceReg, "gfreg%c", pid->filter->session->sep_name);
+	prefRegister[0]=0;
+	//look for reg given in
+	concat_reg(pid->filter->session, prefRegister, szForceReg, pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args);
+	concat_reg(pid->filter->session, prefRegister, szForceReg, pid->filter->dst_args);
+	concat_reg(pid->filter->session, prefRegister, szForceReg, dst->src_args);
+	concat_reg(pid->filter->session, prefRegister, szForceReg, dst->dst_args);
+
+	gf_mx_p(fsess->links_mx);
+	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegister, GF_FALSE, filter_chain);
+	gf_mx_v(fsess->links_mx);
+	if (!gf_list_count(filter_chain)) {
+		gf_list_del(filter_chain);
+		return NULL;
+	}
+	gf_list_add(filter_chain, (void *)dst->freg);
+	if (dst->freg->nb_caps)
+		gf_list_add(filter_chain, (void*)&dst->freg->caps[0]);
+	return filter_chain;
+}
+
+
 static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid, char *args, Bool use_default_seps, u32 argfile_level)
 {
 	char sep_args, sep_frag, sep_name, sep_list;
@@ -4390,6 +4435,20 @@ single_retry:
 			) {
 				continue;
 			}
+		}
+
+		//check we are not already connected to this filter - we need this in case destination links/filters lists are reset
+		if (pid->num_destinations) {
+			u32 j;
+			Bool already_linked = GF_FALSE;
+			for (j=0; j<pid->num_destinations; j++) {
+				GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+				if (pidi->filter == filter_dst) {
+					already_linked=GF_TRUE;
+					break;
+				}
+			}
+			if (already_linked) continue;
 		}
 
 		//we already linked to this one

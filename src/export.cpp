@@ -2506,6 +2506,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_tag_subsession ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_has_connect_errors ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_temporary ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_meta_set_instances ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_meta_get_instances ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )

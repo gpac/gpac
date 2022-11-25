@@ -2942,7 +2942,7 @@ static GF_Filter *locate_alias_sink(GF_Filter *filter, const char *url, const ch
 
 Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH]);
 
-GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only)
+GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
@@ -3146,6 +3146,8 @@ restart:
 	}
 	if (probe_only) {
 		*probe_only = candidate_freg ? GF_TRUE : GF_FALSE;
+		if (probe_reg) *probe_reg = candidate_freg;
+
 		if (free_url)
 			gf_free(sURL);
 		if (err) *err = GF_OK;
@@ -3258,13 +3260,13 @@ restart:
 GF_EXPORT
 GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE, GF_FALSE, NULL);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_TRUE, GF_FALSE, NULL, NULL);
 }
 
 GF_EXPORT
 GF_Filter *gf_fs_load_destination(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE, GF_FALSE, NULL);
+	return gf_fs_load_source_dest_internal(fsess, url, args, parent_url, err, NULL, NULL, GF_FALSE, GF_FALSE, NULL, NULL);
 }
 
 
@@ -4206,7 +4208,7 @@ Bool gf_fs_is_supported_source(GF_FilterSession *session, const char *url, const
 {
 	GF_Err e;
 	Bool is_supported = GF_FALSE;
-	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported);
+	gf_fs_load_source_dest_internal(session, url, NULL, parent_url, &e, NULL, NULL, GF_TRUE, GF_TRUE, &is_supported, NULL);
 	return is_supported;
 }
 

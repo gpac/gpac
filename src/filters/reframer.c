@@ -2817,7 +2817,7 @@ GF_FilterRegister ReframerRegister = {
 	.max_extra_pids = (u32) -1,
 	.args = ReframerArgs,
 	//reframer is explicit only, so we don't load the reframer during resolution process
-	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC,
+	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC|GF_FS_REG_TEMP_INIT,
 	SETCAPS(ReframerCaps),
 	.initialize = reframer_initialize,
 	.finalize = reframer_finalize,

@@ -343,8 +343,15 @@ GF_BaseInterface *gf_modules_load(u32 whichplug, u32 InterfaceFamily)
 		const char * ifce_str = gf_4cc_to_str(InterfaceFamily);
 		snprintf(szKey, 32, "%s:yes", ifce_str ? ifce_str : "(null)");
 		if (!strstr(opt, szKey)) {
-			gf_mx_v(pm->mutex);
-			return NULL;
+			//cleanup if version changed
+			szKey[3] = 0;
+			char *val = strstr(opt, szKey);
+			if (val && !strncmp(val+4, ":yes", 4)) {
+				gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, NULL);
+			} else {
+				gf_mx_v(pm->mutex);
+				return NULL;
+			}
 		}
 	}
 	if (!gf_modules_load_library(inst)) {

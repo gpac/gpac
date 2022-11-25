@@ -198,6 +198,13 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 	}
 	if (!ctx->force_codec) return GF_NOT_SUPPORTED;
 	ffenc_override_caps(filter, ctx->force_codec->type);
+
+
+	if (gf_filter_is_temporary(filter)) {
+		gf_filter_meta_set_instances(filter, ctx->force_codec->name);
+		return GF_OK;
+	}
+
 	return GF_OK;
 }
 
@@ -1926,6 +1933,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ctx->premul_timescale = ctx->timescale;
 	ctx->premul_timescale *= ctx->encoder->time_base.num;
 
+	if (ctx->c) gf_free(ctx->c);
+	ctx->c = gf_strdup(codec->name);
+
+
 	ctx->remap_ts = (ctx->encoder->time_base.den && (ctx->encoder->time_base.den != ctx->premul_timescale)) ? GF_TRUE : GF_FALSE;
 	if (!ctx->target_rate)
 		ctx->target_rate = (u32)ctx->encoder->bit_rate;
@@ -2092,13 +2103,13 @@ GF_FilterRegister FFEncodeRegister = {
 	.process = ffenc_process,
 	.process_event = ffenc_process_event,
 	.update_arg = ffenc_update_arg,
-	.flags = GF_FS_REG_META,
+	.flags = GF_FS_REG_META | GF_FS_REG_TEMP_INIT,
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFEncodeCtx, _n)
 static const GF_FilterArgs FFEncodeArgs[] =
 {
-	{ OFFS(c), "codec identifier. Can be any supported GPAC codec name or ffmpeg codec name", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(c), "codec identifier. Can be any supported GPAC codec name or ffmpeg codec name - updated to ffmpeg codec name after initialization", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, e.g. `fintra=2` will force an intra every 2 seconds and `fintra=1001/1000` will force an intra every 30 frames on 30000/1001=29.97 fps video; ignored for audio", GF_PROP_FRACTION, "-1/1", NULL, 0},
 
@@ -2115,8 +2126,7 @@ const int FFENC_STATIC_ARGS = (sizeof (FFEncodeArgs) / sizeof (GF_FilterArgs)) -
 
 const GF_FilterRegister *ffenc_register(GF_FilterSession *session)
 {
-	ffmpeg_build_register(session, &FFEncodeRegister, FFEncodeArgs, FFENC_STATIC_ARGS, FF_REG_TYPE_ENCODE);
-	return &FFEncodeRegister;
+	return ffmpeg_build_register(session, &FFEncodeRegister, FFEncodeArgs, FFENC_STATIC_ARGS, FF_REG_TYPE_ENCODE);
 }
 
 
