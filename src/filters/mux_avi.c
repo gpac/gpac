@@ -659,7 +659,8 @@ GF_FilterRegister AVIMuxRegister = {
 	.initialize = avimux_initialize,
 	.finalize = avimux_finalize,
 	.configure_pid = avimux_configure_pid,
-	.process = avimux_process
+	.process = avimux_process,
+	.flags = GF_FS_REG_TEMP_INIT
 };
 
 static GF_Err avimux_initialize(GF_Filter *filter)
@@ -669,12 +670,15 @@ static GF_Err avimux_initialize(GF_Filter *filter)
 
 	if (!ctx || !ctx->dst) return GF_OK;
 	ctx->streams = gf_list_new();
+	if (ctx->noraw) {
+		gf_filter_override_caps(filter, AVIMuxCapsNoRAW,  sizeof(AVIMuxCapsNoRAW)/sizeof(GF_FilterCapability) );
+	}
+	if (gf_filter_is_temporary(filter))
+		return GF_OK;
+
 	if (strnicmp(ctx->dst, "file:/", 6) && strstr(ctx->dst, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
 		return GF_NOT_SUPPORTED;
-	}
-	if (ctx->noraw) {
-		gf_filter_override_caps(filter, AVIMuxCapsNoRAW,  sizeof(AVIMuxCapsNoRAW)/sizeof(GF_FilterCapability) );
 	}
 	sep = strchr(ctx->dst, '$');
 	if (sep && strchr(sep+1, '$')) {

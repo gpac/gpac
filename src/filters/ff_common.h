@@ -78,7 +78,7 @@ enum{
 #endif
 };
 
-void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);
+GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);
 
 enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt, Bool no_warn);
 u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn);

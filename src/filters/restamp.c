@@ -540,7 +540,7 @@ GF_FilterRegister RestampRegister = {
 	)
 	.private_size = sizeof(RestampCtx),
 	.max_extra_pids = 0xFFFFFFFF,
-	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC,
+	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC|GF_FS_REG_TEMP_INIT,
 	.args = RestampArgs,
 	SETCAPS(RestampCaps),
 	.initialize = restamp_initialize,

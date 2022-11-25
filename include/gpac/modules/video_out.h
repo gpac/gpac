@@ -90,7 +90,7 @@ typedef struct
 typedef struct _gf_sc_texture_handler GF_TextureH;
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','6')
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','7')
 
 /*! window creation flags*/
 typedef enum
@@ -244,6 +244,9 @@ typedef struct _video_out
 	u32 disparity;
 	/*nominal display viewing distance in cm*/
 	Fixed dispdist;
+
+	/*window identifier (one window only per instance of this module)*/
+	u32 window_id;
 
 	/*driver private*/
 	void *opaque;

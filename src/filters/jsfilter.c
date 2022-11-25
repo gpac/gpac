@@ -3026,6 +3026,7 @@ enum
 	JSF_EVENT_USER_MOVE_ALIGN_X,
 	JSF_EVENT_USER_MOVE_ALIGN_Y,
 	JSF_EVENT_USER_CAPTION,
+	JSF_EVENT_USER_WINDOW_ID,
 };
 
 static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
@@ -3127,6 +3128,7 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 			case JSF_EVENT_USER_MOUSE_Y:
 			case JSF_EVENT_USER_WHEEL:
 			case JSF_EVENT_USER_BUTTON:
+			case JSF_EVENT_USER_WINDOW_ID:
 				return GF_TRUE;
 			default:
 				break;
@@ -3139,6 +3141,7 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 			case JSF_EVENT_USER_MT_ROTATION:
 			case JSF_EVENT_USER_MT_PINCH:
 			case JSF_EVENT_USER_MT_FINGERS:
+			case JSF_EVENT_USER_WINDOW_ID:
 				return GF_TRUE;
 			default:
 				break;
@@ -3156,6 +3159,7 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 			case JSF_EVENT_USER_HWKEY:
 			case JSF_EVENT_USER_TEXT_CHAR:
 			case JSF_EVENT_USER_DROPFILES:
+			case JSF_EVENT_USER_WINDOW_ID:
 				return GF_TRUE;
 			default:
 				break;
@@ -3164,6 +3168,7 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 		case GF_EVENT_DROPFILE:
 			switch (magic) {
 			case JSF_EVENT_USER_DROPFILES:
+			case JSF_EVENT_USER_WINDOW_ID:
 				return GF_TRUE;
 			default:
 				break;
@@ -3173,6 +3178,7 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 		case GF_EVENT_COPY_TEXT:
 			switch (magic) {
 			case JSF_EVENT_USER_TEXT:
+			case JSF_EVENT_USER_WINDOW_ID:
 				return GF_TRUE;
 			default:
 				break;
@@ -3182,6 +3188,7 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 			switch (magic) {
 			case JSF_EVENT_USER_WIDTH:
 			case JSF_EVENT_USER_HEIGHT:
+			case JSF_EVENT_USER_WINDOW_ID:
 				return GF_TRUE;
 			default:
 				break;
@@ -3194,14 +3201,26 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 			case JSF_EVENT_USER_MOVE_RELATIVE:
 			case JSF_EVENT_USER_MOVE_ALIGN_X:
 			case JSF_EVENT_USER_MOVE_ALIGN_Y:
+			case JSF_EVENT_USER_WINDOW_ID:
 				return GF_TRUE;
 			default:
 				break;
 			}
 			return GF_FALSE;
 		case GF_EVENT_SET_CAPTION:
-			if (magic==JSF_EVENT_USER_CAPTION) return GF_TRUE;
-			return GF_FALSE;
+			switch (magic) {
+			case JSF_EVENT_USER_CAPTION:
+			case JSF_EVENT_USER_WINDOW_ID:
+				return GF_TRUE;
+			default:
+				return GF_FALSE;
+			}
+			break;
+		case GF_EVENT_REFRESH:
+		case GF_EVENT_QUIT:
+		case GF_EVENT_SHOWHIDE:
+			if (magic==JSF_EVENT_USER_WINDOW_ID) return GF_TRUE;
+			break;
 		}
 	}
 	return GF_FALSE;
@@ -3543,6 +3562,35 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 
 	case JSF_EVENT_USER_CAPTION:
 		return JS_NewString(ctx, evt->user_event.event.caption.caption ? evt->user_event.event.caption.caption : "");
+
+	case JSF_EVENT_USER_WINDOW_ID:
+		switch (evt->user_event.event.type) {
+		case GF_EVENT_MULTITOUCH:
+			return JS_NewInt32(ctx, evt->user_event.event.mtouch.window_id);
+		case GF_EVENT_MOUSEUP:
+		case GF_EVENT_MOUSEDOWN:
+		case GF_EVENT_MOUSEMOVE:
+		case GF_EVENT_MOUSEWHEEL:
+			return JS_NewInt32(ctx, evt->user_event.event.mouse.window_id);
+		case GF_EVENT_SHOWHIDE:
+		case GF_EVENT_QUIT:
+		case GF_EVENT_REFRESH:
+			return JS_NewInt32(ctx, evt->user_event.event.show.window_id);
+		case GF_EVENT_MOVE:
+			return JS_NewInt32(ctx, evt->user_event.event.move.window_id);
+		case GF_EVENT_KEYUP:
+		case GF_EVENT_KEYDOWN:
+			return JS_NewInt32(ctx, evt->user_event.event.key.window_id);
+		case GF_EVENT_DROPFILE:
+			return JS_NewInt32(ctx, evt->user_event.event.open_file.window_id);
+		case GF_EVENT_PASTE_TEXT:
+		case GF_EVENT_COPY_TEXT:
+			return JS_NewInt32(ctx, evt->user_event.event.clipboard.window_id);
+		case GF_EVENT_TEXTINPUT:
+			return JS_NewInt32(ctx, evt->user_event.event.character.window_id);
+		case GF_EVENT_SIZE:
+			return JS_NewInt32(ctx, evt->user_event.event.size.window_id);
+		}
 	}
     return JS_UNDEFINED;
 }
@@ -3609,6 +3657,7 @@ static const JSCFunctionListEntry jsf_event_funcs[] =
     JS_CGETSET_MAGIC_DEF("hwkey", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_HWKEY),
     JS_CGETSET_MAGIC_DEF("dropfiles", jsf_event_get_prop, NULL, JSF_EVENT_USER_DROPFILES),
     JS_CGETSET_MAGIC_DEF("clipboard", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_TEXT),
+    JS_CGETSET_MAGIC_DEF("window", jsf_event_get_prop, NULL, JSF_EVENT_USER_WINDOW_ID),
 
     JS_CGETSET_MAGIC_DEF("mt_x", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_X),
     JS_CGETSET_MAGIC_DEF("mt_y", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_Y),
@@ -5181,7 +5230,7 @@ GF_FilterRegister JSFilterRegister = {
 	"  \n"
 	"For more information on how to use JS filters, please check https://wiki.gpac.io/jsfilter\n")
 	.private_size = sizeof(GF_JSFilterCtx),
-	.flags = GF_FS_REG_SCRIPT,
+	.flags = GF_FS_REG_SCRIPT | GF_FS_REG_TEMP_INIT,
 	.args = JSFilterArgs,
 	SETCAPS(JSFilterCaps),
 	.initialize = jsfilter_initialize,

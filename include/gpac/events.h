@@ -74,6 +74,8 @@ typedef struct
 	u32 button;
 	/*key modifier*/
 	u32 key_states;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventMouse;
 
 /*! Mouse event structure
@@ -91,6 +93,8 @@ typedef struct
 	Fixed pinch;
 	/*number of fingers detected*/
 	u32 num_fingers;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventMultiTouch;
 
 /*! Keyboard key event
@@ -106,6 +110,8 @@ typedef struct
 	u32 hw_code;
 	/*key modifier*/
 	u32 flags;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventKey;
 
 /*! Keyboard character event
@@ -117,6 +123,8 @@ typedef struct
 	u8 type;
 	/*above virtual key code*/
 	u32 unicode_char;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventChar;
 
 /*! Display orientation */
@@ -145,6 +153,8 @@ typedef struct
 	u32 width, height;
 	/*display orientation */
 	GF_DisplayOrientationType orientation;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventSize;
 
 /*! Video setup (2D or 3D) event
@@ -182,6 +192,8 @@ typedef struct
 	u8 type;
 	/*0: hidden - 1: visible - 2: fullscreen*/
 	u32 show_type;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventShow;
 
 /*! Mouse cursor event
@@ -217,6 +229,8 @@ typedef struct
 	u32 relative;
 	/*0: left/top, 1: middle, 2: right/bottom*/
 	u8 align_x, align_y;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventMove;
 
 /*! Media duration event
@@ -367,6 +381,8 @@ typedef struct {
 	u8 type;
 	u32 nb_files;
 	char **files;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventOpenFile;
 
 /*! Orientation sensor change event
@@ -422,6 +438,8 @@ typedef struct
 	- char * for COPY_TEXT, must be freed by caller
 	*/
 	char *text;
+	/*ID of window the event occured in (driver to app only)*/
+	u32 window_id;
 } GF_EventClipboard;
 
 

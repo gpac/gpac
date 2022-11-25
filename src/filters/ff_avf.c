@@ -297,6 +297,21 @@ static GF_Err ffavf_initialize(GF_Filter *filter)
 		return GF_BAD_PARAM;
 	}
 
+	char *desc = NULL;
+	for (i=0; i<ctx->filter_graph->nb_filters; i++) {
+		AVFilterContext *avf = ctx->filter_graph->filters[i];
+		if (desc) {
+			char *sep = strstr(desc, avf->filter->name);
+			if (sep) {
+				u32 slen = (u32) strlen(avf->filter->name);
+				if ((sep[slen]==',') || !sep[slen]) continue;;
+			}
+		}
+		gf_dynstrcat(&desc, avf->filter->name, " ");
+	}
+	gf_filter_meta_set_instances(filter, desc);
+	gf_free(desc);
+
 	ctx->nb_inputs=0;
 	io = inputs;
 	while (io) {
@@ -1060,7 +1075,7 @@ GF_FilterRegister FFAVFilterRegister = {
 		"- name#com_name=value: sends command `com_name` with value `value` to filter named `name`\n"
 		"\n"
 	)
-	.flags =  GF_FS_REG_META | GF_FS_REG_EXPLICIT_ONLY | GF_FS_REG_ALLOW_CYCLIC,
+	.flags =  GF_FS_REG_META | GF_FS_REG_EXPLICIT_ONLY | GF_FS_REG_ALLOW_CYCLIC | GF_FS_REG_TEMP_INIT,
 	.private_size = sizeof(GF_FFAVFilterCtx),
 	SETCAPS(FFAVFilterCaps),
 	.initialize = ffavf_initialize,
@@ -1089,8 +1104,7 @@ const int FFAVF_STATIC_ARGS = (sizeof (FFAVFilterArgs) / sizeof (GF_FilterArgs))
 
 const GF_FilterRegister *ffavf_register(GF_FilterSession *session)
 {
-	ffmpeg_build_register(session, &FFAVFilterRegister, FFAVFilterArgs, FFAVF_STATIC_ARGS, FF_REG_TYPE_AVF);
-	return &FFAVFilterRegister;
+	return ffmpeg_build_register(session, &FFAVFilterRegister, FFAVFilterArgs, FFAVF_STATIC_ARGS, FF_REG_TYPE_AVF);
 }
 
 #else

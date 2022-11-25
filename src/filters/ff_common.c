@@ -720,7 +720,7 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 		if (arg->flags & GF_FS_ARG_META_ALLOC) gf_free((void *) arg->arg_desc);
 	}
 	if (reg->args) gf_free((void *) reg->args);
-
+	gf_free(reg);
 }
 
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
@@ -1412,7 +1412,7 @@ second_pass:
 #endif
 }
 
-void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type)
+GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type)
 {
 	GF_FilterArgs *args;
 	u32 i=0, idx=0, nb_args;
@@ -1423,7 +1423,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	AVCodecContext *codec_ctx = NULL;
 	const AVClass *av_class = NULL;
 	GF_FFRegistryExt *ffregext;
-
+	GF_FilterRegister *new_reg;
 	ffmpeg_initialize();
 
 #ifndef GPAC_DISABLE_DOC
@@ -1434,8 +1434,12 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 	if (!load_meta_filters) {
 		orig_reg->args = default_args;
 		orig_reg->register_free = NULL;
-		return;
+		return orig_reg;
 	}
+
+	GF_SAFEALLOC(new_reg, GF_FilterRegister);
+	memcpy(new_reg, orig_reg, sizeof(GF_FilterRegister));
+	orig_reg = new_reg;
 
 	if (reg_type==FF_REG_TYPE_ENCODE) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
 	else if (reg_type==FF_REG_TYPE_MUX) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
@@ -1580,15 +1584,15 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 		avformat_free_context(format_ctx);
 	}
 
-	GF_SAFEALLOC(ffregext, GF_FFRegistryExt);
-	if (!ffregext) return;
-	
-	orig_reg->udta = ffregext;
-	ffregext->nb_arg_skip = nb_def_args-1;
 	orig_reg->register_free = ffmpeg_register_free;
 
-	ffmpeg_expand_register(session, orig_reg, reg_type);
-
+	GF_SAFEALLOC(ffregext, GF_FFRegistryExt);
+	if (ffregext) {
+		orig_reg->udta = ffregext;
+		ffregext->nb_arg_skip = nb_def_args-1;
+		ffmpeg_expand_register(session, orig_reg, reg_type);
+	}
+	return orig_reg;
 }
 
 void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx)

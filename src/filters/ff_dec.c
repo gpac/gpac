@@ -57,6 +57,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 typedef struct _gf_ffdec_ctx
 {
 	GF_PropStringList ffcmap;
+	char *c;
 
 	Bool owns_context;
 	AVCodecContext *decoder;
@@ -125,6 +126,19 @@ static GF_Err ffdec_initialize(GF_Filter *filter)
 #endif
 
 	ffmpeg_setup_logs(GF_LOG_CODEC);
+
+	if (ctx->c && gf_filter_is_temporary(filter)) {
+		const AVCodec *codec = avcodec_find_decoder_by_name(ctx->c);
+		if (!codec) {
+			u32 codec_id = gf_codecid_parse(ctx->c);
+			if (codec_id!=GF_CODECID_NONE) {
+				codec = avcodec_find_decoder(ffmpeg_codecid_from_gpac(codec_id, NULL) );
+			}
+		}
+		if (codec) {
+			gf_filter_meta_set_instances(filter, codec->name);
+		}
+	}
 	return GF_OK;
 }
 
@@ -1207,6 +1221,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	ffmpeg_report_options(filter, options, ctx->options);
+	if (ctx->c) gf_free(ctx->c);
+	ctx->c = gf_strdup(codec->name);
 
 	//we're good to go, declare our output pid
 	ctx->in_pid = pid;
@@ -1452,14 +1468,14 @@ GF_FilterRegister FFDecodeRegister = {
 static const GF_FilterArgs FFDecodeArgs[] =
 {
 	{ OFFS(ffcmap), "codec map", GF_PROP_STRING_LIST, NULL, NULL, 0},
+	{ OFFS(c), "codec name (GPAC or ffmpeg), only used to query possible arguments - updated to ffmpeg codec name after initialization", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 {
-	ffmpeg_build_register(session, &FFDecodeRegister, FFDecodeArgs, 1, FF_REG_TYPE_DECODE);
-	return &FFDecodeRegister;
+	return ffmpeg_build_register(session, &FFDecodeRegister, FFDecodeArgs, 1, FF_REG_TYPE_DECODE);
 }
 
 #else

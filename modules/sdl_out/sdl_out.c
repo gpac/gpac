@@ -53,7 +53,8 @@ void SDLOUT_CloseSDL()
 	if (!is_init) return;
 	assert(num_users);
 	num_users--;
-	if (!num_users) SDL_Quit();
+	if (!num_users)
+		SDL_Quit();
 	return;
 }
 

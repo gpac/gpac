@@ -177,6 +177,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	} else {
 		return GF_NOT_SUPPORTED;
 	}
+	if (gf_filter_is_temporary(filter)) return GF_OK;
 
 	//skip ://
 	url = strchr(ctx->dst, ':');
@@ -607,7 +608,8 @@ GF_FilterRegister SockOutRegister = {
 	.initialize = sockout_initialize,
 	.finalize = sockout_finalize,
 	.configure_pid = sockout_configure_pid,
-	.process = sockout_process
+	.process = sockout_process,
+	.flags = GF_FS_REG_TEMP_INIT
 };
 
 

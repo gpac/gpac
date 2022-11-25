@@ -1151,6 +1151,8 @@ static GF_Err gsfmx_initialize(GF_Filter *filter)
 		gf_filter_act_as_sink(filter);
 		ctx->filemode = GF_TRUE;
 	}
+	if (gf_filter_is_temporary(filter))
+		return GF_OK;
 
 
 	gf_rand_init(GF_FALSE);
@@ -1316,7 +1318,7 @@ GF_FilterRegister GSFMxRegister = {
 	.private_size = sizeof(GSFMxCtx),
 	.max_extra_pids = (u32) -1,
 	.args = GSFMxArgs,
-	.flags = GF_FS_REG_DYNAMIC_REDIRECT,
+	.flags = GF_FS_REG_DYNAMIC_REDIRECT | GF_FS_REG_TEMP_INIT,
 	SETCAPS(GSFMxCaps),
 	.initialize = gsfmx_initialize,
 	.finalize = gsfmx_finalize,

@@ -90,6 +90,7 @@ enum
 	FLIP_BOTH2,
 };
 
+static u32 nb_vout_inst=0;
 
 typedef struct
 {
@@ -103,7 +104,7 @@ typedef struct
 	GF_PropVec2i wsize, owsize;
 	GF_PropVec2i wpos;
 	Double start;
-	u32 buffer, mbuffer, rbuffer;
+	u32 buffer, mbuffer, rbuffer, wid;
 	GF_Fraction vdelay;
 	const char *out;
 	GF_PropUIntList dumpframes;
@@ -873,6 +874,12 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 		GF_FEVT_INIT(fevt, GF_FEVT_USER, ctx->pid);
 		fevt.user_event.event = *evt;
 		break;
+	case GF_EVENT_QUIT:
+		if (evt->show.window_id && (nb_vout_inst>1)) {
+			gf_filter_remove(ctx->filter);
+			return GF_FALSE;
+		}
+		break;
 	}
 	if (gf_filter_ui_event(ctx->filter, evt))
 		return GF_TRUE;
@@ -999,13 +1006,16 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	ctx->owsize.x = ctx->display_width;
 	ctx->owsize.y = ctx->display_height;
 	ctx->display_changed = GF_TRUE;
+	ctx->wid = ctx->video_out->window_id;
 	gf_filter_set_event_target(filter, GF_TRUE);
 
 	gf_filter_post_process_task(filter);
 
-	if (ctx->vjs) {
+	//load js on first vout only
+	if (ctx->vjs && !nb_vout_inst) {
 		gf_filter_load_script(filter, "$GSHARE/scripts/vout.js", "compositor");
 	}
+	nb_vout_inst++;
 	return GF_OK;
 }
 
@@ -1039,6 +1049,7 @@ static void vout_finalize(GF_Filter *filter)
 		ctx->video_out = NULL;
 	}
 	if (ctx->dump_buffer) gf_free(ctx->dump_buffer);
+	nb_vout_inst--;
 
 }
 
@@ -2195,6 +2206,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(vjs), "use default JS script for vout control", GF_PROP_BOOL, "true", NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(media_offset), "media offset (substract this value to CTS to get media time - readonly)", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(wid), "window id (readonly)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(vflip), "flip video (GL only)\n"
 		"- no: no flipping\n"

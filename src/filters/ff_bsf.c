@@ -70,6 +70,7 @@ static GF_Err ffbsf_init_bsf(GF_Filter *filter, u32 ff_codecid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFBSF] Failed to allocate bitstream filter list\n"));
 		return GF_OUT_OF_MEM;
 	}
+	char *desc = NULL;
 	for (i=0; i<ctx->f.nb_items; i++) {
 		u32 k;
 		char *f = ctx->f.vals[i];
@@ -82,6 +83,7 @@ static GF_Err ffbsf_init_bsf(GF_Filter *filter, u32 ff_codecid)
 		if (!ff_codecid) {
 			//declare bsf name as not found option to track which BSFs are used
 			gf_filter_report_meta_option(filter, f, GF_FALSE, "f");
+			gf_dynstrcat(&desc, bsf->name, " ");
 			continue;
 		}
 
@@ -111,6 +113,9 @@ static GF_Err ffbsf_init_bsf(GF_Filter *filter, u32 ff_codecid)
 	}
 	if (!ff_codecid) {
 		av_bsf_list_free(&bs_list);
+
+		gf_filter_meta_set_instances(filter, desc);
+		gf_free(desc);
 		return GF_OK;
 	}
 
@@ -440,8 +445,7 @@ const int FFBSF_STATIC_ARGS = (sizeof (FFBSFArgs) / sizeof (GF_FilterArgs)) - 1;
 
 const GF_FilterRegister *ffbsf_register(GF_FilterSession *session)
 {
-	ffmpeg_build_register(session, &FFBSFRegister, FFBSFArgs, FFBSF_STATIC_ARGS, FF_REG_TYPE_BSF);
-	return &FFBSFRegister;
+	return ffmpeg_build_register(session, &FFBSFRegister, FFBSFArgs, FFBSF_STATIC_ARGS, FF_REG_TYPE_BSF);
 }
 
 #else //FFMPEG_HAS_BSF

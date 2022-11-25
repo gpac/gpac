@@ -3962,6 +3962,8 @@ vjs (bool, default: true):     use default JS script for vout control
 .br
 media_offset (dbl, default: 0): media offset (substract this value to CTS to get media time - readonly)
 .br
+wid (uint, default: 0):        window id (readonly)
+.br
 vflip (enum, default: no, updatable): flip video (GL only)
 .br
 * no: no flipping
@@ -7780,6 +7782,8 @@ This will map an ISOBMFF track declared with coding type BKV1 to binkvideo.
 .br
 ffcmap (strl):                 codec map
 .br
+c (str):                       codec name (GPAC or ffmpeg), only used to query possible arguments - updated to ffmpeg codec name after initialization
+.br
 * (str):                       any possible options defined for AVCodecContext and sub-classes. See gpac -hx ffdec and gpac -hx ffdec:*
 .br
 
@@ -8057,7 +8061,7 @@ The .I rld option is usually needed for dynamic updates of rate control paramete
 .SH Options (expert):
 .LP
 .br
-c (str):                       codec identifier. Can be any supported GPAC codec name or ffmpeg codec name
+c (str):                       codec identifier. Can be any supported GPAC codec name or ffmpeg codec name - updated to ffmpeg codec name after initialization
 .br
 pfmt (pfmt, default: none):    pixel format for input video. When not set, input format is used
 .br
@@ -11047,7 +11051,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev502-g295aebc73-master
+build: 2.1-DEV-rev504-ga8dff63c1-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

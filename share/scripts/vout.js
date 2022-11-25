@@ -35,29 +35,12 @@ print("Type 'h' in window for command list");
 
 let aout = null;
 let vout = null;
-
-function check_filters()
-{
-	if (aout && vout) return;
-	let i;
-	for (i=0; i< session.nb_filters; i++) {
-		let f = session.get_filter(i);
-		if (f.type==="aout") aout = f;
-		else if (f.type==="vout") vout = f;
-	}
-	if (vout) {
-		speed = vout.get_arg('speed');
-		drop = vout.get_arg('drop');
-		fullscreen = vout.get_arg('fullscreen');
-	}
-}
-check_filters();
-
-let speed=0;
+let speed = 1;
+let win_id = 0;
 let drop=0;
+let fullscreen = false;
 let paused=0;
 let duration=-1
-let fullscreen = false;
 
 let audio_only = false;
 let ol_buffer = null;
@@ -90,6 +73,29 @@ let flip = 0;
 
 let do_coverage=0;
 if (sys.get_opt('temp', 'vout_cov') == 'yes') do_coverage = 1;
+
+
+if (parent_filter && parent_filter.type=='vout')
+	vout = parent_filter;
+
+function check_filters()
+{
+	if (aout && vout) return;
+	let i;
+	for (i=0; i< session.nb_filters; i++) {
+		let f = session.get_filter(i);
+		if (!aout && (f.type==="aout")) aout = f;
+		else if (!vout && (f.type==="vout")) vout = f;
+	}
+	if (vout) {
+		speed = vout.get_arg('speed');
+		drop = vout.get_arg('drop');
+		fullscreen = vout.get_arg('fullscreen');
+		win_id = vout.get_arg('wid');
+	}
+}
+check_filters();
+
 
 function setup_overlay()
 {
@@ -179,6 +185,12 @@ let last_x=0, last_y=0;
 
 session.set_event_fun( (evt)=> {
 	if (evt.type != GF_FEVT_USER) return 0;
+
+	try {
+		if(evt.window != win_id) return true;
+	} catch (e) {
+		return true;
+	}
 
 	switch (evt.ui_type) {
 	case GF_EVENT_MOUSEDOWN:
@@ -933,6 +945,7 @@ function process_keyboard(evt)
 	if (overlay_type==OL_AUTH) {
 		return true;
 	}
+	if(evt.window != win_id) return true;
 
 	switch (evt.keycode) {
 	case GF_KEY_B:

@@ -1250,7 +1250,7 @@ GF_FilterRegister RTPOutRegister = {
 	.max_extra_pids = -1,
 	.args = RTPOutArgs,
 	//dynamic redirect since RTP may be dynamically loaded when solving .sdp destinations
-	.flags = GF_FS_REG_DYNAMIC_REDIRECT,
+	.flags = GF_FS_REG_DYNAMIC_REDIRECT | GF_FS_REG_TEMP_INIT,
 	.initialize = rtpout_initialize,
 	.finalize = rtpout_finalize,
 	SETCAPS(RTPOutCaps),

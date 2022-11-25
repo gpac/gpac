@@ -2185,6 +2185,8 @@ typedef enum
 	GF_FS_REG_FORCE_REMUX = 1<<12,
 	/*! Indicates the filter must always be run by the same thread, except for the initialize and finalize methods*/
 	GF_FS_REG_SINGLE_THREAD = 1<<13,
+	/*! Indicates the filter needs to be initialized even if temoorary - see \ref gf_filter_is_temporary. Always enabled if GF_FS_REG_META is set */
+	GF_FS_REG_TEMP_INIT = 1<<14,
 
 
 	/*! flag dynamically set at runtime for custom filters*/
@@ -2400,6 +2402,20 @@ void *gf_filter_get_udta(GF_Filter *filter);
 \param name new name to assign. If NULL, name is reset to register name
 */
 void gf_filter_set_name(GF_Filter *filter, const char *name);
+
+/*! Checks is a filter is temporary, ie only loaded to solve caps but will not be used.
+
+ Only filter classes setting the GF_FS_REG_TEMP_INIT or GF_FS_REG_META need to check this, and only during the initialize call.
+
+if filter is temprary, it is loaded only to probe for a filter chain setup and will be finalized immediately after.
+This implies that most filter resources (sockets, file handles, etc) must not be created in this case.
+
+A temporary filter will be finalized as any other filter.
+
+\param filter target filter
+\return GF_TRUE if filter is temporary
+*/
+Bool gf_filter_is_temporary(GF_Filter *filter);
 
 /*! Gets filter name
 \param filter target filter
@@ -3186,6 +3202,19 @@ GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source
 \return GF_TRUE if parent session has seen connection errors, GF_FALSE otherwise
 */
 Bool gf_filter_has_connect_errors(GF_Filter *filter);
+
+
+/*! Sets names of sub-instances involved in a meta-filter instance
+\param filter target filter
+\param instance_names_list space-separated names of meta filter instances, without meta registry name. eg "negate" for ffavf::f=negate
+*/
+void gf_filter_meta_set_instances(GF_Filter *filter, const char *instance_names_list);
+
+/*! Gets names of sub-instances involved in a meta-filter instance
+\param filter target filter
+\return NULL or space-separated names of meta filter instances, without meta registry name. eg "negate" for ffavf::f=negate
+*/
+const char *gf_filter_meta_get_instances(GF_Filter *filter);
 
 /*! @} */
 
