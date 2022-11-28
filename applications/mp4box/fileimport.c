@@ -739,9 +739,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	if (ext) ext[0] = 0;
  	if (!strlen(final_name) || !strcmp(final_name, "self")) {
 		fake_import = 2;
+		src_is_isom = GF_TRUE;
 	}
+	char *frag = strrchr(final_name, '#');
+	if (frag) frag[0] = 0;
 	if (gf_isom_probe_file(final_name))
 		src_is_isom = GF_TRUE;
+	if (frag) frag[0] = '#';
 
 	if (ext) ext[0] = c_sep;
 
@@ -875,7 +879,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 		else if (!strnicmp(ext+1, "fps=", 4)) {
 			u32 ticks, dts_inc;
-			CHECK_FAKEIMPORT("fps")
 			if (!strcmp(ext+5, "auto")) {
 				M4_LOG(GF_LOG_ERROR, ("Warning, fps=auto option is deprecated\n"));
 			} else if ((sscanf(ext+5, "%u-%u", &ticks, &dts_inc) == 2) || (sscanf(ext+5, "%u/%u", &ticks, &dts_inc) == 2)) {
@@ -1723,6 +1726,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				}
 				GOTO_EXIT("rescaling media track")
 				break;
+			}
+		} else if (src_is_isom && force_fps.den && force_fps.num) {
+			if (gf_isom_is_video_handler_type(gf_isom_get_media_type(dest, track))) {
+				e = gf_isom_set_media_timescale(dest, track, force_fps.num, force_fps.den, 2);
+                if (e==GF_EOS) {
+					M4_LOG(GF_LOG_WARNING, ("Rescale ignored, same config in source file\n"));
+					e = GF_OK;
+				}
+
+			} else {
+				M4_LOG(GF_LOG_WARNING, ("Cannot force FPS for media types %s - ignoring\n", gf_4cc_to_str( gf_isom_get_media_type(dest, track)) ));
 			}
 		}
 
