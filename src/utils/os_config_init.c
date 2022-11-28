@@ -951,7 +951,7 @@ static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
 	v2 |= (u64) cfg;
 	v2 ^= (u64) szPath;
 	* ( (u64*) &key[0] ) = v1;
-	* ( (u64*) &key[7] ) = v2;
+	* ( (u64*) &key[8] ) = v2;
 	FILE *crd = gf_fopen(szPath, "w");
 	if (!crd) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Failed to create credential key in %s, credentials will not be stored\n", szPath));
