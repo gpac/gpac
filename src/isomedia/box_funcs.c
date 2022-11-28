@@ -164,11 +164,13 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 			if (do_uncompress) {
 				compb = gf_malloc((u32) (size-8));
+				if (!compb) return GF_OUT_OF_MEM;
 
 				compressed_size = (u32) (size - 8);
 				gf_bs_read_data(bs, compb, compressed_size);
 				e = gf_gz_decompress_payload(compb, compressed_size, &uncomp_data, &osize);
 				if (e) {
+					gf_free(compb);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Failed to uncompress payload for box type %s (0x%08X)\n", gf_4cc_to_str(otype), otype));
 					return e;
 				}
@@ -182,11 +184,20 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			}
 		}
 	}
+
+#define ERR_EXIT(_e) { \
+		if (uncomp_bs) {\
+			gf_free(uncomp_data);\
+			gf_bs_del(uncomp_bs); \
+		}\
+		return _e;\
+	}
+
 	/*handle uuid*/
 	memset(uuid, 0, 16);
 	if (type == GF_ISOM_BOX_TYPE_UUID ) {
 		if (gf_bs_available(bs) < 16) {
-			return GF_ISOM_INCOMPLETE_FILE;
+			ERR_EXIT(GF_ISOM_INCOMPLETE_FILE);
 		}
 		gf_bs_read_data(bs, uuid, 16);
 		hdr_size += 16;
@@ -196,7 +207,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	//handle large box
 	if (size == 1) {
 		if (gf_bs_available(bs) < 8) {
-			return GF_ISOM_INCOMPLETE_FILE;
+			ERR_EXIT(GF_ISOM_INCOMPLETE_FILE);
 		}
 		size = gf_bs_read_u64(bs);
 		hdr_size += 8;
@@ -206,12 +217,12 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 	if ( size < hdr_size ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLD" less than box header size %d\n", gf_4cc_to_str(type), size, hdr_size));
-		return GF_ISOM_INVALID_FILE;
+		ERR_EXIT(GF_ISOM_INVALID_FILE);
 	}
 	//if parent size is given, make sure box fits within parent
 	if (parent_size && (parent_size<size)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLU" is larger than remaining parent size "LLU"\n", gf_4cc_to_str(type), size, parent_size ));
-		return GF_ISOM_INVALID_FILE;
+		ERR_EXIT(GF_ISOM_INVALID_FILE);
 	}
 	restore_type = 0;
 	if ((parent_type==GF_ISOM_BOX_TYPE_STSD) && (type==GF_QT_SUBTYPE_RAW) ) {
@@ -227,25 +238,25 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	//some special boxes (references and track groups) are handled by a single generic box with an associated ref/group type
 	if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_TREF)) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
-		if (!newBox) return GF_OUT_OF_MEM;
+		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_TrackReferenceTypeBox*)newBox)->reference_type = type;
 	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_IREF)) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_REFI);
-		if (!newBox) return GF_OUT_OF_MEM;
+		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_ItemReferenceTypeBox*)newBox)->reference_type = type;
 	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_TRGR)) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_TRGT);
-		if (!newBox) return GF_OUT_OF_MEM;
+		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_TrackGroupTypeBox*)newBox)->group_type = type;
 	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_GRPL)) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_GRPT);
-		if (!newBox) return GF_OUT_OF_MEM;
+		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 		((GF_EntityToGroupTypeBox*)newBox)->grouping_type = type;
 	} else {
 		//OK, create the box based on the type
 		is_special = GF_FALSE;
 		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type, skip_logs, is_root_box);
-		if (!newBox) return GF_OUT_OF_MEM;
+		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 	}
 
 	//OK, init and read this box
@@ -262,7 +273,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	if (size - hdr_size > end ) {
 		newBox->size = size - hdr_size - end;
 		*outBox = newBox;
-		return GF_ISOM_INCOMPLETE_FILE;
+		ERR_EXIT(GF_ISOM_INCOMPLETE_FILE);
 	}
 
 	newBox->size = size - hdr_size;
