@@ -848,7 +848,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (force_reframer) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 		}
-#ifndef FFMPEG_NO_DOVI
+#ifdef FFMPEG_NO_DOVI
 		else {
 			//force reparse of nalu-base codecs if no dovi support 
 			switch (gpac_codec_id) {
