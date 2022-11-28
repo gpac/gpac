@@ -711,6 +711,7 @@ static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 #endif
 }
 
+#include <gpac/list.h>
 static GF_List *video_outputs = NULL;
 static u32 nb_video_outputs=0;
 
