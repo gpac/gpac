@@ -223,6 +223,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			//copy properties at init or reconfig
 			gf_filter_pid_copy_properties(ctx->opid, pid);
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FORCE_UNFRAME, NULL);
 		}
 		return GF_OK;
 	}
@@ -249,6 +250,7 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FORCE_UNFRAME, NULL);
 
 	ctx->ipid = pid;
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
@@ -588,6 +590,17 @@ static const GF_FilterCapability NALUMxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	//for forced frame->unframe
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_SVC),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_MVC),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_LHVC),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_FORCE_UNFRAME, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 

@@ -34,6 +34,8 @@
 #include <gpac/bitstream.h>
 #if (LIBAVCODEC_VERSION_MAJOR>58)
 #include <libavutil/mastering_display_metadata.h>
+#else
+#define FFMPEG_NO_DOVI
 #endif
 
 enum
@@ -846,6 +848,20 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (force_reframer) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 		}
+#ifndef FFMPEG_NO_DOVI
+		else {
+			//force reparse of nalu-base codecs if no dovi support 
+			switch (gpac_codec_id) {
+			case GF_CODECID_AVC:
+			case GF_CODECID_HEVC:
+			case GF_CODECID_LHVC:
+			case GF_CODECID_VVC:
+				gf_filter_pid_set_property(pid, GF_PROP_PID_FORCE_UNFRAME, &PROP_BOOL(GF_TRUE) );
+				gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+				break;
+			}
+		}
+#endif
 
 
 		if (codec_sample_rate)
@@ -1221,6 +1237,11 @@ static const GF_FilterCapability FFDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	{0},
+	//for forced frame->unframe
+	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_FORCE_UNFRAME, GF_TRUE),
+	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 

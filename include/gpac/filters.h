@@ -1275,6 +1275,9 @@ enum
 	GF_PROP_PCK_XPS_MASK = GF_4CC('P','X','P','M'),
 	GF_PROP_PCK_END_RANGE = GF_4CC('P','C','E','R'),
 
+	//internal, force creation of rewriter filter (only used for forcing reparse of NALU-based codecs)
+	GF_PROP_PID_FORCE_UNFRAME = GF_4CC('P','F','U','F'),
+
 	/*! Internal property used for FFMPEG codec ID
 
 	Property can be:
