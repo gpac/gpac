@@ -851,7 +851,7 @@ MP4BoxArg m4b_imp_args[] =
  	MP4BOX_ARG("ps", "backward compatible signaling of AAC-PS", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_PS_IMPLICIT, ARG_BIT_MASK),
  	MP4BOX_ARG("psx", "non-backward compatible signaling of AAC-PS", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_PS_EXPLICIT, ARG_BIT_MASK),
  	MP4BOX_ARG("ovsbr", "oversample SBR import (SBR AAC, PS AAC and oversampled SBR cannot be detected at import time)", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_OVSBR, ARG_BIT_MASK),
- 	MP4BOX_ARG("fps", "force frame rate for video and SUB subtitles import to the given value, expressed as a number, as `TS-inc` or `TS/inc`.  \nNote: For raw H263 import, default FPS is `15`, otherwise `25`. This is ignored for ISOBMFF import, use `:rescale` option for that", GF_ARG_STRING, 0, parse_fps, 0, ARG_IS_FUN),
+ 	MP4BOX_ARG("fps", "force frame rate for video and SUB subtitles import to the given value, expressed as a number, as `TS-inc` or `TS/inc`.  \nNote: For raw H263 import, default FPS is `15`, otherwise `25`. This is accepted for ISOBMFF import but `:rescale` option should be preferred", GF_ARG_STRING, 0, parse_fps, 0, ARG_IS_FUN),
  	MP4BOX_ARG("mpeg4", "force MPEG-4 sample descriptions when possible. For AAC, forces MPEG-4 AAC signaling even if MPEG-2", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_FORCE_MPEG4, ARG_BIT_MASK),
  	MP4BOX_ARG("agg", "aggregate N audio frames in 1 sample (3GP media only, maximum value is 15)", GF_ARG_INT, 0, &agg_samples, 0, 0),
 	{0}
@@ -876,7 +876,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("tkhd", NULL, "`S` set track header flags has hex integer or as comma-separated list of `enable`, `movie`, `preview`, `size_ar` keywords (use `tkhd+=FLAGS` to add and `tkhd-=FLAGS` to remove)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("disable", NULL, "`S` disable imported track(s), use `disable=no` to force enabling a disabled track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("group", NULL, "`S` add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("fps", NULL, "same as [-fps]()", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("fps", NULL, "`S` same as [-fps]()", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rap", NULL, "`DS` import only RAP samples", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("refs", NULL, "`DS` import only reference pictures", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("trailing", NULL, "keep trailing 0-bytes in AVC/HEVC samples", NULL, NULL, GF_ARG_BOOL, 0),
