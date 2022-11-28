@@ -1045,6 +1045,9 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	if (!cstr->tci->keys[0].constant_IV_size || cstr->use_subsamples) {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STORE, &PROP_4CC(cstr->tci->sai_saved_box_type) );
 	}
+	if (cstr->tci->roll_type && (cstr->tci->roll_type!=GF_KEYROLL_PERIODS)) {
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_HAS_ROLL, &PROP_BOOL(GF_TRUE) );
+	}
 
 	//parse pssh even if reinit since we need to reassign pssh property
 	return cenc_parse_pssh(ctx, cstr, cfile_name);

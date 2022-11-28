@@ -217,6 +217,7 @@ enum
 {
 	MP4MX_PSSH_MOOV=0,
 	MP4MX_PSSH_MOOF,
+	MP4MX_PSSH_BOTH,
 	MP4MX_PSSH_SKIP,
 };
 
@@ -3801,7 +3802,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			return e;
 		}
 
-		if (ctx->psshs == MP4MX_PSSH_MOOV)
+		if ((ctx->psshs == MP4MX_PSSH_MOOV) || (ctx->psshs == MP4MX_PSSH_BOTH))
 			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, GF_FALSE);
 
 		if (!tkw->has_brands && (scheme_type==GF_ISOM_OMADRM_SCHEME))
@@ -5644,7 +5645,13 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 		ctx->segment_started = GF_TRUE;
 		ctx->insert_tfdt = GF_TRUE;
-		ctx->insert_pssh = (ctx->psshs == MP4MX_PSSH_MOOF) ? GF_TRUE : GF_FALSE;
+		switch (ctx->psshs) {
+		case MP4MX_PSSH_MOOF:
+		case MP4MX_PSSH_BOTH:
+			ctx->insert_pssh = GF_TRUE; break;
+		default:
+			ctx->insert_pssh = GF_FALSE; break;
+		}
 
 		gf_isom_start_segment(ctx->file, ctx->single_file ? NULL : "_gpac_isobmff_redirect", GF_FALSE);
 	}
@@ -7435,7 +7442,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(psshs), "set `pssh` boxes store mode\n"
 	"- moof: in first moof of each segments\n"
 	"- moov: in movie box\n"
-	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
+	"- both: in movie box and in first moof of each segment\n"
+	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|both|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vodcache), "enable temp storage for VoD dash modes\n"
 		"- on: use temp storage of complete file for sidx and ssix injection\n"

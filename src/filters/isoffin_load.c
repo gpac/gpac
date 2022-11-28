@@ -1006,6 +1006,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 
 		isor_get_chapters(read->mov, ch->pid);
+
+		if (!gf_sys_is_test_mode()) {
+			u32 has_roll=GF_FALSE;
+			gf_isom_has_cenc_sample_group(read->mov, track, NULL, &has_roll);
+			if (has_roll)
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_HAS_ROLL, &PROP_BOOL(GF_TRUE));
+		}
 	}
 
 	//all stsd specific init/reconfig

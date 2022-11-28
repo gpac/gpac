@@ -118,8 +118,10 @@ typedef struct
 /*! key roll modes*/
 typedef enum
 {
+	/*! no key roll*/
+	GF_KEYROLL_NONE = 0,
 	/*! change keys every keyRoll AUs*/
-	GF_KEYROLL_SAMPLES = 0,
+	GF_KEYROLL_SAMPLES,
 	/*! roll keys at each SAP type 1 or 2 for streams with SAPs*/
 	GF_KEYROLL_SAPS,
 	/*! change keys every keyRoll DASH segments*/

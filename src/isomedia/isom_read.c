@@ -4849,11 +4849,14 @@ void gf_isom_reset_sample_count(GF_ISOFile *movie)
 }
 
 GF_EXPORT
-Bool gf_isom_has_cenc_sample_group(GF_ISOFile *the_file, u32 trackNumber)
+Bool gf_isom_has_cenc_sample_group(GF_ISOFile *the_file, u32 trackNumber, Bool *has_selective, Bool *has_roll)
 {
 	GF_TrackBox *trak;
 	u32 i, count;
+	GF_SampleGroupDescriptionBox *seig=NULL;
 
+	if (has_selective) *has_selective = GF_FALSE;
+	if (has_roll) *has_roll = GF_FALSE;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
 	if (!trak->Media->information->sampleTable->sampleGroups) return GF_FALSE;
@@ -4862,10 +4865,22 @@ Bool gf_isom_has_cenc_sample_group(GF_ISOFile *the_file, u32 trackNumber)
 	for (i=0; i<count; i++) {
 		GF_SampleGroupDescriptionBox *sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
 		if (sgdesc->grouping_type==GF_ISOM_SAMPLE_GROUP_SEIG) {
-			return GF_TRUE;
+			seig = sgdesc;
+			break;
 		}
 	}
-	return GF_FALSE;
+	if (!seig)
+		return GF_FALSE;
+
+	for (i=0; i<gf_list_count(seig->group_descriptions); i++) {
+		GF_CENCSampleEncryptionGroupEntry *se = gf_list_get(seig->group_descriptions, i);
+		if (!se->IsProtected) {
+			if (has_selective) *has_selective = GF_TRUE;
+		} else {
+			if (has_roll) *has_roll = GF_TRUE;
+		}
+	}
+	return GF_TRUE;
 }
 
 GF_EXPORT
