@@ -288,7 +288,6 @@ GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 		}
 		*out_size = (u32) d_stream.total_out;
 		inflateEnd(&d_stream);
-		return e;
 	}
 	if (e!=GF_OK) {
 		if (owns_buffer) {
