@@ -138,7 +138,7 @@ typedef struct
 	//args
 	Bool exporter;
 	GF_PropUIntList saps;
-	GF_PropUIntList frames;
+	GF_PropIntList frames;
 	Bool refs;
 	u32 rt;
 	Double speed;
@@ -769,9 +769,17 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		u32 i;
 		Bool found=GF_FALSE;
 		for (i=0; i<ctx->frames.nb_items; i++) {
-			if (ctx->frames.vals[i] == st->nb_frames + 1) {
-				found=GF_TRUE;
-				break;
+			s32 v = ctx->frames.vals[i];
+			if (v>=0) {
+				if (v == st->nb_frames + 1) {
+					found=GF_TRUE;
+					break;
+				}
+			} else {
+				if (st->nb_frames % (-v) == 0) {
+					found=GF_TRUE;
+					break;
+				}
 			}
 		}
 		if (!found) {
@@ -2684,7 +2692,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- av: force decoding of audio and video inputs\n"
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(frames), "drop all except listed frames (first being 1)", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(frames), "drop all except listed frames (first being 1). A negative value `-V` keeps only first frame every `V` frames", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xs), "extraction start time(s)", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xe), "extraction end time(s). If less values than start times, the last time interval extracted is an open range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xround), "adjust start time of extraction range to I-frame\n"
