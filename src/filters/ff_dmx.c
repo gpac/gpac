@@ -1068,8 +1068,8 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		char *ext = strrchr(ctx->src, '.');
 		const AVInputFormat *ifmt = av_find_input_format(ctx->src);
 		if (!ifmt && ext) ifmt = av_find_input_format(ext+1);
-		if (!ifmt && ext) {
 #if (LIBAVFORMAT_VERSION_MAJOR>=59)
+		if (!ifmt && ext) {
 			const AVInputFormat *fmt = NULL;
 			void *i = 0;
 			while ((fmt = av_demuxer_iterate(&i))) {
