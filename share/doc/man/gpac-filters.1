@@ -2273,6 +2273,8 @@ psshs (enum, default: moov):   set pssh boxes store mode
 .br
 * moov: in movie box
 .br
+* both: in movie box and in first moof of each segment
+.br
 * none: pssh is discarded
 .br
 
@@ -5448,7 +5450,7 @@ pssh (enum, default: v):       storage mode for PSSH box
 .br
 * f: stores in movie fragment only
 .br
-* v: stores in movie only
+* v: stores in movie only, or movie and fragments if key roll is detected
 .br
 * m: stores in mpd only
 .br
@@ -5625,6 +5627,16 @@ force_init (bool, default: false): force init segment creation in bitstream swit
 keep_src (bool, default: false): keep source URLs in manifest generation mode
 .br
 gxns (bool, default: false):   insert some gpac extensions in manifest (for now, only tfdt of first segment)
+.br
+dkid (enum, default: auto):    control injection of default KID in MPD
+.br
+* off: default KID not injected
+.br
+* on: default KID always injected
+.br
+* auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)
+.br
+
 .br
 
 .br
@@ -11051,7 +11063,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev510-g9fbd62ddb-master
+build: 2.1-DEV-rev512-g252a8d528-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

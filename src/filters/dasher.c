@@ -130,6 +130,13 @@ enum
 	DASHER_CMAF_CMF2
 };
 
+enum
+{
+	DASHER_DEFKID_OFF=0,
+	DASHER_DEFKID_ON,
+	DASHER_DEFKID_AUTO
+};
+
 typedef struct
 {
 	u32 bs_switch, profile, spd, cp, ntp;
@@ -140,6 +147,7 @@ typedef struct
 	u32 strict_sap;
 	u32 pssh;
 	u32 cmaf;
+	u32 dkid;
 	GF_Fraction segdur;
 	u32 dmode;
 	char *template;
@@ -2125,6 +2133,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			char sCan[40];
 			const GF_PropertyValue *ki;
 			u32 j, nb_pssh;
+			Bool add_kid=GF_FALSE;
 			GF_XMLAttribute *att;
 			char szVal[GF_MAX_PATH];
 
@@ -2139,10 +2148,19 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:mp4protection:2011", gf_4cc_to_str(prot_scheme));
 			gf_list_add(res, desc);
 
-			get_canon_urn(ki->value.data.ptr + 4, sCan);
-			att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
-			if (!desc->x_attributes) desc->x_attributes = gf_list_new();
-			gf_list_add(desc->x_attributes, att);
+			if (ctx->dkid==DASHER_DEFKID_ON) {
+				add_kid = GF_TRUE;
+			} else if (ctx->dkid==DASHER_DEFKID_AUTO) {
+				p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CENC_HAS_ROLL);
+				if (!p || !p->value.boolean) add_kid = GF_TRUE;
+			}
+
+			if (add_kid) {
+				get_canon_urn(ki->value.data.ptr + 4, sCan);
+				att = gf_xml_dom_create_attribute("cenc:default_KID", sCan);
+				if (!desc->x_attributes) desc->x_attributes = gf_list_new();
+				gf_list_add(desc->x_attributes, att);
+			}
 
 			char *ck_url = ctx->ckurl;
 			p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_CLEARKEY_URI);
@@ -2894,6 +2912,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	Bool has_strun=GF_FALSE;
 	Bool has_vodcache=GF_FALSE;
 	Bool has_cmaf=GF_FALSE;
+	Bool has_psshs=GF_FALSE;
+	const GF_PropertyValue *p;
 	char sep_args = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
 	char sep_name = gf_filter_get_sep(filter, GF_FS_SEP_NAME);
 	const char *dst_args, *trailer_args=NULL;
@@ -2968,6 +2988,9 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 
 		sprintf(szKey, "%ccmaf", sep_args);
 		if (strstr(dst_args, szKey)) has_cmaf = GF_TRUE;
+
+		sprintf(szKey, "%cpsshs", sep_args);
+		if (strstr(dst_args, szKey)) has_psshs = GF_TRUE;
 	}
 
 	if (trash_init) {
@@ -3013,20 +3036,36 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		sprintf(szSRC, "%cnofragdef", sep_args );
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
-	switch (ctx->pssh) {
-	case GF_DASH_PSSH_MPD:
-	case GF_DASH_PSSH_NONE:
-		sprintf(szSRC, "%cpsshs%cnone", sep_args, sep_name);
-		break;
-	case GF_DASH_PSSH_MOOF:
-	case GF_DASH_PSSH_MOOF_MPD:
-		sprintf(szSRC, "%cpsshs%cmoof", sep_args, sep_name);
-		break;
-	default:
-		sprintf(szSRC, "%cpsshs%cmoov", sep_args, sep_name);
-		break;
+	if (!has_psshs) {
+		switch (ctx->pssh) {
+		case GF_DASH_PSSH_MPD:
+		case GF_DASH_PSSH_NONE:
+			sprintf(szSRC, "%cpsshs%cnone", sep_args, sep_name);
+			break;
+		case GF_DASH_PSSH_MOOF:
+		case GF_DASH_PSSH_MOOF_MPD:
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CENC_HAS_ROLL);
+			//dual moov+moof only for dash
+			if (!ctx->do_mpd) p = NULL;
+			if (p && p->value.boolean) {
+				sprintf(szSRC, "%cpsshs%cboth", sep_args, sep_name);
+			} else {
+				sprintf(szSRC, "%cpsshs%cmoof", sep_args, sep_name);
+			}
+			break;
+		default:
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CENC_HAS_ROLL);
+			//dual moov+moof only for dash
+			if (!ctx->do_mpd) p = NULL;
+			if (p && p->value.boolean) {
+				sprintf(szSRC, "%cpsshs%cboth", sep_args, sep_name);
+			} else {
+				sprintf(szSRC, "%cpsshs%cmoov", sep_args, sep_name);
+			}
+			break;
+		}
+		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
-	gf_dynstrcat(&szDST, szSRC, NULL);
 
 	//patch for old arch: make sure we don't have any extra free box before the sidx
 	//we could also use vodcache=insert but this might break http outputs
@@ -9534,7 +9573,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"", GF_PROP_UINT, "set", "set|rep|both", GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(pssh), "storage mode for PSSH box\n"
 	"- f: stores in movie fragment only\n"
-	"- v: stores in movie only\n"
+	"- v: stores in movie only, or movie and fragments if key roll is detected\n"
 	"- m: stores in mpd only\n"
 	"- mf: stores in mpd and movie fragment\n"
 	"- mv: stores in mpd and movie\n"
@@ -9626,6 +9665,11 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(force_init), "force init segment creation in bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keep_src), "keep source URLs in manifest generation mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(gxns), "insert some gpac extensions in manifest (for now, only tfdt of first segment)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dkid), "control injection of default KID in MPD\n"
+		"- off: default KID not injected\n"
+		"- on: default KID always injected\n"
+		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
+		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };

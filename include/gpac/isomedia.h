@@ -6850,8 +6850,10 @@ GF_Err gf_isom_get_sample_to_group_info(GF_ISOFile *isom_file, u32 trackNumber, 
 /*! checks if a track as a CENC seig sample group used for key rolling
 \param isom_file the target ISO file
 \param trackNumber the target track
+\param has_selective set to TRUE if some entries describe unprotected samples - may be NULL
+\param has_roll set to TRUE if more than one key defined - may be NULL
 \return GF_TRUE if found, GF_FALSE otherwise*/
-Bool gf_isom_has_cenc_sample_group(GF_ISOFile *isom_file, u32 trackNumber);
+Bool gf_isom_has_cenc_sample_group(GF_ISOFile *the_file, u32 trackNumber, Bool *has_selective, Bool *has_roll);
 
 /*! gets HEVC tiling info
 \param isom_file the target ISO file
