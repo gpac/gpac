@@ -2262,10 +2262,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Missing systemID, ignoring DRMInfoTemplate\n"));
 					continue;
 				}
-				if (!key_val) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Missing keyval, ignoring DRMInfoTemplate\n"));
-					continue;
-				}
 
 				j=0;
 				while ((bs_node = gf_list_enum(pssh_tpl->content, &j))) {
@@ -2279,28 +2275,37 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 							kid_att = att;
 					}
 				}
+				if (key_att && !key_val) {
+					if (!pssh_tpl->orig_pos) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Missing keyval, injecting key in clear\n"));
+						pssh_tpl->orig_pos = 1;
+					}
+				}
 
 				if (kid_att) {
 					kid_att_backup = kid_att->value;
 					kid_att->value = szKID;
 				}
 
-				if (key_val && key_att) {
-					bin128 master_key, leaf_key;
+				if (key_att) {
+					bin128 leaf_key;
 					key_att_backup = key_att->value;
-					gf_bin128_parse(key_val->value, master_key);
-					GF_Crypt *crypto = gf_crypt_open(GF_AES_128, crypt_mode);
-					if (iv_val) {
-						bin128 IV;
-						gf_bin128_parse(iv_val->value, IV);
-						gf_crypt_init(crypto, master_key, IV);
-					} else {
-						gf_crypt_init(crypto, master_key, NULL);
-					}
 					memcpy(leaf_key, cstr->tci->keys[key_idx].key, 16);
-					gf_crypt_encrypt(crypto, leaf_key, 16);
-					gf_crypt_close(crypto);
+					if (key_val) {
+						bin128 master_key;
 
+						gf_bin128_parse(key_val->value, master_key);
+						GF_Crypt *crypto = gf_crypt_open(GF_AES_128, crypt_mode);
+						if (iv_val) {
+							bin128 IV;
+							gf_bin128_parse(iv_val->value, IV);
+							gf_crypt_init(crypto, master_key, IV);
+						} else {
+							gf_crypt_init(crypto, master_key, NULL);
+						}
+						gf_crypt_encrypt(crypto, leaf_key, 16);
+						gf_crypt_close(crypto);
+					}
 					szCryptKey[0]=0;
 					for (j=0; j<16; j++) {
 						char szTmp[3];
