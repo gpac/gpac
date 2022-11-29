@@ -1744,8 +1744,8 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 		gf_dynstrcat(&out_doc, FFAVInRegister.help, NULL);
 		gf_dynstrcat(&out_doc, dev_desc, "\n");
 		gf_free(dev_desc);
-		FFAVInRegister.help = out_doc;
-		ffmpeg_register_set_dyn_help(&FFAVInRegister);
+		res_reg->help = out_doc;
+		ffmpeg_register_set_dyn_help(res_reg);
 	}
 #endif
 	return res_reg;
