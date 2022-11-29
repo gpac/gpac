@@ -212,7 +212,7 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 {
 	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return GF_FALSE;
 
-	if (mo->config_changed || !mo->width || !mo->height) {
+	if (mo->config_changed || !mo->width || !mo->height || !mo->pixelformat) {
 		gf_mo_update_caps(mo);
 	}
 	if (width) *width = mo->width;
