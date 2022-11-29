@@ -51,6 +51,7 @@ typedef struct
 	GF_List *all_filters;
 	u32 nb_arg_skip;
 	Bool free_help;
+	Bool is_building;
 } GF_FFRegistryExt;
 
 typedef struct
@@ -682,8 +683,11 @@ static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *r
 	GF_FFRegistryExt *ffregext = reg->udta;
 	GF_List *all_filters = ffregext->all_filters;
 	u32 nb_skip_begin = ffregext->nb_arg_skip;
+	if (ffregext->is_building) return;
+
 #if !defined(GPAC_DISABLE_DOC)
-	if (ffregext->free_help) gf_free((char *)reg->help);
+	if (ffregext->free_help)
+		gf_free((char *)reg->help);
 #endif
 	gf_free(ffregext);
 	reg->udta = NULL;
@@ -1590,7 +1594,9 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 	if (ffregext) {
 		orig_reg->udta = ffregext;
 		ffregext->nb_arg_skip = nb_def_args-1;
+		ffregext->is_building = GF_TRUE;
 		ffmpeg_expand_register(session, orig_reg, reg_type);
+		ffregext->is_building = GF_FALSE;
 	}
 	return orig_reg;
 }

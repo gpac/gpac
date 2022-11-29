@@ -129,12 +129,11 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 			}
 			blacklist = fname+len;
 		}
+		if (is_whitelist) match = !match;
+
 		if (match) {
-			if (!is_whitelist)
-				return;
-		} else {
-			if (is_whitelist)
-				return;
+			if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
+			return;
 		}
 	}
 	//except for meta filters, don't accept a filter with input caps but no output caps
@@ -145,6 +144,7 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 		&& gf_filter_has_in_caps(freg->caps, freg->nb_caps)
 	) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing configure_pid function but has input capabilities - ignoring\n", freg->name));
+		if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
 		return;
 	}
 
