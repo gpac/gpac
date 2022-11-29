@@ -1327,11 +1327,7 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 	f->dst_filter = new_f;
 	
 	//reconnect outputs of source
-	if (opid) {
-		gf_filter_pid_post_init_task(f, opid);
-	} else {
-		gf_filter_reconnect_output((GF_Filter *) f);
-	}
+	gf_filter_reconnect_output((GF_Filter *) f, opid);
 
 	JS_FreeCString(ctx, fname);
 	if (link_args) JS_FreeCString(ctx, link_args);
@@ -1431,6 +1427,13 @@ static JSValue jsff_compute_link(JSContext *ctx, JSValueConst this_val, int argc
 	return res;
 }
 
+static JSValue jsff_require_source_id(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f) return GF_JS_EXCEPTION(ctx);
+	gf_filter_require_source_id(f);
+	return JS_UNDEFINED;
+}
 static JSValue jsff_bind(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
@@ -1562,6 +1565,7 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("ipid_stats", 0, jsff_ipid_stats),
 	JS_CFUNC_DEF("opid_stats", 0, jsff_opid_stats),
 	JS_CFUNC_DEF("compute_link", 0, jsff_compute_link),
+	JS_CFUNC_DEF("require_source_id", 0, jsff_require_source_id),
 };
 
 static JSValue jsfs_new_filter_obj(JSContext *ctx, GF_Filter *f)

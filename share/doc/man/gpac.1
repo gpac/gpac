@@ -1635,7 +1635,7 @@ For each filter DST accepting a connection from the PID, directly or with interm
 .br
 - if DST filter has link directives, use them to allow or reject PID connection.
 .br
-- otherwise, if complete mode is enabled, allow connection.
+- otherwise, if complete mode is enabled.
 .br
 - otherwise (implicit mode):
 .br
@@ -1644,6 +1644,12 @@ For each filter DST accepting a connection from the PID, directly or with interm
  - otherwise, if DST is not a sink and is not the first matching filter with no link directive, reject connection.
 .br
  - otherwise (DST is a sink) and no previous connections to a non-sink filter, allow connection.
+.br
+
+.br
+In all linking modes, a filter can prevent being linked to a filter with no link directives by setting RSID option on the filter.
+.br
+This is typically needed when dynamically inserting/removing filters in an existing session where some filters have no ID defined and are not desired for the inserted chain.
 .br
 
 .br
@@ -2344,25 +2350,27 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * FID: filter identifier
 .br
-* SID: filter source(s)
+* SID: filter source(s) (string value)
 .br
-* N: filter name
+* N=NAME: filter name (string value)
 .br
-* FS: sub-session identifier
+* FS: sub-session identifier (unsigned int value)
 .br
-* TAG: filter tag
+* RSID: require sourceID to be present on target filters (no value)
 .br
-* clone: filter cloning flag
+* TAG: filter tag (string value)
 .br
-* nomux: enable/disable direct file copy
+* clone: filter cloning flag (no value)
 .br
-* gfreg: preferred filter registry names for link solving
+* nomux: enable/disable direct file copy (no value)
 .br
-* gfloc: following options are local to filter declaration (not inherited)
+* gfreg: preferred filter registry names for link solving (string value)
 .br
-* gfopt: following options are not tracked
+* gfloc: following options are local to filter declaration, not inherited (no value)
 .br
-* gpac: argument separator for URLs
+* gfopt: following options are not tracked (no value)
+.br
+* gpac: argument separator for URLs (no value)
 .br
 
 .br
@@ -4870,7 +4878,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev512-g252a8d528-master
+build: 2.1-DEV-rev517-gc7d501a7b-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -759,6 +759,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				}
 				assert(pidinst->detach_pending);
 				safe_int_dec(&pidinst->detach_pending);
+				//revert temp sticky flag
+				if (filter->sticky == 2)
+					filter->sticky = 0;
 				break;
 			}
 			pidinst=NULL;
@@ -5050,6 +5053,11 @@ single_retry:
         gf_list_del(force_link_resolutions);
         gf_list_del(possible_linked_resolutions);
 		gf_fs_check_graph_load(filter->session, GF_FALSE);
+		if (pid->not_connected) {
+			pid->not_connected = 0;
+			assert(pid->filter->num_out_pids_not_connected);
+			pid->filter->num_out_pids_not_connected--;
+		}
 		return;
 	}
 
@@ -5935,6 +5943,65 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 	return is_internal;
 }
 
+static Bool filter_pck_check_prop_change(GF_FilterPidInst *pidinst, GF_FilterPacketInstance *pcki, Bool do_notif)
+{
+	if ( (pcki->pck->info.flags & GF_PCKF_PROPS_CHANGED) && !pcki->pid_props_change_done) {
+		GF_Err e;
+		Bool skip_props = GF_FALSE;
+
+		pcki->pid_props_change_done = 1;
+
+		//it may happen that:
+		//- the props are not set when querying the first packet (no prop queries on pid)
+		//- the new props are already set if filter_pid_get_property was queried before the first packet dispatch
+		if (pidinst->props) {
+			if (pidinst->force_reconfig || (pidinst->props != pcki->pck->pid_props)) {
+				//destroy if last occurence, removing it from pid as well
+				//only remove if last about to be destroyed, since we may have several pid instances consuming from this pid
+				assert(pidinst->props->reference_count);
+				if (safe_int_dec(& pidinst->props->reference_count) == 0) {
+					//see \ref gf_filter_pid_merge_properties_internal for mutex
+					gf_mx_p(pidinst->pid->filter->tasks_mx);
+					gf_list_del_item(pidinst->pid->properties, pidinst->props);
+					gf_mx_v(pidinst->pid->filter->tasks_mx);
+					gf_props_del(pidinst->props);
+				}
+				pidinst->force_reconfig = GF_FALSE;
+				//set new one
+				pidinst->props = pcki->pck->pid_props;
+				safe_int_inc( & pidinst->props->reference_count );
+			} else {
+				//it may happen that pid_configure for destination was called after packet being dispatched, in
+				//which case we are already properly configured
+				skip_props = GF_TRUE;
+				if (do_notif) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s was already configured with the last property set, ignoring reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
+				}
+			}
+		}
+		if (!skip_props) {
+			if (do_notif) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
+
+				assert(pidinst->filter->freg->configure_pid);
+			}
+
+			//reset the blacklist whenever reconfiguring, since we may need to reload a new filter chain
+			//in which a previously blacklisted filter (failing (re)configure for previous state) could
+			//now work, eg moving from formatA to formatB then back to formatA
+			gf_list_reset(pidinst->filter->blacklisted);
+
+			if (do_notif) {
+				e = gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_PID_CONF_RECONFIG);
+				if (e != GF_OK) return GF_TRUE;
+				if (pidinst->pid->caps_negociate)
+					return GF_TRUE;
+			}
+		}
+	}
+	return GF_FALSE;
+}
+
 GF_EXPORT
 GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 {
@@ -5971,53 +6038,9 @@ restart:
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
 
-	if ( (pcki->pck->info.flags & GF_PCKF_PROPS_CHANGED) && !pcki->pid_props_change_done) {
-		GF_Err e;
-		Bool skip_props = GF_FALSE;
+	if (filter_pck_check_prop_change(pidinst, pcki, GF_TRUE))
+		return NULL;
 
-		pcki->pid_props_change_done = 1;
-
-		//it may happen that:
-		//- the props are not set when querying the first packet (no prop queries on pid)
-		//- the new props are already set if filter_pid_get_property was queried before the first packet dispatch
-		if (pidinst->props) {
-			if (pidinst->force_reconfig || (pidinst->props != pcki->pck->pid_props)) {
-				//destroy if last occurence, removing it from pid as well
-				//only remove if last about to be destroyed, since we may have several pid instances consuming from this pid
-				assert(pidinst->props->reference_count);
-				if (safe_int_dec(& pidinst->props->reference_count) == 0) {
-					//see \ref gf_filter_pid_merge_properties_internal for mutex
-					gf_mx_p(pidinst->pid->filter->tasks_mx);
-					gf_list_del_item(pidinst->pid->properties, pidinst->props);
-					gf_mx_v(pidinst->pid->filter->tasks_mx);
-					gf_props_del(pidinst->props);
-				}
-				pidinst->force_reconfig = GF_FALSE;
-				//set new one
-				pidinst->props = pcki->pck->pid_props;
-				safe_int_inc( & pidinst->props->reference_count );
-			} else {
-				//it may happen that pid_configure for destination was called after packet being dispatched, in
-				//which case we are already properly configured
-				skip_props = GF_TRUE;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s was already configured with the last property set, ignoring reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
-			}
-		}
-		if (!skip_props) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
-
-			assert(pidinst->filter->freg->configure_pid);
-			//reset the blacklist whenever reconfiguring, since we may need to reload a new filter chain
-			//in which a previously blacklisted filter (failing (re)configure for previous state) could
-			//now work, eg moving from formatA to formatB then back to formatA
-			gf_list_reset(pidinst->filter->blacklisted);
-
-			e = gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_PID_CONF_RECONFIG);
-			if (e != GF_OK) return NULL;
-			if (pidinst->pid->caps_negociate)
-				return NULL;
-		}
-	}
 	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) && !pcki->pid_info_change_done) {
 		Bool res=GF_FALSE;
 
@@ -6725,19 +6748,23 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s input PID %s (from %s) resetting buffer\n", task->filter->name, pidi->pid->name, pidi->pid->filter->name ));
 
 	if (had_eos) *had_eos = GF_FALSE;
-	
+
+	//aggregate any pending packet
+	gf_filter_aggregate_packets(pidi);
+
+	//trash packets without checking for internal commands except EOS any pending packet
 	while (gf_fq_count(pidi->packets)) {
 		GF_FilterPacketInstance *pcki = gf_fq_head(pidi->packets);
 		if ( (pcki->pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {
 			if (had_eos)
 				*had_eos = GF_TRUE;
 		}
+		//check props change otherwise we could accumulate pid properties no longer valid
+		filter_pck_check_prop_change(pidi, pcki, GF_FALSE);
+
 		gf_filter_pid_drop_packet((GF_FilterPid *) pidi);
 	}
-	while (gf_list_count(pidi->pck_reassembly)) {
-		GF_FilterPacketInstance *pcki = gf_list_pop_back(pidi->pck_reassembly);
-		pcki_del(pcki);
-	}
+
 	gf_filter_pidinst_reset_stats(pidi);
 
 	assert(pidi->discard_packets);

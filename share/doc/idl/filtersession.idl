@@ -283,6 +283,10 @@ Object ipid_stats(unsigned long idx, optional unsigned int mode=0);
 */
 Object opid_stats(unsigned long idx, optional unsigned int mode=0);
 
+/*! Forces a filter to only link to filters having at least one sourceID defined - cf \ref gf_filter_require_source_id
+*/
+void require_source_id();
+
 
 /*! computes link from an output pid of the filter to a given filter description
 \param idx the index of the output pid to query

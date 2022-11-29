@@ -217,6 +217,7 @@ char *gf_filter_get_dst_name(GF_Filter *filter)
 - FID: will be inherited from last explicit filter in the chain
 - SID: is cloned during the resolution while loading the filter chain
 - TAG: TAG is never inherited
+- RSID: requesting sourceID on target filters is is never inherited
 - local options: by definition these options only apply to the loaded filter, and are never inherited
 - user-assigned PID properties on destination (they only apply after the destination, not in the new chain).
 
@@ -247,6 +248,8 @@ static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_
 		else if (!strncmp(in_args, "TAG", 3) && (in_args[3]==fsess->sep_name)) {
 		}
 		else if (!strncmp(in_args, "FS", 2) && (in_args[2]==fsess->sep_name)) {
+		}
+		else if (!strncmp(in_args, "RSID", 4) && (!in_args[4] || (in_args[4]==fsess->sep_args))) {
 		}
 		else if (!is_src && (in_args[0]==fsess->sep_frag)) {
 
@@ -1815,6 +1818,12 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			//filter sources
+			else if (!strcmp("RSID", szArg)) {
+				filter->require_source_id = GF_TRUE;
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
 			//internal options, nothing to do here
 			else if (
 				//generic encoder load
@@ -2185,7 +2194,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *dst_pidi, GF_FilterPidInst *src_pidi)
 {
 	Bool is_new_chain = GF_TRUE;
-	GF_Filter *new_f;
+	GF_Filter *new_f, *src_f;
 	Bool reconfig_only = src_pidi ? GF_FALSE: GF_TRUE;
 
 	assert(filter);
@@ -2195,9 +2204,14 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		return;
 	}
 
+	src_f = src_pidi ? src_pidi->pid->filter : pid->pid->filter;
+
 	//try to load filters to reconnect output pid
 	//we pass the source pid if given, so that we are sure the active property set is used to match the caps
-	if (!reconfig_only && gf_filter_pid_caps_match(src_pidi ? (GF_FilterPid *)src_pidi : pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)) {
+	if (!reconfig_only
+		&& (gf_list_find(src_f->blacklisted, (void*)filter_dst->freg)<0)
+		&& gf_filter_pid_caps_match(src_pidi ? (GF_FilterPid *)src_pidi : pid, filter_dst->freg, filter_dst, NULL, NULL, NULL, -1)
+	) {
 		GF_FilterPidInst *a_dst_pidi;
 		new_f = pid->filter;
 		assert(pid->num_destinations==1);
@@ -3455,19 +3469,32 @@ void gf_filter_remove(GF_Filter *filter)
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		//fanout, only disconnect this pid instance
 		if (pidi->pid->num_destinations>1) {
-			//post disconnect
+			//post STOP and disconnect
+			GF_FilterEvent fevt;
+			GF_FEVT_INIT(fevt, GF_FEVT_STOP, (GF_FilterPid *) pidi);
+			gf_filter_pid_send_event((GF_FilterPid *) pidi, &fevt);
+
 			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, filter, pidi->pid, "pidinst_disconnect", NULL);
 		}
 		//this is a source for the chain
 		else if (!pidi->pid->filter->num_input_pids) {
 			gf_filter_remove_internal(pidi->pid->filter, NULL, GF_FALSE);
 		}
-		//otherwise walk down the chain
-		else {
+		//otherwise walk down the chain if we have one-to-one
+		else if (pidi->pid->filter->num_output_pids==1) {
 			gf_filter_remove(pidi->pid->filter);
+		} else {
+			GF_FilterEvent fevt;
+			//source filter still active, mark output pid as not connected, send a stop and post disconnect
+			assert(pidi->pid->num_destinations==1);
+			pidi->pid->not_connected=1;
+			pidi->pid->filter->num_out_pids_not_connected++;
+			GF_FEVT_INIT(fevt, GF_FEVT_STOP, (GF_FilterPid *) pidi);
+			gf_filter_pid_send_event((GF_FilterPid *) pidi, &fevt);
+			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, filter, pidi->pid, "pidinst_disconnect", NULL);
 		}
 	}
-	filter->sticky = GF_FALSE;
+	filter->sticky = 0;
 	gf_mx_v(filter->tasks_mx);
 }
 
@@ -3708,7 +3735,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 
 	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
 	if (args) {
-		char *rem_opts[] = {"FID", "SID", "N", "clone", NULL};
+		char *rem_opts[] = {"FID", "SID", "N", "RSID", "clone", NULL};
 		char szSep[10];
 		char *loc_args;
 		u32 opt_idx;
@@ -3823,6 +3850,8 @@ static u32 gf_filter_get_num_events_queued_internal(GF_Filter *filter)
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		for (k=0; k<pid->num_destinations; k++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
+			if (pidi->stop_queued) nb_events++;
+			if (pidi->play_queued) nb_events++;
 			nb_events += gf_filter_get_num_events_queued(pidi->filter);
 		}
 	}
@@ -4753,12 +4782,16 @@ void gf_filter_block_eos(GF_Filter *filter, Bool do_block)
 }
 
 GF_EXPORT
-GF_Err gf_filter_reconnect_output(GF_Filter *filter)
+GF_Err gf_filter_reconnect_output(GF_Filter *filter, GF_FilterPid *for_pid)
 {
 	u32 i;
 	if (!filter) return GF_BAD_PARAM;
+	if (for_pid) {
+		if (PID_IS_INPUT(for_pid)) return GF_BAD_PARAM;
+	}
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		if (for_pid && (pid != for_pid)) continue;
 		gf_filter_pid_post_init_task(filter, pid);
 	}
 	return GF_OK;

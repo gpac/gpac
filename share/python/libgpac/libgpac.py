@@ -242,7 +242,7 @@ except OSError:
 
 #change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
 GF_ABI_MAJOR=12
-GF_ABI_MINOR=3
+GF_ABI_MINOR=4
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -1714,7 +1714,7 @@ _libgpac.gf_filter_remove.argtypes = [_gf_filter]
 _libgpac.gf_fs_send_update.argtypes = [_gf_filter_session, c_char_p, _gf_filter, c_char_p, c_char_p, c_uint]
 _libgpac.gf_filter_set_source.argtypes = [_gf_filter, _gf_filter, c_char_p]
 _libgpac.gf_filter_set_source_restricted.argtypes = [_gf_filter, _gf_filter, c_char_p]
-_libgpac.gf_filter_reconnect_output.argtypes = [_gf_filter]
+_libgpac.gf_filter_reconnect_output.argtypes = [_gf_filter, _gf_filter_pid]
 
 _libgpac.gf_props_get_id.argtypes = [c_char_p]
 _libgpac.gf_filter_get_ipid.argtypes = [_gf_filter, c_uint]
@@ -2273,12 +2273,20 @@ class Filter:
 
     ## insert a given filter after this filter - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
     #\param f  Filter to insert
+    #\param opid index of output pid to reconnect, -1 for all pids
     #\param link_args link options (string)
     #\return
-    def insert(self, f, link_args=None):
+    def insert(self, f, opid=-1, link_args=None):
         if f:
             _libgpac.gf_filter_set_source(f._filter, self._filter, link_args)
-            _libgpac.gf_filter_reconnect_output(f._filter)
+            pid = None
+            if opid>=0:
+                pid = _libgpac.gf_filter_get_opid(self._filter, opid)
+                if not pid:
+                    raise Exception('No output PID with index ' + str(opid) + ' in filter ' + self.name )
+            err = _libgpac.gf_filter_reconnect_output(f._filter, pid)
+            if err<0:
+                raise Exception('Failed to reconnect output: ' + e2s(err))
 
     ## \cond private
     def _pid_prop_ex(self, prop_name, pid, IsInfo):
