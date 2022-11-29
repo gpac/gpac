@@ -793,6 +793,23 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	streamtype = p->value.uint;
 
 	pid_ctx = gf_filter_pid_get_udta(pid);
+
+	if (is_remove) {
+		if (pid_ctx) {
+			gf_filter_pid_set_udta(pid, NULL);
+			ctx->nb_inputs--;
+			if (!ctx->nb_inputs) {
+				ffavf_reset_graph(ctx);
+				while (gf_list_count(ctx->opids)) {
+					GF_FFAVPid *opid = gf_list_pop_back(ctx->opids);
+					//io_filter_ctx is destroyed while resetting the graph
+					gf_filter_pid_remove(opid->io_pid);
+					gf_free(opid);
+				}
+			}
+		}
+		return GF_OK;
+	}
 	if (!pid_ctx) {
 		GF_SAFEALLOC(pid_ctx, GF_FFAVPid);
 		if (!pid_ctx) return GF_OUT_OF_MEM;
