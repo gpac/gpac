@@ -84,6 +84,7 @@ typedef struct
 	Bool is_cenc;
 	Bool is_cbc;
 	u32 KID_count;
+	Bool inband_keys;
 	bin128 *KIDs;
 	bin128 *keys;
 
@@ -935,13 +936,14 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 
 		/*SystemID for GPAC Player: 67706163-6365-6E63-6472-6D746F6F6C31*/
 		if (!strcmp(szSystemID, "6770616363656E6364726D746F6F6C31")) {
-			if (version==2)
-				cstr->gpac_master_leaf = GF_TRUE;
-			else if (version==3)
-				is_leaf_key = GF_TRUE;
-			else if (version==1)
+			//no KID signaled (version 0), use inband setup
+			if (version==0) {
 				cstr->gpac_master_leaf = GF_FALSE;
-			else {
+				cstr->inband_keys = GF_TRUE;
+				cstr->KID_count = 0;
+				return GF_OK;
+			}
+			else if (version>1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Unsupported GPAC DRM config (version %d)\n", version));
 				continue;
 			}
@@ -961,6 +963,7 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid KID count %d in GPAC init blob\n", kid_count));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+		gf_bin128_parse("0x6770616363656E6364726D746F6F6C31", cypherKey);
 
 		/*store key IDs*/
 		cstr->KID_count = kid_count;
@@ -970,6 +973,15 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 
 		memmove(cstr->KIDs, pssh_data + pos, cstr->KID_count*sizeof(bin128));
 		gf_bs_skip_bytes(ctx->bs_r, cstr->KID_count*sizeof(bin128));
+
+		//no key announced yet (roll)
+		if ((cstr->KID_count==1) && !memcmp(cstr->KIDs[0], cypherKey, sizeof(bin128))) {
+			cstr->inband_keys = GF_TRUE;
+			cstr->gpac_master_leaf = GF_FALSE;
+			cstr->KID_count = 0;
+			return GF_OK;
+		}
+
 		priv_len = gf_bs_read_u32(ctx->bs_r);
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 
@@ -978,27 +990,48 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
+		if (gf_bs_available(ctx->bs_r) % 16 == 0) {
+			cypherOffset = 0;
+			if (cstr->gpac_master_leaf)
+				is_leaf_key = GF_TRUE;
+		} else {
+			cypherOffset = pssh_data[pos] + 1;
+			if (priv_len < cypherOffset) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid cypher offset %d in GPAC init blob\n", cypherOffset));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+			if (!strncmp(pssh_data + pos + 1, "master", 6)) {
+				cstr->gpac_master_leaf = GF_TRUE;
+			}
+			else if (!strncmp(pssh_data + pos + 1, "leaf", 4)) {
+				is_leaf_key = GF_TRUE;
+			} else if (cypherOffset>1) {
+				cstr->gpac_master_leaf = GF_FALSE;
+				if (!is_pck_pssh) {
+					cstr->gpac_master_leaf = GF_FALSE;
+					cstr->inband_keys = (version==0) ? GF_TRUE : GF_FALSE;
+				}
+			} else if (cstr->gpac_master_leaf) {
+				is_leaf_key = GF_TRUE;
+			}
+		}
+
+
 		if (is_leaf_key) {
-			if (gf_bs_available(ctx->bs_r) < 16) {
+			if (gf_bs_available(ctx->bs_r) < 16 + cypherOffset	) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid GPAC init blob for leaf key\n", kid_count));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			memmove(cstr->keys, pssh_data + pos, cstr->KID_count*sizeof(bin128));
-		} else {
+			memmove(cstr->keys, pssh_data + pos + cypherOffset, cstr->KID_count*sizeof(bin128));
+		} else if (priv_len) {
+			Bool use_cbc = (!cstr->gpac_master_leaf && cstr->inband_keys) ? GF_TRUE : GF_FALSE;
 			/*GPAC DRM TEST system info, used to validate cypher offset in CENC packager
 				keyIDs as usual (before private data)
 				URL len on 8 bits
 				URL
 				keys, cyphered with our magic key :)
 			*/
-			cypherOffset = pssh_data[pos] + 1;
 
-			if (priv_len < cypherOffset) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid cypher offset %d in GPAC init blob\n", cypherOffset));
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
-
-			gf_bin128_parse("0x6770616363656E6364726D746F6F6C31", cypherKey);
 			gf_bin128_parse("0x00000000000000000000000000000001", cypherIV);
 
 			enc_payload_len = priv_len - cypherOffset;
@@ -1007,7 +1040,11 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 
-			mc = gf_crypt_open(GF_AES_128, GF_CTR);
+			if (use_cbc) {
+				mc = gf_crypt_open(GF_AES_128, GF_CBC);
+			} else {
+				mc = gf_crypt_open(GF_AES_128, GF_CTR);
+			}
 			if (!mc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
 				return GF_IO_ERR;
@@ -1015,7 +1052,7 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 			enc_data = gf_malloc(priv_len - cypherOffset);
 			memcpy(enc_data, pssh_data + pos + cypherOffset, priv_len - cypherOffset);
 
-			gf_crypt_init(mc, cypherKey, cypherIV);
+			gf_crypt_init(mc, cypherKey, use_cbc ? NULL : cypherIV);
 			gf_crypt_decrypt(mc, enc_data, priv_len - cypherOffset);
 			gf_crypt_close(mc);
 
@@ -1099,7 +1136,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		u32 new_crc = gf_crc_32(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size);
 
 		//change of key config and same pssh, setup single key
-		if ((new_crc != ki_crc) && (pssh_crc==cstr->pssh_crc)) {
+		if ((new_crc != ki_crc) && (pssh_crc==cstr->pssh_crc) && !cstr->inband_keys) {
 			e = cenc_dec_load_keys(ctx, cstr);
 			if (e) return e;
 		}
