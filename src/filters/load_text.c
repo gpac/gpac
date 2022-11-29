@@ -1155,6 +1155,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	if (!ctx->unframed)
 		ctx->src = gf_fopen(ctx->file_name, "rb");
 
+	if (ctx->opid && (ctx->playstate==2)) return GF_EOS;
 	if (!ctx->src) return GF_URL_ERROR;
 
 	file_size = (u32) gf_fsize(ctx->src);
