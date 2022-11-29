@@ -1454,7 +1454,7 @@ static Bool gpac_handle_prompt(GF_FilterSession *fsess, char char_code)
 		}
 		gf_filter_set_source(filter, (GF_Filter *) link_from, link_args);
 		//reconnect outputs of source
-		gf_filter_reconnect_output((GF_Filter *) link_from);
+		gf_filter_reconnect_output((GF_Filter *) link_from, NULL);
 		break;
 	default:
 		break;
@@ -2479,7 +2479,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_filter_pck_new_copy(NULL, NULL, NULL);
 	gf_filter_get_max_extra_input_pids(NULL);
 	gf_filter_remove(NULL);
-	gf_filter_reconnect_output(NULL);
+	gf_filter_reconnect_output(NULL, NULL);
 	gf_filter_pid_get_udta_flags(NULL);
 
 	gf_audio_fmt_get_cicp_layout(4, 1, 1);

@@ -2092,6 +2092,8 @@ void gf_filter_lock_all(GF_Filter *filter, Bool do_lock);
  This is used by filters loading subchains to enforce that filters from these subchain only connect to each other or the target filter but not other filters outside this chain.
  Filters using this function must setup source IDs on filters of the sunchain(s) they load.
 
+ Noye: This has the same effect has setting `:RSID` option on the filter
+
 \param filter target filter
 */
 void gf_filter_require_source_id(GF_Filter *filter);
@@ -2755,9 +2757,10 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 
 /*! Trigger reconnection of output PIDs of a filter. This is needed when inserting a filter in the chain while the session is running
 \param filter the target filter
+\param for_pid reconnects only the given output PID - if NULL, reconnect all output PIDs
 \return error if any
 */
-GF_Err gf_filter_reconnect_output(GF_Filter *filter);
+GF_Err gf_filter_reconnect_output(GF_Filter *filter, GF_FilterPid *for_pid);
 
 
 /*! Indicates that the filter accept and can process events coming from outside the filter chain, typically used by application firing events.

@@ -1983,17 +1983,34 @@ napi_value filter_set_source_restricted(napi_env env, napi_callback_info info)
 }
 napi_value filter_insert(napi_env env, napi_callback_info info)
 {
+	GF_FilterPid *opid=NULL;
+	s32 offset=1;
 	GF_Err e;
-	NARG_ARGS_THIS(2, 1)
+	NARG_ARGS_THIS(3, 1)
 	FILTER
 	FILTER_ARG(ins_f, 0)
-	NARG_STR(link_ext, 1, NULL);
+
+	//check if 2nd param is int, get opid
+	if (argc>1) {
+		s32 idx = -1;
+		if (napi_get_value_int32(env, argv[1], &idx) == napi_ok) {
+			offset = 2;
+			if (idx>=0) {
+				opid = gf_filter_get_opid(f, (u32) idx);
+				if (!opid) {
+					napi_throw_error(env, NULL, "Invalid output PID index");
+					return NULL;
+				}
+			}
+		}
+	}
+	NARG_STR(link_ext, offset, NULL);
 
 	e = gf_filter_set_source(f, ins_f, link_ext);
 	if (e)
 		napi_throw_error(env, gf_error_to_string(e), "Failed to set source");
 	else
-		gf_filter_reconnect_output(f);
+		gf_filter_reconnect_output(f, opid);
 	return NULL;
 }
 

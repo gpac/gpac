@@ -357,9 +357,10 @@ void set_source_restricted(_Filter src, DOMString link_args=null);
 
 /*! insert a given filter after this filter - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
 \param f _Filter to insert
+\param pid_idx index of pid to relink, negative value means all output pids
 \param link_args link options
 */
-void insert(_Filter f, DOMString link_args=null);
+void insert(_Filter f, long pid_idx=-1, DOMString link_args=null);
 
 /*! get an input pid property by name
 \param idx index of input pid
