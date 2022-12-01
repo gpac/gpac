@@ -1741,3 +1741,35 @@ u32 gf_bs_is_overflow(GF_BitStream *bs)
 {
 	return bs->overflow_state;
 }
+
+
+GF_EXPORT
+char *gf_bs_read_utf8(GF_BitStream *bs)
+{
+	char szC[2];
+	char *res = NULL;
+	if (!bs || !gf_bs_is_align(bs))
+		return NULL;
+
+	szC[1] = 0;
+	while (gf_bs_available(bs)) {
+		u8 c = gf_bs_read_u8(bs);
+		if (!c) break;
+		szC[0] = c;
+		gf_dynstrcat(&res, szC, NULL);
+	}
+	return res;
+}
+
+GF_EXPORT
+GF_Err gf_bs_write_utf8(GF_BitStream *bs, const char *str)
+{
+	if (!bs || !gf_bs_is_align(bs))
+		return GF_BAD_PARAM;
+
+	u32 i, len = (u32) strlen(str);
+	for (i=0; i<len; i++)
+		gf_bs_write_u8(bs, str[i]);
+	gf_bs_write_u8(bs, 0);
+	return GF_OK;
+}

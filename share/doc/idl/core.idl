@@ -727,6 +727,10 @@ double get_double();
 unsigned long get_data(ArrayBuffer buffer, optional unsigned long nb_bytes=0);
 
 
+/*! get utf8 string
+\return value read*/
+DOMString get_string();
+
 /*! reads 4CC
 \return four-character code read
 */
@@ -805,6 +809,11 @@ unsigned long put_data(ArrayBuffer buffer, optional unsigned long nb_bytes=0);
 \param fcc four-character code to write
 */
 void put_4cc(DOMString fcc);
+
+/*! write UTF-8 string
+\param str string to write
+*/
+void put_string(DOMString fcc);
 
 /*! write 64-bit float value
 \param buffer buffer to write
