@@ -6514,6 +6514,9 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		ds->presentation_time_offset = 0;
 		ds->seg_done = GF_FALSE;
 		ds->next_seg_start = (u32) ( ((u64) ds->dash_dur.num * ds->timescale) / ds->dash_dur.den);
+		//adjust next_seg_start of first seg to presentation time if skip edit
+		if (!ds->cues && (ds->pts_minus_cts<0) && (ds->next_seg_start> (u32) -ds->pts_minus_cts))
+			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
 		ds->adjusted_next_seg_start = ds->next_seg_start;
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
