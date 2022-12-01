@@ -632,6 +632,25 @@ Gets the current cookie on the bitstream
  */
 u64 gf_bs_get_cookie(GF_BitStream *bs);
 
+/*!
+\brief Reads string
+
+reads utf-8 NULL-terminated string - bitstream must be aligned
+\param bs the target bitstream
+\return the string read or NULL if error - MUST be freed by user
+ */
+char *gf_bs_read_utf8(GF_BitStream *bs);
+
+/*!
+\brief Writes string
+
+Writes utf-8 NULL-terminated string - bitstream must be aligned
+\param bs the target bitstream
+\param str UTF-8 string to write
+\return error if any
+ */
+GF_Err gf_bs_write_utf8(GF_BitStream *bs, const char *str);
+
 
 /*!
 \brief Marks overflow access
