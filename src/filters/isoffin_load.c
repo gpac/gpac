@@ -545,7 +545,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 
 		ch->streamType = streamtype;
-		ch->clock_id = ocr_es_id;
+//		ch->clock_id = ocr_es_id;
 
 		if (has_scalable_layers)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
