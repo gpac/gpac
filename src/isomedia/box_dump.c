@@ -1493,15 +1493,15 @@ GF_Err elng_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+#define get_and_print(name, bits) \
+	val = gf_bs_read_int(bs, bits); \
+	gf_fprintf(trace, " "name"=\"%u\"", val);\
+
 static GF_Err dump_alac(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val;
 	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
 	gf_isom_box_dump_start((GF_Box *)u, "ALACConfigurationBox", trace);
-
-#define get_and_print(name, bits) \
-		val = gf_bs_read_int(bs, bits); \
-		gf_fprintf(trace, " "name"=\"%u\"", val);
 
 	get_and_print("version", 32)
 	get_and_print("frameLength", 32)
@@ -1516,13 +1516,195 @@ static GF_Err dump_alac(GF_UnknownBox *u, FILE * trace)
 	get_and_print("avgBitRate", 32)
 	get_and_print("sampleRate", 32)
 
-#undef get_and_print
-
 	gf_bs_del(bs);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("ALACConfigurationBox", (GF_Box *)u, trace);
 	return GF_OK;
 }
+
+
+static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, nb_comps, i;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "UncompressedFrameConfigBox", trace);
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+
+	nb_comps = gf_bs_read_u16(bs);
+	gf_bs_skip_bytes(bs, 5*nb_comps);
+
+	get_and_print("sampling_type", 8)
+	get_and_print("interleave_type", 8)
+	get_and_print("block_size", 8)
+	get_and_print("components_little_endian", 1)
+	get_and_print("block_pad_lsb", 1)
+	get_and_print("block_little_endian", 1)
+	get_and_print("block_reversed", 1)
+	get_and_print("pad_unknown", 1)
+	get_and_print("reserved", 3)
+	get_and_print("pixel_size", 8)
+	get_and_print("row_align_size", 32)
+	get_and_print("tile_align_size", 32)
+	get_and_print("num_tile_cols_minus_one", 32)
+	get_and_print("num_tile_rows_minus_one", 32)
+
+	gf_fprintf(trace, ">\n");
+	gf_bs_seek(bs, 6);
+	for (i=0; i<nb_comps; i++) {
+		gf_fprintf(trace, "<ComponentInfo");
+		get_and_print("index", 16)
+		get_and_print("bit_depth_minus_one", 8)
+		get_and_print("format", 8)
+		get_and_print("align_size", 8)
+		gf_fprintf(trace, "/>\n");
+	}
+
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("UncompressedFrameConfigBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+static char *ctyp_names[] = {"Monochrome", "Y", "U/Cb", "V/Cr", "Red", "Green", "Blue", "Alpha", "Depth", "Disparity", "Palette", "FilterArray",
+	"padded", "Gamma", "X-ray", "VUV", "UVC", "UVB", "UVA", "NIR", "SWIR", "MWIR", "LWIR", "Panchromatic",
+	"SAR complex", "SAR magnitude", "SAR phase",
+	"ISAR complex", "ISAR magnitude", "ISAR phase"};
+
+static const char *get_comp_type_name(u32 ctype)
+{
+	u32 nb_cnames = GF_ARRAY_LENGTH(ctyp_names);
+	if (ctype<nb_cnames) return ctyp_names[ctype];
+	return "unknwon";
+}
+
+static GF_Err dump_cmpd(GF_UnknownBox *u, FILE * trace)
+{
+	u32 nb_comps, i;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "ComponentDefinitionBox", trace);
+
+	nb_comps = gf_bs_read_u16(bs);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<nb_comps; i++) {
+		gf_fprintf(trace, "<Component");
+		u32 ctype = gf_bs_read_u16(bs);
+		if (ctype<0x8000) {
+			gf_fprintf(trace, " type=\"%u\" name=\"%s\"", ctype, get_comp_type_name(ctype));
+		} else {
+			char *comp_uri = gf_bs_read_utf8(bs);
+			if (comp_uri) {
+				gf_fprintf(trace, " URI=\"%s\"", comp_uri);
+				gf_free(comp_uri);
+			}
+		}
+		gf_fprintf(trace, "/>\n");
+	}
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("ComponentDefinitionBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+typedef struct {
+	u32 type;
+	u32 bits;
+} CompInfo;
+
+static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, nb_comps, nb_vals, j, i;
+	CompInfo *types=NULL;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "ComponentPaletteBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	gf_fprintf(trace, ">\n");
+
+	nb_comps = gf_bs_read_u16(bs);
+	types = gf_malloc(sizeof(CompInfo) * nb_comps);
+	if (!types) {
+		gf_bs_del(bs);
+		gf_isom_box_dump_done("ComponentDefinitionBox", (GF_Box *)u, trace);
+		return GF_OUT_OF_MEM;
+	}
+	for (i=0; i<nb_comps; i++) {
+		gf_fprintf(trace, "<Component");
+		get_and_print("index", 16)
+		types[i].bits = 1 + gf_bs_read_int(bs, 8);
+		types[i].type = gf_bs_read_int(bs, 8);
+		gf_fprintf(trace, " bit_depth=\"%u\" type=\"%u\" name=\"%s\"/>\n", types[i].bits, types[i].type, get_comp_type_name(types[i].type) );
+	}
+	nb_vals = gf_bs_read_u32(bs);
+	for (j=0; j<nb_vals; j++) {
+		gf_fprintf(trace, "<ComponentValue");
+		for (i=0; i<nb_comps; i++) {
+			char szTmp[100];
+			szTmp[0] = 0;
+			switch (types[i].type) {
+			case 0:
+				sprintf(szTmp, " C%d=\"%u\"", i+1, gf_bs_read_int(bs, types[i].bits));
+				break;
+			case 1:
+				if (types[i].bits==32)
+					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_float(bs));
+				else if (types[i].bits==64)
+					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_double(bs));
+				else
+					sprintf(szTmp, " C%d=\"0x%X\"", i+1, gf_bs_read_int(bs, types[i].bits));
+				break;
+			case 2:
+				if (types[i].bits==64)
+					sprintf(szTmp, " C%d=\"%f + %fi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
+				else if (types[i].bits==128)
+					sprintf(szTmp, " C%d=\"%f + %fi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
+				else
+					sprintf(szTmp, " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
+				break;
+			default:
+				sprintf(szTmp, " C%d=\"invalid", i+1);
+				break;
+			}
+			gf_fprintf(trace, "%s", szTmp);
+		}
+		gf_fprintf(trace, "/>\n");
+	}
+
+	gf_bs_del(bs);
+	gf_free(types);
+	gf_isom_box_dump_done("ComponentDefinitionBox", (GF_Box *)u, trace);
+	return GF_OK;
+
+}
+
+static GF_Err dump_cpat(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, pw, ph, j, i;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "ComponentPatternBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_and_print("pattern_width", 16)
+	pw = val;
+	get_and_print("pattern_height", 16)
+	ph = val;
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<pw; i++) {
+		for (j=0; j<ph; j++) {
+			gf_fprintf(trace, "<Component x=\"%d\" y=\"%d\"", i, j);
+			get_and_print("index", 16)
+			gf_fprintf(trace, " gain\"%g\"/>\n", gf_bs_read_double(bs) );
+		}
+	}
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("ComponentPatternBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+#undef get_and_print
+
 
 GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 {
@@ -1539,6 +1721,14 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		str_dump = GF_TRUE;
 	} else if (u->original_4cc==GF_QT_SUBTYPE_ALAC) {
 		return dump_alac(u, trace);
+	} else if (u->original_4cc==GF_4CC('u','n','c','C')) {
+		return dump_uncc(u, trace);
+	} else if (u->original_4cc==GF_4CC('c','m','p','d')) {
+		return dump_cmpd(u, trace);
+	} else if (u->original_4cc==GF_4CC('c','p','a','l')) {
+		return dump_cpal(u, trace);
+	} else if (u->original_4cc==GF_4CC('c','p','a','t')) {
+		return dump_cpat(u, trace);
 	}
 
 	gf_isom_box_dump_start(a, name, trace);

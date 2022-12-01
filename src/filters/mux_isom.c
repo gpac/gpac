@@ -4793,6 +4793,14 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		}
 		media_brand = GF_ISOM_BRAND_VVIC;
 		break;
+	case GF_CODECID_RAW:
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PIXFMT);
+		if (p && (p->value.uint==GF_PIXEL_UNCV)) {
+			image_props.config_ba = dsi->value.data.ptr;
+			image_props.config_ba_size = dsi->value.data.size;
+			item_type = GF_4CC('u','n','c','i');
+			break;
+		}
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec %s not supported to create HEIF image items\n", gf_codecid_name(tkw->codecid) ));
 		return GF_NOT_SUPPORTED;

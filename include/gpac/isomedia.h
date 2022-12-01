@@ -6160,6 +6160,11 @@ typedef struct
 	const char *aux_urn;
 	const u8 *aux_data;
 	u32 aux_data_len;
+
+	//serialized box array config, only used for creating item
+	u8 *config_ba;
+	u32 config_ba_size;
+
 } GF_ImageItemProperties;
 
 
