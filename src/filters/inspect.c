@@ -358,6 +358,7 @@ static const tag_to_name VVCNalNames[] =
 	{GF_VVC_NALU_SLICE_CRA, "CRA"},
 	{GF_VVC_NALU_SLICE_GDR, "GDR"},
 	{GF_VVC_NALU_OPI, "OperationPointInfo"},
+	{GF_VVC_NALU_DEC_PARAM, "DecoderParameterSet"},
 	{GF_VVC_NALU_VID_PARAM, "VideoParameterSet"},
 	{GF_VVC_NALU_SEQ_PARAM, "SequenceParameterSet"},
 	{GF_VVC_NALU_PIC_PARAM, "PictureParameterSet"},
