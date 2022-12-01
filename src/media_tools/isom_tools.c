@@ -1526,7 +1526,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_RAW;
 		GF_List *other_props = gf_list_new();
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, other_props);
-		if (e == GF_OK && props.config) {
+		if ((e == GF_OK) && gf_list_count(other_props)) {
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_isom_box_array_write(NULL, other_props, bs);
 			gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);

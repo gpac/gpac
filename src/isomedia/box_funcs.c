@@ -1614,6 +1614,20 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_QT_SUBTYPE_ALAC, unkn, "stsd", "apple"),
 	BOX_DEFINE_S(GF_ISOM_SUBTYPE_FFV1, unkn, "stsd", "ffmpeg"),
 
+	/* for now we don't parse these*/
+	BOX_DEFINE_S(GF_4CC('u','n','c','C'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('c','m','p','d'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('c','p','a','l'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('c','p','a','t'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('c','l','e','v'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('s','p','l','z'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('s','n','u','c'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('s','b','p','m'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('c','l','o','c'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('f','p','c','k'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('d','i','s','i'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('d','e','p','i'), unkn, "video_sample_entry ipco", "rawff"),
+
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
 	GF_ISOM_BOX_TYPE_EQUI	= GF_4CC( 'e', 'q', 'u', 'i' ),
@@ -1791,7 +1805,7 @@ GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
 		}
 
 		//check container validity
-		if (strlen(a->registry->parents_4cc)) {
+		if (parent_type && strlen(a->registry->parents_4cc)) {
 			Bool parent_OK = GF_FALSE;
 			const char *parent_code = gf_4cc_to_str(parent->type);
 			if (parent->type == GF_ISOM_BOX_TYPE_UNKNOWN)
@@ -1831,7 +1845,7 @@ GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
 		e = gf_list_add(parent->child_boxes, a);
 		if (e) return e;
 
-		if (parent->registry->add_rem_fn) {
+		if (parent->registry && parent->registry->add_rem_fn) {
 			e = parent->registry->add_rem_fn(parent, a, GF_FALSE);
 			if (e) {
 				if (e == GF_ISOM_INVALID_MEDIA) return GF_OK;

@@ -1103,6 +1103,30 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		if (e) return e;
 		searchprop.config = NULL;
 	}
+
+	if (image_props->config_ba && image_props->config_ba_size) {
+		GF_Box *b;
+		GF_SAFEALLOC(b, GF_Box);
+		b->child_boxes = gf_list_new();
+		b->size = image_props->config_ba_size;
+		GF_BitStream *bs = gf_bs_new(image_props->config_ba, image_props->config_ba_size, GF_BITSTREAM_READ);
+		e = gf_isom_box_array_read(b, bs);
+		if (e) {
+			gf_isom_box_array_del(b->child_boxes);
+			gf_free(b);
+			return e;
+		}
+		while (gf_list_count(b->child_boxes)) {
+			GF_Box *a = gf_list_pop_front(b->child_boxes);
+			gf_list_add(ipco->child_boxes, a);
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+			//mark all as essential
+			e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+			if (e) return e;
+		}
+		gf_list_del(b->child_boxes);
+		gf_free(b);
+	}
 	if (image_props->alpha) {
 		searchprop.alpha = image_props->alpha;
 		prop_index = meta_find_prop(ipco, &searchprop);
