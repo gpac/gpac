@@ -204,7 +204,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_meta_item_flags(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num)
+u32 gf_isom_get_meta_item_flags(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num)
 {
 	GF_ItemInfoEntryBox *iinf;
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -682,7 +682,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 
 
 GF_EXPORT
-GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop) {
+GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop, GF_List *unmapped_props) {
 	u32 count, i, inum;
 	u32 j;
 	GF_ItemPropertyAssociationBox *ipma = NULL;
@@ -791,6 +791,12 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 			case GF_ISOM_BOX_TYPE_AV1C:
 			case GF_ISOM_BOX_TYPE_VVCC:
 				prop->config = b;
+				break;
+
+			default:
+				if (unmapped_props) {
+					gf_list_add(unmapped_props, b);
+				}
 				break;
 			}
 		}

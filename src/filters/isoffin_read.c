@@ -111,6 +111,8 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 				read->play_only_first_media = GF_ISOM_MEDIA_TEXT;
 			} else if (!strnicmp(tmp, "#trackID=", 9)) {
 				read->play_only_track_id = atoi(tmp+9);
+			} else if (!strnicmp(tmp, "#itemID=", 8)) {
+				read->play_only_track_id = atoi(tmp+8);
 			} else if (!strnicmp(tmp, "#ID=", 4)) {
 				read->play_only_track_id = atoi(tmp+4);
 			} else {
@@ -256,6 +258,12 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 			ISOMChannel *ch = gf_list_get(read->channels, i);
 			if (ch->last_state==GF_EOS)
 				ch->last_state=GF_OK;
+
+			//if we have an init seg set, set sample count
+			if (read->initseg) {
+				u32 nb_samples = gf_isom_get_sample_count(read->mov, ch->track);
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(nb_samples));
+			}
 		}
 
 #ifndef GPAC_DISABLE_LOG
@@ -1612,8 +1620,9 @@ GF_FilterRegister ISOFFInRegister = {
 		" - #pict: only use the first picture track\n"
 		" - #text: only use the first text track\n"
 		" - #trackID=VAL: only use the track with given ID\n"
-		" - #ID=VAL: only use the track with given ID\n"
-		" - #VAL: only use the track with given ID\n"
+		" - #itemID=VAL: only use the item with given ID\n"
+		" - #ID=VAL: only use the track/item with given ID\n"
+		" - #VAL: only use the track/item with given ID\n"
 		"\n"
 		"# Scalable Tracks\n"
 		"When scalable tracks are present in a file, the reader can operate in 3 modes using [-smode]() option:\n"

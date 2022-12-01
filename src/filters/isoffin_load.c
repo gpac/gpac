@@ -545,6 +545,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 
 		ch->streamType = streamtype;
+		ch->clock_id = ocr_es_id;
 
 		if (has_scalable_layers)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
@@ -1558,8 +1559,9 @@ retry:
 
 	if (!item_id) return GF_FALSE;
 	if (item_type==GF_ISOM_ITEM_TYPE_AUXI) return GF_FALSE;
+	if (read->play_only_track_id && (read->play_only_track_id!=item_id)) return GF_FALSE;
 
-	gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props);
+	gf_isom_get_meta_image_props(read->mov, GF_TRUE, 0, item_id, &props, NULL);
 
 	//check we support the protection scheme
 	switch (scheme_type) {
@@ -1649,6 +1651,10 @@ retry:
 	gf_filter_pid_set_property_str(pid, "meta:mime", item_mime_type ? &PROP_STRING(item_mime_type) : NULL );
 	gf_filter_pid_set_property_str(pid, "meta:name", item_name ? &PROP_STRING(item_name) : NULL );
 	gf_filter_pid_set_property_str(pid, "meta:encoding", item_encoding ? &PROP_STRING(item_encoding) : NULL );
+
+	if ((item_type == GF_4CC('u','n','c','v')) || (item_type == GF_4CC('u','n','c','i'))) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_UNCV) );
+	}
 
 
 	//setup cenc

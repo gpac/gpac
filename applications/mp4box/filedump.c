@@ -2495,7 +2495,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 
 		if (meta_type == GF_META_ITEM_TYPE_PICT) {
 			GF_ImageItemProperties img_props;
-			e = gf_isom_get_meta_image_props(file, root_meta, tk_num, ID, &img_props);
+			e = gf_isom_get_meta_image_props(file, root_meta, tk_num, ID, &img_props, NULL);
 			if (e) {
 				fprintf(stderr, " invalid image properties !");
 			} else {

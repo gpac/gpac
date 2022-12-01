@@ -1347,7 +1347,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		if (!ref_id) return GF_BAD_PARAM;
 		if (ref_id != image_props->item_ref_id) return GF_ISOM_INVALID_FILE;
 
-		gf_isom_get_meta_image_props(fsrc, GF_TRUE, 0, ref_id, &src_props);
+		gf_isom_get_meta_image_props(fsrc, GF_TRUE, 0, ref_id, &src_props, NULL);
 
 		image_props->config = src_props.config;
 		image_props->width = src_props.width;
@@ -1792,7 +1792,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 		if (item_type==GF_ISOM_ITEM_TYPE_AUXI) continue;
 
 		memset(&props, 0, sizeof(props));
-		gf_isom_get_meta_image_props(movie, root_meta, meta_track_number, an_item_id, &props);
+		gf_isom_get_meta_image_props(movie, root_meta, meta_track_number, an_item_id, &props, NULL);
 		if (!props.width || !props.height) continue;
 
 		if (!w) w = props.width;

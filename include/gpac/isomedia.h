@@ -5956,7 +5956,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *isom_file, Bool root_meta, u32 tra
                                   const char **item_name, const char **item_mime_type, const char **item_encoding,
                                   const char **item_url, const char **item_urn);
 
-/*! gets item flags for the givesn item
+/*! gets item flags for the given item
 
 \param isom_file the target ISO file
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
@@ -5964,7 +5964,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *isom_file, Bool root_meta, u32 tra
 \param item_num 1-based index of item to query
 \return item flags
 */
-GF_Err gf_isom_get_meta_item_flags(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_num);
+u32 gf_isom_get_meta_item_flags(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_num);
 
 /*! gets item index from item ID
 \param isom_file the target ISO file
@@ -6368,9 +6368,11 @@ GF_Err gf_isom_meta_add_item_group(GF_ISOFile *isom_file, Bool root_meta, u32 tr
 \param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
 \param item_id ID of the item
 \param out_image_props set to the image properties information of the item
+\param unmapped_props will contain all properties (box) not mapped to image properties. May be NULL. DO NOT DESTROY the content of the list
+
 \return error if any
 */
-GF_Err gf_isom_get_meta_image_props(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *out_image_props);
+GF_Err gf_isom_get_meta_image_props(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *out_image_props, GF_List *unmapped_props);
 
 /*! @} */
 
