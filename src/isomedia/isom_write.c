@@ -8811,5 +8811,50 @@ GF_Err gf_isom_set_meta_qt(GF_ISOFile *file)
 	}
 	return GF_OK;
 }
+
+
+GF_EXPORT
+GF_Err gf_isom_set_mpegh_compatible_profiles(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescIndex, const u32 *profiles, u32 nb_compat_profiles)
+{
+	u32 i, type;
+	GF_SampleEntryBox *ent;
+	GF_MHACompatibleProfilesBox *mhap;
+	GF_TrackBox *trak;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+	ent = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescIndex-1);
+	if (!ent) return GF_BAD_PARAM;
+	type = ent->type;
+	if (type==GF_ISOM_BOX_TYPE_GNRA)
+		type = ((GF_GenericAudioSampleEntryBox *)ent)->EntryType;
+
+	switch (type) {
+	case GF_ISOM_BOX_TYPE_MHA1:
+	case GF_ISOM_BOX_TYPE_MHA2:
+	case GF_ISOM_BOX_TYPE_MHM1:
+	case GF_ISOM_BOX_TYPE_MHM2:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+	mhap = (GF_MHACompatibleProfilesBox *) gf_isom_box_find_child(ent->child_boxes, GF_ISOM_BOX_TYPE_MHAP);
+	if (!mhap) {
+		if (! profiles || !nb_compat_profiles) return GF_OK;
+		mhap = (GF_MHACompatibleProfilesBox *) gf_isom_box_new_parent(&ent->child_boxes, GF_ISOM_BOX_TYPE_MHAP);
+	} else if (! profiles || !nb_compat_profiles) {
+		gf_isom_box_del_parent(&ent->child_boxes, (GF_Box*)mhap);
+		return GF_OK;
+	}
+	if (mhap->compat_profiles) gf_free(mhap->compat_profiles);
+	mhap->compat_profiles = gf_malloc(sizeof(u8) * nb_compat_profiles);
+	if (!mhap->compat_profiles) return GF_OUT_OF_MEM;
+	for (i=0; i<nb_compat_profiles; i++) {
+		mhap->compat_profiles[i] = (u8) profiles[i];
+	}
+	mhap->num_profiles = nb_compat_profiles;
+	return GF_OK;
+}
+
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 

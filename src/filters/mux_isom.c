@@ -2883,8 +2883,16 @@ sample_entry_setup:
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+
 	} else {
 		assert(0);
+	}
+
+	if ((codec_id==GF_CODECID_MPHA) || (codec_id==GF_CODECID_MHAS)) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
+		if (p) {
+			gf_isom_set_mpegh_compatible_profiles(ctx->file, tkw->track_num, tkw->stsd_idx, p->value.uint_list.vals, p->value.uint_list.nb_items);
+		}
 	}
 
 	if (ctx->btrt && !tkw->skip_bitrate_update) {

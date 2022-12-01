@@ -3915,6 +3915,19 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *isom_file, u32 trackNumber, cons
 */
 const u8 *gf_isom_get_mpegh_compatible_profiles(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *nb_compatible_profiles);
 
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*! sets compatible profile list for mpegh entry
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param profiles array of compatible profiles, NULL to remove compatible profiles
+\param nb_compatible_profiles  number of compatible profiles in list, 0 to remove compatible profiles
+\return error if any
+*/
+GF_Err gf_isom_set_mpegh_compatible_profiles(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, const u32 *profiles, u32 nb_compatible_profiles);
+#endif
+
 /*! structure holding youtube 360 video info
 - cf https://github.com/google/spatial-media/blob/master/docs/spherical-video-v2-rfc.md#stereoscopic-3d-video-box-st3d
  */
