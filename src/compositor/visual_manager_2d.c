@@ -377,6 +377,7 @@ Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2)
 #define ra_is_empty(ra) (!((ra)->count))
 
 /*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
+GF_EXPORT
 void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 {
 	if (!rc1->width || !rc1->height) {
