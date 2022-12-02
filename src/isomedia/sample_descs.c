@@ -1700,7 +1700,7 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_nu
 	return e;
 }
 
-GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_size)
+GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_size, u32 mha_subtype)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -1720,6 +1720,15 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 	default:
 		return GF_BAD_PARAM;
 	}
+	switch (mha_subtype) {
+	case GF_ISOM_BOX_TYPE_MHA1:
+	case GF_ISOM_BOX_TYPE_MHA2:
+	case GF_ISOM_BOX_TYPE_MHM1:
+	case GF_ISOM_BOX_TYPE_MHM2:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, (char *)URLname, (char *)URNname, &dataRefIndex);
@@ -1731,7 +1740,7 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	mpa = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MHA1);
+	mpa = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(mha_subtype);
 	if (!mpa) return GF_OUT_OF_MEM;
 	mpa->dataReferenceIndex = dataRefIndex;
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, mpa);
