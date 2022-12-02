@@ -4126,6 +4126,7 @@ GF_Err audio_sample_entry_box_size(GF_Box *s)
 		return GF_OK;
 
 	gf_isom_check_position(s, (GF_Box *)ptr->esd, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->cfg_mha, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_3gpp, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_opus, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_ac3, &pos);

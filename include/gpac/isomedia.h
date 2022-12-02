@@ -3901,9 +3901,10 @@ GF_Err gf_isom_get_pcm_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sample
 \param outDescriptionIndex set to the index of the created sample description
 \param dsi the MPEGH audio config (payload of mhaC box):  byte[0]=1 (config version) ,byte[1]=ProfileLevel,  byte[2]=channel layout, byte[3],byte[4]: the size of what follows the rest being a mpegh3daConfig
 \param dsi_size the size of the MPEGH audio config
+\param mha_subtype mha1/mha2:/mhm1/mhm2 subtype to use
 \return error if any
 */
-GF_Err gf_isom_new_mpha_description(GF_ISOFile *isom_file, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_size);
+GF_Err gf_isom_new_mpha_description(GF_ISOFile *isom_file, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_size, u32 mha_subtype);
 #endif
 
 /*! gets compatible profile list for mpegh entry

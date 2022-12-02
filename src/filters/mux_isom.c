@@ -2775,14 +2775,17 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new DIMS sample description: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
-	} else if (codec_id==GF_CODECID_MPHA) {
+	} else if ((codec_id==GF_CODECID_MPHA) || (codec_id==GF_CODECID_MHAS)) {
 		//not ready yet
 		if (!dsi) return GF_OK;
-
-		e = gf_isom_new_mpha_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi->value.data.ptr, dsi->value.data.size);
+		e = gf_isom_new_mpha_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi->value.data.ptr, dsi->value.data.size, m_subtype);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-H Audio sample description: %s\n", gf_error_to_string(e) ));
 			return e;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
+		if (p) {
+			gf_isom_set_mpegh_compatible_profiles(ctx->file, tkw->track_num, tkw->stsd_idx, p->value.uint_list.vals, p->value.uint_list.nb_items);
 		}
 	} else if (codec_id==GF_CODECID_TRUEHD) {
 		u32 fmt=0, prate=0;
@@ -2887,13 +2890,6 @@ sample_entry_setup:
 
 	} else {
 		assert(0);
-	}
-
-	if ((codec_id==GF_CODECID_MPHA) || (codec_id==GF_CODECID_MHAS)) {
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
-		if (p) {
-			gf_isom_set_mpegh_compatible_profiles(ctx->file, tkw->track_num, tkw->stsd_idx, p->value.uint_list.vals, p->value.uint_list.nb_items);
-		}
 	}
 
 	if (ctx->btrt && !tkw->skip_bitrate_update) {
