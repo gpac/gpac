@@ -155,7 +155,7 @@ typedef struct
 	u32 nal_store_size, nal_store_alloc;
 
 	//list of param sets found
-	GF_List *sps, *pps, *vps, *sps_ext, *pps_svc, *vvc_aps_pre, *vvc_dci;
+	GF_List *sps, *pps, *vps, *sps_ext, *pps_svc, *vvc_aps_pre, *vvc_dci, *vvc_opi;
 	//set to true if one of the PS has been modified, will potentially trigger a PID reconfigure
 	Bool ps_modified;
 
@@ -1374,6 +1374,15 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 			naludmx_add_param_nalu(cfg->param_array, sl, GF_VVC_NALU_DEC_PARAM);
 	}
 
+	count = gf_list_count(ctx->vvc_opi);
+	for (i=0; i<count; i++) {
+		GF_NALUFFParam *sl = gf_list_get(ctx->vvc_opi, i);
+		layer_id = sl->data[0] & 0x3F;
+		if (!layer_id) *has_vvc_base = GF_TRUE;
+		if (!ctx->analyze)
+			naludmx_add_param_nalu(cfg->param_array, sl, GF_VVC_NALU_OPI);
+	}
+
 	count = gf_list_count(ctx->vvc_aps_pre);
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->vvc_aps_pre, i);
@@ -2051,6 +2060,10 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 			if (!ctx->vvc_dci) ctx->vvc_dci = gf_list_new();
 			list = ctx->vvc_dci;
 			break;
+		case GF_VVC_NALU_OPI:
+			if (!ctx->vvc_opi) ctx->vvc_opi = gf_list_new();
+			list = ctx->vvc_opi;
+			break;
 		case GF_VVC_NALU_APS_PREFIX:
 			if (!ctx->vvc_aps_pre) ctx->vvc_aps_pre = gf_list_new();
 			list = ctx->vvc_aps_pre;
@@ -2590,6 +2603,11 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		naludmx_queue_param_set(ctx, data, size, GF_VVC_NALU_DEC_PARAM, ps_idx);
 		*skip_nal = GF_TRUE;
 		break;
+	case GF_VVC_NALU_OPI:
+		ps_idx = 0;
+		naludmx_queue_param_set(ctx, data, size, GF_VVC_NALU_OPI, ps_idx);
+		*skip_nal = GF_TRUE;
+		break;
 	case GF_VVC_NALU_APS_PREFIX:
 		//for now we keep APS in the stream
 #if 0
@@ -2681,10 +2699,6 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_END_OF_SEQ:
 	case GF_VVC_NALU_END_OF_STREAM:
 		*skip_nal = GF_TRUE;
-		break;
-
-	case GF_VVC_NALU_OPI:
-		if (! ctx->is_playing) return 0;
 		break;
 
 	default:
@@ -3881,8 +3895,9 @@ static void naludmx_reset_param_sets(GF_NALUDmxCtx *ctx, Bool do_free)
 	naludmx_del_param_list(ctx->pps_svc, do_free);
 	naludmx_del_param_list(ctx->vvc_aps_pre, do_free);
 	naludmx_del_param_list(ctx->vvc_dci, do_free);
-
+	naludmx_del_param_list(ctx->vvc_opi, do_free);
 }
+
 static void naludmx_finalize(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);

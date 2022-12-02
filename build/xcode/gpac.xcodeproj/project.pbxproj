@@ -3090,6 +3090,7 @@
 					CoreServices,
 					"-framework",
 					Metal,
+					"-lovvc",
 					"-lvvdec",
 				);
 				PRODUCT_NAME = gpac;
@@ -3219,6 +3220,7 @@
 					CoreServices,
 					"-framework",
 					Metal,
+					"-lovvc",
 					"-lvvdec",
 				);
 				PRODUCT_NAME = gpac;
