@@ -711,18 +711,7 @@ function configure_aout()
 	max_aframe_size = sample_size * channels * sample_per_frame;
 	chan_buffer = new Float32Array(channels);
 
-	if (audio_afmt === 's32') {
-		filter.get_sample = function(buf, idx) { return buf.getInt32(idx, true) / 4294967295; };
-		filter.set_sample = function(buf, idx, val) { return buf.setInt32(idx, val * 4294967295, true); };
-	} else if (audio_afmt === 's16') {
-		filter.get_sample = function(buf, idx) { return buf.getInt16(idx, true) / 65535; };
-		filter.set_sample = function(buf, idx, val) { return buf.setInt16(idx, val*65535, true); };
-	} else if (audio_afmt === 'flt') {
-		filter.get_sample = function(buf, idx) { return buf.getFloat32(idx); };
-		filter.set_sample = function(buf, idx, val) { return buf.setFloat32(idx, val); };
-	} else if (audio_afmt === 'dbl') {
-		filter.get_sample = function(buf, idx) { return buf.getFloat64(idx); };
-		filter.set_sample = function(buf, idx, val) { return buf.setFloat64(idx, val); };
+	if ((audio_afmt === 's32') || (audio_afmt === 's16') || (audio_afmt === 'flt') || (audio_afmt === 'dbl')) {
 	} else {
 		print(GF_LOG_ERROR, 'Unsupported sample format ' + audio_afmt);
 		sys.exit(1);
