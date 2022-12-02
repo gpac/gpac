@@ -109,7 +109,7 @@ typedef struct _gf_ffdec_ctx
 #else
 	AVPacket *pkt;
 #endif
-
+	u64 last_cts;
 	Bool prev_sub_valid, warned_txt;
 	GF_IRect irc;
 	GF_FilterFrameInterface sub_ifce;
@@ -420,8 +420,12 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		seek_flag = gf_filter_pck_get_seek_flag(pck_src);
 		out_cts = gf_filter_pck_get_cts(pck_src);
 	} else {
-		out_cts = frame->pts;
+		if (frame->pts==AV_NOPTS_VALUE)
+			out_cts = ctx->last_cts+1;
+		else
+			out_cts = frame->pts;
 	}
+	ctx->last_cts = out_cts;
 	//this was a seek frame, do not dispatch
 	if (seek_flag) {
 		if (pck_src) {
@@ -1201,7 +1205,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_Err e = ffmpeg_extradata_from_gpac(gpac_codecid, dsi, dsi_size, &ctx->decoder->extradata, &ctx->decoder->extradata_size);
 		if (e) return e;
 
-		ctx->extra_data_crc = gf_crc_32(ctx->decoder->extradata, ctx->decoder->extradata_size);
+		//crc of GPAC DSI, not ffmpeg
+		ctx->extra_data_crc = gf_crc_32(dsi, dsi_size);
 	}
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
