@@ -843,6 +843,10 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.min_max_enum = enum_val;
 		}
 		break;
+	case AV_OPT_TYPE_CHLAYOUT:
+		arg.arg_type = GF_PROP_STRING;
+		arg.arg_default_val = gf_strdup(opt->default_val.str ? opt->default_val.str : "mono");
+		break;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unknown ffmpeg option type %d\n", opt->type));
 		break;
