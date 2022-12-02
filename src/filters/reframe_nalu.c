@@ -1811,8 +1811,6 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	if (force_au_flush) {
 		naludmx_end_access_unit(ctx);
 	}
-	static u32 nb_cg=0;
-	nb_cg++;
 	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 	if (!ctx->analyze && (gf_list_count(ctx->pck_queue)>1))  {
 		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
