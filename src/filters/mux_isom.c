@@ -2777,8 +2777,14 @@ sample_entry_setup:
 		}
 	} else if ((codec_id==GF_CODECID_MPHA) || (codec_id==GF_CODECID_MHAS)) {
 		//not ready yet
-		if (!dsi) return GF_OK;
-		e = gf_isom_new_mpha_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi->value.data.ptr, dsi->value.data.size, m_subtype);
+		u8 *pdsi=NULL;
+		u32 dsi_len=0;
+		if (codec_id==GF_CODECID_MPHA) {
+			if (!dsi) return GF_OK;
+			pdsi = dsi->value.data.ptr;
+			dsi_len = dsi->value.data.size;
+		}
+		e = gf_isom_new_mpha_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, pdsi, dsi_len, m_subtype);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new MPEG-H Audio sample description: %s\n", gf_error_to_string(e) ));
 			return e;
