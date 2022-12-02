@@ -1811,12 +1811,12 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	if (force_au_flush) {
 		naludmx_end_access_unit(ctx);
 	}
-	
+	static u32 nb_cg=0;
+	nb_cg++;
 	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 	if (!ctx->analyze && (gf_list_count(ctx->pck_queue)>1))  {
 		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
 	}
-
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
@@ -2024,6 +2024,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 	GF_List *list = NULL, *alt_list = NULL;
 	GF_NALUFFParam *sl;
 	u32 i, count, crc;
+	Bool flush_au = GF_FALSE;
 
 	if (!size) return;
 	crc = gf_crc_32(data, size);
@@ -2033,9 +2034,11 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		case GF_HEVC_NALU_VID_PARAM:
 			if (!ctx->vps) ctx->vps = gf_list_new();
 			list = ctx->vps;
+			flush_au = GF_TRUE;
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
 			list = ctx->sps;
+			flush_au = GF_TRUE;
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
 			list = ctx->pps;
@@ -2049,9 +2052,11 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		case GF_VVC_NALU_VID_PARAM:
 			if (!ctx->vps) ctx->vps = gf_list_new();
 			list = ctx->vps;
+			flush_au = GF_TRUE;
 			break;
 		case GF_VVC_NALU_SEQ_PARAM:
 			list = ctx->sps;
+			flush_au = GF_TRUE;
 			break;
 		case GF_VVC_NALU_PIC_PARAM:
 			list = ctx->pps;
@@ -2074,8 +2079,9 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		}
 	} else {
 		switch (ps_type) {
-		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		case GF_AVC_NALU_SEQ_PARAM:
+			flush_au = GF_TRUE;
+		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 			list = ctx->sps;
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
@@ -2125,6 +2131,10 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		sl->size = size;
 		sl->crc = crc;
 		ctx->ps_modified = GF_TRUE;
+		//flush AU if we have a slice
+		if (ctx->opid && flush_au && ctx->first_pck_in_au && !ctx->first_slice_in_au) {
+			naludmx_end_access_unit(ctx);
+		}
 		return;
 	}
 	//TODO we might want to purge the list after a while !!
@@ -2142,6 +2152,10 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 	sl->crc = crc;
 
 	ctx->ps_modified = GF_TRUE;
+	//flush AU if we have a slice
+	if (ctx->opid && flush_au && ctx->first_pck_in_au && !ctx->first_slice_in_au) {
+		naludmx_end_access_unit(ctx);
+	}
 	gf_list_add(list, sl);
 }
 
