@@ -531,12 +531,13 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw, Bool
 			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
 			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_APS_PREFIX), tkw->vvcc->nal_unit_size);
 		} else {
-			if (!for_non_rap)
+			if (!for_non_rap) {
+				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_OPI), tkw->vvcc->nal_unit_size);
+				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_DEC_PARAM), tkw->vvcc->nal_unit_size);
 				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_VID_PARAM), tkw->vvcc->nal_unit_size);
-			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
-
-			if (!for_non_rap)
 				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_SEQ_PARAM), tkw->vvcc->nal_unit_size);
+			}
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
 
 			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_PIC_PARAM), tkw->vvcc->nal_unit_size);
 			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_APS_PREFIX), tkw->vvcc->nal_unit_size);

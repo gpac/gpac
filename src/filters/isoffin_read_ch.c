@@ -882,6 +882,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 			case GF_VVC_NALU_SEQ_PARAM:
 			case GF_VVC_NALU_PIC_PARAM:
 			case GF_VVC_NALU_DEC_PARAM:
+			case GF_VVC_NALU_OPI:
 				replace_nal = GF_TRUE;
 				break;
 			}
