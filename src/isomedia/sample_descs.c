@@ -1709,7 +1709,6 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	if (dsi_size<6) return GF_BAD_PARAM;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
@@ -1723,8 +1722,11 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 	switch (mha_subtype) {
 	case GF_ISOM_BOX_TYPE_MHA1:
 	case GF_ISOM_BOX_TYPE_MHA2:
+		if (!dsi || (dsi_size<6)) return GF_BAD_PARAM;
+		break;
 	case GF_ISOM_BOX_TYPE_MHM1:
 	case GF_ISOM_BOX_TYPE_MHM2:
+		if (dsi_size && (dsi_size<6)) return GF_BAD_PARAM;
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -1746,17 +1748,19 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, mpa);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 
-	mpa->cfg_mha = (GF_MHAConfigBox *) gf_isom_box_new_parent(&mpa->child_boxes, GF_ISOM_BOX_TYPE_MHAC);
-	if (!mpa->cfg_mha) return GF_OUT_OF_MEM;
-	mpa->cfg_mha->configuration_version = dsi[0];
-	mpa->cfg_mha->mha_pl_indication = dsi[1];
-	mpa->cfg_mha->reference_channel_layout = dsi[2];
-	mpa->cfg_mha->mha_config_size = dsi[3];
-	mpa->cfg_mha->mha_config_size <<= 8;
-	mpa->cfg_mha->mha_config_size |= dsi[4];
-	mpa->cfg_mha->mha_config = gf_malloc(sizeof(u8) * mpa->cfg_mha->mha_config_size);
-	if (!mpa->cfg_mha->mha_config) return GF_OUT_OF_MEM;
-	memcpy(mpa->cfg_mha->mha_config, dsi+5, dsi_size-5);
+	if (dsi) {
+		mpa->cfg_mha = (GF_MHAConfigBox *) gf_isom_box_new_parent(&mpa->child_boxes, GF_ISOM_BOX_TYPE_MHAC);
+		if (!mpa->cfg_mha) return GF_OUT_OF_MEM;
+		mpa->cfg_mha->configuration_version = dsi[0];
+		mpa->cfg_mha->mha_pl_indication = dsi[1];
+		mpa->cfg_mha->reference_channel_layout = dsi[2];
+		mpa->cfg_mha->mha_config_size = dsi[3];
+		mpa->cfg_mha->mha_config_size <<= 8;
+		mpa->cfg_mha->mha_config_size |= dsi[4];
+		mpa->cfg_mha->mha_config = gf_malloc(sizeof(u8) * mpa->cfg_mha->mha_config_size);
+		if (!mpa->cfg_mha->mha_config) return GF_OUT_OF_MEM;
+		memcpy(mpa->cfg_mha->mha_config, dsi+5, dsi_size-5);
+	}
 	return GF_OK;
 }
 
