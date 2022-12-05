@@ -419,6 +419,7 @@ static Bool parse_track_id(TrackIdentifier *tkid, char *arg_val, Bool allow_all)
 	while (len) {
 		if ((arg_val[len-1]<'0') || (arg_val[len-1]>'9')) {
 			tkid->ID_or_num = 0;
+			tkid->type = 0;
 			return GF_FALSE;
 		}
 		len--;
@@ -426,7 +427,10 @@ static Bool parse_track_id(TrackIdentifier *tkid, char *arg_val, Bool allow_all)
 	//don't use parse_u32 we don't want a warning
 	if (sscanf(arg_val, "%u", &tkid->ID_or_num) != 1)
 		tkid->ID_or_num = 0;
-	if (!tkid->ID_or_num) return GF_FALSE;
+	if (!tkid->ID_or_num) {
+		tkid->type = 0;
+		return GF_FALSE;
+	}
 	return GF_TRUE;
 }
 
