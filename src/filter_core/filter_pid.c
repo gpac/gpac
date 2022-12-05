@@ -7916,6 +7916,15 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 			if (a_filter->forced_caps[i].code==prop_4cc)
 				return &a_filter->forced_caps[i].val;
 		}
+		//not found, check if dst filter is alread linked to a dest - may happen when loading muxes with different chain length:
+		//-i obu -i mp4a -o file.ts
+		//the link fin->mp4dmx->m2tsmx->file.ts is solved before fin->rfav1->ufobu->m2tsmx->ts
+		if (a_filter->dst_filter && a_filter->dst_filter->nb_forced_caps) {
+			for (i=0; i<a_filter->dst_filter->nb_forced_caps; i++) {
+				if (a_filter->dst_filter->forced_caps[i].code==prop_4cc)
+					return &a_filter->dst_filter->forced_caps[i].val;
+			}
+		}
 	}
 
 	return NULL;
