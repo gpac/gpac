@@ -745,6 +745,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	switch (opt->type) {
 	case AV_OPT_TYPE_INT64:
 	case AV_OPT_TYPE_INT:
+	case AV_OPT_TYPE_CHANNEL_LAYOUT:
 		if (opt->type==AV_OPT_TYPE_INT64) arg.arg_type = GF_PROP_LSINT;
 		else if (opt->type==AV_OPT_TYPE_INT) arg.arg_type = GF_PROP_SINT;
 		else arg.arg_type = GF_PROP_UINT; //channel layout, map to int
@@ -842,13 +843,12 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.min_max_enum = enum_val;
 		}
 		break;
-	case AV_OPT_TYPE_CHANNEL_LAYOUT:
 #if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) > AV_VERSION_INT(57,23, 0)
 	case AV_OPT_TYPE_CHLAYOUT:
-#endif
 		arg.arg_type = GF_PROP_STRING;
 		arg.arg_default_val = gf_strdup(opt->default_val.str ? opt->default_val.str : "mono");
 		break;
+#endif
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unknown ffmpeg option type %d\n", opt->type));
 		break;
