@@ -259,7 +259,7 @@ function parseCue(cueText) {
 						stack = stack.slice(0,stackScanDepth);
 					} else {
 						// Tag mismatch!
-						alert("Tag mismatch when parsing WebVTT cue: "+cueText);
+						alert("Tag mismatch when parsing WebVTT cue: "+cueText+ " tag name was " + TagName);
 					}
 				} else {
 					// Opening Tag
@@ -267,9 +267,10 @@ function parseCue(cueText) {
 					// If not, don't allow it (unless the sanitiseCueHTML option is explicitly set to false)
 				
 					if ((	currentToken.substr(1).match(SRTChunkTimestampParser)	||
-							currentToken.match(/^<v\s+[^>]+>/i)						||
-							currentToken.match(/^<c[a-z0-9\-\_\.]+>/)				||
-							currentToken.match(/^<(b|i|u|ruby|rt)>/))				) {
+							currentToken.match(/^<(v|lang)\s+[^>]+>/i)						||
+							currentToken.match(/^<c[a-zA-Z0-9\-\_\.]+>/)				||
+							currentToken.match(/^<(b|i|u|ruby|ruby|rt)>/))
+					) {
 						
 						var tmpObject = {
 							"token":	currentToken.replace(/[<\/>]+/ig,"").split(/[\s\.]+/)[0],

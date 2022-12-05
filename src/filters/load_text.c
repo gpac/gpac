@@ -1220,7 +1220,7 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		GF_Err e = txtin_webvtt_setup(filter, ctx);
 		if (e || !ctx->unframed) return e;
 	}
-	if (!ctx->vttparser) return GF_NOT_SUPPORTED;
+	if (!ctx->vttparser) return (ctx->playstate==2) ? GF_EOS : GF_NOT_SUPPORTED;
 
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
