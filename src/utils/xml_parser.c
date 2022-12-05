@@ -2150,7 +2150,6 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		Bool big_endian = GF_TRUE;
 		Bool has_float = GF_FALSE;
 		Bool has_double = GF_FALSE;
-		Bool ignore=GF_FALSE;
 		const char *szFile = NULL;
 		const char *szString = NULL;
 		const char *szBase64 = NULL;
@@ -2219,12 +2218,11 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				}
 			} else if (!stricmp(att->name, "base64Prefix")) {
 				base64_prefix_bits = atoi(att->value);
+			} else if (!stricmp(att->name, "id")) {
 			} else {
-				ignore = GF_TRUE;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unkown attribute %s, ignoring\n", att->name));
 			}
 		}
-		if (ignore) continue;
 
 		if (enc_base64 && (enc_base64<3)) {
 			if (bs == bs_orig) {
