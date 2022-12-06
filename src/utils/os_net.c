@@ -1439,7 +1439,6 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 	const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc)
 {
 	s32 ret;
-	u32 flag;
 	struct ip_mreq M_req;
 	u32 optval;
 #ifdef GPAC_HAS_IPV6
@@ -1582,10 +1581,10 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &TTL, sizeof(TTL));
 		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		/*enable loopback*/
-		flag = 1;
-		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
+		optval = 1;
+		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &optval, sizeof(optval));
 		if (ret == SOCKET_ERROR) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disale multicast loop: %s\n", gf_errno_str(LASTSOCKERROR) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot enable multicast loop: %s\n", gf_errno_str(LASTSOCKERROR) ));
 		}
 
 		if (nb_src_ip_exc) {

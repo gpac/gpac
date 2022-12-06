@@ -4626,7 +4626,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck)
 {
 	GF_Err e;
-	u32 meta_type, item_id, size, item_type, nb_items, media_brand;
+	u32 meta_type, item_id, size, item_type, nb_items, media_brand = GF_ISOM_BRAND_HEIF;
 	GF_ImageItemProperties image_props;
 	GF_ImageItemProtection cenc_info;
 	const char *data, *item_name=NULL;

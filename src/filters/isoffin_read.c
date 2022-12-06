@@ -878,8 +878,9 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 count, i;
-	Bool cancel_event = GF_TRUE;
-	ISOMChannel *ch;
+	Bool cancel_event = GF_TRUE, is_insert=GF_FALSE;
+	Double start_range, speed;
+	ISOMChannel *ch, *ref_ch;
 	ISOMReader *read = gf_filter_get_udta(filter);
 
 	if (!read || read->disconnected) return GF_FALSE;
@@ -915,14 +916,46 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			read->frag_type = 1;
 
 		ch->start = ch->end = 0;
-		if (evt->play.speed>=0) {
+		start_range = evt->play.start_range;
+		speed = evt->play.speed;
+		//compute closest range if channel was marked inactive
+		if (read->nb_playing && !ch->has_seen_stop) {
+			ref_ch = NULL;
+			count = gf_list_count(read->channels);
+			for (i = 0; i < count; i++) {
+				ISOMChannel *ach = (ISOMChannel *)gf_list_get(read->channels, i);
+				if (!ach->playing) continue;
+				//check sync ID if multiple timelines
+				if (ach->clock_id != ch->clock_id) continue;
+				ref_ch = ach;
+				break;
+			}
+			//we have a ref, if computed last sample clock is 1s greater than start range of channel, use current time
+			if (ref_ch && ref_ch->timescale) {
+				Double diff, orig_range = ref_ch->orig_start;
+				speed = ref_ch->speed;
+				if (ref_ch->has_edit_list) {
+					start_range = ref_ch->sample_time;
+				} else {
+					start_range = ref_ch->cts;
+				}
+				start_range /= ref_ch->timescale;
+				diff = orig_range - start_range;
+				if (ABS(diff)<1.0)
+					start_range = orig_range;
+				is_insert = GF_TRUE;
+			}
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] channel start is %f - requested %f\n", start_range, evt->play.start_range));
+
+		if (speed>=0) {
 			Double t;
-			if (evt->play.start_range>=0) {
-				t = evt->play.start_range;
+			if (start_range>=0) {
+				t = start_range;
 				t *= ch->timescale;
 				ch->start = (u64) t;
 			}
-			if (evt->play.end_range >= evt->play.start_range) {
+			if (evt->play.end_range >= start_range) {
 				ch->end = (u64) -1;
 				if (evt->play.end_range<FLT_MAX) {
 					t = evt->play.end_range;
@@ -933,16 +966,17 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			Double end = evt->play.end_range;
 			if (end==-1) end = 0;
-			ch->start = (u64) (s64) (evt->play.start_range * ch->timescale);
-			if (end <= evt->play.start_range)
+			ch->start = (u64) (s64) (start_range * ch->timescale);
+			if (end <= start_range)
 				ch->end = (u64) (s64) (end  * ch->timescale);
 		}
 		ch->playing = GF_TRUE;
 		ch->sample_num = evt->play.from_pck;
+		ch->orig_start = start_range;
 
 		ch->sap_only = evt->play.drop_non_ref ? GF_TRUE : GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, evt->play.start_range, evt->play.end_range));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, start_range, evt->play.end_range));
 
 		if (!read->nb_playing)
 			gf_isom_reset_seq_num(read->mov);
@@ -1017,9 +1051,31 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_isom_set_byte_offset(read->mov, is_sidx_seek ? 0 : max_offset);
 			}
 		}
+
+
+		read->nb_playing++;
+		//compute closest range if channel was marked inactive
+		if ((read->nb_playing>1) && !is_insert) {
+			count = gf_list_count(read->channels);
+			for (i=0; i<count;i++) {
+				ISOMChannel *ach = gf_list_get(read->channels, i);
+				if (ach == ch) continue;
+				if (ach->clock_id != ch->clock_id) continue;
+				if (!ach->playing || !ach->timescale) continue;
+				isor_reset_reader(ach);
+				ach->sample_num = 0;
+				ach->start = gf_timestamp_rescale(ch->start, ch->timescale, ach->timescale);
+				ach->orig_start = ch->orig_start;
+				ach->start = (u64) (ach->orig_start * ach->timescale);
+				ach->eos_sent = GF_FALSE;
+				ach->speed = evt->play.speed;
+				ach->initial_play_seen = GF_TRUE;
+				ach->skip_next_play = GF_TRUE;
+			}
+		}
+
 		//always request a process task upon a play
 		gf_filter_post_process_task(read->filter);
-		read->nb_playing++;
 		//cancel event unless dash mode
 		return cancel_event;
 
@@ -1032,6 +1088,11 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (ch==a_ch) continue;
 			if (!a_ch->initial_play_seen) return GF_TRUE;
 		}
+		//stop is due to a deconnection, mark channel as not active
+		if (evt->play.initial_broadcast_play==2)
+			ch->has_seen_stop = GF_FALSE;
+		else
+			ch->has_seen_stop = GF_TRUE;
 		//cancel event if nothing playing
 		if (read->nb_playing) return GF_TRUE;
 		read->input_is_stop = GF_TRUE;

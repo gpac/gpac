@@ -948,8 +948,13 @@ static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
 	v1 = gf_rand(); v1<<=32; v1 |= gf_rand();
 	v2 = gf_rand(); v2<<=32; v2 |= gf_rand();
 	v1 |= gf_sys_clock_high_res();
+#ifndef GPAC_64_BITS
+	v2 |= (u64) (u32) cfg;
+	v2 ^= (u64) (u32) szPath;
+#else
 	v2 |= (u64) cfg;
 	v2 ^= (u64) szPath;
+#endif
 	* ( (u64*) &key[0] ) = v1;
 	* ( (u64*) &key[8] ) = v2;
 	FILE *crd = gf_fopen(szPath, "w");

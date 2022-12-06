@@ -431,7 +431,11 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 		strcpy(sess->ctrl_name, "trackID");
 	} else {
 		u32 seed = gf_rand();
+#ifndef GPAC_64_BITS
+		seed |= (u32) sess;
+#else
 		seed |= (u32) (u64) sess;
+#endif
 		seed |= gf_sys_clock();
 		sprintf(sess->ctrl_name, "s%08X", seed);
 	}
