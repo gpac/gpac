@@ -164,7 +164,8 @@ typedef struct
 	/*for edit lists*/
 	u32 edit_sync_frame;
 	u64 sample_time, last_rap_sample_time, start, end;
-	Double speed;
+	Double speed, orig_start;
+	Bool skip_next_play;
 
 	u32 timescale;
 	Bool to_init, has_rap;
@@ -173,7 +174,8 @@ typedef struct
 	Bool eos_sent;
 	u8 streamType;
 	Bool initial_play_seen;
-
+	Bool has_seen_stop;
+	u32 clock_id;
 	Bool is_encrypted, is_cenc;
 
 	Bool disable_seek;

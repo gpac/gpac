@@ -2548,6 +2548,12 @@ static void to_hex(u8 *data, u32 len, char *out)
 	out[2*i]=0;
 }
 
+#ifndef GPAC_64_BITS
+#define PTR_INT (u64) (u32)
+#else
+#define PTR_INT (u64)
+#endif
+
 static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd)
 {
 	u8 *pass;
@@ -2558,11 +2564,11 @@ static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd
 	v1 = gf_rand(); v1<<=32; v1 |= gf_rand();
 	v1 |= gf_sys_clock_high_res();
 	v2 = gf_rand(); v2<<=32; v2 |= gf_rand();
-	v2 |= (u64) creds;
+	v2 |= PTR_INT creds;
 	v3 = gf_rand(); v3<<=32; v3 |= gf_rand();
-	v3 |= (u64) creds_set_pass;
+	v3 |= PTR_INT creds_set_pass;
 	v4 = gf_rand(); v4<<=32; v4 |= gf_rand();
-	v4 |= (u64) to_hex;
+	v4 |= PTR_INT to_hex;
 
 	* ((u64*) &salt[0]) = v1;
 	* ((u64*) &salt[8]) = v2;
