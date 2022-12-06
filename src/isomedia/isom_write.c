@@ -688,7 +688,9 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 		else if (udta_only) {
 			udta = trak->udta;
 			trak->udta = NULL;
+			gf_list_del_item(trak->child_boxes, udta);
 			gf_isom_box_del((GF_Box*)trak);
+			trak = NULL;
 		} else {
 			Bool tpl_ok = GF_TRUE;
 			if (!trak->Header || !trak->Media || !trak->Media->handler || !trak->Media->mediaHeader || !trak->Media->information) tpl_ok = GF_FALSE;
@@ -797,7 +799,10 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 	if (trakID+1> movie->moov->mvhd->nextTrackID)
 		movie->moov->mvhd->nextTrackID = trakID+1;
 
-	trak->udta = udta;
+	if (udta) {
+		trak->udta = udta;
+		gf_list_add(trak->child_boxes, udta);
+	}
 
 	//and return our track number
 	return gf_isom_get_track_by_id(movie, trakID);

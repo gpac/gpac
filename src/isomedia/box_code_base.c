@@ -8130,6 +8130,19 @@ GF_Err udta_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		gf_list_del_item(map->boxes, a);
 		return GF_OK;
 	}
+	u32 i, count = gf_list_count(map->boxes);
+	for (i=0; i<count; i++) {
+		GF_Box *b = gf_list_get(map->boxes, i);
+		u32 btype = b->type;
+		if (b->type==GF_ISOM_BOX_TYPE_UNKNOWN) btype = ((GF_UnknownBox*)b)->original_4cc;
+		if (btype != box_type) continue;
+		if (box_type == GF_ISOM_BOX_TYPE_UUID) {
+			if (memcmp( ((GF_UUIDBox *)a)->uuid, ((GF_UUIDBox *)b)->uuid, 16)) continue;
+		}
+		gf_isom_box_del(b);
+		gf_list_rem(map->boxes, i);
+		break;
+	}
 	return gf_list_add(map->boxes, a);
 }
 
