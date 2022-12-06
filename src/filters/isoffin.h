@@ -204,7 +204,6 @@ typedef struct
 	GF_HEVCConfig *hvcc;
 	GF_AVCConfig *avcc;
 	GF_VVCConfig *vvcc;
-	GF_BitStream *nal_bs;
 	u32 dsi_crc;
 
 	Bool needs_pid_reconfig;

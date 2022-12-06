@@ -391,6 +391,9 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+		//we allow nal_size=0 for incomplete files, abort as soon as we see one to avoid parsing thousands of 0 bytes
+		if (!nal_size) break;
+
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
 		//even if not filtering, parse to check for AU delim
 		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr);
@@ -408,6 +411,12 @@ GF_Err nalumx_process(GF_Filter *filter)
 		gf_bs_skip_bytes(ctx->bs_r, nal_size);
 	}
 	gf_bs_seek(ctx->bs_r, 0);
+
+	if (!size) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[NALWrite] Empty AU with only 0-size NAL, skipping\n"));
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
 
 	if (!ctx->delim)
 		has_nalu_delim = GF_TRUE;
@@ -499,6 +508,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		pos = (u32) gf_bs_get_position(ctx->bs_r);
+		if (!nal_size) continue;
 
 		skip_nal = nalumx_is_nal_skip(ctx, data, pos, &is_nalu_delim, &layer_id, &temporal_id, &avc_hdr);
 		if (!ctx->extract) {
@@ -508,7 +518,6 @@ GF_Err nalumx_process(GF_Filter *filter)
 		else if (!ctx->delim && is_nalu_delim) {
 			skip_nal = GF_TRUE;
 		}
-
 
 		if (skip_nal) {
 			gf_bs_skip_bytes(ctx->bs_r, nal_size);

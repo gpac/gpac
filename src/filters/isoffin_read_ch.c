@@ -803,7 +803,7 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 
 void isor_reader_check_config(ISOMChannel *ch)
 {
-	u32 nalu_len, reset_state;
+	u32 nalu_len, reset_state, pos;
 	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
@@ -840,20 +840,26 @@ void isor_reader_check_config(ISOMChannel *ch)
 
 	reset_state = 0;
 
-	if (!ch->nal_bs) ch->nal_bs = gf_bs_new(ch->sample->data, ch->sample->dataLength, GF_BITSTREAM_READ);
-	else gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
+	pos = 0;
 
 	while (1) {
 		Bool replace_nal = GF_FALSE;
 		u8 nal_type=0;
-		u32 pos = (u32) gf_bs_get_position(ch->nal_bs);
 		if (pos + nalu_len >= ch->sample->dataLength) break;
-		u32 size = gf_bs_read_int(ch->nal_bs, nalu_len*8);
+		u32 tmp=0, size = 0;
+		while (tmp<nalu_len) {
+			size |= ch->sample->data[pos+tmp];
+			tmp++;
+			if (tmp+1<nalu_len) size<<=8;
+		}
+		//we allow nal_size=0 for incomplete files, abort as soon as we see one to avoid parsing thousands of 0 bytes
+		if (!size) break;
+
 		//this takes care of size + pos + nalu_len > 0 but (s32) size < 0 ...
 		if (ch->sample->dataLength < size) break;
 		if (ch->sample->dataLength < size + pos + nalu_len) break;
 		if (ch->check_avc_ps) {
-			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
+			u8 hdr = ch->sample->data[pos + nalu_len];
 			nal_type = hdr & 0x1F;
 			switch (nal_type) {
 			case GF_AVC_NALU_SEQ_PARAM:
@@ -864,7 +870,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 			}
 		}
 		else if (ch->check_hevc_ps) {
-			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
+			u8 hdr = ch->sample->data[pos + nalu_len];
 			nal_type = (hdr & 0x7E) >> 1;
 			switch (nal_type) {
 			case GF_HEVC_NALU_VID_PARAM:
@@ -875,7 +881,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 			}
 		}
 		else if (ch->check_vvc_ps) {
-			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 1);
+			u8 hdr = ch->sample->data[pos + nalu_len + 1];
 			nal_type = hdr >> 3;
 			switch (nal_type) {
 			case GF_VVC_NALU_VID_PARAM:
@@ -887,7 +893,6 @@ void isor_reader_check_config(ISOMChannel *ch)
 				break;
 			}
 		}
-		gf_bs_skip_bytes(ch->nal_bs, size);
 
 		if (replace_nal) {
 			u32 move_size = ch->sample->dataLength - size - pos - nalu_len;
@@ -896,12 +901,14 @@ void isor_reader_check_config(ISOMChannel *ch)
 				memmove(ch->sample->data + pos, ch->sample->data + pos + size + nalu_len, ch->sample->dataLength - size - pos - nalu_len);
 
 			ch->sample->dataLength -= size + nalu_len;
-			gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
-			gf_bs_seek(ch->nal_bs, pos);
 
 			//remove nal from clear subsample range
 			if (ch->pck_encrypted)
 				isor_sai_bytes_removed(ch, pos, nalu_len+size);
+		}
+		//not skipped, increase pos
+		else {
+			pos += nalu_len + size;
 		}
 	}
 
