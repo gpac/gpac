@@ -3490,6 +3490,7 @@ void gf_filter_remove(GF_Filter *filter)
 			pidi->pid->not_connected=1;
 			pidi->pid->filter->num_out_pids_not_connected++;
 			GF_FEVT_INIT(fevt, GF_FEVT_STOP, (GF_FilterPid *) pidi);
+			fevt.play.initial_broadcast_play = 2;
 			gf_filter_pid_send_event((GF_FilterPid *) pidi, &fevt);
 			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, filter, pidi->pid, "pidinst_disconnect", NULL);
 		}
@@ -3850,8 +3851,6 @@ static u32 gf_filter_get_num_events_queued_internal(GF_Filter *filter)
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		for (k=0; k<pid->num_destinations; k++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, k);
-			if (pidi->stop_queued) nb_events++;
-			if (pidi->play_queued) nb_events++;
 			nb_events += gf_filter_get_num_events_queued(pidi->filter);
 		}
 	}

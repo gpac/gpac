@@ -5118,7 +5118,11 @@ single_retry:
     gf_list_del(possible_linked_resolutions);
 	gf_mx_v(filter->session->filters_mx);
 
-
+	if (pid->num_destinations && !pid->not_connected) {
+		assert(pid->init_task_pending);
+		safe_int_dec(&pid->init_task_pending);
+		return;
+	}
 	filter->num_out_pids_not_connected ++;
 	//remove sparse info
 	if (pid->is_sparse) {
@@ -6021,7 +6025,7 @@ restart:
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 	//no packets
 	if (!pcki) {
-		if (!pidinst->pid || !pidinst->pid->filter) return NULL;
+		if (!pidinst->pid || !pidinst->pid->filter || !pidinst->filter) return NULL;
 		if (pidinst->pid->filter->disabled) {
 			pidinst->is_end_of_stream = pidinst->pid->has_seen_eos = GF_TRUE;
 		}

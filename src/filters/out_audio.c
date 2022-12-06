@@ -223,7 +223,8 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		we therefore probe the first packet before probing the buffer fullness*/
 		pck = gf_filter_pid_get_packet(ctx->pid);
 		if (!pck) {
-			if (gf_filter_pid_is_eos(ctx->pid))
+			//pid may be set to NULL if removed
+			if (!ctx->pid || gf_filter_pid_is_eos(ctx->pid))
 				ctx->is_eos = GF_TRUE;
 			return 0;
 		}
@@ -407,8 +408,13 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		assert(ctx->pid==pid);
-		ctx->pid=NULL;
+		assert(ctx->pid == pid);
+		ctx->pid = NULL;
+		//set a NULL clock hint in case other sinks using clock hints are still running
+		GF_Fraction64 mtime;
+		mtime.num = 0;
+		mtime.den = 0;
+		gf_filter_hint_single_clock(filter, 0, mtime);
 		return GF_OK;
 	}
 	assert(!ctx->pid || (ctx->pid==pid));
