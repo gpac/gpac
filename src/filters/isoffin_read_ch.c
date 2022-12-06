@@ -838,6 +838,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 	else if (ch->hvcc) nalu_len = ch->hvcc->nal_unit_size;
 	else if (ch->vvcc) nalu_len = ch->vvcc->nal_unit_size;
 
+	if (!nalu_len) return;
 	reset_state = 0;
 
 	pos = 0;
@@ -847,11 +848,12 @@ void isor_reader_check_config(ISOMChannel *ch)
 		u8 nal_type=0;
 		if (pos + nalu_len >= ch->sample->dataLength) break;
 		u32 tmp=0, size = 0;
-		while (tmp<nalu_len) {
+		while (tmp<nalu_len-1) {
 			size |= ch->sample->data[pos+tmp];
 			tmp++;
-			if (tmp+1<nalu_len) size<<=8;
+			size<<=8;
 		}
+		size |= ch->sample->data[pos+tmp];
 		//we allow nal_size=0 for incomplete files, abort as soon as we see one to avoid parsing thousands of 0 bytes
 		if (!size) break;
 
