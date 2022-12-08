@@ -75,7 +75,6 @@ typedef struct
 
 	GF_List *src_packets;
 	u64 next_cts;
-
 } GF_XVIDCtx;
 
 static GF_Err xviddec_initialize(GF_Filter *filter)
@@ -289,6 +288,8 @@ static GF_Err xviddec_process(GF_Filter *filter)
 
 
 	} else {
+		if (!gf_filter_pid_is_eos(ctx->ipid))
+			return GF_OK;
 		frame.bitstream = NULL;
 		frame.length = -1;
 	}
