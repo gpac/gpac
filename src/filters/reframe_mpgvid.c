@@ -30,6 +30,7 @@
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+#define MIN_HDR_STORE	12
 typedef struct
 {
 	u64 pos;
@@ -86,6 +87,7 @@ typedef struct
 	MPGVidIdx *indexes;
 	u32 index_alloc_size, index_size;
 	u32 bitrate;
+	Bool trash_trailer;
 } GF_MPGVidDmxCtx;
 
 
@@ -265,6 +267,11 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 
 static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket *pck, Bool flush_ref, Bool is_eos)
 {
+	if (ctx->trash_trailer) {
+		gf_filter_pck_discard(pck);
+		return;
+	}
+
 	if (!is_eos && (!ctx->width || !ctx->height))
 		flush_ref = GF_FALSE;
 
@@ -696,8 +703,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
 
-			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);
-			current = mpgviddmx_next_start_code(ctx->hdr_store, 8);
+			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, MIN_HDR_STORE - ctx->bytes_in_header);
+			current = mpgviddmx_next_start_code(ctx->hdr_store, MIN_HDR_STORE);
 
 			//no start code in stored buffer
 			if ((current<0) || (current >= (s32) ctx->bytes_in_header) )  {
@@ -827,9 +834,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				current = 0;
 			}
 			gf_filter_pck_set_carousel_version(dst_pck, 1);
-
 			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
 		}
+
+		//we're align to startcode, stop trashing packets
+		ctx->trash_trailer = GF_FALSE;
 
 		//not enough bytes to parse start code
 		if (remain<5) {
@@ -1025,6 +1034,15 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			start += fstart;
 			remain -= (s32) fstart;
 		}
+		//we may have VO or other packets before (fstart is on first of vop/gov/vol/vos)
+		else if (fstart && (fstart + size <= remain)) {
+			//start code (4 bytes) in header, adjst frame start and size
+			if (sc_type_forced) {
+				fstart += 4;
+				size-=4;
+			}
+			size += fstart;
+		}
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
 		//needs adjustement
@@ -1052,22 +1070,29 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ftype) {
 			if (!is_coded) {
 				/*if prev is B and we're parsing a packed bitstream discard n-vop*/
-				if (ctx->forced_packed && ctx->b_frames) {
-					ctx->is_packed = GF_TRUE;
+				if ((ctx->forced_packed && ctx->b_frames)
+					/*policy is to import at variable frame rate, skip*/
+					|| ctx->vfr
+				) {
+					if (ctx->vfr) {
+						ctx->is_vfr = GF_TRUE;
+						mpgviddmx_update_time(ctx);
+					} else {
+						ctx->is_packed = GF_TRUE;
+					}
+
+					//part of the frame was in store, adjust size
+					if (bytes_from_store)
+						size-= bytes_from_store + hdr_offset;
+
 					assert(remain>=size);
 					start += size;
 					remain -= (s32) size;
+					//trash all packets until we align to a new startcode
+					ctx->trash_trailer = full_frame ? GF_FALSE : GF_TRUE;
 					continue;
 				}
-				/*policy is to import at variable frame rate, skip*/
-				if (ctx->vfr) {
-					ctx->is_vfr = GF_TRUE;
-					mpgviddmx_update_time(ctx);
-					assert(remain>=size);
-					start += size;
-					remain -= (s32) size;
-					continue;
-				}
+
 				/*policy is to keep non coded frame (constant frame rate), add*/
 			}
 
@@ -1162,8 +1187,8 @@ static GF_Err mpgviddmx_initialize(GF_Filter *filter)
 {
 	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
 	ctx->hdr_store_size = 0;
-	ctx->hdr_store_alloc = 8;
-	ctx->hdr_store = gf_malloc(sizeof(char)*8);
+	ctx->hdr_store_alloc = MIN_HDR_STORE;
+	ctx->hdr_store = gf_malloc(sizeof(char)*ctx->hdr_store_alloc);
 	return GF_OK;
 }
 
