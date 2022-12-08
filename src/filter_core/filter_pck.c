@@ -1079,15 +1079,15 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			u8 bend = (pck->info.flags & GF_PCKF_BLOCK_END) ? 1 : 0;
 
 			if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			}
 			else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			}
 			else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, sap_type, seek, pck->info.duration, bstart, bend));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d S/E %d/%d size %d\n", pck->pid->filter->name, pck->pid->name, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d S/E %d/%d size %u\n", pck->pid->filter->name, pck->pid->name, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			}
 		}
 #endif
@@ -1185,7 +1185,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			if (pck->info.flags & GF_PCKF_BLOCK_START) {
 				//missed end of previous, aggregate all before excluding this packet
 				if (!dst->last_block_ended) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - queuing for potential reaggregation\n", pid->filter->name));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - performing reaggregation\n", pid->filter->name));
 
 					//post process task if we have been reaggregating a packet
 					post_task = gf_filter_aggregate_packets(dst);
