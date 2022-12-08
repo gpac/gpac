@@ -1767,7 +1767,7 @@ GF_Err gf_bs_write_utf8(GF_BitStream *bs, const char *str)
 	if (!bs || !gf_bs_is_align(bs))
 		return GF_BAD_PARAM;
 
-	u32 i, len = (u32) strlen(str);
+	u32 i, len = str ? (u32) strlen(str) : 0;
 	for (i=0; i<len; i++)
 		gf_bs_write_u8(bs, str[i]);
 	gf_bs_write_u8(bs, 0);
