@@ -813,7 +813,7 @@ void put_4cc(DOMString fcc);
 /*! write UTF-8 string
 \param str string to write
 */
-void put_string(DOMString fcc);
+void put_string(DOMString str);
 
 /*! write 64-bit float value
 \param buffer buffer to write
