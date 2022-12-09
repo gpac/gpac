@@ -31,6 +31,7 @@
 
 #include <gpac/mpegts.h>
 #include <gpac/thread.h>
+#include <gpac/internal/media_dev.h>
 
 typedef struct {
 	char *fragment;
@@ -272,6 +273,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		case GF_M2TS_VIDEO_VC1:
 			stype = GF_STREAM_VISUAL;
 			codecid = GF_CODECID_SMPTE_VC1;
+			stream->flags |= GF_M2TS_CHECK_VC1;
 			break;
 		case GF_M2TS_VIDEO_AV1:
 			stype = GF_STREAM_VISUAL;
@@ -646,6 +648,37 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		au_end = GF_TRUE;
 		sap_type = GF_FILTER_SAP_1;
 	}
+
+	if (pck->stream->flags & GF_M2TS_CHECK_VC1) {
+		//extract seq header
+		u32 start, next, sc_size, sc_size2, sc_size3, hdr_len=0;
+
+		start = next = gf_media_nalu_next_start_code(ptr, len, &sc_size);
+		if ((next<len) && (ptr[next+sc_size]==0x0F)) {
+			u32 ephdr = gf_media_nalu_next_start_code (ptr+next+sc_size, len-next-sc_size, &sc_size2);
+			if ((ephdr + next + sc_size < len) && (ptr[next+sc_size+ephdr+sc_size2]==0x0E)) {
+				u32 end = gf_media_nalu_next_start_code (ptr+next+sc_size+ephdr+sc_size2, len-next-sc_size-ephdr-sc_size2, &sc_size3);
+				if (end + ephdr + next + sc_size + sc_size2 < len)
+					hdr_len = end + ephdr + sc_size2 + next + sc_size;
+			} else if ((ephdr + next + sc_size < len) && (ptr[next+sc_size+ephdr+sc_size2]==0x0D)) {
+				hdr_len = ephdr + next + sc_size;
+			}
+		}
+		if (hdr_len) {
+			u8 *dsi=NULL;
+			u32 dsi_len;
+			ptr += start;
+			len -= start;
+			gf_media_vc1_seq_header_to_dsi(ptr, len, &dsi, &dsi_len);
+			if (dsi)
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_len));
+
+			ptr += hdr_len;
+			len -= hdr_len;
+			pck->stream->flags &= ~GF_M2TS_CHECK_VC1;
+		}
+	}
+
 
 	dst_pck = gf_filter_pck_new_alloc(opid, len, &data);
 	if (!dst_pck) return;

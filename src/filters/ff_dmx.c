@@ -51,6 +51,7 @@ typedef struct
 	GF_FilterPid *pid;
 	u64 ts_offset;
 	Bool mkv_webvtt;
+	u32 vc1_mode;
 } PidCtx;
 
 typedef struct
@@ -136,13 +137,20 @@ void ffdmx_shared_pck_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPac
 	}
 }
 
-static void ffdmx_set_decoder_config(GF_FilterPid *pid, const u8 *exdata, u32 exdata_size, u32 gpac_codec_id)
+static GF_Err ffdmx_set_decoder_config(PidCtx *pctx, const u8 *exdata, u32 exdata_size, u32 gpac_codec_id)
 {
 	u8 *dsi;
 	u32 dsi_size;
 	GF_Err e = ffmpeg_extradata_to_gpac(gpac_codec_id, exdata, exdata_size, &dsi, &dsi_size);
-	if (!e)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY( dsi, dsi_size) );
+	if (e) return e;
+
+	if (gpac_codec_id==GF_CODECID_SMPTE_VC1) {
+		pctx->vc1_mode = 1;
+		//if no_interlace (bit 6 of 2nd byte) is not set, inject interlaced
+		if ((dsi_size>=7) && ((dsi[2] & 0x20) != 0x20))
+			pctx->vc1_mode = 2;
+	}
+	return gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY( dsi, dsi_size) );
 }
 
 #if (LIBAVCODEC_VERSION_MAJOR>58)
@@ -394,7 +402,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 					u32 cid = 0;
 					const GF_PropertyValue *p = gf_filter_pid_get_property(pctx->pid, GF_PROP_PID_CODECID);
 					if (p) cid = p->value.uint;
-					ffdmx_set_decoder_config(pctx->pid, sd->data, (u32) sd->size, cid);
+					ffdmx_set_decoder_config(pctx, sd->data, (u32) sd->size, cid);
 				}
 			}
 			else if (sd->type == AV_PKT_DATA_PARAM_CHANGE) {
@@ -439,7 +447,20 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		else copy = ctx->copy_video;
 	}
 
-	if (ctx->raw_data && !copy) {
+	/*patch vc1 to always include start codes*/
+	if (pctx->vc1_mode && (pkt->data[0]!=0) && (pkt->data[1]!=0) && (pkt->data[2]!=1)) {
+		pck_dst = gf_filter_pck_new_alloc(pctx->pid, pkt->size+4, &data_dst);
+		if (!pck_dst) return GF_OUT_OF_MEM;
+		data_dst[0]=0;
+		data_dst[1]=0;
+		data_dst[2]=1;
+		if ((pctx->vc1_mode==2) && ((pkt->data[0] & 0xC0) == 0xC0)) {
+			data_dst[3] = 0x0C;
+		} else {
+			data_dst[3] = 0x0D;
+		}
+		memcpy(data_dst+4, pkt->data, pkt->size);
+	} else if (ctx->raw_data && !copy) {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 		pck_dst = gf_filter_pck_new_shared(pctx->pid, pkt->data, pkt->size, ffdmx_shared_pck_release);
 		if (!pck_dst) return GF_OUT_OF_MEM;
@@ -448,7 +469,6 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 		pck_dst = gf_filter_pck_new_alloc(pctx->pid, pkt->size, &data_dst);
 		if (!pck_dst) return GF_OUT_OF_MEM;
-		assert(pck_dst);
 		memcpy(data_dst, pkt->data, pkt->size);
 	}
 
@@ -682,6 +702,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 	nb_a = nb_v = nb_t = 0;
 	for (i = 0; i < ctx->demuxer->nb_streams; i++) {
 		GF_FilterPid *pid=NULL;
+		PidCtx *pctx;
 		u32 j;
 		u32 force_reframer = 0;
 		Bool expose_ffdec=GF_FALSE;
@@ -767,8 +788,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			break;
 		}
 		if (!pid) continue;
-		ctx->pids_ctx[i].pid = pid;
-		ctx->pids_ctx[i].ts_offset = 0;
+		pctx = &ctx->pids_ctx[i];
+		pctx->pid = pid;
+		pctx->ts_offset = 0;
 		gf_filter_pid_set_udta(pid, stream);
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT( (stream->id ? stream->id : i+1)) );
@@ -843,7 +865,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 
 			//set extra data if desired
 			if (force_reframer!=1) {
-				ffdmx_set_decoder_config(pid, exdata, exdata_size, gpac_codec_id);
+				ffdmx_set_decoder_config(pctx, exdata, exdata_size, gpac_codec_id);
 			}
 		}
 

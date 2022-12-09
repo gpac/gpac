@@ -786,9 +786,11 @@ The filter can use fragment identifiers of source to select a single track for p
 .br
  * #trackID=VAL: only use the track with given ID
 .br
- * #ID=VAL: only use the track with given ID
+ * #itemID=VAL: only use the item with given ID
 .br
- * #VAL: only use the track with given ID
+ * #ID=VAL: only use the track/item with given ID
+.br
+ * #VAL: only use the track/item with given ID
 .br
 
 .br
@@ -3836,6 +3838,24 @@ Description: M4V writer
 
 .br
 This filter converts MPEG-4 part 2 visual streams into writable format (reinsert decoder config).
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+rcfg (bool, default: true):    force repeating decoder config at each I-frame
+.br
+
+.br
+.SH ufvc1
+.LP
+.br
+Description: VC1 writer
+.br
+
+.br
+This filter converts VC1 visual streams into writable format (reinsert decoder config and start codes if needed).
 .br
 
 .br
@@ -7714,7 +7734,7 @@ No options
 .br
 Description: FFMPEG demultiplexer
 .br
-Version: Lavf59.17.102
+Version: Lavf59.34.102
 .br
 
 .br
@@ -7746,7 +7766,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc59.21.100
+Version: Lavc59.54.100
 .br
 
 .br
@@ -7805,7 +7825,7 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd59.5.100
+Version: Lavd59.8.101
 .br
 
 .br
@@ -7900,7 +7920,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS6.5.100
+Version: SwS6.8.112
 .br
 
 .br
@@ -8018,7 +8038,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc59.21.100
+Version: Lavc59.54.100
 .br
 
 .br
@@ -8096,7 +8116,7 @@ rld (bool, default: false, updatable): force reloading of encoder when arguments
 .br
 Description: FFMPEG multiplexer
 .br
-Version: Lavf59.17.102
+Version: Lavf59.34.102
 .br
 
 .br
@@ -8156,7 +8176,7 @@ keepts (bool, default: true):  do not shift input timeline back to 0
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf59.17.102
+Version: Lavf59.34.102
 .br
 
 .br
@@ -8299,7 +8319,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFMPEG BitStream filter
 .br
-Version: Lavc59.21.100
+Version: Lavc59.54.100
 .br
 
 .br
@@ -11063,7 +11083,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev517-gc7d501a7b-master
+build: 2.1-DEV-rev571-gd7efeef98-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

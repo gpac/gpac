@@ -728,6 +728,8 @@ enum
 	GF_M2TS_ES_FULL_AU = 1<<20,
 	/*! flag indicates ES is not sparse (AV), used to check discontinuity - set by user*/
 	GF_M2TS_CHECK_DISC = 1<<21,
+	/*! flag indicates VC1 sequence header is to be checked - set by user*/
+	GF_M2TS_CHECK_VC1 = 1<<22,
 };
 
 /*! macro for abstract Section/PES stream object, only used for type casting*/

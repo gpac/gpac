@@ -12243,4 +12243,53 @@ const char *gf_vvc_get_profile_name(u8 video_prof)
 		return "Unknown";
 	}
 }
+
+
+GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **dsi, u32 *dsi_size)
+{
+	GF_BitStream *bs;
+	u8 level=0, interlace=0;
+	u8 profile=12;
+	u8 *sqhdr = memchr(seq_hdr+1, 0x0F, seq_hdr_len);
+	if (sqhdr) {
+		u32 skip = sqhdr - seq_hdr - 3;
+		seq_hdr+=skip;
+		seq_hdr_len-=skip;
+		bs = gf_bs_new(seq_hdr+4, seq_hdr_len-4, GF_BITSTREAM_READ);
+		profile = gf_bs_read_int(bs, 2);
+		if (profile==3) {
+			level = gf_bs_read_int(bs, 3);
+			/*cfmt*/gf_bs_read_int(bs, 2);
+			/*fps*/gf_bs_read_int(bs, 3);
+			/*btrt*/gf_bs_read_int(bs, 5);
+			gf_bs_read_int(bs, 1);
+			/*mw*/gf_bs_read_int(bs, 12);
+			/*mh*/gf_bs_read_int(bs, 12);
+			/*bcast*/gf_bs_read_int(bs, 1);
+			interlace = gf_bs_read_int(bs, 1);
+		}
+		gf_bs_del(bs);
+	}
+	*dsi_size = seq_hdr_len+7;
+	*dsi = gf_malloc(seq_hdr_len+7);
+	if (!dsi) return  GF_OUT_OF_MEM;
+
+	bs = gf_bs_new(*dsi, *dsi_size, GF_BITSTREAM_WRITE);
+	gf_bs_write_int(bs, 12, 4); //profile
+	gf_bs_write_int(bs, level, 3); //level
+	gf_bs_write_int(bs, 0, 1); //reserved
+	gf_bs_write_int(bs, level, 3); //level
+	gf_bs_write_int(bs, 0, 1); //cbr
+	gf_bs_write_int(bs, 0, 6); //reserved
+	gf_bs_write_int(bs, !interlace, 1); //no interlace
+	gf_bs_write_int(bs, 1, 1); //no multiple seq
+	gf_bs_write_int(bs, 1, 1); //no multiple entry
+	gf_bs_write_int(bs, 1, 1); //no slice present
+	gf_bs_write_int(bs, 0, 1); //no b-frames
+	gf_bs_write_int(bs, 0, 1); //reserved
+	gf_bs_write_u32(bs, 0xFFFFFFFF); //framerate
+	gf_bs_write_data(bs, seq_hdr, seq_hdr_len); //VOS
+	gf_bs_del(bs);
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_AV_PARSERS*/

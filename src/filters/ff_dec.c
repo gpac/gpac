@@ -965,6 +965,10 @@ exit:
 static GF_Err ffdec_process(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
+	if (!ctx->decoder) {
+		gf_filter_pid_get_packet(ctx->in_pid);
+		return GF_OK;
+	}
 	return ctx->process(filter, ctx);
 }
 
@@ -1227,11 +1231,28 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_OPAQUE);
 	ctx->decoder->block_align = prop ? prop->value.uint : 0;
 
+	//we're good to go, declare our output pid
+	ctx->in_pid = pid;
+	if (!ctx->out_pid) {
+		ctx->out_pid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
+	}
+
 	//clone options (in case we need to destroy/recreate the codec) and open codec
 	av_dict_copy(&options, ctx->options, 0);
 	res = avcodec_open2(ctx->decoder, codec, &options);
 	if (res < 0) {
 		if (options) av_dict_free(&options);
+		//decoder config not ready, start fetching first packet
+		if (!ctx->decoder->width && !ctx->decoder->height && !ctx->decoder->sample_rate && !ctx->decoder->extradata) {
+			gf_filter_pid_copy_properties(ctx->out_pid, ctx->in_pid);
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, NULL );
+			avcodec_free_context(&ctx->decoder);
+			ctx->decoder = NULL;
+			return GF_OK;
+		}
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -1240,12 +1261,6 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (ctx->c) gf_free(ctx->c);
 	ctx->c = gf_strdup(codec->name);
 
-	//we're good to go, declare our output pid
-	ctx->in_pid = pid;
-	if (!ctx->out_pid) {
-		ctx->out_pid = gf_filter_pid_new(filter);
-		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
-	}
 	{
 		char szCodecName[1000];
 		sprintf(szCodecName, "ffdec:%s", ctx->decoder->codec->name ? ctx->decoder->codec->name : "unknown");

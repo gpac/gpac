@@ -105,6 +105,7 @@ const GF_FilterRegister *vobsubdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *avimux_register(GF_FilterSession *session);
 const GF_FilterRegister *aout_register(GF_FilterSession *session);
 const GF_FilterRegister *m4vmx_register(GF_FilterSession *session);
+const GF_FilterRegister *vc1mx_register(GF_FilterSession *session);
 const GF_FilterRegister *resample_register(GF_FilterSession *session);
 #if !defined(GPAC_CONFIG_ANDROID)
 const GF_FilterRegister *vout_register(GF_FilterSession *session);
@@ -251,6 +252,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, avimux_register(a_sess) );
 	gf_fs_add_filter_register(fsess, aout_register(a_sess) );
 	gf_fs_add_filter_register(fsess, m4vmx_register(a_sess) );
+	gf_fs_add_filter_register(fsess, vc1mx_register(a_sess) );
 	gf_fs_add_filter_register(fsess, resample_register(a_sess) );
 #if !defined(GPAC_CONFIG_ANDROID)
 	gf_fs_add_filter_register(fsess, vout_register(a_sess) );
