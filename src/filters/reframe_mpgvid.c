@@ -267,7 +267,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 
 static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket *pck, Bool flush_ref, Bool is_eos)
 {
-	if (ctx->trash_trailer) {
+	if (pck && ctx->trash_trailer) {
 		gf_filter_pck_discard(pck);
 		return;
 	}
