@@ -803,7 +803,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 	if (nb_suspended && (nb_suspended==nb_pids)) {
 		int res = av_write_trailer(ctx->muxer);
 		if (res) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to write trailer for %s: %s\n", ctx->muxer->url, av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to write trailer for %s: %s\n", ctx->dst, av_err2str(res) ));
 			e = GF_SERVICE_ERROR;
 		}
 
