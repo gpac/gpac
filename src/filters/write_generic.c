@@ -88,6 +88,7 @@ typedef struct
 	u32 write_alloc;
 
 	Bool unframe_only;
+	Bool vc1_ilaced;
 } GF_GenDumpCtx;
 
 
@@ -441,15 +442,6 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING( szExt ) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/octet-string") );
 		if (!ctx->codecid) return GF_OK;
-		break;
-
-	case GF_CODECID_SMPTE_VC1:
-		if (ctx->decinfo == DECINFO_AUTO)
-			ctx->decinfo = DECINFO_FIRST;
-		if (ctx->dcfg && (ctx->dcfg_size>=7)) {
-			ctx->dcfg+=7;
-			ctx->dcfg_size-=7;
-		}
 		break;
 
 	default:
@@ -1808,6 +1800,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SMPTE_VC1),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "vc1"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/vc1"),
 	{0},

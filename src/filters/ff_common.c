@@ -31,6 +31,7 @@
 
 #include <libavfilter/avfilter.h>
 #include <gpac/isomedia.h>
+#include <gpac/internal/media_dev.h>
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE) || defined (WIN32)
@@ -1825,48 +1826,7 @@ GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 
 		//fallthrough
 	}
 	if (gpac_codec_id==GF_CODECID_SMPTE_VC1) {
-		GF_BitStream *bs;
-		u8 level=0, interlace=0;
-		u8 profile=12;
-		u8 *sqhdr = memchr(data+1, 0x0F, size);
-		if (sqhdr) {
-			u32 skip = sqhdr - data - 3;
-			data+=skip;
-			size-=skip;
-			bs = gf_bs_new(data+4, size-4, GF_BITSTREAM_READ);
-			profile = gf_bs_read_int(bs, 2);
-			if (profile==3) {
-				level = gf_bs_read_int(bs, 3);
-				/*cfmt*/gf_bs_read_int(bs, 2);
-				/*fps*/gf_bs_read_int(bs, 3);
-				/*btrt*/gf_bs_read_int(bs, 5);
-				gf_bs_read_int(bs, 1);
-				/*mw*/gf_bs_read_int(bs, 12);
-				/*mh*/gf_bs_read_int(bs, 12);
-				/*bcast*/gf_bs_read_int(bs, 1);
-				interlace = gf_bs_read_int(bs, 1);
-			}
-			gf_bs_del(bs);
-		}
-		*dsi_out_size = size+7;
-		*dsi_out = gf_malloc(size+7);
-		bs=gf_bs_new(*dsi_out, *dsi_out_size, GF_BITSTREAM_WRITE);
-		gf_bs_write_int(bs, 12, 4); //profile
-		gf_bs_write_int(bs, level, 3); //level
-		gf_bs_write_int(bs, 0, 1); //reserved
-		gf_bs_write_int(bs, level, 3); //level
-		gf_bs_write_int(bs, 0, 1); //cbr
-		gf_bs_write_int(bs, 0, 6); //reserved
-		gf_bs_write_int(bs, !interlace, 1); //no interlace
-		gf_bs_write_int(bs, 1, 1); //no multiple seq
-		gf_bs_write_int(bs, 1, 1); //no multiple entry
-		gf_bs_write_int(bs, 1, 1); //no slice present
-		gf_bs_write_int(bs, 0, 1); //no b-frames
-		gf_bs_write_int(bs, 0, 1); //reserved
-		gf_bs_write_u32(bs, 0xFFFFFFFF); //framerate
-		gf_bs_write_data(bs, data, size); //VOS
-		gf_bs_del(bs);
-		return GF_OK;
+		return gf_media_vc1_seq_header_to_dsi(data, size, dsi_out, dsi_out_size);
 	}
 
 	//default is direct mapping
