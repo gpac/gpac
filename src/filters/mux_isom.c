@@ -2904,7 +2904,7 @@ sample_entry_setup:
 				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_META_DEMUX_OPAQUE);
 				gf_bs_write_u32(bs, p ? p->value.uint : 0);
 
-				if ((dsi->type != GF_PROP_DATA) && (dsi->type != GF_PROP_CONST_DATA))
+				if (dsi && (dsi->type != GF_PROP_DATA) && (dsi->type != GF_PROP_CONST_DATA))
 					dsi = NULL;
 
 				if (dsi) {
