@@ -388,8 +388,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 					dsi_size = udesc->extension_buf_size - 8;
 				} else if ((codec_id==GF_4CC('G','M','C','W')) && (udesc->extension_buf_size>=16)) {
 					GF_BitStream *bs = gf_bs_new(udesc->extension_buf, udesc->extension_buf_size, GF_BITSTREAM_READ);
-					gf_bs_read_u32(bs);
-					if (gf_bs_read_u32(bs) == GF_4CC('G','M','C','C')) {
+					if (udesc->ext_box_wrap == GF_4CC('G','M','C','C')) {
 						codec_id = gf_bs_read_u32(bs);
 						meta_codec_id = gf_bs_read_u32(bs);
 						meta_codec_name = gf_bs_read_utf8(bs);
