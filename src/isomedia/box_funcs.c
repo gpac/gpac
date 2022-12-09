@@ -1614,6 +1614,12 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_QT_SUBTYPE_ALAC, unkn, "stsd", "apple"),
 	BOX_DEFINE_S(GF_ISOM_SUBTYPE_FFV1, unkn, "stsd", "ffmpeg"),
 
+	BOX_DEFINE_S(GF_4CC('v','c','-','1'), unkn, "stsd", "smpte-RP2025"),
+	BOX_DEFINE_S(GF_4CC('d','v','c','1'), unkn, "vc-1 ipco", "smpte-RP2025"),
+
+	BOX_DEFINE_S(GF_4CC('G','M','C','W'), unkn, "stsd", "GPAC"),
+	BOX_DEFINE_S(GF_4CC('G','M','C','C'), unkn, "GMCW", "GPAC"),
+
 	/* for now we don't parse these*/
 	BOX_DEFINE_S(GF_4CC('u','n','c','C'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('c','m','p','d'), unkn, "video_sample_entry ipco", "rawff"),
@@ -1664,8 +1670,6 @@ void gf_isom_registry_disable(u32 boxCode, Bool disable)
 static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 {
 	u32 i=0, count = gf_isom_get_num_supported_boxes();
-	const char *parent_name = parent_type ? gf_4cc_to_str(parent_type) : NULL;
-
 	if (!start_from) start_from = 1;
 
 	for (i=start_from; i<count; i++) {
@@ -1675,7 +1679,7 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 
 		if (!parent_type)
 			return i;
-		if (strstr(box_registry[i].parents_4cc, parent_name) != NULL)
+		if (strstr(box_registry[i].parents_4cc, gf_4cc_to_str(parent_type)) != NULL)
 			return i;
 		if (strstr(box_registry[i].parents_4cc, "*") != NULL)
 			return i;

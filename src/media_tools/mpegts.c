@@ -1533,11 +1533,17 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							break;
 
 						case GF_M2TS_RA_STREAM_GPAC:
-							if (len==8) {
-								es->stream_type = GF_4CC(data[6], data[7], data[8], data[9]);
-								es->flags |= GF_M2TS_GPAC_CODEC_ID;
-								break;
+							if (len<8) break;
+							es->stream_type = GF_4CC(data[6], data[7], data[8], data[9]);
+							es->flags |= GF_M2TS_GPAC_CODEC_ID;
+							if ((len>12) && (es->flags & GF_M2TS_ES_IS_PES)) {
+								pes = (GF_M2TS_PES*)es;
+								pes->gpac_meta_dsi_size = len-4;
+								pes->gpac_meta_dsi = gf_realloc(pes->gpac_meta_dsi, pes->gpac_meta_dsi_size);
+								if (pes->gpac_meta_dsi)
+									memcpy(pes->gpac_meta_dsi, data+6, pes->gpac_meta_dsi_size);
 							}
+							break;
 						default:
 							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Unknown registration descriptor %s\n", gf_4cc_to_str(reg_desc_format) ));
 							break;

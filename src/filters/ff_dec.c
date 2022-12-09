@@ -1061,7 +1061,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID);
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
 		if (prop && (prop->type==GF_PROP_POINTER)) {
 			ctx->decoder = prop->value.ptr;
 			if (!ctx->decoder) {
@@ -1080,6 +1080,17 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!prop) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
 			return GF_SERVICE_ERROR;
+		}
+		if (!codec) {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_NAME);
+			if (prop) {
+				codec = avcodec_find_decoder_by_name(prop->value.string);
+				if (codec) {
+					ctx->decoder = avcodec_alloc_context3(NULL);
+					if (! ctx->decoder) return GF_OUT_OF_MEM;
+					ctx->owns_context = GF_TRUE;
+				}
+			}
 		}
 
 		if (!codec) {
@@ -1213,7 +1224,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (codec->capabilities & AV_CODEC_CAP_AUTO_THREADS)
 		ctx->decoder->thread_count = 0;
 
-	prop = gf_filter_pid_get_property_str(pid, "ffdmx:blockalign");
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_OPAQUE);
 	ctx->decoder->block_align = prop ? prop->value.uint : 0;
 
 	//clone options (in case we need to destroy/recreate the codec) and open codec
@@ -1334,6 +1345,8 @@ reuse_codec_context:
 		if (ctx->sample_fmt) {
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( ctx->sample_fmt) );
 		}
+		//we'll like change our number of frames when transcoding audio
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_NB_FRAMES, NULL);
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_PRIMING);
 		if (prop && prop->value.boolean) {
@@ -1370,6 +1383,11 @@ reuse_codec_context:
 static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	GF_FFDecodeCtx *ctx = gf_filter_get_udta(filter);
+	//prevent any change on b option which can break some decoders
+	if (!strcmp(arg_name, "b")) {
+		gf_filter_report_meta_option(filter, "b", 1, NULL);
+		return GF_OK;
+	}
 	return ffmpeg_update_arg("FFDec", ctx->decoder, &ctx->options, arg_name, arg_val);
 }
 

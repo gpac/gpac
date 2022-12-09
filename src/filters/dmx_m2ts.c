@@ -203,7 +203,8 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (stream->flags & GF_M2TS_GPAC_CODEC_ID) {
 		codecid = stream->stream_type;
 		stype = gf_codecid_type(codecid);
-		unframed = GF_TRUE;
+		if (stream->gpac_meta_dsi)
+			stype = stream->gpac_meta_dsi[4];
 		if (!stype) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Unrecognized gpac codec %s - ignoring pid\n", gf_4cc_to_str(codecid) ));
 			return;
@@ -463,6 +464,41 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
+
+		if (stream->gpac_meta_dsi) {
+			char *cname;
+			GF_BitStream *bs = gf_bs_new(stream->gpac_meta_dsi, stream->gpac_meta_dsi_size, GF_BITSTREAM_READ);
+			u32 val = gf_bs_read_u32(bs); //codec ID (meta codec identifier)
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(val) );
+			gf_bs_read_u8(bs); //stream type
+			gf_bs_read_u8(bs); //version
+			val = gf_bs_read_u32(bs); //codecID for meta codec, e.g. an AVCodecID or other
+			gf_filter_pid_set_property(opid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT(val) );
+			cname = gf_bs_read_utf8(bs); //meta codec name
+			gf_filter_pid_set_property(opid, GF_PROP_PID_META_DEMUX_CODEC_NAME, cname ? &PROP_STRING_NO_COPY(cname) : NULL );
+			val = gf_bs_read_u32(bs); //meta opaque
+			gf_filter_pid_set_property(opid, GF_PROP_PID_META_DEMUX_OPAQUE, &PROP_UINT(val) );
+			u32 dsi_len = gf_bs_read_u32(bs);
+			if (dsi_len) {
+				u32 pos = gf_bs_get_position(bs);
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->gpac_meta_dsi+pos, dsi_len) );
+				gf_bs_skip_bytes(bs, dsi_len);
+			} else {
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+			}
+			if (stype==GF_STREAM_VISUAL) {
+				val = gf_bs_read_u32(bs);
+				gf_filter_pid_set_property(opid, GF_PROP_PID_WIDTH, &PROP_UINT(val) );
+				val = gf_bs_read_u32(bs);
+				gf_filter_pid_set_property(opid, GF_PROP_PID_HEIGHT, &PROP_UINT(val) );
+			} else if (stype==GF_STREAM_AUDIO) {
+				val = gf_bs_read_u32(bs);
+				gf_filter_pid_set_property(opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(val) );
+				val = gf_bs_read_u32(bs);
+				gf_filter_pid_set_property(opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(val) );
+			}
+			gf_bs_del(bs);
+		}
 	}
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SCALABLE, has_scal_layer ? &PROP_BOOL(GF_TRUE) : NULL);
 

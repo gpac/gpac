@@ -2813,7 +2813,7 @@ sample_entry_setup:
 			return e;
 		}
 	} else if (use_gen_sample_entry) {
-		u8 isor_ext_buf[14];
+		u8 isor_ext_buf[14], *gpac_meta_dsi=NULL;
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
@@ -2853,7 +2853,7 @@ sample_entry_setup:
 			if (p) {
 				m_subtype = p->value.uint;
 			} else {
-				p = gf_filter_pid_get_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID);
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
 				if (p && p->type==GF_PROP_UINT)
 					m_subtype = p->value.uint;
 			}
@@ -2882,12 +2882,51 @@ sample_entry_setup:
 			udesc.ext_box_wrap = GF_4CC('g', 'l', 'b', 'l');
 			unknown_generic = GF_FALSE;
 		}
+		if (codec_id==GF_CODECID_SMPTE_VC1) {
+			udesc.codec_tag = GF_4CC('v', 'c', '-', '1');
+			unknown_generic = GF_FALSE;
+			if (udesc.extension_buf)
+				udesc.ext_box_wrap = GF_4CC('d', 'v', 'c', '1');
+		}
 
 		if (unknown_generic) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
+			//check if this is a meta codec (unmapped codec from ffmpeg or other)
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_META_DEMUX_CODEC_ID);
+			const GF_PropertyValue *p2 = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_META_DEMUX_CODEC_NAME);
+			if (p || p2) {
+				u32 cid = (p && (p->type==GF_PROP_UINT)) ? p->value.uint : m_subtype;
+				const char *cname = p2 ? p2->value.string : NULL;
+				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+				gf_bs_write_u32(bs, codec_id);
+				gf_bs_write_u32(bs, cid);
+				gf_bs_write_utf8(bs, cname ? cname : gf_4cc_to_str(cid));
+				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_META_DEMUX_OPAQUE);
+				gf_bs_write_u32(bs, p ? p->value.uint : 0);
+
+				if ((dsi->type != GF_PROP_DATA) && (dsi->type != GF_PROP_CONST_DATA))
+					dsi = NULL;
+
+				if (dsi) {
+					gf_bs_write_data(bs, dsi->value.data.ptr, dsi->value.data.size);
+				}
+				gf_bs_get_content(bs, &gpac_meta_dsi, &udesc.extension_buf_size);
+				udesc.extension_buf = gpac_meta_dsi;
+				udesc.ext_box_wrap = GF_FALSE;
+
+				gf_bs_del(bs);
+
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing %s, using generic sample entry with 4CC \"GMCW\" and \"GMCC\" config box\n", gf_codecid_name(codec_id)));
+				udesc.codec_tag = GF_4CC('G', 'M', 'C', 'W');
+				udesc.ext_box_wrap = GF_4CC('G', 'M', 'C', 'C');
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
+			}
 		}
 		
 		e = gf_isom_new_generic_sample_description(ctx->file, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
+		if (gpac_meta_dsi) gf_free(gpac_meta_dsi);
+
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
 			return e;
@@ -3080,6 +3119,13 @@ multipid_stsd_setup:
 		p = gf_filter_pid_get_property(pid, GF_PROP_PCK_SKIP_BEGIN);
 		if (p && p->value.sint)
 			tkw->check_seek_ts = GF_TRUE;
+
+
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
+		if (p && p->value.lfrac.den) {
+			tkw->pid_dur = p->value.lfrac;
+			if (tkw->pid_dur.num<0) tkw->pid_dur.num = -tkw->pid_dur.num;
+		}
 
 	} else if (codec_id==GF_CODECID_HEVC_TILES) {
 		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS, GF_TRUE);

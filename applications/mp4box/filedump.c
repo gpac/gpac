@@ -2744,7 +2744,7 @@ void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc
 static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool dump_m4sys, u32 mtype, u32 stsd_idx, Bool *is_od_track)
 {
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
-	u32 i, j, msub_type, sr, nb_ch, count, bps, pfmt, codecid;
+	u32 i, j, msub_type, sr, nb_ch, count, bps, pfmt, codecid, w_dsisize=0;
 	GF_ESD *esd;
 
 	msub_type = gf_isom_get_media_subtype(file, trackNum, stsd_idx);
@@ -2761,7 +2761,30 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 		if (stsd_idx>1) fprintf(stderr, "\n");
 		fprintf(stderr, "Sample Description #%u - %s:%s\n", stsd_idx, gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type));
 	} else {
-		fprintf(stderr, "Media Type: %s:%s\n", gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type));
+		if (stsd_type == GF_4CC('G','M','C','W')) {
+			u32 w_codec_id=0;
+			char *w_codec_str = NULL;
+			GF_GenericSampleDescription *gdesc = gf_isom_get_generic_sample_description(file, trackNum, stsd_idx);
+			if (gdesc) {
+				if (gdesc->extension_buf_size>16) {
+					GF_BitStream *bs = gf_bs_new(gdesc->extension_buf, gdesc->extension_buf_size, GF_BITSTREAM_READ);
+					gf_bs_read_u32(bs);
+					gf_bs_read_u32(bs);
+					gf_bs_read_u32(bs);
+					w_codec_id = gf_bs_read_u32(bs);
+					w_codec_str = gf_bs_read_utf8(bs);
+					gf_bs_read_u32(bs);
+					w_dsisize = gf_bs_available(bs);
+					gf_bs_del(bs);
+				}
+				if (gdesc->extension_buf) gf_free(gdesc->extension_buf);
+				gf_free(gdesc);
+			}
+			fprintf(stderr, "Media Type: %s:%s (GPAC wrapper for %s)\n", gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type), w_codec_str ? w_codec_str : gf_4cc_to_str(w_codec_id) );
+			if (w_codec_str) gf_free(w_codec_str);
+		} else {
+			fprintf(stderr, "Media Type: %s:%s\n", gf_4cc_to_str(mtype), gf_4cc_to_str(stsd_type));
+		}
 	}
 
 	if (!gf_isom_is_self_contained(file, trackNum, stsd_idx)) {
@@ -3522,7 +3545,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 				fprintf(stderr, "\tVendor code \"%s\" - Version %d - revision %d\n", gf_4cc_to_str(udesc->vendor_code), udesc->version, udesc->revision);
 
 			if (udesc->extension_buf) {
-				fprintf(stderr, "\tCodec configuration data size: %d bytes\n", udesc->extension_buf_size);
+				fprintf(stderr, "\tCodec configuration data size: %d bytes\n", w_dsisize ? w_dsisize : udesc->extension_buf_size);
 				gf_free(udesc->extension_buf);
 			}
 			gf_free(udesc);

@@ -888,6 +888,8 @@ typedef struct tag_m2ts_pes
 	u8 dv_info[25];
 
 	u64 map_utc, map_utc_pcr, map_pcr;
+	u8 *gpac_meta_dsi;
+	u32 gpac_meta_dsi_size;
 } GF_M2TS_PES;
 
 /*! reserved streamID for PES headers*/
@@ -1460,6 +1462,12 @@ typedef struct __elementary_stream_ifce
 
 	/*! registration authority code to use, 0 if not applicable*/
 	u32 ra_code;
+	/*! GPAC unmapped meta codec decoder config size*/
+	u32 gpac_meta_dsi_size;
+	/*! GPAC unmapped meta codec decoder config*/
+	u8 *gpac_meta_dsi;
+	/*! GPAC unmapped meta codec name if knwon*/
+	const char *gpac_meta_name;
 } GF_ESInterface;
 
 /*! @} */

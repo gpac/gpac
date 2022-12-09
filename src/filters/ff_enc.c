@@ -136,7 +136,6 @@ typedef struct _gf_ffenc_ctx
 	AVPacket *pkt;
 #endif
 
-	u32 premul_timescale;
 	Bool args_updated;
 
 	FILE *logfile_pass1;
@@ -248,11 +247,11 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	if (!ctx->codecid) {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG) );
 		if (ctx->encoder) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_FFMPEG_CODEC_ID, &PROP_UINT(ctx->encoder->codec->id) );
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT(ctx->encoder->codec->id) );
 
 			const char *cname = avcodec_get_name(ctx->encoder->codec->id);
 			if (cname)
-				gf_filter_pid_set_property_str(ctx->out_pid, "ffmpeg:codec", &PROP_STRING(cname ) );
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_META_DEMUX_CODEC_NAME, &PROP_STRING(cname ) );
 		}
 	} else {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(ctx->codecid) );
@@ -567,9 +566,9 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		ctx->frame->pkt_duration = gf_filter_pck_get_duration(pck);
 
 //use signed version of timestamp rescale since we may have negative dts
-#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts = gf_timestamp_rescale_signed(_ts, ctx->premul_timescale, ctx->encoder->time_base.den); }
-#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts = gf_timestamp_rescale_signed(_ts, ctx->encoder->time_base.den, ctx->premul_timescale); }
-#define UNSCALE_DUR(_ts) { _ts = gf_timestamp_rescale(_ts, ctx->encoder->time_base.den, ctx->premul_timescale); }
+#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts = gf_timestamp_rescale_signed(_ts, ctx->timescale, ctx->encoder->time_base.den); }
+#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts = gf_timestamp_rescale_signed(_ts, ctx->encoder->time_base.den, ctx->timescale); }
+#define UNSCALE_DUR(_ts) { _ts = gf_timestamp_rescale(_ts, ctx->encoder->time_base.den, ctx->timescale); }
 
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
@@ -856,7 +855,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data, u32 size, u32 sample_offset, u32 nb_samples)
 {
 	u8 *dst;
-	u32 f_idx, s_idx;
+	u32 f_idx, s_idx, offset, bytes;
 	u32 i, bytes_per_chan, src_frame_size;
 
 	if (!ctx->audio_buffer || !nb_samples)
@@ -885,7 +884,14 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 	if (s_idx) {
 		assert(s_idx + nb_samples <= (u32) ctx->encoder->frame_size);
 	}
-	dst = ctx->audio_buffer + (f_idx * ctx->channels * ctx->encoder->frame_size + s_idx) * bytes_per_chan;
+
+	offset = (f_idx * ctx->channels * ctx->encoder->frame_size + s_idx) * bytes_per_chan;
+	bytes = nb_samples * ctx->channels * bytes_per_chan;
+	if (bytes + offset > ctx->audio_buffer_size) {
+		ctx->audio_buffer_size = bytes+offset;
+		ctx->audio_buffer = gf_realloc(ctx->audio_buffer, sizeof(u8)*ctx->audio_buffer_size);
+	}
+	dst = ctx->audio_buffer + offset;
 	while (nb_samples) {
 		const u8 *src = NULL;
 		u32 nb_samples_to_copy = nb_samples;
@@ -1149,7 +1155,10 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				len = nb_p * ctx->encoder->frame_size;
 			}
 			len *= ctx->bytes_per_sample;
-			assert(len + offset <= ctx->audio_buffer_size);
+			if (len + offset > ctx->audio_buffer_size) {
+				ctx->audio_buffer_size = len+offset;
+				ctx->audio_buffer = gf_realloc(ctx->audio_buffer, sizeof(u8) * ctx->audio_buffer_size);
+			}
 			memmove(ctx->audio_buffer, ctx->audio_buffer + offset, sizeof(u8)*len);
 			ctx->samples_in_audio_buffer -= nb_samples_to_drop;
 		} else {
@@ -1838,7 +1847,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->frame->format = ctx->encoder->sample_fmt;
 
 		ctx->audio_buffer_size = ctx->sample_rate;
-		ctx->audio_buffer = gf_realloc(ctx->audio_buffer, sizeof(char) * ctx->enc_buffer_size);
+		ctx->audio_buffer = gf_realloc(ctx->audio_buffer, sizeof(char) * ctx->audio_buffer_size);
 		ctx->bytes_per_sample = ctx->channels * gf_audio_fmt_bit_depth(afmt) / 8;
 		ctx->init_cts_setup = GF_TRUE;
 
@@ -1928,16 +1937,12 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->setup_failed = 1;
 		return GF_BAD_PARAM;
 	}
-	//precompute gpac_timescale * encoder->time_base.num for rescale operations
-	//do that AFTER opening the codec, since some codecs may touch this field ...
-	ctx->premul_timescale = ctx->timescale;
-	ctx->premul_timescale *= ctx->encoder->time_base.num;
 
 	if (ctx->c) gf_free(ctx->c);
 	ctx->c = gf_strdup(codec->name);
 
 
-	ctx->remap_ts = (ctx->encoder->time_base.den && (ctx->encoder->time_base.den != ctx->premul_timescale)) ? GF_TRUE : GF_FALSE;
+	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
 	if (!ctx->target_rate)
 		ctx->target_rate = (u32)ctx->encoder->bit_rate;
 

@@ -1497,6 +1497,10 @@ GF_Err elng_box_dump(GF_Box *a, FILE * trace)
 	val = gf_bs_read_int(bs, bits); \
 	gf_fprintf(trace, " "name"=\"%u\"", val);\
 
+#define get_4cc_and_print(name, bits) \
+	val = gf_bs_read_int(bs, bits); \
+	gf_fprintf(trace, " "name"=\"%s\"", gf_4cc_to_str(val) );\
+
 static GF_Err dump_alac(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val;
@@ -1703,6 +1707,58 @@ static GF_Err dump_cpat(GF_UnknownBox *u, FILE * trace)
 	gf_isom_box_dump_done("ComponentPatternBox", (GF_Box *)u, trace);
 	return GF_OK;
 }
+
+static GF_Err dump_gmcc(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, pos;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "GPACMetaCodecWrapperConfigBox", trace);
+
+	get_4cc_and_print("gpac_codec_id", 32)
+	get_4cc_and_print("meta_codec_id", 32)
+	u8 *cname = gf_bs_read_utf8(bs);
+	if (cname) {
+		gf_fprintf(trace, " codec_name=\"%s\"", cname);
+		gf_free(cname);
+	}
+	get_and_print("meta_opaque", 32)
+	pos = gf_bs_get_position(bs);
+	dump_data_attribute(trace, "decoderSpecificInfo", u->data+pos, u->dataSize-pos);
+	gf_bs_del(bs);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("GPACMetaCodecWrapperConfigBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, pos;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "VC1ConfigurationBox", trace);
+
+	get_and_print("profile", 4)
+	get_and_print("level", 3)
+	gf_bs_read_int(bs, 1);
+	get_and_print("level", 3)
+	get_and_print("cbr", 1)
+	gf_bs_read_int(bs, 6);
+	get_and_print("no_interlace", 1)
+	get_and_print("no_multiple_seq", 1)
+	get_and_print("no_multiple_entry", 1)
+	get_and_print("no_slice_code", 1)
+	get_and_print("no_b_frames", 1)
+	gf_bs_read_int(bs, 1);
+	get_and_print("framerate", 32)
+
+	pos = gf_bs_get_position(bs);
+	gf_bs_del(bs);
+
+	gf_fprintf(trace, " VOS=\"");
+	dump_data_hex(trace, u->data+pos, u->dataSize-pos);
+	gf_fprintf(trace, "\">\n");
+	gf_isom_box_dump_done("VC1ConfigurationBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
 #undef get_and_print
 
 
@@ -1729,6 +1785,10 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_cpal(u, trace);
 	} else if (u->original_4cc==GF_4CC('c','p','a','t')) {
 		return dump_cpat(u, trace);
+	} else if (u->original_4cc==GF_4CC('G','M','C','C')) {
+		return dump_gmcc(u, trace);
+	} else if (u->original_4cc==GF_4CC('d','v','c','1')) {
+		return dump_dvc1(u, trace);
 	}
 
 	gf_isom_box_dump_start(a, name, trace);
