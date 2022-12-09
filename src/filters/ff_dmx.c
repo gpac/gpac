@@ -294,7 +294,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		return GF_EOS;
 
 	u32 would_block=0, pids=0;
-	for (i=0; i<ctx->demuxer->nb_streams; i++) {
+	for (i=0; i<ctx->nb_streams; i++) {
 		if (!ctx->pids_ctx[i].pid) continue;
 		pids++;
 		if (!gf_filter_pid_is_playing(ctx->pids_ctx[i].pid))
@@ -467,7 +467,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		//initial delay setup - we only dispatch dts or cts >=0
 		if (!pctx->ts_offset) {
 			//if first dts is <0, offset timeline and set offset
-			if ((pkt->dts != AV_NOPTS_VALUE) && (pkt->dts<0) && pctx->ts_offset) {
+			if ((pkt->dts != AV_NOPTS_VALUE) && (pkt->dts<0) && !pctx->ts_offset) {
 				pctx->ts_offset = -pkt->dts + 1;
 				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( pkt->dts) );
 			}
@@ -818,9 +818,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (expose_ffdec) {
 			const char *cname = avcodec_get_name(codec_id);
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID, &PROP_POINTER( (void*)codec ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_POINTER( (void*)codec ) );
 #else
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID, &PROP_UINT( codec_id ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID, &PROP_UINT( codec_id ) );
 			if (exdata) {
 				//expose as const data
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)exdata, exdata_size) );
@@ -828,7 +828,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 #endif
 
 			if (cname)
-				gf_filter_pid_set_property_str(pid, "ffmpeg:codec", &PROP_STRING(cname ) );
+				gf_filter_pid_set_property(pid, GF_PROP_PID_META_DEMUX_CODEC_NAME, &PROP_STRING(cname ) );
 		} else if (exdata_size) {
 
 			//avc/hevc read by ffmpeg is still in annex B format
@@ -949,7 +949,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		}
 
 		if (codec_blockalign)
-			gf_filter_pid_set_property_str(pid, "ffdmx:blockalign", &PROP_UINT(codec_blockalign));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_META_DEMUX_OPAQUE, &PROP_UINT(codec_blockalign));
 
 
 		for (j=0; j<(u32) stream->nb_side_data; j++) {
@@ -1145,7 +1145,7 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ctx->fname, ctx->src, evt->play.start_range, av_err2str(res) ));
 			}
 			//reset initial delay compute
-			for (i=0; i<ctx->demuxer->nb_streams; i++) {
+			for (i=0; i<ctx->nb_streams; i++) {
 				ctx->pids_ctx[i].ts_offset = 0;
 			}
 			ctx->last_play_start_range = evt->play.start_range;
@@ -1230,7 +1230,7 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return probe_fmt->mime_type;
 	}
-	*score = GF_FPROBE_MAYBE_NOT_SUPPORTED;
+	*score = (ffscore==AVPROBE_SCORE_MAX) ? GF_FPROBE_MAYBE_SUPPORTED : GF_FPROBE_MAYBE_NOT_SUPPORTED;
 	return "video/x-ffmpeg";
 }
 

@@ -3499,11 +3499,11 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 #endif//GPAC_DISABLE_AV_PARSERS
 	{
 		if (codec_id==GF_CODECID_FFMPEG) {
-			p = gf_filter_pid_get_property_str(pid, "ffmpeg:codec");
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_NAME);
 			if (p) {
 				inspect_printf(dump, " %s", p->value.string);
 			} else {
-				p = gf_filter_pid_get_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID);
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
 				if (p && (p->type==GF_PROP_UINT)) codec_id = p->value.uint;
 				inspect_printf(dump, " FFMPEG %d", codec_id);
 			}

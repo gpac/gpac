@@ -867,6 +867,53 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	else if ((tspid->esi.caps & GF_ESI_FORCE_DOLBY_VISION) != (bckp.caps & GF_ESI_FORCE_DOLBY_VISION))
 		changed = GF_TRUE;
 
+	u32 crc_old = 0, crc_new = 0;;
+	if (tspid->esi.gpac_meta_dsi) {
+		crc_old = gf_crc_32(tspid->esi.gpac_meta_dsi, tspid->esi.gpac_meta_dsi_size);
+		gf_free(tspid->esi.gpac_meta_dsi);
+		tspid->esi.gpac_meta_dsi = NULL;
+		tspid->esi.gpac_meta_dsi_size = 0;
+	}
+	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_META_DEMUX_CODEC_ID);
+	if (p) {
+		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_u32(bs, tspid->esi.codecid);
+		gf_bs_write_u8(bs, tspid->esi.stream_type);
+		gf_bs_write_u8(bs, 1); //version
+		gf_bs_write_u32(bs, p->value.uint);
+		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_META_DEMUX_CODEC_NAME);
+		gf_bs_write_utf8(bs, p ? p->value.string : NULL);
+		tspid->esi.gpac_meta_name = p ? p->value.string : NULL;
+		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_META_DEMUX_OPAQUE);
+		gf_bs_write_u32(bs, p ? p->value.uint : 0);
+
+		//DSI before stream-specific attributes so we can further extends without breaking
+		if (tspid->esi.decoder_config) {
+			gf_bs_write_u32(bs, tspid->esi.decoder_config_size);
+			gf_bs_write_data(bs, tspid->esi.decoder_config, tspid->esi.decoder_config_size);
+		} else {
+			gf_bs_write_u32(bs, 0);
+		}
+		
+		if (tspid->esi.stream_type==GF_STREAM_VISUAL) {
+			p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_WIDTH);
+			gf_bs_write_u32(bs, p ? p->value.uint : 0);
+			p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_HEIGHT);
+			gf_bs_write_u32(bs, p ? p->value.uint : 0);
+		} else if (tspid->esi.stream_type==GF_STREAM_AUDIO) {
+			p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_SAMPLE_RATE);
+			gf_bs_write_u32(bs, p ? p->value.uint : 0);
+			p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_NUM_CHANNELS);
+			gf_bs_write_u32(bs, p ? p->value.uint : 0);
+		}
+
+		gf_bs_get_content(bs, &tspid->esi.gpac_meta_dsi, &tspid->esi.gpac_meta_dsi_size);
+		gf_bs_del(bs);
+		crc_new = gf_crc_32(tspid->esi.gpac_meta_dsi, tspid->esi.gpac_meta_dsi_size);
+	}
+	if (crc_old != crc_new) {
+		changed = GF_TRUE;
+	}
 
 	u32 m2ts_ra = 0;
 	p = gf_filter_pid_get_property_str(tspid->ipid, "M2TSRA");
@@ -1026,6 +1073,7 @@ static void tsmux_del_stream(M2Pid *tspid)
 
 	if (tspid->esi.sl_config) gf_free(tspid->esi.sl_config);
 	if (tspid->pck_data_buf) gf_free(tspid->pck_data_buf);
+	if (tspid->esi.gpac_meta_dsi) gf_free(tspid->esi.gpac_meta_dsi);
 	gf_free(tspid);
 }
 

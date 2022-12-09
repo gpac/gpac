@@ -303,6 +303,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_DTS_CA;
 	case GF_QT_SUBTYPE_ALAC:
 		return GF_CODECID_ALAC;
+	case GF_ISOM_SUBTYPE_VC1:
+		return GF_CODECID_SMPTE_VC1;
 	default:
 		break;
 	}

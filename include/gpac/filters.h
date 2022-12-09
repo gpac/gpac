@@ -1279,13 +1279,20 @@ enum
 	//internal, force creation of rewriter filter (only used for forcing reparse of NALU-based codecs)
 	GF_PROP_PID_FORCE_UNFRAME = GF_4CC('P','F','U','F'),
 
-	/*! Internal property used for FFMPEG codec ID
+
+	/*! Internal property used for meta demuxers ( FFMPEG, ...) codec ID
 
 	Property can be:
 	- pointer to codec context: only for ffdmx with old ffmpeg versions)
 	- uint: AVCODEC_ID_*  ffdmx with newer versions or ffenc output
 	*/
-	GF_PROP_PID_FFMPEG_CODEC_ID = GF_4CC('F','C','I','D'),
+	GF_PROP_PID_META_DEMUX_CODEC_ID = GF_4CC('M','D','C','I'),
+
+	/*! Internal property used for meta demuxers ( FFMPEG, ...) codec name*/
+	GF_PROP_PID_META_DEMUX_CODEC_NAME = GF_4CC('M','D','C','N'),
+
+	/*! Internal property used for meta demuxers ( FFMPEG, ...) codec opaque data, u32*/
+	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE

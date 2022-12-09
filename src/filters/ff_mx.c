@@ -255,6 +255,15 @@ static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to open AVIO context for %s - error %s\n", dst, av_err2str(res) ));
 			return GF_FILTER_NOT_SUPPORTED;
 		}
+
+#if (LIBAVFORMAT_VERSION_MAJOR < 59)
+		strncpy(ctx->muxer->filename, dst, 1023);
+		ctx->muxer->filename[1023]=0;
+#else
+		av_freep(&ctx->muxer->url);
+		ctx->muxer->url = av_strdup(dst);
+#endif
+
 	}
 	ctx->status = FFMX_STATE_AVIO_OPEN;
 	return GF_OK;
@@ -792,7 +801,12 @@ static GF_Err ffmx_process(GF_Filter *filter)
 
 	//done writing file
 	if (nb_suspended && (nb_suspended==nb_pids)) {
-		av_write_trailer(ctx->muxer);
+		int res = av_write_trailer(ctx->muxer);
+		if (res) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to write trailer for %s: %s\n", ctx->muxer->url, av_err2str(res) ));
+			e = GF_SERVICE_ERROR;
+		}
+
 		if (ctx->muxer)	avformat_free_context(ctx->muxer);
 		ctx->muxer = NULL;
 		ctx->status = FFMX_STATE_ALLOC;
@@ -826,7 +840,11 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			if (ctx->dash_mode) {
 				ffmx_close_seg(filter, ctx, GF_FALSE);
 			} else {
-				av_write_trailer(ctx->muxer);
+				int res = av_write_trailer(ctx->muxer);
+				if (res) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to write trailer for %s: %s\n", ctx->dst, av_err2str(res) ));
+					return GF_SERVICE_ERROR;
+				}
 			}
 			ctx->status = FFMX_STATE_EOS;
 		}
@@ -1166,7 +1184,10 @@ static void ffmx_finalize(GF_Filter *filter)
 		if (ctx->dash_mode) {
 			ffmx_close_seg(filter, ctx, GF_FALSE);
 		} else {
-			av_write_trailer(ctx->muxer);
+			int res = av_write_trailer(ctx->muxer);
+			if (res) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to write trailer for %s: %s\n", ctx->dst, av_err2str(res) ));
+			}
 		}
 		ctx->status = FFMX_STATE_TRAILER_DONE;
 	} 

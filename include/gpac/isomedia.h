@@ -368,6 +368,8 @@ enum
 
 	GF_QT_SUBTYPE_TMCD = GF_4CC( 't', 'm', 'c', 'd' ),
 
+	GF_ISOM_SUBTYPE_VC1 = GF_4CC( 'v', 'c', '-', '1' ),
+
 	/*GPAC extensions*/
 	GF_ISOM_SUBTYPE_DVB_SUBS	= GF_4CC( 'd', 'v', 'b', 's' ),
 	GF_ISOM_SUBTYPE_DVB_TELETEXT	= GF_4CC( 'd', 'v', 'b', 't' ),
