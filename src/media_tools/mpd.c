@@ -660,7 +660,7 @@ static void gf_mpd_parse_common_representation_attr(GF_MPD *mpd, GF_MPD_CommonAt
 		if (!strcmp(att->value, "progressive")) com->scan_type = GF_MPD_SCANTYPE_PROGRESSIVE;
 		else if (!strcmp(att->value, "interlaced")) com->scan_type = GF_MPD_SCANTYPE_INTERLACED;
 	}
-	else if (!strcmp(att->name, "selectionRriority")) com->selection_priority = gf_mpd_parse_int(att->value);
+	else if (!strcmp(att->name, "selectionPriority")) com->selection_priority = gf_mpd_parse_int(att->value);
 	else if (!strcmp(att->name, "tag")) com->tag = gf_mpd_parse_string(att->value);
 
 	else {
