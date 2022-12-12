@@ -75,6 +75,8 @@ typedef struct
 
 	GF_FilterPid *vpid;
 	Bool copy_props;
+
+	Bool is_sync;
 } GF_MP3DmxCtx;
 
 
@@ -630,7 +632,8 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 				if ((sync[size]=='T') && (sync[size+1]=='A') && (sync[size+2]=='G')) {
 					skip_id3v1=GF_TRUE;
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MP3Dmx] invalid frame, resyncing\n"));
+					GF_LOG(ctx->is_sync ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MP3Dmx] invalid frame, resyncing\n"));
+					ctx->is_sync = GF_FALSE;
 					goto drop_byte;
 				}
 			}
@@ -646,6 +649,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 			ctx->resume_from = (u32) (sync - ctx->mp3_buffer + 1);
 			return GF_OK;
 		}
+		ctx->is_sync = GF_TRUE;
 
 		nb_samp = gf_mp3_window_size(ctx->hdr);
 
