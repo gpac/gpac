@@ -2568,7 +2568,7 @@ SWFReader *gf_swf_reader_new(const char *localPath, const char *inputName)
 	read->inputName = gf_strdup(inputName);
 	read->input = input;
 	read->bs = gf_bs_from_file(input, GF_BITSTREAM_READ);
-	gf_bs_set_eos_callback(read->bs, swf_io_error, &read);
+	gf_bs_set_eos_callback(read->bs, swf_io_error, read);
 	read->display_list = gf_list_new();
 	read->fonts = gf_list_new();
 	read->apps = gf_list_new();
@@ -2612,7 +2612,7 @@ GF_Err gf_swf_read_header(SWFReader *read)
 	sig[2] = gf_bs_read_u8(read->bs);
 	/*"FWS" or "CWS"*/
 	if ( ((sig[0] != 'F') && (sig[0] != 'C')) || (sig[1] != 'W') || (sig[2] != 'S') ) {
-		return GF_URL_ERROR;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	/*version = */gf_bs_read_u8(read->bs);
 	read->length = swf_get_32(read);
@@ -2663,7 +2663,8 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	read->flat_limit = FLT2FIX(load->swf_flatten_limit);
 	load->loader_priv = read;
 
-	gf_swf_read_header(read);
+	e = gf_swf_read_header(read);
+	if (e) goto exit;
 	load->ctx->scene_width = FIX2INT(read->width);
 	load->ctx->scene_height = FIX2INT(read->height);
 	load->ctx->is_pixel_metrics = 1;
