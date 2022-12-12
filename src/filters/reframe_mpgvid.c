@@ -178,11 +178,27 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	GF_M4VParser *vparser;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
+	u32 probe_size=0;
 	u64 duration, cur_dur, rate;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
-	if (ctx->index<=0) {
+	if (ctx->index<0) {
+		if (gf_opts_get_bool("temp", "force_indexing")) {
+			ctx->index = 1.0;
+		} else {
+			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+			if (!p || (p->value.longuint > 20000000)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MPGVids] Source file larger than 20M, skipping indexing\n"));
+				if (!gf_sys_is_test_mode())
+					probe_size = 20000000;
+			} else {
+				ctx->index = -ctx->index;
+			}
+		}
+	}
+	if ((ctx->index<=0) && !probe_size) {
+		ctx->duration.num = 1;
 		ctx->file_loaded = GF_TRUE;
 		return;
 	}
@@ -228,11 +244,14 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Could not parse video frame\n"));
 			continue;
 		}
+		if (probe_size && (pos>probe_size) && (ftype==1)) {
+			break;
+		}
 
 		duration += ctx->cur_fps.den;
 		cur_dur += ctx->cur_fps.den;
 		//only index at I-frame start
-		if (pos && (ftype==1) && (cur_dur >= ctx->index * ctx->cur_fps.num) ) {
+		if (!probe_size && pos && (ftype==1) && (cur_dur >= ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
@@ -243,6 +262,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			cur_dur = 0;
 		}
 	}
+
 	rate = gf_bs_get_position(bs);
 	gf_m4v_parser_del(vparser);
 	gf_fclose(stream);
@@ -457,6 +477,13 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 		ctx->in_seek = GF_TRUE;
 
 		if (ctx->start_range) {
+			if (ctx->index<0) {
+				ctx->index = -ctx->index;
+				ctx->file_loaded = GF_FALSE;
+				ctx->duration.den = ctx->duration.num = 0;
+				mpgviddmx_check_dur(filter, ctx);
+			}
+
 			for (i=1; i<ctx->index_size; i++) {
 				if ((ctx->indexes[i].start_time > ctx->start_range) || (i+1==ctx->index_size)) {
 					ctx->cts = (u64) (ctx->indexes[i-1].start_time * ctx->cur_fps.num);
@@ -623,6 +650,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, &ctx->input_is_au_end);
+		//we force it to true to deal with broken avi packaging where a video AU is split across several AVI video frames
+		ctx->input_is_au_end = GF_FALSE;
 		//this will force CTS recomput of each frame
 		if (ctx->recompute_cts) ctx->input_is_au_start = GF_FALSE;
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
@@ -1343,7 +1372,7 @@ static const GF_FilterCapability MPGVidDmxCaps[] =
 static const GF_FilterArgs MPGVidDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
-	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(vfr), "set variable frame rate import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

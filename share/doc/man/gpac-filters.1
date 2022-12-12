@@ -2491,7 +2491,7 @@ Note: The filter uses negative CTS offsets: CTS is correct, but some frames may 
 .br
 fps (frac, default: 0/1000):   import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
-index (dbl, default: 1.0):     indexing window length
+index (dbl, default: -1.0):    indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued
 .br
 vfr (bool, default: false):    set variable frame rate import
 .br
@@ -2565,7 +2565,7 @@ Note: The filter uses negative CTS offsets: CTS is correct, but some frames may 
 .br
 fps (frac, default: 0/1000):   import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
-index (dbl, default: -1.0):    indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued
+index (dbl, default: -1.0):    indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued
 .br
 explicit (bool, default: false): use explicit layered (SVC/LHVC) import
 .br
@@ -2677,6 +2677,8 @@ This filter demultiplexes AVI files to produce media PIDs and frames.
 fps (frac, default: 1/0):      import frame rate, default is AVI one
 .br
 importer (bool, default: false): compatibility with old importer, displays import results
+.br
+noreframe (bool, default: false): skip media reframer
 .br
 
 .br
@@ -6161,7 +6163,7 @@ This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and out
 .br
 fps (frac, default: 0/1000):   import frame rate (0 default to FPS from bitstream or 25 Hz)
 .br
-index (dbl, default: -1.0):    indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued
+index (dbl, default: -1.0):    indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued
 .br
 importer (bool, default: false): compatibility with old importer
 .br
@@ -11083,7 +11085,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev571-gd7efeef98-master
+build: 2.1-DEV-rev589-gc928e9bf8-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

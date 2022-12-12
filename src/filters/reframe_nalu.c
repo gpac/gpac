@@ -4137,7 +4137,7 @@ static const GF_FilterCapability NALUDmxCaps[] =
 static const GF_FilterArgs NALUDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
-	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, 0},
+	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes\n"
 		"- off: disable GOP buffering\n"

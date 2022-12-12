@@ -1348,7 +1348,7 @@ static const GF_FilterCapability AV1DmxCaps[] =
 static const GF_FilterArgs AV1DmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
-	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, 0},
+	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deps), "import sample dependency information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
