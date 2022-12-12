@@ -2508,7 +2508,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	u32 i, j, len, line;
 	GF_TextSample *samp;
 	Double ts_scale;
-	char szLine[2048], szTime[20], szText[2048];
+	char szLine[2048], szTime[41], szText[2048];
 
 	//same setup as for srt
 	if (!ctx->is_setup) {
@@ -2550,8 +2550,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 		while (szLine[i+1] && szLine[i+1]!='}') {
 			szTime[i] = szLine[i+1];
 			i++;
-			if (i>=19)
-				break;
+			if (i>=40) break;
 		}
 		szTime[i] = 0;
 		ctx->start = atoi(szTime);
@@ -2568,6 +2567,7 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 		while (szLine[i+1+j] && szLine[i+1+j]!='}') {
 			szTime[i] = szLine[i+1+j];
 			i++;
+			if (i>=40) break;
 		}
 		szTime[i] = 0;
 		ctx->end = atoi(szTime);
