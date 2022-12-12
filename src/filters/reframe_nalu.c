@@ -1059,7 +1059,7 @@ static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 	gf_filter_pid_set_info_str(ctx->opid, "hevc:linf", &PROP_DATA_NO_COPY(data, data_size) );
 }
 
-static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_hevc_base)
+static Bool naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_hevc_base)
 {
 #ifndef GPAC_DISABLE_HEVC
 	u32 i, count;
@@ -1078,13 +1078,9 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	max_ew = max_eh = 0;
 	sar->num = sar->den = 0;
 
-	hvcc = gf_odf_hevc_cfg_new();
-	lvcc = gf_odf_hevc_cfg_new();
-	hvcc->nal_unit_size = ctx->nal_length;
-	lvcc->nal_unit_size = ctx->nal_length;
-	lvcc->is_lhvc = GF_TRUE;
 	//check we have one pps or sps in base layer
 	count = gf_list_count(ctx->sps);
+	if (!count) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
@@ -1094,6 +1090,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 		}
 	}
 	count = gf_list_count(ctx->pps);
+	if (!count) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
@@ -1102,6 +1099,13 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 			break;
 		}
 	}
+
+	hvcc = gf_odf_hevc_cfg_new();
+	lvcc = gf_odf_hevc_cfg_new();
+	hvcc->nal_unit_size = ctx->nal_length;
+	lvcc->nal_unit_size = ctx->nal_length;
+	lvcc->is_lhvc = GF_TRUE;
+
 	//assign vps first so that they are serialized first
 	count = gf_list_count(ctx->vps);
 	for (i=0; i<count; i++) {
@@ -1225,10 +1229,11 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	gf_odf_hevc_cfg_del(hvcc);
 	gf_odf_hevc_cfg_del(lvcc);
 #endif // GPAC_DISABLE_HEVC
+	return GF_TRUE;
 }
 
 
-static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_vvc_base)
+static Bool naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_vvc_base)
 {
 	u32 i, count;
 	u8 layer_id;
@@ -1243,11 +1248,9 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 	max_ew = max_eh = 0;
 	sar->num = sar->den = 0;
 
-	cfg = gf_odf_vvc_cfg_new();
-	cfg->nal_unit_size = ctx->nal_length;
-
 	//check we have one pps or sps in base layer
 	count = gf_list_count(ctx->sps);
+	if (!count) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		layer_id = (sl->data[0] & 0x3f);
@@ -1258,6 +1261,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 		}
 	}
 	count = gf_list_count(ctx->pps);
+	if (!count) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = (sl->data[0] & 0x3f);
@@ -1267,6 +1271,11 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 			break;
 		}
 	}
+
+	cfg = gf_odf_vvc_cfg_new();
+	cfg->nal_unit_size = ctx->nal_length;
+
+
 	//assign vps first so that they are serialized first
 	count = gf_list_count(ctx->vps);
 	for (i=0; i<count; i++) {
@@ -1407,9 +1416,10 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 		gf_list_reset(pa->nalus);
 	}
 	gf_odf_vvc_cfg_del(cfg);
+	return GF_TRUE;
 }
 
-void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar)
+Bool naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar)
 {
 	u32 i, count;
 	Bool first = GF_TRUE;
@@ -1422,6 +1432,8 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 
 	max_w = max_h = max_ew = max_eh = 0;
 	sar->num = sar->den = 0;
+
+	if (!gf_list_count(ctx->sps) || !gf_list_count(ctx->pps)) return GF_FALSE;
 
 	avcc = gf_odf_avc_cfg_new();
 	svcc = gf_odf_avc_cfg_new();
@@ -1565,6 +1577,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	*max_height = max_h;
 	*max_enh_width = max_ew;
 	*max_enh_height = max_eh;
+	return GF_TRUE;
 }
 
 static void naludmx_end_access_unit(GF_NALUDmxCtx *ctx)
@@ -1755,6 +1768,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	GF_Fraction sar;
 	Bool has_hevc_base = GF_TRUE;
 	Bool has_colr_info = GF_FALSE;
+	Bool res;
 
 	if (ctx->analyze) {
 		if (ctx->opid && !ctx->ps_modified) return;
@@ -1776,12 +1790,14 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	}
 
 	if (ctx->codecid==GF_CODECID_HEVC) {
-		naludmx_create_hevc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar, &has_hevc_base);
+		res = naludmx_create_hevc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar, &has_hevc_base);
 	} else if (ctx->codecid==GF_CODECID_VVC) {
-		naludmx_create_vvc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar, &has_hevc_base);
+		res = naludmx_create_vvc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar, &has_hevc_base);
 	} else {
-		naludmx_create_avc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar);
+		res = naludmx_create_avc_decoder_config(ctx, &dsi, &dsi_size, &dsi_enh, &dsi_enh_size, &w, &h, &ew, &eh, &sar);
 	}
+	if (!res) return;
+
 	crc_cfg = crc_cfg_enh = 0;
 	if (dsi) crc_cfg = gf_crc_32(dsi, dsi_size);
 	if (dsi_enh) crc_cfg_enh = gf_crc_32(dsi_enh, dsi_enh_size);

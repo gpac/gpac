@@ -10943,6 +10943,17 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		u32 num_exp_tile_columns = 1 + gf_bs_read_ue_log(bs, "num_exp_tile_columns_minus1");
 		u32 num_exp_tile_rows = 1 + gf_bs_read_ue_log(bs, "num_exp_tile_rows_minus1");
 
+		if (num_exp_tile_columns > VVC_MAX_TILE_COLS) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong num tile columns %d in PPS\n", num_exp_tile_columns));
+			pps->sps_id=0;
+			return -1;
+		}
+		if (num_exp_tile_rows > VVC_MAX_TILE_ROWS) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong num tile rows %d in PPS\n", num_exp_tile_rows));
+			pps->sps_id=0;
+			return -1;
+		}
+
 		ctu_size = 1<<ctu_size;
 		pps->pic_width_in_ctbsY = pps->width / ctu_size;
 		if (pps->pic_width_in_ctbsY * ctu_size < pps->width) pps->pic_width_in_ctbsY++;
@@ -10954,18 +10965,34 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		u32 nb_ctb_last=0;
 		for (i=0; i<num_exp_tile_columns; i++) {
 			u32 nb_ctb_width = 1 + gf_bs_read_ue_log_idx(bs, "tile_column_width_minus1", i);
+			if (nb_ctb_left < nb_ctb_width) {
+				pps->sps_id=0;
+				return -1;
+			}
 			nb_ctb_left -= nb_ctb_width;
 			pps->tile_cols_width_ctb[i] = nb_ctb_width;
 			nb_ctb_last = nb_ctb_width;
 			pps->num_tile_cols++;
+			if (pps->num_tile_cols > VVC_MAX_TILE_COLS) {
+				pps->sps_id=0;
+				return -1;
+			}
 		}
 		u32 uni_size_ctb = nb_ctb_last;
 		while (nb_ctb_left >= uni_size_ctb) {
 			nb_ctb_left -= uni_size_ctb;
+			if (pps->num_tile_cols >= VVC_MAX_TILE_COLS) {
+				pps->sps_id=0;
+				return -1;
+			}
 			pps->tile_cols_width_ctb[pps->num_tile_cols] = uni_size_ctb;
 			pps->num_tile_cols++;
 		}
 		if (nb_ctb_left>0) {
+			if (pps->num_tile_cols >= VVC_MAX_TILE_COLS) {
+				pps->sps_id=0;
+				return -1;
+			}
 			pps->tile_cols_width_ctb[pps->num_tile_cols] = nb_ctb_left;
 			pps->num_tile_cols++;
 		}
@@ -10975,18 +11002,34 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		pps->num_tile_rows=0;
 		for (i=0; i<num_exp_tile_rows; i++) {
 			u32 nb_ctb_height = 1 + gf_bs_read_ue_log_idx(bs, "tile_row_height_minus1", i);
+			if (nb_ctb_left < nb_ctb_height) {
+				pps->sps_id=0;
+				return -1;
+			}
 			nb_ctb_left -= nb_ctb_height;
 			pps->tile_rows_height_ctb[i] = nb_ctb_height;
 			pps->num_tile_rows++;
 			nb_ctb_last = nb_ctb_height;
+			if (pps->num_tile_rows > VVC_MAX_TILE_ROWS) {
+				pps->sps_id=0;
+				return -1;
+			}
 		}
 		uni_size_ctb = nb_ctb_last;
 		while (nb_ctb_left >= uni_size_ctb) {
 			nb_ctb_left -= uni_size_ctb;
+			if (pps->num_tile_rows >= VVC_MAX_TILE_ROWS) {
+				pps->sps_id=0;
+				return -1;
+			}
 			pps->tile_rows_height_ctb[pps->num_tile_rows] = uni_size_ctb;
 			pps->num_tile_rows++;
 		}
 		if (nb_ctb_left>0) {
+			if (pps->num_tile_rows >= VVC_MAX_TILE_ROWS) {
+				pps->sps_id=0;
+				return -1;
+			}
 			pps->tile_rows_height_ctb[pps->num_tile_rows] = nb_ctb_left;
 			pps->num_tile_rows++;
 		}
