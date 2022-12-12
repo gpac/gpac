@@ -864,6 +864,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		if (new_pid_inst) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s (%p) PID %s (%p) (%d fan-out) connected to filter %s (%p)\n", pid->filter->name, pid->filter, pid->name, pid, pid->num_destinations, filter->name, filter));
 		}
+		//reset blacklist on source if connect OK - this is required when reconfiguring multiple times to the same filter, eg
+		//jpeg->raw->jpeg, the first jpeg->raw would blacklist jpeg dec from source, preventing resolution to work at raw->jpeg switch
+		gf_list_reset(pidinst->pid->filter->blacklisted);
 	}
 	//failure on reconfigure, try reloading a filter chain
 	else if ((ctype==GF_PID_CONF_RECONFIG) && (e != GF_FILTER_NOT_SUPPORTED)) {
