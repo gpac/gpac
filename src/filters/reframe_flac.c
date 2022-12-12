@@ -78,6 +78,7 @@ typedef struct
 	u32 bitrate;
 	Bool copy_props;
 	u32 dsi_crc;
+	Bool is_sync;
 } GF_FLACDmxCtx;
 
 
@@ -700,12 +701,14 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 
 		//we have a next frame, check we are synchronize
 		if ((start[0] != 0xFF) && ((start[1]&0xFC) != 0xF8)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FLACDmx] invalid frame, dropping %d bytes and resyncing\n", next_frame));
+			GF_LOG(ctx->is_sync ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[FLACDmx] invalid frame, dropping %d bytes and resyncing\n", next_frame));
+			ctx->is_sync = GF_FALSE;
 			start += next_frame;
 			remain -= next_frame;
 			continue;
 		}
 
+		ctx->is_sync = GF_TRUE;
 		flac_parse_header(ctx,start, next_frame, &hdr);
 		if (hdr.sample_rate != ctx->sample_rate) {
 			ctx->sample_rate = hdr.sample_rate;

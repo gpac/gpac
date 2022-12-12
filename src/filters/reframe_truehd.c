@@ -87,6 +87,7 @@ typedef struct
 	Bool copy_props;
 
 	GF_AC3Header ac3_hdr;
+	Bool is_sync;
 } GF_TrueHDDmxCtx;
 
 
@@ -646,10 +647,12 @@ GF_Err truehd_process(GF_Filter *filter)
 			cts = GF_FILTER_NO_TS;
 		}
 		if (!ctx->sample_rate) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TrueHDDmx] Invalid TrueHD frame, no sample rate found\n"));
+			GF_LOG(ctx->is_sync ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[TrueHDDmx] Invalid TrueHD frame, no sample rate found\n"));
+			ctx->is_sync = GF_FALSE;
 			remain = 0;
 			break;
 		}
+		ctx->is_sync = GF_TRUE;
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, hdr.frame_size, &output);

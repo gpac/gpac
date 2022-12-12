@@ -99,6 +99,8 @@ typedef struct
 
 	GF_M4ADecSpecInfo acfg;
 	u32 bitrate;
+
+	Bool is_sync;
 } GF_ADTSDmxCtx;
 
 
@@ -681,7 +683,10 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 		//not sync !
 		if ((sync[1] & 0xF0) != 0xF0) {
-			GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] invalid ADTS sync bytes, resyncing\n"));
+			if (ctx->is_sync) {
+				GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] invalid ADTS sync bytes, resyncing\n"));
+				ctx->is_sync=GF_FALSE;
+			}
 			ctx->nb_frames = 0;
 			goto drop_byte;
 		}
@@ -766,7 +771,10 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			u32 next_frame = ctx->hdr.frame_size;
 			//make sure we are sync!
 			if ((sync[next_frame] !=0xFF) || ((sync[next_frame+1] & 0xF0) !=0xF0) ) {
-				GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] invalid next ADTS frame sync, resyncing\n"));
+				if (ctx->is_sync) {
+					GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] invalid next ADTS frame sync, resyncing\n"));
+					ctx->is_sync = GF_FALSE;
+				}
 				ctx->nb_frames = 0;
 				goto drop_byte;
 			}
@@ -780,7 +788,8 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->hdr.frame_size < ctx->hdr.hdr_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ADTSDmx] Corrupted ADTS frame header, resyncing\n"));
+			GF_LOG(ctx->is_sync ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] Corrupted ADTS frame header, resyncing\n"));
+			ctx->is_sync = GF_FALSE;
 			ctx->nb_frames = 0;
 			goto drop_byte;
 		}
@@ -791,6 +800,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			ctx->resume_from = 1 + ctx->adts_buffer_size - remain;
 			return GF_OK;
 		}
+		ctx->is_sync = GF_TRUE;
 
 		ctx->nb_frames++;
 		size = ctx->hdr.frame_size - ctx->hdr.hdr_size;
