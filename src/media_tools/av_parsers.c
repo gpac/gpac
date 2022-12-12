@@ -7629,18 +7629,20 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		num_scalability_types = 16;
 	}
 	dimension_id_len[0] = 0;
-	for (i = 0; i < (num_scalability_types - splitting_flag); i++) {
-		dimension_id_len[i] = 1 + gf_bs_read_int_log_idx(bs, 3, "dimension_id_len_minus1", i);
-	}
-
-	if (splitting_flag) {
-		for (i = 0; i < num_scalability_types; i++) {
-			dim_bit_offset[i] = 0;
-			for (j = 0; j < i; j++)
-				dim_bit_offset[i] += dimension_id_len[j];
+	if (num_scalability_types) {
+		for (i = 0; i < (num_scalability_types - splitting_flag); i++) {
+			dimension_id_len[i] = 1 + gf_bs_read_int_log_idx(bs, 3, "dimension_id_len_minus1", i);
 		}
-		dimension_id_len[num_scalability_types - 1] = 1 + (5 - dim_bit_offset[num_scalability_types - 1]);
-		dim_bit_offset[num_scalability_types] = 6;
+
+		if (splitting_flag) {
+			for (i = 0; i < num_scalability_types; i++) {
+				dim_bit_offset[i] = 0;
+				for (j = 0; j < i; j++)
+					dim_bit_offset[i] += dimension_id_len[j];
+			}
+			dimension_id_len[num_scalability_types - 1] = 1 + (5 - dim_bit_offset[num_scalability_types - 1]);
+			dim_bit_offset[num_scalability_types] = 6;
+		}
 	}
 
 	vps_nuh_layer_id_present_flag = gf_bs_read_int_log(bs, 1, "vps_nuh_layer_id_present_flag");
