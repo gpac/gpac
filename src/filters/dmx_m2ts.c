@@ -340,7 +340,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		case GF_M2TS_SYSTEMS_MPEG4_PES:
 			if (!esd) {
 				m4sys_iod_stream = GF_TRUE;
-				count = gf_list_count(stream->program->pmt_iod->ESDescriptors);
+				count = stream->program->pmt_iod ? gf_list_count(stream->program->pmt_iod->ESDescriptors) : 0;
 				for (i=0; i<count; i++) {
 					esd = gf_list_get(stream->program->pmt_iod->ESDescriptors, i);
 					if (esd->ESID == stream->mpeg4_es_id) break;
