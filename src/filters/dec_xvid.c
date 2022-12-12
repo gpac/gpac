@@ -75,6 +75,7 @@ typedef struct
 
 	GF_List *src_packets;
 	u64 next_cts;
+	Bool do_flush;
 } GF_XVIDCtx;
 
 static GF_Err xviddec_initialize(GF_Filter *filter)
@@ -147,8 +148,11 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
-	if (! gf_filter_pid_check_caps(pid))
+	if (! gf_filter_pid_check_caps(pid)) {
+		ctx->do_flush = GF_TRUE;
 		return GF_NOT_SUPPORTED;
+	}
+	ctx->do_flush = GF_FALSE;
 
 	ctx->ipid = pid;
 	if (!ctx->opid) {
@@ -286,10 +290,11 @@ static GF_Err xviddec_process(GF_Filter *filter)
 		if (!src_pck)
 			gf_list_add(ctx->src_packets, pck_ref);
 
-
+		ctx->do_flush = GF_FALSE;
 	} else {
-		if (!gf_filter_pid_is_eos(ctx->ipid))
+		if (!ctx->do_flush && !gf_filter_pid_is_eos(ctx->ipid))
 			return GF_OK;
+
 		frame.bitstream = NULL;
 		frame.length = -1;
 	}
