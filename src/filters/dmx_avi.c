@@ -48,7 +48,7 @@ typedef struct
 {
 	//opts
 	GF_Fraction fps;
-	Bool importer;
+	Bool importer, noreframe;
 
 	GF_FilterPid *ipid;
 
@@ -163,8 +163,9 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			gf_filter_pid_set_property_str(ctx->v_opid, "nocts", &PROP_BOOL( GF_TRUE ) );
 		} else if (ctx->avi->extradata_size && ctx->avi->extradata) {
 			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(ctx->avi->extradata, ctx->avi->extradata_size) );
-
 		}
+		if (ctx->noreframe)
+			gf_filter_pid_set_property(ctx->v_opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
 
 	unframed = GF_FALSE;
@@ -332,6 +333,8 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 				}
 			}
 
+			if (ctx->noreframe)
+				gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, NULL);
 		}
 	}
 }
@@ -690,6 +693,7 @@ static const GF_FilterArgs AVIDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate, default is AVI one", GF_PROP_FRACTION, "1/0", NULL, 0},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noreframe), "skip media reframer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
