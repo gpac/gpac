@@ -1080,7 +1080,7 @@ static Bool naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 
 	//check we have one pps or sps in base layer
 	count = gf_list_count(ctx->sps);
-	if (!count) return GF_FALSE;
+	if (!count && !ctx->analyze) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
@@ -1090,7 +1090,7 @@ static Bool naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 		}
 	}
 	count = gf_list_count(ctx->pps);
-	if (!count) return GF_FALSE;
+	if (!count && !ctx->analyze) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
@@ -1250,7 +1250,7 @@ static Bool naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 
 	//check we have one pps or sps in base layer
 	count = gf_list_count(ctx->sps);
-	if (!count) return GF_FALSE;
+	if (!count && !ctx->analyze) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->sps, i);
 		layer_id = (sl->data[0] & 0x3f);
@@ -1261,7 +1261,7 @@ static Bool naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 		}
 	}
 	count = gf_list_count(ctx->pps);
-	if (!count) return GF_FALSE;
+	if (!count && !ctx->analyze) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(ctx->pps, i);
 		layer_id = (sl->data[0] & 0x3f);
@@ -1433,7 +1433,8 @@ Bool naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	max_w = max_h = max_ew = max_eh = 0;
 	sar->num = sar->den = 0;
 
-	if (!gf_list_count(ctx->sps) || !gf_list_count(ctx->pps)) return GF_FALSE;
+	if (!ctx->analyze && (!gf_list_count(ctx->sps) || !gf_list_count(ctx->pps)))
+		return GF_FALSE;
 
 	avcc = gf_odf_avc_cfg_new();
 	svcc = gf_odf_avc_cfg_new();
