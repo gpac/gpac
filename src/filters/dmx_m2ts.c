@@ -467,7 +467,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
 
-		if (stream->gpac_meta_dsi) {
+		if ((stream->flags&GF_M2TS_ES_IS_PES) && stream->gpac_meta_dsi) {
 			char *cname;
 			GF_BitStream *bs = gf_bs_new(stream->gpac_meta_dsi, stream->gpac_meta_dsi_size, GF_BITSTREAM_READ);
 			u32 val = gf_bs_read_u32(bs); //codec ID (meta codec identifier)
@@ -506,7 +506,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
 
-	if (stream->lang) {
+	if ((stream->flags&GF_M2TS_ES_IS_PES) && stream->lang) {
 		char szLang[4];
 		szLang[0] = (stream->lang>>16) & 0xFF;
 		szLang[1] = (stream->lang>>8) & 0xFF;
@@ -536,7 +536,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	}
 	/*indicate our coding dependencies if any*/
 	if (!m4sys_stream) {
-		if (stream->depends_on_pid) {
+		if ((stream->flags&GF_M2TS_ES_IS_PES) && stream->depends_on_pid) {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(stream->depends_on_pid) );
 			if ((stream->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) || (stream->stream_type == GF_M2TS_VIDEO_HEVC_MCTS)) {
 				gf_filter_pid_set_property(opid, GF_PROP_PID_SUBLAYER, &PROP_BOOL(GF_TRUE) );
