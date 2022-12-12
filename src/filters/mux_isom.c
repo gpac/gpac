@@ -6707,7 +6707,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 	//done with this interleaving window, start next one
-	else if (nb_skip + nb_eos == count) {
+	else if (nb_skip + nb_eos >= count) {
 		ctx->faststart_ts_regulate.num += ctx->cdur.num;
 	} else if (ctx->importer) {
 		u64 prog_done=0, prog_total=0;
