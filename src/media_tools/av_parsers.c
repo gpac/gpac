@@ -8315,6 +8315,10 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 
 	sps->log2_min_luma_coding_block_size = 3 + gf_bs_read_ue_log(bs, "log2_min_luma_coding_block_size_minus3");
 	sps->log2_diff_max_min_luma_coding_block_size = gf_bs_read_ue_log(bs, "log2_diff_max_min_luma_coding_block_size");
+	//we allow more than in max profile, but make sure we don't overflow max CU W/H compute below
+	if (sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size >= 30) {
+		return -1;
+	}
 	sps->max_CU_width = (1 << (sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
 	sps->max_CU_height = (1 << (sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
 
