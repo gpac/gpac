@@ -635,8 +635,8 @@ typedef struct
 //	u32 inter_layer_ref_pic_id[VVC_MAX_REF_PICS];
 } VVC_RefPicList;
 
-#define MAX_TILE_COLS 30
-#define MAX_TILE_ROWS 33
+#define VVC_MAX_TILE_COLS 30
+#define VVC_MAX_TILE_ROWS 33
 
 typedef struct
 {
@@ -717,8 +717,8 @@ typedef struct
 	u32 cw_left, cw_right, cw_top, cw_bottom;
 
 	//tile info
-	u32 tile_rows_height_ctb[MAX_TILE_ROWS];
-	u32 tile_cols_width_ctb[MAX_TILE_COLS];
+	u32 tile_rows_height_ctb[VVC_MAX_TILE_ROWS];
+	u32 tile_cols_width_ctb[VVC_MAX_TILE_COLS];
 	u32 pic_width_in_ctbsY, pic_height_in_ctbsY;
 } VVC_PPS;
 
