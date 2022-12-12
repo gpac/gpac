@@ -2394,7 +2394,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 
 	if (res < 0) {
 		if (res == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing NAL unit type %u\n", ctx->log_name, nal_unit_type));
 		}
 		*skip_nal = GF_TRUE;
 	}
@@ -2569,7 +2569,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 
 	if (res < 0) {
 		if (res == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing NAL unit type %u\n", ctx->log_name, nal_unit_type));
 		}
 		*skip_nal = GF_TRUE;
 	}
@@ -2747,7 +2747,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	res = gf_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
 	if (res < 0) {
 		if (res == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing NAL unit type %u\n", ctx->log_name, nal_type));
 		}
 		*skip_nal = GF_TRUE;
 	}

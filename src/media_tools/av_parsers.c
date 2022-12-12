@@ -10706,6 +10706,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	for (i=0; i<sps_rpl1_same_as_rpl0; i++) {
 		u32 j;
 		sps->num_ref_pic_lists[i] = gf_bs_read_ue_log_idx(bs, "sps_num_ref_pic_lists", i);
+		if (sps->num_ref_pic_lists[i] > 64) return -1;
 		for (j=0; j<sps->num_ref_pic_lists[i]; j++) {
 			s32 res = vvc_parse_ref_pic_list_struct(bs, sps, i, j, &sps->rps[i][j]);
 			if (res<0) return res;
