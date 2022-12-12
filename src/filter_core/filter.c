@@ -2185,6 +2185,16 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 
 	if (!link_from_pid) {
 		gf_fs_check_graph_load(cur_filter->session, GF_FALSE);
+
+		if (from_pidinst->pid->num_destinations==1) {
+			GF_FilterEvent evt;
+			GF_FilterPid *ipid = (GF_FilterPid *) from_pidinst;
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, ipid);
+			gf_filter_pid_send_event_internal(ipid, &evt, GF_TRUE);
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, ipid);
+			gf_filter_pid_send_event_internal(ipid, &evt, GF_TRUE);
+		}
+		gf_fs_post_task(cur_filter->session, gf_filter_pid_disconnect_task, from_pidinst->filter, from_pidinst->pid, "pidinst_disconnect", NULL);
 		return;
 	}
 	//detach the pidinst, and relink from the new input pid
