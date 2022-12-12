@@ -300,11 +300,21 @@ static void lsr_read_extension(GF_LASeRCodec *lsr, const char *name)
 
 static void lsr_read_extend_class(GF_LASeRCodec *lsr, char **out_data, u32 *out_len, const char *name)
 {
-	u32 len;
+	u32 len, blen;
 	GF_LSR_READ_INT(lsr, len, lsr->info->cfg.extensionIDBits, "reserved");
 	len = lsr_read_vluimsbf5(lsr, "len");
-//	while (len) gf_bs_read_int(lsr->bs, 1);
-	gf_bs_read_long_int(lsr->bs, len);
+	while (len && !gf_bs_is_align(lsr->bs)) {
+		gf_bs_read_int(lsr->bs, len);
+		len--;
+	}
+	blen = len / 8;
+	gf_bs_skip_bytes(lsr->bs, blen);
+	len -= blen*8;
+
+	while (len) {
+		gf_bs_read_int(lsr->bs, 1);
+		len--;
+	}
 	if (out_data) *out_data = NULL;
 	if (out_len) *out_len = 0;
 }
@@ -839,10 +849,11 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 {
 	if (!nb_bits) return 0;
-	
+	if (nb_bits>=32) return 0;
+
 #ifdef GPAC_FIXED_POINT
 	if (val >> (nb_bits-1) ) {
-		s32 neg = (s32) val - (1<<nb_bits);
+		s64 neg = (s64) val - (0x00000001UL << nb_bits);
 		if (neg < -FIX_ONE / 2)
 			return 2 * gf_divfix(INT2FIX(neg/2), lsr->res_factor);
 		return gf_divfix(INT2FIX(neg), lsr->res_factor);
@@ -853,10 +864,10 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 	}
 #else
 	if (val >> (nb_bits-1) ) {
-		s32 neg = (s32) val - (1<<nb_bits);
-		return gf_divfix(INT2FIX(neg), lsr->res_factor);
+		s64 neg = (s64) val - (0x00000001UL << nb_bits);
+		return ((Fixed)neg) / lsr->res_factor;
 	} else {
-		return gf_divfix(INT2FIX(val), lsr->res_factor);
+		return ((Fixed)val) / lsr->res_factor;
 	}
 #endif
 }
@@ -864,7 +875,7 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 static Fixed lsr_translate_scale(GF_LASeRCodec *lsr, u32 val)
 {
 	if (val >> (lsr->coord_bits-1) ) {
-		s32 v = val - (1<<lsr->coord_bits);
+		s64 v = val - (0x00000001UL << lsr->coord_bits);
 		return INT2FIX(v) / 256 ;
 	} else {
 		return INT2FIX(val) / 256;
