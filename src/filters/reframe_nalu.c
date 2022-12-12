@@ -3187,6 +3187,7 @@ naldmx_flush:
 
 		//figure out which nal we need to completely load
 		if (ctx->codecid==GF_CODECID_HEVC) {
+			if (is_eos && (nal_size<2)) break;
 			nal_type = nal_data[0];
 			nal_type = (nal_type & 0x7E) >> 1;
 
@@ -3232,6 +3233,7 @@ naldmx_flush:
 				}
 			}
 		} else if (ctx->codecid==GF_CODECID_VVC) {
+			if (is_eos && (nal_size<2)) break;
 			nal_type = nal_data[1]>>3;
 			switch (nal_type) {
 			case GF_VVC_NALU_OPI:
@@ -3282,6 +3284,7 @@ naldmx_flush:
 				}
 			}
 		} else {
+			if (is_eos && (nal_size<1)) break;
 			nal_type = nal_data[0] & 0x1F;
 			nal_ref_idc = (nal_data[0] & 0x60) >> 5;
 		}
