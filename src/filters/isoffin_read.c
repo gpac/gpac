@@ -338,7 +338,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 			ISOMChannel *ch = gf_list_get(read->channels, i);
             if (ch) {
                 ch->sample_num = 0;
-                ch->eos_sent = GF_FALSE;
+                ch->eos_sent = 0;
             }
 		}
         GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error opening current segment %s: %s\n", next_url, gf_error_to_string(e) ));
@@ -356,7 +356,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		ch->last_state = GF_OK;
-		ch->eos_sent = GF_FALSE;
+		ch->eos_sent = 0;
 
 		//old code from master, currently no longer used
 		//in filters we don't use extractors for the time being, we only do implicit reconstruction at the decoder side
@@ -631,7 +631,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 		//gf_media_get_file_hash(gf_isom_get_filename(mov), hash);
 	} else if (gf_isom_is_cenc_media(mov, track, stsd_idx)) {
-		ch->is_cenc = GF_TRUE;
+		ch->is_cenc = 1;
 
 		gf_isom_get_cenc_info(ch->owner->mov, ch->track, stsd_idx, NULL, &scheme_type, &scheme_version);
 
@@ -695,7 +695,7 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 	}
 	ch->owner = read;
 	ch->pid = pid;
-	ch->to_init = GF_TRUE;
+	ch->to_init = 1;
 	gf_list_add(read->channels, ch);
 	ch->track = track;
 	ch->item_id = item_id;
@@ -727,21 +727,21 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 	}
 	if (!read->noedit) {
 		ch->ts_offset = 0;
-		ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->ts_offset) ? GF_TRUE : GF_FALSE;
+		ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->ts_offset) ? 1 : 0;
 		if (!ch->has_edit_list && ch->ts_offset) {
 			//if >0 this is a hold, we signal positive delay
 			//if <0 this is a skip, we signal negative delay
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( ch->ts_offset) );
 		}
 	} else
-		ch->has_edit_list = GF_FALSE;
+		ch->has_edit_list = 0;
 
-	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? GF_TRUE : GF_FALSE;
+	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? 1 : 0;
 	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
 	//some fragmented files do not advertize a sync sample table (legal) so we need to update as soon as we fetch a fragment
 	//to see if we are all-intra (as detected here) or not
 	if (!ch->has_rap && ch->owner->frag_type)
-		ch->check_has_rap = GF_TRUE;
+		ch->check_has_rap = 1;
 	ch->timescale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
 	ts_shift = gf_isom_get_cts_to_dts_shift(ch->owner->mov, ch->track);
@@ -771,10 +771,10 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		return ch;
 	}
 	if (ch->owner->nocrypt) {
-		ch->is_encrypted = GF_FALSE;
+		ch->is_encrypted = 0;
 		return ch;
 	}
-	ch->is_encrypted = GF_TRUE;
+	ch->is_encrypted = 1;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(p->value.uint) );
 
@@ -819,7 +819,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 		}
 		/*this is the highest quality*/
 		if (!next_track) {
-			ch->playing = GF_TRUE;
+			ch->playing = 1;
 			ref_count = gf_isom_get_reference_count(the_file, ch->track, GF_ISOM_REF_BASE);
 			trackID = 0;
 			if (ref_count) {
@@ -862,8 +862,8 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 			return cur_track;
 
 		if (ch->track != next_track) {
-			ch->playing = GF_FALSE;
-			ch->eos_sent = GF_TRUE;
+			ch->playing = 0;
+			ch->eos_sent = 1;
 			gf_filter_pid_set_eos(ch->pid);
 		}
 	}
@@ -878,7 +878,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 count, i;
-	Bool cancel_event = GF_TRUE, is_insert=GF_FALSE;
+	Bool cancel_event = GF_TRUE;
 	Double start_range, speed;
 	ISOMChannel *ch, *ref_ch;
 	ISOMReader *read = gf_filter_get_udta(filter);
@@ -905,10 +905,15 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		if (ch->skip_next_play) {
+			ch->skip_next_play = 0;
+			return GF_TRUE;
+		}
+
 		isor_reset_reader(ch);
-		ch->eos_sent = GF_FALSE;
+		ch->eos_sent = 0;
 		ch->speed = evt->play.speed;
-		ch->initial_play_seen = GF_TRUE;
+		ch->initial_play_seen = 1;
 		read->reset_frag_state = 1;
 		//it can happen that input_is_stop is still TRUE because we did not get called back after the stop - reset to FALSE since we now play
 		read->input_is_stop = GF_FALSE;
@@ -918,8 +923,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ch->start = ch->end = 0;
 		start_range = evt->play.start_range;
 		speed = evt->play.speed;
-		//compute closest range if channel was marked inactive
-		if (read->nb_playing && !ch->has_seen_stop) {
+		//compute closest range if channel was disconnected
+		if (read->nb_playing && ch->midrun_tune) {
 			ref_ch = NULL;
 			count = gf_list_count(read->channels);
 			for (i = 0; i < count; i++) {
@@ -943,7 +948,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				diff = orig_range - start_range;
 				if (ABS(diff)<1.0)
 					start_range = orig_range;
-				is_insert = GF_TRUE;
 			}
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] channel start is %f - requested %f\n", start_range, evt->play.start_range));
@@ -970,11 +974,11 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (end <= start_range)
 				ch->end = (u64) (s64) (end  * ch->timescale);
 		}
-		ch->playing = GF_TRUE;
+		ch->playing = 1;
 		ch->sample_num = evt->play.from_pck;
 		ch->orig_start = start_range;
 
-		ch->sap_only = evt->play.drop_non_ref ? GF_TRUE : GF_FALSE;
+		ch->sap_only = evt->play.drop_non_ref ? 1 : 0;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, start_range, evt->play.end_range));
 
@@ -1054,23 +1058,26 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 
 		read->nb_playing++;
-		//compute closest range if channel was marked inactive
-		if ((read->nb_playing>1) && !is_insert) {
+		//trigger play on all "disconnected" channels
+		if ((read->nb_playing>1) && !ch->midrun_tune) {
 			count = gf_list_count(read->channels);
 			for (i=0; i<count;i++) {
 				ISOMChannel *ach = gf_list_get(read->channels, i);
+				//locate disconnected channels playing
 				if (ach == ch) continue;
 				if (ach->clock_id != ch->clock_id) continue;
-				if (!ach->playing || !ach->timescale) continue;
+				if (!ach->playing || !ach->timescale || !ach->midrun_tune) continue;
 				isor_reset_reader(ach);
+				ach->playing = 1;
 				ach->sample_num = 0;
 				ach->start = gf_timestamp_rescale(ch->start, ch->timescale, ach->timescale);
 				ach->orig_start = ch->orig_start;
 				ach->start = (u64) (ach->orig_start * ach->timescale);
-				ach->eos_sent = GF_FALSE;
+				ach->eos_sent = 0;
 				ach->speed = evt->play.speed;
-				ach->initial_play_seen = GF_TRUE;
-				ach->skip_next_play = GF_TRUE;
+				ach->initial_play_seen = 1;
+				ach->skip_next_play = 1;
+				ach->set_disc = 1;
 			}
 		}
 
@@ -1082,17 +1089,20 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
  		if (read->nb_playing) read->nb_playing--;
 		isor_reset_reader(ch);
+
+		//stop is due to a deconnection, mark channel as not active
+		if (evt->play.initial_broadcast_play==2)
+			ch->midrun_tune = 1;
+		else
+			ch->midrun_tune = 0;
+
 		//don't send a stop if some of our channels are still waiting for initial play
 		for (i=0; i<gf_list_count(read->channels); i++) {
 			ISOMChannel *a_ch = gf_list_get(read->channels, i);
 			if (ch==a_ch) continue;
 			if (!a_ch->initial_play_seen) return GF_TRUE;
 		}
-		//stop is due to a deconnection, mark channel as not active
-		if (evt->play.initial_broadcast_play==2)
-			ch->has_seen_stop = GF_FALSE;
-		else
-			ch->has_seen_stop = GF_TRUE;
+		ch->skip_next_play = 0;
 		//cancel event if nothing playing
 		if (read->nb_playing) return GF_TRUE;
 		read->input_is_stop = GF_TRUE;
@@ -1104,7 +1114,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ch->sap_only && !evt->play.drop_non_ref) {
 			ch->sap_only = 2;
 		} else {
-			ch->sap_only = evt->play.drop_non_ref ? GF_TRUE : GF_FALSE;
+			ch->sap_only = evt->play.drop_non_ref ? 1 : 0;
 		}
 		//cancel event
 		return GF_TRUE;
@@ -1310,7 +1320,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
                     continue;
                 }
                 if (!ch->eos_sent) {
-                    ch->eos_sent = GF_TRUE;
+                    ch->eos_sent = 1;
                     gf_filter_pid_set_eos(ch->pid);
                 }
             }
@@ -1409,13 +1419,13 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				GF_FilterPacket *pck;
 				if (ch->needs_pid_reconfig) {
 					isor_update_channel_config(ch);
-					ch->needs_pid_reconfig = GF_FALSE;
+					ch->needs_pid_reconfig = 0;
 				}
 
 				//we have at least two samples, update GF_PROP_PID_HAS_SYNC if needed
 				if (ch->check_has_rap && (gf_isom_get_sample_count(ch->owner->mov, ch->track)>1) && (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1)) {
-					ch->check_has_rap = GF_FALSE;
-					ch->has_rap = GF_TRUE;
+					ch->check_has_rap = 0;
+					ch->has_rap = 1;
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
 				}
 
@@ -1510,7 +1520,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						gf_filter_pck_set_property(pck, GF_PROP_PCK_RECEIVER_NTP, &PROP_LONGUINT(ch->ntp_at_server_ntp));
 					}
 				}
-				ch->eos_sent = GF_FALSE;
+				ch->eos_sent = 0;
 
 				//this might not be the true end of stream
 				if ((ch->streamType==GF_STREAM_AUDIO) && (ch->sample_num == gf_isom_get_sample_count(read->mov, ch->track))) {
@@ -1523,6 +1533,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (ch->sample_data_offset && !gf_sys_is_test_mode())
 					gf_filter_pck_set_byte_offset(pck, ch->sample_data_offset);
 
+				if (ch->set_disc) {
+					ch->set_disc = 0;
+					gf_filter_pck_set_clock_type(pck, GF_FILTER_CLOCK_PCR_DISC);
+				}
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
 
@@ -1531,7 +1545,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			} else if (ch->last_state==GF_EOS) {
 				if (ch->playing == 2) {
 					if (in_is_eos) {
-						ch->playing = GF_FALSE;
+						ch->playing = 0;
 					} else {
 						nb_forced_end++;
 						check_forced_end = GF_TRUE;
@@ -1541,16 +1555,16 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					void *tfrf;
 					const void *gf_isom_get_tfrf(GF_ISOFile *movie, u32 trackNumber);
 
-					ch->eos_sent = GF_TRUE;
+					ch->eos_sent = 1;
 					read->eos_signaled = GF_TRUE;
 
 					tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);
 					if (tfrf) {
 						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", &PROP_POINTER(tfrf) );
-						ch->last_has_tfrf = GF_TRUE;
+						ch->last_has_tfrf = 1;
 					} else if (ch->last_has_tfrf) {
 						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL);
-						ch->last_has_tfrf = GF_FALSE;
+						ch->last_has_tfrf = 0;
 					}
 
 					gf_filter_pid_set_eos(ch->pid);
@@ -1558,7 +1572,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				break;
 			} else if (ch->last_state==GF_ISOM_INVALID_FILE) {
 				if (!ch->eos_sent) {
-					ch->eos_sent = GF_TRUE;
+					ch->eos_sent = 1;
 					read->eos_signaled = GF_TRUE;
 					gf_filter_pid_set_eos(ch->pid);
 				}

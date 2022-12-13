@@ -937,7 +937,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	}
 
 	//update decoder configs
-	ch->check_avc_ps = ch->check_hevc_ps = ch->check_vvc_ps = GF_FALSE;
+	ch->check_avc_ps = ch->check_hevc_ps = ch->check_vvc_ps = 0;
 	if (ch->avcc) gf_odf_avc_cfg_del(ch->avcc);
 	ch->avcc = NULL;
 	if (ch->hvcc) gf_odf_hevc_cfg_del(ch->hvcc);
@@ -1274,21 +1274,21 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(dims.mime_type));
 	}
 	else if (codec_id==GF_CODECID_AVC)
-		ch->check_avc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? GF_TRUE : GF_FALSE;
+		ch->check_avc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? 1 : 0;
 	else if (codec_id==GF_CODECID_HEVC)
-		ch->check_hevc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? GF_TRUE : GF_FALSE;
+		ch->check_hevc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? 1 : 0;
 	else if (codec_id==GF_CODECID_VVC)
-		ch->check_vvc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? GF_TRUE : GF_FALSE;
+		ch->check_vvc_ps = (ch->owner->xps_check==MP4DMX_XPS_REMOVE) ? 1 : 0;
 	else if (codec_id==GF_CODECID_MHAS) {
 		if (!dsi) {
-			ch->check_mhas_pl = GF_TRUE;
+			ch->check_mhas_pl = 1;
 			GF_ISOSample *samp = gf_isom_get_sample(ch->owner->mov, ch->track, 1, NULL);
 			if (samp) {
 				u64 ch_layout=0;
 				s32 PL = gf_mpegh_get_mhas_pl(samp->data, samp->dataLength, &ch_layout);
 				if (PL>0) {
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
-					ch->check_mhas_pl = GF_FALSE;
+					ch->check_mhas_pl = 0;
 					if (ch_layout)
 						gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 				}
@@ -1728,8 +1728,8 @@ retry:
 	if (!ch) {
 		ch = isor_create_channel(read, pid, 0, item_id, GF_FALSE);
 		if (ch && scheme_type) {
-			ch->is_cenc = GF_TRUE;
-			ch->is_encrypted = GF_TRUE;
+			ch->is_cenc = 1;
+			ch->is_encrypted = 1;
 
 			isor_declare_pssh(ch);
 

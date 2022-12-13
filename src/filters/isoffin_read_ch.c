@@ -45,7 +45,7 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->speed = 1.0;
 	ch->start = ch->end = 0;
 	ch->to_init = 1;
-	ch->playing = GF_FALSE;
+	ch->playing = 0;
 	if (ch->sai_buffer) gf_free(ch->sai_buffer);
 	ch->sai_buffer = NULL;
 	ch->sai_alloc_size = 0;
@@ -104,7 +104,7 @@ static void init_reader(ISOMChannel *ch)
 		ch->last_state=GF_OK;
 	} else if (ch->sample_num) {
 		ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
-		ch->disable_seek = GF_TRUE;
+		ch->disable_seek = 1;
 		ch->au_seq_num = ch->sample_num;
 	} else {
 		//if seek is disabled, get the next closest sample for this time; otherwise, get the previous RAP sample for this time
@@ -161,7 +161,7 @@ static void init_reader(ISOMChannel *ch)
 
 	ch->sample_time = ch->sample->DTS;
 
-	ch->to_init = GF_FALSE;
+	ch->to_init = 0;
 
 	ch->seek_flag = 0;
 	if (ch->disable_seek) {
@@ -529,7 +529,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (!ch->last_sample_desc_index && (sample_desc_index==1)) {
 
 			} else {
-				ch->needs_pid_reconfig = GF_TRUE;
+				ch->needs_pid_reconfig = 1;
 			}
 		}
 		ch->last_sample_desc_index = sample_desc_index;
@@ -541,8 +541,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->sap_3 = GF_FALSE;
 	ch->sap_4_type = 0;
 	ch->roll = 0;
-	ch->set_disc = ch->owner->clock_discontinuity ? 2 : 0;
-	ch->owner->clock_discontinuity = 0;
 
 	if (ch->sample) {
 		gf_isom_get_sample_rap_roll_info(ch->owner->mov, ch->track, ch->sample_num, &ch->sap_3, &ch->sap_4_type, &ch->roll);
@@ -820,7 +818,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength, &ch_layout);
 		if (PL>0) {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT((u32) PL));
-			ch->check_mhas_pl = GF_FALSE;
+			ch->check_mhas_pl = 0;
 			if (ch_layout)
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 		}
