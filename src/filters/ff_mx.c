@@ -39,11 +39,17 @@
 
 #ifdef GPAC_HAS_FFMPEG
 
+#if (LIBAVCODEC_VERSION_MAJOR>58)
+#include <libavutil/mastering_display_metadata.h>
+#endif
+
+
 typedef struct
 {
 	AVStream *stream;
 	Bool ts_rescale;
 	AVRational in_scale;
+	u32 in_timescale;
 	Bool in_seg_flush;
 	u32 cts_shift;
 	s64 ts_shift;
@@ -75,7 +81,8 @@ typedef struct
 	char *dst, *mime, *ffmt, *ext;
 	Double start, speed;
 	u32 block_size;
-	Bool interleave, nodisc, ffiles, noinit, keepts;
+	Bool nodisc, ffiles, noinit, keepts;
+	GF_Fraction ileave;
 
 	AVFormatContext *muxer;
 	//decode options
@@ -97,6 +104,8 @@ typedef struct
 
 	u32 cur_file_idx_plus_one;
 	u32 probe_init;
+
+	u64 ts_regulate;
 
 #if (LIBAVCODEC_VERSION_MAJOR < 59)
 	AVPacket pkt;
@@ -338,6 +347,12 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 
 static GF_Err ffmx_initialize(GF_Filter *filter)
 {
+	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
+	if (ctx->ileave.num<=0) {
+		ctx->ileave.num = 0;
+	} else {
+		ctx->ts_regulate = ctx->ileave.num;
+	}
 	return ffmx_initialize_ex(filter, GF_FALSE);
 }
 static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *seg_name)
@@ -675,6 +690,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 	if (ctx->status==FFMX_STATE_EOS) return GF_EOS;
 	else if (ctx->status==FFMX_STATE_ERROR) return GF_SERVICE_ERROR;
 
+	u32 nb_skip = 0;
 	nb_segs_done = 0;
 	nb_done = 0;
 	nb_suspended = 0;
@@ -718,6 +734,12 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Packet with no CTS assigned, cannot store to track, ignoring\n"));
 				gf_filter_pid_drop_packet(ipid);
 				continue;
+			}
+
+			//ahead of our interleaving window, don't write yet - av_interleaved_write_frame is not enough for performing regulation
+			if (ctx->ileave.num && gf_timestamp_greater(cts+st->ts_shift, st->in_timescale, ctx->ts_regulate, ctx->ileave.den)) {
+				nb_skip++;
+				break;
 			}
 
 			p = gf_filter_pck_get_property(ipck, GF_PROP_PCK_FILENUM);
@@ -780,7 +802,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				ffmx_inject_webvtt(ipck, pkt);
 			}
 
-			if (ctx->interleave) {
+			if (ctx->ileave.num) {
 				res = av_interleaved_write_frame(ctx->muxer, pkt);
 			} else {
 				res = av_write_frame(ctx->muxer, pkt);
@@ -797,6 +819,10 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			ctx->nb_pck_in_seg++;
 			FF_RELEASE_PCK(pkt)
 		}
+	}
+
+	if (nb_skip + nb_done >= nb_pids) {
+		ctx->ts_regulate += ctx->ileave.num;
 	}
 
 	//done writing file
@@ -852,6 +878,19 @@ static GF_Err ffmx_process(GF_Filter *filter)
 	}
 	return GF_OK;
 }
+
+//dovi_meta.h not exported in old releases, just redefine
+typedef struct {
+    u8 dv_version_major;
+    u8 dv_version_minor;
+    u8 dv_profile;
+    u8 dv_level;
+    u8 rpu_present_flag;
+    u8 el_present_flag;
+    u8 bl_present_flag;
+    u8 dv_bl_signal_compatibility_id;
+} Ref_FFAVDoviRecord;
+
 
 static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -1096,6 +1135,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		avst->time_base.num = 1;
 	}
 	st->in_scale = avst->time_base;
+	st->in_timescale = avst->time_base.den;
 
 	avst->start_time = 0;
 	avst->duration = 0;
@@ -1141,13 +1181,16 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			if (p) avst->codecpar->format =  ffmpeg_audio_fmt_from_gpac(p->value.uint);
 		}
 
-		ch_layout = GF_AUDIO_CH_FRONT_CENTER;
+		ch_layout = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p)
 			ch_layout = p->value.longuint;
 		else if (avst->codecpar->channels==2)
 			ch_layout = GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT;
-		avst->codecpar->channel_layout = ffmpeg_channel_layout_from_gpac(ch_layout);
+		else if (avst->codecpar->channels==1)
+			ch_layout = GF_AUDIO_CH_FRONT_CENTER;
+
+		avst->codecpar->channel_layout = ch_layout ? ffmpeg_channel_layout_from_gpac(ch_layout) : 0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 		if (p && (p->value.sint<0) && samplerate) {
@@ -1165,6 +1208,91 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 
 	ffmpeg_tags_from_gpac(pid, &avst->metadata);
+
+	//remap our props to side data
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_MATRIX);
+	if (p && (p->type==GF_PROP_UINT_LIST) && (p->value.uint_list.nb_items==9)) {
+		u8 *data = av_malloc(sizeof(u32) * 9);
+		if (data) {
+			memcpy(data, p->value.uint_list.vals, sizeof(u32)*9);
+			av_stream_add_side_data(st->stream, AV_PKT_DATA_DISPLAYMATRIX, data, 32*9);
+		}
+	}
+#if (LIBAVCODEC_VERSION_MAJOR>58)
+	//icc profile if any
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ICC_PROFILE);
+	if (p && ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_CONST_DATA))) {
+		u8 *data = av_malloc(p->value.data.size);
+		if (data) {
+			memcpy(data, p->value.data.ptr, p->value.data.size);
+			av_stream_add_side_data(st->stream, AV_PKT_DATA_ICC_PROFILE, data, p->value.data.size);
+		}
+	}
+	//clli
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CONTENT_LIGHT_LEVEL);
+	if (p && ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_CONST_DATA)) && (p->value.data.size==4)) {
+		GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+		AVContentLightMetadata *data = av_malloc(sizeof(AVContentLightMetadata));
+		if (data) {
+			data->MaxCLL = gf_bs_read_u16(bs);
+			data->MaxFALL = gf_bs_read_u16(bs);;
+			av_stream_add_side_data(st->stream, AV_PKT_DATA_CONTENT_LIGHT_LEVEL, (u8*) data, sizeof(AVContentLightMetadata));
+		}
+		gf_bs_del(bs);
+	}
+	//mdcv
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MASTER_DISPLAY_COLOUR);
+	if (p && ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_CONST_DATA)) && (p->value.data.size==24)) {
+		u8 mdcv[24];
+		const int chroma_den = 50000;
+		const int luma_den = 10000;
+		memset(mdcv, 0, sizeof(u8)*24);
+		AVMasteringDisplayMetadata *data = av_malloc(sizeof(AVMasteringDisplayMetadata));
+		GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+		if (data) {
+			data->display_primaries[1][0].num = gf_bs_read_u16(bs);
+			data->display_primaries[1][0].den = chroma_den;
+			data->display_primaries[1][1].num = gf_bs_read_u16(bs);
+			data->display_primaries[1][1].den = chroma_den;
+			data->display_primaries[2][0].num = gf_bs_read_u16(bs);
+			data->display_primaries[2][0].den = chroma_den;
+			data->display_primaries[2][1].num = gf_bs_read_u16(bs);
+			data->display_primaries[2][1].den = chroma_den;
+			data->display_primaries[0][0].num = gf_bs_read_u16(bs);
+			data->display_primaries[0][0].den = chroma_den;
+			data->display_primaries[0][1].num = gf_bs_read_u16(bs);
+			data->display_primaries[0][1].den = chroma_den;
+			data->white_point[0].num = gf_bs_read_u16(bs);
+			data->white_point[0].den = chroma_den;
+			data->white_point[1].num = gf_bs_read_u16(bs);
+			data->white_point[1].den = chroma_den;
+			data->max_luminance.num = gf_bs_read_u32(bs);
+			data->max_luminance.den = luma_den;
+			data->min_luminance.num = gf_bs_read_u32(bs);
+			data->min_luminance.den = luma_den;
+			av_stream_add_side_data(st->stream, AV_PKT_DATA_MASTERING_DISPLAY_METADATA, (u8*) data, sizeof(AVMasteringDisplayMetadata));
+    	}
+    	gf_bs_del(bs);
+	}
+	//dolby vision
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
+	if (p && ((p->type==GF_PROP_DATA) || (p->type==GF_PROP_CONST_DATA)) && (p->value.data.size==24)) {
+		GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+		Ref_FFAVDoviRecord *data = av_malloc(sizeof(Ref_FFAVDoviRecord));
+		if (data) {
+			data->dv_version_major = gf_bs_read_u8(bs);
+			data->dv_version_minor = gf_bs_read_u8(bs);
+			data->dv_profile = gf_bs_read_int(bs, 7);
+			data->dv_level = gf_bs_read_int(bs, 6);
+			data->rpu_present_flag = gf_bs_read_int(bs, 1);
+			data->el_present_flag = gf_bs_read_int(bs, 1);
+			data->bl_present_flag = gf_bs_read_int(bs, 1);
+			data->dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
+			av_stream_add_side_data(st->stream, AV_PKT_DATA_DOVI_CONF, (u8*) data, sizeof(Ref_FFAVDoviRecord));
+		}
+		gf_bs_del(bs);
+	}
+#endif
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
 	if (p && (p->value.uint==1)) {
@@ -1308,7 +1436,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(dst), "location of destination file or remote URL", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(interleave), "write frame in interleave mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ileave), "interleave window duration in second, a value of 0 disable interleaving", GF_PROP_FRACTION, "1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nodisc), "ignore stream configuration changes while multiplexing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
