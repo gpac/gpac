@@ -9204,7 +9204,7 @@ next_block:
 	if (strmtyp!=0x1) {
 		cur_main_ac3 = 0;
 		//all blocks gathered and we have seen this substreamid, done with whole frame
-		if ( (nb_blocks_main==6) && ( (main_substreams >> substreamid) & 0x1)) {
+		if ( (nb_blocks_main>=6) && ( (main_substreams >> substreamid) & 0x1)) {
 			eac3_update_channels(hdr);
 			gf_bs_seek(bs, pos);
 			return GF_TRUE;
@@ -9295,7 +9295,8 @@ next_block:
 		hdr->streams[substreamid].acmod = acmod;
 		hdr->streams[substreamid].fscod = fscod;
 		hdr->brcode = 0;
-		hdr->nb_streams++;
+		if (hdr->nb_streams<8)
+			hdr->nb_streams++;
 	}
 	//dependent stream, record max substream ID of dep and store chan map
 	else {
