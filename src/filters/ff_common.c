@@ -87,9 +87,10 @@ static const GF_FF_TAGREG FF2GPAC_Tags[] =
 
 void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata)
 {
+	const GF_PropertyValue *p;
 	u32 i=0;
 	while (FF2GPAC_Tags[i].ff_name) {
-		const GF_PropertyValue *p = NULL;
+		p = NULL;
 		if (FF2GPAC_Tags[i].gpac_p4cc) {
 			p = gf_filter_pid_get_property(pid, FF2GPAC_Tags[i].gpac_p4cc);
 		} else {
@@ -110,6 +111,10 @@ void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata)
 		}
 		i++;
 	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_HANDLER);
+	if (p && (p->type==GF_PROP_STRING) && p->value.string && !strstr(p->value.string, "@GPAC")) {
+		av_dict_set(metadata, "title", p->value.string, 0);
+	}
 }
 
 void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
@@ -118,6 +123,19 @@ void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
 	while (metadata) {
 		ent = av_dict_get(metadata, "", ent, AV_DICT_IGNORE_SUFFIX);
 		if (!ent) break;
+		if (!strncmp(ent->key, "NUMBER_OF_FRAMES", 16)) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT( atoi(ent->value) ) );
+			continue;
+		}
+		if (!strncmp(ent->key, "_STATISTICS_WRITING_APP", 23)) {
+			gf_filter_pid_set_property_str(pid, "tool", &PROP_STRING(ent->value));
+			continue;
+		}
+		if (!strncmp(ent->key, "_STATISTICS_WRITING_DATE_UTC", 28)) {
+			gf_filter_pid_set_property_str(pid, "created_utc", &PROP_STRING(ent->value));
+			continue;
+		}
+		Bool found=GF_FALSE;
 		u32 i=0;
 		while (FF2GPAC_Tags[i].ff_name) {
 			if (strcmp(FF2GPAC_Tags[i].ff_name, ent->key)) {
@@ -133,7 +151,17 @@ void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
 				if (FF2GPAC_Tags[i].gpac_tag == GF_ISOM_ITUNE_NAME)
 					gf_filter_pid_set_property(pid, GF_PROP_PID_ISOM_HANDLER, &PROP_STRING(ent->value) );
 			}
+			found = GF_TRUE;
 			break;
+		}
+		if (!found) {
+			char *name=NULL;
+			gf_dynstrcat(&name, "meta:", NULL);
+			gf_dynstrcat(&name, ent->key, NULL);
+			if (name) {
+				gf_filter_pid_set_property_dyn(pid, name, &PROP_STRING(ent->value) );
+				gf_free(name);
+			}
 		}
 	}
 }
