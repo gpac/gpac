@@ -5395,6 +5395,8 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 			return sps_id;
 		}
 	}
+	if (gf_bs_is_overflow(bs))
+		return -1;
 	return sps_id;
 }
 
@@ -5512,6 +5514,8 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	gf_bs_read_int_log(bs, 1, "constrained_intra_pred");
 	pps->redundant_pic_cnt_present = gf_bs_read_int_log(bs, 1, "redundant_pic_cnt_present");
 
+	if (gf_bs_is_overflow(bs))
+		return -1;
 	return pps_id;
 }
 
@@ -7996,7 +8000,8 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 	vps->base_layer_available_flag = gf_bs_read_int_log(bs, 1, "base_layer_available_flag");
 	vps->max_layers = 1 + gf_bs_read_int_log(bs, 6, "max_layers_minus1");
 	if (vps->max_layers > MAX_LHVC_LAYERS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] sorry, %d layers in VPS but only %d supported\n", vps->max_layers, MAX_LHVC_LAYERS));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] %d layers in VPS but only %d supported in GPAC\n", vps->max_layers, MAX_LHVC_LAYERS));
+		vps->max_layers = MAX_LHVC_LAYERS;
 		return -1;
 	}
 	vps->max_sub_layers = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1") + 1;
@@ -8258,7 +8263,12 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 				return -1;
 			}
 		} else {
-			sps->rep_format_idx = vps->rep_format_idx[layer_id];
+			if (layer_id<MAX_LHVC_LAYERS) {
+				u32 idx = vps->layer_id_in_vps[layer_id];
+				if (idx>15)
+					return -1;
+				sps->rep_format_idx = vps->rep_format_idx[idx];
+			}
 		}
 		sps->width = vps->rep_formats[sps->rep_format_idx].pic_width_luma_samples;
 		sps->height = vps->rep_formats[sps->rep_format_idx].pic_height_luma_samples;
@@ -8471,7 +8481,8 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 #endif
 
 	}
-
+	if (gf_bs_is_overflow(bs))
+		return -1;
 	return sps_id;
 }
 
@@ -8605,6 +8616,9 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 #endif
 
 	}
+
+	if (gf_bs_is_overflow(bs))
+		return -1;
 	return pps_id;
 }
 
@@ -10311,8 +10325,9 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 		vps->state = 1;
 	}
 	vps->max_layers = 1 + gf_bs_read_int_log(bs, 6, "max_layers");
-	if (vps->max_layers > MAX_LHVC_LAYERS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sorry, %d layers in VPS but only %d supported\n", vps->max_layers, MAX_LHVC_LAYERS));
+	if (vps->max_layers > VVC_MAX_LAYERS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] %d layers in VPS but only %d supported in GPAC\n", vps->max_layers, VVC_MAX_LAYERS));
+		vps->max_layers = VVC_MAX_LAYERS;
 		return -1;
 	}
 	vps->max_sub_layers = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1") + 1;
@@ -10377,6 +10392,10 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 	}
 
 	//TODO, parse multilayer stuff
+
+
+	if (gf_bs_is_overflow(bs))
+		return -1;
 	return vps_id;
 }
 
@@ -10881,6 +10900,9 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		//WE DON'T PARSE vui_payload_bit_equal_to_one because we dont parse the rest (sps extensions)
 		//if needed, see rewrite_vui code
 	}
+
+	if (gf_bs_is_overflow(bs))
+		return -1;
 	return sps_id;
 }
 
@@ -11174,6 +11196,9 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		//while ( more_rbsp_data()) bit(1);
 	}
 	//rbsp_trailing_bits()
+
+	if (gf_bs_is_overflow(bs))
+		return -1;
 	return pps_id;
 }
 

@@ -239,6 +239,8 @@ typedef struct
 	u32 clli_crc, mdcv_crc;
 
 	u32 nb_dv_rpu, nb_dv_el;
+
+	u32 valid_ps_flags;
 } GF_NALUDmxCtx;
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
@@ -995,11 +997,15 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 	for (i = 0; i < vps->max_layers; i++) {
 		LHEVC_DependentLayer *dep;
 		u32 j, k;
+		if (i==MAX_LHVC_LAYERS) break;
+
 		GF_SAFEALLOC(dep, LHEVC_DependentLayer);
 		if (!dep) return GF_OUT_OF_MEM;
 
 		dep->dependent_layerID = vps->layer_id_in_nuh[i];
 		for (j = 0; j < vps->max_layers; j++) {
+			if (j==MAX_LHVC_LAYERS) break;
+
 			if (vps->direct_dependency_flag[dep->dependent_layerID][j]) {
 				dep->dependent_on_layerID[dep->num_layers_dependent_on] = j;
 				dep->num_layers_dependent_on ++;
@@ -2055,9 +2061,11 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		case GF_HEVC_NALU_SEQ_PARAM:
 			list = ctx->sps;
 			flush_au = GF_TRUE;
+			ctx->valid_ps_flags |= 1;
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
 			list = ctx->pps;
+			ctx->valid_ps_flags |= 1<<1;
 			break;
 		default:
 			assert(0);
@@ -2073,9 +2081,11 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		case GF_VVC_NALU_SEQ_PARAM:
 			list = ctx->sps;
 			flush_au = GF_TRUE;
+			ctx->valid_ps_flags |= 1;
 			break;
 		case GF_VVC_NALU_PIC_PARAM:
 			list = ctx->pps;
+			ctx->valid_ps_flags |= 1<<1;
 			break;
 		case GF_VVC_NALU_DEC_PARAM:
 			if (!ctx->vvc_dci) ctx->vvc_dci = gf_list_new();
@@ -2096,11 +2106,13 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 	} else {
 		switch (ps_type) {
 		case GF_AVC_NALU_SEQ_PARAM:
+			ctx->valid_ps_flags |= 1;
 			flush_au = GF_TRUE;
 		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 			list = ctx->sps;
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
+			ctx->valid_ps_flags |= 1<<1;
 			list = ctx->pps;
 			alt_list = ctx->pps_svc;
 			break;
@@ -3059,6 +3071,15 @@ GF_Err naludmx_process(GF_Filter *filter)
 			}
 			if (ctx->opid)
 				gf_filter_pid_set_eos(ctx->opid);
+
+			if ((ctx->valid_ps_flags & 0x03) != 0x03) {
+				ctx->nb_nalus = 0;
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+			if (ctx->nb_nalus && !(ctx->nb_i|ctx->nb_p|ctx->nb_b|ctx->nb_idr|ctx->nb_si|ctx->nb_sp|ctx->nb_cra)) {
+				ctx->nb_nalus = 0;
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			return GF_EOS;
 		}
 		return GF_OK;
