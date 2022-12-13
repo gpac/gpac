@@ -174,6 +174,7 @@ static const struct dom_event_def {
 	{ GF_EVENT_STREAMLIST, "gpac_streamlist_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TIMESHIFT_DEPTH, "gpac_timeshift_depth_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_CODEC_SLOW, "gpac_codec_slow", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_CODEC_OK, "gpac_codec_ok", GF_DOM_EVENT_GPAC},
 
 
 #if 0

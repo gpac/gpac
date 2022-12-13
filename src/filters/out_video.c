@@ -182,6 +182,7 @@ typedef struct
 
 	Bool force_reconfig_pid;
 	u32 pid_vflip, pid_vrot;
+	Bool too_slow;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -244,15 +245,26 @@ static void vout_reset_overlay(GF_Filter *filter, GF_VideoOutCtx *ctx)
 static void vout_set_caption(GF_VideoOutCtx *ctx)
 {
 	GF_Event evt;
+	const GF_PropertyValue *p;
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_SET_CAPTION;
-	evt.caption.caption = gf_filter_pid_orig_src_args(ctx->pid, GF_FALSE);
-	if (!evt.caption.caption) evt.caption.caption = gf_filter_pid_get_source_filter_name(ctx->pid);
-	if (evt.caption.caption) {
+
+	evt.caption.caption = "GPAC "GPAC_VERSION;
+	if (ctx->pid) {
+		p = gf_filter_pid_get_property_str(ctx->pid, "title");
+		evt.caption.caption = p ? p->value.string : NULL;
+
+		if (!evt.caption.caption) evt.caption.caption = gf_filter_pid_orig_src_args(ctx->pid, GF_FALSE);
+		if (!evt.caption.caption) evt.caption.caption = gf_filter_pid_get_source_filter_name(ctx->pid);
+
 		if (!strncmp(evt.caption.caption, "src=", 4)) evt.caption.caption += 4;
 		if (!strncmp(evt.caption.caption, "./", 2)) evt.caption.caption += 2;
-		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	}
+	char sep_c = gf_filter_get_sep(ctx->filter, GF_FS_SEP_ARGS);
+	char *sep = strchr(evt.caption.caption, sep_c);
+	if (sep) sep[0] = 0;
+	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	if (sep) sep[0] = sep_c;
 }
 
 static GF_Err resize_video_output(GF_VideoOutCtx *ctx, u32 dw, u32 dh)
@@ -1016,6 +1028,8 @@ static GF_Err vout_initialize(GF_Filter *filter)
 		gf_filter_load_script(filter, "$GSHARE/scripts/vout.js", "compositor");
 	}
 	nb_vout_inst++;
+
+	vout_set_caption(ctx);
 	return GF_OK;
 }
 
@@ -1936,7 +1950,20 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 			if (ABS(diff)>2000) {
 				GF_LOG((diff<0) ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU"/%d is "LLD" us too %s\n", gf_sys_clock(), cts, ctx->timescale, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
+
+				if ((diff>5000000) && !ctx->too_slow) {
+					GF_Event evt;
+					evt.type = GF_EVENT_CODEC_SLOW;
+					gf_filter_ui_event(ctx->filter, &evt);
+					ctx->too_slow = GF_TRUE;
+				}
 			} else {
+				if (ctx->too_slow) {
+					GF_Event evt;
+					evt.type = GF_EVENT_CODEC_OK;
+					gf_filter_ui_event(ctx->filter, &evt);
+					ctx->too_slow = GF_FALSE;
+				}
 				diff = 0;
 			}
 
