@@ -1372,7 +1372,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 			for(c=0;c<3;c++) {
 				gf_bs_write_u16(bs, mdcv->display_primaries[c].x);
-				gf_bs_write_u16(bs, mdcv->display_primaries[c].x);
+				gf_bs_write_u16(bs, mdcv->display_primaries[c].y);
 			}
 			gf_bs_write_u16(bs, mdcv->white_point_x);
 			gf_bs_write_u16(bs, mdcv->white_point_y);
