@@ -833,8 +833,8 @@ retry:
 			}
 			if (too_slow != mo->odm->too_slow) {
 				mo->odm->too_slow = too_slow;
-				if (mo->odm->parentscene && too_slow)
-					gf_scene_notify_event(mo->odm->parentscene, GF_EVENT_CODEC_SLOW, NULL, NULL, GF_OK, GF_FALSE);
+				if (mo->odm->parentscene)
+					gf_scene_notify_event(mo->odm->parentscene, too_slow ? GF_EVENT_CODEC_SLOW : GF_EVENT_CODEC_OK, NULL, NULL, GF_OK, GF_FALSE);
 			}
 		}
 	}

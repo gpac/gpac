@@ -40,7 +40,8 @@ let win_id = 0;
 let drop=0;
 let fullscreen = false;
 let paused=0;
-let duration=-1
+let duration=-1;
+let codec_slow=false;
 
 let audio_only = false;
 let ol_buffer = null;
@@ -185,6 +186,18 @@ let last_x=0, last_y=0;
 
 session.set_event_fun( (evt)=> {
 	if (evt.type != GF_FEVT_USER) return 0;
+
+	if ((evt.ui_type == GF_EVENT_CODEC_SLOW) || (evt.ui_type == GF_EVENT_CODEC_OK)) {
+		codec_slow = (evt.ui_type == GF_EVENT_CODEC_SLOW) ? true : false;
+
+		if (overlay_type==OL_AUTH) return 0;
+		print('trigger overlay');
+		ol_visible = false;
+		overlay_type=OL_PLAY;
+		toggle_overlay();
+		update_play();
+		return false;
+	}
 
 	try {
 		if(evt.window != win_id) return true;
@@ -518,9 +531,11 @@ function update_play()
 		ol_canvas.fill(brush);
 	}
 
-	if (paused || (speed != 1)) {
-		text.fontsize = 16; 
-		if (paused)
+	if (paused || (speed != 1) || codec_slow) {
+		text.fontsize = 16;
+		if (codec_slow)
+			text.set_text('Codec Too Slow !');
+		else if (paused)
 			text.set_text((paused==2) ? 'Step mode' : 'Paused');
 		else
 			text.set_text('Speed: ' + speed);
@@ -528,7 +543,7 @@ function update_play()
 		mx.translate(0, ol_height/4);
 		ol_canvas.matrix = mx;
 		ol_canvas.path = text;
-		brush.set_color('cyan');
+		brush.set_color(codec_slow ? 'red' : 'cyan');
 		ol_canvas.fill(brush);
 		brush.set_color('white');
 	}
