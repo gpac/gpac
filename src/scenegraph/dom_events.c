@@ -403,7 +403,7 @@ Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGr
 				default:
 					continue;
 				}
-				if (listened_event->type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
+				if (listened_event->type <= GF_EVENT_LAST_MOUSE_COORDS) event->has_ui_events=1;
 				if (listened_event->type != event->type) continue;
 				if (listened_event->parameter && (listened_event->parameter != event->detail)) continue;
 				event->currentTarget = et;

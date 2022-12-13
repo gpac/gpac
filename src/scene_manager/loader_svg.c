@@ -1079,7 +1079,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		/*if event is a key event, register it with root*/
 		if (!par && gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_event, GF_FALSE, GF_FALSE, &info) == GF_OK) {
 			XMLEV_Event *ev = (XMLEV_Event *)info.far_ptr;
-			if ((ev->type>=GF_EVENT_KEYUP) && (ev->type<=GF_EVENT_TEXTINPUT)) par = (SVG_Element*) listener->sgprivate->scenegraph->RootNode;
+			if ((ev->type >= GF_EVENT_KEYUP) && (ev->type <= GF_EVENT_TEXTINPUT)) par = (SVG_Element*) listener->sgprivate->scenegraph->RootNode;
 		}
 
 		if (post_pone) {
