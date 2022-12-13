@@ -4973,6 +4973,7 @@ static rmtError Remotery_Constructor(Remotery* rmt)
     rmt->thread = NULL;
     rmt->map_message_queue_fn = NULL;
     rmt->map_message_queue_data = NULL;
+    rmt->sampling_disabled = 0;
 
     #if RMT_USE_CUDA
         rmt->cuda.CtxSetCurrent = NULL;

@@ -153,7 +153,7 @@ u64 gf_sys_clock_high_res()
 
 #endif
 
-static Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown);
+Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown);
 
 
 GF_EXPORT
@@ -1128,7 +1128,7 @@ static void gpac_rmt_input_handler(const char* text, void* context)
 }
 #endif
 
-static Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown)
+Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown)
 {
 #ifndef GPAC_DISABLE_REMOTERY
 	if (start && !remotery_handle) {
