@@ -1388,12 +1388,6 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!ctx->out_pid) {
 		ctx->out_pid = gf_filter_pid_new(filter);
 	}
-	{
-		char szCodecName[1000];
-		sprintf(szCodecName, "ffenc:%s", codec->name ? codec->name : "unknown");
-		gf_filter_set_name(filter, szCodecName);
-		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
-	}
 	if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffenc_process_audio;
 	} else {
@@ -1882,8 +1876,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	else if (ctx->gop_size) ctx->encoder->gop_size = ctx->gop_size;
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
-	if (codec->capabilities & AV_CODEC_CAP_AUTO_THREADS)
-		ctx->encoder->thread_count = 0;
+	ctx->encoder->thread_count = 0;
 
 	//setup 2 pass encoding
 	if (ctx->encoder->flags & (AV_CODEC_FLAG_PASS1|AV_CODEC_FLAG_PASS2)) {
@@ -1940,6 +1933,16 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (ctx->c) gf_free(ctx->c);
 	ctx->c = gf_strdup(codec->name);
+
+	{
+		char szCodecName[1000];
+		if (ctx->encoder->thread_count>1)
+			sprintf(szCodecName, "ffenc:%s (%d frames)", codec->name ? codec->name : "unknown", ctx->encoder->thread_count);
+		else
+			sprintf(szCodecName, "ffenc:%s", codec->name ? codec->name : "unknown");
+		gf_filter_set_name(filter, szCodecName);
+		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
+	}
 
 
 	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
