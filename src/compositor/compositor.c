@@ -3479,7 +3479,7 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 {
 	Bool ret;
 
-	if ( (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL)) {
+	if ( (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type <= GF_EVENT_LAST_MOUSE)) {
 		GF_Event evt = *event;
 		gf_sc_input_sensor_mouse_input(compositor, &evt.mouse);
 	}

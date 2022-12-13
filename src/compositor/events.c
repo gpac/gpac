@@ -43,7 +43,7 @@ static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
 
 static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 {
-	if (event->type>GF_EVENT_MOUSEMOVE) return GF_FALSE;
+	if (event->type > GF_EVENT_MOUSEMOVE) return GF_FALSE;
 
 	if (compositor->edited_text)
 		return GF_FALSE;
@@ -655,7 +655,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
-	if (event->type<=GF_EVENT_MOUSEWHEEL) {
+	if (event->type <= GF_EVENT_LAST_MOUSE) {
 		Fixed X = compositor->hit_world_point.x;
 		Fixed Y = compositor->hit_world_point.y;
 		/*flip back to origin at top-left*/
@@ -785,7 +785,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			compositor->sensor_type = cursor_type;
 		}
 	}
-	else if ((event->type>=GF_EVENT_KEYUP) && (event->type<=GF_EVENT_LONGKEYPRESS)) {
+	else if ((event->type >= GF_EVENT_KEYUP) && (event->type <= GF_EVENT_LONGKEYPRESS)) {
 		GF_Node *target;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.key_flags = event->key.flags;
@@ -1068,7 +1068,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 #endif
 
 	/*preprocess text selection and edition*/
-	if ((ev->type<GF_EVENT_MOUSEWHEEL) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+	if ((ev->type < GF_EVENT_LAST_MOUSE_COORDS) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		if (compositor->text_selection) {
 			if (ev->type==GF_EVENT_MOUSEUP) {
 				if (compositor->store_text_state==GF_SC_TSEL_ACTIVE)
@@ -1889,7 +1889,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *
 Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
 {
 	/*filter mouse events and other events (key...)*/
-	if (ev->type>GF_EVENT_MOUSEWHEEL) {
+	if (ev->type > GF_EVENT_MOUSEWHEEL) {
 		Bool ret = GF_FALSE;
 		/*send text edit*/
 		if (compositor->edited_text) {
@@ -1989,7 +1989,7 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	s32 x=0, y=0;
 	Bool switch_coords = GF_FALSE;
 	Bool ret = GF_FALSE;
-	if (evt->type<=GF_EVENT_MOUSEWHEEL) {
+	if (evt->type <= GF_EVENT_LAST_MOUSE) {
 		if (compositor->sgaze) {
 			compositor->gaze_x = evt->mouse.x;
 			compositor->gaze_y = evt->mouse.y;

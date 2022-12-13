@@ -368,7 +368,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	if (!cam->navigate_mode && !(keys & GF_KEY_MOD_ALT) ) return 0;
 	x = y = 0;
 	/*renorm between -1, 1*/
-	if (ev->type<=GF_EVENT_MOUSEWHEEL) {
+	if (ev->type <= GF_EVENT_LAST_MOUSE) {
 		x = gf_divfix( INT2FIX(ev->mouse.x - (s32) compositor->visual->width/2), INT2FIX(compositor->visual->width));
 		y = gf_divfix( INT2FIX(ev->mouse.y - (s32) compositor->visual->height/2), INT2FIX(compositor->visual->height));
 	}
@@ -738,7 +738,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 
 	x = y = 0;
 	/*renorm between -1, 1*/
-	if (ev->type<=GF_EVENT_MOUSEWHEEL) {
+	if (ev->type <= GF_EVENT_LAST_MOUSE) {
 		x = INT2FIX(ev->mouse.x);
 		y = INT2FIX(ev->mouse.y);
 	}

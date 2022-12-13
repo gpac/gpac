@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -256,7 +256,7 @@ static Bool ds_is_enabled(GF_Node *n)
 
 static Bool OnDiscSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
-	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
+	Bool is_mouse = (ev->type <= GF_EVENT_LAST_MOUSE) ? 1 : 0;
 	M_DiscSensor *ds = (M_DiscSensor *)sh->sensor;
 	DiscSensorStack *stack = (DiscSensorStack *) gf_node_get_private(sh->sensor);
 
@@ -395,7 +395,7 @@ static Bool ps2D_is_enabled(GF_Node *n)
 
 static Bool OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
-	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
+	Bool is_mouse = (ev->type <= GF_EVENT_LAST_MOUSE) ? 1 : 0;
 	M_PlaneSensor2D *ps = (M_PlaneSensor2D *)sh->sensor;
 	PS2DStack *stack = (PS2DStack *) gf_node_get_private(sh->sensor);
 
@@ -646,7 +646,7 @@ static Bool ts_is_enabled(GF_Node *n)
 
 static Bool OnTouchSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
-	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL);
+	Bool is_mouse = (ev->type <= GF_EVENT_LAST_MOUSE);
 	M_TouchSensor *ts = (M_TouchSensor *)sh->sensor;
 
 	/*this is not specified in VRML, however we consider that a de-enabled sensor will not sent deactivation events*/
@@ -826,7 +826,7 @@ static Bool ps_is_enabled(GF_Node *n)
 
 static Bool OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
-	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
+	Bool is_mouse = (ev->type <= GF_EVENT_LAST_MOUSE) ? 1 : 0;
 	M_PlaneSensor *ps = (M_PlaneSensor *)sh->sensor;
 	PSStack *stack = (PSStack *) gf_node_get_private(sh->sensor);
 
@@ -982,7 +982,7 @@ static Bool cs_is_enabled(GF_Node *n)
 
 static Bool OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
-	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
+	Bool is_mouse = (ev->type <= GF_EVENT_LAST_MOUSE) ? 1 : 0;
 	M_CylinderSensor *cs = (M_CylinderSensor *)sh->sensor;
 	CylinderSensorStack *st = (CylinderSensorStack *) gf_node_get_private(sh->sensor);
 
@@ -1185,7 +1185,7 @@ static Bool sphere_is_enabled(GF_Node *n)
 
 static Bool OnSphereSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
-	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
+	Bool is_mouse = (ev->type <= GF_EVENT_LAST_MOUSE) ? 1 : 0;
 	M_SphereSensor *sphere = (M_SphereSensor *)sh->sensor;
 	SphereSensorStack *st = (SphereSensorStack *) gf_node_get_private(sh->sensor);
 

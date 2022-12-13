@@ -39,117 +39,441 @@
  */
 
 
-/*
-		minimal event system
+/*! GPAC Event types
 
-	DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP FILTERING OF USER INPUT EVENTS
+	Event for which DOM event name is none are not exposed to DOM
+	Event for which no DOM event name is given use the default DOM event name
+
+	If the associated struct in \ref GF_Event is not indicated, no structure is used
 */
-
-/*! Event types*/
 typedef enum {
+	/*
+		Mouse events, MUST be first in list
+		DO NOT CHANGE ORDER of mouse and key events
+	*/
 
-	/******************************************************
-
-		Events used for both GPAC internals and DOM Events
-
-	*******************************************************/
-	/*MouseEvents*/
-	GF_EVENT_CLICK,
+	/*! mouse click event
+		associated struct: \ref GF_EventMouse
+		DOM Event: "click""
+	*/
+	GF_EVENT_CLICK = 1,
+	/*! mouse up event
+		associated struct: \ref GF_EventMouse
+		DOM Event: "mouseup"
+	*/
 	GF_EVENT_MOUSEUP,
+	/*! mouse down event
+		associated struct: \ref GF_EventMouse
+		DOM Event: "mousedown"
+	*/
 	GF_EVENT_MOUSEDOWN,
-	GF_EVENT_MOUSEOVER,
-	GF_EVENT_MOUSEOUT,
-	/*!! ALL MOUSE EVENTS SHALL BE DECLARED BEFORE MOUSEMOVE !! */
+	/*! mouse move event
+		associated struct: \ref GF_EventMouse
+		DOM Event: "mousemove"
+	*/
 	GF_EVENT_MOUSEMOVE,
-	/*mouse wheel event*/
+
+	GF_EVENT_LAST_MOUSE_COORDS = GF_EVENT_MOUSEMOVE,
+	/*! mouse wheel event
+		associated struct: \ref GF_EventMouse
+		DOM Event: "wheel"
+	*/
 	GF_EVENT_MOUSEWHEEL,
-
-	/*Key Events*/
-	GF_EVENT_KEYUP,
-	GF_EVENT_KEYDOWN, /* covers KeyDown, KeyPress and AccessKey */
-	GF_EVENT_LONGKEYPRESS,
-	/*character input*/
-	GF_EVENT_TEXTINPUT,
-
+	/*! mouse multitouch  event
+		associated struct: \ref GF_EventMultiTouch
+		DOM Event: none
+	*/
 	GF_EVENT_MULTITOUCH,
 
+	GF_EVENT_LAST_MOUSE = 10,
+
+	/*Key Events*/
+	GF_EVENT_FIRST_KEY = 20,
+
+	/*! keyup event
+		associated struct: \ref GF_EventKey
+		DOM Event: "keyup"
+	*/
+	GF_EVENT_KEYUP = GF_EVENT_FIRST_KEY,
+	/*! keydown event
+		associated struct: \ref GF_EventKey
+		DOM Event: "keydown", "keypress", "accesskey"
+	*/
+	GF_EVENT_KEYDOWN,
+	/*! long keypress event
+		associated struct: \ref GF_EventKey
+		DOM Event: "longaccesskey"
+	*/
+	GF_EVENT_LONGKEYPRESS,
+	/*! character input event
+		associated struct: \ref GF_EventChar
+		DOM Event: "textInput"
+	*/
+	GF_EVENT_TEXTINPUT,
+
+
+	/* Events used for GPAC internals only */
+	GF_EVENT_FIRST_INTERNAL = 30,
+
+	/*! unknown event - GPAC internal*/
+	GF_EVENT_UNKNOWN = GF_EVENT_FIRST_INTERNAL,
+	/*! same as mousedown, generated internally by GPAC (not by video modules) but sent to GUI
+		associated struct: \ref GF_EventMouse
+		DOM Event: "dblclick"
+	*/
+	GF_EVENT_DBLCLICK,
+
+	/*! scene attached event, dispatched when the root node of a scene is loaded and attached to the window or parent object (animation, inline, ...)
+		associated struct: none
+		DOM Event: "gpac_scene_attached"
+	*/
+	GF_EVENT_SCENE_ATTACHED,
+
+	/*! window size changed event -  indicate new w & h in .x end .y fields of event.
+		- When sent from gpac to a video plugin, indicates the output size should be changed. This is only sent when the plugin
+	manages the output video himself
+		- When sent from a video plugin to gpac, indicates the output size has been changed. This is only sent when the plugin
+	manages the output video himself
+
+		associated struct: \ref GF_EventSize
+		DOM Event: "gpac_size_changed"
+	*/
+	GF_EVENT_SIZE,
+
+	/*! signals the scene size (if indicated in scene) upon connection (sent to the user event proc only)
+		if scene size hasn't changed (seeking or other) this event is not sent
+
+		associated struct: \ref GF_EventSize
+		DOM Event: "gpac_scene_size"
+	*/
+	GF_EVENT_SCENE_SIZE,
+	/*! window show/hide (minimized or other).
+		associated struct: \ref GF_EventShow
+		DOM Event: "gpac_show_hide"
+	*/
+	GF_EVENT_SHOWHIDE,
+	/*! set mouse cursor
+		associated struct: \ref GF_EventCursor
+		DOM Event: "gpac_set_cursor"
+	*/
+	GF_EVENT_SET_CURSOR,
+
+	/*! set window caption
+		associated struct: \ref GF_EventCaption
+		DOM Event: "gpac_set_caption"
+	*/
+	GF_EVENT_SET_CAPTION,
+	/*! move window event
+		associated struct: \ref GF_EventMove
+		DOM Event: "gpac_move"
+	*/
+	GF_EVENT_MOVE,
+	/*! window needs repaint refresh - (whenever needed, eg restore, hide->show, background refresh, paint)
+		DOM Event: "gpac_refresh"
+	*/
+	GF_EVENT_REFRESH,
+	/*! app or window is being closed - a window ID value of 0 indicates global program close event
+		associated struct: \ref GF_EventShow
+		DOM Event: "gpac_quit"
+	*/
+	GF_EVENT_QUIT,
+	/*! video output setup message:
+		- when sent from gpac to plugin, indicates that the plugin should re-setup hardware context due to a window resize:
+			* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
+			* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems
+			and implementations, it could be possible to resize a window without destroying the GL context.
+
+		- when sent from plugin to gpac, indicates that hardware has been setup.
+		- when sent from gpac to user, indicate aspect ratio has been modified and video output is ready
+
+		associated struct: \ref GF_EventVideoSetup
+		DOM Event: none
+	*/
+	GF_EVENT_VIDEO_SETUP,
+	/*! set current GL context for the calling thread
+		DOM Event: none
+	*/
+	GF_EVENT_SET_GL,
+	/*! set display orientation - value is given by \ref GF_EventSize orientation field
+		associated struct: \ref GF_EventSize
+		DOM Event: none
+	*/
+	GF_EVENT_SET_ORIENTATION,
+	/*! queries the list of system colors - only exchanged between compositor/vout and video output module
+		associated struct: \ref GF_EventSysColors
+		DOM Event: none
+	*/
+	GF_EVENT_SYS_COLORS,
+
+	/*! indicates text has been pasted - from video output module to compositor/vout only
+		associated struct: \ref GF_EventClipboard
+		DOM Event: none
+	*/
+	GF_EVENT_PASTE_TEXT,
+	/*! queries for text to be copied - from video output module to compositor/vout only
+		associated struct: \ref GF_EventClipboard
+		DOM Event: none
+	*/
+	GF_EVENT_COPY_TEXT,
+
+	/*! root URL connected / disconnected event
+		associated struct: \ref GF_EventConnect
+		DOM Event: "gpac_on_connect"
+	*/
+	GF_EVENT_CONNECT,
+	/*! duration of root URL presentation
+		associated struct: \ref GF_EventDuration
+		DOM Event: "gpac_on_duration"
+	*/
+	GF_EVENT_DURATION,
+	/*! End of scene playback event
+ 		DOM Event:  "gpac_eos"
+	*/
+	GF_EVENT_EOS,
+	/*! user and pass query event
+		associated struct: \ref GF_EventAuthorize
+		DOM Event: "gpac_authorization"
+	*/
+	GF_EVENT_AUTHORIZATION,
+	/*! user app should load or jump to the given URL
+		associated struct: \ref GF_EventNavigate
+ 		DOM Event: "gpac_navigate"
+	*/
+	GF_EVENT_NAVIGATE,
+	/*! indicates the link or its description under the mouse pointer
+		associated struct: \ref GF_EventNavigate
+ 		DOM Event: "gpac_navigate_info"
+	*/
+	GF_EVENT_NAVIGATE_INFO,
+	/*! message from the compositor
+		associated struct: \ref GF_EventMessage
+ 		DOM Event: "gpac_on_message"
+	*/
+	GF_EVENT_MESSAGE,
+	/*! progress message from the compositor
+		associated struct: \ref GF_EventProgress
+  		DOM Event: "gpac_on_progress"
+	*/
+	GF_EVENT_PROGRESS,
+	/*! indicates viewpoint list has changed
+  		DOM Event: "gpac_viewpoints_changed"
+	*/
+	GF_EVENT_VIEWPOINTS,
+	/*! indicates stream list has changed - no struct associated - only used when no scene info is present
+  		DOM Event: "gpac_streamlist_changed"
+	*/
+	GF_EVENT_STREAMLIST,
+	/*! indicates a change in associated metadata - not implemented*/
+	GF_EVENT_METADATA,
+	/*! indicates a list of file paths has been dropped on window
+		associated struct: \ref GF_EventOpenFile
+		DOM Event: none
+	*/
+	GF_EVENT_DROPFILE,
+	/*! signal text editing is starting - only sent from compositor/vout to video output module, to show virtual keyboard
+		DOM Event: none
+	*/
+	GF_EVENT_TEXT_EDITING_START,
+	/*! signal text editing is done - only sent from compositor/vout to video output module, to hide virtual keyboard
+		DOM Event: none
+	*/
+	GF_EVENT_TEXT_EDITING_END,
+
+	/*! quality change is detected by compositor
+  		DOM Event: "gpac_quality_switch"
+	*/
+	GF_EVENT_QUALITY_SWITCHED,
+	/*! timeshift depth changed event
+  		DOM Event: "gpac_timeshift_depth_changed"
+	*/
+	GF_EVENT_TIMESHIFT_DEPTH,
+	/*! position in timeshift buffer changed event
+  		DOM Event: "gpac_timeshift_update"
+	*/
+	GF_EVENT_TIMESHIFT_UPDATE,
+	/*! position overflows the timeshift buffer event
+  		DOM Event: "gpac_timeshift_overflow"
+	*/
+	GF_EVENT_TIMESHIFT_OVERFLOW,
+	/*! position underruns the timeshift bufferevent  (eg fast forward / seek in the future)
+  		DOM Event: "gpac_timeshift_underrun"
+	*/
+	GF_EVENT_TIMESHIFT_UNDERRUN,
+	/*! main addon (injected from active URL) detected
+  		DOM Event: "gpac_addon_found"
+	*/
+	GF_EVENT_ADDON_DETECTED,
+	/*! main addon (injected from active URL) detected
+  		DOM Event: "gpac_main_addon_state"
+	*/
+	GF_EVENT_MAIN_ADDON_STATE,
+	/*! codec running too slow event
+  		DOM Event:  "gpac_codec_slow"
+	*/
+	GF_EVENT_CODEC_SLOW,
+	/*! codec running ok event (only sent after a codec too slow)
+  		DOM Event:  "gpac_codec_ok"
+	*/
+	GF_EVENT_CODEC_OK,
+	/*! sensor request event (send to app)
+		DOM Event: none
+	*/
+	GF_EVENT_SENSOR_REQUEST,
+	/*! orientation  (yaw pitch roll) changed event (send by app)
+		associated struct: \ref GF_EventOrientationSensor
+		DOM Event: none
+	*/
+	GF_EVENT_SENSOR_ORIENTATION,
+	/*! GPS location changed event (send by app)
+		associated struct: \ref GF_EventGPS
+		DOM Event: none
+	*/
+	GF_EVENT_SENSOR_GPS,
+
+
+	GF_EVENT_LAST_INTERNAL,
+
 	/******************************************************
-
 		Events used for DOM Events only
-
 	*******************************************************/
-	GF_EVENT_TEXTSELECT,
+	GF_EVENT_FIRST_DOM = 60,
 
-	/*DOM UIEvents*/
+
+	/*! viewport resize event, dispatched when viewport of a scene is being modified attached to the window or parent object
+		associated struct: none
+		DOM Event: "gpac_vp_changed"
+	*/
+	GF_EVENT_VP_RESIZE,
+
+	/*! text is being selected*/
+	GF_EVENT_TEXTSELECT,
+	/*! mouse over node event*/
+	GF_EVENT_MOUSEOVER,
+	/*! mouse out node event*/
+	GF_EVENT_MOUSEOUT,
+	/*! node focus in  event*/
 	GF_EVENT_FOCUSIN,
+	/*! node focus out event*/
 	GF_EVENT_FOCUSOUT,
+	/*! node activate event*/
 	GF_EVENT_ACTIVATE,
+	/*! node focus change event - not implemented*/
 	GF_EVENT_CHANGE,
+	/*! focus received event - not implemented*/
 	GF_EVENT_FOCUS,
+	/*! focus lost event - not implemented*/
 	GF_EVENT_BLUR,
-	/*SVG (HTML) Events*/
+	/*! document load event, also used for XHR */
 	GF_EVENT_LOAD,
+	/*! document unload event */
 	GF_EVENT_UNLOAD,
+	/*! document abort event, also used for XHR */
 	GF_EVENT_ABORT,
+	/*! document error event, also used for XHR */
 	GF_EVENT_ERROR,
+	/*! document resize event*/
 	GF_EVENT_RESIZE,
+	/*! document scroll event*/
 	GF_EVENT_SCROLL,
+	/*! document zoom event*/
 	GF_EVENT_ZOOM,
-	GF_EVENT_BEGIN, /*this is a fake event, it is NEVER fired, only used in SMIL begin*/
+	/*! fake SMIL begin event - it is NEVER fired, only used in SMIL begin parsing*/
+	GF_EVENT_BEGIN,
+	/*! SMIL begin event*/
 	GF_EVENT_BEGIN_EVENT,
-	GF_EVENT_END, /*this is a fake event, it is NEVER fired, only used in SMIL end*/
+	/*! fake SMIL end event - it is NEVER fired, only used in SMIL end parsing*/
+	GF_EVENT_END,
+	/*! SMIL end event*/
 	GF_EVENT_END_EVENT,
-	GF_EVENT_REPEAT, /*this is a fake event, it is NEVER fired, only used in SMIL repeat*/
+	/*! fake SMIL repeat event, it is NEVER fired, only used in SMIL repeat*/
+	GF_EVENT_REPEAT,
+	/*! SMIL repeat event*/
 	GF_EVENT_REPEAT_EVENT,
 
-	/*DOM MutationEvents - NOT SUPPORTED YET*/
+	/*! tree modified mutation event*/
 	GF_EVENT_TREE_MODIFIED,
+	/*! node modified mutation event*/
 	GF_EVENT_NODE_INSERTED,
+	/*! node removed mutation event*/
 	GF_EVENT_NODE_REMOVED,
+	/*! node inserted in doc mutation event - not implemented*/
 	GF_EVENT_NODE_INSERTED_DOC,
+	/*! node removed from doc mutation event - not implemented*/
 	GF_EVENT_NODE_REMOVED_DOC,
+	/*! attribute modified mutation event*/
 	GF_EVENT_ATTR_MODIFIED,
+	/*! text data modified mutation event - not implemented*/
 	GF_EVENT_CHAR_DATA_MODIFIED,
+	/*! node name modified mutation event - not implemented*/
 	GF_EVENT_NODE_NAME_CHANGED,
+	/*! attribute name modified mutation event - not implemented*/
 	GF_EVENT_ATTR_NAME_CHANGED,
-
+	/*! DCCI property of node modified - not implemented*/
 	GF_EVENT_DCCI_PROP_CHANGE,
 
-	/*LASeR events*/
+	/*! LASeR activated event*/
 	GF_EVENT_ACTIVATED,
+	/*! LASeR deactivated event*/
 	GF_EVENT_DEACTIVATED,
+	/*! SMIL and HTML media pause trigger event*/
 	GF_EVENT_PAUSE,
+	/*! SMIL and HTML media pause notification event*/
 	GF_EVENT_PAUSED_EVENT,
+	/*! SMIL and HTML media PLAY event*/
 	GF_EVENT_PLAY,
+	/*! repeat key event*/
 	GF_EVENT_REPEAT_KEY,
+	/*! SMIL resumed event */
 	GF_EVENT_RESUME_EVENT,
+	/*! short access key event */
 	GF_EVENT_SHORT_ACCESSKEY,
-	/*pseudo-event, only used in LASeR coding*/
+	/*! pseudo-event only used in LASeR coding, solved to SMIL scene clock when parsing*/
 	GF_EVENT_EXECUTION_TIME,
 
-	/*HTML5 media events*/
-	GF_EVENT_MEDIA_SETUP_BEGIN,	/*not HTML5 but should be :)*/
-	GF_EVENT_MEDIA_SETUP_DONE,	/*not HTML5 but should be :)*/
+	/*! HTML5 media setup being event - GPAC internal*/
+	GF_EVENT_MEDIA_SETUP_BEGIN,
+	/*! HTML5 media setup done event - GPAC internal*/
+	GF_EVENT_MEDIA_SETUP_DONE,
+	/*! HTML5 media load statr event - also used in XHR*/
 	GF_EVENT_MEDIA_LOAD_START,
-	GF_EVENT_MEDIA_LOAD_DONE,	/*not HTML5 but should be :)*/
+	/*! HTML5 media load done event - also used in XHR*/
+	GF_EVENT_MEDIA_LOAD_DONE,
+	/*! HTML5 media progress event - also used in XHR*/
 	GF_EVENT_MEDIA_PROGRESS,
+	/*! HTML5 media suspend event - not implemented*/
 	GF_EVENT_MEDIA_SUSPEND,
+	/*! HTML5 media emptied event - not implemented*/
 	GF_EVENT_MEDIA_EMPTIED,
+	/*! HTML5 media stalled event - not implemented*/
 	GF_EVENT_MEDIA_STALLED,
+	/*! HTML5 metadata loaded event - not implemented*/
 	GF_EVENT_MEDIA_LOADED_METADATA,
+	/*! HTML5 media  loaded event - not implemented*/
 	GF_EVENT_MEDIA_LODADED_DATA,
+	/*! HTML5 media can play - not implemented*/
 	GF_EVENT_MEDIA_CANPLAY,
+	/*! HTML5 media can play through - not implemented*/
 	GF_EVENT_MEDIA_CANPLAYTHROUGH,
+	/*! HTML5 media playing - not implemented*/
 	GF_EVENT_MEDIA_PLAYING,
+	/*! HTML5 media waiting - not implemented*/
 	GF_EVENT_MEDIA_WAITING,
+	/*! HTML5 media seeking - not implemented*/
 	GF_EVENT_MEDIA_SEEKING,
+	/*! HTML5 media seeked - not implemented*/
 	GF_EVENT_MEDIA_SEEKED,
+	/*! HTML5 media ended*/
 	GF_EVENT_MEDIA_ENDED,
+	/*! HTML5 media duration changed - not implemented*/
 	GF_EVENT_MEDIA_DURATION_CHANGED,
+	/*! HTML5 media time update event*/
 	GF_EVENT_MEDIA_TIME_UPDATE,
+	/*! HTML5 media playbalck rate change event - not implemented*/
 	GF_EVENT_MEDIA_RATECHANGE,
+	/*! HTML5 media volume change event - not implemented*/
 	GF_EVENT_MEDIA_VOLUME_CHANGED,
 
+#if 0
 	GF_EVENT_HTML_MSE_SOURCE_OPEN,
 	GF_EVENT_HTML_MSE_SOURCE_ENDED,
 	GF_EVENT_HTML_MSE_SOURCE_CLOSE,
@@ -160,108 +484,13 @@ typedef enum {
 	GF_EVENT_HTML_MSE_UPDATE_ABORT,
 	GF_EVENT_HTML_MSE_ADD_SOURCE_BUFFER,
 	GF_EVENT_HTML_MSE_REMOVE_SOURCE_BUFFER,
+#endif
 
+	/*! battery event - not implemented*/
 	GF_EVENT_BATTERY,
+	/*! CPU event - not implemented*/
 	GF_EVENT_CPU,
-	GF_EVENT_UNKNOWN,
 
-
-	/******************************************************
-
-		Events used for GPAC internals only
-
-	*******************************************************/
-
-	/*same as mousedown, generated internally by GPAC*/
-	GF_EVENT_DBLCLICK,
-
-	/*scene attached event, dispatched when the root node of a scene is loaded and
-	attached to the window or parent object (animation, inline, ...)*/
-	GF_EVENT_SCENE_ATTACHED,
-
-	/*VP resize attached event, dispatched when viewport of a scene is being modified
-	attached to the window or parent object (animation, inline, ...)*/
-	GF_EVENT_VP_RESIZE,
-
-	/*window events*/
-	/*size has changed - indicate new w & h in .x end .y fields of event.
-	When sent from gpac to a video plugin, indicates the output size should be changed. This is only sent when the plugin
-	manages the output video himself
-	When sent from a video plugin to gpac, indicates the output size has been changed. This is only sent when the plugin
-	manages the output video himself
-	*/
-	GF_EVENT_SIZE,
-	/*signals the scene size (if indicated in scene) upon connection (sent to the user event proc only)
-		if scene size hasn't changed (seeking or other) this event is not sent
-	*/
-	GF_EVENT_SCENE_SIZE,
-	GF_EVENT_SHOWHIDE,	/*window show/hide (minimized or other). */
-	GF_EVENT_SET_CURSOR,	/*set mouse cursor*/
-	GF_EVENT_SET_CAPTION,	/*set window caption*/
-	GF_EVENT_MOVE,		/*move window*/
-	GF_EVENT_REFRESH, /*window needs repaint (whenever needed, eg restore, hide->show, background refresh, paint)*/
-	GF_EVENT_QUIT,	/*app is being closed - associated structure is evt.message to carry any potential reason for quiting*/
-	/*video hw setup message:
-		- when sent from gpac to plugin, indicates that the plugin should re-setup hardware context due to a window resize:
-			* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
-			* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems
-			and implementations, it could be possible to resize a window without destroying the GL context.
-
-		- when sent from plugin to gpac, indicates that hardware has been setup.
-		- when sent from gpac to user, indicate aspect ratio has been modified and video output is ready
-	*/
-	GF_EVENT_VIDEO_SETUP,
-	//set current GL context for the calling thread
-	GF_EVENT_SET_GL,
-	//set display orientation - value is given by \ref GF_EventSize
-	GF_EVENT_SET_ORIENTATION,
-	/*queries the list of system colors - only exchanged between compositor and video output*/
-	GF_EVENT_SYS_COLORS,
-
-	/*indicates some text has been pasted - from video output to compositor only*/
-	GF_EVENT_PASTE_TEXT,
-	/*queries for text to be copied - from video output to compositor only*/
-	GF_EVENT_COPY_TEXT,
-
-	/*compositor events*/
-	GF_EVENT_CONNECT,	/*signal URL is connected*/
-	GF_EVENT_DURATION,	/*signal duration of presentation*/
-	GF_EVENT_EOS,	/*signal End of scene playback*/
-	GF_EVENT_AUTHORIZATION,	/*indicates a user and pass is queried*/
-	GF_EVENT_NAVIGATE, /*indicates the user app should load or jump to the given URL.*/
-	GF_EVENT_NAVIGATE_INFO, /*indicates the link or its description under the mouse pointer*/
-	GF_EVENT_MESSAGE, /*message from the compositor*/
-	GF_EVENT_PROGRESS, /*progress message from the compositor*/
-	GF_EVENT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
-	GF_EVENT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
-	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
-	GF_EVENT_MIGRATE, /*indicates a session migration request*/
-	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
-	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
-	GF_EVENT_DROPFILE,
-	/* Events for Keyboad */
-	GF_EVENT_TEXT_EDITING_START,
-	GF_EVENT_TEXT_EDITING_END,
-
-	//fire when quality change is detected by compositor
-	GF_EVENT_QUALITY_SWITCHED,
-	//fire when timeshift depth changes
-	GF_EVENT_TIMESHIFT_DEPTH,
-	//fire when position in timeshift buffer changes
-	GF_EVENT_TIMESHIFT_UPDATE,
-	//fire when position overflows the timeshift buffer
-	GF_EVENT_TIMESHIFT_OVERFLOW,
-	//fire when position underruns the timeshift buffer (eg fast forward / seek in the future)
-	GF_EVENT_TIMESHIFT_UNDERRUN,
-	GF_EVENT_MAIN_ADDON_STATE,
-
-	GF_EVENT_ADDON_DETECTED,
-	GF_EVENT_CODEC_SLOW,
-	GF_EVENT_CODEC_OK,
-
-	GF_EVENT_SENSOR_ORIENTATION,
-	GF_EVENT_SENSOR_GPS,
-	GF_EVENT_SENSOR_REQUEST,
 } GF_EventType;
 
 /*! GPAC/DOM3 key codes*/

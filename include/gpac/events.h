@@ -394,7 +394,7 @@ typedef struct
 	u8 type;
 	/* device orientation as quaternion if w is not 0, or as radians otherwise*/
 	Float x, y, z, w;
-} GF_EventSensor;
+} GF_EventOrientationSensor;
 
 /*! GPS sensor change event
 	event proc return value: ignored
@@ -451,7 +451,7 @@ typedef union
 	GF_EventMultiTouch mtouch;
 	GF_EventKey key;
 	GF_EventChar character;
-	GF_EventSensor sensor;
+	GF_EventOrientationSensor sensor;
 	GF_EventGPS gps;
 	GF_EventSize size;
 	GF_EventShow show;

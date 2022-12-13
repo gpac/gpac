@@ -766,14 +766,6 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 			gf_sc_navigate_to(compositor, evt->open_file.files[0]);
 		}
 		return 1;
-
-	case GF_EVENT_DISCONNECT:
-		gf_sc_disconnect(compositor);
-		break;
-	case GF_EVENT_MIGRATE:
-	{
-	}
-	break;
 	case GF_EVENT_NAVIGATE_INFO:
 		if (evt->navigate.to_url)
 			fprintf(stderr, "Go to URL: \"%s\"\r", evt->navigate.to_url);

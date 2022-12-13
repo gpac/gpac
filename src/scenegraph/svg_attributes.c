@@ -153,6 +153,7 @@ static const struct dom_event_def {
 	{ GF_EVENT_MEDIA_RATECHANGE, "ratechange", GF_DOM_EVENT_MEDIA },
 	{ GF_EVENT_MEDIA_VOLUME_CHANGED, "volumechange", GF_DOM_EVENT_MEDIA },
 
+#if 0
 	/* Media Source Events */
 	{ GF_EVENT_HTML_MSE_SOURCE_OPEN, "sourceopen", GF_DOM_EVENT_MEDIASOURCE },
 	{ GF_EVENT_HTML_MSE_SOURCE_ENDED, "sourceended", GF_DOM_EVENT_MEDIASOURCE },
@@ -164,6 +165,7 @@ static const struct dom_event_def {
 	{ GF_EVENT_HTML_MSE_UPDATE_ABORT, "abort", GF_DOM_EVENT_MEDIASOURCE },
 	{ GF_EVENT_HTML_MSE_ADD_SOURCE_BUFFER, "addsourcebuffer", GF_DOM_EVENT_MEDIASOURCE },
 	{ GF_EVENT_HTML_MSE_REMOVE_SOURCE_BUFFER, "removesourcebuffer", GF_DOM_EVENT_MEDIASOURCE },
+#endif
 
 	/*GPAC internals*/
 	{ GF_EVENT_SCENE_ATTACHED, "gpac_scene_attached", GF_DOM_EVENT_GPAC},
@@ -184,7 +186,7 @@ static const struct dom_event_def {
 	{ GF_EVENT_SET_CURSOR, "gpac_set_cursor", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SET_CAPTION, "gpac_set_caption", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_MOVE, "gpac_move", GF_DOM_EVENT_GPAC},
-	{ GF_EVENT_REFRESH, "gpac_move", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_REFRESH, "gpac_refresh", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_QUIT, "gpac_quit", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_PASTE_TEXT, "gpac_paste", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_COPY_TEXT, "gpac_copy", GF_DOM_EVENT_GPAC},
@@ -207,6 +209,7 @@ static const struct dom_event_def {
 	{ GF_EVENT_QUALITY_SWITCHED, "gpac_quality_switch", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TIMESHIFT_OVERFLOW, "gpac_timeshift_overflow", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TIMESHIFT_UPDATE, "gpac_timeshift_update", GF_DOM_EVENT_GPAC}
+	{ GF_EVENT_TIMESHIFT_UNDERRUN, "gpac_timeshift_underrun", GF_DOM_EVENT_GPAC}
 #endif
 
 };

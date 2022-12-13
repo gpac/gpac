@@ -740,8 +740,6 @@ static Bool gpac_jni_event_proc(void *cbk, GF_Event *evt)
 		break;
 	case GF_EVENT_EOS:
 		break;
-	case GF_EVENT_DISCONNECT:
-		break;
 	case GF_EVENT_NAVIGATE:
 		if (gf_sc_is_supported_url(gpac->compositor, evt->navigate.to_url, GF_TRUE)) {
 			gf_sc_navigate_to(gpac->compositor, evt->navigate.to_url);
