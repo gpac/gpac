@@ -291,6 +291,15 @@ static JSValue jsfs_lock_filters(JSContext *ctx, JSValueConst this_val, int argc
 	return JS_UNDEFINED;
 }
 
+Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown);
+
+static JSValue jsfs_enable_rmt(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+    if (!fs) return GF_JS_EXCEPTION(ctx);
+	gf_sys_enable_remotery(GF_TRUE, GF_FALSE);
+	return JS_UNDEFINED;
+}
 
 static JSValue jsfs_rmt_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1745,6 +1754,7 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("abort", 0, jsfs_abort),
     JS_CFUNC_DEF("get_filter", 0, jsfs_get_filter),
     JS_CFUNC_DEF("lock_filters", 0, jsfs_lock_filters),
+    JS_CFUNC_DEF("enable_rmt", 0, jsfs_enable_rmt),
     JS_CFUNC_DEF("rmt_send", 0, jsfs_rmt_send),
     JS_CFUNC_DEF("set_rmt_fun", 0, jsfs_set_rmt_fun),
     JS_CFUNC_DEF("set_new_filter_fun", 0, jsfs_set_new_filter_fun),
