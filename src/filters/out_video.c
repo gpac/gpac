@@ -97,7 +97,7 @@ typedef struct
 	//options
 	char *drv;
 	GF_VideoOutMode disp;
-	Bool vsync, linear, fullscreen, drop, hide, step, vjs;
+	Bool vsync, linear, fullscreen, drop, hide, step, vjs, async;
 	GF_Fraction64 dur;
 	Double speed, hold;
 	u32 back, vflip, vrot;
@@ -1809,7 +1809,7 @@ static GF_Err vout_process(GF_Filter *filter)
 	if (!ctx->step && (ctx->vsync || ctx->drop)) {
 		u64 ref_clock = 0;
 		u64 cts = gf_filter_pck_get_cts(pck);
-		u64 clock_us, now = gf_sys_clock_high_res();
+		u64 clock_us=0, now = gf_sys_clock_high_res();
 		Bool check_clock = GF_FALSE;
 		GF_Fraction64 media_ts;
 		s64 delay;
@@ -1853,7 +1853,8 @@ static GF_Err vout_process(GF_Filter *filter)
 		}
 
 		//check if we have a clock hint from an audio output
-		gf_filter_get_clock_hint(filter, &clock_us, &media_ts);
+		if (ctx->async)
+			gf_filter_get_clock_hint(filter, &clock_us, &media_ts);
 		if (clock_us && media_ts.den) {
 			u32 safety;
 			//ref frame TS in video stream timescale
@@ -2223,6 +2224,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame. Special value `0` means dump all frames", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(out), "radical of dump frame filenames. If no extension provided, frames are exported as `$OUT_%d.PFMT`", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(step), "step frame", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
+	{ OFFS(async), "sync video to audio output if any", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(olwnd), "overlay window position and size", GF_PROP_VEC4I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
 	{ OFFS(olsize), "overlay texture size (must be RGBA)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE_SYNC},
