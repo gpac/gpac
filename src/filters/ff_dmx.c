@@ -52,6 +52,8 @@ typedef struct
 	u64 ts_offset;
 	Bool mkv_webvtt;
 	u32 vc1_mode;
+	u64 fake_dts;
+	Bool fake_dts_set;
 } PidCtx;
 
 typedef struct
@@ -502,8 +504,18 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		gf_filter_pck_set_cts(pck_dst, ts );
 
 		if (pkt->dts != AV_NOPTS_VALUE) {
-			ts = (pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
+			ts = (pctx->fake_dts + pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
+			if (!pctx->fake_dts_set && pctx->fake_dts) {
+				s64 offset = pctx->fake_dts;
+				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
+				pctx->fake_dts_set = GF_TRUE;
+			}
+		} else {
+			//trick for some demuxers in libavformat no setting dts when negative (mkv for ex)
+			ts = pctx->fake_dts;
+			gf_filter_pck_set_dts(pck_dst, ts);
+			pctx->fake_dts += pkt->duration;
 		}
 
 		if (pkt->duration)
@@ -901,9 +913,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT( codec_height ) );
 
 		if (codec_width && codec_height) {
-			if (codec_framerate.num && codec_framerate.den)
+			if (codec_framerate.num && codec_framerate.den) {
+				gf_media_get_reduced_frame_rate(&codec_framerate.num, &codec_framerate.den);
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec_framerate.num, codec_framerate.den ) );
-			else {
+			} else {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unknown frame rate, will use 25 fps - use `:#FPS=VAL` to force frame rate signaling\n", ctx->fname));
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( 25, 1 ) );
 			}
