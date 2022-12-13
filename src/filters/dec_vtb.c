@@ -883,6 +883,8 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 			if (ps_id<0) return;
 		}
 	}
+
+	if (!dest) return;
 	
 	count = gf_list_count(dest);
 	for (i=0; i<count; i++) {
