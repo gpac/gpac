@@ -2779,9 +2779,13 @@ static GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 	        lsr_format_node_id(com->node, com->RouteID, szID),
 	        gf_dom_event_get_name(com->send_event_name)
 	       );
-	if (com->send_event_name <= GF_EVENT_MOUSEWHEEL)
+	if ((com->send_event_name <= GF_EVENT_MOUSEWHEEL)
+		|| (com->send_event_name == GF_EVENT_MOUSEOUT)
+		|| (com->send_event_name == GF_EVENT_MOUSEOVER)
+	) {
 		gf_fprintf(sdump->trace, " pointvalue=\"%g %g\"", FIX2FLT(com->send_event_x), FIX2FLT(com->send_event_y) );
-
+	}
+	
 	switch (com->send_event_name) {
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_LONGKEYPRESS:

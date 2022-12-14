@@ -820,7 +820,11 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_event, GF_FALSE, GF_FALSE, &info) == GF_OK) {
 				XMLEV_Event *ev = (XMLEV_Event *)info.far_ptr;
 				/*all non-UI get attched to root*/
-				if (ev && (ev->type > GF_EVENT_MOUSEWHEEL)) {
+				if (ev
+					&& (ev->type > GF_EVENT_MOUSEWHEEL)
+					&& (ev->type!=GF_EVENT_MOUSEOUT)
+					&& (ev->type!=GF_EVENT_MOUSEOVER)
+				) {
 					par = (GF_Node*) lsr->current_root;
 				}
 			}
@@ -4431,7 +4435,10 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVG_Element *parent)
 		/*FIXME - double check with XML events*/
 		if (!par && !observer) {
 			/*all non-UI get attched to root*/
-			if (ev && (ev->type > GF_EVENT_MOUSEWHEEL)) {
+			if (ev && (ev->type > GF_EVENT_MOUSEWHEEL)
+				&& (ev->type!=GF_EVENT_MOUSEOUT)
+				&& (ev->type!=GF_EVENT_MOUSEOVER)
+			) {
 				par = (SVG_Element*) lsr->current_root;
 			}
 			else if (parent) par = parent;
