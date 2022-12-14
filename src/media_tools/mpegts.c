@@ -3203,6 +3203,8 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 			nb_pck = size/192;
 		else
 			nb_pck = size/188;
+		//incomplete last packet
+		if (ts->buffer_size) nb_pck--;
 		//probe success if after align we have nb_pck - 2 and at least 2 packets
 		if ((nb_pck<2) || (ts->pck_number + 2 < nb_pck))
 			e = GF_BAD_PARAM;
