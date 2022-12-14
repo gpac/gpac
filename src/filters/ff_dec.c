@@ -547,7 +547,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 #endif
 	AVPacket *pkt;
 	s32 res, in_size, i;
-	u32 samples_to_trash;
+	u32 samples_to_trash, pck_timescale=0;
 	u32 output_size, prev_afmt;
 	Bool is_eos=GF_FALSE;
 	u8 *data;
@@ -718,10 +718,10 @@ dispatch_next:
 	if (pck) {
 		const GF_PropertyValue *er = gf_filter_pck_get_property(pck, GF_PROP_PCK_END_RANGE);
 		if (er && er->value.boolean) {
-			u32 timescale = gf_filter_pck_get_timescale(pck);
+			pck_timescale = gf_filter_pck_get_timescale(pck);
 			u64 odur = gf_filter_pck_get_duration(pck);
-			if (timescale != ctx->sample_rate) {
-				odur = gf_timestamp_rescale(odur, timescale, ctx->sample_rate);
+			if (pck_timescale != ctx->sample_rate) {
+				odur = gf_timestamp_rescale(odur, pck_timescale, ctx->sample_rate);
 			}
 			if (odur < frame->nb_samples) {
 				frame->nb_samples = (int) odur;
@@ -757,6 +757,7 @@ dispatch_next:
 	src_pck = gf_list_get(ctx->src_packets, 0);
 
 	if (src_pck) {
+		pck_timescale = gf_filter_pck_get_timescale(src_pck);
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
 		gf_filter_pck_set_dependency_flags(dst_pck, 0);
 		gf_list_rem(ctx->src_packets, 0);
@@ -766,9 +767,8 @@ dispatch_next:
 	if (output_size) {
 		if (frame->pts != AV_NOPTS_VALUE) {
 			u64 pts = frame->pts;
-			u32 timescale = gf_filter_pck_get_timescale(pck);
 			if (ctx->nb_samples_already_in_frame) {
-				if (ctx->sample_rate == timescale) {
+				if (ctx->sample_rate == pck_timescale) {
 					pts += ctx->nb_samples_already_in_frame;
 				}
 			}
