@@ -4122,7 +4122,10 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 			} else {
 				GF_LSR_WRITE_INT(lsr, 0, 1, "has_intvalue");
 			}
-			if (com->send_event_name<=GF_EVENT_MOUSEWHEEL) {
+			if ((com->send_event_name<=GF_EVENT_MOUSEWHEEL)
+				|| (com->send_event_name==GF_EVENT_MOUSEOUT)
+				|| (com->send_event_name==GF_EVENT_MOUSEOVER)
+			) {
 				GF_LSR_WRITE_INT(lsr, 1, 1, "has_pointvalue");
 				lsr_write_coordinate(lsr, INT2FIX(com->send_event_x), 0, "x");
 				lsr_write_coordinate(lsr, INT2FIX(com->send_event_y), 0, "y");
