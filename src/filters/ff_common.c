@@ -154,7 +154,7 @@ void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
 			found = GF_TRUE;
 			break;
 		}
-		if (!found) {
+		if (!found && stricmp(ent->key, "duration")) {
 			char *name=NULL;
 			gf_dynstrcat(&name, "meta:", NULL);
 			gf_dynstrcat(&name, ent->key, NULL);
