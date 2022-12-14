@@ -1592,7 +1592,12 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 	}
 	SSL_set_fd(ssl, gf_sk_get_handle(client_sock) );
 	if (SSL_accept(ssl) <= 0) {
-		ERR_print_errors_fp(stderr);
+		if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG)) {
+			//this one crashes /exits on windows, only use if debug level
+			ERR_print_errors_fp(stderr);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SSL] Accept failure\n"));
+		}
 		SSL_shutdown(ssl);
         SSL_free(ssl);
 		*e = GF_AUTHENTICATION_FAILURE;

@@ -846,7 +846,8 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!strnicmp(ctx->src, "rtsps://", 8)
-		|| (!strnicmp(ctx->src, "rtsph://", 8) && (gf_rtsp_get_session_port(ctx->session->session)==443))
+		|| (!strnicmp(ctx->src, "rtsph://", 8) && 
+			((gf_rtsp_get_session_port(ctx->session->session) == 443) || (gf_rtsp_get_session_port(ctx->session->session) == 8443)))
 	) {
 #ifdef GPAC_HAS_SSL
 		GF_Err e = gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, 0) );

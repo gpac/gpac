@@ -186,7 +186,7 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 
 #ifdef GPAC_HAS_SSL
 	if (!strncmp(sURL, "rtsps://", 8)
-		|| (!strncmp(sURL, "rtsph://", 8) && (Port==443))
+		|| (!strncmp(sURL, "rtsph://", 8) && ((Port==443) || (Port == 8443)))
 	) {
 		sess->use_ssl = GF_TRUE;
 		sess->ConnectionType = GF_SOCK_TYPE_TCP;
