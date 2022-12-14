@@ -1225,7 +1225,9 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
-	ctx->decoder->thread_count = 0;
+	//only do this for visual as it breaks flac decoder on old ffmpeg (maybe other ?)
+	if (type==GF_STREAM_VISUAL)
+		ctx->decoder->thread_count = 0;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_OPAQUE);
 	ctx->decoder->block_align = prop ? prop->value.uint : 0;
