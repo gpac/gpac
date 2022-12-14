@@ -3708,7 +3708,7 @@ GF_EXPORT
 Bool gf_filter_url_is_filter(GF_Filter *filter, const char *url, Bool *act_as_source)
 {
 	char *sep = strchr(url, filter->session->sep_args);
-	u32 len = sep ? (sep - url - 1) : (u32) strlen(url);
+	u32 len = (u32) ( sep ? (sep - url - 1) : strlen(url) );
 	u32 i, count = gf_list_count(filter->session->registry);
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *freg = gf_list_get(filter->session->registry, i);

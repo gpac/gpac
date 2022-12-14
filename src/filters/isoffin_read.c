@@ -940,9 +940,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				Double diff, orig_range = ref_ch->orig_start;
 				speed = ref_ch->speed;
 				if (ref_ch->has_edit_list) {
-					start_range = ref_ch->sample_time;
+					start_range = (Double) ref_ch->sample_time;
 				} else {
-					start_range = ref_ch->cts;
+					start_range = (Double) ref_ch->cts;
 				}
 				start_range /= ref_ch->timescale;
 				diff = orig_range - start_range;

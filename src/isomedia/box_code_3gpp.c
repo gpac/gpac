@@ -1058,7 +1058,7 @@ GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 	p->streamType = gf_bs_read_int(bs, 1);
 	p->containsRedundant = gf_bs_read_int(bs, 2);
 
-	char *str = gf_malloc(sizeof(char)*(p->size+1));
+	char *str = gf_malloc( (size_t) (p->size+1));
 	if (!str) return GF_OUT_OF_MEM;
 	msize = (u32) p->size;
 	str[msize] = 0;

@@ -682,7 +682,7 @@ process_reply:
 
 			gf_rtp_set_info_rtp(agg_st->rtp_ch, info->seq, info->rtp_time, info->ssrc);
 			agg_st->status = RTP_Running;
-			agg_st->ts_offset = info->rtp_time - gf_timestamp_rescale(rtp_t, rtp_ts, agg_st->rtp_ch->TimeScale);
+			agg_st->ts_offset = (u32) ( info->rtp_time - gf_timestamp_rescale(rtp_t, rtp_ts, agg_st->rtp_ch->TimeScale) );
 			if (sess->rtsp_rsp->Range)
 				agg_st->current_start = sess->rtsp_rsp->Range->start;
 

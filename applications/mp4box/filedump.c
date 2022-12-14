@@ -2774,7 +2774,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 					w_codec_id = gf_bs_read_u32(bs);
 					w_codec_str = gf_bs_read_utf8(bs);
 					gf_bs_read_u32(bs);
-					w_dsisize = gf_bs_available(bs);
+					w_dsisize = (u32) gf_bs_available(bs);
 					gf_bs_del(bs);
 				}
 				if (gdesc->extension_buf) gf_free(gdesc->extension_buf);

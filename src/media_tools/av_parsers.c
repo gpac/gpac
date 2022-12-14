@@ -12328,7 +12328,7 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 	u8 profile=12;
 	u8 *sqhdr = memchr(seq_hdr+1, 0x0F, seq_hdr_len);
 	if (sqhdr) {
-		u32 skip = sqhdr - seq_hdr - 3;
+		u32 skip = (u32) (sqhdr - seq_hdr - 3);
 		seq_hdr+=skip;
 		seq_hdr_len-=skip;
 		bs = gf_bs_new(seq_hdr+4, seq_hdr_len-4, GF_BITSTREAM_READ);

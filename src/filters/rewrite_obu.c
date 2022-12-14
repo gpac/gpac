@@ -263,11 +263,11 @@ static GF_Err obumx_process_mpeg2au(GF_OBUMxCtx *ctx, GF_FilterPacket *src_pck, 
 		u32 obu_hdr_size;
 
 		gf_av1_parse_obu_header(ctx->bs_r, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
-		obu_hdr_size = gf_bs_get_position(ctx->bs_r) - obu_start;
+		obu_hdr_size = (u32) (gf_bs_get_position(ctx->bs_r) - obu_start);
 
 		if (obu_has_size_field) {
 			obu_size = (u32)gf_av1_leb128_read(ctx->bs_r, NULL);
-			obu_hdr_size = gf_bs_get_position(ctx->bs_r) - obu_start;
+			obu_hdr_size = (u32) (gf_bs_get_position(ctx->bs_r) - obu_start);
 		} else {
 			obu_size = src_pck_size - (u32) gf_bs_get_position(ctx->bs_r);
 		}

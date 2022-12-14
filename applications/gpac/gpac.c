@@ -2575,7 +2575,7 @@ static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd
 	* ((u64*) &salt[16]) = v3;
 	* ((u64*) &salt[24]) = v4;
 
-	u32 len = strlen(passwd);
+	u32 len = (u32) strlen(passwd);
 	pass = gf_malloc(len+GF_SHA256_DIGEST_SIZE+1);
 	memcpy(pass, passwd, len);
 	pass[len] = '@';

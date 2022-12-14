@@ -598,7 +598,7 @@ void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
 			s32 ts_diff = stream->rtp_ch->rtp_time; ts_diff -= (s32) hdr.TimeStamp;
 			if (sn_diff<0) sn_diff = -sn_diff;
 			if (ts_diff<0) ts_diff = -ts_diff;
-			if ((sn_diff > 100) || (ts_diff > stream->rtp_ch->TimeScale)) {
+			if ((sn_diff > 100) || ((u32) ts_diff > stream->rtp_ch->TimeScale)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Rejecting too early packet (TS %d vs signaled rtp time %d - diff %d ms)\n",
 			                                    hdr.TimeStamp, stream->rtp_ch->rtp_time, ((hdr.TimeStamp - stream->rtp_ch->rtp_time)*1000) / stream->rtp_ch->TimeScale));
 				return;

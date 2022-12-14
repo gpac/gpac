@@ -3103,7 +3103,7 @@ GF_Err gf_creds_check_password(const char *user, char *password)
 	if (!cred_file) return GF_NOT_FOUND;
 	GF_Config *creds = gf_cfg_new(NULL, cred_file);
 	if (!creds) return GF_NOT_FOUND;
-	len = strlen(password);
+	len = (u32) strlen(password);
 	const char *pass_hex = gf_cfg_get_key(creds, user, "password");
 	const char *salt_hex = gf_cfg_get_key(creds, user, "salt");
 	if (!salt_hex || !pass_hex || (strlen(salt_hex) != 64) || (strlen(pass_hex) != 64) || (len>=100)) {

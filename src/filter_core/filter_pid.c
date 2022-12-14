@@ -3729,7 +3729,7 @@ GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst)
 	s32 dst_bundle_idx=-1;
 	if (gf_filter_pid_caps_match(pid, dst->freg, dst, NULL, &dst_bundle_idx, pid->filter->dst_filter, -1)) {
 		gf_list_add(filter_chain, (void*)dst->freg);
-		if ((dst_bundle_idx<0) || (dst_bundle_idx>=dst->freg->nb_caps))
+		if ((dst_bundle_idx<0) || ((u32) dst_bundle_idx>=dst->freg->nb_caps))
 			dst_bundle_idx=0;
 
 		gf_list_add(filter_chain, (void*)&dst->freg->caps[dst_bundle_idx]);
