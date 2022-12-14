@@ -503,7 +503,7 @@ static GF_Err ffmx_close_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, Bool send_evt_
 		evt.seg_size.is_init = 0;
 	}
 	evt.seg_size.media_range_start = ctx->offset_at_seg_start;
-	evt.seg_size.media_range_end = ctx->muxer->pb ? (ctx->muxer->pb->bytes_written-1) : 0;
+	evt.seg_size.media_range_end = ctx->muxer->pb ? (ctx->muxer->pb->written-1) : 0;
 	ctx->offset_at_seg_start = evt.seg_size.media_range_end;
 
 	gf_filter_pid_send_event(pid, &evt);
