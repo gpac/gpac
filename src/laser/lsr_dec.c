@@ -868,7 +868,7 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 	}
 #else
 	if (val >> (nb_bits-1) ) {
-		s64 neg = (s64) val - (0x00000001UL << nb_bits);
+		s64 neg = (s64) val - (((u64)1) << nb_bits);
 		return ((Fixed)neg) / lsr->res_factor;
 	} else {
 		return ((Fixed)val) / lsr->res_factor;

@@ -1577,7 +1577,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 	GF_IVec4 *right_vali;
 	register u32 if_level=0;
 	register u32 nif_level=0;
-	register Bool cond_res;
+	register Bool cond_res=GF_FALSE;
 	register ShaderOp *op = &shader->ops[0];
 
 	//assign to dummy values, this will prevent any badly formatted shader to assign a value to a NULL left-val or read a null right-val

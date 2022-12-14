@@ -394,7 +394,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 						meta_codec_name = gf_bs_read_utf8(bs);
 						meta_opaque = gf_bs_read_u32(bs);
 						if (gf_bs_available(bs)) {
-							u32 pos = gf_bs_get_position(bs);
+							u32 pos = (u32) gf_bs_get_position(bs);
 							dsi = udesc->extension_buf+pos;
 							dsi_size = udesc->extension_buf_size-pos;
 						}
@@ -1031,7 +1031,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		isor_get_chapters(read->mov, ch->pid);
 
 		if (!gf_sys_is_test_mode()) {
-			u32 has_roll=GF_FALSE;
+			Bool has_roll=GF_FALSE;
 			gf_isom_has_cenc_sample_group(read->mov, track, NULL, &has_roll);
 			if (has_roll)
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_HAS_ROLL, &PROP_BOOL(GF_TRUE));

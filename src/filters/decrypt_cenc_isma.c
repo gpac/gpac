@@ -710,7 +710,7 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	strcat(body, data64);
 	strcat(body, "\"], \"type\":\"temporary\"}");
 	ckp.data = body;
-	ckp.data_len = strlen(body);
+	ckp.data_len = (u32) strlen(body);
 
 	u32 crc = gf_crc_32(ckp.data, ckp.data_len);
 	if (cstr->clearkey_crc == crc) return GF_OK;

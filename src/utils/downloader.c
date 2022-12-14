@@ -1179,7 +1179,7 @@ static void on_user_pass(void *udta, const char *user, const char *pass, Bool st
 	u32 len = user ? (u32) strlen(user) : 0;
 	if (len && (user != creds->username)) {
 		if (len> 49) len = 49;
-		strncpy(creds->username, user, len);
+		strncpy(creds->username, user, 49);
 		creds->username[len]=0;
 	}
 	if (user && pass) {

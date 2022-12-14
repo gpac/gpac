@@ -90,7 +90,7 @@ void gf_sha256_csum(const void *data, u64 len, u8 output[GF_SHA256_DIGEST_SIZE])
         }
         else {
             if(cursor * 64 < len) {
-                u64 size = len - cursor * 64;
+                u32 size = (u32) ( len - cursor * 64 );
                 if(size > 0) memcpy(w, (u8 *)data + cursor * 64, size);
                 memcpy((u8 *)w + size, padding, 64 - size);
             }

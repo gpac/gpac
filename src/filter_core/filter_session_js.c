@@ -1301,7 +1301,7 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 			if (!opid) return GF_JS_EXCEPTION(ctx);
 			offset=2;
 		}
-		if (argc>offset) {
+		if ((u32) argc>offset) {
 			link_args = JS_ToCString(ctx, argv[offset]);
 			if (!link_args) {
 				JS_FreeCString(ctx, fname);

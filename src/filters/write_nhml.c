@@ -596,7 +596,7 @@ static GF_Err nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size,
 			gf_bs_del(ctx->bs_r);
 			if (prev)
 				data[pos+2+size] = prev;
-			return;
+			return GF_NOT_SUPPORTED;
 #endif
 		} else {
 			gf_bs_write_data(ctx->bs_w, data+pos+3, size-1);

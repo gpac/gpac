@@ -1722,7 +1722,7 @@ static GF_Err dump_gmcc(GF_UnknownBox *u, FILE * trace)
 		gf_free(cname);
 	}
 	get_and_print("meta_opaque", 32)
-	pos = gf_bs_get_position(bs);
+	pos = (u32) gf_bs_get_position(bs);
 	dump_data_attribute(trace, "decoderSpecificInfo", u->data+pos, u->dataSize-pos);
 	gf_bs_del(bs);
 	gf_fprintf(trace, ">\n");
@@ -1750,7 +1750,7 @@ static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
 	gf_bs_read_int(bs, 1);
 	get_and_print("framerate", 32)
 
-	pos = gf_bs_get_position(bs);
+	pos = (u32) gf_bs_get_position(bs);
 	gf_bs_del(bs);
 
 	gf_fprintf(trace, " VOS=\"");
