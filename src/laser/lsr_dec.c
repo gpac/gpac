@@ -857,7 +857,11 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 
 #ifdef GPAC_FIXED_POINT
 	if (val >> (nb_bits-1) ) {
-		s64 neg = (s64) val - (0x00000001UL << nb_bits);
+		s32 neg;
+		if (nb_bits == 31)
+			neg = (s32)val - 0x80000000;
+		else
+			neg = (s32)val - (1 << nb_bits);
 		if (neg < -FIX_ONE / 2)
 			return 2 * gf_divfix(INT2FIX(neg/2), lsr->res_factor);
 		return gf_divfix(INT2FIX(neg), lsr->res_factor);
@@ -868,7 +872,11 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 	}
 #else
 	if (val >> (nb_bits-1) ) {
-		s64 neg = (s64) val - (((u64)1) << nb_bits);
+		s32 neg;
+		if (nb_bits == 31)
+			neg = (s32)val - 0x80000000;
+		else
+			neg = (s32)val - (1 << nb_bits);
 		return ((Fixed)neg) / lsr->res_factor;
 	} else {
 		return ((Fixed)val) / lsr->res_factor;
@@ -879,8 +887,12 @@ static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 static Fixed lsr_translate_scale(GF_LASeRCodec *lsr, u32 val)
 {
 	if (val >> (lsr->coord_bits-1) ) {
-		s64 v = val - (0x00000001UL << lsr->coord_bits);
-		return INT2FIX(v) / 256 ;
+		s32 neg;
+		if (lsr->coord_bits >= 31)
+			neg = (s32)val - 0x80000000;
+		else
+			neg = (s32)val - (1 << lsr->coord_bits);
+		return INT2FIX(neg) / 256 ;
 	} else {
 		return INT2FIX(val) / 256;
 	}
