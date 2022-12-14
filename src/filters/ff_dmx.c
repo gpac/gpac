@@ -1754,7 +1754,20 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 	}
 	if (!gf_opts_get_bool("temp", "helponly") || gf_opts_get_bool("temp", "gendoc"))
 		return res_reg;
-	
+
+	//do not open devices if help is not for ffavin or a sub-filter
+	Bool found = GF_FALSE;
+	u32 i, argc = gf_sys_get_argc();
+	for (i=1; i<argc; i++) {
+		const char *a = gf_sys_get_arg(i);
+		if (!strncmp(a, "ffavin", 6)) {
+			found = GF_TRUE;
+			break;
+		}
+	}
+	if (!found)
+		return res_reg;
+
 #ifdef FF_PROBE_DEVICES
 	Bool audio_pass=GF_FALSE;
 	av_log_set_callback(ffavin_log_none);
