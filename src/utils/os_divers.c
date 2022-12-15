@@ -484,12 +484,18 @@ Bool gf_prompt_has_input()
 
 char gf_prompt_get_char()
 {
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) return 0;
+#endif
 	return getchar();
 }
 
 GF_EXPORT
 void gf_prompt_set_echo_off(Bool echo_off)
 {
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) return;
+#endif
 	DWORD flags;
 	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
 	BOOL ret = GetConsoleMode(hStdin, &flags);
@@ -549,6 +555,10 @@ static void close_keyboard(Bool new_line)
 GF_EXPORT
 void gf_prompt_set_echo_off(Bool echo_off)
 {
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) return;
+#endif
+
 	init_keyboard();
 	if (echo_off) t_orig.c_lflag &= ~ECHO;
 	else t_orig.c_lflag |= ECHO;
@@ -585,6 +595,9 @@ GF_EXPORT
 char gf_prompt_get_char()
 {
 	char ch;
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) return 0;
+#endif
 	if (ch_peek != -1) {
 		ch = ch_peek;
 		ch_peek = -1;
@@ -1283,6 +1296,8 @@ void gf_blob_unregister(GF_Blob *blob)
 	if (all_blobs) gf_list_del_item(all_blobs, blob);
 }
 
+//unused
+#if 0
 GF_Blob *gf_blob_from_url(const char *blob_url)
 {
 	GF_Blob *blob = NULL;
@@ -1294,6 +1309,7 @@ GF_Blob *gf_blob_from_url(const char *blob_url)
 		return NULL;
 	return blob;
 }
+#endif
 
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config(Bool discard_config);
@@ -3040,10 +3056,16 @@ u32 gf_sys_get_process_id()
 #ifndef WIN32
 #include <termios.h>
 GF_EXPORT
-int gf_getch() {
+int gf_getch()
+{
 	struct termios old;
 	struct termios new;
 	int rc;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) return 0;
+#endif
+
 	if (tcgetattr(0, &old) == -1) {
 		return -1;
 	}
@@ -3060,15 +3082,24 @@ int gf_getch() {
 }
 #else
 GF_EXPORT
-int gf_getch() {
+int gf_getch()
+{
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) return 0;
+#endif
 	return getchar();
 }
 #endif
 
 GF_EXPORT
-Bool gf_read_line_input(char * line, int maxSize, Bool showContent) {
+Bool gf_read_line_input(char * line, int maxSize, Bool showContent)
+{
 	char read;
 	int i = 0;
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) return GF_FALSE;
+#endif
+
 	if (fflush( stderr ))
 		perror("Failed to flush buffer %s");
 	do {

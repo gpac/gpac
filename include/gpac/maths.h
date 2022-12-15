@@ -960,6 +960,15 @@ Applies a 3D matrix transformation to a bounding box, giving the enclosing box o
 \param b pointer to bounding box. Once the function is called, contains the transformed bounding box
 */
 void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *b);
+
+/*!\brief matrix box transformation
+
+Applies a 3D matrix transformation using perspective division to a bounding box, giving the enclosing box of the transformed one
+\param mx transformation matrix
+\param b pointer to bounding box. Once the function is called, contains the transformed bounding box
+*/
+void gf_mx_apply_bbox_4x4(GF_Matrix *mx, GF_BBox *box);
+
 /*!\brief matrix box sphere transformation
 
 Applies a 3D matrix transformation to a bounding box, computing only the enclosing sphere of the transformed one.

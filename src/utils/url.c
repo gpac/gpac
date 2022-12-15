@@ -96,6 +96,7 @@ Bool gf_url_is_local(const char *pathName)
 GF_EXPORT
 Bool gf_url_is_relative(const char *pathName)
 {
+	if (!pathName) return GF_TRUE;
 	u32 mode = URL_GetProtocolType(pathName);
 	return (mode==GF_URL_TYPE_RELATIVE) ? GF_TRUE : GF_FALSE;
 }

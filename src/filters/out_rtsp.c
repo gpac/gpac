@@ -715,6 +715,12 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 				rtpi->rtp_time = (u32) gf_timestamp_rescale(rtpi->rtp_time, stream->timescale, timescale);
 
 			gf_list_add(sess->response->RTP_Infos, rtpi);
+
+#ifdef GPAC_ENABLE_COVERAGE
+			if (gf_sys_is_cov_mode()) {
+				gf_rtp_streamer_get_ssrc(stream->rtp);
+			}
+#endif
 		}
 	}
 	GF_SAFEALLOC(sess->response->Range, GF_RTSPRange);
