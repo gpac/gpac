@@ -767,6 +767,14 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				obj->nb_frags = obj->nb_recv_frags = 0;
 				obj->nb_bytes = obj->nb_recv_bytes = 0;
 				obj->total_length = total_len;
+				if (obj->total_length>obj->alloc_size) {
+					gf_mx_p(routedmx->blob_mx);
+					obj->payload = gf_realloc(obj->payload, obj->total_length);
+					obj->alloc_size = obj->total_length;
+					obj->blob.size = obj->total_length;
+					obj->blob.data = obj->payload;
+					gf_mx_v(routedmx->blob_mx);
+				}
 				obj->toi = toi;
 				obj->status = GF_LCT_OBJ_INIT;
 				break;
