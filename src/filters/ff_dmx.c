@@ -1038,6 +1038,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	if (gf_sys_is_cov_mode()) {
 		ffdmx_update_arg(filter, "foo", &PROP_STRING_NO_COPY("bar"));
 		ffmpeg_pixfmt_from_codec_tag(0, NULL);
+#if (LIBAVCODEC_VERSION_MAJOR > 56)
+		ffmpeg_codec_par_to_gpac(NULL, NULL, 0);
+#endif
 	}
 #endif
 	if (!ctx->src) {
