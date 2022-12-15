@@ -92,7 +92,8 @@ static Bool can_seek = GF_FALSE;
 static u64 log_rti_time_start = 0;
 
 static Bool loop_at_end = GF_FALSE;
-
+static const char *update_str = NULL;
+static const char *update_type = "js";
 #ifdef DESKTOP_GUI
 static u32 forced_width=0;
 static u32 forced_height=0;
@@ -132,6 +133,8 @@ GF_GPACArg mp4c_args[] =
 	GF_DEF_ARG("speed", NULL, "set playback speed", NULL, NULL, GF_ARG_DOUBLE, 0),
 	GF_DEF_ARG("exit", NULL, "exit when presentation is over", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("service", NULL, "auto-tune to given service ID in a multiplex", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("update", NULL, "scene update to execute once connected", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("update-type", NULL, "type of scene update to execute", "js", NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
 #ifdef GPAC_CONFIG_WIN32
  	GF_DEF_ARG("no-wnd", NULL, "use windowless mode (Win32 only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERIMENTAL),
@@ -742,6 +745,10 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_SCENE_SIZE:
 
+		if (evt->size.window_id && update_str) {
+			gf_sc_scene_update(compositor, (char*)update_type, (char*)update_str);
+		}
+
 #ifdef DESKTOP_GUI
 		if (forced_width && forced_height) {
 			GF_Event size;
@@ -939,6 +946,12 @@ Bool mp4c_parse_arg(char *arg, char *arg_val)
 			if (arg_val) playback_speed = FLT2FIX( atof(arg_val) );
 			if (playback_speed == 0) { playback_speed = FIX_ONE; pause_at_first = 1; }
 			else if (playback_speed < 0) playback_speed = FIX_ONE;
+		}
+		else if (!strcmp(arg, "-update")) {
+			update_str = arg_val;
+		}
+		else if (!strcmp(arg, "-update-type")) {
+			update_type = arg_val;
 		}
 #ifdef DESKTOP_GUI
 		else if (!strcmp(arg, "-no-wnd")) window_flags |= GF_VOUT_WINDOWLESS;

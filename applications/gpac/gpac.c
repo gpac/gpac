@@ -2441,7 +2441,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	gf_mp3_version_name(0);
 	u8 tsbuf[188];
-	u8 is_pes=GF_TRUE;
+	u8 is_pes[GF_M2TS_MAX_STREAMS];
+	memset(is_pes, 1, sizeof(u8)*GF_M2TS_MAX_STREAMS);
 	memset(tsbuf, 0, 188);
 	tsbuf[0] = 0x47;
 	tsbuf[1] = 0x40;
