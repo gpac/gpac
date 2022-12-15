@@ -1125,7 +1125,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 
 
 	data = NULL;
-	sep = strchr(iri->string, ';');
+	sep = strstr(iri->string, ";base");
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
 		data_size = 2 * (u32) strlen(sep);

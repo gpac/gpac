@@ -125,7 +125,7 @@ static GF_Err compose_process(GF_Filter *filter)
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
 			}
-		} else if (!ret && !ctx->frame_was_produced && !ctx->audio_frames_sent && !ctx->check_eos_state && !nb_sys_streams_active) {
+		} else if (!ret && !ctx->frame_was_produced && !ctx->audio_frames_sent && !ctx->check_eos_state && !nb_sys_streams_active && !ctx->event_pending) {
 			ctx->check_eos_state = 1;
 			was_over = GF_TRUE;
 		} else if (ctx->sys_frames_pending) {

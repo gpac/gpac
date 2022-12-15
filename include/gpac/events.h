@@ -147,13 +147,14 @@ typedef enum
 */
 typedef struct
 {
-	/*GF_EVENT_SIZE*/
+	/*GF_EVENT_SIZE, GF_EVENT_SCENE_SIZE*/
 	u8 type;
 	/*width and height*/
 	u32 width, height;
 	/*display orientation */
 	GF_DisplayOrientationType orientation;
-	/*ID of window the event occured in (driver to app only)*/
+	/*ID of window the event occured in (driver to app only)
+	For GF_EVENT_SCENE_SIZE, a value different from 0 indicates the root node is connected (scene is parsed)*/
 	u32 window_id;
 } GF_EventSize;
 

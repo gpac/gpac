@@ -488,7 +488,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_free(value);
 		break;
 
-	case 0:
+	case SVG_Unknown_datatype:
 		if (*(SVG_String *)value) gf_free(*(SVG_String *)value);
 		gf_free(value);
 		break;

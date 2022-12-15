@@ -403,6 +403,7 @@ struct __tag_compositor
 	Bool hybrid_opengl;
 
 	Bool fsize;
+	Bool event_pending;
 
 	/*key modif*/
 	u32 key_states;
