@@ -2023,6 +2023,7 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 					attname->type = attType.fieldType;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOM] Cannot find target of the animation to parse attribute %s\n", attname->name));
+					return;
 				}
 			}
 

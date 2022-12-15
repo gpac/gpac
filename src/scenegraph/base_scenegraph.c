@@ -2314,6 +2314,8 @@ GF_NamespaceType gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *nam
 		GF_XMLNS *ns = gf_list_get(sg->ns, i);
 		if (ns->name && name && !strcmp(ns->name, name))
 			return ns->xmlns_id;
+		if (ns->qname && name && !strcmp(ns->qname, name))
+			return ns->xmlns_id;
 		if (!ns->name && !name)
 			return ns->xmlns_id;
 	}

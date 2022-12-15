@@ -976,6 +976,7 @@ static Bool validator_load_event(GF_Validator *validator)
 	}
 	validator->evt_loaded = GF_TRUE;
 	validator->compositor->sys_frames_pending = GF_TRUE;
+	validator->compositor->event_pending = GF_TRUE;
 	return GF_TRUE;
 }
 
@@ -1108,6 +1109,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		/* if the time is right, dispatch the event and load the next one */
 		while (!validator->is_recording && validator->evt_loaded && validator->root_odm && validator->root_odm->ck && (validator->next_time <= gf_clock_time(validator->root_odm->ck) )) {
 			Bool has_more_events;
+			validator->compositor->event_pending = GF_FALSE;
 			//u32 diff = gf_clock_time(validator->ck) - validator->next_time;
 			//GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Time diff: evt_time=%d  clock_time = %d, diff=%d\n", validator->next_time, gf_clock_time(validator->ck), diff));
 			if (validator->next_event_snapshot) {

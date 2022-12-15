@@ -24,6 +24,7 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
+#include <gpac/utf.h>
 
 #ifndef GPAC_DISABLE_LOG
 u32 time_spent_in_anim = 0;
@@ -1505,7 +1506,9 @@ void gf_smil_anim_init_node(GF_Node *node)
 						SVG_String string = attval->value;
 						attval->value = NULL;
 						if (string) {
-							gf_svg_parse_attribute((GF_Node *)node, &info, string, anim_value_type);
+							u32 slen = (u32) strlen(string);
+							if (gf_utf8_is_legal(string, slen+1))
+								gf_svg_parse_attribute((GF_Node *)node, &info, string, anim_value_type);
 							gf_free(string);
 						}
 					}

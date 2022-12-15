@@ -2837,17 +2837,6 @@ u32 svg_parse_point(SVG_Point *p, char *value_string, GF_Err *out_e)
 	else return i+j;
 }
 
-static u32 svg_parse_point_into_matrix(GF_Matrix2D *p, char *value_string, GF_Err *out_e)
-{
-	u32 i = 0, j = 0;
-	gf_mx2d_init(*p);
-	i = svg_parse_number(&(value_string[i]), &(p->m[2]), 0, out_e);
-	if (i == 0) return 0;
-	j = svg_parse_number(&(value_string[i]), &(p->m[5]), 0, out_e);
-	if (j == 0) return 0;
-	return i+j;
-}
-
 /* Parses the points attribute of a polygon or polyline element */
 static void svg_parse_points(GF_List *values, char *value_string, GF_Err *out_e)
 {
@@ -3473,7 +3462,13 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		svg_parse_fontfamily((SVG_FontFamily*)info->far_ptr, attribute_content, &e);
 		break;
 	case SVG_Motion_datatype:
-		svg_parse_point_into_matrix((GF_Matrix2D*)info->far_ptr, attribute_content, &e);
+	{
+		GF_Matrix2D *mx = (GF_Matrix2D*)info->far_ptr;
+		u32 i = 0;
+		gf_mx2d_init(*mx);
+		i = svg_parse_number(&(attribute_content[i]), &(mx->m[2]), 0, &e);
+		svg_parse_number(&(attribute_content[i]), &(mx->m[5]), 0, &e);
+	}
 		break;
 	case SVG_Transform_datatype:
 		e = svg_parse_transform((SVG_Transform*)info->far_ptr, attribute_content);
@@ -3942,7 +3937,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	}
 	break;
 
-	case 0:
+	case SVG_Unknown_datatype:
 	{
 		SVG_String *string;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Attributes] Unspecified attribute type - defaulting to string.\n"));
@@ -5698,7 +5693,11 @@ static GF_Err svg_numbers_muladd(Fixed alpha, SVG_Numbers *a, Fixed beta, SVG_Nu
 
 	if (a_count != gf_list_count(*b)) return GF_BAD_PARAM;
 
-	gf_list_reset(*c);
+	while (gf_list_count(*c)) {
+		SVG_Number *nc = gf_list_pop_back(*c);
+		gf_free(nc);
+	}
+
 	for (i = 0; i < a_count; i ++) {
 		SVG_Number *nc;
 		SVG_Number *na = (SVG_Number *)gf_list_get(*a, i);
@@ -5860,8 +5859,12 @@ static GF_Err svg_dasharray_muladd(Fixed alpha, SVG_StrokeDashArray *a, Fixed be
 	if (a->array.count != b->array.count) return GF_BAD_PARAM;
 
 	c->type = a->type;
-	c->array.count = a->array.count;
-	c->array.vals = (Fixed *) gf_malloc(sizeof(Fixed)*c->array.count);
+	if (c->array.count != a->array.count) {
+		c->array.count = a->array.count;
+		c->array.vals = (Fixed *) gf_realloc(c->array.vals, sizeof(Fixed)*c->array.count);
+		c->array.units = (u8 *) gf_realloc(c->array.units, sizeof(u8)*c->array.count);
+	}
+	if (!c->array.vals || !c->array.units) return GF_OUT_OF_MEM;
 	for (i = 0; i < c->array.count; i++) {
 		/* TODO: convert units if needed */
 		c->array.units[i] = a->array.units[i];
@@ -5873,13 +5876,14 @@ static GF_Err svg_dasharray_muladd(Fixed alpha, SVG_StrokeDashArray *a, Fixed be
 static GF_Err svg_dasharray_copy(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 {
 	a->type = b->type;
-	a->array.count = b->array.count;
-	a->array.units = (u8*)gf_malloc(sizeof(u8)*a->array.count);
-	if (a->array.count)
-		memcpy(a->array.units, b->array.units, sizeof(u8)*a->array.count);
-	a->array.vals = (Fixed*)gf_malloc(sizeof(Fixed)*a->array.count);
-	if (a->array.count)
-		memcpy(a->array.vals, b->array.vals, sizeof(Fixed)*a->array.count);
+	if (a->array.count != b->array.count) {
+		a->array.count = b->array.count;
+		a->array.units = (u8*)gf_realloc(a->array.units, sizeof(u8)*a->array.count);
+		a->array.vals = (Fixed*)gf_realloc(a->array.vals, sizeof(Fixed)*a->array.count);
+	}
+	if (!a->array.vals || !a->array.units) return GF_OUT_OF_MEM;
+	memcpy(a->array.units, b->array.units, sizeof(u8)*a->array.count);
+	memcpy(a->array.vals, b->array.vals, sizeof(Fixed)*a->array.count);
 	return GF_OK;
 }
 
@@ -5949,7 +5953,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		SVG_Paint *pb = (SVG_Paint *)b->far_ptr;
 		SVG_Paint *pc = (SVG_Paint *)c->far_ptr;
 		if (pa->type != pb->type || pa->type != SVG_PAINT_COLOR || pb->type != SVG_PAINT_COLOR) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SVG Attributes] only color paints are additive\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_SCENE, ("[SVG Attributes] only color paints are additive, cannot interpolate URIs\n"));
 			return GF_BAD_PARAM;
 		}
 		pc->type = SVG_PAINT_COLOR;
@@ -6452,6 +6456,7 @@ Bool gf_svg_attribute_is_interpolatable(u32 type)
 	case SVG_Transform_Rotate_datatype:
 	case SVG_Transform_SkewX_datatype:
 	case SVG_Transform_SkewY_datatype:
+	case SVG_StrokeDashArray_datatype:
 	case LASeR_Size_datatype:
 		return 1;
 	}
@@ -6463,6 +6468,12 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	if (!a->far_ptr || !b->far_ptr || !c->far_ptr) return GF_BAD_PARAM;
 
 	c->fieldType = a->fieldType;
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		gf_svg_attributes_equal(a, b);
+	}
+#endif
 
 	switch (a->fieldType) {
 
@@ -6486,6 +6497,7 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_Transform_SkewX_datatype:
 	case SVG_Transform_SkewY_datatype:
 	case LASeR_Size_datatype:
+	case SVG_StrokeDashArray_datatype:
 		return gf_svg_attributes_muladd(FIX_ONE-coef, a, coef, b, c, clamp);
 
 	/* discrete types: interpolation is the selection of one of the 2 values
