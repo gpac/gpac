@@ -138,7 +138,7 @@ Checks if given URL is absolute or relative
 \param url url to check
 \return GF_TRUE if URL is relative
  */
-Bool gf_url_is_relative(const char *pathName);
+Bool gf_url_is_relative(const char *url);
 
 /*!
 \brief get first after a filename/path
