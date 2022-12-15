@@ -1592,7 +1592,7 @@ Bool gf_sys_set_cfg_option(const char *opt_string)
 	}
 	gf_opts_set_key(szSec, szKey, szVal[0] ? szVal : NULL);
 
-	if (!strcmp(szSec, "core")) {
+	if (!strcmp(szSec, "core") || !strcmp(szSec, "temp")) {
 		if (!strcmp(szKey, "noprog") && (!strcmp(szVal, "yes")||!strcmp(szVal, "true")||!strcmp(szVal, "1")) ) {
 			void gpac_disable_progress();
 

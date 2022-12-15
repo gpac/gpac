@@ -3895,7 +3895,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					strcpy(szInitSegmentFilename, gf_file_basename(ds->src_url));
 
 					if (ctx->out_path && mpd_url) {
-						Bool gf_url_is_relative(const char *pathName);
 						Bool keep_src = GF_FALSE;
 						char *url, *mpd_out, *mpd_src_alloc=NULL;
 						mpd_out = gf_file_basename(ctx->out_path);

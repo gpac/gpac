@@ -672,7 +672,8 @@ static int h2_stream_close_callback(nghttp2_session *session, int32_t stream_id,
 
 static int h2_error_callback(nghttp2_session *session, const char *msg, size_t len, void *user_data)
 {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] error %s\n", msg));
+	if (session)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] error %s\n", msg));
 	return 0;
 }
 
@@ -1508,8 +1509,10 @@ static size_t next_proto_list_len;
 #ifndef OPENSSL_NO_NEXTPROTONEG
 static int next_proto_cb(SSL *ssl, const unsigned char **data, unsigned int *len, void *arg)
 {
-	*data = next_proto_list;
-	*len = (unsigned int)next_proto_list_len;
+	if (data && len) {
+		*data = next_proto_list;
+		*len = (unsigned int)next_proto_list_len;
+	}
 	return SSL_TLSEXT_ERR_OK;
 }
 #endif //OPENSSL_NO_NEXTPROTONEG
@@ -1567,6 +1570,13 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 		next_proto_list_len = 1 + NGHTTP2_PROTO_VERSION_ID_LEN;
 
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_cov_mode()) {
+			next_proto_cb(NULL, NULL, NULL, NULL);
+			h2_error_callback(NULL, NULL, 0, NULL);
+			on_user_pass(NULL, NULL, NULL, GF_FALSE);
+		}
+#endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);

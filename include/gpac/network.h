@@ -132,6 +132,15 @@ Converts a local URL to a file system value. Removes all white spaces and simila
 void gf_url_to_fs_path(char *url);
 
 /*!
+\brief check relative URL
+
+Checks if given URL is absolute or relative
+\param url url to check
+\return GF_TRUE if URL is relative
+ */
+Bool gf_url_is_relative(const char *pathName);
+
+/*!
 \brief get first after a filename/path
 
 Returns a pointer to the first colon at the end of a filename or URL, if any.

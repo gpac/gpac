@@ -1839,6 +1839,7 @@ void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *box)
 	gf_bbox_refresh(box);
 }
 
+GF_EXPORT
 void gf_mx_apply_bbox_4x4(GF_Matrix *mx, GF_BBox *box)
 {
 	u32 i;

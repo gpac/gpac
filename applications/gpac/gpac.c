@@ -2273,10 +2273,10 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_ntohs(0xAABB);
 	gf_errno_str(-1);
 
-	/* these two lock the bash shell in test mode
-	gf_prompt_set_echo_off(GF_TRUE);
 	gf_prompt_set_echo_off(GF_FALSE);
-	*/
+	gf_getch();
+	gf_prompt_get_char();
+	gf_read_line_input(utf8_buf, 7, 1);
 
 	gf_net_set_ntp_shift(-1000);
 	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
@@ -2313,6 +2313,9 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_sys_get_argv();
 	gf_mx_get_num_locks(NULL);
 	signal_catched = GF_TRUE;
+
+	gf_url_is_relative("./");
+
 
 #ifdef WIN32
 	gpac_sig_handler(CTRL_C_EVENT);
@@ -2383,6 +2386,12 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	memset(&bbox, 0, sizeof(GF_BBox));
 	gf_bbox_equal(&bbox, &bbox);
 
+	bbox.min_edge.x=-1;
+	bbox.max_edge.x=1;
+	gf_bbox_refresh(&bbox);
+	gf_mx_apply_bbox_4x4(&mat, &bbox);
+
+
 	GF_Vec v;
 	v.x = v.y = v.z = 0;
 	gf_vec_scale_p(&v, 2*FIX_ONE);
@@ -2452,7 +2461,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	tsbuf[10] = 0x80;
 	tsbuf[11] = 0xc0;
 	tsbuf[13] = 0x2 << 4;
-	gf_m2ts_restamp(tsbuf, 188, 1000, &is_pes);
+	gf_m2ts_restamp(tsbuf, 188, 1000, is_pes);
 
 
 	gf_filter_post_task(NULL,NULL,NULL,NULL);
