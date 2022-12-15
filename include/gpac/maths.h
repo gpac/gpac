@@ -967,7 +967,7 @@ Applies a 3D matrix transformation using perspective division to a bounding box,
 \param mx transformation matrix
 \param b pointer to bounding box. Once the function is called, contains the transformed bounding box
 */
-void gf_mx_apply_bbox_4x4(GF_Matrix *mx, GF_BBox *box);
+void gf_mx_apply_bbox_4x4(GF_Matrix *mx, GF_BBox *b);
 
 /*!\brief matrix box sphere transformation
 

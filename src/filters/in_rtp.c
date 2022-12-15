@@ -850,6 +850,13 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 			((gf_rtsp_get_session_port(ctx->session->session) == 443) || (gf_rtsp_get_session_port(ctx->session->session) == 8443)))
 	) {
 #ifdef GPAC_HAS_SSL
+
+#ifdef GPAC_ENABLE_COVERAGE
+		//all our tests directly detect ssl from above conditions
+		if (gf_sys_is_cov_mode())
+			gf_rtsp_session_needs_ssl(ctx->session->session);
+#endif
+
 		GF_Err e = gf_rtsp_set_ssl_ctx(ctx->session->session, gf_dm_ssl_init(ctx->dm, 0) );
 		if (e) return e;
 #else

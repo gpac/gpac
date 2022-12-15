@@ -3763,6 +3763,9 @@ static void va_finalize(JSRuntime *rt, JSValue obj)
 
 static void va_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_func)
 {
+#ifdef GPAC_ENABLE_COVERAGE
+	if (!rt) return;
+#endif
 	EVG_VA *va = JS_GetOpaque(obj, va_class_id);
 	if (!va) return;
 	JS_MarkValue(rt, va->ab, mark_func);
@@ -7796,6 +7799,11 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 
 		JS_NewClassID(&va_class_id);
 		JS_NewClass(rt, va_class_id, &va_class);
+
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_cov_mode())
+			va_gc_mark(NULL, JS_NULL, NULL);
+#endif
 
 #ifdef EVG_USE_JS_SHADER
 		JS_NewClassID(&fragment_class_id);

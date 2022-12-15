@@ -298,14 +298,14 @@ u32 gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection)
 }
 
 
+#ifdef GPAC_HAS_SSL
 Bool gf_rtsp_session_needs_ssl(GF_RTSPSession *sess)
 {
 	if (!sess) return GF_FALSE;
-#ifdef GPAC_HAS_SSL
 	if (sess->use_ssl && !sess->ssl_ctx) return GF_TRUE;
-#endif
 	return GF_FALSE;
 }
+#endif
 
 GF_EXPORT
 void gf_rtsp_session_del(GF_RTSPSession *sess)
