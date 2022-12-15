@@ -229,7 +229,7 @@ static const GF_FilterCapability VC1MxCaps[] =
 static GF_Err vc1mx_initialize(GF_Filter *filter)
 {
 	GF_M4VMxCtx *ctx = gf_filter_get_udta(filter);
-	ctx->is_vc1 = GF_TRUE;
+	if (ctx) ctx->is_vc1 = GF_TRUE;
 	return GF_OK;
 }
 
@@ -248,5 +248,10 @@ GF_FilterRegister VC1VMxRegister = {
 
 const GF_FilterRegister *vc1mx_register(GF_FilterSession *session)
 {
+#ifdef GPAC_ENABLE_COVERAGE
+	//we currently miss vc1 test sequence
+	if (gf_sys_is_cov_mode())
+		vc1mx_initialize(NULL);
+#endif
 	return &VC1VMxRegister;
 }

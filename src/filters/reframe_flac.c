@@ -853,5 +853,15 @@ GF_FilterRegister FLACDmxRegister = {
 
 const GF_FilterRegister *flac_dmx_register(GF_FilterSession *session)
 {
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		u32 v=0xFFEEDDCC;
+		flac_dmx_crc16((u8*)&v, 4);
+		flac_channel_layout(4);
+	}
+#endif
+
+
 	return &FLACDmxRegister;
 }

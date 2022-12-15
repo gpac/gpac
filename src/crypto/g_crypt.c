@@ -70,6 +70,7 @@ GF_Err gf_crypt_set_IV(GF_Crypt *td, const void *iv, u32 size)
 	return td->_set_state(td, (void *)iv, size);
 }
 
+GF_EXPORT
 GF_Err gf_crypt_get_IV(GF_Crypt *td, void *iv, u32 *size)
 {
 	if (!td) return GF_BAD_PARAM;

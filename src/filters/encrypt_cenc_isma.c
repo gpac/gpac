@@ -2677,6 +2677,14 @@ GF_FilterRegister CENCEncRegister = {
 const GF_FilterRegister *cenc_encrypt_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_CRYPTO
+
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		bin128 test;
+		cenc_gen_bin128(test);
+	}
+#endif
+
 	return &CENCEncRegister;
 #else
 	return NULL;

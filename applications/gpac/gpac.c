@@ -2109,7 +2109,6 @@ rescan:
 /*
 	Coverage
 */
-
 #ifdef GPAC_ENABLE_COVERAGE
 #include <gpac/utf.h>
 #include <gpac/base_coding.h>
@@ -2127,6 +2126,7 @@ rescan:
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/path2d.h>
 #include <gpac/module.h>
+#include <gpac/crypt.h>
 #endif
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
@@ -2315,6 +2315,18 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	signal_catched = GF_TRUE;
 
 	gf_url_is_relative("./");
+
+	//test ECB (no test using ECB decrypt)
+	bin128 master_key;
+	memset(master_key, 0, sizeof(bin128));
+	GF_Crypt *crypto = gf_crypt_open(GF_AES_128, GF_ECB);
+	gf_crypt_init(crypto, master_key, master_key);
+	gf_crypt_encrypt(crypto, master_key, 16);
+	gf_crypt_decrypt(crypto, master_key, 16);
+	gf_crypt_set_IV(crypto, master_key, 16);
+	u32 ivsize=16;
+	gf_crypt_get_IV(crypto, master_key, &ivsize);
+	gf_crypt_close(crypto);
 
 
 #ifdef WIN32
