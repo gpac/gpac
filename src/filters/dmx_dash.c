@@ -957,8 +957,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		if (gf_sys_is_cov_mode()) {
 			gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
 			//not used in the test suite (require JS)
-			gf_dash_switch_quality(ctx->dash, GF_TRUE);
-			//not used relyably in the test suite (require fatal error in session)
+			gf_dash_switch_quality(ctx->dash, GF_FALSE);
+			//not used in the test suite (require fatal error in session)
 			dashin_abort(NULL);
 		}
 #endif

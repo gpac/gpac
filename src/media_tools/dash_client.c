@@ -6758,7 +6758,7 @@ llhls_rety:
 	group->time_at_first_reload_required = 0;
 
 	if (group->force_switch_bandwidth && !dash->auto_switch_count) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Forcing representation switch, retesting group"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Forcing representation switch, retesting group\n"));
 		gf_dash_switch_group_representation(dash, group);
 		/*restart*/
 		return GF_DASH_DownloadRestart;
