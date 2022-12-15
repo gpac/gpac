@@ -296,6 +296,7 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 			if (dsi) {
 				GF_List *bck = vvcc_out->param_array;
 				memcpy(vvcc_out, vvcc, sizeof(GF_VVCConfig));
+				vvcc_out->general_constraint_info = gf_malloc(sizeof(u8)*vvcc_out->num_constraint_info);
 				vvcc_out->param_array = bck;
 			}
 

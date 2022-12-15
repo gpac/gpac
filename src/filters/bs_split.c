@@ -746,6 +746,7 @@ restart:
 						return GF_OUT_OF_MEM;
 					}
 					memcpy(vvcc_out, vvcc, sizeof(GF_VVCConfig));
+					vvcc_out->general_constraint_info = gf_malloc(sizeof(u8)*vvcc_out->num_constraint_info);
 					vvcc_out->param_array = gf_list_new();
 					if (!vvcc_out->param_array) {
 						gf_odf_vvc_cfg_del(vvcc);
