@@ -3734,6 +3734,12 @@ static void qjs_init_runtime_libc(JSRuntime *rt)
     if (gf_opts_get_bool("core", "unhandled-rejection")) {
         JS_SetHostPromiseRejectionTracker(rt, js_promise_rejection_tracker, NULL);
     }
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		js_promise_rejection_tracker(NULL, JS_NULL, JS_NULL, 1, NULL);
+	}
+#endif
+
 #endif
 
 }
