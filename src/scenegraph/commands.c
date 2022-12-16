@@ -151,8 +151,8 @@ static void gf_node_unregister_children_deactivate(GF_Node *container, GF_ChildN
 {
 	while (child) {
 		GF_ChildNodeItem *cur;
-		gf_node_unregister(child->node, container);
 		gf_node_deactivate(child->node);
+		gf_node_unregister(child->node, container);
 		cur = child;
 		child = child->next;
 		gf_free(cur);

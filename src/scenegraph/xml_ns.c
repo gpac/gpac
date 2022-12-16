@@ -1094,7 +1094,10 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	u32 data_size=0, idx;
 	Bool existing;
 
-	if (!cache_dir || !base_filename || !iri || !iri->string || strncmp(iri->string, "data:", 5)) return GF_OK;
+	if (!cache_dir || !base_filename || !iri || !iri->string) return GF_OK;
+	if (strncmp(iri->string, "data:", 5)) return GF_OK;
+	//used in test suite
+	if (!strcmp(iri->string, "data:,void")) return GF_OK;
 
 	/*handle "data:" scheme when cache is specified*/
 	strcpy(szFile, cache_dir);

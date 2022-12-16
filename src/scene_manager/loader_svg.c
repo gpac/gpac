@@ -329,7 +329,8 @@ static void svg_post_process_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *ir
 	}
 	if (iri->type != XMLRI_STRING) return;
 	e = gf_node_store_embedded_data(iri, parser->load->localPath, parser->load->fileName);
-	if (e) svg_report(parser, e, "Error storing embedded IRI data");
+	if (e)
+		svg_report(parser, e, "Error storing embedded IRI data");
 }
 
 static void svg_delete_deferred_anim(SVG_DeferredAnimation *anim, GF_List *deferred_animations)

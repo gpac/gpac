@@ -6344,8 +6344,11 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_Focus_datatype:
 	{
 		((SVG_Focus *)a->far_ptr)->type = ((SVG_Focus *)b->far_ptr)->type;
-		if ( ((SVG_Focus *)b->far_ptr)->target.string)
+		if ( ((SVG_Focus *)b->far_ptr)->target.string) {
+			if ( ((SVG_Focus *)a->far_ptr)->target.string)
+				gf_free( ((SVG_Focus *)a->far_ptr)->target.string);
 			((SVG_Focus *)a->far_ptr)->target.string = gf_strdup( ((SVG_Focus *)b->far_ptr)->target.string);
+		}
 	}
 		return GF_OK;
 
