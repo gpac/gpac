@@ -317,15 +317,6 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 	return GF_OK;
 }
 
-static void sockout_stop(GF_Filter *filter, GF_SockOutCtx *ctx)
-{
-	GF_FilterEvent evt;
-	GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
-	gf_filter_pid_send_event(ctx->pid, &evt);
-	gf_sk_del(ctx->socket);
-	ctx->socket = NULL;
-}
-
 static GF_Err sockout_process(GF_Filter *filter)
 {
 	GF_Err e;
@@ -503,7 +494,13 @@ static GF_Err sockout_process(GF_Filter *filter)
 	} else {
 		e = sockout_send_packet(ctx, pck, ctx->socket);
 		if (e == GF_BUFFER_TOO_SMALL) return GF_OK;
-		if (e==GF_IP_CONNECTION_CLOSED) sockout_stop(filter, ctx);
+		if (e==GF_IP_CONNECTION_CLOSED) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
+			gf_filter_pid_send_event(ctx->pid, &evt);
+			gf_sk_del(ctx->socket);
+			ctx->socket = NULL;
+		}
 	}
 
 	ctx->nb_pck_processed++;
