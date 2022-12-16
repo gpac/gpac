@@ -249,7 +249,7 @@ static GF_FilterPacket *gf_filter_pck_clone_frame_interface(GF_FilterPid *pid, G
 	p = gf_filter_pid_get_property(ref->pid, GF_PROP_PID_PIXFMT);
 	pf = p ? p->value.uint : 0;
 	//not supported
-	if (!w || !h || !pf) {
+	if (!w || !h || !pf || !ref->frame_ifce->get_plane) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing width/height/pf in frame interface cloning, not supported\n"));
 		return NULL;
 	}
