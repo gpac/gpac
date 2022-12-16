@@ -263,11 +263,16 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 
 	if (is_vvc) {
 		vvcc_out = gf_odf_vvc_cfg_new();
+		if (!vvcc_out) return GF_OUT_OF_MEM;
 	} else {
 #ifndef GPAC_DISABLE_HEVC
 		hvcc_out = gf_odf_hevc_cfg_new();
+		if (!hvcc_out) return GF_OUT_OF_MEM;
 #endif
 	}
+
+#define GOTO_ERR(_e) { e = _e; goto err_exit; }
+
 
 	count = gf_list_count(pctx->ipids);
 	for (i=0; i<count; i++) {
@@ -287,33 +292,35 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 
 			if (dsi) {
 				vvcc = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
-				if (!vvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (!vvcc) GOTO_ERR(GF_NON_COMPLIANT_BITSTREAM)
 			}
 			else if (dsi_enh) {
 				vvcc = gf_odf_vvc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
-				if (!vvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (!vvcc) GOTO_ERR(GF_NON_COMPLIANT_BITSTREAM)
 			}
 			if (dsi) {
 				GF_List *bck = vvcc_out->param_array;
+				u8 *gci_bck = vvcc_out->general_constraint_info;
 				memcpy(vvcc_out, vvcc, sizeof(GF_VVCConfig));
-				vvcc_out->general_constraint_info = gf_malloc(sizeof(u8)*vvcc_out->num_constraint_info);
+				vvcc_out->general_constraint_info = gf_realloc(gci_bck, sizeof(u8)*vvcc_out->num_constraint_info);
 				vvcc_out->param_array = bck;
+				if (!vvcc_out->general_constraint_info) GOTO_ERR(GF_OUT_OF_MEM)
+				memcpy(vvcc_out->general_constraint_info, vvcc->general_constraint_info, sizeof(u8)*vvcc_out->num_constraint_info);
 			}
 
 			gf_filter_pid_set_udta_flags(ipid, vvcc->nal_unit_size);
 			e = bsagg_transfer_param_array(vvcc_out->param_array, vvcc->param_array);
-			if (e) return e;
+			if (e) goto err_exit;
 
-			if (vvcc)
-				gf_odf_vvc_cfg_del(vvcc);
+			gf_odf_vvc_cfg_del(vvcc);
 
 			if (dsi && dsi_enh) {
 				vvcc = gf_odf_vvc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
-				if (!vvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (!vvcc) GOTO_ERR(GF_NON_COMPLIANT_BITSTREAM)
 
 				e = bsagg_transfer_param_array(vvcc_out->param_array, vvcc->param_array);
 				gf_odf_vvc_cfg_del(vvcc);
-				if (e) return e;
+				if (e) goto err_exit;
 			}
 		} else {
 #ifndef GPAC_DISABLE_HEVC
@@ -323,11 +330,11 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 
 			if (dsi) {
 				hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, dsi_lhvc);
-				if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (!hvcc) GOTO_ERR(GF_NON_COMPLIANT_BITSTREAM)
 			}
 			else if (dsi_enh) {
 				hvcc = gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE);
-				if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (!hvcc) GOTO_ERR(GF_NON_COMPLIANT_BITSTREAM)
 			}
 			if (dsi) {
 				GF_List *bck = hvcc_out->param_array;
@@ -338,14 +345,14 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 			gf_filter_pid_set_udta_flags(ipid, hvcc->nal_unit_size);
 			if (dsi) {
 				e = bsagg_transfer_param_array(hvcc_out->param_array, hvcc->param_array);
-				if (e) return e;
+				if (e) goto err_exit;
 			} else {
 				if (!hvcc_enh_out) {
 					hvcc_enh_out = hvcc;
 					hvcc = NULL;
 				} else {
 					e = bsagg_transfer_param_array(hvcc_enh_out->param_array, hvcc->param_array);
-					if (e) return e;
+					if (e) goto err_exit;
 				}
 			}
 			if (hvcc)
@@ -353,11 +360,11 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 
 			if (dsi && dsi_enh) {
 				hvcc = gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE);
-				if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (!hvcc) GOTO_ERR(GF_NON_COMPLIANT_BITSTREAM)
 
 				e = bsagg_transfer_param_array(hvcc_out->param_array, hvcc->param_array);
 				gf_odf_hevc_cfg_del(hvcc);
-				if (e) return e;
+				if (e) goto err_exit;
 			}
 #endif
 		}
@@ -401,12 +408,15 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 #endif
 	}
 
+
+err_exit:
+
 #ifndef GPAC_DISABLE_HEVC
 	if (hvcc_out) gf_odf_hevc_cfg_del(hvcc_out);
 	if (hvcc_enh_out) gf_odf_hevc_cfg_del(hvcc_enh_out);
 #endif
 	if (vvcc_out) gf_odf_vvc_cfg_del(vvcc_out);
-	return GF_OK;
+	return e;
 }
 
 
@@ -541,9 +551,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 					//u32 prio_id = (data[size+1]) & 0x3F;
 					u32 dep_id = (data[size+2] >> 4) & 0x7;
 					u32 qual_id = (data[size+2]) & 0xF;
-					u32 temporal_id = (data[size+3]>>5) & 0x7;
-
-					svc_temporal_id = temporal_id;
+					svc_temporal_id = (data[size+3]>>5) & 0x7;
 					svc_layer_id = ctx->svcqid ? qual_id : dep_id;
 				}
 				if (has_svc_prefix) {
