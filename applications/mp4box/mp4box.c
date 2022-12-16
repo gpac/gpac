@@ -5679,7 +5679,7 @@ static GF_Err do_itunes_tag()
 		}
 		if (!itag && !clear && !is_wma) {
 			if (tag_idx<0) {
-				if (!do_qt_keys(tags, val+1)) {
+				if (val && !do_qt_keys(tags, val+1)) {
 					M4_LOG(GF_LOG_WARNING, ("Invalid iTune tag name \"%s\" - ignoring\n", tags));
 				}
 				if (val) val[0] = '=';

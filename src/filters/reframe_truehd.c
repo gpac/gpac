@@ -639,7 +639,7 @@ GF_Err truehd_process(GF_Filter *filter)
 
 		if (frame_start) {
 			start += frame_start;
-			remain -= frame_start;
+			remain -= (u32) frame_start;
 		}
 		frame = start;
 

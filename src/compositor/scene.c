@@ -1316,7 +1316,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
 	tr->translation.x = 0;
 	p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TRANS_X_INV);
 	if (p) {
-		if (p) tr->translation.x = -INT2FIX(w/2) + INT2FIX(p->value.sint+mo->width/2);
+		tr->translation.x = -INT2FIX(w/2) + INT2FIX(p->value.sint+mo->width/2);
 	} else {
 		p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TRANS_X);
 		if (p) tr->translation.x = INT2FIX(p->value.sint);

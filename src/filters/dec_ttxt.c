@@ -133,7 +133,8 @@ static void ttd_update_size_info(GF_TTXTDec *ctx)
 		} else if (ctx->cfg->text_width && ctx->cfg->text_height) {
 			gf_sg_set_scene_size_info(ctx->scenegraph, ctx->cfg->text_width, ctx->cfg->text_height, GF_TRUE);
 		} else {
-			u32 w=0, h=0;
+			w=0;
+			h=0;
 			const GF_PropertyValue *p;
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_WIDTH);
 			if (p) w = p->value.uint;
@@ -701,7 +702,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 	for (i=tc->start_char; i<tc->end_char; i++) {
 		Bool new_line = GF_FALSE;
 		if (utf16_txt[i] == '\r') continue;
-		if ((utf16_txt[i] == '\n') || (utf16_txt[i] == '\r') || (utf16_txt[i] == 0x85) || (utf16_txt[i] == 0x2028) || (utf16_txt[i] == 0x2029))
+		if ((utf16_txt[i] == '\n') || (utf16_txt[i] == 0x85) || (utf16_txt[i] == 0x2028) || (utf16_txt[i] == 0x2029))
 			new_line = GF_TRUE;
 
 		if (new_line || (i+1==tc->end_char) ) {

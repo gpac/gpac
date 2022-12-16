@@ -234,7 +234,7 @@ u64 gf_clock_to_media_time(GF_Clock *ck, u32 clock_val)
 	u64 t = ck->init_ts_loops;
 	t *= 0xFFFFFFFFUL;
 	t += clock_val;
-	if (ck && ck->has_media_time_shift) {
+	if (ck->has_media_time_shift) {
 		if (t > ck->media_ts_orig) t -= ck->media_ts_orig;
 		else t=0;
 		t += ck->media_time_orig;

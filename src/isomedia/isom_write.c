@@ -6302,7 +6302,7 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 
 	nb_keys = gf_list_count(keys->keys);
 	if (!key) {
-		u32 i, nb_keys = gf_list_count(keys->keys);
+		u32 nb_keys = gf_list_count(keys->keys);
 		gf_isom_box_del_parent(&meta->child_boxes, (GF_Box *) keys);
 		for (i=0; i<gf_list_count(ilst->child_boxes); i++) {
 			GF_ListItemBox *info = gf_list_get(ilst->child_boxes, i);
@@ -6992,7 +6992,7 @@ static GF_Err gf_isom_set_sample_group_info_internal(GF_ISOFile *movie, u32 trac
 GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex, Bool *is_traf_sgpd, Bool check_access)
 {
 	GF_Err e;
-	GF_TrackBox *trak;
+	GF_TrackBox *trak=NULL;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	GF_TrackFragmentBox *traf=NULL;
 #else
@@ -7026,8 +7026,8 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 		}
 
 		trak = gf_isom_get_track_from_file(movie, track);
-		if (!trak) return GF_BAD_PARAM;
 	}
+	if (!trak) return GF_BAD_PARAM;
 
 	//get sample group desc for this grouping type
 	sgdesc = get_sgdp(trak->Media->information->sampleTable, traf, grouping_type, is_traf_sgpd);

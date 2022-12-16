@@ -1068,9 +1068,9 @@ static Bool jsfs_get_filter_args(JSContext *ctx, GF_FilterSession *fs, GF_Filter
 		//load external modules
 		u32 i, count = gf_modules_count();
 		for (i=0; i<count; i++) {
-			GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, *meta_fs);
-			if (freg) {
-				gf_fs_add_filter_register(*meta_fs, freg);
+			GF_FilterRegister *a_freg = (GF_FilterRegister *) gf_modules_load_filter(i, *meta_fs);
+			if (a_freg) {
+				gf_fs_add_filter_register(*meta_fs, a_freg);
 			}
 		}
 		(*meta_fs)->blacklist = NULL;
@@ -1110,7 +1110,7 @@ static Bool jsfs_get_filter_args(JSContext *ctx, GF_FilterSession *fs, GF_Filter
 	const char *inst_names = gf_filter_meta_get_instances(finst);
 	while (inst_names && inst_names[0]) {
 		char szFName[100];
-		char *sep = strchr(inst_names, ' ');
+		sep = strchr(inst_names, ' ');
 		if (sep) sep[0] = 0;
 		sprintf(szFName, "%s:%s", finst->freg->name, inst_names);
 

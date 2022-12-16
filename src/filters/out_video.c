@@ -2029,9 +2029,9 @@ static GF_Err vout_process(GF_Filter *filter)
 	ctx->nb_frames++;
 	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MEDIA_TIME);
 	if (p) {
-		Double cts = (Double)  gf_filter_pck_get_cts(pck);
-		cts /= ctx->timescale;
-		ctx->media_offset = cts - p->value.number;
+		Double a_ts = (Double)  gf_filter_pck_get_cts(pck);
+		a_ts /= ctx->timescale;
+		ctx->media_offset = a_ts - p->value.number;
 	}
 
 

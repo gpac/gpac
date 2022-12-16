@@ -1133,7 +1133,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	szCodec[1] = fsess->sep_name;
 	szCodec[2] = 0;
 
-	cid = strstr(args, szCodec);
+	cid = args ? strstr(args, szCodec) : NULL;
 	if (!cid) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing codec identifier in \"enc\" definition: %s\n", args ? args : "no arguments"));
 		return NULL;
@@ -3356,6 +3356,7 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 	Bool has_output, has_input;
 
 	if (!js_filter) {
+		if (!filter_name) return;
 		js_filter = gf_fs_load_filter(session, filter_name, &e);
 		if (!js_filter) return;
 	} else {

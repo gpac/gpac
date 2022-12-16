@@ -2241,7 +2241,7 @@ void dump_all_props(char *pname)
 		gf_sys_format_help(helpout, help_flags, " Name | Integer value \n");
 		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
 		for (i=0; i<GF_CICP_PRIM_LAST; i++) {
-			const char *name = gf_cicp_color_primaries_name(i);
+			name = gf_cicp_color_primaries_name(i);
 			if (!name || !strcmp(name, "unknown")) continue;
 			gf_sys_format_help(helpout, help_flags, " %s | %d \n", name, i);
 		}
@@ -2249,7 +2249,7 @@ void dump_all_props(char *pname)
 		gf_sys_format_help(helpout, help_flags, " Name | Integer value \n");
 		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
 		for (i=0; i<GF_CICP_TRANSFER_LAST; i++) {
-			const char *name = gf_cicp_color_transfer_name(i);
+			name = gf_cicp_color_transfer_name(i);
 			if (!name) continue;
 			gf_sys_format_help(helpout, help_flags, " %s | %d \n", name, i);
 		}
@@ -2257,7 +2257,7 @@ void dump_all_props(char *pname)
 		gf_sys_format_help(helpout, help_flags, " Name | Integer value \n");
 		gf_sys_format_help(helpout, help_flags, " --- | ---  \n");
 		for (i=0; i<GF_CICP_MX_LAST; i++) {
-			const char *name = gf_cicp_color_matrix_name(i);
+			name = gf_cicp_color_matrix_name(i);
 			if (!name) continue;
 			gf_sys_format_help(helpout, help_flags, " %s | %d \n", name, i);
 		}
@@ -2464,7 +2464,7 @@ void dump_all_codecs(GF_SysArgMode argmode)
 				if (k==i) continue;;
 				reg = gf_list_get(meta_codecs, k);
 				const char *rname = strchr(reg->name, ':');
-				if (name) rname++;
+				if (rname) rname++;
 				else rname = reg->name;
 				if (strcmp(rname, name)) continue;
 
@@ -2805,10 +2805,9 @@ void dump_all_formats(GF_SysArgMode argmode)
 		} else if (gen_doc==1) {
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "n/a");
 		}
-		if (gen_doc==1)
-			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, " | ");
 
 		if (gen_doc==1) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, " | ");
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR | GF_PRINTARG_ESCAPE_PIPE, "%s \n", hdl->mime ? hdl->mime : "n/a");
 		} else {
 			if (hdl->mime && (argmode>GF_ARGMODE_EXPERT)) {
@@ -2889,7 +2888,7 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 	}
 	count = gf_list_count(all_protos);
 	for (i=0; i<count; i++) {
-		u32 j, k, c2;
+		u32 j, c2;
 		PROTOHandler *pe = gf_list_get(all_protos, i);
 
 		if (gen_doc==1) {

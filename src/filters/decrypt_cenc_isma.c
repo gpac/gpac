@@ -1072,7 +1072,6 @@ static GF_Err cenc_dec_load_pssh(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, con
 			return GF_OK;
 		}
 		if (is_leaf_key) {
-			u32 j;
 			for (j=0; j<cstr->KID_count; j++) {
 				GF_Crypt *crypto = gf_crypt_open(GF_AES_128, GF_CBC);
 				if (!crypto) return GF_OUT_OF_MEM;

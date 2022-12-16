@@ -194,7 +194,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	return GF_TRUE;
 }
 
-static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
+static int gpac_exit_fun(int code)
 {
 	u32 i;
 	if (code>=0) {
@@ -275,7 +275,7 @@ s32 get_s32(char *val, char *log_name)
 
 
 #define gpac_exit(_code) \
-	return gpac_exit_fun(_code, alias_argv, alias_argc)
+	return gpac_exit_fun(_code)
 
 
 #if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)

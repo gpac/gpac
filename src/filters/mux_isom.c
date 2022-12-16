@@ -3331,7 +3331,7 @@ sample_entry_done:
 					gf_isom_set_dolby_vision_profile(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc);
 
 					if (!dvcc->bl_present_flag) {
-						u32 i, ref_id = 0;
+						u32 ref_id = 0;
 
 						p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 						if (p) ref_id = p->value.uint;
@@ -4305,7 +4305,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		sample_desc_index = tkw->clear_stsd_idx;
 	}
 
-	if (tkw->sparse_inject && (prev_dts!=GF_FILTER_NO_TS) && (prev_dts!=GF_FILTER_NO_TS) && tkw->prev_duration) {
+	if (tkw->sparse_inject && (prev_dts!=GF_FILTER_NO_TS) && (tkw->sample.DTS!=GF_FILTER_NO_TS) && tkw->prev_duration) {
 		u64 est_time = prev_dts + tkw->prev_duration;
 		if (est_time < tkw->sample.DTS) {
 			u32 ins_dur;

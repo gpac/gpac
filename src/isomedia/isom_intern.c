@@ -104,7 +104,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		if (gf_list_count(moof->PSSHs)) {
 			u8 *pssh_data;
 			u32 pssh_len;
-			u32 j, k, nb_pssh = gf_list_count(moof->PSSHs);
+			u32 k, nb_pssh = gf_list_count(moof->PSSHs);
 			GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32(pssh_bs, nb_pssh);
 			for (j=0; j<nb_pssh; j++) {
@@ -132,7 +132,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		if (gf_list_count(mov->emsgs)) {
 			u8 *emsg_data;
 			u32 emsg_len;
-			u32 j, nb_emsg = gf_list_count(mov->emsgs);
+			u32 nb_emsg = gf_list_count(mov->emsgs);
 			GF_BitStream *emsg_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			for (j=0; j<nb_emsg; j++) {
 				GF_Box *emsg = gf_list_get(mov->emsgs, j);

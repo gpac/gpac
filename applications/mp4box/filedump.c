@@ -1051,8 +1051,8 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 	u32 i, j, count, nb_descs, track, nalh_size, timescale, cur_extract_mode;
 	GF_Err e=GF_OK;
 	s32 countRef;
-	Bool is_adobe_protected = GF_FALSE;
-	Bool is_cenc_protected = GF_FALSE;
+	Bool is_adobe_protected;
+	Bool is_cenc_protected;
 	Bool is_hevc = GF_FALSE;
 	Bool is_vvc = GF_FALSE;
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1322,7 +1322,7 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 #ifndef GPAC_DISABLE_AV_PARSERS
 				Bool is_encrypted = 0;
 				if (is_cenc_protected) {
-					GF_Err e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL);
+					e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL);
 					if (e != GF_OK) {
 						fprintf(dump, "dump_msg=\"Error %s while fetching encryption info for sample, assuming sample is encrypted\" ", gf_error_to_string(e) );
 						is_encrypted = GF_TRUE;
@@ -1427,7 +1427,7 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 	if (!e && dump_check_xml) {
 		if (inName) {
 			GF_DOMParser *xml_parser = gf_xml_dom_new();
-			GF_Err e = gf_xml_dom_parse(xml_parser, szFileName, NULL, NULL);
+			e = gf_xml_dom_parse(xml_parser, szFileName, NULL, NULL);
 			if (e) {
 				fprintf(stderr, "Failed to parse XML dump %s: line %d: %s\n", szFileName, gf_xml_dom_get_line(xml_parser), gf_xml_dom_get_error(xml_parser) );
 			}
@@ -1465,7 +1465,6 @@ static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 	fprintf(dump, " <OpusConfig version=\"%d\" OutputChannelCount=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\"",
 			opcfg.version, opcfg.OutputChannelCount, opcfg.PreSkip, opcfg.InputSampleRate, opcfg.OutputGain, opcfg.ChannelMappingFamily);
 	if (opcfg.ChannelMappingFamily) {
-		u32 i;
 		fprintf(dump, " StreamCount=\"%d\" CoupledStreamCount=\"%d\" channelMapping=\"", opcfg.StreamCount, opcfg.CoupledCount);
 		for (i=0; i<opcfg.OutputChannelCount; i++) {
 			fprintf(dump, "%s%d", i ? " " : "", opcfg.ChannelMapping[i]);
@@ -3511,13 +3510,13 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 		gf_isom_get_visual_info(file, trackNum, stsd_idx, &w, &h);
 		fprintf(stderr, "\tRaw video %s - Resolution %d x %d\n", gf_pixel_fmt_name(pfmt), w, h);
 	} else if (msub_type==GF_QT_SUBTYPE_TMCD) {
-		u32 stsd_idx;
-		GF_ISOSample *sample = gf_isom_get_sample(file, trackNum, 1, &stsd_idx);
+		u32 a_stsd_idx;
+		GF_ISOSample *sample = gf_isom_get_sample(file, trackNum, 1, &a_stsd_idx);
 		fprintf(stderr, "\tTime Code stream\n");
 		if (sample) {
 			u32 tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt;
 
-			gf_isom_get_tmcd_config(file, trackNum, stsd_idx, &tmcd_flags, &tmcd_num, &tmcd_den, &tmcd_fpt);
+			gf_isom_get_tmcd_config(file, trackNum, a_stsd_idx, &tmcd_flags, &tmcd_num, &tmcd_den, &tmcd_fpt);
 			if (sample->data) {
 				char szTimecode[100];
 				gf_inspect_format_timecode(sample->data, sample->dataLength, tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt, szTimecode);

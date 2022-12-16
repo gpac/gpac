@@ -255,6 +255,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		ctx->bsmode = RAW_VPX;
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_WIDTH);
 		if (p) ctx->state.width = p->value.uint;
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_HEIGHT);
 		if (p) ctx->state.height = p->value.uint;
 		return GF_OK;
 	}

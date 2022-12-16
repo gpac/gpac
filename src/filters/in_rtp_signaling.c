@@ -720,7 +720,7 @@ process_reply:
 		sess->rtpin->eos_probe_start = gf_sys_clock();
 
 		if (sess->flags & RTSP_AGG_CONTROL) {
-			u32 i, count = gf_list_count(sess->rtpin->streams);
+			count = gf_list_count(sess->rtpin->streams);
 			for (i=0; i<count; i++) {
 				stream = gf_list_get(sess->rtpin->streams, i);
 				if (stream->rtsp == sess)

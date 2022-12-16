@@ -3540,7 +3540,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 #endif
 		char szLocSep[8];
 		sprintf(szLocSep, "gfloc%c", fsess->sep_args);
-		char *gfloc = strstr(args, "gfloc");
+		gfloc = strstr(args, "gfloc");
 		if (gfloc) {
 			if ((gfloc>args) && (gfloc[-1]==fsess->sep_args))
 				gfloc --;
@@ -3620,12 +3620,12 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			Bool af_is_mux = GF_FALSE;
 			if (dst_is_sink) {
 				for (u32 cidx=0; cidx<freg->nb_caps; cidx++) {
-					const GF_FilterCapability *cap = &freg->caps[cidx];
-					if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
-					if (!(cap->flags & GF_CAPFLAG_OUTPUT)) continue;
-					if (cap->flags & GF_CAPFLAG_EXCLUDED) continue;
-					if (cap->code!=GF_PROP_PID_STREAM_TYPE) continue;
-					if (cap->val.value.uint!=GF_STREAM_FILE) break;
+					const GF_FilterCapability *a_cap = &freg->caps[cidx];
+					if (!(a_cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
+					if (!(a_cap->flags & GF_CAPFLAG_OUTPUT)) continue;
+					if (a_cap->flags & GF_CAPFLAG_EXCLUDED) continue;
+					if (a_cap->code!=GF_PROP_PID_STREAM_TYPE) continue;
+					if (a_cap->val.value.uint!=GF_STREAM_FILE) break;
 					af_is_mux = GF_TRUE;
 				}
 			}

@@ -9833,7 +9833,7 @@ GF_EXPORT
 u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header)
 {
     u32 i;
-    u32 nb_read_bytes = 0;
+    u32 nb_read_bytes;
     if (!data || !data_length)
         return 0;
     if (!header)
@@ -12348,7 +12348,7 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 	}
 	*dsi_size = seq_hdr_len+7;
 	*dsi = gf_malloc(seq_hdr_len+7);
-	if (!dsi) return  GF_OUT_OF_MEM;
+	if (! (*dsi) ) return  GF_OUT_OF_MEM;
 
 	bs = gf_bs_new(*dsi, *dsi_size, GF_BITSTREAM_WRITE);
 	gf_bs_write_int(bs, 12, 4); //profile

@@ -300,7 +300,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 	}
 
 	if (!ctx->is_dash) {
-		GF_FilterPacket *dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
+		dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
 		if (!dst_pck) return;
 		gf_filter_pck_merge_properties(in_pck, dst_pck);
 

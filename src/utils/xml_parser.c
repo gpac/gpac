@@ -2189,7 +2189,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				value = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 				nb_bits = 32;
 			} else if (!stricmp(att->name, "ID128")) {
-				GF_Err e = gf_bin128_parse(att->value, word128);
+				e = gf_bin128_parse(att->value, word128);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Cannot parse ID128\n"));
                     goto exit;

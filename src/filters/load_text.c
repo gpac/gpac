@@ -688,7 +688,6 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	if (len == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 		ctx->state = 0;
-		len = 0;
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -1225,7 +1224,7 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
-		GF_Err e = txtin_webvtt_setup(filter, ctx);
+		e = txtin_webvtt_setup(filter, ctx);
 		if (e || !ctx->unframed) return e;
 	}
 	if (!ctx->vttparser) return (ctx->playstate==2) ? GF_EOS : GF_NOT_SUPPORTED;
@@ -2049,7 +2048,7 @@ static GF_Err ttml_send_empty_sample(GF_TXTIn *ctx, u64 sample_start, u64 sample
 	ctx->root_working_copy->content = gf_list_new();
 	char *samp_text = gf_xml_dom_serialize_root((GF_XMLNode*)ctx->root_working_copy, GF_FALSE, GF_FALSE);
 	gf_list_del(ctx->root_working_copy->content);
-	bck = ctx->root_working_copy->content = bck;
+	ctx->root_working_copy->content = bck;
 	if (!samp_text) return GF_OUT_OF_MEM;
 
 	char *txt_str = ttxt_parse_string(samp_text, GF_TRUE);
@@ -3824,11 +3823,11 @@ static GF_Err txtin_process_simple(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		gf_filter_pck_set_cts(opck, 0);
 
 		if (!gf_filter_pck_get_duration(ipck)) {
-			s32 dur = gf_timestamp_rescale_signed(ctx->stxtdur.num, ctx->stxtdur.den, ctx->timescale);
+			s32 dur = (s32) gf_timestamp_rescale_signed(ctx->stxtdur.num, ctx->stxtdur.den, ctx->timescale);
 			if (dur<0) dur = -dur;
-			gf_filter_pck_set_duration(opck, dur);
+			gf_filter_pck_set_duration(opck, (u32) dur);
 		} else if (ctx->stxtdur.num>0) {
-			u32 dur = gf_timestamp_rescale(ctx->stxtdur.num, ctx->stxtdur.den, ctx->timescale);
+			u32 dur = (u32) gf_timestamp_rescale(ctx->stxtdur.num, ctx->stxtdur.den, ctx->timescale);
 			gf_filter_pck_set_duration(opck, dur);
 		}
 	}

@@ -458,7 +458,7 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusCon
 	if (e) return e;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
