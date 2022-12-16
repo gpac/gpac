@@ -8259,16 +8259,17 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		sps->update_rep_format_flag = gf_bs_read_int_log(bs, 1, "update_rep_format_flag");
 		if (sps->update_rep_format_flag) {
 			sps->rep_format_idx = gf_bs_read_int_log(bs, 8, "rep_format_idx");
-			if (sps->rep_format_idx>15) {
-				return -1;
-			}
 		} else {
 			if (layer_id<MAX_LHVC_LAYERS) {
 				u32 idx = vps->layer_id_in_vps[layer_id];
-				if (idx>15)
-					return -1;
-				sps->rep_format_idx = vps->rep_format_idx[idx];
+				if (idx<=15)
+					sps->rep_format_idx = vps->rep_format_idx[idx];
 			}
+		}
+		if (sps->rep_format_idx>15) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid rep_format_idx index %d\n", sps->rep_format_idx));
+			sps->rep_format_idx=0;
+			return -1;
 		}
 		sps->width = vps->rep_formats[sps->rep_format_idx].pic_width_luma_samples;
 		sps->height = vps->rep_formats[sps->rep_format_idx].pic_height_luma_samples;
@@ -8313,6 +8314,11 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	}
 
 	sps->log2_max_pic_order_cnt_lsb = 4 + gf_bs_read_ue_log(bs, "log2_max_pic_order_cnt_lsb_minus4");
+	if (sps->log2_max_pic_order_cnt_lsb>16) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid log2_max_pic_order_cnt_lsb_minus4 %d, max shall be 12\n", sps->log2_max_pic_order_cnt_lsb-4));
+		sps->log2_max_pic_order_cnt_lsb = 16;
+		return -1;
+	}
 
 	if (!multiLayerExtSpsFlag) {
 		sps->sub_layer_ordering_info_present_flag = gf_bs_read_int_log(bs, 1, "sub_layer_ordering_info_present_flag");
