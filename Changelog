@@ -8,6 +8,7 @@
 - FFMPEG (mostly for Matroska) subtitle import and export (SRT/SSA to TX3G, TX3G to SRT, WebVTT and DVB subpictures)
 - EC3+Atmos signaling support
 - ALAC support
+- Improved DolbyVision muxing
 
 ## Media player
 - subtitle delay and position adjustment
@@ -20,26 +21,32 @@
 ## Filters
 - UTC-based range extraction in reframer
 - Thumbnail generator filter
-- Unframer filter
+- Added unframer filter
 - FFMPEG bitstream filters support
 - initseg support in mp4dmx filter
-- Access to GPU textures of decoders in Python bindings
-- Range extraction in reformer now supports Chapters editing
+- Access to GPU textures of decoders in Python and JSF bindings (glpush filter for tests)
+- Chapters editing and original timestamp dispatch in reformer range extraction 
 - dual in-band and out-of-band parameter set support in dasher
 - non-blocking IO for RTSP and HTTP servers/clients
 - RTSP over HTTP in rtsp server
 - Source-Specific multicast for udp and rtp inputs
 - User Authentication for HTTP and RTSP servers
 - TLS support for RTSP client and server
+- Per-filter buffering options
 
 ## Encryption
-- ClearKey support in dasher and decryptor
+- ClearKey support in dasher and decryption
 
 ## Misc
+- QT metadata tags in MP4Box and qt muxer 
+- support for some packet properties in URL templates 
+
+## DEPRECATED
 - Removed GF_Terminal API
 - Removed MP4Client, merged old behaviour in gpac -mp4c
 - Removed osmo4ios, direct compilation of gpac is now used on iOS
 - Removed Android Osmo4 and MP4Box, replaced by GPAC for Android which can run GUI as well as MP4Box and gpac command lines
+- Removed filemode option from dash demure
 
 
 # 22/02/2022: GPAC 2.0

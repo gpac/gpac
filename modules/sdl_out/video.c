@@ -879,8 +879,10 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				win_id = sdl_evt.button.windowID; break;
 			case SDL_MOUSEWHEEL:
 				win_id = sdl_evt.wheel.windowID; break;
+#if SDL_VERSION_ATLEAST(2,0,5)
 			case SDL_DROPFILE:
 				win_id = sdl_evt.drop.windowID; break;
+#endif
 			}
 			//we may get events from destroyed windows still in the queue, flush them
 			if (win_id!=dr->window_id) {
