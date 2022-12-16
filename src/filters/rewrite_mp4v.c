@@ -228,6 +228,9 @@ static const GF_FilterCapability VC1MxCaps[] =
 
 static GF_Err vc1mx_initialize(GF_Filter *filter)
 {
+#ifdef GPAC_ENABLE_COVERAGE
+	if (!filter) return GF_OK;
+#endif
 	GF_M4VMxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx) ctx->is_vc1 = GF_TRUE;
 	return GF_OK;
