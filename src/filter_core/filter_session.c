@@ -401,9 +401,9 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 
 	fsess->run_status = GF_EOS;
 	fsess->nb_threads_stopped = 1+nb_threads;
-	fsess->default_pid_buffer_max_us = 1000;
-	fsess->decoder_pid_buffer_max_us = 1000000;
-	fsess->default_pid_buffer_max_units = 1;
+	fsess->default_pid_buffer_max_us = gf_opts_get_int("core", "buffer-gen");
+	fsess->decoder_pid_buffer_max_us = gf_opts_get_int("core", "buffer-dec");
+	fsess->default_pid_buffer_max_units = gf_opts_get_int("core", "buffer-units");
 	fsess->max_resolve_chain_len = 6;
 	fsess->auto_inc_nums = gf_list_new();
 

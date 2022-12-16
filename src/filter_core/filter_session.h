@@ -726,6 +726,9 @@ struct __gf_filter
 	Bool blockmode_broken;
 #endif
 
+	//per-filter buffer options
+	u32 pid_buffer_max_us, pid_buffer_max_units;
+
 	//requested by a filter to disable blocking
 	Bool prevent_blocking;
 

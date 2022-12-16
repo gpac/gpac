@@ -248,8 +248,8 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		pid->max_buffer_time = pid->user_max_buffer_time;
 		pid->max_buffer_unit = 0;
 	} else {
-		pid->max_buffer_time = pid->filter->session->default_pid_buffer_max_us;
-		pid->max_buffer_unit = pid->filter->session->default_pid_buffer_max_units;
+		pid->max_buffer_time = pid->filter->pid_buffer_max_us ? pid->filter->pid_buffer_max_us : pid->filter->session->default_pid_buffer_max_us;
+		pid->max_buffer_unit = pid->filter->pid_buffer_max_units ? pid->filter->pid_buffer_max_units : pid->filter->session->default_pid_buffer_max_units;
 	}
 	pid->raw_media = GF_FALSE;
 

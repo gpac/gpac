@@ -251,6 +251,10 @@ static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_
 		}
 		else if (!strncmp(in_args, "RSID", 4) && (!in_args[4] || (in_args[4]==fsess->sep_args))) {
 		}
+		else if (!strncmp(in_args, "FBT", 2) && (in_args[3]==fsess->sep_name)) {
+		}
+		else if (!strncmp(in_args, "FBU", 2) && (in_args[3]==fsess->sep_name)) {
+		}
 		else if (!is_src && (in_args[0]==fsess->sep_frag)) {
 
 		} else {
@@ -1204,7 +1208,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg);
 }
 
-static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_name, const char *arg_name, const char *arg_val)
+static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_name, const char *arg_name, const char *arg_val, Bool first_arg)
 {
 	char szArg[101];
 	Bool gf_sys_has_filter_global_args();
@@ -1216,7 +1220,9 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 		u32 alen = (u32) strlen(arg_name);
 		u32 i, nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
+			u32 len;
 			u32 flen = 0;
+			u32 is_ok, loc_alen;
 			const char *per_filter, *sep2, *sep;
 			const char *o_arg, *arg = gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
@@ -1241,18 +1247,34 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 				arg += flen;
 			}
 
+			if (sep) {
+				len = (u32) (sep - (arg));
+			} else {
+				len = (u32) strlen(arg);
+			}
+			is_ok = 0;
 			if (!strncmp(arg, arg_name, alen)) {
-				u32 len=0;
-				if (sep) {
-					len = (u32) (sep - (arg));
-				} else {
-					len = (u32) strlen(arg);
+				if (len == alen) is_ok = 1;
+				loc_alen = alen;
+			} else if (first_arg && sep) {
+				if (!strncmp(arg, "FBT", len)) {
+					filter->pid_buffer_max_us = atoi(sep+1);
+					is_ok = 2;
+					loc_alen=3;
 				}
-				if (len != alen) continue;
-				strncpy(szArg, o_arg, 100);
-				szArg[ MIN(flen + alen, 100) ] = 0;
-				gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL, NULL, NULL);
+				else if (!strncmp(arg, "FBU", len)) {
+					filter->pid_buffer_max_units = atoi(sep+1);
+					is_ok = 2;
+					loc_alen=3;
+				}
+			}
+			if (!is_ok) continue;
 
+			strncpy(szArg, o_arg, 100);
+			szArg[ MIN(flen + loc_alen, 100) ] = 0;
+			gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL, NULL, NULL);
+
+			if (is_ok==1) {
 				if (sep) return sep+1;
 				//no arg value means boolean true
 				else return "true";
@@ -1265,6 +1287,13 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 	if (opt)
 		return opt;
 
+	if (first_arg) {
+		opt = gf_opts_get_key(sec_name, "FBT");
+		if (opt) filter->pid_buffer_max_us = atoi(opt);
+		opt = gf_opts_get_key(sec_name, "FBU");
+		if (opt) filter->pid_buffer_max_units = atoi(opt);
+	}
+	
 	//ifce (used by socket and other filters), use core default
 	if (!strcmp(arg_name, "ifce")) {
 		opt = gf_opts_get_key("core", "ifce");
@@ -1824,6 +1853,20 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			//per-filter buffer times
+			else if (!strcmp("FBT", szArg)) {
+				if (arg_type!=GF_FILTER_ARG_INHERIT)
+					filter->pid_buffer_max_us = atoi(value);
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
+			//per-filter buffer units
+			else if (!strcmp("FBU", szArg)) {
+				if (arg_type!=GF_FILTER_ARG_INHERIT)
+					filter->pid_buffer_max_units = atoi(value);
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
 			//internal options, nothing to do here
 			else if (
 				//generic encoder load
@@ -1952,6 +1995,7 @@ skip_arg:
 
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script)
 {
+	Bool first = GF_TRUE;
 	u32 i=0;
 	char szSecName[200];
 	char szEscape[7];
@@ -1997,7 +2041,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			continue;
 		}
 
-		def_val = gf_filter_load_arg_config(filter, szSecName, a->arg_name, a->arg_default_val);
+		def_val = gf_filter_load_arg_config(filter, szSecName, a->arg_name, a->arg_default_val, first);
+		first = GF_FALSE;
 
 		if (!def_val) continue;
 

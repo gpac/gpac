@@ -122,9 +122,9 @@ Targets:
 - [ ] DASH event support
 - [ ] Web integration (emscripten, Remotery UI)
 - [ ] Better TTML2 / SMPTE ST 2052-1 support
-- [ ] configure buffer level per filter
+- [x] configure buffer level per filter
 - [ ] GUI cleanup ?
-- [ ] deprecate `:filemode` in ROUTE
+- [x] deprecate `:filemode` in ROUTE
 - [x] support ClearKey Content Protection (CCP)
 - [x] FFMPEG subtitle support
 

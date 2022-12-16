@@ -2087,13 +2087,6 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!ctx->dm) return GF_SERVICE_ERROR;
 
-	//old syntax
-	if (ctx->filemode) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] `filemode` option will soon be deprecated, update your script to use `:forward=file` option.\n"));
-		ctx->forward = DFWD_FILE;
-		ctx->filemode = GF_FALSE;
-	}
-
 	ctx->dash_io.udta = ctx;
 	ctx->dash_io.delete_cache_file = dashdmx_io_delete_cache_file;
 	ctx->dash_io.create = dashdmx_io_create;
@@ -3357,7 +3350,6 @@ static const GF_FilterArgs DASHDmxArgs[] =
 
 	{ OFFS(skip_lqt), "disable decoding of tiles with highest degradation hints (not visible, not gazed at) for debug purposes", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(llhls_merge), "merge LL-HLS byte range parts into a single open byte range request", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(filemode), "alias for forward=file", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(groupsel), "select groups based on language (by default all playable groups are exposed)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_mode), "MPD chaining mode\n"
 	"- off: do not use MPD chaining\n"
@@ -3406,8 +3398,6 @@ GF_FilterRegister DASHDmxRegister = {
 	"\n"
 	"To expose a live DASH session to route:\n"
 	"EX gpac -i MANIFEST_URL dashin:forward=file -o route://225.0.0.1:8000/\n"
-	"\n"
-	"Note: This mode used to be trigger by [-filemode]() option, still recognized.\n"
 	"\n"
 	"If the source has dependent media streams (scalability) and all qualities and initialization segments need to be forwarded, add [-split_as]().\n"
 	"\n"
