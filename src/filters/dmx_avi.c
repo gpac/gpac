@@ -412,6 +412,11 @@ static Bool avidmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->v_init_play_done = GF_TRUE;
 			frame_idx = (u32) (ctx->avi->fps * evt->play.start_range);
 			if (frame_idx) {
+#ifdef GPAC_ENABLE_COVERAGE
+				if (gf_sys_is_cov_mode()) {
+					AVI_seek_start(ctx->avi);
+				}
+#endif
 				AVI_set_video_position(ctx->avi, frame_idx);
 			} else {
 				AVI_seek_start(ctx->avi);
@@ -557,17 +562,27 @@ GF_Err avidmx_process(GF_Filter *filter)
 		}
 		if (!ctx->v_playing)
 			ctx->video_done = GF_TRUE;
+
 		if (!st->playing || gf_filter_pid_would_block(st->opid) )
 			continue;
 		AVI_set_audio_track(ctx->avi, st->stream_num);
 		nb_active++;
 
+restart:
 		size = AVI_audio_size(ctx->avi, st->aud_frame);
 
 		if (st->seek_to_ts && size) {
 			if (st->seek_to_ts > st->audio_ts) {
 				st->aud_frame ++;
-				continue;
+				if (st->audio_bps) {
+					u32 nb_samples = (8*size) / (st->audio_bps * st->nb_channels);
+					st->audio_ts += nb_samples;
+				} else if (st->is_aac) {
+					st->audio_ts += 1024;
+				} else {
+					st->audio_ts ++;
+				}
+				goto restart;
 			}
 			else
 				st->seek_to_ts = 0;
