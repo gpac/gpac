@@ -1598,14 +1598,10 @@ Bool gpac_is_global_launch()
 	char parentName[GF_MAX_PATH];
 	DWORD dwProcessId = 0;
 	DWORD dwParentProcessId = 0;
-	DWORD dwParentParentProcessId = 0;
-	Bool no_parent_check = GF_FALSE;
 	GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT)GetProcAddress(hk32, "GetConsoleWindow");
 	console_hwnd = GetConsoleWindow();
 	dwProcessId = GetCurrentProcessId();
 	dwParentProcessId = getParentPID(dwProcessId);
-	if (dwParentProcessId)
-		dwParentParentProcessId = getParentPID(dwParentProcessId);
 	//get parent process name, check for explorer
 	parentName[0] = 0;
 #ifndef GPAC_BUILD_FOR_WINXP
@@ -1614,6 +1610,9 @@ Bool gpac_is_global_launch()
 		owns_wnd = GF_TRUE;
 	}
 #if 0
+	DWORD dwParentParentProcessId = 0;
+	if (dwParentProcessId)
+		dwParentParentProcessId = getParentPID(dwParentProcessId);
 	//get parent parent process name, check for devenv (or any other ide name ...)
 	else if (dwParentParentProcessId) {
 		owns_wnd = GF_FALSE;

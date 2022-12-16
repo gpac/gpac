@@ -781,7 +781,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 #endif
 
 #ifdef GPAC_CONFIG_ANDROID
-	const char *opt = opt = android_external_storage[0] ? android_external_storage : getenv("EXTERNAL_STORAGE");
+	const char *opt = android_external_storage[0] ? android_external_storage : getenv("EXTERNAL_STORAGE");
 	if (!opt) opt = "/sdcard";
 	gf_cfg_set_key(cfg, "core", "docs-dir", opt);
 	gf_cfg_set_key(cfg, "core", "last-dir", opt);

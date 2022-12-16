@@ -688,7 +688,6 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	{
 		u32 bps=0;
 		u64 tot_size=0, down_size=0;
-		GF_ObjectManager *odm = gf_filter_pid_get_udta(evt->base.on_pid);
 		GF_PropertyEntry *pe=NULL;
 		GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_info(evt->base.on_pid, GF_PROP_PID_TIMESHIFT_STATE, &pe);
 		if (p && p->value.uint) {
@@ -714,7 +713,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (p) down_size = p->value.longuint;
 
 		if (bps && down_size && tot_size)  {
-			odm = gf_filter_pid_get_udta(evt->base.on_pid);
+			GF_ObjectManager *odm = gf_filter_pid_get_udta(evt->base.on_pid);
 			if ((down_size!=odm->last_filesize_signaled) || (down_size != tot_size)) {
 				odm->last_filesize_signaled = down_size;
 				gf_odm_service_media_event_with_download(odm, GF_EVENT_MEDIA_PROGRESS, down_size, tot_size, bps/8, 0, 0);
@@ -744,7 +743,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 	{
 		GF_Compositor *compositor = gf_filter_get_udta(filter);
-		if (!compositor->player && compositor->root_scene->is_dynamic_scene && !evt->play.initial_broadcast_play) {
+		if (!compositor->player && !evt->play.initial_broadcast_play) {
 			if (compositor->root_scene->is_dynamic_scene) {
 				u32 i, count = gf_list_count(compositor->root_scene->resources);
 				for (i=0; i<count; i++) {

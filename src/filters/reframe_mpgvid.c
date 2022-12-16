@@ -1167,13 +1167,12 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				gf_filter_pck_set_byte_offset(dst_pck, byte_offset + start - (u8 *) data);
 			}
 		}
+
 		if (ftype) {
 			assert(pck_data[0] == 0);
 			assert(pck_data[1] == 0);
 			assert(pck_data[2] == 1);
-		}
 
-		if (ftype) {
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, (full_frame || ctx->input_is_au_end) ? GF_TRUE : GF_FALSE);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_dts(dst_pck, ctx->dts);

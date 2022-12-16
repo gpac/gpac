@@ -582,7 +582,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path, HTTP_DI
 	char *has_par;
 	u32 len, i, count = gf_list_count(ctx->directories);
 	char *listing = NULL;
-	char *name = full_path;
+	char *name;
 	char *www_name = NULL;
 	HTTP_DirEnum denum;
 
@@ -613,7 +613,7 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path, HTTP_DI
 
 	has_par=NULL;
 	if (full_path) {
-		u32 len = (u32) strlen(www_name);
+		len = (u32) strlen(www_name);
 		has_par=NULL;
 		if (len && strchr("/\\", www_name[len-1]))
 			www_name[len-1] = 0;
@@ -641,14 +641,14 @@ static char *httpout_create_listing(GF_HTTPOutCtx *ctx, char *full_path, HTTP_DI
 
 	if (!full_path || !strlen(full_path) || !strcmp(full_path, "/")) {
 		for (i=0; i<count; i++) {
-			HTTP_DIRInfo *di = gf_list_get(ctx->directories, i);
-			if (di->is_subpath) continue;
-			denum.di = di;
-			if (di->name) {
-				httpout_dir_file_enum(&denum, di->name, di->name, NULL, GF_TRUE);
+			HTTP_DIRInfo *a_di = gf_list_get(ctx->directories, i);
+			if (a_di->is_subpath) continue;
+			denum.di = a_di;
+			if (a_di->name) {
+				httpout_dir_file_enum(&denum, a_di->name, a_di->name, NULL, GF_TRUE);
 			} else {
-				gf_enum_directory(di->path, GF_TRUE, httpout_dir_enum, &denum, NULL);
-				gf_enum_directory(di->path, GF_FALSE, httpout_file_enum, &denum, NULL);
+				gf_enum_directory(a_di->path, GF_TRUE, httpout_dir_enum, &denum, NULL);
+				gf_enum_directory(a_di->path, GF_FALSE, httpout_file_enum, &denum, NULL);
 			}
 		}
 	} else {
@@ -3464,7 +3464,7 @@ retry:
 						if (httpout_open_input_llhls(ctx, in, in->llhls_url)) {
 							//force sync
 							while (in->flush_llhls_open) {
-								GF_Err e = gf_dm_sess_process(in->llhls_upload);
+								e = gf_dm_sess_process(in->llhls_upload);
 								if (e==GF_IP_NETWORK_EMPTY) {
 									gf_sleep(1);
 									continue;
@@ -3882,7 +3882,7 @@ next_pck:
 
 			if (in->llhls_upload) {
 				if (in->flush_llhls_open) {
-					GF_Err e = gf_dm_sess_process(in->llhls_upload);
+					e = gf_dm_sess_process(in->llhls_upload);
 					if (e==GF_IP_NETWORK_EMPTY) {
 						continue;
 					} else if (e) {

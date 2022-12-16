@@ -628,7 +628,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 					u32 j, write_h, lsize;
 					const u8 *out_ptr;
 					u32 out_stride = i ? stride_uv : stride;
-					GF_Err e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
+					e = hwf->get_plane(hwf, i, &out_ptr, &out_stride);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Failed to fetch plane data from hardware frame, cannot write\n"));
 						break;

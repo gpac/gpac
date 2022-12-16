@@ -4071,7 +4071,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			inspect_printf(dump, " version=\"%d\" OutputChannelCount=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\"",
 					opcfg.version, opcfg.OutputChannelCount, opcfg.PreSkip, opcfg.InputSampleRate, opcfg.OutputGain, opcfg.ChannelMappingFamily);
 			if (opcfg.ChannelMappingFamily) {
-				u32 i;
 				inspect_printf(dump, " StreamCount=\"%d\" CoupledStreamCount=\"%d\" channelMapping=\"", opcfg.StreamCount, opcfg.CoupledCount);
 				for (i=0; i<opcfg.OutputChannelCount; i++) {
 					inspect_printf(dump, "%s%d", i ? " " : "", opcfg.ChannelMapping[i]);

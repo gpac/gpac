@@ -2202,7 +2202,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	}
 
 	if (cstr->pssh_template_plus_one) {
-		u32 key_idx = cstr->pssh_template_plus_one-1;
+		key_idx = cstr->pssh_template_plus_one-1;
 		cstr->pssh_template_plus_one = 0;
 
 		if (cstr->pssh_templates) {

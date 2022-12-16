@@ -8842,7 +8842,7 @@ GF_Err dac3_box_read(GF_Box *s, GF_BitStream *bs)
 	//the rest is reserved
 	gf_bs_skip_bytes(bs, ptr->size);
 	ptr->size = 0;
-	return e;
+	return GF_OK;
 }
 
 
@@ -8866,7 +8866,7 @@ GF_Err dac3_box_write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_int(bs, ptr->cfg.atmos_ec3_ext, 1);
 		gf_bs_write_u8(bs, ptr->cfg.complexity_index_type);
 	}
-	return e;
+	return GF_OK;
 }
 
 GF_Err dac3_box_size(GF_Box *s)

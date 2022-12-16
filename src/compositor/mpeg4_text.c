@@ -263,16 +263,16 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		if (!str) continue;
 
 		if (use_pass) {
-			u32 i=0, len = (u32) strlen(str);
+			u32 j=0, len = (u32) strlen(str);
 			if (len>=100) len=99;
-			while (i<len) {
-				if (str[i] == 0x1)
-					szBuf[i] = str[i];
+			while (j<len) {
+				if (str[j] == 0x1)
+					szBuf[j] = str[j];
 				else
-					szBuf[i] = '*';
-				i++;
+					szBuf[j] = '*';
+				j++;
 			}
-			szBuf[i] = 0;
+			szBuf[j] = 0;
 			str = szBuf;
 		}
 

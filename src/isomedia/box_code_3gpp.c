@@ -1046,7 +1046,7 @@ void dimC_box_del(GF_Box *s)
 
 GF_Err dimC_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e = GF_OK;
+	GF_Err e;
 	u32 i, msize;
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
 

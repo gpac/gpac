@@ -5009,7 +5009,6 @@ static void jsfilter_finalize(GF_Filter *filter)
 		gf_fs_unload_script(filter->session, jsf->ctx);
 
 	if (!jsf->is_custom) {
-		u32 i, count;
 		//we created the context, detach all other filters jsvals
 		gf_mx_p(jsf->filter->session->filters_mx);
 		count = gf_list_count(jsf->filter->session->filters);

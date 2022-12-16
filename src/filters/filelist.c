@@ -572,14 +572,14 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	if (ctx->chap_times.nb_items) {
-		GF_PropertyValue p;
-		p.type = GF_PROP_UINT_LIST;
-		p.value.uint_list = ctx->chap_times;
-		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_TIMES, &p);
+		GF_PropertyValue prop;
+		prop.type = GF_PROP_UINT_LIST;
+		prop.value.uint_list = ctx->chap_times;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_TIMES, &prop);
 
-		p.type = GF_PROP_STRING_LIST_COPY;
-		p.value.string_list =  ctx->chap_names;
-		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_NAMES, &p);
+		prop.type = GF_PROP_STRING_LIST_COPY;
+		prop.value.string_list = ctx->chap_names;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_NAMES, &prop);
 	} else {
 		//we don't concatenate chapters for now
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_TIMES, NULL);

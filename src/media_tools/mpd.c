@@ -3953,10 +3953,9 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Double max_part_dur_session=0;
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-		u32 j=0;
-		GF_MPD_Representation *rep;
 		if (!as->use_hls_ll) continue;
 
+		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
 			u32 k=0;
 			//figure out max part duration for this version of the playlist

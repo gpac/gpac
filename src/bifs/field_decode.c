@@ -248,7 +248,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (!is_mem_com) {
 			GF_Node *old_node = *((GF_Node **) field->far_ptr);
 			if (old_node != NULL) {
-				u32 i, count = gf_list_count(codec->command_buffers);
+				u32 count = gf_list_count(codec->command_buffers);
 				for (i=0; i<count; i++) {
 					CommandBufferItem *cbi = (CommandBufferItem*) gf_list_get(codec->command_buffers, i);
 					if (cbi->node == old_node) {

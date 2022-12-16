@@ -1105,7 +1105,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 
 	if (e && gf_filter_is_temporary(filter)) {
-		char *ext = strrchr(ctx->src, '.');
+		ext = strrchr(ctx->src, '.');
 		const AVInputFormat *ifmt = av_find_input_format(ctx->src);
 		if (!ifmt && ext) ifmt = av_find_input_format(ext+1);
 #if (LIBAVFORMAT_VERSION_MAJOR>=59)

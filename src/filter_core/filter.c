@@ -481,7 +481,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	}
 
 	if ((freg->flags & GF_FS_REG_SINGLE_THREAD) && gf_list_count(filter->session->threads)) {
-		u32 i, count = gf_list_count(filter->session->threads);
+		u32 count = gf_list_count(filter->session->threads);
 		GF_SessionThread *ft;
 		u32 idx=0;
 		u32 min_th_assigned = 0;
@@ -1035,7 +1035,7 @@ Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH])
 	if (path && path[0]) {
 		strcpy(szPath, path);
 		u32 len = (u32) strlen(szPath);
-		if ((szPath[len-1]=='/') || (szPath[len-1]=='/'))
+		if ((szPath[len-1]=='/') || (szPath[len-1]=='\\'))
 			szPath[len-1]=0;
 
 		strcat(szPath, url+6);
@@ -3203,19 +3203,19 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 		gf_mx_p(filter->tasks_mx);
 
 		while (filter->num_input_pids) {
-			GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, 0);
-			GF_Filter *sfilter = pidinst->pid->filter;
+			GF_FilterPidInst *a_pidi = gf_list_get(filter->input_pids, 0);
+			GF_Filter *a_filter = a_pidi->pid->filter;
 
-			gf_list_del_item(filter->input_pids, pidinst);
+			gf_list_del_item(filter->input_pids, a_pidi);
 
-			gf_filter_instance_detach_pid(pidinst);
+			gf_filter_instance_detach_pid(a_pidi);
 
 			filter->num_input_pids = gf_list_count(filter->input_pids);
 			if (!filter->num_input_pids)
 				filter->single_source = NULL;
 
 			//post a pid_delete task to also trigger removal of the filter if needed
-			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
+			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, a_filter, a_pidi->pid, "pid_inst_delete", a_pidi);
 		}
 		gf_mx_v(filter->tasks_mx);
 		if (reason)

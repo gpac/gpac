@@ -4405,7 +4405,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
         const char *xmlnamespace;
         const char *xml_schema_loc;
         const char *mimes;
-        GF_Err e = gf_isom_xml_subtitle_get_description(movie, track, stsd_idx,
+        e = gf_isom_xml_subtitle_get_description(movie, track, stsd_idx,
                                              &xmlnamespace, &xml_schema_loc, &mimes);
         if (e == GF_OK) {
             rfc_6381_get_codec_stpp(szCodec, subtype, xmlnamespace, xml_schema_loc, mimes);
@@ -4525,7 +4525,7 @@ GF_Err gf_media_isom_apply_qt_key(GF_ISOFile *movie, const char *name, const cha
 		key.value.string = val;
 
 		if (gf_file_exists(val)) {
-			GF_Err e = gf_file_load_data(val, &data, &key.value.data.data_len);
+			e = gf_file_load_data(val, &data, &key.value.data.data_len);
 			if (e!=GF_OK) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Failed to load file \"%s\" for key %s: %s\n", val, name, gf_error_to_string(e)));
 				return e;

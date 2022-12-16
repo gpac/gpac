@@ -364,10 +364,10 @@ JNIEXPORT jint JNICALL gpac_jni_load_service(JNIEnv * env, jobject obj, jstring 
 		u32 start_pos = 0;
 		u32 i, len = (u32) strlen(service_url);
 		for (i=0; i<len; i++) {
-			char c = service_url[i];
-			if (c != ' ') {
-				if (c=='\'') in_quote_s = in_quote_s ? 0 : 1;
-				if (c=='"') in_quote_d = in_quote_d ? 0 : 1;
+			char a_c = service_url[i];
+			if (a_c != ' ') {
+				if (a_c=='\'') in_quote_s = in_quote_s ? 0 : 1;
+				if (a_c=='"') in_quote_d = in_quote_d ? 0 : 1;
 				if (!start_pos) {
 					start_pos = i+1;
 				}
@@ -378,7 +378,7 @@ JNIEXPORT jint JNICALL gpac_jni_load_service(JNIEnv * env, jobject obj, jstring 
 
 			alen = (u32) (i - (start_pos-1));
 			argv = (char **) realloc(argv, sizeof(char *)*(argc + 1));
-			char *arg = (char *) malloc(sizeof(char)*(alen + 1));
+			arg = (char *) malloc(sizeof(char)*(alen + 1));
 			memcpy(arg, service_url+start_pos-1, alen);
 			arg[alen] = 0;
 			argv[argc] = arg;
@@ -657,6 +657,19 @@ static void gpac_jni_on_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const ch
 {
 	GPAC_JNI *gpac = (GPAC_JNI *) cbk;
 
+	if (!gpac || (gpac->do_log && !gpac->log_file)) {
+		char szTag[50];
+		int level;
+		if (ll == GF_LOG_ERROR) level = ANDROID_LOG_ERROR;
+		else if (ll == GF_LOG_WARNING) level = ANDROID_LOG_WARN;
+		else if (ll == GF_LOG_INFO) level = ANDROID_LOG_INFO;
+		else level = ANDROID_LOG_DEBUG;
+
+		sprintf(szTag, "GPAC@%s", gf_log_tool_name(lm) );
+		__android_log_vprint(level, szTag, fmt, list);
+		return;
+	}
+
 	if (!gpac->compositor) {
 		va_list vlist_tmp;
 
@@ -676,20 +689,8 @@ static void gpac_jni_on_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const ch
 	if (!gpac->do_log) return;
 
 
-	if (gpac && gpac->log_file) {
-		vfprintf(gpac->log_file, fmt, list);
-		fflush(gpac->log_file);
-	} else {
-		char szTag[50];
-		int level;
-		if (ll == GF_LOG_ERROR) level = ANDROID_LOG_ERROR;
-		else if (ll == GF_LOG_WARNING) level = ANDROID_LOG_WARN;
-		else if (ll == GF_LOG_INFO) level = ANDROID_LOG_INFO;
-		else level = ANDROID_LOG_DEBUG;
-
-		sprintf(szTag, "GPAC@%s", gf_log_tool_name(lm) );
-		__android_log_vprint(level, szTag, fmt, list);
-	}
+	vfprintf(gpac->log_file, fmt, list);
+	fflush(gpac->log_file);
 }
 
 static void on_progress_cbk(const void *usr, const char *title, u64 done, u64 total)

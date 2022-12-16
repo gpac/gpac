@@ -184,7 +184,7 @@ u32 gf_dolby_vision_level(u32 width, u32 height, u64 fps_num, u64 fps_den, u32 c
             else dv_level = 10;
         }
         else if (level_check <= 7680*4320*60) dv_level = 12;
-        else level_check = 13;
+        else dv_level = 13;
 	}
 	return dv_level;
 }

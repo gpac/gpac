@@ -548,7 +548,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			ctx->creds = NULL;
 
 			if (ctx->auth_stream) {
-				GF_RTPInStream *stream = ctx->auth_stream;
+				stream = ctx->auth_stream;
 				ctx->auth_stream = NULL;
 				//send a setup if needed
 				stream->flags |= RTP_AUTH_RESETUP;
