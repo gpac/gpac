@@ -4431,6 +4431,11 @@ GF_Err gf_isom_get_raw_user_data(GF_ISOFile *isom_file, u8 **output, u32 *output
 @{
 */
 
+/*! flag indicating default samples are sync*/
+#define GF_ISOM_FRAG_DEF_IS_SYNC 1
+/*! flag indicating a sync sample table shall be added in the track - cf CMAF rules*/
+#define GF_ISOM_FRAG_USE_SYNC_TABLE (1<<1)
+
 /*! sets up a track for fragmentation by specifying some default values for storage efficiency
 \note If all the defaults are 0, traf flags will always be used to signal them.
 \param isom_file the target ISO file
@@ -4438,7 +4443,7 @@ GF_Err gf_isom_get_raw_user_data(GF_ISOFile *isom_file, u8 **output, u32 *output
 \param DefaultSampleDescriptionIndex the default description used by samples in this track
 \param DefaultSampleDuration default duration of samples in this track
 \param DefaultSampleSize default size of samples in this track (0 if unknown)
-\param DefaultSampleIsSync default key-flag (RAP) of samples in this track
+\param DefaultSampleSyncFlags combination of GF_ISOM_FRAG_* flags
 \param DefaultSamplePadding default padding bits for samples in this track
 \param DefaultDegradationPriority default degradation priority for samples in this track
 \param force_traf_flags if GF_TRUE, will ignore these default in each traf but will still write them in moov
@@ -4448,7 +4453,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *isom_file, GF_ISOTrackID TrackID
                                     u32 DefaultSampleDescriptionIndex,
                                     u32 DefaultSampleDuration,
                                     u32 DefaultSampleSize,
-                                    u8 DefaultSampleIsSync,
+                                    u8 DefaultSampleSyncFlags,
                                     u8 DefaultSamplePadding,
                                     u16 DefaultDegradationPriority,
 									Bool force_traf_flags);
