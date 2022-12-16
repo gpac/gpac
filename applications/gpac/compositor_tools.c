@@ -1066,6 +1066,8 @@ static void mp4c_coverage()
 	Bool is_bound;
 	const char *outName;
 
+	mp4c_handle_prompt('h');
+	mp4c_handle_prompt('t');
 	GF_List *descs = gf_list_new();
 	gf_sc_get_world_info(compositor, descs);
 	gf_list_del(descs);

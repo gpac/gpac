@@ -2140,6 +2140,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 
 	if (mem_track == GF_MemTrackerNone) return 0;
 
+	gpac_handle_prompt(NULL, 0);
+
 	gpac_fsess_task_help(); //for coverage
 	gf_dm_sess_last_error(NULL);
 	gf_log_use_color();
