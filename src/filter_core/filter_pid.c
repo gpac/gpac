@@ -3395,6 +3395,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	GF_FilterSession *fsess = pid->filter->session;
 	GF_List *filter_chain;
 	u32 i, count;
+	char *gfloc = NULL;
+	char gfloc_c=0;
 	char prefRegister[1001];
 	char szForceReg[20];
 	Bool reconfigurable_only;
@@ -3536,6 +3538,16 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Solved %sfilter chain from filter %s PID %s to filter %s - dumping chain:\n", reconfigurable_only_type ? "adaptation " : "", pid->filter->name, pid->name, dst->freg->name));
 		}
 #endif
+		char szLocSep[8];
+		sprintf(szLocSep, "gfloc%c", fsess->sep_args);
+		char *gfloc = strstr(args, "gfloc");
+		if (gfloc) {
+			if ((gfloc>args) && (gfloc[-1]==fsess->sep_args))
+				gfloc --;
+
+			gfloc_c = gfloc[0];
+			gfloc[0] = 0;
+		}
 		prev_af = NULL;
 		for (i=0; i<count; i++) {
 			GF_Filter *af;
@@ -3687,6 +3699,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	}
 
 exit:
+	if (gfloc) gfloc[0] = gfloc_c;
+
 	gf_list_del(filter_chain);
 	return chain_input;
 }
@@ -3959,7 +3973,30 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 					gf_bs_del(bs);
 				}
 				gf_props_reset_single(&a_p);
-			} else {
+			}
+			//parse codecID
+			else if (p4cc == GF_PROP_PID_CODECID) {
+				//only for explicit filters
+				if (filter->dynamic_filter) goto skip_arg;
+				u32 cid = gf_codecid_parse(value);
+				if (cid) {
+					p.type = GF_PROP_UINT;
+					p.value.uint = cid;
+				}
+			}
+			//parse streamtype
+			else if (p4cc == GF_PROP_PID_STREAM_TYPE) {
+				//only for explicit filters
+				if (filter->dynamic_filter) goto skip_arg;
+				u32 st = gf_stream_type_by_name(value);
+				if (st!=GF_STREAM_UNKNOWN) {
+					p.type = GF_PROP_UINT;
+					p.value.uint = st;
+				}
+			}
+			//pix formats and others are parsed as specific prop types
+
+			if (p.type == GF_PROP_FORBIDEN) {
 				p = gf_props_parse_value(prop_type, name, value, NULL, sep_list);
 			}
 
