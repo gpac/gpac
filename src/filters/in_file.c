@@ -42,6 +42,7 @@ typedef struct
 	char *src;
 	char *ext, *mime;
 	u32 block_size;
+	GF_PropData pck;
 	GF_Fraction64 range;
 
 	//only one output pid declared
@@ -71,8 +72,18 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	char *src, *path;
 	const char *prev_url=NULL;
 
-	if (!ctx || !ctx->src) return GF_BAD_PARAM;
+	if (!ctx || (!ctx->src && !ctx->pck.size) ) return GF_BAD_PARAM;
 
+	if (ctx->pck.size) {
+		GF_FilterPacket *opck;
+		GF_Err e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, ctx->pck.ptr, ctx->pck.size, GF_FALSE, &ctx->pid);
+		if (e) return e;
+		opck = gf_filter_pck_new_shared(ctx->pid, ctx->pck.ptr, ctx->pck.size, NULL);
+		gf_filter_pck_send(opck);
+		gf_filter_pid_set_eos(ctx->pid);
+		ctx->is_end = GF_TRUE;
+		return GF_OK;
+	}
 	if (!strcmp(ctx->src, "null")) {
 		ctx->pid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
@@ -570,6 +581,7 @@ static const GF_FilterArgs FileInArgs[] =
 	{ OFFS(range), "byte range", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(pck), "data to use instead of file", GF_PROP_DATA, NULL, NULL, 0},
 	{0}
 };
 
