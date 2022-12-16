@@ -76,6 +76,7 @@ typedef struct
 	s32 txtx, txty;
 	u32 fsize;
 	u32 vp_w, vp_h;
+	u32 nb_frames;
 } GF_VTTDec;
 
 void vttd_update_size_info(GF_VTTDec *ctx)
@@ -446,10 +447,18 @@ static GF_Err vttd_process(GF_Filter *filter)
 		}
 		if (!pck) {
 			if (gf_filter_pid_is_eos(ctx->ipid)) {
-				if (ctx->cue_end)
+				//single frame, don't reset compositor (avoid last blank frame generation)
+				if (ctx->nb_frames==1) {
+					gf_filter_pid_set_eos(ctx->opid);
+					return GF_EOS;
+				}
+				if (ctx->cue_end) {
 					gf_sc_sys_frame_pending(ctx->scene->compositor, (u32) ctx->cue_end, obj_time, filter);
-				else
+				} else {
 					gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, old_cue_end, 0);
+					gf_filter_pid_set_eos(ctx->opid);
+					return GF_EOS;
+				}
 			}
 			return GF_OK;
 		}
@@ -473,7 +482,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 
 	ctx->cue_end = cts + gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
-
+	ctx->nb_frames++;
 	cues = gf_webvtt_parse_cues_from_data(pck_data, pck_size, 0, 0);
 	vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
 	if (gf_list_count(cues)) {
