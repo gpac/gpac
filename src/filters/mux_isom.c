@@ -5160,7 +5160,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	for (i=0; i<count; i++) {
 		u32 def_pck_dur;
 		u32 def_samp_size=0;
-		u32 def_is_rap;
+		u8 def_is_rap;
 #ifdef GF_ENABLE_CTRN
 		u32 inherit_traf_from_track = 0;
 #endif
@@ -5218,10 +5218,10 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		switch (tkw->stream_type) {
 		case GF_STREAM_AUDIO:
 		case GF_STREAM_TEXT:
-			def_is_rap = GF_TRUE;
+			def_is_rap = GF_ISOM_FRAG_DEF_IS_SYNC;
 			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_HAS_SYNC);
 			if (p && p->value.boolean)
-				def_is_rap = GF_FALSE;
+				def_is_rap = 0;
 			break;
 		case GF_STREAM_VISUAL:
 			switch (tkw->codecid) {
@@ -5239,19 +5239,23 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 				if (!ref_tkw) ref_tkw = tkw;
 				break;
 			}
-			def_is_rap = GF_FALSE;
+			def_is_rap = 0;
 			break;
 
 		default:
-			def_is_rap = GF_FALSE;
+			def_is_rap = 0;
 			break;
+		}
+		//CMAF 7.5.17, if non-sync sample are present stss SHALL be present and empty...
+		if (ctx->cmaf && !def_is_rap) {
+			def_is_rap |= GF_ISOM_FRAG_USE_SYNC_TABLE;
 		}
 
 		mp4_mux_set_hevc_groups(ctx, tkw);
 
 		//use 1 for the default sample description index. If no multi stsd, this is always the case
 		//otherwise we need to update the stsd idx in the traf headers
-		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, tkw->stsd_idx, def_pck_dur, def_samp_size, (u8) def_is_rap, 0, 0, ctx->nofragdef ? GF_TRUE : GF_FALSE);
+		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, tkw->stsd_idx, def_pck_dur, def_samp_size, def_is_rap, 0, 0, ctx->nofragdef ? GF_TRUE : GF_FALSE);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to setup fragmentation for track ID %d: %s\n", tkw->track_id, gf_error_to_string(e) ));
 			return e;
