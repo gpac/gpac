@@ -2378,16 +2378,6 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	return GF_TRUE;
 }
 
-void gf_filter_reconfigure_output_task(GF_FSTask *task)
-{
-	GF_Filter *filter = task->filter;
-	GF_FilterPid *pid;
-	assert(filter->num_output_pids==1);
-	pid = gf_list_get(filter->output_pids, 0);
-	gf_filter_reconf_output(filter, pid);
-}
-
-
 static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_insert)
 {
 	u32 i, j;

@@ -2150,6 +2150,11 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_itags_get_id3tag(1);
 	i=0;
 	gf_itags_enum_tags(&i, NULL, NULL, NULL);
+	//functions exported for gpac_napi but we don't yet have tests for napi in testsuite
+	gf_fs_in_final_flush(NULL);
+	gf_fs_get_rt_udta(NULL);
+	gf_fs_set_external_gl_provider(NULL, NULL, NULL);
+	gf_filter_print_all_connections(NULL, NULL);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
 

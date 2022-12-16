@@ -1890,6 +1890,7 @@ static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info, Bool scalable
 GF_EXPORT
 GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 {
+	GF_FilterPid *gf_filter_pid_first_pid_for_source(GF_FilterPid *pid, GF_Filter *source);
 	const GF_PropertyValue *prop;
 	GF_ObjectManager *an_odm;
 	GF_FilterPid *pid;
@@ -1914,8 +1915,18 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 		pid = an_odm->pid;
 	}
 
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode() && pid) {
+		GF_FilterPidStatistics stats;
+		gf_filter_pid_get_statistics(odm->pid, &stats, GF_STATS_SINK);
+		gf_filter_pid_set_rt_stats(pid, 0, 0, 0);
+		gf_filter_pid_share_origin(pid, pid);
+		if (odm->parentscene)
+			gf_filter_pid_first_pid_for_source(pid, odm->parentscene->root_od->scene_ns->source_filter);
+	}
+#endif
+
 	if (odm->subscene && !odm->pid && odm->addon && !gf_list_count(odm->subscene->resources)) {
-		GF_FilterPid *gf_filter_pid_first_pid_for_source(GF_FilterPid *pid, GF_Filter *source);
 		u32 i;
 		for (i=0; i<gf_list_count(odm->parentscene->resources); i++) {
 			GF_ObjectManager *par_odm = gf_list_get(odm->parentscene->resources, i);

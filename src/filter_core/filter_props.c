@@ -1873,25 +1873,6 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 	return dump;
 }
 
-/*time is given in ms*/
-static void prop_print_utc_date(char dump[GF_PROP_DUMP_ARG_SIZE], u64 time)
-{
-	time_t gtime;
-	struct tm *t;
-	u32 sec;
-	u32 ms;
-	gtime = time / 1000;
-	sec = (u32)(time / 1000);
-	ms = (u32)(time - ((u64)sec) * 1000);
-
-	t = gf_gmtime(&gtime);
-	sec = t->tm_sec;
-	//see issue #859, no clue how this happened...
-	if (sec > 60)
-		sec = 60;
-	snprintf(dump, GF_PROP_DUMP_ARG_SIZE-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, sec, ms);
-	dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
-}
 
 GF_EXPORT
 const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_mode)
@@ -1912,10 +1893,25 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 
 	case GF_PROP_PCK_SENDER_NTP:
 	case GF_PROP_PCK_RECEIVER_NTP:
-		prop_print_utc_date(dump, gf_net_ntp_to_utc(att->value.longuint));
-		return dump;
 	case GF_PROP_PCK_UTC_TIME:
-		prop_print_utc_date(dump, att->value.longuint);
+	{
+		u64 time = (p4cc==GF_PROP_PCK_UTC_TIME) ? att->value.longuint : gf_net_ntp_to_utc(att->value.longuint);
+		time_t gtime;
+		struct tm *t;
+		u32 sec;
+		u32 ms;
+		gtime = time / 1000;
+		sec = (u32)(time / 1000);
+		ms = (u32)(time - ((u64)sec) * 1000);
+
+		t = gf_gmtime(&gtime);
+		sec = t->tm_sec;
+		//see issue #859, no clue how this happened...
+		if (sec > 60)
+			sec = 60;
+		snprintf(dump, GF_PROP_DUMP_ARG_SIZE-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, sec, ms);
+		dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
+	}
 		return dump;
 
 	default:
