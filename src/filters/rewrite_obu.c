@@ -313,6 +313,7 @@ static GF_Err obumx_process_mpeg2au(GF_OBUMxCtx *ctx, GF_FilterPacket *src_pck, 
 		GF_FilterPacket *pck = (GF_FilterPacket *)gf_list_get(pcks, 0);
 		gf_list_rem(pcks, 0);
 		gf_filter_pck_set_cts(pck, out_cts);
+		gf_filter_pck_set_dts(pck, out_cts);
 		out_cts += out_duration;
 		if (gf_list_count(pcks) != 0) {
 			gf_filter_pck_set_duration(pck, out_duration);
