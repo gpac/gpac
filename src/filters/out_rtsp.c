@@ -385,6 +385,11 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		stream->min_dts = GF_FILTER_NO_TS;
 		stream->on_rtcp = rtspout_on_rtcp;
 		stream->on_rtcp_udta = sess;
+
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_cov_mode())
+			rtspout_on_rtcp(stream->on_rtcp_udta);
+#endif
 	 	gf_filter_pid_set_udta(pid, stream);
 	}
 	stream->ctrl_id = sess->next_stream_id+1;
