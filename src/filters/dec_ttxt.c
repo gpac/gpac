@@ -297,13 +297,7 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 			GF_SAFEALLOC(txtc, GF_TextSampleDescriptor);
 			gf_list_add(ctx->cfg->sample_descriptions, txtc);
 			txtc->sample_index = 1;
-			/*
-			txtc->font_count = 1;
-			txtc->fonts[0].fontID = 1;
-			txtc->fonts[0].fontName = gf_strdup(ctx->fontname ? ctx->fontname : "Serif");
-			txtc->default_style.fontID = 1;
-			txtc->default_style.font_size = ctx->fontsize;
-			*/
+			//font will default to compositor settings
 			txtc->back_color = 0x00000000;	/*transparent*/
 			txtc->default_style.text_color = 0xFFFFFFFF;	/*white*/
 			txtc->default_style.style_flags = 0;
@@ -1373,8 +1367,12 @@ static GF_Err ttd_process(GF_Filter *filter)
 		cts = ctx->sample_end;
 		pck = NULL;
 	}
+	if (!ctx->is_playing)
+		return GF_EOS;
 	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
-	u32 dur = (u32) gf_timestamp_rescale( gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
+	u32 dur = 0;
+	if (pck)
+		dur = (u32) gf_timestamp_rescale( gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
 
 	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts, dur))
 		return GF_OK;
