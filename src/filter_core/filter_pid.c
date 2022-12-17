@@ -244,11 +244,12 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 	pid->stream_type = mtype;
 	pid->codecid = codecid;
 
+	u32 buffer_us = pid->filter->pid_buffer_max_us ? pid->filter->pid_buffer_max_us : pid->filter->session->default_pid_buffer_max_us;
 	if (pid->user_max_buffer_time) {
-		pid->max_buffer_time = pid->user_max_buffer_time;
+		pid->max_buffer_time = MAX(pid->user_max_buffer_time, buffer_us);
 		pid->max_buffer_unit = 0;
 	} else {
-		pid->max_buffer_time = pid->filter->pid_buffer_max_us ? pid->filter->pid_buffer_max_us : pid->filter->session->default_pid_buffer_max_us;
+		pid->max_buffer_time = buffer_us;
 		pid->max_buffer_unit = pid->filter->pid_buffer_max_units ? pid->filter->pid_buffer_max_units : pid->filter->session->default_pid_buffer_max_units;
 	}
 	pid->raw_media = GF_FALSE;
@@ -273,12 +274,6 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 		return;
 	}
 
-	if (pid->user_max_buffer_time) {
-		pid->max_buffer_time = pid->user_max_buffer_time;
-		pid->max_buffer_unit = 0;
-	}
-
-
 	//output is a decoded raw stream: if some input has same type but different codecid this is a decoder
 	//set input buffer size
 	gf_mx_p(pid->filter->tasks_mx);
@@ -295,15 +290,16 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 
 		//same stream type but changing format type: this is a decoder input pid, set buffer req
 		if ((mtype==i_type) && (codecid != i_codecid)) {
+
+			buffer_us = pid->filter->pid_decode_buffer_max_us ? pid->filter->pid_decode_buffer_max_us : pid->filter->session->decoder_pid_buffer_max_us;
 			//default decoder buffer
-			if (pidi->pid->user_max_buffer_time)
-				pidi->pid->max_buffer_time = pidi->pid->user_max_buffer_time;
-			else
-				pidi->pid->max_buffer_time = pidi->pid->filter->session->decoder_pid_buffer_max_us;
+			pidi->pid->max_buffer_time = MAX(pidi->pid->user_max_buffer_time, buffer_us);
 			pidi->pid->max_buffer_unit = 0;
 
-
-			if (mtype==GF_STREAM_VISUAL) {
+			//composition buffer
+			if (pid->filter->pid_buffer_max_units) {
+				pid->max_buffer_unit = pid->filter->pid_buffer_max_units;
+			} else if (mtype==GF_STREAM_VISUAL) {
 				pid->max_buffer_unit = 4;
 			} else if (mtype==GF_STREAM_AUDIO) {
 				pid->max_buffer_unit = 20;

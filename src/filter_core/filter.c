@@ -1258,12 +1258,20 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 				loc_alen = alen;
 			} else if (first_arg && sep) {
 				if (!strncmp(arg, "FBT", len)) {
-					filter->pid_buffer_max_us = atoi(sep+1);
+					GF_PropertyValue ap = gf_props_parse_value(GF_PROP_UINT, "FBT", sep+1, NULL, filter->session->sep_list);
+					filter->pid_buffer_max_us = ap.value.uint;
 					is_ok = 2;
 					loc_alen=3;
 				}
 				else if (!strncmp(arg, "FBU", len)) {
-					filter->pid_buffer_max_units = atoi(sep+1);
+					GF_PropertyValue ap = gf_props_parse_value(GF_PROP_UINT, "FBU", sep+1, NULL, filter->session->sep_list);
+					filter->pid_buffer_max_units = ap.value.uint;
+					is_ok = 2;
+					loc_alen=3;
+				}
+				else if (!strncmp(arg, "FBD", len)) {
+					GF_PropertyValue ap = gf_props_parse_value(GF_PROP_UINT, "FBD", sep+1, NULL, filter->session->sep_list);
+					filter->pid_decode_buffer_max_us = ap.value.uint;
 					is_ok = 2;
 					loc_alen=3;
 				}
@@ -1288,10 +1296,22 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 		return opt;
 
 	if (first_arg) {
+		GF_PropertyValue ap;
 		opt = gf_opts_get_key(sec_name, "FBT");
-		if (opt) filter->pid_buffer_max_us = atoi(opt);
+		if (opt) {
+			ap = gf_props_parse_value(GF_PROP_UINT, "FBT", opt, NULL, filter->session->sep_list);
+			filter->pid_buffer_max_us = ap.value.uint;
+		}
 		opt = gf_opts_get_key(sec_name, "FBU");
-		if (opt) filter->pid_buffer_max_units = atoi(opt);
+		if (opt) {
+			ap = gf_props_parse_value(GF_PROP_UINT, "FBU", opt, NULL, filter->session->sep_list);
+			filter->pid_buffer_max_units = ap.value.uint;
+		}
+		opt = gf_opts_get_key(sec_name, "FBD");
+		if (opt) {
+			ap = gf_props_parse_value(GF_PROP_UINT, "FBD", opt, NULL, filter->session->sep_list);
+			filter->pid_decode_buffer_max_us = ap.value.uint;
+		}
 	}
 	
 	//ifce (used by socket and other filters), use core default
