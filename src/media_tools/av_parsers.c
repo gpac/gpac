@@ -8021,8 +8021,9 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 		gf_bs_read_ue_log_idx(bs, "vps_max_latency_increase_plus1", i);
 	}
 	vps->max_layer_id = gf_bs_read_int_log(bs, 6, "max_layer_id");
-	if (vps->max_layer_id > MAX_LHVC_LAYERS) {
+	if (vps->max_layer_id >= MAX_LHVC_LAYERS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] VPS max layer ID %u but GPAC only supports %u\n", vps->max_layer_id, MAX_LHVC_LAYERS));
+		vps->max_layer_id = 0;
 		return -1;
 	}
 	vps->num_layer_sets = gf_bs_read_ue_log(bs, "num_layer_sets_minus1") + 1;
