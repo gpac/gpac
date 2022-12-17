@@ -4926,12 +4926,19 @@ GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offse
 	if (!trak->Media->information->sampleTable->CompositionOffset) return GF_BAD_PARAM;
 	if (!trak->Media->information->sampleTable->CompositionOffset->unpack_mode) return GF_BAD_PARAM;
 
-	for (i=0; i<trak->Media->information->sampleTable->CompositionOffset->nb_entries; i++) {
+	GF_CompositionOffsetBox *ctso = trak->Media->information->sampleTable->CompositionOffset;
+	for (i=0; i<ctso->nb_entries; i++) {
+		s64 new_ts = ctso->entries[i].decodingOffset;
+		new_ts -= offset_shift;
 		/*we're in unpack mode: one entry per sample*/
-		trak->Media->information->sampleTable->CompositionOffset->entries[i].decodingOffset -= offset_shift;
+		ctso->entries[i].decodingOffset = (s32) new_ts;
 	}
-	if (trak->Media->mediaHeader->duration >= -offset_shift)
-		trak->Media->mediaHeader->duration -= offset_shift;
+	if (trak->Media->mediaHeader->duration >= -offset_shift) {
+		s64 new_dur = trak->Media->mediaHeader->duration;
+		new_dur -= offset_shift;
+		if (new_dur<0) new_dur = 0;
+		trak->Media->mediaHeader->duration = (u32) new_dur;
+	}
 	return GF_OK;
 }
 
@@ -7484,7 +7491,9 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 		if (shift > 0)
 		{
 			for (i=0; i<ctts->nb_entries; i++) {
-				ctts->entries[i].decodingOffset += shift;
+				s64 new_ts = ctts->entries[i].decodingOffset;
+				new_ts += shift;
+				ctts->entries[i].decodingOffset = (u32) shift;
 			}
 		}
 	}
@@ -7493,7 +7502,9 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 		cslg = trak->Media->information->sampleTable->CompositionToDecode;
 		shift = cslg->compositionToDTSShift;
 		for (i=0; i<ctts->nb_entries; i++) {
-			ctts->entries[i].decodingOffset += shift;
+			s64 new_ts = ctts->entries[i].decodingOffset;
+			new_ts += shift;
+			ctts->entries[i].decodingOffset = (u32) shift;
 		}
 		gf_isom_box_del_parent(&trak->Media->information->sampleTable->child_boxes, (GF_Box *)cslg);
 		trak->Media->information->sampleTable->CompositionToDecode = NULL;
