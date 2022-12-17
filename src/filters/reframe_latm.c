@@ -30,6 +30,8 @@
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+#define LATM_DMX_MAX_SIZE	8192
+
 typedef struct
 {
 	u64 pos;
@@ -157,7 +159,7 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 			size += tmp;
 			if (tmp!=255) break;
 		}
-		if (gf_bs_available(bs) < size) {
+		if ((gf_bs_available(bs) < size) || (size > LATM_DMX_MAX_SIZE)){
 			gf_bs_seek(bs, pos-3);
 			return GF_FALSE;
 		}
@@ -521,8 +523,8 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 
 	while (1) {
 		pos = (u32) gf_bs_get_position(ctx->bs);
-		u8 latm_buffer[4096];
-		u32 latm_frame_size = 4096;
+		u8 latm_buffer[LATM_DMX_MAX_SIZE];
+		u32 latm_frame_size = LATM_DMX_MAX_SIZE;
 		if (!latm_dmx_sync_frame_bs(ctx->bs,&ctx->acfg, &latm_frame_size, latm_buffer, NULL)) break;
 
 		if (ctx->in_seek) {
