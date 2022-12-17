@@ -7659,6 +7659,11 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		else {
 			vps->layer_id_in_nuh[i] = i;
 		}
+		if (vps->layer_id_in_nuh[i] > MAX_LHVC_LAYERS) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] %d layers in VPS ext but only %d supported in GPAC\n", vps->layer_id_in_nuh[i], MAX_LHVC_LAYERS));
+			vps->layer_id_in_nuh[i] = 0;
+			return -1;
+		}
 		vps->layer_id_in_vps[vps->layer_id_in_nuh[i]] = i;
 
 		if (!splitting_flag) {
