@@ -1,4 +1,4 @@
-# On-going: GPAC 2.1-DEV
+# 19/12/2022: GPAC 2.2
 
 ## Media Formats
 - 2-pass encoding for FFmpeg codecs other than libx264
