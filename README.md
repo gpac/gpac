@@ -24,9 +24,8 @@
 
 
 # GPAC Introduction
-Current version: 2.1-DEV
 
-Latest Release: 2.0
+Latest Release: 2.2
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
@@ -113,18 +112,10 @@ GPAC has a peculiar story: started as a startup in NYC, GPAC gained traction fro
 # Roadmap
 Users are encouraged to use the latest tag or the master branch.
 
-The v0.8.X release (the last one using the legacy architecture) is officially deprecated.
-
 ## V2.X
 Targets:
-- [x] drop MP4Client/Osmo4 and GF_Terminal API
-- [x] User authentication for HTTP and RTSP servers
-- [ ] DASH event support
 - [ ] Web integration (emscripten, Remotery UI)
+- [ ] DASH event support
 - [ ] Better TTML2 / SMPTE ST 2052-1 support
-- [x] configure buffer level per filter
 - [ ] GUI cleanup ?
-- [x] deprecate `:filemode` in ROUTE
-- [x] support ClearKey Content Protection (CCP)
-- [x] FFMPEG subtitle support
 

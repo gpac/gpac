@@ -23,7 +23,7 @@ Package: libgpac-dev
 Architecture: any
 Section: libdevel
 Depends: gpac
-Replaces: gpac (<= 1.0.1)
+Replaces: gpac (<= 2.0.0)
 Description: Framework for production, encoding, delivery and interactive playback of multimedia content
  GPAC supports many AV codecs, multimedia containers (MP4,fMP4, TS, avi, mov, mpg, mkv ...), complex
  presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and subtitles (SRT, WebVTT, TTXT/TX3G, TTML).

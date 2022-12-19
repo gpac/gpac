@@ -11,7 +11,7 @@
     <choice id="io.gpac.gpac" visible="false">
         <pkg-ref id="io.gpac.gpac"/>
     </choice>
-    <pkg-ref id="io.gpac.gpac" version="0.7.2" onConclusion="none">tmppkg.pkg</pkg-ref>
+    <pkg-ref id="io.gpac.gpac" version="2.2.0" onConclusion="none">tmppkg.pkg</pkg-ref>
 
     <title>GPAC Framework rev</title>
    <license file="full_license.txt"></license>
