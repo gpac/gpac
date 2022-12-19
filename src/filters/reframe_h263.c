@@ -510,7 +510,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		if (current>0) {
 			if (!ctx->opid) {
 				if (ctx->bytes_in_header) {
-					if (ctx->bytes_in_header<current) {
+					if (ctx->bytes_in_header<(u32) current) {
 						current-=ctx->bytes_in_header;
 						ctx->bytes_in_header = 0;
 						start += current;
@@ -540,7 +540,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 				}
 				memcpy(pck_data, ctx->hdr_store, current);
 				//we may have a partial startcode
-				if (current>ctx->bytes_in_header) {
+				if ((u32)current>ctx->bytes_in_header) {
 					current -= ctx->bytes_in_header;
 					start += current;
 					remain -= current;
