@@ -999,7 +999,7 @@ typedef struct __tag_media_box
 
 	GF_ISOSample *extracted_samp;
 	GF_BitStream *extracted_bs;
-
+	Bool in_nalu_rewrite;
 } GF_MediaBox;
 
 typedef struct

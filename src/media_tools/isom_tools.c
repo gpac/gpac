@@ -3542,6 +3542,10 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 		u32 size, nb_nalus=0, nb_nal_entries=0, last_tile_group=(u32) -1;
 		GF_BitStream *bs=NULL;
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
+		if (!sample) {
+			e = gf_isom_last_error(file);
+			goto err_exit;
+		}
 
 		data = (u8 *) sample->data;
 		size = sample->dataLength;
