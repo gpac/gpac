@@ -2534,7 +2534,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, NULL);
 		if (opts) opts[0] = ':';
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, NULL, 0);
-		if (e) return e;
+		if (e) {
+			gf_isom_delete(orig);
+			return e;
+		}
 	} else {
 		//open read+edit mode to allow applying options on file
 		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ_EDIT, NULL);
@@ -2543,7 +2546,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 		if (opts) {
 			e = import_file(orig, fileName, 0xFFFFFFFF, force_fps, frames_per_sample, NULL, NULL, NULL, 0);
-			if (e) return e;
+			if (e) {
+				gf_isom_delete(orig);
+				return e;
+			}
 		}
 	}
 
