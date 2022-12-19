@@ -510,7 +510,14 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		if (current>0) {
 			if (!ctx->opid) {
 				if (ctx->bytes_in_header) {
-					ctx->bytes_in_header -= current;
+					if (ctx->bytes_in_header<current) {
+						current-=ctx->bytes_in_header;
+						ctx->bytes_in_header = 0;
+						start += current;
+						remain -= current;
+					} else {
+						ctx->bytes_in_header -= current;
+					}
 				} else {
 					start += current;
 					remain -= current;
@@ -531,8 +538,16 @@ GF_Err h263dmx_process(GF_Filter *filter)
 				if (byte_offset != GF_FILTER_NO_BO) {
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - ctx->bytes_in_header);
 				}
-				ctx->bytes_in_header -= current;
 				memcpy(pck_data, ctx->hdr_store, current);
+				//we may have a partial startcode
+				if (current>ctx->bytes_in_header) {
+					current -= ctx->bytes_in_header;
+					start += current;
+					remain -= current;
+					ctx->bytes_in_header = 0;
+				} else {
+					ctx->bytes_in_header -= current;
+				}
 			} else {
 				if (byte_offset != GF_FILTER_NO_BO) {
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
