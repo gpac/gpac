@@ -710,8 +710,10 @@ enum
 	GF_M2TS_FAKE_PCR = 1<<7,
 	/*! signals the stream type is a gpac codec id*/
 	GF_M2TS_GPAC_CODEC_ID = 1<<8,
-	/*! signals the stream type is a gpac codec id*/
+	/*! signals the stream is a PMT*/
 	GF_M2TS_ES_IS_PMT = 1<<9,
+	/*! signals the stream is reused (fake pcr streams), i.e. present twice in ess[] list*/
+	GF_M2TS_ES_IS_PCR_REUSE = 1<<10,
 
 	/*! all flags above this mask are used by demultiplexer users*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
