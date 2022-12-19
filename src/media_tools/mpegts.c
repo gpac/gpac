@@ -332,6 +332,11 @@ static void gf_m2ts_metadata_descriptor_del(GF_M2TS_MetadataDescriptor *metad)
 
 static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 {
+	//es is reused (PCR streams only, reuse at most one), remove reuse flag
+	if (es->flags & GF_M2TS_ES_IS_PCR_REUSE) {
+		es->flags &= ~GF_M2TS_ES_IS_PCR_REUSE;
+		return;
+	}
 	gf_list_del_item(es->program->streams, es);
 
 	if (ts->on_event)
@@ -1852,11 +1857,6 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 			gf_list_add(prog->streams, pmt);
 			pmt->pid = prog->pmt_pid;
 			pmt->program = prog;
-/*			if (ts->ess[pmt->pid]) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Redefinition of pmt for pid %d\n", pid));
-				gf_m2ts_es_del(ts->ess[pmt->pid], ts);
-			}
-*/
 			ts->ess[pmt->pid] = (GF_M2TS_ES *)pmt;
 			pmt->sec = gf_m2ts_section_filter_new(gf_m2ts_process_pmt, 0);
 		}
@@ -2599,7 +2599,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 					GF_M2TS_PES *pes = (GF_M2TS_PES *) gf_list_get(program->streams, j);
 					if (pes->flags & GF_M2TS_INHERIT_PCR) {
 						ts->ess[hdr.pid] = (GF_M2TS_ES *) pes;
-						pes->flags |= GF_M2TS_FAKE_PCR;
+						pes->flags |= GF_M2TS_FAKE_PCR | GF_M2TS_ES_IS_PCR_REUSE;
 						break;
 					}
 					if (pes->flags & GF_M2TS_ES_IS_PES) {
@@ -3108,7 +3108,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	if (ts->tdt_tot) gf_m2ts_section_filter_del(ts->tdt_tot);
 
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		//bacause of pure PCR streams, en ES might be reassigned on 2 PIDs, one for the ES and one for the PCR
+		//because of pure PCR streams, an ES might be reassigned on 2 PIDs, one for the ES and one for the PCR
 		if (ts->ess[i] && (ts->ess[i]->pid==i)) {
 			gf_m2ts_es_del(ts->ess[i], ts);
 		}
@@ -3121,6 +3121,8 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 		while (gf_list_count(p->streams)) {
 			GF_M2TS_ES *es = (GF_M2TS_ES *)gf_list_last(p->streams);
 			gf_list_rem_last(p->streams);
+			//force destroy
+			es->flags &= ~GF_M2TS_ES_IS_PCR_REUSE;
 			gf_m2ts_es_del(es, ts);
 		}
 		gf_list_del(p->streams);
