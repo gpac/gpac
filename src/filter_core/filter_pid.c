@@ -1576,7 +1576,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	pent=NULL;
 
 	//special case for tag
-	if (!strcmp(frag_name, "TAG")) {
+	if (!strcmp(frag_name, "TAG") || !strcmp(frag_name, "ITAG")) {
 		psep[0] = c;
 		if (src_pid->filter->tag) {
 			Bool is_eq;
@@ -3611,6 +3611,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL, GF_TRUE);
 			if (!af) goto exit;
 			af->subsession_id = dst->subsession_id;
+			if (dst->itag) af->itag = gf_strdup(dst->itag);
+			
 			//destination is sink, check if af is a mux (output cap type STREAM=FILE present)
 			//if not, copy subsource_id from pid
 			Bool af_is_mux = GF_FALSE;

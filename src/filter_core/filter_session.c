@@ -4011,7 +4011,7 @@ GF_EXPORT
 GF_Filter *gf_fs_new_filter(GF_FilterSession *fsess, const char *name, u32 flags, GF_Err *e)
 {
 	GF_Filter *f;
-	char szRegName[25];
+	char *sep, szRegName[25];
 	GF_FilterRegister *reg;
 
 	GF_SAFEALLOC(reg, GF_FilterRegister);
@@ -4028,16 +4028,18 @@ GF_Filter *gf_fs_new_filter(GF_FilterSession *fsess, const char *name, u32 flags
 #endif
 	reg->version = "custom";
 	sprintf(szRegName, "custom%p", reg);
+	sep = strchr(name, fsess->sep_args);
+	if (sep) sep[0] = 0;
 	reg->name = gf_strdup(name ? name : szRegName);
 	reg->flags = GF_FS_REG_CUSTOM | GF_FS_REG_EXPLICIT_ONLY;
 
 	if (flags & GF_FS_REG_MAIN_THREAD)
 		reg->flags |= GF_FS_REG_MAIN_THREAD;
 
-	f = gf_filter_new(fsess, reg, NULL, NULL, 0, e, NULL, GF_FALSE);
-	if (!f) return NULL;
-	if (name)
+	f = gf_filter_new(fsess, reg, sep ? sep+1 : NULL, NULL, 0, e, NULL, GF_FALSE);
+	if (f && name)
 		gf_filter_set_name(f, name);
+	if (sep) sep[0] = fsess->sep_args;
 	return f;
 }
 
