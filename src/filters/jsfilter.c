@@ -5269,6 +5269,13 @@ JSValue jsfilter_initialize_custom(GF_Filter *filter, JSContext *ctx)
 	return JS_DupValue(ctx, jsf->filter_obj);
 }
 
+GF_Filter *jsf_custom_filter_opaque(JSContext *ctx, JSValueConst this_val)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+	if (!jsf || !jsf->is_custom) return NULL;
+	return jsf->filter;
+}
+
 #else
 
 const GF_FilterRegister *jsfilter_register(GF_FilterSession *session)

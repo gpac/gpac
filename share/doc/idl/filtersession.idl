@@ -97,6 +97,12 @@ void set_rmt_fun(function callback);
 */
 JSFSFilter add_filter(DOMString filter_to_add, optional JSFSFilter link_from=null, optional DOMString link_args=null, optional boolean relative_to_script=false);
 
+/*! removes a filter in the media session
+\param filter filter object to remove, can be a JSFSFilter object (in this case, function is equivalent to JSFSFilter.remove) or a JSFilter object
+*/
+void remove_filter(Object filter);
+
+
 /*! sets callback function to get notifications upon each new filter creation.
 \param callback callback function - it is passed a single parameter, the filter object
 */
@@ -136,7 +142,7 @@ void reporting(boolean enable);
 /*! creates a new custom JS filter. This filter will share the same script context as the filter session script - see \ref JSFilter
 \note A custom filter cannot use default arguments, and will not have the initialize callback function called.
 
-\param name name for the filter
+\param name name for the filter. Optional internal filter arguments may be set after the name, e.g. `MyName:ITAG=test`
 \return new filter
 */
 JSFilter new_filter(DOMString name=null);
@@ -189,6 +195,10 @@ attribute readonly DOMString name;
 attribute readonly DOMString ID;
 /*! filter registry name */
 attribute readonly DOMString type;
+/*! filter TAG */
+attribute readonly DOMString tag;
+/*! filter inherited TAG */
+attribute readonly DOMString itag;
 /*! number of input PIDs for the filter*/
 attribute readonly unsigned long nb_ipid;
 /*! number of output PIDs for the filter*/

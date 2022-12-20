@@ -610,7 +610,9 @@ struct __gf_filter
 	char *dst_args;
 	//filter tag
 	char *tag;
-	
+	//filter itag
+	char *itag;
+
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex
 	GF_FilterQueue *tasks;

@@ -1,11 +1,11 @@
 # $Id: gpac.spec,v 1.5 2008-12-02 18:04:42 jeanlf Exp $
 Summary: Framework for production, encoding, delivery and interactive playback of multimedia content
 Name: gpac
-Version: 2.2
-Release: 2.2
+Version: 2.3-DEV
+Release: 2.3-DEV
 License: LGPL
 Group: Applications/Multimedia
-Source0: gpac-2.2.tar.gz
+Source0: gpac-2.3-DEV.tar.gz
 URL: http://gpac.io/
 BuildRoot: %{_tmppath}/%{name}-root
 Requires: SDL
