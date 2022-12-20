@@ -439,7 +439,7 @@ static void rg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 	EVG_RadialGradient *_this = (EVG_RadialGradient *) p;
 
 	assert(data);
-	
+
 	if (rctx->surf->is_3d_matrix) {
 		PERSP_VARS_DECL
 
@@ -992,7 +992,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 	if (_this->is_yuv && !yuv_type) conv_type = 1;
 	else if (!_this->is_yuv && yuv_type) conv_type = 2;
 
-	
+
 	while (count) {
 		x0 = FIX2INT(x);
 		if (x0 > m_width) {
@@ -1860,7 +1860,7 @@ u32 get_pix_yuv420p(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 #define GET_LE_10BIT_AS_16(_ptr) ( (((u16)(_ptr)[1])<<8 | (u16)(_ptr)[0] ) << 6 )
 
 //#define GET_LE_10BIT_LEFT_AS_8(_ptr) ( (((u16)(_ptr)[1])<<8 | (u16)(_ptr)[0] ) >> 8 )
-#define GET_LE_10BIT_LEFT_AS_8(_ptr) (_ptr[1] )
+#define GET_LE_10BIT_LEFT_AS_8(_ptr) ((_ptr)[1] )
 #define GET_LE_10BIT_LEFT_AS_16(_ptr) ( (((u16)(_ptr)[1])<<8 | (u16)(_ptr)[0] ) & 0xFFC0 )
 
 #define GET_BE_10BIT_AS_8(_ptr) ( (*(u16 *)(_ptr)) >> 2 )
@@ -2590,7 +2590,7 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 	}
 	if (!stride)
 		stride = _this->Bpp * width;
-		
+
 	_this->pixel_format = pixelFormat;
 	_this->width = width;
 	_this->height = height;
