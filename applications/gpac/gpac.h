@@ -28,7 +28,7 @@
 
 #ifndef GPAC_CONFIG_ANDROID
 
-//gpac is loaded using sink compositor in base player mode (-mp4c)  with a custum event proc
+//gpac is loaded using sink compositor in base player mode (-mp4c)  with a custom event proc
 #define LOAD_MP4C		1
 //gpac is loaded with gui
 #define LOAD_GUI		2
