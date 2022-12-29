@@ -959,7 +959,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			//not used in the test suite (require JS), but don't run if algo is none
 			if (!ctx->algo || strcmp(ctx->algo, "none"))
 				gf_dash_switch_quality(ctx->dash, GF_TRUE);
-			//not used relyably in the test suite (require fatal error in session)
+			//not used reliably in the test suite (require fatal error in session)
 			dashin_abort(NULL);
 		}
 #endif
