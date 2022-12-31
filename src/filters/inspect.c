@@ -1124,6 +1124,12 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			inspect_printf(dump, "\" vui_transfer_characteristics=\"%d", avc->sps->vui.transfer_characteristics);
 			inspect_printf(dump, "\" vui_matrix_coefficients=\"%d", avc->sps->vui.matrix_coefficients);
 			inspect_printf(dump, "\" vui_low_delay_hrd_flag=\"%d", avc->sps->vui.low_delay_hrd_flag);
+			inspect_printf(dump, "\" vui_timing_info_present_flag=\"%d", avc->sps->vui.timing_info_present_flag);
+			if(avc->sps->vui.timing_info_present_flag){
+				inspect_printf(dump, "\" vui_num_units_in_tick=\"%d", avc->sps->vui.num_units_in_tick);
+				inspect_printf(dump, "\" vui_time_scale=\"%d", avc->sps->vui.time_scale);
+				inspect_printf(dump, "\" vui_fixed_frame_rate_flag=\"%d", avc->sps->vui.fixed_frame_rate_flag);
+			}
 		}
 		inspect_printf(dump, "\" log2_max_poc_lsb=\"%d", avc->sps->log2_max_poc_lsb);
 		inspect_printf(dump, "\" log2_max_frame_num=\"%d", avc->sps->log2_max_frame_num);
