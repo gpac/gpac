@@ -1134,7 +1134,26 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		return e;
 	}
 
-	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
+	AVDictionary** optionsarr = NULL;
+	if (ctx->options && ctx->demuxer) {
+		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
+		for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
+			optionsarr[si] = NULL;
+			av_dict_copy(&optionsarr[si], ctx->options, 0);
+		}
+	}
+
+
+	res = avformat_find_stream_info(ctx->demuxer, optionsarr);
+
+	if (optionsarr) {
+		for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
+			av_dict_free(&optionsarr[si]);
+		}
+		gf_free(optionsarr);
+		optionsarr = NULL;
+	}
+
 	if (res <0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] cannot locate streams - error %s\n", ctx->fname, av_err2str(res)));
 		e = GF_NOT_SUPPORTED;
