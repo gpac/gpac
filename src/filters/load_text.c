@@ -1889,7 +1889,7 @@ GF_Err ttml_parse_root(GF_XMLNode *root, const char **lang, u32 *tick_rate, u32 
 static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	GF_Err e;
-	u32 i, nb_children, ID;
+	u32 i, ID;
 	u64 file_size;
 	GF_XMLNode *root, *node, *body_node;
 	const char *lang = ctx->lang;
@@ -1932,13 +1932,10 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		return e;
 	}
 	//locate body
-	nb_children = gf_list_count(root->content);
 	body_node = NULL;
-
 	i=0;
 	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &i))) {
 		if (node->type) {
-			nb_children--;
 			continue;
 		}
 		e = gf_xml_get_element_check_namespace(node, "body", root->ns);

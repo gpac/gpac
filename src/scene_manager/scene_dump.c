@@ -3430,7 +3430,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 	GF_Err e;
 	GF_List *sample_list;
 	Bool first_par;
-	u32 i, j, indent, num_scene, num_od, first_bifs, num_tracks;
+	u32 i, j, indent, num_scene, num_od, first_bifs;
 	Double time;
 	GF_SceneDumper *dumper;
 	GF_StreamContext *sc;
@@ -3440,7 +3440,6 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 	sample_list = gf_list_new();
 
 	num_scene = num_od = 0;
-	num_tracks = 0;
 	indent = 0;
 	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, is_final_name, ' ', dump_mode);
 	e = GF_OK;
@@ -3451,11 +3450,9 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 		switch (sc->streamType) {
 		case GF_STREAM_SCENE:
 			num_scene ++;
-			num_tracks ++;
 			break;
 		case GF_STREAM_OD:
 			num_od ++;
-			num_tracks ++;
 			break;
 		default:
 			continue;

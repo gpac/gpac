@@ -307,10 +307,11 @@ void hevc_rewrite_sps(char *in_SPS, u32 in_SPS_length, u32 width, u32 height, ch
 	else {
 		chroma_format_idc = gf_bs_read_ue(bs_in);
 		gf_bs_write_ue(bs_out, chroma_format_idc);
-		if (chroma_format_idc == 3)
+		if (chroma_format_idc == 3) {
 			gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // copy separate_colour_plane_flag
-		/*w =*/ gf_bs_read_ue(bs_in); //skip width bits in input bitstream
-		/*h =*/ gf_bs_read_ue(bs_in); //skip height bits in input bitstream
+		}
+		/*w = */gf_bs_read_ue(bs_in); //skip width bits in input bitstream
+		/*h = */gf_bs_read_ue(bs_in); //skip height bits in input bitstream
 
 		//Copy the new width and height in output bitstream
 		gf_bs_write_ue(bs_out, width);

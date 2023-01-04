@@ -2201,7 +2201,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	u32 cur_bundle_start = 0;
 	u32 cur_bundle_idx = 0;
 	u32 nb_matched=0;
-	u32 nb_out_caps=0;
+	//u32 nb_out_caps=0;
 	u32 nb_in_bundles=0;
 	u32 bundle_score = 0;
 	u32 *bundles_in_ok = NULL;
@@ -2309,7 +2309,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		if (already_tested) {
 			continue;
 		}
-		nb_out_caps++;
+		//nb_out_caps++;
 
 		//set cap as OK in all bundles
 		for (k=0; k<nb_in_bundles; k++) {

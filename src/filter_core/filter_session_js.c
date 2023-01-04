@@ -917,11 +917,10 @@ static JSValue jsff_get_pid_sinks(JSContext *ctx, JSValueConst this_val, int arg
 
 static void get_filter_args(JSContext *ctx, GF_FilterSession *fs,  const GF_FilterRegister *freg, GF_Filter *f_inst, Bool val_only, JSValue array)
 {
-	u32 idx, a_idx;
+	u32 idx;
 	const GF_FilterArgs *args;
 
 	idx=0;
-	a_idx=0;
 	args = (f_inst && f_inst->instance_args) ? f_inst->instance_args : freg->args;
 
 	while (args && args[idx].arg_name) {
@@ -1004,7 +1003,6 @@ static void get_filter_args(JSContext *ctx, GF_FilterSession *fs,  const GF_Filt
 		}
 		JS_SetPropertyUint32(ctx, array, idx, aval);
 		idx++;
-		a_idx++;
 	}
 }
 

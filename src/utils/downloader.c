@@ -1773,7 +1773,7 @@ Bool gf_cache_set_mime(const DownloadedCacheEntry entry, const char *mime);
 Bool gf_cache_set_range(const DownloadedCacheEntry entry, u64 size, u64 start_range, u64 end_range);
 Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool copy, GF_Mutex *mx);
 Bool gf_cache_set_headers(const DownloadedCacheEntry entry, const char *headers);
-Bool gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
+void gf_cache_set_downtime(const DownloadedCacheEntry entry, u32 download_time_ms);
 
 
 /**
@@ -6182,7 +6182,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->status = GF_NETIO_DATA_EXCHANGE;
 		sess->bytes_done = 0;
 	}
-
 
 	/* we may have existing data in this buffer ... */
 #ifdef GPAC_HAS_HTTP2

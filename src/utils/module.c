@@ -399,7 +399,7 @@ GF_BaseInterface *gf_modules_load(u32 whichplug, u32 InterfaceFamily)
 		if (!found) goto err_exit;
 	}
 
-	if (!inst->query_func || !inst->query_func(InterfaceFamily) ) goto err_exit;
+	if (!inst->load_func) goto err_exit;
 	ifce = (GF_BaseInterface *) inst->load_func(InterfaceFamily);
 	/*sanity check*/
 	if (!ifce) goto err_exit;

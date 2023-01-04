@@ -215,7 +215,6 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 	e = ttml_parse_root(root, &lang, &tick_rate, &ttml_fps_num, &ttml_fps_den, &ttml_sfps);
 	if (e) goto exit;
 
-	u32 div_idx=0;
 	body = ttml_get_body(root);
 	nb_children = body ? gf_list_count(body->content) : 0;
 	for (i=0; i<nb_children; i++) {
@@ -223,7 +222,6 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 		if (div->type) continue;
 		if (strcmp(div->name, "div")) continue;
 
-		div_idx++;
 //		div_reg = ttml_get_attr(div, "region");
 
 		j=0;

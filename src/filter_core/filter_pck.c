@@ -835,7 +835,7 @@ void gf_filter_pck_discard(GF_FilterPacket *pck)
 
 GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 {
-	u32 i, count, nb_dispatch=0, nb_discard=0;
+	u32 i, count, nb_dispatch=0;
 	GF_FilterPid *pid;
 	s64 duration=0;
 	u32 timescale=0;
@@ -1142,7 +1142,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task_discard, dst->filter, (GF_FilterPid *)dst, "pidinst_reconfigure", NULL);
 				//keep packets, they will be trashed if we are still in discard when executing gf_filter_pid_reconfigure_task_discard
 			} else {
-				nb_discard++;
 				continue;
 			}
 		}

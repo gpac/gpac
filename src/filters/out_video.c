@@ -368,7 +368,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 {
 	GF_Event evt;
 	const GF_PropertyValue *p;
-	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh, hw, hh;
+	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh;
 	Bool full_range, check_mx = GF_TRUE;
 	Bool sar_changed = GF_FALSE;
 	s32 cmx;
@@ -592,11 +592,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_free(ctx->dump_buffer);
 		ctx->dump_buffer = NULL;
 	}
-
-	hw = ctx->width/2;
-	if (ctx->width %2) hw++;
-	hh = ctx->height/2;
-	if (ctx->height %2) hh++;
 
 	ctx->is_yuv = GF_FALSE;
 	switch (ctx->pfmt) {

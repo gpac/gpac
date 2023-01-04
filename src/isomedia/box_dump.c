@@ -4107,7 +4107,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type)
 {
-	u32 i, count, di, ts, cur_frame;
+	u32 i, count, di, ts;
 	u64 start;
 	GF_BitStream *bs;
 
@@ -4122,7 +4122,6 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 	}
 
 	ts = trak->Media->mediaHeader->timeScale;
-	cur_frame = 0;
 
 	count = gf_isom_get_sample_count(the_file, track);
 	for (i=0; i<count; i++) {
@@ -4142,7 +4141,6 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 			}
 		}
 
-		cur_frame++;
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		txt = gf_isom_parse_text_sample(bs);
 		gf_bs_del(bs);

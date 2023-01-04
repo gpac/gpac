@@ -26,6 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
+#include <gpac/network.h>
 
 
 #if defined(WIN32) || defined(_WIN32_WCE)
@@ -295,7 +296,7 @@ GF_Err img_process(GF_Filter *filter)
 	/*fh.bfReserved1 = */ gf_bs_read_u16(bs);
 	/*fh.bfReserved2 = */ gf_bs_read_u16(bs);
 	fh.bfOffBits = gf_bs_read_u32(bs);
-	fh.bfOffBits = ntohl(fh.bfOffBits);
+	fh.bfOffBits = gf_ntohl(fh.bfOffBits);
 
 	gf_bs_read_data(bs, (char *) &fi, 40);
 	gf_bs_del(bs);

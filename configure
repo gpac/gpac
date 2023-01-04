@@ -2259,7 +2259,6 @@ echo "GPAC_CONFIGURATION=$GPAC_CONFIGURATION" >> config.mak
 echo "prefix=$prefix" >> config.mak
 echo "DESTDIR=$DESTDIR" >> config.mak
 echo "moddir=gpac" >> config.mak
-echo "tinygl_target_bin_dir=$target_bin_dir" >> config.mak
 echo "MAKE=$make" >> config.mak
 
 if test "$verbose" = "yes" ; then

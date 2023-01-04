@@ -600,7 +600,6 @@ static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *grou
 			seg_idx = group->adaptation_set->smooth_max_chunks;
 		} else {
 			u32 i, count;
-			u64 start = 0;
 			u64 cumulated_dur = 0;
 			GF_MPD_SegmentTimeline *stl;
 			if (!group->adaptation_set->segment_template || !group->adaptation_set->segment_template->segment_timeline)
@@ -616,7 +615,7 @@ static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *grou
 				if (!e->duration)
 					continue;
 				if (e->start_time)
-					start = e->start_time;
+					cumulated_dur = e->start_time;
 
 				dur = e->duration * (e->repeat_count+1);
 				if (cumulated_dur + dur >= timeshift) {
@@ -625,7 +624,6 @@ static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *grou
 					break;
 				}
 				cumulated_dur += dur;
-				start += dur;
 				seg_idx += e->repeat_count+1;
 				if (group->adaptation_set->smooth_max_chunks && (seg_idx>=group->adaptation_set->smooth_max_chunks)) {
 					seg_idx = group->adaptation_set->smooth_max_chunks;
@@ -2199,7 +2197,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	Double timeline_start_time=0;
 	GF_MPD *new_mpd=NULL;
 	Bool fetch_only = GF_FALSE;
-	u32 nb_group_unchanged = 0;
 	Bool has_reps_unchanged = GF_FALSE;
 
 	//HLS: do not reload the playlist, directly update the reps
@@ -3042,9 +3039,7 @@ process_m3u8_manifest:
 				return e;
 			}
 
-			if (nb_rep_unchanged == gf_list_count(new_set->representations))
-				nb_group_unchanged++;
-			else
+			if (nb_rep_unchanged != gf_list_count(new_set->representations))
 				group->last_mpd_change_time = gf_sys_clock();
 		}
 	}
@@ -7201,7 +7196,6 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 			Bool test_pass = GF_TRUE;
 			while (1) {
 				u32 nb_rep_increased = 0;
-				u32 nb_rep_in_qidx = 0;
 				u32 cumulated_bw_in_pass = 0;
 
 				for (i=0; i<count; i++) {
@@ -7216,8 +7210,6 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 
 					if (group->target_new_rep + 1 == gf_list_count(group->adaptation_set->representations))
 						continue;
-
-					nb_rep_in_qidx++;
 
 					rep = gf_list_get(group->adaptation_set->representations, group->target_new_rep);
 					diff = rep->bandwidth;
