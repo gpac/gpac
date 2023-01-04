@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1234,6 +1234,7 @@ enum
 	GF_PROP_PID_CUBE_MAP_PAD = GF_4CC('P','C','M','P'),
 	GF_PROP_PID_EQR_CLAMP = GF_4CC('P','E','Q','C'),
 	GF_PROP_PID_SPARSE = GF_4CC('P','S','P','A'),
+	GF_PROP_PID_CHARSET = GF_4CC('P','C','H','S'),
 
 	GF_PROP_PID_SCENE_NODE = GF_4CC('P','S','N','D'),
 	GF_PROP_PID_ORIG_CRYPT_SCHEME = GF_4CC('P','O','C','S'),
