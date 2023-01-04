@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -9158,7 +9158,6 @@ static Bool gf_eac3_parser_internal(GF_BitStream *bs, GF_AC3Config *hdr, Bool fu
 	Bool main_indep_found = GF_FALSE;
 	s32 cur_main_id = -1;
 	u32 nb_blocks_main;
-	u32 cur_main_ac3 = 0;
 	u16 main_substreams; //bit-mask of independent channels found so far
 	static u32 numblks[4] = {1, 2, 3, 6};
 
@@ -9207,7 +9206,6 @@ next_block:
 		}
 		main_indep_found = GF_TRUE;
 		cur_main_id = 0;
-		cur_main_ac3 = 1;
 		goto next_block;
 	}
 	//corrupted frame, trash
@@ -9231,7 +9229,6 @@ next_block:
 
 	//independent stream
 	if (strmtyp!=0x1) {
-		cur_main_ac3 = 0;
 		//all blocks gathered and we have seen this substreamid, done with whole frame
 		if ( (nb_blocks_main>=6) && ( (main_substreams >> substreamid) & 0x1)) {
 			eac3_update_channels(hdr);
@@ -9256,11 +9253,6 @@ next_block:
 		}
 		goto retry_frame;
 	}
-	//quick hack (not sure if the spec forbids this): some AC3+EAC3 streams use substreamid=0 for the eac3
-	//which breaks nb_dep_sub / chan_loc signaling
-	//we increase by one in this case
-	if (cur_main_ac3 && !substreamid) cur_main_ac3=2;
-	if (cur_main_ac3==2) substreamid++;
 
 	frmsiz = gf_bs_read_int_log(bs, 11, "frmsiz");
 	framesize += 2 * (1 + frmsiz);
@@ -9328,8 +9320,9 @@ next_block:
 			hdr->nb_streams++;
 	}
 	//dependent stream, record max substream ID of dep and store chan map
+	//"Dependent substreams are assigned substream ID's 0 to 7, which shall be assigned sequentially according to the order the dependent substreams are present in the bit stream. "
 	else {
-		hdr->streams[cur_main_id].nb_dep_sub = substreamid;
+		hdr->streams[cur_main_id].nb_dep_sub = 1+substreamid;
 		hdr->streams[cur_main_id].chan_loc |= chanmap;
 	}
 
