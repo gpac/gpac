@@ -5677,10 +5677,10 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	if (si->slice_type > 9) return -1;
 
 	pps_id = gf_bs_read_ue_log(bs, "pps_id");
-	if ((pps_id<0) || (pps_id > 255)) return -1;
+	if ((pps_id<0) || (pps_id >= 255)) return -1;
 	si->pps = &avc->pps[pps_id];
 	if (!si->pps->slice_group_count) return -2;
-	if (si->pps->sps_id>=255) return -1;
+	if (si->pps->sps_id>=32) return -1;
 	si->sps = &avc->sps[si->pps->sps_id];
 	if (!si->sps->log2_max_frame_num) return -2;
 	avc->sps_active_idx = si->pps->sps_id;
@@ -5787,7 +5787,7 @@ static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
 	if (si->slice_type > 9) return -1;
 
 	pps_id = gf_bs_read_ue_log(bs, "pps_id");
-	if ((pps_id<0) || (pps_id > 255))
+	if ((pps_id<0) || (pps_id >= 255))
 		return -1;
 	si->pps = &avc->pps[pps_id];
 	si->pps->id = pps_id;
