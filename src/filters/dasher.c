@@ -9292,8 +9292,9 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		ctx->sseg = ctx->sfile = GF_FALSE;
 		ctx->no_fragments_defaults = ctx->align = ctx->tpl = ctx->sap = GF_TRUE;
 		if (!ctx->utcs) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH-IF LL requires UTCTiming but none specified, using http://time.akamai.com/?iso \n"));
-			ctx->utcs = gf_strdup("http://time.akamai.com/?iso");
+			const char *default_utc_timing_server = "http://time.akamai.com/?iso&ms";
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH-IF LL requires UTCTiming but none specified, using %s \n", default_utc_timing_server));
+			ctx->utcs = gf_strdup(default_utc_timing_server);
 		}
 		break;
 	default:
