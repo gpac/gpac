@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -202,15 +202,25 @@ s32 gf_text_get_utf_type(GF_TXTIn *ctx, FILE *in_src)
 		gf_fseek(in_src, 3, SEEK_SET);
 		return 1;
 	}
+	gf_fseek(in_src, 0, SEEK_SET);
+
 	if (BOM[0]<0x80) {
-		gf_fseek(in_src, 0, SEEK_SET);
 		return 0;
 	}
+	//check if ad-hoc charset is set
 	const char *opt = gf_opts_get_key("core", "charset");
+	if (ctx->ipid) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CHARSET);
+		if (p && p->value.string) opt = p->value.string;
+	}
 	if (opt) {
 		if (!stricmp(opt, "utf8") || !stricmp(opt, "utf-8")) return 1;
 		if (!stricmp(opt, "utf16") || !stricmp(opt, "utf-16")) return 2;
 		if (!stricmp(opt, "utf16be") || !stricmp(opt, "utf-16be") || !stricmp(opt, "utf-16-be") || !stricmp(opt, "utf16-be")) return 3;
+		return 0;
+	}
+	//otherwise if we have legal UTF8, assume utf8
+	if (gf_utf8_is_legal(BOM, 2) || gf_utf8_is_legal(BOM, 3) || gf_utf8_is_legal(BOM, 4) ) {
 		return 0;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Unknown text encoding for PID %s, defaulting to passthrough - use `-charset` to override\n", gf_filter_pid_get_name(ctx->ipid)));
