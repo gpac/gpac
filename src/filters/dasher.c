@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -1345,7 +1345,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_AC3:
 			case GF_CODECID_EAC3:
 				if (dsi) {
-					u32 i;
 					GF_AC3Config ac3;
 					gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
@@ -1353,8 +1352,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					ds->nb_surround = gf_ac3_get_surround_channels(ac3.streams[0].acmod);
 					ds->atmos_complexity_type = ac3.is_ec3 ? ac3.complexity_index_type : 0;
 					_nb_ch = gf_ac3_get_total_channels(ac3.streams[0].acmod);
-					for (i=0; i<ac3.streams[0].nb_dep_sub; ++i) {
-						assert(ac3.streams[0].nb_dep_sub == 1);
+					if (ac3.streams[0].nb_dep_sub) {
 						_nb_ch += gf_eac3_get_chan_loc_count(ac3.streams[0].chan_loc);
 					}
                     if (ds->nb_lfe) _nb_ch++;

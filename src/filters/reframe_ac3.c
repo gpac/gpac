@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / AC3 reframer filter
@@ -366,8 +366,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 			return GF_OK;
 		}
 
-		//max EAC3 frame is 4096, AC3 is 3840 - if we store more than 2 frames consider we have garbage
-		if (ctx->ac3_buffer_size>10000) {
+		//max EAC3 frame is 4096 but we can have side streams, AC3 is 3840 - if we store more than 2 frames consider we have garbage
+		if (ctx->ac3_buffer_size>100000) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AC3Dmx] Trashing %d garbage bytes\n", ctx->ac3_buffer_size));
 			ctx->ac3_buffer_size = 0;
 		}
@@ -588,7 +588,7 @@ static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 			has_broken_frames = GF_TRUE;
 		nb_frames += ahdr.nb_streams;
 		for (i=0; i<ahdr.nb_streams; i++)
-			nb_frames += ahdr.streams[i].nb_dep_sub;
+			nb_frames += ahdr.streams[i].nb_dep_sub ? 1 : 0;
 		gf_bs_skip_bytes(bs, ahdr.framesize);
 		if (!pos && (nb_frames==1) && !gf_bs_available(bs)) nb_frames++;
 		pos+=ahdr.framesize;
