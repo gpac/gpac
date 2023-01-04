@@ -1277,7 +1277,7 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 
 		dts = samp->DTS;
 		cts = dts + (s32) samp->CTS_Offset;
-		is_rap = samp->IsRAP;
+		is_rap = samp->IsRAP ? GF_TRUE : GF_FALSE;
 		if (!is_rap) gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_rap, NULL, NULL);
 
 		if (dump_flags&2) {
