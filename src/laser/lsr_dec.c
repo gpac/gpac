@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR codec sub-project
@@ -1539,8 +1539,8 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			} else {
 				da->type=SVG_STROKEDASHARRAY_ARRAY;
 				da->array.count = lsr_read_vluimsbf5(lsr, "len");
-				da->array.vals = (Fixed*)gf_malloc(sizeof(Fixed)*da->array.count);
-				da->array.units = (u8*)gf_malloc(sizeof(u8)*da->array.count);
+				da->array.vals = (Fixed*)gf_realloc(da->array.vals, sizeof(Fixed)*da->array.count);
+				da->array.units = (u8*)gf_realloc(da->array.units, sizeof(u8)*da->array.count);
 				if (!da->array.vals || !da->array.units) {
 					lsr->last_error = GF_OUT_OF_MEM;
 					return;
