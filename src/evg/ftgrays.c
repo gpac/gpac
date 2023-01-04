@@ -669,7 +669,7 @@ u32 th_sweep_lines(void *par)
 	EVGRasterCtx *rctx = par;
 
 	while (rctx->th_state == 1) {
-		u32 i, nb_lines=0;
+		u32 i;
 		u32 first_patch, last_patch;
 
 		//only for threads, wait for start raster event
@@ -704,7 +704,6 @@ u32 th_sweep_lines(void *par)
 					if (first_patch > i) first_patch = i;
 					if (last_patch < i) last_patch = i;
 				}
-				nb_lines++;
 			}
 			if (!th_fetch_lines(rctx))
 				break;

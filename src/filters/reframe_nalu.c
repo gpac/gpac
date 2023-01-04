@@ -2887,7 +2887,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 					/* This PPS is used by an SVC NAL unit, it should be moved to the SVC Config Record) */
 					gf_list_rem(ctx->pps, i);
 					i--;
-					if (!ctx->pps_svc) ctx->pps_svc = gf_list_new(ctx->pps_svc);
+					if (!ctx->pps_svc) ctx->pps_svc = gf_list_new();
 					gf_list_add(ctx->pps_svc, slc);
 					ctx->ps_modified = GF_TRUE;
 				}
@@ -3995,13 +3995,13 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 nb_hevc=0;
 	u32 nb_avc=0;
 	u32 nb_vvc=0;
-	u32 nb_nalus=0;
+	//u32 nb_nalus=0;
 	u32 nb_hevc_zero=0;
 	u32 nb_avc_zero=0;
 	u32 nb_vvc_zero=0;
 	u32 nb_sps_hevc=0,nb_pps_hevc=0,nb_vps_hevc=0;
 	u32 nb_sps_avc=0,nb_pps_avc=0;
-	u32 nb_sps_vvc=0,nb_pps_vvc=0,nb_vps_vvc=0;
+	u32 nb_sps_vvc=0,nb_pps_vvc=0; //,nb_vps_vvc=0;
 
 	while (size>3) {
 		u32 nal_type=0;
@@ -4019,7 +4019,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			not_vvc++;
 			continue;
 		}
-		nb_nalus++;
+		//nb_nalus++;
 
 		nal_type = (data[0] & 0x7E) >> 1;
 		if (nal_type<=40) {
@@ -4084,11 +4084,11 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			nb_sps_vvc++;
 			break;
 		case GF_VVC_NALU_VID_PARAM:
-			nb_vps_vvc++;
+			//nb_vps_vvc++;
 			break;
 		case GF_VVC_NALU_ACCESS_UNIT:
 			//to detect files without VPS correctly
-			nb_vps_vvc++;
+			//nb_vps_vvc++;
 			break;
 		case 0:
 			nb_vvc_zero++;

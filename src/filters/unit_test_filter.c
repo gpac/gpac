@@ -970,19 +970,19 @@ const GF_FilterRegister UTSourceRegister = {
 };
 
 
-const GF_FilterRegister *ut_filter_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *ut_filter_register(GF_FilterSession *session)
 {
 	return &UTFilterRegister;
 }
-const GF_FilterRegister *ut_source_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *ut_source_register(GF_FilterSession *session)
 {
 	return &UTSourceRegister;
 }
-const GF_FilterRegister *ut_sink_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *ut_sink_register(GF_FilterSession *session)
 {
 	return &UTSinkRegister;
 }
-const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session)
 {
 	return &UTSink2Register;
 }

@@ -1108,7 +1108,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 	} else {
 		u64 *DTSs, curDTS;
 		u32 i, j, k, sampNum;
-		u32 tot_samples, nb_written=0;
+		u32 tot_samples;
 		//unpack the DTSs...
 		DTSs = (u64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount - 1));
 		if (!DTSs) return GF_OUT_OF_MEM;
@@ -1130,7 +1130,6 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 					}
 				} else if (sampNum >= nb_samples) {
 					DTSs[sampNum - nb_samples] = curDTS;
-					nb_written++;
 				}
 				curDTS += ent->sampleDelta;
 				sampNum ++;
@@ -1139,7 +1138,6 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 
 		if (nb_samples>1) {
 			assert(sampNum == stbl->SampleSize->sampleCount);
-			assert(nb_written + nb_samples == stbl->SampleSize->sampleCount);
 		}
 		j=0;
 

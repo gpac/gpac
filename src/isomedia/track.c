@@ -458,7 +458,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	u32 i, j, chunk_size, track_num;
 	u64 base_offset, data_offset, traf_duration, tfdt;
 	u32 def_duration, DescIndex, def_size, def_flags;
-	u32 duration, size, flags, prev_trun_data_offset, sample_index, num_first_sample_in_traf;
+	u32 duration, size, flags, prev_trun_data_offset, num_first_sample_in_traf;
 	u8 pad, sync;
 	u16 degr;
 	Bool first_samp_in_traf=GF_TRUE;
@@ -471,6 +471,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	GF_TrunEntry *ent;
 #ifdef GF_ENABLE_CTRN
 	GF_TrackFragmentBox *traf_ref = NULL;
+	u32 sample_index;
 #endif
 	Bool is_first_merge = !trak->first_traf_merged;
 
@@ -645,7 +646,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		store_traf_map = GF_TRUE;
 	}
 
+#ifdef GF_ENABLE_CTRN
 	sample_index = 0;
+#endif
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
 		//merge the run
@@ -710,7 +713,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					flags = trun->first_sample_flags;
 				}
 			}
+#ifdef GF_ENABLE_CTRN
 			sample_index++;
+#endif
 			/*store the resolved value in case we have inheritance*/
 			ent->size = size;
 			ent->Duration = duration;

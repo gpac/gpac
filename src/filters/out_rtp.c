@@ -834,7 +834,7 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 	}
 
 	e = rtpout_setup_sdp(ctx);
-	if (e) return e;
+	if (e) return GF_TRUE;
 
 	if (ctx->runfor==0) {
 		for (i=0; i<count; i++) {
