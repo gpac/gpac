@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -129,6 +129,7 @@ typedef struct
 	Bool has_seen_eos;
 } GF_InspectCtx;
 
+static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name);
 
 GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
@@ -2177,6 +2178,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		}else{
 			inspect_printf(dump, "%s", gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data) );
 		}
+		if ((p4cc==GF_PROP_PID_DURATION) && !gf_sys_is_test_mode()) {
+			format_duration(att->value.lfrac.num, att->value.lfrac.den, dump, GF_TRUE);
+		}
 		inspect_printf(dump, "\n");
 	}
 }
@@ -3157,7 +3161,7 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 }
 #endif
 
-static void format_duration(s64 dur, u64 timescale, FILE *dump)
+static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 {
 	u32 h, m, s, ms;
 	const char *name = "duration";
@@ -3178,16 +3182,20 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump)
 	m = (u32) (dur/ 60000) - h*60;
 	s = (u32) (dur/1000) - h*3600 - m*60;
 	ms = (u32) (dur) - h*3600000 - m*60000 - s*1000;
+	if (skip_name)
+		inspect_printf(dump, " (");
+	else
+		inspect_printf(dump, " %s ", name);
 	if (h<=24) {
 		if (h)
-			inspect_printf(dump, " %s %02d:%02d:%02d.%03d", name, h, m, s, ms);
+			inspect_printf(dump, "%02d:%02d:%02d.%03d", h, m, s, ms);
 		else
-			inspect_printf(dump, " %s %02d:%02d.%03d", name, m, s, ms);
+			inspect_printf(dump, "%02d:%02d.%03d", m, s, ms);
 	} else {
 		u32 d = (u32) (dur / 3600000 / 24);
 		h = (u32) (dur/3600000)-24*d;
 		if (d<=365) {
-			inspect_printf(dump, " %s %d Days, %02d:%02d:%02d.%03d", name, d, h, m, s, ms);
+			inspect_printf(dump, "%d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
 		} else {
 			u32 y=0;
 			while (d>365) {
@@ -3195,9 +3203,11 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump)
 				d-=365;
 				if (y%4) d--;
 			}
-			inspect_printf(dump, " %s %d Years %d Days, %02d:%02d:%02d.%03d", name, y, d, h, m, s, ms);
+			inspect_printf(dump, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
 		}
 	}
+	if (skip_name)
+		inspect_printf(dump, ")");
 }
 
 
@@ -3253,7 +3263,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	if (p && stricmp(p->value.string, "und")) inspect_printf(dump, " language \"%s\"", p->value.string);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump);
+	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump, GF_FALSE);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) inspect_printf(dump, " timescale %d", p->value.uint);
