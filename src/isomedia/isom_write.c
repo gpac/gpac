@@ -7493,7 +7493,7 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 			for (i=0; i<ctts->nb_entries; i++) {
 				s64 new_ts = ctts->entries[i].decodingOffset;
 				new_ts += shift;
-				ctts->entries[i].decodingOffset = (u32) shift;
+				ctts->entries[i].decodingOffset = (s32) new_ts;
 			}
 		}
 	}
@@ -7504,7 +7504,7 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 		for (i=0; i<ctts->nb_entries; i++) {
 			s64 new_ts = ctts->entries[i].decodingOffset;
 			new_ts += shift;
-			ctts->entries[i].decodingOffset = (u32) shift;
+			ctts->entries[i].decodingOffset = (s32) new_ts;
 		}
 		gf_isom_box_del_parent(&trak->Media->information->sampleTable->child_boxes, (GF_Box *)cslg);
 		trak->Media->information->sampleTable->CompositionToDecode = NULL;
