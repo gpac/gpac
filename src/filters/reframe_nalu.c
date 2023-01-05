@@ -394,6 +394,10 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 		}
 		ctx->nal_store_size = 0;
+
+		if (ctx->timescale != 0)
+			ctx->resume_from = 0;
+
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		//don't change codec type if reframing an ES (for HLS SAES)
 		if (!ctx->timescale)
@@ -644,7 +648,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			case GF_AVC_NALU_SEI:
 				naludmx_probe_recovery_sei(bs, avc_state);
 				break;
-			
+
 			}
 			//also mark open GOP or first slice in gdr as valid seek point
 			if (is_slice && avc_state->sei.recovery_point.valid) {
@@ -1630,7 +1634,7 @@ static void naludmx_set_dolby_vision(GF_NALUDmxCtx *ctx)
 	u8 dv_cfg[24];
 	if (!ctx->opid)
 		return;
-		
+
 	switch (ctx->dv_mode) {
 	case DVMODE_NONE:
 	case DVMODE_CLEAN:
