@@ -1446,6 +1446,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_HAS_SYNC, "HasSync", "PID has sync points", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "Display width of service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "Display height of service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_IS_DEFAULT, "IsDefault", "Default PID for this stream type", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CAROUSEL_RATE, "CarouselRate", "Repeat rate in ms for systems carousel data", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AUDIO_VOLUME, "AudioVolume", "Volume of audio", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AUDIO_PAN, "AudioPan", "Balance/Pan of audio", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
@@ -1557,7 +1558,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ICC_PROFILE, "ICC", "ICC profile (see ISO 15076-1 or ICC.1)", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_SRC_MAGIC, "SrcMagic", "Magic number to store in the track, only used by importers", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_MUX_INDEX, "MuxIndex", "Target track index in destination file, stored by lowest value first (not set by demultiplexers)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_MUX_INDEX, "MuxIndex", "Target track index in destination file, stored by lowest value first (not set by demultiplexers)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_NO_TS_LOOP, "NoTSLoop", "Timestamps on this PID are adjusted in case of loops (used by TS multiplexer output)", GF_PROP_BOOL, 0},
 	{ GF_PROP_PID_MHA_COMPATIBLE_PROFILES, "MHAProfiles", "List of compatible profiles for this MPEG-H Audio object", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
 

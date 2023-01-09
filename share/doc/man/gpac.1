@@ -3142,6 +3142,11 @@ Display width of service
 Display height of service
 .br
 .TP
+.B IsDefault (PDEF,bool,D )
+.br
+Default PID for this stream type
+.br
+.TP
 .B CarouselRate (CARA,uint,D )
 .br
 Repeat rate in ms for systems carousel data
@@ -3670,7 +3675,7 @@ ICC profile (see ISO 15076-1 or ICC.1)
 Magic number to store in the track, only used by importers
 .br
 .TP
-.B MuxIndex (TIDX,luint,D )
+.B MuxIndex (TIDX,uint,D )
 .br
 Target track index in destination file, stored by lowest value first (not set by demultiplexers)
 .br
@@ -4955,9 +4960,9 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev9-g92411f61d-master
+build: 2.3-DEV-rev21-ga62df36f6-master
 .br
-Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
+Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
 .SH SEE ALSO
 .LP

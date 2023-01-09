@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -376,6 +376,8 @@ typedef struct
 	u32 seg_flush_state;
 	u64 flush_idx_start_range, flush_idx_end_range;
 	Bool flush_ll_hls;
+
+	Bool has_def_vid, has_def_aud, has_def_txt;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
@@ -1328,7 +1330,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			if (!ctx->owns_mov) {
 				u32 nb_dst_tk = gf_isom_get_track_count(ctx->file);
 				if (tk_idx < nb_dst_tk) {
-					tk_idx = nb_dst_tk;
+					//tk_idx = nb_dst_tk;
 				}
 			}
 		}
@@ -1422,9 +1424,12 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		} else {
 			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_TRUE);
 		}
+		Bool is_disabled = GF_FALSE;
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DISABLED);
-		if (p && p->value.boolean)
+		if (p && p->value.boolean) {
 			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_FALSE);
+			is_disabled = GF_TRUE;
+		}
 
 		//if we have a subtype set for the pid, use it
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
@@ -1448,6 +1453,43 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			}
 			if (tkw->stream_type==GF_STREAM_AUDIO) {
 				gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, 1);
+			}
+		}
+
+		//check if we have default flag set
+		if (!is_disabled && !ctx->cmaf) {
+			Bool *has_def = NULL;
+			if (tkw->stream_type==GF_STREAM_VISUAL) has_def = &ctx->has_def_vid;
+			else if (tkw->stream_type==GF_STREAM_AUDIO) has_def = &ctx->has_def_aud;
+			else if (tkw->stream_type==GF_STREAM_TEXT) has_def = &ctx->has_def_txt;
+
+			Bool set_def = GF_FALSE;
+			Bool set_all_def = GF_FALSE;
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_IS_DEFAULT);
+			//first track of this kind set to default, deactivate all except this track
+			if (has_def && ! *has_def && p && p->value.boolean) {
+				*has_def = GF_TRUE;
+				set_def = GF_TRUE;
+			}
+			//second or more track of this kind set to default, re-activate all
+			else if (has_def && *has_def && p && p->value.boolean) {
+				set_all_def = GF_TRUE;
+			}
+			if (set_def || set_all_def) {
+				u32 nb_tk = gf_list_count(ctx->tracks);
+				for (i=0; i<nb_tk; i++) {
+					TrackWriter *atk = gf_list_get(ctx->tracks, i);
+					if (atk->stream_type != tkw->stream_type) continue;
+					if (set_all_def || (tkw == atk)) {
+						gf_isom_set_track_flags(ctx->file, atk->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_ADD);
+					} else {
+						gf_isom_set_track_flags(ctx->file, atk->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_REM);
+					}
+				}
+			}
+			//no default prop and a default exists for this kind, update flags
+			else if (has_def && *has_def) {
+				gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_REM);
 			}
 		}
 

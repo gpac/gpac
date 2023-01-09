@@ -1977,6 +1977,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 
 	switch (p4cc) {
 	case GF_PROP_PID_DOWNLOAD_SESSION:
+	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
 		return;
 	case GF_PROP_PCK_SENDER_NTP:
