@@ -109,12 +109,13 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 
 	pos = MIN((u32) (20 * prog), 20);
 
-	if (pos>prev_pos) {
+	if (done != total && pos>prev_pos) {
 		prev_pos = 0;
 		prev_pc = 0;
 	}
 	pc = (u32) ( 100 * prog);
-	if ((pos!=prev_pos) || (pc!=prev_pc)) {
+
+	if ((done != total || prev_pos ) && ((pos!=prev_pos) || (pc!=prev_pc))) {
 		prev_pos = pos;
 		prev_pc = pc;
 		fprintf(stderr, "%s: |%s| (%02d/100)%c", szT, szProg[pos], pc, gf_prog_lf);

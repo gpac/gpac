@@ -6717,10 +6717,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		u64 prog_done=0, prog_total=0;
 		for (i=0; i<count; i++) {
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-			if (prog_done * tkw->prog_total <= tkw->prog_done * prog_total) {
-				prog_done = tkw->prog_done;
-				prog_total = tkw->prog_total;
-			}
+			prog_done += tkw->prog_done;
+			prog_total += tkw->prog_total;
 		}
 		gf_set_progress("Import", prog_done, prog_total);
 	}
