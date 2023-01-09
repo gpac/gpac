@@ -175,7 +175,7 @@ enum
 		if (strchr(__sep, __str[_len])) __str[_len] = 0;	\
 		else break;	\
 	}	\
- 
+
 
 s32 gf_text_get_utf_type(GF_TXTIn *ctx, FILE *in_src)
 {
@@ -255,7 +255,7 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 	} else {
 		val = (u32) gf_fread(szLine, 1024, test);
 		if ((s32) val<0) return GF_IO_ERR;
-		
+
 		szLine[val]=0;
 	}
 	REM_TRAIL_MARKS(szLine, "\r\n\t ")
@@ -1075,7 +1075,7 @@ force_line:
 			return GF_OK;
 	}
 
-	/*final flush*/	
+	/*final flush*/
 	if (!ctx->unframed && ctx->end && ! ctx->noflush) {
 		gf_isom_text_reset(ctx->samp);
 		txtin_process_send_text_sample(ctx, ctx->samp, ctx->end, 0, GF_TRUE);
@@ -4122,6 +4122,14 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (gen_webvtt_dsi) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((u8 *) "WEBVTT", 7 ) );
 	}
+
+	//when translating from unframed srt/vtt to framed tx3g/vtt, the number of input samples will be at most doubled by inserting blank samples
+	if (ctx->unframed && !ctx->no_empty) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NB_FRAMES);
+		if (p)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(p->value.uint*2));
+	}
+
 	return GF_OK;
 }
 
@@ -4529,4 +4537,3 @@ const GF_FilterRegister *rfsrt_register(GF_FilterSession *session)
 }
 
 #endif // GPAC_DISABLE_ISOM_WRITE
-
