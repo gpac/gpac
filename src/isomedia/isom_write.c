@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -8455,9 +8455,8 @@ GF_Err gf_isom_set_track_magic(GF_ISOFile *movie, u32 trackNumber, u64 magic)
 GF_EXPORT
 GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, void (*track_num_changed)(void *udta, u32 old_track_num, u32 new_track_num), void *udta)
 {
-	u32 i, count;
+	u32 i, j, count;
 	GF_List *tracks;
-	u32 prev_index=0, prev_pos=0;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !index) return GF_BAD_PARAM;
 	trak->index = index;
@@ -8468,13 +8467,17 @@ GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, vo
 		GF_TrackBox *a_tk = gf_list_get(movie->moov->trackList, i);
 		if (!a_tk->index) {
 			gf_list_insert(tracks, a_tk, 0);
-		} else if (a_tk->index < prev_index) {
-			gf_list_insert(tracks, a_tk, prev_pos);
 		} else {
-			gf_list_add(tracks, a_tk);
+			for (j=0; j<gf_list_count(tracks); j++) {
+				GF_TrackBox *a_tki = gf_list_get(tracks, j);
+				if (a_tki->index<a_tk->index) continue;
+				gf_list_insert(tracks, a_tk, j);
+				a_tk = NULL;
+				break;
+			}
+			if (a_tk)
+				gf_list_add(tracks, a_tk);
 		}
-		prev_pos = gf_list_count(tracks) - 1;
-		prev_index = a_tk->index;
 	}
 	if (gf_list_count(tracks) != count) {
 		gf_list_del(tracks);

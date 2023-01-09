@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -4469,7 +4469,7 @@ static u32 do_add_cat(int argc, char **argv)
 	}
 
 	for (ipass=0; ipass<nb_pass; ipass++) {
-		u32 tk_idx = 1;
+		u32 tk_idx = 0;
 		for (i=0; i<(u32) argc; i++) {
 			char *margs=NULL;
 			char *msid = NULL;
