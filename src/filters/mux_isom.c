@@ -1409,26 +1409,30 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 		tkw->track_id = gf_isom_get_track_id(ctx->file, tkw->track_num);
 
+		Bool is_disabled = GF_FALSE;
+		//cmaf mandates these flags and only them are set
 		if (ctx->cmaf) {
 			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_ENABLED|GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
 		}
-		//unless in test mode or old arch compat, set track to be enabled, in movie and in preview
-		else if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat()) {
-			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
-		}
+		else {
+			//unless in test mode or old arch compat, set track to be enabled, in movie and in preview
+			if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat()) {
+				gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
+			}
 
-		//override flags if provided
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TRACK_FLAGS);
-		if (p) {
-			gf_isom_set_track_flags(ctx->file, tkw->track_num, p->value.uint, GF_ISOM_TKFLAGS_SET);
-		} else {
-			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_TRUE);
-		}
-		Bool is_disabled = GF_FALSE;
-		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DISABLED);
-		if (p && p->value.boolean) {
-			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_FALSE);
-			is_disabled = GF_TRUE;
+			//override flags if provided
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TRACK_FLAGS);
+			if (p) {
+				gf_isom_set_track_flags(ctx->file, tkw->track_num, p->value.uint, GF_ISOM_TKFLAGS_SET);
+			} else {
+				gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_TRUE);
+			}
+
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DISABLED);
+			if (p && p->value.boolean) {
+				gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_FALSE);
+				is_disabled = GF_TRUE;
+			}
 		}
 
 		//if we have a subtype set for the pid, use it
