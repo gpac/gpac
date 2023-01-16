@@ -5692,6 +5692,7 @@ u32 gf_isom_get_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescrip
 	if (ve->svc_config) return ve->svc_config->config->nal_unit_size;
 	if (ve->hevc_config) return ve->hevc_config->config->nal_unit_size;
 	if (ve->lhvc_config) return ve->lhvc_config->config->nal_unit_size;
+	if (ve->vvc_config) return ve->vvc_config->config->nal_unit_size;
 	return 0;
 }
 
