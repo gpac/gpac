@@ -390,6 +390,7 @@ typedef struct _dash_stream
 	Bool segment_started;
 	u64 first_cts_in_seg;
 	u64 first_cts_in_next_seg;
+	u64 min_cts_in_seg_plus_one;
 	//used for last segment computation of segmentTimeline
 	u64 est_first_cts_in_next_seg;
 	u64 last_cts, last_dts;
@@ -1132,6 +1133,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_FRAC64(GF_PROP_PID_DURATION, ds->duration, GF_EOS)
 		CHECK_PROP_STR(GF_PROP_PID_URL, ds->src_url, GF_EOS)
 		period_switch = old_period_switch;
+		if (ds->duration.num<0) ds->duration.num = 0;
 
 		CHECK_PROP(GF_PROP_PID_ID, ds->id, GF_EOS)
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
@@ -6548,7 +6550,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
 	GF_MPD_SegmentTimelineEntry *s;
-	u64 duration, pto;
+	u64 duration, pto, prev_patch_dur=0;
 	Bool is_first = GF_FALSE;
 	Bool seg_align = GF_FALSE;
 	GF_MPD_SegmentTimeline *tl=NULL;
@@ -6568,10 +6570,20 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (gf_list_find(ds->set->representations, ds->rep)==0) is_first = GF_TRUE;
 	assert(ds->first_cts_in_next_seg > ds->first_cts_in_seg);
 	duration = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+
+		//handle sap time adjustment (first_cts_in_seg is the SAP cts, we may have lower cts whith sap 2 or 3)
+	if (ds->min_cts_in_seg_plus_one && (ds->min_cts_in_seg_plus_one-1 < ds->first_cts_in_seg)) {
+		prev_patch_dur = ds->first_cts_in_seg - (ds->min_cts_in_seg_plus_one-1);
+		if (ds->timescale != ds->mpd_timescale)
+			prev_patch_dur = gf_timestamp_rescale(prev_patch_dur, ds->timescale, ds->mpd_timescale);
+		ds->first_cts_in_seg = ds->min_cts_in_seg_plus_one-1;
+		duration += prev_patch_dur;
+		ds->seg_start_time -= prev_patch_dur;
+	}
+
 	pto = ds->presentation_time_offset;
 	if (ds->timescale != ds->mpd_timescale) {
-		duration *= ds->mpd_timescale;
-		duration /= ds->timescale;
+		duration = gf_timestamp_rescale(duration, ds->timescale, ds->mpd_timescale);
 
 		pto = gf_timestamp_rescale(pto, ds->timescale, ds->mpd_timescale);
 	}
@@ -6653,10 +6665,38 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 	//append to previous entry if possible
 	s = gf_list_last(tl->entries);
+
+	if (prev_patch_dur) {
+		u32 nb_ent = gf_list_count(tl->entries);
+		//split entry
+		if (s->repeat_count) {
+			GF_MPD_SegmentTimelineEntry *next;
+			s->repeat_count--;
+			GF_SAFEALLOC(next, GF_MPD_SegmentTimelineEntry);
+			if (!next) return;
+			next->duration = s->duration - prev_patch_dur;
+			next->start_time = s->start_time + (s->repeat_count+1) * s->duration;
+			gf_list_add(tl->entries, next);
+			s = next;
+		} else {
+			//update entry
+			s->duration -= prev_patch_dur;
+			//merge with old one if possible
+			GF_MPD_SegmentTimelineEntry *prev = (nb_ent>1) ? gf_list_get(tl->entries, nb_ent-2) : NULL;
+			if (prev && (prev->duration==s->duration) && (prev->start_time + (prev->repeat_count+1) * prev->duration == s->start_time)) {
+				prev->repeat_count++;
+				gf_list_pop_back(tl->entries);
+				gf_free(s);
+				s=prev;
+			}
+		}
+	}
+
 	if (s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)) {
 		s->repeat_count++;
 		return;
 	}
+
 	//nope, allocate
 	GF_SAFEALLOC(s, GF_MPD_SegmentTimelineEntry);
 	if (!s) return;
@@ -6892,6 +6932,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 
 		if (!ds->done) {
 			ds->first_cts_in_next_seg = ds->first_cts_in_seg = ds->est_first_cts_in_next_seg = 0;
+			ds->min_cts_in_seg_plus_one = 0;
 		}
 
 		if (ds->muxed_base) {
@@ -8547,6 +8588,14 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->starts_with_sap = sap_type;
 					}
 
+					//if sap2, silently move startWithSAP to 2 if previsouly 0,1 or 2
+					if (sap_type == GF_FILTER_SAP_2) {
+						if (ctx->sseg)
+							ds->set->subsegment_starts_with_sap = MAX(ds->set->subsegment_starts_with_sap, sap_type);
+						else
+							ds->set->starts_with_sap = MAX(ds->set->starts_with_sap, sap_type);
+					}
+
 					seg_over = GF_TRUE;
 					if (ds == base_ds) {
 						base_ds->adjusted_next_seg_start = cts;
@@ -8626,6 +8675,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->est_next_dts = dts + o_dur;
 			}
 			ds->nb_pck ++;
+
+			if (!ds->min_cts_in_seg_plus_one)
+				ds->min_cts_in_seg_plus_one = cts+1;
+			else if (ds->min_cts_in_seg_plus_one - 1 > cts)
+				ds->min_cts_in_seg_plus_one = cts+1;
+
 
 			if (ctx->sigfrag) {
 				if (!ds->segment_started) {
