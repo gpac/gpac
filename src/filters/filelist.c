@@ -854,6 +854,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
 				last_found = GF_TRUE;
+				lineno=0;
 				continue;
 			}
 			gf_fclose(f);
