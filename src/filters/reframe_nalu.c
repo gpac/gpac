@@ -3642,6 +3642,8 @@ naldmx_flush:
 					dts = gf_filter_pck_get_dts(q_pck);
 					if (dts == GF_FILTER_NO_TS) continue;
 					cts = gf_filter_pck_get_cts(q_pck);
+					//cts may be unset at this point (nal in middle of AU)
+					if (cts == GF_FILTER_NO_TS) continue;
 					cts += ctx->poc_shift;
 					cts -= slice_poc;
 					gf_filter_pck_set_cts(q_pck, cts);
