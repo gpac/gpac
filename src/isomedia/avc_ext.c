@@ -57,6 +57,9 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	case GF_ISOM_BOX_TYPE_MHC1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 	case GF_ISOM_BOX_TYPE_LHT1:
+	case GF_ISOM_BOX_TYPE_VVC1:
+	case GF_ISOM_BOX_TYPE_VVI1:
+	case GF_ISOM_BOX_TYPE_VVS1:
 		return GF_TRUE;
 	case GF_ISOM_BOX_TYPE_GNRV:
 	case GF_ISOM_BOX_TYPE_GNRA:
@@ -284,9 +287,10 @@ static GF_ISOSAPType sap_type_from_nal_type(u8 nal_type) {
 }
 #endif
 
-static GF_ISOSAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
+GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
 {
 	Bool is_hevc = GF_FALSE;
+	Bool is_vvc = GF_FALSE;
 	u32 nalu_size_field = 0;
 	if (entry->avc_config && entry->avc_config->config) nalu_size_field = entry->avc_config->config->nal_unit_size;
 	else if (entry->svc_config && entry->svc_config->config) nalu_size_field = entry->svc_config->config->nal_unit_size;
@@ -298,6 +302,10 @@ static GF_ISOSAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_M
 	else if (entry->lhvc_config && entry->lhvc_config->config) {
 		nalu_size_field = entry->lhvc_config->config->nal_unit_size;
 		is_hevc = GF_TRUE;
+	}
+	else if (entry->vvc_config && entry->vvc_config->config) {
+		nalu_size_field = entry->vvc_config->config->nal_unit_size;
+		is_vvc = GF_TRUE;
 	}
 	if (!nalu_size_field) return RAP_NO;
 
@@ -339,6 +347,28 @@ static GF_ISOSAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_M
 			}
 			gf_bs_skip_bytes(mdia->nalu_parser, size - 2);
 #endif
+		} else if (is_vvc) {
+			u16 nal_hdr = gf_bs_read_u16(mdia->nalu_parser);
+			nal_type = (nal_hdr >> 3) & 0x1F;
+
+			switch (nal_type) {
+			case GF_VVC_NALU_SLICE_CRA:
+				return SAP_TYPE_3;
+			case GF_VVC_NALU_SLICE_IDR_N_LP:
+				return SAP_TYPE_1;
+			case GF_VVC_NALU_SLICE_IDR_W_RADL:
+				return SAP_TYPE_2;
+			case GF_VVC_NALU_SLICE_GDR:
+				return SAP_TYPE_3;
+			case GF_VVC_NALU_SLICE_TRAIL:
+			case GF_VVC_NALU_SLICE_STSA:
+			case GF_VVC_NALU_SLICE_RADL:
+			case GF_VVC_NALU_SLICE_RASL:
+				return RAP_NO;
+			default:
+				break;
+			}
+			gf_bs_skip_bytes(mdia->nalu_parser, size - 2);
 		} else {
 			u8 nal_hdr = gf_bs_read_u8(mdia->nalu_parser);
 			nal_type = nal_hdr & 0x1F;
@@ -516,7 +546,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
-			sample->IsRAP = is_sample_idr(mdia, sample, entry);
+			sample->IsRAP = gf_isom_nalu_get_sample_sap(mdia, sample, entry);
 		}
 	}
 	if (!sample->IsRAP)

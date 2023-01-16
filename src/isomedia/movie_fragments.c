@@ -763,9 +763,36 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 	return sampleCount;
 }
 
+static s32 get_earliest_cts_following(GF_TrackFragmentBox *traf, u32 trun_idx, u32 samp_idx)
+{
+	GF_TrackFragmentRunBox *trun;
+	GF_TrunEntry *ent;
+	s32 earliest_cts = 0;
+	s32 delta = 0;
+	u32 j;
+	u32 i=trun_idx;
+	while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &i))) {
+		j=samp_idx;
+		samp_idx=0;
+		for (; j<trun->nb_samples; j++) {
+			ent = &trun->samples[j];
+			if (!j && (i==1)) {
+				earliest_cts = ent->CTS_Offset;
+			} else {
+				s32 cts = ent->CTS_Offset+delta;
+				if (earliest_cts > cts)
+					earliest_cts = cts;
+			}
+			delta += ent->Duration;
+		}
+	}
+	return earliest_cts;
+}
+
 static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID, u32 *sap_delta, Bool *starts_with_sap)
 {
-	u32 i, j, count, delta, earliest_cts, sap_type, sap_sample_num, cur_sample;
+	u32 i, j, count, sap_type, sap_sample_num, cur_sample;
+	s32 delta, earliest_cts;
 	Bool first = GF_TRUE;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
@@ -821,6 +848,8 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID
 		}
 	}
 
+	earliest_cts = get_earliest_cts_following(traf, 0, 0);
+
 	/*then browse all samples, looking for SYNC flag or sap_sample_num*/
 	cur_sample = 1;
 	delta = 0;
@@ -829,8 +858,9 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID
 		if (trun->flags & GF_ISOM_TRUN_FIRST_FLAG) {
 			if (GF_ISOM_GET_FRAG_SYNC(trun->flags)) {
 				ent = &trun->samples[0];
-//				if (!delta) earliest_cts = ent->CTS_Offset;
-				*sap_delta = delta + ent->CTS_Offset - ent->CTS_Offset;
+				s32 earliest_at_or_after_sap = get_earliest_cts_following(traf, i-1, 0);
+				*sap_delta = (u32) (earliest_at_or_after_sap - earliest_cts);
+
 				*starts_with_sap = first;
 				sap_type = ent->SAP_type;
 				return sap_type;
@@ -841,14 +871,15 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID
 			if (!delta) earliest_cts = ent->CTS_Offset;
 
 			if (GF_ISOM_GET_FRAG_SYNC(ent->flags)) {
-				*sap_delta = delta + ent->CTS_Offset - earliest_cts;
+				s32 earliest_at_or_after_sap = get_earliest_cts_following(traf, i-1, j);
+				*sap_delta = (u32) (earliest_at_or_after_sap - earliest_cts);
 				*starts_with_sap = first;
 				sap_type = ent->SAP_type;
 				return sap_type;
 			}
 			/*we found our roll or rap sample*/
 			if (cur_sample==sap_sample_num) {
-				*sap_delta = delta + ent->CTS_Offset - earliest_cts;
+				*sap_delta = (u32) (delta + ent->CTS_Offset - earliest_cts);
 				return sap_type;
 			}
 			delta += ent->Duration;

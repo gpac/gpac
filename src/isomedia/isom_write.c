@@ -8056,6 +8056,7 @@ GF_Err gf_isom_set_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDesc
 	if (ve->svc_config) ve->svc_config->config->nal_unit_size = nalu_size_length;
 	if (ve->hevc_config) ve->hevc_config->config->nal_unit_size = nalu_size_length;
 	if (ve->lhvc_config) ve->lhvc_config->config->nal_unit_size = nalu_size_length;
+	if (ve->vvc_config) ve->vvc_config->config->nal_unit_size = nalu_size_length;
 	return GF_OK;
 }
 
