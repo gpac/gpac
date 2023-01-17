@@ -2096,6 +2096,9 @@ GF_FilterRegister TSMuxRegister = {
 		"The filter watches the property `FileNumber` on incoming packets to create new files, or new segments in DASH mode.\n"
 		"The filter will look for property `M2TSRA` set on the input stream.\n"
 		"The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknown media types.\n"
+		"\n"
+		"# Notes\n"
+		"In LATM mux mode, the decoder configuration is inserted at the given [-repeat_rate]() or `CarouselRate` PID property if defined.\n"
 	)
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,
