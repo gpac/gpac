@@ -1497,18 +1497,18 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	/*perform LATM encapsulation*/
 	case GF_M2TS_AUDIO_LATM_AAC:
 	{
-		u32 size, next_time;
+		u32 size, stream_time_ms;
 		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs, 0x2B7, 11);
 		gf_bs_write_int(bs, 0, 13);
 
 		/*same mux config = 0 (refresh aac config)*/
-		next_time = gf_sys_clock();
-		if (stream->ifce->decoder_config && (stream->latm_last_aac_time + stream->refresh_rate_ms < next_time)) {
+		stream_time_ms = (u32) (stream->time.sec*1000 + stream->time.nanosec/1000000);
+		if (stream->ifce->decoder_config && (stream->latm_last_aac_time + stream->refresh_rate_ms < stream_time_ms)) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo cfg;
 #endif
-			stream->latm_last_aac_time = next_time;
+			stream->latm_last_aac_time = stream_time_ms;
 
 			gf_bs_write_int(bs, 0, 1);
 			/*mux config */
@@ -1552,7 +1552,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		stream->reframe_overhead = stream->curr_pck.data_len - stream->reframe_overhead;
 
 		/*rewrite LATM frame header*/
-		size = stream->curr_pck.data_len - 2;
+		size = stream->curr_pck.data_len - 3;
 		stream->curr_pck.data[1] |= (size>>8) & 0x1F;
 		stream->curr_pck.data[2] = (size) & 0xFF;
 		/*since we reallocated the packet data buffer, force a discard in pull mode*/
