@@ -534,7 +534,10 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 				ctx->in_seek = GF_FALSE;
 			}
 		}
-
+		//don't init until we get audio config
+		if (!ctx->acfg.base_sr) {
+			continue;
+		}
 		latm_dmx_check_pid(filter, ctx);
 
 		if (!ctx->is_playing) {
