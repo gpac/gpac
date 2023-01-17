@@ -1395,12 +1395,12 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			gf_list_add(cfg->param_array, ar);
 			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] Invalid NALU type in vvcC - ignoring\n", ar->nalus));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] Invalid NALU type %d in vvcC - ignoring\n", ar->type));
 			gf_free(ar);
 			break;
 		}
 
-		if ((ar->type != GF_VVC_NALU_DEC_PARAM) && (ar->type != GF_VVC_NALU_OPI))
+		if (!valid || ((ar->type != GF_VVC_NALU_DEC_PARAM) && (ar->type != GF_VVC_NALU_OPI)))
 			nalucount = gf_bs_read_int(bs, 16);
 		else
 			nalucount = 1;
