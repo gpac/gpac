@@ -1504,11 +1504,11 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 		/*same mux config = 0 (refresh aac config)*/
 		stream_time_ms = (u32) (stream->time.sec*1000 + stream->time.nanosec/1000000);
-		if (stream->ifce->decoder_config && (stream->latm_last_aac_time + stream->refresh_rate_ms < stream_time_ms)) {
+		if (stream->ifce->decoder_config && (!stream_time_ms || (stream->latm_last_aac_time + stream->refresh_rate_ms < stream_time_ms-1))) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo cfg;
 #endif
-			stream->latm_last_aac_time = stream_time_ms;
+			stream->latm_last_aac_time = stream_time_ms+1;
 
 			gf_bs_write_int(bs, 0, 1);
 			/*mux config */
