@@ -847,7 +847,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID
 			break;
 		}
 	}
-
+	//compute earliest cts in segment
 	earliest_cts = get_earliest_cts_following(traf, 0, 0);
 
 	/*then browse all samples, looking for SYNC flag or sap_sample_num*/
@@ -868,7 +868,6 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID
 		}
 		for (j=0; j<trun->nb_samples; j++) {
 			ent = &trun->samples[j];
-			if (!delta) earliest_cts = ent->CTS_Offset;
 
 			if (GF_ISOM_GET_FRAG_SYNC(ent->flags)) {
 				s32 earliest_at_or_after_sap = get_earliest_cts_following(traf, i-1, j);
