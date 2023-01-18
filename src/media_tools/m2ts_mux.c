@@ -3480,7 +3480,7 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 				}
 			}
 			nb_streams++;
-			if ((stream->ifce->caps & GF_ESI_STREAM_IS_OVER) && (!res || stream->refresh_rate_ms) )
+			if ((stream->ifce->caps & GF_ESI_STREAM_IS_OVER) && (!res || stream->refresh_rate_ms) && !stream->pes_data_remain)
 				nb_streams_done ++;
 
 			stream = stream->next;
