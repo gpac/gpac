@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -7570,6 +7570,17 @@ static void filter_pid_inst_collect_stats(GF_FilterPidInst *pidi, GF_FilterPidSt
 
 	if (stats->buffer_time < pidi->pid->buffer_duration)
 		stats->buffer_time = pidi->pid->buffer_duration;
+
+	if (!stats->last_ts_drop.den
+		|| gf_timestamp_less(stats->last_ts_drop.num, stats->last_ts_drop.den, pidi->last_ts_drop.num, pidi->last_ts_drop.den)
+	) {
+		stats->last_ts_drop = pidi->last_ts_drop;
+	}
+	if (!stats->last_ts_sent.den
+		|| gf_timestamp_less(stats->last_ts_sent.num, stats->last_ts_sent.den, pidi->pid->last_ts_sent.num, pidi->pid->last_ts_sent.den)
+	) {
+		stats->last_ts_sent = pidi->pid->last_ts_sent;
+	}
 
 	if (pidi->last_rt_report) {
 		stats->last_rt_report = pidi->last_rt_report;

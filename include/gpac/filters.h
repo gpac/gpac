@@ -3567,6 +3567,13 @@ typedef struct
 	/*! loss rate in per-thousand - input pid only */
 	u32 loss_rate;
 
+	/*! timestamp and timescale of last packet droped
+		- For input PID, set to last packet dropped
+		- For output PID, set to maximum TS value of last packet dropped on all PID destinations
+	*/
+	GF_Fraction64 last_ts_drop;
+	/*! timestamp and timescale of last packet send on PID (for output PID) or on parent PID (for input PID)	*/
+	GF_Fraction64 last_ts_sent;
 } GF_FilterPidStatistics;
 
 /*! Direction for stats querying*/
