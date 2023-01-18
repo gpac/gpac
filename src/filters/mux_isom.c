@@ -614,8 +614,11 @@ static void mp4mux_track_reorder(void *udta, u32 old_track_num, u32 new_track_nu
 	count = gf_list_count(ctx->tracks);
 	for (i=0; i<count; i++) {
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (!tkw->track_id) continue;
 		if (tkw->track_num==old_track_num) {
 			tkw->track_num = new_track_num;
+			//prevent any further changes, trackID is restored in mp4mux_reorder_tracks
+			tkw->track_id = 0;
 			return;
 		}
 	}
@@ -629,6 +632,9 @@ static void mp4mux_reorder_tracks(GF_MP4MuxCtx *ctx)
 	count = gf_list_count(ctx->tracks);
 	for (i=0; i<count; i++) {
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (!tkw->track_id)
+			tkw->track_id = gf_isom_get_track_id(ctx->file, tkw->track_num);
+
 		if (tkw->track_num<prev_num) {
 			gf_list_insert(new_tracks, tkw, prev_pos);
 		} else {
