@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,7 +27,7 @@
 #include <gpac/internal/mesh.h>
 #include <gpac/color.h>
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_EVG)
 
 /*for GPAC_HAS_GLU*/
 #include "gl_inc.h"
@@ -503,5 +503,4 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 }
 #endif
 
-
-#endif	/*GPAC_DISABLE_3D*/
+#endif // !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_EVG)

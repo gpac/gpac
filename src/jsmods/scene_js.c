@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2022
+ *			Copyright (c) Telecom ParisTech 2007-2023
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript Compositor extensions
@@ -26,7 +26,7 @@
 
 #include <gpac/setup.h>
 
-#if defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_PLAYER)
+#if defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 /*base SVG type*/
 #include <gpac/nodes_svg.h>
@@ -1289,7 +1289,7 @@ static JSValue gjs_odm_select(JSContext *ctx, JSValueConst this_val, int argc, J
 	GF_ObjectManager *odm = JS_GetOpaque(this_val, odm_class_id);
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 	gf_scene_select_object(odm->parentscene, odm);
 #endif
 	return JS_UNDEFINED;

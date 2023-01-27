@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,9 +27,7 @@
 
 #include "nodes_stacks.h"
 
-#ifndef GPAC_DISABLE_VRML
-
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR) && !defined(GPAC_DISABLE_3D)
 
 #include "visual_manager.h"
 
@@ -170,6 +168,4 @@ void compositor_init_directional_light(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseDirectionalLight);
 }
 
-#endif /*GPAC_DISABLE_3D*/
-
-#endif /*GPAC_DISABLE_VRML*/
+#endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR) && !defined(GPAC_DISABLE_3D)

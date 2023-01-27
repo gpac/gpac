@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / OD decoder filter
@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/compositor.h>
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 typedef struct
 {
@@ -522,4 +522,4 @@ const GF_FilterRegister *odf_dec_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_PLAYER
+#endif // GPAC_DISABLE_COMPOSITOR

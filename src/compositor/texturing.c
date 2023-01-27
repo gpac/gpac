@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -24,6 +24,8 @@
  */
 
 #include "texturing.h"
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 #include "nodes_stacks.h"
 
@@ -49,14 +51,18 @@ void gf_sc_texture_setup(GF_TextureHandler *txh, GF_Compositor *compositor, GF_N
 GF_EXPORT
 void gf_sc_texture_destroy(GF_TextureHandler *txh)
 {
+#ifndef GPAC_DISABLE_THREADS
 	GF_Compositor *compositor = txh->compositor;
 	Bool lock = gf_mx_try_lock(compositor->mx);
+#endif
 
 	gf_sc_texture_release(txh);
 	if (txh->is_open) gf_sc_texture_stop(txh);
 	gf_list_del_item(txh->compositor->textures, txh);
 
+#ifndef GPAC_DISABLE_THREADS
 	if (lock) gf_mx_v(compositor->mx);
+#endif
 }
 
 GF_EXPORT
@@ -413,3 +419,5 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 		return NULL;
 	}
 }
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

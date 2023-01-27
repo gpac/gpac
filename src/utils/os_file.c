@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2022
+ *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2023
  *			         Romain Bouqueau - Copyright (c) Romain Bouqueau 2015
  *					All rights reserved
  *
@@ -289,7 +289,7 @@ Bool gf_file_exists_ex(const char *fileName, const char *par_name)
 	}
 	gf_free(wname);
 	return res;
-#elif defined(GPAC_CONFIG_LINUX)
+#elif defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_EMSCRIPTEN)
 	Bool res = (access(fileName, 4) == -1) ? GF_FALSE : GF_TRUE;
 	if (res && gf_dir_exists(fileName))
 		res = GF_FALSE;
@@ -966,14 +966,17 @@ struct __gf_file_io
 	s64 (*tell)(GF_FileIO *fileio);
 	Bool (*eof)(GF_FileIO *fileio);
 	int (*printf)(GF_FileIO *gfio, const char *format, va_list args);
+	char *(*gets)(GF_FileIO *gfio, char *ptr, u32 size);
 
 	char *url;
 	char *res_url;
 	void *udta;
 
 	u64 bytes_done, file_size_plus_one;
-	Bool cache_complete, main_th;
+	Bool main_th;
+	GF_FileIOCacheState cache_state;
 	u32 bytes_per_sec;
+	u32 write_state;
 
 	u32 printf_alloc;
 	u8* printf_buf;
@@ -991,28 +994,88 @@ Bool gf_fileio_check(FILE *fp)
 	return GF_FALSE;
 }
 
+GF_EXPORT
+GF_FileIOWriteState gf_fileio_write_ready(FILE *fp)
+{
+	GF_FileIO *fio = (GF_FileIO *)fp;
+	if ((fp==stdin) || (fp==stderr) || (fp==stdout))
+		return GF_FIO_WRITE_READY;
+
+	//GFIO, check state
+	if (fio && !fio->_reserved_null && (fio->__this==fio)) {
+		return fio->write_state;
+	}
+	//sync stdio
+	return GF_FIO_WRITE_READY;
+}
+
+u32 gf_fileio_get_write_rate(FILE *fp)
+{
+	GF_FileIO *fio = (GF_FileIO *)fp;
+	if ((fp==stdin) || (fp==stderr) || (fp==stdout))
+		return 0;
+
+	if (fio && !fio->_reserved_null && (fio->__this==fio)) {
+		return fio->bytes_per_sec;
+	}
+	//sync stdio
+	return 0;
+}
+
 typedef struct
 {
 	u8 *data;
 	u32 size;
 	u32 pos;
+	u32 url_crc;
+	u32 nb_ref;
 } GF_FileIOBlob;
 
 static GF_FileIO *gfio_blob_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_error)
 {
 	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio_ref);
-	if (!url) {
+	if (!strcmp(mode, "close") || !strcmp(mode, "unref")) {
+		if (blob->nb_ref) blob->nb_ref--;
+		blob->pos = 0;
+		if (blob->nb_ref)
+			return NULL;
+
 		gf_free(blob);
 		gf_fileio_del(fileio_ref);
+		return NULL;
 	}
-	return NULL;
+	if (!strcmp(mode, "ref")) {
+		blob->nb_ref++;
+		*out_error = GF_OK;
+		return NULL;
+	}
+	if (!strcmp(mode, "url")) {
+		*out_error = GF_BAD_PARAM;
+		return NULL;
+	}
+	if (!strcmp(mode, "probe")) {
+		u32 crc = gf_crc_32(url, (u32) strlen(url) );
+		*out_error = (crc==blob->url_crc) ? GF_OK : GF_URL_ERROR;
+		return NULL;
+	}
+	if (mode[0]!='r') {
+		*out_error = GF_BAD_PARAM;
+		return NULL;
+	}
+	blob->nb_ref++;
+	if (blob->nb_ref>2) {
+		*out_error = GF_BAD_PARAM;
+		return NULL;
+	}
+	*out_error = GF_OK;
+	return fileio_ref;
 }
 
 static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
 	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
 	if (whence==SEEK_END) blob->pos = blob->size;
-	else if (whence==SEEK_SET) blob->pos = 0;
+	else if (whence==SEEK_SET) blob->pos = offset;
 	else {
 		if (blob->pos + offset > blob->size) return GF_BAD_PARAM;
 		blob->pos += (u32) offset;
@@ -1040,6 +1103,24 @@ static Bool gfio_blob_eof(GF_FileIO *fileio)
 	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
 	if (blob->pos==blob->size) return GF_TRUE;
 	return GF_FALSE;
+}
+
+static char *gfio_blob_gets(GF_FileIO *fileio, char *ptr, u32 size)
+{
+	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
+	char *buf = blob->data + blob->pos;
+	u32 len = blob->size - blob->pos;
+	if (!len) return NULL;
+
+	char *next = memchr(buf, '\n', len);
+	if (next) {
+		len = next - buf;
+		if (len + blob->pos<blob->size) len++;
+	}
+	if (len > size) len = size;
+	memcpy(ptr, blob->data+blob->pos, len);
+	blob->pos += len;
+	return ptr;
 }
 
 GF_EXPORT
@@ -1197,7 +1278,7 @@ const char * gf_fileio_translate_url(const char *url)
 
 Bool gf_fileio_eof(GF_FileIO *fileio)
 {
-	if (!fileio || !fileio->tell) return GF_TRUE;
+	if (!fileio || !fileio->eof) return GF_TRUE;
 	return fileio->eof(fileio);
 }
 
@@ -1219,25 +1300,31 @@ const char *gf_fileio_factory(GF_FileIO *gfio, const char *new_res_url)
 }
 
 GF_EXPORT
-void gf_fileio_set_stats(GF_FileIO *gfio, u64 bytes_done, u64 file_size, Bool cache_complete, u32 bytes_per_sec)
+void gf_fileio_set_stats(GF_FileIO *gfio, u64 bytes_done, u64 file_size, GF_FileIOCacheState cache_state, u32 bytes_per_sec)
 {
 	if (!gfio) return;
 	gfio->bytes_done = bytes_done;
 	gfio->file_size_plus_one = file_size ? (1 + file_size) : 0;
-	gfio->cache_complete = cache_complete;
+	gfio->cache_state = cache_state;
 	gfio->bytes_per_sec = bytes_per_sec;
 }
 
+GF_EXPORT
+void gf_fileio_set_write_state(GF_FileIO *gfio, GF_FileIOWriteState write_state)
+{
+	if (!gfio) return;
+	gfio->write_state = write_state;
+}
 
 GF_EXPORT
-Bool gf_fileio_get_stats(GF_FileIO *gfio, u64 *bytes_done, u64 *file_size, Bool *cache_complete, u32 *bytes_per_sec)
+Bool gf_fileio_get_stats(GF_FileIO *gfio, u64 *bytes_done, u64 *file_size, GF_FileIOCacheState *cache_state, u32 *bytes_per_sec)
 {
 	if (!gf_fileio_check((FILE *)gfio))
 		return GF_FALSE;
 
 	if (bytes_done) *bytes_done = gfio->bytes_done;
 	if (file_size) *file_size = gfio->file_size_plus_one ? gfio->file_size_plus_one-1 : 0;
-	if (cache_complete) *cache_complete = gfio->cache_complete;
+	if (cache_state) *cache_state = gfio->cache_state;
 	if (bytes_per_sec) *bytes_per_sec = gfio->bytes_per_sec;
 	return GF_TRUE;
 }
@@ -1257,6 +1344,7 @@ Bool gf_fileio_is_main_thread(const char *url)
 	if (!gfio) return GF_FALSE;
 	return gfio->main_th;
 }
+
 
 
 GF_EXPORT
@@ -1341,8 +1429,39 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	if (!gfio_blob) return NULL;
 	gfio_blob->data = blob_data;
 	gfio_blob->size = blob_size;
-	return gf_fileio_new((char *) file_name, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
+	GF_FileIO *res = gf_fileio_new((char *) file_name, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
+	if (!res) return NULL;
+	res->gets = gfio_blob_gets;
+	if (file_name)
+		gfio_blob->url_crc = gf_crc_32(file_name, (u32) strlen(file_name) );
+	return res;
 }
+
+GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size)
+{
+	GF_FileIOBlob *gfio_blob;
+	GF_SAFEALLOC(gfio_blob, GF_FileIOBlob);
+	if (!gfio_blob) return NULL;
+	gfio_blob->data = (u8 *) data;
+	gfio_blob->size = size;
+	GF_FileIO *res = gf_fileio_new((char *) URL, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
+	if (!res) return NULL;
+	res->gets = gfio_blob_gets;
+	if (URL)
+		gfio_blob->url_crc = gf_crc_32(URL, (u32) strlen(URL) );
+	gf_fopen(gf_fileio_url(res), "r");
+	return res;
+}
+
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+static u32 mainloop_th_id = 0;
+void gf_set_mainloop_thread(u32 thread_id)
+{
+	mainloop_th_id = thread_id;
+}
+#endif
+
 GF_EXPORT
 FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mode, Bool no_warn)
 {
@@ -1427,6 +1546,12 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 		}
 		gf_free(fname);
 	}
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	if (mainloop_th_id && strchr(mode, 'r') && (gf_th_id() != mainloop_th_id)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Opening file in read mode outside of main loop will likely deadlock - please report to GPAC devs\n"));
+	}
+#endif
 
 #if defined(WIN32)
 	wchar_t *wname;
@@ -1550,6 +1675,9 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 {
 	if (gf_fileio_check(stream)) {
 		GF_FileIO *fio = (GF_FileIO *)stream;
+		if (fio->gets)
+			return fio->gets(fio, ptr, size);
+
 		u32 i, read, nb_read=0;
 		for (i=0; i<size; i++) {
 			u8 buf[1];

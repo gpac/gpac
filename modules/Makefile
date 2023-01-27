@@ -70,7 +70,7 @@ endif
 #PLUGDIRS+=platinum
 #endif
 
-ifeq ($(DISABLE_PLAYER),yes)
+ifeq ($(DISABLE_COMPOSITOR),yes)
 PLUGDIRS=
 endif
 

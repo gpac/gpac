@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer
@@ -29,6 +29,8 @@
 #define _GF_EVG_DEV_H_
 
 #include <gpac/evg.h>
+
+#ifndef GPAC_DISABLE_EVG
 
 typedef struct _traster_ctx EVGRasterCtx;
 
@@ -536,8 +538,10 @@ struct _gf_evg_surface
 	EVG_Surface3DExt *ext3d;
 
 	EVGRasterCtx raster_ctx;
+#ifndef GPAC_DISABLE_THREADS
 	EVGRasterCtx *th_raster_ctx;
 	u32 nb_threads;
+#endif
 	GF_Mutex *raster_mutex;
 	GF_Semaphore *raster_sem;
 	u32 last_dispatch_line;
@@ -600,6 +604,8 @@ u32 th_sweep_lines(void *par);
 
 GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode operand, GF_EVGStencil *sten2, GF_EVGStencil *sten3, Float *params);
 
+
+#endif // GPAC_DISABLE_EVG
 
 #endif
 

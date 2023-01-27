@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2022
+ *			Copyright (c) Telecom ParisTech 2010-2023
  *			All rights reserved
  *
  *  This file is part of GPAC / Test Suite Validator Recorder sub-project
@@ -29,7 +29,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/xml.h>
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 typedef struct __validation_module
 {
@@ -1207,5 +1207,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 GPAC_MODULE_STATIC_DECLARATION( validator )
 
 
-#endif //#ifndef GPAC_DISABLE_PLAYER
+#endif //#ifndef GPAC_DISABLE_COMPOSITOR
 

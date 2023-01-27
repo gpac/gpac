@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2022
+ *			Copyright (c) Telecom ParisTech 2010-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenHEVC decoder filter
@@ -312,6 +312,10 @@ static void ohevc_set_out_props(GF_OHEVCDecCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
 }
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+Bool gf_filter_on_main_thread(GF_Filter *filter);
+#endif
+
 static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 i, dep_id=0, id=0, cfg_crc=0, codecid;
@@ -585,6 +589,15 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			gf_odf_hevc_cfg_del(hvcc);
 		}
 	}
+
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	//disable threading if running on main thread
+	if (gf_filter_on_main_thread(filter)) {
+		ctx->nb_threads = 0;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenHEVCDec] Running on main thread, disabling threads\n"));
+	}
+#endif
 
 	if (!ctx->codec) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
@@ -1407,6 +1420,7 @@ GF_FilterRegister OHEVCDecRegister = {
 	.configure_pid = ohevcdec_configure_pid,
 	.process = ohevcdec_process,
 	.process_event = ohevcdec_process_event,
+	.flags = GF_FS_REG_BLOCK_MAIN,
 	.max_extra_pids = (HEVC_MAX_STREAMS-1),
 	//by default take over FFMPEG
 	.priority = 100

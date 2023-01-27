@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -1794,10 +1794,12 @@ retry_import:
 						tmp_file = strrchr(elt_url, '\\');
 					if (tmp_file) {
 						tmp_file++;
+#ifndef GPAC_DISABLE_NETWORK
 						e = gf_dm_wget(elt_url, tmp_file, br_start, br_end, NULL);
 						if (e == GF_OK) {
 							import.in_name = tmp_file;
 						}
+#endif
 					}
 				} else {
 					import.in_name = elt_url;
@@ -2259,10 +2261,13 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			} else { /* for use in MP4Box */
 				if (strstr(suburl, "://")) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Downloading %s...\n", suburl));
+#ifndef GPAC_DISABLE_NETWORK
 					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0, NULL);
 					if (e == GF_OK) {
 						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe, GF_FALSE);
-					} else {
+					} else
+#endif
+					{
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Download failed for %s\n", suburl));
 						e = GF_OK;
 					}

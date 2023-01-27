@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Embedded Vector Graphics engine
@@ -34,6 +34,7 @@ extern "C" {
 #include <gpac/path2d.h>
 #include <gpac/module.h>
 #include <gpac/color.h>
+
 
 /*!
 \file "gpac/evg.h"
@@ -135,6 +136,8 @@ typedef enum
 	/*! raster should use full antialiasing - this is the default for all new surfaces*/
 	GF_RASTER_HIGH_QUALITY
 } GF_RasterQuality;
+
+#ifndef GPAC_DISABLE_EVG
 
 
 /*! common constructor for all stencil types
@@ -1095,6 +1098,8 @@ GF_Err gf_evg_surface_set_mask_mode(GF_EVGSurface *surf, GF_EVGMaskMode mask_mod
 GF_EVGMaskMode gf_evg_surface_get_mask_mode(GF_EVGSurface *surf);
 
 /*! @} */
+
+#endif //GPAC_DISABLE_EVG
 
 #ifdef __cplusplus
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -421,7 +421,9 @@ struct __gf_filter_session
 
 	GF_Mutex *ui_mx;
 
+#ifndef GPAC_DISABLE_THREADS
 	GF_List *threads;
+#endif
 	GF_SessionThread main_th;
 
 	//only used in forced lock mode
@@ -458,7 +460,7 @@ struct __gf_filter_session
 
 	GF_DownloadManager *download_manager;
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_FONTS
 	struct _gf_ft_mgr *font_manager;
 #endif
 
@@ -516,6 +518,11 @@ struct __gf_filter_session
 #ifdef GF_FS_ENABLE_LOCALES
 	GF_List *uri_relocators;
 	GF_FSLocales locales;
+#endif
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	Bool is_worker;
+	volatile u32 pending_threads;
 #endif
 };
 

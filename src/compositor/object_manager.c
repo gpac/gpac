@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -26,6 +26,8 @@
 
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/constants.h>
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 GF_EXPORT
 GF_ObjectManager *gf_odm_new()
@@ -2111,3 +2113,4 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	}
 }
 
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

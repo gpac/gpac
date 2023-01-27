@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -26,7 +26,7 @@
 
 #include <gpac/internal/mesh.h>
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_EVG)
 
 /*
 	AABB tree syntax&construction code is a quick extract from OPCODE (c) Pierre Terdiman, http://www.codercorner.com/Opcode.htm
@@ -612,4 +612,4 @@ Bool gf_mesh_closest_face(GF_Mesh *mesh, SFVec3f pos, Fixed min_dist, SFVec3f *o
 	return has_inter;
 }
 
-#endif	/*GPAC_DISABLE_3D*/
+#endif //!defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_EVG)

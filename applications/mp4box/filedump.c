@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -4478,6 +4478,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
 
+#ifndef GPAC_DISABLE_NETWORK
 void get_file_callback(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	if (parameter->msg_type==GF_NETIO_DATA_EXCHANGE) {
@@ -4562,9 +4563,11 @@ static void revert_cache_file(char *item_path)
 	gf_cfg_del(cached);
 	gf_file_delete(szPATH);
 }
+#endif
 
 GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 {
+#ifndef GPAC_DISABLE_NETWORK
 	GF_DownloadSession *sess;
 	u32 i, connect_time, reply_time, download_time, req_hdr_size, rsp_hdr_size;
 	GF_Err e;
@@ -4742,4 +4745,7 @@ err_exit:
 	if (mpd) gf_mpd_del(mpd);
 	gf_dm_del(dm);
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }

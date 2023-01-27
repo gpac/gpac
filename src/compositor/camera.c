@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/camera.h>
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 #include "visual_manager.h"
 
@@ -593,4 +594,6 @@ SFVec3f camera_get_right_dir(GF_Camera *cam)
 	return v;
 }
 
+
+#endif
 

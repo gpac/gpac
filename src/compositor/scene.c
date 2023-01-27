@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -31,6 +31,8 @@
 #include <gpac/network.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/nodes_x3d.h>
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 /*SVG properties*/
 #ifndef GPAC_DISABLE_SVG
@@ -3375,3 +3377,5 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 			gf_scene_switch_quality(odm->subscene, up);
 	}
 }
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

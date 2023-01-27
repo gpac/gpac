@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -614,7 +614,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 		}
 
-		if (!read->mem_load_mode) {
+		if (!read->mem_load_mode || ch->duration) {
 			//if no edit list (whether complex or simple TS offset) and no sidx, use media duration
 			if (!ch->has_edit_list && !use_sidx_dur && !ch->ts_offset) {
 				//no specific edit list type but edit present, use the duration in the edit
@@ -675,8 +675,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (w)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FRAME_SIZE, &PROP_UINT(w));
 
+		//mem mode, cannot read backwards
 		if (read->mem_load_mode) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 		} else {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND) );
 		}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -29,7 +29,7 @@
 #include <gpac/modules/video_out.h>
 #include <gpac/color.h>
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_VOUT
 
 //#define GPAC_DISABLE_3D
 
@@ -41,9 +41,6 @@
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
-
-
-#define TEXTURE_TYPE GL_TEXTURE_2D
 
 
 #if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
@@ -149,6 +146,8 @@ typedef struct
 	GF_GLTextureWrapper tx;
 
 	GLuint overlay_tx;
+
+	GLuint vbo_vx, vbo_tx;
 #endif // VOUT_USE_OPENGL
 
 	u32 num_textures;
@@ -713,6 +712,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->disp<MODE_2D) {
 		char *frag_shader_src = NULL;
 
+		vout_make_gl_current(ctx);
 		GL_CHECK_ERR()
 		ctx->glsl_program = glCreateProgram();
 		ctx->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -762,12 +762,14 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		glViewport(0, 0, ctx->width, ctx->height);
 
 		glClear(GL_DEPTH_BUFFER_BIT);
-		glDisable(GL_NORMALIZE);
 		glDisable(GL_DEPTH_TEST);
+#ifndef GPAC_USE_GLES2
+		glDisable(GL_NORMALIZE);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glDisable(GL_LINE_SMOOTH);
 		glDisable(GL_LINE_SMOOTH);
 		glDisable(GL_LIGHTING);
+#endif
 		glDisable(GL_CULL_FACE);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		if (ctx->has_alpha) {
@@ -940,6 +942,12 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	if (!ctx->video_out)
 		ctx->video_out = (GF_VideoOutput *) gf_module_load(GF_VIDEO_OUTPUT_INTERFACE, ctx->drv);
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	if (ctx->video_out) {
+		void gpac_force_step_mode(Bool for_display);
+		gpac_force_step_mode(GF_TRUE);
+	}
+#endif
 
 	if (ctx->dumpframes.nb_items) {
 		ctx->hide = GF_TRUE;
@@ -1047,6 +1055,10 @@ static void vout_finalize(GF_Filter *filter)
 	DEL_SHADER(ctx->fragment_shader);
 	DEL_PROGRAM(ctx->glsl_program );
 	gf_gl_txw_reset(&ctx->tx);
+
+	if (ctx->vbo_tx) glDeleteBuffers(1, &ctx->vbo_tx);
+	if (ctx->vbo_vx) glDeleteBuffers(1, &ctx->vbo_vx);
+
 #endif //VOUT_USE_OPENGL
 
 	/*stop and shutdown*/
@@ -1066,6 +1078,8 @@ static void vout_finalize(GF_Filter *filter)
 
 static void vout_draw_overlay(GF_VideoOutCtx *ctx)
 {
+	//todo add support for overlay in gles2 ?
+#ifndef GPAC_USE_GLES2
 	Float dw, dh, ox, oy;
 
 	dw = ((Float)ctx->olwnd.z) / 2;
@@ -1116,8 +1130,9 @@ static void vout_draw_overlay(GF_VideoOutCtx *ctx)
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(TEXTURE_TYPE, 0);
-	glDisable(TEXTURE_TYPE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
+#endif
 }
 
 static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
@@ -1129,92 +1144,107 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 
 	gf_gl_txw_bind(&ctx->tx, "maintx", ctx->glsl_program, 0);
 
-	dw = ((Float)ctx->dw) / 2;
-	dh = ((Float)ctx->dh) / 2;
+	if (!ctx->vbo_vx) {
+
+		dw = ((Float)ctx->dw) / 2;
+		dh = ((Float)ctx->dh) / 2;
 
 
-	GLfloat squareVertices[] = {
-		dw, dh,
-		dw, -dh,
-		-dw,  -dh,
-		-dw,  dh,
-	};
+		GLfloat squareVertices[] = {
+			dw, dh,
+			dw, -dh,
+			-dw,  -dh,
+			-dw,  dh,
+		};
 
-	GLfloat textureVertices[] = {
-		1.0f, 0.0f,
-		1.0f, 1.0f,
-		0.0f,  1.0f,
-		0.0f,  0.0f,
-	};
+		GLfloat textureVertices[] = {
+			1.0f, 0.0f,
+			1.0f, 1.0f,
+			0.0f,  1.0f,
+			0.0f,  0.0f,
+		};
 
-	if (flip_texture) {
-		textureVertices[1] = textureVertices[7] = 1.0f;
-		textureVertices[3] = textureVertices[5] = 0.0f;
-	}
-
-	switch (ctx->pid_vflip) {
-	case FLIP_VERT:
-		flip_v = GF_TRUE;
-		break;
-	case FLIP_HORIZ:
-		flip_h = GF_TRUE;
-		break;
-	case FLIP_BOTH:
-	case FLIP_BOTH2:
-		flip_v = GF_TRUE;
-		flip_h = GF_TRUE;
-		break;
-	}
-
-	u32 nb_rot=ctx->pid_vrot;
-	//camera grab and screen orientation is set, rotate video
-	if (ctx->raw_grab && ctx->screen_orientation) {
-		switch (ctx->screen_orientation) {
-		case GF_DISPLAY_MODE_LANDSCAPE_INV: nb_rot+=2; break;
-		case GF_DISPLAY_MODE_LANDSCAPE: break;
-		case GF_DISPLAY_MODE_PORTRAIT: nb_rot+=3; break;
-		case GF_DISPLAY_MODE_PORTRAIT_INV: nb_rot+=1; break;
-		default: break;
+		if (flip_texture) {
+			textureVertices[1] = textureVertices[7] = 1.0f;
+			textureVertices[3] = textureVertices[5] = 0.0f;
 		}
-		//front camera, flip along vertical (auto-mirror mode)
-		if (ctx->raw_grab == 2)
+
+		switch (ctx->pid_vflip) {
+		case FLIP_VERT:
 			flip_v = GF_TRUE;
-	}
+			break;
+		case FLIP_HORIZ:
+			flip_h = GF_TRUE;
+			break;
+		case FLIP_BOTH:
+		case FLIP_BOTH2:
+			flip_v = GF_TRUE;
+			flip_h = GF_TRUE;
+			break;
+		}
 
-	if (flip_h) {
-		GLfloat v = textureVertices[0];
-		textureVertices[0] = textureVertices[2] = textureVertices[4];
-		textureVertices[4] = textureVertices[6] = v;
-	}
-	if (flip_v) {
-		GLfloat v = textureVertices[1];
-		textureVertices[1] = textureVertices[7] = textureVertices[3];
-		textureVertices[3] = textureVertices[5] = v;
-	}
+		u32 nb_rot=ctx->pid_vrot;
+		//camera grab and screen orientation is set, rotate video
+		if (ctx->raw_grab && ctx->screen_orientation) {
+			switch (ctx->screen_orientation) {
+			case GF_DISPLAY_MODE_LANDSCAPE_INV: nb_rot+=2; break;
+			case GF_DISPLAY_MODE_LANDSCAPE: break;
+			case GF_DISPLAY_MODE_PORTRAIT: nb_rot+=3; break;
+			case GF_DISPLAY_MODE_PORTRAIT_INV: nb_rot+=1; break;
+			default: break;
+			}
+			//front camera, flip along vertical (auto-mirror mode)
+			if (ctx->raw_grab == 2)
+				flip_v = GF_TRUE;
+		}
 
-	for (i=0; i < nb_rot; i++)  {
-		GLfloat vx = textureVertices[0];
-		GLfloat vy = textureVertices[1];
+		if (flip_h) {
+			GLfloat v = textureVertices[0];
+			textureVertices[0] = textureVertices[2] = textureVertices[4];
+			textureVertices[4] = textureVertices[6] = v;
+		}
+		if (flip_v) {
+			GLfloat v = textureVertices[1];
+			textureVertices[1] = textureVertices[7] = textureVertices[3];
+			textureVertices[3] = textureVertices[5] = v;
+		}
 
-		textureVertices[0] = textureVertices[2];
-		textureVertices[1] = textureVertices[3];
-		textureVertices[2] = textureVertices[4];
-		textureVertices[3] = textureVertices[5];
-		textureVertices[4] = textureVertices[6];
-		textureVertices[5] = textureVertices[7];
-		textureVertices[6] = vx;
-		textureVertices[7] = vy;
+		for (i=0; i < nb_rot; i++)  {
+			GLfloat vx = textureVertices[0];
+			GLfloat vy = textureVertices[1];
+
+			textureVertices[0] = textureVertices[2];
+			textureVertices[1] = textureVertices[3];
+			textureVertices[2] = textureVertices[4];
+			textureVertices[3] = textureVertices[5];
+			textureVertices[4] = textureVertices[6];
+			textureVertices[5] = textureVertices[7];
+			textureVertices[6] = vx;
+			textureVertices[7] = vy;
+		}
+
+		glGenBuffers(1, &ctx->vbo_vx);
+		glBindBuffer(GL_ARRAY_BUFFER, ctx->vbo_vx);
+		glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(GLfloat), squareVertices, GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glGenBuffers(1, &ctx->vbo_tx);
+		glBindBuffer(GL_ARRAY_BUFFER, ctx->vbo_tx);
+		glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(GLfloat), textureVertices, GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
 	if (loc >= 0) {
-		glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, squareVertices);
+		glBindBuffer(GL_ARRAY_BUFFER, ctx->vbo_vx);
+		glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, 0);
 		glEnableVertexAttribArray(loc);
 
 		//setup texcoord location
 		int loc2 = glGetAttribLocation(ctx->glsl_program, "gfTexCoord");
 		if (loc2 >= 0) {
-			glVertexAttribPointer(loc2, 2, GL_FLOAT, 0, 0, textureVertices);
+			glBindBuffer(GL_ARRAY_BUFFER, ctx->vbo_tx);
+			glVertexAttribPointer(loc2, 2, GL_FLOAT, 0, 0, 0);
 			glEnableVertexAttribArray(loc2);
 
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -1228,8 +1258,11 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 	}
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(TEXTURE_TYPE, 0);
-	glDisable(TEXTURE_TYPE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+#ifndef GPAC_USE_GLES2
+	glDisable(GL_TEXTURE_2D);
+#endif
 
 	glUseProgram(0);
 
@@ -1269,12 +1302,25 @@ static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterfac
 	}
 	ctx->tx.frame_ifce = hwf;
 
+#ifndef GPAC_USE_GLES2
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-
+#endif
 	//and draw
 	vout_draw_gl_quad(ctx, ctx->tx.flip ? GF_TRUE : GF_FALSE);
 	GL_CHECK_ERR()
+}
+
+static void vbo_changed(GF_VideoOutCtx *ctx)
+{
+	if (ctx->vbo_vx) {
+		glDeleteBuffers(1, &ctx->vbo_vx);
+		ctx->vbo_vx = 0;
+	}
+	if (ctx->vbo_tx) {
+		glDeleteBuffers(1, &ctx->vbo_tx);
+		ctx->vbo_tx = 0;
+	}
 }
 
 static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
@@ -1347,10 +1393,14 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 		ctx->display_changed = GF_FALSE;
 
+#ifndef GPAC_USE_GLES2
 		//also load proj matrix for overlay draw
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(mx.m);
 		glMatrixMode(GL_MODELVIEW);
+#endif
+
+		vbo_changed(ctx);
 	}
 
 	glViewport(0, 0, ctx->display_width, ctx->display_height);
@@ -1378,7 +1428,9 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 
 	//we are not sure if we are the only ones using the gl context, reset our defaults
+#ifndef GPAC_USE_GLES2
 	glDisable(GL_LIGHTING);
+#endif
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 	if (ctx->has_alpha) {
@@ -1420,13 +1472,13 @@ exit:
 			if (!ctx->overlay_tx) {
 				glGenTextures(1, &ctx->overlay_tx);
 
-				glEnable(GL_TEXTURE_2D);
 #if !defined(GPAC_USE_GLES1X)
 				glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
 #if defined(GPAC_USE_GLES2)
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 #else
+				glEnable(GL_TEXTURE_2D);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 #endif
@@ -1437,7 +1489,9 @@ exit:
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ctx->olsize.x, ctx->olsize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
 				ctx->update_oldata = GF_FALSE;
 			} else if (ctx->update_oldata) {
+#ifndef GPAC_USE_GLES2
 				glEnable(GL_TEXTURE_2D);
+#endif
 				glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
 				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, ctx->olsize.x, ctx->olsize.y, GL_RGBA, GL_UNSIGNED_BYTE, ctx->oldata.ptr);
 				ctx->update_oldata = GF_FALSE;
@@ -2289,4 +2343,4 @@ const GF_FilterRegister *vout_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_PLAYER
+#endif // GPAC_DISABLE_VOUT

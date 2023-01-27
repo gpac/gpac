@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / general OS configuration file
@@ -550,7 +550,11 @@ typedef struct {
 
 
 #if !defined(GF_EXPORT)
-#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_CONFIG_IOS)
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
+//global include for using EM_ASM
+#include <emscripten/emscripten.h>
+#define GF_EXPORT EMSCRIPTEN_KEEPALIVE
+#elif defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_CONFIG_IOS)
 /*! macro for cross-platform signaling of exported function of libgpac*/
 #define GF_EXPORT __attribute__((visibility("default")))
 #else
@@ -568,11 +572,44 @@ typedef struct {
 #define GPAC_STATIC_MODULES
 #endif
 
-/*safety checks on macros*/
+/*dependency checks on macros*/
+
+#ifdef GPAC_DISABLE_NETWORK
+# ifndef GPAC_DISABLE_STREAMING
+# define GPAC_DISABLE_STREAMING
+# endif
+# ifndef GPAC_DISABLE_ROUTE
+# define GPAC_DISABLE_ROUTE
+# endif
+#ifdef GPAC_HAS_IPV6
+#undef GPAC_HAS_IPV6
+#endif
+#ifdef GPAC_HAS_SOCK_UN
+#undef GPAC_HAS_SOCK_UN
+#endif
+#endif
+
+
+#if !defined(GPAC_DISABLE_NETWORK) || defined(GPAC_CONFIG_EMSCRIPTEN)
+#define GPAC_USE_DOWNLOADER
+#endif
+
 
 #ifdef GPAC_DISABLE_ZLIB
 # define GPAC_DISABLE_LOADER_BT
 # define GPAC_DISABLE_SWF_IMPORT
+#endif
+
+#ifdef GPAC_DISABLE_EVG
+# ifndef GPAC_DISABLE_COMPOSITOR
+# define GPAC_DISABLE_COMPOSITOR
+# endif
+# ifndef GPAC_DISABLE_SVG
+# define GPAC_DISABLE_SVG
+# endif
+# ifndef GPAC_DISABLE_FONTS
+# define GPAC_DISABLE_FONTS
+# endif
 #endif
 
 #ifdef GPAC_DISABLE_VRML
@@ -673,6 +710,7 @@ typedef struct {
 #ifndef GPAC_MINIMAL_ODF
 #define GPAC_MINIMAL_ODF
 #endif
+
 
 //define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not
 //#define GPAC_DISABLE_DOC

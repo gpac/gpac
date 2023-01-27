@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -1052,7 +1052,15 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = max_offset;
 				gf_filter_pid_send_event(read->pid, &fevt);
-				gf_isom_set_byte_offset(read->mov, is_sidx_seek ? 0 : max_offset);
+
+				if (read->mem_load_mode) {
+					read->mem_blob.size = 0;
+					read->bytes_removed = max_offset;
+					gf_isom_set_removed_bytes(read->mov, read->bytes_removed);
+					gf_isom_set_byte_offset(read->mov, 0);
+				} else {
+					gf_isom_set_byte_offset(read->mov, is_sidx_seek ? 0 : max_offset);
+				}
 			}
 		}
 
@@ -1709,6 +1717,7 @@ GF_FilterRegister ISOFFInRegister = {
 		"Warning: smode=splitx will result in extractor NAL units still present in the output bitstream, which shall only be true if the output is ISOBMFF based\n"
 	 	)
 	.private_size = sizeof(ISOMReader),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.args = ISOFFInArgs,
 	.initialize = isoffin_initialize,
 	.finalize = isoffin_finalize,

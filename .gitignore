@@ -1,3 +1,4 @@
+
 *.o
 *.suo
 *.user
@@ -80,8 +81,7 @@ bld/
 config.h
 include/gpac/revision.h
 include/gpac/revision.h.new
-extra_lib/lib/
-extra_lib/include/
+extra_lib/
 config.mak
 configure-stamp
 gpac.pc

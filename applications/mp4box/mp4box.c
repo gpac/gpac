@@ -200,7 +200,7 @@ u32 swf_flags;
 #endif
 GF_Fraction import_fps;
 
-#ifdef GPAC_CONFIG_ANDROID
+#if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_EMSCRIPTEN)
 u32 mp4b_help_flags;
 FILE *mp4b_helpout;
 
@@ -4231,6 +4231,7 @@ static u32 do_raw_cat()
 
 static u32 do_write_udp()
 {
+#ifndef GPAC_DISABLE_NETWORK
 	GF_Err e;
 	u32 res = 0;
 	GF_Socket *sock = gf_sk_new(GF_SOCK_TYPE_UDP);
@@ -4254,6 +4255,9 @@ static u32 do_write_udp()
 	}
 	gf_sk_del(sock);
 	return res;
+#else
+	return 0;
+#endif // GPAC_DISABLE_NETWORK
 }
 
 #ifndef GPAC_DISABLE_MPD
@@ -4264,7 +4268,11 @@ static u32 convert_mpd()
 	GF_MPD *mpd;
 	char *mpd_base_url = NULL;
 	if (!strnicmp(inName, "http://", 7) || !strnicmp(inName, "https://", 8)) {
+#ifndef GPAC_DISABLE_NETWORK
 		e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0, &mpd_base_url);
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
 		if (e != GF_OK) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e)));
 			if (mpd_base_url) gf_free(mpd_base_url);
@@ -5910,7 +5918,6 @@ static u32 mp4box_cleanup(u32 ret_code) {
 		gf_memory_print();
 	}
 #endif
-
 	return ret_code;
 }
 
@@ -5975,7 +5982,7 @@ int mp4box_main(int argc, char **argv)
 	if (i) {
 		return mp4box_cleanup(i - 1);
 	}
-#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG) && !defined(GPAC_CONFIG_EMSCRIPTEN)
 	if (live_scene) {
 		int ret = live_session(argc, argv);
 		return mp4box_cleanup(ret);
@@ -6074,7 +6081,11 @@ int mp4box_main(int argc, char **argv)
 	}
 
 	if (do_wget != NULL) {
+#ifndef GPAC_DISABLE_NETWORK
 		e = gf_dm_wget(do_wget, inName, 0, 0, NULL);
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
 		if (e != GF_OK) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot retrieve %s: %s\n", do_wget, gf_error_to_string(e) ));
 			return mp4box_cleanup(1);
@@ -6841,7 +6852,7 @@ exit:
 	return 0;
 }
 
-#ifndef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_CONFIG_EMSCRIPTEN)
 
 GF_MAIN_FUNC(mp4box_main)
 

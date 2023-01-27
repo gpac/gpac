@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,6 +27,8 @@
 #include "drawable.h"
 #include "nodes_stacks.h"
 #include "texturing.h"
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 //#define SKIP_DRAW
 
@@ -823,5 +825,7 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 		ra_union_rect(&visual->hybgl_drawn, rc);
 #endif
 }
-#endif
+#endif //unused
 
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

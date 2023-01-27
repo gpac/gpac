@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/compositor_dev.h>
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 /*render : setup media sensor and update timing in case of inline scenes*/
 void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
@@ -285,4 +285,4 @@ void MS_Stop(MediaSensorStack *st)
 	st->active_seg = 0;
 }
 
-#endif /*GPAC_DISABLE_VRML*/
+#endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)

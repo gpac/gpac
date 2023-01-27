@@ -5581,12 +5581,14 @@ static u32 dasher_period_count(GF_List *streams_in /*GF_DashStream*/)
 
 static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 {
+	u8 *data=NULL;
+	u64 remote_utc;
+#ifdef GPAC_USE_DOWNLOADER
+	GF_Err e;
 	const char *cache_name;
 	u32 size;
-	u8 *data;
-	u64 remote_utc;
-	GF_Err e;
 	GF_DownloadSession *sess;
+#endif
 	GF_DownloadManager *dm;
 	char *url;
 	DasherUTCTimingType def_type = DASHER_UTCREF_NONE;
@@ -5611,7 +5613,7 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 		ctx->utc_timing_type = DASHER_UTCREF_INBAND;
 		return;
 	}
-
+#ifdef GPAC_USE_DOWNLOADER
 	sess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create session for remote UTC source %s: %s - local clock will be used instead\n", url, gf_error_to_string(e) ));
@@ -5631,6 +5633,9 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 	cache_name = gf_dm_sess_get_cache_name(sess);
 	gf_blob_get(cache_name, &data, &size, NULL);
+#else
+	//TODO
+#endif // GPAC_USE_DOWNLOADER
 	if (data) {
 		//xsDate or isoDate - we always signal using iso
 		if (strchr(data, 'T')) {
@@ -5650,10 +5655,13 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 				ctx->utc_timing_type = DASHER_UTCREF_NTP;
 		}
 	}
+#ifdef GPAC_USE_DOWNLOADER
 	gf_blob_release(cache_name);
+#endif
 
 	//not match, try http date
 	if (!ctx->utc_timing_type) {
+#ifdef GPAC_USE_DOWNLOADER
 		const char *hdr = gf_dm_sess_get_header(sess, "Date");
 		if (hdr) {
 			//http-head
@@ -5661,6 +5669,9 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 			if (remote_utc)
 				ctx->utc_timing_type = DASHER_UTCREF_HTTP_HEAD;
 		}
+#else
+	//TODO
+#endif
 	}
 
 	if (!ctx->utc_timing_type) {
@@ -5710,7 +5721,9 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 			gf_list_add(ctx->mpd->utc_timings, utc_t);
 		}
 	}
+#ifdef GPAC_USE_DOWNLOADER
 	gf_dm_sess_del(sess);
+#endif
 }
 
 
@@ -9482,6 +9495,12 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 			return e;
 		}
 	}
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	//we need to read the state file so we must run on main thread
+	if (ctx->state)
+		gf_filter_force_main_thread(filter, GF_TRUE);
+#endif
 	return GF_OK;
 }
 

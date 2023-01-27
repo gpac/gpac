@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato - Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -25,7 +25,8 @@
 
 #include "visual_manager.h"
 
-#ifndef GPAC_DISABLE_SVG
+#if !defined(GPAC_DISABLE_SVG) &&  !defined(GPAC_DISABLE_COMPOSITOR)
+
 #include "nodes_stacks.h"
 
 static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *audio, GF_Node *video);
@@ -903,5 +904,4 @@ void compositor_init_svg_updates(GF_Compositor *compositor, GF_Node *node)
 	stack->clipEnd = -1;
 }
 
-#endif //GPAC_DISABLE_SVG
-
+#endif //!defined(GPAC_DISABLE_SVG) &&  !defined(GPAC_DISABLE_COMPOSITOR)

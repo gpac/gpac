@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG4 text renderer filter
@@ -32,7 +32,7 @@
 #include <gpac/internal/compositor_dev.h>
 
 
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 
 /*
@@ -1507,7 +1507,7 @@ GF_FilterRegister TTXTDecRegister = {
 
 const GF_FilterRegister *ttxtdec_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &TTXTDecRegister;
 #else
 	return NULL;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -2161,4 +2161,46 @@ GF_Err ffmpeg_update_arg(const char *log_name, void *ctx, AVDictionary **options
 	return GF_OK;
 }
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+Bool gf_filter_on_main_thread(GF_Filter *filter);
+#endif
+void ffmpeg_check_threads(GF_Filter *filter, AVDictionary *options, AVCodecContext *codecctx)
+{
+	s32 num_threads=-1;
+	if (!codecctx) return;
+
+	if (options) {
+		//check if we have --threads=0 - if so disable threading type
+		AVDictionaryEntry *prev_e = NULL;
+		while (1) {
+			prev_e = av_dict_get(options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+			if (!prev_e) break;
+			if (prev_e->key && !strcmp(prev_e->key, "threads")) {
+				num_threads = atoi(prev_e->value);
+				if (!num_threads)
+					codecctx->thread_type = 0;
+				break;
+			}
+		}
+	}
+
+#if defined(__EMSCRIPTEN_PTHREADS__)
+	//On emscripten, disable threads if running in the main thread
+	//this is needed as in ffmpeg, spawning threads or multi-threaded encode/decode waits on the calling thread for thread creation / task completion
+	//which is acknowledged in the main browser loop (in EM RT, not in gpac/ffmpeg) hence creating a deadlock
+	if (gf_filter_on_main_thread(filter)) {
+		codecctx->thread_count = 0;
+		codecctx->thread_type = 0;
+		if (num_threads>0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("Using FFMPEG threads on main thread would deadlock, disabling threading (use -threads=1 to have one extra gpac thread)\n"));
+		}
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("FFMPEG threads (%d type %d) enabled\n", num_threads, codecctx->thread_type));
+	}
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+	//no thread support in build, disable ffmpeg threading
+	codecctx->thread_count = 0;
+	codecctx->thread_type = 0;
+#endif
+}
 #endif

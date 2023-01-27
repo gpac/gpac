@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2023
  *					All rights reserved
  *
  *  This file is part of GPAC / TrueHD reframer filter
@@ -521,9 +521,13 @@ GF_Err truehd_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *output;
 	u8 *start;
-	GF_Err e = GF_OK;
+	GF_Err e;
 	u32 pck_size, remain, prev_pck_size;
-	u64 cts = GF_FILTER_NO_TS;
+	u64 cts;
+
+restart:
+	e = GF_OK;
+	cts = GF_FILTER_NO_TS;
 
 	//always reparse duration
 	if (!ctx->duration.num)
@@ -716,7 +720,8 @@ GF_Err truehd_process(GF_Filter *filter)
 
 	if (!pck) {
 		ctx->truehd_buffer_size = 0;
-		return truehd_process(filter);
+		//avoid recursive call
+		goto restart;
 	} else {
 		if (remain && (remain<ctx->truehd_buffer_size)) {
 			memmove(ctx->truehd_buffer, start, remain);

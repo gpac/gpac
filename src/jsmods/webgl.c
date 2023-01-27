@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2022
+ *			Copyright (c) Telecom ParisTech 2019-2023
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript WebGL bindings
@@ -1248,9 +1248,12 @@ JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *_name
 
 		frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	}
+#ifndef GPAC_DISABLE_EVG
 	/*try evg Texture*/
 	else if (js_evg_is_texture(c, pck_obj)) {
-	} else {
+	}
+#endif
+	else {
 		return js_throw_err(c, WGL_INVALID_VALUE);
 	}
 
@@ -1260,7 +1263,11 @@ JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *_name
 		if (pck) {
 			jsf_get_filter_packet_planes(c, pck_obj, &width, &height, &pix_fmt, &stride, &uv_stride, NULL, NULL, NULL, NULL);
 		} else {
+#ifndef GPAC_DISABLE_EVG
 			js_evg_get_texture_info(c, pck_obj, &width, &height, &pix_fmt, NULL, &stride, NULL, NULL, &uv_stride, NULL);
+#else
+			return js_throw_err(c, WGL_INVALID_VALUE);
+#endif
 		}
 		if (force_resetup)
 			named_tx->tx.uniform_setup = GF_FALSE;
@@ -1278,6 +1285,7 @@ JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *_name
 			if (!data)
 				return js_throw_err_msg(c, WGL_INVALID_VALUE, "[WebGL] Unable to fetch packet data, cannot setup NamedTexture\n");
 		} else {
+#ifndef GPAC_DISABLE_EVG
 			u32 pix_fmt=0, width=0, height=0, stride=0, uv_stride=0;
 			js_evg_get_texture_info(c, pck_obj, &width, &height, &pix_fmt, (u8 **) &data, &stride, NULL, NULL, &uv_stride, NULL);
 			if (!data)
@@ -1293,6 +1301,9 @@ JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *_name
 					return js_throw_err_msg(c, WGL_INVALID_VALUE, "[WebGL] Pixel format %s unknown, cannot setup NamedTexture\n", gf_4cc_to_str(pix_fmt));
 				}
 			}
+#else
+			return js_throw_err(c, WGL_INVALID_VALUE);
+#endif
 		}
 	}
 
@@ -1350,10 +1361,12 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 	s32 border = 0;
 	u32 format = 0;
 	u32 type = 0;
+#ifndef GPAC_DISABLE_EVG
 	u32 pixfmt;
 	u32 stride;
 	u32 stride_uv;
 	u8 *p_u, *p_v, *p_a;
+#endif
 	u8 *pix_buf;
 	u32 pix_buf_size=0;
 
@@ -1390,6 +1403,7 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 		return JS_UNDEFINED;
 	}
 
+#ifndef GPAC_DISABLE_EVG
 	if (js_evg_is_texture(ctx, argv[5]) && !glc->bound_named_texture) {
 		const char *tx_named = js_evg_get_texture_named(ctx, argv[5]);
 		if (tx_named && glc->bound_texture) {
@@ -1417,14 +1431,15 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 			glc->bound_texture_target = 0;
 			glc->bound_named_texture = named_tx;
 		}
-
 	}
+#endif
 
 	/*bound texture is a named texture, use tx.upload() */
 	if (glc->bound_named_texture) {
 		return wgl_named_texture_upload(ctx, argv[5], glc->bound_named_texture, GF_FALSE);
 	}
 
+#ifndef GPAC_DISABLE_EVG
 	/*check if this is an EVG texture*/
 	if (js_evg_get_texture_info(ctx, argv[5], &width, &height, &pixfmt, &pix_buf, &stride, &p_u, &p_v, &stride_uv, &p_a)) {
 		switch (pixfmt) {
@@ -1459,6 +1474,7 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 		wgl_tex_image_2d(glc, target, level, internalformat, width, height, border, format, type, pix_buf);
 		return JS_UNDEFINED;
 	}
+#endif // GPAC_DISABLE_EVG
 	/*otherwise not supported*/
 	return js_throw_err(ctx, WGL_INVALID_OPERATION);
 }
@@ -1506,8 +1522,11 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 	u32 height = 0;
 	u32 format = 0;
 	u32 type = 0;
+#ifndef GPAC_DISABLE_EVG
 	u32 pixfmt, stride, stride_uv;
-	u8 *pix_buf, *p_u, *p_v, *p_a;
+	u8 *p_u, *p_v, *p_a;
+#endif
+	u8 *pix_buf;
 	u32 pix_buf_size=0;
 
 	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
@@ -1543,6 +1562,7 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 	}
 
 	/*check if this is an EVG texture*/
+#ifndef GPAC_DISABLE_EVG
 	if (js_evg_get_texture_info(ctx, argv[6], &width, &height, &pixfmt, &pix_buf, &stride, &p_u, &p_v, &stride_uv, &p_a)) {
 		switch (pixfmt) {
 		case GF_PIXEL_GREYSCALE:
@@ -1568,6 +1588,7 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 		wgl_tex_sub_image_2d(glc, target, level, xoffset, yoffset, width, height, format, type, pix_buf);
 		return JS_UNDEFINED;
 	}
+#endif
 	return js_throw_err(ctx, WGL_INVALID_OPERATION);
 }
 
@@ -1978,7 +1999,7 @@ static JSValue webgl_setup_fbo(JSContext *ctx, GF_WebGLContext *glc, u32 width, 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexImage2D(GL_TEXTURE_2D, 0,
-#if defined(GPAC_CONFIG_IOS) ||  defined(GPAC_CONFIG_ANDROID)
+#if defined(GPAC_CONFIG_IOS) ||  defined(GPAC_CONFIG_ANDROID) || defined(GPAC_USE_GLES2)
 					GL_DEPTH_COMPONENT16,
 #else
 					GL_DEPTH_COMPONENT24,
@@ -1997,7 +2018,7 @@ static JSValue webgl_setup_fbo(JSContext *ctx, GF_WebGLContext *glc, u32 width, 
 			}
 
 			glBindRenderbuffer(GL_RENDERBUFFER, glc->depth_id);
-#if defined(GPAC_CONFIG_IOS) ||  defined(GPAC_CONFIG_ANDROID)
+#if defined(GPAC_CONFIG_IOS) ||  defined(GPAC_CONFIG_ANDROID) || defined(GPAC_USE_GLES2)
 			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
 #else
 			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
@@ -2224,7 +2245,9 @@ static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activa
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, 0);
+#ifndef GPAC_USE_GLES2
 		glDisable(GL_TEXTURE_2D);
+#endif
 		//clear error
 		glGetError();
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML demuxer filter
@@ -1730,6 +1730,7 @@ GF_FilterRegister NHMLDmxRegister = {
 	GF_FS_SET_HELP("This filter reads NHML files/data to produce a media PID and frames.\n"
 	"NHML documentation is available at https://wiki.gpac.io/NHML-Format\n")
 	.private_size = sizeof(GF_NHMLDmxCtx),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.args = GF_NHMLDmxArgs,
 	.initialize = nhmldmx_initialize,
 	.finalize = nhmldmx_finalize,

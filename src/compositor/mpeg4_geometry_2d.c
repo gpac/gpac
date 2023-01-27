@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -28,6 +28,7 @@
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 {
 	GF_Plane p;
@@ -817,3 +818,4 @@ void compositor_init_bitwrapper(GF_Compositor *compositor, GF_Node *node)
 
 
 #endif /*GPAC_DISABLE_VRML*/
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

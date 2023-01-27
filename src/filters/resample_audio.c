@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / audio resample filter
@@ -28,7 +28,6 @@
 #include <gpac/filters.h>
 #include <gpac/internal/compositor_dev.h>
 
-#ifndef GPAC_DISABLE_PLAYER
 
 typedef struct
 {
@@ -491,11 +490,4 @@ const GF_FilterRegister *resample_register(GF_FilterSession *session)
 	ResamplerArgs[3].min_max_enum = gf_audio_fmt_cicp_all_names();
 	return &ResamplerRegister;
 }
-#else
 
-const GF_FilterRegister *resample_register(GF_FilterSession *session)
-{
-	return NULL;
-}
-
-#endif // GPAC_DISABLE_PLAYER

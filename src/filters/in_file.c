@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE input filter
@@ -371,7 +371,6 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (ctx->full_file_only && ctx->pid && !ctx->do_reconfigure && ctx->cached_set) {
 		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, filein_pck_destructor);
 		if (!pck) return GF_OUT_OF_MEM;
-
 		ctx->is_end = GF_TRUE;
 		gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
@@ -466,11 +465,33 @@ static GF_Err filein_process(GF_Filter *filter)
 		to_read = (u32) lto_read;
 
 	nb_read = (u32) gf_fread(ctx->block, to_read, ctx->file);
-	if (!nb_read)
-		ctx->file_size = ctx->file_pos;
 
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
+		GF_FileIOCacheState cstate;
+		u64 fsize;
+		const char *file_path = ctx->src;
+		if (!nb_read && !ctx->pid) {
+			if ( gf_feof(ctx->file)) {
+				gf_filter_setup_failure(filter, GF_NOT_READY);
+				return GF_EOS;
+			}
+			return GF_OK;
+		}
+		if (gf_fileio_get_stats((GF_FileIO *)ctx->file, NULL, &fsize, &cstate, NULL)) {
+			if (cstate==GF_FILEIO_NO_CACHE) {
+				file_path = NULL;
+			}
+			if (!ctx->file_size) {
+				ctx->file_size = fsize;
+				if (ctx->block_size==5000) {
+					if (ctx->file_size>500000000) ctx->block_size = 1000000;
+					else ctx->block_size = 5000;
+				}
+				ctx->block = gf_realloc(ctx->block, ctx->block_size +1);
+			}
+		}
+
 		//quick hack for ID3v2: if detected, increase block size to have the full id3v2 + some frames in the initial block
 		//to avoid relying on file extension for demux
 		if (!ctx->pid && (nb_read>10)
@@ -489,11 +510,12 @@ static GF_Err filein_process(GF_Filter *filter)
 		}
 
 		ctx->do_reconfigure = GF_FALSE;
-		e = gf_filter_pid_raw_new(filter, ctx->src, ctx->src, ctx->mime, ctx->ext, ctx->block, nb_read, GF_TRUE, &ctx->pid);
+		e = gf_filter_pid_raw_new(filter, ctx->src, file_path, ctx->mime, ctx->ext, ctx->block, nb_read, GF_TRUE, &ctx->pid);
 		if (e) return e;
 
 		if (!gf_fileio_check(ctx->file)) {
-			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
+			if (file_path)
+				gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 
 			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_DOWN_SIZE, ctx->file_size ? &PROP_LONGUINT(ctx->file_size) : NULL);
 
@@ -507,38 +529,39 @@ static GF_Err filein_process(GF_Filter *filter)
 	//GFIO wrapper, gets stats and update
 	if (!ctx->cached_set) {
 		u64 bdone, btotal;
-		Bool fcached;
+		GF_FileIOCacheState cstate;
 		u32 bytes_per_sec;
-		if (gf_fileio_get_stats((GF_FileIO *)ctx->file, &bdone, &btotal, &fcached, &bytes_per_sec)) {
-			if (fcached) {
-				gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(fcached) );
+		if (gf_fileio_get_stats((GF_FileIO *)ctx->file, &bdone, &btotal, &cstate, &bytes_per_sec)) {
+			if (cstate==GF_FILEIO_CACHE_DONE) {
+				gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 				ctx->cached_set = GF_TRUE;
 			}
-
 			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(btotal) );
 			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(bdone) );
 			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(bytes_per_sec*8) );
 		}
 	}
 
-	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
-	if (!pck) return GF_OUT_OF_MEM;
-
-	gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
+	Bool is_eof=GF_FALSE;
+	if (!nb_read) {
+		is_eof = gf_feof(ctx->file);
+		if (is_eof)
+			ctx->file_size = ctx->file_pos;
+	}
 
 	if (ctx->file_size && (ctx->file_pos + nb_read == ctx->file_size)) {
-		ctx->is_end = GF_TRUE;
-		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
+		if (ctx->cached_set || gf_feof(ctx->file) ) {
+			ctx->is_end = GF_TRUE;
+			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
+		}
 	} else if (ctx->end_pos && (ctx->file_pos + nb_read == ctx->end_pos)) {
 		ctx->is_end = GF_TRUE;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->range.den - ctx->range.num) );
-	} else {
+	} else if (nb_read) {
 		if (nb_read < to_read) {
-			Bool is_eof;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
-
-			is_eof = gf_feof(ctx->file);
-
+			if (ctx->cached_set) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileIn] Asked to read %d but got only %d\n", to_read, nb_read));
+			}
 			if (is_eof) {
 				gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
 				ctx->is_end = GF_TRUE;
@@ -548,12 +571,19 @@ static GF_Err filein_process(GF_Filter *filter)
 			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_pos) );
 		}
 	}
-	gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
-	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-	ctx->file_pos += nb_read;
 
-	ctx->pck_out = GF_TRUE;
-	gf_filter_pck_send(pck);
+	if (nb_read) {
+		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
+		if (!pck) return GF_OUT_OF_MEM;
+
+		gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
+		gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+		ctx->file_pos += nb_read;
+
+		ctx->pck_out = GF_TRUE;
+		gf_filter_pck_send(pck);
+	}
 
 	if (ctx->file_size && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024], *szSrc;
@@ -606,7 +636,7 @@ GF_FilterRegister FileInRegister = {
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,
-	.flags = GF_FS_REG_FORCE_REMUX,
+	.flags = GF_FS_REG_FORCE_REMUX|GF_FS_REG_USE_SYNC_READ,
 	SETCAPS(FileInCaps),
 	.finalize = filein_finalize,
 	.process = filein_process,

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -26,7 +26,7 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 #include <gpac/nodes_mpeg4.h>
 #include "gl_inc.h"
@@ -3021,10 +3021,11 @@ static void visual_3d_set_debug_color(u32 col)
 }
 
 
+#if !defined(GPAC_USE_GLES2)
 /*note we don't perform any culling for normal drawing...*/
 static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
-#if !defined( GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
+#if !defined( GPAC_USE_TINYGL)
 
 	GF_Vec pt, end;
 	u32 i, j;
@@ -3102,6 +3103,7 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #endif	/*GPAC_USE_TINYGL*/
 }
+#endif //GPAC_USE_GLES2
 
 
 void visual_3d_draw_aabb_nodeBounds(GF_TraverseState *tr_state, AABBNode *node)
@@ -3963,7 +3965,7 @@ GF_Err compositor_3d_setup_fbo(u32 width, u32 height, u32 *fbo_id, u32 *tx_id, u
 		glGenRenderbuffers(1, depth_id);
 
 	glBindRenderbuffer(GL_RENDERBUFFER, *depth_id);
-#if defined(GPAC_CONFIG_IOS) ||  defined(GPAC_CONFIG_ANDROID)
+#if defined(GPAC_CONFIG_IOS) ||  defined(GPAC_CONFIG_ANDROID) || defined(GPAC_USE_GLES2)
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
 #else
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
@@ -4024,4 +4026,4 @@ void visual_3d_clean_state(GF_VisualManager *visual)
 	glGetError();
 }
 
-#endif // GPAC_DISABLE_3D
+#endif //!defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_COMPOSITOR)

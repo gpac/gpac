@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2013-2022
+ *			Copyright (c) Telecom ParisTech 2013-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT decoder filter
@@ -27,7 +27,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
-#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS)
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
@@ -594,7 +594,7 @@ GF_FilterRegister VTTDecRegister = {
 
 const GF_FilterRegister *vttdec_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS)
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &VTTDecRegister;
 #else
 	return NULL;

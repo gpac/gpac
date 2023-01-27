@@ -26,6 +26,8 @@
 
 
 #include "visual_manager.h"
+#ifndef GPAC_DISABLE_COMPOSITOR
+
 #include "nodes_stacks.h"
 #include "texturing.h"
 
@@ -850,7 +852,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 		if (!e) {
 			u32 push_time = gf_sys_clock();
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 			e = gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, tr_state->col_key, ctx->col_mat);
 #else
 			e = GF_NOT_SUPPORTED;
@@ -1462,3 +1464,5 @@ void compositor_2d_init_callbacks(GF_Compositor *compositor)
 {
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
 }
+
+#endif //GPAC_DISABLE_COMPOSITOR

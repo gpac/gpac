@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -29,6 +29,7 @@
 #include "nodes_stacks.h"
 #include "gl_inc.h"
 
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 
 /*tx flags*/
@@ -198,13 +199,11 @@ void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	u8 *data=NULL;
 	GF_FilterFrameInterface *fifce = txh->frame_ifce;
-#endif
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
-#ifndef GPAC_DISABLE_3D
 	data = txh->data;
 	//10->8 bit conversion
 	if (txh->flags & TX_CONV_8BITS) {
@@ -240,10 +239,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		fifce = NULL;
 		data = dst.video_buffer;
 	}
-#endif
 
-
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	//PBO mode: start pushing the texture
 	if (data && !fifce && (txh->tx_io->tx.pbo_state!=GF_GL_PBO_NONE)) {
 		txh->tx_io->tx.pbo_state = GF_GL_PBO_PUSH;
@@ -397,8 +393,11 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 
 static Bool tx_setup_format(GF_TextureHandler *txh)
 {
+#ifndef GPAC_USE_GLES2
 	u32 npow_w, npow_h;
-	Bool is_pow2, use_rect, flip;
+	Bool is_pow2;
+#endif
+	Bool use_rect, flip;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 
 	/*first setup, this will force recompute bounds in case used with bitmap - we could refine and only
@@ -406,11 +405,12 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	if (txh->owner)
 		gf_node_dirty_set(txh->owner, 0, 1);
 
+	flip = (txh->tx_io->flags & TX_IS_FLIPPED);
+#ifndef GPAC_USE_GLES2
 	npow_w = gf_get_next_pow2(txh->width);
 	npow_h = gf_get_next_pow2(txh->height);
-
-	flip = (txh->tx_io->flags & TX_IS_FLIPPED);
 	is_pow2 = ((npow_w==txh->width) && (npow_h==txh->height)) ? 1 : 0;
+#endif
 	txh->tx_io->flags = 0;
 	txh->tx_io->gl_type = GL_TEXTURE_2D;
 
@@ -1315,3 +1315,4 @@ void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh, Bool do_fre
 	}
 }
 
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

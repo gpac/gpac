@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -41,7 +41,7 @@
 
 
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 void gf_inline_restart(GF_Scene *scene)
 {
@@ -778,7 +778,9 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 #endif
 }
 
-#endif // GPAC_DISABLE_VRML
+#endif //!defined(GPAC_DISABLE_VRML)d && !defined(GPAC_DISABLE_COMPOSITOR)
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor)
 {
@@ -798,3 +800,4 @@ GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor)
 }
 
 
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

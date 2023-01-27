@@ -18,6 +18,8 @@
 
 #include <gpac/path2d.h>
 
+#ifndef GPAC_DISABLE_EVG
+
 /***************************************************************************/
 /***************************************************************************/
 /*****                                                                 *****/
@@ -1795,3 +1797,4 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	return outline;
 }
 
+#endif //GPAC_DISABLE_EVG

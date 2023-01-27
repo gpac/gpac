@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -1791,8 +1791,6 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->init_cts_setup = GF_TRUE;
 		ctx->frame->format = ctx->encoder->pix_fmt;
 	} else if (type==GF_STREAM_AUDIO) {
-		ctx->process = ffenc_process_audio;
-
 		ctx->encoder->sample_rate = ctx->sample_rate;
 		ctx->encoder->channels = ctx->channels;
 
@@ -1921,6 +1919,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	av_dict_copy(&options, ctx->options, 0);
+	ffmpeg_check_threads(filter, options, ctx->encoder);
 	res = avcodec_open2(ctx->encoder, codec, &options);
 	if (res < 0) {
 		if (options) av_dict_free(&options);
@@ -1937,7 +1936,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	{
 		char szCodecName[1000];
 		if (ctx->encoder->thread_count>1)
-			sprintf(szCodecName, "ffenc:%s (%d frames)", codec->name ? codec->name : "unknown", ctx->encoder->thread_count);
+			sprintf(szCodecName, "ffenc:%s (%d threads)", codec->name ? codec->name : "unknown", ctx->encoder->thread_count);
 		else
 			sprintf(szCodecName, "ffenc:%s", codec->name ? codec->name : "unknown");
 		gf_filter_set_name(filter, szCodecName);
@@ -2111,7 +2110,7 @@ GF_FilterRegister FFEncodeRegister = {
 	.process = ffenc_process,
 	.process_event = ffenc_process_event,
 	.update_arg = ffenc_update_arg,
-	.flags = GF_FS_REG_META | GF_FS_REG_TEMP_INIT,
+	.flags = GF_FS_REG_META | GF_FS_REG_TEMP_INIT | GF_FS_REG_BLOCK_MAIN,
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFEncodeCtx, _n)

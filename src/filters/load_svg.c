@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG loader filter
@@ -28,7 +28,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
 
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_ZLIB)
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_ZLIB) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 #include <zlib.h>
 
@@ -464,7 +464,7 @@ GF_FilterRegister SVGInRegister = {
 
 const GF_FilterRegister *svgin_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_ZLIB)
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_ZLIB) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &SVGInRegister;
 #else
 	return NULL;

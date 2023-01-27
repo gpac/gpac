@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -134,6 +134,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_set_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_tag_main_thread) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_is_main_thread) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_set_write_state) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )
@@ -182,7 +183,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mem_strdup) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_memory_print) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_memory_size) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mem_enable_tracker) )
 #else
 #pragma comment (linker, EXPORT_SYMBOL(gf_malloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_calloc) )
@@ -194,7 +194,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_strlcpy) )
 
 /* Sound */
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_set_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_reconfig) )
@@ -404,7 +404,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_creds_check_membership) )
 
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_count) )
@@ -422,7 +422,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_to_wcs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_wcs_to_utf8) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_legal) )
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_right_to_left) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
 #endif
@@ -523,7 +523,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_asin) )
 #endif /*GPAC_FIXED_POINT*/
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 #pragma comment (linker, EXPORT_SYMBOL(gf_angle_diff) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_v2d_len) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_v2d_from_polar) )
@@ -661,7 +661,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_path_clone) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_path_is_empty) )
 
-#endif //GPAC_DISABLE_PLAYER
+#endif //GPAC_DISABLE_COMPOSITOR
 
 /*mpeg4_odf.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_new) )
@@ -1275,7 +1275,7 @@
 
 
 /*service.h exports*/
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 /*mediaobject.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_register) )
@@ -1914,7 +1914,7 @@
 #endif
 
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 //compositor exports
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_navigate_to) )

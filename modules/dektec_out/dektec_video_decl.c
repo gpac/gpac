@@ -71,6 +71,10 @@ GF_FilterRegister *dtout_register(GF_FilterSession *session)
 #ifndef GPAC_HAS_DTAPI
 	if (!gf_opts_get_bool("temp", "gendoc"))
 		return NULL;
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	return NULL;
+#endif
 	DTOutRegister.version = "! Warning: DekTek SDK NOT AVAILABLE IN THIS BUILD !";
 #endif
 
