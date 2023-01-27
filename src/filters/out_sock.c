@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2022
+ *			Copyright (c) Telecom ParisTech 2019-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / generic socket output filter
@@ -25,6 +25,9 @@
 
 
 #include <gpac/filters.h>
+
+#ifndef GPAC_DISABLE_NETWORK
+
 #include <gpac/constants.h>
 #include <gpac/network.h>
 
@@ -622,3 +625,9 @@ const GF_FilterRegister *sockout_register(GF_FilterSession *session)
 	return &SockOutRegister;
 }
 
+#else
+const GF_FilterRegister *sockout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_NETWORK

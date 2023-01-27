@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / SDL audio and video module
@@ -274,6 +274,12 @@ void *SDL_NewAudio()
 	dr->SelfThreaded = GF_TRUE;
 	ctx->audioBuff = NULL;
 	ctx->volume = SDL_MIX_MAXVOLUME;
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	void gpac_force_step_mode(Bool for_display);
+	gpac_force_step_mode(GF_FALSE);
+#endif
+
 	return dr;
 }
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -136,7 +136,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 
 static gf_on_progress_cbk prog_cbk = NULL;
 static void *user_cbk = NULL;
-#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_EMSCRIPTEN)
 static Bool gpac_no_color_logs = GF_TRUE;
 #else
 static Bool gpac_no_color_logs = GF_FALSE;
@@ -233,6 +233,12 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 				if (!val[3]) break;
 				val += 4;
 				continue;
+			} else if (!strcmp(val, "cl")) {
+				gpac_no_color_logs = GF_FALSE;
+				gf_log_set_callback(NULL, default_log_callback);
+				if (!val[2]) break;
+				val += 3;
+				continue;
 			} else if (!strcmp(val, "strict")) {
 				gf_log_set_strict_error(GF_TRUE);
 				if (!val[6]) break;
@@ -291,6 +297,10 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 			}
 			else if (!strcmp(val, "ncl")) {
 				gpac_no_color_logs = GF_TRUE;
+				gf_log_set_callback(NULL, default_log_callback);
+			}
+			else if (!strcmp(val, "cl")) {
+				gpac_no_color_logs = GF_FALSE;
 				gf_log_set_callback(NULL, default_log_callback);
 			}
 			else {
@@ -933,8 +943,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "UDP traffic timeout";
 	case GF_AUTHENTICATION_FAILURE:
 		return "Authentication failure";
-	case GF_SCRIPT_NOT_READY:
-		return "Script not ready for playback";
+	case GF_NOT_READY:
+		return "Not ready, retry later";
 	case GF_INVALID_CONFIGURATION:
 		return "Bad configuration for the current context";
 	case GF_NOT_FOUND:
@@ -1030,6 +1040,9 @@ static const char *gf_enabled_features()
 #ifdef GPAC_CONFIG_IOS
 	                       "GPAC_CONFIG_IOS "
 #endif
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	                       "GPAC_CONFIG_EMSCRIPTEN "
+#endif
 #ifdef GPAC_64_BITS
 	                       "GPAC_64_BITS "
 #endif
@@ -1105,6 +1118,18 @@ static const char *gf_enabled_features()
 #ifdef GPAC_HAS_GLU
 	                       "GPAC_HAS_GLU "
 #endif
+#ifdef GPAC_USE_TINYGL
+	                       "GPAC_USE_TINYGL "
+#endif
+#ifdef GPAC_USE_GLES1X
+	                       "GPAC_USE_GLES1X "
+#endif
+#ifdef GPAC_USE_GLES2
+	                       "GPAC_USE_GLES2 "
+#endif
+#ifdef GPAC_HAS_HTTP2
+	                       "GPAC_HAS_HTTP2 "
+#endif
 
 #if defined(_WIN32_WCE)
 #ifdef GPAC_USE_IGPP
@@ -1124,29 +1149,26 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_3D
 	                       "GPAC_DISABLE_3D "
 #endif
-#ifdef GPAC_USE_TINYGL
-	                       "GPAC_USE_TINYGL "
-#endif
-#ifdef GPAC_USE_GLES1X
-	                       "GPAC_USE_GLES1X "
-#endif
-#ifdef GPAC_USE_GLES2
-	                       "GPAC_USE_GLES2 "
+#ifdef GPAC_DISABLE_DOC
+	                       "GPAC_DISABLE_DOC "
 #endif
 #ifdef GPAC_DISABLE_ZLIB
 	                       "GPAC_DISABLE_ZLIB "
 #endif
-#ifdef GPAC_DISABLE_SVG
-	                       "GPAC_DISABLE_SVG "
+#ifdef GPAC_DISABLE_THREADS
+	                       "GPAC_DISABLE_THREADS "
 #endif
-#ifdef GPAC_DISABLE_VRML
-	                       "GPAC_DISABLE_VRML "
+#ifdef GPAC_DISABLE_NETWORK
+	                       "GPAC_DISABLE_NETWORK "
 #endif
-#ifdef GPAC_DISABLE_BIFS
-	                       "GPAC_DISABLE_BIFS "
+#ifdef GPAC_DISABLE_STREAMING
+	                       "GPAC_DISABLE_STREAMING "
 #endif
-#ifdef GPAC_DISABLE_QTVR
-	                       "GPAC_DISABLE_QTVR "
+#ifdef GPAC_DISABLE_ROUTE
+	                       "GPAC_DISABLE_ROUTE "
+#endif
+#ifdef GPAC_DISABLE_EVG
+	                       "GPAC_DISABLE_EVG "
 #endif
 #ifdef GPAC_DISABLE_AVILIB
 	                       "GPAC_DISABLE_AVILIB "
@@ -1154,23 +1176,29 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_OGG
 	                       "GPAC_DISABLE_OGG "
 #endif
+#ifdef GPAC_DISABLE_AV_PARSERS
+	                       "GPAC_DISABLE_AV_PARSERS "
+#endif
 #ifdef GPAC_DISABLE_MPEG2PS
 	                       "GPAC_DISABLE_MPEG2PS "
 #endif
 #ifdef GPAC_DISABLE_MPEG2PS
 	                       "GPAC_DISABLE_MPEG2TS "
 #endif
-#ifdef GPAC_DISABLE_SENG
-	                       "GPAC_DISABLE_SENG "
-#endif
 #ifdef GPAC_DISABLE_MEDIA_IMPORT
 	                       "GPAC_DISABLE_MEDIA_IMPORT "
 #endif
-#ifdef GPAC_DISABLE_AV_PARSERS
-	                       "GPAC_DISABLE_AV_PARSERS "
-#endif
 #ifdef GPAC_DISABLE_MEDIA_EXPORT
 	                       "GPAC_DISABLE_MEDIA_EXPORT "
+#endif
+#ifdef GPAC_DISABLE_VRML
+	                       "GPAC_DISABLE_VRML "
+#endif
+#ifdef GPAC_DISABLE_SVG
+	                       "GPAC_DISABLE_SVG "
+#endif
+#ifdef GPAC_DISABLE_QTVR
+	                       "GPAC_DISABLE_QTVR "
 #endif
 #ifdef GPAC_DISABLE_SWF_IMPORT
 	                       "GPAC_DISABLE_SWF_IMPORT "
@@ -1180,6 +1208,15 @@ static const char *gf_disabled_features()
 #endif
 #ifdef GPAC_DISABLE_SCENE_DUMP
 	                       "GPAC_DISABLE_SCENE_DUMP "
+#endif
+#ifdef GPAC_DISABLE_BIFS
+	                       "GPAC_DISABLE_BIFS "
+#endif
+#ifdef GPAC_DISABLE_LASER
+	                       "GPAC_DISABLE_LASER "
+#endif
+#ifdef GPAC_DISABLE_SENG
+	                       "GPAC_DISABLE_SENG "
 #endif
 #ifdef GPAC_DISABLE_SCENE_ENCODER
 	                       "GPAC_DISABLE_SCENE_ENCODER "
@@ -1205,16 +1242,21 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	                       "GPAC_DISABLE_ISOM_FRAGMENTS "
 #endif
-#ifdef GPAC_DISABLE_LASER
-	                       "GPAC_DISABLE_LASER "
+#ifdef GPAC_DISABLE_ISOM_DUMP
+	                       "GPAC_DISABLE_ISOM_DUMP "
 #endif
-#ifdef GPAC_DISABLE_STREAMING
-	                       "GPAC_DISABLE_STREAMING "
+#ifdef GPAC_DISABLE_COMPOSITOR
+	                       "GPAC_DISABLE_COMPOSITOR "
 #endif
-#ifdef GPAC_DISABLE_ROUTE
-	                       "GPAC_DISABLE_ROUTE "
+#ifdef GPAC_DISABLE_FONTS
+	                       "GPAC_DISABLE_FONTS "
 #endif
-
+#ifdef GPAC_DISABLE_VOUT
+	                       "GPAC_DISABLE_VOUT "
+#endif
+#ifdef GPAC_DISABLE_AOUT
+	                       "GPAC_DISABLE_AOUT "
+#endif
 	                       ;
 	return features;
 }

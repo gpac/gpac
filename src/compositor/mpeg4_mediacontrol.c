@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -26,6 +26,8 @@
 
 #include <gpac/constants.h>
 #include <gpac/internal/compositor_dev.h>
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 
 void mediacontrol_restart(GF_ObjectManager *odm)
@@ -712,3 +714,5 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 
 
 #endif /*GPAC_DISABLE_VRML*/
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

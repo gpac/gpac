@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2021-2022
+ *			Copyright (c) Telecom ParisTech 2021-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / file crypt/decrypt for full segment encryption filter
@@ -61,7 +61,9 @@ typedef struct
 	char *key_url;
 	bin128 IV;
 
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *key_sess;
+#endif
 	GF_Err in_error;
 
 	u8 key_data[20];
@@ -211,6 +213,7 @@ static GF_Err cryptfin_process(GF_Filter *filter)
 	}
 
 	if (ctx->reload_key_state) {
+#ifdef GPAC_USE_DOWNLOADER
 		if (ctx->reload_key_state==KEY_STATE_CHANGED) {
 			if (!ctx->key_sess) {
 				GF_DownloadManager *dm = gf_filter_get_download_manager(filter);
@@ -250,6 +253,12 @@ static GF_Err cryptfin_process(GF_Filter *filter)
 			gf_crypt_set_IV(ctx->crypt, ctx->IV, 16);
 			ctx->reload_key_state = KEY_STATE_NONE;
 		}
+#else
+		//todo
+		ctx->in_error = GF_NOT_SUPPORTED;
+		ctx->reload_key_state = KEY_STATE_NONE;
+		return ctx->in_error;
+#endif
 	}
 
 	if (ctx->fullfile) {

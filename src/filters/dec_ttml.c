@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2022
+ *			Copyright (c) Telecom ParisTech 2020-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / TTML decoder filter
@@ -27,7 +27,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
-#if !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS)
+#if !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/internal/compositor_dev.h>
@@ -587,7 +587,7 @@ GF_FilterRegister TTMLDecRegister = {
 
 const GF_FilterRegister *ttmldec_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS)
+#if !defined(GPAC_DISABLE_SVG) && defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &TTMLDecRegister;
 #else
 	return NULL;

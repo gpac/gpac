@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -639,6 +639,7 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 	return GF_OK;
 }
 
+#ifdef GPAC_USE_DOWNLOADER
 typedef struct
 {
 	u8 *data;
@@ -667,6 +668,7 @@ static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
 		break;
 	}
 }
+#endif
 
 static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
 {
@@ -692,10 +694,12 @@ static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
 static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, char *ck_url, u8 *ck_kid)
 {
 	GF_Err e;
-	char data64[32], body[CK_MAX_BUF];
+	char data64[32], body[CK_MAX_BUF+1];
+#ifdef GPAC_USE_DOWNLOADER
 	ClearKeyParam ckp;
 	memset(&ckp, 0, sizeof(ClearKeyParam));
-	u32 i, res = gf_base64_encode(ck_kid, 16, data64, 32);
+#endif
+	u32 i, cklen, res = gf_base64_encode(ck_kid, 16, data64, 32);
 	data64[res]=0;
 	for (i=0; i<res; i++) {
 		if (data64[i]=='+') data64[i] = '-';
@@ -709,12 +713,15 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	strcpy(body, "{\"kids\": [\"");
 	strcat(body, data64);
 	strcat(body, "\"], \"type\":\"temporary\"}");
-	ckp.data = body;
-	ckp.data_len = (u32) strlen(body);
 
-	u32 crc = gf_crc_32(ckp.data, ckp.data_len);
+	cklen = (u32) strlen(body);
+	u32 crc = gf_crc_32(body, cklen);
 	if (cstr->clearkey_crc == crc) return GF_OK;
 	cstr->clearkey_crc = crc;
+
+#ifdef GPAC_USE_DOWNLOADER
+	ckp.data = body;
+	ckp.data_len = cklen;
 
 	GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
 	GF_DownloadSession *sess = gf_dm_sess_new(dm, ck_url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, ck_http_io, &ckp, &e);
@@ -733,6 +740,12 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		}
 	}
 	gf_dm_sess_del(sess);
+	body[nb_read]=0;
+#else
+	e = GF_NOT_SUPPORTED;
+#endif
+
+
 	if (e<GF_OK) return e;
 
 	//extract kids and keys from json
@@ -788,10 +801,9 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	return GF_OK;
 }
 
+
 static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, char *key_url, u8 *key_IV)
 {
-	GF_Err e;
-
 	cstr->is_hls = GF_TRUE;
 
 	//copy IV
@@ -858,6 +870,8 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	}
 	//load key
 	else {
+		GF_Err e = GF_SERVICE_ERROR;
+#ifdef GPAC_USE_DOWNLOADER
 		u32 nb_read=0;
 		u8 key_data[100];
 		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
@@ -880,12 +894,20 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 				break;
 			}
 		}
+		gf_dm_sess_del(sess);
 		//first 16 bytes is the key, in some case we have IV repeated after the key (to do ?)
 		if (nb_read <= 32) {
 			memcpy(cstr->keys[0], key_data, sizeof(bin128));
 		} else {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
+		//first 16 bytes is the key, in some case we have IV repeated after the key (to do ?)
+		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Invalid key size, greater than 16 bytes\n"))
-			return GF_SERVICE_ERROR;
+			return e;
 		}
 	}
 
@@ -2347,6 +2369,7 @@ GF_FilterRegister CENCDecRegister = {
 	"When the file is set globally (not per PID), the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` with ID 0 or not set is used.\n"
 	)
 	.private_size = sizeof(GF_CENCDecCtx),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.max_extra_pids=-1,
 	.args = GF_CENCDecArgs,
 	SETCAPS(CENCDecCaps),

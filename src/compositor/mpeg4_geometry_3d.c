@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -28,9 +28,7 @@
 #include "nodes_stacks.h"
 
 
-#ifndef GPAC_DISABLE_VRML
-
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR) && !defined(GPAC_DISABLE_3D)
 
 #include <gpac/mediaobject.h>
 
@@ -671,6 +669,4 @@ void compositor_init_non_linear_deformer(GF_Compositor *compositor, GF_Node *nod
 	gf_node_set_callback_function(node, TraverseNonLinearDeformer);
 }
 
-#endif /*GPAC_DISABLE_3D*/
-
-#endif /*GPAC_DISABLE_VRML*/
+#endif // !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR) && !defined(GPAC_DISABLE_3D)

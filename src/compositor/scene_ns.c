@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -25,6 +25,8 @@
 
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/network.h>
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 
 Bool scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
@@ -590,3 +592,5 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	/*OK connect*/
 	gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);
 }
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

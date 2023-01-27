@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2022
+ *			Copyright (c) Telecom ParisTech 2007-2023
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript XmlHttpRequest bindings
@@ -30,7 +30,7 @@
 
 #include <gpac/setup.h>
 
-#ifdef GPAC_HAS_QJS
+#if defined(GPAC_HAS_QJS) && defined(GPAC_USE_DOWNLOADER)
 
 /*base SVG type*/
 #include <gpac/nodes_svg.h>
@@ -153,7 +153,7 @@ struct __xhr_context
 
 	GF_DOMEventTarget *event_target;
 
-#ifndef GPAC_DISABLE_SVG
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
 	/* dom graph in which the XHR is created */
 	GF_SceneGraph *owning_graph;
 	Bool local_graph;
@@ -365,7 +365,7 @@ static void xml_http_finalize(JSRuntime *rt, JSValue obj)
 	JS_FreeValueRT(rt, ctx->ontimeout);
 	xml_http_reset(ctx);
 
-#ifndef GPAC_DISABLE_SVG
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
 	if (ctx->event_target) {
 		if (ctx->local_graph) {
 			while (gf_list_count(ctx->event_target->listeners)) {
@@ -395,7 +395,7 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 	return scene;
 }
 
-#ifndef GPAC_DISABLE_SVG
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML) && defined(GPAC_USE_DOWNLOADER)
 void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOMEventTarget **target)
 {
 	if (c) {
@@ -426,7 +426,7 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 	p->c = c;
 	p->_this = obj;
 
-#ifndef GPAC_DISABLE_SVG
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
 	p->owning_graph = xml_get_scenegraph(c);
 	if (!p->owning_graph) {
 		p->local_graph = GF_TRUE;
@@ -453,7 +453,7 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 
 static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
 {
-#ifndef GPAC_DISABLE_SVG
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
 	GF_DOM_Event xhr_evt;
 	if (!ctx->event_target)
 		return;
@@ -469,11 +469,6 @@ static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
 
 static void xml_http_state_change(XMLHTTPContext *ctx)
 {
-#ifndef GPAC_DISABLE_VRML
-	GF_SceneGraph *scene;
-	GF_Node *n;
-#endif
-
 	gf_js_lock(ctx->c, GF_TRUE);
 	if (! JS_IsNull(ctx->onreadystatechange)) {
 		JSValue ret = JS_Call(ctx->c, ctx->onreadystatechange, ctx->_this, 0, NULL);
@@ -485,7 +480,9 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	js_std_loop(ctx->c);
 	gf_js_lock(ctx->c, GF_FALSE);
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
+	GF_SceneGraph *scene;
+	GF_Node *n;
 	if (! ctx->owning_graph) return;
 	if (ctx->local_graph) return;
 
@@ -959,6 +956,10 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	return GF_OK;
 }
 
+#ifdef GPAC_USE_DOWNLOADER
+GF_DownloadManager *jsf_get_download_manager(JSContext *c);
+#endif
+
 static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_Err e;
@@ -980,7 +981,9 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	} else {
 		par.dnld_man = jsf_get_download_manager(c);
 	}
+#ifndef GPAC_DISABLE_NETWORKING
 	if (!par.dnld_man) return GF_JS_EXCEPTION(c);
+#endif
 
 	if (argc) {
 		if (JS_IsNull(argv[0])) {
@@ -1486,12 +1489,18 @@ void qjs_module_init_xhr(JSContext *ctx)
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
 		qjs_module_init_xhr_global(NULL, JS_TRUE);
+#if !defined(GPAC_DISABLE_SVG) && defined(GPAC_USE_DOWNLOADER)
 		xhr_get_event_target(NULL, JS_TRUE, NULL, NULL);
+#endif
 	}
 #endif
 	return;
 }
 
-
-#endif
+#else
+#include "../quickjs/quickjs.h"
+void qjs_module_init_xhr(JSContext *ctx)
+{
+}
+#endif // defined(GPAC_HAS_QJS) && defined(GPAC_USE_DOWNLOADER)
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -82,24 +82,28 @@ static Bool in_sig_handler = GF_FALSE;
 static Bool custom_event_proc=GF_FALSE;
 static u64 run_start_time = 0;
 
-#ifdef GPAC_CONFIG_ANDROID
-static void reset_static_vars()
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+static Bool has_console;
+void SET_CONSOLE(int code)
 {
-	list_filters = print_filter_info = gen_doc = help_flags = 0;
-	strcpy(separator_set, GF_FS_DEFAULT_SEPS);
-
-	//bools
-	dump_stats = dump_graph = print_meta_filters = load_test_filters = GF_FALSE;
-	runfor_exit = runfor_fast = enable_prompt = use_step_mode = in_sig_handler = custom_event_proc = GF_FALSE;
-	//s32
-	nb_loops = runfor = 0;
-	//u32
-	exit_mode = enable_reports = loops_done = 0;
-	//u64
-	run_start_time = 0;
-	report_filter = NULL;
-	evt_ret_val = GF_OK;
+	if (!has_console) return;
+	switch (code) {
+	case GF_CONSOLE_CLEAR: code = 1; break;
+	case GF_CONSOLE_SAVE: code = 2; break;
+	case GF_CONSOLE_RESTORE: code = 3; break;
+	default: return;
+	}
+	MAIN_THREAD_EM_ASM({
+		libgpac.gpac_set_console($0);
+	}, code);
 }
+#else
+#define SET_CONSOLE(_code)	gf_sys_set_console_code(stderr, _code)
+#endif
+
+
+#if defined(ASAN_ENABLED) && defined(GPAC_CONFIG_EMSCRIPTEN)
+#include <sanitizer/lsan_interface.h>
 #endif
 
 
@@ -108,7 +112,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 static void cleanup_logs(void);
 static Bool gpac_handle_prompt(GF_FilterSession *fsess, char char_code);
 static void gpac_fsess_task_help(void);
-static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e);
+static const char *make_fileio(const char *inargs, const char **out_arg, u32 mode, GF_Err *e);
 static void cleanup_file_io(void);
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
@@ -133,7 +137,7 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 			evt_ret_val = event->message.error;
 		gf_fs_abort(fsess, GF_FS_FLUSH_ALL);
 	}
-#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_COMPOSITOR)
 	else if (custom_event_proc) {
 		return mp4c_event_proc(opaque, event);
 	}
@@ -145,7 +149,7 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
 	if (enable_prompt && gf_prompt_has_input()) {
-#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_COMPOSITOR)
 		if ((compositor_mode==LOAD_MP4C) && mp4c_handle_prompt(gf_prompt_get_char())) {
 
 		} else
@@ -154,7 +158,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 			return GF_FALSE;
 	}
 
-#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_COMPOSITOR)
 	if ((compositor_mode==LOAD_MP4C) && mp4c_task()) {
 		gf_fs_abort(fsess, GF_FS_FLUSH_NONE);
 	}
@@ -242,20 +246,27 @@ static int gpac_exit_fun(int code)
 
 	gf_sys_close();
 
-#ifdef GPAC_CONFIG_ANDROID
-	reset_static_vars();
-#endif
-
-	if (code) return code;
-
 #ifdef GPAC_MEMORY_TRACKING
-	if (gf_memory_size() || gf_file_handles_count() ) {
+	if (!code && (gf_memory_size() || gf_file_handles_count() )) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
-		return 2;
+		code = 2;
 	}
 #endif
-	return 0;
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+
+#ifdef ASAN_ENABLED
+	fprintf(stdout, "ASAN: checking mem leaks\n");
+	__lsan_do_leak_check();
+#endif
+
+	MAIN_THREAD_EM_ASM({
+		if (typeof libgpac.gpac_done == 'function') libgpac.gpac_done($0);
+	}, code);
+#endif
+
+	return code;
 }
 
 u32 get_u32(char *val, char *log_name)
@@ -294,45 +305,183 @@ static void gpac_syslog(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool
 }
 #endif
 
+//the main on emscriptem is structured as:
+// main
+//  gpac_run - ends with calling emscripten_set_main_loop_arg
+//
+//  gpac_done (end of main in regular build) is called after last task in em_main_loop
+//
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+#ifdef __EMSCRIPTEN_PTHREADS__
+#include <emscripten/threading.h>
+#endif
+
+static int gpac_run();
+static int gpac_done(GF_Err e, Bool exit_only);
+
+static Bool use_video_display;
+static Bool window_swap;
+static s32 run_steps;
+void gpac_on_video_swap()
+{
+	window_swap = GF_TRUE;
+}
+
+static void em_main_loop(void*arg)
+{
+	u32 run = run_steps;
+	window_swap = GF_FALSE;
+	do {
+		GF_Err e = gf_fs_run(session);
+		if (e==GF_NOT_READY) break;
+
+		if (gf_fs_is_last_task(session)) {
+			gf_fs_stop(session);
+			gpac_done(GF_OK, GF_FALSE);
+			emscripten_cancel_main_loop();
+			return;
+		}
+		if (use_video_display && window_swap) {
+			break;
+		}
+		run--;
+	} while (run);
+}
+
+s32 em_raf_fps;
+
+void gf_fs_force_non_blocking(GF_FilterSession *fs);
+
+void gpac_force_step_mode(Bool for_display)
+{
+	if (!use_step_mode) {
+		use_step_mode = GF_TRUE;
+		fprintf(stdout, "forcing step mode\n");
+		gf_fs_force_non_blocking(session);
+	}
+	if (for_display) {
+		use_video_display = GF_TRUE;
+		//main loop callback not set, use 0 (let browser choose) since we display
+		if (em_raf_fps<0) em_raf_fps = 0;
+	}
+	//audio out, force num_steps=1
+	else {
+		if (run_steps<0) run_steps = 1;
+	}
+}
+
+GF_EXPORT
+void gpac_em_sig_handler(int type)
+{
+	if (!session) return;
+	fprintf(stderr, "Aborting ...\n");
+	switch (type) {
+	case 1:
+		gf_fs_abort(session, GF_FS_FLUSH_ALL);
+		break;
+	case 2:
+		gf_fs_abort(session, GF_FS_FLUSH_FAST);
+		break;
+	case 3:
+		gf_fs_abort(session, GF_FS_FLUSH_NONE);
+		break;
+	case 4:
+		if (!enable_reports) {
+			enable_reports = 2;
+			report_filter = NULL;
+			gf_fs_set_ui_callback(session, gpac_event_proc, session);
+			gf_fs_enable_reporting(session, GF_TRUE);
+			gpac_print_report(session, GF_TRUE, GF_FALSE);
+		} else {
+			enable_reports = 0;
+			gf_fs_enable_reporting(session, GF_FALSE);
+			SET_CONSOLE(GF_CONSOLE_CLEAR);
+			SET_CONSOLE(GF_CONSOLE_RESTORE);
+		}
+		break;
+	}
+}
+
+#endif
+
+//all vars valid for all loops (-sloop)
+static Bool alias_is_play = GF_FALSE;
+static u32 nb_filters = 0;
+static GF_List *links_directive=NULL;
+static GF_List *loaded_filters=NULL;
+static char *view_conn_for_filter = NULL;
+static GF_SysArgMode argmode = GF_ARGMODE_BASE;
+static u32 sflags=0;
+static Bool override_seps=GF_FALSE;
+static int argc;
+static char **argv;
+static Bool view_filter_conn = GF_FALSE;
+static Bool dump_codecs = GF_FALSE;
+static Bool dump_formats = GF_FALSE;
+static Bool dump_proto_schemes = GF_FALSE;
+static Bool write_profile=GF_FALSE;
+static Bool write_core_opts=GF_FALSE;
+static Bool write_extensions=GF_FALSE;
+static const char *session_js=NULL;
+static Bool has_xopt = GF_FALSE;
+static Bool nothing_to_do = GF_TRUE;
+
 #ifndef GPAC_CONFIG_ANDROID
 static
 #endif
-int gpac_main(int argc, char **argv)
+int gpac_main(int _argc, char **_argv)
 {
 	GF_Err e=GF_OK;
 	int i;
 	const char *profile=NULL;
-	const char *session_js=NULL;
-	u32 sflags=0;
-	Bool override_seps=GF_FALSE;
-	Bool write_profile=GF_FALSE;
-	Bool write_core_opts=GF_FALSE;
-	Bool write_extensions=GF_FALSE;
-	GF_List *links_directive=NULL;
-	GF_List *loaded_filters=NULL;
-	GF_SysArgMode argmode = GF_ARGMODE_BASE;
-	u32 nb_filters = 0;
-	Bool nothing_to_do = GF_TRUE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
-	char *view_conn_for_filter = NULL;
-	Bool view_filter_conn = GF_FALSE;
-	Bool dump_codecs = GF_FALSE;
-	Bool dump_formats = GF_FALSE;
-	Bool dump_proto_schemes = GF_FALSE;
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
-	GF_FilterSession *tmp_sess;
-	Bool alias_is_play = GF_FALSE;
-	Bool prev_filter_is_sink;
-	Bool prev_filter_is_not_source;
-	u32 current_subsession_id;
-	u32 current_source_id;
 	Bool do_creds = GF_FALSE;
 	char *creds_args=NULL;
-	Bool has_xopt = GF_FALSE;
 
+	//init static vars
 	helpout = stdout;
-	
+	list_filters = print_filter_info = gen_doc = help_flags = 0;
+	strcpy(separator_set, GF_FS_DEFAULT_SEPS);
+
+	//bools
+	dump_stats = dump_graph = print_meta_filters = load_test_filters = GF_FALSE;
+	runfor_exit = runfor_fast = enable_prompt = use_step_mode = in_sig_handler = custom_event_proc = GF_FALSE;
+	//s32
+	nb_loops = runfor = 0;
+	//u32
+	exit_mode = enable_reports = loops_done = 0;
+	//u64
+	run_start_time = 0;
+	report_filter = NULL;
+	evt_ret_val = GF_OK;
+
+	//initialize all vars valid for all loops (-sloop)
+	argc = _argc;
+	argv = _argv;
+	alias_is_play = GF_FALSE;
+	nb_filters = 0;
+	links_directive=NULL;
+	loaded_filters=NULL;
+	view_conn_for_filter = NULL;
+	session_js=NULL;
+	argmode = GF_ARGMODE_BASE;
+	sflags=0;
+	override_seps = view_filter_conn = dump_codecs = dump_formats = dump_proto_schemes = GF_FALSE;
+	write_profile = write_core_opts = write_extensions = has_xopt = GF_FALSE;
+	nothing_to_do = GF_TRUE;
+
+
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	window_swap = GF_FALSE;
+	use_video_display = GF_FALSE;
+	//default requestAnimationFrame frequency is disabled, if step mode is forced without target fps use 200
+	em_raf_fps = -1;
+	run_steps = -1;
+#endif
+
 #ifdef WIN32
 	Bool gpac_is_global_launch();
 	char *argv_w[2];
@@ -433,6 +582,14 @@ int gpac_main(int argc, char **argv)
 	}
 #endif
 
+	//emscripten, always use step mode by default if no worker, unless explicitly disabled by -step=N<0
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+#ifdef __EMSCRIPTEN_PTHREADS__
+	if (emscripten_is_main_runtime_thread())
+#endif
+		use_step_mode = GF_TRUE;
+#endif
+
 	for (i=1; i<argc; i++) {
 		char szArgName[1024];
 		char *arg = argv[i];
@@ -496,7 +653,7 @@ int gpac_main(int argc, char **argv)
 				gpac_fsess_task_help();
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "mp4c")) {
-#if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_DISABLE_PLAYER)
+#if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_DISABLE_COMPOSITOR)
 				gf_sys_format_help(helpout, help_flags, "-mp4c unavailable for android\n");
 #else
 				mp4c_help(argmode);
@@ -755,7 +912,24 @@ int gpac_main(int argc, char **argv)
 			sflags |= GF_FS_FLAG_NO_IMPLICIT;
 		} else if (!strcmp(arg, "-step")) {
 			use_step_mode = GF_TRUE;
-			sflags |= GF_FS_FLAG_NON_BLOCKING;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+			if (arg_val) {
+				char *sep = strchr(arg_val, ':');
+				if (sep) sep[0] = 0;
+				if (arg_val[0]) {
+					em_raf_fps = atoi(arg_val);
+					if (em_raf_fps<0) {
+						use_step_mode = GF_FALSE;
+					}
+				}
+				if (sep) {
+					if (sep[1]) {
+						run_steps = atoi(sep+1);
+					}
+					sep[0] = 0;
+				}
+			}
+#endif
 		} else if (!strcmp(arg, "-xopt")) {
 			has_xopt = GF_TRUE;
 #ifdef GPAC_CONFIG_IOS
@@ -765,6 +939,7 @@ int gpac_main(int argc, char **argv)
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src")
 				|| !strcmp(arg, "-o") || !strcmp(arg, "-dst")
 				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
+				|| !strcmp(arg, "-ibx")
 			) {
 				//skip next arg: input or output, could start with '-'
 				i++;
@@ -776,7 +951,7 @@ int gpac_main(int argc, char **argv)
 			}
 			else if (gf_sys_is_gpac_arg(arg) ) {
 			}
-#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_COMPOSITOR)
 			else if ((compositor_mode==LOAD_MP4C) && mp4c_parse_arg(arg, arg_val)) {
 			}
 #endif
@@ -790,6 +965,9 @@ int gpac_main(int argc, char **argv)
 			}
 		}
 	}
+
+	if (use_step_mode)
+		sflags |= GF_FS_FLAG_NON_BLOCKING;
 
 	if (do_unit_tests) {
 		gpac_exit( gpac_unit_tests(mem_track) );
@@ -823,13 +1001,39 @@ int gpac_main(int argc, char **argv)
 	}
 #endif
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	return gpac_run();
+}
+
+static int gpac_run()
+{
+	int i;
+	GF_Err e = GF_OK;
+
+#define ERR_EXIT	return gpac_done(e, GF_TRUE);
+
+#endif
+
+	Bool prev_filter_is_sink = 0;
+	u32 current_subsession_id = 0;
+	Bool prev_filter_is_not_source = 0;
+	u32 current_source_id = 0;
+
+#ifndef GPAC_CONFIG_EMSCRIPTEN
+
+#define ERR_EXIT	goto exit;
+
+//on non-emscrypten, we use goto to avoid recursion - we cannot with emscripten with video support
 restart:
+
 	prev_filter_is_sink = 0;
 	current_subsession_id = 0;
 	prev_filter_is_not_source = 0;
 	current_source_id = 0;
+#endif
 
-	if (view_conn_for_filter && argmode>=GF_ARGMODE_EXPERT)
+
+	if (view_conn_for_filter && (argmode>=GF_ARGMODE_EXPERT))
 		sflags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
 	session = gf_fs_new_defaults(sflags);
@@ -854,23 +1058,23 @@ restart:
 
 		if (print_filters(argc, argv, argmode)==GF_FALSE)
 			e = GF_FILTER_NOT_FOUND;
-		goto exit;
+		ERR_EXIT
 	}
 	if (view_filter_conn) {
 		gf_fs_print_all_connections(session, view_conn_for_filter, gf_sys_format_help);
-		goto exit;
+		ERR_EXIT
 	}
 	if (dump_codecs) {
 		dump_all_codecs(argmode);
-		goto exit;
+		ERR_EXIT
 	}
 	if (dump_formats) {
 		dump_all_formats(argmode);
-		goto exit;
+		ERR_EXIT
 	}
 	if (dump_proto_schemes) {
 		dump_all_proto_schemes(argmode);
-		goto exit;
+		ERR_EXIT
 	}
 	if (write_profile || write_extensions || write_core_opts) {
 		if (write_core_opts)
@@ -879,14 +1083,14 @@ restart:
 			write_file_extensions();
 		if (write_profile)
 			write_filters_options();
-		goto exit;
+		ERR_EXIT
 	}
 
 	if (session_js) {
 		e = gf_fs_load_script(session, session_js);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to load JS for session: %s\n", gf_error_to_string(e) ));
-			goto exit;
+		ERR_EXIT
 		}
 	}
 
@@ -900,10 +1104,11 @@ restart:
 		Bool f_loaded = GF_FALSE;
 		char *arg = argv[i];
 
-		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib") ) {
-			if (!strcmp(arg, "-ib")) {
+		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib")  || !strcmp(arg, "-ibx") ) {
+			if (!strcmp(arg, "-ib") || !strcmp(arg, "-ibx")) {
 				const char *fargs=NULL;
-				const char *fio_url = make_fileio(argv[i+1], &fargs, GF_TRUE, &e);
+				Bool test_nocache = !strcmp(arg, "-ibx") ? GF_TRUE : GF_FALSE;
+				const char *fio_url = make_fileio(argv[i+1], &fargs, test_nocache ? 2 : 1, &e);
 				if (fio_url)
 					filter = gf_fs_load_source(session, fio_url, fargs, NULL, &e);
 			} else {
@@ -915,7 +1120,7 @@ restart:
 		} else if (!strcmp(arg, "-dst") || !strcmp(arg, "-o")  || !strcmp(arg, "-ob") ) {
 			if (!strcmp(arg, "-ob")) {
 				const char *fargs=NULL;
-				const char *fio_url = make_fileio(argv[i+1], &fargs, GF_FALSE, &e);
+				const char *fio_url = make_fileio(argv[i+1], &fargs, 0, &e);
 				if (fio_url)
 					filter = gf_fs_load_destination(session, fio_url, fargs, NULL, &e);
 			} else {
@@ -957,7 +1162,7 @@ restart:
 					strncpy(updated_args, arg, len);
 					updated_args[len]=0;
 
-					fio_url = make_fileio(need_gfio+7, &fargs, need_gfio[3]=='i' ? GF_TRUE : GF_FALSE, &e);
+					fio_url = make_fileio(need_gfio+7, &fargs, need_gfio[3]=='i' ? 1 : 0, &e);
 					if (fio_url) {
 						gf_dynstrcat(&updated_args, fio_url, NULL);
 						if (fargs)
@@ -968,7 +1173,7 @@ restart:
 					gf_free(updated_args);
 				} else {
 					filter = gf_fs_load_filter(session, arg, &e);
-#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_COMPOSITOR)
 					if (filter && compositor_mode && !strncmp(arg, "compositor", 10)) {
 						load_compositor(filter);
 					}
@@ -993,7 +1198,7 @@ restart:
 				gpac_suggest_filter(arg, GF_FALSE, GF_TRUE);
 				nb_filters=0;
 			}
-			goto exit;
+			ERR_EXIT
 		}
 		nb_filters++;
 
@@ -1022,7 +1227,7 @@ restart:
 					if (link_filter_idx < 0) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
 						e = GF_BAD_PARAM;
-						goto exit;
+						ERR_EXIT
 					}
 				}
 			} else {
@@ -1038,7 +1243,7 @@ restart:
 			if (!link_from) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
 				e = GF_BAD_PARAM;
-				goto exit;
+				ERR_EXIT
 			}
 			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
 		}
@@ -1076,7 +1281,7 @@ restart:
 		} else {
 			e = GF_EOS;
 		}
-		goto exit;
+		ERR_EXIT
 	}
 	if (enable_reports) {
 		if (enable_reports==2)
@@ -1125,44 +1330,77 @@ restart:
 		gpac_print_report(session, GF_TRUE, GF_FALSE);
 	}
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	if (use_step_mode) {
+		//default is 200 fps, 200 steps per frame
+		if (em_raf_fps<0) em_raf_fps=200;
+		if (run_steps<0) run_steps = 20;
+
+		emscripten_set_main_loop_arg(em_main_loop, session, em_raf_fps, 1);
+		//we are done (rest of function is NOT called)
+	} else {
+		e = gf_fs_run(session);
+		if (e>0) e = GF_OK;
+	}
+#else
 	if (use_step_mode) {
 		do {
 			gf_fs_run(session);
 		} while (!gf_fs_is_last_task(session));
 
+		gf_fs_stop(session);
 	} else {
 		e = gf_fs_run(session);
 		if (e>0) e = GF_OK;
 	}
+#endif
 
-	if (e) {
-		fprintf(stderr, "session error %s\n", gf_error_to_string(e) );
-	} else {
-		e = gf_fs_get_last_connect_error(session);
-		if (e<0) fprintf(stderr, "session last connect error %s\n", gf_error_to_string(e) );
 
-		if (!e) {
-			e = gf_fs_get_last_process_error(session);
-			if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
+#ifdef GPAC_CONFIG_EMSCRIPTEN
 
-			if (evt_ret_val<0) {
-				e = evt_ret_val;
-				fprintf(stderr, "UI last error %s\n", gf_error_to_string(e) );
-			}
-		}
-		gpac_check_session_args();
-	}
+	return gpac_done(e, GF_FALSE);
+}
 
-	if (enable_reports) {
-		if (enable_reports==2) {
-			gf_sys_set_console_code(stderr, GF_CONSOLE_RESTORE);
-		}
-		gpac_print_report(session, GF_FALSE, GF_TRUE);
-	}
-	if (!dump_graph)
-		gf_fs_print_non_connected_ex(session, alias_is_play);
+static int gpac_done(GF_Err e, Bool exit_only)
+{
+	if (!exit_only)
+#else
 
 exit:
+
+#endif
+
+	{
+		if (e) {
+			fprintf(stderr, "session error %s\n", gf_error_to_string(e) );
+		} else {
+			e = gf_fs_get_last_connect_error(session);
+			if (e<0) fprintf(stderr, "session last connect error %s\n", gf_error_to_string(e) );
+
+			if (!e) {
+				e = gf_fs_get_last_process_error(session);
+				if (e<0) fprintf(stderr, "session last process error %s\n", gf_error_to_string(e) );
+
+				if (evt_ret_val<0) {
+					e = evt_ret_val;
+					fprintf(stderr, "UI last error %s\n", gf_error_to_string(e) );
+				}
+			}
+			gpac_check_session_args();
+		}
+
+		if (enable_reports) {
+			if (enable_reports==2) {
+				SET_CONSOLE(GF_CONSOLE_RESTORE);
+			}
+			gpac_print_report(session, GF_FALSE, GF_TRUE);
+		}
+		if (!dump_graph) {
+			gf_fs_print_non_connected_ex(session, alias_is_play);
+			alias_is_play = GF_FALSE;
+		}
+	}
+
 	if (enable_reports==2) {
 		gf_log_set_callback(session, NULL);
 	}
@@ -1175,16 +1413,18 @@ exit:
 	if (dump_graph)
 		gf_fs_print_connections(session);
 
-#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_COMPOSITOR)
 	if (compositor_mode)
 		unload_compositor();
 #endif
 
-	tmp_sess = session;
+	GF_FilterSession *tmp_sess = session;
 	session = NULL;
 	gf_fs_del(tmp_sess);
 	if (loaded_filters) gf_list_del(loaded_filters);
 	if (links_directive) gf_list_del(links_directive);
+	links_directive=NULL;
+	loaded_filters=NULL;
 
 	cleanup_file_io();
 
@@ -1197,7 +1437,12 @@ exit:
 		fflush(stderr);
 #endif
 		gf_log_reset_file();
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		return gpac_run();
+#else
 		goto restart;
+#endif
 	}
 
 	gpac_exit(e<0 ? 1 : 0);
@@ -1234,6 +1479,117 @@ int SDL_main(int argc, char **argv)
         return gpac_main(3, _argv);
     }
     return gpac_main(argc, argv);
+}
+
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+
+int mp4box_main(int argc, char **argv);
+
+#ifdef __EMSCRIPTEN_PTHREADS__
+#include <pthread.h>
+#include <emscripten/stack.h>
+#include <emscripten/eventloop.h>
+
+typedef struct
+{
+	Bool is_mp4box;
+	int argc;
+	char **argv;
+	pthread_t th;
+} RunArgs;
+
+RunArgs run_args = {0};
+
+static void *_main_thread(void *_ptr)
+{
+	int ret_code;
+
+	emscripten_set_thread_name(pthread_self(), run_args.is_mp4box ? "MP4Box main thread" : "gpac main thread");
+	if (run_args.is_mp4box) {
+		ret_code = mp4box_main(run_args.argc, run_args.argv);
+	} else {
+		ret_code = gpac_main(run_args.argc, run_args.argv);
+	}
+	memset(&run_args, 0, sizeof(RunArgs));
+	//only for mp4box, for gpac we do this in gpac_exit_fun to deal with step mode
+	if (run_args.is_mp4box) {
+		MAIN_THREAD_EM_ASM({
+			if (typeof libgpac.gpac_done == 'function') libgpac.gpac_done($0);
+		}, ret_code);
+	}
+	return NULL;
+}
+#endif
+
+GF_EXPORT
+Bool gpac_has_threads()
+{
+#ifdef __EMSCRIPTEN_PTHREADS__
+	return GF_TRUE;
+#else
+	return GF_FALSE;
+#endif
+}
+
+void gf_set_mainloop_thread(u32 thread_id);
+
+int main(int argc, char **argv)
+{
+	int ret_code;
+	if (!argc || !argv || !argv[0]) return 0;
+	int is_mp4box = !stricmp(argv[0], "MP4Box") ? 1 : 0;
+
+	//reset mainloop thread id - if using a worker for main, no need to check for sync IOs
+	gf_set_mainloop_thread(0);
+
+	has_console = EM_ASM_INT({
+		if (typeof libgpac.gpac_set_console == 'function') return 1;
+		return 0;
+	});
+
+#ifdef __EMSCRIPTEN_PTHREADS__
+	int use_worker = EM_ASM_INT({
+		if (typeof libgpac.gpac_worker == 'boolean') return libgpac.gpac_worker ? 1 : 0;
+		if (typeof libgpac.gpac_worker == 'number') return libgpac.gpac_worker;
+		return 0;
+	});
+
+	//use proxy thread
+	if (use_worker) {
+		if (run_args.th) {
+			EM_ASM({ throw "Already running"; });
+			return 1;
+		}
+		memset(&run_args, 0, sizeof(RunArgs));
+		run_args.is_mp4box = is_mp4box;
+		run_args.argc = argc;
+		run_args.argv = argv;
+
+		//this is a copy of _emscripten_proxy_main
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		pthread_attr_setstacksize(&attr, emscripten_stack_get_base() - emscripten_stack_get_end());
+		emscripten_pthread_attr_settransferredcanvases(&attr, (const char*)-1);
+		int rc = pthread_create(&run_args.th, &attr, _main_thread, NULL);
+		pthread_attr_destroy(&attr);
+		return rc;
+	}
+#endif
+
+	//no proxy, indicate thread id of main loop to debug any blocking fread calls
+	gf_set_mainloop_thread( gf_th_id() );
+
+	if (is_mp4box) {
+		ret_code = mp4box_main(argc, argv);
+		EM_ASM({
+			if (typeof libgpac.gpac_done == 'function')
+				libgpac.gpac_done($0);
+		}, ret_code);
+	} else {
+		ret_code = gpac_main(argc, argv);
+	}
+	return ret_code;
 }
 
 #elif !defined(GPAC_CONFIG_ANDROID)
@@ -1567,7 +1923,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 
 	if (is_init) {
 		if (enable_reports==2)
-			gf_sys_set_console_code(stderr, GF_CONSOLE_SAVE);
+			SET_CONSOLE(GF_CONSOLE_SAVE);
 
 		logs_to_file = gf_log_use_file();
 		if (!logs_to_file && (enable_reports==2) ) {
@@ -1586,13 +1942,13 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 
 	last_report_clock_us = now;
 	if (!is_final)
-		gf_sys_set_console_code(stderr, GF_CONSOLE_CLEAR);
+		SET_CONSOLE(GF_CONSOLE_CLEAR);
 
 	gf_sys_get_rti(100, &rti, 0);
-	gf_sys_set_console_code(stderr, GF_CONSOLE_CYAN);
+	SET_CONSOLE(GF_CONSOLE_CYAN);
 	print_date(gf_net_get_utc());
 	fprintf(stderr, "GPAC Session Status: ");
-	gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+	SET_CONSOLE(GF_CONSOLE_RESET);
 	fprintf(stderr, "mem % 10"LLD_SUF" kb CPU % 2d", rti.gpac_memory/1000, rti.process_cpu_time);
 	fprintf(stderr, "\n");
 
@@ -1608,9 +1964,9 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 		if (report_filter && (!strstr(report_filter, stats.reg_name)))
 			continue;
 
-		gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
+		SET_CONSOLE(GF_CONSOLE_GREEN);
 		fprintf(stderr, "%s", stats.name ? stats.name : stats.reg_name);
-		gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+		SET_CONSOLE(GF_CONSOLE_RESET);
 		if (stats.name && strcmp(stats.name, stats.reg_name))
 			fprintf(stderr, " (%s)", stats.reg_name);
 		fprintf(stderr, ": ");
@@ -1648,10 +2004,10 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 
 		fprintf(stderr, "\nLogs:\n");
 		for (i=0; i<log_write; i++) {
-			if (static_logs[i].level==GF_LOG_ERROR) gf_sys_set_console_code(stderr, GF_CONSOLE_RED);
-			else if (static_logs[i].level==GF_LOG_WARNING) gf_sys_set_console_code(stderr, GF_CONSOLE_YELLOW);
-			else if (static_logs[i].level==GF_LOG_INFO) gf_sys_set_console_code(stderr, GF_CONSOLE_GREEN);
-			else gf_sys_set_console_code(stderr, GF_CONSOLE_CYAN);
+			if (static_logs[i].level==GF_LOG_ERROR) SET_CONSOLE(GF_CONSOLE_RED);
+			else if (static_logs[i].level==GF_LOG_WARNING) SET_CONSOLE(GF_CONSOLE_YELLOW);
+			else if (static_logs[i].level==GF_LOG_INFO) SET_CONSOLE(GF_CONSOLE_GREEN);
+			else SET_CONSOLE(GF_CONSOLE_CYAN);
 
 			print_date(static_logs[i].clock);
 
@@ -1659,7 +2015,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 				fprintf(stderr, "[repeated %d] ", static_logs[i].nb_repeat);
 
 			fprintf(stderr, "%s", static_logs[i].szMsg);
-			gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
+			SET_CONSOLE(GF_CONSOLE_RESET);
 		}
 		fprintf(stderr, "\n");
 	}
@@ -1669,6 +2025,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
+#ifndef GPAC_DISABLE_NETWORK
 	const char *url;
 	GF_Config *cached;
 	if (strncmp(item_name, "gpac_cache_", 11)) return GF_FALSE;
@@ -1714,6 +2071,7 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 	}
 	gf_cfg_del(cached);
 	gf_file_delete(item_path);
+#endif // GPAC_DISABLE_NETWORK
 	return GF_FALSE;
 }
 
@@ -1723,6 +2081,7 @@ typedef struct
 	FILE *filep;
 	char *path;
 	Bool write;
+	u32 io_mode;
 	u32 nb_refs;
 } FileIOCtx;
 
@@ -1741,6 +2100,8 @@ static u32 fio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 {
 	FileIOCtx *ioctx = gf_fileio_get_udta(fileio);
 	if (!ioctx || !ioctx->filep) return 0;
+	//flush eos
+	if (!bytes) bytes=1;
 	return (u32) gf_fread(buffer, bytes, ioctx->filep);
 }
 static u32 fio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
@@ -1841,7 +2202,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		file_size = gf_fsize(ioctx_ref->filep);
 		//in test mode we want to use our ftell and fseek wrappers
 		if (strchr(mode, 'r')) {
-			gf_fileio_set_stats(fileio_ref, file_size, file_size, GF_TRUE, 0);
+			gf_fileio_set_stats(fileio_ref, file_size, file_size, (ioctx_ref->io_mode==2) ? GF_FILEIO_NO_CACHE : GF_FILEIO_CACHE_DONE, 0);
 		}
 		return fileio_ref;
 	}
@@ -1877,14 +2238,14 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		} else {
 			ioctx->path = gf_strdup(ioctx_ref->path);
 		}
-		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
+		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, ioctx->io_mode ? fio_read : NULL, ioctx->io_mode ? NULL : fio_write, fio_tell, fio_eof, fio_printf);
 		if (!gfio) {
 			if (ioctx->path) gf_free(ioctx->path);
 			gf_free(ioctx);
 			*out_err = GF_OUT_OF_MEM;
 		}
 	}
-
+	ioctx->io_mode = ioctx_ref->io_mode;
 	if (strnicmp(url, "gfio://", 7)) {
 		ioctx->filep = gf_fopen(ioctx->path, mode);
 	} else {
@@ -1902,12 +2263,12 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 
 	file_size = gf_fsize(ioctx->filep);
 	if (strchr(mode, 'r'))
-		gf_fileio_set_stats(gfio, file_size,file_size, GF_TRUE, 0);
+		gf_fileio_set_stats(gfio, file_size,file_size, (ioctx->io_mode==2) ? GF_FILEIO_NO_CACHE : GF_FILEIO_CACHE_DONE, 0);
 	return gfio;
 }
 
 
-static const char *make_fileio(const char *inargs, const char **out_arg, Bool is_input, GF_Err *e)
+static const char *make_fileio(const char *inargs, const char **out_arg, u32 io_mode, GF_Err *e)
 {
 	FileIOCtx *ioctx;
 	GF_FileIO *fio;
@@ -1926,7 +2287,7 @@ static const char *make_fileio(const char *inargs, const char **out_arg, Bool is
 		sep[0] = ':';
 		*out_arg = sep+1;
 	}
-	fio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
+	fio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, io_mode ? fio_read : NULL, io_mode ? NULL : fio_write, fio_tell, fio_eof, fio_printf);
 	if (!fio) {
 		gf_free(ioctx->path);
 		gf_free(ioctx);
@@ -1940,6 +2301,7 @@ static const char *make_fileio(const char *inargs, const char **out_arg, Bool is
 	gf_list_add(all_gfio_defined, fio);
 	//keep alive until end
 	ioctx->nb_refs = 1;
+	ioctx->io_mode = io_mode;
 	return gf_fileio_url(fio);
 }
 
@@ -2083,8 +2445,8 @@ rescan:
 					} else {
 						enable_reports = 0;
 						gf_fs_enable_reporting(session, GF_FALSE);
-						gf_sys_set_console_code(stderr, GF_CONSOLE_CLEAR);
-						gf_sys_set_console_code(stderr, GF_CONSOLE_RESTORE);
+						SET_CONSOLE(GF_CONSOLE_CLEAR);
+						SET_CONSOLE(GF_CONSOLE_RESTORE);
 					}
 					signal_catched = GF_FALSE;
 					signal_processed = GF_FALSE;
@@ -2565,6 +2927,8 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	return 0;
 }
 
+#ifndef GPAC_DISABLE_NETWORK
+
 #include <gpac/token.h>
 
 static void to_hex(u8 *data, u32 len, char *out)
@@ -2642,8 +3006,11 @@ static void rem_user_from_group(GF_Config *creds, const char *group, const char 
 		gf_cfg_set_key(creds, "groups", group, "");
 	}
 }
+#endif
+
 static int gpac_do_creds(char *creds_args)
 {
+#ifndef GPAC_DISABLE_NETWORK
 	GF_Config *creds = NULL;
 
 	const char *cred_file = gf_opts_get_key("core", "users");
@@ -2932,4 +3299,7 @@ exit:
 err_exit:
 	if (creds) gf_cfg_del(creds);
 	return 1;
+#else
+	return 1;
+#endif
 }

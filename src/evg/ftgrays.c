@@ -63,9 +63,12 @@
 		* bypassed Y-sorting of cells by using an array of scanlines: a bit more consuming
 		in memory, but faster cell sorting (X-sorting only)
 		* deferred coverage push for 3D
+		* threading support
 */
 
 #include "rast_soft.h"
+
+#ifndef GPAC_DISABLE_EVG
 
 
 void gray_record_cell(GF_EVGSurface *surf)
@@ -736,15 +739,19 @@ GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_t
 		if (surf->frag_shader_init)
 			surf->frag_shader_init(surf->frag_shader_udta, &surf->raster_ctx.frag_param, 0, GF_FALSE);
 
+#ifndef GPAC_DISABLE_THREADS
 		//shaders are not thread-safe yet
 		for (i=0; i<surf->nb_threads; i++) {
 			surf->th_raster_ctx[i].frag_param = *fparam;
 			if (surf->frag_shader_init)
 				surf->frag_shader_init(surf->frag_shader_udta, &surf->th_raster_ctx[i].frag_param, i+1, GF_FALSE);
 		}
+#endif
 	}
 
+#ifndef GPAC_DISABLE_THREADS
 	if (!surf->nb_threads) {
+#endif
 		for (i=surf->first_scanline; i<size_y; i++) {
 			AAScanline *sl = &surf->scanlines[i];
 			if (sl->num) {
@@ -761,6 +768,7 @@ GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_t
 			}
 		}
 		return GF_OK;
+#ifndef GPAC_DISABLE_THREADS
 	}
 
 	surf->raster_ctx.fill_rule = fill_rule;
@@ -824,6 +832,7 @@ GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_t
 	}
 
 	return GF_OK;
+#endif
 }
 
 
@@ -883,3 +892,4 @@ GF_Err evg_raster_render(GF_EVGSurface *surf)
 
 
 /* END */
+#endif //GPAC_DISABLE_EVG

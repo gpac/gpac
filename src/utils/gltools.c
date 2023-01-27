@@ -1487,7 +1487,9 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 	}
 #endif
 	else if ((tx->nb_textures==1) || ((tx->nb_textures==2) && tx->has_alpha)) {
+#if !defined(GPAC_GL_NO_STRIDE)
 		u32 uv_stride = 0;
+#endif
 		glBindTexture(GL_TEXTURE_2D, tx->textures[0] );
 
 		use_stride = GF_FALSE;
@@ -1535,7 +1537,9 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 				//for YUYV, and we upload as a texture with half the wsize so redivide again by two
 				//since GL_UNPACK_ROW_LENGTH counts in component and we moved the set 2 bytes per comp on 10 bits
 				//no need to further divide
+#if !defined(GPAC_GL_NO_STRIDE)
 				uv_stride = stride_luma/scaler/2;
+#endif
 				use_stride = GF_TRUE;
 			}
 #if !defined(GPAC_GL_NO_STRIDE)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2019
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -2220,7 +2220,9 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	/*initialize DOM core */
 	dom_js_load(scene, scene->svg_js->js_ctx);
 
+#ifdef GPAC_USE_DOWNLOADER
 	qjs_module_init_xhr_global(c, global);
+#endif
 
 	svg_define_udom_exception(scene->svg_js->js_ctx, scene->svg_js->global);
 	JSValue console = JS_NewObject(c);
@@ -2500,7 +2502,6 @@ void JSScript_LoadSVG(GF_Node *node)
 		GF_DownloadManager *dnld_man;
 		GF_JSAPIParam par;
 		char *url;
-		GF_Err e;
 		XMLRI *xmlri = (XMLRI *)href_info.far_ptr;
 
 		/* getting a download manager */
@@ -2519,6 +2520,8 @@ void JSScript_LoadSVG(GF_Node *node)
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
 			svg_js_load_script(node, url);
 		} else if (dnld_man) {
+#ifdef GPAC_USE_DOWNLOADER
+			GF_Err e;
 			/*fetch the remote script synchronously and load it - cf section on script processing in SVG specs*/
 			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 			if (sess) {
@@ -2535,6 +2538,9 @@ void JSScript_LoadSVG(GF_Node *node)
 				par.info.msg = "Cannot fetch script";
 				ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
 			}
+#else
+		//todo
+#endif
 		}
 		gf_free(url);
 	}

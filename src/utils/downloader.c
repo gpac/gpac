@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -23,13 +23,14 @@
  *
  */
 
+#include <gpac/tools.h>
+#ifndef GPAC_DISABLE_NETWORK
 #include <gpac/download.h>
 #include <gpac/network.h>
 #include <gpac/token.h>
 #include <gpac/thread.h>
 #include <gpac/list.h>
 #include <gpac/base_coding.h>
-#include <gpac/tools.h>
 #include <gpac/cache.h>
 #include <gpac/filters.h>
 
@@ -1606,6 +1607,7 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 			//this one crashes /exits on windows, only use if debug level
 			ERR_print_errors_fp(stderr);
 		} else {
+			ERR_print_errors_fp(stderr);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SSL] Accept failure\n"));
 		}
 		SSL_shutdown(ssl);
@@ -2800,6 +2802,7 @@ Bool gf_dm_session_task(GF_FilterSession *fsess, void *callback, u32 *reschedule
 	return GF_FALSE;
 }
 
+#ifndef GPAC_DISABLE_THREADS
 static u32 gf_dm_session_thread(void *par)
 {
 	GF_DownloadSession *sess = (GF_DownloadSession *)par;
@@ -2817,6 +2820,7 @@ static u32 gf_dm_session_thread(void *par)
 		gf_dm_sess_del(sess);
 	return 1;
 }
+#endif
 
 static GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char *url, u32 dl_flags,
         gf_dm_user_io user_io,
@@ -3687,6 +3691,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 {
 	Bool go;
 
+#ifndef GPAC_DISABLE_THREADS
 	/*if session is threaded, start thread*/
 	if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED)) {
 		if (sess->dm->filter_session && !gf_opts_get_bool("core", "dm-threads")) {
@@ -3705,6 +3710,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		gf_th_run(sess->th, gf_dm_session_thread, sess);
 		return GF_OK;
 	}
+#endif //GPAC_DISABLE_THREADS
 
 	if (sess->put_state==2) {
 		if (sess->status==GF_NETIO_DATA_TRANSFERED)
@@ -7053,3 +7059,551 @@ void gf_dm_sess_force_blocking(GF_DownloadSession *sess)
 	}
 	sess->flags &= ~GF_NETIO_SESSION_NO_BLOCK;
 }
+
+
+//end GAPC_DISABLE_NETWORK
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+#include <gpac/download.h>
+
+struct __gf_download_session
+{
+	gf_dm_user_io user_io;
+	void *usr_cbk;
+	char method[100];
+
+	char *req_url;
+	char *rsp_url;
+	/*request headers*/
+	char **req_hdrs;
+	u32 nb_req_hdrs;
+	u32 req_body_size;
+	char *req_body;
+	u64 start_range, end_range;
+
+	/*response headers*/
+	char **rsp_hdrs;
+	u32 nb_rsp_hdrs;
+	char *mime; //pointer to content-type header
+
+	u32 state, bps;
+	u64 start_time, start_time_utc;
+	u64 total_size, bytes_done;
+	GF_Err last_error;
+	GF_NetIOStatus netio_status;
+};
+
+#define EM_CAST_PTR	(int)
+
+EM_JS(int, dm_fetch_cancel, (int sess), {
+  let fetcher = libgpac._get_fetcher(sess);
+  if (!fetcher) return -1;
+  fetcher._controller.abort();
+  libgpac._del_fetcher(fetcher);
+  return 0;
+});
+
+static void clear_headers(char ***_hdrs, u32 *nb_hdrs)
+{
+	char **hdrs = *_hdrs;
+	if (hdrs) {
+		u32 i=0;
+		for (i=0; i<*nb_hdrs; i++) {
+			if (hdrs[i]) gf_free(hdrs[i]);
+		}
+		gf_free(hdrs);
+		*_hdrs = NULL;
+		*nb_hdrs = 0;
+	}
+}
+
+static void gf_dm_sess_reset(GF_DownloadSession *sess)
+{
+	if (!sess) return;
+	clear_headers(&sess->req_hdrs, &sess->nb_req_hdrs);
+	clear_headers(&sess->rsp_hdrs, &sess->nb_rsp_hdrs);
+	if (sess->req_body) gf_free(sess->req_body);
+	sess->req_body = NULL;
+
+	if (sess->state==1) {
+		dm_fetch_cancel(EM_CAST_PTR sess);
+	}
+	if (sess->req_url) gf_free(sess->req_url);
+	sess->req_url = NULL;
+	if (sess->rsp_url) gf_free(sess->rsp_url);
+	sess->rsp_url = NULL;
+	sess->mime = NULL;
+	sess->state = 0;
+	sess->total_size = 0;
+	sess->bytes_done = 0;
+	sess->start_time = 0;
+	sess->start_range = 0;
+	sess->end_range = 0;
+	sess->bps = 0;
+	sess->last_error = GF_OK;
+	sess->netio_status = GF_NETIO_SETUP;
+}
+
+
+EM_JS(int, fs_fetch_setup, (), {
+	if ((typeof libgpac.gpac_fetch == 'boolean') && !libgpac.gpac_fetch) return 2;
+	if (typeof libgpac._fetcher_set_header == 'function') return 1;
+	try {
+		libgpac._fetchers = [];
+		libgpac._get_fetcher = (sess) => {
+          for (let i=0; i<libgpac._fetchers.length; i++) {
+            if (libgpac._fetchers[i].sess==sess) return libgpac._fetchers[i];
+          }
+          return null;
+		};
+		libgpac._del_fetcher = (fetcher) => {
+          let i = libgpac._fetchers.indexOf(fetcher);
+          if (i>=0) libgpac._fetchers.splice(i, 1);
+		};
+        libgpac._fetcher_set_header = libgpac.cwrap('gf_dm_sess_push_header', null, ['number', 'string', 'string']);
+        libgpac._fetcher_set_reply = libgpac.cwrap('gf_dm_sess_async_reply', null, ['number', 'number', 'string']);
+	} catch (e) {
+		return 0;
+	}
+	return 1;
+});
+
+GF_EXPORT
+GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 dl_flags,
+                                   gf_dm_user_io user_io,
+                                   void *usr_cbk,
+                                   GF_Err *e)
+{
+	GF_NETIO_Parameter par;
+	GF_DownloadSession *sess;
+
+	int fetch_init = fs_fetch_setup();
+	if (fetch_init==2) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[Downloader] fecth() disabled\n"));
+		if (e) *e = GF_NOT_SUPPORTED;
+		return NULL;
+	} else if (fetch_init==0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[Downloader] Failed to initialize fetch\n"));
+		if (e) *e = GF_SERVICE_ERROR;
+		return NULL;
+	}
+
+	GF_SAFEALLOC(sess, GF_DownloadSession);
+	if (!sess) {
+		if (e) *e = GF_OUT_OF_MEM;
+		return NULL;
+	}
+	sess->req_url = gf_strdup(url);
+	if (!sess->req_url) {
+		gf_free(sess);
+		if (e) *e = GF_OUT_OF_MEM;
+		return NULL;
+	}
+	sess->user_io = user_io;
+	sess->usr_cbk = usr_cbk;
+
+	strcpy(sess->method, "GET");
+
+	if (user_io) {
+		memset(&par, 0, sizeof(GF_NETIO_Parameter));
+		par.msg_type = GF_NETIO_GET_METHOD;
+		sess->user_io(sess->usr_cbk, &par);
+		if (par.name) strcpy(sess->method, par.name);
+
+		sess->nb_req_hdrs=0;
+		while (1) {
+			par.msg_type = GF_NETIO_GET_HEADER;
+			par.value = NULL;
+			sess->user_io(sess->usr_cbk, &par);
+			if (!par.value) break;
+
+			sess->req_hdrs = gf_realloc(sess->req_hdrs, sizeof(char*) * (sess->nb_req_hdrs+2));
+			if (!sess->req_hdrs) {
+				if (e) *e = GF_OUT_OF_MEM;
+				gf_free(sess);
+				return NULL;
+			}
+			sess->req_hdrs[sess->nb_req_hdrs] = gf_strdup(par.name);
+			sess->req_hdrs[sess->nb_req_hdrs+1] = gf_strdup(par.value);
+			sess->nb_req_hdrs+=2;
+		}
+
+		memset(&par, 0, sizeof(GF_NETIO_Parameter));
+		par.msg_type = GF_NETIO_GET_CONTENT;
+		sess->user_io(sess->usr_cbk, &par);
+
+		sess->req_body_size = par.size;
+		if (par.size && par.data) {
+			sess->req_body = gf_malloc(sizeof(u8)*par.size);
+			if (!sess->req_body) {
+				gf_dm_sess_reset(sess);
+				if (e) *e = GF_OUT_OF_MEM;
+				gf_free(sess);
+				return NULL;
+			}
+			memcpy(sess->req_body, par.data, par.size);
+		}
+	}
+	if (e) *e = GF_OK;
+	return sess;
+}
+
+void gf_dm_sess_abort(GF_DownloadSession * sess)
+{
+	if (sess->state==1) {
+		dm_fetch_cancel(EM_CAST_PTR sess);
+		sess->state = 0;
+		sess->netio_status = GF_NETIO_DISCONNECTED;
+		sess->last_error = GF_IP_CONNECTION_CLOSED;
+	}
+	clear_headers(&sess->rsp_hdrs, &sess->nb_rsp_hdrs);
+}
+
+void gf_dm_sess_del(GF_DownloadSession *sess)
+{
+	gf_dm_sess_reset(sess);
+	gf_free(sess);
+}
+
+const char *gf_dm_sess_get_cache_name(GF_DownloadSession *sess)
+{
+	return NULL;
+}
+
+void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess, u32 force_keep)
+{
+	//nothing for now
+}
+
+GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool allow_direct_reuse)
+{
+	gf_dm_sess_reset(sess);
+	sess->req_url = gf_strdup(url);
+	if (!sess->req_url) {
+		sess->state=2;
+		return GF_OUT_OF_MEM;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache)
+{
+	if (!sess) return GF_BAD_PARAM;
+	if (sess->state) return GF_BAD_PARAM;
+	sess->start_range = start_range;
+	sess->end_range = end_range;
+	return GF_OK;
+}
+
+
+
+EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb_headers, int req_body, int req_body_size), {
+  let url = _url ? libgpac.UTF8ToString(_url) : null;
+  ret = GPAC.OK;
+
+  let fetcher = libgpac._get_fetcher(sess);
+  if (!fetcher) {
+	fetcher = {};
+	fetcher.sess = sess;
+	libgpac._fetchers.push(fetcher);
+  }
+
+  fetcher._controller = new AbortController();
+  let options = {
+	signal: fetcher._controller.signal,
+	method: _method ? libgpac.UTF8ToString(_method) : "GET",
+	mode: libgpac.gpac_fetch_mode || 'cors',
+  };
+  let mime_type = 'application/octet-stream';
+  options.headers = {};
+  if (_headers) {
+	for (let i=0; i<nb_headers; i+=2) {
+	  let _s = libgpac.getValue(_headers+i*4, 'i32');
+	  let h_name = _s ? libgpac.UTF8ToString(_s).toLowerCase() : "";
+	  _s = libgpac.getValue(_headers+(i+1)*4, 'i32');
+	  let h_val = _s ? libgpac.UTF8ToString(_s) : "";
+	  if (h_name.length && h_val.length) {
+		  options.headers[h_name] = h_val;
+		  if (h_name=='content-type')
+			mime_type = h_val;
+	  }
+	}
+  }
+  if (typeof libgpac.gpac_extra_headers == 'object') {
+	for (const hdr in libgpac.gpac_extra_headers) {
+	  options.headers[hdr] = object[hdr];
+	}
+  }
+
+  if (req_body) {
+	let body_ab = new Uint8Array(libgpac.HEAPU8.buffer, req_body, req_body_size);
+	options.body = new Blob(body_ab, {type: mime_type} );
+  }
+  fetcher._state = 0;
+  fetch(url, options).then( (response) => {
+	if (response.ok) {
+	  fetcher._state = 1;
+	  fetcher._bytes = 0;
+	  fetcher._reader = response.body.getReader();
+
+	  response.headers.forEach((value, key) => {
+		libgpac._fetcher_set_header(fetcher.sess, key, value);
+	  });
+	  let final_url = null;
+	  if (response.redirected) final_url = response.url;
+	  libgpac._fetcher_set_reply(fetcher.sess, response.status, final_url);
+	} else {
+	  libgpac._fetcher_set_reply(fetcher.sess, response.status, null);
+	  do_log_err('fetcher for ' + url + ' failed ' + response.status);
+	  fetcher._state = 3;
+	}
+  })
+  .catch( (e) => {
+	  do_log_err('fetcher exception ' + e);
+	  ret = GPAC.REMOTE_SERVICE_ERROR;
+	  libgpac._del_fetcher(fetcher);
+  });
+  return ret;
+});
+
+
+EM_JS(int, dm_fetch_data, (int sess, int buffer, int buffer_size, int read_size), {
+  let f = libgpac._get_fetcher(sess);
+  if (!f) return -1;
+  if (f._state==0) return -44;
+  if (f._state==3) return -12;
+  if (f._state==4) return 1;
+  if (f._state == 1) {
+	f._state = 0;
+	f._reader.read().then( (block) => {
+		if (block.done) {
+			f._state = 4;
+		} else {
+			f._ab = block.value;
+			f._bytes += f._ab.byteLength;
+			f._block_pos = 0;
+			f._state = 2;
+		}
+	})
+	.catch( e => {
+		f._state = 0;
+	});
+	if (f._state==0) return -44;
+  }
+
+  let avail = f._ab.byteLength - f._block_pos;
+  if (avail<buffer_size) buffer_size = avail;
+
+  //copy array buffer
+  let src = f._ab.subarray(f._block_pos, f._block_pos+buffer_size);
+  let dst = new Uint8Array(libgpac.HEAPU8.buffer, buffer, buffer_size);
+  dst.set(src);
+
+  libgpac.setValue(read_size, buffer_size, 'i32');
+  f._block_pos += buffer_size;
+  if (f._ab.byteLength == f._block_pos) {
+	  f._ab = null;
+	  f._state = 1;
+  }
+  return 0;
+});
+
+
+GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
+{
+	if (sess->state == 0) {
+		if (sess->start_range || sess->end_range) {
+			char szHdr[100];
+			if (sess->end_range)
+				sprintf(szHdr, "bytes="LLU"-"LLU, sess->start_range, sess->end_range);
+			else
+				sprintf(szHdr, "bytes="LLU"-", sess->start_range);
+
+			sess->req_hdrs = gf_realloc(sess->req_hdrs, sizeof(char*) * (sess->nb_req_hdrs+2));
+			if (!sess->req_hdrs) {
+				sess->state = 2;
+				return sess->last_error = GF_OUT_OF_MEM;
+			}
+			sess->req_hdrs[sess->nb_req_hdrs] = gf_strdup("Range");
+			sess->req_hdrs[sess->nb_req_hdrs+1] = gf_strdup(szHdr);
+			sess->nb_req_hdrs+=2;
+		}
+
+		sess->start_time_utc = gf_net_get_utc();
+		sess->start_time = gf_sys_clock();
+		sess->netio_status = GF_NETIO_CONNECTED;
+		GF_Err fetch_e = dm_fetch_init(
+			EM_CAST_PTR sess,
+			EM_CAST_PTR sess->req_url,
+			EM_CAST_PTR sess->method,
+			EM_CAST_PTR sess->req_hdrs,
+			sess->nb_req_hdrs,
+			EM_CAST_PTR sess->req_body,
+			sess->req_body_size
+		);
+
+		if (fetch_e) {
+			gf_dm_sess_reset(sess);
+			sess->state = 2;
+			sess->netio_status = GF_NETIO_DISCONNECTED;
+			return sess->last_error = fetch_e;
+		}
+		sess->state = 1;
+		sess->netio_status = GF_NETIO_WAIT_FOR_REPLY;
+	}
+	if (sess->state==2) return sess->last_error;
+
+	*read_size = 0;
+	GF_Err fetch_err = dm_fetch_data(
+		EM_CAST_PTR sess,
+		EM_CAST_PTR buffer,
+		buffer_size,
+		EM_CAST_PTR read_size
+	);
+
+	if (*read_size) {
+		u64 ellapsed = gf_sys_clock() - sess->start_time;
+		sess->bytes_done += *read_size;
+		if (ellapsed)
+			sess->bps = (u32) (sess->bytes_done * 1000 / ellapsed);
+		sess->netio_status = GF_NETIO_DATA_EXCHANGE;
+	} else if (!fetch_err) {
+		return GF_IP_NETWORK_EMPTY;
+	} else if (fetch_err!=GF_IP_NETWORK_EMPTY) {
+		sess->state=2;
+		sess->last_error = fetch_err;
+		sess->netio_status = GF_NETIO_STATE_ERROR;
+	}
+
+	if (fetch_err==GF_EOS) {
+		sess->total_size = sess->bytes_done;
+		sess->state=2;
+		sess->last_error = GF_EOS;
+		sess->netio_status = GF_NETIO_DATA_TRANSFERED;
+	}
+	return fetch_err;
+}
+
+
+GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u64 *total_size, u64 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status)
+{
+	if (!sess) return GF_OUT_OF_MEM;
+	if (total_size) *total_size = sess->total_size;
+	if (bytes_done) *bytes_done = sess->bytes_done;
+	if (bytes_per_sec) *bytes_per_sec = sess->bps;
+	if (net_status) *net_status = sess->netio_status;
+	return GF_OK;
+}
+
+const char *gf_dm_sess_mime_type(GF_DownloadSession * sess)
+{
+	return sess->mime;
+}
+
+GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val)
+{
+	if( !sess || !idx || !hdr_name || !hdr_val)
+		return GF_BAD_PARAM;
+	if (*idx >= sess->nb_rsp_hdrs/2) return GF_EOS;
+
+	u32 i = *idx * 2;
+	(*hdr_name) = sess->rsp_hdrs[i];
+	(*hdr_val) = sess->rsp_hdrs[i+1];
+	(*idx) = (*idx) + 1;
+	return GF_OK;
+}
+
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url)
+{
+}
+
+GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
+{
+	//no control of this for fetch
+	return GF_OK;
+}
+
+GF_EXPORT
+void gf_dm_sess_push_header(GF_DownloadSession *sess, const char *hdr, const char *value)
+{
+	if (!sess) return;
+	if (!hdr || !value) return;
+
+	if (!stricmp(hdr, "Content-Length")) {
+		sscanf(value, LLU, &sess->total_size);
+	}
+
+	sess->rsp_hdrs = gf_realloc(sess->rsp_hdrs, sizeof(char*) * (sess->nb_rsp_hdrs+2));
+	if (!sess->rsp_hdrs) return;
+
+	sess->rsp_hdrs[sess->nb_rsp_hdrs] = gf_strdup(hdr);
+	sess->rsp_hdrs[sess->nb_rsp_hdrs+1] = gf_strdup(value);
+	if (!stricmp(hdr, "Content-Type")) {
+		sess->mime = sess->rsp_hdrs[sess->nb_rsp_hdrs+1];
+	}
+	sess->nb_rsp_hdrs+=2;
+}
+
+GF_EXPORT
+void gf_dm_sess_async_reply(GF_DownloadSession *sess, int rsp_code, const char *final_url)
+{
+	if (!sess) return;
+	GF_Err e;
+	switch (rsp_code) {
+	case 404: e = GF_URL_ERROR; break;
+	case 400: e = GF_SERVICE_ERROR; break;
+	case 401: e = GF_AUTHENTICATION_FAILURE; break;
+	case 405: e = GF_AUTHENTICATION_FAILURE; break;
+	case 416: e = GF_SERVICE_ERROR; break; //range error
+	default:
+		if (rsp_code>=500) e = GF_REMOTE_SERVICE_ERROR;
+		else if (rsp_code>=400) e = GF_SERVICE_ERROR;
+		else e = GF_OK;
+		break;
+	}
+	sess->last_error = e;
+
+	if (final_url) {
+		if (sess->rsp_url) gf_free(sess->rsp_url);
+		sess->rsp_url = final_url ? gf_strdup(final_url) : NULL;
+	}
+}
+
+GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
+{
+	return GF_IO_ERR;
+}
+
+const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess)
+{
+	return sess ? sess->rsp_url : NULL;
+}
+
+const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name)
+{
+	u32 i;
+	if (!sess || !name) return NULL;
+	for (i=0; i<sess->nb_rsp_hdrs; i+=2) {
+		char *h = sess->rsp_hdrs[i];
+		if (!stricmp(h, name)) return sess->rsp_hdrs[i+1];
+	}
+	return NULL;
+}
+
+u64 gf_dm_sess_get_utc_start(GF_DownloadSession * sess)
+{
+	if (!sess) return 0;
+	return sess->start_time_utc;
+}
+
+//only used for dash playing local files
+u32 gf_dm_get_data_rate(GF_DownloadManager *dm)
+{
+	return gf_opts_get_int("core", "maxrate");
+}
+
+void gf_dm_sess_force_blocking(GF_DownloadSession *sess)
+{
+
+}
+#endif // GPAC_CONFIG_EMSCRIPTEN
+

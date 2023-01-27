@@ -1147,7 +1147,6 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		}
 	}
 
-
 	res = avformat_find_stream_info(ctx->demuxer, optionsarr);
 
 	if (optionsarr) {
@@ -1330,7 +1329,8 @@ GF_FilterRegister FFDemuxRegister = {
 	.probe_url = ffdmx_probe_url,
 	.probe_data = ffdmx_probe_data,
 	.process_event = ffdmx_process_event,
-	.flags = GF_FS_REG_META,
+	.flags = GF_FS_REG_META | GF_FS_REG_USE_SYNC_READ,
+
 };
 
 
@@ -1815,6 +1815,8 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 		ffavin_enum_devices(fmt->name, audio_pass);
 	}
 	av_log_set_callback(av_log_default_callback);
+
+	if (!dev_desc) dev_desc = gf_strdup("No device found !\n");
 	if (dev_desc) {
 		char *out_doc = NULL;
 		gf_dynstrcat(&out_doc, FFAVInRegister.help, NULL);

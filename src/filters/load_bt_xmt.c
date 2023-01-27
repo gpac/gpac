@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Context loader filter
@@ -29,7 +29,7 @@
 #include <gpac/network.h>
 #include <gpac/nodes_mpeg4.h>
 
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 typedef struct
 {
@@ -62,9 +62,11 @@ typedef struct
 	Bool is_playing;
 } CTXLoadPriv;
 
-
+#ifndef GPAC_DISABLE_COMPOSITOR
 void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od);
-
+#else
+#define ODS_SetupOD(_scene, _od)
+#endif
 
 static void CTXLoad_ExecuteConditional(M_Conditional *c, GF_Scene *scene)
 {
@@ -961,7 +963,7 @@ GF_FilterRegister CTXLoadRegister = {
 
 const GF_FilterRegister *ctxload_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &CTXLoadRegister;
 #else
 	return NULL;

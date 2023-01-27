@@ -1281,6 +1281,10 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session)
 		return NULL;
 	GF_MCDecCtxRegister.version = "! Warning: MediaCodec SDK NOT AVAILABLE IN THIS BUILD !";
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	return NULL;
+#endif
+
 #ifdef GPAC_ENABLE_COVERAGE
 	mcdec_configure_pid(NULL, NULL, GF_FALSE);
 	mcdec_process(NULL);

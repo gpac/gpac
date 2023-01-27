@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -25,6 +25,9 @@
 
 
 #include <gpac/filters.h>
+
+#ifdef GPAC_USE_DOWNLOADER
+
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
@@ -103,8 +106,9 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 	ctx->dm = gf_filter_get_download_manager(filter);
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	if (!ctx->dm) return GF_SERVICE_ERROR;
-
+#endif
 	ctx->block = gf_malloc(ctx->block_size +1);
 
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
@@ -413,6 +417,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 		nb_read = (u32) gf_fread(ctx->block, to_read, ctx->cached);
 		bytes_per_sec = 0;
+		if (!nb_read && (ctx->nb_read == ctx->file_size)) {
+			e = GF_EOS;
+			net_status = GF_NETIO_DATA_TRANSFERED;
+		}
 	}
 	else if (ctx->blob_size) {
 		u8 *b_data;
@@ -520,6 +528,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 					ctx->cached = gf_fopen(cached, "rb");
 					if (ctx->cached) {
 						nb_read = (u32) gf_fread(ctx->block, ctx->block_size, ctx->cached);
+						if (nb_read) e = GF_OK;
 					} else {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Failed to open cached file %s\n", cached));
 					}
@@ -529,7 +538,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 			cfg_e = gf_filter_pid_raw_new(filter, ctx->src, cached, ctx->mime ? ctx->mime : gf_dm_sess_mime_type(ctx->sess), ctx->ext, ctx->block, nb_read, ctx->mime ? GF_TRUE : GF_FALSE, &ctx->pid);
 			if (cfg_e) return cfg_e;
 
-			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_FALSE) );
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(ctx->cached ? GF_TRUE : GF_FALSE) );
 
 			if (!ctx->initial_ack_done) {
 				ctx->initial_ack_done = GF_TRUE;
@@ -640,6 +649,7 @@ GF_FilterRegister HTTPInRegister = {
 	"\n"
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
 	.private_size = sizeof(GF_HTTPInCtx),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.args = HTTPInArgs,
 	SETCAPS(HTTPInCaps),
 	.initialize = httpin_initialize,
@@ -657,4 +667,10 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 	}
 	return &HTTPInRegister;
 }
+#else
+const GF_FilterRegister *httpin_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_USE_DOWNLOADER
 

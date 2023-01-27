@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -147,7 +147,9 @@ typedef struct
 	u32 next_dependent_rep_idx, current_dependent_rep_idx;
 	u64 utc_map;
 	
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *sess;
+#endif
 	Bool is_timestamp_based, pto_setup;
 	Bool prev_is_init_segment;
 	//media timescale for which the pto, max_cts_in_period and timedisc_ts_offset were computed
@@ -653,16 +655,21 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 void dashdmx_io_delete_cache_file(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *cache_url)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	if (!session) {
 		return;
 	}
 	gf_dm_delete_cached_file_entry_session((GF_DownloadSession *)session, cache_url);
+#endif
 }
 
+#ifdef GPAC_USE_DOWNLOADER
 void gf_dm_sess_force_blocking(GF_DownloadSession *sess);
+#endif
 
 GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, const char *url, s32 group_idx)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *sess;
 	GF_Err e;
 	u32 flags = GF_NETIO_SESSION_NOT_THREADED;
@@ -697,53 +704,97 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	}
 	sess = gf_dm_sess_new(ctx->dm, url, flags, NULL, NULL, &e);
 	return (GF_DASHFileIOSession) sess;
+#else
+	//TODO
+	return NULL;
+#endif
 }
+
 void dashdmx_io_del(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
 	if (!ctx->reuse_download_session)
 		gf_dm_sess_del((GF_DownloadSession *)session);
+#endif
 }
 GF_Err dashdmx_io_init(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_process_headers((GF_DownloadSession *)session);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 GF_Err dashdmx_io_run(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_process((GF_DownloadSession *)session);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 const char *dashdmx_io_get_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_get_resource_name((GF_DownloadSession *)session);
+#else
+	return NULL;
+#endif
 }
 const char *dashdmx_io_get_cache_name(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_get_cache_name((GF_DownloadSession *)session);
+#else
+	return NULL;
+#endif
 }
 const char *dashdmx_io_get_mime(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_mime_type((GF_DownloadSession *)session);
+#else
+	return NULL;
+#endif
 }
 const char *dashdmx_io_get_header_value(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *header_name)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_get_header((GF_DownloadSession *)session, header_name);
+#else
+	return NULL;
+#endif
 }
 u64 dashdmx_io_get_utc_start_time(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_get_utc_start((GF_DownloadSession *)session);
+#else
+	return 0;
+#endif
 }
 GF_Err dashdmx_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url, s32 group_idx)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_setup_from_url((GF_DownloadSession *)session, url, GF_FALSE);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 GF_Err dashdmx_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_set_range((GF_DownloadSession *)session, start_range, end_range, discontinue_cache);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u32 bps=0;
+#ifdef GPAC_USE_DOWNLOADER
 	if (session) {
 		gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
 	} else {
@@ -751,6 +802,7 @@ u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession ses
 		bps = gf_dm_get_data_rate(ctx->dm);
 		bps/=8;
 	}
+#endif
 	return bps;
 }
 #if 0 //unused since we are in non threaded mode
@@ -3446,7 +3498,7 @@ GF_FilterRegister DASHDmxRegister = {
 	.args = DASHDmxArgs,
 	SETCAPS(DASHDmxCaps),
 	//we need the resolver, and pids are declared dynamically
-	.flags = GF_FS_REG_REQUIRES_RESOLVER | GF_FS_REG_DYNAMIC_PIDS,
+	.flags = GF_FS_REG_REQUIRES_RESOLVER | GF_FS_REG_DYNAMIC_PIDS|GF_FS_REG_USE_SYNC_READ,
 	.configure_pid = dashdmx_configure_pid,
 	.process = dashdmx_process,
 	.process_event = dashdmx_process_event,

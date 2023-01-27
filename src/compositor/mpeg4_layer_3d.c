@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -30,9 +30,7 @@
 #include "texturing.h"
 #include "visual_manager.h"
 
-#ifndef GPAC_DISABLE_VRML
-
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR) && !defined(GPAC_DISABLE_3D)
 
 #ifdef GPAC_USE_TINYGL
 #include <GL/oscontext.h>
@@ -583,7 +581,4 @@ void compositor_layer3d_bind_camera(GF_Node *node, Bool do_bind, u32 nav_value)
 	else st->visual->camera.navigate_mode = nav_value;
 }
 
-#endif /*GPAC_DISABLE_3D*/
-
-#endif /*GPAC_DISABLE_VRML*/
-
+#endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR) && !defined(GPAC_DISABLE_3D)

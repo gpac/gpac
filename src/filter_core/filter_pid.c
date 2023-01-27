@@ -7759,11 +7759,13 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid)
 		return;
 	}
 	pid = pid->pid;
+#ifndef GPAC_DISABLE_THREADS
 	if (pid->filter->session->threads) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter pull in multithread mode not yet implementing - defaulting to 1 ms sleep\n", pid->pid->name, pid->filter->name));
 		gf_sleep(1);
 		return;
 	}
+#endif
 
 	gf_filter_process_inline(pid->filter);
 }
@@ -8527,8 +8529,10 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set direct dispatch mode on input pid %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
 		return GF_BAD_PARAM;
 	}
+#ifndef GPAC_DISABLE_THREADS
 	if (pid->filter->session->threads)
 		return GF_OK;
+#endif
 	pid->direct_dispatch = GF_TRUE;
 	return GF_OK;
 }

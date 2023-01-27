@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -31,6 +31,11 @@
 
 #include <gpac/maths.h>
 
+#if !defined(GPAC_DISABLE_EVG) || !defined(GPAC_DISABLE_3D) || !defined(GPAC_DISABLE_VRML) || !defined(GPAC_DISABLE_SVG)
+#define DISABLE_MATHS
+#endif
+
+
 GF_EXPORT
 u32 gf_get_bit_size(u32 MaxVal)
 {
@@ -43,6 +48,29 @@ u32 gf_get_bit_size(u32 MaxVal)
 	}
 	return k;
 }
+
+/*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
+GF_EXPORT
+void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
+{
+	if (!rc1->width || !rc1->height) {
+		*rc1=*rc2;
+		return;
+	}
+
+	if (rc2->x < rc1->x) {
+		rc1->width += rc1->x - rc2->x;
+		rc1->x = rc2->x;
+	}
+	if (rc2->x + rc2->width > rc1->x+rc1->width) rc1->width = rc2->x + rc2->width - rc1->x;
+	if (rc2->y > rc1->y) {
+		rc1->height += rc2->y - rc1->y;
+		rc1->y = rc2->y;
+	}
+	if (rc2->y - rc2->height < rc1->y - rc1->height) rc1->height = rc1->y - rc2->y + rc2->height;
+}
+
+#ifdef DISABLE_MATHS
 
 #ifdef GPAC_FIXED_POINT
 
@@ -894,6 +922,8 @@ void gf_mx2d_inverse(GF_Matrix2D *_this)
 	gf_mx2d_copy(*_this, tmp);
 }
 
+#endif
+
 GF_EXPORT
 Bool gf_mx2d_decompose(GF_Matrix2D *mx, GF_Point2D *scale, Fixed *rotate, GF_Point2D *translate)
 {
@@ -924,6 +954,8 @@ Bool gf_mx2d_decompose(GF_Matrix2D *mx, GF_Point2D *scale, Fixed *rotate, GF_Poi
 	*rotate = angle;
 	return GF_TRUE;
 }
+
+#ifdef DISABLE_MATHS
 
 GF_EXPORT
 void gf_mx2d_apply_coords(GF_Matrix2D *_this, Fixed *x, Fixed *y)
@@ -981,6 +1013,7 @@ GF_IRect gf_rect_pixelize(GF_Rect *r)
 	return rc;
 }
 
+#endif
 
 /*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
 GF_EXPORT
@@ -1003,6 +1036,8 @@ void gf_rect_union(GF_Rect *rc1, GF_Rect *rc2)
 	if (rc2->y - rc2->height < rc1->y - rc1->height) rc1->height = rc1->y - rc2->y + rc2->height;
 }
 
+#ifdef DISABLE_MATHS
+
 GF_EXPORT
 GF_Rect gf_rect_center(Fixed w, Fixed h)
 {
@@ -1013,6 +1048,7 @@ GF_Rect gf_rect_center(Fixed w, Fixed h)
 	rc.height=h;
 	return rc;
 }
+#endif
 
 GF_EXPORT
 Bool gf_rect_overlaps(GF_Rect rc1, GF_Rect rc2)
@@ -1057,6 +1093,7 @@ void gf_rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
 }
 
 
+#ifdef DISABLE_MATHS
 
 #ifdef GPAC_FIXED_POINT
 
@@ -2787,3 +2824,5 @@ u32 gf_get_next_pow2(u32 s)
 	return res;
 }
 
+
+#endif //DISABLE_MATHS

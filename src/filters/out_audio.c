@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / audio output filter
@@ -29,6 +29,8 @@
 #include <gpac/modules/audio_out.h>
 #include <gpac/thread.h>
 
+#ifndef GPAC_DISABLE_AOUT
+
 typedef struct
 {
 	//options
@@ -45,8 +47,12 @@ typedef struct
 	u32 sr, afmt, nb_ch, timescale;
 	u64 ch_cfg;
 	GF_AudioOutput *audio_out;
+
+#ifndef GPAC_DISABLE_THREADS
 	GF_Thread *th;
 	u32 audio_th_state;
+#endif
+
 	Bool needs_recfg, wait_recfg;
 	u32 bytes_per_sample;
 
@@ -156,6 +162,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	}
 }
 
+#ifndef GPAC_DISABLE_THREADS
 u32 aout_th_proc(void *p)
 {
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) p;
@@ -178,6 +185,7 @@ u32 aout_th_proc(void *p)
 	ctx->audio_th_state = 3;
 	return 0;
 }
+#endif
 
 
 static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
@@ -394,9 +402,14 @@ void aout_set_priority(GF_AudioOutCtx *ctx, u32 prio)
 {
 	if (prio==ctx->priority) return;
 	ctx->priority = prio;
-	if (ctx->th) gf_th_set_priority(ctx->th, (s32) ctx->priority);
-	else if (ctx->audio_out->SelfThreaded && ctx->audio_out->SetPriority)
+#ifndef GPAC_DISABLE_THREADS
+	if (ctx->th) {
+		gf_th_set_priority(ctx->th, (s32) ctx->priority);
+	} else
+#endif
+	if (ctx->audio_out->SelfThreaded && ctx->audio_out->SetPriority) {
 		ctx->audio_out->SetPriority(ctx->audio_out, ctx->priority);
+	}
 }
 
 static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -535,7 +548,10 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->needs_recfg = GF_TRUE;
 	
 	//not threaded, request a task to restart audio (cannot do it during the audio callback)
-	if (!ctx->th) gf_filter_post_process_task(filter);
+#ifndef GPAC_DISABLE_THREADS
+	if (!ctx->th)
+#endif
+		gf_filter_post_process_task(filter);
 	return GF_OK;
 }
 
@@ -586,8 +602,13 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	}
 	if (ctx->audio_out->SelfThreaded) {
 	} else if (ctx->threaded) {
+#ifndef GPAC_DISABLE_THREADS
 		ctx->th = gf_th_new("gf_aout");
 		gf_th_run(ctx->th, aout_th_proc, ctx);
+#else
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Unthreaded audio output module but threads disabled in GPAC, cannot setup module %s\n", ctx->audio_out->module_name));
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 	aout_set_priority(ctx, GF_THREAD_PRIORITY_REALTIME);
@@ -602,6 +623,7 @@ static void aout_finalize(GF_Filter *filter)
 	/*stop and shutdown*/
 	if (ctx->audio_out) {
 		/*kill audio thread*/
+#ifndef GPAC_DISABLE_THREADS
 		if (ctx->th) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] stopping audio thread\n"));
 			ctx->audio_th_state = 2;
@@ -610,7 +632,9 @@ static void aout_finalize(GF_Filter *filter)
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] audio thread stopped\n"));
 			gf_th_del(ctx->th);
-		} else {
+		} else
+#endif
+		{
 			ctx->aborted = GF_TRUE;
 			ctx->audio_out->Shutdown(ctx->audio_out);
 		}
@@ -626,11 +650,21 @@ static GF_Err aout_process(GF_Filter *filter)
 	if (ctx->in_error)
 		return GF_IO_ERR;
 
-	if (!ctx->th && ctx->needs_recfg) {
+	if (
+#ifndef GPAC_DISABLE_THREADS
+		!ctx->th &&
+#endif
+		ctx->needs_recfg
+	) {
 		aout_reconfig(ctx);
 	}
 
-	if (ctx->th || ctx->audio_out->SelfThreaded) {
+	if (
+#ifndef GPAC_DISABLE_THREADS
+		ctx->th ||
+#endif
+		ctx->audio_out->SelfThreaded
+	) {
 		//not configured, force fetching first packet
 		if (!ctx->sr && ctx->pid)
 			gf_filter_pid_get_packet(ctx->pid);
@@ -751,4 +785,11 @@ const GF_FilterRegister *aout_register(GF_FilterSession *session)
 {
 	return &AudioOutRegister;
 }
+
+#else
+const GF_FilterRegister *aout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_AOUT
 

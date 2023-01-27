@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,6 +27,8 @@
 #include "nodes_stacks.h"
 #include "mpeg4_grouping.h"
 #include <gpac/utf.h>
+
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt, Bool prev_focus);
 
@@ -2088,4 +2090,4 @@ void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n)
 }
 
 
-
+#endif //GPAC_DISABLE_COMPOSITOR

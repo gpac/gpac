@@ -229,7 +229,6 @@ struct _gf_vrml_script_priv
 *********************************************/
 
 /*provided by JSFilter only*/
-struct __gf_download_manager *jsf_get_download_manager(JSContext *c);
 struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c);
 GF_Err jsf_request_opengl(JSContext *c);
 GF_Err jsf_set_gl_active(JSContext *c, Bool do_activate);

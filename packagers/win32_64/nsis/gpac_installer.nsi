@@ -39,8 +39,8 @@ FunctionEnd
   !include "MUI2.nsh"
 
 WindowIcon on
-Icon "${GPAC_ROOT}\share\doc\gpac.ico"
-UninstallIcon "${GPAC_ROOT}\share\doc\gpac.ico"
+Icon "${GPAC_ROOT}\share\res\gpac.ico"
+UninstallIcon "${GPAC_ROOT}\share\res\gpac.ico"
 
 ;--------------------------------
 ;Interface Settings
@@ -211,7 +211,7 @@ Section "GPAC Core" SecGPAC
   File /oname=ReadMe.txt "${GPAC_ROOT}\README.md"
   File /oname=License.txt "${GPAC_ROOT}\COPYING"
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
-  File "${GPAC_ROOT}\share\doc\gpac.ico"
+  File "${GPAC_ROOT}\share\res\gpac.ico"
 
   File "${GPAC_BIN}\gpac.exe"
   File "${GPAC_BIN}\libgpac.dll"

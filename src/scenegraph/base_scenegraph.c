@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -2452,7 +2452,7 @@ GF_SceneGraph *gf_sg_get_parent(GF_SceneGraph *scene)
 
 static GF_Err gf_sg_load_dom_node(GF_SceneGraph *document, GF_XMLNode *n, GF_DOMFullNode *par)
 {
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SVG)
 	u32 i, count;
 	GF_DOMFullAttribute *prev = NULL;
 	GF_DOMFullNode *node;

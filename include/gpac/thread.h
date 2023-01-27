@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -184,6 +184,42 @@ enum
 	GF_THREAD_STATUS_DEAD = 2
 };
 
+/*! thread priorities */
+enum
+{
+	/*!Idle Priority*/
+	GF_THREAD_PRIORITY_IDLE=0,
+	/*!Less Idle Priority*/
+	GF_THREAD_PRIORITY_LESS_IDLE,
+	/*!Lowest Priority*/
+	GF_THREAD_PRIORITY_LOWEST,
+	/*!Low Priority*/
+	GF_THREAD_PRIORITY_LOW,
+	/*!Normal Priority (the default one)*/
+	GF_THREAD_PRIORITY_NORMAL,
+	/*!High Priority*/
+	GF_THREAD_PRIORITY_HIGH,
+	/*!Highest Priority*/
+	GF_THREAD_PRIORITY_HIGHEST,
+	/*!First real-time priority*/
+	GF_THREAD_PRIORITY_REALTIME,
+	/*!Last real-time priority*/
+	GF_THREAD_PRIORITY_REALTIME_END=255
+};
+
+
+/*!
+\brief thread run function callback
+
+The gf_thread_run type is the type for the callback of the \ref gf_thread_run function
+\param par opaque user data
+\return exit code of the thread, usually 1 for error and 0 if normal execution
+ */
+typedef u32 (*gf_thread_run)(void *par);
+
+
+#ifndef GPAC_DISABLE_THREADS
+
 /*!
 \brief abstracted thread object
 */
@@ -204,15 +240,6 @@ Kills the thread if running and destroys the object
 \param th the thread object
  */
 void gf_th_del(GF_Thread *th);
-
-/*!
-\brief thread run function callback
-
-The gf_thread_run type is the type for the callback of the \ref gf_thread_run function
-\param par opaque user data
-\return exit code of the thread, usually 1 for error and 0 if normal execution
- */
-typedef u32 (*gf_thread_run)(void *par);
 
 /*!
 \brief thread execution
@@ -240,29 +267,6 @@ Gets the thread status
 \return thread status
  */
 u32 gf_th_status(GF_Thread *th);
-
-/*! thread priorities */
-enum
-{
-	/*!Idle Priority*/
-	GF_THREAD_PRIORITY_IDLE=0,
-	/*!Less Idle Priority*/
-	GF_THREAD_PRIORITY_LESS_IDLE,
-	/*!Lowest Priority*/
-	GF_THREAD_PRIORITY_LOWEST,
-	/*!Low Priority*/
-	GF_THREAD_PRIORITY_LOW,
-	/*!Normal Priority (the default one)*/
-	GF_THREAD_PRIORITY_NORMAL,
-	/*!High Priority*/
-	GF_THREAD_PRIORITY_HIGH,
-	/*!Highest Priority*/
-	GF_THREAD_PRIORITY_HIGHEST,
-	/*!First real-time priority*/
-	GF_THREAD_PRIORITY_REALTIME,
-	/*!Last real-time priority*/
-	GF_THREAD_PRIORITY_REALTIME_END=255
-};
 
 /*!
 \brief thread priority
@@ -417,6 +421,40 @@ Waits for a certain for the semaphore to be accessible, and returns when semapho
 \return returns 1 if the semaphore was released before the timeout, 0 if the semaphore is still not released after the timeout.
 */
 Bool gf_sema_wait_for(GF_Semaphore *sm, u32 time_out);
+
+
+#else
+
+typedef void * GF_Thread;
+#define gf_th_new(_name) NULL
+#define gf_th_del(_th)
+#define gf_th_run(_th, _run, _par) GF_OK
+#define gf_th_stop(_th)
+#define gf_th_status(_th) GF_THREAD_STATUS_DEAD
+#define gf_th_set_priority(_th, _priority)
+#define gf_th_id() 0
+
+#ifdef GPAC_CONFIG_ANDROID
+#define gf_register_before_exit_function(_t, _fun)
+#define gf_th_current() NULL
+#endif /* GPAC_CONFIG_ANDROID */
+
+typedef void *GF_Mutex;
+#define gf_mx_new(_name) NULL
+#define gf_mx_del(_mx)
+#define gf_mx_p(_mx) 1
+#define gf_mx_v(_mx)
+#define gf_mx_try_lock(_mx) GF_TRUE
+#define gf_mx_get_num_locks(_mx) 0
+
+typedef void *GF_Semaphore;
+#define gf_sema_new(_MaxCount, _InitCount) NULL
+#define gf_sema_del(_sm)
+#define gf_sema_notify(_sm, _nb_rel) GF_TRUE
+#define gf_sema_wait(_sm) GF_TRUE
+#define gf_sema_wait_for(_sm, _time_out) GF_TRUE
+
+#endif
 
 
 /*! @} */

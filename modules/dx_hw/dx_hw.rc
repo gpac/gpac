@@ -62,7 +62,7 @@ IDC_COLLIDE             CURSOR                  "collide.cur"
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_GPAC_ICON           ICON                    "../../share/doc/gpac.ico"
+IDI_GPAC_ICON           ICON                    "../../share/res/gpac.ico"
 
 #endif    // French (France) resources
 /////////////////////////////////////////////////////////////////////////////

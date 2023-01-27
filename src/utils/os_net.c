@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -24,6 +24,9 @@
  */
 
 #include <gpac/network.h>
+
+#ifndef GPAC_DISABLE_NETWORK
+
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -362,12 +365,6 @@ static u32 ipv6_check_state = 0;
 #include <sys/un.h>
 #endif
 
-GF_EXPORT
-const char *gf_errno_str(int errnoval)
-{
-	return strerror(errnoval);
-}
-
 
 /*internal flags*/
 enum
@@ -701,7 +698,7 @@ void gf_sk_set_usec_wait(GF_Socket *sock, u32 usec_wait)
 	sock->usec_wait = (usec_wait>=1000000) ? 500 : usec_wait;
 }
 
-#ifdef GPAC_STATIC_BUILD
+#ifdef GPAC_STATIC_BIN
 struct hostent *gf_gethostbyname(const char *PeerName)
 {
 	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Static GPAC build has no DNS support, cannot resolve host %s !\n", PeerName));
@@ -881,7 +878,7 @@ conn_ok:
 			}
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Host %s found\n", PeerName));
-		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
+		memcpy(&sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u8)*Host->h_length);
 	}
 
 	if (local_ip) {
@@ -2249,6 +2246,12 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 	return GF_OK;
 }
 
+#else
+//for ntoh/hton
+#include <arpa/inet.h>
+#endif //GPAC_DISABLE_NETWORK
+
+
 GF_EXPORT
 u32 gf_htonl(u32 val)
 {
@@ -2273,4 +2276,10 @@ GF_EXPORT
 u16 gf_ntohs(u16 val)
 {
 	return ntohs(val);
+}
+
+GF_EXPORT
+const char *gf_errno_str(int errnoval)
+{
+	return strerror(errnoval);
 }

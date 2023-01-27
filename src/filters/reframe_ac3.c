@@ -334,7 +334,10 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 	u8 *output;
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
-	u64 cts = GF_FILTER_NO_TS;
+	u64 cts;
+	
+restart:
+	cts = GF_FILTER_NO_TS;
 
 	//always reparse duration
 	if (!ctx->duration.num)
@@ -515,7 +518,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 
 	if (!pck) {
 		ctx->ac3_buffer_size = 0;
-		return ac3dmx_process(filter);
+		//avoid recursive call
+		goto restart;
 	} else {
 		if (remain && (remain < ctx->ac3_buffer_size)) {
 			memmove(ctx->ac3_buffer, start, remain);

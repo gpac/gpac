@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -26,6 +26,8 @@
  */
 
 #include "rast_soft.h"
+
+#ifndef GPAC_DISABLE_EVG
 
 static s32
 mul255(s32 a, s32 b)
@@ -385,3 +387,5 @@ GF_Err evg_surface_clear_grey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col)
 	}
 	return GF_OK;
 }
+
+#endif //GPAC_DISABLE_EVG

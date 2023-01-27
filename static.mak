@@ -34,7 +34,9 @@ EXTRALIBS+=$(LINKLIBS)
 ifeq ($(GPAC_USE_TINYGL),yes)
 COMPOSITOR_CFLAGS+=-I"$(SRC_PATH)/../TinyGL/include"
 else
+ifneq ($(CONFIG_EMSCRIPTEN),yes)
 COMPOSITOR_CFLAGS+=-DGPAC_HAS_GLU
+endif
 endif
 
 

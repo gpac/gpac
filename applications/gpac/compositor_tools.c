@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2022-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -25,7 +25,7 @@
 
 #include "gpac.h"
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 #include <gpac/main.h>
 #include <gpac/events.h>
@@ -1639,4 +1639,4 @@ static void close_console()
 
 #endif
 
-#endif //#ifndef GPAC_DISABLE_PLAYER
+#endif //#ifndef GPAC_DISABLE_COMPOSITOR

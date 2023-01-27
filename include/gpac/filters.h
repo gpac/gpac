@@ -1442,8 +1442,10 @@ typedef struct {
 	u32 type;
 	/*! name */
 	const char *name;
+#ifndef GPAC_DISABLE_DOC
 	/*! description */
 	const char *description;
+#endif
 	/*! data type  (uint, float, etc ..) */
 	u8 data_type;
 	/*! flags for the property */
@@ -2202,6 +2204,10 @@ typedef enum
 	GF_FS_REG_SINGLE_THREAD = 1<<13,
 	/*! Indicates the filter needs to be initialized even if temoorary - see \ref gf_filter_is_temporary. Always enabled if GF_FS_REG_META is set */
 	GF_FS_REG_TEMP_INIT = 1<<14,
+	/*! Indicates the filter uses libc sync file read - only needed for emscripten multithreaded support for now, translated into GF_FS_REG_MAIN_THREAD */
+	GF_FS_REG_USE_SYNC_READ = 1<<15,
+	/*! Indicates the filter may block the main thread (configure, process) - only needed for emscripten multithreaded support*/
+	GF_FS_REG_BLOCK_MAIN = 1<<16,
 
 
 	/*! flag dynamically set at runtime for custom filters*/
@@ -3118,9 +3124,10 @@ const GF_FilterCapability *gf_filter_get_caps(GF_Filter *filter, u32 *nb_caps);
 \param filter target filter
 \param data buffer to probe
 \param size size of buffer
+\param score ste to the probing score, may be NULL
 \return the mime type probed, or NULL if not recognized
 */
-const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size);
+const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size, GF_FilterProbeScore *score);
 
 /*! checks if the given filter is an alias filter created by a multiple sink filter
 \param filter target filter

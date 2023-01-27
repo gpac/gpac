@@ -48,10 +48,26 @@ if test "$cxx_orig" = "" ; then
 cxx_orig="g++"
 fi
 
+ar="$AR"
+if test "$ar" = "" ; then
 ar="ar"
+fi
+
+ranlib="$RANLIB"
+if test "$ranlib" = "" ; then
 ranlib="ranlib"
+fi
+
+make="$MAKE"
+if test "$make" = "" ; then
 make="make"
+fi
+
+strip="$STRIP"
+if test "$strip" = "" ; then
 strip="strip"
+fi
+
 pkg_config="pkg-config"
 windres="windres"
 readelf="readelf"
@@ -93,11 +109,18 @@ SHFLAGS=-shared
 need_inet_aton="no"
 CFLAGS=""
 CXXFLAGS=""
-GPAC_SH_FLAGS=-lpthread
+PTHREAD_CFLAGS=""
+PTHREAD_LDFLAGS=-lpthread
+GPAC_SH_FLAGS=""
 DYN_LIB_SUFFIX=".so"
 X11_PATH="/usr/X11R6"
 INSTFLAGS=""
 is_64="no"
+is_em="no"
+is_emcfg="no"
+has_remotery="yes"
+em_type="js"
+em_size="0"
 
 
 #flags not set by generic lib config
@@ -110,6 +133,11 @@ ffmpeg_vvc="no"
 has_strlcpy="no"
 
 ffmpeg_extra_ldflags=""
+
+case "$cc_orig" in
+    *emcc) is_emcfg="yes"
+        ;;
+esac
 
 nb_features=0
 all_features=""
@@ -144,6 +172,8 @@ push_feature()
 
 push_feature "log" "logging support"
 push_feature "3d" "3D rendering"
+push_feature "threads" "Threading support"
+push_feature "network" "Network support (including RTP streaming)"
 push_feature "crypto" "crypto support"
 push_feature "svg" "SVG 1.2 support"
 push_feature "vrml" "MPEG-4/VRML/X3D support"
@@ -183,7 +213,9 @@ push_feature "isoff-hint" "ISOBMFF hinting support"
 push_feature "isoff-frag" "ISOBMFF fragments support"
 push_feature "isoff-hds" "Adobe HDS in ISOBMFF support"
 push_feature "streaming" "RTP/RTSP/SDP support"
-push_feature "player" "player (compositor)"
+push_feature "compositor" "Compositor filter"
+push_feature "fonts" "Font and Text engine (used by compositor and EVG.js"
+push_feature "player" "deprecated - old name for compositor feature"
 push_feature "dvbx" "!DVB-specific tools (MPE, FEC, DSM-CC)"
 push_feature "vobsub" "VobSub support"
 push_feature "ttxt" "TTXT (3GPP / MPEG-4 Timed Text) support"
@@ -198,6 +230,11 @@ push_feature "qjs-libc" "QuickJS libc module support"
 push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multithreaded modes)"
 push_feature "nvdec" "NVDec support"
 push_feature "tinygl" "!TinyGL support"
+push_feature "doc" "Embedded documentation"
+push_feature "evg" "EVG (GPAC vector graphics tools)"
+push_feature "vout" "video output filter"
+push_feature "aout" "audio output filter"
+
 
 ar_it=""
 get_item()
@@ -223,8 +260,8 @@ get_size()
 }
 
 #zlib MUST be first
-all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora ogg nghttp2"
-all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb"
+all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2"
+all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl"
 disabled_packages=""
 
 #init all has_FOO=no and set FOO_cflags=
@@ -278,12 +315,16 @@ GPAC build options:
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
   --dxsdk-path=DX_PATH     specify DirectX SDK for MinGW [$dxsdk_path]
   --extra-ff-ldflags=EF    add EF flags to FFMPEG LDFLAGS [$ffmpeg_extra_ldflags]
+  --emscripten             configure for emscripten build (same as running emconfigure configure)
+  --em-type=EXT            output type, can be js, html or wasm [$em_type]
+  --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
 
 GPAC core configuration:
   --static-modules         embed modules in libgpac rather than using dynamic library modules
   --enable-fixed-point     enable fixed-point math
   --disable-ipv6           disable IPV6 support
   --enable-mem-track       enable tracking of all memory allocated by gpac
+  --disable-remotery       disable Remotery support
   --disable-x11            disable X11
   --disable-x11-shm        disable X11 shared memory support
   --disable-x11-xv         disable X11 Xvideo support
@@ -538,8 +579,6 @@ for opt do
             ;;
         --disable-pulseaudio) has_pulseaudio="no"
             ;;
-        --disable-oggvorbis) has_oggvorbis="no"
-            ;;
         --disable-jack) has_jack="no"
             ;;
         --disable-alsa) has_alsa="no"
@@ -557,6 +596,8 @@ for opt do
         --strip) INSTFLAGS="-s $INSTFLAGS"
             ;;
         --enable-mem-track) use_memory_tracking="yes"
+            ;;
+        --disable-remotery) has_remotery="no"
             ;;
         --disable-x11) append disabled_packages "x11"
             ;;
@@ -584,13 +625,57 @@ for opt do
         --enable-*) v=`echo $opt | cut -c10-`
         	set_feature "$v" "no"
             ;;
+        --emscripten) is_em="yes"
+            ;;
+        --em-type=*) em_type=`echo $opt | cut -d '=' -f 2`
+            ;;
+        --em-size=*) em_size=`echo $opt | cut -d '=' -f 2`
+            ;;
         *) echo "! Unrecognized option $opt, ignoring !"
             ;;
     esac
 done
 
+
+if test "$is_em" = "yes" ; then
+cc_orig="emcc"
+cxx_orig="em++"
+ar="emar"
+ranlib="emranlib"
+make="make"
+strip="emstrip"
+else
+
+case "$cc_orig" in
+    *emcc) is_em="yes"
+        ;;
+esac
+fi
+
+if test "$is_em" = "yes" ; then
+    cpu="wasm"
+    static_modules="yes"
+    static_build="yes"
+    targetos="wasm"
+    pkg_cfg_path=$PKG_CONFIG_PATH
+    if test "$pkg_cfg_path" = "" ; then
+        echo "Emscripten missing PKG_CONFIG_PATH, disabling pkg-config"
+        pkg_config="no"
+    fi
+    has_remotery="no"
+
+    #to refine
+    append disabled_packages "freenect platinum vtb oss alsa jack pulseaudio directfb x11 dvb4linux directx"
+
+    if test "$disable_threads" = "yes" ; then
+        GPAC_SH_FLAGS=""
+    fi
+fi
+
 cc="${cc_orig}"
 cxx="${cxx_orig}"
+
+
 
 case "$cpu" in
     i386|i486|i586|i686|i86pc|BePC)
@@ -655,6 +740,9 @@ case "$cpu" in
             want_pic="yes"
         fi
         ;;
+    wasm)
+        cpu="wasm"
+        ;;
     *)
         cpu="unknown"
         ;;
@@ -692,7 +780,7 @@ pkg_config="${pkg_config}"
 fi
 
 #check pkg_config
-if test "$cross_prefix" = "" ; then
+if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
     if ! $pkg_config --version >/dev/null 2>>$logs ; then
         pkg_config="no"
     fi
@@ -771,8 +859,8 @@ EOF
     FreeBSD)
         make="gmake"
         LDFLAGS="$LDFLAGS -export-dynamic"
-        CFLAGS="$CFLAGS -pthread"
-        GPAC_SH_FLAGS=-pthread
+        PTHREAD_CFLAGS=-pthread
+        PTHREAD_LDFLAGS=-pthread
         freebsd="yes"
         ;;
 
@@ -788,15 +876,17 @@ EOF
         else
             LDFLAGS="$LDFLAGS -L$prefix/$libdir"
         fi
-        if test -d /sw/bin ; then
-            alt_macosx_dir="/sw"
-            CFLAGS_DIR="-I/sw/include $CFLAGS_DIR"
-            LDFLAGS="-L/sw/lib $LDFLAGS"
-        elif test -d /opt/local/bin ; then
-            alt_macosx_dir="/opt/local"
-            CFLAGS_DIR="-I/opt/local/include $CFLAGS_DIR"
-            LDFLAGS="-L/opt/local/lib $LDFLAGS"
+
+        if test "is_em" != "yes" ; then
+            if test -d /sw/bin ; then
+                alt_macosx_dir="/sw"
+            elif test -d /opt/local/bin ; then
+                alt_macosx_dir="/opt/local"
+            fi
+            CFLAGS_DIR="-I$alt_macosx_dir $CFLAGS_DIR"
+            LDFLAGS="-L$alt_macosx_dir $LDFLAGS"
         fi
+
         CFLAGS="$CFLAGS_DIR $CFLAGS"
         Mac_Applications="/Applications"
         SHFLAGS="-dynamiclib"
@@ -877,6 +967,17 @@ EOF
 esac
 
 
+
+
+if test "$enable_threads" = "yes" ; then
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+GPAC_SH_FLAGS=$PTHREAD_LDFLAGS
+else
+PTHREAD_LDFLAGS=""
+fi
+
+
+
 #defines directory for binaries and libs (ex. for TinyGL)
 target_bin_dir=""
 if test "$cross_prefix" = "" ; then
@@ -901,10 +1002,13 @@ execdir=$source_path/bin/gcc
 dolog() {
  rv=$?
  if [ $rv -eq 0 ] ; then
- return 0;
+     echo "*** CC/CXX Test Passed (args $@) : ">>$logs
+     rv=0
+ else
+     echo "*** CC/CXX Test Failed (res $rv args $@) : ">>$logs
+     rv=1
  fi
 
- echo "*** CC/CXX Test Failed (args $@) : ">>$logs
  echo "">>$logs
  cat $TMPL >> $logs
  echo "">>$logs
@@ -912,7 +1016,7 @@ dolog() {
  cat $TMPC >> $logs
  echo "">>$logs
  echo "">>$logs
- return 1;
+ return $rv;
 }
 
 docc() {
@@ -947,7 +1051,13 @@ fi
 if test "$no_gcc_opt" = "no"; then
     CFLAGS="-O3 $CFLAGS"
 else
+
+#on emscripten+asan, failure to load wasm when build with -00, use -01 
+if test "$is_em" = "yes" -a "$enable_sanitizer" = "yes"; then
+    CFLAGS="-O1 $CFLAGS"
+else
     CFLAGS="-O0 $CFLAGS"
+fi
 fi
 
 
@@ -978,8 +1088,14 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if docc -msse2 $LDFLAGS ; then
-  CFLAGS="$CFLAGS -msse2"
+sseflags="-msse2"
+#experimental in emscriptem, we doon't enable it
+#if test "$is_em" = "yes" ; then
+#sseflags="$sseflags -msimd128"
+#fi
+
+if docc $sseflags $LDFLAGS ; then
+  CFLAGS="$CFLAGS $sseflags"
 fi
 
 
@@ -1031,7 +1147,7 @@ cat > $TMPC << EOF
 #include <stdint.h>
 int main(void) {
     int i4 = 4;
-    __int64_t i8 = 8;
+    int64_t i8 = 8;
     __sync_add_and_fetch(&i4, 12);
     __sync_add_and_fetch(&i8, 12);
 }
@@ -1044,7 +1160,7 @@ cat > $TMPC << EOF
 #include <stdint.h>
 int main(void) {
     int i4 = 4;
-    __int64_t i8 = 8;
+    int64_t i8 = 8;
     __atomic_add_fetch(&i4, 12, __ATOMIC_SEQ_CST);
     __atomic_add_fetch(&i8, 12, __ATOMIC_SEQ_CST);
 }
@@ -1094,6 +1210,24 @@ config_package_test ()
     local_inc_dir=$5
     package_src="$6"
 
+    sysname="system"
+    if test "$is_em" = "yes" ; then
+        is_port="yes";
+        case "$package_name" in 
+            "zlib") package_cflags="-sUSE_ZLIB=1" ;;
+            "jpeg") package_cflags="-sUSE_LIBJPEG=1" ;;
+            "png") package_cflags="-sUSE_LIBPNG=1" ;;
+            "vorbis") package_cflags="-sUSE_VORBIS" ;;
+            "freetype") package_cflags="-sUSE_FREETYPE=1" ;;
+            *) is_port="no" ;;
+        esac
+
+        if test "$is_port" = "yes" ; then
+            package_ldflags="$package_cflags"
+            sysname="emcc-ports"
+        fi
+    fi
+
     forced=""
     custom="no"
     optname="$package_name="
@@ -1114,6 +1248,7 @@ config_package_test ()
             ;;
         "local") ;;
         "system") ;;
+        "emcc-ports") ;;
         "") ;;
         *)  if [ -d "$forced" ]; then
                 custom="yes"
@@ -1131,8 +1266,20 @@ config_package_test ()
             if $pkg_config --exists $pkg_cfg_name ; then
                 pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
-                has_pck="system (pkgconfig)"
-                return
+
+                if test "$pck_cxx" = "yes" ; then
+                    echo "$package_src" > $TMPCXX
+                    if docxx $pck_cflags $pck_ldflags ; then
+                        has_pck="$sysname (pkgconfig)"
+                        return
+                    fi
+                else
+                    echo "$package_src" > $TMPC
+                    if docc $pck_cflags $pck_ldflags ; then
+                        has_pck="$sysname (pkgconfig)"
+                        return
+                    fi
+                fi
             fi
         fi
     fi
@@ -1149,7 +1296,7 @@ config_package_test ()
             if docxx $package_cflags $LDFLAGS $package_ldflags ; then
                 pck_cflags="$package_cflags"
                 pck_ldflags="$package_ldflags"
-                has_pck="system"
+                has_pck="$sysname"
                 return
             fi
         fi
@@ -1189,7 +1336,7 @@ config_package_test ()
         if docc $package_cflags $LDFLAGS $package_ldflags ; then
             pck_cflags="$package_cflags"
             pck_ldflags="$package_ldflags"
-            has_pck="system"
+            has_pck="$sysname"
             return
         fi
 
@@ -1276,7 +1423,7 @@ check_has_lib ()
 
 
 if test "$disable_codecs" = "yes"; then
-    append disabled_packages "jpeg png mad a52 faad xvid opensvc openjpeg ffmpeg ogg theora vorbis openhevc"
+    append disabled_packages "jpeg png mad a52 faad xvid opensvc openjpeg ffmpeg theora vorbis openhevc"
 fi
 
 if test "$static_bin" = "yes"; then
@@ -1284,7 +1431,7 @@ if test "$static_bin" = "yes"; then
     static_build="yes"
 
     #we cannot use these to produce a static bin, no static lib on most distributions
-    append disabled_packages "openjpeg ffmpeg ogg theora vorbis openhevc freenect platinum"
+    append disabled_packages "openjpeg ffmpeg theora vorbis openhevc freenect platinum"
 
     #we cannot use openssl vanilla since it is usually built with DSO and requires dlopen
     append disabled_packages "ssl"
@@ -1315,26 +1462,25 @@ if test "$has_zlib" = "force-no" ; then
 fi
 
 config_package opensvc "OpenSVC" "" "-lOpenSVCDec" "" '#include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
-int main( void ) { return 0; }'
+int main( void ) { void *codec; SVCDecoder_init(&codec); return 0; }'
 
 
 #look for openhevc support
-config_package openhevc "openhevc" "" "-lopenhevc -lm -lpthread" "" '#include <stdio.h>
+config_package openhevc "openhevc" "" "-lopenhevc -lm $PTHREAD_LDFLAGS" "" '#include <stdio.h>
 #include <libopenhevc/openhevc.h>
 int main( void ) { oh_init(1, 1); return 0; }
 '
 
 pck_cxx="yes"
-config_package platinum "platinum" "" "-lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread" "platinum" '#include <Platinum.h>
-int main( void ) { return 0; }'
+config_package platinum "platinum" "" "-lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib $PTHREAD_LDFLAGS" "platinum" '#include <Platinum.h>
+int main( void ) { new PLT_UPnP(); return 0; }'
 
 
 config_package freetype "freetype2" "" "-lfreetype" "freetype" '#include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
-int main( void ) { return 0; }
-'
+int main( void ) { FT_Library library; FT_Init_FreeType(&library); return 0; }'
 
 if test "$mingw32" = "yes" ; then
     ssl_lflags="-lssl -lcrypto"
@@ -1348,55 +1494,53 @@ config_package ssl "openssl" "" "$ssl_lflags" "" '#include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
-int main( void ) { return 0; }'
+int main( void ) {  SSL_CTX_set_options(NULL, SSL_OP_ALL); return 0; }'
 
 
 config_package jpeg "libjpeg" "" "-ljpeg" "jpeg" '#include <stdio.h>
 #include <jpeglib.h>
-int main( void ) { return 0; }'
+int main( void ) { struct jpeg_decompress_struct cinfo; jpeg_create_decompress(&cinfo); return 0; }'
 
 
 
 config_package openjpeg "libopenjp2" "" "-lopenjp2" "openjp2" '#include <stdio.h>
 #include <openjpeg.h>
-int main( void ) { return 0; }'
+int main( void ) { opj_create_decompress(OPJ_CODEC_J2K); return 0; }'
 
 if test "has_openjpeg" = "no" ; then
 config_package openjpeg "libopenjpeg" "" "-lopenjpeg" "openjpeg" '#include <stdio.h>
 #include <openjpeg.h>
-int main( void ) { return 0; }'
+int main( void ) { opj_create_decompress(CODEC_J2K); return 0; }'
 fi
 
 
 config_package png "libpng" "" "-lpng -lz" "png" '#include <png.h>
-int main( void ) { return 0; }'
+int main( void ) {  png_struct *png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); return 0; }'
 
 
 config_package mad "mad" "" "-lmad" "" '#include <mad.h>
-int main( void ) { return 0; }'
+int main( void ) {  struct mad_stream stream; mad_stream_finish(&stream); return 0; }'
 
 config_package a52 "liba52" "" "-la52" "" '#include <inttypes.h>
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 #include <a52dec/mm_accel.h>
 #include <a52dec/a52.h>
-int main( void ) { return 0; }'
+int main( void ) { a52_state_t *codec; a52_free(codec); return 0; }'
 
 
 
-config_package xvid "xvid" "" "-lxvidcore -lpthread" "" '#include <xvid.h>
-int main( void ) { return 0; }'
+config_package xvid "xvid" "" "-lxvidcore $PTHREAD_LDFLAGS" "" '#include <xvid.h>
+int main( void ) { void *codec; xvid_decore(codec, XVID_DEC_DESTROY, NULL, NULL); return 0; }'
 
 config_package faad "faad2" "" "-lfaad" "" '#include <faad.h>
-int main( void ) { return 0; }'
+int main( void ) { NeAACDecOpen(); return 0; }'
 
 
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lavfilter $ffmpeg_extra_ldflags"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lavfilter -lpostproc $ffmpeg_extra_ldflags"
 
-config_package ffmpeg "libavcodec libavformat libswscale libavdevice libavutil libavfilter" "" "$ffmpeg_lflags" "" '#include <libavcodec/avcodec.h>
-int main(void) {
-    return 0;
-}'
+config_package ffmpeg "libavcodec libavformat libswscale libavdevice libavutil libavfilter" "" "$ffmpeg_lflags" "" '#include <libavformat/avformat.h>
+int main(void) { avformat_alloc_context(); return 0; }'
 
 if test "$has_ffmpeg" != no ; then
 
@@ -1422,23 +1566,19 @@ fi
 
 
 config_package freenect "libfreenect" "" "-lfreenect" "freenect" '#include <libfreenect/libfreenect.h>
-int main( void ) { return 0; }'
+int main( void ) { freenect_context *f_ctx; freenect_init(&f_ctx, NULL); return 0; }'
 
 
 config_package vorbis "vorbis" "" "-lvorbis" "" '#include <vorbis/codec.h>
-int main( void ) { return 0; }'
+int main( void ) { vorbis_info vi; vorbis_info_init(&vi); return 0; }'
 
 
 config_package theora "theora" "" "-ltheora -logg" "" '#include <theora/theora.h>
-int main( void ) { return 0; }'
-
-
-config_package ogg "ogg" "" "-logg" "" '#include <ogg/ogg.h>
-int main( void ) { return 0; }'
+int main( void ) { theora_info ti; theora_info_init(&ti); return 0; }'
 
 config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
-int main( void ) { return 0; }'
+int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
 
 #look for VideoToolBox support
@@ -1595,6 +1735,7 @@ fi
 
 #look for OpenGL support or for TinyGL support
 has_opengl="no"
+if test "$is_em" != "yes" ; then
 LINK3D=""
 INCL3D=""
 DarwinGL="no"
@@ -1640,7 +1781,8 @@ if test "$disable_3d" = "no" -a "$static_bin" = "no" ; then
         LINK3D=""
     fi
 fi
-
+fi
+#end GL test
 
 #look for tinyGL only if desired
 has_tinygl=no
@@ -1687,14 +1829,23 @@ if test "$sdl_local" = "yes"; then
     sdl_static="yes"
 fi
 
-if type $sdl_config >/dev/null 2>>$logs; then
-
     cat > $TMPC << EOF
 #include <SDL.h>
 #undef main
 int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
 EOF
 
+
+if test "$is_em" = "yes"; then
+    if docc $sdl_cflags $LDFLAGS -sUSE_SDL=2 ; then
+        has_sdl="emcc-ports"
+        sdl_cflags="-sUSE_SDL=2"
+        sdl_lib_flags="-sUSE_SDL=2"
+        if test "$disable_3d" == "no" ; then
+            has_opengl="yes"
+        fi
+    fi
+elif type $sdl_config >/dev/null 2>>$logs; then
     if test "$sdl_static" = "yes"; then
         sdl_lib_flags=`$sdl_config --static-libs`
     else
@@ -1753,7 +1904,7 @@ esac
 
 
 #look at endianess
-if test -z "$cross_prefix" ; then
+if test -z "$cross_prefix" -a "$is_em" != "yes" ; then
 
 # big/little endian test
 cat > $TMPC << EOF
@@ -1797,6 +1948,10 @@ fi
 
 
 if test "$disable_player" = "yes" ; then
+disable_compositor= $disable_player;
+fi
+
+if test "$disable_compositor" = "yes" ; then
     disable_scenegraph="yes"
 fi
 
@@ -1818,7 +1973,7 @@ if test "$disable_scenegraph" = "yes" ; then
     disable_loader_bt="yes"
     disable_loader_xmt="yes"
     disable_streaming="yes"
-    disable_player="yes"
+    disable_compositor="yes"
     disable_smgr="yes"
     disable_nvdec="yes"
 fi
@@ -1850,7 +2005,13 @@ TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
 echo "/* Automatically generated by configure */" > $TMPH
 echo "#ifndef GF_CONFIG_H" >> $TMPH
 echo "#define GF_CONFIG_H" >> $TMPH
+
+#don't print full config for emscripten, we usually have local FS paths in the command line for custom builds
+if test "$is_em" = "yes" ; then
+echo "#define GPAC_CONFIGURATION \"(emscripten build)\"" >> $TMPH
+else
 echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
+fi
 
 version="`grep '#define GPAC_VERSION ' \"$source_path/include/gpac/version.h\" | cut -d '"' -f 2`"
 version_major=`grep '#define GPAC_VERSION_MAJOR ' $source_path/include/gpac/version.h | sed 's/[^0-9]*//g'`
@@ -1879,6 +2040,7 @@ echo ""
 echo "** GPAC $version rev$revision Core Configuration **"
 if test "$static_bin" = "yes" ; then
     echo "Static binaries enabled"
+    echo "#define GPAC_STATIC_BIN" >> $TMPH
     echo "#define GPAC_STATIC_BUILD" >> $TMPH
 elif test "$static_build" = "yes" ; then
     echo "Static build enabled"
@@ -1906,10 +2068,15 @@ echo "QuickJS Support: no"
 fi
 
 
-if test "$disable_player" = "yes" ; then
-    echo "Player disabled"
-    echo "#define GPAC_DISABLE_PLAYER" >> $TMPH
+if test "$disable_compositor" = "yes" ; then
+    echo "Compositor disabled"
+    echo "#define GPAC_DISABLE_COMPOSITOR" >> $TMPH
     disable_laser="yes"
+fi
+
+if test "$disable_fonts" = "yes" ; then
+    echo "Font Engine disabled"
+    echo "#define GPAC_DISABLE_FONTS" >> $TMPH
 fi
 
 if test "$has_st_nsec" = "yes" ; then
@@ -2125,6 +2292,16 @@ if test "$disable_hevc" = "yes" ; then
     echo "#define GPAC_DISABLE_HEVC" >> $TMPH
 fi
 
+if test "$disable_doc" = "yes" ; then
+    echo "Doc disabled"
+    echo "#define GPAC_DISABLE_DOC" >> $TMPH
+fi
+
+if test "$disable_evg" = "yes" ; then
+    echo "EVG disabled"
+    echo "#define GPAC_DISABLE_EVG" >> $TMPH
+fi
+
 if test "$disable_route" = "yes" ; then
     echo "ROUTE Support disabled"
     echo "#define GPAC_DISABLE_ROUTE" >> $TMPH
@@ -2139,6 +2316,17 @@ if test "$disable_log" = "yes" ; then
     echo "Logging disabled"
     echo "#define GPAC_DISABLE_LOG" >> $TMPH
 fi
+
+if test "$disable_vout" = "yes" ; then
+    echo "Filter vout disabled"
+    echo "#define GPAC_DISABLE_VOUT" >> $TMPH
+fi
+
+if test "$disable_aout" = "yes" ; then
+    echo "Filter aout disabled"
+    echo "#define GPAC_DISABLE_AOUT" >> $TMPH
+fi
+
 
 echo ""
 
@@ -2159,10 +2347,10 @@ if test "$win32" != "yes" ; then
     echo "Pulse Audio: $has_pulseaudio"
     echo "DirectFB: $has_directfb"
 
-    if [ -z $X11_PATH ] ; then
-        echo "X11: $has_x11"
-    else
+    if test "$has_x11" != "no" ; then
         echo "X11: $has_x11 (path: $X11_PATH)"
+    else
+        echo "X11: $has_x11"
     fi
 
     if test "$has_x11" != "no" ; then
@@ -2205,18 +2393,12 @@ fi
 
 
 echo "LZMA: $has_lzma"
-echo "Xiph OGG: $has_ogg"
-echo "Platinum UPnP: $has_platinum"
-
-if test "$has_ogg" = "no"; then
-    has_ogg="no"
-else
-    echo "Xiph Vorbis: $has_vorbis"
-    echo "Xiph Theora: $has_theora"
-fi
+echo "Xiph Vorbis: $has_vorbis"
+echo "Xiph Theora: $has_theora"
 echo "A52 (AC3): $has_a52"
 echo "OpenSVCDecoder: $has_opensvc"
 echo "OpenHEVCDecoder: $has_openhevc"
+echo "Platinum UPnP: $has_platinum"
 echo "Freenect: $has_freenect"
 
 
@@ -2237,11 +2419,37 @@ else
 fi
 
 
+if test "$is_em" = "yes" ; then
+
+extralibs="$extralibs -sALLOW_TABLE_GROWTH -sWASM_BIGINT"
+
+if test "$disable_threads" = "no" ; then
+    CFLAGS="$CFLAGS -sUSE_PTHREADS"
+    extralibs="$extralibs -sUSE_PTHREADS"
+fi
+
+if test "$em_size" = "0" ; then
+    extralibs="$extralibs -sALLOW_MEMORY_GROWTH"
+    if test "$has_ffmpeg" != "no"; then
+        extralibs="$extralibs -sSTACK_SIZE=1MB"
+    fi
+else
+    extralibs="$extralibs -sTOTAL_MEMORY=$em_size"
+fi
+
+if test "$enable_sanitizer" = "yes" ; then
+    CFLAGS="$CFLAGS -fsanitize=address -g2 -DASAN_ENABLED"
+    LDFLAGS="$LDFLAGS -fsanitize=address -ldl"
+fi
+
+else
+
 if test "$enable_sanitizer" = "yes" ; then
     CFLAGS="$CFLAGS -fsanitize=address,undefined -fno-sanitize-recover -g -fno-omit-frame-pointer -DASAN_ENABLED"
     LDFLAGS="$LDFLAGS -fsanitize=address,undefined -ldl"
 fi
 
+fi
 
 ldir=`pwd`
 CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
@@ -2313,7 +2521,6 @@ elif test "$cpu" = "mips" ; then
     echo "TARGET_ARCH_MIPS=yes" >> config.mak
 fi
 
-
 if test "$bigendian" = "yes" ; then
     echo "IS_BIGENDIAN=yes" >> config.mak
     echo "#define GPAC_BIG_ENDIAN" >> $TMPH
@@ -2340,7 +2547,6 @@ fi
 
 if test "$win32" = "yes" ; then
     echo "CONFIG_WIN32=yes" >> config.mak
-    echo "CONFIG_OS=CONFIG_WIN32" >> config.mak
     echo "#define GPAC_CONFIG_WIN32" >> $TMPH
     if test "$cygwin" = "yes" ; then
         echo "#define ftello64 ftell" >> $TMPH
@@ -2370,15 +2576,12 @@ EOF
     fi
 elif test "$linux" = "yes" ; then
     echo "CONFIG_LINUX=yes" >> config.mak
-    echo "CONFIG_OS=CONFIG_LINUX" >> config.mak
     echo "#define GPAC_CONFIG_LINUX" >> $TMPH
 elif test "$freebsd" = "yes" ; then
     echo "CONFIG_FREEBSD=yes" >> config.mak
-    echo "CONFIG_OS=CONFIG_FREEBSD" >> config.mak
     echo "#define GPAC_CONFIG_FREEBSD" >> $TMPH
 elif test "$darwin" = "yes" ; then
     echo "CONFIG_DARWIN=yes" >> config.mak
-    echo "CONFIG_OS=CONFIG_DARWIN" >> config.mak
     echo "#define GPAC_CONFIG_DARWIN" >> $TMPH
     if test "$DarwinGL" = "yes" ; then
         echo "#define CONFIG_DARWIN_GL" >> $TMPH
@@ -2386,10 +2589,12 @@ elif test "$darwin" = "yes" ; then
     echo "mac_apps=$Mac_Applications" >> config.mak
 elif test "$sunos" = "yes" ; then
     echo "CONFIG_SUNOS=yes" >> config.mak
-    echo "CONFIG_OS=CONFIG_SUNOS" >> config.mak
     echo "#define GPAC_CONFIG_SUNOS" >> $TMPH
+elif test "$is_em" = "yes" ; then
+    echo "CONFIG_EMSCRIPTEN=yes" >> config.mak
+    echo "EM_TYPE=$em_type" >> config.mak
+    echo "#define GPAC_CONFIG_EMSCRIPTEN" >> $TMPH
 else
-    echo "CONFIG_OS=CONFIG_GEN" >> config.mak
     echo "#define GPAC_CONFIG_GENERIC" >> $TMPH
 fi
 
@@ -2414,6 +2619,30 @@ fi
 
 fi
 
+echo "HAS_OPENSSL=$has_ssl" >> config.mak
+if test "$has_ssl" != "no" ; then
+    echo "#define GPAC_HAS_SSL" >> $TMPH
+fi
+
+if test "$has_poll" = "yes" ; then
+    echo "#define GPAC_HAS_POLL" >> $TMPH
+fi
+
+if test "$is_64" = "yes" ; then
+    echo "#define GPAC_64_BITS" >> $TMPH
+fi
+
+echo "DISABLE_THREADS=$disable_threads" >> config.mak
+if test "$disable_threads" = "yes" ; then
+    echo "#define GPAC_DISABLE_THREADS" >> $TMPH
+fi
+
+if test "$disable_network" = "yes" ; then
+    echo "Network disabled"
+    echo "#define GPAC_DISABLE_NETWORK" >> $TMPH
+fi
+
+
 if test "$has_zlib" = "no" -o "$has_zlib" = "force-no" ; then
     echo "#define GPAC_DISABLE_ZLIB" >> $TMPH
     echo "CONFIG_ZLIB=no" >> config.mak
@@ -2421,6 +2650,11 @@ else
     echo "CONFIG_ZLIB=$has_zlib" >> config.mak
 fi
 echo "CONFIG_FT=$has_freetype" >> config.mak
+
+if test "$has_remotery" = "no" ; then
+    echo "#define GPAC_DISABLE_REMOTERY" >> $TMPH
+fi
+
 
 if test "$has_jpeg" != "no" ; then
     echo "#define GPAC_HAS_JPEG" >> $TMPH
@@ -2464,7 +2698,6 @@ fi
 if test "$has_xvid" != "no" ; then
     echo "#define GPAC_HAS_XVID" >> $TMPH
 fi
-echo "CONFIG_OGG=$has_ogg" >> config.mak
 
 if test "$has_vorbis" != "no" ; then
     echo "#define GPAC_HAS_VORBIS" >> $TMPH
@@ -2520,7 +2753,7 @@ done
 
 
 
-echo "DISABLE_PLAYER=$disable_player" >> config.mak
+echo "DISABLE_COMPOSITOR=$disable_compositor" >> config.mak
 echo "DISABLE_STREAMING=$disable_streaming" >> config.mak
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "DISABLE_LASER=$disable_laser" >> config.mak
@@ -2575,6 +2808,9 @@ echo "HAS_OPENGL=$has_opengl" >> config.mak
 
 if test "$has_opengl" = "yes" ; then
     echo "OGL_LIBS=$LINK3D" >> config.mak
+    if test "$is_em" = "yes" ; then
+        echo "#define GPAC_USE_GLES2" >> $TMPH
+    fi
 else
     echo "#define GPAC_DISABLE_3D" >> $TMPH
 fi
@@ -2587,15 +2823,12 @@ if test "$disable_nvdec" = "yes" ; then
     echo "#define GPAC_DISABLE_NVDEC" >> $TMPH
 fi
 
-echo "HAS_OPENSSL=$has_ssl" >> config.mak
-if test "$has_ssl" != "no" ; then
-    echo "#define GPAC_HAS_SSL" >> $TMPH
-fi
-
-echo "CONFIG_SDL=$has_sdl" >> config.mak
 if test "$has_sdl" != "no" ; then
+    echo "CONFIG_SDL=yes" >> config.mak
     echo "sdl_cflags=$sdl_cflags" >> config.mak
     echo "sdl_ldflags=$sdl_lib_flags" >> config.mak
+else
+    echo "CONFIG_SDL=no" >> config.mak
 fi
 
 
@@ -2607,14 +2840,6 @@ echo "STATIC_BUILD=$static_build" >> config.mak
 echo "CONFIG_IPV6=$has_ipv6" >> config.mak
 if test "$has_ipv6" = "yes" ; then
     echo "#define GPAC_HAS_IPV6" >> $TMPH
-fi
-
-if test "$has_poll" = "yes" ; then
-    echo "#define GPAC_HAS_POLL" >> $TMPH
-fi
-
-if test "$is_64" = "yes" ; then
-    echo "#define GPAC_64_BITS" >> $TMPH
 fi
 
 if test "$win32" = "yes" ; then
@@ -2644,10 +2869,13 @@ if test "$has_dvb4linux" != "no"; then
 fi
 
 echo "CONFIG_DIRECTFB=$has_directfb" >> config.mak
+if test "$has_directfb" != "no"; then
 echo "DIRECTFB_INC_PATH=$directfb_inc" >> config.mak
 echo "DIRECTFB_LIB=$directfb_lib" >> config.mak
+fi
 
 echo "CONFIG_X11=$has_x11" >> config.mak
+if test "$has_x11" != "no"; then
 
 if test "$has_x11_shm" = "yes"; then
     echo "USE_X11_SHM=$has_x11_shm" >> config.mak
@@ -2659,10 +2887,6 @@ if test "$has_x11_glx" = "yes"; then
     echo "USE_X11_GLX=$has_x11_glx" >> config.mak
 fi
 
-echo "CONFIG_HID=$has_hid" >> config.mak
-echo "HID_LDFLAGS=$hid_lib" >> config.mak
-
-echo "PKG_CONFIG=$pkg_config" >> config.mak
 
 if [ -n "$X11_PATH" ] ; then
 if test "$is_64" = "yes"; then
@@ -2677,6 +2901,17 @@ else
 fi
 echo "X11_INC_PATH=$X11_PATH/include" >> config.mak
 fi
+
+fi
+#end x11!=no
+
+echo "CONFIG_HID=$has_hid" >> config.mak
+if test "$has_hid" != "no"; then
+echo "HID_LDFLAGS=$hid_lib" >> config.mak
+fi
+
+echo "PKG_CONFIG=$pkg_config" >> config.mak
+
 
 #build tree in object directory if source path is different from current one
 if test "$source_path_used" = "yes" ; then
@@ -2757,6 +2992,10 @@ if [ ! -d "./bin/gcc" ] ; then
 fi
 if [ ! -d "./bin/gcc/temp" ] ; then
     mkdir ./bin/gcc/temp
+fi
+
+if test "$is_em" = "yes" ; then
+    ln -sf "$source_path/share/emscripten/gpac.html" "bin/gcc/gpac.html"
 fi
 
 

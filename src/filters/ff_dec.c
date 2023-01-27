@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -816,8 +816,6 @@ dispatch_next:
 
 	//avoid recursion
 	goto decode_next;
-
-//	return ffdec_process_audio(filter, ctx);
 }
 
 #ifndef FFMPEG_NO_SUBS
@@ -1241,6 +1239,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	//clone options (in case we need to destroy/recreate the codec) and open codec
 	av_dict_copy(&options, ctx->options, 0);
+	ffmpeg_check_threads(filter, options, ctx->decoder);
+
 	res = avcodec_open2(ctx->decoder, codec, &options);
 	if (res < 0) {
 		if (options) av_dict_free(&options);
@@ -1498,7 +1498,7 @@ GF_FilterRegister FFDecodeRegister = {
 	.process = ffdec_process,
 	.update_arg = ffdec_update_arg,
 	.process_event = ffdec_process_event,
-	.flags = GF_FS_REG_META,
+	.flags = GF_FS_REG_META|GF_FS_REG_BLOCK_MAIN,
 	//use middle priorty, so that hardware decs/other native impl in gpac can take over if needed
 	//don't use lowest one since we use this for scalable codecs
 	.priority = 128

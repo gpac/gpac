@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -24,6 +24,8 @@
  */
 
 #include <gpac/internal/compositor_dev.h>
+
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 void gf_ar_rcfg_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
@@ -230,9 +232,9 @@ void gf_sc_ar_add_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 	Bool recfg;
 	if (!ar) return;
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 	compositor_setup_aout(ar->compositor);
-#endif //GPAC_DISABLE_PLAYER
+#endif //GPAC_DISABLE_COMPOSITOR
 
 	/*lock mixer*/
 	gf_mixer_lock(ar->mixer, GF_TRUE);
@@ -451,3 +453,4 @@ u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar)
 
 
 
+#endif //GPAC_DISABLE_COMPOSITOR

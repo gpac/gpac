@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / SDL audio and video module
@@ -43,12 +43,18 @@ void SDLOUT_CloseSDL();
 //#define SDL_WINDOW_THREAD
 #endif
 
+
 typedef enum {
 	SDL_STATE_STOPPED = 0,
 	SDL_STATE_RUNNING,
 	SDL_STATE_STOP_REQ,
 	SDL_STATE_WAIT_FOR_THREAD_TERMINATION
 } GF_SDL_STATE;
+
+#if defined(GPAC_DISABLE_THREADS) && defined(SDL_WINDOW_THREAD)
+#undef SDL_WINDOW_THREAD
+#endif
+
 
 typedef struct
 {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -48,99 +48,11 @@ extern "C" {
 #endif
 
 #include <gpac/tools.h>
-#include <gpac/config_file.h>
-#include <gpac/cache.h>
 
-/*!the download manager object. This is usually not used by GPAC modules*/
-typedef struct __gf_download_manager GF_DownloadManager;
+#ifdef GPAC_USE_DOWNLOADER
+
 /*!the download manager session.*/
 typedef struct __gf_download_session GF_DownloadSession;
-/*!the optional filter session.*/
-typedef struct __gf_filter_session GF_DownloadFilterSession;
-
-/*! URL information object*/
-typedef struct GF_URL_Info_Struct {
-	const char * protocol;
-	char * server_name;
-	char * remotePath;
-	char * canonicalRepresentation;
-	char * userName;
-	char * password;
-	u16 port;
-} GF_URL_Info;
-
-/*!
-Extracts the information from an URL. A call to gf_dm_url_info_init() must have been issue before calling this method.
-\param url The URL to fill
-\param info This structure will be initialized properly and filled with the data
-\param baseURL The baseURL to use if any (can be null)
-\return GF_OK if URL is well formed and supported by GPAC
- */
-GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * baseURL);
-
-/**
-Inits the GF_URL_Info structure before it can be used
-\param info The structure to initialize
- */
-void gf_dm_url_info_init(GF_URL_Info * info);
-
-/*!
-Frees the inner structures of a GF_URL_Info_Struct
-\param info The info to free
- */
-void gf_dm_url_info_del(GF_URL_Info * info);
-
-/*!
-\brief download manager constructor
-
-Creates a new download manager object.
-\param fsess optional filter session. If not NULL, the filter session will be used for async downloads. Otherwise, threads will be created
-\return the download manager object
-*/
-GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
-/*!
-\brief download manager destructor
-
-Deletes the download manager. All running sessions are aborted
-\param dm the download manager object
- */
-void gf_dm_del(GF_DownloadManager *dm);
-
-/*!
-\brief callback function for authentication
-
-This function is called back after user and password has been entered
-\param usr_cbk opaque user data passed by download manager
-\param usr_name the user name for the desired site, or NULL if the authentication was canceled
-\param password the password for the desired site and user, or NULL if the authentication was canceled
-\param store_info if TRUE, credentials will be stored in gpac config
-*/
-typedef void (*gf_dm_on_usr_pass)(void *usr_cbk, const char *usr_name, const char *password, Bool store_info);
-/*!
-\brief function for authentication
-
-The gf_dm_get_usr_pass type is the type for the callback of the \ref gf_dm_set_auth_callback function used for password retrieval
-
-\param usr_cbk opaque user data
-\param secure indicates if TLS is used
-\param site_url url of the site the user and password are requested for
-\param usr_name the user name for this site. The allocated space for this buffer is 50 bytes. \note this varaibale may already be formatted.
-\param password the password for this site and user. The allocated space for this buffer is 50 bytes.
-\param async_pass async function to call back when user and pass have been entered. If NULL, sync call will be performed
-\param async_udta async user data to pass back to the async function. If NULL, sync call will be performed
-\return GF_FALSE if user didn't fill in the information which will result in an authentication failure, GF_TRUE otherwise (info was filled if not async, or request was posted).
-*/
-typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, Bool secure, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta);
-
-/*!
-\brief password retrieval assignment
-
-Assigns the callback function used for user password retrieval. If no such function is assigned to the download manager, all downloads requiring authentication will fail.
-\param dm the download manager object
-\param get_pass specifies \ref gf_dm_get_usr_pass callback function for user and password retrieval.
-\param usr_cbk opaque user data passed to callback function
- */
-void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_pass, void *usr_cbk);
 
 /*!downloader session message types*/
 typedef enum
@@ -237,6 +149,101 @@ The gf_dm_user_io type is the type for the data callback function of a download 
 \param parameter the input/output parameter structure
 */
 typedef void (*gf_dm_user_io)(void *usr_cbk, GF_NETIO_Parameter *parameter);
+
+
+#ifndef GPAC_DISABLE_NETWORK
+
+#include <gpac/config_file.h>
+#include <gpac/cache.h>
+
+/*!the download manager object. This is usually not used by GPAC modules*/
+typedef struct __gf_download_manager GF_DownloadManager;
+/*!the optional filter session.*/
+typedef struct __gf_filter_session GF_DownloadFilterSession;
+
+/*! URL information object*/
+typedef struct GF_URL_Info_Struct {
+	const char * protocol;
+	char * server_name;
+	char * remotePath;
+	char * canonicalRepresentation;
+	char * userName;
+	char * password;
+	u16 port;
+} GF_URL_Info;
+
+/*!
+Extracts the information from an URL. A call to gf_dm_url_info_init() must have been issue before calling this method.
+\param url The URL to fill
+\param info This structure will be initialized properly and filled with the data
+\param baseURL The baseURL to use if any (can be null)
+\return GF_OK if URL is well formed and supported by GPAC
+ */
+GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * baseURL);
+
+/**
+Inits the GF_URL_Info structure before it can be used
+\param info The structure to initialize
+ */
+void gf_dm_url_info_init(GF_URL_Info * info);
+
+/*!
+Frees the inner structures of a GF_URL_Info_Struct
+\param info The info to free
+ */
+void gf_dm_url_info_del(GF_URL_Info * info);
+
+/*!
+\brief download manager constructor
+
+Creates a new download manager object.
+\param fsess optional filter session. If not NULL, the filter session will be used for async downloads. Otherwise, threads will be created
+\return the download manager object
+*/
+GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
+/*!
+\brief download manager destructor
+
+Deletes the download manager. All running sessions are aborted
+\param dm the download manager object
+ */
+void gf_dm_del(GF_DownloadManager *dm);
+
+/*!
+\brief callback function for authentication
+
+This function is called back after user and password has been entered
+\param usr_cbk opaque user data passed by download manager
+\param usr_name the user name for the desired site, or NULL if the authentication was canceled
+\param password the password for the desired site and user, or NULL if the authentication was canceled
+\param store_info if TRUE, credentials will be stored in gpac config
+*/
+typedef void (*gf_dm_on_usr_pass)(void *usr_cbk, const char *usr_name, const char *password, Bool store_info);
+/*!
+\brief function for authentication
+
+The gf_dm_get_usr_pass type is the type for the callback of the \ref gf_dm_set_auth_callback function used for password retrieval
+
+\param usr_cbk opaque user data
+\param secure indicates if TLS is used
+\param site_url url of the site the user and password are requested for
+\param usr_name the user name for this site. The allocated space for this buffer is 50 bytes. \note this varaibale may already be formatted.
+\param password the password for this site and user. The allocated space for this buffer is 50 bytes.
+\param async_pass async function to call back when user and pass have been entered. If NULL, sync call will be performed
+\param async_udta async user data to pass back to the async function. If NULL, sync call will be performed
+\return GF_FALSE if user didn't fill in the information which will result in an authentication failure, GF_TRUE otherwise (info was filled if not async, or request was posted).
+*/
+typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, Bool secure, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta);
+
+/*!
+\brief password retrieval assignment
+
+Assigns the callback function used for user password retrieval. If no such function is assigned to the download manager, all downloads requiring authentication will fail.
+\param dm the download manager object
+\param get_pass specifies \ref gf_dm_get_usr_pass callback function for user and password retrieval.
+\param usr_cbk opaque user data passed to callback function
+ */
+void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_pass, void *usr_cbk);
 
 
 
@@ -622,6 +629,38 @@ GF_UserCredentials *gf_user_credentials_find_for_site(GF_DownloadManager *dm, co
 GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool secure, const char * server_name, const char * username, const char * password, Bool valid);
 
 /*! @} */
+
+
+//end GPAC_DISABLE_NETWORK
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+typedef void GF_DownloadManager;
+
+GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 dl_flags,
+                                   gf_dm_user_io user_io,
+                                   void *usr_cbk,
+                                   GF_Err *e);
+void gf_dm_sess_abort(GF_DownloadSession * sess);
+void gf_dm_sess_del(GF_DownloadSession *sess);
+const char *gf_dm_sess_get_cache_name(GF_DownloadSession *sess);
+void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess, u32 force_keep);
+GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool allow_direct_reuse);
+GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache);
+GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size);
+GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u64 *total_size, u64 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status);
+const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
+GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val);
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url);
+GF_Err gf_dm_sess_process_headers(GF_DownloadSession * sess);
+GF_Err gf_dm_sess_process(GF_DownloadSession *sess);
+const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
+const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name);
+u64 gf_dm_sess_get_utc_start(GF_DownloadSession *sess);
+u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
+
+
+#endif //GPAC_CONFIG_EMSCRIPTEN
+
+#endif //GPAC_USE_DOWNLOADER
 
 #ifdef __cplusplus
 }

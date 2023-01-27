@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato, Jean Le Feuvre
- *          Copyright (c) Telecom ParisTech 2000-2022
+ *          Copyright (c) Telecom ParisTech 2000-2023
  *                  All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1428,7 +1428,11 @@ GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_m
 	wvtt = gf_webvtt_isom_get_description(file, track, index);
 	if (!wvtt) return GF_BAD_PARAM;
 	if (box_mode) {
+#ifndef GPAC_DISABLE_ISOM_DUMP
 		gf_isom_box_dump(wvtt, dump);
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	} else {
 		gf_fprintf(dump, "%s\n\n", wvtt->config->string);
 	}
@@ -1452,7 +1456,9 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 		if (e) return e;
 
 		if (box_mode) {
+#ifndef GPAC_DISABLE_ISOM_DUMP
 			gf_isom_box_dump(box, dump);
+#endif
 		} else if (box->type == GF_ISOM_BOX_TYPE_VTCC_CUE) {
 			GF_VTTCueBox *cuebox = (GF_VTTCueBox *)box;
 			if (cuebox->id) gf_fprintf(dump, "%s", cuebox->id->string);
@@ -1480,7 +1486,7 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 }
 #endif
 
-#ifndef GPAC_DISABLE_ISOM_DUMP
+#ifndef GPAC_DISABLE_ISOM
 GF_Err gf_webvtt_parser_finalize(GF_WebVTTParser *parser, u64 duration)
 {
 	GF_WebVTTSample *sample;
