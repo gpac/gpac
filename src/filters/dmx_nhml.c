@@ -87,6 +87,8 @@ typedef struct
 
 	GF_BitStream *bs_w;
 	GF_BitStream *bs_r;
+
+	GF_FileIO *fio;
 } GF_NHMLDmxCtx;
 
 
@@ -984,7 +986,6 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	GF_Err e;
 	u32 i;
 	GF_XMLAttribute *att;
-	FILE *nhml;
 	const GF_PropertyValue *p;
 	char *ext;
 	GF_XMLNode *node;
@@ -997,12 +998,18 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NOT_SUPPORTED;
+		const u8 *data;
+		u32 size;
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
+		data = gf_filter_pck_get_data(pck, &size);
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_URL);
+		if (ctx->fio) gf_fclose((FILE*) ctx->fio);
+		ctx->fio = gf_fileio_from_mem(p ? p->value.string : NULL, data, size);
+		ctx->src_url = gf_fileio_url(ctx->fio);
+	} else {
+		ctx->src_url = p->value.string;
 	}
-	ctx->src_url = p->value.string;
-	nhml = gf_fopen(ctx->src_url, "rt");
-	if (!nhml) {
+	if (! gf_file_exists(ctx->src_url)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot find %s file %s\n", szImpName, ctx->src_url));
 		return GF_URL_ERROR;
 	}
@@ -1022,13 +1029,11 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	gf_dynstrcat(&ctx->media_file, ".media", NULL);
 
 	ctx->parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse(ctx->parser, p->value.string, NULL, NULL);
+	e = gf_xml_dom_parse(ctx->parser, ctx->src_url, NULL, NULL);
 	if (e) {
-		gf_fclose(nhml);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file: Line %d - %s\n", szImpName, gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	gf_fclose(nhml);
 
 	ctx->root = gf_xml_dom_get_root(ctx->parser);
 	if (!ctx->root) {
@@ -1370,7 +1375,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 					base_media_file = att->value;
 					char *url = gf_url_concatenate(ctx->src_url, att->value);
 					if (!url) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to get full url for %s\n", att->value));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to get full url for %s (media import only supported for local URLs)\n", att->value));
 					} else {
 						strncpy(szMediaTemp, url, GF_MAX_PATH-1);
 						szMediaTemp[GF_MAX_PATH-1] = 0;
@@ -1488,6 +1493,10 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			} else {
 				if (!offset) offset = ctx->media_done;
 				byte_offset = offset;
+				if (!f && ctx->samp_buffer_size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Media file %s not found\n", ctx->media_file));
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
 			}
 
 			//use full file only if no subbs
@@ -1670,9 +1679,16 @@ GF_Err nhmldmx_process(GF_Filter *filter)
 		e = nhmldmx_send_sample(filter, ctx);
 		if (e) return e;
 		break;
+	//EOS
 	case 2:
 	default:
-		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+		if (pck) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			if (ctx->fio) {
+				gf_fclose((FILE*) ctx->fio);
+				ctx->fio = NULL;
+			}
+		}
 		if (ctx->opid) {
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -1694,6 +1710,8 @@ void nhmldmx_finalize(GF_Filter *filter)
 	if (ctx->mdia) gf_fclose(ctx->mdia);
 	if (ctx->parser)
 		gf_xml_dom_del(ctx->parser);
+
+	if (ctx->fio) gf_fclose((FILE*) ctx->fio);
 
 #ifndef GPAC_DISABLE_ZLIB
 	if (ctx->dictionary) gf_free(ctx->dictionary);

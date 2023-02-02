@@ -3907,7 +3907,6 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	do_js_gc(priv->js_ctx, node);
 }
 
-
 static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_script, JSValue *rval)
 {
 	char *jsscript;
@@ -3964,6 +3963,68 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	return success;
 }
 
+#ifndef GPAC_DISABLE_SVG
+Bool svg_js_load_script(GF_Node *script, char *file);
+#endif
+
+typedef struct
+{
+	GF_Node *script;
+	//type: 0: VRML main JS, 1: imported JS from VRML JS, 2: SVG JS
+	u32 type;
+	GF_DownloadSession *sess;
+} AsyncFetcher;
+
+void async_script_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
+{
+	AsyncFetcher *as = usr_cbk;
+	GF_Err e=GF_OK;
+	if (parameter->msg_type == GF_NETIO_DATA_TRANSFERED) {
+		const char *szCache = gf_dm_sess_get_cache_name(parameter->sess);
+		if (as->type<=1) {
+			M_Script *script = (M_Script *) as->script;
+			GF_ScriptPriv *priv = (GF_ScriptPriv *) as->script->sgprivate->UserPrivate;
+			JSValue rval;
+			if (!vrml_js_load_script(script, (char *) szCache, (as->type==1) ? 0 : 1, &rval))
+				e = GF_SCRIPT_ERROR;
+			JS_FreeValue(priv->js_ctx, rval);
+		} else {
+#ifndef GPAC_DISABLE_SVG
+			if (!svg_js_load_script(as->script, (char *) szCache))
+#endif
+				e = GF_SCRIPT_ERROR;
+		}
+		gf_dm_sess_del(as->sess);
+		gf_free(as);
+	}
+	else if (parameter->msg_type == GF_NETIO_STATE_ERROR) {
+		e = parameter->error;
+		gf_dm_sess_del(as->sess);
+		gf_free(as);
+	}
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("Failed to load script: %s\n", gf_error_to_string(e)));
+	}
+}
+
+GF_Err vrml_svg_js_async_load(GF_DownloadManager *dnld_man, char *url, u32 type, GF_Node *script, JSValue *rval)
+{
+	AsyncFetcher *as;
+	GF_Err e;
+	if (rval) *rval = JS_UNDEFINED;
+	GF_SAFEALLOC(as, AsyncFetcher);
+	if (!as) return GF_OUT_OF_MEM;
+	//GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->UserPrivate;
+	as->script = script;
+	as->type = type;
+	as->sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_MEMORY_CACHE, async_script_sess_io, as, &e);
+	if (e) {
+		gf_free(as);
+		return e;
+	}
+	return gf_dm_sess_process(as->sess);
+}
+
 /*fetches each listed URL and attempts to load the script - this is SYNCHRONOUS*/
 Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSValue *rval)
 {
@@ -4010,16 +4071,7 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSV
 			if (no_complain) return 0;
 		} else {
 #ifdef GPAC_USE_DOWNLOADER
-			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-			if (sess) {
-				e = gf_dm_sess_process(sess);
-				if (e==GF_OK) {
-					const char *szCache = gf_dm_sess_get_cache_name(sess);
-					if (!vrml_js_load_script(script, (char *) szCache, opt_file ? 0 : 1, rval))
-						e = GF_SCRIPT_ERROR;
-				}
-				gf_dm_sess_del(sess);
-			}
+			e = vrml_svg_js_async_load(dnld_man, url, opt_file ? 1 : 0, node, rval);
 			gf_free(url);
 			if (!e) return 1;
 #endif

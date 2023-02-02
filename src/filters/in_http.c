@@ -257,7 +257,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			assert(ctx->is_end);
 			assert(!ctx->pck_out);
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !ctx->prev_was_init_segment) {
-				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src);
+				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPIn] Switch from %s to %s\n", gf_file_basename(ctx->src), gf_file_basename(evt->seek.source_switch) ));
 			if (ctx->src) gf_free(ctx->src);
@@ -625,7 +625,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"
 	"- none: no cache\n"
 	"- none_keep: stores to memory, keep after session is reassigned but move to `none` after first download"
-	, GF_PROP_UINT, "disk", "auto|disk|keep|mem|mem_keep|none|none_keep", GF_FS_ARG_HINT_ADVANCED},
+	, GF_PROP_UINT, "none", "auto|disk|keep|mem|mem_keep|none|none_keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "set byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},

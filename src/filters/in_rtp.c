@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -131,8 +131,7 @@ found:
 static GF_Err rtpin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *prop;
-	const char *src = NULL;
-	u32 crc;
+	u32 crc = 0;
 	GF_RTPIn *ctx = gf_filter_get_udta(filter);
 
 	if (ctx->src) {
@@ -150,13 +149,10 @@ static GF_Err rtpin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	//we must have a file path
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
-	if (prop && prop->value.string) src = prop->value.string;
-	if (!src)
-		return GF_NOT_SUPPORTED;
-
-	crc = gf_crc_32(src, (u32) strlen(src) );
+	//get crc of URL
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
+	if (prop && prop->value.string)
+		crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string) );
 
 	if (!ctx->ipid) {
 		ctx->ipid = pid;

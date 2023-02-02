@@ -60,6 +60,10 @@ typedef struct
 	u64 pck_time;
 	const char *service_url;
 	Bool is_playing;
+
+	GF_FileIO *fio;
+	Bool load_file;
+	GF_FilterPacket *pck_ref;
 } CTXLoadPriv;
 
 #ifndef GPAC_DISABLE_COMPOSITOR
@@ -171,7 +175,10 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	//we must have a file path
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (!prop || ! prop->value.string) {
-		return GF_NOT_SUPPORTED;
+		if (!priv->load_file) {
+			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+			priv->load_file = GF_TRUE;
+		}
 	}
 
 	if (!priv->in_pid) {
@@ -190,12 +197,14 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			return GF_REQUIRES_NEW_INSTANCE;
 		}
 		//update of PID filename
-		if (!prop->value.string || !priv->file_name || strcmp(prop->value.string, priv->file_name))
-			return GF_NOT_SUPPORTED;
+		if (prop) {
+			if (!prop->value.string || !priv->file_name || strcmp(prop->value.string, priv->file_name))
+				return GF_NOT_SUPPORTED;
+		}
 		return GF_OK;
 	}
 
-	priv->file_name = prop->value.string;
+	priv->file_name = prop ? prop->value.string : NULL;
 	priv->nb_streams = 1;
 
 	//declare a new output PID of type scene, codecid RAW
@@ -376,6 +385,27 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			return GF_EOS;
 		}
 		return GF_OK;
+	}
+
+	if (priv->load_file) {
+		const GF_PropertyValue *p;
+		pck = gf_filter_pid_get_packet(priv->in_pid);
+		const u8 *data;
+		u32 size;
+		if (!pck) return GF_OK;
+		data = gf_filter_pck_get_data(pck, &size);
+		if (priv->fio) {
+			gf_fclose((FILE*)priv->fio);
+			gf_filter_pck_unref(priv->pck_ref);
+		}
+		p = gf_filter_pid_get_property(priv->in_pid, GF_PROP_PID_URL);
+		priv->fio = gf_fileio_from_mem(p ? p->value.string : NULL, data, size);
+		priv->file_name = gf_fileio_url(priv->fio);
+		priv->pck_ref = pck;
+		gf_filter_pck_ref(&priv->pck_ref);
+		e = ctxload_configure_pid(filter, priv->in_pid, GF_FALSE);
+		priv->load_file = GF_FALSE;
+		if (e) return e;
 	}
 
 	/*something failed*/
@@ -763,6 +793,13 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 	if ((priv->load_flags==2) && !updates_pending) {
 		gf_filter_pid_set_eos(priv->out_pid);
+
+		if (priv->fio) {
+			gf_fclose((FILE*)priv->fio);
+			priv->fio = NULL;
+			gf_filter_pck_unref(priv->pck_ref);
+			priv->pck_ref = NULL;
+		}
 		return GF_EOS;
 	}
 	if (!min_next_time_ms) min_next_time_ms = 1;
@@ -781,6 +818,11 @@ static void ctxload_finalize(GF_Filter *filter)
 
 	if (priv->ctx) gf_sm_del(priv->ctx);
 	if (priv->files_to_delete) gf_list_del(priv->files_to_delete);
+
+	if (priv->fio) {
+		gf_fclose((FILE*)priv->fio);
+		gf_filter_pck_unref(priv->pck_ref);
+	}
 }
 
 #include <gpac/utf.h>

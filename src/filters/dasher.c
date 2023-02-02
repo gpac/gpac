@@ -240,7 +240,11 @@ typedef struct
 
 	Bool no_seg_dur;
 
-	Bool utc_initialized;
+	u32 utc_initialized;
+#ifdef GPAC_USE_DOWNLOADER
+	GF_DownloadSession *utc_sess;
+#endif
+
 	DasherUTCTimingType utc_timing_type;
 	s32 utc_diff;
 
@@ -5587,7 +5591,6 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 	GF_Err e;
 	const char *cache_name;
 	u32 size;
-	GF_DownloadSession *sess;
 #endif
 	GF_DownloadManager *dm;
 	char *url;
@@ -5604,38 +5607,57 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 		url += 4;
 	}
 
-	dm  = gf_filter_get_download_manager(filter);
-	if (!dm) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to get download manager, cannot sync to remote UTC clock\n"));
-		return;
-	}
 	if (!strcmp(ctx->utcs, "inband")) {
 		ctx->utc_timing_type = DASHER_UTCREF_INBAND;
 		return;
 	}
-#ifdef GPAC_USE_DOWNLOADER
-	sess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create session for remote UTC source %s: %s - local clock will be used instead\n", url, gf_error_to_string(e) ));
-		return;
+#ifndef GPAC_USE_DOWNLOADER
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] No download manager, cannot sync to remote UTC clock\n"));
+	ctx->utc_timing_type = DASHER_UTCREF_NONE;
+	return;
+#else
+	//create session
+	if (!ctx->utc_sess) {
+		dm  = gf_filter_get_download_manager(filter);
+		if (!dm) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to get download manager, cannot sync to remote UTC clock\n"));
+			return;
+		}
+		ctx->utc_sess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_MEMORY_CACHE, NULL, NULL, &e);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create session for remote UTC source %s: %s - local clock will be used instead\n", url, gf_error_to_string(e) ));
+			return;
+		}
+		e = gf_dm_sess_process(ctx->utc_sess);
+		if (e==GF_IP_NETWORK_EMPTY) {
+			ctx->utc_initialized = GF_FALSE;
+			return;
+		}
 	}
-	while (1) {
-		GF_NetIOStatus status;
-		e = gf_dm_sess_process(sess);
-		if (e) break;
-		gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, &status);
-		if (status>=GF_NETIO_DATA_TRANSFERED) break;
+	//check we are done
+	GF_NetIOStatus status;
+	e = gf_dm_sess_get_stats(ctx->utc_sess, NULL, NULL, NULL, NULL, NULL, &status);
+	if (status==GF_NETIO_DATA_TRANSFERED) e = GF_OK;
+	else if (status==GF_NETIO_DATA_EXCHANGE) e = GF_NOT_READY;
+	else if (status==GF_NETIO_STATE_ERROR) {}
+	else if ((status==GF_NETIO_DISCONNECTED) && (e>=GF_OK))
+		e = GF_OK;
+	else
+		e = GF_NOT_READY;
+
+	if (e==GF_NOT_READY) {
+		ctx->utc_initialized = GF_FALSE;
+		return;
 	}
 	if (e<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to fetch remote UTC source %s: %s\n", url, gf_error_to_string(e) ));
-		gf_dm_sess_del(sess);
+		gf_dm_sess_del(ctx->utc_sess);
+		ctx->utc_sess = NULL;
 		return;
 	}
-	cache_name = gf_dm_sess_get_cache_name(sess);
+	cache_name = gf_dm_sess_get_cache_name(ctx->utc_sess);
 	gf_blob_get(cache_name, &data, &size, NULL);
-#else
-	//TODO
-#endif // GPAC_USE_DOWNLOADER
+
 	if (data) {
 		//xsDate or isoDate - we always signal using iso
 		if (strchr(data, 'T')) {
@@ -5655,23 +5677,17 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 				ctx->utc_timing_type = DASHER_UTCREF_NTP;
 		}
 	}
-#ifdef GPAC_USE_DOWNLOADER
 	gf_blob_release(cache_name);
-#endif
 
 	//not match, try http date
 	if (!ctx->utc_timing_type) {
-#ifdef GPAC_USE_DOWNLOADER
-		const char *hdr = gf_dm_sess_get_header(sess, "Date");
+		const char *hdr = gf_dm_sess_get_header(ctx->utc_sess, "Date");
 		if (hdr) {
 			//http-head
 			remote_utc = gf_net_parse_date(hdr);
 			if (remote_utc)
 				ctx->utc_timing_type = DASHER_UTCREF_HTTP_HEAD;
 		}
-#else
-	//TODO
-#endif
 	}
 
 	if (!ctx->utc_timing_type) {
@@ -5684,45 +5700,8 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Synchronized clock to remote %s - UTC diff (local - remote) %d ms\n", url, ctx->utc_diff));
 		}
-
-		if (!gf_list_count(ctx->mpd->utc_timings) ) {
-			Bool dashif_ok = GF_FALSE;
-			GF_MPD_Descriptor *utc_t;
-			GF_SAFEALLOC(utc_t, GF_MPD_Descriptor);
-			utc_t->value = gf_strdup(url);
-			switch (ctx->utc_timing_type) {
-			case DASHER_UTCREF_HTTP_HEAD:
-				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-head:2014");
-				break;
-			case DASHER_UTCREF_XSDATE:
-				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-xsdate:2014");
-				dashif_ok = GF_TRUE;
-				break;
-			case DASHER_UTCREF_ISO:
-				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-iso:2014");
-				dashif_ok = GF_TRUE;
-				break;
-			case DASHER_UTCREF_NTP:
-				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-ntp:2014");
-				dashif_ok = GF_TRUE;
-				break;
-			case DASHER_UTCREF_INBAND:
-				utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:direct:2014");
-				break;
-			default:
-				break;
-			}
-			if (!dashif_ok && (ctx->profile==GF_DASH_PROFILE_DASHIF_LL)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] UTC reference %s allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n", utc_t->scheme_id_uri));
-				ctx->profile = GF_DASH_PROFILE_LIVE;
-			}
-			if (!ctx->mpd->utc_timings)
-				ctx->mpd->utc_timings = gf_list_new();
-			gf_list_add(ctx->mpd->utc_timings, utc_t);
-		}
 	}
-#ifdef GPAC_USE_DOWNLOADER
-	gf_dm_sess_del(sess);
+	gf_dm_sess_del(ctx->utc_sess);
 #endif
 }
 
@@ -6462,13 +6441,50 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	if (!ctx->mpd->availabilityStartTime && (ctx->dmode!=GF_MPD_TYPE_STATIC) && !inject_ds) {
 		u64 dash_start_date = ctx->ast ? gf_net_parse_date(ctx->ast) : 0;
 
-		if (!ctx->utc_initialized) {
-			dasher_init_utc(filter, ctx);
+		if (ctx->utc_timing_type != DASHER_UTCREF_NONE) {
+			if (!gf_list_count(ctx->mpd->utc_timings) ) {
+				Bool dashif_ok = GF_FALSE;
+				GF_MPD_Descriptor *utc_t;
+				char *url = ctx->utcs;
+				if (!strncmp(url, "xsd@", 4)) url += 4;
 
-			//setup service description
-			if (ctx->profile == GF_DASH_PROFILE_DASHIF_LL) {
-				ctx->mpd->inject_service_desc = GF_TRUE;
+				GF_SAFEALLOC(utc_t, GF_MPD_Descriptor);
+				utc_t->value = gf_strdup(url);
+				switch (ctx->utc_timing_type) {
+				case DASHER_UTCREF_HTTP_HEAD:
+					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-head:2014");
+					break;
+				case DASHER_UTCREF_XSDATE:
+					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-xsdate:2014");
+					dashif_ok = GF_TRUE;
+					break;
+				case DASHER_UTCREF_ISO:
+					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-iso:2014");
+					dashif_ok = GF_TRUE;
+					break;
+				case DASHER_UTCREF_NTP:
+					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:http-ntp:2014");
+					dashif_ok = GF_TRUE;
+					break;
+				case DASHER_UTCREF_INBAND:
+					utc_t->scheme_id_uri = gf_strdup("urn:mpeg:dash:utc:direct:2014");
+					break;
+				default:
+					break;
+				}
+				if (!dashif_ok && (ctx->profile==GF_DASH_PROFILE_DASHIF_LL)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] UTC reference %s allowed in DASH-IF Low Latency profile\n\tswitching to regular live profile\n", utc_t->scheme_id_uri));
+					ctx->profile = GF_DASH_PROFILE_LIVE;
+				}
+				if (!ctx->mpd->utc_timings)
+					ctx->mpd->utc_timings = gf_list_new();
+				gf_list_add(ctx->mpd->utc_timings, utc_t);
 			}
+		}
+
+		//setup service description
+		if (ctx->profile == GF_DASH_PROFILE_DASHIF_LL) {
+			ctx->mpd->inject_service_desc = GF_TRUE;
 		}
 
 		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
@@ -7867,6 +7883,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->in_error) {
 		gf_filter_abort(filter);
 		return GF_SERVICE_ERROR;
+	}
+	if (!ctx->utc_initialized) {
+		dasher_init_utc(filter, ctx);
+		if (!ctx->utc_initialized) return GF_OK;
 	}
 
 	//session regulation is on and we have a an MPD (setup done) and a next time (first seg processed)
@@ -9358,7 +9378,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		ctx->sseg = ctx->sfile = GF_FALSE;
 		ctx->no_fragments_defaults = ctx->align = ctx->tpl = ctx->sap = GF_TRUE;
 		if (!ctx->utcs) {
-			const char *default_utc_timing_server = "http://time.akamai.com/?iso&ms";
+			const char *default_utc_timing_server = "https://time.akamai.com/?iso&ms";
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH-IF LL requires UTCTiming but none specified, using %s \n", default_utc_timing_server));
 			ctx->utcs = gf_strdup(default_utc_timing_server);
 		}
@@ -9495,6 +9515,9 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 			return e;
 		}
 	}
+
+
+	dasher_init_utc(filter, ctx);
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	//we need to read the state file so we must run on main thread

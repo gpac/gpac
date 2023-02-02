@@ -4591,6 +4591,7 @@ u32 gf_filter_count_source_by_protocol(GF_Filter *filter, const char *protocol_s
 		}
 
 		res++;
+		gf_mx_p(filter->session->filters_mx);
 	}
 
 	gf_mx_v(filter->session->filters_mx);

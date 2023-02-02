@@ -100,7 +100,7 @@ typedef enum
 	GF_NETIO_SESSION_NOTIFY_DATA = 1<<2,
 	/*indicates that the connection to the server should be kept once the download is successfully completed*/
 	GF_NETIO_SESSION_PERSISTENT = 1<<3,
-	/*file is stored in memory, and the cache name is set to gpac://%u@%p, where %d is the size in bytes and %d is the the pointer to the memory.
+	/*file is stored in memory, and the cache name is set to gmem://%p, where %p is the blob object adress.
 	Memory cached files are destroyed upon downloader destruction*/
 	GF_NETIO_SESSION_MEMORY_CACHE = 1<<4,
 	/*! do not delete files after download*/
@@ -150,16 +150,16 @@ The gf_dm_user_io type is the type for the data callback function of a download 
 */
 typedef void (*gf_dm_user_io)(void *usr_cbk, GF_NETIO_Parameter *parameter);
 
+/*!the download manager object. This is usually not used by GPAC modules*/
+typedef struct __gf_download_manager GF_DownloadManager;
+/*!the optional filter session.*/
+typedef struct __gf_filter_session GF_DownloadFilterSession;
+
 
 #ifndef GPAC_DISABLE_NETWORK
 
 #include <gpac/config_file.h>
 #include <gpac/cache.h>
-
-/*!the download manager object. This is usually not used by GPAC modules*/
-typedef struct __gf_download_manager GF_DownloadManager;
-/*!the optional filter session.*/
-typedef struct __gf_filter_session GF_DownloadFilterSession;
 
 /*! URL information object*/
 typedef struct GF_URL_Info_Struct {
@@ -360,8 +360,9 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm, const char * 
 Marks the cache file for this session to be deleted once the file is not used anymore by any session
 \param sess the download session
 \param url The URL associate to the cache entry to be deleted
+\param force if TRUE will remove the active cache entry regardless of the URL
  */
-void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url);
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url, Bool force);
 
 /*!
 \brief get statistics
@@ -633,7 +634,6 @@ GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool 
 
 //end GPAC_DISABLE_NETWORK
 #elif defined(GPAC_CONFIG_EMSCRIPTEN)
-typedef void GF_DownloadManager;
 
 GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 dl_flags,
                                    gf_dm_user_io user_io,
@@ -649,13 +649,17 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u64 *total_size, u64 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status);
 const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
 GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val);
-void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url);
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url, Bool force);
 GF_Err gf_dm_sess_process_headers(GF_DownloadSession * sess);
 GF_Err gf_dm_sess_process(GF_DownloadSession *sess);
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
 const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name);
 u64 gf_dm_sess_get_utc_start(GF_DownloadSession *sess);
 u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
+u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
+void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
+GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
+void gf_dm_del(GF_DownloadManager *dm);
 
 
 #endif //GPAC_CONFIG_EMSCRIPTEN

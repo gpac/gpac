@@ -809,7 +809,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 	gf_fs_unload_script(fsess, NULL);
 
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
 #endif
 
@@ -1483,6 +1483,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 #if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
 	Bool flush_main_blocking = (!thid && !fsess->is_worker) ? GF_TRUE : GF_FALSE;
+	if (flush_main_blocking) do_regulate = GF_FALSE;
 #endif
 
 	sess_thread->th_id = gf_th_id();
@@ -3791,11 +3792,13 @@ static Bool gf_fsess_get_user_pass(void *usr_cbk, Bool secure, const char *site_
 #endif
 static GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs)
 {
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 	if (!fs->download_manager) {
 		fs->download_manager = gf_dm_new(fs);
 
+#ifndef GPAC_DISABLE_NETWORK
 		gf_dm_set_auth_callback(fs->download_manager, gf_fsess_get_user_pass, fs);
+#endif
 	}
 	return fs->download_manager;
 #else
@@ -4306,7 +4309,7 @@ Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, void *vout)
 GF_EXPORT
 u32 gf_fs_get_http_max_rate(GF_FilterSession *fs)
 {
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 	if (!fs->download_manager) {
 		gf_fs_get_download_manager(fs);
 		if (!fs->download_manager) return 0;
@@ -4320,7 +4323,7 @@ u32 gf_fs_get_http_max_rate(GF_FilterSession *fs)
 GF_EXPORT
 GF_Err gf_fs_set_http_max_rate(GF_FilterSession *fs, u32 rate)
 {
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 	if (!fs) return GF_OK;
 	if (!fs->download_manager) {
 		gf_fs_get_download_manager(fs);
@@ -4334,7 +4337,7 @@ GF_Err gf_fs_set_http_max_rate(GF_FilterSession *fs, u32 rate)
 GF_EXPORT
 u32 gf_fs_get_http_rate(GF_FilterSession *fs)
 {
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 	if (!fs->download_manager) {
 		gf_fs_get_download_manager(fs);
 		if (!fs->download_manager) return 0;

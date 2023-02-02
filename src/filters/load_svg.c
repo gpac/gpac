@@ -48,6 +48,10 @@ typedef struct
 	u32 file_pos;
 	void *src;
 	Bool is_playing;
+
+	GF_FileIO *fio;
+	Bool load_file;
+	GF_FilterPacket *pck_ref;
 } SVGIn;
 
 
@@ -94,6 +98,8 @@ GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len, Bool is_d
 	return GF_NON_COMPLIANT_BITSTREAM;
 }
 
+static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
+
 static GF_Err svgin_process(GF_Filter *filter)
 {
 	Bool start, end;
@@ -110,6 +116,27 @@ static GF_Err svgin_process(GF_Filter *filter)
 			return GF_EOS;
 		}
 		return GF_OK;
+	}
+
+	if (svgin->load_file) {
+		const GF_PropertyValue *p;
+		pck = gf_filter_pid_get_packet(svgin->in_pid);
+		const u8 *data;
+		u32 size;
+		if (!pck) return GF_OK;
+		data = gf_filter_pck_get_data(pck, &size);
+		if (svgin->fio) {
+			gf_fclose((FILE*)svgin->fio);
+			gf_filter_pck_unref(svgin->pck_ref);
+		}
+		p = gf_filter_pid_get_property(svgin->in_pid, GF_PROP_PID_URL);
+		svgin->fio = gf_fileio_from_mem(p ? p->value.string : NULL, data, size);
+		svgin->file_name = gf_fileio_url(svgin->fio);
+		svgin->pck_ref = pck;
+		gf_filter_pck_ref(&svgin->pck_ref);
+		e = svgin_configure_pid(filter, svgin->in_pid, GF_FALSE);
+		svgin->load_file = GF_FALSE;
+		if (e) return e;
 	}
 
 	switch (svgin->codecid) {
@@ -275,6 +302,14 @@ exit:
 		gf_sm_load_done(&svgin->loader);
 		svgin->loader.fileName = NULL;
 		gf_filter_pid_set_eos(svgin->out_pid);
+
+		if (svgin->fio) {
+			gf_fclose((FILE*)svgin->fio);
+			svgin->fio = NULL;
+			gf_filter_pck_unref(svgin->pck_ref);
+			svgin->pck_ref = NULL;
+		}
+
 	}
 	return e;
 }
@@ -302,8 +337,12 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (prop && prop->value.string) svgin->file_name = prop->value.string;
 	}
 
-	if (!svgin->codecid && !svgin->file_name)
-		return GF_NOT_SUPPORTED;
+	if (!svgin->codecid && !svgin->file_name) {
+		if (!svgin->load_file) {
+			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+			svgin->load_file = GF_TRUE;
+		}
+	}
 
 	svgin->loader.type = GF_SM_LOAD_SVG;
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
