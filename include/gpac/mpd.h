@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2022
+ *			Copyright (c) Telecom ParisTech 2010-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -660,6 +660,8 @@ typedef struct {
 
 	GF_Fraction hls_max_seg_dur;
 
+	//download in progress for m3u8
+	Bool in_progress;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -1015,6 +1017,11 @@ struct _gf_file_get
 	void (*del_session)(GF_FileDownload *getter);
 	/*! callback function to get the local file name*/
 	const char *(*get_cache_name)(GF_FileDownload *getter);
+	/*! callback function to get download status - returns:
+		- GF_OK: session is done
+		- GF_NOT_READY: session is in progress
+		- Any other error: session done with error*/
+	GF_Err (*get_status)(GF_FileDownload *getter);
 	/*! user private*/
 	void *udta;
 	/*! created by user after new_session*/

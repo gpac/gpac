@@ -37,6 +37,7 @@ enum
 	KEY_STATE_NONE=0,
 	KEY_STATE_CHANGED,
 	KEY_STATE_DOWNLOADING,
+	KEY_STATE_DOWNLOAD_DONE,
 	KEY_STATE_SET_IV,
 };
 
@@ -184,6 +185,28 @@ static void cryptfile_set_key(GF_CryptFileCtx *ctx)
 	ctx->reload_key_state = KEY_STATE_NONE;
 }
 
+void cryptfin_net_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
+{
+	GF_CryptFileCtx *ctx = (GF_CryptFileCtx *) usr_cbk;
+	if (parameter->msg_type==GF_NETIO_DATA_EXCHANGE) {
+		if (ctx->key_size + parameter->size > 16) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] Invalid key size, greater than 16 bytes\n"))
+			ctx->reload_key_state = KEY_STATE_NONE;
+			ctx->in_error = GF_SERVICE_ERROR;
+			return;
+		}
+		memcpy(ctx->key_data + ctx->key_size, parameter->data, parameter->size);
+		ctx->key_size += parameter->size;
+	}
+	else if (parameter->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		ctx->reload_key_state = KEY_STATE_DOWNLOAD_DONE;
+	} else if (parameter->msg_type==GF_NETIO_STATE_ERROR) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] Error downloading key %s: %s\n",ctx->key_url,  gf_error_to_string(parameter->error) ))
+		ctx->reload_key_state = KEY_STATE_NONE;
+		ctx->in_error = parameter->error;
+	}
+}
+
 static GF_Err cryptfin_process(GF_Filter *filter)
 {
 	GF_Err e;
@@ -215,9 +238,11 @@ static GF_Err cryptfin_process(GF_Filter *filter)
 	if (ctx->reload_key_state) {
 #ifdef GPAC_USE_DOWNLOADER
 		if (ctx->reload_key_state==KEY_STATE_CHANGED) {
+			ctx->key_size = 0;
+			//use a threaded session
 			if (!ctx->key_sess) {
 				GF_DownloadManager *dm = gf_filter_get_download_manager(filter);
-				ctx->key_sess = gf_dm_sess_new(dm, ctx->key_url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, NULL, NULL, &e);
+				ctx->key_sess = gf_dm_sess_new(dm, ctx->key_url, GF_NETIO_SESSION_NOT_CACHED, cryptfin_net_io, ctx, &e);
 			} else {
 				e = gf_dm_sess_setup_from_url(ctx->key_sess, ctx->key_url, GF_TRUE);
 			}
@@ -226,28 +251,16 @@ static GF_Err cryptfin_process(GF_Filter *filter)
 				return ctx->in_error = e;
 			}
 			ctx->reload_key_state = KEY_STATE_DOWNLOADING;
+			gf_dm_sess_process(ctx->key_sess);
 		}
+		//wait for end of download
 		if (ctx->reload_key_state==KEY_STATE_DOWNLOADING) {
-			u32 nb_read;
-			e = gf_dm_sess_fetch_data(ctx->key_sess, ctx->key_data + ctx->key_size, 100-ctx->key_size, &nb_read);
-			ctx->key_size += nb_read;
-			if (ctx->key_size > 16) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] Invalid key size, greater than 16 bytes\n"))
-				return ctx->in_error = GF_SERVICE_ERROR;
-			}
-
-			if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
-				ctx->in_error = e;
-				ctx->reload_key_state = KEY_STATE_NONE;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] Failed to download key %s: %s\n", ctx->key_url, gf_error_to_string(e)))
-				return e;
-			}
-			if (e == GF_EOS) {
-				cryptfile_set_key(ctx);
-				if (ctx->in_error) return ctx->in_error;
-			} else {
-				return GF_OK;
-			}
+			return GF_OK;
+		}
+		//good to go
+		if (ctx->reload_key_state==KEY_STATE_DOWNLOAD_DONE) {
+			cryptfile_set_key(ctx);
+			if (ctx->in_error) return ctx->in_error;
 		}
 		if (ctx->reload_key_state == KEY_STATE_SET_IV) {
 			gf_crypt_set_IV(ctx->crypt, ctx->IV, 16);

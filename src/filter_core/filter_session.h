@@ -927,6 +927,7 @@ struct __gf_filter_pid_inst
 	volatile s64 buffer_duration;
 
 	volatile s32 detach_pending;
+	Bool force_flush;
 
 	void *udta;
 	u32 udta_flags;

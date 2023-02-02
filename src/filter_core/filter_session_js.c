@@ -162,14 +162,14 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return fs->pid_connect_tasks_pending ? JS_FALSE : JS_TRUE;
 
 	case JSFS_HTTP_MAX_RATE:
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 		if (fs->download_manager)
 			return JS_NewInt32(ctx, gf_dm_get_data_rate(fs->download_manager) );
 #endif
 		return JS_NULL;
 
 	case JSFS_HTTP_RATE:
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 		if (fs->download_manager)
 			return JS_NewInt32(ctx, gf_dm_get_global_rate(fs->download_manager) );
 #endif
@@ -194,7 +194,7 @@ static JSValue jsfs_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst
 
 	switch (magic) {
 	case JSFS_HTTP_MAX_RATE:
-#ifndef GPAC_DISABLE_NETWORK
+#ifdef GPAC_USE_DOWNLOADER
 		if (fs->download_manager) {
 			s32 ival;
 			if (JS_ToInt32(ctx, &ival, value)) return GF_JS_EXCEPTION(ctx);

@@ -866,6 +866,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 	//failure on reconfigure, try reloading a filter chain
 	else if ((ctype==GF_PID_CONF_RECONFIG) && (e != GF_FILTER_NOT_SUPPORTED)) {
+		//mark pid as end of stream to let filter flush
+		pidinst->is_end_of_stream = GF_TRUE;
 		if (e==GF_BAD_PARAM) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
@@ -1258,11 +1260,6 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		return;
 	}
 
-	assert(filter->freg->configure_pid);
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
-
-	assert(pid->filter->detach_pid_tasks_pending);
-	safe_int_dec(&pid->filter->detach_pid_tasks_pending);
 	count = pid->num_destinations;
 	for (i=0; i<count; i++) {
 		pidinst = gf_list_get(pid->destinations, i);
@@ -1271,6 +1268,21 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		}
 		pidinst=NULL;
 	}
+	//flush any packets dispatched before detaching
+	if (pidinst && gf_fq_count(pidinst->packets)) {
+		Bool in_process = filter->in_process;
+		filter->in_process = GF_FALSE;
+		pidinst->force_flush = GF_TRUE;
+		gf_filter_process_inline(filter);
+		pidinst->force_flush = GF_FALSE;
+		filter->in_process = in_process;
+		TASK_REQUEUE(task)
+		return;
+	}
+	assert(filter->freg->configure_pid);
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
+	assert(pid->filter->detach_pid_tasks_pending);
+	safe_int_dec(&pid->filter->detach_pid_tasks_pending);
 
 	//first connection of this PID to this filter
 	if (!pidinst) {
@@ -6054,7 +6066,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to fetch a packet on an output PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
-	if (pidinst->discard_packets || pidinst->detach_pending) {
+	if (pidinst->discard_packets || (!pidinst->force_flush && pidinst->detach_pending)) {
 		pidinst->filter->nb_pck_io++;
 		return NULL;
 	}

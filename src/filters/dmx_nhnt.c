@@ -292,6 +292,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p) {
 		gf_filter_pid_drop_packet(ctx->ipid);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHNTDmx] NHNT only supported with local files\n"));
 		return GF_NOT_SUPPORTED;
 	}
 

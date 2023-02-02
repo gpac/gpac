@@ -130,6 +130,8 @@ static GF_Err compose_process(GF_Filter *filter)
 			was_over = GF_TRUE;
 		} else if (ctx->sys_frames_pending) {
 			ctx->check_eos_state = 0;
+		} else if (gf_filter_end_of_session(filter)) {
+			ctx->check_eos_state = 2;
 		}
 
 		if (ctx->timeout && (ctx->check_eos_state == 1) && !gf_filter_connections_pending(filter)) {

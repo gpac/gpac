@@ -2411,7 +2411,7 @@ GF_DOMText *svg_get_text_child(GF_Node *node)
 	return NULL;
 }
 
-static Bool svg_js_load_script(GF_Node *script, char *file)
+Bool svg_js_load_script(GF_Node *script, char *file)
 {
 	GF_Err e;
 	u8 *jsscript;
@@ -2520,27 +2520,18 @@ void JSScript_LoadSVG(GF_Node *node)
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
 			svg_js_load_script(node, url);
 		} else if (dnld_man) {
-#ifdef GPAC_USE_DOWNLOADER
 			GF_Err e;
-			/*fetch the remote script synchronously and load it - cf section on script processing in SVG specs*/
-			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-			if (sess) {
-				e = gf_dm_sess_process(sess);
-				if (e==GF_OK) {
-					const char *szCache = gf_dm_sess_get_cache_name(sess);
-					if (!svg_js_load_script(node, (char *) szCache))
-						e = GF_SCRIPT_ERROR;
-				}
-				gf_dm_sess_del(sess);
-			}
+#ifdef GPAC_USE_DOWNLOADER
+			GF_Err vrml_svg_js_async_load(GF_DownloadManager *dnld_man, char *url, u32 type, GF_Node *script, JSValue *rval);
+			e = vrml_svg_js_async_load(dnld_man, url, 2, node, NULL);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 			if (e) {
 				par.info.e = e;
 				par.info.msg = "Cannot fetch script";
 				ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
 			}
-#else
-		//todo
-#endif
 		}
 		gf_free(url);
 	}

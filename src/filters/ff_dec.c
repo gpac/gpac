@@ -247,6 +247,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
         return GF_EOS;
     }
 
+restart:
+
 	frame = ctx->frame;
 
 	FF_INIT_PCK(ctx, pkt)
@@ -535,6 +537,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		gf_filter_pck_set_interlaced(dst_pck, frame->top_field_first ? 2 : 1);
 
 	gf_filter_pck_send(dst_pck);
+
+	if (!pck) goto restart;
+
 	return GF_OK;
 }
 

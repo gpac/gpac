@@ -863,7 +863,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_REQUEST_SESSION:
 	case GF_NETIO_CANCEL_STREAM:
 		parameter->error = GF_NOT_SUPPORTED;
-		return;
+		goto exit;
 	}
 	if (ctx->async) {
 		xml_http_terminate(ctx, parameter->error);
@@ -1010,8 +1010,13 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 
 	if (!strncmp(ctx->url, "http://", 7)) {
 		u32 flags = GF_NETIO_SESSION_NOTIFY_DATA;
+		//disable sync XHR in emscripten
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		return GF_JS_EXCEPTION(c);
+#else
 		if (!ctx->async)
 			flags |= GF_NETIO_SESSION_NOT_THREADED;
+#endif
 
 		if (ctx->cache != XHR_CACHETYPE_NORMAL) {
 			if (ctx->cache == XHR_CACHETYPE_NONE) {

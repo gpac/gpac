@@ -464,7 +464,13 @@ static GF_Err filein_process(GF_Filter *filter)
 	else
 		to_read = (u32) lto_read;
 
-	nb_read = (u32) gf_fread(ctx->block, to_read, ctx->file);
+	//force eof flush
+	if (!to_read) {
+		nb_read = (u32) gf_fread(ctx->block, 1, ctx->file);
+		if (nb_read) to_read=1;
+	} else {
+		nb_read = (u32) gf_fread(ctx->block, to_read, ctx->file);
+	}
 
 	ctx->block[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {

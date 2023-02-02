@@ -2164,7 +2164,8 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		GF_SAFEALLOC(ioctx, FileIOCtx);
 		if (!ioctx) return NULL;
 		ioctx->path = gf_url_concatenate(ioctx_ref->path, url);
-		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, fio_read, fio_write, fio_tell, fio_eof, fio_printf);
+		ioctx->io_mode = ioctx_ref->io_mode;
+		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, ioctx->io_mode ? fio_read : NULL, ioctx->io_mode ? NULL : fio_write, fio_tell, fio_eof, fio_printf);
 		if (!gfio) {
 			if (ioctx->path) gf_free(ioctx->path);
 			gf_free(ioctx);
@@ -2238,7 +2239,7 @@ static GF_FileIO *fio_open(GF_FileIO *fileio_ref, const char *url, const char *m
 		} else {
 			ioctx->path = gf_strdup(ioctx_ref->path);
 		}
-		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, ioctx->io_mode ? fio_read : NULL, ioctx->io_mode ? NULL : fio_write, fio_tell, fio_eof, fio_printf);
+		gfio = gf_fileio_new(ioctx->path, ioctx, fio_open, fio_seek, ioctx_ref->io_mode ? fio_read : NULL, ioctx_ref->io_mode ? NULL : fio_write, fio_tell, fio_eof, fio_printf);
 		if (!gfio) {
 			if (ioctx->path) gf_free(ioctx->path);
 			gf_free(ioctx);
