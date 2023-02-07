@@ -25,7 +25,7 @@
       }
 
       .controls {
-        display: inline-block;
+        display: none;
         float: left;
         vertical-align: top;
         margin-top: 10px;
@@ -623,6 +623,7 @@
          }
          //when using vout or compositor in standalone mode, don't use a worker thread since we run through emscripten_main_loop
          let use_video=false;
+         let has_report = false;
          for (let i=0; i<args.length; i++) {
           a = args[i];
           if (a.includes('vout') || a.includes('-play') || a.includes('-gui')) {
@@ -632,6 +633,9 @@
           } else if ((LIBGPAC.gpac_worker==false) && (a.startsWith('-step='))) {
            var val = parseInt(a.substring(6));
            if (val<0) will_block = true;
+          }
+          else if (a.startsWith('-r')) {
+            has_report = true;
           }
           //input file io
           else if (a=='-ib') {
@@ -664,9 +668,13 @@
           }
          }
 
+         let controlElement = document.getElementById('controls');
+         //controlElement.hidden = is_mp4box ? true : false;
+         controlElement.style.display = is_mp4box ? 'none' : 'inline-block';
          let abortElement = document.getElementById('abort');
          abortElement.selectedIndex = 0;
-         abortElement.hidden = is_mp4box ? true : false;
+         let reportElement = document.getElementById('reports');
+         reportElement.checked = has_report;
          let fsElement = document.getElementById('fullscreen');
          fsElement.hidden = use_video ? false : true;
 
@@ -970,9 +978,6 @@
             let fio = GFIO.to_obj(fileio_ref);
             let url = _url ? LIBGPAC.UTF8ToString(_url) : null;
             let mode = LIBGPAC.UTF8ToString(_mode);
-            mode = mode.replace('b', '');
-            mode = mode.replace('t', '');
-            mode = mode.replace('+', '');
 
             //close file
             if (mode=='close') {
@@ -1018,6 +1023,10 @@
               //if (!fio._refs) {}
               return null;
             }
+
+            mode = mode.replace('b', '');
+            mode = mode.replace('t', '');
+            mode = mode.replace('+', '');
             //we don't support append modes
             if ((mode != "r") && (mode != "w")) {
               LIBGPAC.setValue(out_e, GPAC.NOT_SUPPORTED, 'i32');
@@ -1405,22 +1414,24 @@
     </div>
 
     
-    <div class="controls">
+    <div class="controls" id='controls'>
     <span>
-<select id="abort" hidden onChange="
-  const gpac_em_sig_handler = LIBGPAC.cwrap('gpac_em_sig_handler', null, ['number']);
-  if (this.selectedIndex) gpac_em_sig_handler(this.selectedIndex);
+<select id="abort" onChange="
+  if (this.selectedIndex) GPAC.toggle_reporting(this.selectedIndex);
 ">
 <option  value="none" selected="selected">Abort</option>
 <option value="1">Full Flush</option>
 <option value="2">Fast Flush</option>
 <option value="3">No Flush</option>
-<option value="3">Toggle Reporting</option>
 </select>
     </span>
-  <span><input type="button" value="Fullscreen" id="fullscreen" hidden onclick="
+  <span><label>Reporting</label><input type="checkbox" checked id="reports" onclick="
+    GPAC.toggle_reporting(4);
+  ">
+  </span>
+  <span><input type="button" value="Fullscreen" id="fullscreen" onclick="
     //LIBGPAC.requestFullscreen(document.getElementById('pointerLock').checked, document.getElementById('resize').checked)
-    LIBGPAC.requestFullscreen(false, false);
+    LIBGPAC['canvas'].requestFullscreen();
   ">
   </span>
     </div>
@@ -1476,6 +1487,12 @@
         _lib.copyright = LIBGPAC.cwrap('gf_gpac_copyright', 'string', []);
         _lib.url_cat = LIBGPAC.cwrap('gf_url_concatenate', 'number', ['string', 'string']);
         _lib.free = LIBGPAC.cwrap('gf_url_free', null, ['number']);
+
+
+        GPAC.toggle_reporting = function(value) {
+          const gpac_em_sig_handler = LIBGPAC.cwrap('gpac_em_sig_handler', null, ['number']);
+          gpac_em_sig_handler(value);
+        };
       }
 
 
@@ -1502,10 +1519,16 @@
           GFIO.dict = [];
 
           animElement.stop();
+          let controlsElement = document.getElementById('controls');
+          controlsElement.style.display = 'none';
+/*
           let abortElement = document.getElementById('abort');
           abortElement.hidden = true;
+          let repElement = document.getElementById('reports');
+          repElement.hidden = true;
           let fsElement = document.getElementById('fullscreen');
           fsElement.hidden = true;
+*/
           var cmdElement = document.getElementById('cmd');
           cmdElement.readonly = false;
           //restore emscripten stack

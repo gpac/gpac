@@ -969,7 +969,7 @@ esac
 
 
 
-if test "$enable_threads" = "yes" ; then
+if test "$disable_threads" = "no" ; then
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
 GPAC_SH_FLAGS=$PTHREAD_LDFLAGS
 else

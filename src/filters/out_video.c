@@ -259,8 +259,8 @@ static void vout_set_caption(GF_VideoOutCtx *ctx)
 		if (!strncmp(evt.caption.caption, "src=", 4)) evt.caption.caption += 4;
 		if (!strncmp(evt.caption.caption, "./", 2)) evt.caption.caption += 2;
 	}
-	char sep_c = gf_filter_get_sep(ctx->filter, GF_FS_SEP_ARGS);
-	char *sep = strchr(evt.caption.caption, sep_c);
+	char *sep = (char *)gf_filter_path_escape_colon(ctx->filter, evt.caption.caption);
+	char sep_c = sep ? sep[0] : 0;
 	if (sep) sep[0] = 0;
 	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 	if (sep) sep[0] = sep_c;

@@ -3673,7 +3673,9 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 			}
 		}
 	} else {
-		if ((sess->status != GF_NETIO_SETUP) && (sess->status != GF_NETIO_CONNECTED))
+		if (sess->status == GF_NETIO_DISCONNECTED)
+			sess->status = GF_NETIO_SETUP;
+		else if ((sess->status != GF_NETIO_SETUP) && (sess->status != GF_NETIO_CONNECTED))
 			return GF_BAD_PARAM;
 	}
 	sess->range_start = start_range;

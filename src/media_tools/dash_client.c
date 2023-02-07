@@ -3436,6 +3436,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 
 	if (group->pending_rep) {
 		prev_active_rep_index = group->pending_prev_active_rep_index;
+		ol_nb_segs_in_rep = group->nb_segments_in_rep;
 		goto retry_pending;
 	}
 
