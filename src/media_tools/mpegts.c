@@ -823,6 +823,11 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		descs_size = ((data[pos+3]&0xf)<<8) | data[pos+4];
 		pos += 5;
 
+		if (pos+descs_size > data_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid descriptors size read from data (%u)\n"));
+			return;
+		}
+
 		d_pos = 0;
 		while (d_pos < descs_size) {
 			u8 d_tag = data[pos+d_pos];
@@ -2130,7 +2135,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 
 		} else {
 			if (!has_data) goto exit;
-			
+
 			/*3-byte start-code + 1 byte streamid*/
 			len = 4;
 			memset(&pesh, 0, sizeof(pesh));
