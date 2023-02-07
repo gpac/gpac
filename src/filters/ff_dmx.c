@@ -316,7 +316,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 0);
 		return GF_OK;
 	}
-	
+
 	sample_time = gf_sys_clock_high_res();
 
 	FF_INIT_PCK(ctx, pkt)
@@ -886,7 +886,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		}
 #ifdef FFMPEG_NO_DOVI
 		else if (!gf_sys_is_test_mode() ){
-			//force reparse of nalu-base codecs if no dovi support 
+			//force reparse of nalu-base codecs if no dovi support
 			switch (gpac_codec_id) {
 			case GF_CODECID_AVC:
 			case GF_CODECID_HEVC:
@@ -921,7 +921,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( 25, 1 ) );
 			}
 		}
-		
+
 		if (codec_field_order>AV_FIELD_PROGRESSIVE)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_TRUE) );
 
@@ -1425,7 +1425,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 
 	if (sscanf(dev_name, "%d", &dev_idx)==1) {
 		sprintf(szPatchedName, "%d", dev_idx);
-		if (strcmp(szPatchedName, dev_name)) 
+		if (strcmp(szPatchedName, dev_name))
 			dev_idx = -1;
 	} else {
 		dev_idx = -1;
@@ -1727,6 +1727,8 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
     AVDictionary *tmp = NULL;
 	av_dict_set(&tmp, "list_devices", "1", 0);
     av_opt_set_dict2(ctx, &tmp, AV_OPT_SEARCH_CHILDREN);
+	if (tmp)
+		av_dict_free(&tmp);
 
 	int res = avdevice_list_devices(ctx, &dev_list);
 	if (res<0) {
@@ -1735,6 +1737,8 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 			AVDictionary *opts = NULL;
 			av_dict_set(&opts, "list_devices", "1", 0);
 			res = avformat_open_input(&ctx, "dummy", FF_IFMT_CAST fmt, &opts);
+			if (opts)
+				av_dict_free(&opts);
 		}
 	} else if (!res && dev_list->nb_devices) {
 		if (!dev_desc) {
