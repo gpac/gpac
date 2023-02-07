@@ -374,15 +374,17 @@ GF_EXPORT
 void gpac_em_sig_handler(int type)
 {
 	if (!session) return;
-	fprintf(stderr, "Aborting ...\n");
 	switch (type) {
 	case 1:
+		fprintf(stderr, "Aborting with full flush ...\n");
 		gf_fs_abort(session, GF_FS_FLUSH_ALL);
 		break;
 	case 2:
+		fprintf(stderr, "Aborting with fast flush ...\n");
 		gf_fs_abort(session, GF_FS_FLUSH_FAST);
 		break;
 	case 3:
+		fprintf(stderr, "Aborting without flush ...\n");
 		gf_fs_abort(session, GF_FS_FLUSH_NONE);
 		break;
 	case 4:
@@ -1335,6 +1337,7 @@ restart:
 		//default is 200 fps, 200 steps per frame
 		if (em_raf_fps<0) em_raf_fps=200;
 		if (run_steps<0) run_steps = 20;
+		fprintf(stdout, "running in step mode RAF FPS %d - steps %d\n", em_raf_fps, run_steps);
 
 		emscripten_set_main_loop_arg(em_main_loop, session, em_raf_fps, 1);
 		//we are done (rest of function is NOT called)

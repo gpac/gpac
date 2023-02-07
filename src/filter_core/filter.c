@@ -131,7 +131,11 @@ const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path,
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 {
 	return gf_fs_path_escape_colon_ex(sess, path, NULL, GF_FALSE);
-
+}
+const char *gf_filter_path_escape_colon(GF_Filter *f, const char *path)
+{
+	if (!f) return NULL;
+	return gf_fs_path_escape_colon_ex(f->session, path, NULL, GF_FALSE);
 }
 
 static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const char *in_args, Bool is_dst)

@@ -2383,6 +2383,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_run) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_stop) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_connections) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_non_connected) )

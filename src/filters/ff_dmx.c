@@ -102,6 +102,16 @@ typedef struct
 	AVIOContext *avio_ctx;
 	FILE *gfio;
 	GF_Fraction fps_forced;
+
+	//for ffdmx used as filter on http or file input
+	//we must buffer enough data so that calls to read_packet() does not abort in the middle of a packet
+	GF_FilterPid *ipid;
+	u32 is_open;
+	u32 strbuf_offset;
+	u8 *strbuf;
+	u32 strbuf_size, strbuf_alloc, strbuf_min;
+	Bool in_seek, in_eos, first_block;
+	s64 seek_offset;
 } GF_FFDemuxCtx;
 
 static void ffdmx_finalize(GF_Filter *filter)
@@ -122,6 +132,7 @@ static void ffdmx_finalize(GF_Filter *filter)
 		av_freep(&ctx->avio_ctx);
 	}
 	if (ctx->gfio) gf_fclose(ctx->gfio);
+	if (ctx->strbuf) gf_free(ctx->strbuf);
 	return;
 }
 
@@ -284,10 +295,136 @@ static void ffdmx_parse_side_data(const AVPacketSideData *sd, GF_FilterPid *pid)
 	}
 }
 
+GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type);
+
+static GF_Err ffdmx_flush_input(GF_Filter *filter, GF_FFDemuxCtx *ctx)
+{
+	int res;
+	GF_Err e;
+	if (ctx->is_open==2)
+		return GF_NOT_SUPPORTED;
+
+	while (1) {
+		if (ctx->strbuf_size - ctx->strbuf_offset >= ctx->strbuf_min) {
+			if (ctx->is_open) return GF_OK;
+			break;
+		}
+
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
+		if (!pck) {
+			if (gf_filter_pid_is_eos(ctx->ipid)) {
+				ctx->in_eos = GF_TRUE;
+				return GF_OK;
+			}
+			return GF_NOT_READY;
+		}
+		u32 size;
+		const u8 *data = gf_filter_pck_get_data(pck, &size);
+		if (!size) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			continue;
+		}
+		ctx->in_eos = GF_FALSE;
+		memmove(ctx->strbuf, ctx->strbuf+ctx->strbuf_offset, ctx->strbuf_size - ctx->strbuf_offset);
+		ctx->strbuf_size -= ctx->strbuf_offset;
+		ctx->strbuf_offset = 0;
+		if (ctx->strbuf_size + size > ctx->strbuf_alloc) {
+			ctx->strbuf_alloc = ctx->strbuf_size + size;
+			ctx->strbuf = gf_realloc(ctx->strbuf, ctx->strbuf_alloc);
+			if (!ctx->strbuf) {
+				ctx->strbuf_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
+		}
+		memcpy(ctx->strbuf + ctx->strbuf_size, data, size);
+		ctx->strbuf_size += size;
+		gf_filter_pid_drop_packet(ctx->ipid);
+		ctx->demuxer->pb->eof_reached = 0;
+	}
+
+	ctx->first_block = GF_TRUE;
+
+	//open context
+	AVDictionary *options = NULL;
+	av_dict_copy(&options, ctx->options, 0);
+
+	ctx->demuxer->flags |= AVFMT_FLAG_CUSTOM_IO | AVFMT_FLAG_NONBLOCK | AVFMT_FLAG_NOBUFFER;
+	res = avformat_open_input(&ctx->demuxer, NULL, NULL, &options);
+	switch (res) {
+	case 0:
+		e = GF_OK;
+		break;
+	case AVERROR_INVALIDDATA:
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		break;
+	case AVERROR_DEMUXER_NOT_FOUND:
+	case -ENOENT:
+		e = GF_URL_ERROR;
+		break;
+	case AVERROR_EOF:
+		e = GF_EOS;
+		break;
+	default:
+		e = GF_NOT_SUPPORTED;
+		break;
+	}
+
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Fail to open %s - error %s\n", ctx->fname, ctx->src, av_err2str(res) ));
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
+		if (options) av_dict_free(&options);
+		ctx->is_open = 2;
+		ctx->first_block = GF_FALSE;
+		return e;
+	}
+
+	AVDictionary** optionsarr = NULL;
+	if (ctx->options && ctx->demuxer && ctx->demuxer->nb_streams) {
+		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
+		for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
+			optionsarr[si] = NULL;
+			av_dict_copy(&optionsarr[si], ctx->options, 0);
+		}
+	}
+	ctx->demuxer->probesize = ctx->strbuf_size;
+	res = avformat_find_stream_info(ctx->demuxer, optionsarr);
+	ctx->first_block = GF_FALSE;
+
+	if (optionsarr) {
+		for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
+			av_dict_free(&optionsarr[si]);
+		}
+		gf_free(optionsarr);
+		optionsarr = NULL;
+	}
+
+	if (res < 0) {
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] cannot locate streams - error %s\n", ctx->fname, av_err2str(res)));
+		e = GF_NOT_SUPPORTED;
+		avformat_close_input(&ctx->demuxer);
+		avformat_free_context(ctx->demuxer);
+		ctx->demuxer = NULL;
+		if (options) av_dict_free(&options);
+		ctx->is_open = 2;
+		return e;
+	}
+	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
+
+	ffmpeg_report_options(filter, options, ctx->options);
+	e = ffdmx_init_common(filter, ctx, 0);
+	if (e) {
+		ctx->is_open = 2;
+		return e;
+	}
+	ctx->is_open = 1;
+	return GF_OK;
+}
+
 static GF_Err ffdmx_process(GF_Filter *filter)
 {
 	GF_Err e;
-	u32 i;
+	u32 i, nb_pck=0;
 	u64 sample_time;
 	u8 *data_dst;
 	Bool copy = GF_TRUE;
@@ -295,7 +432,17 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck_dst;
 	AVPacket *pkt;
 	PidCtx *pctx;
+	int res;
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
+
+	if (ctx->ipid) {
+		e = ffdmx_flush_input(filter, ctx);
+		if (e==GF_NOT_READY) return GF_OK;
+		if (!ctx->is_open) return GF_OK;
+		if (ctx->is_open==2) return GF_NOT_SUPPORTED;
+		if (!ctx->demuxer) return GF_NOT_SUPPORTED;
+		if (!ctx->strbuf_size) return GF_OK;
+	}
 
 	if (!ctx->nb_playing)
 		return GF_EOS;
@@ -316,7 +463,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 0);
 		return GF_OK;
 	}
-	
+restart:
 	sample_time = gf_sys_clock_high_res();
 
 	FF_INIT_PCK(ctx, pkt)
@@ -326,7 +473,11 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	pkt->stream_index = -1;
 
 	/*EOF*/
-	if (av_read_frame(ctx->demuxer, pkt) <0) {
+	res = av_read_frame(ctx->demuxer, pkt);
+	if (res < 0) {
+		if (!ctx->in_eos && (ctx->strbuf_size>ctx->strbuf_offset) && (res == AVERROR(EAGAIN)))
+			return GF_OK;
+
 		FF_FREE_PCK(pkt);
 		if (!ctx->raw_data) {
 			for (i=0; i<ctx->nb_streams; i++) {
@@ -564,7 +715,14 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	if (!ctx->raw_pck_out) {
 		FF_FREE_PCK(pkt);
 	}
-	return e;
+
+	nb_pck++;
+	if (e || (nb_pck>10)) return e;
+
+	if (ctx->ipid && ctx->strbuf_size && (ctx->strbuf_offset*2 > ctx->strbuf_size)) {
+		gf_filter_post_process_task(filter);
+	}
+	goto restart;
 }
 
 
@@ -1048,8 +1206,8 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 #endif
 	if (!ctx->src) {
-		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Missing file name, cannot open\n", ctx->fname));
-		return GF_SERVICE_ERROR;
+//		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Missing file name, cannot open\n", ctx->fname));
+		return GF_OK;
 	}
 	/*some extensions not supported by ffmpeg, overload input format*/
 	ext = strrchr(ctx->src, '.');
@@ -1172,6 +1330,87 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	return ffdmx_init_common(filter, ctx, 0);
 }
 
+static int ffdmx_read_packet(void *opaque, uint8_t *buf, int buf_size)
+{
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
+
+	if (ctx->strbuf_offset + buf_size > ctx->strbuf_size) {
+		if (!ctx->in_eos) {
+			GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Internal buffer too small, may result in packet drops - try increaset strbuf_min option\n", ctx->fname));
+			ctx->strbuf_min += ctx->strbuf_offset + buf_size - ctx->strbuf_size;
+		}
+		if (buf_size && (ctx->strbuf_size == ctx->strbuf_offset)) {
+			return ctx->in_eos ? AVERROR_EOF : AVERROR(EAGAIN);
+		}
+		buf_size = ctx->strbuf_size - ctx->strbuf_offset;
+	}
+	memcpy(buf, ctx->strbuf + ctx->strbuf_offset, buf_size);
+	ctx->strbuf_offset += buf_size;
+	return buf_size;
+}
+
+static int64_t ffdmx_seek(void *opaque, int64_t offset, int whence)
+{
+	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
+	if (whence==AVSEEK_SIZE) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+		if (p) return p->value.longuint;
+		GF_PropertyEntry *pe=NULL;
+		p = gf_filter_pid_get_info(ctx->ipid, GF_PROP_PID_DOWN_SIZE, &pe);
+		s64 val = p ? p->value.longuint : -1;
+		gf_filter_release_property(pe);
+		return val;
+	}
+	if (ctx->in_seek) {
+		ctx->seek_offset = offset;
+		return offset;
+	}
+	//if seeking in first block (while probing for stream info), allow it
+	if (ctx->first_block && (whence==SEEK_SET) && (offset<ctx->strbuf_size)) {
+		ctx->strbuf_offset = offset;
+		return offset;
+	}
+	return -1;
+}
+
+static GF_Err ffdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+
+	if (ctx->ipid && is_remove) {
+		u32 i;
+		for (i=0; i<ctx->nb_streams; i++) {
+			if (ctx->pids_ctx[i].pid) gf_filter_pid_remove(ctx->pids_ctx[i].pid);
+			ctx->pids_ctx[i].pid = NULL;
+		}
+		ctx->nb_playing = 0;
+		return GF_EOS;
+	}
+	if (ctx->src) return GF_BAD_PARAM;
+
+	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
+	ctx->src = gf_strdup(p ? p->value.string : "in");
+	ctx->ipid = pid;
+	if (ctx->avio_ctx_buffer) return GF_OK;
+	ctx->avio_ctx_buffer = av_malloc(ctx->block_size);
+	if (!ctx->avio_ctx_buffer) return GF_OUT_OF_MEM;
+
+	ctx->strbuf_min = ctx->strbuf_alloc = 1000000;
+	ctx->strbuf = gf_malloc(ctx->strbuf_alloc);
+	if (!ctx->strbuf) return GF_OUT_OF_MEM;
+
+	ctx->avio_ctx = avio_alloc_context(ctx->avio_ctx_buffer, ctx->block_size, 0, ctx, &ffdmx_read_packet, NULL, &ffdmx_seek);
+//	ctx->avio_ctx = avio_alloc_context(ctx->avio_ctx_buffer, ctx->block_size, 0, ctx, &ffdmx_read_packet, NULL, NULL);
+	if (!ctx->avio_ctx) {
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Failed to create AVIO context for %s\n", ctx->fname, ctx->src));
+		return GF_OUT_OF_MEM;
+	}
+	ctx->demuxer = avformat_alloc_context();
+	ffmpeg_set_mx_dmx_flags(ctx->options, ctx->demuxer);
+	ctx->demuxer->pb = ctx->avio_ctx;
+	return GF_OK;
+}
+
 
 static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
@@ -1198,12 +1437,27 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 
 		//change in play range
+		Bool cancel_event = ctx->ipid ? GF_FALSE : GF_TRUE;
 		if (!ctx->raw_data && (ctx->last_play_start_range != evt->play.start_range)) {
 			u32 i;
+			if (ctx->ipid) {
+				ctx->in_seek = GF_TRUE;
+				ctx->seek_offset = -1;
+			}
+
 			int res = av_seek_frame(ctx->demuxer, -1, (s64) (AV_TIME_BASE*evt->play.start_range), AVSEEK_FLAG_BACKWARD);
 			if (res<0) {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ctx->fname, ctx->src, evt->play.start_range, av_err2str(res) ));
+			} else if (ctx->ipid && (ctx->seek_offset>=0)) {
+				GF_FilterEvent fevt;
+				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
+				fevt.seek.start_offset = ctx->seek_offset;
+				gf_filter_pid_send_event(ctx->ipid, &fevt);
+				ctx->strbuf_size = 0;
+				ctx->strbuf_offset = 0;
+				cancel_event = GF_TRUE;
 			}
+			ctx->in_seek = GF_FALSE;
 			//reset initial delay compute
 			for (i=0; i<ctx->nb_streams; i++) {
 				ctx->pids_ctx[i].ts_offset = 0;
@@ -1211,8 +1465,7 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->last_play_start_range = evt->play.start_range;
 		}
 		ctx->stop_seen = GF_FALSE;
-		//cancel event
-		return GF_TRUE;
+		return cancel_event;
 
 	case GF_FEVT_STOP:
 		if (evt->play.initial_broadcast_play==2)
@@ -1222,7 +1475,6 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->nb_playing--;
 			ctx->stop_seen = GF_TRUE;
 		}
-		//cancel event
 		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:
@@ -1298,11 +1550,15 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 
 static const GF_FilterCapability FFDmxCaps[] =
 {
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	{0},
 	//for forced frame->unframe
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_FORCE_UNFRAME, GF_TRUE),
 	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
@@ -1324,6 +1580,7 @@ GF_FilterRegister FFDemuxRegister = {
 	SETCAPS(FFDmxCaps),
 	.initialize = ffdmx_initialize,
 	.finalize = ffdmx_finalize,
+	.configure_pid = ffdmx_configure_pid,
 	.process = ffdmx_process,
 	.update_arg = ffdmx_update_arg,
 	.probe_url = ffdmx_probe_url,
@@ -1337,6 +1594,8 @@ GF_FilterRegister FFDemuxRegister = {
 static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(block_size), "block size used to read file when using GFIO context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(strbuf_min), "internal buffer size when demuxing from GPAC's input stream", GF_PROP_UINT, "1MB", NULL, GF_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffdmx` and `gpac -hx ffdmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
@@ -1344,7 +1603,7 @@ static const GF_FilterArgs FFDemuxArgs[] =
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
-	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, 2, FF_REG_TYPE_DEMUX);
+	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, 4, FF_REG_TYPE_DEMUX);
 }
 
 
@@ -1676,7 +1935,6 @@ static const GF_FilterArgs FFAVInArgs[] =
 		"", GF_PROP_UINT, "A", "N|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sclock), "use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(probes), "probe a given number of video frames before emitting (this usually helps with bad timing of the first frames)", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible options defined for AVInputFormat and AVFormatContext (see `gpac -hx ffavin` and `gpac -hx ffavin:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };

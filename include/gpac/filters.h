@@ -3239,6 +3239,14 @@ void gf_filter_meta_set_instances(GF_Filter *filter, const char *instance_names_
 */
 const char *gf_filter_meta_get_instances(GF_Filter *filter);
 
+
+/*! Locates start of gpac option separator in a url path
+\param filter target filter
+\param path path to analyze
+\return NULL or first option found (including option separator)
+*/
+const char *gf_filter_path_escape_colon(GF_Filter *filter, const char *path);
+
 /*! @} */
 
 
