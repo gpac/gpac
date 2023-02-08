@@ -2304,7 +2304,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	}
 	if (static_sample && ! (*sample)->alloc_size )
 		 (*sample)->alloc_size =  (*sample)->dataLength;
-		 
+
 	return GF_OK;
 }
 
@@ -4674,7 +4674,7 @@ const u32 *gf_isom_get_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber
 	if (!map) return NULL;
 	tsel = (GF_TrackSelectionBox*)gf_list_get(map->boxes, group_index-1);
 	if (!tsel) return NULL;
-	
+
 	*switchGroupID = tsel->switchGroup;
 	*criteriaListSize = tsel->attributeListCount;
 	return (const u32 *) tsel->attributeList;
@@ -5409,7 +5409,7 @@ GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_S
 	if (skip_byte_block) *skip_byte_block = 0;
 	if (key_info) *key_info = NULL;
 	if (key_info_size) *key_info_size = 0;
-	
+
 	if (!trak) return GF_BAD_PARAM;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
