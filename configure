@@ -877,14 +877,16 @@ EOF
             LDFLAGS="$LDFLAGS -L$prefix/$libdir"
         fi
 
-        if test "is_em" != "yes" ; then
+        if test "$is_em" != "yes" ; then
             if test -d /sw/bin ; then
                 alt_macosx_dir="/sw"
             elif test -d /opt/local/bin ; then
                 alt_macosx_dir="/opt/local"
             fi
-            CFLAGS_DIR="-I$alt_macosx_dir $CFLAGS_DIR"
-            LDFLAGS="-L$alt_macosx_dir $LDFLAGS"
+            if test "$alt_macosx_dir" != "" ; then
+                CFLAGS_DIR="-I$alt_macosx_dir $CFLAGS_DIR"
+                LDFLAGS="-L$alt_macosx_dir $LDFLAGS"
+            fi
         fi
 
         CFLAGS="$CFLAGS_DIR $CFLAGS"
