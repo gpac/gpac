@@ -104,7 +104,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	GF_Box *newBox;
 	Bool skip_logs = (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_LOGS ) ? GF_TRUE : GF_FALSE;
 	Bool is_special = GF_TRUE;
-	
+
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
 	if (gf_bs_available(bs) < 8) {
@@ -1528,7 +1528,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_YVYU, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_RGBA, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_ABGR, video_sample_entry, "stsd", "apple"),
-	
+
 	FBOX_DEFINE_S(GF_QT_BOX_TYPE_STPS, stss, "stbl", 0, "apple"),
 
 	//dolby boxes
@@ -1918,7 +1918,7 @@ void gf_isom_check_position(GF_Box *s, GF_Box *child, u32 *pos)
 
 	s32 cur_pos = gf_list_find(s->child_boxes, child);
 
-	//happens when partially cloning boxes 
+	//happens when partially cloning boxes
 	if (cur_pos < 0) return;
 
 	if (cur_pos != (s32) *pos) {
@@ -1949,7 +1949,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	if (!a) return GF_BAD_PARAM;
 	//box has been disabled, do not write
 	if (!a->size) return GF_OK;
-	
+
 	if (a->registry->disabled) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box %s disabled registry, skip write\n", gf_4cc_to_str(a->type)));
 		return GF_OK;
