@@ -7199,7 +7199,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				u32 num_long_term_pics = 0;
 
 				memset(DeltaPocMsbCycleLt, 0, sizeof(u8) * 32);
-				
+
 				if (sps->num_long_term_ref_pic_sps > 0) {
 					num_long_term_sps = gf_bs_read_ue_log(bs, "num_long_term_sps");
 				}
@@ -7339,7 +7339,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 		}
 	}
 
-	si->header_size_bits = (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs); // av_parser.c modified on 16 jan. 2019 
+	si->header_size_bits = (gf_bs_get_position(bs) - 1) * 8 + gf_bs_get_bit_position(bs); // av_parser.c modified on 16 jan. 2019
 
 	if (gf_bs_read_int_log(bs, 1, "byte_align") == 0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Error parsing slice header: byte_align not found at end of header !\n"));
@@ -10206,7 +10206,7 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 	s32 sync_pos=-1;
 
 	if (!ptr || !size) return 0;
-	
+
 	for (i=0; i<size-3; i++) {
 		if ((ptr[i]==0xC0) && (ptr[i+1]== 0x01) && (ptr[i+2]==0xA5)) {
 			sync_pos = i;
@@ -10602,7 +10602,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 		sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
 		sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 	}
-	
+
 	sps->subpic_info_present = gf_bs_read_int_log(bs, 1, "subpic_info_present");
 	if (sps->subpic_info_present) {
 		sps->nb_subpics = 1 + gf_bs_read_ue_log(bs, "nb_subpics_minus1");
@@ -12038,7 +12038,7 @@ s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 
 			memcpy(&vvc->s_info, &n_state, sizeof(VVCSliceInfo));
 			return ret;
 		}
-		
+
 		ret = 0;
 		if (n_state.compute_poc_defer || n_state.picture_header_in_slice_header_flag) {
 			is_slice = GF_TRUE;

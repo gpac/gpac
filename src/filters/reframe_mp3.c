@@ -668,6 +668,10 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		}
 
 		if (!ctx->in_seek) {
+			if (size > remain) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MP3Dmx] truncated frame of size %u (remains %u)\n", size, remain));
+				break;
+			}
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 			if (!dst_pck) break;
 			memcpy(output, sync, size);
@@ -907,4 +911,3 @@ const GF_FilterRegister *mp3_dmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_AV_PARSERS
-
