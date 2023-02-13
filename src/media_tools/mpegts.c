@@ -946,6 +946,11 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 		return;
 	}
 
+	if (data_size < 5) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Section data size too small to read date (len: %u)\n", data_size));
+		return;
+	}
+
 	/*UTC_time - see annex C of DVB-SI ETSI EN 300468*/
 /* decodes an Modified Julian Date (MJD) into a Co-ordinated Universal Time (UTC)
 See annex C of DVB-SI ETSI EN 300468 */
