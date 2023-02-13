@@ -198,12 +198,11 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 			if (!mhas_last_cfg) mhas_sap = 0;
 		//config
 		} else if (mhas_type==1) {
-			u32 sr = 0;
 			/*u32 pl = */gf_bs_read_u8(bs);
 			u32 idx = gf_bs_read_int(bs, 5);
 			if (idx==0x1f)
 				duration.den = gf_bs_read_int(bs, 24);
-			else if (sr < nb_usac_sr) {
+			else if (idx < nb_usac_sr) {
 				duration.den = USACSampleRates[idx];
 			}
 			idx = gf_bs_read_int(bs, 3);
@@ -621,7 +620,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			u32 idx = gf_bs_read_int(ctx->bs, 5);
 			if (idx==0x1f)
 				sr = gf_bs_read_int(ctx->bs, 24);
-			else if (sr < nb_usac_sr) {
+			else if (idx < nb_usac_sr) {
 				sr = USACSampleRates[idx];
 			}
 			ctx->nb_unknown_pck = 0;
