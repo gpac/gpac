@@ -315,18 +315,24 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 			if (!unicode_type && (szLine[i] & 0x80)) {
 				/*non UTF8 (likely some win-CP)*/
 				if ((szLine[i+1] & 0xc0) != 0x80) {
+					if (j >= GF_ARRAY_LENGTH(szLineConv))
+						break;
 					szLineConv[j] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );
 					j++;
 					szLine[i] &= 0xbf;
 				}
 				/*UTF8 2 bytes char*/
 				else if ( (szLine[i] & 0xe0) == 0xc0) {
+					if (j >= GF_ARRAY_LENGTH(szLineConv))
+						break;
 					szLineConv[j] = szLine[i];
 					i++;
 					j++;
 				}
 				/*UTF8 3 bytes char*/
 				else if ( (szLine[i] & 0xf0) == 0xe0) {
+					if (j+1 >= GF_ARRAY_LENGTH(szLineConv))
+						break;
 					szLineConv[j] = szLine[i];
 					i++;
 					j++;
@@ -336,6 +342,8 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 				}
 				/*UTF8 4 bytes char*/
 				else if ( (szLine[i] & 0xf8) == 0xf0) {
+					if (j+2 >= GF_ARRAY_LENGTH(szLineConv))
+						break;
 					szLineConv[j] = szLine[i];
 					i++;
 					j++;
@@ -350,14 +358,18 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 					continue;
 				}
 			}
+
+			if (j >= GF_ARRAY_LENGTH(szLineConv))
+				break;
+
 			szLineConv[j] = szLine[i];
 			j++;
 
-			if (j >= GF_ARRAY_LENGTH(szLineConv) - 1) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TXTIn] Line too long to convert to utf8 (len: %d)\n", len));
-				break;
-			}
 
+		}
+		if ( j >= GF_ARRAY_LENGTH(szLineConv) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TXTIn] Line too long to convert to utf8 (len: %d)\n", len));
+			j = GF_ARRAY_LENGTH(szLineConv) -1 ;
 		}
 		szLineConv[j] = 0;
 		strcpy(szLine, szLineConv);
