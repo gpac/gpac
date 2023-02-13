@@ -668,8 +668,8 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		}
 
 		if (!ctx->in_seek) {
-			if (size > remain) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MP3Dmx] truncated frame of size %u (remains %u)\n", size, remain));
+			if (bytes_skipped + size > remain) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MP3Dmx] truncated frame of size %u (remains %d)\n", size, remain-bytes_skipped));
 				break;
 			}
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
