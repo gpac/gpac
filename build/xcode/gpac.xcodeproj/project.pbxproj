@@ -170,6 +170,7 @@
 		9206823420EA96AA0041169F /* mux_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206823320EA96AA0041169F /* mux_gsf.c */; };
 		920F4C9B29950A9D00EC9D21 /* dec_webcodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9A29950A9D00EC9D21 /* dec_webcodec.c */; };
 		920F4C9D299D20CE00EC9D21 /* enc_webcodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */; };
+		920F4C9F299FB3CC00EC9D21 /* avin_web.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9E299FB3CC00EC9D21 /* avin_web.c */; };
 		9210D007237041C2007AFB48 /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210D006237041C2007AFB48 /* ftgrays.c */; };
 		9212C0FB222D7AC000FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FA222D7AC000FE3580 /* vflip.c */; };
 		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
@@ -790,6 +791,7 @@
 		9206823320EA96AA0041169F /* mux_gsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_gsf.c; path = filters/mux_gsf.c; sourceTree = "<group>"; };
 		920F4C9A29950A9D00EC9D21 /* dec_webcodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_webcodec.c; path = filters/dec_webcodec.c; sourceTree = "<group>"; };
 		920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_webcodec.c; path = filters/enc_webcodec.c; sourceTree = "<group>"; };
+		920F4C9E299FB3CC00EC9D21 /* avin_web.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = avin_web.c; path = filters/avin_web.c; sourceTree = "<group>"; };
 		9210D006237041C2007AFB48 /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = evg/ftgrays.c; sourceTree = "<group>"; };
 		9212C0FA222D7AC000FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = filters/vflip.c; sourceTree = "<group>"; };
 		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
@@ -1955,6 +1957,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				920F4C9E299FB3CC00EC9D21 /* avin_web.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
 				9274295724647AB8009ADD8D /* bsrw.c */,
@@ -2589,6 +2592,7 @@
 				92B9A57C1F8660D700A24FE4 /* svg_filters.c in Sources */,
 				92B9A5A01F8660D700A24FE4 /* mpeg4_sensors.c in Sources */,
 				9201014518D5A445003D1ACA /* dash_client.c in Sources */,
+				920F4C9F299FB3CC00EC9D21 /* avin_web.c in Sources */,
 				928E0BDA28E328A100F2BA27 /* ff_bsf.c in Sources */,
 				925975052215BA3A0007E02B /* raster_yuv.c in Sources */,
 				92E318D120651834007BE021 /* vcrop.c in Sources */,
