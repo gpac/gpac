@@ -2111,6 +2111,8 @@ GF_FilterRegister FFEncodeRegister = {
 	.process_event = ffenc_process_event,
 	.update_arg = ffenc_update_arg,
 	.flags = GF_FS_REG_META | GF_FS_REG_TEMP_INIT | GF_FS_REG_BLOCK_MAIN,
+	//use middle priority in case we have other encoders
+	.priority = 128
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFEncodeCtx, _n)

@@ -711,6 +711,9 @@ typedef struct {
 #define GPAC_MINIMAL_ODF
 #endif
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+#define EM_CAST_PTR	(int)
+#endif
 
 //define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not
 //#define GPAC_DISABLE_DOC

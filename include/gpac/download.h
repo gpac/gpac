@@ -629,8 +629,6 @@ GF_UserCredentials *gf_user_credentials_find_for_site(GF_DownloadManager *dm, co
 */
 GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool secure, const char * server_name, const char * username, const char * password, Bool valid);
 
-/*! @} */
-
 
 //end GPAC_DISABLE_NETWORK
 #elif defined(GPAC_CONFIG_EMSCRIPTEN)
@@ -666,9 +664,12 @@ void gf_dm_del(GF_DownloadManager *dm);
 
 #endif //GPAC_USE_DOWNLOADER
 
+
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */
 
 
 #endif		/*_GF_DOWNLOAD_H_*/

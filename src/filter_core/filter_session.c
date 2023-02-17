@@ -1152,7 +1152,7 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode,
 	return gf_fs_check_filter_register_cap_ex(f_reg, incode, cap_input, outcode, cap_output, exact_match_only, GF_FALSE);
 }
 
-static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
+GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args, GF_List *filter_blacklist)
 {
 	GF_Err e;
 	char szCodec[3];
@@ -1202,6 +1202,8 @@ retry:
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (blacklist && (gf_list_find(blacklist, (void *) f_reg)>=0) )
+			continue;
+		if (filter_blacklist && (gf_list_find(filter_blacklist, (void *) f_reg)>=0) )
 			continue;
 
 		if ( gf_fs_check_filter_register_cap_ex(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out, GF_FALSE, ocap_excluded)) {
@@ -1353,10 +1355,10 @@ static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char
 	}
 
 	if (!strncmp(name, "enc", len)) {
-		return gf_fs_load_encoder(fsess, args);
+		return gf_fs_load_encoder(fsess, args, NULL);
 	}
 	if ((strlen(name)>2) && (name[0]=='c') && (name[1]==fsess->sep_name)) {
-		return gf_fs_load_encoder(fsess, name);
+		return gf_fs_load_encoder(fsess, name, NULL);
 	}
 
 	/*regular filter loading*/
@@ -1855,8 +1857,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					diff = (s64)task->schedule_next_time;
 					diff -= (s64) gf_sys_clock_high_res();
 					if (diff > 100 ) {
+						u32 pending_tasks;
 						Bool use_main = (current_filter->freg->flags & GF_FS_REG_MAIN_THREAD) ? GF_TRUE : GF_FALSE;
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u: releasing current filter %s, exec time due in "LLD" us\n", sys_thid, current_filter->name, diff));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u: releasing current filter %s, exec time for %s due in "LLD" us\n", sys_thid, current_filter->name, task->log_name, diff));
 						current_filter->process_th_id = 0;
 						current_filter->in_process = GF_FALSE;
 						//don't touch the current filter tasks, just repost the task to the main/secondary list
@@ -1871,6 +1874,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 
 						if (use_main) {
+							pending_tasks = gf_fq_count(fsess->main_thread_tasks);
 							gf_fq_add(fsess->main_thread_tasks, task);
 							//we are the main thread and reposting to the main task list, don't notify/wait for the sema, just retry
 							//we are sure to get a task from main list at next iteration
@@ -1880,6 +1884,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 								gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 							}
 						} else {
+							pending_tasks = gf_fq_count(fsess->main_thread_tasks);
 							gf_fq_add(fsess->tasks, task);
 							//we are not the main thread and we are reposting to the secondary task list, don't notify/wait for the sema, just retry
 							//we are not sure to get a task from secondary list at next iteration, but the end of thread check will make
@@ -1894,8 +1899,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						//because the first main task was not yet due for execution
 						//it is likely that the execution of the next task will not wake up the main thread
 						//but we must reevaluate the previous main task timing, so we force a notification of the main sema
-						if (force_secondary_tasks)
+						if (force_secondary_tasks) {
 							gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
+						} else if (!thid && fsess->non_blocking && !pending_tasks) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
+							return 0;
+						}
 
 						continue;
 					}

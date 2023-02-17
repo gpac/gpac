@@ -787,6 +787,7 @@ struct __gf_filter
 	/*source pid instance we are swapping*/
 	GF_FilterPidInst *swap_pidinst_src;
 	Bool swap_needs_init;
+	Bool swap_pending;
 
 	//overloaded caps of the filter
 	const GF_FilterCapability *forced_caps;
@@ -1115,7 +1116,7 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 
 Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
 
-void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
+void gf_filter_relink_dst(GF_FilterPidInst *pidinst, GF_Err reason);
 
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections);
 

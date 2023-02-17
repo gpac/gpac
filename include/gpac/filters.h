@@ -4020,6 +4020,19 @@ Bool gf_filter_pid_has_decoder(GF_FilterPid *PID);
 */
 GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *PID, u32 rtt_ms, u32 jitter_us, u32 loss_rate);
 
+
+/*! Returns RFC6381 "codec" string of a PID
+
+\param PID the target filter PID
+\param szCodec string to be written, must be RFC6381_CODEC_NAME_SIZE_MAX at least
+\param force_inband forces inband signaling for avc/hevc/etc
+\param force_sbr forces SBR signaling for AAC
+\param tile_base_dcd decoder config of tiled base track if known, may be NULL otherwise
+\param out_inband_forced set to true if inband is to be forced (dasher only) - may be NULL
+\return error if any
+*/
+GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *PID, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, Bool *out_inband_forced);
+
 /*! @} */
 
 

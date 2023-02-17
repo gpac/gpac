@@ -331,7 +331,7 @@ static void em_main_loop(void*arg)
 {
 	u32 run = run_steps;
 	window_swap = GF_FALSE;
-	do {
+	while (session && run) {
 		GF_Err e = gf_fs_run(session);
 		if (e==GF_NOT_READY) break;
 
@@ -345,7 +345,7 @@ static void em_main_loop(void*arg)
 			break;
 		}
 		run--;
-	} while (run);
+	}
 }
 
 s32 em_raf_fps;
@@ -364,9 +364,9 @@ void gpac_force_step_mode(Bool for_display)
 		//main loop callback not set, use 0 (let browser choose) since we display
 		if (em_raf_fps<0) em_raf_fps = 0;
 	}
-	//audio out, force num_steps=1
 	else {
-		if (run_steps<0) run_steps = 1;
+		//audio out, don't force num_steps
+		//if (run_steps<0) run_steps = 1;
 	}
 }
 
@@ -1334,10 +1334,9 @@ restart:
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	if (use_step_mode) {
-		//default is 200 fps, 200 steps per frame
-		if (em_raf_fps<0) em_raf_fps=200;
-		if (run_steps<0) run_steps = 20;
-		fprintf(stdout, "running in step mode RAF FPS %d - steps %d\n", em_raf_fps, run_steps);
+		//default is 100 fps (values higher than this tend to have no effect), 10000 steps per frame
+		if (em_raf_fps<0) em_raf_fps=100;
+		if (run_steps<0) run_steps = 10000;
 
 		emscripten_set_main_loop_arg(em_main_loop, session, em_raf_fps, 1);
 		//we are done (rest of function is NOT called)

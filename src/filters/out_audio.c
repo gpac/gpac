@@ -46,6 +46,7 @@ typedef struct
 	GF_FilterPid *pid;
 	u32 sr, afmt, nb_ch, timescale;
 	u64 ch_cfg;
+	u32 cur_afmt;
 	GF_AudioOutput *audio_out;
 
 #ifndef GPAC_DISABLE_THREADS
@@ -85,6 +86,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	nb_ch = ctx->nb_ch;
 	afmt = old_afmt = ctx->afmt;
+	if (ctx->cur_afmt) old_afmt = ctx->cur_afmt;
 	ch_cfg = ctx->ch_cfg;
 
 	//config not ready, wait
@@ -125,10 +127,17 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 	}
 
 	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt) || !ctx->speed_set) {
-		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
-		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
-		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
-		gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
+		if (ctx->sr != sr)
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
+
+		if (ctx->afmt != afmt)
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
+
+		if (ctx->nb_ch != nb_ch)
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+		if (!ctx->speed_set)
+			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
+
 		ctx->speed_set = (ctx->speed==1.0) ? 1 : 2;
 		ctx->needs_recfg = GF_FALSE;
 		//drop all packets until next reconfig
@@ -147,6 +156,7 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		}
 		return;
 	}
+	ctx->cur_afmt = afmt;
 	ctx->bytes_per_sample = gf_audio_fmt_bit_depth(afmt) * nb_ch / 8;
 	ctx->hwdelay_us = 0;
 	if (ctx->audio_out->GetAudioDelay) {
@@ -225,7 +235,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		//query full buffer duration in us
 		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u / %d ms\r", (u32)(dur/1000), ctx->buffer));
 
 		/*the compositor sends empty packets after its reconfiguration to check when the config is active
 		we therefore probe the first packet before probing the buffer fullness*/
@@ -257,7 +267,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 	} else if (ctx->rbuffer && !ctx->rebuffer) {
 		//query full buffer duration in us
 		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", (u32)(dur/1000), ctx->buffer));
 		if ((dur < ctx->rbuffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u less than min threshold %u, rebuffering\n", (u32) (dur/1000), ctx->rbuffer));
 			ctx->rebuffer = gf_sys_clock_high_res();
@@ -267,7 +277,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 #ifndef GPAC_DISABLE_LOG
 	} else if (gf_log_tool_level_on(GF_LOG_MMIO, GF_LOG_DEBUG)) {
 		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", (u32)(dur/1000), ctx->buffer));
 #endif
 	}
 
@@ -768,7 +778,7 @@ GF_FilterRegister AudioOutRegister = {
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 #ifdef GPAC_CONFIG_ANDROID
-	//on android pin on man thread so that all events/commands come from main thread
+	//on android pin on main thread so that all events/commands come from main thread
 	//we use a dedicated thread for filling the audio
 	.flags = GF_FS_REG_MAIN_THREAD,
 #endif
