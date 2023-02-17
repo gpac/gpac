@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -3865,7 +3865,7 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 	if (dsi && dsi_size) {
 		u8 audio_object_type;
 		if (dsi_size < 2) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381-AAC] invalid DSI size %u < 2\n", dsi_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] invalid DSI size %u < 2\n", dsi_size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		/*5 first bits of AAC config*/
@@ -3898,7 +3898,7 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 	case GF_CODECID_AAC_MPEG2_LCP:
 	case GF_CODECID_AAC_MPEG2_SSRP:
 	case GF_CODECID_USAC:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFC6381-AAC] Cannot find AAC config, using default %s\n", szCodec));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find AAC config, using default %s\n", szCodec));
 		break;
 	}
 	return GF_OK;
@@ -3915,7 +3915,7 @@ GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size
 	}
 #endif
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X", codec_id);
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFC6381-M4V] Cannot find M4V config, using default %s\n", szCodec));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find M4V config, using default %s\n", szCodec));
 	return GF_OK;
 }
 
@@ -4007,7 +4007,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 		GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
 		bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
 		if (!av1_is_obu_header(a->obu_type))
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. Parsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] AV1: unexpected obu_type %d - Parsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
 
 		e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
 		gf_bs_del(bs);
@@ -4034,7 +4034,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 		if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
 
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n",
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n",
 				av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
 		}
 	}
@@ -4126,7 +4126,7 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 		pl = dsi[1];
 	}
 	if (pl<0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Cannot find MPEG-H Audio Config or audio PL, defaulting to profile 0x01\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find MPEG-H Audio Config or audio PL, defaulting to profile 0x01\n"));
 	}
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.0x%02X", gf_4cc_to_str(subtype), pl);
 	return GF_OK;
@@ -4181,7 +4181,7 @@ GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id)
 		else
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4s.%02X", codec_id);
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("Codec parameters not known - using default value \"%s\"\n", gf_4cc_to_str(subtype) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[RFC6381] Codec parameters not known - using default value \"%s\"\n", gf_4cc_to_str(subtype) ));
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 	}
 	return GF_OK;
@@ -4209,11 +4209,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		} else if(gf_isom_is_cenc_media(movie, track, stsd_idx)) {
 			e = gf_isom_get_cenc_info(movie, track, stsd_idx, &originalFormat, NULL, NULL);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, stsd_idx)) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFC6381] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, stsd_idx)) ));
 			e = gf_isom_get_original_format_type(movie, track, stsd_idx, &originalFormat);
 		}
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISOM Tools] Error fetching protection information\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Error fetching protection information\n"));
 			return e;
 		}
 
@@ -4267,7 +4267,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			gf_odf_avc_cfg_del(avcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot find AVC configuration box"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find AVC configuration box"));
 		return GF_ISOM_INVALID_FILE;
 
 	case GF_ISOM_SUBTYPE_SVC_H264:
@@ -4279,7 +4279,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			gf_odf_avc_cfg_del(avcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot find SVC/MVC configuration box\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find SVC/MVC configuration box\n"));
 		return GF_ISOM_INVALID_FILE;
 
 #ifndef GPAC_DISABLE_HEVC
@@ -4310,7 +4310,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			gf_odf_hevc_cfg_del(hvcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("HEVCConfig not compliant\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] HEVCConfig not compliant\n"));
 		return GF_ISOM_INVALID_FILE;
 #else
 		return GF_NOT_SUPPORTED;
@@ -4331,7 +4331,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			gf_odf_av1_cfg_del(av1c);
 			return e;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[RFC6381] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
 #endif /*!defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)*/
@@ -4351,7 +4351,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			gf_odf_vp_cfg_del(vpcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[RFC6381] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
 
@@ -4363,7 +4363,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 	{
 		GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(movie, track, stsd_idx);
 		if (!dovi) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
@@ -4383,7 +4383,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 			gf_odf_vvc_cfg_del(vvcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ISOM Tools] No config found for VVC file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[RFC6381] No config found for VVC file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
 

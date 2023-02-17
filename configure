@@ -234,6 +234,8 @@ push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
 push_feature "vout" "video output filter"
 push_feature "aout" "audio output filter"
+push_feature "avdevice" "avdevice support in FFMPEG"
+push_feature "avfilter" "avfilter support in FFMPEG"
 
 
 ar_it=""
@@ -315,7 +317,7 @@ GPAC build options:
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
   --dxsdk-path=DX_PATH     specify DirectX SDK for MinGW [$dxsdk_path]
   --extra-ff-ldflags=EF    add EF flags to FFMPEG LDFLAGS [$ffmpeg_extra_ldflags]
-  --emscripten             configure for emscripten build (same as running emconfigure configure)
+  --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable 
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
 
@@ -626,6 +628,7 @@ for opt do
         	set_feature "$v" "no"
             ;;
         --emscripten) is_em="yes"
+            disable_network="yes"
             ;;
         --em-type=*) em_type=`echo $opt | cut -d '=' -f 2`
             ;;
@@ -1539,12 +1542,29 @@ config_package faad "faad2" "" "-lfaad" "" '#include <faad.h>
 int main( void ) { NeAACDecOpen(); return 0; }'
 
 
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lavfilter -lpostproc $ffmpeg_extra_ldflags"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lpostproc"
+ffmpeg_pck_names="libavcodec libavformat libswscale libavutil"
 
-config_package ffmpeg "libavcodec libavformat libswscale libavdevice libavutil libavfilter" "" "$ffmpeg_lflags" "" '#include <libavformat/avformat.h>
+if test "$is_em" == "yes" ; then
+disable_avdevice="yes"
+fi
+
+if test "$disable_avdevice" == "no" ; then
+ffmpeg_lflags="$ffmpeg_lflags -lavdevice"
+ffmpeg_pck_names="$ffmpeg_pck_names libavdevice"
+fi
+
+if test "$disable_avfilter" == "no" ; then
+ffmpeg_lflags="$ffmpeg_lflags -lavfilter"
+ffmpeg_pck_names="$ffmpeg_pck_names libavfilter"
+fi
+
+ffmpeg_lflags="$ffmpeg_lflags $ffmpeg_extra_ldflags"
+
+config_package ffmpeg "$ffmpeg_pck_names" "" "$ffmpeg_lflags" "" '#include <libavformat/avformat.h>
 int main(void) { avformat_alloc_context(); return 0; }'
 
-if test "$has_ffmpeg" != no ; then
+if test "$has_ffmpeg" != "no" ; then
 
 #detect vvc support in ffmpeg
 cat > $TMPC << EOF
@@ -1564,6 +1584,7 @@ else
 fi
 
 fi
+
 #end ffmpeg specific tests
 
 
@@ -2713,6 +2734,12 @@ if test "$has_ffmpeg" != "no"; then
     echo "#define GPAC_HAS_FFMPEG" >> $TMPH
     if test "$ffmpeg_vvc" = "yes"; then
       echo "#define FFMPEG_ENABLE_VVC" >> $TMPH
+    fi
+    if test "$disable_avdevice" == "yes" ; then
+      echo "#define FFMPEG_DISABLE_AVDEVICE" >> $TMPH
+    fi
+    if test "$disable_avfilter" == "yes" ; then
+      echo "#define FFMPEG_DISABLE_AVFILTER" >> $TMPH
     fi
 fi
 

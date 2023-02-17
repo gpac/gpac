@@ -819,6 +819,8 @@ dispatch_next:
 	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 #endif
 
+	if (gf_filter_pid_would_block(ctx->out_pid))
+		return GF_OK;
 	//avoid recursion
 	goto decode_next;
 }

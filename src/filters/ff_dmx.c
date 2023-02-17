@@ -1606,7 +1606,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, 4, FF_REG_TYPE_DEMUX);
 }
 
-
+#ifndef FFMPEG_DISABLE_AVDEVICE
 
 static GF_Err ffavin_initialize(GF_Filter *filter)
 {
@@ -2086,6 +2086,15 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 #endif
 	return res_reg;
 }
+
+#else // FFMPEG_DISABLE_AVDEVICE
+
+const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif
+
 
 #else
 

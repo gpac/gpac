@@ -3214,12 +3214,15 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 
 static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config, Bool is_info, PidCtx *pctx)
 {
+	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 	const GF_PropertyValue *p, *dsi, *dsi_enh;
 	Bool is_raw=GF_FALSE;
 	Bool is_protected=GF_FALSE;
 	u32 codec_id=0;
 
 	if (!ctx->dump_log && !dump) return;
+
+	gf_filter_pid_get_rfc_6381_codec_string(pid, szCodec, GF_FALSE, GF_FALSE, NULL, NULL);
 
 	inspect_printf(dump, "PID");
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
@@ -3347,6 +3350,8 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	}
 
 	inspect_printf(dump, " codec");
+	if (szCodec[0] && strcmp(szCodec, "unkn"))
+		inspect_printf(dump, " %s", szCodec);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if ((codec_id==GF_CODECID_HEVC) || (codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC_TILES)) {

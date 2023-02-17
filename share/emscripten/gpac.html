@@ -111,6 +111,7 @@
         let use_idbfs = false;
         let edit_name = null;
         let is_eval = false;
+        let is_bsize = false;
         var FS = null;
         var element = document.getElementById('output');
         if (element) element.value = '/ %';
@@ -243,6 +244,15 @@
           return;
          }
 
+         if (is_bsize) {
+          let s = parseInt(cmd);
+          is_bsize = false;
+          set_status('');
+          if (s != s) return com_exit('Inavlid value ' + cmd);
+          GPAC.read_block_size = s;
+          return com_exit();
+         }
+
          //nothing to do
          if (!cmd.length) {
           return com_exit();
@@ -305,6 +315,7 @@
           text+="stack          prints availble size in stack\n";
           text+="clearh [N]     clears command history. If N is set, only keeps last N items, otherwise clears everything\n";
           text+="fetch          toggles fetch support in libgpac\n";
+          text+="bsize          sets block size used to read from local disk (default " + GPAC.read_block_size + ")\n";
           text+="eval           evaluates JS code\n";
           text+="\n";
           text+="Up and Down arrows can be used for command history\n";
@@ -419,6 +430,9 @@
             args.splice(1, 1);
           }
           var d = ((args.length>1) && args[1].length) ? args[1] : FS.cwd();
+
+          try {
+
           let stats = FS.stat(d);
           if (FS.isDir(stats.mode)) {
             var children = FS.readdir(d, { parent: false });
@@ -449,6 +463,9 @@
             do_log(text);
           }
           return com_exit();
+          } catch (e) {
+            return com_exit('No such file');
+          }
          }
          //get current working directory
          if (args[0]=='cwd') {
@@ -586,6 +603,11 @@
             is_eval = true;
             let runElement = document.getElementById('run_script');
             runElement.hidden = false;
+            return;
+         }
+         if (args[0]=='bsize') {
+            set_status('Enter new block size to use (current ' + GPAC.read_block_size + ')');
+            is_bsize = true;
             return;
          }
          //set logs at runtime (doesn't work when video output is used, text input is always directed to SDL in this case...)
@@ -786,6 +808,8 @@
                 fio._select = 0;
                 fio._pos = 0;
                 fio._size = fio._file.size;
+                //if more than 1m, load by 500k blocks
+                if ((fio._size>1000000) && (fio._max_bsize<500000)) fio._max_bsize = 500000;
                 GFIO.set_stats(fio._gfio, BigInt(0), BigInt(fio._size), 2, 0);
                 GFIO._load_block(fio);
               } else {
@@ -1345,7 +1369,7 @@
               _block_pos_in_file: 0,
               _block_pos: 0, //amount of bytes read from block
               _ab: null,
-              _max_bsize: 10000, //10k min, will grow to block_size of fin filter
+              _max_bsize: GPAC.read_block_size, //min size, will grow to block_size of fin filter
               _discard_next: null,
               _timer: null,
               _writer: null,
@@ -1547,6 +1571,7 @@
         stack: null,
         anim: animElement,
         restore_worker: false,
+        read_block_size: 10000
       };
 
       var LIBGPAC = {

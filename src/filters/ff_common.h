@@ -32,7 +32,9 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/dict.h>
+#ifndef FFMPEG_DISABLE_AVDEVICE
 #include <libavdevice/avdevice.h>
+#endif
 #include <libswscale/swscale.h>
 #include <libavutil/channel_layout.h>
 

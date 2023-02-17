@@ -7181,8 +7181,6 @@ struct __gf_download_session
 
 };
 
-#define EM_CAST_PTR	(int)
-
 EM_JS(int, dm_fetch_cancel, (int sess), {
   let fetcher = libgpac._get_fetcher(sess);
   if (!fetcher) return -1;

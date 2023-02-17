@@ -361,7 +361,7 @@ Gets the smallest pixel-aligned rectangle completely containing a rectangle
 */
 GF_IRect gf_rect_pixelize(GF_Rect *r);
 
-/*! add adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2
+/*! add adds rc2 to rc1 - the new rc1 contains the old rc1 and rc2
  \param rc1 target rectangle
  \param rc2 rectangle to add
 */

@@ -939,7 +939,7 @@ void gf_props_del(GF_PropertyMap *map)
 	gf_props_reset(map);
 	map->reference_count = 0;
 	map->timescale = 0;
-	if (map->session->prop_maps_reservoir) {
+	if (map->session && map->session->prop_maps_reservoir) {
 		gf_fq_add(map->session->prop_maps_reservoir, map);
 	} else {
 		gf_list_del(map->properties);

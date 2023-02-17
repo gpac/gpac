@@ -168,6 +168,8 @@
 		9206822C20EA41530041169F /* in_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822B20EA41530041169F /* in_pipe.c */; };
 		9206822E20EA69680041169F /* out_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206822D20EA69680041169F /* out_pipe.c */; };
 		9206823420EA96AA0041169F /* mux_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 9206823320EA96AA0041169F /* mux_gsf.c */; };
+		920F4C9B29950A9D00EC9D21 /* dec_webcodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9A29950A9D00EC9D21 /* dec_webcodec.c */; };
+		920F4C9D299D20CE00EC9D21 /* enc_webcodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */; };
 		9210D007237041C2007AFB48 /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210D006237041C2007AFB48 /* ftgrays.c */; };
 		9212C0FB222D7AC000FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FA222D7AC000FE3580 /* vflip.c */; };
 		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
@@ -786,6 +788,8 @@
 		9206822B20EA41530041169F /* in_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_pipe.c; path = filters/in_pipe.c; sourceTree = "<group>"; };
 		9206822D20EA69680041169F /* out_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_pipe.c; path = filters/out_pipe.c; sourceTree = "<group>"; };
 		9206823320EA96AA0041169F /* mux_gsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_gsf.c; path = filters/mux_gsf.c; sourceTree = "<group>"; };
+		920F4C9A29950A9D00EC9D21 /* dec_webcodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_webcodec.c; path = filters/dec_webcodec.c; sourceTree = "<group>"; };
+		920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_webcodec.c; path = filters/enc_webcodec.c; sourceTree = "<group>"; };
 		9210D006237041C2007AFB48 /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = evg/ftgrays.c; sourceTree = "<group>"; };
 		9212C0FA222D7AC000FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = filters/vflip.c; sourceTree = "<group>"; };
 		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
@@ -1971,6 +1975,7 @@
 				9234CF381FD6A6E400CCDFA1 /* dec_ttxt.c */,
 				926656C11F7D10F400299CC6 /* dec_vorbis.c */,
 				92B9A5081F840A6700A24FE4 /* dec_vtb.c */,
+				920F4C9A29950A9D00EC9D21 /* dec_webcodec.c */,
 				9234CF3E1FD8311400CCDFA1 /* dec_webvtt.c */,
 				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
 				925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */,
@@ -1987,6 +1992,7 @@
 				926998B31FEACE8F00AA759D /* dmx_vobsub.c */,
 				9239B8D5207369E5005F7264 /* enc_jpg.c */,
 				9239B8D72073AFEF005F7264 /* enc_png.c */,
+				920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */,
 				92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */,
 				92B7DC102549A1310086EC57 /* ffmpeg */,
 				92754D5F207D24F600170383 /* filelist.c */,
@@ -2415,6 +2421,7 @@
 				92B9A5981F8660D700A24FE4 /* media_object.c in Sources */,
 				92F930821A5ADB870072A85C /* os_divers.c in Sources */,
 				92F930831A5ADB870072A85C /* os_file.c in Sources */,
+				920F4C9B29950A9D00EC9D21 /* dec_webcodec.c in Sources */,
 				92B9A5A61F8660D700A24FE4 /* mpeg4_grouping.c in Sources */,
 				925730822056A610009DB328 /* rewrite_mp4v.c in Sources */,
 				9212C0FB222D7AC000FE3580 /* vflip.c in Sources */,
@@ -2522,6 +2529,7 @@
 				9201011918D5A444003D1ACA /* box_code_drm.c in Sources */,
 				92C236DD25769BA500CD59A9 /* tilesplit.c in Sources */,
 				9201011A18D5A444003D1ACA /* box_code_meta.c in Sources */,
+				920F4C9D299D20CE00EC9D21 /* enc_webcodec.c in Sources */,
 				9201011B18D5A444003D1ACA /* box_dump.c in Sources */,
 				9201011C18D5A444003D1ACA /* box_funcs.c in Sources */,
 				9201011D18D5A444003D1ACA /* data_map.c in Sources */,
