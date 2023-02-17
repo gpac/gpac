@@ -1545,16 +1545,16 @@ int main( void ) { NeAACDecOpen(); return 0; }'
 ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lpostproc"
 ffmpeg_pck_names="libavcodec libavformat libswscale libavutil"
 
-if test "$is_em" == "yes" ; then
+if test "$is_em" = "yes" ; then
 disable_avdevice="yes"
 fi
 
-if test "$disable_avdevice" == "no" ; then
+if test "$disable_avdevice" = "no" ; then
 ffmpeg_lflags="$ffmpeg_lflags -lavdevice"
 ffmpeg_pck_names="$ffmpeg_pck_names libavdevice"
 fi
 
-if test "$disable_avfilter" == "no" ; then
+if test "$disable_avfilter" = "no" ; then
 ffmpeg_lflags="$ffmpeg_lflags -lavfilter"
 ffmpeg_pck_names="$ffmpeg_pck_names libavfilter"
 fi
@@ -1864,7 +1864,7 @@ if test "$is_em" = "yes"; then
         has_sdl="emcc-ports"
         sdl_cflags="-sUSE_SDL=2"
         sdl_lib_flags="-sUSE_SDL=2"
-        if test "$disable_3d" == "no" ; then
+        if test "$disable_3d" = "no" ; then
             has_opengl="yes"
         fi
     fi
@@ -2735,10 +2735,10 @@ if test "$has_ffmpeg" != "no"; then
     if test "$ffmpeg_vvc" = "yes"; then
       echo "#define FFMPEG_ENABLE_VVC" >> $TMPH
     fi
-    if test "$disable_avdevice" == "yes" ; then
+    if test "$disable_avdevice" = "yes" ; then
       echo "#define FFMPEG_DISABLE_AVDEVICE" >> $TMPH
     fi
-    if test "$disable_avfilter" == "yes" ; then
+    if test "$disable_avfilter" = "yes" ; then
       echo "#define FFMPEG_DISABLE_AVFILTER" >> $TMPH
     fi
 fi
