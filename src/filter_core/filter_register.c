@@ -156,6 +156,7 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session);
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
 const GF_FilterRegister *wcdec_register(GF_FilterSession *session);
 const GF_FilterRegister *wcenc_register(GF_FilterSession *session);
+const GF_FilterRegister *webgrab_register(GF_FilterSession *session);
 #endif
 
 
@@ -335,6 +336,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
 	gf_fs_add_filter_register(fsess, wcdec_register(a_sess) );
 	gf_fs_add_filter_register(fsess, wcenc_register(a_sess) );
+	gf_fs_add_filter_register(fsess, webgrab_register(a_sess) );
 #endif
 
 #if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_HAVE_DTAPI) && !defined(WIN32) 

@@ -219,7 +219,7 @@ LIBGPAC_FILTERS+=filters/bs_agg.o filters/bs_split.o filters/bsrw.o filters/comp
 LIBGPAC_FILTERS_FFMPEG=filters/ff_common.o filters/ff_avf.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/ff_mx.o filters/ff_bsf.o
 
 ifeq ($(CONFIG_EMSCRIPTEN),yes)
-LIBGPAC_FILTERS+=filters/dec_webcodec.o filters/enc_webcodec.o
+LIBGPAC_FILTERS+=filters/dec_webcodec.o filters/enc_webcodec.o filters/avin_web.o
 endif
 
 ifeq ($(STATIC_MODULES),yes)

@@ -301,6 +301,19 @@ void wcdec_on_frame_copy(GF_WCDecCtx *ctx, GF_FilterPacket *pck, int res_ok)
 
 }
 
+u32 webcodec_pixfmt_to_gpac(char *format)
+{
+	if (!stricmp(format, "I420")) return GF_PIXEL_YUV;
+	else if (!stricmp(format, "I420A")) return GF_PIXEL_YUVA;
+	else if (!stricmp(format, "I422")) return GF_PIXEL_YUV422;
+	else if (!stricmp(format, "I444")) return GF_PIXEL_YUV444;
+	else if (!stricmp(format, "NV12")) return GF_PIXEL_NV12;
+	else if (!stricmp(format, "RGBA")) return GF_PIXEL_RGBA;
+	else if (!stricmp(format, "RGBX")) return GF_PIXEL_RGBX;
+	else if (!stricmp(format, "BGRA")) return GF_PIXEL_BGRA;
+	else if (!stricmp(format, "BGRX")) return GF_PIXEL_BGRX;
+	return 0;
+}
 GF_EXPORT
 void wcdec_on_video(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 width, u32 height)
 {
@@ -309,16 +322,8 @@ void wcdec_on_video(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 width, u3
 	GF_FilterPacket *dst;
 	if (!ctx) return;
 
-	if (!stricmp(format, "I420")) pf = GF_PIXEL_YUV;
-	else if (!stricmp(format, "I420A")) pf = GF_PIXEL_YUVA;
-	else if (!stricmp(format, "I422")) pf = GF_PIXEL_YUV422;
-	else if (!stricmp(format, "I444")) pf = GF_PIXEL_YUV444;
-	else if (!stricmp(format, "NV12")) pf = GF_PIXEL_NV12;
-	else if (!stricmp(format, "RGBA")) pf = GF_PIXEL_RGBA;
-	else if (!stricmp(format, "RGBX")) pf = GF_PIXEL_RGBX;
-	else if (!stricmp(format, "BGRA")) pf = GF_PIXEL_BGRA;
-	else if (!stricmp(format, "BGRX")) pf = GF_PIXEL_BGRX;
-	else {
+	pf = webcodec_pixfmt_to_gpac(format);
+	if (!pf) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebDec] Unrecognized pixel format %s\n", format));
 		return;
 	}
@@ -366,14 +371,28 @@ void wcdec_on_video(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 width, u3
 		EM_CAST_PTR output, ctx->out_size);
 }
 
-EM_JS(int, wcdec_copy_audio, (int wc_ctx, int dst_pck, int buf, int buf_size, int plane_index), {
+EM_JS(int, wcdec_copy_audio, (int wc_ctx, int buf, int buf_size, int plane_index), {
 	let c = libgpac._to_webdec(wc_ctx);
-	if (!c || !c._frame || !dst_pck) return;
+	if (!c || !c._frame) return;
 
 	//setup dst
 	let ab = new Uint8Array(libgpac.HEAPU8.buffer, buf, buf_size);
 	c._frame.copyTo(ab, { planeIndex: plane_index });
 })
+
+
+u32 webcodec_audiofmt_to_gpac(char *format)
+{
+	if (!stricmp(format, "u8")) return GF_AUDIO_FMT_U8;
+	else if (!stricmp(format, "s16")) return GF_AUDIO_FMT_S16;
+	else if (!stricmp(format, "s32")) return GF_AUDIO_FMT_S32;
+	else if (!stricmp(format, "f32")) return GF_AUDIO_FMT_FLT;
+	else if (!stricmp(format, "u8-planar")) return GF_AUDIO_FMT_U8P;
+	else if (!stricmp(format, "s16-planar")) return GF_AUDIO_FMT_S16P;
+	else if (!stricmp(format, "s32-planar")) return GF_AUDIO_FMT_S32P;
+	else if (!stricmp(format, "f32-planar")) return GF_AUDIO_FMT_FLTP;
+	return 0;
+}
 
 GF_EXPORT
 void wcdec_on_audio(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 num_frames, u32 num_channels, u32 sample_rate)
@@ -383,15 +402,8 @@ void wcdec_on_audio(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 num_frame
 	GF_FilterPacket *dst;
 	if (!ctx) return;
 
-	if (!stricmp(format, "u8")) af = GF_AUDIO_FMT_U8;
-	else if (!stricmp(format, "s16")) af = GF_AUDIO_FMT_S16;
-	else if (!stricmp(format, "s32")) af = GF_AUDIO_FMT_S32;
-	else if (!stricmp(format, "f32")) af = GF_AUDIO_FMT_FLT;
-	else if (!stricmp(format, "u8-planar")) af = GF_AUDIO_FMT_U8P;
-	else if (!stricmp(format, "s16-planar")) af = GF_AUDIO_FMT_S16P;
-	else if (!stricmp(format, "s32-planar")) af = GF_AUDIO_FMT_S32P;
-	else if (!stricmp(format, "f32-planar")) af = GF_AUDIO_FMT_FLTP;
-	else {
+	af = webcodec_audiofmt_to_gpac(format);
+	if (!af) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebDec] Unrecognized pixel format %s\n", format));
 		return;
 	}
@@ -445,9 +457,7 @@ void wcdec_on_audio(GF_WCDecCtx *ctx, u64 timestamp, char *format, u32 num_frame
 
 	for (i=0; i<num_planes; i++) {
 		u8 *buf = output + i * plane_size;
-		wcdec_copy_audio(EM_CAST_PTR ctx,
-			EM_CAST_PTR dst,
-			EM_CAST_PTR buf, plane_size, i);
+		wcdec_copy_audio(EM_CAST_PTR ctx, EM_CAST_PTR buf, plane_size, i);
 	}
 	gf_filter_pck_send(dst);
 }
