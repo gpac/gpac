@@ -317,7 +317,7 @@ GPAC build options:
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
   --dxsdk-path=DX_PATH     specify DirectX SDK for MinGW [$dxsdk_path]
   --extra-ff-ldflags=EF    add EF flags to FFMPEG LDFLAGS [$ffmpeg_extra_ldflags]
-  --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable 
+  --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
 
@@ -1057,7 +1057,7 @@ if test "$no_gcc_opt" = "no"; then
     CFLAGS="-O3 $CFLAGS"
 else
 
-#on emscripten+asan, failure to load wasm when build with -00, use -01 
+#on emscripten+asan, failure to load wasm when build with -00, use -01
 if test "$is_em" = "yes" -a "$enable_sanitizer" = "yes"; then
     CFLAGS="-O1 $CFLAGS"
 else
@@ -1218,7 +1218,7 @@ config_package_test ()
     sysname="system"
     if test "$is_em" = "yes" ; then
         is_port="yes";
-        case "$package_name" in 
+        case "$package_name" in
             "zlib") package_cflags="-sUSE_ZLIB=1" ;;
             "jpeg") package_cflags="-sUSE_LIBJPEG=1" ;;
             "png") package_cflags="-sUSE_LIBPNG=1" ;;
@@ -1267,7 +1267,7 @@ config_package_test ()
 
     #test pkgconfig
     if test "$forced" != "local" -a "$custom" != "yes" ; then
-        if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
+        if test "$cross_prefix" = "" -a "$is_port" != "yes" -a "$pkg_config" != "no"; then
             if $pkg_config --exists $pkg_cfg_name ; then
                 pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
                 pck_ldflags=`$pkg_config --libs $pkg_cfg_name`

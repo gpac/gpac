@@ -1110,7 +1110,7 @@ second_pass:
 #endif
 
 			{
-#if (LIBAVFORMAT_VERSION_MAJOR > 6)
+#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
 				ofmt = av_muxer_iterate(&av_it);
 #else
 				ofmt = av_oformat_next(ofmt);
