@@ -24,7 +24,7 @@ EXT="."$(EM_TYPE)
 PROG="gpac"$(EXT)
 
 #export defaul symbols and modularize as libgpac
-exports=-sMODULARIZE=1 -sEXPORT_NAME=libgpac -sEXPORTED_RUNTIME_METHODS=callMain,cwrap,stackSave,stackRestore,addFunction,FS,IDBFS,allocateUTF8OnStack,getValue,setValue,UTF8ToString
+exports=-sMODULARIZE=1 -sEXPORT_NAME=libgpac -sEXPORTED_RUNTIME_METHODS=callMain,cwrap,stackSave,stackRestore,stackAlloc,addFunction,FS,IDBFS,allocateUTF8OnStack,getValue,setValue,UTF8ToString
 ifeq ($(DISABLE_THREADS),no)
 LINKFLAGS+=$(exports),PThread -sPTHREAD_POOL_SIZE=1 -sPTHREAD_POOL_SIZE_STRICT=0
 else
