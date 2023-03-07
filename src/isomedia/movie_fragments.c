@@ -2798,7 +2798,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		prev_ent = NULL;
 	}
 
-	if (prev_ent && prev_ent->dts && sample->DTS) {
+	if (prev_ent && (prev_ent->dts || !prev_ent->Duration) && sample->DTS) {
 		u32 nsamp = prev_ent->nb_pack ? prev_ent->nb_pack : 1;
 		if (nsamp*prev_ent->Duration != sample->DTS - prev_ent->dts)
 			prev_ent->Duration = (u32) (sample->DTS - prev_ent->dts) / nsamp;
