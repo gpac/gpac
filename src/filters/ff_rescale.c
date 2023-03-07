@@ -596,6 +596,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			if (!p) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
 
 			ctx->passthrough = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Running in passthrough mode\n"));
 		}
 		return GF_OK;
 	}
@@ -717,6 +718,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
 		gf_pixel_get_size_info(ctx->ofmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
 		ctx->passthrough = GF_TRUE;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Running in passthrough mode\n"));
 	} else {
 		u32 nb_par = 0;
 		nb_par = 0;
@@ -787,6 +789,10 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		memset(ctx->src_stride, 0, sizeof(ctx->src_stride));
 		if (ctx->stride) ctx->src_stride[0] = ctx->stride;
 
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Converting from %ux%u@%s to %ux%u@%s\n",
+			w, h, gf_pixel_fmt_name(ofmt),
+			ctx->ow, ctx->oh, gf_pixel_fmt_name(ctx->ofmt)
+		));
 
 		res = gf_pixel_get_size_info(ofmt, w, h, &ctx->out_src_size, &ctx->src_stride[0], &ctx->src_stride[1], &ctx->nb_src_planes, &ctx->src_uv_height);
 		if (!res) {

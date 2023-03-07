@@ -214,6 +214,10 @@ static GF_Err wcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 		if (!p) return GF_BAD_PARAM;
 		ctx->height = p->value.uint;
+
+		//default to nv12 for most codecs, will be reconfigured when fetching first frame
+		ctx->pf = GF_PIXEL_NV12;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pf) );
 	} else {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (!p) return GF_BAD_PARAM;
@@ -221,6 +225,9 @@ static GF_Err wcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 		ctx->num_channels = p ? p->value.uint : 1;
 
+		//default to 32-bit float for most codecs, will be reconfigured when fetching first frame
+		ctx->af = GF_AUDIO_FMT_FLT;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->af));
 	}
 	if (codecid==GF_CODECID_OPUS) {
 		strcpy(ctx->szCodec, "opus");
