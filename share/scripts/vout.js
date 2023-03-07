@@ -103,6 +103,7 @@ function setup_overlay()
 	let target_width=ol_width;
 	let target_height=ol_height;
 
+	if (vout.nb_ipid) audio_only=false;
 	disp_size = vout.get_arg('owsize');
 	if (disp_size==null) return false;
 	if (audio_only && !disp_size.x) {
@@ -151,7 +152,8 @@ function setup_overlay()
 		ol_width = target_width;
 		ol_height = target_height;
 	}
-	if (ol_buffer) return true;
+
+	if (ol_buffer != null) return true;
 	ol_buffer = new ArrayBuffer(ol_width*ol_height*4);
 	ol_canvas = new evg.Canvas(ol_width, ol_height, 'rgba', ol_buffer);
 	ol_canvas.clearf(0.2, 0.2, 0.2, 0.6);
@@ -191,7 +193,6 @@ session.set_event_fun( (evt)=> {
 		codec_slow = (evt.ui_type == GF_EVENT_CODEC_SLOW) ? true : false;
 
 		if (overlay_type==OL_AUTH) return 0;
-		print('trigger overlay');
 		ol_visible = false;
 		overlay_type=OL_PLAY;
 		toggle_overlay();
