@@ -5549,6 +5549,16 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 			pid->caps_negociate_direct = GF_FALSE;
 		}
 	}
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO)) {
+		char p_dump[GF_PROP_DUMP_ARG_SIZE];
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s negociate property %s to %s\n",
+			pid->filter->name, 	prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc),
+			gf_props_dump(prop_4cc, value, p_dump, GF_PROP_DUMP_DATA_NONE)
+		));
+	}
+#endif
+
 	//pid is end of stream or pid instance has packet pendings, we will need a new chain to adapt these packets formats
 	if (pid->has_seen_eos || gf_fq_count(pidi->packets)) {
 		gf_fs_post_task(pid->filter->session, gf_filter_renegociate_output_task, pid->filter, NULL, "filter renegociate", NULL);
