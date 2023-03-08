@@ -123,7 +123,7 @@ typedef struct
 	Bool fragment_done;
 	s32 ts_delay, negctts_shift;
 	Bool insert_tfdt, probe_min_ctts;
-	u64 first_dts_in_seg, next_seg_cts, cts_next;
+	u64 first_dts_in_seg_plus_one, next_seg_cts, cts_next;
 	s64 tfdt_offset;
 	u32 samples_in_frag;
 	Bool patch_tfdt;
@@ -5942,8 +5942,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 				dts = gf_filter_pck_get_dts(pck);
 				if (dts==GF_FILTER_NO_TS) dts = cts;
-				if (tkw->first_dts_in_seg > dts)
-					tkw->first_dts_in_seg = dts;
+				if (tkw->first_dts_in_seg_plus_one && (tkw->first_dts_in_seg_plus_one - 1 > dts))
+					tkw->first_dts_in_seg_plus_one = 1 + dts;
 			}
 			ncts = cts + gf_filter_pck_get_duration(pck);
 			if (tkw->cts_next < ncts)
@@ -6043,7 +6043,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					gf_isom_set_traf_base_media_decode_time(ctx->file, tkw->track_id, odts + tkw->ts_delay);
 				else
 					gf_isom_set_traf_base_media_decode_time(ctx->file, tkw->track_id, odts);
-				tkw->first_dts_in_seg = (u64) odts;
+
+				if (!tkw->first_dts_in_seg_plus_one)
+					tkw->first_dts_in_seg_plus_one = 1 + (u64) odts;
 			}
 
 			if (ctx->trun_inter) {
@@ -6143,7 +6145,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				ctx->cloned_sidx = NULL;
 			}
 
-			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
+			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg_plus_one ? ctx->ref_tkw->first_dts_in_seg_plus_one-1 : 0, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
+			ctx->ref_tkw->first_dts_in_seg_plus_one = 0;
 			if (e) return e;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num_plus_one - 1, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
