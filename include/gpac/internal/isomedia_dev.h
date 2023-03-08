@@ -2772,6 +2772,8 @@ typedef struct
 	u32 interleave_id;
 	u32 first_sample_idx;
 	u32 *sample_order;
+
+	u32 min_duration;
 } GF_TrackFragmentRunBox;
 
 #ifdef GF_ENABLE_CTRN

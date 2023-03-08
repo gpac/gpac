@@ -474,6 +474,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	u32 sample_index;
 #endif
 	Bool is_first_merge = !trak->first_traf_merged;
+	Bool patch_no_dur;
 
 	GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack);
 	GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
@@ -522,6 +523,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	def_duration = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DUR) ? traf->tfhd->def_sample_duration : traf->trex->def_sample_duration;
 	def_size = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_SIZE) ? traf->tfhd->def_sample_size : traf->trex->def_sample_size;
 	def_flags = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) ? traf->tfhd->def_sample_flags : traf->trex->def_sample_flags;
+
+	patch_no_dur = gf_isom_is_video_handler_type(trak->Media->handler->handlerType);
 
 	//locate base offset, by default use moof (dash-like)
 	base_offset = moof_offset;
@@ -716,6 +719,11 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 #ifdef GF_ENABLE_CTRN
 			sample_index++;
 #endif
+			//fix for broken truns with empty duration for frame
+			if (patch_no_dur && !duration && (trun->flags & GF_ISOM_TRUN_DURATION)) {
+				duration = trun->min_duration;
+			}
+
 			/*store the resolved value in case we have inheritance*/
 			ent->size = size;
 			ent->Duration = duration;
