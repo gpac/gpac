@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2022
+ *			Copyright (c) Telecom ParisTech 2010-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -10393,5 +10393,20 @@ Bool gf_dash_group_has_init_segment(GF_DashClient *dash, u32 group_idx)
 	return GF_TRUE;
 }
 
+void gf_dash_group_get_sar(GF_DashClient *dash, u32 group_idx, GF_Fraction *sar)
+{
+	GF_DASH_Group *group;
+	if (sar) sar->num = sar->den = 0;
+	if (!dash) return;
+	group = gf_list_get(dash->groups, group_idx);
+	if (!group || !sar) return;
+
+	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	if (rep && rep->sar) {
+		sar->num = rep->sar->num;
+		sar->den = rep->sar->den;
+	}
+	return;
+}
 #endif //GPAC_DISABLE_DASH_CLIENT
 
