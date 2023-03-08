@@ -1396,7 +1396,6 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
 	{ GF_PROP_PID_INTERLACED, "Interlaced", "Video is interlaced", GF_PROP_BOOL},
 	{ GF_PROP_PID_SAR, "SAR", "Sample (i.e. pixel) aspect ratio", GF_PROP_FRACTION},
-	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Maximum width (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT_MAX, "MaxHeight", "Maximum height (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
 	{ GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_SINT},

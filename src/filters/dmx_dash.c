@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -1456,6 +1456,15 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	if (ctx->max_res && gf_filter_pid_get_property(ipid, GF_PROP_PID_WIDTH)) {
 		gf_filter_pid_set_property(opid, GF_PROP_SERVICE_WIDTH, &PROP_UINT(ctx->width));
 		gf_filter_pid_set_property(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
+
+		//in case the sar indicated in the mpd is not the same as the one in the stream, overwrite
+		if (!gf_sys_is_test_mode()) {
+			GF_Fraction sar;
+			gf_dash_group_get_sar(ctx->dash, group_idx, &sar);
+			if (sar.num && sar.den) {
+				gf_filter_pid_set_property(opid, GF_PROP_PID_SAR, &PROP_FRAC(sar));
+			}
+		}
 	}
 
 	dur = (u32) (1000*gf_dash_get_duration(ctx->dash) );

@@ -3440,8 +3440,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				GF_SAFEALLOC(set->par, GF_MPD_Fractional);
 			}
 			if (set->par) {
-				set->par->num = ds->width;
-				set->par->den = ds->height;
+				set->par->num = ds->width * ds->sar.num;
+				set->par->den = ds->height * ds->sar.den;
 				gf_media_reduce_aspect_ratio(&set->par->num, &set->par->den);
 			}
 		}

@@ -1055,7 +1055,6 @@ enum
 	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
 	GF_PROP_PID_INTERLACED = GF_4CC('V','I','L','C'),
 	GF_PROP_PID_SAR = GF_4CC('P','S','A','R'),
-	GF_PROP_PID_PAR = GF_4CC('V','P','A','R'),
 	GF_PROP_PID_WIDTH_MAX = GF_4CC('M', 'W','I','D'),
 	GF_PROP_PID_HEIGHT_MAX = GF_4CC('M', 'H','E','I'),
 	GF_PROP_PID_ZORDER = GF_4CC('V', 'Z','I','X'),
