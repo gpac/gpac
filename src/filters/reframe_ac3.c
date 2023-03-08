@@ -428,16 +428,18 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 
 		sync_pos = (u32) gf_bs_get_position(ctx->bs);
 
-		//startcode not found or not enough bytes, gather more
-		if (!res || (remain < sync_pos + ctx->hdr.framesize)) {
-			if (sync_pos && ctx->hdr.framesize) {
-				start += sync_pos;
-				remain -= sync_pos;
+		//if not end of stream or no valid frame
+		if (pck || !ctx->hdr.framesize) {
+			//startcode not found or not enough bytes, gather more
+			if (!res || (remain < sync_pos + ctx->hdr.framesize)) {
+				if (sync_pos && ctx->hdr.framesize) {
+					start += sync_pos;
+					remain -= sync_pos;
+				}
+				break;
 			}
-			break;
+			ac3dmx_check_pid(filter, ctx);
 		}
-
-		ac3dmx_check_pid(filter, ctx);
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = 1 + ctx->ac3_buffer_size - remain;
@@ -474,7 +476,10 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 			memcpy(output, sync, ctx->hdr.framesize);
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_duration(dst_pck, AC3_FRAME_SIZE);
+			if (ctx->timescale && (ctx->timescale!=ctx->sample_rate))
+				gf_filter_pck_set_duration(dst_pck, gf_timestamp_rescale(AC3_FRAME_SIZE, ctx->sample_rate, ctx->timescale));
+			else
+				gf_filter_pck_set_duration(dst_pck, AC3_FRAME_SIZE);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 
