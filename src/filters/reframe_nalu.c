@@ -270,14 +270,8 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) {
 		ctx->timescale = p->value.uint;
-		//if we have a FPS prop, use it
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-		if (p) {
-			ctx->cur_fps = p->value.frac;
-		} else {
-			ctx->cur_fps.den = 0;
-			ctx->cur_fps.num = ctx->timescale;
-		}
+		ctx->cur_fps.den = 0;
+		ctx->cur_fps.num = ctx->timescale;
 	}
 
 	old_codecid = ctx->codecid;
@@ -1870,7 +1864,10 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	else
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL);
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+	//if we have a FPS prop, use it
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
 
 	if (ctx->explicit || !has_hevc_base) {

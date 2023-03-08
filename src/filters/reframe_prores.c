@@ -104,9 +104,6 @@ GF_Err proresdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		ctx->notime = GF_TRUE;
 	} else {
 		ctx->copy_props = GF_TRUE;
-		//if we have a FPS prop, use it
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-		if (p) ctx->cur_fps = p->value.frac;
 	}
 	return GF_OK;
 }
@@ -375,7 +372,11 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(codec_id));
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+
+	//if we have a FPS prop, use it
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(finfo->width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(finfo->height));
 	switch (finfo->alpha_channel_type) {

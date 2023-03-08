@@ -141,10 +141,6 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (!ctx->timescale) {
 		ctx->notime = GF_TRUE;
 	} else {
-		//if we have a FPS prop, use it
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-		if (p) ctx->cur_fps = p->value.frac;
-
 		ctx->copy_props = GF_TRUE;
 	}
 	return GF_OK;
@@ -655,7 +651,10 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (!ctx->timescale) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
 	}
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+	//if we have a FPS prop, use it
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+
 	if (ctx->state.sequence_width && ctx->state.sequence_height) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(ctx->state.sequence_width));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(ctx->state.sequence_height));

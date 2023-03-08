@@ -119,10 +119,7 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	if (p) {
 		ctx->timescale = ctx->cur_fps.num = p->value.uint;
 		ctx->cur_fps.den = 0;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-		if (p) {
-			ctx->cur_fps = p->value.frac;
-		}
+
 		p = gf_filter_pid_get_property_str(pid, "nocts");
 		if (p && p->value.boolean) ctx->recompute_cts = GF_TRUE;
 	}
@@ -356,7 +353,11 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+
+	//if we have a FPS prop, use it
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 
 	if (ctx->width && ctx->height) {
