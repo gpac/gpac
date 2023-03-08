@@ -1515,9 +1515,11 @@ static const GF_FilterArgs FFDecodeArgs[] =
 	{0}
 };
 
+const int FFDEC_STATIC_ARGS = (sizeof (FFDecodeArgs) / sizeof (GF_FilterArgs)) - 1;
+
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 {
-	return ffmpeg_build_register(session, &FFDecodeRegister, FFDecodeArgs, 1, FF_REG_TYPE_DECODE);
+	return ffmpeg_build_register(session, &FFDecodeRegister, FFDecodeArgs, FFDEC_STATIC_ARGS, FF_REG_TYPE_DECODE);
 }
 
 #else

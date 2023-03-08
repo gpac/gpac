@@ -64,6 +64,7 @@ typedef struct
 	u32 copy, probes;
 	Bool sclock;
 	const char *fmt, *dev;
+	Bool reparse;
 
 	//internal data
 	const char *fname;
@@ -884,7 +885,6 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (force_reframer) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 		}
-#ifdef FFMPEG_NO_DOVI
 		else if (!gf_sys_is_test_mode() ){
 			//force reparse of nalu-base codecs if no dovi support
 			switch (gpac_codec_id) {
@@ -892,12 +892,18 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			case GF_CODECID_HEVC:
 			case GF_CODECID_LHVC:
 			case GF_CODECID_VVC:
-				gf_filter_pid_set_property(pid, GF_PROP_PID_FORCE_UNFRAME, &PROP_BOOL(GF_TRUE) );
-				gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+			case GF_CODECID_AV1:
+				if (ctx->reparse
+#ifdef FFMPEG_NO_DOVI
+				 || 1
+#endif
+				) {
+					gf_filter_pid_set_property(pid, GF_PROP_PID_FORCE_UNFRAME, &PROP_BOOL(GF_TRUE) );
+					gf_filter_pid_set_property(pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+				}
 				break;
 			}
 		}
-#endif
 
 
 		if (codec_sample_rate)
@@ -1337,14 +1343,17 @@ GF_FilterRegister FFDemuxRegister = {
 static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(reparse), "force reparsing of stream content (AVC,HEVC,VVC,AV1 only for now)", GF_PROP_BOOL, "false", NULL, 0},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffdmx` and `gpac -hx ffdmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
+const int FFDMX_STATIC_ARGS = (sizeof (FFDemuxArgs) / sizeof (GF_FilterArgs)) - 1;
+
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
-	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, 2, FF_REG_TYPE_DEMUX);
+	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, FFDMX_STATIC_ARGS, FF_REG_TYPE_DEMUX);
 }
 
 
