@@ -7618,6 +7618,9 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 			if (ptr->flags & GF_ISOM_TRUN_DURATION) {
 				p->Duration = gf_bs_read_u32(bs);
 				trun_size += 4;
+
+				if (!ptr->min_duration || (ptr->min_duration>p->Duration))
+					ptr->min_duration = p->Duration;
 			}
 			if (ptr->flags & GF_ISOM_TRUN_SIZE) {
 				p->size = gf_bs_read_u32(bs);
