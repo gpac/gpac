@@ -1368,41 +1368,41 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 	Bool is_prores = GF_FALSE;
     Bool is_opus = GF_FALSE;
 
+	u32 track = gf_isom_get_track_by_id(file, trackID);
+	GF_ESD* esd = gf_isom_get_esd(file, track, 1);
+
+	if (!esd || !esd->decoderConfig) {
+		switch (gf_isom_get_media_subtype(file, track, 1)) {
+		case GF_ISOM_SUBTYPE_AV01:
+			is_av1 = GF_TRUE;
+			break;
+		case GF_QT_SUBTYPE_APCH:
+		case GF_QT_SUBTYPE_APCO:
+		case GF_QT_SUBTYPE_APCN:
+		case GF_QT_SUBTYPE_APCS:
+		case GF_QT_SUBTYPE_AP4X:
+		case GF_QT_SUBTYPE_AP4H:
+			is_prores = GF_TRUE;
+			break;
+		case GF_ISOM_SUBTYPE_OPUS:
+			is_opus = GF_TRUE;
+			break;
+		}
+	}
+	else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AV1) {
+		is_av1 = GF_TRUE;
+	} else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_OPUS) {
+		is_opus = GF_TRUE;
+	}
+	if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
+
 	FILE *dump;
 	if (inName) {
-		GF_ESD* esd;
-
-		strcpy(szFileName, inName);
-
-		u32 track = gf_isom_get_track_by_id(file, trackID);
-		esd = gf_isom_get_esd(file, track, 1);
-
-		if (!esd || !esd->decoderConfig) {
-			switch (gf_isom_get_media_subtype(file, track, 1)) {
-			case GF_ISOM_SUBTYPE_AV01:
-				is_av1 = GF_TRUE;
-				break;
-			case GF_QT_SUBTYPE_APCH:
-			case GF_QT_SUBTYPE_APCO:
-			case GF_QT_SUBTYPE_APCN:
-			case GF_QT_SUBTYPE_APCS:
-			case GF_QT_SUBTYPE_AP4X:
-			case GF_QT_SUBTYPE_AP4H:
-				is_prores = GF_TRUE;
-				break;
-            case GF_ISOM_SUBTYPE_OPUS:
-                is_opus = GF_TRUE;
-                break;
-			}
+		if (is_final_name) {
+			strcpy(szFileName, inName);
+		} else {
+			sprintf(szFileName, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
 		}
-		else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AV1) {
-			is_av1 = GF_TRUE;
-        } else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_OPUS) {
-            is_opus = GF_TRUE;
-        }
-		if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
-
-		if (!is_final_name) sprintf(szFileName, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
 		dump = gf_fopen(szFileName, "wt");
 		if (!dump) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szFileName));
