@@ -12980,7 +12980,9 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		gf_list_add(ptr->tags, tag);
 
 		if (tag_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isom] invalid tag size in Xtra !\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isom] left-over bytes in tag %s in Xtra !\n", data));
+			gf_bs_skip_bytes(bs, tag_size);
+			ISOM_DECREASE_SIZE_NO_ERR(ptr, tag_size)
 		}
 	}
 	return GF_OK;
