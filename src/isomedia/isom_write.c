@@ -5248,6 +5248,16 @@ Bool gf_isom_box_equal(GF_Box *a, GF_Box *b)
 	return ret;
 }
 
+static u32 base_sample_entry_type(u32 type)
+{
+	if (type==GF_ISOM_SUBTYPE_DVH1) return GF_ISOM_SUBTYPE_HVC1;
+	if (type==GF_ISOM_SUBTYPE_DVHE) return GF_ISOM_SUBTYPE_HEV1;
+	if (type==GF_ISOM_SUBTYPE_DVA1) return GF_ISOM_SUBTYPE_AVC_H264;
+	if (type==GF_ISOM_SUBTYPE_DVAV) return GF_ISOM_SUBTYPE_AVC3_H264;
+	if (type==GF_ISOM_SUBTYPE_DAV1) return GF_ISOM_SUBTYPE_AV01;
+	return type;
+}
+
 GF_EXPORT
 Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index1, GF_ISOFile *f2, u32 tk2, u32 sdesc_index2)
 {
@@ -5271,6 +5281,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 
 	need_memcmp = GF_TRUE;
 	for (i=0; i<count; i++) {
+		u32 type1, type2;
 		GF_SampleEntryBox *ent1 = (GF_SampleEntryBox *)gf_list_get(trak1->Media->information->sampleTable->SampleDescription->child_boxes, i);
 		GF_SampleEntryBox *ent2 = (GF_SampleEntryBox *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->child_boxes, i);
 
@@ -5278,8 +5289,10 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		if (sdesc_index2) ent2 = (GF_SampleEntryBox *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->child_boxes, sdesc_index2 - 1);
 
 		if (!ent1 || !ent2) return GF_FALSE;
-		if (ent1->type != ent2->type) return GF_FALSE;
 		if (ent1->internal_type != ent2->internal_type) return GF_FALSE;
+		type1 = base_sample_entry_type(ent1->type);
+		type2 = base_sample_entry_type(ent2->type);
+		if (type1 != type2) return GF_FALSE;
 
 		switch (ent1->type) {
 		/*for MPEG-4 streams, only compare decSpecInfo (bitrate may not be the same but that's not an issue)*/
