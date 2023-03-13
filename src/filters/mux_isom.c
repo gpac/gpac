@@ -289,7 +289,7 @@ typedef struct
 #endif
 	Bool mfra;
 	Bool forcesync, refrag, pad_sparse;
-	Bool force_dv, tsalign;
+	Bool force_dv, tsalign, dvsingle;
 	u32 itags;
 	Double start;
 
@@ -3377,9 +3377,20 @@ sample_entry_done:
 				GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
 				GF_DOVIDecoderConfigurationRecord *dvcc = gf_odf_dovi_cfg_read_bs(bs);
 				gf_bs_del(bs);
+				if (dvcc && tkw->xps_inband && (dvcc->dv_profile==8) && ctx->dvsingle) {
+					GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(ctx->file, tkw->track_num, tkw->stsd_idx);
+					if (dovi) {
+						if (dovi->dv_profile==5) {
+							gf_odf_dovi_cfg_del(dvcc);
+							dvcc = NULL;
+						}
+						gf_odf_dovi_cfg_del(dovi);
+					}
+				}
 				if (dvcc) {
 					if (ctx->force_dv)
 						dvcc->force_dv = 1;
+
 					gf_isom_set_dolby_vision_profile(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc);
 
 					if (!dvcc->bl_present_flag) {
@@ -7644,6 +7655,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(start), "set playback start offset for MP4Box import only. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dvsingle), "ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample in fragmented mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{0}
