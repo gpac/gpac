@@ -6156,7 +6156,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				ctx->cloned_sidx = NULL;
 			}
 
-			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg_plus_one ? ctx->ref_tkw->first_dts_in_seg_plus_one-1 : 0, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
+			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg_plus_one ? ctx->ref_tkw->first_dts_in_seg_plus_one-1 : 0,
+				ctx->ref_tkw->negctts_shift ? 0 : ctx->ref_tkw->ts_delay,
+				next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 			ctx->ref_tkw->first_dts_in_seg_plus_one = 0;
 			if (e) return e;
 
