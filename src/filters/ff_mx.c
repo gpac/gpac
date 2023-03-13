@@ -503,7 +503,11 @@ static GF_Err ffmx_close_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, Bool send_evt_
 		evt.seg_size.is_init = 0;
 	}
 	evt.seg_size.media_range_start = ctx->offset_at_seg_start;
+#if LIBAVFORMAT_VERSION_MAJOR < 60
 	evt.seg_size.media_range_end = ctx->muxer->pb ? (ctx->muxer->pb->written-1) : 0;
+#else
+	evt.seg_size.media_range_end = ctx->muxer->pb ? (ctx->muxer->pb->bytes_written-1) : 0;
+#endif
 	ctx->offset_at_seg_start = evt.seg_size.media_range_end;
 
 	gf_filter_pid_send_event(pid, &evt);
@@ -1013,13 +1017,21 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ff_codec_id = ffmpeg_codecid_from_gpac(codec_id, &ff_codec_tag);
 	}
 
+
+	res = 1;
+#if LIBAVFORMAT_VERSION_MAJOR < 60
 	if (ctx->muxer->oformat && ctx->muxer->oformat->query_codec) {
 		res = ctx->muxer->oformat->query_codec(ff_codec_id, 1);
-		if (!res) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Codec %s not supported in container %s\n", gf_codecid_name(codec_id), ctx->muxer->oformat->name));
-			return GF_NOT_SUPPORTED;
-		}
 	}
+#else
+	res = avformat_query_codec(ctx->muxer->oformat, ff_codec_id, FF_COMPLIANCE_NORMAL);
+#endif
+
+	if (!res) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Codec %s not supported in container %s\n", gf_codecid_name(codec_id), ctx->muxer->oformat->name));
+		return GF_NOT_SUPPORTED;
+	}
+
 	const AVCodec *c = avcodec_find_decoder(ff_codec_id);
 	if (!c) return GF_NOT_SUPPORTED;
 
