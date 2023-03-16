@@ -605,15 +605,6 @@ void isor_reader_release_sample(ISOMChannel *ch)
 	ch->sai_buffer_size = 0;
 }
 
-static void isor_reset_seq_list(GF_List *list)
-{
-	while (gf_list_count(list)) {
-		GF_NALUFFParam *sl = gf_list_pop_back(list);
-		gf_free(sl->data);
-		gf_free(sl);
-	}
-}
-
 enum
 {
 	RESET_STATE_VPS=1,
@@ -623,8 +614,96 @@ enum
 	RESET_STATE_DCI=1<<4,
 };
 
-static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
+#include <gpac/internal/media_dev.h>
+
+//quick way of reading ID of AVC/HEVC/VVC param sets
+static s32 isor_ps_get_id(u8 nal_type, u8 *data, u32 size, Bool is_avc)
 {
+	s32 res;
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+	switch (nal_type) {
+	case GF_AVC_NALU_PIC_PARAM:
+		gf_bs_read_u8(bs); //nal header
+		res = gf_bs_read_ue(bs);
+		break;
+	case GF_AVC_NALU_SEQ_PARAM:
+		gf_bs_read_u32(bs); //nal header + start of sps
+		res = gf_bs_read_ue(bs);
+		break;
+	case GF_HEVC_NALU_VID_PARAM:
+		gf_bs_read_u16(bs); //nal header
+		res = gf_bs_read_int(bs, 4);
+		break;
+	case GF_HEVC_NALU_SEQ_PARAM:
+		res = gf_hevc_read_sps(data, size, NULL);
+		break;
+	case GF_HEVC_NALU_PIC_PARAM:
+		gf_bs_read_u16(bs); //nal header
+		res = gf_bs_read_ue(bs);
+		break;
+	case GF_VVC_NALU_VID_PARAM:
+		gf_bs_read_u16(bs); //nal header
+		res = gf_bs_read_int(bs, 4);
+		break;
+	case GF_VVC_NALU_SEQ_PARAM:
+		gf_bs_read_u16(bs); //nal header
+		res = gf_bs_read_int(bs, 4);
+		break;
+	case GF_VVC_NALU_PIC_PARAM:
+		gf_bs_read_u16(bs); //nal header
+		res = gf_bs_read_int(bs, 6);
+		break;
+	//case GF_AVC_NALU_SEQ_PARAM_EXT: - same value as VVC_DEC_PARAM
+	case GF_VVC_NALU_DEC_PARAM:
+		if (is_avc) {
+			gf_bs_read_u8(bs); //nal header
+			res = (s32) gf_bs_read_ue(bs);
+		} else {
+			res = 0; //no ID for DCI
+		}
+		break;
+	}
+	gf_bs_del(bs);
+	return res;
+}
+
+static void isor_reset_seq_list(GF_List *list)
+{
+   while (gf_list_count(list)) {
+		   GF_NALUFFParam *sl = gf_list_pop_back(list);
+		   gf_free(sl->data);
+		   gf_free(sl);
+   }
+}
+
+static void isor_reset_all_ps(ISOMChannel *ch)
+{
+	u32 i, count;
+	if (ch->avcc) {
+		isor_reset_seq_list(ch->avcc->pictureParameterSets);
+		isor_reset_seq_list(ch->avcc->sequenceParameterSets);
+		isor_reset_seq_list(ch->avcc->sequenceParameterSetExtensions);
+	}
+	else if (ch->hvcc) {
+		count = gf_list_count(ch->hvcc->param_array);
+		for (i=0; i<count; i++) {
+			GF_NALUFFParamArray *hvca = gf_list_get(ch->hvcc->param_array, i);
+			isor_reset_seq_list(hvca->nalus);
+		}
+	}
+	else if (ch->vvcc) {
+		count = gf_list_count(ch->vvcc->param_array);
+		for (i=0; i<count; i++) {
+			GF_NALUFFParamArray *vvca = gf_list_get(ch->vvcc->param_array, i);
+			isor_reset_seq_list(vvca->nalus);
+		}
+	}
+}
+
+static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, Bool *needs_reset)
+{
+	s32 ps_id;
 	u32 i, count, state=0;
 	GF_NALUFFParam *sl;
 	GF_List *list=NULL;
@@ -705,23 +784,52 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, u
 			break;
 		}
 	}
-
-	ch->xps_mask |= state;
+	//get ps
+	ps_id = 1 + isor_ps_get_id(nal_type, data, size, ch->avcc ? 1 : 0);
 
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
 		sl = gf_list_get(list, i);
-		if ((sl->size==size) && !memcmp(sl->data, data, size)) return;
+		if (!sl->id) {
+			sl->id = 1 + isor_ps_get_id(nal_type, sl->data, sl->size, ch->avcc ? 1 : 0);
+		}
+		if (sl->id != ps_id) {
+			//reset everything whenever we change ID of seq / vps / dci
+			if (!ch->xps_mask && (state != RESET_STATE_PPS)) {
+				isor_reset_all_ps(ch);
+				break;
+			}
+			continue;
+		}
+
+		if ((sl->size==size) && !memcmp(sl->data, data, size)) {
+			ch->xps_mask |= state;
+			return;
+		}
+		if (state == RESET_STATE_PPS) {
+			//PS modified, copy
+			sl->data = gf_realloc(sl->data, size);
+			memcpy(sl->data, data, size);
+			sl->size = size;
+			*needs_reset = 1;
+			ch->xps_mask |= state;
+			return;
+		}
+		//reset, same as above
+		else if (!ch->xps_mask) {
+			isor_reset_all_ps(ch);
+			break;
+		}
 	}
-	if (! (*reset_state & state))  {
-		isor_reset_seq_list(list);
-		*reset_state |= state;
-	}
+	ch->xps_mask |= state;
+	*needs_reset = 1;
+
 	GF_SAFEALLOC(sl, GF_NALUFFParam);
 	if (!sl) return;
 	sl->data = gf_malloc(sizeof(char)*size);
 	memcpy(sl->data, data, size);
 	sl->size = size;
+	sl->id = ps_id;
 	gf_list_add(list, sl);
 }
 
@@ -801,7 +909,8 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 
 void isor_reader_check_config(ISOMChannel *ch)
 {
-	u32 nalu_len, reset_state, pos;
+	u32 nalu_len, pos;
+	Bool needs_reset;
 	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
@@ -837,7 +946,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 	else if (ch->vvcc) nalu_len = ch->vvcc->nal_unit_size;
 
 	if (!nalu_len) return;
-	reset_state = 0;
+	needs_reset = 0;
 
 	pos = 0;
 
@@ -896,7 +1005,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 
 		if (replace_nal) {
 			u32 move_size = ch->sample->dataLength - size - pos - nalu_len;
-			isor_replace_nal(ch, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
+			isor_replace_nal(ch, ch->sample->data + pos + nalu_len, size, nal_type, &needs_reset);
 			if (move_size)
 				memmove(ch->sample->data + pos, ch->sample->data + pos + size + nalu_len, ch->sample->dataLength - size - pos - nalu_len);
 
@@ -912,7 +1021,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 		}
 	}
 
-	if (reset_state) {
+	if (needs_reset) {
 		u8 *dsi=NULL;
 		u32 dsi_size=0;
 		if (ch->check_avc_ps) {
