@@ -8246,6 +8246,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	if ((sps_id < 0) || (sps_id >= 16)) {
 		return -1;
 	}
+	if (!hevc) return sps_id;
 
 	sps = &hevc->sps[sps_id];
 	if (!sps->state) {
