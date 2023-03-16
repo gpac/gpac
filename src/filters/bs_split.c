@@ -274,6 +274,7 @@ static void bs_split_copy_props_base(BSSplitCtx *ctx, BSSplitOut *c_opid, GF_Fil
 	gf_filter_pid_copy_properties(c_opid->opid, pid);
 	gf_filter_pid_set_property(c_opid->opid, GF_PROP_PID_ID, &PROP_UINT(c_opid->id));
 	gf_filter_pid_set_property(c_opid->opid, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL);
+	gf_filter_pid_set_property(c_opid->opid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, NULL);
 	gf_filter_pid_set_property(c_opid->opid, GF_PROP_PID_ISOM_SUBTYPE, NULL);
 
 	if (!c_opid->is_base) {

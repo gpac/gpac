@@ -89,6 +89,7 @@ typedef struct
 	u32 dep_id;
 	u32 stsd_idx;
 	u32 clear_stsd_idx;
+	Bool reused_stsd;
 
 	Bool use_dref;
 	Bool aborted;
@@ -193,6 +194,7 @@ typedef struct
 	Bool sparse_inject;
 
 	GF_FilterPacket *dgl_copy;
+	u32 all_stsd_crc;
 } TrackWriter;
 
 enum
@@ -1376,6 +1378,16 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			if (!ctx->btrt) {
 				gf_isom_update_bitrate(ctx->file, tkw->track_num, 0, 0, 0, 0);
 			}
+			if (!udta_only) {
+				GF_Err gf_isom_set_track_stsd_templates(GF_ISOFile *movie, u32 trackNumber, u8 *stsd_data, u32 stsd_data_size);
+
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES);
+				if (p) {
+					gf_isom_set_track_stsd_templates(ctx->file, tkw->track_num, p->value.data.ptr, p->value.data.size);
+					tkw->all_stsd_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+				}
+			}
+
 		} else {
 			if (!mtype) {
 				mtype = GF_4CC('u','n','k','n');
@@ -2236,6 +2248,17 @@ sample_entry_setup:
 	}
 
 	if (force_mix_xps) {
+		if (tkw->all_stsd_crc) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES);
+			u32 crc = p ? gf_crc_32(p->value.data.ptr, p->value.data.size) : 0;
+			if (crc == tkw->all_stsd_crc) {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_STSD_TEMPLATE_IDX);
+				if (p) {
+					tkw->stsd_idx = p->value.uint;
+					return GF_OK;
+				}
+			}
+		}
 
 		//for AVC and HEVC, move to inband params if config changed
 		if (use_avc && dsi) {
@@ -2989,20 +3012,22 @@ sample_entry_setup:
 		assert(0);
 	}
 
-	if (ctx->btrt && !tkw->skip_bitrate_update) {
-		u32 avg_rate, max_rate, dbsize;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
-		avg_rate = p ? p->value.uint : 0;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MAXRATE);
-		max_rate = p ? p->value.uint : 0;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DBSIZE);
-		dbsize = p ? p->value.uint : 0;
+	if (!tkw->all_stsd_crc) {
+		if (ctx->btrt && !tkw->skip_bitrate_update) {
+			u32 avg_rate, max_rate, dbsize;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
+			avg_rate = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_MAXRATE);
+			max_rate = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DBSIZE);
+			dbsize = p ? p->value.uint : 0;
 
-		if (avg_rate && max_rate) {
-			gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, avg_rate, max_rate, dbsize);
+			if (avg_rate && max_rate) {
+				gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, avg_rate, max_rate, dbsize);
+			}
+		} else {
+			gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, 0);
 		}
-	} else {
-		gf_isom_update_bitrate(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, 0);
 	}
 
 multipid_stsd_setup:
@@ -3050,6 +3075,7 @@ multipid_stsd_setup:
 				break;
 			}
 		}
+		tkw->reused_stsd = reuse_stsd;
 		if (!reuse_stsd) {
 			tkw->samples_in_stsd = 0;
 		} else if (use_3gpp_config) {
@@ -3894,8 +3920,13 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to clone sample description: %s\n", gf_error_to_string(e) ));
 				return e;
 			}
+			//current stsd reused, use clone one for encrypted stsd
+			if (tkw->reused_stsd) {
+				tkw->clear_stsd_idx = tkw->stsd_idx;
+				tkw->stsd_idx = clone_stsd_idx;
+			}
 			//before
-			if (cenc_stsd_mode==1) {
+			else if (cenc_stsd_mode==1) {
 				tkw->clear_stsd_idx = tkw->stsd_idx;
 				tkw->stsd_idx = clone_stsd_idx;
 			}
@@ -3920,6 +3951,20 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC information: %s\n", gf_error_to_string(e) ));
 			tkw->cenc_state = CENC_SETUP_ERROR;
 			return e;
+		}
+
+		//puge duplicates
+		u32 k, nb_sdesc = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
+		if (nb_sdesc>2) {
+			for (k=0; k<nb_sdesc; k++) {
+				if (k+1 == tkw->stsd_idx) continue;
+
+				if (gf_isom_is_same_sample_description(ctx->file, tkw->track_num, tkw->stsd_idx, ctx->file, tkw->track_num, k+1) ) {
+					gf_isom_remove_stream_description(ctx->file, tkw->track_num, tkw->stsd_idx);
+					tkw->stsd_idx = k+1;
+					break;
+				}
+			}
 		}
 
 		if ((ctx->psshs == MP4MX_PSSH_MOOV) || (ctx->psshs == MP4MX_PSSH_BOTH))

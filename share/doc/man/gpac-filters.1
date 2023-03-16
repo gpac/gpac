@@ -5680,6 +5680,16 @@ cmaf (enum, default: no):      use cmaf guidelines
 .br
 
 .br
+pswitch (enum, default: single): period switch control mode
+.br
+* single: change period if PID configuration changes
+.br
+* force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)
+.br
+* stsd: change period if PID configuration changes unless new configuration was advertised in initial config
+.br
+
+.br
 chain (str):                   URL of next MPD for regular chaining
 .br
 chain_fbk (str):               URL of fallback MPD
@@ -11129,7 +11139,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev58-gedaca299d-master
+build: 2.3-DEV-rev62-gc4aed4f14-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

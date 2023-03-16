@@ -137,6 +137,14 @@ enum
 	DASHER_DEFKID_AUTO
 };
 
+enum
+{
+	DASHER_PSWITCH_SINGLE=0,
+	DASHER_PSWITCH_FORCE,
+	DASHER_PSWITCH_STSD
+};
+
+
 typedef struct
 {
 	u32 bs_switch, profile, spd, cp, ntp;
@@ -166,10 +174,10 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool cmpd, dual, sreg, pswitch;
+	Bool cmpd, dual, sreg;
 	char *styp;
 	Bool sigfrag;
-	u32 sbound;
+	u32 sbound, pswitch;
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
@@ -464,6 +472,7 @@ typedef struct _dash_stream
 	Bool stl;
 
 	Bool set_period_switch;
+	u32 all_stsd_crc;
 
 } GF_DashStream;
 
@@ -1153,6 +1162,24 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				ds->src_id = gf_crc_32(src_args, (u32) strlen(src_args));
 			}
 		}
+
+		//check if we had up-front declarations of codec configs
+		if (ctx->pswitch==DASHER_PSWITCH_STSD) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES);
+			if (p) {
+				u32 all_stsd_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+				//same config, we assume the muxer dealt with this at setup, reset dsi crc to skip period switch test below
+				if (all_stsd_crc==ds->all_stsd_crc) {
+					ds->dsi_crc = 0;
+					ds->dsi_enh_crc = 0;
+				} else {
+					ds->all_stsd_crc = all_stsd_crc;
+				}
+			} else {
+				ds->all_stsd_crc = 0;
+			}
+		}
+
 		dc_crc = 0;
 		dsi = p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (p && (p->type==GF_PROP_DATA))
@@ -1420,7 +1447,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	period_switch = GF_FALSE;
 	CHECK_PROP_STR(GF_PROP_PID_PERIOD_ID, ds->period_id, GF_EOS)
 	CHECK_PROP_PROP(GF_PROP_PID_PERIOD_DESC, ds->p_period_desc, GF_EOS)
-	if (!period_switch && ctx->pswitch)
+	if (!period_switch && (ctx->pswitch==DASHER_PSWITCH_FORCE))
 		period_switch = GF_TRUE;
 
 	if (gf_filter_pid_get_property_str(pid, "period_switch"))
@@ -3231,7 +3258,10 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	if (ctx->pssh == GF_DASH_PSSH_MPD) {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_CENC_PSSH, NULL);
 	}
-
+	//multi-stsd disabled, remove sdsd template (only needed at init)
+	if (ctx->pswitch != DASHER_PSWITCH_STSD) {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, NULL);
+	}
 
 	//force PID ID
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_ID, &PROP_UINT(ds->pid_id) );
@@ -9354,6 +9384,11 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		break;
 	}
 
+	if ((ctx->bs_switch == DASHER_BS_SWITCH_MULTI) && (ctx->pswitch == DASHER_PSWITCH_STSD)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot use `stsd` period switch with `multi` bitstream switching, disabling pswitch\n"));
+		ctx->pswitch = DASHER_PSWITCH_SINGLE;
+	}
+
 	if (ctx->sseg)
 		ctx->tpl = GF_FALSE;
 
@@ -9710,7 +9745,10 @@ static const GF_FilterArgs DasherArgs[] =
 		"- cmfc: use CMAF `cmfc` guidelines\n"
 		"- cmf2: use CMAF `cmf2` guidelines"
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pswitch), "force period switch instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(pswitch), "period switch control mode\n"
+		"- single: change period if PID configuration changes\n"
+		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)\n"
+		"- stsd: change period if PID configuration changes unless new configuration was advertised in initial config", GF_PROP_UINT, "single", "single|force|stsd", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gencues), "only insert segment boundaries and do not generate manifests", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

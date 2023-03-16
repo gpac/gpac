@@ -180,6 +180,7 @@ reparse:
 
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_AVC));
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL);
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, NULL);
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_BITRATE, NULL);
 
 		u8 *data;
@@ -376,6 +377,7 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_HEVC));
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL);
+		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, NULL);
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_BITRATE, NULL);
 
 		if (dv_cfg)

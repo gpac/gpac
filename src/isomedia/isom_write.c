@@ -814,6 +814,33 @@ err_exit:
 	return 0;
 }
 
+GF_Err gf_isom_set_track_stsd_templates(GF_ISOFile *movie, u32 trackNumber, u8 *stsd_data, u32 stsd_data_size)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	GF_SampleDescriptionBox *stsd=NULL;
+	GF_List *tmp;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+	if (gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes))
+		return GF_BAD_PARAM;
+
+	GF_BitStream *bs = gf_bs_new(stsd_data, stsd_data_size, GF_BITSTREAM_READ);
+	e = gf_isom_box_parse_ex((GF_Box **) &stsd, bs, GF_ISOM_BOX_TYPE_STBL, GF_FALSE, 0);
+	gf_bs_del(bs);
+	if (!e && (stsd->type==GF_ISOM_BOX_TYPE_STSD)) {
+		tmp = trak->Media->information->sampleTable->SampleDescription->child_boxes;
+		trak->Media->information->sampleTable->SampleDescription->child_boxes = stsd->child_boxes;
+		stsd->child_boxes = tmp;
+	}
+	if (stsd) gf_isom_box_del((GF_Box*)stsd);
+	return e;
+}
+
 GF_EXPORT
 u32 gf_isom_new_track(GF_ISOFile *movie, GF_ISOTrackID trakID, u32 MediaType, u32 TimeScale)
 {
@@ -4126,15 +4153,19 @@ GF_Err gf_isom_get_stsd_template(GF_ISOFile *file, u32 track, u32 stsd_idx, u8 *
 	*output_size = 0;
 	/*get orig sample desc and clone it*/
 	trak = gf_isom_get_track_from_file(file, track);
-	if (!trak || !stsd_idx || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleDescription) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->SampleDescription) return GF_BAD_PARAM;
 
-	ent = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, stsd_idx-1);
-	if (!ent) return GF_BAD_PARAM;
+	if (stsd_idx) {
+		ent = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, stsd_idx-1);
+		if (!ent) return GF_BAD_PARAM;
+	} else {
+		ent = (GF_Box*) trak->Media->information->sampleTable->SampleDescription;
+	}
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	gf_isom_box_size( (GF_Box *) ent);
-	gf_isom_box_write((GF_Box *) ent, bs);
+	gf_isom_box_size(ent);
+	gf_isom_box_write(ent, bs);
 	gf_bs_get_content(bs, output, output_size);
 	gf_bs_del(bs);
 	return GF_OK;
