@@ -5441,6 +5441,24 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	if (value && (prop_4cc==GF_PROP_PID_TIMESCALE))
 		map->timescale = value->value.uint;
 
+	//if change of codecid or streamtype, remove ISOBMFF templates and subtype for codec
+	if (oldp && value) {
+		Bool reset=0;
+		if (prop_4cc == GF_PROP_PID_CODECID) {
+			reset = 2;
+		} else if (prop_4cc == GF_PROP_PID_STREAM_TYPE) {
+			if ((oldp->value.uint==GF_STREAM_ENCRYPTED) || (value->value.uint==GF_STREAM_ENCRYPTED))
+				reset = 1;
+		}
+		if (reset) {
+			gf_props_set_property(map, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, NULL, NULL, NULL);
+			if (reset==2) {
+				gf_props_set_property(map, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL, NULL, NULL);
+				gf_props_set_property(map, GF_PROP_PID_ISOM_SUBTYPE, NULL, NULL, NULL);
+			}
+		}
+	}
+
 	if (value && (prop_4cc == GF_PROP_PID_ID) && !pid->name) {
 		char szName[100];
 		sprintf(szName, "PID%d", value->value.uint);

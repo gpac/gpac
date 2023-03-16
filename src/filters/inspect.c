@@ -2102,6 +2102,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 
 		case GF_PROP_PID_ISOM_TREX_TEMPLATE:
 		case GF_PROP_PID_ISOM_STSD_TEMPLATE:
+		case GF_PROP_PID_ISOM_STSD_TEMPLATE_IDX:
+		case GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES:
 			//TODO once all OK: remove this test and regenerate all hashes
 			if (gf_sys_is_test_mode())
 				return;

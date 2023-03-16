@@ -256,7 +256,6 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	} else {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(ctx->codecid) );
 	}
-	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL);
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ISOM_SUBTYPE, NULL);
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PROFILE_LEVEL, NULL);
 

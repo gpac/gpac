@@ -1246,6 +1246,20 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	e = gf_isom_get_stsd_template(read->mov, ch->track, stsd_idx, &tk_template, &tk_template_size);
 	if (e == GF_OK) {
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_STSD_TEMPLATE, &PROP_DATA_NO_COPY(tk_template, tk_template_size) );
+
+		if (!gf_sys_old_arch_compat()) {
+			//if more than one sample desc, export all of them
+			if (gf_isom_get_sample_description_count(read->mov, ch->track)>1) {
+				tk_template=NULL;
+				tk_template_size=0;
+				e = gf_isom_get_stsd_template(read->mov, ch->track, 0, &tk_template, &tk_template_size);
+				if (e == GF_OK) {
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, &PROP_DATA_NO_COPY(tk_template, tk_template_size) );
+
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_STSD_TEMPLATE_IDX, &PROP_UINT(stsd_idx) );
+				}
+			}
+		}
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Failed to serialize stsd box: %s\n", gf_error_to_string(e) ));
 	}
