@@ -6567,6 +6567,8 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	Bool blockmode_broken=GF_FALSE;
 #endif
 	if (PID_IS_INPUT(pid)) {
+		pid = pid->pid;
+		if (pid->would_block) return GF_TRUE;
 		return GF_FALSE;
 	}
 
