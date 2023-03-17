@@ -7925,10 +7925,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 	count = gf_list_count(ctx->current_period->streams);
 	if (!ctx->min_cts_period.den) {
 		u64 min_ts=0, min_timescale = 0;
+		u32 num_ready=0, num_blocked=0;
 		for (i=0; i<count; i++) {
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
-			if (!pck) return GF_OK;
+			if (!pck) continue;
 			u64 ts = gf_filter_pck_get_cts(pck);
 			//only adjust if delay is negative (skip), otherwise (delay) keep mints as is.
 			//Not doing so will set the rep PTO to the delay, canceling the delay ...
@@ -7938,6 +7939,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 				min_ts = ts;
 				min_timescale = ds->timescale;
 			}
+			num_ready++;
+			if (gf_filter_pid_would_block(ds->ipid)) num_blocked++;
+		}
+		if (count) {
+			if (num_ready < num_blocked) return GF_OK;
 		}
 		ctx->min_cts_period.num = min_ts;
 		ctx->min_cts_period.den = min_timescale;
@@ -8786,6 +8792,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 				gf_filter_pck_set_dependency_flags(dst, dep_flags);
 				//this one might be incorrect of this split packet is also split, but we update the duration right below
 				gf_filter_pck_set_duration(dst, dur);
+
+				//undo cts shift, we use it just below to compute cumulated dur using orig_cts (stored before shift)
+				if (diff)
+					cts -= ds->first_cts;
 			}
 
 			//if split, adjust duration - this may happen on a split packet, if it covered 3 or more segments
@@ -8795,6 +8805,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				//adjust dur
 				cumulated_split_dur += (u32) (cts - orig_cts);
 				assert( dur > split_dur);
+				assert( cumulated_split_dur <= gf_filter_pck_get_duration(pck) );
 				ds->split_dur_next = cumulated_split_dur;
 				dur = split_dur;
 			}
