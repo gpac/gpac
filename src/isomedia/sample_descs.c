@@ -1217,6 +1217,7 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
 	case GF_ISOM_MEDIA_MPEG_SUBT:
 	case GF_ISOM_MEDIA_META:
 	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
 		break;
 	default:
 		return GF_BAD_PARAM;

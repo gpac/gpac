@@ -32,6 +32,7 @@
 
 #if !defined(GPAC_DISABLE_ISOM_DUMP) && !defined(GPAC_DISABLE_ISOM)
 
+#define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
 
 typedef struct
 {
@@ -104,6 +105,10 @@ GF_Err tx3gmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (ctx->dump_type<3)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL );
+
+	if (ctx->dump_type==3) {
+		gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(TTML_NAMESPACE) );
+	}
 
 	ctx->ipid = pid;
 
