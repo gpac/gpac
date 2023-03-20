@@ -48,6 +48,7 @@ typedef struct
 	u32 codecid;
 
 	GF_Fraction64 duration;
+	s64 delay;
 
 	GF_TextConfig *cfg;
 	u32 dsi_crc;
@@ -151,6 +152,11 @@ GF_Err tx3gmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (!ctx->dump_type)
 		tx3gmx_write_config(ctx);
+
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.longsint : 0;
+	gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, NULL);
 
 	return GF_OK;
 }
@@ -404,7 +410,7 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 	TX3GMxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u8 *data, *output;
-	u64 start_ts, end_ts;
+	u64 start_ts, end_ts, o_start_ts;
 	u32 pck_size, timescale;
 	FILE *dump=NULL;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -432,9 +438,14 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 	start_ts = gf_filter_pck_get_cts(pck);
 	end_ts = start_ts + gf_filter_pck_get_duration(pck);
 
+	if ((s64) start_ts > -ctx->delay) start_ts += ctx->delay;
+	else start_ts = 0;
+	o_start_ts = start_ts;
+	if ((s64) end_ts > -ctx->delay) end_ts += ctx->delay;
+	else end_ts = 0;
+
 	start_ts = gf_timestamp_rescale(start_ts, timescale, 1000);
 	end_ts = gf_timestamp_rescale(end_ts, timescale, 1000);
-
 
 	gf_bs_reassign_buffer(ctx->bs_r, data, pck_size);
 
@@ -484,7 +495,7 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 				}
 			}
 		} else {
-			dump_ttxt_sample(dump, txt, gf_filter_pck_get_cts(pck), gf_filter_pck_get_timescale(pck), sample_index, GF_FALSE);
+			dump_ttxt_sample(dump, txt, o_start_ts, gf_filter_pck_get_timescale(pck), sample_index, GF_FALSE);
 		}
 
 		gf_isom_delete_text_sample(txt);
@@ -508,6 +519,8 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+		gf_filter_pck_set_cts(dst_pck, o_start_ts);
+		gf_filter_pck_set_dts(dst_pck, o_start_ts);
 
 		gf_filter_pck_send(dst_pck);
 	}
