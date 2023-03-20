@@ -1285,6 +1285,20 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		}
 		pidinst=NULL;
 	}
+	//flush any packets dispatched before detaching
+	if (pidinst && gf_fq_count(pidinst->packets)) {
+		Bool in_process = filter->in_process;
+		filter->in_process = GF_FALSE;
+		//prevent pid_would_block calls
+		filter->in_force_flush = GF_TRUE;
+		pidinst->force_flush = GF_TRUE;
+		gf_filter_process_inline(filter);
+		pidinst->force_flush = GF_FALSE;
+		filter->in_force_flush = GF_FALSE;
+		filter->in_process = in_process;
+		TASK_REQUEUE(task)
+		return;
+	}
 
 	assert(filter->freg->configure_pid);
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
@@ -6601,6 +6615,9 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	}
 
 	if (pid->filter->session->blocking_mode==GF_FS_NOBLOCK)
+		return GF_FALSE;
+	//input pid(s) are being flushed, prevent blocking
+	if (pid->filter->in_force_flush)
 		return GF_FALSE;
 
 	gf_mx_p(pid->filter->tasks_mx);
