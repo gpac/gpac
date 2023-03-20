@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2022-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -29,7 +29,7 @@
 
 #include <gpac/setup.h>
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 //declare prototype, don't include gpac.h due to conflict in Fixed type between gpac and OSX
 void carbon_remove_hook(void);
@@ -85,4 +85,4 @@ void carbon_set_hook()
 }
 
 
-#endif // GPAC_DISABLE_PLAYER
+#endif // GPAC_DISABLE_COMPOSITOR

@@ -24,7 +24,19 @@
 
 #include <gpac/internal/ogg.h>
 
-#ifndef GPAC_DISABLE_OGG
+#ifdef GPAC_DISABLE_OGG
+# ifndef GPAC_EXTERNAL_LIBOGG
+#  define GPAC_EXTERNAL_LIBOGG	1
+# endif
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+# if defined(GPAC_HAS_VORBIS) || defined(GPAC_HAS_THEORA)
+#  ifndef GPAC_EXTERNAL_LIBOGG
+#   define GPAC_EXTERNAL_LIBOGG	1
+#  endif
+# endif
+#endif
+
+#ifndef GPAC_EXTERNAL_LIBOGG
 
 #define BUFFER_INCREMENT 256
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -421,7 +421,9 @@ struct __gf_filter_session
 
 	GF_Mutex *ui_mx;
 
+#ifndef GPAC_DISABLE_THREADS
 	GF_List *threads;
+#endif
 	GF_SessionThread main_th;
 
 	//only used in forced lock mode
@@ -458,7 +460,7 @@ struct __gf_filter_session
 
 	GF_DownloadManager *download_manager;
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_FONTS
 	struct _gf_ft_mgr *font_manager;
 #endif
 
@@ -516,6 +518,11 @@ struct __gf_filter_session
 #ifdef GF_FS_ENABLE_LOCALES
 	GF_List *uri_relocators;
 	GF_FSLocales locales;
+#endif
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	Bool is_worker;
+	volatile u32 pending_threads;
 #endif
 };
 
@@ -780,6 +787,7 @@ struct __gf_filter
 	/*source pid instance we are swapping*/
 	GF_FilterPidInst *swap_pidinst_src;
 	Bool swap_needs_init;
+	Bool swap_pending;
 
 	//overloaded caps of the filter
 	const GF_FilterCapability *forced_caps;
@@ -920,6 +928,7 @@ struct __gf_filter_pid_inst
 	volatile s64 buffer_duration;
 
 	volatile s32 detach_pending;
+	Bool force_flush;
 
 	void *udta;
 	u32 udta_flags;
@@ -1107,7 +1116,7 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 
 Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
 
-void gf_filter_relink_dst(GF_FilterPidInst *pidinst);
+void gf_filter_relink_dst(GF_FilterPidInst *pidinst, GF_Err reason);
 
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool keep_end_connections);
 

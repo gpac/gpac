@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -1478,7 +1478,12 @@ GF_FilterRegister M2TSDmxRegister = {
 	.initialize = m2tsdmx_initialize,
 	.finalize = m2tsdmx_finalize,
 	.args = M2TSDmxArgs,
+	//for emscripten ask a config on main thread since we may probe (fopen in read mode) input for duration
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	.flags = GF_FS_REG_DYNAMIC_PIDS | GF_FS_REG_CONFIGURE_MAIN_THREAD,
+#else
 	.flags = GF_FS_REG_DYNAMIC_PIDS,
+#endif
 	SETCAPS(M2TSDmxCaps),
 	.configure_pid = m2tsdmx_configure_pid,
 	.process = m2tsdmx_process,

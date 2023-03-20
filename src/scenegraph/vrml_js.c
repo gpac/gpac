@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -123,18 +123,18 @@ JSValue js_throw_err(JSContext *ctx, s32 err)
 		}	\
 		}
 
-#ifndef GPAC_DISABLE_PLAYER
 static Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
+#ifndef GPAC_DISABLE_COMPOSITOR
 	if (!scene) {
 		GF_Node *n = (GF_Node *) JS_GetContextOpaque(c);
 		scene = n->sgprivate->scenegraph;
 	}
 	if (scene->script_action)
 		return scene->script_action(scene->script_action_cbck, type, node, param);
+#endif// GPAC_DISABLE_COMPOSITOR
 	return 0;
 }
-#endif// GPAC_DISABLE_PLAYER
 
 GF_JSClass SFNodeClass;
 #ifndef GPAC_DISABLE_VRML
@@ -171,9 +171,7 @@ GF_Node *dom_get_element(JSContext *c, JSValue obj);
 void gf_sg_script_to_node_field(struct JSContext *c, JSValue v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool force_evaluate);
 
-#ifndef GPAC_DISABLE_PLAYER
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
-#endif
 
 
 Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSValue *rval);
@@ -1244,6 +1242,7 @@ static JSValue node_getProperty(JSContext *c, JSValueConst obj, JSAtom atom, JSV
 		JS_FreeCString(c, fieldName);
 		return JS_DupValue(priv->js_ctx, priv->node_getTime_fun);
 	}
+#if !defined(GPAC_DISABLE_SVG)
 	if (!strcmp(fieldName, "addEventListener") || !strcmp(fieldName, "addEventListenerNS")) {
 		JS_FreeCString(c, fieldName);
 		return JS_DupValue(priv->js_ctx, priv->node_addEventListener_fun);
@@ -1252,6 +1251,8 @@ static JSValue node_getProperty(JSContext *c, JSValueConst obj, JSAtom atom, JSV
 		JS_FreeCString(c, fieldName);
 		return JS_DupValue(priv->js_ctx, priv->node_removeEventListener_fun);
 	}
+#endif
+
 	/*fieldID indexing*/
 	if (!strnicmp(fieldName, "_field", 6)) {
 		index = atoi(fieldName+6);
@@ -3906,7 +3907,6 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	do_js_gc(priv->js_ctx, node);
 }
 
-
 static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_script, JSValue *rval)
 {
 	char *jsscript;
@@ -3963,6 +3963,68 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	return success;
 }
 
+#ifndef GPAC_DISABLE_SVG
+Bool svg_js_load_script(GF_Node *script, char *file);
+#endif
+
+typedef struct
+{
+	GF_Node *script;
+	//type: 0: VRML main JS, 1: imported JS from VRML JS, 2: SVG JS
+	u32 type;
+	GF_DownloadSession *sess;
+} AsyncFetcher;
+
+void async_script_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
+{
+	AsyncFetcher *as = usr_cbk;
+	GF_Err e=GF_OK;
+	if (parameter->msg_type == GF_NETIO_DATA_TRANSFERED) {
+		const char *szCache = gf_dm_sess_get_cache_name(parameter->sess);
+		if (as->type<=1) {
+			M_Script *script = (M_Script *) as->script;
+			GF_ScriptPriv *priv = (GF_ScriptPriv *) as->script->sgprivate->UserPrivate;
+			JSValue rval;
+			if (!vrml_js_load_script(script, (char *) szCache, (as->type==1) ? 0 : 1, &rval))
+				e = GF_SCRIPT_ERROR;
+			JS_FreeValue(priv->js_ctx, rval);
+		} else {
+#ifndef GPAC_DISABLE_SVG
+			if (!svg_js_load_script(as->script, (char *) szCache))
+#endif
+				e = GF_SCRIPT_ERROR;
+		}
+		gf_dm_sess_del(as->sess);
+		gf_free(as);
+	}
+	else if (parameter->msg_type == GF_NETIO_STATE_ERROR) {
+		e = parameter->error;
+		gf_dm_sess_del(as->sess);
+		gf_free(as);
+	}
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("Failed to load script: %s\n", gf_error_to_string(e)));
+	}
+}
+
+GF_Err vrml_svg_js_async_load(GF_DownloadManager *dnld_man, char *url, u32 type, GF_Node *script, JSValue *rval)
+{
+	AsyncFetcher *as;
+	GF_Err e;
+	if (rval) *rval = JS_UNDEFINED;
+	GF_SAFEALLOC(as, AsyncFetcher);
+	if (!as) return GF_OUT_OF_MEM;
+	//GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->UserPrivate;
+	as->script = script;
+	as->type = type;
+	as->sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_MEMORY_CACHE, async_script_sess_io, as, &e);
+	if (e) {
+		gf_free(as);
+		return e;
+	}
+	return gf_dm_sess_process(as->sess);
+}
+
 /*fetches each listed URL and attempts to load the script - this is SYNCHRONOUS*/
 Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSValue *rval)
 {
@@ -4008,18 +4070,11 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSV
 			if (res) return 1;
 			if (no_complain) return 0;
 		} else {
-			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-			if (sess) {
-				e = gf_dm_sess_process(sess);
-				if (e==GF_OK) {
-					const char *szCache = gf_dm_sess_get_cache_name(sess);
-					if (!vrml_js_load_script(script, (char *) szCache, opt_file ? 0 : 1, rval))
-						e = GF_SCRIPT_ERROR;
-				}
-				gf_dm_sess_del(sess);
-			}
+#ifdef GPAC_USE_DOWNLOADER
+			e = vrml_svg_js_async_load(dnld_man, url, opt_file ? 1 : 0, node, rval);
 			gf_free(url);
 			if (!e) return 1;
+#endif
 		}
 	}
 
@@ -4083,7 +4138,10 @@ static void JSScript_LoadVRML(GF_Node *node)
 	priv->the_event = dom_js_define_event(priv->js_ctx);
 	priv->the_event = JS_DupValue(priv->js_ctx, priv->the_event);
 #endif
+
+#ifdef GPAC_USE_DOWNLOADER
 	qjs_module_init_xhr_global(priv->js_ctx, priv->js_obj);
+#endif
 
 	priv->jsf_cache = gf_list_new();
 
@@ -4160,7 +4218,6 @@ static void JSScript_Load(GF_Node *node)
 }
 
 
-#ifndef GPAC_DISABLE_PLAYER
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script)
 {
 	u32 i;
@@ -4275,7 +4332,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 		}
 	}
 }
-#endif
+
 
 GF_EXPORT
 void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)

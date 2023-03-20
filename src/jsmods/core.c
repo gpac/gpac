@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2022
+ *			Copyright (c) Telecom ParisTech 2007-2023
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript libgpac Core bindings
@@ -1026,11 +1026,15 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, uval);
 
 	case JS_SYS_HOSTNAME:
+#ifdef GPAC_DISABLE_NETWORK
+		return JS_NewString(ctx, "localhost");
+#else
 		{
 			char hostname[100];
 			gf_sk_get_host_name((char*)hostname);
 			return JS_NewString(ctx, hostname);
 		}
+#endif
 		break;
 	case JS_SYS_LAST_WORK_DIR:
 		res = gf_opts_get_key("core", "last-dir");
@@ -3560,7 +3564,7 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
 
 	//vrml, init scene JS but do not init xhr (defined in DOM JS)
 	if (for_vrml) {
-#if !defined(GPAC_DISABLE_PLAYER)
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 		qjs_module_init_scenejs(ctx);
 #endif
 	} else {
@@ -3577,7 +3581,7 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
 int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val, JS_BOOL use_realpath, JS_BOOL is_main);
 
 
-#ifndef GPAC_STATIC_BUILD
+#ifndef GPAC_STATIC_BIN
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
@@ -3643,7 +3647,7 @@ static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
 	return m;
 }
 
-#endif // GPAC_STATIC_BUILD
+#endif // GPAC_STATIC_BIN
 
 JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
 {
@@ -3651,7 +3655,7 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 	const char *fext = gf_file_ext_start(module_name);
 
 	if (fext && (!strcmp(fext, ".so") || !strcmp(fext, ".dll") || !strcmp(fext, ".dylib")) )  {
-#ifndef GPAC_STATIC_BUILD
+#ifndef GPAC_STATIC_BIN
 		m = qjs_module_loader_dyn_lib(ctx, module_name);
 #else
 		JS_ThrowReferenceError(ctx, "could not load module filename '%s', dynamic library loading disabled in build", module_name);

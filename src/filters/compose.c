@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / compositor filter
@@ -29,7 +29,7 @@
 //to set caps in filter session, to cleanup!
 #include "../filter_core/filter_session.h"
 
-#ifndef GPAC_DISABLE_PLAYER
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 GF_Err compose_bifs_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
 GF_Err compose_bifs_dec_process(GF_Scene *scene, GF_FilterPid *pid);
@@ -130,6 +130,8 @@ static GF_Err compose_process(GF_Filter *filter)
 			was_over = GF_TRUE;
 		} else if (ctx->sys_frames_pending) {
 			ctx->check_eos_state = 0;
+		} else if (gf_filter_end_of_session(filter)) {
+			ctx->check_eos_state = 2;
 		}
 
 		if (ctx->timeout && (ctx->check_eos_state == 1) && !gf_filter_connections_pending(filter)) {
@@ -1224,5 +1226,5 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_PLAYER
+#endif // GPAC_DISABLE_COMPOSITOR
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -48,15 +48,118 @@ extern "C" {
 #endif
 
 #include <gpac/tools.h>
-#include <gpac/config_file.h>
-#include <gpac/cache.h>
+
+#ifdef GPAC_USE_DOWNLOADER
+
+/*!the download manager session.*/
+typedef struct __gf_download_session GF_DownloadSession;
+
+/*!downloader session message types*/
+typedef enum
+{
+	/*!signal that session is setup and waiting for connection request*/
+	GF_NETIO_SETUP = 0,
+	/*!signal that session connection is done*/
+	GF_NETIO_CONNECTED,
+	/*!request a protocol method from the user. Default value is "GET" for HTTP*/
+	GF_NETIO_GET_METHOD,
+	/*!request a header from the user. */
+	GF_NETIO_GET_HEADER,
+	/*!requesting content from the user, if any. Content is appended to the request*/
+	GF_NETIO_GET_CONTENT,
+	/*!signal that request is sent and waiting for server reply*/
+	GF_NETIO_WAIT_FOR_REPLY,
+	/*!signal a header to user. */
+	GF_NETIO_PARSE_HEADER,
+	/*!signal request reply to user. The reply is always sent after the headers*/
+	GF_NETIO_PARSE_REPLY,
+	/*!send data to the user*/
+	GF_NETIO_DATA_EXCHANGE,
+	/*!all data has been transfered*/
+	GF_NETIO_DATA_TRANSFERED,
+	/*!signal that the session has been deconnected*/
+	GF_NETIO_DISCONNECTED,
+	/*!downloader session failed (error code set) or done/destroyed (no error code)*/
+	GF_NETIO_STATE_ERROR,
+	/*!signal that a new session is being requested on that same connection (h2, h3)
+	This is only used for server sessions*/
+	GF_NETIO_REQUEST_SESSION,
+	/*! stream has been canceled by remote peer*/
+	GF_NETIO_CANCEL_STREAM,
+} GF_NetIOStatus;
+
+/*!session download flags*/
+typedef enum
+{
+	/*!session is not threaded, the user must explicitly fetch the data , either with the function gf_dm_sess_fetch_data
+	or the function gf_dm_sess_process- if the session is threaded, the user must call gf_dm_sess_process to start the session*/
+	GF_NETIO_SESSION_NOT_THREADED = 1,
+	/*! session data is cached or not */
+	GF_NETIO_SESSION_NOT_CACHED = 1<<1,
+	/*! forces data notification even when session is threaded*/
+	GF_NETIO_SESSION_NOTIFY_DATA = 1<<2,
+	/*indicates that the connection to the server should be kept once the download is successfully completed*/
+	GF_NETIO_SESSION_PERSISTENT = 1<<3,
+	/*file is stored in memory, and the cache name is set to gmem://%p, where %p is the blob object adress.
+	Memory cached files are destroyed upon downloader destruction*/
+	GF_NETIO_SESSION_MEMORY_CACHE = 1<<4,
+	/*! do not delete files after download*/
+	GF_NETIO_SESSION_KEEP_CACHE = 1<<5,
+	/*! do not delete files after download of first resource (used for init segments)*/
+	GF_NETIO_SESSION_KEEP_FIRST_CACHE = 1<<6,
+	/*! session data is cached if content length is known */
+	GF_NETIO_SESSION_AUTO_CACHE = 1<<7,
+	/*! use non-blocking IOs*/
+	GF_NETIO_SESSION_NO_BLOCK = 1<<8,
+} GF_NetIOFlags;
+
+
+/*!protocol I/O parameter*/
+typedef struct
+{
+	/*!parameter message type*/
+	GF_NetIOStatus msg_type;
+	/*error code if any. Valid for all message types.*/
+	GF_Err error;
+	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
+	const u8 *data;
+	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
+	u32 size;
+	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
+	const char *name;
+	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
+	char *value;
+	/*message-dependend
+		for GF_NETIO_PARSE_REPLY, response code
+		for GF_NETIO_DATA_EXCHANGE
+			Set to 1 in to indicate end of chunk transfer
+			Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
+		for all other, usage is reserved
+	*/
+	u32 reply;
+	/*download session for which the message is being sent*/
+	GF_DownloadSession *sess;
+} GF_NETIO_Parameter;
+
+/*!
+\brief callback function for data reception and state signaling
+
+The gf_dm_user_io type is the type for the data callback function of a download session
+\param usr_cbk opaque user data
+\param parameter the input/output parameter structure
+*/
+typedef void (*gf_dm_user_io)(void *usr_cbk, GF_NETIO_Parameter *parameter);
 
 /*!the download manager object. This is usually not used by GPAC modules*/
 typedef struct __gf_download_manager GF_DownloadManager;
-/*!the download manager session.*/
-typedef struct __gf_download_session GF_DownloadSession;
 /*!the optional filter session.*/
 typedef struct __gf_filter_session GF_DownloadFilterSession;
+
+
+#ifndef GPAC_DISABLE_NETWORK
+
+#include <gpac/config_file.h>
+#include <gpac/cache.h>
 
 /*! URL information object*/
 typedef struct GF_URL_Info_Struct {
@@ -141,102 +244,6 @@ Assigns the callback function used for user password retrieval. If no such funct
 \param usr_cbk opaque user data passed to callback function
  */
 void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_pass, void *usr_cbk);
-
-/*!downloader session message types*/
-typedef enum
-{
-	/*!signal that session is setup and waiting for connection request*/
-	GF_NETIO_SETUP = 0,
-	/*!signal that session connection is done*/
-	GF_NETIO_CONNECTED,
-	/*!request a protocol method from the user. Default value is "GET" for HTTP*/
-	GF_NETIO_GET_METHOD,
-	/*!request a header from the user. */
-	GF_NETIO_GET_HEADER,
-	/*!requesting content from the user, if any. Content is appended to the request*/
-	GF_NETIO_GET_CONTENT,
-	/*!signal that request is sent and waiting for server reply*/
-	GF_NETIO_WAIT_FOR_REPLY,
-	/*!signal a header to user. */
-	GF_NETIO_PARSE_HEADER,
-	/*!signal request reply to user. The reply is always sent after the headers*/
-	GF_NETIO_PARSE_REPLY,
-	/*!send data to the user*/
-	GF_NETIO_DATA_EXCHANGE,
-	/*!all data has been transfered*/
-	GF_NETIO_DATA_TRANSFERED,
-	/*!signal that the session has been deconnected*/
-	GF_NETIO_DISCONNECTED,
-	/*!downloader session failed (error code set) or done/destroyed (no error code)*/
-	GF_NETIO_STATE_ERROR,
-	/*!signal that a new session is being requested on that same connection (h2, h3)
-	This is only used for server sessions*/
-	GF_NETIO_REQUEST_SESSION,
-	/*! stream has been canceled by remote peer*/
-	GF_NETIO_CANCEL_STREAM,
-} GF_NetIOStatus;
-
-/*!session download flags*/
-typedef enum
-{
-	/*!session is not threaded, the user must explicitly fetch the data , either with the function gf_dm_sess_fetch_data
-	or the function gf_dm_sess_process- if the session is threaded, the user must call gf_dm_sess_process to start the session*/
-	GF_NETIO_SESSION_NOT_THREADED = 1,
-	/*! session data is cached or not */
-	GF_NETIO_SESSION_NOT_CACHED = 1<<1,
-	/*! forces data notification even when session is threaded*/
-	GF_NETIO_SESSION_NOTIFY_DATA = 1<<2,
-	/*indicates that the connection to the server should be kept once the download is successfully completed*/
-	GF_NETIO_SESSION_PERSISTENT = 1<<3,
-	/*file is stored in memory, and the cache name is set to gpac://%u@%p, where %d is the size in bytes and %d is the the pointer to the memory.
-	Memory cached files are destroyed upon downloader destruction*/
-	GF_NETIO_SESSION_MEMORY_CACHE = 1<<4,
-	/*! do not delete files after download*/
-	GF_NETIO_SESSION_KEEP_CACHE = 1<<5,
-	/*! do not delete files after download of first resource (used for init segments)*/
-	GF_NETIO_SESSION_KEEP_FIRST_CACHE = 1<<6,
-	/*! session data is cached if content length is known */
-	GF_NETIO_SESSION_AUTO_CACHE = 1<<7,
-	/*! use non-blocking IOs*/
-	GF_NETIO_SESSION_NO_BLOCK = 1<<8,
-} GF_NetIOFlags;
-
-
-/*!protocol I/O parameter*/
-typedef struct
-{
-	/*!parameter message type*/
-	GF_NetIOStatus msg_type;
-	/*error code if any. Valid for all message types.*/
-	GF_Err error;
-	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
-	const u8 *data;
-	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
-	u32 size;
-	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
-	const char *name;
-	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
-	char *value;
-	/*message-dependend
-		for GF_NETIO_PARSE_REPLY, response code
-		for GF_NETIO_DATA_EXCHANGE
-			Set to 1 in to indicate end of chunk transfer
-			Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
-		for all other, usage is reserved
-	*/
-	u32 reply;
-	/*download session for which the message is being sent*/
-	GF_DownloadSession *sess;
-} GF_NETIO_Parameter;
-
-/*!
-\brief callback function for data reception and state signaling
-
-The gf_dm_user_io type is the type for the data callback function of a download session
-\param usr_cbk opaque user data
-\param parameter the input/output parameter structure
-*/
-typedef void (*gf_dm_user_io)(void *usr_cbk, GF_NETIO_Parameter *parameter);
 
 
 
@@ -353,8 +360,9 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm, const char * 
 Marks the cache file for this session to be deleted once the file is not used anymore by any session
 \param sess the download session
 \param url The URL associate to the cache entry to be deleted
+\param force if TRUE will remove the active cache entry regardless of the URL
  */
-void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url);
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url, Bool force);
 
 /*!
 \brief get statistics
@@ -621,11 +629,47 @@ GF_UserCredentials *gf_user_credentials_find_for_site(GF_DownloadManager *dm, co
 */
 GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool secure, const char * server_name, const char * username, const char * password, Bool valid);
 
-/*! @} */
+
+//end GPAC_DISABLE_NETWORK
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+
+GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 dl_flags,
+                                   gf_dm_user_io user_io,
+                                   void *usr_cbk,
+                                   GF_Err *e);
+void gf_dm_sess_abort(GF_DownloadSession * sess);
+void gf_dm_sess_del(GF_DownloadSession *sess);
+const char *gf_dm_sess_get_cache_name(GF_DownloadSession *sess);
+void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess, u32 force_keep);
+GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool allow_direct_reuse);
+GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_range, Bool discontinue_cache);
+GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size);
+GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u64 *total_size, u64 *bytes_done, u32 *bytes_per_sec, GF_NetIOStatus *net_status);
+const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
+GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val);
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess, const char * url, Bool force);
+GF_Err gf_dm_sess_process_headers(GF_DownloadSession * sess);
+GF_Err gf_dm_sess_process(GF_DownloadSession *sess);
+const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
+const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name);
+u64 gf_dm_sess_get_utc_start(GF_DownloadSession *sess);
+u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
+u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
+void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
+GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
+void gf_dm_del(GF_DownloadManager *dm);
+
+
+#endif //GPAC_CONFIG_EMSCRIPTEN
+
+#endif //GPAC_USE_DOWNLOADER
+
 
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */
 
 
 #endif		/*_GF_DOWNLOAD_H_*/

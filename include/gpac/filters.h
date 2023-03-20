@@ -1443,8 +1443,10 @@ typedef struct {
 	u32 type;
 	/*! name */
 	const char *name;
+#ifndef GPAC_DISABLE_DOC
 	/*! description */
 	const char *description;
+#endif
 	/*! data type  (uint, float, etc ..) */
 	u8 data_type;
 	/*! flags for the property */
@@ -2203,6 +2205,10 @@ typedef enum
 	GF_FS_REG_SINGLE_THREAD = 1<<13,
 	/*! Indicates the filter needs to be initialized even if temoorary - see \ref gf_filter_is_temporary. Always enabled if GF_FS_REG_META is set */
 	GF_FS_REG_TEMP_INIT = 1<<14,
+	/*! Indicates the filter uses libc sync file read - only needed for emscripten multithreaded support for now, translated into GF_FS_REG_MAIN_THREAD */
+	GF_FS_REG_USE_SYNC_READ = 1<<15,
+	/*! Indicates the filter may block the main thread (configure, process) - only needed for emscripten multithreaded support*/
+	GF_FS_REG_BLOCK_MAIN = 1<<16,
 
 
 	/*! flag dynamically set at runtime for custom filters*/
@@ -3119,9 +3125,10 @@ const GF_FilterCapability *gf_filter_get_caps(GF_Filter *filter, u32 *nb_caps);
 \param filter target filter
 \param data buffer to probe
 \param size size of buffer
+\param score ste to the probing score, may be NULL
 \return the mime type probed, or NULL if not recognized
 */
-const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size);
+const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size, GF_FilterProbeScore *score);
 
 /*! checks if the given filter is an alias filter created by a multiple sink filter
 \param filter target filter
@@ -3232,6 +3239,14 @@ void gf_filter_meta_set_instances(GF_Filter *filter, const char *instance_names_
 \return NULL or space-separated names of meta filter instances, without meta registry name. eg "negate" for ffavf::f=negate
 */
 const char *gf_filter_meta_get_instances(GF_Filter *filter);
+
+
+/*! Locates start of gpac option separator in a url path
+\param filter target filter
+\param path path to analyze
+\return NULL or first option found (including option separator)
+*/
+const char *gf_filter_path_escape_colon(GF_Filter *filter, const char *path);
 
 /*! @} */
 
@@ -4005,6 +4020,19 @@ Bool gf_filter_pid_has_decoder(GF_FilterPid *PID);
 \return error if any
 */
 GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *PID, u32 rtt_ms, u32 jitter_us, u32 loss_rate);
+
+
+/*! Returns RFC6381 "codec" string of a PID
+
+\param PID the target filter PID
+\param szCodec string to be written, must be RFC6381_CODEC_NAME_SIZE_MAX at least
+\param force_inband forces inband signaling for avc/hevc/etc
+\param force_sbr forces SBR signaling for AAC
+\param tile_base_dcd decoder config of tiled base track if known, may be NULL otherwise
+\param out_inband_forced set to true if inband is to be forced (dasher only) - may be NULL
+\return error if any
+*/
+GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *PID, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, Bool *out_inband_forced);
 
 /*! @} */
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -363,6 +363,17 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*on OSX, Linux & co, user home is where we store the cfg file*/
 	if (path_type==GF_PATH_CFG) {
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		if (gf_dir_exists("/idbfs")) {
+			if (!gf_dir_exists("/idbfs/.gpac")) {
+				gf_mkdir("/idbfs/.gpac");
+			}
+			strcpy(file_path, "/idbfs/.gpac");
+			return 1;
+		}
+#endif
+
 		char *user_home = getenv("HOME");
 #ifdef GPAC_CONFIG_IOS
 		char buf[PATH_MAX];
@@ -437,6 +448,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			}
 			return 1;
 		}
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+		return 0;
 #endif
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find executable path\n"));
 		return 0;
@@ -456,15 +469,24 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		}
 		return 0;
 #endif
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find library path\n"));
+
+		//for emscripten we use a static load for now
+#if !defined(GPAC_CONFIG_EMSCRIPTEN)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Unknown arch, cannot find library path\n"));
+#endif
 		return 0;
 	}
 
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
+	strcpy(app_path, "/usr/");
+#else
 	/*locate the app*/
 	if (!get_default_install_path(app_path, GF_PATH_APP)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
 		return 0;
 	}
+#endif
+
 	/*installed or symlink on system, user user home directory*/
 	if (!strnicmp(app_path, "/usr/", 5) || !strnicmp(app_path, "/opt/", 5)) {
 		if (path_type==GF_PATH_SHARE) {
@@ -568,7 +590,9 @@ retry_lib:
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 		}
 		/*modules not found, failure*/
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
+#ifndef GPAC_STATIC_MODULES
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
+#endif
 		return 0;
 	}
 
@@ -701,16 +725,21 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "devclass", "ios");
 #elif defined(GPAC_CONFIG_ANDROID)
 	gf_cfg_set_key(cfg, "core", "devclass", "android");
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+	gf_cfg_set_key(cfg, "core", "devclass", "wasm");
 #else
 	gf_cfg_set_key(cfg, "core", "devclass", "desktop");
 #endif
 
 
 	if (!moddir_found) {
+#if !defined(GPAC_CONFIG_EMSCRIPTEN)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] default modules directory not found\n"));
+#endif
 	} else {
 		gf_cfg_set_key(cfg, "core", "module-dir", szPath);
 	}
+
 
 #if defined(GPAC_CONFIG_IOS)
 	gf_ios_refresh_cache_directory(cfg, file_path);
@@ -936,6 +965,7 @@ static Bool delete_tmp_files(void *cbck, char *item_name, char *item_path, GF_Fi
 
 static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
 {
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	char key[16];
 	u64 v1, v2;
 	const char *opt = gf_cfg_get_key(cfg, "core", "cred");
@@ -965,6 +995,7 @@ static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
 	fwrite(key, 16, 1, crd);
 	fclose(crd);
 	gf_cfg_set_key(cfg, "core", "cred", szPath);
+#endif //GPAC_CONFIF_EMSCRIPTEN
 }
 
 /*!

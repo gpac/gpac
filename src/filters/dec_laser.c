@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR decoder filter
@@ -25,7 +25,7 @@
 
 #include <gpac/filters.h>
 
-#ifndef GPAC_DISABLE_LASER
+#if !defined(GPAC_DISABLE_LASER) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/laser.h>
@@ -263,14 +263,14 @@ GF_FilterRegister LSRDecRegister = {
 	.process_event = lsrdec_process_event,
 };
 
-#endif /*GPAC_DISABLE_LASER*/
+#endif //!defined(GPAC_DISABLE_LASER) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 const GF_FilterRegister *lsrdec_register(GF_FilterSession *session)
 {
-#ifdef GPAC_DISABLE_LASER
-	return NULL;
-#else
+#if !defined(GPAC_DISABLE_LASER) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &LSRDecRegister;
+#else
+	return NULL;
 #endif /*GPAC_DISABLE_LASER*/
 }
 

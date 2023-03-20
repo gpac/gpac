@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -190,6 +190,7 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 	p = gf_filter_pid_get_property(ctx->idx_pid, GF_PROP_PID_FILEPATH);
 	if (!p) {
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Demux only supported with local files\n"));
 		return GF_EOS;
 	}
 
@@ -462,6 +463,7 @@ GF_FilterRegister VOBSubDmxRegister = {
 	GF_FS_SET_DESCRIPTION("VobSub parser")
 	GF_FS_SET_HELP("This filter parses VobSub files/data to produce media PIDs and frames.")
 	.private_size = sizeof(GF_VOBSubDmxCtx),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.max_extra_pids = 1,
 	.args = GF_VOBSubDmxArgs,
 	.finalize = vobsubdmx_finalize,

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -24,6 +24,9 @@
  */
 
 #include <gpac/internal/compositor_dev.h>
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
+
 /*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
 #include <gpac/nodes_x3d.h>
 #include <gpac/nodes_svg.h>
@@ -359,3 +362,5 @@ void gf_scene_node_callback(void *_is, GF_SGNodeCbkType type, GF_Node *n, void *
 	break;
 	}
 }
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

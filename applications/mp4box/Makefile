@@ -15,7 +15,8 @@ LDFLAGS+=-pg
 endif
 
 LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
-ifeq ($(CONFIG_DARWIN),yes)
+ifeq ($(CONFIG_EMSCRIPTEN),yes)
+else ifeq ($(CONFIG_DARWIN),yes)
 #LINKFLAGS+= -Wl,-rpath,'@loader_path'
 else
 LINKFLAGS+= -Wl,-rpath,'$$ORIGIN' -Wl,-rpath-link,../../bin/gcc

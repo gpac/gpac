@@ -91,7 +91,8 @@ typedef struct
 	GF_DASHFileIO dash_io;
 	GF_DownloadManager *dm;
 	
-	Bool reuse_download_session;
+	GF_DownloadSession *reuse_download_session;
+	Bool first_cache_name_fetched;
 
 	Bool initial_setup_done;
 	Bool in_error;
@@ -129,6 +130,11 @@ typedef struct
 	void (*on_new_group)(void *udta, u32 group_idx, void *dash);
 	s32 (*on_rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_low_complex, void *stats);
 	s32 (*on_download_monitor)(void *udta, u32 group_idx, void *stats);
+
+
+	Bool load_file;
+	GF_FileIO *fio;
+	GF_FilterPacket *mpd_pck_ref;
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -147,7 +153,9 @@ typedef struct
 	u32 next_dependent_rep_idx, current_dependent_rep_idx;
 	u64 utc_map;
 	
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *sess;
+#endif
 	Bool is_timestamp_based, pto_setup;
 	Bool prev_is_init_segment;
 	//media timescale for which the pto, max_cts_in_period and timedisc_ts_offset were computed
@@ -653,20 +661,28 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 void dashdmx_io_delete_cache_file(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *cache_url)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	if (!session) {
 		return;
 	}
-	gf_dm_delete_cached_file_entry_session((GF_DownloadSession *)session, cache_url);
+	gf_dm_delete_cached_file_entry_session((GF_DownloadSession *)session, cache_url, GF_TRUE);
+#endif
 }
 
-void gf_dm_sess_force_blocking(GF_DownloadSession *sess);
+#ifdef GPAC_USE_DOWNLOADER
+void gf_dm_sess_detach_async(GF_DownloadSession *sess);
+#endif
 
 GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, const char *url, s32 group_idx)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *sess;
 	GF_Err e;
-	u32 flags = GF_NETIO_SESSION_NOT_THREADED;
+	u32 flags;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
+
+	//use threaded async sessions
+	flags = GF_NETIO_SESSION_NO_BLOCK; //GF_NETIO_SESSION_NOT_THREADED;
 
 	//we work in non-threaded mode, only MPD fetcher is allowed
 	if (group_idx>=0)
@@ -678,13 +694,14 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->mpd_pid, GF_PROP_PID_DOWNLOAD_SESSION);
 		if (p) {
 			sess = (GF_DownloadSession *) p->value.ptr;
-			gf_dm_sess_force_blocking(sess);
+			//regardless of how the initial session was created, force its usage as non-blocking async
+			gf_dm_sess_detach_async(sess);
 			if (!ctx->segstore) {
 				gf_dm_sess_force_memory_mode(sess, 1);
 			}
 			if (ctx->reuse_download_session)
 				gf_dm_sess_setup_from_url(sess, url, GF_FALSE);
-			ctx->reuse_download_session = GF_TRUE;
+			ctx->reuse_download_session = sess;
 			return (GF_DASHFileIOSession) sess;
 		}
 	}
@@ -697,53 +714,109 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	}
 	sess = gf_dm_sess_new(ctx->dm, url, flags, NULL, NULL, &e);
 	return (GF_DASHFileIOSession) sess;
+#else
+	//TODO
+	return NULL;
+#endif
 }
+
 void dashdmx_io_del(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
 	if (!ctx->reuse_download_session)
 		gf_dm_sess_del((GF_DownloadSession *)session);
+#endif
 }
 GF_Err dashdmx_io_init(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
+	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
+	if (ctx->fio && !ctx->first_cache_name_fetched) return GF_OK;
 	return gf_dm_sess_process_headers((GF_DownloadSession *)session);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 GF_Err dashdmx_io_run(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
+	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
+	if (ctx->fio && !ctx->first_cache_name_fetched) return GF_OK;
 	return gf_dm_sess_process((GF_DownloadSession *)session);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 const char *dashdmx_io_get_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_get_resource_name((GF_DownloadSession *)session);
+#else
+	return NULL;
+#endif
 }
 const char *dashdmx_io_get_cache_name(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
+	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
+	if ((ctx->reuse_download_session == (GF_DownloadSession *)session)
+		&& ctx->fio
+		&& !ctx->first_cache_name_fetched
+	) {
+		ctx->first_cache_name_fetched = GF_TRUE;
+		return gf_fileio_url(ctx->fio);
+	}
 	return gf_dm_sess_get_cache_name((GF_DownloadSession *)session);
+#else
+	return NULL;
+#endif
 }
 const char *dashdmx_io_get_mime(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_mime_type((GF_DownloadSession *)session);
+#else
+	return NULL;
+#endif
 }
 const char *dashdmx_io_get_header_value(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *header_name)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_get_header((GF_DownloadSession *)session, header_name);
+#else
+	return NULL;
+#endif
 }
 u64 dashdmx_io_get_utc_start_time(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_get_utc_start((GF_DownloadSession *)session);
+#else
+	return 0;
+#endif
 }
 GF_Err dashdmx_io_setup_from_url(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *url, s32 group_idx)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_setup_from_url((GF_DownloadSession *)session, url, GF_FALSE);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 GF_Err dashdmx_io_set_range(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, u64 start_range, u64 end_range, Bool discontinue_cache)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	return gf_dm_sess_set_range((GF_DownloadSession *)session, start_range, end_range, discontinue_cache);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
 	u32 bps=0;
+#ifdef GPAC_USE_DOWNLOADER
 	if (session) {
 		gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
 	} else {
@@ -751,8 +824,30 @@ u32 dashdmx_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession ses
 		bps = gf_dm_get_data_rate(ctx->dm);
 		bps/=8;
 	}
+#endif
 	return bps;
 }
+
+GF_Err dashdmx_io_get_status(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
+{
+#ifdef GPAC_USE_DOWNLOADER
+	GF_NetIOStatus status;
+	GF_Err last_err = gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, NULL, &status);
+
+	if (status==GF_NETIO_DATA_TRANSFERED) return GF_OK;
+	if (status==GF_NETIO_DATA_EXCHANGE) return GF_NOT_READY;
+	if (status==GF_NETIO_STATE_ERROR) return last_err;
+	//session may move to disconnect state upon completion, check if no error
+	if ((status==GF_NETIO_DISCONNECTED) && (last_err>=GF_OK))
+		return GF_OK;
+	return GF_NOT_READY;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+
+}
+
+
 #if 0 //unused since we are in non threaded mode
 void dashdmx_io_abort(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
@@ -1774,14 +1869,44 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//configure MPD pid
 	if (!ctx->mpd_pid) {
 		char *frag;
+		Bool cache_redirect = GF_FALSE;
 		const GF_PropertyValue *p;
+
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_REDIRECT_URL);
+		if (p && p->value.string) cache_redirect = GF_TRUE;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+		if (!p && !cache_redirect) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
+			if (!pck) {
+				ctx->mpd_pid = pid;
+				ctx->load_file = GF_TRUE;
+				return GF_OK;
+			}
+
+			const u8 *data;
+			u32 size;
+			data = gf_filter_pck_get_data(pck, &size);
+			if (ctx->fio) {
+				gf_fclose((FILE*)ctx->fio);
+				gf_filter_pck_unref(ctx->mpd_pck_ref);
+			}
+			ctx->mpd_pck_ref = pck;
+			gf_filter_pck_ref(&ctx->mpd_pck_ref);
+			ctx->fio = gf_fileio_from_mem("_MANIFEST", data, size);
+			ctx->load_file = GF_FALSE;
+			//and remove it
+			gf_filter_pid_drop_packet(pid);
+		}
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
 		if (!p || !p->value.string) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] no URL on MPD pid\n"));
 			return GF_NOT_SUPPORTED;
 		}
 
-		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 		ctx->mpd_pid = pid;
 		ctx->seek_request = -1;
 		ctx->nb_playing = 0;
@@ -1795,6 +1920,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_BOOL(GF_TRUE));
 		}
+
 
 		e = gf_dash_open(ctx->dash, p->value.string);
 		if (e) {
@@ -2113,6 +2239,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 		ctx->dash_io.manifest_updated = dashdmx_io_manifest_updated;
 
 	ctx->dash_io.get_bytes_per_sec = dashdmx_io_get_bytes_per_sec;
+	ctx->dash_io.get_status = dashdmx_io_get_status;
 
 #if 0 //unused since we are in non threaded mode
 	ctx->dash_io.abort = dashdmx_io_abort;
@@ -2289,6 +2416,11 @@ static void dashdmx_finalize(GF_Filter *filter)
 		while (gf_list_count(ctx->hls_variants_names))
 			gf_free(gf_list_pop_back(ctx->hls_variants_names));
 		gf_list_del(ctx->hls_variants_names);
+	}
+
+	if (ctx->fio) {
+		gf_fclose((FILE*)ctx->fio);
+		gf_filter_pck_unref(ctx->mpd_pck_ref);
 	}
 
 #ifdef GPAC_HAS_QJS
@@ -2952,6 +3084,14 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	Bool has_pck = GF_FALSE;
 	Bool switch_pending = GF_FALSE;
 
+	if (ctx->load_file) {
+		GF_FilterPid *pid = ctx->mpd_pid;
+		ctx->load_file = GF_FALSE;
+		ctx->mpd_pid = NULL;
+		e = dashdmx_configure_pid(filter, pid, GF_FALSE);
+		if (e) return e;
+	}
+
 	//reset group states and update stats
 	count = gf_dash_get_group_count(ctx->dash);
 	for (i=0; i<count; i++) {
@@ -2994,7 +3134,11 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	}
 	e = gf_dash_process(ctx->dash);
 	if (e == GF_IP_NETWORK_EMPTY) {
-		gf_filter_ask_rt_reschedule(filter, 100000);
+		gf_filter_ask_rt_reschedule(filter, 10000);
+		//in file mode we may have dispatched our MPD and not have any output pid yet, which could trigger blocking of the filter
+		//disable this whenever dash client is waiting for http replies - it will be re-enabled at the end of the first segment
+		if (ctx->forward==DFWD_FILE)
+			gf_filter_prevent_blocking(filter, GF_TRUE);
 		return GF_OK;
 	}
 	else if (e==GF_SERVICE_ERROR) {
@@ -3455,7 +3599,7 @@ GF_FilterRegister DASHDmxRegister = {
 	.args = DASHDmxArgs,
 	SETCAPS(DASHDmxCaps),
 	//we need the resolver, and pids are declared dynamically
-	.flags = GF_FS_REG_REQUIRES_RESOLVER | GF_FS_REG_DYNAMIC_PIDS,
+	.flags = GF_FS_REG_REQUIRES_RESOLVER | GF_FS_REG_DYNAMIC_PIDS|GF_FS_REG_USE_SYNC_READ,
 	.configure_pid = dashdmx_configure_pid,
 	.process = dashdmx_process,
 	.process_event = dashdmx_process_event,

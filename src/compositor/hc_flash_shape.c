@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -31,7 +31,8 @@
 #include <gpac/internal/mesh.h>
 #endif
 
-#ifdef GPAC_ENABLE_FLASHSHAPE
+#if defined(GPAC_ENABLE_FLASHSHAPE) && !defined(GPAC_DISABLE_COMPOSITOR)
+
 
 typedef struct
 {
@@ -475,4 +476,4 @@ void compositor_init_hc_flashshape(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, fs_traverse);
 }
 
-#endif // GPAC_ENABLE_FLASHSHAPE
+#endif // defined(GPAC_ENABLE_FLASHSHAPE) && !defined(GPAC_DISABLE_COMPOSITOR)

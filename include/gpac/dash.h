@@ -149,6 +149,8 @@ struct _gf_dash_io
 	u32 (*get_total_size)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*! get the total size on bytes for the session*/
 	u32 (*get_bytes_done)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
+	/*! get the status of the session - GF_OK for done, GF_NOT_READY for in progress, other error code indicate download error*/
+	GF_Err (*get_status)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 
 	/*! callback when manifest (DASH, HLS) or sub-playlist (HLS) is updated*/
 	void (*manifest_updated)(GF_DASHFileIO *dashio, const char *manifest_name, const char *local_path, s32 group_idx);

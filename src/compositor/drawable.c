@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,7 +27,7 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 
-
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 /*default draw routine*/
 void drawable_draw(Drawable *drawable, GF_TraverseState *tr_state)
@@ -1590,3 +1590,6 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 
 
 #endif	//SVG
+
+
+#endif // GPAC_DISABLE_COMPOSITOR

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -32,7 +32,9 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/dict.h>
+#ifndef FFMPEG_DISABLE_AVDEVICE
 #include <libavdevice/avdevice.h>
+#endif
 #include <libswscale/swscale.h>
 #include <libavutil/channel_layout.h>
 
@@ -129,3 +131,5 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 #endif
 
 GF_Err ffmpeg_update_arg(const char *log_name, void *ctx, AVDictionary **options, const char *arg_name, const GF_PropertyValue *arg_val);
+
+void ffmpeg_check_threads(GF_Filter *filter, AVDictionary *options, AVCodecContext *codecctx);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -29,9 +29,7 @@
 #include "texturing.h"
 #include "nodes_stacks.h"
 
-#ifndef GPAC_DISABLE_3D
-
-
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 /*generic drawable 3D constructor/destructor*/
 Drawable3D *drawable_3d_new(GF_Node *node)
@@ -2199,5 +2197,4 @@ void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color
 	visual->fog_visibility = visibility;
 }
 
-#endif
-
+#endif //!defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_COMPOSITOR)

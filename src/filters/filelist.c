@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -1889,12 +1889,14 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 
 static GF_Err filelist_process(GF_Filter *filter)
 {
-	Bool start, end, purge_splice = GF_FALSE;
+	Bool start, end, purge_splice;
 	u32 i, count, nb_done, nb_inactive, nb_stop, nb_ready;
 	FileListPid *iopid;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 
+restart:
 
+	purge_splice = GF_FALSE;
 	if (!ctx->file_list) {
 		GF_FilterPacket *pck;
 		if (!ctx->file_pid) {
@@ -2050,7 +2052,8 @@ static GF_Err filelist_process(GF_Filter *filter)
 			if (nb_eos==count) {
 				//force load
 				ctx->load_next = GF_TRUE;
-				return filelist_process(filter);
+				//avoid recursive call
+				goto restart;
 			}
 			return GF_OK;
 		}
@@ -2639,7 +2642,8 @@ static GF_Err filelist_process(GF_Filter *filter)
 			}
 			//force load
 			ctx->load_next = GF_TRUE;
-			return filelist_process(filter);
+			//avoid recursive call
+			goto restart;
 		}
 	}
 	return GF_OK;
@@ -3079,7 +3083,7 @@ GF_FilterRegister FileListRegister = {
 		)
 	.private_size = sizeof(GF_FileListCtx),
 	.max_extra_pids = -1,
-	.flags = GF_FS_REG_ACT_AS_SOURCE | GF_FS_REG_REQUIRES_RESOLVER | GF_FS_REG_DYNAMIC_PIDS,
+	.flags = GF_FS_REG_ACT_AS_SOURCE | GF_FS_REG_REQUIRES_RESOLVER | GF_FS_REG_DYNAMIC_PIDS | GF_FS_REG_META,
 	.args = GF_FileListArgs,
 	.initialize = filelist_initialize,
 	.finalize = filelist_finalize,

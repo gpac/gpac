@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2012
+ *			Copyright (c) Telecom ParisTech 2006-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -28,6 +28,8 @@
 #include "visual_manager.h"
 #include "mpeg4_grouping.h"
 #include "texturing.h"
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 #define NUM_STATS_FRAMES		2
 #define MIN_OBJECTS_IN_CACHE	2
@@ -891,3 +893,4 @@ void group_2d_destroy(GF_Node *node, GroupingNode2D *group)
 	if (group->sensors) gf_list_del(group->sensors);
 }
 
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

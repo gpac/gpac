@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Walid B.H - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
@@ -31,7 +31,7 @@
 #include <gpac/internal/reedsolomon.h>
 
 
-#ifndef GPAC_DISABLE_MPEG2TS
+#if !defined(GPAC_DISABLE_MPEG2TS) && !defined(GPAC_DISABLE_NETWORK)
 
 
 /*INT object*/
@@ -260,6 +260,6 @@ typedef enum {
 void descriptor_PRIVATE (u8 *b, DTAG_SCOPE tag_scope, GF_List * descriptors );
 
 
-#endif //GPAC_DISABLE_MPEG2TS
+#endif //!defined(GPAC_DISABLE_MPEG2TS) && !defined(GPAC_DISABLE_NETWORK)
 
 #endif	//_GF_DVB_MPE_DEV_H_

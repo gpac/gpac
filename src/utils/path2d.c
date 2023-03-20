@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -25,6 +25,8 @@
 
 
 #include <gpac/path2d.h>
+
+#if !defined(GPAC_DISABLE_EVG) || defined(GPAC_HAS_FREETYPE)
 
 GF_EXPORT
 GF_Path *gf_path_new()
@@ -1376,3 +1378,5 @@ u32 gf_polygone2d_get_convexity(GF_Point2D *pts, u32 len)
 	if ( angleSign < 0 ) return GF_POLYGON_CONVEX_CW;
 	return GF_POLYGON_CONVEX_LINE;
 }
+
+#endif // !defined(GPAC_DISABLE_EVG) || defined(GPAC_HAS_FREETYPE)

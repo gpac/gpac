@@ -314,12 +314,27 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 					gf_filter_pid_inst_check_dependencies(pidi);
 			}
 		}
-		//same media type, different codec if is raw stream
-		 else if (mtype==i_type) {
+		//same media type, same codec: raw stream
+		else if (mtype==i_type) {
 			pid->raw_media = GF_TRUE;
+			//special case if single input pid filter, copy buffer props from input
+			if (pid->filter->num_input_pids==1) {
+				GF_FilterPidInst *pid_in = gf_list_get(pid->filter->input_pids, i);
+				if ((pid_in->pid->max_buffer_unit>1) || pid_in->pid->max_buffer_time) {
+					pid->max_buffer_unit = pid_in->pid->max_buffer_unit;
+					pid->filter->pid_buffer_max_units = pid_in->pid->max_buffer_unit;
+					pid->max_buffer_time = pid_in->pid->max_buffer_time;
+					pid->filter->pid_buffer_max_us = pid_in->pid->max_buffer_time;
+				}
+				//if input has a single destination, reset buffer props to default
+				if (pid_in->pid->num_destinations==1) {
+					pid_in->pid->max_buffer_unit = 1;
+					pid_in->pid->max_buffer_time = 0;
+				}
+			}
 		}
 		//input is file, output is not and codec ID is raw, this is a raw media pid
-		 else if ((i_type==GF_STREAM_FILE) && (mtype!=GF_STREAM_FILE) && (codecid==GF_CODECID_RAW) ) {
+		else if ((i_type==GF_STREAM_FILE) && (mtype!=GF_STREAM_FILE) && (codecid==GF_CODECID_RAW) ) {
 			pid->raw_media = GF_TRUE;
 		}
 	}
@@ -654,6 +669,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		src = filter->swap_pidinst_src;
 		assert(!src->filter->swap_pidinst_dst);
 		src->filter->swap_pidinst_dst = filter->swap_pidinst_dst;
+		src->filter->swap_pending = GF_TRUE;
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_swap_delete_task, src->filter, src->pid, "pid_inst_delete", src);
 	}
 }
@@ -821,8 +837,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	//we are swaping a PID instance (dyn insert of a filter), do it before reconnecting
 	//in order to have properties in place
 	//TODO: handle error case, we might need to re-switch the pid inst!
-	if (filter->swap_pidinst_src || filter->swap_pidinst_dst) {
+	if (filter->swap_pending) {
 		gf_filter_pid_inst_swap(filter, pidinst);
+		filter->swap_pending = GF_FALSE;
 	}
 
 	filter->in_connect_err = GF_EOS;
@@ -866,6 +883,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 	//failure on reconfigure, try reloading a filter chain
 	else if ((ctype==GF_PID_CONF_RECONFIG) && (e != GF_FILTER_NOT_SUPPORTED)) {
+		//mark pid as end of stream to let filter flush
+		pidinst->is_end_of_stream = GF_TRUE;
 		if (e==GF_BAD_PARAM) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
@@ -873,7 +892,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 			gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
-			gf_filter_relink_dst(pidinst);
+			gf_filter_relink_dst(pidinst, e);
 		}
 	} else {
 
@@ -1258,11 +1277,6 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		return;
 	}
 
-	assert(filter->freg->configure_pid);
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
-
-	assert(pid->filter->detach_pid_tasks_pending);
-	safe_int_dec(&pid->filter->detach_pid_tasks_pending);
 	count = pid->num_destinations;
 	for (i=0; i<count; i++) {
 		pidinst = gf_list_get(pid->destinations, i);
@@ -1272,10 +1286,15 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		pidinst=NULL;
 	}
 
+	assert(filter->freg->configure_pid);
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
+	assert(pid->filter->detach_pid_tasks_pending);
+	safe_int_dec(&pid->filter->detach_pid_tasks_pending);
+
 	//first connection of this PID to this filter
 	if (!pidinst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not present in filter %s inputs\n",  pid->name, filter->name));
-		assert(!new_chain_input->swap_pidinst_dst);
+		//assert(!new_chain_input->swap_pidinst_dst);
 		assert(!new_chain_input->swap_pidinst_src);
 		new_chain_input->swap_needs_init = GF_FALSE;
 		return;
@@ -3027,7 +3046,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	dijkstra_nodes = gf_list_new();
 
 	result = NULL;
-
 	pid_stream_type = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) pid_stream_type = p->value.uint;
@@ -4076,7 +4094,7 @@ GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool direct_
 {
 	if (!args) return GF_OK;
 	if (PID_IS_INPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name ? pid->filter->name : pid->filter->freg->name));
 		return GF_BAD_PARAM;
 	}
 
@@ -4838,6 +4856,7 @@ single_retry:
 				if (old_dst->dynamic_filter
 					&& !old_dst->has_pending_pids
 					&& !old_dst->num_input_pids
+					&& !old_dst->num_output_pids
 					&& !old_dst->out_pid_connection_pending
 				) {
 					Bool skip = ((old_dst==filter_dst) && (filter_dst->dynamic_filter!=2)) ? GF_TRUE : GF_FALSE;
@@ -5403,7 +5422,7 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	GF_PropertyMap *map;
 	const GF_PropertyValue *oldp;
 	if (PID_IS_INPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name ? pid->filter->name : pid->filter->freg->name));
 		return GF_BAD_PARAM;
 	}
 
@@ -5548,6 +5567,16 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 			pid->caps_negociate_direct = GF_FALSE;
 		}
 	}
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO)) {
+		char p_dump[GF_PROP_DUMP_ARG_SIZE];
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s negociate property %s to %s\n",
+			pid->filter->name, 	prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc),
+			gf_props_dump(prop_4cc, value, p_dump, GF_PROP_DUMP_DATA_NONE)
+		));
+	}
+#endif
+
 	//pid is end of stream or pid instance has packet pendings, we will need a new chain to adapt these packets formats
 	if (pid->has_seen_eos || gf_fq_count(pidi->packets)) {
 		gf_fs_post_task(pid->filter->session, gf_filter_renegociate_output_task, pid->filter, NULL, "filter renegociate", NULL);
@@ -6072,7 +6101,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to fetch a packet on an output PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
-	if (pidinst->discard_packets || pidinst->detach_pending) {
+	if (pidinst->discard_packets || (!pidinst->force_flush && pidinst->detach_pending)) {
 		pidinst->filter->nb_pck_io++;
 		return NULL;
 	}
@@ -6540,12 +6569,11 @@ const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *id
 	GF_PropertyMap *props;
 
 	if (PID_IS_INPUT(pid)) {
+		GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
 		gf_mx_p(pid->filter->tasks_mx);
-		props = gf_list_last(pid->pid->properties);
+		props = pidi->props;
 		gf_mx_v(pid->filter->tasks_mx);
 	} else {
-		//props = check_new_pid_props(pid, GF_FALSE);
-
 		gf_mx_p(pid->filter->tasks_mx);
 		props = gf_list_last(pid->properties);
 		gf_mx_v(pid->filter->tasks_mx);
@@ -7779,11 +7807,13 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid)
 		return;
 	}
 	pid = pid->pid;
+#ifndef GPAC_DISABLE_THREADS
 	if (pid->filter->session->threads) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter pull in multithread mode not yet implementing - defaulting to 1 ms sleep\n", pid->pid->name, pid->filter->name));
 		gf_sleep(1);
 		return;
 	}
+#endif
 
 	gf_filter_process_inline(pid->filter);
 }
@@ -8547,8 +8577,10 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set direct dispatch mode on input pid %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
 		return GF_BAD_PARAM;
 	}
+#ifndef GPAC_DISABLE_THREADS
 	if (pid->filter->session->threads)
 		return GF_OK;
+#endif
 	pid->direct_dispatch = GF_TRUE;
 	return GF_OK;
 }
@@ -8675,3 +8707,307 @@ GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *pid, u32 rtt_ms, u32 jitter_us, 
 	return GF_OK;
 }
 
+
+#include <gpac/internal/media_dev.h>
+GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_size, Bool force_sbr);
+GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size);
+GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc);
+GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc);
+GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, COLR colr);
+GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COLR colr);
+GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecoderConfigurationRecord *dovi);
+GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc);
+GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl);
+GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id);
+
+
+GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, Bool *out_inband_forced)
+{
+	u32 subtype=0, subtype_src=0, codec_id, stream_type;
+	s32 mha_pl=-1;
+	Bool is_tile_base = GF_FALSE;
+	const GF_PropertyValue *p, *dcd, *dcd_enh, *dovi, *codec;
+	COLR colr;
+
+	memset(&colr, 0, sizeof(colr));
+	szCodec[0] = 0;
+	if (!pid) return GF_BAD_PARAM;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!p) return GF_BAD_PARAM;
+	codec_id = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	if (!p) return GF_BAD_PARAM;
+	stream_type = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_SUBTYPE);
+	if (p) subtype_src = p->value.uint;
+
+	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	dcd_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
+	// If colour information is supplied in [the colr] box, and also in the video bitstream, [the] box takes precedence
+	{
+		const GF_PropertyValue *p1 = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES),
+		                       *p2 = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER),
+		                       *p3 = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX),
+		                       *p4 = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_RANGE);
+		if (p1 && p2 && p3 && p4) {
+			colr.override = GF_TRUE;
+			colr.colour_primaries = p1->value.uint;
+			colr.transfer_characteristics = p2->value.uint;
+			colr.matrix_coefficients = p3->value.uint;
+			colr.full_range = p4->value.boolean;
+		} else if (!p1 && !p2 && !p3 && !p4) {
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Incomplete upstream-filter 'colr' information. Ignoring.\n"));
+		}
+	}
+
+	if (!force_inband) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_SUBTYPE);
+		if (p) {
+			//input uses inband parameters, force it on output regardless of bitstream switching mode
+			switch (p->value.uint) {
+			case GF_ISOM_SUBTYPE_AVC3_H264:
+			case GF_ISOM_SUBTYPE_AVC4_H264:
+			case GF_ISOM_SUBTYPE_LHE1:
+			case GF_ISOM_SUBTYPE_HEV1:
+			case GF_ISOM_SUBTYPE_VVI1:
+			case GF_ISOM_SUBTYPE_DVAV:
+			case GF_ISOM_SUBTYPE_DVHE:
+				force_inband = GF_TRUE;
+				if (out_inband_forced) *out_inband_forced = 1;
+				break;
+			}
+		}
+	}
+
+	codec = gf_filter_pid_get_property(pid, GF_PROP_PID_CODEC);
+	if (codec && (codec->type==GF_PROP_STRING) && codec->value.string) {
+		const char *codec_str = codec->value.string;
+		if (codec_str[0] != '.') {
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", codec_str);
+			return GF_OK;
+		}
+		if (!subtype_src)
+			subtype_src = gf_codecid_4cc_type(codec_id);
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s%s", gf_4cc_to_str(subtype_src), codec_str);
+		return GF_OK;
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TILE_BASE);
+	if (p && p->value.boolean) is_tile_base = GF_TRUE;
+
+
+	dovi = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
+	if (dovi) {
+		GF_Err e;
+		GF_BitStream *bs = gf_bs_new(dovi->value.data.ptr, dovi->value.data.size, GF_BITSTREAM_READ);
+		GF_DOVIDecoderConfigurationRecord *dvcc = gf_odf_dovi_cfg_read_bs(bs);
+		gf_bs_del(bs);
+		if (!dvcc) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[RFC6381] No config found for Dolby Vision file (\"%s\")\n", gf_4cc_to_str(subtype)));
+			return GF_BAD_PARAM;
+		}
+
+		switch (codec_id) {
+		case GF_CODECID_HEVC:
+			e = rfc_6381_get_codec_dolby_vision(szCodec, force_inband ? GF_ISOM_SUBTYPE_DVHE : GF_ISOM_SUBTYPE_DVH1, dvcc);
+			break;
+		case GF_CODECID_AVC:
+			e = rfc_6381_get_codec_dolby_vision(szCodec, force_inband ? GF_ISOM_SUBTYPE_DVAV : GF_ISOM_SUBTYPE_DVA1, dvcc);
+			break;
+		case GF_CODECID_AV1:
+			e = rfc_6381_get_codec_dolby_vision(szCodec, GF_ISOM_SUBTYPE_DAV1, dvcc);
+			break;
+		default:
+			e = GF_NOT_SUPPORTED;
+		}
+		gf_odf_dovi_cfg_del(dvcc);
+		return e;
+	}
+
+	switch (codec_id) {
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
+	case GF_CODECID_USAC:
+		return rfc_6381_get_codec_aac(szCodec, codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, force_sbr);
+
+	case GF_CODECID_MPEG4_PART2:
+		return rfc_6381_get_codec_m4v(szCodec, codec_id, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0);
+		break;
+	case GF_CODECID_SVC:
+	case GF_CODECID_MVC:
+		if (dcd_enh) dcd = dcd_enh;
+		subtype = (codec_id==GF_CODECID_SVC) ? GF_ISOM_SUBTYPE_SVC_H264 : GF_ISOM_SUBTYPE_MVC_H264;
+	case GF_CODECID_AVC:
+		if (!subtype) {
+			if (force_inband) {
+				subtype = dcd_enh ? GF_ISOM_SUBTYPE_AVC4_H264 : GF_ISOM_SUBTYPE_AVC3_H264;
+			} else {
+				subtype = dcd_enh ? GF_ISOM_SUBTYPE_AVC2_H264 : GF_ISOM_SUBTYPE_AVC_H264;
+			}
+		}
+		if (dcd) {
+			GF_AVCConfig *avcc = gf_odf_avc_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
+			if (avcc) {
+				GF_Err e = rfc_6381_get_codec_avc(szCodec, subtype, avcc);
+				gf_odf_avc_cfg_del(avcc);
+				return e;
+			}
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find AVC config, using default %s\n", szCodec));
+		return GF_OK;
+
+#ifndef GPAC_DISABLE_HEVC
+	case GF_CODECID_LHVC:
+		subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
+		//fallthrough
+	case GF_CODECID_HEVC_TILES:
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_HVT1;
+		if (!dcd && tile_base_dcd) dcd = tile_base_dcd;
+
+		//fallthrough
+	case GF_CODECID_HEVC:
+		if (!subtype) {
+			if (is_tile_base) {
+				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+			} else if (dcd_enh) {
+				if (dcd) {
+					subtype = force_inband ? GF_ISOM_SUBTYPE_HEV2 : GF_ISOM_SUBTYPE_HVC2;
+				} else {
+					subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
+				}
+			} else {
+				subtype = force_inband ? GF_ISOM_SUBTYPE_HEV1 : GF_ISOM_SUBTYPE_HVC1;
+			}
+		}
+		if (dcd || dcd_enh) {
+			GF_HEVCConfig *hvcc = dcd ? gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE) : NULL;
+			if (hvcc) {
+				GF_Err e = rfc_6381_get_codec_hevc(szCodec, subtype, hvcc);
+				gf_odf_hevc_cfg_del(hvcc);
+				return e;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] HEVC config not compliant !\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381]  Cannot find HEVC config, using default %s\n", szCodec));
+		return GF_OK;
+#endif
+
+#ifndef GPAC_DISABLE_AV1
+	case GF_CODECID_AV1:
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_AV01;
+
+		if (dcd) {
+			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
+			if (av1c) {
+				GF_Err e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colr);
+				gf_odf_av1_cfg_del(av1c);
+				return e;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] AV1 config not conformant\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find AV1 config, using default %s\n", szCodec));
+		return GF_OK;
+#endif /*GPAC_DISABLE_AV1*/
+
+
+	case GF_CODECID_VP8:
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_VP08;
+	case GF_CODECID_VP9:
+		if (!subtype) subtype = GF_ISOM_SUBTYPE_VP09;
+
+		if (dcd) {
+			GF_VPConfig *vpcc = gf_odf_vp_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
+
+			if (vpcc) {
+				GF_Err e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, colr);
+				gf_odf_vp_cfg_del(vpcc);
+				return e;
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[RFC6381] No config found for VP file (\"%s\").\n", gf_4cc_to_str(subtype)));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find VPX config, using default %s\n", szCodec));
+		return GF_OK;
+
+	case GF_CODECID_MHAS:
+		subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHM1;
+		if (!dcd) {
+			const GF_PropertyValue *pl = gf_filter_pid_get_property(pid, GF_PROP_PID_PROFILE_LEVEL);
+			if (pl) mha_pl = (s32) pl->value.uint;
+		}
+		//fallthrough
+	case GF_CODECID_MPHA:
+		if (!subtype)
+			subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHA1;
+
+		return rfc_6381_get_codec_mpegha(szCodec, subtype, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, mha_pl);
+
+	case GF_CODECID_VVC:
+		if (!subtype) {
+			subtype = force_inband ? GF_ISOM_SUBTYPE_VVI1 : GF_ISOM_SUBTYPE_VVC1;
+		}
+		if (dcd) {
+			GF_VVCConfig *vvcc = gf_odf_vvc_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
+
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
+			if (vvcc) {
+				GF_Err e = rfc_6381_get_codec_vvc(szCodec, subtype, vvcc);
+				gf_odf_vvc_cfg_del(vvcc);
+				return e;
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[RFC6381] No config found for VP file (\"%s\")\n", gf_4cc_to_str(subtype)));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find VVC config, using default %s\n", szCodec));
+		return GF_OK;
+
+	default:
+		subtype = gf_codecid_4cc_type(codec_id);
+		if (!subtype) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_SUBTYPE);
+			if (p) subtype = p->value.uint;
+		}
+		if (!subtype && (codec_id==GF_CODECID_RAW)) {
+			if (stream_type==GF_STREAM_VISUAL) {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+				if (p) subtype = gf_pixel_fmt_to_qt_type(p->value.uint);
+			}
+			else if (stream_type==GF_STREAM_AUDIO) {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+				if (p) subtype = gf_audio_fmt_to_isobmf(p->value.uint);
+			}
+		}
+
+		if (!subtype) {
+			const char *mime = gf_codecid_mime(codec_id);
+			if (mime) mime = strchr(mime, '/');
+			if (mime) mime++;
+			if (mime && mime[0] && strcmp(mime, "octet-string")) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[RFC6381] Codec parameters not known, using mime type %s\n", mime));
+				strcpy(szCodec, mime);
+				return GF_OK;
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[RFC6381] Codec parameters not known, cannot set codec string\n" ));
+			strcpy(szCodec, "unkn");
+			return GF_OK;
+		}
+
+		return rfc6381_codec_name_default(szCodec, subtype, codec_id);
+	}
+	return GF_OK;
+}

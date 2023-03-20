@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -29,6 +29,7 @@
 #include <gpac/nodes_svg.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 #ifndef GPAC_DISABLE_SVG
 static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_type, GF_Node *orig_ref, Bool *post_pone)
@@ -1747,3 +1748,4 @@ void gf_mo_hint_gaze(GF_MediaObject *mo, u32 gaze_x, u32 gaze_y)
 
 
 
+#endif //GPAC_DISABLE_COMPOSITOR

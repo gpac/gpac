@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -29,7 +29,10 @@
 
 #include "ff_common.h"
 
+#ifndef FFMPEG_DISABLE_AVFILTER
 #include <libavfilter/avfilter.h>
+#endif
+
 #include <gpac/isomedia.h>
 #include <gpac/internal/media_dev.h>
 
@@ -38,9 +41,13 @@
 #  pragma comment(lib, "avutil")
 #  pragma comment(lib, "avformat")
 #  pragma comment(lib, "avcodec")
-#  pragma comment(lib, "avdevice")
 #  pragma comment(lib, "swscale")
+#ifndef FFMPEG_DISABLE_AVDEVICE
+#  pragma comment(lib, "avdevice")
+#endif
+#ifndef FFMPEG_DISABLE_AVFILTER
 #  pragma comment(lib, "avfilter")
+#endif
 # endif
 #endif
 
@@ -918,7 +925,8 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
 	const AVFilter *avf = NULL;
 #endif
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+
+#if !defined(FFMPEG_DISABLE_AVDEVICE) && (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 	Bool audio_pass = GF_FALSE;
 #endif
 
@@ -932,11 +940,13 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 		fname = "ffdec";
 		flags=AV_OPT_FLAG_DECODING_PARAM;
 	}
+#ifndef FFMPEG_DISABLE_AVDEVICE
 	else if (type==FF_REG_TYPE_DEV_IN) {
 		fname = "ffavin";
 		avdevice_register_all();
 		flags=AV_OPT_FLAG_VIDEO_PARAM|AV_OPT_FLAG_AUDIO_PARAM|AV_OPT_FLAG_DECODING_PARAM;
 	}
+#endif
 	else if (type==FF_REG_TYPE_ENCODE) {
 		fname = "ffenc";
 		flags=AV_OPT_FLAG_ENCODING_PARAM;
@@ -1015,7 +1025,9 @@ second_pass:
 #ifndef GPAC_DISABLE_DOC
 			description = codec->long_name;
 #endif
-		} else if (type==FF_REG_TYPE_DEV_IN) {
+		}
+#ifndef FFMPEG_DISABLE_AVDEVICE
+		else if (type==FF_REG_TYPE_DEV_IN) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
 			if (audio_pass) {
 				fmt = av_input_audio_device_next(FF_IFMT_CAST fmt);
@@ -1069,7 +1081,9 @@ second_pass:
 			else if (!stricmp(subname, "vfw")) {}
 			else continue;
 #endif
-		} else if (type==FF_REG_TYPE_ENCODE) {
+		}
+#endif
+		else if (type==FF_REG_TYPE_ENCODE) {
 #if (LIBAVFORMAT_VERSION_MAJOR<59)
 			codec = av_codec_next(codec);
 #else
@@ -1096,7 +1110,7 @@ second_pass:
 #endif
 
 			{
-#if (LIBAVFILTER_VERSION_MAJOR > 6)
+#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
 				ofmt = av_muxer_iterate(&av_it);
 #else
 				ofmt = av_oformat_next(ofmt);
@@ -1466,7 +1480,7 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 	ffmpeg_initialize();
 
 #ifndef GPAC_DISABLE_DOC
-	orig_reg->author = avfilter_configuration();
+	orig_reg->author = avcodec_configuration();
 #endif
 
 	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
@@ -2161,4 +2175,46 @@ GF_Err ffmpeg_update_arg(const char *log_name, void *ctx, AVDictionary **options
 	return GF_OK;
 }
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+Bool gf_filter_on_main_thread(GF_Filter *filter);
+#endif
+void ffmpeg_check_threads(GF_Filter *filter, AVDictionary *options, AVCodecContext *codecctx)
+{
+	s32 num_threads=-1;
+	if (!codecctx) return;
+
+	if (options) {
+		//check if we have --threads=0 - if so disable threading type
+		AVDictionaryEntry *prev_e = NULL;
+		while (1) {
+			prev_e = av_dict_get(options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+			if (!prev_e) break;
+			if (prev_e->key && !strcmp(prev_e->key, "threads")) {
+				num_threads = atoi(prev_e->value);
+				if (!num_threads)
+					codecctx->thread_type = 0;
+				break;
+			}
+		}
+	}
+
+#if defined(__EMSCRIPTEN_PTHREADS__)
+	//On emscripten, disable threads if running in the main thread
+	//this is needed as in ffmpeg, spawning threads or multi-threaded encode/decode waits on the calling thread for thread creation / task completion
+	//which is acknowledged in the main browser loop (in EM RT, not in gpac/ffmpeg) hence creating a deadlock
+	if (gf_filter_on_main_thread(filter)) {
+		codecctx->thread_count = 0;
+		codecctx->thread_type = 0;
+		if (num_threads>0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("Using FFMPEG threads on main thread would deadlock, disabling threading (use -threads=1 to have one extra gpac thread)\n"));
+		}
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("FFMPEG threads (%d type %d) enabled\n", num_threads, codecctx->thread_type));
+	}
+#elif defined(GPAC_CONFIG_EMSCRIPTEN)
+	//no thread support in build, disable ffmpeg threading
+	codecctx->thread_count = 0;
+	codecctx->thread_type = 0;
+#endif
+}
 #endif

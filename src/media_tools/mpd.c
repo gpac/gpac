@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -1774,12 +1774,12 @@ retry_import:
 			if (elt && import_file) {
 				GF_MediaImporter import;
 				char *elt_url = elt->init_segment_url ? elt->init_segment_url : elt->url;
-				u64 br_start, br_end;
 				char *tmp_file = NULL;
 
-				br_start = elt->init_segment_url ? elt->init_byte_range_start : elt->byte_range_start;
-				br_end = elt->init_segment_url ? elt->init_byte_range_end : elt->byte_range_end;
-
+#ifndef GPAC_DISABLE_NETWORK
+				u64 br_start = elt->init_segment_url ? elt->init_byte_range_start : elt->byte_range_start;
+				u64 br_end = elt->init_segment_url ? elt->init_byte_range_end : elt->byte_range_end;
+#endif
 				char *par_url = gf_url_concatenate(src_base_url, pe->url);
 				elt_url = gf_url_concatenate(par_url, elt_url);
 				gf_free(par_url);
@@ -1794,10 +1794,12 @@ retry_import:
 						tmp_file = strrchr(elt_url, '\\');
 					if (tmp_file) {
 						tmp_file++;
+#ifndef GPAC_DISABLE_NETWORK
 						e = gf_dm_wget(elt_url, tmp_file, br_start, br_end, NULL);
 						if (e == GF_OK) {
 							import.in_name = tmp_file;
 						}
+#endif
 					}
 				} else {
 					import.in_name = elt_url;
@@ -2259,10 +2261,13 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			} else { /* for use in MP4Box */
 				if (strstr(suburl, "://")) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Downloading %s...\n", suburl));
+#ifndef GPAC_DISABLE_NETWORK
 					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0, NULL);
 					if (e == GF_OK) {
 						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe, GF_FALSE);
-					} else {
+					} else
+#endif
+					{
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Download failed for %s\n", suburl));
 						e = GF_OK;
 					}
@@ -2342,7 +2347,9 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 	const char *loc_file = rep->segment_list->xlink_href;
 	char *full_url;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
+	if (!rep->in_progress) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
+	}
 
 	if (!getter || !getter->new_session || !getter->del_session || !getter->get_cache_name) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] FileDownloader not found\n"));
@@ -2368,13 +2375,27 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 		loc_file = full_url;
 		gf_sha1_file(loc_file, signature);
 	} else {
-		e = getter->new_session(getter, full_url);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Download failed for %s: %s\n", rep->segment_list->xlink_href, gf_error_to_string(e) ));
-			gf_free(full_url);
-			return e;
+		if (!rep->in_progress) {
+			e = getter->new_session(getter, full_url);
+			if (e && (e!=GF_IP_NETWORK_EMPTY)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Download failed for %s: %s\n", rep->segment_list->xlink_href, gf_error_to_string(e) ));
+				gf_free(full_url);
+				return e;
+			}
 		}
+		e = getter->get_status(getter);
+		if (e == GF_NOT_READY) {
+			rep->in_progress = GF_TRUE;
+			gf_free(full_url);
+			return GF_NOT_READY;
+		}
+		rep->in_progress = GF_FALSE;
+
 		loc_file = getter->get_cache_name(getter);
+		if (!loc_file) {
+			gf_free(full_url);
+			return GF_URL_ERROR;
+		}
 		gf_sha1_file(loc_file, signature);
 	}
 	if (! memcmp(signature, last_sig, GF_SHA1_DIGEST_SIZE)) {

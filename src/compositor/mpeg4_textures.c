@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -29,11 +29,7 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
-#ifndef GPAC_DISABLE_VRML
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 /*for cache texture decode and hash*/
 #include <gpac/avparse.h>
@@ -674,7 +670,4 @@ void gf_sc_mo_destroyed(GF_Node *n)
 	}
 }
 
-#ifdef __cplusplus
-}
-#endif
-#endif /*GPAC_DISABLE_VRML*/
+#endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -360,6 +360,13 @@ Gets the smallest pixel-aligned rectangle completely containing a rectangle
 \return the pixel-aligned transformed rectangle
 */
 GF_IRect gf_rect_pixelize(GF_Rect *r);
+
+/*! add adds rc2 to rc1 - the new rc1 contains the old rc1 and rc2
+ \param rc1 target rectangle
+ \param rc2 rectangle to add
+*/
+void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2);
+
 
 
 /*!

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -25,7 +25,9 @@
 
 #include "visual_manager.h"
 
-#ifndef GPAC_DISABLE_SVG
+
+#if !defined(GPAC_DISABLE_SVG) &&  !defined(GPAC_DISABLE_COMPOSITOR)
+
 #include "nodes_stacks.h"
 #include "texturing.h"
 
@@ -446,6 +448,4 @@ void compositor_init_svg_filter(GF_Compositor *compositor, GF_Node *node)
 
 #endif //GPAC_ENABLE_SVG_FILTERS
 
-#endif
-
-
+#endif // !defined(GPAC_DISABLE_SVG) &&  !defined(GPAC_DISABLE_COMPOSITOR)

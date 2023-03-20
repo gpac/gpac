@@ -7497,6 +7497,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			if (ctx->cdur.num==0) {
 				e = gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_STREAMABLE);
 			} else {
+				if (ctx->cdur.num < 0) ctx->cdur.num = 1000;
 				e = gf_isom_make_interleave_ex(ctx->file, &ctx->cdur);
 			}
 			break;
@@ -7511,7 +7512,8 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			break;
 		}
 		if (e) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set storage mode: %s\n", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set storage mode: %s\n", gf_error_to_string(e) ));
+			gf_isom_delete(ctx->file);
 		} else {
 			e = gf_isom_close(ctx->file);
 			if (e) {

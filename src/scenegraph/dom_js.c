@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2022
+ *			Copyright (c) Telecom ParisTech 2007-2023
  *			All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -654,9 +654,11 @@ static void sg_js_get_event_target(JSContext *c, JSValue obj, GF_EventType evtTy
 			*target = (*n)->sgprivate->interact->dom_evt;
 		}
 	} else {
+#if !defined(GPAC_DISABLE_SVG) && defined(GPAC_USE_DOWNLOADER)
 		void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOMEventTarget **target);
 
 		xhr_get_event_target(c, obj, sg, target);
+#endif
 	}
 }
 

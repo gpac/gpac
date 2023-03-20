@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  */
 
-#include <gpac/setup.h>
+#include <gpac/tools.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -112,7 +112,10 @@ typedef SSIZE_T ssize_t;
 #ifndef GPAC_DISABLE_QJS_LIBC
 
 /* enable the os.Worker API. We rely on GF_Thread */
+#ifndef GPAC_DISABLE_THREADS
 #define USE_WORKER
+#endif
+
 
 #ifdef USE_WORKER
 #include <gpac/thread.h>
