@@ -507,7 +507,7 @@ u32 gf_dash_check_mpd_root_type(const char *local_url)
 		char *rtype = gf_xml_get_root_type(local_url, NULL);
 		if (rtype) {
 			u32 handled = 0;
-			if (!strcmp(rtype, "MPD")) {
+			if (!strcmp(rtype, "MPD") || !strcmp(rtype, "Period")) {
 				handled = 1;
 			}
 			else if (!strcmp(rtype, "SmoothStreamingMedia")) {

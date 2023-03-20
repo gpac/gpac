@@ -3402,6 +3402,7 @@ static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	char last_c = d[size-1];
 	d[size-1] = 0;
 	res_dash = strstr(data, "<MPD ");
+	if (!res_dash) res_dash = strstr(data, "<Period ");
 	res_m3u = strstr(data, "#EXTM3U");
 	res_smooth = strstr(data, "<SmoothStreamingMedia");
 	d[size-1] = last_c;
