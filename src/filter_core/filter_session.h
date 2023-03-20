@@ -633,6 +633,7 @@ struct __gf_filter
 	void *filter_udta;
 
 	Bool has_out_caps;
+	Bool in_force_flush;
 
 	GF_FilterDisableType disabled;
 	//set to true before calling filter process() callback, and reset to false right after
