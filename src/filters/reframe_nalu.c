@@ -272,6 +272,11 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->timescale = p->value.uint;
 		ctx->cur_fps.den = 0;
 		ctx->cur_fps.num = ctx->timescale;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (p) {
+			ctx->cur_fps = p->value.frac;
+		}
 	}
 
 	old_codecid = ctx->codecid;
