@@ -119,7 +119,10 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	if (p) {
 		ctx->timescale = ctx->cur_fps.num = p->value.uint;
 		ctx->cur_fps.den = 0;
-
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (p) {
+			ctx->cur_fps = p->value.frac;
+		}
 		p = gf_filter_pid_get_property_str(pid, "nocts");
 		if (p && p->value.boolean) ctx->recompute_cts = GF_TRUE;
 	}
