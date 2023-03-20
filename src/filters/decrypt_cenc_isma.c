@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -36,6 +36,11 @@
 
 //#define OLD_KEY_FETCHERS
 
+//old key fetchers require sync download
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && defined(OLD_KEY_FETCHERS)
+#undef OLD_KEY_FETCHERS
+#endif
+
 enum
 {
 	DECRYPT_STATE_ERROR=1,
@@ -59,6 +64,26 @@ typedef struct
 
 typedef struct
 {
+	const char *cfile;
+	u32 decrypt;
+	GF_PropUIntList drop_keys;
+	GF_PropStringList kids;
+	GF_PropStringList keys;
+	GF_CryptInfo *cinfo;
+	Bool hls_cenc_patch_iv;
+
+	GF_Filter *filter;
+	GF_List *streams;
+	GF_BitStream *bs_r;
+
+	GF_DownloadManager *dm;
+	u32 pending_keys;
+
+} GF_CENCDecCtx;
+
+typedef struct
+{
+	GF_CENCDecCtx *ctx;
 	GF_FilterPid *ipid, *opid;
 
 	u32 state;
@@ -107,24 +132,11 @@ typedef struct
 	bin128 master_key;
 
 	u32 clearkey_crc;
+	char *body;
+	u32 res_size;
+	Bool hdr_done;
+	GF_DownloadSession *sess;
 } GF_CENCDecStream;
-
-typedef struct
-{
-	const char *cfile;
-	u32 decrypt;
-	GF_PropUIntList drop_keys;
-	GF_PropStringList kids;
-	GF_PropStringList keys;
-	GF_CryptInfo *cinfo;
-	Bool hls_cenc_patch_iv;
-
-	GF_Filter *filter;
-	GF_List *streams;
-	GF_BitStream *bs_r;
-
-	GF_DownloadManager *dm;
-} GF_CENCDecCtx;
 
 
 #ifdef OLD_KEY_FETCHERS
@@ -639,35 +651,6 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 	return GF_OK;
 }
 
-typedef struct
-{
-	u8 *data;
-	u32 data_len;
-	Bool hdr_done;
-} ClearKeyParam;
-
-static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
-{
-	switch (par->msg_type) {
-	case GF_NETIO_GET_METHOD:
-		par->name = "POST";
-		break;
-	case GF_NETIO_GET_HEADER:
-		if (! ((ClearKeyParam*)usr_cbk)->hdr_done) {
-			((ClearKeyParam*)usr_cbk)->hdr_done = GF_TRUE;
-			par->name = "Content-Type";
-			par->value = "application/json";
-		}
-		break;
-	case GF_NETIO_GET_CONTENT:
-		par->data = ((ClearKeyParam*)usr_cbk)->data;
-		par->size = ((ClearKeyParam*)usr_cbk)->data_len;
-		break;
-	default:
-		break;
-	}
-}
-
 static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
 {
 	u32 len, i=0;
@@ -688,14 +671,124 @@ static GF_Err rfmt_dec_b64(u8 *data, u8 *output, u32 osize)
 	return GF_OK;
 }
 
-#define CK_MAX_BUF	1000
+#ifdef GPAC_USE_DOWNLOADER
+static void ck_http_io(void *usr_cbk, GF_NETIO_Parameter *par)
+{
+	GF_CENCDecStream *cstr = usr_cbk;
+	switch (par->msg_type) {
+	case GF_NETIO_GET_METHOD:
+		par->name = "POST";
+		break;
+	case GF_NETIO_GET_HEADER:
+		if (!cstr->hdr_done) {
+			cstr->hdr_done = GF_TRUE;
+			par->name = "Content-Type";
+			par->value = "application/json";
+		}
+		break;
+	case GF_NETIO_GET_CONTENT:
+		par->data = cstr->body;
+		par->size = (u32) strlen(cstr->body);
+		cstr->res_size = 0;
+		break;
+	case GF_NETIO_DATA_EXCHANGE:
+		if (!cstr->res_size) {
+			if (cstr->body) gf_free(cstr->body);
+			cstr->body = NULL;
+		}
+		cstr->body = gf_realloc(cstr->body, (cstr->res_size + par->size + 1));
+		if (!cstr->body) {
+			cstr->state = DECRYPT_STATE_ERROR;
+			break;
+		}
+		memcpy(cstr->body + cstr->res_size, par->data, par->size);
+		cstr->res_size+=par->size;
+		cstr->body[cstr->res_size] = 0;
+		break;
+	case GF_NETIO_DATA_TRANSFERED:
+	{
+		//extract kids and keys from json
+		GF_Err e = GF_OK;
+		u32 key_idx=0;
+		char *ptr = cstr->body;
+		while (1) {
+			char *k = strstr(ptr, "\"k\"");
+			char *kid = strstr(ptr, "\"kid\"");
+			if (!k || !kid) break;
+			k+=3;
+			kid+=5;
+			while (k[0] && (k[0] != '"')) k++;
+			while (kid[0] && (kid[0] != '"')) kid++;
+			if ((k[0] != '"') || (kid[0] != '"')) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
+
+			k++;
+			kid++;
+			char *s1 = strchr(k, '"');
+			char *s2 = strchr(kid, '"');
+			if (!s1 || !s2) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
+			s1[0] = 0;
+			s2[0] = 0;
+
+			u8 key_val[20], kid_val[20];
+			e = rfmt_dec_b64(k, key_val, 20);
+			if (e) break;
+			e = rfmt_dec_b64(kid, kid_val, 20);
+			if (e) break;
+
+			cstr->keys = gf_realloc(cstr->keys, sizeof(bin128)*(key_idx+1));
+			cstr->KIDs = gf_realloc(cstr->KIDs, sizeof(bin128)*(key_idx+1));
+			memcpy(cstr->keys[key_idx], key_val, sizeof(bin128));
+			memcpy(cstr->KIDs[key_idx], kid_val, sizeof(bin128));
+			key_idx++;
+			if (s1 < s2) ptr = s2+1;
+			else ptr = s1+1;
+		}
+		if (!e) {
+			cstr->KID_count = key_idx;
+
+			if (!cstr->crypts) {
+				cstr->crypts = gf_malloc(sizeof(CENCDecKey));
+				memset(cstr->crypts, 0, sizeof(CENCDecKey));
+			}
+			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
+			cstr->crypts[0].key_valid = 1;
+		} else {
+			cstr->state = DECRYPT_STATE_ERROR;
+		}
+		if (cstr->body) gf_free(cstr->body);
+		cstr->body = NULL;
+		gf_dm_sess_del(cstr->sess);
+		cstr->sess = NULL;
+		cstr->ctx->pending_keys--;
+	}
+		break;
+	case GF_NETIO_STATE_ERROR:
+		if (cstr->sess) {
+			gf_dm_sess_del(cstr->sess);
+			cstr->sess = NULL;
+			cstr->ctx->pending_keys--;
+			if (cstr->body) gf_free(cstr->body);
+			cstr->body = NULL;
+		}
+		break;
+	default:
+		break;
+	}
+}
+#endif
+
+
 static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, char *ck_url, u8 *ck_kid)
 {
 	GF_Err e;
-	char data64[32], body[CK_MAX_BUF];
-	ClearKeyParam ckp;
-	memset(&ckp, 0, sizeof(ClearKeyParam));
-	u32 i, res = gf_base64_encode(ck_kid, 16, data64, 32);
+	char data64[32];
+	u32 i, cklen, res = gf_base64_encode(ck_kid, 16, data64, 32);
 	data64[res]=0;
 	for (i=0; i<res; i++) {
 		if (data64[i]=='+') data64[i] = '-';
@@ -706,92 +799,86 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		res--;
 		if (!res) break;
 	}
-	strcpy(body, "{\"kids\": [\"");
-	strcat(body, data64);
-	strcat(body, "\"], \"type\":\"temporary\"}");
-	ckp.data = body;
-	ckp.data_len = (u32) strlen(body);
+	if (cstr->body) gf_free(cstr->body);
+	cstr->body = NULL;
+	gf_dynstrcat(&cstr->body, "{\"kids\": [\"", NULL);
+	gf_dynstrcat(&cstr->body, data64, NULL);
+	gf_dynstrcat(&cstr->body, "\"], \"type\":\"temporary\"}", NULL);
 
-	u32 crc = gf_crc_32(ckp.data, ckp.data_len);
+	cklen = (u32) strlen(cstr->body);
+	u32 crc = gf_crc_32(cstr->body, cklen);
 	if (cstr->clearkey_crc == crc) return GF_OK;
-	cstr->clearkey_crc = crc;
 
+#ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
-	GF_DownloadSession *sess = gf_dm_sess_new(dm, ck_url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, ck_http_io, &ckp, &e);
+	cstr->sess = gf_dm_sess_new(dm, ck_url, 0, ck_http_io, cstr, &e);
 	if (e) return e;
-
-	u32 nb_read=0;
-	while (1) {
-		u32 nread=0;
-		e = gf_dm_sess_fetch_data(sess, body + nb_read, CK_MAX_BUF-nb_read, &nread);
-		nb_read += nread;
-		if (nb_read >= CK_MAX_BUF) e = GF_BUFFER_TOO_SMALL;
-
-		if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) break;
-		if (e == GF_EOS) {
-			break;
-		}
-	}
-	gf_dm_sess_del(sess);
-	if (e<GF_OK) return e;
-
-	//extract kids and keys from json
-	u32 key_idx=0;
-	char *ptr = body;
-	while (1) {
-		char *k = strstr(ptr, "\"k\"");
-		char *kid = strstr(ptr, "\"kid\"");
-		if (!k || !kid) break;
-		k+=3;
-		kid+=5;
-		while (k[0] && (k[0] != '"')) k++;
-		while (kid[0] && (kid[0] != '"')) kid++;
-		if ((k[0] != '"') || (kid[0] != '"')) {
-			e = GF_NON_COMPLIANT_BITSTREAM;
-			break;
-		}
-
-		k++;
-		kid++;
-		char *s1 = strchr(k, '"');
-		char *s2 = strchr(kid, '"');
-		if (!s1 || !s2) {
-			e = GF_NON_COMPLIANT_BITSTREAM;
-			break;
-		}
-		s1[0] = 0;
-		s2[0] = 0;
-
-		u8 key_val[20], kid_val[20];
-		e = rfmt_dec_b64(k, key_val, 20);
-		if (e) break;
-		e = rfmt_dec_b64(kid, kid_val, 20);
-		if (e) break;
-
-		cstr->keys = gf_realloc(cstr->keys, sizeof(bin128)*(key_idx+1));
-		cstr->KIDs = gf_realloc(cstr->KIDs, sizeof(bin128)*(key_idx+1));
-		memcpy(cstr->keys[key_idx], key_val, sizeof(bin128));
-		memcpy(cstr->KIDs[key_idx], kid_val, sizeof(bin128));
-		key_idx++;
-		if (s1 < s2) ptr = s2+1;
-		else ptr = s1+1;
-	}
-	if (e) return e;
-	cstr->KID_count = key_idx;
-
-	if (!cstr->crypts) {
-		cstr->crypts = gf_malloc(sizeof(CENCDecKey));
-		memset(cstr->crypts, 0, sizeof(CENCDecKey));
-	}
-	memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
-	cstr->crypts[0].key_valid = 1;
-	return GF_OK;
+	ctx->pending_keys++;
+	return gf_dm_sess_process(cstr->sess);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
+
+#ifdef GPAC_USE_DOWNLOADER
+static void hls_kms_io(void *usr_cbk, GF_NETIO_Parameter *par)
+{
+	GF_CENCDecStream *cstr = (GF_CENCDecStream *)usr_cbk;
+	if (par->msg_type==GF_NETIO_DATA_EXCHANGE) {
+		if (cstr->state == DECRYPT_STATE_ERROR)
+			return;
+
+		if (!cstr->res_size) {
+			if (cstr->body) gf_free(cstr->body);
+			cstr->body = NULL;
+		}
+		if (cstr->res_size > 32) {
+			cstr->state = DECRYPT_STATE_ERROR;
+			return;
+		}
+		cstr->body = gf_realloc(cstr->body, (cstr->res_size + par->size + 1));
+		if (!cstr->body) {
+			cstr->state = DECRYPT_STATE_ERROR;
+			return;
+		}
+		memcpy(cstr->body + cstr->res_size, par->data, par->size);
+		cstr->res_size+=par->size;
+		cstr->body[cstr->res_size] = 0;
+	} else if (par->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		if (cstr->body && (cstr->res_size <= 32)) {
+			//first 16 bytes is the key, in some case we have IV repeated after the key (to do ?)
+			memcpy(cstr->keys[0], cstr->body, sizeof(bin128));
+
+			//load keys
+			if (!cstr->crypts) {
+				cstr->crypts = gf_malloc(sizeof(CENCDecKey));
+				memset(cstr->crypts, 0, sizeof(CENCDecKey));
+			}
+			memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
+			cstr->crypts[0].key_valid = 1;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Invalid key size, greater than 16 bytes\n"))
+			cstr->state = DECRYPT_STATE_ERROR;
+		}
+		if (cstr->body) gf_free(cstr->body);
+		cstr->body = NULL;
+		gf_dm_sess_del(cstr->sess);
+		cstr->sess = NULL;
+		cstr->ctx->pending_keys--;
+	} else if (par->msg_type==GF_NETIO_STATE_ERROR) {
+		if (cstr->sess) {
+			gf_dm_sess_del(cstr->sess);
+			cstr->sess = NULL;
+			cstr->ctx->pending_keys--;
+			if (cstr->body) gf_free(cstr->body);
+			cstr->body = NULL;
+		}
+	}
+}
+#endif
 
 static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, char *key_url, u8 *key_IV)
 {
-	GF_Err e;
-
 	cstr->is_hls = GF_TRUE;
 
 	//copy IV
@@ -858,35 +945,19 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	}
 	//load key
 	else {
-		u32 nb_read=0;
-		u8 key_data[100];
+		GF_Err e = GF_SERVICE_ERROR;
+#ifdef GPAC_USE_DOWNLOADER
 		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
-		GF_DownloadSession *sess = gf_dm_sess_new(dm, key_url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, NULL, NULL, &e);
+		GF_DownloadSession *sess = gf_dm_sess_new(dm, key_url, GF_NETIO_SESSION_NOT_CACHED, hls_kms_io, cstr, &e);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Failed to setup download session for key %s: %s\n", key_url, gf_error_to_string(e)))
 			return e;
 		}
-		while (1) {
-			u32 nread=0;
-			e = gf_dm_sess_fetch_data(sess, key_data + nb_read, 100-nb_read, &nread);
-			nb_read += nread;
-			if (nb_read > 16) break;
-
-			if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Failed to download key %s: %s\n", key_url, gf_error_to_string(e)))
-				return e;
-			}
-			if (e == GF_EOS) {
-				break;
-			}
-		}
-		//first 16 bytes is the key, in some case we have IV repeated after the key (to do ?)
-		if (nb_read <= 32) {
-			memcpy(cstr->keys[0], key_data, sizeof(bin128));
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Invalid key size, greater than 16 bytes\n"))
-			return GF_SERVICE_ERROR;
-		}
+		ctx->pending_keys++;
+		return gf_dm_sess_process(sess);
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
 	}
 
 	if (!cstr->crypts) {
@@ -2004,6 +2075,8 @@ static void cenc_dec_stream_del(GF_CENCDecStream *cstr)
 	if (cstr->keys) gf_free(cstr->keys);
 	if (cstr->hls_key_url) gf_free(cstr->hls_key_url);
 
+	if (cstr->body) gf_free(cstr->body);
+	if (cstr->sess) gf_dm_sess_del(cstr->sess);
 
 	gf_free(cstr);
 }
@@ -2043,6 +2116,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		if (!cstr) return GF_OUT_OF_MEM;
 		cstr->opid = gf_filter_pid_new(filter);
 		cstr->ipid = pid;
+		cstr->ctx = ctx;
 		gf_list_add(ctx->streams, cstr);
 		gf_filter_pid_set_udta(pid, cstr);
 		gf_filter_pid_set_udta(cstr->opid, cstr);
@@ -2220,6 +2294,9 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
 	u32 i, nb_eos, count = gf_list_count(ctx->streams);
 
+	if (ctx->pending_keys)
+		return GF_OK;
+
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
 		GF_Err e;
@@ -2347,6 +2424,7 @@ GF_FilterRegister CENCDecRegister = {
 	"When the file is set globally (not per PID), the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` with ID 0 or not set is used.\n"
 	)
 	.private_size = sizeof(GF_CENCDecCtx),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.max_extra_pids=-1,
 	.args = GF_CENCDecArgs,
 	SETCAPS(CENCDecCaps),

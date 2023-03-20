@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -292,6 +292,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p) {
 		gf_filter_pid_drop_packet(ctx->ipid);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHNTDmx] NHNT only supported with local files\n"));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -508,6 +509,7 @@ GF_FilterRegister NHNTDmxRegister = {
 	GF_FS_SET_HELP("This filter reads NHNT files/data to produce a media PID and frames.\n"
 	"NHNT documentation is available at https://wiki.gpac.io/NHNT-Format\n")
 	.private_size = sizeof(GF_NHNTDmxCtx),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.args = GF_NHNTDmxArgs,
 	.initialize = nhntdmx_initialize,
 	.finalize = nhntdmx_finalize,

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -75,10 +75,6 @@ typedef struct
 void ra_union_rect(GF_RectArray *ra, GF_IRect *rc);
 /*refreshes the content of the array to have only non-overlapping rects*/
 void ra_refresh(GF_RectArray *ra);
-
-
-/*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
-void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2);
 
 struct _drawable_store
 {

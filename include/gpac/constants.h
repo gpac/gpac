@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -887,7 +887,7 @@ const char *gf_audio_fmt_all_names();
 */
 const char *gf_audio_fmt_all_shortnames();
 
-/*! returns number of bots per sample for the given format
+/*! returns number of bits per sample for the given format
 \param afmt desired audio format
 \return bit depth of format
 */

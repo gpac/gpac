@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -188,8 +188,8 @@ typedef enum
 
 	/*! Authentication with the remote host has failed*/
 	GF_AUTHENTICATION_FAILURE				= -50,
-	/*! Script not ready for playback */
-	GF_SCRIPT_NOT_READY						= -51,
+	/*! Not ready for execution, later retry is needed */
+	GF_NOT_READY						= -51,
 	/*! Bad configuration for the current context */
 	GF_INVALID_CONFIGURATION				= -52,
 	/*! The element has not been found */
@@ -1053,8 +1053,12 @@ typedef struct
 	u32 size;
     /*! blob flags */
     u32 flags;
+#ifdef GPAC_DISABLE_THREADS
+    void *mx;
+#else
     /*! blob mutex for multi-thread access */
     struct __tag_mutex *mx;
+#endif
 } GF_Blob;
 
 /*!
@@ -1508,13 +1512,32 @@ Gets the file size given a FILE object. The FILE object position will be reset t
 u64 gf_fsize(FILE *fp);
 
 /*!
-\brief file IO helper
+\brief file IO checker
 
 Checks if the given FILE object is a native FILE or a GF_FileIO wrapper.
 \param fp FILE object to check
 \return GF_TRUE if the FILE object is a wrapper to GF_FileIO
 */
 Bool gf_fileio_check(FILE *fp);
+
+/*! FileIO write state*/
+typedef enum
+{
+	/*! FileIO object is ready for write operations*/
+	GF_FIO_WRITE_READY=0,
+	/*! FileIO object is not yet ready for write operations*/
+	GF_FIO_WRITE_WAIT,
+	/*! FileIO object has been canceled*/
+	GF_FIO_WRITE_CANCELED,
+} GF_FileIOWriteState;
+/*!
+\brief file IO write checker
+
+Checks if the given FILE object is ready for write.
+\param fp FILE object to check
+\return write state of GF_FileIO object, GF_FIO_WRITE_READY if not a GF_FileIO object
+*/
+GF_FileIOWriteState gf_fileio_write_ready(FILE *fp);
 
 /*!
 \brief file opening
@@ -1788,24 +1811,50 @@ void *gf_fileio_get_udta(GF_FileIO *fileio);
 */
 const char * gf_fileio_url(GF_FileIO *fileio);
 
+/*! Gets a fileIO object from memory - the resulting fileIO can only be opened once at any time but can be closed/reopen.
+\param URL of source data, may be null
+\param data memory, must be valid until next close
+\param size memory size
+\return new file IO - use gf_fclose() on this object to close it
+*/
+GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size);
+
+/*! Cache state for file IO object*/
+typedef enum
+{
+	/*! File caching is in progress*/
+	GF_FILEIO_CACHE_IN_PROGRESS=0,
+	/*! File caching is done */
+	GF_FILEIO_CACHE_DONE,
+	/*! No file caching (file is not stored to disk)) */
+	GF_FILEIO_NO_CACHE,
+} GF_FileIOCacheState;
+
+
 /*! Sets statistics on a fileIO object.
 \param fileio target file IO object
 \param bytes_done number of bytes fetched for this file
 \param file_size total size of this file, 0 if unknown
-\param cache_complete if GF_TRUE, means the file is completely available
+\param cache_state if GF_TRUE, means the file is completely available
 \param bytes_per_sec reception bytes per second, 0 if unknown
 */
-void gf_fileio_set_stats(GF_FileIO *fileio, u64 bytes_done, u64 file_size, Bool cache_complete, u32 bytes_per_sec);
+void gf_fileio_set_stats(GF_FileIO *fileio, u64 bytes_done, u64 file_size, GF_FileIOCacheState cache_state, u32 bytes_per_sec);
 
 /*! Gets statistics on a fileIO object.
 \param fileio target file IO object
 \param bytes_done number of bytes fetched for this file (may be NULL)
 \param file_size total size of this file, 0 if unknown (may be NULL)
-\param cache_complete if GF_TRUE, means the file is completely available (may be NULL)
+\param cache_state set to caching state for this object (may be NULL)
 \param bytes_per_sec reception bytes per second, 0 if unknown (may be NULL)
 \return GF_TRUE if success, GF_FALSE otherwise
 */
-Bool gf_fileio_get_stats(GF_FileIO *fileio, u64 *bytes_done, u64 *file_size, Bool *cache_complete, u32 *bytes_per_sec);
+Bool gf_fileio_get_stats(GF_FileIO *fileio, u64 *bytes_done, u64 *file_size, GF_FileIOCacheState *cache_state, u32 *bytes_per_sec);
+
+/*! Sets write state of a  fileIO object.
+\param fileio target file IO object
+\param write_state the state to set
+*/
+void gf_fileio_set_write_state(GF_FileIO *fileio, GF_FileIOWriteState write_state);
 
 /*! Checks if a FileIO object can write
 \param fileio target file IO object
@@ -2186,7 +2235,7 @@ Bool gf_creds_check_membership(const char *username, const char *users, const ch
 
 //! @cond Doxygen_Suppress
 
-#ifdef GPAC_DISABLE_3D
+#if defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_REMOTERY)
 #define GPAC_DISABLE_REMOTERY 1
 #endif
 

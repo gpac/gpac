@@ -209,7 +209,7 @@ This section documents the base data types of GPAC.
 
 
 /*disables player */
-//#define GPAC_DISABLE_PLAYER
+//#define GPAC_DISABLE_COMPOSITOR
 
 /*disables scene manager */
 //#define GPAC_DISABLE_SMGR
@@ -345,7 +345,6 @@ this macro is currently defined in setup.h */
 
 /*disables VOBSUB */
 //#define GPAC_DISABLE_VOBSUB
-
 
 /*! @} */
 

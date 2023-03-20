@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS decoder filter
@@ -29,7 +29,7 @@
 #include <gpac/compositor.h>
 #include <gpac/internal/compositor_dev.h>
 
-#ifndef GPAC_DISABLE_BIFS
+#if !defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 
 typedef struct
@@ -280,14 +280,14 @@ GF_FilterRegister BIFSDecRegister = {
 	.process_event = bifs_dec_process_event,
 };
 
-#endif /*GPAC_DISABLE_BIFS*/
+#endif //!defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session)
 {
-#ifdef GPAC_DISABLE_BIFS
-	return NULL;
-#else
+#if !defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &BIFSDecRegister;
+#else
+	return NULL;
 #endif /*GPAC_DISABLE_BIFS*/
 }
 

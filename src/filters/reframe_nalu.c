@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU (AVC, HEVC, VVC)  reframer filter
@@ -3035,12 +3035,18 @@ GF_Err naludmx_process(GF_Filter *filter)
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	u8 *start;
-	u32 nalu_before = ctx->nb_nalus;
-	u32 nalu_store_before = 0;
+	u32 nalu_before, nalu_store_before;
 	s32 remain;
-	Bool is_eos = GF_FALSE;
-	Bool drop_packet = GF_FALSE;
-	u64 byte_offset = GF_FILTER_NO_BO;
+	Bool is_eos, drop_packet;
+	u64 byte_offset;
+
+restart:
+
+	nalu_store_before = 0;
+	is_eos = GF_FALSE;
+	drop_packet = GF_FALSE;
+	byte_offset = GF_FILTER_NO_BO;
+	nalu_before = ctx->nb_nalus;
 
 	//always reparse duration
 	if (!ctx->file_loaded)
@@ -3830,8 +3836,10 @@ naldmx_flush:
 	if (drop_packet)
 		gf_filter_pid_drop_packet(ctx->ipid);
 
-	if (is_eos)
-		return naludmx_process(filter);
+	if (is_eos) {
+		//avoid recursive call
+		goto restart;
+	}
 
 	if ((ctx->nb_nalus>nalu_before) && gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];

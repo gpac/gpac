@@ -2,7 +2,8 @@ include ../config.mak
 
 APPDIRS=gpac
 
-ifeq ($(DISABLE_ISOFF),no)
+ifeq ($(CONFIG_EMSCRIPTEN),yes)
+else ifeq ($(DISABLE_ISOFF),no)
 APPDIRS+=mp4box 
 endif
 

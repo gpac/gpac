@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre - Romain Bouqueau
-*			Copyright (c) Telecom ParisTech 2000-2022
+*			Copyright (c) Telecom ParisTech 2000-2023
 *					All rights reserved
 *
 *  This file is part of GPAC / SDL audio and video module
@@ -520,6 +520,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		/* Set the correct attributes for MASK and MAJOR version */
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
 #endif
 
 		if (!ctx->screen) {
@@ -1575,6 +1578,12 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 			CGLSetParameter(gl_ctx, kCGLCPSwapInterval, &sync);
 		}
 #endif
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		void gpac_on_video_swap();
+		gpac_on_video_swap();
+#endif
+
 		SDL_GL_SwapWindow(ctx->screen);
 		return GF_OK;
 	}

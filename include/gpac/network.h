@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -180,6 +180,7 @@ const char *gf_url_get_path(const char *url);
 @{
 */
 
+#ifndef GPAC_DISABLE_NETWORK
 
 /*!
 \brief gets ipv6 support
@@ -199,6 +200,7 @@ Checks if an address is an IPV6 or IPV4 one.
  */
 Bool gf_net_is_ipv6(const char *address);
 
+#endif
 
 /*!
 host to network conversion of integer
@@ -303,14 +305,6 @@ Gets diff in milliseconds between two NTP times  time and current time
  */
 s32 gf_net_ntp_diff_ms(u64 ntp_a, u64 ntp_b);
 
-/*! @} */
-
-/*!
-\addtogroup sock_grp
-\brief Sockets (TCP, UDP unicast, multicast)
-@{
-*/
-
 /*!
 \brief error code description
 
@@ -320,6 +314,15 @@ Returns text description of given errno code
  */
 const char *gf_errno_str(int errnoval);
 
+/*! @} */
+
+#ifndef GPAC_DISABLE_NETWORK
+
+/*!
+\addtogroup sock_grp
+\brief Sockets (TCP, UDP unicast, multicast)
+@{
+*/
 
 /*!
 Socket options
@@ -694,6 +697,7 @@ Checks if given socket is selected and can be read. This shall be called after g
 Bool gf_sk_group_sock_is_set(GF_SockGroup *sg, GF_Socket *sk, GF_SockSelectMode mode);
 
 /*! @} */
+#endif //GPAC_DISABLE_NETWORK
 
 
 #ifdef __cplusplus

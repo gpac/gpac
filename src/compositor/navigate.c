@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -26,6 +26,7 @@
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 #ifndef GPAC_DISABLE_3D
 
@@ -951,3 +952,5 @@ Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev)
 #endif
 	return compositor_handle_navigation_2d(compositor->visual, ev);
 }
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

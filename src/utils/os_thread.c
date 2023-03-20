@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -28,6 +28,9 @@
 #endif
 
 #include <gpac/thread.h>
+
+#ifndef GPAC_DISABLE_THREADS
+
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 
@@ -61,6 +64,8 @@ struct __tag_thread
 	void *args;
 	/* lock for signal */
 	GF_Semaphore *_signal;
+	Bool blocking;
+
 #ifndef GPAC_DISABLE_LOG
 	u32 id;
 	char *log_name;
@@ -110,6 +115,11 @@ GF_Thread *gf_th_new(const char *name)
 	GF_Thread *tmp = (GF_Thread*)gf_malloc(sizeof(GF_Thread));
 	memset(tmp, 0, sizeof(GF_Thread));
 	tmp->status = GF_THREAD_STATUS_STOP;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	tmp->blocking = GF_FALSE;
+#else
+	tmp->blocking = GF_TRUE;
+#endif
 
 #ifndef GPAC_DISABLE_LOG
 	if (name) {
@@ -183,15 +193,17 @@ void * RunThread(void *ptr)
 	}
 #endif
 
-
 	/* Signal the caller */
-	if (! t->_signal) goto exit;
+	if (t->blocking && !t->_signal) goto exit;
+
 #ifdef GPAC_CONFIG_ANDROID
 	if (pthread_once(&currentThreadInfoKey_once, &currentThreadInfoKey_alloc) || pthread_setspecific(currentThreadInfoKey, t))
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't run thread %s, ID 0x%08x\n", t->log_name, t->id));
 #endif /* GPAC_CONFIG_ANDROID */
 	t->status = GF_THREAD_STATUS_RUN;
-	gf_sema_notify(t->_signal, 1);
+
+	if (t->blocking)
+		gf_sema_notify(t->_signal, 1);
 
 #ifndef GPAC_DISABLE_LOG
 	t->id = gf_th_id();
@@ -205,6 +217,7 @@ void * RunThread(void *ptr)
 	ret = t->Run(t->args);
 
 exit:
+
 #ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] At %d Exiting thread proc, return code %d\n", t->log_name, gf_sys_clock(), ret));
 #endif
@@ -239,13 +252,16 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 #else
 	pthread_attr_t att;
 #endif
-	if (!t || t->Run || t->_signal) return GF_BAD_PARAM;
+	if (!t || t->Run || t->_signal) {
+		return GF_BAD_PARAM;
+	}
 	t->Run = Run;
 	t->args = param;
-	t->_signal = gf_sema_new(1, 0);
+	if (t->blocking) {
+		t->_signal = gf_sema_new(1, 0);
+		if (!t->_signal) return GF_IO_ERR;
+	}
 
-	if (!t->_signal)
-		return GF_IO_ERR;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] Starting\n", t->log_name));
 
@@ -282,12 +298,12 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 		return GF_IO_ERR;
 	}
 
-
-	/*wait for the child function to call us - do NOT return before, otherwise the thread status would
-	be unknown*/
-	gf_sema_wait(t->_signal);
-	gf_sema_del(t->_signal);
-	t->_signal = NULL;
+	if (t->blocking) {
+		/*wait for the child function to call us - do NOT return before, otherwise the thread status would be unknown*/
+		gf_sema_wait(t->_signal);
+		gf_sema_del(t->_signal);
+		t->_signal = NULL;
+	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] Started\n", t->log_name));
 	return GF_OK;
 }
@@ -320,8 +336,16 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 			t->threadH = 0;
 		} else {
 			/*gracefully wait for Run to finish*/
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+			int pthread_tryjoin_np(pthread_t, void **);
+			void *rval=NULL;
+			if (pthread_tryjoin_np(t->threadH, &rval))
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] pthread_join() returned an error with thread ID 0x%08x\n", t->log_name, t->id));
+#else
 			if (pthread_join(t->threadH, NULL))
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] pthread_join() returned an error with thread ID 0x%08x\n", t->log_name, t->id));
+#endif
+
 		}
 #endif
 	}
@@ -395,7 +419,7 @@ void gf_th_set_priority(GF_Thread *t, s32 priority)
 	}
 #endif
 
-#else
+#elif !defined(GPAC_CONFIG_EMSCRIPTEN)
 
 	struct sched_param s_par;
 	if (!t) return;
@@ -853,7 +877,7 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 		return GF_FALSE;
 	}
 
-#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_IOS)
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_EMSCRIPTEN)
 
 	TimeOut += gf_sys_clock();
 	do {
@@ -882,3 +906,6 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 
 #endif
 }
+
+
+#endif //GPAC_DISABLE_THREADS

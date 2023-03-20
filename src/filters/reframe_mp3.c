@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MP3 reframer filter
@@ -497,11 +497,15 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 {
 	GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	Bool is_eos=GF_FALSE;
+	Bool is_eos;
 	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
-	u64 cts = GF_FILTER_NO_TS;
+	u64 cts;
+
+restart:
+	cts = GF_FILTER_NO_TS;
+	is_eos = GF_FALSE;
 
 	//always reparse duration
 	if (!ctx->duration.num)
@@ -724,7 +728,8 @@ drop_byte:
 
 	if (!pck) {
 		ctx->mp3_buffer_size = 0;
-		return mp3_dmx_process(filter);
+		//avoid recursive call
+		goto restart;
 	} else {
 		if (remain) {
 			memmove(ctx->mp3_buffer, start, remain);

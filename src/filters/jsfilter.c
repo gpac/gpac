@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2022
+ *			Copyright (c) Telecom ParisTech 2019-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / QuickJS bindings for GF_Filter
@@ -357,6 +357,7 @@ static JSClassDef jsf_pck_class = {
 	.gc_mark = jsf_filter_pck_mark
 };
 
+#ifdef GPAC_USE_DOWNLOADER
 GF_DownloadManager *jsf_get_download_manager(JSContext *c)
 {
 	GF_JSFilterCtx *jsf;
@@ -370,12 +371,16 @@ GF_DownloadManager *jsf_get_download_manager(JSContext *c)
 	if (!jsf) return NULL;
 	return gf_filter_get_download_manager(jsf->filter);
 }
+#endif //GPAC_USE_DOWNLOADER
 
+#ifndef GPAC_DISABLE_FONTS
 GF_FilterSession *jsff_get_session(JSContext *c, JSValue this_val);
 struct _gf_ft_mgr *gf_fs_get_font_manager(GF_FilterSession *fsess);
+#endif
 
 struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c)
 {
+#ifndef GPAC_DISABLE_FONTS
 	JSValue global = JS_GetGlobalObject(c);
 	JSValue obj;
 
@@ -397,6 +402,7 @@ struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c)
 		if (jsf)
 			return gf_filter_get_font_manager(jsf->filter);
 	}
+#endif
 	return NULL;
 }
 
@@ -4548,7 +4554,7 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_IP_NETWORK_EMPTY)
 	DEF_CONST(GF_IP_UDP_TIMEOUT)
 	DEF_CONST(GF_AUTHENTICATION_FAILURE)
-	DEF_CONST(GF_SCRIPT_NOT_READY)
+	DEF_CONST(GF_NOT_READY)
 	DEF_CONST(GF_INVALID_CONFIGURATION)
 	DEF_CONST(GF_NOT_FOUND)
 	DEF_CONST(GF_PROFILE_NOT_SUPPORTED)

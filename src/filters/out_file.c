@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE output filter
@@ -68,6 +68,8 @@ typedef struct
 
 	u32 max_segs;
 	GF_List *past_files;
+
+	Bool gfio_pending;
 } GF_FileOutCtx;
 
 #ifdef WIN32
@@ -371,6 +373,8 @@ static GF_Err fileout_process(GF_Filter *filter)
 	u32 pck_size, nb_write;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
+restart:
+
 	if (ctx->error)
 		return ctx->error;
 
@@ -438,8 +442,10 @@ static GF_Err fileout_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null close (file name was %s)\n", ctx->szFileName));
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
-		return fileout_process(filter);
+		goto restart;
 	}
+
+	if (ctx->gfio_pending) goto check_gfio;
 
 	if (ctx->file && start && (ctx->cat==FOUT_CAT_ALL))
 		start = GF_FALSE;
@@ -498,6 +504,9 @@ static GF_Err fileout_process(GF_Filter *filter)
 		} else if (!ctx->file && !ctx->noinitraw) {
 			fileout_setup_file(ctx, explicit_overwrite);
 		}
+		if (gf_fileio_check(ctx->file)) {
+			ctx->gfio_pending = GF_TRUE;
+		}
 
 		if (ctx->max_segs) {
 			while (gf_list_count(ctx->past_files)>ctx->max_segs) {
@@ -518,7 +527,26 @@ static GF_Err fileout_process(GF_Filter *filter)
 		snprintf(szHLSChunk, GF_MAX_PATH+20, "%s.%d", ctx->szFileName, p->value.uint);
 		if (ctx->hls_chunk) gf_fclose(ctx->hls_chunk);
 		ctx->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->original_url, "w+b", GF_FALSE);
+		ctx->gfio_pending = GF_TRUE;
 	}
+
+check_gfio:
+	if (ctx->gfio_pending) {
+		GF_FileIOWriteState wstate = gf_fileio_write_ready(ctx->file);
+		if ((wstate==GF_FIO_WRITE_READY) && ctx->hls_chunk)
+			wstate = gf_fileio_write_ready(ctx->hls_chunk);
+
+		if (wstate==GF_FIO_WRITE_WAIT) {
+			ctx->gfio_pending = GF_TRUE;
+			return GF_OK;
+		} else if (wstate==GF_FIO_WRITE_CANCELED) {
+			gf_filter_abort(filter);
+			ctx->gfio_pending = GF_FALSE;
+			return GF_OK;
+		}
+		ctx->gfio_pending = GF_FALSE;
+	}
+
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (ctx->file) {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2022
+ *			Copyright (c) Telecom Paris 2019-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg avfilter filter
@@ -25,7 +25,7 @@
 
 #include <gpac/setup.h>
 
-#ifdef GPAC_HAS_FFMPEG
+#if defined(GPAC_HAS_FFMPEG) && !defined(FFMPEG_DISABLE_AVFILTER)
 
 #include "ff_common.h"
 #include <gpac/network.h>
@@ -39,7 +39,7 @@
 
 #endif
 
-#ifdef GPAC_HAS_FFMPEG
+#if defined(GPAC_HAS_FFMPEG) && !defined(FFMPEG_DISABLE_AVFILTER)
 
 typedef struct
 {

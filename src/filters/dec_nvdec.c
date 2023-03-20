@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NVidia Hardware decoder filter
@@ -32,7 +32,7 @@
 #define GPAC_DISABLE_NVDEC
 #endif
 
-#if (!defined(GPAC_STATIC_BUILD) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))
+#if (!defined(GPAC_STATIC_BIN) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))
 
 #include "dec_nvdec_sdk.h"
 
@@ -1581,6 +1581,10 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 	if (!gf_opts_get_bool("temp", "gendoc") && gf_opts_get_key("filter@nvdec", "disabled"))
 		return NULL;
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	return NULL;
+#endif
+
 	//check if nvdec is not globally blacklisted - if so, do not try to load CUDA SDK which may be time consuming on some devices
 	const char *blacklist = gf_opts_get_key("core", "blacklist");
 	if (blacklist && (blacklist[0]!='-') && strstr(blacklist, "nvdec"))
@@ -1606,4 +1610,4 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // (!defined(GPAC_STATIC_BUILD) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))
+#endif // (!defined(GPAC_STATIC_BIN) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))

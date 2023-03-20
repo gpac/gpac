@@ -822,7 +822,7 @@ struct tm *gf_gmtime(const time_t *time)
 
 
 #ifdef GPAC_MEMORY_TRACKING
-void gf_mem_enable_tracker(Bool enable_backtrace);
+void gf_mem_enable_tracker(u32 mem_track_type);
 #endif
 
 static u64 memory_at_gpac_startup = 0;
@@ -907,7 +907,10 @@ Bool gf_sys_has_filter_global_meta_args()
 
 static u32 gpac_quiet = 0;
 char gf_prog_lf = '\r';
+
+#ifndef GPAC_DISABLE_NETWORK
 extern Bool gpac_use_poll;
+#endif
 
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
@@ -917,8 +920,9 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e);
 		void gf_cfg_load_restrict();
 
+#ifndef GPAC_DISABLE_NETWORK
 		gpac_use_poll = GF_TRUE;
-
+#endif
 		for (i=1; i<argc; i++) {
 			Bool consumed;
 			GF_Err e;
@@ -983,7 +987,9 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			} else if (!stricmp(arg, "-no-save")) {
 				gpac_discard_config = bool_value;
 			} else if (!stricmp(arg, "-no-poll")) {
+#ifndef GPAC_DISABLE_NETWORK
 				gpac_use_poll = bool_value;
+#endif
 			} else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;
 				gf_net_set_ntp_shift(shift);
@@ -1398,6 +1404,7 @@ static void gf_sys_refresh_cache()
 GF_EXPORT
 GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 {
+
 	if (!sys_init) {
 #if defined (WIN32)
 #if defined(_WIN32_WCE)
@@ -1407,11 +1414,10 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 #endif
 #endif
 
-		if (mem_tracker_type!=GF_MemTrackerNone) {
 #ifdef GPAC_MEMORY_TRACKING
-            gf_mem_enable_tracker( (mem_tracker_type==GF_MemTrackerBackTrace) ? GF_TRUE : GF_FALSE);
+		gf_mem_enable_tracker(mem_tracker_type);
 #endif
-		}
+
 #ifndef GPAC_DISABLE_LOG
 		/*by default log subsystem is initialized to error on all tools, and info on console to debug scripts*/
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
@@ -1486,6 +1492,8 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = getpid();
 		the_rti.nb_cores = (u32) sysconf( _SC_NPROCESSORS_ONLN );
+		sys_start_time = 0;
+		sys_start_time_hr = 0;
 		sys_start_time = gf_sys_clock();
 		sys_start_time_hr = gf_sys_clock_high_res();
 #endif
@@ -1496,8 +1504,10 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 #endif
 
 
+#ifndef GPAC_CONFIG_EMSCRIPTEN
+		//avoid log mutex on emscriptem - let the FS IO deal with it
 		logs_mx = gf_mx_new("Logs");
-
+#endif
 		gf_rand_init(GF_FALSE);
 
 		gf_init_global_config(profile);
@@ -1528,7 +1538,6 @@ void gf_sys_close()
 	if (sys_init > 0) {
 		void gf_sys_cleanup_help();
 
-		GF_Mutex *old_log_mx;
 		sys_init --;
 		if (sys_init) return;
 		/*prevent any call*/
@@ -1564,10 +1573,11 @@ void gf_sys_close()
 
 		gf_sys_cleanup_help();
 
-		old_log_mx = logs_mx;
+#ifndef GPAC_DISABLE_THREADS
+		GF_Mutex *old_log_mx = logs_mx;
 		logs_mx = NULL;
 		gf_mx_del(old_log_mx);
-
+#endif
 		if (gpac_argv_state) {
 			gf_free(gpac_argv_state);
 			gpac_argv_state = NULL;
@@ -1580,6 +1590,10 @@ void gf_sys_close()
 		gf_list_del(all_blobs);
 		all_blobs = NULL;
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		fprintf(stderr, "\n\n");
+		fflush(stderr);
+#endif
 	}
 }
 
@@ -2076,6 +2090,21 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 #else
 
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+typedef struct {
+	int arena;    /* non-mmapped space allocated from system */
+	int ordblks;  /* number of free chunks */
+	int smblks;   /* always 0 */
+	int hblks;    /* always 0 */
+	int hblkhd;   /* space in mmapped regions */
+	int usmblks;  /* maximum total allocated space */
+	int fsmblks;  /* always 0 */
+	int uordblks; /* total allocated space */
+	int fordblks; /* total free space */
+	int keepcost; /* releasable (via malloc_trim) space */
+} s_mallinfo;
+extern s_mallinfo mallinfo();
+#endif
 
 Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
@@ -2085,7 +2114,6 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #if 0
 	char szProc[100];
 #endif
-	FILE *f;
 
 	assert(sys_init);
 
@@ -2095,7 +2123,8 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		return GF_FALSE;
 	}
 	u_k_time = idle_time = 0;
-	f = gf_fopen("/proc/stat", "r");
+#ifndef GPAC_CONFIG_EMSCRIPTEN
+	FILE *f = gf_fopen("/proc/stat", "r");
 	if (f) {
 		char line[2048];
 		u32 k_time, nice_time, u_time;
@@ -2106,6 +2135,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		}
 		gf_fclose(f);
 	}
+#endif
 	process_u_k_time = 0;
 	the_rti.process_memory = 0;
 
@@ -2165,7 +2195,11 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #endif
 
 
-#ifndef GPAC_CONFIG_IOS
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	the_rti.physical_memory = EM_ASM_INT(return HEAP8.length);
+	s_mallinfo mi = mallinfo();
+	the_rti.physical_memory_avail = the_rti.physical_memory - (unsigned int)sbrk(0) + mi.fordblks;
+#else
 	the_rti.physical_memory = the_rti.physical_memory_avail = 0;
 	f = gf_fopen("/proc/meminfo", "r");
 	if (f) {
@@ -2192,6 +2226,8 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		the_rti.sampling_period_duration = (entry_time - last_update_time);
 		the_rti.process_cpu_time_diff = (u32) (process_u_k_time - last_process_k_u_time) * 10;
 
+
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 		/*oops, we have no choice but to assume 100% cpu usage during this period*/
 		if (!u_k_time) {
 			the_rti.total_cpu_time_diff = the_rti.sampling_period_duration;
@@ -2199,7 +2235,10 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			the_rti.cpu_idle_time = 0;
 			the_rti.total_cpu_usage = 100;
 			if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;
-			the_rti.process_cpu_usage = (u32) ( 100 *  the_rti.process_cpu_time_diff / the_rti.sampling_period_duration);
+			if (the_rti.sampling_period_duration)
+				the_rti.process_cpu_usage = (u32) ( 100 *  the_rti.process_cpu_time_diff / the_rti.sampling_period_duration);
+			else
+				the_rti.process_cpu_usage = 100;
 		} else {
 			u64 samp_sys_time;
 			/*move to ms (/proc/stat gives times in 100 ms unit*/
@@ -2224,6 +2263,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			else
 				the_rti.process_cpu_usage = 0;
 		}
+#endif // GPAC_CONFIG_EMSCRIPTEN
 	} else {
 		mem_at_startup = the_rti.physical_memory_avail;
 	}

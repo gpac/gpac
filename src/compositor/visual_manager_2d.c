@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,6 +27,8 @@
 
 #include "visual_manager.h"
 #include "nodes_stacks.h"
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
 
 //#define SKIP_CONTEXT
 
@@ -375,27 +377,6 @@ Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2)
 
 /*is list empty*/
 #define ra_is_empty(ra) (!((ra)->count))
-
-/*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
-GF_EXPORT
-void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
-{
-	if (!rc1->width || !rc1->height) {
-		*rc1=*rc2;
-		return;
-	}
-
-	if (rc2->x < rc1->x) {
-		rc1->width += rc1->x - rc2->x;
-		rc1->x = rc2->x;
-	}
-	if (rc2->x + rc2->width > rc1->x+rc1->width) rc1->width = rc2->x + rc2->width - rc1->x;
-	if (rc2->y > rc1->y) {
-		rc1->height += rc2->y - rc1->y;
-		rc1->y = rc2->y;
-	}
-	if (rc2->y - rc2->height < rc1->y - rc1->height) rc1->height = rc1->y - rc2->y + rc2->height;
-}
 
 
 /*adds rectangle to the list performing union test*/
@@ -987,3 +968,5 @@ void visual_2d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 	gf_mx2d_copy(tr_state->transform, backup);
 }
 
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

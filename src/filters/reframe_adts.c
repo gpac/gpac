@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS reframer filter
@@ -557,7 +557,10 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
-	u64 cts = GF_FILTER_NO_TS;
+	u64 cts;
+
+restart:
+	cts = GF_FILTER_NO_TS;
 
 	//always reparse duration
 	if (!ctx->duration.num)
@@ -880,7 +883,8 @@ drop_byte:
 
 	if (!pck) {
 		ctx->adts_buffer_size = 0;
-		return adts_dmx_process(filter);
+		//avoid recursive call
+		goto restart;
 	} else {
 		if (remain) {
 			memmove(ctx->adts_buffer, start, remain);

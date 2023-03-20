@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Romain Bouqueau - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2018
+ *			Copyright (c) Telecom ParisTech 2010-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -263,11 +263,15 @@ static void store_backtrace(char *s_backtrace)
 #else /*WIN32*/
 
 #define SYMBOL_MAX_SIZE  100
+
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 #include <execinfo.h>
+#endif
 
 /*memory ownership to the caller*/
 static void store_backtrace(char *s_backtrace)
 {
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	size_t i, size, bt_idx=0;
 	void *stack[STACK_PRINT_SIZE+STACK_FIRST_IDX];
 	char **messages;
@@ -293,6 +297,7 @@ static void store_backtrace(char *s_backtrace)
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
 	s_backtrace[bt_idx-1] = '\0';
 	free(messages);
+#endif
 }
 #endif /*WIN32*/
 
@@ -457,18 +462,29 @@ char *gf_mem_strdup(const char *str, const char *filename, int line)
 	return gf_mem_strdup_proto(str, filename, line);
 }
 
-MY_GF_EXPORT
-void gf_mem_enable_tracker(unsigned int enable_backtrace)
+void gf_mem_enable_tracker(unsigned int mem_track_type)
 {
+	if (mem_track_type) {
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-    gf_mem_backtrace_enabled = enable_backtrace ? 1 : 0;
+		gf_mem_backtrace_enabled = (mem_track_type==2) ? 1 : 0;
 #endif
-	gf_mem_track_enabled = 1;
-    gf_mem_malloc_proto = gf_mem_malloc_tracker;
-	gf_mem_calloc_proto = gf_mem_calloc_tracker;
-	gf_mem_realloc_proto = gf_mem_realloc_tracker;
-	gf_mem_free_proto = gf_mem_free_tracker;
-	gf_mem_strdup_proto = gf_mem_strdup_tracker;
+		gf_mem_track_enabled = 1;
+		gf_mem_malloc_proto = gf_mem_malloc_tracker;
+		gf_mem_calloc_proto = gf_mem_calloc_tracker;
+		gf_mem_realloc_proto = gf_mem_realloc_tracker;
+		gf_mem_free_proto = gf_mem_free_tracker;
+		gf_mem_strdup_proto = gf_mem_strdup_tracker;
+	} else {
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+		gf_mem_backtrace_enabled = 0;
+#endif
+		gf_mem_track_enabled = 0;
+		gf_mem_malloc_proto = gf_mem_malloc_basic;
+		gf_mem_calloc_proto = gf_mem_calloc_basic;
+		gf_mem_realloc_proto = gf_mem_realloc_basic;
+		gf_mem_free_proto = gf_mem_free_basic;
+		gf_mem_strdup_proto = gf_mem_strdup_basic;
+	}
 }
 
 size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free)

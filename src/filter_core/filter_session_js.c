@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -162,13 +162,17 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return fs->pid_connect_tasks_pending ? JS_FALSE : JS_TRUE;
 
 	case JSFS_HTTP_MAX_RATE:
+#ifdef GPAC_USE_DOWNLOADER
 		if (fs->download_manager)
 			return JS_NewInt32(ctx, gf_dm_get_data_rate(fs->download_manager) );
+#endif
 		return JS_NULL;
 
 	case JSFS_HTTP_RATE:
+#ifdef GPAC_USE_DOWNLOADER
 		if (fs->download_manager)
 			return JS_NewInt32(ctx, gf_dm_get_global_rate(fs->download_manager) );
+#endif
 		return JS_NULL;
 	case JSFS_RMT_SAMPLING:
 		return JS_NewBool(ctx, gf_sys_profiler_sampling_enabled() );
@@ -184,17 +188,19 @@ static JSValue jsfs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 
 static JSValue jsfs_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
 {
-	s32 ival;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
 	if (!fs)
 		return GF_JS_EXCEPTION(ctx);
 
 	switch (magic) {
 	case JSFS_HTTP_MAX_RATE:
+#ifdef GPAC_USE_DOWNLOADER
 		if (fs->download_manager) {
+			s32 ival;
 			if (JS_ToInt32(ctx, &ival, value)) return GF_JS_EXCEPTION(ctx);
 			gf_dm_set_data_rate(fs->download_manager, (u32) ival);
 		}
+#endif
 		break;
 	case JSFS_RMT_SAMPLING:
 		gf_sys_profiler_enable_sampling(JS_ToBool(ctx, value) ? GF_TRUE : GF_FALSE);
@@ -1921,7 +1927,9 @@ static GF_Err gf_fs_load_script_ex(GF_FilterSession *fs, const char *jsfile, JSC
 		e = gf_file_load_data(jsfile, &buf, &buf_len);
 	}
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script file %s: %s\n", jsfile, gf_error_to_string(e) ));
+		if (e!=GF_NOT_FOUND) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script file %s: %s\n", jsfile, gf_error_to_string(e) ));
+		}
 		return e;
 	}
 

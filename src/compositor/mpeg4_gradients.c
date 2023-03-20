@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -25,6 +25,9 @@
 
 #include "nodes_stacks.h"
 #include "texturing.h"
+
+#if !defined(GPAC_DISABLE_COMPOSITOR)
+
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -639,6 +642,8 @@ GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node)
 
 #endif /*GPAC_DISABLE_VRML*/
 
+#if !defined(GPAC_DISABLE_COMPOSITOR)
+
 void compositor_gradient_update(GF_TextureHandler *txh)
 {
 	switch (gf_node_get_tag(txh->owner) ) {
@@ -660,3 +665,6 @@ void compositor_gradient_update(GF_TextureHandler *txh)
 	}
 }
 
+#endif
+
+#endif //!defined(GPAC_DISABLE_COMPOSITOR)

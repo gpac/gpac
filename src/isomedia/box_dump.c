@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3828,6 +3828,11 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 	}
 	return GF_OK;
 }
+#else
+#include <gpac/webvtt.h>
+#endif
+
+//webvtt_write_cue_bs is needed event when box dump disabled
 
 static void vttmx_timestamp_dump(GF_BitStream *bs, GF_WebVTTTimestamp *ts, Bool dump_hour, Bool write_srt)
 {
@@ -3882,6 +3887,8 @@ void webvtt_write_cue_bs(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt)
 		gf_bs_write_data(bs, "\n\n", 2);
 	}
 }
+
+#ifndef GPAC_DISABLE_ISOM_DUMP
 
 static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {

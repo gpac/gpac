@@ -434,9 +434,12 @@ GF_FilterRegister DVBLinuxRegister = {
 
 const GF_FilterRegister *dvblin_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_HAS_LINUX_DVB) || defined(GPAC_SIM_LINUX_DVB)
+#if !defined(GPAC_HAS_LINUX_DVB) || !defined(GPAC_SIM_LINUX_DVB)
 	if (!gf_opts_get_bool("temp", "gendoc"))
 		return NULL;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	return NULL;
+#endif
 	DVBLinuxRegister.version = "! Warning: DVB4Linux NOT AVAILABLE IN THIS BUILD !";
 #else
 	if (gf_opts_get_bool("temp", "get_proto_schemes")) {

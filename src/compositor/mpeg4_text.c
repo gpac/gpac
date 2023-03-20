@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -29,7 +29,7 @@
 #include "texturing.h"
 #include <gpac/utf.h>
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 /*default value when no fontStyle*/
 #define FSFAMILY	(fs && fs->family.count) ? (const char *)fs->family.vals[0]	: ""
@@ -756,6 +756,5 @@ void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh 
 #endif /*GPAC_DISABLE_3D*/
 
 
-#endif /*GPAC_DISABLE_VRML*/
-
+#endif //!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
 

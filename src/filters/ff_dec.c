@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -247,6 +247,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
         return GF_EOS;
     }
 
+restart:
+
 	frame = ctx->frame;
 
 	FF_INIT_PCK(ctx, pkt)
@@ -311,7 +313,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	case AVERROR_EOF:
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to send frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to queue packet PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
 		break;
 	}
 	gotpic = 0;
@@ -535,6 +537,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		gf_filter_pck_set_interlaced(dst_pck, frame->top_field_first ? 2 : 1);
 
 	gf_filter_pck_send(dst_pck);
+
+	if (!pck) goto restart;
+
 	return GF_OK;
 }
 
@@ -814,10 +819,10 @@ dispatch_next:
 	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 #endif
 
+	if (gf_filter_pid_would_block(ctx->out_pid))
+		return GF_OK;
 	//avoid recursion
 	goto decode_next;
-
-//	return ffdec_process_audio(filter, ctx);
 }
 
 #ifndef FFMPEG_NO_SUBS
@@ -1241,6 +1246,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	//clone options (in case we need to destroy/recreate the codec) and open codec
 	av_dict_copy(&options, ctx->options, 0);
+	ffmpeg_check_threads(filter, options, ctx->decoder);
+
 	res = avcodec_open2(ctx->decoder, codec, &options);
 	if (res < 0) {
 		if (options) av_dict_free(&options);
@@ -1498,7 +1505,7 @@ GF_FilterRegister FFDecodeRegister = {
 	.process = ffdec_process,
 	.update_arg = ffdec_update_arg,
 	.process_event = ffdec_process_event,
-	.flags = GF_FS_REG_META,
+	.flags = GF_FS_REG_META|GF_FS_REG_BLOCK_MAIN,
 	//use middle priorty, so that hardware decs/other native impl in gpac can take over if needed
 	//don't use lowest one since we use this for scalable codecs
 	.priority = 128

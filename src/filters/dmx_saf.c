@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / SAF demuxer filter
@@ -454,6 +454,7 @@ GF_FilterRegister SAFDmxRegister = {
 	GF_FS_SET_DESCRIPTION("SAF demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes SAF (MPEG-4 Simple Aggregation Format for LASeR) files/data into a set of media PIDs and frames.")
 	.private_size = sizeof(GF_SAFDmxCtx),
+	.flags = GF_FS_REG_USE_SYNC_READ,
 	.initialize = safdmx_initialize,
 	.finalize = safdmx_finalize,
 	SETCAPS(SAFDmxCaps),

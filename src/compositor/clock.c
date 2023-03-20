@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file scene part of GPAC / Scene Compositor sub-project
@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/compositor_dev.h>
+#ifndef GPAC_DISABLE_COMPOSITOR
 
 static GF_Clock *gf_clock_new(GF_Compositor *compositor)
 {
@@ -344,3 +345,4 @@ s32 gf_clock_diff(GF_Clock *ck, u32 ck_time, u32 ts)
 
 	return (s32) ts_diff;
 }
+#endif //GPAC_DISABLE_COMPOSITOR

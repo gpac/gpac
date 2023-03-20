@@ -1,5 +1,34 @@
 # On-going: GPAC 2.3-DEV
 
+## Emscripten support
+- session can run in worker or in main browser loop
+- automatic disable of ffdec and ffenc threads when not running in worker
+- use fetch() api for downloader
+- support for WebCodecs
+- support for getUserMedia and canvas readable streams
+- gpac.html demo page
+
+
+## Media Formats
+- fixes in text subtitle converters
+- improved DV muxing from mkv
+- dasher support for inputs with multiple studs entries
+- Allow multiplexed representations for LL-HLS
+- Improved eac3 support
+
+## Filters
+- async HTTP request in all filters
+- fixed cors and mime types in httpout for wasm and sharedArrayuffer support
+- allow compilation without threads
+- allow compilation without network
+- fixed GF_FileIO for async read and write modes
+- added seeking in mp4dmx in mem mode
+- vout updated to use VBO (required for gles2)
+- allow ffdmx to work as demux filter on gpac input file pids
+
+## Misc
+- FFMPEG 6 support
+- added features for configure (vout, aout, fonts, doc, evg)
 
 
 # 19/12/2022: GPAC 2.2

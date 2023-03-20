@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -25,7 +25,7 @@
 
 #include "nodes_stacks.h"
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 GF_List *Bindable_GetStack(GF_Node *bindable)
 {
@@ -321,4 +321,4 @@ void PreDestroyBindable(GF_Node *bindable, GF_List *stack_list)
 	}
 }
 
-#endif /*GPAC_DISABLE_VRML*/
+#endif /*GPAC_DISABLE_VRML && GPAC_DISABLE_COMPOSITOR*/
