@@ -45,6 +45,7 @@ typedef struct
 	u8 *buf;
 	u32 buf_alloc;
 	u64 last_end_ts;
+	s64 delay;
 
 	Bool srt_conv;
 } TTMLConvCtx;
@@ -77,6 +78,10 @@ GF_Err ttmlconv_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	ctx->timescale = p ? p->value.uint : 1000;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.longsint : 0;
+	gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, NULL);
 	return GF_OK;
 }
 
@@ -173,6 +178,11 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 
 	start_ts = gf_filter_pck_get_cts(pck);
 	end_ts = start_ts + gf_filter_pck_get_duration(pck);
+
+	if ((s64) start_ts > -ctx->delay) start_ts += ctx->delay;
+	else start_ts = 0;
+	if ((s64) end_ts > -ctx->delay) end_ts += ctx->delay;
+	else end_ts = 0;
 
 	start_ts = gf_timestamp_rescale(start_ts, ctx->timescale, 1000);
 	end_ts = gf_timestamp_rescale(end_ts, ctx->timescale, 1000);
