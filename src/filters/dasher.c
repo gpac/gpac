@@ -6456,13 +6456,13 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 			s->repeat_count--;
 			GF_SAFEALLOC(next, GF_MPD_SegmentTimelineEntry);
 			if (!next) return;
-			next->duration = s->duration - prev_patch_dur;
+			next->duration = (u32) (s->duration - prev_patch_dur);
 			next->start_time = s->start_time + (s->repeat_count+1) * s->duration;
 			gf_list_add(tl->entries, next);
 			s = next;
 		} else {
 			//update entry
-			s->duration -= prev_patch_dur;
+			s->duration -= (u32) prev_patch_dur;
 			//merge with old one if possible
 			GF_MPD_SegmentTimelineEntry *prev = (nb_ent>1) ? gf_list_get(tl->entries, nb_ent-2) : NULL;
 			if (prev && (prev->duration==s->duration) && (prev->start_time + (prev->repeat_count+1) * prev->duration == s->start_time)) {

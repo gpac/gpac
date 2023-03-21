@@ -324,7 +324,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 					pid->max_buffer_unit = pid_in->pid->max_buffer_unit;
 					pid->filter->pid_buffer_max_units = pid_in->pid->max_buffer_unit;
 					pid->max_buffer_time = pid_in->pid->max_buffer_time;
-					pid->filter->pid_buffer_max_us = pid_in->pid->max_buffer_time;
+					pid->filter->pid_buffer_max_us = (u32) pid_in->pid->max_buffer_time;
 				}
 				//if input has a single destination, reset buffer props to default
 				if (pid_in->pid->num_destinations==1) {
@@ -8738,7 +8738,7 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id);
 
 
-GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, Bool *out_inband_forced)
+GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, u32 *out_inband_forced)
 {
 	u32 subtype=0, subtype_src=0, codec_id, stream_type;
 	s32 mha_pl=-1;

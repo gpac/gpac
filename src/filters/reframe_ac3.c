@@ -480,7 +480,7 @@ restart:
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			if (ctx->timescale && (ctx->timescale!=ctx->sample_rate))
-				gf_filter_pck_set_duration(dst_pck, gf_timestamp_rescale(AC3_FRAME_SIZE, ctx->sample_rate, ctx->timescale));
+				gf_filter_pck_set_duration(dst_pck, (u32) gf_timestamp_rescale(AC3_FRAME_SIZE, ctx->sample_rate, ctx->timescale));
 			else
 				gf_filter_pck_set_duration(dst_pck, AC3_FRAME_SIZE);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
