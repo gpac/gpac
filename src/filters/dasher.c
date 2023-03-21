@@ -330,6 +330,8 @@ typedef struct _dash_stream
 
 	u32 nb_comp, nb_comp_done;
 
+	Bool is_av;
+
 	u32 nb_rep, nb_rep_done;
 	Double set_seg_duration;
 
@@ -644,7 +646,7 @@ static void dasher_update_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 
 	if (!ds->rate_first_dts_plus_one) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't compute bitrate in time for manifest generation, please report to GPAC devs !\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't compute bitrate of PID %s in time for manifest generation, please specify #Bitrate property\n", gf_filter_pid_get_name(ds->ipid)));
 		return;
 	}
 
@@ -1287,12 +1289,17 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		dasher_get_dash_dur(ctx, ds);
 
 		ds->splitable = GF_FALSE;
+		ds->is_av = GF_FALSE;
 		switch (ds->stream_type) {
 		case GF_STREAM_TEXT:
 		case GF_STREAM_METADATA:
 		case GF_STREAM_OD:
 		case GF_STREAM_SCENE:
 			ds->splitable = ctx->split;
+			break;
+		case GF_STREAM_VISUAL:
+		case GF_STREAM_AUDIO:
+			ds->is_av = GF_TRUE;
 			break;
 		}
 
@@ -6778,8 +6785,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Rep#%s flush seg %d start %g duration %g next seg end time %g\n", ds_log->rep->id, ds_log->seg_number-1, ((Double)first_cts_in_cur_seg)/ds_log->timescale, ((Double)seg_dur_ms)/1000, ((Double)ds_log->adjusted_next_seg_start)/ds_log->timescale));
 	}
 
-	//muxed representation with unaligned duration,
+	//muxed representation with unaligned duration, report all done reps to number of components done
 	if (has_ds_done) {
+		base_ds->nb_comp_done = 0;
 		for (i=0; i<count; i++) {
 			ds = gf_list_get(ctx->current_period->streams, i);
 			//otherwise reset only media components for this rep
@@ -6789,6 +6797,10 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 				base_ds->nb_comp_done++;
 			}
 		}
+	}
+	else if (ds->muxed_base) {
+		//force reset if muxed base and no rep is over
+		base_ds->nb_comp_done = 0;
 	}
 
 	//some reps are done, other not, force a max time on all AS in the period
@@ -7584,7 +7596,6 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		dasher_flush_segment(ctx, ds, GF_FALSE);
 
 		ds->first_cts_in_seg = next_cts;
-		ds->nb_comp_done = 0;
 		ds->split_dur_next = 0;
 	}
 
@@ -7720,6 +7731,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		if (ds->seg_done) continue;
 
 		if (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST) {
+			if (!ds->done && ds->opid) gf_filter_pid_set_eos(ds->opid);
 			ds->done = 1;
 			continue;
 		}
@@ -7876,7 +7888,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 					base_ds->nb_comp_done ++;
 					if (base_ds->nb_comp_done == base_ds->nb_comp) {
 						dasher_flush_segment(ctx, base_ds, GF_FALSE);
-						base_ds->nb_comp_done = 0;
 					}
 					//loop on the entire source, mark as done for subdur and check if all other streams are done
 					if (!ds->done) {
@@ -7901,6 +7912,18 @@ static GF_Err dasher_process(GF_Filter *filter)
 						ds->nb_repeat++;
 						ds->reschedule = GF_TRUE;
 						gf_filter_pid_discard_block(ds->opid);
+					}
+				}
+				//no packet, muxed rep and base DS done, flush - required if no packet is present for the segment
+				//typically for subs
+				else if (ds->muxed_base && base_ds->seg_done && !ds->seg_done && !ds->is_av) {
+					ds->seg_done = GF_TRUE;
+					ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
+					ds->est_first_cts_in_next_seg = 0;
+					assert(base_ds->nb_comp_done < base_ds->nb_comp);
+					base_ds->nb_comp_done ++;
+					if (base_ds->nb_comp_done == base_ds->nb_comp) {
+						dasher_flush_segment(ctx, base_ds, GF_FALSE);
 					}
 				}
 				break;
@@ -8637,6 +8660,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		else if (ds->seg_done && ctx->force_period_switch) nb_init++;
 		else if (ds->seg_done && ds->muxed_base && ds->muxed_base->done) {
 			nb_init++;
+			if (!ds->done && ds->opid) gf_filter_pid_set_eos(ds->opid);
 			ds->done = 1;
 		}
 	}
