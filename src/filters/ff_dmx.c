@@ -1380,7 +1380,7 @@ static int64_t ffdmx_seek(void *opaque, int64_t offset, int whence)
 	}
 	//if seeking in first block (while probing for stream info), allow it
 	if (ctx->first_block && (whence==SEEK_SET) && (offset<ctx->strbuf_size)) {
-		ctx->strbuf_offset = offset;
+		ctx->strbuf_offset = (u32) offset;
 		return offset;
 	}
 	return -1;

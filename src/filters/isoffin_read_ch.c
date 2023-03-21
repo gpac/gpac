@@ -619,7 +619,7 @@ enum
 //quick way of reading ID of AVC/HEVC/VVC param sets
 static s32 isor_ps_get_id(u8 nal_type, u8 *data, u32 size, Bool is_avc)
 {
-	s32 res;
+	s32 res=-1;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 	switch (nal_type) {

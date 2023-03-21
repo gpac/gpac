@@ -4029,10 +4029,10 @@ GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *PID, u32 rtt_ms, u32 jitter_us, 
 \param force_inband forces inband signaling for avc/hevc/etc
 \param force_sbr forces SBR signaling for AAC
 \param tile_base_dcd decoder config of tiled base track if known, may be NULL otherwise
-\param out_inband_forced set to true if inband is to be forced (dasher only) - may be NULL
+\param out_inband_forced set to 1 if inband is to be forced (dasher only) - may be NULL
 \return error if any
 */
-GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *PID, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, Bool *out_inband_forced);
+GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *PID, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, u32 *out_inband_forced);
 
 /*! @} */
 

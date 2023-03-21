@@ -1075,7 +1075,7 @@ static GF_Err gfio_blob_seek(GF_FileIO *fileio, u64 offset, s32 whence)
 {
 	GF_FileIOBlob *blob = gf_fileio_get_udta(fileio);
 	if (whence==SEEK_END) blob->pos = blob->size;
-	else if (whence==SEEK_SET) blob->pos = offset;
+	else if (whence==SEEK_SET) blob->pos = (u32) offset;
 	else {
 		if (blob->pos + offset > blob->size) return GF_BAD_PARAM;
 		blob->pos += (u32) offset;
@@ -1114,7 +1114,7 @@ static char *gfio_blob_gets(GF_FileIO *fileio, char *ptr, u32 size)
 
 	char *next = memchr(buf, '\n', len);
 	if (next) {
-		len = next - buf;
+		len = (u32) (next - buf);
 		if (len + blob->pos<blob->size) len++;
 	}
 	if (len > size) len = size;
@@ -1676,7 +1676,7 @@ char *gf_fgets(char *ptr, size_t size, FILE *stream)
 	if (gf_fileio_check(stream)) {
 		GF_FileIO *fio = (GF_FileIO *)stream;
 		if (fio->gets)
-			return fio->gets(fio, ptr, size);
+			return fio->gets(fio, ptr, (u32) size);
 
 		u32 i, read, nb_read=0;
 		for (i=0; i<size; i++) {
