@@ -2813,7 +2813,9 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 
 	for (i=0; i<count; i++) {
 		ISOM_DECREASE_SIZE(ptr, 2)
-		GF_NALUFFParam *sl = (GF_NALUFFParam *) gf_malloc(sizeof(GF_NALUFFParam));
+		GF_NALUFFParam *sl;
+		GF_SAFEALLOC(sl, GF_NALUFFParam);
+		if (!sl) return GF_OUT_OF_MEM;
 		sl->size = gf_bs_read_u16(bs);
 		if (!sl->size || (gf_bs_available(bs) < sl->size) || (ptr->size < sl->size) ) {
 			gf_free(sl);
@@ -2829,7 +2831,9 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 	count = gf_bs_read_u8(bs);
 	for (i=0; i<count; i++) {
 		ISOM_DECREASE_SIZE(ptr, 2)
-		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
+		GF_NALUFFParam *sl;
+		GF_SAFEALLOC(sl, GF_NALUFFParam);
+		if (!sl) return GF_OUT_OF_MEM;
 		sl->size = gf_bs_read_u16(bs);
 		if (!sl->size || (gf_bs_available(bs) < sl->size) || (ptr->size<sl->size)) {
 			gf_free(sl);
@@ -2892,7 +2896,9 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->config->sequenceParameterSetExtensions = gf_list_new();
 		for (i=0; i<count; i++) {
 			ISOM_DECREASE_SIZE(ptr, 2)
-			GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
+			GF_NALUFFParam *sl;
+			GF_SAFEALLOC(sl, GF_NALUFFParam);
+			if (!sl) return GF_OUT_OF_MEM;
 			sl->size = gf_bs_read_u16(bs);
 			if ((gf_bs_available(bs) < sl->size) || (ptr->size<sl->size)) {
 				gf_free(sl);
