@@ -6169,10 +6169,10 @@ int mp4box_main(int argc, char **argv)
 			fileName[0] = ':';
 		} else {
 			file = package_file(pack_file, NULL, pack_wgt);
-			if (!file) {
-				M4_LOG(GF_LOG_ERROR, ("Failed to package file\n"));
-				return mp4box_cleanup(1);
-			}
+		}
+		if (!file) {
+			M4_LOG(GF_LOG_ERROR, ("Failed to package file\n"));
+			return mp4box_cleanup(1);
 		}
 		if (!outName) outName = inName;
 		do_save = GF_TRUE;

@@ -906,6 +906,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		}
 #endif
 
+		Bool done = GF_FALSE;
 #ifdef WIN32
 		mbs_file = gf_wcs_to_utf8(file);
 		mbs_item_path = gf_wcs_to_utf8(item_path);
@@ -924,13 +925,14 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #else
 		if (enum_dir_fct(cbck, file, item_path, &file_info)) {
 #endif
-			break;
+			done = GF_TRUE;
 		}
 
 #ifdef WIN32
 		gf_free(mbs_file);
 		gf_free(mbs_item_path);
 #endif
+		if (done) break;
 
 next:
 #ifdef WIN32
