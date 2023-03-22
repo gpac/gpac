@@ -259,12 +259,11 @@ static GF_Err xviddec_process(GF_Filter *filter)
 	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *pck_ref, *src_pck, *dst_pck;
 
-restart:
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-
 	if (!ctx->codec)
 		return ctx->cfg_crc ? GF_SERVICE_ERROR : GF_OK;
 
+flush_dec:
 	memset(&frame, 0, sizeof(frame));
 	if (pck) {
 		u64 cts = gf_filter_pck_get_cts(pck);;
@@ -418,7 +417,7 @@ packed_frame :
 	//flush all frames if eos is detected
 	else if (gf_filter_pid_is_eos(ctx->ipid)) {
 		//avoid recursive call
-		goto restart;
+		goto flush_dec;
 	}
 
 	return GF_OK;
