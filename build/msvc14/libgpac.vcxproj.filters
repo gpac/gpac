@@ -1187,6 +1187,9 @@
     <ClCompile Include="..\..\src\filters\dec_ttxt.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_uncv.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_vorbis.c">
       <Filter>filters</Filter>
     </ClCompile>

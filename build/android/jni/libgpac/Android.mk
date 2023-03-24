@@ -163,6 +163,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dec_theora.c \
 	../../../../src/filters/dec_ttml.c \
 	../../../../src/filters/dec_ttxt.c \
+	../../../../src/filters/dec_uncv.c \
 	../../../../src/filters/dec_vorbis.c \
 	../../../../src/filters/dec_vtb.c \
 	../../../../src/filters/dec_webvtt.c \

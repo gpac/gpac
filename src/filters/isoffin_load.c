@@ -360,8 +360,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
  				if (pix_fmt) {
 					codec_id = GF_CODECID_RAW;
-					if (pix_fmt==GF_PIXEL_UNCV)
+					if (pix_fmt==GF_PIXEL_UNCV) {
 						load_default = GF_TRUE;
+						codec_id = GF_CODECID_RAW_UNCV;
+					}
 				} else {
 					load_default = GF_TRUE;
 				}
@@ -1725,8 +1727,9 @@ retry:
 	gf_filter_pid_set_property_str(pid, "meta:name", item_name ? &PROP_STRING(item_name) : NULL );
 	gf_filter_pid_set_property_str(pid, "meta:encoding", item_encoding ? &PROP_STRING(item_encoding) : NULL );
 
-	if ((item_type == GF_4CC('u','n','c','v')) || (item_type == GF_4CC('u','n','c','i'))) {
+	if ((item_type == GF_ISOM_SUBTYPE_UNCV) || (item_type == GF_ISOM_ITEM_TYPE_UNCI)) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_UNCV) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW_UNCV) );
 	}
 
 

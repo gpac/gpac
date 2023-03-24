@@ -575,6 +575,8 @@ typedef enum
 	GF_CODECID_FLASH = GF_4CC( 'f', 'l', 's', 'h' ),
 	/*! codecid for RAW media streams. No decoder config associated (config through PID properties)*/
 	GF_CODECID_RAW = GF_4CC('R','A','W','M'),
+	/*! codecid for RAW media streams using UNCV  decoder config*/
+	GF_CODECID_RAW_UNCV = GF_4CC('U','N','C','V'),
 
 	GF_CODECID_AV1 = GF_4CC('A','V','1',' '),
 
