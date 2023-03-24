@@ -3960,7 +3960,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			return e;
 		}
 
-		//puge duplicates
+		//purge duplicates
 		u32 k, nb_sdesc = gf_isom_get_sample_description_count(ctx->file, tkw->track_num);
 		if (nb_sdesc>2) {
 			for (k=0; k<nb_sdesc; k++) {

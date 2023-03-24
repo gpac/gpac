@@ -1271,7 +1271,7 @@ enum
 
 	//PID has temi information
 	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M'),
-	//PID has no init segment associated (file foward mode of dasher)
+	//PID has no init segment associated (file forward mode of dasher)
 	GF_PROP_PID_NO_INIT = GF_4CC('P','N','I','N'),
 
 	GF_PROP_PID_IS_MANIFEST = GF_4CC('P','H','S','M'),
