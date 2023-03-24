@@ -322,6 +322,7 @@
 		9210BA1D234A909400ED2DFF /* evg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210BA1C234A909400ED2DFF /* evg.c */; };
 		9212C0FD222D7B3700FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FC222D7B3700FE3580 /* vflip.c */; };
 		9212C69F281847660058F76A /* gpac.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9212C69E281847660058F76A /* gpac.icns */; };
+		921E055D29CDDF1800ED745E /* dec_uncv.c in Sources */ = {isa = PBXBuildFile; fileRef = 921E055C29CDDF1800ED745E /* dec_uncv.c */; };
 		921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9E1CF8665900B437C2 /* CoreLocation.framework */; };
 		921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9C1CF8664800B437C2 /* CoreMotion.framework */; };
 		92261A89239E326900C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A88239E326900C14199 /* out_http.c */; };
@@ -925,6 +926,7 @@
 		9210BA1C234A909400ED2DFF /* evg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg.c; path = ../../src/jsmods/evg.c; sourceTree = "<group>"; };
 		9212C0FC222D7B3700FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = ../../src/filters/vflip.c; sourceTree = "<group>"; };
 		9212C69E281847660058F76A /* gpac.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = gpac.icns; path = ../../applications/gpac/ios_res/gpac.icns; sourceTree = "<group>"; };
+		921E055C29CDDF1800ED745E /* dec_uncv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_uncv.c; path = ../../src/filters/dec_uncv.c; sourceTree = "<group>"; };
 		921FEB9C1CF8664800B437C2 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		921FEB9E1CF8665900B437C2 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		92261A88239E326900C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = ../../src/filters/out_http.c; sourceTree = "<group>"; };
@@ -1935,6 +1937,7 @@
 				92EB6DB920E4E19600A97A49 /* dec_theora.c */,
 				922B2773244625B0001D4F72 /* dec_ttml.c */,
 				92EB6D7E20E4E19200A97A49 /* dec_ttxt.c */,
+				921E055C29CDDF1800ED745E /* dec_uncv.c */,
 				92EB6D9820E4E19400A97A49 /* dec_vorbis.c */,
 				92EB6D7F20E4E19300A97A49 /* dec_vtb_glctx.m */,
 				92EB6DC320E4E19700A97A49 /* dec_vtb.c */,
@@ -2646,6 +2649,7 @@
 				92E9DFB32215CEA700628420 /* raster_argb.c in Sources */,
 				71CCF32B1277045100339E12 /* base_encoding.c in Sources */,
 				71CCF32C1277045100339E12 /* bitstream.c in Sources */,
+				921E055D29CDDF1800ED745E /* dec_uncv.c in Sources */,
 				928607152398F4C800FDA1ED /* ff_avf.c in Sources */,
 				71CCF32D1277045100339E12 /* color.c in Sources */,
 				92EB6E0120E4E19700A97A49 /* reframe_ac3.c in Sources */,

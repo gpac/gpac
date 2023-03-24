@@ -1700,13 +1700,101 @@ static GF_Err dump_cpat(GF_UnknownBox *u, FILE * trace)
 		for (j=0; j<ph; j++) {
 			gf_fprintf(trace, "<Component x=\"%d\" y=\"%d\"", i, j);
 			get_and_print("index", 16)
-			gf_fprintf(trace, " gain\"%g\"/>\n", gf_bs_read_double(bs) );
+			gf_fprintf(trace, " gain=\"%g\"/>\n", gf_bs_read_float(bs) );
 		}
 	}
 	gf_bs_del(bs);
 	gf_isom_box_dump_done("ComponentPatternBox", (GF_Box *)u, trace);
 	return GF_OK;
 }
+
+static GF_Err dump_sbpm(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, i, nb_comp, nb_r, nb_c, nb_p;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "SensorBrokenPixelMap", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_and_print("component_count", 16)
+	nb_comp = val;
+	if (nb_comp) {
+		gf_fprintf(trace, " components_indices=\"");
+		for (i=0; i<nb_comp; i++) {
+			gf_fprintf(trace, "%u ", gf_bs_read_u16(bs));
+		}
+		gf_fprintf(trace, "\"");
+	}
+	get_and_print("correction_applied", 1)
+	gf_bs_read_int(bs, 7);
+	nb_r = gf_bs_read_u32(bs);
+	nb_c = gf_bs_read_u32(bs);
+	nb_p = gf_bs_read_u32(bs);
+
+	if (nb_r) {
+		gf_fprintf(trace, " bad_rows=\"");
+		for (i=0; i<nb_r; i++) {
+			gf_fprintf(trace, "%u ", gf_bs_read_u32(bs));
+		}
+		gf_fprintf(trace, "\"");
+	}
+	if (nb_c) {
+		gf_fprintf(trace, " bad_cols=\"");
+		for (i=0; i<nb_c; i++) {
+			gf_fprintf(trace, "%u ", gf_bs_read_u32(bs));
+		}
+		gf_fprintf(trace, "\"");
+	}
+	if (nb_p) {
+		gf_fprintf(trace, " bad_pixels=\"");
+		for (i=0; i<nb_c; i++) {
+			u32 x=gf_bs_read_u32(bs);
+			u32 y=gf_bs_read_u32(bs);
+			gf_fprintf(trace, "%ux%u ", x, y);
+		}
+		gf_fprintf(trace, "\"");
+	}
+	gf_fprintf(trace, ">\n");
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("ComponentPatternBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+static GF_Err dump_cloc(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "ChromaLocationBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_and_print("chroma_location", 8)
+	gf_fprintf(trace, ">\n");
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("ChromaLocationBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+static GF_Err dump_fpac(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "FramePackingInfoBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_and_print("video_frame_packing", 4)
+	get_and_print("PackedContentInterpretationType", 4)
+	get_and_print("QuincunxSamplingFlag", 1)
+	gf_fprintf(trace, ">\n");
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("FramePackingInfoBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
 
 static GF_Err dump_gmcc(GF_UnknownBox *u, FILE * trace)
 {
@@ -1785,6 +1873,12 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_cpal(u, trace);
 	} else if (u->original_4cc==GF_4CC('c','p','a','t')) {
 		return dump_cpat(u, trace);
+	} else if (u->original_4cc==GF_4CC('c','l','o','c')) {
+		return dump_cloc(u, trace);
+	} else if (u->original_4cc==GF_4CC('s','b','p','m')) {
+		return dump_sbpm(u, trace);
+	} else if (u->original_4cc==GF_4CC('f','p','a','c')) {
+		return dump_fpac(u, trace);
 	} else if (u->original_4cc==GF_4CC('G','M','C','C')) {
 		return dump_gmcc(u, trace);
 	} else if (u->original_4cc==GF_4CC('d','v','c','1')) {

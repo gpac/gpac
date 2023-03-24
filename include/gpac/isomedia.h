@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -380,6 +380,8 @@ enum
 	GF_ISOM_SUBTYPE_DTSL = GF_4CC('d','t','s','l'),
 	GF_ISOM_SUBTYPE_DTSE = GF_4CC('d','t','s','e'),
 
+	GF_ISOM_SUBTYPE_UNCV	= GF_4CC( 'u', 'n', 'c', 'v' ),
+	GF_ISOM_ITEM_TYPE_UNCI	= GF_4CC( 'u', 'n', 'c', 'i' ),
 };
 
 

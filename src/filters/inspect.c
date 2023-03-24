@@ -3224,6 +3224,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 	if (!ctx->dump_log && !dump) return;
 
+	szCodec[0] = 0;
 	gf_filter_pid_get_rfc_6381_codec_string(pid, szCodec, GF_FALSE, GF_FALSE, NULL, NULL);
 
 	inspect_printf(dump, "PID");

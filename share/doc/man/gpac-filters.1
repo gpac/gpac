@@ -1016,7 +1016,7 @@ src (cstr):                    URL of source content
 .br
 block_size (uint, default: 100000): block size used to read file
 .br
-cache (enum, default: disk):   set cache mode
+cache (enum, default: none):   set cache mode
 .br
 * auto: cache to disk if content length is known, no cache otherwise
 .br
@@ -1219,32 +1219,6 @@ This filter decodes MPEG 1/2 audio streams through libmad library.
 
 .br
 No options
-.br
-
-.br
-.SH xviddec
-.LP
-.br
-Description: XVid decoder
-.br
-
-.br
-This filter decodes MPEG-4 part 2 (and DivX) through libxvidcore library.
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-deblock_y (bool, default: false): enable Y deblocking
-.br
-deblock_uv (bool, default: false): enable UV deblocking
-.br
-film_effect (bool, default: false): enable film effect
-.br
-dering_y (bool, default: false): enable Y deblocking
-.br
-dering_uv (bool, default: false): enable UV deblocking
 .br
 
 .br
@@ -7813,6 +7787,10 @@ src (cstr):                    URL of source content
 .br
 reparse (bool, default: false): force reparsing of stream content (AVC,HEVC,VVC,AV1 only for now)
 .br
+block_size (uint, default: 4096): block size used to read file when using GFIO context
+.br
+strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's input stream
+.br
 * (str):                       any possible options defined for AVFormatContext and sub-classes. See gpac -hx ffdmx and gpac -hx ffdmx:*
 .br
 
@@ -7964,8 +7942,6 @@ copy (enum, default: A):       set copy mode of raw frames
 sclock (bool, default: false): use system clock (us) instead of device timestamp (for buggy devices)
 .br
 probes (uint, default: 10, minmax: 0-100): probe a given number of video frames before emitting (this usually helps with bad timing of the first frames)
-.br
-block_size (uint, default: 4096): block size used to read file when using avio context
 .br
 * (str):                       any possible options defined for AVInputFormat and AVFormatContext (see gpac -hx ffavin and gpac -hx ffavin:*)
 .br
@@ -8912,6 +8888,24 @@ No options
 .br
 
 .br
+.SH uncvdec
+.LP
+.br
+Description: UNCV decoder
+.br
+
+.br
+This filter translates UNCV pixel format to a usable pixel format.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+force_pf (bool, default: false): ignore possible mapping to GPAC pixel formats
+.br
+
+.br
 .SH dtout
 .LP
 .br
@@ -8975,6 +8969,122 @@ seek_reset (bool, default: false): reset decoder when seeking
 force_stereo (bool, default: true): use stereo output for multiview (top-bottom only)
 .br
 reset_switch (bool, default: false): reset decoder at config change
+.br
+
+.br
+.SH uncvg
+.LP
+.br
+Description: Uncompressed Video File Format Generator Utility
+.br
+Version: 1.0
+.br
+Author: GPAC team - (c) Telecom ParisTech 2023 - license LGPL v2
+.br
+
+.br
+This filter provides generation of test images for ISO/IEC 23001-17
+.br
+Generated pixels can be:
+.br
+- a pattern of colors in columns or in rectangles if .I sq is used using the spectified palette.
+.br
+- an image source if .I img is used.
+.br
+
+.br
+Colors specified in the palette can be default GPAC colors (see gpac -h colors), 0xRRGGBB or 0xAARRGGBB
+.br
+
+.br
+When generating video, the pixels are shifted to the left at every frame
+.br
+
+.br
+Components are described as N[bpc][+k] with
+.br
+* N: component type, one of M(ono), Y, U, V, R, G, B, A, d(epth), disp, p(alette), f(ilterArray), x (pad)
+.br
+* bpc: bits per component value, default is 8
+.br
+* k: force component alignment on k bytes, default is 0 (no alignment)
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+vsize (v2d, default: 128x128): width of output image
+.br
+c (strl, default: R8,G8,B8):   image components
+.br
+tiles (v2d, default: 1x1):     number of horizontal tiles
+.br
+interleave (enum, default: pix): interleave type
+.br
+* comp: component-based interleaving (planar modes)
+.br
+* pix: pixel-based interleaving (packed modes)
+.br
+* mix: pixel-based interleaving for UV (semi-planar modes)
+.br
+* row: row-based interleaving
+.br
+* tile: tile-component interleaving
+.br
+* multi: pixel-based interleaving (packed modes) for subsampled modes
+.br
+
+.br
+sampling (enum, default: none): sampling types
+.br
+* none: no subsampling
+.br
+* 422: YUV 4:2:2 subsampling
+.br
+* 420: YUV 4:2:0 subsampling
+.br
+* 411: YUV 4:1:1 subsampling
+.br
+
+.br
+block_size (uint, default: 0): block size in bytes
+.br
+pad_lsb (bool, default: false): padded bits are at LSB in the block
+.br
+ble (bool, default: false):    block is little endian
+.br
+br (bool, default: false):     block has reversed components
+.br
+pixel_size (uint, default: 0): size of pixel in bytes
+.br
+row_align (uint, default: 0):  row alignment in bytes
+.br
+tile_align (uint, default: 0): tile alignment in bytes
+.br
+cle (bool, default: false):    byte-aligned components are little endian
+.br
+img (str, default: ):          use specified image as input instead of RGB generation
+.br
+asize (bool, default: false):  use input image size
+.br
+pal (strl, default: red,green,blue,white,black,yellow,cyan,grey,orange,violet): default palette for color generation
+.br
+fa (strl, default: B,G,G,R):   bayer-like filter - only 2x2 on R,G,B components is supported
+.br
+bpm (strl, default: ):         set broken pixel map
+.br
+fps (frac, default: 25/1):     frame rate to generate - using 0 will trigger item muxing
+.br
+dur (frac, default: 1/1):      duration to generate - using 0 will trigger item muxing
+.br
+cloc (uint, default: -1, minmax: -1,6): set chrom location type
+.br
+stereo (bool, default: false): dump a stereo image
+.br
+sq (flt, default: 0):          generate square patterns instead of columns
+.br
+shade (bool, default: false):  shade pixels from black at bottom to full intensity at top
 .br
 
 .br
@@ -11139,7 +11249,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev62-gc4aed4f14-master
+build: 2.3-DEV-rev86-g41d7d7b5c-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

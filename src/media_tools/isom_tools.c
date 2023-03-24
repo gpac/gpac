@@ -1512,7 +1512,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
 	}
-	if ((item_type == GF_4CC('u','n','c','v')) || (item_type == GF_4CC('u','n','c','i'))) {
+	if ((item_type == GF_ISOM_SUBTYPE_UNCV) || (item_type == GF_ISOM_ITEM_TYPE_UNCI)) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
 		if (!esd) return NULL;
@@ -4132,6 +4132,8 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 	return GF_OK;
 }
 
+GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size);
+
 // Selected (namespace,identifier) pairs from https://www.w3.org/TR/ttml-profile-registry/
 // ordered in decreasing order of preference
 static const char *ttml_namespaces[] = {
@@ -4404,6 +4406,17 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		return e;
 	}
 
+	case GF_ISOM_SUBTYPE_UNCV:
+	{
+		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(movie, track, stsd_idx);
+
+		e = rfc_6381_get_codec_uncv(szCodec, subtype, udesc ? udesc->extension_buf : NULL, udesc ? udesc->extension_buf_size : 0);
+		if (udesc) {
+			if (udesc->extension_buf) gf_free(udesc->extension_buf);
+			gf_free(udesc);
+		}
+		return e;
+	}
     case GF_ISOM_SUBTYPE_STPP:
     {
         const char *xmlnamespace;

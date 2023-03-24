@@ -1658,6 +1658,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_4CC('G','M','C','C'), unkn, "GMCW", "GPAC"),
 
 	/* for now we don't parse these*/
+	BOX_DEFINE_S(GF_ISOM_SUBTYPE_UNCV, unkn, "stsd", "rawff"),
 	BOX_DEFINE_S(GF_4CC('u','n','c','C'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('c','m','p','d'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('c','p','a','l'), unkn, "video_sample_entry ipco", "rawff"),
@@ -1667,9 +1668,11 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_4CC('s','n','u','c'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('s','b','p','m'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('c','l','o','c'), unkn, "video_sample_entry ipco", "rawff"),
-	BOX_DEFINE_S(GF_4CC('f','p','c','k'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('f','p','a','c'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('d','i','s','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('d','e','p','i'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('i','l','c','p'), unkn, "ipco", "rawff"),
+
 
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),

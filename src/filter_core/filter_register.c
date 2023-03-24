@@ -144,6 +144,7 @@ const GF_FilterRegister *hevcmerge_register(GF_FilterSession *session);
 const GF_FilterRegister *jsfilter_register(GF_FilterSession *session);
 const GF_FilterRegister *m2tssplit_register(GF_FilterSession *session);
 const GF_FilterRegister *httpout_register(GF_FilterSession *session);
+const GF_FilterRegister *uncvdec_register(GF_FilterSession *session);
 
 #if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_HAVE_DTAPI) && !defined(WIN32) 
 const GF_FilterRegister *dtout_register(GF_FilterSession *session);
@@ -332,6 +333,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 
 	gf_fs_add_filter_register(fsess, unframer_register(a_sess) );
 	gf_fs_add_filter_register(fsess, writeuf_register(a_sess) );
+	gf_fs_add_filter_register(fsess, uncvdec_register(a_sess) );
 
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
 	gf_fs_add_filter_register(fsess, wcdec_register(a_sess) );

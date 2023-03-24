@@ -2184,6 +2184,13 @@ sample_entry_setup:
 		}
 		break;
 
+	case GF_CODECID_RAW_UNCV:
+		m_subtype = GF_ISOM_SUBTYPE_UNCV;
+		unknown_generic = GF_FALSE;
+		use_gen_sample_entry = GF_TRUE;
+		use_m4sys = GF_FALSE;
+		break;
+
 	default:
 		m_subtype = codec_id;
 		unknown_generic = GF_TRUE;
@@ -4951,6 +4958,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		media_brand = GF_ISOM_BRAND_VVIC;
 		break;
 	case GF_CODECID_RAW:
+	case GF_CODECID_RAW_UNCV:
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PIXFMT);
 		if (p && (p->value.uint==GF_PIXEL_UNCV)) {
 			image_props.config_ba = dsi->value.data.ptr;

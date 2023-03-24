@@ -1832,9 +1832,8 @@ skip_date:
 						FSESS_CHECK_THREAD(filter)
 						filter->freg->update_arg(filter, a->arg_name, &argv);
 						opaque_arg = GF_FALSE;
-
-						if ((argv.type==GF_PROP_STRING) && argv.value.string)
-							gf_free(argv.value.string);
+						if ((argv.type==GF_PROP_STRING) || (argv.type==GF_PROP_STRING_LIST))
+							gf_props_reset_single(&argv);
 					}
 				}
 				break;

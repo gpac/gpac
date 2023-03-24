@@ -267,6 +267,7 @@
     <ClCompile Include="..\..\src\filters\dec_theora.c" />
     <ClCompile Include="..\..\src\filters\dec_ttml.c" />
     <ClCompile Include="..\..\src\filters\dec_ttxt.c" />
+    <ClCompile Include="..\..\src\filters\dec_uncv.c" />
     <ClCompile Include="..\..\src\filters\dec_vorbis.c" />
     <ClCompile Include="..\..\src\filters\dec_vtb.c" />
     <ClCompile Include="..\..\src\filters\dec_webvtt.c" />
