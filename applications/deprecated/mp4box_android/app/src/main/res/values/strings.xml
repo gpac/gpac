@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="hello">Hello World, mp4box!</string>
-    <string name="app_name">mp4box</string>
-    <string name="CommandLineTitle">Command Line arguments (without the MP4Box prefix):</string>
-    <string name="OkButton">Ok</string>
-</resources>
