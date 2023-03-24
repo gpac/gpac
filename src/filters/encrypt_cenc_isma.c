@@ -2651,7 +2651,7 @@ static const GF_FilterArgs GF_CENCEncArgs[] =
 
 GF_FilterRegister CENCEncRegister = {
 	.name = "cecrypt",
-	GF_FS_SET_DESCRIPTION("CENC  encryptor")
+	GF_FS_SET_DESCRIPTION("CENC encryptor")
 	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
 	"The DRM config file can be set per PID using the property `CryptInfo`, or set at the filter level using [-cfile]().\n"

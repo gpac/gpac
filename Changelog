@@ -1,34 +1,34 @@
 # On-going: GPAC 2.3-DEV
 
 ## Emscripten support
-- session can run in worker or in main browser loop
-- automatic disable of ffdec and ffenc threads when not running in worker
-- use fetch() api for downloader
-- support for WebCodecs
-- support for getUserMedia and canvas readable streams
+- Session can run in worker or in main browser loop
+- Automatic disable of ffdec and ffenc threads when not running in worker
+- Use fetch() api for downloader
+- Support for WebCodecs
+- Support for getUserMedia and canvas readable streams
 - gpac.html demo page
 
 
 ## Media Formats
-- fixes in text subtitle converters
-- improved DV muxing from mkv
-- dasher support for inputs with multiple studs entries
+- Fixes in text subtitle converters
+- Improved DV muxing from mkv
+- Dasher support for inputs with multiple stsd entries
 - Allow multiplexed representations for LL-HLS
 - Improved eac3 support
 
 ## Filters
-- async HTTP request in all filters
-- fixed cors and mime types in httpout for wasm and sharedArrayuffer support
-- allow compilation without threads
-- allow compilation without network
-- fixed GF_FileIO for async read and write modes
-- added seeking in mp4dmx in mem mode
+- Async HTTP request in all filters
+- Fixed cors and mime types in httpout for wasm and sharedArrayuffer support
+- Allow compilation without threads
+- Allow compilation without network
+- Fixed GF_FileIO for async read and write modes
+- Added seeking in mp4dmx in mem mode
 - vout updated to use VBO (required for gles2)
-- allow ffdmx to work as demux filter on gpac input file pids
+- Allow ffdmx to work as demux filter on gpac input file pids
 
 ## Misc
 - FFMPEG 6 support
-- added features for configure (vout, aout, fonts, doc, evg)
+- Added features for configure (vout, aout, fonts, doc, evg)
 
 
 # 19/12/2022: GPAC 2.2
@@ -44,11 +44,11 @@
 - Improved DolbyVision muxing
 
 ## Media player
-- subtitle delay and position adjustment
-- audio delay adjustment
+- Subtitle delay and position adjustment
+- Audio delay adjustment
 
 ## MP4Box
-- allow numbers and media types as identifiers for track actions
+- Allow numbers and media types as identifiers for track actions
 - dlba option to update atmos+ec3 signaling
 
 ## Filters
@@ -56,11 +56,11 @@
 - Thumbnail generator filter
 - Added unframer filter
 - FFMPEG bitstream filters support
-- initseg support in mp4dmx filter
+- Initseg support in mp4dmx filter
 - Access to GPU textures of decoders in Python and JSF bindings (glpush filter for tests)
 - Chapters editing and original timestamp dispatch in reformer range extraction 
-- dual in-band and out-of-band parameter set support in dasher
-- non-blocking IO for RTSP and HTTP servers/clients
+- Dual in-band and out-of-band parameter set support in dasher
+- Non-blocking IO for RTSP and HTTP servers/clients
 - RTSP over HTTP in rtsp server
 - Source-Specific multicast for udp and rtp inputs
 - User Authentication for HTTP and RTSP servers
@@ -72,7 +72,7 @@
 
 ## Misc
 - QT metadata tags in MP4Box and qt muxer 
-- support for some packet properties in URL templates 
+- Support for some packet properties in URL templates
 
 ## DEPRECATED
 - Removed GF_Terminal API
