@@ -1279,7 +1279,8 @@ restart:
 	if (!gf_list_count(loaded_filters) && !session_js) {
 		if (nothing_to_do && !gen_doc) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Nothing to do, check usage \"gpac -h\"\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright_cite()));
-			e = GF_BAD_PARAM;
+			if (argc > 1)
+				e = GF_BAD_PARAM;
 		} else {
 			e = GF_EOS;
 		}
