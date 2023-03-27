@@ -1115,7 +1115,6 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 			switch (action_code) {
 			/* SWF 3 Action Model */
 			case 0x81: /* goto frame */
-				assert (length == 2);
 				act.type = GF_SWF_AS3_GOTO_FRAME;
 				act.frame_number = swf_get_16(read);
 				read->action(read, &act);
@@ -1125,8 +1124,8 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 				act.url = swf_get_string(read);
 				act.target = swf_get_string(read);
 				read->action(read, &act);
-				gf_free(act.url);
-				gf_free(act.target);
+				if (act.url) gf_free(act.url);
+				if (act.target) gf_free(act.target);
 				break;
 			/* next frame */
 			case 0x04:
@@ -1148,7 +1147,6 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 				DO_ACT(GF_SWF_AS3_STOP_SOUNDS)
 			/* wait for frame */
 			case 0x8A:
-				assert (length == 3);
 				act.type = GF_SWF_AS3_WAIT_FOR_FRAME;
 				act.frame_number = swf_get_16(read);
 				skip_actions = swf_read_int(read, 8);
@@ -1159,14 +1157,14 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 				act.type = GF_SWF_AS3_SET_TARGET;
 				act.target = swf_get_string(read);
 				read->action(read, &act);
-				gf_free(act.target);
+				if (act.target) gf_free(act.target);
 				break;
 			/* goto label */
 			case 0x8C:
 				act.type = GF_SWF_AS3_GOTO_LABEL;
 				act.target = swf_get_string(read);
 				read->action(read, &act);
-				gf_free(act.target);
+				if (act.target) gf_free(act.target);
 				break;
 			default:
 //				swf_report(read, GF_OK, "Skipping unsupported action %x", action_code);
@@ -1174,6 +1172,8 @@ static GF_Err swf_actions(SWFReader *read, u32 mask, u32 key)
 				break;
 			}
 		}
+		if (gf_bs_is_overflow(read->bs))
+			return GF_NON_COMPLIANT_BITSTREAM;
 		action_code = swf_read_int(read, 8);
 	}
 #undef DO_ACT
