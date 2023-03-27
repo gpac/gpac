@@ -611,6 +611,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 				memcpy(ctx->hdr_store, start+remain-3, 3);
 				remain -= 3;
 				ctx->bytes_in_header = 3;
+				current=0; //skip test below
 			}
 			size = remain;
 			full_frame = GF_FALSE;
