@@ -948,7 +948,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			if ((arg[0] != '-') || ! arg[1]) {
 				continue;
 			}
-			if (arg_val && (!strcmp(arg_val, "no") || !strcmp(arg_val, "false") || !strcmp(arg_val, "°0") ) )
+			if (arg_val && (!strcmp(arg_val, "no") || !strcmp(arg_val, "false") || !strcmp(arg_val, "0") ) )
 				bool_value = GF_FALSE;
 
 
