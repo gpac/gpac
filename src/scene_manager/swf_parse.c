@@ -337,6 +337,10 @@ static char *swf_get_string(SWFReader *read)
 		name = szName;
 	}
 	while (1) {
+		if (i>=read->size) {
+			read->ioerr = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
 		name[i] = swf_read_int(read, 8);
 		if (!name[i]) break;
 		i++;
@@ -2415,15 +2419,17 @@ GF_Err swf_parse_tag(SWFReader *read)
 	diff = pos + read->size;
 	gf_set_progress("SWF Parsing", pos, read->length);
 
+	read->ioerr = GF_OK;
 	e = swf_process_tag(read);
 	swf_align(read);
+	if (!e) e = read->ioerr;
 
 	diff -= swf_get_file_pos(read);
 	if (diff<0) {
 		swf_report(read, GF_IO_ERR, "tag %s over-read of %d bytes (size %d)", swf_get_tag_name(read->tag), -1*diff, read->size);
 		return GF_IO_ERR;
 	} else {
-		swf_read_int(read, diff*8);
+		gf_bs_skip_bytes(read->bs, diff);
 	}
 
 
