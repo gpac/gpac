@@ -222,6 +222,7 @@ Bool hls_clock, do_mpd_rip, merge_vtt_cues, get_nb_tracks, no_inplace, merge_las
 Bool insert_utc, chunk_mode, HintCopy, hint_no_offset, do_bin_xml, frag_real_time, force_co64, live_scene, use_mfra, dump_iod, samplegroups_in_traf;
 Bool mvex_after_traks, daisy_chain_sidx, use_ssix, single_segment, single_file, segment_timeline, has_add_image;
 Bool strict_cues, use_url_template, seg_at_rap, frag_at_rap, memory_frags, keep_utc, has_next_arg, no_cache, no_loop;
+Bool conv_type_from_ext;
 
 u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
 u32 nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, minor_version, conv_type, nb_tsel_acts;
@@ -283,6 +284,7 @@ static void init_global_vars()
 	use_mfra = dump_iod = samplegroups_in_traf = mvex_after_traks = daisy_chain_sidx = use_ssix = single_segment = single_file = GF_FALSE;
 	segment_timeline = has_add_image = strict_cues = use_url_template = seg_at_rap = frag_at_rap = memory_frags = keep_utc = GF_FALSE;
 	has_next_arg = no_cache = no_loop = GF_FALSE;
+	conv_type_from_ext = GF_FALSE;
 
 	/*align cat is the new default behavior for -cat*/
 	align_cat=GF_TRUE;
@@ -6366,6 +6368,8 @@ int mp4box_main(int argc, char **argv)
 		else if (!stricmp(szExt, ".mov") || !stricmp(szExt, ".qt"))
 			conv_type = GF_ISOM_CONV_TYPE_MOV;
 
+		if (conv_type)
+			conv_type_from_ext = GF_TRUE;
 		//remove extension from outfile
 		*szExt = 0;
 	}
@@ -6580,6 +6584,12 @@ int mp4box_main(int argc, char **argv)
 				strcat(outfile, ".m21");
 			}
 		}
+
+		if (conv_type_from_ext) {
+			if (!no_inplace && gf_isom_is_inplace_rewrite(file))
+				conv_type = 0;
+		}
+
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if ((conv_type == GF_ISOM_CONV_TYPE_ISMA) || (conv_type == GF_ISOM_CONV_TYPE_ISMA_EX)) {
 			M4_LOG(GF_LOG_INFO, ("Converting to ISMA Audio-Video MP4 file\n"));
