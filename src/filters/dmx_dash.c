@@ -3387,8 +3387,6 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 	if (gf_dash_is_in_setup(ctx->dash))
 		gf_filter_post_process_task(filter);
-	else if (ctx->abort)
-		gf_filter_ask_rt_reschedule(filter, 50000);
 	else if (next_time_ms)
 		gf_filter_ask_rt_reschedule(filter, 1000 * next_time_ms);
 
