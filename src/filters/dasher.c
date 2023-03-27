@@ -6767,17 +6767,19 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 			}
 #endif
 
-			assert(base_ds->segment_started);
-			base_ds->segment_started = GF_FALSE;
+			//it may happen that we get a reconfigure triggered while no segment is active
+			if (base_ds->segment_started) {
+				base_ds->segment_started = GF_FALSE;
 
-			base_ds->next_seg_start += (u64) (base_ds->dash_dur.num) * base_ds->timescale / base_ds->dash_dur.den;
-			while (base_ds->next_seg_start <= base_ds->adjusted_next_seg_start) {
 				base_ds->next_seg_start += (u64) (base_ds->dash_dur.num) * base_ds->timescale / base_ds->dash_dur.den;
-				if (ctx->skip_seg)
-					base_ds->seg_number ++;
+				while (base_ds->next_seg_start <= base_ds->adjusted_next_seg_start) {
+					base_ds->next_seg_start += (u64) (base_ds->dash_dur.num) * base_ds->timescale / base_ds->dash_dur.den;
+					if (ctx->skip_seg)
+						base_ds->seg_number ++;
+				}
+				base_ds->adjusted_next_seg_start = base_ds->next_seg_start;
+				base_ds->seg_number ++;
 			}
-			base_ds->adjusted_next_seg_start = base_ds->next_seg_start;
-			base_ds->seg_number ++;
 		}
 	}
 
