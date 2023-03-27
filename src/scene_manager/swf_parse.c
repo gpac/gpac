@@ -98,8 +98,12 @@ static void swf_init_decompress(SWFReader *read)
 	uLongf destLen;
 	char *src, *dst;
 
-	assert(gf_bs_get_size(read->bs)-8 < (u64)1<<31); /*must fit within 32 bits*/
 	size = (u32) gf_bs_get_size(read->bs)-8;
+	if (gf_bs_get_size(read->bs) - 8 >= (u64)1<<31) {
+		gf_bs_del(read->bs);
+		read->bs = NULL;
+		return;
+	}
 	dst_size = read->length;
 	src = gf_malloc(sizeof(char)*size);
 	dst = gf_malloc(sizeof(char)*dst_size);
@@ -2620,6 +2624,7 @@ GF_Err gf_swf_read_header(SWFReader *read)
 	/*if compressed decompress the whole file*/
 	if (sig[0] == 'C') {
 		swf_init_decompress(read);
+		if (!read->bs) return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	swf_get_rec(read, &rc);
