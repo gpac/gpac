@@ -812,10 +812,10 @@ void PrintDASHUsage()
 		"- :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used\n"
 		"- :asID=VALUE: set the AdaptationSet ID to VALUE (unsigned int)\n"
 		"- :role=VALUE: set the role of this representation (cf DASH spec). Media with different roles belong to different adaptation sets.\n"
-		"- :desc_p=VALUE: add a descriptor at the Period level. Value must be a properly formatted XML element.\n"
-		"- :desc_as=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Two input files with different values will be in different AdaptationSet elements.\n"
-		"- :desc_as_c=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.\n"
-		"- :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.\n"
+		"- :desc_p=VALUE: add a descriptor at the Period level.\n"
+		"- :desc_as=VALUE: add a descriptor at the AdaptationSet level. Two input files with different values will be in different AdaptationSet elements.\n"
+		"- :desc_as_c=VALUE: add a descriptor at the AdaptationSet level. Value is ignored while creating AdaptationSet elements.\n"
+		"- :desc_rep=VALUE: add a descriptor at the Representation level. Value is ignored while creating AdaptationSet elements.\n"
 		"- :sscale: force movie timescale to match media timescale of the first track in the segment.\n"
 		"- :trackID=N: only use the track ID N from the source file\n"
 		"- @f1[:args][@fN:args][@@fK:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](filters_general). If several filters are set:\n"
@@ -828,6 +828,7 @@ void PrintDASHUsage()
 		"\n"
 		"Note: `@f` must be placed after all other options.\n"
 		"\n"
+		"Note: Descriptors value must be a properly formatted XML element(s), value is not checked. Syntax can use `file@FILENAME` to load content from file.\n"
 		"# Options\n"
 		);
 
