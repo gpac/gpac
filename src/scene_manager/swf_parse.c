@@ -1217,6 +1217,7 @@ static GF_Err swf_def_button(SWFReader *read, u32 revision)
 		else gf_cmx_init(&rec->cmx);
 		gf_bs_align(read->bs);
 		button.count++;
+		if (button.count>=40) return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	read->define_button(read, &button);
 	if (revision==0) {
