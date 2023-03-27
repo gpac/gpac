@@ -7764,6 +7764,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 					gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **) &sgd_dst);
 					if (!sgd_dst) return GF_OUT_OF_MEM;
 					gf_list_add(dst_trak->Media->information->sampleTable->sampleGroupsDescription, sgd_dst);
+					gf_list_add(dst_trak->Media->information->sampleTable->child_boxes, sgd_dst);
 				}
 
 				//find the same entry
