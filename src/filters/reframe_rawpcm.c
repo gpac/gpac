@@ -250,6 +250,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 
 	if (ctx->probe_wave==1) {
 		Bool wav_ok = GF_TRUE;
+		Bool hdr_found = GF_FALSE;
 		GF_BitStream *bs;
 		if (ctx->probe_data) {
 			ctx->probe_data = gf_realloc(ctx->probe_data, ctx->probe_data_size+pck_size);
@@ -280,6 +281,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 				continue;
 			}
 			//parse fmt
+			hdr_found = GF_TRUE;
 			u16 atype = gf_bs_read_u16_le(bs);
 			ctx->ch = gf_bs_read_u16_le(bs);
 			ctx->sr = gf_bs_read_u32_le(bs);
@@ -312,11 +314,13 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 				memcpy(ctx->probe_data, data, pck_size);
 				ctx->probe_data_size = pck_size;
 			}
-			if (ctx->probe_data_size<=10000) {
-				gf_filter_pid_drop_packet(ctx->ipid);
-				return GF_OK;
+			if (!hdr_found) {
+				if (ctx->probe_data_size<=10000) {
+					gf_filter_pid_drop_packet(ctx->ipid);
+					return GF_OK;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[PCMReframe] Cannot find wave data chunk after %d bytes, aborting\n", ctx->probe_data_size));
 			}
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[PCMReframe] Cannot find wave data chink afetr %d bytes, aborting\n", ctx->probe_data_size));
 			wav_ok = GF_FALSE;
 		}
 
