@@ -1242,11 +1242,26 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	}
 }
 
+static u32 inspect_get_analyze_mode()
+{
+	u32 i, nb_args = gf_sys_get_argc();
+	for (i=1;i<nb_args;i++) {
+		const char *arg = gf_sys_get_arg(i);
+		if (!strncmp(arg, "--analyze=", 10)) {
+			if (!strcmp(arg+10, "on")) return INSPECT_ANALYZE_ON;
+			else if (!strcmp(arg+10, "bs")) return INSPECT_ANALYZE_BS;
+			else if (!strcmp(arg+10, "full")) return INSPECT_ANALYZE_BS_BITS;
+			return INSPECT_ANALYZE_OFF;
+		}
+	}
+	return INSPECT_ANALYZE_OFF;
+}
+
 GF_EXPORT
 void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted)
 {
 	if (!dump) return;
-	gf_inspect_dump_nalu_internal(dump, ptr, ptr_size, is_svc, hevc, avc, vvc, nalh_size, dump_crc, is_encrypted, 0, NULL);
+	gf_inspect_dump_nalu_internal(dump, ptr, ptr_size, is_svc, hevc, avc, vvc, nalh_size, dump_crc, is_encrypted, inspect_get_analyze_mode(), NULL);
 }
 
 static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
@@ -1394,7 +1409,7 @@ GF_EXPORT
 void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
 {
 	if (!dump) return;
-	gf_inspect_dump_obu_internal(dump, av1, obu_ptr, obu_ptr_length, obu_type, obu_size, hdr_size, dump_crc, NULL, 0);
+	gf_inspect_dump_obu_internal(dump, av1, obu_ptr, obu_ptr_length, obu_type, obu_size, hdr_size, dump_crc, NULL, inspect_get_analyze_mode());
 }
 
 static void gf_inspect_dump_prores_internal(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx)
