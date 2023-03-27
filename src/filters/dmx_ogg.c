@@ -301,6 +301,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to allocate stream for demux\n"));
 			return;
 		}
+		gf_list_add(ctx->streams, st);
 	}
 	st->eos_detected = GF_FALSE;
 	st->serial_no = serial_no;
@@ -310,7 +311,6 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	ogg_stream_packetpeek(&st->os, &oggpacket);
 	oggdmx_get_stream_info(&oggpacket, &st->info);
 
-	gf_list_add(ctx->streams, st);
 	st->parse_headers = st->info.num_init_headers;
 	switch (st->info.type) {
 	case GF_CODECID_VORBIS:
