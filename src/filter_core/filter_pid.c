@@ -62,13 +62,17 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 	gf_list_del(pidinst->pck_reassembly);
 	if (pidinst->props) {
 		assert(pidinst->props->reference_count);
-		if (safe_int_dec(&pidinst->props->reference_count) == 0) {
-			//see \ref gf_filter_pid_merge_properties_internal for mutex
-			gf_mx_p(pidinst->pid->filter->tasks_mx);
-			gf_list_del_item(pidinst->pid->properties, pidinst->props);
-			gf_mx_v(pidinst->pid->filter->tasks_mx);
-			gf_props_del(pidinst->props);
+		gf_mx_p(pidinst->pid->filter->tasks_mx);
+		//not in parent pid, may happen when reattaching a pid inst to a different pid
+		//in this case do NOT delete the props
+		if (gf_list_find(pidinst->pid->properties, pidinst->props)>=0) {
+			if (safe_int_dec(&pidinst->props->reference_count) == 0) {
+				//see \ref gf_filter_pid_merge_properties_internal for mutex
+				gf_list_del_item(pidinst->pid->properties, pidinst->props);
+				gf_props_del(pidinst->props);
+			}
 		}
+		gf_mx_v(pidinst->pid->filter->tasks_mx);
 	}
 	gf_free(pidinst);
 }
@@ -1025,8 +1029,15 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 						if (!target->detached_pid_inst) {
 							target->detached_pid_inst = gf_list_new();
 						}
-						//detach props but don't delete them
+						//detach props
 						if (filter->swap_pidinst_dst->props) {
+							GF_FilterPidInst *swap_pidi = filter->swap_pidinst_dst;
+							if (safe_int_dec(&swap_pidi->props->reference_count)==0) {
+								gf_mx_p(swap_pidi->pid->filter->tasks_mx);
+								gf_list_del_item(swap_pidi->pid->properties, pidinst->props);
+								gf_mx_v(swap_pidi->pid->filter->tasks_mx);
+								gf_props_del(pidinst->props);
+							}
 							filter->swap_pidinst_dst->props = NULL;
 						}
 						filter->swap_pidinst_dst->pid = NULL;
@@ -1275,7 +1286,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	//first connection of this PID to this filter
 	if (!pidinst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not present in filter %s inputs\n",  pid->name, filter->name));
-		assert(!new_chain_input->swap_pidinst_dst);
+		//when swaping encoder, we may have swap_pidinst_dst not NULL so only check swap_pidinst_src
 		assert(!new_chain_input->swap_pidinst_src);
 		new_chain_input->swap_needs_init = GF_FALSE;
 		return;
@@ -5880,7 +5891,7 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 		}
 		src_props = pidi->props;
 	}
-	//move to rela pid
+	//move to real pid
 	src_pid = src_pid->pid;
 	//this is a copy props on output pid
 	if (!src_props) {
