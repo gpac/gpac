@@ -1266,6 +1266,10 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 			}
 		} else {
 			bs->position += nbBytes;
+			if (bs->position>bs->size) {
+				bs->position = bs->size;
+				bs->overflow_state = 1;
+			}
 		}
 		return;
 	}
