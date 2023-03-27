@@ -1995,6 +1995,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 				n = str2ulong(hdrl_data+i+4);
 				n = PAD_EVEN(n);
+				if (i+n>hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 
 				/* Interpret the tag and its args */
