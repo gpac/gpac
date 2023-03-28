@@ -1164,6 +1164,42 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		for (j=0; j<(u32) stream->nb_side_data; j++) {
 			ffdmx_parse_side_data(&stream->side_data[i], pid);
 		}
+
+		if (ctx->demuxer->nb_chapters) {
+			GF_PropertyValue p;
+			GF_PropUIntList times;
+			GF_PropStringList names;
+			u32 nb_c = ctx->demuxer->nb_chapters;
+
+			times.vals = gf_malloc(sizeof(u32)*nb_c);
+			names.vals = gf_malloc(sizeof(char *)*nb_c);
+			memset(names.vals, 0, sizeof(char *)*nb_c);
+			times.nb_items = names.nb_items = nb_c;
+
+			for (j=0; j<ctx->demuxer->nb_chapters; j++) {
+				AVChapter *c = ctx->demuxer->chapters[j];
+				u64 start = gf_timestamp_rescale(c->start * c->time_base.num, c->time_base.den, 1000);
+				times.vals[j] = (u32) start;
+				AVDictionaryEntry *ent = NULL;
+				while (c->metadata) {
+					ent = av_dict_get(c->metadata, "", ent, AV_DICT_IGNORE_SUFFIX);
+					if (!ent) break;
+					if (!strcmp(ent->key, "title")) {
+						names.vals[j] = gf_strdup(ent->value);
+					}
+				}
+				if (!names.vals[j]) names.vals[j] = gf_strdup("Unknwon");
+			}
+			p.type = GF_PROP_UINT_LIST;
+			p.value.uint_list = times;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CHAP_TIMES, &p);
+			gf_free(times.vals);
+
+			p.type = GF_PROP_STRING_LIST;
+			p.value.string_list = names;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CHAP_NAMES, &p);
+			//no free for string lists
+		}
 	}
 
 	if (!nb_a && !nb_v && !nb_t)
