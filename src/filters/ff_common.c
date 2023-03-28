@@ -131,7 +131,8 @@ void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
 		ent = av_dict_get(metadata, "", ent, AV_DICT_IGNORE_SUFFIX);
 		if (!ent) break;
 		if (!strncmp(ent->key, "NUMBER_OF_FRAMES", 16)) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT( atoi(ent->value) ) );
+			//don't export this info, is it often unreliable and exporting it would break import progress in mp4mx
+//			gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT( atoi(ent->value) ) );
 			continue;
 		}
 		if (!strncmp(ent->key, "_STATISTICS_WRITING_APP", 23)) {
