@@ -52,7 +52,7 @@ typedef struct
 	u64 ts_offset;
 	Bool mkv_webvtt;
 	u32 vc1_mode;
-	u64 fake_dts;
+	u64 fake_dts_plus_one, fake_dts_orig;
 	Bool fake_dts_set;
 } PidCtx;
 
@@ -456,7 +456,11 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	if (ctx->raw_pck_out)
 		return GF_EOS;
 
-	u32 would_block=0, pids=0;
+	u32 would_block, pids;
+
+restart:
+
+	would_block = pids = 0;
 	for (i=0; i<ctx->nb_streams; i++) {
 		if (!ctx->pids_ctx[i].pid) continue;
 		pids++;
@@ -466,11 +470,10 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 			would_block++;
 	}
 	if (would_block == pids) {
-		gf_filter_ask_rt_reschedule(filter, 0);
+		gf_filter_ask_rt_reschedule(filter, 1000);
 		return GF_OK;
 	}
 
-restart:
 	sample_time = gf_sys_clock_high_res();
 
 	FF_INIT_PCK(ctx, pkt)
@@ -661,19 +664,26 @@ restart:
 		ts = (pkt->pts + pctx->ts_offset-1) * stream->time_base.num;
 		gf_filter_pck_set_cts(pck_dst, ts );
 
+		//trick for some demuxers in libavformat no setting dts when negative (mkv for ex)
+		if (!pctx->fake_dts_plus_one) {
+			pctx->fake_dts_plus_one = 1+ts;
+			pctx->fake_dts_orig = ts;
+		}
+
 		if (pkt->dts != AV_NOPTS_VALUE) {
-			ts = (pctx->fake_dts + pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
+			ts = (pctx->fake_dts_plus_one-1 - pctx->fake_dts_orig + pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
-			if (!pctx->fake_dts_set && pctx->fake_dts) {
-				s64 offset = pctx->fake_dts;
-				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
+			if (!pctx->fake_dts_set && pctx->fake_dts_plus_one) {
+				s64 offset = pctx->fake_dts_plus_one-1;
+				offset -= pctx->fake_dts_orig;
+				if (offset)
+					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
 				pctx->fake_dts_set = GF_TRUE;
 			}
 		} else {
-			//trick for some demuxers in libavformat no setting dts when negative (mkv for ex)
-			ts = pctx->fake_dts;
+			ts = pctx->fake_dts_plus_one-1;
 			gf_filter_pck_set_dts(pck_dst, ts);
-			pctx->fake_dts += pkt->duration;
+			pctx->fake_dts_plus_one += pkt->duration;
 		}
 
 		if (pkt->duration)
@@ -726,10 +736,16 @@ restart:
 	nb_pck++;
 	if (e || (nb_pck>10)) return e;
 
-	if (ctx->ipid && ctx->strbuf_size && (ctx->strbuf_offset*2 > ctx->strbuf_size)) {
-		gf_filter_post_process_task(filter);
+	//we demux an input, restart to flush it
+	if (ctx->ipid) {
+		if (ctx->strbuf_size && (ctx->strbuf_offset*2 > ctx->strbuf_size)) {
+			gf_filter_post_process_task(filter);
+		}
+		goto restart;
 	}
-	goto restart;
+
+	//we don't demux an input, only rely on session to schedule the filter
+	return GF_OK;
 }
 
 
