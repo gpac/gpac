@@ -406,7 +406,7 @@ static const GF_FilterCapability FFBSFCaps[] =
 
 GF_FilterRegister FFBSFRegister = {
 	.name = "ffbsf",
-	.version = LIBAVCODEC_IDENT,
+	.version = LIBAVUTIL_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG BitStream filter")
 	GF_FS_SET_HELP("This filter provides bitstream filters (BSF) for compressed audio and video formats.\n"
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details\n"
