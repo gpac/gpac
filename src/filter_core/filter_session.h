@@ -121,7 +121,7 @@ void *gf_fq_pop(GF_FilterQueue *fq);
 void *gf_fq_head(GF_FilterQueue *fq);
 u32 gf_fq_count(GF_FilterQueue *fq);
 void *gf_fq_get(GF_FilterQueue *fq, u32 idx);
-void gf_fq_enum(GF_FilterQueue *fq, Bool (*enum_func)(void *udta1, void *item), void *udta);
+void gf_fq_enum(GF_FilterQueue *fq, void (*enum_func)(void *udta1, void *item), void *udta);
 
 
 typedef void (*gf_destruct_fun)(void *cbck);

@@ -80,7 +80,7 @@ typedef struct
 	GF_FilterPacket *closest;
 } GF_PckQueueEnum;
 
-static Bool pck_queue_enum(void *udta, void *item)
+static void pck_queue_enum(void *udta, void *item)
 {
 	GF_PckQueueEnum *enum_state = (GF_PckQueueEnum *) udta;
 	GF_FilterPacket *cur = (GF_FilterPacket *) item;
@@ -97,7 +97,6 @@ static Bool pck_queue_enum(void *udta, void *item)
 	}
 	//otherwise find largest one below our target size
 	else if (enum_state->closest->alloc_size < cur->alloc_size) enum_state->closest = cur;
-	return GF_FALSE;
 }
 
 static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, u8 **data)
