@@ -3990,7 +3990,37 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 		fprintf(stderr, "\nChapters:\n");
 		for (i=0; i<count; i++) {
 			gf_isom_get_chapter(file, 0, i+1, &time, &name);
-			fprintf(stderr, "\tChapter #%d - %s - \"%s\"\n", i+1, format_duration(time, 1000, szDur), name);
+			fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(time, 1000, szDur), name);
+		}
+	} else {
+		u32 chap_tk=0;
+		count = gf_isom_get_track_count(file);
+		for (i=0; i<count; i++) {
+			u32 nb_ref = gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_CHAP);
+			if (nb_ref) {
+				gf_isom_get_reference(file, i+1, GF_ISOM_REF_CHAP, 1, &chap_tk);
+				break;
+			}
+		}
+		if (chap_tk) {
+			count = gf_isom_get_sample_count(file, chap_tk);
+			if (!count) chap_tk=0;
+		}
+		if (chap_tk) {
+			fprintf(stderr, "\nChapter Track:\n");
+			for (i=0; i<count; i++) {
+				u32 di;
+				GF_ISOSample *s = gf_isom_get_sample(file, chap_tk, i+1, &di);
+				if (!s) continue;
+				GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
+				GF_TextSample *txt = gf_isom_parse_text_sample(bs);
+				if (txt) {
+					fprintf(stderr, "\t#%d - %s - \"%s\"\n", i+1, format_duration(s->DTS, 1000, szDur), txt->text);
+					gf_isom_delete_text_sample(txt);
+				}
+				gf_bs_del(bs);
+				gf_isom_sample_del(&s);
+			}
 		}
 	}
 
