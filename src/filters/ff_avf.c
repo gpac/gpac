@@ -1045,7 +1045,7 @@ static const GF_FilterCapability FFAVFilterCaps[] =
 
 GF_FilterRegister FFAVFilterRegister = {
 	.name = "ffavf",
-	.version = LIBAVFORMAT_IDENT,
+	.version = LIBAVFILTER_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG AVFilter")
 	GF_FS_SET_HELP("This filter provides libavfilter raw audio and video tools.\n"
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details\n"
