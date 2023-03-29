@@ -927,10 +927,9 @@ const GF_FilterRegister * gf_fs_get_filter_register(GF_FilterSession *fsess, u32
 }
 
 #ifdef CHECK_TASK_LIST_INTEGRITY
-static Bool check_task_list_enum(void *udta, void *item)
+static void check_task_list_enum(void *udta, void *item)
 {
 	assert(udta != item);
-	return GF_FALSE;
 }
 static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 {

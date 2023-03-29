@@ -325,7 +325,7 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 	return data;
 }
 
-void gf_fq_enum(GF_FilterQueue *fq, Bool (*enum_func)(void *udta1, void *item), void *udta)
+void gf_fq_enum(GF_FilterQueue *fq, void (*enum_func)(void *udta1, void *item), void *udta)
 {
 	GF_LFQItem *it;
 	if (!enum_func) return;
@@ -336,16 +336,14 @@ void gf_fq_enum(GF_FilterQueue *fq, Bool (*enum_func)(void *udta1, void *item), 
 		it = fq->head;
 
 		while (it) {
-			if (!enum_func(udta, it->data))
-				break;
+			enum_func(udta, it->data);
 			it = it->next;
 		}
 		gf_mx_v(fq->mx);
 	} else {
 		it = fq->head->next;
 		while (it) {
-			if (!enum_func(udta, it->data))
-				break;
+			enum_func(udta, it->data);
 			it = it->next;
 		}
 	}

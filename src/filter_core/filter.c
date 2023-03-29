@@ -3375,11 +3375,10 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 
 //#define DUMP_TASKS
 #if !defined(GPAC_DISABLE_LOG) && defined DUMP_TASKS
-static Bool task_postponed_log(void *udta, void *item)
+static void task_postponed_log(void *udta, void *item)
 {
 	GF_FSTask *at = (GF_FSTask *)item;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\ttask %s\n", at->log_name));
-	return GF_FALSE;
 }
 #endif
 
