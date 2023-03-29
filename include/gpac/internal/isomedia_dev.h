@@ -4068,7 +4068,9 @@ struct __tag_isom {
 	u64 segment_start;
 
 	GF_List *moof_list;
-	Bool use_segments, moof_first, append_segment, styp_written, force_moof_base_offset;
+	Bool use_segments, moof_first, append_segment, force_moof_base_offset;
+	//0: don' write, 1: write and modif, 2: write as is
+	u32 write_styp;
 
 	GF_List *emsgs;
 

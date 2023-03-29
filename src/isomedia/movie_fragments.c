@@ -1395,25 +1395,25 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *movie, s32 subsegs_per_sidx, Bool daisy
 static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 {
 	/*write STYP if we write to a different file or if we write the last segment*/
-	if (movie->use_segments && !movie->append_segment && !movie->segment_start && !movie->styp_written) {
+	if (movie->use_segments && !movie->append_segment && !movie->segment_start && movie->write_styp) {
 		GF_Err e;
 
 		/*modify brands STYP*/
-
-		/*"msix" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, GF_TRUE);
-		if (last_segment) {
-			/*"lmsg" brand: this is the last DASH Segment*/
-			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_LMSG, GF_TRUE);
+		if (movie->write_styp==1) {
+			/*"msix" brand: this is a DASH Initialization Segment*/
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, GF_TRUE);
+			if (last_segment) {
+				/*"lmsg" brand: this is the last DASH Segment*/
+				gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_LMSG, GF_TRUE);
+			}
 		}
-
 		movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
 		e = gf_isom_box_size((GF_Box *) movie->brand);
 		if (e) return e;
 		e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
 		if (e) return e;
 
-		movie->styp_written = GF_TRUE;
+		movie->write_styp = 0;
 	}
 
 	if (movie->emsgs) {
@@ -2419,7 +2419,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 		if (movie->editFileMap) gf_isom_datamap_del(movie->editFileMap);
 		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, &movie->editFileMap);
 		movie->segment_start = 0;
-		movie->styp_written = GF_FALSE;
+		movie->write_styp = 1;
 		if (e) return e;
 	} else {
 		assert(gf_list_count(movie->moof_list) == 0);
@@ -2427,7 +2427,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 		/*if movieFileMap is not null, we are concatenating segments to the original movie, force a copy*/
 		if (movie->movieFileMap)
 			movie->append_segment = GF_TRUE;
-		movie->styp_written = GF_TRUE;
+		movie->write_styp = 0;
 	}
 
 	/*create a memory bitstream for all file IO until final flush*/
@@ -2587,6 +2587,7 @@ GF_Err gf_isom_set_fragment_template(GF_ISOFile *movie, u8 *tpl_data, u32 tpl_si
 			}
 			movie->brand = (GF_FileTypeBox *) a;
 			gf_list_add(movie->TopBoxes, movie->brand);
+			movie->write_styp = 2;
 			continue;
 		}
 		if (a->type==GF_ISOM_BOX_TYPE_OTYP) {
