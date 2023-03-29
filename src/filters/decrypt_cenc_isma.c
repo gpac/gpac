@@ -136,6 +136,9 @@ typedef struct
 	u32 res_size;
 	Bool hdr_done;
 	GF_DownloadSession *sess;
+
+
+	u32 rep_crc, per_crc, as_id;
 } GF_CENCDecStream;
 
 
@@ -1164,6 +1167,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	u32 i, pssh_crc=0, ki_crc=0;
 	const GF_PropertyValue *prop, *cinfo_prop, *pssh_prop;
 	GF_FilterPid *pid = cstr->ipid;
+	Bool is_valid=GF_TRUE;
 	Bool is_playing = (cstr->state == DECRYPT_STATE_PLAY) ? GF_TRUE : GF_FALSE;
 
 	cstr->state = DECRYPT_STATE_ERROR;
@@ -1216,9 +1220,31 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		cstr->cenc_ki = NULL;
 	}
 
+	if (cstr->rep_crc) {
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_REP_ID);
+		if (!prop) is_valid = GF_FALSE;
+		else {
+			u32 crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+			if (crc!=cstr->rep_crc) is_valid = GF_FALSE;
+		}
+	}
+	if (cstr->per_crc) {
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_ID);
+		if (!prop) is_valid = GF_FALSE;
+		else {
+			u32 crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+			if (crc!=cstr->per_crc) is_valid = GF_FALSE;
+		}
+	}
+	if (cstr->as_id) {
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_ID);
+		if (!prop) is_valid = GF_FALSE;
+		else if (prop->value.uint!=cstr->as_id) is_valid = GF_FALSE;
+	}
+
 	cstr->state = is_playing ? DECRYPT_STATE_PLAY : DECRYPT_STATE_SETUP;
 
-	if ((cstr->scheme_type==scheme_type) && (cstr->scheme_version==scheme_version) && (cstr->pssh_crc==pssh_crc) )
+	if ((cstr->scheme_type==scheme_type) && (cstr->scheme_version==scheme_version) && (cstr->pssh_crc==pssh_crc) && is_valid)
 		return GF_OK;
 
 	cstr->scheme_version = scheme_version;
@@ -1268,6 +1294,9 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		if (!tci && any_tci) tci = any_tci;
 
 		if (tci) {
+			cstr->rep_crc = 0;
+			cstr->per_crc = 0;
+			cstr->as_id = 0;
 			cstr->KID_count = tci->nb_keys;
 			cstr->KIDs = (bin128 *)gf_realloc(cstr->KIDs, tci->nb_keys*sizeof(bin128));
 			cstr->keys = (bin128 *)gf_realloc(cstr->keys, tci->nb_keys*sizeof(bin128));
@@ -1275,6 +1304,37 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 				memcpy(cstr->KIDs[i], tci->keys[i].KID, sizeof(bin128));
 				memcpy(cstr->keys[i], tci->keys[i].key, sizeof(bin128));
 				memcpy(cstr->hls_IV, tci->keys[i].IV, sizeof(bin128));
+
+				//reset KID if not for our period/as/rep
+				is_valid = GF_TRUE;
+				if (tci->keys[i].repID) {
+					prop = gf_filter_pid_get_property(pid, GF_PROP_PID_REP_ID);
+					if (prop && prop->value.string && !strcmp(prop->value.string, tci->keys[i].repID)) {
+						cstr->rep_crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+					} else {
+						is_valid = GF_FALSE;
+					}
+				}
+				if (tci->keys[i].periodID) {
+					prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_ID);
+					if (prop && prop->value.string && !strcmp(prop->value.string, tci->keys[i].periodID)) {
+						cstr->per_crc = gf_crc_32(prop->value.string, (u32) strlen(prop->value.string));
+					} else {
+						is_valid = GF_FALSE;
+					}
+				}
+				if (tci->keys[i].ASID) {
+					prop = gf_filter_pid_get_property(pid, GF_PROP_PID_AS_ID);
+					if (prop && (prop->value.uint == tci->keys[i].ASID)) {
+						cstr->as_id = tci->keys[i].ASID;
+					} else {
+						is_valid = GF_FALSE;
+					}
+				}
+				if (!is_valid) {
+					memset(cstr->KIDs[i], 0xFF, sizeof(bin128));
+					memset(cstr->keys[i], 0xFF, sizeof(bin128));
+				}
 			}
 			if (cinfo != ctx->cinfo)
 				gf_crypt_info_del(cinfo);

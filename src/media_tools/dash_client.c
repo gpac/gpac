@@ -9097,6 +9097,15 @@ s32 gf_dash_group_get_id(GF_DashClient *dash, u32 idx)
 }
 
 GF_EXPORT
+const char*gf_dash_get_period_id(GF_DashClient *dash)
+{
+	if (!dash) return NULL;
+	GF_MPD_Period *p = gf_list_get(dash->mpd->periods, dash->active_period_index);
+	if (!p) return NULL;
+	return p->ID;
+}
+
+GF_EXPORT
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 {
 	Bool needs_resetup = GF_FALSE;
@@ -9372,7 +9381,10 @@ const char *gf_dash_group_get_representation_id(GF_DashClient *dash, u32 idx)
 	GF_MPD_Representation *rep;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return NULL;
-	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	if (group->nb_cached_segments)
+		rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);
+	else
+		rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	return rep->id;
 }
 

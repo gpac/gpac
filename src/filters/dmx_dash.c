@@ -1822,6 +1822,17 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		pstart = gf_dash_get_period_start(ctx->dash);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_PERIOD_START, &PROP_LONGUINT(pstart) );
 	}
+
+	if (!gf_sys_old_arch_compat()) {
+		const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, str ? &PROP_STRING(str) : NULL );
+
+		str = gf_dash_get_period_id(ctx->dash);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_ID, str ? &PROP_STRING(str) : NULL );
+
+		s32 asid = gf_dash_group_get_as_id(ctx->dash, group->idx);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_AS_ID, (asid>=0) ? &PROP_UINT(asid) : NULL );
+	}
 }
 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -2774,8 +2785,13 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(dur, timescale) );
 			}
 		}
+		if (!gf_sys_old_arch_compat()) {
+			const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, str ? &PROP_STRING(str) : NULL );
+		}
 	}
 }
+
 GF_Err gf_dash_group_push_tfrf(GF_DashClient *dash, u32 idx, void *tfrf, u32 timescale);
 
 static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
@@ -2863,7 +2879,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	} else {
 		group->init_ok = GF_TRUE;
 	}
-	dashdmx_notify_group_quality(ctx, group);
 
 fetch_next:
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
@@ -2975,6 +2990,9 @@ fetch_next:
 		if (group->current_group_dep>group->nb_group_deps)
 			group->current_group_dep = 0;
 	}
+
+	//setup group quality before sending the event, in case the segment switching does not trigger a reconfigure of the PID(s)
+	dashdmx_notify_group_quality(ctx, group);
 
 	assert(next_url);
 	group->seg_was_not_ready = GF_FALSE;
