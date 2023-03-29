@@ -175,6 +175,9 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 		}
 	}
 
+	const GF_PropertyValue *chap_t=NULL;
+	const GF_PropertyValue *chap_n=NULL;
+	u64 max_dur=0;
 	for (i=0; i<nb_pids; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
@@ -190,6 +193,40 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 
 		if (!ctx->keepts) {
 			st->ts_shift = st->ts_shift - gf_timestamp_rescale(min_ts, min_timescale, st->in_scale.den);
+		}
+
+		chap_t = gf_filter_pid_get_property(ipid, GF_PROP_PID_CHAP_TIMES);
+		chap_n = gf_filter_pid_get_property(ipid, GF_PROP_PID_CHAP_NAMES);
+		if (chap_t && chap_n && (chap_t->value.uint_list.nb_items == chap_n->value.string_list.nb_items)) {
+		} else {
+			chap_t = chap_n = NULL;
+		}
+		p = gf_filter_pid_get_property(ipid, GF_PROP_PID_DURATION);
+		if (p) {
+			u64 d = gf_timestamp_rescale(p->value.lfrac.num, p->value.lfrac.den, 1000);
+			if (max_dur<d) max_dur = d;
+		}
+	}
+
+	if (chap_t) {
+		ctx->muxer->nb_chapters = chap_t->value.uint_list.nb_items;
+		ctx->muxer->chapters = av_malloc(sizeof(AVChapter*)* ctx->muxer->nb_chapters);
+		for (i=0; i<ctx->muxer->nb_chapters; i++) {
+			AVChapter *ch = av_malloc(sizeof(AVChapter));
+			memset(ch, 0, sizeof(AVChapter));
+			ctx->muxer->chapters[i] = ch;
+			ch->start = chap_t->value.uint_list.vals[i];
+			if (i+1<ctx->muxer->nb_chapters)
+				ch->end = chap_t->value.uint_list.vals[i+1];
+			else if (max_dur)
+				ch->end = max_dur;
+			else
+				ch->end = ch->start;
+			if (ch->end < ch->start) ch->end = ch->start;
+			ch->id = i+1;
+			ch->time_base.num = 1;
+			ch->time_base.den = 1000;
+			av_dict_set(&ch->metadata, "title", chap_n->value.string_list.vals[i], 0);
 		}
 	}
 

@@ -27,6 +27,7 @@
 #include <gpac/iso639.h>
 #include <gpac/base_coding.h>
 #include <gpac/media_tools.h>
+#include <gpac/internal/isomedia_dev.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -37,18 +38,62 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	GF_PropUIntList times;
 	GF_PropStringList names;
 	count = gf_isom_get_chapter_count(file, 0);
-	if (!count) return;
+	if (count) {
+		times.vals = gf_malloc(sizeof(u32)*count);
+		names.vals = gf_malloc(sizeof(char *)*count);
+		times.nb_items = names.nb_items = count;
+
+		for (i=0; i<count; i++) {
+			const char *name;
+			u64 start;
+			gf_isom_get_chapter(file, 0, i+1, &start, &name);
+			times.vals[i] = (u32) start;
+			names.vals[i] = gf_strdup(name);
+		}
+		p.type = GF_PROP_UINT_LIST;
+		p.value.uint_list = times;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_TIMES, &p);
+		gf_free(times.vals);
+
+		p.type = GF_PROP_STRING_LIST;
+		p.value.string_list = names;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_NAMES, &p);
+		//no free for string lists
+		return;
+	}
+
+	u32 chap_tk=0;
+	count = gf_isom_get_track_count(file);
+	for (i=0; i<count; i++) {
+		u32 nb_ref = gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_CHAP);
+		if (nb_ref) {
+			gf_isom_get_reference(file, i+1, GF_ISOM_REF_CHAP, 1, &chap_tk);
+			break;
+		}
+	}
+	if (chap_tk) {
+		count = gf_isom_get_sample_count(file, chap_tk);
+		if (!count) chap_tk=0;
+	}
+	if (!chap_tk) return;
 
 	times.vals = gf_malloc(sizeof(u32)*count);
 	names.vals = gf_malloc(sizeof(char *)*count);
 	times.nb_items = names.nb_items = count;
 
 	for (i=0; i<count; i++) {
-		const char *name;
-		u64 start;
-		gf_isom_get_chapter(file, 0, i+1, &start, &name);
-		times.vals[i] = (u32) start;
-		names.vals[i] = gf_strdup(name);
+		u32 di;
+		GF_ISOSample *s = gf_isom_get_sample(file, chap_tk, i+1, &di);
+		if (!s) continue;
+		GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
+		GF_TextSample *txt = gf_isom_parse_text_sample(bs);
+		if (txt) {
+			times.vals[i] = s->DTS;
+			names.vals[i] = gf_strdup(txt->text);
+			gf_isom_delete_text_sample(txt);
+		}
+		gf_bs_del(bs);
+		gf_isom_sample_del(&s);
 	}
 	p.type = GF_PROP_UINT_LIST;
 	p.value.uint_list = times;
@@ -58,7 +103,7 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	p.type = GF_PROP_STRING_LIST;
 	p.value.string_list = names;
 	gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_NAMES, &p);
-	//no free for string lists
+
 }
 
 static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, char *rname)

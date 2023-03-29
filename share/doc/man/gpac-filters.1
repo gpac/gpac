@@ -1937,7 +1937,7 @@ hls_cenc_patch_iv (bool, default: false): ignore IV updates in some broken HLS+C
 .SH cecrypt
 .LP
 .br
-Description: CENC  encryptor
+Description: CENC encryptor
 .br
 
 .br
@@ -2404,6 +2404,18 @@ force_dv (bool, default: false): force DV sample entry types even when AVC/HEVC 
 dvsingle (bool, default: false): ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set
 .br
 tsalign (bool, default: true): enable timeline realignment to 0 for first sample in fragmented mode
+.br
+chapm (enum, default: both):   chapter storage mode
+.br
+* off: disable chapters
+.br
+* tk: use chapter track (QT-style)
+.br
+* udta: use user-data box chapters
+.br
+* both: use both chapter tracks and udta
+.br
+
 .br
 
 .br
@@ -8208,7 +8220,7 @@ keepts (bool, default: true):  do not shift input timeline back to 0
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf60.4.100
+Version: Lavfi9.4.100
 .br
 
 .br
@@ -8351,7 +8363,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFMPEG BitStream filter
 .br
-Version: Lavc60.6.101
+Version: Lavu58.3.100
 .br
 
 .br
@@ -11249,7 +11261,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev86-g41d7d7b5c-master
+build: 2.3-DEV-rev111-gb3cadcede-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

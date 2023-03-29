@@ -556,13 +556,13 @@ Warning: This does not modify generated files location (see segment template).
 .br
 * :role=VALUE: set the role of this representation (cf DASH spec). Media with different roles belong to different adaptation sets.
 .br
-* :desc_p=VALUE: add a descriptor at the Period level. Value must be a properly formatted XML element.
+* :desc_p=VALUE: add a descriptor at the Period level.
 .br
-* :desc_as=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Two input files with different values will be in different AdaptationSet elements.
+* :desc_as=VALUE: add a descriptor at the AdaptationSet level. Two input files with different values will be in different AdaptationSet elements.
 .br
-* :desc_as_c=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.
+* :desc_as_c=VALUE: add a descriptor at the AdaptationSet level. Value is ignored while creating AdaptationSet elements.
 .br
-* :desc_rep=VALUE: add a descriptor at the Representation level. Value must be a properly formatted XML element. Value is ignored while creating AdaptationSet elements.
+* :desc_rep=VALUE: add a descriptor at the Representation level. Value is ignored while creating AdaptationSet elements.
 .br
 * :sscale: force movie timescale to match media timescale of the first track in the segment.
 .br
@@ -595,6 +595,8 @@ This will load a filter chain with the second encoder connected to the output of
 Note: @f must be placed after all other options.
 .br
 
+.br
+Note: Descriptors value must be a properly formatted XML element(s), value is not checked. Syntax can use file@FILENAME to load content from file.
 .br
 .SH Options
 .LP
@@ -2924,7 +2926,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev86-g41d7d7b5c-master
+build: 2.3-DEV-rev111-gb3cadcede-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
