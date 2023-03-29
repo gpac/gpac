@@ -344,6 +344,12 @@ void gf_dash_group_select(GF_DashClient *dash, u32 group_idx, Bool select);
 */
 s32 gf_dash_group_get_id(GF_DashClient *dash, u32 group_idx);
 
+/*! gets cuirrent period ID
+\param dash the target dash client
+\return ID of the current period or NULL
+*/
+const char*gf_dash_get_period_id(GF_DashClient *dash);
+
 /*! enables group selection  through the group attribute
 \param dash the target dash client
 \param enable if GF_TRUE, group selection will be done whenever selecting a new group

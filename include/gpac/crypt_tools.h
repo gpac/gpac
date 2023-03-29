@@ -113,6 +113,14 @@ typedef struct
 	u8 IV_size;
 	/*! constant IV size */
 	u8 constant_IV_size;
+
+
+	/*! DASH representation ID or NULL */
+	char *repID;
+	/*! DASH period ID or NULL */
+	char *periodID;
+	/*! DASH adaptationSet ID or NULL */
+	u32 ASID;
 } GF_CryptKeyInfo;
 
 /*! key roll modes*/
