@@ -320,14 +320,14 @@
           text+="\n";
           text+="Up and Down arrows can be used for command history\n";
           text+="\n";
-          text+="The variable $(NAME) can be used to design a file not on Emscriptn's file system.\n"
+          text+="The variable $(NAME) can be used to design a file not on Emscripten's file system.\n"
           text+="The file will be handled as a stream (not copied). This is the recommended methods for handling large files.\n";
-          text+="If NAME is an absolute URL othar than 'file://' scheme:\n"
+          text+="If NAME is an absolute URL other than 'file://' scheme:\n"
           text+="- if used for an input, it will be pulled progressively using Fetch API\n"
           text+="- if used for an output, it will be pushed progressively using Fetch API. If writable streams fail, the file will be stored in memory until final PUT or canceled.\n"
           text+="Otherwise, NAME designs a file to be picked on the user's file system\n"
           text+="- if used for an input, a file picker will be shown and status text will indicate the corresponding NAME\n"
-          text+="- if used for an output, a file saver will be shown with the given NAME. If failure, the file will be stored in memory until final PUT or canceled.\n"
+          text+="- if used for an output, a file saver will be shown with the given NAME. If writable stream failure, the file will be stored in memory until final write or canceled.\n"
           text+="\n";
           text+="For output files, the extension will be used to derive the output format, e.g. '($file.ts)' will use MPEG-2 TS.\n"
           text+="Use '$(file):ext=ts' to override format if desired.\n"
@@ -336,17 +336,12 @@
           text+="\n";
           text+="IndexedDB is used for persistent storage, mounted at /idbfs. Typing any command will synchronize the file system.\n";
           text+="\n";
-          if (GPAC.has_threads) {
-            text+="When not running in worker mode, the ";
-          } else {
-            text+="The ";
-          }
-          text+="default behaviour for gpac app is to run on the browser main loop in non-blocking mode, running the session 200 times before returning control.\n";
+          text+="The default behaviour for gpac app is to run on the browser/worker main loop in non-blocking mode, running the session at most 100 times before returning control.\n";
           text+="This can be configured (see gpac -hx), for example:\n";
-          text+="\t-step=-1 will block the main thread\n";
+          text+="\t-step=-1 will block the main browser/worker thread (WILL DEADLOCK if some filters use JS promises or other async tools)\n";
           text+="\t-step=0 will use browser defaults for requestAnimationFrame frequency\n";
           text+="\t-step=100 will request callback every 10 ms\n";
-          text+="\t-step=100:1000 will request callback every 10 ms, calling 1000 times the session\n";
+          text+="\t-step=100:1000 will request callback every 10 ms, calling at most 1000 times the session\n";
           if (GPAC.has_threads) {
             text+="\n";
             text+="When running without worker, internal threading of filters (e.g. ffmpeg & co) will be disabled if the session runs only on the main thread.\n"

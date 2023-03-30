@@ -700,7 +700,7 @@ GF_FilterRegister GF_WCEncCtxRegister = {
 	GF_FS_SET_HELP("This filter encodes video streams using WebCodec encoder of the browser")
 	.args = WCEncArgs,
 	SETCAPS(WCEncCapsAV),
-	.flags = GF_FS_REG_SINGLE_THREAD,
+	.flags = GF_FS_REG_SINGLE_THREAD|GF_FS_REG_ASYNC_BLOCK,
 	.private_size = sizeof(GF_WCEncCtx),
 	.initialize = wcenc_initialize,
 	.finalize = wcenc_finalize,
@@ -713,12 +713,12 @@ const GF_FilterRegister *wcenc_register(GF_FilterSession *session)
 {
 	
 	int has_webv_encode = EM_ASM_INT({
-		if ('VideoEncoder' in window) return 1;
-		return 0;
+		if (typeof VideoEncoder == 'undefined') return 0;
+		return 1;
 	});
 	int has_weba_encode = EM_ASM_INT({
-		if ('AudioEncoder' in window) return 1;
-		return 0;
+		if (typeof AudioEncoder == 'undefined') return 0;
+		return 1;
 	});
 
 	if (!has_webv_encode && !has_weba_encode) {

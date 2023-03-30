@@ -527,7 +527,8 @@ GF_FilterRegister GF_WebGrabRegister = {
 	)
 	.args = WebGrabArgs,
 	SETCAPS(WebGrabCaps),
-	.flags = GF_FS_REG_SINGLE_THREAD,
+	//getUserMedia only available on main thread
+	.flags = GF_FS_REG_MAIN_THREAD|GF_FS_REG_ASYNC_BLOCK,
 	.private_size = sizeof(GF_WebGrab),
 	.initialize = webgrab_initialize,
 	.finalize = webgrab_finalize,
@@ -541,8 +542,8 @@ const GF_FilterRegister *webgrab_register(GF_FilterSession *session)
 {
 	
 	int has_media_track_processor = EM_ASM_INT({
-		if ('MediaStreamTrackProcessor' in window) return 1;
-		return 0;
+		if (typeof MediaStreamTrackProcessor == 'undefined') return 0;
+		return 1;
 	});
 	if (!has_media_track_processor) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[WebGrab] No MediaStreamTrackProcessor support\n"));

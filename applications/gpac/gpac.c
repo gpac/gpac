@@ -198,6 +198,10 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	return GF_TRUE;
 }
 
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && defined(__EMSCRIPTEN_PTHREADS__)
+static void reset_em_thread();
+#endif
+
 static int gpac_exit_fun(int code)
 {
 	u32 i;
@@ -259,6 +263,10 @@ static int gpac_exit_fun(int code)
 #ifdef ASAN_ENABLED
 	fprintf(stdout, "ASAN: checking mem leaks\n");
 	__lsan_do_leak_check();
+#endif
+
+#ifdef __EMSCRIPTEN_PTHREADS__
+	reset_em_thread();
 #endif
 
 	MAIN_THREAD_EM_ASM({
@@ -333,7 +341,6 @@ static void em_main_loop(void*arg)
 	window_swap = GF_FALSE;
 	while (session && run) {
 		GF_Err e = gf_fs_run(session);
-		if (e==GF_NOT_READY) break;
 
 		if (gf_fs_is_last_task(session)) {
 			gf_fs_stop(session);
@@ -341,6 +348,8 @@ static void em_main_loop(void*arg)
 			emscripten_cancel_main_loop();
 			return;
 		}
+		if (e==GF_NOT_READY)
+			break;
 		if (use_video_display && window_swap) {
 			break;
 		}
@@ -584,12 +593,9 @@ int gpac_main(int _argc, char **_argv)
 	}
 #endif
 
-	//emscripten, always use step mode by default if no worker, unless explicitly disabled by -step=N<0
+	//emscripten, always use step mode by default, unless explicitly disabled by -step=N<0
 #ifdef GPAC_CONFIG_EMSCRIPTEN
-#ifdef __EMSCRIPTEN_PTHREADS__
-	if (emscripten_is_main_runtime_thread())
-#endif
-		use_step_mode = GF_TRUE;
+	use_step_mode = GF_TRUE;
 #endif
 
 	for (i=1; i<argc; i++) {
@@ -1337,7 +1343,7 @@ restart:
 	if (use_step_mode) {
 		//default is 100 fps (values higher than this tend to have no effect), 10000 steps per frame
 		if (em_raf_fps<0) em_raf_fps=100;
-		if (run_steps<0) run_steps = 10000;
+		if (run_steps<0) run_steps = emscripten_is_main_browser_thread() ? 100 : 10000;
 
 		emscripten_set_main_loop_arg(em_main_loop, session, em_raf_fps, 1);
 		//we are done (rest of function is NOT called)
@@ -1503,6 +1509,10 @@ typedef struct
 
 RunArgs run_args = {0};
 
+static void reset_em_thread()
+{
+	memset(&run_args, 0, sizeof(RunArgs));
+}
 static void *_main_thread(void *_ptr)
 {
 	int ret_code;
@@ -1510,15 +1520,13 @@ static void *_main_thread(void *_ptr)
 	emscripten_set_thread_name(pthread_self(), run_args.is_mp4box ? "MP4Box main thread" : "gpac main thread");
 	if (run_args.is_mp4box) {
 		ret_code = mp4box_main(run_args.argc, run_args.argv);
-	} else {
-		ret_code = gpac_main(run_args.argc, run_args.argv);
-	}
-	memset(&run_args, 0, sizeof(RunArgs));
-	//only for mp4box, for gpac we do this in gpac_exit_fun to deal with step mode
-	if (run_args.is_mp4box) {
+		//only for mp4box, for gpac we do this in gpac_exit_fun to deal with step mode
+		reset_em_thread();
 		MAIN_THREAD_EM_ASM({
 			if (typeof libgpac.gpac_done == 'function') libgpac.gpac_done($0);
 		}, ret_code);
+	} else {
+		ret_code = gpac_main(run_args.argc, run_args.argv);
 	}
 	return NULL;
 }
