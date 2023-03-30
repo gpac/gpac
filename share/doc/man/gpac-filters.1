@@ -5069,11 +5069,11 @@ The segmenter can also be configured to:
 .br
 
 .br
-The segmenter will by default announce a new segment in the manifest(s) as soon as its size/offset is known or its name is known, but the segment (or part in LL-HLS) may still not be completely written/sent.
+When .I seg_sync is disabled, the segmenter will by default announce a new segment in the manifest(s) as soon as its size/offset is known or its name is known, but the segment (or part in LL-HLS) may still not be completely written/sent.
 .br
 This may result in temporary mismatches between segment/part size currently received versus size as advertized in manifest.
 .br
-If the target destination cannot support this, use .I seg_sync to update manifest(s) only once segments/parts are completely flushed; this will however slightly increase the latency of manifest updates.
+When .I seg_sync is enabled, the segmenter will wait for the last byte of the fragment/segment to be pushed before announcing a new segment in the manifest(s). This can however slightly increase the latency in MPEG-DASH low-latency.
 .br
 
 .br
@@ -5656,7 +5656,15 @@ hls_absu (enum, default: no):  use absolute url in HLS generation using first UR
 .br
 
 .br
-seg_sync (bool, default: false): force waiting for last packet of fragment/segment to be written before announcing segment in DASH/HLS playlist
+seg_sync (enum, default: auto): control how waiting on last packet P of fragment/segment to be written impacts segment injection in manifest
+.br
+* no: do not wait for P
+.br
+* yes: wait for P
+.br
+* auto: wait for P if HLS is used
+.br
+
 .br
 cmaf (enum, default: no):      use cmaf guidelines
 .br
@@ -11263,7 +11271,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev114-gc3c46a205-master
+build: 2.3-DEV-rev115-gf017d3370-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
