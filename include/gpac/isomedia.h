@@ -2010,7 +2010,7 @@ If both dur_num and dur_den are both zero, forces last sample duration to be the
 */
 GF_Err gf_isom_set_last_sample_duration_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 dur_num, u32 dur_den);
 
-/*! patches last stts entry to make sure the cumulated duration equals the given next_dts value
+/*! patches last stts entry to make sure the cumulated duration equals the given next_dts value - this will overrite timing of all previous samples using an average dur
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param next_dts target decode time of next sample

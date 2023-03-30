@@ -1306,9 +1306,7 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 		avg_dur = (u32) (dur_num / nb_samp);
 
 		stts->entries[0].sampleDelta = avg_dur;
-		for (i=1; i<stts->nb_entries; i++) {
-			stts->entries[0].sampleCount += stts->entries[i].sampleCount;
-		}
+		stts->entries[0].sampleCount = nb_samp;
 		stts->nb_entries = 1;
 		stts->w_LastDTS = dur_num - avg_dur;
 		return GF_OK;

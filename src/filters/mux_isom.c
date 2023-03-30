@@ -300,7 +300,7 @@ typedef struct
 #endif
 	Bool mfra;
 	Bool forcesync, refrag, pad_sparse;
-	Bool force_dv, tsalign, dvsingle;
+	Bool force_dv, tsalign, dvsingle, patch_dts;
 	u32 itags;
 	Double start;
 	u32 chapm;
@@ -4332,6 +4332,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	u32 insert_subsample_dsi_size = 0;
 	u32 first_nal_is_audelim = GF_FALSE;
 	u32 sample_desc_index = tkw->stsd_idx;
+	Bool sample_timing_ok = GF_TRUE;
 
 	timescale = gf_filter_pck_get_timescale(pck);
 
@@ -4389,6 +4390,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 				cts = tkw->ts_shift - cts;
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] broken timing in track, initial ts "LLU" less than TS "LLU"\n", tkw->ts_shift, tkw->sample.DTS));
+				sample_timing_ok = GF_FALSE;
 			}
 		} else {
 			if (tkw->sample.DTS >= tkw->ts_shift) {
@@ -4396,6 +4398,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 				cts -= tkw->ts_shift;
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] broken timing in track, initial ts "LLU" greater than TS "LLU"\n", tkw->ts_shift, tkw->sample.DTS));
+				sample_timing_ok = GF_FALSE;
 			}
 		}
 	}
@@ -4464,12 +4467,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	tkw->sample.DTS += tkw->dts_patch;
 	if (tkw->nb_samples && (prev_dts >= tkw->sample.DTS) ) {
 		//the fragmented API will patch the duration on the fly
-		if (!for_fragment) {
+		if (!for_fragment && ctx->patch_dts) {
 			gf_isom_patch_last_sample_duration(ctx->file, tkw->track_num, prev_dts ? prev_dts : 1);
 		}
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID %s ID %d Sample %d with DTS "LLU" less than previous sample DTS "LLU", adjusting prev sample duration\n", gf_filter_pid_get_name(tkw->ipid), tkw->track_id, tkw->nb_samples+1, tkw->sample.DTS, prev_dts ));
+		sample_timing_ok = GF_FALSE;
 
-		if (prev_dts) {
+		if (prev_dts && ctx->patch_dts) {
 			tkw->dts_patch = prev_dts - tkw->sample.DTS;
 			tkw->sample.DTS += tkw->dts_patch;
 		} else {
@@ -4483,15 +4487,17 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	if (tkw->negctts_shift)
 		tkw->sample.CTS_Offset -= tkw->negctts_shift;
 
-	if (tkw->probe_min_ctts) {
-		s32 diff = (s32) ((s64) cts - (s64) tkw->sample.DTS);
-		if (diff < tkw->min_neg_ctts)
-			tkw->min_neg_ctts = diff;
-	}
-	if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
+	if (sample_timing_ok) {
+		if (tkw->probe_min_ctts) {
+			s32 diff = (s32) ((s64) cts - (s64) tkw->sample.DTS);
+			if (diff < tkw->min_neg_ctts)
+				tkw->min_neg_ctts = diff;
+		}
+		if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
 
-	if (tkw->sample.CTS_Offset < tkw->min_neg_ctts)
-		tkw->min_neg_ctts = tkw->sample.CTS_Offset;
+		if (tkw->sample.CTS_Offset < tkw->min_neg_ctts)
+			tkw->min_neg_ctts = tkw->sample.CTS_Offset;
+	}
 
 	tkw->sample.nb_pack = 0;
 	if (tkw->raw_audio_bytes_per_sample) {
@@ -4644,7 +4650,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 	if (e) return e;
 
-	if (!for_fragment) {
+	if (!for_fragment && sample_timing_ok) {
 		u64 samp_cts;
 		if (!tkw->clamp_ts_plus_one) {
 			const GF_PropertyValue *skp = gf_filter_pck_get_property(pck, GF_PROP_PCK_SKIP_PRES);
@@ -7767,7 +7773,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- udta: use user-data box chapters\n"
 	"- both: use both chapter tracks and udta"
 	, GF_PROP_UINT, "both", "off|tk|udta|both", GF_FS_ARG_HINT_ADVANCED},
-
+	{ OFFS(patch_dts), "patch previous samples duration when dts do not increase monotonically", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
