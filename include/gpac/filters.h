@@ -2209,6 +2209,8 @@ typedef enum
 	GF_FS_REG_USE_SYNC_READ = 1<<15,
 	/*! Indicates the filter may block the main thread (configure, process) - only needed for emscripten multithreaded support*/
 	GF_FS_REG_BLOCK_MAIN = 1<<16,
+	/*! Indicates the filter uses async tools (JS promises & co) blocking the calling thread until resolved - only needed for emscripten multithreaded support*/
+	GF_FS_REG_ASYNC_BLOCK = 1<<17,
 
 
 	/*! flag dynamically set at runtime for custom filters*/

@@ -66,6 +66,8 @@ struct __tag_thread
 	GF_Semaphore *_signal;
 	Bool blocking;
 
+	Bool no_kill;
+
 #ifndef GPAC_DISABLE_LOG
 	u32 id;
 	char *log_name;
@@ -218,6 +220,10 @@ void * RunThread(void *ptr)
 
 exit:
 
+	if (t->no_kill) {
+		t->no_kill = 0;
+		return (void *)ret;
+	}
 #ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] At %d Exiting thread proc, return code %d\n", t->log_name, gf_sys_clock(), ret));
 #endif
@@ -308,6 +314,17 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 	return GF_OK;
 }
 
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+#include <emscripten/threading.h>
+
+GF_Err gf_th_async_call(GF_Thread *t, u32 (*Run)(void *param), void *param)
+{
+	t->no_kill = 1;
+	emscripten_dispatch_to_thread_async_(t->threadH, EM_FUNC_SIG_II, Run, NULL, param);
+	return GF_OK;
+}
+#endif
+
 
 /* Stops a thread. If Destroy is not 0, thread is destroyed DANGEROUS as no cleanup */
 void Thread_Stop(GF_Thread *t, Bool Destroy)
@@ -337,10 +354,13 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 		} else {
 			/*gracefully wait for Run to finish*/
 #ifdef GPAC_CONFIG_EMSCRIPTEN
-			int pthread_tryjoin_np(pthread_t, void **);
-			void *rval=NULL;
-			if (pthread_tryjoin_np(t->threadH, &rval))
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] pthread_join() returned an error with thread ID 0x%08x\n", t->log_name, t->id));
+			//only destroy if in main application thread (otherwise emscripten assert on cleanupThread()  fails)
+			if (emscripten_is_main_runtime_thread()) {
+				int pthread_tryjoin_np(pthread_t, void **);
+				void *rval=NULL;
+				if (pthread_tryjoin_np(t->threadH, &rval))
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] pthread_join() returned an error with thread ID 0x%08x\n", t->log_name, t->id));
+			}
 #else
 			if (pthread_join(t->threadH, NULL))
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] pthread_join() returned an error with thread ID 0x%08x\n", t->log_name, t->id));

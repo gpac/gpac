@@ -38,9 +38,10 @@ struct _gf_ft_mgr *gf_font_manager_new();
 void gf_font_manager_del(struct _gf_ft_mgr *fm);
 #endif
 
-
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
+	//we don't use sema on emscripten, we always give control back to main caller or pthread
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	GF_Semaphore *sem = main ? fsess->semaphore_main : fsess->semaphore_other;
 	if (sem) {
 		if (notify) {
@@ -52,7 +53,7 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 			u32 nb_tasks;
 			//if not main and no tasks in main list, this could be the last task to process.
 			//if main thread is sleeping force a wake to take further actions (only the main thread decides the exit)
-			//this also ensures that tha main thread will process tasks from secondary task lists if no
+			//this also ensures that the main thread will process tasks from secondary task lists if no
 			//dedicated main thread tasks are present (eg no GL filters)
 			if (!main && fsess->in_main_sem_wait && !gf_fq_count(fsess->main_thread_tasks)) {
 				gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
@@ -70,15 +71,6 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 					if (gf_sema_wait_for(sem, 100)) {
 					}
 				} else {
-#ifdef GPAC_CONFIG_EMSCRIPTEN
-					if (fsess->non_blocking && !fsess->is_worker) {
-						if (gf_sema_wait_for(sem, 10)) {
-							fsess->in_main_sem_wait = GF_FALSE;
-						}
-						//don't reset in_main_sem_wait to abort gf_fs_run
-						return;
-					}
-#endif
 					if (gf_sema_wait(sem)) {
 					}
 				}
@@ -95,6 +87,7 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 			}
 		}
 	}
+#endif // GPAC_CONFIG_EMSCRIPTEN
 }
 
 GF_EXPORT
@@ -262,6 +255,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	//detect if we run as a worker
 	if (!emscripten_is_main_runtime_thread()) {
 		fsess->is_worker = GF_TRUE;
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session running in worker mode\n"));
 	}
 #endif
 
@@ -1457,6 +1451,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 
 #if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
 #include <emscripten/threading.h>
+GF_Err gf_th_async_call(GF_Thread *t, u32 (*Run)(void *param), void *param);
 #endif
 
 static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
@@ -1487,7 +1482,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	if (flush_main_blocking) do_regulate = GF_FALSE;
 #endif
 
-	sess_thread->th_id = gf_th_id();
 	//main thread
 	if (!thid) {
 		if (!sess_thread->run_time) {
@@ -1496,16 +1490,24 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (fsess->non_blocking) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc enter\n"));
 		}
-	} else {
+	}
+	//first time we enter the thread proc
+	if (!sess_thread->th_id) {
+		sess_thread->th_id = gf_th_id();
 #ifdef GPAC_CONFIG_EMSCRIPTEN
-		if (fsess->non_blocking)
+		if (fsess->non_blocking && thid) {
+			sess_thread->run_time = 0;
 			safe_int_dec(&fsess->pending_threads);
+		}
+#endif
+
+#ifndef GPAC_DISABLE_REMOTERY
+		gf_rmt_set_thread_name(sess_thread->rmt_name);
 #endif
 	}
 
 #ifndef GPAC_DISABLE_REMOTERY
 	sess_thread->rmt_tasks=40;
-	gf_rmt_set_thread_name(sess_thread->rmt_name);
 #endif
 
 	gf_rmt_begin(fs_thread, 0);
@@ -1546,7 +1548,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			consecutive_filter_tasks = 0;
 			gf_rmt_end();
 #ifdef GPAC_CONFIG_EMSCRIPTEN
-			if (use_main_sema && fsess->non_blocking && fsess->in_main_sem_wait) {
+			//no tasks on main thread, exit setting in_main_sem_wait to trigger a NOT_READY on fs_run
+			//this will give control back to JS
+			if (use_main_sema && fsess->non_blocking && !gf_fq_count(fsess->main_thread_tasks)) {
+				safe_int_inc(&fsess->active_threads);
+				fsess->in_main_sem_wait=1;
 				break;
 			}
 #endif
@@ -1664,13 +1670,23 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_sema_notify(fsess->semaphore_other, th_count);
 			}
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u: no task available\n", sys_thid));
-
 			//no main thread, return
 			if (!thid && fsess->non_blocking) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
+				safe_int_dec(&fsess->active_threads);
 				return 0;
 			}
+
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+			if (thid && (fsess->run_status == GF_OK)) {
+				sess_thread->run_time += gf_sys_clock_high_res() - enter_time;
+				safe_int_dec(&fsess->active_threads);
+				gf_th_async_call(sess_thread->th, (gf_thread_run) gf_fs_thread_proc, sess_thread);
+				return 0;
+			}
+#endif
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u: no task available\n", sys_thid));
 
 			if (do_regulate) {
 				gf_sleep(0);
@@ -1687,7 +1703,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 		current_filter = task->filter;
 
-		if (current_filter && current_filter->restrict_th_idx && (thid != current_filter->restrict_th_idx)) {
+		//unless task was explicitly forced to main (pid init mostly), reschedule if filter is not on desired thread
+		if (current_filter && !task->force_main
+			&& current_filter->restrict_th_idx
+			&& (thid != current_filter->restrict_th_idx)
+		) {
 			//reschedule task to secondary list
 			if (!task->notified) {
 				task->notified = GF_TRUE;
@@ -1698,8 +1718,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			current_filter = NULL;
 			continue;
 		}
-
-		assert(!current_filter || !current_filter->restrict_th_idx || (thid == current_filter->restrict_th_idx));
 
 		//this is a crude way of scheduling the next task, we should
 		//1- have a way to make sure we will not repost after a time-consuming task
@@ -1789,6 +1807,14 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						//and queue it after the next one
 						gf_fq_add(current_filter->tasks, task);
 						//and continue with the same filter
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+						if (thid && (fsess->run_status == GF_OK)) {
+							sess_thread->run_time += gf_sys_clock_high_res() - enter_time;
+							safe_int_dec(&fsess->active_threads);
+							gf_th_async_call(sess_thread->th, (gf_thread_run) gf_fs_thread_proc, sess_thread);
+							return 0;
+						}
+#endif
 						continue;
 					}
 					//little optim here: if this is the main thread and we have other tasks pending
@@ -1902,9 +1928,18 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 							gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 						} else if (!thid && fsess->non_blocking && !pending_tasks) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
+							safe_int_dec(&fsess->active_threads);
 							return 0;
 						}
 
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+						if (thid && (fsess->run_status == GF_OK)) {
+							sess_thread->run_time += gf_sys_clock_high_res() - enter_time;
+							safe_int_dec(&fsess->active_threads);
+							gf_th_async_call(sess_thread->th, (gf_thread_run) gf_fs_thread_proc, sess_thread);
+							return 0;
+						}
+#endif
 						continue;
 					}
 					force_secondary_tasks=GF_FALSE;
@@ -1958,6 +1993,15 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			current_filter->nb_tasks_done++;
 			current_filter->time_process += task_time;
 			consecutive_filter_tasks++;
+
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
+			//for mono-thread case non blocking: if filter is marked as async blocking, abort and release
+			//control to caller
+			if  (!thid && fsess->non_blocking && (current_filter->freg->flags & GF_FS_REG_ASYNC_BLOCK)) {
+				consecutive_filter_tasks=11;
+				fsess->in_main_sem_wait = GF_TRUE;
+			}
+#endif
 
 			gf_mx_p(current_filter->tasks_mx);
 			if (gf_fq_count(current_filter->tasks)==1) {
@@ -2148,18 +2192,26 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (!thid && fsess->non_blocking && !current_filter && !fsess->pid_connect_tasks_pending) {
 			gf_rmt_end();
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
+			safe_int_dec(&fsess->active_threads);
 			return 0;
 		}
 	}
 
 	gf_rmt_end();
 
+	safe_int_dec(&fsess->active_threads);
 	//no main thread, return
 	if (!thid && fsess->non_blocking) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
 		return 0;
 	}
-	sess_thread->run_time = gf_sys_clock_high_res() - enter_time;
+
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+	if (thid) {
+		sess_thread->run_time += gf_sys_clock_high_res() - enter_time;
+	} else
+#endif
+		sess_thread->run_time = gf_sys_clock_high_res() - enter_time;
 
 	safe_int_inc(&fsess->nb_threads_stopped);
 

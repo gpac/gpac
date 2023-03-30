@@ -692,8 +692,8 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("step[=FPS[:STEPS]", NULL, "configure step mode in non-blocking session (enabled by default if no worker). Step mode is driven by requestAnimationFrame\n"
 		"- if `FPS` is 0, let the browser decide (default if video output is used)\n"
 		"- if `FPS` is negative, disable step mode\n"
-		"- if `FPS` is positive, forces the time interval to 1/FPS (default FPS=200)\n"
-		"- if STEPS is set, runs STEPS times or until video frame is ready before returning to the main thread (default is 20)"
+		"- if `FPS` is positive, forces the time interval to 1/FPS (default FPS=100)\n"
+		"- if STEPS is set, runs at most STEPS times before returning to the main thread (default is 100)"
 	, NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 #else
 	GF_DEF_ARG("step", NULL, "test step mode in non-blocking session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
