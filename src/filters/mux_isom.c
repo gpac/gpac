@@ -4470,12 +4470,12 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (!for_fragment && ctx->patch_dts) {
 			gf_isom_patch_last_sample_duration(ctx->file, tkw->track_num, prev_dts ? prev_dts : 1);
 		}
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID %s ID %d Sample %d with DTS "LLU" less than previous sample DTS "LLU", adjusting prev sample duration\n", gf_filter_pid_get_name(tkw->ipid), tkw->track_id, tkw->nb_samples+1, tkw->sample.DTS, prev_dts ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID %s ID %d Sample %d with DTS "LLU" less than previous sample DTS "LLU", patching DTS%s\n", gf_filter_pid_get_name(tkw->ipid), tkw->track_id, tkw->nb_samples+1, tkw->sample.DTS, prev_dts, ctx->patch_dts ? "and adjusting prev sample duration" : "" ));
 		sample_timing_ok = GF_FALSE;
 
-		if (prev_dts && ctx->patch_dts) {
+		if (prev_dts) {
 			tkw->dts_patch = prev_dts - tkw->sample.DTS;
-			tkw->sample.DTS += tkw->dts_patch;
+			tkw->sample.DTS += tkw->dts_patch+1; //+1 to avoid 0-dur samples
 		} else {
 			tkw->sample.DTS += 1;
 			if (tkw->sample.CTS_Offset) tkw->sample.CTS_Offset -= 1;
