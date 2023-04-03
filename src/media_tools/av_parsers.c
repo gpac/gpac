@@ -9256,7 +9256,7 @@ next_block:
 	}
 
 	frmsiz = gf_bs_read_int_log(bs, 11, "frmsiz");
-	framesize += 2 * (1 + frmsiz);
+	framesize = 2 * (1 + frmsiz);
 	fscod = gf_bs_read_int_log(bs, 2, "fscod");
 	if (fscod == 0x3) {
 		fscod = gf_bs_read_int_log(bs, 2, "fscod2");
