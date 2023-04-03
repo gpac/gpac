@@ -1343,7 +1343,12 @@ restart:
 	if (use_step_mode) {
 		//default is 100 fps (values higher than this tend to have no effect), 10000 steps per frame
 		if (em_raf_fps<0) em_raf_fps=100;
-		if (run_steps<0) run_steps = emscripten_is_main_browser_thread() ? 100 : 10000;
+		if (run_steps<0) {
+			run_steps = 100;
+#ifdef __EMSCRIPTEN_PTHREADS__
+			if (!emscripten_is_main_browser_thread()) run_steps = 10000;
+#endif
+		}
 
 		emscripten_set_main_loop_arg(em_main_loop, session, em_raf_fps, 1);
 		//we are done (rest of function is NOT called)
