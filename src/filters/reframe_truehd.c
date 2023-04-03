@@ -614,7 +614,7 @@ restart:
 		u8 *frame;
 		TrueHDHdr hdr;
 		u32 bytes_to_drop=0;
-		u64 frame_start;
+		u64 frame_start=0;
 		e = truehd_parse_frame(ctx, ctx->bs, &hdr, &frame_start);
 		if (e==GF_BUFFER_TOO_SMALL) {
 			e = GF_OK;
@@ -630,8 +630,14 @@ restart:
 		}
 
 		//frame not complete, wait
-		if (remain < frame_start + hdr.frame_size)
+		if (remain < frame_start + hdr.frame_size) {
+			//we may have sent the ac3 stream, drop frame
+			if (frame_start) {
+				start += frame_start;
+				remain -= (u32) frame_start;
+			}
 			break;
+		}
 
 		if (hdr.sync)
 			truehd_check_pid(filter, ctx, &hdr);
