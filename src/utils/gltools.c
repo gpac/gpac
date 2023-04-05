@@ -361,6 +361,24 @@ uniform sampler2D _gf_%s_2;\n\
 uniform sampler2D _gf_%s_3;\n\
 ";
 
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+static char *gl_shader_fun_yuv_gles10 = \
+"vec2 texc;\n\
+vec4 yuv, col;\n\
+texc = _gpacTexCoord.st;\n\
+col = texture2D(_gf_%s_1, texc);\n\
+yuv.x = (col.a*65280.0 + col.r*255.0)/1023.0;\n\
+col = texture2D(_gf_%s_2, texc);\n\
+yuv.y = (col.a*65280.0 + col.r*255.0)/1023.0;\n\
+col = texture2D(_gf_%s_3, texc);\n\
+yuv.z = (col.a*65280.0 + col.r*255.0)/1023.0;\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
+";
+#endif
+
 static char *gl_shader_fun_yuv = \
 "vec2 texc;\n\
 vec4 yuv;\n\
@@ -373,6 +391,7 @@ yuv = _gf_%s_mx * yuv;\n\
 yuv.w = 1.0;\n\
 return yuv;\n\
 ";
+
 
 static char *gl_shader_fun_yvu = \
 "vec2 texc;\n\
@@ -911,13 +930,18 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 		shader_fun = gl_shader_fun_bgra;
 		break;
 
-	case GF_PIXEL_YUV:
 	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444_10:
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+		shader_vars = gl_shader_vars_yuv;
+		shader_fun = gl_shader_fun_yuv_gles10;
+		break;
+#endif
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_YUV422:
-	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV444:
-	case GF_PIXEL_YUV444_10:
+	case GF_PIXEL_YUV:
 		shader_vars = gl_shader_vars_yuv;
 		shader_fun = gl_shader_fun_yuv;
 		break;
@@ -1176,8 +1200,21 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 				nb_bits--;
 			}
 			tx->scale_10bit = scale;
-#endif
 			tx->memory_format = GL_UNSIGNED_SHORT;
+#else
+
+			switch (tx->pix_fmt) {
+			case GF_PIXEL_YUV_10:
+			case GF_PIXEL_YUV422_10:
+			case GF_PIXEL_YUV444_10:
+				tx->gl_format = GL_LUMINANCE_ALPHA;
+				tx->memory_format = GL_UNSIGNED_BYTE;
+				break;
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Pixel format %s unsupported, cannot setup texture wrapper\n", gf_4cc_to_str(tx->pix_fmt)));
+				return GF_FALSE;
+			}
+#endif
 		}
 
 
@@ -1563,20 +1600,20 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 #if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/tx->bytes_per_pix);
 #endif
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, tx->width, tx->height, 0, tx->gl_format, tx->memory_format, pY);
+		glTexImage2D(GL_TEXTURE_2D, 0, tx->gl_format, tx->width, tx->height, 0, tx->gl_format, tx->memory_format, pY);
 
 		glBindTexture(GL_TEXTURE_2D, tx->textures[1] );
 #if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, pV ? stride_chroma/tx->bytes_per_pix : stride_chroma/tx->bytes_per_pix/2);
 #endif
-		glTexImage2D(GL_TEXTURE_2D, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, tx->uv_w, tx->uv_h, 0, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, tx->memory_format, pU);
+		glTexImage2D(GL_TEXTURE_2D, 0, pV ? tx->gl_format : GL_LUMINANCE_ALPHA, tx->uv_w, tx->uv_h, 0, pV ? tx->gl_format : GL_LUMINANCE_ALPHA, tx->memory_format, pU);
 
 		if (pV) {
 			glBindTexture(GL_TEXTURE_2D, tx->textures[2] );
 #if !defined(GPAC_GL_NO_STRIDE)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_chroma/tx->bytes_per_pix);
 #endif
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, tx->uv_w, tx->uv_h, 0, tx->gl_format, tx->memory_format, pV);
+			glTexImage2D(GL_TEXTURE_2D, 0, tx->gl_format, tx->uv_w, tx->uv_h, 0, tx->gl_format, tx->memory_format, pV);
 		}
 
 		if (pA) {
@@ -1584,7 +1621,7 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 #if !defined(GPAC_GL_NO_STRIDE)
 			if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, stride_luma/tx->bytes_per_pix);
 #endif
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, tx->width, tx->height, 0, tx->gl_format, tx->memory_format, pA);
+			glTexImage2D(GL_TEXTURE_2D, 0, tx->gl_format, tx->width, tx->height, 0, tx->gl_format, tx->memory_format, pA);
 		}
 
 #if !defined(GPAC_GL_NO_STRIDE)
@@ -1604,7 +1641,7 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 #if !defined(GPAC_GL_NO_STRIDE)
 		if (use_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, pV ? stride_chroma/tx->bytes_per_pix : stride_chroma/tx->bytes_per_pix/2);
 #endif
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, tx->uv_w, tx->uv_h, pV ? GL_LUMINANCE : GL_LUMINANCE_ALPHA, tx->memory_format, pU);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, tx->uv_w, tx->uv_h, pV ? tx->gl_format : GL_LUMINANCE_ALPHA, tx->memory_format, pU);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		if (pV) {
