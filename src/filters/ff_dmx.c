@@ -110,9 +110,10 @@ typedef struct
 	u32 is_open;
 	u32 strbuf_offset;
 	u8 *strbuf;
-	u32 strbuf_size, strbuf_alloc, strbuf_min;
-	Bool in_seek, in_eos, first_block;
+	u32 strbuf_size, strbuf_alloc, strbuf_min, in_seek;
+	Bool in_eos, first_block;
 	s64 seek_offset;
+	u64 seek_ms;
 } GF_FFDemuxCtx;
 
 static void ffdmx_finalize(GF_Filter *filter)
@@ -441,6 +442,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	int res;
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
 
+restart:
 	if (ctx->ipid) {
 		e = ffdmx_flush_input(filter, ctx);
 		if (e==GF_NOT_READY) return GF_OK;
@@ -457,8 +459,6 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		return GF_EOS;
 
 	u32 would_block, pids;
-
-restart:
 
 	would_block = pids = 0;
 	for (i=0; i<ctx->nb_streams; i++) {
@@ -512,6 +512,15 @@ restart:
 		} else {
 			pkt->pts = pkt->dts;
 		}
+	}
+	if (ctx->seek_ms) {
+		if (pkt->pts * 1000 < ctx->seek_ms * ctx->demuxer->streams[pkt->stream_index]->time_base.den) {
+			if (!ctx->raw_pck_out) {
+				FF_FREE_PCK(pkt);
+			}
+			goto restart;
+		}
+		ctx->seek_ms = 0;
 	}
 
 	pctx = &ctx->pids_ctx[pkt->stream_index];
@@ -727,7 +736,7 @@ restart:
 	}
 
 	e = gf_filter_pck_send(pck_dst);
-    ctx->nb_pck_sent++;
+	ctx->nb_pck_sent++;
 	ctx->nb_stop_pending=0;
 	if (!ctx->raw_pck_out) {
 		FF_FREE_PCK(pkt);
@@ -1398,7 +1407,10 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 static int ffdmx_read_packet(void *opaque, uint8_t *buf, int buf_size)
 {
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
-
+	if (ctx->in_seek && (ctx->seek_offset >= 0)) {
+		ctx->in_seek = 2;
+		return -1;
+	}
 	if (ctx->strbuf_offset + buf_size > ctx->strbuf_size) {
 		if (!ctx->in_eos) {
 			GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Internal buffer too small, may result in packet drops - try increaset strbuf_min option\n", ctx->fname));
@@ -1411,6 +1423,9 @@ static int ffdmx_read_packet(void *opaque, uint8_t *buf, int buf_size)
 	}
 	memcpy(buf, ctx->strbuf + ctx->strbuf_offset, buf_size);
 	ctx->strbuf_offset += buf_size;
+	//if 2xbuffer size is larger than our min internal buffer, increase size - this should limit risks of getting called with no packets to deliver
+	if (buf_size*2 >= ctx->strbuf_min)
+		ctx->strbuf_min = 2*buf_size;
 	return buf_size;
 }
 
@@ -1427,8 +1442,11 @@ static int64_t ffdmx_seek(void *opaque, int64_t offset, int whence)
 		return val;
 	}
 	if (ctx->in_seek) {
-		ctx->seek_offset = offset;
-		return offset;
+		if (ctx->in_seek == 1) {
+			ctx->seek_offset = offset;
+			return offset;
+		}
+		return -1;
 	}
 	//if seeking in first block (while probing for stream info), allow it
 	if (ctx->first_block && (whence==SEEK_SET) && (offset<ctx->strbuf_size)) {
@@ -1507,15 +1525,27 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->raw_data && (ctx->last_play_start_range != evt->play.start_range)) {
 			u32 i;
 			if (ctx->ipid) {
-				ctx->in_seek = GF_TRUE;
+				ctx->seek_ms = 0;
+				ctx->in_seek = 1;
 				ctx->seek_offset = -1;
 			}
 
 			int res = av_seek_frame(ctx->demuxer, -1, (s64) (AV_TIME_BASE*evt->play.start_range), AVSEEK_FLAG_BACKWARD);
 			if (res<0) {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ctx->fname, ctx->src, evt->play.start_range, av_err2str(res) ));
-			} else if (ctx->ipid && (ctx->seek_offset>=0)) {
+				ctx->in_seek = 2;
+				ctx->seek_offset=0;
+			}
+			if (ctx->ipid && (ctx->seek_offset>=0)) {
 				GF_FilterEvent fevt;
+				//failed to seek, start from 0
+				if (evt->play.start_range && (ctx->in_seek==2)) {
+					ctx->seek_offset=0;
+					ctx->seek_ms = (u64) (1000*evt->play.start_range);
+					GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g, seeking from start\n", ctx->fname, ctx->src, evt->play.start_range));
+					if (res<0)
+						av_seek_frame(ctx->demuxer, -1, 0, AVSEEK_FLAG_BACKWARD);
+				}
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 				fevt.seek.start_offset = ctx->seek_offset;
 				gf_filter_pid_send_event(ctx->ipid, &fevt);
