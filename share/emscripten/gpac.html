@@ -803,8 +803,11 @@
                 fio._select = 0;
                 fio._pos = 0;
                 fio._size = fio._file.size;
+                //if more than 1G, load by 10M blocks
+                if ((fio._size>1000000000) && (fio._max_bsize<10000000)) fio._max_bsize = 10000000;
                 //if more than 1m, load by 500k blocks
-                if ((fio._size>1000000) && (fio._max_bsize<500000)) fio._max_bsize = 500000;
+                else if ((fio._size>1000000) && (fio._max_bsize<500000)) fio._max_bsize = 500000;
+
                 GFIO.set_stats(fio._gfio, BigInt(0), BigInt(fio._size), 2, 0);
                 GFIO._load_block(fio);
               } else {
@@ -1506,12 +1509,6 @@
         _lib.copyright = LIBGPAC.cwrap('gf_gpac_copyright', 'string', []);
         _lib.url_cat = LIBGPAC.cwrap('gf_url_concatenate', 'number', ['string', 'string']);
         _lib.free = LIBGPAC.cwrap('gf_url_free', null, ['number']);
-
-
-        GPAC.toggle_reporting = function(value) {
-          const gpac_em_sig_handler = LIBGPAC.cwrap('gpac_em_sig_handler', null, ['number']);
-          gpac_em_sig_handler(value);
-        };
       }
 
 
@@ -1633,6 +1630,10 @@
         onRuntimeInitialized: function() {
           FS = LIBGPAC['FS'];
           load_libgpac(GPAC);
+          GPAC.toggle_reporting = function(value) {
+            const gpac_em_sig_handler = LIBGPAC.cwrap('gpac_em_sig_handler', null, ['number']);
+            gpac_em_sig_handler(value);
+          };
 
           var element = document.getElementById('header');
           var text = element.innerHTML;
