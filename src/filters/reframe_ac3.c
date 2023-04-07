@@ -118,6 +118,12 @@ GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+
+		//make sure we move to audio (may happen if source filter is writegen)
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_STREAM_TYPE);
+		if (!p || (p->value.uint==GF_STREAM_FILE)) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO));
+		}
 	}
 	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 	return GF_OK;
@@ -216,9 +222,10 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	ctx->copy_props = GF_FALSE;
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	//don't change codec type if reframing an ES (for HLS SAES)
-	if (!ctx->timescale)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
+	const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_STREAM_TYPE);
+	if (!p || (p->value.uint==GF_STREAM_FILE)) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO));
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(AC3_FRAME_SIZE) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 

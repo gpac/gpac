@@ -118,6 +118,7 @@ GF_Err truehd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO));
 	}
 	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 	return GF_OK;
