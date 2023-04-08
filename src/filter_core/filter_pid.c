@@ -8215,6 +8215,10 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 			do_skip = GF_TRUE;
 		} else if (!strncmp(name, "XInit", 5) && (name[5]=='=')) {
 			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "InitExt", 7) && (name[7]=='=')) {
+			do_skip = GF_TRUE;
+		} else if (!strncmp(name, "SegExt", 6) && (name[6]=='=')) {
+			do_skip = GF_TRUE;
 		} else if (!strncmp(name, "Path", 4) && (name[4]=='=')) {
 			do_skip = GF_TRUE;
 		} else {
