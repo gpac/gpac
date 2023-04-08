@@ -222,7 +222,11 @@ exit:
 
 	if (t->no_kill) {
 		t->no_kill = 0;
+#ifdef WIN32
+		return ret;
+#else
 		return (void *)ret;
+#endif
 	}
 #ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] At %d Exiting thread proc, return code %d\n", t->log_name, gf_sys_clock(), ret));
