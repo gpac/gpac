@@ -5418,7 +5418,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 						def_pck_dur /= pck_size;
 				}
 			} else {
-				def_pck_dur = 0;
+				//check if we have a default constant duration set, if so use it
+				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CONSTANT_DURATION);
+				def_pck_dur = p ? p->value.uint : 0;
 			}
 			if (tkw->raw_audio_bytes_per_sample)
 				def_samp_size = tkw->raw_audio_bytes_per_sample;
