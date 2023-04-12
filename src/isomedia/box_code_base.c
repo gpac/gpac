@@ -4005,15 +4005,14 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr = (GF_MPEGAudioSampleEntryBox *)s;
 
 	start = gf_bs_get_position(bs);
-	gf_bs_seek(bs, start + 8);
-	v = gf_bs_read_u16(bs);
+	v = gf_bs_peek_bits(bs, 16, 8);
 	if (v)
 		ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_NOEXT;
 
 	//try to disambiguate QTFF v1 and MP4 v1 audio sample entries ...
 	if (v==1) {
 		//go to end of ISOM audio sample entry, skip 4 byte (box size field), read 4 bytes (box type) and check if this looks like a box
-		gf_bs_seek(bs, start + 8 + 20  + 4);
+		gf_bs_skip_bytes(bs, 8 + 20 + 4);
 		a = gf_bs_read_u8(bs);
 		b = gf_bs_read_u8(bs);
 		c = gf_bs_read_u8(bs);
@@ -4024,9 +4023,9 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 		if (isalnum(c)) nb_alnum++;
 		if (isalnum(d)) nb_alnum++;
 		if (nb_alnum>2) ptr->qtff_mode = GF_ISOM_AUDIO_QTFF_NONE;
+		gf_bs_seek(bs, start);
 	}
 
-	gf_bs_seek(bs, start);
 	e = gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox*)s, bs);
 	if (e) return e;
 	pos = gf_bs_get_position(bs);

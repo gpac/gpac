@@ -78,6 +78,8 @@ struct __tag_bitstream
 
 	u32 total_bits_read;
 	u32 overflow_state;
+
+	u64 o_size;
 };
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
@@ -1387,6 +1389,36 @@ u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 	if ( (bs->bsmode != GF_BITSTREAM_READ) && (bs->bsmode != GF_BITSTREAM_FILE_READ)) return 0;
 	if (!numBits || (bs->size < bs->position + byte_offset)) return 0;
 
+	if (bs->cache_read) {
+		if ((numBits==32) && (bs->cache_read_pos+byte_offset+4<bs->cache_read_size) ) {
+			ret = bs->cache_read[bs->cache_read_pos+byte_offset];
+			ret<<=8;
+			ret |= bs->cache_read[bs->cache_read_pos+byte_offset+1];
+			ret<<=8;
+			ret |= bs->cache_read[bs->cache_read_pos+byte_offset+2];
+			ret<<=8;
+			ret |= bs->cache_read[bs->cache_read_pos+byte_offset+3];
+			return ret;
+		}
+		if ((numBits==24) && (bs->cache_read_pos+byte_offset+3<bs->cache_read_size) ) {
+			ret = bs->cache_read[bs->cache_read_pos+byte_offset];
+			ret<<=8;
+			ret |= bs->cache_read[bs->cache_read_pos+byte_offset+1];
+			ret<<=8;
+			ret |= bs->cache_read[bs->cache_read_pos+byte_offset+2];
+			return ret;
+		}
+		if ((numBits==16) && (bs->cache_read_pos+byte_offset+2<bs->cache_read_size) ) {
+			ret = bs->cache_read[bs->cache_read_pos+byte_offset];
+			ret<<=8;
+			ret |= bs->cache_read[bs->cache_read_pos+byte_offset+1];
+			return ret;
+		}
+		if ((numBits==8) && (bs->cache_read_pos+byte_offset+1<bs->cache_read_size) ) {
+			return bs->cache_read[bs->cache_read_pos+byte_offset];
+		}
+	}
+
 	/*store our state*/
 	curPos = bs->position;
 	curBits = bs->nbBits;
@@ -1588,7 +1620,13 @@ u32 gf_bs_read_vluimsbf5(GF_BitStream *bs)
 GF_EXPORT
 void gf_bs_truncate(GF_BitStream *bs)
 {
+	bs->o_size = bs->size;
 	bs->size = bs->position;
+}
+
+void gf_bs_untruncate(GF_BitStream *bs)
+{
+	bs->size = bs->o_size;
 }
 
 
