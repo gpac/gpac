@@ -61,7 +61,7 @@ GF_EXPORT
 u32 gf_4cc_parse(const char *val)
 {
 	if (val && strlen(val)==4) return GF_4CC(val[0], val[1], val[2], val[3]);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Value is not a properly defined 4CC", val));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Value %s is not a properly defined 4CC\n", val));
 	return 0;
 }
 

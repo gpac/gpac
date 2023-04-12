@@ -1094,7 +1094,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	u64 min_dts = GF_FILTER_NO_TS;
 	u64 min_cts = GF_FILTER_NO_TS;
 	u32 idx, nb_eos=0;
-	u32 data_size, nbpck;
+	u32 data_size;
 	char *data;
 	Bool has_pic = GF_FALSE;
 	GF_FilterPacket *pck_ref = NULL;
@@ -1252,7 +1252,6 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	ctx->dec_frames++;
 	got_pic = 0;
 	ctx->reaggregation_size = 0;
-	nbpck = 0;
 
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
@@ -1325,7 +1324,6 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			has_pic = GF_TRUE;
 
 		gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
-		nbpck++;
 	}
 
 	if (ctx->reaggregation_size) {
