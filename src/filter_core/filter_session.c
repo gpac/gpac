@@ -235,7 +235,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	GF_FilterSession *fsess, *a_sess;
 
 	//safety check: all built-in properties shall have unique 4CCs
-	if ( ! gf_props_4cc_check_props())
+	if (gf_sys_is_test_mode() && ! gf_props_4cc_check_props())
 		return NULL;
 
 	GF_SAFEALLOC(fsess, GF_FilterSession);
@@ -394,11 +394,13 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	gf_fs_reg_all(fsess, a_sess);
 
 	//load external modules
-	count = gf_modules_count();
-	for (i=0; i<count; i++) {
-		GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, a_sess);
-		if (freg) {
-			gf_fs_add_filter_register(fsess, freg);
+	if (!gf_opts_get_bool("core", "no-dynf")) {
+		count = gf_modules_count();
+		for (i=0; i<count; i++) {
+			GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, a_sess);
+			if (freg) {
+				gf_fs_add_filter_register(fsess, freg);
+			}
 		}
 	}
 	fsess->blacklist = NULL;
