@@ -180,6 +180,9 @@ GF_CodecID gf_codecid_parse(const char *cname)
 	u32 ilen = (u32) strlen(cname);
 	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
 	for (i=0; i<count; i++) {
+		if (!strcmp(CodecRegistry[i].name, cname))
+			return CodecRegistry[i].codecid;
+
 		const char *n = CodecRegistry[i].sname;
 		while (n) {
 			char *sep = strchr(n, '|');

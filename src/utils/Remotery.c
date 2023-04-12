@@ -2365,12 +2365,12 @@ static void TCPSocket_Close(TCPSocket* tcp_socket)
         if (result != SOCKET_ERROR)
         {
             // Keep receiving until the peer closes the connection
-            int total = 0;
+            //int total = 0;
             char temp_buf[128];
             while (result > 0)
             {
                 result = (int)recv(tcp_socket->socket, temp_buf, sizeof(temp_buf), 0);
-                total += result;
+                //total += result;
             }
         }
 
