@@ -4176,6 +4176,8 @@ typedef struct
 	u64 sidx_start;
 	/*! sidx end, 0 if absent*/
 	u64 sidx_end;
+	/*! DTS of first sample in this fragment fotr the queried track*/
+	u64 first_dts;
 } GF_ISOFragmentBoundaryInfo;
 
 /*! checks if a sample is a fragment start

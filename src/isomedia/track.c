@@ -810,7 +810,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 			if (store_traf_map && first_samp_in_traf) {
 				first_samp_in_traf = GF_FALSE;
-				e = stbl_AppendTrafMap(trak->moov->mov, trak->Media->information->sampleTable, is_seg_start, seg_start, frag_start, moof_template, moof_template_size, sidx_start, sidx_end, ent->nb_pack);
+				e = stbl_AppendTrafMap(trak->moov->mov, trak->Media->information->sampleTable, is_seg_start, seg_start, frag_start, tfdt ? tfdt : trak->dts_at_next_frag_start, moof_template, moof_template_size, sidx_start, sidx_end, ent->nb_pack);
 				if (e) return e;
 				//do not deallocate, the memory is now owned by traf map
 				moof_template = NULL;
@@ -819,6 +819,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			if (ent->nb_pack>1) {
 				j+= ent->nb_pack-1;
 				traf_duration += ent->nb_pack*duration;
+				last_dts += (ent->nb_pack-1)*duration;
 				continue;
 			}
 
