@@ -1605,6 +1605,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_FRAG_START, "FragStart", "Packet is a fragment start (value 1) or a segment start (value 2)", GF_PROP_UINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_FRAG_RANGE, "FragRange", "Start and end position in bytes of fragment if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_FRAG_TFDT, "FragTFDT", "Decode time of first packet in fragmentt", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_SIDX_RANGE, "SIDXRange", "Start and end position in bytes of sidx if packet is a fragment or segment start", GF_PROP_FRACTION64, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PCK_MOOF_TEMPLATE, "MoofTemplate", "Serialized moof box corresponding to the start of a movie fragment or segment (with styp and optionally sidx)", GF_PROP_DATA, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
@@ -1733,7 +1734,7 @@ Bool gf_props_4cc_check_props()
 }
 
 GF_EXPORT
-const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_type, const char *min_max_enum)
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_flags, const char *min_max_enum)
 {
 	switch (att->type) {
 	case GF_PROP_NAME:
@@ -1744,6 +1745,8 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		if (!dump) return NULL;
 		break;
 	}
+	Bool no_reduce = dump_data_flags & GF_PROP_DUMP_NO_REDUCE;
+	u32 dump_data_type = dump_data_flags&0xFF;
 
 	dump[0] = 0;
 	switch (att->type) {
@@ -1790,7 +1793,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		break;
 	case GF_PROP_FRACTION:
 		//reduce fraction
-		if (att->value.frac.den && ((att->value.frac.num/att->value.frac.den) * att->value.frac.den == att->value.frac.num)) {
+		if (!no_reduce && att->value.frac.den && ((att->value.frac.num/att->value.frac.den) * att->value.frac.den == att->value.frac.num)) {
 			sprintf(dump, "%d", att->value.frac.num / att->value.frac.den);
 		} else {
 			sprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
@@ -1798,7 +1801,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		break;
 	case GF_PROP_FRACTION64:
 		//reduce fraction
-		if (att->value.lfrac.den && ((att->value.lfrac.num/att->value.lfrac.den) * att->value.lfrac.den == att->value.lfrac.num)) {
+		if (!no_reduce && att->value.lfrac.den && ((att->value.lfrac.num/att->value.lfrac.den) * att->value.lfrac.den == att->value.lfrac.num)) {
 			sprintf(dump, LLD, att->value.lfrac.num / att->value.lfrac.den);
 		} else {
 			sprintf(dump, LLD"/"LLU, att->value.lfrac.num, att->value.lfrac.den);

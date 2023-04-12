@@ -983,6 +983,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				if (end)
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(start , end));
 			}
+			if (!read->frag_type) {
+				gf_filter_pid_set_property_str(ch->pid, "nofrag", &PROP_BOOL(GF_TRUE));
+			}
 		}
 	}
 

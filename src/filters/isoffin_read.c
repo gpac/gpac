@@ -162,14 +162,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 		return e;
 	}
 	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-	if (!read->frag_type && read->sigfrag) {
-		e = GF_BAD_PARAM;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] sigfrag requested but file %s is not fragmented\n", url));
-		gf_filter_setup_failure(filter, e);
-		gf_free(url);
-		return e;
-	}
-    
+
 	read->timescale = gf_isom_get_timescale(read->mov);
 	if (!read->input_loaded && read->frag_type)
 		read->refresh_fragmented = GF_TRUE;
@@ -878,6 +871,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 count, i;
+	Bool is_byte_range = GF_FALSE;
 	Bool cancel_event = GF_TRUE;
 	Double start_range, speed;
 	ISOMChannel *ch, *ref_ch;
@@ -904,6 +898,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_FALSE;
 
 	switch (evt->base.type) {
+	case GF_FEVT_SOURCE_SEEK:
+		is_byte_range = GF_TRUE;
 	case GF_FEVT_PLAY:
 		if (ch->skip_next_play) {
 			ch->skip_next_play = 0;
@@ -912,7 +908,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		isor_reset_reader(ch);
 		ch->eos_sent = 0;
-		ch->speed = evt->play.speed;
+		ch->speed = is_byte_range ? 1 : evt->play.speed;
 		ch->initial_play_seen = 1;
 		read->reset_frag_state = 1;
 		//it can happen that input_is_stop is still TRUE because we did not get called back after the stop - reset to FALSE since we now play
@@ -921,8 +917,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			read->frag_type = 1;
 
 		ch->start = ch->end = 0;
-		start_range = evt->play.start_range;
-		speed = evt->play.speed;
+		start_range = is_byte_range ? 0 : evt->play.start_range;
+		speed = ch->speed;
 		//compute closest range if channel was disconnected
 		if (read->nb_playing && ch->midrun_tune) {
 			ref_ch = NULL;
@@ -950,44 +946,69 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					start_range = orig_range;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] channel start is %f - requested %f\n", start_range, evt->play.start_range));
+		if (!is_byte_range) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] channel start is %f - requested %f\n", start_range, evt->play.start_range));
 
-		if (speed>=0) {
-			Double t;
-			if (start_range>=0) {
-				t = start_range;
-				t *= ch->timescale;
-				ch->start = (u64) t;
-			}
-			if (evt->play.end_range >= start_range) {
-				ch->end = (u64) -1;
-				if (evt->play.end_range<FLT_MAX) {
-					t = evt->play.end_range;
+			if (speed>=0) {
+				Double t;
+				if (start_range>=0) {
+					t = start_range;
 					t *= ch->timescale;
-					ch->end = (u64) t;
+					ch->start = (u64) t;
 				}
+				if (evt->play.end_range >= start_range) {
+					ch->end = (u64) -1;
+					if (evt->play.end_range<FLT_MAX) {
+						t = evt->play.end_range;
+						t *= ch->timescale;
+						ch->end = (u64) t;
+					}
+				}
+			} else {
+				Double end = evt->play.end_range;
+				if (end==-1) end = 0;
+				ch->start = (u64) (s64) (start_range * ch->timescale);
+				if (end <= start_range)
+					ch->end = (u64) (s64) (end  * ch->timescale);
 			}
+			ch->sample_num = evt->play.from_pck;
+			ch->sample_last = evt->play.to_pck;
+			ch->sap_only = evt->play.drop_non_ref ? 1 : 0;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, start_range, evt->play.end_range));
 		} else {
-			Double end = evt->play.end_range;
-			if (end==-1) end = 0;
-			ch->start = (u64) (s64) (start_range * ch->timescale);
-			if (end <= start_range)
-				ch->end = (u64) (s64) (end  * ch->timescale);
+			ch->end = 0;
+			ch->sample_num = 0;
+			ch->sample_last = 0;
+			ch->sap_only = 0;
 		}
-		ch->playing = 1;
-		ch->sample_num = evt->play.from_pck;
 		ch->orig_start = start_range;
-
-		ch->sap_only = evt->play.drop_non_ref ? 1 : 0;
-
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, start_range, evt->play.end_range));
+		ch->playing = 1;
 
 		if (!read->nb_playing)
 			gf_isom_reset_seq_num(read->mov);
 
 		if (read->is_partial_download) read->input_loaded = GF_FALSE;
 
-		if (evt->play.no_byterange_forward) {
+		if (is_byte_range) {
+			if (!read->frag_type) {
+				return GF_TRUE;
+			}
+			if (read->mem_load_mode) {
+				//new segment will be loaded, reset
+				gf_isom_reset_tables(read->mov, GF_TRUE);
+				gf_isom_reset_data_offset(read->mov, NULL);
+				read->refresh_fragmented = GF_TRUE;
+				read->mem_blob.size = 0;
+				//send seek event
+				cancel_event = GF_FALSE;
+			} else {
+				GF_Err gf_isom_load_fragments(GF_ISOFile *movie, u64 start_range, u64 end_range, u64 *BytesMissing);
+				cancel_event = GF_TRUE;
+				gf_isom_load_fragments(read->mov, evt->seek.start_offset, evt->seek.end_offset, &read->missing_bytes);
+				ch->first_tfdt = evt->seek.hint_first_tfdt;
+			}
+		} else if (evt->play.no_byterange_forward) {
 			//new segment will be loaded, reset
 			gf_isom_reset_tables(read->mov, GF_TRUE);
 			gf_isom_reset_data_offset(read->mov, NULL);
@@ -1082,7 +1103,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				ach->orig_start = ch->orig_start;
 				ach->start = (u64) (ach->orig_start * ach->timescale);
 				ach->eos_sent = 0;
-				ach->speed = evt->play.speed;
+				ach->speed = is_byte_range ? 1 : evt->play.speed;
 				ach->initial_play_seen = 1;
 				ach->skip_next_play = 1;
 				ach->set_disc = 1;
@@ -1514,12 +1535,16 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						start = finfo.frag_start;
 						if (finfo.seg_start_plus_one) start = finfo.seg_start_plus_one-1;
 						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_RANGE, &PROP_FRAC64_INT(start, finfo.mdat_end));
+
+
 						if (finfo.moof_template) {
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));
 						}
 						if (finfo.sidx_end) {
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(finfo.sidx_start , finfo.sidx_end));
 						}
+
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_FRAG_TFDT, &PROP_LONGUINT(finfo.first_dts));
 					}
 				}
 				if (ch->sender_ntp) {
@@ -1643,8 +1668,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(alltk), "declare disabled tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame_size), "frame size for raw audio samples (dispatches frame_size samples per packet)", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(expart), "expose cover art as a dedicated video PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sigfrag), "signal fragment and segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-
+	{ OFFS(sigfrag), "signal fragment and segment boundaries of source on output packets, fails if source is not fragmented", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tkid), "declare only track based on given param\n"
 	"- integer value: declares track with the given ID\n"
 	"- audio: declares first audio track\n"

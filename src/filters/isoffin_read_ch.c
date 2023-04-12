@@ -428,6 +428,12 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else {
 		Bool do_fetch = GF_TRUE;
 		ch->sample_num++;
+		if (ch->sample_last && (ch->sample_last<ch->sample_num)) {
+			ch->sample = NULL;
+			ch->last_state = GF_EOS;
+			ch->playing = 2;
+			return;
+		}
 
 		if (ch->sap_only) {
 			Bool is_rap = gf_isom_get_sample_sync(ch->owner->mov, ch->track, ch->sample_num);
@@ -521,6 +527,11 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 		return;
 	}
+
+	if ((ch->sample_num==1) && ch->first_tfdt && ch->sample->DTS) {
+		ch->first_tfdt = 0;
+	}
+	ch->sample->DTS += ch->first_tfdt;
 
 	if (sample_desc_index != ch->last_sample_desc_index) {
 		if (!ch->owner->stsd) {

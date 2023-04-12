@@ -151,7 +151,7 @@ typedef struct
 	s32 roll;
 	u32 xps_mask;
 	
-	u32 sample_num;
+	u32 sample_num, sample_last;
 	s64 ts_offset;
 
 	/*for edit lists*/
@@ -205,6 +205,7 @@ typedef struct
 	GF_AVCConfig *avcc;
 	GF_VVCConfig *vvcc;
 	u32 dsi_crc;
+	u64 first_tfdt;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);

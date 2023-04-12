@@ -299,6 +299,11 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 throw error if any PID in the filter graph cannot be linked
 .br
 .TP
+.B \-no-dynf
+.br
+disable dynamically loaded filters
+.br
+.TP
 .B \-no-block (Enum, default: no)
 .br
 disable blocking mode of filters
@@ -973,6 +978,11 @@ log edges status in filter graph before dijkstra resolution (for debug). Edges a
 .B \-full-link
 .br
 throw error if any PID in the filter graph cannot be linked
+.br
+.TP
+.B \-no-dynf
+.br
+disable dynamically loaded filters
 .br
 .TP
 .B \-no-block (Enum, default: no)
@@ -3700,6 +3710,11 @@ Packet is a fragment start (value 1) or a segment start (value 2)
 Start and end position in bytes of fragment if packet is a fragment or segment start
 .br
 .TP
+.B FragTFDT (PFRT,luint,DP)
+.br
+Decode time of first packet in fragmentt
+.br
+.TP
 .B SIDXRange (PFSR,lfrac,DP)
 .br
 Start and end position in bytes of sidx if packet is a fragment or segment start
@@ -4965,7 +4980,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev115-gf017d3370-master
+build: 2.3-DEV-rev135-g66b3806b1-index_jit
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

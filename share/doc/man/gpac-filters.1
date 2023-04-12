@@ -844,7 +844,7 @@ frame_size (uint, default: 1024): frame size for raw audio samples (dispatches f
 .br
 expart (bool, default: false): expose cover art as a dedicated video PID
 .br
-sigfrag (bool, default: false): signal fragment and segment boundaries of source on output packets
+sigfrag (bool, default: false): signal fragment and segment boundaries of source on output packets, fails if source is not fragmented
 .br
 tkid (str):                    declare only track based on given param
 .br
@@ -3167,6 +3167,8 @@ mvbk (uint, default: 8192):    block size used when moving parts of the file aro
 redund (bool, default: false): keep redundant packet in output file
 .br
 max_cache_segs (sint, default: 0): maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)
+.br
+force_null (bool, default: false): force no output regardless of file name
 .br
 
 .br
@@ -8928,6 +8930,112 @@ force_pf (bool, default: false): ignore possible mapping to GPAC pixel formats
 .br
 
 .br
+.SH ghidmx
+.LP
+.br
+Description: GHI demultiplexer
+.br
+
+.br
+This filter handles pre-indexed content for HAS manifest, init segment and segments just-in-time processing
+.br
+
+.br
+Indexes must be constructed using the dasher filter and a given segment duration:
+.br
+Example
+.br
+gpac -i SRC -o index.ghix:segdur=2
+.br
+
+.br
+
+.br
+To generate manifest(s) and init segment(s) from the index, use:
+.br
+Example
+.br
+gpac -i index.ghix:genman -o dash/vod.mpd
+.br
+
+.br
+
+.br
+To generate the 10th segment of representation with ID FOO, use:
+.br
+Example
+.br
+gpac -i index.ghix:rep=FOO:sn=10 -o dash/vod.mpd
+.br
+
+.br
+Note that the manifest file(s) and init segment(s) are not written when generating a segment.
+.br
+The manifest target (mpd or m3u8) is only used to setup the filter chain and target output path.
+.br
+
+.br
+The filter ouputs are PIDs using framed packets amrked with segment boundaries and can be chained to other filters before entering the dasher (e.g. for encryption, transcode...).
+.br
+
+.br
+Muxed Representations
+.br
+The filter can be used to generate muxed representations, either at manifest generation time or when geenrating a segment.
+.br
+To generate a manifest muxing representations A with representations V1 and V2 use:
+.br
+Example
+.br
+gpac -i index.ghix:genman:mux=A-V1-V2 -o dash/vod.mpd
+.br
+
+.br
+
+.br
+To generate a manifest muxing representations A and T with representations V1 and V2 use:
+.br
+Example
+.br
+gpac -i index.ghix:genman:mux=A-V1-V2,T-V1-V2 -o dash/vod.mpd
+.br
+
+.br
+
+.br
+To generate the 5th segment containing representations A and V2 use:
+.br
+Example
+.br
+gpac -i index.ghix:rep=V2:sn=5:mux=A-V2 -o dash/vod.mpd
+.br
+
+.br
+
+.br
+The filter does not store any state, it is the user respansability to use consistent informations across calls:
+.br
+- do not change segment templates
+.br
+- do not change muxed representations to configurations not advertised in the generated manifests
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+genman (bool, default: false): manifest generation mode
+.br
+force (bool, default: false):  force loading sources in manifest generation
+.br
+rep (str):                     representation to generate
+.br
+sn (uint):                     segment number to generate
+.br
+mux (strl):                    representation to mux - cf filter help
+.br
+
+.br
 .SH dtout
 .LP
 .br
@@ -11271,7 +11379,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev115-gf017d3370-master
+build: 2.3-DEV-rev135-g66b3806b1-index_jit
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
