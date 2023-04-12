@@ -493,6 +493,20 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 	return gf_isom_open_progressive_ex(fileName, start_range, end_range, enable_frag_bounds, the_file, BytesMissing, NULL);
 }
 
+void gf_bs_untruncate(GF_BitStream *bs);
+GF_Err gf_isom_load_fragments(GF_ISOFile *movie, u64 start_range, u64 end_range, u64 *BytesMissing)
+{
+	gf_bs_untruncate(movie->movieFileMap->bs);
+	if (end_range>start_range) {
+		gf_bs_seek(movie->movieFileMap->bs, end_range+1);
+		gf_bs_truncate(movie->movieFileMap->bs);
+	}
+	movie->current_top_box_start = start_range;
+	gf_bs_seek(movie->movieFileMap->bs, start_range);
+	return gf_isom_parse_movie_boxes(movie, NULL, BytesMissing, GF_TRUE);
+}
+
+
 /**************************************************************
 					File Reading
 **************************************************************/
@@ -5807,6 +5821,7 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 				frag_info->seg_start_plus_one = finfo->seg_start_plus_one;
 				frag_info->sidx_start = finfo->sidx_start;
 				frag_info->sidx_end = finfo->sidx_end;
+				frag_info->first_dts = finfo->first_dts;
 			}
 			return GF_TRUE;
 		}
