@@ -40,7 +40,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool append, dynext, ow, redund, noinitraw;
+	Bool append, dynext, ow, redund, noinitraw, force_null;
 	u32 cat;
 	u32 mvbk;
 	s32 max_cache_segs;
@@ -340,6 +340,9 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	}
 	gf_filter_override_caps(filter, ctx->in_caps, 2);
 
+	if (ctx->force_null) {
+		ctx->is_null = GF_TRUE;
+	}
 	return GF_OK;
 }
 
@@ -748,6 +751,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(redund), "keep redundant packet in output file", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(noinitraw), "do not produce initial segment", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(max_cache_segs), "maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(force_null), "force no output regardless of file name", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
