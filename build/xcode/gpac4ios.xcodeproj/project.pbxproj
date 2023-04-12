@@ -410,6 +410,7 @@
 		92BC213716EF8E7A000E0620 /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999E1278778800ACFF58 /* video.c */; };
 		92C0F38021EDFA8E002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37F21EDFA8D002961C8 /* out_rtp.c */; };
 		92C236E82576DC4E00CD59A9 /* tilesplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C236E72576DC4E00CD59A9 /* tilesplit.c */; };
+		92C3486729E69CBF00C63E8A /* dmx_ghi.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C3486629E69CBF00C63E8A /* dmx_ghi.c */; };
 		92C69C62281323B800051866 /* compositor_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C69C5F281323B800051866 /* compositor_tools.c */; };
 		92C69C63281323B800051866 /* gpac_help.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C69C60281323B800051866 /* gpac_help.c */; };
 		92C69C65281323D700051866 /* ios-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 92C69C64281323D700051866 /* ios-Info.plist */; };
@@ -1007,6 +1008,7 @@
 		92B2A4AD229D6646002A65A7 /* hevcsplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hevcsplit.c; path = ../../src/filters/hevcsplit.c; sourceTree = "<group>"; };
 		92C0F37F21EDFA8D002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = ../../src/filters/out_rtp.c; sourceTree = "<group>"; };
 		92C236E72576DC4E00CD59A9 /* tilesplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tilesplit.c; path = ../../src/filters/tilesplit.c; sourceTree = "<group>"; };
+		92C3486629E69CBF00C63E8A /* dmx_ghi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_ghi.c; path = ../../src/filters/dmx_ghi.c; sourceTree = "<group>"; };
 		92C69C5E281323B800051866 /* gpac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gpac.h; path = ../../applications/gpac/gpac.h; sourceTree = "<group>"; };
 		92C69C5F281323B800051866 /* compositor_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = compositor_tools.c; path = ../../applications/gpac/compositor_tools.c; sourceTree = "<group>"; };
 		92C69C60281323B800051866 /* gpac_help.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gpac_help.c; path = ../../applications/gpac/gpac_help.c; sourceTree = "<group>"; };
@@ -1917,16 +1919,15 @@
 		92EB6D5E20E4E16700A97A49 /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				92AB30C027ADA66F00A5CCCB /* restamp.c */,
 				9227B8562799F8E600BF3D1B /* bs_agg.c */,
 				9227B8572799F8E600BF3D1B /* bs_split.c */,
-				92C236E72576DC4E00CD59A9 /* tilesplit.c */,
 				9274295924647B98009ADD8D /* bsrw.c */,
 				92EB6D8B20E4E19300A97A49 /* compose.c */,
 				92EB6D9420E4E19400A97A49 /* dasher.c */,
 				92EB6DB020E4E19600A97A49 /* dec_ac52.c */,
 				92EB6D7220E4E19200A97A49 /* dec_bifs.c */,
 				92EB6DA020E4E19500A97A49 /* dec_faad.c */,
+				92C3486629E69CBF00C63E8A /* dmx_ghi.c */,
 				92EB6DA220E4E19500A97A49 /* dec_img.c */,
 				92EB6D7B20E4E19200A97A49 /* dec_j2k.c */,
 				92EB6D9520E4E19400A97A49 /* dec_laser.c */,
@@ -2024,6 +2025,7 @@
 				9288A4B325ADDCED006F7355 /* reframe_truehd.c */,
 				92EB6D9D20E4E19500A97A49 /* reframer.c */,
 				92EB6DB620E4E19600A97A49 /* resample_audio.c */,
+				92AB30C027ADA66F00A5CCCB /* restamp.c */,
 				92EB6D9320E4E19400A97A49 /* rewind.c */,
 				92EB6D8120E4E19300A97A49 /* rewrite_adts.c */,
 				928EB67425271B5800E47747 /* rewrite_mhas.c */,
@@ -2031,6 +2033,7 @@
 				92EB6DB420E4E19600A97A49 /* rewrite_nalu.c */,
 				8959AC83211C9C3C004D2C87 /* rewrite_obu.c */,
 				92EB6DB520E4E19600A97A49 /* tileagg.c */,
+				92C236E72576DC4E00CD59A9 /* tilesplit.c */,
 				928607102395C0DE00FDA1ED /* tssplit.c */,
 				929A29252801EBD700635DEB /* ttml_conv.c */,
 				92EB6DC620E4E19700A97A49 /* unit_test_filter.c */,
@@ -2561,6 +2564,7 @@
 				92EB6DE420E4E19700A97A49 /* dmx_saf.c in Sources */,
 				71CCF2EB1277045100339E12 /* ipmpx_parse.c in Sources */,
 				92C236E82576DC4E00CD59A9 /* tilesplit.c in Sources */,
+				92C3486729E69CBF00C63E8A /* dmx_ghi.c in Sources */,
 				71CCF2EC1277045100339E12 /* oci_codec.c in Sources */,
 				71CCF2ED1277045100339E12 /* odf_code.c in Sources */,
 				71CCF2EE1277045100339E12 /* odf_codec.c in Sources */,
@@ -2730,6 +2734,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEPLOYMENT_LOCATION = YES;
+				DEVELOPMENT_TEAM = Q46G522WGV;
 				ENABLE_BITCODE = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OBJC_CALL_CXX_CDTORS = YES;
@@ -2778,6 +2783,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEPLOYMENT_LOCATION = YES;
+				DEVELOPMENT_TEAM = Q46G522WGV;
 				ENABLE_BITCODE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";

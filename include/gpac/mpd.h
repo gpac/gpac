@@ -269,6 +269,9 @@ typedef struct
 	u8 can_merge;
 	/*! merge flag for byte-range subsegs 0: cannot merge, 1: can merge */
 	u8 is_first_part;
+
+
+	u64 first_tfdt, first_pck_seq, seg_start_time, frag_start_offset, frag_tfdt;
 } GF_MPD_SegmentURL;
 
 /*! SegmentList*/
@@ -289,6 +292,9 @@ typedef struct
 	char *dasher_segment_name;
 	/*! GPAC internal, we store the previous xlink before resolution*/
 	char *previous_xlink_href;
+	/*! GPAC internal, work in index mode*/
+	Bool index_mode;
+	u32 sample_duration;
 } GF_MPD_SegmentList;
 
 /*! SegmentTemplate*/
@@ -662,6 +668,8 @@ typedef struct {
 
 	//download in progress for m3u8
 	Bool in_progress;
+	char *res_url;
+	u32 trackID;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -875,7 +883,12 @@ typedef struct {
 	GF_List *supplemental_properties;
 
 	/* internal variables for dasher*/
+
+	/*! inject DASHIF-LL profile service desc*/
 	Bool inject_service_desc;
+
+	/*Generate index mode instead of MPD*/
+	Bool index_mode;
 
 	/*! dasher init NTP clock in ms - GPAC internal*/
 	u64 gpac_init_ntp_ms;
@@ -906,6 +919,11 @@ typedef struct {
 	Double llhls_part_holdback;
 	//als absolute url flag
 	u32 hls_abs_url;
+
+	/*! requested segment duration for index mode */
+	u32 segment_duration;
+	char *segment_template;
+	Bool allow_empty_reps;
 } GF_MPD;
 
 /*! parses an MPD Element (and subtree) from DOM

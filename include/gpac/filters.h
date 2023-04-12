@@ -1216,6 +1216,7 @@ enum
 	GF_PROP_PID_MHA_COMPATIBLE_PROFILES = GF_4CC('M','H','C','P'),
 	GF_PROP_PCK_FRAG_START = GF_4CC('P','F','R','B'),
 	GF_PROP_PCK_FRAG_RANGE = GF_4CC('P','F','R','R'),
+	GF_PROP_PCK_FRAG_TFDT = GF_4CC('P','F','R','T'),
 	GF_PROP_PCK_SIDX_RANGE = GF_4CC('P','F','S','R'),
 	GF_PROP_PCK_MOOF_TEMPLATE = GF_4CC('M','F','T','P'),
 	GF_PROP_PCK_INIT = GF_4CC('P','C','K','I'),
@@ -1407,16 +1408,18 @@ typedef enum
 	GF_PROP_DUMP_DATA_INFO,
 	/*! dump data to parsable property, as ADDRESS+'@'+POINTER*/
 	GF_PROP_DUMP_DATA_PTR,
+	/*! do not reduce fractions when dumping*/
+	GF_PROP_DUMP_NO_REDUCE = 1<<16,
 } GF_PropDumpDataMode;
 
 /*! Dumps a property value to string
 \param att property value
 \param dump buffer holding the resulting value for types requiring string conversions (integers, ...)
-\param dump_data_mode data dump mode
+\param dump_data_flags data dump mode and flags
 \param min_max_enum optional, gives the min/max or enum string when the property is a filter argument
 \return string
 */
-const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumpDataMode dump_data_mode, const char *min_max_enum);
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumpDataMode dump_data_flags, const char *min_max_enum);
 
 /*! Dumps a property value to string, resolving any built-in types (pix formats, codec id, ...)
 \param p4cc property 4CC
@@ -1644,6 +1647,7 @@ typedef struct
 
 	/*! GF_FEVT_PLAY only, indicates playback should start from given packet number - used by dasher when reloading sources*/
 	u32 from_pck;
+	u32 to_pck;
 
 	/*! GF_FEVT_PLAY only, set when PLAY event is sent upstream to audio out, indicates HW buffer reset*/
 	u8 hw_buffer_reset;
@@ -1690,6 +1694,8 @@ typedef struct
 	u8 skip_cache_expiration;
 	/*! GF_FEVT_SOURCE_SEEK only,  hint block size for source, might not be respected*/
 	u32 hint_block_size;
+	/*! GF_FEVT_SOURCE_SEEK only,  hint tfdt of first sample*/
+	u64 hint_first_tfdt;
 } GF_FEVT_SourceSeek;
 
 /*! Event structure for GF_FEVT_SEGMENT_SIZE*/

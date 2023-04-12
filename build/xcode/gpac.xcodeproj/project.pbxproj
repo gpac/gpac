@@ -500,6 +500,7 @@
 		92C0F37E21EC7BB0002961C8 /* out_rtp.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C0F37D21EC7BB0002961C8 /* out_rtp.c */; };
 		92C236DD25769BA500CD59A9 /* tilesplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C236DC25769BA500CD59A9 /* tilesplit.c */; };
 		92C23723257841A100CD59A9 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA6C1A15FE4A00372C59 /* CoreAudio.framework */; };
+		92C3486529E5B31700C63E8A /* dmx_ghi.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C3486429E5B31700C63E8A /* dmx_ghi.c */; };
 		92C403DD2181F17E00331F39 /* dec_openhevc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C403DC2181F17E00331F39 /* dec_openhevc.c */; };
 		92C403EA2181F57600331F39 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92C69C5C281315B400051866 /* carbon_hook.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C69C5B281315B400051866 /* carbon_hook.c */; };
@@ -1126,6 +1127,7 @@
 		92BE509018D6325E00AA59D8 /* MP4Box */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Box; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C0F37D21EC7BB0002961C8 /* out_rtp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_rtp.c; path = filters/out_rtp.c; sourceTree = "<group>"; };
 		92C236DC25769BA500CD59A9 /* tilesplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tilesplit.c; path = filters/tilesplit.c; sourceTree = "<group>"; };
+		92C3486429E5B31700C63E8A /* dmx_ghi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_ghi.c; path = filters/dmx_ghi.c; sourceTree = "<group>"; };
 		92C403D72181F10500331F39 /* gf_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gf_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92C403DC2181F17E00331F39 /* dec_openhevc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_openhevc.c; path = ../../src/filters/dec_openhevc.c; sourceTree = "<group>"; };
 		92C69C5B281315B400051866 /* carbon_hook.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = carbon_hook.c; path = ../../applications/gpac/carbon_hook.c; sourceTree = "<group>"; };
@@ -1959,6 +1961,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92C3486429E5B31700C63E8A /* dmx_ghi.c */,
 				920F4C9E299FB3CC00EC9D21 /* avin_web.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
@@ -2653,6 +2656,7 @@
 				92B9A5B31F8660D700A24FE4 /* mesh_collide.c in Sources */,
 				9290F5111FAB4C2C0038C30D /* mux_isom.c in Sources */,
 				92BB85731F7BFB63009BC9C8 /* dec_mad.c in Sources */,
+				92C3486529E5B31700C63E8A /* dmx_ghi.c in Sources */,
 				9201016318D5A445003D1ACA /* oci_codec.c in Sources */,
 				9201016418D5A445003D1ACA /* odf_code.c in Sources */,
 				9201016518D5A445003D1ACA /* odf_codec.c in Sources */,

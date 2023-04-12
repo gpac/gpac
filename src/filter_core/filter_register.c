@@ -184,6 +184,7 @@ const GF_FilterRegister *ttmlconv_register(GF_FilterSession *session);
 const GF_FilterRegister *ttmlconv2_register(GF_FilterSession *session);
 const GF_FilterRegister *unframer_register(GF_FilterSession *session);
 const GF_FilterRegister *writeuf_register(GF_FilterSession *session);
+const GF_FilterRegister *ghi_dmx_register(GF_FilterSession *session);
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
@@ -334,6 +335,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, unframer_register(a_sess) );
 	gf_fs_add_filter_register(fsess, writeuf_register(a_sess) );
 	gf_fs_add_filter_register(fsess, uncvdec_register(a_sess) );
+	gf_fs_add_filter_register(fsess, ghi_dmx_register(a_sess) );
 
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
 	gf_fs_add_filter_register(fsess, wcdec_register(a_sess) );

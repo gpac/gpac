@@ -3414,15 +3414,20 @@ GF_Err dashdmx_process(GF_Filter *filter)
 static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	char *d = (char *)data;
-	char *res_dash, *res_m3u, *res_smooth;
+	char *res_ghix, *res_dash, *res_m3u, *res_smooth;
 	char last_c = d[size-1];
 	d[size-1] = 0;
+	res_ghix = strstr(data, "<GHIX ");
 	res_dash = strstr(data, "<MPD ");
 	if (!res_dash) res_dash = strstr(data, "<Period ");
 	res_m3u = strstr(data, "#EXTM3U");
 	res_smooth = strstr(data, "<SmoothStreamingMedia");
 	d[size-1] = last_c;
 
+	if (res_ghix) {
+		*score = GF_FPROBE_SUPPORTED;
+		return "application/vnd.gpac.dash-index+xml";
+	}
 	if (res_dash) {
 		*score = GF_FPROBE_SUPPORTED;
 		return "application/dash+xml";
