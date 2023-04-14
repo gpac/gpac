@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -33,6 +33,14 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+#ifdef GPAC_HAS_FD
+#include <stdio.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
+GF_BitStream *gf_bs_from_fd(int fd, u32 mode);
 
 void gf_isom_datamap_del(GF_DataMap *ptr)
 {
@@ -378,6 +386,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	if (!tmp) return NULL;
 
 	tmp->mode = mode;
+	tmp->fd = -1;
 
 	if (sPath == NULL) {
 		tmp->type = GF_ISOM_DATA_MEM;
@@ -411,7 +420,15 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 
 	switch (mode) {
 	case GF_ISOM_DATA_MAP_READ:
-		if (!tmp->stream) tmp->stream = gf_fopen(sPath, "rb");
+#ifdef GPAC_HAS_FD
+		if (strncmp(sPath, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")) {
+			tmp->fd = open(sPath, O_RDONLY);
+			if (tmp->fd<0) break;
+			tmp->bs = gf_bs_from_fd(tmp->fd, GF_BITSTREAM_READ);
+		} else
+#endif
+			if (!tmp->stream) tmp->stream = gf_fopen(sPath, "rb");
+
 		bs_mode = GF_BITSTREAM_READ;
 		break;
 	///we open the file in READ/WRITE mode, in case
@@ -424,9 +441,21 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 				tmp->stream = stdout;
 				tmp->is_stdout = 1;
 			}
-
-			if (!tmp->stream) tmp->stream = gf_fopen(sPath, "w+b");
-			if (!tmp->stream) tmp->stream = gf_fopen(sPath, "wb");
+#ifdef GPAC_HAS_FD
+			if (strncmp(sPath, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")) {
+				//make sure output dir exists - we create the file as well due to some perm issues with the created file with O_CREAT on osx
+				tmp->stream = gf_fopen(sPath, "wb");
+				gf_fclose(tmp->stream);
+				tmp->stream = NULL;
+				tmp->fd = open(sPath, O_RDWR);
+				if (tmp->fd<0) break;
+				tmp->bs = gf_bs_from_fd(tmp->fd, GF_BITSTREAM_WRITE);
+			} else
+#endif
+			if (!tmp->stream) {
+				tmp->stream = gf_fopen(sPath, "w+b");
+				if (!tmp->stream) tmp->stream = gf_fopen(sPath, "wb");
+			}
 		}
 		bs_mode = GF_BITSTREAM_WRITE;
 		break;
@@ -471,6 +500,11 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 	if (ptr->bs) gf_bs_del(ptr->bs);
 	if (ptr->stream && !ptr->is_stdout)
 		gf_fclose(ptr->stream);
+
+#ifdef GPAC_HAS_FD
+	if (ptr->fd>=0)
+		close(ptr->fd);
+#endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	if (ptr->temp_file) {

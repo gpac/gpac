@@ -70,12 +70,26 @@ typedef struct
 	GF_List *past_files;
 
 	Bool gfio_pending;
+
+#ifdef GPAC_HAS_FD
+	Bool no_fd;
+	s32 fd;
+#endif
 } GF_FileOutCtx;
 
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
-#endif //WIN32
+
+#else //WIN32
+
+#ifdef GPAC_HAS_FD
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
+
+#endif
 
 static void fileout_close_hls_chunk(GF_FileOutCtx *ctx, Bool final_flush)
 {
@@ -86,13 +100,24 @@ static void fileout_close_hls_chunk(GF_FileOutCtx *ctx, Bool final_flush)
 
 static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const char *ext, u32 file_idx, Bool explicit_overwrite, char *file_suffix)
 {
-	if (ctx->file && !ctx->is_std) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] closing output file %s\n", ctx->szFileName));
-		gf_fclose(ctx->file);
-
-		fileout_close_hls_chunk(ctx, GF_FALSE);
+	if (!ctx->is_std) {
+#ifdef GPAC_HAS_FD
+		if (ctx->fd>=0) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] closing output file %s\n", ctx->szFileName));
+			close(ctx->fd);
+			fileout_close_hls_chunk(ctx, GF_FALSE);
+		} else
+#endif
+		 if (ctx->file) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] closing output file %s\n", ctx->szFileName));
+			gf_fclose(ctx->file);
+			fileout_close_hls_chunk(ctx, GF_FALSE);
+		}
 	}
 	ctx->file = NULL;
+#ifdef GPAC_HAS_FD
+	ctx->fd = -1;
+#endif
 
 	if (!filename)
 		return GF_OK;
@@ -110,10 +135,13 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 	} else {
 		char szFinalName[GF_MAX_PATH];
 		Bool append = ctx->append;
+		Bool is_gfio=GF_FALSE;
 		const char *url = filename;
 
-		if (!strncmp(filename, "gfio://", 7))
+		if (!strncmp(filename, "gfio://", 7)) {
 			url = gf_fileio_translate_url(filename);
+			is_gfio=GF_TRUE;
+		}
 
 		if (ctx->dynext) {
 			const char *has_ext = gf_file_ext_start(url);
@@ -163,7 +191,18 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] opening output file %s\n", szFinalName));
-		ctx->file = gf_fopen_ex(szFinalName, ctx->original_url, append ? "a+b" : "w+b", GF_FALSE);
+#ifdef GPAC_HAS_FD
+		if (!ctx->no_fd && !is_gfio && !append && !gf_opts_get_bool("core", "no-fd")
+			&& (!ctx->original_url || strncmp(ctx->original_url, "gfio://", 7))
+		) {
+			//make sure output dir exists - we create the file as well due to some perm issues with the created file with O_CREAT on osx
+			ctx->file = gf_fopen(szFinalName, "wb");
+			gf_fclose(ctx->file);
+			ctx->file = NULL;
+			ctx->fd = open(szFinalName, O_RDWR);
+		} else
+#endif
+			ctx->file = gf_fopen_ex(szFinalName, ctx->original_url, append ? "a+b" : "w+b", GF_FALSE);
 
 		if (!strcmp(szFinalName, ctx->szFileName) && !append && ctx->nb_write && !explicit_overwrite) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] re-opening in write mode output file %s, content overwrite (use `cat` option to enable append)\n", szFinalName));
@@ -171,7 +210,11 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		strcpy(ctx->szFileName, szFinalName);
 	}
 	ctx->nb_write = 0;
-	if (!ctx->file) {
+	if (!ctx->file
+#ifdef GPAC_HAS_FD
+		&& (ctx->fd<0)
+#endif
+	) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] cannot open output file %s\n", ctx->szFileName));
 		return ctx->error = GF_IO_ERR;;
 	}
@@ -259,6 +302,12 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (ctx->max_segs && !ctx->past_files)
 		ctx->past_files = gf_list_new();
 
+#ifdef GPAC_HAS_FD
+	//disable fd for mp2t since we only dispatch small blocks - todo check this for other streams ?
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (p && (p->value.uint==GF_CODECID_FAKE_MP2T)) ctx->no_fd = GF_TRUE;
+#endif
+
 	ctx->error = GF_OK;
 	return GF_OK;
 }
@@ -273,6 +322,10 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 
 	if (!ctx->mvbk)
 		ctx->mvbk = 1;
+
+#ifdef GPAC_HAS_FD
+	ctx->fd = -1;
+#endif
 
 	if (strnicmp(ctx->dst, "file:/", 6) && strnicmp(ctx->dst, "gfio:/", 6) && strstr(ctx->dst, "://"))  {
 		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
@@ -390,7 +443,11 @@ restart:
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
 
-			if (ctx->dash_mode && ctx->file) {
+			if (ctx->dash_mode && (ctx->file
+#ifdef GPAC_HAS_FD
+				|| (ctx->fd>=0)
+#endif
+			)) {
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, ctx->pid);
 				evt.seg_size.seg_url = NULL;
@@ -404,7 +461,12 @@ restart:
 				} else {
 					evt.seg_size.is_init = 0;
 					evt.seg_size.media_range_start = ctx->offset_at_seg_start;
-					evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
+#ifdef GPAC_HAS_FD
+					if (ctx->fd>=0) {
+						evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR) - 1;
+					} else
+#endif
+						evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
 					gf_filter_pid_send_event(ctx->pid, &evt);
 				}
 			}
@@ -450,7 +512,13 @@ restart:
 
 	if (ctx->gfio_pending) goto check_gfio;
 
-	if (ctx->file && start && (ctx->cat==FOUT_CAT_ALL))
+	if (start && (ctx->cat==FOUT_CAT_ALL)
+		&& (ctx->file
+#ifdef GPAC_HAS_FD
+			|| (ctx->fd>=0)
+#endif
+		)
+	)
 		start = GF_FALSE;
 
 	if (ctx->dash_mode) {
@@ -470,7 +538,12 @@ restart:
 			} else {
 				evt.seg_size.is_init = 0;
 				evt.seg_size.media_range_start = ctx->offset_at_seg_start;
-				evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
+#ifdef GPAC_HAS_FD
+				if (ctx->fd>=0) {
+					evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR) - 1;
+				} else
+#endif
+					evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
 				ctx->offset_at_seg_start = evt.seg_size.media_range_end+1;
 				gf_filter_pid_send_event(ctx->pid, &evt);
 			}
@@ -504,9 +577,14 @@ restart:
 
 		if (name) {
 			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite, fsuf ? fsuf->value.string : NULL);
-		} else if (!ctx->file && !ctx->noinitraw) {
+		} else if (!ctx->file && !ctx->noinitraw
+#ifdef GPAC_HAS_FD
+			&& (ctx->fd<0)
+#endif
+		) {
 			fileout_setup_file(ctx, explicit_overwrite);
 		}
+
 		if (gf_fileio_check(ctx->file)) {
 			ctx->gfio_pending = GF_TRUE;
 		}
@@ -528,6 +606,7 @@ restart:
 	if (p) {
 		char szHLSChunk[GF_MAX_PATH+21];
 		snprintf(szHLSChunk, GF_MAX_PATH+20, "%s.%d", ctx->szFileName, p->value.uint);
+		//for now we only use buffered IO for hls chunks, too small to really benefit from direct write
 		if (ctx->hls_chunk) gf_fclose(ctx->hls_chunk);
 		ctx->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->original_url, "w+b", GF_FALSE);
 		ctx->gfio_pending = GF_TRUE;
@@ -552,7 +631,11 @@ check_gfio:
 
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
-	if (ctx->file) {
+	if (ctx->file
+#ifdef GPAC_HAS_FD
+		|| (ctx->fd>=0)
+#endif
+	) {
 		GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
 		if (pck_data) {
 			if (ctx->patch_blocks && gf_filter_pck_get_seek_flag(pck)) {
@@ -564,23 +647,28 @@ check_gfio:
 				} else {
 					u32 ilaced = gf_filter_pck_get_interlaced(pck);
 					u64 pos = ctx->nb_write;
-					if (ctx->file) {
-						assert( ctx->nb_write == gf_ftell(ctx->file) );
-					}
 
 					//we are inserting a block: write dummy bytes at end and move bytes
 					if (ilaced) {
 						u8 *block;
 						u64 cur_r, cur_w;
-						nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
+#ifdef GPAC_HAS_FD
+						if (ctx->fd>=0) {
+							nb_write = (u32) write(ctx->fd, pck_data, pck_size);
+							cur_w = lseek(ctx->fd, 0, SEEK_CUR);
+							lseek(ctx->fd, pos, SEEK_SET);
+						} else
+#endif
+						{
+							nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
+							cur_w = gf_ftell(ctx->file);
+							gf_fseek(ctx->file, pos, SEEK_SET);
+						}
 
 						if (nb_write!=pck_size) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 							e = GF_IO_ERR;
 						}
-						cur_w = gf_ftell(ctx->file);
-
-						gf_fseek(ctx->file, pos, SEEK_SET);
 
 						cur_r = pos;
 						pos = cur_w;
@@ -594,16 +682,32 @@ check_gfio:
 								if (cur_r - bo < move_bytes)
 									move_bytes = (u32) (cur_r - bo);
 
-								gf_fseek(ctx->file, cur_r - move_bytes, SEEK_SET);
-								nb_write = (u32) gf_fread(block, (size_t) move_bytes, ctx->file);
+#ifdef GPAC_HAS_FD
+								if (ctx->fd>=0) {
+									lseek(ctx->fd, cur_r - move_bytes, SEEK_SET);
+									nb_write = (u32) read(ctx->fd, block, (size_t) move_bytes);
+								} else
+#endif
+								{
+									gf_fseek(ctx->file, cur_r - move_bytes, SEEK_SET);
+									nb_write = (u32) gf_fread(block, (size_t) move_bytes, ctx->file);
+								}
 
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Read error, got %d bytes but had %d to read\n", nb_write, move_bytes));
 									e = GF_IO_ERR;
 								}
 
-								gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
-								nb_write = (u32) gf_fwrite(block, (size_t) move_bytes, ctx->file);
+#ifdef GPAC_HAS_FD
+								if (ctx->fd>=0) {
+									lseek(ctx->fd, cur_w - move_bytes, SEEK_SET);
+									nb_write = (u32) write(ctx->fd, block, (size_t) move_bytes);
+								} else
+#endif
+								{
+									gf_fseek(ctx->file, cur_w - move_bytes, SEEK_SET);
+									nb_write = (u32) gf_fwrite(block, (size_t) move_bytes, ctx->file);
+								}
 
 								if (nb_write!=move_bytes) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
@@ -616,9 +720,18 @@ check_gfio:
 						}
 					}
 
-					gf_fseek(ctx->file, bo, SEEK_SET);
-					nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
-					gf_fseek(ctx->file, pos, SEEK_SET);
+#ifdef GPAC_HAS_FD
+					if (ctx->fd>=0) {
+						lseek(ctx->fd, bo, SEEK_SET);
+						nb_write = (u32) write(ctx->fd, pck_data, pck_size);
+						lseek(ctx->fd, pos, SEEK_SET);
+					} else
+#endif
+					{
+						gf_fseek(ctx->file, bo, SEEK_SET);
+						nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
+						gf_fseek(ctx->file, pos, SEEK_SET);
+					}
 
 					if (nb_write!=pck_size) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
@@ -626,7 +739,13 @@ check_gfio:
 					}
 				}
 			} else {
-				nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
+#ifdef GPAC_HAS_FD
+				if (ctx->fd>=0) {
+					nb_write = (u32) write(ctx->fd, pck_data, pck_size);
+				} else
+#endif
+					nb_write = (u32) gf_fwrite(pck_data, pck_size, ctx->file);
+
 				if (nb_write!=pck_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, pck_size));
 					e = GF_IO_ERR;
@@ -672,7 +791,12 @@ check_gfio:
 						lsize = stride;
 					}
 					for (j=0; j<write_h; j++) {
-						nb_write = (u32) gf_fwrite(out_ptr, lsize, ctx->file);
+#ifdef GPAC_HAS_FD
+						if (ctx->fd>=0) {
+							nb_write = (u32) write(ctx->fd, out_ptr, lsize);
+						} else
+#endif
+							nb_write = (u32) gf_fwrite(out_ptr, lsize, ctx->file);
 						if (nb_write!=lsize) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
 							e = GF_IO_ERR;
