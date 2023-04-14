@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3939,6 +3939,9 @@ typedef struct
 	char *temp_file;
 #endif
 	GF_Blob *blob;
+#ifdef GPAC_HAS_FD
+	s32 fd;
+#endif
 } GF_FileDataMap;
 
 /*file mapping handler. used if supported, only on read mode for complete files  (not in file download)*/

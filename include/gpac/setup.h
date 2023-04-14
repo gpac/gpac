@@ -311,6 +311,8 @@ char * my_str_lwr(char *str);
 #include <string.h>
 #include <assert.h>
 
+#define GPAC_HAS_FD
+
 #if __APPLE__ && defined GPAC_CONFIG_IOS
 #include <TargetConditionals.h>
 #endif
