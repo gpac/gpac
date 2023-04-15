@@ -646,7 +646,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
 			safe_int_inc(&src->pid->filter->detach_pid_tasks_pending);
 			safe_int_inc(&filter->detach_pid_tasks_pending);
-			gf_fs_post_task(filter->session, gf_filter_pid_detach_task, src->filter, src->pid, "pidinst_detach", filter);
+			gf_fs_post_task(filter->session, gf_filter_pid_detach_task_no_flush, src->filter, src->pid, "pidinst_detach", filter);
 		} else {
 			GF_Filter *src_filter = src->filter;
 			assert(!src->filter->sticky);
@@ -1269,7 +1269,7 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task)
 	gf_mx_v(task->filter->tasks_mx);
 }
 
-void gf_filter_pid_detach_task(GF_FSTask *task)
+static void gf_filter_pid_detach_task_ex(GF_FSTask *task, Bool no_flush)
 {
 	u32 i, count;
 	GF_Filter *filter = task->filter;
@@ -1297,7 +1297,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 		pidinst=NULL;
 	}
 	//flush any packets dispatched before detaching
-	if (pidinst && gf_fq_count(pidinst->packets)) {
+	if (no_flush && pidinst && gf_fq_count(pidinst->packets)) {
 		Bool in_process = filter->in_process;
 		filter->in_process = GF_FALSE;
 		//prevent pid_would_block calls
@@ -1367,6 +1367,16 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	}
 	assert(new_chain_input->detach_pid_tasks_pending);
 	safe_int_dec(&new_chain_input->detach_pid_tasks_pending);
+}
+
+void gf_filter_pid_detach_task(GF_FSTask *task)
+{
+	gf_filter_pid_detach_task_ex(task, GF_TRUE);
+}
+
+void gf_filter_pid_detach_task_no_flush(GF_FSTask *task)
+{
+	gf_filter_pid_detach_task_ex(task, GF_FALSE);
 }
 
 GF_EXPORT
