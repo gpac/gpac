@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1008,7 +1008,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 }
 
 GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
- 			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size),
+			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic),
 			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert),
 			void (*on_last_block_start)(void *usr_data),
  			void *usr_data,

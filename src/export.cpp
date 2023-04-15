@@ -2571,6 +2571,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_shared_internal ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_shared ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_ref ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_ref_destructor ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_new_frame_interface) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_forward ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_send ) )
@@ -2580,6 +2581,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_readonly) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_dangling_copy) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_check_realloc) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_check_caps ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_copy_properties ) )

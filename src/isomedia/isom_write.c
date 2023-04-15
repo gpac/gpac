@@ -71,7 +71,7 @@ GF_Err FlushCaptureMode(GF_ISOFile *movie)
 		}
 
 		gf_bs_del(movie->editFileMap->bs);
-		movie->editFileMap->bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+		movie->editFileMap->bs = gf_bs_new_cbk(isom_on_block_out, movie, movie->on_block_out_block_size);
 	}
 
 	/*add all first boxes*/

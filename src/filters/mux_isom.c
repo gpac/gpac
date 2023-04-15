@@ -393,6 +393,8 @@ typedef struct
 	Bool has_def_vid, has_def_aud, has_def_txt;
 
 	u32 chap_track_num;
+
+	GF_List *ref_pcks;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
@@ -4320,6 +4322,10 @@ GF_FilterSAPType mp4_mux_get_sap(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 	return sap;
 }
 
+GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, const GF_ISOSample *sample, u32 DescIndex,
+                                   u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundant_coding, void **ref, u32 ref_offset);
+GF_Err gf_isom_fragment_append_data_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, u8 *data, u32 data_size, u8 PaddingBits, void **ref, u32 ref_offset);
+
 static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, Bool for_fragment)
 {
 	GF_Err e=GF_OK;
@@ -4608,11 +4614,26 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 
 			if (for_fragment) {
-				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0);
+				//force using ref mode
+				void *ref=NULL;
+				e = gf_isom_fragment_add_sample_ex(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0, &ref, 0);
 				if (!e && au_delim) {
 					e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, inband_xps, inband_xps_size, 0);
 				}
-				if (!e) e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, pck_data, pck_data_len, 0);
+				if (!e) {
+					if (gf_filter_pck_is_blocking_ref(pck)) {
+						e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, pck_data, pck_data_len, 0);
+					} else {
+						gf_filter_pck_ref(&pck);
+						GF_FilterPacket *ref = pck;
+						e = gf_isom_fragment_append_data_ex(ctx->file, tkw->track_id, pck_data, pck_data_len, 0, (void**)&ref, au_delim ? au_delim_size : 0);
+						if (!ref) {
+							gf_list_add(ctx->ref_pcks, pck);
+						} else {
+							gf_filter_pck_unref(pck);
+						}
+					}
+				}
 			} else {
 				e = gf_isom_add_sample(ctx->file, tkw->track_num, sample_desc_index, &tkw->sample);
 				if (au_delim && !e) {
@@ -4622,7 +4643,18 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 			insert_subsample_dsi_size = inband_xps_size;
 		} else if (for_fragment) {
-			e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0);
+			if (gf_filter_pck_is_blocking_ref(pck)) {
+				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0);
+			} else {
+				gf_filter_pck_ref(&pck);
+				GF_FilterPacket *ref = pck;
+				e = gf_isom_fragment_add_sample_ex(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0, (void**) &ref, 0);
+				if (!ref) {
+					gf_list_add(ctx->ref_pcks, pck);
+				} else {
+					gf_filter_pck_unref(pck);
+				}
+			}
 		} else {
 			e = gf_isom_add_sample(ctx->file, tkw->track_num, sample_desc_index, &tkw->sample);
 			if (!e && !duration) {
@@ -6274,6 +6306,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	if (nb_done==count) {
 		Bool is_eos = (count == nb_eos) ? GF_TRUE : GF_FALSE;
 		u32 ref_timescale;
+		Bool flush_refs = ctx->dash_mode ? GF_FALSE : GF_TRUE;
 		u64 next_ref_ts = ctx->ref_tkw->next_seg_cts;
 		if (is_eos)
 			next_ref_ts = ctx->ref_tkw->cts_next;
@@ -6315,6 +6348,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 			ctx->ref_tkw->first_dts_in_seg_plus_one = 0;
 			if (e) return e;
+			flush_refs = GF_TRUE;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num_plus_one - 1, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
@@ -6345,6 +6379,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		//cannot flush in DASH mode if using sidx (vod single sidx or live 1 sidx/seg)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
+			flush_refs = GF_TRUE;
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
@@ -6372,6 +6407,13 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			ctx->dash_seg_num_plus_one = 0;
 			ctx->nb_segs++;
 			ctx->nb_frags_in_seg=0;
+		}
+		//destroy any pending refs
+		if (flush_refs) {
+			while (gf_list_count(ctx->ref_pcks)) {
+				GF_FilterPacket *pckr = gf_list_pop_back(ctx->ref_pcks);
+				gf_filter_pck_unref(pckr);
+			}
 		}
 	}
 
@@ -7008,7 +7050,7 @@ static void mp4_mux_on_last_block_start(void *cbk)
 		ctx->seg_flush_state = 1;
 }
 
-static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
+static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic)
 {
 	GF_Filter *filter = (GF_Filter *) cbk;
 	u8 *output;
@@ -7071,15 +7113,31 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 		return GF_OK;
 	}
 
+	GF_FilterPacket *srcp = (GF_FilterPacket *)cbk_data;
+	if (srcp && gf_list_find(ctx->ref_pcks, srcp)<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Data callback on non-existing packet reference !\n"));
+		return GF_IO_ERR;
+	}
+
+	if (srcp) {
+		if (ctx->seg_flush_state) {
+			ctx->dst_pck = gf_filter_pck_new_ref_destructor(ctx->opid, cbk_magic, block_size, srcp, mp4_mux_on_packet_destruct);
+		} else {
+			ctx->dst_pck = gf_filter_pck_new_ref(ctx->opid, cbk_magic, block_size, srcp);
+		}
+		gf_list_del_item(ctx->ref_pcks, srcp);
+		gf_filter_pck_unref(srcp);
+	}
 	//allocate new one
-	if (ctx->seg_flush_state) {
+	else if (ctx->seg_flush_state) {
 		ctx->dst_pck = gf_filter_pck_new_alloc_destructor(ctx->opid, block_size, &output, mp4_mux_on_packet_destruct);
 	} else {
 		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
 	}
 	if (!ctx->dst_pck) return GF_OUT_OF_MEM;
 
-	memcpy(output, data, block_size);
+	if (!cbk_data)
+		memcpy(output, data, block_size);
 	gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, GF_FALSE);
 
 	//set packet prop as string since we may discard the seg_name  packet before this packet is processed
@@ -7181,6 +7239,9 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 
 	if (!ctx->tracks)
 		ctx->tracks = gf_list_new();
+
+	if (!ctx->ref_pcks)
+		ctx->ref_pcks = gf_list_new();
 
 #ifdef GF_ENABLE_CTRN
 	if (ctx->ctrni)
@@ -7608,6 +7669,7 @@ static void mp4_mux_finalize(GF_Filter *filter)
 		mp4_mux_track_writer_del(tkw);
 	}
 	gf_list_del(ctx->tracks);
+	gf_list_del(ctx->ref_pcks);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->seg_name) gf_free(ctx->seg_name);
 	if (ctx->tmp_store) gf_fclose(ctx->tmp_store);

@@ -4128,6 +4128,17 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 */
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *PID, u32 data_offset, u32 data_size, GF_FilterPacket *source_packet);
 
+/*! Same as  \ref gf_filter_pck_new_ref with packet destructor callbacl
+
+\param PID the target output PID
+\param data_offset offset in the source data block
+\param data_size the size of the data block to dispatch - if 0, the entire data of the source packet beginning at offset is used
+\param source_packet the source packet this data belongs to (at least from the filter point of view).
+\param destruct the callback function used to destroy the packet when no longer used - may be NULL
+\return new packet or NULL if allocation error or not an output PID
+*/
+GF_FilterPacket *gf_filter_pck_new_ref_destructor(GF_FilterPid *PID, u32 data_offset, u32 data_size, GF_FilterPacket *source_packet, gf_fsess_packet_destructor destruct);
+
 /*! Allocates a new packet on the output PID with associated allocated data.
 The packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) and all other flags set to 0 (including SAP type).
 \param PID the target output PID
@@ -4181,6 +4192,20 @@ Note that packets created with \ref gf_filter_pck_new_frame_interface are always
 \return error if any
 */
 GF_Err gf_filter_pck_set_readonly(GF_FilterPacket *pck);
+
+
+/*! Checks if packet data has been reallocated
+
+There are cases where memory allocated by \ref gf_filter_pck_new_ref allow needs to be reallocated without using \ref gf_filter_pck_expand .
+This function allows checking if the data has changed, and if so reassign the new block to the packet.
+If the data pointer was not changed, the packet data size is updated to the new size (acts as gf_filter_pck_truncate).
+The data shall have been reallocated with \ref gf_realloc.
+
+\param pck the target  packet to send
+\param data the reallocated data pointer
+\param size the reallocated data size
+*/
+void gf_filter_pck_check_realloc(GF_FilterPacket *pck, u8 *data, u32 size);
 
 /*! Sends the packet on its output PID. Packets SHALL be sent in processing order (eg, decoding order for video).
 However, packets don't have to be sent in their allocation order.

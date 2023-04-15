@@ -2789,7 +2789,7 @@ void gf_isom_set_progress_callback(GF_ISOFile *isom_file, void (*progress_cbk)(v
 \return error if any
 */
 GF_Err gf_isom_set_write_callback(GF_ISOFile *isom_file,
- 			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size),
+			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic),
 			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert),
  			void (*on_last_block_start)(void *cbk),
  			void *usr_data,
