@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -30,6 +30,7 @@
 #include <gpac/network.h>
 #include <gpac/avparse.h>
 
+GF_Err gf_isom_set_sample_alloc(GF_ISOFile *the_file, u32 trackNumber, 	u8 *(*sample_realloc)(u32 size, void *cbk), void *udta);
 
 void isor_reset_reader(ISOMChannel *ch)
 {
@@ -300,6 +301,15 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 	}
 }
 
+u8 *isor_sample_alloc(u32 size, void *udta)
+{
+	u8 *output;
+	ISOMChannel *ch = (ISOMChannel *)udta;
+	if (ch->pck) return NULL;
+	ch->pck = gf_filter_pck_new_alloc(ch->pid, size, &output);
+	return output;
+}
+
 void isor_reader_get_sample(ISOMChannel *ch)
 {
 	GF_Err e;
@@ -309,10 +319,14 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->next_track) {
 		ch->track = ch->next_track;
+		if (!ch->owner->nodata)
+			gf_isom_set_sample_alloc(ch->owner->mov, ch->track, isor_sample_alloc, ch);
 		ch->next_track = 0;
 	}
 
 	if (ch->to_init) {
+		if (!ch->owner->nodata)
+			gf_isom_set_sample_alloc(ch->owner->mov, ch->track, isor_sample_alloc, ch);
 		init_reader(ch);
 		sample_desc_index = ch->last_sample_desc_index;
 	} else if (ch->speed < 0) {
@@ -459,6 +473,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
 				ch->sample = NULL;
 				ch->sample_num++;
+				if (ch->pck) {
+					gf_filter_pck_discard(ch->pck);
+					ch->pck = NULL;
+				}
 				isor_reader_get_sample(ch);
 				return;
 			}
@@ -472,6 +490,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		ch->track = ch->next_track;
 		ch->next_track = 0;
 		ch->sample = NULL;
+		if (ch->pck) {
+			gf_filter_pck_discard(ch->pck);
+			ch->pck = NULL;
+		}
 		isor_reader_get_sample(ch);
 		return;
 	}

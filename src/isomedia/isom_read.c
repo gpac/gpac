@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -612,7 +612,7 @@ GF_Err gf_isom_write(GF_ISOFile *movie)
 
 				//write mfra
 				if (!strcmp(movie->fileName, "_gpac_isobmff_redirect") && movie->on_block_out) {
-					GF_BitStream *bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+					GF_BitStream *bs = gf_bs_new_cbk(isom_on_block_out, movie, movie->on_block_out_block_size);
 
 					e = gf_isom_box_write((GF_Box *)movie->mfra, bs);
 					gf_bs_del(bs);
@@ -1908,6 +1908,7 @@ GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 s
 	u32 descIndex;
 	GF_TrackBox *trak;
 	GF_ISOSample *samp;
+	Bool ext_realloc = GF_FALSE;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return NULL;
 
@@ -1916,6 +1917,9 @@ GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 s
 		samp = static_sample;
 		if (static_sample->dataLength && !static_sample->alloc_size)
 			static_sample->alloc_size = static_sample->dataLength;
+
+		if ((static_sample != trak->Media->extracted_samp) && trak->sample_alloc_cbk)
+			ext_realloc = GF_TRUE;
 	} else {
 		samp = gf_isom_sample_new();
 	}
@@ -1927,7 +1931,7 @@ GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 s
 	sampleNumber -= trak->sample_count_at_seg_start;
 #endif
 
-	e = Media_GetSample(trak->Media, sampleNumber, &samp, &descIndex, GF_FALSE, data_offset);
+	e = Media_GetSample(trak->Media, sampleNumber, &samp, &descIndex, GF_FALSE, data_offset, ext_realloc);
 	if (static_sample && !static_sample->alloc_size)
 		static_sample->alloc_size = static_sample->dataLength;
 
@@ -2080,7 +2084,7 @@ GF_ISOSample *gf_isom_get_sample_info_ex(GF_ISOFile *the_file, u32 trackNumber, 
 		if (!samp) return NULL;
 	}
 
-	e = Media_GetSample(trak->Media, sampleNumber, &samp, sampleDescriptionIndex, GF_TRUE, data_offset);
+	e = Media_GetSample(trak->Media, sampleNumber, &samp, sampleDescriptionIndex, GF_TRUE, data_offset, GF_FALSE);
 	if (e) {
 		gf_isom_set_last_error(the_file, e);
 		if (!static_sample)
@@ -2162,6 +2166,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	GF_SampleTableBox *stbl;
 	Bool static_sample = GF_FALSE;
 	u8 useShadow, IsSync;
+	Bool ext_realloc = GF_FALSE;
 
 	if (SampleNum) *SampleNum = 0;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -2256,6 +2261,8 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	if (sample) {
 		if (*sample) {
 			static_sample = GF_TRUE;
+			if ((*sample != trak->Media->extracted_samp) && trak->sample_alloc_cbk)
+				ext_realloc = GF_TRUE;
 		} else {
 			*sample = gf_isom_sample_new();
 			if (*sample == NULL) return GF_OUT_OF_MEM;
@@ -2277,7 +2284,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		}
 	}
 
-	e = Media_GetSample(trak->Media, sampleNumber, sample, StreamDescriptionIndex, GF_FALSE, data_offset);
+	e = Media_GetSample(trak->Media, sampleNumber, sample, StreamDescriptionIndex, GF_FALSE, data_offset, ext_realloc);
 	if (e) {
 		if (!static_sample)
 			gf_isom_sample_del(sample);
@@ -6363,6 +6370,16 @@ GF_Err gf_isom_pop_emsg(GF_ISOFile *the_file, u8 **emsg_data, u32 *emsg_size)
 	return GF_NOT_SUPPORTED;
 #endif
 
+}
+
+GF_Err gf_isom_set_sample_alloc(GF_ISOFile *the_file, u32 trackNumber, 	u8 *(*sample_alloc)(u32 size, void *cbk), void *udta)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	trak->sample_alloc_cbk = sample_alloc;
+	trak->sample_alloc_udta = udta;
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

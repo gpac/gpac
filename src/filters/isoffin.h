@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -206,6 +206,8 @@ typedef struct
 	GF_VVCConfig *vvcc;
 	u32 dsi_crc;
 	u64 first_tfdt;
+
+	GF_FilterPacket *pck;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);

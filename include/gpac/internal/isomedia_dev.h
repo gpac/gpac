@@ -932,6 +932,9 @@ typedef struct
 	u32 index;
 	u32 nb_base_refs;
 
+	u8 *(*sample_alloc_cbk)(u32 size, void *cbk);
+	void *sample_alloc_udta;
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u64 first_dts_chunk;
 	u32 nb_samples_in_cache;
@@ -2612,8 +2615,12 @@ typedef struct
 	u64 ntp, timestamp;
 
 	//emsg to inject before moof, not part of the moof hierarchy !
-
 	GF_List *emsgs;
+
+	//when using packet reference, we serialize the segment start (emsg, prft, moof+mdat) header here
+	u8 *moof_data;
+	u32 moof_data_len, trun_ref_size;
+
 } GF_MovieFragmentBox;
 
 
@@ -2684,7 +2691,6 @@ typedef struct
 #endif
 
 	u32 interleave_id;
-	u8 merge_sample_interleave;
 	u8 use_sample_interleave;
 	u8 force_new_trun;
 	u8 IFrameSwitching;
@@ -2693,6 +2699,9 @@ typedef struct
 	u8 truns_v1;
 	u8 large_tfdt;
 	u8 no_sdtp_first_flags;
+	//when using packet refs, cumulated size of all data aded to child truns
+	u32 trun_ref_size;
+
 } GF_TrackFragmentBox;
 
 GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID);
@@ -2751,6 +2760,7 @@ typedef struct
 
 	/*only for trun, ignored for ctrn*/
 	u32 first_sample_flags;
+	u32 run_size;
 
 	/*in write mode with data caching*/
 	GF_BitStream *cache;
@@ -2775,7 +2785,17 @@ typedef struct
 	u32 *sample_order;
 
 	u32 min_duration;
+
+	GF_List *sample_refs;
 } GF_TrackFragmentRunBox;
+
+typedef struct
+{
+	u8 *data;
+	u32 len;
+	void *ref;
+	u32 ref_offset;
+} GF_TrafSampleRef;
 
 #ifdef GF_ENABLE_CTRN
 u32 gf_isom_ctrn_field_size_bits(u32 field_idx);
@@ -4078,6 +4098,8 @@ struct __tag_isom {
 
 	GF_List *emsgs;
 
+	Bool in_sidx_write;
+
 	/*used when building single-indexed self initializing media segments*/
 	GF_SegmentIndexBox *root_sidx;
 	u64 root_sidx_offset;
@@ -4124,7 +4146,7 @@ struct __tag_isom {
 
 	Bool is_smooth;
 
-	GF_Err (*on_block_out)(void *usr_data, u8 *block, u32 block_size);
+	GF_Err (*on_block_out)(void *usr_data, u8 *block, u32 block_size, void *cbk_data, u32 cbk_magic);
 	GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert);
 	void (*on_last_block_start)(void *usr_data);
 	void *on_block_out_usr_data;
@@ -4178,7 +4200,7 @@ Bool IsMP4Description(u32 entryType);
 GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceTypeBox **dpnd);
 /*Time and sample*/
 GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit, u64 *next_edit_start_plus_one);
-GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp, u32 *sampleDescriptionIndex, Bool no_data, u64 *out_offset);
+GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp, u32 *sampleDescriptionIndex, Bool no_data, u64 *out_offset, Bool ext_realloc);
 GF_Err Media_CheckDataEntry(GF_MediaBox *mdia, u32 dataEntryIndex);
 GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromTime, u32 *sampleNumber, u8 mode);
 GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample);
@@ -4234,6 +4256,8 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid);
 GF_Err gf_isom_set_sample_group_description_internal(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size, Bool check_access);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err isom_on_block_out(void *cbk, u8 *data, u32 block_size);
 
 GF_Err FlushCaptureMode(GF_ISOFile *movie);
 GF_Err CanAccessMovie(GF_ISOFile *movie, GF_ISOOpenMode Mode);

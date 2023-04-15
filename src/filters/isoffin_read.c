@@ -1435,6 +1435,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			} else {
 				isor_reader_get_sample(ch);
 			}
+			if (!ch->sample && ch->pck) {
+				gf_filter_pck_discard(ch->pck);
+				ch->pck = NULL;
+				if (ch->static_sample) {
+					ch->static_sample->data = NULL;
+					ch->static_sample->alloc_size=0;
+				}
+			}
 
 			if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {
 				isor_reader_release_sample(ch);
@@ -1461,7 +1469,15 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				//strip param sets from payload, trigger reconfig if needed
 				isor_reader_check_config(ch);
 
-				if (read->nodata) {
+				if (ch->pck) {
+					pck = ch->pck;
+					ch->pck = NULL;
+					gf_filter_pck_check_realloc(pck, ch->sample->data, ch->sample->dataLength);
+					ch->static_sample->data = NULL;
+					ch->static_sample->dataLength = 0;
+					ch->static_sample->alloc_size=0;
+				}
+				else if (read->nodata) {
 					pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);
 					if (!pck) return GF_OUT_OF_MEM;
 				} else {

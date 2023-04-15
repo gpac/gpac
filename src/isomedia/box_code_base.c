@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -7416,6 +7416,14 @@ void trun_box_del(GF_Box *s)
 	if (ptr->samples) gf_free(ptr->samples);
 	if (ptr->cache) gf_bs_del(ptr->cache);
 	if (ptr->sample_order) gf_free(ptr->sample_order);
+	if (ptr->sample_refs) {
+		while (gf_list_count(ptr->sample_refs)) {
+			GF_TrafSampleRef *sref = gf_list_pop_back(ptr->sample_refs);
+			if (!sref->ref) gf_free(sref->data);
+			gf_free(sref);
+		}
+		gf_list_del(ptr->sample_refs);
+	}
 	gf_free(ptr);
 }
 

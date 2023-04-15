@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2356,6 +2356,11 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 	return write_free_box(bs, (u32) size);
 }
 
+GF_Err isom_on_block_out(void *cbk, u8 *data, u32 block_size)
+{
+	GF_ISOFile *movie = (GF_ISOFile *)cbk;
+	return movie->on_block_out(movie->on_block_out_usr_data, data, block_size, NULL, 0);
+}
 
 extern u32 default_write_buffering_size;
 GF_Err gf_isom_flush_chunk(GF_TrackBox *trak, Bool is_final);
@@ -2440,7 +2445,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
 					return GF_BAD_PARAM;
 				}
-				bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+				bs = gf_bs_new_cbk(isom_on_block_out, movie, movie->on_block_out_block_size);
 				e = WriteFlat(&mw, 0, bs, GF_TRUE, GF_TRUE, NULL);
 				movie->fragmented_file_pos = gf_bs_get_position(bs);
 				gf_bs_del(bs);
@@ -2520,7 +2525,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
 				return GF_BAD_PARAM;
 			}
-			bs = gf_bs_new_cbk(movie->on_block_out, movie->on_block_out_usr_data, movie->on_block_out_block_size);
+			bs = gf_bs_new_cbk(isom_on_block_out, movie, movie->on_block_out_block_size);
 			is_stdout = GF_TRUE;
 		} else if (gf_isom_is_inplace_rewrite(movie)) {
 			stream = gf_fopen(movie->fileName, "r+b");

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -464,7 +464,7 @@ Bool Media_IsSampleSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber)
 	return 0;
 }
 
-GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp, u32 *sIDX, Bool no_data, u64 *out_offset)
+GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp, u32 *sIDX, Bool no_data, u64 *out_offset, Bool ext_realloc)
 {
 	GF_Err e;
 	u32 bytesRead;
@@ -610,6 +610,8 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 			data_size *= left_in_chunk;
 			(*samp)->nb_pack = left_in_chunk;
 		}
+		if (! (*samp)->data)
+			(*samp)->alloc_size = 0;
 
 		/*and finally get the data, include padding if needed*/
 		if ((*samp)->alloc_size) {
@@ -620,7 +622,11 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 				(*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;
 			}
 		} else {
-			(*samp)->data = (char *) gf_malloc(sizeof(char) * ( data_size + mdia->mediaTrack->padding_bytes) );
+			if (ext_realloc) {
+				(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(data_size + mdia->mediaTrack->padding_bytes, mdia->mediaTrack->sample_alloc_udta);
+			} else {
+				(*samp)->data = (u8 *) gf_malloc(data_size + mdia->mediaTrack->padding_bytes);
+			}
 			if (! (*samp)->data) return GF_OUT_OF_MEM;
 		}
 		(*samp)->dataLength = data_size;
