@@ -810,14 +810,23 @@ static int h2_send_data_callback(nghttp2_session *session, nghttp2_frame *frame,
 		goto err;
 	}
 
-	if (frame->data.padlen > 0) {
+	while (frame->data.padlen > 0) {
 		u32 padlen = (u32) frame->data.padlen - 1;
 		rv = h2_write_data(sess, padding, padlen);
-		if (rv<0) goto err;
+		if (rv<0) {
+			if (rv==NGHTTP2_ERR_WOULDBLOCK) continue;
+			goto err;
+		}
+		break;
 	}
-	rv = h2_write_data(sess, (u8 *) sess->h2_send_data, length);
-	if (rv<0) goto err;
-
+	while (1) {
+		rv = h2_write_data(sess, (u8 *) sess->h2_send_data, length);
+		if (rv<0) {
+			if (rv==NGHTTP2_ERR_WOULDBLOCK) continue;
+			goto err;
+		}
+		break;
+	}
 	sess->h2_send_data += (u32) length;
 	sess->h2_send_data_len -= (u32) length;
 	return 0;
@@ -825,7 +834,7 @@ err:
 
 	sess->status = GF_NETIO_STATE_ERROR;
 	SET_LAST_ERR(sess->last_error)
-	return NGHTTP2_ERR_CALLBACK_FAILURE;
+	return (int) rv;
 }
 
 static void h2_initialize_session(GF_DownloadSession *sess)
