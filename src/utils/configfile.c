@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -436,10 +436,12 @@ get_key:
 	/* need a new key */
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
 	key->name = gf_strdup(keyName);
-	key->value = gf_strdup("");
+	key->value = gf_strdup(keyValue);
 	if (has_changed)
 		iniFile->hasChanged = GF_TRUE;
 	gf_list_add(sec->keys, key);
+	key->do_restrict = is_restrict;
+	return GF_OK;
 
 set_value:
 	if (!keyValue) {
