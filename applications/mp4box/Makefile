@@ -10,8 +10,13 @@ LDFLAGS+=-g
 endif
 
 ifeq ($(GPROFBUILD),yes)
+ifeq ($(CONFIG_DARWIN),yes)
+CFLAGS+=-fprofile-instr-generate
+LDFLAGS+=-fprofile-instr-generate
+else
 CFLAGS+=-pg
 LDFLAGS+=-pg
+endif
 endif
 
 LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc

@@ -11,8 +11,13 @@ LDFLAGS+=-g
 endif
 
 ifeq ($(GPROFBUILD),yes)
+ifeq ($(CONFIG_DARWIN),yes)
+CFLAGS+=-fprofile-instr-generate
+LDFLAGS+=-fprofile-instr-generate
+else
 CFLAGS+=-pg
 LDFLAGS+=-pg
+endif
 endif
 
 ## libgpac objects gathering: src/utils
