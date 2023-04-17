@@ -2044,6 +2044,8 @@ typedef struct
 {
 	u32 nb_entries, nb_alloc;
 	GF_TrafMapEntry *frag_starts;
+	//read cache
+	u32 r_cur_sample, r_cur_idx;
 } GF_TrafToSampleMap;
 
 typedef struct

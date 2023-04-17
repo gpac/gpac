@@ -5817,7 +5817,14 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 
 	tmap = trak->Media->information->sampleTable->traf_map;
 	if (!tmap) return GF_FALSE;
-	for (i=0; i<tmap->nb_entries; i++) {
+
+	if (tmap->r_cur_sample && (tmap->r_cur_sample<=sampleNum)) {
+		i=tmap->r_cur_idx;
+	} else {
+		i=0;
+		tmap->r_cur_sample=0;
+	}
+	for (; i<tmap->nb_entries; i++) {
 		GF_TrafMapEntry *finfo = &tmap->frag_starts[i];
 		if (finfo->sample_num == sampleNum) {
 			if (frag_info) {
@@ -5830,6 +5837,8 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 				frag_info->sidx_end = finfo->sidx_end;
 				frag_info->first_dts = finfo->first_dts;
 			}
+			tmap->r_cur_sample = sampleNum;
+			tmap->r_cur_idx = i;
 			return GF_TRUE;
 		}
 
