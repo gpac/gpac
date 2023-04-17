@@ -1502,7 +1502,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pck_set_roll_info(pck, ch->roll);
 				}
 
-				sample_dur = ch->au_duration;
+				sample_dur = ch->sample->duration;
 				if (ch->sample->nb_pack)
 					sample_dur *= ch->sample->nb_pack;
 				gf_filter_pck_set_duration(pck, sample_dur);

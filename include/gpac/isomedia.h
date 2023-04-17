@@ -586,6 +586,9 @@ typedef struct
 	/*! number of packed samples in this sample. If 0 or 1, only 1 sample is present
 	only used for constant size and constant duration samples*/
 	u32 nb_pack;
+
+	/*! read API only - sample duration (multiply by nb_pack to get full duration)*/
+	u32 duration;
 } GF_ISOSample;
 
 

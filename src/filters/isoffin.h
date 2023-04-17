@@ -190,7 +190,6 @@ typedef struct
 	u8 skip_byte_block, crypt_byte_block;
 	u32 au_seq_num;
 	u64 sender_ntp, ntp_at_server_ntp;
-	u32 au_duration;
 
 	u64 isma_BSO;
 	Bool pck_encrypted;

@@ -493,7 +493,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 	if (mdia->information->sampleTable->TimeToSample) {
 		//get the DTS
-		e = stbl_GetSampleDTS(mdia->information->sampleTable->TimeToSample, sampleNumber, &(*samp)->DTS);
+		e = stbl_GetSampleDTS_and_Duration(mdia->information->sampleTable->TimeToSample, sampleNumber, &(*samp)->DTS, &(*samp)->duration);
 		if (e) return e;
 	} else {
 		(*samp)->DTS=0;
