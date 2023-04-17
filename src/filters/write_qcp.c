@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / QCP stream to file filter
@@ -385,7 +385,7 @@ GF_FilterRegister QCPMxRegister = {
 };
 
 
-const GF_FilterRegister *qcpmx_register(GF_FilterSession *session)
+const GF_FilterRegister *writeqcp_register(GF_FilterSession *session)
 {
 	return &QCPMxRegister;
 }

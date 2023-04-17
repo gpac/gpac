@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2022-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / TTML to SRT converter filter
@@ -327,7 +327,7 @@ GF_FilterRegister TTMLConvRegister = {
 };
 
 
-const GF_FilterRegister *ttmlconv_register(GF_FilterSession *session)
+const GF_FilterRegister *ttml2vtt_register(GF_FilterSession *session)
 {
 	return &TTMLConvRegister;
 }
@@ -367,19 +367,19 @@ GF_FilterRegister TTMLConv2Register = {
 };
 
 
-const GF_FilterRegister *ttmlconv2_register(GF_FilterSession *session)
+const GF_FilterRegister *ttml2srt_register(GF_FilterSession *session)
 {
 	return &TTMLConv2Register;
 }
 
 #else
 
-const GF_FilterRegister *ttmlconv_register(GF_FilterSession *session)
+const GF_FilterRegister *ttml2vtt_register(GF_FilterSession *session)
 {
 	return NULL;
 }
 
-const GF_FilterRegister *ttmlconv2_register(GF_FilterSession *session)
+const GF_FilterRegister *ttml2srt_register(GF_FilterSession *session)
 {
 	return NULL;
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2022
+ *			Copyright (c) Telecom Paris 2019-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Transport Stream splitter filter
@@ -488,13 +488,13 @@ GF_FilterRegister M2TSSplitRegister = {
 	.process_event = m2tssplit_process_event,
 };
 
-const GF_FilterRegister *m2tssplit_register(GF_FilterSession *session)
+const GF_FilterRegister *tssplit_register(GF_FilterSession *session)
 {
 	return &M2TSSplitRegister;
 }
 
 #else
-const GF_FilterRegister *m2tssplit_register(GF_FilterSession *session)
+const GF_FilterRegister *tssplit_register(GF_FilterSession *session)
 {
 	return NULL;
 }

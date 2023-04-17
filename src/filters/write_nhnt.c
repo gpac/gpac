@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT stream to file filter
@@ -401,7 +401,7 @@ GF_FilterRegister NHNTDumpRegister = {
 	.process = nhntdump_process
 };
 
-const GF_FilterRegister *nhntdump_register(GF_FilterSession *session)
+const GF_FilterRegister *nhntw_register(GF_FilterSession *session)
 {
 	return &NHNTDumpRegister;
 }

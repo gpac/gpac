@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / AMR&EVRC&SMV reframer filter
@@ -617,7 +617,7 @@ GF_FilterRegister AMRDmxRegister = {
 };
 
 
-const GF_FilterRegister *amrdmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfamr_register(GF_FilterSession *session)
 {
 	return &AMRDmxRegister;
 }

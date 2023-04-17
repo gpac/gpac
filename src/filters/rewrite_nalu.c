@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU video AnnexB write filter
@@ -640,7 +640,7 @@ GF_FilterRegister NALUMxRegister = {
 };
 
 
-const GF_FilterRegister *nalumx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufnalu_register(GF_FilterSession *session)
 {
 	return &NALUMxRegister;
 }

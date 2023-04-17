@@ -1003,7 +1003,7 @@ GF_FilterRegister CTXLoadRegister = {
 #endif //defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 
 
-const GF_FilterRegister *ctxload_register(GF_FilterSession *session)
+const GF_FilterRegister *btplay_register(GF_FilterSession *session)
 {
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &CTXLoadRegister;

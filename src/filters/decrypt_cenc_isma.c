@@ -2498,7 +2498,7 @@ GF_FilterRegister CENCDecRegister = {
 
 #endif /*GPAC_DISABLE_CRYPTO*/
 
-const GF_FilterRegister *cenc_decrypt_register(GF_FilterSession *session)
+const GF_FilterRegister *cdcrypt_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_CRYPTO
 	return &CENCDecRegister;

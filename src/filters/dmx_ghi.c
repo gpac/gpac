@@ -662,7 +662,7 @@ GF_FilterRegister GHIDXDmxRegister = {
 	.max_extra_pids = (u32) -1,
 };
 
-const GF_FilterRegister *ghi_dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *ghidmx_register(GF_FilterSession *session)
 {
 	return &GHIDXDmxRegister;
 }

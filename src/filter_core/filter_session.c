@@ -90,8 +90,35 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 #endif // GPAC_CONFIG_EMSCRIPTEN
 }
 
-GF_EXPORT
-void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister *freg)
+Bool fs_is_in_blacklist(GF_FilterSession *fsess, const char *reg_name)
+{
+	if (!fsess->blacklist) return GF_FALSE;
+	Bool match = GF_FALSE;
+	const char *blacklist = fsess->blacklist;
+	Bool is_whitelist=GF_FALSE;
+	if (blacklist[0]=='-') {
+		blacklist++;
+		is_whitelist = GF_TRUE;
+	}
+	u32 len = (u32) strlen(reg_name);
+	while (blacklist) {
+		char *fname = strstr(blacklist, reg_name);
+		if (!fname) break;
+		if (!fname[len] || (fname[len] == fsess->sep_list)) {
+			match = GF_TRUE;
+			break;
+		}
+		blacklist = fname+len;
+	}
+	if (is_whitelist) match = !match;
+
+	if (match) {
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+void gf_fs_add_filter_register_internal(GF_FilterSession *fsess, const GF_FilterRegister *freg, Bool check_blacklist)
 {
 	if (!freg || !fsess) return;
 
@@ -113,31 +140,12 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing process function - ignoring\n", freg->name));
 		return;
 	}
-	if (fsess->blacklist) {
-		Bool match = GF_FALSE;
-		const char *blacklist = fsess->blacklist;
-		Bool is_whitelist=GF_FALSE;
-		if (blacklist[0]=='-') {
-			blacklist++;
-			is_whitelist = GF_TRUE;
-		}
-		while (blacklist) {
-			char *fname = strstr(blacklist, freg->name);
-			if (!fname) break;
-			u32 len = (u32) strlen(freg->name);
-			if (!fname[len] || (fname[len] == fsess->sep_list)) {
-				match = GF_TRUE;
-				break;
-			}
-			blacklist = fname+len;
-		}
-		if (is_whitelist) match = !match;
 
-		if (match) {
-			if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
-			return;
-		}
+	if (check_blacklist && fs_is_in_blacklist(fsess, freg->name)) {
+		if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
+		return;
 	}
+
 	//except for meta filters, don't accept a filter with input caps but no output caps
 	//meta filters do follow the same rule, however when expanding them for help we may have weird cases
 	//where no config is set but inputs are listed to expose mime types or extensions (cf ffdmx)
@@ -159,6 +167,11 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 	}
 }
 
+GF_EXPORT
+void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister *freg)
+{
+	gf_fs_add_filter_register_internal(fsess, freg, GF_TRUE);
+}
 
 
 static Bool fs_default_event_proc(void *ptr, GF_Event *evt)

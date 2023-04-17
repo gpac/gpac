@@ -5252,7 +5252,7 @@ GF_FilterRegister JSFilterRegister = {
 };
 
 
-const GF_FilterRegister *jsfilter_register(GF_FilterSession *session)
+const GF_FilterRegister *jsf_register(GF_FilterSession *session)
 {
 	return &JSFilterRegister;
 }
@@ -5284,7 +5284,7 @@ GF_Filter *jsf_custom_filter_opaque(JSContext *ctx, JSValueConst this_val)
 
 #else
 
-const GF_FilterRegister *jsfilter_register(GF_FilterSession *session)
+const GF_FilterRegister *jsf_register(GF_FilterSession *session)
 {
 	return NULL;
 }

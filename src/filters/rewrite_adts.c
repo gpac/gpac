@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS write filter
@@ -414,7 +414,7 @@ GF_FilterRegister ADTSMxRegister = {
 };
 
 
-const GF_FilterRegister *adtsmx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufadts_register(GF_FilterSession *session)
 {
 	return &ADTSMxRegister;
 }
@@ -460,7 +460,7 @@ GF_FilterRegister LATMMxRegister = {
 };
 
 
-const GF_FilterRegister *latm_mx_register(GF_FilterSession *session)
+const GF_FilterRegister *uflatm_register(GF_FilterSession *session)
 {
 	return &LATMMxRegister;
 }

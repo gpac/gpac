@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2022-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed split bitstream aggregator filter
@@ -930,7 +930,7 @@ GF_FilterRegister BSAggRegister = {
 	.process = bs_agg_process
 };
 
-const GF_FilterRegister *bs_agg_register(GF_FilterSession *session)
+const GF_FilterRegister *bsagg_register(GF_FilterSession *session)
 {
 	return (const GF_FilterRegister *) &BSAggRegister;
 }

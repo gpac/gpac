@@ -808,7 +808,7 @@ GF_FilterRegister TrueHDDmxRegister = {
 };
 
 
-const GF_FilterRegister *truehd_register(GF_FilterSession *session)
+const GF_FilterRegister *rftruehd_register(GF_FilterSession *session)
 {
 	return &TrueHDDmxRegister;
 }

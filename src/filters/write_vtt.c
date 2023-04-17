@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT stream unframer filter
@@ -292,12 +292,12 @@ GF_FilterRegister WebVTTMxRegister = {
 };
 
 
-const GF_FilterRegister *vttmx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufvtt_register(GF_FilterSession *session)
 {
 	return &WebVTTMxRegister;
 }
 #else
-const GF_FilterRegister *vttmx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufvtt_register(GF_FilterSession *session)
 {
 	return NULL;
 }

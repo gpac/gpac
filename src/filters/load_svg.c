@@ -501,7 +501,7 @@ GF_FilterRegister SVGInRegister = {
 #endif
 
 
-const GF_FilterRegister *svgin_register(GF_FilterSession *session)
+const GF_FilterRegister *svgplay_register(GF_FilterSession *session)
 {
 #if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_ZLIB) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &SVGInRegister;

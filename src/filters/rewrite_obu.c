@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 OBU rewrite filter
@@ -629,13 +629,13 @@ GF_FilterRegister OBUMxRegister = {
 };
 
 
-const GF_FilterRegister *obumx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufobu_register(GF_FilterSession *session)
 {
 	return &OBUMxRegister;
 }
 
 #else
-const GF_FilterRegister *obumx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufobu_register(GF_FilterSession *session)
 {
 	return NULL;
 }

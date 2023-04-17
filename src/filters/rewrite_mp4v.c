@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 part2 video rewrite filter
@@ -211,7 +211,7 @@ GF_FilterRegister M4VMxRegister = {
 };
 
 
-const GF_FilterRegister *m4vmx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufm4v_register(GF_FilterSession *session)
 {
 	return &M4VMxRegister;
 }
@@ -249,7 +249,7 @@ GF_FilterRegister VC1VMxRegister = {
 };
 
 
-const GF_FilterRegister *vc1mx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufvc1_register(GF_FilterSession *session)
 {
 #ifdef GPAC_ENABLE_COVERAGE
 	//we currently miss vc1 test sequence
