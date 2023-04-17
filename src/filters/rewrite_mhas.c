@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2021
+ *			Copyright (c) Telecom ParisTech 2020-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS write filter
@@ -272,7 +272,7 @@ GF_FilterRegister MHASMxRegister = {
 };
 
 
-const GF_FilterRegister *mhasmx_register(GF_FilterSession *session)
+const GF_FilterRegister *ufmhas_register(GF_FilterSession *session)
 {
 	return &MHASMxRegister;
 }

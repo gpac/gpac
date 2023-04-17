@@ -1771,7 +1771,7 @@ GF_FilterRegister ISOFFInRegister = {
 
 #endif /*GPAC_DISABLE_ISOM*/
 
-const GF_FilterRegister *isoffin_register(GF_FilterSession *session)
+const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)
 {
 #ifdef GPAC_DISABLE_ISOM
 	return NULL;

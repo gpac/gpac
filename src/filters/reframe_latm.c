@@ -688,13 +688,13 @@ GF_FilterRegister LATMDmxRegister = {
 };
 
 
-const GF_FilterRegister *latm_dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rflatm_register(GF_FilterSession *session)
 {
 	return &LATMDmxRegister;
 }
 
 #else
-const GF_FilterRegister *latm_dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rflatm_register(GF_FilterSession *session)
 {
 	return NULL;
 }

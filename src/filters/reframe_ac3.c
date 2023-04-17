@@ -673,14 +673,14 @@ GF_FilterRegister AC3DmxRegister = {
 };
 
 
-const GF_FilterRegister *ac3dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfac3_register(GF_FilterSession *session)
 {
 	return &AC3DmxRegister;
 }
 
 #else
 
-const GF_FilterRegister *ac3dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfac3_register(GF_FilterSession *session)
 {
 	return NULL;
 }

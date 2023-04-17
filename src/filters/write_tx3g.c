@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2022-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / TX3G to SRT/VTT/TTML convert filter
@@ -584,7 +584,7 @@ GF_FilterRegister TTXTMxRegister = {
 	.process = tx3gmx_process
 };
 
-const GF_FilterRegister *ttxtuf_register(GF_FilterSession *session)
+const GF_FilterRegister *ufttxt_register(GF_FilterSession *session)
 {
 	return &TTXTMxRegister;
 }
@@ -708,7 +708,7 @@ const GF_FilterRegister *tx3g2ttml_register(GF_FilterSession *session)
 }
 
 #else
-const GF_FilterRegister *ttxtuf_register(GF_FilterSession *session)
+const GF_FilterRegister *ufttxt_register(GF_FilterSession *session)
 {
 	return NULL;
 }

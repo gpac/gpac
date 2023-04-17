@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2022
+ *			Copyright (c) Telecom ParisTech 2020-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS reframer filter
@@ -914,14 +914,14 @@ GF_FilterRegister MHASDmxRegister = {
 };
 
 
-const GF_FilterRegister *mhas_dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfmhas_register(GF_FilterSession *session)
 {
 	return &MHASDmxRegister;
 }
 
 #else
 
-const GF_FilterRegister *mhas_dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfmhas_register(GF_FilterSession *session)
 {
 	return NULL;
 }

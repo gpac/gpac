@@ -1040,13 +1040,13 @@ GF_FilterRegister ADTSDmxRegister = {
 };
 
 
-const GF_FilterRegister *adts_dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfadts_register(GF_FilterSession *session)
 {
 	return &ADTSDmxRegister;
 }
 
 #else
-const GF_FilterRegister *adts_dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfadts_register(GF_FilterSession *session)
 {
 	return NULL;
 }

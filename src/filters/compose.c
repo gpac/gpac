@@ -1206,7 +1206,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.probe_url = compose_probe_url,
 };
 
-const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
+const GF_FilterRegister *compositor_register(GF_FilterSession *session)
 {
 	u32 i=0;
 	u32 nb_args = sizeof(CompositorArgs) / sizeof(GF_FilterArgs) - 1;
@@ -1222,7 +1222,7 @@ const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 	return &CompositorFilterRegister;
 }
 #else
-const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
+const GF_FilterRegister *compositor_register(GF_FilterSession *session)
 {
 	return NULL;
 }

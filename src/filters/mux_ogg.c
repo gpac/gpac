@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2022-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / OGG muxer filter
@@ -562,7 +562,7 @@ GF_FilterRegister OGGMuxRegister = {
 
 #endif
 
-const GF_FilterRegister *oggmux_register(GF_FilterSession *session)
+const GF_FilterRegister *oggmx_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_OGG
 	return &OGGMuxRegister;

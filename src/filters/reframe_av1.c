@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Romain Bouqueau, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 IVF/OBU/annexB reframer filter
@@ -1389,13 +1389,13 @@ GF_FilterRegister AV1DmxRegister = {
 };
 
 
-const GF_FilterRegister *av1dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfav1_register(GF_FilterSession *session)
 {
 	return &AV1DmxRegister;
 }
 
 #else
-const GF_FilterRegister *av1dmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfav1_register(GF_FilterSession *session)
 {
 	return NULL;
 }

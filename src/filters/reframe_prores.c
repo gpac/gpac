@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2022
+ *			Copyright (c) Telecom ParisTech 2019-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ProRes reframer filter
@@ -694,13 +694,13 @@ GF_FilterRegister ProResDmxRegister = {
 };
 
 
-const GF_FilterRegister *proresdmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfprores_register(GF_FilterSession *session)
 {
 	return &ProResDmxRegister;
 }
 
 #else
-const GF_FilterRegister *proresdmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfprores_register(GF_FilterSession *session)
 {
 	return NULL;
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-2 TS mux filter
@@ -2112,14 +2112,14 @@ GF_FilterRegister TSMuxRegister = {
 };
 
 
-const GF_FilterRegister *tsmux_register(GF_FilterSession *session)
+const GF_FilterRegister *m2tsmx_register(GF_FilterSession *session)
 {
 	return &TSMuxRegister;
 }
 
 #else
 
-const GF_FilterRegister *tsmux_register(GF_FilterSession *session)
+const GF_FilterRegister *m2tsmx_register(GF_FilterSession *session)
 {
 	return NULL;
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / DVB4Linux input filter
@@ -432,7 +432,7 @@ GF_FilterRegister DVBLinuxRegister = {
 #endif
 };
 
-const GF_FilterRegister *dvblin_register(GF_FilterSession *session)
+const GF_FilterRegister *dvbin_register(GF_FilterSession *session)
 {
 #if !defined(GPAC_HAS_LINUX_DVB) || !defined(GPAC_SIM_LINUX_DVB)
 	if (!gf_opts_get_bool("temp", "gendoc"))

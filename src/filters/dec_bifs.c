@@ -282,7 +282,7 @@ GF_FilterRegister BIFSDecRegister = {
 
 #endif //!defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_COMPOSITOR)
 
-const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session)
+const GF_FilterRegister *bifsdec_register(GF_FilterSession *session)
 {
 #if !defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_COMPOSITOR)
 	return &BIFSDecRegister;

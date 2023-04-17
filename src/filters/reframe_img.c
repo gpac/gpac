@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / image (jpg/png/bmp/j2k) reframer filter
@@ -433,7 +433,7 @@ GF_FilterRegister ReframeImgRegister = {
 	.process_event = img_process_event
 };
 
-const GF_FilterRegister *img_reframe_register(GF_FilterSession *session)
+const GF_FilterRegister *rfimg_register(GF_FilterSession *session)
 {
 	return &ReframeImgRegister;
 }

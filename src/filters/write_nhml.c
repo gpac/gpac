@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML stream to file filter
@@ -981,7 +981,7 @@ GF_FilterRegister NHMLDumpRegister = {
 	.process = nhmldump_process
 };
 
-const GF_FilterRegister *nhmldump_register(GF_FilterSession *session)
+const GF_FilterRegister *nhmlw_register(GF_FilterSession *session)
 {
 	return &NHMLDumpRegister;
 }

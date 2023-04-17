@@ -4239,13 +4239,13 @@ GF_FilterRegister NALUDmxRegister = {
 };
 
 
-const GF_FilterRegister *naludmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfnalu_register(GF_FilterSession *session)
 {
 	return &NALUDmxRegister;
 }
 
 #else
-const GF_FilterRegister *naludmx_register(GF_FilterSession *session)
+const GF_FilterRegister *rfnalu_register(GF_FilterSession *session)
 {
 	return NULL;
 }

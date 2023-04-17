@@ -513,12 +513,12 @@ GF_FilterRegister ODFDecRegister = {
 	.process_event = odf_dec_process_event,
 };
 
-const GF_FilterRegister *odf_dec_register(GF_FilterSession *session)
+const GF_FilterRegister *odfdec_register(GF_FilterSession *session)
 {
 	return &ODFDecRegister;
 }
 #else
-const GF_FilterRegister *odf_dec_register(GF_FilterSession *session)
+const GF_FilterRegister *odfdec_register(GF_FilterSession *session)
 {
 	return NULL;
 }
