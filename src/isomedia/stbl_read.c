@@ -258,6 +258,7 @@ GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, GF_ISOSAPType
 			stss->r_LastSyncSample = SampleNumber;
 			stss->r_LastSampleIndex = i;
 			(*IsRAP) = RAP;
+			if (!nextRAP) return GF_OK;
 		}
 		else if (stss->sampleNumbers[i] > SampleNumber) {
 			if (nextRAP) *nextRAP = stss->sampleNumbers[i];
