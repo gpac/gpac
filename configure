@@ -175,6 +175,7 @@ push_feature "3d" "3D rendering"
 push_feature "threads" "Threading support"
 push_feature "network" "Network support (including RTP streaming)"
 push_feature "crypto" "crypto support"
+push_feature "restrict" "!restriction configuration file"
 push_feature "svg" "SVG 1.2 support"
 push_feature "vrml" "MPEG-4/VRML/X3D support"
 push_feature "x3d" "X3D-only support"
@@ -2350,6 +2351,9 @@ if test "$disable_aout" = "yes" ; then
     echo "#define GPAC_DISABLE_AOUT" >> $TMPH
 fi
 
+if test "$disable_restrict" = "no" ; then
+    echo "#define GPAC_ENABLE_RESTRICT" >> $TMPH
+fi
 
 echo ""
 

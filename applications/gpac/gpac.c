@@ -579,7 +579,7 @@ int gpac_main(int _argc, char **_argv)
 		gpac_exit(1);
 	}
 
-	if (!profile || strcmp(profile, "0") )
+	if (!profile || (strcmp(profile, "0") && strcmp(profile, "n")) )
 		gpac_load_suggested_filter_args();
 
 #ifndef GPAC_DISABLE_LOG

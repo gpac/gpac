@@ -688,12 +688,16 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
 
-	if (! get_default_install_path(file_path, GF_PATH_CFG)) {
+	if (file_path && ! get_default_install_path(file_path, GF_PATH_CFG)) {
 		profile = "0";
 	}
 	/*Create temp config file*/
-	if (profile && !strcmp(profile, "0")) {
+	if (profile && (!strcmp(profile, "0") || !stricmp(profile, "n"))) {
 		cfg = gf_cfg_new(NULL, NULL);
+		if (!stricmp(profile, "n")) {
+			gf_cfg_discard_changes(cfg);
+			return cfg;
+		}
 	} else {
 		FILE *f;
 
@@ -1014,6 +1018,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 	GF_Config *cfg=NULL;
 	u32 prof_len=0;
 	Bool force_new_cfg=GF_FALSE;
+	Bool fast_profile=GF_FALSE;
 	char szPath[GF_MAX_PATH];
 	char *prof_opt = NULL;
 
@@ -1025,6 +1030,8 @@ static GF_Config *gf_cfg_init(const char *profile)
 			if (strstr(prof_opt, "reload")) force_new_cfg = GF_TRUE;
 			prof_opt[0] = 0;
 		}
+		if (!stricmp(profile, "n"))
+			fast_profile = GF_TRUE;
 	}
 	if (profile && !prof_len)
 		profile = NULL;
@@ -1053,6 +1060,15 @@ static GF_Config *gf_cfg_init(const char *profile)
 		}
 		profile="0";
 		cfg = create_default_config(szPath, profile);
+		goto skip_cfg;
+	}
+
+	if (profile && !strcmp(profile, "0")) {
+		cfg = create_default_config(NULL, "0");
+		goto skip_cfg;
+	}
+	if (fast_profile) {
+		cfg = create_default_config(NULL, "n");
 		goto skip_cfg;
 	}
 
@@ -1122,6 +1138,8 @@ skip_cfg:
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[core] Using global config file in %s directory\n", szPath));
 #endif
 
+	if (fast_profile) goto exit;
+
 	check_modules_dir(cfg);
 	check_default_cred_file(cfg, szPath);
 
@@ -1178,8 +1196,8 @@ void gf_init_global_config(const char *profile)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Fatal error: failed to initialize GPAC global configuration\n"));
 			exit(1);
 		}
-
-		gf_modules_new(gpac_global_config);
+		if (!profile || stricmp(profile, "n"))
+			gf_modules_new(gpac_global_config);
 	}
 }
 
@@ -1195,6 +1213,7 @@ void gf_uninit_global_config(Bool discard_config)
 
 GF_Err gf_cfg_set_key_internal(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, Bool is_restrict);
 
+#ifdef GPAC_ENABLE_RESTRICT
 void gf_cfg_load_restrict()
 {
 	char szPath[GF_MAX_PATH];
@@ -1221,6 +1240,7 @@ void gf_cfg_load_restrict()
 		}
 	}
 }
+#endif
 
 GF_EXPORT
 const char *gf_opts_get_key(const char *secName, const char *keyName)
