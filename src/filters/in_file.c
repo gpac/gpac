@@ -312,7 +312,7 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 
 static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	int res;
+	s64 res;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
 	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid))
