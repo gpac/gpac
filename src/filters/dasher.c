@@ -2348,11 +2348,13 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
 	if (p && ctx->do_index) {
 		char *dst = gf_filter_pid_get_destination(ctx->opid);
-		if (dst && gf_url_is_relative(dst)) {
+		if (dst) {
 			char *opath=NULL, *ipath=NULL;
-			if (p->value.string[0]!='.') gf_dynstrcat(&opath, "./", NULL);
+			if (gf_url_is_relative(p->value.string) && (p->value.string[0]!='.'))
+				gf_dynstrcat(&opath, "./", NULL);
 			gf_dynstrcat(&opath, p->value.string, NULL);
-			if (dst[0]!='.') gf_dynstrcat(&ipath, "./", NULL);
+			if (gf_url_is_relative(dst) && (dst[0]!='.'))
+				gf_dynstrcat(&ipath, "./", NULL);
 			gf_dynstrcat(&ipath, dst, NULL);
 
 			ds->rep->res_url = gf_url_concatenate_parent(ipath, opath);
@@ -6598,8 +6600,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 		GF_MPD_SegmentURL *surl = gf_list_last(ds->rep->segment_list->segment_URLs);
 		surl->duration = duration;
 	}
-	if (!ctx->stl) return;
-
+	if (!ds->stl) return;
 
 	//no segment alignment store in each rep
 	if (!seg_align) {
