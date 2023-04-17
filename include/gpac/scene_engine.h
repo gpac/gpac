@@ -115,7 +115,7 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 /*! Encodes an AU from string
 \param seng the target scene engine
 \param ESID target streams when no indication is present in the file (eg, no atES_ID )
-\param disable_aggregation
+\param disable_aggregation do not aggregate the access unit on its target stream
 \param auString a char string to encode (must one or several complete nodes in BT
 \param callback pointer on a callback function to get the result of the coding the AU using the current context
 \return error if any

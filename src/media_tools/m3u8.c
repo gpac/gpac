@@ -785,7 +785,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 
 /**
  * Creates a new MasterPlaylist
-\param NULL if MasterPlaylist element could not be allocated
+\return NULL if MasterPlaylist element could not be allocated
  */
 MasterPlaylist* master_playlist_new()
 {

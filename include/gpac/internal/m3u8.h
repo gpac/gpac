@@ -122,7 +122,7 @@ typedef struct s_masterPlaylist MasterPlaylist;
 \param file The file from cache to parse
 \param playlist The playlist to fill. If argument is null, and file is valid, playlist will be allocated
 \param baseURL The base URL of the playlist
-\param GF_OK if playlist valid
+\return GF_OK if playlist valid
  */
 GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL);
 
@@ -134,7 +134,7 @@ GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist
 \param in_program in which the playlist is parsed
 \param sub_playlist existing subplaylist element in the playlist in which the playlist is parsed
 \param is_master set to true to indicate if this is the root playlist
-\param GF_OK if playlist valid
+\return GF_OK if playlist valid
  */
 GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL, Stream *in_program, PlaylistElement *sub_playlist, Bool is_master);
 
