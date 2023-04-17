@@ -292,7 +292,7 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 
 	ch->sample = ch->static_sample;
 	ch->sample->IsRAP = RAP;
-	ch->au_duration = 1000;
+	ch->sample->duration = 1000;
 	ch->dts = ch->cts = 1000 * ch->au_seq_num;
 	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
 
@@ -569,7 +569,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 
 	ch->last_state = GF_OK;
-	ch->au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
 
 	ch->sap_3 = GF_FALSE;
 	ch->sap_4_type = 0;
@@ -592,7 +591,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			ch->dts = ch->start;
 		}
 
-		if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset + ch->au_duration)) {
+		if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset + ch->sample->duration)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
 			ch->sample = NULL;
 			ch->last_state = GF_EOS;
