@@ -1471,7 +1471,7 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 		bs->cache_read_pos = bs->cache_read_size;
 	}
 
-	int res;
+	s64 res;
 #ifdef GPAC_HAS_FD
 	if (bs->fd>=0) {
 		res = lseek(bs->fd, offset, SEEK_SET);
