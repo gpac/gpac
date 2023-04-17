@@ -6381,7 +6381,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
 			flush_refs = GF_TRUE;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
 			//we need to wait for packet to be written
 			if (ctx->seg_flush_state) {
@@ -6396,8 +6396,6 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (!ctx->dash_mode || ctx->flush_seg) {
 				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
 			}
-
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 		}
 		ctx->fragment_started = GF_FALSE;
 
