@@ -111,7 +111,16 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	}
 
 	count = gf_fq_count(pid->filter->pcks_alloc_reservoir);
+
 	if (count) {
+		//don't let reservoir grow too large (may happen if burst of packets are stored/cosumed in the upper chain)
+		while (count>30) {
+			GF_FilterPacket *head_pck = gf_fq_pop(pid->filter->pcks_alloc_reservoir);
+			gf_free(head_pck->data);
+			gf_free(head_pck);
+			count--;
+		}
+
 		GF_PckQueueEnum pck_enum_state;
 		memset(&pck_enum_state, 0, sizeof(GF_PckQueueEnum));
 		pck_enum_state.data_size = data_size;
