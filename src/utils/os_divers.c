@@ -918,7 +918,9 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 	s32 i;
 	if (!gpac_argc) {
 		Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_next, GF_Err *e);
+#ifdef GPAC_ENABLE_RESTRICT
 		void gf_cfg_load_restrict();
+#endif
 
 #ifndef GPAC_DISABLE_NETWORK
 		gpac_use_poll = GF_TRUE;
@@ -1022,8 +1024,10 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			if (gpac_quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
 			gf_set_progress_callback(NULL, progress_quiet);
 		}
+#ifdef GPAC_ENABLE_RESTRICT
 		//now that we have parsed all options, load restrict
 		gf_cfg_load_restrict();
+#endif
 	}
 	//for OSX we allow overwrite of argc/argv due to different behavior between console-mode apps and GUI
 #if !defined(__DARWIN__) && !defined(__APPLE__)
