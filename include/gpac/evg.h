@@ -449,7 +449,7 @@ GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *surf, GF_EVGStencil *sten
 
 /*! attaches a surface object to a memory buffer
 \param surf the surface object
-\param pixels: texture data
+\param pixels texture data
 \param width texture width in pixels
 \param height texture height in pixels
 \param pitch_x texture horizontal pitch (bytes to skip to get to next pixel). O means linear frame buffer (eg pitch_x==bytes per pixel)

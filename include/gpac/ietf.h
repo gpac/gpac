@@ -897,7 +897,6 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch);
 /*! forces loss rate for next Receiver report
 \param ch the target RTP channel
 \param loss_rate loss rate in per-thousand
-\return error if any
 */
 void gf_rtp_set_loss_rate(GF_RTPChannel *ch, u32 loss_rate);
 
