@@ -42,11 +42,10 @@ GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, GF_ISOTrackID TrackID)
 
 GF_TrackBox *gf_isom_get_track(GF_MovieBox *moov, u32 trackNumber)
 {
-	GF_TrackBox *trak;
-	if (!moov || !trackNumber || (trackNumber > gf_list_count(moov->trackList))) return NULL;
-	trak = (GF_TrackBox*)gf_list_get(moov->trackList, trackNumber - 1);
-	return trak;
-
+	if (!moov) return NULL;
+	//no need to check for these, they will anyway result in NULL returned from gf_list_get
+//	if (!moov || !trackNumber || (trackNumber > gf_list_count(moov->trackList))) return NULL;
+	return (GF_TrackBox*)gf_list_get(moov->trackList, trackNumber - 1);
 }
 
 //get the number of a track given its ID
