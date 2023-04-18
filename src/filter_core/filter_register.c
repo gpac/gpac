@@ -25,6 +25,7 @@
 
 #include "filter_session.h"
 #include <gpac/network.h>
+#include <gpac/module.h>
 
 
 const GF_FilterRegister *ut_filter_register(GF_FilterSession *session);
@@ -353,28 +354,83 @@ BuiltinReg BuiltinFilters [] = {
 };
 
 
-Bool fs_is_in_blacklist(GF_FilterSession *fsess, const char *reg_name);
-void gf_fs_add_filter_register_internal(GF_FilterSession *fsess, const GF_FilterRegister *freg, Bool check_blacklist);
-
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
-	u32 i, count = GF_ARRAY_LENGTH(BuiltinFilters);
+	Bool is_whitelist = GF_FALSE;
+	GF_PropertyValue _bl;
+	u32 nb_blacklist=0;
+	char **bls=NULL;
+
+	if (fsess->blacklist) {
+		const char *blacklist = fsess->blacklist;
+		if (blacklist[0]=='-') {
+			blacklist++;
+			is_whitelist = GF_TRUE;
+		}
+		_bl = gf_props_parse_value(GF_PROP_STRING_LIST, "blacklist", blacklist, NULL, fsess->sep_list);
+		nb_blacklist = _bl.value.string_list.nb_items;
+		bls = _bl.value.string_list.vals;
+	}
+
+	u32 i, j, count = GF_ARRAY_LENGTH(BuiltinFilters);
 	for (i=0; i<count; i++) {
-		if (fs_is_in_blacklist(fsess, BuiltinFilters[i].name)) continue;
+		const char *reg_name = BuiltinFilters[i].name;
+
+		if (nb_blacklist) {
+			Bool match = GF_FALSE;
+			for (j=0; j<nb_blacklist; j++) {
+				if (!strcmp(bls[j], reg_name)) {
+					match = GF_TRUE;
+					break;
+				}
+			}
+			if (is_whitelist) match = !match;
+			if (match) continue;
+		}
+
 		const GF_FilterRegister *freg = BuiltinFilters[i].fun(a_sess);
 		if (!freg) continue;
 		assert( !strcmp(freg->name, BuiltinFilters[i].name));
-		gf_fs_add_filter_register_internal(fsess, freg, GF_FALSE);
+		gf_fs_add_filter_register(fsess, freg);
+	}
+
+	//load external modules
+	if (!gf_opts_get_bool("core", "no-dynf")) {
+		count = gf_modules_count();
+		for (i=0; i<count; i++) {
+			GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, a_sess);
+			if (!freg) continue;
+
+			if (nb_blacklist) {
+				Bool match = GF_FALSE;
+				for (j=0; j<nb_blacklist; j++) {
+					if (!strcmp(bls[j], freg->name)) {
+						match = GF_TRUE;
+						break;
+					}
+				}
+				if (is_whitelist) match = !match;
+				if (match) {
+					if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
+					continue;
+				}
+			}
+			gf_fs_add_filter_register(fsess, freg);
+		}
+	}
+
+	if (nb_blacklist) {
+		gf_props_reset_single(&_bl);
 	}
 }
 
 GF_EXPORT
 void gf_fs_register_test_filters(GF_FilterSession *fsess)
 {
-	gf_fs_add_filter_register_internal(fsess, ut_source_register(NULL), GF_FALSE );
-	gf_fs_add_filter_register_internal(fsess, ut_filter_register(NULL), GF_FALSE );
-	gf_fs_add_filter_register_internal(fsess, ut_sink_register(NULL), GF_FALSE );
-	gf_fs_add_filter_register_internal(fsess, ut_sink2_register(NULL), GF_FALSE );
+	gf_fs_add_filter_register(fsess, ut_source_register(NULL) );
+	gf_fs_add_filter_register(fsess, ut_filter_register(NULL) );
+	gf_fs_add_filter_register(fsess, ut_sink_register(NULL) );
+	gf_fs_add_filter_register(fsess, ut_sink2_register(NULL) );
 }
 
 

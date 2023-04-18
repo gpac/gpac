@@ -373,7 +373,7 @@ GF_Err gf_fs_get_last_connect_error(GF_FilterSession *session);
 */
 GF_Err gf_fs_get_last_process_error(GF_FilterSession *session);
 
-/*! Adds a user-defined register to the session
+/*! Adds a user-defined register to the session - the register is added regardless of the session blacklist
 \param session filter session
 \param freg filter register to add
 */
