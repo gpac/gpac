@@ -4103,6 +4103,8 @@ GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *cap
 	//we accept caps override event on a running filter, this will only impact the next link solving
 	filter->forced_caps = nb_caps ? caps : NULL;
 	filter->nb_forced_caps = nb_caps;
+	filter->nb_forced_bundles = nb_caps ? gf_filter_caps_bundle_count(caps, nb_caps) : 0;
+
 	filter->bundle_idx_at_resolution = -1;
 	return GF_OK;
 }
@@ -4984,6 +4986,7 @@ GF_Err gf_filter_push_caps(GF_Filter *filter, u32 code, GF_PropertyValue *value,
 	caps[nb_caps].flags = flags;
 	filter->nb_forced_caps++;
 	filter->forced_caps = caps;
+	filter->nb_forced_bundles = filter->nb_forced_caps ? gf_filter_caps_bundle_count(filter->forced_caps, filter->nb_forced_caps) : 0;
 
 	//reload graph for this updated registry!
 	GF_FilterRegister *freg = (GF_FilterRegister *)filter->freg;
@@ -5136,6 +5139,7 @@ void gf_filter_mirror_forced_caps(GF_Filter *filter, GF_Filter *dst_filter)
 	if (filter && dst_filter) {
 		filter->forced_caps = dst_filter->forced_caps;
 		filter->nb_forced_caps = dst_filter->nb_forced_caps;
+		filter->nb_forced_bundles = dst_filter->nb_forced_bundles;
 	}
 }
 

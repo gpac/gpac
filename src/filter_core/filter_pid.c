@@ -2248,7 +2248,7 @@ Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps)
 	return gf_filter_has_in_out_caps(caps, nb_caps, GF_TRUE);
 }
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, u32 nb_in_bundles, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
 {
 	u32 i=0;
 	s32 first_static_cap=-1;
@@ -2256,7 +2256,6 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	u32 cur_bundle_idx = 0;
 	u32 nb_matched=0;
 	//u32 nb_out_caps=0;
-	u32 nb_in_bundles=0;
 	u32 bundle_score = 0;
 	u32 *bundles_in_ok = NULL;
 	u32 *bundles_cap_found = NULL;
@@ -2269,6 +2268,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	if (dst_filter && dst_filter->freg==dst_reg && dst_filter->forced_caps) {
 		dst_caps = dst_filter->forced_caps;
 		nb_dst_caps = dst_filter->nb_forced_caps;
+		nb_in_bundles = dst_filter->nb_forced_bundles;
 	}
 
 	//check all input caps of dst filter, count bundles
@@ -2278,7 +2278,9 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 	}
 
 	//check all input caps of dst filter, count bundles
-	nb_in_bundles = gf_filter_caps_bundle_count(dst_caps, nb_dst_caps);
+	if (!nb_in_bundles)
+		nb_in_bundles = gf_filter_caps_bundle_count(dst_caps, nb_dst_caps);
+
 	if (!nb_in_bundles) {
 		if (dst_reg->configure_pid) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no caps but pid configure possible, assuming possible connection\n", dst_reg->name));
@@ -2583,11 +2585,13 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			}
 		}
 	}
+#if 0
 	if (!bundle_score) {
 //		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs cap bundle %d do not match filter %s inputs\n", src->name, src_bundle_idx, dst_reg->name));
 	} else {
 //		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs cap bundle %d matches filter %s inputs caps bundle %d (%d total bundle matches, bundle matched %d/%d caps)\n", src->name, src_bundle_idx, dst_reg->name, *dst_bundle_idx, nb_matched, bundle_score, nb_out_caps));
 	}
+#endif
 	return bundle_score;
 }
 
@@ -2834,13 +2838,13 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 	return 0;
 }
 
-static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const GF_FilterRegister *freg, GF_FilterRegDesc *a_reg, Bool freg_has_output, u32 nb_dst_caps, GF_CapsBundleStore *capstore, GF_Filter *dst_filter)
+static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const GF_FilterRegister *freg, u32 nb_bundles, GF_FilterRegDesc *a_reg, Bool freg_has_output, u32 nb_dst_caps, GF_CapsBundleStore *capstore, GF_Filter *dst_filter)
 {
 	u32 nb_src_caps, k, l;
 	u32 path_weight;
 
 	//check which cap of this filter matches our destination
-	nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
+	nb_src_caps = a_reg->nb_bundles;
 	for (k=0; k<nb_src_caps; k++) {
 		for (l=0; l<nb_dst_caps; l++) {
 			s32 bundle_idx;
@@ -2848,7 +2852,7 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 			if (gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps)) {
 				u32 loaded_filter_only_flags = 0;
 
-				path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
+				path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, nb_bundles, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
 
 				if (path_weight && (bundle_idx == l)) {
 					GF_FilterRegEdge *edge;
@@ -2879,7 +2883,7 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 			if ( freg_has_output ) {
 				u32 loaded_filter_only_flags = 0;
 
-				path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
+				path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, a_reg->nb_bundles, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
 
 				if (path_weight && (bundle_idx == k)) {
 					GF_FilterRegEdge *edge;
@@ -2902,7 +2906,7 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 	}
 }
 
-static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_CapsBundleStore *capstore, GF_FilterPid *src_pid, GF_Filter *dst_filter)
+static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_CapsBundleStore *capstore, GF_FilterPid *src_pid, GF_Filter *dst_filter, u32 orig_nb_bundles)
 {
 	u32 nb_dst_caps, nb_regs, i, nb_caps;
 	Bool freg_has_output;
@@ -2913,6 +2917,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	if (dst_filter && ((freg->flags & (GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM)) || (src_pid && dst_filter->forced_caps) ) ) {
 		caps = dst_filter->forced_caps;
 		nb_caps = dst_filter->nb_forced_caps;
+		orig_nb_bundles = dst_filter->nb_forced_bundles;
 	}
 
 	freg_has_output = gf_filter_has_out_caps(caps, nb_caps);
@@ -2921,8 +2926,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	if (!reg_desc) return NULL;
 
 	reg_desc->freg = freg;
-
-	nb_dst_caps = gf_filter_caps_bundle_count(caps, nb_caps);
+	reg_desc->nb_bundles = nb_dst_caps = orig_nb_bundles ? orig_nb_bundles : gf_filter_caps_bundle_count(caps, nb_caps);
 
 
 	//we are building a register descriptor acting as destination, ignore any output caps
@@ -2934,11 +2938,11 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 		GF_FilterRegDesc *a_reg = gf_list_get(links, i);
 		if (a_reg->freg == freg) continue;
 
-		gf_filter_reg_build_graph_single(reg_desc, freg, a_reg, freg_has_output, nb_dst_caps, capstore, dst_filter);
+		gf_filter_reg_build_graph_single(reg_desc, freg, reg_desc->nb_bundles, a_reg, freg_has_output, nb_dst_caps, capstore, dst_filter);
 	}
 
 	if (!dst_filter && (freg->flags & GF_FS_REG_ALLOW_CYCLIC)) {
-		gf_filter_reg_build_graph_single(reg_desc, freg, reg_desc, freg_has_output, nb_dst_caps, capstore, NULL);
+		gf_filter_reg_build_graph_single(reg_desc, freg, reg_desc->nb_bundles, reg_desc, freg_has_output, nb_dst_caps, capstore, NULL);
 	}
 	return reg_desc;
 }
@@ -2952,7 +2956,7 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 	if (!fsess->links) fsess->links = gf_list_new();
 
 	if (for_reg) {
-		GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, for_reg, &capstore, NULL, NULL);
+		GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, for_reg, &capstore, NULL, NULL, 0);
 		if (!freg_desc) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to build graph entry for filter %s\n", for_reg->name));
 		} else {
@@ -2965,7 +2969,7 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 		count = gf_list_count(fsess->registry);
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
-			GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, freg, &capstore, NULL, NULL);
+			GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, freg, &capstore, NULL, NULL, 0);
 			if (!freg_desc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to build graph entry for filter %s\n", freg->name));
 			} else {
@@ -3065,6 +3069,7 @@ void dump_dijstra_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijk
 static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegister, Bool reconfigurable_only, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
+	u32 orig_nb_bundles=0;
 	GF_List *dijkstra_nodes;
 	GF_FilterSession *fsess = pid->filter->session;
 	//build all edges
@@ -3219,13 +3224,14 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		if (dst->freg == reg_desc->freg) {
 			reg_desc->dist = 0;
 			reg_desc->priority = 0;
+			orig_nb_bundles = reg_desc->nb_bundles;
 		} else {
 			gf_list_add(dijkstra_nodes, reg_desc);
 		}
 	}
 	//create a new node for the destination based on elligible filters in the graph
 	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
-	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst);
+	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst, orig_nb_bundles);
 	reg_dst->dist = 0;
 	reg_dst->priority = 0;
 	reg_dst->in_edges_enabling = 0;

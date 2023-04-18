@@ -3568,13 +3568,13 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 				u32 loaded_filter_only_flags = 0;
 				u32 path_weight;
 				if (has_input && !src_match) {
-					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) &loaded_freg, NULL, &bundle_idx, l, &loaded_filter_only_flags, &capstore);
+					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) &loaded_freg, 0, NULL, &bundle_idx, l, &loaded_filter_only_flags, &capstore);
 					if (path_weight && (bundle_idx == l))
 						src_match = GF_TRUE;
 				}
 				if (has_output && !sink_match) {
 					loaded_filter_only_flags = 0;
-					path_weight = gf_filter_caps_to_caps_match(&loaded_freg, l, a_reg->freg, NULL, &bundle_idx, k, &loaded_filter_only_flags, &capstore);
+					path_weight = gf_filter_caps_to_caps_match(&loaded_freg, l, a_reg->freg, 0, NULL, &bundle_idx, k, &loaded_filter_only_flags, &capstore);
 
 					if (path_weight && (bundle_idx == k))
 						sink_match = GF_TRUE;
