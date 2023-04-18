@@ -95,6 +95,7 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads)
 	u32 i, run_size;
 	char szName[100];
 	if (!surf || surf->nb_threads) return GF_BAD_PARAM;
+	if (gf_opts_get_bool("core", "no-mx")) return GF_OK;
 
 	if (nb_threads<0) {
 		GF_SystemRTInfo rti;

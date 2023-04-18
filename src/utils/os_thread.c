@@ -114,6 +114,8 @@ static const char *log_th_name(u32 id)
 GF_EXPORT
 GF_Thread *gf_th_new(const char *name)
 {
+	if (gf_opts_get_bool("core", "no-mx")) return NULL;
+
 	GF_Thread *tmp = (GF_Thread*)gf_malloc(sizeof(GF_Thread));
 	memset(tmp, 0, sizeof(GF_Thread));
 	tmp->status = GF_THREAD_STATUS_STOP;
@@ -499,6 +501,8 @@ struct __tag_mutex
 GF_EXPORT
 GF_Mutex *gf_mx_new(const char *name)
 {
+	if (gf_opts_get_bool("core", "no-mx")) return NULL;
+
 #ifndef WIN32
 	pthread_mutexattr_t attr;
 #endif
@@ -766,6 +770,8 @@ struct __tag_semaphore
 GF_EXPORT
 GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 {
+	if (gf_opts_get_bool("core", "no-mx")) return NULL;
+
 	GF_Semaphore *tmp = (GF_Semaphore*)gf_malloc(sizeof(GF_Semaphore));
 	if (!tmp) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't allocate semaphore\n"));
