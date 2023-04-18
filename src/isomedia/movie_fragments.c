@@ -411,79 +411,59 @@ u32 GetNumUsedValues(GF_TrackFragmentBox *traf, u32 value, u32 index)
 
 void ComputeFragmentDefaults(GF_TrackFragmentBox *traf)
 {
-	u32 i, j, MaxNum, DefValue, ret;
+	u32 i, j;
 	GF_TrackFragmentRunBox *trun;
-	GF_TrunEntry *ent;
+	GF_TrunEntry *ent, *first_ent=NULL;
 
 	//Duration default
-	MaxNum = DefValue = 0;
+	u32 def_dur=0;
+	u32 def_size=0;
+	u32 def_flags=0;
+	u32 nb_samp=0;
+
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
 		for (j=0; j<trun->nb_samples; j++) {
 			ent = &trun->samples[j];
-			ret = GetNumUsedValues(traf, ent->Duration, 1);
-			if (ret>MaxNum) {
-				//at least 2 duration, specify for all
-				if (MaxNum) {
-					DefValue = 0;
-					goto escape_duration;
-				}
-				MaxNum = ret;
-				DefValue = ent->Duration;
+			nb_samp++;
+
+			if (!first_ent) {
+				first_ent = ent;
+				def_dur = ent->Duration;
+				def_size = ent->size;
+				if (ent->nb_pack>1)
+					def_size /= ent->nb_pack;
+				continue;
 			}
+			//if more than 2 dur, we need the flag
+			if (def_dur && (ent->Duration != def_dur)) def_dur=0;
+			//if more than 2 size, we need the flag
+			if (def_size) {
+				u32 size = ent->size;
+				if (ent->nb_pack>1)
+					size /= ent->nb_pack;
+				if (size != def_size) def_size=0;
+			}
+			//only check sample flags after first sample (first one uses first sample flags)
+			if (nb_samp==2) def_flags = ent->flags;
+			//if more than 2 sets of flags, we need one entry each
+			else if (def_flags && (ent->flags != def_flags)) def_flags = 0;
+
+			//no default possible
+			if (def_dur|def_size|def_flags == 0)
+				break;
 		}
 	}
-escape_duration:
-	//store if #
-	if (DefValue && ((DefValue != traf->trex->def_sample_duration) || traf->trex->cannot_use_default ) ) {
-		traf->tfhd->def_sample_duration = DefValue;
-	}
+	if (nb_samp==1) def_flags = first_ent->flags;
 
-	//Size default
-	MaxNum = DefValue = 0;
-	i=0;
-	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
-		for (j=0; j<trun->nb_samples; j++) {
-			u32 ssize;
-			ent = &trun->samples[j];
-			ssize = ent->size;
-			if (ent->nb_pack>1)
-				ssize /= ent->nb_pack;
-			ret = GetNumUsedValues(traf, ssize, 2);
-			if (ret>MaxNum || (ret==1)) {
-				//at least 2 sizes so we must specify all sizes
-				if (MaxNum) {
-					DefValue = 0;
-					goto escape_size;
-				}
-				MaxNum = ret;
-				DefValue = ssize;
-			}
-		}
+	if (def_dur && ((def_dur != traf->trex->def_sample_duration) || traf->trex->cannot_use_default ) ) {
+		traf->tfhd->def_sample_duration = def_dur;
 	}
-
-escape_size:
-	//store if #
-	if (DefValue && (DefValue != traf->trex->def_sample_size)) {
-		traf->tfhd->def_sample_size = DefValue;
+	if (def_size && (def_size != traf->trex->def_sample_size)) {
+		traf->tfhd->def_sample_size = def_size;
 	}
-
-	//Flags default
-	MaxNum = DefValue = 0;
-	i=0;
-	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
-		for (j=0; j<trun->nb_samples; j++) {
-			ent = &trun->samples[j];
-			ret = GetNumUsedValues(traf, ent->flags, 3);
-			if (ret>MaxNum) {
-				MaxNum = ret;
-				DefValue = ent->flags;
-			}
-		}
-	}
-	//store if #
-	if (traf->trex->cannot_use_default || (DefValue && (DefValue != traf->trex->def_sample_flags))) {
-		traf->tfhd->def_sample_flags = DefValue;
+	if (traf->trex->cannot_use_default || (def_flags && (def_flags != traf->trex->def_sample_flags))) {
+		traf->tfhd->def_sample_flags = def_flags;
 	}
 }
 
