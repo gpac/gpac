@@ -491,7 +491,7 @@ struct __gf_filter_session
 	GF_List *parsed_args;
 
 	char sep_args, sep_name, sep_frag, sep_list, sep_neg;
-	const char *blacklist;
+	char *blacklist;
 	Bool init_done;
 
 	GF_List *auto_inc_nums;

@@ -29,7 +29,6 @@
 #ifndef GPAC_DISABLE_3D
 #include <gpac/modules/video_out.h>
 #endif
-#include <gpac/module.h>
 
 //#define CHECK_TASK_LIST_INTEGRITY
 
@@ -90,58 +89,35 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 #endif // GPAC_CONFIG_EMSCRIPTEN
 }
 
-Bool fs_is_in_blacklist(GF_FilterSession *fsess, const char *reg_name)
-{
-	if (!fsess->blacklist) return GF_FALSE;
-	Bool match = GF_FALSE;
-	const char *blacklist = fsess->blacklist;
-	Bool is_whitelist=GF_FALSE;
-	if (blacklist[0]=='-') {
-		blacklist++;
-		is_whitelist = GF_TRUE;
-	}
-	u32 len = (u32) strlen(reg_name);
-	while (blacklist) {
-		char *fname = strstr(blacklist, reg_name);
-		if (!fname) break;
-		if (!fname[len] || (fname[len] == fsess->sep_list)) {
-			match = GF_TRUE;
-			break;
-		}
-		blacklist = fname+len;
-	}
-	if (is_whitelist) match = !match;
 
-	if (match) {
-		return GF_TRUE;
-	}
-	return GF_FALSE;
-}
-
-void gf_fs_add_filter_register_internal(GF_FilterSession *fsess, const GF_FilterRegister *freg, Bool check_blacklist)
+GF_EXPORT
+void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
-	if (!freg || !fsess) return;
+	if (!freg) return;
+	if (!fsess) {
+		if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
+		return;
+	}
 
 	if (!freg->name) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter missing name - ignoring\n"));
+		if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
 		return;
 	}
 #if 0
 	if (strchr(freg->name, fsess->sep_args)	) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter name cannot contain argument separator %c - ignoring\n", fsess->sep_args));
+		if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
 		return;
 	}
 	if (strchr(freg->name, fsess->sep_name)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter name cannot contain argument value separator %c - ignoring\n", fsess->sep_name));
+		if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
 		return;
 	}
 #endif
 	if (!freg->process) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing process function - ignoring\n", freg->name));
-		return;
-	}
-
-	if (check_blacklist && fs_is_in_blacklist(fsess, freg->name)) {
 		if (freg->register_free) freg->register_free(fsess, (GF_FilterRegister *)freg);
 		return;
 	}
@@ -166,13 +142,6 @@ void gf_fs_add_filter_register_internal(GF_FilterSession *fsess, const GF_Filter
 		gf_filter_sess_build_graph(fsess, freg);
 	}
 }
-
-GF_EXPORT
-void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister *freg)
-{
-	gf_fs_add_filter_register_internal(fsess, freg, GF_TRUE);
-}
-
 
 static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
@@ -243,8 +212,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	const char *opt;
 	Bool gf_sys_has_filter_global_args();
 	Bool gf_sys_has_filter_global_meta_args();
-
-	u32 i, count;
+	u32 i;
 	GF_FilterSession *fsess, *a_sess;
 
 	//safety check: all built-in properties shall have unique 4CCs
@@ -402,21 +370,18 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	gf_fs_set_separators(fsess, NULL);
 
 	fsess->registry = gf_list_new();
+#ifdef GPAC_HAS_QJS
+	//keep copy of blacklist for JS
+	fsess->blacklist = blacklist ? gf_strdup(blacklist) : NULL;
+#else
 	fsess->blacklist = blacklist;
+#endif
 	a_sess = (flags & GF_FS_FLAG_LOAD_META) ? fsess : NULL;
 	gf_fs_reg_all(fsess, a_sess);
 
-	//load external modules
-	if (!gf_opts_get_bool("core", "no-dynf")) {
-		count = gf_modules_count();
-		for (i=0; i<count; i++) {
-			GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, a_sess);
-			if (freg) {
-				gf_fs_add_filter_register(fsess, freg);
-			}
-		}
-	}
+#ifndef GPAC_HAS_QJS
 	fsess->blacklist = NULL;
+#endif
 
 	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
@@ -918,6 +883,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	if (fsess->uri_relocators) gf_list_del(fsess->uri_relocators);
 	if (fsess->locales.szAbsRelocatedPath) gf_free(fsess->locales.szAbsRelocatedPath);
 #endif
+	if (fsess->blacklist) gf_free(fsess->blacklist);
 
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
