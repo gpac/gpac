@@ -3786,8 +3786,10 @@ sample_entry_done:
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
 		}
 
-		mp4_mux_set_tags(ctx, tkw);
-		mp4_mux_set_udta(ctx, tkw);
+		if (!ctx->noinit) {
+			mp4_mux_set_tags(ctx, tkw);
+			mp4_mux_set_udta(ctx, tkw);
+		}
 	}
 	return GF_OK;
 }
