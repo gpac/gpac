@@ -1030,8 +1030,11 @@ static GF_Config *gf_cfg_init(const char *profile)
 			if (strstr(prof_opt, "reload")) force_new_cfg = GF_TRUE;
 			prof_opt[0] = 0;
 		}
-		if (!stricmp(profile, "n"))
+		if (!stricmp(profile, "n")) {
 			fast_profile = GF_TRUE;
+			cfg = create_default_config(NULL, "n");
+			goto skip_cfg;
+		}
 	}
 	if (profile && !prof_len)
 		profile = NULL;
@@ -1065,10 +1068,6 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	if (profile && !strcmp(profile, "0")) {
 		cfg = create_default_config(NULL, "0");
-		goto skip_cfg;
-	}
-	if (fast_profile) {
-		cfg = create_default_config(NULL, "n");
 		goto skip_cfg;
 	}
 
@@ -1584,7 +1583,6 @@ u32 gf_opts_get_int(const char *secName, const char *keyName)
 			}
 		}
 	}
-	sscanf(opt, "%d", &val);
 	val = atoi(opt);
 	return val*times;
 }
