@@ -232,6 +232,9 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 
 	fsess->flags = flags;
 
+	if (gf_opts_get_bool("core", "no-mx"))
+		nb_threads=0;
+
 #ifdef __EMSCRIPTEN_PTHREADS__
 	//detect if we run as a worker
 	if (!emscripten_is_main_runtime_thread()) {

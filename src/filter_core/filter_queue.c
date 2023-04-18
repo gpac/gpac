@@ -56,6 +56,7 @@ struct __gf_filter_queue
 	volatile u32 nb_items;
 
 	GF_Mutex *mx;
+	u8 use_mx;
 };
 
 
@@ -68,7 +69,8 @@ GF_FilterQueue *gf_fq_new(const GF_Mutex *mx)
 	if (!q) return NULL;
 
 	q->mx = (GF_Mutex *) mx;
-	if (mx) return q;
+	if (mx || gf_opts_get_bool("core", "no-mx")) q->use_mx = 1;
+	if (q->use_mx) return q;
 
 
 	//lock-free mode, create dummuy slot for head
@@ -95,7 +97,7 @@ void gf_fq_del(GF_FilterQueue *q, void (*item_delete)(void *) )
 {
 	GF_LFQItem *it = q->head;
 	//first item is dummy if lock-free mode, doesn't hold a valid pointer
-	if (! q->mx) it->data=NULL;
+	if (! q->use_mx) it->data=NULL;
 
 	while (it) {
 		GF_LFQItem *ptr = it;
@@ -215,7 +217,7 @@ void gf_fq_add(GF_FilterQueue *fq, void *item)
 	GF_LFQItem *it;
 	assert(fq);
 
-	if (! fq->mx) {
+	if (! fq->use_mx) {
 		gf_lfq_add(fq, item);
 	} else {
 		gf_mx_p(fq->mx);
@@ -249,7 +251,7 @@ void *gf_fq_pop(GF_FilterQueue *fq)
 		return NULL;
 
 	void *data=NULL;
-	if (! fq->mx) {
+	if (! fq->use_mx) {
 		return gf_lfq_pop(fq);
 	}
 
@@ -284,7 +286,7 @@ void *gf_fq_head(GF_FilterQueue *fq)
 	void *data;
 	if (!fq) return NULL;
 
-	if (fq->mx) {
+	if (fq->use_mx) {
 		gf_mx_p(fq->mx);
 		data = fq->head ? fq->head->data : NULL;
 		gf_mx_v(fq->mx);
@@ -301,7 +303,7 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 	GF_LFQItem *it;
 	assert(fq);
 
-	if (fq->mx) {
+	if (fq->use_mx) {
 		gf_mx_p(fq->mx);
 		it = fq->head;
 
@@ -331,7 +333,7 @@ void gf_fq_enum(GF_FilterQueue *fq, void (*enum_func)(void *udta1, void *item), 
 	if (!enum_func) return;
 	assert(fq);
 
-	if (fq->mx) {
+	if (fq->use_mx) {
 		gf_mx_p(fq->mx);
 		it = fq->head;
 
