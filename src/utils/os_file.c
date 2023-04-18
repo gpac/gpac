@@ -157,10 +157,15 @@ Bool gf_dir_exists(const char* DirPathName)
 	gf_free(wcsDirPathName);
 	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
 #else
-	DIR* dir = opendir(DirPathName);
-	if (!dir) return GF_FALSE;
-	closedir(dir);
-	return GF_TRUE;
+	struct stat sb;
+	if (stat(DirPathName, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+//	DIR* dir = opendir(DirPathName);
+//	if (!dir) return GF_FALSE;
+//	closedir(dir);
+//	return GF_TRUE;
 #endif
 	return GF_FALSE;
 }
