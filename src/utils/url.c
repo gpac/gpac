@@ -317,8 +317,10 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 		//break our path at each separator
 		if ((tmp[i-1] == GF_PATH_SEPARATOR) || (tmp[i-1] == '/'))  {
 			tmp[i-1] = 0;
-			if (!pathSepCount) break;
-			pathSepCount--;
+			if (strcmp(tmp, ".")) {
+				if (!pathSepCount) break;
+				pathSepCount--;
+			}
 		}
 	}
 	//if i==0, the parent path was relative, just return the pathName
