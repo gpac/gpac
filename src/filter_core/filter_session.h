@@ -792,7 +792,7 @@ struct __gf_filter
 
 	//overloaded caps of the filter
 	const GF_FilterCapability *forced_caps;
-	u32 nb_forced_caps;
+	u32 nb_forced_caps, nb_forced_bundles;
 	//valid when a pid inst is waiting for a reconnection, NULL otherwise
 	GF_List *detached_pid_inst;
 
@@ -1101,7 +1101,7 @@ typedef struct
 #define CAP_MATCH_LOADED_INPUT_ONLY		1
 #define CAP_MATCH_LOADED_OUTPUT_ONLY	1<<1
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore);
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, u32 nb_in_bundles, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore);
 Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps);
 Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps);
 
@@ -1172,7 +1172,7 @@ typedef struct
 typedef struct __freg_desc
 {
 	const GF_FilterRegister *freg;
-	u32 nb_edges, nb_alloc_edges;
+	u32 nb_edges, nb_alloc_edges, nb_bundles;
 	GF_FilterRegEdge *edges;
 	u32 dist;
 	struct __freg_desc *destination;
