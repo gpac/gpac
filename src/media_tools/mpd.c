@@ -5565,7 +5565,10 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	size_t seg_rad_name_len;
 
 	char tmp[100];
+	char segment_ext_override[64];
+
 	strcpy(segment_name, "");
+	strcpy(segment_ext_override, "");
 
 	if (is_index_template) is_template = GF_TRUE;
 	
@@ -5665,6 +5668,15 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			char_template += (u32) strlen(seg_rad_name + char_template)+1;
 			if (sep) sep[0] = '$';
 		}
+		else if (!strnicmp(& seg_rad_name[char_template], "$InitExt=", 9)) {
+			char *sep = strchr(seg_rad_name + char_template+9, '$');
+			if (sep) sep[0] = 0;
+			if (is_init || is_init_template) {
+				strncpy(segment_ext_override, seg_rad_name + char_template+9, sizeof(segment_ext_override));
+			}
+			char_template += (u32) strlen(seg_rad_name + char_template)+1;
+			if (sep) sep[0] = '$';
+		}
 		else if (!strnicmp(& seg_rad_name[char_template], "$Index=", 7)) {
 			char *sep = strchr(seg_rad_name + char_template+7, '$');
 			if (sep) sep[0] = 0;
@@ -5689,6 +5701,15 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			if (sep) sep[0] = 0;
 			if (!is_init && !is_init_template) {
 				strcat(segment_name, seg_rad_name + char_template+9);
+			}
+			char_template += (u32) strlen(seg_rad_name + char_template)+1;
+			if (sep) sep[0] = '$';
+		}
+		else if (!strnicmp(& seg_rad_name[char_template], "$SegExt=", 8)) {
+			char *sep = strchr(seg_rad_name + char_template+8, '$');
+			if (sep) sep[0] = 0;
+			if (!is_init && !is_init_template) {
+				strncpy(segment_ext_override, seg_rad_name + char_template+8, sizeof(segment_ext_override));
 			}
 			char_template += (u32) strlen(seg_rad_name + char_template)+1;
 			if (sep) sep[0] = '$';
@@ -5726,7 +5747,12 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			strcat(segment_name, tmp);
 		}
 	}
-	if (seg_ext) {
+
+	if (strlen(segment_ext_override) > 0) {
+		strcat(segment_name, ".");
+		strcat(segment_name, segment_ext_override);
+	}
+	else if (seg_ext) {
 		strcat(segment_name, ".");
 		strcat(segment_name, seg_ext);
 	}

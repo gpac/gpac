@@ -676,6 +676,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	s32 roll = 0;
 	Bool src_is_isom = GF_FALSE;
 	s32 dlb_mode = -2;
+	u32 tkgp_type=0;
+	s32 tkgp_id=0;
+	Bool tkgp_add = GF_TRUE;
 
 	dv_profile[0] = 0;
 	rvc_predefined = 0;
@@ -1301,6 +1304,25 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!strnicmp(ext+1, "ID=", 3)) {
 			import.target_trackID = (u32) parse_u32(ext+4, "ID");
 		}
+		else if (!strnicmp(ext+1, "tkgp=", 5)) {
+			e = GF_BAD_PARAM;
+			char *sep=strchr(ext+1, ',');
+			if (!sep) {
+				GOTO_EXIT("invalid format for tkgp")
+			}
+			sep[0] = 0;
+			tkgp_id = atoi(sep+1);
+			if (strlen(ext+6)==4) tkgp_type=GF_4CC(ext[6], ext[7], ext[8], ext[9]);
+			sep[0] = ',';
+			if (!tkgp_type) {
+				GOTO_EXIT("invalid format for tkgp")
+			}
+			e = GF_OK;
+			if (tkgp_id<0) {
+				tkgp_id = -tkgp_id;
+				tkgp_add = GF_FALSE;
+			}
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			M4_LOG(GF_LOG_ERROR, ("Unrecognized import option %s, ignoring\n", ext+1));
@@ -1650,6 +1672,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (group) {
 			e = gf_isom_set_alternate_group_id(dest, track, group);
 			GOTO_EXIT("setting alternate group")
+		}
+		if (tkgp_type) {
+			e = gf_isom_set_track_group(dest, track, tkgp_id, tkgp_type, tkgp_add);
+			GOTO_EXIT("setting trackGroup")
 		}
 
 		if (track_layout) {

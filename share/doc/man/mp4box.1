@@ -2032,6 +2032,11 @@ S set target ID
   - other value will try to set track ID to this value if no other track with same ID is present
 .br
 .TP
+.B tkgp (string)
+.br
+S assign tack group to track. Value is formatted as TYPE,N with TYPE the track group type (4CC) and N the track group ID. A negative ID removes from track group ID -N
+.br
+.TP
 .B stats,-fstat
 .br
 C print filter session stats after import
@@ -2926,7 +2931,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev135-g66b3806b1-index_jit
+build: 2.3-DEV-rev164-g85ca8526c-index_jit
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
