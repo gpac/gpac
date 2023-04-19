@@ -6470,14 +6470,14 @@ static void del_service_info(GF_List *services)
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust)
 {
 	//compute offsets
-	s64 dts_diff = gf_timestamp_rescale(min_ts_service, 1000000, tkw->src_timescale);
+	s64 dts_diff = ctx->tsalign ? gf_timestamp_rescale(min_ts_service, 1000000, tkw->src_timescale) : 0;
 
 	if (!skip_adjust) {
 		dts_diff = (s64) tkw->ts_shift - dts_diff;
 	}
 	if (ctx->is_rewind) dts_diff = -dts_diff;
 	//negative could happen due to rounding, ignore them
-	if (dts_diff<=0) return;
+	if (dts_diff<=1) return;
 
 	// dts_diff > 0, we need to delay the track
 	u64 dur = gf_timestamp_rescale(dts_diff, tkw->src_timescale, ctx->moovts);
@@ -7766,7 +7766,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvsingle), "ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample in fragmented mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chapm), "chapter storage mode\n"
 	"- off: disable chapters\n"
 	"- tk: use chapter track (QT-style)\n"
