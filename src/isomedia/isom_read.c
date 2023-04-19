@@ -4039,11 +4039,13 @@ u64 gf_isom_get_media_data_size(GF_ISOFile *movie, u32 trackNumber)
 	if (!tk) return 0;
 	stsz = tk->Media->information->sampleTable->SampleSize;
 	if (!stsz) return 0;
-	if (movie->openMode==GF_ISOM_OPEN_READ)
+	if (!movie->moov->mvex && (movie->openMode==GF_ISOM_OPEN_READ) && stsz->total_size)
 		return stsz->total_size;
 	if (stsz->sampleSize) return stsz->sampleSize*stsz->sampleCount;
 	size = 0;
 	for (i=0; i<stsz->sampleCount; i++) size += stsz->sizes[i];
+	if (!movie->moov->mvex && (movie->openMode==GF_ISOM_OPEN_READ))
+		stsz->total_size = size;
 	return size;
 }
 
