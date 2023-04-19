@@ -126,7 +126,7 @@ typedef struct
 
 typedef struct __uncvdec
 {
-	Bool force_pf;
+	Bool force_pf, no_tile;
 
 	GF_FilterPid *ipid, *opid;
 	u32 width, height, pixel_format, bpp, stride;
@@ -563,7 +563,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 				if (cfg->sampling==SAMPLING_420) return GF_PIXEL_YUV;
 			}
 			if (cfg->interleave==INTERLEAVE_MIXED) {
-				if (cfg->sampling==SAMPLING_422) return GF_PIXEL_NV12;
+				if (cfg->sampling==SAMPLING_420) return GF_PIXEL_NV12;
 			}
 		}
 		if ((c[0].type==1) && (c[0].bits==8) && (c[1].type==3) && (c[1].bits==8) && (c[2].type==2) && (c[2].bits==8)
@@ -573,7 +573,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 				if (cfg->sampling==SAMPLING_420) return GF_PIXEL_YVU;
 			}
 			if (cfg->interleave==INTERLEAVE_MIXED) {
-				if (cfg->sampling==SAMPLING_422) return GF_PIXEL_NV21;
+				if (cfg->sampling==SAMPLING_420) return GF_PIXEL_NV21;
 			}
 		}
 	}
@@ -716,6 +716,12 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 	if (!ctx->cfg) return e;
 	UNCVConfig *config = ctx->cfg;
 
+	if (ctx->no_tile) {
+		config->num_tile_cols = config->num_tile_rows = 1;
+		if (config->interleave==INTERLEAVE_TILE)
+			config->interleave = INTERLEAVE_COMPONENT;
+	}
+
 	//get our compatible configs
 	ctx->pixel_format = uncv_get_compat(ctx);
 	if (ctx->force_pf) ctx->pixel_format = 0;
@@ -726,7 +732,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 
 	//not natively supported, we need a format - we only use 8 bits in reconstruction
 	if (ctx->color_type==UNCV_OUT_YUV) {
-		ctx->pixel_format = ctx->alpha ? GF_PIXEL_YUVA444 : GF_PIXEL_YUV444;
+		ctx->pixel_format = ctx->alpha ? GF_PIXEL_YUVA444_PACK : GF_PIXEL_YUV444_PACK;
 		ctx->bpp = ctx->alpha ? 4 : 3;
 	} else if (ctx->color_type==UNCV_OUT_RGB) {
 		ctx->pixel_format = ctx->alpha ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
@@ -876,6 +882,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 			u32 row_align = config->row_align_size;
 
 			if (config->interleave==INTERLEAVE_MIXED) {
+
 				if ((comp->type==2) || (comp->type==3)) {
 					if (!first_comp_uv_idx) {
 						first_comp_uv_idx = i+1;
@@ -891,6 +898,9 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 						bits[2] = comp->bits;
 						bits[3] = comp->align_size;
 						comp->line_size = uncv_get_line_size(ctx, bits, 4);
+						if (config->sampling==SAMPLING_422) comp->line_size /= 2;
+						else if (config->sampling==SAMPLING_420) comp->line_size /= 2;
+						else if (config->sampling==SAMPLING_411) comp->line_size /= 4;
 					}
 				}
 			} else {
@@ -909,6 +919,9 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 
 			comp->plane_size = comp->line_size * ctx->tile_height;
 
+			if ((config->sampling==SAMPLING_420) && ((comp->type==2) || (comp->type==3)))
+				comp->plane_size /= 2;
+
 			if (config->interleave!=INTERLEAVE_TILE) {
 				ctx->tile_size += comp->plane_size;
 			}
@@ -917,10 +930,6 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 					comp->plane_size++;
 				}
 			}
-
-			if ((config->sampling==SAMPLING_420) && ((comp->type==2) || (comp->type==3)))
-				comp->plane_size /= 2;
-
 			if (((comp->type==2) || (comp->type==3)) && first_comp_uv_idx && (first_comp_uv_idx-1 != i) ) {
 				comps[first_comp_uv_idx-1].line_size = comp->line_size;
 				comps[first_comp_uv_idx-1].plane_size = comp->plane_size;
@@ -1102,15 +1111,22 @@ static void uncv_start_frame(UNCVDecCtx *ctx, const u8 *data, u32 size)
 			bsr->plane_size = comp->plane_size;
 			comp_row_size += comp->line_size;
 			//tile size is per comp in this mode, not for the cumulated size
-			if (config->interleave==INTERLEAVE_TILE)
+			if (config->interleave==INTERLEAVE_TILE) {
 				bsr->tile_size = bsr->plane_size;
+			} else if (config->interleave==INTERLEAVE_MIXED) {
+				if ((comp->type==2) || (comp->type==3)) i++;
+			}
 		}
 
 		for (u32 i=0; i<config->nb_comps; i++) {
+			UNCVComponentInfo *comp = &config->comps[i];
 			BSRead *bsr = &ctx->bsrs[i];
 			bsr->comp_row_size = comp_row_size;
-			if (config->interleave!=INTERLEAVE_TILE)
+			if (config->interleave!=INTERLEAVE_TILE) {
 				bsr->tile_size = ctx->tile_size;
+			} else if (config->interleave==INTERLEAVE_MIXED) {
+				if ((comp->type==2) || (comp->type==3)) i++;
+			}
 		}
 	} else {
 		BSRead *bsr = &ctx->bsrs[0];
@@ -1546,6 +1562,7 @@ static const GF_FilterCapability UNCVDecCaps[] =
 static const GF_FilterArgs UNCVDecArgs[] =
 {
 	{ OFFS(force_pf), "ignore possible mapping to GPAC pixel formats", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(no_tile), "ignore tiling info (debug)", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
