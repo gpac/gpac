@@ -6182,6 +6182,24 @@ u32 gf_isom_get_track_group(GF_ISOFile *file, u32 track_number, u32 track_group_
 }
 
 GF_EXPORT
+Bool gf_isom_enum_track_group(GF_ISOFile *file, u32 track_number, u32 *idx, u32 *track_group_type, u32 *track_group_id)
+{
+	GF_TrackGroupTypeBox *trgt;
+	GF_TrackBox *trak;
+
+	trak = gf_isom_get_track_from_file(file, track_number);
+	if (!trak || !idx) return GF_FALSE;
+	if (!trak->groups) return GF_FALSE;
+
+	trgt = gf_list_get(trak->groups->groups, *idx);
+	if (!trgt) return GF_FALSE;
+	if (track_group_type) *track_group_type = trgt->group_type;
+	if (track_group_id) *track_group_id = trgt->track_group_id;
+	*idx = *idx + 1;
+	return GF_TRUE;
+}
+
+GF_EXPORT
 const GF_MasteringDisplayColourVolumeInfo *gf_isom_get_mastering_display_colour_info(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex)
 {
 	GF_TrackBox* trak;
