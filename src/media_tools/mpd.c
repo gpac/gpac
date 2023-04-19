@@ -488,6 +488,8 @@ void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 		else if (!strcmp(att->name, "d")) seg->duration = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "s")) seg->frag_start_offset = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "dt")) seg->frag_tfdt = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "f")) seg->split_first_dur = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "l")) seg->split_last_dur = gf_mpd_parse_int(att->value);
 	}
 }
 
@@ -508,6 +510,7 @@ static GF_MPD_SegmentList *gf_mpd_parse_segment_list(GF_MPD *mpd, GF_XMLNode *ro
 		else if (strstr(att->name, "actuate")) seg->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? 1 : 0;
 
 		else if (!strcmp(att->name, "sampleDuration")) seg->sample_duration = gf_mpd_parse_int(att->value);
+		else if (!strcmp(att->name, "srcTimescale")) seg->src_timescale = gf_mpd_parse_int(att->value);
 	}
 	gf_mpd_parse_multiple_segment_base(mpd, (GF_MPD_MultipleSegmentBase *)seg, root);
 
@@ -2845,6 +2848,7 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, s32 inde
 		if (s->timescale) gf_fprintf(out, " timescale=\"%d\"", s->timescale);
 		if (s->presentation_time_offset) gf_fprintf(out, " presentationTimeOffset=\""LLU"\"", s->presentation_time_offset);
 		if (s->sample_duration) gf_fprintf(out, " sampleDuration=\"%u\"", s->sample_duration);
+		if (s->src_timescale) gf_fprintf(out, " srcTimescale=\"%u\"", s->src_timescale);
 		gf_fprintf(out, ">");
 		gf_mpd_lf(out, indent);
 	} else {
@@ -2857,8 +2861,12 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, s32 inde
 		i = 0;
 		while ( (url = gf_list_enum(s->segment_URLs, &i))) {
 			gf_mpd_nl(out, indent+1);
-			if (url->first_pck_seq || url->seg_start_time) {
+			if (s->index_mode) {
 				gf_fprintf(out, "<I t=\""LLU"\" n=\""LLU"\" d=\""LLU"\"", url->first_tfdt, url->first_pck_seq, url->duration);
+
+				if (url->split_first_dur || url->split_last_dur)
+					gf_fprintf(out, " f=\"%u\" l=\"%u\" ", url->split_first_dur, url->split_last_dur);
+
 				if (url->frag_start_offset) {
 					gf_fprintf(out, " s=\""LLU"\"", url->frag_start_offset);
 					if (url->first_tfdt && url->frag_tfdt && (url->frag_tfdt!=url->first_tfdt)) {
