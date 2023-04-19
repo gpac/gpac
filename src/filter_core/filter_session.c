@@ -377,7 +377,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	//keep copy of blacklist for JS
 	fsess->blacklist = blacklist ? gf_strdup(blacklist) : NULL;
 #else
-	fsess->blacklist = blacklist;
+	fsess->blacklist = (char*)blacklist;
 #endif
 	a_sess = (flags & GF_FS_FLAG_LOAD_META) ? fsess : NULL;
 	gf_fs_reg_all(fsess, a_sess);
