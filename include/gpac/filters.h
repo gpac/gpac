@@ -1283,6 +1283,9 @@ enum
 	//internal, force creation of rewriter filter (only used for forcing reparse of NALU-based codecs)
 	GF_PROP_PID_FORCE_UNFRAME = GF_4CC('P','F','U','F'),
 
+	GF_PROP_PCK_SPLIT_START = GF_4CC('P','S','P','S'),
+	GF_PROP_PCK_SPLIT_END = GF_4CC('P','S','P','E'),
+
 
 	/*! Internal property used for meta demuxers ( FFMPEG, ...) codec ID
 

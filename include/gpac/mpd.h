@@ -271,7 +271,8 @@ typedef struct
 	u8 is_first_part;
 
 
-	u64 first_tfdt, first_pck_seq, seg_start_time, frag_start_offset, frag_tfdt;
+	u64 first_tfdt, first_pck_seq, frag_start_offset, frag_tfdt;
+	u32 split_first_dur, split_last_dur;
 } GF_MPD_SegmentURL;
 
 /*! SegmentList*/
@@ -294,7 +295,8 @@ typedef struct
 	char *previous_xlink_href;
 	/*! GPAC internal, work in index mode*/
 	Bool index_mode;
-	u32 sample_duration;
+	Bool use_split_dur;
+	u32 sample_duration, src_timescale;
 } GF_MPD_SegmentList;
 
 /*! SegmentTemplate*/

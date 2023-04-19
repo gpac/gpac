@@ -3426,7 +3426,7 @@ static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 	if (res_ghix) {
 		*score = GF_FPROBE_SUPPORTED;
-		return "application/vnd.gpac.dash-index+xml";
+		return "application/x-gpac-ghix";
 	}
 	if (res_dash) {
 		*score = GF_FPROBE_SUPPORTED;

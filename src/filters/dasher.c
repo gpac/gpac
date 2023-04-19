@@ -230,7 +230,8 @@ typedef struct
 
 	Double nb_secs_to_discard;
 	Bool first_context_load, store_init_params;
-	Bool do_m3u8, do_mpd, do_index;
+	Bool do_m3u8, do_mpd;
+	u32 do_index;
 	Bool is_period_restore, is_empty_period;
 
 	Bool store_seg_states;
@@ -282,7 +283,7 @@ typedef struct
 	u64 index_media_duration;
 	GF_Fraction64 min_cts_period;
 
-	Bool from_index;
+	u32 from_index;
 	u32 def_template;
 } GF_DasherCtx;
 
@@ -983,8 +984,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 				if (!strcmp(segext, "m3u8")) {
 					gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("video/mpegurl"));
+				} else if (!strcmp(segext, "ghi")) {
+					gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-gpac-ghi"));
 				} else if (!strcmp(segext, "ghix")) {
-					gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("application/vnd.gpac.dash-index+xml"));
+					gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("application/x-gpac-ghix"));
 				} else {
 					gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("application/dash+xml"));
 				}
@@ -993,8 +996,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			if (!strcmp(segext, "m3u8")) {
 				ctx->do_m3u8 = GF_TRUE;
 				gf_filter_pid_set_name(opid, "manifest_m3u8" );
-			} else if (!strcmp(segext, "ghix")) {
-				ctx->do_index = GF_TRUE;
+			} else if (!strcmp(segext, "ghix") || !strcmp(segext, "ghi")) {
+				ctx->do_index = !strcmp(segext, "ghix") ? 2 : 1;
 				ctx->sigfrag = GF_FALSE;
 				ctx->align = ctx->sap = GF_TRUE;
 				ctx->sseg = ctx->sfile = ctx->tpl = GF_FALSE;
@@ -2367,91 +2370,96 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ID);
 		ds->rep->trackID = p ? p->value.uint : 0;
 
-		if (!ds->rep->x_children) ds->rep->x_children = gf_list_new();
-		u32 idx=0;
-		char *obuf=NULL;
-		u32 obuf_alloc = 0;
-		while (1) {
-			u32 p4cc;
-			const char *pname;
-			p = gf_filter_pid_enum_properties(ds->ipid, &idx, &p4cc, &pname);
-			if (!p) break;
-			switch (p4cc) {
-			case GF_PROP_PID_ID:
-			case GF_PROP_PID_URL:
-			case GF_PROP_PID_FILEPATH:
-			case GF_PROP_PID_FILE_EXT:
-			case GF_PROP_PID_FILE_CACHED:
-			case GF_PROP_PID_DOWN_SIZE:
-			case GF_PROP_PID_DOWNLOAD_SESSION:
-			case GF_PROP_PID_TRACK_NUM:
-			case GF_PROP_PID_MEDIA_DATA_SIZE:
-			case GF_PROP_PID_MAX_FRAME_SIZE:
-			case GF_PROP_PID_AVG_FRAME_SIZE:
-			case GF_PROP_PID_MAX_TS_DELTA:
-			case GF_PROP_PID_CONSTANT_DURATION:
-			case GF_PROP_PID_PLAYBACK_MODE:
-				continue;
-			default:
-				break;
-			}
-			if (p->type == GF_PROP_POINTER) continue;
+		if (ctx->do_index==2) {
+			if (!ds->rep->x_children) ds->rep->x_children = gf_list_new();
+			u32 idx=0;
+			char *obuf=NULL;
+			u32 obuf_alloc = 0;
+			while (1) {
+				u32 p4cc;
+				const char *pname;
+				p = gf_filter_pid_enum_properties(ds->ipid, &idx, &p4cc, &pname);
+				if (!p) break;
+				switch (p4cc) {
+				case GF_PROP_PID_ID:
+				case GF_PROP_PID_URL:
+				case GF_PROP_PID_FILEPATH:
+				case GF_PROP_PID_FILE_EXT:
+				case GF_PROP_PID_FILE_CACHED:
+				case GF_PROP_PID_DOWN_SIZE:
+				case GF_PROP_PID_DOWNLOAD_SESSION:
+				case GF_PROP_PID_TRACK_NUM:
+				case GF_PROP_PID_MEDIA_DATA_SIZE:
+				case GF_PROP_PID_MAX_FRAME_SIZE:
+				case GF_PROP_PID_AVG_FRAME_SIZE:
+				case GF_PROP_PID_MAX_TS_DELTA:
+				case GF_PROP_PID_CONSTANT_DURATION:
+				case GF_PROP_PID_PLAYBACK_MODE:
+				case GF_PROP_PID_CHAP_TIMES:
+				case GF_PROP_PID_CHAP_NAMES:
+				case GF_PROP_PID_ISOM_UDTA:
+					continue;
+				default:
+					break;
+				}
+				if (p->type == GF_PROP_POINTER) continue;
 
-			GF_XMLNode *prop = gf_xml_dom_node_new(NULL, "prop");
-			prop->attributes = gf_list_new();
-			gf_list_add(ds->rep->x_children,  prop);
-			prop->orig_pos = -1;
-			GF_XMLAttribute *att;
-			if (p4cc) {
-				att = gf_xml_dom_create_attribute("type", gf_props_4cc_get_name(p4cc));
-				gf_list_add(prop->attributes, att);
-			} else {
-				att = gf_xml_dom_create_attribute("name", pname);
-				gf_list_add(prop->attributes, att);
-				att = gf_xml_dom_create_attribute("ptype", gf_props_get_type_name(p->type));
-				gf_list_add(prop->attributes, att);
-			}
-			char szDump[GF_PROP_DUMP_ARG_SIZE];
-			u32 res, obuf_size, j;
-			char *cdata=NULL;
+				GF_XMLNode *prop = gf_xml_dom_node_new(NULL, "prop");
+				prop->attributes = gf_list_new();
+				gf_list_add(ds->rep->x_children,  prop);
+				prop->orig_pos = -1;
+				GF_XMLAttribute *att;
+				if (p4cc) {
+					att = gf_xml_dom_create_attribute("type", gf_props_4cc_get_name(p4cc));
+					gf_list_add(prop->attributes, att);
+				} else {
+					att = gf_xml_dom_create_attribute("name", pname);
+					gf_list_add(prop->attributes, att);
+					att = gf_xml_dom_create_attribute("ptype", gf_props_get_type_name(p->type));
+					gf_list_add(prop->attributes, att);
+				}
+				char szDump[GF_PROP_DUMP_ARG_SIZE];
+				u32 res, obuf_size, j;
+				char *cdata=NULL;
 
-			switch (p->type) {
-			case GF_PROP_DATA:
-			case GF_PROP_DATA_NO_COPY:
-			case GF_PROP_CONST_DATA:
-				obuf_size = p->value.data.size*3;
-				if (obuf_size>obuf_alloc) {
-					obuf = gf_realloc(obuf, sizeof(char)*obuf_size);
-					obuf_alloc = obuf_size;
+				switch (p->type) {
+				case GF_PROP_DATA:
+				case GF_PROP_DATA_NO_COPY:
+				case GF_PROP_CONST_DATA:
+					obuf_size = p->value.data.size*3;
+					if (obuf_size>obuf_alloc) {
+						obuf = gf_realloc(obuf, sizeof(char)*obuf_size);
+						obuf_alloc = obuf_size;
+					}
+					res = gf_base64_encode(p->value.data.ptr, p->value.data.size, obuf, obuf_size);
+					obuf[res] = 0;
+					att = gf_xml_dom_create_attribute("value", obuf);
+					gf_list_add(prop->attributes, att);
+					break;
+				case GF_PROP_STRING_LIST:
+					for (j=0; j<p->value.string_list.nb_items; j++) {
+						gf_dynstrcat( &cdata, p->value.string_list.vals[j], ",");
+					}
+					j = (u32) (strlen(cdata)+1);
+					obuf_size = j*3;
+					if (obuf_size>obuf_alloc) {
+						obuf = gf_realloc(obuf, sizeof(char)*obuf_size);
+						obuf_alloc = obuf_size;
+					}
+					res = gf_base64_encode(cdata, j, obuf, obuf_size);
+					obuf[res] = 0;
+					att = gf_xml_dom_create_attribute("value", obuf);
+					gf_list_add(prop->attributes, att);
+					gf_free(cdata);
+					break;
+				default:
+					att = gf_xml_dom_create_attribute("value", gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_NO_REDUCE));
+					gf_list_add(prop->attributes, att);
+					break;
 				}
-				res = gf_base64_encode(p->value.data.ptr, p->value.data.size, obuf, obuf_size);
-				obuf[res] = 0;
-				att = gf_xml_dom_create_attribute("value", obuf);
-				gf_list_add(prop->attributes, att);
-				break;
-			case GF_PROP_STRING_LIST:
-				for (j=0; j<p->value.string_list.nb_items; j++) {
-					gf_dynstrcat( &cdata, p->value.string_list.vals[j], ",");
-				}
-				j = (u32) (strlen(cdata)+1);
-				obuf_size = j*3;
-				if (obuf_size>obuf_alloc) {
-					obuf = gf_realloc(obuf, sizeof(char)*obuf_size);
-					obuf_alloc = obuf_size;
-				}
-				res = gf_base64_encode(cdata, j, obuf, obuf_size);
-				obuf[res] = 0;
-				att = gf_xml_dom_create_attribute("value", obuf);
-				gf_list_add(prop->attributes, att);
-				gf_free(cdata);
-				break;
-			default:
-				att = gf_xml_dom_create_attribute("value", gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_NO_REDUCE));
-				gf_list_add(prop->attributes, att);
-				break;
 			}
+			if (obuf) gf_free(obuf);
 		}
-		if (obuf) gf_free(obuf);
 	}
 }
 
@@ -4669,13 +4677,275 @@ err_exit:
 		ctx->in_error = GF_TRUE;
 }
 
+static GF_Err dasher_write_index(GF_DasherCtx *ctx, GF_FilterPid *opid)
+{
+	u8 *data;
+	u32 i, pos, count = gf_list_count(ctx->pids);
+	u32 nb_rep_pos, nb_reps=0;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	gf_bs_write_u32(bs, GF_4CC('G','H','I','D'));
+	gf_bs_write_u32(bs, 0); //for future ext ?
+	gf_bs_write_u32 (bs, ctx->mpd->segment_duration);
+	gf_bs_write_u32 (bs, ctx->mpd->max_segment_duration);
+	gf_bs_write_u64 (bs, ctx->mpd->media_presentation_duration);
+	gf_bs_write_u64(bs, ctx->current_period->period->duration);
+	gf_bs_write_utf8(bs, ctx->mpd->segment_template);
+
+	nb_rep_pos = gf_bs_get_position(bs);
+	gf_bs_write_u32(bs, 0);
+
+	for (i=0; i<count; i++) {
+		u8 flags=0;
+		u32 j, nb_segs, rep_start;
+		u32 props_start;
+		GF_MPD_SegmentURL *s;
+		GF_DashStream *ds = gf_list_get(ctx->pids, i);
+		if (!ds || !ds->rep || !ds->rep->res_url || !ds->rep->segment_list) continue;
+
+		nb_reps++;
+		rep_start = gf_bs_get_position(bs);
+		gf_bs_write_u32(bs, 0);
+
+		gf_bs_write_utf8(bs, ds->rep->id);
+		gf_bs_write_utf8(bs, ds->rep->res_url);
+		gf_bs_write_u32(bs, ds->rep->trackID);
+		s = gf_list_get(ds->rep->segment_list->segment_URLs, 0);
+		gf_bs_write_u32(bs, s ? s->frag_start_offset : 0);
+		gf_bs_write_u32(bs, ds->timescale);
+		gf_bs_write_u32(bs, ds->rep->segment_list->timescale);
+		gf_bs_write_u32(bs, ds->rep->segment_list->sample_duration);
+		gf_bs_write_u32(bs, gf_list_count(ds->rep->segment_list->segment_URLs) );
+
+		GF_MPD_SegmentURL *surl = gf_list_last(ds->rep->segment_list->segment_URLs);
+		gf_bs_write_u8(bs, ds->set ? ds->set->starts_with_sap : ds->rep->starts_with_sap);
+		if (surl->first_tfdt>0xFFFFFFFFUL) {
+			flags |= 1;
+		}
+		if (surl->first_pck_seq>0xFFFFFFFFUL) {
+			flags |= 1<<1;
+		}
+		if (ds->frag_first_ftdt || ds->frag_start_offset) {
+			flags |= 1<<2;
+			if (surl->frag_start_offset > 0xFFFFFFFFUL) {
+				flags |= 1<<3;
+			}
+			if (surl->frag_tfdt > 0xFFFFFFFFUL) {
+				flags |= 1<<4;
+			}
+		}
+		if (ds->rep->segment_list->use_split_dur) {
+			flags |= 1<<5;
+		}
+		gf_bs_write_u8(bs, flags);
+		gf_bs_write_u16(bs, 0);
+		//serialize all props
+		props_start = gf_bs_get_position(bs);
+		gf_bs_write_u32(bs, 0);
+
+		u32 idx=0;
+		while (1) {
+			u32 k;
+			u32 p4cc;
+			const char *pname;
+			const GF_PropertyValue *p = gf_filter_pid_enum_properties(ds->ipid, &idx, &p4cc, &pname);
+			if (!p) break;
+			switch (p4cc) {
+			case GF_PROP_PID_ID:
+			case GF_PROP_PID_URL:
+			case GF_PROP_PID_FILEPATH:
+			case GF_PROP_PID_FILE_EXT:
+			case GF_PROP_PID_FILE_CACHED:
+			case GF_PROP_PID_DOWN_SIZE:
+			case GF_PROP_PID_DOWNLOAD_SESSION:
+			case GF_PROP_PID_TRACK_NUM:
+			case GF_PROP_PID_MEDIA_DATA_SIZE:
+			case GF_PROP_PID_MAX_FRAME_SIZE:
+			case GF_PROP_PID_AVG_FRAME_SIZE:
+			case GF_PROP_PID_MAX_TS_DELTA:
+			case GF_PROP_PID_CONSTANT_DURATION:
+			case GF_PROP_PID_PLAYBACK_MODE:
+			case GF_PROP_PID_CHAP_TIMES:
+			case GF_PROP_PID_CHAP_NAMES:
+				continue;
+			default:
+				break;
+			}
+			if (p->type == GF_PROP_POINTER) continue;
+
+			if (p4cc) gf_bs_write_u32(bs, p4cc);
+			else {
+				gf_bs_write_u32(bs, 0);
+				gf_bs_write_utf8(bs, pname);
+				gf_bs_write_u32(bs, p->type);
+			}
+
+			switch (p->type) {
+			case GF_PROP_SINT:
+			case GF_PROP_UINT:
+			case GF_PROP_4CC:
+				gf_bs_write_u32(bs, p->value.uint);
+				break;
+			case GF_PROP_LSINT:
+			case GF_PROP_LUINT:
+				gf_bs_write_u64(bs, p->value.longuint);
+				break;
+			case GF_PROP_BOOL:
+				gf_bs_write_u8(bs, p->value.boolean ? 1 : 0);
+				break;
+			case GF_PROP_FRACTION:
+				gf_bs_write_u32(bs, p->value.frac.num);
+				gf_bs_write_u32(bs, p->value.frac.den);
+				break;
+			case GF_PROP_FRACTION64:
+				gf_bs_write_u64(bs, p->value.lfrac.num);
+				gf_bs_write_u64(bs, p->value.lfrac.den);
+				break;
+			case GF_PROP_FLOAT:
+				gf_bs_write_float(bs, FIX2FLT(p->value.fnumber) );
+				break;
+			case GF_PROP_DOUBLE:
+				gf_bs_write_double(bs, p->value.number);
+				break;
+			case GF_PROP_VEC2I:
+				gf_bs_write_u32(bs, p->value.vec2i.x);
+				gf_bs_write_u32(bs, p->value.vec2i.y);
+				break;
+			case GF_PROP_VEC2:
+				gf_bs_write_double(bs, p->value.vec2.x);
+				gf_bs_write_double(bs, p->value.vec2.y);
+				break;
+			case GF_PROP_VEC3I:
+				gf_bs_write_u32(bs, p->value.vec3i.x);
+				gf_bs_write_u32(bs, p->value.vec3i.y);
+				gf_bs_write_u32(bs, p->value.vec3i.z);
+				break;
+			case GF_PROP_VEC4I:
+				gf_bs_write_u32(bs, p->value.vec4i.x);
+				gf_bs_write_u32(bs, p->value.vec4i.y);
+				gf_bs_write_u32(bs, p->value.vec4i.z);
+				gf_bs_write_u32(bs, p->value.vec4i.w);
+				break;
+			case GF_PROP_STRING:
+			case GF_PROP_STRING_NO_COPY:
+			case GF_PROP_NAME:
+				if (p4cc == GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT) {
+					u32 len = (u32) strlen(p->value.string)+1;
+					gf_bs_write_u32(bs, len);
+					gf_bs_write_data(bs, p->value.string, len);
+				} else {
+					gf_bs_write_utf8(bs, p->value.string);
+				}
+				break;
+
+			case GF_PROP_DATA:
+			case GF_PROP_DATA_NO_COPY:
+			case GF_PROP_CONST_DATA:
+				gf_bs_write_u32(bs, p->value.data.size);
+				gf_bs_write_data(bs, p->value.data.ptr, p->value.data.size);
+				break;
+
+			//string list: memory is ALWAYS duplicated
+			case GF_PROP_STRING_LIST:
+				gf_bs_write_u32(bs, p->value.string_list.nb_items);
+				for (k=0; k<p->value.string_list.nb_items; k++) {
+					const char *str = p->value.string_list.vals[k];
+					gf_bs_write_utf8(bs, str);
+				}
+				break;
+
+			case GF_PROP_UINT_LIST:
+			case GF_PROP_SINT_LIST:
+			case GF_PROP_4CC_LIST:
+				gf_bs_write_u32(bs, p->value.uint_list.nb_items);
+				for (k=0; k<p->value.uint_list.nb_items; k++) {
+					gf_bs_write_u32(bs, p->value.uint_list.vals[k]);
+				}
+				break;
+			case GF_PROP_VEC2I_LIST:
+				gf_bs_write_u32(bs, p->value.v2i_list.nb_items);
+				for (k=0; k<p->value.uint_list.nb_items; k++) {
+					gf_bs_write_u32(bs, p->value.v2i_list.vals[k].x );
+					gf_bs_write_u32(bs, p->value.v2i_list.vals[k].y );
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		//last prop
+		gf_bs_write_u32(bs, 0xFFFFFFFF);
+
+		pos = (u32) gf_bs_get_position(bs);
+		u32 psize = pos - props_start;
+		gf_bs_seek(bs, props_start);
+		gf_bs_write_u32(bs, psize);
+		gf_bs_seek(bs, pos);
+
+		//serialize all segments
+		nb_segs = gf_list_count(ds->rep->segment_list->segment_URLs);
+		for (j=0; j<nb_segs; j++) {
+			s = gf_list_get(ds->rep->segment_list->segment_URLs, j);
+
+			if (flags & 1) gf_bs_write_u64(bs, s->first_tfdt);
+			else gf_bs_write_u32(bs, (u32) s->first_tfdt);
+
+			if (flags & (1<<1)) gf_bs_write_u64(bs, s->first_pck_seq);
+			else gf_bs_write_u32(bs, (u32) s->first_pck_seq);
+
+			gf_bs_write_u32(bs, (u32) s->duration);
+
+			if (flags & (1<<2)) {
+				if (flags & (1<<3)) gf_bs_write_u64(bs, s->frag_start_offset);
+				else gf_bs_write_u32(bs, (u32) s->frag_start_offset);
+
+				if (flags & (1<<4)) gf_bs_write_u64(bs, s->frag_tfdt);
+				else gf_bs_write_u32(bs, (u32) s->frag_tfdt);
+			}
+			if (flags & (1<<5)) {
+				gf_bs_write_u32(bs, s->split_first_dur);
+				gf_bs_write_u32(bs, s->split_last_dur);
+			}
+		}
+
+		pos = (u32) gf_bs_get_position(bs);
+		psize = pos - rep_start;
+		gf_bs_seek(bs, rep_start);
+		gf_bs_write_u32(bs, psize);
+		gf_bs_seek(bs, pos);
+	}
+
+	pos = (u32) gf_bs_get_position(bs);
+	gf_bs_seek(bs, nb_rep_pos);
+	gf_bs_write_u32(bs, nb_reps);
+	gf_bs_seek(bs, pos);
+
+	GF_FilterPacket *dst = gf_filter_pck_new_alloc(opid, 1, &data);
+	gf_free(data);
+	u32 osize;
+	gf_bs_get_content(bs, &data, &osize);
+	gf_filter_pck_check_realloc(dst, data, osize);
+	gf_filter_pck_set_framing(dst, GF_TRUE, GF_TRUE);
+	gf_filter_pck_send(dst);
+	gf_bs_del(bs);
+	ctx->mpd->segment_template = NULL;
+	return GF_OK;
+}
+
+
 static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_dur, Bool do_m3u8, Bool m3u8_second_pass, GF_FilterPid *opid, char *alt_name)
 {
 	void *last_signature;
 	u8 sig[GF_SHA1_DIGEST_SIZE];
 	GF_Err e;
-	FILE *tmp = gf_file_temp(NULL);
+	FILE *tmp;
+
 	ctx->mpd->segment_template = ctx->template;
+	if (ctx->do_index==1) {
+		return dasher_write_index(ctx, opid);
+	}
+
+	tmp = gf_file_temp(NULL);
 	if (do_m3u8) {
 		ctx->mpd->m3u8_time = ctx->hlsc;
 		ctx->mpd->nb_hls_ext_master = ctx->hlsx.nb_items;
@@ -7540,10 +7810,10 @@ send_packet:
 			} else {
 				seg_url->first_tfdt = in_pck ? gf_filter_pck_get_dts(in_pck) : 0;
 				seg_url->first_pck_seq = in_pck ? ds->nb_pck : 0;
-				seg_url->seg_start_time = ds->seg_start_time;
 				seg_url->frag_start_offset = ds->frag_start_offset;
 				seg_url->frag_tfdt = ds->frag_first_ftdt;
 				ds->rep->segment_list->index_mode = GF_TRUE;
+				ds->rep->segment_list->src_timescale = ds->timescale;
 				//set constant duration to first packet duration (as used by mp4mx to compute defaults)
 				//this will avoid generating trex with different default duration if working with or without sample
 				if (!ds->rep->segment_list->sample_duration)
@@ -7843,7 +8113,7 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		ds->split_dur_next = 0;
 	}
 
-	if (ds->opid) {
+	if (ds->opid && (ctx->from_index!=1)) {
 
 		if (ds->codec_id == GF_CODECID_SUBS_XML) {
 			//write empty TTML doc
@@ -7876,6 +8146,11 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 	ds->segment_started = GF_TRUE;
 	if (pck)
 		gf_filter_pck_send(pck);
+
+	if (ctx->do_index) {
+		GF_MPD_SegmentURL *s = gf_list_last(ds->rep->segment_list->segment_URLs);
+		s->first_tfdt = ds->first_cts_in_seg;
+	}
 
 	ds->first_cts_in_next_seg = ds->first_cts_in_seg + gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
 	ds->est_first_cts_in_next_seg = ds->first_cts_in_next_seg;
@@ -8414,11 +8689,34 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//inband-cue based segmentation
 			else if (ds->inband_cues) {
 				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CUE_START);
-				if (p && p->value.boolean && base_ds->segment_started) {
-					seg_over = GF_TRUE;
-					if (ds == base_ds) {
-						base_ds->adjusted_next_seg_start = cts;
+				if (p && p->value.boolean) {
+					u32 size;
+					gf_filter_pck_get_data(pck, &size);
+					if (base_ds->segment_started) {
+						seg_over = GF_TRUE;
+						if (ds == base_ds) {
+							base_ds->adjusted_next_seg_start = cts;
+						}
+					} else if (!size) {
+						ds->first_cts_in_seg = gf_filter_pck_get_cts(pck);
+						dasher_send_empty_segment(ctx, ds);
+						dasher_drop_input(ctx, ds, GF_TRUE);
+						continue;
 					}
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SPLIT_START);
+					if (p) {
+						cts += p->value.uint;
+						assert(dur > p->value.uint);
+						dur -= p->value.uint;
+						split_dur_next = p->value.uint;
+						ds->split_dur_next = 0;
+						is_packet_split = GF_TRUE;
+					}
+				}
+				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SPLIT_END);
+				if (p) {
+					assert(dur > p->value.uint);
+					dur -= p->value.uint;
 				}
 			}
 			//cue-list based segmentation
@@ -8702,6 +9000,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 
 				ds->seg_done = GF_TRUE;
+				if (split_dur_next && ctx->do_index) {
+					GF_MPD_SegmentURL *s = gf_list_last(ds->rep->segment_list->segment_URLs);
+					s->split_last_dur = dur;
+					assert(gf_filter_pck_get_duration(pck) > dur);
+					ds->rep->segment_list->use_split_dur = GF_TRUE;
+				}
 
 				dasher_inject_eods(ctx, ds);
 
@@ -8737,7 +9041,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->last_dts = dts;
 				ds->est_next_dts = dts + o_dur;
 			}
-			ds->nb_pck ++;
+
+			if (!is_packet_split)
+				ds->nb_pck ++;
 
 			if (!ds->min_cts_in_seg_plus_one)
 				ds->min_cts_in_seg_plus_one = cts+1;
@@ -8811,13 +9117,18 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->first_cts_in_seg = cts;
 				dasher_mark_segment_start(ctx, ds, dst, pck);
 				ds->segment_started = GF_TRUE;
+				if (split_dur_next && ctx->do_index) {
+					GF_MPD_SegmentURL *s = gf_list_last(ds->rep->segment_list->segment_URLs);
+					s->split_first_dur = split_dur_next;
+					assert(gf_filter_pck_get_duration(pck) > split_dur_next);
+					ds->rep->segment_list->use_split_dur = GF_TRUE;
+				}
 			}
 			//prev packet was split
 			if (is_packet_split) {
 				u64 diff=0;
 				u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 				u64 ts = gf_filter_pck_get_cts(pck);
-				ds->nb_pck--;
 				if (ts != GF_FILTER_NO_TS) {
 					cts += ds->first_cts;
 					assert(cts >= ts);
@@ -8892,7 +9203,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->rep->first_tfdt_timescale = ds->timescale;
 			}
 			//send packet
-			if (dst) gf_filter_pck_send(dst);
+			if (dst)
+				gf_filter_pck_send(dst);
 
 			if (ctx->update_report>=0)
 				ctx->update_report++;
@@ -9620,8 +9932,8 @@ static void dasher_finalize(GF_Filter *filter)
 #endif
 }
 
-#define MPD_EXTS "mpd|m3u8|3gm|ism|ghix"
-#define MPD_MIMES "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml|application/vnd.gpac.dash-index+xml"
+#define MPD_EXTS "mpd|m3u8|3gm|ism|ghix|ghi"
+#define MPD_MIMES "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml|application/x-gpac-ghi|application/x-gpac-ghix"
 
 static const GF_FilterCapability DasherCaps[] =
 {
