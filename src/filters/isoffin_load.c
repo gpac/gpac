@@ -566,7 +566,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (use_iod)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_ESID, &PROP_UINT(esid));
 
-		if (gf_isom_is_track_in_root_od(read->mov, track)) {
+		if (gf_isom_is_track_in_root_od(read->mov, track) && !read->lightp) {
 			switch (streamtype) {
 			case GF_STREAM_SCENE:
 			case GF_STREAM_OD:
@@ -616,34 +616,40 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		ch->streamType = streamtype;
 //		ch->clock_id = ocr_es_id;
 
-		if (has_scalable_layers)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
+		if (!read->lightp) {
+			if (has_scalable_layers)
+				gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
 
-		if (gf_isom_get_reference_count(read->mov, track, GF_ISOM_REF_SABT)>0) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
-		}
-		else if (gf_isom_get_reference_count(read->mov, track, GF_ISOM_REF_SUBPIC)>0) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
-		}
+			if (gf_isom_get_reference_count(read->mov, track, GF_ISOM_REF_SABT)>0) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
+			}
+			else if (gf_isom_get_reference_count(read->mov, track, GF_ISOM_REF_SUBPIC)>0) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
+			}
 
-		if (srd_w && srd_h) {
-			gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
-			if (base_tile_track) {
-				gf_isom_get_visual_info(read->mov, base_tile_track, stsd_idx, &w, &h);
-				if (w && h) {
-					gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(w, h) );
+			if (srd_w && srd_h) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
+				if (base_tile_track) {
+					gf_isom_get_visual_info(read->mov, base_tile_track, stsd_idx, &w, &h);
+					if (w && h) {
+						gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(w, h) );
+					}
 				}
 			}
+
+
+			if (codec_id !=GF_CODECID_LHVC)
+				isor_export_ref(read, ch, GF_ISOM_REF_SCAL, "isom:scal");
+			isor_export_ref(read, ch, GF_ISOM_REF_SABT, "isom:sabt");
+			isor_export_ref(read, ch, GF_ISOM_REF_TBAS, "isom:tbas");
+			isor_export_ref(read, ch, GF_ISOM_REF_SUBPIC, "isom:subp");
 		}
 
-
-		if (codec_id !=GF_CODECID_LHVC)
-			isor_export_ref(read, ch, GF_ISOM_REF_SCAL, "isom:scal");
-		isor_export_ref(read, ch, GF_ISOM_REF_SABT, "isom:sabt");
-		isor_export_ref(read, ch, GF_ISOM_REF_TBAS, "isom:tbas");
-		isor_export_ref(read, ch, GF_ISOM_REF_SUBPIC, "isom:subp");
-
-		ch->duration = gf_isom_get_track_duration(read->mov, ch->track);
+		if (read->lightp) {
+			ch->duration = gf_isom_get_track_duration_orig(read->mov, ch->track);
+		} else {
+			ch->duration = gf_isom_get_track_duration(read->mov, ch->track);
+		}
 		if (!ch->duration) {
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
@@ -666,8 +672,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (!ch->has_edit_list && !use_sidx_dur && !ch->ts_offset) {
 				//no specific edit list type but edit present, use the duration in the edit
 				if (gf_isom_get_edits_count(read->mov, ch->track)) {
-					u64 dur = gf_isom_get_track_duration(read->mov, ch->track);
-					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, read->timescale));
+					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->timescale));
 				} else {
 					u64 dur = gf_isom_get_media_duration(read->mov, ch->track);
 					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->timescale));
@@ -717,6 +722,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(GF_FALSE) );
 		}
 
+		if (read->lightp) goto props_done;
 
 		w = gf_isom_get_constant_sample_size(read->mov, track);
 		if (w)
@@ -976,6 +982,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				}
 			}
 		}
+
+props_done:
 
 		if (read->sigfrag) {
 			u64 start, end;
