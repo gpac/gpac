@@ -8991,11 +8991,22 @@ Description: GHI demultiplexer
 .br
 
 .br
-This filter handles pre-indexed content for HAS manifest, init segment and segments just-in-time processing
+This filter handles pre-indexed content for just-in-time processing of HAS manifest, init segment and segments
 .br
 
 .br
-Indexes must be constructed using the dasher filter and a given segment duration:
+.SH Generating indexes
+.LP
+.br
+Indexes are constructed using the dasher filter and a given segment duration.
+.br
+Example
+.br
+gpac -i SRC [... -i SRCn] -o index.ghi:segdur=2
+.br
+
+.br
+This constructs a binary index for the DASH session.
 .br
 Example
 .br
@@ -9003,13 +9014,22 @@ gpac -i SRC -o index.ghix:segdur=2
 .br
 
 .br
+This constructs an XML index for the DASH session.
+.br
 
+.br
+Warning: XML indexes should only be used for debug purposes as they can take a significant amount of time to be parsed.
+.br
+
+.br
+.SH Using indexes
+.LP
 .br
 To generate manifest(s) and init segment(s) from the index, use:
 .br
 Example
 .br
-gpac -i index.ghix:genman -o dash/vod.mpd
+gpac -i index.ghi:genman -o dash/vod.mpd
 .br
 
 .br
@@ -9019,29 +9039,34 @@ To generate the 10th segment of representation with ID FOO, use:
 .br
 Example
 .br
-gpac -i index.ghix:rep=FOO:sn=10 -o dash/vod.mpd
+gpac -i index.ghi:rep=FOO:sn=10 -o dash/vod.mpd
 .br
 
 .br
-Note that the manifest file(s) and init segment(s) are not written when generating a segment.
-.br
-The manifest target (mpd or m3u8) is only used to setup the filter chain and target output path.
+Note: The manifest file(s) and init segment(s) are not written when generating a segment. The manifest target (mpd or m3u8) is only used to setup the filter chain and target output path.
 .br
 
 .br
-The filter ouputs are PIDs using framed packets amrked with segment boundaries and can be chained to other filters before entering the dasher (e.g. for encryption, transcode...).
+The filter outputs are PIDs using framed packets marked with segment boundaries and can be chained to other filters before entering the dasher (e.g. for encryption, transcode...).
 .br
 
 .br
-Muxed Representations
+If representation IDs are not assigned during index creation, they default to the 1-based index of the source. You can check them using:
 .br
-The filter can be used to generate muxed representations, either at manifest generation time or when geenrating a segment.
+EX: gpac -i src.ghi:genman inspect:full
+.br
+
+.br
+.SH Muxed Representations
+.LP
+.br
+The filter can be used to generate muxed representations, either at manifest generation time or when generating a segment.
 .br
 To generate a manifest muxing representations A with representations V1 and V2 use:
 .br
 Example
 .br
-gpac -i index.ghix:genman:mux=A-V1-V2 -o dash/vod.mpd
+gpac -i index.ghi:genman:mux=A-V1-V2 -o dash/vod.mpd
 .br
 
 .br
@@ -9051,7 +9076,7 @@ To generate a manifest muxing representations A and T with representations V1 an
 .br
 Example
 .br
-gpac -i index.ghix:genman:mux=A-V1-V2,T-V1-V2 -o dash/vod.mpd
+gpac -i index.ghi:genman:mux=A-V1-V2,T-V1-V2 -o dash/vod.mpd
 .br
 
 .br
@@ -9061,7 +9086,7 @@ To generate the 5th segment containing representations A and V2 use:
 .br
 Example
 .br
-gpac -i index.ghix:rep=V2:sn=5:mux=A-V2 -o dash/vod.mpd
+gpac -i index.ghi:rep=V2:sn=5:mux=A-V2 -o dash/vod.mpd
 .br
 
 .br
@@ -9072,6 +9097,17 @@ The filter does not store any state, it is the user respansability to use consis
 - do not change segment templates
 .br
 - do not change muxed representations to configurations not advertised in the generated manifests
+.br
+
+.br
+.SH Recommandations
+.LP
+.br
+Indexing currently supports as sources fragmented and non-fragmented MP4 inputs.
+.br
+It is recommended to use fragmented MP4 as input format since this greatly reduces file loading times.
+.br
+If non-fragmented MP4 are used, it is recommended to use single-track files to decrease the movie box size and speedup parsing.
 .br
 
 .br
@@ -11433,7 +11469,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev164-g85ca8526c-index_jit
+build: 2.3-DEV-rev179-ged4c942f8-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

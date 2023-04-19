@@ -1961,7 +1961,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				92C3486429E5B31700C63E8A /* dmx_ghi.c */,
 				920F4C9E299FB3CC00EC9D21 /* avin_web.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
@@ -1991,6 +1990,7 @@
 				92BA0AD9243B6E2B006FC74E /* dektec_video_decl.c */,
 				922CF1261FCF169900F2F6A4 /* dmx_avi.c */,
 				92BB9A661F9C827600524E5B /* dmx_dash.c */,
+				92C3486429E5B31700C63E8A /* dmx_ghi.c */,
 				9203644A20ECF67C0087883E /* dmx_gsf.c */,
 				926656C51F7D45F700299CC6 /* dmx_ogg.c */,
 				926656C71F7E92C200299CC6 /* dmx_m2ts.c */,
