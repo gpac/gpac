@@ -1972,7 +1972,7 @@ fi
 
 
 if test "$disable_player" = "yes" ; then
-disable_compositor= $disable_player;
+disable_compositor=$disable_player;
 fi
 
 if test "$disable_compositor" = "yes" ; then
