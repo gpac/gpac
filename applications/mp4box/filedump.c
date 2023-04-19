@@ -3697,6 +3697,16 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 
 	fprintf(stderr, "Media Samples: %d\n", gf_isom_get_sample_count(file, trackNum));
 
+	u32 idx=0;
+	while (1) {
+		u32 track_group_type, track_group_id;
+		if (!gf_isom_enum_track_group(file, trackNum, &idx, &track_group_type, &track_group_id)) break;
+		if (idx==1) fprintf(stderr, "Track Groups:");
+		fprintf(stderr, " %s (ID=%d)", gf_4cc_to_str(track_group_type), track_group_id);
+	}
+	if (idx) fprintf(stderr, "\n");
+
+
 	count = gf_isom_get_track_kind_count(file, trackNum);
 	for (i = 0; i < count; i++) {
 		char *kind_scheme, *kind_value;

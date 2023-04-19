@@ -804,6 +804,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_by_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_enabled) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_flags) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_track_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_encrypted) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_type) )

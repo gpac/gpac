@@ -1626,6 +1626,16 @@ u64 gf_isom_get_track_magic(GF_ISOFile *isom_file, u32 trackNumber);
 */
 u32 gf_isom_get_track_group(GF_ISOFile *isom_file, u32 trackNumber, u32 track_group_type);
 
+/*! gets track group ID of a given track group type for this track
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param idx 0-based index of enumeration, incremented by the function if success
+\param track_group_type set to the track group type - may be NULL
+\param track_group_id set to the track group ID - may be NULL
+\return GF_TRUE if success, GF_FALSE otherwise
+*/
+Bool gf_isom_enum_track_group(GF_ISOFile *isom_file, u32 trackNumber, u32 *idx, u32 *track_group_type, u32 *track_group_id);
+
 /*! checks if file is a single AV file with max one audio, one video, one text and basic od/bifs
 \param isom_file the target ISO file
 \return GF_TRUE if file is single AV, GF_FALSE otherwise

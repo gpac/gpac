@@ -228,7 +228,13 @@ Note: The @ character can be used in place of the * character. String parameter 
 .TP
 .B \-p (string)
 .br
-use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Appending :reload to the profile name will force recreating a new configuration file
+use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. The following reserved names create a temporary profile (not stored on disk):
+.br
+* 0: full profile
+.br
+* n: null profile disabling shared modules/filters and system paths in config (may break GUI and other filters)
+.br
+Appending :reload to the profile name will force recreating a new configuration file
 .br
 .TP
 .B \-alias (string)
@@ -853,6 +859,16 @@ disable poll and use select for socket groups
 .B \-no-tls-rcfg
 .br
 disble automatic TCP to TLS reconfiguration
+.br
+.TP
+.B \-no-fd
+.br
+use buffered IO instead of file descriptor for read/write - this can speed up operations on small files
+.br
+.TP
+.B \-no-mx
+.br
+disable all mutexes, threads and semaphores (do not use if unsure about threading used)
 .br
 .TP
 .B \-cache (string)
@@ -4980,7 +4996,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev135-g66b3806b1-index_jit
+build: 2.3-DEV-rev164-g85ca8526c-index_jit
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
