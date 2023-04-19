@@ -4492,7 +4492,7 @@ static u32 do_add_cat(int argc, char **argv)
 					char *loc_src = src;
 					char *sep = NULL;
 					while (1) {
-						char *opt_sep;
+						char *opt_sep, *frag_sep;
 						sep = strchr(loc_src, '+');
 						if (!sep) break;
 
@@ -4500,16 +4500,20 @@ static u32 do_add_cat(int argc, char **argv)
 						if (strstr(src, "://"))
 							break;
 
-						opt_sep = gf_url_colon_suffix(src, '=');
-						if (opt_sep)
-							opt_sep[0] = 0;
-						if (gf_file_exists(src)) {
-							if (opt_sep)
-								opt_sep[0] = ':';
+						opt_sep = gf_url_colon_suffix(sep+1, '=');
+						frag_sep = gf_url_colon_suffix(sep+1, '#');
+						if (frag_sep && opt_sep && (frag_sep<opt_sep)) {
+							opt_sep=NULL;
+						}
+						if (opt_sep) opt_sep[0] = 0;
+						if (frag_sep) frag_sep[0] = 0;
+						if (gf_file_exists(sep+1)) {
+							if (opt_sep) opt_sep[0] = ':';
+							if (frag_sep) frag_sep[0] = '#';
 							break;
 						}
-						if (opt_sep)
-							opt_sep[0] = ':';
+						if (opt_sep) opt_sep[0] = ':';
+						if (frag_sep) frag_sep[0] = '#';
 
 						sep[0] = '+';
 						loc_src = sep+1;
