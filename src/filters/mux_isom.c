@@ -671,6 +671,28 @@ static void mp4mux_reorder_tracks(GF_MP4MuxCtx *ctx)
 	ctx->tracks = new_tracks;
 }
 
+static void mp4mx_set_track_group(GF_MP4MuxCtx *ctx, TrackWriter *tkw, char *name, const GF_PropertyValue *p)
+{
+	s32 grp_id=0;
+	u32 grp_type;
+	u32 len = (u32) strlen(name);
+	Bool do_add=GF_TRUE;
+	if (len!=4) return;
+
+	if ((p->type==GF_PROP_STRING) || (p->type==GF_PROP_NAME)) {
+		grp_id = atoi(p->value.string);
+	} else {
+		grp_id = p->value.sint;
+	}
+	if (grp_id<0) {
+		grp_id = -grp_id;
+		do_add = GF_FALSE;
+	}
+	grp_type = GF_4CC(name[0], name[1], name[2], name[3]);
+	gf_isom_set_track_group(ctx->file, tkw->track_num, grp_id, grp_type, do_add);
+}
+
+
 #include <gpac/revision.h>
 static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
@@ -702,6 +724,11 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 		if (!tag_name)
 			continue;
+
+		if (!strncmp(tag_name, "tkgp_", 5)) {
+			mp4mx_set_track_group(ctx, tkw, (char*) tag_name+5, tag);
+			continue;
+		}
 
 		tag_idx = gf_itags_find_by_name(tag_name);
 		if (tag_idx>=0) {
@@ -7826,6 +7853,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"- `mudtab`: set the movie user-data box to the property value which __must__ be a serialized box array blob\n"
 	"- `udta_U4CC`: set track user-data box entry of type `U4CC` to property value\n"
 	"- `mudta_U4CC`: set movie user-data box entry of type `U4CC` to property value\n"
+	"- `tkgp_T4CC`: set/remove membership to track group with type `T4CC` and ID given by property value. A negative value N removes from track group with ID -N\n"
 	"  \n"
 	"EX gpac -i src.mp4:#udta_tagc='My Awesome Tag' -o tag.mp4\n"
 	"EX gpac -i src.mp4:#mudtab=data@box.bin -o tag.mp4\n"

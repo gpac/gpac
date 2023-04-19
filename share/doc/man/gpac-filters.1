@@ -2082,6 +2082,8 @@ The filter will look for the following PID properties to create user data entrie
 .br
 * `mudta_U4CC`: set movie user-data box entry of type U4CC to property value
 .br
+* `tkgp_T4CC`: set/remove membership to track group with type U4CC and ID given by property value. A negative value N removes from track group with ID -N
+.br
   
 .br
 Example
@@ -2403,7 +2405,7 @@ force_dv (bool, default: false): force DV sample entry types even when AVC/HEVC 
 .br
 dvsingle (bool, default: false): ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set
 .br
-tsalign (bool, default: true): enable timeline realignment to 0 for first sample in fragmented mode
+tsalign (bool, default: true): enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)
 .br
 chapm (enum, default: both):   chapter storage mode
 .br
@@ -8926,6 +8928,8 @@ This filter translates UNCV pixel format to a usable pixel format.
 .br
 force_pf (bool, default: false): ignore possible mapping to GPAC pixel formats
 .br
+no_tile (bool, default: false): ignore tiling info (debug)
+.br
 
 .br
 .SH dtout
@@ -11271,7 +11275,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev130-g7049bcc2d-master
+build: 2.3-DEV-rev132-gd25ef91cb-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
