@@ -982,7 +982,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				char szTK[100];
 				u32 track_group_type, track_group_id;
 				if (!gf_isom_enum_track_group(read->mov, ch->track, &idx, &track_group_type, &track_group_id)) break;
-				sprintf(szTK, "trgp_%s", gf_4cc_to_str(track_group_type));
+				sprintf(szTK, "tkgp_%s", gf_4cc_to_str(track_group_type));
 				gf_filter_pid_set_property_dyn(ch->pid, szTK, &PROP_SINT(track_group_id));
 			}
 		}
