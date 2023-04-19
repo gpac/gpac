@@ -92,9 +92,9 @@ typedef struct
 	u32 profile;
 	u32 nb_comps;
 	UNCVComponentInfo *comps;
-	u8 sampling, interleave, block_size;
+	u32 sampling, interleave, block_size;
 	Bool components_little_endian, block_pad_lsb, block_little_endian, block_reversed, pad_unknown;
-	u8 pixel_size;
+	u32 pixel_size;
 	u32 row_align_size, tile_align_size, num_tile_cols, num_tile_rows;
 
 
@@ -312,9 +312,9 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 		}
 		pos = (u32) gf_bs_get_position(bs) - pos;
 		pos += 8;
-		if ((pos>size) || gf_bs_is_overflow(bs) )
+		if ((pos > (u32) size) || gf_bs_is_overflow(bs) )
 			*out_err = GF_NON_COMPLIANT_BITSTREAM;
-		else if (pos<size)
+		else if (pos < (u32) size)
 			gf_bs_skip_bytes(bs, size-pos);
 	}
 	gf_bs_del(bs);
@@ -863,7 +863,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 		else
 			comp->p_idx = -1;
 
-		if (nb_out_comp<comp->p_idx+1)
+		if (nb_out_comp < (u32) (comp->p_idx+1))
 			nb_out_comp = comp->p_idx+1;
 
 		if (max_align_size < comp->align_size)
@@ -978,7 +978,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 		}
 	}
 
-	ctx->max_comp_per_block = gf_floor(ctx->blocksize_bits / min_bits);
+	ctx->max_comp_per_block = (u32) gf_floor(ctx->blocksize_bits / min_bits);
 
 
 	ctx->nb_bsrs = 1;
@@ -1165,7 +1165,7 @@ static void uncv_end_line(UNCVDecCtx *ctx, UNCVConfig *config)
 		}
 
 		if (bsr->row_align_size) {
-			u32 remain = gf_bs_get_position(bsr->bs) - bsr->line_start_pos;
+			u32 remain = (u32) (gf_bs_get_position(bsr->bs) - bsr->line_start_pos);
 			while (remain < bsr->row_align_size) {
 				gf_bs_skip_bytes(bsr->bs, 1);
 				remain++;
@@ -1175,7 +1175,7 @@ static void uncv_end_line(UNCVDecCtx *ctx, UNCVConfig *config)
 		if (config->interleave==INTERLEAVE_ROW) {
 			gf_bs_seek(bsr->bs, bsr->line_start_pos + bsr->comp_row_size);
 		}
-		bsr->line_start_pos = gf_bs_get_position(bsr->bs);
+		bsr->line_start_pos = (u32) gf_bs_get_position(bsr->bs);
 	}
 }
 
@@ -1349,7 +1349,7 @@ static void uncv_pull_val(UNCVDecCtx *ctx, UNCVConfig *config, BSRead *bsr, UNCV
 static void read_pixel_interleave_pixel(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *out_data, u32 offset)
 {
 	BSRead *bsr = &ctx->bsrs[0];
-	u32 psize = gf_bs_get_position(bsr->bs);
+	u32 psize = (u32) gf_bs_get_position(bsr->bs);
 	for (u32 i=0; i<config->nb_comps; i++) {
 		uncv_pull_val(ctx, config, bsr, &ctx->cfg->comps[i], GF_FALSE, x, y);
 	}
@@ -1359,7 +1359,7 @@ static void read_pixel_interleave_pixel(UNCVDecCtx *ctx, UNCVConfig *config, u32
 		} else {
 			gf_bs_align(bsr->bs);
 		}
-		psize = gf_bs_get_position(bsr->bs) - psize;
+		psize = (u32) ( gf_bs_get_position(bsr->bs) - psize );
 		if (psize > config->pixel_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid pixel_size %u, less than total size of components %u\n", config->pixel_size, psize));
 		}
@@ -1373,7 +1373,7 @@ static void read_pixel_interleave_pixel(UNCVDecCtx *ctx, UNCVConfig *config, u32
 static void read_pixel_interleave_multiy(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *out_data, u32 offset)
 {
 	BSRead *bsr = &ctx->bsrs[0];
-	u32 psize = gf_bs_get_position(bsr->bs);
+	u32 psize =(u32) gf_bs_get_position(bsr->bs);
 	Bool load_uv = GF_FALSE;
 	u32 pix_idx = x % ctx->subsample_x;
 	if (pix_idx == 0) {
@@ -1385,7 +1385,7 @@ static void read_pixel_interleave_multiy(UNCVDecCtx *ctx, UNCVConfig *config, u3
 
 	if (config->pixel_size) {
 		gf_bs_align(bsr->bs);
-		psize = gf_bs_get_position(bsr->bs) - psize;
+		psize = (u32) (gf_bs_get_position(bsr->bs) - psize);
 		if (psize > config->pixel_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid pixel_size %d, less than total size of components %d\n", config->pixel_size, psize));
 		}
