@@ -386,7 +386,9 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	if (!tmp) return NULL;
 
 	tmp->mode = mode;
+#ifdef GPAC_HAS_FD
 	tmp->fd = -1;
+#endif
 
 	if (sPath == NULL) {
 		tmp->type = GF_ISOM_DATA_MEM;

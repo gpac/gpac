@@ -514,7 +514,7 @@ restart:
 		}
 	}
 	if (ctx->seek_ms) {
-		if (pkt->pts * 1000 < ctx->seek_ms * ctx->demuxer->streams[pkt->stream_index]->time_base.den) {
+		if (pkt->pts * 1000 < (s64)ctx->seek_ms * ctx->demuxer->streams[pkt->stream_index]->time_base.den) {
 			if (!ctx->raw_pck_out) {
 				FF_FREE_PCK(pkt);
 			}
@@ -1424,7 +1424,7 @@ static int ffdmx_read_packet(void *opaque, uint8_t *buf, int buf_size)
 	memcpy(buf, ctx->strbuf + ctx->strbuf_offset, buf_size);
 	ctx->strbuf_offset += buf_size;
 	//if 2xbuffer size is larger than our min internal buffer, increase size - this should limit risks of getting called with no packets to deliver
-	if (buf_size*2 >= ctx->strbuf_min)
+	if ((u32)buf_size*2 >= ctx->strbuf_min)
 		ctx->strbuf_min = 2*buf_size;
 	return buf_size;
 }

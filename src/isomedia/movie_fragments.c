@@ -450,7 +450,7 @@ void ComputeFragmentDefaults(GF_TrackFragmentBox *traf)
 			else if (def_flags && (ent->flags != def_flags)) def_flags = 0;
 
 			//no default possible
-			if (def_dur|def_size|def_flags == 0)
+			if ((def_dur|def_size|def_flags) == 0)
 				break;
 		}
 	}
@@ -1283,7 +1283,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		gf_bs_get_content(bs, &movie->moof->moof_data, &movie->moof->moof_data_len);
 		gf_bs_del(bs);
 		movie->fragmented_file_pos += movie->moof->moof_data_len + trun_ref_size;
-		movie->moof->trun_ref_size = trun_ref_size;
+		movie->moof->trun_ref_size = (u32) trun_ref_size;
 	}
 	else if (bs != bs_orig) {
 		u64 frag_size = gf_bs_get_position(bs);

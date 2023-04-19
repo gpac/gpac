@@ -88,7 +88,7 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 		GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 		if (txt) {
-			times.vals[i] = s->DTS;
+			times.vals[i] = (u32) s->DTS;
 			names.vals[i] = gf_strdup(txt->text);
 			gf_isom_delete_text_sample(txt);
 		}

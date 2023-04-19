@@ -1866,9 +1866,11 @@ GF_Err gf_bs_insert_data(GF_BitStream *bs, u8 *data, u32 size, u64 offset)
 	u64 cur_r, cur_w, pos;
 	u32 nb_io;
 	u8 *block=NULL;
-	u32 bk_size=bs->fd ? 100000 : 8196;
+	u32 bk_size = 8196;
 	if (bs->on_block_out) return GF_BAD_PARAM;
-
+#ifdef GPAC_HAS_FD
+	if (bs->fd) bk_size = 100000;
+#endif
 	block = gf_malloc(sizeof(u8)*bk_size);
 	if (!block) return GF_OUT_OF_MEM;
 

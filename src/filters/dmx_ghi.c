@@ -110,7 +110,7 @@ static void set_opids_props(GHIDmxCtx *ctx, GHIStream *st)
 		if (ctx->genman) {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("idx_man"));
 			gf_filter_pid_set_property_str(opid, "mpd_duration", &PROP_LONGUINT(ctx->media_presentation_duration));
-			gf_filter_pid_set_property_str(opid, "max_seg_dur", &PROP_UINT(ctx->max_segment_duration));
+			gf_filter_pid_set_property_str(opid, "max_seg_dur", &PROP_UINT((u32) ctx->max_segment_duration));
 			gf_filter_pid_set_property_str(opid, "start_with_sap", &PROP_UINT(st->starts_with_sap));
 		} else {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("idx_seg"));
@@ -150,16 +150,16 @@ static void ghi_dmx_send_seg_times(GHIDmxCtx *ctx, GHIStream *st, GF_FilterPid *
 		if (st->segs_xml) {
 			GF_MPD_SegmentURL *surl = gf_list_get(st->segs_xml, i);
 			ts = surl->first_tfdt + surl->split_first_dur;
-			dur = surl->duration;
+			dur = (u32) surl->duration;
 		} else {
 			GHISegInfo *si = gf_list_get(st->segs_bin, i);
 			ts = si->first_tfdt + si->split_first;
-			dur = si->seg_duration;
+			dur = (u32) si->seg_duration;
 		}
 		gf_filter_pck_set_dts(pck, ts);
 		gf_filter_pck_set_cts(pck, ts);
 
-		dur = gf_timestamp_rescale(dur, st->mpd_timescale, st->pid_timescale);
+		dur = (u32) gf_timestamp_rescale(dur, st->mpd_timescale, st->pid_timescale);
 		gf_filter_pck_set_duration(pck, dur);
 		gf_filter_pck_set_sap(pck, st->starts_with_sap);
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
@@ -261,7 +261,7 @@ static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_filter_pck_set_cts(dst, st->seg_info.first_tfdt);
 			gf_filter_pck_set_sap(dst, GF_FILTER_SAP_1);
 			gf_filter_pck_set_property(dst, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
-			u32 dur = gf_timestamp_rescale(st->seg_info.seg_duration, st->mpd_timescale, st->pid_timescale);
+			u32 dur = (u32) gf_timestamp_rescale(st->seg_info.seg_duration, st->mpd_timescale, st->pid_timescale);
 			gf_filter_pck_set_duration(dst, dur);
 			gf_filter_pck_send(dst);
 
@@ -282,10 +282,10 @@ static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			else
 				fevt.seek.end_offset = 0;
 		} else {
-			fevt.play.start_range = st->seg_info.first_tfdt;
+			fevt.play.start_range = (Double) st->seg_info.first_tfdt;
 			fevt.play.start_range /= st->pid_timescale;
-			fevt.play.from_pck = st->seg_info.first_pck_seq;
-			fevt.play.to_pck = st->seg_info.first_pck_seq + st->nb_pck;
+			fevt.play.from_pck = (u32) st->seg_info.first_pck_seq;
+			fevt.play.to_pck = (u32) st->seg_info.first_pck_seq + st->nb_pck;
 		}
 		gf_filter_pid_send_event(st->ipid, &fevt);
 		return GF_TRUE;
@@ -686,7 +686,7 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 		st->segs_bin = gf_list_new();
 		if (!st->segs_bin) return GF_OUT_OF_MEM;
 
-		u32 rep_start = gf_bs_get_position(bs);
+		u32 rep_start = (u32) gf_bs_get_position(bs);
 		u32 rep_size = gf_bs_read_u32(bs);
 
 		st->rep_id = gf_bs_read_utf8(bs);
@@ -706,14 +706,14 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 		gf_bs_read_u16(bs); //unused fo now
 
 		//skip all props
-		st->props_offset = gf_bs_get_position(bs);
+		st->props_offset = (u32) gf_bs_get_position(bs);
 		st->props_size = gf_bs_read_u32(bs);
 		gf_bs_skip_bytes(bs, st->props_size-4);
 
 		if (!ghi_dmx_check_mux(ctx, st)) {
 			//skip all segs
 			rep_end = rep_size + rep_start;
-			skip = rep_end - gf_bs_get_position(bs);
+			skip = rep_end - (u32) gf_bs_get_position(bs);
 			gf_bs_skip_bytes(bs, skip);
 			continue;
 		}
@@ -753,7 +753,7 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 		} else {
 			surl = gf_list_get(st->segs_bin, 1);
 			if (surl) {
-				st->nb_pck = surl->first_pck_seq - st->seg_info.first_pck_seq;
+				st->nb_pck = (u32) (surl->first_pck_seq - st->seg_info.first_pck_seq);
 				st->next_frag_start_offset = surl->frag_start_offset;
 				//first packet of next seg is split, we need this packet in current segment
 				if (surl->split_first) st->nb_pck++;
@@ -762,7 +762,7 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 
 		//skip remaining segs
 		rep_end = rep_size + rep_start;
-		skip = rep_end - gf_bs_get_position(bs);
+		skip = rep_end - (u32) gf_bs_get_position(bs);
 		gf_bs_skip_bytes(bs, skip);
 	}
 	return GF_OK;
@@ -863,14 +863,14 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 			} else {
 				surl = gf_list_get(st->segs_xml, st->seg_num);
 				if (surl) {
-					st->nb_pck = surl->first_pck_seq - st->seg_info.first_pck_seq;
+					st->nb_pck = (u32) (surl->first_pck_seq - st->seg_info.first_pck_seq);
 					st->next_frag_start_offset = surl->frag_start_offset;
 					//first packet of next seg is split, we need this packet in current segment
 					if (surl->split_first_dur) st->nb_pck++;
 				}
 			}
 			surl = gf_list_get(st->segs_xml, 0);
-			st->first_frag_start_offset = surl->frag_start_offset;
+			st->first_frag_start_offset = (u32) surl->frag_start_offset;
 		}
 	}
 	gf_mpd_del(mpd);

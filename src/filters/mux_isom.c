@@ -3576,7 +3576,7 @@ sample_entry_done:
 						GF_TextSample tx;
 						memset(&tx, 0, sizeof(tx));
 						tx.text = p2->value.string_list.vals[j];
-						tx.len = strlen(p2->value.string_list.vals[j])+1;
+						tx.len = (u32) strlen(p2->value.string_list.vals[j])+1;
 						GF_ISOSample *samp = gf_isom_text_to_sample(&tx);
 						samp->DTS = start_time;
 						samp->IsRAP = 1;

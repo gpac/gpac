@@ -1801,7 +1801,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	GF_MPD_ProgramInfo *info;
 	ctx->mpd = gf_mpd_new();
 	ctx->mpd->index_mode = ctx->do_index;
-	ctx->mpd->segment_duration = gf_timestamp_rescale(ctx->segdur.num, ctx->segdur.den, 1000);
+	ctx->mpd->segment_duration = (u32) gf_timestamp_rescale(ctx->segdur.num, ctx->segdur.den, 1000);
 	ctx->mpd->xml_namespace = "urn:mpeg:dash:schema:mpd:2011";
 	ctx->mpd->base_URLs = gf_list_new();
 	ctx->mpd->locations = gf_list_new();
@@ -4692,7 +4692,7 @@ static GF_Err dasher_write_index(GF_DasherCtx *ctx, GF_FilterPid *opid)
 	gf_bs_write_u64(bs, ctx->current_period->period->duration);
 	gf_bs_write_utf8(bs, ctx->mpd->segment_template);
 
-	nb_rep_pos = gf_bs_get_position(bs);
+	nb_rep_pos = (u32) gf_bs_get_position(bs);
 	gf_bs_write_u32(bs, 0);
 
 	for (i=0; i<count; i++) {
@@ -4704,14 +4704,14 @@ static GF_Err dasher_write_index(GF_DasherCtx *ctx, GF_FilterPid *opid)
 		if (!ds || !ds->rep || !ds->rep->res_url || !ds->rep->segment_list) continue;
 
 		nb_reps++;
-		rep_start = gf_bs_get_position(bs);
+		rep_start = (u32) gf_bs_get_position(bs);
 		gf_bs_write_u32(bs, 0);
 
 		gf_bs_write_utf8(bs, ds->rep->id);
 		gf_bs_write_utf8(bs, ds->rep->res_url);
 		gf_bs_write_u32(bs, ds->rep->trackID);
 		s = gf_list_get(ds->rep->segment_list->segment_URLs, 0);
-		gf_bs_write_u32(bs, s ? s->frag_start_offset : 0);
+		gf_bs_write_u32(bs, s ? (u32) s->frag_start_offset : 0);
 		gf_bs_write_u32(bs, ds->timescale);
 		gf_bs_write_u32(bs, ds->rep->segment_list->timescale);
 		gf_bs_write_u32(bs, ds->rep->segment_list->sample_duration);
@@ -4740,7 +4740,7 @@ static GF_Err dasher_write_index(GF_DasherCtx *ctx, GF_FilterPid *opid)
 		gf_bs_write_u8(bs, flags);
 		gf_bs_write_u16(bs, 0);
 		//serialize all props
-		props_start = gf_bs_get_position(bs);
+		props_start = (u32) gf_bs_get_position(bs);
 		gf_bs_write_u32(bs, 0);
 
 		u32 idx=0;
@@ -9119,7 +9119,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->segment_started = GF_TRUE;
 				if (split_dur_next && ctx->do_index) {
 					GF_MPD_SegmentURL *s = gf_list_last(ds->rep->segment_list->segment_URLs);
-					s->split_first_dur = split_dur_next;
+					s->split_first_dur = (u32) split_dur_next;
 					assert(gf_filter_pck_get_duration(pck) > split_dur_next);
 					ds->rep->segment_list->use_split_dur = GF_TRUE;
 				}
