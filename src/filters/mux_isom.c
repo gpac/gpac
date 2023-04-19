@@ -6548,7 +6548,7 @@ static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 mi
 	}
 	if (ctx->is_rewind) dts_diff = -dts_diff;
 	//negative could happen due to rounding, ignore them
-	if (dts_diff<=1) return;
+	if (dts_diff<= gf_sys_old_arch_compat() ? 0 : 1) return;
 
 	// dts_diff > 0, we need to delay the track
 	u64 dur = gf_timestamp_rescale(dts_diff, tkw->src_timescale, ctx->moovts);
