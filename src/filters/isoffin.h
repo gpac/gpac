@@ -70,7 +70,7 @@ typedef struct
 	u32 xps_check;
 	char *catseg;
 	Bool sigfrag;
-	Bool nocrypt, strtxt, nodata;
+	Bool nocrypt, strtxt, nodata, lightp;
 	u32 mstore_purge, mstore_samples, mstore_size;
 
 	//internal

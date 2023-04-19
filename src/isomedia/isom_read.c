@@ -1105,6 +1105,14 @@ u64 gf_isom_get_track_duration(GF_ISOFile *movie, u32 trackNumber)
 }
 
 GF_EXPORT
+u64 gf_isom_get_track_duration_orig(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return 0;
+	return trak->Header->duration;
+}
+GF_EXPORT
 GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **lang)
 {
 	u32 count;
@@ -4031,6 +4039,8 @@ u64 gf_isom_get_media_data_size(GF_ISOFile *movie, u32 trackNumber)
 	if (!tk) return 0;
 	stsz = tk->Media->information->sampleTable->SampleSize;
 	if (!stsz) return 0;
+	if (movie->openMode==GF_ISOM_OPEN_READ)
+		return stsz->total_size;
 	if (stsz->sampleSize) return stsz->sampleSize*stsz->sampleCount;
 	size = 0;
 	for (i=0; i<stsz->sampleCount; i++) size += stsz->sizes[i];

@@ -945,7 +945,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 	Bool needs_reset;
 	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
-	if (!ch->sample) return;
+	if (!ch->sample || !ch->sample->data) return;
 	ch->xps_mask = 0;
 
 	//we cannot touch the payload if encrypted but not CENC !!

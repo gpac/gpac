@@ -877,11 +877,17 @@ u8 gf_isom_is_track_enabled(GF_ISOFile *isom_file, u32 trackNumber);
 */
 u32 gf_isom_get_track_flags(GF_ISOFile *isom_file, u32 trackNumber);
 
-/*! gets the track duration
+/*! gets the track duration - this will try to fix any discrepencies between media duration+edit lists vs track duration
 \param isom_file the target ISO file
 \param trackNumber the target track
 \return the track duration in movie timescale, or 0 if error*/
 u64 gf_isom_get_track_duration(GF_ISOFile *isom_file, u32 trackNumber);
+
+/*! gets the unmodified track duration - mus be called before any call to \ref gf_isom_get_track_duration
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return the track duration in movie timescale, or 0 if error*/
+u64 gf_isom_get_track_duration_orig(GF_ISOFile *isom_file, u32 trackNumber);
 
 /*! gets the media type (audio, video, etc) of a track
 \param isom_file the target ISO file
