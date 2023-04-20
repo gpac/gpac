@@ -6806,9 +6806,9 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 			Double next = ((Double)ctx->next_frag_start)/ctx->cdur.den;
 			is_frag = GF_TRUE;
 			if (ctx->dash_mode) {
-				sprintf(szTmp, "mux segments %d (frags %d) next %02.02g", ctx->nb_segs, ctx->nb_frags_in_seg, next);
+				sprintf(szTmp, "mux segments %d (frags %d) next %02.3f", ctx->nb_segs, ctx->nb_frags_in_seg, next);
 			} else {
-				sprintf(szTmp, "mux frags %d next %02.02g", ctx->nb_frags, next);
+				sprintf(szTmp, "mux frags %d next %02.3f", ctx->nb_frags, next);
 			}
 		} else {
 			sprintf(szTmp, "%s", ((ctx->store==MP4MX_MODE_FLAT) || (ctx->store==MP4MX_MODE_FASTSTART)) ? "mux" : "import");

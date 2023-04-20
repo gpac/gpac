@@ -7959,7 +7959,7 @@ static Bool dasher_check_period_ready(GF_DasherCtx *ctx, Bool is_session_end)
 
 void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 {
-	u32 i, count;
+	u32 i, count, nb_pc=0;
 	Double max_ts=0;
 	u32 total_pc = 0;
 	char szDS[200];
@@ -8003,7 +8003,7 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 			if (ctx->cues) {
 				done = (Double) (ds->last_dts);
 				done /= ds->timescale;
-				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs", set_idx, rep_idx, stype, ds->seg_number, done);
+				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %02.2fs", set_idx, rep_idx, stype, ds->seg_number, done);
 			} else {
 				Double pcent, ddur;
 				done = (Double) ds->adjusted_next_seg_start;
@@ -8018,7 +8018,7 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 					done=0;
 				pcent = done / ddur;
 				pc = (s32) (done * 10000);
-				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %.2fs (%.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
+				snprintf(szDS, 200, "AS#%d.%d(%c) seg #%d %02.2fs (%02.2f %%)", set_idx, rep_idx, stype, ds->seg_number, done, 100*pcent);
 			}
 
 			mpdtime = (Double) ds->last_dts;
@@ -8038,10 +8038,11 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 		//don't use max, do an average
 		total_pc += pc;
+		nb_pc++;
 		gf_dynstrcat(&szStatus, szDS, " ");
 	}
-	if (count)
-		total_pc /= count;
+	if (nb_pc)
+		total_pc /= nb_pc;
 
 	if (total_pc!=10000) {
 		sprintf(szDS, " / MPD %.2fs %d %%", max_ts, total_pc/100);
