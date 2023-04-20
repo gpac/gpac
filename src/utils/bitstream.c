@@ -1344,6 +1344,16 @@ void gf_bs_get_content(GF_BitStream *bs, u8 **output, u32 *outSize)
 	gf_bs_get_content_no_truncate(bs, output, outSize, NULL);
 }
 
+GF_Err gf_bs_grow(GF_BitStream *bs, u32 addSize)
+{
+	if (!bs || (bs->bsmode != GF_BITSTREAM_WRITE_DYN) || bs->cache_write) return GF_OK;
+	if (bs->position + addSize <= bs->size) return GF_OK;
+	bs->size += addSize;
+	bs->original = gf_realloc(bs->original, bs->size);
+	if (!bs->original) return GF_OUT_OF_MEM;
+	return GF_OK;
+}
+
 /*	Skip nbytes.
 	Align
 	If READ (MEM or FILE) mode, just read n times 8 bit
