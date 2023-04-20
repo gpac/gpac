@@ -952,6 +952,8 @@ void flush_ref_samples(GF_ISOFile *movie, u64 *out_seg_size, Bool use_seg_marker
 	}
 }
 
+GF_Err gf_bs_grow(GF_BitStream *bs, u32 addSize);
+
 static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_diff, u32 *moof_size, Bool reassign_bs)
 {
 	GF_Err e;
@@ -1236,6 +1238,8 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	if (moof_size) *moof_size = (u32) movie->moof->size;
 
 	pos = gf_bs_get_position(bs);
+	//graw buffer to hold moof, speeds up writes
+	gf_bs_grow(bs, movie->moof->size + (trun_ref_size ? 8 : 0));
 
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
