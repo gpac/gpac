@@ -1621,7 +1621,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				GOTO_EXIT("changing color info")
 			}
 			if (hdr_file) {
-				e = parse_high_dynamc_range_xml_desc(dest, track, hdr_file);
+				e = apply_high_dynamc_range_xml_desc(dest, track, hdr_file);
 				GOTO_EXIT("setting HDR info")
 			}
 			if (dv_profile[0]) {
@@ -1846,6 +1846,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 					ac3c->atmos_ec3_ext=0;
 					ac3c->complexity_index_type=0;
 				} else {
+#ifndef GPAC_DISABLE_AV_PARSERS
 					u32 di;
 					GF_ISOSample *samp = gf_isom_get_sample(dest, track, 1, &di);
 					u32 pos;
@@ -1855,6 +1856,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 						ac3c->atmos_ec3_ext = 1;
 						ac3c->complexity_index_type = dlb_mode;
 					}
+#endif
 				}
 				gf_isom_ac3_config_update(dest, track, 1, ac3c);
 				gf_free(ac3c);
@@ -1932,7 +1934,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			//TODO - merge, temporal sublayers
 		}
 	}
-#ifndef GPAC_DISABLE_HEVC
 	if (check_track_for_hevc) {
 		if (split_tile_mode) {
 			e = gf_media_split_hevc_tiles(dest, split_tile_mode - 1);
@@ -1944,7 +1945,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			GOTO_EXIT("splitting HEVC temporal sublayers")
 		}
 	}
-#endif
 
 	if (tc_fps_num) {
 		u32 desc_index=0;
@@ -2424,7 +2424,6 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u3
 	return dst_tk;
 }
 
-#ifndef GPAC_DISABLE_HEVC
 static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u32 src_track, Bool force_cat, u32 *orig_nal_len, u32 *dst_nal_len)
 {
 	u32 i;
@@ -2479,7 +2478,6 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u
 	}
 	return dst_tk;
 }
-#endif /*GPAC_DISABLE_HEVC */
 
 static GF_Err rewrite_nal_size_field(GF_ISOSample *samp, u32 orig_nal_len, u32 dst_nal_len)
 {
@@ -2806,7 +2804,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				        || (stype == GF_ISOM_SUBTYPE_AVC4_H264) ) {
 					dst_tk = merge_avc_config(dest, tk_id, &orig, i+1, force_cat, &orig_nal_len, &dst_nal_len);
 				}
-#ifndef GPAC_DISABLE_HEVC
 				/*merge HEVC config if possible*/
 				else if ((stype == GF_ISOM_SUBTYPE_HVC1)
 				         || (stype == GF_ISOM_SUBTYPE_HEV1)
@@ -2814,7 +2811,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				         || (stype == GF_ISOM_SUBTYPE_HEV2)) {
 					dst_tk = merge_hevc_config(dest, tk_id, &orig, i+1, force_cat, &orig_nal_len, &dst_nal_len);
 				}
-#endif /*GPAC_DISABLE_HEVC*/
 				else if (force_cat) {
 					dst_tk = found_dst_tk;
 				}
@@ -3892,7 +3888,7 @@ exit:
 	return file;
 }
 
-GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file_name)
+GF_Err apply_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file_name)
 {
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *stream;

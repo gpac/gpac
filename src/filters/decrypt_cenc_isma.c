@@ -1974,11 +1974,13 @@ static GF_Err cenc_dec_process_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cs
 			nal_start = data;
 			nal_size_o = nal_size;
 			//remove EPB
-			u32 nb_epb = gf_media_nalu_emulation_bytes_remove_count(data, nal_size);
+			u32 nb_epb = 0;
+#ifndef GPAC_DISABLE_AV_PARSERS
+			nb_epb = gf_media_nalu_emulation_bytes_remove_count(data, nal_size);
 			if (nb_epb) {
 				nal_size = gf_media_nalu_remove_emulation_bytes(data, data, nal_size);
 			}
-
+#endif
 			//unencrypted header
 			data += 32;
 			cur_pos += 32;
@@ -2136,8 +2138,9 @@ static void cenc_dec_stream_del(GF_CENCDecStream *cstr)
 	if (cstr->hls_key_url) gf_free(cstr->hls_key_url);
 
 	if (cstr->body) gf_free(cstr->body);
+#ifdef GPAC_USE_DOWNLOADER
 	if (cstr->sess) gf_dm_sess_del(cstr->sess);
-
+#endif
 	gf_free(cstr);
 }
 

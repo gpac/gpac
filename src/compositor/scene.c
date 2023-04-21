@@ -2024,6 +2024,7 @@ static void odm_activate(SFURL *url, GF_Node *n)
 
 	gf_node_changed(n, NULL);
 }
+#endif
 
 GF_EXPORT
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
@@ -2084,6 +2085,8 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 	}
 	gf_sc_lock(scene->compositor, 0);
 }
+
+#ifndef GPAC_DISABLE_VRML
 
 GF_EXPORT
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)

@@ -1612,9 +1612,10 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			}
 		}
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (ctx->sgpd_traf)
 			gf_isom_set_sample_group_in_traf(ctx->file);
-
+#endif
 		if (ctx->noroll) {
 			gf_isom_remove_sample_group(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_ROLL);
 		}
@@ -3821,7 +3822,9 @@ sample_entry_done:
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx);
+#endif
 static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final);
 
 static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -3842,10 +3845,12 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					mp4_mux_done(filter, ctx, GF_TRUE);
 				}
 			} else {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				while (ctx->flush_size) {
 					GF_Err e = mp4_mux_flush_fragmented(filter, ctx);
 					if (e) break;
 				}
+#endif
 			}
 			//delete output pid (to flush destruction of filter chain)
 			gf_filter_pid_remove(ctx->opid);
@@ -4139,7 +4144,11 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	if (!pck_is_encrypted) {
 		if (tkw->clear_stsd_idx) {
 			if (act_type==CENC_ADD_FRAG) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				return gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, NULL, 0, GF_FALSE, ctx->saio32, tkw->cenc_multikey);
+#else
+				return GF_NOT_SUPPORTED;
+#endif
 			} else {
 				return gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, NULL, 0, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
 			}
@@ -4327,11 +4336,15 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	}
 
 	if (act_type==CENC_ADD_FRAG) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (pck_is_encrypted) {
 			e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
 		} else {
 			e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, NULL, 0, GF_FALSE, ctx->saio32, tkw->cenc_multikey);
 		}
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
 	} else {
 		if (sai) {
 			e = gf_isom_track_cenc_add_sample_info(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_SENC, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
@@ -4351,9 +4364,11 @@ GF_FilterSAPType mp4_mux_get_sap(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 	return sap;
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, const GF_ISOSample *sample, u32 DescIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundant_coding, void **ref, u32 ref_offset);
 GF_Err gf_isom_fragment_append_data_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, u8 *data, u32 data_size, u8 PaddingBits, void **ref, u32 ref_offset);
+#endif
 
 static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, Bool for_fragment)
 {
@@ -4561,7 +4576,11 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			s.IsRAP = SAP_TYPE_1;
 			ins_dur = (u32) (tkw->sample.DTS - est_time);
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &s, tkw->stsd_idx, ins_dur, 0, 0, 0);
+#else
+				e = GF_NOT_SUPPORTED;
+#endif
 			} else {
 				e = gf_isom_add_sample(ctx->file, tkw->track_num, tkw->stsd_idx, &s);
 				gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, ins_dur);
@@ -4581,7 +4600,11 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 	} else if (tkw->nb_frames_per_sample && (tkw->nb_samples % tkw->nb_frames_per_sample)) {
 		if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		 	e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, tkw->sample.data, tkw->sample.dataLength, 0);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 		} else {
 			e = gf_isom_append_sample_data(ctx->file, tkw->track_num, tkw->sample.data, tkw->sample.dataLength);
 		}
@@ -4643,6 +4666,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				//force using ref mode
 				void *ref=NULL;
 				e = gf_isom_fragment_add_sample_ex(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0, &ref, 0);
@@ -4663,6 +4687,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 						}
 					}
 				}
+#else
+				e = GF_NOT_SUPPORTED;
+#endif // GPAC_DISABLE_ISOM_FRAGMENTS
 			} else {
 				e = gf_isom_add_sample(ctx->file, tkw->track_num, sample_desc_index, &tkw->sample);
 				if (au_delim && !e) {
@@ -4672,6 +4699,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 			insert_subsample_dsi_size = inband_xps_size;
 		} else if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			if (gf_filter_pck_is_blocking_ref(pck)) {
 				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0);
 			} else {
@@ -4684,6 +4712,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 					gf_filter_pck_unref(pck);
 				}
 			}
+#else
+			e = GF_NOT_SUPPORTED;
+#endif // GPAC_DISABLE_ISOM_FRAGMENTS
 		} else {
 			e = gf_isom_add_sample(ctx->file, tkw->track_num, sample_desc_index, &tkw->sample);
 			if (!e && !duration) {
@@ -4736,7 +4767,11 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	if ((sap_type==3) || tkw->has_open_gop)  {
 		if (!ctx->norap) {
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
+#else
+				e = GF_NOT_SUPPORTED;
+#endif
 			} else if (sap_type==3) {
 				e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE /*(sap_type==3) ? GF_TRUE : GF_FALSE*/, 0);
 			}
@@ -4757,7 +4792,11 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				e = gf_isom_fragment_set_sample_roll_group(ctx->file, tkw->track_id, tkw->samples_in_frag, roll_type, roll);
+#else
+				e = GF_NOT_SUPPORTED;
+#endif
 			} else {
 				e = gf_isom_set_sample_roll_group(ctx->file, tkw->track_num, tkw->nb_samples, roll_type, roll);
 			}
@@ -4774,7 +4813,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		//if no AUDelim nal and inband header injection, push new subsample
 		if (!first_nal_is_audelim && insert_subsample_dsi_size) {
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, insert_subsample_dsi_size, 0, 0, 0);
+#endif
 			} else {
 				gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, insert_subsample_dsi_size, 0, 0, 0);
 			}
@@ -4793,7 +4834,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u8 discardable = gf_bs_read_u8(ctx->bs_r);
 
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, flags, subs_size, priority, reserved, discardable);
+#endif
 			} else {
 				gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, flags, subs_size, priority, reserved, discardable);
 			}
@@ -4804,7 +4847,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] inserting inband param after AU delimiter NALU, but sample has subsample information not aligned on NALU (got %d subsample size but expecting %d) - file might be broken!\n", subs_size, first_nal_is_audelim));
 				}
 				if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 					gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, insert_subsample_dsi_size, 0, 0, 0);
+#endif
 				} else {
 					gf_isom_add_subsample(ctx->file, tkw->track_num, tkw->nb_samples, 0, insert_subsample_dsi_size, 0, 0, 0);
 				}
@@ -4812,11 +4857,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 		}
 	} else if (for_fragment && tkw->has_subs && ctx->cmaf && (tkw->codecid==GF_CODECID_SUBS_XML)) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		//tentative implemntation of CMAF 7.5.20 which is just nonsense text !!:
 		//"the value of subsample_count shall equal 1 for the first image sub-sample, and the subsample_count of the TTML document shall equal 0."
 		//
 		//we simply signal a single subsample
 		gf_isom_fragment_add_subsample(ctx->file, tkw->track_id, 0, tkw->sample.dataLength, 0, 0, 0);
+#endif
 	}
 
 	if (ctx->deps) {
@@ -4827,7 +4874,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u32 depended_on = (dep_flags>>2) & 0x3;
 			u32 redundant = (dep_flags) & 0x3;
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				gf_isom_fragment_set_sample_flags(ctx->file, tkw->track_id, is_leading, depends_on, depended_on, redundant);
+#endif
 			} else {
 				gf_isom_set_sample_flags(ctx->file, tkw->track_num, tkw->nb_samples, is_leading, depends_on, depended_on, redundant);
 			}
@@ -4867,7 +4916,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, for_fragment ? 0 : tkw->nb_samples, aux_type, aux_info, p->value.data.ptr, p->value.data.size);
 		} else {
 			if (for_fragment) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				gf_isom_fragment_set_sample_aux_info(ctx->file, tkw->track_id, tkw->samples_in_frag, aux_type, aux_info, p->value.data.ptr, p->value.data.size);
+#endif
 			} else {
 				gf_isom_add_sample_aux_info(ctx->file, tkw->track_num, tkw->nb_samples, aux_type, aux_info, p->value.data.ptr, p->value.data.size);
 			}
@@ -5348,9 +5399,9 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 	}
 }
 
-
 static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	GF_Err e;
 	u32 i, count = gf_list_count(ctx->tracks);
 	TrackWriter *ref_tkw = NULL;
@@ -5539,6 +5590,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			return e;
 		}
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (ctx->refrag) {
 			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TREX_TEMPLATE);
 			if (p) {
@@ -5547,6 +5599,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Refragmentation with default track fragment flags signaling but no TREX found in source track %d, using defaults computed from PID, result might be broken\n", tkw->track_id));
 			}
 		}
+#endif
 
 
 		if (ctx->tfdt.den && ctx->tfdt.num) {
@@ -5763,7 +5816,12 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		gf_isom_allocate_sidx(ctx->file, ctx->subs_sidx, ctx->chain_sidx, 0, NULL, NULL, NULL, ctx->ssix);
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 
 static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 {
@@ -5909,6 +5967,7 @@ static void mp4mx_frag_box_patch(GF_MP4MuxCtx *ctx)
 		ctx->box_patched = GF_TRUE;
 	}
 }
+#endif // GPAC_DISABLE_ISOM_FRAGMENTS
 
 
 static GF_Err mp4_mux_initialize(GF_Filter *filter);
@@ -5956,9 +6015,9 @@ GF_Err mp4mx_reload_output(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	return GF_OK;
 }
 
-
 static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	GF_Err e = GF_OK;
 	u32 nb_eos, nb_done, nb_suspended, i, count;
 
@@ -6501,8 +6560,10 @@ check_eos:
 
 		return ctx->flush_size ? GF_OK : GF_EOS;
 	}
-
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 struct _service_info
@@ -6662,10 +6723,12 @@ retry_pck:
 					mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0, 0);
 
 				if (!tkw->nb_samples) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 					const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TREX_TEMPLATE);
 					if (p) {
 						gf_isom_setup_track_fragment_template(ctx->file, tkw->track_id, p->value.data.ptr, p->value.data.size, ctx->nofragdef);
 					}
+#endif
 				}
 				if (tkw->dgl_copy) {
 					gf_filter_pck_discard(tkw->dgl_copy);
@@ -7207,6 +7270,12 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	gf_filter_set_max_extra_input_pids(filter, -1);
 
+#ifdef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (ctx->store>=MP4MX_MODE_FRAG) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use fragmented mode, disabled in build\n"));
+		return GF_NOT_SUPPORTED;
+	}
+#endif
 	if (ctx->file) {
 		if (gf_isom_get_mode(ctx->file) < GF_ISOM_OPEN_WRITE) return GF_BAD_PARAM;
 		if (ctx->store>=MP4MX_MODE_FRAG) {
@@ -7259,10 +7328,12 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		ctx->cdur.den = 1000;
 	}
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ctx->mfra && (ctx->store>=MP4MX_MODE_FRAG)) {
 		GF_Err e = gf_isom_enable_mfra(ctx->file);
 		if (e) return e;
 	}
+#endif
 
 	if (!ctx->tracks)
 		ctx->tracks = gf_list_new();

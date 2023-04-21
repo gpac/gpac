@@ -1869,7 +1869,11 @@ GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 
 		//fallthrough
 	}
 	if (gpac_codec_id==GF_CODECID_SMPTE_VC1) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		return gf_media_vc1_seq_header_to_dsi(data, size, dsi_out, dsi_out_size);
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 	//default is direct mapping
@@ -1886,6 +1890,7 @@ GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 
 
 void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 color_primaries, u32 transfer_characteristics, u32 colorspace, const u8 *data, u32 size)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_VPConfig *vpc=NULL;
 	GF_AC3Header ac3hdr;
 	u32 dsi_size=0;
@@ -2006,6 +2011,7 @@ void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 colo
 
 	if (dsi)
 		gf_filter_pid_set_property(out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
+#endif
 }
 
 #if (LIBAVCODEC_VERSION_MAJOR > 56)

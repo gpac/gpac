@@ -37,7 +37,7 @@
 
 #include <gpac/mpegts.h>
 
-#if defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)
+#if defined(GPAC_DISABLE_ISOM)
 
 #error "Cannot compile MP4Box if GPAC is not built with ISO File Format support"
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1549,6 +1549,7 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, const 
 }
 
 #endif /*GPAC_DISABLE_VTT*/
+#endif //GPAC_DISABLE_ISOM_WRITE
 
 GF_BitRateBox *gf_isom_sample_entry_get_bitrate(GF_SampleEntryBox *ent, Bool create)
 {
@@ -1561,6 +1562,8 @@ GF_BitRateBox *gf_isom_sample_entry_get_bitrate(GF_SampleEntryBox *ent, Bool cre
 	a = (GF_BitRateBox *) gf_isom_box_new_parent(&ent->child_boxes, GF_ISOM_BOX_TYPE_BTRT);
 	return a;
 }
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
 GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / FreeType font engine module
@@ -28,6 +28,9 @@
 #include <gpac/list.h>
 #include <gpac/utf.h>
 #include <gpac/tools.h>
+
+#ifndef GPAC_DISABLE_EVG
+
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE)
@@ -870,3 +873,4 @@ GPAC_MODULE_STATIC_DECLARATION( ftfont )
 
 #endif
 
+#endif //GPAC_DISABLE_EVG

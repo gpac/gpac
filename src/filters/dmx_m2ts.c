@@ -650,6 +650,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 	}
 
 	if (pck->stream->flags & GF_M2TS_CHECK_VC1) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		//extract seq header
 		u32 start, next, sc_size, sc_size2, sc_size3, hdr_len=0;
 
@@ -677,6 +678,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 			len -= hdr_len;
 			pck->stream->flags &= ~GF_M2TS_CHECK_VC1;
 		}
+#endif
 	}
 
 

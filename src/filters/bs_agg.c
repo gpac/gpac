@@ -253,10 +253,8 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 	GF_Err e;
 	u32 i, count;
 	Bool is_vvc = GF_FALSE;
-#ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc_out = NULL;
 	GF_HEVCConfig *hvcc_enh_out = NULL;
-#endif
 	GF_VVCConfig *vvcc_out = NULL;
 	GF_FilterPid *base = NULL;
 	const GF_PropertyValue *dv_cfg = NULL;
@@ -266,10 +264,8 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 		vvcc_out = gf_odf_vvc_cfg_new();
 		if (!vvcc_out) return GF_OUT_OF_MEM;
 	} else {
-#ifndef GPAC_DISABLE_HEVC
 		hvcc_out = gf_odf_hevc_cfg_new();
 		if (!hvcc_out) return GF_OUT_OF_MEM;
-#endif
 	}
 
 #define GOTO_ERR(_e) { e = _e; goto err_exit; }
@@ -324,7 +320,6 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 				if (e) goto err_exit;
 			}
 		} else {
-#ifndef GPAC_DISABLE_HEVC
 			GF_HEVCConfig *hvcc = NULL;
 			Bool dsi_lhvc=GF_FALSE;
 			if ((pctx->codec_id==GF_CODECID_LHVC) && !dsi_enh) dsi_lhvc=GF_TRUE;
@@ -367,7 +362,6 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 				gf_odf_hevc_cfg_del(hvcc);
 				if (e) goto err_exit;
 			}
-#endif
 		}
 	}
 
@@ -392,7 +386,6 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(data, size) );
 			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 		}
-#ifndef GPAC_DISABLE_HEVC
 		if (hvcc_out) {
 			hvcc_out->nal_unit_size = 4;
 			hvcc_out->is_lhvc = GF_FALSE;
@@ -407,16 +400,13 @@ static GF_Err vvc_hevc_rewrite_pid_config(BSAggCtx *ctx, BSAggOut *pctx)
 				gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
 			}
 		}
-#endif
 	}
 
 
 err_exit:
 
-#ifndef GPAC_DISABLE_HEVC
 	if (hvcc_out) gf_odf_hevc_cfg_del(hvcc_out);
 	if (hvcc_enh_out) gf_odf_hevc_cfg_del(hvcc_enh_out);
-#endif
 	if (vvcc_out) gf_odf_vvc_cfg_del(vvcc_out);
 	return e;
 }
@@ -816,14 +806,12 @@ static GF_Err bs_agg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		pctx->rewrite_pid_config = avc_rewrite_pid_config;
 		pctx->agg_process = avc_process;
 		break;
-#ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
 		codec_id = GF_CODECID_HEVC;
 		pctx->rewrite_pid_config = vvc_hevc_rewrite_pid_config;
 		pctx->agg_process = hevc_process;
 		break;
-#endif
 	case GF_CODECID_VVC:
 		pctx->rewrite_pid_config = vvc_hevc_rewrite_pid_config;
 		pctx->agg_process = vvc_process;

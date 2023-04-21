@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Rendering sub-project
@@ -1637,9 +1637,6 @@ u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions);
 For these nodes, the traverse effect passed will be NULL.*/
 void gf_sc_queue_node_traverse(GF_Compositor *compositor, GF_Node *node);
 void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node);
-
-
-GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor);
 
 typedef struct
 {

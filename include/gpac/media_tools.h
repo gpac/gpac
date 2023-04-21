@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Authoring Tools sub-project
@@ -180,7 +180,6 @@ Default import FPS for video when no VUI/timing information is found
 */
 #define GF_IMPORT_DEFAULT_FPS	25.0
 
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 /*
 	All these can import a file into a dedicated track. If esd is NULL the track is blindly added
@@ -262,6 +261,8 @@ enum
 	
 	//GF_IMPORT_FILTER_STATS = 0x80000000	//(=1<<31)
 };
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 /*! max supported numbers of tracks in importer*/
 #define GF_IMPORT_MAX_TRACKS	100
@@ -537,6 +538,10 @@ This section documents functions for manipulating AVC and HEVC tracks in ISOBMFF
  */
 GF_Err gf_media_change_pl(GF_ISOFile *isom_file, u32 trackNumber, u32 profile, u32 compat, u32 level);
 
+#endif
+
+#ifndef GPAC_DISABLE_ISOM
+
 /*!
  Rewrite NAL-based samples (AVC/HEVC/...) samples if nalu size_length has to be changed
 \param isom_file the target ISOBMF file
@@ -546,6 +551,9 @@ GF_Err gf_media_change_pl(GF_ISOFile *isom_file, u32 trackNumber, u32 profile, u
  */
 GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 new_size_in_bits);
 
+#endif
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 /*!
  Split SVC layers
 \param isom_file the target ISOBMF file
@@ -1154,8 +1162,6 @@ This section documents functions for media exporting and extraction.
 @{
  */
 
-#ifndef GPAC_DISABLE_MEDIA_EXPORT
-
 /*!
 Track dumper formats and flags
 \hideinitializer
@@ -1210,6 +1216,8 @@ enum
 	/*when set by user during export, will abort*/
 	GF_EXPORT_DO_ABORT = 0x80000000 //(1<<31)
 };
+
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
 
 /*!
   track dumper

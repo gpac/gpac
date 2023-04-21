@@ -679,6 +679,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	memcpy(xml->xml, data, sizeof(unsigned char)*data_size);
 	return GF_OK;
 }
+#endif
 
 
 GF_EXPORT
@@ -803,6 +804,8 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 	}
 	return GF_OK;
 }
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProperties *prop) {
 	u32 i;
@@ -1098,8 +1101,12 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, u32 i
 		searchprop.config = image_props->config;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			gf_list_add(ipco->child_boxes, gf_isom_clone_config_box(image_props->config));
 			prop_index = gf_list_count(ipco->child_boxes) - 1;
+#else
+			return GF_NOT_SUPPORTED;
+#endif
 		}
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
@@ -2012,6 +2019,8 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 	}
 }
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
 GF_EXPORT
 GF_Err gf_isom_meta_add_item_group(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, u32 group_id, u32 group_type)
 {
@@ -2057,6 +2066,8 @@ GF_Err gf_isom_meta_add_item_group(GF_ISOFile *file, Bool root_meta, u32 track_n
 
 	return GF_OK;
 }
+
+#endif // GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
 u32 gf_isom_meta_get_item_ref_count(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 from_id, u32 type)

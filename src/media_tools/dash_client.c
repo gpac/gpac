@@ -3460,7 +3460,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		//if VVC RPR switching, don't allow downswitch to more than half size (max for rpr)
 		//pickup lowest quality above current rep that fits rpr downsampling requirements
 		if (rep->playback.vvc_rpr_switch) {
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 			u32 req_w=rep->width, req_h=rep->height;
 #endif
 			GF_MPD_Representation *orep = gf_list_get(group->adaptation_set->representations, prev_active_rep_index);
@@ -3469,7 +3469,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 					&& (rep->width * 2 >= orep->width)
 					&& (rep->height * 2 >= orep->height)
 				) {
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 					if (req_w < rep->width) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Cannot switch VVC RPR from %dx%d to %dx%d, using higher resolution %dx%d\n", orep->width, orep->height, req_w, req_h, rep->width, rep->height));
 					}
@@ -10648,6 +10648,7 @@ s32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx)
 
 GF_Err gf_dash_group_push_tfrf(GF_DashClient *dash, u32 group_idx, void *_tfrf, u32 timescale)
 {
+#ifndef GPAC_DISABLE_ISOM
 	GF_MSSTimeRefBox *tfrf = (GF_MSSTimeRefBox *)_tfrf;
 	u32 i;
 	GF_MPD_SegmentTemplate *stpl;
@@ -10704,6 +10705,7 @@ GF_Err gf_dash_group_push_tfrf(GF_DashClient *dash, u32 group_idx, void *_tfrf, 
 			group->nb_segments_in_rep++;
 		}
 	}
+#endif
 	return GF_OK;
 }
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -1089,6 +1089,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!export_ext) {
 			use_dynext = GF_TRUE;
 			if (dumper->in_name) {
+#ifdef GPAC_DISABLE_MEDIA_IMPORT
+				return GF_NOT_SUPPORTED;
+#else
 				GF_MediaImporter import;
 				memset(&import, 0, sizeof(GF_MediaImporter));
 				import.flags = GF_IMPORT_PROBE_ONLY;
@@ -1127,6 +1130,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 					break;
 				}
 				if (!found) return GF_NOT_FOUND;
+#endif
 			}
 		} else {
 			skip_write_filter = GF_TRUE;

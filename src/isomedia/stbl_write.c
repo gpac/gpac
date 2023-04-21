@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -35,8 +35,6 @@ gf_realloc low, which greatly impacts performances for large files*/
 		a = new_a;\
 	}
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
 
 #define CHECK_PACK(_e) \
 	if (!nb_pack) nb_pack = 1; \
@@ -44,6 +42,8 @@ gf_realloc low, which greatly impacts performances for large files*/
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Too many samples %u in packed sample\n", nb_pack)); \
 		return _e; \
 	}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 //adds a DTS in the table and get the sample number of this new sample
@@ -372,6 +372,7 @@ GF_Err stbl_repackCTS(GF_CompositionOffsetBox *ctts)
 	/*note we don't realloc*/
 	return GF_OK;
 }
+#endif // GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 {
@@ -416,6 +417,9 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 	}
 	return GF_OK;
 }
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 //add size
 GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size, u32 nb_pack)
@@ -673,6 +677,8 @@ GF_Err stbl_AddDependencyType(GF_SampleTableBox *stbl, u32 sampleNumber, u32 isL
 }
 #endif
 
+#endif //GPAC_DISABLE_ISOM_WRITE
+
 GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
 {
 	GF_SampleDependencyTypeBox *sdtp;
@@ -699,6 +705,8 @@ GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dep
 	sdtp->sampleCount ++;
 	return GF_OK;
 }
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 //this function is always called in INCREASING order of shadow sample numbers
 GF_Err stbl_AddShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 shadowNumber)
@@ -1081,7 +1089,9 @@ GF_Err stbl_SetSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 syncSamp
 		return gf_list_insert(stsh->entries, ent, i);
 	}
 }
+#endif
 
+#if !defined(GPAC_DISABLE_ISOM_WRITE) || !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 
 //always called before removing the sample from SampleSize
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples, u32 LastAUDefDuration)
@@ -1481,7 +1491,9 @@ GF_Err stbl_RemoveShadow(GF_SampleTableBox *stbl, u32 sampleNumber)
 	stsh->r_LastFoundSample = 0;
 	return GF_OK;
 }
+#endif
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stbl_SetPaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber, u8 bits)
 {
@@ -1517,6 +1529,8 @@ GF_Err stbl_SetPaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber, u8 bits)
 	stbl->PaddingBits->padbits[SampleNumber-1] = bits;
 	return GF_OK;
 }
+
+#endif // GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber)
 {
@@ -1632,6 +1646,8 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber)
 	}
 	return GF_OK;
 }
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 {
@@ -1925,9 +1941,16 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 		if (!stbl->CompositionOffset) return GF_OUT_OF_MEM;
 	}
 	ctts = stbl->CompositionOffset;
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	ctts->w_LastSampleNumber ++;
+#endif
 
-	if (!ctts->unpack_mode && ctts->nb_entries && (ctts->entries[ctts->nb_entries-1].decodingOffset == offset) ) {
+	if (
+#ifndef GPAC_DISABLE_ISOM_WRITE
+		!ctts->unpack_mode &&
+#endif
+		ctts->nb_entries && (ctts->entries[ctts->nb_entries-1].decodingOffset == offset)
+	) {
 		ctts->entries[ctts->nb_entries-1].sampleCount++;
 		return GF_OK;
 	}

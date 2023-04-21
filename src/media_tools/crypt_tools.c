@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -576,6 +576,8 @@ GF_CryptInfo *gf_crypt_info_load(const char *file, GF_Err *out_err)
 	return info;
 }
 
+#ifndef GPAC_DISABLE_ISOM
+
 extern char gf_prog_lf;
 
 static Bool on_decrypt_event(void *_udta, GF_Event *evt)
@@ -846,5 +848,8 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file, const char *dst_file
 	return gf_crypt_file_ex(mp4, drm_file, dst_file, interleave_time, NULL, fs_dump_flags);
 
 }
-#endif /* !defined(GPAC_DISABLE_ISOM_WRITE)*/
+#endif //GPAC_DISABLE_ISOM
+
+
+#endif /* !defined(GPAC_DISABLE_CRYPTO)*/
 

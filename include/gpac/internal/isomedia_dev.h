@@ -943,11 +943,11 @@ typedef struct
 	GF_BitStream *chunk_cache;
 #endif
 
+	u32 sample_count_at_seg_start;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	//dts value when at refererence fragment start (first frag ever or first after a table reset), usually current segment start
 	u64 dts_at_seg_start;
 	//number of samples at refererence fragment start (first frag ever or first after a table reset), usually current segment start
-	u32 sample_count_at_seg_start;
 	Bool first_traf_merged;
 	Bool present_in_scalable_segment;
 	u32 current_traf_stsd_idx;
@@ -1133,7 +1133,7 @@ typedef struct
 	GF_SttsEntry *entries;
 	u32 nb_entries, alloc_size;
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) || !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 	/*cache for WRITE*/
 	u32 w_currentSampleNum;
 	u64 w_LastDTS;
@@ -1161,7 +1161,7 @@ typedef struct
 	GF_DttsEntry *entries;
 	u32 nb_entries, alloc_size;
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) || !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 	u32 w_LastSampleNumber;
 	/*force one sample per entry*/
 	Bool unpack_mode;
@@ -4077,20 +4077,26 @@ struct __tag_isom {
 	s64 read_byte_offset;
 	u64 bytes_removed;
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_ISOCompressMode compress_mode;
 	u32 compress_flags;
+#endif
 
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
 	void *progress_cbk_udta;
 
+	/*in WRITE mode, this is the current MDAT where data is written*/
+	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
+	u64 current_top_box_start;
+
+	Bool signal_frag_bounds;
+	Bool sample_groups_in_traf;
 	u32 FragmentsFlags;
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 NextMoofNumber;
 	/*active fragment*/
 	GF_MovieFragmentBox *moof;
-	/*in WRITE mode, this is the current MDAT where data is written*/
-	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
-	u64 current_top_box_start;
 	u64 segment_start;
 
 	GF_List *moof_list;
@@ -4116,14 +4122,12 @@ struct __tag_isom {
 	Bool single_moof_mode;
 	u32 single_moof_state;
 
-	Bool sample_groups_in_traf;
 	Bool force_sidx_v1;
 
 	/* optional mfra box used in write mode */
 	GF_MovieFragmentRandomAccessBox *mfra;
 
 	Bool store_traf_map;
-	Bool signal_frag_bounds;
 	u64 root_sidx_start_offset, root_sidx_end_offset;
 	u64 sidx_start_offset, sidx_end_offset;
 	u64 styp_start_offset;
@@ -4309,6 +4313,9 @@ GF_Err stbl_SetRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
 
 /*REMOVE functions*/
+#endif
+
+#if !defined(GPAC_DISABLE_ISOM_WRITE) || !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples, u32 LastAUDefDuration);
 GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples);
 GF_Err stbl_RemoveSize(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples);
@@ -4320,6 +4327,9 @@ GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber, u32 nb_sa
 GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveRAPs(GF_SampleTableBox *stbl, u32 nb_samples);
+#endif
+
+#ifndef	GPAC_DISABLE_ISOM_WRITE
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
@@ -4726,8 +4736,9 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent);
 
 GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str);
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset);
-
+#endif
 
 #endif //GPAC_DISABLE_ISOM
 

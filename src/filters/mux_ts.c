@@ -675,6 +675,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 		//serialize webvtt cue formatting for TX3G
 		else if (tspid->codec_id == GF_CODECID_WEBVTT) {
+#ifndef GPAC_DISABLE_VTT
 			u32 i;
 			u64 start_ts, end_ts;
 			void webvtt_write_cue_bs(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt);
@@ -694,6 +695,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			gf_bs_get_content(bs, &es_pck.data, &es_pck.data_len);
 			gf_bs_del(bs);
 			tspid->pck_data_buf = es_pck.data;
+#endif
 		}
 		//for TTML we keep the entire payload as a PES packet
 

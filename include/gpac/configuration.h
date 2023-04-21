@@ -339,12 +339,6 @@ this macro is currently defined in setup.h */
 /*disables DASH MPD */
 //#define GPAC_DISABLE_MPD
 
-/*disables HEVC */
-//#define GPAC_DISABLE_HEVC
-
-/*disables AOM AV1 */
-//#define GPAC_DISABLE_AV1
-
 /*disables VOBSUB */
 //#define GPAC_DISABLE_VOBSUB
 

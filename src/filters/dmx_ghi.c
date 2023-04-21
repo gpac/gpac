@@ -54,9 +54,11 @@ typedef struct
 	u32 active_mux_base_plus_one;
 	GF_PropStringList mux_dst;
 
+#ifndef GPAC_DISABLE_MPD
 	//for xml-based
 	GF_List *segs_xml;
 	GF_List *x_children;
+#endif
 
 	//for bin-based
 	GF_List *segs_bin;
@@ -138,20 +140,26 @@ static void set_opids_props(GHIDmxCtx *ctx, GHIStream *st)
 static void ghi_dmx_send_seg_times(GHIDmxCtx *ctx, GHIStream *st, GF_FilterPid *opid)
 {
 	u32 i, count;
+#ifndef GPAC_DISABLE_MPD
 	if (st->segs_xml) {
 		count=gf_list_count(st->segs_xml);
-	} else {
+	} else
+#endif
+	{
 		count=gf_list_count(st->segs_bin);
 	}
 	for (i=0; i<count; i++) {
 		GF_FilterPacket *pck = gf_filter_pck_new_alloc(opid, 0, NULL);
 		u32 dur;
 		u64 ts;
+#ifndef GPAC_DISABLE_MPD
 		if (st->segs_xml) {
 			GF_MPD_SegmentURL *surl = gf_list_get(st->segs_xml, i);
 			ts = surl->first_tfdt + surl->split_first_dur;
 			dur = (u32) surl->duration;
-		} else {
+		} else
+#endif
+		{
 			GHISegInfo *si = gf_list_get(st->segs_bin, i);
 			ts = si->first_tfdt + si->split_first;
 			dur = (u32) si->seg_duration;
@@ -312,6 +320,7 @@ static Bool ghi_dmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 
 static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStream *st)
 {
+#ifndef GPAC_DISABLE_MPD
 	if (!gf_list_count(st->opids)) {
 		u32 i;
 		for (i=0; i<st->mux_dst.nb_items; i++) {
@@ -407,6 +416,7 @@ static void ghi_dmx_declare_opid_xml(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 		gf_filter_pid_copy_properties(a_opid, opid);
 	}
 	set_opids_props(ctx, st);
+#endif
 }
 
 static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStream *st, GF_BitStream *bs)
@@ -770,6 +780,7 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 
 GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 {
+#ifndef GPAC_DISABLE_MPD
 	GF_MPD *mpd;
 	GF_DOMParser *mpd_parser = gf_xml_dom_new();
 	GF_Err e = gf_xml_dom_parse_string(mpd_parser, (char*) data);
@@ -875,6 +886,9 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 	}
 	gf_mpd_del(mpd);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 {
@@ -1059,19 +1073,20 @@ void ghi_dmx_finalize(GF_Filter *filter)
 		p.value.string_list = st->mux_dst;
 		gf_props_reset_single(&p);
 
-		if (st->segs_xml) {
-			while (gf_list_count(st->segs_xml)) {
-				GF_MPD_SegmentURL *s = gf_list_pop_back(st->segs_xml);
-				gf_mpd_segment_url_free(s);
-			}
-			gf_list_del(st->segs_xml);
-		}
 		if (st->segs_bin) {
 			while (gf_list_count(st->segs_bin)) {
 				GHISegInfo *s = gf_list_pop_back(st->segs_bin);
 				gf_free(s);
 			}
 			gf_list_del(st->segs_bin);
+		}
+#ifndef GPAC_DISABLE_MPD
+		if (st->segs_xml) {
+			while (gf_list_count(st->segs_xml)) {
+				GF_MPD_SegmentURL *s = gf_list_pop_back(st->segs_xml);
+				gf_mpd_segment_url_free(s);
+			}
+			gf_list_del(st->segs_xml);
 		}
 		if (st->x_children) {
 			while (gf_list_count(st->x_children)) {
@@ -1080,7 +1095,7 @@ void ghi_dmx_finalize(GF_Filter *filter)
 			}
 			gf_list_del(st->x_children);
 		}
-
+#endif
 		gf_list_del(st->opids);
 		if (st->rep_id) gf_free(st->rep_id);
 		if (st->res_url) gf_free(st->res_url);

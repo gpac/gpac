@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2022
+ *			Copyright (c) Telecom ParisTech 2020-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream metadata rewrite filter
@@ -303,8 +303,6 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	return GF_OK;
 }
 
-#ifndef GPAC_DISABLE_HEVC
-
 static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
 	GF_HEVCConfig *hvcc;
@@ -350,8 +348,6 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	}
 	return GF_OK;
 }
-#endif // GPAC_DISABLE_HEVC
-
 
 static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
@@ -548,13 +544,11 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_CODECID_MVC:
 		pctx->rewrite_pid_config = avc_rewrite_pid_config;
 		break;
-#ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_HEVC:
 	case GF_CODECID_HEVC_TILES:
 	case GF_CODECID_LHVC:
 		pctx->rewrite_pid_config = hevc_rewrite_pid_config;
 		break;
-#endif
 	case GF_CODECID_VVC:
 	case GF_CODECID_VVC_SUBPIC:
 		pctx->rewrite_pid_config = vvc_rewrite_pid_config;

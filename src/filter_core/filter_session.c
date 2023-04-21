@@ -2509,7 +2509,10 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 #ifndef GPAC_DISABLE_THREADS
 	u64 run_time=0, active_time=0, nb_tasks=0;
 #endif
-	u32 i, count, nb_filters=0;
+	u32 i, count;
+#ifndef GPAC_DISABLE_LOG
+	u32 nb_filters=0;
+#endif
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 	gf_mx_p(fsess->filters_mx);
@@ -2518,7 +2521,9 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		if (f->multi_sink_target) continue;
+#ifndef GPAC_DISABLE_LOG
 		nb_filters++;
+#endif
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter stats - %d filters\n", nb_filters));
@@ -3834,6 +3839,7 @@ static Bool gf_fsess_get_user_pass(void *usr_cbk, Bool secure, const char *site_
 	return gf_fs_forward_gf_event(fsess, &evt, GF_FALSE, GF_FALSE);
 }
 #endif
+
 static GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs)
 {
 #ifdef GPAC_USE_DOWNLOADER

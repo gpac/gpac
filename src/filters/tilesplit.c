@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2022
+ *			Copyright (c) Telecom ParisTech 2020-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / tile splitting filter
@@ -29,7 +29,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 
 typedef struct
 {
@@ -356,8 +356,9 @@ static GF_Err tilesplit_set_eos(GF_Filter *filter, GF_TileSplitCtx *ctx)
 	return GF_EOS;
 }
 
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height);
-
+#endif
 static GF_Err tilesplit_process(GF_Filter *filter)
 {
 	GF_TileSplitCtx *ctx = (GF_TileSplitCtx *) gf_filter_get_udta(filter);
@@ -577,7 +578,7 @@ GF_FilterRegister TileSplitRegister = {
 	)
 	.private_size = sizeof(GF_TileSplitCtx),
 	SETCAPS(TileSplitCaps),
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 	.initialize = tilesplit_initialize,
 	.finalize = tilesplit_finalize,
 	.args = TileSplitArgs,
@@ -599,5 +600,5 @@ const GF_FilterRegister *tilesplit_register(GF_FilterSession *session)
 	return NULL;
 }
 
-#endif /* !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS) */
+#endif /* !defined(GPAC_DISABLE_AV_PARSERS) */
 

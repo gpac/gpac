@@ -8913,7 +8913,6 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find AVC config, using default %s\n", szCodec));
 		return GF_OK;
 
-#ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_LHVC:
 		subtype = force_inband ? GF_ISOM_SUBTYPE_LHE1 : GF_ISOM_SUBTYPE_LHV1;
 		//fallthrough
@@ -8950,9 +8949,7 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381]  Cannot find HEVC config, using default %s\n", szCodec));
 		return GF_OK;
-#endif
 
-#ifndef GPAC_DISABLE_AV1
 	case GF_CODECID_AV1:
 		if (!subtype) subtype = GF_ISOM_SUBTYPE_AV01;
 
@@ -8969,8 +8966,6 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find AV1 config, using default %s\n", szCodec));
 		return GF_OK;
-#endif /*GPAC_DISABLE_AV1*/
-
 
 	case GF_CODECID_VP8:
 		if (!subtype) subtype = GF_ISOM_SUBTYPE_VP08;

@@ -1467,8 +1467,12 @@ static JSValue jsff_bind(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 		return GF_JS_EXCEPTION(ctx);
 
 	if (!strcmp(f->freg->name, "dashin")) {
+#ifndef GPAC_DISABLE_DASH_CLIENT
 		JSValue dashdmx_bind_js(GF_Filter *f, JSContext *jsctx, JSValueConst obj);
 		return dashdmx_bind_js(f, ctx, argv[0]);
+#else
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "DASH client disabled in build");
+#endif
 	}
 
 	return js_throw_err_msg(ctx, GF_BAD_PARAM, "filter class %s has no JS bind capabilities", f->freg->name);

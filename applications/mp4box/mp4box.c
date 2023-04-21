@@ -196,6 +196,8 @@ char outfile[GF_MAX_PATH];
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 GF_SMEncodeOptions smenc_opts;
+#endif
+#ifndef GPAC_DISABLE_SWF_IMPORT
 u32 swf_flags;
 #endif
 GF_Fraction import_fps;
@@ -324,6 +326,8 @@ static void init_global_vars()
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	memset(&smenc_opts, 0, sizeof(GF_SMEncodeOptions));
+#endif
+#ifndef GPAC_DISABLE_SWF_IMPORT
 	swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
 #endif
 	import_fps.num = 0;
@@ -1419,7 +1423,7 @@ void PrintMetaUsage()
 
 MP4BoxArg m4b_swf_args[] =
 {
-#ifndef GPAC_DISABLE_SCENE_ENCODER
+#ifndef GPAC_DISABLE_SWF_IMPORT
  	MP4BOX_ARG("global", "all SWF defines are placed in first scene replace rather than when needed", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_STATIC_DICT, ARG_BIT_MASK),
  	MP4BOX_ARG("no-ctrl", "use a single stream for movie control and dictionary (this will disable ActionScript)", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_SPLIT_TIMELINE, ARG_BIT_MASK_REM),
  	MP4BOX_ARG("no-text", "remove all SWF text", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_NO_TEXT, ARG_BIT_MASK),
@@ -1900,9 +1904,9 @@ u32 parse_sdp_ext(char *arg_val, u32 param)
 }
 
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
 static u32 parse_meta_args(char *opts, MetaActionType act_type)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	MetaAction *meta;
 
 	metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
@@ -2200,14 +2204,14 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		opts += strlen(szSlot);
 		next[0] = ':';
 	}
+#endif //GPAC_DISABLE_ISOM_WRITE
 	return 0;
 }
-#endif //GPAC_DISABLE_ISOM_WRITE
 
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
 static Bool parse_tsel_args(char *opts, TSELActionType act)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	TrackIdentifier refTrackID = {0, 0};
 	Bool has_switch_id;
 	u32 switch_id = 0;
@@ -2280,9 +2284,9 @@ static Bool parse_tsel_args(char *opts, TSELActionType act)
 		}
 		opts += strlen(szSlot);
 	}
+#endif // GPAC_DISABLE_ISOM_WRITE
 	return 0;
 }
-#endif // GPAC_DISABLE_ISOM_WRITE
 
 
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
@@ -4455,9 +4459,11 @@ static u32 do_add_cat(int argc, char **argv)
 		}
 	}
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (file && keep_utc && open_edit) {
 		gf_isom_keep_utc_times(file, 1);
 	}
+#endif
 
 	if (do_flat && interleaving_time) {
 		char szSubArg[100];
@@ -4894,6 +4900,7 @@ static GF_Err do_dash()
 
 static GF_Err do_export_tracks_non_isobmf()
 {
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
 	u32 i;
 
 	GF_MediaExporter mdump;
@@ -4927,6 +4934,9 @@ static GF_Err do_export_tracks_non_isobmf()
 		if (e) return e;
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 
@@ -4997,6 +5007,7 @@ static u32 get_track_id(GF_ISOFile *file, TrackIdentifier *tkid)
 
 static GF_Err do_export_tracks()
 {
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
 	GF_Err e;
 	u32 i;
 	char szFile[GF_MAX_PATH+24];
@@ -5042,6 +5053,9 @@ static GF_Err do_export_tracks()
 		}
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 static GF_Err do_meta_act()
@@ -5308,6 +5322,7 @@ static GF_Err do_meta_act()
 
 static GF_Err do_tsel_act()
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 i;
 	GF_Err e;
 	for (i=0; i<nb_tsel_acts; i++) {
@@ -5354,10 +5369,14 @@ static GF_Err do_tsel_act()
 		}
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 static void do_ipod_conv()
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 i, ipod_major_brand = 0;
 	M4_LOG(GF_LOG_INFO, ("Setting up iTunes/iPod file\n"));
 
@@ -5404,10 +5423,12 @@ static void do_ipod_conv()
 	gf_isom_set_brand_info(file, ipod_major_brand, 1);
 	gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MP42, GF_TRUE);
 	do_save = GF_TRUE;
+#endif
 }
 
 static GF_Err do_track_act()
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 j;
 	for (j=0; j<nb_track_act; j++) {
 		u32 i;
@@ -5585,7 +5606,11 @@ static GF_Err do_track_act()
 			do_save = GF_TRUE;
 			break;
 		case TRACK_ACTION_SET_EDITS:
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 			e = apply_edits(file, track, tka->string);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 			do_save = GF_TRUE;
 			break;
 		case TRACK_ACTION_SET_TIME:
@@ -5615,20 +5640,28 @@ static GF_Err do_track_act()
 		if (e) return e;
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 
 
 static Bool do_qt_keys(char *name, char *val)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_Err e = gf_media_isom_apply_qt_key(file, name, val);
 	if (e) return GF_FALSE;
 	do_save = GF_TRUE;
 	return GF_TRUE;
+#else
+	return GF_FALSE;
+#endif
 }
 
 static GF_Err do_itunes_tag()
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_Err e;
 	char *itunes_data = NULL;
 	char *tags = itunes_tags;
@@ -5759,6 +5792,9 @@ tag_done:
 	}
 	if (itunes_data) gf_free(itunes_data);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 #if !defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)
@@ -5799,6 +5835,7 @@ static void set_sdp_ext()
 
 static GF_Err do_remux_file()
 {
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
 	GF_MediaExporter mdump;
 	memset(&mdump, 0, sizeof(GF_MediaExporter));
 	mdump.in_name = inName;
@@ -5806,6 +5843,9 @@ static GF_Err do_remux_file()
 	mdump.flags = GF_EXPORT_REMUX;
 	mdump.print_stats_graph = fs_dump_flags;
 	return gf_media_export(&mdump);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 static u32 mp4box_cleanup(u32 ret_code) {
@@ -6226,7 +6266,11 @@ int mp4box_main(int argc, char **argv)
 			if (!crypt && use_init_seg) {
 				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, NULL);
 				if (file) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 					e = gf_isom_open_segment(file, inName, 0, 0, 0);
+#else
+					e = GF_NOT_SUPPORTED;
+#endif
 					if (e==GF_ISOM_INCOMPLETE_FILE) {
 						M4_LOG(GF_LOG_WARNING, ("Segment %s: %s\n", inName, gf_error_to_string(e) ));
 					} else if (e) {
@@ -6256,8 +6300,10 @@ int mp4box_main(int argc, char **argv)
 					return mp4box_cleanup(1);
 				}
 			}
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			if (freeze_box_order)
 				gf_isom_freeze_order(file);
+#endif
 			break;
 		/*allowed for bt<->xmt*/
 		case 2:
@@ -6348,14 +6394,16 @@ int mp4box_main(int argc, char **argv)
 		}
 	}
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (high_dynamc_range_filename) {
-		e = parse_high_dynamc_range_xml_desc(file, 0, high_dynamc_range_filename);
+		e = apply_high_dynamc_range_xml_desc(file, 0, high_dynamc_range_filename);
 		if (e) goto err_exit;
 	}
 
 	if (file && keep_utc) {
 		gf_isom_keep_utc_times(file, 1);
 	}
+#endif
 
 	if ( gf_strlcpy(outfile, outName ? outName : inName, sizeof(outfile)) >= sizeof(outfile) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Filename too long (limit is %d)\n", GF_MAX_PATH));

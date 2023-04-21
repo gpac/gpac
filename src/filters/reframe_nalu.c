@@ -342,15 +342,11 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	if (ctx->codecid==GF_CODECID_HEVC) {
-#ifdef GPAC_DISABLE_HEVC
-		return GF_NOT_SUPPORTED;
-#else
 		ctx->log_name = "HEVC";
 		if (ctx->avc_state) { gf_free(ctx->avc_state); ctx->avc_state = NULL; }
 		if (ctx->vvc_state) { gf_free(ctx->vvc_state); ctx->vvc_state = NULL; }
 		if (!ctx->hevc_state) GF_SAFEALLOC(ctx->hevc_state, HEVCState);
 		ctx->min_layer_id = 0xFF;
-#endif
 	} else if (ctx->codecid==GF_CODECID_VVC) {
 		ctx->log_name = "VVC";
 		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
@@ -569,7 +565,6 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 		//parse directly from current pos (next byte is first byte of nal hdr)
 		if (hevc_state) {
-#ifndef GPAC_DISABLE_HEVC
 			u8 temporal_id, layer_id, nal_type;
 
 			res = gf_hevc_parse_nalu_bs(bs, hevc_state, &nal_type, &temporal_id, &layer_id);
@@ -603,7 +598,6 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 				hevc_state->sei.recovery_point.valid = GF_FALSE;
 				gdr_frame_count = hevc_state->sei.recovery_point.frame_cnt;
 			}
-#endif // GPAC_DISABLE_HEVC
 		} else if (vvc_state) {
 
 			u8 temporal_id, layer_id, nal_type;
@@ -855,8 +849,6 @@ static void naludmx_add_param_nalu(GF_List *param_list, GF_NALUFFParam *sl, u8 n
 	gf_list_add(pa->nalus, sl);
 }
 
-#ifndef GPAC_DISABLE_HEVC
-
 static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc_cfg)
 {
 	u32 use_tiles, use_wpp, nb_pps, i, count;
@@ -890,10 +882,10 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 	else if (!use_tiles && (use_wpp==nb_pps) ) hevc_cfg->parallelismType = 3;
 	else hevc_cfg->parallelismType = 0;
 }
-#endif // GPAC_DISABLE_HEVC
 
 GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 {
+#ifndef GPAC_DISABLE_ISOM
 	GF_OperatingPointsInformation *oinf;
 	GF_BitStream *bs;
 	u8 *data;
@@ -1032,6 +1024,7 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 	gf_isom_oinf_del_entry(oinf);
 
 	gf_filter_pid_set_info_str(ctx->opid, "hevc:oinf", &PROP_DATA_NO_COPY(data, data_size) );
+#endif
 	return GF_OK;
 }
 
@@ -1070,7 +1063,6 @@ static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 
 static Bool naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_size, u8 **dsi_enh, u32 *dsi_enh_size, u32 *max_width, u32 *max_height, u32 *max_enh_width, u32 *max_enh_height, GF_Fraction *sar, Bool *has_hevc_base)
 {
-#ifndef GPAC_DISABLE_HEVC
 	u32 i, count;
 	u8 layer_id;
 	Bool first = GF_TRUE;
@@ -1237,7 +1229,6 @@ static Bool naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 	}
 	gf_odf_hevc_cfg_del(hvcc);
 	gf_odf_hevc_cfg_del(lvcc);
-#endif // GPAC_DISABLE_HEVC
 	return GF_TRUE;
 }
 
@@ -2413,9 +2404,6 @@ static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc
 
 static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
 {
-#ifdef GPAC_DISABLE_HEVC
-	return -1;
-#else
 	s32 ps_idx = 0;
 	s32 res;
 	u8 nal_unit_type, temporal_id, layer_id;
@@ -2586,7 +2574,6 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		ctx->max_temporal_id[layer_id] = temporal_id;
 	if (ctx->min_layer_id > layer_id) ctx->min_layer_id = layer_id;
 	return res;
-#endif // GPAC_DISABLE_HEVC
 }
 
 
@@ -3428,7 +3415,6 @@ naldmx_flush:
 
 		//store all variables needed to compute POC/CTS and sample SAP and recovery info
 		if (ctx->codecid==GF_CODECID_HEVC) {
-#ifndef GPAC_DISABLE_HEVC
 			slice_is_idr = gf_hevc_slice_is_IDR(ctx->hevc_state);
 
 			recovery_point_valid = ctx->hevc_state->sei.recovery_point.valid;
@@ -3463,7 +3449,6 @@ naldmx_flush:
 				slice_is_b = GF_TRUE;
 				break;
 			}
-#endif // GPAC_DISABLE_HEVC
 		} else if (ctx->codecid==GF_CODECID_VVC) {
 			slice_is_idr = gf_vvc_slice_is_ref(ctx->vvc_state);
 			recovery_point_valid = ctx->vvc_state->s_info.recovery_point_valid;

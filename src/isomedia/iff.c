@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -82,6 +82,7 @@ GF_Err ispe_box_size(GF_Box *s)
 		return GF_NOT_SUPPORTED;
 	}
 }
+#endif
 
 GF_Box *a1lx_box_new()
 {
@@ -187,8 +188,6 @@ GF_Err a1op_box_size(GF_Box *s)
 	p->size += 1;
 	return GF_OK;
 }
-
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -1225,9 +1224,9 @@ GF_Err iaux_box_size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs, u32 sample_number) {
-#ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_Err e;
 	u32 w, h, hSpacing, vSpacing;
 	u8 num_channels;
@@ -1266,7 +1265,7 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		char sz_item_name[256];
 		GF_TileItemMode orig_tile_mode;
 
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 		if (image_props->src_file)
 			e = GF_SERVICE_ERROR;
 		else
@@ -1728,12 +1727,6 @@ exit:
 	if (config_box) gf_isom_box_del(config_box);
 	image_props->cenc_info = orig_ipro;
 	return e;
-
-
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-
 }
 
 static
@@ -1964,5 +1957,8 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 
  	return gf_isom_iff_create_image_item_from_track_internal(movie, root_meta, meta_track_number, imported_track, item_name, item_id, image_props, item_extent_refs, 1);
 }
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 #endif /*GPAC_DISABLE_ISOM*/

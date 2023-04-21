@@ -872,7 +872,7 @@ GF_Box *def_parent_box_new()
 	return (GF_Box *) tmp;
 }
 
-#ifndef GPAC_DISABLE_ISOM_WRITEHintSa
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err def_parent_box_write(GF_Box *s, GF_BitStream *bs)
 {
@@ -904,7 +904,7 @@ GF_Box *def_parent_full_box_new()
 	return (GF_Box *) tmp;
 }
 
-#ifndef GPAC_DISABLE_ISOM_WRITEHintSa
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err def_parent_full_box_write(GF_Box *s, GF_BitStream *bs)
 {

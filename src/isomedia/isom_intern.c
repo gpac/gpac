@@ -102,6 +102,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 
 		//we have PSSH per moov, internally remap as a sample group of type PSSH
 		if (gf_list_count(moof->PSSHs)) {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			u8 *pssh_data;
 			u32 pssh_len;
 			u32 k, nb_pssh = gf_list_count(moof->PSSHs);
@@ -125,9 +126,11 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 
 			gf_isom_set_sample_group_description_internal(mov, gf_list_find(mov->moov->trackList, trak)+1, 1+prev_sample_count, GF_4CC('P','S','S','H'), 0, pssh_data, pssh_len, GF_FALSE);
 			gf_free(pssh_data);
+#endif
 		}
 
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 		//we have emsg, internally remap as a sample group of type EMSG
 		if (gf_list_count(mov->emsgs)) {
 			u8 *emsg_data;
@@ -144,6 +147,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			gf_isom_set_sample_group_description_internal(mov, gf_list_find(mov->moov->trackList, trak)+1, 1+prev_sample_count, GF_4CC('E','M','S','G'), 0, emsg_data, emsg_len, GF_FALSE);
 			gf_free(emsg_data);
 		}
+#endif
 	}
 	if (mov->emsgs) {
 		gf_isom_box_array_del(mov->emsgs);
@@ -243,6 +247,7 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 		}
 	}
 }
+#endif //GPAC_DISABLE_ISOM_FRAGMENTS
 
 void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 {
@@ -265,6 +270,8 @@ void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 		}
 	}
 }
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 #ifdef GF_ENABLE_CTRN
 static void gf_isom_setup_traf_inheritance(GF_ISOFile *mov)
@@ -643,7 +650,9 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 		case GF_ISOM_BOX_TYPE_MOOF:
 			//no support for inplace rewrite for fragmented files
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			gf_isom_disable_inplace_rewrite(mov);
+#endif
 			if (!mov->moov) {
 				GF_LOG(mov->moof ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Movie fragment but no moov (yet) - possibly broken parsing!\n"));
 			}
@@ -891,7 +900,9 @@ GF_ISOFile *gf_isom_new_movie()
 	}
 
 	/*default storage mode is flat*/
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	mov->storageMode = GF_ISOM_STORE_FLAT;
+#endif
 	mov->es_id_default_sync = -1;
 	return mov;
 }
@@ -916,8 +927,12 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 		if (OpenMode == GF_ISOM_OPEN_READ_EDIT) {
 			mov->openMode = GF_ISOM_OPEN_READ_EDIT;
 
+#ifndef	GPAC_DISABLE_ISOM_WRITE
 			// create a memory edit map in case we add samples, typically during import
 			e = gf_isom_datamap_new(NULL, tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 			if (e) {
 				gf_isom_set_last_error(NULL, e);
 				gf_isom_delete_movie(mov);

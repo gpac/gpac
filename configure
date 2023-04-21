@@ -2183,6 +2183,11 @@ if test "$disable_m2ts" = "yes" ; then
     echo "MPEG-2 TS disabled"
     echo "#define GPAC_DISABLE_MPEG2TS" >> $TMPH
 fi
+
+if test "$disable_parsers" = "yes" ; then
+    disable_m2ts_mux="yes"
+fi
+
 if test "$disable_m2ts_mux" = "yes" ; then
     echo "MPEG-2 TS Multiplexer disabled"
     echo "#define GPAC_DISABLE_MPEG2TS_MUX" >> $TMPH
@@ -2826,10 +2831,6 @@ echo "DISABLE_ISOM_ADOBE=$disable_isoff_hds" >> config.mak
 echo "DISABLE_VRML=$disable_vrml" >> config.mak
 echo "DISABLE_ROUTE=$disable_route" >> config.mak
 echo "DISABLE_CRYPTO=$disable_crypto" >> config.mak
-
-if test "$disable_parsers" = "yes" ; then
-    disable_m2ts_mux="yes"
-fi
 echo "DISABLE_M2TS_MUX=$disable_m2ts_mux" >> config.mak
 echo "DISABLE_M2TS=$disable_m2ts" >> config.mak
 

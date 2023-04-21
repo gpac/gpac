@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1241,6 +1241,7 @@ void senc_box_del(GF_Box *s)
 	gf_free(s);
 }
 
+#endif //ISOM
 
 u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv)
 {
@@ -1279,6 +1280,8 @@ u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *cons
 	}
 	return 0;
 }
+
+#ifndef GPAC_DISABLE_ISOM
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc)

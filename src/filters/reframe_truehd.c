@@ -86,7 +86,9 @@ typedef struct
 	u32 index_alloc_size, index_size;
 	Bool copy_props;
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AC3Header ac3_hdr;
+#endif
 	Bool is_sync;
 } GF_TrueHDDmxCtx;
 
@@ -124,6 +126,7 @@ GF_Err truehd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void truehd_aux_ac3(GF_TrueHDDmxCtx *ctx, GF_BitStream *bs, GF_AC3Header *hdr)
 {
 	u8 *data;
@@ -171,6 +174,7 @@ static void truehd_aux_ac3(GF_TrueHDDmxCtx *ctx, GF_BitStream *bs, GF_AC3Header 
 	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_send(dst_pck);
 }
+#endif
 
 static GF_Err truehd_parse_frame(GF_TrueHDDmxCtx *ctx, GF_BitStream *bs, TrueHDHdr *hdr, u64 *frame_start)
 {
@@ -186,6 +190,7 @@ static GF_Err truehd_parse_frame(GF_TrueHDDmxCtx *ctx, GF_BitStream *bs, TrueHDH
 	while (gf_bs_available(bs)) {
 		u32 sync = gf_bs_peek_bits(bs, 16, 0);
 		if (sync==0x0B77) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			GF_AC3Header ac3hdr;
 			if (!gf_ac3_parser_bs(bs, &ac3hdr, GF_TRUE))
 				return GF_OK;
@@ -201,6 +206,9 @@ static GF_Err truehd_parse_frame(GF_TrueHDDmxCtx *ctx, GF_BitStream *bs, TrueHDH
 			avail = (u32) gf_bs_available(bs);
 			*frame_start = gf_bs_get_position(bs);
 			continue;
+#else
+			return GF_NOT_SUPPORTED;
+#endif
 		}
 		break;
 	}
