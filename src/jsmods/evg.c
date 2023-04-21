@@ -6102,6 +6102,7 @@ static JSValue texture_get_pixelf(JSContext *c, JSValueConst obj, int argc, JSVa
 
 static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 size)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	GF_BitStream *bs;
 	u8 *dsi=NULL;
@@ -6152,6 +6153,9 @@ static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 si
 		return e;
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *fileName, Bool rel_to_script)
 {

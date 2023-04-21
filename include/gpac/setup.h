@@ -709,6 +709,12 @@ typedef struct {
 # endif
 #endif
 
+#ifdef GPAC_DISABLE_MEDIA_IMPORT
+# ifndef GPAC_DISABLE_VTT
+# define GPAC_DISABLE_VTT
+# endif
+#endif
+
 //we currently disable all extra IPMP/IPMPX/OCI/extra MPEG-4 descriptors parsing
 #ifndef GPAC_MINIMAL_ODF
 #define GPAC_MINIMAL_ODF

@@ -428,10 +428,10 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 #endif
 #endif
 
-#if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS)
 #include <gpac/media_tools.h>
 void SDLVid_SetIcon(SDLVidCtx *ctx)
 {
+#if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS) && !defined(GPAC_DISABLE_AV_PARSERS)
 	u8 *buffer, *dec_buf;
 	u32 size, w, h, pf, Bpp, dst_size=0;
 	const char cfg[GF_MAX_PATH];
@@ -457,8 +457,8 @@ void SDLVid_SetIcon(SDLVidCtx *ctx)
 	}
 	gf_free(buffer);
 	gf_free(dec_buf);
-}
 #endif
+}
 
 
 GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
@@ -534,9 +534,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 			dr->window_id = SDL_GetWindowID(ctx->screen);
 
-#if !defined(GPAC_CONFIG_IOS)
 			SDLVid_SetIcon(ctx);
-#endif
 
 			/*creating a window, at least on OSX, changes the locale and screws up float parsing !!
 			force setting the local back and pray that it will be changed before any other atof/strtod is called
@@ -653,9 +651,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 			dr->window_id = SDL_GetWindowID(ctx->screen);
 
-#if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS)
 			SDLVid_SetIcon(ctx);
-#endif
 
 			/*see above note*/
 #ifndef _WIN32_WCE

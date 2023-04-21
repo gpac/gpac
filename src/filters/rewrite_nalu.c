@@ -469,7 +469,6 @@ GF_Err nalumx_process(GF_Filter *filter)
 				layer_id=1;
 			if (!temporal_id)
 				temporal_id=1;
-#ifndef GPAC_DISABLE_HEVC
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, GF_HEVC_NALU_ACCESS_UNIT, 6);
 			gf_bs_write_int(ctx->bs_w, layer_id-1, 6);
@@ -478,7 +477,6 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, 2, 3);
 			gf_bs_write_int(ctx->bs_w, 1, 1); //stop bit
 			gf_bs_write_int(ctx->bs_w, 0, 4); //4 bits to 0
-#endif
 		} else if (ctx->vtype==UFNAL_VVC) {
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, 0, 1);

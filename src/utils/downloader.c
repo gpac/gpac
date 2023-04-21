@@ -960,7 +960,7 @@ static GF_Err h2_submit_request(GF_DownloadSession *sess, char *req_name, const 
 	sess->h2_stream_id = nghttp2_submit_request(sess->h2_sess->ng_sess, NULL, hdrs, nb_hdrs+4, has_body ? &sess->data_io : NULL, sess);
 	sess->h2_ready_to_send = 0;
 
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_HTTP, GF_LOG_DEBUG)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send request (has_body %d) for new stream_id %d:\n", has_body, sess->h2_stream_id));
 		for (i=0; i<nb_hdrs+4; i++) {

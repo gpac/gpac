@@ -50,7 +50,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(sdl_out);
 #endif
 
-#ifdef GPAC_HAS_FREETYPE
+#if defined(GPAC_HAS_FREETYPE) && !defined(GPAC_DISABLE_EVG)
 	LOAD_PLUGIN(ftfont);
 #endif
 #ifdef GPAC_HAS_ALSA

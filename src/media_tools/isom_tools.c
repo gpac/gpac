@@ -73,7 +73,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			if (e) return e;
 #endif
 		}
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 		else if ((stype==GF_ISOM_SUBTYPE_HVC1) || (stype==GF_ISOM_SUBTYPE_HVC2)
 			|| (stype==GF_ISOM_SUBTYPE_HEV1) || (stype==GF_ISOM_SUBTYPE_HEV2)
 		) {
@@ -97,8 +97,6 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			gf_odf_hevc_cfg_del(hvcc);
 			if (e) return e;
 		}
-#endif
-#if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
 		else if (stype == GF_ISOM_SUBTYPE_AV01) {
 			//GF_AV1Config *av1c = gf_isom_av1_config_get(file, track, 1);
 			//TODO: e = gf_isom_av1_config_update(file, track, 1, av1c);
@@ -106,8 +104,6 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			//if (e) return e;
 			return GF_NOT_SUPPORTED;
 		}
-#endif
-#if !defined(GPAC_DISABLE_AV_PARSERS)
 		else if ((stype==GF_ISOM_SUBTYPE_VVC1) || (stype==GF_ISOM_SUBTYPE_VVI1)
 		) {
 			GF_VVCConfig *vvcc = gf_isom_vvc_config_get(file, track, 1);
@@ -1526,12 +1522,14 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_RAW;
 		GF_List *other_props = gf_list_new();
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, other_props);
+#ifndef GPAC_DISABLE_ISOM_WRITE
 		if ((e == GF_OK) && gf_list_count(other_props)) {
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_isom_box_array_write(NULL, other_props, bs);
 			gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
 		}
+#endif // GPAC_DISABLE_ISOM_WRITE
 		gf_list_del(other_props);
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -2553,7 +2551,6 @@ exit:
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-#if !defined(GPAC_DISABLE_HEVC)
 /* Split LHVC layers */
 static GF_NALUFFParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 {
@@ -2573,7 +2570,6 @@ static GF_NALUFFParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 t
 		gf_list_add(hevc_cfg->param_array, ar);
 	return ar;
 }
-#endif
 
 typedef struct{
 	u8 layer_id_plus_one;
@@ -2732,7 +2728,7 @@ exit:
 GF_EXPORT
 GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode)
 {
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 	LHVCTrackInfo sti[64];
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	u32 sample_num, count, cur_extract_mode, j, k, max_layer_id;
@@ -3271,7 +3267,7 @@ exit:
 #endif
 
 }
-#endif /*GPAC_DISABLE_HEVC*/
+#endif ///GPAC_DISABLE_AV_PARSERS
 
 GF_EXPORT
 GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 compat, u32 level)
@@ -3307,7 +3303,9 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 compat, 
 	return e;
 }
 
-#if !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS)
+#endif // GPAC_DISABLE_MEDIA_IMPORT
+
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
 {
 	HEVCSliceInfo *si = &hevc->s_info;
@@ -3372,6 +3370,8 @@ u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width,
 	return tileX + tileY * si->pps->num_tile_columns;
 }
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
 typedef struct
 {
 	u32 track, track_id, sample_count;
@@ -3413,7 +3413,7 @@ static void hevc_add_trif(GF_ISOFile *file, u32 track, u32 id, Bool full_picture
 GF_EXPORT
 GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 {
-#if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
+#if defined(GPAC_DISABLE_AV_PARSERS)
 	return GF_NOT_SUPPORTED;
 #else
 	u32 i, j, cur_tile, count, stype, track, nb_tiles, di, nalu_size_length, tx, ty, tw, th;
@@ -3748,7 +3748,7 @@ err_exit:
 	return e;
 #endif
 }
-#endif /*GPAC_DISABLE_HEVC*/
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
@@ -4197,9 +4197,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 	GF_ESD *esd;
 	GF_Err e;
 	GF_AVCConfig *avcc;
-#ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
-#endif
 	u32 subtype = gf_isom_get_media_subtype(movie, track, stsd_idx);
 
 	if (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
@@ -4284,7 +4282,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] Cannot find SVC/MVC configuration box\n"));
 		return GF_ISOM_INVALID_FILE;
 
-#ifndef GPAC_DISABLE_HEVC
 	case GF_ISOM_SUBTYPE_HVC1:
 	case GF_ISOM_SUBTYPE_HEV1:
 	case GF_ISOM_SUBTYPE_HVC2:
@@ -4314,11 +4311,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[RFC6381] HEVCConfig not compliant\n"));
 		return GF_ISOM_INVALID_FILE;
-#else
-		return GF_NOT_SUPPORTED;
-#endif
 
-#if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
 	case GF_ISOM_SUBTYPE_AV01:
 	{
 		GF_AV1Config *av1c = gf_isom_av1_config_get(movie, track, stsd_idx);
@@ -4336,7 +4329,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[RFC6381] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
-#endif /*!defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)*/
 
 	case GF_ISOM_SUBTYPE_VP08:
 	case GF_ISOM_SUBTYPE_VP09:
@@ -4510,6 +4502,8 @@ GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample
 #endif
 }
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
 GF_EXPORT
 GF_Err gf_media_isom_apply_qt_key(GF_ISOFile *movie, const char *name, const char *val)
 {
@@ -4640,5 +4634,7 @@ GF_Err gf_media_isom_apply_qt_key(GF_ISOFile *movie, const char *name, const cha
 	}
 	return e;
 }
+#endif // GPAC_DISABLE_ISOM_WRITE
+
 
 #endif //GPAC_DISABLE_ISOM

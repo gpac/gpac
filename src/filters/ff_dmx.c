@@ -772,6 +772,7 @@ This is needed because libavformat does not always expose the same dsi syntax de
 */
 static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AC3Config ac3;
 	GF_M4ADecSpecInfo aaccfg;
 	GF_AVCConfig *avcc;
@@ -860,6 +861,9 @@ static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
 		break;
 	}
 	return 0;
+#else
+	return 0;
+#endif
 }
 
 GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)

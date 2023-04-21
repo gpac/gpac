@@ -4712,8 +4712,6 @@ const char *gf_avc_hevc_get_chroma_format_name(u8 chroma_format)
 	}
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
-
 u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 idx2, s32 idx3)
 {
 	u32 val=0, code;
@@ -4821,6 +4819,8 @@ void gf_bs_write_se(GF_BitStream *bs, s32 num)
 
 	gf_bs_write_ue(bs, v);
 }
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 GF_EXPORT
 u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
@@ -5903,7 +5903,6 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 }
 
 
-#if !defined(GPAC_DISABLE_HEVC)
 static void avc_parse_itu_t_t35_sei(GF_BitStream* bs, AVCSeiItuTT35DolbyVision *dovi)
 {
 	u8 itu_t_t35_country_code = gf_bs_read_u8(bs);
@@ -5914,7 +5913,6 @@ static void avc_parse_itu_t_t35_sei(GF_BitStream* bs, AVCSeiItuTT35DolbyVision *
 		dovi->rpu_flag = GF_TRUE;
 	}
 }
-#endif
 
 static void avc_compute_poc(AVCSliceInfo *si)
 {
@@ -6908,8 +6906,6 @@ exit:
 	gf_bs_del(bs);
 	return e;
 }
-
-#ifndef GPAC_DISABLE_HEVC
 
 /**********
 HEVC parsing
@@ -8927,9 +8923,6 @@ GF_Err gf_hevc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width,
 	hevc.sps_active_idx = -1;
 	return gf_hevc_get_sps_info_with_state(&hevc, sps_data, sps_size, sps_id, width, height, par_n, par_d);
 }
-
-
-#endif //GPAC_DISABLE_HEVC
 
 static u32 AC3_FindSyncCode(u8 *buf, u32 buflen)
 {
@@ -12377,4 +12370,38 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 	gf_bs_del(bs);
 	return GF_OK;
 }
+
+void gf_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type)
+{
+	u32 i, j;
+	if (!hevccfg) return;
+
+	for (i = 0; i < gf_list_count(hevccfg->param_array); i++) {
+		GF_NALUFFParamArray* ar = gf_list_get(hevccfg->param_array, i);
+		if (ar->type != nal_type) continue;
+		for (j = 0; j < gf_list_count(ar->nalus); j++) {
+			u8 ntype, tid, lid;
+			GF_NALUFFParam* sl = gf_list_get(ar->nalus, j);
+			gf_hevc_parse_nalu(sl->data, sl->size, hevc, &ntype, &tid, &lid);
+		}
+	}
+}
+
+void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
+{
+	u32 i, j;
+	if (!vvccfg) return;
+
+	for (i = 0; i < gf_list_count(vvccfg->param_array); i++) {
+		GF_NALUFFParamArray* ar = gf_list_get(vvccfg->param_array, i);
+		if (ar->type != nal_type) continue;
+		for (j = 0; j < gf_list_count(ar->nalus); j++) {
+			u8 ntype, tid, lid;
+			GF_NALUFFParam* sl = gf_list_get(ar->nalus, j);
+			gf_vvc_parse_nalu(sl->data, sl->size, vvc, &ntype, &tid, &lid);
+		}
+	}
+}
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
+

@@ -29,7 +29,7 @@
 #include <gpac/network.h>
 #include <gpac/nodes_mpeg4.h>
 
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH) && !defined(GPAC_DISABLE_COMPOSITOR)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH) && !defined(GPAC_DISABLE_COMPOSITOR) && !defined(GPAC_DISABLE_SMGR)
 
 typedef struct
 {
@@ -1005,7 +1005,7 @@ GF_FilterRegister CTXLoadRegister = {
 
 const GF_FilterRegister *btplay_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH) && !defined(GPAC_DISABLE_COMPOSITOR)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH) && !defined(GPAC_DISABLE_COMPOSITOR)  && !defined(GPAC_DISABLE_SMGR)
 	return &CTXLoadRegister;
 #else
 	return NULL;

@@ -64,6 +64,7 @@ void isor_check_producer_ref_time(ISOMReader *read)
 		return;
 	}
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_get_last_producer_time_box(read->mov, &trackID, &ntp, &timestamp, GF_TRUE)) {
 #if !defined(_WIN32_WCE) && !defined(GPAC_DISABLE_LOG)
 
@@ -83,6 +84,7 @@ void isor_check_producer_ref_time(ISOMReader *read)
 		read->cts_for_last_sender_ntp = timestamp;
 		read->ntp_at_last_sender_ntp = gf_net_get_ntp_ts();
 	}
+#endif
 }
 
 
@@ -525,8 +527,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 		else if (!ch->sample_num
 		         || ((ch->speed >= 0) && (ch->sample_num >= sample_count))
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		         || ((ch->speed < 0) && (ch->sample_time == gf_isom_get_current_tfdt(ch->owner->mov, ch->track) ))
-		        ) {
+#endif
+		) {
 
 			if (ch->owner->frag_type==1) {
 				/*if sample cannot be found and file is fragmented, rewind sample*/
@@ -668,7 +672,11 @@ static s32 isor_ps_get_id(u8 nal_type, u8 *data, u32 size, Bool is_avc)
 		res = gf_bs_read_int(bs, 4);
 		break;
 	case GF_HEVC_NALU_SEQ_PARAM:
+#ifndef GPAC_DISABLE_AV_PARSERS
 		res = gf_hevc_read_sps(data, size, NULL);
+#else
+		res = -1;
+#endif
 		break;
 	case GF_HEVC_NALU_PIC_PARAM:
 		gf_bs_read_u16(bs); //nal header
@@ -955,6 +963,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (ch->check_mhas_pl) {
 		//we cannot touch the payload if encrypted !!
 		if (ch->pck_encrypted) return;
+#ifndef GPAC_DISABLE_AV_PARSERS
 		u64 ch_layout = 0;
 		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength, &ch_layout);
 		if (PL>0) {
@@ -963,6 +972,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 			if (ch_layout)
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 		}
+#endif
 		return;
 	}
 	//analyze mode, do not rewrite

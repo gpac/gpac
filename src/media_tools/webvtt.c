@@ -441,7 +441,7 @@ struct _webvtt_parser {
 	void (*on_cue_read)(void *, GF_WebVTTCue *);
 };
 
-#if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_ISOM)
+#if !defined(GPAC_DISABLE_MEDIA_IMPORT) || !defined(GPAC_DISABLE_ISOM)
 static Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
 {
 	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;

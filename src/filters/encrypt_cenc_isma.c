@@ -110,9 +110,7 @@ typedef struct
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	AVCState *avc_state;
-#ifndef GPAC_DISABLE_HEVC
 	HEVCState *hevc_state;
-#endif
 	AV1State *av1_state;
 	GF_VPConfig *vp9_cfg;
 
@@ -627,18 +625,16 @@ static void cenc_pid_reset_codec_states(GF_CENCStream *cstr)
 		gf_free(cstr->vvc_state);
 		cstr->vvc_state = NULL;
 	}
-#endif
 	if (cstr->vp9_cfg) {
 		gf_odf_vp_cfg_del(cstr->vp9_cfg);
 		cstr->vp9_cfg = NULL;
 	}
+#endif
 }
 
 static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
 {
-#if !defined(GPAC_DISABLE_AV_PARSERS)
 	u32 i;
-#endif
 	u32 dsi_crc=0;
 	Bool is_reinit=GF_FALSE;
 	GF_AVCConfig *avccfg;
@@ -708,6 +704,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			cenc_pid_reset_codec_states(cstr);
 			cstr->cenc_codec = cenc_codec;
 			switch (cenc_codec) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			case CENC_AVC:
 				GF_SAFEALLOC(cstr->avc_state, AVCState);
 				if (!cstr->avc_state) return GF_OUT_OF_MEM;
@@ -724,6 +721,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				GF_SAFEALLOC(cstr->av1_state, AV1State);
 				if (!cstr->av1_state) return GF_OUT_OF_MEM;
 				break;
+#endif
 			}
 		} else {
 			is_reinit = GF_FALSE;
@@ -781,7 +779,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			hevccfg = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_VID_PARAM);
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_SEQ_PARAM);
 			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_PIC_PARAM);
@@ -802,7 +800,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (!p)
 				return GF_OK;
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_AV1)
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 			cstr->av1_state->config = gf_odf_av1_cfg_read(p->value.data.ptr, p->value.data.size);
 			cstr->bytes_in_nal_hdr = 2;
 #endif
@@ -810,10 +808,14 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			cstr->slice_header_clear = GF_TRUE;
 			break;
 		case CENC_VPX:
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 			if (p) {
 				cstr->bytes_in_nal_hdr = 2;
 				cstr->vp9_cfg = gf_odf_vp_cfg_new();
 			}
+#else
+				return GF_NOT_SUPPORTED;
+#endif
 			break;
 		case CENC_VVC:
 			if (!p)
@@ -1613,7 +1615,6 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 			}
 
 		} else if (cstr->cenc_codec==CENC_HEVC) {
-#if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
 			cstr->hevc_state->full_slice_header_parse = GF_TRUE;
 //			gf_hevc_parse_nalu(samp_data + nal_start, nal_size, cstr->hevc_state, &ntype, &ntid, &nlid);
@@ -1623,7 +1624,6 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 			} else {
 				clear_bytes = nal_size;
 			}
-#endif
 		} else if (cstr->cenc_codec==CENC_VVC) {
 			u8 ntype, ntid, nlid;
 			cstr->vvc_state->parse_mode = 1;
@@ -2073,10 +2073,12 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				if (!nb_ranges) break;
 
 				range_idx++;
+#ifndef GPAC_DISABLE_AV_PARSERS
 				if (range_idx >= AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] More ranges than tiles allowed spec, bitstream error ?\n"));
 					return GF_BAD_PARAM;
 				}
+#endif
 				switch (cstr->cenc_codec) {
 				case CENC_AV1:
 					clear_bytes = ranges[range_idx].clear;
@@ -2162,6 +2164,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, NULL);
 
 	if (cstr->is_saes && (cstr->cenc_codec==CENC_AVC)) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		u8 *nal;
 		u32 epb_add_count = 0;
 
@@ -2203,6 +2206,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			}
 			gf_free(old_output);
 		}
+#endif
 	}
 
 	if (cstr->pssh_template_plus_one) {

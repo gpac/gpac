@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -129,27 +129,6 @@ typedef struct
 	GF_TextureHandler txh_front, txh_back, txh_top, txh_bottom, txh_left, txh_right;
 	GF_Matrix current_mx;
 } BackgroundStack;
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-typedef struct
-{
-	GF_TextureHandler txh;
-	Drawable *drawable;
-	MFURL txurl;
-	Bool first_frame_fetched;
-	GF_Node *audio;
-	Bool audio_dirty;
-	Bool stop_requested;
-} SVG_video_stack;
-
-typedef struct
-{
-	GF_AudioInput input;
-	Bool is_active, is_error;
-	MFURL aurl;
-} SVG_audio_stack;
-
 #endif
 
 
@@ -356,6 +335,24 @@ void svg_pause_audio(GF_Node *n, Bool pause);
 void svg_pause_video(GF_Node *n, Bool pause);
 
 void compositor_svg_video_modified(GF_Compositor *compositor, GF_Node *node);
+
+typedef struct
+{
+	GF_TextureHandler txh;
+	Drawable *drawable;
+	MFURL txurl;
+	Bool first_frame_fetched;
+	GF_Node *audio;
+	Bool audio_dirty;
+	Bool stop_requested;
+} SVG_video_stack;
+
+typedef struct
+{
+	GF_AudioInput input;
+	Bool is_active, is_error;
+	MFURL aurl;
+} SVG_audio_stack;
 
 #endif
 

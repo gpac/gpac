@@ -449,10 +449,12 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 	/*rewrite all durations and edit lists*/
 	movie->moov->mvhd->duration *= timeScale;
 	movie->moov->mvhd->duration /= movie->moov->mvhd->timeScale;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (movie->moov->mvex && movie->moov->mvex->mehd) {
 		movie->moov->mvex->mehd->fragment_duration *= timeScale;
 		movie->moov->mvex->mehd->fragment_duration /= movie->moov->mvhd->timeScale;
 	}
+#endif
 
 	i=0;
 	while ((trak = (GF_TrackBox*)gf_list_enum(movie->moov->trackList, &i))) {
@@ -468,10 +470,12 @@ GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 			}
 		}
 	}
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (movie->moov->mvex && movie->moov->mvex->mehd) {
 		movie->moov->mvex->mehd->fragment_duration *= timeScale;
 		movie->moov->mvex->mehd->fragment_duration /= movie->moov->mvhd->timeScale;
 	}
+#endif
 	movie->moov->mvhd->timeScale = timeScale;
 	movie->interleavingTime = timeScale;
 	return GF_OK;
@@ -3966,7 +3970,9 @@ GF_Err gf_isom_get_raw_user_data(GF_ISOFile *file, u8 **output, u32 *output_size
 		switch (b->type) {
 		case GF_ISOM_BOX_TYPE_TRAK:
 		case GF_ISOM_BOX_TYPE_MVHD:
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MVEX:
+#endif
 		case GF_ISOM_BOX_TYPE_IODS:
 		case GF_ISOM_BOX_TYPE_META:
 			continue;
@@ -4101,6 +4107,7 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 GF_EXPORT
 GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, u8 **output, u32 *output_size)
 {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	GF_TrackBox *trak;
 	GF_BitStream *bs;
 	u32 i;
@@ -4136,8 +4143,11 @@ GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, u8 **output, u32 *
 	gf_bs_get_content(bs, output, output_size);
 	gf_bs_del(bs);
 
+#else
+	*output = NULL;
+	*output_size = 0;
+#endif
 	return GF_OK;
-
 }
 
 GF_EXPORT
@@ -7032,7 +7042,7 @@ static GF_Err gf_isom_set_sample_group_info_internal(GF_ISOFile *movie, u32 trac
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	return gf_isom_set_sample_group_info_ex(trak ? trak->Media->information->sampleTable : NULL, traf, sample_number, grouping_type, grouping_type_parameter, udta, sg_create_entry, sg_compare_entry);
 #else
-	return gf_isom_set_sample_group_info_ex(trak->Media->information->sampleTable, sample_number, grouping_type, grouping_type_parameter, udta, sg_create_entry, sg_compare_entry);
+	return gf_isom_set_sample_group_info_ex(trak->Media->information->sampleTable, NULL, sample_number, grouping_type, grouping_type_parameter, udta, sg_create_entry, sg_compare_entry);
 #endif
 
 }
@@ -8240,6 +8250,9 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 	u8 *box_data=NULL;
 	u32 box_data_size;
 	if (!file || !box_patch_filename) return GF_BAD_PARAM;
+#ifdef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (for_fragments) return GF_NOT_SUPPORTED;
+#endif
 	dom = gf_xml_dom_new();
 	if (strstr(box_patch_filename, "<?xml")) {
 		e = gf_xml_dom_parse_string(dom, (char *) box_patch_filename);
@@ -8256,6 +8269,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 
 	//compute size of each child boxes to freeze the order
 	if (for_fragments) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		u32 count = file->moof ? gf_list_count(file->moof->child_boxes) : 0;
 		for (i=0; i<count; i++) {
 			GF_Box *box = gf_list_get(file->moof->child_boxes, i);
@@ -8264,6 +8278,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 				gf_isom_box_freeze_order(box);
 			}
 		}
+#endif
 	} else {
 		for (i=0; i<gf_list_count(file->TopBoxes); i++) {
 			GF_Box *box = gf_list_get(file->TopBoxes, i);
@@ -8336,6 +8351,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 							box = gf_list_get(file->moov->trackList, 0);
 						}
 					}
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 					else if (box_type==GF_ISOM_BOX_TYPE_TRAF) {
 						if (trackID) {
 							box = (GF_Box *) gf_isom_get_traf(file, trackID);
@@ -8344,6 +8360,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 							box = gf_list_get(file->moof->TrackList, 0);
 						}
 					}
+#endif
 				}
 				if (!box) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Cannot locate box type %s at root or as track\n", gf_4cc_to_str(box_type) ));
@@ -8716,6 +8733,9 @@ GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescri
 	return GF_OK;
 }
 
+#endif //!defined(GPAC_DISABLE_ISOM_WRITE)
+
+#ifndef GPAC_DISABLE_ISOM
 
 GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 sampleNumber, u32 aux_type, u32 aux_info, u8 *data, u32 size)
 {
@@ -8828,7 +8848,10 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 
 	return GF_OK;
 }
+#endif // GPAC_DISABLE_ISOM
 
+
+#if !defined(GPAC_DISABLE_ISOM_WRITE)
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_fragment_set_sample_aux_info(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, u32 aux_type, u32 aux_info, u8 *data, u32 size)

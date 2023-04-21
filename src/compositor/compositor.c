@@ -4219,12 +4219,6 @@ void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node)
 	gf_sc_lock(compositor, GF_FALSE);
 }
 
-GF_EXPORT
-GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor)
-{
-	return gf_filter_get_download_manager(compositor->filter);
-}
-
 void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, GF_Filter *from_filter)
 {
 	if (!compositor->player) {
@@ -5061,9 +5055,7 @@ GF_EXPORT
 void gf_sc_select_service(GF_Compositor *compositor, u32 service_id)
 {
 	if (!compositor || !compositor->root_scene) return;
-#ifndef GPAC_DISABLE_VRML
 	gf_scene_set_service_id(compositor->root_scene, service_id);
-#endif
 }
 
 

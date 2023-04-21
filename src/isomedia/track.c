@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -588,6 +588,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		if (is_first_merge) {
 			GF_MovieFragmentBox *moof_clone = NULL;
 			gf_isom_box_freeze_order((GF_Box *)moof_box);
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			gf_isom_clone_box((GF_Box *)moof_box, (GF_Box **)&moof_clone);
 
 			if (moof_clone) {
@@ -630,6 +631,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				gf_bs_get_content(bs, &moof_template, &moof_template_size);
 				gf_bs_del(bs);
 			}
+#endif
 		}
 		if (trak->moov->mov->seg_styp) {
 			is_seg_start = GF_TRUE;

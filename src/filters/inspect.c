@@ -596,8 +596,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (dump_crc) inspect_printf(dump, "crc=\"%u\" ", gf_crc_32(ptr, ptr_size) );
 
 	if (hevc) {
-#ifndef GPAC_DISABLE_HEVC
-
 		if (ptr_size<=1) {
 			inspect_printf(dump, "error=\"invalid nal size 1\"/>\n");
 			return;
@@ -880,10 +878,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		} else {
 			inspect_printf(dump, "/>\n");
 		}
-
-#else
-		inspect_printf(dump, "/>\n");
-#endif //GPAC_DISABLE_HEVC
 		return;
 	}
 

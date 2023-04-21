@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -51,6 +51,15 @@ typedef struct
 	Bool full_range;
 } COLR;
 
+u32 gf_bs_read_ue(GF_BitStream *bs);
+s32 gf_bs_read_se(GF_BitStream *bs);
+void gf_bs_write_ue(GF_BitStream *bs, u32 num);
+void gf_bs_write_se(GF_BitStream *bs, s32 num);
+
+
+#ifndef GPAC_DISABLE_ISOM
+GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag);
+#endif
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
@@ -64,11 +73,6 @@ u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size);
 
 u32 gf_media_nalu_emulation_bytes_remove_count(const u8 *buffer, u32 nal_size);
 u32 gf_media_nalu_remove_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u32 nal_size);
-
-u32 gf_bs_read_ue(GF_BitStream *bs);
-s32 gf_bs_read_se(GF_BitStream *bs);
-void gf_bs_write_ue(GF_BitStream *bs, u32 num);
-void gf_bs_write_se(GF_BitStream *bs, s32 num);
 
 
 enum
@@ -287,9 +291,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
 /*nota: 'buffer' remains unmodified but cannot be set const*/
 u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc);
 
-#ifndef GPAC_DISABLE_ISOM
-
-GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag);
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 /*! VUI modification parameters*/
 typedef struct

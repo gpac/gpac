@@ -625,7 +625,9 @@ void gf_sc_mo_destroyed(GF_Node *n)
 		((Background2DStack *)st)->txh.stream = NULL;
 		break;
 	case TAG_MPEG4_Background:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Background:
+#endif
 #ifndef GPAC_DISABLE_3D
 		((BackgroundStack *)st)->txh_back.stream = NULL;
 		((BackgroundStack *)st)->txh_front.stream = NULL;
@@ -636,11 +638,15 @@ void gf_sc_mo_destroyed(GF_Node *n)
 #endif
 		break;
 	case TAG_MPEG4_ImageTexture:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_ImageTexture:
+#endif
 		((GF_TextureHandler *)st)->stream = NULL;
 		break;
 	case TAG_MPEG4_MovieTexture:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_MovieTexture:
+#endif
 		((MovieTextureStack *)st)->txh.stream = NULL;
 		break;
 	case TAG_MPEG4_MediaSensor:
@@ -653,7 +659,9 @@ void gf_sc_mo_destroyed(GF_Node *n)
 		((AudioSourceStack *)st)->input.stream = NULL;
 		break;
 	case TAG_MPEG4_AudioClip:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_AudioClip:
+#endif
 		((AudioClipStack *)st)->input.stream = NULL;
 		break;
 #ifndef GPAC_DISABLE_SVG

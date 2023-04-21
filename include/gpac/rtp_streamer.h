@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / media tools sub-project
@@ -49,7 +49,7 @@ This section documents the RTP streamer object of the GPAC framework.
 
 #include <gpac/ietf.h>
 
-#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_ISOM)
+#if !defined(GPAC_DISABLE_STREAMING)
 
 /*! RTP streamer object*/
 typedef struct __rtp_streamer GF_RTPStreamer;

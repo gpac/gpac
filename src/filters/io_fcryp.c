@@ -185,6 +185,7 @@ static void cryptfile_set_key(GF_CryptFileCtx *ctx)
 	ctx->reload_key_state = KEY_STATE_NONE;
 }
 
+#ifdef GPAC_USE_DOWNLOADER
 void cryptfin_net_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	GF_CryptFileCtx *ctx = (GF_CryptFileCtx *) usr_cbk;
@@ -206,6 +207,7 @@ void cryptfin_net_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		ctx->in_error = parameter->error;
 	}
 }
+#endif
 
 static GF_Err cryptfin_process(GF_Filter *filter)
 {

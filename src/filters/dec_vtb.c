@@ -855,7 +855,6 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 	else gf_bs_reassign_buffer(ctx->ps_bs, data, size);
 
 	if (hevc_nal_type) {
-#if !defined(GPAC_DISABLE_HEVC)
 		if (hevc_nal_type==GF_HEVC_NALU_SEQ_PARAM) {
 			dest = ctx->SPSs;
 			ps_id = gf_hevc_read_sps_bs(ctx->ps_bs, &ctx->hevc);
@@ -871,8 +870,6 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 			ps_id = gf_hevc_read_vps_bs(ctx->ps_bs, &ctx->hevc);
 			if (ps_id<0) return;
 		}
-#endif //GPAC_DISABLE_HEVC
-
 	} else {
 		dest = is_sps ? ctx->SPSs : ctx->PPSs;
 
@@ -1341,9 +1338,6 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 				}
 			}
 		} else if (ctx->is_hevc) {
-#if defined(GPAC_DISABLE_HEVC)
-			return GF_NOT_SUPPORTED;
-#else
 			u8 temporal_id, ayer_id;
 
 			if (!ctx->nal_bs) ctx->nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
@@ -1378,8 +1372,6 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 					}
 				}
 			}
-#endif
-
 		}
 		
 		//if sps and pps are ready, init decoder

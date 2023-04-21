@@ -153,7 +153,7 @@ struct __xhr_context
 
 	GF_DOMEventTarget *event_target;
 
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
+#if !defined(GPAC_DISABLE_SVG)
 	/* dom graph in which the XHR is created */
 	GF_SceneGraph *owning_graph;
 	Bool local_graph;
@@ -395,7 +395,7 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 	return scene;
 }
 
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML) && defined(GPAC_USE_DOWNLOADER)
+#if !defined(GPAC_DISABLE_SVG) && defined(GPAC_USE_DOWNLOADER)
 void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOMEventTarget **target)
 {
 	if (c) {
@@ -426,7 +426,7 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 	p->c = c;
 	p->_this = obj;
 
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
+#if !defined(GPAC_DISABLE_SVG)
 	p->owning_graph = xml_get_scenegraph(c);
 	if (!p->owning_graph) {
 		p->local_graph = GF_TRUE;
@@ -453,7 +453,7 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 
 static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
 {
-#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
+#if !defined(GPAC_DISABLE_SVG)
 	GF_DOM_Event xhr_evt;
 	if (!ctx->event_target)
 		return;

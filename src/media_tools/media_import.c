@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -33,23 +33,7 @@
 #include <gpac/network.h>
 
 
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
-
-GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
-{
-#ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_APP, e ? GF_LOG_WARNING : GF_LOG_INFO)) {
-		va_list args;
-		char szMsg[1024];
-		va_start(args, format);
-		vsnprintf(szMsg, 1024, format, args);
-		va_end(args);
-		GF_LOG((u32) (e ? GF_LOG_WARNING : GF_LOG_INFO), GF_LOG_APP, ("%s\n", szMsg) );
-	}
-#endif
-	return e;
-}
-
+#ifndef GPAC_DISABLE_ISOM
 
 static void gf_media_update_bitrate_ex(GF_ISOFile *file, u32 track, Bool use_esd)
 {
@@ -127,8 +111,10 @@ GF_EXPORT
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 {
 	gf_media_update_bitrate_ex(file, track, GF_FALSE);
-
 }
+#endif
+
+
 void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 {
 	u32 fps_1000 = (u32) (fps*1000 + 0.5);
@@ -189,6 +175,22 @@ u32 gf_dolby_vision_level(u32 width, u32 height, u64 fps_num, u64 fps_den, u32 c
 	return dv_level;
 }
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
+GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
+{
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_APP, e ? GF_LOG_WARNING : GF_LOG_INFO)) {
+		va_list args;
+		char szMsg[1024];
+		va_start(args, format);
+		vsnprintf(szMsg, 1024, format, args);
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_WARNING : GF_LOG_INFO), GF_LOG_APP, ("%s\n", szMsg) );
+	}
+#endif
+	return e;
+}
 
 static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allowed)
 {
@@ -771,6 +773,10 @@ static GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	return GF_OK;
 }
 
+#endif
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
 GF_EXPORT
 GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 {
@@ -812,6 +818,9 @@ GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 	gf_free(buffer);
 	return GF_OK;
 }
+#endif
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 GF_EXPORT
 GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)

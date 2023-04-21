@@ -4050,13 +4050,13 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			gf_fprintf(dump, "%s\n", szDur);
 		}
 
-
 		if (is_wvtt) {
+#ifndef GPAC_DISABLE_VTT
 			u64 start_ts, end_ts;
 			GF_List *cues;
 			u32 nb_cues;
-			u8 *data;
-			u32 data_len;
+			u8 *data=NULL;
+			u32 data_len=0;
 
 			start_ts = s->DTS * 1000;
 			start_ts /= trak->Media->mediaHeader->timeScale;
@@ -4084,13 +4084,13 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			gf_bs_write_u16(bs, 0);
 			gf_bs_get_content(bs, &data, &data_len);
 			gf_bs_del(bs);
-
 			if (data) {
 				gf_fprintf(dump, "%s\n", data);
 				gf_free(data);
 			} else {
 				gf_fprintf(dump, "\n");
 			}
+#endif
 			continue;
 		} else if (subtype == GF_ISOM_SUBTYPE_STXT) {
 			if (s->dataLength)

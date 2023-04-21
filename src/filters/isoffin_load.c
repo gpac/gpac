@@ -234,7 +234,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			break;
 		case GF_ISOM_SUBTYPE_WVTT:
 			codec_id = GF_CODECID_WEBVTT;
+#ifndef GPAC_DISABLE_VTT
 			stxtcfg = gf_isom_get_webvtt_config(read->mov, track, stsd_idx);
+#endif
 			break;
 		case GF_ISOM_SUBTYPE_MJP2:
 			codec_id = GF_CODECID_J2K;
@@ -655,6 +657,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 		sample_count = gf_isom_get_sample_count(read->mov, ch->track);
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (read->frag_type && !read->input_loaded) {
 			u32 ts;
 			u64 dur;
@@ -666,6 +669,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				sample_count = 0;
 			}
 		}
+#endif
 
 		if (!read->mem_load_mode || ch->duration) {
 			//if no edit list (whether complex or simple TS offset) and no sidx, use media duration
@@ -996,11 +1000,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 props_done:
 
 		if (read->sigfrag) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			u64 start, end;
 			if (gf_isom_get_root_sidx_offsets(read->mov, &start, &end)) {
 				if (end)
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(start , end));
 			}
+#endif
 			if (!read->frag_type) {
 				gf_filter_pid_set_property_str(ch->pid, "nofrag", &PROP_BOOL(GF_TRUE));
 			}
@@ -1367,6 +1373,7 @@ props_done:
 	else if (codec_id==GF_CODECID_MHAS) {
 		if (!dsi) {
 			ch->check_mhas_pl = 1;
+#ifndef GPAC_DISABLE_AV_PARSERS
 			GF_ISOSample *samp = gf_isom_get_sample(ch->owner->mov, ch->track, 1, NULL);
 			if (samp) {
 				u64 ch_layout=0;
@@ -1379,6 +1386,7 @@ props_done:
 				}
 				gf_isom_sample_del(&samp);
 			}
+#endif
 		}
 	}
 

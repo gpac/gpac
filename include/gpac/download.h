@@ -662,6 +662,9 @@ void gf_dm_del(GF_DownloadManager *dm);
 
 #endif //GPAC_CONFIG_EMSCRIPTEN
 
+#else
+typedef void GF_DownloadManager;
+typedef void GF_DownloadSession;
 #endif //GPAC_USE_DOWNLOADER
 
 

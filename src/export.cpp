@@ -888,7 +888,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_cenc_get_sample_aux_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_cenc_get_default_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_avc_svc_type) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_config_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
@@ -1490,7 +1489,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_read_pps_bs ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_hevc_get_chroma_format_name) )
 
-#ifndef GPAC_DISABLE_HEVC
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_read_vps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_read_vps_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_read_vps_bs) )
@@ -1504,8 +1502,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_parse_nalu) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_vvc_get_sps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_vvc_get_profile_name) )
-#endif //GPAC_DISABLE_HEVC
-
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_av1_parse_obu) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_av1_get_obu_name) )
@@ -2027,7 +2023,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect_from_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_send_event) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_downloader) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_switch_quality) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_set_service_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_get_object_info) )

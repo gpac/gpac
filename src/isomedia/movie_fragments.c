@@ -3373,21 +3373,6 @@ GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *movie, GF_ISOTrackID trackI
 
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_EXPORT
-Bool gf_isom_is_track_fragmented(GF_ISOFile *movie, GF_ISOTrackID TrackID)
-{
-	if (!movie || !movie->moov || !movie->moov->mvex) return GF_FALSE;
-	return (GetTrex(movie->moov, TrackID) != NULL) ? GF_TRUE : GF_FALSE;
-}
-
-GF_EXPORT
-Bool gf_isom_is_fragmented(GF_ISOFile *movie)
-{
-	if (!movie || !movie->moov) return GF_FALSE;
-	/* By default if the Moov has an mvex, the file is fragmented */
-	if (movie->moov->mvex) return GF_TRUE;
-	return GF_FALSE;
-}
 
 GF_EXPORT
 GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, GF_ISOTrackID TrackID, u64 decode_time)
@@ -3456,5 +3441,27 @@ GF_Err gf_isom_set_emsg(GF_ISOFile *movie, u8 *data, u32 size)
 	return GF_OK;
 }
 
+
+GF_EXPORT
+Bool gf_isom_is_track_fragmented(GF_ISOFile *movie, GF_ISOTrackID TrackID)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_FALSE;
+	return (GetTrex(movie->moov, TrackID) != NULL) ? GF_TRUE : GF_FALSE;
+#else
+	return GF_FALSE;
+#endif
+}
+
+GF_EXPORT
+Bool gf_isom_is_fragmented(GF_ISOFile *movie)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (!movie || !movie->moov) return GF_FALSE;
+	/* By default if the Moov has an mvex, the file is fragmented */
+	if (movie->moov->mvex) return GF_TRUE;
+#endif
+	return GF_FALSE;
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

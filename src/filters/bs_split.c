@@ -662,15 +662,10 @@ static GF_Err avc_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 
 static GF_Err vvc_hevc_rewrite_pid_config(BSSplitCtx *ctx, BSSplitIn *pctx)
 {
-#ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc=NULL;
 	GF_HEVCConfig *hvcc_out = NULL;
-#endif
-
 #ifndef GPAC_DISABLE_AV_PARSERS
-#ifndef GPAC_DISABLE_HEVC
 	HEVCState *hvcc_state = NULL;
-#endif
 	VVCState *vvcc_state = NULL;
 #else
 	void *hvcc_state = NULL;
@@ -833,9 +828,7 @@ restart:
 	hvcc = hvcc_out;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-#ifndef GPAC_DISABLE_HEVC
 	if (hvcc) GF_SAFEALLOC(hvcc_state, HEVCState);
-#endif
 	if (vvcc) GF_SAFEALLOC(vvcc_state, VVCState);
 #endif
 
@@ -989,9 +982,7 @@ restart:
 	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-#ifndef GPAC_DISABLE_HEVC
 	if (hvcc_state) gf_free(hvcc_state);
-#endif
 	if (vvcc_state) gf_free(vvcc_state);
 #endif
 
@@ -1340,13 +1331,11 @@ static GF_Err bs_split_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		pctx->rewrite_pid_config = avc_rewrite_pid_config;
 		pctx->split_packet = avc_split_packet;
 		break;
-#ifndef GPAC_DISABLE_HEVC
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
 		pctx->rewrite_pid_config = vvc_hevc_rewrite_pid_config;
 		pctx->split_packet = hevc_split_packet;
 		break;
-#endif
 	case GF_CODECID_VVC:
 		pctx->rewrite_pid_config = vvc_hevc_rewrite_pid_config;
 		pctx->split_packet = vvc_split_packet;

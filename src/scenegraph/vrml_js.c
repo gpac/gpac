@@ -3963,6 +3963,8 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	return success;
 }
 
+#endif
+
 #ifndef GPAC_DISABLE_SVG
 Bool svg_js_load_script(GF_Node *script, char *file);
 #endif
@@ -3975,6 +3977,7 @@ typedef struct
 	GF_DownloadSession *sess;
 } AsyncFetcher;
 
+#ifdef GPAC_USE_DOWNLOADER
 void async_script_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	AsyncFetcher *as = usr_cbk;
@@ -3982,17 +3985,23 @@ void async_script_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	if (parameter->msg_type == GF_NETIO_DATA_TRANSFERED) {
 		const char *szCache = gf_dm_sess_get_cache_name(parameter->sess);
 		if (as->type<=1) {
+#ifndef GPAC_DISABLE_VRML
 			M_Script *script = (M_Script *) as->script;
 			GF_ScriptPriv *priv = (GF_ScriptPriv *) as->script->sgprivate->UserPrivate;
 			JSValue rval;
 			if (!vrml_js_load_script(script, (char *) szCache, (as->type==1) ? 0 : 1, &rval))
 				e = GF_SCRIPT_ERROR;
 			JS_FreeValue(priv->js_ctx, rval);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 		} else {
 #ifndef GPAC_DISABLE_SVG
 			if (!svg_js_load_script(as->script, (char *) szCache))
-#endif
 				e = GF_SCRIPT_ERROR;
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 		}
 		gf_dm_sess_del(as->sess);
 		gf_free(as);
@@ -4006,9 +4015,11 @@ void async_script_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("Failed to load script: %s\n", gf_error_to_string(e)));
 	}
 }
+#endif
 
 GF_Err vrml_svg_js_async_load(GF_DownloadManager *dnld_man, char *url, u32 type, GF_Node *script, JSValue *rval)
 {
+#ifdef GPAC_USE_DOWNLOADER
 	AsyncFetcher *as;
 	GF_Err e;
 	if (rval) *rval = JS_UNDEFINED;
@@ -4023,7 +4034,12 @@ GF_Err vrml_svg_js_async_load(GF_DownloadManager *dnld_man, char *url, u32 type,
 		return e;
 	}
 	return gf_dm_sess_process(as->sess);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
+
+#ifndef GPAC_DISABLE_VRML
 
 /*fetches each listed URL and attempts to load the script - this is SYNCHRONOUS*/
 Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, JSValue *rval)
