@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -1352,9 +1352,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	/*check duration import (old syntax)*/
 	ext = strrchr(final_name, '%');
-	if (ext) {
-		gf_parse_frac(ext+1, &import.duration);
-		ext[0] = 0;
+	if (ext && gf_sys_old_arch_compat()) {
+		if (gf_parse_frac(ext+1, &import.duration))
+			ext[0] = 0;
+		else
+			ext = NULL;
 	}
 
 	/*select switches for av containers import*/
@@ -3190,7 +3192,8 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 	}
 	strcpy(cat_enum.szRad2, sep+1);
 	sep[0] = 0;
-	sep = strchr(cat_enum.szRad2, '%');
+	sep = NULL;
+	if (gf_sys_old_arch_compat()) sep = strchr(cat_enum.szRad2, '%');
 	if (!sep) sep = strchr(cat_enum.szRad2, '#');
 	if (!sep) sep = gf_url_colon_suffix(cat_enum.szRad2, '=');
 	strcpy(cat_enum.szOpt, "");

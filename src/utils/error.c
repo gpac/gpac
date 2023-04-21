@@ -1872,6 +1872,11 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 	sep = strchr(value, '.');
 	if (!sep) sep = strchr(value, ',');
 	if (!sep) {
+		len = (u32) strlen(value);
+		for (i=0; i<len; i++) {
+			if ((value[i]<'0') || (value[i]>'9'))
+				return GF_FALSE;
+		}
 		frac->num = atol(value);
 		frac->den = 1;
 		return GF_TRUE;
