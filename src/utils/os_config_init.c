@@ -1569,20 +1569,18 @@ u32 gf_opts_get_int(const char *secName, const char *keyName)
 	if (!opt && !strcmp(secName, "core")) {
 		opt = (char *) gpac_opt_default(keyName);
 	}
-	if (!opt) return 0;
-	char *sep = strchr(opt, 'k');
-	if (sep) times=1000;
-	else {
-		sep = strchr(opt, 'K');
-		if (sep) times=1000;
-		else {
-			sep = strchr(opt, 'm');
-			if (sep) times=1000000;
-			else {
-				sep = strchr(opt, 'M');
-				if (sep) times=1000000;
-			}
-		}
+	if (!opt || !opt[0]) return 0;
+	val = (u32) strlen(opt);
+	char c = opt[val-1];
+	switch (c) {
+	case 'k':
+	case 'K':
+		times=1000;
+		break;
+	case 'm':
+	case 'M':
+		times=1000000;
+		break;
 	}
 	val = atoi(opt);
 	return val*times;

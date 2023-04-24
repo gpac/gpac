@@ -1078,44 +1078,46 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 
 	if (!value) return gf_props_parse_value(type, name, NULL, enum_values, fs->sep_list);
 
-
-	if (!strnicmp(value, "$GSHARE", 7)) {
-		if (gf_opts_default_shared_directory(szPath)) {
-			strcat(szPath, value+7);
-			value = szPath;
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
-		}
-	}
-	else if (!strnicmp(value, "$GDOCS", 6)) {
-		if (filter_solve_gdocs(value, szPath)) {
-			value = szPath;
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC user document directory location\n"));
-		}
-	}
-	else if (!strnicmp(value, "$GJS", 4)) {
-		Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file_ext);
-
-		Bool found = gf_fs_solve_js_script(szPath, value+4, NULL);
-
-		if (!found) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed solve to %s in GPAC script directories, file not found\n", value));
-		}
-	}
-	else if (!strnicmp(value, "$GLANG", 6)) {
-		value = gf_opts_get_key("core", "lang");
-		if (!value) value = "en";
-	}
-	else if (!strnicmp(value, "$GUA", 4)) {
-		value = gf_opts_get_key("core", "user-agent");
-		if (!value) value = "GPAC " GPAC_VERSION;
-	} else if (f && strstr(value, "$GINC(")) {
+	if (f && strstr(value, "$GINC(")) {
 		char *a_value = gf_strdup(value);
 		filter_translate_autoinc(f, a_value);
 		argv = gf_props_parse_value(type, name, a_value, enum_values, fs->sep_list);
 		gf_free(a_value);
 		return argv;
+	}
+	if (value[0]=='$') {
+		if (!strnicmp(value, "$GSHARE", 7)) {
+			if (gf_opts_default_shared_directory(szPath)) {
+				strcat(szPath, value+7);
+				value = szPath;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC shared resource directory location\n"));
+			}
+		}
+		else if (!strnicmp(value, "$GDOCS", 6)) {
+			if (filter_solve_gdocs(value, szPath)) {
+				value = szPath;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to query GPAC user document directory location\n"));
+			}
+		}
+		else if (!strnicmp(value, "$GJS", 4)) {
+			Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file_ext);
+
+			Bool found = gf_fs_solve_js_script(szPath, value+4, NULL);
+
+			if (!found) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed solve to %s in GPAC script directories, file not found\n", value));
+			}
+		}
+		else if (!strnicmp(value, "$GLANG", 6)) {
+			value = gf_opts_get_key("core", "lang");
+			if (!value) value = "en";
+		}
+		else if (!strnicmp(value, "$GUA", 4)) {
+			value = gf_opts_get_key("core", "user-agent");
+			if (!value) value = "GPAC " GPAC_VERSION;
+		}
 	}
 	argv = gf_props_parse_value(type, name, value, enum_values, fs->sep_list);
 	return argv;
