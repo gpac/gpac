@@ -1,3 +1,9 @@
+# 24/04/2023: GPAC 2.2.1
+
+## Security 
+- Backport of various CVE fixes
+
+
 # 19/12/2022: GPAC 2.2
 
 ## Media Formats

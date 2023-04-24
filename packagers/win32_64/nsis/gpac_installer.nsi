@@ -1,6 +1,6 @@
 ;--------------------------------
 ;General
-!define GPAC_VERSION 2.2
+!define GPAC_VERSION 2.2.1
 !include default.out
 
 !define GPAC_ROOT ..\..\..
