@@ -192,6 +192,7 @@ typedef struct
 	u32 dyn_pssh_len;
 
 	Bool sparse_inject;
+	Bool is_chap;
 
 	GF_FilterPacket *dgl_copy;
 	u32 all_stsd_crc;
@@ -392,7 +393,9 @@ typedef struct
 
 	Bool has_def_vid, has_def_aud, has_def_txt;
 
+	//created from chapters prop
 	u32 chap_track_num;
+	Bool has_chap_tracks;
 
 	GF_List *ref_pcks;
 } GF_MP4MuxCtx;
@@ -889,6 +892,20 @@ static void mp4_mux_set_udta(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 }
 
+static void update_chap_refs(GF_MP4MuxCtx *ctx)
+{
+	u32 i, j, count = gf_list_count(ctx->tracks);
+	for (i=0; i<count; i++) {
+		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		if (!tkw->is_chap) continue;
+		for (j=0; j<count; j++) {
+			TrackWriter *atkw = gf_list_get(ctx->tracks, j);
+			if (atkw->is_chap) continue;
+			if ((atkw->stream_type==GF_STREAM_AUDIO) || (atkw->stream_type==GF_STREAM_VISUAL))
+				gf_isom_set_track_reference(ctx->file, atkw->track_num, GF_ISOM_REF_CHAP, tkw->track_id);
+		}
+	}
+}
 
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
 {
@@ -1505,11 +1522,25 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 
 		//if we have a subtype set for the pid, use it
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
-		if (p) {
-			mtype = p->value.uint;
+		p = NULL;
+		if ((tkw->stream_type==GF_STREAM_TEXT) && (tkw->codecid==GF_CODECID_TX3G)) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_CHAP);
+
+			mtype = GF_ISOM_MEDIA_TEXT;
 			gf_isom_set_media_type(ctx->file, tkw->track_num, mtype);
+			tkw->is_chap = GF_TRUE;
+			ctx->has_chap_tracks = GF_TRUE;
+			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_FALSE);
 		}
+		if (!p) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
+			if (p) {
+				mtype = p->value.uint;
+				gf_isom_set_media_type(ctx->file, tkw->track_num, mtype);
+			}
+		}
+		if (ctx->has_chap_tracks)
+			update_chap_refs(ctx);
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_HANDLER);
 		if (p && p->value.string) {
@@ -8016,6 +8047,15 @@ GF_FilterRegister MP4MuxRegister = {
 	"- if `Sparse` is absent, empty packet is inserted for unknown text and metadata streams\n"
 	"- if `Sparse` is true, empty packet is inserted for all stream types\n"
 	"- if `Sparse` is false, empty packet is never injected\n"
+	"  \n"
+	"The default media type used for a PID can be overriden using property `StreamSubtype`. \n"
+	"EX -i src.srt:#StreamSubtype=sbtl [-i ...]  -o test.mp4 \n"
+	"This will force the text stream to use `sbtl` handler type instead of default `text` one."
+	"\n"
+	"Subtitle streams may be used as chapters by setting the property `IsChap` on the desired PID.\n"
+	"EX -i src.srt:#IsChap  [-i ...] -o test.mp4 \n"
+	"This will force the text stream to be used as a QT chapter track."
+	"  \n"
 	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,

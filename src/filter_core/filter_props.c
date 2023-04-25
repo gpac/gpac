@@ -1644,6 +1644,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PID_CHAP_TIMES, "ChapTimes", "Chapter start times", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_CHAP_NAMES, "ChapNames", "Chapter names", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_IS_CHAP, "IsChap", "Subtitle PID is chapter (for QT-like chapters)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from beginning of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_SKIP_PRES, "SkipPres", "Packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)", GF_PROP_BOOL, GF_PROP_FLAG_PCK),

@@ -2150,6 +2150,28 @@ Such packets are only injected when a whole in the timeline is detected.
 .br
 - if Sparse is false, empty packet is never injected
 .br
+  
+.br
+The default media type used for a PID can be overriden using property StreamSubtype. 
+.br
+Example
+.br
+-i src.srt:#StreamSubtype=sbtl [-i ...]  -o test.mp4 
+.br
+
+.br
+This will force the text stream to use sbtl handler type instead of default text one.
+.br
+Subtitle streams may be used as chapters by setting the property IsChap on the desired PID.
+.br
+Example
+.br
+-i src.srt:#IsChap  [-i ...] -o test.mp4 
+.br
+
+.br
+This will force the text stream to be used as a QT chapter track.  
+.br
 
 .br
 .SH Options (expert):
@@ -11469,7 +11491,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev179-ged4c942f8-master
+build: 2.3-DEV-rev196-g8ddd05544-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

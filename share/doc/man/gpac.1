@@ -97,6 +97,11 @@ print stats after execution
 print graph after execution
 .br
 .TP
+.B \-qe
+.br
+enable quick exit (no mem cleanup)
+.br
+.TP
 .B \-k
 .br
 enable keyboard interaction from command line
@@ -3876,6 +3881,11 @@ Chapter start times
 Chapter names
 .br
 .TP
+.B IsChap (PCHP,bool,D )
+.br
+Subtitle PID is chapter (for QT-like chapters)
+.br
+.TP
 .B SkipBegin (PCKS,uint, P)
 .br
 Amount of media to skip from beginning of packet in PID timescale
@@ -4996,7 +5006,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev179-ged4c942f8-master
+build: 2.3-DEV-rev196-g8ddd05544-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

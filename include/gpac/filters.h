@@ -1245,6 +1245,7 @@ enum
 
 	GF_PROP_PID_CHAP_TIMES = GF_4CC('C','H','P','T'),
 	GF_PROP_PID_CHAP_NAMES = GF_4CC('C','H','P','N'),
+	GF_PROP_PID_IS_CHAP = GF_4CC('P','C','H','P'),
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
