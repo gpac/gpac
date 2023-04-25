@@ -1874,7 +1874,7 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 	if (!sep) {
 		len = (u32) strlen(value);
 		for (i=0; i<len; i++) {
-			if ((value[i]<'0') || (value[i]>'9'))
+			if (((value[i]<'0') || (value[i]>'9')) && (value[i]!='-') && (value[i]!='+'))
 				return GF_FALSE;
 		}
 		frac->num = atol(value);
