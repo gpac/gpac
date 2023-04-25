@@ -1239,7 +1239,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 
 	pos = gf_bs_get_position(bs);
 	//graw buffer to hold moof, speeds up writes
-	gf_bs_grow(bs, movie->moof->size + (trun_ref_size ? 8 : 0));
+	gf_bs_grow(bs, (u32) movie->moof->size + (trun_ref_size ? 8 : 0));
 
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
