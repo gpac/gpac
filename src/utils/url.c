@@ -310,6 +310,23 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	rad = strchr(tmp2, '#');
 	if (rad) rad[0] = 0;
 
+	//rule out case where we have the same path
+	if (relative_to_parent) {
+		u32 l1=0, l2=0;
+		rad = strrchr(tmp, '/');
+		if (rad) l1 = rad - tmp;
+		rad = strrchr(pathName, '/');
+		if (rad) l2 = rad - pathName;
+		if (l1 && l2 && (l1==l2) && !strncmp(pathName, parentName, l1)) {
+			outPath = gf_strdup(pathName + l1 + 1);
+			goto check_spaces;
+		}
+		if (!l1 && !l2) {
+			outPath = gf_strdup(pathName);
+			goto check_spaces;
+		}
+	}
+
 	if (pathSepCount)
 		had_sep_count = GF_TRUE;
 	/*remove the last /*/
