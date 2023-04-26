@@ -1525,12 +1525,15 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = NULL;
 		if ((tkw->stream_type==GF_STREAM_TEXT) && (tkw->codecid==GF_CODECID_TX3G)) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_CHAP);
-
-			mtype = GF_ISOM_MEDIA_TEXT;
-			gf_isom_set_media_type(ctx->file, tkw->track_num, mtype);
-			tkw->is_chap = GF_TRUE;
-			ctx->has_chap_tracks = GF_TRUE;
-			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_FALSE);
+			if (p && p->value.boolean) {
+				mtype = GF_ISOM_MEDIA_TEXT;
+				gf_isom_set_media_type(ctx->file, tkw->track_num, mtype);
+				tkw->is_chap = GF_TRUE;
+				ctx->has_chap_tracks = GF_TRUE;
+				gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_FALSE);
+			} else {
+				p = NULL;
+			}
 		}
 		if (!p) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
