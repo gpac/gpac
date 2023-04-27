@@ -93,9 +93,9 @@ typedef struct _xml_node
 
 	/*! namespace of the node, for XML node type only*/
 	char *ns;
-	/*! list of attributes of the node, for XML node type only*/
+	/*! list of attributes of the node, for XML node type only - can be NULL if no attributes*/
 	GF_List *attributes;
-	/*! list of children nodes of the node, for XML node type only*/
+	/*! list of children nodes of the node, for XML node type only - can be NULL if no content*/
 	GF_List *content;
 	/*! original pos in parent (used for DASH MPD)*/
 	u32 orig_pos;

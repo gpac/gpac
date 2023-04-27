@@ -277,6 +277,12 @@ GF_List * gf_list_new()
 	return nlist;
 }
 
+GF_List * gf_list_new_prealloc(u32 nb_prealloc)
+{
+	if (!nb_prealloc) return NULL;
+	return gf_list_new();
+}
+
 GF_EXPORT
 void gf_list_del(GF_List *ptr)
 {
@@ -490,6 +496,11 @@ GF_List * gf_list_new()
 	return nlist;
 }
 
+GF_List * gf_list_new_prealloc(u32 nb_prealloc)
+{
+	if (!nb_prealloc) return NULL;
+	return gf_list_new();
+}
 GF_EXPORT
 void gf_list_del(GF_List *ptr)
 {
@@ -604,6 +615,17 @@ GF_List * gf_list_new()
 	nlist->slots = NULL;
 	nlist->entryCount = 0;
 	nlist->allocSize = 0;
+	return nlist;
+}
+
+GF_List * gf_list_new_prealloc(u32 nb_prealloc)
+{
+	if (!nb_prealloc) return NULL;
+	GF_List *nlist = gf_list_new();
+	if (nlist) {
+		nlist->allocSize = nb_prealloc;
+		nlist->slots = (void**)gf_malloc(nlist->allocSize*sizeof(void*));
+	}
 	return nlist;
 }
 

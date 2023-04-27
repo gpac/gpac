@@ -72,7 +72,7 @@ struct __txtin_ctx
 	Bool ttml_split;
 	GF_Fraction64 ttml_cts;
 	GF_Fraction ttml_dur, stxtdur;
-
+	Double index;
 
 	GF_FilterPid *ipid, *opid;
 	char *file_name;
@@ -410,6 +410,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 {
 	GF_Fraction64 dur;
 	dur.num = 0;
+	if (!ctx->index) return;
 
 	if (ctx->fmt == GF_TXTIN_MODE_SWF_SVG) {
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -946,6 +947,9 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacke
 	u32 line;
 	char szLine[2048];
 
+	if (ctx->playstate==2)
+		return GF_EOS;
+
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
 		GF_Err e = txtin_setup_srt(filter, ctx, GF_FALSE);
@@ -1253,6 +1257,8 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 {
 	GF_Err e;
 
+	if (ctx->playstate==2)
+		return GF_EOS;
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
 		e = txtin_webvtt_setup(filter, ctx);
@@ -1680,11 +1686,13 @@ static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLN
 			if (att) {
 				att->name = gf_strdup("src");
 				att->value = gf_strdup(szURN);
+				if (!parent_source_node->attributes) parent_source_node->attributes = gf_list_new();
 				gf_list_add(parent_source_node->attributes, att);
 			}
 			if (!att || !att->value || !att->name) return GF_OUT_OF_MEM;
 			if (data_type) {
 				gf_list_del_item(node->attributes, data_type);
+				if (!parent_source_node->attributes) parent_source_node->attributes = gf_list_new();
 				gf_list_add(parent_source_node->attributes, data_type);
 			}
 			gf_xml_dom_node_reset(parent_source_node, GF_FALSE, GF_TRUE);
@@ -2118,10 +2126,11 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 	TTMLInterval *interval;
 	Bool sample_empty = GF_TRUE;
 
+	if (ctx->playstate==2) return GF_EOS;
+
 	if (!ctx->is_setup) return gf_text_ttml_setup(filter, ctx);
 	if (ctx->non_compliant_ttml || !ctx->opid) return GF_NOT_SUPPORTED;
 	if (!ctx->playstate) return GF_OK;
-	else if (ctx->playstate==2) return GF_EOS;
 
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
@@ -2495,6 +2504,8 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 {
 	GF_Err e=GF_OK;
 
+	if (ctx->playstate==2) return GF_EOS;
+
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
 		return gf_text_swf_setup(filter, ctx);
@@ -2544,6 +2555,9 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	GF_TextSample *samp;
 	Double ts_scale;
 	char szLine[2048], szTime[41], szText[2048];
+
+	if (ctx->playstate==2)
+		return GF_EOS;
 
 	//same setup as for srt
 	if (!ctx->is_setup) {
@@ -3130,6 +3144,8 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPack
 {
 	u32 j, k;
 	GF_XMLNode *root, *ext;
+
+	if (ctx->playstate==2) return GF_EOS;
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
@@ -3870,6 +3886,8 @@ static GF_Err txtin_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	GF_Err e;
 	Bool start, end;
+	u32 size=0;
+	const u8 *data;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (pck) ctx->is_loaded = GF_FALSE;
 
@@ -3897,12 +3915,14 @@ static GF_Err txtin_process(GF_Filter *filter)
 			return GF_OK;
 	}
 
+	data = pck ? gf_filter_pck_get_data(pck, &size) : NULL;
+	if (pck && (!data || !size)) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
 	if (ctx->is_temp) {
-		u32 size;
-		const u8 *data;
 		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_URL);
 		if (ctx->fio) gf_fclose((FILE*)ctx->fio);
-		data = gf_filter_pck_get_data(pck, &size);
 		ctx->fio = gf_fileio_from_mem(p ? p->value.string : NULL, data, size);
 		ctx->is_temp = GF_FALSE;
 		e = txtin_configure_pid(filter, ctx->ipid, GF_FALSE);
@@ -4190,9 +4210,11 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		if (ctx->playstate==1) return ctx->unframed ? GF_FALSE : GF_TRUE;
-		if ((ctx->playstate==2) && !ctx->unframed)
-			gf_filter_post_process_task(filter);
-
+		if (ctx->playstate==2) {
+			ttxtin_reset(ctx);
+			if (!ctx->unframed)
+				gf_filter_post_process_task(filter);
+		}
 		ctx->playstate = 1;
 		if ((ctx->start_range < 0.1) && (evt->play.start_range<0.1)) return ctx->unframed ? GF_FALSE : GF_TRUE;
 		ctx->start_range = evt->play.start_range;
@@ -4202,8 +4224,6 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
 		ctx->playstate = 2;
-
-		ttxtin_reset(ctx);
 		ctx->is_setup = GF_FALSE;
 		//cancel play event if we work with full file
 		return ctx->unframed ? GF_FALSE : GF_TRUE;
@@ -4382,6 +4402,7 @@ static const GF_FilterArgs TXTInArgs[] =
 	"- none: declares output PID as simple text stream\n"
 	"- tx3g: declares output PID as TX3G/Apple stream\n"
 	"- vtt: declares output PID as WebVTT stream", GF_PROP_UINT, "none", "none|tx3g|vtt", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 
