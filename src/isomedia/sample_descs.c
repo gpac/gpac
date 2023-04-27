@@ -1081,6 +1081,7 @@ GF_Err gf_isom_new_xml_metadata_description(GF_ISOFile *movie, u32 trackNumber,
 	case GF_ISOM_MEDIA_MPEG_SUBT:
 	case GF_ISOM_MEDIA_META:
 	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -1427,6 +1428,8 @@ GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 t
 
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+	case GF_ISOM_MEDIA_MPEG_SUBT:
 		break;
 	default:
 		return NULL;

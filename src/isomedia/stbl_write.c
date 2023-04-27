@@ -1905,7 +1905,7 @@ GF_Err stbl_AppendTrafMap(GF_ISOFile *mov, GF_SampleTableBox *stbl, Bool is_seg_
 	memset(tmap_ent, 0, sizeof(GF_TrafMapEntry));
 	tmap_ent->sample_num = stbl->SampleSize->sampleCount;
 	if (nb_pack_samples)
-		tmap_ent->sample_num -= tmap_ent->sample_num-1;
+		tmap_ent->sample_num -= nb_pack_samples-1;
 
 	tmap_ent->moof_template = moof_template;
 	tmap_ent->moof_template_size = moof_template_size;

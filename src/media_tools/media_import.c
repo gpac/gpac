@@ -327,6 +327,8 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				import->tk_info[i].stream_type = GF_STREAM_AUDIO;
 				break;
 			case GF_ISOM_MEDIA_TEXT:
+			case GF_ISOM_MEDIA_SUBT:
+			case GF_ISOM_MEDIA_MPEG_SUBT:
 				import->tk_info[i].stream_type = GF_STREAM_TEXT;
 				break;
 			case GF_ISOM_MEDIA_SCENE:

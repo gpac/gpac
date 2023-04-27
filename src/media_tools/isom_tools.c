@@ -830,6 +830,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		case GF_ISOM_MEDIA_SUBT:
 			gf_isom_set_media_type(mp4file, i+1, GF_ISOM_MEDIA_TEXT);
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
 			nb_txt++;
 			break;
 
