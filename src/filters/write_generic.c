@@ -778,6 +778,7 @@ static void ttml_merge_head(GF_XMLNode *node_src, GF_XMLNode *node_dst)
 		}
 		i--;
 		gf_list_rem(node_src->content, i);
+		if (!node_dst->content) node_dst->content = gf_list_new();
 		gf_list_add(node_dst->content, child_src);
 	}
 	return;
@@ -859,6 +860,7 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 			s->attributes = gf_list_new();
 			s->content = gf_list_new();
 			s->name = gf_strdup("source");
+			if (!node->content) node->content = gf_list_new();
 			gf_list_add(node->content, s);
 			if (!s->name || !s->content || !s->attributes) return GF_OUT_OF_MEM;
 			//move @type to source
@@ -876,6 +878,7 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 		data->attributes = gf_list_new();
 		data->content = gf_list_new();
 		data->name = gf_strdup("data");
+		if (!node->content) node->content = gf_list_new();
 		gf_list_add(node->content, data);
 		if (!data->name || !data->content || !data->attributes) return GF_OUT_OF_MEM;
 		//move @type to data
@@ -974,6 +977,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	if (head_pck) {
 		if (!head_global) {
 			gf_list_del_item(root_pck->content, head_pck);
+			if (!root_global->content) root_global->content = gf_list_new();
 			gf_list_add(root_global->content, head_pck);
 		} else {
 			ttml_merge_head(head_pck, head_global);
@@ -984,6 +988,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	body_global = ttml_get_body(root_global);
 	if (body_pck && !body_global) {
 		gf_list_del_item(root_pck->content, body_pck);
+		if (!root_global->content) root_global->content = gf_list_new();
 		gf_list_add(root_global->content, body_pck);
 		goto exit;
 	}
@@ -1005,6 +1010,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 
 		if (!div_global) {
 			gf_list_rem(body_pck->content, k);
+			if (!body_global->content) body_global->content = gf_list_new();
 			gf_list_insert(body_global->content, div_pck, div_idx+1);
 			div_idx++;
 			continue;
@@ -1040,6 +1046,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 
 			i--;
 			gf_list_rem(div_pck->content, i);
+			if (!div_global->content) div_global->content = gf_list_new();
 			if (i) {
 				txt = gf_list_get(div_pck->content, i-1);
 				if (txt->type) {

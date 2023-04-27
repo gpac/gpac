@@ -425,7 +425,8 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	if (pck_size<=1) {
 		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NON_COMPLIANT_BITSTREAM;
+		//we consider a 0 packet size not an error
+		return pck_size ? GF_NON_COMPLIANT_BITSTREAM : GF_OK;;
 	}
 	if (ctx->dump_type && (pck_size<=2)) {
 		gf_filter_pid_drop_packet(ctx->ipid);
