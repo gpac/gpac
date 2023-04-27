@@ -878,7 +878,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 count, i;
-	Bool is_byte_range = GF_FALSE;
+	Bool is_byte_range;
 	Bool cancel_event = GF_TRUE;
 	Double start_range, speed;
 	ISOMChannel *ch, *ref_ch;
@@ -905,13 +905,12 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_FALSE;
 
 	switch (evt->base.type) {
-	case GF_FEVT_SOURCE_SEEK:
-		is_byte_range = GF_TRUE;
 	case GF_FEVT_PLAY:
 		if (ch->skip_next_play) {
 			ch->skip_next_play = 0;
 			return GF_TRUE;
 		}
+		is_byte_range = (evt->play.hint_start_offset || evt->play.hint_end_offset) ? GF_TRUE : GF_FALSE;
 
 		isor_reset_reader(ch);
 		ch->eos_sent = 0;
@@ -1003,18 +1002,30 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				return GF_TRUE;
 			}
 			if (read->mem_load_mode) {
+				GF_FilterEvent fevt;
 				//new segment will be loaded, reset
 				gf_isom_reset_tables(read->mov, GF_TRUE);
 				gf_isom_reset_data_offset(read->mov, NULL);
 				read->refresh_fragmented = GF_TRUE;
 				read->mem_blob.size = 0;
-				//send seek event
-				cancel_event = GF_FALSE;
+
+				read->bytes_removed = evt->play.hint_start_offset;
+
+				//send a seek request
+				read->is_partial_download = GF_TRUE;
+				read->wait_for_source = GF_TRUE;
+				read->refresh_fragmented = GF_TRUE;
+
+				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
+				fevt.seek.start_offset = read->bytes_removed;
+				gf_filter_pid_send_event(read->pid, &fevt);
+
+				gf_isom_set_removed_bytes(read->mov, read->bytes_removed);
+				gf_isom_set_byte_offset(read->mov, 0);
 			} else {
 				GF_Err gf_isom_load_fragments(GF_ISOFile *movie, u64 start_range, u64 end_range, u64 *BytesMissing);
-				cancel_event = GF_TRUE;
-				gf_isom_load_fragments(read->mov, evt->seek.start_offset, evt->seek.end_offset, &read->missing_bytes);
-				ch->first_tfdt = evt->seek.hint_first_tfdt;
+				gf_isom_load_fragments(read->mov, evt->play.hint_start_offset, evt->play.hint_end_offset, &read->missing_bytes);
+				ch->hint_first_tfdt = evt->play.hint_first_dts;
 			}
 		} else if (evt->play.no_byterange_forward) {
 			//new segment will be loaded, reset

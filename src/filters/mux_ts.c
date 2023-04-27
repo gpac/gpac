@@ -100,6 +100,7 @@ typedef struct
 	char *name, *provider, *temi;
 	u32 log_freq;
 	s32 subs_sidx;
+	Bool keepts;
 	GF_Fraction cdur;
 
 	//internal
@@ -1238,6 +1239,14 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		if (sname) gf_m2ts_mux_program_set_name(prog, sname, pname);
 
+		Bool keepts = ctx->keepts;
+		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DASH_SPARSE);
+		if (p && p->value.boolean) keepts = GF_TRUE;
+		if (keepts) {
+			//move to NO_TS
+			prog->force_first_pts = GF_FILTER_NO_TS;
+		}
+
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
 	if (tspid->esi.stream_type != streamtype)
@@ -1375,6 +1384,7 @@ static Bool tsmux_init_buffering(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	u32 not_ready=0;
 	u32 mbuf = ctx->breq*1000;
 	u32 i, count = gf_list_count(ctx->pids);
+
 	for (i=0; i<count; i++) {
 		u32 buf;
 		Bool buf_ok;
@@ -1383,11 +1393,26 @@ static Bool tsmux_init_buffering(GF_Filter *filter, GF_TSMuxCtx *ctx)
 		if (buf_ok && (buf < mbuf) && !gf_filter_pid_has_seen_eos(tspid->ipid)) {
 			if (!tspid->is_sparse) not_ready++;
 		}
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(tspid->ipid);
+		if (!pck) {
+			if (!tspid->is_sparse && !gf_filter_pid_has_seen_eos(tspid->ipid)) not_ready++;
+			continue;
+		}
+		u64 min_ts = gf_filter_pck_get_cts(pck);
+		if (min_ts==GF_FILTER_NO_TS) min_ts = gf_filter_pck_get_dts(pck);
+		if (min_ts==GF_FILTER_NO_TS) continue;
+ 		min_ts += tspid->max_media_skip + tspid->media_delay;
+
+		min_ts = gf_timestamp_rescale(min_ts, gf_filter_pid_get_timescale(tspid->ipid), 90000);
+		if ((tspid->prog->force_first_pts == GF_FILTER_NO_TS) || (tspid->prog->force_first_pts>min_ts)) {
+			tspid->prog->force_first_pts = min_ts;
+		}
 	}
 	if (not_ready) {
 		u32 now = gf_sys_clock();
 		if (!ctx->sync_init_time) {
 			ctx->sync_init_time = now;
+			return GF_FALSE;
 		} else if (now - ctx->sync_init_time < 5000) {
 			return GF_FALSE;
 		} else {
@@ -2035,7 +2060,9 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(log_freq), "delay between logs for realtime mux", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(latm), "use LATM AAC encapsulation instead of regular ADTS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(subs_sidx), "number of subsegments per sidx (negative value disables sidx)", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(keepts), "keep cts/dts untouched and adjust PCR accordingly, used to keep TS unmodified when dashing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
+
 	{0}
 };
 

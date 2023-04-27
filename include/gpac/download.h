@@ -663,8 +663,10 @@ void gf_dm_del(GF_DownloadManager *dm);
 #endif //GPAC_CONFIG_EMSCRIPTEN
 
 #else
+//! @cond Doxygen_Suppress
 typedef void GF_DownloadManager;
 typedef void GF_DownloadSession;
+//! @endcond
 #endif //GPAC_USE_DOWNLOADER
 
 

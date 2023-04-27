@@ -4838,6 +4838,8 @@ latm (bool, default: false):   use LATM AAC encapsulation instead of regular ADT
 .br
 subs_sidx (sint, default: -1): number of subsegments per sidx (negative value disables sidx)
 .br
+keepts (bool, default: false): keep cts/dts untouched and adjust PCR accordingly, used to keep TS unmodified when dashing
+.br
 
 .br
 .SH dasher
@@ -9017,6 +9019,10 @@ This filter handles pre-indexed content for just-in-time processing of HAS manif
 .br
 
 .br
+Warning: This is work in progress, the format of indexes (binary or XML) may change until finalization of this filter.
+.br
+
+.br
 .SH Generating indexes
 .LP
 .br
@@ -9044,20 +9050,24 @@ Warning: XML indexes should only be used for debug purposes as they can take a s
 .br
 
 .br
+When indexing, the default template used is $Representation$_$Number$. The template is stored in the index and shouldn't be re-specified when generating content.
+.br
+
+.br
 .SH Using indexes
 .LP
 .br
-To generate manifest(s) and init segment(s) from the index, use:
+The index can be used to generate manifest, child variants for HLS, init segments and segments.
 .br
 Example
 .br
-gpac -i index.ghi:genman -o dash/vod.mpd
+gpac -i index.ghi:gm=all -o dash/vod.mpd
 .br
 
 .br
-
+This generates manifest(s) and init segment(s).
 .br
-To generate the 10th segment of representation with ID FOO, use:
+
 .br
 Example
 .br
@@ -9065,7 +9075,41 @@ gpac -i index.ghi:rep=FOO:sn=10 -o dash/vod.mpd
 .br
 
 .br
+This generates the 10th segment of representation with ID FOO.
+.br
+
+.br
 Note: The manifest file(s) and init segment(s) are not written when generating a segment. The manifest target (mpd or m3u8) is only used to setup the filter chain and target output path.
+.br
+
+.br
+Example
+.br
+gpac -i index.ghi:gm=main -o dash/vod.m3u8
+.br
+
+.br
+This generates main manifest only (MPD or master HLS playlist).
+.br
+
+.br
+Example
+.br
+gpac -i index.ghi:gm=child:rep=FOO:out=BAR -o dash/vod.m3u8
+.br
+
+.br
+This generates child manifest for representation FOO in file BAR.
+.br
+
+.br
+Example
+.br
+gpac -i index.ghi:gm=init:rep=FOO:out=BAR2 -o dash/vod.m3u8
+.br
+
+.br
+This generates init segment for representation FOO in file BAR2.
 .br
 
 .br
@@ -9075,7 +9119,7 @@ The filter outputs are PIDs using framed packets marked with segment boundaries 
 .br
 If representation IDs are not assigned during index creation, they default to the 1-based index of the source. You can check them using:
 .br
-EX: gpac -i src.ghi:genman inspect:full
+EX: gpac -i src.ghi inspect:full
 .br
 
 .br
@@ -9084,33 +9128,33 @@ EX: gpac -i src.ghi:genman inspect:full
 .br
 The filter can be used to generate muxed representations, either at manifest generation time or when generating a segment.
 .br
-To generate a manifest muxing representations A with representations V1 and V2 use:
+Example
+.br
+gpac -i index.ghi:mux=A@V1@V2 -o dash/vod.mpd
+.br
+
+.br
+This will generate a manifest muxing representations A with representations V1 and V2.
+.br
+
 .br
 Example
 .br
-gpac -i index.ghi:genman:mux=A-V1-V2 -o dash/vod.mpd
+gpac -i index.ghi:mux=A@V1@V2,T@V1@V2 -o dash/vod.mpd
 .br
 
 .br
-
+This will generate a manifest muxing representations A and T with representations V1 and V2.
 .br
-To generate a manifest muxing representations A and T with representations V1 and V2 use:
+
 .br
 Example
 .br
-gpac -i index.ghi:genman:mux=A-V1-V2,T-V1-V2 -o dash/vod.mpd
+gpac -i index.ghi:rep=V2:sn=5:mux=A@V2 -o dash/vod.mpd
 .br
 
 .br
-
-.br
-To generate the 5th segment containing representations A and V2 use:
-.br
-Example
-.br
-gpac -i index.ghi:rep=V2:sn=5:mux=A-V2 -o dash/vod.mpd
-.br
-
+This will generate the 5th segment containing representations A and V2.
 .br
 
 .br
@@ -9125,26 +9169,44 @@ The filter does not store any state, it is the user respansability to use consis
 .SH Recommandations
 .LP
 .br
-Indexing currently supports as sources fragmented and non-fragmented MP4 inputs.
+Indexing supports fragmented and non-fragmented MP4, MPEG-2 TS and seekable inputs.
 .br
-It is recommended to use fragmented MP4 as input format since this greatly reduces file loading times.
+- It is recommended to use fragmented MP4 as input format since this greatly reduces file loading times.
 .br
-If non-fragmented MP4 are used, it is recommended to use single-track files to decrease the movie box size and speedup parsing.
+- If non-fragmented MP4 are used, it is recommended to use single-track files to decrease the movie box size and speedup parsing.
+.br
+- MPEG-2 TS sources will be slower since they require PES reframing and AU reformating, resulting in more IOs than with mp4.
+.br
+- other seekable sources will likely be slower (seeking, reframing) and are not recommended.
 .br
 
 .br
 .SH Options (expert):
 .LP
 .br
-genman (bool, default: false): manifest generation mode
+gm (enum, default: main):      manifest generation mode
 .br
-force (bool, default: false):  force loading sources in manifest generation
+* none: no manifest generation (implied if sn is not 0)
+.br
+* all: generate all manifests and init segments
+.br
+* main: generate main manifest (MPD or master M3U8)
+.br
+* child: generate child playlist for HLS
+.br
+* init: generate init segment
+.br
+
+.br
+force (bool, default: false):  force loading sources in manifest generation for debug
 .br
 rep (str):                     representation to generate
 .br
-sn (uint):                     segment number to generate
+sn (uint):                     segment number to generate, 0 means init segment
 .br
 mux (strl):                    representation to mux - cf filter help
+.br
+out (str):                     output filename to generate
 .br
 
 .br
@@ -11491,7 +11553,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev196-g8ddd05544-master
+build: 2.3-DEV-rev203-ge886e4520-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

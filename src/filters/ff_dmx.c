@@ -54,6 +54,7 @@ typedef struct
 	u32 vc1_mode;
 	u64 fake_dts_plus_one, fake_dts_orig;
 	Bool fake_dts_set;
+	GF_List *pck_queue;
 } PidCtx;
 
 typedef struct
@@ -119,8 +120,17 @@ typedef struct
 static void ffdmx_finalize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
-	if (ctx->pids_ctx)
+	if (ctx->pids_ctx) {
+		u32 i;
+		for (i=0; i<ctx->nb_streams; i++) {
+			if (!ctx->pids_ctx[i].pck_queue) continue;
+			while (gf_list_count(ctx->pids_ctx[i].pck_queue)) {
+				gf_filter_pck_discard( gf_list_pop_back(ctx->pids_ctx[i].pck_queue) );
+			}
+			gf_list_del(ctx->pids_ctx[i].pck_queue);
+		}
 		gf_free(ctx->pids_ctx);
+	}
 	if (ctx->options)
 		av_dict_free(&ctx->options);
 	if (ctx->probe_times)
@@ -644,6 +654,7 @@ restart:
 		memcpy(data_dst, pkt->data, pkt->size);
 	}
 
+	Bool queue_pck=GF_FALSE;
 	if (ctx->raw_data && ctx->sclock) {
 		u64 ts;
 		if (!ctx->first_sample_clock) {
@@ -682,17 +693,28 @@ restart:
 		if (pkt->dts != AV_NOPTS_VALUE) {
 			ts = (pctx->fake_dts_plus_one-1 - pctx->fake_dts_orig + pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
-			if (!pctx->fake_dts_set && pctx->fake_dts_plus_one) {
-				s64 offset = pctx->fake_dts_plus_one-1;
-				offset -= pctx->fake_dts_orig;
-				if (offset)
-					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
+			if (!pctx->fake_dts_set) {
+				if (pctx->fake_dts_plus_one) {
+					s64 offset = pctx->fake_dts_plus_one-1;
+					offset -= pctx->fake_dts_orig;
+					if (offset)
+						gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
+				}
 				pctx->fake_dts_set = GF_TRUE;
+				if (pctx->pck_queue) {
+					while (gf_list_count(pctx->pck_queue)) {
+						GF_FilterPacket *pck_q = gf_list_pop_front(pctx->pck_queue);
+						gf_filter_pck_send(pck_q);
+					}
+					gf_list_del(pctx->pck_queue);
+					pctx->pck_queue = NULL;
+				}
 			}
 		} else {
 			ts = pctx->fake_dts_plus_one-1;
 			gf_filter_pck_set_dts(pck_dst, ts);
 			pctx->fake_dts_plus_one += pkt->duration;
+			if (!ctx->raw_data && !pctx->fake_dts_set) queue_pck = GF_TRUE;
 		}
 
 		if (pkt->duration)
@@ -735,7 +757,12 @@ restart:
 		}
 	}
 
-	e = gf_filter_pck_send(pck_dst);
+	if (queue_pck) {
+		if (!pctx->pck_queue) pctx->pck_queue = gf_list_new();
+		e = gf_list_add(pctx->pck_queue, pck_dst);
+	} else {
+		e = gf_filter_pck_send(pck_dst);
+	}
 	ctx->nb_pck_sent++;
 	ctx->nb_stop_pending=0;
 	if (!ctx->raw_pck_out) {
@@ -1502,6 +1529,7 @@ static GF_Err ffdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
+	u32 i;
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
@@ -1519,6 +1547,13 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				ctx->last_play_start_range = 0;
 			}
 			if (skip_com) {
+				if (evt->play.orig_delay) {
+					for (i=0; i<ctx->nb_streams; i++) {
+						if (ctx->pids_ctx[i].pid==evt->base.on_pid) {
+							ctx->pids_ctx[i].ts_offset = evt->play.orig_delay+1;
+						}
+					}
+				}
 				return GF_TRUE;
 			}
 			ctx->nb_playing--;
@@ -1561,6 +1596,9 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			//reset initial delay compute
 			for (i=0; i<ctx->nb_streams; i++) {
 				ctx->pids_ctx[i].ts_offset = 0;
+				if (evt->play.orig_delay && (ctx->pids_ctx[i].pid==evt->base.on_pid)) {
+					ctx->pids_ctx[i].ts_offset = evt->play.orig_delay+1;
+				}
 			}
 			ctx->last_play_start_range = evt->play.start_range;
 		}

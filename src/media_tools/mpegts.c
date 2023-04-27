@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -695,6 +695,9 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid section start (@ptr_field=%d, @data_size=%d)\n", ptr_field, data_size) );
 			return;
 		}
+
+		if (!hdr->pid)
+			ts->last_pat_start_num = ts->pck_number-1;
 
 		/*end of previous section*/
 		if (!sec->length && sec->received) {
@@ -2266,11 +2269,15 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 	if (hdr->payload_start) {
 		flush_pes = 1;
+		pes->before_last_pat_pn = pes->last_pat_packet_number;
+		pes->before_last_pes_start_pn = pes->pes_start_packet_number;
+
 		pes->pes_start_packet_number = ts->pck_number;
 		pes->before_last_pcr_value = pes->program->before_last_pcr_value;
 		pes->before_last_pcr_value_pck_number = pes->program->before_last_pcr_value_pck_number;
 		pes->last_pcr_value = pes->program->last_pcr_value;
 		pes->last_pcr_value_pck_number = pes->program->last_pcr_value_pck_number;
+		pes->last_pat_packet_number = ts->last_pat_start_num;
 	} else if (pes->pes_len && (pes->pck_data_len + data_size == pes->pes_len + 6)) {
 		/* 6 = startcode+stream_id+length*/
 		/*reassemble pes*/

@@ -44,7 +44,6 @@ typedef struct
 
 	GHISegInfo seg_info;
 	u32 nb_pck;
-	u64 next_frag_start_offset;
 
 	Bool first_sent;
 	u32 starts_with_sap;
@@ -60,6 +59,10 @@ typedef struct
 	GF_List *x_children;
 #endif
 
+	u32 bitrate;
+	u32 delay;
+	Bool use_offsets;
+
 	//for bin-based
 	GF_List *segs_bin;
 
@@ -67,17 +70,26 @@ typedef struct
 
 	char *rep_id, *res_url;
 	u32 track_id, pid_timescale, mpd_timescale, sample_duration, first_frag_start_offset;
-
+	s32 first_cts_offset;
 	u32 props_size, props_offset, rep_flags, nb_segs;
 } GHIStream;
+
+enum
+{
+	GHI_GM_NONE=0,
+	GHI_GM_ALL,
+	GHI_GM_MAIN,
+	GHI_GM_CHILD,
+	GHI_GM_INIT,
+};
 
 typedef struct
 {
 	//options
-	u32 genman;
+	u32 gm;
 	Bool force;
 	GF_PropStringList mux;
-	char *rep;
+	char *rep, *out;
 	u32 sn;
 
 	//internal
@@ -90,6 +102,10 @@ typedef struct
 	u64 media_presentation_duration;
 	u64 period_duration;
 	char *segment_template;
+
+	u64 min_ts_plus_one;
+	u32 min_ts_timescale;
+	u64 min_offset_plus_one, max_end_start_offset_plus_one;
 } GHIDmxCtx;
 
 
@@ -109,8 +125,21 @@ static void set_opids_props(GHIDmxCtx *ctx, GHIStream *st)
 		if (st->track_id)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(st->track_id) );
 
-		if (ctx->genman) {
-			gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("idx_man"));
+		if (ctx->gm) {
+			switch (ctx->gm) {
+			case GHI_GM_ALL:
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("idx_all"));
+				break;
+			case GHI_GM_MAIN:
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("idx_man"));
+				break;
+			case GHI_GM_CHILD:
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("idx_child"));
+				break;
+			case GHI_GM_INIT:
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("idx_init"));
+				break;
+			}
 			gf_filter_pid_set_property_str(opid, "mpd_duration", &PROP_LONGUINT(ctx->media_presentation_duration));
 			gf_filter_pid_set_property_str(opid, "max_seg_dur", &PROP_UINT((u32) ctx->max_segment_duration));
 			gf_filter_pid_set_property_str(opid, "start_with_sap", &PROP_UINT(st->starts_with_sap));
@@ -120,9 +149,14 @@ static void set_opids_props(GHIDmxCtx *ctx, GHIStream *st)
 		}
 		if (ctx->segment_template)
 			gf_filter_pid_set_property_str(opid, "idx_template", &PROP_STRING(ctx->segment_template));
+		if (ctx->out)
+			gf_filter_pid_set_property_str(opid, "idx_out", &PROP_STRING(ctx->out));
 
 		if (st->sample_duration)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_CONSTANT_DURATION, &PROP_UINT(st->sample_duration));
+
+		if (st->bitrate)
+			gf_filter_pid_set_property(opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->bitrate));
 
 		if (st->mux_dst.nb_items) {
 			if (st->active_mux_base_plus_one) {
@@ -133,7 +167,8 @@ static void set_opids_props(GHIDmxCtx *ctx, GHIStream *st)
 		} else {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, &PROP_STRING(st->rep_id));
 		}
-		gf_filter_pid_set_name(opid, st->rep_id);
+		if (!st->ipid)
+			gf_filter_pid_set_name(opid, st->rep_id);
 	}
 }
 
@@ -165,11 +200,22 @@ static void ghi_dmx_send_seg_times(GHIDmxCtx *ctx, GHIStream *st, GF_FilterPid *
 			dur = (u32) si->seg_duration;
 		}
 		gf_filter_pck_set_dts(pck, ts);
+		if (!i) ts += st->first_cts_offset;
 		gf_filter_pck_set_cts(pck, ts);
 
 		dur = (u32) gf_timestamp_rescale(dur, st->mpd_timescale, st->pid_timescale);
 		gf_filter_pck_set_duration(pck, dur);
 		gf_filter_pck_set_sap(pck, st->starts_with_sap);
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+		gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+		gf_filter_pck_send(pck);
+	}
+	//dasher expects at least one packet to start, send a dummy one - this happens whn generating init segments only
+	if (!count) {
+		GF_FilterPacket *pck = gf_filter_pck_new_alloc(opid, 0, NULL);
+		gf_filter_pck_set_dts(pck, 0);
+		gf_filter_pck_set_cts(pck, 0);
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 		gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 		gf_filter_pck_send(pck);
@@ -242,6 +288,7 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			gf_list_add(st->opids, opid);
 			gf_filter_pid_set_udta(opid, st);
 		}
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	}
 
 	set_opids_props(ctx, st);
@@ -258,7 +305,7 @@ static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->genman) {
+		if (ctx->gm) {
 			ghi_dmx_send_seg_times(ctx, st, evt->base.on_pid);
 			return GF_TRUE;
 		}
@@ -279,23 +326,27 @@ static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, st->ipid);
 		fevt.base.on_pid = st->ipid;
-		if (st->seg_info.frag_start_offset) {
-			fevt.base.type = GF_FEVT_SOURCE_SEEK;
-			fevt.seek.start_offset = st->seg_info.frag_start_offset;
+		if (st->use_offsets) {
+			fevt.play.hint_start_offset = ctx->min_offset_plus_one-1;
 			if (st->seg_info.frag_start_offset) {
-				fevt.seek.hint_first_tfdt = st->seg_info.frag_tfdt ? st->seg_info.frag_tfdt : st->seg_info.first_tfdt;
+				fevt.play.hint_first_dts = st->seg_info.frag_tfdt ? st->seg_info.frag_tfdt : st->seg_info.first_tfdt;
 			}
-			if (st->next_frag_start_offset)
-				fevt.seek.end_offset = st->next_frag_start_offset - 1;
-			else
-				fevt.seek.end_offset = 0;
+			if (ctx->max_end_start_offset_plus_one)
+				fevt.play.hint_end_offset = ctx->max_end_start_offset_plus_one - 1;
+		}
+		if (ctx->min_ts_plus_one) {
+			fevt.play.start_range = (Double) (ctx->min_ts_plus_one-1);
+			fevt.play.start_range /= ctx->min_ts_timescale;
 		} else {
 			fevt.play.start_range = (Double) st->seg_info.first_tfdt;
 			fevt.play.start_range /= st->pid_timescale;
-			fevt.play.from_pck = (u32) st->seg_info.first_pck_seq;
-			fevt.play.to_pck = (u32) st->seg_info.first_pck_seq + st->nb_pck;
 		}
+		fevt.play.from_pck = (u32) st->seg_info.first_pck_seq;
+		fevt.play.to_pck = (u32) st->seg_info.first_pck_seq + st->nb_pck;
+		fevt.play.orig_delay = st->delay;
+
 		gf_filter_pid_send_event(st->ipid, &fevt);
+
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
@@ -585,19 +636,27 @@ static void ghi_dmx_unmark_muxed(GHIDmxCtx *ctx)
 {
 	u32 i;
 	//unmark muxed inactive
-	if (!ctx->genman && ctx->rep && ctx->mux.nb_items) {
-		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			GHIStream *st = gf_list_get(ctx->streams, i);
-			if (!st->inactive) continue;
-			if (!st->mux_dst.nb_items) continue;
-			u32 j;
-			st->active_mux_base_plus_one=0;
-			for (j=0; j<st->mux_dst.nb_items; j++) {
-				if (!strcmp(st->mux_dst.vals[j], ctx->rep)) {
-					st->active_mux_base_plus_one=j+1;
-					st->inactive = GF_FALSE;
-					break;
-				}
+	if (!ctx->mux.nb_items) return;
+	if (!ctx->rep) return;
+	switch (ctx->gm) {
+	case GHI_GM_NONE:
+	case GHI_GM_INIT:
+		break;
+	default:
+		return;
+	}
+
+	for (i=0; i<gf_list_count(ctx->streams); i++) {
+		GHIStream *st = gf_list_get(ctx->streams, i);
+		if (!st->inactive) continue;
+		if (!st->mux_dst.nb_items) continue;
+		u32 j;
+		st->active_mux_base_plus_one=0;
+		for (j=0; j<st->mux_dst.nb_items; j++) {
+			if (!strcmp(st->mux_dst.vals[j], ctx->rep)) {
+				st->active_mux_base_plus_one=j+1;
+				st->inactive = GF_FALSE;
+				break;
 			}
 		}
 	}
@@ -608,26 +667,36 @@ static Bool ghi_dmx_check_mux(GHIDmxCtx *ctx, GHIStream *st)
 	//check muxed
 	u32 k;
 	for (k=0; k<ctx->mux.nb_items; k++) {
-		char *sep = strchr(ctx->mux.vals[k], '.');
+		char *sep = strchr(ctx->mux.vals[k], '@');
 		if (!sep) continue;
 		sep[0] = 0;
 		if (strcmp(st->rep_id, ctx->mux.vals[k])) {
-			sep[0] = '.';
+			sep[0] = '@';
 			continue;
 		}
-		sep[0] = '.';
+		sep[0] = '@';
 		sep++;
 
-		GF_PropertyValue p = gf_props_parse_value(GF_PROP_STRING_LIST, "mux", sep, NULL, '.');
+		GF_PropertyValue p = gf_props_parse_value(GF_PROP_STRING_LIST, "mux", sep, NULL, '@');
 		st->mux_dst = p.value.string_list;
 	}
 	//mark if inactive
-	if (ctx->genman) return GF_FALSE;
+	switch (ctx->gm) {
+	case GHI_GM_MAIN:
+	case GHI_GM_ALL:
+		return GF_FALSE;
+	case GHI_GM_CHILD:
+	case GHI_GM_INIT:
+		if (strcmp(st->rep_id, ctx->rep)) {
+			st->inactive = GF_TRUE;
+		}
+		return GF_FALSE;
+	}
 	if (!ctx->rep) return GF_FALSE;
 
 	if (strcmp(st->rep_id, ctx->rep)) {
 		st->inactive = GF_TRUE;
-		return GF_FALSE;
+		return GF_TRUE; //do load seg info  !
 	}
 	return GF_TRUE;
 }
@@ -653,14 +722,14 @@ void ghi_dmx_parse_seg(GHIDmxCtx *ctx, GF_BitStream *bs, GHIStream *st, s32 num_
 		s->seg_duration = gf_bs_read_u32(bs);
 
 		if (st->rep_flags & (1<<2)) {
-
 			if (st->rep_flags & (1<<3)) s->frag_start_offset = gf_bs_read_u64(bs);
 			else s->frag_start_offset = gf_bs_read_u32(bs);
-
-			if (st->rep_flags & (1<<4)) s->frag_tfdt = gf_bs_read_u64(bs);
+		}
+		if (st->rep_flags & (1<<4)) {
+			if (st->rep_flags & (1<<5)) s->frag_tfdt = gf_bs_read_u64(bs);
 			else s->frag_tfdt = gf_bs_read_u32(bs);
 		}
-		if (st->rep_flags & (1<<5)) {
+		if (st->rep_flags & (1<<6)) {
 			s->split_first = gf_bs_read_u32(bs);
 			s->split_last = gf_bs_read_u32(bs);
 		}
@@ -709,7 +778,10 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 
 		st->pid_timescale = gf_bs_read_u32(bs);
 		st->mpd_timescale = gf_bs_read_u32(bs);
+		st->bitrate = gf_bs_read_u32(bs);
+		st->delay = gf_bs_read_u32(bs);
 		st->sample_duration = gf_bs_read_u32(bs);
+		st->first_cts_offset = (s32) gf_bs_read_u32(bs);
 		st->nb_segs = gf_bs_read_u32(bs);
 		st->starts_with_sap = gf_bs_read_u8(bs);
 		st->rep_flags = gf_bs_read_u8(bs);
@@ -730,14 +802,11 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 
 		if (st->rep_flags & 1) size += 1;
 		if (st->rep_flags & (1<<1)) size += 1;
-		if (st->rep_flags & (1<<2)) {
-			size += 2;
-			if (st->rep_flags & (1<<3)) size+=1;
-			if (st->rep_flags & (1<<4)) size+=1;
-		}
-		if (st->rep_flags & (1<<5)) {
-			size += 2;
-		}
+		if (st->rep_flags & (1<<2)) size += 1;
+		if (st->rep_flags & (1<<3)) size += 1;
+		if (st->rep_flags & (1<<4)) size += 1;
+		if (st->rep_flags & (1<<5)) size += 1;
+		if (st->rep_flags & (1<<6)) size += 2;
 
 		//locate segment
 		if (ctx->sn > st->nb_segs) {
@@ -758,15 +827,25 @@ GF_Err ghi_dmx_init_bin(GF_Filter *filter, GHIDmxCtx *ctx, GF_BitStream *bs)
 		st->seg_info = *surl;
 		st->nb_pck = -1;
 		st->empty_seg = 0;
+		if (st->seg_info.frag_start_offset)
+			st->use_offsets=1;
+
 		if (!st->seg_info.first_pck_seq) {
 			st->empty_seg = 1;
 		} else {
 			surl = gf_list_get(st->segs_bin, 1);
 			if (surl) {
 				st->nb_pck = (u32) (surl->first_pck_seq - st->seg_info.first_pck_seq);
-				st->next_frag_start_offset = surl->frag_start_offset;
+				if (!ctx->max_end_start_offset_plus_one
+					|| (ctx->max_end_start_offset_plus_one-1 < surl->frag_start_offset)
+				) {
+					ctx->max_end_start_offset_plus_one = surl->frag_start_offset+1;
+				}
 				//first packet of next seg is split, we need this packet in current segment
 				if (surl->split_first) st->nb_pck++;
+
+				if (surl->frag_start_offset)
+					st->use_offsets=1;
 			}
 		}
 
@@ -827,10 +906,12 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 			rep->res_url = NULL;
 			st->segs_xml = rep->segment_list->segment_URLs;
 			rep->segment_list->segment_URLs = NULL;
-			if (ctx->genman && !ctx->force) {
+			if (ctx->gm && !ctx->force) {
 				st->x_children = rep->x_children;
 				rep->x_children = NULL;
 			}
+			st->bitrate = rep->bandwidth;
+			st->delay = rep->segment_list->pid_delay;
 
 			st->track_id = rep->trackID;
 			//mpd timescale
@@ -838,6 +919,7 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 			st->mpd_timescale = rep->segment_list->timescale;
 			//in pid timescale units
 			st->sample_duration = rep->segment_list->sample_duration;
+			st->first_cts_offset = rep->segment_list->first_cts_offset;
 
 			st->starts_with_sap = as->starts_with_sap ? as->starts_with_sap : rep->starts_with_sap;
 			st->opids = gf_list_new();
@@ -869,15 +951,24 @@ GF_Err ghi_dmx_init_xml(GF_Filter *filter, GHIDmxCtx *ctx, const u8 *data)
 			st->seg_info.split_last = surl->split_last_dur;
 			st->nb_pck = -1;
 			st->empty_seg = 0;
+			if (st->seg_info.frag_start_offset)
+				st->use_offsets=1;
+
 			if (!st->seg_info.first_pck_seq) {
 				st->empty_seg = 1;
 			} else {
 				surl = gf_list_get(st->segs_xml, st->seg_num);
 				if (surl) {
 					st->nb_pck = (u32) (surl->first_pck_seq - st->seg_info.first_pck_seq);
-					st->next_frag_start_offset = surl->frag_start_offset;
+					if (!ctx->max_end_start_offset_plus_one
+						|| (ctx->max_end_start_offset_plus_one-1<surl->frag_start_offset)
+					) {
+						ctx->max_end_start_offset_plus_one = surl->frag_start_offset+1;
+					}
 					//first packet of next seg is split, we need this packet in current segment
 					if (surl->split_first_dur) st->nb_pck++;
+					if (surl->frag_start_offset)
+						st->use_offsets=1;
 				}
 			}
 			surl = gf_list_get(st->segs_xml, 0);
@@ -936,10 +1027,10 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 		if (st->filter_src) continue;
 
 		//load all segments
-		if (ctx->genman && bs)
+		if (ctx->gm && bs)
 			ghi_dmx_parse_seg(ctx, bs, st, 0);
 
-		if (ctx->genman && !ctx->force) {
+		if (ctx->gm && !ctx->force) {
 			if (st->segs_bin)
 				ghi_dmx_declare_opid_bin(filter, ctx, st, bs);
 			else
@@ -956,11 +1047,23 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 			gf_dynstrcat(&args, szRange, NULL);
 		}
 
-		if (!ctx->genman) {
+		if (!ctx->gm) {
 			char szOpt[100];
 			char c = gf_filter_get_sep(filter, GF_FS_SEP_ARGS);
-			sprintf(szOpt, "%cgfopt%clightp", c, c);
+			sprintf(szOpt, "%cgfopt%clightp%cindex=0", c, c, c);
 			gf_dynstrcat(&args, szOpt, NULL);
+
+			if (!ctx->min_ts_plus_one
+				|| gf_timestamp_less(st->seg_info.first_tfdt+1, st->pid_timescale, ctx->min_ts_plus_one, ctx->min_ts_timescale)
+			) {
+				ctx->min_ts_plus_one = st->seg_info.first_tfdt+1;
+				ctx->min_ts_timescale = st->pid_timescale;
+			}
+
+			if (st->use_offsets) {
+				if (!ctx->min_offset_plus_one || (st->seg_info.frag_start_offset < ctx->min_offset_plus_one-1))
+					ctx->min_offset_plus_one = st->seg_info.frag_start_offset+1;
+			}
 		}
 
 		st->filter_src = gf_filter_connect_source(filter, args, NULL, GF_FALSE, &e);
@@ -1010,8 +1113,7 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 			continue;
 		}
 		u64 dts = gf_filter_pck_get_dts(pck);
-		if (dts >= st->seg_info.first_tfdt)
-		{
+		if (dts >= st->seg_info.first_tfdt) {
 			if (st->nb_pck) {
 				st->nb_pck--;
 				if (!st->first_sent || (!st->nb_pck && st->seg_info.split_last)) {
@@ -1035,9 +1137,18 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 				} else {
 					gf_filter_pck_forward(pck, opid);
 				}
+				if (!st->nb_pck) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, st->ipid);
+					gf_filter_pid_send_event(st->ipid, &evt);
+					gf_filter_pid_set_eos(opid);
+				}
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[GHIX] Packet dts "LLU" after segment range, discarding \n", dts));
 			}
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[GHIX] Packet dts "LLU" before segment range, discarding \n", dts));
 		}
-
 		gf_filter_pid_drop_packet(st->ipid);
 	}
 
@@ -1049,15 +1160,16 @@ GF_Err ghi_dmx_initialize(GF_Filter *filter)
 	GHIDmxCtx *ctx = gf_filter_get_udta(filter);
 	ctx->streams = gf_list_new();
 
-	if (!ctx->genman) {
-		if (!ctx->rep) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Missing rep ID and not generating manifest\n"));
-			return GF_BAD_PARAM;
-		}
-		if (!ctx->sn) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Missing segment number and not generating manifest\n"));
-			return GF_BAD_PARAM;
-		}
+	if (ctx->sn && ctx->rep)
+		ctx->gm = GHI_GM_NONE;
+
+	if (!ctx->gm && !ctx->rep) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Missing rep ID, cannot generate manifest\n"));
+		return GF_BAD_PARAM;
+	}
+	if ((ctx->gm>=GHI_GM_CHILD) && !ctx->rep) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIX] Missing rep ID, cannot generating %s\n", (ctx->gm==GHI_GM_CHILD) ? "child manifest" : "init segment"));
+		return GF_BAD_PARAM;
 	}
 	return GF_OK;
 }
@@ -1120,11 +1232,17 @@ static const char *ghi_dmx_probe_data(const u8 *data, u32 data_size, GF_FilterPr
 #define OFFS(_n)	#_n, offsetof(GHIDmxCtx, _n)
 static const GF_FilterArgs GHIDmxArgs[] =
 {
-	{ OFFS(genman), "manifest generation mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(force), "force loading sources in manifest generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(gm), "manifest generation mode\n"
+	"- none: no manifest generation (implied if sn is not 0)\n"
+	"- all: generate all manifests and init segments\n"
+	"- main: generate main manifest (MPD or master M3U8)\n"
+	"- child: generate child playlist for HLS\n"
+	"- init: generate init segment", GF_PROP_UINT, "main", "none|all|main|child|init", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(force), "force loading sources in manifest generation for debug", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rep), "representation to generate", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(sn), "segment number to generate", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sn), "segment number to generate, 0 means init segment", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mux), "representation to mux - cf filter help", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(out), "output filename to generate", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1135,6 +1253,8 @@ static const GF_FilterCapability GHIDmxCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-gpac-ghix|application/x-gpac-ghi"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
 	//accept any stream but files, framed
@@ -1148,6 +1268,8 @@ GF_FilterRegister GHIDXDmxRegister = {
 	GF_FS_SET_DESCRIPTION("GHI demultiplexer")
 	GF_FS_SET_HELP("This filter handles pre-indexed content for just-in-time processing of HAS manifest, init segment and segments\n"
 	"\n"
+	"Warning: This is work in progress, the format of indexes (binary or XML) may change until finalization of this filter.\n"
+	"\n"
 	"# Generating indexes\n"
 	"Indexes are constructed using the dasher filter and a given segment duration.\n"
 	"EX gpac -i SRC [... -i SRCn] -o index.ghi:segdur=2\n"
@@ -1157,38 +1279,53 @@ GF_FilterRegister GHIDXDmxRegister = {
 	"\n"
 	"Warning: XML indexes should only be used for debug purposes as they can take a significant amount of time to be parsed.\n"
 	"\n"
-	"# Using indexes\n"
-	"To generate manifest(s) and init segment(s) from the index, use:\n"
-	"EX gpac -i index.ghi:genman -o dash/vod.mpd\n"
+	"When indexing, the default template used is `$Representation$_$Number$`. The template is stored in the index and shouldn't be re-specified when generating content.\n"
 	"\n"
-	"To generate the 10th segment of representation with ID `FOO`, use:\n"
+	"# Using indexes\n"
+	"The index can be used to generate manifest, child variants for HLS, init segments and segments.\n"
+	"EX gpac -i index.ghi:gm=all -o dash/vod.mpd\n"
+	"This generates manifest(s) and init segment(s).\n"
+	"\n"
 	"EX gpac -i index.ghi:rep=FOO:sn=10 -o dash/vod.mpd\n"
+	"This generates the 10th segment of representation with ID `FOO`.\n"
+	"\n"
 	"Note: The manifest file(s) and init segment(s) are not written when generating a segment. The manifest target (mpd or m3u8) is only used to setup the filter chain and target output path.\n"
+	"\n"
+	"EX gpac -i index.ghi:gm=main -o dash/vod.m3u8\n"
+	"This generates main manifest only (MPD or master HLS playlist).\n"
+	"\n"
+	"EX gpac -i index.ghi:gm=child:rep=FOO:out=BAR -o dash/vod.m3u8\n"
+	"This generates child manifest for representation `FOO` in file `BAR`.\n"
+	"\n"
+	"EX gpac -i index.ghi:gm=init:rep=FOO:out=BAR2 -o dash/vod.m3u8\n"
+	"This generates init segment for representation `FOO` in file `BAR2`.\n"
 	"\n"
 	"The filter outputs are PIDs using framed packets marked with segment boundaries and can be chained to other filters before entering the dasher (e.g. for encryption, transcode...).\n"
 	"\n"
 	"If representation IDs are not assigned during index creation, they default to the 1-based index of the source. You can check them using:\n"
-	"EX: gpac -i src.ghi:genman inspect:full\n"
+	"EX: gpac -i src.ghi inspect:full\n"
 	"\n"
 	"# Muxed Representations\n"
 	"The filter can be used to generate muxed representations, either at manifest generation time or when generating a segment.\n"
-	"To generate a manifest muxing representations `A` with representations `V1` and `V2` use:\n"
-	"EX gpac -i index.ghi:genman:mux=A-V1-V2 -o dash/vod.mpd\n"
+	"EX gpac -i index.ghi:mux=A@V1@V2 -o dash/vod.mpd\n"
+	"This will generate a manifest muxing representations `A` with representations `V1` and `V2`.\n"
 	"\n"
-	"To generate a manifest muxing representations `A` and `T` with representations `V1` and `V2` use:\n"
-	"EX gpac -i index.ghi:genman:mux=A-V1-V2,T-V1-V2 -o dash/vod.mpd\n"
+	"EX gpac -i index.ghi:mux=A@V1@V2,T@V1@V2 -o dash/vod.mpd\n"
+	"This will generate a manifest muxing representations `A` and `T` with representations `V1` and `V2`.\n"
 	"\n"
-	"To generate the 5th segment containing representations `A` and `V2` use:\n"
-	"EX gpac -i index.ghi:rep=V2:sn=5:mux=A-V2 -o dash/vod.mpd\n"
+	"EX gpac -i index.ghi:rep=V2:sn=5:mux=A@V2 -o dash/vod.mpd\n"
+	"This will generate the 5th segment containing representations `A` and `V2`.\n"
 	"\n"
 	"The filter does not store any state, it is the user respansability to use consistent informations across calls:\n"
 	"- do not change segment templates\n"
 	"- do not change muxed representations to configurations not advertised in the generated manifests\n"
 	"\n"
 	"# Recommandations\n"
-	"Indexing currently supports as sources fragmented and non-fragmented MP4 inputs.\n"
-	"It is recommended to use fragmented MP4 as input format since this greatly reduces file loading times.\n"
-	"If non-fragmented MP4 are used, it is recommended to use single-track files to decrease the movie box size and speedup parsing.\n"
+	"Indexing supports fragmented and non-fragmented MP4, MPEG-2 TS and seekable inputs.\n"
+	"- It is recommended to use fragmented MP4 as input format since this greatly reduces file loading times.\n"
+	"- If non-fragmented MP4 are used, it is recommended to use single-track files to decrease the movie box size and speedup parsing.\n"
+	"- MPEG-2 TS sources will be slower since they require PES reframing and AU reformating, resulting in more IOs than with mp4.\n"
+	"- other seekable sources will likely be slower (seeking, reframing) and are not recommended.\n"
 	"\n"
 	)
 	.private_size = sizeof(GHIDmxCtx),

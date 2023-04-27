@@ -554,10 +554,11 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		return;
 	}
 
-	if ((ch->sample_num==1) && ch->first_tfdt && ch->sample->DTS) {
-		ch->first_tfdt = 0;
+	//first sample fetched has DTS, we have a tfdt so ignore the hinted one
+	if ((ch->sample_num==1) && ch->hint_first_tfdt && ch->sample->DTS) {
+		ch->hint_first_tfdt = 0;
 	}
-	ch->sample->DTS += ch->first_tfdt;
+	ch->sample->DTS += ch->hint_first_tfdt;
 
 	if (sample_desc_index != ch->last_sample_desc_index) {
 		if (!ch->owner->stsd) {

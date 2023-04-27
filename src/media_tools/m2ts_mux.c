@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS multiplexer sub-project
@@ -1376,6 +1376,9 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				}
 			}
 
+			if (stream->program->force_first_pts==GF_FILTER_NO_TS)
+				stream->program->force_first_pts = 0;
+
 			if (stream->program->force_first_pts) {
 				u64 first_pts = stream->curr_pck.cts;
 				u64 first_dts = stream->curr_pck.dts;
@@ -1400,11 +1403,11 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 					stream->program->initial_ts = first_dts + stream->program->pcr_offset;
 
 				*/
-/*
-				stream->program->pcr_init_time = first_dts*300 - stream->program->pcr_offset;
-				stream->program->initial_ts = first_pts + stream->program->pcr_offset + stream->program->pcr_init_time/300 - stream->program->force_first_pts;
-*/
 
+				//if forced first PTS is not for this stream, use the forced one
+				if (first_pts > stream->program->force_first_pts) {
+					first_pts = first_dts = stream->program->force_first_pts;
+				}
 				stream->program->initial_ts = first_dts + stream->program->pcr_offset;
 				stream->program->pcr_init_time = 300 * (stream->program->force_first_pts - first_pts - stream->program->pcr_offset + stream->program->initial_ts);
 
@@ -1649,7 +1652,11 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 	/*compute next interesting time in TS unit: this will be DTS of next packet*/
 	stream->time = stream->program->ts_time_at_pcr_init;
-	time_inc = stream->curr_pck.dts - stream->program->pcr_init_time/300;
+	//safety check
+	if (stream->curr_pck.dts > stream->program->pcr_init_time/300)
+		time_inc = stream->curr_pck.dts - stream->program->pcr_init_time/300;
+	else
+		time_inc = 0;
 
 	/* CBR, estimate number of packets required to send => time in mux rate, and offset send time*/
 	if (muxer->fixed_rate) {
@@ -2939,6 +2946,14 @@ void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *prog
 	program->provider = provider_name ? gf_strdup(provider_name) : NULL;
 
 	if (program->mux->sdt) program->mux->sdt->table_needs_update = GF_TRUE;
+}
+
+void gf_m2ts_mux_program_force_keep_ts(GF_M2TS_Mux_Program *program)
+{
+	if (program) {
+		program->initial_ts_set = 2;
+		program->initial_ts = 0;
+	}
 }
 
 GF_EXPORT

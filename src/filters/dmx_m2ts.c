@@ -61,6 +61,7 @@ typedef struct
 	//opts
 	const char *temi_url;
 	Bool dsmcc, seeksrc, sigfrag, dvbtxt;
+	Double index;
 
 	GF_Filter *filter;
 	GF_FilterPid *ipid;
@@ -722,7 +723,19 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		pck->stream->is_seg_start = GF_FALSE;
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 	}
+	if (ctx->sigfrag) {
+		u64 pat_offset;
 
+		if (pck->stream->flags & GF_M2TS_ES_IS_PES) {
+			pat_offset = pck->stream->before_last_pes_start_pn;
+			if (pat_offset>pck->stream->before_last_pat_pn)
+				pat_offset = pck->stream->before_last_pat_pn;
+		} else {
+			pat_offset = ctx->ts->last_pat_start_num;
+		}
+		pat_offset *= (ctx->ts->prefix_present ? 192 : 188);
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FRAG_RANGE, &PROP_FRAC64_INT(pat_offset, 0));
+	}
 	gf_filter_pck_send(dst_pck);
 	ctx->nb_stop_pending = 0;
 }
@@ -787,6 +800,10 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 	if (pck->stream->is_seg_start) {
 		pck->stream->is_seg_start = GF_FALSE;
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+	}
+	if (ctx->sigfrag) {
+		u64 pat_offset = ctx->ts->last_pat_start_num * (ctx->ts->prefix_present ? 192 : 188);
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FRAG_RANGE, &PROP_FRAC64_INT(pat_offset, 0));
 	}
 	gf_filter_pck_send(dst_pck);
 
@@ -923,7 +940,9 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
 
 		assert(pck->stream);
-		m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
+		if (!ctx->sigfrag && ctx->index) {
+			m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
+		}
 
 		if (ctx->map_time_on_prog_id && (ctx->map_time_on_prog_id==pck->stream->program->number)) {
 			map_time = GF_TRUE;
@@ -1104,8 +1123,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	const GF_PropertyValue *p;;
-	FILE *stream = NULL;
+	const GF_PropertyValue *p;
+	Bool can_probe=GF_FALSE;
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -1125,10 +1144,10 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (p && p->value.string && !ctx->duration.num && strncmp(p->value.string, "gmem://", 7)) {
-		stream = gf_fopen(p->value.string, "rb");
+		can_probe = GF_TRUE;
 	}
 
-	if (stream) {
+	if (can_probe) {
 		if (ctx->seeksrc) {
 			//for local file we will send a seek and stop once all programs are configured, and reparse from start
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
@@ -1136,22 +1155,29 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				ctx->mux_tune_state = DMX_TUNE_INIT;
 			}
 		}
-		
+
+		FILE *stream = NULL;
+		if (!ctx->sigfrag && ctx->index) {
+			stream = gf_fopen(p->value.string, "rb");
+		}
+
 		ctx->ipid = pid;
 		ctx->is_file = GF_TRUE;
-		ctx->ts->seek_mode = GF_TRUE;
-		ctx->ts->on_event = m2tsdmx_on_event_duration_probe;
-		while (!gf_feof(stream)) {
-			char buf[1880];
-			u32 nb_read = (u32) gf_fread(buf, 1880, stream);
-			gf_m2ts_process_data(ctx->ts, buf, nb_read);
-			if (ctx->duration.num || (nb_read!=1880)) break;
+		if (stream) {
+			ctx->ts->seek_mode = GF_TRUE;
+			ctx->ts->on_event = m2tsdmx_on_event_duration_probe;
+			while (!gf_feof(stream)) {
+				char buf[1880];
+				u32 nb_read = (u32) gf_fread(buf, 1880, stream);
+				gf_m2ts_process_data(ctx->ts, buf, nb_read);
+				if (ctx->duration.num || (nb_read!=1880)) break;
+			}
+			gf_fclose(stream);
+			gf_m2ts_demux_del(ctx->ts);
+			ctx->ts = gf_m2ts_demux_new();
+			ctx->ts->on_event = m2tsdmx_on_event;
+			ctx->ts->user = filter;
 		}
-		gf_m2ts_demux_del(ctx->ts);
-		gf_fclose(stream);
-		ctx->ts = gf_m2ts_demux_new();
-		ctx->ts->on_event = m2tsdmx_on_event;
-		ctx->ts->user = filter;
 	} else if (!p) {
 		GF_FilterEvent evt;
 		ctx->duration.num = 1;
@@ -1219,6 +1245,7 @@ static void m2tsdmx_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, B
 
 static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
+	Bool is_source_seek;
 	GF_M2TS_PES *pes;
 	u64 file_pos = 0;
 	GF_FilterEvent fevt;
@@ -1240,7 +1267,9 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	if (!com->base.on_pid) return GF_FALSE;
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
-		if (com->play.initial_broadcast_play==2)
+		is_source_seek = (com->play.hint_start_offset || com->play.hint_end_offset) ? GF_TRUE : GF_FALSE;
+
+		if (!is_source_seek && com->play.initial_broadcast_play==2)
 			return GF_TRUE;
 		pes = m2tsdmx_get_stream(ctx, com->base.on_pid);
 		if (!pes) {
@@ -1249,7 +1278,7 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			}
 			return GF_FALSE;
 		}
-		if (com->play.no_byterange_forward)
+		if (!is_source_seek && com->play.no_byterange_forward)
 			ctx->is_dash = GF_TRUE;
 		/*mark pcr as not initialized*/
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
@@ -1279,10 +1308,12 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		}
 
 		ctx->map_time_on_prog_id = pes->program->number;
-		ctx->media_start_range = com->play.start_range;
+		ctx->media_start_range = is_source_seek ? 0 : com->play.start_range;
 
-
-		if (ctx->is_file && ctx->duration.num) {
+		if (is_source_seek) {
+			file_pos = com->play.hint_start_offset;
+		}
+		else if (ctx->is_file && ctx->duration.num) {
 			file_pos = (u64) (ctx->file_size * com->play.start_range);
 			file_pos *= ctx->duration.den;
 			file_pos /= ctx->duration.num;
@@ -1299,9 +1330,13 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		ctx->in_seek = GF_TRUE;
 		//we seek so consider the mux tuned in
 		ctx->mux_tune_state = DMX_TUNE_DONE;
+
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = file_pos;
+		//we don't set the end offset as the start of each seg is likely to be before the packet (at the PAT)
+		//so the end range will not include the last packets
+
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
 		return GF_TRUE;
 
@@ -1468,6 +1503,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sigfrag), "signal segment boundaries on output packets for DASH or HLS sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvbtxt), "export DVB teletext streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 
