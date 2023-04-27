@@ -332,12 +332,9 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 				}
 			}
 
-			Bool needs_bold=GF_FALSE;
-			Bool needs_italic=GF_FALSE;
-			Bool needs_underlined=GF_FALSE;
-			Bool needs_strikethrough=GF_FALSE;
 			Bool needs_color=GF_FALSE;
 			Bool close_span=GF_FALSE;
+			Bool needs_span=GF_FALSE;
 
 			if (new_color != color) {
 				close_span = GF_TRUE;
@@ -347,11 +344,21 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 				styles = txtd->default_style.style_flags;
 			}
 
+			//check each style:
+			//- if set but not previously set, needs a new span
+			//- if not set but previously set, needs to close span
 			if (new_styles != styles) {
-				if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) needs_bold = GF_TRUE;
-				if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) needs_italic = GF_TRUE;
-				if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) needs_underlined = GF_TRUE;
-				if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) needs_strikethrough = GF_TRUE;
+				if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) needs_span = GF_TRUE;
+				else if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) close_span = GF_TRUE;
+
+				if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) needs_span = GF_TRUE;
+				else if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) close_span = GF_TRUE;
+
+				if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) needs_span = GF_TRUE;
+				if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) close_span = GF_TRUE;
+
+				if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) needs_span = GF_TRUE;
+				else if ((styles & GF_TXT_STYLE_STRIKETHROUGH) && !(new_styles & GF_TXT_STYLE_STRIKETHROUGH)) close_span = GF_TRUE;
 
 				styles = new_styles;
 			}
@@ -360,13 +367,13 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 				gf_fprintf(dump, "</span>");
 				has_span = GF_FALSE;
 			}
-			if (needs_bold || needs_italic || needs_underlined || needs_strikethrough || needs_color) {
+			if (needs_span) {
 				has_span = GF_TRUE;
 				gf_fprintf(dump, "<span");
-				if (needs_italic) gf_fprintf(dump, " tts:fontStyle=\"italic\"");
-				if (needs_bold) gf_fprintf(dump, " tts:fontWeight=\"bold\"");
-				if (needs_underlined) gf_fprintf(dump, " tts:textDecoration=\"underline\"");
-				if (needs_strikethrough) gf_fprintf(dump, " tts:textDecoration=\"lineThrough\"");
+				if (styles & GF_TXT_STYLE_ITALIC) gf_fprintf(dump, " tts:fontStyle=\"italic\"");
+				if (styles & GF_TXT_STYLE_BOLD) gf_fprintf(dump, " tts:fontWeight=\"bold\"");
+				if (styles & GF_TXT_STYLE_UNDERLINED) gf_fprintf(dump, " tts:textDecoration=\"underline\"");
+				if (styles & GF_TXT_STYLE_STRIKETHROUGH) gf_fprintf(dump, " tts:textDecoration=\"lineThrough\"");
 
 				if (needs_color) gf_fprintf(dump, " tts:color=\"%s\"", gf_color_get_name(color));
 
