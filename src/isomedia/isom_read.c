@@ -4145,6 +4145,7 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 			break;
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
 			nb_text++;
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
