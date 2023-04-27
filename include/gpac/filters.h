@@ -1266,6 +1266,8 @@ enum
 	GF_PROP_PID_CLEARKEY_URI = GF_4CC('C','C','K','U'),
 	//internal
 	GF_PROP_PID_CLEARKEY_KID = GF_4CC('C','C','K','I'),
+	//internal, indicate DASH segments are generated in sparse mode ( from context)
+	GF_PROP_PID_DASH_SPARSE = GF_4CC('D','S','S','G'),
 
 
 	//internal property indicating pointer to associated GF_DownloadSession
@@ -1649,9 +1651,8 @@ typedef struct
 	/*! params for GF_FEVT_PLAY and GF_FEVT_SET_SPEED*/
 	Double speed;
 
-	/*! GF_FEVT_PLAY only, indicates playback should start from given packet number - used by dasher when reloading sources*/
+	/*! GF_FEVT_PLAY only, indicates playback should start from given packet number - used by dasher and GHI when reloading sources*/
 	u32 from_pck;
-	u32 to_pck;
 
 	/*! GF_FEVT_PLAY only, set when PLAY event is sent upstream to audio out, indicates HW buffer reset*/
 	u8 hw_buffer_reset;
@@ -1679,6 +1680,18 @@ typedef struct
 	/*! GF_FEVT_PLAY only, indicates  that a demuxer must not forward this event as a source seek because seek has already been done
 	(typically this play request is a segment play and byte range access within the file has already been performed by DASH client)*/
 	u8 no_byterange_forward;
+
+	/*! GF_FEVT_PLAY only, indicates playback should stop from given packet number - used by GHI when loading sources*/
+	u32 to_pck;
+	/*! GF_FEVT_PLAY only, indicates orginal delay applied to dts - used by GHI when loading sources*/
+	u32 orig_delay;
+	/*! GF_FEVT_PLAY only, hint DTS of first sample at ot just after start offset, in media timescale*/
+	u64 hint_first_dts;
+	/*! GF_FEVT_PLAY only, start offset in source - used by GHI when loading sources*/
+	u64 hint_start_offset;
+	/*! GF_FEVT_PLAY only, end offset in source - used by GHI when loading sources*/
+	u64 hint_end_offset;
+
 } GF_FEVT_Play;
 
 /*! Event structure for GF_FEVT_SOURCE_SEEK and GF_FEVT_SOURCE_SWITCH*/
@@ -1698,8 +1711,6 @@ typedef struct
 	u8 skip_cache_expiration;
 	/*! GF_FEVT_SOURCE_SEEK only,  hint block size for source, might not be respected*/
 	u32 hint_block_size;
-	/*! GF_FEVT_SOURCE_SEEK only,  hint tfdt of first sample*/
-	u64 hint_first_tfdt;
 } GF_FEVT_SourceSeek;
 
 /*! Event structure for GF_FEVT_SEGMENT_SIZE*/
@@ -1819,7 +1830,8 @@ typedef struct
 
 	/*! duration of intra (IDR, closed GOP) as expected by the dasher */
 	GF_Fraction intra_period;
-
+	/*! if TRUE codec should only generate DSI (possibly no input frame, and all output packets will be discarded) */
+	Bool gen_dsi_only;
 } GF_FEVT_EncodeHints;
 
 

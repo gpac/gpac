@@ -575,7 +575,7 @@ decode_next:
 
 	if (pck) pkt->data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
-	if (pck) {
+	if (pck && in_size) {
 		src_pck = pck;
 		gf_filter_pck_ref_props(&src_pck);
 		if (src_pck) gf_list_add(ctx->src_packets, src_pck);
@@ -607,6 +607,7 @@ decode_next:
 
 	} else {
 		pkt->size = 0;
+		pkt->data = NULL;
 	}
 
 	prev_afmt = ctx->decoder->sample_fmt;

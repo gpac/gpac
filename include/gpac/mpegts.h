@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2006-2022
+ *			Copyright (c) Telecom ParisTech 2006-2023
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -863,7 +863,8 @@ typedef struct tag_m2ts_pes
 	u64 before_last_pcr_value;
 	/*! packet number of before last PCR*/
 	u32 before_last_pcr_value_pck_number;
-
+	/*! packet number of preceeding PAT before the PES header*/
+	u32 last_pat_packet_number, before_last_pat_pn, before_last_pes_start_pn;
 
 	/*! PES reframer callback. If NULL, pes processing is skiped
 
@@ -1136,6 +1137,8 @@ struct tag_m2ts_demux
 	/*! current TS packet number*/
 	u32 pck_number;
 
+	/*! TS packet number of last seen packet containing PAT start */
+	u32 last_pat_start_num;
 	/*! remote file handling - created and destroyed by user*/
 	struct __gf_download_session *dnload;
 	/*! channel config path*/
@@ -2000,6 +2003,11 @@ GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_force
 \param mux_provider_name the provider name (UTF-8)
 */
 void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *program_name, const char *mux_provider_name);
+
+/*! forces keeping DTS CTS untouched (no remap of first packet to 0) - needed when doing stateless dashing
+\param program the target program
+*/
+void gf_m2ts_mux_program_force_keep_ts(GF_M2TS_Mux_Program *program);
 
 /*! enables sending DVB SDT
 \param muxer the target program

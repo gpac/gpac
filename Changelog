@@ -25,9 +25,9 @@
 - Added seeking in mp4dmx in mem mode
 - vout updated to use VBO (required for gles2)
 - Allow ffdmx to work as demux filter on gpac input file pids
-- GHI format for pre-indexing DASH/HLS session for JIT packaging
+- GHI format for pre-indexing DASH/HLS session for JIT packaging/encryption/transcode
 - Zero-copy for mp4dmx and fragmented mp4mx
-- Various speed optimizations (filter session, isomedia lib, disk io)
+- Various speed optimizations (filter session, isomedia lib, disk io, xml)
 - Allow running the session without mutexes
 
 

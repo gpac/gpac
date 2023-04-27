@@ -204,7 +204,7 @@ typedef struct
 	GF_AVCConfig *avcc;
 	GF_VVCConfig *vvcc;
 	u32 dsi_crc;
-	u64 first_tfdt;
+	u64 hint_first_tfdt;
 
 	GF_FilterPacket *pck;
 } ISOMChannel;

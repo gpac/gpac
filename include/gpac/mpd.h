@@ -293,10 +293,11 @@ typedef struct
 	char *dasher_segment_name;
 	/*! GPAC internal, we store the previous xlink before resolution*/
 	char *previous_xlink_href;
-	/*! GPAC internal, work in index mode*/
+	/*! GPAC internal for index mode*/
 	Bool index_mode;
 	Bool use_split_dur;
-	u32 sample_duration, src_timescale;
+	u32 sample_duration, src_timescale, pid_delay;
+	s32 first_cts_offset;
 } GF_MPD_SegmentList;
 
 /*! SegmentTemplate*/
@@ -921,6 +922,7 @@ typedef struct {
 	Double llhls_part_holdback;
 	//als absolute url flag
 	u32 hls_abs_url;
+	Bool m3u8_use_repid;
 
 	/*! requested segment duration for index mode */
 	u32 segment_duration;
@@ -995,15 +997,28 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 */
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
 
+/*! write mode for M3U8 */
+typedef enum
+{
+	/*! write both master and child playlists */
+	GF_M3U8_WRITE_ALL=0,
+	/*! write master  playlist only */
+	GF_M3U8_WRITE_MASTER,
+	/*! write child playlist only */
+	GF_M3U8_WRITE_CHILD,
+} GF_M3U8WriteMode;
+
 /*! writes an MPD to a m3u8 playlist
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param out the target file object
 \param m3u8_name the base m3u8 name to use (needed when generating variant playlist file names)
 \param period the MPD period for that m3u8
+\param mode the write operation desired
 \return error if any
 */
-GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period);
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period, GF_M3U8WriteMode mode);
+
 
 /*! parses an MPD Period and appends it to the MPD period list
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
