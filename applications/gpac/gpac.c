@@ -1419,7 +1419,9 @@ exit:
 		}
 
 		if (!dump_graph) {
-			gf_fs_print_non_connected_ex(session, alias_is_play);
+			//don't print when generating doc, JS filters are loaded and not connected
+			if (!gf_opts_get_bool("temp", "gendoc"))
+				gf_fs_print_non_connected_ex(session, alias_is_play);
 			alias_is_play = GF_FALSE;
 		}
 	}
