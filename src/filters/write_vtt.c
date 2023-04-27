@@ -111,7 +111,7 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->delay = p ? p->value.longsint : 0;
-	gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY, NULL);
 
 	return GF_OK;
 }
