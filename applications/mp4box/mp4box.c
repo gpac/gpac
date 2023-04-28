@@ -6539,6 +6539,7 @@ int mp4box_main(int argc, char **argv)
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size || split_range_str) {
+		if (force_new && !outName) outName = inName;
 		e = split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, seg_at_rap, split_range_str, fs_dump_flags);
 		if (e) goto err_exit;
 
