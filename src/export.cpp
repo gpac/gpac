@@ -1183,6 +1183,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_set_inband_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_subtitle_set_mime) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_index) )
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
