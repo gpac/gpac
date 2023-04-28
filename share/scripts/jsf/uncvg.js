@@ -71,6 +71,7 @@ filter.set_arg({ name: "cloc", desc: "set chrom location type", type: GF_PROP_UI
 filter.set_arg({ name: "stereo", desc: "dump a stereo image", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "sq", desc: "generate square patterns instead of columns", type: GF_PROP_FLOAT, def: "0"} );
 filter.set_arg({ name: "shade", desc: "shade pixels from black at bottom to full intensity at top", type: GF_PROP_BOOL, def: "false"} );
+filter.set_arg({ name: "scpt", desc: "use single color per tile, first tile using the first color in palette", type: GF_PROP_BOOL, def: "false"} );
 
 let components = [];
 
@@ -583,7 +584,7 @@ function setup_uncv()
 		}
 		else if (filter.sampling==SAMPLING_411) {
 			if (nb_y != 4)
-				throw "Component pattern must have 4 Y";
+				throw "Component pattern must have 4 Y, not " + nb_y;
 		}
 		else {
 			throw "Unsupported interleave type for sampling type " +filter.sampling;
@@ -859,16 +860,24 @@ function get_pixel(i, j)
 		else
 			a = tx_p.a;
 	} else {
-		let tidx = Math.floor(i / col_width);
-		if (filter.sq!=0) {
-			let ridx = Math.floor(filter.sq*j / col_width);
-			tidx += ridx;
-			
-			while (tidx>=filter.pal.length)
-				tidx -= filter.pal.length;
-			while (tidx<0)
-				tidx += filter.pal.length;
-		}		
+		let tidx;
+		if (filter.scpt) {
+			let tile_x = Math.floor(i / tile_width);
+			let tile_y = Math.floor(j / tile_height);
+			tidx = (tile_x * filter.tiles.x + tile_y) % filter.pal.length;
+		} else {
+			tidx = Math.floor(i / col_width);
+			if (filter.sq!=0) {
+				let ridx = Math.floor(filter.sq*j / col_width);
+				tidx += ridx;
+				
+				while (tidx>=filter.pal.length)
+					tidx -= filter.pal.length;
+				while (tidx<0)
+					tidx += filter.pal.length;
+			}
+		}
+
 		if (use_palette) {
 			pixel[r_y_idx] = tidx;
 			return;
@@ -1020,6 +1029,7 @@ function start_tile(tile_x, tile_y)
 		offs += bsw.init_offset;
 		bsw.bs.pos = offs;
 		bsw.tile_start_pos = offs;
+		bsw.line_start_pos = offs;
 	});
 }
 
@@ -1045,7 +1055,7 @@ function end_tile()
 	if (tile_align_bytes) {		
 		let remain = max_pos - tile_start_offset;
 		if (remain<0) throw "Internal error in tile padding: remain is negative " + remain;
-		if (remain>tile_align_bytes) throw "Internal error in tile padding: remain " + remain + " is greater than tile size " + tile_align_bytes;
+		if (remain>tile_align_bytes) throw "Internal error in tile padding: remain " + remain + " is greater than tile size " + tile_align_bytes + ' tile start ' + tile_start_offset;
 
 		while (remain<tile_align_bytes) {
 			max_bs.put_u8(0);
@@ -1054,7 +1064,7 @@ function end_tile()
 	}
 }
 
-function end_line()
+function end_line(last_line_in_tile)
 {
 	bs_array.forEach (bsw => {
 		if (filter.block_size && bsw.next_block_idx) {
@@ -1068,12 +1078,16 @@ function end_line()
 				bsw.bs.put_u8(0);
 				remain++;
 			}
-		} 
-		//row interleave, seek to next row start
-		if (filter.interleave==INTERLEAVE_ROW) {
-			bsw.bs.pos = bsw.line_start_pos + bsw.comp_row_size;
 		}
-		bsw.line_start_pos = bsw.bs.pos;
+		//not last line of tile, update offsets
+		//for last line we don't update, so that padding can be properly computed. We update the line offset at the begining of next tile 
+		if (!last_line_in_tile) {
+			//row interleave, seek to next row start
+			if (filter.interleave==INTERLEAVE_ROW) {
+				bsw.bs.pos = bsw.line_start_pos + bsw.comp_row_size;
+			}
+			bsw.line_start_pos = bsw.bs.pos;
+		}
 	});
 }
 
@@ -1389,7 +1403,7 @@ filter.process = function()
 					get_pixel(t_x + i, t_y + j);
 					this.write_pixel(t_x + i, t_y + j);
 				}
-				end_line();
+				end_line((j+1==tile_height) ? true : false);
 			}
 			end_tile();
 		}
