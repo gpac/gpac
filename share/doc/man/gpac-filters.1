@@ -5426,6 +5426,8 @@ dmode (enum, default: static, updatable): dash content mode
 .br
 * dynlast: last call for live, will turn the MPD into static
 .br
+* dynauto: live generation and move to static manifest upon end of stream
+.br
 
 .br
 sseg (bool, default: false):   single segment is used
@@ -9291,7 +9293,7 @@ This filter provides generation of test images for ISO/IEC 23001-17
 .br
 Generated pixels can be:
 .br
-- a pattern of colors in columns or in rectangles if .I sq is used using the spectified palette.
+- a pattern of colors in columns, or in rectangles if .I sq is set, using the specified palette.
 .br
 - an image source if .I img is used.
 .br
@@ -11555,7 +11557,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev210-g3ec0dc927-master
+build: 2.3-DEV-rev216-g35a3f42a9-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
