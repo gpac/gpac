@@ -1402,9 +1402,11 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 
 	AVDictionary** optionsarr = NULL;
+	int optionsarr_size = 0;
 	if (ctx->options && ctx->demuxer) {
 		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
-		for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
+		optionsarr_size = ctx->demuxer->nb_streams;
+		for (unsigned si = 0; si < optionsarr_size; si++) {
 			optionsarr[si] = NULL;
 			av_dict_copy(&optionsarr[si], ctx->options, 0);
 		}
@@ -1413,7 +1415,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	res = avformat_find_stream_info(ctx->demuxer, optionsarr);
 
 	if (optionsarr) {
-		for (unsigned si = 0; si < ctx->demuxer->nb_streams; si++) {
+		for (unsigned si = 0; si < optionsarr_size; si++) {
 			av_dict_free(&optionsarr[si]);
 		}
 		gf_free(optionsarr);
