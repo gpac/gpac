@@ -713,7 +713,7 @@ restart:
 		} else {
 			ts = pctx->fake_dts_plus_one-1;
 			gf_filter_pck_set_dts(pck_dst, ts);
-			pctx->fake_dts_plus_one += pkt->duration;
+			pctx->fake_dts_plus_one += pkt->duration ? pkt->duration : 1;
 			if (!ctx->raw_data && !pctx->fake_dts_set) queue_pck = GF_TRUE;
 		}
 
