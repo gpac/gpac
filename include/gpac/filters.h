@@ -1266,7 +1266,7 @@ enum
 	GF_PROP_PID_CLEARKEY_URI = GF_4CC('C','C','K','U'),
 	//internal
 	GF_PROP_PID_CLEARKEY_KID = GF_4CC('C','C','K','I'),
-	//internal, indicate DASH segments are generated in sparse mode ( from context)
+	//internal, indicate DASH segments are generated in sparse mode (from context)
 	GF_PROP_PID_DASH_SPARSE = GF_4CC('D','S','S','G'),
 
 

@@ -48354,7 +48354,7 @@ static JSValue get_date_string(JSContext *ctx, JSValueConst this_val,
             /* tz is >= 0, can use % */
             pos += snprintf(buf + pos, sizeof(buf) - pos,
                             "%02d%02d", tz / 60, tz % 60);
-            /* XXX: tack the time zone code? */
+            /* XXX: track the time zone code? */
             break;
         case 2:
             pos += snprintf(buf + pos, sizeof(buf) - pos,
