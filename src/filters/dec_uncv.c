@@ -1507,9 +1507,8 @@ static GF_Err uncvdec_process(GF_Filter *filter)
 
 	uncv_start_frame(ctx, in_data, in_size);
 
-
-	for (u32 t_j=0; t_j<ctx->cfg->num_tile_cols; t_j++) {
-		for (u32 t_i=0; t_i<ctx->cfg->num_tile_rows; t_i++) {
+	for (u32 t_j=0; t_j<ctx->cfg->num_tile_rows; t_j++) {
+		for (u32 t_i=0; t_i<ctx->cfg->num_tile_cols; t_i++) {
 			u32 t_y = t_j * ctx->tile_height;
 			u32 t_x = t_i * ctx->tile_width;
 
