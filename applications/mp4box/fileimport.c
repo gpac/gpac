@@ -679,6 +679,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 tkgp_type=0;
 	s32 tkgp_id=0;
 	Bool tkgp_add = GF_TRUE;
+	u32 set_tk_idx=0;
+	u32 *reorder_tk_ids = NULL;
+	u32 reorder_tk_ids_count = 0;
 
 	dv_profile[0] = 0;
 	rvc_predefined = 0;
@@ -1323,6 +1326,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				tkgp_add = GF_FALSE;
 			}
 		}
+		else if (!strnicmp(ext+1, "tkidx=", 6)) {
+			set_tk_idx = atoi(ext+7);
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			M4_LOG(GF_LOG_ERROR, ("Unrecognized import option %s, ignoring\n", ext+1));
@@ -1864,6 +1870,22 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				gf_free(ac3c);
 			}
 		}
+
+		//if track order is required, gather track IDs - we cannot change directly track order since this impacts track number
+		//and would break this loop
+		if (set_tk_idx) {
+			reorder_tk_ids = gf_realloc(reorder_tk_ids, reorder_tk_ids_count+1);
+			reorder_tk_ids[reorder_tk_ids_count] = gf_isom_get_track_id(dest, track);
+			reorder_tk_ids_count++;
+		}
+	}
+
+	if (reorder_tk_ids_count) {
+		for (i=0; i<reorder_tk_ids_count; i++) {
+			u32 tk = gf_isom_get_track_by_id(dest, reorder_tk_ids[i]);
+			gf_isom_set_track_index(dest, tk, set_tk_idx, NULL, NULL);
+			set_tk_idx++;
+		}
 	}
 
 	if (chapter_name) {
@@ -2032,6 +2054,7 @@ exit:
 	if (szLan) gf_free((char *)szLan);
 	if (icc_data) gf_free(icc_data);
 	if (final_name) gf_free(final_name);
+	if (reorder_tk_ids) gf_free(reorder_tk_ids);
 
 	if (!e) return GF_OK;
 	if (fail_msg) {
