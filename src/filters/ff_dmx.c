@@ -1292,6 +1292,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
 	s32 res;
+	u32 i;
 	char *ext;
 	const char *url;
 	const AVInputFormat *av_in = NULL;
@@ -1406,17 +1407,17 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	if (ctx->options && ctx->demuxer) {
 		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
 		optionsarr_size = ctx->demuxer->nb_streams;
-		for (unsigned si = 0; si < optionsarr_size; si++) {
-			optionsarr[si] = NULL;
-			av_dict_copy(&optionsarr[si], ctx->options, 0);
+		for (i=0; i < optionsarr_size; i++) {
+			optionsarr[i] = NULL;
+			av_dict_copy(&optionsarr[i], ctx->options, 0);
 		}
 	}
 
 	res = avformat_find_stream_info(ctx->demuxer, optionsarr);
 
 	if (optionsarr) {
-		for (unsigned si = 0; si < optionsarr_size; si++) {
-			av_dict_free(&optionsarr[si]);
+		for (i=0; i < optionsarr_size; i++) {
+			av_dict_free(&optionsarr[i]);
 		}
 		gf_free(optionsarr);
 		optionsarr = NULL;

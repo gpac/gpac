@@ -319,7 +319,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HAS_SYNC, ctx->all_intra ? NULL : &PROP_BOOL(GF_TRUE) );
 	} else {
 		if (ctx->encoder && ctx->encoder->frame_size) {
-			u32 dur = gf_timestamp_rescale(ctx->encoder->frame_size, ctx->sample_rate, ctx->timescale);
+			u32 dur = (u32) gf_timestamp_rescale(ctx->encoder->frame_size, ctx->sample_rate, ctx->timescale);
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CONSTANT_DURATION, &PROP_UINT(dur));
 		} else {
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CONSTANT_DURATION, NULL);

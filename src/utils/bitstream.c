@@ -1349,7 +1349,7 @@ GF_Err gf_bs_grow(GF_BitStream *bs, u32 addSize)
 	if (!bs || (bs->bsmode != GF_BITSTREAM_WRITE_DYN) || bs->cache_write) return GF_OK;
 	if (bs->position + addSize <= bs->size) return GF_OK;
 	bs->size += addSize;
-	bs->original = gf_realloc(bs->original, bs->size);
+	bs->original = gf_realloc(bs->original, (u32) bs->size);
 	if (!bs->original) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
