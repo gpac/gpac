@@ -117,7 +117,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 
 	gf_fprintf(trace, "<!--MP4Box dump trace-->\n");
 
-	fname = strrchr(mov->fileName, '/');
+	fname = mov->fileName ? strrchr(mov->fileName, '/') : "/memory";
 	if (!fname) fname = strrchr(mov->fileName, '\\');
 	if (!fname) fname = mov->fileName;
 	else fname+=1;
@@ -5617,15 +5617,18 @@ GF_Err saio_box_dump(GF_Box *a, FILE * trace)
 	}
 
 	gf_fprintf(trace, ">\n");
-
-	if (ptr->version==0) {
-		for (i=0; i<ptr->entry_count; i++) {
-			gf_fprintf(trace, "<SAIChunkOffset offset=\"%d\"/>\n", (u32) ptr->offsets[i]);
+	if (ptr->offsets) {
+		if (ptr->version==0) {
+			for (i=0; i<ptr->entry_count; i++) {
+				gf_fprintf(trace, "<SAIChunkOffset offset=\"%d\"/>\n", (u32) ptr->offsets[i]);
+			}
+		} else {
+			for (i=0; i<ptr->entry_count; i++) {
+				gf_fprintf(trace, "<SAIChunkOffset offset=\""LLD"\"/>\n", ptr->offsets[i]);
+			}
 		}
 	} else {
-		for (i=0; i<ptr->entry_count; i++) {
-			gf_fprintf(trace, "<SAIChunkOffset offset=\""LLD"\"/>\n", ptr->offsets[i]);
-		}
+		gf_fprintf(trace, "<!-- NO OFFSETS -->\n");
 	}
 	if (!ptr->size) {
 			gf_fprintf(trace, "<SAIChunkOffset offset=\"\"/>\n");
