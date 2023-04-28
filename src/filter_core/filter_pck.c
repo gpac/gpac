@@ -1899,7 +1899,6 @@ void gf_filter_pck_check_realloc(GF_FilterPacket *pck, u8 *data, u32 size)
 		pck->alloc_size = pck->data_length = size;
 		pck->data = data;
 	} else {
-		assert(size <= pck->data_length);
 		pck->data_length = size;
 	}
 }
