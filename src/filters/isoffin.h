@@ -207,6 +207,7 @@ typedef struct
 	u64 hint_first_tfdt;
 
 	GF_FilterPacket *pck;
+	u32 alloc_size;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);
