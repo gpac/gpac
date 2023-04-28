@@ -295,6 +295,8 @@ typedef struct
 
 	u32 from_index;
 	u32 def_template;
+
+	Bool move_to_static;
 } GF_DasherCtx;
 
 typedef enum
@@ -9473,6 +9475,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 	//no more periods
 	if (e==GF_EOS) {
 		if (!ctx->is_eos) {
+			if (ctx->move_to_static) {
+				ctx->dmode = GF_MPD_TYPE_DYNAMIC_LAST;
+				if (ctx->mpd) {
+					ctx->mpd->type = ctx->dmode;
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] EOS, flushing manifest as static\n"));
+					dasher_send_manifest(filter, ctx, GF_FALSE);
+				}
+				ctx->move_to_static = GF_FALSE;
+			}
 			ctx->is_eos = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->opid);
 		}
@@ -9675,6 +9686,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			assert(sctx);
 			assert(ctx->nb_seg_url_pending);
 			ctx->nb_seg_url_pending--;
+			gf_filter_post_process_task(filter);
 			sctx->file_size = 1 + (u32) (evt->seg_size.media_range_end - evt->seg_size.media_range_start);
 			sctx->file_offset = evt->seg_size.media_range_start;
 			sctx->index_size = 1 + (u32) (evt->seg_size.idx_range_end - evt->seg_size.idx_range_start);
@@ -9982,6 +9994,10 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 		ctx->segdur.den = 1;
 		ctx->no_seg_dur = GF_TRUE;
 	}
+	if (ctx->dmode==GF_DASH_DYNAMIC_LAST+1) {
+		ctx->dmode = GF_DASH_DYNAMIC;
+		ctx->move_to_static = GF_TRUE;
+	}
 
 	e = dasher_setup_profile(ctx);
 	if (e) return e;
@@ -10135,8 +10151,9 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(dmode), "dash content mode\n"
 		"- static: static content\n"
 		"- dynamic: live generation\n"
-		"- dynlast: last call for live, will turn the MPD into static"
-		"", GF_PROP_UINT, "static", "static|dynamic|dynlast", GF_FS_ARG_UPDATE},
+		"- dynlast: last call for live, will turn the MPD into static\n"
+		"- dynauto: live generation and move to static manifest upon end of stream"
+		"", GF_PROP_UINT, "static", "static|dynamic|dynlast|dynauto", GF_FS_ARG_UPDATE},
 	{ OFFS(sseg), "single segment is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sfile), "use a single file for all segments (default in on_demand)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(align), "enable segment time alignment between representations", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},

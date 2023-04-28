@@ -23,7 +23,7 @@ filter.set_version("1.0");
 filter.set_author("GPAC team - (c) Telecom ParisTech 2023 - license LGPL v2");
 filter.set_help("This filter provides generation of test images for ISO/IEC 23001-17\n"
 +"Generated pixels can be:\n"
-+"- a pattern of colors in columns or in rectangles if [-sq]() is used using the specified palette.\n"
++"- a pattern of colors in columns, or in rectangles if [-sq]() is set, using the specified palette.\n"
 +"- an image source if [-img]() is used.\n"
 +"\n"
 +"Colors specified in the palette can be default GPAC colors (see gpac -h colors), 0xRRGGBB or 0xAARRGGBB\n"
