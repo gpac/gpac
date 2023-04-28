@@ -1892,10 +1892,14 @@ GF_EXPORT
 void gf_filter_pck_check_realloc(GF_FilterPacket *pck, u8 *data, u32 size)
 {
 	if (PCK_IS_INPUT(pck)) return;
-	if ((u8*)pck->data != data) {
+	if (((u8*)pck->data != data)
+		//in case realloc returned the same adress !!
+		|| (size > pck->data_length)
+	) {
 		pck->alloc_size = pck->data_length = size;
 		pck->data = data;
 	} else {
+		assert(size <= pck->data_length);
 		pck->data_length = size;
 	}
 }
