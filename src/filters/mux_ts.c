@@ -1239,11 +1239,10 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		if (sname) gf_m2ts_mux_program_set_name(prog, sname, pname);
 
-		Bool keepts = ctx->keepts;
 		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DASH_SPARSE);
-		if (p && p->value.boolean) keepts = GF_TRUE;
-		if (keepts) {
-			//move to NO_TS
+		if (p && p->value.boolean) ctx->keepts = GF_TRUE;
+		//move to NO_TS, adjust min when checking buffering
+		if (ctx->keepts) {
 			prog->force_first_pts = GF_FILTER_NO_TS;
 		}
 
@@ -1393,6 +1392,8 @@ static Bool tsmux_init_buffering(GF_Filter *filter, GF_TSMuxCtx *ctx)
 		if (buf_ok && (buf < mbuf) && !gf_filter_pid_has_seen_eos(tspid->ipid)) {
 			if (!tspid->is_sparse) not_ready++;
 		}
+		if (!ctx->keepts) continue;
+
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(tspid->ipid);
 		if (!pck) {
 			if (!tspid->is_sparse && !gf_filter_pid_has_seen_eos(tspid->ipid)) not_ready++;
