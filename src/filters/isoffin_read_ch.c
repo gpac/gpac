@@ -310,7 +310,8 @@ u8 *isor_sample_alloc(u32 size, void *udta)
 	ISOMChannel *ch = (ISOMChannel *)udta;
 	if (ch->pck) {
 		if (size<ch->alloc_size) {
-			return (u8 *) gf_filter_pck_get_data(ch->pck, NULL);
+			u32 size;
+			return (u8 *) gf_filter_pck_get_data(ch->pck, &size);
 		}
 		gf_filter_pck_expand(ch->pck, size - ch->alloc_size, &output, NULL, NULL);
 		ch->alloc_size = size;
