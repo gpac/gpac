@@ -36,7 +36,7 @@ Note: specifying .I xml, .I analyze, .I fmt or using -for-test will force .I ful
 .br
 
 .br
-.SH Custom property duming
+.SH Custom property dumping
 .LP
 .br
 The packet inspector can be configured to dump specific properties of packets using .I fmt.
@@ -168,7 +168,7 @@ gpac -i SRC reframer:rt=on inspect:buffer=10000:rbuffer=1000:mbuffer=30000:speed
 .br
 
 .br
-This will play the session at 2x speed, using 30s of maximum buffering, consumming packets after 10s of media are ready and rebuffering if less than 1s of media.
+This will play the session at 2x speed, using 30s of maximum buffering, consuming packets after 10s of media are ready and rebuffering if less than 1s of media.
 .br
 
 .br
@@ -9318,11 +9318,11 @@ Components are described as N[bpc][+k] with
 .SH Options (expert):
 .LP
 .br
-vsize (v2d, default: 128x128): width of output image
+vsize (v2d, default: 128x128): width and height of output image
 .br
 c (strl, default: R8,G8,B8):   image components
 .br
-tiles (v2d, default: 1x1):     number of horizontal tiles
+tiles (v2d, default: 1x1):     number of horizontal and vertical tiles
 .br
 interleave (enum, default: pix): interleave type
 .br
@@ -9376,19 +9376,21 @@ pal (strl, default: red,green,blue,white,black,yellow,cyan,grey,orange,violet): 
 .br
 fa (strl, default: B,G,G,R):   bayer-like filter - only 2x2 on R,G,B components is supported
 .br
-bpm (strl, default: ):         set broken pixel map
+bpm (strl, default: ):         set sensor bad pixel map
 .br
 fps (frac, default: 25/1):     frame rate to generate - using 0 will trigger item muxing
 .br
 dur (frac, default: 1/1):      duration to generate - using 0 will trigger item muxing
 .br
-cloc (uint, default: -1, minmax: -1,6): set chrom location type
+cloc (uint, default: -1, minmax: -1,6): set chroma location type
 .br
 stereo (bool, default: false): dump a stereo image
 .br
 sq (flt, default: 0):          generate square patterns instead of columns
 .br
 shade (bool, default: false):  shade pixels from black at bottom to full intensity at top
+.br
+scpt (bool, default: false):   use single color per tile, first tile using the first color in palette
 .br
 
 .br
