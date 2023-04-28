@@ -31,6 +31,9 @@
 - Allow running the session without mutexes
 
 
+## MP4Box
+- add track reordering option
+
 ## Misc
 - FFMPEG 6 support
 - Added features for configure (vout, aout, fonts, doc, evg)
