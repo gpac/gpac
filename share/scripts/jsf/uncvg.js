@@ -281,14 +281,14 @@ filter.initialize = function()
 			if (c.indexOf('r')==0) {
 				bad_rows.push( parseInt(c.slice(1) ) );
 			}
-			if (c.indexOf('c')==0) {
+			else if (c.indexOf('c')==0) {
 				bad_cols.push( parseInt(c.slice(1) ) );
 			}
 			else {
 				let s = c.indexOf('x');
 				if (s>0) {
-					let x = parseInt(c.slice(0, x-1) );
-					let y = parseInt(c.slice(x+1) );
+					let x = parseInt(c.slice(0, s) );
+					let y = parseInt(c.slice(s+1) );
 					bad_pix.push({x: x, y: y});
 				}
 			}
