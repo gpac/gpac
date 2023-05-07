@@ -1406,7 +1406,6 @@ static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 	if (!url)
 		return GF_FPROBE_NOT_SUPPORTED;
 
-
 	const AVOutputFormat *ofmt = av_guess_format(NULL, url, mime);
 	if (!ofmt && mime) ofmt = av_guess_format(NULL, NULL, mime);
 	if (!ofmt && url) ofmt = av_guess_format(NULL, url, NULL);
