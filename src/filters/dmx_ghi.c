@@ -1086,7 +1086,7 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 	gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 
 	if (nb_active) return GF_OK;
-	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIXDmx] No ative representation to generate !\n"));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[GHIXDmx] No active representation to generate !\n"));
 	return GF_BAD_PARAM;
 }
 
@@ -1268,7 +1268,7 @@ GF_FilterRegister GHIDXDmxRegister = {
 	GF_FS_SET_DESCRIPTION("GHI demultiplexer")
 	GF_FS_SET_HELP("This filter handles pre-indexed content for just-in-time processing of HAS manifest, init segment and segments\n"
 	"\n"
-	"Warning: This is work in progress, the format of indexes (binary or XML) may change until finalization of this filter.\n"
+	"Warning: This is work in progress, the fordmat of indexes (binary or XML) may change until finalization of this filter.\n"
 	"\n"
 	"# Generating indexes\n"
 	"Indexes are constructed using the dasher filter and a given segment duration.\n"

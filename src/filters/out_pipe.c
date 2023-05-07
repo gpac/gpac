@@ -485,7 +485,7 @@ static const GF_FilterArgs PipeOutArgs[] =
 	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(mkp), "create pipe if not found", GF_PROP_BOOL, "false", NULL, 0 },
-	{ OFFS(block_size), "buffer size used to write to pipe, windows only", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(block_size), "buffer size used to write to pipe, Windows only", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(ka), "keep pipe alive when broken pipe is detected", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
