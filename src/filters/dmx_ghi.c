@@ -494,7 +494,7 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 
 	//parse props
 	while (1) {
-		char *pname;
+		char *pname=NULL;
 		u32 ptype;
 		u32 pidx;
 		Bool do_reset=GF_TRUE;
@@ -1268,7 +1268,7 @@ GF_FilterRegister GHIDXDmxRegister = {
 	GF_FS_SET_DESCRIPTION("GHI demultiplexer")
 	GF_FS_SET_HELP("This filter handles pre-indexed content for just-in-time processing of HAS manifest, init segment and segments\n"
 	"\n"
-	"Warning: This is work in progress, the fordmat of indexes (binary or XML) may change until finalization of this filter.\n"
+	"Warning: This is work in progress, the format of indexes (binary or XML) may change until finalization of this filter.\n"
 	"\n"
 	"# Generating indexes\n"
 	"Indexes are constructed using the dasher filter and a given segment duration.\n"
