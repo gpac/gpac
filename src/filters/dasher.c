@@ -1595,7 +1595,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	} else {
 		if (ds->period_start.num) period_switch = GF_TRUE;
 		ds->period_start.num = 0;
-		ds->period_start.den = 1;
+		ds->period_start.den = 1000;
 	}
 	assert(ds->period_start.den);
 
