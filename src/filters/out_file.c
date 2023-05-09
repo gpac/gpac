@@ -35,6 +35,13 @@ enum
 	FOUT_CAT_ALL
 };
 
+enum
+{
+	FOUT_OW_YES = 0,
+	FOUT_OW_NO,
+	FOUT_OW_ASK
+};
+
 typedef struct
 {
 	//options
@@ -178,16 +185,20 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		if (!strcmp(szFinalName, ctx->szFileName) && (ctx->cat==FOUT_CAT_AUTO))
 			append = GF_TRUE;
 
-		if (!ctx->ow && gf_file_exists(szFinalName) && !append) {
+		if (!append && (ctx->ow!=FOUT_OW_YES) && gf_file_exists(szFinalName)) {
 			char szRes[21];
 			s32 res;
 
-			fprintf(stderr, "File %s already exist - override (y/n/a) ?:", szFinalName);
-			res = scanf("%20s", szRes);
-			if (!res || (szRes[0] == 'n') || (szRes[0] == 'N')) {
+			if (ctx->ow==FOUT_OW_ASK) {
+				fprintf(stderr, "File %s already exists - override (y/n/a) ?:", szFinalName);
+				res = scanf("%20s", szRes);
+				if (!res || (szRes[0] == 'n') || (szRes[0] == 'N')) {
+					return ctx->error = GF_IO_ERR;
+				}
+				if ((szRes[0] == 'a') || (szRes[0] == 'A')) ctx->ow = GF_TRUE;
+			} else {
 				return ctx->error = GF_IO_ERR;
 			}
-			if ((szRes[0] == 'a') || (szRes[0] == 'A')) ctx->ow = GF_TRUE;
 		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] opening output file %s\n", szFinalName));
@@ -868,7 +879,10 @@ static const GF_FilterArgs FileOutArgs[] =
 			"- auto: only cat if files have same names\n"
 			"- all: always cat regardless of file names"
 	, GF_PROP_UINT, "none", "none|auto|all", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ow), "overwrite output if existing", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(ow), "overwrite output mode when concatenation is not used\n"
+	"- yes: override file if existing\n"
+	"- no: throw error if file existing\n"
+	"- ask: interactive prompt", GF_PROP_UINT, "yes", "yes|no|ask", 0},
 	{ OFFS(mvbk), "block size used when moving parts of the file around in patch mode", GF_PROP_UINT, "8192", NULL, 0},
 	{ OFFS(redund), "keep redundant packet in output file", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(noinitraw), "do not produce initial segment", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
