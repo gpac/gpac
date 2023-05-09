@@ -3186,7 +3186,15 @@ cat (enum, default: none):     cat each file of input PID rather than creating o
 .br
 
 .br
-ow (bool, default: true):      overwrite output if existing
+ow (enum, default: yes):       overwrite output mode when concatenation is not used
+.br
+* yes: override file if existing
+.br
+* no: throw error if file existing
+.br
+* ask: interactive prompt
+.br
+
 .br
 mvbk (uint, default: 8192):    block size used when moving parts of the file around in patch mode
 .br
@@ -5960,7 +5968,7 @@ speed (dbl, default: 1.0):     set playback speed. If negative and start is 0, s
 .br
 mkp (bool, default: false):    create pipe if not found
 .br
-block_size (uint, default: 5000): buffer size used to write to pipe, windows only
+block_size (uint, default: 5000): buffer size used to write to pipe, Windows only
 .br
 ka (bool, default: false):     keep pipe alive when broken pipe is detected
 .br
@@ -11557,7 +11565,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev216-g35a3f42a9-master
+build: 2.3-DEV-rev230-g6cf3f338e-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
