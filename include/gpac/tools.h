@@ -1555,7 +1555,7 @@ FILE *gf_fopen(const char *file_name, const char *mode);
 Opens a file, potentially using file IO if the parent URL is a File IO wrapper
 \param file_name same as fopen
 \param parent_url URL of parent file. If not a file io wrapper (gfio://), the function is equivalent to gf_fopen
-\param mode same as fopen
+\param mode same as fopen - value "mkdir" checks if parent dir(s) need to be created, create them if needed and returns NULL (no file open)
 \param no_warn if GF_TRUE, do not throw log message if failure
 \return stream handle of the file object
 \note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
