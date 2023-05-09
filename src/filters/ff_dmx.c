@@ -1403,7 +1403,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	}
 
 	AVDictionary** optionsarr = NULL;
-	int optionsarr_size = 0;
+	u32 optionsarr_size = 0;
 	if (ctx->options && ctx->demuxer) {
 		optionsarr = (AVDictionary**)gf_malloc(ctx->demuxer->nb_streams * sizeof(AVDictionary*));
 		optionsarr_size = ctx->demuxer->nb_streams;

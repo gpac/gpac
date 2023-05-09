@@ -1874,7 +1874,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		//if track order is required, gather track IDs - we cannot change directly track order since this impacts track number
 		//and would break this loop
 		if (set_tk_idx) {
-			reorder_tk_ids = gf_realloc(reorder_tk_ids, reorder_tk_ids_count+1);
+			reorder_tk_ids = gf_realloc(reorder_tk_ids, sizeof(u32)*(reorder_tk_ids_count+1));
 			reorder_tk_ids[reorder_tk_ids_count] = gf_isom_get_track_id(dest, track);
 			reorder_tk_ids_count++;
 		}
