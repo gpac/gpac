@@ -136,6 +136,7 @@ typedef struct _gf_ffenc_ctx
 	AVPacket *pkt;
 #endif
 
+	u32 premul_timescale;
 	Bool args_updated;
 
 	FILE *logfile_pass1;
@@ -586,9 +587,9 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 
 //use signed version of timestamp rescale since we may have negative dts
-#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts = gf_timestamp_rescale_signed(_ts, ctx->timescale, ctx->encoder->time_base.den); }
-#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts = gf_timestamp_rescale_signed(_ts, ctx->encoder->time_base.den, ctx->timescale); }
-#define UNSCALE_DUR(_ts) { _ts = gf_timestamp_rescale(_ts, ctx->encoder->time_base.den, ctx->timescale); }
+#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts = gf_timestamp_rescale_signed(_ts, ctx->premul_timescale, ctx->encoder->time_base.den); }
+#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts = gf_timestamp_rescale_signed(_ts, ctx->encoder->time_base.den, ctx->premul_timescale); }
+#define UNSCALE_DUR(_ts) { _ts = gf_timestamp_rescale(_ts, ctx->encoder->time_base.den, ctx->premul_timescale); }
 
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
@@ -1995,6 +1996,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->setup_failed = 1;
 		return GF_BAD_PARAM;
 	}
+	//precompute gpac_timescale * encoder->time_base.num for rescale operations
+	//do that AFTER opening the codec, since some codecs may touch this field ...
+	ctx->premul_timescale = ctx->timescale;
+	ctx->premul_timescale *= ctx->encoder->time_base.num;
 
 	if (ctx->c) gf_free(ctx->c);
 	ctx->c = gf_strdup(codec->name);
@@ -2010,7 +2015,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 
-	ctx->remap_ts = (ctx->encoder->time_base.den != ctx->timescale) ? GF_TRUE : GF_FALSE;
+	ctx->remap_ts = (ctx->encoder->time_base.den && (ctx->encoder->time_base.den != ctx->premul_timescale)) ? GF_TRUE : GF_FALSE;
 	if (!ctx->target_rate)
 		ctx->target_rate = (u32)ctx->encoder->bit_rate;
 
