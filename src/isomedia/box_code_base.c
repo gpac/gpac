@@ -12468,7 +12468,7 @@ GF_Err chnl_box_read(GF_Box *s,GF_BitStream *bs)
 	if (ptr->layout.stream_structure & 1) {
 		ISOM_DECREASE_SIZE(s, 1)
 		ptr->layout.definedLayout = gf_bs_read_u8(bs);
-		if (ptr->layout.definedLayout) {
+		if (ptr->layout.definedLayout==0) {
 			u32 remain = (u32) ptr->size;
 			if (ptr->layout.stream_structure & 2) remain--;
 			ptr->layout.channels_count = 0;
