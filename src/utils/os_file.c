@@ -1474,8 +1474,13 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 {
 	FILE *res = NULL;
 	u32 gfio_type = 0;
+	Bool is_mkdir = GF_FALSE;
 
-	if (!file_name) return NULL;
+	if (!file_name || !mode) return NULL;
+	if (!strcmp(mode, "mkdir")) {
+		is_mkdir = GF_TRUE;
+		mode = "w";
+	}
 
 	if (!strncmp(file_name, "gmem://", 7)) {
 		GF_FileIO *new_gfio;
@@ -1552,6 +1557,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 			sep = n_sep;
 		}
 		gf_free(fname);
+		if (is_mkdir) return NULL;
 	}
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN

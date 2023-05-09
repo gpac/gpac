@@ -449,11 +449,9 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 			}
 #ifdef GPAC_HAS_FD
 			if (strncmp(sPath, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")) {
-				//make sure output dir exists - we create the file as well due to some perm issues with the created file with O_CREAT on osx
-				tmp->stream = gf_fopen(sPath, "wb");
-				gf_fclose(tmp->stream);
-				tmp->stream = NULL;
-				tmp->fd = open(sPath, O_RDWR);
+				//make sure output dir exists
+				gf_fopen(sPath, "mkdir");
+				tmp->fd = open(sPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 				if (tmp->fd<0) break;
 				tmp->bs = gf_bs_from_fd(tmp->fd, GF_BITSTREAM_WRITE);
 			} else

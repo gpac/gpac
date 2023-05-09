@@ -195,11 +195,9 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		if (!ctx->no_fd && !is_gfio && !append && !gf_opts_get_bool("core", "no-fd")
 			&& (!ctx->original_url || strncmp(ctx->original_url, "gfio://", 7))
 		) {
-			//make sure output dir exists - we create the file as well due to some perm issues with the created file with O_CREAT on osx
-			ctx->file = gf_fopen(szFinalName, "wb");
-			gf_fclose(ctx->file);
-			ctx->file = NULL;
-			ctx->fd = open(szFinalName, O_RDWR);
+			//make sure output dir exists
+			gf_fopen(szFinalName, "mkdir");
+			ctx->fd = open(szFinalName, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 		} else
 #endif
 			ctx->file = gf_fopen_ex(szFinalName, ctx->original_url, append ? "a+b" : "w+b", GF_FALSE);
