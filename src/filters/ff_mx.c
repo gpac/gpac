@@ -418,8 +418,10 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 			AVStream *st;
 			AVCodecParameters *ipar, *opar;
 
-			if (!(st = avformat_new_stream(segmux, NULL)))
+			if (!(st = avformat_new_stream(segmux, NULL))) {
+				avformat_free_context(segmux);
 				return GF_OUT_OF_MEM;
+			}
 			ipar = ctx->muxer->streams[i]->codecpar;
 			opar = st->codecpar;
 			avcodec_parameters_copy(opar, ipar);
@@ -1367,7 +1369,7 @@ static void ffmx_finalize(GF_Filter *filter)
 			}
 		}
 		ctx->status = FFMX_STATE_TRAILER_DONE;
-	} 
+	}
 	if (!ctx->gfio && ctx->muxer && ctx->muxer->pb) {
 		ctx->muxer->io_close(ctx->muxer, ctx->muxer->pb);
 	}
@@ -1510,4 +1512,3 @@ const GF_FilterRegister *ffmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif
-
