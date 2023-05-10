@@ -451,7 +451,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 			if (strncmp(sPath, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")) {
 				//make sure output dir exists
 				gf_fopen(sPath, "mkdir");
-				tmp->fd = open(sPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+				tmp->fd = open(sPath, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 				if (tmp->fd<0) break;
 				tmp->bs = gf_bs_from_fd(tmp->fd, GF_BITSTREAM_WRITE);
 			} else
