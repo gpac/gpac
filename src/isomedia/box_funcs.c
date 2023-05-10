@@ -140,27 +140,52 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				return GF_OK;
 			}
 		}
-		if (is_root_box && (size>=8)) {
-			Bool do_uncompress = GF_FALSE;
+		if ((is_root_box && (size>=8))
+			|| (type==GF_QT_BOX_TYPE_CMOV)
+		) {
+			u32 do_uncompress = 0;
 			u8 *compb = NULL;
+			u32 extra_bytes = 0;
 			u32 osize = 0;
 			u32 otype = type;
 
 			if (type==GF_4CC('!', 'm', 'o', 'v')) {
-				do_uncompress = GF_TRUE;
+				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_MOOV;
+			}
+			else if (type==GF_QT_BOX_TYPE_CMOV) {
+				do_uncompress = 2;
+				u32 cbtype, cbsize, ctype;
+				//parse child boxes directly
+				cbsize = gf_bs_read_u32(bs);
+				if (cbsize != 12) return GF_ISOM_INVALID_FILE;
+				cbtype = gf_bs_read_u32(bs);
+				if (cbtype != GF_QT_BOX_TYPE_DCOM) return GF_ISOM_INVALID_FILE;
+				ctype = gf_bs_read_u32(bs);
+				if (ctype != GF_4CC('z', 'l', 'i', 'b')) return GF_NOT_SUPPORTED;
+				cbsize = gf_bs_read_u32(bs);
+				if (cbsize <= 12) return GF_ISOM_INVALID_FILE;
+				cbtype = gf_bs_read_u32(bs);
+				if (cbtype != GF_QT_BOX_TYPE_CMVD) return GF_ISOM_INVALID_FILE;
+
+				//uncompressed size
+				gf_bs_read_u32(bs);
+				extra_bytes = 6*4;
+				parent_size=0;
+				parent_type=type;
+				type = cbtype;
 			}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			else if (type==GF_4CC('!', 'm', 'o', 'f')) {
-				do_uncompress = GF_TRUE;
+				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_MOOF;
 			}
 			else if (type==GF_4CC('!', 's', 'i', 'x')) {
-				do_uncompress = GF_TRUE;
+				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_SIDX;
 			}
 			else if (type==GF_4CC('!', 's', 's', 'x')) {
-				do_uncompress = GF_TRUE;
+				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_SSIX;
 			}
 #endif
@@ -168,9 +193,9 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				compb = gf_malloc((u32) (size-8));
 				if (!compb) return GF_OUT_OF_MEM;
 
-				compressed_size = (u32) (size - 8);
+				compressed_size = (u32) (size - 8 - extra_bytes);
 				gf_bs_read_data(bs, compb, compressed_size);
-				e = gf_gz_decompress_payload(compb, compressed_size, &uncomp_data, &osize);
+				e = gf_gz_decompress_payload_ex(compb, compressed_size, &uncomp_data, &osize, (do_uncompress==2) ? GF_TRUE : GF_FALSE);
 				if (e) {
 					gf_free(compb);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Failed to uncompress payload for box type %s (0x%08X)\n", gf_4cc_to_str(otype), otype));
@@ -303,6 +328,10 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		if (type==GF_ISOM_BOX_TYPE_MOOV) {
 			((GF_MovieBox *)newBox)->compressed_diff = (s32)size - (s32)compressed_size;
 			((GF_MovieBox *)newBox)->file_offset = comp_start;
+		}
+		else if (type==GF_QT_BOX_TYPE_CMVD) {
+			//do not store compressed diff or file offset, cmov uses offsets in the compressed file
+			newBox->size = compressed_size + 8 + 6*4;
 		}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		//remember compressed vs real size info for moof in order to properly recompute data_offset/base_data_offset
@@ -1091,7 +1120,8 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MDAT, mdat, "file"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_IDAT, mdat, "meta"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_IMDA, mdat, "file"),
-	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MOOV, moov, "file"),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MOOV, moov, "file cmvd"),
+	BOX_DEFINE_CHILD( GF_QT_BOX_TYPE_CMVD, moov, "cmov moov"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MVHD, mvhd, "moov", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MDHD, mdhd, "mdia", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_VMHD, vmhd, "minf", 0),

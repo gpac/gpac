@@ -1961,12 +1961,13 @@ Compresses a data buffer in place using zlib/deflate. Buffer may be reallocated 
 \param data_offset offset in source buffer - the input payload size is data_len - data_offset
 \param skip_if_larger if GF_TRUE, will not override source buffer if compressed version is larger than input data
 \param out_comp_data if not NULL, the compressed result is set in this pointer rather than doing inplace compression
+\param use_gz if true, GZ header is present
 \return error if any
  */
-GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data);
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data, Bool use_gz);
 
 /**
-Decompresses a data buffer using zlib/deflate.
+Decompresses a data buffer using zlib/inflate.
 \param data data buffer to be decompressed
 \param data_len length of the data buffer to be decompressed
 \param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
@@ -1974,6 +1975,18 @@ Decompresses a data buffer using zlib/deflate.
 \return error if any
  */
 GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size);
+
+/**
+Decompresses a data buffer using zlib/inflate.
+\param data data buffer to be decompressed
+\param data_len length of the data buffer to be decompressed
+\param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+\param out_size size of the uncompressed buffer
+\param use_gz if true, gz header is present
+\return error if any
+ */
+GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size, Bool use_gz);
+
 
 /**
 Compresses a data buffer in place using LZMA. Buffer may be reallocated in the process.

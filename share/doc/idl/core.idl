@@ -199,15 +199,17 @@ ArrayBuffer load_file(DOMString fname, optional boolean as_utf8=false);
 
 /*! compress using deflate() an array buffer
 \param in_data input data to compress
+\param use_gz compress using gz (adds headers)
 \return ArrayBuffer containing compressed data
 */
-ArrayBuffer compress(ArrayBuffer in_data);
+ArrayBuffer compress(ArrayBuffer in_data, optional boolean use_gz=false);
 
 /*! decompress using inflate() an array buffer
 \param in_data input data to decompress
+\param use_gz compressed payload uses gz (has headers)
 \return ArrayBuffer containing decompressed data
 */
-ArrayBuffer decompress(ArrayBuffer in_data);
+ArrayBuffer decompress(ArrayBuffer in_data, optional boolean use_gz=false);
 
 
 /*! removes directory - cf \ref gf_rmdir
