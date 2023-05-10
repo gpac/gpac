@@ -1737,8 +1737,20 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 				state->decoder_model_present_for_this_op[i] = 0;
 			}
 			if (initial_display_delay_present_flag) {
-				if (gf_bs_read_int_log_idx(bs, 1, "initial_display_delay_present_for_this_op", i) ) {
-					gf_bs_read_int_log_idx(bs, 4, "initial_display_delay_minus1", i);
+				state->initial_display_delay_present_for_this_op[i] = gf_bs_read_int_log_idx(bs, 1, "initial_display_delay_present_for_this_op", i);
+				if (state->initial_display_delay_present_for_this_op[i]) {
+					state->initial_display_delay_minus1_for_this_op[i] = gf_bs_read_int_log_idx(bs, 4, "initial_display_delay_minus1", i);
+					// the procedure to compute the initial_presentation_delay (IPD) measured in ISOBMFF samples
+					// from the initial_display_delay (IDD) measured in decoded frames is a bit complex,
+					// and cannot be computed until samples have been formed
+					// except when the number of operating points is 1 (usual, non scalable case)
+					// and for the special case where IDD = 1 (low delay encodes)
+					// because that first frame is necessarily contained in the first sample, so IPD = 1
+					if (state->operating_points_count == 1
+						&& state->initial_display_delay_minus1_for_this_op[i] == 0) {
+						state->config->initial_presentation_delay_present = GF_TRUE;
+						state->config->initial_presentation_delay_minus_one = 0;
+					}
 				}
 			}
 		}

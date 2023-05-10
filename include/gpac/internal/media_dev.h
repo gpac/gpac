@@ -932,6 +932,8 @@ typedef struct
 	u8 operating_points_count;
 	u8 decoder_model_present_for_this_op[32];
 	u8 operating_point_idc[32];
+	u8 initial_display_delay_present_for_this_op[32];
+	u8 initial_display_delay_minus1_for_this_op[32];
 
 	u32 tileRows, tileCols, tileRowsLog2, tileColsLog2;
 	u8 tile_size_bytes; /*coding tile header size*/
