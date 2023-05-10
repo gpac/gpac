@@ -8252,8 +8252,8 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	}
 	sps->ptl = ptl;
 	vps = &hevc->vps[vps_id];
-	sps->max_sub_layers_minus1 = 0;
-	sps->sps_ext_or_max_sub_layers_minus1 = 0;
+	sps->max_sub_layers_minus1 = max_sub_layers_minus1;
+	sps->sps_ext_or_max_sub_layers_minus1 = sps_ext_or_max_sub_layers_minus1;
 
 	/* default values */
 	sps->colour_primaries = 2;
