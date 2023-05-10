@@ -367,31 +367,65 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 	return GF_NOT_SUPPORTED;
 #else
 	GF_Err e;
+	Bool use_cmov=GF_FALSE;
 	GF_BitStream *comp_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	e = gf_isom_box_write(root_box, comp_bs);
 
-	if (!e) {
-		u8 *box_data;
-		u32 box_size, comp_size;
+	if (e) {
+		gf_bs_del(comp_bs);
+		return e;
+	}
+	if ((root_box->type==GF_ISOM_BOX_TYPE_MOOV) && mov->brand && (mov->brand->majorBrand == GF_ISOM_BRAND_QT)) {
+		use_cmov = GF_TRUE;
+	}
+	u8 *box_data;
+	u32 box_size, comp_size;
 
-		if (box_csize)
-			*box_csize = (u32) root_box->size;
+	if (box_csize)
+		*box_csize = (u32) root_box->size;
 
-		gf_bs_get_content(comp_bs, &box_data, &box_size);
-		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_FALSE, NULL);
-		if ((mov->compress_flags & GF_ISOM_COMP_FORCE_ALL) || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
-			if (bs) {
+	gf_bs_get_content(comp_bs, &box_data, &box_size);
+	gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, use_cmov ? 0 : 8, GF_FALSE, NULL, use_cmov);
+	if ((mov->compress_flags & GF_ISOM_COMP_FORCE_ALL) || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
+		if (bs) {
+			if (use_cmov) {
+				gf_bs_write_u32(bs, 8 + 8 + 12 + comp_size+12);
+				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MOOV);
+				gf_bs_write_u32(bs, 8 + 12 + comp_size+12);
+				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_CMOV);
+				gf_bs_write_u32(bs, 12);
+				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_DCOM);
+				gf_bs_write_u32(bs, GF_4CC('z','l','i','b'));
+				gf_bs_write_u32(bs, comp_size+12);
+				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_CMVD);
+				gf_bs_write_u32(bs, root_box->size);
+				gf_bs_write_data(bs, box_data, comp_size);
+
+				gf_bs_write_u32(bs, 8+mov->pad_cmov);
+				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FREE);
+				u32 blank = mov->pad_cmov;
+				while (blank) {
+					gf_bs_write_u8(bs, 0);
+					blank--;
+				}
+			} else {
 				gf_bs_write_u32(bs, comp_size+8);
 				gf_bs_write_u32(bs, repl_type);
 				gf_bs_write_data(bs, box_data, comp_size);
 			}
-			if (box_csize)
-				*box_csize = comp_size + COMP_BOX_COST_BYTES;
-		} else if (bs) {
-			gf_isom_box_write(root_box, bs);
 		}
-		gf_free(box_data);
+		if (box_csize) {
+			if (use_cmov) {
+				*box_csize = comp_size + 8 + 8 + 12 + 12;
+			} else {
+				*box_csize = comp_size + COMP_BOX_COST_BYTES;
+			}
+		}
+	} else if (bs) {
+		gf_isom_box_write(root_box, bs);
 	}
+	gf_free(box_data);
+
 	gf_bs_del(comp_bs);
 	return e;
 #endif /*GPAC_DISABLE_ZLIB*/
@@ -477,10 +511,72 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 {
 	u32 i;
 	u64 size;
+	TrackWriter *writer;
 
 	size = 0;
+
+	//if compressing using cmov, offsets MUST be expressed in final file size , we need to get the
+	//moov size after compression, so we must temporary switch back our stsc/stco tables and write+compress
+	if (movie->brand && (movie->brand->majorBrand == GF_ISOM_BRAND_QT)
+		&& ((movie->compress_mode==GF_ISOM_COMP_ALL) || (movie->compress_mode==GF_ISOM_COMP_MOOV))
+	) {
+		GF_SampleToChunkBox *stsc;
+		GF_Box *stco;
+		u8 *box_data;
+		u32 box_size, osize;
+		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (movie->moov) {
+
+			//switch all our tables
+			i=0;
+			while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
+				//don't delete them !!!
+				stsc = writer->stbl->SampleToChunk;
+				stco = writer->stbl->ChunkOffset;
+				s32 stsc_pos = gf_list_del_item(writer->stbl->child_boxes, stsc);
+				s32 stco_pos = gf_list_del_item(writer->stbl->child_boxes, stco);
+				writer->stbl->SampleToChunk = writer->stsc;
+				writer->stbl->ChunkOffset = writer->stco;
+				gf_list_insert(writer->stbl->child_boxes, writer->stsc, stsc_pos);
+				gf_list_insert(writer->stbl->child_boxes, writer->stco, stco_pos);
+				writer->stco = stco;
+				writer->stsc = stsc;
+			}
+
+			gf_isom_box_size((GF_Box *)movie->moov);
+			gf_isom_box_write((GF_Box *)movie->moov, bs);
+
+			//and re-switch our table
+			i=0;
+			while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
+				//don't delete them !!!
+				stsc = writer->stsc;
+				stco = writer->stco;
+				writer->stsc = writer->stbl->SampleToChunk;
+				writer->stco = writer->stbl->ChunkOffset;
+				s32 stsc_pos = gf_list_del_item(writer->stbl->child_boxes, writer->stsc);
+				s32 stco_pos = gf_list_del_item(writer->stbl->child_boxes, writer->stco);
+
+				writer->stbl->SampleToChunk = stsc;
+				writer->stbl->ChunkOffset = stco;
+				gf_list_insert(writer->stbl->child_boxes, stsc, stsc_pos);
+				gf_list_insert(writer->stbl->child_boxes, stco, stco_pos);
+			}
+		}
+		if (movie->meta) {
+			gf_isom_box_size((GF_Box *)movie->meta);
+			gf_isom_box_write((GF_Box *)movie->meta, bs);
+		}
+
+		gf_bs_get_content(bs, &box_data, &box_size);
+		gf_gz_compress_payload_ex(&box_data, box_size, &osize, 0, GF_FALSE, NULL, GF_TRUE);
+		gf_free(box_data);
+		gf_bs_del(bs);
+		return osize + 8 + 8 + 12 + 12;
+	}
+
+
 	if (movie->moov) {
-		TrackWriter *writer;
 		gf_isom_box_size((GF_Box *)movie->moov);
 		size = movie->moov->size;
 		if (size > 0xFFFFFFFF) size += 8;
@@ -1012,13 +1108,94 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 	return GF_OK;
 }
 
+#define CMOV_DEFAULT_PAD	20
+
+static GF_Err UpdateOffsets(GF_ISOFile *movie, GF_List *writers, Bool use_pad, Bool offset_mdat)
+{
+	u64 firstSize, finalSize;
+	Bool use_cmov=GF_FALSE;
+	GF_Err e;
+
+	if (movie->brand && (movie->brand->majorBrand == GF_ISOM_BRAND_QT)
+		&& ((movie->compress_mode==GF_ISOM_COMP_ALL) || (movie->compress_mode==GF_ISOM_COMP_MOOV))
+	) {
+		use_cmov = GF_TRUE;
+	}
+
+	//get size of moov+meta, shift all offsets
+	firstSize = GetMoovAndMetaSize(movie, writers);
+	if (use_pad)
+		firstSize += movie->padding;
+
+	u64 offset = firstSize;
+	if (offset_mdat)
+		offset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
+
+	//we use cmov, we inject a free box after the moov with a default payload of 20 bytes
+	//and we adjust all offsets to start here
+	//if the final compressed size is less than the initial compressed size, we pad with more datathis allows computing the offsets
+	if (use_cmov) {
+		movie->pad_cmov = CMOV_DEFAULT_PAD;
+		offset += CMOV_DEFAULT_PAD+8;
+	}
+
+	e = ShiftOffset(movie, writers, offset);
+	if (e) return e;
+
+	//get real sample offsets for meta items
+	if (movie->meta) {
+		store_meta_item_references(movie, writers, movie->meta);
+	}
+
+	//get the new size of moov+mdat
+	finalSize = GetMoovAndMetaSize(movie, writers);
+	if (use_pad)
+		finalSize += movie->padding;
+
+	//new size changed, we moved to 64 bit offsets
+	if (firstSize < finalSize) {
+		u64 finalOffset = finalSize;
+		if (offset_mdat)
+			finalOffset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
+
+		if (use_cmov) finalOffset += CMOV_DEFAULT_PAD+8;
+
+		//OK, now we're sure about the final size.
+		//we don't need to re-emulate, as the only thing that changed is the offset
+		//so just shift the offset
+		e = ShiftOffset(movie, writers, finalOffset - offset);
+		if (e) return e;
+
+		//get real sample offsets for meta items
+		if (movie->meta) {
+			store_meta_item_references(movie, writers, movie->meta);
+		}
+
+		firstSize = finalSize;
+		if (use_cmov) {
+			finalSize = GetMoovAndMetaSize(movie, writers);
+		}
+	}
+	//new size different from first size, happens when compressing the moov
+	if (firstSize != finalSize) {
+		if (!use_cmov) return GF_SERVICE_ERROR;
+		s32 diff = (s32) ( (s64) firstSize - (s64) finalSize);
+		if (diff + CMOV_DEFAULT_PAD < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[isomedia] cmov default padding %u not enough, needs %u!\n Please report issue to GPAC devs\n", CMOV_DEFAULT_PAD, -diff));
+			return GF_SERVICE_ERROR;
+		}
+		movie->pad_cmov = movie->pad_cmov + diff;
+	}
+	return GF_OK;
+}
+
 
 //write the file track by track, with moov box before or after the mdat
 static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool non_seekable, Bool for_fragments, GF_BitStream *moov_bs)
 {
 	GF_Err e;
 	u32 i;
-	u64 offset, finalOffset, totSize, begin, firstSize, finalSize;
+	u64 offset, totSize, begin;
 	GF_Box *a, *cprt_box=NULL;
 	GF_List *writers = gf_list_new();
 	GF_ISOFile *movie = mw->movie;
@@ -1200,21 +1377,8 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 			e = DoWrite(mw, writers, bs, 1, movie->mdat->bsOffset);
 			if (e) goto exit;
 
-			firstSize = GetMoovAndMetaSize(movie, writers);
-
-			offset = firstSize;
-			e = ShiftOffset(movie, writers, offset);
+			e = UpdateOffsets(movie, writers, GF_FALSE, GF_FALSE);
 			if (e) goto exit;
-			//get the size and see if it has changed (eg, we moved to 64 bit offsets)
-			finalSize = GetMoovAndMetaSize(movie, writers);
-			if (firstSize != finalSize) {
-				finalOffset = finalSize;
-				//OK, now we're sure about the final size.
-				//we don't need to re-emulate, as the only thing that changed is the offset
-				//so just shift the offset
-				e = ShiftOffset(movie, writers, finalOffset - offset);
-				if (e) goto exit;
-			}
 		}
 		//get real sample offsets for meta items
 		if (movie->meta) {
@@ -1346,21 +1510,11 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 	e = DoWrite(mw, writers, bs, 1, gf_bs_get_position(bs));
 	if (e) goto exit;
 
-	firstSize = GetMoovAndMetaSize(movie, writers);
-	//offset = (firstSize > 0xFFFFFFFF ? firstSize + 8 : firstSize) + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
-	offset = firstSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
-	e = ShiftOffset(movie, writers, offset);
+
+	e = UpdateOffsets(movie, writers, GF_FALSE, GF_TRUE);
 	if (e) goto exit;
-	//get the size and see if it has changed (eg, we moved to 64 bit offsets)
-	finalSize = GetMoovAndMetaSize(movie, writers);
-	if (firstSize != finalSize) {
-		finalOffset = finalSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
-		//OK, now we're sure about the final size.
-		//we don't need to re-emulate, as the only thing that changed is the offset
-		//so just shift the offset
-		e = ShiftOffset(movie, writers, finalOffset - offset);
-		if (e) goto exit;
-	}
+
+
 	//now write our stuff
 	e = WriteMoovAndMeta(movie, writers, bs);
 	if (e) goto exit;
@@ -1815,7 +1969,6 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	u32 i;
 	s32 moov_meta_pos=-1;
 	GF_Box *a, *cprt_box=NULL;
-	u64 firstSize, finalSize, offset, finalOffset;
 	GF_List *writers = gf_list_new();
 	GF_ISOFile *movie = mw->movie;
 
@@ -1885,40 +2038,9 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	e = DoInterleave(mw, writers, bs, 1, gf_bs_get_position(bs), drift_inter);
 	if (e) goto exit;
 
-	firstSize = GetMoovAndMetaSize(movie, writers);
-	if (movie->padding)
-		firstSize += movie->padding;
 
-	offset = firstSize;
-	if (movie->mdat && movie->mdat->dataSize) offset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
-	e = ShiftOffset(movie, writers, offset);
+	e = UpdateOffsets(movie, writers, GF_TRUE, GF_TRUE);
 	if (e) goto exit;
-
-	//get real sample offsets for meta items
-	if (movie->meta) {
-		store_meta_item_references(movie, writers, movie->meta);
-	}
-
-	//get the size and see if it has changed (eg, we moved to 64 bit offsets)
-	finalSize = GetMoovAndMetaSize(movie, writers);
-	if (movie->padding)
-		finalSize += movie->padding;
-
-	if (firstSize != finalSize) {
-		finalOffset = finalSize;
-		if (movie->mdat && movie->mdat->dataSize) finalOffset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
-		//OK, now we're sure about the final size -> shift the offsets
-		//we don't need to re-emulate, as the only thing that changed is the offset
-		//so just shift the offset
-		e = ShiftOffset(movie, writers, finalOffset - offset);
-		if (e) goto exit;
-		/*firstSize = */GetMoovAndMetaSize(movie, writers);
-
-		//readjust real sample offsets for meta items
-		if (movie->meta) {
-			store_meta_item_references(movie, writers, movie->meta);
-		}
-	}
 
 	//now write our stuff
 	e = WriteMoovAndMeta(movie, writers, bs);

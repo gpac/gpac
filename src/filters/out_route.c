@@ -1894,7 +1894,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		comp_size = 2*len;
 		payload = gf_malloc(sizeof(char)*(comp_size+4));
 		pay_start = payload + 4;
-		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start);
+		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_FALSE);
 		gf_free(payload_text);
 		payload_text = NULL;
 
@@ -1964,7 +1964,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		comp_size = 2*len;
 		payload = gf_malloc(sizeof(char)*(comp_size+4));
 		pay_start = payload + 4;
-		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start);
+		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_FALSE);
 		gf_free(payload_text);
 		payload_text = NULL;
 

@@ -577,7 +577,7 @@ MP4BoxArg m4b_gen_args[] =
 	MP4BOX_ARG_S("patch", "[tkID=]FILE", "apply box patch described in FILE, for given trackID if set", GF_ARG_HINT_ADVANCED, parse_boxpatch, 0, ARG_IS_FUN),
 	MP4BOX_ARG("bo", "freeze the order of boxes in input file", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &freeze_box_order, 0, 0),
 	MP4BOX_ARG("init-seg", "use the given file as an init segment for dumping or for encryption", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &use_init_seg, 0, 0),
-	MP4BOX_ARG("zmov", "compress movie box according to ISOBMFF box compression", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, parse_compress, 0, ARG_IS_FUN),
+	MP4BOX_ARG("zmov", "compress movie box according to ISOBMFF box compression or QT if mov extension", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, parse_compress, 0, ARG_IS_FUN),
 	MP4BOX_ARG("xmov", "same as zmov and wraps ftyp in otyp", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, parse_compress, 1, ARG_IS_FUN),
  	MP4BOX_ARG_S("edits", "tkID=EDITS", "set edit list. The following syntax is used (no separators between entries):\n"
 			" - `r`: removes all edits\n"
@@ -3058,6 +3058,7 @@ u32 parse_compress(char *arg_val, u32 opt)
 {
 	compress_moov = opt ? 2 : 1;
 	open_edit = GF_TRUE;
+	do_save = GF_TRUE;
 	return 0;
 }
 
@@ -6427,6 +6428,10 @@ int mp4box_main(int argc, char **argv)
 
 		if (conv_type)
 			conv_type_from_ext = GF_TRUE;
+		//if not same ext, force conversion
+		char *szExtOrig = gf_file_ext_start(inName);
+		if (szExtOrig && strcmp(szExtOrig, szExt))
+			conv_type_from_ext = GF_FALSE;
 		//remove extension from outfile
 		*szExt = 0;
 	}

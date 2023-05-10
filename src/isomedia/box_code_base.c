@@ -760,7 +760,7 @@ GF_Err unkn_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (!bytesToRead) return GF_OK;
 	if (bytesToRead>1000000) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box %s (0x%08X) with payload larger than 1 MBytes, ignoring\n", gf_4cc_to_str(ptr->type), ptr->type ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box %s (0x%08X) with payload larger than 1 MBytes, ignoring\n", gf_4cc_to_str(ptr->original_4cc), ptr->original_4cc ));
 		gf_bs_skip_bytes(bs, ptr->dataSize);
 		return GF_OK;
 	}
@@ -3769,6 +3769,9 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 			}
 		}
 		return gf_list_add(ptr->trackList, a);
+	case GF_QT_BOX_TYPE_CMVD:
+		ptr->has_cmvd = GF_TRUE;
+		break;
 	}
 	return GF_OK;
 }

@@ -1647,6 +1647,7 @@ static JSValue js_sys_compress_ex(JSContext *ctx, JSValueConst this_val, int arg
 {
 	const u8 *data;
 	size_t data_size;
+	Bool use_gz=GF_FALSE;
 	u32 out_size=0;
 	u8 *out_ptr = NULL;
 	JSValue res;
@@ -1654,10 +1655,15 @@ static JSValue js_sys_compress_ex(JSContext *ctx, JSValueConst this_val, int arg
 	if (!argc || !JS_IsObject(argv[0])) return GF_JS_EXCEPTION(ctx);
 	data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
 	if (!data) return GF_JS_EXCEPTION(ctx);
+
+	if (argc>1) {
+		use_gz = JS_ToBool(ctx, argv[1]);
+	}
+
 	if (is_decomp) {
-		e = gf_gz_decompress_payload((u8*) data, (u32) data_size, &out_ptr, &out_size);
+		e = gf_gz_decompress_payload_ex((u8*) data, (u32) data_size, &out_ptr, &out_size, use_gz);
 	} else {
-		e = gf_gz_compress_payload_ex((u8 **)&data, (u32) data_size, &out_size, 0, GF_FALSE, &out_ptr);
+		e = gf_gz_compress_payload_ex((u8 **)&data, (u32) data_size, &out_size, 0, GF_FALSE, &out_ptr, use_gz);
 	}
 
 	if (e) return js_throw_err(ctx, e);

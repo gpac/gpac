@@ -185,7 +185,7 @@ u32 gf_base16_decode(u8 *in, u32 inSize, u8 *out, u32 outSize)
 #define ZLIB_COMPRESS_SAFE	4
 
 GF_EXPORT
-GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data)
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data, Bool use_gz)
 {
 	z_stream stream;
 	int err;
@@ -198,7 +198,11 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 	stream.zfree = (free_func)NULL;
 	stream.opaque = (voidpf)NULL;
 
-	err = deflateInit2(&stream, 9, Z_DEFLATED, 16+MAX_WBITS, 8, Z_DEFAULT_STRATEGY);
+	if (use_gz) {
+		err = deflateInit(&stream, 9);
+	} else {
+		err = deflateInit2(&stream, 9, Z_DEFLATED, 16+MAX_WBITS, 8, Z_DEFAULT_STRATEGY);
+	}
 
 	if (err != Z_OK) {
 		gf_free(dest);
@@ -241,11 +245,11 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 GF_EXPORT
 GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 {
-	return gf_gz_compress_payload_ex(data, data_len, max_size, 0, GF_FALSE, NULL);
+	return gf_gz_compress_payload_ex(data, data_len, max_size, 0, GF_FALSE, NULL, GF_FALSE);
 }
 
 GF_EXPORT
-GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size)
+GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size, Bool use_gz)
 {
 	z_stream d_stream;
 	GF_Err e = GF_OK;
@@ -269,7 +273,11 @@ GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 	d_stream.next_out = (Bytef*) *uncompressed_data;
 	d_stream.avail_out = size;
 
-	err = inflateInit2(&d_stream, 16+MAX_WBITS);
+	if (use_gz) {
+		err = inflateInit(&d_stream);
+	} else {
+		err = inflateInit2(&d_stream, 16+MAX_WBITS);
+	}
 
 	if (err == Z_OK) {
 		while (d_stream.total_in < data_len) {
@@ -297,9 +305,21 @@ GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 	}
 	return e;
 }
+GF_EXPORT
+GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size)
+{
+	return gf_gz_decompress_payload_ex(data, data_len, uncompressed_data, out_size, GF_FALSE);
+}
+
 #else
 GF_EXPORT
 GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size)
+{
+	*out_size = 0;
+	return GF_NOT_SUPPORTED;
+}
+GF_EXPORT
+GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_data, u32 *out_size, Bool no_hdr)
 {
 	*out_size = 0;
 	return GF_NOT_SUPPORTED;
@@ -310,7 +330,7 @@ GF_Err gf_gz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 	*max_size = 0;
 	return GF_NOT_SUPPORTED;
 }
-GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data)
+GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data_offset, Bool skip_if_larger, u8 **out_comp_data, Bool no_header)
 {
 	*max_size = 0;
 	return GF_NOT_SUPPORTED;

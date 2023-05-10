@@ -163,6 +163,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_lz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_lz_decompress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_handles_count) )

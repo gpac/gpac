@@ -15,6 +15,7 @@
 - Dasher support for inputs with multiple stsd entries
 - Allow multiplexed representations for LL-HLS
 - Improved eac3 support
+- QT cmov support (reading and writing)
 
 ## Filters
 - Async HTTP request in all filters

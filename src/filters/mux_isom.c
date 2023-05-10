@@ -7928,7 +7928,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 
 	{ OFFS(compress), "set top-level box compression mode\n"
 						"- no: disable box compression\n"
-						"- moov: compress only moov box\n"
+						"- moov: compress only moov box (uses cmov for QT)\n"
 						"- moof: compress only moof boxes\n"
 						"- sidx: compress moof and sidx boxes\n"
 						"- ssix: compress moof, sidx and ssix boxes\n"

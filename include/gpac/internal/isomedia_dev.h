@@ -530,6 +530,9 @@ enum
 	GF_ISOM_BOX_TYPE_MSHP	= GF_4CC( 'm', 's', 'h', 'p' ),
 	GF_ISOM_BOX_TYPE_MESH	= GF_4CC( 'm', 'e', 's', 'h' ),
 
+	GF_QT_BOX_TYPE_CMOV	= GF_4CC( 'c', 'm', 'o', 'v' ),
+	GF_QT_BOX_TYPE_DCOM	= GF_4CC( 'd', 'c', 'o', 'm' ),
+	GF_QT_BOX_TYPE_CMVD	= GF_4CC( 'c', 'm', 'v', 'd' ),
 
 	GF_ISOM_BOX_TYPE_AVCE	= GF_4CC( 'a', 'v', 'c', 'E' ),
 	GF_ISOM_BOX_TYPE_HVCE	= GF_4CC( 'h', 'v', 'c', 'E' ),
@@ -855,6 +858,7 @@ typedef struct
 	GF_ISOFile *mov;
 
 	Bool mvex_after_traks;
+	Bool has_cmvd;
 	//for compressed mov, stores the difference between compressed and uncompressed payload
 	s32 compressed_diff;
 	//for compressed mov, indicates the file offset of the moov box start
@@ -4080,6 +4084,7 @@ struct __tag_isom {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_ISOCompressMode compress_mode;
 	u32 compress_flags;
+	u32 pad_cmov;
 #endif
 
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
