@@ -723,7 +723,10 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				break;
 #endif
 			}
-		} else {
+		}
+		//if crypt is init for stream and no codec change, don't reinit
+		//we may have no codec change and still need to init when stream DSI was not ready at first configure (from TS for example)
+		else if (cstr->cenc_init) {
 			is_reinit = GF_FALSE;
 		}
 
