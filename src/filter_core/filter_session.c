@@ -3658,9 +3658,9 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 
 		found = GF_TRUE;
 		if (print_fn)
-			print_fn(stderr, 1, "%s sources:%s", src->freg->name, src->nb_edges ? "" : " none");
+			print_fn(stderr, 1, "%s sources:%s", src->freg->name, src->nb_edges ? "" : " none\n");
 		else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s sources:%s", src->freg->name, src->nb_edges ? "" : " none"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s sources:%s", src->freg->name, src->nb_edges ? "" : " none\n"));
 		}
 		if (!src->nb_edges)
 			continue;
