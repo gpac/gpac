@@ -2843,13 +2843,21 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 	u32 nb_src_caps, k, l;
 	u32 path_weight;
 
+	Bool freg_has_input = gf_filter_has_in_caps(freg->caps, freg->nb_caps);
+	Bool a_reg_has_input = gf_filter_has_in_caps(a_reg->freg->caps, a_reg->freg->nb_caps);
+	Bool a_reg_has_output = gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps);
+	//for scripts force checking inputs
+	if (freg->flags & GF_FS_REG_SCRIPT) {
+		freg_has_input = GF_TRUE;
+	}
+
 	//check which cap of this filter matches our destination
 	nb_src_caps = a_reg->nb_bundles;
 	for (k=0; k<nb_src_caps; k++) {
 		for (l=0; l<nb_dst_caps; l++) {
 			s32 bundle_idx;
 
-			if (gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps)) {
+			if (freg_has_input && a_reg_has_output) {
 				u32 loaded_filter_only_flags = 0;
 
 				path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, nb_bundles, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
@@ -2880,7 +2888,7 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 				}
 			}
 
-			if ( freg_has_output ) {
+			if ( freg_has_output && a_reg_has_input) {
 				u32 loaded_filter_only_flags = 0;
 
 				path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, a_reg->nb_bundles, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
