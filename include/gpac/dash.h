@@ -1142,7 +1142,7 @@ typedef struct
 	u32 buffer_occupancy_ms;
 	/*! degradation hint, 0 means no degradation, 100 means tile completely hidden*/
 	u32 quality_degradation_hint;
-	/*! cumulated download rate of all active groups - 0 means all files are local*/
+	/*! cumulated download rate of all active groups in bytes per seconds - 0 means all files are local*/
 	u32 total_rate;
 } GF_DASHCustomAlgoInfo;
 

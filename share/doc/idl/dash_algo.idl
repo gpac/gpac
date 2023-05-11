@@ -186,6 +186,13 @@ attribute readonly unsigned long buffer_max;
 
 /*! current buffer level in milliseconds*/
 attribute readonly unsigned long buffer;
+
+/*! degradation hint, 0 means no degradation, 100 means tile completely hidden*/
+attribute readonly unsigned long degradation_hint;
+
+/*! cumulated download rate of all active groups in bytes per seconds - 0 means all files are local*/
+attribute readonly unsigned long total_rate;
+
 };
 
 
