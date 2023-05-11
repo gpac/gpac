@@ -64,6 +64,7 @@ typedef struct
 	Bool is_eos;
 	u64 dts_sub;
 	u64 first_dts_plus_one;
+	u64 prev_max_dts, prev_cts_o, prev_dts_o;
 
 	Bool skip_dts_init;
 	u32 play_state;
@@ -131,7 +132,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool revert, sigcues, fdel;
+	Bool revert, sigcues, fdel, keepts;
 	u32 raw;
 	s32 floop;
 	u32 fsort;
@@ -155,6 +156,8 @@ typedef struct
 
 	GF_Fraction64 cts_offset, dts_offset, wait_dts_plus_one, dts_sub_plus_one;
 	u32 sync_init_time;
+
+	GF_Fraction64 prev_cts_offset, prev_dts_offset;
 
 	u32 nb_repeat;
 	Double start, stop;
@@ -214,6 +217,7 @@ static const GF_FilterCapability FileListCapsSrc[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability FileListCapsSrc_RAW_AV[] =
@@ -353,7 +357,7 @@ static void filelist_override_caps(GF_Filter *filter, GF_FileListCtx *ctx)
 		gf_filter_override_caps(filter, FileListCapsSrc_RAW_V, GF_ARRAY_LENGTH(FileListCapsSrc_RAW_V) );
 		break;
 	default:
-		gf_filter_override_caps(filter, FileListCapsSrc, 2);
+		gf_filter_override_caps(filter, FileListCapsSrc, GF_ARRAY_LENGTH(FileListCapsSrc));
 	}
 }
 
@@ -1949,6 +1953,7 @@ restart:
 	if (!ctx->dts_sub_plus_one.num) {
 		u32 nb_eos = 0;
 		u32 nb_ready_av=0, nb_not_ready_av=0, nb_not_ready_sparse=0;
+		u32 nb_continuous=0;
 		for (i=0; i<gf_list_count(ctx->filter_srcs); i++) {
 			GF_Filter *fsrc = gf_list_get(ctx->filter_srcs, i);
 			if (gf_filter_has_pid_connection_pending(fsrc, filter)) {
@@ -2033,12 +2038,16 @@ restart:
 				ctx->dts_sub_plus_one.num = dts + 1;
 				ctx->dts_sub_plus_one.den = iopid->timescale;
 			}
+			if (ctx->first_loaded && (dts==iopid->prev_max_dts))
+				nb_continuous++;
 	 	}
 
 		if (nb_not_ready_av || (!nb_ready_av && nb_not_ready_sparse)) {
 			u32 now = gf_sys_clock();
 			if (!ctx->sync_init_time) {
 				ctx->sync_init_time = now;
+				ctx->dts_sub_plus_one.num = 0;
+				return GF_OK;
 			} else if (now - ctx->sync_init_time < 5000) {
 				ctx->dts_sub_plus_one.num = 0;
 				return GF_OK;
@@ -2058,6 +2067,13 @@ restart:
 			return GF_OK;
 		}
 
+		if (ctx->keepts) {
+			ctx->dts_sub_plus_one.num = 1;
+			ctx->dts_sub_plus_one.den = 1;
+			ctx->dts_offset.num = 0;
+			ctx->cts_offset.num = 0;
+		}
+
 		//if we start with a splice, set first dst_sub to 0 to keep timestamps untouched
 		if (!ctx->splice_state) {
 			ctx->first_loaded = GF_TRUE;
@@ -2069,10 +2085,24 @@ restart:
 			ctx->skip_sync = GF_FALSE;
 		}
 
+		if (nb_continuous==count) {
+			ctx->dts_offset = ctx->prev_dts_offset;
+			ctx->cts_offset = ctx->prev_cts_offset;
+		}
 		for (i=0; i<count; i++) {
 			iopid = gf_list_get(ctx->io_pids, i);
+			if (nb_continuous==count) {
+				iopid->cts_o = iopid->prev_cts_o;
+				iopid->dts_o = iopid->prev_dts_o;
+				continue;
+			}
 			iopid->dts_sub = gf_timestamp_rescale(ctx->dts_sub_plus_one.num - 1, ctx->dts_sub_plus_one.den, iopid->o_timescale);
+			if (ctx->keepts) {
+				iopid->cts_o = 0;
+				iopid->dts_o = 0;
+			}
 		}
+		ctx->keepts = GF_FALSE;
 		ctx->wait_dts_plus_one.num = 0;
 	}
 
@@ -2544,12 +2574,18 @@ restart:
 			ctx->is_eos = GF_TRUE;
 			return GF_EOS;
 		}
+		ctx->prev_cts_offset = ctx->cts_offset;
+		ctx->prev_dts_offset = ctx->dts_offset;
+
 		ctx->dts_sub_plus_one.num = 0;
 		for (i=0; i<count; i++) {
 			u64 ts;
 			iopid = gf_list_get(ctx->io_pids, i);
 			iopid->send_cue = ctx->sigcues;
 			if (!iopid->ipid) continue;
+			iopid->prev_max_dts = iopid->max_dts;
+			iopid->prev_cts_o = iopid->cts_o;
+			iopid->prev_dts_o = iopid->dts_o;
 
 			ts = iopid->max_cts - iopid->dts_sub;
 			if (gf_timestamp_less(max_cts.num, max_cts.den, ts, iopid->timescale)) {
@@ -2717,7 +2753,6 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 	ctx->filter_srcs = gf_list_new();
 	if (ctx->ka)
 		ctx->floop = 0;
-
 
 	if (! ctx->srcs.nb_items ) {
 		if (! gf_filter_is_dynamic(filter)) {
@@ -2922,6 +2957,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 
 	{ OFFS(sigcues), "inject `CueStart` property at each source begin (new or repeated) for DASHing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdel), "delete source files after processing in playlist mode (does not delete the playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(keepts), "keep initial timestamps unmodified (no reset to 0)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input AV streams to be in raw format\n"
 	"- no: do not force decoding of inputs\n"
 	"- av: force decoding of audio and video inputs\n"
