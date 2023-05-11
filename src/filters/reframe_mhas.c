@@ -713,8 +713,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			}
 
 			if (ctx->timescale) {
-				pck_dur *= ctx->timescale;
-				pck_dur /= ctx->sample_rate;
+				pck_dur = gf_timestamp_rescale(pck_dur, ctx->sample_rate, ctx->timescale);
 			}
 
 			dst = gf_filter_pck_new_alloc(ctx->opid, au_size, &output);

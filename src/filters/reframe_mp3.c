@@ -688,7 +688,10 @@ restart:
 			memcpy(output, sync, size);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_duration(dst_pck, nb_samp);
+			if (ctx->timescale && (ctx->timescale!=ctx->sr))
+				gf_filter_pck_set_duration(dst_pck, (u32) gf_timestamp_rescale(nb_samp, ctx->sr, ctx->timescale) );
+			else
+				gf_filter_pck_set_duration(dst_pck, nb_samp);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 
