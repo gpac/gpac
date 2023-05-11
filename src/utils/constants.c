@@ -2150,7 +2150,7 @@ const char *gf_cicp_color_matrix_all_names()
 GF_EXPORT
 u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 {
-	if (!timescale || !new_timescale)
+	if (!timescale || !new_timescale || !value)
 		return 0;
 	//no timestamp
 	if (value==0xFFFFFFFFFFFFFFFFUL)
