@@ -35,6 +35,7 @@ const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session);
 
 #define REG_DEC(__n) const GF_FilterRegister *__n##_register(GF_FilterSession *session);
 REG_DEC(ffdmx)
+REG_DEC(ffdmxpid)
 REG_DEC(ffdec)
 REG_DEC(ffenc)
 REG_DEC(ffavin)
@@ -322,6 +323,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ttml2srt),
 
 	REG_IT(ffdmx),
+	REG_IT(ffdmxpid),
 	REG_IT(ffdec),
 	REG_IT(ffavin),
 	REG_IT(ffsws),

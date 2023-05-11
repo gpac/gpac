@@ -1691,17 +1691,11 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 
 static const GF_FilterCapability FFDmxCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
-	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_URL, "NULL"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	{0},
 	//for forced frame->unframe
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
-	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_URL, "NULL"),
 	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_FORCE_UNFRAME, GF_TRUE),
 	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
@@ -1730,6 +1724,7 @@ GF_FilterRegister FFDemuxRegister = {
 	.probe_data = ffdmx_probe_data,
 	.process_event = ffdmx_process_event,
 	.flags = GF_FS_REG_META | GF_FS_REG_USE_SYNC_READ,
+	.priority = 128
 
 };
 
@@ -1751,6 +1746,64 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
 	return ffmpeg_build_register(session, &FFDemuxRegister, FFDemuxArgs, FFDMX_STATIC_ARGS, FF_REG_TYPE_DEMUX);
 }
+
+//we define a dedicated registry for demuxing a GPAC pid using ffmpeg, not doing so can create wrong link resolutions
+//disabling GPAC demuxers
+static const GF_FilterCapability FFPidDmxCaps[] =
+{
+	//for demuxing input pids
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
+	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_URL, "NULL"),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	//for forced frame->unframe from pid
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_FILEPATH, "*"),
+	CAP_STRING(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_URL, "NULL"),
+	CAP_UINT(GF_CAPS_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_FORCE_UNFRAME, GF_TRUE),
+	CAP_BOOL(GF_CAPS_OUTPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+};
+static const GF_FilterArgs FFDemuxPidArgs[] =
+{
+	{ OFFS(reparse), "force reparsing of stream content (AVC,HEVC,VVC,AV1 only for now)", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(block_size), "block size used to read file when using GFIO context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(strbuf_min), "internal buffer size when demuxing from GPAC's input stream", GF_PROP_UINT, "1MB", NULL, GF_ARG_HINT_EXPERT},
+	{0}
+};
+
+
+const GF_FilterRegister FFDemuxPidRegister = {
+	.name = "ffdmxpid",
+	.version=LIBAVFORMAT_IDENT,
+	GF_FS_SET_DESCRIPTION("FFMPEG demultiplexer")
+	GF_FS_SET_HELP("Alias of ffdmx for GPAC pid demultiplexing, same options as ffdmx.\n")
+	.private_size = sizeof(GF_FFDemuxCtx),
+	SETCAPS(FFPidDmxCaps),
+	.initialize = ffdmx_initialize,
+	.finalize = ffdmx_finalize,
+	.configure_pid = ffdmx_configure_pid,
+	.process = ffdmx_process,
+	.update_arg = ffdmx_update_arg,
+	.process_event = ffdmx_process_event,
+	.flags = GF_FS_REG_META,
+	.args = FFDemuxPidArgs,
+	//also set lower priority
+	.priority = 128
+};
+
+const GF_FilterRegister *ffdmxpid_register(GF_FilterSession *session)
+{
+	if (gf_opts_get_bool("temp", "gendoc")) return NULL;
+	return &FFDemuxPidRegister;
+}
+
 
 #ifndef FFMPEG_DISABLE_AVDEVICE
 
@@ -2251,6 +2304,10 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 #include <gpac/filters.h>
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *ffdmxpid_register(GF_FilterSession *session)
 {
 	return NULL;
 }
