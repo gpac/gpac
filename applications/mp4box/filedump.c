@@ -3702,7 +3702,17 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 
-	fprintf(stderr, "Media Samples: %d\n", gf_isom_get_sample_count(file, trackNum));
+	fprintf(stderr, "Media Samples: %d", gf_isom_get_sample_count(file, trackNum));
+	cdur = gf_isom_get_constant_sample_duration(file, trackNum);
+	if (cdur) {
+		u32 ts = timescale;
+		gf_media_get_reduced_frame_rate(&ts, &cdur);
+		if (cdur>1)
+			fprintf(stderr, " - CFR %f/sec", ((Float)ts)/cdur);
+		else
+			fprintf(stderr, " - CFR %u/sec", ts);
+	}
+	fprintf(stderr, "\n");
 
 	u32 idx=0;
 	while (1) {
