@@ -993,9 +993,6 @@ int gpac_main(int _argc, char **_argv)
 	}
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || dump_formats || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 
-	if (view_filter_conn || list_filters || (print_filter_info && (argmode == GF_ARGMODE_ALL)) )
-		gf_opts_set_key("temp", "gendoc", "yes");
-
 	if (list_filters || print_filter_info)
 		gf_opts_set_key("temp", "helponly", "yes");
 
@@ -1420,7 +1417,7 @@ exit:
 
 		if (!dump_graph) {
 			//don't print when generating doc, JS filters are loaded and not connected
-			if (!gf_opts_get_bool("temp", "gendoc"))
+			if (!gf_opts_get_bool("temp", "gendoc") && !gf_opts_get_bool("temp", "helponly") && !view_filter_conn)
 				gf_fs_print_non_connected_ex(session, alias_is_play);
 			alias_is_play = GF_FALSE;
 		}
