@@ -314,6 +314,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	const GF_PropertyValue *fname, *p;
 	Bool start, end, broken=GF_FALSE;
+	GF_Err e = GF_OK;
 	const char *pck_data;
 	u32 pck_size;
 	s32 nb_write;
@@ -456,14 +457,19 @@ static GF_Err pipeout_process(GF_Filter *filter)
 	gf_filter_pid_drop_packet(ctx->pid);
 
 	if (broken && !ctx->ka) {
+		//abort and send stop
 		gf_filter_pid_set_discard(ctx->pid, GF_TRUE);
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->pid);
+		gf_filter_pid_send_event(ctx->pid, &evt);
 		end = GF_TRUE;
+		e = GF_IO_ERR;
 	}
 
 	if (end) {
 		pipeout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 	}
-	return GF_OK;
+	return e;
 }
 
 static GF_FilterProbeScore pipeout_probe_url(const char *url, const char *mime)
