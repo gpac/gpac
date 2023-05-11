@@ -1977,7 +1977,7 @@ class DASHGroupStatistics(Structure):
         self.buffer = 0
         ##degradation hint, 0 means no degradation, 100 means tile completely hidden
         self.quality_degradation_hint = 0
-        ##cumulated download rate of all active groups - 0 means all files are local
+        ##cumulated download rate of all active groups in bytes per seconds - 0 means all files are local
         self.total_rate = 0
 
     ## \cond private

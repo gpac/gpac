@@ -1314,7 +1314,7 @@ attribute readonly unsigned long self.buffer;
 /*! degradation hint, 0 means no degradation, 100 means tile completely hidden*/
 attribute readonly unsigned long self.quality_degradation_hint;
 
-/*! cumulated download rate of all active groups - 0 means all files are local*/
+/*! cumulated download rate of all active groups in bytes per seconds - 0 means all files are local*/
 attribute readonly unsigned long self.total_rate;
 
 };
