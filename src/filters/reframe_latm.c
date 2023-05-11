@@ -61,7 +61,7 @@ typedef struct
 	
 	char *latm_buffer;
 	u32 latm_buffer_size, latm_buffer_alloc;
-	u32 dts_inc;
+	u32 dts_inc, sample_rate;
 
 	Bool is_playing;
 	Bool is_file, file_loaded;
@@ -364,7 +364,7 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi_b, dsi_s) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (ctx->acfg.audioPL) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
-
+	ctx->sample_rate = sr;
 	timescale = sr;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : timescale));
@@ -560,7 +560,10 @@ restart:
 			memcpy(output, latm_buffer, latm_frame_size);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
+			if (ctx->timescale && (ctx->timescale!=ctx->sample_rate))
+				gf_filter_pck_set_duration(dst_pck, (u32) gf_timestamp_rescale(ctx->dts_inc, ctx->sample_rate, ctx->timescale) );
+			else
+				gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 
 			/*xHE-AAC, check RAP*/

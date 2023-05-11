@@ -2939,10 +2939,12 @@ static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
 {
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (!ctx->notime) {
+		Bool cts_swap=GF_FALSE;
 		u64 ts = gf_filter_pck_get_cts(pck);
 		if (ts != GF_FILTER_NO_TS) {
 			ctx->prev_cts = ctx->cts;
 			ctx->cts = ts;
+			cts_swap=GF_TRUE;
 		}
 		ts = gf_filter_pck_get_dts(pck);
 		if (ts != GF_FILTER_NO_TS) {
@@ -2960,9 +2962,18 @@ static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
 				else if (ctx->prev_dts != ts) {
 					u64 diff = ts;
 					diff -= ctx->prev_dts;
-					if (!ctx->cur_fps.den)
+					if (!ctx->cur_fps.den) {
 						ctx->cur_fps.den = (u32) diff;
-					else if (ctx->cur_fps.den > diff)
+						//we initialized wiith 3000, patch back
+						if (ctx->dts && (ctx->dts!=ts)) {
+							ctx->dts -= 3000;
+							ctx->dts += diff;
+						}
+						if (ctx->prev_cts && cts_swap) {
+							ctx->prev_cts -= 3000;
+							ctx->prev_cts += diff;
+						}
+					} else if (ctx->cur_fps.den > diff)
 						ctx->cur_fps.den = (u32) diff;
 
 					ctx->prev_dts = ts;

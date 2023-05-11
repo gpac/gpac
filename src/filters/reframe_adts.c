@@ -74,7 +74,7 @@ typedef struct
 	GF_Fraction64 duration;
 	Double start_range;
 	Bool in_seek;
-	u32 timescale;
+	u32 timescale, sample_rate;
 
 	ADTSHeader hdr;
 	u32 dts_inc;
@@ -453,6 +453,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi_b, dsi_s) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (ctx->acfg.audioPL) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
+	ctx->sample_rate = sr;
 
 	timescale = sr;
 	if (ctx->ovsbr) timescale = 2*sr;
@@ -844,7 +845,10 @@ restart:
 
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
+			if (ctx->timescale && (ctx->timescale!=ctx->sample_rate))
+				gf_filter_pck_set_duration(dst_pck, (u32) gf_timestamp_rescale(ctx->dts_inc, ctx->sample_rate, ctx->timescale) );
+			else
+				gf_filter_pck_set_duration(dst_pck, ctx->dts_inc);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
