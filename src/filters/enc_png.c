@@ -188,7 +188,7 @@ static void pngenc_warn(png_structp cbk, png_const_charp msg)
 
 static GF_Err pngenc_process(GF_Filter *filter)
 {
-	GF_FilterPacket *pck;
+	GF_FilterPacket *pck=NULL;
 	GF_PNGEncCtx *ctx = (GF_PNGEncCtx *) gf_filter_get_udta(filter);
 	png_color_8 sig_bit;
 	u32 k;
@@ -198,7 +198,11 @@ static GF_Err pngenc_process(GF_Filter *filter)
 	char *in_data;
 	u32 size, stride;
 
-	pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (ctx->ipid)
+		pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (!ctx->ipid)
+		return GF_EOS;
+
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);

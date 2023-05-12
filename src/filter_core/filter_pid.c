@@ -6152,7 +6152,10 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 {
 	GF_FilterPacketInstance *pcki;
 	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
-
+	if (!pid) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to fetch a packet on a NULL pid, please report to GPAC devs!\n"));
+		return NULL;
+	}
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to fetch a packet on an output PID in filter %s\n", pid->filter->name));
 		return NULL;
