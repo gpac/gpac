@@ -2618,6 +2618,18 @@ GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width,
 }
 
 GF_EXPORT
+Bool gf_evg_texture_format_ok(GF_PixelFormat pixelFormat)
+{
+	EVG_Texture _tx;
+	memset(&_tx, 0, sizeof(EVG_Texture));
+	_tx.type = GF_STENCIL_TEXTURE;
+	GF_Err e = gf_evg_stencil_set_texture_internal((GF_EVGStencil *) &_tx, 2, 2, pixelFormat, (const u8 *) &_tx, 0, NULL, NULL, 0, NULL, 0);
+	if (e==GF_OK) return GF_TRUE;
+	return GF_FALSE;
+}
+
+
+GF_EXPORT
 GF_Err gf_evg_stencil_set_palette(GF_EVGStencil *stencil, const u8 *palette, u32 pix_fmt, u32 nb_cols)
 {
 	EVG_Texture *_this = (EVG_Texture *) stencil;

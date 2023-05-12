@@ -184,6 +184,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/enc_jpg.c \
 	../../../../src/filters/enc_png.c \
 	../../../../src/filters/encrypt_cenc_isma.c \
+	../../../../src/filters/evg_rescale.c \
 	../../../../src/filters/ff_common.c \
 	../../../../src/filters/ff_avf.c \
 	../../../../src/filters/ff_bsf.c \

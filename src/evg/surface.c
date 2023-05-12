@@ -94,7 +94,8 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads)
 #ifndef GPAC_DISABLE_THREADS
 	u32 i, run_size;
 	char szName[100];
-	if (!surf || surf->nb_threads) return GF_BAD_PARAM;
+	if (!surf) return GF_BAD_PARAM;
+	if (surf->nb_threads) return GF_OK;
 	if (gf_opts_get_bool("core", "no-mx")) return GF_OK;
 
 	if (nb_threads<0) {
@@ -213,8 +214,10 @@ GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat)
 	if (!surf) return GF_BAD_PARAM;
 	get_surface_world_matrix(surf, &surf->mat);
 	surf->is_3d_matrix = GF_FALSE;
-	if (!mat) return GF_OK;
-
+	if (!mat) {
+		gf_mx2d_init(surf->shader_mx);
+		return GF_OK;
+	}
 	gf_mx2d_init(tmp);
 	gf_mx2d_add_matrix(&tmp, mat);
 	gf_mx2d_add_matrix(&tmp, &surf->mat);
@@ -347,15 +350,16 @@ static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 	}
 }
 
-GF_EXPORT
-GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat)
+static GF_Err gf_evg_surface_attach_to_buffer_internal(GF_EVGSurface *surf, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat, Bool probe_only)
 {
 	u32 BPP;
 	Bool size_changed=GF_FALSE;
-	if (!surf || !pixels) return GF_BAD_PARAM;
 
-	surf->is_transparent = GF_FALSE;
-	surf->not_8bits = GF_FALSE;
+	if (!probe_only) {
+		if (!surf || !pixels) return GF_BAD_PARAM;
+		surf->is_transparent = GF_FALSE;
+		surf->not_8bits = GF_FALSE;
+	}
 	switch (pixelFormat) {
 	case GF_PIXEL_GREYSCALE:
 		BPP = 1;
@@ -363,7 +367,8 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		BPP = 2;
-		surf->is_transparent = GF_TRUE;
+		if (!probe_only)
+			surf->is_transparent = GF_TRUE;
 		break;
 	case GF_PIXEL_RGB_444:
 	case GF_PIXEL_RGB_555:
@@ -374,7 +379,8 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	case GF_PIXEL_BGRA:
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_ABGR:
-		surf->is_transparent = GF_TRUE;
+		if (!probe_only)
+			surf->is_transparent = GF_TRUE;
 	case GF_PIXEL_RGBX:
 	case GF_PIXEL_BGRX:
 	case GF_PIXEL_XRGB:
@@ -403,11 +409,13 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YUV444_10:
 		BPP = 2;
-		surf->not_8bits = GF_TRUE;
+		if (!probe_only)
+			surf->not_8bits = GF_TRUE;
 		break;
 	case GF_PIXEL_YUVA444_PACK:
 	case GF_PIXEL_UYVA444_PACK:
-		surf->is_transparent = GF_TRUE;
+		if (!probe_only)
+			surf->is_transparent = GF_TRUE;
 		BPP = 4;
 		break;
 	case GF_PIXEL_YUV444_PACK:
@@ -417,6 +425,8 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	default:
 		return GF_NOT_SUPPORTED;
 	}
+	if (probe_only) return GF_OK;
+
 	if (!pitch_x) pitch_x = BPP;
 	if (!pitch_y) {
 		gf_pixel_get_size_info(pixelFormat, width, height, NULL, &pitch_y, NULL, NULL, NULL);
@@ -488,6 +498,11 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat)
+{
+	return gf_evg_surface_attach_to_buffer_internal(surf, pixels, width, height, pitch_x, pitch_y, pixelFormat, GF_FALSE);
+}
 
 GF_EXPORT
 GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *surf, GF_EVGStencil * sten)
@@ -495,10 +510,16 @@ GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *surf, GF_EVGStencil * ste
 	EVG_Texture *tx = (EVG_Texture *) sten;
 	if (!surf || (tx->type != GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
 
-	return gf_evg_surface_attach_to_buffer(surf, tx->pixels, tx->width, tx->height, 0, tx->stride, tx->pixel_format);
+	return gf_evg_surface_attach_to_buffer_internal(surf, tx->pixels, tx->width, tx->height, 0, tx->stride, tx->pixel_format, GF_FALSE);
 }
 
-
+GF_EXPORT
+Bool gf_evg_surface_format_ok(u32 pixelFormat)
+{
+	GF_Err e = gf_evg_surface_attach_to_buffer_internal(NULL, NULL, 0, 0, 0, 0, pixelFormat, GF_TRUE);
+	if (e==GF_OK) return GF_TRUE;
+	return GF_FALSE;
+}
 
 GF_EXPORT
 GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)

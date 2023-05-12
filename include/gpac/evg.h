@@ -270,6 +270,13 @@ GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil *stencil, u8 alpha);
 */
 u8 gf_evg_stencil_get_alpha(GF_EVGStencil *stencil);
 
+/*! checks if pixel format is supported for a texture stencil
+\param pixelFormat the target pixel format
+\return GF_TRUE if supported, GF_FALSE otherwise
+*/
+Bool gf_evg_texture_format_ok(GF_PixelFormat pixelFormat);
+
+
 /*! sets pixel data for a texture stencil
 \param stencil the target stencil
 \param pixels texture data starting from top row
@@ -446,6 +453,12 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads);
 \return error if any
 */
 GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *surf, GF_EVGStencil *sten);
+
+/*! checks if pixel format is supported for a surface
+\param pixelFormat the target pixel format
+\return GF_TRUE if supported, GF_FALSE otherwise
+*/
+Bool gf_evg_surface_format_ok(GF_PixelFormat pixelFormat);
 
 /*! attaches a surface object to a memory buffer
 \param surf the surface object
