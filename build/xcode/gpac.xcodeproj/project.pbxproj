@@ -173,6 +173,7 @@
 		920F4C9D299D20CE00EC9D21 /* enc_webcodec.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */; };
 		920F4C9F299FB3CC00EC9D21 /* avin_web.c in Sources */ = {isa = PBXBuildFile; fileRef = 920F4C9E299FB3CC00EC9D21 /* avin_web.c */; };
 		9210D007237041C2007AFB48 /* ftgrays.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210D006237041C2007AFB48 /* ftgrays.c */; };
+		9210D8222A0E64B00047019A /* evg_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210D8212A0E64B00047019A /* evg_rescale.c */; };
 		9212C0FB222D7AC000FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FA222D7AC000FE3580 /* vflip.c */; };
 		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
 		9225DD752326790C00F94C42 /* mpd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9225DD742326790C00F94C42 /* mpd.h */; };
@@ -796,6 +797,7 @@
 		920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = enc_webcodec.c; path = filters/enc_webcodec.c; sourceTree = "<group>"; };
 		920F4C9E299FB3CC00EC9D21 /* avin_web.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = avin_web.c; path = filters/avin_web.c; sourceTree = "<group>"; };
 		9210D006237041C2007AFB48 /* ftgrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ftgrays.c; path = evg/ftgrays.c; sourceTree = "<group>"; };
+		9210D8212A0E64B00047019A /* evg_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg_rescale.c; path = filters/evg_rescale.c; sourceTree = "<group>"; };
 		9212C0FA222D7AC000FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = filters/vflip.c; sourceTree = "<group>"; };
 		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
 		9225DD742326790C00F94C42 /* mpd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpd.h; path = ../include/gpac/mpd.h; sourceTree = "<group>"; };
@@ -2003,6 +2005,7 @@
 				9239B8D72073AFEF005F7264 /* enc_png.c */,
 				920F4C9C299D20CE00EC9D21 /* enc_webcodec.c */,
 				92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */,
+				9210D8212A0E64B00047019A /* evg_rescale.c */,
 				92B7DC102549A1310086EC57 /* ffmpeg */,
 				92754D5F207D24F600170383 /* filelist.c */,
 				92B2A4A8229D64EF002A65A7 /* hevcmerge.c */,
@@ -2628,6 +2631,7 @@
 				9234CF481FD8344000CCDFA1 /* in_rtp_sdp.c in Sources */,
 				9201015518D5A445003D1ACA /* mpd.c in Sources */,
 				92B9A58F1F8660D700A24FE4 /* mpeg4_bitmap.c in Sources */,
+				9210D8222A0E64B00047019A /* evg_rescale.c in Sources */,
 				9201015618D5A445003D1ACA /* mpeg2_ps.c in Sources */,
 				9201015818D5A445003D1ACA /* mpegts.c in Sources */,
 				92B9A5AD1F8660D700A24FE4 /* clock.c in Sources */,

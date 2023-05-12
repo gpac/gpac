@@ -320,6 +320,7 @@
 		896CBC872110598E00220377 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC862110598E00220377 /* Security.framework */; };
 		896CBC8921105A6900220377 /* libaom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC8821105A6900220377 /* libaom.a */; };
 		9210BA1D234A909400ED2DFF /* evg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210BA1C234A909400ED2DFF /* evg.c */; };
+		9210D8242A0E82CB0047019A /* evg_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210D8232A0E82CB0047019A /* evg_rescale.c */; };
 		9212C0FD222D7B3700FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FC222D7B3700FE3580 /* vflip.c */; };
 		9212C69F281847660058F76A /* gpac.icns in Resources */ = {isa = PBXBuildFile; fileRef = 9212C69E281847660058F76A /* gpac.icns */; };
 		921E055D29CDDF1800ED745E /* dec_uncv.c in Sources */ = {isa = PBXBuildFile; fileRef = 921E055C29CDDF1800ED745E /* dec_uncv.c */; };
@@ -925,6 +926,7 @@
 		896CBC862110598E00220377 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		896CBC8821105A6900220377 /* libaom.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libaom.a; path = ../../extra_lib/lib/iOS/libaom.a; sourceTree = "<group>"; };
 		9210BA1C234A909400ED2DFF /* evg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg.c; path = ../../src/jsmods/evg.c; sourceTree = "<group>"; };
+		9210D8232A0E82CB0047019A /* evg_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg_rescale.c; path = ../../src/filters/evg_rescale.c; sourceTree = "<group>"; };
 		9212C0FC222D7B3700FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = ../../src/filters/vflip.c; sourceTree = "<group>"; };
 		9212C69E281847660058F76A /* gpac.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = gpac.icns; path = ../../applications/gpac/ios_res/gpac.icns; sourceTree = "<group>"; };
 		921E055C29CDDF1800ED745E /* dec_uncv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_uncv.c; path = ../../src/filters/dec_uncv.c; sourceTree = "<group>"; };
@@ -1958,6 +1960,7 @@
 				92EB6DBF20E4E19700A97A49 /* enc_jpg.c */,
 				92EB6D8F20E4E19400A97A49 /* enc_png.c */,
 				92EB6D8D20E4E19400A97A49 /* encrypt_cenc_isma.c */,
+				9210D8232A0E82CB0047019A /* evg_rescale.c */,
 				92EB6D7A20E4E19200A97A49 /* ff_common.c */,
 				92EB6DBD20E4E19700A97A49 /* ff_common.h */,
 				928607142398F4C800FDA1ED /* ff_avf.c */,
@@ -2615,6 +2618,7 @@
 				71CCF30B1277045100339E12 /* svg_properties.c in Sources */,
 				71CCF30D1277045100339E12 /* svg_types.c in Sources */,
 				71CCF30E1277045100339E12 /* vrml_interpolators.c in Sources */,
+				9210D8242A0E82CB0047019A /* evg_rescale.c in Sources */,
 				71CCF30F1277045100339E12 /* vrml_proto.c in Sources */,
 				71CCF3101277045100339E12 /* vrml_route.c in Sources */,
 				92EB6E3820E4E58E00A97A49 /* object_manager.c in Sources */,

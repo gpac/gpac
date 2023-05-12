@@ -9222,6 +9222,94 @@ out (str):                     output filename to generate
 .br
 
 .br
+.SH evgs
+.LP
+.br
+Description: EVG video rescaler
+.br
+
+.br
+This filter rescales raw video data using GPAC's EVG library to the specified size and pixel format.
+.br
+.SS Output size assignment
+.br
+If .I osize is {0,0}, the output dimensions will be set to the input size, and input aspect ratio will be ignored.
+.br
+
+.br
+If .I osize is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If .I keepar=nosrc, input sample aspect ratio is ignored.
+.br
+.SS Aspect Ratio and Sample Aspect Ratio
+.br
+When output sample aspect ratio is set, the output dimensions are divided by the output sample aspect ratio.
+.br
+Example
+.br
+evgs:osize=288x240:osar=3/2
+.br
+
+.br
+The output dimensions will be 192x240.
+.br
+
+.br
+When aspect ratio is not kept (.I keepar=off):
+.br
+- source is resampled to desired dimensions
+.br
+- if output aspect ratio is not set, output will use source sample aspect ratio
+.br
+
+.br
+When aspect ratio is partially kept (.I keepar=nosrc):
+.br
+- resampling is done on the input data without taking input sample aspect ratio into account
+.br
+- if output sample aspect ratio is not set (.I osar=0/N), source aspect ratio is forwarded to output.
+.br
+
+.br
+When aspect ratio is fully kept (.I keepar=full), output aspect ratio is force to 1/1 if not set.
+.br
+
+.br
+When sample aspect ratio is kept, the filter will:
+.br
+- center the rescaled input frame on the output frame
+.br
+- fill extra pixels with .I padclr
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+osize (v2di):                  osize of output video
+.br
+ofmt (pfmt, default: none):    pixel format for output video. When not set, input format is used
+.br
+ofr (bool, default: false):    force output full range
+.br
+keepar (enum, default: off):   keep aspect ratio
+.br
+* off: ignore aspect ratio
+.br
+* full: respect aspect ratio, applying input sample aspect ratio info
+.br
+* nosrc: respect aspect ratio but ignore input sample aspect ratio
+.br
+
+.br
+padclr (str, default: black):  clear color when aspect ration preservation is used
+.br
+osar (frac, default: 0/1):     force output pixel aspect ratio
+.br
+nbth (sint, default: -1):      number of threads to use, -1 means all cores
+.br
+hq (bool, default: false):     use bilinear interpolation instead of closest pixel
+.br
+
+.br
 .SH dtout
 .LP
 .br
@@ -11567,7 +11655,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev236-gaeb5e273c-master
+build: 2.3-DEV-rev247-g44b62f275-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
