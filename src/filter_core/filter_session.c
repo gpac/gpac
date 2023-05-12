@@ -510,7 +510,7 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		}
 		if (was_found)
 			ai->meta_state = 2;
-	} else if (was_found && !ai->meta_state) {
+	} else if (was_found && (!ai->meta_state || !meta_filter) ) {
 		ai->opt_found = 1;
 		//initial declaration from filter setup: meta args are declared as true by default
 		if (type==GF_ARGTYPE_LOCAL) {
@@ -518,6 +518,7 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 			ai->meta_state = 1;
 			//meta option, mark as not found
 			if (meta_filter) ai->meta_state = 3;
+			else ai->meta_filter = NULL;
 		}
 	}
 }

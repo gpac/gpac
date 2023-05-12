@@ -1348,7 +1348,7 @@ void gpac_check_session_args()
 		if (gf_fs_enum_unmapped_options(session, &idx, &argname, &argtype, &meta_name, &meta_opt)==GF_FALSE)
 			break;
 
-		if (meta_name) {
+		if (meta_name && (argtype!=1)) {
 			if (meta_opt) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Filter %s:%s value \"%s\" set but not used\n", meta_name, meta_opt, argname));
 			} else {
