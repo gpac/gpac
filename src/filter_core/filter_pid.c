@@ -8995,6 +8995,8 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 
 			if (vpcc) {
 				GF_Err e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, colr);
+				if (vpcc->level == 0 && !strcmp(pid->filter->name, "dasher"))
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] DASHing VPx codec with undefined level=0: stream might not play. Consider adding \"#Codec=foo.bar\" to force value.\n"));
 				gf_odf_vp_cfg_del(vpcc);
 				return e;
 			}
