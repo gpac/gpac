@@ -3433,22 +3433,19 @@ naldmx_flush:
 			bIntraSlice = gf_hevc_slice_is_intra(ctx->hevc_state);
 
 			au_sap_type = GF_FILTER_SAP_NONE;
-			if (gf_hevc_slice_is_IDR(ctx->hevc_state)) {
-				au_sap_type = GF_FILTER_SAP_1;
-			}
-			else {
-				switch (ctx->hevc_state->s_info.nal_unit_type) {
+			switch (ctx->hevc_state->s_info.nal_unit_type) {
+				case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 				case GF_HEVC_NALU_SLICE_BLA_W_LP:
 				case GF_HEVC_NALU_SLICE_BLA_W_DLP:
-					au_sap_type = GF_FILTER_SAP_3;
+					au_sap_type = GF_FILTER_SAP_2;
 					break;
+				case GF_HEVC_NALU_SLICE_IDR_N_LP:
 				case GF_HEVC_NALU_SLICE_BLA_N_LP:
 					au_sap_type = GF_FILTER_SAP_1;
 					break;
 				case GF_HEVC_NALU_SLICE_CRA:
 					au_sap_type = GF_FILTER_SAP_3;
 					break;
-				}
 			}
 
 			slice_poc = ctx->hevc_state->s_info.poc;
