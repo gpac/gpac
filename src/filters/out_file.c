@@ -47,8 +47,8 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool append, dynext, ow, redund, noinitraw, force_null;
-	u32 cat;
+	Bool append, dynext, redund, noinitraw, force_null;
+	u32 cat, ow;
 	u32 mvbk;
 	s32 max_cache_segs;
 
