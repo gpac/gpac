@@ -1481,7 +1481,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				}
 			}
 			if (source_sess) {
-				sess->file_size = 0;
+				//use uploaded size on source as max file size for this request
+				sess->file_size = source_sess->file_pos;
 				sess->use_chunk_transfer = GF_TRUE;
 				sess->put_in_progress = 1;
 			} else if (sess->resource) {
