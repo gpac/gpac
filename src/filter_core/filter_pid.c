@@ -3569,6 +3569,20 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				}
 
 				if (f->freg == chain_start_freg) {
+					//if we link to a sink
+					if (dst_is_sink
+						//and intermediate filter already has a destination (ie graph is loaded)
+						&& gf_list_count(f->destination_filters)
+						//and this destination is not the target sink
+						&& (gf_list_find(f->destination_filters, dst)<0)
+					) {
+						//do not skip filter but force resolving the graph
+						//this allows e.g. fin->DMX-> -o dash1.mpd -o dash2.mpd
+						//the filter loaded for DMX->dasher->fout(dash1.mpd) will be rejected when checking DMX->dash2.mpd link
+						//cf https://github.com/gpac/gpac/issues/2453#issuecomment-1548112064
+						continue;
+					}
+
 					//store destination as future destination link for this new filter
 					if (gf_list_find(f->destination_links, dst)<0)
 						gf_list_add(f->destination_links, dst);
