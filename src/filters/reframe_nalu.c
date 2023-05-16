@@ -241,6 +241,10 @@ typedef struct
 	u32 nb_dv_rpu, nb_dv_el;
 
 	u32 valid_ps_flags;
+
+	Bool check_prev_sap2;
+	s32 prev_sap2_poc;
+	GF_FilterPacket *prev_sap;
 } GF_NALUDmxCtx;
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
@@ -3435,11 +3439,16 @@ naldmx_flush:
 			au_sap_type = GF_FILTER_SAP_NONE;
 			if (gf_hevc_slice_is_IDR(ctx->hevc_state)) {
 				au_sap_type = GF_FILTER_SAP_1;
+				switch (ctx->hevc_state->s_info.nal_unit_type) {
+				case GF_HEVC_NALU_SLICE_IDR_W_DLP:
+				case GF_HEVC_NALU_SLICE_BLA_W_DLP:
+					au_sap_type = GF_FILTER_SAP_2;
+					break;
+				}
 			}
 			else {
 				switch (ctx->hevc_state->s_info.nal_unit_type) {
 				case GF_HEVC_NALU_SLICE_BLA_W_LP:
-				case GF_HEVC_NALU_SLICE_BLA_W_DLP:
 					au_sap_type = GF_FILTER_SAP_3;
 					break;
 				case GF_HEVC_NALU_SLICE_BLA_N_LP:
@@ -3633,8 +3642,25 @@ naldmx_flush:
 					if (bIntraSlice && ctx->force_sync && (ctx->sei_recovery_frame_count==0))
 						slice_force_ref = GF_TRUE;
 				}
-				ctx->au_sap = au_sap_type;
 				ctx->bottom_field_flag = bottom_field_flag;
+
+				if (ctx->check_prev_sap2) {
+					if ((ctx->prev_sap2_poc > slice_poc) && ctx->prev_sap && (gf_list_find(ctx->pck_queue, ctx->prev_sap)>=0)) {
+						gf_filter_pck_set_sap(ctx->prev_sap, GF_FILTER_SAP_2);
+					}
+					ctx->check_prev_sap2 = GF_FALSE;
+					ctx->prev_sap = NULL;
+				}
+				//move all sap2 to sap1 and check POC of next frame
+				//we do this because many encoders use IDR+Decodable leading pic NAL types (eg SAP2)
+				//when encoding for IDR without DLP (eg SAP1)...
+				if (au_sap_type==GF_FILTER_SAP_2) {
+					au_sap_type = GF_FILTER_SAP_1;
+					ctx->check_prev_sap2 = GF_TRUE;
+					ctx->prev_sap2_poc = slice_poc;
+				}
+
+				ctx->au_sap = au_sap_type;
 			}
 
 			if (slice_poc < ctx->poc_shift) {
@@ -3800,6 +3826,11 @@ naldmx_flush:
 
 		//bytes only come from the data packet
 		memcpy(pck_data, nal_data, (size_t) nal_size);
+
+		if ((ctx->nb_slices_in_au==1) && ctx->check_prev_sap2) {
+			ctx->prev_sap = ctx->first_pck_in_au;
+		}
+
 
 		nal_size += sc_size;
 		start += nal_size;
