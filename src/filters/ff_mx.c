@@ -138,6 +138,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to open %s - error %s\n", ctx->dst, av_err2str(res) ));
 		ctx->status = FFMX_STATE_ERROR;
 		if (options) av_dict_free(&options);
+		gf_filter_abort(filter);
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -235,6 +236,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write header for %s - error %s\n", ctx->dst, av_err2str(res) ));
 		ctx->status = FFMX_STATE_ERROR;
 		if (options) av_dict_free(&options);
+		gf_filter_abort(filter);
 		return GF_SERVICE_ERROR;
 	}
 
@@ -850,10 +852,6 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			} else {
 				res = av_write_frame(ctx->muxer, pkt);
 			}
-			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet %sto %s - error %s\n", st->reconfig_stream ? "with reconfig side data " : "", AVFMT_URL(ctx->muxer), av_err2str(res) ));
-				e = GF_IO_ERR;
-			}
 
 			if (pkt->side_data) av_packet_free_side_data(pkt);
 			st->reconfig_stream = 0;
@@ -861,6 +859,13 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ipid);
 			ctx->nb_pck_in_seg++;
 			FF_RELEASE_PCK(pkt)
+
+			if (res<0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet %sto %s: error %s - aborting\n", st->reconfig_stream ? "with reconfig side data " : "", AVFMT_URL(ctx->muxer), av_err2str(res) ));
+				e = GF_IO_ERR;
+				ctx->status = FFMX_STATE_ERROR;
+				gf_filter_abort(filter);
+			}
 		}
 	}
 
@@ -1416,7 +1421,7 @@ static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 
 	proto = strstr(url, "://");
 	if (!proto)
-		return GF_FPROBE_NOT_SUPPORTED;
+		return GF_FPROBE_MAYBE_NOT_SUPPORTED;
 
 	proto = avio_find_protocol_name(url);
 	if (proto)

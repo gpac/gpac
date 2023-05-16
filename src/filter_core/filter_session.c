@@ -3164,6 +3164,8 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			szForceExt[19]=0;
 			ext = strchr(szForceExt, fsess->sep_args);
 			if (ext) ext[0] = 0;
+		} else {
+			szForceExt[0] = 0;
 		}
 	}
 	sURL = NULL;
@@ -3301,8 +3303,9 @@ restart:
 			continue;
 
 		s = freg->probe_url(sURL, mime_type);
-		if (szForceExt[0] && (s==GF_FPROBE_NOT_SUPPORTED))
-			s = freg->probe_url(szForceExt, mime_type);
+		if (!for_source && (s==GF_FPROBE_MAYBE_NOT_SUPPORTED)) {
+			s = szForceExt[0] ? freg->probe_url(szForceExt, mime_type) : GF_FPROBE_NOT_SUPPORTED;
+		}
 		/* destination meta filter: change GF_FPROBE_SUPPORTED to GF_FPROBE_MAYBE_SUPPORTED for internal mux formats
 		in order to avoid always giving the hand to the meta filter*/
 		if (!for_source && (s == GF_FPROBE_SUPPORTED) && (freg->flags & GF_FS_REG_META)) {
