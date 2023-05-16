@@ -2151,7 +2151,8 @@ typedef enum
 	/*! (de)mux format is not supported*/
 	GF_FPROBE_NOT_SUPPORTED = 0,
 	/*!
-		For demux only: format is maybe a match but garbage data was found at the start
+		For demux: format is maybe a match but garbage data was found at the start
+		For mux: protocol is supported but format is not - if :ext=foo is set on sink URL, probe_url will be recall with URL=test.foo
 	*/
 	GF_FPROBE_MAYBE_NOT_SUPPORTED,
 	/*!
