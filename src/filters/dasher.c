@@ -1595,7 +1595,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	} else {
 		if (ds->period_start.num) period_switch = GF_TRUE;
 		ds->period_start.num = 0;
-		ds->period_start.den = 1;
+		ds->period_start.den = 1000;
 	}
 	assert(ds->period_start.den);
 
@@ -5748,7 +5748,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->period_start = rep->dasher_ctx->period_start;
 			if (!ds->period_start.den) {
 				ds->period_start.num = 0;
-				ds->period_start.den = 1;
+				ds->period_start.den = 1000;
 			}
 			ds->period_dur = rep->dasher_ctx->period_duration;
 			if (!ds->period_dur.den) {
