@@ -268,24 +268,39 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 	return GF_OK;
 }
 
+static GF_ISOSAPType check_sap2(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample)
+{
+	GF_ISOSample next_s, *s;
+	memset(&next_s, 0, sizeof(GF_ISOSample));
+	s = &next_s;
+	if (Media_GetSample(mdia, sampleNumber+1, &s, NULL, GF_TRUE, NULL, GF_FALSE)==GF_OK) {
+		if (sample->DTS + sample->CTS_Offset > next_s.DTS + next_s.CTS_Offset) {
+			return SAP_TYPE_2;
+		}
+		//next not a LP, SAP1
+	}
+	//return sap1 if we fail to get next sample
+	return SAP_TYPE_1;
+}
+
 /* returns the SAP type as defined in the 14496-12 specification */
-static GF_ISOSAPType sap_type_from_nal_type(u8 nal_type) {
+static GF_ISOSAPType hevc_sap_type_from_nal_type(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, u8 nal_type) {
 	switch (nal_type) {
 	case GF_HEVC_NALU_SLICE_CRA:
+	case GF_HEVC_NALU_SLICE_BLA_W_LP:
 		return SAP_TYPE_3;
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_BLA_N_LP:
 		return SAP_TYPE_1;
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_BLA_W_DLP:
-	case GF_HEVC_NALU_SLICE_BLA_W_LP:
-		return SAP_TYPE_2;
+		return check_sap2(mdia, sampleNumber, sample);
 	default:
 		return RAP_NO;
 	}
 }
 
-GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
+GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
 {
 	Bool is_hevc = GF_FALSE;
 	Bool is_vvc = GF_FALSE;
@@ -324,14 +339,14 @@ GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, GF_ISOSample *sampl
 
 			switch (nal_type) {
 			case GF_HEVC_NALU_SLICE_CRA:
+			case GF_HEVC_NALU_SLICE_BLA_W_LP:
 				return SAP_TYPE_3;
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
 			case GF_HEVC_NALU_SLICE_BLA_N_LP:
 				return SAP_TYPE_1;
 			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
-			case GF_HEVC_NALU_SLICE_BLA_W_LP:
-				return SAP_TYPE_2;
+				return check_sap2(mdia, sampleNumber, sample);
 			case GF_HEVC_NALU_ACCESS_UNIT:
 			case GF_HEVC_NALU_FILLER_DATA:
 			case GF_HEVC_NALU_SEI_PREFIX:
@@ -353,7 +368,7 @@ GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, GF_ISOSample *sampl
 			case GF_VVC_NALU_SLICE_IDR_N_LP:
 				return SAP_TYPE_1;
 			case GF_VVC_NALU_SLICE_IDR_W_RADL:
-				return SAP_TYPE_2;
+				return check_sap2(mdia, sampleNumber, sample);
 			case GF_VVC_NALU_SLICE_GDR:
 				return SAP_TYPE_3;
 			case GF_VVC_NALU_SLICE_TRAIL:
@@ -542,7 +557,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
-			sample->IsRAP = gf_isom_nalu_get_sample_sap(mdia, sample, entry);
+			sample->IsRAP = gf_isom_nalu_get_sample_sap(mdia, sampleNumber, sample, entry);
 		}
 	}
 	if (!sample->IsRAP)
@@ -799,7 +814,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			case GF_HEVC_NALU_SLICE_CRA:
 				//insert xPS before CRA/BLA
 				if (check_cra_bla && !sample->IsRAP) {
-					sample->IsRAP = sap_type_from_nal_type(nal_type);
+					sample->IsRAP = hevc_sap_type_from_nal_type(mdia, sampleNumber, sample, nal_type);
 					if (sei_suffix_bs) gf_bs_del(sei_suffix_bs);
 					mdia->in_nalu_rewrite = GF_FALSE;
 					return gf_isom_nalu_sample_rewrite(mdia, sample, sampleNumber, entry);

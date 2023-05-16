@@ -663,14 +663,14 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		}
 	}
 	else if (gf_isom_is_nalu_based_entry(mdia, entry)) {
-		GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry);
+		GF_ISOSAPType gf_isom_nalu_get_sample_sap(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry);
 
 		if (!gf_isom_is_encrypted_entry(entry->type)) {
 			e = gf_isom_nalu_sample_rewrite(mdia, *samp, sampleNumber, (GF_MPEGVisualSampleEntryBox *)entry);
 			if (e) return e;
 		}
 		if (!gf_sys_old_arch_compat()) {
-			GF_ISOSAPType sap = gf_isom_nalu_get_sample_sap(mdia, *samp, (GF_MPEGVisualSampleEntryBox *)entry);
+			GF_ISOSAPType sap = gf_isom_nalu_get_sample_sap(mdia, sampleNumber, *samp, (GF_MPEGVisualSampleEntryBox *)entry);
 			if (sap && ! (*samp)->IsRAP) (*samp)->IsRAP = sap;
 			else if ((*samp)->IsRAP < sap) (*samp)->IsRAP = sap;
 		}
