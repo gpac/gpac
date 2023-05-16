@@ -3762,8 +3762,10 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			u64 next_br_start_plus_one=0;
 			u32 next_seg_idx=0;
 			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {
-				u32 k;
-				for (k=0; k<sctx->nb_frags; k++) {
+				u32 k, nb_parts=sctx->nb_frags;
+				//EXT-X-PART tags SHOULD be removed from the Playlist after they are greater than three Target Durations from the end of the Playlist.
+				if (i+4<count) nb_parts=0;
+				for (k=0; k<nb_parts; k++) {
 					Bool write_br = GF_FALSE;
 					dur = sctx->frags[k].duration;
 					dur /= rep->timescale;
