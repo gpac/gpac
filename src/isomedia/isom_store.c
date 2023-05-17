@@ -398,7 +398,7 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 				gf_bs_write_u32(bs, GF_4CC('z','l','i','b'));
 				gf_bs_write_u32(bs, comp_size+12);
 				gf_bs_write_u32(bs, GF_QT_BOX_TYPE_CMVD);
-				gf_bs_write_u32(bs, root_box->size);
+				gf_bs_write_u32(bs, (u32) root_box->size);
 				gf_bs_write_data(bs, box_data, comp_size);
 
 				gf_bs_write_u32(bs, 8+mov->pad_cmov);
