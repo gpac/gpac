@@ -46,6 +46,7 @@ typedef struct
 	Bool reverse_play, done;
 
 	u32 probe_wave, wav_hdr_size;
+	Bool init_skip;
 	u8 *probe_data;
 	u32 probe_data_size;
 } GF_PCMReframeCtx;
@@ -342,10 +343,19 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			pck_size = ctx->probe_data_size;
 			data = ctx->probe_data;
 		}
-		pck_size -= ctx->wav_hdr_size;
-		data+=ctx->wav_hdr_size;
+		ctx->init_skip = GF_TRUE;
 		byte_offset = 0;
+		if (!ctx->is_playing) {
+			return GF_OK;
+		}
 	}
+	if (ctx->init_skip) {
+		data+=ctx->wav_hdr_size;
+		pck_size-=ctx->wav_hdr_size;
+		byte_offset = 0;
+		ctx->init_skip = GF_FALSE;
+	}
+
 	byte_offset+= ctx->wav_hdr_size;
 
 	while (pck_size) {
