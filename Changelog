@@ -38,6 +38,7 @@
 ## Misc
 - FFMPEG 6 support
 - Added features for configure (vout, aout, fonts, doc, evg)
+- Allow specifying network interface by name or IP instead of IP only
 
 
 # 19/12/2022: GPAC 2.2

@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2022 Telecom ParisTech
+#     (c) 2003-2023 Telecom ParisTech
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -1202,6 +1202,17 @@ if docc $LDFLAGS ; then
     has_sock_un="yes"
 fi
 
+
+#look for ifaddrs support
+cat > $TMPC << EOF
+#include <ifaddrs.h>
+#include <net/if.h>
+int main( void ) {  struct ifaddrs *ifap = NULL; getifaddrs(&ifap); return 0; }
+EOF
+has_ifaddrs="no"
+if docc $LDFLAGS ; then
+    has_ifaddrs="yes"
+fi
 
 #package config helpers
 
@@ -2707,6 +2718,10 @@ fi
 
 if test "$has_sock_un" != "no" ; then
     echo "#define GPAC_HAS_SOCK_UN" >> $TMPH
+fi
+
+if test "$has_ifaddrs" != "no" ; then
+    echo "#define GPAC_HAS_IFADDRS" >> $TMPH
 fi
 
 echo "CONFIG_LZMA=$has_lzma" >> config.mak

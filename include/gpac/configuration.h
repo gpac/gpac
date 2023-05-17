@@ -127,6 +127,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_HTTP2
+#define GPAC_HAS_IFADDRS
 
 /*Configuration for XCode OSX (not iOS) */
 #elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
@@ -138,6 +139,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_SOCK_UN
 
 #define GPAC_HAS_FD
+#define GPAC_HAS_IFADDRS
 
 //64-bits OSX
 #ifdef __LP64__
@@ -169,6 +171,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_SOCK_UN
+#define GPAC_HAS_IFADDRS
 
 /*don't use fixed-point version on iOS, not needed*/
 //#define GPAC_FIXED_POINT

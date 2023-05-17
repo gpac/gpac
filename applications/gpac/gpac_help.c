@@ -707,6 +707,7 @@ static GF_GPACArg gpac_args[] =
 			"- log: print the log system help\n"
 			"- core: print the supported libgpac core options. Use -ha/-hx/-hh for advanced/expert options\n"
 			"- cfg: print the GPAC configuration help\n"
+			"- net: print network interfaces\n"
 			"- prompt: print the GPAC prompt help when running in interactive mode (see [-k](GPAC) )\n"
 			"- modules: print available modules\n"
 			"- creds: print credential help\n"
@@ -1103,7 +1104,7 @@ redo_pass:
 	if (is_help) {
 		if (!pass_exact) {
 			const char *doc_helps[] = {
-				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "formats", "exts", "protocols", "links", "bin", "filters", "filters:*", "filters:@", "mp4c", NULL
+				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "formats", "exts", "protocols", "links", "bin", "filters", "filters:*", "filters:@", "mp4c", "net", NULL
 			};
 			first = GF_FALSE;
 			i=0;
