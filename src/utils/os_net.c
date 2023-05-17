@@ -994,8 +994,8 @@ conn_ok:
 		memcpy(&sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u8)*Host->h_length);
 	}
 
-	if (local_ip) {
-		GF_Err e = gf_sk_bind(sock, local_ip, PortNumber, PeerName, PortNumber, GF_SOCK_REUSE_PORT);
+	if (ifce_ip_or_name) {
+		GF_Err e = gf_sk_bind(sock, ifce_ip_or_name, PortNumber, PeerName, PortNumber, GF_SOCK_REUSE_PORT);
 		if (e) return e;
 	}
 	if (!(sock->flags & GF_SOCK_IS_TCP)) {
@@ -1060,6 +1060,7 @@ conn_ok:
 	return GF_OK;
 }
 
+static u32 inet_addr_from_name(const char *local_interface);
 
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
@@ -1195,7 +1196,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 
 	/*setup the address*/
 	ip_add = 0;
-	if (local_ip) ip_add = inet_addr(local_ip);
+	if (ifce_ip_or_name) ip_add = inet_addr_from_name(ifce_ip_or_name);
 
 	if (!ip_add) {
 #if 0
@@ -1535,7 +1536,7 @@ static GF_Err sk_join_ipv4(GF_Socket *sock, struct ip_mreq *M_req, u32 TTL, cons
 	return GF_OK;
 }
 
-u32 inet_addr_from_name(const char *local_interface)
+static u32 inet_addr_from_name(const char *local_interface)
 {
 	if (!local_interface) return htonl(INADDR_ANY);
 
