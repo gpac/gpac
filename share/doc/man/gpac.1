@@ -188,6 +188,8 @@ Note: The @ character can be used in place of the * character. String parameter 
 .br
 * cfg: print the GPAC configuration help
 .br
+* net: print network interfaces
+.br
 * prompt: print the GPAC prompt help when running in interactive mode (see .I -k )
 .br
 * modules: print available modules
@@ -776,7 +778,7 @@ disable javascript module loading
 .TP
 .B \-ifce (string)
 .br
-set default multicast interface through interface IP address (default is 127.0.0.1)
+set default multicast interface (default is ANY), either an IP address or a device name as listed by gpac -h net. Prefix '+' will force using IPv6 for dual interface
 .br
 .TP
 .B \-lang (string)
@@ -5006,7 +5008,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev247-g44b62f275-master
+build: 2.3-DEV-rev263-g2afa05f4d-master
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

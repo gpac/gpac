@@ -26,6 +26,7 @@
 #include <gpac/main.h>
 #include <gpac/filters.h>
 #include <gpac/thread.h>
+#include <gpac/network.h>
 #include "gpac.h"
 
 /*
@@ -438,6 +439,26 @@ static const char *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
 
+
+#ifndef GPAC_DISABLE_NETWORK
+static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flags)
+{
+	char *prev_name = cbk;
+	if (strcmp(prev_name, name)) {
+		if (prev_name[0]) fprintf(stdout, "\n");
+		strcpy(prev_name, name);
+		fprintf(stdout, "%s", name);
+		fprintf(stdout, ": %s", (flags & GF_NETIF_ACTIVE) ? "Up" : "Down");
+		if (flags & GF_NETIF_NO_MCAST) fprintf(stdout, " NoMulticast");
+		if (flags & GF_NETIF_RECV_ONLY) fprintf(stdout, " ReceiveOnly");
+		if (flags & GF_NETIF_LOOPBACK) fprintf(stdout, " Loopback");
+		fprintf(stdout, "\n");
+	}
+	fprintf(stdout, "\tIPv%d %s\n", (flags & GF_NETIF_IPV6) ? 6 : 4, IP ? IP : "address not assigned");
+	return GF_FALSE;
+}
+#endif
+
 #ifndef GPAC_CONFIG_ANDROID
 static
 #endif
@@ -692,6 +713,13 @@ int gpac_main(int _argc, char **_argv)
 				dump_proto_schemes = GF_TRUE;
 				sflags |= GF_FS_FLAG_LOAD_META | GF_FS_FLAG_NO_GRAPH_CACHE;
 				i++;
+			} else if (!strcmp(argv[i+1], "net")) {
+#ifndef GPAC_DISABLE_NETWORK
+				char szName[100];
+				szName[0]=0;
+				gf_net_enum_interfaces(enum_net_ifces, szName);
+#endif
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "links")) {
 				view_filter_conn = GF_TRUE;
 				if ((i+2<argc)	&& (argv[i+2][0] != '-')) {
