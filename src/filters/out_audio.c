@@ -48,6 +48,7 @@ typedef struct
 	u64 ch_cfg;
 	u32 cur_afmt;
 	GF_AudioOutput *audio_out;
+	Bool do_rem_pid;
 
 #ifndef GPAC_DISABLE_THREADS
 	GF_Thread *th;
@@ -205,6 +206,11 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 	Bool is_first_pck = GF_TRUE;
 
 	memset(buffer, 0, buffer_size);
+	if (ctx->do_rem_pid) {
+		ctx->pid = NULL;
+		ctx->do_rem_pid = GF_FALSE;
+		ctx->is_eos = GF_TRUE;
+	}
 	if (!ctx->pid || ctx->aborted) return 0;
 	if (!ctx->speed) return 0;
 
@@ -247,7 +253,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			return 0;
 		}
 
-		if (! gf_filter_pck_is_blocking_ref(pck)) {
+		if (! gf_filter_pck_is_blocking_ref(pck) && !gf_filter_pid_has_seen_eos(ctx->pid) ) {
 			if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
 				return 0;
 			gf_filter_pck_get_data(pck, &size);
@@ -432,7 +438,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (is_remove) {
 		assert(ctx->pid == pid);
-		ctx->pid = NULL;
+		ctx->do_rem_pid = GF_TRUE;
 		//set a NULL clock hint in case other sinks using clock hints are still running
 		GF_Fraction64 mtime;
 		mtime.num = 0;
@@ -441,6 +447,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 	assert(!ctx->pid || (ctx->pid==pid));
+	ctx->do_rem_pid = GF_FALSE;
 
 	if (!gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
