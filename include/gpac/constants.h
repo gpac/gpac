@@ -837,12 +837,20 @@ typedef enum
 	GF_AUDIO_FMT_S16_BE,
 	/*! sample = signed integer, interleaved channels*/
 	GF_AUDIO_FMT_S32,
+	/*! sample = signed integer big-endian, interleaved channels*/
+	GF_AUDIO_FMT_S32_BE,
 	/*! sample = 1 float, interleaved channels*/
 	GF_AUDIO_FMT_FLT,
+	/*! sample = 1 float bytes in big endian, interleaved channels*/
+	GF_AUDIO_FMT_FLT_BE,
 	/*! sample = 1 double, interleaved channels*/
 	GF_AUDIO_FMT_DBL,
+	/*! sample = 1 double bytes in big-endian order, interleaved channels*/
+	GF_AUDIO_FMT_DBL_BE,
 	/*! sample = signed integer, interleaved channels*/
 	GF_AUDIO_FMT_S24,
+	/*! sample = signed integer gig-endian, interleaved channels*/
+	GF_AUDIO_FMT_S24_BE,
 	/*! not a format, indicates the value of last packed format*/
 	GF_AUDIO_FMT_LAST_PACKED,
 	/*! sample = unsigned byte, planar channels*/

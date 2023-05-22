@@ -362,6 +362,7 @@ enum
 	GF_QT_SUBTYPE_RGBA = GF_4CC('R','G','B','A'),
 	GF_QT_SUBTYPE_ABGR = GF_4CC('A','B','G','R'),
 	GF_QT_SUBTYPE_ALAC =  GF_4CC('a','l','a','c'),
+	GF_QT_SUBTYPE_LPCM =  GF_4CC('l','p','c','m'),
 	GF_ISOM_SUBTYPE_FFV1		= GF_4CC( 'F', 'F', 'V', '1' ),
 
 	GF_ISOM_ITEM_TYPE_AUXI 	= GF_4CC('a', 'u', 'x', 'i'),
@@ -3116,6 +3117,8 @@ typedef struct
 	u16 bits_per_sample;
 	/*! indicates if QTFF signaling should be used, audio codecs only*/
 	Bool is_qtff;
+	/*! for lpcm only, indicates format flags*/
+	u32 lpcm_flags;
 
 	/*optional, sample description specific configuration*/
 	u8 *extension_buf;
@@ -3913,12 +3916,23 @@ GF_Err gf_isom_get_tmcd_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampl
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index
-\param flags set to the pcm config flags (0: big endian, 1: little endian)
-\param pcm_size  set to PCM sample size (per channel, 16, 24, 32, 64
+\param flags set to the pcm config flags (0: big endian, 1: little endian), may be NULL
+\param pcm_size  set to PCM sample size (per channel, 16, 24, 32, 64, may be NULL
 \return error if any
 */
 GF_Err gf_isom_get_pcm_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *flags, u32 *pcm_size);
 
+/*! gets information of a raw PCM  sample description, QT style (lpcm codecid)
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param sample_rate set to the pcm sample rate, may be NULL
+\param nb_channels set to the pcm channel count, may be NULL
+\param flags set to the pcm config flags (1: float, 2: big endian, 4: signed, other flags cf QTFF), may be NULL
+\param pcm_size  set to PCM sample size (per channel, 16, 24, 32, 64, may be NULL
+\return error if any
+*/
+GF_Err gf_isom_get_lpcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, Double *sample_rate, u32 *nb_channels, u32 *flags, u32 *pcm_size);
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

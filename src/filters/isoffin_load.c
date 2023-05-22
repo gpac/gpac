@@ -202,8 +202,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 #endif
 
 	} else {
-		u32 i, pcm_flags, pcm_size;
+		u32 i, pcm_flags, pcm_size, pcm_ch;
+		Double pcm_sr;
 		Bool load_default = GF_FALSE;
+		Bool is_float = GF_FALSE;
 
 		if (an_esd)
 			gf_odf_desc_del((GF_Descriptor *)an_esd);
@@ -275,14 +277,22 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_isom_opus_config_get(read->mov, track, stsd_idx, &dsi, &dsi_size);
 			break;
 
-		case GF_QT_SUBTYPE_TWOS:
-		case GF_QT_SUBTYPE_SOWT:
 		case GF_QT_SUBTYPE_FL32:
 		case GF_QT_SUBTYPE_FL64:
+			is_float = GF_TRUE;
+		case GF_QT_SUBTYPE_TWOS:
+		case GF_QT_SUBTYPE_SOWT:
 		case GF_QT_SUBTYPE_IN24:
 		case GF_QT_SUBTYPE_IN32:
-			codec_id = GF_CODECID_RAW;
-			audio_fmt = gf_audio_fmt_from_isobmf(m_subtype);
+			if (gf_isom_get_pcm_config(read->mov, track, stsd_idx, &pcm_flags, &pcm_size) == GF_OK) {
+				codec_id = GF_CODECID_RAW;
+				if (pcm_size==16) audio_fmt = (pcm_flags&1) ? GF_AUDIO_FMT_S16 : GF_AUDIO_FMT_S16_BE;
+				else if (pcm_size==24) audio_fmt = (pcm_flags&1) ? GF_AUDIO_FMT_S24 : GF_AUDIO_FMT_S24_BE;
+				else if (!is_float && (pcm_size==32)) audio_fmt = (pcm_flags&1) ? GF_AUDIO_FMT_S32 : GF_AUDIO_FMT_S32_BE;
+				else if (is_float && (pcm_size==32)) audio_fmt = (pcm_flags&1) ? GF_AUDIO_FMT_FLT : GF_AUDIO_FMT_FLT_BE;
+				else if (is_float && (pcm_size==64)) audio_fmt = (pcm_flags&1) ? GF_AUDIO_FMT_DBL : GF_AUDIO_FMT_DBL_BE;
+				else codec_id = 0;
+			}
 			break;
 		case GF_ISOM_MEDIA_TIMECODE:
 			codec_id = GF_CODECID_TMCD;
@@ -300,15 +310,48 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		case GF_ISOM_SUBTYPE_IPCM:
 			if (gf_isom_get_pcm_config(read->mov, track, stsd_idx, &pcm_flags, &pcm_size) == GF_OK) {
 				codec_id = GF_CODECID_RAW;
-				if (pcm_size==16) audio_fmt = GF_AUDIO_FMT_S16;
-				else if (pcm_size==24) audio_fmt = GF_AUDIO_FMT_S24;
-				else if (pcm_size==32) audio_fmt = GF_AUDIO_FMT_S32;
+				if (pcm_size==16) audio_fmt = (pcm_flags & 1) ? GF_AUDIO_FMT_S16 : GF_AUDIO_FMT_S16_BE;
+				else if (pcm_size==24) audio_fmt = (pcm_flags & 1) ? GF_AUDIO_FMT_S24 : GF_AUDIO_FMT_S24_BE;
+				else if (pcm_size==32) audio_fmt = (pcm_flags & 1) ? GF_AUDIO_FMT_S32 : GF_AUDIO_FMT_S32_BE;
 			}
 			break;
 		case GF_ISOM_SUBTYPE_FPCM:
 			if (gf_isom_get_pcm_config(read->mov, track, stsd_idx, &pcm_flags, &pcm_size) == GF_OK) {
 				codec_id = GF_CODECID_RAW;
-				audio_fmt = (pcm_size==64) ? GF_AUDIO_FMT_DBL : GF_AUDIO_FMT_FLT;
+				if (pcm_size==64) audio_fmt = (pcm_flags & 1) ? GF_AUDIO_FMT_DBL : GF_AUDIO_FMT_DBL_BE;
+				else if (pcm_size==32) audio_fmt = (pcm_flags & 1) ? GF_AUDIO_FMT_FLT : GF_AUDIO_FMT_FLT_BE;
+				else codec_id = 0;
+			}
+			break;
+		case GF_QT_SUBTYPE_LPCM:
+			if (gf_isom_get_lpcm_config(read->mov, track, stsd_idx, &pcm_sr, &pcm_ch, &pcm_flags, &pcm_size) == GF_OK) {
+				audio_fmt = 0;
+				Bool is_be = (pcm_flags & (1<<1)) ? GF_TRUE : GF_FALSE;
+				if (pcm_flags >> 4) {}
+				//we don't support non-packed audio
+				else if (!(pcm_flags & (1<<3))) {}
+				else if (pcm_sr != (u32) gf_ceil(pcm_sr)) {}
+				else {
+					sr = (u32) gf_ceil(pcm_sr);
+					nb_ch = pcm_ch;
+					//float formats
+					if (pcm_flags & 1) {
+						if (pcm_size==64) audio_fmt = is_be ? GF_AUDIO_FMT_DBL_BE : GF_AUDIO_FMT_DBL;
+						else if (pcm_size==32) audio_fmt = is_be ? GF_AUDIO_FMT_FLT_BE : GF_AUDIO_FMT_FLT;
+					}
+					//signed int formats
+					else if (pcm_flags & 4) {
+						if (pcm_size==16) audio_fmt = is_be ? GF_AUDIO_FMT_S16_BE : GF_AUDIO_FMT_S16;
+						else if (pcm_size==24) audio_fmt = is_be ? GF_AUDIO_FMT_S24_BE : GF_AUDIO_FMT_S24;
+						else if (pcm_size==32) audio_fmt = is_be ? GF_AUDIO_FMT_S32_BE : GF_AUDIO_FMT_S32;
+					} else {
+						if (pcm_size==8) audio_fmt = GF_AUDIO_FMT_U8;
+					}
+					if (audio_fmt) {
+						codec_id = GF_CODECID_RAW;
+						nb_bps = pcm_size;
+					}
+				}
 			}
 			break;
 
@@ -1228,8 +1271,10 @@ props_done:
 			}
 		}
 	}
-	sr = nb_ch = nb_bps = 0;
-	gf_isom_get_audio_info(read->mov,track, stsd_idx, &sr, &nb_ch, &nb_bps);
+	if (m_subtype!=GF_QT_SUBTYPE_LPCM) {
+		sr = nb_ch = nb_bps = 0;
+		gf_isom_get_audio_info(read->mov,track, stsd_idx, &sr, &nb_ch, &nb_bps);
+	}
 	if (streamtype==GF_STREAM_AUDIO) {
 		if (!sr) sr = gf_isom_get_media_timescale(read->mov, track);
 	}

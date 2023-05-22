@@ -1615,6 +1615,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_YVYU, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_RGBA, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_ABGR, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_LPCM, audio_sample_entry, "stsd", "apple"),
 
 	FBOX_DEFINE_S(GF_QT_BOX_TYPE_STPS, stss, "stbl", 0, "apple"),
 

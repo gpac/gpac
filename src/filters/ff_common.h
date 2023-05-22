@@ -93,6 +93,7 @@ u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt);
 u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt);
 u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag);
 u32 ffmpeg_codecid_to_gpac(u32 codec_id);
+u32 ffmpeg_codecid_to_gpac_audio_fmt(u32 codec_id);
 
 u32 ffmpeg_stream_type_from_gpac(u32 streamtype);
 u32 ffmpeg_stream_type_to_gpac(u32 streamtype);

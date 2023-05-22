@@ -747,19 +747,21 @@ void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 	if (p->version)
 		gf_fprintf(trace, " Version=\"%d\"", p->version);
 
-	if (p->samplerate_lo) {
-		if (p->type==GF_ISOM_SUBTYPE_MLPA) {
-			u32 sr = p->samplerate_hi;
-			sr <<= 16;
-			sr |= p->samplerate_lo;
-			gf_fprintf(trace, " SampleRate=\"%d\"", sr);
+	if (p->version != 2) {
+		if (p->samplerate_lo) {
+			if (p->type==GF_ISOM_SUBTYPE_MLPA) {
+				u32 sr = p->samplerate_hi;
+				sr <<= 16;
+				sr |= p->samplerate_lo;
+				gf_fprintf(trace, " SampleRate=\"%d\"", sr);
+			} else {
+				gf_fprintf(trace, " SampleRate=\"%d.%d\"", p->samplerate_hi, p->samplerate_lo);
+			}
 		} else {
-			gf_fprintf(trace, " SampleRate=\"%d.%d\"", p->samplerate_hi, p->samplerate_lo);
+			gf_fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
 		}
-	} else {
-		gf_fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
+		gf_fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
 	}
-	gf_fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
 	if (p->qtff_mode) {
 		gf_fprintf(trace, " isQTFF=\"%d\"", p->qtff_mode);
 		gf_fprintf(trace, " qtRevisionLevel=\"%d\"", p->revision);
@@ -771,6 +773,19 @@ void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 			gf_fprintf(trace, " qtBytesPerPacket=\"%d\"", p->extensions[4]<<24 | p->extensions[5]<<16 | p->extensions[6]<<8 | p->extensions[7]);
 			gf_fprintf(trace, " qtBytesPerFrame=\"%d\"", p->extensions[8]<<24 | p->extensions[9]<<16 | p->extensions[10]<<8 | p->extensions[11]);
 			gf_fprintf(trace, " qtBytesPerSample=\"%d\"", p->extensions[12]<<24 | p->extensions[13]<<16 | p->extensions[14]<<8 | p->extensions[15]);
+		}
+		else if (p->version == 2) {
+			GF_BitStream *bs = gf_bs_new(p->extensions, 36, GF_BITSTREAM_READ);
+			gf_fprintf(trace, " resSampleRate=\"%d\" resChannels=\"%d\" resBitsPerSample=\"%d\"", p->samplerate_hi, p->channel_count, p->bitspersample);
+			gf_fprintf(trace, " sizeOfStructOnly=\"%u\"", gf_bs_read_u32(bs));
+			gf_fprintf(trace, " audioSampleRate=\"%f\"", gf_bs_read_double(bs));
+			gf_fprintf(trace, " numAudioChannels=\"%x\"", gf_bs_read_u32(bs));
+			gf_fprintf(trace, " res1=\"%x\"", gf_bs_read_u32(bs));
+			gf_fprintf(trace, " constBitsPerChannel=\"%u\"", gf_bs_read_u32(bs));
+			gf_fprintf(trace, " formatSpecificFlags=\"%u\"", gf_bs_read_u32(bs));
+			gf_fprintf(trace, " constBytesPerAudioPacket=\"%u\"", gf_bs_read_u32(bs));
+			gf_fprintf(trace, " constLPCMFramesPerAudioPacket=\"%u\"", gf_bs_read_u32(bs));
+			gf_bs_del(bs);
 		}
 	}
 }
