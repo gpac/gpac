@@ -336,6 +336,9 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 					pid_in->pid->max_buffer_time = 0;
 				}
 			}
+			//if we have max_buffer_time set, don't use buffer units
+			if (pid->max_buffer_time)
+				pid->max_buffer_unit = 0;
 		}
 		//input is file, output is not and codec ID is raw, this is a raw media pid
 		else if ((i_type==GF_STREAM_FILE) && (mtype!=GF_STREAM_FILE) && (codecid==GF_CODECID_RAW) ) {
