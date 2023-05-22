@@ -2876,7 +2876,8 @@ GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 	//rewrite OD frames
 	if (traf->trex->track->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
 		//this may fail if dependencies are not well done ...
-		Media_ParseODFrame(traf->trex->track->Media, sample, &od_sample);
+		GF_Err e = Media_ParseODFrame(traf->trex->track->Media, sample, &od_sample);
+		if (!od_sample) return e;
 		sample = od_sample;
 	}
 
