@@ -1509,10 +1509,13 @@ Bool naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 					else
 						DeltaTfiDivisorIdx = (ctx->avc_state->sei.pic_timing.pic_struct+1) / 2;
 				}
-				if (ctx->notime && sps->vui.time_scale && sps->vui.num_units_in_tick) {
-					ctx->cur_fps.num = 2 * sps->vui.time_scale;
-					ctx->cur_fps.den = 2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
-
+				if (ctx->notime) {
+					u32 fps_num = 2 * sps->vui.time_scale;
+					u32 fps_den = 2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
+					if (fps_num && fps_den) {
+						ctx->cur_fps.num = fps_num;
+						ctx->cur_fps.den = fps_den;
+					}
 					if (!ctx->fps.num && ctx->dts==ctx->fps.den)
 						ctx->dts = ctx->cur_fps.den;
 				}
