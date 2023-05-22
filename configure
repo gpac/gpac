@@ -1034,7 +1034,7 @@ docc() {
 docxx() {
  #for logs
  cat $TMPCXX > $TMPC
- $cc -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
+ $cxx -o $TMPO $TMPCXX $@ 0>/dev/null 2>$TMPL
  dolog $@
 }
 
@@ -1489,7 +1489,7 @@ int main( void ) { oh_init(1, 1); return 0; }
 '
 
 pck_cxx="yes"
-config_package platinum "platinum" "" "-lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib $PTHREAD_LDFLAGS" "platinum" '#include <Platinum.h>
+config_package platinum "platinum" "" "-lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -laxTLS $PTHREAD_LDFLAGS" "platinum" '#include <Platinum.h>
 int main( void ) { new PLT_UPnP(); return 0; }'
 
 
