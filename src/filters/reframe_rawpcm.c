@@ -40,7 +40,7 @@ typedef struct
 	Bool file_loaded, is_playing, initial_play_done;
 	u64 cts;
 	u32 frame_size, nb_bytes_in_frame, Bps;
-	u64 filepos, total_frames;
+	u64 filepos, total_frames, layout;
 	GF_FilterPacket *out_pck;
 	u8 *out_data;
 	Bool reverse_play, done;
@@ -114,6 +114,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, &PROP_BOOL(GF_TRUE));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, ctx->layout ? &PROP_LONGUINT(ctx->layout) : NULL);
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
@@ -289,13 +290,20 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			gf_bs_read_u32_le(bs); //byte rate
 			gf_bs_read_u16_le(bs); // block align
 			u32 bps = gf_bs_read_u16_le(bs);
+			csize-=16;
+			if (ctx->ch==1) ctx->layout = GF_AUDIO_CH_FRONT_CENTER;
+			else if (ctx->ch==2) ctx->layout = GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT;
+			else ctx->layout = 0;
+
 			if (atype==3) {
 				if (bps==32) {
 					ctx->safmt = GF_AUDIO_FMT_FLT;
+				} else if (bps==64) {
+					ctx->safmt = GF_AUDIO_FMT_DBL;
 				} else {
 					wav_ok = GF_FALSE;
 				}
-			} else if (atype==1) {
+			} else if ((atype==1) || (atype==0xFFFE))  {
 				if (bps==32) {
 					ctx->safmt = GF_AUDIO_FMT_S32;
 				} else if (bps==24) {
@@ -308,6 +316,32 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 					wav_ok = GF_FALSE;
 				}
 			}
+			if (atype==0xFFFE) {
+				gf_bs_read_u16_le(bs); //cbSize
+				gf_bs_read_u16_le(bs); //Samples
+				u32 ch_mask = gf_bs_read_u32_le(bs); //channel mask
+				csize-=8;
+				ctx->layout = 0;
+				if (ch_mask & 0x1) ctx->layout |= GF_AUDIO_CH_FRONT_LEFT;
+				if (ch_mask & 0x2) ctx->layout |= GF_AUDIO_CH_FRONT_RIGHT;
+				if (ch_mask & 0x4) ctx->layout |= GF_AUDIO_CH_FRONT_CENTER;
+				if (ch_mask & 0x8) ctx->layout |= GF_AUDIO_CH_LFE;
+				if (ch_mask & 0x10) ctx->layout |= GF_AUDIO_CH_REAR_SURROUND_LEFT;
+				if (ch_mask & 0x20) ctx->layout |= GF_AUDIO_CH_REAR_SURROUND_RIGHT;
+				if (ch_mask & 0x40) ctx->layout |= GF_AUDIO_CH_FRONT_CENTER_LEFT;
+				if (ch_mask & 0x80) ctx->layout |= GF_AUDIO_CH_FRONT_CENTER_RIGHT;
+				if (ch_mask & 0x100) ctx->layout |= GF_AUDIO_CH_REAR_CENTER;
+				if (ch_mask & 0x200) ctx->layout |= GF_AUDIO_CH_SIDE_SURROUND_LEFT;
+				if (ch_mask & 0x400) ctx->layout |= GF_AUDIO_CH_SIDE_SURROUND_RIGHT;
+				if (ch_mask & 0x800) ctx->layout |= GF_AUDIO_CH_CENTER_SURROUND_TOP;
+				if (ch_mask & 0x1000) ctx->layout |= GF_AUDIO_CH_FRONT_TOP_LEFT;
+				if (ch_mask & 0x2000) ctx->layout |= GF_AUDIO_CH_FRONT_TOP_CENTER;
+				if (ch_mask & 0x4000) ctx->layout |= GF_AUDIO_CH_FRONT_TOP_RIGHT;
+				if (ch_mask & 0x8000) ctx->layout |= GF_AUDIO_CH_SURROUND_TOP_LEFT;
+				if (ch_mask & 0x10000) ctx->layout |= GF_AUDIO_CH_REAR_CENTER_TOP;
+				if (ch_mask & 0x20000) ctx->layout |= GF_AUDIO_CH_SURROUND_TOP_RIGHT;
+			}
+			gf_bs_skip_bytes(bs, csize);
 		}
 		if (gf_bs_is_overflow(bs)) {
 			if (!ctx->probe_data) {
