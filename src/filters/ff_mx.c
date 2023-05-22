@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2022
+ *			Copyright (c) Telecom Paris 2019-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg muxer filter
@@ -1044,13 +1044,29 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			case GF_AUDIO_FMT_S24P:
 				ff_codec_id = AV_CODEC_ID_PCM_S24LE;
 				break;
+			case GF_AUDIO_FMT_S24_BE:
+				ff_codec_id = AV_CODEC_ID_PCM_S24BE;
+				break;
 			case GF_AUDIO_FMT_S32:
 			case GF_AUDIO_FMT_S32P:
 				ff_codec_id = AV_CODEC_ID_PCM_S32LE;
 				break;
+			case GF_AUDIO_FMT_S32_BE:
+				ff_codec_id = AV_CODEC_ID_PCM_S32BE;
+				break;
 			case GF_AUDIO_FMT_FLT:
 			case GF_AUDIO_FMT_FLTP:
 				ff_codec_id = AV_CODEC_ID_PCM_F32LE;
+				break;
+			case GF_AUDIO_FMT_FLT_BE:
+				ff_codec_id = AV_CODEC_ID_PCM_F32BE;
+				break;
+			case GF_AUDIO_FMT_DBL:
+			case GF_AUDIO_FMT_DBLP:
+				ff_codec_id = AV_CODEC_ID_PCM_F64LE;
+				break;
+			case GF_AUDIO_FMT_DBL_BE:
+				ff_codec_id = AV_CODEC_ID_PCM_F64BE;
 				break;
 			default:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Unmapped raw audio format %s to FFMPEG, patch welcome\n", gf_audio_fmt_name(p->value.uint) ));

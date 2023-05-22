@@ -3501,14 +3501,28 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			fprintf(stderr, "\tInvalid TrueHD audio config\n");
 		}
 		fprintf(stderr, "\tTrueHD Audio stream - Sample Rate %u - channels %u - format %u peak rate %u\n", sr, nb_ch, fmt, prate);
+	} else if (msub_type==GF_QT_SUBTYPE_LPCM) {
+		Double pcm_sr;
+		u32 pcm_flags, pcm_size;
+		if (gf_isom_get_lpcm_config(file, trackNum, stsd_idx, &pcm_sr, &nb_ch, &pcm_flags, &pcm_size) == GF_OK) {
+			fprintf(stderr, "\tPCM Audio - Sample Rate %f channels %u %u-bits %s %s-endian\n", pcm_sr, nb_ch, pcm_size, (pcm_flags & 1) ? "float" : "int", (pcm_flags & (1<<1)) ? "big" : "little");
+		} else {
+			fprintf(stderr, "\tInvalid LPCM audio config\n");
+		}
 	} else if (codecid) {
 		if (gf_isom_is_video_handler_type(mtype) ) {
 			u32 w, h;
 			gf_isom_get_visual_info(file, trackNum, stsd_idx, &w, &h);
 			fprintf(stderr, "\t%s - Resolution %d x %d\n", gf_codecid_name(codecid), w, h);
 		} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
+			u32 size, flags;
 			gf_isom_get_audio_info(file, trackNum, stsd_idx, &sr, &nb_ch, NULL);
-			fprintf(stderr, "\t%s - Sample Rate %d - %d channel(s)\n", gf_codecid_name(codecid), sr, nb_ch);
+			if (gf_isom_get_pcm_config(file, trackNum, stsd_idx, &flags, &size)==GF_OK) {
+				fprintf(stderr, "\tPCM Audio Sample Rate %d %d channel(s) %u-bits %s-endian", sr, nb_ch, size, (flags&1) ? "little" : "big");
+			} else {
+				fprintf(stderr, "\t%s - Sample Rate %d - %d channel(s)", gf_codecid_name(codecid), sr, nb_ch);
+			}
+			fprintf(stderr, "\n");
 		} else {
 			fprintf(stderr, "\t%s\n", gf_codecid_name(codecid) );
 		}

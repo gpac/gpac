@@ -1197,6 +1197,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			default:
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unsupported sample format %d\n", ctx->fname, codec_sample_fmt));
 			}
+			if (gpac_codec_id==GF_CODECID_RAW) {
+				u32 res = ffmpeg_codecid_to_gpac_audio_fmt(codec_id);
+				if (res) sfmt = res;
+			}
 			gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( sfmt) );
 		}
 

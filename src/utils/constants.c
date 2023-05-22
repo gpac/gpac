@@ -285,16 +285,13 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 	case GF_QT_SUBTYPE_AP4H:
 		return GF_CODECID_AP4H;
 	case GF_QT_SUBTYPE_TWOS:
-		return GF_CODECID_RAW;
 	case GF_QT_SUBTYPE_SOWT:
-		return GF_CODECID_RAW;
 	case GF_QT_SUBTYPE_FL32:
-		return GF_CODECID_RAW;
 	case GF_QT_SUBTYPE_FL64:
-		return GF_CODECID_RAW;
 	case GF_QT_SUBTYPE_IN24:
-		return GF_CODECID_RAW;
 	case GF_QT_SUBTYPE_IN32:
+	case GF_ISOM_SUBTYPE_IPCM:
+	case GF_ISOM_SUBTYPE_FPCM:
 		return GF_CODECID_RAW;
 	case GF_ISOM_SUBTYPE_MLPA:
 		return GF_CODECID_TRUEHD;
@@ -603,9 +600,13 @@ static const GF_AudioFmt GF_AudioFormats[] =
 	{GF_AUDIO_FMT_S16, "s16", "16 bit PCM Little Endian", "pcm"},
 	{GF_AUDIO_FMT_S16_BE, "s16b", "16 bit PCM Big Endian", "pcmb"},
 	{GF_AUDIO_FMT_S24, "s24", "24 bit PCM"},
+	{GF_AUDIO_FMT_S24_BE, "s24b", "24 bit Big-Endian PCM"},
 	{GF_AUDIO_FMT_S32, "s32", "32 bit PCM Little Endian"},
+	{GF_AUDIO_FMT_S32_BE, "s32b", "32 bit PCM Big Endian"},
 	{GF_AUDIO_FMT_FLT, "flt", "32-bit floating point PCM"},
+	{GF_AUDIO_FMT_FLT_BE, "fltb", "32-bit floating point PCM Big Endian"},
 	{GF_AUDIO_FMT_DBL, "dbl", "64-bit floating point PCM"},
+	{GF_AUDIO_FMT_DBL_BE, "dblb", "64-bit floating point PCM Big Endian"},
 	{GF_AUDIO_FMT_U8P, "u8p", "8 bit PCM planar", "pc8p"},
 	{GF_AUDIO_FMT_S16P, "s16p", "16 bit PCM Little Endian planar", "pcmp"},
 	{GF_AUDIO_FMT_S24P, "s24p", "24 bit PCM planar"},
@@ -738,23 +739,33 @@ u32 gf_audio_fmt_bit_depth(GF_AudioFormat audio_fmt)
 {
 	switch (audio_fmt) {
 	case GF_AUDIO_FMT_U8P:
-	case GF_AUDIO_FMT_U8: return 8;
+	case GF_AUDIO_FMT_U8:
+		return 8;
 
 	case GF_AUDIO_FMT_S16P:
 	case GF_AUDIO_FMT_S16_BE:
-	case GF_AUDIO_FMT_S16: return 16;
+	case GF_AUDIO_FMT_S16:
+		return 16;
 
 	case GF_AUDIO_FMT_S32P:
-	case GF_AUDIO_FMT_S32: return 32;
+	case GF_AUDIO_FMT_S32_BE:
+	case GF_AUDIO_FMT_S32:
+		return 32;
 
 	case GF_AUDIO_FMT_FLTP:
-	case GF_AUDIO_FMT_FLT: return 32;
+	case GF_AUDIO_FMT_FLT:
+	case GF_AUDIO_FMT_FLT_BE:
+		return 32;
 
 	case GF_AUDIO_FMT_DBLP:
-	case GF_AUDIO_FMT_DBL: return 64;
+	case GF_AUDIO_FMT_DBL:
+	case GF_AUDIO_FMT_DBL_BE:
+		return 64;
 
 	case GF_AUDIO_FMT_S24P:
-	case GF_AUDIO_FMT_S24:  return 24;
+	case GF_AUDIO_FMT_S24_BE:
+	case GF_AUDIO_FMT_S24:
+		return 24;
 
 	default:
 		break;
@@ -785,10 +796,10 @@ static struct pcmfmt_to_qt
 	u32 qt4cc;
 } AudiosToQT[] = {
 	{GF_AUDIO_FMT_S16, GF_QT_SUBTYPE_SOWT},
-	{GF_AUDIO_FMT_FLT, GF_QT_SUBTYPE_FL32},
-	{GF_AUDIO_FMT_DBL, GF_QT_SUBTYPE_FL64},
-	{GF_AUDIO_FMT_S24, GF_QT_SUBTYPE_IN24},
-	{GF_AUDIO_FMT_S32, GF_QT_SUBTYPE_IN32},
+	{GF_AUDIO_FMT_FLT_BE, GF_QT_SUBTYPE_FL32},
+	{GF_AUDIO_FMT_DBL_BE, GF_QT_SUBTYPE_FL64},
+	{GF_AUDIO_FMT_S24_BE, GF_QT_SUBTYPE_IN24},
+	{GF_AUDIO_FMT_S32_BE, GF_QT_SUBTYPE_IN32},
 	{GF_AUDIO_FMT_S16_BE, GF_QT_SUBTYPE_TWOS},
 };
 

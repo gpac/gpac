@@ -2385,6 +2385,10 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 		break;
 	case GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF:
 		stsd->version = 0;
+		//don't change if already v2
+		if ((aud_entry->version==2) && aud_entry->qtff_mode) {
+			break;
+		}
 		aud_entry->version = 1;
 		aud_entry->channel_count = nbChannels;
 		old_qtff_mode = aud_entry->qtff_mode;
@@ -4588,6 +4592,34 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		gena->samplerate_hi = udesc->samplerate;
 		gena->samplerate_lo = 0;
 		gena->qtff_mode = udesc->is_qtff ? GF_ISOM_AUDIO_QTFF_ON_NOEXT : GF_ISOM_AUDIO_QTFF_NONE;
+		if (gena->EntryType==GF_QT_SUBTYPE_LPCM) {
+			gena->version = 2;
+			gena->qtff_mode = GF_ISOM_AUDIO_QTFF_ON_EXT_VALID;
+			GF_BitStream *bs = gf_bs_new(gena->extensions, 36, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(bs, 72);
+			gf_bs_write_double(bs, udesc->samplerate);
+			gf_bs_write_u32(bs, udesc->nb_channels);
+			gf_bs_write_u32(bs, 0x7F000000);
+			gf_bs_write_u32(bs, gena->bitspersample);
+			gf_bs_write_u32(bs, udesc->lpcm_flags);
+			gf_bs_write_u32(bs, udesc->nb_channels*gena->bitspersample/8); //constBytesPerAudioPacket
+			gf_bs_write_u32(bs, 1); //constLPCMFramesPerAudioPacket
+			gf_bs_del(bs);
+			gena->revision = 0;
+			gena->vendor = 0;
+			gena->channel_count = 3;
+			gena->bitspersample = 16;
+			gena->compression_id = 0xFFFE;
+			gena->packet_size = 0;
+			gena->samplerate_hi = 1;
+		} else if (udesc->is_qtff) {
+			GF_Box *b = gf_isom_box_new_parent(&gena->child_boxes, GF_QT_BOX_TYPE_WAVE);
+			GF_ChromaInfoBox *enda = (GF_ChromaInfoBox*) gf_isom_box_new_parent(&b->child_boxes, GF_QT_BOX_TYPE_ENDA);
+			((GF_ChromaInfoBox *)enda)->chroma = (udesc->lpcm_flags & (1<<1)) ? 0 : 1;
+
+			GF_UnknownBox *term = (GF_UnknownBox*) gf_isom_box_new_parent(&b->child_boxes, GF_ISOM_BOX_TYPE_UNKNOWN);
+			if (term) term->original_4cc = 0;
+		}
 
 		wrap_data = &gena->data;
 		wrap_size = &gena->data_size;

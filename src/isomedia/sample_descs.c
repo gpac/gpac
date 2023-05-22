@@ -1803,14 +1803,65 @@ GF_Err gf_isom_get_pcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptio
 
 	aent = (GF_AudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex-1);
 	if (!aent) return GF_BAD_PARAM;
-	if ((aent->type != GF_ISOM_BOX_TYPE_IPCM) && (aent->type != GF_ISOM_BOX_TYPE_FPCM))
-		return GF_BAD_PARAM;
+	if ((aent->type != GF_ISOM_BOX_TYPE_IPCM) && (aent->type != GF_ISOM_BOX_TYPE_FPCM)) {
+		GF_Box *b = gf_isom_box_find_child(aent->child_boxes, GF_QT_BOX_TYPE_WAVE);
+		if (!b) return GF_BAD_PARAM;
+		GF_ChromaInfoBox *enda = (GF_ChromaInfoBox *)gf_isom_box_find_child(b->child_boxes, GF_QT_BOX_TYPE_ENDA);
+		u32 bits=0;
+		Bool is_le = (enda && enda->chroma) ? GF_TRUE : GF_FALSE;
+		switch (aent->type) {
+		case GF_QT_SUBTYPE_FL32: bits = 32; break;
+		case GF_QT_SUBTYPE_FL64: bits = 64; break;
+		case GF_QT_SUBTYPE_TWOS: bits = 16; is_le = GF_FALSE; break;
+		case GF_QT_SUBTYPE_SOWT: bits = 16; is_le = GF_TRUE; break;
+		case GF_QT_SUBTYPE_IN24: bits = 24; break;
+		case GF_QT_SUBTYPE_IN32: bits = 32; break;
+		default:
+			return GF_BAD_PARAM;
+		}
+		if (pcm_size) *pcm_size = bits;
+		if (flags) *flags = is_le ? 1 : 0;
+		return GF_OK;
+	}
 
 	pcmC = (GF_PCMConfigBox *) gf_isom_box_find_child(aent->child_boxes, GF_ISOM_BOX_TYPE_PCMC);
 	if (!pcmC) return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (flags) *flags = pcmC->format_flags;
 	if (pcm_size) *pcm_size = pcmC->PCM_sample_size;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_lpcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, Double *sample_rate, u32 *nb_channels, u32 *flags, u32 *pcm_size)
+{
+	GF_AudioSampleEntryBox *aent;
+	GF_TrackBox *trak;
+	GF_BitStream *bs;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !descriptionIndex) return GF_BAD_PARAM;
+
+	aent = (GF_AudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex-1);
+	if (!aent) return GF_BAD_PARAM;
+	if (aent->type != GF_QT_SUBTYPE_LPCM)
+		return GF_BAD_PARAM;
+	if (aent->version != 2)
+		return GF_BAD_PARAM;
+
+	bs = gf_bs_new(aent->extensions, 36, GF_BITSTREAM_READ);
+	/*offset*/gf_bs_read_u32(bs);
+	Double sr = gf_bs_read_double(bs);
+	if (sample_rate) *sample_rate = sr;
+	u32 nb_ch = gf_bs_read_u32(bs);
+	if (nb_channels) *nb_channels = nb_ch;
+	/*res*/gf_bs_read_u32(bs);
+	u32 constBitsPerChannel = gf_bs_read_u32(bs);
+	if (pcm_size) *pcm_size=constBitsPerChannel;
+	u32 PCM_flags = gf_bs_read_u32(bs);
+	if (flags) *flags = PCM_flags;
+	/*constBytesPerAudioPacket*/gf_bs_read_u32(bs);
+	/*constLPCMFramesPerAudioPacket*/gf_bs_read_u32(bs);
+	gf_bs_del(bs);
 	return GF_OK;
 }
 
