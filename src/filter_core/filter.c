@@ -2636,7 +2636,7 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	assert(filter->process_task_queued);
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
-		if (filter->pending_packets) {
+		if (filter->pending_packets && filter->num_input_pids) {
 			safe_int_inc(&filter->process_task_queued);
 			task->requeue_request = GF_TRUE;
 		}
