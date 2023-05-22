@@ -191,6 +191,7 @@ struct _tag_sax_parser
 	GF_XMLAttribute *attrs;
 	GF_XMLSaxAttribute *sax_attrs;
 	u32 nb_attrs, nb_alloc_attrs;
+	u32 ent_rec_level;
 };
 
 static GF_XMLSaxAttribute *xml_get_sax_attribute(GF_SAXParser *parser)
@@ -902,7 +903,14 @@ restart:
 						parser->line_size = 0;
 						parser->elt_start_pos = 0;
 						parser->sax_state = SAX_STATE_TEXT_CONTENT;
-						e = gf_xml_sax_parse_intern(parser, orig_buf);
+						parser->ent_rec_level++;
+						if (parser->ent_rec_level>100) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Too many recursions in entity solving, max 100 allowed\n"));
+							e = GF_NOT_SUPPORTED;
+						} else {
+							e = gf_xml_sax_parse_intern(parser, orig_buf);
+							parser->ent_rec_level--;
+						}
 						gf_free(orig_buf);
 						return e;
 					}
@@ -1075,8 +1083,9 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 		/*append entity*/
 		line_num = parser->line;
 		xml_sax_append_string(parser, ent->value);
-		xml_sax_parse(parser, GF_TRUE);
+		GF_Err e = xml_sax_parse(parser, GF_TRUE);
 		parser->line = line_num;
+		if (e) return e;
 
 	}
 	xml_sax_append_string(parser, current);
