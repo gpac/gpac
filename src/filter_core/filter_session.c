@@ -4145,6 +4145,9 @@ GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
 		if ((f->num_input_pids!=1) && f->num_output_pids)
 			continue;
 
+		if (!pidi->pid)
+			continue;
+
 		if (!stats->codecid)
 			stats->codecid = pidi->pid->codecid;
 		if (!stats->stream_type)
