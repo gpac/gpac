@@ -1994,6 +1994,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_PCK_UTC_TIME:
 	case GF_PROP_PCK_MEDIA_TIME:
 	case GF_PROP_PID_CENC_HAS_ROLL:
+	case GF_PROP_PID_DSI_SUPERSET:
 		if (gf_sys_is_test_mode())
 			return;
 		break;
