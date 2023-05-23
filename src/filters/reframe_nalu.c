@@ -3368,8 +3368,11 @@ naldmx_flush:
 			naludmx_end_access_unit(ctx);
 		}
 
-		if (!ctx->opid) naludmx_check_pid(filter, ctx, force_au_flush);
-		if (!ctx->opid) skip_nal = GF_TRUE;
+		if (!ctx->opid) {
+			//check output pid cfg before checking NAL skip only if no output pid
+			naludmx_check_pid(filter, ctx, force_au_flush);
+			if (!ctx->opid) skip_nal = GF_TRUE;
+		}
 
 		if (skip_nal) {
 			nal_size += sc_size;
@@ -3379,6 +3382,7 @@ naldmx_flush:
 			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 			continue;
 		}
+		//check output pid cfg after skiping nal, to make sure we can flush pending packets when config change
 		naludmx_check_pid(filter, ctx, force_au_flush);
 
 		if (!ctx->is_playing) {
