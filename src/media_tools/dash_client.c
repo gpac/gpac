@@ -6121,7 +6121,33 @@ static struct _dash_srd_desc *gf_dash_get_srd_desc(GF_DashClient *dash, u32 srd_
 	gf_list_add(dash->SRDs, srd);
 	return srd;
 }
-
+static GF_Err dash_check_supported_mime(GF_MPD_Period *period)
+{
+	u32 count, as_i;
+	/*we are not able to process mkv / webm dash (youtube) using dashin+input filters due to limitations
+	in ffmpeg avformat APIs - if this is used, return GF_PROFILE_NOT_SUPPORTED, this will trigger reconfig of the filter chain */
+	Bool has_ok=GF_FALSE;
+	count = gf_list_count(period->adaptation_sets);
+	for (as_i=0; as_i<count; as_i++) {
+		GF_MPD_AdaptationSet *set = (GF_MPD_AdaptationSet*)gf_list_get(period->adaptation_sets, as_i);
+		if (!set->mime_type) continue;
+		char *sep = strchr(set->mime_type, '/');
+		if (!sep) continue;
+		sep++;
+		if (!stricmp(set->mime_type, "webm") || !stricmp(set->mime_type, "matroska") || !stricmp(set->mime_type, "x-matroska")) {
+			u32 k;
+			for (k=0; k<gf_list_count(set->representations); ++k) {
+				GF_MPD_Representation *rep = (GF_MPD_Representation*)gf_list_get(set->representations, k);
+				rep->playback.disabled = GF_TRUE;
+			}
+		} else {
+			has_ok = GF_TRUE;
+		}
+	}
+	if (!has_ok)
+		return GF_PROFILE_NOT_SUPPORTED;
+	return GF_OK;
+}
 static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 {
 	GF_MPD_Period *period;
@@ -6148,18 +6174,9 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			period->duration = next_period->start - period->start;
 	}
 
-	/*we are not able to process webm dash (youtube)*/
-	j = gf_list_count(period->adaptation_sets);
-	for (as_i=0; as_i<j; as_i++) {
-		GF_MPD_AdaptationSet *set = (GF_MPD_AdaptationSet*)gf_list_get(period->adaptation_sets, as_i);
-		if (set->mime_type && strstr(set->mime_type, "webm")) {
-			u32 k;
-			for (k=0; k<gf_list_count(set->representations); ++k) {
-				GF_MPD_Representation *rep = (GF_MPD_Representation*)gf_list_get(set->representations, k);
-				rep->playback.disabled = GF_TRUE;
-			}
-		}
-	}
+	GF_Err e = dash_check_supported_mime(period);
+	if (e) return e;
+
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Setting up period start "LLU" duration "LLU" xlink %s ID %s\n", period->start, period->duration, period->origin_base_url ? period->origin_base_url : "none", period->ID ? period->ID : "none"));
 
@@ -7895,6 +7912,7 @@ retry:
 		if (dash->xlink_sess) {
 			e = gf_dash_check_periods(dash);
 			if (dash->xlink_sess) return GF_IP_NETWORK_EMPTY;
+			if (e) return e;
 		}
 
 		if (dash->force_mpd_update || dash->manifest_pending) {
@@ -8056,7 +8074,7 @@ static GF_Err gf_dash_check_periods(GF_DashClient *dash)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot start: not enough periods or representations in MPD\n"));
 		return GF_URL_ERROR;
 	}
-	return GF_OK;
+	return dash_check_supported_mime(period);
 }
 
 
