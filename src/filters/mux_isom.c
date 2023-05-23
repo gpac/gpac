@@ -993,6 +993,12 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			}
 			gf_free(dst);
 		}
+	} else {
+		const char *fname = gf_isom_get_filename(ctx->file);
+		char *ext = fname ? gf_file_ext_start(fname) : NULL;
+		if (ext && (!stricmp(ext, ".mov") || !stricmp(ext, ".qt")) ) {
+			ctx->make_qt = 1;
+		}
 	}
 	//copy properties at init or reconfig
 	if (ctx->opid && is_true_pid) {
@@ -3049,7 +3055,10 @@ sample_entry_setup:
 		udesc.bits_per_sample = raw_bitdepth;
 		udesc.lpcm_flags = afmt_flags | (1<<3); //add packed flag
 		if (codec_id==GF_CODECID_RAW) {
-			if (ase_mode<=GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) {
+			if (ctx->make_qt && (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS)) {
+				udesc.is_qtff = GF_TRUE;
+			}
+			else if (ase_mode<=GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) {
 				m_subtype = m_subtype_alt_raw;
 				udesc.extension_buf_size = 14;
 				udesc.extension_buf = isor_ext_buf;
