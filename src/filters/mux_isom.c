@@ -2461,9 +2461,13 @@ sample_entry_setup:
 	}
 
 	tkw->xps_inband = xps_inband;
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DSI_SUPERSET);
 
-	//little optim here: if no samples were added on the stream description remove it
-	if (!tkw->samples_in_stsd && tkw->stsd_idx && needs_sample_entry) {
+	//if dsi is a superset of previous one, remove stream description
+	if ((p && p->value.boolean)
+		//little optim here: if no samples were added on the stream description remove it
+		|| (!tkw->samples_in_stsd && tkw->stsd_idx && needs_sample_entry)
+	) {
 		gf_isom_remove_stream_description(ctx->file, tkw->track_num, tkw->stsd_idx);
 	}
 
@@ -2519,8 +2523,6 @@ sample_entry_setup:
 #endif
 
 	} else if (use_avc) {
-		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
-
 		//not yet known
 		if (!dsi && !enh_dsi) return GF_OK;
 
@@ -2528,10 +2530,10 @@ sample_entry_setup:
 			dsi = enh_dsi;
 			enh_dsi = NULL;
 		}
+		if (tkw->avcc) gf_odf_avc_cfg_del(tkw->avcc);
 		tkw->avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
 		if (needs_sample_entry) {
-
 			if (tkw->codecid == GF_CODECID_SVC) {
 				e = gf_isom_svc_config_new(ctx->file, tkw->track_num, tkw->avcc, NULL, NULL, &tkw->stsd_idx);
 			} else if (tkw->codecid == GF_CODECID_MVC) {

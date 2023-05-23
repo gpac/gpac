@@ -158,6 +158,8 @@ typedef struct
 	GF_List *sps, *pps, *vps, *sps_ext, *pps_svc, *vvc_aps_pre, *vvc_dci, *vvc_opi;
 	//set to true if one of the PS has been modified, will potentially trigger a PID reconfigure
 	Bool ps_modified;
+	//set to true if one PS has been changed - if false and ps_modified is set, only new PS have been added
+	Bool ps_changed;
 
 	//stats
 	u32 nb_idr, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_nalus, nb_aud, nb_cra;
@@ -1777,6 +1779,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	Bool has_hevc_base = GF_TRUE;
 	Bool has_colr_info = GF_FALSE;
 	Bool res;
+	Bool dsi_is_superset = (!ctx->crc_cfg || ctx->ps_changed) ? GF_FALSE : GF_TRUE;
 
 	if (ctx->analyze) {
 		if (ctx->opid && !ctx->ps_modified) return;
@@ -1786,6 +1789,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 			return;
 	}
 	ctx->ps_modified = GF_FALSE;
+	ctx->ps_changed = GF_FALSE;
 
 	dsi = dsi_enh = NULL;
 
@@ -1872,6 +1876,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DSI_SUPERSET, dsi_is_superset ? & PROP_BOOL(GF_TRUE) : NULL);
 
 	if (ctx->explicit || !has_hevc_base) {
 		u32 enh_cid = GF_CODECID_SVC;
@@ -2165,6 +2170,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 		sl->size = size;
 		sl->crc = crc;
 		ctx->ps_modified = GF_TRUE;
+		ctx->ps_changed = GF_TRUE;
 		//flush AU if we have a slice
 		if (ctx->opid && flush_au && ctx->first_pck_in_au && ctx->nb_slices_in_au) {
 			naludmx_end_access_unit(ctx);
@@ -2890,6 +2896,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 					if (!ctx->pps_svc) ctx->pps_svc = gf_list_new();
 					gf_list_add(ctx->pps_svc, slc);
 					ctx->ps_modified = GF_TRUE;
+					ctx->ps_changed = GF_TRUE;
 				}
 			}
 		}
@@ -3361,7 +3368,7 @@ naldmx_flush:
 			naludmx_end_access_unit(ctx);
 		}
 
-		naludmx_check_pid(filter, ctx, force_au_flush);
+		if (!ctx->opid) naludmx_check_pid(filter, ctx, force_au_flush);
 		if (!ctx->opid) skip_nal = GF_TRUE;
 
 		if (skip_nal) {
@@ -3372,6 +3379,7 @@ naldmx_flush:
 			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 			continue;
 		}
+		naludmx_check_pid(filter, ctx, force_au_flush);
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = (u32) (start - ctx->nal_store);
