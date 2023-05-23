@@ -1245,7 +1245,7 @@ static void mpgviddmx_finalize(GF_Filter *filter)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("\t%d max consecutive B-frames%s\n", ctx->max_b, ctx->is_packed ? " - packed bitstream" : "" ));
 		}
 		if (ctx->is_vfr && ctx->nb_b && ctx->is_packed) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Warning: Mix of non-coded frames: packed bitstream and encoder skiped - unpredictable timing\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Warning: Mix of non-coded frames: packed bitstream and encoder skipped - unpredictable timing\n"));
 		}
 	}
 }

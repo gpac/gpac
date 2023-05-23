@@ -866,7 +866,7 @@ typedef struct tag_m2ts_pes
 	/*! packet number of preceeding PAT before the PES header*/
 	u32 last_pat_packet_number, before_last_pat_pn, before_last_pes_start_pn;
 
-	/*! PES reframer callback. If NULL, pes processing is skiped
+	/*! PES reframer callback. If NULL, pes processing is skipped
 
 	returns the number of bytes NOT consumed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
 	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, u8 *data, u32 data_len, GF_M2TS_PESHeader *hdr);
