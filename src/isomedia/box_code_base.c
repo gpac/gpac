@@ -2993,6 +2993,137 @@ void mdhd_box_del(GF_Box *s)
 	gf_free(ptr);
 }
 
+// Mapping of QuickTime old language codes
+// https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap4/qtff4.html#//apple_ref/doc/uid/TP40000939-CH206-34320
+// to 3-letter codes (per ISO/IEC 639-2/T, https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
+// NOTE that Media Info maps them to 2-letter codes, possibly with region codes https://github.com/MediaArea/MediaInfoLib/blob/72213574cbf2ca01c0fbb97d2239b53891ad7b9d/Source/MediaInfo/Multiple/File_Mpeg4.cpp#L754
+// NOTE that FFMPEG mostly maps to ISO/IEC 639-2/B and sometimes 2-letter code
+// (see https://ffmpeg.org/doxygen/trunk/isom_8c_source.html)
+static const u8 qtLanguagesSize = 106;
+static const char qtLanguages[qtLanguagesSize][4] = {
+	"eng", //  0 English
+	"fra", //  1 French
+	"deu", //  2 German
+	"ita", //  3 Italian
+	"nld", //  4 Dutch
+	"swe", //  5 Swedish
+	"spa", //  6 Spanish
+	"dan", //  7 Danish
+	"por", //  8 Portuguese
+	"nor", //  9 Norwegian
+	"heb", // 10 Hebrew
+	"jpn", // 11 Japanese
+	"ara", // 12 Arabic
+	"fin", // 13 Finnish
+	"ell", // 14 Greek
+	"isl", // 15 Icelandic
+	"mlt", // 16 Maltese
+	"tur", // 17 Turkish
+	"hrv", // 18 Croatian
+	"zho", // 19 Traditional Chinese - general 3-letter code, ignoring the "Traditional" part
+	"urd", // 20 Urdu
+	"hin", // 21 Hindi
+	"tha", // 22 Thai
+	"kor", // 23 Korean
+	"lit", // 24 Lithuanian
+	"pol", // 25 Polish
+	"hun", // 26 Hungarian
+	"est", // 27 Estonian
+	"lav", // 28 Lettish or Latvian
+	"sme", // 29 Saami or Sami
+	"fao", // 30 Faroese
+	"fas", // 31 Farsi
+	"rus", // 32 Russian
+	"zho", // 33 Simplified Chinese - general 3-letter code, ignoring the "Simplified" part
+	"nld", // 34 Flemish - using same code as Dutch
+	"gle", // 35 Irish
+	"sqi", // 36 Albanian
+	"ron", // 37 Romanian
+	"ces", // 38 Czech
+	"slk", // 39 Slovak
+	"slv", // 40 Slovenian
+	"yid", // 41 Yiddish
+	"srp", // 42 Serbian
+	"mkd", // 43 Macedonian
+	"bul", // 44 Bulgarian
+	"ukr", // 45 Ukrainian
+	"bel", // 46 Belarusian
+	"uzb", // 47 Uzbek
+	"kaz", // 48 Kazakh
+	"aze", // 49 Azerbaijani
+	"aze", // 50 AzerbaijanAr (Armenian-Azerbaijani) - using same code as Azerbaijani
+	"hye", // 51 Armenian
+	"kat", // 52 Georgian
+	"ron", // 53 Moldavian
+	"kir", // 54 Kirghiz
+	"tgk", // 55 Tajik
+	"tuk", // 56 Turkmen
+	"mon", // 57 Mongolian
+	"mon", // 58 MongolianCyr - using same code as Mongolian
+	"pus", // 59 Pashto
+	"kur", // 60 Kurdish
+	"kas", // 61 Kashmiri
+	"snd", // 62 Sindhi
+	"bod", // 63 Tibetan
+	"nep", // 64 Nepali
+	"san", // 65 Sanskrit
+	"mar", // 66 Marathi
+	"ben", // 67 Bengali
+	"asm", // 68 Assamese
+	"guj", // 69 Gujarati
+	"pan", // 70 Punjabi
+	"ori", // 71 Oriya
+	"mal", // 72 Malayalam
+	"kan", // 73 Kannada
+	"tam", // 74 Tamil
+	"tel", // 75 Telugu
+	"sin", // 76 Sinhala
+	"mya", // 77 Burmese
+	"khm", // 78 Khmer
+	"lao", // 79 Lao
+	"vie", // 80 Vietnamese
+	"ind", // 81 Indonesian
+	"tgl", // 82 Tagalog
+	"msa", // 83 MalayRoman
+	"msa", // 84 MalayArabic
+	"amh", // 85 Amharic
+	"   ", // 86 Empty
+	"orm", // 87 Oromo
+	"som", // 88 Somali
+	"swa", // 89 Swahili
+	"kin", // 90 Kinyarwanda
+	"run", // 91 Rundi
+	"nya", // 92 Nyanja
+	"mlg", // 93 Malagasy
+	"epo", // 94 Esperanto
+	// Gap 95-127
+	"cym", // 128 Welsh
+	"eus", // 129 Basque
+	"cat", // 130 Catalan
+	"lat", // 131 Latin
+	"que", // 132 Quechua
+	"grn", // 133 Guarani
+	"aym", // 134 Aymara
+	"tat", // 135 Tatar
+	"uig", // 136 Uighur
+	"dzo", // 127 Dzongkha
+	"jav"  // 138 Javanese
+};
+
+GF_Err set_quicktime_lang(char lang[4], u8 code) {
+	if (code > 138 || (code > 94 && code < 128) || code == 86) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid QuickTime Language Code %d\n", code));
+		return GF_BAD_PARAM;
+	}
+	if (code > 94)
+		code -=(128-94); // Gap in the list
+	lang[0] = qtLanguages[code][0];
+	lang[1] = qtLanguages[code][1];
+	lang[2] = qtLanguages[code][2];
+	lang[3] = qtLanguages[code][3];
+	return GF_OK;
+}
+
 GF_Err mdhd_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MediaHeaderBox *ptr = (GF_MediaHeaderBox *)s;
@@ -3026,9 +3157,15 @@ GF_Err mdhd_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->packedLanguage[2] = gf_bs_read_int(bs, 5);
 	//but before or after compaction ?? We assume before
 	if (ptr->packedLanguage[0] || ptr->packedLanguage[1] || ptr->packedLanguage[2]) {
-		ptr->packedLanguage[0] += 0x60;
-		ptr->packedLanguage[1] += 0x60;
-		ptr->packedLanguage[2] += 0x60;
+		if (ptr->packedLanguage[0] < 0x04) {
+			// QuickTime Language Codes
+			u8 code = (ptr->packedLanguage[0] << 16) | (ptr->packedLanguage[1] << 8) | ptr->packedLanguage[2];
+			set_quicktime_lang(ptr->packedLanguage, code);
+		} else {
+			ptr->packedLanguage[0] += 0x60;
+			ptr->packedLanguage[1] += 0x60;
+			ptr->packedLanguage[2] += 0x60;
+		}
 	} else {
 		ptr->packedLanguage[0] = 'u';
 		ptr->packedLanguage[1] = 'n';
