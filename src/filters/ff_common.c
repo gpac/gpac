@@ -243,7 +243,7 @@ enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt, Bool no_warn)
 			return FF2GPAC_PixelFormats[i].ff_pf;
 		i++;
 	}
-	if (!no_warn) {
+	if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
 	}
 	return AV_PIX_FMT_NONE;
@@ -253,7 +253,9 @@ u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn)
 {
 	const AVPixFmtDescriptor *ffdesc = av_pix_fmt_desc_get(pfmt);
 	if (!ffdesc) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unrecognized FFMPEG pixel format %d\n", pfmt ));
+		if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unrecognized FFMPEG pixel format %d\n", pfmt ));
+		}
 		return 0;
 	}
 	u32 i=0;
@@ -262,7 +264,7 @@ u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn)
 			return FF2GPAC_PixelFormats[i].gpac_pf;
 		i++;
 	}
-	if (!no_warn) {
+	if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
 	}
 	return 0;
