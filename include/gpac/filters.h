@@ -4466,7 +4466,7 @@ that the packet is a PATCH packet, replacing bytes located at gf_filter_pck_get_
 inserting bytes located at gf_filter_pck_get_byte_offset in file if the interlaced flag of the packet is set.
 If the corrupted flag is set, this indicates the data will be replaced later on.
 A seek packet is not meant to be displayed but is needed for decoding.
-\note If a packet is partially skiped but completely decoded, it shall not be marked as seek but have the property "SkipBegin" set.
+\note If a packet is partially skipped but completely decoded, it shall not be marked as seek but have the property "SkipBegin" set.
 \note Raw audio packets MUST be split at the proper boundary
 \param pck target packet
 \param is_seek indicates packet is seek frame

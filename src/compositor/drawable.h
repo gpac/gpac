@@ -215,9 +215,9 @@ enum
 	CTX_IS_BACKGROUND = 1<<5,
 	/*turn antialiasing off when drawing*/
 	CTX_NO_ANTIALIAS = 1<<6,
-	/*indicates path has been textured, in which case FILL is skiped*/
+	/*indicates path has been textured, in which case FILL is skipped*/
 	CTX_PATH_FILLED = 1<<7,
-	/*indicates path outline has been textured, in which case STRIKE is skiped*/
+	/*indicates path outline has been textured, in which case STRIKE is skipped*/
 	CTX_PATH_STROKE = 1<<8,
 	/*indicates SVG path outline geometry has been modified*/
 	CTX_SVG_OUTLINE_GEOMETRY_DIRTY = 1<<9,

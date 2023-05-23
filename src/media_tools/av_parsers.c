@@ -6598,7 +6598,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 					poc_proportional_to_timing_flag = gf_bs_read_int(orig, 1);
 					if (poc_proportional_to_timing_flag)
 						/*vui_num_ticks_poc_diff_one_minus1 = */gf_bs_read_ue(orig);
-					if (/*ui_hrd_parameters_present_flag = */gf_bs_read_int(orig, 1))
+					if (/*vui_hrd_parameters_present_flag = */gf_bs_read_int(orig, 1))
 						hevc_parse_hrd_parameters(orig, GF_TRUE, 0/*assumes max_sub_layers_minus1=0*/, 0);
 
 					//LAST bit read for HEVC

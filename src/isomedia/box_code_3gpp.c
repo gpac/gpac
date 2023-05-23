@@ -358,7 +358,7 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 	}
 	if (ptr->size < 43) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box (%d bytes but min 43 required), skiping parsing.\n", ptr->size));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box (%d bytes but min 43 required), skipping parsing.\n", ptr->size));
 		return GF_OK;
 	}
 	ISOM_DECREASE_SIZE(ptr, 43);
