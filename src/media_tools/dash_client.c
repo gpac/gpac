@@ -6129,19 +6129,25 @@ static GF_Err dash_check_supported_mime(GF_MPD_Period *period)
 	Bool has_ok=GF_FALSE;
 	count = gf_list_count(period->adaptation_sets);
 	for (as_i=0; as_i<count; as_i++) {
+		u32 k, nb_ko=0, nb_rep;
 		GF_MPD_AdaptationSet *set = (GF_MPD_AdaptationSet*)gf_list_get(period->adaptation_sets, as_i);
-		if (!set->mime_type) continue;
-		char *sep = strchr(set->mime_type, '/');
-		if (!sep) continue;
-		sep++;
-		if (!stricmp(set->mime_type, "webm") || !stricmp(set->mime_type, "matroska") || !stricmp(set->mime_type, "x-matroska")) {
-			u32 k;
-			for (k=0; k<gf_list_count(set->representations); ++k) {
-				GF_MPD_Representation *rep = (GF_MPD_Representation*)gf_list_get(set->representations, k);
+		nb_rep = gf_list_count(set->representations);
+		for (k=0; k<nb_rep; ++k) {
+			GF_MPD_Representation *rep = (GF_MPD_Representation*)gf_list_get(set->representations, k);
+			char *sep = rep->mime_type ? rep->mime_type : set->mime_type;
+			sep = sep ? strchr(sep, '/') : NULL;
+			if (sep) sep++;
+			else sep="";
+			if (!stricmp(sep, "webm") || !stricmp(sep, "matroska") || !stricmp(sep, "x-matroska")) {
 				rep->playback.disabled = GF_TRUE;
+				nb_ko++;
+			} else {
+				has_ok = GF_TRUE;
 			}
-		} else {
-			has_ok = GF_TRUE;
+		}
+		//if one AS is using only non-supported mimes, don't open (this prevents trying to open webm + webvtt)
+		if (nb_ko==nb_rep) {
+			return GF_PROFILE_NOT_SUPPORTED;
 		}
 	}
 	if (!has_ok)
