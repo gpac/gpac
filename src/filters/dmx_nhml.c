@@ -840,6 +840,13 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 	if (!ctx->opid)
 		ctx->opid = gf_filter_pid_new(filter);
 
+	if (!codecid) {
+		codecid = gf_codec_id_from_isobmf(codec_tag);
+		if (!streamType && codecid) {
+			streamType = gf_codecid_type(codecid);
+		}
+	}
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(streamType) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );

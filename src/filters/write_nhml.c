@@ -632,7 +632,7 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 	char pval[GF_PROP_DUMP_ARG_SIZE];
 	if (!pname) pname = gf_props_4cc_get_name(p4cc);
 
-	sprintf(nhml, "%s=\"", pname ? pname : gf_4cc_to_str(p4cc));
+	sprintf(nhml, "<P %s=\"", pname ? pname : gf_4cc_to_str(p4cc));
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 	switch (att->type) {
@@ -652,7 +652,10 @@ static void nhmldump_pck_property(GF_NHMLDumpCtx *ctx, u32 p4cc, const char *pna
 		break;
 	}
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-	sprintf(nhml, "\"");
+	if (p4cc)
+		sprintf(nhml, "\"/>\n");
+	else
+		sprintf(nhml, "\" type=\"%s\"/>\n", gf_props_get_type_name(att->type));
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 }
 
@@ -714,14 +717,35 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 			sprintf(nhml, "carouselVersion=\"%d\" ", idx);
 			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
-		idx = 0;
-		while (1) {
-			u32 prop_4cc;
-			const char *prop_name;
-			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
-			if (!p) break;
-			if (prop_4cc == GF_PROP_PCK_SUBS) continue;
-			nhmldump_pck_property(ctx, prop_4cc, prop_name, p);
+		idx = gf_filter_pck_get_crypt_flags(pck);
+		if (idx) {
+			sprintf(nhml, "encrypted=\"%d\" ", idx);
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		}
+		idx = gf_filter_pck_get_seek_flag(pck);
+		if (idx) {
+			sprintf(nhml, "seek=\"%d\" ", idx);
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		}
+		idx = gf_filter_pck_get_corrupted(pck);
+		if (idx) {
+			sprintf(nhml, "corrupted=\"%d\" ", idx);
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		}
+		idx = gf_filter_pck_get_interlaced(pck);
+		if (idx) {
+			sprintf(nhml, "interlaced=\"%d\" ", idx);
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		}
+		s32 roll = gf_filter_pck_get_roll_info(pck);
+		if (roll) {
+			sprintf(nhml, "roll=\"%d\" ", roll);
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		}
+		idx = gf_filter_pck_get_dependency_flags(pck);
+		if (idx) {
+			sprintf(nhml, "depends=\"%02X\" ", idx);
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		}
 	}
 
@@ -747,6 +771,24 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 
 	sprintf(nhml, ">\n");
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+
+
+	if (ctx->pckp && gf_filter_pck_has_properties(pck)) {
+		u32 idx = 0;
+		sprintf(nhml, "<Properties>\n");
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		while (1) {
+			u32 prop_4cc;
+			const char *prop_name;
+			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+			if (!p) break;
+			if (prop_4cc == GF_PROP_PCK_SUBS) continue;
+			nhmldump_pck_property(ctx, prop_4cc, prop_name, p);
+		}
+		sprintf(nhml, "</Properties>\n");
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	}
+
 
 	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 	if (p) {

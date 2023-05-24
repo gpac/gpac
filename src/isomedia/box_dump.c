@@ -5411,6 +5411,9 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, "grouping_type=\"%s\"", gf_4cc_to_str(ptr->grouping_type) );
 	if (ptr->version==1) gf_fprintf(trace, " default_length=\"%d\"", ptr->default_length);
 	if ((ptr->version>=2) && ptr->default_description_index) gf_fprintf(trace, " default_group_index=\"%d\"", ptr->default_description_index);
+	if (ptr->flags & 1) gf_fprintf(trace, " static_samplegroup=\"yes\"");
+	if (ptr->flags & 2) gf_fprintf(trace, " static_mapping=\"yes\"");
+
 	gf_fprintf(trace, ">\n");
 	for (i=0; i<gf_list_count(ptr->group_descriptions); i++) {
 		void *entry = gf_list_get(ptr->group_descriptions, i);
@@ -5522,10 +5525,23 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 			gf_fprintf(trace, "\"/>\n");
 		}
 			break;
-		default:
-			gf_fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
-			dump_data(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+		case GF_ISOM_SAMPLE_GROUP_ESGH:
+		{
+			GF_EssentialSamplegroupEntry *esgh = (GF_EssentialSamplegroupEntry *) entry;
+			gf_fprintf(trace, "<EssentialSampleGroupEntry samplegroup_types=\"");
+			for (i=0; i<esgh->nb_types; i++) {
+				if (i) gf_fprintf(trace, " ");
+				gf_fprintf(trace, "%s", gf_4cc_to_str(esgh->group_types[i]));
+			}
 			gf_fprintf(trace, "\"/>\n");
+		}
+			break;
+		default:
+			if (ptr->is_opaque) {
+				gf_fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+				dump_data(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+				gf_fprintf(trace, "\"/>\n");
+			}
 		}
 	}
 	if (!ptr->size) {
@@ -5568,6 +5584,9 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 			break;
 		case GF_ISOM_SAMPLE_GROUP_SULM:
 			gf_fprintf(trace, "<SubPictureLayoutMapEntry groupID_info_4cc=\"\" groupIDs=\"\" />\n");
+			break;
+		case GF_ISOM_SAMPLE_GROUP_ESGH:
+			gf_fprintf(trace, "<EssentialSampleGroupEntry samplegroup_types=\"\" />\n");
 			break;
 
 		default:

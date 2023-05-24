@@ -161,7 +161,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	} else {
 		m_subtype = gf_isom_get_media_subtype(read->mov, track, stsd_idx);
 	}
-	
+
+	if (m_subtype==GF_ISOM_SUBTYPE_MPEG4) {
+		u32 stsd_type = gf_isom_get_mpeg4_subtype(read->mov, track, stsd_idx);
+		if (stsd_type==GF_ISOM_SUBTYPE_RESV)
+			gf_isom_get_original_format_type(read->mov, track, stsd_idx, &m_subtype);
+	}
+
 	audio_fmt = 0;
 	pix_fmt = 0;
 	ocr_es_id = 0;

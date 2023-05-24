@@ -4297,7 +4297,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		if (ctx->store>=MP4MX_MODE_FRAG) {
 			mp4_mux_cenc_insert_pssh(ctx, tkw, p, GF_FALSE);
 		} else {
-			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, sample_num, GF_4CC('P','S','S','H'), 0, p->value.data.ptr, p->value.data.size);
+			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, sample_num, GF_4CC('P','S','S','H'), 0, p->value.data.ptr, p->value.data.size, 0);
 		}
 	}
 
@@ -4994,7 +4994,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	u32 idx = 0;
 	while (1) {
 		Bool is_sample_group=GF_FALSE;
-		u32 aux_type=0, aux_info=0;
+		u32 aux_type=0, aux_info=0, sg_flags=0;
 		u32 p4cc;
 		const char *pname=NULL;
 		const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &idx, &p4cc, &pname);
@@ -5014,14 +5014,33 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 
 		pname+=4;
-		if (strlen(pname) < 4) continue;
-		aux_type = GF_4CC(pname[0], pname[1], pname[2], pname[3]);
-		if (pname[4] == '_') aux_info = atoi(pname+5);
-
+		u32 plen = (u32) strlen(pname);
+		if (plen==3) {
+			aux_type = GF_4CC(pname[0], pname[1], pname[2], ' ');
+			pname+=3;
+		} else if (plen >= 4) {
+			aux_type = GF_4CC(pname[0], pname[1], pname[2], pname[3]);
+			pname+=4;
+		} else {
+			continue;
+		}
+		if (pname[0] == '_') {
+			if (is_sample_group) {
+				char *flags = strstr(pname, "_z");
+				if (flags) flags[0]=0;
+				if (pname[0]) aux_info = atoi(pname);
+				if (flags) {
+					sscanf(flags+2, "%x", &sg_flags);
+					flags[0]='_';
+				}
+			} else {
+				aux_info = atoi(pname);
+			}
+		}
 		if (!aux_type) continue;
 
 		if (is_sample_group) {
-			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, for_fragment ? 0 : tkw->nb_samples, aux_type, aux_info, p->value.data.ptr, p->value.data.size);
+			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, for_fragment ? 0 : tkw->nb_samples, aux_type, aux_info, p->value.data.ptr, p->value.data.size, sg_flags);
 		} else {
 			if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS

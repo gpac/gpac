@@ -1103,29 +1103,35 @@ void isor_reader_check_config(ISOMChannel *ch)
 	}
 }
 
-
-
 void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_FilterPacket *pck)
 {
-	char szPName[30];
+	char szPName[100];
 
 	u32 grp_idx=0;
 	while (1) {
-		u32 grp_type=0, grp_size=0, grp_parameter=0;
-		const u8 *grp_data=NULL;
-		GF_Err e = gf_isom_enum_sample_group(read->mov, ch->track, ch->sample_num, &grp_idx, &grp_type, &grp_parameter, &grp_data, &grp_size);
+		u32 grp_type=0, grp_size=0, grp_parameter=0, grp_flags=0;
+		u8 *grp_data=NULL;
+		GF_Err e = gf_isom_enum_sample_group(read->mov, ch->track, ch->sample_num, &grp_idx, &grp_type, &grp_flags, &grp_parameter, &grp_data, &grp_size);
 		if (e || !grp_type) break;
 		if (!grp_size || !grp_data) continue;
 
-		if (grp_type == GF_4CC('P','S','S','H')) {
-			gf_filter_pck_set_property(pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA((u8*)grp_data, grp_size) );
-			continue;
-		}
-		//all other are mapped to sample groups
+		//prepare prop name sample groups
 		if (grp_parameter) sprintf(szPName, "grp_%s_%d", gf_4cc_to_str(grp_type), grp_parameter);
 		else sprintf(szPName, "grp_%s", gf_4cc_to_str(grp_type));
+		if (grp_flags) {
+			char szPFLags[30];
+			sprintf(szPFLags, "_z%x", grp_flags);
+			strcat(szPName, szPFLags);
+		}
 
-		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA((u8*)grp_data, grp_size) );
+		switch (grp_type) {
+		case GF_4CC('P','S','S','H'):
+			gf_filter_pck_set_property(pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA_NO_COPY((u8*)grp_data, grp_size) );
+			break;
+		default:
+			gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(grp_data, grp_size) );
+			break;
+		}
 	}
 
 	u32 sai_idx=0;

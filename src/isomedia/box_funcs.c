@@ -1188,7 +1188,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_IINF, iinf, "meta", 1),
 	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_IREF, iref, "meta", 1),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_SINF, sinf, "ipro sample_entry"),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_RINF, sinf, "sample_entry"),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_RINF, sinf, "sample_entry"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FRMA, frma, "sinf rinf"),
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_SCHM, schm, "sinf rinf", 0, 1),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_SCHI, schi, "sinf rinf"),

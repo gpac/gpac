@@ -216,6 +216,10 @@ enum
 	but it is encrypted.*/
 	GF_ISOM_SUBTYPE_MPEG4_CRYP	= GF_4CC( 'E', 'N', 'C', 'M' ),
 
+	/*restricted video subtype*/
+	GF_ISOM_SUBTYPE_RESV	= GF_4CC( 'r', 'e', 's', 'v' ),
+
+
 	/*AVC/H264 media type - not listed as an MPEG-4 type, ALTHOUGH this library automatically remaps
 	GF_AVCConfig to MPEG-4 ESD*/
 	GF_ISOM_SUBTYPE_AVC_H264		= GF_4CC( 'a', 'v', 'c', '1' ),
@@ -3932,7 +3936,7 @@ GF_Err gf_isom_get_pcm_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sample
 \param pcm_size  set to PCM sample size (per channel, 16, 24, 32, 64, may be NULL
 \return error if any
 */
-GF_Err gf_isom_get_lpcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, Double *sample_rate, u32 *nb_channels, u32 *flags, u32 *pcm_size);
+GF_Err gf_isom_get_lpcm_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, Double *sample_rate, u32 *nb_channels, u32 *flags, u32 *pcm_size);
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -6908,6 +6912,7 @@ enum {
 	GF_ISOM_SAMPLE_GROUP_AVCB = GF_4CC( 'a', 'v', 'c', 'b'), //avif
 	GF_ISOM_SAMPLE_GROUP_SPOR = GF_4CC( 's', 'p', 'o', 'r'), //p15
 	GF_ISOM_SAMPLE_GROUP_SULM = GF_4CC( 's', 'u', 'l', 'm'), //p15
+	GF_ISOM_SAMPLE_GROUP_ESGH = GF_4CC( 'e', 's', 'g', 'h'), //p12
 };
 
 /*! gets 'rap ' and 'roll' group info for the given sample
@@ -6972,12 +6977,13 @@ Bool gf_isom_get_tile_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_gr
 \param sample_number the target sample
 \param sgrp_idx the current index. Must be set to 0 on first call, incremented by this call on each success, must not be NULL
 \param sgrp_type set to the grouping type, or set to 0 if no more sample group descriptions, must not be NULL
+\param sgrp_flags set to the grouping flags, (0x1: static_group_description, 0x2: static_mapping)
 \param sgrp_parameter set to the grouping_type_parameter or 0 if not defined
-\param sgrp_data set to the sample group description data
-\param sgrp_size set to the sample group description size
+\param sgrp_data set to the sample group description data, may be NULL - MUST be freed by caller
+\param sgrp_size set to the sample group description size, may be NULL
 \return error if any
 */
-GF_Err gf_isom_enum_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 *sgrp_idx, u32 *sgrp_type, u32 *sgrp_parameter, const u8 **sgrp_data, u32 *sgrp_size);
+GF_Err gf_isom_enum_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 *sgrp_idx, u32 *sgrp_type, u32 *sgrp_flags, u32 *sgrp_parameter, u8 **sgrp_data, u32 *sgrp_size);
 
 /*! enumerates custom sample auxiliary data (not natively supported by this library) for a given sample
 \param isom_file the target ISO file
@@ -7068,9 +7074,10 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 g
 \param grouping_type_parameter associated grouping type parameter (usually 0)
 \param data the payload of the sample group description
 \param data_size the size of the payload
+\param sgpd_flags flags for sgpd: 1: static description, 2, static mapping, 1<<31: default sample description
 \return error if any
 */
-GF_Err gf_isom_set_sample_group_description(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size);
+GF_Err gf_isom_set_sample_group_description(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size, u32 sgpd_flags);
 
 
 /*! adds a sample to the given sample group
