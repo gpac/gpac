@@ -2817,6 +2817,9 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 
 	gf_isom_get_audio_info(file, trackNum, stsd_idx, &sr, &nb_ch, &bps);
 	gf_isom_set_nalu_extract_mode(file, trackNum, GF_ISOM_NALU_EXTRACT_INSPECT);
+	if (stsd_type == GF_ISOM_SUBTYPE_RESV) {
+		gf_isom_get_original_format_type(file, trackNum, stsd_idx, &msub_type);
+	}
 
 	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC_H264)

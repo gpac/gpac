@@ -5075,12 +5075,13 @@ GF_Err gf_isom_get_sample_to_group_info(GF_ISOFile *the_file, u32 trackNumber, u
 	return GF_OK;
 }
 
-GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 *sgrp_idx, u32 *sgrp_type, u32 *sgrp_parameter, const u8 **sgrp_data, u32 *sgrp_size)
+GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 *sgrp_idx, u32 *sgrp_type, u32 *sgrp_flags, u32 *sgrp_parameter, u8 **sgrp_data, u32 *sgrp_size)
 {
 	GF_TrackBox *trak;
 	u32 i, count;
 
 	if (!sgrp_idx || !sgrp_type) return GF_BAD_PARAM;
+	if (sgrp_flags) *sgrp_flags = 0;
 	if (sgrp_parameter) *sgrp_parameter = 0;
 	if (sgrp_data) *sgrp_data = NULL;
 	if (sgrp_size) *sgrp_size = 0;
@@ -5102,12 +5103,16 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 		GF_SampleGroupDescriptionBox *sgd = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
 
 		switch (sgd->grouping_type) {
+		//use rap/roll API
 		case GF_ISOM_SAMPLE_GROUP_ROLL:
 		case GF_ISOM_SAMPLE_GROUP_PROL:
-		case GF_ISOM_SAMPLE_GROUP_TELE:
 		case GF_ISOM_SAMPLE_GROUP_RAP:
 		case GF_ISOM_SAMPLE_GROUP_SYNC:
+		//part of cenc API
 		case GF_ISOM_SAMPLE_GROUP_SEIG:
+			continue;
+
+		case GF_ISOM_SAMPLE_GROUP_TELE:
 		case GF_ISOM_SAMPLE_GROUP_OINF:
 		case GF_ISOM_SAMPLE_GROUP_LINF:
 		case GF_ISOM_SAMPLE_GROUP_TRIF:
@@ -5115,7 +5120,7 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 		case GF_ISOM_SAMPLE_GROUP_SAP:
 		case GF_ISOM_SAMPLE_GROUP_SPOR:
 		case GF_ISOM_SAMPLE_GROUP_SULM:
-			continue;
+		case GF_ISOM_SAMPLE_GROUP_ESGH:
 		default:
 			break;
 		}
@@ -5139,13 +5144,20 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 		}
 
 		*sgrp_type = sgd->grouping_type;
+		if (sgrp_flags) {
+			*sgrp_flags = sgd->flags;
+			if (sgd->default_description_index && (sgd_index==sgd->default_description_index) )
+				*sgrp_flags |= 0x80000000;
+		}
 		if (sgrp_parameter && sg) *sgrp_parameter = sg->grouping_type_parameter;
 
 		if (sgd_index) {
 			GF_DefaultSampleGroupDescriptionEntry *entry = gf_list_get(sgd->group_descriptions, sgd_index-1);
-			if (entry) {
-				if (sgrp_data) *sgrp_data = entry->data;
-				if (sgrp_size) *sgrp_size = entry->length;
+			if (entry && sgrp_data && sgrp_size) {
+				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				sgpd_write_entry(sgd->grouping_type, entry, bs);
+				gf_bs_get_content(bs, sgrp_data, sgrp_size);
+				gf_bs_del(bs);
 			}
 		}
 
@@ -5156,7 +5168,7 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 }
 
 
-GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_group_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp)
+void *gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_group_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp)
 {
 	u32 i, count;
 
@@ -5183,14 +5195,16 @@ GF_EXPORT
 Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const u8 **data, u32 *size)
 {
 	GF_DefaultSampleGroupDescriptionEntry *sg_entry;
+	GF_SampleGroupDescriptionBox *sgdp=NULL;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 
 	if (default_index) *default_index = 0;
 	if (size) *size = 0;
 	if (data) *data = NULL;
 
-	sg_entry = gf_isom_get_sample_group_info_entry(the_file, trak, grouping_type, sample_description_index, default_index, NULL);
+	sg_entry = (GF_DefaultSampleGroupDescriptionEntry *) gf_isom_get_sample_group_info_entry(the_file, trak, grouping_type, sample_description_index, default_index, &sgdp);
 	if (!sg_entry) return GF_FALSE;
+	if (!sgdp) return GF_FALSE;
 
 	switch (grouping_type) {
 	case GF_ISOM_SAMPLE_GROUP_RAP:
@@ -5201,8 +5215,10 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 	case GF_ISOM_SAMPLE_GROUP_LINF:
 		return GF_TRUE;
 	default:
-		if (sg_entry && data) *data = (char *) sg_entry->data;
-		if (sg_entry && size) *size = sg_entry->length;
+		if (sgdp->is_opaque) {
+			if (sg_entry && data) *data = (char *) sg_entry->data;
+			if (sg_entry && size) *size = sg_entry->length;
+		}
 		return GF_TRUE;
 	}
 	return GF_FALSE;

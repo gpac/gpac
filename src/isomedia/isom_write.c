@@ -7079,8 +7079,9 @@ static GF_Err gf_isom_set_sample_group_info_internal(GF_ISOFile *movie, u32 trac
 
 }
 
+void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 bytes_in_box, u32 entry_size, u32 *total_bytes);
 
-GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex, Bool *is_traf_sgpd, Bool check_access)
+GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, u32 sgpd_flags, u32 *sampleGroupDescriptionIndex, Bool *is_traf_sgpd, Bool check_access, Bool *use_default)
 {
 	GF_Err e;
 	GF_TrackBox *trak=NULL;
@@ -7092,6 +7093,7 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 	u32 trafID=0;
 	GF_DefaultSampleGroupDescriptionEntry *entry=NULL;
 	GF_SampleGroupDescriptionBox *sgdesc = NULL;
+	Bool is_default = sgpd_flags & 0x80000000;
 
 	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = 0;
 
@@ -7123,7 +7125,44 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 	//get sample group desc for this grouping type
 	sgdesc = get_sgdp(trak->Media->information->sampleTable, traf, grouping_type, is_traf_sgpd);
 	if (!sgdesc) return GF_OUT_OF_MEM;
+	//first time we create the sample group description, set flags
+	if (!gf_list_count(sgdesc->group_descriptions) && !traf) {
+		if (sgpd_flags&1) sgdesc->flags |= 1;
+		if (sgpd_flags&2) sgdesc->flags |= 2;
+	}
 
+	GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	u32 bytes;
+	entry = sgpd_parse_entry(sgdesc, bs, data_size, data_size, &bytes);
+	gf_bs_del(bs);
+	if (!entry) return GF_NON_COMPLIANT_BITSTREAM;
+
+
+	//find the same entry
+	u32 k;
+	for (k=0; k<gf_list_count(sgdesc->group_descriptions); k++) {
+		void *sgde_dst = gf_list_get(sgdesc->group_descriptions, k);
+		if (gf_isom_is_identical_sgpd(entry, sgde_dst, sgdesc->grouping_type)) {
+			if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = k+1;
+			sgpd_del_entry(sgdesc->grouping_type, entry);
+			if (use_default)
+				*use_default = (sgdesc->default_description_index==k+1) ? GF_TRUE : GF_FALSE;
+			return GF_OK;
+		}
+	}
+
+	if (traf && ! *is_traf_sgpd) {
+		sgdesc = get_sgdp(NULL, traf, grouping_type, is_traf_sgpd);
+		if (!sgdesc) return GF_OUT_OF_MEM;
+	}
+
+	e = gf_list_add(sgdesc->group_descriptions, entry);
+	if (e) {
+		sgpd_del_entry(sgdesc->grouping_type, entry);
+		return e;
+	}
+
+#if 0
 	if (grouping_type==GF_ISOM_SAMPLE_GROUP_OINF) {
 		GF_OperatingPointsInformation *ptr = gf_isom_oinf_new_entry();
 		GF_BitStream *bs=gf_bs_new(data, data_size, GF_BITSTREAM_READ);
@@ -7193,31 +7232,36 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 			}
 		}
 	}
+#endif
 
 
-	if (is_default) {
+	if (is_default && !sgdesc->default_description_index) {
 		sgdesc->default_description_index = 1 + gf_list_find(sgdesc->group_descriptions, entry);
 		sgdesc->version = 2;
 	}
-	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = 1 + gf_list_find(sgdesc->group_descriptions, entry);
+	u32 grp_idx =  1 + gf_list_find(sgdesc->group_descriptions, entry);
+	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = grp_idx;
+	if (use_default)
+		*use_default = (sgdesc->default_description_index==grp_idx) ? GF_TRUE : GF_FALSE;
 
 	return GF_OK;
 }
 GF_EXPORT
 GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex)
 {
-	return gf_isom_add_sample_group_info_internal(movie, track, grouping_type, data, data_size, is_default, sampleGroupDescriptionIndex, NULL, GF_TRUE);
+	return gf_isom_add_sample_group_info_internal(movie, track, grouping_type, data, data_size, is_default ? 0x80000000 : 0, sampleGroupDescriptionIndex, NULL, GF_TRUE, NULL);
 }
 
-GF_Err gf_isom_set_sample_group_description_internal(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size, Bool check_access)
+GF_Err gf_isom_set_sample_group_description_internal(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size, Bool check_access, u32 sgpd_flags)
 {
 	u32 sampleGroupDescriptionIndex, trafID=0;
 	GF_Err e;
-	Bool is_traf_sgpd;
+	Bool is_traf_sgpd, use_default=GF_FALSE;
 	GF_List *groupList=NULL, *parent=NULL;
-	e = gf_isom_add_sample_group_info_internal(movie, track, grouping_type, data, data_size, GF_FALSE, &sampleGroupDescriptionIndex, &is_traf_sgpd, check_access);
-	if (e) return e;
 
+	e = gf_isom_add_sample_group_info_internal(movie, track, grouping_type, data, data_size, sgpd_flags, &sampleGroupDescriptionIndex, &is_traf_sgpd, check_access, &use_default);
+	if (e) return e;
+	if (use_default) return GF_OK;
 
 	GF_SampleTableBox *stbl=NULL;
 	GF_TrackBox *trak=NULL;
@@ -7273,9 +7317,9 @@ GF_Err gf_isom_set_sample_group_description_internal(GF_ISOFile *movie, u32 trac
 
 }
 
-GF_Err gf_isom_set_sample_group_description(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size)
+GF_Err gf_isom_set_sample_group_description(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size, u32 sgpd_flags)
 {
-	return gf_isom_set_sample_group_description_internal(movie, track, sample_number, grouping_type, grouping_type_parameter, data, data_size, GF_TRUE);
+	return gf_isom_set_sample_group_description_internal(movie, track, sample_number, grouping_type, grouping_type_parameter, data, data_size, GF_TRUE, sgpd_flags);
 }
 
 GF_EXPORT
@@ -7783,7 +7827,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 
 			if (group_desc_index_src) {
 				GF_SampleGroupDescriptionBox *sgd_src, *sgd_dst;
-				GF_DefaultSampleGroupDescriptionEntry *sgde_src, *sgde_dst;
+				void *sgde_src, *sgde_dst;
 
 				group_desc_index_dst = 0;
 				//check that the sample group description exists !!

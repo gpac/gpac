@@ -1768,7 +1768,7 @@ u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 GF_EXPORT
 GF_Err gf_filter_pck_set_crypt_flags(GF_FilterPacket *pck, u8 crypt_flag)
 {
-	PCK_SETTER_CHECK("byteOffset")
+	PCK_SETTER_CHECK("cryptFlag")
 	pck->info.flags &= ~GF_PCK_CRYPT_MASK;
 	pck->info.flags |= crypt_flag << GF_PCK_CRYPT_POS;
 	return GF_OK;

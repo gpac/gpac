@@ -4112,12 +4112,14 @@ GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 		char b32_char = base32_chars[c];
 		//should not happen, we use 100 bytes by default and max general_constraint_info is 63 bytes
 		if (len >= RFC6381_CODEC_NAME_SIZE_MAX) {
+			gf_bs_del(bs);
 			return GF_OUT_OF_MEM;
 		}
 		szCodec[len] = b32_char;
 		len++;
 		szCodec[len] = 0;
 	}
+	gf_bs_del(bs);
 
 	return GF_OK;
 }
@@ -4219,6 +4221,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_i
 		}
 
 		if (originalFormat) subtype = originalFormat;
+	}
+	else if (subtype==GF_ISOM_SUBTYPE_MPEG4) {
+		u32 stsd_type = gf_isom_get_mpeg4_subtype(movie, track, stsd_idx);
+		if (stsd_type==GF_ISOM_SUBTYPE_RESV)
+			gf_isom_get_original_format_type(movie, track, stsd_idx, &subtype);
 	}
 
 	switch (subtype) {
