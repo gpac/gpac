@@ -2467,7 +2467,7 @@ sample_entry_setup:
 	}
 
 	tkw->xps_inband = xps_inband;
-	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DSI_SUPERSET);
+	p = needs_sample_entry ? gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DSI_SUPERSET) : NULL;
 
 	//if dsi is a superset of previous one, remove stream description
 	if ((p && p->value.boolean)
@@ -3054,9 +3054,17 @@ sample_entry_setup:
 		udesc.nb_channels = nb_chan;
 		udesc.bits_per_sample = raw_bitdepth;
 		udesc.lpcm_flags = afmt_flags | (1<<3); //add packed flag
-		if (codec_id==GF_CODECID_RAW) {
+		//for raw audio, select qt vs isom and set version
+		if (sr && (codec_id==GF_CODECID_RAW)) {
 			if (ctx->make_qt && (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v0_BS)) {
 				udesc.is_qtff = GF_TRUE;
+				//if extensions or not 'raw ' or 'twos', use v1
+				if (dsi ||
+					((m_subtype!=GF_QT_SUBTYPE_TWOS) && (m_subtype!=GF_QT_SUBTYPE_RAW))
+				) {
+					udesc.version = 1;
+					ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
+				}
 			}
 			else if (ase_mode<=GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) {
 				m_subtype = m_subtype_alt_raw;
