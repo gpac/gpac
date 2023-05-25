@@ -1696,18 +1696,28 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 
 	if (!tkw->has_brands) {
+		Bool ignore_alt = GF_FALSE;
 		Bool is_isom = GF_FALSE;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_MBRAND);
 		if (p) {
-			if (!ctx->major_brand_set) {
-				gf_isom_set_brand_info(ctx->file, p->value.uint, 1);
-				ctx->major_brand_set = p->value.uint;
+			u32 brand = p->value.uint;
+			//remove QT brand
+			if ((brand==GF_ISOM_BRAND_QT) && !ctx->make_qt) {
+				is_isom = GF_TRUE;
+				ctx->major_brand_set = brand = GF_ISOM_BRAND_ISOM;
+				gf_isom_set_brand_info(ctx->file, brand, 1);
+				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_QT, GF_FALSE);
+				ignore_alt = GF_TRUE;
+			}
+			else if (!ctx->major_brand_set) {
+				gf_isom_set_brand_info(ctx->file, brand, 1);
+				ctx->major_brand_set = brand;
 			} else {
-				gf_isom_modify_alternate_brand(ctx->file, p->value.uint, GF_TRUE);
+				gf_isom_modify_alternate_brand(ctx->file, brand, GF_TRUE);
 			}
 			if (p->value.uint == GF_ISOM_BRAND_ISOM) is_isom = GF_TRUE;
 		}
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_BRANDS);
+		p = ignore_alt ? NULL : gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_BRANDS);
 		if (p && p->value.uint_list.nb_items) {
 			tkw->has_brands = GF_TRUE;
 			if (!ctx->major_brand_set) {
