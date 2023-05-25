@@ -937,7 +937,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	u32 m_subtype=0;
 	u32 m_subtype_src=0;
 	u32 m_subtype_alt_raw=0;
-	u32 raw_bitdepth=0;
 	u32 override_stype=0;
 	u32 width, height, sr, nb_chan, nb_bps, z_order, txt_fsize;
 	u32 afmt_flags = 0;
@@ -2278,8 +2277,8 @@ sample_entry_setup:
 					return GF_NOT_SUPPORTED;
 				}
 			}
-			raw_bitdepth = gf_audio_fmt_bit_depth(afmt);
-			tkw->raw_audio_bytes_per_sample = raw_bitdepth;
+			nb_bps = gf_audio_fmt_bit_depth(afmt);
+			tkw->raw_audio_bytes_per_sample = nb_bps;
 			tkw->raw_audio_bytes_per_sample *= nb_chan;
 			tkw->raw_audio_bytes_per_sample /= 8;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
@@ -3062,7 +3061,7 @@ sample_entry_setup:
 
 		udesc.samplerate = sr;
 		udesc.nb_channels = nb_chan;
-		udesc.bits_per_sample = raw_bitdepth;
+		udesc.bits_per_sample = nb_bps;
 		udesc.lpcm_flags = afmt_flags | (1<<3); //add packed flag
 		//for raw audio, select qt vs isom and set version
 		if (sr && (codec_id==GF_CODECID_RAW)) {
@@ -3087,7 +3086,7 @@ sample_entry_setup:
 				isor_ext_buf[6] = 'm';
 				isor_ext_buf[7] = 'C';
 				isor_ext_buf[12] = (afmt_flags & (1<<1)) ? 0 : 1; //big/little endian
-				isor_ext_buf[13] = raw_bitdepth;
+				isor_ext_buf[13] = nb_bps;
 				if (ase_mode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG)
 					udesc.version = 1;
 			} else {
