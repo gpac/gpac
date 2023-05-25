@@ -1195,26 +1195,9 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
 
 	/*setup the address*/
-	ip_add = 0;
-	if (ifce_ip_or_name) ip_add = inet_addr_from_name(ifce_ip_or_name);
+	ip_add = inet_addr_from_name(ifce_ip_or_name);
+	if (ip_add==0xFFFFFFFF) return GF_IP_CONNECTION_FAILURE;
 
-	if (!ip_add) {
-#if 0
-		char buf[GF_MAX_IP_NAME_LEN];
-		buf[0] = 0;
-		ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
-		/*get the IP address*/
-		Host = gf_gethostbyname(buf);
-		if (Host != NULL) {
-			memcpy((char *) &LocalAdd.sin_addr, Host->h_addr_list[0], sizeof(LocalAdd.sin_addr));
-			ip_add = LocalAdd.sin_addr.s_addr;
-		} else {
-			ip_add = INADDR_ANY;
-		}
-#else
-		ip_add = INADDR_ANY;
-#endif
-	}
 	if (peer_name && peer_port) {
 #ifdef WIN32
 		if ((inet_addr(peer_name)== ip_add) || !strcmp(peer_name, "127.0.0.1") ) {
@@ -1543,6 +1526,7 @@ static u32 inet_addr_from_name(const char *local_interface)
 	if (strchr(local_interface, '.'))
 		return inet_addr(local_interface);
 
+	Bool name_match = GF_FALSE;
 	u32 ret = 0;
 
 #if defined(GPAC_WIN_HAS_ADAPTER_INFO)
@@ -1565,6 +1549,8 @@ static u32 inet_addr_from_name(const char *local_interface)
 			if (!strcmp(name, local_interface)) match = GF_TRUE;
 			gf_free(name);
 		}
+		if (match) name_match = GF_TRUE;
+
 		if (!match || !ifa->FirstUnicastAddress || !ifa->FirstUnicastAddress->Address.lpSockaddr) {
 			ifa = ifa->Next;
 			continue;
@@ -1581,17 +1567,24 @@ static u32 inet_addr_from_name(const char *local_interface)
 	getifaddrs(&ifap);
 	res = ifap;
 	while (res) {
-		if (res->ifa_addr && !strcmp(res->ifa_name, local_interface) && (res->ifa_addr->sa_family==AF_INET)) {
-			ret = ((struct sockaddr_in*)res->ifa_addr)->sin_addr.s_addr;
-			break;
+		if (res->ifa_name && !strcmp(res->ifa_name, local_interface)) {
+			name_match = GF_TRUE;
+			if (res->ifa_addr && (res->ifa_addr->sa_family==AF_INET)) {
+				ret = ((struct sockaddr_in*)res->ifa_addr)->sin_addr.s_addr;
+				break;
+			}
 		}
 		res = res->ifa_next;
 	}
 	freeifaddrs(ifap);
 #endif
-	if (!ret) {
+	if (!name_match) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] No such interface %s\n", local_interface));
 		return 0xFFFFFFFF;
+	}
+	if (!ret) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] Interface %s found but has no IPv4 adressing, using INADRR_ANY\n", local_interface));
+		return htonl(INADDR_ANY);
 	}
 	return ret;
 }
@@ -1892,9 +1885,8 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 		//ipv4
 		if (is_mapped_v4) {
 			local_add_id = inet_addr_from_name(ifce_ip_or_name);
-			if (local_add_id==0xFFFFFFFF) {
-				return GF_IP_CONNECTION_FAILURE;
-			}
+			if (local_add_id==0xFFFFFFFF) return GF_IP_CONNECTION_FAILURE;
+
 			M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
 			M_req.imr_interface.s_addr = local_add_id;
 
@@ -2018,9 +2010,7 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 #endif
 
 	local_add_id = inet_addr_from_name(ifce_ip_or_name);
-	if (local_add_id==0xFFFFFFFF) {
-		return GF_IP_CONNECTION_FAILURE;
-	}
+	if (local_add_id==0xFFFFFFFF) return GF_IP_CONNECTION_FAILURE;
 
 	if (!NoBind) {
 		struct sockaddr_in local_address;
