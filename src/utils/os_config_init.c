@@ -974,6 +974,9 @@ static void check_default_cred_file(GF_Config *cfg, char szPath[GF_MAX_PATH])
 	u64 v1, v2;
 	const char *opt = gf_cfg_get_key(cfg, "core", "cred");
 	if (opt) return;
+	//when running as service, the config file path may be unknown
+	if (!szPath[0] || !gf_dir_exists(szPath))
+		return;
 	strcat(szPath, "/creds.key");
 	if (gf_file_exists(szPath)) return;
 
