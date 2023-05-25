@@ -1804,11 +1804,14 @@ GF_Err gf_isom_get_pcm_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptio
 	aent = (GF_AudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex-1);
 	if (!aent) return GF_BAD_PARAM;
 	if ((aent->type != GF_ISOM_BOX_TYPE_IPCM) && (aent->type != GF_ISOM_BOX_TYPE_FPCM)) {
+		Bool is_le = GF_FALSE;
 		GF_Box *b = gf_isom_box_find_child(aent->child_boxes, GF_QT_BOX_TYPE_WAVE);
-		if (!b) return GF_BAD_PARAM;
-		GF_ChromaInfoBox *enda = (GF_ChromaInfoBox *)gf_isom_box_find_child(b->child_boxes, GF_QT_BOX_TYPE_ENDA);
+		//if no wave, assume big endian
+		if (b) {
+			GF_ChromaInfoBox *enda = (GF_ChromaInfoBox *)gf_isom_box_find_child(b->child_boxes, GF_QT_BOX_TYPE_ENDA);
+			is_le = (enda && enda->chroma) ? GF_TRUE : GF_FALSE;
+		}
 		u32 bits=0;
-		Bool is_le = (enda && enda->chroma) ? GF_TRUE : GF_FALSE;
 		switch (aent->type) {
 		case GF_QT_SUBTYPE_FL32: bits = 32; break;
 		case GF_QT_SUBTYPE_FL64: bits = 64; break;
