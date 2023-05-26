@@ -2995,6 +2995,25 @@ static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_n
 	}
 }
 
+#include <gpac/iso639.h>
+
+static void mpd_print_lang(FILE *out, const char *attVal, const char *attName)
+{
+	if (!attVal) return;
+
+	if (!gf_sys_is_test_mode()) {
+		if (!strcmp(attVal, "und")) return;
+		if (strlen(attVal)==3) {
+			s32 res = gf_lang_find(attVal);
+			if (res>0) {
+				const char *lang = gf_lang_get_2cc(res);
+				if (lang) attVal = lang;
+			}
+		}
+	}
+	gf_fprintf(out, " %s=\"%s\"", attName ? attName : "lang", attVal);
+}
+
 static void gf_mpd_print_content_component(FILE *out, GF_List *content_component , s32 indent)
 {
 	u32 i=0;
@@ -3002,8 +3021,7 @@ static void gf_mpd_print_content_component(FILE *out, GF_List *content_component
 	while ((cc = gf_list_enum(content_component, &i))) {
 		gf_mpd_nl(out, indent);
 		gf_fprintf(out, "<ContentComponent id=\"%d\" contentType=\"%s\"", cc->id, cc->type);
-		if (cc->lang)
-			gf_fprintf(out, " lang=\"%s\"", cc->lang);
+		mpd_print_lang(out, cc->lang, NULL);
 		gf_fprintf(out, "/>");
 		gf_mpd_lf(out, indent);
 	}
@@ -3324,7 +3342,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	}
 	if (as->par && (as->par->num != 0) && (as->par->den != 0))
 		gf_fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
-	if (as->lang) gf_fprintf(out, " lang=\"%s\"", as->lang);
+	mpd_print_lang(out, as->lang, NULL);
 	if (as->bitstream_switching) gf_fprintf(out, " bitstreamSwitching=\"true\"");
 
 	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)as);
@@ -4311,9 +4329,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 
 		gf_mpd_nl(out, indent+1);
 		gf_fprintf(out, "<ProgramInformation");
-		if (info->lang) {
-			gf_fprintf(out, " lang=\"%s\"", info->lang);
-		}
+		mpd_print_lang(out, info->lang, NULL);
 		if (info->more_info_url) {
 			gf_xml_dump_string(out, " moreInformationURL=\"", info->more_info_url, "\"");
 		}
