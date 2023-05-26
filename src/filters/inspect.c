@@ -601,6 +601,61 @@ static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 	return 0;
 }
 
+static void dump_time_code(FILE *dump, GF_BitStream *bs)
+{
+	u32 seconds = 0;
+	u32 minutes = 0;
+	u32 hours = 0;
+	u8 num_clock_ts = gf_bs_read_int(bs, 2);
+	inspect_printf(dump, " num_clock_ts=\"%d\"", num_clock_ts);
+	for (int i = 0; i < num_clock_ts; i++) {
+		Bool clock_timestamp_flag = gf_bs_read_int(bs, 1);
+		if (clock_timestamp_flag) {
+			Bool units_field_based_flag, full_timestamp_flag, discontinuity_flag, cnt_dropped_flag;
+			u8 counting_type;
+			u32 n_frames;
+			u32 time_offset_length, time_offset_value;
+
+			units_field_based_flag = gf_bs_read_int(bs, 1);
+			inspect_printf(dump, " units_field_based_flag_%d=\"%d\"", i, units_field_based_flag);
+			counting_type = gf_bs_read_int(bs, 5);
+			inspect_printf(dump, " counting_type_%d=\"%d\"", i, counting_type);
+			full_timestamp_flag = gf_bs_read_int(bs, 1);
+			inspect_printf(dump, " full_timestamp_flag_%d=\"%d\"", i, full_timestamp_flag);
+			discontinuity_flag = gf_bs_read_int(bs, 1);
+			inspect_printf(dump, " discontinuity_flag_%d=\"%d\"", i, discontinuity_flag);
+			cnt_dropped_flag = gf_bs_read_int(bs, 1);
+			inspect_printf(dump, " cnt_dropped_flag_%d=\"%d\"", i, cnt_dropped_flag);
+			n_frames = gf_bs_read_int(bs, 9);
+			if (full_timestamp_flag) {
+				seconds = gf_bs_read_int(bs, 6);
+				minutes = gf_bs_read_int(bs, 6);
+				hours = gf_bs_read_int(bs, 5);
+			} else {
+				Bool seconds_flag = gf_bs_read_int(bs, 1);
+				if (seconds_flag) {
+					seconds = gf_bs_read_int(bs, 6);
+					Bool minutes_flag = gf_bs_read_int(bs, 1);
+					if (minutes_flag) {
+						minutes = gf_bs_read_int(bs, 6);
+						Bool hours_flag = gf_bs_read_int(bs, 1);
+						if (hours_flag) {
+							hours = gf_bs_read_int(bs, 5);
+						}
+					}
+				}
+			}
+			inspect_printf(dump, " time_code_%d=\"%02d:%02d:%02d:%02d\"", i, hours, minutes, seconds, n_frames);
+			time_offset_length = gf_bs_read_int(bs, 5);
+			inspect_printf(dump, " time_offset_length_%d=\"%d\"", i, time_offset_length);
+			time_offset_value = 0;
+			if (time_offset_length > 0) {
+				time_offset_value = gf_bs_read_int(bs, time_offset_length);
+			}
+			inspect_printf(dump, " time_offset_value_%d=\"%d\"", i, time_offset_value);
+		}
+	}
+}
 
 static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 {
@@ -629,6 +684,8 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			dump_clli(dump, bs);
 		} else if (sei_type == 137) {
 			dump_mdcv(dump, bs, GF_TRUE);
+		} else if (sei_type == 136) {
+			dump_time_code(dump, bs);
 		} else if (sei_type == 4) {
 			i = dump_t35(dump, bs, sei_size);
 			while (i < sei_size) {
