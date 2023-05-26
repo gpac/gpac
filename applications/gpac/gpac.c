@@ -238,7 +238,7 @@ static int gpac_exit_fun(int code)
 			".br\nbuild: %s\n"
 			".br\nCopyright: %s\n.br\n"
 			".SH SEE ALSO\n"
-			".LP\ngpac(1), MP4Box(1)\n", gf_gpac_version(), gf_gpac_copyright());
+			".LP\ngpac(1), MP4Box(1)\n", GPAC_VERSION, gf_gpac_copyright());
 		}
 		gf_fclose(helpout);
 	}
@@ -837,7 +837,7 @@ int gpac_main(int _argc, char **_argv)
 				".br\nbuild: %s\n"
 				".br\nCopyright: %s\n.br\n"
 				".SH SEE ALSO\n"
-				".LP\ngpac-filters(1),MP4Box(1)\n", gf_gpac_version(), gf_gpac_copyright());
+				".LP\ngpac-filters(1),MP4Box(1)\n", GPAC_VERSION, gf_gpac_copyright());
 				gf_fclose(helpout);
 
 				helpout = gf_fopen("gpac-filters.1", "w");
