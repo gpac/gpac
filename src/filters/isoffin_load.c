@@ -1856,6 +1856,7 @@ retry:
 	if ((item_type == GF_ISOM_SUBTYPE_UNCV) || (item_type == GF_ISOM_ITEM_TYPE_UNCI)) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_UNCV) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW_UNCV) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ISOM_SUBTYPE,  &PROP_4CC(GF_ISOM_ITEM_TYPE_UNCI) );
 	}
 
 
