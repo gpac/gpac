@@ -1482,6 +1482,8 @@ GF_FilterRegister FFMuxRegister = {
 		"Unlike other multiplexing filters in GPAC, this filter is a sink filter and does not produce any PID to be redirected in the graph.\n"
 		"The filter can however use template names for its output, using the first input PID to resolve the final name.\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
+		"\n"
+		"All PID properties prefixed with `meta:` will be added as metadata.\n"
 	)
 	.private_size = sizeof(GF_FFMuxCtx),
 	SETCAPS(FFMuxCaps),
