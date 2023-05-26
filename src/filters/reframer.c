@@ -148,6 +148,7 @@ typedef struct
 	u32 xround, utc_ref, utc_probe;
 	Double seeksafe;
 	GF_PropStringList props;
+	Bool copy;
 
 	//internal
 	Bool filter_sap1;
@@ -1044,9 +1045,12 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		}
 
 		gf_filter_pck_send(new_pck);
-
 	} else {
-		gf_filter_pck_forward(pck, st->opid);
+		GF_FilterPacket *dst = ctx->copy ? gf_filter_pck_new_copy(st->opid, pck, NULL) : NULL;
+		if (dst)
+			gf_filter_pck_send(dst);
+		else
+			gf_filter_pck_forward(pck, st->opid);
 	}
 
 
@@ -2714,6 +2718,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- any: use UTC of media, or UTC of local host if not found in media after probing time\n"
 	"- media: use UTC of media (abort if none found)", GF_PROP_UINT, "any", "local|any|media", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(utc_probe), "timeout in milliseconds to try to acquire UTC reference from media", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(copy), "try copying frame interface into packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
