@@ -470,7 +470,6 @@ set_feature()
 #disable all features
 disable_all_features()
 {
-
     idx=1
     while [ $idx -le $nb_features ]; do
         get_item $idx "$all_features"
