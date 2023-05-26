@@ -1796,10 +1796,16 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	}
 
 	if (ctx->profX) {
-		char profiles_w_ext[GF_MAX_PATH+256];
-		sprintf(profiles_w_ext, "%s,%s", profiles_string, ctx->profX);
-		if (ctx->mpd->profiles) gf_free(ctx->mpd->profiles);
-		ctx->mpd->profiles = gf_strdup(profiles_w_ext);
+		if (ctx->profX[0] == '+') {
+			if (ctx->mpd->profiles) gf_free(ctx->mpd->profiles);
+			ctx->mpd->profiles = gf_strdup(ctx->profX+1);
+			ctx->mpd->profiles = gf_strdup(ctx->profX+1);
+		} else {
+			char profiles_w_ext[GF_MAX_PATH+256];
+			sprintf(profiles_w_ext, "%s,%s", profiles_string, ctx->profX);
+			if (ctx->mpd->profiles) gf_free(ctx->mpd->profiles);
+			ctx->mpd->profiles = gf_strdup(profiles_w_ext);
+		}
 	} else {
 		if (ctx->mpd->profiles) gf_free(ctx->mpd->profiles);
 		ctx->mpd->profiles = gf_strdup(profiles_string);
@@ -10207,7 +10213,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- dashavc264.onDemand: DASH-IF onDemand profile\n"
 		"- dashif.ll: DASH IF low-latency profile (set UTC server to time.akamai.com if none set)"
 		"", GF_PROP_UINT, "auto", "auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand|dashif.ll", 0 },
-	{ OFFS(profX), "list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(profX), "list of profile extensions, as used by DASH-IF and DVB. The string will be colon-concatenated with the profile used. If starting with `+`, the profile string by default is erased and `+` is skipped", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(cp), "content protection element location\n"
 	"- set: in adaptation set element\n"
 	"- rep: in representation element\n"
