@@ -25,6 +25,7 @@
 
 #include <gpac/filters.h>
 #include <gpac/constants.h>
+#include <gpac/bitstream.h>
 
 typedef struct
 {
