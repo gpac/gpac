@@ -498,7 +498,7 @@ ach (uint, default: 0):        force output channels (0 for auto)
 .br
 alayout (uint, default: 0):    force output channel layout (0 for auto)
 .br
-afmt (afmt, default: s16, minmax: none,u8,s16,s16b,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): force output channel format (0 for auto)
+afmt (afmt, default: s16, minmax: none,u8,s16,s16b,s24,s24b,s32,s32b,flt,fltb,dbl,dblb,u8p,s16p,s24p,s32p,fltp,dblp): force output channel format (0 for auto)
 .br
 asize (uint, default: 1024):   audio output packet size in samples
 .br
@@ -2345,6 +2345,8 @@ ase (enum, default: v0):       set audio sample entry mode for more than stereo 
 .br
 * v1qt: use v1 signaling, QTFF style
 .br
+* v2qt: use v2 signaling, QTFF style (lpcm entry type)
+.br
 
 .br
 ssix (bool, default: false):   create ssix box when sidx box is present, level 1 mapping I-frames byte ranges, level 0xFF mapping the rest
@@ -2444,6 +2446,18 @@ chapm (enum, default: both):   chapter storage mode
 
 .br
 patch_dts (bool, default: false): patch previous samples duration when dts do not increase monotonically
+.br
+uncv (enum, default: prof):    use uncv (ISO 23001-17) for raw video
+.br
+* off: disabled (always the case when muxing to QT)
+.br
+* gen: enabled, do not write profile
+.br
+* prof: enabled and write profile if known
+.br
+* tiny: enabled and write reduced version if profile known and compatible
+.br
+
 .br
 
 .br
@@ -3593,6 +3607,8 @@ utc_ref (enum, default: any):  set reference mode for UTC range extraction
 .br
 utc_probe (uint, default: 5000): timeout in milliseconds to try to acquire UTC reference from media
 .br
+copy (bool, default: false):   try copying frame interface into packets
+.br
 
 .br
 .SH writegen
@@ -3615,7 +3631,7 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .br
 pfmt (pfmt, default: none, minmax: none,yuv420,yvu420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,uyvl,vyul,yuyl,yvyl,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,yuv444p,v308,yuv444ap,v408,v410,v210,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,uncv): pixel format for raw extract. If not set, derived from extension
 .br
-afmt (afmt, default: none, minmax: none,u8,s16,s16b,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): audio format for raw extract. If not set, derived from extension
+afmt (afmt, default: none, minmax: none,u8,s16,s16b,s24,s24b,s32,s32b,flt,fltb,dbl,dblb,u8p,s16p,s24p,s32p,fltp,dblp): audio format for raw extract. If not set, derived from extension
 .br
 decinfo (enum, default: auto): decoder config insert mode
 .br
@@ -4179,7 +4195,7 @@ This filter parses raw PCM file/data or WAVE files and outputs corresponding raw
 .br
 sr (uint, default: 44100):     sample rate
 .br
-safmt (afmt, default: none, minmax: none,u8,s16,s16b,s24,s32,flt,dbl,u8p,s16p,s24p,s32p,fltp,dblp): audio format
+safmt (afmt, default: none, minmax: none,u8,s16,s16b,s24,s24b,s32,s32b,flt,fltb,dbl,dblb,u8p,s16p,s24p,s32p,fltp,dblp): audio format
 .br
 ch (uint, default: 2):         number of channels
 .br
@@ -11655,7 +11671,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev263-g2afa05f4d-master
+build: 2.3-DEV
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

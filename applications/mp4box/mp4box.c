@@ -3284,7 +3284,7 @@ u32 parse_gendoc(char *name, u32 opt)
 		".br\nbuild: %s\n"
 		".br\nCopyright: %s\n.br\n"
 		".SH SEE ALSO\n"
-		".LP\ngpac(1)\n", gf_gpac_version(), gf_gpac_copyright());
+		".LP\ngpac(1)\n", GPAC_VERSION, gf_gpac_copyright());
 
 		gf_fclose(helpout);
 	}

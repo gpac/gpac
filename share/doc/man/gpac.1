@@ -2836,6 +2836,11 @@ Decoder configuration data
 Decoder configuration data of the enhancement layer(s). Also used by 3GPP/Apple text streams to give the full sample description table used in SDP.
 .br
 .TP
+.B DSISuperset (DCFS,bool,  )
+.br
+Decoder config is a superset of previous decoder config
+.br
+.TP
 .B DecoderConfigIndex (ICFG,uint,  )
 .br
 1-based index of decoder config for ISO base media files
@@ -4201,9 +4206,19 @@ Generic uncompressed format ISO/IEC 23001-17
 24 bit PCM
 .br
 .TP
+.B s24b (ext *.s24b)
+.br
+24 bit Big-Endian PCM
+.br
+.TP
 .B s32 (ext *.s32)
 .br
 32 bit PCM Little Endian
+.br
+.TP
+.B s32b (ext *.s32b)
+.br
+32 bit PCM Big Endian
 .br
 .TP
 .B flt (ext *.flt)
@@ -4211,9 +4226,19 @@ Generic uncompressed format ISO/IEC 23001-17
 32-bit floating point PCM
 .br
 .TP
+.B fltb (ext *.fltb)
+.br
+32-bit floating point PCM Big Endian
+.br
+.TP
 .B dbl (ext *.dbl)
 .br
 64-bit floating point PCM
+.br
+.TP
+.B dblb (ext *.dblb)
+.br
+64-bit floating point PCM Big Endian
 .br
 .TP
 .B u8p (ext *.pc8p)
@@ -5008,7 +5033,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV-rev263-g2afa05f4d-master
+build: 2.3-DEV
 .br
 Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
