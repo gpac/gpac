@@ -439,7 +439,7 @@ GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size
 			}
 		}
 	} else {
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%s", gf_4cc_to_str(subtype), gf_4cc_to_str(uncv->profile));
 	}
 	uncv_del(uncv);
 	return e;

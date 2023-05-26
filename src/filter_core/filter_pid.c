@@ -9058,6 +9058,7 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		return GF_OK;
 
 	case GF_CODECID_RAW_UNCV:
+		if (!subtype) subtype = subtype_src;
 		return rfc_6381_get_codec_uncv(szCodec, subtype, dcd->value.data.ptr, dcd->value.data.size);
 	default:
 		subtype = gf_codecid_4cc_type(codec_id);

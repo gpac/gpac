@@ -254,6 +254,14 @@ enum
 	MP4MX_CHAPM_BOTH
 };
 
+enum
+{
+	MP4MX_UNCV_OFF=0,
+	MP4MX_UNCV_NOPROF,
+	MP4MX_UNCV_PROF,
+	MP4MX_UNCV_PROF_ONLY
+};
+
 
 typedef struct
 {
@@ -301,6 +309,7 @@ typedef struct
 	Bool ctrni;
 #endif
 	Bool mfra;
+	u32 uncv;
 	Bool forcesync, refrag, pad_sparse;
 	Bool force_dv, tsalign, dvsingle, patch_dts;
 	u32 itags;
@@ -908,6 +917,8 @@ static void update_chap_refs(GF_MP4MuxCtx *ctx)
 	}
 }
 
+
+
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
 {
 	void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char *file_exts, const char *mime_types, const char *def_ext);
@@ -945,7 +956,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	GF_List *multi_pid_stsd = NULL;
 	u32 multi_pid_idx = 0;
 	GF_FilterPid *orig_pid = NULL;
-	u32 codec_id;
+	u32 codec_id, pix_fmt=0;
 	u32 frames_per_sample_backup=0;
 	u32 is_nalu_backup = NALU_NONE;
 	Bool is_tile_base = GF_FALSE;
@@ -2305,14 +2316,15 @@ sample_entry_setup:
 			comp_name = "RawVideo";
 			unknown_generic = GF_FALSE;
 			tkw->skip_bitrate_update = GF_TRUE;
+			pix_fmt = p->value.uint;
 
-			m_subtype = gf_pixel_fmt_to_qt_type(p->value.uint);
+			m_subtype = gf_pixel_fmt_to_qt_type(pix_fmt);
 			if (m_subtype) {
 				if (gf_pixel_fmt_is_yuv(p->value.uint))
 					force_colr = GF_TRUE;
 			} else {
 				unknown_generic = GF_TRUE;
-				m_subtype = p->value.uint;
+				m_subtype = pix_fmt;
 			}
 
 			if ((width == tkw->w_or_sr) && (height==tkw->h_or_ch) && (pfmt==tkw->pf_or_af)) {
@@ -3135,6 +3147,14 @@ sample_entry_setup:
 			unknown_generic = GF_FALSE;
 			if (udesc.extension_buf)
 				udesc.ext_box_wrap = GF_4CC('d', 'v', 'c', '1');
+		}
+		//move to uncv
+		if ((codec_id==GF_CODECID_RAW) && !ctx->make_qt && ctx->uncv && (tkw->stream_type==GF_STREAM_VISUAL)) {
+			if ( gf_pixel_fmt_get_uncc(pix_fmt, ctx->uncv-1, &gpac_meta_dsi, &udesc.extension_buf_size) == GF_TRUE) {
+				unknown_generic = GF_FALSE;
+				udesc.extension_buf = gpac_meta_dsi;
+				udesc.codec_tag = m_subtype = GF_ISOM_SUBTYPE_UNCV;
+			}
 		}
 
 		if (unknown_generic) {
@@ -5188,6 +5208,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 
 	dsi = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_enh = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	Bool free_config_ba = GF_FALSE;
 
 	switch (tkw->codecid) {
 	case GF_CODECID_AVC:
@@ -5312,6 +5333,12 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 			image_props.config_ba_size = dsi->value.data.size;
 			item_type = GF_4CC('u','n','c','i');
 			break;
+		} else {
+			if (gf_pixel_fmt_get_uncc(p->value.uint, ctx->uncv-1, &image_props.config_ba, &image_props.config_ba_size)==GF_TRUE) {
+				free_config_ba = GF_TRUE;
+				item_type = GF_4CC('u','n','c','i');
+				break;
+			}
 		}
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec %s not supported to create HEIF image items\n", gf_codecid_name(tkw->codecid) ));
@@ -5355,6 +5382,8 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_SAI);
 		if (!p) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Missing CENC SAI on protected packet\n"));
+			if (config_box) gf_isom_box_del(config_box);
+			if (free_config_ba) gf_free(image_props.config_ba);
 			return GF_SERVICE_ERROR;
 		}
 		cenc_info.sai_data = p->value.data.ptr;
@@ -5363,6 +5392,8 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
 		if (!p) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Missing CENC scheme type on protected item\n"));
+			if (config_box) gf_isom_box_del(config_box);
+			if (free_config_ba) gf_free(image_props.config_ba);
 			return GF_SERVICE_ERROR;
 		}
 		cenc_info.scheme_type = p->value.uint;
@@ -5370,6 +5401,8 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_PROTECTION_SCHEME_VERSION);
 		if (!p) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Missing CENC scheme version on protected item\n"));
+			if (config_box) gf_isom_box_del(config_box);
+			if (free_config_ba) gf_free(image_props.config_ba);
 			return GF_SERVICE_ERROR;
 		}
 		cenc_info.scheme_version = p->value.uint;
@@ -5377,6 +5410,8 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_KEY_INFO);
 		if (!p || (p->type != GF_PROP_DATA) || !gf_cenc_validate_key_info(p->value.data.ptr, p->value.data.size)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: %s CENC Key info on protected item\n", p ? "Corrupted" : "Missing"));
+			if (config_box) gf_isom_box_del(config_box);
+			if (free_config_ba) gf_free(image_props.config_ba);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		cenc_info.key_info = p->value.data.ptr;
@@ -5402,6 +5437,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	e = gf_isom_add_meta_item_memory(ctx->file, GF_TRUE, 0, item_name, &item_id, item_type, NULL, NULL, &image_props, (u8 *)data, size, NULL);
 
 	if (config_box) gf_isom_box_del(config_box);
+	if (free_config_ba) gf_free(image_props.config_ba);
 
 	if (e) return e;
 
@@ -8073,6 +8109,11 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- both: use both chapter tracks and udta"
 	, GF_PROP_UINT, "both", "off|tk|udta|both", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(patch_dts), "patch previous samples duration when dts do not increase monotonically", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(uncv), "use uncv (ISO 23001-17) for raw video\n"
+	"- off: disabled (always the case when muxing to QT)\n"
+	"- gen: enabled, do not write profile\n"
+	"- prof: enabled and write profile if known\n"
+	"- tiny: enabled and write reduced version if profile known and compatible", GF_PROP_UINT, "prof", "off|gen|prof|tiny", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
