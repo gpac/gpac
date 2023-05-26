@@ -122,6 +122,18 @@ void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata)
 	if (p && (p->type==GF_PROP_STRING) && p->value.string && !strstr(p->value.string, "@GPAC")) {
 		av_dict_set(metadata, "title", p->value.string, 0);
 	}
+	u32 idx=0;
+	while (1) {
+		u32 p4cc;
+		const char *pname, *res;
+		char dump[GF_PROP_DUMP_ARG_SIZE];
+		p = gf_filter_pid_enum_properties(pid, &idx, &p4cc, &pname);
+		if (!p) break;
+		if (p4cc) continue;
+		if (strncmp(pname, "meta:", 5)) continue;
+		res = gf_props_dump_val(p, dump, GF_PROP_DUMP_DATA_INFO, NULL);
+		if (res) av_dict_set(metadata, pname+5, res, 0);
+	}
 }
 
 void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)

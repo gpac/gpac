@@ -1029,6 +1029,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT( (stream->id ? stream->id : i+1)) );
 		gf_filter_pid_set_name(pid, szName);
 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
+		ffmpeg_codec_par_to_gpac(stream->codecpar, pid, 0);
+#endif
+
 		if (ctx->raw_data && ctx->sclock) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000000) );
 		} else {
@@ -1721,7 +1725,6 @@ GF_FilterRegister FFDemuxRegister = {
 	SETCAPS(FFDmxCaps),
 	.initialize = ffdmx_initialize,
 	.finalize = ffdmx_finalize,
-	.configure_pid = ffdmx_configure_pid,
 	.process = ffdmx_process,
 	.update_arg = ffdmx_update_arg,
 	.probe_url = ffdmx_probe_url,
