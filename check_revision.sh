@@ -26,7 +26,7 @@ else
 
 if [ ! -e ".include/gpac/revision.h" ]; then
 
-if [[ "$version" != *"-DEV"* ]]; then
+if test "$version" != *"-DEV"* ; then
 echo "#define GPAC_GIT_REVISION \"release\"" > ./include/gpac/revision.h
 else
 echo "#define GPAC_GIT_REVISION \"UNKNOWN_REV\"" > ./include/gpac/revision.h
