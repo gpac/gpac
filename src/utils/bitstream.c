@@ -434,7 +434,9 @@ static GFINLINE u8 gf_bs_load_byte(GF_BitStream *bs, Bool *is_eos)
 	} else {
 #ifdef GPAC_HAS_FD
 		if (bs->fd>=0) {
-			read(bs->fd, &res, 1);
+			if (read(bs->fd, &res, 1)<=0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Failed to read byte from file\n"));
+			}
 		} else
 #endif
 			res = gf_fgetc(bs->stream);
@@ -892,7 +894,9 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 	/*we are in FILE mode, no pb for any gf_realloc...*/
 #ifdef GPAC_HAS_FD
 	if (bs->fd>=0) {
-		write(bs->fd, &val, 1);
+		if (write(bs->fd, &val, 1)<=0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Failed to write byte to file\n"));
+		}
 	} else
 #endif
 		gf_fputc(val, bs->stream);
