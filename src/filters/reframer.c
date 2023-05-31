@@ -149,6 +149,7 @@ typedef struct
 	Double seeksafe;
 	GF_PropStringList props;
 	Bool copy;
+	u32 cues;
 
 	//internal
 	Bool filter_sap1;
@@ -2447,6 +2448,15 @@ refetch_streams:
 					break;
 				}
 			}
+			if (ctx->cues) {
+				forward = GF_FALSE;
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CUE_START);
+				if (p && p->value.boolean) forward = GF_TRUE;
+				else if (ctx->cues==2) {
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FRAG_START);
+					if (p) forward = GF_TRUE;
+				}
+			}
 			if (ctx->range_type==RANGE_DONE)
 				forward = GF_FALSE;
 
@@ -2719,6 +2729,10 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- media: use UTC of media (abort if none found)", GF_PROP_UINT, "any", "local|any|media", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(utc_probe), "timeout in milliseconds to try to acquire UTC reference from media", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(copy), "try copying frame interface into packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cues), "cue filtering mode\n"
+	"- no: do no filter frames based on cue info\n"
+	"- segs: only forward frames marked as segment start\n"
+	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
