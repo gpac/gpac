@@ -9057,6 +9057,14 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//we exceed segment duration - if segment was started, check if we need to stop segment
 			//if segment was not started we insert the packet anyway
 			else if (!ds->sbound && ds->segment_started && gf_timestamp_greater_or_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale) ) {
+
+				//we have a base (muxed rep) and it is not yet done, and we exceed estimated next seg start on base
+				//wait for the base to be done as the next seg estimate may change if next segment duration is quite
+				//different from requested duration - cf #2488
+				if ((ds != base_ds) && !base_ds->seg_done) {
+					break;
+				}
+
 				//no sap, segment is over
 				if (! ctx->sap) {
 					seg_over = GF_TRUE;
