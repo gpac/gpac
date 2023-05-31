@@ -2999,8 +2999,7 @@ void mdhd_box_del(GF_Box *s)
 // NOTE that Media Info maps them to 2-letter codes, possibly with region codes https://github.com/MediaArea/MediaInfoLib/blob/72213574cbf2ca01c0fbb97d2239b53891ad7b9d/Source/MediaInfo/Multiple/File_Mpeg4.cpp#L754
 // NOTE that FFMPEG mostly maps to ISO/IEC 639-2/B and sometimes 2-letter code
 // (see https://ffmpeg.org/doxygen/trunk/isom_8c_source.html)
-static const u8 qtLanguagesSize = 106;
-static const char qtLanguages[qtLanguagesSize][4] = {
+static const char* qtLanguages[] = {
 	"eng", //  0 English
 	"fra", //  1 French
 	"deu", //  2 German
@@ -3109,6 +3108,7 @@ static const char qtLanguages[qtLanguagesSize][4] = {
 	"dzo", // 127 Dzongkha
 	"jav"  // 138 Javanese
 };
+//static const u8 qtLanguagesSize = GF_ARRAY_LENGTH(qtLanguages);
 
 GF_Err set_quicktime_lang(char lang[4], u8 code) {
 	if (code > 138 || (code > 94 && code < 128) || code == 86) {
