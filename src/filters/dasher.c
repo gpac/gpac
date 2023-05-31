@@ -1415,18 +1415,20 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			else if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
 				AVCState avc;
 				GF_AVCConfig* avccfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
-				GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avccfg->sequenceParameterSets, 0);
-				if (sl) {
-					s32 idx;
-					memset(&avc, 0, sizeof(AVCState));
-					idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
-					if (idx>=0) {
-						Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
-						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
-						ds->interlaced = is_interlaced;
+				if (avccfg) {
+					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avccfg->sequenceParameterSets, 0);
+					if (sl) {
+						s32 idx;
+						memset(&avc, 0, sizeof(AVCState));
+						idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
+						if (idx>=0) {
+							Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
+							if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+							ds->interlaced = is_interlaced;
+						}
 					}
+					gf_odf_avc_cfg_del(avccfg);
 				}
-				gf_odf_avc_cfg_del(avccfg);
 			}
 		}
 #endif /*!GPAC_DISABLE_AV_PARSERS*/
