@@ -704,6 +704,8 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 		}
 	}
 	if (ent_name) gf_free(ent_name);
+	if (ent && !ent->value)
+		parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 	xml_sax_store_text(parser, i);
 }
 
@@ -968,7 +970,7 @@ exit:
 static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 {
 	u32 size = parser->line_size;
-	u32 nl_size = (u32) strlen(string);
+	u32 nl_size = string ? (u32) strlen(string) : 0;
 
 	if (!nl_size) return GF_OK;
 
