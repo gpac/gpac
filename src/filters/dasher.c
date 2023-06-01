@@ -6911,9 +6911,16 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		ds->presentation_time_offset = 0;
 		ds->seg_done = GF_FALSE;
 		ds->next_seg_start = (u32) ( ((u64) ds->dash_dur.num * ds->timescale) / ds->dash_dur.den);
-		//adjust next_seg_start of first seg to presentation time if skip edit
-		if (!ds->cues && (ds->pts_minus_cts<0) && (ds->next_seg_start> (u32) -ds->pts_minus_cts))
+
+		//in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
+		//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
+		//to the intra interval, we need to take into account the skip samples
+		if (ctx->sap && !ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT)
+			&& (ds->pts_minus_cts<0) && (ds->next_seg_start > (u32) -ds->pts_minus_cts)
+		) {
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
+		}
+
 		ds->adjusted_next_seg_start = ds->next_seg_start;
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
@@ -8623,6 +8630,18 @@ static GF_Err dasher_process(GF_Filter *filter)
 			dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS) dts = cts;
 
+			if (!sap_type && (ds->sync_points_type != DASHER_SYNC_PRESENT)) {
+				ds->sync_points_type = DASHER_SYNC_PRESENT;
+				//cf setup_period: in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
+				//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
+				//to the intra interval, we need to take into account the skip samples
+				if (ctx->sap && !ctx->sbound && !ds->cues
+					&& (ds->pts_minus_cts<0) && (ds->next_seg_start> (u32) -ds->pts_minus_cts)
+				) {
+					ds->next_seg_start -= (u32) -ds->pts_minus_cts;
+				}
+			}
+
 			if ((ctx->strict_sap==DASHER_SAP_INTRA_ONLY) && (sap_type>=4))
 				sap_type = 0;
 
@@ -9065,6 +9084,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//we exceed segment duration - if segment was started, check if we need to stop segment
 			//if segment was not started we insert the packet anyway
 			else if (!ds->sbound && ds->segment_started && gf_timestamp_greater_or_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale) ) {
+
 
 				//we have a base (muxed rep) and it is not yet done, and we exceed estimated next seg start on base
 				//wait for the base to be done as the next seg estimate may change if next segment duration is quite
