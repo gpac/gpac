@@ -3879,7 +3879,7 @@ Supported KEYWORD (case insensitive):
 - num: replaced by file_number (usually matches GF_PROP_PCK_FILENUM, but this property is not used in the solving mechanism)
 - PID: ID of the source PID
 - URL: URL of source file
-- File: path on disk for source file
+- File: path on disk for source file - if resolved value contains a URL scheme (e.g. foo://), it is ignored
 - p4cc=ABCD: uses PID property with 4CC ABCD
 - pname=VAL: uses PID property with name VAL (either built-in prop name or other peroperty name)
 

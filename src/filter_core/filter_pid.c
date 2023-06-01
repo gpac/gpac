@@ -8207,6 +8207,10 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 				if (!prop_val)
 					prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
 
+				//if file/url contains URL scheme, do not use it
+				if (prop_val && prop_val->value.string && strstr(prop_val->value.string, "://"))
+					prop_val = NULL;
+
 				if (!prop_val && pid->pid->name) {
 					prop_val_patched.type = GF_PROP_STRING;
 					prop_val_patched.value.string = pid->pid->name;
