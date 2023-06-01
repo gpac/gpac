@@ -8848,11 +8848,17 @@ static GF_Err dasher_process(GF_Filter *filter)
 						if (ds == base_ds) {
 							base_ds->adjusted_next_seg_start = cts;
 						}
-					} else if (!size) {
-						ds->first_cts_in_seg = gf_filter_pck_get_cts(pck);
-						dasher_send_empty_segment(ctx, ds);
-						dasher_drop_input(ctx, ds, GF_TRUE);
-						continue;
+					}
+					//packet with no size, used by GHI demuxer:
+					//- if seek flag is set, this is a dummy packet sent to generate segment timeline / child HLS
+					//- if seek flag is not set, this is an empty segment for sparse streams
+					else if (!size) {
+						if (!gf_filter_pck_get_seek_flag(pck) ) {
+							ds->first_cts_in_seg = gf_filter_pck_get_cts(pck);
+							dasher_send_empty_segment(ctx, ds);
+							dasher_drop_input(ctx, ds, GF_TRUE);
+							continue;
+						}
 					}
 					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SPLIT_START);
 					if (p) {
