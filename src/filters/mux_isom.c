@@ -4549,7 +4549,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u32 min_pck_dur = gf_filter_pid_get_min_pck_duration(tkw->ipid);
 			if (min_pck_dur) {
 				tkw->sample.DTS = prev_dts;
-
+				//transform back to inpput timescale
 				if (timescale != tkw->tk_timescale) {
 					tkw->sample.DTS = gf_timestamp_rescale(tkw->sample.DTS, tkw->tk_timescale, timescale);
 				}
@@ -4618,6 +4618,10 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		tkw->sample.CTS_Offset = (s32) ctso;
 		duration *= tkw->tk_timescale;
 		duration /= timescale;
+
+		if (cts != GF_FILTER_NO_TS) {
+			cts = gf_timestamp_rescale(cts, timescale, tkw->tk_timescale);
+		}
 	}
 
 	tkw->sample.IsRAP = 0;
