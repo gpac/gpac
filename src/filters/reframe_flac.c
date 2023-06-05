@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_RFFLAC
 typedef struct
 {
 	u64 pos;
@@ -871,3 +872,10 @@ const GF_FilterRegister *rfflac_register(GF_FilterSession *session)
 
 	return &FLACDmxRegister;
 }
+#else
+const GF_FilterRegister *rfflac_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_RFFLAC
+

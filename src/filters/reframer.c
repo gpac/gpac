@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / force reframer filter
@@ -26,6 +26,8 @@
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
 #include <gpac/filters.h>
+
+#ifndef GPAC_DISABLE_REFRAMER
 
 enum
 {
@@ -2858,3 +2860,10 @@ const GF_FilterRegister *reframer_register(GF_FilterSession *session)
 {
 	return &ReframerRegister;
 }
+#else
+const GF_FilterRegister *reframer_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //GPAC_DISABLE_REFRAMER
+

@@ -26,6 +26,8 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_RFAMR
+
 typedef struct
 {
 	u64 pos;
@@ -626,4 +628,10 @@ const GF_FilterRegister *rfamr_register(GF_FilterSession *session)
 {
 	return &AMRDmxRegister;
 }
+#else
+const GF_FilterRegister *rfamr_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_RFAMR
 

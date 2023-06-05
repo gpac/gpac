@@ -32,7 +32,7 @@
 #include <gpac/network.h>
 #include <gpac/crypt_tools.h>
 
-#if !defined(GPAC_DISABLE_MPD)
+#ifndef GPAC_DISABLE_DASHER
 
 #define DEFAULT_PERIOD_ID	 "_gf_dash_def_period"
 
@@ -10615,4 +10615,4 @@ const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif /*#if !defined(GPAC_DISABLE_MPD)*/
+#endif // GPAC_DISABLE_DASHER

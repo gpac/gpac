@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
+#ifndef GPAC_DISABLE_WRITEQCP
+
 #include <gpac/internal/media_dev.h>
 
 
@@ -389,3 +391,10 @@ const GF_FilterRegister *writeqcp_register(GF_FilterSession *session)
 {
 	return &QCPMxRegister;
 }
+#else
+const GF_FilterRegister *writeqcp_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_WRITEQCP
+

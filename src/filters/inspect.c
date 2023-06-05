@@ -29,6 +29,8 @@
 #include <gpac/xml.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_INSPECT
+
 typedef struct
 {
 	GF_FilterPid *src_pid;
@@ -4783,6 +4785,17 @@ const GF_FilterRegister *probe_register(GF_FilterSession *session)
 {
 	return &ProbeRegister;
 }
+#else
+const GF_FilterRegister *inspect_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+const GF_FilterRegister *probe_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_INSPECT
 
 
 

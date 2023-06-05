@@ -27,6 +27,8 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_FIN
+
 #ifdef GPAC_HAS_FD
 #include <unistd.h>
 #include <sys/stat.h>
@@ -758,4 +760,10 @@ const GF_FilterRegister *fin_register(GF_FilterSession *session)
 	}
 	return &FileInRegister;
 }
+#else
+const GF_FilterRegister *fin_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_FIN
 

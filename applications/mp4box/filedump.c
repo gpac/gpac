@@ -1048,7 +1048,7 @@ static u32 read_nal_size_hdr(u8 *ptr, u32 nalh_size)
 	return nal_size;
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted);
 #endif
 
@@ -1089,7 +1089,7 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 
 	fprintf(dump, "<NALUTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 
 #define DUMP_ARRAY(arr, name, loc, _is_svc)\
 	if (arr) {\
@@ -1326,7 +1326,7 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 				break;
 			} else {
 				fprintf(dump, "   <NALU size=\"%d\" ", nal_size);
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 				Bool is_encrypted = 0;
 				if (is_cenc_protected) {
 					e = gf_isom_get_sample_cenc_info(file, track, i + 1, &is_encrypted, NULL, NULL, NULL, NULL);
@@ -1446,14 +1446,14 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 	return e;
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 void gf_inspect_dump_opus(FILE *dump, u8 *ptr, u64 size, u32 channel_count, Bool dump_crc);
 #endif
 
 static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
     GF_Err e = GF_OK;
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
     u32 i, count, track, timescale, channel_count;
     GF_OpusConfig opcfg;
     track = gf_isom_get_track_by_id(file, trackID);
@@ -1514,14 +1514,14 @@ static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
     return e;
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
 #endif
 
 static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
 	GF_Err e = GF_OK;
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 	u32 i, count, track, timescale;
 	AV1State av1;
 	ObuType obu_type = 0;
@@ -1617,7 +1617,7 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 static GF_Err dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
 	GF_Err e = GF_OK;
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 	u32 i, count, track, timescale;
 
 	track = gf_isom_get_track_by_id(file, trackID);
@@ -2743,7 +2743,9 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 	}
 }
 
+#if !defined(GPAC_DISABLE_INSPECT)
 void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc_num, u32 tc_den, u32 tmcd_fpt, char szFmt[100]);
+#endif
 
 static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool dump_m4sys, u32 mtype, u32 stsd_idx, Bool *is_od_track)
 {
@@ -3541,11 +3543,13 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			u32 tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt;
 
 			gf_isom_get_tmcd_config(file, trackNum, a_stsd_idx, &tmcd_flags, &tmcd_num, &tmcd_den, &tmcd_fpt);
+#if !defined(GPAC_DISABLE_INSPECT)
 			if (sample->data) {
 				char szTimecode[100];
 				gf_inspect_format_timecode(sample->data, sample->dataLength, tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt, szTimecode);
 				fprintf(stderr, "\tFirst timecode: %s\n", szTimecode);
 			}
+#endif
 			gf_isom_sample_del(&sample);
 		}
 	} else if (msub_type==GF_ISOM_SUBTYPE_OPUS) {

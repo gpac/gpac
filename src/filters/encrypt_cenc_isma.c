@@ -34,7 +34,7 @@
 
 #include <gpac/internal/media_dev.h>
 
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CECRYPT)
 
 
 enum
@@ -2687,7 +2687,7 @@ GF_FilterRegister CENCEncRegister = {
 
 const GF_FilterRegister *cecrypt_register(GF_FilterSession *session)
 {
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CECRYPT)
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {

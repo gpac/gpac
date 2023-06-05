@@ -1457,7 +1457,9 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 		GF_GPACArg _a;
 		memset(&_a, 0, sizeof(GF_GPACArg));
 		_a.name = a->arg_name;
+#ifndef GPAC_DISABLE_DOC
 		_a.description = a->arg_desc;
+#endif
 		_a.flags = GF_ARG_HINT_HIDE;
 		gf_sys_print_arg(NULL, 0, &_a, "");
 	}

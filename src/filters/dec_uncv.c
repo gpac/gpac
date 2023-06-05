@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
 
+#ifndef GPAC_DISABLE_UNCVDEC
+
 enum {
 	SAMPLING_NONE=0,
 	SAMPLING_422=1,
@@ -444,6 +446,7 @@ GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size
 	uncv_del(uncv);
 	return e;
 }
+
 
 static void uncv_check_comp_type(u32 type, Bool *has_mono, Bool *has_yuv, Bool *has_rgb, Bool *has_alpha, Bool *has_depth, Bool *has_disp, Bool *has_pal, Bool *has_fa, Bool *has_pad, Bool *has_non_int)
 {
@@ -1583,3 +1586,15 @@ const GF_FilterRegister *uncvdec_register(GF_FilterSession *session)
 {
 	return &UNCVDecRegister;
 }
+#else
+const GF_FilterRegister *uncvdec_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size)
+{
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+	return GF_OK;
+}
+#endif // GPAC_DISABLE_UNCVDEC

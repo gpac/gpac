@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFADTS)
 
 enum
 {
@@ -1048,10 +1048,10 @@ const GF_FilterRegister *rfadts_register(GF_FilterSession *session)
 {
 	return &ADTSDmxRegister;
 }
-
 #else
 const GF_FilterRegister *rfadts_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_AV_PARSERS
+#endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFADTS)
+

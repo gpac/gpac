@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -29,6 +29,8 @@
 #include <gpac/network.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/crypt.h>
+
+#ifndef GPAC_DISABLE_GSFMX
 
 typedef struct
 {
@@ -1333,3 +1335,10 @@ const GF_FilterRegister *gsfmx_register(GF_FilterSession *session)
 {
 	return &GSFMxRegister;
 }
+#else
+const GF_FilterRegister *gsfmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif
+

@@ -35,7 +35,7 @@
 #include <math.h>
 
 
-#ifndef GPAC_DISABLE_DASH_CLIENT
+#ifndef GPAC_DISABLE_DASHIN
 
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
@@ -10758,5 +10758,5 @@ void gf_dash_group_get_sar(GF_DashClient *dash, u32 group_idx, GF_Fraction *sar)
 	}
 	return;
 }
-#endif //GPAC_DISABLE_DASH_CLIENT
+#endif //GPAC_DISABLE_DASHIN
 

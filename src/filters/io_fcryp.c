@@ -30,7 +30,7 @@
 #include <gpac/crypt.h>
 #include <gpac/network.h>
 
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CRYPTFILE)
 
 enum
 {
@@ -693,4 +693,4 @@ GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV)
 {
 	return GF_NOT_SUPPORTED;
 }
-#endif
+#endif // !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CRYPTFILE)

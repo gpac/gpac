@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFAC3)
 
 typedef struct
 {
@@ -677,11 +677,9 @@ const GF_FilterRegister *rfac3_register(GF_FilterSession *session)
 {
 	return &AC3DmxRegister;
 }
-
 #else
-
 const GF_FilterRegister *rfac3_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_AV_PARSERS
+#endif // !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFAC3)

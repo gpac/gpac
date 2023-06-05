@@ -28,6 +28,8 @@
 #include <gpac/bitstream.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_RFQCP
+
 typedef struct
 {
 	u64 pos;
@@ -740,4 +742,10 @@ const GF_FilterRegister *rfqcp_register(GF_FilterSession *session)
 {
 	return &QCPDmxRegister;
 }
+#else
+const GF_FilterRegister *rfqcp_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_RFQCP
 

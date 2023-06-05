@@ -29,6 +29,8 @@
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
 
+#ifndef GPAC_DISABLE_SAF
+
 typedef struct
 {
 	GF_FilterPid *opid;
@@ -468,4 +470,10 @@ const GF_FilterRegister *safdmx_register(GF_FilterSession *session)
 {
 	return &SAFDmxRegister;
 }
+#else
+const GF_FilterRegister *safdmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif
 

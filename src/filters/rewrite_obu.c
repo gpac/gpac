@@ -28,7 +28,7 @@
 #include <gpac/bitstream.h>
 #include <gpac/internal/media_dev.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_UFOBU)
 
 typedef enum {
 	FRAMING_OBU 	= 0,
@@ -633,11 +633,11 @@ const GF_FilterRegister *ufobu_register(GF_FilterSession *session)
 {
 	return &OBUMxRegister;
 }
-
 #else
 const GF_FilterRegister *ufobu_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_AV_PARSERS
+#endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_UFOBU)
+
 

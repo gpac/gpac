@@ -31,6 +31,8 @@
 #include <gpac/isomedia.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_FLIST
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
 #endif
@@ -3134,4 +3136,10 @@ const GF_FilterRegister *flist_register(GF_FilterSession *session)
 {
 	return &FileListRegister;
 }
+#else
+const GF_FilterRegister *flist_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_FLIST
 

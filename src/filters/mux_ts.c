@@ -29,6 +29,7 @@
 #include <gpac/iso639.h>
 #include <gpac/webvtt.h>
 
+#if !defined(GPAC_DISABLE_MPEG2TS_MUX) || !defined(GPAC_DISABLE_MP4MX)
 
 void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char *file_exts, const char *mime_types, const char *def_ext)
 {
@@ -60,6 +61,8 @@ void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char
 	if (!found)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
 }
+#endif
+
 
 #ifndef GPAC_DISABLE_MPEG2TS_MUX
 

@@ -27,6 +27,8 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_POUT
+
 #ifdef WIN32
 
 #include <windows.h>
@@ -544,4 +546,10 @@ const GF_FilterRegister *pout_register(GF_FilterSession *session)
 	}
 	return &PipeOutRegister;
 }
+#else
+const GF_FilterRegister *pout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_POUT
 

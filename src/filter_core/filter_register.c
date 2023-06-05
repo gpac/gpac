@@ -396,6 +396,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 		if (!freg) continue;
 		assert( !strcmp(freg->name, BuiltinFilters[i].name));
 		gf_fs_add_filter_register(fsess, freg);
+
 	}
 
 	//load external modules
@@ -431,10 +432,12 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 GF_EXPORT
 void gf_fs_register_test_filters(GF_FilterSession *fsess)
 {
+#ifndef GPAC_DISABLE_UNITS
 	gf_fs_add_filter_register(fsess, ut_source_register(NULL) );
 	gf_fs_add_filter_register(fsess, ut_filter_register(NULL) );
 	gf_fs_add_filter_register(fsess, ut_sink_register(NULL) );
 	gf_fs_add_filter_register(fsess, ut_sink2_register(NULL) );
+#endif
 }
 
 

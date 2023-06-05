@@ -724,6 +724,10 @@ typedef struct {
 #define EM_CAST_PTR	(int)
 #endif
 
+#if defined(GPAC_DISABLE_DASHER) && defined(GPAC_DISABLE_DASHIN)
+#define GPAC_DISABLE_MPD
+#endif
+
 //define this to remove most of built-in doc of libgpac - for now filter description and help is removed, but argument help is not
 //#define GPAC_DISABLE_DOC
 

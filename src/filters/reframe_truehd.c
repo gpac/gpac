@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_RFTRUEHD
+
 typedef struct
 {
 	u64 pos;
@@ -820,4 +822,10 @@ const GF_FilterRegister *rftruehd_register(GF_FilterSession *session)
 {
 	return &TrueHDDmxRegister;
 }
+#else
+const GF_FilterRegister *rftruehd_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_RFTRUEHD
 

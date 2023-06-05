@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2022
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / tile aggregrator filter
@@ -29,6 +29,7 @@
 #include <gpac/constants.h>
 #include <gpac/media_tools.h>
 
+#ifndef GPAC_DISABLE_TILEAGG
 
 typedef struct
 {
@@ -573,5 +574,11 @@ const GF_FilterRegister *tileagg_register(GF_FilterSession *session)
 {
 	return &TileAggRegister;
 }
+#else
+const GF_FilterRegister *tileagg_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_TILEAGG
 
 

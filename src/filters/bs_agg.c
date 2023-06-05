@@ -28,6 +28,8 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/mpeg4_odf.h>
 
+#ifndef GPAC_DISABLE_BSAGG
+
 #define MAX_LID	64
 #define MAX_TID	7
 
@@ -922,3 +924,10 @@ const GF_FilterRegister *bsagg_register(GF_FilterSession *session)
 {
 	return (const GF_FilterRegister *) &BSAggRegister;
 }
+#else
+const GF_FilterRegister *bsagg_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif
+

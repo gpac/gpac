@@ -327,9 +327,6 @@ this macro is currently defined in setup.h */
 /*disables IETF RTP/SDP/RTSP*/
 //#define GPAC_DISABLE_STREAMING
 
-/*disables dashclient */
-//#define GPAC_DISABLE_DASH_CLIENT
-
 /*disables Timed Text support */
 //#define GPAC_DISABLE_TTXT
 

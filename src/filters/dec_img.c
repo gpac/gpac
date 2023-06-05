@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / libjpeg and libpng decoder filter
@@ -26,6 +26,8 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
+
+#ifndef GPAC_DISABLE_IMGDEC
 
 typedef struct
 {
@@ -174,3 +176,10 @@ const GF_FilterRegister *imgdec_register(GF_FilterSession *session)
 {
 	return &ImgDecRegister;
 }
+#else
+const GF_FilterRegister *imgdec_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_IMGDEC
+

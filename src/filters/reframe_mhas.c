@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#if !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFMHAS)
 
 
 static u32 USACSampleRates[] = {96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350, 0, 0,
@@ -917,11 +917,9 @@ const GF_FilterRegister *rfmhas_register(GF_FilterSession *session)
 {
 	return &MHASDmxRegister;
 }
-
 #else
-
 const GF_FilterRegister *rfmhas_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif //#if !defined(GPAC_DISABLE_AV_PARSERS)
+#endif //#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFMHAS)

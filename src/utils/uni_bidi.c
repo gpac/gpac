@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2012
+ *			Copyright (c) Telecom ParisTech 2007-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -25,6 +25,8 @@
 
 #include <gpac/utf.h>
 
+//for now only for SVG
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_COMPOSITOR)
 
 /*------------------------------------------------------------------------
 	Bidirectional Character Types
@@ -111,7 +113,6 @@ Bool gf_utf8_is_right_to_left(u16 *utf_string)
 	}
 	return GF_FALSE;
 }
-
 
 /*a very VERY basic bidi reorderer */
 GF_EXPORT
@@ -1489,3 +1490,5 @@ static int bidi_get_class(u32 val)
 	if (val==0x0000202C) return PDF;	//# Cf       POP DIRECTIONAL FORMATTING
 	return L;
 }
+
+#endif //!defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_COMPOSITOR)

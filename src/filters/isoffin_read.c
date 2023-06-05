@@ -25,7 +25,7 @@
 
 #include "isoffin.h"
 
-#ifndef GPAC_DISABLE_ISOM
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
 
 #include <gpac/crypt_tools.h>
 #include <gpac/media_tools.h>
@@ -1795,15 +1795,14 @@ GF_FilterRegister ISOFFInRegister = {
 	.probe_data = isoffin_probe_data
 };
 
-
-#endif /*GPAC_DISABLE_ISOM*/
-
 const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)
 {
-#ifdef GPAC_DISABLE_ISOM
-	return NULL;
-#else
 	return &ISOFFInRegister;
-#endif /*GPAC_DISABLE_ISOM*/
 }
+#else
+const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
 

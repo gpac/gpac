@@ -29,7 +29,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 
-#if !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_TILESPLIT)
 
 typedef struct
 {
@@ -592,13 +592,11 @@ const GF_FilterRegister *tilesplit_register(GF_FilterSession *session)
 {
 	return &TileSplitRegister;
 }
-
 #else
-
 const GF_FilterRegister *tilesplit_register(GF_FilterSession *session)
 {
 	return NULL;
 }
+#endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_TILESPLIT)
 
-#endif /* !defined(GPAC_DISABLE_AV_PARSERS) */
 

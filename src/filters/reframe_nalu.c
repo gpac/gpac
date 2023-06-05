@@ -30,7 +30,7 @@
 //for oinf stuff
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFNALU)
 
 #define CTS_POC_OFFSET_SAFETY	1000
 
@@ -4285,10 +4285,10 @@ const GF_FilterRegister *rfnalu_register(GF_FilterSession *session)
 {
 	return &NALUDmxRegister;
 }
-
 #else
 const GF_FilterRegister *rfnalu_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif //GPAC_DISABLE_AV_PARSERS
+#endif //#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFNALU)
+

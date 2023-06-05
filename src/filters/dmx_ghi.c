@@ -31,6 +31,8 @@
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_GHIDMX
+
 typedef struct
 {
 	u64 first_tfdt, first_pck_seq, seg_duration, frag_start_offset, frag_tfdt;
@@ -1346,4 +1348,10 @@ const GF_FilterRegister *ghidmx_register(GF_FilterSession *session)
 {
 	return &GHIDXDmxRegister;
 }
+#else
+const GF_FilterRegister *ghidmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_GHIDMX
 

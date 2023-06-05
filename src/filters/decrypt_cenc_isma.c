@@ -32,7 +32,7 @@
 #include <gpac/network.h>
 #include <gpac/internal/media_dev.h>
 
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CDCRYPT)
 
 //#define OLD_KEY_FETCHERS
 
@@ -2503,7 +2503,7 @@ GF_FilterRegister CENCDecRegister = {
 
 const GF_FilterRegister *cdcrypt_register(GF_FilterSession *session)
 {
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CDCRYPT)
 	return &CENCDecRegister;
 #else
 	return NULL;
