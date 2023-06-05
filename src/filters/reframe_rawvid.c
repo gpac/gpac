@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_RFRAWVID
+
 typedef struct
 {
 	//opts
@@ -497,4 +499,11 @@ const GF_FilterRegister *rfrawvid_register(GF_FilterSession *session)
 	RawVidReframeCaps[1].val.value.string = (char *) gf_pixel_fmt_all_shortnames();
 	return &RawVidReframeRegister;
 }
+#else
+const GF_FilterRegister *rfrawvid_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_RFRAWVID
+
 

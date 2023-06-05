@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / video cropping filter
@@ -27,6 +27,8 @@
 #include <gpac/list.h>
 #include <gpac/constants.h>
 #include <gpac/network.h>
+
+#ifndef GPAC_DISABLE_VCROP
 
 typedef struct
 {
@@ -626,3 +628,11 @@ const GF_FilterRegister *vcrop_register(GF_FilterSession *session)
 {
 	return &VCropRegister;
 }
+#else
+const GF_FilterRegister *vcrop_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_VCROP
+
+

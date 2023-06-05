@@ -195,7 +195,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_strlcpy) )
 
 /* Sound */
-#ifndef GPAC_DISABLE_COMPOSITOR
+#if !defined(GPAC_DISABLE_COMPOSITOR) &&  !defined(GPAC_DISABLE_RESAMPLE)
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_set_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mixer_reconfig) )
@@ -424,7 +424,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_to_wcs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_wcs_to_utf8) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_legal) )
-#ifndef GPAC_DISABLE_COMPOSITOR
+
+#if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_COMPOSITOR)
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_right_to_left) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
 #endif
@@ -2184,7 +2185,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_print_info) )
 #endif
 
-#ifndef GPAC_DISABLE_DASH_CLIENT
+#ifndef GPAC_DISABLE_DASHIN
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_open) )

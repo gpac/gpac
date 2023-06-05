@@ -28,6 +28,8 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/mpeg4_odf.h>
 
+#ifndef GPAC_DISABLE_BSRW
+
 typedef struct _bsrw_pid_ctx BSRWPid;
 typedef struct _bsrw_ctx GF_BSRWCtx;
 
@@ -747,3 +749,10 @@ const GF_FilterRegister *bsrw_register(GF_FilterSession *session)
 	}
 	return (const GF_FilterRegister *) &BSRWRegister;
 }
+#else
+const GF_FilterRegister *bsrw_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_BSRW
+

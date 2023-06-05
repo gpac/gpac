@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2022
+ *			Copyright (c) Telecom Paris 2022-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / restamper filter
@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/mpeg4_odf.h>
+
+#ifndef GPAC_DISABLE_RESTAMP
 
 typedef struct
 {
@@ -520,7 +522,7 @@ static const GF_FilterCapability RestampCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 };
 
-GF_FilterRegister RestampRegister = {
+const GF_FilterRegister RestampRegister = {
 	.name = "restamp",
 	GF_FS_SET_DESCRIPTION("Packet timestamp rewriter")
 	GF_FS_SET_HELP("This filter rewrites timing (offsets and rate) of packets.\n"
@@ -552,5 +554,12 @@ GF_FilterRegister RestampRegister = {
 
 const GF_FilterRegister *restamp_register(GF_FilterSession *session)
 {
-	return (const GF_FilterRegister *) &RestampRegister;
+	return &RestampRegister;
 }
+#else
+const GF_FilterRegister *restamp_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_RESTAMP
+

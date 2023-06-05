@@ -28,6 +28,8 @@
 #include <gpac/bitstream.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_UFM4V
+
 typedef struct
 {
 	//opts
@@ -258,3 +260,19 @@ const GF_FilterRegister *ufvc1_register(GF_FilterSession *session)
 #endif
 	return &VC1VMxRegister;
 }
+
+#else
+const GF_FilterRegister *ufm4v_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *ufvc1_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+#endif //#ifndef GPAC_DISABLE_UFM4V
+
+
+
+

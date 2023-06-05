@@ -28,7 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#if defined(GPAC_CONFIG_DARWIN) && defined(__arm64__)
+#if defined(GPAC_CONFIG_DARWIN) && defined(__arm64__) && !defined(GPAC_DISABLE_NVDEC)
 #define GPAC_DISABLE_NVDEC
 #endif
 

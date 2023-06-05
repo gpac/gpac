@@ -29,6 +29,8 @@
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
 
+#ifndef GPAC_DISABLE_NHNTR
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
 #endif
@@ -523,4 +525,10 @@ const GF_FilterRegister *nhntr_register(GF_FilterSession *session)
 {
 	return &NHNTDmxRegister;
 }
+#else
+const GF_FilterRegister *nhntr_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_NHNTR
 

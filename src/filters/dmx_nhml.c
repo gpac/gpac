@@ -33,6 +33,8 @@
 #include <gpac/isomedia.h>
 #include <gpac/base_coding.h>
 
+#ifndef GPAC_DISABLE_NHMLR
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
 #endif
@@ -1769,4 +1771,9 @@ const GF_FilterRegister *nhmlr_register(GF_FilterSession *session)
 {
 	return &NHMLDmxRegister;
 }
-
+#else
+const GF_FilterRegister *nhmlr_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_NHMLR

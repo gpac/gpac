@@ -28,7 +28,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/mpeg4_odf.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_BSSPLIT)
 
 typedef struct
 {
@@ -1483,7 +1483,7 @@ GF_FilterRegister BSSplitRegister = {
 
 const GF_FilterRegister *bssplit_register(GF_FilterSession *session)
 {
-#ifndef GPAC_DISABLE_AV_PARSERS
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_BSSPLIT)
 	return (const GF_FilterRegister *) &BSSplitRegister;
 #else
 	return NULL;

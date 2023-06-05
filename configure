@@ -142,6 +142,8 @@ esac
 nb_features=0
 all_features=""
 all_descs=""
+nb_filters=0
+all_filters=""
 
 push_feature()
 {
@@ -156,6 +158,18 @@ push_feature()
     else
         eval "disable_$var=\"no\""
     fi
+
+    if test "$fc" = "*" ; then
+        desc=`echo $desc | cut -c2-`
+        desc="$desc filter"
+        if [ -z $all_filters ] ; then
+            all_filters="$1"
+        else
+            all_filters="$all_filters|$1"
+        fi
+        nb_filters=$((nb_filters+1))
+    fi
+
 
     if [ -z $all_features ] ; then
         all_features="$1"
@@ -214,7 +228,6 @@ push_feature "isoff-hint" "ISOBMFF hinting support"
 push_feature "isoff-frag" "ISOBMFF fragments support"
 push_feature "isoff-hds" "Adobe HDS in ISOBMFF support"
 push_feature "streaming" "RTP/RTSP/SDP support"
-push_feature "compositor" "Compositor filter"
 push_feature "fonts" "Font and Text engine (used by compositor and EVG.js"
 push_feature "player" "deprecated - old name for compositor feature"
 push_feature "dvbx" "!DVB-specific tools (MPE, FEC, DSM-CC)"
@@ -222,22 +235,84 @@ push_feature "vobsub" "VobSub support"
 push_feature "ttxt" "TTXT (3GPP / MPEG-4 Timed Text) support"
 push_feature "ttml" "TTML/EBU TTD support"
 push_feature "vtt" "WebVTT support"
-push_feature "mpd" "DASH MPD read/write support"
-push_feature "dash" "DASH and HLS support"
-push_feature "hevc" "HEVC support"
 push_feature "route" "ROUTE (ATSC3) support"
 push_feature "qjs" "QuickJS support"
 push_feature "qjs-libc" "QuickJS libc module support"
 push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multithreaded modes)"
-push_feature "nvdec" "NVDec support"
 push_feature "tinygl" "!TinyGL support"
 push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
-push_feature "vout" "video output filter"
-push_feature "aout" "audio output filter"
 push_feature "avdevice" "avdevice support in FFMPEG"
 push_feature "avfilter" "avfilter support in FFMPEG"
 
+push_feature "compositor" "*Compositor"
+push_feature "vout" "*video output"
+push_feature "aout" "*audio output"
+push_feature "bsagg" "*scalable bitstream aggregator"
+push_feature "bssplit" "*scalable bitstream spliter"
+push_feature "bsrw" "*bitstream rewriter"
+push_feature "dasher" "*DASH/HLS mux"
+push_feature "dashin" "*DASH/HLS demux"
+push_feature "imgdec" "*image decoder"
+push_feature "uncvdec" "*uncompressed video decoder"
+push_feature "cdcrypt" "*CENC decryptor"
+push_feature "ghidmx" "*GPAC HTTP Streaming index demuxer"
+push_feature "gsfdmx" "*GPAC serialized format demuxer"
+push_feature "nhmlr" "*NHML demuxer"
+push_feature "nhntr" "*NHNT demuxer"
+push_feature "cecrypt" "*CENC Encryptor"
+push_feature "flist" "*Playlist concetenator"
+push_feature "hevcmerge" "*HEVC tile merger"
+push_feature "hevcsplit" "*HEVC tile spliter"
+push_feature "fin" "*File input"
+push_feature "pin" "*Pipe input"
+push_feature "inspect" "*Inspecter"
+push_feature "cryptfile" "*Crypted input and output file"
+push_feature "mp4dmx" "*MP4/QT demuxer"
+push_feature "txtin" "*Subtitle loader"
+push_feature "gsfmx" "*GPAC serialized format demuxer"
+push_feature "mp4mx" "*MP4/QT muxer"
+push_feature "fout" "*File output"
+push_feature "pout" "*Pipe output"
+push_feature "rfac3" "*AC3 parser"
+push_feature "rfadts" "*ADTS parser"
+push_feature "rfamr" "*AMR parser"
+push_feature "rfav1" "*AV1/VP9 parser"
+push_feature "rfflac" "*FLAC parser"
+push_feature "rfh263" "*H263 parser"
+push_feature "rfimg" "*Image parser"
+push_feature "rflatm" "*LATM parser"
+push_feature "rfmhas" "*MPEG-H Audio parser"
+push_feature "rfmp3" "*MP3 parser"
+push_feature "rfmpgvid" "*MPEG 1/2/4 video parser"
+push_feature "rfnalu" "*NALU-based video parser"
+push_feature "rfprores" "*QT ProRes parser"
+push_feature "rfqcp" "*QCP file parser"
+push_feature "rfpcm" "*Raw PCM and wav parser"
+push_feature "rfrawvid" "*Raw video parser"
+push_feature "rftruehd" "*Dolby TrueHD parser"
+push_feature "reframer" "*Reframer"
+push_feature "resample" "*Audio resampler"
+push_feature "restamp" "*Restamper"
+push_feature "rewind" "*Reverse playback"
+push_feature "ufaac" "*ADTS and LATM rewriter"
+push_feature "ufmhas" "*MPEG-H Audio rewriter"
+push_feature "ufm4v" "*MPEG 1/2/4 and VC1 video rewriter"
+push_feature "ufnalu" "*NALU-based video rewriter"
+push_feature "ufobu" "*AV1/VP9 video rewriter"
+push_feature "tileagg" "*HEVC Tile aggregator"
+push_feature "tilesplit" "*HEVC Tile spliter"
+push_feature "ttmlconv" "*TTML conversion"
+push_feature "unframer" "*Unframer"
+push_feature "vcrop" "*Video croping"
+push_feature "vflip" "*Video flip"
+push_feature "writegen" "*Generic rewriter"
+push_feature "nhmlw" "*NHML writer"
+push_feature "nhntw" "*NHNT writer"
+push_feature "writeqcp" "*QCP writer"
+push_feature "units" "*unit tests"
+push_feature "nvdec" "*NVDec decoder"
+push_feature "vtbdec" "*VideoToolBox (OSX/iOS) decoder"
 
 ar_it=""
 get_item()
@@ -381,6 +456,7 @@ cat << EOF
 
 NOTE: The object files are built at the place where configure is launched
 EOF
+
 exit 1
 fi
 #end help
@@ -514,6 +590,7 @@ set_package ()
     echo "no package pck $1 - please check help (-h)"
     exit 1
 }
+
 
 #parse all options
 for opt do
@@ -2009,11 +2086,6 @@ if test "$disable_scenegraph" = "yes" ; then
     disable_streaming="yes"
     disable_compositor="yes"
     disable_smgr="yes"
-    disable_nvdec="yes"
-fi
-
-if test "$disable_mpd" = "yes"; then
-    disable_dash="yes"
 fi
 
 if test "$disable_od_parse" = "yes" ; then
@@ -2314,21 +2386,6 @@ fi
 
 if test "$disable_qjs_stack" = "no" ; then
     echo "#define GPAC_QJS_STACK_CHECK" >> $TMPH
-fi
-
-if test "$disable_mpd" = "yes" ; then
-    echo "HLS and DASH Manifest Disabled"
-    echo "#define GPAC_DISABLE_MPD" >> $TMPH
-fi
-
-if test "$disable_dash" = "yes" ; then
-    echo "Adaptive HTTP Streaming Client disabled"
-    echo "#define GPAC_DISABLE_DASH_CLIENT" >> $TMPH
-fi
-
-if test "$disable_hevc" = "yes" ; then
-    echo "HEVC Support disabled"
-    echo "#define GPAC_DISABLE_HEVC" >> $TMPH
 fi
 
 if test "$disable_doc" = "yes" ; then
@@ -2804,6 +2861,19 @@ for pcklib in $all_packages ; do
 done
 
 
+idx=1
+while [ $idx -le $nb_filters ]; do
+    get_item $idx "$all_filters"
+    name="$ar_it"
+    var=$(printf '%s' "$name" | tr '-' '_')
+    ret=""
+    eval "ret=\${disable_$var}"
+    uvar=`echo $var | tr a-z A-Z`
+    if test "$ret" = "yes" ; then
+        echo "#define GPAC_DISABLE_$uvar" >> $TMPH
+    fi
+    idx=$((idx+1))
+done
 
 echo "DISABLE_COMPOSITOR=$disable_compositor" >> config.mak
 echo "DISABLE_STREAMING=$disable_streaming" >> config.mak
@@ -2835,8 +2905,6 @@ echo "DISABLE_SMGR=$disable_smgr" >> config.mak
 echo "DISABLE_AV_PARSERS=$disable_parsers" >> config.mak
 echo "DISABLE_MEDIA_IMPORT=$disable_import" >> config.mak
 echo "DISABLE_MEDIA_EXPORT=$disable_export" >> config.mak
-echo "DISABLE_MPD=$disable_mpd" >> config.mak
-echo "DISABLE_DASH_CLIENT=$disable_dash" >> config.mak
 echo "DISABLE_CORE_TOOLS=$disable_core" >> config.mak
 echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
 echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
@@ -2865,10 +2933,6 @@ fi
 
 if test "$has_tinygl" = "yes" ; then
     echo "#define GPAC_USE_TINYGL" >> $TMPH
-fi
-
-if test "$disable_nvdec" = "yes" ; then
-    echo "#define GPAC_DISABLE_NVDEC" >> $TMPH
 fi
 
 if test "$has_sdl" != "no" ; then

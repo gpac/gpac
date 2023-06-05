@@ -28,6 +28,7 @@
 #include <gpac/avparse.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_RFIMG
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
@@ -437,5 +438,12 @@ const GF_FilterRegister *rfimg_register(GF_FilterSession *session)
 {
 	return &ReframeImgRegister;
 }
+#else
+const GF_FilterRegister *rfimg_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_RFIMG
+
 
 

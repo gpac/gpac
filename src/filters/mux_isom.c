@@ -28,7 +28,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MP4MX)
 
 #define TEXT_DEFAULT_WIDTH	400
 #define TEXT_DEFAULT_HEIGHT	60
@@ -8224,7 +8224,6 @@ const GF_FilterRegister *mp4mx_register(GF_FilterSession *session)
 {
 	return &MP4MuxRegister;
 }
-
 #else
 const GF_FilterRegister *mp4mx_register(GF_FilterSession *session)
 {

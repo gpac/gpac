@@ -28,6 +28,8 @@
 #include <gpac/constants.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_PIN
+
 #ifdef WIN32
 
 #include <windows.h>
@@ -577,3 +579,10 @@ const GF_FilterRegister *pin_register(GF_FilterSession *session)
 	}
 	return &PipeInRegister;
 }
+#else
+const GF_FilterRegister *pin_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_PIN
+

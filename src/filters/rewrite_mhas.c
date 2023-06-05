@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
+#ifndef GPAC_DISABLE_UFMHAS
+
 #include <gpac/avparse.h>
 
 
@@ -276,4 +278,10 @@ const GF_FilterRegister *ufmhas_register(GF_FilterSession *session)
 {
 	return &MHASMxRegister;
 }
+#else
+const GF_FilterRegister *ufmhas_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_UFMHAS
 

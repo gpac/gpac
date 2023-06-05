@@ -40,7 +40,7 @@
 #include <gpac/internal/swf_dev.h>
 #endif
 
-#if !defined(GPAC_DISABLE_ISOM_WRITE)
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_TXTIN)
 
 #define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
 
@@ -1371,6 +1371,10 @@ static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **out_body_node)
 	}
 }
 
+#endif
+
+#if !defined(GPAC_DISABLE_TXTIN) || !defined(GPAC_DISABLE_TTMLCONV)
+
 u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *ttml_fps_den, u32 *ttml_sfps)
 {
 	u32 h, m, s, ms, f, sf;
@@ -1465,6 +1469,11 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 	}
 	return ts;
 }
+#endif
+
+
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_TXTIN)
+
 static u64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 {
 	return ttml_get_timestamp_ex(value, ctx->tick_rate, &ctx->ttml_fps_num, &ctx->ttml_fps_den, &ctx->ttml_sfps);
@@ -1852,6 +1861,11 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	return GF_OK;
 }
 
+#endif
+
+
+#if !defined(GPAC_DISABLE_TTMLCONV) || !defined(GPAC_DISABLE_TXTIN)
+
 GF_Err ttml_parse_root(GF_XMLNode *root, const char **lang, u32 *tick_rate, u32 *ttml_fps_num, u32 *ttml_fps_den, u32 *ttml_sfps)
 {
 	/*** root (including language) ***/
@@ -1914,6 +1928,9 @@ GF_Err ttml_parse_root(GF_XMLNode *root, const char **lang, u32 *tick_rate, u32 
 	}
 	return GF_OK;
 }
+#endif
+
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_TXTIN)
 
 static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
@@ -4609,4 +4626,4 @@ const GF_FilterRegister *rfsrt_register(GF_FilterSession *session)
 	return NULL;
 }
 
-#endif // GPAC_DISABLE_ISOM_WRITE
+#endif // !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_TXTIN)

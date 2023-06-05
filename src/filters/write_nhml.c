@@ -28,6 +28,8 @@
 #include <gpac/bitstream.h>
 #include <gpac/base_coding.h>
 
+#ifndef GPAC_DISABLE_NHMLW
+
 #include <gpac/internal/isomedia_dev.h>
 
 #ifndef GPAC_DISABLE_ZLIB
@@ -1027,4 +1029,11 @@ const GF_FilterRegister *nhmlw_register(GF_FilterSession *session)
 {
 	return &NHMLDumpRegister;
 }
+#else
+const GF_FilterRegister *nhmlw_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_NHMLW
+
 

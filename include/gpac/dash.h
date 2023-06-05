@@ -47,7 +47,7 @@ extern "C" {
 #include <gpac/tools.h>
 #include <gpac/list.h>
 
-#ifndef GPAC_DISABLE_DASH_CLIENT
+#ifndef GPAC_DISABLE_DASHIN
 
 /*!
  * All the possible Mime-types for MPD files
@@ -1185,7 +1185,7 @@ void gf_dash_set_algo_custom(GF_DashClient *dash, void *udta,
 		gf_dash_download_monitor download_monitor_custom);
 
 
-#endif //GPAC_DISABLE_DASH_CLIENT
+#endif //GPAC_DISABLE_DASHIN
 
 /*!	@} */
 

@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_RFH263
+
 typedef struct
 {
 	u64 pos;
@@ -773,3 +775,10 @@ const GF_FilterRegister *rfh263_register(GF_FilterSession *session)
 {
 	return &H263DmxRegister;
 }
+#else
+const GF_FilterRegister *rfh263_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //GPAC_DISABLE_RFH263
+

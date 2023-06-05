@@ -26,7 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_DISABLE_DASH_CLIENT
+#ifndef GPAC_DISABLE_DASHIN
 
 #include <gpac/dash.h>
 
@@ -532,7 +532,7 @@ static Bool dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 	return GF_FALSE;
 }
 
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CRYPTFILE)
 void gf_cryptfin_set_kms(GF_Filter *f, const char *key_url, bin128 key_IV);
 #endif
 
@@ -638,7 +638,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	//if HLS AES-CBC, set key BEFORE discarding segment URL (if TS, discarding the segment will discard the key uri)
 	if (key_uri) {
 		if (crypto_type==1) {
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CRYPTFILE)
 			gf_cryptfin_set_kms(group->seg_filter_src, key_uri, key_IV);
 #else
 			gf_free(sURL);
@@ -2999,7 +2999,7 @@ fetch_next:
 
 	if (next_url_init_or_switch_segment && !group->init_switch_seg_sent) {
 		if (group->in_is_cryptfile) {
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CRYPTFILE)
 			gf_cryptfin_set_kms(group->seg_filter_src, key_url, key_IV);
 #endif
 		}
@@ -3045,7 +3045,7 @@ fetch_next:
 	}
 
 	if (group->in_is_cryptfile) {
-#ifndef GPAC_DISABLE_CRYPTO
+#if !defined(GPAC_DISABLE_CRYPTO) && !defined(GPAC_DISABLE_CRYPTFILE)
 		gf_cryptfin_set_kms(group->seg_filter_src, key_url, key_IV);
 #endif
 	}
@@ -3631,11 +3631,11 @@ GF_FilterRegister DASHDmxRegister = {
 };
 
 
-#endif //GPAC_DISABLE_DASH_CLIENT
+#endif // GPAC_DISABLE_DASHIN
 
 const GF_FilterRegister *dashin_register(GF_FilterSession *session)
 {
-#ifndef GPAC_DISABLE_DASH_CLIENT
+#ifndef GPAC_DISABLE_DASHIN
 	return &DASHDmxRegister;
 #else
 	return NULL;
@@ -3643,7 +3643,7 @@ const GF_FilterRegister *dashin_register(GF_FilterSession *session)
 }
 
 
-#ifndef GPAC_DISABLE_DASH_CLIENT
+#ifndef GPAC_DISABLE_DASHIN
 static s32 dashdmx_rate_adaptation_ext(void *udta, u32 group_idx, u32 base_group_idx, Bool force_lower_complexity, GF_DASHCustomAlgoInfo *stats)
 {
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) udta;
@@ -3674,7 +3674,7 @@ static s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_
 	stats.current_seg_dur = current_seg_dur;
 	return ctx->on_download_monitor(ctx->rt_udta, group_idx, &stats);
 }
-#endif /*GPAC_DISABLE_DASH_CLIENT*/
+#endif // GPAC_DISABLE_DASHIN
 
 
 GF_EXPORT
@@ -3685,9 +3685,7 @@ GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,
 		s32 (*download_monitor)(void *udta, u32 group_idx, void *stats)
 )
 {
-#ifdef GPAC_DISABLE_DASH_CLIENT
-	return GF_NOT_SUPPORTED;
-#else
+#ifndef GPAC_DISABLE_DASHIN
 	if (!gf_filter_is_instance_of(filter, &DASHDmxRegister))
 		return GF_BAD_PARAM;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
@@ -3710,6 +3708,7 @@ GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,
 		gf_dash_set_algo(ctx->dash, GF_DASH_ALGO_GPAC_LEGACY_BUFFER);
 	}
 	return GF_OK;
-
+#else
+	return GF_NOT_SUPPORTED;
 #endif
 }

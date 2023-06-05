@@ -28,7 +28,7 @@
 #include <gpac/filters.h>
 #include <gpac/internal/media_dev.h>
 
-#ifndef GPAC_DISABLE_AV_PARSERS
+#ifndef GPAC_DISABLE_RFPRORES
 
 typedef struct
 {
@@ -698,11 +698,10 @@ const GF_FilterRegister *rfprores_register(GF_FilterSession *session)
 {
 	return &ProResDmxRegister;
 }
-
 #else
 const GF_FilterRegister *rfprores_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_AV_PARSERS
+#endif // GPAC_DISABLE_RFPRORES
 

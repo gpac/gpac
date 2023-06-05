@@ -1257,6 +1257,201 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_AOUT
 	                       "GPAC_DISABLE_AOUT "
 #endif
+#ifdef GPAC_DISABLE_BSAGG
+	                       "GPAC_DISABLE_BSAGG "
+#endif
+#ifdef GPAC_DISABLE_BSSPLIT
+	                       "GPAC_DISABLE_BSSPLIT "
+#endif
+#ifdef GPAC_DISABLE_BSRW
+	                       "GPAC_DISABLE_BSRW "
+#endif
+#ifdef GPAC_DISABLE_DASHER
+	                       "GPAC_DISABLE_DASHER "
+#endif
+#ifdef GPAC_DISABLE_DASHIN
+	                       "GPAC_DISABLE_DASHIN "
+#endif
+#ifdef GPAC_DISABLE_IMGDEC
+	                       "GPAC_DISABLE_IMGDEC "
+#endif
+#ifdef GPAC_DISABLE_UNCVDEC
+	                       "GPAC_DISABLE_UNCVDEC "
+#endif
+#ifdef GPAC_DISABLE_CDCRYPT
+	                       "GPAC_DISABLE_CDCRYPT "
+#endif
+#ifdef GPAC_DISABLE_GHIDMX
+	                       "GPAC_DISABLE_GHIDMX "
+#endif
+#ifdef GPAC_DISABLE_GSFDMX
+	                       "GPAC_DISABLE_GSFDMX "
+#endif
+#ifdef GPAC_DISABLE_NHMLR
+	                       "GPAC_DISABLE_NHMLR "
+#endif
+#ifdef GPAC_DISABLE_NHNTR
+	                       "GPAC_DISABLE_NHNTR "
+#endif
+#ifdef GPAC_DISABLE_CECRYPT
+	                       "GPAC_DISABLE_CECRYPT "
+#endif
+#ifdef GPAC_DISABLE_FLIST
+	                       "GPAC_DISABLE_FLIST "
+#endif
+#ifdef GPAC_DISABLE_HEVCMERGE
+	                       "GPAC_DISABLE_HEVCMERGE "
+#endif
+#ifdef GPAC_DISABLE_HEVCSPLIT
+	                       "GPAC_DISABLE_HEVCSPLIT "
+#endif
+#ifdef GPAC_DISABLE_FIN
+	                       "GPAC_DISABLE_FIN "
+#endif
+#ifdef GPAC_DISABLE_PIN
+	                       "GPAC_DISABLE_PIN "
+#endif
+#ifdef GPAC_DISABLE_INSPECT
+	                       "GPAC_DISABLE_INSPECT "
+#endif
+#ifdef GPAC_DISABLE_CRYPTFILE
+	                       "GPAC_DISABLE_CRYPTFILE "
+#endif
+#ifdef GPAC_DISABLE_MP4DMX
+	                       "GPAC_DISABLE_MP4DMX "
+#endif
+#ifdef GPAC_DISABLE_TXTIN
+	                       "GPAC_DISABLE_TXTIN "
+#endif
+#ifdef GPAC_DISABLE_GSFMX
+	                       "GPAC_DISABLE_GSFMX "
+#endif
+#ifdef GPAC_DISABLE_MP4MX
+	                       "GPAC_DISABLE_MP4MX "
+#endif
+#ifdef GPAC_DISABLE_FOUT
+	                       "GPAC_DISABLE_FOUT "
+#endif
+#ifdef GPAC_DISABLE_POUT
+	                       "GPAC_DISABLE_POUT "
+#endif
+#ifdef GPAC_DISABLE_RFAC3
+	                       "GPAC_DISABLE_RFAC3 "
+#endif
+#ifdef GPAC_DISABLE_RFADTS
+	                       "GPAC_DISABLE_RFADTS "
+#endif
+#ifdef GPAC_DISABLE_RFAMR
+	                       "GPAC_DISABLE_RFAMR "
+#endif
+#ifdef GPAC_DISABLE_RFAV1
+	                       "GPAC_DISABLE_RFAV1 "
+#endif
+#ifdef GPAC_DISABLE_RFFLAC
+	                       "GPAC_DISABLE_RFFLAC "
+#endif
+#ifdef GPAC_DISABLE_RFH263
+	                       "GPAC_DISABLE_RFH263 "
+#endif
+#ifdef GPAC_DISABLE_RFIMG
+	                       "GPAC_DISABLE_RFIMG "
+#endif
+#ifdef GPAC_DISABLE_RFLATM
+	                       "GPAC_DISABLE_RFLATM "
+#endif
+#ifdef GPAC_DISABLE_RFMHAS
+	                       "GPAC_DISABLE_RFMHAS "
+#endif
+#ifdef GPAC_DISABLE_RFMP3
+	                       "GPAC_DISABLE_RFMP3 "
+#endif
+#ifdef GPAC_DISABLE_RFMPGVID
+	                       "GPAC_DISABLE_RFMPGVID "
+#endif
+#ifdef GPAC_DISABLE_RFNALU
+	                       "GPAC_DISABLE_RFNALU "
+#endif
+#ifdef GPAC_DISABLE_RFPRORES
+	                       "GPAC_DISABLE_RFPRORES "
+#endif
+#ifdef GPAC_DISABLE_RFQCP
+	                       "GPAC_DISABLE_RFQCP "
+#endif
+#ifdef GPAC_DISABLE_RFPCM
+	                       "GPAC_DISABLE_RFPCM "
+#endif
+#ifdef GPAC_DISABLE_RFRAWVID
+	                       "GPAC_DISABLE_RFRAWVID "
+#endif
+#ifdef GPAC_DISABLE_RFTRUEHD
+	                       "GPAC_DISABLE_RFTRUEHD "
+#endif
+#ifdef GPAC_DISABLE_REFRAMER
+	                       "GPAC_DISABLE_REFRAMER "
+#endif
+#ifdef GPAC_DISABLE_RESAMPLE
+	                       "GPAC_DISABLE_RESAMPLE "
+#endif
+#ifdef GPAC_DISABLE_RESTAMP
+	                       "GPAC_DISABLE_RESTAMP "
+#endif
+#ifdef GPAC_DISABLE_REWIND
+	                       "GPAC_DISABLE_REWIND "
+#endif
+#ifdef GPAC_DISABLE_UFAAC
+	                       "GPAC_DISABLE_UFAAC "
+#endif
+#ifdef GPAC_DISABLE_UFMHAS
+	                       "GPAC_DISABLE_UFMHAS "
+#endif
+#ifdef GPAC_DISABLE_UFM4V
+	                       "GPAC_DISABLE_UFM4V "
+#endif
+#ifdef GPAC_DISABLE_UFNALU
+	                       "GPAC_DISABLE_UFNALU "
+#endif
+#ifdef GPAC_DISABLE_UFOBU
+	                       "GPAC_DISABLE_UFOBU "
+#endif
+#ifdef GPAC_DISABLE_TILEAGG
+	                       "GPAC_DISABLE_TILEAGG "
+#endif
+#ifdef GPAC_DISABLE_TILESPLIT
+	                       "GPAC_DISABLE_TILESPLIT "
+#endif
+#ifdef GPAC_DISABLE_TTMLCONV
+	                       "GPAC_DISABLE_TTMLCONV "
+#endif
+#ifdef GPAC_DISABLE_UNFRAMER
+	                       "GPAC_DISABLE_UNFRAMER "
+#endif
+#ifdef GPAC_DISABLE_VCROP
+	                       "GPAC_DISABLE_VCROP "
+#endif
+#ifdef GPAC_DISABLE_VFLIP
+	                       "GPAC_DISABLE_VFLIP "
+#endif
+#ifdef GPAC_DISABLE_WRITEGEN
+	                       "GPAC_DISABLE_WRITEGEN "
+#endif
+#ifdef GPAC_DISABLE_NHMLW
+	                       "GPAC_DISABLE_NHMLW "
+#endif
+#ifdef GPAC_DISABLE_NHNTW
+	                       "GPAC_DISABLE_NHNTW "
+#endif
+#ifdef GPAC_DISABLE_WRITEQCP
+	                       "GPAC_DISABLE_WRITEQCP "
+#endif
+#ifdef GPAC_DISABLE_UNITS
+	                       "GPAC_DISABLE_UNITS "
+#endif
+#ifdef GPAC_DISABLE_NVDEC
+	                       "GPAC_DISABLE_NVDEC "
+#endif
+#ifdef GPAC_DISABLE_VTBDEC
+	                       "GPAC_DISABLE_VTBDEC "
+#endif
 	                       ;
 	return features;
 }

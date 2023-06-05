@@ -32,7 +32,7 @@
 #include <gpac/xml.h>
 
 
-#if !defined(GPAC_DISABLE_ISOM_WRITE)
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_TTMLCONV)
 
 typedef struct
 {
@@ -384,4 +384,4 @@ const GF_FilterRegister *ttml2srt_register(GF_FilterSession *session)
 	return NULL;
 }
 
-#endif //#if !defined(GPAC_DISABLE_ISOM_WRITE) 
+#endif //#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_TTMLCONV)

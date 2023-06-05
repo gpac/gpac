@@ -31,7 +31,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 
-#if !defined(GPAC_DISABLE_AV_PARSERS)
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVCSPLIT)
 
 typedef struct
 {
@@ -957,11 +957,10 @@ const GF_FilterRegister* hevcsplit_register(GF_FilterSession *session)
 {
 	return &HEVCSplitRegister;
 }
-
 #else
 const GF_FilterRegister* hevcsplit_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // GPAC_DISABLE_AV_PARSERS
+#endif // GPAC_DISABLE_AV_PARSERS && !GPAC_DISABLE_HEVCSPLIT
 

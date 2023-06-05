@@ -26,7 +26,8 @@
 
 #include "isoffin.h"
 
-#ifndef GPAC_DISABLE_ISOM
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
+
 #include <gpac/network.h>
 #include <gpac/avparse.h>
 
@@ -1164,4 +1165,4 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 }
 
 
-#endif /*GPAC_DISABLE_ISOM*/
+#endif // !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)

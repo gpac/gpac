@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
+#ifndef GPAC_DISABLE_NHNTW
+
 #include <gpac/internal/isomedia_dev.h>
 
 
@@ -405,4 +407,10 @@ const GF_FilterRegister *nhntw_register(GF_FilterSession *session)
 {
 	return &NHNTDumpRegister;
 }
+#else
+const GF_FilterRegister *nhntw_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_NHNTW
 

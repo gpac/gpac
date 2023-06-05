@@ -29,7 +29,7 @@
 #include <gpac/media_tools.h>
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_DISABLE_ISOM
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
 
 static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 {
@@ -1885,7 +1885,7 @@ retry:
 	return GF_TRUE;
 }
 
-#endif /*GPAC_DISABLE_ISOM*/
+#endif // !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
 
 
 

@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
+#ifndef GPAC_DISABLE_RFPCM
+
 typedef struct
 {
 	//opts
@@ -527,4 +529,9 @@ const GF_FilterRegister *rfpcm_register(GF_FilterSession *session)
 	PCMReframeCaps[1].val.value.string = (char *) gf_audio_fmt_all_shortnames();
 	return &PCMReframeRegister;
 }
-
+#else
+const GF_FilterRegister *rfpcm_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //GPAC_DISABLE_RFPCM

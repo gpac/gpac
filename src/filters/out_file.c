@@ -28,6 +28,8 @@
 #include <gpac/constants.h>
 #include <gpac/xml.h>
 
+#ifndef GPAC_DISABLE_FOUT
+
 enum
 {
 	FOUT_CAT_NONE = 0,
@@ -941,4 +943,9 @@ const GF_FilterRegister *fout_register(GF_FilterSession *session)
 	}
 	return &FileOutRegister;
 }
-
+#else
+const GF_FilterRegister *fout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //GPAC_DISABLE_FOUT

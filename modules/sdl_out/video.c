@@ -1567,7 +1567,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	if (ctx->output_3d) {
 		//with SDL2 we have to disable vsync by overriding swap interval
-#if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
+#if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS) && !defined(GPAC_DISABLE_3D)
 		if (ctx->disable_vsync) {
 			GLint sync = 0;
 			CGLContextObj gl_ctx = CGLGetCurrentContext();

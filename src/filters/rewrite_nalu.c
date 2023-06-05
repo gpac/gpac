@@ -28,6 +28,8 @@
 #include <gpac/bitstream.h>
 #include <gpac/internal/media_dev.h>
 
+#ifndef GPAC_DISABLE_UFNALU
+
 enum
 {
 	UFNAL_AVC,
@@ -737,3 +739,10 @@ const GF_FilterRegister *ufnalu_register(GF_FilterSession *session)
 {
 	return &NALUMxRegister;
 }
+#else
+const GF_FilterRegister *ufnalu_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_UFNALU
+

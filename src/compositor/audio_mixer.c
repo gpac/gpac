@@ -25,6 +25,8 @@
 
 #include <gpac/internal/compositor_dev.h>
 
+#if !defined(GPAC_DISABLE_COMPOSITOR) &&  !defined(GPAC_DISABLE_RESAMPLE)
+
 /*
 	Notes about the mixer:
 	1- spatialization is out of scope for the mixer (eg that's the sound node responsability)
@@ -1469,3 +1471,4 @@ do_mix:
 }
 
 
+#endif // !defined(GPAC_DISABLE_COMPOSITOR) &&  !defined(GPAC_DISABLE_RESAMPLE)

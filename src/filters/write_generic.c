@@ -29,6 +29,8 @@
 #include <gpac/xml.h>
 #include <gpac/base_coding.h>
 
+#ifndef GPAC_DISABLE_WRITEGEN
+
 #include <gpac/internal/isomedia_dev.h>
 
 enum
@@ -2013,6 +2015,17 @@ const GF_FilterRegister WriteUFRegister = {
 };
 const GF_FilterRegister *writeuf_register(GF_FilterSession *session)
 {
-
 	return &WriteUFRegister;
 }
+
+#else
+const GF_FilterRegister *writegen_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *writeuf_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_WRITEGEN
+

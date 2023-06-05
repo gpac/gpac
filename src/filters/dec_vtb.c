@@ -28,7 +28,7 @@
 
 #include <gpac/thread.h>
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) ) && defined(GPAC_HAS_VTB)
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) ) && defined(GPAC_HAS_VTB) && !defined(GPAC_DISABLE_VTBDEC)
 
 #include <stdint.h>
 
@@ -2100,7 +2100,7 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 
 const GF_FilterRegister *vtbdec_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) ) && defined(GPAC_HAS_VTB)
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) ) && defined(GPAC_HAS_VTB) && !defined(GPAC_DISABLE_VTBDEC)
 	return &GF_VTBDecCtxRegister;
 #else
 	return NULL;

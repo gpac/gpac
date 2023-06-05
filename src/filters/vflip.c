@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Samir Mustapha - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2022
+ *			Copyright (c) Telecom ParisTech 2019-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / video flip filter
@@ -28,6 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_VFLIP
 typedef struct
 {
 	//options
@@ -506,3 +507,9 @@ const GF_FilterRegister *vflip_register(GF_FilterSession *session)
 {
 	return &VFlipRegister;
 }
+#else
+const GF_FilterRegister *vflip_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif // GPAC_DISABLE_VFLIP

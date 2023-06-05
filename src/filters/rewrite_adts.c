@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
+#ifndef GPAC_DISABLE_UFAAC
+
 #include <gpac/avparse.h>
 
 
@@ -464,3 +466,14 @@ const GF_FilterRegister *uflatm_register(GF_FilterSession *session)
 {
 	return &LATMMxRegister;
 }
+#else
+const GF_FilterRegister *ufadts_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *uflatm_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#ifndef GPAC_DISABLE_UFAAC
+
