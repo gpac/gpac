@@ -1205,6 +1205,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_EAC3:
 	case GF_CODECID_OPUS:
 	case GF_CODECID_TRUEHD:
+	case GF_CODECID_RAW_UNCV:
 		if (!dsi && !enh_dsi) return GF_OK;
 		break;
 	case GF_CODECID_APCH:
@@ -1226,6 +1227,16 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_WEBVTT:
 	case GF_CODECID_DVB_SUBS:
 		if (!dsi && !enh_dsi) return GF_OK;
+		break;
+	case GF_CODECID_RAW:
+		if (tkw->stream_type==GF_STREAM_VISUAL) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+			if (!p) return GF_OK;
+		}
+		if (tkw->stream_type==GF_STREAM_AUDIO) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+			if (!p) return GF_OK;
+		}
 		break;
 	default:
 		break;
