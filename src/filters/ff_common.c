@@ -683,13 +683,14 @@ static GF_LOG_Tool gpac_to_ffmpeg_log_tool(AVClass* avc)
 }
 
 #define FF_LOG_SIZE 2000
+Bool ff_probe_mode=GF_FALSE;
 static void ff_log_callback(void *avcl, int level, const char *fmt, va_list vl)
 {
 	AVClass* avc = avcl ? *(AVClass**)avcl : NULL;
 	GF_LOG_Level glevel = ffmpeg_to_gpac_log_level(level);
 	GF_LOG_Tool gtool = gpac_to_ffmpeg_log_tool(avc);
 
-	if (!gf_log_tool_level_on(gtool, glevel))
+	if (!gf_log_tool_level_on(gtool, glevel) || ff_probe_mode)
 		return;
 	gf_log_lt(glevel, gtool);
 

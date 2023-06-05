@@ -1657,7 +1657,7 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 	return GF_FPROBE_MAYBE_SUPPORTED;
 }
 
-
+extern Bool ff_probe_mode;
 static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	int ffscore;
@@ -1669,6 +1669,7 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 #endif
 
 	memset(&pb, 0, sizeof(AVProbeData));
+	ff_probe_mode=GF_TRUE;
 	//not setting this crashes some probers in ffmpeg
 	pb.filename = "";
 	if (size <= AVPROBE_PADDING_SIZE) {
@@ -1689,6 +1690,7 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 		if (!probe_fmt) probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 	}
+	ff_probe_mode=GF_FALSE;
 
 	if (!probe_fmt) return NULL;
 	if (probe_fmt->mime_type) {
