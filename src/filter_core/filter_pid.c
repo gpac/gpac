@@ -108,7 +108,7 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		return;
 	}
 	//if we are in end of stream state and done with all packets, stay blocked
-	if (pid->has_seen_eos && !pid->nb_buffer_unit) {
+	if (pid->has_seen_eos && !pid->nb_buffer_unit && !pid->eos_keepalive) {
 		if (!pid->would_block) {
 			safe_int_inc(&pid->would_block);
 			safe_int_inc(&pid->filter->would_block);
@@ -6590,13 +6590,13 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	GF_FilterPacketInstance *pcki;
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
 
-	if (pidi->detach_pending)
-		return GF_FALSE;
-		
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return GF_FALSE;
 	}
+	if (pidi->detach_pending)
+		return GF_FALSE;
+
 	if (!pid->pid) return GF_TRUE;
 	if (!pid->pid->has_seen_eos && !pidi->discard_inputs && !pidi->discard_packets) {
 		pidi->is_end_of_stream = GF_FALSE;
@@ -6613,6 +6613,22 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 		pidi->filter->eos_probe_state = 1;
 	return GF_TRUE;
 }
+
+GF_EXPORT
+Bool gf_filter_pid_is_flush_eos(GF_FilterPid *pid)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return GF_FALSE;
+	}
+	if (pidi->detach_pending)
+		return GF_FALSE;
+
+	if (!pid->pid) return GF_FALSE;
+	return pid->pid->eos_keepalive;
+}
+
 
 GF_EXPORT
 void gf_filter_pid_set_eos(GF_FilterPid *pid)
@@ -6637,6 +6653,17 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
 	gf_filter_pck_send(pck);
+
+	gf_mx_p(pid->filter->tasks_mx);
+	u32 i;
+	for (i=0; i<pid->filter->num_input_pids; i++) {
+		GF_FilterPidInst *apidi = gf_list_get(pid->filter->input_pids, i);
+		if (apidi->pid && apidi->pid->eos_keepalive) {
+			pid->eos_keepalive = GF_TRUE;
+			break;
+		}
+	}
+	gf_mx_v(pid->filter->tasks_mx);
 }
 
 GF_EXPORT
@@ -9098,4 +9125,17 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		return rfc6381_codec_name_default(szCodec, subtype, codec_id);
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+void gf_filter_pid_send_flush(GF_FilterPid *pid)
+{
+	//allow NULL as input (most filters blindly call set_eos on output even if no output)
+	if (!pid) return;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal flush on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return;
+	}
+	pid->eos_keepalive = GF_TRUE;
+	gf_filter_pid_set_eos(pid);
 }

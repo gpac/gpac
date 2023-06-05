@@ -741,6 +741,7 @@ struct __gf_filter
 
 	//requested by a filter to disable blocking
 	Bool prevent_blocking;
+	Bool in_eos_resume;
 
 	//filter destroy task has been posted
 	Bool finalized;
@@ -1010,6 +1011,7 @@ struct __gf_filter_pid
 	
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
+	Bool eos_keepalive;
 	u32 nb_reaggregation_pending;
 
 	//only valid for decoder output pids

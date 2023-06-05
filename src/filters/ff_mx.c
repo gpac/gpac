@@ -760,7 +760,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			AVPacket *pkt;
 			GF_FilterPacket *ipck = gf_filter_pid_get_packet(ipid);
 			if (!ipck) {
-				if (gf_filter_pid_is_eos(ipid)) {
+				if (gf_filter_pid_is_eos(ipid) && !gf_filter_pid_is_flush_eos(ipid)) {
 					nb_done++;
 				}
 				break;
