@@ -1283,7 +1283,7 @@ fi
 cat > $TMPC << EOF
 #include <ifaddrs.h>
 #include <net/if.h>
-int main( void ) {  struct ifaddrs *ifap = NULL; getifaddrs(&ifap); return 0; }
+int main( void ) {  struct ifaddrs *ifap; getifaddrs(&ifap); return 0; }
 EOF
 has_ifaddrs="no"
 if docc $LDFLAGS ; then
