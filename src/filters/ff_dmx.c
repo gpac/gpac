@@ -1029,10 +1029,6 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT( (stream->id ? stream->id : i+1)) );
 		gf_filter_pid_set_name(pid, szName);
 
-#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
-		ffmpeg_codec_par_to_gpac(stream->codecpar, pid, 0);
-#endif
-
 		if (ctx->raw_data && ctx->sclock) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000000) );
 		} else {
@@ -1141,6 +1137,15 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT( codec_width ) );
 		if (codec_height)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT( codec_height ) );
+
+
+#if (LIBAVFORMAT_VERSION_MAJOR >= 59)
+		ffmpeg_codec_par_to_gpac(stream->codecpar, pid, 0);
+		if (gpac_codec_id!=GF_CODECID_RAW) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, NULL);
+			gf_filter_pid_set_property(pid, GF_PROP_PID_AUDIO_FORMAT, NULL);
+		}
+#endif
 
 		if (codec_width && codec_height) {
 			if (codec_framerate.num && codec_framerate.den) {

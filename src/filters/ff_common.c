@@ -2136,17 +2136,17 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 	if (codecpar->width)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_WIDTH, &PROP_UINT(codecpar->width));
 	if (codecpar->height)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_WIDTH, &PROP_UINT(codecpar->height));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_HEIGHT, &PROP_UINT(codecpar->height));
 	if (codecpar->sample_aspect_ratio.num) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(codecpar->sample_aspect_ratio.num, codecpar->sample_aspect_ratio.den));
 	}
-	if (codecpar->color_range==AVCOL_RANGE_JPEG)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
-	else if (codecpar->color_range==AVCOL_RANGE_MPEG)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_FALSE));
-
 	//not supported by all versions of ffmpeg
 	if (!gf_sys_is_test_mode()) {
+		if (codecpar->color_range==AVCOL_RANGE_JPEG)
+			gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
+		else if (codecpar->color_range==AVCOL_RANGE_MPEG)
+			gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_FALSE));
+
 		if (codecpar->color_primaries)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(codecpar->color_primaries));
 
