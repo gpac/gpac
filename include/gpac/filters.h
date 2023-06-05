@@ -3758,6 +3758,12 @@ const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *PID, const char
 */
 void gf_filter_pid_set_eos(GF_FilterPid *PID);
 
+/*! Signals end of stream on a PID but force stream to be kept alive - used by source filters triggering a pipeline flush, the source filter will remain active after this call
+ The flush signal sets all receiving PIDs into end of stream mode
+\param PID the target filter PID
+*/
+void gf_filter_pid_send_flush(GF_FilterPid *PID);
+
 /*! Checks for end of stream has been signaled a PID input chain.
 This is a recursive call on input chain. The function is typically used to abort buffering or synchronisation init in muxers.
 \param PID the target filter PID
@@ -3776,6 +3782,14 @@ Bool gf_filter_pid_eos_received(GF_FilterPid *PID);
 \return GF_TRUE if end of stream is set on that PID (no more packet in queue)
 */
 Bool gf_filter_pid_is_eos(GF_FilterPid *PID);
+
+/*! Checks for flush-only end of stream signaling on a PID. Some filters may request a flush of the pipeline but will send further packets later on. This is signaled by a flush end of stream state
+ Only filters storing the state of the pids internally should need to check this state.
+
+\param PID the target filter PID
+\return GF_TRUE if end of stream is temporary set on that PID (no more packet in queue)
+*/
+Bool gf_filter_pid_is_flush_eos(GF_FilterPid *PID);
 
 /*! Checks if there is a packet ready on an input PID.
 \param PID the target filter PID

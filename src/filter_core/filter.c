@@ -2821,6 +2821,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 
 	if (filter->prevent_blocking) skip_block_mode = GF_TRUE;
+	else if (filter->in_eos_resume) skip_block_mode = GF_TRUE;
 	else if (filter->session->in_final_flush) skip_block_mode = GF_TRUE;
 
 	//blocking filter: remove filter process task - task will be reinserted upon unblock()

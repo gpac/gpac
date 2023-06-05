@@ -910,6 +910,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		//reset eos only if not a command and not a clock signaling
 		else if (pid->has_seen_eos && !is_cmd && !cktype) {
 			pid->has_seen_eos = GF_FALSE;
+			pid->eos_keepalive = GF_FALSE;
 		}
 
 
@@ -1313,6 +1314,13 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			post_task = GF_TRUE;
 		}
 		if (post_task) {
+			if (!is_cmd_pck) {
+				if (dst->is_end_of_stream) {
+					dst->is_end_of_stream = GF_FALSE;
+					dst->filter->in_eos_resume = GF_TRUE;
+				}
+				pid->filter->in_eos_resume = GF_FALSE;
+			}
 
 			//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
 			//if one thread consumes one packet while the dispatching thread  (the caller here) is still upddating the state for that pid

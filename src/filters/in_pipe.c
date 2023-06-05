@@ -58,7 +58,7 @@ typedef struct
 	char *ext;
 	char *mime;
 	u32 block_size;
-	Bool blk, ka, mkp, sigeos;
+	Bool blk, ka, mkp, sigflush;
 
 	u32 read_block_size;
 	//only one output pid declared
@@ -351,8 +351,9 @@ refill:
 			if (!ctx->ka) {
 				gf_filter_pid_set_eos(ctx->pid);
 				return GF_EOS;
-			} else if (ctx->sigeos) {
-				gf_filter_pid_set_eos(ctx->pid);
+			} else if (ctx->sigflush) {
+				gf_filter_pid_send_flush(ctx->pid);
+				ctx->bytes_read = 0;
 			}
 		} else {
 			nb_read = (s32) fread(ctx->buffer + total_read, 1, ctx->read_block_size, stdin);
@@ -388,8 +389,10 @@ refill:
 						return GF_EOS;
 					}
 					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
-					if (ctx->sigeos)
-						gf_filter_pid_set_eos(ctx->pid);
+					if (ctx->sigflush) {
+						gf_filter_pid_send_flush(ctx->pid);
+						ctx->bytes_read = 0;
+					}
 					return pipein_initialize(filter);
 				}
 			}
@@ -420,14 +423,17 @@ refill:
 						GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
 						CloseHandle(ctx->pipe);
 						ctx->pipe = INVALID_HANDLE_VALUE;
-						if (ctx->sigeos)
-							gf_filter_pid_set_eos(ctx->pid);
+						if (ctx->sigflush) {
+							gf_filter_pid_send_flush(ctx->pid);
+							ctx->bytes_read = 0;
+						}
 						return pipein_initialize(filter);
 					} else {
 						gf_filter_pid_set_eos(ctx->pid);
 						return GF_EOS;
 					}
 				}
+				if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
 				return GF_OK;
 			}
 		}
@@ -450,9 +456,14 @@ refill:
 					ctx->fd=-1;
 					ctx->is_end = GF_TRUE;
 					return GF_EOS;
-				} else if (ctx->sigeos && ctx->pid) {
-					gf_filter_pid_set_eos(ctx->pid);
+				} else {
+					//set keepalive eos
+					if (ctx->ka && ctx->bytes_read && ctx->sigflush && ctx->pid) {
+						gf_filter_pid_send_flush(ctx->pid);
+						ctx->bytes_read = 0;
+					}
 				}
+				if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
 				return GF_OK;
 			}
 		}
@@ -469,6 +480,7 @@ refill:
 	nb_read = total_read;
 
 	if (!nb_read) {
+		if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
 		return GF_OK;
 	}
 
@@ -516,7 +528,7 @@ static const GF_FilterArgs PipeInArgs[] =
 	{ OFFS(blk), "open pipe in block mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ka), "keep-alive pipe when end of input is detected", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mkp), "create pipe if not found", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(sigeos), "signal end of stream whenever a pipe breaks in keep-alive mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigflush), "signal end of stream upon pipe close - cf filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -552,12 +564,16 @@ GF_FilterRegister PipeInRegister = {
 		"  \n"
 		"Input pipes can be setup to run forever using [-ka](). In this case:\n"
 		"- any potential pipe close on the writing side will be ignored\n"
-		"- end of stream will be triggered upon pipe close if [-sigeos]() is set\n"
+		"- temporary end of stream will be triggered upon pipe close if [-sigflush]() is set\n"
 		"- final end of stream will be triggered upon session close.\n"
 		"  \n"
 		"This can be useful to pipe raw streams from different process into gpac:\n"
 		"- Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"
 		"- Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"
+		"  \n"
+		"The temporary end of stream will trigger a pipeline flush by setting stream to EOS while keeping it active.\n"
+		"This is typically needed for mux filters waiting for EOS to flush their data.\n"
+		"Warning: Usage of  [-sigflush]() may not be properly supported by some filters.\n"
 		"  \n"
 		"The pipe input can be created in blocking mode or non-blocking mode.\n"
 	"")

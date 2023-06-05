@@ -1231,9 +1231,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HAS_SYNC);
 		u32 sync_type = DASHER_SYNC_UNKNOWN;
 		if (p) sync_type = p->value.boolean ? DASHER_SYNC_PRESENT : DASHER_SYNC_NONE;
-		if (sync_type != ds->sync_points_type) period_switch = GF_TRUE;
-		ds->sync_points_type = sync_type;
-
+		if ((sync_type != DASHER_SYNC_UNKNOWN) && (sync_type != ds->sync_points_type)) {
+			period_switch = GF_TRUE;
+			ds->sync_points_type = sync_type;
+		}
+		
 		if (ds->inband_cues)
 			period_switch = old_period_switch;
 
@@ -6915,7 +6917,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		//in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
 		//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
 		//to the intra interval, we need to take into account the skip samples
-		if (ctx->sap && !ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT)
+		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT)
 			&& (ds->pts_minus_cts<0) && (ds->next_seg_start > (u32) -ds->pts_minus_cts)
 		) {
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
@@ -8226,14 +8228,14 @@ static void dasher_drop_input(GF_DasherCtx *ctx, GF_DashStream *ds, Bool discard
 	}
 }
 
-static void dasher_inject_eods(GF_DasherCtx *ctx, GF_DashStream *ds)
+static void dasher_inject_eods(GF_DasherCtx *ctx, GF_DashStream *ds, Bool forced)
 {
 	//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
 	//flush the segment at next segment start which could be after the segment AST => 404
 	//
 	//if subdur no need to do so as we will close the muxer right after
 	//if sigfrag no need to do so since we don't generate media packets
-	if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC) && !ctx->sigfrag && !ctx->do_index) {
+	if (!ctx->subdur && ((ctx->dmode>=GF_DASH_DYNAMIC) || forced) && !ctx->sigfrag && !ctx->do_index) {
 		GF_FilterPacket *eods_pck;
 		eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
 		if (eods_pck) {
@@ -8258,7 +8260,7 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 		ds->split_dur_next = 0;
 		ds->seg_done = GF_TRUE;
 
-		dasher_inject_eods(ctx, ds);
+		dasher_inject_eods(ctx, ds, GF_FALSE);
 
 		//force to be last rep in set to be done
 		ds->nb_rep_done = ds->nb_rep-1;
@@ -8502,6 +8504,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 
 			if (!pck) {
+				Bool ds_is_done=GF_FALSE;
 				if (ds->request_period_switch) {
 					e = dasher_stream_period_changed(filter, ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
 					if (e < 0) {
@@ -8515,8 +8518,25 @@ static GF_Err dasher_process(GF_Filter *filter)
 					break;
 				}
 
-
-				if (gf_filter_pid_is_eos(ds->ipid) || ds->clamp_done) {
+				if (ds->clamp_done) ds_is_done=GF_TRUE;
+				else if (gf_filter_pid_is_eos(ds->ipid)) {
+					if (gf_filter_pid_is_flush_eos(ds->ipid)) {
+						if (ds->segment_started && !ds->seg_done) {
+							ds->seg_done = GF_TRUE;
+							ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
+							ds->est_first_cts_in_next_seg = 0;
+							assert(base_ds->nb_comp_done < base_ds->nb_comp);
+							base_ds->nb_comp_done ++;
+							if (base_ds->nb_comp_done == base_ds->nb_comp) {
+								dasher_flush_segment(ctx, base_ds, GF_FALSE);
+								dasher_inject_eods(ctx, base_ds, GF_TRUE);
+							}
+						}
+ 					} else {
+						ds_is_done=GF_TRUE;
+					}
+				}
+				if (ds_is_done) {
 					u32 ds_done = 1;
 
 					if (!ds->clamp_done && !ds->muxed_base && (ds->stream_type==GF_STREAM_TEXT)) {
@@ -8635,7 +8655,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				//cf setup_period: in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
 				//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
 				//to the intra interval, we need to take into account the skip samples
-				if (ctx->sap && !ctx->sbound && !ds->cues
+				if (!ctx->sbound && !ds->cues
 					&& (ds->pts_minus_cts<0) && (ds->next_seg_start> (u32) -ds->pts_minus_cts)
 				) {
 					ds->next_seg_start -= (u32) -ds->pts_minus_cts;
@@ -8836,7 +8856,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//base rep has been forced to another period, we switch asap
 			else if (base_ds->forced_period_switch) {
 				ds->seg_done = GF_TRUE;
-				dasher_inject_eods(ctx, ds);
+				dasher_inject_eods(ctx, ds, GF_FALSE);
 				seg_done = GF_TRUE;
 				dasher_stream_period_changed(filter, ctx, ds, GF_FALSE);
 				i--;
@@ -9192,7 +9212,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					ds->rep->segment_list->use_split_dur = GF_TRUE;
 				}
 
-				dasher_inject_eods(ctx, ds);
+				dasher_inject_eods(ctx, ds, GF_FALSE);
 
 				ds->first_cts_in_next_seg = cts;
 				assert(base_ds->nb_comp_done < base_ds->nb_comp);

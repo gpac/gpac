@@ -413,8 +413,10 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					tspid->nb_repeat_last++;
 					tspid->is_repeat = GF_TRUE;
 				} else {
-					tspid->done = GF_TRUE;
-					ifce->caps |= GF_ESI_STREAM_IS_OVER;
+					if (!gf_filter_pid_is_flush_eos(tspid->ipid)) {
+						tspid->done = GF_TRUE;
+						ifce->caps |= GF_ESI_STREAM_IS_OVER;
+					}
 				}
 				if (tspid->ctx->dash_mode)
 					tspid->has_seen_eods = M2TS_EODS_FOUND;

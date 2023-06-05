@@ -5901,7 +5901,7 @@ Input pipes can be setup to run forever using .I ka. In this case:
 .br
 - any potential pipe close on the writing side will be ignored
 .br
-- end of stream will be triggered upon pipe close if .I sigeos is set
+- temporary end of stream will be triggered upon pipe close if .I sigflush is set
 .br
 - final end of stream will be triggered upon session close.
 .br
@@ -5912,6 +5912,14 @@ This can be useful to pipe raw streams from different process into gpac:
 * Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka
 .br
 * Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264  
+.br
+The temporary end of stream will trigger a pipeline flush by setting stream to EOS while keeping it active.
+.br
+This is typically needed for mux filters waiting for EOS to flush their data.
+.br
+Warning: Usage of  .I sigflush may not be properly supported by some filters.
+.br
+  
 .br
 The pipe input can be created in blocking mode or non-blocking mode.
 .br
@@ -5934,7 +5942,7 @@ ka (bool, default: false):     keep-alive pipe when end of input is detected
 .br
 mkp (bool, default: false):    create pipe if not found
 .br
-sigeos (bool, default: false): signal end of stream whenever a pipe breaks in keep-alive mode
+sigflush (bool, default: false): signal end of stream upon pipe close - cf filter help
 .br
 
 .br

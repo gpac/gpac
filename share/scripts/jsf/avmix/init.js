@@ -3448,7 +3448,7 @@ function open_source(s)
 
 		if (port==='pipe') {
 			src.local_pipe = "gpipe_avmix_" + current_pipe;
-			local_filter = "pipe://" + src.local_pipe + ":mkp:sigeos:block_size=10M";
+			local_filter = "pipe://" + src.local_pipe + ":mkp:sigflush:block_size=10M";
 			if (s.keep_alive) {
 				local_filter += ':ka';
 			  s.has_ka_process = true;

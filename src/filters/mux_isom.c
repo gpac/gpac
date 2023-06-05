@@ -6279,11 +6279,12 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					if (ctx->next_file_idx)
 						nb_suspended++;
 					nb_done ++;
-					nb_eos++;
 					if (tkw->dgl_copy) {
 						gf_filter_pck_discard(tkw->dgl_copy);
 						tkw->dgl_copy = NULL;
 					}
+					if (!gf_filter_pid_is_flush_eos(tkw->ipid))
+						nb_eos++;
 					break;
 				}
 				return GF_OK;
