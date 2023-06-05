@@ -9385,6 +9385,24 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 depen
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 			*init_segment = rep ? rep->playback.init_seg_name_start : NULL;
 		}
+		if (group->init_segment_is_media) {
+			if (seg_number) *seg_number = 0;
+			if (seg_time || seg_dur_ms) {
+				u64 segment_dur, res;
+				u32 seg_scale;
+				u32 cur_grp_idx = group->download_segment_index;
+				group->download_segment_index = 0;
+				res = gf_dash_get_segment_start_time_with_timescale(group, &segment_dur, &seg_scale, NULL);
+				if (seg_time) {
+					seg_time->num = res;
+					seg_time->den = seg_scale;
+				}
+				if (seg_dur_ms) {
+					*seg_dur_ms = gf_timestamp_rescale(segment_dur, seg_scale, 1000);
+				}
+				group->download_segment_index = cur_grp_idx;
+			}
+		}
 	} else {
 		u32 rep_idx = dependent_representation_index;
 		if (group->nb_cached_segments <= rep_idx) {
