@@ -157,7 +157,7 @@ typedef struct
 	GF_DownloadSession *sess;
 #endif
 	Bool is_timestamp_based, pto_setup;
-	Bool prev_is_init_segment;
+	Bool prev_is_init_segment, init_from_media;
 	//media timescale for which the pto, max_cts_in_period and timedisc_ts_offset were computed
 	u32 timescale;
 	s64 pto;
@@ -265,7 +265,12 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				GF_Fraction64 seg_time;
 				const char *seg_name = NULL;
 				u32 seg_number, seg_dur;
-				gf_dash_group_next_seg_info(ctx->dash, group->idx, group->current_dependent_rep_idx, &seg_name, &seg_number, &seg_time, &seg_dur, NULL);
+				if (group->init_from_media) {
+					group->init_from_media = GF_FALSE;
+					gf_dash_group_next_seg_info(ctx->dash, group->idx, 0, NULL, &seg_number, &seg_time, &seg_dur, &seg_name);
+				} else {
+					gf_dash_group_next_seg_info(ctx->dash, group->idx, group->current_dependent_rep_idx, &seg_name, &seg_number, &seg_time, &seg_dur, NULL);
+				}
 				if (seg_name) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(seg_name) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENUM, &PROP_UINT(seg_number) );
@@ -625,8 +630,10 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
 
-	if (gf_dash_group_init_segment_is_media(ctx->dash, group_index))
+	if (gf_dash_group_init_segment_is_media(ctx->dash, group_index)) {
 		group->prev_is_init_segment = GF_FALSE;
+		group->init_from_media = GF_TRUE;
+	}
 	else {
 		group->prev_is_init_segment = GF_TRUE;
 		//consider init is always in clear if AES-128, might need further checks
@@ -2664,6 +2671,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		}
 		group->is_playing = GF_FALSE;
 		group->prev_is_init_segment = GF_FALSE;
+		group->init_from_media = GF_FALSE;
 		if (ctx->nb_playing) {
 			ctx->initial_play = GF_FALSE;
 			group->force_seg_switch = GF_TRUE;
@@ -3027,6 +3035,7 @@ fetch_next:
 
 	group->segment_sent = GF_TRUE;
 	group->prev_is_init_segment = GF_FALSE;
+	group->init_from_media = GF_FALSE;
 	group->init_switch_seg_sent = GF_FALSE;
 	group->signal_seg_name = (ctx->forward==DFWD_FILE) ? GF_TRUE : GF_FALSE;
 	group->us_at_seg_start = gf_sys_clock_high_res();
