@@ -1511,6 +1511,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 		}
 
 		if (!opaque_arg) {
+			Bool check_url_esc=GF_FALSE;
 			//we don't use gf_fs_path_escape_colon here because we also analyse whether the URL is internal or not, and we don't want to do that on each arg
 			if (sep) {
 				//escape XML inputs: simply search for ">:" (: being the arg sep), if not found consider the entire string the arg value
@@ -1629,6 +1630,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							//get first : after root
 							if (sep) sep = strchr(sep+1, ':');
 						}
+						check_url_esc = GF_TRUE;
 					}
 				}
 
@@ -1698,6 +1700,10 @@ skip_date:
 			if (sep) {
 				escaped = (sep[1] == filter->session->sep_args) ? NULL : strstr(sep, szEscape);
 				if (escaped && xml_start && (escaped>xml_start)) escaped = NULL;
+				//if we have a :gfopt: or :gfloc: set without :gpac: consider this as a valid escape pattern
+				if (check_url_esc && !escaped && (!strncmp(sep, ":gfopt:", 7) ||!strncmp(sep, ":gfloc:", 7)))
+					escaped = sep;
+
 				if (escaped) {
 					sep = escaped;
 				}
