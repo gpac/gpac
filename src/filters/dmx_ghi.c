@@ -344,7 +344,9 @@ static Bool ghi_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			fevt.play.start_range /= st->pid_timescale;
 		}
 		fevt.play.from_pck = (u32) st->seg_info.first_pck_seq;
-		fevt.play.to_pck = (u32) st->seg_info.first_pck_seq + st->nb_pck;
+		//if we know the amount of packets (not last seg), signal it otherwise use 0 (no pck end range)
+		if (st->nb_pck != (u32) -1)
+			fevt.play.to_pck = (u32) st->seg_info.first_pck_seq + st->nb_pck;
 		fevt.play.orig_delay = st->delay;
 
 		gf_filter_pid_send_event(st->ipid, &fevt);
