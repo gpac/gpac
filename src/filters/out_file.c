@@ -377,8 +377,7 @@ static GF_Err fileout_initialize(GF_Filter *filter)
 	if (ctx->ext) ext = ctx->ext;
 	else if (dst) {
 		ext = gf_file_ext_start(dst);
-		if (!ext) ext = ".*";
-		ext += 1;
+		if (ext) ext += 1;
 	}
 
 	if (!ext && !ctx->mime) {
