@@ -3295,7 +3295,14 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			return;
 		}
 	}
-	assert(!sess->h2_sess);
+	if (sess->h2_sess) {
+		sess->connect_time = 0;
+		sess->status = GF_NETIO_CONNECTED;
+		sess->last_error = GF_OK;
+		gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
+		gf_dm_configure_cache(sess);
+		return;
+	}
 
 	if (sess->dm && !sess->dm->disable_http2 && !sess->sock && (sess->h2_upgrade_state!=3)) {
 		u32 i, count = gf_list_count(sess->dm->sessions);
