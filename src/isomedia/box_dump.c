@@ -4300,9 +4300,10 @@ GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDum
 /* ISMA 1.0 Encryption and Authentication V 1.0  dump */
 GF_Err sinf_box_dump(GF_Box *a, FILE * trace)
 {
-	gf_isom_box_dump_start(a, "ProtectionSchemeInfoBox", trace);
+	const char *name = (a->type==GF_ISOM_BOX_TYPE_SINF) ? "ProtectionSchemeInfoBox" : "RestrictedSchemeInfoBox";
+	gf_isom_box_dump_start(a, name, trace);
 	gf_fprintf(trace, ">\n");
-	gf_isom_box_dump_done("ProtectionSchemeInfoBox", a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
