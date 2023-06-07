@@ -6202,6 +6202,8 @@ GF_Err mp4mx_reload_output(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	return GF_OK;
 }
 
+static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic);
+
 static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -6656,7 +6658,17 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
 			flush_refs = GF_TRUE;
-
+			//if not in dash and EOS marker is set, inject marker after each fragment
+			if (!ctx->dash_mode && ctx->eos_marker) {
+				u8 data[8];
+				memset(data, 0, 8);
+				data[3] = 8;
+				data[4] = ctx->m4cc[0];
+				data[5] = ctx->m4cc[1];
+				data[6] = ctx->m4cc[2];
+				data[7] = ctx->m4cc[3];
+				mp4_mux_on_data(filter, data, 8, NULL, 0);
+			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
 			//we need to wait for packet to be written
@@ -8023,7 +8035,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(fsap), "split truns in video fragments at SAPs to reduce file size", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(file), "pointer to a write/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source PID", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(m4cc), "4 character code of empty box to append at the end of a segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(m4cc), "4 character code of empty box to append at the end of a segment (DASH mode) or of a fragment (non-DASH mode)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_sidx), "use daisy-chaining of SIDX", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(msn), "sequence number of first moof to N", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(msninc), "sequence number increase between `moof` boxes", GF_PROP_UINT, "1", NULL, 0},
