@@ -450,7 +450,7 @@ refill:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
 					return GF_IO_ERR;
 				} else if (!ctx->ka && ctx->bytes_read) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] end of stream detected after %d bytes\n", ctx->bytes_read));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] end of stream detected after %d bytes\n", ctx->bytes_read));
 					if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
 					close(ctx->fd);
 					ctx->fd=-1;
