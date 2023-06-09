@@ -217,13 +217,29 @@ static Bool nhmldmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_FALSE;
 }
 
+static GF_XMLNode *nhmldmx_get_prop_ref(GF_NHMLDmxCtx *ctx, GF_XMLNode *par, char *ID)
+{
+	u32 i=0;
+	GF_XMLNode *node;
+	while ((node = (GF_XMLNode *) gf_list_enum(par->content, &i))) {
+		if (node->type) continue;
+		if (stricmp(node->name, "P")) continue;
+		GF_XMLAttribute *att;
+		u32 j=0;
+		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
+			if (!strcmp(att->name, "id") && !strcmp(att->value, ID)) return node;
+		}
+	}
+	return NULL;
+}
+
 static GF_XMLNode *nhmldmx_get_props(GF_NHMLDmxCtx *ctx, char *ID)
 {
 	u32 i=0;
 	GF_XMLNode *node;
 	while ((node = (GF_XMLNode *) gf_list_enum(ctx->root->content, &i))) {
 		GF_XMLAttribute *att;
-		GF_XMLNode *childnode;
+		GF_XMLNode *childnode, *res;
 		u32 j;
 		if (node->type) continue;
 		if (!stricmp(node->name, "Properties")) {
@@ -231,6 +247,8 @@ static GF_XMLNode *nhmldmx_get_props(GF_NHMLDmxCtx *ctx, char *ID)
 			while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 				if (!strcmp(att->name, "id") && !strcmp(att->value, ID)) return node;
 			}
+			res = nhmldmx_get_prop_ref(ctx, node, ID);
+			if (res) return res;
 			continue;
 		}
 		if (stricmp(node->name, "NHNTSample")) continue;
@@ -242,6 +260,8 @@ static GF_XMLNode *nhmldmx_get_props(GF_NHMLDmxCtx *ctx, char *ID)
 			while ( (att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &k))) {
 				if (!strcmp(att->name, "id") && !strcmp(att->value, ID)) return childnode;
 			}
+			res = nhmldmx_get_prop_ref(ctx, childnode, ID);
+			if (res) return res;
 		}
 	}
 	return NULL;
@@ -267,7 +287,9 @@ static void nhmldmx_set_props(GF_NHMLDmxCtx *ctx, GF_XMLNode *props, GF_FilterPa
 		u32 j;
 		GF_XMLNode *bs_child;
 		Bool has_bs = GF_FALSE;
+		Bool is_ref = GF_FALSE;
 		if (childnode->type) continue;
+restart:
 		if (stricmp(childnode->name, "P")) continue;
 
 		char *ptype=NULL;
@@ -278,6 +300,16 @@ static void nhmldmx_set_props(GF_NHMLDmxCtx *ctx, GF_XMLNode *props, GF_FilterPa
 			if (!strcmp(att->name, "type")) ptype = att->value;
 			else if (!strcmp(att->name, "name")) pname = att->value;
 			else if (!strcmp(att->name, "value")) pval = att->value;
+			else if (!strcmp(att->name, "ref")) {
+				if (!is_ref) {
+					GF_XMLNode *ref_props = nhmldmx_get_props(ctx, att->value);
+					if (ref_props) {
+						is_ref = GF_TRUE;
+						childnode = ref_props;
+						goto restart;
+					}
+				}
+			}
 			else if (!pname) {
 				pname = att->name;
 				pval = att->value;
