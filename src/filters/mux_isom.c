@@ -5084,7 +5084,15 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (!aux_type) continue;
 
 		if (is_sample_group) {
+			if (aux_type==GF_ISOM_SAMPLE_GROUP_ESGH) {
+				GF_Err gf_isom_set_sample_description_restricted(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescIndex, u32 scheme_type);
+				gf_isom_set_sample_description_restricted(ctx->file, tkw->track_num, tkw->stsd_idx, GF_4CC( 'e', 's', 's', 'g'));
+
+				sg_flags |= 0x40000000;
+			}
+
 			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, for_fragment ? 0 : tkw->nb_samples, aux_type, aux_info, p->value.data.ptr, p->value.data.size, sg_flags);
+
 		} else {
 			if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS

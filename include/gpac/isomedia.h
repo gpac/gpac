@@ -7074,7 +7074,7 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 g
 \param grouping_type_parameter associated grouping type parameter (usually 0)
 \param data the payload of the sample group description
 \param data_size the size of the payload
-\param sgpd_flags flags for sgpd: 1: static description, 2, static mapping, 1<<31: default sample description
+\param sgpd_flags flags for sgpd: 1: static description, 2, static mapping, 1<<30: essential sample group, 1<<31: default sample description
 \return error if any
 */
 GF_Err gf_isom_set_sample_group_description(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size, u32 sgpd_flags);

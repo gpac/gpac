@@ -260,7 +260,6 @@ enum
 	GF_ISOM_BOX_TYPE_IREF	= GF_4CC( 'i', 'r', 'e', 'f' ),
 	GF_ISOM_BOX_TYPE_ENCA	= GF_4CC( 'e', 'n', 'c', 'a' ),
 	GF_ISOM_BOX_TYPE_ENCV	= GF_4CC( 'e', 'n', 'c', 'v' ),
-	GF_ISOM_BOX_TYPE_RESV	= GF_4CC( 'r', 'e', 's', 'v' ),
 	GF_ISOM_BOX_TYPE_ENCT	= GF_4CC( 'e', 'n', 'c', 't' ),
 	GF_ISOM_BOX_TYPE_ENCS	= GF_4CC( 'e', 'n', 'c', 's' ),
 	GF_ISOM_BOX_TYPE_ENCF	= GF_4CC( 'e', 'n', 'c', 'f' ),
@@ -271,11 +270,23 @@ enum
 	GF_ISOM_BOX_TYPE_SCHM	= GF_4CC( 's', 'c', 'h', 'm' ),
 	GF_ISOM_BOX_TYPE_SCHI	= GF_4CC( 's', 'c', 'h', 'i' ),
 
+	GF_ISOM_BOX_TYPE_RESV	= GF_4CC( 'r', 'e', 's', 'v' ),
+	GF_ISOM_BOX_TYPE_RESA	= GF_4CC( 'r', 'e', 's', 'a' ),
+	GF_ISOM_BOX_TYPE_RESM	= GF_4CC( 'r', 'e', 's', 'm' ),
+	GF_ISOM_BOX_TYPE_REST	= GF_4CC( 'r', 'e', 's', 't' ),
+	GF_ISOM_BOX_TYPE_RESU	= GF_4CC( 'r', 'e', 's', 'u' ),
+	GF_ISOM_BOX_TYPE_RESS	= GF_4CC( 'r', 'e', 's', 's' ),
+	GF_ISOM_BOX_TYPE_RESF	= GF_4CC( 'r', 'e', 's', 'f' ),
+	GF_ISOM_BOX_TYPE_RESP	= GF_4CC( 'r', 'e', 's', 'p' ),
+	GF_ISOM_BOX_TYPE_RES3	= GF_4CC( 'r', 'e', 's', '3' ),
+
 	GF_ISOM_BOX_TYPE_STVI	= GF_4CC( 's', 't', 'v', 'i' ),
 
 
 	GF_ISOM_BOX_TYPE_METX	= GF_4CC( 'm', 'e', 't', 'x' ),
 	GF_ISOM_BOX_TYPE_METT	= GF_4CC( 'm', 'e', 't', 't' ),
+	GF_ISOM_BOX_TYPE_URIM	= GF_4CC( 'u', 'r', 'i', 'm' ),
+	GF_ISOM_BOX_TYPE_MEBX	= GF_4CC( 'm', 'e', 'b', 'x' ),
 
 	/* ISMA 1.0 Encryption and Authentication V 1.0 */
 	GF_ISOM_BOX_TYPE_IKMS	= GF_4CC( 'i', 'K', 'M', 'S' ),

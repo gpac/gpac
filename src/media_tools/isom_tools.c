@@ -3699,7 +3699,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			gf_bs_del(bs);
 			data[1] = nb_nal_entries;
 
-			e = gf_isom_add_sample_group_info(file, track, GF_ISOM_SAMPLE_GROUP_NALM, data, size, 0, &sdesc);
+			e = gf_isom_add_sample_group_info(file, track, GF_ISOM_SAMPLE_GROUP_NALM, data, size, 1, &sdesc);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error defining NALM group description entry\n" ));
 			} else {
