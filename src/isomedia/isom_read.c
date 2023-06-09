@@ -5089,7 +5089,7 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
-	if (!trak->Media->information->sampleTable->sampleGroups) return GF_OK;
+	if (!trak->Media->information->sampleTable->sampleGroupsDescription) return GF_OK;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (sample_number <= trak->sample_count_at_seg_start) return GF_BAD_PARAM;
@@ -5098,7 +5098,7 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 
 	count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
 	for (i=0; i<count; i++) {
-		GF_SampleGroupBox *sg;
+		GF_SampleGroupBox *sg=NULL;
 		u32 j;
 		GF_SampleGroupDescriptionBox *sgd = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
 
