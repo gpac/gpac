@@ -356,7 +356,7 @@ static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleG
 static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
-	u64 totSize, mdat_end=0;
+	u64 top_start, mdat_end=0;
 	GF_Err e = GF_OK;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -365,12 +365,12 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 	}
 
 	/*restart from where we stopped last*/
-	totSize = mov->current_top_box_start;
+	top_start = mov->current_top_box_start;
 	if (mov->bytes_removed) {
-		assert(totSize >= mov->bytes_removed);
-		totSize -= mov->bytes_removed;
+		assert(top_start >= mov->bytes_removed);
+		top_start -= mov->bytes_removed;
 	}
-	gf_bs_seek(mov->movieFileMap->bs, totSize);
+	gf_bs_seek(mov->movieFileMap->bs, top_start);
 #endif
 
 
@@ -439,8 +439,6 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
 
-			totSize += a->size;
-
             if (!mov->moov->mvhd) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MovieHeaderBox\n"));
                 return GF_ISOM_INVALID_FILE;
@@ -490,7 +488,6 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			if (e) {
 				return e;
 			}
-			totSize += a->size;
 			gf_isom_meta_restore_items_ref(mov, mov->meta);
 			break;
 
@@ -500,7 +497,6 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				mov->first_data_toplevel_offset = mov->current_top_box_start;
 				mov->first_data_toplevel_size = a->size;
 			}
-			totSize += a->size;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 			if (mov->emsgs) {
@@ -554,7 +550,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->brand = (GF_FileTypeBox *)a;
-			totSize += a->size;
+
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
 			break;
@@ -569,7 +565,6 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				mov->otyp = (GF_Box *)a;
-				totSize += a->size;
 				e = gf_list_add(mov->TopBoxes, a);
 				if (e) return e;
 			} else {
@@ -595,7 +590,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->pdin = (GF_ProgressiveDownloadBox *) a;
-			totSize += a->size;
+
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
 			break;
@@ -623,7 +618,6 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				mov->first_data_toplevel_offset = mov->current_top_box_start;
 				mov->first_data_toplevel_size = a->size;
 			}
-			totSize += a->size;
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				e = gf_list_add(mov->TopBoxes, a);
 				if (e) return e;
@@ -677,7 +671,6 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			}
 			((GF_MovieFragmentBox *)a)->mov = mov;
 
-			totSize += a->size;
 			mov->moof = (GF_MovieFragmentBox *) a;
 
 			/*some smooth streaming streams contain a SDTP under the TRAF: this is incorrect, convert it*/
@@ -771,9 +764,12 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				if ((box->dataSize==4) && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))
 					mov->is_jp2 = 1;
 				gf_isom_box_del(a);
-			} else {
+			} else if (mov->openMode == GF_ISOM_OPEN_READ_DUMP) {
 				e = gf_list_add(mov->TopBoxes, a);
 				if (e) return e;
+			} else {
+				//trash unknown boxes if not debug
+				gf_isom_box_del(a);
 			}
 		}
 		break;
@@ -786,28 +782,37 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 					gf_isom_box_del(a);
 				else
 					mov->last_producer_ref_time = (GF_ProducerReferenceTimeBox *)a;
-				break;
+			} else {
+				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
 			}
 #endif
-		//fallthrough
+			break;
+
 		case GF_ISOM_BOX_TYPE_EMSG:
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
 				if (!mov->emsgs) mov->emsgs = gf_list_new();
 				gf_list_add(mov->emsgs, a);
-				break;
+			} else {
+				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
 			}
 #endif
+			break;
+
 		case GF_ISOM_BOX_TYPE_MFRA:
 		case GF_ISOM_BOX_TYPE_MFRO:
 			//only keep for dump mode, otherwise we ignore these boxes and we don't want to carry them over in non-fragmented file
 			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
-				totSize += a->size;
 				gf_isom_box_del(a);
-				break;
+			} else {
+				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
 			}
+			break;
+
 		default:
-			totSize += a->size;
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
 			break;
