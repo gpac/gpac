@@ -1350,7 +1350,7 @@ retry:
 
 	rpid->current_pck = gf_filter_pid_get_packet(rpid->pid);
 	if (!rpid->current_pck) {
-		if (gf_filter_pid_is_eos(rpid->pid)) {
+		if (gf_filter_pid_is_eos(rpid->pid) && !gf_filter_pid_is_flush_eos(rpid->pid) ) {
 #if 0
 			if (gf_filter_reporting_enabled(filter)) {
 				char szStatus[1024];
@@ -1676,7 +1676,7 @@ next_packet:
 			u32 offset;
 			routeout_fetch_packet(ctx, rpid);
 			if (!rpid->current_pck) {
-				if (gf_filter_pid_is_eos(rpid->pid))
+				if (gf_filter_pid_is_eos(rpid->pid) && !gf_filter_pid_is_flush_eos(rpid->pid))
 					nb_done++;
 				continue;
 			}

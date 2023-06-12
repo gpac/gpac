@@ -1810,7 +1810,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		u32 i, done=0, count = gf_list_count(ctx->pids);
 		for (i=0; i<count; i++) {
 			M2Pid *tspid = gf_list_get(ctx->pids, i);
-			if (tspid->has_seen_eods) done++;
+			if (!tspid->done && tspid->has_seen_eods) done++;
 		}
 		if (done==count) {
 			gf_filter_pid_send_flush(ctx->opid);

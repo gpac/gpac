@@ -5536,7 +5536,7 @@ static void mp4_mux_flush_frag_hls(GF_MP4MuxCtx *ctx)
 	ctx->frag_has_intra = GF_FALSE;
 }
 
-static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_range, u64 idx_end_range)
+static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_range, u64 idx_end_range, Bool signal_flush)
 {
 	GF_FilterEvent evt;
 	TrackWriter *tkw = NULL;
@@ -5560,7 +5560,8 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 			gf_filter_pck_set_carousel_version(ctx->dst_pck, 1);
 		}
 		mp4mux_send_output(ctx);
-		gf_filter_pid_send_flush(ctx->opid);
+		if (signal_flush)
+			gf_filter_pid_send_flush(ctx->opid);
 	}
 	if (!is_init && ctx->llhls_mode && ctx->frag_size) {
 		mp4_mux_flush_frag_hls(ctx);
@@ -5929,7 +5930,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		ctx->current_size = ctx->current_offset = 0;
 		ctx->first_pck_sent = GF_FALSE;
 	} else {
-		mp4_mux_flush_seg(ctx, GF_TRUE, 0, 0);
+		mp4_mux_flush_seg(ctx, GF_TRUE, 0, 0, GF_TRUE);
 	}
 	assert(!ctx->dst_pck);
 
@@ -6646,9 +6647,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					ctx->flush_idx_end_range = idx_end_range ? offset + idx_end_range : 0;
 					return GF_OK;
 				}
-				mp4_mux_flush_seg(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
+				mp4_mux_flush_seg(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0, !is_eos);
 			} else if (ctx->vodcache==MP4MX_VODCACHE_REPLACE) {
-				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
+				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0, GF_FALSE);
 			} else {
 				if (ctx->nb_seg_sizes == ctx->alloc_seg_sizes) {
 					 ctx->alloc_seg_sizes *= 2;
@@ -6661,7 +6662,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 			//we still need to send seg size info for for HLS !
 			if (ctx->vodcache==MP4MX_VODCACHE_INSERT)
-				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
+				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0, !is_eos);
 		}
 		//cannot flush in DASH mode if using sidx (vod single sidx or live 1 sidx/seg)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
@@ -6691,7 +6692,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			}
 
 			if (!ctx->dash_mode || ctx->flush_seg) {
-				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
+				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0, !is_eos);
 			}
 		}
 		ctx->fragment_started = GF_FALSE;
@@ -6732,7 +6733,7 @@ check_eos:
 				//flush sidx packet
 				mp4mux_send_output(ctx);
 
-				mp4_mux_flush_seg(ctx, GF_TRUE, ctx->current_offset, ctx->current_offset + ctx->current_size - 1);
+				mp4_mux_flush_seg(ctx, GF_TRUE, ctx->current_offset, ctx->current_offset + ctx->current_size - 1, GF_FALSE);
 
 				gf_fflush(ctx->tmp_store);
 				ctx->flush_size = gf_ftell(ctx->tmp_store);
@@ -6743,7 +6744,7 @@ check_eos:
 					start_offset = ctx->current_offset;
 					for (i=0; i<ctx->nb_seg_sizes; i++) {
 						ctx->current_size = ctx->seg_sizes[i];
-						mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
+						mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0, GF_FALSE);
 					}
 					ctx->current_offset = start_offset;
 					ctx->current_size = 0;
@@ -7315,7 +7316,7 @@ static void mp4_mux_flush_seg_events(GF_MP4MuxCtx *ctx)
 	}
 
 	if (!ctx->dash_mode || ctx->flush_seg) {
-		mp4_mux_flush_seg(ctx, GF_FALSE, ctx->flush_idx_start_range, ctx->flush_idx_end_range);
+		mp4_mux_flush_seg(ctx, GF_FALSE, ctx->flush_idx_start_range, ctx->flush_idx_end_range, GF_FALSE);
 	}
 
 	ctx->fragment_started = GF_FALSE;
@@ -7399,7 +7400,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			gf_bs_del(bs);
 			gf_filter_pck_send(pck);
 		}
-		mp4_mux_flush_seg(ctx, GF_TRUE, ctx->sidx_chunk_offset+free_size, ctx->sidx_chunk_offset+free_size + block_size - 1);
+		mp4_mux_flush_seg(ctx, GF_TRUE, ctx->sidx_chunk_offset+free_size, ctx->sidx_chunk_offset+free_size + block_size - 1, GF_FALSE);
 		return GF_OK;
 	}
 

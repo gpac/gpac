@@ -1176,7 +1176,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		//if input pid done, try from file
 		if (!strcmp(in->path, url)) {
 			//source done in server mode with no storage, no longer available unless reopen is set
-			if (in->done && !sess->ctx->has_read_dir && (!sess->ctx->reopen || gf_filter_pid_is_eos(in->ipid))) {
+			if (in->done && !sess->ctx->has_read_dir && (!sess->ctx->reopen || (gf_filter_pid_is_eos(in->ipid) && !gf_filter_pid_is_flush_eos(in->ipid) ))) {
 				no_longer_avail = GF_TRUE;
 			} else if (!in->done) {
 				source_pid = in;
@@ -3752,7 +3752,7 @@ next_pck:
 		if (!pck) {
 			nb_nopck++;
 			//check end of PID state
-			if (gf_filter_pid_is_eos(in->ipid)) {
+			if (gf_filter_pid_is_eos(in->ipid) && !gf_filter_pid_is_flush_eos(in->ipid)) {
 				nb_eos++;
 				if (in->dash_mode && in->is_open) {
 					httpin_send_seg_info(in);

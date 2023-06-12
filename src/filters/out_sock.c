@@ -384,7 +384,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 
 	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
-		if (gf_filter_pid_is_eos(ctx->pid)) {
+		if (gf_filter_pid_is_eos(ctx->pid) && !gf_filter_pid_is_flush_eos(ctx->pid) ) {
 			if (ctx->rev_pck) {
 				is_pck_ref = GF_TRUE;
 				pck = ctx->rev_pck;
