@@ -1237,7 +1237,7 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	u32 nb_bytes_to_purge;
 	u64 bytes_missing;
 
-	//purge every
+	//purge every mstore_purge bytes
 	if (read->mstore_purge && (min_offset - read->last_min_offset < read->mstore_purge))
 		return;
 
@@ -1246,6 +1246,8 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 		//bytes (we would trash the top-level box header)
 		gf_isom_get_current_top_box_offset(read->mov, &top_offset);
 		if (top_offset<min_offset) {
+			//force loading more data - we usually get here when mdat is not completely loaded
+			read->force_fetch = GF_TRUE;
 			return;
 		}
 	}
@@ -1255,7 +1257,10 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	//min_offset is given in absolute file position
 	nb_bytes_to_purge = (u32) (min_offset - read->bytes_removed);
 	assert(nb_bytes_to_purge<=read->mem_blob.size);
-
+	if (!nb_bytes_to_purge) {
+		read->force_fetch = GF_TRUE;
+		return;
+	}
 	memmove(read->mem_blob.data, read->mem_blob.data+nb_bytes_to_purge, read->mem_blob.size - nb_bytes_to_purge);
 	read->mem_blob.size -= nb_bytes_to_purge;
 	read->bytes_removed += nb_bytes_to_purge;
@@ -1314,7 +1319,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			if (read->moov_not_loaded) return GF_OK;
 		}
 		if (read->mem_load_mode==2) {
-			if (!read->force_fetch && read->mem_blob.size > read->mstore_size) {
+			if (!read->force_fetch && (read->mem_blob.size > read->mstore_size)) {
 				fetch_input = GF_FALSE;
 			}
 			read->force_fetch = GF_FALSE;
