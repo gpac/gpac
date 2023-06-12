@@ -6669,7 +6669,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			gf_isom_flush_fragments(ctx->file, GF_FALSE);
 			flush_refs = GF_TRUE;
 			//if not in dash and EOS marker is set, inject marker after each fragment
-			if (!ctx->dash_mode && ctx->eos_marker) {
+			if (!ctx->dash_mode && ctx->eos_marker && ctx->fragment_started) {
 				u8 data[8];
 				memset(data, 0, 8);
 				data[3] = 8;
