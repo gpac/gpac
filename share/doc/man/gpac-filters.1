@@ -2249,7 +2249,7 @@ fsap (bool, default: true):    split truns in video fragments at SAPs to reduce 
 .br
 subs_sidx (sint, default: -1): number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source PID
 .br
-m4cc (str):                    4 character code of empty box to append at the end of a segment
+m4cc (str):                    4 character code of empty box to append at the end of a segment (DASH mode) or of a fragment (non-DASH mode)
 .br
 chain_sidx (bool, default: false): use daisy-chaining of SIDX
 .br
@@ -5401,6 +5401,24 @@ If the DRM file uses keyRoll=period, this will generate:
 .br
 
 .br
+.SS Forced-Template mode
+.br
+When .I tpl_force is set, the .I template string is not analyzed nor modified for missing elements.
+.br
+This is typically used to redirect segments to a given destination regardless of the dash profile.
+.br
+Example
+.br
+gpac -i SRC -o null:ext=mpd:tpl_force --template=pipe://mypipe
+.br
+
+.br
+This will trash the manifest and open mypipe as destination for the muxer result.
+.br
+Warning: Options for segment destination cannot be set through the .I template, global options must be used.
+.br
+
+.br
 .SS Multiplexer development considerations
 .br
 Output multiplexers allowing segmented output must obey the following:
@@ -5780,6 +5798,8 @@ dkid (enum, default: auto):    control injection of default KID in MPD
 .br
 
 .br
+tpl_force (bool, default: false): use template string as is without trying to add extension or solve conflicts in names
+.br
 
 .br
 .SH tileagg
@@ -5901,7 +5921,7 @@ Input pipes can be setup to run forever using .I ka. In this case:
 .br
 - any potential pipe close on the writing side will be ignored
 .br
-- temporary end of stream will be triggered upon pipe close if .I sigflush is set
+- pipeline flushing will be triggered upon pipe close if .I sigflush is set
 .br
 - final end of stream will be triggered upon session close.
 .br
@@ -5913,11 +5933,19 @@ This can be useful to pipe raw streams from different process into gpac:
 .br
 * Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264  
 .br
-The temporary end of stream will trigger a pipeline flush by setting stream to EOS while keeping it active.
+The pipeline flush is signaled as EOS while keeping the stream active.
 .br
 This is typically needed for mux filters waiting for EOS to flush their data.
 .br
 Warning: Usage of  .I sigflush may not be properly supported by some filters.
+.br
+If .I marker is set, the following strings (all 8-bytes 0 terminator) will be scanned:
+.br
+* `GPACPIF`: triggers a pipeline flush event after the marker
+.br
+* `GPACPIR`: triggers a reconfigration of the format after the marker
+.br
+The marker mode should be used carefully as it will slow down pipe processing (higher CPU usage and delayed output).
 .br
   
 .br
@@ -5985,6 +6013,10 @@ When a keep-alive pipe is broken, input data is discarded and the filter will ke
 .br
 It is therefore recommended to use this mode with real-time inputs (use a reframer if needed).
 .br
+If .I marker is set, the string GPACPIF (8 bytes including 0-terminator) will be written to the pipe at each detected pipeline flush.
+.br
+Pipeline flushing is currently triggered by DASH segment end or ISOBMF fragment end.
+.br
 
 .br
 .SH Options (expert):
@@ -6007,6 +6039,8 @@ mkp (bool, default: false):    create pipe if not found
 block_size (uint, default: 5000): buffer size used to write to pipe, Windows only
 .br
 ka (bool, default: false):     keep pipe alive when broken pipe is detected
+.br
+marker (bool, default: false): inject marker upon pipeline flush events
 .br
 
 .br

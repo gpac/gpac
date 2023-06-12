@@ -5553,7 +5553,7 @@ GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default
 			char_template+=1;	\
 
 GF_EXPORT
-GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline)
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline, Bool forced)
 {
 	Bool has_number= GF_FALSE;
 	Bool force_path = GF_FALSE;
@@ -5633,7 +5633,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			EXTRACT_FORMAT(5);
 			if (is_init || is_init_template) {
 				if (!has_init_keyword && needs_init) {
-					strcat(segment_name, "init");
+					if (!forced) strcat(segment_name, "init");
 					needs_init = GF_FALSE;
 				}
 				continue;
@@ -5650,7 +5650,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 			if (is_init || is_init_template) {
 				if (!has_init_keyword && needs_init) {
-					strcat(segment_name, "init");
+					if (!forced) strcat(segment_name, "init");
 					needs_init = GF_FALSE;
 				}
 				continue;
@@ -5737,7 +5737,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		}
 	}
 
-	if (is_template && !strstr(seg_rad_name, "$Number") && !strstr(seg_rad_name, "$Time")) {
+	if (is_template && !forced && !strstr(seg_rad_name, "$Number") && !strstr(seg_rad_name, "$Time")) {
 		if (use_segment_timeline) {
 			strcat(segment_name, "$Time$");
 		} else {
@@ -5745,12 +5745,12 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		}
 	}
 
-	if (needs_init)
+	if (needs_init && !forced)
 		strcat(segment_name, "init");
-	if (needs_index)
+	if (needs_index && !forced)
 		strcat(segment_name, "idx");
 
-	if (!is_init && !is_template && !is_init_template && !is_index && !has_number) {
+	if (!is_init && !is_template && !is_init_template && !is_index && !has_number && !forced) {
 		if (use_segment_timeline) {
 			sprintf(tmp, LLU, start_time);
 			strcat(segment_name, tmp);
@@ -5761,11 +5761,12 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		}
 	}
 
+
 	if (strlen(segment_ext_override) > 0) {
 		strcat(segment_name, ".");
 		strcat(segment_name, segment_ext_override);
 	}
-	else if (seg_ext) {
+	else if (seg_ext && !forced) {
 		strcat(segment_name, ".");
 		strcat(segment_name, seg_ext);
 	}

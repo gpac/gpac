@@ -186,7 +186,7 @@ typedef struct
 	char *title, *source, *info, *cprt, *lang;
 	char *chain, *chain_fbk;
 	GF_PropStringList location, base;
-	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src;
+	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool cmpd, dual, sreg;
@@ -3810,7 +3810,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 		//we need dash suffix in template, but the template may be user-provided without dash suffix. If so add it
 		//we don't add suffic if we have $RepresentationID or $Path set, we assume the user knows what he's doing
-		if (use_dash_suffix && !strstr(szTemplate, "$FS$") && !strstr(szTemplate, "$RepresentationID$") && !strstr(szTemplate, "$Path=")) {
+		if (!ctx->tpl_force && use_dash_suffix && !strstr(szTemplate, "$FS$") && !strstr(szTemplate, "$RepresentationID$") && !strstr(szTemplate, "$Path=")) {
 			strcat(szTemplate, "$FS$");
 		}
 
@@ -3823,16 +3823,17 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			continue;
 		}
 
-
-		if (single_template && ds->split_set_names && !use_dash_suffix) {
-			char szStrName[20];
-			sprintf(szStrName, "_set%d", 1 + gf_list_find(ctx->current_period->period->adaptation_sets, set)  );
-			strcat(szDASHTemplate, szStrName);
-		}
-		else if (split_rep_names) {
-			char szStrName[20];
-			sprintf(szStrName, "_rep%d", 1 + gf_list_find(set->representations, ds->rep)  );
-			strcat(szDASHTemplate, szStrName);
+		if (!ctx->tpl_force) {
+			if (single_template && ds->split_set_names && !use_dash_suffix) {
+				char szStrName[20];
+				sprintf(szStrName, "_set%d", 1 + gf_list_find(ctx->current_period->period->adaptation_sets, set)  );
+				strcat(szDASHTemplate, szStrName);
+			}
+			else if (split_rep_names) {
+				char szStrName[20];
+				sprintf(szStrName, "_rep%d", 1 + gf_list_find(set->representations, ds->rep)  );
+				strcat(szDASHTemplate, szStrName);
+			}
 		}
 
 		ds->rawmux = GF_FALSE;
@@ -3936,7 +3937,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			//we however don't want to change templates if they are indeed reused but resolve to something different due to representationID
 			//we therefore resolve the segment template with startNumber 0 time 0, use this resolved name as base check.
 
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, is_source_template ? NULL : "mp4", 0, ds->bitrate, 0, ds->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, is_source_template ? NULL : "mp4", 0, ds->bitrate, 0, ds->stl, ctx->tpl_force);
 
 			reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
 			if (reused_template_idx) {
@@ -3948,27 +3949,28 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					single_template = GF_FALSE;
 			}
 		}
-		
+
 		//get final segment template with path resolution - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ds->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ds->stl, ctx->tpl_force);
 		ds->seg_template = gf_strdup(szSegmentName);
 
 		//get final segment template - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ds->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ds->stl, ctx->tpl_force);
+
 
 		//get index templates
 		if (idx_ext) {
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE_WITH_PATH, is_bs_switch, szIndexSegmentName, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ds->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE_WITH_PATH, is_bs_switch, szIndexSegmentName, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ds->stl, ctx->tpl_force);
 			ds->idx_template = gf_strdup(szIndexSegmentName);
 
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE, is_bs_switch, szIndexSegmentName, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ds->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX_TEMPLATE, is_bs_switch, szIndexSegmentName, ds->rep_id, NULL, szDASHTemplate, idx_ext, 0, 0, 0, ds->stl, ctx->tpl_force);
 		}
 
 		//get final init name - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ds->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ds->stl, ctx->tpl_force);
 
 		//get final init template name - output file name is NULL, we already have solved this
-		gf_media_mpd_format_segment_name(init_template_mode, is_bs_switch, szInitSegmentTemplate, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, 0, 0, ds->stl);
+		gf_media_mpd_format_segment_name(init_template_mode, is_bs_switch, szInitSegmentTemplate, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, 0, 0, ds->stl, ctx->tpl_force);
 
 		if (ctx->sigfrag) {
 			if (ctx->template || ds->template) {
@@ -7766,7 +7768,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	szIndexName[0] = 0;
 	if (ds->idx_template) {
 		//get final segment template - output file name is NULL, we already have solved this in source_setup
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, ds->set->bitstream_switching, szIndexName, base_ds->rep_id, NULL, base_ds->idx_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, base_ds->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, ds->set->bitstream_switching, szIndexName, base_ds->rep_id, NULL, base_ds->idx_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, base_ds->stl, ctx->tpl_force);
 
 		strcpy(szSegmentFullPath, szIndexName);
 		if (ctx->out_path) {
@@ -7904,7 +7906,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			pto = gf_timestamp_rescale(pto, base_ds->timescale, base_ds->mpd_timescale);
 		}
 
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time + pto, base_ds->rep->bandwidth, base_ds->seg_number, ds->stl);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time + pto, base_ds->rep->bandwidth, base_ds->seg_number, ds->stl, ctx->tpl_force);
+
 	}
 
 
@@ -10381,6 +10384,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- on: default KID always injected\n"
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
@@ -10591,6 +10595,13 @@ GF_FilterRegister DasherRegister = {
 "- first period crypted with one key\n"
 "- second period clear\n"
 "- third period crypted with another key\n"
+"\n"
+"## Forced-Template mode\n"
+"When [-tpl_force]() is set, the [-template]() string is not analyzed nor modified for missing elements.\n"
+"This is typically used to redirect segments to a given destination regardless of the dash profile.\n"
+"EX gpac -i SRC -o null:ext=mpd:tpl_force --template=pipe://mypipe\n"
+"This will trash the manifest and open `mypipe` as destination for the muxer result.\n"
+"Warning: Options for segment destination cannot be set through the [-template](), global options must be used.\n"
 "\n"
 "## Multiplexer development considerations\n"
 "Output multiplexers allowing segmented output must obey the following:\n"
