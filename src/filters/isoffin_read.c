@@ -1191,7 +1191,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 
 	if (read->mem_load_mode==1) {
 		u32 box_type;
-		e = gf_isom_open_progressive_ex(read->mem_url, 0, 0, GF_FALSE, &read->mov, &bytes_missing, &box_type);
+		e = gf_isom_open_progressive_ex(read->mem_url, 0, 0, read->sigfrag, &read->mov, &bytes_missing, &box_type);
 
 		if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 			gf_filter_setup_failure(filter, e);
