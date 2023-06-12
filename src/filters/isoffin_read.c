@@ -1297,6 +1297,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	u32 i, count = gf_list_count(read->channels);
 	Bool is_active = GF_FALSE;
 	Bool in_is_eos = GF_FALSE;
+	Bool in_is_flush = GF_FALSE;
 	Bool check_forced_end = GF_FALSE;
 	Bool has_new_data = GF_FALSE;
 	u64 min_offset_plus_one = 0;
@@ -1349,8 +1350,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				return read->in_error;
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
-			read->input_loaded = GF_TRUE;
-			in_is_eos = GF_TRUE;
+			if (!gf_filter_pid_is_flush_eos(read->pid)) {
+				read->input_loaded = GF_TRUE;
+				in_is_eos = GF_TRUE;
+			} else {
+				in_is_flush = GF_TRUE;
+			}
 		}
 		if (read->input_is_stop) {
 			read->input_loaded = GF_TRUE;
@@ -1451,7 +1456,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 		while (nb_pck) {
 			ch->sample_data_offset = 0;
-			if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )
+			if (!in_is_flush && !read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )
 				break;
 
 			if (ch->item_id) {
@@ -1616,9 +1621,13 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				isor_reader_release_sample(ch);
 
 				ch->last_valid_sample_data_offset = ch->sample_data_offset;
-				nb_pck--;
+				if (!in_is_flush)
+					nb_pck--;
 			} else if (ch->last_state==GF_EOS) {
-				if (ch->playing == 2) {
+				if (in_is_flush) {
+					gf_filter_pid_send_flush(ch->pid);
+				}
+				else if (ch->playing == 2) {
 					if (in_is_eos) {
 						ch->playing = 0;
 					} else {

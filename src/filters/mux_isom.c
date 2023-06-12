@@ -5560,6 +5560,7 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 			gf_filter_pck_set_carousel_version(ctx->dst_pck, 1);
 		}
 		mp4mux_send_output(ctx);
+		gf_filter_pid_send_flush(ctx->opid);
 	}
 	if (!is_init && ctx->llhls_mode && ctx->frag_size) {
 		mp4_mux_flush_frag_hls(ctx);

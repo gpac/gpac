@@ -77,6 +77,9 @@ typedef struct
 	Bool do_reconfigure;
 	char *buffer;
 	Bool is_stdin;
+	u32 left_over, copy_offset;
+	u8 store_char;
+	Bool has_recfg;
 } GF_PipeInCtx;
 
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt);
@@ -312,6 +315,8 @@ static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_TRUE;
 }
 
+#define PIPE_FLUSH_MARKER	"GPACPIF"
+#define PIPE_RECFG_MARKER	"GPACPIR"
 
 static void pipein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
@@ -342,6 +347,19 @@ static GF_Err pipein_process(GF_Filter *filter)
 	}
 
 	total_read = 0;
+	if (ctx->left_over) {
+		if (ctx->copy_offset)
+			memmove(ctx->buffer, ctx->buffer + ctx->copy_offset, ctx->left_over);
+		total_read = ctx->left_over;
+		ctx->left_over = 0;
+		ctx->copy_offset = 0;
+		ctx->buffer[0] = PIPE_FLUSH_MARKER[0];
+	}
+	if (ctx->has_recfg) {
+		ctx->do_reconfigure = GF_TRUE;
+		ctx->has_recfg = GF_FALSE;
+	}
+
 
 refill:
 
@@ -356,7 +374,7 @@ refill:
 				ctx->bytes_read = 0;
 			}
 		} else {
-			nb_read = (s32) fread(ctx->buffer + total_read, 1, ctx->read_block_size, stdin);
+			nb_read = (s32) fread(ctx->buffer + total_read, 1, ctx->read_block_size-total_read, stdin);
 			if (!total_read && (nb_read<0)) {
 				if (!ctx->ka) {
 					gf_filter_pid_set_eos(ctx->pid);
@@ -397,7 +415,7 @@ refill:
 				}
 			}
 		}
-		if (! ReadFile(ctx->pipe, ctx->buffer + total_read, ctx->read_block_size, (LPDWORD) &nb_read, ctx->blk ? NULL : &ctx->overlap)) {
+		if (! ReadFile(ctx->pipe, ctx->buffer + total_read, ctx->read_block_size-total_read, (LPDWORD) &nb_read, ctx->blk ? NULL : &ctx->overlap)) {
 			if (total_read) {
 				nb_read = 0;
 			} else {
@@ -433,12 +451,15 @@ refill:
 						return GF_EOS;
 					}
 				}
-				if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
+				if (!ctx->bytes_read)
+					gf_filter_ask_rt_reschedule(filter, 10000);
+				else
+					gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
 		}
 #else
-		nb_read = (s32) read(ctx->fd, ctx->buffer + total_read, ctx->read_block_size);
+		nb_read = (s32) read(ctx->fd, ctx->buffer + total_read, ctx->read_block_size-total_read);
 		if (nb_read <= 0) {
 			if (total_read) {
 				nb_read = 0;
@@ -464,6 +485,7 @@ refill:
 					}
 				}
 				if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
+				else gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
 		}
@@ -472,15 +494,59 @@ refill:
 
 	if (nb_read) {
 		total_read += nb_read;
-		if (total_read + ctx->read_block_size < ctx->block_size) {
+		if (!ctx->left_over && (total_read + ctx->read_block_size < ctx->block_size)) {
 			nb_read = 0;
 			goto refill;
 		}
 	}
 	nb_read = total_read;
 
+	Bool has_marker=GF_FALSE;
+	if (ctx->sigflush) {
+		u8 *start = ctx->buffer;
+		u32 avail = nb_read;
+		if (nb_read<8) {
+			ctx->left_over = nb_read;
+			nb_read = 0;
+			ctx->copy_offset = 0;
+			ctx->store_char = ctx->buffer[0];
+		}
+		while (nb_read) {
+			u8 *m = memchr(start, PIPE_FLUSH_MARKER[0], avail);
+			if (!m) break;
+			u32 remain = (u8*) ctx->buffer + nb_read - m;
+			if (remain<8) {
+				ctx->left_over = remain;
+				nb_read -= remain;
+				ctx->copy_offset = m - (u8*)ctx->buffer;
+				ctx->store_char = ctx->buffer[nb_read];
+				break;
+			}
+			if (!memcmp(m, PIPE_FLUSH_MARKER, 8)) {
+				ctx->left_over = remain-8;
+				nb_read = m - (u8*)ctx->buffer;
+				ctx->copy_offset = nb_read+8;
+				has_marker = GF_TRUE;
+				break;
+			}
+			if (!memcmp(m, PIPE_RECFG_MARKER, 8)) {
+				ctx->left_over = remain-8;
+				nb_read = m - (u8*)ctx->buffer;
+				ctx->copy_offset = nb_read+8;
+				ctx->has_recfg = GF_TRUE;
+				break;
+			}
+			start = m+1;
+			avail = (u8*)ctx->buffer+nb_read - start;
+		}
+	}
+
 	if (!nb_read) {
+		if (has_marker) {
+			gf_filter_pid_send_flush(ctx->pid);
+		}
 		if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
+		else gf_filter_ask_rt_reschedule(filter, 1000);
 		return GF_OK;
 	}
 
@@ -508,6 +574,9 @@ refill:
 	gf_filter_pck_send(pck);
 	ctx->bytes_read += nb_read;
 
+	if (has_marker) {
+		gf_filter_pid_send_flush(ctx->pid);
+	}
 	if (ctx->is_end) {
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_EOS;
@@ -564,16 +633,20 @@ GF_FilterRegister PipeInRegister = {
 		"  \n"
 		"Input pipes can be setup to run forever using [-ka](). In this case:\n"
 		"- any potential pipe close on the writing side will be ignored\n"
-		"- temporary end of stream will be triggered upon pipe close if [-sigflush]() is set\n"
+		"- pipeline flushing will be triggered upon pipe close if [-sigflush]() is set\n"
 		"- final end of stream will be triggered upon session close.\n"
 		"  \n"
 		"This can be useful to pipe raw streams from different process into gpac:\n"
 		"- Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"
 		"- Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"
 		"  \n"
-		"The temporary end of stream will trigger a pipeline flush by setting stream to EOS while keeping it active.\n"
+		"The pipeline flush is signaled as EOS while keeping the stream active.\n"
 		"This is typically needed for mux filters waiting for EOS to flush their data.\n"
 		"Warning: Usage of  [-sigflush]() may not be properly supported by some filters.\n"
+		"If [-marker]() is set, the following strings (all 8-bytes `0` terminator) will be scanned:\n"
+		"- `GPACPIF`: triggers a pipeline flush event after the marker\n"
+		"- `GPACPIR`: triggers a reconfiguration of the format after the marker (used to signal mux type changes)\n"
+		"The marker mode should be used carefully as it will slow down pipe processing (higher CPU usage and delayed output).\n"
 		"  \n"
 		"The pipe input can be created in blocking mode or non-blocking mode.\n"
 	"")

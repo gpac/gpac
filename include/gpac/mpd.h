@@ -82,9 +82,10 @@ typedef enum
 \param bandwidth bandwidth used for the representation
 \param segment_number number of the target segment
 \param use_segment_timeline indicates if segmentTimeline is used for segment addressing in the MPD
+\param forced_template if true, do not append extension or missing $Number$ or $Time$  when resolving template
 \return error if any
 */
-GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline);
+GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline, Bool forced);
 
 /*! metrics, not yet supported*/
 typedef struct

@@ -56,7 +56,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool dynext, mkp, ka;
+	Bool dynext, mkp, ka, marker;
 	u32 block_size;
 
 
@@ -311,6 +311,27 @@ static void pipeout_finalize(GF_Filter *filter)
 	}
 }
 
+#define PIPE_FLUSH_MARKER	"GPACPIF"
+static void pout_write_marker(GF_PipeOutCtx *ctx)
+{
+	if (ctx->marker && gf_filter_pid_is_flush_eos(ctx->pid)) {
+		u32 nb_write;
+#ifdef WIN32
+		if (! WriteFile(ctx->pipe, PIPE_FLUSH_MARKER, 8, (LPDWORD) &nb_write, NULL)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to write marker: error %d\n", GetLastError() ));
+			return;
+		}
+#else
+		nb_write = (s32) write(ctx->fd, PIPE_FLUSH_MARKER, 8);
+		if (nb_write != 8) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Failed to write marker: %s\n", gf_errno_str(errno)));
+			return;
+		}
+#endif
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeOut] Wrote marker\n"));
+	}
+}
+
 static GF_Err pipeout_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
@@ -325,8 +346,12 @@ static GF_Err pipeout_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->pid)) {
-			pipeout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
-			return GF_EOS;
+			if (gf_filter_pid_is_flush_eos(ctx->pid)) {
+				pout_write_marker(ctx);
+			} else {
+				pipeout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
+				return GF_EOS;
+			}
 		}
 		return GF_OK;
 	}
@@ -371,6 +396,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 			}
 		}
 	}
+	pout_write_marker(ctx);
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (
@@ -495,6 +521,7 @@ static const GF_FilterArgs PipeOutArgs[] =
 	{ OFFS(mkp), "create pipe if not found", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(block_size), "buffer size used to write to pipe, Windows only", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(ka), "keep pipe alive when broken pipe is detected", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(marker), "inject marker upon pipeline flush events", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -526,6 +553,9 @@ GF_FilterRegister PipeOutRegister = {
 		"The pipe can be kept alive after a broken pipe is detected using [-ka](). This is typically used when clients crash/exits and resumes.\n"
 		"When a keep-alive pipe is broken, input data is discarded and the filter will keep trashing data as fast as possible.\n"
 		"It is therefore recommended to use this mode with real-time inputs (use a [reframer](reframer) if needed)."
+		"\n"
+		"If [-marker]() is set, the string `GPACPIF` (8 bytes including 0-terminator) will be written to the pipe at each detected pipeline flush.\n"
+		"Pipeline flushing is currently triggered by DASH segment end or ISOBMF fragment end.\n"
 	"")
 	.private_size = sizeof(GF_PipeOutCtx),
 	.args = PipeOutArgs,

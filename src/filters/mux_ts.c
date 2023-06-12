@@ -1806,6 +1806,17 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			break;
 	}
 
+	if (ctx->wait_dash_flush || ctx->wait_llhls_flush) {
+		u32 i, done=0, count = gf_list_count(ctx->pids);
+		for (i=0; i<count; i++) {
+			M2Pid *tspid = gf_list_get(ctx->pids, i);
+			if (tspid->has_seen_eods) done++;
+		}
+		if (done==count) {
+			gf_filter_pid_send_flush(ctx->opid);
+		}
+	}
+
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 		if (status==GF_M2TS_STATE_EOS) {
