@@ -2342,7 +2342,7 @@ exit:
 				movie->on_last_block_start(movie->on_block_out_usr_data);
 
 			seg[0] = seg[1] = seg[2] = 0;
-			seg[3] = 9;
+			seg[3] = 8;
 			seg[4] = (segment_marker_4cc>>24) & 0xFF;
 			seg[5] = (segment_marker_4cc>>16) & 0xFF;
 			seg[6] = (segment_marker_4cc>>8) & 0xFF;
