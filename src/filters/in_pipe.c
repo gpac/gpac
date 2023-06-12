@@ -80,6 +80,7 @@ typedef struct
 	u32 left_over, copy_offset;
 	u8 store_char;
 	Bool has_recfg;
+	u32 nb_empty;
 } GF_PipeInCtx;
 
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt);
@@ -383,6 +384,10 @@ refill:
 			}
 		}
 	} else {
+		if (ctx->bytes_read && (ctx->nb_empty>50)) {
+			ctx->nb_empty = 0;
+			ctx->bytes_read = 0;
+		}
 
 		errno = 0;
 #ifdef WIN32
@@ -451,10 +456,9 @@ refill:
 						return GF_EOS;
 					}
 				}
+				ctx->nb_empty++;
 				if (!ctx->bytes_read)
 					gf_filter_ask_rt_reschedule(filter, 10000);
-				else
-					gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
 		}
@@ -484,8 +488,9 @@ refill:
 						ctx->bytes_read = 0;
 					}
 				}
+				ctx->nb_empty++;
+
 				if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
-				else gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
 		}
@@ -500,6 +505,7 @@ refill:
 		}
 	}
 	nb_read = total_read;
+	ctx->nb_empty = 0;
 
 	Bool has_marker=GF_FALSE;
 	if (ctx->sigflush) {
