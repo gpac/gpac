@@ -6821,6 +6821,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	u32 i, count, last_sample_in_entry;
 	Bool all_samples = GF_FALSE;
 	assert(sampleGroups);
+	if (!sgdesc) return GF_BAD_PARAM;
 	count = gf_list_count(sampleGroups);
 	for (i=0; i<count; i++) {
 		sgroup = (GF_SampleGroupBox*)gf_list_get(sampleGroups, i);
@@ -7882,8 +7883,10 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 					gf_list_add(sgd_dst->group_descriptions, sgde_dst);
 					group_desc_index_dst = gf_list_count(sgd_dst->group_descriptions);
 				}
+			} else {
+				gf_isom_get_sample_group_info_entry(dst, dst_trak, sg->grouping_type, 1, NULL, &sgd_dst);
+				if (!sgd_dst) continue;
 			}
-
 
 			/*found our sample, add it to trak->sampleGroups*/
 			e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sgd_dst, sg->grouping_type_parameter, group_desc_index_dst, dst_trak->Media->information->sampleTable->child_boxes, NULL);
