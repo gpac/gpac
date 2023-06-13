@@ -1700,8 +1700,8 @@ skip_date:
 			if (sep) {
 				escaped = (sep[1] == filter->session->sep_args) ? NULL : strstr(sep, szEscape);
 				if (escaped && xml_start && (escaped>xml_start)) escaped = NULL;
-				//if we have a :gfopt: or :gfloc: set without :gpac: consider this as a valid escape pattern
-				if (check_url_esc && !escaped && (!strncmp(sep, ":gfopt:", 7) ||!strncmp(sep, ":gfloc:", 7)))
+				//if we have a :gfopt: or :gfloc: set without :gpac: on a source, consider this as a valid escape pattern
+				if (check_url_esc && !escaped && !strncmp(args, szSrc, 4) && (!strncmp(sep, ":gfopt:", 7) ||!strncmp(sep, ":gfloc:", 7)))
 					escaped = sep;
 
 				if (escaped) {
