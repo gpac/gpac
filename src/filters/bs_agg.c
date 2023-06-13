@@ -39,6 +39,13 @@ typedef struct
 	u32 size, alloc_size, lid, tid;
 } NALStore;
 
+
+typedef struct
+{
+	u32 layer_id_plus_one;
+	u32 min_temporal_id, max_temporal_id;
+} LHVCLayerInfo;
+
 typedef struct _bs_agg_ctx BSAggCtx;
 typedef struct _bs_agg_pid BSAggOut;
 
@@ -56,6 +63,8 @@ struct _bs_agg_pid
 	GF_List *nal_stores;
 
 	GF_List *ipids;
+
+	LHVCLayerInfo linf[64];
 };
 
 struct _bs_agg_ctx
@@ -441,6 +450,51 @@ static GF_Err none_process(BSAggCtx *ctx, BSAggOut *c_opid)
 	return GF_OK;
 }
 
+static Bool bsagg_filter_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+{
+
+	if (!prop_name) return GF_TRUE;
+	if (!strncmp(prop_name, "grp_linf", 8))
+		return GF_FALSE;
+	return GF_TRUE;
+}
+
+static void bsagg_set_linf(BSAggOut *pctx)
+{
+	u32 i, nb_layers=0, nb_sublayers=0;
+	u8 *data;
+	u32 data_size;
+	GF_BitStream *bs;
+	if (pctx->codec_id!=GF_CODECID_HEVC)
+		return;
+
+	for (i=0; i<64; i++) {
+		if (pctx->linf[i].layer_id_plus_one) nb_layers++;
+		if (pctx->linf[i].min_temporal_id != pctx->linf[i].max_temporal_id) nb_sublayers++;
+	}
+	//only set linf if more than one layer
+	if ((nb_layers<=1) && !nb_sublayers)
+		return;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	gf_bs_write_int(bs, 0, 2);
+	gf_bs_write_int(bs, nb_layers, 6);
+	for (i=0; i<nb_layers; i++) {
+		if (! pctx->linf[i].layer_id_plus_one) continue;
+		gf_bs_write_int(bs, 0, 4);
+		gf_bs_write_int(bs, pctx->linf[i].layer_id_plus_one - 1, 6);
+		gf_bs_write_int(bs, pctx->linf[i].min_temporal_id, 3);
+		gf_bs_write_int(bs, pctx->linf[i].max_temporal_id, 3);
+		gf_bs_write_int(bs, 0, 1);
+		gf_bs_write_int(bs, 0xFF, 7);
+
+	}
+	gf_bs_get_content(bs, &data, &data_size);
+	gf_bs_del(bs);
+	gf_filter_pid_set_info_str(pctx->opid, "hevc:linf", &PROP_DATA_NO_COPY(data, data_size) );
+}
+
 static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 {
 	u32 size, pck_size, i, count, tot_size=0, nb_done=0;
@@ -480,6 +534,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 		}
 	}
 	if (nb_done==count) {
+		bsagg_set_linf(pctx);
 		gf_filter_pid_set_eos(pctx->opid);
 		return GF_EOS;
 	}
@@ -673,7 +728,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 				e = GF_OUT_OF_MEM;
 				break;
 			}
-			gf_filter_pck_merge_properties(pck, pctx->pck);
+			gf_filter_pck_merge_properties_filter(pck, pctx->pck, bsagg_filter_prop, ctx);
 		}
 		//drop packet
 		gf_filter_pid_drop_packet(pid);
@@ -690,6 +745,14 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 	for (u32 j=0; j<nal_count; j++) {
 		NALStore *ns = gf_list_get(pctx->nal_stores, j);
 		if (!ns->size) continue;
+		LHVCLayerInfo *linf = &pctx->linf[ns->lid];
+
+		linf->layer_id_plus_one = ns->lid + 1;
+		if (!linf->min_temporal_id || (linf->min_temporal_id > ns->tid))
+			linf->min_temporal_id = ns->tid;
+
+		if (linf->max_temporal_id < ns->tid)
+			linf->max_temporal_id = ns->tid;
 
 		memcpy(output, ns->data, ns->size);
 		output+= ns->size;

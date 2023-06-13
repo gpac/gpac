@@ -1045,7 +1045,8 @@ static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 		if (ctx->linf[i].layer_id_plus_one) nb_layers++;
 		if (ctx->linf[i].min_temporal_id != ctx->linf[i].max_temporal_id) nb_sublayers++;
 	}
-	if (!nb_layers && !nb_sublayers)
+	//only set linf if more than one layer
+	if ((nb_layers<=1) && !nb_sublayers)
 		return;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
