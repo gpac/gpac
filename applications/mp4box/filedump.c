@@ -3776,6 +3776,24 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		const char *handler_name;
 		gf_isom_get_handler_name(file, trackNum, &handler_name);
 		fprintf(stderr, "Handler name: %s\n", handler_name);
+
+		u32 ridx=0;
+		while (1) {
+			u32 rtype, rcount, j;
+			const GF_ISOTrackID *refs = gf_isom_enum_track_references(file, trackNum, ridx, &rtype, &rcount);
+			if (!refs) break;
+			if (!ridx)
+				fprintf(stderr, "Track References: ");
+			else
+				fprintf(stderr, ", ");
+			ridx++;
+			fprintf(stderr, "%s to", gf_4cc_to_str(rtype));
+			for (j=0; j<rcount; j++) {
+				fprintf(stderr, " %d", refs[j]);
+			}
+		}
+		if (ridx)
+			fprintf(stderr, "\n");
 	}
 
 	print_udta(file, trackNum, GF_FALSE);
