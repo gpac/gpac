@@ -2484,9 +2484,13 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 
 					//prop type matched, output includes it and input excludes it: no match, don't look any further
 					if (prop_equal) {
-						matched = GF_FALSE;
-						exclude = GF_TRUE;
-						prop_found = GF_FALSE;
+						//ignore if we have a previous match for same cap - this is needed for filters declaring multiple stream types
+						//which are only known after filter loading
+						if (!bundles_cap_found[cur_dst_bundle]) {
+							matched = GF_FALSE;
+							exclude = GF_TRUE;
+							prop_found = GF_FALSE;
+						}
 					} else {
 						//remember we found a prop of same type but excluded value
 						// we will match unless we match an excluded value
