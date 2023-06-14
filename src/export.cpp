@@ -984,6 +984,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_opus_config_get_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pcm_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_lpcm_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_track_references) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -1039,6 +1040,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_last_sample_duration_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_references) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_sample_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample) )

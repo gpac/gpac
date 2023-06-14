@@ -4855,6 +4855,7 @@ GF_Err gf_isom_remove_track_references(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_remove_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 ref_type)
 {
 	GF_TrackBox *trak;
@@ -4869,6 +4870,10 @@ GF_Err gf_isom_remove_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u3
 			gf_isom_box_del_parent(&trak->References->child_boxes, (GF_Box *)ref);
 			break;
 		}
+	}
+	if (!gf_list_count(trak->References->child_boxes)) {
+		gf_isom_box_del_parent(&trak->child_boxes, (GF_Box *)trak->References);
+		trak->References = NULL;
 	}
 	return GF_OK;
 
@@ -7152,8 +7157,11 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 		if (gf_isom_is_identical_sgpd(entry, sgde_dst, sgdesc->grouping_type)) {
 			if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = k+1;
 			sgpd_del_entry(sgdesc->grouping_type, entry);
-			if (use_default)
-				*use_default = (sgdesc->default_description_index==k+1) ? GF_TRUE : GF_FALSE;
+			if (use_default) {
+				u32 idx = k+1;
+				if (is_traf_sgpd && *is_traf_sgpd) idx |= 0x10000;
+				*use_default = (sgdesc->default_description_index==idx) ? GF_TRUE : GF_FALSE;
+			}
 			return GF_OK;
 		}
 	}
@@ -7246,12 +7254,17 @@ GF_Err gf_isom_add_sample_group_info_internal(GF_ISOFile *movie, u32 track, u32 
 	if (is_default && !sgdesc->default_description_index) {
 		sgdesc->default_description_index = 1 + gf_list_find(sgdesc->group_descriptions, entry);
 		if (sgdesc->version < 2) sgdesc->version = 2;
+		if (is_traf_sgpd && *is_traf_sgpd) {
+			sgdesc->default_description_index |= 0x10000;
+		}
 	}
 	u32 grp_idx =  1 + gf_list_find(sgdesc->group_descriptions, entry);
 	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = grp_idx;
-	if (use_default)
+	if (use_default) {
+		if (*is_traf_sgpd)
+			grp_idx |= 0x10000;
 		*use_default = (sgdesc->default_description_index==grp_idx) ? GF_TRUE : GF_FALSE;
-
+	}
 	return GF_OK;
 }
 GF_EXPORT
