@@ -1792,7 +1792,16 @@ static const GF_FilterArgs FFDemuxPidArgs[] =
 	{0}
 };
 
+static void ffdmxpid_finalize(GF_Filter *filter)
+{
+	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->src) {
+		gf_free((char *)ctx->src);
+		ctx->src = NULL;
+	}
+	ffdmx_finalize(filter);
 
+}
 const GF_FilterRegister FFDemuxPidRegister = {
 	.name = "ffdmxpid",
 	.version=LIBAVFORMAT_IDENT,
@@ -1801,7 +1810,7 @@ const GF_FilterRegister FFDemuxPidRegister = {
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFPidDmxCaps),
 	.initialize = ffdmx_initialize,
-	.finalize = ffdmx_finalize,
+	.finalize = ffdmxpid_finalize,
 	.configure_pid = ffdmx_configure_pid,
 	.process = ffdmx_process,
 	.update_arg = ffdmx_update_arg,
