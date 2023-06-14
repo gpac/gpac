@@ -3201,6 +3201,30 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 	stbl_RemoveRedundant(stbl, 1, nb_samples);
 	stbl_RemoveRAPs(stbl, nb_samples);
 
+	//purge saiz and saio
+	if (trak->sample_encryption && trak->sample_encryption->cenc_saiz) {
+		GF_SampleAuxiliaryInfoSizeBox *saiz = trak->sample_encryption->cenc_saiz;
+		if (saiz->sample_count <= nb_samples) {
+			saiz->sample_count = 0;
+		} else {
+			if (!saiz->default_sample_info_size) {
+				memmove(saiz->sample_info_size, &saiz->sample_info_size[nb_samples], sizeof(u8)*(saiz->sample_count-nb_samples));
+			}
+			saiz->sample_count-=nb_samples;
+		}
+		saiz->cached_sample_num = 0;
+		saiz->cached_prev_size = 0;
+	}
+	if (trak->sample_encryption && trak->sample_encryption->cenc_saio) {
+		GF_SampleAuxiliaryInfoOffsetBox *saio = trak->sample_encryption->cenc_saio;
+		if (saio->entry_count>1) {
+			if (saio->entry_count <= nb_samples) saio->entry_count = 0;
+			else {
+				memmove(saio->offsets, &saio->offsets[nb_samples], sizeof(u64)*(saio->entry_count-nb_samples));
+				saio->entry_count-=nb_samples;
+			}
+		}
+	}
 	//then remove sample per sample for the rest, which is either
 	//- sparse data
 	//- allocated structure rather than memmove-able array
@@ -3210,6 +3234,10 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 		stbl_RemoveSubSample(stbl, 1);
 		stbl_RemovePaddingBits(stbl, 1);
 		stbl_RemoveSampleGroup(stbl, 1);
+		if (trak->sample_encryption) {
+			GF_CENCSampleAuxInfo *sai = gf_list_pop_front(trak->sample_encryption->samp_aux_info);
+			gf_isom_cenc_samp_aux_info_del(sai);
+		}
 		nb_samples--;
 	}
 	return GF_OK;

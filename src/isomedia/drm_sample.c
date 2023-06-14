@@ -1659,8 +1659,10 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 	gf_isom_get_cenc_info(the_file, trackNumber, sampleDescIndex, NULL, &scheme_type, NULL);
 
-	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-	if (gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
+	/*get sample auxiliary information by saiz/saio rather than by parsing senc box
+	if box is already loaded, use it (this is the case when merging fragments)*/
+	if (senc && gf_list_count(senc->samp_aux_info)) {
+	} else if (gf_isom_cenc_has_saiz_saio_track(stbl, scheme_type)) {
 		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, scheme_type, out_buffer, outSize);
 	}
 	if (!senc)

@@ -1223,7 +1223,10 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 	}
 	//refresh file
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-	gf_isom_refresh_fragmented(read->mov, &bytes_missing, read->mem_url);
+	e = gf_isom_refresh_fragmented(read->mov, &bytes_missing, read->mem_url);
+	if (e && (e!=GF_ISOM_INCOMPLETE_FILE)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to refresh fragmented file after buffer push: %s\n", gf_error_to_string(e)));
+	}
 #endif
 	if ((read->mem_load_mode==2) && bytes_missing)
 		read->force_fetch = GF_TRUE;
