@@ -1122,7 +1122,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
 					cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
-					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
+					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset - trak->moov->mov->bytes_removed);
 
 					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 					if (!sai) return GF_OUT_OF_MEM;
