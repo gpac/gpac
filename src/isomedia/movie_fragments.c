@@ -929,25 +929,21 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 void flush_ref_samples(GF_ISOFile *movie, u64 *out_seg_size, Bool use_seg_marker)
 {
 	u32 i=0;
-	u32 traf_count = movie->in_sidx_write ? 0 : gf_list_count(movie->moof->TrackList);
-	for (i=0; i<traf_count; i++) {
-		GF_TrackFragmentBox *traf = gf_list_get(movie->moof->TrackList, i);
-		u32 j, run_count = gf_list_count(traf->TrackRuns);
-		if (!run_count) continue;
-		for (j=0; j<run_count; j++) {
-			GF_TrackFragmentRunBox *trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, j);
-			u32 s_count = gf_list_count(trun->sample_refs);
-			while (s_count) {
-				if (!use_seg_marker && movie->on_last_block_start && (i+1==traf_count) && (j+1==run_count) && (s_count==1)) {
-					movie->on_last_block_start(movie->on_block_out_usr_data);
-				}
-				GF_TrafSampleRef *sref = gf_list_pop_front(trun->sample_refs);
-				movie->on_block_out(movie->on_block_out_usr_data, sref->data, sref->len, sref->ref, sref->ref_offset);
-				if (out_seg_size) *out_seg_size += sref->len;
-				if (!sref->ref) gf_free(sref->data);
-				gf_free(sref);
-				s_count--;
+	if (movie->in_sidx_write) return;
+	u32 trun_count = gf_list_count(movie->moof->trun_list);
+	for (i=0; i<trun_count; i++) {
+		GF_TrackFragmentRunBox *trun = gf_list_get(movie->moof->trun_list, i);
+		u32 s_count = gf_list_count(trun->sample_refs);
+		while (s_count) {
+			if (!use_seg_marker && movie->on_last_block_start && (i+1==trun_count) && (s_count==1)) {
+				movie->on_last_block_start(movie->on_block_out_usr_data);
 			}
+			GF_TrafSampleRef *sref = gf_list_pop_front(trun->sample_refs);
+			movie->on_block_out(movie->on_block_out_usr_data, sref->data, sref->len, sref->ref, sref->ref_offset);
+			if (out_seg_size) *out_seg_size += sref->len;
+			if (!sref->ref) gf_free(sref->data);
+			gf_free(sref);
+			s_count--;
 		}
 	}
 }
@@ -2843,6 +2839,10 @@ GF_Err gf_isom_fragment_add_sample_ex(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 		//if we use data caching, create a bitstream
 		if (traf->DataCache)
 			trun->cache = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+		//remember the order in which we created truns for reference flushing (unused otherwise)
+		if (!movie->moof->trun_list) movie->moof->trun_list = gf_list_new();
+		gf_list_add(movie->moof->trun_list, trun);
 	}
 
 	memset(&ent, 0, sizeof(GF_TrunEntry));

@@ -314,7 +314,7 @@ static void pipeout_finalize(GF_Filter *filter)
 #define PIPE_FLUSH_MARKER	"GPACPIF"
 static void pout_write_marker(GF_PipeOutCtx *ctx)
 {
-	if (ctx->marker && gf_filter_pid_is_flush_eos(ctx->pid)) {
+	if (ctx->marker) {
 		u32 nb_write;
 #ifdef WIN32
 		if (! WriteFile(ctx->pipe, PIPE_FLUSH_MARKER, 8, (LPDWORD) &nb_write, NULL)) {
@@ -328,7 +328,7 @@ static void pout_write_marker(GF_PipeOutCtx *ctx)
 			return;
 		}
 #endif
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeOut] Wrote marker\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeOut] Wrote flush marker\n"));
 	}
 }
 
@@ -396,7 +396,6 @@ static GF_Err pipeout_process(GF_Filter *filter)
 			}
 		}
 	}
-	pout_write_marker(ctx);
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	if (

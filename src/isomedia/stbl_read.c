@@ -227,7 +227,7 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 	return GF_OK;
 
 found:
-	(*DTS) = stts->r_CurrentDTS + j * (u64) ent->sampleDelta;
+	(*DTS) = stts->r_CurrentDTS + j * (u64) ent->sampleDelta + stts->cumulated_start_dts;
 	if (duration) *duration = ent->sampleDelta;
 	return GF_OK;
 }
