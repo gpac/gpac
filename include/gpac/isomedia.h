@@ -4257,7 +4257,7 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *isom_file, Bool reset_sample_count);
 
 /*! sets the offset for parsing from the input buffer to 0 (used to reclaim input buffer)
 \param isom_file the target ISO file
-\param top_box_start set to the byte offset in the source buffer of the first top level box
+\param top_box_start set to the byte offset in the source buffer of the first top level box, may be NULL
 \return error if any
 */
 GF_Err gf_isom_reset_data_offset(GF_ISOFile *isom_file, u64 *top_box_start);

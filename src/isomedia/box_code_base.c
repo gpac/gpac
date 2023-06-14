@@ -3788,6 +3788,7 @@ void moof_box_del(GF_Box *s)
 		}
 		gf_list_del(ptr->emsgs);
 	}
+	gf_list_del(ptr->trun_list);
 	gf_free(ptr);
 }
 

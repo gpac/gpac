@@ -1108,6 +1108,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		stts->nb_entries = 0;
 		stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
 		stts->r_CurrentDTS = 0;
+		if (nb_samples>1)
+			stts->cumulated_start_dts += stts->entries[0].sampleDelta;
 		return GF_OK;
 	}
 	//we're removing the last sample
@@ -1115,6 +1117,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		ent = &stts->entries[stts->nb_entries-1];
 		ent->sampleCount--;
 		if (!ent->sampleCount) stts->nb_entries--;
+		if (nb_samples>1)
+			stts->cumulated_start_dts += ent->sampleDelta;
 	} else {
 		u64 *DTSs, curDTS;
 		u32 i, j, k, sampNum;
@@ -1138,8 +1142,12 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 					} else {
 						DTSs[sampNum-k] = curDTS;
 					}
-				} else if (sampNum >= nb_samples) {
-					DTSs[sampNum - nb_samples] = curDTS;
+				} else {
+					if (sampNum >= nb_samples) {
+						DTSs[sampNum - nb_samples] = curDTS;
+					} else if (sampNum + 1 == nb_samples) {
+						stts->cumulated_start_dts += curDTS+ent->sampleDelta;
+					}
 				}
 				curDTS += ent->sampleDelta;
 				sampNum ++;
@@ -1163,7 +1171,12 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 			if (stbl->SampleSize->sampleCount == 2) {
 				stts->entries[0].sampleDelta = LastAUDefDuration;
 			} else {
-				stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTSs[0]*/;
+				if (tot_samples>1) {
+					stts->entries[0].sampleDelta = (u32) (DTSs[1] - DTSs[0]);
+				} else {
+					//special case if we remove all but one sample, compute delta based on last DTS
+					stts->entries[0].sampleDelta = (u32) (curDTS - DTSs[0]);
+				}
 			}
 		} else {
 			sampNum = 0;

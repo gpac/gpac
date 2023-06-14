@@ -6645,7 +6645,12 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal EOS on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
-	if (pid->has_seen_eos) return;
+	//don't resend EOS if not keepalive - in keepalive we need to reevaluate and potentially trigger eos from filters
+	if (pid->has_seen_eos && !pid->eos_keepalive) {
+		return;
+	}
+	//reset eos keepalive at each first eos signal. If a source pid is in keepalive, we propagate below
+	pid->eos_keepalive = GF_FALSE;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("EOS signaled on PID %s in filter %s\n", pid->name, pid->filter->name));
 	//we create a fake packet for eos signaling
@@ -9140,6 +9145,7 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal flush on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
-	pid->eos_keepalive = GF_TRUE;
 	gf_filter_pid_set_eos(pid);
+	//set keepalive once eos has been called
+	pid->eos_keepalive = GF_TRUE;
 }

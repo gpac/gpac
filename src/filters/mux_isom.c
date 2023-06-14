@@ -5634,7 +5634,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
-			if (gf_filter_pid_is_eos(tkw->ipid)) {
+			if (gf_filter_pid_is_eos(tkw->ipid) && !gf_filter_pid_is_flush_eos(tkw->ipid)) {
 				if (tkw->dgl_copy) {
 					gf_filter_pck_discard(tkw->dgl_copy);
 					tkw->dgl_copy = NULL;
@@ -6241,7 +6241,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		nb_eos=0;
 		for (i=0; i<count; i++) {
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-			if (gf_filter_pid_is_eos(tkw->ipid)) {
+			if (gf_filter_pid_is_eos(tkw->ipid) && !gf_filter_pid_is_flush_eos(tkw->ipid)) {
 				nb_eos ++;
 			}
 		}
@@ -6928,7 +6928,7 @@ retry_pck:
 		}
 
 		if (!pck) {
-			if (gf_filter_pid_is_eos(tkw->ipid)) {
+			if (gf_filter_pid_is_eos(tkw->ipid) && !gf_filter_pid_is_flush_eos(tkw->ipid)) {
 				if (tkw->cenc_state==CENC_NEED_SETUP)
 					mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0, 0);
 
@@ -7184,7 +7184,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		}
 
 		if (!pck) {
-			if (gf_filter_pid_is_eos(tkw->ipid)) {
+			if (gf_filter_pid_is_eos(tkw->ipid) && !gf_filter_pid_is_flush_eos(tkw->ipid)) {
 				tkw->suspended = GF_FALSE;
 				nb_eos++;
 			}

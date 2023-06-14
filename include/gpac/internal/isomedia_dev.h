@@ -1157,6 +1157,8 @@ typedef struct
 	u32 r_FirstSampleInEntry;
 	u32 r_currentEntryIndex;
 	u64 r_CurrentDTS;
+	//when removing samples, this is the DTS of first sample after all removed samples
+	u64 cumulated_start_dts;
 
 	//stats for read
 	u32 max_ts_delta;
@@ -2638,6 +2640,7 @@ typedef struct
 	u8 *moof_data;
 	u32 moof_data_len, trun_ref_size;
 
+	GF_List *trun_list;
 } GF_MovieFragmentBox;
 
 

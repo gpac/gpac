@@ -5937,15 +5937,17 @@ The pipeline flush is signaled as EOS while keeping the stream active.
 .br
 This is typically needed for mux filters waiting for EOS to flush their data.
 .br
-Warning: Usage of  .I sigflush may not be properly supported by some filters.
+  
 .br
 If .I marker is set, the following strings (all 8-bytes 0 terminator) will be scanned:
 .br
-* `GPACPIF`: triggers a pipeline flush event after the marker
+* `GPACPIF`: triggers a pipeline flush event
 .br
-* `GPACPIR`: triggers a reconfigration of the format after the marker
+* `GPACPIR`: triggers a reconfiguration of the format (used to signal mux type changes)
 .br
-The marker mode should be used carefully as it will slow down pipe processing (higher CPU usage and delayed output).
+The .I marker mode should be used carefully as it will slow down pipe processing (higher CPU usage and delayed output).
+.br
+Warning: Usage of pipeline flushing may not be properly supported by some filters.
 .br
   
 .br
@@ -5971,6 +5973,10 @@ ka (bool, default: false):     keep-alive pipe when end of input is detected
 mkp (bool, default: false):    create pipe if not found
 .br
 sigflush (bool, default: false): signal end of stream upon pipe close - cf filter help
+.br
+marker (bool, default: false): inspect payload for flush and reconfigure signals - cf filter help
+.br
+bpcnt (uint, default: 0):      number of broken pipe allowed before exiting, 0 means forever
 .br
 
 .br

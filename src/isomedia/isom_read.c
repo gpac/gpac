@@ -3142,6 +3142,7 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 	for (i=0; i<count; i++) {
 		GF_TrackBox *tk = gf_list_get(movie->moov->trackList, i);
 		tk->first_traf_merged = GF_FALSE;
+		tk->Media->information->sampleTable->TimeToSample->cumulated_start_dts = 0;
 	}
 #endif
 	return GF_OK;
