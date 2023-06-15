@@ -1640,10 +1640,13 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 				}
 				//escape data/time
 				if (sep) {
-					char *prev_date = sep-3;
-					if (prev_date[0]=='T') {}
-					else if (prev_date[1]=='T') { prev_date ++; }
-					else { prev_date = NULL; }
+					char *prev_date = NULL;
+					if ((u32) (sep - args)>=3) {
+						prev_date = sep-3;
+						if (prev_date[0]=='T') {}
+						else if (prev_date[1]=='T') { prev_date ++; }
+						else { prev_date = NULL; }
+					}
 
 skip_date:
 					if (prev_date) {
