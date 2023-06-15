@@ -1108,10 +1108,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			}
 			if (saiz && saio && senc) {
 				for (i = 0; i < saiz->sample_count; i++) {
-					GF_CENCSampleAuxInfo *sai;
 					const u8 *key_info=NULL;
 					u32 key_info_size, samp_num;
-					u64 cur_position;
 					if (nb_saio != 1) {
 						u32 saio_idx = saio_get_index(traf, i);
 						if (saio_idx>=saio->entry_count)
@@ -1121,29 +1119,15 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					}
 					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
-					cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
-					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset - trak->moov->mov->bytes_removed);
-
-					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
-					if (!sai) return GF_OUT_OF_MEM;
-
 					samp_num = num_first_sample_in_traf + i + 1;
 
 					trak->current_traf_stsd_idx = DescIndex;
-					e = gf_isom_get_sample_cenc_info_internal(trak, traf, senc, samp_num, &is_encrypted, NULL, NULL, &key_info, &key_info_size);
+					//add sample_count_at_seg_start since gf_isom_get_sample_cenc_info_internal removes them
+					e = gf_isom_get_sample_cenc_info_internal(trak, traf, senc, samp_num + trak->sample_count_at_seg_start, &is_encrypted, NULL, NULL, &key_info, &key_info_size);
 					trak->current_traf_stsd_idx = 0;
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", i+1, gf_error_to_string(e) ));
 						return e;
-					}
-
-					if (is_encrypted) {
-						sai->cenc_data_size = size;
-						sai->cenc_data = gf_malloc(sizeof(u8)*size);
-						if (!sai->cenc_data) return GF_OUT_OF_MEM;
-						gf_bs_read_data(trak->moov->mov->movieFileMap->bs, sai->cenc_data, sai->cenc_data_size);
-					} else {
-						sai->isNotProtected=1;
 					}
 
 					if (key_info) {
@@ -1158,15 +1142,34 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 							senc->flags = 0x00000002;
 						}
 					}
-
-
-					gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
-
-					gf_list_add(senc->samp_aux_info, sai);
-
+					//merge into table using true sample num since start of fragment
 					e = gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, samp_num, offset, size);
 					if (e) return e;
-					//always increment size even for saio.nb_entries>1
+
+					//old code commented
+					//we no longer load sai, this will be loaded through saio/saiz when fecthing it
+					//this avoids too high mem usage
+#if 0
+					GF_CENCSampleAuxInfo *sai;
+					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+					if (!sai) return GF_OUT_OF_MEM;
+					if (is_encrypted) {
+						sai->cenc_data_size = size;
+						sai->cenc_data = gf_malloc(sizeof(u8)*size);
+						if (!sai->cenc_data) return GF_OUT_OF_MEM;
+						u64 cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
+						gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset - trak->moov->mov->bytes_removed);
+
+						gf_bs_read_data(trak->moov->mov->movieFileMap->bs, sai->cenc_data, sai->cenc_data_size);
+
+						gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
+					} else {
+						sai->isNotProtected=1;
+					}
+					gf_list_add(senc->samp_aux_info, sai);
+#endif
+
+					//always increment offset (in case we need saio.nb_entries>1)
 					offset += size;
 				}
 			}
