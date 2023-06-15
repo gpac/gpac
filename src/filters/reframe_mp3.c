@@ -265,7 +265,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 			break;
 		}
 
-		if (buf_alloc<=fsize) {
+		if (buf_alloc <= fsize+2) {
 			_buf = gf_realloc(_buf, fsize+3);
 			buf_alloc = fsize+3;
 		}
