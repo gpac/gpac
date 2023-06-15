@@ -3810,6 +3810,11 @@ The packet is still present in the PID buffer until explicitly removed by \ref g
 The returned packet is only valid for the current filter execution (process callback, task, ...), and may be discarded in-between calls, typically when the session is aborted.
 If a filter needs to keep a packet across calls, it must use \ref gf_filter_pck_ref and \ref gf_filter_pck_unref
 
+If no packet is returned, the pid may be empty, in end of stream (cf \ref gf_filter_pid_is_eos) or in flush (cf \ref gf_filter_pid_is_flush_eos).
+
+The first time this function is called on a PID at a flush point, it will return NULL even if some packets are pending. This allows the calling filter to detect if a flush point is reached and take appropriate actions.
+Subsequent calls will return the pending packet if any.
+
 \param PID the target filter PID
 \return packet or NULL of empty or reconfigure error
 */

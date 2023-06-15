@@ -945,6 +945,7 @@ struct __gf_filter_pid_inst
 	u64 max_process_time, max_sap_process_time;
 	u64 first_frame_time;
 	Bool is_end_of_stream;
+	Bool keepalive_signaled;
 	Bool is_playing, is_paused;
 	u8 play_queued, stop_queued;
 	
