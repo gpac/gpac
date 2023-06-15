@@ -6202,10 +6202,17 @@ restart:
 	assert(pcki->pck);
 
 	if (gf_filter_pid_filter_internal_packet(pidinst, pcki)) {
+		//first time we get here in keepalive, return NULL even if we have a packet to force flush
+		if (pid->pid->eos_keepalive && !pidinst->keepalive_signaled) {
+			pidinst->keepalive_signaled=GF_TRUE;
+			pid->filter->nb_pck_io++;
+			return NULL;
+		}
 		//avoid recursion
 		goto restart;
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
+	pidinst->keepalive_signaled = GF_FALSE;
 
 	if (filter_pck_check_prop_change(pidinst, pcki, GF_TRUE))
 		return NULL;
@@ -6604,6 +6611,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	if (!pid->pid) return GF_TRUE;
 	if (!pid->pid->has_seen_eos && !pidi->discard_inputs && !pidi->discard_packets) {
 		pidi->is_end_of_stream = GF_FALSE;
+		pidi->keepalive_signaled = GF_FALSE;
 		return GF_FALSE;
 	}
 	//peek next for eos
@@ -6630,7 +6638,7 @@ Bool gf_filter_pid_is_flush_eos(GF_FilterPid *pid)
 		return GF_FALSE;
 
 	if (!pid->pid) return GF_FALSE;
-	return pid->pid->eos_keepalive;
+	return pid->pid->eos_keepalive&&pidi->keepalive_signaled;
 }
 
 
@@ -6978,6 +6986,7 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 	pidi->last_block_ended = GF_TRUE;
 	pidi->first_block_started = GF_FALSE;
 	pidi->is_end_of_stream = GF_FALSE;
+	pidi->keepalive_signaled = GF_FALSE;
 	pidi->buffer_duration = 0;
 	pidi->nb_eos_signaled = 0;
 	pidi->pid->has_seen_eos = GF_FALSE;
@@ -7984,6 +7993,7 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 
 			if (apidi->is_end_of_stream) {
 				apidi->is_end_of_stream = GF_FALSE;
+				apidi->keepalive_signaled = GF_FALSE;
 			}
 			if (apid->has_seen_eos) {
 				apid->has_seen_eos = GF_FALSE;
