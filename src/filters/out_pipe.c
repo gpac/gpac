@@ -329,6 +329,8 @@ static void pout_write_marker(GF_PipeOutCtx *ctx)
 		}
 #endif
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeOut] Wrote flush marker\n"));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeOut] Got flush marker (write disabled)\n"));
 	}
 }
 
@@ -482,6 +484,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Output file handle is not opened, discarding %d bytes\n", pck_size));
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeOut] Wrote packet %d bytes\n", pck_size));
 
 	if (broken && !ctx->ka) {
 		//abort and send stop

@@ -318,6 +318,7 @@ static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 #define PIPE_FLUSH_MARKER	"GPACPIF"
 #define PIPE_RECFG_MARKER	"GPACPIR"
+#define PIPE_CLOSE_MARKER	"GPACPIC"
 
 static void pipein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
@@ -484,7 +485,7 @@ refill:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
 					return GF_IO_ERR;
 				} else if (!ctx->ka && ctx->bytes_read) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] end of stream detected after %d bytes\n", ctx->bytes_read));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
 					if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
 					close(ctx->fd);
 					ctx->fd=-1;
@@ -545,7 +546,7 @@ refill:
 				ctx->copy_offset = m - (u8*)ctx->buffer;
 				break;
 			}
-			if (!memcmp(m, PIPE_FLUSH_MARKER, 8)) {
+			if (!memcmp(m, PIPE_FLUSH_MARKER, 7) && ((m[7]=='\0') || (m[7]=='\n'))) {
 				ctx->left_over = remain-8;
 				nb_read = m - (u8*)ctx->buffer;
 				ctx->copy_offset = nb_read+8;
@@ -553,12 +554,21 @@ refill:
 				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Found flush marker\n"));
 				break;
 			}
-			if (!memcmp(m, PIPE_RECFG_MARKER, 8)) {
+			if (!memcmp(m, PIPE_RECFG_MARKER, 7) && ((m[7]=='\0') || (m[7]=='\n'))) {
 				ctx->left_over = remain-8;
 				nb_read = m - (u8*)ctx->buffer;
 				ctx->copy_offset = nb_read+8;
 				ctx->has_recfg = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Found reconfig marker\n"));
+				break;
+			}
+			if (!memcmp(m, PIPE_CLOSE_MARKER, 7) && ((m[7]=='\0') || (m[7]=='\n'))) {
+				nb_read = m - (u8*)ctx->buffer;
+				ctx->copy_offset = 0;
+				ctx->left_over=0;
+				ctx->bytes_read=8; //for above test
+				ctx->ka = GF_FALSE;
+				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Found close marker\n"));
 				break;
 			}
 			start = m+1;
@@ -674,9 +684,10 @@ GF_FilterRegister PipeInRegister = {
 		"The pipeline flush is signaled as EOS while keeping the stream active.\n"
 		"This is typically needed for mux filters waiting for EOS to flush their data.\n"
 		"  \n"
-		"If [-marker]() is set, the following strings (all 8-bytes `0` terminator) will be scanned:\n"
+		"If [-marker]() is set, the following strings (all 8-bytes with `\0` or `\n` terminator) will be scanned:\n"
 		"- `GPACPIF`: triggers a pipeline flush event\n"
 		"- `GPACPIR`: triggers a reconfiguration of the format (used to signal mux type changes)\n"
+		"- `GPACPIC`: triggers a regular end of stream and aborts keepalive\n"
 		"The [-marker]() mode should be used carefully as it will slow down pipe processing (higher CPU usage and delayed output).\n"
 		"Warning: Usage of pipeline flushing may not be properly supported by some filters.\n"
 		"  \n"
