@@ -6236,30 +6236,6 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	}
 	/*get count after init, some tracks may have been remove*/
 	count = gf_list_count(ctx->tracks);
-	if (ctx->dash_mode && !ctx->segment_started) {
-		//don't start a new segment if all pids are in eos
-		nb_eos=0;
-		for (i=0; i<count; i++) {
-			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
-			if (gf_filter_pid_is_eos(tkw->ipid) && !gf_filter_pid_is_flush_eos(tkw->ipid)) {
-				nb_eos ++;
-			}
-		}
-		if (nb_eos==count)
-			goto check_eos;
-
-		ctx->segment_started = GF_TRUE;
-		ctx->insert_tfdt = GF_TRUE;
-		switch (ctx->psshs) {
-		case MP4MX_PSSH_MOOF:
-		case MP4MX_PSSH_BOTH:
-			ctx->insert_pssh = GF_TRUE; break;
-		default:
-			ctx->insert_pssh = GF_FALSE; break;
-		}
-
-		gf_isom_start_segment(ctx->file, ctx->single_file ? NULL : "_gpac_isobmff_redirect", GF_FALSE);
-	}
 
 	//process pid by pid
 	nb_eos=0;
@@ -6308,6 +6284,20 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				tkw->fragment_done = GF_TRUE;
 				if (ctx->dash_mode) ctx->flush_seg = GF_TRUE;
 				break;
+			}
+			//we create dash segment only when we know we have a packet, not before this loop.
+			//This allows taking into account flush signals, otherwise we would create empty segments
+			if (ctx->dash_mode && !ctx->segment_started) {
+				ctx->segment_started = GF_TRUE;
+				ctx->insert_tfdt = GF_TRUE;
+				switch (ctx->psshs) {
+				case MP4MX_PSSH_MOOF:
+				case MP4MX_PSSH_BOTH:
+					ctx->insert_pssh = GF_TRUE; break;
+				default:
+					ctx->insert_pssh = GF_FALSE; break;
+				}
+				gf_isom_start_segment(ctx->file, ctx->single_file ? NULL : "_gpac_isobmff_redirect", GF_FALSE);
 			}
 
 			cts = gf_filter_pck_get_cts(pck);
@@ -6463,7 +6453,6 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				}
 				if (frag_done) {
 					ctx->adjusted_next_frag_start = gf_timestamp_rescale(check_ts, tkw->src_timescale, ctx->cdur.den);
-//
 					tkw->fragment_done = GF_TRUE;
 					nb_done ++;
 					tkw->dur_in_frag = 0;
@@ -6592,6 +6581,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 
 	if (nb_done==count) {
+		//nothing open (this happens when flushing segments/fragments)
+		if (!ctx->segment_started && !ctx->fragment_started)
+			goto check_eos;
+
 		Bool is_eos = (count == nb_eos) ? GF_TRUE : GF_FALSE;
 		u32 ref_timescale;
 		Bool flush_refs = ctx->dash_mode ? GF_FALSE : GF_TRUE;
