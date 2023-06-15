@@ -5939,19 +5939,7 @@ This is typically needed for mux filters waiting for EOS to flush their data.
 .br
   
 .br
-If .I marker is set, the following strings (all 8-bytes 0 terminator) will be scanned:
-.br
-* `GPACPIF`: triggers a pipeline flush event
-.br
-* `GPACPIR`: triggers a reconfiguration of the format (used to signal mux type changes)
-.br
-The .I marker mode should be used carefully as it will slow down pipe processing (higher CPU usage and delayed output).
-.br
-Warning: Usage of pipeline flushing may not be properly supported by some filters.
-.br
-  
-.br
-The pipe input can be created in blocking mode or non-blocking mode.
+If .I marker is set, the following strings (all 8-bytes with 
 .br
 
 .br
