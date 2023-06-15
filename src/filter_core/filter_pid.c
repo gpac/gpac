@@ -6659,17 +6659,18 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 	}
 	//reset eos keepalive at each first eos signal. If a source pid is in keepalive, we propagate below
 	pid->eos_keepalive = GF_FALSE;
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("EOS signaled on PID %s in filter %s\n", pid->name, pid->filter->name));
-	//we create a fake packet for eos signaling
-	pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
-	if (!pck) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet for EOS on PID %s in filter %s\n", pid->name, pid->filter->name));
-		return;
+	if (!pid->has_seen_eos) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("EOS signaled on PID %s in filter %s\n", pid->name, pid->filter->name));
+		//we create a fake packet for eos signaling
+		pck = gf_filter_pck_new_shared_internal(pid, NULL, 0, NULL, GF_TRUE);
+		if (!pck) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet for EOS on PID %s in filter %s\n", pid->name, pid->filter->name));
+			return;
+		}
+		gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+		pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
+		gf_filter_pck_send(pck);
 	}
-	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-	pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
-	gf_filter_pck_send(pck);
 
 	gf_mx_p(pid->filter->tasks_mx);
 	u32 i;
@@ -9155,6 +9156,9 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal flush on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
+	if (pid->eos_keepalive)
+		return;
+
 	gf_filter_pid_set_eos(pid);
 	//set keepalive once eos has been called
 	pid->eos_keepalive = GF_TRUE;
