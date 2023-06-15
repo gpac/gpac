@@ -1619,7 +1619,7 @@ import_next_sample:
 
 		memset(&ipro, 0, sizeof(GF_ImageItemProtection));
 		gf_isom_get_cenc_info(fsrc, imported_track, sample_desc_index, NULL, &ipro.scheme_type, &ipro.scheme_version);
-		e = gf_isom_get_sample_cenc_info(fsrc, imported_track, sample_desc_index, &Is_Encrypted, &ipro.crypt_byte_block, &ipro.skip_byte_block, &ipro.key_info, &ipro.key_info_size);
+		e = gf_isom_get_sample_cenc_info(fsrc, imported_track, sample_number, &Is_Encrypted, &ipro.crypt_byte_block, &ipro.skip_byte_block, &ipro.key_info, &ipro.key_info_size);
 		if (e) goto exit;
 
 		if (Is_Encrypted) {

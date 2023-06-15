@@ -5498,8 +5498,7 @@ GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_S
 	u32 j, group_desc_index;
 	GF_SampleGroupDescriptionBox *sgdesc;
 	u32 i, count;
-	u32 descIndex=1, chunkNum;
-	u64 offset;
+	u32 descIndex=1;
 	u32 first_sample_in_entry, last_sample_in_entry;
 	GF_CENCSampleEncryptionGroupEntry *entry;
 
@@ -5519,6 +5518,8 @@ GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_S
 #endif
 
 	if (trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
+		u32 chunkNum;
+		u64 offset;
 		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, NULL);
 	} else {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
