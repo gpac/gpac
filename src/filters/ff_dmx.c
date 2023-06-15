@@ -462,8 +462,14 @@ restart:
 		if (!ctx->strbuf_size) return GF_OK;
 	}
 
-	if (!ctx->nb_playing)
+	if (!ctx->nb_playing) {
+		if (ctx->stop_seen) {
+			for (i=0; i<ctx->nb_streams; i++) {
+				if (ctx->pids_ctx[i].pid) gf_filter_pid_set_eos(ctx->pids_ctx[i].pid);
+			}
+		}
 		return GF_EOS;
+	}
 
 	if (ctx->raw_pck_out)
 		return GF_EOS;

@@ -772,9 +772,12 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 	if (!ctx->range_type && ctx->frames.nb_items) {
 		u32 i;
 		Bool found=GF_FALSE;
+		s32 max_f=0;
 		for (i=0; i<ctx->frames.nb_items; i++) {
 			s32 v = ctx->frames.vals[i];
 			if (v>=0) {
+				if (!max_f || (max_f<v))
+					max_f = v;
 				if (v == st->nb_frames + 1) {
 					found=GF_TRUE;
 					break;
@@ -790,6 +793,11 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			//drop
 			gf_filter_pid_drop_packet(st->ipid);
 			st->nb_frames++;
+			if (max_f && (max_f < st->nb_frames + 1)) {
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_STOP, st->ipid);
+				gf_filter_pid_send_event(st->ipid, &evt);
+			}
 			return GF_TRUE;
 		}
 	}
