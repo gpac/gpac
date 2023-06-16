@@ -45,6 +45,11 @@ typedef struct
 	u64 nb_frames;
 	GF_FilterPacket *pck_ref;
 	u32 keep_prev_state;
+
+	u64 last_ts_ref_plus_one, last_original_ts;
+	u32 ts_rescale, min_ref_dur;
+	//offset added to reference TS of a packet, to add to the cts
+	s64 ref_ts_diff;
 } RestampPid;
 
 enum
@@ -59,6 +64,7 @@ typedef struct
 	GF_Fraction fps, delay, delay_v, delay_a, delay_t, delay_o;
 	GF_Fraction64 tsinit;
 	u32 rawv;
+	u32 align;
 
 	GF_List *pids;
 	Bool reconfigure;
@@ -164,6 +170,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	ctx->reconfigure = GF_FALSE;
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+	pctx->ts_rescale = pctx->timescale;
 
 	if (pctx->is_audio) return GF_OK;
 
@@ -206,15 +213,15 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ndur));
 		}
 	}
-
 	if ((ctx->fps.num>0) && (timescale % ctx->fps.num)) {
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num));
 		pctx->rescale = GF_TRUE;
+		pctx->ts_rescale = ctx->fps.num;
 	}
 	return GF_OK;
 }
 
-static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
+static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots, Bool is_ref_ts, GF_FilterPacket *pck)
 {
 	if (ots == GF_FILTER_NO_TS) return ots;
 	u64 ts;
@@ -231,24 +238,25 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
 	else {
 		ts = ots + pctx->ts_offset;
 	}
-	if (pctx->is_audio || !ctx->fps.num || !pctx->is_video) return ts;
+
+	if (pctx->is_audio || !ctx->fps.num || !pctx->is_video) goto ts_done;
 
 	if (!pctx->last_min_dts) {
 		pctx->last_min_dts = 1 + ts;
 		pctx->last_ts = 1 + ts;
 		if (pctx->raw_vid_copy)
 			pctx->keep_prev_state = 1;
-		return ts;
+		goto ts_done;
 	}
 	s64 diff = ts - (pctx->last_min_dts-1);
 	if (ctx->fps.num<0) {
 		diff *= ctx->fps.den;
 		diff /= -ctx->fps.num;
 		ts = pctx->last_min_dts-1 + diff;
-		return ts;
+		goto ts_done;
 	}
 
-	if (ots + 1 <= pctx->last_ts) return ts;
+	if (ots + 1 <= pctx->last_ts) goto ts_done;
 	u64 dur = ots - (pctx->last_ts-1);
 	if (!pctx->min_dur || (dur < pctx->min_dur)) pctx->min_dur = (u32) dur;
 
@@ -264,14 +272,15 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
 		}
 		else if (dur + pctx->min_dur/2 <= new_ts) {
 			pctx->keep_prev_state = 2;
-			return 0;
+			ts = 0;
+			goto ts_done;
 		}
 
 		if (pctx->rescale) {
 			new_ts = pctx->nb_frames * ctx->fps.den;
 		}
-		new_ts += pctx->last_min_dts-1;
-		return new_ts;
+		ts = new_ts + pctx->last_min_dts-1;
+		goto ts_done;
 	}
 
 
@@ -281,6 +290,42 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
 	}
 	nb_frames *= ctx->fps.den;
 	ts = pctx->last_min_dts-1 + nb_frames;
+
+
+ts_done:
+	if (ctx->align) {
+		if (is_ref_ts) {
+			//compute duration
+			u32 dur = gf_filter_pck_get_duration(pck);
+			if (!dur || ((pctx->last_original_ts < ots) && (dur > ots - pctx->last_original_ts)))
+				dur = ots - pctx->last_original_ts;
+
+			pctx->last_original_ts = ots;
+			if (dur & pctx->rescale)
+				dur = gf_timestamp_rescale(dur, pctx->timescale, pctx->ts_rescale);
+
+			if (dur && (!pctx->min_ref_dur || (dur < pctx->min_ref_dur)))
+				pctx->min_ref_dur = dur;
+
+			//we have sent a previous packet, check the diff between new TS and last one
+			if (pctx->last_ts_ref_plus_one) {
+				s64 diff = ts;
+				u64 pred_ts = pctx->last_ts_ref_plus_one-1 + pctx->min_ref_dur;
+				pctx->ref_ts_diff = 0;
+				diff -= pred_ts;
+				diff = gf_timestamp_rescale_signed(diff, pctx->ts_rescale, 1000);
+				if (ABS(diff)>ctx->align) {
+					u64 new_ts = pred_ts;
+					pctx->ref_ts_diff = new_ts;
+					pctx->ref_ts_diff -= ts;
+					ts = new_ts;
+				}
+			}
+			pctx->last_ts_ref_plus_one = ts + 1;
+		} else {
+			ts = (s64) ts + pctx->ref_ts_diff;
+		}
+	}
 	return ts;
 }
 
@@ -371,15 +416,17 @@ static GF_Err restamp_process(GF_Filter *filter)
 			GF_FilterPacket *opck;
 
 			if (!pctx->raw_vid_copy) {
+				Bool ts_is_ref = GF_TRUE;
 				opck = gf_filter_pck_new_ref(pctx->opid, 0, 0, pck);
 				if (!opck) return GF_OUT_OF_MEM;
 				gf_filter_pck_merge_properties(pck, opck);
-				ts = restamp_get_timestamp(ctx, pctx, gf_filter_pck_get_dts(pck) );
-				if (ts != GF_FILTER_NO_TS)
+				ts = restamp_get_timestamp(ctx, pctx, gf_filter_pck_get_dts(pck), ts_is_ref, pck);
+				if (ts != GF_FILTER_NO_TS) {
+					ts_is_ref = GF_FALSE;
 					gf_filter_pck_set_dts(opck, ts);
+				}
 
-
-				ts = restamp_get_timestamp(ctx, pctx, gf_filter_pck_get_cts(pck) );
+				ts = restamp_get_timestamp(ctx, pctx, gf_filter_pck_get_cts(pck), ts_is_ref, pck);
 				if (ts != GF_FILTER_NO_TS)
 					gf_filter_pck_set_cts(opck, ts);
 
@@ -397,7 +444,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 				u64 ots = gf_filter_pck_get_cts(pck) ;
  				Bool discard = GF_FALSE;
 				pctx->keep_prev_state = 0;
-				ts = restamp_get_timestamp(ctx, pctx, ots);
+				ts = restamp_get_timestamp(ctx, pctx, ots, GF_TRUE, pck);
 
 				if (pctx->keep_prev_state==2) {
 					if (pctx->pck_ref) {
@@ -503,6 +550,7 @@ static GF_FilterArgs RestampArgs[] =
 		"- dyn: decoding video streams if not all intra"
 	, GF_PROP_UINT, "no", "no|force|dyn", 0},
 	{ OFFS(tsinit), "initial timestamp to resync to, negative values disables resync", GF_PROP_FRACTION64, "-1/1", NULL, 0},
+	{ OFFS(align), "timestamp alignment threshold (0 disables alignment) - see filter help", GF_PROP_UINT, "0", NULL, 0},
 	{0}
 };
 
@@ -539,6 +587,9 @@ const GF_FilterRegister RestampRegister = {
 	"  - if [-rawv=dyn](), input video stream is decoded if not all-intra and video frames are dropped/copied to match the new rate.\n"
 	"\n"
 	"Note: frames are simply copied or dropped with no motion compensation.\n"
+	"\n"
+	"When [-align]() is not 0, if the difference between two consecutive timestamps is greater than the specified threshold, the new timestamp \n"
+	"is set to the last computed timestamp plus the minimum packet duration for the stream.\n"
 	)
 	.private_size = sizeof(RestampCtx),
 	.max_extra_pids = 0xFFFFFFFF,

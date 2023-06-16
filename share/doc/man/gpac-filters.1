@@ -8969,6 +8969,12 @@ Note: frames are simply copied or dropped with no motion compensation.
 .br
 
 .br
+When .I align is not 0, if the difference between two consecutive timestamps is greater than the specified threshold, the new timestamp 
+.br
+is set to the last computed timestamp plus the minimum packet duration for the stream.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -8995,6 +9001,8 @@ rawv (enum, default: no):      copy video frames
 
 .br
 tsinit (lfrac, default: -1/1): initial timestamp to resync to, negative values disables resync
+.br
+align (uint, default: 0):      timestamp alignment threshold (0 disables alignment) - see filter help
 .br
 
 .br
