@@ -541,6 +541,13 @@ refill:
 			if (!m) break;
 			u32 remain = (u8*) ctx->buffer + nb_read - m;
 			if (remain<8) {
+				//check if we start with 'GPACPI', if not move to next 'G'
+				u32 check = MIN(remain, 6);
+				if (memcmp(m, PIPE_FLUSH_MARKER, check)) {
+					start = m+1;
+					avail = (u8*)ctx->buffer+nb_read - start;
+					continue;
+				}
 				ctx->left_over = remain;
 				nb_read -= remain;
 				ctx->copy_offset = m - (u8*)ctx->buffer;
