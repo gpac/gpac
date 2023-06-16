@@ -973,14 +973,14 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		}
 	}
 	task = gf_fq_pop(fsess->tasks_reservoir);
-
 	if (!task) {
-		GF_SAFEALLOC(task, GF_FSTask);
+		task = gf_malloc(sizeof(GF_FSTask));
 		if (!task) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("No more memory to post new task\n"));
 			return;
 		}
 	}
+	memset(task, 0, sizeof(GF_FSTask));
 	task->filter = filter;
 	task->pid = pid;
 	task->run_task = task_fun;
@@ -2142,10 +2142,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u task#%d %p pushed to reservoir\n", sys_thid, sess_thread->nb_tasks, task));
 
-			if (fsess->tasks_reservoir) {
-				memset(task, 0, sizeof(GF_FSTask));
-				gf_fq_add(fsess->tasks_reservoir, task);
-			} else {
+			if (gf_fq_res_add(fsess->tasks_reservoir, task)) {
 				gf_free(task);
 			}
 		}

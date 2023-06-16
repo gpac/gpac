@@ -1209,6 +1209,10 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst);
 
 GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, u32 type, const char *name, const char *value, const char *enum_values);
+
+//check if item can be added to a reservoir queue, returns GF_TRUE if not added
+Bool gf_fq_res_add(GF_FilterQueue *fq, void *item);
+
 #endif //_GF_FILTER_SESSION_H_
 
 

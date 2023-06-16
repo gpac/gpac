@@ -673,9 +673,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	}
 	/*this is a property reference packet, its destruction may happen at ANY time*/
 	if (is_ref_props_packet) {
-		if (pck->session->pcks_refprops_reservoir) {
-			gf_fq_add(pck->session->pcks_refprops_reservoir, pck);
-		} else {
+		if (gf_fq_res_add(pck->session->pcks_refprops_reservoir, pck)) {
 			gf_free(pck);
 		}
 	} else if (is_filter_destroyed) {
@@ -686,15 +684,11 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		gf_free(pck);
 	}
 	else if (pck->filter_owns_mem ) {
-		if (pid->filter && pid->filter->pcks_shared_reservoir) {
-			gf_fq_add(pid->filter->pcks_shared_reservoir, pck);
-		} else {
+		if (!pid->filter || gf_fq_res_add(pid->filter->pcks_shared_reservoir, pck)) {
 			gf_free(pck);
 		}
 	} else {
-		if (pid->filter && pid->filter->pcks_alloc_reservoir) {
-			gf_fq_add(pid->filter->pcks_alloc_reservoir, pck);
-		} else {
+		if (!pid->filter || gf_fq_res_add(pid->filter->pcks_alloc_reservoir, pck)) {
 			if (pck->data) gf_free(pck->data);
 			gf_free(pck);
 		}
@@ -793,9 +787,7 @@ Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 			pcki->pck = NULL;
 			pcki->pid = NULL;
 
-			if (pck->pid->filter->pcks_inst_reservoir) {
-				gf_fq_add(pck->pid->filter->pcks_inst_reservoir, pcki);
-			} else {
+			if (gf_fq_res_add(pck->pid->filter->pcks_inst_reservoir, pcki)) {
 				gf_free(pcki);
 			}
 		} else {
