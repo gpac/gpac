@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 Object Descriptor sub-project
@@ -1330,7 +1330,7 @@ GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined);
 /*! special function for authoring - convert DSI to BIFSConfig
 \param dsi BIFS decoder specific info
 \param codecid BIFS codecid/object type indication
-\return decoded BIFS Config descriptor - It is the caller responsability of freeing it
+\return decoded BIFS Config descriptor - It is the caller responsibility of freeing it
  */
 GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u32 codecid);
 /*! special function for authoring - convert DSI to LASERConfig
@@ -1349,7 +1349,7 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
 GF_Err gf_odf_get_text_config(u8 *data, u32 data_len, u32 codecid, GF_TextConfig *cfg);
 /*! converts UIConfig to dsi - does not destroy input descr but does create output one
 \param cfg the UI config object
-\param out_dsi the decoder specific info created. It is the caller responsability of freeing it
+\param out_dsi the decoder specific info created. It is the caller responsibility of freeing it
 \return error if any
  */
 GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi);
@@ -1368,7 +1368,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg);
 GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size);
 /*! writes GF_AVCConfig
 \param cfg the AVC config to encode
-\param outData encoded dsi buffer - it is the caller responsability to free this
+\param outData encoded dsi buffer - it is the caller responsibility to free this
 \param outSize  encoded dsi buffer size
 \return error if any
  */
@@ -1413,7 +1413,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
 
 /*! writes GF_HEVCConfig as MPEG-4 DSI
 \param cfg the HEVC config to encode
-\param outData encoded dsi buffer - it is the caller responsability to free this
+\param outData encoded dsi buffer - it is the caller responsibility to free this
 \param outSize  encoded dsi buffer size
 \return error if any
  */
@@ -1452,7 +1452,7 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs);
 
 /*! writes GF_VVCConfig as MPEG-4 DSI
 \param cfg the VVC config to encode
-\param outData encoded dsi buffer - it is the caller responsability to free this
+\param outData encoded dsi buffer - it is the caller responsibility to free this
 \param outSize  encoded dsi buffer size
 \return error if any
  */
@@ -1481,7 +1481,7 @@ void gf_odf_av1_cfg_del(GF_AV1Config *cfg);
 
 /*! writes AV1 config to buffer
 \param cfg the AV1 config to write
-\param outData set to an allocated encoded buffer - it is the caller responsability to free this
+\param outData set to an allocated encoded buffer - it is the caller responsibility to free this
 \param outSize set to the encoded dsi buffer size
 \return error if any
 */
@@ -1531,7 +1531,7 @@ void gf_odf_vp_cfg_del(GF_VPConfig *cfg);
 GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs, Bool is_v0);
 /*! writes VPx config to buffer
 \param cfg the VPx config to write
-\param outData set to an allocated encoded buffer - it is the caller responsability to free this
+\param outData set to an allocated encoded buffer - it is the caller responsibility to free this
 \param outSize set to the encoded buffer size
 \param is_v0 if GF_TRUE, this is a version 0 config
 \return error if any
@@ -1718,7 +1718,7 @@ the raw descriptor MUST be formatted with tag and size field!!!
 a new desc is created and you must delete it when done
 \param raw_desc encoded descriptor to decode
 \param descSize size of descriptor to decode
-\param outDesc output decoded descriptor - it is the caller responsability to free this
+\param outDesc output decoded descriptor - it is the caller responsibility to free this
 \return error if any
 */
 GF_Err gf_odf_desc_read(u8 *raw_desc, u32 descSize, GF_Descriptor **outDesc);
@@ -1727,7 +1727,7 @@ GF_Err gf_odf_desc_read(u8 *raw_desc, u32 descSize, GF_Descriptor **outDesc);
 the desc will be formatted with tag and size field
 the output buffer is allocated and you must delete it when done
 \param desc descriptor to encode
-\param outEncDesc output encoded descriptor - it is the caller responsability to free this
+\param outEncDesc output encoded descriptor - it is the caller responsibility to free this
 \param outSize size of encoded descriptor
 \return error if any
  */
@@ -1748,7 +1748,7 @@ u32 gf_odf_desc_size(GF_Descriptor *desc);
 
 /*! duplicate descriptors
 \param inDesc descriptor to copy
-\param outDesc copied descriptor - it is the caller responsability to free this
+\param outDesc copied descriptor - it is the caller responsibility to free this
 \return error if any
  */
 GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc);

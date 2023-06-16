@@ -29,7 +29,7 @@
 
 /*
 	Notes about the mixer:
-	1- spatialization is out of scope for the mixer (eg that's the sound node responsability)
+	1- spatialization is out of scope for the mixer (eg that's the sound node responsibility)
 	2- mixing is performed by resampling input source & deinterleaving its channels into dedicated buffer.
 	We could directly deinterleave in the main mixer output buffer, but this would prevent any future
 	gain correction.
@@ -1173,7 +1173,7 @@ do_mix:
 		return 0;
 	}
 
-	//we do not re-normalize based on the number of input, this is the author's responsability
+	//we do not re-normalize based on the number of input, this is the author's responsibility
 	out_mix = am->output;
 	if (am->afmt == GF_AUDIO_FMT_S32) {
 		s32 *out_s32 = (s32 *)buffer;

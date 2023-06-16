@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -625,7 +625,7 @@ GF_Err gf_sg_route_set_name(GF_Route *route, char *name);
 char *gf_sg_route_get_name(GF_Route *route);
 
 /*! retuns next available RouteID
-\note this doesn't track inserted routes, that's the caller responsability
+\note this doesn't track inserted routes, that's the caller responsibility
 \param sg the target scene graph of the route
 \return the next available ID for routes
 */

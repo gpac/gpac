@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Events management
@@ -249,7 +249,7 @@ typedef struct
 } GF_EventDuration;
 
 /*! Hyperlink navigation event
-	event proc return value: 0 if URL not supported, 1 if accepted (it is the user responsability to load the url)
+	event proc return value: 0 if URL not supported, 1 if accepted (it is the user responsibility to load the url)
 	YOU SHALL NOT DIRECTLY OPEN THE NEW URL IN THE EVENT PROC, THIS WOULD DEADLOCK THE COMPOSITOR
 */
 typedef struct

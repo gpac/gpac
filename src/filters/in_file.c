@@ -136,7 +136,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 
 	//local file
 
-	//strip any fragment identifer
+	//strip any fragment identifier
 	ext_start = gf_file_ext_start(ctx->src);
 	frag_par = strchr(ext_start ? ext_start : ctx->src, '#');
 	if (frag_par) frag_par[0] = 0;
@@ -297,7 +297,7 @@ static GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_ty
 		return GF_FPROBE_NOT_SUPPORTED;
 
 
-	//strip any fragment identifer
+	//strip any fragment identifier
 	ext_start = gf_file_ext_start(url);
 	frag_par = strchr(ext_start ? ext_start : url, '#');
 	if (frag_par) frag_par[0] = 0;

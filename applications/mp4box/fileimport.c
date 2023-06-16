@@ -2575,7 +2575,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	opts = gf_url_colon_suffix(fileName, '=');
 	e = GF_OK;
 
-	/*if options are specified, reimport the file*/
+	/*if options are specified, re-import the file*/
 	if (opts) opts[0] = 0;
 	is_isom = gf_isom_probe_file(fileName);
 

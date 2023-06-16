@@ -475,7 +475,7 @@ void gf_fs_print_non_connected_ex(GF_FilterSession *session, Bool ignore_sinks);
 /*! Prints the list of arguments specified but not used by the filter session using \code LOG_APP@LOG_WARNING \endcode
  \note This is simply a wrapper to \ref gf_fs_enum_unmapped_options
 \param session filter session
-\param ignore_args ignore unused arguments if present in this comma-seperated list - may be NULL
+\param ignore_args ignore unused arguments if present in this comma-separated list - may be NULL
 */
 void gf_fs_print_unused_args(GF_FilterSession *session, const char *ignore_args);
 
@@ -1382,7 +1382,7 @@ const char *gf_props_enum_name(u32 type, u32 value);
 
 /*! Get the possible names of an enum type property
 \param type  property type
-\return comma-seperated list of possible values
+\return comma-separated list of possible values
 */
 const char *gf_props_enum_all_names(u32 type);
 
@@ -2312,7 +2312,7 @@ struct __gf_filter_register
 
 	/*! optional - callback for arguments update. If GF_OK is returned, the filter private stack is updated accordingly.
 	If function is NULL, all updatable arguments will be changed in the filter private stack without the filter being notified.
-	If argument is a meta argument, it is the filter responsability to handle the update, as meta arguments do not live on the filter private stack.
+	If argument is a meta argument, it is the filter responsibility to handle the update, as meta arguments do not live on the filter private stack.
 	If the filter is a meta filter and argument is not declared in the argument list, the function is always called.
 
 	\param filter the target filter

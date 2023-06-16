@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -993,7 +993,7 @@ void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port);
 
 		  SDP is mainly a text protocol with
 	well defined containers. The following structures are used to write / read
-	SDP informations, and the library also provides consistency checking
+	SDP information, and the library also provides consistency checking
 
   When reading SDP, all text items/structures are allocated by the lib, and you
   must call gf_sdp_info_reset(GF_SDPInfo *sdp) or gf_sdp_info_del(GF_SDPInfo *sdp) to release the memory

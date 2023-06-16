@@ -119,7 +119,7 @@ const GF_FilterRegister UnframerRegister = {
 	"This will:\n"
 	"- force input PIDs of unframer to be in serialized form (AnnexB, ADTS, ...)\n"
 	"- trigger reframers to be instanciated after the `unframer` filter.\n"
-	"Using the unframer filter avoids doing a dump to disk then reimport or other complex data piping."
+	"Using the unframer filter avoids doing a dump to disk then re-import or other complex data piping."
 	)
 	.max_extra_pids = 0xFFFFFFFF,
 	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_FORCE_REMUX,

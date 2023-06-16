@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -205,7 +205,7 @@ struct __tag_scene_graph
 	GF_List *unregistered_protos;
 
 	/*routes to be activated (cascade model). This is used at the top-level graph only (eg
-	proto routes use that too, ecept ISed fields). It is the app responsability to
+	proto routes use that too, ecept ISed fields). It is the app responsibility to
 	correctly connect or browse scene graphs connected through Inline*/
 	GF_List *routes_to_activate;
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -247,7 +247,7 @@ void gf_node_set_private(GF_Node*n, void *udta);
 typedef void (*gf_sg_node_callback)(GF_Node *n, void *traverse_state, Bool is_destroy);
 
 /*! sets traversal callback function. If a node has no associated callback, the traversing of the
-graph won't propagate below it. It is the app responsability to setup traversing functions as needed
+graph won't propagate below it. It is the app responsibility to setup traversing functions as needed
 VRML/MPEG4:  Instantiated Protos are handled internally as well as interpolators, valuators and scripts
 \param n the target node
 \param NodeFunction the callback function
@@ -344,7 +344,7 @@ enum
 	GF_SG_NODE_DIRTY = 1,
 	/*flag set whenever a child node of this node has been modified
 	\note Unloaded extern protos always invalidate their parent subgraph to get a chance
-	of being loaded. It is the user responsability to clear the CHILD_DIRTY flag before traversing
+	of being loaded. It is the user responsibility to clear the CHILD_DIRTY flag before traversing
 	if relying on this flag for sub-tree discarding (eg, culling or similar)*/
 	GF_SG_CHILD_DIRTY = 1<<1,
 
@@ -403,7 +403,7 @@ which means that if you never clean the dirty flags, no propagation will take pl
 */
 void gf_node_dirty_parents(GF_Node *n);
 
-/*! sets dirty flag off. It is the user responsability to clear dirty flags
+/*! sets dirty flag off. It is the user responsibility to clear dirty flags
 \param n the target node
 \param flags if 0, all flags are set off; otherwise, removes the indicated flags from the node dirty state
 */

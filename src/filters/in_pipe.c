@@ -118,7 +118,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 
-	//strip any fragment identifer
+	//strip any fragment identifier
 	frag_par = strchr(ctx->src, '#');
 	if (frag_par) frag_par[0] = 0;
 	cgi_par = strchr(ctx->src, '?');
