@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -106,13 +106,13 @@ void gf_mo_pause(GF_MediaObject *mo);
 void gf_mo_resume(GF_MediaObject *mo);
 
 /*!
-	Note on mediaControl: mediaControl is the media management app responsability, therefore
+	Note on mediaControl: mediaControl is the media management app responsibility, therefore
 is hidden from the rendering app. Since MediaControl overrides default settings of the node (speed and loop)
 you must use the gf_mo_get_speed and gf_mo_get_loop in order to know whether the related field applies or not
 */
 
 /*! sets speed of media - speed is not always applied, depending on media control settings.
-\note audio pitching is the responsability of the rendering app
+\note audio pitching is the responsibility of the rendering app
 \param mo the target media object
 \param speed the playback speed to set
 */

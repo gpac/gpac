@@ -31,7 +31,7 @@ o=spécifie un fichier de sortie - voir la documentation générale -h doc
 o_crc=3724167134
 h=@affiche l'aide. Par défaut, seules les options de base sont imprimées. -ha affiche les options avancées, -hx imprime les options expertes et -hh imprime toutes les options. Le paramètre de chaîne peut être:
 	vide: affiche l'aide de base de la ligne de commande.
-	doc: affiche les informations générales sur le filtre.
+	doc: affiche les information générales sur le filtre.
 	log: affiche l'aide du système de journalisation.
 	core: affiche les options de base de libgpac supportées. Utilisez -ha / -hx / -hh pour les options en mode avancé / expert / complet.
 	filtres: affiche le nom de tous les filtres disponibles.
@@ -39,7 +39,7 @@ h=@affiche l'aide. Par défaut, seules les options de base sont imprimées. -ha 
 	codecs: affiche les codecs pris en charge.
 	props: affiche les propriétés de pid intégrées prises en charge.
 	links: affiche les connexions possibles entre chaque filtre.
-	FNAME: imprime les informations de filtre FNAME (plusieurs FNAME peuvent être spécifiés). Pour les méta-filtres, utilisez FNAME: INST, par exemple ffavin: avfoundation. Utilisez * pour imprimer des informations sur tous les filtres (avertissement, grande sortie!), *: * Pour imprimer des informations sur tous les filtres, y compris les instances de méta filtres (avertissement, grande sortie!). Par défaut, seules les options de filtre de base et la description sont affichées. Utilisez -ha pour afficher les options avancées et filtrer les capacités d'E / S, -hx pour les options expertes, -hh pour toutes les options@
+	FNAME: imprime les information de filtre FNAME (plusieurs FNAME peuvent être spécifiés). Pour les méta-filtres, utilisez FNAME: INST, par exemple ffavin: avfoundation. Utilisez * pour imprimer des information sur tous les filtres (avertissement, grande sortie!), *: * Pour imprimer des information sur tous les filtres, y compris les instances de méta filtres (avertissement, grande sortie!). Par défaut, seules les options de filtre de base et la description sont affichées. Utilisez -ha pour afficher les options avancées et filtrer les capacités d'E / S, -hx pour les options expertes, -hh pour toutes les options@
 h_crc=4136223486
 doc=@Aide de l'outil en ligne de commande de GPAC pour la mise en place et l'execution de chaînes de filtres.
 Voir -h pour les options disponibles.

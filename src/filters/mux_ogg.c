@@ -547,7 +547,7 @@ GF_FilterRegister OGGMuxRegister = {
 	GF_FS_SET_DESCRIPTION("OGG multiplexer")
 	GF_FS_SET_HELP("This filter multiplexes audio and video to produce an OGG stream.\n"
 		"\n"
-		"The [-cdur]() option allows specifiying the interleaving duration (max time difference between consecutive packets of different streams). \n"
+		"The [-cdur]() option allows specifying the interleaving duration (max time difference between consecutive packets of different streams). \n"
 	)
 	.private_size = sizeof(OGGMuxCtx),
 	.max_extra_pids = -1,

@@ -1404,12 +1404,12 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-check", NULL, "disable compliance tests for inputs (ISOBMFF for now). This will likely result in random crashes", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("unhandled-rejection", NULL, "dump unhandled promise rejections", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("startup-file", NULL, "startup file of compositor in GUI mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("docs-dir", NULL, "default documents directoty (for GUI on iOS and Android)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("docs-dir", NULL, "default documents directory (for GUI on iOS and Android)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("last-dir", NULL, "last working directory (for GUI)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 #ifdef GPAC_HAS_POLL
  GF_DEF_ARG("no-poll", NULL, "disable poll and use select for socket groups", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 #endif
- GF_DEF_ARG("no-tls-rcfg", NULL, "disble automatic TCP to TLS reconfiguration", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("no-tls-rcfg", NULL, "disable automatic TCP to TLS reconfiguration", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-fd", NULL, "use buffered IO instead of file descriptor for read/write - this can speed up operations on small files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-mx", NULL, "disable all mutexes, threads and semaphores (do not use if unsure about threading used)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 

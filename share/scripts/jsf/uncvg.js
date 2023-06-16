@@ -31,7 +31,7 @@ filter.set_help("This filter provides generation of test images for ISO/IEC 2300
 +"When generating video, the pixels are shifted to the left at every frame\n"
 +"\n"
 +"Components are described as N[bpc][+k] with\n"
-+"- N: component type, one of M(ono), Y, U, V, R, G, B, A, d(epth), disp, p(alette), f(ilterArray), x (pad)\n"
++"- N: component type, one of M(mono), Y, U, V, R, G, B, A, d(depth), disp, p(palette), f(filterArray), x (pad)\n"
 +"- bpc: bits per component value, default is 8\n"
 +"- k: force component alignment on k bytes, default is 0 (no alignment)\n"
 );
@@ -45,12 +45,12 @@ filter.set_arg({ name: "interleave", desc: `interleave type
 - mix: pixel-based interleaving for UV (semi-planar modes)
 - row: row-based interleaving
 - tile: tile-component interleaving
-- multi: pixel-based interleaving (packed modes) for subsampled modes`, type: GF_PROP_UINT, def: "pix", minmax_enum: "comp|pix|mix|row|tile|multi"} );
+- multi: pixel-based interleaving (packed modes) for sub-sampled modes`, type: GF_PROP_UINT, def: "pix", minmax_enum: "comp|pix|mix|row|tile|multi"} );
 filter.set_arg({ name: "sampling", desc: `sampling types
-- none: no subsampling
-- 422: YUV 4:2:2 subsampling
-- 420: YUV 4:2:0 subsampling
-- 411: YUV 4:1:1 subsampling`, type: GF_PROP_UINT, def: "none", minmax_enum: "none|422|420|411"} );
+- none: no sub-sampling
+- 422: YUV 4:2:2 sub-sampling
+- 420: YUV 4:2:0 sub-sampling
+- 411: YUV 4:1:1 sub-sampling`, type: GF_PROP_UINT, def: "none", minmax_enum: "none|422|420|411"} );
 filter.set_arg({ name: "block_size", desc: "block size in bytes", type: GF_PROP_UINT, def: "0"} );
 filter.set_arg({ name: "pad_lsb", desc: "padded bits are at LSB in the block", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "ble", desc: "block is little endian", type: GF_PROP_BOOL, def: "false"} );
@@ -601,9 +601,9 @@ function setup_uncv()
 			break;
 		default:
 			if (filter.sampling==SAMPLING_420)
-				throw "Subsampling must use interleave mode 0 or 2";
+				throw "Sub-sampling must use interleave mode 0 or 2";
 			else
-				throw "Subsampling must use interleave mode 0, 2 or 5";
+				throw "Sub-sampling must use interleave mode 0, 2 or 5";
 			break;
 		}
 	}

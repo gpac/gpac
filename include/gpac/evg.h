@@ -1004,7 +1004,7 @@ GF_Err gf_evg_surface_disable_early_depth(GF_EVGSurface *surf, Bool disable);
  */
 GF_Err gf_evg_surface_write_depth(GF_EVGSurface *surf, Bool do_write);
 /*! sets  depth buffer
- The 3D rasterizer does not allocate any surface (depth or color buffers), it is the user responsability to set these buffers
+ The 3D rasterizer does not allocate any surface (depth or color buffers), it is the user responsibility to set these buffers
  \warning do NOT forget to resize your depth buffer when resizing the canvas !
 \note this is only used for 3D rasterizer, and fails 2D mode
 \param surf the target 3D surface

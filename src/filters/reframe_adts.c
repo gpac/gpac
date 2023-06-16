@@ -421,7 +421,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	}
 	ctx->acfg.audioPL = gf_m4a_get_profile(&ctx->acfg);
 
-	/*for better interop, always store using full SR when using explict signaling*/
+	/*for better interop, always store using full SR when using explicit signaling*/
 	if (sbr_sr) {
 		ctx->dts_inc *= 2;
 		sr = sbr_sr;

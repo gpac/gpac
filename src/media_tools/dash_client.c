@@ -4529,7 +4529,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	}
 
 	/* The bytes_per_sec field is set each time a segment is downloaded,
-	   (this may need to be adjusted in the future to accomodate algorithms
+	   (this may need to be adjusted in the future to accommodate algorithms
 	   that smooth download rate over several segments)
 	   if set to 0, this means that no segment was downloaded since the last call
 	   because this AdaptationSet is not selected

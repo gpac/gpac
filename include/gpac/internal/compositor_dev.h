@@ -236,7 +236,7 @@ struct __tag_compositor
 
 	/*the main scene graph*/
 	GF_SceneGraph *scene;
-	/*extra scene graphs (OSD, etc), always registered in draw order. That's the module responsability
+	/*extra scene graphs (OSD, etc), always registered in draw order. That's the module responsibility
 	to draw them*/
 	GF_List *extra_scenes;
 
@@ -1343,7 +1343,7 @@ typedef struct
 } GF_AudioInput;
 /*setup interface with audio renderer - overwrite any functions needed after setup EXCEPT callback object*/
 void gf_sc_audio_setup(GF_AudioInput *ai, GF_Compositor *sr, GF_Node *node);
-/*unregister interface from renderer/mixer and stops source - deleteing the interface is the caller responsability*/
+/*unregister interface from renderer/mixer and stops source - deleteing the interface is the caller responsibility*/
 void gf_sc_audio_predestroy(GF_AudioInput *ai);
 /*open audio object*/
 GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd, Bool lock_timeline);

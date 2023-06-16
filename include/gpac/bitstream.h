@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -70,7 +70,7 @@ Constructs a bitstream from a buffer (read or write mode)
 \param size size of the buffer given.
 \param mode operation mode for this bitstream: GF_BITSTREAM_READ for read, GF_BITSTREAM_WRITE for write.
 \return new bitstream object
-\note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsability to ensure it
+\note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsibility to ensure it
  *	does not write more than possible.
  */
 GF_BitStream *gf_bs_new(const u8 *buffer, u64 size, u32 mode);
@@ -464,7 +464,7 @@ Fetches the internal bitstream buffer in write mode. If a buffer was given at th
 \param output address of the memory block allocated by the bitstream.
 \param outSize size of the allocated memory block.
 \note
-	- It is the user responsability to destroy the allocated buffer
+	- It is the user responsibility to destroy the allocated buffer
 	- Once this function has been called, the internal bitstream buffer is reseted.
  */
 void gf_bs_get_content(GF_BitStream *bs, u8 **output, u32 *outSize);
@@ -478,7 +478,7 @@ Fetches the internal bitstream buffer in write mode. If a buffer was given at th
 \param outSize  number of bytes written in the allocated memory block.
 \param allocSize  size of the allocated memory block.
 \note
-	- It is the user responsability to destroy the allocated buffer
+	- It is the user responsibility to destroy the allocated buffer
 	- Once this function has been called, the internal bitstream buffer is reseted.
  */
 void gf_bs_get_content_no_truncate(GF_BitStream *bs, u8 **output, u32 *outSize, u32 *allocSize);

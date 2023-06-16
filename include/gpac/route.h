@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) demuxer
@@ -46,7 +46,7 @@ extern "C" {
 
 The ROUTE receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
 It gathers objects from a ROUTE session and sends them back to the user through a callback, or deletes them if no callback is sent.
-The route demuxer does not try to repairing files, it is the user responsability to do so.
+The route demuxer does not try to repairing files, it is the user responsibility to do so.
 
 @{
 */

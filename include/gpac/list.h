@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -62,7 +62,7 @@ GF_List *gf_list_new();
 
 Destructs a list object
 \param ptr list object to destruct
-\note It is the caller responsability to destroy the content of the list if needed
+\note It is the caller responsibility to destroy the content of the list if needed
  */
 void gf_list_del(GF_List *ptr);
 
@@ -103,7 +103,7 @@ Removes an item from the list given its position
 \param ptr target list object
 \param position position of the item to remove. It is expressed between 0 and gf_list_count-1.
 \return error if any
-\note It is the caller responsability to destroy the content of the list if needed
+\note It is the caller responsibility to destroy the content of the list if needed
  */
 GF_Err gf_list_rem(GF_List *ptr, u32 position);
 
@@ -142,7 +142,7 @@ s32 gf_list_del_item(GF_List *ptr, void *item);
 
 Resets the content of the list
 \param ptr target list object.
-\note It is the caller responsability to destroy the content of the list if needed
+\note It is the caller responsibility to destroy the content of the list if needed
  */
 void gf_list_reset(GF_List *ptr);
 
@@ -161,7 +161,7 @@ void *gf_list_last(GF_List *ptr);
 Removes the last item of the list
 \param ptr target list object
 \return error if any
-\note It is the caller responsability to destroy the content of the list if needed
+\note It is the caller responsibility to destroy the content of the list if needed
  */
 GF_Err gf_list_rem_last(GF_List *ptr);
 

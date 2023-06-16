@@ -1770,7 +1770,7 @@ typedef int (*gfio_printf_proc)(GF_FileIO *fileio, const char *format, va_list a
 
 /*! Creates a new file IO object
 
-There is no guarantee that the corresponding resource will be opened by the framework, it is therefore the caller responsability to track objects created by
+There is no guarantee that the corresponding resource will be opened by the framework, it is therefore the caller responsibility to track objects created by
 gf_fileio_new or as a response to open with mode "url".
 
 \param url the original URL this file IO object wraps

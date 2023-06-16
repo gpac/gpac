@@ -6111,7 +6111,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 		//for now we disable the check, one opt could be to have the check only for some media types, or only for the first entry
 #if 0
 		else if ((s32) ptr->entries[i].sampleDelta < 0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] stts entry %d has negative duration %d - forbidden ! Fixing to 1, sync may get lost (consider reimport raw media)\n", i, (s32) ptr->entries[i].sampleDelta ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] stts entry %d has negative duration %d - forbidden ! Fixing to 1, sync may get lost (consider re-importing raw media)\n", i, (s32) ptr->entries[i].sampleDelta ));
 			ptr->entries[i].sampleDelta = 1;
 		}
 #endif

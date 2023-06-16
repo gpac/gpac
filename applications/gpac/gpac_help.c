@@ -917,7 +917,7 @@ static const char *gpac_credentials =
 "Passwords are not stored, only a SHA256 hash is stored.\n"
 "\n"
 "Servers using authentication rules can use a configuration file instead of a directory name.\n"
-"This configuration file is organized in sections, each section name descibing a directory.\n"
+"This configuration file is organized in sections, each section name describing a directory.\n"
 "EX [somedir]\n"
 "EX ru=foo\n"
 "EX rg=bar\n"

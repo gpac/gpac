@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -162,7 +162,7 @@ typedef struct
 		THIS IS DEPRECATED IN GPAC
 	*/
 	u32 ipmp_desc_id;
-	/*! type of box where sample auxiliary informations is saved, either "senc" or "PSEC" (PIFF)*/
+	/*! type of box where sample auxiliary information is saved, either "senc" or "PSEC" (PIFF)*/
 	u32 sai_saved_box_type;
 
 	/*! OMA encryption type: 0: none, 1: AES CBC, 2: AES CTR*/
