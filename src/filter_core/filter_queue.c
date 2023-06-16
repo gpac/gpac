@@ -350,3 +350,13 @@ void gf_fq_enum(GF_FilterQueue *fq, void (*enum_func)(void *udta1, void *item), 
 		}
 	}
 }
+
+Bool gf_fq_res_add(GF_FilterQueue *fq, void *item)
+{
+	if (!fq) return GF_TRUE;
+	//avoid queuing up too many entries in a reservoir queue, this could grow memory
+	//way too much when packet bursts happen
+	if (fq->nb_items>=50) return GF_TRUE;
+	gf_fq_add(fq, item);
+	return GF_FALSE;
+}
