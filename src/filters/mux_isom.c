@@ -7156,6 +7156,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	//fragmented mode
 	if (ctx->store>=MP4MX_MODE_FRAG) {
 		u32 done=0;
+		//postpone until no pending connections, otherwise we will create init segment without all tracks
+		if (gf_filter_connections_pending(filter))
+			return GF_OK;
+
 		if (ctx->seg_flush_state==1) return GF_OK;
 		else if (ctx->seg_flush_state==2)
 			mp4_mux_flush_seg_events(ctx);
