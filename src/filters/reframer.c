@@ -607,6 +607,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	}
 	if (end_date) {
 		Bool is_dur = GF_FALSE;
+		ctx->end_frame_idx_plus_one = 0;
 		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse end date, assuming open range\n"));
 			ctx->range_type = RANGE_OPEN;
@@ -616,7 +617,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 				ctx->cur_end.den = ctx->cur_start.den;
 				ctx->cur_end.num += ctx->cur_start.num;
 			}
-			if (gf_timestamp_greater_or_equal(ctx->cur_start.num, ctx->cur_start.den, ctx->cur_end.num, ctx->cur_end.den) ) {
+			if (!ctx->end_frame_idx_plus_one && gf_timestamp_greater_or_equal(ctx->cur_start.num, ctx->cur_start.den, ctx->cur_end.num, ctx->cur_end.den) ) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] End range before start range, assuming open range\n"));
 				ctx->range_type = RANGE_OPEN;
 			}
@@ -797,6 +798,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, st->ipid);
 				gf_filter_pid_send_event(st->ipid, &evt);
+				gf_filter_pid_set_eos(st->opid);
 			}
 			return GF_TRUE;
 		}
@@ -1081,7 +1083,7 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 {
 	if (ctx->start_frame_idx_plus_one) {
 		//frame not after our range start
-		if (frame_idx<ctx->start_frame_idx_plus_one) {
+		if (frame_idx+1<ctx->start_frame_idx_plus_one) {
 			return 0;
 		} else {
 			//closed range, check
@@ -2782,7 +2784,7 @@ GF_FilterRegister ReframerRegister = {
 		"- 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds\n"
 		"- INT, FLOAT, NUM/DEN: specify time in seconds (number or fraction)\n"
 		"- 'D'INT, 'D'FLOAT, 'D'NUM/DEN: specify end time as offset to start time in seconds (number or fraction) - only valid for [-xe]()\n"
-		"- 'F'NUM: specify time as frame number\n"
+		"- 'F'NUM: specify time as frame number, 1 being first\n"
 		"- XML DateTime: specify absolute UTC time\n"
 		"  \n"
 		"In this mode, the timestamps are rewritten to form a continuous timeline, unless [-xots]() is set.\n"
