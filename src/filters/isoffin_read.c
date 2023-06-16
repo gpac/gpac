@@ -1609,6 +1609,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					}
 				}
 				ch->eos_sent = 0;
+				ch->nb_empty_retry = 0;
 
 				//this might not be the true end of stream
 				if ((ch->streamType==GF_STREAM_AUDIO) && (ch->sample_num == gf_isom_get_sample_count(read->mov, ch->track))) {
@@ -1643,6 +1644,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						check_forced_end = GF_TRUE;
 					}
 				}
+				ch->nb_empty_retry++;
 				if (in_is_eos && !ch->eos_sent) {
 					void *tfrf;
 					const void *gf_isom_get_tfrf(GF_ISOFile *movie, u32 trackNumber);
@@ -1663,6 +1665,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			} else if (ch->last_state==GF_ISOM_INVALID_FILE) {
+				ch->nb_empty_retry++;
 				if (!ch->eos_sent) {
 					ch->eos_sent = 1;
 					read->eos_signaled = GF_TRUE;
@@ -1674,11 +1677,19 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_ask_rt_reschedule(filter, 1);
 
 				read->force_fetch = GF_TRUE;
+				ch->nb_empty_retry++;
 				break;
 			}
 		}
-		if (!min_offset_plus_one || (min_offset_plus_one - 1 > ch->last_valid_sample_data_offset))
+		//if no sample fetched for 100 calls, consider no sample for this track and don't use it for memory purge
+		//this is typically needed when some tracks are declared in fragmented mode but not present in the stream (at all or for a long time):
+		//for these tracks, min_offset_plus_one is always 1 (no samples) or a much smaller value than for active tracks
+		// hence forever growing mem storage until stuck at max size...
+		if ((ch->nb_empty_retry<100)
+			&& (!min_offset_plus_one || (min_offset_plus_one - 1 > ch->last_valid_sample_data_offset))
+		) {
 			min_offset_plus_one = 1 + ch->last_valid_sample_data_offset;
+		}
 	}
 	if (read->mem_load_mode && min_offset_plus_one) {
 		isoffin_purge_mem(read, min_offset_plus_one-1);
@@ -1692,12 +1703,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		gf_filter_pid_send_event(read->pid, &evt);
 	}
 
-
 	if (!is_active) {
 		return GF_EOS;
 	}
-	//if (in_is_eos)
-//	gf_filter_ask_rt_reschedule(filter, 1);
+
 	return GF_OK;
 
 }
