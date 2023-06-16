@@ -208,6 +208,8 @@ typedef struct
 
 	GF_FilterPacket *pck;
 	u32 alloc_size;
+
+	u32 nb_empty_retry;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);
