@@ -1146,28 +1146,28 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					e = gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, samp_num, offset, size);
 					if (e) return e;
 
-					//old code commented
 					//we no longer load sai, this will be loaded through saio/saiz when fecthing it
 					//this avoids too high mem usage
-#if 0
-					GF_CENCSampleAuxInfo *sai;
-					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
-					if (!sai) return GF_OUT_OF_MEM;
-					if (is_encrypted) {
-						sai->cenc_data_size = size;
-						sai->cenc_data = gf_malloc(sizeof(u8)*size);
-						if (!sai->cenc_data) return GF_OUT_OF_MEM;
-						u64 cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
-						gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset - trak->moov->mov->bytes_removed);
+					//we do keep it if edit mode to rewrite senc
+					if (trak->moov->mov->openMode>=GF_ISOM_OPEN_EDIT) {
+						GF_CENCSampleAuxInfo *sai;
+						GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+						if (!sai) return GF_OUT_OF_MEM;
+						if (is_encrypted) {
+							sai->cenc_data_size = size;
+							sai->cenc_data = gf_malloc(sizeof(u8)*size);
+							if (!sai->cenc_data) return GF_OUT_OF_MEM;
+							u64 cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
+							gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset - trak->moov->mov->bytes_removed);
 
-						gf_bs_read_data(trak->moov->mov->movieFileMap->bs, sai->cenc_data, sai->cenc_data_size);
+							gf_bs_read_data(trak->moov->mov->movieFileMap->bs, sai->cenc_data, sai->cenc_data_size);
 
-						gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
-					} else {
-						sai->isNotProtected=1;
+							gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
+						} else {
+							sai->isNotProtected=1;
+						}
+						gf_list_add(senc->samp_aux_info, sai);
 					}
-					gf_list_add(senc->samp_aux_info, sai);
-#endif
 
 					//always increment offset (in case we need saio.nb_entries>1)
 					offset += size;
