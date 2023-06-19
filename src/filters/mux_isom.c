@@ -318,6 +318,7 @@ typedef struct
 
 
 	//internal
+	GF_Filter *filter;
 	Bool owns_mov;
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
@@ -3971,9 +3972,9 @@ sample_entry_done:
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx);
+static GF_Err mp4_mux_flush_fragmented(GF_MP4MuxCtx *ctx);
 #endif
-static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final);
+static GF_Err mp4_mux_done(GF_MP4MuxCtx *ctx, Bool is_final);
 
 static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -3990,12 +3991,12 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (ctx->file) {
 				//non-frag file, flush file
 				if (!ctx->init_movie_done) {
-					mp4_mux_done(filter, ctx, GF_TRUE);
+					mp4_mux_done(ctx, GF_TRUE);
 				}
 			} else {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				while (ctx->flush_size) {
-					GF_Err e = mp4_mux_flush_fragmented(filter, ctx);
+					GF_Err e = mp4_mux_flush_fragmented(ctx);
 					if (e) break;
 				}
 #endif
@@ -4031,7 +4032,7 @@ static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	}
 	if (!evt->base.on_pid && (evt->base.type==GF_FEVT_STOP) ) {
 		if (ctx->file && ctx->owns_mov) {
-			mp4_mux_done(filter, ctx, GF_TRUE);
+			mp4_mux_done(ctx, GF_TRUE);
 		}
 	}
 	if (evt->base.on_pid && (evt->base.type==GF_FEVT_PLAY) ) {
@@ -5536,6 +5537,8 @@ static void mp4_mux_flush_frag_hls(GF_MP4MuxCtx *ctx)
 	ctx->frag_has_intra = GF_FALSE;
 }
 
+static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic);
+
 static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_range, u64 idx_end_range, Bool signal_flush)
 {
 	GF_FilterEvent evt;
@@ -5558,6 +5561,17 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		if (is_init) {
 			gf_filter_pck_set_dependency_flags(ctx->dst_pck, 0xFF);
 			gf_filter_pck_set_carousel_version(ctx->dst_pck, 1);
+		}
+		//also inject m4cc after init seg - cf issue 2482
+		if (is_init && ctx->eos_marker) {
+			u8 data[8];
+			memset(data, 0, 8);
+			data[3] = 8;
+			data[4] = ctx->m4cc[0];
+			data[5] = ctx->m4cc[1];
+			data[6] = ctx->m4cc[2];
+			data[7] = ctx->m4cc[3];
+			mp4_mux_on_data(ctx, data, 8, NULL, 0);
 		}
 		mp4mux_send_output(ctx);
 		if (signal_flush)
@@ -6102,7 +6116,7 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 	return GF_OK;
 }
 
-static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
+static GF_Err mp4_mux_flush_fragmented(GF_MP4MuxCtx *ctx)
 {
 	GF_FilterPacket *pck;
 	u8 *output;
@@ -6132,7 +6146,7 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_send(pck);
 	//we are not done flushing but we have no more input packets, signal we still need processing
-	gf_filter_ask_rt_reschedule(filter, 1);
+	gf_filter_ask_rt_reschedule(ctx->filter, 1);
 	return GF_OK;
 }
 
@@ -6170,19 +6184,19 @@ static void mp4mx_frag_box_patch(GF_MP4MuxCtx *ctx)
 
 static GF_Err mp4_mux_initialize(GF_Filter *filter);
 
-GF_Err mp4mx_reload_output(GF_Filter *filter, GF_MP4MuxCtx *ctx)
+GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 {
 	GF_Err e;
 	u32 i, count = gf_list_count(ctx->tracks);
 
 	//done with the file
 	if (ctx->file) {
-		e = mp4_mux_done(filter, ctx, GF_FALSE);
+		e = mp4_mux_done(ctx, GF_FALSE);
 		if (e) return e;
 		ctx->file = NULL;
 	}
 	ctx->init_movie_done = GF_FALSE;
-	e = mp4_mux_initialize(filter);
+	e = mp4_mux_initialize(ctx->filter);
 	if (e) return e;
 	ctx->config_timing = GF_TRUE;
 
@@ -6193,7 +6207,7 @@ GF_Err mp4mx_reload_output(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		tkw->nb_samples = 0;
 		tkw->max_cts = 0;
 		tkw->min_cts = (u64) -1;
-		e = mp4_mux_configure_pid(filter, tkw->ipid, GF_FALSE);
+		e = mp4_mux_configure_pid(ctx->filter, tkw->ipid, GF_FALSE);
 		if (e) return e;
 		tkw->nb_samples = 0;
 		tkw->sample.DTS = 0;
@@ -6213,16 +6227,14 @@ GF_Err mp4mx_reload_output(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	return GF_OK;
 }
 
-static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic);
-
-static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
+static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	GF_Err e = GF_OK;
 	u32 nb_eos, nb_done, nb_suspended, i, count;
 
 	if (ctx->flush_size) {
-		return mp4_mux_flush_fragmented(filter, ctx);
+		return mp4_mux_flush_fragmented(ctx);
 	}
 
 	if (!ctx->file)
@@ -6671,7 +6683,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				data[5] = ctx->m4cc[1];
 				data[6] = ctx->m4cc[2];
 				data[7] = ctx->m4cc[3];
-				mp4_mux_on_data(filter, data, 8, NULL, 0);
+				mp4_mux_on_data(ctx, data, 8, NULL, 0);
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
@@ -6709,7 +6721,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 	if (nb_suspended && (nb_suspended==count)) {
 		ctx->nb_segs=0;
-		return mp4mx_reload_output(filter, ctx);
+		return mp4mx_reload_output(ctx);
 	}
 
 check_eos:
@@ -7034,12 +7046,12 @@ retry_pck:
 	del_service_info(services);
 }
 
-void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 total)
+void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 {
 	Bool status_changed=GF_FALSE;
 	u32 total_pc = 0;
 	char *status = NULL, szTmp[2048], szTK[20];
-	if (!gf_filter_reporting_enabled(filter))
+	if (!gf_filter_reporting_enabled(ctx->filter))
 		return;
 	if (!ctx->update_report)
 		return;
@@ -7131,7 +7143,7 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 		}
 	}
 	if (status_changed) {
-		gf_filter_update_status(filter, total_pc, status);
+		gf_filter_update_status(ctx->filter, total_pc, status);
 	}
 	if (status) gf_free(status);
 }
@@ -7148,7 +7160,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	if (ctx->config_timing) {
 		mp4_mux_config_timing(ctx);
 		if (ctx->config_timing) {
-			mp4_mux_format_report(filter, ctx, 0, 0);
+			mp4_mux_format_report(ctx, 0, 0);
 			return GF_OK;
 		}
 	}
@@ -7164,9 +7176,9 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		else if (ctx->seg_flush_state==2)
 			mp4_mux_flush_seg_events(ctx);
 
-		GF_Err e = mp4_mux_process_fragmented(filter, ctx);
+		GF_Err e = mp4_mux_process_fragmented(ctx);
 		if (e==GF_EOS) done=100;
-		mp4_mux_format_report(filter, ctx, done, done);
+		mp4_mux_format_report(ctx, done, done);
 		return e;
 	}
 
@@ -7260,15 +7272,15 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		}
 		if (e) return e;
 	}
-	mp4_mux_format_report(filter, ctx, 0, 0);
+	mp4_mux_format_report(ctx, 0, 0);
 
 	if (nb_suspended && (nb_suspended+nb_eos==count)) {
-		return mp4mx_reload_output(filter, ctx);
+		return mp4mx_reload_output(ctx);
 	}
 
 	if (count == nb_eos) {
 		if (ctx->file) {
-			GF_Err e = mp4_mux_done(filter, ctx, GF_TRUE);
+			GF_Err e = mp4_mux_done(ctx, GF_TRUE);
 			if (e) return e;
 		}
 		return GF_EOS;
@@ -7291,9 +7303,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 file_offset, Bool is_insert)
 {
-	GF_Filter *filter = (GF_Filter *) cbk;
+	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	u8 *output;
-	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
 	if (!pck) return GF_OUT_OF_MEM;
@@ -7343,17 +7354,15 @@ static void mp4_mux_on_packet_destruct(GF_Filter *filter, GF_FilterPid *PID, GF_
 
 static void mp4_mux_on_last_block_start(void *cbk)
 {
-	GF_Filter *filter = (GF_Filter *) cbk;
-	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
+	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	if (ctx->force_seg_sync)
 		ctx->seg_flush_state = 1;
 }
 
 static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic)
 {
-	GF_Filter *filter = (GF_Filter *) cbk;
+	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	u8 *output;
-	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	ctx->total_bytes_out += block_size;
 
@@ -7471,14 +7480,14 @@ void mp4_mux_progress_cbk(void *udta, u64 done, u64 total)
 	GF_Filter *filter = (GF_Filter *)udta;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	ctx->update_report = GF_TRUE;
-	mp4_mux_format_report(filter, ctx, done, total);
+	mp4_mux_format_report(ctx, done, total);
 }
 
 static GF_Err mp4_mux_initialize(GF_Filter *filter)
 {
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	gf_filter_set_max_extra_input_pids(filter, -1);
-
+	ctx->filter = filter;
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ctx->store>=MP4MX_MODE_FRAG) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use fragmented mode, disabled in build\n"));
@@ -7506,7 +7515,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		ctx->file = gf_isom_open("_gpac_isobmff_redirect", open_mode, NULL);
 		if (!ctx->file) return GF_OUT_OF_MEM;
 
-		gf_isom_set_write_callback(ctx->file, mp4_mux_on_data, mp4_mux_on_data_patch, mp4_mux_on_last_block_start,  filter, ctx->block_size);
+		gf_isom_set_write_callback(ctx->file, mp4_mux_on_data, mp4_mux_on_data_patch, mp4_mux_on_last_block_start, ctx, ctx->block_size);
 
 		gf_isom_set_progress_callback(ctx->file, mp4_mux_progress_cbk, filter);
 
@@ -7714,7 +7723,7 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 }
 
-static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
+static GF_Err mp4_mux_done(GF_MP4MuxCtx *ctx, Bool is_final)
 {
 	GF_Err e = GF_OK;
 	u32 i, count;
