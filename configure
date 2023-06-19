@@ -1600,8 +1600,8 @@ config_package openjpeg "libopenjp2" "" "-lopenjp2" "openjp2" '#include <stdio.h
 #include <openjpeg.h>
 int main( void ) { opj_create_decompress(OPJ_CODEC_J2K); return 0; }'
 
-if test "has_openjpeg" = "no" ; then
-config_package openjpeg "libopenjpeg" "" "-lopenjpeg" "openjpeg" '#include <stdio.h>
+if test "$has_openjpeg" = "no" ; then
+config_package openjpeg "libopenjpeg" "" "-lopenjpeg -lm" "openjpeg" '#include <stdio.h>
 #include <openjpeg.h>
 int main( void ) { opj_create_decompress(CODEC_J2K); return 0; }'
 fi
