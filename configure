@@ -1398,14 +1398,14 @@ config_package_test ()
             return
         fi
 
-        if docxx -I"$local_inc/$local_inc_dir" -L$local_lib $package_ldflags ; then
+        if docxx -I"$local_inc/$local_inc_dir" $package_cflags -L$local_lib $package_ldflags ; then
             pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
             pck_ldflags="-L$local_lib $package_ldflags"
             has_pck="local"
             return
         fi
 
-        if docxx -I"$local_inc/$local_inc_dir" -L$execdir $package_ldflags ; then
+        if docxx -I"$local_inc/$local_inc_dir" $package_cflags -L$execdir $package_ldflags ; then
             pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
             pck_ldflags="-L$execdir $package_ldflags"
             has_pck="local (bin dir)"
@@ -1417,7 +1417,7 @@ config_package_test ()
     echo "$package_src" > $TMPC
 
     if test "$custom" = "yes" ; then
-        if docc -I"$forced//include" -L$forced//lib $package_ldflags ; then
+        if docc -I"$forced//include" $package_cflags -L$forced//lib $package_ldflags ; then
             pck_cflags="-I$forced//include $package_cflags"
             pck_ldflags="-L$forced//lib $package_ldflags"
             has_pck="custom"
@@ -1448,14 +1448,14 @@ config_package_test ()
         return
     fi
 
-    if docc -I"$local_inc/$local_inc_dir" -L$local_lib $package_ldflags ; then
+    if docc -I"$local_inc/$local_inc_dir" $package_cflags -L$local_lib $package_ldflags ; then
         pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
         pck_ldflags="-L$local_lib $package_ldflags"
         has_pck="local"
         return
     fi
 
-    if docc -I"$local_inc/$local_inc_dir" -L$execdir $package_ldflags ; then
+    if docc -I"$local_inc/$local_inc_dir" $package_cflags -L$execdir $package_ldflags ; then
         pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
         pck_ldflags="-L$execdir $package_ldflags"
         has_pck="local"
@@ -1606,6 +1606,11 @@ config_package openjpeg "libopenjpeg" "" "-lopenjpeg -lm" "openjpeg" '#include <
 int main( void ) { opj_create_decompress(CODEC_J2K); return 0; }'
 fi
 
+if test "$has_openjpeg" = "no" ; then
+config_package openjpeg "libopenjpeg" "-DOPJ_STATIC" "-lopenjpeg -lm" "openjpeg" '#include <stdio.h>
+#include <openjpeg.h>
+int main( void ) { opj_create_decompress(CODEC_J2K); return 0; }'
+fi
 
 config_package png "libpng" "" "-lpng -lz" "png" '#include <png.h>
 int main( void ) {  png_struct *png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); return 0; }'
