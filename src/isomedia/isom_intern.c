@@ -764,7 +764,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				if ((box->dataSize==4) && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))
 					mov->is_jp2 = 1;
 				gf_isom_box_del(a);
-			} else if ((mov->openMode == GF_ISOM_OPEN_READ_DUMP) || !mov->mdat || !mov->moov) {
+			} else if ((mov->openMode == GF_ISOM_OPEN_READ_DUMP)
+				|| (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)
+				|| !mov->mdat || !mov->moov
+			) {
 				e = gf_list_add(mov->TopBoxes, a);
 				if (e) return e;
 			} else {
