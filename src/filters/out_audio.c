@@ -738,6 +738,14 @@ GF_Err aout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 			}
 		}
 	}
+	else if (!strcmp(arg_name, "vol")) {
+		if ((new_val->value.uint<=100) && ctx->audio_out->SetVolume)
+			ctx->audio_out->SetVolume(ctx->audio_out, new_val->value.uint);
+	}
+	else if (!strcmp(arg_name, "pan")) {
+		if ((new_val->value.uint<=100) && ctx->audio_out->SetPan)
+			ctx->audio_out->SetPan(ctx->audio_out, new_val->value.uint);
+	}
 	return GF_OK;
 }
 
