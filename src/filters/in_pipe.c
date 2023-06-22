@@ -80,7 +80,6 @@ typedef struct
 	u32 left_over, copy_offset;
 	u8 store_char;
 	Bool has_recfg;
-	u32 nb_empty;
 } GF_PipeInCtx;
 
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt);
@@ -387,11 +386,6 @@ refill:
 			}
 		}
 	} else {
-		if (ctx->bytes_read && (ctx->nb_empty>50)) {
-			ctx->nb_empty = 0;
-			ctx->bytes_read = 0;
-		}
-
 		errno = 0;
 #ifdef WIN32
 		nb_read = -1;
@@ -466,9 +460,10 @@ refill:
 						return GF_EOS;
 					}
 				}
-				ctx->nb_empty++;
 				if (!ctx->bytes_read)
 					gf_filter_ask_rt_reschedule(filter, 10000);
+				else
+					gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
 		}
@@ -479,38 +474,41 @@ refill:
 				nb_read = 0;
 			} else {
 				s32 res = errno;
+				//writers still active
 				if (res == EAGAIN) {
-					//non blocking pipe with writers active
-				} else if (nb_read < 0) {
+				}
+				//broken pipe
+				else if (nb_read < 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
 					return GF_IO_ERR;
-				} else if (!ctx->ka && ctx->bytes_read) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
-					if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
-					close(ctx->fd);
-					ctx->fd=-1;
-					ctx->is_end = GF_TRUE;
-					return GF_EOS;
-				} else {
-					//set keepalive eos
-					if (ctx->ka && ctx->bytes_read && ctx->sigflush && ctx->pid) {
-						if (ctx->bpcnt) {
-							ctx->bpcnt--;
-							if (!ctx->bpcnt) {
-								GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] exiting keep-alive mode\n"));
-								ctx->bytes_read = 0;
-								ctx->ka = GF_FALSE;
-								gf_filter_pid_set_eos(ctx->pid);
-								return GF_EOS;
-							}
-						}
-						gf_filter_pid_send_flush(ctx->pid);
-						ctx->bytes_read = 0;
-					}
 				}
-				ctx->nb_empty++;
+				//wait for data
+				else if (ctx->bytes_read) {
+					if (ctx->ka && ctx->bpcnt) {
+						ctx->bpcnt--;
+						if (!ctx->bpcnt) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] exiting keep-alive mode\n"));
+							ctx->ka = GF_FALSE;
+						}
+					}
+					if (!ctx->ka) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
+						if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
+						close(ctx->fd);
+						ctx->fd=-1;
+						ctx->is_end = GF_TRUE;
+						return GF_EOS;
+					}
 
+					//signal flush
+					if (ctx->sigflush && ctx->pid) {
+						gf_filter_pid_send_flush(ctx->pid);
+					}
+					//reset for longer reschedule time
+					ctx->bytes_read = 0;
+				}
 				if (!ctx->bytes_read) gf_filter_ask_rt_reschedule(filter, 10000);
+				else gf_filter_ask_rt_reschedule(filter, 1000);
 				return GF_OK;
 			}
 		}
@@ -525,7 +523,6 @@ refill:
 		}
 	}
 	nb_read = total_read;
-	ctx->nb_empty = 0;
 
 	Bool has_marker=GF_FALSE;
 	if (ctx->marker) {
