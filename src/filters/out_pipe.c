@@ -56,7 +56,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool dynext, mkp, ka, marker;
+	Bool dynext, mkp, ka, marker, force_close;
 	u32 block_size;
 
 
@@ -92,6 +92,7 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 		if (ctx->fd>=0) close(ctx->fd);
 		ctx->fd = -1;
 #endif
+		ctx->force_close = GF_FALSE;
 		return GF_OK;
 	}
 
@@ -268,6 +269,7 @@ static GF_Err pipeout_initialize(GF_Filter *filter)
 		ext = gf_file_ext_start(ctx->dst);
 		if (ext) ext++;
 	}
+	ctx->force_close = GF_TRUE;
 
 #ifdef WIN32
 	ctx->pipe = INVALID_HANDLE_VALUE;
@@ -302,6 +304,12 @@ static GF_Err pipeout_initialize(GF_Filter *filter)
 static void pipeout_finalize(GF_Filter *filter)
 {
 	GF_PipeOutCtx *ctx = (GF_PipeOutCtx *) gf_filter_get_udta(filter);
+
+	//pipe was not open, do an open/close - this allows signaling broken pipe when we had an error before opening
+	if (ctx->force_close) {
+		pipeout_open_close(ctx, ctx->dst, NULL, 0, GF_FALSE);
+	}
+
 	pipeout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 
 	if (ctx->szFileName) {
