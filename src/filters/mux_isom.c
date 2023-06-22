@@ -4069,7 +4069,7 @@ enum
 	CENC_ADD_FRAG,
 };
 
-static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const GF_PropertyValue *pssh, Bool dyn_pssh_only)
+static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const GF_PropertyValue *pssh, u32 dyn_pssh_mode)
 {
 	bin128 *keyIDs=NULL;
 	u32 max_keys = 0;
@@ -4077,9 +4077,10 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 	GF_PropertyValue _the_prop;
 
 	//set pssh
-	const GF_PropertyValue *p;
+	const GF_PropertyValue *p=NULL;
 
-	if (dyn_pssh_only) {
+	//only inject if pssh in packet
+	if (dyn_pssh_mode==2) {
 		GF_FilterPacket *pck;
 		//nothing to inject
 		if (!tkw->dyn_pssh) return;
@@ -4094,7 +4095,19 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 		_the_prop.value.data.size = tkw->dyn_pssh_len;
 		p = &_the_prop;
 	} else {
-		p = pssh ? pssh : gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PSSH);
+		if (pssh) {
+			p = pssh;
+		} else {
+			//inject pssh from packet if any, or from PID (used for keyroll of master+leaf schemes)
+			if (dyn_pssh_mode) {
+				GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
+				if (pck) {
+					p = gf_filter_pck_get_property(pck, GF_PROP_PID_CENC_PSSH);
+				}
+			}
+			if (!p)
+				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CENC_PSSH);
+		}
 		if (!p) return;
 	}
 
@@ -4249,7 +4262,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		}
 
 		if ((ctx->psshs == MP4MX_PSSH_MOOV) || (ctx->psshs == MP4MX_PSSH_BOTH))
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, GF_FALSE);
+			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 0);
 
 		if (!tkw->has_brands && (scheme_type==GF_ISOM_OMADRM_SCHEME))
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_OPF2, GF_TRUE);
@@ -4336,7 +4349,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 	p = gf_filter_pck_get_property(pck, GF_PROP_PID_CENC_PSSH);
 	if (p && (p->type == GF_PROP_DATA) && p->value.data.ptr) {
 		if (ctx->store>=MP4MX_MODE_FRAG) {
-			mp4_mux_cenc_insert_pssh(ctx, tkw, p, GF_FALSE);
+			mp4_mux_cenc_insert_pssh(ctx, tkw, p, 0);
 		} else {
 			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, sample_num, GF_4CC('P','S','S','H'), 0, p->value.data.ptr, p->value.data.size, 0);
 		}
@@ -5451,7 +5464,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 
 
 		if (tkw->insert_pssh) {
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, GF_FALSE);
+			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 0);
 			tkw->insert_pssh = GF_FALSE;
 		}
 	}
@@ -6105,10 +6118,10 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_LARGE_TFDT, ctx->tfdt64);
 
 		if (tkw->dyn_pssh) {
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, GF_TRUE);
+			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 2);
 		}
 		else if (ctx->insert_pssh)
-			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, GF_FALSE);
+			mp4_mux_cenc_insert_pssh(ctx, tkw, NULL, 1);
 	}
 	ctx->fragment_started = GF_TRUE;
 	ctx->insert_tfdt = GF_FALSE;
