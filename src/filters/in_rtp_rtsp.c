@@ -75,7 +75,7 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 			sess->command_time = 0;
 		} else {
 			u32 time_out = gf_opts_get_int("core", "req-timeout");
-			if (!time_out) time_out = 10000;
+			if (!time_out) return;
 
 			/*evaluate timeout*/
 			time = gf_sys_clock() - sess->command_time;

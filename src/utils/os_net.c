@@ -700,7 +700,7 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 		res = setsockopt(sock->socket, SOL_SOCKET, SO_RCVBUF, (char *) &NewSize, sizeof(u32) );
 	}
 	if (res<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Couldn't set socket %s buffer size to %d: %d\n", SendBuffer ? "send" : "receive", NewSize, res));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Socket] Couldn't set socket %s buffer size to %d: %s (%d)\n", SendBuffer ? "send" : "receive", NewSize, gf_errno_str(LASTSOCKERROR), LASTSOCKERROR));
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Socket] Set socket %s buffer size to %d\n", SendBuffer ? "send" : "receive", NewSize));
 	}
@@ -941,7 +941,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 				}
 				closesocket(sock->socket);
 				sock->socket = NULL_SOCKET;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Sock_IPV6] Failed to connect to host %s: %s (%d) - retrying\n", PeerName, gf_errno_str(err), err ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Sock_IPV6] Failed to connect to host %s: %s (%d) - retrying with next host adress\n", PeerName, gf_errno_str(err), err ));
 				continue;
 			}
 conn_ok:
