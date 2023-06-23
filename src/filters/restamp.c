@@ -298,11 +298,11 @@ ts_done:
 			//compute duration
 			u32 dur = gf_filter_pck_get_duration(pck);
 			if (!dur || ((pctx->last_original_ts < ots) && (dur > ots - pctx->last_original_ts)))
-				dur = ots - pctx->last_original_ts;
+				dur = (u32) (ots - pctx->last_original_ts);
 
 			pctx->last_original_ts = ots;
 			if (dur & pctx->rescale)
-				dur = gf_timestamp_rescale(dur, pctx->timescale, pctx->ts_rescale);
+				dur = (u32) gf_timestamp_rescale(dur, pctx->timescale, pctx->ts_rescale);
 
 			if (dur && (!pctx->min_ref_dur || (dur < pctx->min_ref_dur)))
 				pctx->min_ref_dur = dur;

@@ -794,7 +794,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			//drop
 			gf_filter_pid_drop_packet(st->ipid);
 			st->nb_frames++;
-			if (max_f && (max_f < st->nb_frames + 1)) {
+			if (max_f && ((u32) max_f < st->nb_frames + 1)) {
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, st->ipid);
 				gf_filter_pid_send_event(st->ipid, &evt);

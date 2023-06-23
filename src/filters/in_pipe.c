@@ -536,23 +536,23 @@ refill:
 		while (nb_read) {
 			u8 *m = memchr(start, PIPE_FLUSH_MARKER[0], avail);
 			if (!m) break;
-			u32 remain = (u8*) ctx->buffer + nb_read - m;
+			u32 remain = (u32) ((u8*) ctx->buffer + nb_read - m);
 			if (remain<8) {
 				//check if we start with 'GPACPI', if not move to next 'G'
 				u32 check = MIN(remain, 6);
 				if (memcmp(m, PIPE_FLUSH_MARKER, check)) {
 					start = m+1;
-					avail = (u8*)ctx->buffer+nb_read - start;
+					avail = (u32) ((u8*)ctx->buffer+nb_read - start);
 					continue;
 				}
 				ctx->left_over = remain;
 				nb_read -= remain;
-				ctx->copy_offset = m - (u8*)ctx->buffer;
+				ctx->copy_offset = (u32) (m - (u8*)ctx->buffer);
 				break;
 			}
 			if (!memcmp(m, PIPE_FLUSH_MARKER, 7) && ((m[7]=='\0') || (m[7]=='\n'))) {
 				ctx->left_over = remain-8;
-				nb_read = m - (u8*)ctx->buffer;
+				nb_read = (u32) (m - (u8*)ctx->buffer);
 				ctx->copy_offset = nb_read+8;
 				has_marker = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Found flush marker\n"));
@@ -560,14 +560,14 @@ refill:
 			}
 			if (!memcmp(m, PIPE_RECFG_MARKER, 7) && ((m[7]=='\0') || (m[7]=='\n'))) {
 				ctx->left_over = remain-8;
-				nb_read = m - (u8*)ctx->buffer;
+				nb_read = (u32) (m - (u8*)ctx->buffer);
 				ctx->copy_offset = nb_read+8;
 				ctx->has_recfg = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Found reconfig marker\n"));
 				break;
 			}
 			if (!memcmp(m, PIPE_CLOSE_MARKER, 7) && ((m[7]=='\0') || (m[7]=='\n'))) {
-				nb_read = m - (u8*)ctx->buffer;
+				nb_read = (u32) (m - (u8*)ctx->buffer);
 				ctx->copy_offset = 0;
 				ctx->left_over=0;
 				ctx->bytes_read=8; //for above test
@@ -576,7 +576,7 @@ refill:
 				break;
 			}
 			start = m+1;
-			avail = (u8*)ctx->buffer+nb_read - start;
+			avail = (u32) ((u8*)ctx->buffer+nb_read - start);
 		}
 	}
 
