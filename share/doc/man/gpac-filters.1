@@ -7230,7 +7230,7 @@ hmode (enum, default: default): filter operation mode, ignored if .I wdir is set
 .br
 
 .br
-timeout (uint, default: 5):    timeout in seconds for persistent connections (0 disable timeout)
+timeout (uint, default: 30):   timeout in seconds for persistent connections (0 disable timeout)
 .br
 ext (cstr):                    set extension for graph resolution, regardless of file extension
 .br
@@ -7267,6 +7267,8 @@ reopen (bool, default: false): in server mode with no read dir, accept requests 
 max_async_buf (uint, default: 100000): maximum async buffer size in bytes when sharing output over multiple connection without file IO
 .br
 blockio (bool, default: false): use blocking IO in push or source mode or in server mode with no read dir
+.br
+ka (bool, default: true):      keep input alive if failure in push mode
 .br
 
 .br
@@ -7413,7 +7415,7 @@ This filter parses FLAC files/data and outputs corresponding audio PID and frame
 .br
 By default the reframer will only check CRC footer of frames if a change in sample rate or channel mapping is detected.
 .br
-This should accomodate for most configurations, but CRC check can be enforced using .I docrc.
+This should accommodate for most configurations, but CRC check can be enforced using .I docrc.
 .br
 
 .br
@@ -9017,7 +9019,7 @@ This filter multiplexes audio and video to produce an OGG stream.
 .br
 
 .br
-The .I cdur option allows specifiying the interleaving duration (max time difference between consecutive packets of different streams). 
+The .I cdur option allows specifying the interleaving duration (max time difference between consecutive packets of different streams). 
 .br
 
 .br
@@ -9051,7 +9053,7 @@ This will:
 .br
 - trigger reframers to be instanciated after the unframer filter.
 .br
-Using the unframer filter avoids doing a dump to disk then reimport or other complex data piping.
+Using the unframer filter avoids doing a dump to disk then re-import or other complex data piping.
 .br
 
 .br
@@ -9252,7 +9254,7 @@ The filter does not store any state, it is the user responsibility to use consis
 .br
 
 .br
-.SH Recommandations
+.SH Recommendations
 .LP
 .br
 Indexing supports fragmented and non-fragmented MP4, MPEG-2 TS and seekable inputs.
@@ -9481,7 +9483,7 @@ When generating video, the pixels are shifted to the left at every frame
 .br
 Components are described as N[bpc][+k] with
 .br
-* N: component type, one of M(mono), Y, U, V, R, G, B, A, d(depth), disp, p(palette), f(ilterArray), x (pad)
+* N: component type, one of M(mono), Y, U, V, R, G, B, A, d(depth), disp, p(palette), f(filterArray), x (pad)
 .br
 * bpc: bits per component value, default is 8
 .br
@@ -9510,19 +9512,19 @@ interleave (enum, default: pix): interleave type
 .br
 * tile: tile-component interleaving
 .br
-* multi: pixel-based interleaving (packed modes) for subsampled modes
+* multi: pixel-based interleaving (packed modes) for sub-sampled modes
 .br
 
 .br
 sampling (enum, default: none): sampling types
 .br
-* none: no subsampling
+* none: no sub-sampling
 .br
-* 422: YUV 4:2:2 subsampling
+* 422: YUV 4:2:2 sub-sampling
 .br
-* 420: YUV 4:2:0 subsampling
+* 420: YUV 4:2:0 sub-sampling
 .br
-* 411: YUV 4:1:1 subsampling
+* 411: YUV 4:1:1 sub-sampling
 .br
 
 .br
@@ -9602,7 +9604,7 @@ This filter generates screenshots from a video stream.
 .br
 
 .br
-The input video is downsampled by the .I scale factor. The output size is configured based on the number of images per line and per column in the .I grid. 
+The input video is down-sampled by the .I scale factor. The output size is configured based on the number of images per line and per column in the .I grid. 
 .br
 Once configured, the output size is no longer modified.
 .br
@@ -9778,7 +9780,7 @@ dropfirst (bool, default: false): drop first image
 .br
 list (str, default: null):     export json list of frame times and positions to given file
 .br
-lxy (bool, default: false):    add explict x and y in json export
+lxy (bool, default: false):    add explicit x and y in json export
 .br
 
 .br
