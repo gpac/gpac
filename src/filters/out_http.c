@@ -41,6 +41,8 @@ GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *ser
 GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, u32 stream_id, void *usr_cbk, GF_Err *e);
 u32 gf_dm_sess_subsession_count(GF_DownloadSession *);
 
+void gf_dm_sess_set_timeout(GF_DownloadSession *sess, u32 timeout);
+
 GF_Socket *gf_dm_sess_get_socket(GF_DownloadSession *);
 GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
 void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
@@ -94,7 +96,7 @@ typedef struct
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
 	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice, reopen, blockio;
-	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf;
+	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka;
 	s32 max_cache_segs;
 
 	//internal
@@ -895,6 +897,7 @@ GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, u32 stream_id)
 		gf_free(sub_sess);
 		return e;
 	}
+	gf_dm_sess_set_timeout(sub_sess->http_sess, sess->ctx->timeout);
 	gf_list_add(sess->ctx->sessions, sub_sess);
 	gf_list_add(sess->ctx->active_sessions, sub_sess);
 	sess->sub_sess_pending = GF_TRUE;
@@ -2006,6 +2009,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					gf_free(pctx);
 					return e;
 				}
+				gf_dm_sess_set_timeout(pctx->upload, ctx->timeout);
 				gf_dm_sess_set_sock_group(pctx->upload, ctx->sg);
 			} else {
 				if (!pctx->path) {
@@ -2131,6 +2135,7 @@ check_next_conn:
 		gf_free(sess);
 		return;
 	}
+	gf_dm_sess_set_timeout(sess->http_sess, ctx->timeout);
 	ctx->nb_connections++;
 	if (ctx->quit)
 		ctx->had_connections = GF_TRUE;
@@ -3076,7 +3081,7 @@ static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool f
 		if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
 			res = GF_FALSE;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error closing output %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Failed to close output %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
 		}
 	}
 	if (for_llhls) in->flush_close_llhls = !res;
@@ -3310,7 +3315,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 
 static void httpout_input_in_error(GF_HTTPOutInput *in)
 {
-	if (!in->in_error) {
+	if (!in->ctx->ka && !in->in_error) {
 		GF_FilterEvent evt;
 		in->in_error = GF_TRUE;
 		gf_filter_pid_set_discard(in->ipid, GF_TRUE);
@@ -3788,7 +3793,8 @@ next_pck:
 				httpout_input_in_error(in);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to open output file %s: %s\n", in->path, gf_error_to_string(e) ));
 				in->is_open = GF_FALSE;
-				continue;
+				//if ignoring error, consider the flush open is done
+				if (!ctx->ka) continue;
 			}
 			in->flush_open = GF_FALSE;
 			//disable start since this setup for this output is already done done
@@ -3906,6 +3912,7 @@ next_pck:
 
 				if (in->llhls_upload) {
 					gf_dm_sess_set_sock_group(in->llhls_upload, ctx->sg);
+					gf_dm_sess_set_timeout(in->llhls_upload, ctx->timeout);
 				}
 			}
 
@@ -4293,7 +4300,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	"- default: run in server mode\n"
 	"- push: run in client mode using PUT or POST\n"
 	"- source: use server as source filter on incoming PUT/POST", GF_PROP_UINT, "default", "default|push|source", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timeout), "timeout in seconds for persistent connections (0 disable timeout)", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in seconds for persistent connections (0 disable timeout)", GF_PROP_UINT, "30", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(quit), "exit server once all input PIDs are done and client disconnects (for test purposes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -4311,6 +4318,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(reopen), "in server mode with no read dir, accept requests on files already over but with input pid not in end of stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_async_buf), "maximum async buffer size in bytes when sharing output over multiple connection without file IO", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(blockio), "use blocking IO in push or source mode or in server mode with no read dir", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ka), "keep input alive if failure in push mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
