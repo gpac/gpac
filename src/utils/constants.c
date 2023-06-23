@@ -2638,7 +2638,7 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 	}
 
 	//uncC
-	u32 end, pos = gf_bs_get_position(bs);
+	u32 end, pos = (u32) gf_bs_get_position(bs);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, GF_4CC('u','n','c','C'));
 	gf_bs_write_u32(bs, restricted_allowed ? 1 : 0); //version and flags
@@ -2670,7 +2670,7 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 	gf_bs_write_u32(bs, 0);
 
 done:
-	end = gf_bs_get_position(bs);
+	end =(u32) gf_bs_get_position(bs);
 	gf_bs_seek(bs, pos);
 	gf_bs_write_u32(bs, end-pos);
 	gf_bs_seek(bs, end);

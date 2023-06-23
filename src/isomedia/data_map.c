@@ -384,7 +384,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 #include <string.h>
 GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 {
-	u8 bs_mode;
+	u8 bs_mode = GF_BITSTREAM_READ;
 	GF_FileDataMap *tmp;
 	GF_SAFEALLOC(tmp, GF_FileDataMap);
 	if (!tmp) return NULL;
