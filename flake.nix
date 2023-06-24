@@ -30,7 +30,6 @@
       pulseaudio
       SDL2
       mesa-demos
-      swig4
     ];
     nativeBuildInputs = with pkgs; [ pkg-config ];
  in
