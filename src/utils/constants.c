@@ -103,10 +103,12 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TRUEHD, 0, GF_STREAM_AUDIO, "Dolby TrueHD", "mlp", "mlpa", "audio/truehd", .unframe=GF_TRUE},
 	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL, "audio/dra"},
 	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL, "audio/g719"},
-	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics Audio", "dstca", NULL, "audio/dts"},
-	{GF_CODECID_DTS_HD_HR, 0xAA, GF_STREAM_AUDIO, "DTS-HD High Resolution Audio", "dtsh", NULL, "audio/dts"},
-	{GF_CODECID_DTS_HD_MASTER, 0xAB, GF_STREAM_AUDIO, "DTS-HD Master Audio", "dstm", NULL, "audio/dts"},
-	{GF_CODECID_DTS_LBR, 0xAC, GF_STREAM_AUDIO, "DTS Express low bit rate Audio", "dtsl", NULL, "audio/dts"},
+	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics and Digital Surround Audio", "dstc", NULL, "audio/dts"},
+	{GF_CODECID_DTS_HD_HR_MASTER, 0xAA, GF_STREAM_AUDIO, "DTS-HD High Resolution Audio and DTS-Master Audio", "dtsh", NULL, "audio/dts"},
+	{GF_CODECID_DTS_HD_LOSSLESS, 0xAB, GF_STREAM_AUDIO, "DTS-HD Substream containing only XLLAudio", "dstl", NULL, "audio/dts"},
+	{GF_CODECID_DTS_EXPRESS_LBR, 0xAC, GF_STREAM_AUDIO, "DTS Express low bit rate Audio", "dtse", NULL, "audio/dts"},
+	{GF_CODECID_DTS_X, 0xB2, GF_STREAM_AUDIO, "DTS-X UHD Audio Profile 2", "dtsx", NULL, "audio/dts"},
+	{GF_CODECID_DTS_Y, 0xB3, GF_STREAM_AUDIO, "DTS-X UHD Audio Profile 3", "dtsy", NULL, "audio/dts"},
 	{GF_CODECID_OPUS, 0xAD, GF_STREAM_AUDIO, "Opus Audio", "opus", "Opus", "audio/opus"},
 	{GF_CODECID_DVB_EIT, 0, GF_STREAM_PRIVATE_SCENE, "DVB Event Information", "eti", NULL, "application/x-dvb-eit"},
 	{GF_CODECID_SVG, 0, GF_STREAM_PRIVATE_SCENE, "SVG over RTP", "svgr", NULL, "application/x-svg-rtp"},
@@ -299,10 +301,17 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 	case GF_ISOM_SUBTYPE_FFV1:
 		return GF_CODECID_FFV1;
 	case GF_ISOM_SUBTYPE_DTSC:
-	case GF_ISOM_SUBTYPE_DTSL:
-	case GF_ISOM_SUBTYPE_DTSH:
-	case GF_ISOM_SUBTYPE_DTSE:
 		return GF_CODECID_DTS_CA;
+	case GF_ISOM_SUBTYPE_DTSL:
+		return GF_CODECID_DTS_HD_LOSSLESS;
+	case GF_ISOM_SUBTYPE_DTSH:
+		return GF_CODECID_DTS_HD_HR_MASTER;
+	case GF_ISOM_SUBTYPE_DTSE:
+		return GF_CODECID_DTS_EXPRESS_LBR;
+	case GF_ISOM_SUBTYPE_DTSX:
+		return GF_CODECID_DTS_X;
+	case GF_ISOM_SUBTYPE_DTSY:
+		return GF_CODECID_DTS_Y;
 	case GF_QT_SUBTYPE_ALAC:
 		return GF_CODECID_ALAC;
 	case GF_ISOM_SUBTYPE_VC1:

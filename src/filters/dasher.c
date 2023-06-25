@@ -2292,8 +2292,8 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 		if (ds->nb_surround || ds->nb_lfe) use_cicp = GF_TRUE;
 		if ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA)) use_cicp = GF_TRUE;
-		if ((ds->codec_id==GF_CODECID_DTS_LBR) || (ds->codec_id==GF_CODECID_DTS_CA) || (ds->codec_id==GF_CODECID_DTS_HD_HR)
-		    || (ds->codec_id==GF_CODECID_DTS_HD_MASTER) || (ds->codec_id==GF_CODECID_DTS_X))
+		if ((ds->codec_id==GF_CODECID_DTS_EXPRESS_LBR) || (ds->codec_id==GF_CODECID_DTS_CA) || (ds->codec_id==GF_CODECID_DTS_HD_HR_MASTER)
+		    || (ds->codec_id==GF_CODECID_DTS_HD_LOSSLESS) || (ds->codec_id==GF_CODECID_DTS_X) || (ds->codec_id==GF_CODECID_DTS_Y))
 			use_cicp = GF_TRUE;
 
 		if ((ds->codec_id==GF_CODECID_AC3) || (ds->codec_id==GF_CODECID_EAC3)) {
