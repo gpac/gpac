@@ -281,7 +281,7 @@ Bool gf_parse_frac(const char *str, GF_Fraction *frac);
 /*!
 \brief search string without case
 
-Search a aubstring in a string witout checking for case
+Search a substring in a string without checking for case
 \param text text to search
 \param subtext string to find
 \param subtext_len length of string to find
