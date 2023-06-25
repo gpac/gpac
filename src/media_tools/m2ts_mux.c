@@ -2734,10 +2734,11 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 			break;
 
 		case GF_CODECID_DTS_CA:
+		case GF_CODECID_DTS_HD_HR_MASTER:
+		case GF_CODECID_DTS_HD_LOSSLESS:
+		case GF_CODECID_DTS_EXPRESS_LBR:
 		case GF_CODECID_DTS_X:
-		case GF_CODECID_DTS_HD_HR:
-		case GF_CODECID_DTS_HD_MASTER:
-		case GF_CODECID_DTS_LBR:
+		case GF_CODECID_DTS_Y:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_DTS;
 			break;
 

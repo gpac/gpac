@@ -483,16 +483,18 @@ typedef enum
 	GF_CODECID_DRA = GF_4CC('d','r','a','1'),
 	/*! codecid for ITU G719 audio streams*/
 	GF_CODECID_G719 = GF_4CC('g','7','1','9'),
-	/*! codecid for DTS  Express low bit rate audio*/
-	GF_CODECID_DTS_LBR = GF_4CC('d','t','s','e'),
+	/*! codecid for DTS Express low bit rate audio*/
+	GF_CODECID_DTS_EXPRESS_LBR = GF_4CC('d','t','s','e'),
 	/*! codecid for DTS Coherent Acoustics audio streams*/
 	GF_CODECID_DTS_CA = GF_4CC('d','t','s','c'),
-	/*! codecid for DTS-HD High Resolution audio streams*/
-	GF_CODECID_DTS_HD_HR = GF_4CC('d','t','s','h'),
-	/*! codecid for DTS-HD Master audio streams*/
-	GF_CODECID_DTS_HD_MASTER = GF_4CC('d','t','s','l'),
-	/*! codecid for DTS-X Master audio streams*/
+	/*! codecid for DTS-HD High Resolution and Master audio streams*/
+	GF_CODECID_DTS_HD_HR_MASTER = GF_4CC('d','t','s','h'),
+	/*! codecid for DTS-HD Lossless (no core)*/
+	GF_CODECID_DTS_HD_LOSSLESS = GF_4CC('d','t','s','l'),
+	/*! codecid for DTS-X UHD Profile 2 audio streams*/
 	GF_CODECID_DTS_X = GF_4CC('d','t','s','x'),
+	/*! codecid for DTS-X UHD Profile 3 audio streams*/
+	GF_CODECID_DTS_Y = GF_4CC('d','t','s','y'),
 
 	/*! codecid for DVB EPG*/
 	GF_CODECID_DVB_EIT = GF_4CC('e','i','t',' '),

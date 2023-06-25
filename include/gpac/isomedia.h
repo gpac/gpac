@@ -384,6 +384,8 @@ enum
 	GF_ISOM_SUBTYPE_DTSH = GF_4CC('d','t','s','h'),
 	GF_ISOM_SUBTYPE_DTSL = GF_4CC('d','t','s','l'),
 	GF_ISOM_SUBTYPE_DTSE = GF_4CC('d','t','s','e'),
+	GF_ISOM_SUBTYPE_DTSX = GF_4CC('d','t','s','x'),
+	GF_ISOM_SUBTYPE_DTSY = GF_4CC('d','t','s','y'),
 
 	GF_ISOM_SUBTYPE_UNCV	= GF_4CC( 'u', 'n', 'c', 'v' ),
 	GF_ISOM_ITEM_TYPE_UNCI	= GF_4CC( 'u', 'n', 'c', 'i' ),
