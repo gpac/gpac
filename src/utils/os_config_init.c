@@ -2560,6 +2560,8 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 
 	if ((dlen>=3) && gf_strnistr(orig, dst, dlen))
 		return GF_TRUE;
+	if ((olen>=3) && gf_strnistr(dst, orig, olen))
+		return GF_TRUE;
 
 	run = gf_malloc(sizeof(u32) * olen);
 	memset(run, 0, sizeof(u32) * olen);
