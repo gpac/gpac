@@ -4902,6 +4902,18 @@ static void *lsr_read_update_value_indexed(GF_LASeRCodec *lsr, GF_Node*node, u32
 		return res;
 	}
 	case SVG_StrokeDashArray_datatype:
+	{
+		SVG_StrokeDashArray *da;
+		GF_SAFEALLOC(da, SVG_StrokeDashArray);
+		if (!da) {
+			lsr->last_error = GF_OUT_OF_MEM;
+		} else {
+			da->array.vals = (Fixed*)gf_malloc(sizeof(Fixed));
+			da->array.count = 1;
+			if (da->array.vals) da->array.vals[0] = lsr_read_fixed_16_8(lsr, "floatValue");
+		}
+		return da;
+	}
 	case SVG_ViewBox_datatype:
 		f_val = (Fixed*)gf_malloc(sizeof(Fixed));
 		if (!f_val) {
