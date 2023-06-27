@@ -2173,16 +2173,26 @@ sample_entry_setup:
 		break;
 
 	case GF_CODECID_DTS_CA:
-	case GF_CODECID_DTS_X:
-	case GF_CODECID_DTS_HD_HR:
-	case GF_CODECID_DTS_HD_MASTER:
-	case GF_CODECID_DTS_LBR:
 		m_subtype = GF_ISOM_SUBTYPE_DTSC;
+		break;
+	case GF_CODECID_DTS_HD_HR_MASTER:
+		m_subtype = GF_ISOM_SUBTYPE_DTSH;
+		break;
+	case GF_CODECID_DTS_HD_LOSSLESS:
+		m_subtype = GF_ISOM_SUBTYPE_DTSL;
+		break;
+	case GF_CODECID_DTS_EXPRESS_LBR:
+		m_subtype = GF_ISOM_SUBTYPE_DTSE;
+		break;
+	case GF_CODECID_DTS_X:
+		m_subtype = GF_ISOM_SUBTYPE_DTSX;
+		break;
+	case GF_CODECID_DTS_Y:
+		m_subtype = GF_ISOM_SUBTYPE_DTSY;
 		break;
 	case GF_CODECID_ALAC:
 		m_subtype = GF_QT_SUBTYPE_ALAC;
 		break;
-
 
 	case GF_CODECID_BIFS:
 /* ==  GF_CODECID_OD_V1:*/
