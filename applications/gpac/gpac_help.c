@@ -1189,6 +1189,7 @@ redo_pass:
 						}
 						continue;
 					}
+
 					if (!gf_sys_word_match(fname, arg->arg_name)) continue;
 
 					if (!first) {
@@ -1197,7 +1198,7 @@ redo_pass:
 							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
 							found = GF_TRUE;
 						}
-						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\nClosest matching filter options:\n", fname));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\nClosest matching filter options:\n"));
 					}
 					gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s \n", reg->name, arg->arg_name);
 				}
