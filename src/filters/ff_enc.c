@@ -456,7 +456,14 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (ctx->reconfig_pending) pck = NULL;
 
-	if (pck) data = gf_filter_pck_get_data(pck, &size);
+	if (pck) {
+		data = gf_filter_pck_get_data(pck, &size);
+		if (!data || !size) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Packet without associated data\n"));
+			gf_filter_pid_drop_packet(ctx->in_pid);
+			return GF_OK;
+		}
+	}
 
 	FF_INIT_PCK(ctx, pkt)
 
@@ -1029,8 +1036,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	} else if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
-		if (!data) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Packet without associated data\n"));
+		if (!data || !size) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Packet without associated data\n"));
 			gf_filter_pid_drop_packet(ctx->in_pid);
 			return GF_OK;
 		}
