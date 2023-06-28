@@ -1313,7 +1313,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	//we already have the file loaded, directly load the mp4dmx filter with this file
 	if (dumper->file) {
 		//we want to expose every track
-		e = gf_dynstrcat(&args, "mp4dmx:FID=1:noedit:alltk:allt", NULL);
+		e = gf_dynstrcat(&args, "mp4dmx:FID=1:edits=no:alltk:allt", NULL);
 		if (!e) {
 			sprintf(szSubArgs, ":mov=%p", dumper->file);
 			e = gf_dynstrcat(&args, szSubArgs, NULL);
@@ -1326,7 +1326,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		args = NULL;
 	} else {
 		//we want to expose every track
-		src_filter = gf_fs_load_source(fsess, dumper->in_name, "FID=1:noedit:alltk:allt", NULL, &e);
+		src_filter = gf_fs_load_source(fsess, dumper->in_name, "FID=1:edits=no:alltk:allt", NULL, &e);
 	}
 
 	if (!src_filter || e) {
@@ -1362,7 +1362,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (dumper->file)
 			gf_fs_print_unused_args(fsess, NULL);
 		else
-			gf_fs_print_unused_args(fsess, "alltk,allt,noedit");
+			gf_fs_print_unused_args(fsess, "alltk,allt,edits");
 	}
 	gf_fs_print_non_connected(fsess);
 	if (dumper->print_stats_graph & 1) gf_fs_print_stats(fsess);

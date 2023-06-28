@@ -822,7 +822,15 @@ src (cstr):                    local file name of source content (only used when
 .br
 allt (bool, default: false):   load all tracks even if unknown media type
 .br
-noedit (bool, default: false): do not use edit lists
+edits (enum, default: auto):   do not use edit lists
+.br
+* auto: track delay and no edit list when possible
+.br
+* no: ignore edit list
+.br
+* strict: use edit list even if only signaling a delay
+.br
+
 .br
 itt (bool, default: false):    convert all items of root meta into a single PID
 .br

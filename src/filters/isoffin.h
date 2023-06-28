@@ -59,8 +59,8 @@ typedef struct
 {
 	//options
 	char *src, *initseg;
-	Bool allt, noedit, itt, itemid;
-	u32 smode;
+	Bool allt, itt, itemid;
+	u32 smode, edits;
 	u32 stsd;
 	Bool expart;
 	Bool alltk;

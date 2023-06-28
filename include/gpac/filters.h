@@ -251,7 +251,7 @@ GF_FilterSession *gf_fs_new_defaults(u32 flags);
 */
 void gf_fs_del(GF_FilterSession *session);
 /*! Loads a given filter by its register name. Filter are created using their register name, with options appended as a list of colon-separated Name=Value pairs.
-Value can be omitted for boolean, defaulting to true (eg :noedit). Using '!' before the name negates the result (eg :!moof_first).
+Value can be omitted for boolean, defaulting to true (eg :allt). Using '!' before the name negates the result (eg :!moof_first).
 Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enum names in one filter.
 
 \param session filter session

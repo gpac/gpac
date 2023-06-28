@@ -30,6 +30,13 @@
 #include <gpac/crypt_tools.h>
 #include <gpac/media_tools.h>
 
+enum
+{
+	EDITS_AUTO=0,
+	EDITS_NO,
+	EDITS_STRICT
+};
+
 ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid)
 {
 	u32 i=0;
@@ -725,7 +732,9 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 			ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
 		break;
 	}
-	if (!read->noedit) {
+	if (read->edits==EDITS_NO) {
+		ch->has_edit_list = 0;
+	} else if (read->edits==EDITS_AUTO) {
 		ch->ts_offset = 0;
 		ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->ts_offset) ? 1 : 0;
 		if (!ch->has_edit_list && ch->ts_offset) {
@@ -733,8 +742,12 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 			//if <0 this is a skip, we signal negative delay
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( ch->ts_offset) );
 		}
-	} else
-		ch->has_edit_list = 0;
+	} else {
+		if (gf_isom_get_edits_count(ch->owner->mov, ch->track))
+			ch->has_edit_list = 1;
+		else
+			ch->has_edit_list = 0;
+	}
 
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? 1 : 0;
 	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
@@ -1726,7 +1739,10 @@ static const GF_FilterArgs ISOFFInArgs[] =
 {
 	{ OFFS(src), "local file name of source content (only used when explicitly loading the filter)", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(allt), "load all tracks even if unknown media type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(edits), "do not use edit lists\n"
+		"- auto: track delay and no edit list when possible\n"
+		"- no: ignore edit list\n"
+		"- strict: use edit list even if only signaling a delay", GF_PROP_UINT, "auto", "auto|no|strict", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itt), "convert all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itemid), "keep item IDs in PID properties", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(smode), "load mode for scalable/tile tracks\n"
