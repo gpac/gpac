@@ -1758,6 +1758,7 @@ refetch_streams:
 					}
 
 					if (!ctx->is_range_extraction) {
+						st->range_start_computed = 2;
 						check_split = GF_TRUE;
 						st->in_eos = GF_TRUE;
 					} else {
