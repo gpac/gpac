@@ -3720,7 +3720,7 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 			a->dataSize = DataLength;
 		}
 		return udta_on_child_box((GF_Box *)udta, (GF_Box *) a, GF_FALSE);
-	} else {
+	} else if (UUID) {
 		GF_UnknownUUIDBox *a = (GF_UnknownUUIDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
 		if (!a) return GF_OUT_OF_MEM;
 		memcpy(a->uuid, UUID, 16);
@@ -3731,6 +3731,8 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 			a->dataSize = DataLength;
 		}
 		return udta_on_child_box((GF_Box *)udta, (GF_Box *) a, GF_FALSE);
+	} else {
+		return GF_BAD_PARAM;
 	}
 	return GF_OK;
 }
