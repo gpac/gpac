@@ -1452,12 +1452,13 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		vout_draw_gl_hw_textures(ctx, frame_ifce);
 	} else {
 		data = (char*) gf_filter_pck_get_data(pck, &wsize);
+		if (data && wsize) {
+			//upload texture
+			gf_gl_txw_upload(&ctx->tx, data, frame_ifce);
 
-		//upload texture
-		gf_gl_txw_upload(&ctx->tx, data, frame_ifce);
-
-		//and draw
-		vout_draw_gl_quad(ctx, GF_FALSE);
+			//and draw
+			vout_draw_gl_quad(ctx, GF_FALSE);
+		}
 	}
 
 exit:
