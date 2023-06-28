@@ -1341,7 +1341,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->flags & GF_IMPORT_USE_DATAREF)
 		e |= gf_dynstrcat(&args, "dref", ":");
 	if (importer->flags & GF_IMPORT_NO_EDIT_LIST)
-		e |= gf_dynstrcat(&args, "noedit", ":");
+		e |= gf_dynstrcat(&args, "edits=no", ":");
 	if (importer->flags & GF_IMPORT_FORCE_PACKED)
 		e |= gf_dynstrcat(&args, "pack_nal", ":");
 	if (importer->xps_inband==1)

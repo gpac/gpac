@@ -1492,7 +1492,7 @@ Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be conf
 .br
 Each filter is declared by its name, with optional filter arguments appended as a list of colon-separated name=value pairs. Additional syntax is provided for:
 .br
-* boolean: value can be omitted, defaulting to true (e.g. :noedit). Using ! before the name negates the result (e.g. :!moof_first)
+* boolean: value can be omitted, defaulting to true (e.g. :allt). Using ! before the name negates the result (e.g. :!moof_first)
 .br
 * enumerations: name can be omitted, e.g. :disp=pbo is equivalent to :pbo.
 .br
@@ -4612,24 +4612,34 @@ DRA Audio
 G719 Audio
 .br
 .TP
-.B dstca
+.B dstc
 .br
-DTS Coherent Acoustics Audio
+DTS Coherent Acoustics and Digital Surround Audio
 .br
 .TP
 .B dtsh
 .br
-DTS-HD High Resolution Audio
+DTS-HD High Resolution Audio and DTS-Master Audio
 .br
 .TP
-.B dstm
+.B dstl
 .br
-DTS-HD Master Audio
+DTS-HD Substream containing only XLLAudio
 .br
 .TP
-.B dtsl
+.B dtse
 .br
 DTS Express low bit rate Audio
+.br
+.TP
+.B dtsx
+.br
+DTS-X UHD Audio Profile 2
+.br
+.TP
+.B dtsy
+.br
+DTS-X UHD Audio Profile 3
 .br
 .TP
 .B opus
