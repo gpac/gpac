@@ -879,6 +879,10 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	u32 nb_sections, i;
 	GF_M2TS_Section *section;
 
+	//only process MPEG4 tables
+	if ((table_id != GF_M2TS_TABLE_ID_MPEG4_BIFS) && (table_id != GF_M2TS_TABLE_ID_MPEG4_OD) )
+		return;
+
 	/*skip if already received*/
 	if (status & GF_M2TS_TABLE_REPEAT)
 		if (!(es->flags & GF_M2TS_ES_SEND_REPEATED_SECTIONS))
@@ -1156,6 +1160,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	unsigned char *data;
 	GF_M2TS_Section *section;
 	GF_Err e = GF_OK;
+
+	//only process PMT tables
+	if (table_id != GF_M2TS_TABLE_ID_PMT) return;
 
 	/*wait for the last section */
 	if (!(status&GF_M2TS_TABLE_END)) return;
@@ -1810,6 +1817,9 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	unsigned char *data;
 	GF_M2TS_Section *section;
 
+	//only process PAT tables
+	if (table_id != GF_M2TS_TABLE_ID_PAT) return;
+
 	/*wait for the last section */
 	if (!(status&GF_M2TS_TABLE_END)) return;
 
@@ -1896,6 +1906,9 @@ static void gf_m2ts_process_cat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		unsigned char *data;
 		GF_M2TS_Section *section;
 	*/
+
+	//only process CAT tables
+	if (table_id != GF_M2TS_TABLE_ID_CAT) return;
 
 	/*wait for the last section */
 	if (!(status&GF_M2TS_TABLE_END)) return;
