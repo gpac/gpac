@@ -5714,7 +5714,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	if (si->sps->poc_type == 0) {
 		si->poc_lsb = gf_bs_read_int_log(bs, si->sps->log2_max_poc_lsb, "poc_lsb");
 		if (si->pps->pic_order_present && !si->field_pic_flag) {
-			si->delta_poc_bottom = gf_bs_read_se_log(bs, "poc_lsb");
+			si->delta_poc_bottom = gf_bs_read_se_log(bs, "delta_poc_bottom");
 		}
 	}
 	else if ((si->sps->poc_type == 1) && !si->sps->delta_pic_order_always_zero_flag) {
@@ -5950,6 +5950,8 @@ static void avc_compute_poc(AVCSliceInfo *si)
 		si->poc_lsb_prev = 0;
 		si->poc_msb_prev = 0;
 		si->frame_num_offset = 0;
+		si->frame_num_offset_prev = 0;
+		si->frame_num_prev = 0;
 	}
 	else {
 		if (si->frame_num < si->frame_num_prev)

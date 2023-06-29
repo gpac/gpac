@@ -4455,14 +4455,17 @@ GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck);
 
 /*! Sets packet video interlacing flag
 \param pck target packet
-\param is_interlaced set to 0 if not interlaced, 1 for top field first/contains only top field, 2 for bottom field first/contains only bottom field.
+\param is_interlaced set to
+	0:  not interlaced
+	1:  top field first or contains only top field if packet not full frame
+	2:  bottom field first or contains only bottom field.
 \return error code if any
 */
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced);
 
 /*! Gets packet video interlacing flag
 \param pck target packet
-\return interlaced flag, set to 0 if not interlaced, 1 for top field first, 2 otherwise.
+\return interlaced flag, see \ref gf_filter_pck_set_interlaced
 */
 u32 gf_filter_pck_get_interlaced(GF_FilterPacket *pck);
 
