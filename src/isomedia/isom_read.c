@@ -323,7 +323,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	if (!stbl->SampleSize) return GF_OUT_OF_MEM;
 	stbl->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STTS);
 	if (!stbl->TimeToSample) return GF_OUT_OF_MEM;
-	stbl->ChunkOffset = (GF_Box *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STCO);
+	stbl->ChunkOffset = gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STCO);
 	if (!stbl->ChunkOffset) return GF_OUT_OF_MEM;
 	stbl->SampleToChunk = (GF_SampleToChunkBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSC);
 	if (!stbl->SampleToChunk) return GF_OUT_OF_MEM;
