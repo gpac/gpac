@@ -397,7 +397,10 @@ static u32 gf_xml_get_namespace(GF_DOMNode *elt, const char *attribute_name)
 
 static char *gf_xml_get_namespace_qname(GF_DOMNode *elt, u32 ns)
 {
-	GF_DOMAttribute *att = elt->attributes;
+	GF_DOMAttribute *att;
+	if (!elt)
+		return NULL;
+   	att = elt->attributes;
 	while (att) {
 		if (att->tag==TAG_DOM_ATT_any) {
 			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
