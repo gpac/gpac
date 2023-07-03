@@ -1197,8 +1197,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	if (ctx->dash_mode && ctx->ttml_agg && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
 		if (ctx->ttml_dash_pck) {
 			writegen_flush_ttml(ctx);
-			gf_filter_pck_unref(ctx->ttml_dash_pck);
-			ctx->ttml_dash_pck = NULL;
+			assert(ctx->ttml_dash_pck == NULL);
 		}
 
 		ctx->ttml_dash_pck = pck;
