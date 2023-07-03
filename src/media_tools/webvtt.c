@@ -321,10 +321,10 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 			return NULL;
 		}
 	} else {
-		GF_Box *cuebox = (GF_Box *)gf_isom_box_new(GF_ISOM_BOX_TYPE_VTTE);
-		e = gf_isom_box_size((GF_Box *)cuebox);
-		if (!e) e = gf_isom_box_write((GF_Box *)cuebox, bs);
-		gf_isom_box_del((GF_Box *)cuebox);
+		GF_Box *cuebox = gf_isom_box_new(GF_ISOM_BOX_TYPE_VTTE);
+		e = gf_isom_box_size(cuebox);
+		if (!e) e = gf_isom_box_write(cuebox, bs);
+		gf_isom_box_del(cuebox);
 		if (e) {
 			gf_bs_del(bs);
 			return NULL;

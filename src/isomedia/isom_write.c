@@ -8802,7 +8802,7 @@ GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescri
 	//proj mandatory
 	GF_Box *proj = gf_isom_box_find_child(sv3d->child_boxes, GF_ISOM_BOX_TYPE_PROJ);
 	if (!proj) {
-		proj = (GF_Box *) gf_isom_box_new_parent(&sv3d->child_boxes, GF_ISOM_BOX_TYPE_PROJ);
+		proj = gf_isom_box_new_parent(&sv3d->child_boxes, GF_ISOM_BOX_TYPE_PROJ);
 		if (!proj) return GF_OUT_OF_MEM;
 	}
 

@@ -1184,7 +1184,6 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 
 	if (gf_filter_pid_would_block(ctx->opid))
 		gf_webvtt_parser_suspend(ctx->vttparser);
-
 }
 
 static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
