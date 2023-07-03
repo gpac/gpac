@@ -758,6 +758,8 @@ static void gf_dump_vrml_simple_field(GF_SceneDumper *sdump, GF_FieldInfo field,
 		gf_dump_vrml_node(sdump, field.far_ptr ? *(GF_Node **)field.far_ptr : NULL, 0, NULL);
 		return;
 	case GF_SG_VRML_MFNODE:
+		if (!field.far_ptr)
+			return;
 		list = * ((GF_ChildNodeItem **) field.far_ptr);
 		assert( list );
 		sdump->indent++;
