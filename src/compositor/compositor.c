@@ -4281,6 +4281,18 @@ Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid 
 		is_early = GF_TRUE;
 
 	if (is_early) {
+		//little opt: if single resource, more than 10s in future and we dump in VFR, non player mode
+		//jump to the target time
+		if (scene->compositor->vfr
+			&& !scene->compositor->player
+			&& (gf_list_count(scene->resources)==1)
+			&& (cts_in_ms > obj_time + 10000)
+		) {
+			gf_clock_reset(odm->ck);
+			gf_clock_set_time(odm->ck, cts_in_ms, 1000);
+			return GF_TRUE;
+		}
+
 		gf_sc_sys_frame_pending(scene->compositor, (u32)cts_in_ms, obj_time, from_filter);
 		return GF_FALSE;
 	}
