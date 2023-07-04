@@ -89,6 +89,7 @@ typedef struct
 	u32 wait_for_progs;
 
 	Bool is_dash;
+	u32 nb_stopped_at_init;
 } GF_M2TSDmxCtx;
 
 
@@ -1350,8 +1351,10 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		}
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 
-		if (com->play.initial_broadcast_play==2)
+		if (com->play.initial_broadcast_play==2) {
+			ctx->nb_stopped_at_init++;
 			return GF_TRUE;
+		}
 
 		ctx->nb_stop_pending++;
 		if (ctx->nb_playing) ctx->nb_playing--;
@@ -1445,6 +1448,10 @@ restart:
 			//keep filter alive
 			if (ctx->nb_playing) {
 				gf_filter_ask_rt_reschedule(filter, 0);
+			}
+			if (ctx->nb_stopped_at_init==nb_streams) {
+				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
+				return GF_EOS;
 			}
 			return GF_OK;
 		}
