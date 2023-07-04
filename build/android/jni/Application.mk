@@ -1,7 +1,7 @@
 APP_ABI := x86 armeabi-v7a
 APP_STL := c++_static
-APP_CPPFLAGS := -frtti -fexceptions -Wno-parentheses -Wno-shift-negative-value -Wno-pointer-sign
-APP_CFLAGS := -Wno-parentheses -Wno-shift-negative-value -Wno-pointer-sign
+APP_CPPFLAGS := -frtti -fexceptions -Wno-parentheses -Wno-shift-negative-value -Wno-pointer-sign -Wno-implicit-const-int-float-conversion
+APP_CFLAGS := -Wno-parentheses -Wno-shift-negative-value -Wno-pointer-sign -Wno-implicit-const-int-float-conversion
 
 #pass these through ndk-build
 #LOCAL_CFLAGS := -O3

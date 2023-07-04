@@ -46,7 +46,7 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-# TODO: we exclude GPAC Proprietary Extension project: libiconv dependency 
+# TODO: we exclude GPAC Proprietary Extension project: libiconv dependency
 	$(MAKE) -j
 
 	touch $@
@@ -65,7 +65,7 @@ clean:
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_prep
 	dh_installdirs
 
 	$(MAKE) install prefix=$(CURDIR)/debian/tmp/usr \
