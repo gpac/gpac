@@ -33,6 +33,12 @@
 #ifdef GPAC_HAS_LIBCAPTION
 #include <caption/cea708.h>
 
+#if defined(WIN32) || defined(_WIN32_WCE)
+#if !defined(__GNUC__)
+#pragma comment(lib, "libcaption")
+#endif
+#endif
+
 enum
 {
 	CCTYPE_UNK=0,
@@ -198,7 +204,7 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 		GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
 		caption_frame_init(ctx->ccframe);
 	}
-	Double timestamp = cc->timestamp;
+	Double timestamp = (Double) cc->timestamp;
 	timestamp /= ctx->timescale;
 	Bool dump_frame = GF_FALSE;
 	if (!ctx->last_ts_plus_one)
@@ -224,7 +230,7 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 	if (!dump_frame) return GF_OK;
 
 	u8 txtdata[CAPTION_FRAME_TEXT_BYTES+1];
-	u32 size = caption_frame_to_text(ctx->ccframe, txtdata);
+	u32 size = (u32) caption_frame_to_text(ctx->ccframe, txtdata);
 	u32 crc = gf_crc_32(txtdata, size);
 	if (crc!=ctx->cc_last_crc) {
 		ctx->cc_last_crc = crc;
@@ -360,7 +366,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 			if (ctx->cctype==CCTYPE_M4V) {
 				switch (o_type) {
 				case M4V_UDTA_START_CODE:
-					ccdec_queue_data(ctx, ts, (u8*) data + start+4, size-start-4, GF_TRUE, GF_FALSE);
+					ccdec_queue_data(ctx, ts, (u8*) data + start+4, (u32) (size-start-4), GF_TRUE, GF_FALSE);
 					break;
 				default:
 					break;
@@ -369,7 +375,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 				switch (o_type) {
 				case M2V_UDTA_START_CODE:
 					start = gf_m4v_get_object_start(m4v);
-					ccdec_queue_data(ctx, ts, (u8*) data + start+4, size-start-4, GF_TRUE, GF_FALSE);
+					ccdec_queue_data(ctx, ts, (u8*) data + start+4, (u32) (size-start-4), GF_TRUE, GF_FALSE);
 					break;
 				}
 			}
@@ -408,14 +414,14 @@ GF_Err ccdec_process(GF_Filter *filter)
 				}
 				u32 terminal_provider_code = gf_bs_read_u16(ctx->bs);
 				if (terminal_provider_code==GF_ITU_T35_PROVIDER_ATSC) {
-					ccdec_queue_data(ctx, ts, (u8*) data + obu_start + obu_hdr_size, obu_size, GF_FALSE, GF_FALSE);
+					ccdec_queue_data(ctx, ts, (u8*) data + obu_start + obu_hdr_size, (u32) obu_size, GF_FALSE, GF_FALSE);
 				}
 				gf_bs_seek(ctx->bs, obu_start);
 			}
 			obu_size += obu_hdr_size;
 			if (size < obu_size) break;;
 			gf_bs_skip_bytes(ctx->bs, obu_size);
-			size -= obu_size + obu_hdr_size;
+			size -= (u32) ( obu_size + obu_hdr_size);
 		}
 	} else
 #endif // GPAC_DISABLE_AV_PARSERS
@@ -475,7 +481,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 					i=0;
 					if (sei_type == 4) {
 						//queuue
-						u32 pos = gf_bs_get_position(ctx->bs);
+						u32 pos = (u32) gf_bs_get_position(ctx->bs);
 						u32 country_code = gf_bs_read_u8(ctx->bs);
 						i++;
 						if (country_code == 0xFF) {
