@@ -151,6 +151,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dasher.c \
 	../../../../src/filters/dec_ac52.c \
 	../../../../src/filters/dec_bifs.c \
+	../../../../src/filters/dec_cc.c \
 	../../../../src/filters/dec_faad.c \
 	../../../../src/filters/dec_img.c \
 	../../../../src/filters/dec_j2k.c \

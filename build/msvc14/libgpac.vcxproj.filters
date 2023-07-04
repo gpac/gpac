@@ -1154,6 +1154,9 @@
     <ClCompile Include="..\..\src\filters\dec_bifs.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_cc.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_faad.c">
       <Filter>filters</Filter>
     </ClCompile>

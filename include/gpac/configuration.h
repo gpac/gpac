@@ -128,6 +128,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_PNG
 #define GPAC_HAS_HTTP2
 #define GPAC_HAS_IFADDRS
+#define GPAC_HAS_LIBCAPTION
 
 /*Configuration for XCode OSX (not iOS) */
 #elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
@@ -157,6 +158,8 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_POLL
 
 #define GPAC_MEMORY_TRACKING
+
+#define GPAC_HAS_LIBCAPTION
 
 /*Configuration for XCode iOS*/
 #elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_CONFIG_IOS)
@@ -196,6 +199,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_VTB
 #define GPAC_HAS_HTTP2
 #define GPAC_HAS_POLL
+#define GPAC_HAS_LIBCAPTION
 
 /*Configuration for Symbian*/
 #elif defined(__SYMBIAN32__)

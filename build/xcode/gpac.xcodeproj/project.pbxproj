@@ -212,6 +212,7 @@
 		923E89CF20B6F04600F299B2 /* g_crypt_tinyaes.c in Sources */ = {isa = PBXBuildFile; fileRef = 923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */; };
 		923E89D020B6F2D300F299B2 /* filter_props.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4721F71642E00616F7C /* filter_props.c */; };
 		923EB53223D1B78D00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53123D1B78D00E1FFA1 /* libbf.c */; };
+		92455F8C2A52B4B90080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8B2A52B4B90080321C /* dec_cc.c */; };
 		9246EE7524A0DA2700F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7424A0DA2700F72EAD /* filter_session_js.c */; };
 		92493D8020E2A64000203C2C /* crypt_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = 92493D7F20E2A64000203C2C /* crypt_tools.c */; };
 		92493D8220E2A81700203C2C /* crypt_tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 92493D8120E2A81700203C2C /* crypt_tools.h */; };
@@ -834,6 +835,7 @@
 		923E89C920B6F04600F299B2 /* tiny_aes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tiny_aes.c; path = crypto/tiny_aes.c; sourceTree = "<group>"; };
 		923E89CA20B6F04600F299B2 /* g_crypt_tinyaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = g_crypt_tinyaes.c; path = crypto/g_crypt_tinyaes.c; sourceTree = "<group>"; };
 		923EB53123D1B78D00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = quickjs/libbf.c; sourceTree = "<group>"; };
+		92455F8B2A52B4B90080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = filters/dec_cc.c; sourceTree = "<group>"; };
 		9246EE7424A0DA2700F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		92493D7F20E2A64000203C2C /* crypt_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crypt_tools.c; sourceTree = "<group>"; };
 		92493D8120E2A81700203C2C /* crypt_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = crypt_tools.h; path = ../include/gpac/crypt_tools.h; sourceTree = "<group>"; };
@@ -1971,6 +1973,7 @@
 				92FE596C2088E52900CF0C5A /* dasher.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
+				92455F8B2A52B4B90080321C /* dec_cc.c */,
 				92BB85551F7BFB60009BC9C8 /* dec_faad.c */,
 				92BB85571F7BFB60009BC9C8 /* dec_img.c */,
 				92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */,
@@ -2465,6 +2468,7 @@
 				920100B618D5A444003D1ACA /* field_decode.c in Sources */,
 				92BB85721F7BFB63009BC9C8 /* ff_common.c in Sources */,
 				920100B718D5A444003D1ACA /* field_encode.c in Sources */,
+				92455F8C2A52B4B90080321C /* dec_cc.c in Sources */,
 				9234CF471FD8344000CCDFA1 /* in_rtp.c in Sources */,
 				92B9A5911F8660D700A24FE4 /* mpeg4_geometry_2d.c in Sources */,
 				92F8D47D1F71642E00616F7C /* filter.c in Sources */,
@@ -3115,7 +3119,9 @@
 					"-framework",
 					Metal,
 					"-lovvc",
+					"-lsrt",
 					"-lvvdec",
+					"-lcaption",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3245,7 +3251,9 @@
 					"-framework",
 					Metal,
 					"-lovvc",
+					"-lsrt",
 					"-lvvdec",
+					"-lcaption",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;

@@ -499,9 +499,9 @@ static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
 			   min_display_mastering_luminance*1.0/(isMPEG?10000:(1<<14)));
 }
 
-static u32 dump_t35(FILE *dump, GF_BitStream *bs)
+static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 {
-	u32 read_bytes = 1;
+	u32 read_bytes = 0;
 	u32 country_code = gf_bs_read_u8(bs);
 	inspect_printf(dump, " country_code=\"0x%x\"", country_code);
 	if (country_code == 0xFF) {
@@ -509,18 +509,98 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs)
 		read_bytes++;
 		inspect_printf(dump, " country_code_extension=\"0x%x\"", country_code_extension);
 	}
-	if (country_code == 0xB5) { // USA
-		u32 terminal_provider_code = gf_bs_read_u16(bs);
+	u32 terminal_provider_code = gf_bs_read_u16(bs);
+	inspect_printf(dump, " terminal_provider_code=\"0x%x\"", terminal_provider_code);
+
+	read_bytes+=3;
+	if ((terminal_provider_code==49) || (terminal_provider_code==47)) {
+		u32 code = gf_bs_read_u32(bs);
+		u32 udta_code = gf_bs_read_u8(bs);
+		read_bytes+=5;
+		inspect_printf(dump, " user_id=\"%s\"", gf_4cc_to_str(code) );
+		inspect_printf(dump, " user_data_type=\"%d\"", udta_code);
+		if (terminal_provider_code==47) {
+			inspect_printf(dump, " directv_user_data_length %d\n", gf_bs_read_u8(bs) );
+			read_bytes+=1;
+		}
+		if (udta_code==3) {
+			u32 i;
+			inspect_printf(dump, " em_data_flag=\"%d\"\n", gf_bs_read_int(bs, 1) );
+			inspect_printf(dump, " cc_data_flag=\"%d\"\n", gf_bs_read_int(bs, 1) );
+			inspect_printf(dump, " extra_data_flag=\"%d\"\n", gf_bs_read_int(bs, 1) );
+			u32 cc_count = gf_bs_read_int(bs, 5);
+			inspect_printf(dump, " cc_count=\"%d\"\n", cc_count);
+			inspect_printf(dump, " em_data=\"%x\"\n", gf_bs_read_u8(bs));
+			read_bytes+=2;
+
+			inspect_printf(dump, " cc_data=\"[");
+			for (i=0; i< cc_count; ++i) {
+				/*u8 marker = */gf_bs_read_int(bs, 5);
+				u8 valid = gf_bs_read_int(bs, 1);
+				u8 type = gf_bs_read_int(bs, 2);
+				u16 data = gf_bs_read_u16(bs);
+				if (i) inspect_printf(dump, ", ");
+				if (valid)
+					inspect_printf(dump, "%d 0x%x", type, data);
+				else
+					inspect_printf(dump, "skip");
+				read_bytes+=3;
+			}
+			inspect_printf(dump, "]\"");
+		}
+	} else {
 		u32 terminal_provider_oriented_code = gf_bs_read_u16(bs);
 		u32 application_identifier = gf_bs_read_u8(bs);
 		u32 application_mode = gf_bs_read_u8(bs);
-		read_bytes+=6;
-		inspect_printf(dump, " terminal_provider_code=\"0x%x\" terminal_provider_oriented_code=\"0x%x\" application_identifier=\"%u\" application_mode=\"%u\"",
-				   terminal_provider_code, terminal_provider_oriented_code,
+		read_bytes+=4;
+		inspect_printf(dump, " terminal_provider_oriented_code=\"0x%x\" application_identifier=\"%u\" application_mode=\"%u\"",
+				   terminal_provider_oriented_code,
 				   application_identifier, application_mode);
 	}
 	return read_bytes;
 }
+
+static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
+{
+    u32 udta_id = GF_4CC(data[0], data[1], data[2], data[3]);
+    u32 udta_code = 0;
+
+	inspect_printf(dump, " udta_id=\"%s\"", gf_4cc_to_str(udta_id));
+	if (udta_id==GF_4CC('G','A','9','4'))
+		udta_code = data[4];
+	else if (udta_id==GF_4CC('D','T','G','1'))
+		udta_code = data[4];
+
+	if (udta_code)
+		inspect_printf(dump, " udta_code=\"0x%X\"", udta_code);
+
+	if (udta_code == 3) {
+		u32 i;
+		data+=5;
+		inspect_printf(dump, " em_data_flag=\"%d\"\n", (data[0] & 0x80) ? 1 : 0);
+		inspect_printf(dump, " cc_data_flag=\"%d\"\n", (data[0] & 0x40) ? 1 : 0 );
+		inspect_printf(dump, " extra_data_flag=\"%d\"\n", (data[0] & 0x20) ? 1 : 0 );
+		u32 cc_count = data[0] & 0x1F;
+		inspect_printf(dump, " cc_count=\"%d\"\n", cc_count);
+		inspect_printf(dump, " em_data=\"%x\"\n", data[1]);
+		data+=2;
+		inspect_printf(dump, " cc_data=\"[");
+		for (i=0; i< cc_count; ++i) {
+			u8 valid = (data[0]>>2) & 0x1;
+			u8 type = data[0] & 0x3;
+			u16 ccdata = (data[1]<<8) | data[2];
+			if (i) inspect_printf(dump, ", ");
+				if (valid)
+					inspect_printf(dump, "%d 0x%x", type, ccdata);
+				else
+					inspect_printf(dump, "skip");
+			data+=3;
+		}
+		inspect_printf(dump, "]\"");
+	}
+	return 0;
+}
+
 
 static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 {
@@ -550,7 +630,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 		} else if (sei_type == 137) {
 			dump_mdcv(dump, bs, GF_TRUE);
 		} else if (sei_type == 4) {
-			i = dump_t35(dump, bs);
+			i = dump_t35(dump, bs, sei_size);
 			while (i < sei_size) {
 				gf_bs_read_u8(bs);
 				i++;
@@ -1377,7 +1457,7 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
 				case OBU_METADATA_TYPE_ITUT_T35:
-					dump_t35(dump, bs);
+					dump_t35(dump, bs, 0);
 					break;
 				case OBU_METADATA_TYPE_HDR_CLL:
 					dump_clli(dump, bs);
@@ -2548,6 +2628,10 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 			case M2V_GOP_START_CODE:
 				inspect_printf(dump, " name=\"GOPStart\"");
 				break;
+			case M2V_UDTA_START_CODE:
+				start = gf_m4v_get_object_start(m4v);
+				dump_udta_m2v(dump, data + start+4, size-start-4);
+				break;
 			default:
 				break;
 			}
@@ -3037,6 +3121,8 @@ props_done:
 		case GF_CODECID_MPEG2_SNR:
 		case GF_CODECID_MPEG2_HIGH:
 		case GF_CODECID_MPEG2_MAIN:
+		case GF_CODECID_MPEG2_SIMPLE:
+		case GF_CODECID_MPEG2_SPATIAL:
 		case GF_CODECID_MPEG4_PART2:
 			inspect_dump_mpeg124(pctx, (char *) data, size, dump);
 			break;
@@ -3904,6 +3990,8 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MPEG2_SNR:
 	case GF_CODECID_MPEG2_HIGH:
 	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_SPATIAL:
 	case GF_CODECID_MPEG4_PART2:
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -4342,8 +4430,9 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	GF_SAFEALLOC(pctx, PidCtx);
 	if (!pctx) return GF_OUT_OF_MEM;
-	if (ctx->analyze)
+	if (ctx->analyze) {
 		pctx->bs = gf_bs_new((u8 *)pctx, 0, GF_BITSTREAM_READ);
+	}
 
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
