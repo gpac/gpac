@@ -2684,6 +2684,7 @@ u32 gf_isom_get_udta_count(GF_ISOFile *movie, u32 trackNumber)
 		if (!trak) return 0;
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return 0;
 		udta = movie->moov->udta;
 	}
 	if (udta) return gf_list_count(udta->recordList);
@@ -2703,6 +2704,7 @@ GF_Err gf_isom_get_udta_type(GF_ISOFile *movie, u32 trackNumber, u32 udta_idx, u
 		if (!trak) return GF_OK;
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return GF_BAD_PARAM;
 		udta = movie->moov->udta;
 	}
 	if (!udta) return GF_BAD_PARAM;
@@ -2732,6 +2734,7 @@ u32 gf_isom_get_user_data_count(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 		if (!trak) return 0;
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return 0;
 		udta = movie->moov->udta;
 	}
 	if (!udta) return 0;
@@ -2764,6 +2767,7 @@ GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 		if (!trak) return GF_BAD_PARAM;
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return GF_BAD_PARAM;
 		udta = movie->moov->udta;
 	}
 	if (!udta) return GF_BAD_PARAM;
