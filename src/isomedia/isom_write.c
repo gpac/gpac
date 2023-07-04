@@ -3611,6 +3611,7 @@ GF_Err gf_isom_remove_user_data_item(GF_ISOFile *movie, u32 trackNumber, u32 Use
 		if (!trak) return GF_BAD_PARAM;
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return GF_BAD_PARAM;
 		udta = movie->moov->udta;
 	}
 	if (!udta) return GF_BAD_PARAM;
@@ -3662,6 +3663,7 @@ GF_Err gf_isom_remove_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 		if (!trak) return GF_EOS;
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return GF_BAD_PARAM;
 		udta = movie->moov->udta;
 	}
 	//do not return any error if no udta
@@ -3703,6 +3705,7 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 		if (!trak->udta) trak_on_child_box((GF_Box*)trak, gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return GF_BAD_PARAM;
 		if (!movie->moov->udta) moov_on_child_box((GF_Box*)movie->moov, gf_isom_box_new_parent(&movie->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
 		udta = movie->moov->udta;
 	}
