@@ -1628,7 +1628,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		} else {
 			//this will be a eos signal
 			st->range_end_reached_ts = 0;
-			assert(st->range_start_computed==2);
+			assert((st->range_start_computed==2) || st->in_eos);
 		}
 	}
 	ctx->cur_end.num = ctx->min_ts_computed;
@@ -1758,7 +1758,6 @@ refetch_streams:
 					}
 
 					if (!ctx->is_range_extraction) {
-						st->range_start_computed = 2;
 						check_split = GF_TRUE;
 						st->in_eos = GF_TRUE;
 					} else {
@@ -2091,7 +2090,7 @@ refetch_streams:
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 				RTStream *st = gf_filter_pid_get_udta(ipid);
 				if (!st->is_playing) continue;
-				assert(st->range_start_computed);
+				assert(st->range_start_computed || st->in_eos);
 				//eos
 				if (st->range_start_computed==2) {
 					continue;
