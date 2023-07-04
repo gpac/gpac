@@ -2630,7 +2630,7 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 				break;
 			case M2V_UDTA_START_CODE:
 				start = gf_m4v_get_object_start(m4v);
-				dump_udta_m2v(dump, data + start+4, size-start-4);
+				dump_udta_m2v(dump, data + start+4, (u32) (size-start-4));
 				break;
 			default:
 				break;
