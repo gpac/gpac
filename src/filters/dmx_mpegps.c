@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Program Stream demuxer filter
@@ -453,15 +453,19 @@ void m2psdmx_finalize(GF_Filter *filter)
 
 static const char *m2psdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
-	*score = GF_FPROBE_EXT_MATCH;
-	return "mpg|mpeg|vob";
+	//check we have a pack header
+	if ((size>4) && (data[0]==0x00) && (data[1]==0x00) && (data[2]==0x01) && (data[3]==0xBA)) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "video/mpegps";
+	}
+	return NULL;
 }
 
 static const GF_FilterCapability M2PSDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpg|mpeg|vob"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg|audio/mpeg"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg|audio/mpeg|video/mpegps"),
 	//we need a file for this demuxer
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILEPATH, "*"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
