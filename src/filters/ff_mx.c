@@ -544,7 +544,7 @@ static GF_Err ffmx_close_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, Bool send_evt_
 		evt.seg_size.is_init = 0;
 	}
 	evt.seg_size.media_range_start = ctx->offset_at_seg_start;
-#if LIBAVFORMAT_VERSION_MAJOR < 60
+#if LIBAVFORMAT_VERSION_MAJOR < 59
 	evt.seg_size.media_range_end = ctx->muxer->pb ? (ctx->muxer->pb->written-1) : 0;
 #else
 	evt.seg_size.media_range_end = ctx->muxer->pb ? (ctx->muxer->pb->bytes_written-1) : 0;
