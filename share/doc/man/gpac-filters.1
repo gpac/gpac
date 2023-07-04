@@ -884,7 +884,7 @@ xps_check (enum, default: auto): parameter sets extraction mode from AVC/HEVC/VV
 .br
 * rem: removes all inband xPS and notify configuration changes accordingly
 .br
-* auto: resolves to keep for smode=splix (dasher mode), rem otherwise
+* auto: resolves to keep for smode=splitx (dasher mode), rem otherwise
 .br
 
 .br
@@ -9014,6 +9014,8 @@ tsinit (lfrac, default: -1/1): initial timestamp to resync to, negative values d
 .br
 align (uint, default: 0):      timestamp alignment threshold (0 disables alignment) - see filter help
 .br
+reorder (bool, default: false): reorder input packets by CTS (resulting PID may fail decoding)
+.br
 
 .br
 .SH oggmx
@@ -9391,6 +9393,27 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 nbth (sint, default: -1):      number of threads to use, -1 means all cores
 .br
 hq (bool, default: false):     use bilinear interpolation instead of closest pixel
+.br
+
+.br
+.SH ccdec
+.LP
+.br
+Description: Closed-Caption decoder
+.br
+
+.br
+This filter decodes Closed Captions to unframed SRT.
+.br
+Supported video media types are MPEG2, AVC, HEVC, VVC and AV1 streams.
+.br
+
+.br
+Only a subset of CEA 608/708 is supported.
+.br
+
+.br
+No options
 .br
 
 .br

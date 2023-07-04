@@ -339,7 +339,7 @@ get_size()
 
 #zlib MUST be first
 all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2"
-all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl"
+all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption"
 disabled_packages=""
 
 #init all has_FOO=no and set FOO_cflags=
@@ -1696,6 +1696,8 @@ config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); return 0; }'
 
+config_package caption "libcaption" "" "-lcaption" "" '#include <caption/cea708.h>
+int main( void ) { caption_frame_t ccframe; caption_frame_init(&ccframe); return 0; }'
 
 #look for VideoToolBox support
 if test "$darwin" = "yes" ; then
@@ -2481,6 +2483,7 @@ echo "PNG: $has_png"
 echo "MAD: $has_mad"
 echo "FAAD: $has_faad"
 echo "XVID: $has_xvid"
+echo "libcaption: $has_caption"
 
 ffopts=""
 if test "$has_ffmpeg" != "no" ; then
@@ -2849,6 +2852,10 @@ fi
 
 if test "$has_nghttp2" != "no" ; then
     echo "#define GPAC_HAS_HTTP2" >> $TMPH
+fi
+
+if test "$has_caption" != "no" ; then
+    echo "#define GPAC_HAS_LIBCAPTION" >> $TMPH
 fi
 
 #dump all cflags

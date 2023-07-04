@@ -351,6 +351,8 @@
 		92359C88250F652700525A42 /* route_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C87250F652700525A42 /* route_dmx.c */; };
 		92359C8A250F657B00525A42 /* in_route.c in Sources */ = {isa = PBXBuildFile; fileRef = 92359C89250F657A00525A42 /* in_route.c */; };
 		923EB53423D1B87E00E1FFA1 /* libbf.c in Sources */ = {isa = PBXBuildFile; fileRef = 923EB53323D1B87E00E1FFA1 /* libbf.c */; };
+		92455F8E2A530F560080321C /* dec_cc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92455F8D2A530F560080321C /* dec_cc.c */; };
+		92455FDB2A540A640080321C /* libcaption.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92455FDA2A540A640080321C /* libcaption.a */; };
 		9246EE7724A1240600F72EAD /* filter_session_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 9246EE7624A1240600F72EAD /* filter_session_js.c */; };
 		924AB67F281438E100EC006F /* default.cfg in Resources */ = {isa = PBXBuildFile; fileRef = 924AB67E281438E000EC006F /* default.cfg */; };
 		924AB68128143DF500EC006F /* ios_main.m in Sources */ = {isa = PBXBuildFile; fileRef = 924AB68028143DF500EC006F /* ios_main.m */; };
@@ -957,6 +959,8 @@
 		92359C87250F652700525A42 /* route_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = route_dmx.c; sourceTree = "<group>"; };
 		92359C89250F657A00525A42 /* in_route.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_route.c; path = ../../src/filters/in_route.c; sourceTree = "<group>"; };
 		923EB53323D1B87E00E1FFA1 /* libbf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = libbf.c; path = ../../src/quickjs/libbf.c; sourceTree = "<group>"; };
+		92455F8D2A530F560080321C /* dec_cc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_cc.c; path = ../../src/filters/dec_cc.c; sourceTree = "<group>"; };
+		92455FDA2A540A640080321C /* libcaption.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcaption.a; path = ../../extra_lib/lib/iOS/libcaption.a; sourceTree = "<group>"; };
 		9246EE7624A1240600F72EAD /* filter_session_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_session_js.c; path = ../../src/filter_core/filter_session_js.c; sourceTree = "<group>"; };
 		924AB67E281438E000EC006F /* default.cfg */ = {isa = PBXFileReference; lastKnownFileType = text; name = default.cfg; path = ../../share/default.cfg; sourceTree = "<group>"; };
 		924AB68028143DF500EC006F /* ios_main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ios_main.m; path = ../../applications/gpac/ios_main.m; sourceTree = "<group>"; };
@@ -1187,6 +1191,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92455FDB2A540A640080321C /* libcaption.a in Frameworks */,
 				924AB6852816F1E200EC006F /* GameController.framework in Frameworks */,
 				924AB6832816F1DA00EC006F /* Metal.framework in Frameworks */,
 				8925C0EE25DD6F8900AFB064 /* libnghttp2.a in Frameworks */,
@@ -1260,6 +1265,7 @@
 		7184780712785F7B00917298 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				92455FDA2A540A640080321C /* libcaption.a */,
 				924AB6862816F20300EC006F /* CoreHaptics.framework */,
 				924AB6842816F1E200EC006F /* GameController.framework */,
 				924AB6822816F1DA00EC006F /* Metal.framework */,
@@ -1928,6 +1934,7 @@
 				92EB6D9420E4E19400A97A49 /* dasher.c */,
 				92EB6DB020E4E19600A97A49 /* dec_ac52.c */,
 				92EB6D7220E4E19200A97A49 /* dec_bifs.c */,
+				92455F8D2A530F560080321C /* dec_cc.c */,
 				92EB6DA020E4E19500A97A49 /* dec_faad.c */,
 				92C3486629E69CBF00C63E8A /* dmx_ghi.c */,
 				92EB6DA220E4E19500A97A49 /* dec_img.c */,
@@ -2597,6 +2604,7 @@
 				71CCF2FC1277045100339E12 /* scene_manager.c in Sources */,
 				71CCF2FD1277045100339E12 /* scene_stats.c in Sources */,
 				92EB6DD020E4E19700A97A49 /* reframe_rawvid.c in Sources */,
+				92455F8E2A530F560080321C /* dec_cc.c in Sources */,
 				71CCF2FE1277045100339E12 /* swf_bifs.c in Sources */,
 				71CCF2FF1277045100339E12 /* swf_parse.c in Sources */,
 				928607112395C0DE00FDA1ED /* tssplit.c in Sources */,

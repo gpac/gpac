@@ -1160,6 +1160,7 @@ GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 #define M2V_SEQ_START_CODE					0xB3
 #define M2V_EXT_START_CODE					0xB5
 #define M2V_GOP_START_CODE					0xB8
+#define M2V_UDTA_START_CODE					0xB2
 
 
 /*build isobmf dec info from sequence header+ephdr (only seq hdr is parsed, only advanced profile is supprted) */
