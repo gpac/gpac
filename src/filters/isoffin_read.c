@@ -1770,7 +1770,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(xps_check), "parameter sets extraction mode from AVC/HEVC/VVC samples\n"
 	"- keep: do not inspect sample (assumes input file is compliant when generating DASH/HLS/CMAF)\n"
 	"- rem: removes all inband xPS and notify configuration changes accordingly\n"
-	"- auto: resolves to `keep` for `smode=splix` (dasher mode), `rem` otherwise"
+	"- auto: resolves to `keep` for `smode=splitx` (dasher mode), `rem` otherwise"
 	, GF_PROP_UINT, "auto", "auto|keep|rem", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nodata), "do not load sample data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lightp), "load minimal set of properties", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
