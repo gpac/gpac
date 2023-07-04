@@ -5142,7 +5142,10 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 				if (tkw->stream_type==GF_STREAM_VISUAL) {
 					mdur = tkw->sample.DTS;
 				}
-			} else if (tkw->ts_shift) {
+			}
+			//adjust if shift is below half sec (to take AV delay into account)
+			//if larger, we imported from non-0 initial ts, do not compensate
+			else if (tkw->ts_shift<tkw->tk_timescale/2) {
 				mdur += tkw->ts_shift;
 			}
 
