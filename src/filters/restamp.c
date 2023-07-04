@@ -50,6 +50,8 @@ typedef struct
 	u32 ts_rescale, min_ref_dur;
 	//offset added to reference TS of a packet, to add to the cts
 	s64 ref_ts_diff;
+
+	GF_List *packets;
 } RestampPid;
 
 enum
@@ -65,6 +67,7 @@ typedef struct
 	GF_Fraction64 tsinit;
 	u32 rawv;
 	u32 align;
+	Bool reorder;
 
 	GF_List *pids;
 	Bool reconfigure;
@@ -88,7 +91,13 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 			gf_filter_pid_set_udta(pid, NULL);
 			gf_list_del_item(ctx->pids, pctx);
- 			gf_free(pctx);
+			while (gf_list_count(pctx->packets)) {
+				GF_FilterPacket *pck = gf_list_pop_front(pctx->packets);
+				gf_filter_pck_unref(pck);
+			}
+			gf_list_del(pctx->packets);
+
+			gf_free(pctx);
 		}
 		return GF_OK;
 	}
@@ -104,6 +113,8 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		pctx->opid = gf_filter_pid_new(filter);
 		if (!pctx->opid) return GF_OUT_OF_MEM;
 		ctx->config_timing = GF_TRUE;
+		if (ctx->reorder)
+			pctx->packets = gf_list_new();
 	}
 
 	pctx->raw_vid_copy = GF_FALSE;
@@ -401,16 +412,52 @@ static GF_Err restamp_process(GF_Filter *filter)
 
 		while (1) {
 			s64 ts;
+			Bool is_ref = GF_FALSE;
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->ipid);
+
 			if (!pck) {
 				if (gf_filter_pid_is_eos(pctx->ipid)) {
-					gf_filter_pid_set_eos(pctx->opid);
-					if (pctx->pck_ref) {
-						gf_filter_pck_unref(pctx->pck_ref);
-						pctx->pck_ref = NULL;
+					if (pctx->packets) {
+						pck = gf_list_pop_front(pctx->packets);
+						is_ref = GF_TRUE;
+					}
+					if (!pck) {
+						gf_filter_pid_set_eos(pctx->opid);
+						if (pctx->pck_ref) {
+							gf_filter_pck_unref(pctx->pck_ref);
+							pctx->pck_ref = NULL;
+						}
 					}
 				}
-				break;
+				if (!pck)
+					break;
+			}
+
+			if (ctx->reorder && !is_ref) {
+				u64 ts = gf_filter_pck_get_cts(pck);
+				u32 j;
+				Bool can_flush=GF_FALSE;
+				for (j=0; j<gf_list_count(pctx->packets); j++) {
+					GF_FilterPacket *tmp = gf_list_get(pctx->packets, j);
+					u64 ats = gf_filter_pck_get_cts(tmp);
+					if (ats>ts) {
+						gf_filter_pck_ref(&pck);
+						gf_list_insert(pctx->packets, pck, j);
+						pck=NULL;
+						//we insert after first frame, we can flush the first frame
+						if (j) can_flush = GF_TRUE;
+						break;
+					}
+				}
+				if (pck) {
+					gf_filter_pck_ref(&pck);
+					gf_list_add(pctx->packets, pck);
+				}
+				gf_filter_pid_drop_packet(pctx->ipid);
+				if (!can_flush)
+					break;
+				pck = gf_list_pop_front(pctx->packets);
+				is_ref = GF_TRUE;
 			}
 
 			GF_FilterPacket *opck;
@@ -439,7 +486,10 @@ static GF_Err restamp_process(GF_Filter *filter)
 					}
 				}
 				gf_filter_pck_send(opck);
-				gf_filter_pid_drop_packet(pctx->ipid);
+				if (is_ref)
+					gf_filter_pck_unref(pck);
+				else
+					gf_filter_pid_drop_packet(pctx->ipid);
 			} else {
 				u64 ots = gf_filter_pck_get_cts(pck) ;
  				Bool discard = GF_FALSE;
@@ -451,7 +501,11 @@ static GF_Err restamp_process(GF_Filter *filter)
 						gf_filter_pck_unref(pctx->pck_ref);
 						pctx->pck_ref = NULL;
 					}
-					gf_filter_pid_drop_packet(pctx->ipid);
+					if (is_ref)
+						gf_filter_pck_unref(pck);
+					else
+						gf_filter_pid_drop_packet(pctx->ipid);
+
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Droping frame TS "LLU"/%u\n", ots, pctx->timescale));
 					continue;
 				}
@@ -478,8 +532,13 @@ static GF_Err restamp_process(GF_Filter *filter)
 
 				gf_filter_pck_send(opck);
 
-				if (discard)
-					gf_filter_pid_drop_packet(pctx->ipid);
+				if (discard) {
+					if (!is_ref)
+						gf_filter_pid_drop_packet(pctx->ipid);
+				} else {
+					if (is_ref)
+						gf_list_insert(pctx->packets, pck, 0);
+				}
 			}
 		}
 	}
@@ -530,6 +589,11 @@ static void restamp_finalize(GF_Filter *filter)
 	while (gf_list_count(ctx->pids)) {
 		RestampPid *pctx = gf_list_pop_back(ctx->pids);
 		if (pctx->pck_ref) gf_filter_pck_unref(pctx->pck_ref);
+		while (gf_list_count(pctx->packets)) {
+			GF_FilterPacket *pck = gf_list_pop_front(pctx->packets);
+			gf_filter_pck_unref(pck);
+		}
+		gf_list_del(pctx->packets);
 		gf_free(pctx);
 	}
 	gf_list_del(ctx->pids);
@@ -551,6 +615,7 @@ static GF_FilterArgs RestampArgs[] =
 	, GF_PROP_UINT, "no", "no|force|dyn", 0},
 	{ OFFS(tsinit), "initial timestamp to resync to, negative values disables resync", GF_PROP_FRACTION64, "-1/1", NULL, 0},
 	{ OFFS(align), "timestamp alignment threshold (0 disables alignment) - see filter help", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(reorder), "reorder input packets by CTS (resulting PID may fail decoding)", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
