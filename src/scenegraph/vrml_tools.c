@@ -881,6 +881,8 @@ void gf_sg_sfurl_del(SFURL url) {
 GF_EXPORT
 Bool gf_sg_vrml_is_sf_field(u32 FieldType)
 {
+	//special case for AttrRef declared after first MF
+	if (FieldType==GF_SG_VRML_SFATTRREF) return GF_TRUE;
 	return (FieldType<GF_SG_VRML_FIRST_MF);
 }
 
