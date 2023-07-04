@@ -458,7 +458,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
-		if (!data || !size) {
+		if ((!data || !size) && !gf_filter_pck_get_frame_interface(pck)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Packet without associated data\n"));
 			gf_filter_pid_drop_packet(ctx->in_pid);
 			return GF_OK;

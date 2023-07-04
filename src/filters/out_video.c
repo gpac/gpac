@@ -1452,7 +1452,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		vout_draw_gl_hw_textures(ctx, frame_ifce);
 	} else {
 		data = (char*) gf_filter_pck_get_data(pck, &wsize);
-		if (data && wsize) {
+		if ((data && wsize) || frame_ifce) {
 			//upload texture
 			gf_gl_txw_upload(&ctx->tx, data, frame_ifce);
 
