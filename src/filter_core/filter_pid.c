@@ -5538,7 +5538,7 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 
 	//if change of codecid or streamtype, remove ISOBMFF templates and subtype for codec
 	if (oldp && value) {
-		Bool reset=0;
+		u32 reset=0;
 		if (prop_4cc == GF_PROP_PID_CODECID) {
 			reset = 2;
 		} else if (prop_4cc == GF_PROP_PID_STREAM_TYPE) {

@@ -251,7 +251,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 			has_uncc = 1;
 		} else if (type==GF_4CC('c','p','a','l')) {
 			u32 bit_size=0;
-			u32 bsize=size;
+			s32 bsize = (u32) size;
 			u32 max_bits=0;
 			u8 version = gf_bs_read_u8(bs);
 			if (version)
@@ -278,7 +278,7 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 			bsize-=4;
 			if (bsize<0)
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
-			if (bsize*8 < uncv->palette->nb_values * bit_size)
+			if ((u32) bsize*8 < uncv->palette->nb_values * bit_size)
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
 
 			uncv->palette->values = gf_malloc(sizeof(u8) * uncv->palette->nb_values * uncv->palette->nb_comps);
