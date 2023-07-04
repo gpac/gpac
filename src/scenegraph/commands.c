@@ -335,6 +335,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			}
 			/*erase the field item*/
 			else {
+				if (!field.far_ptr) return GF_NON_COMPLIANT_BITSTREAM;
 				if ((inf->pos < 0) || ((u32) inf->pos >= ((GenMFField *) field.far_ptr)->count) ) {
 					inf->pos = ((GenMFField *)field.far_ptr)->count - 1;
 					/*may happen with text and default value*/
@@ -398,6 +399,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFNODE) {
 			e = gf_node_replace_child(com->node, (GF_ChildNodeItem **) field.far_ptr, inf->pos, NULL);
 		} else {
+			if (!field.far_ptr) return GF_NON_COMPLIANT_BITSTREAM;
 			if ((inf->pos < 0) || ((u32) inf->pos >= ((GenMFField *) field.far_ptr)->count) ) {
 				inf->pos = ((GenMFField *)field.far_ptr)->count - 1;
 			}
@@ -566,6 +568,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			/*erase the field item*/
 			else {
 				u32 sftype;
+				if (!field.far_ptr) return GF_NON_COMPLIANT_BITSTREAM;
 				if ((pos < 0) || ((u32) pos >= ((GenMFField *) field.far_ptr)->count) ) {
 					pos = ((GenMFField *)field.far_ptr)->count - 1;
 					/*may happen with text and default value*/

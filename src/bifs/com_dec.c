@@ -860,6 +860,7 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		pos = 0;
 		break;
 	case 3:
+		if (!field.far_ptr) return GF_NON_COMPLIANT_BITSTREAM;
 		pos = ((GenMFField *) field.far_ptr)->count - 1;
 		break;
 	default:
