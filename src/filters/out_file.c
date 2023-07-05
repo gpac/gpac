@@ -80,6 +80,8 @@ typedef struct
 
 	Bool gfio_pending;
 
+	u64 last_file_size;
+
 #ifdef GPAC_HAS_FD
 	Bool no_fd;
 	s32 fd;
@@ -453,7 +455,7 @@ restart:
 				gf_filter_update_status(filter, 10000, szStatus);
 			}
 
-			if (ctx->dash_mode && (ctx->file
+			if (ctx->dash_mode && (ctx->file || ctx->last_file_size
 #ifdef GPAC_HAS_FD
 				|| (ctx->fd>=0)
 #endif
@@ -473,10 +475,18 @@ restart:
 					evt.seg_size.media_range_start = ctx->offset_at_seg_start;
 #ifdef GPAC_HAS_FD
 					if (ctx->fd>=0) {
-						evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR) - 1;
+						evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR);
 					} else
 #endif
-						evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
+					if (ctx->file) {
+						evt.seg_size.media_range_end = gf_ftell(ctx->file);
+					} else {
+						evt.seg_size.media_range_end = ctx->last_file_size;
+					}
+					//end range excludes last byte, except if 0 size (some text segments)
+					if (evt.seg_size.media_range_end)
+						evt.seg_size.media_range_end -= 1;
+
 					gf_filter_pid_send_event(ctx->pid, &evt);
 				}
 			}
@@ -550,15 +560,28 @@ restart:
 				evt.seg_size.media_range_start = ctx->offset_at_seg_start;
 #ifdef GPAC_HAS_FD
 				if (ctx->fd>=0) {
-					evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR) - 1;
+					evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR);
 				} else
 #endif
-					evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
+				if (ctx->file) {
+					evt.seg_size.media_range_end = gf_ftell(ctx->file);
+				} else {
+					evt.seg_size.media_range_end = ctx->last_file_size;
+				}
+				//end range excludes last byte, except if 0 size (some text segments)
+				if (evt.seg_size.media_range_end)
+					evt.seg_size.media_range_end -= 1;
+
 				ctx->offset_at_seg_start = evt.seg_size.media_range_end+1;
 				gf_filter_pid_send_event(ctx->pid, &evt);
 			}
 			if ( gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME))
 				start = GF_TRUE;
+		}
+
+		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
+		if (p && p->value.boolean) {
+			end = GF_TRUE;
 		}
 	}
 
@@ -567,6 +590,7 @@ restart:
 		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
 		fname = ext = NULL;
+		ctx->last_file_size = 0;
 		//file num increased per packet, open new file
 		fnum = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (fnum) {
@@ -594,6 +618,8 @@ restart:
 		) {
 			fileout_setup_file(ctx, explicit_overwrite);
 		}
+		if (!ctx->cat)
+			ctx->offset_at_seg_start = 0;
 
 		if (gf_fileio_check(ctx->file)) {
 			ctx->gfio_pending = GF_TRUE;
@@ -819,11 +845,19 @@ check_gfio:
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[FileOut] No data associated with packet, cannot write\n"));
 		}
-	} else {
+	} else if (pck_size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] output file handle is not opened, discarding %d bytes\n", pck_size));
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
 	if (end && !ctx->cat) {
+		if (ctx->dash_mode) {
+#ifdef GPAC_HAS_FD
+			if (ctx->fd>=0) {
+				ctx->last_file_size = lseek(ctx->fd, 0, SEEK_CUR);
+			} else
+#endif
+				ctx->last_file_size = gf_ftell(ctx->file);
+		}
 		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 	}
 	if (gf_filter_reporting_enabled(filter)) {

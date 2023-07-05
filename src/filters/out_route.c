@@ -1373,7 +1373,8 @@ retry:
 				} else {
 					evt.seg_size.is_init = 0;
 					evt.seg_size.media_range_start = rpid->offset_at_seg_start;
-					evt.seg_size.media_range_end = rpid->res_size - 1;
+					//end range excludes last byte, except if 0 size (some text segments)
+					evt.seg_size.media_range_end = rpid->res_size ? (rpid->res_size - 1) : 0;
 					gf_filter_pid_send_event(rpid->pid, &evt);
 				}
 			}
@@ -1383,6 +1384,13 @@ retry:
 		}
 		return;
 	}
+	//skip eods packets
+	if (rpid->route->dash_mode && gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_EODS)) {
+		gf_filter_pid_drop_packet(rpid->pid);
+		rpid->current_pck = NULL;
+		goto retry;
+	}
+
 	gf_filter_pck_ref(&rpid->current_pck);
 	gf_filter_pid_drop_packet(rpid->pid);
 
@@ -1466,7 +1474,8 @@ retry:
 			} else {
 				evt.seg_size.is_init = 0;
 				evt.seg_size.media_range_start = rpid->offset_at_seg_start;
-				evt.seg_size.media_range_end = rpid->res_size - 1;
+				//end range excludes last byte, except if 0 size (some text segments)
+				evt.seg_size.media_range_end = rpid->res_size ? (rpid->res_size - 1) : 0;
 				rpid->offset_at_seg_start = evt.seg_size.media_range_end;
 				gf_filter_pid_send_event(rpid->pid, &evt);
 			}

@@ -488,7 +488,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeOut] No data associated with packet, cannot write\n"));
 		}
-	} else {
+	} else if (pck_size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Output file handle is not opened, discarding %d bytes\n", pck_size));
 	}
 	gf_filter_pid_drop_packet(ctx->pid);

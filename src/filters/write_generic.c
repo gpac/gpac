@@ -41,11 +41,18 @@ enum
 	DECINFO_AUTO
 };
 
+enum
+{
+	VTTH_SINGLE=0,
+	VTTH_SEG,
+	VTTH_ALL,
+};
+
 typedef struct
 {
 	//opts
 	Bool exporter, frame, split, merge_region;
-	u32 sstart, send;
+	u32 sstart, send, vtth;
 	u32 pfmt, afmt, decinfo;
 	GF_Fraction dur;
 
@@ -1194,14 +1201,34 @@ GF_Err writegen_process(GF_Filter *filter)
 	}
 	ctx->sample_num++;
 
-	if (ctx->dash_mode && ctx->ttml_agg && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
-		if (ctx->ttml_dash_pck) {
-			writegen_flush_ttml(ctx);
-			assert(ctx->ttml_dash_pck == NULL);
+	if (ctx->dash_mode) {
+		Bool is_eods=GF_FALSE;
+		//eods
+		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS)) {
+			is_eods=1;
 		}
-
-		ctx->ttml_dash_pck = pck;
-		gf_filter_pck_ref_props(&ctx->ttml_dash_pck);
+		//flush if first of segment or if eods
+		if (ctx->ttml_agg && (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM) || is_eods)) {
+			if (ctx->ttml_dash_pck) {
+				writegen_flush_ttml(ctx);
+				if (ctx->ttml_dash_pck) {
+					gf_filter_pck_unref(ctx->ttml_dash_pck);
+					ctx->ttml_dash_pck = NULL;
+				}
+			}
+			//remember first pck of segment
+			if (!is_eods) {
+				ctx->ttml_dash_pck = pck;
+				gf_filter_pck_ref_props(&ctx->ttml_dash_pck);
+			}
+		}
+		//forward eods as is
+		if (is_eods) {
+			gf_filter_pck_forward(pck, ctx->opid);
+			ctx->sample_num--;
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
 	}
 
 	if (ctx->sstart) {
@@ -1397,21 +1424,34 @@ GF_Err writegen_process(GF_Filter *filter)
 			dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 		}
 	} else if (ctx->webvtt || ctx->dump_srt) {
+		Bool empty_seg = GF_FALSE;
 		const GF_PropertyValue *p;
 
 		if (!data || !pck_size) {
-			ctx->sample_num--;
-			goto no_output;
+			if (ctx->dash_mode) {
+				if ((ctx->vtth<VTTH_ALL) || gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS)) {
+					gf_filter_pck_forward(pck, ctx->opid);
+					goto no_output;
+				}
+				empty_seg=GF_TRUE;
+			} else {
+				ctx->sample_num--;
+				goto no_output;
+			}
 		}
 
 		u64 start = gf_filter_pck_get_cts(pck);
 		u64 end = start + gf_filter_pck_get_duration(pck);
 		u32 timescale = gf_filter_pck_get_timescale(pck);
+		Bool first = ctx->first;
+		//in dash mode always inject the webvtt header for HLS
+		if (ctx->dash_mode && (ctx->vtth!=VTTH_SINGLE) && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM))
+			first = GF_TRUE;
 
 		if (!ctx->bs) ctx->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		else gf_bs_reassign_buffer(ctx->bs, ctx->write_buf, ctx->write_alloc);
 
-		if (ctx->first && !ctx->dump_srt) {
+		if (first && !ctx->dump_srt) {
 			if (ctx->dcfg && ctx->dcfg_size) {
 				u32 len = ctx->dcfg_size;
 				if (ctx->dcfg[len-1]==0) len--;
@@ -1438,26 +1478,28 @@ GF_Err writegen_process(GF_Filter *filter)
 				gf_bs_write_data(ctx->bs, "\n", 1);
 		}
 
-		if (ctx->dump_srt) {
-			char szCID[100];
-			sprintf(szCID, "%d\n", ctx->sample_num);
-			gf_bs_write_data(ctx->bs, szCID, (u32) strlen(szCID));
-		}
-		webvtt_timestamps_dump(ctx->bs, start, end, timescale, ctx->dump_srt);
+		if (!empty_seg) {
+			if (ctx->dump_srt) {
+				char szCID[100];
+				sprintf(szCID, "%d\n", ctx->sample_num);
+				gf_bs_write_data(ctx->bs, szCID, (u32) strlen(szCID));
+			}
+			webvtt_timestamps_dump(ctx->bs, start, end, timescale, ctx->dump_srt);
 
-		p = gf_filter_pck_get_property_str(pck, "vtt_settings");
-		if (!ctx->dump_srt && p && p->value.string) {
-			gf_bs_write_data(ctx->bs, " ", 1);
-			gf_bs_write_data(ctx->bs, p->value.string, (u32) strlen(p->value.string));
-		}
+			p = gf_filter_pck_get_property_str(pck, "vtt_settings");
+			if (!ctx->dump_srt && p && p->value.string) {
+				gf_bs_write_data(ctx->bs, " ", 1);
+				gf_bs_write_data(ctx->bs, p->value.string, (u32) strlen(p->value.string));
+			}
 
-		gf_bs_write_data(ctx->bs, "\n", 1);
-		if (data) {
-			gf_bs_write_data(ctx->bs, data, pck_size);
-			if (pck_size && (data[pck_size-1] != '\n'))
-				gf_bs_write_data(ctx->bs, "\n", 1);
+			gf_bs_write_data(ctx->bs, "\n", 1);
+			if (data) {
+				gf_bs_write_data(ctx->bs, data, pck_size);
+				if (pck_size && (data[pck_size-1] != '\n'))
+					gf_bs_write_data(ctx->bs, "\n", 1);
+			}
+			gf_bs_write_data(ctx->bs, "\n", 1);
 		}
-		gf_bs_write_data(ctx->bs, "\n", 1);
 
 		u8 *odata;
 		u32 vtt_data_size, alloc_size;
@@ -1915,6 +1957,10 @@ static GF_FilterArgs GenDumpArgs[] =
 	{ OFFS(send), "end number of frame to forward. If less than start frame, all samples after start are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(dur), "duration of media to forward after first sample. If 0, all samples are forwarded", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(merge_region), "merge TTML regions with same ID while reassembling TTML doc", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(vtth), "vtt header injection mode\n"
+	"- single: inject only at first frame of the stream\n"
+	"- seg: inject at each non-empty segment\n"
+	"- all: inject at each segment even empty ones", GF_PROP_UINT, "seg", "single|seg|all", 0},
 	{0}
 };
 

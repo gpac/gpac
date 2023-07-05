@@ -276,7 +276,9 @@ static GF_Err sockout_send_packet(GF_SockOutCtx *ctx, GF_FilterPacket *pck, GF_S
 	}
 	hwf = gf_filter_pck_get_frame_interface(pck);
 	if (!hwf) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] output file handle is not opened, discarding %d bytes\n", pck_size));
+		if (pck_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] output file handle is not opened, discarding %d bytes\n", pck_size));
+		}
 		return GF_OK;
 	}
 
