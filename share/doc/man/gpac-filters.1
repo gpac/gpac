@@ -3675,6 +3675,16 @@ dur (frac, default: 0):        duration of media to forward after first sample. 
 .br
 merge_region (bool, default: false): merge TTML regions with same ID while reassembling TTML doc
 .br
+vtth (enum, default: seg):     vtt header injection mode
+.br
+* single: inject only at first frame of the stream
+.br
+* seg: inject at each non-empty segment
+.br
+* all: inject at each segment even empty ones
+.br
+
+.br
 
 .br
 .SH ufnalu

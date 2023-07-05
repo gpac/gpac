@@ -54,6 +54,8 @@ typedef struct
 	GF_WebVTTParser *parser;
 
 	GF_FilterPacket *src_pck;
+	Bool dash_mode;
+	u32 seg_pck_in, seg_pck_out;
 } GF_WebVTTMxCtx;
 
 static void vttmx_write_cue(void *ctx, GF_WebVTTCue *cue);
@@ -105,6 +107,7 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
+	ctx->dash_mode = (p && (p->value.uint==1)) ? GF_TRUE : GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	ctx->timescale = p ? p->value.uint : 1000;
@@ -129,7 +132,9 @@ void webvtt_write_cue(GF_WebVTTMxCtx *ctx, GF_WebVTTCue *cue, Bool write_srt)
 	if (!dst) return;
 	if (size) memcpy(output, cue->text, size);
 
-	gf_filter_pck_merge_properties(ctx->src_pck, dst);
+	if (ctx->src_pck)
+		gf_filter_pck_merge_properties(ctx->src_pck, dst);
+
 	u64 start = cue->start.hour*3600 + cue->start.min*60 + cue->start.sec;
 	start *= 1000;
 	start += cue->start.ms;
@@ -162,6 +167,13 @@ void webvtt_write_cue(GF_WebVTTMxCtx *ctx, GF_WebVTTCue *cue, Bool write_srt)
 	gf_filter_pck_set_sap(dst, GF_FILTER_SAP_1);
 	gf_filter_pck_set_byte_offset(dst, GF_FILTER_NO_BO);
 	gf_filter_pck_send(dst);
+	ctx->seg_pck_out++;
+
+	//dash mode, drop src props: we must do so otherwise we would signal more than one packet with the PROP_FILENUM set !
+	if (ctx->dash_mode && ctx->src_pck) {
+		gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = NULL;
+	}
 }
 
 static void vttmx_write_cue(void *udta, GF_WebVTTCue *cue)
@@ -181,8 +193,34 @@ void vttmx_parser_flush(GF_WebVTTMxCtx *ctx)
 	gf_webvtt_parser_finalize(ctx->parser, duration);
 	gf_webvtt_parser_del(ctx->parser);
 	ctx->parser = NULL;
-
 }
+
+static void vttmx_flush_segment(GF_WebVTTMxCtx *ctx)
+{
+	gf_webvtt_parser_finalize(ctx->parser, 0);
+	gf_webvtt_parser_del(ctx->parser);
+	ctx->parser = gf_webvtt_parser_new();
+	gf_webvtt_parser_cue_callback(ctx->parser, vttmx_write_cue, ctx);
+
+
+	if (ctx->seg_pck_in && !ctx->seg_pck_out) {
+		GF_FilterPacket *dst = gf_filter_pck_new_alloc(ctx->opid, 0, NULL);
+		if (ctx->src_pck)
+			gf_filter_pck_merge_properties(ctx->src_pck, dst);
+
+		gf_filter_pck_set_property_str(dst, "vtt_pre", NULL);
+		gf_filter_pck_set_property_str(dst, "vtt_cueid", NULL);
+		gf_filter_pck_set_property_str(dst, "vtt_settings", NULL);
+
+
+		gf_filter_pck_set_sap(dst, GF_FILTER_SAP_1);
+		gf_filter_pck_set_byte_offset(dst, GF_FILTER_NO_BO);
+		gf_filter_pck_send(dst);
+	}
+	ctx->seg_pck_in = 0;
+	ctx->seg_pck_out = 0;
+}
+
 GF_Err vttmx_process(GF_Filter *filter)
 {
 	GF_WebVTTMxCtx *ctx = gf_filter_get_udta(filter);
@@ -191,6 +229,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 	u64 start_ts, end_ts;
 	u32 i, pck_size;
 	GF_List *cues;
+	Bool keep_ref = GF_TRUE;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -207,7 +246,6 @@ GF_Err vttmx_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	start_ts = gf_filter_pck_get_cts(pck);
@@ -221,9 +259,22 @@ GF_Err vttmx_process(GF_Filter *filter)
 	start_ts = gf_timestamp_rescale(start_ts, ctx->timescale, 1000);
 	end_ts = gf_timestamp_rescale(end_ts, ctx->timescale, 1000);
 
-	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
-	ctx->src_pck = pck;
-	gf_filter_pck_ref_props(&ctx->src_pck);
+	if (ctx->dash_mode) {
+		//dash mode, force a flush at each segment start
+		if (gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)!=NULL) {
+			vttmx_flush_segment(ctx);
+		} else {
+			//do not override props if not first packet in segment
+			keep_ref = GF_FALSE;
+		}
+		ctx->seg_pck_in++;
+	}
+
+	if (keep_ref) {
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
+	}
 
 	cues = gf_webvtt_parse_cues_from_data(data, pck_size, start_ts, end_ts);
 	if (ctx->parser) {
@@ -240,6 +291,13 @@ GF_Err vttmx_process(GF_Filter *filter)
 	if (ctx->exporter) {
 		u64 ts = gf_filter_pck_get_cts(pck);
 		gf_set_progress("Exporting", ts*ctx->duration.den, ctx->duration.num * ctx->timescale);
+	}
+	if (ctx->dash_mode && (!data || !pck_size) ) {
+		const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EODS);
+		if (p && p->value.boolean) {
+			vttmx_flush_segment(ctx);
+			gf_filter_pck_forward(pck, ctx->opid);
+		}
 	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);
