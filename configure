@@ -1398,14 +1398,14 @@ config_package_test ()
             return
         fi
 
-        if docxx -I"$local_inc/$local_inc_dir" $package_cflags -L$local_lib $package_ldflags ; then
+        if docxx -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$local_lib $package_ldflags ; then
             pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
             pck_ldflags="-L$local_lib $package_ldflags"
             has_pck="local"
             return
         fi
 
-        if docxx -I"$local_inc/$local_inc_dir" $package_cflags -L$execdir $package_ldflags ; then
+        if docxx -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$execdir $package_ldflags ; then
             pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
             pck_ldflags="-L$execdir $package_ldflags"
             has_pck="local (bin dir)"
@@ -1448,14 +1448,14 @@ config_package_test ()
         return
     fi
 
-    if docc -I"$local_inc/$local_inc_dir" $package_cflags -L$local_lib $package_ldflags ; then
+    if docc -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$local_lib $package_ldflags ; then
         pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
         pck_ldflags="-L$local_lib $package_ldflags"
         has_pck="local"
         return
     fi
 
-    if docc -I"$local_inc/$local_inc_dir" $package_cflags -L$execdir $package_ldflags ; then
+    if docc -I"$local_inc/$local_inc_dir" $package_cflags $LDFLAGS -L$execdir $package_ldflags ; then
         pck_cflags="-I$local_inc/$local_inc_dir $package_cflags"
         pck_ldflags="-L$execdir $package_ldflags"
         has_pck="local"
@@ -1619,7 +1619,7 @@ int main( void ) {  png_struct *png_ptr = png_create_read_struct(PNG_LIBPNG_VER_
 config_package mad "mad" "" "-lmad" "" '#include <mad.h>
 int main( void ) {  struct mad_stream stream; mad_stream_finish(&stream); return 0; }'
 
-config_package a52 "liba52" "" "-la52" "" '#include <inttypes.h>
+config_package a52 "liba52" "" "-la52 -lm" "" '#include <inttypes.h>
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 #include <a52dec/mm_accel.h>
@@ -1631,7 +1631,7 @@ int main( void ) { a52_state_t *codec; a52_free(codec); return 0; }'
 config_package xvid "xvid" "" "-lxvidcore $PTHREAD_LDFLAGS" "" '#include <xvid.h>
 int main( void ) { void *codec; xvid_decore(codec, XVID_DEC_DESTROY, NULL, NULL); return 0; }'
 
-config_package faad "faad2" "" "-lfaad" "" '#include <faad.h>
+config_package faad "faad2" "" "-lfaad -lm" "" '#include <faad.h>
 int main( void ) { NeAACDecOpen(); return 0; }'
 
 
