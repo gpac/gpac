@@ -253,13 +253,15 @@ static char *strtrim(char *str)
 
 GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 {
-	char  strbuf[256];
+	char  strbuf[257];
 	char *str, *pos, *entry;
 	s32   line, id =-1, delay = 0;
 	Bool  error = 0;
 
-	for (line = 0; !error && gf_fgets(strbuf, sizeof(strbuf), file); line++)
+	for (line = 0; !error && gf_fgets(strbuf, 256, file); line++)
 	{
+		//make sure we are null-terminated - cf #2520
+		strbuf[256]=0;
 		str = strtrim(strbuf);
 
 		if (line == 0)
