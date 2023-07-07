@@ -799,8 +799,8 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 	//OK, add our trak
 	e = moov_on_child_box((GF_Box*)movie->moov, (GF_Box *)trak, GF_FALSE);
 	if (e) goto err_exit;
-	//set the new ID available
-	if (trakID+1> movie->moov->mvhd->nextTrackID)
+	//set the next track ID available
+	if (trakID >= movie->moov->mvhd->nextTrackID)
 		movie->moov->mvhd->nextTrackID = trakID+1;
 
 	if (udta) {
@@ -2836,6 +2836,20 @@ GF_Err gf_isom_modify_edit(GF_ISOFile *movie, u32 trackNumber, u32 seg_index, u6
 	return SetTrackDuration(trak);
 }
 
+static void update_next_track_id(GF_ISOFile *movie)
+{
+	GF_TrackBox *trak;
+	/*update next track ID*/
+	movie->moov->mvhd->nextTrackID = 0;
+	u32 i=0;
+	while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
+		if (trak->Header->trackID>movie->moov->mvhd->nextTrackID)
+			movie->moov->mvhd->nextTrackID = trak->Header->trackID;
+	}
+	//shall be larger than the largest track_ID in use
+	movie->moov->mvhd->nextTrackID++;
+}
+
 //removes the desired track
 GF_EXPORT
 GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
@@ -2955,12 +2969,7 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 	gf_isom_box_del_parent(&movie->moov->child_boxes, (GF_Box *)the_trak);
 
 	/*update next track ID*/
-	movie->moov->mvhd->nextTrackID = 0;
-	i=0;
-	while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
-		if (trak->Header->trackID>movie->moov->mvhd->nextTrackID)
-			movie->moov->mvhd->nextTrackID = trak->Header->trackID;
-	}
+	update_next_track_id(movie);
 
 	if (!gf_list_count(movie->moov->trackList)) {
 		gf_list_del_item(movie->TopBoxes, movie->moov);
@@ -4383,7 +4392,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 
 	*dest_track = gf_list_count(dest_file->moov->trackList);
 
-	if (dest_file->moov->mvhd->nextTrackID<= new_tk->Header->trackID)
+	if (dest_file->moov->mvhd->nextTrackID <= new_tk->Header->trackID)
 		dest_file->moov->mvhd->nextTrackID = new_tk->Header->trackID+1;
 
 	return GF_OK;
@@ -4898,9 +4907,6 @@ GF_Err gf_isom_set_track_id(GF_ISOFile *movie, u32 trackNumber, GF_ISOTrackID tr
 	a_trak = gf_isom_get_track_from_id(movie->moov, trackID);
 	if (!trak || a_trak) return GF_BAD_PARAM;
 
-	if (movie->moov->mvhd->nextTrackID<=trackID)
-		movie->moov->mvhd->nextTrackID = trackID;
-
 	/*rewrite all dependencies*/
 	i=0;
 	while ((a_trak = (GF_TrackBox*)gf_list_enum(movie->moov->trackList, &i))) {
@@ -4927,6 +4933,7 @@ GF_Err gf_isom_set_track_id(GF_ISOFile *movie, u32 trackNumber, GF_ISOTrackID tr
 		}
 	}
 	trak->Header->trackID = trackID;
+	update_next_track_id(movie);
 	return GF_OK;
 }
 
