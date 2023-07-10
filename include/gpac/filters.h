@@ -1269,6 +1269,8 @@ enum
 	GF_PROP_PID_CLEARKEY_KID = GF_4CC('C','C','K','I'),
 	//internal, indicate DASH segments are generated in sparse mode (from context)
 	GF_PROP_PID_DASH_SPARSE = GF_4CC('D','S','S','G'),
+	//internal, indicate DASH dependency group
+	GF_PROP_PID_DASH_DEP_GROUP = GF_4CC('D','G','D','I'),
 
 
 	//internal property indicating pointer to associated GF_DownloadSession

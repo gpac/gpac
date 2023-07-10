@@ -846,6 +846,10 @@ struct __gf_filter
 	GF_Filter *multi_sink_target;
 
 	Bool event_target;
+	//clone of filter for new instance handling - if  new instance is required by configure
+	//if NULL, clone and rememeber here the clone
+	//if not NULL, post configure to the cloned instance
+	struct __gf_filter *cloned_instance;
 
 	u64 last_schedule_task_time;
 

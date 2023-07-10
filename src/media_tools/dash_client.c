@@ -5104,7 +5104,7 @@ GF_EXPORT
 s32 gf_dash_group_has_dependent_group(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
-	if (!group) return GF_FALSE;
+	if (!group) return -1;
 	return group->depend_on_group ? group->depend_on_group->groups_idx : -1;
 }
 
@@ -5126,6 +5126,17 @@ s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 idx, u32 group_de
 	if (!group_depending_on) return -1;
 	return group_depending_on->groups_idx;
 }
+
+GF_EXPORT
+s32 gf_dash_get_base_group_index(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return -1;
+	if (group->groups_depending_on) return group->groups_idx;
+	if (group->depend_on_group) return group->depend_on_group->groups_idx;
+	return -1;
+}
+
 
 /* create groups (implementation of adaptations set) */
 GF_Err gf_dash_setup_groups(GF_DashClient *dash)

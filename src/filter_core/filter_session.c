@@ -2720,10 +2720,16 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 				for (j=0; j<f->num_output_pids; j++) {
 					GF_FilterPid *apid = gf_list_get(f->output_pids, j);
 					p = gf_filter_pid_get_property(apid, GF_PROP_PID_CODECID);
+					//if this is a tile pid, check if it is connected to our destination
 					if (p &&
 						((p->value.uint==GF_CODECID_HEVC_TILES) || (p->value.uint==GF_CODECID_VVC_SUBPIC))
 					) {
-						num_tile_pids++;
+						u32 k;
+						for (k=0; k<apid->num_destinations; k++) {
+							GF_FilterPidInst *pidi = gf_list_get(apid->destinations, k);
+							if (pidi->filter != dest) continue;
+							num_tile_pids++;
+						}
 					}
 				}
 				plen = 5;

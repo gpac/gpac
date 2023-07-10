@@ -693,6 +693,8 @@ void gf_filter_del(GF_Filter *filter)
 				a_filter->cap_dst_filter = NULL;
 			if (a_filter->cloned_from == filter)
 				a_filter->cloned_from = NULL;
+			if (a_filter->cloned_instance == filter)
+				a_filter->cloned_instance = NULL;
 			if (a_filter->on_setup_error_filter == filter)
 				a_filter->on_setup_error_filter = NULL;
 			if (a_filter->target_filter == filter)
@@ -3111,6 +3113,7 @@ GF_Filter *gf_filter_clone(GF_Filter *filter, GF_Filter *source_filter)
 	}
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
+	new_filter->dynamic_filter = filter->dynamic_filter ? 1 : 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (register %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
 
 	return new_filter;
