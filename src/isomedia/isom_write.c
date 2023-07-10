@@ -7941,7 +7941,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 		//no aux sample associated
 		if (saiz->sample_count<sampleNumber) continue;
 		//no size associated
-		if (!saiz->sample_info_size[sampleNumber-1]) continue;
+		if (!saiz->default_sample_info_size && !saiz->sample_info_size[sampleNumber-1]) continue;
 
 		for (j=0; j<gf_list_count(src_trak->Media->information->sampleTable->sai_offsets); j++) {
 			saio = gf_list_get(src_trak->Media->information->sampleTable->sai_offsets, j);
