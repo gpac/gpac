@@ -5426,6 +5426,11 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CLAP_Y);
 	if (p) { image_props.clap_vonum = p->value.frac.num; image_props.clap_voden = p->value.frac.den; }
 
+	p = gf_filter_pck_get_property_str(pck, "grp_ilce");
+	if (p && ((p->type==GF_PROP_DATA)||(p->type==GF_PROP_CONST_DATA)) && p->value.data.ptr) {
+		image_props.interlace_type = p->value.data.ptr[0];
+	}
+
 	//setup crypto
 	if (tkw->is_encrypted && gf_filter_pck_get_crypt_flags(pck)) {
 		memset(&cenc_info, 0, sizeof(GF_ImageItemProtection));

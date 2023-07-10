@@ -6235,6 +6235,9 @@ typedef struct
 	/*AV1 operation point index*/
 	u8 av1_op_index;
 
+	/*interlace type - uncv*/
+	u8 interlace_type;
+
 	const char *aux_urn;
 	const u8 *aux_data;
 	u32 aux_data_len;
@@ -6915,6 +6918,7 @@ enum {
 	GF_ISOM_SAMPLE_GROUP_SPOR = GF_4CC( 's', 'p', 'o', 'r'), //p15
 	GF_ISOM_SAMPLE_GROUP_SULM = GF_4CC( 's', 'u', 'l', 'm'), //p15
 	GF_ISOM_SAMPLE_GROUP_ESGH = GF_4CC( 'e', 's', 'g', 'h'), //p12
+	GF_ISOM_SAMPLE_GROUP_ILCE = GF_4CC( 'i', 'l', 'c', 'e'), //uncv
 };
 
 /*! gets 'rap ' and 'roll' group info for the given sample

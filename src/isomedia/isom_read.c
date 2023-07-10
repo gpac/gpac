@@ -5154,6 +5154,7 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 		case GF_ISOM_SAMPLE_GROUP_SPOR:
 		case GF_ISOM_SAMPLE_GROUP_SULM:
 		case GF_ISOM_SAMPLE_GROUP_ESGH:
+		case GF_ISOM_SAMPLE_GROUP_ILCE:
 		default:
 			break;
 		}

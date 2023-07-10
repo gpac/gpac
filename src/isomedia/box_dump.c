@@ -1550,6 +1550,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 	//full box
 	get_and_print("version", 8)
 	get_and_print("flags", 24)
+	get_4cc_and_print("profile", 32)
 
 	nb_comps = gf_bs_read_u16(bs);
 	gf_bs_skip_bytes(bs, 5*nb_comps);
@@ -1570,7 +1571,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 	get_and_print("num_tile_rows_minus_one", 32)
 
 	gf_fprintf(trace, ">\n");
-	gf_bs_seek(bs, 6);
+	gf_bs_seek(bs, 10);
 	for (i=0; i<nb_comps; i++) {
 		gf_fprintf(trace, "<ComponentInfo");
 		get_and_print("index", 16)
@@ -5533,6 +5534,18 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 			gf_fprintf(trace, "\"/>\n");
 		}
 			break;
+		case GF_ISOM_SAMPLE_GROUP_ILCE:
+		{
+			GF_FieldInterlaceType *ilce = (GF_FieldInterlaceType *) entry;
+			gf_fprintf(trace, "<FieldInterlaceTypeEntry interlace_type=\"%d\" interleaved=\"%d\" first_field_type=\"%d\" bottom_first=\"%d\"/>\n",
+				ilce->ilce_type>>6,
+				(ilce->ilce_type>>5) & 0x1,
+				(ilce->ilce_type>>4) & 0x1,
+				(ilce->ilce_type>>3) & 0x1
+			);
+		}
+			break;
+
 		case GF_ISOM_SAMPLE_GROUP_ESGH:
 		{
 			GF_EssentialSamplegroupEntry *esgh = (GF_EssentialSamplegroupEntry *) entry;
@@ -5593,6 +5606,10 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_SULM:
 			gf_fprintf(trace, "<SubPictureLayoutMapEntry groupID_info_4cc=\"\" groupIDs=\"\" />\n");
 			break;
+		case GF_ISOM_SAMPLE_GROUP_ILCE:
+			gf_fprintf(trace, "<FieldInterlaceTypeEntry interlace_type=\"\" interleaved=\"\" first_field_type=\"\" bottom_first=\"\"/>\n");
+			break;
+
 		case GF_ISOM_SAMPLE_GROUP_ESGH:
 			gf_fprintf(trace, "<EssentialSampleGroupEntry samplegroup_types=\"\" />\n");
 			break;
@@ -6127,11 +6144,23 @@ GF_Err irot_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err imir_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_ImageMirrorBox *ptr = (GF_ImageMirrorBox *)a;
 	if (!a) return GF_BAD_PARAM;
-	gf_isom_box_dump_start(a, "ImageMirrorBox", trace);
-	gf_fprintf(trace, "axis=\"%s\">\n", (ptr->axis ? "horizontal" : "vertical"));
-	gf_isom_box_dump_done("ImageMirrorBox", a, trace);
+	if (a->type==GF_ISOM_BOX_TYPE_IMIR) {
+		GF_ImageMirrorBox *ptr = (GF_ImageMirrorBox *)a;
+		gf_isom_box_dump_start(a, "ImageMirrorBox", trace);
+		gf_fprintf(trace, "axis=\"%s\">\n", (ptr->axis ? "horizontal" : "vertical"));
+		gf_isom_box_dump_done("ImageMirrorBox", a, trace);
+	} else if (a->type==GF_ISOM_BOX_TYPE_ILCE) {
+		GF_FieldInterlaceTypeBox *ptr = (GF_FieldInterlaceTypeBox *)a;
+		gf_isom_box_dump_start(a, "FieldInterlaceTypeBox", trace);
+		gf_fprintf(trace, "interlace_type=\"%d\" interleaved=\"%d\" first_field_type=\"%d\" bottom_first=\"%d\">\n",
+			ptr->interlace_type>>6,
+			(ptr->interlace_type>>5)&1,
+			(ptr->interlace_type>>4)&1,
+			(ptr->interlace_type>>3)&1
+		);
+		gf_isom_box_dump_done("FieldInterlaceTypeBox", a, trace);
+	}
 	return GF_OK;
 }
 
