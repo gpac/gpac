@@ -482,7 +482,9 @@ void imir_box_del(GF_Box *a)
 GF_Err imir_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ImageMirrorBox *p = (GF_ImageMirrorBox *)s;
-	p->axis = gf_bs_read_u8(bs) & 0x1;
+	p->axis = gf_bs_read_u8(bs);
+	if (p->type==GF_ISOM_BOX_TYPE_IMIR)
+		p->axis = p->axis & 0x1;
 	return GF_OK;
 }
 

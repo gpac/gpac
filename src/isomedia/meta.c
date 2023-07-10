@@ -763,6 +763,12 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 				prop->mirror = imir->axis+1;
 			}
 			break;
+			case GF_ISOM_BOX_TYPE_ILCE:
+			{
+				GF_FieldInterlaceTypeBox *ilce = (GF_FieldInterlaceTypeBox *)b;
+				prop->interlace_type = ilce->interlace_type;
+			}
+			break;
 			case GF_ISOM_BOX_TYPE_CLAP:
 			{
 				GF_CleanApertureBox *clap = (GF_CleanApertureBox *)b;
@@ -854,6 +860,14 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 			}
 		}
 		break;
+		case GF_ISOM_BOX_TYPE_ILCE:
+		{
+			GF_FieldInterlaceTypeBox *ilce = (GF_FieldInterlaceTypeBox *)b;
+			if (ilce->interlace_type == prop->interlace_type) {
+				return i;
+			}
+		}
+		break;
 		case GF_ISOM_BOX_TYPE_CLAP:
 		{
 			GF_CleanApertureBox *clap = (GF_CleanApertureBox *)b;
@@ -915,9 +929,12 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 		break;
 		
 		default:
-			if (gf_isom_box_equal(prop->config, b)) {
-				return i;
+			if (prop->config) {
+				if (gf_isom_box_equal(prop->config, b)) {
+					return i;
+				}
 			}
+			break;
 		}
 	}
 	return -1;
@@ -1128,8 +1145,22 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, u32 i
 		}
 		while (gf_list_count(b->child_boxes)) {
 			GF_Box *a = gf_list_pop_front(b->child_boxes);
-			gf_list_add(ipco->child_boxes, a);
-			prop_index = gf_list_count(ipco->child_boxes) - 1;
+			u32 type = a->type;
+			if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+				type = ((GF_UnknownBox*)a)->original_4cc;
+			GF_Box *exists = gf_isom_box_find_child(ipco->child_boxes, type);
+			if (exists) {
+				if (gf_isom_box_equal(a, exists)) {
+					prop_index = gf_list_find(ipco->child_boxes, exists);
+					gf_isom_box_del_parent(&b->child_boxes, a);
+				} else {
+					exists = NULL;
+				}
+			}
+			if (!exists) {
+				gf_list_add(ipco->child_boxes, a);
+				prop_index = gf_list_count(ipco->child_boxes) - 1;
+			}
 			//mark all as essential
 			e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 			if (e) return e;
@@ -1260,6 +1291,20 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, u32 i
 		}
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
+	}
+
+	if (image_props->interlace_type) {
+		searchprop.interlace_type = image_props->interlace_type;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_FieldInterlaceTypeBox *ilce = (GF_FieldInterlaceTypeBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_ILCE);
+			if (!ilce) return GF_OUT_OF_MEM;
+			ilce->interlace_type = image_props->interlace_type;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.interlace_type = 0;
 	}
 
 	if (image_props->cenc_info) {

@@ -10136,6 +10136,15 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		}
 		return ptr;
 	}
+	case GF_ISOM_SAMPLE_GROUP_ILCE:
+	{
+		GF_FieldInterlaceType *ptr;
+		GF_SAFEALLOC(ptr, GF_FieldInterlaceType);
+		if (!ptr) return NULL;
+		ptr->ilce_type = gf_bs_read_u8(bs);
+		*total_bytes = 1;
+		return ptr;
+	}
 	case GF_ISOM_SAMPLE_GROUP_ESGH:
 	{
 		u32 i;
@@ -10225,6 +10234,10 @@ void sgpd_del_entry(u32 grouping_type, void *entry)
 		gf_free(sulm);
 		return;
 	}
+	case GF_ISOM_SAMPLE_GROUP_ILCE:
+		gf_free(entry);
+		return;
+
 	case GF_ISOM_SAMPLE_GROUP_ESGH:
 	{
 		GF_EssentialSamplegroupEntry *esgh = (GF_EssentialSamplegroupEntry *) entry;
@@ -10330,6 +10343,13 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 		}
 		return;
 	}
+	case GF_ISOM_SAMPLE_GROUP_ILCE:
+	{
+		GF_FieldInterlaceType *ilce = (GF_FieldInterlaceType *) entry;
+		gf_bs_write_u8(bs, ilce->ilce_type);
+		return;
+	}
+
 	case GF_ISOM_SAMPLE_GROUP_ESGH:
 	{
 		u32 i;
@@ -10396,6 +10416,9 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		GF_SubpictureLayoutMapEntry *sulm = (GF_SubpictureLayoutMapEntry *) entry;
 		return 6 + 2*sulm->nb_entries;
 	}
+	case GF_ISOM_SAMPLE_GROUP_ILCE:
+		return 1;
+
 	case GF_ISOM_SAMPLE_GROUP_ESGH:
 	{
 		GF_EssentialSamplegroupEntry *esgh = (GF_EssentialSamplegroupEntry *) entry;
