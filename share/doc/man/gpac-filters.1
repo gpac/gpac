@@ -9526,7 +9526,23 @@ Components are described as N[bpc][+k] with
 .br
 * N: component type, one of M(mono), Y, U, V, R, G, B, A, d(depth), disp, p(palette), f(filterArray), x (pad)
 .br
-* bpc: bits per component value, default is 8
+* bpc: bits per component value, default is 8. Non-integer values must be one of
+.br
+  * sft: floating-point value on 16 bits
+.br
+  * flt: floating-point value on 32 bits
+.br
+  * dbl: floating-point value on 64 bits
+.br
+  * dblx: floating-point value on 128 bits
+.br
+  * cps: complex value as two floats on 16 bits each
+.br
+  * cpf: complex value as two floats on 32 bits each
+.br
+  * cpd: complex value as two floats on 64 bits each
+.br
+  * cpx: complex value as two floats on 128 bits each
 .br
 * k: force component alignment on k bytes, default is 0 (no alignment)
 .br
@@ -9593,7 +9609,7 @@ pal (strl, default: red,green,blue,white,black,yellow,cyan,grey,orange,violet): 
 .br
 fa (strl, default: B,G,G,R):   bayer-like filter - only 2x2 on R,G,B components is supported
 .br
-bpm (strl, default: ):         set sensor bad pixel map
+bpm (strl, default: ):         set sensor bad pixel map as a list of cN (broken column), rM (broken row) or NxM (single pixel)
 .br
 fps (frac, default: 25/1):     frame rate to generate - using 0 will trigger item muxing
 .br
