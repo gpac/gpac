@@ -32,7 +32,15 @@ filter.set_help("This filter provides generation of test images for ISO/IEC 2300
 +"\n"
 +"Components are described as N[bpc][+k] with\n"
 +"- N: component type, one of M(mono), Y, U, V, R, G, B, A, d(depth), disp, p(palette), f(filterArray), x (pad)\n"
-+"- bpc: bits per component value, default is 8\n"
++"- bpc: bits per component value, default is 8. Non-integer values must be one of\n"
++"  - sft: floating-point value on 16 bits\n"
++"  - flt: floating-point value on 32 bits\n"
++"  - dbl: floating-point value on 64 bits\n"
++"  - dblx: floating-point value on 128 bits\n"
++"  - cps: complex value as two floats on 16 bits each\n"
++"  - cpf: complex value as two floats on 32 bits each\n"
++"  - cpd: complex value as two floats on 64 bits each\n"
++"  - cpx: complex value as two floats on 128 bits each\n"
 +"- k: force component alignment on k bytes, default is 0 (no alignment)\n"
 );
 
@@ -64,7 +72,7 @@ filter.set_arg({ name: "img", desc: "use specified image as input instead of RGB
 filter.set_arg({ name: "asize", desc: "use input image size", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "pal", desc: "default palette for color generation", type: GF_PROP_STRING_LIST, def: ["red", "green", "blue", "white", "black", "yellow", "cyan", "grey", "orange", "violet"]} );
 filter.set_arg({ name: "fa", desc: "bayer-like filter - only 2x2 on R,G,B components is supported", type: GF_PROP_STRING_LIST, def: ["B", "G", "G", "R"]} );
-filter.set_arg({ name: "bpm", desc: "set sensor bad pixel map", type: GF_PROP_STRING_LIST, def: []} );
+filter.set_arg({ name: "bpm", desc: "set sensor bad pixel map as a list of cN (broken column), rM (broken row) or NxM (single pixel)", type: GF_PROP_STRING_LIST, def: []} );
 filter.set_arg({ name: "fps", desc: "frame rate to generate - using 0 will trigger item muxing", type: GF_PROP_FRACTION, def: "25/1"} );
 filter.set_arg({ name: "dur", desc: "duration to generate - using 0 will trigger item muxing", type: GF_PROP_FRACTION, def: "1/1"} );
 filter.set_arg({ name: "cloc", desc: "set chroma location type", type: GF_PROP_UINT, def: "-1", minmax_enum: "-1,6"} );
@@ -272,27 +280,31 @@ filter.initialize = function()
 		bs.pos = size + pos;
 	}
 
-	if (filter.bpm.length) {
-		let bad_rows=[];
-		let bad_cols=[];
-		let bad_pix=[];
-		for (let i=0; i<filter.bpm.length; i++) {
-			let c = filter.bpm[i];
-			if (c.indexOf('r')==0) {
-				bad_rows.push( parseInt(c.slice(1) ) );
-			}
-			else if (c.indexOf('c')==0) {
-				bad_cols.push( parseInt(c.slice(1) ) );
-			}
-			else {
-				let s = c.indexOf('x');
-				if (s>0) {
-					let x = parseInt(c.slice(0, s) );
-					let y = parseInt(c.slice(s+1) );
-					bad_pix.push({x: x, y: y});
-				}
+	let bad_rows=[];
+	let bad_cols=[];
+	let bad_pix=[];
+	let use_sbpm=false;
+	for (let i=0; i<filter.bpm.length; i++) {
+		let c = filter.bpm[i];
+		if (c.indexOf('r')==0) {
+			bad_rows.push( parseInt(c.slice(1) ) );
+			use_sbpm=true;
+		}
+		else if (c.indexOf('c')==0) {
+			bad_cols.push( parseInt(c.slice(1) ) );
+			use_sbpm=true;
+		}
+		else {
+			let s = c.indexOf('x');
+			if (s>0) {
+				let x = parseInt(c.slice(0, s) );
+				let y = parseInt(c.slice(s+1) );
+				bad_pix.push({x: x, y: y});
+				use_sbpm=true;
 			}
 		}
+	}
+	if (use_sbpm) {
 		pos = bs.pos;
 		bs.put_u32(0);
 		bs.put_4cc("sbpm");
@@ -1101,7 +1113,7 @@ function write_val(bs, val, comp)
 			if (comp_le_buf) {
 				comp_le_bs.pos = 0;
 				comp_le_bs.put_bits(val * comp.max_val, 8*comp.align);
-				for (let i=comp.align-1; i>0; i--) {
+				for (let i=comp.align; i>0; i--) {
 					bs.put_u8(comp_le_view[i-1]);
 				}
 			} else {
