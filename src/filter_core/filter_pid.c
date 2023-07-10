@@ -944,8 +944,21 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 		if (e==GF_REQUIRES_NEW_INSTANCE) {
 			//TODO: copy over args from current filter
+
+			//we already created a clone for a new instance, forward the task to the clone.
+			//This allows solving fan-in connections requiring new instances (tileagg, scalable dec)
+			//which cannot be solved at graph resolution stage
+			//we disable this for non fan-in cases
+			if (filter->max_extra_pids && filter->cloned_instance) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Reuse cloned filter %s for pid %s\n", filter->name, pid->name));
+				gf_filter_pid_post_connect_task(filter->cloned_instance, pid);
+				return GF_OK;
+			}
 			GF_Filter *new_filter = gf_filter_clone(filter, pid->filter);
 			if (new_filter) {
+				if (filter->max_extra_pids)
+					filter->cloned_instance = new_filter;
+
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Clone filter %s, new instance for pid %s\n", filter->name, pid->name));
 				gf_filter_pid_post_connect_task(new_filter, pid);
 				return GF_OK;
@@ -4761,11 +4774,29 @@ single_retry:
 
 		//if the original filter is in the parent chain of this PID's filter, don't connect (equivalent to re-entrant)
 		if (filter_dst->cloned_from) {
-			if (gf_filter_in_parent_chain(filter, filter_dst->cloned_from) ) {
+			u32 par_type=0;
+			GF_Filter *clone = filter_dst->cloned_from;
+			while (clone) {
+				GF_Filter *f = filter;
+				while (f) {
+					if (gf_filter_in_parent_chain(f, clone) ) {
+						par_type = 1;
+						break;
+					}
+					if (gf_filter_in_parent_chain(clone, f) ) {
+						par_type = 2;
+						break;
+					}
+					f = f->cloned_from;
+				}
+				if (par_type) break;
+				clone = clone->cloned_from;
+			}
+			if (par_type==1) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has the original of cloned filter %s in its parent chain\n", pid->name, filter_dst->name));
 				continue;
 			}
-			if (gf_filter_in_parent_chain(filter_dst->cloned_from, filter) ) {
+			else if (par_type==2) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has the original of cloned filter %s in its output filter chain\n", pid->name, filter_dst->name));
 				continue;
 			}
@@ -4773,8 +4804,17 @@ single_retry:
 
 		//if the filter is in the parent chain of this PID's original filter, don't connect (equivalent to re-entrant)
 		if (filter->cloned_from) {
-			if (gf_filter_in_parent_chain(filter->cloned_from, filter_dst) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s filter is cloned and has filter %s in its clone parent chain\n", pid->name, filter_dst->name));
+			Bool in_par = GF_FALSE;
+			GF_Filter *clone = filter->cloned_from;
+			while (clone) {
+				if (gf_filter_in_parent_chain(clone, filter_dst) ) {
+					in_par = GF_TRUE;
+					break;
+				}
+				clone = clone->cloned_from;
+			}
+			if (in_par) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s filter %s is cloned and has filter %s in its clone parent chain\n", pid->name, filter->name, filter_dst->name));
 				continue;
 			}
 		}
@@ -9031,7 +9071,9 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 		}
 
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381]  Cannot find HEVC config, using default %s\n", szCodec));
+		if (codec_id!=GF_CODECID_HEVC_TILES) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381]  Cannot find HEVC config, using default %s\n", szCodec));
+		}
 		return GF_OK;
 
 	case GF_CODECID_AV1:

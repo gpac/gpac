@@ -1834,6 +1834,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		const char *str = gf_dash_group_get_representation_id(ctx->dash, group->idx);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, str ? &PROP_STRING(str) : NULL );
 
+		s32 gf_dash_get_base_group_index(GF_DashClient *dash, u32 idx);
+		s32 dep_group = 1 + gf_dash_get_base_group_index(ctx->dash, group->idx);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DEP_GROUP, (dep_group > 0) ? &PROP_UINT(dep_group) : NULL );
+
 		str = gf_dash_get_period_id(ctx->dash);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_ID, str ? &PROP_STRING(str) : NULL );
 

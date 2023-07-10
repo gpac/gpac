@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2022
+ *			Copyright (c) Telecom ParisTech 2020-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / vout default ui
@@ -586,8 +586,12 @@ function build_graph(f, str, str_list, fdone)
 			num_tiles++;
 			for (j=i+1; j<f.nb_opid; j++) {
 				let p = f.opid_props(j, 'CodecID');
-				if (p == 'hvt1')
-					num_tiles++;
+				if (p == 'hvt1') {
+					//check this tile pid sinks intersect the current pid sinks
+					let t_sinks = f.opid_sinks(j);
+					const found = t_sinks.some(r => sinks.includes(r))
+					if (found) num_tiles++;
+				}
 			}
 		}
 
