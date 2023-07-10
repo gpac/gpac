@@ -581,7 +581,7 @@ Object get_clock_info();
 - if the value is an object with properties 'n' and 'd', NTP timestamp is computed using 'n' as seconds and 'd' as fractional part
 
 \param name the ID or name of the builtin property
-\param prop the property to set. If not set, removes the property.
+\param prop the property to set. If null, removes the property.
 \param is_user if set, indicates the queried property is a user-defined property rather than a built-in property
 */
 void set_prop(DOMString name, FilterProperty prop, optional boolean is_user=false);
@@ -779,9 +779,10 @@ void discard();
 
 /*! sets a property on packet - see \ref gf_filter_pck_set_property 
 \param name the ID or name of the builtin property
+\param prop the property to set. If null, removes the property.
 \param is_user if set, indicates the queried property is a user-defined property rather than a built-in property
 */
-void set_prop(DOMString name, optional boolean is_user=false);
+void set_prop(DOMString name, FilterProperty prop, optional boolean is_user=false);
 
 /*! appends data to packet - see \ref gf_filter_pck_expand. New data can be accessed by through the data field.
 \warning any previous access to the packet data will be in detached state (no more data in the array buffer) after the call. 
