@@ -875,7 +875,7 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	else if ((tspid->esi.caps & GF_ESI_FORCE_DOLBY_VISION) != (bckp.caps & GF_ESI_FORCE_DOLBY_VISION))
 		changed = GF_TRUE;
 
-	u32 crc_old = 0, crc_new = 0;;
+	u32 crc_old = 0, crc_new = 0;
 	if (tspid->esi.gpac_meta_dsi) {
 		crc_old = gf_crc_32(tspid->esi.gpac_meta_dsi, tspid->esi.gpac_meta_dsi_size);
 		gf_free(tspid->esi.gpac_meta_dsi);

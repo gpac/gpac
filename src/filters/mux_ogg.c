@@ -320,7 +320,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 {
 	u32 nb_skip=0;
 	OGGMuxCtx *ctx = (OGGMuxCtx *) gf_filter_get_udta(filter);
-	u32 i, nb_done = 0, count = gf_list_count(ctx->streams), nb_dash_done = 0;;
+	u32 i, nb_done = 0, count = gf_list_count(ctx->streams), nb_dash_done = 0;
 
 	for (i=0; i<count; i++) {
 		const u8 *data=NULL;

@@ -786,7 +786,7 @@ static Bool bs_agg_is_base(BSAggOut *pctx, u32 codec_id, u32 dep_id, u32 rec_lev
 		const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_ID);
 		if (p && (p->value.uint==dep_id)) return GF_TRUE;
 		p = gf_filter_pid_get_property(ipid, GF_PROP_PID_DEPENDENCY_ID);
-		if (!p || !p->value.uint) continue;;
+		if (!p || !p->value.uint) continue;
 
 		if (bs_agg_is_base(pctx, codec_id, p->value.uint, rec_level+1))
 			return GF_TRUE;

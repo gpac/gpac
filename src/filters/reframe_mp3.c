@@ -586,7 +586,7 @@ restart:
 	while (remain) {
 		u8 *sync;
 		Bool skip_id3v1=GF_FALSE;
-		u32 bytes_skipped=0, size, nb_samp, bytes_to_drop=0;;
+		u32 bytes_skipped=0, size, nb_samp, bytes_to_drop=0;
 
 		if (!ctx->tag_size && (remain>3)) {
 

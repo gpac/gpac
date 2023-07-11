@@ -9319,7 +9319,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						dur=1;
 
 					gf_filter_pck_set_duration(dst, dur);
-					ds->est_next_dts += (s32) dur - (s32) _dur;;
+					ds->est_next_dts += (s32) dur - (s32) _dur;
 				}
 			}
 

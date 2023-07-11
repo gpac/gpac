@@ -1432,10 +1432,10 @@ static JSValue canvas_viewport(JSContext *ctx, JSValueConst obj, int argc, JSVal
 	if (!canvas) return GF_JS_EXCEPTION(ctx);
 	if (argc) {
 		if (argc<4) return js_throw_err(ctx, GF_BAD_PARAM);
-		if (JS_ToInt32(ctx, &x, argv[0])) return js_throw_err(ctx, GF_BAD_PARAM);;
-		if (JS_ToInt32(ctx, &y, argv[1])) return js_throw_err(ctx, GF_BAD_PARAM);;
-		if (JS_ToInt32(ctx, &w, argv[2])) return js_throw_err(ctx, GF_BAD_PARAM);;
-		if (JS_ToInt32(ctx, &h, argv[3])) return js_throw_err(ctx, GF_BAD_PARAM);;
+		if (JS_ToInt32(ctx, &x, argv[0])) return js_throw_err(ctx, GF_BAD_PARAM);
+		if (JS_ToInt32(ctx, &y, argv[1])) return js_throw_err(ctx, GF_BAD_PARAM);
+		if (JS_ToInt32(ctx, &w, argv[2])) return js_throw_err(ctx, GF_BAD_PARAM);
+		if (JS_ToInt32(ctx, &h, argv[3])) return js_throw_err(ctx, GF_BAD_PARAM);
 	} else {
 		x = y = 0;
 		w = canvas->width;

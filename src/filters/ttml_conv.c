@@ -107,7 +107,7 @@ static void ttmlconv_dump_node(TTMLConvCtx *ctx, GF_XMLNode *p, FILE *dump)
 	while ( (att = gf_list_enum(p->attributes, &i)) ) {
 		const char *sep = strchr(att->name, ':');
 		const char *name  = sep ? sep+1 : att->name;
-		if (!name) continue;;
+		if (!name) continue;
 		if (!strcmp(name, "fontStyle") && (!strcmp(att->value, "italic") || !strcmp(att->value, "oblique")))
 			needs_italic = GF_TRUE;
 		if (!strcmp(name, "textDecoration") && !strcmp(att->value, "underlined"))

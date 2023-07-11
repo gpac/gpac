@@ -2580,7 +2580,7 @@ static GF_Err cenc_enc_process(GF_Filter *filter)
 
 	nb_eos = 0;
 	for (i=0; i<count; i++) {
-		GF_Err e = GF_OK;;
+		GF_Err e = GF_OK;
 		GF_CENCStream *cstr = gf_list_get(ctx->streams, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(cstr->ipid);
 		if (!pck) {

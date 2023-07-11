@@ -274,7 +274,7 @@ static void nhmldmx_set_props(GF_NHMLDmxCtx *ctx, GF_XMLNode *props, GF_FilterPa
 
 	i=0;
 	while ( (att = (GF_XMLAttribute *)gf_list_enum(props->attributes, &i))) {
-		if (strcmp(att->name, "ref")) continue;;
+		if (strcmp(att->name, "ref")) continue;
 		GF_XMLNode *ref_props = nhmldmx_get_props(ctx, att->value);
 		if (ref_props) {
 			props = ref_props;
@@ -1602,7 +1602,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc) {
 				ctx->samp_buffer_alloc = ctx->samp_buffer_size;
-				ctx->samp_buffer = gf_realloc(ctx->samp_buffer, ctx->samp_buffer_size);;
+				ctx->samp_buffer = gf_realloc(ctx->samp_buffer, ctx->samp_buffer_size);
 			}
 			memcpy(ctx->samp_buffer, output, ctx->samp_buffer_size);
 			gf_free(output);

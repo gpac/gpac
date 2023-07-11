@@ -700,7 +700,7 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 {
-	Bool request_ok = GF_TRUE;;
+	Bool request_ok = GF_TRUE;
 	u32 i;
 	Bool has_open_start=GF_FALSE;
 	Bool has_file_end=GF_FALSE;

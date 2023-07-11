@@ -242,7 +242,7 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots, Boo
 	}
 	//ots + pctx->ts_offset<0
 	if ((pctx->ts_offset<0) && (ots < (u64) -pctx->ts_offset)) {
-		pctx->ts_offset += (s64) ots + pctx->ts_offset;;
+		pctx->ts_offset += (s64) ots + pctx->ts_offset;
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DELAY, &PROP_LONGSINT(pctx->ts_offset) );
 		ts = 0;
 	}
@@ -348,7 +348,7 @@ static void restamp_config_timing(GF_Filter *filter, RestampCtx *ctx)
 	u32 min_timescale=0;
 
 	if ((ctx->tsinit.num<0) || !ctx->tsinit.den) {
-		ctx->config_timing = GF_FALSE;;
+		ctx->config_timing = GF_FALSE;
 		return;
 	}
 
@@ -388,7 +388,7 @@ static void restamp_config_timing(GF_Filter *filter, RestampCtx *ctx)
 		pctx->ts_shift_plus_one += gf_timestamp_rescale(ctx->tsinit.num, ctx->tsinit.den, pctx->timescale);
 		pctx->ts_shift_plus_one += 1;
 	}
-	ctx->config_timing = GF_FALSE;;
+	ctx->config_timing = GF_FALSE;
 }
 
 

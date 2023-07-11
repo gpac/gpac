@@ -1504,7 +1504,7 @@ props_done:
 		} else {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_W, NULL);
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_H, NULL);
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_X, NULL);;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_X, NULL);
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_Y, NULL);
 		}
 
@@ -1836,7 +1836,7 @@ retry:
 	} else {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_W, NULL);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_H, NULL);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_X, NULL);;
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_X, NULL);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_Y, NULL);
 	}
 

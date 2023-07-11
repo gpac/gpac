@@ -1307,7 +1307,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		AVContentLightMetadata *data = av_malloc(sizeof(AVContentLightMetadata));
 		if (data) {
 			data->MaxCLL = gf_bs_read_u16(bs);
-			data->MaxFALL = gf_bs_read_u16(bs);;
+			data->MaxFALL = gf_bs_read_u16(bs);
 			av_stream_add_side_data(st->stream, AV_PKT_DATA_CONTENT_LIGHT_LEVEL, (u8*) data, sizeof(AVContentLightMetadata));
 		}
 		gf_bs_del(bs);

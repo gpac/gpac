@@ -3687,7 +3687,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 						GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" ( ", src->edges[j].src_reg->freg->name));
 					}
 					for (k=0; k<src->nb_edges; k++) {
-						if (src->edges[j].src_reg != src->edges[k].src_reg) continue;;
+						if (src->edges[j].src_reg != src->edges[k].src_reg) continue;
 
 						if (print_fn)
 							print_fn(stderr, 0, "%d->%d ", src->edges[k].src_cap_idx, src->edges[k].dst_cap_idx);

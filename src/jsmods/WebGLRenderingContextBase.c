@@ -1249,7 +1249,7 @@ static JSValue wgl_uniform1iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	WGL_CHECK_CONTEXT
 	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(location, argv[0], WebGLUniformLocation_class_id);
-	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);;
+	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform1iv(location, v_size, v);
@@ -1317,7 +1317,7 @@ static JSValue wgl_uniform2iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	WGL_CHECK_CONTEXT
 	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(location, argv[0], WebGLUniformLocation_class_id);
-	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);;
+	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform2iv(location, v_size, v);
@@ -1389,7 +1389,7 @@ static JSValue wgl_uniform3iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	WGL_CHECK_CONTEXT
 	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(location, argv[0], WebGLUniformLocation_class_id);
-	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);;
+	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform3iv(location, v_size, v);
@@ -1465,7 +1465,7 @@ static JSValue wgl_uniform4iv(JSContext *ctx, JSValueConst this_val, int argc, J
 	WGL_CHECK_CONTEXT
 	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	WGL_GET_GLID(location, argv[0], WebGLUniformLocation_class_id);
-	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);;
+	if (!WGL_LOAD_INT32_VEC(ctx, argv[1], (s32 **) &v, &v_size, 1)) return js_throw_err(ctx, WGL_INVALID_VALUE);
 	/*hack for GPAC textures, we create uniforms with loc -2 for such textures*/
 	if ((s32) location>=0)
 		glUniform4iv(location, v_size, v);
