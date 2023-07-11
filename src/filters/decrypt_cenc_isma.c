@@ -2298,7 +2298,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ORIG_CRYPT_SCHEME, &PROP_4CC(scheme_type) );
 
 
-	cstr->is_nalu = GF_FALSE;;
+	cstr->is_nalu = GF_FALSE;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (prop) {
 		switch (prop->value.uint) {
@@ -2310,7 +2310,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		case GF_CODECID_LHVC:
 		case GF_CODECID_VVC:
 		case GF_CODECID_VVC_SUBPIC:
-			cstr->is_nalu = GF_TRUE;;
+			cstr->is_nalu = GF_TRUE;
 			break;
 		}
 	}

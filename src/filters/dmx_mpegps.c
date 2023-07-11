@@ -377,7 +377,7 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 			}
 
 			//bug in some streams, make sure we don't dispatch twice the same ts
-			if (st->last_dts == dts) dts++;;
+			if (st->last_dts == dts) dts++;
 			st->last_dts = dts;
 
 			if ((buf_len>4) && (buf[buf_len - 4] == 0) && (buf[buf_len - 3] == 0) && (buf[buf_len - 2] == 1)) buf_len -= 4;

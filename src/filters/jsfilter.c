@@ -5020,7 +5020,7 @@ static void jsfilter_finalize(GF_Filter *filter)
 		count = gf_list_count(jsf->filter->session->filters);
 		for (i=0; i<count; i++) {
 			GF_Filter *a_f = gf_list_get(jsf->filter->session->filters, i);
-			if (a_f == jsf->filter) continue;;
+			if (a_f == jsf->filter) continue;
 			jsfs_on_filter_destroyed(a_f);
 		}
 		if (!JS_IsUndefined(jsf->filter->jsval)) {

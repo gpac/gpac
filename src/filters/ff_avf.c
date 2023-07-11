@@ -304,7 +304,7 @@ static GF_Err ffavf_initialize(GF_Filter *filter)
 			char *sep = strstr(desc, avf->filter->name);
 			if (sep) {
 				u32 slen = (u32) strlen(avf->filter->name);
-				if ((sep[slen]==',') || !sep[slen]) continue;;
+				if ((sep[slen]==',') || !sep[slen]) continue;
 			}
 		}
 		gf_dynstrcat(&desc, avf->filter->name, " ");

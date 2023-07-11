@@ -1280,7 +1280,7 @@ typedef CUresult CUDAAPI tcuMemHostGetDevicePointer(CUdeviceptr *pdptr, void *p,
 typedef CUresult CUDAAPI tcuMemHostGetFlags(unsigned int *pFlags, void *p);
 
 typedef CUresult CUDAAPI tcuMemHostRegister(void *p, size_t bytesize, unsigned int Flags);
-typedef CUresult CUDAAPI tcuMemHostUnregister(void *p);;
+typedef CUresult CUDAAPI tcuMemHostUnregister(void *p);
 typedef CUresult CUDAAPI tcuMemcpy(CUdeviceptr dst, CUdeviceptr src, size_t ByteCount);
 typedef CUresult CUDAAPI tcuMemcpyPeer(CUdeviceptr dstDevice, CUcontext dstContext, CUdeviceptr srcDevice, CUcontext srcContext, size_t ByteCount);
 

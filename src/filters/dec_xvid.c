@@ -266,7 +266,7 @@ static GF_Err xviddec_process(GF_Filter *filter)
 flush_dec:
 	memset(&frame, 0, sizeof(frame));
 	if (pck) {
-		u64 cts = gf_filter_pck_get_cts(pck);;
+		u64 cts = gf_filter_pck_get_cts(pck);
 		frame.bitstream = (char *) gf_filter_pck_get_data(pck, &frame.length);
 
 		//append in cts order since we get output frames in cts order

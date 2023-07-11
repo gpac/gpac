@@ -1020,7 +1020,7 @@ GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 	int   n;         /* index of contour in outline     */
 	int   first;     /* index of first point in contour */
 	TPos _x, _y, _sx, _sy;
-	u32 size_y, fill_rule = 0;;
+	u32 size_y, fill_rule = 0;
 	EVG_Outline *outline;
 	GF_Matrix projModeView;
 	GF_EVGFragmentParam fparam;

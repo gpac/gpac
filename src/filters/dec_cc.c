@@ -419,7 +419,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 				gf_bs_seek(ctx->bs, obu_start);
 			}
 			obu_size += obu_hdr_size;
-			if (size < obu_size) break;;
+			if (size < obu_size) break;
 			gf_bs_skip_bytes(ctx->bs, obu_size);
 			size -= (u32) ( obu_size + obu_hdr_size);
 		}

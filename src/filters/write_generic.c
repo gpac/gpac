@@ -1093,10 +1093,10 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 			GF_XMLNode *div = gf_list_get(body_global->content, i);
 			if (div->type) continue;
 			if (strcmp(div->name, "div")) continue;
-			if (gf_list_count(div->content) > 1) continue;;
+			if (gf_list_count(div->content) > 1) continue;
 
 			child = gf_list_get(div->content, 0);
-			if (child && !child->type) continue;;
+			if (child && !child->type) continue;
 
 			gf_list_rem(body_global->content, i);
 			i--;

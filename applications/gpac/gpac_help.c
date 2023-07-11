@@ -2525,7 +2525,7 @@ void dump_all_codecs(GF_SysArgMode argmode)
 				break;
 			}
 			for (k=0; k<count; k++) {
-				if (k==i) continue;;
+				if (k==i) continue;
 				reg = gf_list_get(meta_codecs, k);
 				const char *rname = strchr(reg->name, ':');
 				if (rname) rname++;
