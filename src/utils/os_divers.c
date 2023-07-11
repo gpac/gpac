@@ -881,6 +881,9 @@ Bool gf_sys_is_cov_mode()
 #endif
 
 const char *gpac_log_file_name=NULL;
+#ifndef GPAC_DISABLE_LOG
+extern Bool gpac_log_dual;
+#endif
 
 GF_EXPORT
 void gf_log_reset_file()
@@ -965,6 +968,10 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gpac_log_file_name = arg_val;
 #endif
 				if (!use_sep) i += 1;
+			} else if (!strcmp(arg, "-log-dual") || !strcmp(arg, "-ld")) {
+#ifndef GPAC_DISABLE_LOG
+				gpac_log_dual = GF_TRUE;
+#endif
 			} else if (!strcmp(arg, "-logs") ) {
 				e = gf_log_set_tools_levels(arg_val, GF_FALSE);
 				if (e) return e;

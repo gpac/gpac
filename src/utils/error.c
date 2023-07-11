@@ -655,6 +655,7 @@ u32 gf_log_get_tool_level(GF_LOG_Tool log_tool)
 FILE *gpac_log_file = NULL;
 Bool gpac_log_time_start = GF_FALSE;
 Bool gpac_log_utc_time = GF_FALSE;
+Bool gpac_log_dual = GF_FALSE;
 Bool last_log_is_lf = GF_TRUE;
 static u64 gpac_last_log_time=0;
 
@@ -692,6 +693,12 @@ void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, cons
 	if (gf_fileio_check(logs)) {
 		gf_fileio_printf((GF_FileIO *)logs, fmt, vlist);
 	} else {
+		if (gpac_log_dual && gpac_no_color_logs) {
+			va_list vlist_c;
+			va_copy(vlist_c, vlist);
+			vfprintf(stderr, fmt, vlist_c);
+			va_end(vlist_c);
+		}
 		vfprintf(logs, fmt, vlist);
 	}
 	gf_fflush(logs);
@@ -700,8 +707,14 @@ void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, cons
 void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
 	if (gpac_log_file) {
-		default_log_callback(cbck, level, tool, fmt, vlist);
-		return;
+		if (!gpac_log_dual) {
+			default_log_callback(cbck, level, tool, fmt, vlist);
+			return;
+		}
+		va_list vlist_c;
+		va_copy(vlist_c, vlist);
+		default_log_callback(cbck, level, tool, fmt, vlist_c);
+		va_end(vlist_c);
 	}
 	switch(level) {
 	case GF_LOG_ERROR:
