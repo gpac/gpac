@@ -2378,6 +2378,7 @@ void dump_all_audio_cicp(void)
 	const char *name;
 	u64 layout;
 
+	gf_sys_format_help(helpout, help_flags, "CICP Layouts as \"name (index): flags\"\n");
 	while ((cicp = gf_audio_fmt_cicp_enum(i, &name, &layout)) ) {
 		gf_sys_format_help(helpout, help_flags|GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%d): 0x%016"LLX_SUF"\n", name, cicp, layout);
 		i++;
