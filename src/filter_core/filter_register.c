@@ -191,6 +191,7 @@ REG_DEC(writeuf)
 REG_DEC(ghidmx)
 REG_DEC(evgs)
 REG_DEC(ccdec)
+REG_DEC(mpeghdec)
 
 typedef const GF_FilterRegister *(*filter_reg_fun)(GF_FilterSession *session);
 
@@ -323,6 +324,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(rfsrt),
 	REG_IT(ttml2vtt),
 	REG_IT(ttml2srt),
+	REG_IT(mpeghdec),
 
 	REG_IT(ffdmx),
 	REG_IT(ffdmxpid),

@@ -329,6 +329,7 @@
 		92261A89239E326900C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A88239E326900C14199 /* out_http.c */; };
 		9227B8582799F8E700BF3D1B /* bs_agg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9227B8562799F8E600BF3D1B /* bs_agg.c */; };
 		9227B8592799F8E700BF3D1B /* bs_split.c in Sources */ = {isa = PBXBuildFile; fileRef = 9227B8572799F8E600BF3D1B /* bs_split.c */; };
+		922B0FAC2A5EBCF2003690BB /* dec_mpeghdec.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B0FAB2A5EBCF2003690BB /* dec_mpeghdec.c */; };
 		922B2774244625B0001D4F72 /* dec_ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B2773244625B0001D4F72 /* dec_ttml.c */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
@@ -937,6 +938,7 @@
 		92261A88239E326900C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = ../../src/filters/out_http.c; sourceTree = "<group>"; };
 		9227B8562799F8E600BF3D1B /* bs_agg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_agg.c; path = ../../src/filters/bs_agg.c; sourceTree = "<group>"; };
 		9227B8572799F8E600BF3D1B /* bs_split.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_split.c; path = ../../src/filters/bs_split.c; sourceTree = "<group>"; };
+		922B0FAB2A5EBCF2003690BB /* dec_mpeghdec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_mpeghdec.c; path = ../../src/filters/dec_mpeghdec.c; sourceTree = "<group>"; };
 		922B2773244625B0001D4F72 /* dec_ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ttml.c; path = ../../src/filters/dec_ttml.c; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
@@ -1941,6 +1943,7 @@
 				92EB6D7B20E4E19200A97A49 /* dec_j2k.c */,
 				92EB6D9520E4E19400A97A49 /* dec_laser.c */,
 				92EB6DA820E4E19600A97A49 /* dec_mad.c */,
+				922B0FAB2A5EBCF2003690BB /* dec_mpeghdec.c */,
 				92EB6DB220E4E19600A97A49 /* dec_odf.c */,
 				92EB6D7420E4E19200A97A49 /* dec_openhevc.c */,
 				92EB6DC020E4E19700A97A49 /* dec_opensvc.c */,
@@ -2499,6 +2502,7 @@
 				71CCF2AC1277045100339E12 /* box_code_base.c in Sources */,
 				71CCF2AD1277045100339E12 /* box_code_drm.c in Sources */,
 				71CCF2AE1277045100339E12 /* box_code_meta.c in Sources */,
+				922B0FAC2A5EBCF2003690BB /* dec_mpeghdec.c in Sources */,
 				71CCF2AF1277045100339E12 /* box_dump.c in Sources */,
 				71CCF2B01277045100339E12 /* box_funcs.c in Sources */,
 				71CCF2B11277045100339E12 /* data_map.c in Sources */,

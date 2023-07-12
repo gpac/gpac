@@ -34,6 +34,7 @@
 - Various speed optimizations (filter session, isomedia lib, disk io, xml)
 - Allow running the session without mutexes
 - Closed Caption decoding filter (CEA708)
+- MPEG-H decoder using IIS mpeghdec
 
 ## MP4Box
 - add track reordering option

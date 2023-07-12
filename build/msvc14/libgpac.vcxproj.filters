@@ -1172,6 +1172,9 @@
     <ClCompile Include="..\..\src\filters\dec_mad.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_mpeghdec.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_odf.c">
       <Filter>filters</Filter>
     </ClCompile>

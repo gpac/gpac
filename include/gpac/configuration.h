@@ -67,6 +67,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_DTAPI
 #define GPAC_HAS_HTTP2
 #define GPAC_HAS_LIBCAPTION
+#define GPAC_HAS_MPEGHDECODER
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 
@@ -161,6 +162,7 @@ This section documents the base data types of GPAC.
 #define GPAC_MEMORY_TRACKING
 
 #define GPAC_HAS_LIBCAPTION
+#define GPAC_HAS_MPEGHDECODER
 
 /*Configuration for XCode iOS*/
 #elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_CONFIG_IOS)
