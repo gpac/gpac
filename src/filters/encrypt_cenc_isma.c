@@ -106,7 +106,7 @@ typedef struct
 	Bool ctr_mode;
 	Bool is_saes;
 
-	Bool rap_roll;
+	Bool rap_roll, warned_clear;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	AVCState *avc_state;
@@ -1162,7 +1162,10 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (!tci) {
 		if (cinfo) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in DRM config file, PID will not be crypted\n") );
+			if (!cstr->warned_clear) {
+				cstr->warned_clear = GF_TRUE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in DRM config file, PID %s will not be crypted\n", gf_filter_pid_get_name((pid))) );
+			}
 		}
 	} else {
 		scheme_type = tci->scheme_type;
@@ -1932,7 +1935,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					nb_subs_crypted++;
 				}
 			}
-			
+			//may happen with SAES
+			if (clear_bytes > nalu_size)
+				clear_bytes = nalu_size;
+
 			while (nb_ranges) {
 				if (cstr->ctr_mode) {
 
@@ -2194,13 +2200,14 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 			while (gf_bs_available(ctx->bs_r)) {
 				u32 nalu_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
+				nal += cstr->nalu_size_length;
 				epb_add_count = gf_media_nalu_emulation_bytes_add_count(nal, nalu_size);
 				gf_bs_write_int(ctx->bs_w, nalu_size+epb_add_count, 8*cstr->nalu_size_length);
-				nal += cstr->nalu_size_length;
 				dst_nal += cstr->nalu_size_length;
 				w_pos += 4;
+				if (epb_add_count)
+					gf_media_nalu_add_emulation_bytes(nal, dst_nal, nalu_size);
 
-				gf_media_nalu_add_emulation_bytes(nal, dst_nal, nalu_size);
 				nal += nalu_size;
 				dst_nal += nalu_size+epb_add_count;
 				gf_bs_skip_bytes(ctx->bs_r, nalu_size);
