@@ -1720,7 +1720,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
 
-		if (gf_filter_has_connect_errors(filter))
+		if (gf_filter_has_connect_errors(filter) || gf_filter_all_sinks_done(filter))
 			return GF_EOS;
 		//when we use vout+aout on audio only, we want the filter to still be active to process events
 		gf_filter_post_process_task(filter);
