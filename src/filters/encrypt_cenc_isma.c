@@ -1162,8 +1162,8 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (!tci) {
 		if (cinfo) {
-			if (!cstr->warned_clear) {
-				cstr->warned_clear = GF_TRUE;
+			cstr = gf_filter_pid_get_udta(pid);
+			if (!cstr || !cstr->warned_clear) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCrypt] Missing track crypt info in DRM config file, PID %s will not be crypted\n", gf_filter_pid_get_name((pid))) );
 			}
 		}
@@ -1200,6 +1200,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		//we need full sample
 		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	}
+	cstr->warned_clear = GF_TRUE;
 	if (cstr->cinfo) gf_crypt_info_del(cstr->cinfo);
 	cstr->cinfo = (cinfo != ctx->cinfo) ? cinfo : NULL;
 	cstr->tci = tci;
