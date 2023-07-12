@@ -171,6 +171,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dec_xvid.c \
 	../../../../src/filters/dec_mediacodec.c \
 	../../../../src/filters/dec_mediacodec_jni.c \
+	../../../../src/filters/dec_mpeghdec.c \
 	../../../../src/filters/dmx_avi.c \
 	../../../../src/filters/dmx_dash.c \
 	../../../../src/filters/dmx_ghi.c \

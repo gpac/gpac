@@ -178,6 +178,7 @@
 		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
 		9225DD752326790C00F94C42 /* mpd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9225DD742326790C00F94C42 /* mpd.h */; };
 		92261A87239A6E4600C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A86239A6E4600C14199 /* out_http.c */; };
+		922B0FAA2A5E81EB003690BB /* dec_mpeghdec.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B0FA92A5E81EB003690BB /* dec_mpeghdec.c */; };
 		922B27722445D5CE001D4F72 /* dec_ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B27712445D5CE001D4F72 /* dec_ttml.c */; };
 		922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */; };
 		922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1261FCF169900F2F6A4 /* dmx_avi.c */; };
@@ -803,6 +804,7 @@
 		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
 		9225DD742326790C00F94C42 /* mpd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpd.h; path = ../include/gpac/mpd.h; sourceTree = "<group>"; };
 		92261A86239A6E4600C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = filters/out_http.c; sourceTree = "<group>"; };
+		922B0FA92A5E81EB003690BB /* dec_mpeghdec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_mpeghdec.c; path = filters/dec_mpeghdec.c; sourceTree = "<group>"; };
 		922B27712445D5CE001D4F72 /* dec_ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ttml.c; path = filters/dec_ttml.c; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_mpegps.c; path = filters/dmx_mpegps.c; sourceTree = "<group>"; };
@@ -1980,6 +1982,7 @@
 				92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
 				92BA0AD3243B68AF006FC74E /* dec_mediacodec.c */,
+				922B0FA92A5E81EB003690BB /* dec_mpeghdec.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
 				92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */,
 				926656C31F7D3DF700299CC6 /* dec_theora.c */,
@@ -2528,6 +2531,7 @@
 				9201011118D5A444003D1ACA /* rtsp_response.c in Sources */,
 				9201011218D5A444003D1ACA /* rtsp_session.c in Sources */,
 				92B2A4AB229D64EF002A65A7 /* hevcsplit.c in Sources */,
+				922B0FAA2A5E81EB003690BB /* dec_mpeghdec.c in Sources */,
 				92B9A5711F8660D700A24FE4 /* drawable.c in Sources */,
 				9201011318D5A444003D1ACA /* sdp.c in Sources */,
 				925975032215BA3A0007E02B /* surface.c in Sources */,
@@ -3122,6 +3126,17 @@
 					"-lsrt",
 					"-lvvdec",
 					"-lcaption",
+					"-lSYS",
+					"-lFDK",
+					"-lDRCdec",
+					"-lPCMutils",
+					"-lMpeghDec",
+					"-lIGFdec",
+					"-lArithCoding",
+					"-lFormatConverter",
+					"-lUIManager",
+					"-lgVBAPRenderer",
+					"-lMpegTPDec",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3254,6 +3269,17 @@
 					"-lsrt",
 					"-lvvdec",
 					"-lcaption",
+					"-lSYS",
+					"-lFDK",
+					"-lDRCdec",
+					"-lPCMutils",
+					"-lMpeghDec",
+					"-lIGFdec",
+					"-lArithCoding",
+					"-lFormatConverter",
+					"-lUIManager",
+					"-lgVBAPRenderer",
+					"-lMpegTPDec",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;

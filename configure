@@ -339,7 +339,7 @@ get_size()
 
 #zlib MUST be first
 all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2"
-all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption"
+all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption mpeghdec"
 disabled_packages=""
 
 #init all has_FOO=no and set FOO_cflags=
@@ -1699,6 +1699,14 @@ int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); retu
 config_package caption "libcaption" "" "-lcaption" "" '#include <caption/cea708.h>
 int main( void ) { caption_frame_t ccframe; caption_frame_init(&ccframe); return 0; }'
 
+config_package mpeghdec "mpeghdec" "" " -lSYS -lFDK -lDRCdec -lPCMutils -lMpeghDec -lIGFdec -lArithCoding -lFormatConverter -lUIManager -lgVBAPRenderer -lMpegTPDec" "" '
+#ifndef bool
+typedef int bool;
+#endif
+#include <mpeghdecoder.h>
+int main( void ) { HANDLE_MPEGH_DECODER_CONTEXT codec = mpeghdecoder_init(2); return 0; }'
+
+
 #look for VideoToolBox support
 if test "$darwin" = "yes" ; then
 ldflags_vtb="-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox"
@@ -2484,6 +2492,7 @@ echo "MAD: $has_mad"
 echo "FAAD: $has_faad"
 echo "XVID: $has_xvid"
 echo "libcaption: $has_caption"
+echo "MpeghDecoder: $has_mpeghdec"
 
 ffopts=""
 if test "$has_ffmpeg" != "no" ; then
@@ -2856,6 +2865,10 @@ fi
 
 if test "$has_caption" != "no" ; then
     echo "#define GPAC_HAS_LIBCAPTION" >> $TMPH
+fi
+
+if test "$has_mpeghdec" != "no" ; then
+    echo "#define GPAC_HAS_MPEGHDECODER" >> $TMPH
 fi
 
 #dump all cflags
