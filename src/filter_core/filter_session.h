@@ -540,6 +540,7 @@ typedef struct
 	u32 crc;
 	s32 inc_val;
 	GF_Filter *filter;
+	GF_FilterPid *pid;
 } GF_FSAutoIncNum;
 
 #ifndef GPAC_DISABLE_3D
@@ -1149,6 +1150,10 @@ const GF_PropertyValue *gf_filter_pid_get_property_str_first(GF_FilterPid *pid, 
 void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid);
 
 Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst);
+
+//solve property template, or jusr GINC() if pid is NULL
+void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **value);
+
 enum
 {
 	EDGE_STATUS_NONE=0,

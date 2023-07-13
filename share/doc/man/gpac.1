@@ -2359,6 +2359,32 @@ gpac -i source.mp4:#MyProp=(Width+1280)HD
 .br
 This will assign property MyProp to HD for PIDs with property Width greater than 1280.
 .br
+
+.br
+The property value can be templated using the following keywords:
+.br
+* $GINC(init[,inc]) or @GINC(...): replaced by integer for each new pid (see specific filter options for details on syntax)
+.br
+* $PROP$ or @PROP@: replaced by serialized value of property PROP (name or 4CC) or with empty string if no such property
+.br
+Example
+.br
+gpac -i source.ts:#ASID=$PID$
+.br
+
+.br
+This will assign DASH AdaptationSet ID to the PID ID value.
+.br
+Example
+.br
+gpac -i source.ts:#RepresentationID=$ServiceID$
+.br
+
+.br
+This will assign DASH Representation ID to the PID ServiceID value.
+.br
+
+.br
 .SH Using option files
 .LP
 .br

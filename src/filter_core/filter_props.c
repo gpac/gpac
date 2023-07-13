@@ -1656,20 +1656,30 @@ static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
 GF_EXPORT
 u32 gf_props_get_id(const char *name)
 {
-	u32 i, len;
+	u32 i, len, prop_id=0;
 	if (!name) return 0;
 	len = (u32) strlen(name);
+	if (len==4) {
+		prop_id = GF_4CC(name[0], name[1], name[2], name[3]);
+	} else if ((len==3) && !strcmp(name, "PID")) {
+		return GF_PROP_PID_ID;
+	}
+
 	for (i=0; i<gf_num_props; i++) {
-		if (GF_BuiltInProps[i].name) {
+		GF_BuiltInProperty *prop = &GF_BuiltInProps[i];
+		if (prop_id && (prop->type==prop_id))
+			return prop->type;
+
+		if (prop->name) {
 			u32 j;
 			for (j=0; j<=len; j++) {
-				char c = GF_BuiltInProps[i].name[j];
+				char c = prop->name[j];
 				if (!c) break;
 				if (c != name[j])
 					break;
 			}
-			if ((j==len) && !GF_BuiltInProps[i].name[j])
-				return GF_BuiltInProps[i].type;
+			if ((j==len) && !prop->name[j])
+				return prop->type;
 		}
 	}
 	return 0;
