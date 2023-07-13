@@ -424,7 +424,7 @@ const char *gpac_doc =
 "\n"
 "The property value can be templated using the following keywords:\n"
 "- $GINC(init[,inc]) or @GINC(...): replaced by integer for each new output PID of the filter (see specific filter options for details on syntax)\n"
-"- $PROP$ or @PROP@: replaced by serialized value of property `PROP` (name or 4CC) of the PID or with empty string if no such property\n"
+"- PROP (enclosed between `$` or `@`): replaced by serialized value of property `PROP` (name or 4CC) of the PID or with empty string if no such property\n"
 "EX gpac -i source.ts:#ASID=$PID$\n"
 "This will assign DASH AdaptationSet ID to the PID ID value.\n"
 "EX gpac -i source.ts:#RepresentationID=$ServiceID$\n"
