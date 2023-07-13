@@ -1669,8 +1669,6 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 
 	//check for built-in property
 	p4cc = gf_props_get_id(frag_name);
-	if (!p4cc && !strcmp(frag_name, "PID") )
-		p4cc = GF_PROP_PID_ID;
 
 	if (!p4cc && (strlen(frag_name)==4))
 		p4cc = GF_4CC(frag_name[0], frag_name[1], frag_name[2], frag_name[3]);
@@ -3888,6 +3886,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 	//parse each arg
 	while (args) {
+		char ref_prop_dump[GF_PROP_DUMP_ARG_SIZE];
 		u32 p4cc=0;
 		u32 prop_type=GF_PROP_FORBIDEN;
 		Bool parse_prop = GF_TRUE;
@@ -4033,6 +4032,16 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		if (!parse_prop)
 			goto skip_arg;
 
+		if (strchr(value, '$') || strchr(value, '@')) {
+			char *a_value = gf_strdup(value);
+			filter_solve_prop_template(filter, pid, &a_value);
+			strncpy(ref_prop_dump, a_value, GF_PROP_DUMP_ARG_SIZE-1);
+			ref_prop_dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
+			gf_free(a_value);
+			value = (char*) ref_prop_dump;
+			if (!value[0])
+				goto skip_arg;
+		}
 
 		if (prop_type != GF_PROP_FORBIDEN) {
 			GF_PropertyValue p;

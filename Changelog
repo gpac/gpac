@@ -35,6 +35,7 @@
 - Allow running the session without mutexes
 - Closed Caption decoding filter (CEA708)
 - MPEG-H decoder using IIS mpeghdec
+- Templating for property assignment 
 
 ## MP4Box
 - add track reordering option

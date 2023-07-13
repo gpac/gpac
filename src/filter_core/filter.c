@@ -982,8 +982,9 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 }
 
 
-static void filter_translate_autoinc(GF_Filter *filter, char *value)
+void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **value)
 {
+	char ref_prop_dump[GF_PROP_DUMP_ARG_SIZE];
 	u32 ainc_crc, i;
 	GF_FSAutoIncNum *auto_int=NULL;
 	u32 inc_count;
@@ -992,11 +993,45 @@ static void filter_translate_autoinc(GF_Filter *filter, char *value)
 	s32 increment=1;
 	char szInt[100];
 
+	char *search_str = *value;
 	while (1) {
 		char *step_sep;
 		char *inc_end, *inc_sep;
-		inc_sep = strstr(value, "$GINC(");
+		char *s1 = strchr(search_str, '$');
+		char *s2 = strchr(search_str, '@');
+		if (s1 && s2 && (s2<s1)) s1 = NULL;
+		inc_sep = s1 ? s1 : s2;
+
 		if (!inc_sep) return;
+		if (strncmp(inc_sep+1, "GINC(", 5)) {
+			char *next = pid ?  strchr(inc_sep+1, inc_sep[0]) : NULL;
+			if (!next) {
+				search_str = inc_sep+1;
+				continue;
+			}
+			//check for prop
+			next[0] = 0;
+
+			const GF_PropertyValue *src_prop=NULL;
+			u32 ref_p4cc = gf_props_get_id(inc_sep+1);
+
+			if (ref_p4cc)
+				src_prop = gf_filter_pid_get_property(pid, ref_p4cc);
+			else
+				src_prop = gf_filter_pid_get_property_str(pid, inc_sep+1);
+
+			char *solved = src_prop ? (char*) gf_props_dump(ref_p4cc, src_prop, ref_prop_dump, GF_PROP_DUMP_DATA_INFO) : "";
+			inc_sep[0] = 0;
+			char *new_val = gf_strdup(*value);
+			gf_dynstrcat(&new_val, solved, NULL);
+			u32 len = (u32) strlen(new_val);
+			gf_dynstrcat(&new_val, next+1, NULL);
+			gf_free(*value);
+			*value = new_val;
+			search_str = new_val + len;
+			continue;
+		}
+
 		inc_end = strstr(inc_sep, ")");
 		if (!inc_end) return;
 
@@ -1018,10 +1053,11 @@ static void filter_translate_autoinc(GF_Filter *filter, char *value)
 				auto_int=NULL;
 				continue;
 			}
-			if (auto_int->filter == filter) {
+			if ((auto_int->filter == filter) && (auto_int->pid==pid)) {
 				sprintf(szInt, "%d", auto_int->inc_val);
 				break;
 			}
+
 			if (!assigned)
 				max_int = auto_int->inc_val;
 			else if ((increment>0) && (max_int < auto_int->inc_val))
@@ -1036,6 +1072,7 @@ static void filter_translate_autoinc(GF_Filter *filter, char *value)
 			GF_SAFEALLOC(auto_int, GF_FSAutoIncNum);
 			if (auto_int) {
 				auto_int->filter = filter;
+				auto_int->pid = pid;
 				auto_int->crc = ainc_crc;
 				if (assigned) auto_int->inc_val = max_int + increment;
 				else sscanf(szInt, "%d", &auto_int->inc_val);
@@ -1044,8 +1081,15 @@ static void filter_translate_autoinc(GF_Filter *filter, char *value)
 		}
 		if (auto_int) {
 			sprintf(szInt, "%d", auto_int->inc_val);
-			strcat(value, szInt);
-			strcat(value, inc_end);
+			char *new_val = gf_strdup(*value);
+			gf_dynstrcat(&new_val, szInt, NULL);
+			gf_dynstrcat(&new_val, inc_end, NULL);
+			u32 len = (u32) strlen(new_val);
+			gf_free(*value);
+			*value = new_val;
+			search_str = new_val + len;
+		} else {
+			search_str = inc_sep + 1;
 		}
 	}
 }
@@ -1082,7 +1126,7 @@ GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Fil
 
 	if (f && strstr(value, "$GINC(")) {
 		char *a_value = gf_strdup(value);
-		filter_translate_autoinc(f, a_value);
+		filter_solve_prop_template(f, NULL, &a_value);
 		argv = gf_props_parse_value(type, name, a_value, enum_values, fs->sep_list);
 		gf_free(a_value);
 		return argv;
