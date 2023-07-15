@@ -146,9 +146,15 @@ static GF_Err mpegh_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	//init dec
 	if (dsi) {
-		MPEGH_DECODER_ERROR err = mpeghdecoder_setMhaConfig(ctx->codec, dsi->value.data.ptr, dsi->value.data.size);
-		if (err != MPEGH_DEC_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MPEGHDec] Failed to set decoder params\n"));
+		//remove first 5 bytes of mhaC
+		if (dsi->value.data.size>5) {
+			MPEGH_DECODER_ERROR err = mpeghdecoder_setMhaConfig(ctx->codec, dsi->value.data.ptr+5, dsi->value.data.size-5);
+			if (err != MPEGH_DEC_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MPEGHDec] Failed to set decoder params\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MPEGHDec] Invalid decoder config, at least 5 bytes expected got %d\n", dsi->value.data.size));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}
