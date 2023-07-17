@@ -319,6 +319,7 @@
 		8959AC8F211C9C77004D2C87 /* Remotery.c in Sources */ = {isa = PBXBuildFile; fileRef = 8959AC8E211C9C77004D2C87 /* Remotery.c */; };
 		896CBC872110598E00220377 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC862110598E00220377 /* Security.framework */; };
 		896CBC8921105A6900220377 /* libaom.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 896CBC8821105A6900220377 /* libaom.a */; };
+		89F956CB2A6595470049D6D3 /* libmpegh.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 89F956CA2A6595470049D6D3 /* libmpegh.a */; };
 		9210BA1D234A909400ED2DFF /* evg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210BA1C234A909400ED2DFF /* evg.c */; };
 		9210D8242A0E82CB0047019A /* evg_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 9210D8232A0E82CB0047019A /* evg_rescale.c */; };
 		9212C0FD222D7B3700FE3580 /* vflip.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212C0FC222D7B3700FE3580 /* vflip.c */; };
@@ -928,6 +929,7 @@
 		8959AC8E211C9C77004D2C87 /* Remotery.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Remotery.c; sourceTree = "<group>"; };
 		896CBC862110598E00220377 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		896CBC8821105A6900220377 /* libaom.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libaom.a; path = ../../extra_lib/lib/iOS/libaom.a; sourceTree = "<group>"; };
+		89F956CA2A6595470049D6D3 /* libmpegh.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmpegh.a; path = ../../extra_lib/lib/iOS/libmpegh.a; sourceTree = "<group>"; };
 		9210BA1C234A909400ED2DFF /* evg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg.c; path = ../../src/jsmods/evg.c; sourceTree = "<group>"; };
 		9210D8232A0E82CB0047019A /* evg_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = evg_rescale.c; path = ../../src/filters/evg_rescale.c; sourceTree = "<group>"; };
 		9212C0FC222D7B3700FE3580 /* vflip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vflip.c; path = ../../src/filters/vflip.c; sourceTree = "<group>"; };
@@ -1193,6 +1195,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				89F956CB2A6595470049D6D3 /* libmpegh.a in Frameworks */,
 				92455FDB2A540A640080321C /* libcaption.a in Frameworks */,
 				924AB6852816F1E200EC006F /* GameController.framework in Frameworks */,
 				924AB6832816F1DA00EC006F /* Metal.framework in Frameworks */,
@@ -1267,6 +1270,7 @@
 		7184780712785F7B00917298 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				89F956CA2A6595470049D6D3 /* libmpegh.a */,
 				92455FDA2A540A640080321C /* libcaption.a */,
 				924AB6862816F20300EC006F /* CoreHaptics.framework */,
 				924AB6842816F1E200EC006F /* GameController.framework */,
