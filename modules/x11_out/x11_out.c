@@ -748,7 +748,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 	if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
 
 #ifdef GPAC_HAS_OPENGL
-	if (gf_opts_get_bool("core", "disable-vsync")) {
+	if (gf_module_get_bool((GF_BaseInterface*)vout, "no-vsync")) {
 		my_glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddress( (const GLubyte*)"glXSwapIntervalEXT");
 		if (my_glXSwapIntervalEXT != NULL) {
 			my_glXSwapIntervalEXT(xWin->display, xWin->wnd, 0);
@@ -1306,8 +1306,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->use_shared_memory = 0;
 
 #ifdef GPAC_HAS_X11_SHM
-	sOpt = gf_opts_get_key("core", "hwvmem");
-	if (!sOpt || strcmp(sOpt, "no")) {
+	sOpt = gf_module_get_key((GF_BaseInterface*)vout, "hwvmem");
+	if (!sOpt || strcmp(sOpt, "never")) {
 		int XShmMajor, XShmMinor;
 		Bool XShmPixmaps;
 		if (XShmQueryVersion(xWindow->display, &XShmMajor, &XShmMinor, &XShmPixmaps)) {
@@ -1322,8 +1322,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 #endif
 
 #ifdef GPAC_HAS_X11_XV
-	sOpt = gf_opts_get_key("core", "no-colorkey");
-	if (sOpt && !strcmp(sOpt, "yes")) {
+	if (!gf_module_get_bool((GF_BaseInterface *vout), "colorkey")) {
 		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 	} else {
 		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 1);
@@ -1345,7 +1344,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 
 #ifdef GPAC_HAS_X11_SHM
 		/*if user asked for YUV->RGB on offscreen, do it (it may crash the system)*/
-		if (gf_opts_get_bool("core", "offscreen-yuv")) {
+		if (gf_module_get_bool((GF_BaseInterface *)vout, "offscreen-yuv")) {
 			vout->hw_caps |= GF_VIDEO_HW_HAS_YUV;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using XV Offscreen YUV2RGB acceleration\n"));
 		}
@@ -1566,6 +1565,16 @@ void X11_Shutdown (struct _video_out *vout)
 }
 
 
+static GF_GPACArg X11Args[] = {
+	GF_DEF_ARG("offscreen-yuv", NULL, "enable offscreen yuv", "true", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("no-vsync", NULL, "disable vertical synchro", "false", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed\n"
+ "- always: always on hardware\n"
+ "- never: always on system memory\n"
+ "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+	GF_DEF_ARG("colorkey", NULL, "enable colorkey for overlays", "true", NULL, GF_ARG_BOOL, 0),
+	{0},
+};
 
 
 void *NewX11VideoOutput ()
@@ -1579,7 +1588,7 @@ void *NewX11VideoOutput ()
 		gf_free(driv);
 		return NULL;
 	}
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "X11 Video Output", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "x11", "gpac distribution")
 
 	driv->opaque = xWindow;
 
@@ -1598,6 +1607,9 @@ void *NewX11VideoOutput ()
 		x11_translate_key(XK_BackSpace, &evt.key);
 		X11_BadAccess_ByPass(NULL, NULL);
 	}
+	driv->args = X11Args;
+	driv->description = "Video output using X11";
+
 	return (void *) driv;
 
 }

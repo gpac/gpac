@@ -181,7 +181,7 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 	while (ctx->buffer_size % ctx->format.nBlockAlign) ctx->buffer_size++;
 
 	ctx->use_notif = GF_TRUE;
-	if (gf_opts_get_bool("core", "ds-disable-notif"))
+	if (gf_module_get_bool(dr, "disable-notif"))
 		ctx->use_notif = GF_FALSE;
 
 	memset(&dsbBufferDesc, 0, sizeof(DSBUFFERDESC));
@@ -218,7 +218,7 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 	hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
 	if (FAILED(hr)) {
 retry:
-		if (ctx->use_notif) gf_opts_set_key("core", "ds-disable-notif", "yes");
+		if (ctx->use_notif) gf_opts_set_key("directsnd", "disable-notif", "yes");
 		ctx->use_notif = GF_FALSE;
 		dsbBufferDesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
 		hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
@@ -441,6 +441,11 @@ static u32 DS_GetTotalBufferTime(GF_AudioOutput *dr)
 	return ctx->total_audio_buffer_ms;
 }
 
+static GF_GPACArg DSAudioArgs[] = {
+	GF_DEF_ARG("disable-notif", NULL, "disable buffer position notifications", "false", NULL, GF_ARG_BOOL, 0),
+	{0},
+};
+
 void *NewAudioOutput()
 {
 	HRESULT hr;
@@ -469,7 +474,7 @@ void *NewAudioOutput()
 
 	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "DirectSound Audio Output", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "directsnd", "gpac distribution");
 
 	driv->opaque = ctx;
 
@@ -486,6 +491,8 @@ void *NewAudioOutput()
 	driv->QueryOutputSampleRate = DS_QueryOutputSampleRate;
 	/*never threaded*/
 	driv->SelfThreaded = GF_FALSE;
+	driv->args = DSAudioArgs;
+	driv->description = "DirectSound Audio output";
 	return driv;
 }
 

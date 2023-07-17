@@ -730,7 +730,7 @@ GF_VideoOutput *NewAndroidVideoOutput()
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DroidVOUT] Loading module"));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Android Video Output", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "android", "gpac distribution")
 
 	pCtx = gf_malloc(sizeof(AndroidContext));
 	memset(pCtx, 0, sizeof(AndroidContext));

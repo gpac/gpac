@@ -50,7 +50,7 @@ extern "C" {
 */
 
 /*interface name and version for audio output*/
-#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', '5')
+#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', '6')
 
 /*interface returned on query interface*/
 typedef struct _audiooutput

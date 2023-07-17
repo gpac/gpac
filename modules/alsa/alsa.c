@@ -48,12 +48,9 @@ static GF_Err ALSA_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u3
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
 
 
-	ctx->force_sr = gf_opts_get_int("core", "force-alsarate");
-	ctx->dev_name = gf_opts_get_key("core", "alsa-devname");
-	if (!ctx->dev_name) {
-		ctx->dev_name = "hw:0,0";
-		gf_opts_set_key("core", "alsa-devname", ctx->dev_name);
-	}
+	ctx->force_sr = gf_module_get_int((GF_BaseInterface *)dr, "force-rate");
+	ctx->dev_name = gf_module_get_key((GF_BaseInterface *)dr, "devname");
+	if (!ctx->dev_name) ctx->dev_name = "hw:0,0";
 
 	/*test device*/
 	err = snd_pcm_open(&ctx->playback_handle, ctx->dev_name, SND_PCM_STREAM_PLAYBACK, 0);
@@ -305,6 +302,12 @@ err_exit:
 	return GF_IO_ERR;
 }
 
+static GF_GPACArg ALSAArgs[] = {
+	GF_DEF_ARG("devname", NULL, "alsa device name", "hw:0,0", NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("force-rate", NULL, "force alsa sample rate", "0", NULL, GF_ARG_INT, 0),
+	{0},
+};
+
 void *NewALSAOutput()
 {
 	ALSAContext *ctx;
@@ -325,7 +328,10 @@ void *NewALSAOutput()
 	driv->GetAudioDelay = ALSA_GetAudioDelay;
 	driv->QueryOutputSampleRate = ALSA_QueryOutputSampleRate;
 	driv->WriteAudio = ALSA_WriteAudio;
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "ALSA Audio Output", "gpac distribution");
+	driv->args = ALSAArgs;
+	driv->description = "Audio output using ASLA";
+
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "alsa", "gpac distribution");
 	return driv;
 }
 

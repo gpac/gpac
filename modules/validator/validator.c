@@ -992,19 +992,19 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		validator->compositor = (GF_Compositor *) param;
 
 		/* Check if the validator should be loaded and in which mode */
-		opt = gf_opts_get_key("Validator", "Mode");
+		opt = gf_module_get_key((GF_BaseInterface *)termext, "mode");
 		if (!opt) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("Validator missing configuration, stopping.\n"));
 			return GF_FALSE;
-		} else if (!strcmp(opt, "Play") ) {
+		} else if (!strcmp(opt, "play") ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator starting in playback mode.\n"));
 			validator->is_recording = GF_FALSE;
 			//this will indicate to the compositor to increment scene time even though no new changes
 			validator->compositor->validator_mode = GF_TRUE;
-		} else if (!strcmp(opt, "Record")) {
+		} else if (!strcmp(opt, "record")) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator starting in recording mode.\n"));
 			validator->is_recording = GF_TRUE;
-		} else if (!strcmp(opt, "Disable")) {
+		} else if (!strcmp(opt, "disable")) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator is disabled.\n"));
 			return GF_FALSE;
 		} else {
@@ -1012,15 +1012,15 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 			return GF_FALSE;
 		}
 
-		gf_opts_set_key("Validator", "Mode", "Disable");
+		gf_opts_set_key("validator", "mode", "disable");
 
 		/* initializes the validator and starts */
 		validator->xvs_filename = NULL;
-		validator->xvl_filename = (char *)gf_opts_get_key("Validator", "XVL");
+		validator->xvl_filename = (char *)gf_module_get_key((GF_BaseInterface *)termext, "xvl");
 		if (!validator->xvl_filename) {
-			validator->xvs_filename = (char *)gf_opts_get_key("Validator", "XVS");
+			validator->xvs_filename = (char *)gf_module_get_key((GF_BaseInterface *)termext, "xvs");
 			if (!validator->xvs_filename) {
-				validator->xvs_filename = (char *)gf_opts_get_key("Validator", "Trace");
+				validator->xvs_filename = (char *)gf_module_get_key((GF_BaseInterface *)termext, "trace");
 				if (!validator->xvs_filename) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Validator configuration without input, stopping.\n"));
 					return GF_FALSE;
@@ -1094,9 +1094,9 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		/*auto-disable the recording by default*/
 		if (!validator->trace_mode) {
 			if (validator->is_recording ) {
-				gf_opts_set_key("Validator", "Mode", "Play");
+				gf_opts_set_key("validator", "mode", "play");
 			} else {
-				gf_opts_set_key("Validator", "Mode", "Disable");
+				gf_opts_set_key("validator", "mode", "disable");
 			}
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Stopping validator\n"));
@@ -1149,6 +1149,16 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 	return GF_FALSE;
 }
 
+static GF_GPACArg ValidatorArgs[] = {
+	GF_DEF_ARG("mode", NULL, "operationg mode\n"
+	"- play: replay events\n"
+	"- record: record events\n"
+	"- disable: disable validator", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("xvl", NULL, "filename for XVL", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("xvs", NULL, "filename for XVS", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("trace", NULL, "filename for event trace", NULL, NULL, GF_ARG_STRING, 0),
+	{0},
+};
 
 GF_CompositorExt *validator_new()
 {
@@ -1156,7 +1166,7 @@ GF_CompositorExt *validator_new()
 	GF_Validator *validator;
 	dr = (GF_CompositorExt*)gf_malloc(sizeof(GF_CompositorExt));
 	memset(dr, 0, sizeof(GF_CompositorExt));
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_COMPOSITOR_EXT_INTERFACE, "GPAC Test Validator", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_COMPOSITOR_EXT_INTERFACE, "validator", "gpac distribution");
 
 	GF_SAFEALLOC(validator, GF_Validator);
 	if (!validator) {
@@ -1165,6 +1175,8 @@ GF_CompositorExt *validator_new()
 	}
 	dr->process = validator_process;
 	dr->udta = validator;
+	dr->description = "Compositor Validator Extension";
+	dr->args = ValidatorArgs;
 	return dr;
 }
 

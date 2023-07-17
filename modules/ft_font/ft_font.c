@@ -793,7 +793,7 @@ static GF_FontReader *ft_load()
 	FTBuilder *ftpriv;
 	dr = gf_malloc(sizeof(GF_FontReader));
 	memset(dr, 0, sizeof(GF_FontReader));
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_READER_INTERFACE, "FreeType Font Reader", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_READER_INTERFACE, "freetype", "gpac distribution");
 
 	ftpriv = gf_malloc(sizeof(FTBuilder));
 	memset(ftpriv, 0, sizeof(FTBuilder));

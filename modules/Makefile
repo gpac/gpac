@@ -25,6 +25,11 @@ endif
 ifeq ($(CONFIG_SDL),yes)
 PLUGDIRS+=sdl_out
 endif
+
+ifeq ($(CONFIG_CACA),yes)
+PLUGDIRS+=caca_out
+endif
+
 ifeq ($(CONFIG_PULSEAUDIO),yes)
 PLUGDIRS+=pulseaudio
 endif

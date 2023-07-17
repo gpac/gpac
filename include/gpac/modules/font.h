@@ -86,7 +86,7 @@ enum
 #define GF_FONT_WEIGHT_MASK	0xFFFFFC00
 
 /*interface name and version for font engine*/
-#define GF_FONT_READER_INTERFACE		GF_4CC('G','F','T', '4')
+#define GF_FONT_READER_INTERFACE		GF_4CC('G','F','T', '5')
 
 
 typedef struct _font_reader

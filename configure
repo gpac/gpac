@@ -339,7 +339,7 @@ get_size()
 
 #zlib MUST be first
 all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2"
-all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption mpeghdec"
+all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption mpeghdec libcaca"
 disabled_packages=""
 
 #init all has_FOO=no and set FOO_cflags=
@@ -1699,6 +1699,10 @@ int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); retu
 config_package caption "libcaption" "" "-lcaption" "" '#include <caption/cea708.h>
 int main( void ) { caption_frame_t ccframe; caption_frame_init(&ccframe); return 0; }'
 
+config_package libcaca "libcaca" "" "-lcaca" "" '#include <caca.h>
+int main( void ) { caca_canvas_t *canvas = caca_create_canvas(20, 20); return 0; }'
+
+
 config_package mpeghdec "mpeghdec" "" " -lSYS -lFDK -lDRCdec -lPCMutils -lMpeghDec -lIGFdec -lArithCoding -lFormatConverter -lUIManager -lgVBAPRenderer -lMpegTPDec" "" '
 #ifndef bool
 typedef int bool;
@@ -2493,6 +2497,7 @@ echo "FAAD: $has_faad"
 echo "XVID: $has_xvid"
 echo "libcaption: $has_caption"
 echo "MpeghDecoder: $has_mpeghdec"
+echo "libcaca: $has_libcaca"
 
 ffopts=""
 if test "$has_ffmpeg" != "no" ; then
@@ -2865,6 +2870,14 @@ fi
 
 if test "$has_caption" != "no" ; then
     echo "#define GPAC_HAS_LIBCAPTION" >> $TMPH
+fi
+
+
+if test "$has_libcaca" != "no" ; then
+    echo "#define GPAC_HAS_LIBCACAC" >> $TMPH
+    echo "CONFIG_CACA=yes" >> config.mak
+else
+    echo "CONFIG_CACA=no" >> config.mak
 fi
 
 if test "$has_mpeghdec" != "no" ; then

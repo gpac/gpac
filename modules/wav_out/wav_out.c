@@ -451,7 +451,7 @@ void *NewWAVRender()
 	ctx->vol = 100;
 	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Windows MME Output", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "mme", "gpac distribution")
 
 	driv->opaque = ctx;
 

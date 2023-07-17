@@ -179,6 +179,8 @@
 		9225DD752326790C00F94C42 /* mpd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9225DD742326790C00F94C42 /* mpd.h */; };
 		92261A87239A6E4600C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A86239A6E4600C14199 /* out_http.c */; };
 		922B0FAA2A5E81EB003690BB /* dec_mpeghdec.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B0FA92A5E81EB003690BB /* dec_mpeghdec.c */; };
+		922B0FC72A602176003690BB /* caca_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B0FC62A602176003690BB /* caca_out.c */; };
+		922B0FC82A6028C5003690BB /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		922B27722445D5CE001D4F72 /* dec_ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B27712445D5CE001D4F72 /* dec_ttml.c */; };
 		922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */; };
 		922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */ = {isa = PBXBuildFile; fileRef = 922CF1261FCF169900F2F6A4 /* dmx_avi.c */; };
@@ -556,11 +558,18 @@
 			isEditable = 1;
 			outputFiles = (
 			);
-			script = "";
+			script = "# Type a script or drag a script file from your workspace to insert its path.\n";
 		};
 /* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
+		922B0FC92A6029AD003690BB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 922B0FC02A602153003690BB;
+			remoteInfo = caca_out;
+		};
 		92BD5562205AB89D007C4C06 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
@@ -805,6 +814,8 @@
 		9225DD742326790C00F94C42 /* mpd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpd.h; path = ../include/gpac/mpd.h; sourceTree = "<group>"; };
 		92261A86239A6E4600C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = filters/out_http.c; sourceTree = "<group>"; };
 		922B0FA92A5E81EB003690BB /* dec_mpeghdec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_mpeghdec.c; path = filters/dec_mpeghdec.c; sourceTree = "<group>"; };
+		922B0FC12A602153003690BB /* gm_caca_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_caca_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		922B0FC62A602176003690BB /* caca_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = caca_out.c; path = ../../modules/caca_out/caca_out.c; sourceTree = "<group>"; };
 		922B27712445D5CE001D4F72 /* dec_ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ttml.c; path = filters/dec_ttml.c; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		922CF1241FCEE5D600F2F6A4 /* dmx_mpegps.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_mpegps.c; path = filters/dmx_mpegps.c; sourceTree = "<group>"; };
@@ -1199,6 +1210,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		922B0FBF2A602153003690BB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				922B0FC82A6028C5003690BB /* libgpac.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		927AACFA1E44EEDC008C8E69 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1419,6 +1438,7 @@
 				92AAF16518D6F40400E2FF12 /* gm_ft_font.dylib */,
 				927AACFD1E44EEDC008C8E69 /* gpac */,
 				92C403D72181F10500331F39 /* gf_openhevc_dec.dylib */,
+				922B0FC12A602153003690BB /* gm_caca_out.dylib */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1613,6 +1633,14 @@
 				9201000D18D5A444003D1ACA /* tx3g.c */,
 			);
 			path = isomedia;
+			sourceTree = "<group>";
+		};
+		922B0FC52A60215F003690BB /* caca_out */ = {
+			isa = PBXGroup;
+			children = (
+				922B0FC62A602176003690BB /* caca_out.c */,
+			);
+			name = caca_out;
 			sourceTree = "<group>";
 		};
 		92334C8E2333A8B800DA6051 /* quickjs */ = {
@@ -1882,6 +1910,7 @@
 		92BE50AD18D6376A00AA59D8 /* modules */ = {
 			isa = PBXGroup;
 			children = (
+				922B0FC52A60215F003690BB /* caca_out */,
 				92C403DB2181F15A00331F39 /* dec_openhevc */,
 				92586A6E1EA7663A00A0838A /* ft_font */,
 				92AAF0D718D6DB3400E2FF12 /* sdl_out */,
@@ -2236,6 +2265,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		922B0FBD2A602153003690BB /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		92AAF0D118D6DB2D00E2FF12 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -2280,6 +2316,23 @@
 			productReference = 9201F93718D5A38A003D1ACA /* libgpac.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
+		922B0FC02A602153003690BB /* caca_out */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 922B0FC22A602154003690BB /* Build configuration list for PBXNativeTarget "caca_out" */;
+			buildPhases = (
+				922B0FBD2A602153003690BB /* Headers */,
+				922B0FBE2A602153003690BB /* Sources */,
+				922B0FBF2A602153003690BB /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = caca_out;
+			productName = caca_out;
+			productReference = 922B0FC12A602153003690BB /* gm_caca_out.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
 		927AACFC1E44EEDC008C8E69 /* gpac */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 927AAD011E44EEDC008C8E69 /* Build configuration list for PBXNativeTarget "gpac" */;
@@ -2291,6 +2344,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				922B0FCA2A6029AD003690BB /* PBXTargetDependency */,
 				92C403DF2181F1ED00331F39 /* PBXTargetDependency */,
 				92BD5563205AB89D007C4C06 /* PBXTargetDependency */,
 			);
@@ -2378,6 +2432,10 @@
 				LastUpgradeCheck = 1210;
 				ORGANIZATIONNAME = "Telecom ParisTech";
 				TargetAttributes = {
+					922B0FC02A602153003690BB = {
+						CreatedOnToolsVersion = 14.3.1;
+						ProvisioningStyle = Automatic;
+					};
 					927AACFC1E44EEDC008C8E69 = {
 						CreatedOnToolsVersion = 8.2.1;
 						DevelopmentTeam = Q46G522WGV;
@@ -2408,6 +2466,7 @@
 				92AAF16418D6F40400E2FF12 /* ft_font */,
 				927AACFC1E44EEDC008C8E69 /* gpac */,
 				92C403D62181F10500331F39 /* openhevc_dec */,
+				922B0FC02A602153003690BB /* caca_out */,
 			);
 		};
 /* End PBXProject section */
@@ -2833,6 +2892,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		922B0FBE2A602153003690BB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				922B0FC72A602176003690BB /* caca_out.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		927AACF91E44EEDC008C8E69 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2884,6 +2951,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		922B0FCA2A6029AD003690BB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 922B0FC02A602153003690BB /* caca_out */;
+			targetProxy = 922B0FC92A6029AD003690BB /* PBXContainerItemProxy */;
+		};
 		92BD5563205AB89D007C4C06 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 92AAF0D218D6DB2D00E2FF12 /* sdl_out */;
@@ -3137,6 +3209,14 @@
 					"-lUIManager",
 					"-lgVBAPRenderer",
 					"-lMpegTPDec",
+					"-lxcb",
+					"-lxcb-shm",
+					"-lxcb-shape",
+					"-lxcb-xfixes",
+					"-lXv",
+					"-lX11",
+					"-lXext",
+					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3280,11 +3360,122 @@
 					"-lUIManager",
 					"-lgVBAPRenderer",
 					"-lMpegTPDec",
+					"-lxcb",
+					"-lxcb-shm",
+					"-lxcb-shape",
+					"-lxcb-xfixes",
+					"-lXv",
+					"-lX11",
+					"-lXext",
+					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
 				SYMROOT = ../../bin/osx/;
 				WARNING_LDFLAGS = "";
+			};
+			name = Release;
+		};
+		922B0FC32A602154003690BB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_ENABLE_MODULES = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_STRICT_PROTOTYPES = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "";
+				EXECUTABLE_PREFIX = gm_;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../extra_lib/include,
+					/opt/local/include,
+				);
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					../../extra_lib/lib/gcc,
+					/opt/local/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = " -lcaca ";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		922B0FC42A602154003690BB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_ENABLE_MODULES = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_STRICT_PROTOTYPES = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				EXECUTABLE_PREFIX = gm_;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../extra_lib/include,
+					/opt/local/include,
+				);
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					../../extra_lib/lib/gcc,
+					/opt/local/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = " -lcaca ";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
@@ -3722,6 +3913,15 @@
 			buildConfigurations = (
 				9201F93918D5A38A003D1ACA /* Debug */,
 				9201F93A18D5A38A003D1ACA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		922B0FC22A602154003690BB /* Build configuration list for PBXNativeTarget "caca_out" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				922B0FC32A602154003690BB /* Debug */,
+				922B0FC42A602154003690BB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -778,12 +778,8 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "cache", gf_get_default_cache_directory_ex(GF_FALSE));
 #endif
 
-#if defined(WIN32)
-	gf_cfg_set_key(cfg, "core", "ds-disable-notif", "no");
-#endif
-
 	/*Setup font engine to FreeType by default, and locate TrueType font directory on the system*/
-	gf_cfg_set_key(cfg, "core", "font-reader", "FreeType Font Reader");
+	gf_cfg_set_key(cfg, "core", "font-reader", "freetype");
 	gf_cfg_set_key(cfg, "core", "rescan-fonts", "yes");
 
 
@@ -793,18 +789,18 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "cache-size", "100M");
 
 #if defined(_WIN32_WCE)
-	gf_cfg_set_key(cfg, "core", "video-output", "GAPI Video Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "gapi");
 #elif defined(WIN32)
-	gf_cfg_set_key(cfg, "core", "video-output", "DirectX Video Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "directx");
 #elif defined(__DARWIN__) || defined(__APPLE__)
-	gf_cfg_set_key(cfg, "core", "video-output", "SDL Video Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "sdl");
 #elif defined(GPAC_CONFIG_ANDROID)
-	gf_cfg_set_key(cfg, "core", "video-output", "Android Video Output");
-	gf_cfg_set_key(cfg, "core", "audio-output", "Android Audio Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "android");
+	gf_cfg_set_key(cfg, "core", "audio-output", "android");
 #else
 	//use SDL by default, will fallback to X11 if not found (our X11 wrapper is old and does not have all features of the SDL one)
-	gf_cfg_set_key(cfg, "core", "video-output", "SDL Video Output");
-	gf_cfg_set_key(cfg, "core", "audio-output", "SDL Audio Output");
+	gf_cfg_set_key(cfg, "core", "video-output", "sdl");
+	gf_cfg_set_key(cfg, "core", "audio-output", "sdla");
 #endif
 
 
@@ -1466,36 +1462,20 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("blacklist", NULL, "blacklist the filters listed in the given string (comma-separated list). If first character is '-', this is a whitelist, i.e. only filters listed in the given string will be allowed", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-graph-cache", NULL, "disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (lower memory usage but slower)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reservoir", NULL, "disable memory recycling for packets and properties. This uses much less memory but stresses the system memory allocator much more", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
-
  GF_DEF_ARG("buffer-gen", NULL, "default buffer size in microseconds for generic pids", "1000", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("buffer-dec", NULL, "default buffer size in microseconds for decoder input pids", "1000000", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("buffer-units", NULL, "default buffer size in frames when timing is not available", "1", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
 
- GF_DEF_ARG("switch-vres", NULL, "select smallest video resolution larger than scene size, otherwise use current video resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed\n"
- "- always: always on hardware\n"
- "- never: always on system memory\n"
- "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("pref-yuv4cc", NULL, "set preferred YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("yuv-overlay", NULL, "indicate YUV overlay is possible on the video card. Always overridden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("offscreen-yuv", NULL, "indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("overlay-color-key", NULL, "color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in OpenGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in OpenGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-doublebuf", NULL, "enable OpenGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("sdl-defer", NULL, "use defer rendering for SDL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("no-colorkey", NULL, "disable color keying at the video output level", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("glfbo-txid", NULL, "set output texture ID when using `glfbo` output. The OpenGL context shall be initialized and gf_term_process shall be called with the OpenGL context active", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("video-output", NULL, "indicate the name of the video output module to use (see `gpac -h modules`)."
 	" The reserved name `glfbo` is used in player mode to draw in the OpenGL texture identified by [-glfbo-txid](). "
-	" In this mode, the application is responsible for sending event to the compositor"
- , NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("dfb-sys", NULL, "system DirectFB (x11, sdl, vnc, fbdev, osx ordevmem)", "x11", NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("dfb-flip", NULL, "vsync mode for DirectFB (waitsync, wait, sync or swap)", "waitsync", NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+	" In this mode, the application is responsible for sending event to the compositor", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+
  GF_DEF_ARG("audio-output", NULL, "indicate the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
- GF_DEF_ARG("alsa-devname", NULL, "set ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),
- GF_DEF_ARG("force-alsarate", NULL, "force ALSA and OSS output sample rate", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
- GF_DEF_ARG("ds-disable-notif", NULL, "disable DirectSound audio buffer notifications when supported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
+
  GF_DEF_ARG("font-reader", NULL, "indicate name of font reader module", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_TEXT),
  GF_DEF_ARG("font-dirs", NULL, "indicate comma-separated list of directories to scan for fonts", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
  GF_DEF_ARG("rescan-fonts", NULL, "indicate the font directory must be rescanned", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_TEXT),
