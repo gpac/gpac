@@ -20,13 +20,16 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv2 -ldl
-LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lnghttp2 -lz -lssl -lcrypto
+LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lnghttp2 -lz -lssl -lcrypto -lcaption
 
 #ffmpeg
 LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale
 
 #mediacodec
 LOCAL_LDLIBS    += -llog -lOpenMAXAL -lmediandk -landroid
+
+#mpegh
+LOCAL_LDLIBS    += -lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFormatConverter -lgVBAPRenderer -lDRCdec -lUIManager -lSYS -lFDK -lm
 
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DNO_MALLINFO
