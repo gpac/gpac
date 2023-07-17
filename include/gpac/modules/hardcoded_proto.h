@@ -36,7 +36,7 @@ extern "C" {
 #include <gpac/compositor.h>
 
 /*interface name and version for Built-in proto User Extensions*/
-#define GF_HARDCODED_PROTO_INTERFACE		GF_4CC('G','H','P', '4')
+#define GF_HARDCODED_PROTO_INTERFACE		GF_4CC('G','H','P', '5')
 
 typedef struct _hc_proto_mod
 {

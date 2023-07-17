@@ -154,7 +154,7 @@ GF_VideoOutput *NewRawVideoOutput()
 	AndroidContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Android Video Output", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "androidbmp", "gpac distribution")
 
 	pCtx = gf_malloc(sizeof(AndroidContext));
 	memset(pCtx, 0, sizeof(AndroidContext));

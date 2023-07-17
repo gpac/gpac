@@ -67,10 +67,10 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
 	if (ctx == NULL)
 		return GF_BAD_PARAM;
-	opt = gf_opts_get_key("PulseAudio", "Name");
+	opt = gf_module_get_key(dr, "name");
 	ctx->output_name = opt ? ctx->output_name : "GPAC";
 
-	opt = gf_opts_get_key("PulseAudio", "Description");
+	opt = gf_module_get_key(dr, "description");
 	ctx->output_description = opt  ? opt  : "GPAC Output";
 	return GF_OK;
 }
@@ -212,6 +212,11 @@ PulseAudio_GetAudioDelay (GF_AudioOutput * dr)
 	return ms_delay;
 }
 
+static GF_GPACArg PulseAudioArgs[] = {
+	GF_DEF_ARG("name", NULL, "name for PulseAudio", "GPAC", NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("description", NULL, "description for PulseAudio", "GPAC output", NULL, GF_ARG_STRING, 0),
+	{0},
+};
 
 void *
 NewPulseAudioOutput ()
@@ -237,7 +242,10 @@ NewPulseAudioOutput ()
 	driv->Configure = PulseAudio_Configure;
 	driv->GetAudioDelay = PulseAudio_GetAudioDelay;
 	driv->WriteAudio = PulseAudio_WriteAudio;
-	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, "PulseAudio", "gpac distribution");
+	driv->description = "Audio output using PulseAudio";
+	driv->args = PulseAudioArgs;
+
+	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, "pulse", "gpac distribution");
 	return driv;
 }
 

@@ -495,7 +495,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 #endif
 	GetWindowRect(dd->cur_hwnd, &rc);
 
-	dd->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
+	dd->disable_vsync = gf_module_get_bool((GF_BaseInterface *) dr, "no-vsync");
 
 	return GF_OK;
 }
@@ -546,7 +546,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	on the dest pixel format)*/
 	dd->yuv_init = GF_FALSE;
 	if (dd->fullscreen) {
-		dd->switch_res = gf_opts_get_bool("core", "switch-vres");
+		dd->switch_res = gf_module_get_bool((GF_BaseInterface *)dr, "switch-vres");
 		/*get current or best fitting mode*/
 		if (GetDisplayMode(dd) != GF_OK) return GF_IO_ERR;
 	}
@@ -758,7 +758,7 @@ static void *NewDXVideoOutput()
 	DDContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "DirectX Video Output", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "directx", "gpac distribution");
 
 	pCtx = (DDContext*)gf_malloc(sizeof(DDContext));
 	memset(pCtx, 0, sizeof(DDContext));

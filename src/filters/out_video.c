@@ -806,6 +806,17 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			}
 			break;
 		}
+		u32 force_pf = ctx->pfmt;
+		if (ctx->is_yuv && ! (ctx->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV)) {
+			force_pf = GF_PIXEL_RGB;
+		}
+		else if (gf_pixel_fmt_is_transparent(ctx->pfmt) && ! (ctx->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA)) {
+			force_pf = GF_PIXEL_RGB;
+		}
+		if (ctx->pfmt != force_pf) {
+			gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(force_pf) );
+			return GF_OK;
+		}
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] Reconfig input wsize %d x %d, %d textures\n", ctx->width, ctx->height, ctx->num_textures));
 	return GF_OK;
@@ -1619,6 +1630,20 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (e != GF_OK)
 		return;
 
+	if (ctx->oldata.ptr) {
+		GF_VideoSurface olay;
+		memset(&olay, 0, sizeof(GF_VideoSurface));
+		olay.width = ctx->olsize.x;
+		olay.height = ctx->olsize.y;
+		olay.pixel_format = GF_PIXEL_RGBA;
+		olay.pitch_y = 4*olay.width;
+		olay.video_buffer = ctx->oldata.ptr;
+		dst_wnd.x = ctx->dw/2 + ctx->olwnd.x - ctx->olwnd.z/2;
+		dst_wnd.y = ctx->dh/2 - ctx->olwnd.y;
+		dst_wnd.w = ctx->olwnd.z;
+		dst_wnd.h = ctx->olwnd.w;
+		e = ctx->video_out->Blit(ctx->video_out, &olay, NULL, &dst_wnd, 0);
+	}
 
 	if (ctx->dump_f_idx) {
 		char szFileName[1024];

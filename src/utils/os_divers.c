@@ -1046,8 +1046,12 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		gpac_argc = (u32) argc;
 		gpac_argv = argv;
 		gpac_argv_state = gf_realloc(gpac_argv_state, sizeof(Bool) * argc);
-		for (i=0; i<argc; i++)
+		for (i=0; i<argc; i++) {
 			gpac_argv_state[i] = GF_FALSE;
+			if (!strncmp(argv[i], "-p", 2)) gpac_argv_state[i] = GF_TRUE;
+			else if (!strcmp(argv[i], "-mem-track")) gpac_argv_state[i] = GF_TRUE;
+			else if (!strcmp(argv[i], "-mem-track-stack")) gpac_argv_state[i] = GF_TRUE;
+		}
 	}
 	return GF_OK;
 }

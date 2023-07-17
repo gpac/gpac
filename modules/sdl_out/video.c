@@ -585,7 +585,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 
 		if (!ctx->disable_vsync)
-			ctx->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
+			ctx->disable_vsync = !gf_module_get_bool((GF_BaseInterface *)dr, "vsync");
 
 		if (ctx->disable_vsync) {
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
@@ -662,7 +662,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		}
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;
-			if (! gf_opts_get_bool("core", "disable-vsync")) {
+			if (gf_module_get_bool((GF_BaseInterface *)dr, "vsync")) {
 				flags |= SDL_RENDERER_PRESENTVSYNC;
 			}
 
@@ -1349,7 +1349,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 #if ! ( SDL_VERSION_ATLEAST(2,0,0) )
 		u32 flags = ctx->output_3d ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 #endif
-		Bool switch_res = gf_opts_get_bool("core", "switch-vres");
+		Bool switch_res = gf_module_get_bool((GF_BaseInterface*)dr, "switch-vres");
 		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = GF_TRUE;
 
 		ctx->store_width = *screen_width;
@@ -1433,7 +1433,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 	if (ctx->output_3d) return GF_BAD_PARAM;
 
-	opt = gf_opts_get_key("core", "hwvmem");
+	opt = gf_module_get_key((GF_BaseInterface*)dr, "hwvmem");
 	if (system_mem) {
 		if (opt && !strcmp(opt, "always")) system_mem = GF_FALSE;
 	} else {
@@ -2170,17 +2170,25 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 
 #endif
 
+static GF_GPACArg SDLArgs[] = {
+	GF_DEF_ARG("vsync", NULL, "enable vertical synchro", "true", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("switch-vres", NULL, "enable resolution switching of display", "false", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("defer", NULL, "enable defer mode when bliting", "false", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed\n"
+ "- always: always on hardware\n"
+ "- never: always on system memory\n"
+ "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+	{0},
+};
+
 void *SDL_NewVideo()
 {
-#if SDL_VERSION_ATLEAST(2,0,0)
-	const char *opt;
-#endif
 	SDLVidCtx *ctx;
 	GF_VideoOutput *driv;
 
 	driv = (GF_VideoOutput*)gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "SDL Video Output", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "sdl", "gpac distribution");
 
 	ctx = (SDLVidCtx*)gf_malloc(sizeof(SDLVidCtx));
 	memset(ctx, 0, sizeof(SDLVidCtx));
@@ -2196,9 +2204,12 @@ void *SDL_NewVideo()
 	driv->SetFullScreen = SDLVid_SetFullScreen;
 	driv->Flush = SDLVid_Flush;
 	driv->ProcessEvent = SDLVid_ProcessEvent;
+
+	driv->args = SDLArgs;
+	driv->description = "Video output using SDL";
+
 	/*no offscreen opengl with SDL*/
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
-
 	/*no YUV hardware blitting in SDL (only overlays)*/
 	driv->hw_caps |= GF_VIDEO_HW_HAS_RGB ;
 
@@ -2206,11 +2217,7 @@ void *SDL_NewVideo()
 
 	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_STRETCH | GF_VIDEO_HW_HAS_RGBA;
 
-
-	opt = gf_opts_get_key("core", "sdl-defer");
-	ctx->enable_defer_mode = 0;
-	if (opt && !strcmp(opt, "yes"))
-		ctx->enable_defer_mode = 1;
+	ctx->enable_defer_mode = gf_module_get_bool((GF_BaseInterface *)driv, "defer");
 
 	if (! ctx->enable_defer_mode)
 		driv->hw_caps |= GF_VIDEO_HW_DIRECT_ONLY;

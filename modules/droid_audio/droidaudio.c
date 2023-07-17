@@ -369,7 +369,7 @@ void *NewAAOutRender()
 	ctx->volume = 100;
 	driv = gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Android Audio Output", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "android", "gpac distribution")
 
 	driv->opaque = ctx;
 

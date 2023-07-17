@@ -417,6 +417,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_close_interface) )
 #endif
+#pragma comment (linker, EXPORT_SYMBOL(gf_module_get_key) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_module_get_bool) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_module_get_int) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_wcstombs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_mbstowcs) )

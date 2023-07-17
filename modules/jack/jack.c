@@ -215,11 +215,9 @@ Jack_Setup (GF_AudioOutput * dr, void *os_handle, u32 num_buffers,
 	memset (ctx->jackClientName, 0, MAX_JACK_CLIENT_NAME_SZ);
 	snprintf (ctx->jackClientName, MAX_JACK_CLIENT_NAME_SZ, "gpac-%d", gf_sys_get_process_id() );
 
-	ctx->autoConnect = GF_TRUE;
-	if (gf_opts_get_bool("Jack", "NoAutoConnect"))
-		ctx->autoConnect = GF_FALSE;
+	ctx->autoConnect = gf_module_get_bool((GF_BaseInterface *)dr, "auto-connect"))
 
-	if (gf_opts_get_bool("Jack", "NoStartServer"))
+	if (!gf_module_get_bool((GF_BaseInterface *)dr, "start-server"))
 		options |= JackNoStartServer;
 
 	ctx->jack = jack_client_open (ctx->jackClientName, options, &status, NULL);
@@ -413,6 +411,12 @@ Jack_QueryOutputSampleRate (GF_AudioOutput * dr, u32 * desired_sr,
 	return GF_OK;
 }
 
+static GF_GPACArg JackArgs[] = {
+	GF_DEF_ARG("auto-connect", NULL, "automatically connect to jackd", "true", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("start-server", NULL, "automatically start JACK server if not running", "true", NULL, GF_ARG_BOOL, 0),
+	{0},
+};
+
 void *
 NewJackOutput ()
 {
@@ -437,6 +441,8 @@ NewJackOutput ()
 	driv->SetPan = Jack_SetPan;
 	driv->SetPriority = Jack_SetPriority;
 	driv->QueryOutputSampleRate = Jack_QueryOutputSampleRate;
+	driv->args = JackArgs;
+	driv->description = "Audio output using JACK";
 
 	ctx->jack = NULL;
 	ctx->numChannels = 0;
@@ -450,8 +456,7 @@ NewJackOutput ()
 	ctx->autoConnect = GF_FALSE;
 	ctx->volume = 1.0;
 
-	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE,
-	                              "Jack Audio Output", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, "jack", "gpac distribution");
 	return driv;
 }
 

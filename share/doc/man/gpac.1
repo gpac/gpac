@@ -1099,37 +1099,6 @@ default buffer size in microseconds for decoder input pids
 default buffer size in frames when timing is not available
 .br
 .TP
-.B \-switch-vres
-.br
-select smallest video resolution larger than scene size, otherwise use current video resolution
-.br
-.TP
-.B \-hwvmem (Enum, default: auto)
-.br
-specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed
-.br
-* always: always on hardware
-.br
-* never: always on system memory
-.br
-* auto: selected by GPAC based on content type (graphics or video)
-.br
-.TP
-.B \-pref-yuv4cc (string)
-.br
-set preferred YUV 4CC for overlays (used by DirectX only)
-.br
-.TP
-.B \-offscreen-yuv
-.br
-indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling
-.br
-.TP
-.B \-overlay-color-key (string)
-.br
-color to use for overlay keying, hex format
-.br
-.TP
 .B \-gl-bits-comp (int, default: 8)
 .br
 number of bits per color component in OpenGL
@@ -1145,16 +1114,6 @@ number of bits for depth buffer in OpenGL
 enable OpenGL double buffering
 .br
 .TP
-.B \-sdl-defer
-.br
-use defer rendering for SDL
-.br
-.TP
-.B \-no-colorkey
-.br
-disable color keying at the video output level
-.br
-.TP
 .B \-glfbo-txid (int)
 .br
 set output texture ID when using glfbo output. The OpenGL context shall be initialized and gf_term_process shall be called with the OpenGL context active
@@ -1165,34 +1124,9 @@ set output texture ID when using glfbo output. The OpenGL context shall be initi
 indicate the name of the video output module to use (see gpac -h modules). The reserved name glfbo is used in player mode to draw in the OpenGL texture identified by .I glfbo-txid.  In this mode, the application is responsible for sending event to the compositor
 .br
 .TP
-.B \-dfb-sys (string, default: x11)
-.br
-system DirectFB (x11, sdl, vnc, fbdev, osx ordevmem)
-.br
-.TP
-.B \-dfb-flip (string, default: waitsync)
-.br
-vsync mode for DirectFB (waitsync, wait, sync or swap)
-.br
-.TP
 .B \-audio-output (string)
 .br
 indicate the name of the audio output module to use
-.br
-.TP
-.B \-alsa-devname (string)
-.br
-set ALSA dev name
-.br
-.TP
-.B \-force-alsarate (int)
-.br
-force ALSA and OSS output sample rate
-.br
-.TP
-.B \-ds-disable-notif
-.br
-disable DirectSound audio buffer notifications when supported
 .br
 .TP
 .B \-font-reader (string)
@@ -2363,9 +2297,9 @@ This will assign property MyProp to HD for PIDs with property Width greater than
 .br
 The property value can be templated using the following keywords:
 .br
-* $GINC(init[,inc]) or @GINC(...): replaced by integer for each new pid (see specific filter options for details on syntax)
+* $GINC(init[,inc]) or @GINC(...): replaced by integer for each new output PID of the filter (see specific filter options for details on syntax)
 .br
-* $PROP$ or @PROP@: replaced by serialized value of property PROP (name or 4CC) or with empty string if no such property
+* PROP (enclosed between `$` or `@`): replaced by serialized value of property PROP (name or 4CC) of the PID or with empty string if no such property
 .br
 Example
 .br

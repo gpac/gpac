@@ -225,15 +225,8 @@ extern "C" {
 		dtc->isSending = false;
 		Dektec_resize(dr, DWIDTH, DHEIGHT);
 
-		int port = 1;
-		const char *opt;
-		opt = gf_opts_get_key("DektecVideo", "SDIOutput");
-		if (opt) {
-			port = atoi(opt);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Dektec Out] Using port %d (%s)\n", port, opt));
-		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Dektec Out] No port specified, using default port: %d\n", port));
-		}
+		int port = gf_module_get_int((GF_BaseInterface*)dr, "sdi-port");
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Dektec Out] Using port %d (%s)\n", port));
 
 		DtDevice *dvc = dtc->dvc;
 		DtFrameBuffer *dtf = dtc->dtf;
@@ -280,11 +273,16 @@ extern "C" {
 		return GF_OK;
 	}
 
+	static GF_GPACArg DekTecArgs[] = {
+		GF_DEF_ARG("sdi-port", NULL, "port number of the card", "1", NULL, GF_ARG_INT, 0),
+		{0},
+	};
+
 	GF_VideoOutput *NewDektecVideoOutput()
 	{
 		GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
 		memset(driv, 0, sizeof(GF_VideoOutput));
-		GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Dektec Video Output", "gpac distribution")
+		GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "dektec", "gpac distribution")
 
 		DtDevice *dvc = new DtDevice;
 		DtFrameBuffer *dtf = new DtFrameBuffer;
@@ -301,6 +299,8 @@ extern "C" {
 		dtc->dvc = dvc;
 		dtc->dtf = dtf;
 		driv->opaque = (void*)dtc;
+		driv->args = DekTecArgs;
+		driv->description = "Video output using Dektec cards";
 
 		driv->Flush = Dektec_Flush;
 		driv->LockBackBuffer = Dektec_LockBackBuffer;

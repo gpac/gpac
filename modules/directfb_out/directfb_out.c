@@ -46,13 +46,12 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 	// initialisation and surface creation
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization\n"));
 	// check window mode used - SDL or X11
-	opt = gf_opts_get_key("core", "dfb-sys");
+	opt = gf_module_get_key((GF_BaseInterface *)driv, "devsys");
 	DirectFBVid_InitAndCreateSurface(ctx, opt);
 
 	// set flip mode
 	FLIP_MODE flip_mode = 0;
-	opt = gf_opts_get_key("core", "dfb-flip");
-	if (!opt) gf_opts_set_key("core", "dfb-flip", "waitsync");
+	opt = gf_module_get_key((GF_BaseInterface *)driv, "flipmode");
 	if (!opt || !strcmp(opt, "waitsync")) flip_mode = FLIP_WAITFORSYNC;
 	else if (!strcmp(opt, "wait")) flip_mode = FLIP_WAIT;
 	else if (!strcmp(opt, "sync")) flip_mode = FLIP_ONSYNC;
@@ -229,6 +228,16 @@ static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src,
 	return GF_OK;
 }
 
+static GF_GPACArg DirectFBArgs[] = {
+	GF_DEF_ARG("devsys", NULL, "device for DFB", "false", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("flipmode", NULL, "fliping mode for directFB\n" flip
+	"- waitsync: wait for vsync\n"
+	"- wait: wait only\n"
+	"- sync: sync only\n"
+	"- swap: swap only", "waitsync", NULL, GF_ARG_BOOL, 0),
+	{0},
+};
+
 
 /**
  *	function DirectFBNewVideo
@@ -241,7 +250,7 @@ void *DirectFBNewVideo()
 
 	driv = gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "DirectFB Video Output", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "directfb", "gpac distribution");
 
 	ctx = gf_malloc(DirectFBVid_GetCtxSizeOf());
 	memset(ctx, 0, DirectFBVid_GetCtxSizeOf());
@@ -257,7 +266,8 @@ void *DirectFBNewVideo()
 	driv->LockOSContext = NULL;
 	driv->Blit = DirectFBVid_Blit;
 	driv->hw_caps |= GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_STRETCH;
-
+	driv->args = DirectFBArgs;
+	driv->description = "Video output using DirectFB";
 	return driv;
 }
 

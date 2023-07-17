@@ -206,7 +206,8 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 			if (ret) {
 				ret[0] = 0;
 				k->name = gf_strdup(line);
-				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
+				while (k->name[0] && (k->name[strlen(k->name) - 1] == ' '))
+					k->name[strlen(k->name) - 1] = 0;
 				ret[0] = '=';
 				ret += 1;
 				while (ret[0] == ' ') ret++;

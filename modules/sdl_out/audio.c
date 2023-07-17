@@ -255,7 +255,7 @@ void *SDL_NewAudio()
 
 	dr = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(dr, 0, sizeof(GF_AudioOutput));
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_AUDIO_OUTPUT_INTERFACE, "SDL Audio Output", "gpac distribution");
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_AUDIO_OUTPUT_INTERFACE, "sdla", "gpac distribution");
 
 	dr->opaque = ctx;
 
@@ -272,6 +272,7 @@ void *SDL_NewAudio()
 	dr->QueryOutputSampleRate = SDLAud_QueryOutputSampleRate;
 	/*always threaded*/
 	dr->SelfThreaded = GF_TRUE;
+	dr->description = "Audio output using SDL";
 	ctx->audioBuff = NULL;
 	ctx->volume = SDL_MIX_MAXVOLUME;
 

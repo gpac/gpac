@@ -154,7 +154,7 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 
 	DDCONTEXT;
 
-	opt = gf_opts_get_key("core", "hwvmem");
+	opt = gf_module_get_key((GF_BaseInterface*)dr, "hwvmem");
 	if (opt) {
 		if (use_system_memory) {
 			if (!strcmp(opt, "always")) use_system_memory = GF_FALSE;
@@ -710,14 +710,13 @@ void DD_InitYUV(GF_VideoOutput *dr)
 	h = 576;
 
 
-	opt = gf_opts_get_key("core", "pref-yuv4cc");
+	opt = gf_module_get_key((GF_BaseInterface *)dr, "yuv-4cc");
 	if (opt) {
 		char a, b, c, d;
 		if (sscanf(opt, "%c%c%c%c", &a, &b, &c, &d)==4) {
 			dr->yuv_pixel_format = GF_4CC(a, b, c, d);
 			dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
-			opt = gf_opts_get_key("core", "yuv-overlay");
-			if (opt && !strcmp(opt, "yes"))
+			if (gf_module_get_bool((GF_BaseInterface *)dr, "yuv-overlay"))
 				dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
 			dd->yuv_init = GF_TRUE;
 			num_yuv = 1;
@@ -816,11 +815,11 @@ rem_fmt:
 
 		/*store our options*/
 		sprintf(szOpt, "%c%c%c%c", (dr->yuv_pixel_format>>24) & 0xFF, (dr->yuv_pixel_format>>16) & 0xFF, (dr->yuv_pixel_format>>8) & 0xFF, (dr->yuv_pixel_format) & 0xFF);
-		gf_opts_set_key("core", "pref-yuv4cc", szOpt);
-		gf_opts_set_key("core", "yuv-overlay", (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) ? "yes" : "no");
+		gf_opts_set_key("directx", "yuv-4cc", szOpt);
+		gf_opts_set_key("directx", "yuv-overlay", (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) ? "yes" : "no");
 	}
 
-	opt = gf_opts_get_key("core", "hwvmem");
+	opt = gf_module_get_key((GF_BaseInterface*)dr, "hwvmem");
 	if (opt && !strcmp(opt, "never")) num_yuv = 0;
 
 	/*too bad*/
@@ -834,24 +833,22 @@ rem_fmt:
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 
 	/*enable YUV->RGB on the backbuffer ?*/
-	opt = gf_opts_get_key("core", "offscreen-yuv");
-	/*no set is the default*/
-	if (!opt) {
-		opt = "yes";
-		gf_opts_set_key("core", "offscreen-yuv", "yes");
+	if (gf_module_get_bool((GF_BaseInterface *)dr, "offscreen-yuv")) {
+		dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
+	} else {
+		dd->offscreen_yuv_to_rgb = GF_TRUE;
 	}
-	if (opt && strcmp(opt, "yes")) dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
-	else dd->offscreen_yuv_to_rgb = GF_TRUE;
 
 	/*get YUV overlay key*/
-	opt = gf_opts_get_key("core", "overlay-color-key");
+	opt = gf_module_get_bool((GF_BaseInterface *)dr, "overlay-color-key");
 	/*no set is the default*/
 	if (!opt) {
 		opt = "0101FE";
-		gf_opts_set_key("core", "overlay-color-key", "0101FE");
+		gf_opts_set_key("directx", "overlay-color-key", "0101FE");
 	}
 	sscanf(opt, "%06x", &dr->overlay_color_key);
 	if (dr->overlay_color_key) dr->overlay_color_key |= 0xFF000000;
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] YUV->RGB enabled: %s - ColorKey enabled: %s (key %x)\n",
 	                                  (dr->hw_caps & GF_VIDEO_HW_HAS_YUV) ? "Yes" : "No",
 	                                  dr->overlay_color_key ? "Yes" : "No", dr->overlay_color_key
@@ -872,6 +869,19 @@ GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_
 	return CreateBackBuffer(dr, width, height, use_system_memory);
 }
 
+static GF_GPACArg DirectDrawArgs[] = {
+	GF_DEF_ARG("yuv-overlay", NULL, "enable yuv overlays", "false", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("yuv-4cc", NULL, "prefered YUV 4CC for overlays", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("offscreen-yuv", NULL, "enable offscreen yuv", "true", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("overlay-color-key", NULL, "color key value for overlay", "0101FE", NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("no-vsync", NULL, "disable vertical synchro", "false", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("switch-vres", NULL, "enable resolution switching of display", "false", NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("hwvmem", NULL, "specify (2D rendering only) memory type of main video backbuffer. Depending on the scene type, this may drastically change the playback speed\n"
+ "- always: always on hardware\n"
+ "- never: always on system memory\n"
+ "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+	{0},
+};
 
 void DD_SetupDDraw(GF_VideoOutput *driv)
 {
@@ -879,5 +889,7 @@ void DD_SetupDDraw(GF_VideoOutput *driv)
 	driv->Blit = DD_Blit;
 	driv->LockBackBuffer = DD_LockBackBuffer;
 	driv->LockOSContext = LockOSContext;
+	driv->args = DirectDrawArgs;
+	driv->description = "Video output using DirectDraw";
 }
 

@@ -456,7 +456,7 @@ void *gf_modules_load_filter(u32 whichplug, void *fsess)
 }
 
 GF_EXPORT
-GF_BaseInterface *gf_modules_load_by_name(const char *plug_name, u32 InterfaceFamily)
+GF_BaseInterface *gf_modules_load_by_name(const char *plug_name, u32 InterfaceFamily, Bool rebrowse_all)
 {
 	const char *file_name;
 	u32 i, count;
@@ -477,18 +477,23 @@ GF_BaseInterface *gf_modules_load_by_name(const char *plug_name, u32 InterfaceFa
 
 		for (i=0; i<count; i++) {
 			ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);
-			if (!strcmp(inst->name,  file_name)) {
+			if (!rebrowse_all && !strcmp(inst->name,  file_name)) {
 				ifce = gf_modules_load(i, InterfaceFamily);
 				if (ifce) return ifce;
 			}
 		}
 	}
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Plugin %s of type %d not found in cache, searching for it...\n", plug_name, InterfaceFamily));
 	for (i=0; i<count; i++) {
 		const char *mod_filename;
+		if (!rebrowse_all) {
+			ModuleInstance *inst = (ModuleInstance *) gf_list_get(gpac_modules_static->plug_list, i);
+			if (inst->name && strcmp(inst->name, plug_name)) continue;
+		}
 		ifce = gf_modules_load(i, InterfaceFamily);
 		if (!ifce) continue;
-		if (ifce->module_name && !strnicmp(ifce->module_name, plug_name, MIN(strlen(ifce->module_name), strlen(plug_name)) )) {
+		if (ifce->module_name && !strcmp(ifce->module_name, plug_name) ) {
 			/*update cache entry*/
 			gf_cfg_set_key(pm->cfg, "PluginsCache", plug_name, ((ModuleInstance*)ifce->HPLUG)->name);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Added plugin cache %s for %s\n", plug_name, ((ModuleInstance*)ifce->HPLUG)->name));
@@ -577,7 +582,7 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 {
 	GF_BaseInterface *ifce = NULL;
 	if (name) {
-		ifce = gf_modules_load_by_name(name, ifce_type);
+		ifce = gf_modules_load_by_name(name, ifce_type, GF_TRUE);
 		if (!module_check_ifce(ifce, ifce_type)) {
 			gf_modules_close_interface(ifce);
 			ifce = NULL;
@@ -600,7 +605,7 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 			sOpt = NULL;
 		}
 		if (sOpt) {
-			ifce = gf_modules_load_by_name(sOpt, ifce_type);
+			ifce = gf_modules_load_by_name(sOpt, ifce_type, GF_TRUE);
 			if (!module_check_ifce(ifce, ifce_type)) {
 				gf_modules_close_interface(ifce);
 				ifce = NULL;
@@ -623,3 +628,62 @@ GF_BaseInterface *gf_module_load(u32 ifce_type, const char *name)
 	}
 	return ifce;
 }
+
+GF_EXPORT
+const char *gf_module_get_key(GF_BaseInterface *dr, char *key_name)
+{
+	if (!dr || !dr->module_name || !dr->args) return NULL;
+
+	u32 klen = (u32) strlen(key_name);
+	u32 i=0, nb_args = gf_sys_get_argc();
+	Bool found = GF_FALSE;
+	const char *res = NULL;
+	while (dr->args[i].name) {
+		if (!strcmp(dr->args[i].name, key_name)) {
+			res = gf_opts_get_key(dr->module_name, key_name);
+			if (!res)
+				res = dr->args[i].val;
+			found = GF_TRUE;
+		}
+		i++;
+	}
+	if (!found) return NULL;
+	for (i=0; i<nb_args; i++) {
+		const char *a = gf_sys_get_arg(i);
+		if (strncmp(a, "--", 2)) continue;
+		a+=2;
+		char *msep = strchr(a, '@');
+		if (msep) {
+			u32 mlen = (u32) (msep-a);
+			if (strncmp(dr->module_name, a, mlen)) continue;
+			a += mlen+1;
+		}
+		if (strncmp(a, key_name, klen)) continue;
+		if (a[klen] == '=') {
+			gf_sys_mark_arg_used(i, GF_TRUE);
+			return a+klen+1;
+		}
+		if (!a[klen]) {
+			gf_sys_mark_arg_used(i, GF_TRUE);
+			return "1";
+		}
+	}
+	return res;
+}
+GF_EXPORT
+Bool gf_module_get_bool(GF_BaseInterface *dr, char *key_name)
+{
+	const char *res = gf_module_get_key(dr, key_name);
+	if (!res) return GF_FALSE;
+	if (!stricmp(res, "yes") || !stricmp(res, "true") || !strcmp(res, "1")) return GF_TRUE;
+	return GF_FALSE;
+}
+GF_EXPORT
+Bool gf_module_get_int(GF_BaseInterface *dr, char *key_name)
+{
+	const char *res = gf_module_get_key(dr, key_name);
+	if (!res) return 0;
+	if (!stricmp(res, "yes") || !stricmp(res, "true") || !strcmp(res, "1")) return atoi(res);
+	return 0;
+}
+
