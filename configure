@@ -1703,7 +1703,7 @@ config_package libcaca "libcaca" "" "-lcaca" "" '#include <caca.h>
 int main( void ) { caca_canvas_t *canvas = caca_create_canvas(20, 20); return 0; }'
 
 
-config_package mpeghdec "mpeghdec" "" " -lSYS -lFDK -lDRCdec -lPCMutils -lMpeghDec -lIGFdec -lArithCoding -lFormatConverter -lUIManager -lgVBAPRenderer -lMpegTPDec" "" '
+config_package mpeghdec "mpeghdec" "" "-lMpeghDec -lMpegTPDec -lPCMutils -lIGFdec -lArithCoding -lFormatConverter -lgVBAPRenderer -lDRCdec -lUIManager -lSYS -lFDK -lm" "" '
 #ifndef bool
 typedef int bool;
 #endif
