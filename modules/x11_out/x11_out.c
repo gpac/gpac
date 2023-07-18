@@ -1322,7 +1322,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 #endif
 
 #ifdef GPAC_HAS_X11_XV
-	if (!gf_module_get_bool((GF_BaseInterface *vout), "colorkey")) {
+	if (!gf_module_get_bool((GF_BaseInterface *)vout, "colorkey")) {
 		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 0);
 	} else {
 		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_YV12, 1);

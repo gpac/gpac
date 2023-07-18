@@ -67,10 +67,10 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
 	if (ctx == NULL)
 		return GF_BAD_PARAM;
-	opt = gf_module_get_key(dr, "name");
+	opt = gf_module_get_key((GF_BaseInterface *)dr, "name");
 	ctx->output_name = opt ? ctx->output_name : "GPAC";
 
-	opt = gf_module_get_key(dr, "description");
+	opt = gf_module_get_key((GF_BaseInterface *)dr, "description");
 	ctx->output_description = opt  ? opt  : "GPAC Output";
 	return GF_OK;
 }
