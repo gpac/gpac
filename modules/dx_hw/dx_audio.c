@@ -181,7 +181,7 @@ static GF_Err DS_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels,
 	while (ctx->buffer_size % ctx->format.nBlockAlign) ctx->buffer_size++;
 
 	ctx->use_notif = GF_TRUE;
-	if (gf_module_get_bool(dr, "disable-notif"))
+	if (gf_module_get_bool((GF_BaseInterface*)dr, "disable-notif"))
 		ctx->use_notif = GF_FALSE;
 
 	memset(&dsbBufferDesc, 0, sizeof(DSBUFFERDESC));

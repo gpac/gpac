@@ -840,7 +840,7 @@ rem_fmt:
 	}
 
 	/*get YUV overlay key*/
-	opt = gf_module_get_bool((GF_BaseInterface *)dr, "overlay-color-key");
+	opt = gf_module_get_key((GF_BaseInterface *)dr, "overlay-color-key");
 	/*no set is the default*/
 	if (!opt) {
 		opt = "0101FE";

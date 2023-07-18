@@ -1638,8 +1638,8 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		olay.pixel_format = GF_PIXEL_RGBA;
 		olay.pitch_y = 4*olay.width;
 		olay.video_buffer = ctx->oldata.ptr;
-		dst_wnd.x = ctx->dw/2 + ctx->olwnd.x - ctx->olwnd.z/2;
-		dst_wnd.y = ctx->dh/2 - ctx->olwnd.y;
+		dst_wnd.x = (u32) (ctx->dw/2 + ctx->olwnd.x - ctx->olwnd.z/2);
+		dst_wnd.y = (u32) (ctx->dh/2 - ctx->olwnd.y);
 		dst_wnd.w = ctx->olwnd.z;
 		dst_wnd.h = ctx->olwnd.w;
 		e = ctx->video_out->Blit(ctx->video_out, &olay, NULL, &dst_wnd, 0);
