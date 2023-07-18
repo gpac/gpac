@@ -46,6 +46,9 @@ typedef struct
 	caca_canvas_t *canvas;
 	caca_display_t *display;
 	GF_List *dithers;
+
+	u8 *backbuffer;
+	caca_dither_t *bb_dither;
 } CacaOutCtx;
 
 static void cacao_shutdown(GF_VideoOutput *dr)
@@ -109,6 +112,9 @@ static GF_Err cacao_fullscreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *scre
 static GF_Err cacao_flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	CacaOutCtx *ctx = (CacaOutCtx *)dr->opaque;
+	if (ctx->backbuffer) {
+		caca_dither_bitmap(ctx->canvas, 0, 0, caca_get_canvas_width(ctx->canvas), caca_get_canvas_height(ctx->canvas), ctx->bb_dither, ctx->backbuffer);
+	}
     caca_refresh_display(ctx->display);
     return GF_OK;
 }
@@ -228,17 +234,46 @@ static GF_Err cacao_process_event(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_SIZE:
 	    ctx->wnd_w = evt->size.width;
 	    ctx->wnd_h = evt->size.height;
+	    if (ctx->backbuffer) gf_free(ctx->backbuffer);
+	    ctx->backbuffer = NULL;
+	    if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
+	    ctx->bb_dither = NULL;
 		break;
 	case GF_EVENT_VIDEO_SETUP:
 	    ctx->wnd_w = evt->setup.width;
 	    ctx->wnd_h = evt->setup.height;
+	    if (ctx->backbuffer) gf_free(ctx->backbuffer);
+	    ctx->backbuffer = NULL;
+	    if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
+	    ctx->bb_dither = NULL;
 		break;
 	}
 	return GF_OK;
 }
+
+static void set_dither_options(GF_VideoOutput *dr, caca_dither_t *dither)
+{
+	const char *opt	= gf_module_get_key((GF_BaseInterface *)dr, "antialias");
+	if (opt) caca_set_dither_antialias(dither, opt);
+	opt	= gf_module_get_key((GF_BaseInterface *)dr, "colors");
+	if (opt) caca_set_dither_color(dither, opt);
+	opt	= gf_module_get_key((GF_BaseInterface *)dr, "charset");
+	if (opt) caca_set_dither_charset(dither, opt);
+	opt	= gf_module_get_key((GF_BaseInterface *)dr, "algorithm");
+	if (opt) caca_set_dither_algorithm(dither, opt);
+	opt	= gf_module_get_key((GF_BaseInterface *)dr, "brightness");
+	if (opt) caca_set_dither_brightness(dither, atof(opt));
+	opt	= gf_module_get_key((GF_BaseInterface *)dr, "gamma");
+	if (opt) caca_set_dither_gamma(dither, atof(opt));
+	opt	= gf_module_get_key((GF_BaseInterface *)dr, "contrast");
+	if (opt) caca_set_dither_contrast(dither, atof(opt));
+}
+
 static GF_Err cacao_blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
 {
 	CacaOutCtx *ctx = (CacaOutCtx *)dr->opaque;
+
+	if (ctx->backbuffer) return GF_NOT_SUPPORTED;
 
 	CacaDither *d = NULL;
 	u32 i, count = gf_list_count(ctx->dithers);
@@ -305,20 +340,7 @@ static GF_Err cacao_blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Wind
 		}
 
 		//set options
-		const char *opt	= gf_module_get_key((GF_BaseInterface *)dr, "antialias");
-		if (opt) caca_set_dither_antialias(d->dither, opt);
-		opt	= gf_module_get_key((GF_BaseInterface *)dr, "colors");
-		if (opt) caca_set_dither_color(d->dither, opt);
-		opt	= gf_module_get_key((GF_BaseInterface *)dr, "charset");
-		if (opt) caca_set_dither_charset(d->dither, opt);
-		opt	= gf_module_get_key((GF_BaseInterface *)dr, "algorithm");
-		if (opt) caca_set_dither_algorithm(d->dither, opt);
-		opt	= gf_module_get_key((GF_BaseInterface *)dr, "brightness");
-		if (opt) caca_set_dither_brightness(d->dither, atof(opt));
-		opt	= gf_module_get_key((GF_BaseInterface *)dr, "gamma");
-		if (opt) caca_set_dither_gamma(d->dither, atof(opt));
-		opt	= gf_module_get_key((GF_BaseInterface *)dr, "contrast");
-		if (opt) caca_set_dither_contrast(d->dither, atof(opt));
+		set_dither_options(dr, d->dither);
 	}
 	int x=0;
 	int y=0;
@@ -335,6 +357,30 @@ static GF_Err cacao_blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Wind
     caca_dither_bitmap(ctx->canvas, x, y, w, h, d->dither, video_src->video_buffer);
 	return GF_OK;
 }
+
+static GF_Err cacao_lock_backbuffer(GF_VideoOutput *driv, GF_VideoSurface *video_info, Bool do_lock)
+{
+	CacaOutCtx *ctx = (CacaOutCtx *)driv->opaque;
+	if (!do_lock) return GF_OK;
+
+	if (!ctx->backbuffer) {
+		ctx->backbuffer = gf_malloc(3*ctx->wnd_w*ctx->wnd_h);
+		if (!ctx->backbuffer) return GF_OUT_OF_MEM;
+
+		ctx->bb_dither = caca_create_dither(24, ctx->wnd_w, ctx->wnd_h, ctx->wnd_w*3, 0x0000ff, 0x00ff00, 0xff0000, 0);
+		if (!ctx->bb_dither) return GF_OUT_OF_MEM;
+		set_dither_options(driv, ctx->bb_dither);
+	}
+	memset(video_info, 0, sizeof(GF_VideoSurface));
+	video_info->width = ctx->wnd_w;
+	video_info->height = ctx->wnd_h;
+	video_info->pitch_x = 3;
+	video_info->pitch_y = ctx->wnd_w*3;
+	video_info->pixel_format = GF_PIXEL_RGB;
+	video_info->video_buffer = ctx->backbuffer;
+	return GF_OK;
+}
+
 
 //do not change order
 static GF_GPACArg CacaArgs[] = {
@@ -417,7 +463,7 @@ static void *cacao_new()
 	driv->ProcessEvent = cacao_process_event;
 	driv->hw_caps = GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_STRETCH;
 	driv->Blit = cacao_blit;
-	driv->LockBackBuffer = NULL;
+	driv->LockBackBuffer = cacao_lock_backbuffer;
 	driv->LockOSContext = NULL;
 	ctx->dithers = gf_list_new();
 	driv->args = CacaArgs;
@@ -446,6 +492,10 @@ static void cacao_del(void *ifce)
 		}
 	}
 	gf_list_del(ctx->dithers);
+
+	if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
+	if (ctx->backbuffer) gf_free(ctx->backbuffer);
+
 	gf_free(ctx);
 	gf_free(dr);
 }
