@@ -2305,6 +2305,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 		gf_isom_datamap_del(movie->editFileMap);
 		movie->editFileMap = gf_isom_fdm_new_temp(NULL);
 	} else if (close_segment_handle == GF_TRUE) {
+		if (orig_bs != movie->editFileMap->bs) {
+			u32 tmpsize;
+			gf_bs_get_content_no_truncate(movie->editFileMap->bs, &movie->block_buffer, &tmpsize, &movie->block_buffer_size);
+		}
 		gf_isom_datamap_del(movie->editFileMap);
 		movie->editFileMap = NULL;
 	}
