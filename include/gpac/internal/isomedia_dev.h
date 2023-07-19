@@ -767,7 +767,7 @@ typedef struct
 	GF_ISOM_BOX
 	u8 *data;
 	u32 dataSize;
-	u32 original_4cc;
+	u32 original_4cc, parent_4cc;
 	u32 sai_type, sai_aux_info;
 	u64 sai_offset;
 	struct _gf_saio_box *saio_box;

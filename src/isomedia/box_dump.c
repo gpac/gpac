@@ -106,6 +106,10 @@ GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace)
 	return GF_OK;
 }
 
+#ifdef GPAC_HAS_QJS
+static void gf_isom_dump_js_cleanup();
+#endif
+
 static Bool dump_skip_samples = GF_FALSE;
 GF_EXPORT
 GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_samples)
@@ -138,6 +142,10 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 		gf_isom_box_dump(box, trace);
 	}
 	gf_fprintf(trace, "</IsoMediaFile>\n");
+
+#ifdef GPAC_HAS_QJS
+	gf_isom_dump_js_cleanup();
+#endif
 	return GF_OK;
 }
 
@@ -1865,6 +1873,9 @@ static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
 }
 #undef get_and_print
 
+#ifdef GPAC_HAS_QJS
+GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, Bool is_box, FILE *trace, char *szPath);
+#endif
 
 GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 {
@@ -1899,6 +1910,17 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_gmcc(u, trace);
 	} else if (u->original_4cc==GF_4CC('d','v','c','1')) {
 		return dump_dvc1(u, trace);
+	} else {
+#ifdef GPAC_HAS_QJS
+		const char *opt = gf_opts_get_key("core", "boxdir");
+		if (opt) {
+			char szPath[GF_MAX_PATH];
+			snprintf(szPath, GF_MAX_PATH-1, "%s/%s.js", opt, gf_4cc_to_str(u->original_4cc) );
+			if (gf_file_exists(szPath)) {
+				return dump_js_data(u->data, u->dataSize, u->original_4cc, u->parent_4cc, GF_TRUE, trace, szPath);
+			}
+		}
+#endif
 	}
 
 	gf_isom_box_dump_start(a, name, trace);
@@ -5559,9 +5581,24 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 			break;
 		default:
 			if (ptr->is_opaque) {
-				gf_fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
-				dump_data(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
-				gf_fprintf(trace, "\"/>\n");
+				Bool do_dump = GF_TRUE;
+#ifdef GPAC_HAS_QJS
+				const char *opt = gf_opts_get_key("core", "boxdir");
+				if (opt) {
+					GF_DefaultSampleGroupDescriptionEntry *defe = (GF_DefaultSampleGroupDescriptionEntry*)entry;
+					char szPath[GF_MAX_PATH];
+					snprintf(szPath, GF_MAX_PATH-1, "%s/sgpd_%s.js", opt, gf_4cc_to_str(ptr->grouping_type) );
+					if (gf_file_exists(szPath)) {
+						dump_js_data(defe->data, defe->length, ptr->grouping_type, 0, GF_FALSE, trace, szPath);
+						do_dump = GF_FALSE;
+					}
+				}
+#endif
+				if (do_dump) {
+					gf_fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+					dump_data(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+					gf_fprintf(trace, "\"/>\n");
+				}
 			}
 		}
 	}
@@ -7068,5 +7105,199 @@ GF_Err keys_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_done("KeysBox", NULL, trace);
 	return GF_OK;
 }
+
+
+#ifdef GPAC_HAS_QJS
+#include "../quickjs/quickjs.h"
+
+void qjs_module_init_gpaccore(JSContext *ctx);
+void js_dump_error(JSContext *ctx);
+
+static char *js_pref = "import { Bitstream as BS } from 'gpaccore'\n \
+\
+function _gpac_parse_box(ab) => {\n\
+let bs = new BS(ab);\n\
+";
+
+
+static char *js_suf = "\n\
+if (bs.overflow) throw \"Too many bytes read\";\n\
+else this.__unparsed = bs.available;\n\
+}\n\
+globalThis.__do_parse = _gpac_parse_box;\n";
+
+void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bool skip_name, u32 parent_type)
+{
+	u32 len, i, j, pass=0;
+	u32 unparsed_bytes=0;
+	Bool has_child=GF_FALSE;
+	JSPropertyEnum *tab;
+	const char *key, *str;
+	JSValue val;
+	JSValue v_name;
+	const char *s_name=NULL;
+	Bool is_array = JS_IsArray(ctx, obj);
+	char *elem_name = NULL;
+
+	if (is_array) {
+		elem_name = gf_strdup(name);
+		gf_dynstrcat(&elem_name, "Entry", NULL);
+	}
+	if (skip_name) {
+		v_name = JS_GetPropertyStr(ctx, obj, "Name");
+		s_name = JS_ToCString(ctx, v_name);
+		name = s_name;
+	}
+	fprintf(trace, "<%s", name);
+
+	JS_GetOwnPropertyNames(ctx, &tab, &len, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
+
+	for (j=0;j<2;j++) {
+	for (i=0; i<len; i++) {
+		val = JS_GetProperty(ctx, obj, tab[i].atom);
+		key = JS_AtomToCString(ctx, tab[i].atom);
+		str = JS_ToCString(ctx, val);
+
+		if (JS_IsArray(ctx, val)) {
+			has_child = GF_TRUE;
+			if (pass)
+				dump_element(ctx, trace, is_array ? elem_name : key, val, GF_FALSE, 0);
+		} else if (JS_IsObject(val)) {
+			has_child = GF_TRUE;
+			if (pass)
+				dump_element(ctx, trace, is_array ? elem_name :key, val, GF_FALSE, 0);
+		} else if (!strcmp(key, "__unparsed")) {
+			JS_ToInt32(ctx, &unparsed_bytes, val);
+		} else if (!pass) {
+			if (!skip_name || strcmp(key, "Name"))
+				fprintf(trace, " %s=\"%s\"", key, str);
+		}
+		JS_FreeCString(ctx, key);
+		JS_FreeCString(ctx, str);
+		JS_FreeValue(ctx, val);
+	}
+		if (!pass) {
+			if (!has_child) {
+				fprintf(trace, "/>\n");
+				break;
+			} else {
+				fprintf(trace, ">\n");
+				pass++;
+			}
+		}
+	}
+
+	for(i = 0; i < len; i++)
+		JS_FreeAtom(ctx, tab[i].atom);
+	js_free(ctx, tab);
+	if (unparsed_bytes)
+		fprintf(trace, "<!-- %d unparsed bytes -->\n", unparsed_bytes);
+
+	if (parent_type) {
+		JSValue par = JS_GetPropertyStr(ctx, obj, "Container");
+		const char *s_par = JS_ToCString(ctx, par);
+		if (s_par) {
+			if (!strstr(s_par, gf_4cc_to_str(parent_type)))
+				fprintf(trace, "<!-- Invalid as child of %s -->\n", gf_4cc_to_str(parent_type));
+			JS_FreeCString(ctx, s_par);
+		}
+		JS_FreeValue(ctx, par);
+	}
+
+	if (elem_name) gf_free(elem_name);
+	if (has_child)
+		fprintf(trace, "</%s>\n", name);
+
+	if (s_name) {
+		JS_FreeCString(ctx, s_name);
+		JS_FreeValue(ctx, v_name);
+	}
+}
+
+static JSRuntime *rt = NULL;
+static JSContext *ctx = NULL;
+
+GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, Bool is_box, FILE *trace, char *szPath)
+{
+	GF_Err e = GF_OK;
+	char *buf=NULL;
+	u8 *file;
+	u32 blen, flen;
+
+	if (!rt) {
+		rt = JS_NewRuntime();
+		ctx = JS_NewContext(rt);
+		qjs_module_init_gpaccore(ctx);
+	}
+
+	gf_dynstrcat(&buf, js_pref, NULL);
+	gf_file_load_data(szPath, &file, &flen);
+	gf_dynstrcat(&buf, file, NULL);
+	gf_free(file);
+	gf_dynstrcat(&buf, js_suf, NULL);
+	blen = (u32) strlen(buf);
+
+    JSValue ret = JS_Eval(ctx, (char *)buf, blen, szPath, JS_EVAL_TYPE_MODULE);
+	if (JS_IsException(ret)) {
+		e = GF_BAD_PARAM;
+		js_dump_error(ctx);
+	}
+	JS_FreeValue(ctx, ret);
+    gf_free(buf);
+
+	if (!e) {
+		JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+
+		JSValue global_obj = JS_GetGlobalObject(ctx);
+		JS_SetPropertyStr(ctx, global_obj, "print", JS_NewCFunction(ctx, js_print, "print", 1));
+		JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
+
+		JSValue obj = JS_NewObject(ctx);
+		char szName[100];
+		sprintf(szName, "%s", gf_4cc_to_str(b4cc));
+		if (is_box) {
+			JS_SetPropertyStr(ctx, obj, "type", JS_NewString(ctx, szName));
+			JS_SetPropertyStr(ctx, obj, "Size", JS_NewInt32(ctx, size));
+			strcat(szName, "Box");
+		} else {
+			//sample group description
+			strcat(szName, "Entry");
+			par_type=0;
+		}
+		JS_SetPropertyStr(ctx, obj, "Name", JS_NewString(ctx, szName));
+		JS_SetPropertyStr(ctx, obj, "__unparsed", JS_NewInt32(ctx, 0));
+
+		JSValue arg = JS_NewArrayBuffer(ctx, data, size, NULL, NULL, 0);
+		JSValue fun = JS_GetPropertyStr(ctx, global_obj, "__do_parse");
+
+		ret = JS_Call(ctx, fun, obj, 1, &arg);
+		if (JS_IsException(ret)) {
+			e = GF_BAD_PARAM;
+			js_dump_error(ctx);
+		}
+		JS_FreeValue(ctx, ret);
+
+		JS_FreeValue(ctx, global_obj);
+
+		if (e==GF_OK) {
+			dump_element(ctx, trace, szName, obj, GF_TRUE, par_type);
+		}
+		JS_FreeValue(ctx, obj);
+		JS_FreeValue(ctx, arg);
+		JS_FreeValue(ctx, fun);
+	}
+	return e;
+}
+
+static void gf_isom_dump_js_cleanup()
+{
+	if (ctx) JS_FreeContext(ctx);
+	if (rt) JS_FreeRuntime(rt);
+	ctx=NULL;
+	rt=NULL;
+}
+
+#endif
+
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

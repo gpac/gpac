@@ -883,6 +883,9 @@ attribute readonly unsigned long bits_available;
 /*! gets refreshed size of bitstream - see \ref gf_bs_get_refreshed_size */
 attribute readonly unsigned long long refreshed_size;
 
+/*! checks if bitstream read has overflown - see \ref gf_bs_is_overflow */
+attribute readonly boolean overflow;
+
 }
 
 /*! fraction object*/

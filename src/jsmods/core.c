@@ -762,6 +762,7 @@ enum
 	JS_BS_BIT_POS,
 	JS_BS_AVAILABLE,
 	JS_BS_BITS_AVAILABLE,
+	JS_BS_OVERFLOW,
 	JS_BS_REFRESH_SIZE,
 };
 
@@ -784,6 +785,8 @@ static JSValue js_bs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt64(ctx, gf_bs_available(bs));
 	case JS_BS_BITS_AVAILABLE:
 		return JS_NewInt32(ctx, gf_bs_bits_available(bs));
+	case JS_BS_OVERFLOW:
+		return JS_NewBool(ctx, gf_bs_is_overflow(bs) );
 	}
 	return JS_UNDEFINED;
 
@@ -811,6 +814,7 @@ static const JSCFunctionListEntry bitstream_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("available", js_bs_prop_get, NULL, JS_BS_AVAILABLE),
     JS_CGETSET_MAGIC_DEF_ENUM("bits_available", js_bs_prop_get, NULL, JS_BS_BITS_AVAILABLE),
     JS_CGETSET_MAGIC_DEF_ENUM("refreshed_size", js_bs_prop_get, NULL, JS_BS_REFRESH_SIZE),
+    JS_CGETSET_MAGIC_DEF_ENUM("overflow", js_bs_prop_get, NULL, JS_BS_OVERFLOW),
 
 	JS_CFUNC_DEF("skip", 0, js_bs_skip_bytes),
 	JS_CFUNC_DEF("is_align", 0, js_bs_is_align),
