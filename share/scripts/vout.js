@@ -71,13 +71,31 @@ let disp_size = null;
 let task_reschedule = 500;
 let rot = 0;
 let flip = 0;
+let use_libcaca=false;
 
 let do_coverage=0;
 if (sys.get_opt('temp', 'vout_cov') == 'yes') do_coverage = 1;
 
 
-if (parent_filter && parent_filter.type=='vout')
+function check_vout()
+{
+	let drv = vout.get_arg('drv');
+	if (!drv) drv = sys.get_opt('core', 'video-output');
+	if (drv == 'caca') {
+		session.set_auth_fun( null );
+		use_libcaca=true;
+	}
+
+	speed = vout.get_arg('speed');
+	drop = vout.get_arg('drop');
+	fullscreen = vout.get_arg('fullscreen');
+	win_id = vout.get_arg('wid');
+}
+
+if (parent_filter && parent_filter.type=='vout') {
 	vout = parent_filter;
+	check_vout();
+}
 
 function check_filters()
 {
@@ -86,13 +104,10 @@ function check_filters()
 	for (i=0; i< session.nb_filters; i++) {
 		let f = session.get_filter(i);
 		if (!aout && (f.type==="aout")) aout = f;
-		else if (!vout && (f.type==="vout")) vout = f;
-	}
-	if (vout) {
-		speed = vout.get_arg('speed');
-		drop = vout.get_arg('drop');
-		fullscreen = vout.get_arg('fullscreen');
-		win_id = vout.get_arg('wid');
+		else if (!vout && (f.type==="vout")) {
+			vout = f;
+			check_vout();
+		}
 	}
 }
 check_filters();
@@ -153,6 +168,8 @@ function setup_overlay()
 		ol_height = target_height;
 	}
 
+	if (use_libcaca) return true;
+
 	if (ol_buffer != null) return true;
 	ol_buffer = new ArrayBuffer(ol_width*ol_height*4);
 	ol_canvas = new evg.Canvas(ol_width, ol_height, 'rgba', ol_buffer);
@@ -208,11 +225,13 @@ session.set_event_fun( (evt)=> {
 
 	switch (evt.ui_type) {
 	case GF_EVENT_MOUSEDOWN:
+		if (use_libcaca) return GF_FALSE;
 		last_x = evt.mouse_x;
 		last_y = evt.mouse_y;
 		break;
 
 	case GF_EVENT_MOUSEUP:
+		if (use_libcaca) return GF_FALSE;
 		if ((last_x != evt.mouse_x) || (last_y != evt.mouse_y)) return 0;
 		if (overlay_type==OL_AUTH) return 0;
 
@@ -375,7 +394,9 @@ function update_help()
 {
 	let args = []; //['Shortcuts for vout', '  '];
 
-	shortcuts.forEach( (key) => {
+	shortcuts.forEach( (key, index) => {
+		if (use_libcaca && (index>10))
+			return;
 		args.push( '' + sys.keyname(key.code) + ': ' + key.desc);
 	});
 	if (audio_only)
@@ -383,6 +404,15 @@ function update_help()
 	else
 		text.fontsize = Math.floor(0.6*ol_height/args.length);
 	text.set_text(args);
+
+	if (use_libcaca) {
+		let str = '';
+		args.forEach(a => {
+			str+=''+a+'\n';
+		});
+		vout.update('oltxt', str);
+		return;
+	}
 
 	//lock vout since we will modify data of the canvas
 	vout.lock(true);
@@ -462,12 +492,15 @@ function update_play()
 		progress_bar_path=null;
 	}
 
-	ol_canvas.clearf(0.2, 0.2, 0.2, 0.6);
+	if (!use_libcaca)
+		ol_canvas.clearf(0.2, 0.2, 0.2, 0.6);
+
 	let length = ol_width - 20;
 	let last_ts_f = vout.last_ts_drop;
 	if (!last_ts_f && aout)
 		last_ts_f = aout.last_ts_drop;
 	if (!last_ts_f) {
+		vout.update('oltxt', null);
 		return;
 	}
 
@@ -497,6 +530,26 @@ function update_play()
 	str+=m+':';
 	if (s<10) str+='0';
 	str+=s;
+
+	if (use_libcaca) {
+		if (duration) {
+			let progress = Math.ceil(100 * last_ts / duration);
+			let i=0;
+			str += ' ';
+			while (i*10<progress) {
+				str += '=';
+				i++;
+			}
+			while (i<10) {
+				str += '-';
+				i++;
+			}
+			str += ' ' + progress + ' %';
+		}
+		vout.update('oltxt', str);
+		return;
+	}
+
 	let fs = Math.floor(0.5*ol_height);
 	if (fs > 60) fs=60;
 	text.fontsize = fs; 
@@ -759,6 +812,15 @@ function update_stats()
 	 stats_graph.forEach(str => { stats.push(str);});
 
 
+	if (use_libcaca) {
+		let str = '';
+		stats.forEach(a => {
+			str+=''+a+'\n';
+		});
+		vout.update('oltxt', str);
+		return;
+	}
+
 	text.fontsize = 20; 
 	text.set_text(stats);
 
@@ -891,6 +953,7 @@ function toggle_overlay()
 	if (!ol_visible) {
 		//we don't lock vout because the overlay buffer is still valid
 		vout.update('oldata', null);
+		vout.update('oltxt', '');
 		overlay_type=OL_NONE;
 		return;
 	}
@@ -938,9 +1001,9 @@ let shortcuts = [
 	{ "code": GF_KEY_LEFT, "desc": "seek backward "},
 	{ "code": GF_KEY_UP, "desc": "seek forward by 30s, 10m if alt down, 30m if ctrl down"},
 	{ "code": GF_KEY_DOWN, "desc": "seek backward"},
-	{ "code": GF_KEY_F, "desc": "fullscreen mode"},
 	{ "code": GF_KEY_I, "desc": "show info and statistics"},
 	{ "code": GF_KEY_P, "desc": "show playback info"},
+	{ "code": GF_KEY_F, "desc": "fullscreen mode"},
 	{ "code": GF_KEY_M, "desc": "flip video"},
 	{ "code": GF_KEY_R, "desc": "rotate video by 90 degree"},
 ];
@@ -1076,6 +1139,7 @@ function process_keyboard(evt)
 	}
 	return false;
 }
+
 
 session.set_auth_fun( (site, user, pass, secure, auth_cbk) => {
 	overlay_type_bck = overlay_type;
