@@ -105,6 +105,7 @@ typedef struct
 	GF_Fraction vdelay;
 	const char *out;
 	GF_PropUIntList dumpframes;
+	char *oltxt;
 
 	GF_PropVec4i olwnd;
 	GF_PropVec2i olsize;
@@ -1644,6 +1645,13 @@ void vout_draw_2d(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		dst_wnd.h = ctx->olwnd.w;
 		e = ctx->video_out->Blit(ctx->video_out, &olay, NULL, &dst_wnd, 0);
 	}
+	else if (ctx->oltxt && ctx->oltxt[0]) {
+		GF_Event evt;
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_MESSAGE;
+		evt.message.message = ctx->oltxt;
+		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	}
 
 	if (ctx->dump_f_idx) {
 		char szFileName[1024];
@@ -2325,6 +2333,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 		"- 180: rotate 180 degree\n"
 		"- 270: rotate 90 degree clockwise"
 	, GF_PROP_UINT, "0","0|90|180|270", GF_FS_ARG_UPDATE | GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(oltxt), "overlay text", GF_PROP_STRING, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE_SYNC},
 	{0}
 };
 

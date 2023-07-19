@@ -100,7 +100,7 @@ static GF_Err cacao_setup(struct _video_out *dr, void *os_handle, void *os_displ
 
 //    caca_set_mouse(ctx->display, 0);
 	caca_set_display_time(ctx->display, 0);
-    fprintf(stdout, "caca size %d %d driver %s\n", caca_get_canvas_width(ctx->canvas), caca_get_canvas_height(ctx->canvas), caca_get_display_driver(ctx->display));
+    GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[Caca] Canvas setup size %d %d driver %s\n", caca_get_canvas_width(ctx->canvas), caca_get_canvas_height(ctx->canvas), caca_get_display_driver(ctx->display) ));
 	return GF_OK;
 }
 
@@ -203,6 +203,14 @@ static void cacao_check_event(GF_VideoOutput *dr)
 			case CACA_KEY_F13: evt.key.key_code = GF_KEY_F13; break;
 			case CACA_KEY_F14: evt.key.key_code = GF_KEY_F14; break;
 			case CACA_KEY_F15: evt.key.key_code = GF_KEY_F15; break;
+			default:
+				if ((evt.key.key_code>=0x30) && (evt.key.key_code<=0x39))
+					evt.key.key_code = GF_KEY_0 + evt.key.key_code-0x30;
+				else if ((evt.key.key_code>=0x41) && (evt.key.key_code<=0x5A))
+					evt.key.key_code = GF_KEY_A + evt.key.key_code-0x41;
+				else if ((evt.key.key_code>=0x61) && (evt.key.key_code<=0x7A))
+					evt.key.key_code = GF_KEY_A + evt.key.key_code-0x61;
+				break;
 			}
 			dr->on_event(dr->evt_cbk_hdl, &evt);
 		}
@@ -216,6 +224,24 @@ static void cacao_check_event(GF_VideoOutput *dr)
 
 	}
 }
+
+static void cacao_print_message(CacaOutCtx *ctx, char *msg)
+{
+	u32 y = 2;
+	char *src = msg;
+	while (1) {
+		char *sep = strchr(src, '\n');
+		if (sep) sep[0] = 0;
+		if (src[0])
+			caca_put_str(ctx->canvas, 10, y, src);
+		y++;
+		if (!sep) break;
+		sep[0] = '\n';
+		src = sep+1;
+	}
+}
+
+
 static GF_Err cacao_process_event(GF_VideoOutput *dr, GF_Event *evt)
 {
 	if (!evt) {
@@ -246,6 +272,9 @@ static GF_Err cacao_process_event(GF_VideoOutput *dr, GF_Event *evt)
 	    ctx->backbuffer = NULL;
 	    if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
 	    ctx->bb_dither = NULL;
+		break;
+	case GF_EVENT_MESSAGE:
+		cacao_print_message(ctx, (char *) evt->message.message);
 		break;
 	}
 	return GF_OK;
@@ -346,7 +375,6 @@ static GF_Err cacao_blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Wind
 	int y=0;
 	int w=caca_get_canvas_width(ctx->canvas);
 	int h=caca_get_canvas_height(ctx->canvas);
-
 	if (dst_wnd) {
 		x = dst_wnd->x * w / ctx->wnd_w;
 		y = dst_wnd->y * h / ctx->wnd_h;
@@ -470,6 +498,9 @@ static void *cacao_new()
 	driv->description = "Video output in terminal using libcaca";
 	if (gf_opts_get_bool("temp", "gendoc"))
 		cacao_load_options(driv);
+
+	gf_opts_set_key("temp", "use_libcaca", "true");
+
 	return driv;
 }
 
@@ -496,6 +527,7 @@ static void cacao_del(void *ifce)
 	if (ctx->bb_dither) caca_free_dither(ctx->bb_dither);
 	if (ctx->backbuffer) gf_free(ctx->backbuffer);
 
+	gf_opts_set_key("temp", "use_libcaca", NULL);
 	gf_free(ctx);
 	gf_free(dr);
 }

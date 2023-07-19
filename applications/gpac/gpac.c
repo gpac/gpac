@@ -1325,6 +1325,10 @@ restart:
 		}
 		ERR_EXIT
 	}
+
+	if (gf_opts_get_bool("temp", "use_libcaca"))
+		enable_reports = 0;
+
 	if (enable_reports) {
 		if (enable_reports==2)
 			gf_fs_set_ui_callback(session, gpac_event_proc, session);
