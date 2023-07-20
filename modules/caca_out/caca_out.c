@@ -31,6 +31,10 @@
 
 #ifdef GPAC_HAS_LIBCACA
 
+#if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
+#  pragma comment(lib, "libcaca.lib")
+#endif
+
 #include <caca.h>
 
 typedef struct
