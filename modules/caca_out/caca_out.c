@@ -297,11 +297,11 @@ static void set_dither_options(GF_VideoOutput *dr, caca_dither_t *dither)
 	opt	= gf_module_get_key((GF_BaseInterface *)dr, "algorithm");
 	if (opt) caca_set_dither_algorithm(dither, opt);
 	opt	= gf_module_get_key((GF_BaseInterface *)dr, "brightness");
-	if (opt) caca_set_dither_brightness(dither, atof(opt));
+	if (opt) caca_set_dither_brightness(dither, (float)atof(opt));
 	opt	= gf_module_get_key((GF_BaseInterface *)dr, "gamma");
-	if (opt) caca_set_dither_gamma(dither, atof(opt));
+	if (opt) caca_set_dither_gamma(dither, (float)atof(opt));
 	opt	= gf_module_get_key((GF_BaseInterface *)dr, "contrast");
-	if (opt) caca_set_dither_contrast(dither, atof(opt));
+	if (opt) caca_set_dither_contrast(dither, (float)atof(opt));
 }
 
 static GF_Err cacao_blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
