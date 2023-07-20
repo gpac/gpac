@@ -29,6 +29,8 @@
 #include <gpac/list.h>
 #include <gpac/modules/video_out.h>
 
+#ifdef GPAC_HAS_LIBCACA
+
 #include <caca.h>
 
 typedef struct
@@ -565,3 +567,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 GPAC_MODULE_STATIC_DECLARATION( caca_out )
+
+#endif // GPAC_HAS_LIBCACA
