@@ -1699,7 +1699,7 @@ int main( void ) {  nghttp2_session *ng_sess; nghttp2_session_del(ng_sess); retu
 config_package caption "libcaption" "" "-lcaption" "" '#include <caption/cea708.h>
 int main( void ) { caption_frame_t ccframe; caption_frame_init(&ccframe); return 0; }'
 
-config_package libcaca "libcaca" "" "-lcaca" "" '#include <caca.h>
+config_package libcaca "caca" "" "-lcaca" "" '#include <caca.h>
 int main( void ) { caca_canvas_t *canvas = caca_create_canvas(20, 20); return 0; }'
 
 
@@ -2874,7 +2874,7 @@ fi
 
 
 if test "$has_libcaca" != "no" ; then
-    echo "#define GPAC_HAS_LIBCACAC" >> $TMPH
+    echo "#define GPAC_HAS_LIBCACA" >> $TMPH
     echo "CONFIG_CACA=yes" >> config.mak
 else
     echo "CONFIG_CACA=no" >> config.mak
