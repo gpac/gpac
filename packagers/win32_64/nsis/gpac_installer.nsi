@@ -307,6 +307,12 @@ Section "Validator" SecValidator
   File "${GPAC_BIN}\gm_validator.dll"
 SectionEnd
 
+Section "Libcaca Output" SecCACA
+  SectionIn 1
+  File "${GPAC_BIN}\libcaca.dll"
+  File "${GPAC_BIN}\gm_caca_out.dll"
+SectionEnd
+
 SubSectionEnd
 
 
@@ -409,6 +415,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPython} "Python bindings for libgpac"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRMT} "Remotery HTML visualizer"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "SDL Audio and Video output"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecCACA} "Support for ASCII video output"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecShortcuts} "System menu shortucts"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END

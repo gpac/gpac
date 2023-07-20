@@ -68,6 +68,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_HTTP2
 #define GPAC_HAS_LIBCAPTION
 #define GPAC_HAS_MPEGHDECODER
+#define GPAC_HAS_LIBCACA
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 

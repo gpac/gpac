@@ -36,6 +36,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gpac", "gpac.vcxproj", "{F7
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "out_dektec", "..\..\modules\dektec_out\out_dektec.vcxproj", "{042E3638-67F3-4C6C-8C00-CD9BFA416974}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "caca_out", "caca_out.vcxproj", "{95A030CF-71A5-4A1B-8399-8B16D69451DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug - MP4Box_only|Win32 = Debug - MP4Box_only|Win32
@@ -188,6 +190,18 @@ Global
 		{042E3638-67F3-4C6C-8C00-CD9BFA416974}.Release|Win32.Build.0 = Release|Win32
 		{042E3638-67F3-4C6C-8C00-CD9BFA416974}.Release|x64.ActiveCfg = Release|x64
 		{042E3638-67F3-4C6C-8C00-CD9BFA416974}.Release|x64.Build.0 = Release|x64
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Debug - MP4Box_only|Win32.ActiveCfg = Debug|Win32
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Debug - MP4Box_only|x64.ActiveCfg = Debug|x64
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Debug|Win32.Build.0 = Debug|Win32
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Debug|x64.ActiveCfg = Debug|x64
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Debug|x64.Build.0 = Debug|x64
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Release - MP4Box_only|Win32.ActiveCfg = Release|Win32
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Release - MP4Box_only|x64.ActiveCfg = Release|x64
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Release|Win32.ActiveCfg = Release|Win32
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Release|Win32.Build.0 = Release|Win32
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Release|x64.ActiveCfg = Release|x64
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -204,6 +218,7 @@ Global
 		{042D3628-67F3-4B6C-8CC0-CD9AFA416974} = {6274F5D2-A9CB-4DF9-BF9E-818416ACD347}
 		{F728CC74-D7D0-41D2-8A28-05CE9F2EF0D0} = {B7FFDE3D-6BF0-4EE1-B6FD-BD15A503DBBA}
 		{042E3638-67F3-4C6C-8C00-CD9BFA416974} = {6274F5D2-A9CB-4DF9-BF9E-818416ACD347}
+		{95A030CF-71A5-4A1B-8399-8B16D69451DF} = {6274F5D2-A9CB-4DF9-BF9E-818416ACD347}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2516E9BA-1B96-4935-ABF3-0D6D3F959230}
