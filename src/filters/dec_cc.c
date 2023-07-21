@@ -237,8 +237,10 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 	} else {
 		size=0;
 	}
-	if (!size) return GF_OK;
-
+	if (!size) {
+		ctx->last_ts_plus_one = ts+1;
+		return GF_OK;
+	}
 	u8 *output;
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, size+1, &output);
 	if (!pck) return GF_OUT_OF_MEM;
@@ -249,7 +251,7 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	gf_filter_pck_set_cts(pck, ctx->last_ts_plus_one-1);
 	gf_filter_pck_set_duration(pck, (u32) (ts - ctx->last_ts_plus_one+1));
-	ctx->last_ts_plus_one = 0;
+	ctx->last_ts_plus_one = ts+1;
 
 	gf_filter_pck_send(pck);
 	return GF_OK;
