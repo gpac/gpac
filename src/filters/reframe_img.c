@@ -307,7 +307,7 @@ GF_Err img_process(GF_Filter *filter)
 
 	w = fi.biWidth;
 	h = fi.biHeight;
-	pf = (fi.biBitCount==24) ? GF_PIXEL_RGB : GF_PIXEL_RGBA;
+	pf = (fi.biBitCount==24) ? GF_PIXEL_RGB : GF_PIXEL_RGBX;
 	size = (fi.biBitCount==24) ? 3 : 4;
 	size *= w;
 	out_stride = size;
