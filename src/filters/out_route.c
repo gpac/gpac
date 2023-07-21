@@ -1949,8 +1949,16 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			strncpy(szIP, service_name, len);
 			szIP[len] = 0;
 
+			p = gf_filter_pid_get_property_str(rpid->pid, "RouteMajorNo");
+			if (p && p->value.string) major = atoi(p->value.string);
+			p = gf_filter_pid_get_property_str(rpid->pid, "RouteMinorNo");
+			if (p && p->value.string) minor = atoi(p->value.string);
+			u32 service_cat = 1;
+			p = gf_filter_pid_get_property_str(rpid->pid, "RouteServiceCat");
+			if (p && p->value.string) service_cat = atoi(p->value.string);
+
 			snprintf(tmp, 2000,
-				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0 \" serviceCategory=\"1\" globalServiceID=\"urn:atsc:gpac:%d:%d\" majorChannelNo=\"%d\" minorChannelNo=\"%d\" shortServiceName=\"%s\">\n", sid, ctx->bsid, sid, major, minor, szIP);
+				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0\" serviceCategory=\"%d\" globalServiceID=\"urn:atsc:gpac:%d:%d\" majorChannelNo=\"%d\" minorChannelNo=\"%d\" shortServiceName=\"%s\">\n", sid, service_cat, ctx->bsid, sid, major, minor, szIP);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
 			src_ip = ctx->ifce;
@@ -2182,6 +2190,10 @@ GF_FilterRegister ROUTEOutRegister = {
 		"The filter will look for `ROUTEIP` and `ROUTEPort` properties on the incoming PID. If not found, the default [-ip]() and [-port]() will be used.\n"
 		"\n"
 		"The ATSC short service name can be set using PID property `ShortServiceName`. If not found, `ServiceName` is checked, otherwise default to `GPAC`.\n"
+		"Other PID properties used:\n"
+		"- RouteMajorNo: set major channel number of service\n"
+		"- RouteMinorNo: set minor channel number of service\n"
+		"- RouteServiceCat: set service category, default to 1 if not found\n"
 		"\n"
 		"# ROUTE mode\n"
 		"In this mode, only a single service can be distributed by the ROUTE session.\n"
