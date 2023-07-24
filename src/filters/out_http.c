@@ -1977,7 +1977,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
-		if (p && p->value.boolean) {
+		if (p && p->value.uint) {
 			pctx->is_manifest = GF_TRUE;
 			if (!ctx->hmode && !ctx->has_read_dir) {
 				if (!ctx->reopen) {

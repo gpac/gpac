@@ -369,20 +369,10 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	manifest_type = 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
-	if (p && p->value.string) {
-		if (strstr(p->value.string, "dash")) manifest_type = 1;
-		else if (strstr(p->value.string, "mpd")) manifest_type = 1;
-		else if (strstr(p->value.string, "mpegurl")) manifest_type = 2;
-	}
-	if (!manifest_type) {
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-		if (p && p->value.string) {
-			if (strstr(p->value.string, "mpd")) manifest_type = 1;
-			else if (strstr(p->value.string, "m3u8")) manifest_type = 2;
-			else if (strstr(p->value.string, "3gm")) manifest_type = 1;
-		}
-	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
+	if (p)
+		manifest_type = p->value.uint;
+
 	if (manifest_type) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 		if (!p || (p->value.uint!=GF_STREAM_FILE)) {

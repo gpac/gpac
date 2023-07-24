@@ -986,7 +986,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 			//for routeout
 			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_IS_MANIFEST, &PROP_BOOL(GF_TRUE));
 
 			dasher_check_outpath(ctx);
 
@@ -1018,9 +1017,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				}
 			}
 
+			u32 manifest_type = 0;
 			if (!strcmp(segext, "m3u8")) {
 				ctx->do_m3u8 = GF_TRUE;
 				gf_filter_pid_set_name(opid, "manifest_m3u8" );
+				manifest_type = 2;
 			} else if (!strcmp(segext, "ghix") || !strcmp(segext, "ghi")) {
 				ctx->do_index = !strcmp(segext, "ghix") ? 2 : 1;
 				ctx->sigfrag = GF_FALSE;
@@ -1035,10 +1036,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					ctx->template = gf_strdup("$RepresentationID$-$Number$$Init=init$");
 
 				gf_filter_pid_set_name(opid, "dash_index" );
+				manifest_type = 3;
 			} else {
 				ctx->do_mpd = GF_TRUE;
 				gf_filter_pid_set_name(opid, "manifest_mpd" );
+				manifest_type = 1;
 			}
+			gf_filter_pid_set_property(opid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
 		}
 
 		ctx->store_seg_states = GF_FALSE;

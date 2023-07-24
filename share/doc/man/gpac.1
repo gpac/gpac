@@ -3835,9 +3835,17 @@ Original crypto scheme on a decrypted PID
 Time shift in number of segments for HAS streams, only set by dashin and dasher filters
 .br
 .TP
-.B IsManifest (PHSM,bool,D )
+.B IsManifest (PHSM,uint,D )
 .br
 PID is a HAS manifest
+.br
+* 0: not a manifest
+.br
+* 1: DASH manifest
+.br
+* 2: HLS manifest
+.br
+* 3: GHI(X) manifest
 .br
 .TP
 .B Sparse (PSPA,bool,D )

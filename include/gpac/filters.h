@@ -1272,7 +1272,6 @@ enum
 	//internal, indicate DASH dependency group
 	GF_PROP_PID_DASH_DEP_GROUP = GF_4CC('D','G','D','I'),
 
-
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
 
@@ -1281,6 +1280,7 @@ enum
 	//PID has no init segment associated (file forward mode of dasher)
 	GF_PROP_PID_NO_INIT = GF_4CC('P','N','I','N'),
 
+	//PID carries a manifest
 	GF_PROP_PID_IS_MANIFEST = GF_4CC('P','H','S','M'),
 
 	GF_PROP_PCK_XPS_MASK = GF_4CC('P','X','P','M'),
