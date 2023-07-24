@@ -1203,7 +1203,7 @@ retry:
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: %s\n", candidate->name, gf_error_to_string(e) ));
 	} else {
-		filter->encoder_stream_type = gf_codecid_type(codecid);
+		filter->encoder_codec_id = codecid;
 	}
 	if (blacklist) gf_list_del(blacklist);
 	return filter;
@@ -2807,6 +2807,7 @@ static void gf_fs_print_not_connected_filters(GF_FilterSession *fsess, GF_List *
 		//only dump not connected ones
 		if (f->num_input_pids || f->num_output_pids || f->multi_sink_target || f->nb_tasks_done) continue;
 		if (f->disabled==GF_FILTER_DISABLED_HIDE) continue;
+		if (f->filter_skiped) continue;
 
 		if (ignore_sinks) {
 			Bool has_outputs;
@@ -2867,6 +2868,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 	for (i=0; i<count; i++) {
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		if (f->multi_sink_target) continue;
+		if (f->filter_skiped) continue;
 		if (gf_list_find(filters_done, f)>=0) continue;
 		if (f->disabled==GF_FILTER_DISABLED_HIDE) continue;
 		if (!has_undefined) {

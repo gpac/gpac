@@ -36,6 +36,7 @@
 - Closed Caption decoding filter (CEA708)
 - MPEG-H decoder using IIS mpeghdec
 - Templating for property assignment 
+- Conditional filter replacement to identify based on codecID 
 
 ## MP4Box
 - add track reordering option
