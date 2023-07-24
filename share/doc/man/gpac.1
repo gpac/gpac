@@ -1586,8 +1586,6 @@ gpac -i file.mp4 reframer:raw=av -o null
 .br
 This will force decoding media from file.mp4 and trash (send to null) the result (doing a decoder benchmark for example).
 .br
-
-.br
 .SS Escaping option separators
 .br
 When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to sub-filters such as libx264 (cf x264opts parameter).
@@ -2351,6 +2349,43 @@ gpac -i source.mp4:myopts.txt:foo=bar -o dst
 .br
 Any filter loaded between source.mp4 and dst will inherit both myopts.txt and foo options and will resolve options and PID properties given in myopts.txt.
 .br
+
+.br
+.SH Ignoring filters at run-time
+.LP
+.br
+The special option ccp can be used to replace filters with an identity filter at run-time based on the input codec ID.
+.br
+The option is a list of codec IDs to check. For encoder filters, an empty list reuses the encoder codec type.
+.br
+When the PID codec ID matches one of the specified codec, the filter is replaced with a reframer filter with single PID input and same name and ID.
+.br
+Example
+.br
+-i src c=avc:b=1m:ccp -o mux
+.br
+
+.br
+This will replace the encoder filter with a reframer if the input PID is in AVC|H264 format, or uses the encoder for other visual PIDs.
+.br
+Example
+.br
+-i src c=avc:b=1m:ccp=avc,hevc -o mux
+.br
+
+.br
+This will replace the encoder filter with a reframer if the input PID is in AVC|H264 or HEVC format, or uses the encoder for other visual PIDs.
+.br
+Example
+.br
+-i src cecrypt:cfile=drm.xml:ccp=aac -o mux
+.br
+
+.br
+This will replace the encryptor filter with a reframer if the input PID is in AAC format, or uses the encryptor for other PIDs.
+.br
+
+.br
 .SH Specific filter options
 .LP
 .br
@@ -2425,6 +2460,8 @@ As seen previously, the following options may be set on any filter, but are not 
 * gfopt: following options are not tracked (no value)
 .br
 * gpac: argument separator for URLs (no value)
+.br
+* ccp: filter replacement control (string list value)
 .br
 
 .br

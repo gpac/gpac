@@ -2036,9 +2036,9 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 		if (!has_mime_cap) ext_not_trusted = GF_FALSE;
 	}
 
-	if (filter_inst && filter_inst->encoder_stream_type) {
+	if (filter_inst && filter_inst->encoder_codec_id) {
 		const GF_PropertyValue *pid_st = gf_filter_pid_get_property_first(src_pid_or_ipid, GF_PROP_PID_STREAM_TYPE);
-		if (pid_st && (pid_st->value.uint != filter_inst->encoder_stream_type))
+		if (pid_st && (pid_st->value.uint != gf_codecid_type(filter_inst->encoder_codec_id) ))
 			return GF_FALSE;
 	}
 
@@ -4911,6 +4911,45 @@ single_retry:
 		//remember we had a sourceid match
 		found_matching_sourceid = GF_TRUE;
 
+		//per codec-ID filter
+		if (filter_dst->skip_cids.nb_items) {
+			u32 stream_type = 0;
+			const GF_PropertyValue *p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
+			if (p) stream_type = p->value.uint;
+
+			p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_CODECID);
+			if (p) {
+				Bool do_skip = GF_FALSE;
+				u32 idx;
+				for (idx=0; idx<filter_dst->skip_cids.nb_items; idx++) {
+					u32 cid;
+					if (!strcmp(filter_dst->skip_cids.vals[idx], "AUTO")) {
+						cid = filter_dst->encoder_codec_id;
+					} else {
+						cid = gf_codecid_parse(filter_dst->skip_cids.vals[idx]);
+					}
+					if (!cid) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Invalid codecid %s in ccp, ignoring\n", filter_dst->skip_cids.vals[idx]));
+						continue;
+					}
+					if (cid!=p->value.uint) continue;
+					if (stream_type != gf_codecid_type(cid)) continue;
+					do_skip=GF_TRUE;
+					break;
+				}
+				if (do_skip) {
+					GF_Err e;
+					GF_Filter *f = gf_fs_load_filter(filter->session, "reframer", &e);
+					gf_filter_set_id(f, filter_dst->id);
+					gf_filter_set_name(f, filter_dst->name);
+					if (filter_dst->source_ids) f->source_ids = gf_strdup(filter_dst->source_ids);
+					f->cloned_from = filter_dst;
+					f->max_extra_pids = 0;
+					filter_dst->filter_skiped = GF_TRUE;
+					filter_dst = f;
+				}
+			}
+		}
 		//we have a match, check if caps are OK
 		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
 

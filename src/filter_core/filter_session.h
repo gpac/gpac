@@ -809,7 +809,9 @@ struct __gf_filter
 	Bool user_pid_props;
 
 	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
-	u32 encoder_stream_type;
+	u32 encoder_codec_id;
+	GF_PropStringList skip_cids;
+	Bool filter_skiped;
 
 	Bool act_as_sink;
 	Bool require_source_id;
@@ -1095,6 +1097,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task);
 void gf_filter_pid_detach_task_no_flush(GF_FSTask *task);
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
+void gf_filter_set_id(GF_Filter *filter, const char *ID);
 
 void gf_filter_post_remove(GF_Filter *filter);
 

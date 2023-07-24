@@ -705,6 +705,13 @@ void gf_filter_del(GF_Filter *filter)
 		}
 		gf_mx_v(filter->session->filters_mx);
 	}
+	if (filter->skip_cids.vals) {
+		GF_PropertyValue prop;
+		prop.value.string_list = filter->skip_cids;
+		prop.type = GF_PROP_STRING_LIST;
+		gf_props_reset_single(&prop);
+	}
+
 	if (filter->instance_description)
 		gf_free(filter->instance_description);
 	if (filter->instance_version)
@@ -772,7 +779,7 @@ void gf_filter_set_name(GF_Filter *filter, const char *name)
 	filter->name = gf_strdup(name ? name : filter->freg->name);
 }
 
-static void gf_filter_set_id(GF_Filter *filter, const char *ID)
+void gf_filter_set_id(GF_Filter *filter, const char *ID)
 {
 	assert(filter);
 
@@ -1980,6 +1987,20 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			else if (!strcmp("ccp", szArg)) {
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+				if (!filter->dynamic_filter) {
+					if (value) {
+						GF_PropertyValue res = gf_filter_parse_prop_solve_env_var(filter->session, filter, GF_PROP_STRING_LIST, "ccp", value, NULL);
+						filter->skip_cids = res.value.string_list;
+					} else {
+						filter->skip_cids.nb_items = 1;
+						filter->skip_cids.vals = gf_malloc(sizeof(char*));
+						filter->skip_cids.vals[0] = gf_strdup("AUTO");
+					}
+				}
+			}
 			//non tracked options
 			else if (!strcmp("gfopt", szArg)) {
 				found = GF_TRUE;
@@ -2264,7 +2285,7 @@ static GF_FilterPidInst *filter_relink_get_upper_pid(GF_FilterPidInst *src_pidin
 		if (pidinst->filter->num_input_pids != 1) break;
 		if (pidinst->filter->num_output_pids != 1) break;
 		//filter was explicitly loaded, cannot go beyond
-		if (! pidinst->filter->dynamic_filter && !pidinst->filter->encoder_stream_type) break;
+		if (! pidinst->filter->dynamic_filter && !pidinst->filter->encoder_codec_id) break;
 		opid = gf_list_get(pidinst->filter->output_pids, 0);
 		assert(opid);
 		//we have a fan-out, we cannot replace the filter graph after that point
@@ -2313,7 +2334,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst, GF_Err reason)
 	GF_FilterPidInst *dst_pidinst = NULL;
 	GF_Filter *cur_filter = from_pidinst->filter;
 
-	if (from_pidinst->filter->encoder_stream_type) {
+	if (from_pidinst->filter->encoder_codec_id) {
 		is_encoder = GF_TRUE;
 	}
 	//locate the true destination
@@ -2403,7 +2424,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 
 	src_f = src_pidi ? src_pidi->pid->filter : pid->pid->filter;
 
-	if (src_pidi && src_pidi->filter->encoder_stream_type) {
+	if (src_pidi && src_pidi->filter->encoder_codec_id) {
 		new_f = gf_fs_load_encoder(filter->session, src_pidi->filter->orig_args, filter->blacklisted);
 
 		//store destination
