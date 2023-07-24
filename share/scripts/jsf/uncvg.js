@@ -605,6 +605,9 @@ function setup_uncv()
 			throw "Component pattern must have an even number of components";
 	}
 
+	tile_width = filter.vsize.x / filter.tiles.x;
+	tile_height = filter.vsize.y / filter.tiles.y;
+
 	if (filter.sampling) {
 		switch (filter.interleave) {
 		case INTERLEAVE_COMPONENT:
@@ -618,13 +621,26 @@ function setup_uncv()
 				throw "Sub-sampling must use interleave mode 0, 2 or 5";
 			break;
 		}
+		if (filter.sampling==SAMPLING_420) {
+			if (tile_width%2)
+				throw "Tile width must be a multiple of 2 for YUV 420 sampling";
+			if (tile_height%2)
+				throw "Tile height must be a multiple of 2 for YUV 420 sampling";
+		}
+		else if (filter.sampling==SAMPLING_422) {
+			if (tile_width%2)
+				throw "Tile width must be a multiple of 2 for YUV 422 sampling";
+		}
+		else if (filter.sampling==SAMPLING_411) {
+			if (tile_width%4)
+				throw "Tile width must be a multiple of 2 for YUV 411 sampling";
+		}
 	}
 
 
-	tile_width = filter.vsize.x / filter.tiles.x;
-	tile_height = filter.vsize.y / filter.tiles.y;
 	let num_tiles = filter.tiles.x * filter.tiles.y;
 	row_align_bytes = tile_align_bytes = 0;
+
 
 	if ((filter.interleave==INTERLEAVE_TILE) && (num_tiles==1)) {
 		throw "Tile-Component interleaving requires more than one tile";
