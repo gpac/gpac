@@ -633,7 +633,7 @@ function setup_uncv()
 		}
 		else if (filter.sampling==SAMPLING_411) {
 			if (tile_width%4)
-				throw "Tile width must be a multiple of 2 for YUV 411 sampling";
+				throw "Tile width must be a multiple of 4 for YUV 411 sampling";
 		}
 	}
 
