@@ -304,16 +304,20 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (p && p->value.uint) ctx->dash_mode = 1;
 
 	ctx->max_segs = 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESHIFT_SEGS);
-	if (ctx->max_cache_segs<0) {
-		ctx->max_segs = (u32) -ctx->max_cache_segs;
-	} else if (ctx->max_cache_segs>0) {
-		ctx->max_segs = (u32) ctx->max_cache_segs;
-		if (p && (p->value.uint > (u32) ctx->max_cache_segs))
-			ctx->max_segs = p->value.uint;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
+	//do not cleanup manifest pids
+	if (!p || !p->value.uint) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESHIFT_SEGS);
+		if (ctx->max_cache_segs<0) {
+			ctx->max_segs = (u32) -ctx->max_cache_segs;
+		} else if (ctx->max_cache_segs>0) {
+			ctx->max_segs = (u32) ctx->max_cache_segs;
+			if (p && (p->value.uint > (u32) ctx->max_cache_segs))
+				ctx->max_segs = p->value.uint;
+		}
+		if (ctx->max_segs && !ctx->past_files)
+			ctx->past_files = gf_list_new();
 	}
-	if (ctx->max_segs && !ctx->past_files)
-		ctx->past_files = gf_list_new();
 
 #ifdef GPAC_HAS_FD
 	//disable fd for mp2t since we only dispatch small blocks - todo check this for other streams ?
