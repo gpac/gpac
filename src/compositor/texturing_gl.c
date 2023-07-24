@@ -480,6 +480,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_VYUY:
 	case GF_PIXEL_UYVY:
 	case GF_PIXEL_GL_EXTERNAL:
+	case GF_PIXEL_YUV444_PACK:
 	case GF_PIXEL_YUV444_10_PACK:
 	case GF_PIXEL_V210:
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
