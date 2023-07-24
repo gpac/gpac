@@ -4952,11 +4952,11 @@ single_retry:
 			cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1);
 		}
 
-		//implicit mode with a possible link found and this destination is a sink, do not match caps in first pass
+		//implicit mode with a possible link found and this destination is a sink or an explicit filter, do not match caps in first pass
 		//otherwise we could link directly to destination (due to caps mismatch) while a valid path could be found to a previously
 		//specified filter
 		//see testsuite restamp-fps
-		if (!num_pass && possible_link_found_implicit_mode && is_sink)
+		if (!num_pass && possible_link_found_implicit_mode && (is_sink || !filter_dst->dynamic_filter))
 			cap_matched = GF_FALSE;
 
 		if (!cap_matched) {
