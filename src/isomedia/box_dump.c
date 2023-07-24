@@ -6913,8 +6913,9 @@ GF_Err csgp_box_dump(GF_Box *a, FILE * trace)
 	Bool use_grpt_param = ptr->flags & (1<<6);
 
 	gf_isom_box_dump_start(a, "CompactSampleGroupBox", trace);
-	fprintf(trace, "version=\"%u\" index_msb_indicates_fragment_local_description=\"%d\" grouping_type_parameter_present=\"%d\" pattern_size_code=\"%d\" count_size_code=\"%d\" index_size_code=\"%d\" grouping_type=\"%s\" pattern_count=\"%d\"",
+	fprintf(trace, "Version=\"%u\" Flags=\"%d\" index_msb_indicates_fragment_local_description=\"%d\" grouping_type_parameter_present=\"%d\" pattern_size_code=\"%d\" count_size_code=\"%d\" index_size_code=\"%d\" grouping_type=\"%s\" pattern_count=\"%d\"",
 		ptr->version,
+		ptr->flags,
 		use_msb_traf,
 		use_grpt_param,
 		((ptr->flags>>4) & 0x3),
