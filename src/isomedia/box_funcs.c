@@ -99,6 +99,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	char uuid[16];
 	GF_Err e;
 	GF_BitStream *uncomp_bs = NULL;
+	GF_BitStream *orig_bs = NULL;
 	u8 *uncomp_data = NULL;
 	u32 compressed_size=0;
 	GF_Box *newBox;
@@ -205,6 +206,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				//keep size as complete box size for tests below
 				size = osize + 8;
 				uncomp_bs = gf_bs_new(uncomp_data, osize, GF_BITSTREAM_READ);
+				orig_bs = bs;
 				bs = uncomp_bs;
 				start = 0;
 				gf_free(compb);
@@ -348,6 +350,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		}
 #endif
 		newBox->internal_flags = GF_ISOM_BOX_COMPRESSED;
+		bs = orig_bs;
 	}
 
 
