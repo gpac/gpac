@@ -4032,7 +4032,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		if (!parse_prop)
 			goto skip_arg;
 
-		if (strchr(value, '$') || strchr(value, '@')) {
+		if (value && (strchr(value, '$') || strchr(value, '@'))) {
 			char *a_value = gf_strdup(value);
 			filter_solve_prop_template(filter, pid, &a_value);
 			strncpy(ref_prop_dump, a_value, GF_PROP_DUMP_ARG_SIZE-1);
