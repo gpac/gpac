@@ -1898,6 +1898,9 @@ GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
 	u32 parent_type = parent->type;
 	GF_Box *a = NULL;
 	Bool skip_logs = (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_LOGS ) ? GF_TRUE : GF_FALSE;
+	if (parent_type == GF_ISOM_BOX_TYPE_UNKNOWN) {
+		parent_type = ((GF_UnknownBox*)parent)->original_4cc;
+	}
 
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (parent->size>=8) {

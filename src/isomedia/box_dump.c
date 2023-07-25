@@ -1874,7 +1874,7 @@ static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
 #undef get_and_print
 
 #ifdef GPAC_HAS_QJS
-GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, Bool is_box, FILE *trace, char *szPath);
+GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, GF_Box *box, FILE *trace, char *szPath);
 #endif
 
 GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
@@ -1917,7 +1917,8 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 			char szPath[GF_MAX_PATH];
 			snprintf(szPath, GF_MAX_PATH-1, "%s/%s.js", opt, gf_4cc_to_str(u->original_4cc) );
 			if (gf_file_exists(szPath)) {
-				return dump_js_data(u->data, u->dataSize, u->original_4cc, u->parent_4cc, GF_TRUE, trace, szPath);
+				GF_Err e = dump_js_data(u->data, u->dataSize, u->original_4cc, u->parent_4cc, (GF_Box*)u, trace, szPath);
+				if (!e) return GF_OK;
 			}
 		}
 #endif
@@ -5589,7 +5590,7 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 					char szPath[GF_MAX_PATH];
 					snprintf(szPath, GF_MAX_PATH-1, "%s/sgpd_%s.js", opt, gf_4cc_to_str(ptr->grouping_type) );
 					if (gf_file_exists(szPath)) {
-						dump_js_data(defe->data, defe->length, ptr->grouping_type, 0, GF_FALSE, trace, szPath);
+						dump_js_data(defe->data, defe->length, ptr->grouping_type, 0, NULL, trace, szPath);
 						do_dump = GF_FALSE;
 					}
 				}
@@ -7117,21 +7118,22 @@ void js_dump_error(JSContext *ctx);
 static char *js_pref = "import { Bitstream as BS } from 'gpaccore'\n \
 \
 function _gpac_parse_box(ab) => {\n\
-let bs = new BS(ab);\n\
+let bs = ab.byteLength ? new BS(ab) : null;\n\
 ";
 
 
 static char *js_suf = "\n\
-if (bs.overflow) throw \"Too many bytes read\";\n\
-else this.__unparsed = bs.available;\n\
+if (bs && bs.overflow) throw \"Too many bytes read\";\n\
+else this.__unparsed = bs ? bs.available : 0;\n\
 }\n\
 globalThis.__do_parse = _gpac_parse_box;\n";
 
-void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bool skip_name, u32 parent_type)
+void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bool skip_name, u32 parent_type, GF_Box *box, u8 *buf, u32 buflen)
 {
 	u32 len, i, j, pass=0;
 	u32 unparsed_bytes=0;
 	Bool has_child=GF_FALSE;
+	u32 box_has_children=0;
 	JSPropertyEnum *tab;
 	const char *key, *str;
 	JSValue val;
@@ -7149,7 +7151,32 @@ void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bo
 		s_name = JS_ToCString(ctx, v_name);
 		name = s_name;
 	}
+
+	val = JS_GetPropertyStr(ctx, obj, "container");
+	JS_ToInt32(ctx, &box_has_children, val);
+	JS_FreeValue(ctx, val);
+
+	val = JS_GetPropertyStr(ctx, obj, "__unparsed");
+	JS_ToInt32(ctx, &unparsed_bytes, val);
+	JS_FreeValue(ctx, val);
+
+	//try parsing remainer as boxes
+	if (box && box_has_children && (unparsed_bytes>=8)) {
+		u32 osize = box->size;
+		u32 boff = buflen-unparsed_bytes;
+		box->size = unparsed_bytes;
+		GF_BitStream *bs = gf_bs_new(buf+boff, unparsed_bytes, GF_BITSTREAM_READ);
+		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);
+		GF_Err e = gf_isom_box_array_read(box, bs);
+		if (e==GF_OK)
+			unparsed_bytes = 0;
+		box->size = osize;
+		gf_bs_del(bs);
+	}
+
 	fprintf(trace, "<%s", name);
+	if (box && gf_list_count(box->child_boxes))
+		has_child = GF_TRUE;
 
 	JS_GetOwnPropertyNames(ctx, &tab, &len, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
 
@@ -7162,13 +7189,13 @@ void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bo
 		if (JS_IsArray(ctx, val)) {
 			has_child = GF_TRUE;
 			if (pass)
-				dump_element(ctx, trace, is_array ? elem_name : key, val, GF_FALSE, 0);
+				dump_element(ctx, trace, is_array ? elem_name : key, val, GF_FALSE, 0, NULL, NULL, 0);
 		} else if (JS_IsObject(val)) {
 			has_child = GF_TRUE;
 			if (pass)
-				dump_element(ctx, trace, is_array ? elem_name :key, val, GF_FALSE, 0);
+				dump_element(ctx, trace, is_array ? elem_name :key, val, GF_FALSE, 0, NULL, NULL, 0);
 		} else if (!strcmp(key, "__unparsed")) {
-			JS_ToInt32(ctx, &unparsed_bytes, val);
+
 		} else if (!pass) {
 			if (!skip_name || strcmp(key, "Name"))
 				fprintf(trace, " %s=\"%s\"", key, str);
@@ -7191,8 +7218,9 @@ void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bo
 	for(i = 0; i < len; i++)
 		JS_FreeAtom(ctx, tab[i].atom);
 	js_free(ctx, tab);
-	if (unparsed_bytes)
+	if (unparsed_bytes) {
 		fprintf(trace, "<!-- %d unparsed bytes -->\n", unparsed_bytes);
+	}
 
 	if (parent_type) {
 		JSValue par = JS_GetPropertyStr(ctx, obj, "Container");
@@ -7206,8 +7234,12 @@ void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bo
 	}
 
 	if (elem_name) gf_free(elem_name);
-	if (has_child)
-		fprintf(trace, "</%s>\n", name);
+	if (has_child) {
+		if (box)
+			gf_isom_box_dump_done(name, box, trace);
+		else
+			fprintf(trace, "</%s>\n", name);
+	}
 
 	if (s_name) {
 		JS_FreeCString(ctx, s_name);
@@ -7218,7 +7250,7 @@ void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bo
 static JSRuntime *rt = NULL;
 static JSContext *ctx = NULL;
 
-GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, Bool is_box, FILE *trace, char *szPath)
+GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, GF_Box *box, FILE *trace, char *szPath)
 {
 	GF_Err e = GF_OK;
 	char *buf=NULL;
@@ -7256,9 +7288,9 @@ GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, Bool is_box, FIL
 		JSValue obj = JS_NewObject(ctx);
 		char szName[100];
 		sprintf(szName, "%s", gf_4cc_to_str(b4cc));
-		if (is_box) {
+		if (box) {
 			JS_SetPropertyStr(ctx, obj, "type", JS_NewString(ctx, szName));
-			JS_SetPropertyStr(ctx, obj, "Size", JS_NewInt32(ctx, size));
+			JS_SetPropertyStr(ctx, obj, "Size", JS_NewInt32(ctx, box->size));
 			strcat(szName, "Box");
 		} else {
 			//sample group description
@@ -7281,7 +7313,9 @@ GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, Bool is_box, FIL
 		JS_FreeValue(ctx, global_obj);
 
 		if (e==GF_OK) {
-			dump_element(ctx, trace, szName, obj, GF_TRUE, par_type);
+			dump_element(ctx, trace, szName, obj, GF_TRUE, par_type, box, data, size);
+		} else {
+			gf_fprintf(trace, "<!-- JS Error parsing box %s -->\n", szName);
 		}
 		JS_FreeValue(ctx, obj);
 		JS_FreeValue(ctx, arg);
