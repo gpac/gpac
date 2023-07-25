@@ -1028,9 +1028,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
 		//we dispatch timing in milliseconds
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-		if (p)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(p->value.uint));
 
 		switch (ctx->store) {
 		case MP4MX_MODE_FLAT:
