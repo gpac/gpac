@@ -370,8 +370,8 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	manifest_type = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
-	if (p)
-		manifest_type = p->value.uint;
+        if (p)
+                manifest_type = p->value.uint;
 
 	if (manifest_type) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
@@ -1868,9 +1868,9 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 
 	if (!ctx->bytes_sent) ctx->clock_stats = ctx->clock;
 
-	//we send 2 LLS tables, SysTime and SLT
+	//ATSC3 we send 2 LLS tables, SysTime and SLT
 
-	//SysTime
+	//ATSC3 SysTime
 	if (!ctx->lls_time_table) {
 		gf_dynstrcat(&payload_text, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<SystemTime currentUtcOffset=\"", NULL);
 		sprintf(tmp, "%d", GF_TAI_UTC_OFFSET);
@@ -1912,25 +1912,24 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	gf_sk_send(ctx->sock_atsc_lls, ctx->lls_time_table, ctx->lls_time_table_len);
 	ctx->bytes_sent += ctx->lls_time_table_len;
 
-	//SLT
+	//ATSC3 SLT
 	if (!ctx->lls_slt_table) {
 		count = gf_list_count(ctx->services);
-		snprintf(tmp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<SLT bsid=\"%d\">\n", ctx->bsid);
+		snprintf(tmp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<SLT xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/SLT/1.0/\" bsid=\"%d\">\n", ctx->bsid);
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
-			const char *src_ip, *service_name;
+			const char *src_ip, *service_name, *hidden, *hideInESG, *configuration;
 			char szIP[GF_MAX_IP_NAME_LEN];
 			ROUTEPid *rpid;
 			ROUTEService *serv = gf_list_get(ctx->services, i);
+
 			u32 sid = serv->service_id;
 			if (!sid) sid = 1;
-			u32 minor = sid % 1000;
-			if (!minor) minor = 1;
-			u32 major = GF_4CC('G', 'P', 'A', 'C')  % 1000;
 
 			rpid = gf_list_get(serv->pids, 0);
-			p = gf_filter_pid_get_property_str(rpid->pid, "ShortServiceName");
+
+			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3ShortServiceName");
 			if (!p)
 				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_SERVICE_NAME);
 			service_name = (p && p->value.string) ? p->value.string : "GPAC";
@@ -1939,16 +1938,31 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			strncpy(szIP, service_name, len);
 			szIP[len] = 0;
 
-			p = gf_filter_pid_get_property_str(rpid->pid, "RouteMajorNo");
+			// ATSC 3.0 major channel number starts at 2. This really should be set rather than using the default.
+			u32 major = 2;
+			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3MajorChannel");
 			if (p && p->value.string) major = atoi(p->value.string);
-			p = gf_filter_pid_get_property_str(rpid->pid, "RouteMinorNo");
+
+			// ATSC 3.0 minor channel number starts at 1.
+			u32 minor = 1;
+			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3MinorChannel");
 			if (p && p->value.string) minor = atoi(p->value.string);
+
 			u32 service_cat = 1;
-			p = gf_filter_pid_get_property_str(rpid->pid, "RouteServiceCat");
+			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3ServiceCat");
 			if (p && p->value.string) service_cat = atoi(p->value.string);
 
+			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3hidden");
+			hidden = (p && p->value.string) ? p->value.string : "false";
+
+			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3hideInGuide");
+			hideInESG = (p && p->value.string) ? p->value.string : "false";
+
+			p = gf_filter_pid_get_property_str(rpid->pid, "ATSC3configuration");
+			configuration = (p && p->value.string) ? p->value.string : "Broadcast";
+
 			snprintf(tmp, 2000,
-				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0\" serviceCategory=\"%d\" globalServiceID=\"urn:atsc:gpac:%d:%d\" majorChannelNo=\"%d\" minorChannelNo=\"%d\" shortServiceName=\"%s\">\n", sid, service_cat, ctx->bsid, sid, major, minor, szIP);
+				" <Service serviceId=\"%d\" globalServiceID=\"urn:atsc:gpac:%d:%d\" sltSvcSeqNum=\"0\" protected=\"false\" majorChannelNo=\"%d\" minorChannelNo=\"%d\" serviceCategory=\"%d\" shortServiceName=\"%s\" hidden=\"%s\" hideInGuide=\"%s\" broadbandAccessRequired=\"false\" configuration=\"%s\"> \n", sid, ctx->bsid, sid, major, minor, service_cat, szIP, hidden, hideInESG, configuration);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
 			src_ip = ctx->ifce;
@@ -2179,11 +2193,14 @@ GF_FilterRegister ROUTEOutRegister = {
 		"By default, a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
 		"The filter will look for `ROUTEIP` and `ROUTEPort` properties on the incoming PID. If not found, the default [-ip]() and [-port]() will be used.\n"
 		"\n"
-		"The ATSC short service name can be set using PID property `ShortServiceName`. If not found, `ServiceName` is checked, otherwise default to `GPAC`.\n"
-		"Other PID properties used:\n"
-		"- RouteMajorNo: set major channel number of service\n"
-		"- RouteMinorNo: set minor channel number of service\n"
-		"- RouteServiceCat: set service category, default to 1 if not found\n"
+		"ATSC 3.0 attributes set by using the following PID properties:\n"
+		"- ATSC3ShortServiceName: set the short service name, maxiumu of 7 characters.  If not found, `ServiceName` is checked, otherwise default to `GPAC`.\n"
+		"- ATSC3MajorChannel: set major channel number of service. Default to 2.  This really should be set and should not use the default.\n"
+		"- ATSC3MinorChannel: set minor channel number of service. Default of 1.\n"
+		"- ATSC3ServiceCat: set service category, default to 1 if not found. 1=Linear a/v service. 2=Linear audio only service. 3=App-based service. 4=ESg service. 5=EA service. 6=DRM service.\n"
+		"- ATSC3hidden: set if service is hidden.  Boolean true or false. Default of false.\n"
+		"- ATSC3hideInGuide: set if service is hidden in ESG.  Boolean true or false. Default of false.\n"
+		"- ATSC3configuration: set service configuration.  Choices are Broadcast or Broadband.  Default of Broadcast\n"
 		"\n"
 		"# ROUTE mode\n"
 		"In this mode, only a single service can be distributed by the ROUTE session.\n"
