@@ -374,7 +374,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		manifest_type = p->value.uint;
 
 	if (manifest_type) {
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
 		if (!p || (p->value.uint!=GF_STREAM_FILE)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Manifest file detected but no dashin filter, file will be uploaded as is !\n"));
 			manifest_type = 0;
@@ -445,7 +445,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (p) rpid->bitrate = p->value.uint * (100+ctx->brinc) / 100;
 
 	rpid->stream_type = 0;
-	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+	p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
 	if (!p) {
 		if (!rpid->manifest_type) {
 			rpid->raw_file = GF_TRUE;
@@ -501,7 +501,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				ROUTEPid *apid = gf_list_get(rserv->pids, i);
 				if (apid->manifest_type) continue;
 				if (apid == rpid) continue;
-				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
 				if (!p) continue;
 				astreamtype = p->value.uint;
 				if (astreamtype==rpid->stream_type) {
@@ -1528,7 +1528,7 @@ retry:
 		if (p)
 			rpid->current_toi = p->value.uint;
 		else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing filenum on segment %s, something is wrong in demux chain - assuming +1 increase\n", rpid->seg_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing filenum on segment %s, something is wrong in source chain - assuming +1 increase\n", rpid->seg_name));
 			rpid->current_toi ++;
 		}
 		rpid->frag_idx = 0;
@@ -1612,7 +1612,7 @@ retry:
 		rpid->current_dur_us = pck_dur;
 		if (!rpid->current_dur_us) {
 			rpid->current_dur_us = rpid->timescale;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing duration on segment %s, something is wrong in demux chain, will not be able to regulate correctly\n", rpid->seg_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing duration on segment %s, something is wrong in source chain, will not be able to regulate correctly\n", rpid->seg_name));
 		}
 		rpid->current_dur_us = gf_timestamp_rescale(rpid->current_dur_us, rpid->timescale, 1000000);
 	} else if (start && end) {
