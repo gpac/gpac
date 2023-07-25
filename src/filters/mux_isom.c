@@ -7394,6 +7394,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 {
 	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
 	u8 *output;
+	u32 src_pck_dur=0;
 
 	ctx->total_bytes_out += block_size;
 
@@ -7465,6 +7466,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			ctx->dst_pck = gf_filter_pck_new_ref(ctx->opid, cbk_magic, block_size, srcp);
 		}
 		gf_list_del_item(ctx->ref_pcks, srcp);
+		src_pck_dur = gf_timestamp_rescale(gf_filter_pck_get_duration(srcp), gf_filter_pck_get_timescale(srcp), 1000);
 		gf_filter_pck_unref(srcp);
 	}
 	//allocate new one
@@ -7485,10 +7487,19 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->seg_name) );
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num_plus_one-1) );
 	}
+
 	if (ctx->min_cts_plus_one) {
 		u64 orig = ctx->min_cts_plus_one-1;
 		gf_filter_pck_set_cts(ctx->dst_pck, orig);
-		gf_filter_pck_set_duration(ctx->dst_pck, (u32) (ctx->min_cts_next_frag - orig) );
+		//if we have a source packet duration, use it
+		if (src_pck_dur)
+			gf_filter_pck_set_duration(ctx->dst_pck, src_pck_dur);
+		//it may happen that we don't know precisely the min_cts_next_frag, this is a rough compute based on desire frag dur
+		//if duration is wrong, signal to send asap (dur = 1)
+		else if (ctx->min_cts_next_frag > orig)
+			gf_filter_pck_set_duration(ctx->dst_pck, (u32) (ctx->min_cts_next_frag - orig) );
+		else
+			gf_filter_pck_set_duration(ctx->dst_pck, 1);
 	}
 
 	if ((ctx->llhls_mode>1) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
