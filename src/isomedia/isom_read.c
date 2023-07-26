@@ -1020,7 +1020,7 @@ GF_Err gf_isom_get_creation_time(GF_ISOFile *movie, u64 *creationTime, u64 *modi
 	if (!movie || !movie->moov) return GF_BAD_PARAM;
 
 	if (creationTime) *creationTime = movie->moov->mvhd->creationTime;
-	if (creationTime) *modificationTime = movie->moov->mvhd->modificationTime;
+	if (modificationTime) *modificationTime = movie->moov->mvhd->modificationTime;
 	return GF_OK;
 }
 
@@ -1033,7 +1033,7 @@ GF_Err gf_isom_get_track_creation_time(GF_ISOFile *movie, u32 trackNumber, u64 *
 	if (!trak) return 0;
 
 	if (creationTime) *creationTime = trak->Media->mediaHeader->creationTime;
-	if (creationTime) *modificationTime = trak->Media->mediaHeader->modificationTime;
+	if (modificationTime) *modificationTime = trak->Media->mediaHeader->modificationTime;
 	return GF_OK;
 }
 
