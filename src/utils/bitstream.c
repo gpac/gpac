@@ -455,6 +455,9 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 			if (!bs->overflow_state) bs->overflow_state = 1;
 			return 0;
 		}
+
+		if (!bs->original)
+			return 0;
 		res = bs->original[bs->position++];
 
 		if (bs->remove_emul_prevention_byte) {
