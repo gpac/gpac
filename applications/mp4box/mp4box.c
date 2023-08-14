@@ -2351,11 +2351,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					nb_descs = &di->nb_as_descs;
 					descs = &di->as_descs;
 					opt_offset = 8;
-				} else if (!strnicmp(opts, "desc_as_c=", 8)) {
+				} else if (!strnicmp(opts, "desc_as_c=", 10)) {
 					nb_descs = &di->nb_as_c_descs;
 					descs = &di->as_c_descs;
 					opt_offset = 10;
-				} else if (!strnicmp(opts, "desc_rep=", 8)) {
+				} else if (!strnicmp(opts, "desc_rep=", 9)) {
 					nb_descs = &di->nb_rep_descs;
 					descs = &di->rep_descs;
 					opt_offset = 9;

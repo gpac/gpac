@@ -337,7 +337,7 @@ next_line:
 				}
 				if (len) {
 					if (len==1) {
-						if (!strnicmp(parser->line_buffer+parser->line_pos, "0", len)) {
+						if (!strnicmp(parser->line_buffer+parser->line_pos, "0", 1)) {
 							parser->block_comment++;
 						}
 					} else {

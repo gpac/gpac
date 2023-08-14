@@ -2408,14 +2408,14 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 					} else if (!strncmp(link, "LOG", 3)) {
 						fprintf(helpout, "[-%s](core_logs/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("core_logs");
-					} else if (!strncmp(link, "CORE", 3)) {
+					} else if (!strncmp(link, "CORE", 4)) {
 						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("core_options");
 						line_pos+=7 + 2*(u32)strlen(line) + (u32)strlen("core_options");
 					} else if (!strncmp(link, "CFG", 3)) {
 						fprintf(helpout, "[-%s](core_config/#%s)", line, line);
 						line_pos+=7 + 2*(u32)strlen(line) + (u32)strlen("core_config");
-					} else if (!strncmp(link, "MP4B_GEN", 3)) {
+					} else if (!strncmp(link, "MP4B_GEN", 8)) {
 						fprintf(helpout, "[-%s](mp4box-gen-opts/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("mp4box-gen-opts");
 					} else if (strlen(link)) {
@@ -2435,7 +2435,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 
 					if (!strncmp(link, "GPAC", 4)
 						|| !strncmp(link, "LOG", 3)
-						|| !strncmp(link, "CORE", 3)
+						|| !strncmp(link, "CORE", 4)
 						|| strlen(link)
 						|| !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")
 					) {

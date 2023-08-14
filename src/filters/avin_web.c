@@ -488,7 +488,7 @@ static GF_FilterProbeScore webgrab_probe_url(const char *url, const char *mime)
 	if (!strncmp(url, "video://", 8)) return GF_FPROBE_MAYBE_SUPPORTED;
 	if (!strncmp(url, "audio://", 8)) return GF_FPROBE_MAYBE_SUPPORTED;
 	if (!strncmp(url, "av://", 5)) return GF_FPROBE_MAYBE_SUPPORTED;
-	if (!strncmp(url, "canvas://", 8)) return GF_FPROBE_MAYBE_SUPPORTED;
+	if (!strncmp(url, "canvas://", 9)) return GF_FPROBE_MAYBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
