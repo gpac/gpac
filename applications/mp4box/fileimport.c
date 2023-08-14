@@ -1226,10 +1226,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				GOTO_EXIT("invalid format for fullrange")
 			}
 		}
-		else if (!strnicmp(ext+1, "videofmt=", 10)) {
+		else if (!strnicmp(ext+1, "videofmt=", 9)) {
 			u32 idx, count = GF_ARRAY_LENGTH(videofmt_names);
 			for (idx=0; idx<count; idx++) {
-				if (!strcmp(ext+11, videofmt_names[idx])) {
+				if (!strcmp(ext+10, videofmt_names[idx])) {
 					videofmt = idx;
 					break;
 				}
@@ -1253,8 +1253,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				GOTO_EXIT("invalid format for colortfc")
 			}
 		}
-		else if (!strnicmp(ext+1, "colormx=", 10)) {
-			colormx = gf_cicp_parse_color_matrix(ext+11);
+		else if (!strnicmp(ext+1, "colormx=", 8)) {
+			colormx = gf_cicp_parse_color_matrix(ext+9);
 			if (colormx==-1) {
 				e = GF_BAD_PARAM;
 				GOTO_EXIT("invalid format for colormx")
