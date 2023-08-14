@@ -2411,7 +2411,6 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 					} else if (!strncmp(link, "CORE", 4)) {
 						fprintf(helpout, "[-%s](core_options/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("core_options");
-						line_pos+=7 + 2*(u32)strlen(line) + (u32)strlen("core_options");
 					} else if (!strncmp(link, "CFG", 3)) {
 						fprintf(helpout, "[-%s](core_config/#%s)", line, line);
 						line_pos+=7 + 2*(u32)strlen(line) + (u32)strlen("core_config");
@@ -2423,11 +2422,11 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen(link);
 					} else if (is_app_opts || !strcmp(line, "i") || !strcmp(line, "o") || !strcmp(line, "h")) {
 						fprintf(helpout, "[-%s](#%s)", line, line);
-						line_pos+=5 + 2* (u32)strlen(line) + (u32)strlen(link);
+						line_pos+=6 + 2* (u32)strlen(line);
 					} else {
 						//this is a filter opt, don't print '-'
 						fprintf(helpout, "[%s](#%s)", line, line);
-						line_pos+=4 + 2* (u32)strlen(line) + (u32)strlen(link);
+						line_pos+=5 + 2* (u32)strlen(line);
 					}
 				} else {
 					if (gen_doc==2)
