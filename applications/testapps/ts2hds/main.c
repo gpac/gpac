@@ -71,11 +71,11 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, char **input, char **ou
 			CHECK_NEXT_ARG
 			*input = argv[++i];
 			input_found = 1;
-		} else if (!strnicmp(arg, "-output", 6)) {
+		} else if (!strnicmp(arg, "-output", 7)) {
 			CHECK_NEXT_ARG
 			*output = argv[++i];
 			output_found = 1;
-		} else if (!strnicmp(arg, "-segnum", 6)) {
+		} else if (!strnicmp(arg, "-segnum", 7)) {
 			CHECK_NEXT_ARG
 			*segnum = atoi(argv[++i]);
 		} else if (!strnicmp(arg, "-mem-track", 10)) {

@@ -475,7 +475,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		char *rvc_data=NULL;
 		u32 rvc_size=0;
 		Bool is_gz = GF_FALSE;
-		if (!strncmp(rvc_config_att, "data:application/rvc-config+xml", 32) && strstr(rvc_config_att, "base64") ) {
+		if (!strncmp(rvc_config_att, "data:application/rvc-config+xml", 31) && strstr(rvc_config_att, "base64") ) {
 			char *data = strchr(rvc_config_att, ',');
 			if (data) {
 				rvc_size = (u32) strlen(data) * 3 / 4 + 1;
@@ -483,7 +483,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 				rvc_size = gf_base64_decode(data, (u32) strlen(data), rvc_data, rvc_size);
 				rvc_data[rvc_size] = 0;
 			}
-			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 35)) is_gz = GF_TRUE;
+			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 34)) is_gz = GF_TRUE;
 		} else if (!strnicmp(rvc_config_att, "http://", 7) || !strnicmp(rvc_config_att, "https://", 8) ) {
 			return NULL;
 		}
