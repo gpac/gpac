@@ -1859,7 +1859,7 @@ s32 gf_itags_find_by_name(const char *tag_name)
 {
 	u32 i, count = GF_ARRAY_LENGTH(itunes_tags);
 	for (i=0; i<count; i++) {
-		if (!stricmp(tag_name, itunes_tags[i].name)) {
+		if (!stricmp(tag_name, itunes_tags[i].name) || (itunes_tags[i].alt_name && !stricmp(tag_name, itunes_tags[i].alt_name))) {
 			return i;
 		} else if (itunes_tags[i].match_substr && !strnicmp(tag_name, itunes_tags[i].name, strlen(itunes_tags[i].name) )) {
 			return i;
@@ -2179,7 +2179,7 @@ u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 
 	if (new_timescale == timescale)
 		return value;
-		
+
 	if (! (new_timescale % timescale)) {
 		u32 div = (u32) (new_timescale / timescale);
 		return value * div;
