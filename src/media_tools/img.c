@@ -139,11 +139,12 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **
 		*height = gf_bs_read_u32(bs);
 		*codecid = GF_CODECID_PNG;
 	}
-	/*try j2k*/
+	/* try jpeg200 */
 	else {
 		u32 jp2h_size=0, jp2h_start=0;
 		size = gf_bs_read_u8(bs);
 		type = gf_bs_read_u32(bs);
+		/* try jp2 isomedia */
 		if ( ((size==12) && (type==GF_ISOM_BOX_TYPE_JP ))
 	        || (type==GF_ISOM_BOX_TYPE_JP2H ) ) {
 
@@ -191,6 +192,22 @@ j2k_restart:
 				}
 			}
 		}
+		/* try j2k codestream */
+		else {
+			gf_bs_seek(bs, pos);
+			type = gf_bs_read_u32(bs);
+
+			/* Start-of-codestream (SOC) + Image size (SIZ) magic number */
+			if (type == 0xFF4FFF51 ) {
+				/* u32 Lsiz = */gf_bs_read_u16(bs);
+				/* u32 Rsiz = */gf_bs_read_u16(bs);
+				*width = gf_bs_read_u32(bs);
+				*height = gf_bs_read_u32(bs);
+				*codecid = GF_CODECID_J2K;
+
+			}
+		}
+
 	}
 
 exit:
@@ -285,7 +302,7 @@ GF_Err gf_img_jpeg_dec(u8 *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pixe
 	}
 #endif
 	if (!dst) *dst_size = 0;
-	
+
 	jpx.cinfo.err = jpeg_std_error(&(jper.pub));
 	jper.pub.error_exit = gf_jpeg_fatal_error;
 	jper.pub.output_message = gf_jpeg_output_message;
@@ -701,5 +718,3 @@ GF_Err gf_img_png_enc(u8 *data, u32 width, u32 height, s32 stride, u32 pixel_for
 }
 
 #endif	/*GPAC_HAS_PNG*/
-
-
