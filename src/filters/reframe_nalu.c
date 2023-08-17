@@ -180,6 +180,7 @@ typedef struct
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	//set to TRUE once 3 frames with same min poc diff are found, enabling dispatch of the frames
 	Bool poc_probe_done;
+	Bool min_poc_probe_done;
 	//pointer to the first packet of the current frame (the one holding timing info)
 	//this packet is in the packet queue
 	GF_FilterPacket *first_pck_in_au;
@@ -720,7 +721,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 {
 	//TODO: we are dispatching frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
-	if (flush_ref && ctx->pck_queue && ctx->poc_diff) {
+	if (flush_ref && ctx->pck_queue && ctx->poc_diff && ctx->min_poc_probe_done) {
 		u32 dts_inc=0;
 		s32 last_poc = 0;
 		Bool patch_missing_frame = GF_FALSE;
@@ -800,8 +801,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 					last_poc = poc;
 					dts += dts_inc;
 				}
-				//poc is stored as diff since last IDR which has min_poc
-				cts = ( (ctx->min_poc + (s32) poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
+				cts = ( ((s32) poc - ctx->min_poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
@@ -3718,7 +3718,14 @@ naldmx_flush:
 					ctx->poc_diff = 0;
 				}
 
-				if (!ctx->poc_diff || (ctx->poc_diff > (s32) pdiff ) ) {
+				if (!ctx->min_poc_probe_done && slice_poc < ctx->min_poc) {
+					ctx->min_poc = slice_poc;
+				}
+				else {
+					ctx->min_poc_probe_done = GF_TRUE;
+				}
+
+				if (!ctx->poc_diff || (ctx->poc_diff >= (s32) pdiff ) ) {
 					ctx->poc_diff = pdiff;
 					ctx->poc_probe_done = GF_FALSE;
 				} else if (first_in_au) {
@@ -3751,6 +3758,8 @@ naldmx_flush:
 						if (!ctx->au_sap2_poc_reset)
 							ctx->last_poc = 0;
 
+						ctx->min_poc_probe_done = GF_FALSE;
+						ctx->min_poc = ctx->last_poc;
 						ctx->max_last_poc = ctx->last_poc;
 						ctx->max_last_b_poc = ctx->last_poc;
 						ctx->poc_shift = 0;
