@@ -6,7 +6,7 @@ Bugs: mailto:jeanlf@gpac.io
 Homepage: http://gpac.io
 Standards-Version: 3.8.0
 Build-Conflicts: libgpac-dev
-Build-Depends: debhelper (>= 6), libc6, libc6-dev, libx11-dev (>= 1.3), zlib1g-dev (>= 1), libfreetype6-dev, libjpeg62-dev | libjpeg62-turbo-dev, libpng-dev, libmad0-dev, libfaad-dev, libogg-dev, libvorbis-dev, libtheora-dev, liba52-dev | liba52-0.7.4-dev, libavcodec-dev, libavformat-dev, libavutil-dev, libswscale-dev, libavdevice-dev, libavfilter-dev, libxv-dev, x11proto-video-dev, libgl1-mesa-dev, x11proto-gl-dev, libxvidcore-dev, libssl-dev (>= 0.9.8), libjack-dev (>= 0.118), libasound2-dev (>= 1.0), libpulse-dev (>= 0.9), libsdl-dev (>= 1.2) | libsdl2-dev, libnghttp2-dev, ccache
+Build-Depends: debhelper (>= 6), libc6, libc6-dev, libx11-dev (>= 1.3), zlib1g-dev (>= 1), libfreetype6-dev, libjpeg62-dev | libjpeg62-turbo-dev, libpng-dev, libmad0-dev, libfaad-dev, libogg-dev, libvorbis-dev, libtheora-dev, liba52-dev | liba52-0.7.4-dev, libavcodec-dev, libavformat-dev, libavutil-dev, libswscale-dev, libavdevice-dev, libavfilter-dev, libxv-dev, x11proto-video-dev, libgl1-mesa-dev, libglu1-mesa-dev, x11proto-gl-dev, libxvidcore-dev, libssl-dev (>= 0.9.8), libjack-dev (>= 0.118), libasound2-dev (>= 1.0), libpulse-dev (>= 0.9), libsdl-dev (>= 1.2) | libsdl2-dev, libnghttp2-dev, libopenjp2-7-dev, libcaca-dev, ccache
 
 Package: gpac
 Architecture: any
@@ -30,4 +30,3 @@ Description: Framework for production, encoding, delivery and interactive playba
  Supported inputs and outputs are pipes, UDP/TCP/UN sockets, local files, HTTP, DASH/HLS, RTP/RTSP, MPEG-2 TS, 
  ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg.
  GPAC features a highly configurable media processing pipeline extensible through JavaScript, and can be embedded in Python or NodeJS applications.
-

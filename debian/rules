@@ -90,7 +90,7 @@ binary-arch: build install
 	dh_installmenu
 #	dh_installman doc/man/*.1
 	dh_link
-	dh_strip
+	dh_strip --no-automatic-dbgsym
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs -V
