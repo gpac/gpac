@@ -3728,7 +3728,7 @@ naldmx_flush:
 				if (!ctx->poc_diff || (ctx->poc_diff >= (s32) pdiff ) ) {
 					ctx->poc_diff = pdiff;
 					ctx->poc_probe_done = GF_FALSE;
-				} else if (first_in_au) {
+				} else if (first_in_au && ctx->last_temporal_id == 0) {
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
 					ctx->poc_probe_done = GF_TRUE;
 				}
