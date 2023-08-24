@@ -119,7 +119,7 @@ GF_BaseInterface *MyDecoderInterfaceLoad() {
 	_ifce->InterfaceType = _ifce_type;	\
 	_ifce->module_name = _ifce_name ? _ifce_name : "unknown";	\
 	_ifce->author_name = _ifce_author ? _ifce_author : "gpac distribution";	\
-	
+
 /*!
 \brief static module declaration
  \hideinitializer
@@ -166,7 +166,7 @@ Module interface function export. Modules that can be compiled in libgpac rather
 		reg->ShutdownInterface = ShutdownInterface;	\
 		return reg;\
 	}	\
- 
+
 #else
 #define GPAC_MODULE_STATIC_DECLARATION(__name)
 #endif
@@ -290,7 +290,7 @@ void *gf_modules_load_filter(u32 index, void *fsess);
 
 Loads a key from config in the module options.
 \param ifce the module instance to query
-\param key name if the key to query
+\param key the key to query
 \return the key value or null
 */
 const char *gf_module_get_key(GF_BaseInterface *ifce, char *key);
@@ -300,7 +300,7 @@ const char *gf_module_get_key(GF_BaseInterface *ifce, char *key);
 
 Loads a boolean key from config in the module options.
 \param ifce the module instance to query
-\param key name if the key to query
+\param key_name the key to query
 \return GF_TRUE if key is found and equals yes, true or 1, GF_FALSE otherwise
 */
 Bool gf_module_get_bool(GF_BaseInterface *ifce, char *key_name);
@@ -310,7 +310,7 @@ Bool gf_module_get_bool(GF_BaseInterface *ifce, char *key_name);
 
 Loads an integer key from config in the module options.
 \param ifce the module instance to query
-\param key name if the key to query
+\param key_name the key to query
 \return integer value of key, 0 if not found
 */
 Bool gf_module_get_int(GF_BaseInterface *ifce, char *key_name);
