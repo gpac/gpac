@@ -801,7 +801,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 					last_poc = poc;
 					dts += dts_inc;
 				}
-				cts = ( ((s32) poc - ctx->min_poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
+				cts = ( ((s32) poc ) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
@@ -3689,19 +3689,21 @@ naldmx_flush:
 			}
 
 			if (slice_poc < ctx->poc_shift) {
-				u32 i, count = gf_list_count(ctx->pck_queue);
-				for (i=0; i<count; i++) {
-					u64 dts, cts;
-					GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
-					gf_assert(q_pck);
-					dts = gf_filter_pck_get_dts(q_pck);
-					if (dts == GF_FILTER_NO_TS) continue;
-					cts = gf_filter_pck_get_cts(q_pck);
-					//cts may be unset at this point (nal in middle of AU)
-					if (cts == GF_FILTER_NO_TS) continue;
-					cts += ctx->poc_shift;
-					cts -= slice_poc;
-					gf_filter_pck_set_cts(q_pck, cts);
+				if( au_sap_type == GF_FILTER_SAP_NONE) {
+					u32 i, count = gf_list_count(ctx->pck_queue);
+					for (i=0; i<count; i++) {
+						u64 dts, cts;
+						GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
+						gf_assert(q_pck);
+						dts = gf_filter_pck_get_dts(q_pck);
+						if (dts == GF_FILTER_NO_TS) continue;
+						cts = gf_filter_pck_get_cts(q_pck);
+						//cts may be unset at this point (nal in middle of AU)
+						if (cts == GF_FILTER_NO_TS) continue;
+						cts += ctx->poc_shift;
+						cts -= slice_poc;
+						gf_filter_pck_set_cts(q_pck, cts);
+					}
 				}
 
 				ctx->poc_shift = slice_poc;
@@ -3728,7 +3730,7 @@ naldmx_flush:
 				if (!ctx->poc_diff || (ctx->poc_diff >= (s32) pdiff ) ) {
 					ctx->poc_diff = pdiff;
 					ctx->poc_probe_done = GF_FALSE;
-				} else if (first_in_au && ctx->last_temporal_id == 0) {
+				} else if (first_in_au && (ctx->last_temporal_id == 0 || ctx->poc_diff == 1)) {
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
 					ctx->poc_probe_done = GF_TRUE;
 				}
@@ -3762,7 +3764,7 @@ naldmx_flush:
 						ctx->min_poc = ctx->last_poc;
 						ctx->max_last_poc = ctx->last_poc;
 						ctx->max_last_b_poc = ctx->last_poc;
-						ctx->poc_shift = 0;
+						ctx->poc_shift = ctx->last_poc;
 						//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
 						ctx->poc_probe_done = 0;
 					}
