@@ -284,7 +284,7 @@ GF_Err Q_DecCoordOnUnitSphere(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBit
 	s32 value;
 	Fixed tang[4], delta;
 	s32 dir;
-	if (NbBits>32) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!NbBits || NbBits>32) return GF_NON_COMPLIANT_BITSTREAM;
 	if (NbComp != 2 && NbComp != 3) return GF_BAD_PARAM;
 
 	//only 2 or 3 comp in the quantized version
