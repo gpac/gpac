@@ -1426,12 +1426,12 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	GF_Err e = gf_blob_get(file_name, &blob_data, &blob_size, &flags);
 	if (e || !blob_data) return NULL;
     gf_blob_release(file_name);
-    
+
     if (flags) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Attempt at creating a GFIO object on blob corrupted or in transfer, not supported !"));
         return NULL;
     }
-    
+
 	GF_SAFEALLOC(gfio_blob, GF_FileIOBlob);
 	if (!gfio_blob) return NULL;
 	gfio_blob->data = blob_data;
@@ -1452,7 +1452,10 @@ GF_FileIO *gf_fileio_from_mem(const char *URL, const u8 *data, u32 size)
 	gfio_blob->data = (u8 *) data;
 	gfio_blob->size = size;
 	GF_FileIO *res = gf_fileio_new((char *) URL, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
-	if (!res) return NULL;
+	if (!res)  {
+		gf_free(gfio_blob);
+		return NULL;
+	}
 	res->gets = gfio_blob_gets;
 	if (URL)
 		gfio_blob->url_crc = gf_crc_32(URL, (u32) strlen(URL) );
@@ -1969,4 +1972,3 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 	}
 	return sep;
 }
-
