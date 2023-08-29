@@ -902,6 +902,8 @@ GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	GF_SceneGraph *cur_graph = codec->current_graph;
 	GF_Proto *cur_proto = codec->pCurrentProto;
 
+	u32 nbBufs = gf_list_count(codec->command_buffers);
+
 	codec->LastError = GF_OK;
 	while (go) {
 		type = gf_bs_read_int(bs, 2);
@@ -924,6 +926,15 @@ GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	}
 	while (gf_list_count(codec->QPs)) {
 		gf_bifs_dec_qp_remove(codec, GF_TRUE);
+	}
+
+	if (e) {
+		while (gf_list_count(codec->command_buffers) > nbBufs) {
+			CommandBufferItem *cbi;
+			cbi = (CommandBufferItem *)gf_list_pop_back(codec->command_buffers);
+			if (cbi->node) gf_node_unregister(cbi->node, NULL);
+			gf_free(cbi);
+		}
 	}
 
 	codec->current_graph = cur_graph;
