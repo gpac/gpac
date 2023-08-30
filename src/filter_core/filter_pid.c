@@ -733,6 +733,22 @@ typedef enum {
 	GF_PID_CONF_REMOVE,
 } GF_PidConnectType;
 
+static void gf_filter_pid_connect_failure(GF_FilterPid *pid)
+{
+	GF_FilterEvent evt;
+	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+
+	GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+
+	gf_filter_pid_set_eos(pid);
+
+	if (pid->filter->freg->process_event) {
+		GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
+		gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+	}
+}
 static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PidConnectType ctype)
 {
 	u32 i, count;
@@ -990,19 +1006,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				}
 
 				if (ctype==GF_PID_CONF_CONNECT) {
-					GF_FilterEvent evt;
-					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
-					gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+					gf_filter_pid_connect_failure(pid);
 
-					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
-					gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
-
-					gf_filter_pid_set_eos(pid);
-
-					if (pid->filter->freg->process_event) {
-						GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
-						gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
-					}
 					if (!filter->num_input_pids && !filter->num_output_pids) {
 						remove_filter = GF_TRUE;
 					}
@@ -1193,19 +1198,27 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	GF_FilterSession *fsess = filter->session;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s pid %s connecting to %s (%p)\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name, filter));
 
-	//filter will require a new instance, clone it
+	//filter will require a new instance, clone it unless user-instantiated filter
 	if (filter->num_input_pids && (filter->max_extra_pids <= filter->num_input_pids - 1)) {
-		GF_Filter *new_filter = gf_filter_clone(filter, task->pid->pid->filter);
+		Bool is_custom = (filter->freg->flags & GF_FS_REG_CUSTOM) ? GF_TRUE : GF_FALSE;
+		GF_Filter *new_filter = is_custom ? NULL : gf_filter_clone(filter, task->pid->pid->filter);
 		if (new_filter) {
 			filter = new_filter;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
+			if (is_custom) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot clone user custom filter %s\n", filter->name));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
+			}
 			assert(filter->in_pid_connection_pending);
 			safe_int_dec(&filter->in_pid_connection_pending);
 			if (task->pid->pid) {
 				gf_mx_p(filter->tasks_mx);
 				gf_list_del_item(filter->temp_input_pids, task->pid->pid);
 				gf_mx_v(filter->tasks_mx);
+			}
+			if (task->pid->pid) {
+				gf_filter_pid_connect_failure(task->pid->pid);
 			}
 			return;
 		}
