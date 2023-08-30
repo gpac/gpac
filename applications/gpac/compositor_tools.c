@@ -1192,7 +1192,7 @@ void unload_compositor()
 Bool mp4c_task()
 {
 	if (eos_seen && gf_sc_get_option(compositor, GF_OPT_IS_OVER)) {
-		if (!auto_exit) return GF_FALSE;
+		if (auto_exit) return GF_TRUE;
 		if (!loop_at_end) {
 			gf_sc_disconnect(compositor);
 			return GF_TRUE;
