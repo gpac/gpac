@@ -82,6 +82,13 @@ Macro formatting a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 */
 const char *gf_4cc_to_str(u32 type);
 
+/*! converts four character code to string in the provided buffer - thread-safe version of \ref gf_4cc_to_str
+\param type a four character code
+\param szType buffer to write the code to
+\return the onput buffer
+*/
+const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE]);
+
 /*! converts a 4CC string to its 32 bits value
 \param val  four character string
 \return code value or 0 if error

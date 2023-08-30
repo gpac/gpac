@@ -89,6 +89,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_font_dir) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_4cc_to_str_safe) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_4cc_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_error_to_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rand_init) )

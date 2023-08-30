@@ -1778,12 +1778,14 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 
 	for (i=start_from; i<count; i++) {
 		u32 start_par_from;
+		char p4cc[GF_4CC_MSIZE];
+
 		if (box_registry[i].box_4cc != boxCode)
 			continue;
 
 		if (!parent_type)
 			return i;
-		if (strstr(box_registry[i].parents_4cc, gf_4cc_to_str(parent_type)) != NULL)
+		if (strstr(box_registry[i].parents_4cc, gf_4cc_to_str_safe(parent_type, p4cc) ) != NULL)
 			return i;
 		if (strstr(box_registry[i].parents_4cc, "*") != NULL)
 			return i;
@@ -1834,8 +1836,8 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 
 				opt = gf_opts_get_key("core", "boxdir");
 				if (opt) {
-					char szPath[GF_MAX_PATH];
-					snprintf(szPath, GF_MAX_PATH-1, "%s/%s.js", opt, gf_4cc_to_str(boxType) );
+					char szPath[GF_MAX_PATH], szType[GF_4CC_MSIZE];
+					snprintf(szPath, GF_MAX_PATH-1, "%s/%s.js", opt, gf_4cc_to_str_safe(boxType, szType) );
 					if (gf_file_exists(szPath))
 						break;
 				}
@@ -1843,9 +1845,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 				if (is_root_box) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown top-level box type %s\n", gf_4cc_to_str(boxType)));
 				} else if (parentType) {
-					char szName[GF_4CC_MSIZE];
-					strcpy(szName, gf_4cc_to_str(parentType));
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s in parent %s\n", gf_4cc_to_str(boxType), szName));
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s in parent %s\n", gf_4cc_to_str(boxType), gf_4cc_to_str(parentType) ));
 				} else {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s\n", gf_4cc_to_str(boxType)));
 				}
@@ -1928,9 +1928,12 @@ GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
 		//check container validity
 		if (parent_type && strlen(a->registry->parents_4cc)) {
 			Bool parent_OK = GF_FALSE;
-			const char *parent_code = gf_4cc_to_str(parent->type);
+			char parent_code[GF_4CC_MSIZE];
 			if (parent->type == GF_ISOM_BOX_TYPE_UNKNOWN)
-				parent_code = gf_4cc_to_str( ((GF_UnknownBox*)parent)->original_4cc );
+				gf_4cc_to_str_safe(((GF_UnknownBox*)parent)->original_4cc, parent_code);
+			else
+				gf_4cc_to_str_safe(parent->type, parent_code);
+
 			if (strstr(a->registry->parents_4cc, parent_code) != NULL) {
 				parent_OK = GF_TRUE;
 			} else if (!strcmp(a->registry->parents_4cc, "*") || strstr(a->registry->parents_4cc, "* ") || strstr(a->registry->parents_4cc, " *")) {
