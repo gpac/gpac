@@ -30,19 +30,17 @@
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
 #define NB_4CC_BUF	10
 static char szTYPE_BUF[NB_4CC_BUF][GF_4CC_MSIZE];
-static u32 buf_4cc_idx=0;
+static u32 buf_4cc_idx = NB_4CC_BUF;
 
 GF_EXPORT
-const char *gf_4cc_to_str(u32 type)
+const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 {
 	u32 ch, i;
-	char *szTYPE = szTYPE_BUF[buf_4cc_idx];
-	char *name = (char *)szTYPE;
-	if (!type) return "00000000";
-	buf_4cc_idx++;
-	if (buf_4cc_idx>=NB_4CC_BUF)
-		buf_4cc_idx=0;
-
+	if (!type) {
+		strcpy(szType, "00000000");
+		return szType;
+	}
+	char *name = (char *)szType;
 	for (i = 0; i < 4; i++) {
 		ch = type >> (8 * (3-i) ) & 0xff;
 		if ( ch >= 0x20 && ch <= 0x7E ) {
@@ -54,8 +52,21 @@ const char *gf_4cc_to_str(u32 type)
 		}
 	}
 	*name = 0;
-	return (const char *) szTYPE;
+	return szType;
 }
+#include <gpac/thread.h>
+
+GF_EXPORT
+const char *gf_4cc_to_str(u32 type)
+{
+	if (!type) return "00000000";
+	if (safe_int_dec(&buf_4cc_idx)==0)
+		buf_4cc_idx=NB_4CC_BUF;
+
+	return gf_4cc_to_str_safe(type, szTYPE_BUF[buf_4cc_idx-1]);
+}
+
+
 
 GF_EXPORT
 u32 gf_4cc_parse(const char *val)
