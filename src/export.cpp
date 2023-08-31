@@ -1519,6 +1519,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_av1_get_obu_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_av1_reset_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_av1_init_state) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_leb128_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_av1_parse_obu_header) )
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

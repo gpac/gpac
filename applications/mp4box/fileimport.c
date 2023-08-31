@@ -368,6 +368,8 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 	return GF_FALSE;
 }
 
+#include <gpac/internal/media_dev.h>
+
 static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 {
 	GF_Err e;
@@ -432,29 +434,44 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 	_dovi.force_dv = force_dv;
 
 	u32 w, h;
-	Bool is_avc = GF_FALSE;
-
+	u32 codec_id = 0;
+	u32 probe_frames=50;
 	e = gf_isom_get_visual_info(dest, track, 1, &w, &h);
 	if (e) return e;
 	//no DV profile present in file, we need to guess
 	GF_AVCConfig *avcc = gf_isom_avc_config_get(dest, track, 1);
 	GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(dest, track, 1);
+//	GF_VVCConfig *vvcc = gf_isom_vvc_config_get(dest, track, 1);
+	GF_AV1Config *av1c = gf_isom_av1_config_get(dest, track, 1);
 
-	if (!avcc && !hvcc) {
-		M4_LOG(GF_LOG_WARNING, ("DV profile can only be set on AVC or HEVC tracks\n"));
+	u32 nalu_length = 0;
+	if (avcc) {
+		nalu_length = avcc->nal_unit_size;
+		codec_id = GF_CODECID_AVC;
+		gf_odf_avc_cfg_del(avcc);
+	}
+	else if (hvcc) {
+		codec_id = GF_CODECID_HEVC;
+		nalu_length = hvcc->nal_unit_size;
+		gf_odf_hevc_cfg_del(hvcc);
+	}
+/*	else if (vvcc) {
+		codec_id = GF_CODECID_VVC;
+		nalu_length = 4;
+		probe_frames = 0; //parsing not supported for VVC
+		gf_odf_vvc_cfg_del(vvcc);
+	}
+*/	else if (av1c) {
+		codec_id = GF_CODECID_AV1;
+		gf_odf_av1_cfg_del(av1c);
+	} else {
+		M4_LOG(GF_LOG_WARNING, ("DV profile can only be set on AVC, HEVC and AV1 tracks\n"));
 		return GF_BAD_PARAM;
 	}
 
-	u32 nalu_length = avcc ? avcc->nal_unit_size : hvcc->nal_unit_size;
-	if (avcc) {
-		is_avc = GF_TRUE;
-		gf_odf_avc_cfg_del(avcc);
-	}
-	if (hvcc) gf_odf_hevc_cfg_del(hvcc);
-
-	//inspect at most first 50 samples
+	//inspect at most first 50 samples for NAL based
 	u32 i;
-	for (i=0; i<50; i++) {
+	for (i=0; i<probe_frames; i++) {
 		u32 stsd_idx;
 		GF_BitStream *bs;
 
@@ -464,25 +481,65 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 		bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 
 		while (gf_bs_available(bs)) {
-			u32 nal_type;
-			u32 nal_size = gf_bs_read_int(bs, nalu_length*8);
-			if (is_avc) {
-				nal_type = gf_bs_read_u8(bs);
+			if (codec_id==GF_CODECID_AVC) {
+				u32 nal_size = gf_bs_read_int(bs, nalu_length*8);
+				u32 nal_type = gf_bs_read_u8(bs);
 				nal_type = nal_type & 0x1F;
 				nal_size--;
 				if (nal_type == GF_AVC_NALU_DV_RPU) _dovi.rpu_present_flag = 1;
 				else if (nal_type == GF_AVC_NALU_DV_EL) _dovi.el_present_flag = 1;
 				else if (nal_type <= GF_AVC_NALU_IDR_SLICE) _dovi.bl_present_flag = 1;
-			} else {
+
+				gf_bs_skip_bytes(bs, nal_size-1);
+			} else if (codec_id==GF_CODECID_HEVC) {
+				u32 nal_size = gf_bs_read_int(bs, nalu_length*8);
 				gf_bs_read_int(bs, 1);
-				nal_type = gf_bs_read_int(bs, 6);
+				u32 nal_type = gf_bs_read_int(bs, 6);
 				gf_bs_read_int(bs, 1);
 				nal_size--;
 				if (nal_type == GF_HEVC_NALU_DV_RPU) _dovi.rpu_present_flag = 1;
 				else if (nal_type == GF_HEVC_NALU_DV_EL) _dovi.el_present_flag = 1;
 				else if (nal_type <= GF_HEVC_NALU_SLICE_CRA) _dovi.bl_present_flag = 1;
+
+				gf_bs_skip_bytes(bs, nal_size-1);
 			}
-			gf_bs_skip_bytes(bs, nal_size);
+			else if (codec_id==GF_CODECID_AV1) {
+				u64 obu_size, obu_start = (u32) gf_bs_get_position(bs);
+				u32 obu_hdr_size;
+				ObuType obu_type;
+				Bool obu_extension_flag, obu_has_size_field;
+				u8 temporal_id, spatial_id;
+
+				gf_av1_parse_obu_header(bs, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
+				obu_hdr_size = (u32) (gf_bs_get_position(bs) - obu_start);
+
+				if (obu_has_size_field) {
+					obu_size = (u32)gf_av1_leb128_read(bs, NULL);
+					obu_hdr_size = (u32) (gf_bs_get_position(bs) - obu_start);
+				} else {
+					obu_size = samp->dataLength - (u32) gf_bs_get_position(bs);
+				}
+				obu_size += obu_hdr_size;
+				if (obu_type==OBU_METADATA) {
+					gf_bs_seek(bs, obu_start+obu_hdr_size);
+					u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+					if (metadata_type==OBU_METADATA_TYPE_ITUT_T35) {
+						//cf issue #2549
+						if (gf_bs_read_u8(bs)==0xB5) {
+							const u8 rpu_hdr[] = {0x00, 0x3B, 0x00, 0x00, 0x08, 0x00, 0x37, 0xCD, 0x08};
+							const u32 rpu_hdr_len = sizeof (rpu_hdr);
+							u32 pos = (u32) gf_bs_get_position(bs);
+							u8 *t35_start = samp->data + pos;
+							if (!memcmp(t35_start, rpu_hdr, rpu_hdr_len)) {
+								_dovi.rpu_present_flag = 1;
+							}
+						}
+					}
+				} else if (obu_type<=OBU_TILE_LIST) {
+					_dovi.bl_present_flag = 1;
+				}
+				gf_bs_seek(bs, obu_start+obu_size);
+			}
 		}
 		gf_bs_del(bs);
 		gf_isom_sample_del(&samp);
@@ -504,7 +561,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 	}
 	timescale *= nb_samples;
 
-	_dovi.dv_level = gf_dolby_vision_level(w, h, timescale, mdur, is_avc ? GF_CODECID_AVC : GF_CODECID_HEVC);
+	_dovi.dv_level = gf_dolby_vision_level(w, h, timescale, mdur, codec_id);
 	return gf_isom_set_dolby_vision_profile(dest, track, 1, &_dovi);
 }
 
