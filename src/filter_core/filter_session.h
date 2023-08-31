@@ -642,7 +642,8 @@ struct __gf_filter
 	Bool no_probe;
 	Bool no_inputs;
 	Bool is_blocking_source;
-	Bool force_demux;
+	//0: no action, 1: force demux if input is file, 2: force demux if input is not file (i.e :nomux=0)
+	u32 force_demux;
 
 	s32 nb_pids_playing;
 

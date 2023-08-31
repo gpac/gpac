@@ -1517,7 +1517,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 		&& !filter->multi_sink_target
 		&& (filter->freg->flags & GF_FS_REG_FORCE_REMUX)
 	) {
-		filter->force_demux = GF_TRUE;
+		filter->force_demux = 1;
 	}
 	//implicit linking mode: if not a script or if script init (initialized called) and no extra pid set, enable clonable 
 	if ( (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)
@@ -2036,9 +2036,9 @@ skip_date:
 				//only apply fo explicit sink, not dynamic and no multi-sink target
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) && !filter->dynamic_filter && !filter->multi_sink_target) {
 					if (value && (!strcmp(value, "0") || !strcmp(value, "false") || !strcmp(value, "no"))) {
-						filter->force_demux = GF_TRUE;
+						filter->force_demux = 2;
 					} else {
-						filter->force_demux = GF_FALSE;
+						filter->force_demux = 0;
 					}
 				}
 				found = GF_TRUE;
