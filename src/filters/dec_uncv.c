@@ -860,7 +860,7 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 		//palette, set to 'r' index but not used as is
 		else if (comp->type==10)
 			comp->p_idx = 0;
-		//filtera array, set to 'r' index but not used as is
+		//filter array, set to 'r' index but not used as is
 		else if (comp->type==11)
 			comp->p_idx = 0;
 		else
@@ -936,6 +936,8 @@ static GF_Err uncv_config(UNCVDecCtx *ctx, u8 *dsi, u32 dsi_size)
 			if (((comp->type==2) || (comp->type==3)) && first_comp_uv_idx && (first_comp_uv_idx-1 != i) ) {
 				comps[first_comp_uv_idx-1].line_size = comp->line_size;
 				comps[first_comp_uv_idx-1].plane_size = comp->plane_size;
+				//remove plane size from tile size, as it counts the two U and V  component and is added for each U and V
+				ctx->tile_size -= comp->plane_size;
 				comp->line_size = 0;
 				comp->plane_size = 0;
 			}
@@ -1127,8 +1129,9 @@ static void uncv_start_frame(UNCVDecCtx *ctx, const u8 *data, u32 size)
 			bsr->comp_row_size = comp_row_size;
 			if (config->interleave!=INTERLEAVE_TILE) {
 				bsr->tile_size = ctx->tile_size;
-			} else if (config->interleave==INTERLEAVE_MIXED) {
-				if ((comp->type==2) || (comp->type==3)) i++;
+				if (config->interleave==INTERLEAVE_MIXED) {
+					if ((comp->type==2) || (comp->type==3)) i++;
+				}
 			}
 		}
 	} else {
@@ -1150,6 +1153,11 @@ static void uncv_start_tile(UNCVDecCtx *ctx, UNCVConfig *config, u32 tile_x, u32
 		BSRead *bsr = &ctx->bsrs[i];
 		u32 offs = bsr->init_offset + bsr->tile_size * (tile_x + config->num_tile_cols * tile_y);
 		gf_bs_seek(bsr->bs, offs);
+
+		if (config->interleave==INTERLEAVE_MIXED) {
+			UNCVComponentInfo *comp = &config->comps[i];
+			if ((comp->type==2) || (comp->type==3)) i++;
+		}
 	}
 }
 
