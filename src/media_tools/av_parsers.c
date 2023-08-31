@@ -2376,6 +2376,7 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id)
 {
 	Bool forbidden = gf_bs_read_int(bs, 1);
@@ -2451,6 +2452,7 @@ static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
 	}
 }
 
+GF_EXPORT
 u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	u64 value = 0;
 	u8 Leb128Bytes = 0, i = 0;
