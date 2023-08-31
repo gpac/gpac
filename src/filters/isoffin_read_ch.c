@@ -495,6 +495,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				if (ch->pck) {
 					gf_filter_pck_discard(ch->pck);
 					ch->pck = NULL;
+					ch->static_sample->alloc_size = ch->static_sample->dataLength = 0;
 				}
 				isor_reader_get_sample(ch);
 				return;
