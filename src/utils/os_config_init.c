@@ -1139,7 +1139,8 @@ skip_cfg:
 	if (fast_profile) goto exit;
 
 	check_modules_dir(cfg);
-	check_default_cred_file(cfg, szPath);
+	if (!profile || strcmp(profile, "0"))
+		check_default_cred_file(cfg, szPath);
 
 	if (!gf_cfg_get_key(cfg, "core", "store-dir")) {
 		if (profile && !strcmp(profile, "0")) {
