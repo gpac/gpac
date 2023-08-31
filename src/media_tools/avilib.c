@@ -2077,11 +2077,13 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						alBITMAPINFOHEADER bih;
 
 						memcpy(&bih, hdrl_data + i, sizeof(alBITMAPINFOHEADER));
-						AVI->bitmap_info_header = (alBITMAPINFOHEADER *)
-						                          gf_malloc(str2ulong((unsigned char *)&bih.bi_size));
+						bih.bi_size = str2ulong((unsigned char *)&bih.bi_size);
+
+						if (i + bih.bi_size > hdrl_len) ERR_EXIT(AVI_ERR_READ)
+
+						AVI->bitmap_info_header = (alBITMAPINFOHEADER *) gf_malloc(bih.bi_size);
 						if (AVI->bitmap_info_header != NULL)
-							memcpy(AVI->bitmap_info_header, hdrl_data + i,
-							       str2ulong((unsigned char *)&bih.bi_size));
+							memcpy(AVI->bitmap_info_header, hdrl_data + i, bih.bi_size);
 
 						AVI->width  = str2ulong(hdrl_data+i+4);
 						AVI->height = str2ulong(hdrl_data+i+8);
@@ -2154,6 +2156,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					{
 
 						a = (char*)hdrl_data+i;
+						int avail = hdrl_len-i;
+						if (avail<32) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->video_superindex = (avisuperindex_chunk *) gf_malloc (sizeof (avisuperindex_chunk));
 						memset(AVI->video_superindex, 0, sizeof (avisuperindex_chunk));
@@ -2180,6 +2184,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						if (AVI->video_superindex->bIndexSubType != 0) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] Invalid Header, bIndexSubType != 0\n"));
 						}
+						avail -= 32;
+						if (avail < AVI->video_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->video_superindex->aIndex = (avisuperindex_entry*)
 						                                gf_malloc (AVI->video_superindex->wLongsPerEntry * AVI->video_superindex->nEntriesInUse * sizeof (u32));
@@ -2221,6 +2227,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					{
 
 						a = (char*) hdrl_data+i;
+						int avail = hdrl_len-i;
+						if (avail<32) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->track[AVI->aptr].audio_superindex = (avisuperindex_chunk *) gf_malloc (sizeof (avisuperindex_chunk));
 						memcpy (AVI->track[AVI->aptr].audio_superindex->fcc, a, 4);
@@ -2246,6 +2254,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						if (AVI->track[AVI->aptr].audio_superindex->bIndexSubType != 0) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] Invalid Header, bIndexSubType != 0\n"));
 						}
+
+						avail -= 32;
+						if (avail < AVI->track[AVI->aptr].audio_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*)
 						        gf_malloc (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry *
