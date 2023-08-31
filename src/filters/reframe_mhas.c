@@ -638,10 +638,11 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 				numSpeakers = (s32) gf_mpegh_escaped_value(ctx->bs, 5, 8, 16) + 1;
 				//TODO ...
 			}
+			if (sr) {
+				mhas_dmx_check_pid(filter, ctx, pl, sr, frame_len, CICPspeakerLayoutIdx, numSpeakers, start + pay_start, (u32) mhas_size);
 
-			mhas_dmx_check_pid(filter, ctx, pl, sr, frame_len, CICPspeakerLayoutIdx, numSpeakers, start + pay_start, (u32) mhas_size);
-
-			has_cfg = GF_TRUE;
+				has_cfg = GF_TRUE;
+			}
 		}
 		//audio truncation
 		else if (mhas_type==17) {

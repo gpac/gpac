@@ -1438,7 +1438,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 	ft->glyphs = gf_list_new();
 	ft->fontID = swf_get_16(read);
 	e = GF_OK;
-
+	gf_list_add(read->fonts, ft);
 
 	if (revision==0) {
 		start = swf_get_file_pos(read);
@@ -1538,8 +1538,6 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 			}
 		}
 	}
-
-	gf_list_add(read->fonts, ft);
 	return GF_OK;
 }
 
@@ -2642,6 +2640,7 @@ GF_Err gf_swf_read_header(SWFReader *read)
 	read->frame_rate = swf_get_16(read)>>8;
 	read->frame_count = swf_get_16(read);
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SWF Import - Scene Size %gx%g - %d frames @ %d FPS\n", read->width, read->height, read->frame_count, read->frame_rate));
+	if (!read->frame_rate) read->frame_rate = 1;
 	return GF_OK;
 }
 

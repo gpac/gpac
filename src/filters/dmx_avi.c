@@ -81,6 +81,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 	if (ctx->use_file_fps) {
 		Double fps = AVI_frame_rate(ctx->avi);
 		gf_media_get_video_timing(fps, &ctx->fps.num, &ctx->fps.den);
+		if (!ctx->fps.num) ctx->fps.num = ctx->fps.den = 1000;
 	}
 
 	dur.den = ctx->fps.num;

@@ -1173,6 +1173,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP(GF_PROP_PID_CODECID, ds->codec_id, GF_NOT_SUPPORTED)
 		CHECK_PROP(GF_PROP_PID_TIMESCALE, ds->timescale, GF_NOT_SUPPORTED)
 
+		if (!ds->timescale) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Dasher] Input PID %s has no timescale, cannot dash\n", gf_filter_pid_get_name(pid) ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
 		if (ds->stream_type==GF_STREAM_VISUAL) {
 			CHECK_PROP(GF_PROP_PID_WIDTH, ds->width, GF_EOS)
 			CHECK_PROP(GF_PROP_PID_HEIGHT, ds->height, GF_EOS)
