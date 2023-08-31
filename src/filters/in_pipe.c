@@ -58,7 +58,7 @@ typedef struct
 	char *ext;
 	char *mime;
 	u32 block_size, bpcnt;
-	Bool blk, ka, mkp, sigflush, marker;
+	Bool blk, ka, mkp, sigflush, marker, timeout;
 
 	u32 read_block_size;
 	//only one output pid declared
@@ -80,6 +80,7 @@ typedef struct
 	u32 left_over, copy_offset;
 	u8 store_char;
 	Bool has_recfg;
+	u32 last_active_ms;
 } GF_PipeInCtx;
 
 static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt);
@@ -363,6 +364,18 @@ static GF_Err pipein_process(GF_Filter *filter)
 		ctx->has_recfg = GF_FALSE;
 	}
 
+	if (!total_read && ctx->timeout) {
+		u32 now = gf_sys_clock();
+		if (!ctx->last_active_ms) {
+			ctx->last_active_ms = now;
+		} else if (now - ctx->last_active_ms > ctx->timeout) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] Timeout detected after %d ms, aborting\n", now - ctx->last_active_ms ));
+			gf_filter_pid_set_eos(ctx->pid);
+			ctx->is_end = GF_TRUE;
+			return GF_EOS;
+		}
+	}
+
 
 refill:
 
@@ -521,6 +534,7 @@ refill:
 			nb_read = 0;
 			goto refill;
 		}
+		ctx->last_active_ms = 0;
 	}
 	nb_read = total_read;
 
@@ -642,6 +656,7 @@ static const GF_FilterArgs PipeInArgs[] =
 	{ OFFS(sigflush), "signal end of stream upon pipe close - cf filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(marker), "inspect payload for flush and reconfigure signals - cf filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(bpcnt), "number of broken pipe allowed before exiting, 0 means forever", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(timeout), "timeout in ms before considering input is in end of stream (0: no timeout)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{0}
 };

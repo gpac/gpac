@@ -5984,6 +5984,8 @@ marker (bool, default: false): inspect payload for flush and reconfigure signals
 .br
 bpcnt (uint, default: 0):      number of broken pipe allowed before exiting, 0 means forever
 .br
+timeout (uint, default: 0):    timeout in ms before considering input is in end of stream (0: no timeout)
+.br
 
 .br
 .SH pout
@@ -8730,15 +8732,21 @@ The filter will look for ROUTEIP and ROUTEPort properties on the incoming PID. I
 .br
 
 .br
-The ATSC short service name can be set using PID property ShortServiceName. If not found, ServiceName is checked, otherwise default to GPAC.
+ATSC 3.0 attributes set by using the following PID properties:
 .br
-Other PID properties used:
+* ATSC3ShortServiceName: set the short service name, maxiumu of 7 characters.  If not found, ServiceName is checked, otherwise default to GPAC.
 .br
-* RouteMajorNo: set major channel number of service
+* ATSC3MajorChannel: set major channel number of service. Default to 2.  This really should be set and should not use the default.
 .br
-* RouteMinorNo: set minor channel number of service
+* ATSC3MinorChannel: set minor channel number of service. Default of 1.
 .br
-* RouteServiceCat: set service category, default to 1 if not found
+* ATSC3ServiceCat: set service category, default to 1 if not found. 1=Linear a/v service. 2=Linear audio only service. 3=App-based service. 4=ESg service. 5=EA service. 6=DRM service.
+.br
+* ATSC3hidden: set if service is hidden.  Boolean true or false. Default of false.
+.br
+* ATSC3hideInGuide: set if service is hidden in ESG.  Boolean true or false. Default of false.
+.br
+* ATSC3configuration: set service configuration.  Choices are Broadcast or Broadband.  Default of Broadcast
 .br
 
 .br
