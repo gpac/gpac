@@ -4973,6 +4973,10 @@ single_retry:
 				pid_is_file = 2;
 			continue;
 		}
+		else if (cap_matched && !pid->filter->dynamic_filter && (filter_dst->force_demux==2) && (pid_is_file!=1)) {
+			pid_is_file = 2;
+			continue;
+		}
 
 		can_try_link_resolution = GF_TRUE;
 
