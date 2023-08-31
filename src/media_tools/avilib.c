@@ -2941,14 +2941,13 @@ int AVI_read_frame(avi_t *AVI, u8 *vidbuf, int *keyframe)
 	}
 
 	gf_fseek(AVI->fdes, AVI->video_index[AVI->video_pos].pos, SEEK_SET);
+	AVI->video_pos++;
 
 	if (avi_read(AVI->fdes,vidbuf,n) != (u32) n)
 	{
 		AVI_errno = AVI_ERR_READ;
 		return -1;
 	}
-
-	AVI->video_pos++;
 
 	return n;
 }
@@ -3067,6 +3066,7 @@ int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 			todo = left;
 		pos = AVI->track[AVI->aptr].audio_index[AVI->track[AVI->aptr].audio_posc].pos + AVI->track[AVI->aptr].audio_posb;
 		gf_fseek(AVI->fdes, pos, SEEK_SET);
+		AVI->track[AVI->aptr].audio_posb += todo;
 		if ( (ret = avi_read(AVI->fdes,audbuf+nr,todo)) != todo)
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] XXX pos = %"LLD", ret = %"LLD", todo = %ld\n", pos, ret, todo));
@@ -3075,7 +3075,6 @@ int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 		}
 		bytes -= todo;
 		nr    += todo;
-		AVI->track[AVI->aptr].audio_posb += todo;
 	}
 
 	return nr;
