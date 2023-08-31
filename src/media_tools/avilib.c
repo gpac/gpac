@@ -1948,8 +1948,11 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 				header_offset = gf_ftell(AVI->fdes);
 
-				if( avi_read(AVI->fdes,(char *)hdrl_data, (u32) n) != n ) ERR_EXIT(AVI_ERR_READ)
+				if( avi_read(AVI->fdes,(char *)hdrl_data, (u32) n) != n ) {
+					if (hdrl_data) gf_free(hdrl_data);
+					ERR_EXIT(AVI_ERR_READ)
 				}
+			}
 			else if(strnicmp(data,"movi",4) == 0)
 			{
 				AVI->movi_start = gf_ftell(AVI->fdes);
@@ -1964,19 +1967,24 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 			AVI->n_idx = AVI->max_idx = (u32) (n/16);
 			AVI->idx = (unsigned  char((*)[16]) ) gf_malloc((u32)n);
-			if(AVI->idx==0) ERR_EXIT(AVI_ERR_NO_MEM)
-				if(avi_read(AVI->fdes, (char *) AVI->idx, (u32) n) != n ) {
-					gf_free( AVI->idx);
-					AVI->idx=NULL;
-					AVI->n_idx = 0;
-				}
+			if(AVI->idx==0) {
+				if (hdrl_data) gf_free(hdrl_data);
+				ERR_EXIT(AVI_ERR_NO_MEM)
+			}
+			if(avi_read(AVI->fdes, (char *) AVI->idx, (u32) n) != n ) {
+				gf_free( AVI->idx);
+				AVI->idx=NULL;
+				AVI->n_idx = 0;
+				if (hdrl_data) gf_free(hdrl_data);
+				ERR_EXIT(AVI_ERR_READ)
+			}
 		}
 		else
 			gf_fseek(AVI->fdes,n,SEEK_CUR);
 	}
 
-	if(!hdrl_data      ) ERR_EXIT(AVI_ERR_NO_HDRL)
-		if(!AVI->movi_start) ERR_EXIT(AVI_ERR_NO_MOVI)
+	if(!hdrl_data) ERR_EXIT(AVI_ERR_NO_HDRL)
+	if(!AVI->movi_start) ERR_EXIT(AVI_ERR_NO_MOVI)
 
 			/* Interpret the header list */
 

@@ -8387,6 +8387,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 		u32 num_ready=0, num_blocked=0;
 		for (i=0; i<count; i++) {
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+			if (ctx->force_period_switch) {
+				break;
+			}
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) continue;
 			u64 ts = gf_filter_pck_get_cts(pck);
@@ -8406,6 +8409,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 		}
 		ctx->min_cts_period.num = min_ts;
 		ctx->min_cts_period.den = min_timescale;
+
+		if (ctx->force_period_switch)
+			count = gf_list_count(ctx->current_period->streams);
 	}
 
 	nb_init = has_init = nb_reg_done = 0;
