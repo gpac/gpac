@@ -1042,11 +1042,13 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 			ent = gf_xml_locate_entity(parser, name, &needs_text);
 			gf_free(name);
 
+			//entity not found, parse as regular string
 			if (!ent && !needs_text) {
 				xml_sax_append_string(parser, current);
 				xml_sax_parse(parser, GF_TRUE);
 				entityEnd[0] = ';';
 				current = entityEnd;
+				parser->in_entity = GF_FALSE;
 				continue;
 			}
 			assert(ent);
