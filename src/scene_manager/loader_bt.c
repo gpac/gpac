@@ -3291,8 +3291,12 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 		str = gf_bt_get_next(parser, 0);
 		if (parser->done) break;
 
+		if (!strcmp(str, "")) {
+			//empty string, force moving to next char
+			if (parser->line_pos<parser->line_size) parser->line_pos++;
+		}
 		/*X3D specific things (ignored for now)*/
-		if (!strcmp(str, "PROFILE")) gf_bt_force_line(parser);
+		else if (!strcmp(str, "PROFILE")) gf_bt_force_line(parser);
 		else if (!strcmp(str, "COMPONENT")) gf_bt_force_line(parser);
 		else if (!strcmp(str, "META")) gf_bt_force_line(parser);
 		else if (!strcmp(str, "IMPORT") || !strcmp(str, "EXPORT")) {
