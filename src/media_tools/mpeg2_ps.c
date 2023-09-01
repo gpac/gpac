@@ -266,6 +266,8 @@ int MPEG12_ParseSeqHdr(unsigned char *pbuffer, u32 buflen, s32 *have_mpeg2, u32 
 	u32 scode, ix;
 	s32 found = -1;
 	*have_mpeg2 = 0;
+	if (buflen<6) return found;
+
 	buflen -= 6;
 	bitrate_int = 0;
 	for (ix = 0; ix < buflen; ix++, pbuffer++) {
