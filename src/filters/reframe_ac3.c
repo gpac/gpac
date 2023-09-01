@@ -449,12 +449,12 @@ restart:
 				break;
 			}
 		}
+		ac3dmx_check_pid(filter, ctx);
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = 1 + ctx->ac3_buffer_size - remain;
 			return GF_OK;
 		}
-		ac3dmx_check_pid(filter, ctx);
 
 		if (sync_pos) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AC3Dmx] %d bytes unrecovered before sync word\n", sync_pos));
