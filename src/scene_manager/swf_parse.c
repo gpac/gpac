@@ -182,37 +182,17 @@ static void swf_get_rec(SWFReader *read, SWFRec *rc)
 
 static u32 swf_get_32(SWFReader *read)
 {
-	u32 val, res;
-	val = swf_read_int(read, 32);
-	res = (val&0xFF);
-	res <<=8;
-	res |= ((val>>8)&0xFF);
-	res<<=8;
-	res |= ((val>>16)&0xFF);
-	res<<=8;
-	res|= ((val>>24)&0xFF);
-	return res;
+	return gf_bs_read_u32_le(read->bs);
 }
 
 static u16 swf_get_16(SWFReader *read)
 {
-	u16 val, res;
-	val = swf_read_int(read, 16);
-	res = (val&0xFF);
-	res <<=8;
-	res |= ((val>>8)&0xFF);
-	return res;
+	return gf_bs_read_u16_le(read->bs);
 }
 
 static s16 swf_get_s16(SWFReader *read)
 {
-	s16 val;
-	u8 v1;
-	v1 = swf_read_int(read, 8);
-	val = swf_read_sint(read, 8);
-	val = (val<<8)&0xFF00;
-	val |= (v1&0xFF);
-	return val;
+	return (s16) gf_bs_read_u16_le(read->bs);
 }
 
 static u32 swf_get_color(SWFReader *read)
