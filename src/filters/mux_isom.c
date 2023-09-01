@@ -5713,7 +5713,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		if (p && p->value.lfrac.den) {
 			tkw->pid_dur = p->value.lfrac;
 			if (tkw->pid_dur.num<0) tkw->pid_dur.num = -tkw->pid_dur.num;
-			if (max_dur.num * (s64) tkw->pid_dur.den < (s64) max_dur.den * tkw->pid_dur.num) {
+			if (gf_timestamp_less(max_dur.num, max_dur.den, tkw->pid_dur.num, tkw->pid_dur.den)) {
 				max_dur.num = tkw->pid_dur.num;
 				max_dur.den = tkw->pid_dur.den;
 			}
