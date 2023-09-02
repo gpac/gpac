@@ -1426,7 +1426,7 @@ static GF_Err swf_def_font(SWFReader *read, u32 revision)
 		count = swf_get_16(read);
 		ft->nbGlyphs = count / 2;
 		offset_table = (u32*)gf_malloc(sizeof(u32) * ft->nbGlyphs);
-		offset_table[0] = 0;
+		if (ft->nbGlyphs) offset_table[0] = 0;
 		for (i=1; i<ft->nbGlyphs; i++) offset_table[i] = swf_get_16(read);
 
 		for (i=0; i<ft->nbGlyphs; i++) {
