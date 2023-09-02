@@ -448,8 +448,11 @@ restart:
 				}
 				break;
 			}
+			ac3dmx_check_pid(filter, ctx);
 		}
-		ac3dmx_check_pid(filter, ctx);
+		//may happen with very-short streams
+		if (!ctx->sample_rate)
+			ac3dmx_check_pid(filter, ctx);
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = 1 + ctx->ac3_buffer_size - remain;
