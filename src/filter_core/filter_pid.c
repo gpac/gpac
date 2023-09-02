@@ -4637,6 +4637,22 @@ single_retry:
 					ignore_source_ids = GF_TRUE;
 			}
 		}
+		/*	Special case for adaptation filters:
+			if destination is set (first pid init) do not link to any other filter
+			else only link if destination is present in dest lists
+
+		This avoids relinking to other filters having trigger similar adaptaion chains which would then be cloned
+		cf issue 2548:
+			flac @ enc1 @1 enc2 will trigger one resampler R1 for flac->enc1 and one R2 for flac->enc2
+		we don't want R2 to try connecting to enc1
+		*/
+		if (pid->filter->is_pid_adaptation_filter) {
+			if (pid->filter->dst_filter) {
+				if (pid->filter->dst_filter != filter_dst) continue;
+			} else {
+				if (gf_list_find(pid->filter->destination_filters, filter_dst)<0) continue;
+			}
+		}
 
 		if (num_pass && gf_list_count(filter->destination_links)) {
 			s32 ours = gf_list_find(pid->filter->destination_links, filter_dst);
