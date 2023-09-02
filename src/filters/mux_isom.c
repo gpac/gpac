@@ -3991,6 +3991,7 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		TrackWriter *tkw = gf_filter_pid_get_udta(pid);
 		if (tkw) {
 			gf_list_del_item(ctx->tracks, tkw);
+			if (ctx->ref_tkw == tkw) ctx->ref_tkw = gf_list_get(ctx->tracks, 0);
 			gf_free(tkw);
 		}
 		//removing last pid
