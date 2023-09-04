@@ -244,6 +244,8 @@ typedef struct
 
 	Bool check_prev_sap2;
 	s32 prev_sap2_poc;
+	Bool sap2_as_sap1;
+
 	GF_FilterPacket *prev_sap;
 } GF_NALUDmxCtx;
 
@@ -1596,6 +1598,7 @@ static void naludmx_end_access_unit(GF_NALUDmxCtx *ctx)
 	ctx->sei_recovery_frame_count = -1;
 	ctx->au_sap = GF_FILTER_SAP_NONE;
 	ctx->au_sap2_poc_reset = GF_FALSE;
+	ctx->sap2_as_sap1 = GF_FALSE;
 	ctx->field_type = 0;
 }
 
@@ -2203,7 +2206,7 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 	if (!ctx->first_pck_in_au)
 		return;
 	if (ctx->au_sap) {
-		gf_filter_pck_set_sap(ctx->first_pck_in_au, ctx->au_sap);
+		gf_filter_pck_set_sap(ctx->first_pck_in_au, ctx->sap2_as_sap1 ? GF_FILTER_SAP_1 : ctx->au_sap);
 		if ((ctx->au_sap == GF_FILTER_SAP_1) || ctx->au_sap2_poc_reset) {
 			ctx->dts_last_IDR = gf_filter_pck_get_dts(ctx->first_pck_in_au);
 		}
@@ -3672,7 +3675,7 @@ naldmx_flush:
 				//we do this because many encoders use IDR+Decodable leading pic NAL types (eg SAP2)
 				//when encoding for IDR without DLP (eg SAP1)...
 				if (au_sap_type==GF_FILTER_SAP_2) {
-					au_sap_type = GF_FILTER_SAP_1;
+					ctx->sap2_as_sap1 = GF_TRUE;
 					ctx->check_prev_sap2 = GF_TRUE;
 					ctx->prev_sap2_poc = slice_poc;
 				}
