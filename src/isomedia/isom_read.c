@@ -5664,6 +5664,7 @@ Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, GF_ISOTrackID *refTrac
 		if (timestamp) *timestamp = file->last_producer_ref_time->timestamp;
 
 		if (reset_info) {
+			gf_isom_box_del((GF_Box*)file->last_producer_ref_time);
 			file->last_producer_ref_time = NULL;
 		}
 		return GF_TRUE;
