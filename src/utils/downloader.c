@@ -4290,7 +4290,7 @@ static void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 paylo
 		return; //nothing to do
 	if (sess->chunked) {
  		data = (u8 *) gf_dm_get_chunk_data(sess, first_chunk_in_payload, (char *) payload, &nbBytes, &hdr_size);
-		if (!hdr_size && !data) {
+		if (!hdr_size && !data && nbBytes) {
 			/* keep the data and wait for the rest */
 			sess->remaining_data_size = nbBytes;
 			sess->remaining_data = (char *)gf_realloc(sess->remaining_data, nbBytes * sizeof(char));
