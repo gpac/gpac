@@ -302,6 +302,7 @@ typedef struct
 	Bool fcomp, otyp;
 	Bool deps;
 	Bool mvex;
+	Bool trunv1;
 	u32 sdtp_traf;
 	u32 cmaf;
 #ifdef GF_ENABLE_CTRN
@@ -6123,10 +6124,13 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 		if (ctx->truns_first) {
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_TRUNS_FIRST, 1);
 		}
-		//7.7 cmf2 For video CMAF Tracks not contained in Track Files, Version 1 shall be used.
-		if ((ctx->cmaf==MP4MX_CMAF_CMF2) && (tkw->stream_type==GF_STREAM_VISUAL))
-			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_TRUN_V1, 1);
 
+		if (ctx->trunv1 ||
+			//7.7 cmf2 For video CMAF Tracks not contained in Track Files, Version 1 shall be used.
+			((ctx->cmaf==MP4MX_CMAF_CMF2) && (tkw->stream_type==GF_STREAM_VISUAL))
+		) {
+			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_TRUN_V1, 1);
+		}
 		if (ctx->sdtp_traf)
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, ctx->sdtp_traf);
 
@@ -8202,6 +8206,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- gen: enabled, do not write profile\n"
 	"- prof: enabled and write profile if known\n"
 	"- tiny: enabled and write reduced version if profile known and compatible", GF_PROP_UINT, "prof", "off|gen|prof|tiny", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
