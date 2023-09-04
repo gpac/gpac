@@ -143,7 +143,7 @@ static char *validator_create_snapshot(GF_Validator *validator)
 
 	dumpname = validator_get_snapshot_name(validator, validator->is_recording, validator->snapshot_number);
 
-	e = gf_sc_get_screen_buffer(compositor, &fb, 0);
+	e = gf_sc_get_screen_buffer(compositor, &fb, GF_SC_GRAB_DEPTH_NONE);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error dumping screen buffer %s\n", gf_error_to_string(e)));
 	} else {

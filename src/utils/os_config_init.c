@@ -1778,7 +1778,7 @@ u32 gf_sys_is_gpac_arg(const char *arg_name)
 
 
 GF_EXPORT
-void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const char *arg_subsystem)
+void gf_sys_print_arg(FILE *helpout, GF_SysPrintArgFlags flags, const GF_GPACArg *arg, const char *arg_subsystem)
 {
 	u32 gen_doc = 0;
 	if (flags & GF_PRINTARG_MD)
@@ -1914,7 +1914,7 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 
 
 GF_EXPORT
-void gf_sys_print_core_help(FILE *helpout, u32 flags, GF_SysArgMode mode, u32 subsystem_flags)
+void gf_sys_print_core_help(FILE *helpout, GF_SysPrintArgFlags flags, GF_SysArgMode mode, u32 subsystem_flags)
 {
 	u32 i=0;
 	const GF_GPACArg *args = gf_sys_get_options();
@@ -2022,7 +2022,7 @@ static void check_char_balanced(char *buf, char c)
 #endif
 
 GF_EXPORT
-void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
+void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fmt, ...)
 {
 	char *line;
 	u32 len;

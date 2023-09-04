@@ -1217,9 +1217,9 @@ GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *demux, u32 program_id);
 /*! flushes a given stream. This is used to flush internal demultiplexer buffers on end of stream
 \param demux the target MPEG-2 demultiplexer
 \param pes the target stream to flush
-\param force_flush if GF_TRUE, flushes all streams, otherwise do not flush stream with known PES length and not yet completed (for HLS)
+\param force_flush if >0, flushes all streams, otherwise do not flush stream with known PES length and not yet completed (for HLS)
 */
-void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes, Bool force_flush);
+void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes, u32 force_flush);
 
 /*! flushes all streams in the mux. This is used to flush internal demultiplexer buffers on end of stream
 \param demux the target MPEG-2 demultiplexer

@@ -514,7 +514,7 @@ GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *surf, GF_EVGStencil * ste
 }
 
 GF_EXPORT
-Bool gf_evg_surface_format_ok(u32 pixelFormat)
+Bool gf_evg_surface_format_ok(GF_PixelFormat pixelFormat)
 {
 	GF_Err e = gf_evg_surface_attach_to_buffer_internal(NULL, NULL, 0, 0, 0, 0, pixelFormat, GF_TRUE);
 	if (e==GF_OK) return GF_TRUE;

@@ -287,7 +287,7 @@ GF_Err gf_sc_frame_ifce_get_plane(GF_FilterFrameInterface *frame_ifce, u32 plane
 	if (plane_idx==0) {
 		e = GF_OK;
 		if (!compositor->fb.video_buffer)
-			e = gf_sc_get_screen_buffer(compositor, &compositor->fb, 0);
+			e = gf_sc_get_screen_buffer(compositor, &compositor->fb, GF_SC_GRAB_DEPTH_NONE);
 	}
 	*outPlane = compositor->fb.video_buffer;
 	*outStride = compositor->fb.pitch_y;
@@ -2048,7 +2048,7 @@ void gf_sc_map_point(GF_Compositor *compositor, s32 X, s32 Y, Fixed *bifsX, Fixe
 
 
 GF_EXPORT
-GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 depth_dump_mode)
+GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, GF_CompositorGrabMode depth_dump_mode)
 {
 	GF_Err e;
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
@@ -3044,7 +3044,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					if (compositor->video_out==&raw_vout) {
 						src = compositor->framebuffer;
 					} else {
-						if (gf_sc_get_screen_buffer(compositor, &compositor->fb, 0) == GF_OK) {
+						if (gf_sc_get_screen_buffer(compositor, &compositor->fb, GF_SC_GRAB_DEPTH_NONE) == GF_OK) {
 							src = compositor->fb.video_buffer;
 							release_fb = GF_TRUE;
 						}
