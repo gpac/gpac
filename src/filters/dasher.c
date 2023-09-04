@@ -205,6 +205,7 @@ typedef struct
 	Bool gencues, force_init, gxns;
 	Double ll_part_hb;
 	u32 hls_absu, seg_sync;
+	Bool hls_ap;
 
 	//internal
 	Bool in_error;
@@ -5094,6 +5095,7 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 		ctx->mpd->llhls_rendition_reports = ctx->ll_rend_rep;
 		ctx->mpd->llhls_part_holdback = ctx->ll_part_hb;
 		ctx->mpd->hls_abs_url = ctx->hls_absu;
+		ctx->mpd->hls_audio_primary = ctx->hls_ap;
 
 		if (ctx->llhls==3)
 			ctx->mpd->force_llhls_mode = m3u8_second_pass ? 2 : 1;
@@ -10378,6 +10380,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- mas: use absolute URL only in master playlist\n"
 	"- both: use absolute URL everywhere"
 		, GF_PROP_UINT, "no", "no|var|mas|both", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hls_ap), "use audio as primary media instead of video when generating playlists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seg_sync), "control how waiting on last packet P of fragment/segment to be written impacts segment injection in manifest\n"
 	"- no: do not wait for P\n"
 	"- yes: wait for P\n"
