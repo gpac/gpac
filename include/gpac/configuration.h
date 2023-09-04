@@ -160,6 +160,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_VTB
 #define GPAC_HAS_HTTP2
 #define GPAC_HAS_POLL
+#define GPAC_HAS_LIBCACA
 
 #define GPAC_MEMORY_TRACKING
 
