@@ -1742,7 +1742,7 @@ Bool gf_props_4cc_check_props()
 }
 
 GF_EXPORT
-const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_flags, const char *min_max_enum)
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumpDataMode dump_data_flags, const char *min_max_enum)
 {
 	switch (att->type) {
 	case GF_PROP_NAME:
@@ -1929,7 +1929,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 
 
 GF_EXPORT
-const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_mode)
+const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumpDataMode dump_data_mode)
 {
 	switch (p4cc) {
 	case GF_PROP_PID_STREAM_TYPE:

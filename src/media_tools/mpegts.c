@@ -53,7 +53,7 @@
 #define DEBUG_TS_PACKET 0
 
 GF_EXPORT
-const char *gf_m2ts_get_stream_name(u32 streamType)
+const char *gf_m2ts_get_stream_name(GF_M2TSStreamType streamType)
 {
 	switch (streamType) {
 	case GF_M2TS_VIDEO_MPEG1:

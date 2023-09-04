@@ -33,7 +33,7 @@
 
 /* to complete...*/
 
-u32 gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName)
+GF_ODF_FieldType gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName)
 {
 	switch (desc->tag) {
 	case GF_ODF_IOD_TAG:

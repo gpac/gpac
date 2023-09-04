@@ -2938,7 +2938,7 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 {
 	char *str, field[500];
 	GF_Descriptor *desc, *subdesc;
-	u32 type;
+	GF_ODF_FieldType type;
 	u8 tag;
 	if (name) {
 		str = name;

@@ -99,7 +99,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt);
 #endif
 
 GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name);
-GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bool dump_ogg);
+GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_ogg);
 GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_udta_type, u32 dump_udta_track);
 
 GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array, Bool is_string);
@@ -129,7 +129,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name);
 void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
-void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, Bool skip_offset);
+void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name, u32 skip_offset);
 GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, u32 dump_flags);
 void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode, char *inName, Bool is_final_name);
 

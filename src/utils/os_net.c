@@ -1395,7 +1395,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 
 }
 
-GF_Err gf_sk_select(GF_Socket *sock, u32 mode)
+GF_Err gf_sk_select(GF_Socket *sock, GF_SockSelectMode mode)
 {
 	//the socket must be bound or connected
 	if (!sock || !sock->socket)

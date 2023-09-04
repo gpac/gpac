@@ -1515,7 +1515,7 @@ static void mp4c_take_screenshot(Bool for_coverage)
 			e = gf_sc_get_offscreen_buffer(compositor, &fb, offscreen_view-1, 0);
 		} else {
 			sprintf(szFileName, "gpac_video_dump_"LLU".png", gf_net_get_utc() );
-			e = gf_sc_get_screen_buffer(compositor, &fb, 0);
+			e = gf_sc_get_screen_buffer(compositor, &fb, GF_SC_GRAB_DEPTH_NONE);
 		}
 		offscreen_view++;
 		if (e) {
