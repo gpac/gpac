@@ -1666,6 +1666,11 @@ void PrintUsage()
 		i++;
 		gf_sys_print_arg(helpout, help_flags, arg, "mp4box-general");
 	}
+	gf_sys_format_help(helpout, help_flags, "\nReturn codes are 0 for no error, 1 for error"
+#ifdef GPAC_MEMORY_TRACKING
+		" and 2 for memory leak detection when -mem-track is used"
+#endif
+		"\n");
 }
 
 /*
