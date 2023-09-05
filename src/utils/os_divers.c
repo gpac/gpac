@@ -1859,13 +1859,12 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 #if defined(_WIN32_WCE)
 	last_total_k_u_time = total_cpu_time;
+	if (!the_rti.process_memory && (mem_usage_at_startup >= ms.dwAvailPhys))
+		the_rti.process_memory = mem_usage_at_startup - ms.dwAvailPhys;
 #else
 	last_proc_idle_time = proc_idle_time;
 	last_proc_k_u_time = proc_k_u_time;
 #endif
-
-	if (!the_rti.process_memory && (mem_usage_at_startup >= ms.dwAvailPhys))
-		the_rti.process_memory = mem_usage_at_startup - ms.dwAvailPhys;
 
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 	return GF_TRUE;

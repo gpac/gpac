@@ -57,8 +57,8 @@ typedef struct
 	char *src;
 	char *ext;
 	char *mime;
-	u32 block_size, bpcnt;
-	Bool blk, ka, mkp, sigflush, marker, timeout;
+	u32 block_size, bpcnt, timeout;
+	Bool blk, ka, mkp, sigflush, marker;
 
 	u32 read_block_size;
 	//only one output pid declared
