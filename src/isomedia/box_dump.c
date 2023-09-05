@@ -7189,7 +7189,7 @@ void dump_element(JSContext *ctx, FILE *trace, const char *name, JSValue obj, Bo
 
 	//try parsing remainer as boxes
 	if (box && box_has_children && (unparsed_bytes>=8)) {
-		u32 osize = box->size;
+		u32 osize = (u32) box->size;
 		u32 boff = buflen-unparsed_bytes;
 		box->size = unparsed_bytes;
 		GF_BitStream *bs = gf_bs_new(buf+boff, unparsed_bytes, GF_BITSTREAM_READ);
@@ -7317,7 +7317,7 @@ GF_Err dump_js_data(u8 *data, u32 size, u32 b4cc, u32 par_type, GF_Box *box, FIL
 		sprintf(szName, "%s", gf_4cc_to_str(b4cc));
 		if (box) {
 			JS_SetPropertyStr(ctx, obj, "type", JS_NewString(ctx, szName));
-			JS_SetPropertyStr(ctx, obj, "Size", JS_NewInt32(ctx, box->size));
+			JS_SetPropertyStr(ctx, obj, "Size", JS_NewInt32(ctx, (u32) box->size));
 			strcat(szName, "Box");
 		} else {
 			//sample group description

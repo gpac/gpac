@@ -2164,7 +2164,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					{
 
 						a = (char*)hdrl_data+i;
-						int avail = hdrl_len-i;
+						int avail =(int) (hdrl_len-i);
 						if (avail<32) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->video_superindex = (avisuperindex_chunk *) gf_malloc (sizeof (avisuperindex_chunk));
@@ -2193,7 +2193,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] Invalid Header, bIndexSubType != 0\n"));
 						}
 						avail -= 32;
-						if (avail < AVI->video_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
+						if (avail < (int) AVI->video_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->video_superindex->aIndex = (avisuperindex_entry*)
 						                                gf_malloc (AVI->video_superindex->wLongsPerEntry * AVI->video_superindex->nEntriesInUse * sizeof (u32));
@@ -2235,7 +2235,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					{
 
 						a = (char*) hdrl_data+i;
-						int avail = hdrl_len-i;
+						int avail = (int) (hdrl_len-i);
 						if (avail<32) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->track[AVI->aptr].audio_superindex = (avisuperindex_chunk *) gf_malloc (sizeof (avisuperindex_chunk));
@@ -2264,7 +2264,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						}
 
 						avail -= 32;
-						if (avail < AVI->track[AVI->aptr].audio_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
+						if (avail < (int) AVI->track[AVI->aptr].audio_superindex->nEntriesInUse*16) ERR_EXIT(AVI_ERR_READ)
 
 						AVI->track[AVI->aptr].audio_superindex->aIndex = (avisuperindex_entry*)
 						        gf_malloc (AVI->track[AVI->aptr].audio_superindex->wLongsPerEntry *

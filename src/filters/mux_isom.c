@@ -7468,7 +7468,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			ctx->dst_pck = gf_filter_pck_new_ref(ctx->opid, cbk_magic, block_size, srcp);
 		}
 		gf_list_del_item(ctx->ref_pcks, srcp);
-		src_pck_dur = gf_timestamp_rescale(gf_filter_pck_get_duration(srcp), gf_filter_pck_get_timescale(srcp), 1000);
+		src_pck_dur = (u32) gf_timestamp_rescale(gf_filter_pck_get_duration(srcp), gf_filter_pck_get_timescale(srcp), 1000);
 		gf_filter_pck_unref(srcp);
 	}
 	//allocate new one
