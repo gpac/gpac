@@ -2010,7 +2010,7 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	print_date(gf_net_get_utc());
 	fprintf(stderr, "GPAC Session Status: ");
 	SET_CONSOLE(GF_CONSOLE_RESET);
-	fprintf(stderr, "mem % 10"LLD_SUF" kb CPU % 2d", rti.gpac_memory/1000, rti.process_cpu_time);
+	fprintf(stderr, "mem % 10"LLD_SUF" kb CPU % 2d", rti.gpac_memory/1000, rti.process_cpu_usage);
 	fprintf(stderr, "\n");
 
 	gf_fs_lock_filters(fsess, GF_TRUE);
