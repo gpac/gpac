@@ -1428,6 +1428,83 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	return gf_fs_load_filter_internal(fsess, name, err_code, NULL);
 }
 
+#if defined(_DEBUG) || defined(DEBUG)
+void print_task(u32 *taskn, GF_FSTask *task, Bool for_filter)
+{
+	(*taskn)++;
+	fprintf(stderr, "%s#%d %s", for_filter ? " " : "", *taskn, task->log_name );
+	if (for_filter && task->notified)
+		fprintf(stderr, " notified");
+
+	if (task->filter)
+		fprintf(stderr, " filter \"%s\" (%s)", task->filter->name, task->filter->freg->name);
+	if (task->pid) {
+		Bool output = task->pid == task->pid->pid;
+		fprintf(stderr, " %s PID %s", output ? "output" : "input", gf_filter_pid_get_name(task->pid));
+	}
+	if (task->force_main)
+		fprintf(stderr, " force_main");
+	if (task->blocking)
+		fprintf(stderr, " blocking");
+	if (task->schedule_next_time)
+		fprintf(stderr, " scheduled in "LLD" us", task->schedule_next_time - gf_sys_clock_high_res());
+
+	switch (task->class_type) {
+	case TASK_TYPE_EVENT:
+		fprintf(stderr, " FilterEvent");
+		if (task->udta)
+			fprintf(stderr, " type %s", gf_filter_event_name( ((GF_FilterEvent*)task->udta)->base.type) );
+		break;
+	case TASK_TYPE_SETUP: fprintf(stderr, " SetupFailure"); break;
+	case TASK_TYPE_USER: fprintf(stderr, " UserData"); break;
+	}
+
+	fprintf(stderr, "\n");
+}
+void print_task_list(void *udta, void *item)
+{
+	print_task(udta, item, GF_FALSE);
+}
+void print_task_list_filter(void *udta, void *item)
+{
+	print_task(udta, item, GF_TRUE);
+}
+
+void fs_print_debug_info(GF_FilterSession *fsess)
+{
+	u32 count, i=0;
+	gf_fs_print_connections(fsess);
+
+	gf_fs_print_stats(fsess);
+
+	fprintf(stderr, "Main thread tasks:\n");
+	gf_fq_enum(fsess->main_thread_tasks, print_task_list, &i);
+	if (fsess->tasks!=fsess->main_thread_tasks) {
+		fprintf(stderr, "Other tasks:\n");
+		i=0;
+		gf_fq_enum(fsess->tasks, print_task_list, &i);
+	}
+
+	fprintf(stderr, "Filters status:\n");
+	gf_mx_p(fsess->filters_mx);
+	count = gf_list_count(fsess->filters);
+	for (i=0; i<count; i++) {
+		u32 j=0;
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		fprintf(stderr, "#%d filter \"%s\" (%s)", i+1, f->name, f->freg->name);
+		if (f->removed) { fprintf(stderr, " - removed\n"); continue; }
+		if (f->disabled) { fprintf(stderr, " - disabled\n"); continue; }
+		if (f->finalized) { fprintf(stderr, " - finalized\n"); continue; }
+
+		fprintf(stderr, " tasks:\n");
+		gf_fq_enum(f->tasks, print_task_list_filter, &j);
+		fprintf(stderr, "\n");
+	}
+
+	gf_mx_v(fsess->filters_mx);
+}
+#endif
+
 //in mono thread mode, we cannot always sleep for the requested timeout in case there are more tasks to be processed
 //this defines the number of pending tasks above which we limit sleep
 #define MONOTH_MIN_TASKS	2
@@ -1508,6 +1585,14 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		GF_Filter *prev_current_filter = NULL;
 		Bool skip_filter_task_check = GF_FALSE;
 #endif
+
+
+#if defined(_DEBUG) || defined(DEBUG)
+		if (fsess->flags&GF_FS_FLAG_FORCE_DEBUG) {
+			fs_print_debug_info(fsess);
+		}
+#endif
+
 
 #ifndef GPAC_DISABLE_REMOTERY
 		sess_thread->rmt_tasks--;
