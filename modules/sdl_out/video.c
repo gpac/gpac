@@ -1962,7 +1962,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	case GF_PIXEL_YUV_10:
 		need_copy=1;
 		pool = &ctx->pool_yuv;
-		format=SDL_PIXELFORMAT_YV12;
+		format=SDL_PIXELFORMAT_IYUV;
 		break;
 	/*FIXME we need to upgrade our SDL build*/
 #if !defined(GPAC_CONFIG_IOS) && SDL_VERSION_ATLEAST(2,0,0)
