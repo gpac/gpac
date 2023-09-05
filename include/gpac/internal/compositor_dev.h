@@ -2065,6 +2065,9 @@ enum
 
 	/*flag indicates this visual pid is a text subtitle*/
 	GF_ODM_IS_SPARSE = (1<<18),
+
+	/*flag set when ODM is a forced subtitle in normal play mode*/
+	GF_ODM_SUB_FORCED = (1<<19),
 };
 
 enum

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -726,6 +726,7 @@ GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size)
 	GF_TextSampleDescriptor *txtc = (GF_TextSampleDescriptor *) gf_odf_new_tx3g();
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 
+	txtc->displayFlags = gf_bs_read_int(bs, 32);
 	txtc->horiz_justif = gf_bs_read_int(bs, 8);
 	txtc->vert_justif  = gf_bs_read_int(bs, 8);
 	txtc->back_color = gpp_read_rgba(bs);
@@ -757,6 +758,7 @@ GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *a, u8 **outData, u32 *outSize)
 	void gpp_write_style(GF_BitStream *bs, GF_StyleRecord *rec);
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
+	gf_bs_write_u32(bs, a->displayFlags);
 	gf_bs_write_u8(bs, a->horiz_justif);
 	gf_bs_write_u8(bs, a->vert_justif);
 	gpp_write_rgba(bs, a->back_color);

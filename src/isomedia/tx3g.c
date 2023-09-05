@@ -45,6 +45,7 @@ static u32 rgb_48_to_32(char *val)
 	return res;
 }
 
+GF_EXPORT
 GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_TextSampleDescriptor **out_desc)
 {
 	GF_TrackBox *trak;
@@ -414,6 +415,14 @@ GF_Err gf_isom_text_set_wrap(GF_TextSample *samp, u8 wrap_flags)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_text_set_forced(GF_TextSample *samp, Bool is_forced)
+{
+	if (!samp) return GF_BAD_PARAM;
+	samp->is_forced = is_forced;
+	return GF_OK;
+}
+
 static GFINLINE GF_Err gpp_write_modifier(GF_BitStream *bs, GF_Box *a)
 {
 	GF_Err e;
@@ -438,6 +447,11 @@ GF_Err gf_isom_text_sample_write_bs(const GF_TextSample *samp, GF_BitStream *bs)
 	if (!e) e = gpp_write_modifier(bs, (GF_Box *)samp->scroll_delay);
 	if (!e) e = gpp_write_modifier(bs, (GF_Box *)samp->box);
 	if (!e) e = gpp_write_modifier(bs, (GF_Box *)samp->wrap);
+
+	if (!e && samp->is_forced) {
+		gf_bs_write_u32(bs, 8);
+		gf_bs_write_u32(bs, GF_QT_BOX_TYPE_FRCD);
+	}
 
 	if (!e) {
 		GF_Box *a;
@@ -607,6 +621,7 @@ GF_Err gf_isom_text_reset_styles(GF_TextSample *samp)
 		gf_list_rem(samp->others, 0);
 		gf_isom_box_del(a);
 	}
+	samp->is_forced = GF_FALSE;
 	return GF_OK;
 }
 
@@ -691,6 +706,10 @@ GF_TextSample *gf_isom_parse_text_sample(GF_BitStream *bs)
 		case GF_ISOM_BOX_TYPE_TWRP:
 			if (s->wrap) gf_isom_box_del(a);
 			else s->wrap= (GF_TextWrapBox*) a;
+			break;
+		case GF_QT_BOX_TYPE_FRCD:
+			s->is_forced = GF_TRUE;
+			gf_isom_box_del(a);
 			break;
 		default:
 			gf_isom_box_del(a);
@@ -937,6 +956,34 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	gf_isom_write_tx3g(a, bs, sidx, sidx_offset);
 	gf_bs_get_content(bs, tx3g, tx3g_size);
 	gf_bs_del(bs);
+	return GF_OK;
+}
+
+GF_Err gf_isom_set_forced_text(GF_ISOFile *file, u32 track, u32 stsd_idx, u32 flags)
+{
+	GF_TrackBox *trak;
+	GF_Tx3gSampleEntryBox *a;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, stsd_idx-1);
+	if (!a) return GF_BAD_PARAM;
+	if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT)) return GF_BAD_PARAM;
+
+	switch (flags) {
+	case 2:
+		a->displayFlags |= GF_TXT_SOME_SAMPLES_FORCED | GF_TXT_ALL_SAMPLES_FORCED;
+		break;
+	case 1:
+		a->displayFlags |= GF_TXT_SOME_SAMPLES_FORCED;
+		a->displayFlags &= ~GF_TXT_ALL_SAMPLES_FORCED;
+		break;
+	default:
+		a->displayFlags &= ~GF_TXT_SOME_SAMPLES_FORCED;
+		a->displayFlags &= ~GF_TXT_ALL_SAMPLES_FORCED;
+		break;
+	}
 	return GF_OK;
 }
 

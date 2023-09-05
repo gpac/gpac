@@ -378,7 +378,6 @@ enum
 	GF_ISOM_BOX_TYPE_DIMC	= GF_4CC( 'd', 'i', 'm', 'C' ),
 	GF_ISOM_BOX_TYPE_DIST	= GF_4CC( 'd', 'i', 'S', 'T' ),
 
-
 	GF_ISOM_BOX_TYPE_AC3	= GF_4CC( 'a', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
 	GF_ISOM_BOX_TYPE_EC3	= GF_4CC( 'e', 'c', '-', '3' ),
@@ -502,6 +501,8 @@ enum
 	GF_QT_BOX_TYPE_CHRM = GF_4CC('c','h','r','m'),
 	GF_QT_BOX_TYPE_STPS = GF_4CC('s','t','p','s'),
 	GF_QT_BOX_TYPE_CIOS = GF_4CC('c','i','o','s'),
+	GF_QT_BOX_TYPE_ENCD	= GF_4CC( 'e', 'n', 'c', 'd' ),
+	GF_QT_BOX_TYPE_FRCD	= GF_4CC( 'f', 'r', 'c', 'd' ),
 
 	/* from drm_sample.c */
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
@@ -4695,6 +4696,7 @@ struct _3gpp_text_sample
 	GF_TextScrollDelayBox *scroll_delay;
 	GF_TextBoxBox *box;
 	GF_TextWrapBox *wrap;
+	Bool is_forced;
 
 	GF_List *others;
 	GF_TextKaraokeBox *cur_karaoke;

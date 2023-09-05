@@ -123,6 +123,7 @@ enum {
 	GJS_OM_PROP_DISABLED,
 	GJS_OM_PROP_NTP_SENDER_DIFF,
 	GJS_OM_PROP_BUFFERING,
+	GJS_OM_PROP_FORCED_SUB,
 };
 
 enum {
@@ -1003,6 +1004,13 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		if (odm->parentscene)
 			return JS_NewBool(ctx, odm->parentscene->nb_buffering ? 1 : 0);
 		return JS_NewBool(ctx, odm->subscene->nb_buffering ? 1 : 0);
+	case GJS_OM_PROP_FORCED_SUB:
+		if (odm->pid) {
+			if (odm->flags & GF_ODM_SUB_FORCED) return JS_NewInt32(ctx, 3);
+			const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_FORCED_SUB);
+			if (p) return JS_NewInt32(ctx, p->value.uint);
+		}
+		return JS_NewInt32(ctx, 0);
 	}
 	return JS_UNDEFINED;
 }
@@ -1818,6 +1826,7 @@ static const JSCFunctionListEntry odm_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("vr_scene", odm_getProperty, NULL, GJS_OM_PROP_IS_VR_SCENE),
 	JS_CGETSET_MAGIC_DEF("disabled", odm_getProperty, NULL, GJS_OM_PROP_DISABLED),
 	JS_CGETSET_MAGIC_DEF("buffering", odm_getProperty, NULL, GJS_OM_PROP_BUFFERING),
+	JS_CGETSET_MAGIC_DEF("forced", odm_getProperty, NULL, GJS_OM_PROP_FORCED_SUB),
 
 	JS_CFUNC_DEF("declare_addon", 0, gjs_odm_declare_addon),
 	JS_CFUNC_DEF("enable_addon", 0, gjs_odm_enable_addon),

@@ -3545,6 +3545,12 @@ void dump_ttxt_header(FILE *dump, GF_Tx3gSampleEntryBox *txt_e, u32 def_width, u
 			break;
 		}
 	}
+
+	if (txt_e->displayFlags & GF_TXT_ALL_SAMPLES_FORCED)
+		gf_fprintf(dump, " forced=\"all\"");
+	else if (txt_e->displayFlags & GF_TXT_SOME_SAMPLES_FORCED)
+		gf_fprintf(dump, " forced=\"yes\"");
+
 	gf_fprintf(dump, ">\n");
 	gf_fprintf(dump, "<FontTable>\n");
 	if (txt_e->font_table) {
@@ -3585,6 +3591,8 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 			gf_fprintf(dump, " scrollDelay=\"%g\"", delay);
 		}
 		if (s_txt->wrap) gf_fprintf(dump, " wrap=\"%s\"", (s_txt->wrap->wrap_flag==0x01) ? "Automatic" : "None");
+
+		if (s_txt->is_forced) gf_fprintf(dump, " forced=\"yes\"");
 	}
 
 	so_count = 0;
@@ -4086,7 +4094,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			tx3g_format_time(start, ts, szDur, GF_TRUE);
 			gf_fprintf(dump, "%s --> ", szDur);
 			tx3g_format_time(end, ts, szDur, GF_TRUE);
-			gf_fprintf(dump, "%s\n", szDur);
+			gf_fprintf(dump, "%s", szDur);
 		}
 
 		if (is_wvtt) {
@@ -4132,12 +4140,14 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 #endif
 			continue;
 		} else if (subtype == GF_ISOM_SUBTYPE_STXT) {
+			gf_fprintf(dump, "\n");
 			if (s->dataLength)
 				gf_fprintf(dump, "%s\n", s->data);
 			gf_isom_sample_del(&s);
 			continue;
 		}
 		else if ((subtype!=GF_ISOM_SUBTYPE_TX3G) && (subtype!=GF_ISOM_SUBTYPE_TEXT)) {
+			gf_fprintf(dump, "\n");
 			gf_fprintf(dump, "unknown\n");
 			gf_isom_sample_del(&s);
 			continue;
@@ -4147,6 +4157,11 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		gf_bs_del(bs);
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, di-1);
+
+		if (txt->is_forced) gf_fprintf(dump, " !!!");
+		else if (txtd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) gf_fprintf(dump, " !!!");
+
+		gf_fprintf(dump, "\n");
 
 		GF_Err e = dump_ttxt_sample_srt(dump, txt, txtd, GF_FALSE);
 
@@ -7108,6 +7123,18 @@ GF_Err keys_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err empty_box_dump(GF_Box *a, FILE * trace)
+{
+	if (!a) return GF_BAD_PARAM;
+	char *name=NULL;
+	switch(a->type) {
+	case GF_QT_BOX_TYPE_FRCD: name = "ForcedSubtitleBox"; break;
+	default: return GF_BAD_PARAM;
+	}
+	gf_isom_box_dump_start(a, name, trace);
+	gf_isom_box_dump_done(name, a, trace);
+	return GF_OK;
+}
 
 #ifdef GPAC_HAS_QJS
 #include "../quickjs/quickjs.h"

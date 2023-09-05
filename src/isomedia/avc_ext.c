@@ -2836,9 +2836,12 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 				ptr->config->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
 				ptr->config->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
 			}
-		}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, patching using SPS.\n"));
+		} else
 #endif
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, patching.\n"));
+		{
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, forcing 420 8-bit.\n"));
+		}
 		return GF_OK;
 	}
 	ISOM_DECREASE_SIZE(ptr, 4)

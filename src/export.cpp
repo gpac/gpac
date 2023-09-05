@@ -989,6 +989,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pcm_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_lpcm_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_track_references) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_text_description) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_referenced) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -1130,6 +1132,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_add_blink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_wrap) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_forced) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_display_flags) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_to_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ismacryp_protection) )

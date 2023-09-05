@@ -13474,4 +13474,34 @@ GF_Err proj_type_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+GF_Box *empty_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_Box, GF_QT_BOX_TYPE_FRCD);
+	return (GF_Box *) tmp;
+}
+
+void empty_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err empty_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err empty_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_box_write_header(s, bs);
+}
+
+GF_Err empty_box_size(GF_Box *s)
+{
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 #endif /*GPAC_DISABLE_ISOM*/

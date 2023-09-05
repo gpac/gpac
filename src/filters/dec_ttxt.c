@@ -109,6 +109,8 @@ typedef struct
 	u8 *static_text;
 	u32 txt_static_alloc;
 	u64 sample_end;
+
+	u32 forced_sub;
 } GF_TTXTDec;
 
 
@@ -291,6 +293,9 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_FORCED_SUB);
+	ctx->forced_sub = p ? p->value.uint : 0;
+
 	if (ctx->simple_text) {
 		if (!ctx->cfg) ctx->cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
 		if (!gf_list_count(ctx->cfg->sample_descriptions)) {
@@ -328,6 +333,13 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 				return e;
 			}
 			ctx->is_tx3g = GF_FALSE;
+
+			GF_TextSampleDescriptor *sd = gf_list_get(ctx->cfg->sample_descriptions, 0);
+			if (sd && (sd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED))
+				ctx->forced_sub = 2;
+			else if (sd && (sd->displayFlags & GF_TXT_SOME_SAMPLES_FORCED))
+				ctx->forced_sub = 1;
+
 		} else if (codecid == GF_CODECID_TX3G) {
 			GF_TextSampleDescriptor * sd = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
 			if (!sd) {
@@ -338,9 +350,16 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 			if (!sd->default_style.text_color)
 				sd->default_style.text_color = 0xFFFFFFFF;
 
+			if (sd->displayFlags & GF_TXT_ALL_SAMPLES_FORCED)
+				ctx->forced_sub = 2;
+			if (sd->displayFlags & GF_TXT_SOME_SAMPLES_FORCED)
+				ctx->forced_sub = 1;
+
 			gf_list_add(ctx->cfg->sample_descriptions, sd);
 			ctx->is_tx3g = GF_TRUE;
 		}
+
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FORCED_SUB, &PROP_UINT(ctx->forced_sub));
 
 		if (needs_init && ctx->odm && ctx->scene) {
 			ttd_setup_scene(ctx);
@@ -856,6 +875,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 
 	ttd_reset_display(ctx);
 	if (!sample_desc_index || !txt || !txt->len) return;
+	if ((ctx->forced_sub==1) && !txt->is_forced) return;
 
 	if (ctx->is_tx3g) {
 		td = (GF_TextSampleDescriptor *)gf_list_get(ctx->cfg->sample_descriptions, 0);
@@ -1276,6 +1296,10 @@ static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->is_playing = GF_FALSE;
 		ttd_toggle_display(ctx);
 		return GF_FALSE;
+	case GF_FEVT_QUALITY_SWITCH:
+		if ((ctx->forced_sub==1) && evt->quality_switch.up) ctx->forced_sub = 3;
+		else if ((ctx->forced_sub==3) && !evt->quality_switch.up) ctx->forced_sub = 1;
+		return GF_TRUE;
 	default:
 		return GF_FALSE;
 	}
@@ -1422,6 +1446,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 		txt = gf_isom_parse_text_sample(ctx->bs_r);
 		if (!txt) return GF_NON_COMPLIANT_BITSTREAM;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[TTXTDec] Applying new sample - duration %d text \"%s\"\n", sample_duration, txt->text ? txt->text : ""));
+
 		ttd_apply_sample(ctx, txt, sample_index, is_utf_16, sample_duration);
 		gf_isom_delete_text_sample(txt);
 

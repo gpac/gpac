@@ -19,7 +19,8 @@
 - QT lpcm support
 - Support for big-endian PCM formats
 - Support for uncv (raw video in mp4 and heir)
- 
+- Support for forced subtitles
+
 ## Filters
 - Async HTTP request in all filters
 - Fixed cors and mime types in httpout for wasm and sharedArrayuffer support

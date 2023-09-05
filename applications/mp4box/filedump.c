@@ -3350,6 +3350,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 		u32 w, h;
 		s16 l;
 		s32 tx, ty;
+		Bool check_tx3g=GF_FALSE;
 		const char *content_encoding = NULL;
 		const char *mime = NULL;
 		const char *config  = NULL;
@@ -3389,8 +3390,23 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			}
 		} else if (mtype == GF_ISOM_MEDIA_SUBT) {
 			fprintf(stderr, "\tQT/3GPP subtitle");
+			check_tx3g = GF_TRUE;
+		} else if (mtype == GF_ISOM_MEDIA_TEXT) {
+			fprintf(stderr, "\tQT/3GPP text");
+			check_tx3g = GF_TRUE;
 		} else {
 			fprintf(stderr, "\tUnknown Text Stream");
+		}
+		if (check_tx3g) {
+			GF_TextSampleDescriptor *txtcfg = NULL;
+			gf_isom_get_text_description(file, trackNum, stsd_idx, &txtcfg);
+			if (txtcfg) {
+				if (txtcfg->displayFlags & GF_TXT_ALL_SAMPLES_FORCED)
+					fprintf(stderr, " - all samples forced");
+				else if (txtcfg->displayFlags & GF_TXT_SOME_SAMPLES_FORCED)
+					fprintf(stderr, " - forced samples");
+				gf_odf_desc_del((GF_Descriptor *) txtcfg);
+			}
 		}
 		fprintf(stderr, "\n\tSize %d x %d - Translation X=%d Y=%d - Layer %d\n", w, h, tx, ty, l);
 	} else if (mtype == GF_ISOM_MEDIA_META) {
@@ -3723,6 +3739,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 
+	if (gf_isom_is_track_referenced(file, trackNum, GF_ISOM_REF_CHAP)) {
+		if (gf_isom_is_video_handler_type(mtype)) fprintf(stderr, "Chapter Thumbnails\n");
+		else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) fprintf(stderr, "Chapter Labels\n");
+	}
+
 	fprintf(stderr, "Media Samples: %d", gf_isom_get_sample_count(file, trackNum));
 	cdur = gf_isom_get_constant_sample_duration(file, trackNum);
 	if (cdur) {
@@ -4017,7 +4038,7 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 	gf_isom_get_creation_time(file, &create, &modif);
 	fprintf(stderr, "Created: %s", format_date(create, szDur));
 	if (create != modif)
-		fprintf(stderr, "Modified: %s", format_date(modif, szDur));
+		fprintf(stderr, " - Modified: %s", format_date(modif, szDur));
 	fprintf(stderr, "\n");
 
 	DumpMetaItem(file, 0, 0, "# Movie Meta");
