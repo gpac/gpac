@@ -2112,6 +2112,24 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	else if (check_odm_deactivate(&scene->subs_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_SUBT_IMG") )) pre_selected=GF_TRUE;
 	if (pre_selected) {
 		if (odm->state) {
+			if (odm->pid) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_FORCED_SUB);
+				if (p && p->value.uint) {
+					if (p->value.uint==2) return;
+					//toggle forced on/off
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_QUALITY_SWITCH, odm->pid);
+					if (odm->flags & GF_ODM_SUB_FORCED) {
+						evt.quality_switch.up = 0;
+						odm->flags &= ~GF_ODM_SUB_FORCED;
+					} else {
+						evt.quality_switch.up = 1;
+						odm->flags |= GF_ODM_SUB_FORCED;
+					}
+					gf_filter_pid_send_event(odm->pid, &evt);
+					return;
+				}
+			}
 			gf_odm_stop(odm, GF_FALSE);
 		} else {
 			gf_odm_play(odm);

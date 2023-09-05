@@ -1238,6 +1238,13 @@ GF_Err gf_isom_get_reference_ID(GF_ISOFile *isom_file, u32 trackNumber, u32 refe
 \return the reference index if the given track has a reference of type referenceType to refTreckID, 0 otherwise*/
 u32 gf_isom_has_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 referenceType, GF_ISOTrackID refTrackID);
 
+/*! checks if a track is referenced by another track wuth the given reference type
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param referenceType the four character code of the reference to query
+\return the track number of the first track  referencing the target track, 0 otherwise*/
+u32 gf_isom_is_track_referenced(GF_ISOFile *movie, u32 trackNumber, u32 referenceType);
+
 /*! fetches a sample for a given movie time, handling possible track edit lists.
 
 if no sample is playing, an empty sample is returned with no data and a DTS set to MovieTime when searching in sync modes
@@ -5173,6 +5180,15 @@ GF_Err gf_isom_text_dump(GF_ISOFile *isom_file, u32 trackNumber, FILE *dump, GF_
 */
 GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 sidx_offset, u8 **tx3g, u32 *tx3g_size);
 
+/*! sets TX3G flags for forced samples
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the sample description index
+\param force_type if 0, no forced subs are present. If 1, some forced subs are present; if 2, all samples are forced subs
+\return error if any
+*/
+GF_Err gf_isom_set_forced_text(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 force_type);
+
 /*! text sample formatting*/
 typedef struct _3gpp_text_sample GF_TextSample;
 /*! creates text sample handle
@@ -5446,6 +5462,13 @@ GF_Err gf_isom_text_add_blink(GF_TextSample *tx_samp, u16 start_char, u16 end_ch
 \return error if any
 */
 GF_Err gf_isom_text_set_wrap(GF_TextSample *tx_samp, u8 wrap_flags);
+
+/*! sets force for the sample
+\param tx_samp the target text sample
+\param is_force for ce sample if TRUE
+\return error if any
+*/
+GF_Err gf_isom_text_set_forced(GF_TextSample *tx_samp, Bool is_forced);
 
 /*! formats sample as a regular GF_ISOSample payload in a bitstream object.
 \param tx_samp the target text sample

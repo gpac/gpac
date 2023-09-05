@@ -593,6 +593,7 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace);
 		GF_Err a_name##_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);\
 
 
+ISOM_BOX_IMPL_DECL(empty)
 ISOM_BOX_IMPL_DECL(reftype)
 ISOM_BOX_IMPL_DECL(ireftype)
 ISOM_BOX_IMPL_DECL(free)
@@ -1461,7 +1462,6 @@ static struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIMC, dimC, "dims encs", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIST, diST, "dims", "3gpp"),
 
-
 	//CENC boxes
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PSSH, pssh, "moov moof meta", 0, "cenc"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TENC, tenc, "schi", 1, "cenc"),
@@ -1622,6 +1622,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_LPCM, audio_sample_entry, "stsd", "apple"),
 
 	FBOX_DEFINE_S(GF_QT_BOX_TYPE_STPS, stss, "stbl", 0, "apple"),
+
+	BOX_DEFINE_S( GF_QT_BOX_TYPE_ENCD, unkn, "text_sample", "QT"),
+	BOX_DEFINE_S( GF_QT_BOX_TYPE_FRCD, empty, "text_sample", "QT"),
+
 
 	//dolby boxes
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),

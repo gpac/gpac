@@ -151,6 +151,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	char *meta_codec_name = NULL;
 	u32 meta_opaque=0;
 	Bool first_config = GF_FALSE;
+	u32 force_subs = 0;
 
 
 	depends_on_id = avg_rate = max_rate = buffer_size = 0;
@@ -268,6 +269,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d unable to fetch TX3G config\n", track));
 			}
 			if (txtcfg) {
+				if (txtcfg->displayFlags & GF_TXT_ALL_SAMPLES_FORCED) force_subs = 2;
+				else if (txtcfg->displayFlags & GF_TXT_SOME_SAMPLES_FORCED) force_subs = 1;
+
 				gf_odf_tx3g_write(txtcfg, &dsi, &dsi_size);
 				gf_odf_desc_del((GF_Descriptor *) txtcfg);
 			}
@@ -1027,7 +1031,15 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 							snprintf(szName, 30, "udta_%s", gf_4cc_to_str(type));
 						szName[30]=0;
 						if (gf_utf8_is_legal(udta, udta_size)) {
-							gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(udta));
+							if (!udta[udta_size-1]) {
+								gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(udta));
+							} else {
+								char *data = gf_malloc(udta_size+1);
+								memcpy(data, udta, udta_size);
+								data[udta_size]=0;
+								gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_STRING_NO_COPY(data));
+								gf_free(udta);
+							}
 						} else {
 							gf_filter_pid_set_property_dyn(ch->pid, szName, &PROP_DATA_NO_COPY(udta, udta_size));
 						}
@@ -1214,6 +1226,9 @@ props_done:
 	if (pix_fmt) {
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pix_fmt));
 	}
+
+
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_FORCED_SUB, force_subs ? &PROP_UINT(force_subs) : NULL );
 
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CONFIG_IDX, &PROP_UINT(stsd_idx) );
 
@@ -1638,6 +1653,14 @@ GF_Err isor_declare_objects(ISOMReader *read)
 
 		if (!read->alltk && !read->tkid && !gf_isom_is_track_enabled(read->mov, i+1)) {
 			if (count>1) {
+				u32 type = gf_isom_get_media_type(read->mov, i+1);
+
+				//we don't warn for disabled text tracks due to chapters and forced subs
+				if ((type==GF_ISOM_SUBTYPE_TEXT) || (type==GF_ISOM_MEDIA_SUBT))
+					continue;
+				//disabled tracks using QT chapter refs, do not warn
+				if (gf_isom_is_track_referenced(read->mov, i+1, GF_ISOM_REF_CHAP)) continue;
+
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d is disabled, ignoring track - you may retry by specifying alltk option\n", i+1));
 				continue;
 			} else {

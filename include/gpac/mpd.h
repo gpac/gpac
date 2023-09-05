@@ -674,6 +674,8 @@ typedef struct {
 	Bool in_progress;
 	char *res_url;
 	u32 trackID;
+
+	Bool sub_forced;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/

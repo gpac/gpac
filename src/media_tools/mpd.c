@@ -3551,6 +3551,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 		Bool has_lang = GF_FALSE;
 		Bool has_chan = GF_FALSE;
 		Bool has_autosel = GF_FALSE;
+		Bool has_forced = GF_TRUE;
 
 		if (rep->streamtype==GF_STREAM_AUDIO) {
 			g_type = "AUDIO";
@@ -3563,6 +3564,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 		else if (rep->streamtype==GF_STREAM_TEXT) {
 			g_type = "SUBTITLES";
 			g_id = "subs";
+			has_forced = GF_FALSE;
 		}
 		if (!g_type || !g_id)
 			return;
@@ -3583,6 +3585,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 			if (!strncmp(tag, "NAME=", 5)) has_name = GF_TRUE;
 			else if (!strncmp(tag, "LANGUAGE=", 9)) has_lang = GF_TRUE;
 			else if (!strncmp(tag, "CHANNELS=", 9)) has_chan = GF_TRUE;
+			else if (!strncmp(tag, "FORCED=", 7)) has_forced = GF_TRUE;
 
 			//if default is present (regardless of value), don't inject an autoselect
 			if (!strncmp(tag, "AUTOSELECT=", 11) || !strncmp(tag, "DEFAULT=", 8)) {
@@ -3599,6 +3602,8 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 
 		if (!has_autosel)
 			gf_fprintf(out, ",AUTOSELECT=YES");
+		if (!has_forced && rep->sub_forced)
+			gf_fprintf(out, ",FORCED=YES");
 
 		gf_fprintf(out, ",URI=\"%s\"", m3u8_name);
 

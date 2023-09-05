@@ -2341,7 +2341,10 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:EC3_ExtensionComplexityIndex:2018", value);
 			gf_list_add(ds->rep->supplemental_properties, desc);
 		}
-	} else {
+	}
+	else if (ds->stream_type==GF_STREAM_TEXT) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FORCED_SUB);
+		if (p && p->value.uint) ds->rep->sub_forced = GF_TRUE;
 	}
 
 	if (ctx->from_index <= IDXMODE_MANIFEST) {
@@ -2745,6 +2748,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			gf_list_add(set->essential_properties, desc);
 		}
 		/*set role*/
+		Bool has_sub_forced=GF_FALSE;
 		if (ds->p_role) {
 			u32 j, role_count;
 			role_count = ds->p_role->value.string_list.nb_items;
@@ -2762,6 +2766,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				) {
 					uri = "urn:mpeg:dash:role:2011";
 					if (!strcmp(role, "main")) main_role_set = GF_TRUE;
+					if (!strcmp(role, "forced-subtitle")) has_sub_forced = GF_TRUE;
 				} else {
 					char *sep = strrchr(role, ':');
 					if (sep) {
@@ -2778,6 +2783,10 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 
 				gf_list_add(set->role, desc);
 			}
+		}
+		if (!has_sub_forced && ds->rep->sub_forced) {
+			GF_MPD_Descriptor *desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:role:2011", "forced-subtitle");
+			gf_list_add(set->role, desc);
 		}
 		//set SRD
 		if (!i && ds->srd.z && ds->srd.w) {

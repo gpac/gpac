@@ -2586,6 +2586,9 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, GF_ISOStartFragmentFlags flags)
 	movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
 
 	/*prepare MDAT*/
+	if (movie->on_block_out)
+		gf_bs_prevent_dispatch(movie->editFileMap->bs, GF_TRUE);
+
 	gf_bs_write_u32(movie->editFileMap->bs, 0);
 	gf_bs_write_u32(movie->editFileMap->bs, GF_ISOM_BOX_TYPE_MDAT);
 

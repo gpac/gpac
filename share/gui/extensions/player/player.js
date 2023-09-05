@@ -1796,10 +1796,12 @@ extension = {
 				
 				if (m.type == 'Video') nb_video++;
 				else if (m.type == 'Audio') nb_audio++;
-				else if (m.type == 'Text') nb_subs++;
+				else if (m.type == 'Text') {
+                    nb_subs++;
+                }
 			}
 		}
-		if ((nb_video > 1) || (nb_audio > 1) || (nb_subs > 1)) {
+		if ((nb_video > 1) || (nb_audio > 1) || (nb_subs >= 1)) {
 			this.controler.media_list.show();
 		} else {
 			this.controler.media_list.hide();
@@ -1811,7 +1813,8 @@ extension = {
 			
 			if (this.extension.medialist_wnd) {
 				this.extension.medialist_wnd.close();
-				return;
+				this.extension.medialist_wnd=null;
+                return;
 			}
 			var wnd = gw_new_popup(this.extension.controler.media_list, 'up');
 			this.extension.medialist_wnd = wnd;
@@ -1819,15 +1822,21 @@ extension = {
 			
             //todo - cleanup the rest of the code to use closures to pass the extension object
 			wnd.on_close = ( function (e) {
-                return function () { e.medialist_wnd = null; }
+                return function () { e.medialist_wnd = null;}
 			} ) (extension);
 
 			wnd.make_item = function (text, obj) {
                 let pref = "";
-                if (m.status == 'Playing') pref= "* ";
-                else if (m.status == 'Paused') pref= "* ";
+                if ((obj.status == 'Playing') || (obj.status == 'Paused')) {
+                    switch (obj.forced) {
+                    case 2: pref='!! '; break;
+                    case 3: pref='!* '; break;
+                    case 1: pref='! '; break;
+                    default: pref= "* "; break;
+                    }
+                }
 				wnd.add_menu_item(pref+text, function () {
-				  obj.select();
+                  obj.select();
 			  });
 			}
 
