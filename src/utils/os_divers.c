@@ -2214,6 +2214,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	}
 #endif
 
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	struct rusage r_usage;
 	getrusage(RUSAGE_SELF,&r_usage);
 	the_rti.process_memory = r_usage.ru_maxrss*1024;
@@ -2231,7 +2232,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			gf_fclose(f);
 		}
 	}
-
+#endif
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	the_rti.physical_memory = EM_ASM_INT(return HEAP8.length);
