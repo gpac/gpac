@@ -2465,8 +2465,10 @@ static void gpac_sig_handler(int sig)
 			signal_catched = GF_TRUE;
 			if (is_inter) {
 				char input;
+				GF_SessionDebugFlag flags=0;
 				in_sig_handler = GF_TRUE;
-				fprintf(stderr, "\nToggle reports (r), or exit with fast (Y), full (f) or no (n) session flush ? \n");
+				fprintf(stderr, "\nToggle reports (r), print state (s for short, e for extended [+ shift: sticky])\n"
+					"\tor exit with fast (Y), full (f) or no (n) session flush ? \n");
 rescan:
 				input = gf_getch();
 				if (!input || input == 0x0A || input == 0x0D) input = 'Y'; // user pressed "return"
@@ -2484,6 +2486,7 @@ rescan:
 				case 0:
 					break;
 				case 'x':
+				case 'X':
 					exit(0);
 					break;
 				case '\n':
@@ -2512,6 +2515,20 @@ rescan:
 					}
 					signal_catched = GF_FALSE;
 					signal_processed = GF_FALSE;
+					break;
+				case 'S':
+					flags = GF_FS_DEBUG_CONTINUOUS;
+				case 's':
+					signal_catched = GF_FALSE;
+					signal_processed = GF_FALSE;
+					gf_fs_print_debug_info(session, flags|GF_FS_DEBUG_TASKS|GF_FS_DEBUG_FILTERS);
+					break;
+				case 'E':
+					flags = GF_FS_DEBUG_CONTINUOUS;
+				case 'e':
+					signal_catched = GF_FALSE;
+					signal_processed = GF_FALSE;
+					gf_fs_print_debug_info(session, flags|GF_FS_DEBUG_ALL);
 					break;
 				default:
 					signal_processed = GF_TRUE;

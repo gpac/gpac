@@ -732,6 +732,33 @@ typedef	GF_Err (*gf_fs_gl_activate)(void *udta, Bool do_activate);
  */
 GF_Err gf_fs_set_external_gl_provider(GF_FilterSession *session, gf_fs_gl_activate on_gl_activate, void *udta);
 
+/*! Flags for debug info*/
+typedef enum
+{
+	/*! print filter graph*/
+	GF_FS_DEBUG_GRAPH = 1,
+	/*! print filter stats*/
+	GF_FS_DEBUG_STATS = 1<<1,
+	/*! print tasks present in scheduler*/
+	GF_FS_DEBUG_TASKS = 1<<2,
+	/*! print filter status and task scheduled on filter*/
+	GF_FS_DEBUG_FILTERS = 1<<3,
+	/*! print all info*/
+	GF_FS_DEBUG_ALL = 0x00FFFFFF,
+	/*! enable continuous reporting*/
+	GF_FS_DEBUG_CONTINUOUS = 0x80000000,
+} GF_SessionDebugFlag;
+
+/*! prints session debug info on stderr
+
+ To turn on (resp.off) continous reporting, set (resp. unset) the flag GF_FS_DEBUG_CONTINUOUS. Continuous reporting is done in the main thread using the last flags provided
+
+\param session filter session
+\param dbg_flags set of flags indicating what to print
+ */
+void gf_fs_print_debug_info(GF_FilterSession *session, GF_SessionDebugFlag dbg_flags);
+
+
 /*! @} */
 
 

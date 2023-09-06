@@ -297,6 +297,7 @@ struct __gf_fs_task
 	const char *log_name;
 	void *udta;
 	u32 class_type;
+	u32 thid;
 };
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
@@ -525,6 +526,9 @@ struct __gf_filter_session
 	Bool is_worker;
 	volatile u32 pending_threads;
 #endif
+
+
+	u32 dbg_flags;
 };
 
 #ifdef GPAC_HAS_QJS
