@@ -1428,11 +1428,16 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	return gf_fs_load_filter_internal(fsess, name, err_code, NULL);
 }
 
-#if defined(_DEBUG) || defined(DEBUG)
-void print_task(u32 *taskn, GF_FSTask *task, Bool for_filter)
+static void print_task(u32 *taskn, GF_FSTask *task, Bool for_filter)
 {
 	(*taskn)++;
-	fprintf(stderr, "%s#%d %s", for_filter ? " " : "", *taskn, task->log_name );
+	fprintf(stderr, "%sT%d \"%s\"", for_filter ? " " : "", *taskn, task->log_name );
+	if (task->thid) {
+		if (task->thid==1)
+			fprintf(stderr, " exec in main");
+		else
+			fprintf(stderr, " exec in th %d", task->thid-1);
+	}
 	if (for_filter && task->notified)
 		fprintf(stderr, " notified");
 
@@ -1461,49 +1466,70 @@ void print_task(u32 *taskn, GF_FSTask *task, Bool for_filter)
 
 	fprintf(stderr, "\n");
 }
-void print_task_list(void *udta, void *item)
+
+static void print_task_list(void *udta, void *item)
 {
 	print_task(udta, item, GF_FALSE);
 }
-void print_task_list_filter(void *udta, void *item)
+
+static void print_task_list_filter(void *udta, void *item)
 {
 	print_task(udta, item, GF_TRUE);
 }
 
-void fs_print_debug_info(GF_FilterSession *fsess)
+GF_EXPORT
+void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_flags)
 {
 	u32 count, i=0;
-	gf_fs_print_connections(fsess);
+	fsess->dbg_flags = dbg_flags;
+	fprintf(stderr, "Session debug info (UTC "LLU")\n", gf_net_get_utc());
 
-	gf_fs_print_stats(fsess);
+	if (dbg_flags & GF_FS_DEBUG_GRAPH)
+		gf_fs_print_connections(fsess);
 
-	fprintf(stderr, "Main thread tasks:\n");
-	gf_fq_enum(fsess->main_thread_tasks, print_task_list, &i);
-	if (fsess->tasks!=fsess->main_thread_tasks) {
-		fprintf(stderr, "Other tasks:\n");
-		i=0;
-		gf_fq_enum(fsess->tasks, print_task_list, &i);
+	if (dbg_flags & GF_FS_DEBUG_STATS)
+		gf_fs_print_stats(fsess);
+
+	if (dbg_flags & GF_FS_DEBUG_TASKS) {
+		fprintf(stderr, "Main thread tasks:\n");
+		gf_fq_enum(fsess->main_thread_tasks, print_task_list, &i);
+		if (fsess->tasks!=fsess->main_thread_tasks) {
+			fprintf(stderr, "Other tasks:\n");
+			i=0;
+			gf_fq_enum(fsess->tasks, print_task_list, &i);
+		}
 	}
 
-	fprintf(stderr, "Filters status:\n");
-	gf_mx_p(fsess->filters_mx);
-	count = gf_list_count(fsess->filters);
-	for (i=0; i<count; i++) {
-		u32 j=0;
-		GF_Filter *f = gf_list_get(fsess->filters, i);
-		fprintf(stderr, "#%d filter \"%s\" (%s)", i+1, f->name, f->freg->name);
-		if (f->removed) { fprintf(stderr, " - removed\n"); continue; }
-		if (f->disabled) { fprintf(stderr, " - disabled\n"); continue; }
-		if (f->finalized) { fprintf(stderr, " - finalized\n"); continue; }
+	if (dbg_flags & GF_FS_DEBUG_FILTERS) {
+		fprintf(stderr, "Filters status:\n");
+		gf_mx_p(fsess->filters_mx);
+		count = gf_list_count(fsess->filters);
+		for (i=0; i<count; i++) {
+			u32 j=0;
+			GF_Filter *f = gf_list_get(fsess->filters, i);
+			fprintf(stderr, "F%d \"%s\" (%s)", i+1, f->name, f->freg->name);
+			if (f->id) fprintf(stderr, " ID %s", f->id);
+			if (f->is_pid_adaptation_filter) fprintf(stderr, " adaptation");
+			else if (f->dynamic_filter) fprintf(stderr, " dynamic");
+			fprintf(stderr, " - %d PIDs playing", f->nb_pids_playing);
+			if (f->would_block) fprintf(stderr, " %d blocked", f->would_block);
 
-		fprintf(stderr, " tasks:\n");
-		gf_fq_enum(f->tasks, print_task_list_filter, &j);
-		fprintf(stderr, "\n");
+			if (f->removed) { fprintf(stderr, " - removed\n"); continue; }
+			if (f->disabled) { fprintf(stderr, " - disabled\n"); continue; }
+			if (f->finalized) { fprintf(stderr, " - finalized\n"); continue; }
+			if (f->eos_probe_state==1) fprintf(stderr, " in eos");
+
+			if (gf_fq_count(f->tasks)) {
+				fprintf(stderr, " tasks:\n");
+				gf_fq_enum(f->tasks, print_task_list_filter, &j);
+			} else {
+				fprintf(stderr, " no tasks\n");
+			}
+		}
+		gf_mx_v(fsess->filters_mx);
 	}
-
-	gf_mx_v(fsess->filters_mx);
+	fprintf(stderr, "\n");
 }
-#endif
 
 //in mono thread mode, we cannot always sleep for the requested timeout in case there are more tasks to be processed
 //this defines the number of pending tasks above which we limit sleep
@@ -1586,13 +1612,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		Bool skip_filter_task_check = GF_FALSE;
 #endif
 
-
-#if defined(_DEBUG) || defined(DEBUG)
-		if (fsess->flags&GF_FS_FLAG_FORCE_DEBUG) {
-			fs_print_debug_info(fsess);
+		if ((fsess->dbg_flags & GF_FS_DEBUG_CONTINUOUS) && !thid) {
+			gf_fs_print_debug_info(fsess, fsess->dbg_flags ? fsess->dbg_flags : GF_FS_DEBUG_ALL);
 		}
-#endif
-
 
 #ifndef GPAC_DISABLE_REMOTERY
 		sess_thread->rmt_tasks--;
@@ -2044,7 +2066,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		task->can_swap = 0;
 		task->requeue_request = GF_FALSE;
+		task->thid = 1+thid;
 		task->run_task(task);
+		task->thid = 0;
 		requeue = task->requeue_request;
 
 		task_time = gf_sys_clock_high_res() - task_time;
