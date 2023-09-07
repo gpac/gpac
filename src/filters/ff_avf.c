@@ -45,7 +45,7 @@ typedef struct
 {
 	AVFilterContext *io_filter_ctx;
 	GF_FilterPid *io_pid;
-	u32 timescale, width, height, sr, nb_ch, bps;
+	u32 timescale, width, height, sr, nb_ch, bps, bpp;
 	Bool planar;
 	u32 pfmt; //ffmpeg pixel or audio format
 	u64 ch_layout; //ffmpeg channel layout
@@ -669,6 +669,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				opid->tb_num = opid->io_filter_ctx->inputs[0]->time_base.num;
 				opid->stride = 0;
 				opid->stride_uv = 0;
+				opid->bpp = gf_pixel_get_bytes_per_pixel(opid->gf_pfmt);
 				gf_pixel_get_size_info(opid->gf_pfmt, opid->width, opid->height, &opid->out_size, &opid->stride, &opid->stride_uv, NULL, &opid->uv_height);
 				if ((opid->gf_pfmt==GF_PIXEL_YUV444) || (opid->gf_pfmt==GF_PIXEL_YUV444_10)) {
 					opid->uv_width = opid->width;
@@ -685,24 +686,24 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			if (!pck) return GF_OUT_OF_MEM;
 
 			for (j=0; j<opid->height; j++) {
-				memcpy(buffer + j*opid->stride, frame->data[0] + j*frame->linesize[0], opid->width);
+				memcpy(buffer + j*opid->stride, frame->data[0] + j*frame->linesize[0], opid->width*opid->bpp);
 			}
 			if (frame->linesize[1]) {
 				buffer += opid->height*opid->stride;
 				for (j=0; j<opid->uv_height; j++) {
-					memcpy(buffer + j*opid->stride_uv, frame->data[1] + j*frame->linesize[1], opid->uv_width);
+					memcpy(buffer + j*opid->stride_uv, frame->data[1] + j*frame->linesize[1], opid->uv_width*opid->bpp);
 				}
 			}
 			if (frame->linesize[2]) {
 				buffer += opid->uv_height*opid->stride_uv;
 				for (j=0; j<opid->uv_height; j++) {
-					memcpy(buffer + j*opid->stride_uv, frame->data[2] + j*frame->linesize[2], opid->uv_width);
+					memcpy(buffer + j*opid->stride_uv, frame->data[2] + j*frame->linesize[2], opid->uv_width*opid->bpp);
 				}
 			}
 			if (frame->linesize[3]) {
 				buffer += opid->uv_height*opid->stride_uv;
 				for (j=0; j<opid->height; j++) {
-					memcpy(buffer + j*opid->stride, frame->data[3] + j*frame->linesize[3], opid->width);
+					memcpy(buffer + j*opid->stride, frame->data[3] + j*frame->linesize[3], opid->width*opid->bpp);
 				}
 			}
 			if (frame->interlaced_frame)
