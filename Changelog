@@ -18,9 +18,10 @@
 - QT cmov support (reading and writing)
 - QT lpcm support
 - Support for big-endian PCM formats
-- Support for uncv (raw video in mp4 and heir)
+- Support for uncv (raw video in mp4 and heif)
 - Support for forced subtitles
-
+- Support for HEVC bitstreams merging in dash (for multi-res tile adaptation)
+ 
 ## Filters
 - Async HTTP request in all filters
 - Fixed cors and mime types in httpout for wasm and sharedArrayuffer support

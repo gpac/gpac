@@ -4128,7 +4128,9 @@ static s32 dash_do_rate_adaptation_legacy_rate(GF_DashClient *dash, GF_DASH_Grou
 		//but for a given number of segments - this avoids fluctuation in the quality
 		if (go_up_bitrate && !nb_inter_rep) {
 			new_rep->playback.probe_switch_count++;
-			if (new_rep->playback.probe_switch_count > dash->probe_times_before_switch) {
+			if (group->local_files && (new_rep->playback.probe_switch_count >= dash->probe_times_before_switch)) {
+				new_rep->playback.probe_switch_count = 0;
+			} else if (new_rep->playback.probe_switch_count > dash->probe_times_before_switch) {
 				new_rep->playback.probe_switch_count = 0;
 			} else {
 				new_index = group->active_rep_index;
@@ -6522,7 +6524,7 @@ retry_pending_rep:
 
 	//setup SRDs
 	for (as_i = 0; as_i<gf_list_count(dash->SRDs); as_i++) {
-		u32 cols[10], rows[10];
+		u32 cols[10], rows[10], nb_srd_it=0;
 		struct _dash_srd_desc *srd = gf_list_get(dash->SRDs, as_i);
 
 		srd->srd_nb_rows = srd->srd_nb_cols = 0;
@@ -6536,13 +6538,19 @@ retry_pending_rep:
 
 			if (dg1->srd_desc != srd) continue;
 			if (dg2->srd_desc != srd) continue;
-
+			nb_srd_it++;
 			if (dg1_weight > dg2_weight) {
 				gf_list_rem(dash->groups, j);
 				gf_list_insert(dash->groups, dg2, j-1);
 				dg2->groups_idx = j-1;
 				j=0;
 			}
+		}
+		if (nb_srd_it && (dash->auto_switch_count<0)) {
+			nb_srd_it++;
+			dash->auto_switch_count = nb_srd_it;
+		} else {
+			nb_srd_it=0;
 		}
 
 		//groups are now sorted for this srd, locate col/row positions
@@ -6553,6 +6561,10 @@ retry_pending_rep:
 			if (group->srd_desc != srd) continue;
 
 			if (!group->srd_w || !group->srd_h) continue;
+			if (nb_srd_it) {
+				nb_srd_it--;
+				group->nb_segments_done = nb_srd_it;
+			}
 
 			for (k=0; k<srd->srd_nb_cols; k++) {
 				if (cols[k]==group->srd_x) {
@@ -10490,7 +10502,54 @@ GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, 
 	return GF_OK;
 }
 
+static void dash_check_group_visible(GF_DASH_Group *a_group, GF_DASH_Group *par_group, u32 min_x, u32 max_x, u32 min_y, u32 max_y, Bool is_gaze)
+{
+	u32 old_hint;
+	u32 is_visible = 1;
+	if (!a_group->srd_w || !a_group->srd_h) return;
 
+	old_hint = a_group->quality_degradation_hint;
+	if (is_gaze) {
+		if (min_x < a_group->srd_x)
+			is_visible = 0;
+		else if (min_x > a_group->srd_x + a_group->srd_w)
+			is_visible = 0;
+		else if (min_y < a_group->srd_y)
+			is_visible = 0;
+		else if (min_y > a_group->srd_y + a_group->srd_h)
+			is_visible = 0;
+
+	} else {
+		//single rectangle case
+		if (min_x<max_x) {
+			if (a_group->srd_x+a_group->srd_w <min_x) is_visible = 0;
+			else if (a_group->srd_x>max_x) is_visible = 0;
+		} else {
+			if ( (a_group->srd_x>max_x) && (a_group->srd_x+a_group->srd_w<min_x)) is_visible = 0;
+		}
+
+		if (min_y<max_y) {
+			if (a_group->srd_y>max_y) is_visible = 0;
+			else if (a_group->srd_y+a_group->srd_h < min_y) is_visible = 0;
+		} else {
+			if ( (a_group->srd_y>max_y) && (a_group->srd_y+a_group->srd_h<min_y)) is_visible = 0;
+		}
+
+		if ((a_group->srd_x>=min_x) && (a_group->srd_x+a_group->srd_w<=max_x)
+			&& (a_group->srd_y>=min_y) && (a_group->srd_y+a_group->srd_h<=max_y)
+		) {
+			is_visible = 2;
+		}
+	}
+	a_group->quality_degradation_hint = (is_visible==2) ? 0 : (is_visible==1) ? 0 : 100;
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Group SRD %dx%d@%dx%d is %s%s\n", a_group->srd_x, a_group->srd_y, a_group->srd_w, a_group->srd_h, (is_visible==1) ? "partially " : "", is_visible ? "visible" : "hidden"));
+	if (old_hint != a_group->quality_degradation_hint) {
+		//remember to update tile quality for non-custom algo
+		a_group->update_tile_qualities = GF_TRUE;
+		if (par_group)
+			par_group->update_tile_qualities = GF_TRUE;
+	}
+}
 GF_EXPORT
 GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y, Bool is_gaze)
 {
@@ -10503,53 +10562,20 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 	}
 
 	//for both regular or tiled, store visible width/height
-	group->hint_visible_width = max_x - min_x;
-	group->hint_visible_height = max_y - min_y;
+	group->hint_visible_width = (max_x>min_x) ? (max_x - min_x) : (min_x - max_x);
+	group->hint_visible_height = (max_y > min_y) ? (max_y - min_y) : (min_y - max_y);
 
-	if (!group->groups_depending_on) return GF_OK;
+	if (!group->groups_depending_on) {
+		count = group->srd_desc ? gf_list_count(dash->groups) : 0;
+		dash_check_group_visible(group, NULL, min_x, max_x, min_y, max_y, is_gaze);
+		return GF_OK;
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group Visible rect %d,%d,%d,%d \n", min_x, max_x, min_y, max_y));
 	count = gf_list_count(group->groups_depending_on);
 	for (i=0; i<count; i++) {
-		Bool is_visible = GF_TRUE;
 		GF_DASH_Group *a_group = gf_list_get(group->groups_depending_on, i);
-		u32 old_hint;
-		if (!a_group->srd_w || !a_group->srd_h) continue;
-
-		old_hint = a_group->quality_degradation_hint;
-		if (is_gaze) {
-
-			if (min_x < a_group->srd_x)
-				is_visible = GF_FALSE;
-			else if (min_x > a_group->srd_x + a_group->srd_w)
-				is_visible = GF_FALSE;
-			else if (min_y < a_group->srd_y)
-				is_visible = GF_FALSE;
-			else if (min_y > a_group->srd_y + a_group->srd_h)
-				is_visible = GF_FALSE;
-
-		} else {
-
-			//single rectangle case
-			if (min_x<max_x) {
-				if (a_group->srd_x+a_group->srd_w <min_x) is_visible = GF_FALSE;
-				else if (a_group->srd_x>max_x) is_visible = GF_FALSE;
-			} else {
-				if ( (a_group->srd_x>max_x) && (a_group->srd_x+a_group->srd_w<min_x)) is_visible = GF_FALSE;
-			}
-
-			if (a_group->srd_y>max_y) is_visible = GF_FALSE;
-			else if (a_group->srd_y+a_group->srd_h < min_y) is_visible = GF_FALSE;
-
-		}
-		a_group->quality_degradation_hint = is_visible ? 0 : 100;
-		if (old_hint != a_group->quality_degradation_hint) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group SRD %d,%d,%d,%d is %s\n", a_group->srd_x, a_group->srd_w, a_group->srd_y, a_group->srd_h, is_visible ? "visible" : "hidden"));
-
-			//remember to update tile quality for non-custom algo
-			a_group->update_tile_qualities = GF_TRUE;
-			group->update_tile_qualities = GF_TRUE;
-		}
+		dash_check_group_visible(a_group, group, min_x, max_x, min_y, max_y, is_gaze);
 	}
 	return GF_OK;
 }

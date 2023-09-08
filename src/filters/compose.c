@@ -345,6 +345,9 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				return GF_NOT_SUPPORTED;
 			if (odm->mo) {
 				odm->mo->config_changed = GF_TRUE;
+				if (gf_filter_pid_get_property(pid, GF_PROP_PID_SRD_MAP))
+					odm->mo->srd_map_changed  = GF_TRUE;
+
 				gf_mo_update_caps_ex(odm->mo, GF_TRUE);
 				if (odm->mo->config_changed && (odm->type == GF_STREAM_VISUAL) && odm->parentscene && odm->parentscene->is_dynamic_scene) {
 					gf_scene_force_size_to_video(odm->parentscene, odm->mo);
@@ -566,6 +569,10 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (!sep) {
 			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROJECTION_TYPE);
 			if (prop && (prop->value.uint==GF_PROJ360_EQR)) scene_vr_type = 1;
+		}
+		if (scene_vr_type) {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SRD_MAP);
+			if (prop) scene_vr_type = 2;
 		}
 		if (scene_vr_type) {
 			if (scene->vr_type != scene_vr_type) reset = GF_TRUE;
@@ -901,6 +908,8 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	else if (ctx->src) {
 		gf_sc_connect_from_time(ctx, ctx->src, 0, 0, 0, NULL);
 	}
+
+	gf_opts_set_key("temp", "compositor", "yes");
 	return GF_OK;
 }
 

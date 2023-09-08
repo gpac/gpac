@@ -1993,8 +1993,11 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	Bool ret = GF_FALSE;
 	if (evt->type <= GF_EVENT_LAST_MOUSE) {
 		if (compositor->sgaze) {
-			compositor->gaze_x = evt->mouse.x;
-			compositor->gaze_y = evt->mouse.y;
+			if ((compositor->gaze_x != evt->mouse.x) || (compositor->gaze_y != evt->mouse.y)) {
+				compositor->gaze_changed = GF_TRUE;
+				compositor->gaze_x = evt->mouse.x;
+				compositor->gaze_y = evt->mouse.y;
+			}
 		}
 #ifndef GPAC_DISABLE_3D
 		else if ((compositor->visual->autostereo_type==GF_3D_STEREO_SIDE) || (compositor->visual->autostereo_type==GF_3D_STEREO_HEADSET)) {

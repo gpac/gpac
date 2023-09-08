@@ -1278,6 +1278,9 @@ enum
 	//internal prop indicating the (main) streamtype of a PID before mux, only used for route setup
 	GF_PROP_PID_PREMUX_STREAM_TYPE = GF_4CC('P','P','S','T'),
 
+	GF_PROP_PID_CODEC_MERGEABLE = GF_4CC('P','C','M','B'),
+
+
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
 	//internal for HLS low latency

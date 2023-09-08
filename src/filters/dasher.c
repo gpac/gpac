@@ -2640,10 +2640,24 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	if ((!p1 && p2) || (p1 && !p2) || (p1 && gf_props_equal(p1, p2)))
 		return GF_FALSE;
 
-	if (ds->srd.x != ds_test->srd.x) return GF_FALSE;
-	if (ds->srd.y != ds_test->srd.y) return GF_FALSE;
-	if (ds->srd.z != ds_test->srd.z) return GF_FALSE;
-	if (ds->srd.w != ds_test->srd.w) return GF_FALSE;
+	u32 ow = 1, oh = 1, ow_t = 1, oh_t = 1;
+	if (!ds->dep_id && !ds_test->dep_id) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ORIG_SIZE);
+		if (p) {
+			ow = p->value.vec2i.x;
+			oh = p->value.vec2i.y;
+		}
+		p = gf_filter_pid_get_property(ds_test->ipid, GF_PROP_PID_ORIG_SIZE);
+		if (p) {
+			ow_t = p->value.vec2i.x;
+			oh_t = p->value.vec2i.y;
+		}
+	}
+
+	if (ow_t * ds->srd.x != ow * ds_test->srd.x) return GF_FALSE;
+	if (oh_t * ds->srd.y != oh * ds_test->srd.y) return GF_FALSE;
+	if (ow_t * ds->srd.z != ow * ds_test->srd.z) return GF_FALSE;
+	if (oh_t * ds->srd.w != oh * ds_test->srd.w) return GF_FALSE;
 
 	if (ds->view_id != ds_test->view_id) return GF_FALSE;
 	//according to DASH spec mixing interlaced and progressive is OK
@@ -2794,8 +2808,6 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			GF_MPD_Descriptor *desc;
 			if (ds->dep_id) {
 				sprintf(value, "1,%d,%d,%d,%d", ds->srd.x, ds->srd.y, ds->srd.z, ds->srd.w);
-				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
-				gf_list_add(set->supplemental_properties, desc);
 			} else {
 				if (ds->tile_base) {
 					sprintf(value, "1,0,0,0,0,%d,%d", ds->srd.z, ds->srd.w);
@@ -2807,8 +2819,13 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 						sprintf(value, "1,%d,%d,%d,%d", ds->srd.x, ds->srd.y, ds->srd.z, ds->srd.w);
 					}
 				}
-				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
-				gf_list_add(set->essential_properties, desc);
+			}
+			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:srd:2014", value);
+			gf_list_add(ds->tile_base ? set->essential_properties : set->supplemental_properties, desc);
+
+			if (!ds->dep_id && !ds->tile_base && (ds->codec_id==GF_CODECID_HEVC)) {
+				desc = gf_mpd_descriptor_new(NULL, "urn:gpac:video:merge:2023", "1");
+				gf_list_add(set->supplemental_properties, desc);
 			}
 		}
 		//set HDR

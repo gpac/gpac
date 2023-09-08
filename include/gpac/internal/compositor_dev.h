@@ -707,6 +707,7 @@ struct __tag_compositor
 
 	Bool gazer_enabled, sgaze;
 	s32 gaze_x, gaze_y;
+	Bool gaze_changed;
 
 	Bool validator_mode;
 
@@ -2365,6 +2366,7 @@ struct _mediaobj
 
 	Bool is_eos;
 	Bool config_changed;
+	Bool srd_map_changed;
 
 	/*currently valid properties of the object*/
 	u32 width, height, stride, pixel_ar, pixelformat, bitrate;
@@ -2372,7 +2374,8 @@ struct _mediaobj
 	u32 sample_rate, num_channels, afmt, bytes_per_sec;
 	u64 channel_config;
 	Bool planar_audio;
-	u32 srd_x, srd_y, srd_w, srd_h, srd_full_w, srd_full_h;
+	u32 srd_x, srd_y, srd_w, srd_h;
+	u32 srd_full_w, srd_full_h, srd_map_ox, srd_map_oy;
 	u32 flip, rotate;
 
 	u32 quality_degradation_hint;

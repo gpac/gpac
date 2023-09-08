@@ -1166,5 +1166,6 @@ GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 /*build isobmf dec info from sequence header+ephdr (only seq hdr is parsed, only advanced profile is supprted) */
 GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **dsi, u32 *dsi_size);
 
+
 #endif		/*_GF_MEDIA_DEV_H_*/
 

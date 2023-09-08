@@ -1362,7 +1362,9 @@ restart:
 #endif
 			gf_fs_post_user_task(session, gpac_fsess_task, NULL, "gpac_fsess_task");
 	}
-	if (!enable_prompt) {
+	//always enable signal catch even if prompt
+	//if (!enable_prompt)
+	{
 #ifdef WIN32
 		SetConsoleCtrlHandler((PHANDLER_ROUTINE)gpac_sig_handler, TRUE);
 #else

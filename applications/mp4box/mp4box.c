@@ -2513,7 +2513,8 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		ext[0] = '=';
 		if (!stricmp(ext + 1, "none")) {
 			memset(tka->mx, 0, sizeof(s32)*9);
-			tka->mx[0] = tka->mx[4] = tka->mx[8] = 1;
+			tka->mx[0] = tka->mx[4] = 0x00010000;
+			tka->mx[8] = 0x40000000;
 		} else {
 			s32 res;
 			if (strstr(ext+1, "0x")) {

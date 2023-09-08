@@ -1072,7 +1072,7 @@ GF_MediaObject *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_t
 static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 {
 	u32 pixel_ar;
-	if (!gf_mo_get_visual_info(mo, w, h, NULL, &pixel_ar, NULL, NULL)) return;
+	if (!gf_mo_get_visual_info_ex(mo, w, h, NULL, &pixel_ar, NULL, NULL, GF_FALSE)) return;
 	if (mo->c_w && mo->c_h) {
 		*w = (u32) mo->c_w;
 		*h = (u32) mo->c_h;
@@ -1611,7 +1611,11 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		((M_Appearance *)app)->material = n2;
 		gf_node_register(n2, app);
 	} else if (scene->vr_type && !is_untransform) {
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
+		if (scene->vr_type==2) {
+			n2 = load_vr_proto_node(scene->graph, "urn:inet:gpac:builtin:SRDSphere", name_geo);
+		} else {
+			n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
+		}
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
 	} else {

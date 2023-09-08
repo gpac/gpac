@@ -1405,7 +1405,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				stack->mesh->flags &= ~MESH_WAS_VISIBLE;
 			}
 
-			if (visible && (vrinfo.srd_w != vrinfo.srd_max_x) && tr_state->visual->compositor->gazer_enabled) {
+			if (visible && (vrinfo.srd_w != vrinfo.srd_max_x) && tr_state->visual->compositor->gaze_changed) {
 				s32 gx, gy;
 				tr_state->visual->compositor->hit_node = NULL;
 				tr_state->visual->compositor->hit_square_dist = 0;
@@ -1663,6 +1663,135 @@ void compositor_init_vrhud(GF_Compositor *compositor, GF_Node *node)
 	}
 }
 
+void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandler *txh, Bool horizontal, u32 *min_coord, u32 *max_coord);
+
+static void TraverseSRDSphere(GF_Node *node, void *rs, Bool is_destroy)
+{
+	GF_TextureHandler *txh;
+	GF_MediaObjectVRInfo vrinfo;
+	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
+	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
+
+	if (is_destroy) {
+		drawable_3d_del(node);
+		return;
+	}
+
+	if (!tr_state->appear || ! ((M_Appearance *)tr_state->appear)->texture)
+		return;
+
+	txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
+	if (!txh->stream) return;
+
+	if (gf_node_dirty_get(node) || txh->stream->srd_map_changed || (tr_state->traversing_mode==TRAVERSE_DRAW_3D)) {
+		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
+			return;
+
+		if (gf_node_dirty_get(node) || txh->stream->srd_map_changed) {
+			u32 radius;
+			mesh_reset(stack->mesh);
+
+			radius = MAX(vrinfo.scene_width, vrinfo.scene_height) / 4;
+			//may happen that we don't have a scene width/height, use hardcoded 100 units radius (size actually doesn't matter
+			//since our VP/camera is at the center of the sphere
+			if (!radius) radius = 100;
+
+			const GF_PropertyValue *srd = NULL;
+			const GF_PropertyValue *srd_ref = NULL;
+			if (txh->stream->odm && txh->stream->odm->pid) {
+				srd = gf_filter_pid_get_property(txh->stream->odm->pid, GF_PROP_PID_SRD_MAP);
+				srd_ref = gf_filter_pid_get_property(txh->stream->odm->pid, GF_PROP_PID_SRD_REF);
+			}
+			if (srd && srd_ref) {
+void mesh_new_spherical_srd(GF_Mesh *mesh, Fixed radius, const GF_PropertyValue *srd_map, const GF_PropertyValue *srd_ref);
+				mesh_new_spherical_srd(stack->mesh, -1 * INT2FIX(radius), srd, srd_ref);
+			} else {
+				mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, NULL);
+			}
+			txh->flags &= ~GF_SR_TEXTURE_REPEAT_S;
+			txh->flags &= ~GF_SR_TEXTURE_REPEAT_T;
+			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+			txh->stream->srd_map_changed = GF_FALSE;
+		}
+
+		if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
+#ifndef GPAC_DISABLE_LOG
+			const char *pid_name = gf_filter_pid_get_name(txh->stream->odm->pid);
+#endif
+			stack->mesh->flags |= MESH_WAS_VISIBLE;
+
+			visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
+			visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
+			visual_3d_draw(tr_state, stack->mesh);
+			visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
+
+			if (!tr_state->visual->compositor->gazer_enabled) {
+				u32 min_x, max_x, min_y, max_y;
+
+				get_tx_coords_from_angle(tr_state, txh, GF_TRUE, &min_x, &max_x);
+				get_tx_coords_from_angle(tr_state, txh, GF_FALSE, &min_y, &max_y);
+				if (min_x!=max_x) {
+					gf_mo_hint_visible_rect(txh->stream, min_x, max_x, min_y, max_y);
+				}
+			}
+			else if (tr_state->visual->compositor->gaze_changed) {
+				s32 gx, gy;
+				tr_state->visual->compositor->hit_node = NULL;
+				tr_state->visual->compositor->hit_square_dist = 0;
+
+				//gaze coords are 0,0 in top-left
+				gx = (s32)( tr_state->visual->compositor->gaze_x - tr_state->camera->width/2 );
+				gy = (s32)( tr_state->camera->height/2 - tr_state->visual->compositor->gaze_y );
+
+				visual_3d_setup_ray(tr_state->visual, tr_state, gx, gy);
+				visual_3d_vrml_drawable_pick(node, tr_state, stack->mesh, NULL);
+				if (tr_state->visual->compositor->hit_node) {
+					const GF_PropertyValue *srd = NULL;
+					const GF_PropertyValue *srd_ref = NULL;
+					if (txh->stream->odm && txh->stream->odm->pid) {
+						srd = gf_filter_pid_get_property(txh->stream->odm->pid, GF_PROP_PID_SRD_MAP);
+						srd_ref = gf_filter_pid_get_property(txh->stream->odm->pid, GF_PROP_PID_SRD_REF);
+					}
+					if (srd && srd_ref) {
+						s32 orig_x = FIX2INT( tr_state->visual->compositor->hit_texcoords.x * srd_ref->value.vec2i.x );
+						s32 orig_y = FIX2INT( (FIX_ONE - tr_state->visual->compositor->hit_texcoords.y) * srd_ref->value.vec2i.y);
+
+						u32 i, nb_items = srd->value.uint_list.nb_items / 8;
+						u32 *vals = srd->value.uint_list.vals;
+						for (i=0; i<nb_items; i++) {
+							if (orig_x < vals[8*i+4]) continue;
+							if (orig_x > vals[8*i+4] + vals[8*i+6]) continue;
+
+							if (orig_y < vals[8*i+5]) continue;
+							if (orig_y > vals[8*i+5] + vals[8*i+7]) continue;
+
+							orig_x -= vals[8*i+4]; //remove tx orig
+							orig_y -= vals[8*i+5]; //remove ty orig
+
+							s32 srd_x = vals[8*i] + orig_x * vals[8*i+2] / vals[8*i+6];
+							s32 srd_y = vals[8*i+1] + orig_y * vals[8*i+3] / vals[8*i+7];
+
+							gf_mo_hint_gaze(txh->stream, (u32)srd_x, (u32)srd_y);
+							break;
+						}
+					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s Partial sphere is under gaze coord %d %d\n", pid_name, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y));
+
+					tr_state->visual->compositor->hit_node = NULL;
+				}
+			}
+		}
+	}
+
+	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+		tr_state->bbox = stack->mesh->bounds;
+	}
+}
+static void compositor_init_srd_sphere(GF_Compositor *compositor, GF_Node *node)
+{
+	drawable_3d_new(node);
+	gf_node_set_callback_function(node, TraverseSRDSphere);
+}
 
 #endif //GPAC_DISABLE_3D
 
@@ -1701,6 +1830,10 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
         }
         if (!strcmp(url, "urn:inet:gpac:builtin:VRHUD")) {
             compositor_init_vrhud(compositor, node);
+            return;
+        }
+        if (!strcmp(url, "urn:inet:gpac:builtin:SRDSphere")) {
+            compositor_init_srd_sphere(compositor, node);
             return;
         }
 #endif

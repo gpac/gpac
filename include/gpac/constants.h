@@ -455,6 +455,8 @@ typedef enum
 
 	/*! codecid for HEVC tiles */
 	GF_CODECID_HEVC_TILES = GF_4CC( 'h', 'v', 't', '1' ),
+	/*! codecid for explicitly loading HEVC merger , internal to gpac */
+	GF_CODECID_HEVC_MERGE = GF_4CC( 'h', 'v', 'c', 'm' ),
 
 	/*! codecid for EVRC Voice streams*/
 	GF_CODECID_EVRC	= GF_4CC('s','e','v','c'),
@@ -1693,6 +1695,9 @@ enum
 	/*! Mesh projection (not supported yet)*/
 	GF_PROJ360_MESH
 };
+
+/*! user data used by GPAC to store SRD info*/
+#define GF_ISOM_UDTA_GPAC_SRD	GF_4CC('G','S','R','D')
 
 /*! @} */
 

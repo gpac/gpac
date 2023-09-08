@@ -244,6 +244,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 	if (notif_size) {
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->display_width));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->display_height));
+		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_MIRROR, compositor->is_opengl ? &PROP_UINT(1) : NULL );
 	}
 
 	/*3D driver changed message, recheck extensions*/
@@ -707,6 +708,8 @@ static void gf_sc_check_video_driver(GF_Compositor *compositor)
 	} else if (compositor->needs_offscreen_gl && (compositor->ogl!=GF_SC_GLMODE_OFF) ) {
 		force_gl_out = GF_TRUE;
 	}
+	if (compositor->root_scene && (compositor->root_scene->is_tiled_srd || compositor->root_scene->vr_type))
+		force_gl_out = GF_TRUE;
 
 	if (force_gl_out) {
 		GF_Err e;
@@ -2267,6 +2270,8 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->output_width) );
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->output_height) );
 			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_FPS, &PROP_FRAC(compositor->fps) );
+
+			gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_MIRROR, compositor->is_opengl ? &PROP_UINT(1) : NULL );
 		}
 	}
 }
@@ -2467,6 +2472,7 @@ static Bool gf_sc_draw_scene(GF_Compositor *compositor)
 	}
 	compositor->zoom_changed = 0;
 	compositor->audio_renderer->scene_ready = GF_TRUE;
+	compositor->gaze_changed = GF_FALSE;
 	return GF_TRUE;
 }
 
