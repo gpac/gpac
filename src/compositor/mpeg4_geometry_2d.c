@@ -342,10 +342,12 @@ Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState
 			gaze_x = tr_state->visual->compositor->gaze_x;
 			gaze_x *= txh->stream->srd_full_w;
 			gaze_x /= tr_state->visual->width;
+			gaze_x += txh->stream->srd_map_ox;
 
 			gaze_y = tr_state->visual->compositor->gaze_y;
 			gaze_y *= txh->stream->srd_full_h;
 			gaze_y /= tr_state->visual->height;
+			gaze_y += txh->stream->srd_map_oy;
 
 			gf_mo_hint_gaze(txh->stream, gaze_x, gaze_y);
 		}

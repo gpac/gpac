@@ -123,7 +123,7 @@ static void build_shape_sphere(GF_Node *n, Drawable3D *stack, GF_TraverseState *
 	mesh_new_sphere(stack->mesh, sp->radius, tr_state->visual->compositor->fast, NULL);
 }
 
-static void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandler *txh, Bool horizontal, u32 *min_coord, u32 *max_coord)
+void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandler *txh, Bool horizontal, u32 *min_coord, u32 *max_coord)
 {
 	GF_Vec target, ref;
 	Fixed dot, det, hfov, theta_angle, angle_start, angle_end, min_tx, max_tx;

@@ -703,9 +703,11 @@ static Bool aout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		if (ctx->audio_out->Play) ctx->audio_out->Play(ctx->audio_out, evt->play.hw_buffer_reset ? 2 : 1);
+		ctx->is_eos=GF_FALSE;
 		break;
 	case GF_FEVT_STOP:
 		if (ctx->audio_out->Play) ctx->audio_out->Play(ctx->audio_out, 0);
+		ctx->is_eos=GF_TRUE;
 		break;
 	default:
 		break;

@@ -31,6 +31,7 @@
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_EVG)
 
+void compositor_get_srdmap_size(const GF_PropertyValue *srd_map, u32 *width, u32 *height, u32 *min_x, u32 *min_y);
 
 /*for GPAC_HAS_GLU and glDeleteBuffersARB */
 #include "gl_inc.h"
@@ -708,6 +709,117 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAng
 	if (radius != FIX_ONE) gf_mesh_build_aabbtree(mesh);
 }
 
+void mesh_new_spherical_srd(GF_Mesh *mesh, Fixed radius, const GF_PropertyValue *srd_map, const GF_PropertyValue *srd_ref)
+{
+	u32 i, nb_items = srd_map->value.uint_list.nb_items / 8;
+	u32 *vals = srd_map->value.uint_list.vals;
+	u32 width, height;
+
+	mesh_reset(mesh);
+	if (!nb_items) return;
+	compositor_get_srdmap_size(srd_map, &width, &height, NULL, NULL);
+
+	u32 num_steps = 8;
+	if (radius<0) radius = -radius;
+
+	u32 nb_vx=0;
+	for (i=0; i<nb_items; i++) {
+		//get rect coords
+		Fixed s_x = INT2FIX(vals[8*i]);
+		Fixed s_y = INT2FIX(vals[8*i+1]);
+		Fixed s_w = INT2FIX(vals[8*i+2]);
+		Fixed s_h = INT2FIX(vals[8*i+3]);
+		//normalize
+		s_x = gf_divfix(s_x, width);
+		s_y = gf_divfix(s_y, height);
+		s_w = gf_divfix(s_w, width);
+		s_h = gf_divfix(s_h, height);
+
+		//get texture coords
+		Fixed tx_tl = INT2FIX(vals[8*i+4]);
+		Fixed ty_tl = INT2FIX(vals[8*i+5]);
+		Fixed tx_br = INT2FIX(vals[8*i+4] + vals[8*i+6]);
+		Fixed ty_br = INT2FIX(vals[8*i+5] + vals[8*i+7]);
+		tx_tl /= srd_ref->value.vec2i.x;
+		tx_br /= srd_ref->value.vec2i.x;
+		ty_tl /= srd_ref->value.vec2i.y;
+		ty_br /= srd_ref->value.vec2i.y;
+		ty_tl = FIX_ONE - ty_tl;
+		ty_br = FIX_ONE - ty_br;
+
+		//build sphere x=0 is top , y=0 is left
+		Fixed angle_top = GF_PI2 - GF_PI * s_y;
+		Fixed angle_bottom = GF_PI2 - GF_PI * (s_y+s_h);
+
+		Fixed angle_left = GF_2PI * s_x + GF_PI2;
+		Fixed angle_right = GF_2PI * (s_x+s_w) + GF_PI2;
+
+		u32 idx_h, idx_v;
+		for (idx_v=0; idx_v<num_steps-1; idx_v++) {
+			Fixed h1_angle, h2_angle;
+			Fixed ty_top, ty_bottom;
+			h1_angle = angle_top + idx_v * (angle_bottom-angle_top) / (num_steps-1);
+
+			ty_top = ty_tl + idx_v * (ty_br-ty_tl) / (num_steps-1);
+			if (idx_v+1<num_steps-1) {
+				h2_angle = angle_top + (idx_v+1) * (angle_bottom-angle_top) / (num_steps-1);
+				ty_bottom = ty_tl + (idx_v+1) * (ty_br-ty_tl) / (num_steps-1);
+			}
+			//avoid potential rounding for last step
+			else {
+				h2_angle = angle_bottom;
+				ty_bottom = ty_br;
+			}
+
+			Fixed y_top = gf_sin(h1_angle);
+			Fixed y_bottom = gf_sin(h2_angle);
+			Fixed r_top = gf_sqrt(FIX_ONE - gf_mulfix(y_top, y_top));
+			Fixed r_bottom = gf_sqrt(FIX_ONE - gf_mulfix(y_bottom, y_bottom));
+
+			r_top = gf_mulfix(r_top, radius);
+			r_bottom = gf_mulfix(r_bottom, radius);
+			y_top = gf_mulfix(y_top, radius);
+			y_bottom = gf_mulfix(y_bottom, radius);
+
+			for (idx_h=0; idx_h<num_steps-1; idx_h++) {
+				Fixed v1_angle, v2_angle;
+				Fixed tx_left, tx_right;
+				v1_angle = angle_left + idx_h * (angle_right-angle_left) / (num_steps-1);
+				tx_left = tx_tl + idx_h * (tx_br-tx_tl) / (num_steps-1);
+				if (idx_h+1<num_steps-1) {
+					v2_angle = angle_left + (idx_h+1) * (angle_right-angle_left) / (num_steps-1);
+					tx_right = tx_tl + (idx_h+1) * (tx_br-tx_tl) / (num_steps-1);
+				}
+				//avoid potential rounding for last step
+				else {
+					v2_angle = angle_right;
+					tx_right = tx_br;
+				}
+				Fixed x_tl = gf_mulfix(gf_cos(v1_angle), r_top);
+				Fixed z_tl = gf_mulfix(gf_sin(v1_angle), r_top);
+
+				Fixed x_tr = gf_mulfix(gf_cos(v2_angle), r_top);
+				Fixed z_tr = gf_mulfix(gf_sin(v2_angle), r_top);
+
+				Fixed x_bl = gf_mulfix(gf_cos(v1_angle), r_bottom);
+				Fixed z_bl = gf_mulfix(gf_sin(v1_angle), r_bottom);
+
+				Fixed x_br = gf_mulfix(gf_cos(v2_angle), r_bottom);
+				Fixed z_br = gf_mulfix(gf_sin(v2_angle), r_bottom);
+
+				mesh_set_vertex(mesh, x_tl, y_top, z_tl, x_tl, y_top,  z_tl, tx_left, ty_top);
+				mesh_set_vertex(mesh, x_bl, y_bottom, z_bl, x_bl, y_bottom, z_bl, tx_left, ty_bottom);
+				mesh_set_vertex(mesh, x_br, y_bottom, z_br, x_br, y_bottom, z_br, tx_right, ty_bottom);
+				mesh_set_vertex(mesh, x_tr, y_top, z_tr, x_tr, y_top, z_tr, tx_right, ty_top);
+
+				mesh_set_triangle(mesh, nb_vx, nb_vx+1, nb_vx+2);
+				mesh_set_triangle(mesh, nb_vx, nb_vx+2, nb_vx+3);
+				nb_vx+=4;
+			}
+		}
+	}
+	mesh_update_bounds(mesh);
+}
 void mesh_new_rectangle_ex(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, u32 flip, u32 rotate)
 {
 	Fixed x = - size.x / 2;
@@ -790,8 +902,82 @@ void mesh_new_rectangle_ex(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, u32 flip,
 void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
 {
 	mesh_new_rectangle_ex(mesh, size, orig, flip ? 2 : 0, 0);
-
 }
+
+void mesh_new_planar_srd(GF_Mesh *mesh, SFVec2f size, u32 flip, u32 rotate, const GF_PropertyValue *srd_map, const GF_PropertyValue *srd_ref)
+{
+	Bool flip_h = GF_FALSE;
+	Bool flip_v = GF_FALSE;
+	u32 i, nb_items = srd_map->value.uint_list.nb_items / 8;
+	u32 *vals = srd_map->value.uint_list.vals;
+	u32 width, height;
+	compositor_get_srdmap_size(srd_map, &width, &height, NULL, NULL);
+
+	Fixed ox = - size.x / 2;
+	Fixed oy = size.y / 2;
+	switch (flip) {
+	case 2:
+		flip_v = GF_TRUE;
+		break;
+	case 1:
+		flip_h = GF_TRUE;
+		break;
+	case 3:
+		flip_v = GF_TRUE;
+		flip_h = GF_TRUE;
+		break;
+	}
+
+	u32 nb_vx=0;
+	mesh_reset(mesh);
+	for (i=0; i<nb_items; i++) {
+		Fixed x = INT2FIX(vals[8*i]);
+		Fixed y = INT2FIX(vals[8*i+1]);
+		Fixed w = INT2FIX(vals[8*i+2]);
+		Fixed h = INT2FIX(vals[8*i+3]);
+
+		x = gf_mulfix(x, size.x) / width;
+		y = gf_mulfix(y, size.y) / height;
+		w = gf_mulfix(w, size.x) / width;
+		h = gf_mulfix(h, size.y) / height;
+
+		Fixed tx_tl = INT2FIX(vals[8*i+4]);
+		Fixed ty_tl = INT2FIX(vals[8*i+5]);
+		Fixed tx_br = INT2FIX(vals[8*i+4] + vals[8*i+6]);
+		Fixed ty_br = INT2FIX(vals[8*i+5] + vals[8*i+7]);
+		tx_tl /= srd_ref->value.vec2i.x;
+		tx_br /= srd_ref->value.vec2i.x;
+		ty_tl /= srd_ref->value.vec2i.y;
+		ty_br /= srd_ref->value.vec2i.y;
+		ty_tl = FIX_ONE - ty_tl;
+		ty_br = FIX_ONE - ty_br;
+
+		if (flip_h) {
+			Fixed v = tx_tl;
+			tx_tl = tx_br;
+			tx_br = v;
+		}
+		if (flip_v) {
+			Fixed v = ty_tl;
+			ty_tl = ty_br;
+			ty_br = v;
+		}
+
+		mesh_set_vertex(mesh, ox + x, oy - y - h,  0,  0,  0,  FIX_ONE, tx_tl, ty_br);
+		mesh_set_vertex(mesh, ox + x + w, oy - y - h,  0,  0,  0,  FIX_ONE, tx_br, ty_br);
+		mesh_set_vertex(mesh, ox + x + w, oy - y,  0,  0,  0,  FIX_ONE, tx_br, ty_tl);
+		mesh_set_vertex(mesh, ox + x, oy - y,  0,  0,  0,  FIX_ONE, tx_tl, ty_tl);
+
+		mesh_set_triangle(mesh, nb_vx, nb_vx+1, nb_vx+2);
+		mesh_set_triangle(mesh, nb_vx, nb_vx+2, nb_vx+3);
+		nb_vx+=4;
+	}
+
+	mesh->flags |= MESH_IS_2D;
+	mesh_update_bounds(mesh);
+}
+
+
 #define ELLIPSE_SUBDIV		32
 void mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res)
 {

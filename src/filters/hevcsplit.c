@@ -65,6 +65,8 @@ typedef struct
 	//we don't have gf_bs_read_data support in this mode
 	u8 *input_no_epb;
 	u32 input_no_epb_alloc;
+
+	Bool passthrough;
 } GF_HEVCSplitCtx;
 
 //get tiles coordinates in as index in grid
@@ -754,6 +756,24 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	u32 rows = ctx->hevc_state.pps[pps_id].num_tile_rows;
 	u32 cols = ctx->hevc_state.pps[pps_id].num_tile_columns;
 
+	// reaggregate to form complete frame.
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	if (!rows && !cols) {
+		HEVCTilePid *tpid = gf_list_get(ctx->outputs, 0);
+		if (!tpid) {
+			GF_SAFEALLOC(tpid, HEVCTilePid);
+			if (!tpid) return GF_OUT_OF_MEM;
+			gf_list_add(ctx->outputs, tpid);
+			tpid->opid = gf_filter_pid_new(filter);
+			gf_filter_pid_set_udta(tpid->opid, tpid);
+		}
+		gf_filter_pid_copy_properties(tpid->opid, pid);
+		ctx->passthrough = GF_TRUE;
+		return GF_OK;
+	}
+	ctx->passthrough = GF_FALSE;
+
 	for (i = 0; i < rows; i++) {
 		for (j = 0; j < cols; j++) {
 			u32 tile_idx = i * cols + j;
@@ -775,6 +795,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(tpid->height));
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(tpid->orig_x, tpid->orig_y));
 			gf_filter_pid_set_property(tpid->opid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(o_width, o_height));
+			gf_filter_pid_set_property_str(tpid->opid, "hevc_split", &PROP_BOOL(GF_TRUE));
 			// rewrite the decoder config
 			e = hevcsplit_rewrite_dsi(ctx, tpid->opid, dsi->value.data.ptr, dsi->value.data.size, tpid->width, tpid->height);
 			if (e) return e;
@@ -782,8 +803,6 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HEVCTileSplit] output pid %dx%d (position was %dx%d)\n", tpid->width, tpid->height, tpid->orig_x, tpid->orig_y));
 		}
 	}
-	// reaggregate to form complete frame.
-	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
 }
 
@@ -801,14 +820,28 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck_src) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			for (i=0; i < ctx->num_tiles; i++) {
-				opid = gf_filter_get_opid(filter, i);
+			if (ctx->passthrough) {
+				opid = gf_filter_get_opid(filter, 0);
 				gf_filter_pid_set_eos(opid);
+			} else {
+				for (i=0; i < ctx->num_tiles; i++) {
+					opid = gf_filter_get_opid(filter, i);
+					gf_filter_pid_set_eos(opid);
+				}
 			}
 			return GF_EOS;
 		}
 		return GF_OK;
 	}
+
+	if (ctx->passthrough) {
+		opid = gf_filter_get_opid(filter, 0);
+		tpid = gf_filter_pid_get_udta(opid);
+		if (tpid->opid) gf_filter_pck_forward(pck_src, tpid->opid);
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
+
 	data = (u8*)gf_filter_pck_get_data(pck_src, &data_size);
 	//this is a clock signaling, for now just trash ..
 	if (!data) {

@@ -2246,9 +2246,8 @@ void print_udta(GF_ISOFile *file, u32 track_number, Bool has_meta_tags)
 			u32 type;
 			bin128 uuid;
 			gf_isom_get_udta_type(file, track_number, i+1, &type, &uuid);
-			if (type == GF_ISOM_BOX_TYPE_META) {
+			if ((type == GF_ISOM_BOX_TYPE_META) || (type==GF_ISOM_UDTA_GPAC_SRD)) {
 				count--;
-				break;
 			}
 		}
 		if (!count) return;
@@ -2260,6 +2259,7 @@ void print_udta(GF_ISOFile *file, u32 track_number, Bool has_meta_tags)
 		u32 j, type, nb_items;
 		bin128 uuid;
 		gf_isom_get_udta_type(file, track_number, i+1, &type, &uuid);
+		if (type==GF_ISOM_UDTA_GPAC_SRD) continue;
 		nb_items = gf_isom_get_user_data_count(file, track_number, type, uuid);
 		if (!nb_items) continue;
 

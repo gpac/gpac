@@ -99,6 +99,10 @@ typedef struct
 	Bool in_error;
 	Bool enable_multi_rows;
 	u32 nb_rows;
+	u32 merge_set_id;
+
+	Bool is_playing;
+	GF_FEVT_Play play_evt;
 } GF_HEVCMergeCtx;
 
 //in src/filters/hevcsplit.c
@@ -454,6 +458,7 @@ static u32 hevcmerge_compute_address(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_
 	if (use_y_coord) {
 		sum_height = tile_pid->pos_y / ctx->max_CU_height;
 	} else {
+		Bool height_multiple_ctu = (tile_pid->height % ctx->max_CU_height) ? GF_FALSE : GF_TRUE;
 		nb_pids = gf_list_count(ctx->pids);
 		for (i=0; i<nb_pids; i++) {
 			HEVCTilePidCtx *actx = gf_list_get(ctx->pids, i);
@@ -462,6 +467,10 @@ static u32 hevcmerge_compute_address(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_
 					sum_height += actx->height / ctx->max_CU_height;
 				}
 			}
+		}
+		if (!height_multiple_ctu) {
+			u32 new_sum_height = (ctx->out_height - tile_pid->height) / ctx->max_CU_height;
+			sum_height = new_sum_height;
 		}
 	}
 	return sum_height * (ctx->out_width / ctx->max_CU_width) + sum_width;
@@ -508,22 +517,10 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 			srd_w = srd->value.vec4i.z;
 			srd_h = srd->value.vec4i.w;
 
-			if (srd_ref->value.vec2i.x != 0) {
-				x = (srd_x * ctx->out_width) / srd_ref->value.vec2i.x;
-				w = (srd_w * ctx->out_width) / srd_ref->value.vec2i.x;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] width=0 in source pid SRD referential, cannot output SRD map\n" ));
-				srd_map_valid = GF_FALSE;
-				break;
-			}
-			if (srd_ref->value.vec2i.y != 0) {
-				y = (srd_y * ctx->out_height) / srd_ref->value.vec2i.y;
-				h = (srd_h * ctx->out_height) / srd_ref->value.vec2i.y;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] height=0 in source pid SRD referential, undefined results\n" ));
-				srd_map_valid = GF_FALSE;
-				break;
-			}
+			x = srd_x;
+			w = srd_w;
+			y = srd_y;
+			h = srd_h;
 		} else if (crop_pos) {
 			x = crop_pos->value.vec2i.x;
 			y = crop_pos->value.vec2i.y;
@@ -548,8 +545,8 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 		assert(tile->slice_segment_address == (nb_rows * width_in_CU + nb_cols));
 
 		//tile_x and tile_y should start at zero
-		tile_x = use_abs_pos ? nb_cols * ctx->max_CU_width  : nb_cols;
-		tile_y = use_abs_pos ? nb_rows * ctx->max_CU_height : nb_rows;
+		tile_x = nb_cols * ctx->max_CU_width;
+		tile_y = nb_rows * ctx->max_CU_height;
 
 		vals[8*i+4] = (tile_x * ctx->out_width) / ctx->out_width;
 		vals[8*i+5] = (tile_y * ctx->out_height) / ctx->out_height;
@@ -810,13 +807,26 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 		//gather tiles per columns
 		ctx->grid = gf_malloc(sizeof(HEVCGridInfo)*nb_pids);
 		memset(ctx->grid, 0, sizeof(HEVCGridInfo)*nb_pids);
+		u32 target_nb_rows = 1;
+		while (target_nb_rows*target_nb_rows < nb_pids) target_nb_rows++;
 
+		//double pass:
+		//first pass create columns for tiles with height non-multiple of CTU
+		u32 pass;
 		nb_cols=0;
+		for (pass=0; pass<2; pass++) {
 		for (i=0; i<nb_pids; i++) {
 			Bool found = GF_FALSE;
 			HEVCTilePidCtx *apidctx = gf_list_get(ctx->pids, i);
+			Bool height_multiple_ctu = (apidctx->height % ctx->max_CU_height) ? GF_FALSE : GF_TRUE;
+			if (pass) {
+				if (!height_multiple_ctu) continue;
+			} else {
+				if (height_multiple_ctu) continue;
+			}
 			//do we fit on a col
 			for (j=0; j<nb_cols; j++) {
+				if (ctx->grid[j].row_pos>=target_nb_rows) continue;
 				if (ctx->grid[j].width == apidctx->width) {
 					found = GF_TRUE;
 					break;
@@ -830,7 +840,6 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 				ctx->grid[nb_cols].width = apidctx->width;
 				ctx->grid[nb_cols].height = apidctx->height;
 				if (apidctx->width % ctx->max_CU_width) {
-					assert(!force_last_col_plus_one);
 					force_last_col_plus_one = nb_cols+1;
 				}
 				if (apidctx->height % ctx->max_CU_height) {
@@ -842,6 +851,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 				nb_cols++;
 				j=nb_cols-1;
 			} else {
+				//keep same j
 				ctx->grid[j].height += apidctx->height;
 				if (apidctx->height % ctx->max_CU_height) {
 					ctx->grid[j].last_row_idx = ctx->grid[j].row_pos+1;
@@ -853,6 +863,8 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 			apidctx->pos_row = ctx->grid[j].row_pos - 1;
 			apidctx->pos_col = j;
 		}
+		}
+
 		//move last column at end if not a multiple of CTU
 		if (force_last_col_plus_one) {
 			for (i=0; i<nb_pids; i++) {
@@ -1194,6 +1206,11 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (!dsi) return GF_OK;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODEC_MERGEABLE);
+	if (p && ctx->merge_set_id && (ctx->merge_set_id != p->value.uint))
+		return GF_REQUIRES_NEW_INSTANCE;
+	if (p) ctx->merge_set_id = p->value.uint;
+
 	tile_pid = gf_filter_pid_get_udta(pid);
 	//not set, first time we see this pid
 	if (!tile_pid) {
@@ -1206,6 +1223,15 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_list_add(ctx->pids, tile_pid);
 
 		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+		//it may happen that we are already running when we get this pid connection, typically with very large number of tiles
+		//post a play event on pid in this case
+		if (ctx->is_playing) {
+			GF_FilterEvent fevt;
+			fevt.play = ctx->play_evt;
+			fevt.base.on_pid = pid;
+			gf_filter_pid_send_event(pid, &fevt);
+		}
 	}
 	assert(tile_pid);
 
@@ -1272,6 +1298,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, pid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_HEVC));
 		//remove all SRD related properties
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD_REF, NULL);
@@ -1531,6 +1558,25 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static Bool hevcmerge_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx *) gf_filter_get_udta(filter);
+
+	switch (evt->base.type) {
+	case GF_FEVT_PLAY:
+		ctx->is_playing = GF_TRUE;
+		ctx->play_evt = evt->play;
+		return GF_FALSE;
+	case GF_FEVT_STOP:
+	{
+		ctx->is_playing = GF_FALSE;
+		return GF_FALSE;
+	}
+	default:
+		break;
+	}
+	return GF_FALSE;
+}
 static GF_Err hevcmerge_initialize(GF_Filter *filter)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[HEVCMerge] hevcmerge_initialize started.\n"));
@@ -1570,6 +1616,7 @@ static const GF_FilterCapability HEVCMergeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC_MERGE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC)
@@ -1634,12 +1681,12 @@ GF_FilterRegister HEVCMergeRegister = {
 	)
 	.private_size = sizeof(GF_HEVCMergeCtx),
 	SETCAPS(HEVCMergeCaps),
-	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.initialize = hevcmerge_initialize,
 	.finalize = hevcmerge_finalize,
 	.args = HEVCMergeArgs,
 	.configure_pid = hevcmerge_configure_pid,
 	.process = hevcmerge_process,
+	.process_event = hevcmerge_process_event,
 	.max_extra_pids = -1,
 };
 

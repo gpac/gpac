@@ -208,8 +208,31 @@ GF_MediaObject *gf_mo_new()
 	return mo;
 }
 
+void compositor_get_srdmap_size(const GF_PropertyValue *srd_map, u32 *width, u32 *height, u32 *min_x, u32 *min_y)
+{
+	u32 i, nb_items = srd_map->value.uint_list.nb_items / 8;
+	u32 min_x_plus_one=0, min_y_plus_one=0;
+	u32 max_x=0, max_y=0;
+	u32 *vals = srd_map->value.uint_list.vals;
+	for (i=0; i<nb_items; i++) {
+		if (!min_x_plus_one || (min_x_plus_one-1 > vals[8*i]))
+			min_x_plus_one = vals[8*i] + 1;
+		if (!min_y_plus_one || (min_y_plus_one-1 > vals[8*i+1]))
+			min_y_plus_one = vals[8*i+1] + 1;
+		if (max_x < vals[8*i] + vals[8*i+2])
+			max_x = vals[8*i] + vals[8*i+2];
+
+		if (max_y < vals[8*i+1] + vals[8*i+3])
+			max_y = vals[8*i+1] + vals[8*i+3];
+	}
+	*width = max_x - (min_x_plus_one-1);
+	*height = max_y - (min_y_plus_one-1);
+	if (min_x) *min_x = min_x_plus_one-1;
+	if (min_y) *min_y = min_y_plus_one-1;
+}
+
 GF_EXPORT
-Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped)
+Bool gf_mo_get_visual_info_ex(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped, Bool for_texture)
 {
 	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return GF_FALSE;
 
@@ -222,9 +245,19 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 	if (pixel_ar) *pixel_ar = mo->pixel_ar;
 	if (pixelFormat) *pixelFormat = mo->pixelformat;
 	if (is_flipped) *is_flipped = mo->is_flipped;
+	if (for_texture) return GF_TRUE;
+	if (!width || !height) return GF_FALSE;
+	if (!mo->odm || !mo->odm->pid) return GF_TRUE;
+	const GF_PropertyValue *srd_map = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SRD_MAP);
+	if (!srd_map) return GF_TRUE;
+	compositor_get_srdmap_size(srd_map, width, height, NULL, NULL);
 	return GF_TRUE;
 }
+Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped)
+{
+	return gf_mo_get_visual_info_ex(mo, width, height, stride, pixel_ar, pixelFormat, is_flipped, GF_TRUE);
 
+}
 GF_EXPORT
 void gf_mo_get_nb_views(GF_MediaObject *mo, u32 *nb_views)
 {
@@ -398,6 +431,8 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 				mo->srd_full_h = v2->value.vec2i.y;
 			}
 		}
+		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SRD_MAP);
+		if (v) compositor_get_srdmap_size(v, &mo->srd_full_w, &mo->srd_full_h, &mo->srd_map_ox, &mo->srd_map_oy);
 
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_NUM_VIEWS);
 		mo->nb_views = v ? v->value.uint : 0;

@@ -41,6 +41,7 @@ typedef struct _bitmap_stack
 } BitmapStack;
 
 
+Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state);
 
 static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *tr_state, GF_Rect *out_rc, Bool notify_changes)
 {
@@ -64,8 +65,27 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 		return;
 	}
 
+	//srd map changed, reset mesh if any
+	if (txh->stream && txh->stream->srd_map_changed) {
+		txh->stream->srd_map_changed = GF_FALSE;
+#ifndef GPAC_DISABLE_3D
+		if (st->s_graph.mesh) {
+			mesh_free(st->s_graph.mesh);
+			st->s_graph.mesh = NULL;
+		}
+#endif
+	}
+
+	//single instance
+	if ((gf_node_get_num_instances(node)==1) && !gf_node_dirty_get(node) && st->rc.width) {
+		*out_rc = st->rc;
+		return;
+	}
 	w = txh->width;
 	h = txh->height;
+	if (txh->stream) {
+		gf_mo_get_visual_info_ex(txh->stream, &w, &h, NULL, NULL, NULL, NULL, GF_FALSE);
+	}
 	if (txh->stream && txh->stream->c_w && txh->stream->c_h) {
 		w = (u32) txh->stream->c_w;
 		h = (u32) txh->stream->c_h;
@@ -110,6 +130,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 		size.x = gf_divfix(size.x, tr_state->min_hsize);
 		size.y = gf_divfix(size.y, tr_state->min_hsize);
 	}
+
 	*out_rc = st->rc = gf_rect_center(size.x, size.y);
 
 	gf_node_dirty_clear(node, 0);

@@ -413,6 +413,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			compositor->grab_x = x;
 			compositor->grab_y = y;
 			compositor->navigation_state = 1;
+			compositor->auto_rotate=0;
 
 			/*change vp and examine center to current location*/
 			if ((keys & GF_KEY_MOD_CTRL) && compositor->hit_square_dist) {
@@ -454,7 +455,8 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		else if (x >= 0.49) compositor->auto_rotate = 2;
 		else if (y <= -0.49) compositor->auto_rotate = 3;
 		else if (y >= 0.49) compositor->auto_rotate = 4;
-		else compositor->auto_rotate = 0;
+		else
+			compositor->auto_rotate = 0;
 
 		handle_mouse_move_3d(compositor, cam, keys, dx, dy);
 
@@ -513,8 +515,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		return 0;
 
 	case GF_EVENT_MOUSEUP:
-		compositor->auto_rotate=0;
-		if (ev->mouse.button==GF_MOUSE_LEFT) compositor->navigation_state = 0;
+		if (ev->mouse.button==GF_MOUSE_LEFT) {
+			compositor->navigation_state = 0;
+		}
 		break;
 
 	case GF_EVENT_KEYDOWN:
@@ -932,13 +935,17 @@ void compositor_handle_auto_navigation(GF_Compositor *compositor)
 		break;
 	case 3:
 		dy = FIX_ONE/100;
+		if (cam->up.z>0.9999) compositor->auto_rotate=4;
 		break;
 	case 4:
 		dy = -FIX_ONE/100;
+		if (cam->up.z<-0.9999) compositor->auto_rotate=3;
 		break;
 	default:
 		return;
 	}
+	if (compositor->gazer_enabled)
+		compositor->gaze_changed = GF_FALSE;
 	handle_mouse_move_3d(compositor, cam, 0, dx, dy);
 #endif
 }

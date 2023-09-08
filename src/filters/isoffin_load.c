@@ -690,6 +690,22 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 						gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(w, h) );
 					}
 				}
+			} else {
+				u8 *srdg=NULL;
+				u32 srdg_s=0;
+				gf_isom_get_user_data(read->mov, track, GF_ISOM_UDTA_GPAC_SRD, NULL, 1, &srdg, &srdg_s);
+				if (srdg && srdg_s>=21) {
+					GF_BitStream *bs = gf_bs_new(srdg, srdg_s, GF_BITSTREAM_READ);
+					gf_bs_skip_bytes(bs, 5);
+					srd_x = (s32) gf_bs_read_u32(bs);
+					srd_y = (s32) gf_bs_read_u32(bs);
+					srd_w = gf_bs_read_u32(bs);
+					srd_h = gf_bs_read_u32(bs);
+					gf_bs_del(bs);
+					gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
+					gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(srd_w, srd_h) );
+				}
+				if (srdg) gf_free(srdg);
 			}
 
 

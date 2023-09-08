@@ -78,7 +78,7 @@ typedef struct
 	Bool max_res, abort;
 	u32 use_bmin;
 	char *query;
-	Bool noxlink, split_as, noseek, groupsel;
+	Bool noxlink, split_as, noseek, groupsel, bsmerge;
 	u32 lowlat;
 
 	GF_FilterPid *mpd_pid;
@@ -1760,6 +1760,30 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD, &srd);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SRD_REF, &srdref);
+
+
+
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_CODECID);
+		if (p && (p->value.uint==GF_CODECID_HEVC)) {
+			//remove any SRD info from source
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CROP_POS, NULL);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_SIZE, NULL);
+			//if compositor is loaded, try merging hevc streams
+			if (!ctx->forward && gf_opts_get_bool("temp", "compositor")  && ctx->bsmerge) {
+				i=0;
+				while (1) {
+					const char *desc_id, *desc_scheme, *desc_value;
+					if (! gf_dash_group_enum_descriptor(ctx->dash, group_idx, GF_MPD_DESC_SUPPLEMENTAL_PROPERTIES, i, &desc_id, &desc_scheme, &desc_value))
+						break;
+					i++;
+					if (!strcmp(desc_scheme, "urn:gpac:video:merge:2023") && desc_value) {
+						gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_HEVC_MERGE));
+						gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC_MERGEABLE, &PROP_UINT(atoi(desc_value) ));
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	//setup initial quality - this is disabled in test mode for the time being (invalidates all dash playback hashes)
@@ -3326,7 +3350,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			check_eos = GF_FALSE;
 			dashdmx_forward_packet(ctx, pck, ipid, opid, group);
 			group->wait_for_pck = GF_FALSE;
-			dashdmx_update_group_stats(ctx, group);
+			//do not update stats yet, wait for eos or flush in abort mode
 		}
 	}
 	if (ctx->compute_min_dts) {
@@ -3546,6 +3570,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	"- on: use MPD chaining once over, fallback if MPD load failure\n"
 	"- error: use MPD chaining once over or if error (MPD or segment download)", GF_PROP_UINT, "on", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(asloop), "when auto switch is enabled, iterates back and forth from highest to lowest qualities", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(bsmerge), "allow merging of video bitstreams (only HEVC for now)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

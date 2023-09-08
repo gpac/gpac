@@ -3661,6 +3661,36 @@ sample_entry_done:
 					gf_odf_dovi_cfg_del(dvcc);
 				}
 			}
+
+			p = (codec_id==GF_CODECID_HEVC) ? gf_filter_pid_get_property_str(pid, "hevc_split") : NULL;
+			if (p && p->value.boolean) {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_CROP_POS);
+				p2 = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_SIZE);
+				if (p && p2) {
+#define GPAC_SRD_SIZE	21
+					u8 srdg[GPAC_SRD_SIZE];
+					GF_BitStream *bs = gf_bs_new(srdg, GPAC_SRD_SIZE, GF_BITSTREAM_WRITE);
+					gf_bs_write_int(bs, 1, 1);//mergeable
+					gf_bs_write_int(bs, 0, 7);//unused
+					gf_bs_write_u32(bs, 1);//groupID
+					gf_bs_write_u32(bs, p->value.vec2i.x);//offx
+					gf_bs_write_u32(bs, p->value.vec2i.y);//offy
+					gf_bs_write_u32(bs, p2->value.vec2i.x);//osize_w
+					gf_bs_write_u32(bs, p2->value.vec2i.y);//osize_h
+					gf_bs_del(bs);
+					//stored as track user data for now
+					gf_isom_add_user_data(ctx->file, tkw->track_num, GF_ISOM_UDTA_GPAC_SRD, NULL, srdg, GPAC_SRD_SIZE);
+
+					s32 mx[9];
+					memset(mx, 0, sizeof(s32)*9);
+					mx[0] = mx[4] = 0x00010000;
+					mx[8] = 0x40000000;
+					mx[6] = 65536*p->value.vec2i.x;
+					mx[7] = 65536*p->value.vec2i.y;
+					gf_isom_set_track_matrix(ctx->file, tkw->track_num, mx);
+				}
+
+			}
 		}
 		//default for old arch
 		else if (force_tk_layout
