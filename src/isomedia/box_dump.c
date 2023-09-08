@@ -1560,7 +1560,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 	get_and_print("flags", 24)
 	get_4cc_and_print("profile", 32)
 
-	nb_comps = gf_bs_read_u16(bs);
+	nb_comps = gf_bs_read_u32(bs);
 	gf_bs_skip_bytes(bs, 5*nb_comps);
 
 	get_and_print("sampling_type", 8)
@@ -1572,7 +1572,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 	get_and_print("block_reversed", 1)
 	get_and_print("pad_unknown", 1)
 	get_and_print("reserved", 3)
-	get_and_print("pixel_size", 8)
+	get_and_print("pixel_size", 32)
 	get_and_print("row_align_size", 32)
 	get_and_print("tile_align_size", 32)
 	get_and_print("num_tile_cols_minus_one", 32)
@@ -1612,7 +1612,7 @@ static GF_Err dump_cmpd(GF_UnknownBox *u, FILE * trace)
 	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
 	gf_isom_box_dump_start((GF_Box *)u, "ComponentDefinitionBox", trace);
 
-	nb_comps = gf_bs_read_u16(bs);
+	nb_comps = gf_bs_read_u32(bs);
 	gf_fprintf(trace, ">\n");
 	for (i=0; i<nb_comps; i++) {
 		gf_fprintf(trace, "<Component");
@@ -1659,7 +1659,7 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 	}
 	for (i=0; i<nb_comps; i++) {
 		gf_fprintf(trace, "<Component");
-		get_and_print("index", 16)
+		get_and_print("index", 32)
 		types[i].bits = 1 + gf_bs_read_int(bs, 8);
 		types[i].type = gf_bs_read_int(bs, 8);
 		gf_fprintf(trace, " bit_depth=\"%u\" type=\"%u\" name=\"%s\"/>\n", types[i].bits, types[i].type, get_comp_type_name(types[i].type) );
@@ -1723,7 +1723,7 @@ static GF_Err dump_cpat(GF_UnknownBox *u, FILE * trace)
 	for (i=0; i<pw; i++) {
 		for (j=0; j<ph; j++) {
 			gf_fprintf(trace, "<Component x=\"%d\" y=\"%d\"", i, j);
-			get_and_print("index", 16)
+			get_and_print("index", 32)
 			gf_fprintf(trace, " gain=\"%g\"/>\n", gf_bs_read_float(bs) );
 		}
 	}
@@ -1741,12 +1741,12 @@ static GF_Err dump_sbpm(GF_UnknownBox *u, FILE * trace)
 	//full box
 	get_and_print("version", 8)
 	get_and_print("flags", 24)
-	get_and_print("component_count", 16)
+	get_and_print("component_count", 32)
 	nb_comp = val;
 	if (nb_comp) {
 		gf_fprintf(trace, " components_indices=\"");
 		for (i=0; i<nb_comp; i++) {
-			gf_fprintf(trace, "%u ", gf_bs_read_u16(bs));
+			gf_fprintf(trace, "%u ", gf_bs_read_u32(bs));
 		}
 		gf_fprintf(trace, "\"");
 	}

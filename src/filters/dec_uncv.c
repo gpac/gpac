@@ -184,6 +184,44 @@ static void uncv_del(UNCVConfig *cfg)
 	gf_free(cfg);
 }
 
+static GF_Err uncv_load_profile(UNCVConfig *uncv)
+{
+	u32 nb_comps=0, abgr=GF_FALSE;
+	switch (uncv->profile) {
+	case GF_4CC('r','g','b','3'): nb_comps = 3; break;
+	case GF_4CC('r','g','b','a'): nb_comps = 4; break;
+	case GF_4CC('a','b','g','r'): nb_comps = 4; abgr=GF_TRUE; break;
+	default: return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	if (!uncv->nb_comp_defs) {
+		uncv->nb_comp_defs = nb_comps;
+		uncv->comp_defs = gf_malloc(sizeof(UNCVComponentDefinition)*nb_comps);
+		if (!uncv->comp_defs) return GF_OUT_OF_MEM;
+		memset(uncv->comp_defs, 0, sizeof(UNCVComponentDefinition)*nb_comps);
+		uncv->comp_defs[0].type = abgr ? 7 : 4;
+		uncv->comp_defs[1].type = abgr ? 6 : 5;
+		uncv->comp_defs[2].type = abgr ? 5 : 6;
+		if (nb_comps>3)
+			uncv->comp_defs[3].type = abgr ? 4 : 7;
+	}
+	uncv->nb_comps = nb_comps;
+	uncv->comps = gf_malloc(sizeof(UNCVComponentInfo)*nb_comps);
+	if (!uncv->comps) return GF_OUT_OF_MEM;
+	memset(uncv->comps, 0, sizeof(UNCVComponentInfo)*nb_comps);
+	uncv->comps[0].idx = 0;
+	uncv->comps[0].bits = 8;
+	uncv->comps[1].idx = 1;
+	uncv->comps[1].bits = 8;
+	uncv->comps[2].idx = 2;
+	uncv->comps[2].bits = 8;
+	if (nb_comps>3) {
+		uncv->comps[4].idx = 3;
+		uncv->comps[4].bits = 8;
+	}
+	uncv->interleave = 1;
+	return GF_OK;
+}
 
 static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 {
@@ -205,12 +243,19 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 		u32 pos = (u32) gf_bs_get_position(bs);
 
 		if (type==GF_4CC('c','m','p','d')) {
-			uncv->nb_comp_defs = gf_bs_read_u16(bs);
+			s32 bsize = (u32) size - 8;
+
+			uncv->nb_comp_defs = gf_bs_read_u32(bs);
+			bsize -= 4 + uncv->nb_comp_defs * 2;
+			if (bsize<0) {
+				*out_err = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			uncv->comp_defs = gf_malloc(sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
 			memset(uncv->comp_defs, 0, sizeof(UNCVComponentDefinition) * uncv->nb_comp_defs);
 			if (!uncv->comp_defs) {
 				*out_err = GF_OUT_OF_MEM;
-				break;
+				goto exit;
 			}
 			for (i=0; i<uncv->nb_comp_defs; i++) {
 				uncv->comp_defs[i].type = gf_bs_read_u16(bs);
@@ -220,13 +265,28 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 			}
 			has_cmpd=1;
 		} else if (type==GF_4CC('u','n','c','C')) {
+			s32 bsize = (u32) size - 8;
 			uncv->version = gf_bs_read_u8(bs);
 			uncv->flags = gf_bs_read_int(bs, 24);
 			uncv->profile = gf_bs_read_u32(bs);
-			//todo, validate profile ?
+			if (uncv->version==1) {
+				*out_err = uncv_load_profile(uncv);
+				if (*out_err) goto exit;
+				has_cmpd = has_uncc = 1;
+				goto uncc_done;
+			}
 
-			uncv->nb_comps = gf_bs_read_u16(bs);
+			uncv->nb_comps = gf_bs_read_u32(bs);
+			bsize -= 12 + uncv->nb_comps * 5 + 24;
+			if (bsize < 0) {
+				*out_err = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			uncv->comps = gf_malloc(sizeof(UNCVComponentInfo) * uncv->nb_comps);
+			if (!uncv->comps) {
+				*out_err = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			memset(uncv->comps, 0, sizeof(UNCVComponentInfo) * uncv->nb_comps);
 			for (i=0; i<uncv->nb_comps; i++) {
 				uncv->comps[i].idx = gf_bs_read_u16(bs);
@@ -243,45 +303,67 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 			uncv->block_reversed = gf_bs_read_int(bs, 1);
 			uncv->pad_unknown = gf_bs_read_int(bs, 1);
 			gf_bs_read_int(bs, 3);
-			uncv->pixel_size = gf_bs_read_u8(bs);
+			uncv->pixel_size = gf_bs_read_u32(bs);
 			uncv->row_align_size = gf_bs_read_u32(bs);
 			uncv->tile_align_size = gf_bs_read_u32(bs);
 			uncv->num_tile_cols = 1 + gf_bs_read_u32(bs);
 			uncv->num_tile_rows = 1 + gf_bs_read_u32(bs);
+			//todo, validate profile ?
+
+uncc_done:
 			has_uncc = 1;
 		} else if (type==GF_4CC('c','p','a','l')) {
 			u32 bit_size=0;
-			s32 bsize = (u32) size;
+			s32 bsize = (u32) size-8;
 			u32 max_bits=0;
+			u32 cpal_count;
 			u8 version = gf_bs_read_u8(bs);
 			if (version)
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
 
 			gf_bs_read_int(bs, 24);
+			cpal_count = gf_bs_read_u16(bs);
+			bsize -= 6 + cpal_count*6 + 4;
+			if (bsize<0) {
+				*out_err = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			GF_SAFEALLOC(uncv->palette, UNCVPalette);
-			uncv->palette->nb_comps = gf_bs_read_u16(bs);
-			bsize-=6;
+			if (!uncv->palette) {
+				*out_err = GF_OUT_OF_MEM;
+				goto exit;
+			}
+			uncv->palette->nb_comps = cpal_count;
+
 			uncv->palette->comps = gf_malloc(sizeof(UNCVComponentInfo)*uncv->palette->nb_comps);
+			if (!uncv->palette->comps) {
+				*out_err = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			memset(uncv->palette->comps, 0, sizeof(UNCVComponentInfo)*uncv->palette->nb_comps);
 			for (i=0; i<uncv->palette->nb_comps; i++) {
 				UNCVComponentInfo *comp = &uncv->palette->comps[i];
-				comp->idx = gf_bs_read_u16(bs);
+				comp->idx = gf_bs_read_u32(bs);
 				comp->bits = gf_bs_read_u8(bs) + 1;
 				comp->format = gf_bs_read_u8(bs);
 				if (!comp->format && (max_bits<comp->bits))
 					max_bits = comp->bits;
-				bsize-=4;
+
 				bit_size+=comp->bits;
 				while (bit_size%8) bit_size++;
 			}
 			uncv->palette->nb_values = gf_bs_read_u32(bs);
-			bsize-=4;
-			if (bsize<0)
+			bsize -= uncv->palette->nb_values * bit_size/8;
+			if (bsize<0) {
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
-			if ((u32) bsize*8 < uncv->palette->nb_values * bit_size)
-				*out_err = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 
 			uncv->palette->values = gf_malloc(sizeof(u8) * uncv->palette->nb_values * uncv->palette->nb_comps);
+			if (!uncv->palette->values) {
+				*out_err = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			for (i=0; i<uncv->palette->nb_values; i++) {
 				u8 *vals = uncv->palette->values + i*uncv->palette->nb_comps;
 				for (u32 j=0; j<uncv->palette->nb_comps; j++) {
@@ -291,23 +373,30 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 				}
 			}
 		} else if (type==GF_4CC('c','p','a','t')) {
+			s32 bsize = (u32) size-8;
 			u8 version = gf_bs_read_u8(bs);
-			if (version)
+			if (version) {
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 
 			gf_bs_read_int(bs, 24);
 			uncv->fa_width = gf_bs_read_u16(bs);
 			uncv->fa_height = gf_bs_read_u16(bs);
-			if (uncv->fa_width * uncv->fa_height * 6 > size-8) {
+			bsize -= 8 + (uncv->fa_width * uncv->fa_height * 8);
+			if (bsize<0) {
 				*out_err = GF_NON_COMPLIANT_BITSTREAM;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[UNCV] Invalid pattern box\n"));
 				goto exit;
 			}
 			uncv->fa_map = gf_malloc(sizeof(u16)*uncv->fa_width * uncv->fa_height);
+			if (!uncv->fa_map) {
+				*out_err = GF_OUT_OF_MEM;
+				goto exit;
+			}
 			for (i=0; i<uncv->fa_height; i++) {
 				u32 j;
 				for (j=0; j<uncv->fa_width; j++) {
-					uncv->fa_map[j + i*uncv->fa_height] = gf_bs_read_u16(bs);
+					uncv->fa_map[j + i*uncv->fa_height] = gf_bs_read_u32(bs);
 					gf_bs_read_float(bs);
 				}
 			}

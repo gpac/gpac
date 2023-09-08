@@ -158,12 +158,12 @@ filter.initialize = function()
 	bs.put_4cc("cmpd");
 	if (use_palette || use_fa) {
 		if (palette_alpha)
-			bs.put_u16(components.length+4);
+			bs.put_u32(components.length+4);
 		else
-			bs.put_u16(components.length+3);
+			bs.put_u32(components.length+3);
 	}
 	else
-		bs.put_u16(components.length);
+		bs.put_u32(components.length);
 	for (let i=0; i<components.length; i++) {
 		let c = components[i];
 		bs.put_u16(c.type);
@@ -187,7 +187,7 @@ filter.initialize = function()
 	bs.put_4cc("uncC");
 	bs.put_u32(0); //version+flags
 	bs.put_u32(0); //profile
-	bs.put_u16(components.length);
+	bs.put_u32(components.length);
 	for (let i=0; i<components.length; i++) {
 		let c = components[i];
 		bs.put_u16(i); //index
@@ -209,7 +209,7 @@ filter.initialize = function()
 	bs.put_bits(0, 1); //pad_unknown
 	bs.put_bits(0, 3); //reserved
 
-	bs.put_u8(filter.pixel_size);
+	bs.put_u32(filter.pixel_size);
 	bs.put_u32(filter.row_align);
 	bs.put_u32(filter.tile_align);
 	bs.put_u32(filter.tiles.x-1);
@@ -226,17 +226,17 @@ filter.initialize = function()
 		bs.put_4cc("cpal");
 		bs.put_u32(0); //version 0 no flags
 		bs.put_u16(palette_alpha ? 4 : 3); //nb_comp, only (A)RGB palette 8 bits int for now
-		bs.put_u16(components.length); //R idx
+		bs.put_u32(components.length); //R idx
 		bs.put_u8(7); //bits minus 1
 		bs.put_u8(0); //format
-		bs.put_u16(components.length+1); //G idx
+		bs.put_u32(components.length+1); //G idx
 		bs.put_u8(7); //bits minus 1
 		bs.put_u8(0); //format
-		bs.put_u16(components.length+2); //B idx
+		bs.put_u32(components.length+2); //B idx
 		bs.put_u8(7); //bits minus 1
 		bs.put_u8(0); //format
 		if (palette_alpha) {
-			bs.put_u16(components.length+3); //A idx
+			bs.put_u32(components.length+3); //A idx
 			bs.put_u8(7); //bits minus 1
 			bs.put_u8(0); //format
 		}
@@ -268,7 +268,7 @@ filter.initialize = function()
 			for (let j=0; j<fa_width; j++) {
 				let ctype = fa[i*fa_height + j];
 				//ctype is 4->6 (R->B), so index us ctype-4 + components.length
-				bs.put_u16(ctype-4 + components.length);
+				bs.put_u32(ctype-4 + components.length);
 				bs.put_float(1.0);
 			}
 		}
@@ -309,7 +309,7 @@ filter.initialize = function()
 		bs.put_u32(0);
 		bs.put_4cc("sbpm");
 		bs.put_u32(0); //version 0 no flags
-		bs.put_u16(0); //component count, applies to all
+		bs.put_u32(0); //component count, applies to all
 		bs.put_u8(0); //correction applied + reserved7=0
 		bs.put_u32(bad_rows.length);
 		bs.put_u32(bad_cols.length);
