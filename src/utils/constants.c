@@ -2639,9 +2639,9 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 
 	if (!restricted_allowed) {
 		//cmpd
-		gf_bs_write_u32(bs, 10+nb_comps*2);
+		gf_bs_write_u32(bs, 12+nb_comps*2);
 		gf_bs_write_u32(bs, GF_4CC('c','m','p','d'));
-		gf_bs_write_u16(bs, nb_comps);
+		gf_bs_write_u32(bs, nb_comps);
 		for (i=0; i<nb_comps; i++)
 			gf_bs_write_u16(bs, comps_ID[i]);
 	}
@@ -2654,7 +2654,7 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 	gf_bs_write_u32(bs, profile); //profile
 	if (restricted_allowed) goto done;
 
-	gf_bs_write_u16(bs, nb_comps);
+	gf_bs_write_u32(bs, nb_comps);
 	for (i=0; i<nb_comps; i++) {
 		gf_bs_write_u16(bs, i);
 		u32 nbbits = bits[i];
@@ -2672,7 +2672,7 @@ Bool gf_pixel_fmt_get_uncc(GF_PixelFormat pixfmt, u32 profile_mode, u8 **dsi, u3
 	gf_bs_write_int(bs, block_reversed, 1);
 	gf_bs_write_int(bs, 1, 1); //pad unknown
 	gf_bs_write_int(bs, 0, 3);
-	gf_bs_write_u8(bs, 0);
+	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
 	gf_bs_write_u32(bs, 0);
