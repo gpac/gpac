@@ -5505,12 +5505,16 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 					kpos += 17;
 					gf_fprintf(trace, "\"");
 					if ((seig->IsProtected == 1) && !iv_size) {
-						if (kpos + 1 >= seig->key_info_size)
+						if (kpos + 1 >= seig->key_info_size) {
+							gf_fprintf(trace, "/>\n");
 							break;
+						}
 						u8 const_IV_size = seig->key_info[kpos];
 						gf_fprintf(trace, " constant_IV_size=\"%d\"  constant_IV=\"", const_IV_size);
-						if (kpos + 1 + const_IV_size >= seig->key_info_size)
+						if (kpos + 1 + const_IV_size > seig->key_info_size) {
+							gf_fprintf(trace, "invalid\"/>\n");
 							break;
+						}
 						dump_data_hex(trace, (char *)seig->key_info + kpos + 1, const_IV_size);
 						kpos += 1 + const_IV_size;
 						gf_fprintf(trace, "\"");
