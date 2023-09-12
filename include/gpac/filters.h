@@ -2627,6 +2627,18 @@ void gf_filter_block_eos(GF_Filter *filter, Bool do_block);
 */
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err);
 
+/*! Connects a source to the session, copying FilterID and sourceID of this filter source..
+\note The loaded filter will not connect to the calling filter, and will have the same ID, subsession_id and source_id as the first source of the filter
+
+\param filter the target filter
+\param url url of source to connect to, with optional arguments.
+\param parent_url url of parent if any
+\param inherit_args if GF_TRUE, the source to connect will inherit arguments of the first source of the filter
+\param err return code - can be NULL
+\return the new source filter instance or NULL if error
+*/
+GF_Filter *gf_filter_add_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err);
+
 /*! Connects a destination to this filter
 \param filter the target filter
 \param url url of destination to connect to, with optional arguments.
@@ -3277,7 +3289,7 @@ If filters do not have the same sourceID, they cannot link to each other except 
 
 \param filter target filter
 \param subsession_id subsession identifier
-\param source_id subsession identifier
+\param source_id source identifier
 \return error if any
 */
 GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source_id);

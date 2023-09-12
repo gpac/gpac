@@ -1775,6 +1775,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(nodata), "do not load sample data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lightp), "load minimal set of properties", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(initseg), "local init segment name when input is a single ISOBMFF segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(extk), "allow external track loading", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(extkmov), "original mov pointer for external tracks", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(extkid), "original trackID for external tracks", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

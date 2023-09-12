@@ -3890,6 +3890,7 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		return GF_OK;
 
 	case GF_ISOM_BOX_TYPE_TRAK:
+	case GF_ISOM_BOX_TYPE_EXTK:
 		if (is_rem) {
 			gf_list_del_item(ptr->trackList, a);
 			return GF_OK;
@@ -7005,6 +7006,9 @@ GF_Err trak_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_TKHD:
 		BOX_FIELD_ASSIGN(Header, GF_TrackHeaderBox)
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_EXTL:
+		BOX_FIELD_ASSIGN(extl, GF_ExternalTrackLocationBox)
+		return GF_OK;
 	case GF_ISOM_BOX_TYPE_EDTS:
 		BOX_FIELD_ASSIGN(editBox, GF_EditBox)
 		return GF_OK;
@@ -7048,13 +7052,15 @@ GF_Err trak_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_TrackBox *ptr = (GF_TrackBox *)s;
 	e = gf_isom_box_array_read(s, bs);
 	if (e) return e;
-	e = gf_isom_check_sample_desc(ptr);
-	if (e) return e;
-
 	if (!ptr->Header) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing TrackHeaderBox\n"));
 		return GF_ISOM_INVALID_FILE;
 	}
+	if (ptr->extl) return GF_OK;
+
+	e = gf_isom_check_sample_desc(ptr);
+	if (e) return e;
+
 	if (!ptr->Media) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MediaBox\n"));
 		return GF_ISOM_INVALID_FILE;
@@ -7109,6 +7115,7 @@ GF_Err trak_box_size(GF_Box *s)
 		GF_Err e = senc_Parse(ptr->moov->mov->movieFileMap->bs, ptr, NULL, ptr->sample_encryption);
 		if (e) return e;
 	}
+	gf_isom_check_position(s, (GF_Box *)ptr->extl, &pos);
 
 	gf_isom_check_position(s, (GF_Box *)ptr->Header, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->Aperture, &pos);
@@ -13503,5 +13510,78 @@ GF_Err empty_box_size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void extl_box_del(GF_Box *s)
+{
+	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)s;
+	if (ptr->location) gf_free(ptr->location);
+	gf_free(ptr);
+	return;
+}
+
+
+GF_Err extl_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)s;
+
+	ISOM_DECREASE_SIZE(ptr, 8);
+	ptr->referenced_track_ID = gf_bs_read_u32(bs);
+	ptr->referenced_handler_type = gf_bs_read_u32(bs);
+	if (ptr->flags & GF_ISOM_EXTK_USE_EDIT) {
+		ISOM_DECREASE_SIZE(ptr, 4);
+		ptr->media_timescale = gf_bs_read_u32(bs);
+	}
+
+	if (ptr->size) {
+		u32 name_size = (u32) ptr->size;
+		if (name_size < 1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
+			return GF_ISOM_INVALID_FILE;
+		}
+		ptr->location = (char*)gf_malloc(name_size+1);
+		if (!ptr->location) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, ptr->location, name_size);
+		ptr->location[name_size] = 0;
+	}
+	return GF_OK;
+}
+
+GF_Box *extl_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ExternalTrackLocationBox, GF_ISOM_BOX_TYPE_EXTL);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err extl_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, (u32) ptr->referenced_track_ID);
+	gf_bs_write_u32(bs, (u32) ptr->referenced_handler_type);
+	if (ptr->flags & GF_ISOM_EXTK_USE_EDIT)
+		gf_bs_write_u32(bs, ptr->media_timescale);
+
+	gf_bs_write_utf8(bs, ptr->location);
+	return GF_OK;
+}
+
+GF_Err extl_box_size(GF_Box *s)
+{
+	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)s;
+
+	ptr->size += 8;
+	if (ptr->flags & GF_ISOM_EXTK_USE_EDIT) ptr->size += 4;
+	ptr->size += 1 + (ptr->location ? (u32) strlen(ptr->location) : 0);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 #endif /*GPAC_DISABLE_ISOM*/

@@ -1457,6 +1457,10 @@ When importing an ISOBMFF/QT file, only options marked as C or S can be used.
 .br
   
 .br
+When importing as an external track, only options marked as E can be used.
+.br
+  
+.br
 Allowed per-file options:
 .br
 
@@ -1480,12 +1484,12 @@ C target start time in source media, may not be supported depending on the sourc
 .TP
 .B lang (string)
 .br
-S set imported media language code
+SE set imported media language code
 .br
 .TP
 .B delay (int)
 .br
-S set imported media initial delay (>0) or initial skip (<0) in ms or as fractional seconds (N/D)
+SE set imported media initial delay (>0) or initial skip (<0) in ms or as fractional seconds (N/D)
 .br
 .TP
 .B par (string)
@@ -1500,7 +1504,7 @@ S set visual clean aperture (see .I -clap )
 .TP
 .B mx (string)
 .br
-S set track matrix (see .I -mx )
+SE set track matrix (see .I -mx )
 .br
 .TP
 .B name (string)
@@ -1525,17 +1529,17 @@ S force sample description type to given code point (4CC), may likely break the 
 .TP
 .B tkhd (int)
 .br
-S set track header flags has hex integer or as comma-separated list of enable, movie, preview, size_ar keywords (use tkhd+=FLAGS to add and tkhd-=FLAGS to remove)
+SE set track header flags has hex integer or as comma-separated list of enable, movie, preview, size_ar keywords (use tkhd+=FLAGS to add and tkhd-=FLAGS to remove)
 .br
 .TP
 .B disable
 .br
-S disable imported track(s), use disable=no to force enabling a disabled track
+SE disable imported track(s), use disable=no to force enabling a disabled track
 .br
 .TP
 .B group (int)
 .br
-S add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked
+SE add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked
 .br
 .TP
 .B fps (string)
@@ -1746,22 +1750,22 @@ S use negative CTS-DTS offsets (ISO4 brand). Use negctts=no to force using posit
 .TP
 .B chap
 .br
-S specify the track is a chapter track
+SE specify the track is a chapter track
 .br
 .TP
 .B chapter (string)
 .br
-S add a single chapter (old nero format) with given name lasting the entire file
+SE add a single chapter (old nero format) with given name lasting the entire file
 .br
 .TP
 .B chapfile (string)
 .br
-S add a chapter file (old nero format)
+SE add a chapter file (old nero format)
 .br
 .TP
 .B layout (string)
 .br
-S specify the track layout as WxH[xXxY][xLAYER]. If W (resp H) is 0, the max width (resp height) of the tracks in the file are used
+SE specify the track layout as WxH[xXxY][xLAYER]. If W (resp H) is 0, the max width (resp height) of the tracks in the file are used
 .br
 .TP
 .B rescale (int)
@@ -1781,7 +1785,7 @@ S set imported media timescale to TS
 .TP
 .B moovts (int)
 .br
-S set movie timescale to TS. A negative value picks the media timescale of the first track imported
+SE set movie timescale to TS. A negative value picks the media timescale of the first track imported
 .br
 .TP
 .B noedit
@@ -1913,7 +1917,7 @@ complementary angle below which 2 lines are merged, 0 means no flattening
 .TP
 .B kind (string)
 .br
-S set kind for the track as schemeURI=value
+SE set kind for the track as schemeURI=value
 .br
 .TP
 .B txtflags (int)
@@ -1996,7 +2000,7 @@ S force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or
 .TP
 .B tc (string)
 .br
-S inject a single QT timecode. Value is formatted as:
+SE inject a single QT timecode. Value is formatted as:
 .br
   * [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number
 .br
@@ -2007,7 +2011,7 @@ S inject a single QT timecode. Value is formatted as:
 .TP
 .B edits (string)
 .br
-S override edit list, same syntax as .I edits
+SE override edit list, same syntax as .I edits
 .br
 .TP
 .B lastsampdur (string)
@@ -2023,7 +2027,7 @@ S set duration of the last sample. Value is formatted as:
 .TP
 .B ID (int)
 .br
-S set target ID
+SE set target ID
 .br
   - a value of 0 (default) will try to keep source track ID
 .br
@@ -2034,12 +2038,17 @@ S set target ID
 .TP
 .B tkgp (string)
 .br
-S assign track group to track. Value is formatted as TYPE,N with TYPE the track group type (4CC) and N the track group ID. A negative ID removes from track group ID -N
+SE assign track group to track. Value is formatted as TYPE,N with TYPE the track group type (4CC) and N the track group ID. A negative ID removes from track group ID -N
 .br
 .TP
 .B tkidx (string)
 .br
-S set track position in track list, 1 being first track in file
+SE set track position in track list, 1 being first track in file
+.br
+.TP
+.B extk
+.br
+CE add track as external track
 .br
 .TP
 .B stats,-fstat

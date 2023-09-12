@@ -159,6 +159,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 	for (i = 0; i < trackCount; i++) {
 		GF_SampleTableBox *stbl;
 		trak = gf_isom_get_track(movie->moov, i+1);
+		if (trak->extl) continue;
 
 		stbl = (trak->Media && trak->Media->information) ? trak->Media->information->sampleTable : NULL;
 		if (!stbl || !stbl->SampleSize || !stbl->ChunkOffset || !stbl->SampleToChunk || !stbl->SampleSize) {
@@ -2147,6 +2148,8 @@ static GF_Err inplace_shift_moov_meta_offsets(GF_ISOFile *movie, u32 shift_offse
 		if (trak->meta)
 			ShiftMetaOffset(trak->meta, shift_offset);
 
+		if (trak->extl) continue;
+
 		stbl = trak->Media->information->sampleTable;
 		e = shift_chunk_offsets(stbl->SampleToChunk, trak->Media, stbl->ChunkOffset, shift_offset, movie->force_co64, &new_stco);
 		if (e) return e;
@@ -2542,6 +2545,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			if (gf_sys_is_test_mode()) {
 				trak->Header->creationTime = 0;
 				trak->Header->modificationTime = 0;
+				if (trak->extl) continue;
 				if (trak->Media->handler && trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
 					gf_free(trak->Media->handler->nameUTF8);
 					trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");

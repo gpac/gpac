@@ -463,6 +463,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				u32 k;
 				for (k=0; k<gf_list_count(mov->moov->trackList); k++) {
 					GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(mov->moov->trackList, k);
+					if (trak->extl) continue;
 					if (trak->Media->information->sampleTable->sampleGroups) {
 						convert_compact_sample_groups(trak->Media->information->sampleTable->child_boxes, trak->Media->information->sampleTable->sampleGroups);
 					}
@@ -826,6 +827,8 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;
 #endif
 	}
+	if (!mov->first_data_toplevel_offset)
+		mov->first_data_toplevel_offset = mov->current_top_box_start;
 
 	/*we need at least moov or meta*/
 	if (!mov->moov && !mov->meta
