@@ -117,24 +117,25 @@ typedef enum {
 	TRACK_ACTION_REM_TRACK= 0,
 	TRACK_ACTION_SET_LANGUAGE,
 	TRACK_ACTION_SET_DELAY,
-	TRACK_ACTION_SET_KMS_URI,
-	TRACK_ACTION_SET_PAR,
-	TRACK_ACTION_SET_HANDLER_NAME,
 	TRACK_ACTION_ENABLE,
 	TRACK_ACTION_DISABLE,
 	TRACK_ACTION_REFERENCE,
-	TRACK_ACTION_RAW_EXTRACT,
-	TRACK_ACTION_REM_NON_RAP,
 	TRACK_ACTION_SET_KIND,
 	TRACK_ACTION_REM_KIND,
 	TRACK_ACTION_SET_ID,
 	TRACK_ACTION_SET_UDTA,
 	TRACK_ACTION_SWAP_ID,
-	TRACK_ACTION_REM_NON_REFS,
-	TRACK_ACTION_SET_CLAP,
 	TRACK_ACTION_SET_MX,
 	TRACK_ACTION_SET_EDITS,
 	TRACK_ACTION_SET_TIME,
+
+	TRACK_ACTION_SET_KMS_URI,
+	TRACK_ACTION_SET_PAR,
+	TRACK_ACTION_SET_HANDLER_NAME,
+	TRACK_ACTION_RAW_EXTRACT,
+	TRACK_ACTION_REM_NON_RAP,
+	TRACK_ACTION_REM_NON_REFS,
+	TRACK_ACTION_SET_CLAP,
 	TRACK_ACTION_SET_MEDIA_TIME,
 } TrackActionType;
 
@@ -875,18 +876,18 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - fraction: specifies duration as NUM/DEN fraction\n"
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("start", NULL, "`C` target start time in source media, may not be supported depending on the source", NULL, NULL, GF_ARG_DOUBLE, 0),
-	GF_DEF_ARG("lang", NULL, "`S` set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("delay", NULL, "`S` set imported media initial delay (>0) or initial skip (<0) in ms or as fractional seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("lang", NULL, "`SE` set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("delay", NULL, "`SE` set imported media initial delay (>0) or initial skip (<0) in ms or as fractional seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("par", NULL, "`S` set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("clap", NULL, "`S` set visual clean aperture (see [-clap](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("mx", NULL, "`S` set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("mx", NULL, "`SE` set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("name", NULL, "`S` set track handler name", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ext", NULL, "override file extension when importing", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("hdlr", NULL, "`S` set track handler type to the given code point (4CC)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("stype", NULL, "`S` force sample description type to given code point (4CC), may likely break the file", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("tkhd", NULL, "`S` set track header flags has hex integer or as comma-separated list of `enable`, `movie`, `preview`, `size_ar` keywords (use `tkhd+=FLAGS` to add and `tkhd-=FLAGS` to remove)", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("disable", NULL, "`S` disable imported track(s), use `disable=no` to force enabling a disabled track", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("group", NULL, "`S` add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("tkhd", NULL, "`SE` set track header flags has hex integer or as comma-separated list of `enable`, `movie`, `preview`, `size_ar` keywords (use `tkhd+=FLAGS` to add and `tkhd-=FLAGS` to remove)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("disable", NULL, "`SE` disable imported track(s), use `disable=no` to force enabling a disabled track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("group", NULL, "`SE` add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("fps", NULL, "`S` same as [-fps]()", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rap", NULL, "`DS` import only RAP samples", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("refs", NULL, "`DS` import only reference pictures", NULL, NULL, GF_ARG_BOOL, 0),
@@ -936,14 +937,14 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("tiles", NULL, "`S` add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("split_tiles", NULL, "`DS` split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("negctts", NULL, "`S` use negative CTS-DTS offsets (ISO4 brand). Use `negctts=no` to force using positive offset on existing track", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("chap", NULL, "`S` specify the track is a chapter track", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("chapter", NULL, "`S` add a single chapter (old nero format) with given name lasting the entire file", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("chapfile", NULL, "`S` add a chapter file (old nero format)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("layout", NULL, "`S` specify the track layout as `WxH[xXxY][xLAYER]`. If `W` (resp `H`) is 0, the max width (resp height) of the tracks in the file are used", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("chap", NULL, "`SE` specify the track is a chapter track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("chapter", NULL, "`SE` add a single chapter (old nero format) with given name lasting the entire file", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("chapfile", NULL, "`SE` add a chapter file (old nero format)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("layout", NULL, "`SE` specify the track layout as `WxH[xXxY][xLAYER]`. If `W` (resp `H`) is 0, the max width (resp height) of the tracks in the file are used", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("rescale", NULL, "`S` force media timescale to TS  (int or fraction) and change the media duration", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("sampdur", NULL, "`S` force all samples duration (`D`) or sample durations and media timescale (`D/TS`), used to patch CFR files with broken timings", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("timescale", NULL, "`S` set imported media timescale to TS", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("moovts", NULL, "`S` set movie timescale to TS. A negative value picks the media timescale of the first track imported", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("moovts", NULL, "`SE` set movie timescale to TS. A negative value picks the media timescale of the first track imported", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("noedit", NULL, "`XS` do not set edit list when importing B-frames video tracks", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("rvc", NULL, "`S` set RVC configuration for the media", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("fmt", NULL, "override format detection with given format - disable data probing and force `ext` option on source", NULL, NULL, GF_ARG_STRING, 0),
@@ -973,7 +974,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("swf-ic2d", NULL, "use indexed curve 2D hardcoded proto", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("swf-same-app", NULL, "appearance nodes are reused", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("swf-flatten", NULL, "complementary angle below which 2 lines are merged, `0` means no flattening", NULL, NULL, GF_ARG_DOUBLE, 0),
-	GF_DEF_ARG("kind", NULL, "`S` set kind for the track as `schemeURI=value`", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("kind", NULL, "`SE` set kind for the track as `schemeURI=value`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("txtflags", NULL, "set display flags (hexa number) of text track. Use `txtflags+=FLAGS` to add flags and `txtflags-=FLAGS` to remove flags", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("rate", NULL, "force average rate and max rate to VAL (in bps) in btrt box. If 0, removes btrt box", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("stz2", NULL, "`S` use compact size table (for low-bitrates)", NULL, NULL, GF_ARG_BOOL, 0),
@@ -995,22 +996,23 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("colorprim", NULL, "`S` force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colortfc", NULL, "`S` force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colormx", NULL, "`S` force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("tc", NULL, "`S` inject a single QT timecode. Value is formatted as:\n"
+	GF_DEF_ARG("tc", NULL, "`SE` inject a single QT timecode. Value is formatted as:\n"
 		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
 		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("edits", NULL, "`S` override edit list, same syntax as [-edits]()", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("edits", NULL, "`SE` override edit list, same syntax as [-edits]()", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("lastsampdur", NULL, "`S` set duration of the last sample. Value is formatted as:\n"
 		"  - no value: use the previous sample duration\n"
 		"  - integer: indicate the duration in milliseconds\n"
 		"  - N/D: indicate the duration as fractional second", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("ID", NULL, "`S` set target ID\n"
+	GF_DEF_ARG("ID", NULL, "`SE` set target ID\n"
 		"  - a value of 0 (default) will try to keep source track ID\n"
 		"  - a value of -1 will ignore source track ID\n"
 		"  - other value will try to set track ID to this value if no other track with same ID is present"
 		"", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("tkgp", NULL, "`S` assign track group to track. Value is formatted as `TYPE,N` with TYPE the track group type (4CC) and N the track group ID. A negative ID removes from track group ID -N", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("tkidx", NULL, "`S` set track position in track list, 1 being first track in file", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("tkgp", NULL, "`SE` assign track group to track. Value is formatted as `TYPE,N` with TYPE the track group type (4CC) and N the track group ID. A negative ID removes from track group ID -N", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("tkidx", NULL, "`SE` set track position in track list, 1 being first track in file", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("extk", NULL, "`CE` add track as external track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("stats", "fstat", "`C` print filter session stats after import", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", "fgraph", "`C` print filter session graph after import", NULL, NULL, GF_ARG_BOOL, 0),
 	{"sopt:[OPTS]", NULL, "set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
@@ -1061,6 +1063,8 @@ void PrintImportUsage()
 		"  \n"
 		"When importing an ISOBMFF/QT file, only options marked as `C` or `S` can be used.\n"
 		"  \n"
+		"When importing as an external track, only options marked as `E` can be used.\n"
+		"  \n"
 		"Allowed per-file options:\n\n"
 	);
 
@@ -1108,6 +1112,27 @@ Bool mp4box_check_isom_fileopt(char *opt)
 		d++;
 	}
 	return GF_FALSE;
+}
+
+Bool mp4box_check_non_extk_fileopt(char *opt)
+{
+	GF_GPACArg *arg = NULL;
+	u32 i=0;
+
+	while (m4b_imp_fileopt_args[i].name) {
+		arg = (GF_GPACArg *) &m4b_imp_fileopt_args[i];
+		i++;
+		if (!stricmp(arg->name, opt)) break;
+		arg = NULL;
+	}
+	if (!arg) return GF_FALSE;
+	if (arg->description[0] != '`') return GF_TRUE;
+	const char *d = arg->description+1;
+	while (d[0] != '`') {
+		if (d[0]=='E') return GF_FALSE;
+		d++;
+	}
+	return GF_TRUE;
 }
 
 
@@ -4927,6 +4952,11 @@ static GF_Err do_export_tracks_non_isobmf()
 			mdump.track_type = tka->target_track.type-1;
 		mdump.sample_num = tka->sample_num;
 
+		if (gf_isom_is_external_track(file, gf_isom_get_track_by_id(file, mdump.trackID), NULL, NULL, NULL, NULL) && (tka->act_type>TRACK_ACTION_SET_TIME)) {
+			M4_LOG(GF_LOG_ERROR, ("Track extraction not allowed on external tracks\n"));
+			return GF_BAD_PARAM;
+		}
+
 		if (dump_std) {
 			mdump.out_name = "std";
 		}
@@ -5032,6 +5062,12 @@ static GF_Err do_export_tracks()
 		mdump.sample_num = tka->sample_num;
 		//this can be 0
 		mdump.trackID = get_track_id(file, &tka->target_track);
+
+		if (gf_isom_is_external_track(file, gf_isom_get_track_by_id(file, mdump.trackID), NULL, NULL, NULL, NULL) && (tka->act_type>TRACK_ACTION_SET_TIME)) {
+			M4_LOG(GF_LOG_ERROR, ("Track extraction not allowed on external tracks\n"));
+			return GF_BAD_PARAM;
+		}
+
 
 		if (tka->out_name) {
 			mdump.out_name = tka->out_name;
@@ -5446,6 +5482,11 @@ static GF_Err do_track_act()
 		TrackAction *tka = &tracks[j];
 		u32 trackID = get_track_id(file, &tka->target_track);
 		u32 track = trackID ? gf_isom_get_track_by_id(file, trackID) : 0;
+
+		if (gf_isom_is_external_track(file, track, NULL, NULL, NULL, NULL) && (tka->act_type>TRACK_ACTION_SET_TIME)) {
+			M4_LOG(GF_LOG_ERROR, ("Track action not allowed on external tracks\n"));
+			return GF_BAD_PARAM;
+		}
 
 		u32 newTrackID = get_track_id(file, &tka->newTrackID);
 

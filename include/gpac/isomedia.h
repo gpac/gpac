@@ -1737,6 +1737,30 @@ GF_Err gf_isom_get_current_top_box_offset(GF_ISOFile *isom_file, u64 *current_to
 */
 GF_Err gf_isom_purge_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 nb_samples);
 
+/*! External track flags*/
+enum
+{
+	/*! edit list override*/
+	GF_ISOM_EXTK_USE_EDIT=1,
+	/*! location is a URN */
+	GF_ISOM_EXTK_URN=1<<1,
+	/*! ignore source user data */
+	GF_ISOM_EXTK_NO_UDTA=1<<2,
+	/*! ignore source meta */
+	GF_ISOM_EXTK_NO_META=1<<3
+};
+
+/*! checks if a track is an external track
+\param isom_file the target ISO file
+\param trackNumber the desired track to purge
+\param tkid set to external track ID, may be NULL
+\param type set to external track handler type, may be NULL
+\param flags set to ExternalTrackLocation box flags, may be NULL
+\param location set to external file location, may be NULL
+\return GF_TRUE if track is an external track, GF_FALSE otherwise
+*/
+Bool gf_isom_is_external_track(GF_ISOFile *isom_file, u32 trackNumber, GF_ISOTrackID *tkid, u32 *type, u32 *flags, const char **location);
+
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
 /*! dumps file structures into XML trace file
@@ -1881,6 +1905,17 @@ u32 gf_isom_new_track(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 MediaTyp
 \param udta_only only replace/inject udta box and entries
 \return the track number or 0 if error*/
 u32 gf_isom_new_track_from_template(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only);
+
+/*! creates a new external track
+\param isom_file the target ISO file
+\param trackID the ID of the track- if 0, the track ID is chosen by the API
+\param refTrakID the ID of the referenced  track (not checked by API)
+\param MediaType the handler type (four character code) of the media
+\param TimeScale the time scale of the media
+\param uri location of external file
+\return the track number or 0 if error
+*/
+u32 gf_isom_new_external_track(GF_ISOFile *movie, GF_ISOTrackID trakID, GF_ISOTrackID refTrakID, u32 MediaType, u32 TimeScale, const char *uri);
 
 /*! removes a track - internal cross dependencies will be updated.
 \warning Any OD streams with references to this track through  ODUpdate, ESDUpdate, ESDRemove commands

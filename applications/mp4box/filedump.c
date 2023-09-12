@@ -2195,6 +2195,7 @@ static char *format_duration(u64 dur, u32 timescale, char *szDur)
 		strcpy(szDur, "Unknown");
 		return szDur;
 	}
+	if (!timescale) timescale = 1;
 	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
 	h = (u32) (dur / 3600000);
 	m = (u32) (dur/ 60000) - h*60;
@@ -3683,8 +3684,12 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	u32 trackNum, i, j, ts, mtype, msub_type, timescale, count, alt_group, nb_groups, nb_edits, cdur, csize;
 	u64 time_slice, dur, size;
 	s32 cts_shift;
+	Bool is_extk;
 	char szDur[50];
 	char *lang;
+	GF_ISOTrackID extk_id;
+	u32 extk_type, extk_flags;
+	const char *extk_loc = NULL;
 
 	if (!is_track_num) {
 		trackNum = gf_isom_get_track_by_id(file, trackID);
@@ -3697,18 +3702,31 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		return;
 	}
 
-	timescale = gf_isom_get_media_timescale(file, trackNum);
-	fprintf(stderr, "# Track %d Info - ID %d - TimeScale %d\n", trackNum, trackID, timescale);
+	is_extk = gf_isom_is_external_track(file, trackNum, &extk_id, &extk_type, &extk_flags, &extk_loc);
+	if (is_extk) {
+		fprintf(stderr, "# Track %d Info - ID %d\n", trackNum, trackID);
+		fprintf(stderr, "External Track from %s trackID %d - type %s\n", extk_loc, extk_id, gf_4cc_to_str(extk_type));
 
-	dur = gf_isom_get_media_original_duration(file, trackNum);
-	size = gf_isom_get_media_duration(file, trackNum);
-	fprintf(stderr, "Media Duration %s ", format_duration(dur, timescale, szDur));
-	if (dur != size)
-		fprintf(stderr, " (recomputed %s)", format_duration(size, timescale, szDur));
-	fprintf(stderr, "\n");
+		dur = gf_isom_get_track_duration(file, trackNum);
+		timescale = gf_isom_get_timescale(file);
+		if (((s32)dur!=-1) || (extk_flags & 1))
+			fprintf(stderr, "Track Duration %s\n", format_duration(dur, timescale, szDur));
+		else
+			fprintf(stderr, "Track Duration same as source track\n");
+	} else {
+		timescale = gf_isom_get_media_timescale(file, trackNum);
+		fprintf(stderr, "# Track %d Info - ID %d - TimeScale %d\n", trackNum, trackID, timescale);
 
-	if (gf_isom_check_data_reference(file, trackNum, 1) != GF_OK) {
-		M4_LOG(GF_LOG_WARNING, ("Track uses external data reference not supported by GPAC!\n"));
+		dur = gf_isom_get_media_original_duration(file, trackNum);
+		size = gf_isom_get_media_duration(file, trackNum);
+		fprintf(stderr, "Media Duration %s ", format_duration(dur, timescale, szDur));
+		if (dur != size)
+			fprintf(stderr, " (recomputed %s)", format_duration(size, timescale, szDur));
+		fprintf(stderr, "\n");
+
+		if (gf_isom_check_data_reference(file, trackNum, 1) != GF_OK) {
+			M4_LOG(GF_LOG_WARNING, ("Track uses external data reference not supported by GPAC!\n"));
+		}
 	}
 
 	nb_edits = gf_isom_get_edits_count(file, trackNum);
@@ -3735,26 +3753,34 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		fprintf(stderr, "Media Language: %s (%s)\n", GetLanguage(lang), lang );
 	if (lang) gf_free(lang);
 
-	mtype = gf_isom_get_media_type(file, trackNum);
-	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
-	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
+	if (is_extk) {
+		mtype = extk_type;
+		msub_type = 0;
+	} else {
+		mtype = gf_isom_get_media_type(file, trackNum);
+		msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
+		if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
+	}
+
 
 	if (gf_isom_is_track_referenced(file, trackNum, GF_ISOM_REF_CHAP)) {
 		if (gf_isom_is_video_handler_type(mtype)) fprintf(stderr, "Chapter Thumbnails\n");
 		else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) fprintf(stderr, "Chapter Labels\n");
 	}
 
-	fprintf(stderr, "Media Samples: %d", gf_isom_get_sample_count(file, trackNum));
-	cdur = gf_isom_get_constant_sample_duration(file, trackNum);
-	if (cdur) {
-		u32 ts = timescale;
-		gf_media_get_reduced_frame_rate(&ts, &cdur);
-		if (cdur>1)
-			fprintf(stderr, " - CFR %f/sec", ((Float)ts)/cdur);
-		else
-			fprintf(stderr, " - CFR %u/sec", ts);
+	if (!is_extk) {
+		fprintf(stderr, "Media Samples: %d", gf_isom_get_sample_count(file, trackNum));
+		cdur = gf_isom_get_constant_sample_duration(file, trackNum);
+		if (cdur) {
+			u32 ts = timescale;
+			gf_media_get_reduced_frame_rate(&ts, &cdur);
+			if (cdur>1)
+				fprintf(stderr, " - CFR %f/sec", ((Float)ts)/cdur);
+			else
+				fprintf(stderr, " - CFR %u/sec", ts);
+		}
+		fprintf(stderr, "\n");
 	}
-	fprintf(stderr, "\n");
 
 	u32 idx=0;
 	while (1) {
@@ -3794,9 +3820,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	}
 #endif
 	if (full_dump) {
-		const char *handler_name;
-		gf_isom_get_handler_name(file, trackNum, &handler_name);
-		fprintf(stderr, "Handler name: %s\n", handler_name);
+		if (!is_extk) {
+			const char *handler_name;
+			gf_isom_get_handler_name(file, trackNum, &handler_name);
+			fprintf(stderr, "Handler name: %s\n", handler_name);
+		}
 
 		u32 ridx=0;
 		while (1) {
@@ -3851,6 +3879,9 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			}
 		}
 	}
+
+	if (is_extk)
+		return;
 
 	count = gf_isom_get_sample_description_count(file, trackNum);
 	if (!full_dump && (count>1)) {

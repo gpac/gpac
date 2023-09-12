@@ -565,14 +565,14 @@ GF_Err iods_box_dump(GF_Box *a, FILE * trace)
 GF_Err trak_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackBox *p;
-
 	p = (GF_TrackBox *)a;
-	gf_isom_box_dump_start(a, "TrackBox", trace);
+	const char *name = p->extl ? "ExternalTrackBox" : "TrackBox";
+	gf_isom_box_dump_start(a, name, trace);
 	gf_fprintf(trace, ">\n");
 	if (p->size && !p->Header) {
 		gf_fprintf(trace, "<!--INVALID FILE: Missing Track Header-->\n");
 	}
-	gf_isom_box_dump_done("TrackBox", a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -7137,6 +7137,18 @@ GF_Err empty_box_dump(GF_Box *a, FILE * trace)
 	}
 	gf_isom_box_dump_start(a, name, trace);
 	gf_isom_box_dump_done(name, a, trace);
+	return GF_OK;
+}
+
+GF_Err extl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ExternalTrackLocationBox", trace);
+	gf_fprintf(trace, " referenced_trackID=\"%u\" referenced_type=\"%s\"", ptr->referenced_track_ID, gf_4cc_to_str(ptr->referenced_handler_type));
+	if (ptr->flags & 1) gf_fprintf(trace, " media_timescale=\"%u\"", ptr->media_timescale);
+	gf_fprintf(trace, " location=\"%s\">\n", ptr->location ? ptr->location : "NONE");
+	gf_isom_box_dump_done("ExternalTrackLocationBox", a, trace);
 	return GF_OK;
 }
 

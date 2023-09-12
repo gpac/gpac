@@ -594,6 +594,7 @@ GF_Err gf_isom_write(GF_ISOFile *movie)
 		u32 i, count = gf_list_count(movie->moov->trackList);
 		for (i=0; i<count; i++) {
 			GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+			if (trak->extl) continue;
 			e = SetTrackDuration(trak);
 			if (e) return e;
 		}
@@ -1131,7 +1132,14 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **
 	}
 	*lang = NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !trak->Media) return GF_BAD_PARAM;
+	if (!trak) return GF_BAD_PARAM;
+
+	if (trak->extl) {
+		GF_ExtendedLanguageBox *elng = (GF_ExtendedLanguageBox *) gf_isom_box_find_child(trak->child_boxes, GF_ISOM_BOX_TYPE_ELNG);
+		if (elng) *lang = gf_strdup(elng->extended_language);
+		return GF_OK;
+	}
+	if (!trak->Media) return GF_BAD_PARAM;
 	count = gf_list_count(trak->Media->child_boxes);
 	if (count>0) {
 		u32 i;
@@ -1391,7 +1399,7 @@ u32 gf_isom_get_sample_description_count(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
+	if (!trak || !trak->Media) return 0;
 
 	return gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 }
@@ -1474,7 +1482,12 @@ u32 gf_isom_get_media_timescale(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !trak->Media || !trak->Media->mediaHeader) return 0;
+	if (!trak) return 0;
+	if (trak->extl) {
+		if (trak->extl->flags & GF_ISOM_EXTK_USE_EDIT) return trak->extl->media_timescale;
+		return 0;
+	}
+	if (!trak->Media || !trak->Media->mediaHeader) return 0;
 	return trak->Media->mediaHeader->timeScale;
 }
 
@@ -6526,6 +6539,50 @@ GF_Err gf_isom_set_sample_alloc(GF_ISOFile *the_file, u32 trackNumber, 	u8 *(*sa
 	if (!trak) return GF_BAD_PARAM;
 	trak->sample_alloc_cbk = sample_alloc;
 	trak->sample_alloc_udta = udta;
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_isom_is_external_track(GF_ISOFile *the_file, u32 trackNumber, GF_ISOTrackID *tkid, u32 *type, u32 *flags, const char **location)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->extl) return GF_FALSE;
+
+	if (tkid) *tkid = trak->extl->referenced_track_ID;
+	if (type) *type = trak->extl->referenced_handler_type;
+	if (location) *location = trak->extl->location;
+	if (flags) *flags = trak->extl->flags;
+	return GF_TRUE;
+}
+
+GF_Err gf_isom_merge_external_edit(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track)
+{
+	GF_TrackBox *trak_dst = gf_isom_get_track_from_file(dst, dst_track);
+	if (!trak_dst || trak_dst->extl || !dst->moov->mvhd) return GF_BAD_PARAM;
+	GF_TrackBox *trak_src = gf_isom_get_track_from_file(src, src_track);
+	if (!trak_src || !trak_src->extl || !src->moov->mvhd) return GF_BAD_PARAM;
+	if (!trak_src->extl->media_timescale) return GF_ISOM_INVALID_FILE;
+
+	if (trak_dst->editBox) {
+		gf_isom_box_del_parent(&trak_dst->child_boxes, (GF_Box*)trak_dst->editBox);
+		trak_dst->editBox = NULL;
+	}
+	if (!trak_src->editBox) return GF_OK;
+	gf_list_del_item(trak_src->child_boxes, trak_src->editBox);
+	if (!trak_src->editBox->editList || !gf_list_count(trak_src->editBox->editList->entryList)) {
+		gf_isom_box_del((GF_Box*)trak_src->editBox);
+		trak_src->editBox = NULL;
+		return GF_OK;
+	}
+	trak_dst->editBox = trak_src->editBox;
+	trak_src->editBox = NULL;
+	u32 i, nb_entries = gf_list_count(trak_dst->editBox->editList->entryList);
+	for (i=0; i<nb_entries; i++) {
+		GF_EdtsEntry *ent = gf_list_get(trak_dst->editBox->editList->entryList, i);
+		gf_timestamp_rescale(ent->segmentDuration, src->moov->mvhd->timeScale, dst->moov->mvhd->timeScale);
+		gf_timestamp_rescale(ent->mediaTime, trak_src->extl->media_timescale, trak_dst->Media->mediaHeader->timeScale);
+	}
 	return GF_OK;
 }
 

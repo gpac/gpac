@@ -652,6 +652,7 @@ ISOM_BOX_IMPL_DECL(pdin)
 ISOM_BOX_IMPL_DECL(def_parent)
 ISOM_BOX_IMPL_DECL(def_parent_full)
 ISOM_BOX_IMPL_DECL(csgp)
+ISOM_BOX_IMPL_DECL(extl)
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -1141,7 +1142,9 @@ static struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_KIND, kind, "udta", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_HDLR, hdlr, "mdia meta minf", 0),	//minf container is OK in QT ...
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_TRAK, trak, "moov"),
-	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_EDTS, edts, "trak"),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_EXTK, trak, "moov"),
+	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_EXTL, extl, "extk", 0, 0x000001 | 0x000002 | 0x000004 | 0x000008),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_EDTS, edts, "trak extk"),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_UDTA, udta, "moov trak moof traf"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_DREF, dref, "dinf", 0),
 	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_STSD, stsd, "stbl", 0),
@@ -1159,13 +1162,13 @@ static struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SDTP, sdtp, "stbl traf", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_CO64, co64, "stbl", 0),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MINF, minf, "mdia"),
-	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_TKHD, tkhd, "trak", 1, 0x000001 | 0x000002 | 0x000004 | 0x000008),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_TREF, tref, "trak"),
+	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_TKHD, tkhd, "trak extk", 1, 0x000001 | 0x000002 | 0x000004 | 0x000008),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_TREF, tref, "trak extk"),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MDIA, mdia, "trak"),
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MFRA, mfra, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MFRO, mfro, "mfra", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFRA, tfra, "mfra", 1),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ELNG, elng, "mdia extk", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PDIN, pdin, "file", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SBGP, sbgp, "stbl traf", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", 2),
@@ -1175,7 +1178,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_SAIO, saio, "stbl traf", 1, 0),
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_SAIO, saio, "stbl traf", 1, 1),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_SUBS, subs, "stbl traf", 0, 7), //warning flags are not used as a bit mask but as an enum!!
-	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_TRGR, trgr, "trak"),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_TRGR, trgr, "trak extk"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FTYP, ftyp, "file otyp"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_OTYP, def_parent, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PADB, padb, "stbl", 0),
@@ -1557,8 +1560,8 @@ static struct box_registry_entry {
 
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_GMHD, def_parent, "minf", "apple"),
-	BOX_DEFINE_S(GF_QT_BOX_TYPE_LOAD, load, "trak", "apple"),
-	BOX_DEFINE_S(GF_QT_BOX_TYPE_TAPT, def_parent, "trak", "apple"),
+	BOX_DEFINE_S(GF_QT_BOX_TYPE_LOAD, load, "trak extk", "apple"),
+	BOX_DEFINE_S(GF_QT_BOX_TYPE_TAPT, def_parent, "trak extk", "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_GMIN, gmin, "gmhd", 0, "apple"),
 	FBOX_DEFINE_FLAGS_S( GF_QT_BOX_TYPE_ALIS, alis, "dref", 0, 1, "apple"),
 	FBOX_DEFINE_FLAGS_S( GF_QT_BOX_TYPE_CIOS, alis, "dref", 0, 1, "apple"),

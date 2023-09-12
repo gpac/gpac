@@ -991,6 +991,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_track_references) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_text_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_referenced) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_external_track) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -1198,6 +1199,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_vvc_set_inband_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_subtitle_set_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_index) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_external_track) )
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING

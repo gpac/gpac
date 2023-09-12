@@ -83,6 +83,8 @@ enum
 	GF_ISOM_BOX_TYPE_STRI	= GF_4CC( 's', 't', 'r', 'i' ),
 	GF_ISOM_BOX_TYPE_STRD	= GF_4CC( 's', 't', 'r', 'd' ),
 	GF_ISOM_BOX_TYPE_STSG	= GF_4CC( 's', 't', 's', 'g' ),
+	GF_ISOM_BOX_TYPE_EXTK	= GF_4CC( 'e', 'x', 't', 'k' ),
+	GF_ISOM_BOX_TYPE_EXTL	= GF_4CC( 'e', 'x', 't', 'l' ),
 
 	GF_ISOM_BOX_TYPE_UDTA	= GF_4CC( 'u', 'd', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_VMHD	= GF_4CC( 'v', 'm', 'h', 'd' ),
@@ -914,6 +916,16 @@ typedef struct {
 	u32 track_group_id;
 } GF_TrackGroupTypeBox;
 
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u32 referenced_track_ID;
+	u32 referenced_handler_type;
+	u32 media_timescale;
+	char *location;
+} GF_ExternalTrackLocationBox;
+
+
+
 typedef struct
 {
 	GF_ISOM_BOX
@@ -925,6 +937,8 @@ typedef struct
 	/*meta box if any*/
 	struct __tag_meta_box *meta;
 	GF_TrackGroupBox *groups;
+	/*external track location*/
+	GF_ExternalTrackLocationBox *extl;
 
 	GF_Box *Aperture;
 	

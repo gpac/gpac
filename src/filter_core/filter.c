@@ -3945,17 +3945,32 @@ Bool gf_filter_url_is_filter(GF_Filter *filter, const char *url, Bool *act_as_so
 }
 
 GF_EXPORT
-GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
+GF_Filter *gf_filter_connect_source_internal(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, Bool is_src_add, GF_Err *err)
 {
 	GF_Filter *filter_src;
-	const char *args;
+	GF_Filter *src_orig=NULL;
+	const char *args = NULL;
 	char *full_args = NULL;
 	if (!filter) {
 		if (err) *err = GF_BAD_PARAM;
 		return NULL;
 	}
+	if (is_src_add) {
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, 0);
+		src_orig = (pidi && pidi->pid) ? pidi->pid->filter : NULL;
+		while (src_orig && src_orig->num_input_pids) {
+			src_orig = pidi->pid->filter;
+			pidi = gf_list_get(src_orig->input_pids, 0);
+		}
+		if (!src_orig) {
+			if (err) *err = GF_BAD_PARAM;
+			return NULL;
+		}
+		args = inherit_args ? gf_filter_get_args_stripped(filter->session, src_orig->orig_args, GF_FALSE) : NULL;
+	} else {
+		args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
+	}
 
-	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
 	if (args) {
 		char *rem_opts[] = {"FID", "SID", "N", "RSID", "clone", NULL};
 		char szSep[10];
@@ -4004,11 +4019,20 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 	if (gf_filter_url_is_filter(filter, url, NULL)) {
 		filter_src = gf_fs_load_filter(filter->session, url, err);
 	} else {
-		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, filter, GF_TRUE, GF_TRUE, NULL, NULL);
+		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, is_src_add ? NULL : filter, GF_TRUE, GF_TRUE, NULL, NULL);
 	}
 	if (full_args) gf_free(full_args);
 
 	if (!filter_src) return NULL;
+
+	if (src_orig) {
+		gf_filter_set_id(filter_src, src_orig->id);
+		gf_filter_set_name(filter_src, src_orig->name);
+		filter_src->require_source_id = src_orig->require_source_id;
+		filter_src->subsource_id = src_orig->subsource_id;
+		filter_src->subsession_id = src_orig->subsession_id;
+		return filter_src;
+	}
 
 	gf_mx_p(filter->tasks_mx);
 	if (!filter->source_filters)
@@ -4016,6 +4040,17 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 	gf_list_add(filter->source_filters, filter_src);
 	gf_mx_v(filter->tasks_mx);
 	return filter_src;
+}
+
+GF_EXPORT
+GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
+{
+	return gf_filter_connect_source_internal(filter, url, parent_url, inherit_args, GF_FALSE, err);
+}
+GF_EXPORT
+GF_Filter *gf_filter_add_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err)
+{
+	return gf_filter_connect_source_internal(filter, url, parent_url, inherit_args, GF_TRUE, err);
 }
 
 GF_EXPORT
