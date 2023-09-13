@@ -6147,6 +6147,16 @@ u32 gf_isom_meta_get_item_ref_count(GF_ISOFile *isom_file, Bool root_meta, u32 t
 \return ID if the referred item*/
 u32 gf_isom_meta_get_item_ref_id(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 from_id, u32 type, u32 ref_idx);
 
+/*! gets number of references of a given type to a given item ID
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param from_id item ID to check
+\param type reference type to check
+\return number of referenced items*/
+u32 gf_isom_meta_item_has_ref(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 to_id, u32 type);
+
+
 /*! item tile mode*/
 typedef enum {
 	/*! not a tile item*/

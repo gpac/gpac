@@ -1787,6 +1787,7 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	GF_ESD *esd;
 	u32 item_id=0;
 	u32 scheme_type=0, scheme_version=0, item_type;
+	u32 item_codecid=0;
 	const char *item_name, *item_mime_type, *item_encoding;
 
 retry:
@@ -1819,11 +1820,18 @@ retry:
 
 	esd = gf_media_map_item_esd(read->mov, item_id);
 	if (!esd) {
-		//unsupported item, try next
-		item_idx++;
-		goto retry;
+		switch (item_type) {
+		case GF_ISOM_SUBTYPE_HVT1:
+			item_codecid = GF_CODECID_HEVC_TILES;
+			break;
+		default:
+			//unsupported item, try next
+			item_idx++;
+			goto retry;
+		}
+	} else {
+		item_codecid = esd->decoderConfig->objectTypeIndication;
 	}
-
 
 	//OK declare PID
 	if (!ch)
@@ -1838,23 +1846,32 @@ retry:
 	if (!ch) {
 		if (read->pid)
 			gf_filter_pid_copy_properties(pid, read->pid);
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd ? esd->ESID : item_id));
 	}
 
 	if (read->itemid)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
 		
+	if ((item_codecid==GF_CODECID_HEVC) && gf_isom_meta_item_has_ref(read->mov, GF_TRUE, 0, item_id, GF_ISOM_REF_TBAS)) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
+	}
+
+
 	//TODO: no support for LHEVC images
 	//gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
 
-	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
-	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(item_codecid));
 	gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
-	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
+	if (esd) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
+		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
 
-		esd->decoderConfig->decoderSpecificInfo->data=NULL;
-		esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+			esd->decoderConfig->decoderSpecificInfo->data=NULL;
+			esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+		}
+		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
 
 	if (props.width && props.height) {
@@ -1898,6 +1915,12 @@ retry:
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ISOM_SUBTYPE,  &PROP_4CC(GF_ISOM_ITEM_TYPE_UNCI) );
 	}
 
+	if (item_codecid == GF_CODECID_HEVC_TILES) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(props.hOffset, props.vOffset) );
+
+		u32 base_id = gf_isom_meta_get_item_ref_id(read->mov, GF_TRUE, 0, item_id, GF_ISOM_REF_TBAS, 1);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, base_id ? &PROP_UINT(base_id) : NULL );
+	}
 
 	//setup cenc
 	if (scheme_type) {
@@ -1905,11 +1928,9 @@ retry:
 		gf_filter_pid_set_property(pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(GF_TRUE) );
 
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
 	}
-
-	gf_odf_desc_del((GF_Descriptor *)esd);
 
 	if (!ch) {
 		ch = isor_create_channel(read, pid, 0, item_id, GF_FALSE);
