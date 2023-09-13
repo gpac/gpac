@@ -119,6 +119,8 @@ static GF_Err ffavf_setup_input(GF_FFAVFilterCtx *ctx, GF_FFAVPid *avpid)
 			   "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x"LLU,
 			   1, avpid->timescale, avpid->sr, av_get_sample_fmt_name(avpid->pfmt), avpid->ch_layout);
 	}
+	//destroy filter (will remove from graph)
+	if (avpid->io_filter_ctx) avfilter_free(avpid->io_filter_ctx);
 	avpid->io_filter_ctx = NULL;
 	ret = avfilter_graph_create_filter(&avpid->io_filter_ctx, avf, pid_name, args, NULL, ctx->filter_graph);
 	if (ret<0) {
@@ -169,6 +171,10 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_BPS, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_FORMAT, NULL);
+
+				//until configured do not advertize width/height to avoid filters setup down the chain
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, NULL);
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_HEIGHT, NULL);
 			} else {
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, NULL);
@@ -182,6 +188,10 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_TRANSFER, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_PRIMARIES, NULL);
+
+				//until configured do not advertize SR/channels to avoid filters setup down the chain
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, NULL);
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, NULL);
 			}
 			gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 			gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FILE_EXT, NULL);
