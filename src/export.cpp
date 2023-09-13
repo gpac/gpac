@@ -939,6 +939,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_next_alternate_group_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_primary_item_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_meta_get_item_ref_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_meta_item_has_ref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_meta_get_item_ref_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_JPEG2000) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_rvc_config) )

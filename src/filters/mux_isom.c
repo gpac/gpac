@@ -5459,6 +5459,13 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	if (p && ((p->type==GF_PROP_DATA)||(p->type==GF_PROP_CONST_DATA)) && p->value.data.ptr) {
 		image_props.interlace_type = p->value.data.ptr[0];
 	}
+	if (tkw->codecid==GF_CODECID_HEVC_TILES) {
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CROP_POS);
+		if (p) {
+			image_props.hOffset = p->value.vec2i.x;
+			image_props.vOffset = p->value.vec2i.y;
+		}
+	}
 
 	//setup crypto
 	if (tkw->is_encrypted && gf_filter_pck_get_crypt_flags(pck)) {
@@ -5549,6 +5556,14 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	if (media_brand && (ctx->major_brand_set==2)) {
 		gf_isom_modify_alternate_brand(ctx->file, media_brand, 1);
 	}
+
+	if (tkw->codecid==GF_CODECID_HEVC_TILES) {
+		p = gf_filter_pid_get_property_str(tkw->ipid, "isom:tbas");
+		if (p && (p->value.uint_list.nb_items==1)) {
+			gf_isom_meta_add_item_ref(ctx->file, GF_TRUE, 0, item_id, p->value.uint_list.vals[0], GF_ISOM_REF_TBAS, NULL);
+		}
+	}
+
 #if 0
 	if (e == GF_OK && meta->ref_type) {
 		e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);

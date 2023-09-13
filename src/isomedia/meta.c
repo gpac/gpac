@@ -2132,6 +2132,28 @@ u32 gf_isom_meta_get_item_ref_count(GF_ISOFile *file, Bool root_meta, u32 track_
 	}
 	return 0;
 }
+GF_EXPORT
+u32 gf_isom_meta_item_has_ref(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 to_id, u32 type)
+{
+	u32 i, j, count, nb_refs=0;
+	GF_ItemReferenceTypeBox *ref;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta || !type || !to_id) return 0;
+	if (!meta->item_refs) return 0;
+
+	count = gf_list_count(meta->item_refs->references);
+	for (i = 0; i < count; i++) {
+		ref = (GF_ItemReferenceTypeBox *)gf_list_get(meta->item_refs->references, i);
+		if (ref->reference_type != type) continue;
+		for (j=0; j<ref->reference_count; j++) {
+			if (ref->to_item_IDs[j] == to_id) {
+				nb_refs++;
+				break;
+			}
+		}
+	}
+	return nb_refs;
+}
 
 GF_EXPORT
 u32 gf_isom_meta_get_item_ref_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 from_id, u32 type, u32 ref_idx)
