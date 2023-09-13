@@ -1110,6 +1110,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 #ifndef GPAC_DISABLE_THREADS
 		u32 i;
 #endif
+		//safety for uneven size in 422/420 rounding (fuzz)
+		uv_alpha_size += 4;
 		if (surf->uv_alpha_alloc < uv_alpha_size) {
 			surf->uv_alpha_alloc = uv_alpha_size;
 			surf->raster_ctx.uv_alpha = gf_realloc(surf->raster_ctx.uv_alpha, uv_alpha_size);
