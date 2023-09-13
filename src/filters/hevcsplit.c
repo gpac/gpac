@@ -662,6 +662,21 @@ static void hevcsplit_write_nal(char *output_nal, char *rewritten_nal, u32 out_n
 	memcpy(output_nal, rewritten_nal, out_nal_size);
 }
 
+static GF_Err hevcsplit_config_passthrough(GF_Filter *filter, GF_HEVCSplitCtx *ctx, GF_FilterPid *pid)
+{
+	HEVCTilePid *tpid = gf_list_get(ctx->outputs, 0);
+	if (!tpid) {
+		GF_SAFEALLOC(tpid, HEVCTilePid);
+		if (!tpid) return GF_OUT_OF_MEM;
+		gf_list_add(ctx->outputs, tpid);
+		tpid->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_udta(tpid->opid, tpid);
+	}
+	gf_filter_pid_copy_properties(tpid->opid, pid);
+	ctx->passthrough = GF_TRUE;
+	return GF_OK;
+}
+
 static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 cfg_crc = 0, codecid, o_width, o_height;
@@ -698,6 +713,12 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	}
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	//not ready, crete default output as passthrough for filter chain setup
+	if (!dsi && !ctx->ipid) {
+		ctx->ipid = pid;
+		return hevcsplit_config_passthrough(filter, ctx, pid);
+	}
+	ctx->ipid = pid;
 	cfg_crc = 0;
 	if (dsi && dsi->value.data.ptr && dsi->value.data.size) {
 		cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
@@ -705,7 +726,6 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	//same config, skip reconf
 	if (!dsi || (cfg_crc == ctx->cfg_crc)) return GF_OK;
 	ctx->cfg_crc = cfg_crc;
-	ctx->ipid = pid;
 
 	// parse otherwise they should refer to something else
 	u32 i, j;
@@ -760,17 +780,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 	if (!rows && !cols) {
-		HEVCTilePid *tpid = gf_list_get(ctx->outputs, 0);
-		if (!tpid) {
-			GF_SAFEALLOC(tpid, HEVCTilePid);
-			if (!tpid) return GF_OUT_OF_MEM;
-			gf_list_add(ctx->outputs, tpid);
-			tpid->opid = gf_filter_pid_new(filter);
-			gf_filter_pid_set_udta(tpid->opid, tpid);
-		}
-		gf_filter_pid_copy_properties(tpid->opid, pid);
-		ctx->passthrough = GF_TRUE;
-		return GF_OK;
+		return hevcsplit_config_passthrough(filter, ctx, pid);
 	}
 	ctx->passthrough = GF_FALSE;
 
