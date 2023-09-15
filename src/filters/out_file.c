@@ -27,6 +27,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/xml.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_FOUT
 
@@ -81,6 +82,7 @@ typedef struct
 	Bool gfio_pending;
 
 	u64 last_file_size;
+	Bool use_rel;
 
 #ifdef GPAC_HAS_FD
 	Bool no_fd;
@@ -590,7 +592,7 @@ restart:
 	}
 
 	if (start) {
-		const GF_PropertyValue *ext, *fnum, *fsuf;
+		const GF_PropertyValue *ext, *fnum, *fsuf, *rel;
 		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
 		fname = ext = NULL;
@@ -614,7 +616,21 @@ restart:
 			explicit_overwrite = GF_TRUE;
 
 		if (name) {
+			Bool use_rel = GF_FALSE;
+			if (ctx->dst) {
+				use_rel = ctx->use_rel;
+				rel = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_REL);
+				if (rel && rel->value.boolean) use_rel = GF_TRUE;
+			}
+			if (use_rel) {
+				name = gf_url_concatenate(ctx->dst, name);
+			}
 			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite, fsuf ? fsuf->value.string : NULL);
+
+			if (use_rel) {
+				gf_free((char*) name);
+			}
+
 		} else if (!ctx->file && !ctx->noinitraw
 #ifdef GPAC_HAS_FD
 			&& (ctx->fd<0)
@@ -880,7 +896,13 @@ static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null delete (file name was %s)\n", evt->file_del.url));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] delete file %s\n", evt->file_del.url));
-			gf_file_delete(evt->file_del.url);
+			if (ctx->use_rel) {
+				char *fname = gf_url_concatenate(ctx->dst, evt->file_del.url);
+				gf_file_delete(fname);
+				gf_free(fname);
+			} else {
+				gf_file_delete(evt->file_del.url);
+			}
 		}
 		return GF_TRUE;
 	}
@@ -927,6 +949,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(noinitraw), "do not produce initial segment", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(max_cache_segs), "maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_null), "force no output regardless of file name", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(use_rel), "packet filename use relative names (only set by dasher)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

@@ -869,6 +869,7 @@ struct __gf_filter
 	GF_Filter *single_source;
 
 	char *meta_instances;
+	Bool no_segsize_evts;
 
 #ifdef GPAC_HAS_QJS
 	char *iname;
@@ -1079,6 +1080,9 @@ struct __gf_filter_pid
 	//only used in filter_check_caps
 	GF_PropertyMap *local_props;
 	volatile u32 num_pidinst_del_pending;
+
+	u32 link_flags;
+
 };
 
 
