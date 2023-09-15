@@ -5441,6 +5441,38 @@ Warning: Options for segment destination cannot be set through the .I template, 
 .br
 
 .br
+.SS Output redirecting
+.br
+When loaded implicitly during link resolution, the dasher will only link its outputs to the target sink
+.br
+Example
+.br
+gpac -i SRC -o URL1:OPTS1 -o URL2:OPTS1
+.br
+
+.br
+This will create one dasher (with options OPTS1) for the URL1 and one dasher (with options OPTS1) for URL2.
+.br
+This allows dashing to multiple outputs with different formats, dash durations, etc.
+.br
+
+.br
+It can be usefull to redirect all the filter outputs to several sinks, for example to push through ROUTE and through HTTP the same segments.
+.br
+In order to do this, the filter MUST be explicitly loaded and all options related to dash and MP4 must be set either globally or on the dasher filter.
+.br
+Example
+.br
+gpac -i SRC dasher:cmfc:segdur=2 -o URL1 -o URL2
+.br
+
+.br
+This will create a single dasher whose outputs (manifests and segments) will be redirected to the given URLs.
+.br
+When explicitly loading the filter, the .I dual option will be disabled unless .I mname is set to the alternate output name.
+.br
+
+.br
 .SS Multiplexer development considerations
 .br
 Output multiplexers allowing segmented output must obey the following:
@@ -5730,7 +5762,7 @@ mha_compat (enum, default: no): adaptation set generation mode for compatible MP
 .br
 
 .br
-mname (str):                   output manifest name for ATSC3 multiplexing
+mname (str):                   output manifest name for ATSC3 multiplexing (using 'm3u8' only toggles HLS generation)
 .br
 llhls (enum, default: off):    HLS low latency type
 .br

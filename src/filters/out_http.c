@@ -3866,6 +3866,10 @@ next_pck:
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_INIT);
 			if (p && p->value.boolean) is_static = GF_TRUE;
 
+			p = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_REL);
+			Bool use_rel = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
+			char *dyn_name=NULL;
+
 			if (!name) {
 				/*if PID was connected to an alias, get the alias context to get the destination
 				Otherwise PID was directly connected to the main filter, use main filter destination*/
@@ -3882,9 +3886,13 @@ next_pck:
 				}
 			} else if (in->force_dst_name && !ctx->dst_in) {
 				ctx->dst_in = in;
+			} else if (use_rel) {
+				dyn_name = gf_url_concatenate(ctx->dst, name);
 			}
 
-			httpout_open_input(ctx, in, name, GF_FALSE, is_static);
+			httpout_open_input(ctx, in, dyn_name ? dyn_name : name, GF_FALSE, is_static);
+			if (dyn_name) gf_free(dyn_name);
+
 			if (!in->is_open) {
 				httpout_input_in_error(in);
 				continue;

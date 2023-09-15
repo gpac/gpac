@@ -5311,6 +5311,12 @@ const char *gf_filter_meta_get_instances(GF_Filter *filter)
 	return filter ? filter->meta_instances : NULL;
 }
 
+void gf_filter_skip_seg_size_events(GF_Filter *filter)
+{
+	if (filter) filter->no_segsize_evts=GF_TRUE;
+}
+
+
 #if 0
 void gf_filter_pid_dump_buffers(GF_FilterPid *pid)
 {

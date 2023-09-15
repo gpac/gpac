@@ -754,13 +754,15 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(rpid->pid);
 			if (!pck) break;
 
+			file_name = ctx->dst;
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-			if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
-
-			if (p)
+			if (p) {
 				file_name = p->value.string;
-			else
-				file_name = ctx->dst;
+			} else {
+				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
+				if (p)
+					file_name = gf_file_basename(p->value.string);
+			}
 
 			if (file_name) {
 				proto = strstr(file_name, "://");

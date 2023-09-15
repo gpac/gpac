@@ -1279,6 +1279,7 @@ enum
 	GF_PROP_PID_PREMUX_STREAM_TYPE = GF_4CC('P','P','S','T'),
 
 	GF_PROP_PID_CODEC_MERGEABLE = GF_4CC('P','C','M','B'),
+	GF_PROP_PID_FILE_REL = GF_4CC('F','N','R','L'),
 
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists

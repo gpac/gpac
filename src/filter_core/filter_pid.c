@@ -4413,6 +4413,12 @@ static Bool parent_chain_has_dyn_pids(GF_Filter *filter)
 	return GF_FALSE;
 }
 
+enum
+{
+	PID_FORCE_SINGLE = 1,
+	PID_DISABLE_CLONE = 1<<1,
+};
+
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 f_idx, count;
@@ -4706,6 +4712,10 @@ single_retry:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s not clonable\n", filter_dst->name));
 				continue;
 			}
+
+			//pid does not allow linking to a new clone
+			if (pid->link_flags & PID_DISABLE_CLONE)
+				continue;
 
 			//explicitly clonable but caps don't match, don't connect to it
 			if (!gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1)) {
@@ -5229,6 +5239,8 @@ single_retry:
 				implicit_link_found = GF_TRUE;
 			}
 		}
+		if (pid->link_flags & PID_FORCE_SINGLE)
+			break;
     }
 
 	if (!num_pass) {
@@ -7723,6 +7735,9 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 
 		gf_mx_v(pid->pid->filter->tasks_mx);
 	}
+	else if (pid->filter->no_segsize_evts && (evt->base.type==GF_FEVT_SEGMENT_SIZE) ) {
+		return;
+	}
 
 	an_evt = init_evt(evt);
 	if (evt->base.on_pid) {
@@ -8676,7 +8691,7 @@ static char *gf_filter_pid_get_dst_string(GF_FilterSession *sess, const char *_a
 
 
 GF_EXPORT
-char *gf_filter_pid_get_destination(GF_FilterPid *pid)
+char *gf_filter_pid_get_destination_ex(GF_FilterPid *pid, u32 dst_idx)
 {
 	const char *dst_args;
 	char *res;
@@ -8694,6 +8709,7 @@ char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 	//if not set this means we have explicitly loaded the filter
 	for (i=0; i<pid->num_destinations; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+		if (dst_idx && (i + 1 != dst_idx)) continue;
 
 		dst_args = pidi->filter->dst_args;
 		if (!dst_args) dst_args = pidi->filter->src_args;
@@ -8707,6 +8723,11 @@ char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 		}
 	}
 	return NULL;
+}
+GF_EXPORT
+char *gf_filter_pid_get_destination(GF_FilterPid *pid)
+{
+	return gf_filter_pid_get_destination_ex(pid, 0);
 }
 
 GF_EXPORT
@@ -9283,4 +9304,23 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 	gf_filter_pid_set_eos(pid);
 	//set keepalive once eos has been called
 	pid->eos_keepalive = GF_TRUE;
+}
+
+void gf_filter_pid_force_single_link(GF_FilterPid *pid)
+{
+	if (!pid) return;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to force single link mode on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return;
+	}
+	pid->link_flags |= PID_FORCE_SINGLE;
+}
+void gf_filter_pid_disable_clone(GF_FilterPid *pid)
+{
+	if (!pid) return;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set disable clone on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return;
+	}
+	pid->link_flags |= PID_DISABLE_CLONE;
 }
