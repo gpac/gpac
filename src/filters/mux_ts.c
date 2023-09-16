@@ -162,6 +162,7 @@ typedef struct
 	u32 pending_packets;
 
 	u32 sync_init_time;
+	GF_Fraction64 dash_seg_start;
 } GF_TSMuxCtx;
 
 typedef struct
@@ -385,6 +386,17 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 
 }
 
+static void tsmux_check_mpd_start_time(GF_TSMuxCtx *ctx, GF_FilterPacket *pck)
+{
+	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MPD_SEGSTART);
+	if (p) {
+		ctx->dash_seg_start = p->value.lfrac;
+	} else {
+		ctx->dash_seg_start.num = 0;
+		ctx->dash_seg_start.den = 0;
+	}
+}
+
 static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	u32 cversion;
@@ -441,6 +453,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					tspid->ctx->wait_dash_flush = GF_TRUE;
 				tspid->ctx->dash_seg_num = p->value.uint;
 				tspid->ctx->dash_file_name[0] = 0;
+				tsmux_check_mpd_start_time(tspid->ctx, pck);
 			}
 
 			//segment change is pending, check for filename as well - we don't do that in the previous test
@@ -1632,8 +1645,10 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			pck = gf_filter_pid_get_packet(tspid->ipid);
 			if (!pck) return GF_OK;
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
-			if (p)
+			if (p) {
 				tspid->ctx->dash_seg_num = p->value.uint;
+				tsmux_check_mpd_start_time(tspid->ctx, pck);
+			}
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (p)
 				strcpy(tspid->ctx->dash_file_name, p->value.string);
@@ -1758,6 +1773,8 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num) );
 			if (ctx->dash_file_name[0])
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->dash_file_name) ) ;
+			if (ctx->dash_seg_start.den)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) ) ;
 
 			ctx->dash_file_name[0] = 0;
 			ctx->next_is_start = GF_FALSE;
@@ -1785,6 +1802,8 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(ctx->cur_file_suffix));
 				ctx->cur_file_suffix = NULL;
 			}
+			if (ctx->dash_seg_start.den)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) ) ;
 			ctx->notify_filename = GF_FALSE;
 		}
 		gf_filter_pck_send(pck);

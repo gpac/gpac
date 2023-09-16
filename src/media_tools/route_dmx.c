@@ -623,8 +623,14 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         is_init = GF_TRUE;
         assert(final_push);
     } else {
-        if (!obj->solved_path[0])
+        if (!obj->solved_path[0]) {
+			if (!obj->rlct->toi_template) {
+				if (obj->status != GF_LCT_OBJ_RECEPTION)
+					gf_route_obj_to_reservoir(routedmx, s, obj);
+				return GF_OK;
+			}
             sprintf(obj->solved_path, obj->rlct->toi_template, obj->toi);
+		}
         filepath = obj->solved_path;
     }
 #ifndef GPAC_DISABLE_LOG

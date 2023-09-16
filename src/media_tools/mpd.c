@@ -4917,7 +4917,12 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			strcat(solved_template, szFormat);
 		}
 		else if (!strcmp(first_sep+1, "Time")) {
-			if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE) {
+			if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_NOSTART) {
+				if (out_start_number) *out_start_number = 1;
+				sprintf(szFormat, szPrintFormat, item_index);
+				strcat(solved_template, szFormat);
+			}
+			else if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE) {
 				strcat(solved_template, "$Time$");
 			} else if (timeline) {
 				/*uses segment timeline*/

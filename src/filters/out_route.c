@@ -333,6 +333,14 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		else if (!rpid->manifest_type) {
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
 			if (p && p->value.string) {
+				char *sep1 = strstr(p->value.string, "$Number");
+				char *sep2 = strstr(p->value.string, "$Time");
+				if (sep1 && sep2) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] DASH Template is %s but ROUTE cannot use both Time and Number !\n", p->value.string));
+					rpid->route->is_done = GF_TRUE;
+					return GF_BAD_PARAM;
+				}
+
 				if (!rpid->template || strcmp(rpid->template, p->value.string)) {
 					if (rpid->template) gf_free(rpid->template);
 					rpid->template = gf_strdup(p->value.string);
@@ -370,8 +378,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	manifest_type = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
-        if (p)
-                manifest_type = p->value.uint;
+	if (p) manifest_type = p->value.uint;
 
 	if (manifest_type) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
@@ -465,9 +472,16 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (!rpid->manifest_type && !rpid->raw_file) {
 		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
-		if (p && p->value.string) rpid->template = gf_strdup(p->value.string);
-
-		else {
+		if (p && p->value.string) {
+			char *sep1 = strstr(p->value.string, "$Number");
+			char *sep2 = strstr(p->value.string, "$Time");
+			if (sep1 && sep2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] DASH Template is %s but ROUTE cannot use both Time and Number !\n", p->value.string));
+				gf_filter_abort(filter);
+				return GF_BAD_PARAM;
+			}
+			rpid->template = gf_strdup(p->value.string);
+		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Segment file PID detected but no template assigned, assuming raw file upload!\n"));
 			rpid->raw_file = GF_TRUE;
 		}
@@ -1082,14 +1096,25 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 			p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TEMPLATE);
 			if (p) {
-				char *sep;
+				char *sep, *sep2, *key = "$Number";
 				strcpy(temp, p->value.string);
 				sep = strstr(temp, "$Number");
+				sep2 = strstr(temp, "$Time");
+				if (sep && sep2) {
+					gf_free(payload_text);
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] DASH Template is %s but ROUTE cannot use both Time and Number !\n", p->value.string));
+					serv->is_done = GF_TRUE;
+					return GF_SERVICE_ERROR;
+				}
+				if (!sep) {
+					sep = sep2;
+					key = "$Time";
+				}
 				if (sep) {
 					sep[0] = 0;
 					strcat(temp, "$TOI");
-					sep = strstr(p->value.string, "$Number");
-					strcat(temp, sep + 7);
+					sep = strstr(p->value.string, key);
+					strcat(temp, sep + strlen(key));
 				}
 			}
 
@@ -1526,12 +1551,22 @@ retry:
 		rpid->seg_name = gf_strdup(rpid->seg_name);
 
 		//file num increased per packet, open new file
-		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENUM);
-		if (p)
-			rpid->current_toi = p->value.uint;
-		else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing filenum on segment %s, something is wrong in source chain - assuming +1 increase\n", rpid->seg_name));
-			rpid->current_toi ++;
+		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_MPD_SEGSTART);
+		if (p) {
+			if (p->value.lfrac.num >= ROUTE_INIT_TOI) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] MPD Time "LLU" greater than 32 bits, session no longer valid, aborting\n", p->value.lfrac.num));
+				rpid->route->is_done = GF_TRUE;
+				gf_filter_pid_set_discard(rpid->pid, GF_TRUE);
+			}
+			rpid->current_toi = p->value.lfrac.num;
+		} else {
+			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENUM);
+			if (p)
+				rpid->current_toi = p->value.uint;
+			else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing filenum on segment %s, something is wrong in source chain - assuming +1 increase\n", rpid->seg_name));
+				rpid->current_toi ++;
+			}
 		}
 		rpid->frag_idx = 0;
 		rpid->full_frame_size = end ? rpid->pck_size : 0;

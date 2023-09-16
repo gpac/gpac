@@ -340,6 +340,8 @@ typedef struct
 	GF_FilterPacket *dst_pck;
 	char *seg_name;
 	u32 dash_seg_num_plus_one;
+	GF_Fraction64 dash_seg_start;
+
 	Bool flush_seg;
 	u32 eos_marker;
 	TrackWriter *ref_tkw;
@@ -5583,6 +5585,8 @@ static void mp4mux_send_output(GF_MP4MuxCtx *ctx)
 				ctx->cur_file_suffix = NULL;
 			}
 			ctx->notify_filename = 0;
+			if (ctx->dash_seg_start.den)
+				gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) );
 		}
 		gf_filter_pck_send(ctx->dst_pck);
 		ctx->dst_pck = NULL;
@@ -5682,6 +5686,17 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		if (ctx->seg_name) {
 			ctx->first_pck_sent = GF_FALSE;
 		}
+	}
+}
+
+static void mp4mux_check_mpd_start_time(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
+{
+	const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MPD_SEGSTART);
+	if (p) {
+		ctx->dash_seg_start = p->value.lfrac;
+	} else {
+		ctx->dash_seg_start.num = 0;
+		ctx->dash_seg_start.den = 0;
 	}
 }
 
@@ -6476,6 +6491,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 
 			if (ctx->dash_mode) {
 				if (p) {
+					mp4mux_check_mpd_start_time(ctx, pck);
 					//start of next segment, abort fragmentation for this track and flush all other writers
 					if (ctx->dash_seg_num_plus_one && (ctx->dash_seg_num_plus_one != 1 + p->value.uint) ) {
 						tkw->fragment_done = GF_TRUE;
@@ -7296,6 +7312,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			const GF_PropertyValue *p;
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 			if (p) {
+				mp4mux_check_mpd_start_time(ctx, pck);
 				if (!ctx->cur_file_idx_plus_one) {
 					ctx->cur_file_idx_plus_one = p->value.uint + 1;
 					if (!ctx->cur_file_suffix) {
@@ -7533,6 +7550,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 		ctx->current_offset = 0;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->seg_name) );
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num_plus_one-1) );
+		if (ctx->dash_seg_start.den)
+			gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) );
 	}
 
 	if (ctx->min_cts_plus_one) {
