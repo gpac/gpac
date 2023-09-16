@@ -514,6 +514,7 @@ typedef struct _dash_stream
 	u32 all_stsd_crc;
 
 	u64 frag_start_offset, frag_first_ftdt;
+	u32 tpl_use_time;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
@@ -1739,7 +1740,16 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 			if (ctx->llhls)
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHLS, &PROP_UINT(ctx->llhls) );
-
+			if (ds->rep && ds->rep->segment_template)
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->rep->segment_template->media));
+			else if (ds->set && ds->set->segment_template)
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->set->segment_template->media));
+			if (ctx->do_m3u8)
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
+			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_REP_ID, &PROP_STRING( ds->rep_id ) );
+			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC( ds->dash_dur ) );
+			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_PREMUX_STREAM_TYPE, &PROP_UINT(ds->stream_type) );
+			//end route
 			if (ctx->gencues)
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("inband") );
 		}
@@ -3623,6 +3633,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 	}
 	if (!template) template = ctx->template;
+	ds->tpl_use_time = GF_FALSE;
+	if (!strstr(template, "$Number") && strstr(template, "$Time"))
+		ds->tpl_use_time = GF_TRUE;
 
 	if (as_id) {
 		set->id = ds->as_id;
@@ -7683,6 +7696,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		}
 
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_UINT(base_ds->seg_number ) );
+		if (base_ds->tpl_use_time)
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64_INT(base_ds->seg_start_time, base_ds->mpd_timescale ) );
 
 		if (ctx->gencues) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));

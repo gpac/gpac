@@ -769,8 +769,8 @@ setup_route:
 					}
 					continue;
 				}
-
-				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL, NULL);
+				u32 tpl_use_time=0;
+				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL, &tpl_use_time);
 
 				dyn_period->duration = dur;
 
@@ -784,40 +784,100 @@ setup_route:
 				end = sep+4;
 				while (start>seg_url && (*(start-1)=='0')) { start--; nb_space++;}
 				start[0]=0;
-				len = (u32) strlen(seg_url)-2;
-				if (!strncmp(val, seg_url+2, len)) {
-					u32 number=0;
+				len = (u32) strlen(seg_url);
+				if (!strncmp(val, seg_url, len)) {
+					u64 number=0;
 					char szTemplate[100];
 
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Resolve ROUTE clock on bootstrap segment URL %s template %s\n", val, seg_url+2));
 
-					strcpy(szTemplate, seg_url+2);
+					strcpy(szTemplate, seg_url);
 					strcat(szTemplate, "%");
 					if (nb_space) {
 						char szFmt[20];
 						sprintf(szFmt, "0%d", nb_space+4);
 						strcat(szTemplate, szFmt);
 					}
-					strcat(szTemplate, "d");
+					strcat(szTemplate, LLU_SUF);
 					strcat(szTemplate, end);
 					if (sscanf(val, szTemplate, &number) == 1) {
 						u32 startNum = 1;
-						if (dyn_period->segment_template) startNum = dyn_period->segment_template->start_number;
-						if (set->segment_template) startNum = set->segment_template->start_number;
-						if (rep->segment_template) startNum = rep->segment_template->start_number;
-						if (number>=startNum) {
-                            //clock is init which means the segment is available, so the timeline offset must match the AST of the segment (includes seg dur)
-
-                            const char *ll_val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route-ll");
-                            if (ll_val && !strcmp(ll_val, "yes")) {
-                                //low latency case, we are currently receiving the segment
-                                group->dash->route_low_latency = GF_TRUE;
-                                number--;
-                            }
-                            
-                            timeline_offset_ms = seg_dur * ( 1 + number - startNum);
+						u64 pto=0;
+						u32 segdur=0, timescale=0;
+						Bool is_valid = GF_TRUE;
+						GF_MPD_SegmentTimeline *seg_timeline=NULL;
+						if (dyn_period->segment_template) {
+							startNum = dyn_period->segment_template->start_number;
+							segdur = dyn_period->segment_template->duration;
+							seg_timeline = dyn_period->segment_template->segment_timeline;
+							pto = dyn_period->segment_template->presentation_time_offset;
+							timescale = dyn_period->segment_template->timescale;
 						}
-						found = 1;
+						if (set->segment_template) {
+							startNum = set->segment_template->start_number;
+							if (set->segment_template->duration) segdur = set->segment_template->duration;
+							if (set->segment_template->segment_timeline) seg_timeline = set->segment_template->segment_timeline;
+							if (set->segment_template->presentation_time_offset) pto = set->segment_template->presentation_time_offset;
+							if (set->segment_template->timescale) timescale = set->segment_template->timescale;
+						}
+						if (rep->segment_template) {
+							startNum = rep->segment_template->start_number;
+							if (rep->segment_template->duration) segdur = rep->segment_template->duration;
+							if (rep->segment_template->segment_timeline) seg_timeline = rep->segment_template->segment_timeline;
+							if (rep->segment_template->presentation_time_offset) pto = rep->segment_template->presentation_time_offset;
+							if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
+						}
+
+						if (tpl_use_time) {
+							if (number < pto) {
+								is_valid = GF_FALSE;
+							} else if (seg_timeline) {
+								number -= pto;
+								u64 start_time=number;
+								u32 ti, nb_it = gf_list_count(seg_timeline->entries);
+								Bool et_found=GF_FALSE;;
+								number = startNum;
+								for (ti=0; ti<nb_it; ti++) {
+									u32 seg_i;
+									GF_MPD_SegmentTimelineEntry *te = gf_list_get(seg_timeline->entries, ti);
+									u64 seg_start = te->start_time;
+									for (seg_i=0; seg_i<te->repeat_count+1;seg_i++) {
+										//we need an exact match
+										if (seg_start == start_time) {
+											timeline_offset_ms = start_time;
+											et_found=GF_TRUE;
+											break;
+										}
+										seg_start+=te->duration;
+										number++;
+									}
+									if (et_found) break;
+								}
+								if (!et_found)
+									is_valid=GF_FALSE;
+							} else if (segdur) {
+								number -= pto;
+								number = startNum + number / segdur;
+							} else {
+								is_valid = GF_FALSE;
+							}
+						}
+						if (is_valid && (number>=startNum)) {
+							//clock is init which means the segment is available, so the timeline offset must match the AST of the segment (includes seg dur)
+							const char *ll_val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route-ll");
+							//low latency case, we are currently receiving the segment
+							//only do this if not using segment-timeline
+							if (!seg_timeline) {
+								if (ll_val && !strcmp(ll_val, "yes")) {
+									//low latency case, we are currently receiving the segment
+									group->dash->route_low_latency = GF_TRUE;
+									number--;
+								}
+								timeline_offset_ms = seg_dur * ( 1 + number - startNum);
+							}
+							found = 1;
+							timeline_offset_ms = gf_timestamp_rescale(timeline_offset_ms, timescale, 1000);
+						}
 					}
 				} else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] ROUTE bootstrap segment URL %s does not match template %s for rep #%d\n", val, seg_url+2, j+1));
