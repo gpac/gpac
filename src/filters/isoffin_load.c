@@ -1878,11 +1878,13 @@ GF_Err isor_declare_objects(ISOMReader *read)
 			return GF_BAD_PARAM;
 		}
 	}
-	if (!use_extk && ! gf_list_count(read->channels)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] No suitable tracks in file\n"));
-		return GF_NOT_SUPPORTED;
+	if (! gf_list_count(read->channels)) {
+		if (!use_extk) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] No suitable tracks in file\n"));
+			return GF_NOT_SUPPORTED;
+		}
+		gf_filter_abort(read->filter);
 	}
-	
 	/*if cover art, declare a video pid*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 

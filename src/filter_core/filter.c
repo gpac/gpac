@@ -4019,7 +4019,7 @@ GF_Filter *gf_filter_connect_source_internal(GF_Filter *filter, const char *url,
 	if (gf_filter_url_is_filter(filter, url, NULL)) {
 		filter_src = gf_fs_load_filter(filter->session, url, err);
 	} else {
-		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, is_src_add ? NULL : filter, GF_TRUE, GF_TRUE, NULL, NULL);
+		filter_src = gf_fs_load_source_dest_internal(filter->session, url, NULL, parent_url, err, NULL, is_src_add ? NULL : filter, GF_TRUE, is_src_add ? GF_FALSE : GF_TRUE, NULL, NULL);
 	}
 	if (full_args) gf_free(full_args);
 
