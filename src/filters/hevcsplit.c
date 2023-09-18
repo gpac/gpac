@@ -713,7 +713,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	}
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	//not ready, crete default output as passthrough for filter chain setup
+	//not ready, create default output as passthrough for filter chain setup
 	if (!dsi && !ctx->ipid) {
 		ctx->ipid = pid;
 		return hevcsplit_config_passthrough(filter, ctx, pid);
