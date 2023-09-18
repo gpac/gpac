@@ -1615,7 +1615,7 @@ reparse_opts:
 			u32 type = gf_isom_get_media_type(isom_in, ext_tk);
 			u32 timescale = gf_isom_get_media_timescale(isom_in, ext_tk);
 
-			new_tk = gf_isom_new_external_track(dest, 0, gf_isom_get_track_id(isom_in, ext_tk), type, timescale, final_name);
+			new_tk = gf_isom_new_external_track(dest, 0, track_id, type, timescale, final_name);
 		}
 		track_id = gf_isom_get_track_id(dest, new_tk);
 		fake_import = 1;
