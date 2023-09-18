@@ -10739,7 +10739,7 @@ GF_FilterRegister DasherRegister = {
 "This will create one dasher (with options OPTS1) for the URL1 and one dasher (with options OPTS1) for URL2.\n"
 "This allows dashing to multiple outputs with different formats, dash durations, etc.\n"
 "\n"
-"It can be usefull to redirect all the filter outputs to several sinks, for example to push through ROUTE and through HTTP the same segments.\n"
+"It can be useful to redirect all the filter outputs to several sinks, for example to push through ROUTE and through HTTP the same segments.\n"
 "In order to do this, the filter MUST be explicitly loaded and all options related to dash and MP4 must be set either globally or on the dasher filter.\n"
 "EX gpac -i SRC dasher:cmfc:segdur=2 -o URL1 -o URL2\n"
 "This will create a single dasher whose outputs (manifests and segments) will be redirected to the given URLs.\n"
