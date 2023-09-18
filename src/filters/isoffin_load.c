@@ -1697,7 +1697,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 			is_extk = gf_isom_is_external_track(read->extkmov, ext_tk, &ref_id, &ref_type, &flags, NULL);
 			if (!is_extk) continue;
 			if (mtype != ref_type) continue;
-			if (ref_id != gf_isom_get_track_id(read->mov, i+1)) continue;
+			if (ref_id && (ref_id != gf_isom_get_track_id(read->mov, i+1))) continue;
 			is_extk = GF_FALSE;
 			read->extk_flags = flags;
 			read->extkid = ext_tk;
