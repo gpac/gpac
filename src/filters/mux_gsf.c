@@ -1308,7 +1308,7 @@ GF_FilterRegister GSFMxRegister = {
 			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd -o dump.gsf\n"
 			"This will DASH the source and store every files produced as PIDs in the GSF mux.\n"
 			"In order to demultiplex such a file, the `gsfdmx`filter will likely need to be explicitly loaded:\n"
-			"EX gpac -i mux.gsf gsfdmx -o dump/$File$:dynext:clone\n"
+			"EX gpac -i mux.gsf gsfdmx -o dump/$File$:dynext\n"
 			"This will extract all files from the GSF mux.\n"
 			"\n"
 			"By default when working in file mode, the filter only accepts PIDs of type `file` as input.\n"

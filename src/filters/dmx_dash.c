@@ -3603,7 +3603,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"- run with no adaptation, to grab maximum quality.\n"
 	"EX gpac -i MANIFEST_URL:algo=none:start_with=max_bw -o dest.mp4\n"
 	"- run with no adaptation, fetching all qualities.\n"
-	"EX gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4:clone\n"
+	"EX gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4\n"
 	"\n"
 	"# File mode\n"
 	"When [-forward]() is set to `file`, the client forwards media files without demultiplexing them.\n"
