@@ -812,6 +812,7 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 	return map;
 }
 
+GF_EXPORT
 void gf_props_reset_single(GF_PropertyValue *p)
 {
 	if (p->type==GF_PROP_STRING) {
