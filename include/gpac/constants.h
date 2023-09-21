@@ -351,7 +351,7 @@ GF_PixelFormat gf_pixel_fmt_from_qt_type(u32 qt_code);
 */
 u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pixfmt);
 
-/*! gets uncC configuation (ISO 23001-17)  of pixel format. The configuration is made of the boxes uncC and cmpd in full mode, and uncC only in restricetd mode
+/*! gets uncC configuration (ISO 23001-17)  of pixel format. The configuration is made of the boxes uncC and cmpd in full mode, and uncC only in restricted mode
 \param pixfmt the desired pixel format
 \param profile_mode if 1, sets profile if known. If 2 and profile is known, use reduced version
 \param dsi set to the generated configuration, must be freed by user

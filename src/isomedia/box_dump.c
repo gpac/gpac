@@ -1595,9 +1595,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 }
 
 static char *ctyp_names[] = {"Monochrome", "Y", "U/Cb", "V/Cr", "Red", "Green", "Blue", "Alpha", "Depth", "Disparity", "Palette", "FilterArray",
-	"padded", "Gamma", "X-ray", "VUV", "UVC", "UVB", "UVA", "NIR", "SWIR", "MWIR", "LWIR", "Panchromatic",
-	"SAR complex", "SAR magnitude", "SAR phase",
-	"ISAR complex", "ISAR magnitude", "ISAR phase"};
+	"padded", "Cyan", "Magenta", "Yellow", "KeyBlack"};
 
 static const char *get_comp_type_name(u32 ctype)
 {
