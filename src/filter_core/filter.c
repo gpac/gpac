@@ -2407,7 +2407,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst, GF_Err reason)
 	gf_filter_renegociate_output_dst(link_from_pid, link_from_pid->filter, filter_dst, dst_pidinst, src_pidinst);
 }
 
-GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args, GF_List *filter_blacklist);
+GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args, GF_List *filter_blacklist, GF_Err *err_code);
 
 void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *dst_pidi, GF_FilterPidInst *src_pidi)
 {
@@ -2425,7 +2425,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	src_f = src_pidi ? src_pidi->pid->filter : pid->pid->filter;
 
 	if (src_pidi && src_pidi->filter->encoder_codec_id) {
-		new_f = gf_fs_load_encoder(filter->session, src_pidi->filter->orig_args, filter->blacklisted);
+		new_f = gf_fs_load_encoder(filter->session, src_pidi->filter->orig_args, filter->blacklisted, NULL);
 
 		//store destination
 		if (new_f) {
