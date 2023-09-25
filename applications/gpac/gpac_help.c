@@ -2185,7 +2185,7 @@ void dump_all_props(char *pname)
 
 		gf_sys_format_help(helpout, help_flags, "Name | Description  \n");
 		gf_sys_format_help(helpout, help_flags, "--- | ---  \n");
-		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
+		for (i=GF_PROP_FORBIDDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
 			if (i==GF_PROP_STRING_LIST_COPY) continue;
@@ -2205,7 +2205,7 @@ void dump_all_props(char *pname)
 		gf_sys_format_help(helpout, help_flags, "Built-in properties matching `%s` for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (droppable - see GSF multiplexer filter help), P (packet property)\n", pname);
 	} else {
 		gf_sys_format_help(helpout, help_flags, "Built-in property types\n");
-		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
+		for (i=GF_PROP_FORBIDDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
 			if (i==GF_PROP_STRING_LIST_COPY) continue;

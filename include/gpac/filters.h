@@ -781,7 +781,7 @@ Documents the property object used for PID and packets.
 typedef enum
 {
 	/*! not allowed*/
-	GF_PROP_FORBIDEN	=	0,
+	GF_PROP_FORBIDDEN	=	0,
 	/*! signed 32 bit integer*/
 	GF_PROP_SINT		=	1,
 	/*! unsigned 32 bit integer*/
@@ -1393,7 +1393,7 @@ const char *gf_props_get_type_desc(GF_PropType type);
 
 /*! Gets the description type for a given  property type name
 \param name property type name
-\return property type or GF_PROP_FORBIDEN
+\return property type or GF_PROP_FORBIDDEN
 */
 GF_PropType gf_props_parse_type(const char *name);
 

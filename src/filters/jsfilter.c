@@ -676,7 +676,7 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 			*prop = gf_props_parse_value(type, NULL, val_str, NULL, filter ? gf_filter_get_sep(filter, GF_FS_SEP_LIST) : ',');
 		}
 		JS_FreeCString(ctx, val_str);
-		if (prop->type==GF_PROP_FORBIDEN) return GF_BAD_PARAM;
+		if (prop->type==GF_PROP_FORBIDDEN) return GF_BAD_PARAM;
 		return GF_OK;
 	}
 	if (JS_IsBool(value)) {
