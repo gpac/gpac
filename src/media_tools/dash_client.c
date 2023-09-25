@@ -2166,10 +2166,10 @@ static GF_Err gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Rep
 		GF_XMLNode *root = gf_xml_dom_get_root_idx(parser, i);
 		if (!strcmp(root->name, "SegmentList")) {
 			GF_MPD_SegmentList *new_seg_list = gf_mpd_solve_segment_list_xlink(dash->mpd, root);
-			//forbiden
+			//forbidden
 			if (new_seg_list && new_seg_list->xlink_href) {
 				if (new_seg_list->xlink_actuate_on_load) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLINK %s references to remote element entities that contain another @xlink:href attribute with xlink:actuate set to onLoad - forbiden\n", rep->segment_list->xlink_href));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLINK %s references to remote element entities that contain another @xlink:href attribute with xlink:actuate set to onLoad - forbidden\n", rep->segment_list->xlink_href));
 					gf_mpd_delete_segment_list(new_seg_list);
 					new_seg_list = NULL;
 				} else {
@@ -6055,7 +6055,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 	while (gf_list_count(new_mpd->periods)) {
 		GF_MPD_Period *inserted_period = gf_list_get(new_mpd->periods, 0);
 		gf_list_rem(new_mpd->periods, 0);
-		//forbiden
+		//forbidden
 		if (inserted_period->xlink_href && inserted_period->xlink_actuate_on_load) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Invalid remote period with xlink:actuate=\"onLoad\" and xlink:href set, removing parent period.\n"));
 			gf_mpd_period_free(inserted_period);

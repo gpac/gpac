@@ -447,7 +447,7 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 
 		memset(&p, 0, sizeof(GF_PropertyValue));
 		p.type = gf_props_4cc_get_type(p4cc);
-		if (p.type==GF_PROP_FORBIDEN) {
+		if (p.type==GF_PROP_FORBIDDEN) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC property type for property 4CC %s\n", gf_4cc_to_str(p4cc) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -822,7 +822,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			memset(&p, 0, sizeof(GF_PropertyValue));
 			u32 p4cc = gf_bs_read_u32(bs);
 			p.type = gf_props_4cc_get_type(p4cc);
-			if (p.type==GF_PROP_FORBIDEN) {
+			if (p.type==GF_PROP_FORBIDDEN) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC property type for property 4CC %s\n", gf_4cc_to_str(p4cc) ));
 				gf_filter_pck_discard(gpck->pck);
 				gpck->pck = NULL;
@@ -851,7 +851,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			gf_bs_read_data(bs, pname, len);
 			pname[len] = 0;
 			p.type = gf_bs_read_u8(bs);
-			if (p.type==GF_PROP_FORBIDEN) {
+			if (p.type==GF_PROP_FORBIDDEN) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC property type for property %s\n", pname ));
 				gf_free(pname);
 				gf_filter_pck_discard(gpck->pck);

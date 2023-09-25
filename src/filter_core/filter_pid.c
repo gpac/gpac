@@ -3901,7 +3901,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 	while (args) {
 		char ref_prop_dump[GF_PROP_DUMP_ARG_SIZE];
 		u32 p4cc=0;
-		u32 prop_type=GF_PROP_FORBIDEN;
+		u32 prop_type=GF_PROP_FORBIDDEN;
 		Bool parse_prop = GF_TRUE;
 		char *value_next_list = NULL;
 		char *value_sep = NULL;
@@ -3988,7 +3988,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			p4cc = GF_4CC(name[0], name[1], name[2], name[3]);
 			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
 		}
-		if (prop_type==GF_PROP_FORBIDEN) {
+		if (prop_type==GF_PROP_FORBIDDEN) {
 			p4cc = gf_props_get_id(name);
 			if (p4cc) prop_type = gf_props_4cc_get_type(p4cc);
 		}
@@ -4056,9 +4056,9 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				goto skip_arg;
 		}
 
-		if (prop_type != GF_PROP_FORBIDEN) {
+		if (prop_type != GF_PROP_FORBIDDEN) {
 			GF_PropertyValue p;
-			p.type = GF_PROP_FORBIDEN;
+			p.type = GF_PROP_FORBIDDEN;
 
 			//specific parsing for clli: it's a data prop but we allow textual specifiers
 			if ((p4cc == GF_PROP_PID_CONTENT_LIGHT_LEVEL) && strchr(value, sep_list) ){
@@ -4116,11 +4116,11 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			}
 			//pix formats and others are parsed as specific prop types
 
-			if (p.type == GF_PROP_FORBIDEN) {
+			if (p.type == GF_PROP_FORBIDDEN) {
 				p = gf_props_parse_value(prop_type, name, value, NULL, sep_list);
 			}
 
-			if (p.type != GF_PROP_FORBIDEN) {
+			if (p.type != GF_PROP_FORBIDDEN) {
 				if (prop_type==GF_PROP_NAME) {
 					p.type = GF_PROP_STRING;
 					gf_filter_pid_set_property(pid, p4cc, &p);
@@ -4153,12 +4153,12 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				p = gf_props_parse_value(GF_PROP_STRING, name, value, NULL, sep_list);
 				p.type = GF_PROP_STRING_NO_COPY;
 			} else {
-				u32 ptype = GF_PROP_FORBIDEN;
+				u32 ptype = GF_PROP_FORBIDDEN;
 				char *type_sep = strchr(value, '@');
 				if (type_sep) {
 					type_sep[0] = 0;
 					ptype = gf_props_parse_type(value);
-					if (ptype==GF_PROP_FORBIDEN) {
+					if (ptype==GF_PROP_FORBIDDEN) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Unrecognized property type %s, defaulting to string\n", value));
 					} else {
 						value = type_sep+1;
@@ -4166,7 +4166,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 					type_sep[0] = '@';
 				}
 				memset(&p, 0, sizeof(GF_PropertyValue));
-				if (ptype == GF_PROP_FORBIDEN) {
+				if (ptype == GF_PROP_FORBIDDEN) {
 					p.type = GF_PROP_STRING;
 					p.value.string = value;
 				} else {

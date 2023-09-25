@@ -1207,7 +1207,7 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 
 		argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, a->arg_type, a->arg_name, arg_value, a->min_max_enum);
 
-		if (argv.type != GF_PROP_FORBIDEN) {
+		if (argv.type != GF_PROP_FORBIDDEN) {
 			GF_Err e = GF_OK;
 			if (!is_sync_call) {
 				FSESS_CHECK_THREAD(filter)
@@ -1894,7 +1894,7 @@ skip_date:
 				if (reverse_bool && (argv.type==GF_PROP_BOOL))
 					argv.value.boolean = !argv.value.boolean;
 
-				if (argv.type != GF_PROP_FORBIDEN) {
+				if (argv.type != GF_PROP_FORBIDDEN) {
 					if (!for_script && (a->offset_in_private>=0)) {
 						gf_filter_set_arg(filter, a, &argv);
 					} else if (filter->freg->update_arg) {
@@ -2187,7 +2187,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 		argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, a->arg_type, a->arg_name, def_val, a->min_max_enum);
 
-		if (argv.type != GF_PROP_FORBIDEN) {
+		if (argv.type != GF_PROP_FORBIDDEN) {
 			if (!for_script && (a->offset_in_private>=0)) {
 				gf_filter_set_arg(filter, a, &argv);
 			} else if (filter->freg->update_arg) {
@@ -2233,7 +2233,7 @@ static void reset_filter_args(GF_Filter *filter)
 		i++;
 		if (!a || !a->arg_name) break;
 
-		if (a->arg_type != GF_PROP_FORBIDEN) {
+		if (a->arg_type != GF_PROP_FORBIDDEN) {
 			memset(&argv, 0, sizeof(GF_PropertyValue));
 			argv.type = a->arg_type;
 			gf_filter_set_arg(filter, a, &argv);

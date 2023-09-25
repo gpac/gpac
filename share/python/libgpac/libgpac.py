@@ -949,8 +949,8 @@ GF_FS_FLAG_NO_IMPLICIT=1<<11
 
 
 ##\hideinitializer
-#see \ref GF_PROP_FORBIDEN
-GF_PROP_FORBIDEN=0
+#see \ref GF_PROP_FORBIDDEN
+GF_PROP_FORBIDDEN=0
 ##\hideinitializer
 #see \ref GF_PROP_SINT
 GF_PROP_SINT=1

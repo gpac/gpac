@@ -810,7 +810,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 
 		memset(&p, 0, sizeof(GF_PropertyValue));
 		p2=p;
-		for (i=GF_PROP_FORBIDEN; i<GF_PROP_LAST_DEFINED; i++) {
+		for (i=GF_PROP_FORBIDDEN; i<GF_PROP_LAST_DEFINED; i++) {
 			char dump[GF_PROP_DUMP_ARG_SIZE];
 			gf_props_get_type_name(i);
 			p.type = p2.type = i;

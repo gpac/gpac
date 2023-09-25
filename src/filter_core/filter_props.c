@@ -463,13 +463,13 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.size = gf_base64_decode((u8 *)b64, size, p.value.data.ptr, size);
 				if (!p.value.data.size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to decode base64 value %s\n", value, name));
-					p.type=GF_PROP_FORBIDEN;
+					p.type=GF_PROP_FORBIDDEN;
 				}
 				p.value.data.ptr[p.value.data.size] = 0;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate memory for decoding base64 value %s\n", value, name));
 				p.value.data.size = 0;
-				p.type=GF_PROP_FORBIDEN;
+				p.type=GF_PROP_FORBIDDEN;
 			}
 		} else {
 			p.value.data.size = (u32) strlen(value);
@@ -596,7 +596,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 	}
 		break;
-	case GF_PROP_FORBIDEN:
+	case GF_PROP_FORBIDDEN:
 	default:
 		if (gf_props_type_is_enum(type)) {
 			p.type = type;
@@ -604,7 +604,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			break;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Forbidden property type %d for arg %s - ignoring\n", type, name));
-		p.type=GF_PROP_FORBIDEN;
+		p.type=GF_PROP_FORBIDDEN;
 		break;
 	}
 //	if (unit_sep) unit_sep[0] = unit_char;
@@ -1359,7 +1359,7 @@ GF_PropType gf_props_parse_type(const char *name)
 		if (!strcmp(PropTypes[i].name, name)) return PropTypes[i].type;
 	}
 	GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknown property type %s\n", name));
-	return GF_PROP_FORBIDEN;
+	return GF_PROP_FORBIDDEN;
 }
 
 #ifndef GPAC_DISABLE_DOC
@@ -1728,7 +1728,7 @@ u32 gf_props_4cc_get_type(u32 prop_4cc)
 	for (i=0; i<gf_num_props; i++) {
 		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].data_type;
 	}
-	return GF_PROP_FORBIDEN;
+	return GF_PROP_FORBIDDEN;
 }
 
 Bool gf_props_4cc_check_props()
@@ -1918,8 +1918,8 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 		}
 		return dump;
 	}
-	case GF_PROP_FORBIDEN:
-		sprintf(dump, "forbiden");
+	case GF_PROP_FORBIDDEN:
+		sprintf(dump, "forbidden");
 		break;
 	case GF_PROP_LAST_DEFINED:
 		sprintf(dump, "lastDefined");
