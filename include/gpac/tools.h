@@ -1113,7 +1113,7 @@ int gf_getch();
 \param showContent boolean indicating if the line read should be printed on stderr or not
 \return GF_TRUE if some content was read, GF_FALSE otherwise
 */
-u32 gf_read_line_input(char * line, int maxSize, Bool showContent);
+Bool gf_read_line_input(char * line, int maxSize, Bool showContent);
 
 
 /*!
