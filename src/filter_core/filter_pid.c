@@ -8309,7 +8309,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 
 
 GF_EXPORT
-GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix, const char *filename)
+GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix, const char *filename)
 {
 	u32 k;
 	GF_FilterPacket *pck;
@@ -8626,7 +8626,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 }
 
 GF_EXPORT
-GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix)
+GF_Err gf_filter_pid_resolve_file_template(GF_FilterPid *pid, const char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix)
 {
 	return gf_filter_pid_resolve_file_template_ex(pid, szTemplate, szFinalName, file_idx, file_suffix, NULL);
 }
