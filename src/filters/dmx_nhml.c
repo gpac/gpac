@@ -147,7 +147,7 @@ static Bool nhmldmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//post a seek
 		ctx->in_seek = GF_TRUE;
 
-		//lcoate previous RAP sample
+		//locate previous RAP sample
 		while ((node = (GF_XMLNode *) gf_list_enum(ctx->root->content, &i))) {
 			u32 j=0;
 			u64 dts=0;
