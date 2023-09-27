@@ -1391,7 +1391,7 @@ const char *gf_props_get_type_name(GF_PropType type);
 */
 const char *gf_props_get_type_desc(GF_PropType type);
 
-/*! Gets the description type for a given  property type name
+/*! Gets the description type for a given property type name
 \param name property type name
 \return property type or GF_PROP_FORBIDDEN
 */

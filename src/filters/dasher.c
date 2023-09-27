@@ -4476,7 +4476,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			if (ds->rep->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->rep->segment_list->segment_URLs);
 				has_seg_list = GF_TRUE;
-				//can be NULL if we mutualize everything at AdaptatioSet level
+				//can be NULL if we mutualize everything at AdaptationSet level
 				if (surl) {
 					gf_mpd_segment_url_free(surl);
 					seg_url_found = GF_TRUE;
@@ -4486,7 +4486,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			if (ds->owns_set && ds->set->segment_list) {
 				GF_MPD_SegmentURL *surl = gf_list_pop_front(ds->set->segment_list->segment_URLs);
 				has_seg_list = GF_TRUE;
-				//can be NULL if we don't mutualize at AdaptatioSet level
+				//can be NULL if we don't mutualize at AdaptationSet level
 				if (surl) {
 					gf_mpd_segment_url_free(surl);
 					seg_url_found = GF_TRUE;
