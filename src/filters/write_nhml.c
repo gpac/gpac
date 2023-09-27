@@ -73,6 +73,13 @@ typedef struct
 	Bool side_streams_config;
 } GF_NHMLDumpCtx;
 
+static const char* nhmldump_get_resolved_basename(GF_FilterPid *ipid, const char *fileName) {
+	char szFinalName[GF_MAX_PATH];
+	GF_Err e = gf_filter_pid_resolve_file_template(ipid, fileName, szFinalName, 0, NULL);
+	if (e != GF_OK) return fileName;
+	return gf_file_basename(szFinalName);
+}
+
 GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 {
 	char *mime=NULL, *name;
@@ -132,7 +139,7 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 		if (name) name[0] = 0;
 		strcat(fileName, ".media");
 		if (gfio) {
-			res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
+			res_name = (char *) gf_fileio_factory(gfio, nhmldump_get_resolved_basename(ctx->ipid, fileName) );
 		} else {
 			res_name = fileName;
 		}
@@ -160,7 +167,7 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 		if (name) name[0] = 0;
 		strcat(fileName, ".info");
 		if (gfio) {
-			res_name = (char *) gf_fileio_factory(gfio, gf_file_basename(fileName) );
+			res_name = (char *) gf_fileio_factory(gfio, nhmldump_get_resolved_basename(ctx->ipid, fileName) );
 		} else {
 			res_name = fileName;
 		}
@@ -460,7 +467,7 @@ static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 
 	//send DCD
 	if (ctx->opid_info) {
-		sprintf(nhml, "specificInfoFile=\"%s\" ", gf_file_basename(ctx->info_file) );
+		sprintf(nhml, "specificInfoFile=\"%s\" ", nhmldump_get_resolved_basename(ctx->ipid, ctx->info_file) );
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		dst_pck = gf_filter_pck_new_shared(ctx->opid_info, ctx->dcfg, ctx->dcfg_size, NULL);
@@ -482,7 +489,7 @@ static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	}
 
 	if (ctx->opid_mdia) {
-		sprintf(nhml, "baseMediaFile=\"%s\" ", gf_file_basename(ctx->media_file) );
+		sprintf(nhml, "baseMediaFile=\"%s\" ", nhmldump_get_resolved_basename(ctx->ipid, ctx->media_file) );
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
 	sprintf(nhml, ">\n");
