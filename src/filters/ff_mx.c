@@ -128,6 +128,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	assert(ctx->status==FFMX_STATE_AVIO_OPEN);
 
 	ctx->status = FFMX_STATE_HDR_DONE;
+	ctx->probe_init = 0;
 
 	AVDictionary *options = NULL;
 	av_dict_copy(&options, ctx->options, 0);
@@ -1367,10 +1368,16 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 #endif
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
-	if (p && (p->value.uint==1)) {
-		ctx->dash_mode = GF_TRUE;
+	if (p) {
+		if (p->value.uint==2) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] DASH/M3U8 muxing in single file is not supported\n"));
+			return GF_NOT_SUPPORTED;
+		}
+		if (p->value.uint==1) {
+			ctx->dash_mode = GF_TRUE;
+			ctx->ileave.num = 0;
+		}
 	}
-
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
