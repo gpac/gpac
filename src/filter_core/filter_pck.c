@@ -1383,6 +1383,7 @@ GF_Err gf_filter_pck_ref(GF_FilterPacket **pck)
 	safe_int_inc(& (*pck)->reference_count);
 	//keep track of number of ref packets for this pid at filter level
 	safe_int_inc(& (*pck)->pid->filter->nb_ref_packets);
+	(*pck)->pid->filter->ref_bytes += (*pck)->data_length;
 	return GF_OK;
 }
 
@@ -1395,6 +1396,7 @@ GF_FilterPacket *gf_filter_pck_ref_ex(GF_FilterPacket *pck)
 	safe_int_inc(& ref_pck->reference_count);
 	//keep track of number of ref packets for this pid at filter level
 	safe_int_inc(& ref_pck->pid->filter->nb_ref_packets);
+	ref_pck->pid->filter->ref_bytes += ref_pck->data_length;
 	return ref_pck;
 }
 
@@ -1449,6 +1451,7 @@ void gf_filter_pck_unref(GF_FilterPacket *pck)
 	if (! (pck->info.flags & GF_PCKF_PROPS_REFERENCE)) {
 		assert(pck->pid->filter->nb_ref_packets);
 		safe_int_dec(&pck->pid->filter->nb_ref_packets);
+		pck->pid->filter->ref_bytes -= pck->data_length;
 	}
 	if (safe_int_dec(&pck->reference_count) == 0) {
 		gf_filter_packet_destroy(pck);
