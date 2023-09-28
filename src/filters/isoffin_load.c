@@ -995,6 +995,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (gf_isom_has_time_offset_table(read->mov, ch->track))
 				gf_filter_pid_set_property_str(ch->pid, "isom_force_ctts", &PROP_BOOL(GF_TRUE) );
 		}
+		if (read->nodata==2)
+			gf_filter_pid_set_property_str(ch->pid, "nodata", &PROP_BOOL(GF_TRUE) );
 
 		if (!gf_sys_is_test_mode()) {
 			u32 nb_udta, alt_grp=0;

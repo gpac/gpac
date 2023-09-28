@@ -58,6 +58,7 @@ typedef struct
 	GF_AV1Config *av1c;
 	u32 av1b_cfg_size;
 	u32 codec_id;
+	Bool passthrough;
 } GF_OBUMxCtx;
 
 GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -93,6 +94,9 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
 	ctx->ipid = pid;
+	ctx->passthrough = GF_FALSE;
+	p =  gf_filter_pid_get_property_str(pid, "nodata");
+	if (p && p->value.boolean) ctx->passthrough = GF_TRUE;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	ctx->codec_id = p ? p->value.uint : 0;
@@ -357,6 +361,11 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
+		return GF_OK;
+	}
+	if (ctx->passthrough) {
+		gf_filter_pck_forward(pck, ctx->opid);
+		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
 

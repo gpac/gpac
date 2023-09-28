@@ -1528,7 +1528,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					ch->static_sample->alloc_size=0;
 				}
 				else if (read->nodata) {
-					pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);
+					if (read->nodata==1)
+						pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);
+					else
+						pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
+
 					if (!pck) return GF_OUT_OF_MEM;
 				} else {
 					pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
@@ -1772,7 +1776,10 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- rem: removes all inband xPS and notify configuration changes accordingly\n"
 	"- auto: resolves to `keep` for `smode=splitx` (dasher mode), `rem` otherwise"
 	, GF_PROP_UINT, "auto", "auto|keep|rem", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(nodata), "do not load sample data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nodata), "control sample data loading\n"
+	"- no: regular load\n"
+	"- yes: skip data loading\n"
+	"- fake: allocate sample but no data copy", GF_PROP_UINT, "no", "no|yes|fake", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lightp), "load minimal set of properties", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(initseg), "local init segment name when input is a single ISOBMFF segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
