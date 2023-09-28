@@ -2494,8 +2494,6 @@ u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value)
 	return leb_size;
 }
 
-void *gf_bs_get_buffer_ptr(GF_BitStream *bs);
-
 #define OBU_BLOCK_SIZE 4096
 static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, GF_List **obu_list, AV1State *state)
 {
@@ -2505,8 +2503,13 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 	GF_AV1_OBUArrayEntry *a = NULL;
 
 	if (state && state->mem_mode) {
-		if (!state->bs) state->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		else gf_bs_reassign_buffer(state->bs, state->frame_obus, state->frame_obus_alloc);
+		if (!state->bs) {
+			state->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		} else {
+			gf_bs_reassign_buffer(state->bs, state->frame_obus, state->frame_obus_alloc);
+			//make sure we don't attempt at freeing this buffer while assigned to the bitstream - cf gf_av1_reset_state
+			state->frame_obus = NULL;
+		}
 	}
 	else {
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
@@ -2535,8 +2538,6 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 				gf_bs_write_data(state->bs, block, block_size);
 				remain -= block_size;
 			}
-			//make sure we always point to internal bs buffer (due to reallocs) - cf gf_av1_init_state
-			state->frame_obus = gf_bs_get_buffer_ptr(state->bs);
 			return;
 		}
 	}
@@ -2586,8 +2587,6 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 				remain -= block_size;
 			}
 			assert(gf_bs_get_position(bs) == pos + obu_length);
-			//make sure we always point to internal bs buffer (due to reallocs) - cf gf_av1_init_state
-			state->frame_obus = gf_bs_get_buffer_ptr(state->bs);
 			return;
 		}
 	}
@@ -4032,14 +4031,10 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 		gf_list_del(l1);
 		gf_list_del(l2);
 		if (state->bs) {
-			u32 size, asize=0;
-			u8 *ptr=NULL;
 			//cf issues #1893 and #2604:
-			//state->frame_obus always point to the bs internal buffer (cf calls to gf_bs_get_buffer_ptr)
-			//unless the internal buffer is null (detached when flushing sample)
-			//
-			//detach BS internal buffer to avoid free on bs_del - resulting @ptr is either NULL or state->frame_obus
-			gf_bs_get_content_no_truncate(state->bs, &ptr, &size, &asize);
+			//state->frame_obus is either:
+			//- NULL, in which case there is a valid buffer in bs, freed by bs_del
+			//- not NULL, in which case the internal buffer of bs is NULL and we must free the buffer
 
 			if (state->frame_obus) {
 				gf_free(state->frame_obus);
