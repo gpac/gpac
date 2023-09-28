@@ -62,6 +62,7 @@ typedef struct
 	HEVCState *hevc_state;
 	VVCState *vvc_state;
 #endif
+	Bool passthrough;
 } GF_NALUMxCtx;
 
 
@@ -270,6 +271,9 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	}
 	ctx->crc = crc;
 	ctx->crc_enh = crc_enh;
+	ctx->passthrough = GF_FALSE;
+	p =  gf_filter_pid_get_property_str(pid, "nodata");
+	if (p && p->value.boolean) ctx->passthrough = GF_TRUE;
 
 	if ((codecid==GF_CODECID_HEVC) || (codecid==GF_CODECID_LHVC)) {
 		ctx->vtype = UFNAL_HEVC;
@@ -428,6 +432,11 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
+		return GF_OK;
+	}
+	if (ctx->passthrough) {
+		gf_filter_pck_forward(pck, ctx->opid);
+		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
 

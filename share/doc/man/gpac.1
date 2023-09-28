@@ -2119,7 +2119,7 @@ Templating can be useful when encoding several qualities in one pass.
 .br
 Example
 .br
-gpac -i dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 c=avc:b=1M @2 c=avc:b=750k -o dump_$CropOrigin$x$Width$x$Height$.264:clone
+gpac -i dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 c=avc:b=1M @2 c=avc:b=750k -o dump_$CropOrigin$x$Width$x$Height$.264
 .br
 
 .br
@@ -2140,11 +2140,9 @@ In this case, only one item (likely the first declared in the file) will connect
 .br
 Other items will not be connected since the destination only accepts one input PID.
 .br
-There is a special option clone allowing filters to be cloned with the same arguments. The cloned filters have the same ID as the original one.
-.br
 Example
 .br
-gpac -i img.heif -o dump_$ItemID$.jpg:clone
+gpac -i img.heif -o dump_$ItemID$.jpg
 .br
 
 .br
@@ -2152,7 +2150,7 @@ In this case, the destination will be cloned for each item, and all will be expo
 .br
 Example
 .br
-gpac -i vid.mpd c=avc:FID=1:clone -o transcode.mpd:SID=1
+gpac -i vid.mpd c=avc:FID=1 -o transcode.mpd:SID=1
 .br
 
 .br
@@ -2449,7 +2447,7 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * FBD: decode buffer time in microseconds (unsigned int value)
 .br
-* clone: filter cloning flag (no value)
+* clone: explicitly enable/disable filter cloning flag (no value)
 .br
 * nomux: enable/disable direct file copy (no value)
 .br

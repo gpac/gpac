@@ -888,7 +888,15 @@ xps_check (enum, default: auto): parameter sets extraction mode from AVC/HEVC/VV
 .br
 
 .br
-nodata (bool, default: false): do not load sample data
+nodata (enum, default: no):    control sample data loading
+.br
+* no: regular load
+.br
+* yes: skip data loading
+.br
+* fake: allocate sample but no data copy
+.br
+
 .br
 lightp (bool, default: false): load minimal set of properties
 .br
@@ -1601,7 +1609,7 @@ gpac -i MANIFEST_URL:algo=none:start_with=max_bw -o dest.mp4
 .br
 Example
 .br
-gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4:clone
+gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4
 .br
 
 .br
@@ -5457,7 +5465,7 @@ This allows dashing to multiple outputs with different formats, dash durations, 
 .br
 
 .br
-It can be usefull to redirect all the filter outputs to several sinks, for example to push through ROUTE and through HTTP the same segments.
+It can be useful to redirect all the filter outputs to several sinks, for example to push through ROUTE and through HTTP the same segments.
 .br
 In order to do this, the filter MUST be explicitly loaded and all options related to dash and MP4 must be set either globally or on the dasher filter.
 .br
@@ -6164,7 +6172,7 @@ In order to demultiplex such a file, the gsfdmxfilter will likely need to be exp
 .br
 Example
 .br
-gpac -i mux.gsf gsfdmx -o dump/$File$:dynext:clone
+gpac -i mux.gsf gsfdmx -o dump/$File$:dynext
 .br
 
 .br
