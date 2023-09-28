@@ -447,12 +447,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 	u32 pck_size, nb_write;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
+	pck = gf_filter_pid_get_packet(ctx->pid);
+
 restart:
 
 	if (ctx->error)
 		return ctx->error;
 
-	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->pid) && !gf_filter_pid_is_flush_eos(ctx->pid)) {
 			if (gf_filter_reporting_enabled(filter)) {
@@ -533,6 +534,7 @@ restart:
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null close (file name was %s)\n", ctx->szFileName));
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
+		pck = gf_filter_pid_get_packet(ctx->pid);
 		goto restart;
 	}
 
@@ -880,6 +882,10 @@ check_gfio:
 		}
 		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 	}
+	pck = gf_filter_pid_get_packet(ctx->pid);
+	if (pck)
+		goto restart;
+
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 		snprintf(szStatus, 1024, "%s: wrote % 16"LLD_SUF" bytes", gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
