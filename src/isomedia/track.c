@@ -1024,6 +1024,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		if (new_idx) gf_free(new_idx);
 	}
 
+	u32 samples_in_traf = trak->Media->information->sampleTable->SampleSize->sampleCount - num_first_sample_in_traf;
+
 	/*content is encrypted*/
 	track_num = gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID);
 	if (gf_isom_is_cenc_media(trak->moov->mov, track_num, DescIndex)
@@ -1107,7 +1109,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				saiz = NULL;
 			}
 			if (saiz && saio && senc) {
-				for (i = 0; i < saiz->sample_count; i++) {
+				u32 saiz_count = saiz->sample_count;
+				if (saiz_count > samples_in_traf) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of CENC SAI samples %d greater than samples in traf %d, skipping merge\n", saiz_count, samples_in_traf));
+					saiz_count = 0;
+				}
+
+				for (i = 0; i < saiz_count; i++) {
 					const u8 *key_info=NULL;
 					u32 key_info_size, samp_num;
 					if (nb_saio != 1) {
@@ -1217,6 +1225,11 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		u32 nb_saio = saio->entry_count;
 		if ((nb_saio>1) && (saio->entry_count != gf_list_count(traf->TrackRuns))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of SAI offset does not match number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+			continue;
+		}
+
+		if (saiz->sample_count > samples_in_traf) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of SAI samples %d greater than samples in traf %d, skipping merge SAI %s aux info type %d\n", saiz->sample_count, samples_in_traf, gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
 			continue;
 		}
 
