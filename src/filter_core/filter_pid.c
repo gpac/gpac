@@ -7711,12 +7711,14 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 			if (PID_IS_INPUT(pid)) {
 				((GF_FilterPidInst*)evt->base.on_pid)->stop_queued = 1;
 			}
+			pid->filter->nb_pids_playing--;
 		} else {
 			if (nb_playing)
 				do_reset = GF_FALSE;
 			if (PID_IS_INPUT(pid)) {
 				((GF_FilterPidInst*)evt->base.on_pid)->play_queued = 1;
 			}
+			pid->filter->nb_pids_playing++;
 		}
 
 		for (i=0; i<pid->pid->num_destinations; i++) {

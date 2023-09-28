@@ -1483,6 +1483,22 @@ static void print_task_list_filter(void *udta, void *item)
 	print_task(udta, item, GF_TRUE);
 }
 
+struct __pck_size_info
+{
+	u32 nb_packets;
+	u64 all_size;
+	u64 all_alloc_size;
+};
+
+static void gather_pck_size(void *udta, void *item)
+{
+	struct __pck_size_info *sinfo = (struct __pck_size_info*)udta;
+	GF_FilterPacketInstance *pcki = item;
+	sinfo->nb_packets++;
+	sinfo->all_size += pcki->pck->data_length;
+	sinfo->all_alloc_size += pcki->pck->alloc_size;
+}
+
 GF_EXPORT
 void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_flags)
 {
@@ -1531,6 +1547,19 @@ void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_fla
 			} else {
 				fprintf(stderr, " no tasks\n");
 			}
+
+			struct __pck_size_info pcki;
+			memset(&pcki, 0, sizeof(struct __pck_size_info));
+			pcki.nb_packets = gf_list_count(f->postponed_packets);
+			for (j=0; j<f->num_input_pids; j++) {
+				u32 k=0;
+				GF_FilterPidInst *pidi = gf_list_get(f->input_pids, k);
+				gf_fq_enum(pidi->packets, gather_pck_size, &pcki);
+			}
+			if (pcki.nb_packets)
+				fprintf(stderr, " %d packets to process on %d input PIDs "LLU" KBytes\n", pcki.nb_packets, f->num_input_pids, pcki.all_size/1000);
+			if (f->ref_bytes)
+				fprintf(stderr, " "LLU" KBytes of detached packets in destinations\n", f->ref_bytes/1000);
 		}
 		gf_mx_v(fsess->filters_mx);
 	}
