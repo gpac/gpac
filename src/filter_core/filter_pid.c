@@ -3144,7 +3144,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 	}
 
-	//1: select all elligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
+	//1: select all eligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
 	count = gf_list_count(fsess->links);
 	for (i=0; i<count; i++) {
 		u32 j;
@@ -3268,7 +3268,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			gf_list_add(dijkstra_nodes, reg_desc);
 		}
 	}
-	//create a new node for the destination based on elligible filters in the graph
+	//create a new node for the destination based on eligible filters in the graph
 	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
 	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst, orig_nb_bundles);
 	reg_dst->dist = 0;

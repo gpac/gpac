@@ -1268,7 +1268,6 @@ static const GF_FilterArgs GSFMxArgs[] =
 	{ OFFS(dst), "target URL in file mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
 	{ OFFS(mime), "file mime for file mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(mixed), "allow GSF to contain both files and media streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
-
 	{0}
 };
 

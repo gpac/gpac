@@ -1106,7 +1106,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 			break;
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFDemux] found %s on stream %d type %s cryped %d sn %d size %d block_offset %d, hdr size %d at position %d\n",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFDemux] found %s on stream %d type %s crypted %d sn %d size %d block_offset %d, hdr size %d at position %d\n",
 					(pck_len==block_size) ? "full packet" : (pck_frag ? "packet fragment" : "packet start"),
 					st_idx,
 					gsfdmx_pck_name(pck_type),
@@ -1117,7 +1117,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		if ((pck_type != GFS_PCKTYPE_PCK) && (pck_frag || (pck_len < block_size)))
 			needs_agg = GF_TRUE;
 
-		//tunein, we don't care about the seq num (for now, might chenge if we want key roll or other order-dependent features)
+		//tunein, we don't care about the seq num (for now, might change if we want key roll or other order-dependent features)
 		if (!st_idx) {
 			if (ctx->tuned) {
 			} else if (needs_agg) {
@@ -1232,7 +1232,7 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	}
 
 	//check if all the streams are in block state, if so return.
-	//we need to check for all output since one pid could still be buffering
+	//we need to check for all outputs since one pid could still be buffering
 	while ((st = gf_list_enum(ctx->streams, &i))) {
 		if (st->opid) {
 			if (is_eos) {

@@ -6410,7 +6410,6 @@ GF_Err gf_isom_set_qt_key(GF_ISOFile *movie, GF_QT_UDTAKey *key)
 
 	nb_keys = gf_list_count(keys->keys);
 	if (!key) {
-		u32 nb_keys = gf_list_count(keys->keys);
 		gf_isom_box_del_parent(&meta->child_boxes, (GF_Box *) keys);
 		for (i=0; i<gf_list_count(ilst->child_boxes); i++) {
 			GF_ListItemBox *info = gf_list_get(ilst->child_boxes, i);

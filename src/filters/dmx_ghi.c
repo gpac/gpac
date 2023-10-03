@@ -478,7 +478,6 @@ static void ghi_dmx_declare_opid_bin(GF_Filter *filter, GHIDmxCtx *ctx, GHIStrea
 {
 	u32 i;
 	if (!gf_list_count(st->opids)) {
-		u32 i;
 		for (i=0; i<st->mux_dst.nb_items; i++) {
 			GF_FilterPid *opid = gf_filter_pid_new(filter);
 			gf_filter_pid_set_udta(opid, st);
