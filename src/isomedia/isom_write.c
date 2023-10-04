@@ -2512,6 +2512,10 @@ GF_Err gf_isom_set_audio_layout(GF_ISOFile *movie, u32 trackNumber, u32 sampleDe
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
+	if (!layout) return GF_BAD_PARAM;
+	if ((layout->stream_structure & 1) && (layout->definedLayout==0) && (layout->channels_count>=64))
+		return GF_BAD_PARAM;
+
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
