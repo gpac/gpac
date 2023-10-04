@@ -1465,9 +1465,23 @@ typedef struct
 {
 	/*! stream structure flags, 1: has channel layout, 2: has objects*/
 	u8 stream_structure;
+	/*!  order of formats in the stream : 0 unknown, 1: Channels, possibly followed by Objects, 2 Objects, possibly followed by Channels*/
+	u8 format_ordering;
+	/*! combined channel count of the channel layout and the object count*/
+	u8 base_channel_count;
 
 	/*! defined CICP channel layout*/
 	u8 definedLayout;
+	/*! indicates where the ordering of the audio channels for the definedLayout are specified
+	0: as listed for the ChannelConfigurations in ISO/IEC 23091-3
+	1: Default order of audio codec specification
+	2: Channel ordering #2 of audio codec specification
+	3: Channel ordering #3 of audio codec specification
+	4: Channel ordering #4 of audio codec specification
+	*/
+	u8 channel_order_definition;
+	/*! indicates if omittedChannelsMap is present*/
+	u8 omitted_channels_present;
 
 	/*! number of channels*/
 	u32 channels_count;
