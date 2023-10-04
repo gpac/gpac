@@ -7106,7 +7106,7 @@ GF_Err trak_box_size(GF_Box *s)
 	if (ptr->sample_encryption && ptr->sample_encryption->load_needed) {
 		if (!ptr->moov || !ptr->moov->mov || !ptr->moov->mov->movieFileMap)
 			return GF_ISOM_INVALID_FILE;
-		GF_Err e = senc_Parse(ptr->moov->mov->movieFileMap->bs, ptr, NULL, ptr->sample_encryption);
+		GF_Err e = senc_Parse(ptr->moov->mov->movieFileMap->bs, ptr, NULL, ptr->sample_encryption, 0);
 		if (e) return e;
 	}
 

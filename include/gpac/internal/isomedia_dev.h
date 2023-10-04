@@ -3675,7 +3675,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak,
 #else
 	void *traf,
 #endif
-	GF_SampleEncryptionBox *ptr);
+	GF_SampleEncryptionBox *ptr, u32 samples_in_traf);
 
 
 /*

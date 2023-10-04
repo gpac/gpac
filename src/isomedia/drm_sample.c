@@ -1670,7 +1670,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 	//senc is not loaded by default, do it now
 	if (!gf_list_count(senc->samp_aux_info)) {
-		GF_Err e = senc_Parse(trak->Media->information->dataHandler->bs, trak, NULL, senc);
+		GF_Err e = senc_Parse(trak->Media->information->dataHandler->bs, trak, NULL, senc, 0);
 		if (e) return e;
 	}
 

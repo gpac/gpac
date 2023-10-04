@@ -1182,7 +1182,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				}
 			}
 		} else if (traf->sample_encryption) {
-			senc_Parse(trak->moov->mov->movieFileMap->bs, trak, traf, traf->sample_encryption);
+			senc_Parse(trak->moov->mov->movieFileMap->bs, trak, traf, traf->sample_encryption, samples_in_traf);
 			trak->sample_encryption->AlgorithmID = traf->sample_encryption->AlgorithmID;
 			if (!trak->sample_encryption->IV_size)
 				trak->sample_encryption->IV_size = traf->sample_encryption->IV_size;
