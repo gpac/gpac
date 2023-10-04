@@ -8099,6 +8099,11 @@ static void mp4_mux_finalize(GF_Filter *filter)
 		mp4_mux_track_writer_del(tkw);
 	}
 	gf_list_del(ctx->tracks);
+	//in case we aborted, release refs
+	while (gf_list_count(ctx->ref_pcks)) {
+		GF_FilterPacket *pckr = gf_list_pop_back(ctx->ref_pcks);
+		gf_filter_pck_unref(pckr);
+	}
 	gf_list_del(ctx->ref_pcks);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->seg_name) gf_free(ctx->seg_name);
