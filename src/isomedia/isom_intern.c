@@ -455,7 +455,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 					GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(mov->moov->trackList, k);
 
 					if (trak->sample_encryption) {
-						e = senc_Parse(mov->movieFileMap->bs, trak, NULL, trak->sample_encryption);
+						e = senc_Parse(mov->movieFileMap->bs, trak, NULL, trak->sample_encryption, 0);
 						if (e) return e;
 					}
 				}
@@ -711,7 +711,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 							GF_TrackBox *trak = GetTrackbyID(mov->moov, traf->tfhd->trackID);
 							if (trak) {
 								trak->current_traf_stsd_idx = traf->tfhd->sample_desc_index ? traf->tfhd->sample_desc_index : traf->trex->def_sample_desc_index;
-								e = senc_Parse(mov->movieFileMap->bs, trak, traf, traf->sample_encryption);
+								e = senc_Parse(mov->movieFileMap->bs, trak, traf, traf->sample_encryption, 0);
 								if (e) return e;
 								trak->current_traf_stsd_idx = 0;
 							}
@@ -721,7 +721,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 					for (k=0; k<gf_list_count(mov->moof->TrackList); k++) {
 						GF_TrackFragmentBox *traf = gf_list_get(mov->moof->TrackList, k);
 						if (traf->sample_encryption) {
-							e = senc_Parse(mov->movieFileMap->bs, NULL, traf, traf->sample_encryption);
+							e = senc_Parse(mov->movieFileMap->bs, NULL, traf, traf->sample_encryption, 0);
 							if (e) return e;
 						}
 					}
