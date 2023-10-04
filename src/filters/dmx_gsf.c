@@ -75,7 +75,7 @@ typedef struct
 	u32 pad, mq;
 
 
-	//only one output pid declared
+	//only one input pid declared
 	GF_FilterPid *ipid;
 
 	GF_List *streams;
@@ -1375,7 +1375,6 @@ GF_FilterRegister GSFDemuxRegister = {
 #endif
 	
 	.private_size = sizeof(GSF_DemuxCtx),
-	.max_extra_pids = (u32) -1,
 	.args = GSFDemuxArgs,
 	.flags = GF_FS_REG_DYNAMIC_PIDS,
 	SETCAPS(GSFDemuxCaps),
