@@ -8677,7 +8677,8 @@ GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, vo
 	movie->moov->trackList = tracks;
 	for (j=0; j<gf_list_count(tracks); j++) {
 		GF_TrackBox *tki = gf_list_get(tracks, j);
-		tki->index = j+1;
+		if (tki->index != 0xFFFE) // special value meaning always last
+			tki->index = j + 1;
 	}
 	return GF_OK;
 }
