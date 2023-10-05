@@ -5561,7 +5561,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
 	if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
 		sHTTP = sess->async_req_reply;
-		bytesRead = sess->async_req_reply_size;
+		buf_size = bytesRead = sess->async_req_reply_size;
 		sess->async_req_reply_size = 0;
 	}
 
