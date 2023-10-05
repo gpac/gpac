@@ -1245,8 +1245,11 @@ GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool 
 	if (username) {
 		strncpy(creds->username, username, 49);
 		creds->username[49] = 0;
+	} else {
+		creds->username[0] = 0;
 	}
-	strcpy(creds->site, server_name);
+	strncpy(creds->site, server_name, 1023);
+	creds->site[1023] = 0;
 	if (username && password && valid)
 		gf_user_credentials_save_digest(dm, creds, password, GF_FALSE);
 	else {
