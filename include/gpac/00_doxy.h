@@ -110,7 +110,7 @@ GPAC constants used in the API (error code, property types, specific flags for f
 - using the same name as native code, e.g. GF_STATS_LOCAL, GF_FILTER_SAP_1, etc...
 - in the global object of the javascript context
 
-Unless indicated otherwise, all errors are handled through exceptions. An exception object contains a code (integer) attribute and optionnally a message (string) attribute.
+Unless indicated otherwise, all errors are handled through exceptions. An exception object contains a code (integer) attribute and optionally a message (string) attribute.
 
 
 Types and interfaces are described using WebIDL, see https://heycam.github.io/webidl/, with some slight modifications.
