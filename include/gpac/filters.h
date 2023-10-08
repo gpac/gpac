@@ -4764,7 +4764,7 @@ Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck);
 
 Custom filters are filters created by the app with no associated registry.
 The app is responsible for assigning capabilities to the filter, and setting callback functions.
-Each callback is optionnal, but a custom filter should at least have a process callback, and a configure_pid callback if not a source filter.
+Each callback is optional, but a custom filter should at least have a process callback, and a configure_pid callback if not a source filter.
 
 Custom filters do not have any arguments exposed, and cannot be selected for sink or source filters.
 If your app requires custom I/Os for source or sinks, use \ref GF_FileIO.

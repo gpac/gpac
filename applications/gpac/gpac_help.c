@@ -957,7 +957,7 @@ static const char *gpac_credentials =
 "- `reset`: deletes the `users.cfg` file (i.e. deletes all users and groups)\n"
 "- `NAME`: show information of user `NAME`\n"
 "- `+NAME`: adds user `NAME`\n"
-"- `+NAME:I1=V1[,I2=V2]`: sets info `I1` with value `V1` to user `NAME`. the info name `password` resets password without prompt.\n"
+"- `+NAME:I1=V1[,I2=V2]`: sets info `I1` with value `V1` to user `NAME`. The info name `password` resets password without prompt.\n"
 "- `-NAME`: removes user `NAME`\n"
 "- `_NAME`: force password change of user `NAME`\n"
 "- `@NAME`: show information of group `NAME`\n"
