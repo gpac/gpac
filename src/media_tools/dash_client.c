@@ -5379,7 +5379,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 						tmp = tmp + 1;
 					else
 						tmp = a_rep->dependency_id;
-					if (!strcmp(tmp, rep->id))
+					if (rep->id && !strcmp(tmp, rep->id))
 						rep->playback.enhancement_rep_index_plus_one = k + 1;
 				}
 			}
