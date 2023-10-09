@@ -8155,7 +8155,7 @@ static GF_Err gf_dash_check_periods(GF_DashClient *dash)
 	if (dash->xlink_sess) return GF_OK;
 
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
-	if (period->xlink_href) {
+	if (period && period->xlink_href) {
 		gf_dash_solve_period_xlink(dash, dash->mpd->periods, dash->active_period_index);
 		period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 	}
