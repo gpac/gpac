@@ -123,7 +123,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 		gf_free(e->init_segment_url);
 	}
 	memset(e->key_iv, 0, sizeof(bin128) );
-	if (e->url) 
+	if (e->url)
 		gf_free(e->url);
 
 	switch (e->element_type) {
@@ -293,7 +293,7 @@ static GFINLINE int string2num(const char *s) {
 	MEDIA_TYPE_##type + \
 	string2num(group_id) \
 	) \
- 
+
 static Bool safe_start_equals(const char *attribute, const char *line) {
 	size_t len, atlen;
 	if (line == NULL)
@@ -334,7 +334,7 @@ static char** extract_attributes(const char *name, const char *line, const int n
 			sz = i - start;
 			if (quote && (line[i] == quote))
 				sz++;
-			
+
 			while (line[start+spaces] == ' ')
 				spaces++;
 			if ((sz-spaces<=1) && (line[start+spaces]==',')) {
@@ -345,10 +345,12 @@ static char** extract_attributes(const char *name, const char *line, const int n
 					ret[curr_attribute] = gf_calloc( (1+sz-spaces), sizeof(char));
 					strncpy(ret[curr_attribute], &(line[start+spaces]), sz-spaces);
 					curr_attribute++;
+					if (curr_attribute >= num_attributes)
+						break;
 				}
 			}
 			start = i+1;
-			
+
 			if (start == len) {
 				return ret;
 			}
@@ -532,10 +534,12 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			if (safe_start_equals("URI=\"", val)) {
 				char *uri = val + 5;
 				int_value = (u32) strlen(uri);
-				if (uri[int_value-1] == '"') {
+				if (int_value > 0 && uri[int_value-1] == '"') {
 					if (attributes->init_url) gf_free(attributes->init_url);
 					attributes->init_url = gf_strdup(uri);
 					attributes->init_url[int_value-1]=0;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Invalid URI (%s) in EXT-X-MAP\n", val));
 				}
 			}
 			else if (safe_start_equals("BYTERANGE=\"", val)) {

@@ -2163,7 +2163,7 @@ retry_import:
 				segment_url->duration = (u64) (rep->segment_list->timescale * elt->duration_info);
 				if (segment_url->duration == rep->segment_list->duration)
 					segment_url->duration = 0;
-					
+
 				if (elt->drm_method != DRM_NONE) {
 					//segment_url->key_url = "aes-128";
 					if (elt->key_uri) {
@@ -2322,6 +2322,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	is_end = !pl->playlist_needs_refresh;
 	if (!the_pe) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] The M3U8 playlist is not correct.\n"));
+		gf_m3u8_master_playlist_del(&pl);
 		return GF_BAD_PARAM;
 	}
 
@@ -3947,7 +3948,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 						}
 					}
 				}
-				
+
 				if (close_file)
 					gf_fclose(out);
 				return GF_OK;
@@ -3969,7 +3970,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	} else {
 		GF_MPD_BaseURL *base_url=NULL;
 		GF_MPD_URL *init=NULL;
-		
+
 		if (rep->segment_base && rep->segment_base->initialization_segment) init = rep->segment_base->initialization_segment;
 		if (as->segment_base && as->segment_base->initialization_segment) init = as->segment_base->initialization_segment;
 		if (period->segment_base && period->segment_base->initialization_segment) init = period->segment_base->initialization_segment;
@@ -4024,7 +4025,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 	if (close_file)
 		gf_fclose(out);
-	
+
 	return GF_OK;
 }
 
@@ -5526,7 +5527,7 @@ static GF_Err smooth_parse_stream_index(GF_MPD *mpd, GF_List *container, GF_XMLN
             set->segment_template->timescale = timescale;
             GF_SAFEALLOC(set->segment_template->segment_timeline, GF_MPD_SegmentTimeline);
             if (!set->segment_template->segment_timeline) return GF_OUT_OF_MEM;
-            
+
             set->segment_template->segment_timeline->entries = gf_list_new();
         }
     }
@@ -5661,7 +5662,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	strcpy(segment_ext_override, "");
 
 	if (is_index_template) is_template = GF_TRUE;
-	
+
 	if (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT) {
 		seg_type = GF_DASH_TEMPLATE_INITIALIZATION;
 		needs_init = GF_FALSE;
@@ -6037,7 +6038,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				gf_blob_unregister(&blob);
 				gf_fclose(f);
 
-				
+
 				gf_mpd_representation_free(rep);
 				gf_list_del(set->representations);
 				set->representations = reps;
