@@ -5159,7 +5159,7 @@ s32 gf_dash_group_get_dependency_group(GF_DashClient *dash, u32 idx)
 		rep = gf_dash_find_rep(dash, rep->dependency_id, &group);
 		if (sep) sep[0] = ' ';
 	}
-	return group->groups_idx;
+	return group ? group->groups_idx : idx;
 }
 
 GF_EXPORT
