@@ -210,14 +210,14 @@ enum {
 	GF_NETIF_RECV_ONLY = 1<<2,
 	/*! set if interface is loopback*/
 	GF_NETIF_LOOPBACK = 1<<3,
-	/*! set if IP adress is IPv6*/
+	/*! set if IP address is IPv6*/
 	GF_NETIF_IPV6 = 1<<4,
 };
 /*!  network interface enumeration callback
 \param cbk user data passed to \ref gf_net_enum_interfaces
 \param name interface name
-\param IP interface IP adress string, may be NULL
-\param flags flags for interface and adress
+\param IP interface IP address string, may be NULL
+\param flags flags for interface and address
 \return true to cancel enumeration
 */
 typedef Bool (*gf_net_ifce_enum)(void *cbk, const char *name, const char *IP, u32 flags);

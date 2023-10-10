@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -731,6 +731,8 @@ static GF_Err routein_process(GF_Filter *filter)
 			break;
 		} else if (!e) {
 			ctx->last_timeout = 0;
+		} else {
+			break;
 		}
 	}
 	if (!ctx->tune_time) {

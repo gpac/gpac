@@ -9535,44 +9535,6 @@ start (dbl, default: 0.0):     set playback start offset, [-1, 0] means percent 
 .br
 
 .br
-.SH ohevcdec
-.LP
-.br
-Description: OpenHEVC decoder
-.br
-
-.br
-This filter decodes HEVC and LHVC (HEVC scalable extensions) from one or more PIDs through the OpenHEVC library
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-threading (enum, default: frame): set threading mode
-.br
-* frameslice: parallel decoding of both frames and slices
-.br
-* frame: parallel decoding of frames
-.br
-* slice: parallel decoding of slices
-.br
-
-.br
-nb_threads (uint, default: 0): set number of threads (if 0, uses number of cores minus one)
-.br
-no_copy (bool, default: false): directly dispatch internal decoded frame without copy
-.br
-pack_hfr (bool, default: false): pack 4 consecutive frames in a single output
-.br
-seek_reset (bool, default: false): reset decoder when seeking
-.br
-force_stereo (bool, default: true): use stereo output for multiview (top-bottom only)
-.br
-reset_switch (bool, default: false): reset decoder at config change
-.br
-
-.br
 .SH uncvg
 .LP
 .br

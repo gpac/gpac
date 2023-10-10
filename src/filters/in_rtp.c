@@ -652,6 +652,8 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		if (e) {
 			if ((e==GF_IP_NETWORK_EMPTY) && !ctx->eos_probe_start)
 				ctx->eos_probe_start = gf_sys_clock();
+			else if ((e==GF_IP_CONNECTION_CLOSED) && !ctx->eos_probe_start)
+				ctx->eos_probe_start = gf_sys_clock() - 1000;
 			break;
 		}
 

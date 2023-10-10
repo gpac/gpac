@@ -915,6 +915,9 @@ char gf_prog_lf = '\r';
 
 #ifndef GPAC_DISABLE_NETWORK
 extern Bool gpac_use_poll;
+#ifndef GPAC_DISABLE_NETCAP
+extern Bool gpac_netcap_rt;
+#endif
 #endif
 
 GF_EXPORT
@@ -1001,7 +1004,22 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 #ifndef GPAC_DISABLE_NETWORK
 				gpac_use_poll = bool_value;
 #endif
-			} else if (!stricmp(arg, "-ntp-shift")) {
+			}
+#if !defined(GPAC_DISABLE_NETCAP)
+			else if (!stricmp(arg, "-netcap-dst") && arg_val) {
+				void gf_netcap_record(char *filename);
+				gf_netcap_record(arg_val);
+			} else if (!stricmp(arg, "-netcap-src") && arg_val) {
+				void gf_netcap_playback(char *filename);
+				gf_netcap_playback(arg_val);
+			} else if (!stricmp(arg, "-netcap-nrt")) {
+				gpac_netcap_rt = !bool_value;
+			} else if (!stricmp(arg, "-netcap-filter") && arg_val) {
+				void gf_netcap_play_rules(char *rules);
+				gf_netcap_play_rules(arg_val);
+			}
+#endif
+			else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;
 				gf_net_set_ntp_shift(shift);
 				if (!use_sep) i += 1;
@@ -1552,6 +1570,11 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 	return GF_OK;
 }
 
+
+#if !defined(GPAC_DISABLE_NETCAP) && !defined(GPAC_DISABLE_NETWORK)
+void gf_net_close_capture();
+#endif
+
 GF_EXPORT
 void gf_sys_close()
 {
@@ -1609,6 +1632,10 @@ void gf_sys_close()
 
 		gf_list_del(all_blobs);
 		all_blobs = NULL;
+
+#if !defined(GPAC_DISABLE_NETCAP) && !defined(GPAC_DISABLE_NETWORK)
+		gf_net_close_capture();
+#endif
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 		fprintf(stderr, "\n\n");
