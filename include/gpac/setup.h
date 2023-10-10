@@ -584,12 +584,15 @@ typedef struct {
 # ifndef GPAC_DISABLE_ROUTE
 # define GPAC_DISABLE_ROUTE
 # endif
-#ifdef GPAC_HAS_IPV6
-#undef GPAC_HAS_IPV6
-#endif
-#ifdef GPAC_HAS_SOCK_UN
-#undef GPAC_HAS_SOCK_UN
-#endif
+# ifdef GPAC_HAS_IPV6
+# undef GPAC_HAS_IPV6
+# endif
+# ifdef GPAC_HAS_SOCK_UN
+# undef GPAC_HAS_SOCK_UN
+# endif
+# ifndef GPAC_DISABLE_NETCAP
+# define GPAC_DISABLE_NETCAP
+# endif
 #endif
 
 

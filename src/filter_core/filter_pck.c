@@ -1896,7 +1896,7 @@ void gf_filter_pck_check_realloc(GF_FilterPacket *pck, u8 *data, u32 size)
 {
 	if (PCK_IS_INPUT(pck)) return;
 	if (((u8*)pck->data != data)
-		//in case realloc returned the same adress !!
+		//in case realloc returned the same address !!
 		|| (size > pck->data_length)
 	) {
 		pck->alloc_size = pck->data_length = size;

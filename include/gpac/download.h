@@ -100,7 +100,7 @@ typedef enum
 	GF_NETIO_SESSION_NOTIFY_DATA = 1<<2,
 	/*indicates that the connection to the server should be kept once the download is successfully completed*/
 	GF_NETIO_SESSION_PERSISTENT = 1<<3,
-	/*file is stored in memory, and the cache name is set to gmem://%p, where %p is the blob object adress.
+	/*file is stored in memory, and the cache name is set to gmem://%p, where %p is the blob object address.
 	Memory cached files are destroyed upon downloader destruction*/
 	GF_NETIO_SESSION_MEMORY_CACHE = 1<<4,
 	/*! do not delete files after download*/

@@ -1410,6 +1410,23 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-tls-rcfg", NULL, "disable automatic TCP to TLS reconfiguration", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-fd", NULL, "use buffered IO instead of file descriptor for read/write - this can speed up operations on small files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-mx", NULL, "disable all mutexes, threads and semaphores (do not use if unsure about threading used)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+#ifndef GPAC_DISABLE_NETCAP
+ GF_DEF_ARG("netcap-dst", NULL, "output packets to indicated file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("netcap-src", NULL, "read packets from indicated file, as produced by -netcap-rec or a pcap or pcapng file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("netcap-nrt", NULL, "ignore real-time regulation when reading packet from capture file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("netcap-filter", NULL, "set packet filtering rules whe reading from capture file. Value is a list of\n"
+ "- d{a}: drop packet number `a`\n"
+ "- d{a,b}: drop packets from numbers `a` to `b`\n"
+ "- r{a}: random drop every `a` packets\n"
+ "- r{a,b}: random drop every `a` packets, starting from packet number `b`\n"
+ "- r{a,b,c}: random drop every `a` packets, starting from packet number `b` until packet number `b+c`\n"
+ "- f{a,b}: drop first packet every `a` packets, starting from packet number `b`\n"
+ "- f{a,b,c}: drop first packet every `a` packets, starting from packet number `b` until packet number `b+c`\n"
+ "- b{a,b,c}: change byte at position `b` (0 for first byte) in packet number `a` to value `c` (in hexa) - at most one per packet\n"
+ "- RULE{p=P,...}: port number to filter, if not set the rule applies to all packets\n"
+ "\nEX d{100,20}r{p=1234,200,500}\n"
+ "This will drop packets 100 to 120 and drop one random packet every 200 starting from packet 500 on port 1234", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+#endif
 
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-on", NULL, "enable HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),

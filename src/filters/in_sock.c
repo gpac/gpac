@@ -482,6 +482,12 @@ static GF_Err sockin_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 1000);
 		return GF_OK;
 	}
+	else if (e==GF_IP_CONNECTION_CLOSED) {
+		ctx->is_stop = GF_TRUE;
+		if (ctx->sock_c.pid)
+			gf_filter_pid_set_eos(ctx->sock_c.pid);
+		return e;
+	}
 	else if (e) {
 		return e;
 	}

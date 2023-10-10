@@ -880,6 +880,54 @@ use buffered IO instead of file descriptor for read/write - this can speed up op
 disable all mutexes, threads and semaphores (do not use if unsure about threading used)
 .br
 .TP
+.B \-netcap-dst (string)
+.br
+output packets to indicated file
+.br
+.TP
+.B \-netcap-src (string)
+.br
+read packets from indicated file, as produced by -netcap-rec or a pcap or pcapng file
+.br
+.TP
+.B \-netcap-nrt
+.br
+ignore real-time regulation when reading packet from capture file
+.br
+.TP
+.B \-netcap-filter (string)
+.br
+set packet filtering rules whe reading from capture file. Value is a list of
+.br
+* d{a}: drop packet number a
+.br
+* d{a,b}: drop packets from numbers a to b
+.br
+* r{a}: random drop every a packets
+.br
+* r{a,b}: random drop every a packets, starting from packet number b
+.br
+* r{a,b,c}: random drop every a packets, starting from packet number b until packet number b+c
+.br
+* f{a,b}: drop first packet every a packets, starting from packet number b
+.br
+* f{a,b,c}: drop first packet every a packets, starting from packet number b until packet number b+c
+.br
+* b{a,b,c}: change byte at position b (0 for first byte) in packet number a to value c (in hexa) - at most one per packet
+.br
+* RULE{p=P,...}: port number to filter, if not set the rule applies to all packets
+.br
+
+.br
+Example
+.br
+d{100,20}r{p=1234,200,500}
+.br
+
+.br
+This will drop packets 100 to 120 and drop one random packet every 200 starting from packet 500 on port 1234
+.br
+.TP
 .B \-cache (string)
 .br
 cache directory location

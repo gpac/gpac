@@ -1269,6 +1269,10 @@ static const char *gf_disabled_features()
 #ifdef GPAC_DISABLE_ISOM_DUMP
 	                       "GPAC_DISABLE_ISOM_DUMP "
 #endif
+#ifdef GPAC_DISABLE_NETCAP
+	                       "GPAC_DISABLE_NETCAP "
+#endif
+
 #ifdef GPAC_DISABLE_COMPOSITOR
 	                       "GPAC_DISABLE_COMPOSITOR "
 #endif

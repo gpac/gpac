@@ -244,6 +244,7 @@ push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
 push_feature "avdevice" "avdevice support in FFMPEG"
 push_feature "avfilter" "avfilter support in FFMPEG"
+push_feature "net-cap" "network grab and replay support"
 
 push_feature "compositor" "*Compositor"
 push_feature "vout" "*video output"
@@ -2445,6 +2446,12 @@ fi
 if test "$disable_restrict" = "no" ; then
     echo "#define GPAC_ENABLE_RESTRICT" >> $TMPH
 fi
+
+if test "$disable_net_cap" = "yes" ; then
+    echo "Network record/playback disabled"
+    echo "#define GPAC_DISABLE_NETCAP" >> $TMPH
+fi
+
 
 echo ""
 
