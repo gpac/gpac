@@ -986,7 +986,6 @@ GF_MPD_Period *gf_mpd_period_new();
 \param _item the MPD Period to free*/
 void gf_mpd_period_free(void *_item);
 /*! writes an MPD to a file stream
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param out the target file object
 \param compact if set, removes all new line and indentation in the output
@@ -994,7 +993,6 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 */
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 /*! writes an MPD to a local file
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param file_name the target file name
 \return error if any
@@ -1013,7 +1011,6 @@ typedef enum
 } GF_M3U8WriteMode;
 
 /*! writes an MPD to a m3u8 playlist
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param out the target file object
 \param m3u8_name the base m3u8 name to use (needed when generating variant playlist file names)
@@ -1025,7 +1022,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 
 /*! parses an MPD Period and appends it to the MPD period list
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
+GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
 \param mpd the target MPD to write
 \param root the DOM element describing the period
 \return error if any
