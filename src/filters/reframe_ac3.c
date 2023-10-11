@@ -342,7 +342,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts;
-	
+
 restart:
 	cts = GF_FILTER_NO_TS;
 
@@ -480,10 +480,10 @@ restart:
 			cts = GF_FILTER_NO_TS;
 		}
 
-		if (!ctx->in_seek) {
+		if (!ctx->in_seek && remain >= ctx->hdr.framesize) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->hdr.framesize, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
-			
+
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, sync, ctx->hdr.framesize);
