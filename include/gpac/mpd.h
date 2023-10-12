@@ -1018,7 +1018,7 @@ typedef enum
 \param mode the write operation desired
 \return error if any
 */
-GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period, GF_M3U8WriteMode mode);
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period const * const period, GF_M3U8WriteMode mode);
 
 
 /*! parses an MPD Period and appends it to the MPD period list

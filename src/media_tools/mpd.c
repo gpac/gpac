@@ -3534,7 +3534,7 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 
 }
 
-static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 as_idx, const GF_MPD_Representation *rep, FILE *out, char *m3u8_name, GF_MPD_Period *period, u32 nb_alt_media, u32 nb_subs, u32 nb_cc)
+static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 as_idx, const GF_MPD_Representation *rep, FILE *out, char *m3u8_name, GF_MPD_Period const * const period, u32 nb_alt_media, u32 nb_subs, u32 nb_cc)
 {
 	u32 i;
 	GF_MPD_AdaptationSet *r_as;
@@ -4028,8 +4028,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	return GF_OK;
 }
 
-
-GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period *period, GF_M3U8WriteMode mode)
+GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, const char* m3u8_name, GF_MPD_Period const * const period, GF_M3U8WriteMode mode)
 {
 	u32 i, j, hls_version;
 	u32 var_idx;
@@ -4306,7 +4305,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	gf_free(szVariantName);
 	return GF_OK;
 }
-
 
 
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
@@ -6058,6 +6056,5 @@ GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id)
 	}
 	return NULL;
 }
-
 
 #endif /*GPAC_DISABLE_MPD*/
