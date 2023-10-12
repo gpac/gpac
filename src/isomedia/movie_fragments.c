@@ -591,6 +591,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 		while (gf_list_count(traf->TrackRuns)) {
 			trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, 0);
 			gf_list_rem(traf->TrackRuns, 0);
+			gf_list_del_item(movie->moof->trun_list, trun);
 			gf_isom_box_del_parent(&traf->child_boxes, (GF_Box *)trun);
 		}
 		traf->tfhd->flags |= GF_ISOM_TRAF_DUR_EMPTY;
@@ -643,6 +644,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 		if (!first_ent) {
 			i--;
 			gf_list_rem(traf->TrackRuns, i);
+			gf_list_del_item(movie->moof->trun_list, trun);
 			continue;
 		}
 		trun->flags = 0;
