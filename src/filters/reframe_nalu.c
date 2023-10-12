@@ -3266,7 +3266,7 @@ naldmx_flush:
 					u8 layer_id = nal_data[0] & 1;
 					layer_id<<=5;
 					layer_id |= (nal_data[1] & 0xF8) >> 3;
-					u8 temporal_id = nal_data[2] & 0x7;
+					u8 temporal_id = nal_data[1] & 0x7;
 					if (ctx->last_layer_id < layer_id)
 						force_au_flush = GF_FALSE;
 					else if (ctx->last_layer_id == layer_id) {
