@@ -1303,7 +1303,7 @@ static Bool netcap_filter_pck(GF_Socket *sock, u32 pck_len, Bool for_send)
 
 		if ((r->patch_offset==-1) && !(sock->flags & GF_SOCK_IS_TCP)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[NetCap] Droping packet %d\n", cur_pck));
-			return GF_FALSE;
+			return GF_TRUE;
 		}
 		u32 bo = (r->patch_offset>=0) ? r->patch_offset : gf_rand();
 		bo = bo % pck_len;
@@ -1314,9 +1314,9 @@ static Bool netcap_filter_pck(GF_Socket *sock, u32 pck_len, Bool for_send)
 
 		sock->cap_info->patch_val = val;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[NetCap] Patching packet %d byte offset %d to 0x%02X\n", cur_pck, bo, val));
-		return GF_TRUE;
+		return GF_FALSE;
 	}
-	return GF_TRUE;
+	return GF_FALSE;
 }
 
 static void gf_netcap_load_pck()
@@ -1386,7 +1386,7 @@ refetch:
 		s->cap_info->patch_offset = 0;
 		break;
 	}
-	if (!netcap_filter_pck(cap_sock_selected, cap_pck_len, GF_FALSE))
+	if (netcap_filter_pck(cap_sock_selected, cap_pck_len, GF_FALSE))
 		cap_sock_selected = NULL;
 
 	if (!cap_sock_selected) {
@@ -2344,7 +2344,7 @@ GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written
 
 	if (written) *written = 0;
 #ifndef GPAC_DISABLE_NETCAP
-	if (!netcap_filter_pck(sock, length, GF_TRUE)) {
+	if (netcap_filter_pck(sock, length, GF_TRUE)) {
 		if (written) *written = length;
 		return GF_OK;
 	}
@@ -3459,7 +3459,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 	}
 
 #ifndef GPAC_DISABLE_NETCAP
-	if (!netcap_filter_pck(sock, res, GF_FALSE)) {
+	if (netcap_filter_pck(sock, res, GF_FALSE)) {
 		res = 0;
 	} else if (sock->cap_info && sock->cap_info->patch_offset) {
 		buffer[sock->cap_info->patch_offset-1] = sock->cap_info->patch_val;
