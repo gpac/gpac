@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -67,13 +67,15 @@ typedef struct __PO
 	u32 MaxCount;
 	u32 IsInit;
 	u32 MaxDelay, LastTime;
+	u32 TimeScale;
+	struct __PRO_item *disc;
 } GF_RTPReorder;
 
 /* creates new RTP reorderer
 	@MaxCount: forces automatic packet flush. 0 means no flush
 	@MaxDelay: is the max time in ms the queue will wait for a missing packet
 */
-GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay);
+GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay, u32 rtp_timescale);
 void gf_rtp_reorderer_del(GF_RTPReorder *po);
 /*reset the Queue*/
 void gf_rtp_reorderer_reset(GF_RTPReorder *po);
@@ -81,7 +83,7 @@ void gf_rtp_reorderer_reset(GF_RTPReorder *po);
 /*Adds a packet to the queue. Packet Data is memcopied*/
 GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u32 pck_seqnum);
 /*gets the output of the queue. Packet Data IS YOURS to delete*/
-void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush);
+void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush, Bool *is_disc);
 
 #define MAX_RTCP_RR	4
 
@@ -186,6 +188,7 @@ struct __tag_rtp_channel
 
 	const char **ssm, **ssmx;
 	u32 nb_ssm, nb_ssmx;
+	u8 disc_state;
 };
 
 /*gets UTC in the channel RTP timescale*/
@@ -194,6 +197,8 @@ u32 gf_rtp_channel_time(GF_RTPChannel *ch);
 u32 gf_rtp_get_report_time();
 /*updates the time for the next report (SR, RR)*/
 void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
+
+Bool gf_rtp_is_disc(GF_RTPChannel *ch);
 
 
 /*
