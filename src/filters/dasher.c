@@ -5197,11 +5197,7 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 			ctx->mpd->force_llhls_mode = 0;
 
 		char *opath = ctx->explicit_mode ? gf_file_basename(ctx->out_path) : ctx->out_path;
-		if (m3u8_second_pass) {
-			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, opath, gf_list_last(ctx->mpd->periods), mode);
-		} else {
-			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, opath, gf_list_last(ctx->mpd->periods), mode);
-		}
+		e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, opath, gf_list_last(ctx->mpd->periods), mode);
 	} else {
 		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
 	}
