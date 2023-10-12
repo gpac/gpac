@@ -7726,13 +7726,19 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		}
 
 		if (splitting_flag) {
-			for (i = 0; i < num_scalability_types; i++) {
+			u32 num_bits=0;
+			for (i = 0; i < num_scalability_types-1; i++) {
 				dim_bit_offset[i] = 0;
+				num_bits+=dimension_id_len[i];
 				for (j = 0; j < i; j++)
 					dim_bit_offset[i] += dimension_id_len[j];
 			}
-			dimension_id_len[num_scalability_types - 1] = 1 + (5 - dim_bit_offset[num_scalability_types - 1]);
-			dim_bit_offset[num_scalability_types] = 6;
+			if (num_bits>=6) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Too many its defined for dimension IDs (%d vs 5 max)\n", num_bits));
+				return -1;
+			}
+			dimension_id_len[num_scalability_types - 1] = 6 - num_bits; //1 + (5 - dim_bit_offset[num_scalability_types - 1]);
+			dim_bit_offset[num_scalability_types - 1] = 6;
 		}
 	}
 
