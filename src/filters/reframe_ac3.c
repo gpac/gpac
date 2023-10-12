@@ -480,12 +480,11 @@ restart:
 			cts = GF_FILTER_NO_TS;
 		}
 
-		if (!ctx->in_seek && remain >= ctx->hdr.framesize) {
+		if (!ctx->in_seek && remain >= sync_pos + ctx->hdr.framesize) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->hdr.framesize, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
 
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
-
 			memcpy(output, sync, ctx->hdr.framesize);
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
