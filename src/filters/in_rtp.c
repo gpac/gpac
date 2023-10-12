@@ -645,15 +645,19 @@ static GF_Err rtpin_process(GF_Filter *filter)
 
 	/*fetch data on udp*/
 	u32 tot_read=0;
-	while (1) {
+	//add a max for netcap without RT regulation
+	u32 run=100;
+	while (run) {
 		u32 read=0;
 		//select both read and write
 		GF_Err e = gf_sk_group_select(ctx->sockgroup, 10, GF_SK_SELECT_BOTH);
 		if (e) {
-			if ((e==GF_IP_NETWORK_EMPTY) && !ctx->eos_probe_start)
-				ctx->eos_probe_start = gf_sys_clock();
-			else if ((e==GF_IP_CONNECTION_CLOSED) && !ctx->eos_probe_start)
-				ctx->eos_probe_start = gf_sys_clock() - 1000;
+			if (!tot_read && !ctx->eos_probe_start) {
+				if (e==GF_IP_NETWORK_EMPTY)
+					ctx->eos_probe_start = gf_sys_clock();
+				else if (e==GF_IP_CONNECTION_CLOSED)
+					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
+			}
 			break;
 		}
 
@@ -664,19 +668,22 @@ static GF_Err rtpin_process(GF_Filter *filter)
 				read += rtpin_stream_read(stream);
 			}
 
+			//if not init, set probe start time to 500ms before eval time since we have explicit notif of eos through rtcp or rtsp
 			if ((stream->flags & RTP_EOS) && !ctx->eos_probe_start)
-				ctx->eos_probe_start = gf_sys_clock();
+				ctx->eos_probe_start = gf_sys_clock() + ctx->udp_timeout - 500;
 		}
 
+		run--;
 		if (!read) {
 			break;
 		}
-		tot_read+=read;
+
+		tot_read += read;
 		ctx->eos_probe_start = 0;
 	}
 
-	//we wait max 300ms to detect eos
-	if (ctx->eos_probe_start && (gf_sys_clock() - ctx->eos_probe_start > 1000) ) {
+	//we wait max udp_timeout ms to detect eos
+	if (ctx->eos_probe_start && (gf_sys_clock() - ctx->eos_probe_start > ctx->udp_timeout) ) {
 		u32 nb_eos=0;
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
