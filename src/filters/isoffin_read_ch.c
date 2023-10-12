@@ -395,6 +395,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (ch->edit_sync_frame) {
 				ch->edit_sync_frame++;
 				if (ch->edit_sync_frame < ch->sample_num) {
+					ch->static_sample->alloc_size = 0;
+					ch->static_sample->dataLength = 0;
 					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->edit_sync_frame, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
 					if (ch->sample) {
 						ch->sample->DTS = ch->sample_time;
@@ -416,12 +418,20 @@ void isor_reader_get_sample(ISOMChannel *ch)
 							//e = GF_EOS;
 						} else {
 							u32 time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
+
+							ch->static_sample->alloc_size = 0;
+							ch->static_sample->dataLength = 0;
+
 							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 							ch->static_sample->alloc_size = 0;
 							if (e==GF_OK) {
 								if (ch->sample_num == prev_sample) {
 									ch->sample_time += time_diff;
 									ch->sample = NULL;
+									if (ch->pck) {
+										gf_filter_pck_discard(ch->pck);
+										ch->pck = NULL;
+									}
 									return;
 								} else {
 									ch->sample = ch->static_sample;
@@ -437,6 +447,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					GF_ISOSample *found = ch->static_sample;
 					u32 samp_num = ch->sample_num;
 					ch->sample = NULL;
+					ch->static_sample->alloc_size = 0;
+					ch->static_sample->dataLength = 0;
 					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 
 					ch->static_sample->alloc_size = 0;
