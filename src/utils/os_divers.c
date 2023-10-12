@@ -917,6 +917,7 @@ char gf_prog_lf = '\r';
 extern Bool gpac_use_poll;
 #ifndef GPAC_DISABLE_NETCAP
 extern Bool gpac_netcap_rt;
+extern s32 gpac_netcap_loop;
 #endif
 #endif
 
@@ -1014,10 +1015,13 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gf_netcap_playback(arg_val);
 			} else if (!stricmp(arg, "-netcap-nrt")) {
 				gpac_netcap_rt = !bool_value;
-			} else if (!stricmp(arg, "-netcap-filter") && arg_val) {
-				void gf_netcap_play_rules(char *rules);
-				gf_netcap_play_rules(arg_val);
+			} else if (!stricmp(arg, "-net-filter") && arg_val) {
+				void gf_net_filter_set_rules(char *rules);
+				gf_net_filter_set_rules(arg_val);
+			} else if (!stricmp(arg, "-netcap-loop")) {
+				gpac_netcap_loop = atoi(arg_val);
 			}
+
 #endif
 			else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;
