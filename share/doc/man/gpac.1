@@ -532,7 +532,7 @@ The .I creds option allows inspecting or modifying the users and groups informat
 .br
 * `+NAME`: adds user NAME
 .br
-* `+NAME:I1=V1[,I2=V2]`: sets info I1 with value V1 to user NAME. the info name password resets password without prompt.
+* `+NAME:I1=V1[,I2=V2]`: sets info I1 with value V1 to user NAME. The info name password resets password without prompt.
 .br
 * `-NAME`: removes user NAME
 .br
@@ -887,7 +887,7 @@ output packets to indicated file
 .TP
 .B \-netcap-src (string)
 .br
-read packets from indicated file, as produced by -netcap-rec or a pcap or pcapng file
+read packets from indicated file, as produced by -netcap-dst or a pcap or pcapng file
 .br
 .TP
 .B \-netcap-nrt
@@ -895,37 +895,42 @@ read packets from indicated file, as produced by -netcap-rec or a pcap or pcapng
 ignore real-time regulation when reading packet from capture file
 .br
 .TP
-.B \-netcap-filter (string)
+.B \-netcap-loop (int)
 .br
-set packet filtering rules whe reading from capture file. Value is a list of
+set number of loops of capture file, -1 means forever
 .br
-* d{a}: drop packet number a
+.TP
+.B \-net-filter (string)
 .br
-* d{a,b}: drop packets from numbers a to b
+set packet filtering rules (live or from file). Value is a list of {OPT,OPT2...} with OPT in:
 .br
-* r{a}: random drop every a packets
+* m=N: set rule mode - N can be r for reception only (default), w for send only or rw for both
 .br
-* r{a,b}: random drop every a packets, starting from packet number b
+* s=N: set packet start range to N
 .br
-* r{a,b,c}: random drop every a packets, starting from packet number b until packet number b+c
+* e=N: set packet end range to N (only used for r and f rules)
 .br
-* f{a,b}: drop first packet every a packets, starting from packet number b
+* n=N: set number of packets to drop to N, 0 or 1 means single packet
 .br
-* f{a,b,c}: drop first packet every a packets, starting from packet number b until packet number b+c
+* r=N: random drop one packet every N
 .br
-* b{a,b,c}: change byte at position b (0 for first byte) in packet number a to value c (in hexa) - at most one per packet
+* f=N: drop first packet every N
 .br
-* RULE{p=P,...}: port number to filter, if not set the rule applies to all packets
+* p=P: local port number to filter, if not set the rule applies to all packets
+.br
+* o=N: patch packet instead of droping (always true for TCP), replacing byte at offset N (0 is first byte, <0 for random)
+.br
+* v=N: set patch byte value to N (hexa) or negative value for random (default)
 .br
 
 .br
 Example
 .br
-d{100,20}r{p=1234,200,500}
+{p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}
 .br
 
 .br
-This will drop packets 100 to 120 and drop one random packet every 200 starting from packet 500 on port 1234
+This will drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE
 .br
 .TP
 .B \-cache (string)
