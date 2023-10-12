@@ -1087,7 +1087,8 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	nhmldmx_config_output(filter, ctx, ctx->root);
+	e = nhmldmx_config_output(filter, ctx, ctx->root);
+	if (e) return e;
 
 	ctx->media_done = 0;
 	ctx->current_child_idx = 0;
