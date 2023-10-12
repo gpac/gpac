@@ -7040,8 +7040,11 @@ llhls_rety:
 					}
 
 					if (dash->is_m3u8 && (dyn_type==GF_MPD_TYPE_DYNAMIC)) {
-						if (!group->time_at_first_reload_required)
+						if (!group->time_at_first_reload_required) {
+							//first time we start timeout, force MPD update
+							dash->force_mpd_update = GF_TRUE;
 							group->time_at_first_reload_required = now;
+						}
 
 						//use group last modification time
 						timer = now - group->last_mpd_change_time;
@@ -7057,6 +7060,8 @@ llhls_rety:
 
 					if (!group->time_at_first_reload_required) {
 						group->time_at_first_reload_required = now;
+						//first time we start timeout, force MPD update
+						dash->force_mpd_update = GF_TRUE;
 						return GF_DASH_DownloadCancel;
 					}
 					if (now - group->time_at_first_reload_required < group->cache_duration)
