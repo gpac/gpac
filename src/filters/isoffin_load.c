@@ -89,7 +89,7 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 		GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 		if (txt) {
 			times.vals[i] = (u32) s->DTS;
-			names.vals[i] = gf_strdup(txt->text);
+			names.vals[i] = gf_strdup(txt->text ? txt->text : "");
 			gf_isom_delete_text_sample(txt);
 		}
 		gf_bs_del(bs);
@@ -1105,7 +1105,7 @@ props_done:
 		gf_odf_desc_del((GF_Descriptor *)lang_desc);
 		lang_desc = NULL;
 	}
-	
+
 	if (read->smode != MP4DMX_SINGLE) {
 		if ((codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC)) {
 			Bool signal_lhv = (read->smode==MP4DMX_SPLIT) ? GF_TRUE : GF_FALSE;
@@ -1750,7 +1750,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] No suitable tracks in file\n"));
 		return GF_NOT_SUPPORTED;
 	}
-	
+
 	/*if cover art, declare a video pid*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 
@@ -1853,7 +1853,7 @@ retry:
 
 	if (read->itemid)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ITEM_ID, &PROP_UINT(item_id));
-		
+
 	if ((item_codecid==GF_CODECID_HEVC) && gf_isom_meta_item_has_ref(read->mov, GF_TRUE, 0, item_id, GF_ISOM_REF_TBAS)) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
 	}
@@ -1948,6 +1948,3 @@ retry:
 }
 
 #endif // !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
-
-
-
