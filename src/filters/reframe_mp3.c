@@ -265,14 +265,16 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 			break;
 		}
 
-		if (buf_alloc <= fsize+2) {
-			_buf = gf_realloc(_buf, fsize+3);
-			buf_alloc = fsize+3;
+		if (buf_alloc <= fsize+3) {
+			_buf = gf_realloc(_buf, fsize+4);
+			buf_alloc = fsize+4;
 		}
 		//read into _buf+1 so that buf+1 is always %2 mem aligned as it can be loaded as unsigned short
+		// having 3 nulls allows for correct 2-char-wide null terminating string not matter the alignment
 		gf_bs_read_data(bs, _buf+1, fsize);
 		_buf[fsize+1]=0;
 		_buf[fsize+2]=0;
+		_buf[fsize+3]=0;
 		buf = _buf+1;
 
 		tag_idx = gf_itags_find_by_id3tag(ftag);
@@ -925,4 +927,3 @@ const GF_FilterRegister *rfmp3_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFMP3)
-
