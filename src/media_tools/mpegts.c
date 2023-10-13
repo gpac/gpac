@@ -2468,7 +2468,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 							break;
 						}
 						gf_bs_read_data(bs, _url, url_len);
-						_url[url_len] = 0;
+						_url[url_len >= GF_ARRAY_LENGTH(URL) ? GF_ARRAY_LENGTH(URL)-1 : url_len] = 0;
 					}
 					temi_loc.external_URL = URL;
 
