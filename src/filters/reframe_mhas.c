@@ -542,7 +542,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			remain=0;
 			break;
 		}
-		if ((hdr_start[1]==0x01) && (hdr_start[2]==0xA5)) {
+		if ( (u32)(hdr_start-start)+3 <= remain  && (hdr_start[1]==0x01) && (hdr_start[2]==0xA5)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] Sync found !\n"));
 			ctx->nosync = GF_FALSE;
 			break;
