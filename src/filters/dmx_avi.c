@@ -282,11 +282,12 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 				u32 cid=0;
 				char data[8];
 				AVI_set_audio_track(ctx->avi, i);
-				AVI_read_audio(ctx->avi, data, 8, (int*)&cid);
+				if (AVI_read_audio(ctx->avi, data, 8, (int*)&cid)) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-				u32 hdr = GF_4CC(data[0], data[1], data[2], data[3]);
-				cid = gf_mp3_object_type_indication(hdr);
+					u32 hdr = GF_4CC(data[0], data[1], data[2], data[3]);
+					cid = gf_mp3_object_type_indication(hdr);
 #endif
+				}
 				AVI_set_audio_position(ctx->avi, 0);
 				if (cid) codecid = cid;
 			}
@@ -552,7 +553,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 			ctx->video_done = GF_TRUE;
 		}
 	}
-	
+
 	nb_done = 0;
 	count = gf_list_count(ctx->audios);
 	for (i=0; i<count; i++) {
@@ -597,7 +598,7 @@ restart:
 			u64 file_offset;
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(st->opid, size, &pck_data);
 			if (!dst_pck) return GF_OUT_OF_MEM;
-			
+
 			file_offset = gf_ftell(ctx->avi->fdes);
 			AVI_read_audio(ctx->avi, pck_data, size, (int*)&continuous);
 
@@ -744,4 +745,3 @@ const GF_FilterRegister *avidmx_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-
