@@ -6371,7 +6371,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			//if result fits into source buffer, reformat
 			//otherwise ignore and return source (happens in some fuzzing cases, cf issue 1903)
 			if (dst_no_epb_size + nb_bytes_add <= nal_size)
-				nal_size = gf_media_nalu_add_emulation_bytes(buffer, dst_no_epb, dst_no_epb_size);
+				nal_size = gf_media_nalu_add_emulation_bytes(dst_no_epb, buffer, dst_no_epb_size);
 
 			gf_free(dst_no_epb);
 		}
@@ -12430,4 +12430,3 @@ void gf_vvc_parse_ps(GF_VVCConfig* vvccfg, VVCState* vvc, u32 nal_type)
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
-
