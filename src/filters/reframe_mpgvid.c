@@ -908,7 +908,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);
 							ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
 						}
-						memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
+						memmove(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 						ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					}
 					gf_filter_pid_drop_packet(ctx->ipid);
@@ -956,7 +956,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);
 							ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
 						}
-						memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
+						memmove(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
 						ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					}
 					gf_filter_pid_drop_packet(ctx->ipid);
@@ -1410,5 +1410,3 @@ const GF_FilterRegister *rfmpgvid_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFMPGVID)
-
-
