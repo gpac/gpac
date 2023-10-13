@@ -492,7 +492,8 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					att->val_start = parser->current_pos + 2;
 					break;
 				default:
-					break;
+					// garbage char before value separator -> error
+					goto att_retry;
 				}
 				parser->current_pos++;
 				if (parser->att_sep) break;
@@ -503,6 +504,10 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 att_retry:
 
 		assert(parser->att_sep);
+		if (!parser->att_sep) {
+			format_sax_error(parser, parser->current_pos, "Invalid character %c before attribute value separator", parser->buffer[parser->current_pos]);
+			return GF_TRUE;
+		}
 		sep = strchr(parser->buffer + parser->current_pos, parser->att_sep);
 		if (!sep || !sep[1]) return GF_TRUE;
 
@@ -1277,7 +1282,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
             if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
         }
         gf_blob_release(fileName);
-        
+
 		parser->elt_start_pos = parser->elt_end_pos = 0;
 		parser->elt_name_start = parser->elt_name_end = 0;
 		parser->att_name_start = 0;
@@ -2458,7 +2463,7 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 		const char *ns;
 		ns = strstr(att->name, ":");
 		if (!ns) continue;
-		
+
 		if (!strncmp(att->name, "xmlns", 5)) {
 			if (!strcmp(ns+1, n->ns)) {
 				return GF_OK;
