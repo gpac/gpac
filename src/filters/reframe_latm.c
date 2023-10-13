@@ -58,7 +58,7 @@ typedef struct
 	u32 timescale;
 
 	GF_M4ADecSpecInfo acfg;
-	
+
 	char *latm_buffer;
 	u32 latm_buffer_size, latm_buffer_alloc;
 	u32 dts_inc, sample_rate;
@@ -263,7 +263,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	cur_dur = 0;
 	cur_pos = gf_bs_get_position(bs);
 	while (latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL, NULL)) {
-		if ((sr_idx>=0) && (sr_idx != acfg.base_sr_index)) {
+		if ((sr_idx>=0) && (sr_idx != acfg.base_sr_index) && sr_idx < GF_ARRAY_LENGTH(GF_M4ASampleRates) && GF_M4ASampleRates[sr_idx]) {
 			duration *= GF_M4ASampleRates[acfg.base_sr_index];
 			duration /= GF_M4ASampleRates[sr_idx];
 
@@ -273,7 +273,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		sr_idx = acfg.base_sr_index;
 		duration += ctx->frame_size;
 		cur_dur += ctx->frame_size;
-		if (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx]) {
+		if (cur_dur > ctx->index * GF_M4ASampleRates[sr_idx]  && sr_idx < GF_ARRAY_LENGTH(GF_M4ASampleRates) && GF_M4ASampleRates[sr_idx]) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(LATMIdx)*ctx->index_alloc_size);
@@ -290,7 +290,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	gf_bs_del(bs);
 	gf_fclose(stream);
 
-	if (sr_idx>=0) {
+	if (sr_idx>=0 && sr_idx < GF_ARRAY_LENGTH(GF_M4ASampleRates) && GF_M4ASampleRates[sr_idx]) {
 		if (!ctx->duration.num || (ctx->duration.num  * GF_M4ASampleRates[sr_idx] != duration * ctx->duration.den)) {
 			ctx->duration.num = (s32) duration;
 			ctx->duration.den = GF_M4ASampleRates[sr_idx];
@@ -701,4 +701,3 @@ const GF_FilterRegister *rflatm_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFLATM)
-
