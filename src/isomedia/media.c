@@ -392,6 +392,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			return GF_ISOM_INVALID_MEDIA;
 		} else {
 			GF_LASeRSampleEntryBox*ptr = (GF_LASeRSampleEntryBox*)entry;
+			if (!ptr || !ptr->lsr_config || !ptr->lsr_config->hdr_size)
+				return GF_ISOM_INVALID_MEDIA;
 			esd =  gf_odf_desc_esd_new(2);
 			*out_esd = esd;
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
@@ -1071,7 +1073,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 		e = stbl_AddChunkOffset(mdia, sampleNumber, StreamDescIndex, data_offset, sample->nb_pack);
 		if (e) return e;
 	}
-	
+
 	if (!syncShadowNumber) return GF_OK;
 	if (!stbl->ShadowSync) {
 		stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSH);

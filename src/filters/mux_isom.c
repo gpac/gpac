@@ -1027,7 +1027,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
 		mux_assign_mime_file_ext(pid, ctx->opid, ISOM_FILE_EXT, ISOM_FILE_MIME, NULL);
-		
+
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
 		//we dispatch timing in milliseconds
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
@@ -1080,7 +1080,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		GF_FilterEvent evt;
 		GF_SAFEALLOC(tkw, TrackWriter);
 		if (!tkw) return GF_OUT_OF_MEM;
-		
+
 		gf_list_add(ctx->tracks, tkw);
 		tkw->ipid = pid;
 		tkw->fake_track = !is_true_pid;
@@ -2615,7 +2615,7 @@ sample_entry_setup:
 				return e;
 			}
 		}
-		
+
 		if (xps_inband) {
 			//this will cleanup all PS in avcC / svcC
 			gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (xps_inband==XPS_IB_BOTH) ? GF_TRUE : GF_FALSE);
@@ -3213,7 +3213,7 @@ sample_entry_setup:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
 			}
 		}
-		
+
 		e = gf_isom_new_generic_sample_description(ctx->file, tkw->track_num, (char *)src_url, NULL, &udesc, &tkw->stsd_idx);
 		if (gpac_meta_dsi) gf_free(gpac_meta_dsi);
 
@@ -3762,7 +3762,7 @@ sample_entry_done:
 					if (add_chap) {
 						gf_isom_add_chapter(ctx->file, 0, start_time, p2->value.string_list.vals[j]);
 					}
-					if (add_tk) {
+					if (add_tk && p2->value.string_list.vals[j]) {
 						GF_TextSample tx;
 						memset(&tx, 0, sizeof(tx));
 						tx.text = p2->value.string_list.vals[j];
@@ -4363,7 +4363,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			tkw->has_seig = GF_TRUE;
 		}
 	} else {
-	
+
 		e = GF_OK;
 		//multikey ALWAYS uses seig
 		if (tkw->cenc_ki->value.data.ptr[0])
@@ -5014,7 +5014,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 				tkw->gdr_type = sap_type;
 		}
 	}
-	
+
 	subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 	if (subs) {
 		//if no AUDelim nal and inband header injection, push new subsample
@@ -7107,7 +7107,7 @@ retry_pck:
 		if (blocking_refs && has_ready) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Blocking input packets present, aborting initial timing sync\n"));
 		}
-		//this may be quite long until we have a packet in case input pid is video encoding 
+		//this may be quite long until we have a packet in case input pid is video encoding
 		else if (ctx->config_retry_start && (gf_sys_clock() - ctx->config_retry_start > 10000)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] No input packets present on one or more inputs for more than 10s, aborting initial timing sync\n"));
 		} else {
@@ -7908,7 +7908,7 @@ static GF_Err mp4_mux_done(GF_MP4MuxCtx *ctx, Bool is_final)
 		}
 
 		gf_isom_purge_track_reference(ctx->file, tkw->track_num);
-		
+
 		if (ctx->importer && ctx->dur.num && ctx->dur.den) {
 			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 			u64 pdur = gf_isom_get_track_duration(ctx->file, tkw->track_num);
@@ -8392,4 +8392,3 @@ const GF_FilterRegister *mp4mx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_ISOM_WRITE
-

@@ -102,12 +102,14 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 		(*out_desc)->displayFlags = txt->displayFlags;
 		(*out_desc)->vert_justif = txt->vertical_justification;
 		(*out_desc)->horiz_justif = txt->horizontal_justification;
-		(*out_desc)->font_count = txt->font_table->entry_count;
-		(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * txt->font_table->entry_count);
-		for (i=0; i<txt->font_table->entry_count; i++) {
-			(*out_desc)->fonts[i].fontID = txt->font_table->fonts[i].fontID;
-			if (txt->font_table->fonts[i].fontName)
-				(*out_desc)->fonts[i].fontName = gf_strdup(txt->font_table->fonts[i].fontName);
+		if (txt->font_table && txt->font_table->entry_count) {
+			(*out_desc)->font_count = txt->font_table->entry_count;
+			(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * txt->font_table->entry_count);
+			for (i=0; i<txt->font_table->entry_count; i++) {
+				(*out_desc)->fonts[i].fontID = txt->font_table->fonts[i].fontID;
+				if (txt->font_table->fonts[i].fontName)
+					(*out_desc)->fonts[i].fontName = gf_strdup(txt->font_table->fonts[i].fontName);
+			}
 		}
 	}
 	return GF_OK;
@@ -663,9 +665,12 @@ GF_TextSample *gf_isom_parse_text_sample(GF_BitStream *bs)
 	}
 
 	while (gf_bs_available(bs)) {
-		GF_Box *a;
+		GF_Box *a = NULL;
 		GF_Err e = gf_isom_box_parse(&a, bs);
-		if (e) break;
+		if (e) {
+			if (a) gf_isom_box_del(a);
+			break;
+		}
 
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_STYL:
