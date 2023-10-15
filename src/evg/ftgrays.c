@@ -586,7 +586,7 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 
 		span = raster->gray_spans;
 	} else {
-		if (count==raster->alloc_gray_spans) {
+		if ((u32) count==raster->alloc_gray_spans) {
 			raster->alloc_gray_spans*=2;
 			raster->gray_spans = gf_realloc(raster->gray_spans, sizeof(EVG_Span)*raster->alloc_gray_spans);
 			span = raster->gray_spans + count - 1;
