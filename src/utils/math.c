@@ -1275,9 +1275,9 @@ GF_Vec gf_vec_cross_p(GF_Vec *v1, GF_Vec *v2)
 		res.z<<=16;
 		return res;
 	}
-	res.x = gf_mulfix(v1.y, v2.z) - gf_mulfix(v2.y, v1.z);
-	res.y = gf_mulfix(v2.x, v1.z) - gf_mulfix(v1.x, v2.z);
-	res.z = gf_mulfix(v1.x, v2.y) - gf_mulfix(v2.x, v1.y);
+	res.x = gf_mulfix(v1->y, v2->z) - gf_mulfix(v2->y, v1->z);
+	res.y = gf_mulfix(v2->x, v1->z) - gf_mulfix(v1->x, v2->z);
+	res.z = gf_mulfix(v1->x, v2->y) - gf_mulfix(v2->x, v1->y);
 
 #endif
 	return res;
@@ -2090,8 +2090,8 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	}
 
 	/* choose pivot - or die */
-	if (fabs(r3[1]) > fabs(r2[1])) SWAP_ROWS(r3, r2);
-	if (fabs(r2[1]) > fabs(r1[1])) SWAP_ROWS(r2, r1);
+	if (ABS(r3[1]) > ABS(r2[1])) SWAP_ROWS(r3, r2);
+	if (ABS(r2[1]) > ABS(r1[1])) SWAP_ROWS(r2, r1);
 	if (r1[1]==0) return GF_FALSE;
 
 	/* eliminate second variable */
@@ -2123,7 +2123,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	}
 
 	/* choose pivot - or die */
-	if (fabs(r3[2]) > fabs(r2[2])) SWAP_ROWS(r3, r2);
+	if (ABS(r3[2]) > ABS(r2[2])) SWAP_ROWS(r3, r2);
 	if (r2[2]==0) return GF_FALSE;
 
 	/* eliminate third variable */
@@ -2229,7 +2229,7 @@ Bool gf_plane_intersect_plane(GF_Plane *plane, GF_Plane *with, GF_Vec *linepoint
 	Fixed fn01 = gf_vec_dot(plane->normal, with->normal);
 	Fixed fn11 = gf_vec_len(with->normal);
 	Fixed det = gf_mulfix(fn00,fn11) - gf_mulfix(fn01,fn01);
-	if (fabs(det) > FIX_EPSILON) {
+	if (ABS(det) > FIX_EPSILON) {
 		Fixed fc0, fc1;
 		GF_Vec v1, v2;
 		fc0 = gf_divfix( gf_mulfix(fn11, -plane->d) + gf_mulfix(fn01, with->d) , det);
