@@ -751,6 +751,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
 			gf_bs_set_logger(bs, regular_bs_log, &lcbk);
+			hevc->full_slice_header_parse = GF_TRUE;
 			res = gf_hevc_parse_nalu_bs(bs, hevc, &type, &temporal_id, &quality_id);
 		} else {
 			bs = NULL;
@@ -4754,7 +4755,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(speed), "set playback command speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(analyze), "analyze sample content (NALU, OBU)\n"
+	{ OFFS(analyze), "analyze sample content (NALU, OBU), similar to `-bsdbg` option of reframer filters\n"
 	"- off: no analyzing\n"
 	"- on: simple analyzing\n"
 	"- bs: log bitstream syntax (all elements read from bitstream)\n"
