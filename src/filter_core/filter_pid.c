@@ -544,12 +544,12 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	u32 nb_pck_transfer=0;
 	GF_FilterPidInst *src = filter->swap_pidinst_src;
 	if (!src) src = filter->swap_pidinst_dst;
-	
+
 	if (src) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s swaping PID %s to PID %s\n", filter->name, src->pid->name, dst->pid->name));
 	}
 
-	
+
 	if (filter->swap_needs_init) {
 		//we are in detach state, the packet queue of the old PID is never read
 		assert(filter->swap_pidinst_dst && filter->swap_pidinst_dst->detach_pending);
@@ -671,7 +671,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			gf_filter_post_remove(src_filter);
 		}
 	}
-	
+
 	if (filter->swap_pidinst_src) {
 		src = filter->swap_pidinst_src;
 		assert(!src->filter->swap_pidinst_dst);
@@ -894,7 +894,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		e = filter->in_connect_err;
 
 	filter->in_connect_err = GF_OK;
-	
+
 	if (e==GF_OK) {
 		//if new, register the new pid instance, and the source pid as input to this filter
 		if (new_pid_inst) {
@@ -1234,7 +1234,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			task->pid->pid->pid_info_changed = GF_FALSE;
 		}
 	}
-	
+
 	//filter may now be the clone, decrement on original filter
 	assert(task->filter->in_pid_connection_pending);
 	safe_int_dec(&task->filter->in_pid_connection_pending);
@@ -3723,7 +3723,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			if (!af) goto exit;
 			af->subsession_id = dst->subsession_id;
 			if (dst->itag) af->itag = gf_strdup(dst->itag);
-			
+
 			//destination is sink, check if af is a mux (output cap type STREAM=FILE present)
 			//if not, copy subsource_id from pid
 			Bool af_is_mux = GF_FALSE;
@@ -3754,7 +3754,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			}
 			if (pid->require_source_id)
 				af->require_source_id = GF_TRUE;
-			
+
 			//copy source IDs for all filters in the chain
 			//we cannot figure out the destination sourceID when initializing PID connection tasks
 			//by walking up the filter chain because PIDs connection might be pending
@@ -4518,7 +4518,7 @@ restart:
 		//the third pid init (demux.video) will
 		//- match cdcrypt and link to it, but will not remove vout from demux destinations, resulting in further linking (this pass)
 		//- create a new cdcrypt to solve demux.video -> vout
-		
+
 //		loaded_filters = gf_list_new();
 		loaded_filters = gf_list_clone(linked_dest_filters);
 	}
@@ -5152,7 +5152,7 @@ single_retry:
 							gf_filter_post_remove(f);
 						}
 					}
-					
+
 					pid->filter->dst_filter = NULL;
 					new_f = gf_filter_pid_resolve_link(pid, new_dst, &reassigned);
 					if (!new_f) {
@@ -5903,7 +5903,7 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 	const GF_PropertyEntry *prop_ent = NULL;
 	GF_PropertyMap *map;
 	*propentry = NULL;
-	
+
 	if (first_call) {
 		gf_mx_p(pid->filter->session->info_mx);
 	}
@@ -6368,7 +6368,7 @@ restart:
 			//FSESS_CHECK_THREAD(pidinst->filter)
 			res = pidinst->filter->freg->process_event(pidinst->filter, &evt);
 		}
-		
+
 		if (!res) {
 			pidinst->filter->pid_info_changed = GF_TRUE;
 		}
@@ -6511,7 +6511,7 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 		} else {
 			has_ts = GF_FALSE;
 		}
-		
+
 		if (!pidi->cur_bit_size) {
 			pidi->stats_start_ts = ts;
 			pidi->stats_start_us = now;
@@ -7505,7 +7505,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		pid->nb_reaggregation_pending = 0;
 		gf_mx_v(pid->filter->tasks_mx);
 	}
-	
+
 	gf_mx_p(f->tasks_mx);
 
 	//after  play or seek, request a process task for source filters or filters having pending packets
@@ -7594,7 +7594,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		an_evt->base.on_pid = task->pid ? pid : NULL;
 
 		safe_int_inc(&pid->filter->num_events_queued);
-		
+
 		gf_fs_post_task_class(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? (GF_FilterPid *) pid_inst : NULL, "downstream_event", an_evt, TASK_TYPE_EVENT);
 	}
 	gf_mx_v(f->tasks_mx);
@@ -8322,7 +8322,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		return GF_OK;
 	}
 	pck = gf_filter_pid_get_packet(pid);
-	
+
 	k = 0;
 	while (name[0]) {
 		char *sep=NULL;
@@ -9254,7 +9254,12 @@ GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec,
 
 	case GF_CODECID_RAW_UNCV:
 		if (!subtype) subtype = subtype_src;
-		return rfc_6381_get_codec_uncv(szCodec, subtype, dcd->value.data.ptr, dcd->value.data.size);
+		if (dcd) {
+			return rfc_6381_get_codec_uncv(szCodec, subtype, dcd->value.data.ptr, dcd->value.data.size);
+		}
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[RFC6381] Cannot find RAW UNCV config, using default %s\n", szCodec));
+		return GF_OK;
 	default:
 		subtype = gf_codecid_4cc_type(codec_id);
 		if (!subtype) {
