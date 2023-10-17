@@ -6330,6 +6330,11 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		for (j=0; j<gf_list_count(group->adaptation_set->essential_properties); j++) {
 			GF_MPD_Descriptor *mpd_desc = gf_list_get(group->adaptation_set->essential_properties, j);
+			if (!mpd_desc->scheme_id_uri) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized EssentialProperty (no uri) - ignoring because not supported\n"));
+				disabled = 1;
+				break;
+			}
 			if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014")) {
 				u32 id, w, h, res;
 				w = h = 0;
