@@ -377,6 +377,10 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TXTIn] Line too long to convert to utf8 (len: %d)\n", len));
 			j = GF_ARRAY_LENGTH(szLineConv) -1 ;
 		}
+		if ( j >= lineSize ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TXTIn] UT8 converted line too long for buffer (len: %d, buffer: %d)\n", j, lineSize));
+			j = lineSize-1 ;
+		}
 		szLineConv[j] = 0;
 		strcpy(szLine, szLineConv);
 		return sOK;
