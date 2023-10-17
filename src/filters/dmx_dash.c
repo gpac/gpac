@@ -90,7 +90,7 @@ typedef struct
 	//http io for manifest
 	GF_DASHFileIO dash_io;
 	GF_DownloadManager *dm;
-	
+
 	GF_DownloadSession *reuse_download_session;
 	Bool first_cache_name_fetched;
 
@@ -152,7 +152,7 @@ typedef struct
 	Bool eos_detected;
 	u32 next_dependent_rep_idx, current_dependent_rep_idx;
 	u64 utc_map;
-	
+
 #ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *sess;
 #endif
@@ -427,7 +427,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				diff *= 1000;
 				diff /= ts;
 				if (diff<=1) diff=0;
-				
+
 				diff *= ts;
 				diff /= 1000;
 			}
@@ -481,7 +481,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 	dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
 	if (!dst_pck) return;
-	
+
 	//this will copy over clock info for PCR in TS
 	gf_filter_pck_merge_properties(in_pck, dst_pck);
 	gf_filter_pck_set_dts(dst_pck, dts);
@@ -1136,8 +1136,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				if (! gf_dash_group_enum_descriptor(ctx->dash, i, GF_MPD_DESC_ESSENTIAL_PROPERTIES, j, &desc_id, &desc_scheme, &desc_value))
 					break;
 				j++;
-				if (!strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
-				} else if (!strcmp(desc_scheme, "http://dashif.org/guidelines/trickmode")) {
+				if (desc_scheme && !strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
+				} else if (desc_scheme && !strcmp(desc_scheme, "http://dashif.org/guidelines/trickmode")) {
 				} else {
 					playable = GF_FALSE;
 					break;
@@ -2435,7 +2435,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	}
 #endif
 
-	//we are blocking in live mode for manifest update 
+	//we are blocking in live mode for manifest update
 	gf_filter_set_blocking(filter, GF_TRUE);
 
 	return GF_OK;
@@ -2527,7 +2527,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
 				group = gf_dash_get_group_udta(ctx->dash, i);
 				if (!group || !group->template) continue;
-				
+
 				if (!strncmp(group->template, fevt->file_del.url, strlen(group->template) )) {
 					GF_FilterPid *pid = dashdmx_opid_from_group(ctx, group);
 					if (pid) {
@@ -3112,7 +3112,7 @@ static GF_Err dashin_abort(GF_DASHDmxCtx *ctx)
 {
 	u32 i;
 	if (!ctx || ctx->in_error) return GF_EOS;
-	
+
 	for (i=0; i<gf_filter_get_ipid_count(ctx->filter); i++) {
 		GF_FilterEvent evt;
 		GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
