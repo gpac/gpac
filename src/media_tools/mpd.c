@@ -2680,7 +2680,7 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	ms = (u32)(time - ((u64)sec) * 1000);
 
 	if (name) {
-		gf_fprintf(out, " %s=\"", name);
+		gf_xml_dump_string(out, " ", name, "=\"");
 	}
 	t = gf_gmtime(&gtime);
 	sec = t->tm_sec;
@@ -2843,7 +2843,7 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, s32 inde
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<SegmentList");
 	if (s->xlink_href) {
-		gf_fprintf(out, " xlink:href=\"%s\"", s->xlink_href);
+		gf_xml_dump_string(out, " xlink:href=\"", s->xlink_href, "\"");
 		if (s->xlink_actuate_on_load)
 			gf_fprintf(out, " actuate=\"onLoad\"");
 	}
@@ -2880,7 +2880,7 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, s32 inde
 				}
 			} else {
 				gf_fprintf(out, "<SegmentURL");
-				if (url->media) gf_fprintf(out, " media=\"%s\"", url->media);
+				if (url->media) gf_xml_dump_string(out, " media=\"", url->media, "\"");
 				if (url->duration)gf_fprintf(out, " duration=\""LLU"\"", url->duration);
 				if (url->index) gf_fprintf(out, " index=\"%s\"", url->index);
 				if (url->media_range && url->media_range->end_range!=0) gf_fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
@@ -2908,9 +2908,9 @@ static void gf_mpd_print_segment_template(FILE *out, GF_MPD_SegmentTemplate *s, 
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<SegmentTemplate");
 
-	if (s->media) gf_fprintf(out, " media=\"%s\"", s->media);
+	if (s->media) gf_xml_dump_string(out, " media=\"", s->media, "\"");
 	if (s->index) gf_fprintf(out, " index=\"%s\"", s->index);
-	if (s->initialization) gf_fprintf(out, " initialization=\"%s\"", s->initialization);
+	if (s->initialization) gf_xml_dump_string(out, " initialization=\"", s->initialization, "\"");
 	if (s->bitstream_switching) gf_fprintf(out, " bitstreamSwitching=\"%s\"", s->bitstream_switching);
 
 	if (gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent, GF_TRUE))
@@ -2967,9 +2967,9 @@ static void gf_mpd_print_desc(FILE *out, GF_MPD_Descriptor *desc, char *desc_nam
 {
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<%s", desc_name);
-	if (desc->id) gf_fprintf(out, " id=\"%s\"", desc->id);
-	if (desc->scheme_id_uri) gf_fprintf(out, " schemeIdUri=\"%s\"", desc->scheme_id_uri);
-	if (desc->value) gf_fprintf(out, " value=\"%s\"", desc->value);
+	if (desc->id) gf_xml_dump_string(out, " id=\"", desc->id, "\"");
+	if (desc->scheme_id_uri) gf_xml_dump_string(out, " schemeIdUri=\"", desc->scheme_id_uri, "\"");
+	if (desc->value) gf_xml_dump_string(out, " value=\"", desc->value, "\"");
 
 	gf_mpd_extensible_print_attr(out, desc->x_attributes);
 
@@ -3317,7 +3317,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 
 	if (as->id>=0) gf_fprintf(out, " id=\"%d\"", as->id);
 	if (as->xlink_href) {
-		gf_fprintf(out, " xlink:href=\"%s\"", as->xlink_href);
+		gf_xml_dump_string(out, " xlink:href=\"", as->xlink_href,"\"");
 		if (as->xlink_actuate_on_load)
 			gf_fprintf(out, " actuate=\"onLoad\"");
 	}
@@ -3401,7 +3401,7 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<Period");
 	if (period->xlink_href) {
-		gf_fprintf(out, " xlink:href=\"%s\"", period->xlink_href);
+		gf_xml_dump_string(out, " xlink:href=\"", period->xlink_href, "\"");
 		if (period->xlink_actuate_on_load)
 			gf_fprintf(out, " actuate=\"onLoad\"");
 	}
@@ -4342,14 +4342,14 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		goto print_periods;
 	}
 
-	gf_fprintf(out, "<MPD xmlns=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"));
+	gf_xml_dump_string(out, "<MPD xmlns=\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"), "\"");
 
 	if (mpd->write_context || mpd->use_gpac_ext) {
 		gf_fprintf(out, " xmlns:gpac=\"urn:gpac:filters:dasher:2018\"" );
 	}
 
 	if (mpd->ID)
-		gf_fprintf(out, " id=\"%s\"", mpd->ID);
+		gf_xml_dump_string(out, " id=\"", mpd->ID, "\"");
 
 	if (mpd->min_buffer_time)
 		gf_mpd_print_duration(out, "minBufferTime", mpd->min_buffer_time, GF_FALSE);
