@@ -428,7 +428,7 @@ typedef u8 bin128[16];
 
 #ifndef ABS
 /*! get the absolute value of a number*/
-#define ABS(a)	( ( (a) > 0 ) ? (a) : - (a) )
+#define ABS(a) ( ( (a) > 0 ) ? (u64)(a) : - (u64)(a) )
 #endif
 
 #ifndef Bool
