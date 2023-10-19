@@ -2516,7 +2516,7 @@ fi
 if [ -z $ffopts ] ; then
 echo "FFMPEG: $has_ffmpeg"
 else
-echo "FFMPEG: $has_ffmpeg - "$ffopts"supported"
+echo "FFMPEG: $has_ffmpeg - \"$ffopts\" supported"
 fi
 
 
