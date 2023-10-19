@@ -2368,7 +2368,7 @@ struct __gf_filter_register
 	*/
 	Bool (*process_event)(GF_Filter *filter, const GF_FilterEvent *evt);
 
-	/*! optional - Called whenever an output PID needs format renegotiaition. If not set, a filter chain will be loaded to solve the negotiation
+	/*! optional - Called whenever an output PID needs format renegotiation. If not set, a filter chain will be loaded to solve the negotiation
 
 	\param filter the target filter
 	\param PID the filter output PID being reconfigured
