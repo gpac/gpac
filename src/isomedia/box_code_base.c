@@ -13243,6 +13243,9 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			tag_size-=2;
 			prop_type = gf_bs_read_u16(bs);
 			prop_size -= 6;
+			if (ptr->size < prop_size && data) {
+				gf_free(data);
+			}
 			ISOM_DECREASE_SIZE_NO_ERR(ptr, prop_size)
 			//add 3 extra bytes for UTF16 case string dump (3 because we need 0-aligned short value)
 			data2 = gf_malloc(sizeof(char) * (prop_size+3));
