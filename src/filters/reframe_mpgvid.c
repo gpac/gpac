@@ -1081,6 +1081,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		//needs adjustement
 		if (bytes_from_store) {
 			size += bytes_from_store + hdr_offset;
+			if (size > remain) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] packet too large to process (size %llu remain %d)\n", size, remain ));
+				break;
+			}
 		}
 
 		if ((e == GF_EOS) && !ctx->input_is_au_end) {
