@@ -359,7 +359,7 @@ static GF_Err gf_isom_set_root_iod(GF_ISOFile *movie)
 	GF_IsomInitialObjectDescriptor *iod;
 	GF_IsomObjectDescriptor *od;
 	GF_Err e;
-	
+
 	e = gf_isom_insert_moov(movie);
 	if (e) return e;
 	if (!movie->moov->iods) {
@@ -790,7 +790,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 		}
 	}
 	movie->last_created_track_id = tkhd->trackID;
-	
+
 	if (!movie->keep_utc && !gf_sys_is_test_mode() ) {
 		tkhd->modificationTime = now;
 	 	mdia->mediaHeader->modificationTime = now;
@@ -3395,7 +3395,7 @@ GF_Err gf_isom_use_compact_size(GF_ISOFile *movie, u32 trackNumber, Bool Compact
 	//fill the table. Although it seems weird , this is needed in case of edition
 	//after the function is called. NOte however than we force regular table
 	//at write time if all samples are of same size
-	if (stsz->sampleSize) {
+	if (stsz->sampleSize && stsz->sampleCount) {
 		//this is a weird table indeed ;)
 		if (stsz->sizes) gf_free(stsz->sizes);
 		stsz->sizes = (u32*) gf_malloc(sizeof(u32)*stsz->sampleCount);
@@ -6313,7 +6313,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		return GF_OK;
 	}
 	if (!ilst->child_boxes) ilst->child_boxes = gf_list_new();
-	
+
 	return gf_list_add(ilst->child_boxes, info);
 }
 
@@ -6975,7 +6975,7 @@ static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, void *tra
 			sgdesc = NULL;
 		}
 	}
-	
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	/*look in stbl or traf for sample sampleGroupsDescription*/
 	if (!sgdesc && traf) {
@@ -8332,7 +8332,7 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 			gf_isom_box_del(abox);
 			continue;
 		}
-		
+
 		if (!ent->child_boxes) ent->child_boxes = gf_list_new();
 		for (j=0; j<gf_list_count(ent->child_boxes); j++) {
 			GF_Box *b = gf_list_get(ent->child_boxes, j);
@@ -9167,4 +9167,3 @@ GF_Err gf_isom_set_sample_description_restricted(GF_ISOFile *movie, u32 trackNum
 
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
-
