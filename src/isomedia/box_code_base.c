@@ -407,8 +407,14 @@ GF_Err ctts_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->entries[i].sampleCount = gf_bs_read_u32(bs);
 		if (ptr->version)
 			ptr->entries[i].decodingOffset = gf_bs_read_int(bs, 32);
-		else
+		else {
 			ptr->entries[i].decodingOffset = (s32) gf_bs_read_u32(bs);
+
+			if (ptr->entries[i].decodingOffset <= INT32_MIN) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid decodingOffset (%d) in entry #%i - defaulting to 0.\n", ptr->entries[i].decodingOffset, i));
+				ptr->entries[i].decodingOffset = 0;
+			}
+		}
 
 		if (ptr->max_cts_delta <= ABS(ptr->entries[i].decodingOffset)) {
 			ptr->max_cts_delta = ABS(ptr->entries[i].decodingOffset);
