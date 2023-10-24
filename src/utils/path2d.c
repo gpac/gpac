@@ -166,7 +166,6 @@ GF_Err gf_path_add_line_to_vec(GF_Path *gp, GF_Point2D *pt) {
 GF_EXPORT
 GF_Err gf_path_close(GF_Path *gp)
 {
-	Fixed diff;
 	GF_Point2D start, end;
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
 
@@ -175,8 +174,7 @@ GF_Err gf_path_close(GF_Path *gp)
 	end = gp->points[gp->n_points-1];
 	end.x -= start.x;
 	end.y -= start.y;
-	diff = gf_mulfix(end.x, end.x) + gf_mulfix(end.y, end.y);
-	if (ABS(diff) > FIX_ONE/1000) {
+	if (FIX_ONE/100 < ABS(end.x) || FIX_ONE/100 < ABS(end.y)) {
 		GF_Err e = gf_path_add_line_to(gp, start.x, start.y);
 		if (e) return e;
 	}
