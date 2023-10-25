@@ -3538,7 +3538,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 		}
 	}
 
-	(*newConnection) = (GF_Socket *) gf_malloc(sizeof(GF_Socket));
+	GF_SAFEALLOC((*newConnection), GF_Socket);
 	(*newConnection)->socket = sk;
 	(*newConnection)->flags = sock->flags & ~GF_SOCK_IS_LISTENING;
 	(*newConnection)->usec_wait = sock->usec_wait;
