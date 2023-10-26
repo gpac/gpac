@@ -635,7 +635,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
 	if (!_esd) return GF_OUT_OF_MEM;
-	
+
 	_esd->decoderConfig->bufferSizeDB = 20;
 	_esd->decoderConfig->objectTypeIndication = GF_CODECID_BIFS_V2;
 	_esd->decoderConfig->streamType = GF_STREAM_SCENE;
@@ -3289,6 +3289,10 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 compat, 
 	}
 
 	avcc = gf_isom_avc_config_get(file, track, 1);
+
+	if (!avcc)
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 	if (level) avcc->AVCLevelIndication = level;
 	if (compat) avcc->profile_compatibility = compat;
 	if (profile) avcc->AVCProfileIndication = profile;
