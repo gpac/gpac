@@ -6865,6 +6865,9 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 	GF_AVCConfigSlot *slc;
 	orig = NULL;
 
+	if (!avcc)
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 	memset(&avc, 0, sizeof(AVCState));
 	avc.sps_active_idx = -1;
 
