@@ -299,7 +299,7 @@ static const tag_to_name SEINames[] =
 	{181, "alternative_depth_info"}
 };
 
-static const char *get_sei_name(u32 sei_type, u32 is_hevc)
+static const char *get_sei_name(u32 sei_type)
 {
 	u32 i, count = sizeof(SEINames) / sizeof(tag_to_name);
 	for (i=0; i<count; i++) {
@@ -657,13 +657,13 @@ static void dump_time_code(FILE *dump, GF_BitStream *bs)
 	}
 }
 
-static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
+static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hevc, VVCState *vvc)
 {
 	u32 i;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	//skip nal header
-	gf_bs_read_int(bs, is_hevc ? 16 : 8);
+	gf_bs_read_int(bs, avc ? 8 : 16);
 
 	while (gf_bs_available(bs) ) {
 		u32 sei_type = 0;
@@ -679,7 +679,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 		}
 		sei_size += gf_bs_read_int(bs, 8);
 
-		inspect_printf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
+		inspect_printf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type) );
 		if (sei_type == 144) {
 			dump_clli(dump, bs);
 		} else if (sei_type == 137) {
@@ -1012,7 +1012,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			dump_sei(dump, bs, GF_TRUE);
+			dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 			if (!pctx) gf_bs_del(bs);
 			inspect_printf(dump, "   </NALU>\n");
 		} else {
@@ -1171,7 +1171,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			dump_sei(dump, bs, GF_TRUE);
+			dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 			if (!pctx) gf_bs_del(bs);
 			inspect_printf(dump, "   </NALU>\n");
 		} else {
@@ -1362,7 +1362,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (!is_encrypted && (type == GF_AVC_NALU_SEI)) {
 		inspect_printf(dump, ">\n");
 		gf_bs_set_logger(bs, NULL, NULL);
-		dump_sei(dump, bs, GF_FALSE);
+		dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 		inspect_printf(dump, "   </NALU>\n");
 	} else {
 		inspect_printf(dump, "/>\n");
