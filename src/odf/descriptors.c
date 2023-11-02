@@ -959,6 +959,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 {
 	u32 i, count;
 
+	if (!cfg) return GF_BAD_PARAM;
 	count = gf_list_count(cfg->param_array);
 
 	if (!cfg->write_annex_b) {
