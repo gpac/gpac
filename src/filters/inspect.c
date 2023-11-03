@@ -694,30 +694,36 @@ static void dump_avc_pic_timing(FILE *dump, GF_BitStream *bs, AVCState *avc)
 		for (i = 0; i < NumClockTS[pt->pic_struct]; i++) {
 			if (gf_bs_inspect_int(bs, dump, "clock_timestamp_flag", i, 1)) {
 				Bool full_timestamp_flag;
-				gf_bs_inspect_int(bs, dump, "ct_type", i, 2);
+				/*ct_type*/gf_bs_read_int(bs, 2);
 				gf_bs_inspect_int(bs, dump, "nuit_field_based_flag", i, 1);
 				gf_bs_inspect_int(bs, dump, "counting_type", i, 5);
 				full_timestamp_flag = gf_bs_inspect_int(bs, dump, "full_timestamp_flag", i, 1);
 				gf_bs_inspect_int(bs, dump, "discontinuity_flag", i, 1);
 				gf_bs_inspect_int(bs, dump, "cnt_dropped_flag", i, 1);
-				gf_bs_inspect_int(bs, dump, "n_frames", i, 8);
+				u32 n_frames = gf_bs_read_int(bs, 8);
+
+				u32 hours=0, minutes=0, seconds=0;
 				if (full_timestamp_flag) {
-					gf_bs_inspect_int(bs, dump, "seconds_value", i, 6);
-					gf_bs_inspect_int(bs, dump, "minutes_value", i, 6);
-					gf_bs_inspect_int(bs, dump, "hours_value", i, 5);
+					seconds = gf_bs_read_int(bs, 6);
+					minutes = gf_bs_read_int(bs, 6);
+					hours = gf_bs_read_int(bs, 5);
 				} else {
-					if (gf_bs_inspect_int(bs, dump, "seconds_flag", i, 1)) {
-						gf_bs_inspect_int(bs, dump, "seconds_value", i, 6);
-						if (gf_bs_inspect_int(bs, dump, "minutes_flag", i, 1)) {
-							gf_bs_inspect_int(bs, dump, "minutes_value", i, 6);
-							if (gf_bs_inspect_int(bs, dump, "hours_flag", i, 1)) {
-								gf_bs_inspect_int(bs, dump, "hours_value", i, 5);
+					if (gf_bs_read_int(bs, 1)) {
+						seconds = gf_bs_read_int(bs, 6);
+						if (gf_bs_read_int(bs, 1)) {
+							minutes = gf_bs_read_int(bs, 6);
+							if (gf_bs_read_int(bs, 1)) {
+								hours = gf_bs_read_int(bs, 5);
 							}
 						}
 					}
-					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0)
-						gf_bs_inspect_int(bs, dump, "time_offset", i, avc->sps[sps_id].vui.hrd.time_offset_length);
+					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0) {
+						inspect_printf(dump, " time_offset_length_%d=\"%d\"", i, avc->sps[sps_id].vui.hrd.time_offset_length);
+						gf_bs_inspect_int(bs, dump, "time_offset_value", i, avc->sps[sps_id].vui.hrd.time_offset_length);
+					}
 				}
+
+				inspect_printf(dump, " time_code_%d=\"%02d:%02d:%02d:%02d\"", i, hours, minutes, seconds, n_frames);
 			}
 		}
 	}
