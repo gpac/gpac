@@ -305,7 +305,7 @@ static GF_Err obumx_process_mpeg2au(GF_OBUMxCtx *ctx, GF_FilterPacket *src_pck, 
 		if (obu_data) gf_free(obu_data);
 	}
 	// create last packet from any pending data
-	obumx_add_packet(ctx->opid,ctx->bs_w, src_pck, pcks);
+	obumx_add_packet(ctx->opid, ctx->bs_w, src_pck, pcks);
 	gf_bs_del(ctx->bs_w);
 	ctx->bs_w = NULL;
 

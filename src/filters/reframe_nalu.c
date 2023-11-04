@@ -2247,7 +2247,7 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		/*we store the POC (last POC minus the poc shift) as the CTS offset and re-update the CTS when dispatching*/
 		assert(ctx->last_poc >= ctx->poc_shift);
 		gf_filter_pck_set_cts(ctx->first_pck_in_au, CTS_POC_OFFSET_SAFETY + ctx->last_poc - ctx->poc_shift);
-		//we use the carousel flag temporarly to indicate the cts must be recomputed
+		//we use the carousel flag temporarily to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(ctx->first_pck_in_au, 1);
 	}
 
@@ -2347,7 +2347,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 			//we don't set the CTS, it will be set once we detect frame end
 			gf_filter_pck_set_dts(dst_pck, ctx->dts);
 		}
-		//we use the carousel flag temporarly to indicate the cts must be recomputed
+		//we use the carousel flag temporarily to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(dst_pck, ctx->notime ? 1 : 0);
 
 		gf_filter_pck_set_duration(dst_pck, ctx->pck_duration ? ctx->pck_duration : ctx->cur_fps.den);
@@ -2898,7 +2898,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 			}
 		}
 		*is_slice = GF_TRUE;
-		//we disable temporal scalability when parsing mvc - never used and many encoders screw up POC in enhancemen
+		//we disable temporal scalability when parsing mvc - never used and many encoders screw up POC in enhancement
 		if (ctx->is_mvc && (res>=0)) {
 			res=0;
 			ctx->avc_state->s_info.poc = ctx->last_poc;
