@@ -1189,7 +1189,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			if (ctx->input_is_au_start) {
 				ctx->input_is_au_start = GF_FALSE;
 			} else {
-				//we use the carousel flag temporarly to indicate the cts must be recomputed
+				//we use the carousel flag temporarily to indicate the cts must be recomputed
 				gf_filter_pck_set_carousel_version(dst_pck, 1);
 			}
 			gf_filter_pck_set_sap(dst_pck, (ftype==1) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
