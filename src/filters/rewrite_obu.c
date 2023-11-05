@@ -59,6 +59,12 @@ typedef struct
 	u32 av1b_cfg_size;
 	u32 codec_id;
 	Bool passthrough;
+
+	//TODO: 1) placement (a TU consists of a series of OBUs starting from a temporal delimiter,
+	//          optional sequence headers, optional metadata OBUs, and
+	//      2) look for existing timecode metadata
+	//      3) improve everything (offset, formatting, drop frames, cnt-type, ...)
+	Bool tc;
 } GF_OBUMxCtx;
 
 GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -140,7 +146,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 		while ((obu = gf_list_enum(ctx->av1c->obu_array, &i))) {
 			//we don't output sequence header since it shall be present in sync sample
-			//this avoids creating duplicate of the seqeunce header in the output stream
+			//this avoids creating duplicate of the sequence header in the output stream
 			if (obu->obu_type==OBU_SEQUENCE_HEADER) {
 				i--;
 				gf_list_rem(ctx->av1c->obu_array, i);
@@ -346,6 +352,28 @@ static GF_Err obumx_process_mpeg2au(GF_OBUMxCtx *ctx, GF_FilterPacket *src_pck, 
 	return GF_OK;
 }
 
+static void obumx_write_metadata_timecode(GF_BitStream *bs, u64 cts, GF_Fraction fps)
+{
+	u32 n_frames = (cts * fps.den) % fps.num;
+	n_frames /= fps.den;
+	cts = cts * fps.den / fps.num;
+	u8 s = cts % 60;
+	cts /= 60;
+	u8 m = cts % 60;
+	cts /= 60;
+	u8 h = cts;
+	gf_bs_write_int(bs, 0/*counting_type*/, 5);
+	gf_bs_write_int(bs, 1/*full_timestamp_flag*/, 1);
+	gf_bs_write_int(bs, 0/*discontinuity_flag*/, 1);
+	gf_bs_write_int(bs, 0/*cnt_dropped_flag*/, 1);
+	gf_bs_write_int(bs, n_frames, 9);
+	gf_bs_write_int(bs, s, 6);
+	gf_bs_write_int(bs, m, 6);
+	gf_bs_write_int(bs, h, 5);
+	gf_bs_write_int(bs, 0/*time_offset_length*/, 5);
+	gf_bs_align(bs);
+}
+
 GF_Err obumx_process(GF_Filter *filter)
 {
 	u32 i;
@@ -405,6 +433,7 @@ GF_Err obumx_process(GF_Filter *filter)
 	if (ctx->mode==FRAMING_IVF) {
 		if (ctx->ivf_hdr) hdr_size += 32;
 		hdr_size += 12;
+		if (ctx->tc) hdr_size += 7;
 	}
 	if (ctx->mode==FRAMING_AV1B) {
 		u32 obu_sizes=0;
@@ -485,6 +514,14 @@ GF_Err obumx_process(GF_Filter *filter)
 		gf_av1_leb128_write(ctx->bs_w, 2);
 		gf_bs_write_u8(ctx->bs_w, 0x12);
 		gf_bs_write_u8(ctx->bs_w, 0);
+
+		if (ctx->tc) {
+			u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
+			//write timecode metadata with obu size set
+			gf_bs_write_u8(ctx->bs_w, 0x2a);
+			gf_av1_leb128_write(ctx->bs_w, 5/*39 bits*/);
+			obumx_write_metadata_timecode(ctx->bs_w, cts, ctx->fps);
+		}
 
 		if (sap_type && ctx->av1b_cfg_size) {
 			GF_AV1_OBUArrayEntry *obu;
@@ -573,6 +610,13 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_u8(ctx->bs_w, 0x12);
 			gf_bs_write_u8(ctx->bs_w, 0);
 
+			if (ctx->tc) {
+				u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
+				//write timecode metadata without obu size set
+				gf_bs_write_u8(ctx->bs_w, 0x28);
+				obumx_write_metadata_timecode(ctx->bs_w, cts, ctx->fps);
+			}
+
 			if (sap_type && ctx->av1b_cfg_size) {
 				GF_AV1_OBUArrayEntry *obu;
 				i=0;
@@ -593,6 +637,7 @@ GF_Err obumx_process(GF_Filter *filter)
 
 	return GF_OK;
 }
+
 static void obumx_finalize(GF_Filter *filter)
 {
 	GF_OBUMxCtx *ctx = gf_filter_get_udta(filter);
@@ -618,15 +663,16 @@ static const GF_FilterCapability OBUMxCaps[] =
 static const GF_FilterArgs OBUMxArgs[] =
 {
 	{ OFFS(rcfg), "force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(tc),   "inject metadata timecodes", GF_PROP_BOOL, "true", NULL, 0},
 	{0}
 };
-
 
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
 	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB writer")
 	GF_FS_SET_HELP("This filter rewrites VPx or AV1 bitstreams into a IVF, annexB or OBU sequence.\n"
 	"The temporal delimiter OBU is re-inserted in annexB (`.av1` and `.av1b`files, with obu_size set) and OBU sequences (`.obu`files, without obu_size)\n"
+	"Timecode metadata optionally inserted\n"
 	"Note: VP8/9 codecs will only use IVF output (equivalent to file extension `.ivf` or `:ext=ivf` set on output).\n"
 	)
 	.private_size = sizeof(GF_OBUMxCtx),
