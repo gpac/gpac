@@ -430,10 +430,10 @@ GF_Err obumx_process(GF_Filter *filter)
 	}
 
 	memset(frame_sizes, 0, sizeof(u32)*128);
+	if (ctx->tc) size += 8;
 	if (ctx->mode==FRAMING_IVF) {
 		if (ctx->ivf_hdr) hdr_size += 32;
 		hdr_size += 12;
-		if (ctx->tc) hdr_size += 7;
 	}
 	if (ctx->mode==FRAMING_AV1B) {
 		u32 obu_sizes=0;
@@ -516,10 +516,11 @@ GF_Err obumx_process(GF_Filter *filter)
 		gf_bs_write_u8(ctx->bs_w, 0);
 
 		if (ctx->tc) {
+			//write timecode metadata
 			u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
-			//write timecode metadata with obu size set
 			gf_bs_write_u8(ctx->bs_w, 0x2a);
-			gf_av1_leb128_write(ctx->bs_w, 5/*39 bits*/);
+			gf_av1_leb128_write(ctx->bs_w, 6/*8+39 bits*/);
+			gf_av1_leb128_write(ctx->bs_w, 5/*metadata type*/);
 			obumx_write_metadata_timecode(ctx->bs_w, cts, ctx->fps);
 		}
 
@@ -611,9 +612,11 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_u8(ctx->bs_w, 0);
 
 			if (ctx->tc) {
+				//write timecode metadata
 				u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
-				//write timecode metadata without obu size set
-				gf_bs_write_u8(ctx->bs_w, 0x28);
+				gf_bs_write_u8(ctx->bs_w, 0x2a);
+				gf_av1_leb128_write(ctx->bs_w, 6/*8+39 bits*/);
+				gf_av1_leb128_write(ctx->bs_w, 5/*metadata type*/);
 				obumx_write_metadata_timecode(ctx->bs_w, cts, ctx->fps);
 			}
 
