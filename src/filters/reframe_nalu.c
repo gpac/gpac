@@ -1871,7 +1871,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL);
 
 	//if we have a FPS prop, use it
-	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS) && ctx->cur_fps.den)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
@@ -2975,7 +2975,7 @@ static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
 					diff -= ctx->prev_dts;
 					if (!ctx->cur_fps.den) {
 						ctx->cur_fps.den = (u32) diff;
-						//we initialized wiith 3000, patch back
+						//we initialized with 3000, patch back
 						if (ctx->dts && (ctx->dts!=ts)) {
 							ctx->dts -= 3000;
 							ctx->dts += diff;
