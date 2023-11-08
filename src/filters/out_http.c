@@ -4468,7 +4468,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"- the first loaded HTTP output filter with same URL/port will be reused\n"
 		"- all httpout options of subsequent httpout filters, except [-dst]() will be ignored, other options will be inherited as usual\n"
 		"\n"
-		"EX gpac -i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag\n"
+		"EX gpac -i dash.mpd dashin:forward=file:FID=D1 dashin:forward=segb:FID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag\n"
 		"This will:\n"
 		"- load the HTTP server and forward (through `D1`) the dash session to this server using `live.mpd` as manifest name\n"
 		"- reuse the HTTP server and regenerate the manifest (through `D2` and `sigfrag` option), using `live_rw.mpd` as manifest name\n"
