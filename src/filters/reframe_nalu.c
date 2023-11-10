@@ -1871,7 +1871,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL);
 
 	//if we have a FPS prop, use it
-	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS) && ctx->cur_fps.den)
+	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->cur_fps.num));
