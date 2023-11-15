@@ -2653,6 +2653,11 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 #endif
 
 	read = gf_swf_reader_new(load->localPath, load->fileName);
+	if (!read) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("SWF Loader - Error opening file %s\n", load->fileName));
+		e = GF_IO_ERR;
+		goto exit;
+	}
 	read->load = load;
 	read->flags = load->swf_import_flags;
 	read->flat_limit = FLT2FIX(load->swf_flatten_limit);
