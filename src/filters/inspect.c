@@ -299,7 +299,7 @@ static const tag_to_name SEINames[] =
 	{181, "alternative_depth_info"}
 };
 
-static const char *get_sei_name(u32 sei_type, u32 is_hevc)
+static const char *get_sei_name(u32 sei_type)
 {
 	u32 i, count = sizeof(SEINames) / sizeof(tag_to_name);
 	for (i=0; i<count; i++) {
@@ -657,13 +657,85 @@ static void dump_time_code(FILE *dump, GF_BitStream *bs)
 	}
 }
 
-static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
+static u32 gf_bs_inspect_int(GF_BitStream *bs, FILE *dump, char *name, int idx, int nbits)
+{
+	u32 val = gf_bs_read_int(bs, nbits);
+	inspect_printf(dump, " %s_%d=\"%d\"", name, idx, val);
+	return val;
+}
+
+static void dump_avc_pic_timing(FILE *dump, GF_BitStream *bs, AVCState *avc)
+{
+	int sps_id = avc->sps_active_idx;
+	const char NumClockTS[] = { 1, 1, 1, 2, 2, 3, 3, 2, 3 };
+	AVCSeiPicTiming *pt = &avc->sei.pic_timing;
+
+	if (sps_id < 0) {
+		/*sps_active_idx equals -1 when no sps has been detected. In this case SEI should not be decoded.*/
+		assert(0);
+		return;
+	}
+
+	if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
+		gf_bs_inspect_int(bs, dump, "cpb_removal_delay_minus1", sps_id, 1 + avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1);
+		gf_bs_inspect_int(bs, dump, "dpb_output_delay_minus1", sps_id, 1 + avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);
+	}
+
+	/*ISO 14496-10 (2003), D.8.2: we need to get pic_struct in order to know if we display top field first or bottom field first*/
+	if (avc->sps[sps_id].vui.pic_struct_present_flag) {
+		int i;
+		pt->pic_struct = gf_bs_inspect_int(bs, dump, "pic_struct", sps_id, 4);
+		if (pt->pic_struct > 8) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] invalid avc pic_struct value %d\n", pt->pic_struct));
+			return;
+		}
+
+		inspect_printf(dump, " num_clock_ts=\"%d\"", NumClockTS[pt->pic_struct]);
+		for (i = 0; i < NumClockTS[pt->pic_struct]; i++) {
+			if (gf_bs_inspect_int(bs, dump, "clock_timestamp_flag", i, 1)) {
+				Bool full_timestamp_flag;
+				/*ct_type*/gf_bs_read_int(bs, 2);
+				gf_bs_inspect_int(bs, dump, "nuit_field_based_flag", i, 1);
+				gf_bs_inspect_int(bs, dump, "counting_type", i, 5);
+				full_timestamp_flag = gf_bs_inspect_int(bs, dump, "full_timestamp_flag", i, 1);
+				gf_bs_inspect_int(bs, dump, "discontinuity_flag", i, 1);
+				gf_bs_inspect_int(bs, dump, "cnt_dropped_flag", i, 1);
+				u32 n_frames = gf_bs_read_int(bs, 8);
+
+				u32 hours=0, minutes=0, seconds=0;
+				if (full_timestamp_flag) {
+					seconds = gf_bs_read_int(bs, 6);
+					minutes = gf_bs_read_int(bs, 6);
+					hours = gf_bs_read_int(bs, 5);
+				} else {
+					if (gf_bs_read_int(bs, 1)) {
+						seconds = gf_bs_read_int(bs, 6);
+						if (gf_bs_read_int(bs, 1)) {
+							minutes = gf_bs_read_int(bs, 6);
+							if (gf_bs_read_int(bs, 1)) {
+								hours = gf_bs_read_int(bs, 5);
+							}
+						}
+					}
+					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0) {
+						inspect_printf(dump, " time_offset_length_%d=\"%d\"", i, avc->sps[sps_id].vui.hrd.time_offset_length);
+						gf_bs_inspect_int(bs, dump, "time_offset_value", i, avc->sps[sps_id].vui.hrd.time_offset_length);
+					}
+				}
+
+				inspect_printf(dump, " time_code_%d=\"%02d:%02d:%02d:%02d\"", i, hours, minutes, seconds, n_frames);
+			}
+		}
+	}
+}
+
+static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hevc, VVCState *vvc)
 {
 	u32 i;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	//skip nal header
-	gf_bs_read_int(bs, is_hevc ? 16 : 8);
+	gf_bs_read_int(bs, avc ? 8 : 16);
 
 	while (gf_bs_available(bs) ) {
 		u32 sei_type = 0;
@@ -679,11 +751,13 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 		}
 		sei_size += gf_bs_read_int(bs, 8);
 
-		inspect_printf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
+		inspect_printf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type) );
 		if (sei_type == 144) {
 			dump_clli(dump, bs);
 		} else if (sei_type == 137) {
 			dump_mdcv(dump, bs, GF_TRUE);
+		} else if (sei_type == 1 && avc) {
+			dump_avc_pic_timing(dump, bs, avc);
 		} else if (sei_type == 136) {
 			dump_time_code(dump, bs);
 		} else if (sei_type == 4) {
@@ -1012,7 +1086,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			dump_sei(dump, bs, GF_TRUE);
+			dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 			if (!pctx) gf_bs_del(bs);
 			inspect_printf(dump, "   </NALU>\n");
 		} else {
@@ -1171,7 +1245,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			dump_sei(dump, bs, GF_TRUE);
+			dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 			if (!pctx) gf_bs_del(bs);
 			inspect_printf(dump, "   </NALU>\n");
 		} else {
@@ -1362,7 +1436,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (!is_encrypted && (type == GF_AVC_NALU_SEI)) {
 		inspect_printf(dump, ">\n");
 		gf_bs_set_logger(bs, NULL, NULL);
-		dump_sei(dump, bs, GF_FALSE);
+		dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 		inspect_printf(dump, "   </NALU>\n");
 	} else {
 		inspect_printf(dump, "/>\n");
