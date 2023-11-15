@@ -322,6 +322,7 @@ static char *swf_get_string(SWFReader *read)
 	while (1) {
 		if (i>=read->size) {
 			read->ioerr = GF_NON_COMPLIANT_BITSTREAM;
+			name[read->size-1] = 0;
 			break;
 		}
 		name[i] = swf_read_int(read, 8);
@@ -1754,13 +1755,6 @@ static GF_Err swf_def_sprite(SWFReader *read)
 	read->display_list = gf_list_new();
 
 	e = read->define_sprite(read, frame_count);
-	if (e) return e;
-
-	/*close sprite soundStream*/
-	swf_delete_sound_stream(read);
-	/*restore sound stream*/
-	read->sound_stream = snd;
-	read->max_depth = prev_depth;
 
 	while (gf_list_count(read->display_list)) {
 		DispShape *s = (DispShape *)gf_list_get(read->display_list, 0);
@@ -1769,6 +1763,13 @@ static GF_Err swf_def_sprite(SWFReader *read)
 	}
 	gf_list_del(read->display_list);
 	read->display_list = prev_dlist;
+
+	if (e) return e;
+
+	/*close sprite soundStream*/
+	/*restore sound stream*/
+	read->sound_stream = snd;
+	read->max_depth = prev_depth;
 
 	read->current_frame = prev_frame;
 	read->current_sprite_id = prev_sprite;
