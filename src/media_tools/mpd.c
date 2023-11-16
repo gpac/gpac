@@ -4813,7 +4813,10 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 
 	if (!media_url) {
 		GF_MPD_BaseURL *base = gf_list_get(rep->base_URLs, 0);
-		if (!base) return GF_BAD_PARAM;
+		if (!base) {
+			gf_free(url);
+			return GF_BAD_PARAM;
+		}
 		media_url = base->URL;
 	}
 	url_to_solve = NULL;
