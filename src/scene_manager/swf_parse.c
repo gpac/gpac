@@ -2129,6 +2129,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		char *dst, *raw;
 		u32 codecid;
 		u32 osize, w, h, j, pf;
+		uLongf destLen;
 		GF_BitStream *bs;
 
 		/*decompress jpeg*/
@@ -2154,9 +2155,10 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		osize = w*h;
 		dst = gf_malloc(sizeof(char)*osize);
-		uncompress((Bytef *) dst, (uLongf *) &osize, buf, AlphaPlaneSize);
+		destLen = (uLongf)osize;
+		uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
 		/*write alpha channel*/
-		for (j=0; j<osize; j++) {
+		for (j=0; j<(u32)destLen; j++) {
 			raw[4*j + 3] = dst[j];
 		}
 		gf_free(dst);
