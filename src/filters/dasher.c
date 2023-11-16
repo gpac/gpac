@@ -3634,7 +3634,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	}
 	if (!template) template = ctx->template;
 	ds->tpl_use_time = GF_FALSE;
-	if (!strstr(template, "$Number") && strstr(template, "$Time"))
+	if (template && !strstr(template, "$Number") && strstr(template, "$Time"))
 		ds->tpl_use_time = GF_TRUE;
 
 	if (as_id) {
