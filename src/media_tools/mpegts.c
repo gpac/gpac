@@ -155,89 +155,6 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	return 0;
 }
 
-
-static void add_text(char **buffer, u32 *size, u32 *pos, char *msg, u32 msg_len)
-{
-	if (!msg || !buffer) return;
-
-	if (*pos+msg_len>*size) {
-		*size = *pos+msg_len-*size+256;
-		*buffer = (char *)gf_realloc(*buffer, *size);
-	}
-	if (! *buffer)
-		return;
-
-	memcpy((*buffer)+(*pos), msg, msg_len);
-	(*buffer)[*pos+msg_len] = 0;
-	*pos += msg_len;
-}
-
-static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_size, u32 *output_pos)
-{
-	GF_BitStream *bs;
-	u32 pos, size;
-
-	if ((data[0] != 'I') || (data[1] != 'D') || (data[2] != '3'))
-		return GF_NOT_SUPPORTED;
-
-	bs = gf_bs_new(data, length, GF_BITSTREAM_READ);
-
-	gf_bs_skip_bytes(bs, 3);
-	/*u8 major = */gf_bs_read_u8(bs);
-	/*u8 minor = */gf_bs_read_u8(bs);
-	/*u8 unsync = */gf_bs_read_int(bs, 1);
-	/*u8 ext_hdr = */ gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 6);
-	/*size = */gf_id3_read_size(bs);
-
-	pos = (u32) gf_bs_get_position(bs);
-	size = length-pos;
-
-	while (size && (gf_bs_available(bs)>=10) ) {
-		u32 ftag = gf_bs_read_u32(bs);
-		u32 fsize = gf_id3_read_size(bs);
-		/*u16 fflags = */gf_bs_read_u16(bs);
-		size -= 10;
-
-		//TODO, handle more ID3 tags ?
-		if (ftag==GF_ID3V2_FRAME_TXXX) {
-			u32 tpos = (u32) gf_bs_get_position(bs);
-			char *text = data+tpos;
-			add_text(output, output_size, output_pos, text, fsize);
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] ID3 tag '%s' not handled, patch welcome\n", gf_4cc_to_str(ftag) ) );
-		}
-		gf_bs_skip_bytes(bs, fsize);
-	}
-	gf_bs_del(bs);
-	return GF_OK;
-}
-
-static u32 gf_m2ts_reframe_id3_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
-{
-	char frame_header[256];
-	char *output_text = NULL;
-	u32 output_len = 0;
-	u32 pos = 0;
-	GF_M2TS_PES_PCK pck;
-	pck.flags = 0;
-	if (pes->rap) pck.flags |= GF_M2TS_PES_PCK_RAP;
-	if (!same_pts) pck.flags |= GF_M2TS_PES_PCK_AU_START;
-	pck.DTS = pes->DTS;
-	pck.PTS = pes->PTS;
-	sprintf(frame_header, LLU" --> NEXT\n", pes->PTS);
-	add_text(&output_text, &output_len, &pos, frame_header, (u32)strlen(frame_header));
-	id3_parse_tag((char *)data, data_len, &output_text, &output_len, &pos);
-	add_text(&output_text, &output_len, &pos, "\n\n", 2);
-	pck.data = (char *)output_text;
-	pck.data_len = pos;
-	pck.stream = pes;
-	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-	gf_free(output_text);
-	/*we consumed all data*/
-	return 0;
-}
-
 static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_check)
 {
 	u32 i=0;
@@ -3063,6 +2980,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 		case GF_M2TS_AUDIO_LATM_AAC:
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_EC3:
+		case GF_M2TS_METADATA_ID3_HLS:
+		case GF_M2TS_METADATA_ID3_KLVA:
 		case 0xA1:
 			//for all our supported codec types, use a reframer filter
 			pes->reframe = gf_m2ts_reframe_default;
@@ -3070,11 +2989,6 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 
 		case GF_M2TS_PRIVATE_DATA:
 			/* TODO: handle DVB subtitle streams */
-			break;
-		case GF_M2TS_METADATA_ID3_HLS:
-		case GF_M2TS_METADATA_ID3_KLVA:
-			//TODO
-			pes->reframe = gf_m2ts_reframe_id3_pes;
 			break;
 		default:
 			pes->reframe = gf_m2ts_reframe_default;

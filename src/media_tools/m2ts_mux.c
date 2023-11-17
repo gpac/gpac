@@ -1187,49 +1187,6 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 	*dts = *dts - stream->program->initial_ts + pcr_offset;
 }
 
-void id3_write_size(GF_BitStream *bs, u32 len)
-{
-	u32 size;
-
-	size = (len>>21) & 0x7F;
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, size, 7);
-
-	size = (len>>14) & 0x7F;
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, size, 7);
-
-	size = (len>>7) & 0x7F;
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, size, 7);
-
-	size = (len) & 0x7F;
-	gf_bs_write_int(bs, 0, 1);
-	gf_bs_write_int(bs, size, 7);
-}
-
-static void id3_tag_create(u8 **input, u32 *len)
-{
-	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_u8(bs, 'I');
-	gf_bs_write_u8(bs, 'D');
-	gf_bs_write_u8(bs, '3');
-	gf_bs_write_u8(bs, 4); //major
-	gf_bs_write_u8(bs, 0); //minor
-	gf_bs_write_u8(bs, 0); //flags
-
-	id3_write_size(bs, *len + 10);
-
-	gf_bs_write_u32(bs, GF_ID3V2_FRAME_TXXX);
-	id3_write_size(bs, *len); /* size of the text */
-	gf_bs_write_u8(bs, 0);
-	gf_bs_write_u8(bs, 0);
-	gf_bs_write_data(bs, *input, *len);
-	gf_free(*input);
-	gf_bs_get_content(bs, input, len);
-	gf_bs_del(bs);
-}
-
 static Bool gf_m2ts_adjust_next_stream_time_for_pcr(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
 	u32 pck_diff;
@@ -1624,10 +1581,8 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		break;
 	case GF_M2TS_METADATA_PES:
 	case GF_M2TS_METADATA_ID3_HLS:
-	{
-		id3_tag_create(&stream->curr_pck.data, &stream->curr_pck.data_len);
-		stream->discard_data = GF_TRUE;
-	}
+	case GF_M2TS_METADATA_ID3_KLVA:
+		// nothing to do
 		break;
 	default:
 		if (stream->ifce->codecid==GF_CODECID_DVB_SUBS) {
