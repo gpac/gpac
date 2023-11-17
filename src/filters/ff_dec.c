@@ -302,8 +302,8 @@ restart:
 	switch (res) {
 	case AVERROR(EAGAIN):
 		if (pck_src) {
-			gf_list_del_item(ctx->src_packets, pck_src);
-			gf_filter_pck_unref(pck_src);
+			if (gf_list_del_item(ctx->src_packets, pck_src) >= 0)
+				gf_filter_pck_unref(pck_src);
 		}
 		FF_RELEASE_PCK(pkt);
 		//input full but output available, go on but don't discard input
