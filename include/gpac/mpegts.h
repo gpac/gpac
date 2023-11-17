@@ -55,6 +55,7 @@ extern "C" {
 /*! metadata types for GF_M2TS_METADATA_POINTER_DESCRIPTOR*/
 enum {
 	GF_M2TS_META_ID3 	= GF_4CC('I','D','3',' '),
+	GF_M2TS_META_KLVA 	= GF_4CC('K','L','V','A'),
 };
 
 
@@ -294,6 +295,7 @@ typedef enum
 	GF_M2TS_DVB_VBI					= 0x153,
 	GF_M2TS_DVB_SUBTITLE			= 0x154,
 	GF_M2TS_METADATA_ID3_HLS		= 0x155,
+	GF_M2TS_METADATA_ID3_KLVA		= 0x156,
 
 } GF_M2TSStreamType;
 

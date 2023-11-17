@@ -355,6 +355,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			break;
 		case GF_M2TS_METADATA_PES:
 		case GF_M2TS_METADATA_ID3_HLS:
+		case GF_M2TS_METADATA_ID3_KLVA:
 			stype = GF_STREAM_METADATA;
 			codecid = GF_CODECID_SIMPLE_TEXT;
 			break;
