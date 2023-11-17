@@ -4304,7 +4304,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *PID);
 /*! Gets data associated with the packet.
 \param pck the target packet
 \param size set to the packet data size
-\return packet data if any, NULL if empty or if the packet uses a frame interface object. see \ref gf_filter_pck_get_frame_interface
+\return packet data if any, NULL if empty or if the packet uses a frame interface object. See \ref gf_filter_pck_get_frame_interface
 */
 const u8 *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
 
