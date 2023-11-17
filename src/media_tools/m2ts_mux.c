@@ -1593,6 +1593,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			gf_free(stream->curr_pck.data);
 			gf_bs_get_content(bs, &stream->curr_pck.data, &stream->curr_pck.data_len);
 			gf_bs_del(bs);
+			stream->discard_data = GF_TRUE;
 		}
 		break;
 	}
