@@ -111,6 +111,8 @@ const char *gf_m2ts_get_stream_name(GF_M2TSStreamType streamType)
 		return "Metadata (PES)";
 	case GF_M2TS_METADATA_ID3_HLS:
 		return "ID3/HLS Metadata (PES)";
+	case GF_M2TS_METADATA_ID3_KLVA:
+		return "ID3/KLV Metadata (PES)";
 
 	default:
 		return "Unknown";
@@ -203,7 +205,7 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 			char *text = data+tpos;
 			add_text(output, output_size, output_pos, text, fsize);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] ID3 tag not handled, patch welcome\n", gf_4cc_to_str(ftag) ) );
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] ID3 tag '%s' not handled, patch welcome\n", gf_4cc_to_str(ftag) ) );
 		}
 		gf_bs_skip_bytes(bs, fsize);
 	}
@@ -1647,6 +1649,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							pes->metadata_descriptor = metad;
 							pes->stream_type = GF_M2TS_METADATA_ID3_HLS;
 						}
+					} else if (metad->format_identifier == GF_M2TS_META_KLVA) {
+						/*ID3 with KLVA generic encoding (https://en.wikipedia.org/wiki/KLV)*/
+						if (pes) {
+							if (pes->metadata_descriptor)
+								gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
+							pes->metadata_descriptor = metad;
+							pes->stream_type = GF_M2TS_METADATA_ID3_KLVA;
+						}
 					} else {
 						/* don't know what to do with it for now, delete */
 						gf_m2ts_metadata_descriptor_del(metad);
@@ -3062,6 +3072,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 			/* TODO: handle DVB subtitle streams */
 			break;
 		case GF_M2TS_METADATA_ID3_HLS:
+		case GF_M2TS_METADATA_ID3_KLVA:
 			//TODO
 			pes->reframe = gf_m2ts_reframe_id3_pes;
 			break;
