@@ -356,6 +356,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		case GF_M2TS_METADATA_PES:
 		case GF_M2TS_METADATA_ID3_HLS:
 		case GF_M2TS_METADATA_ID3_KLVA:
+		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 			stype = GF_STREAM_METADATA;
 			codecid = GF_CODECID_SIMPLE_TEXT;
 			break;
@@ -1105,6 +1106,20 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			es->props = gf_list_new();
 		}
 		gf_list_add(es->props, t);
+	}
+	break;
+	case GF_M2TS_EVT_SCTE35_SPLICE_INFO:
+	{
+		//TODO: parse SCTE-35
+		u8 *data;
+		GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK*)param;
+		if (!pck->stream->user) return;
+		GF_FilterPid *opid = pck->stream->user;
+		GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(opid, pck->data_len, &data);
+		if (dst_pck) {
+			memcpy(data, pck->data, pck->data_len);
+			gf_filter_pck_send(dst_pck);
+		}
 	}
 	break;
 	case GF_M2TS_EVT_STREAM_REMOVED:

@@ -214,6 +214,7 @@ enum {
 	GF_M2TS_TABLE_ID_DIT			= 0x7E,
 	GF_M2TS_TABLE_ID_SIT			= 0x7F, /* max size for section 4096 */
 	/* 0x80 - 0xfe reserved */
+	GF_M2TS_TABLE_SCTE35_SPLICE_INFO	= 0xFC,
 	/* 0xff reserved */
 };
 
@@ -280,22 +281,23 @@ typedef enum
 
 	/*the rest is internal use*/
 
-	GF_M2TS_VIDEO_VC1				= 0xEA,
-	GF_M2TS_VIDEO_DCII				= 0x80,
-	GF_M2TS_AUDIO_AC3				= 0x81,
-	GF_M2TS_AUDIO_DTS				= 0x82,
-	GF_M2TS_AUDIO_TRUEHD			= 0x83,
-	GF_M2TS_AUDIO_EC3				= 0x84,
-	GF_M2TS_MPE_SECTIONS            = 0x90,
-	GF_M2TS_SUBTITLE_DVB			= 0x100,
-	GF_M2TS_AUDIO_OPUS				= 0x101,
-	GF_M2TS_VIDEO_AV1				= 0x102,
+	GF_M2TS_VIDEO_VC1					= 0xEA,
+	GF_M2TS_VIDEO_DCII					= 0x80,
+	GF_M2TS_AUDIO_AC3					= 0x81,
+	GF_M2TS_AUDIO_DTS					= 0x82,
+	GF_M2TS_AUDIO_TRUEHD				= 0x83,
+	GF_M2TS_AUDIO_EC3					= 0x84,
+	GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS	= 0x86,
+	GF_M2TS_MPE_SECTIONS	            = 0x90,
+	GF_M2TS_SUBTITLE_DVB				= 0x100,
+	GF_M2TS_AUDIO_OPUS					= 0x101,
+	GF_M2TS_VIDEO_AV1					= 0x102,
 
-	GF_M2TS_DVB_TELETEXT			= 0x152,
-	GF_M2TS_DVB_VBI					= 0x153,
-	GF_M2TS_DVB_SUBTITLE			= 0x154,
-	GF_M2TS_METADATA_ID3_HLS		= 0x155,
-	GF_M2TS_METADATA_ID3_KLVA		= 0x156,
+	GF_M2TS_DVB_TELETEXT				= 0x152,
+	GF_M2TS_DVB_VBI						= 0x153,
+	GF_M2TS_DVB_SUBTITLE				= 0x154,
+	GF_M2TS_METADATA_ID3_HLS			= 0x155,
+	GF_M2TS_METADATA_ID3_KLVA			= 0x156,
 
 } GF_M2TSStreamType;
 
@@ -303,18 +305,19 @@ typedef enum
 /*! MPEG-2 TS Registration codes types*/
 enum
 {
-	GF_M2TS_RA_STREAM_AC3	= GF_4CC('A','C','-','3'),
-	GF_M2TS_RA_STREAM_EAC3	= GF_4CC('E','A','C','3'),
-	GF_M2TS_RA_STREAM_VC1	= GF_4CC('V','C','-','1'),
-	GF_M2TS_RA_STREAM_HEVC	= GF_4CC('H','E','V','C'),
-	GF_M2TS_RA_STREAM_DTS1	= GF_4CC('D','T','S','1'),
-	GF_M2TS_RA_STREAM_DTS2	= GF_4CC('D','T','S','2'),
-	GF_M2TS_RA_STREAM_DTS3	= GF_4CC('D','T','S','3'),
-	GF_M2TS_RA_STREAM_OPUS	= GF_4CC('O','p','u','s'),
-	GF_M2TS_RA_STREAM_DOVI	= GF_4CC('D','O','V','I'),
-	GF_M2TS_RA_STREAM_AV1	= GF_4CC('A','V','0','1'),
+	GF_M2TS_RA_STREAM_AC3		= GF_4CC('A','C','-','3'),
+	GF_M2TS_RA_STREAM_EAC3		= GF_4CC('E','A','C','3'),
+	GF_M2TS_RA_STREAM_VC1		= GF_4CC('V','C','-','1'),
+	GF_M2TS_RA_STREAM_HEVC		= GF_4CC('H','E','V','C'),
+	GF_M2TS_RA_STREAM_DTS1		= GF_4CC('D','T','S','1'),
+	GF_M2TS_RA_STREAM_DTS2		= GF_4CC('D','T','S','2'),
+	GF_M2TS_RA_STREAM_DTS3		= GF_4CC('D','T','S','3'),
+	GF_M2TS_RA_STREAM_OPUS		= GF_4CC('O','p','u','s'),
+	GF_M2TS_RA_STREAM_DOVI		= GF_4CC('D','O','V','I'),
+	GF_M2TS_RA_STREAM_AV1		= GF_4CC('A','V','0','1'),
+	GF_M2TS_RA_STREAM_SCTE35	= GF_4CC('C','U','E','I'),
 
-	GF_M2TS_RA_STREAM_GPAC	= GF_4CC('G','P','A','C')
+	GF_M2TS_RA_STREAM_GPAC		= GF_4CC('G','P','A','C')
 };
 
 
@@ -497,6 +500,10 @@ enum
 	GF_M2TS_EVT_TEMI_LOCATION,
 	/*! a TEMI timecode has been found*/
 	GF_M2TS_EVT_TEMI_TIMECODE,
+
+	/*! a SCTE35 splice info has been found*/
+	GF_M2TS_EVT_SCTE35_SPLICE_INFO,
+
 	/*! a stream is about to be removed -  - associated parameter: pointer to GF_M2TS_ES being removed*/
 	GF_M2TS_EVT_STREAM_REMOVED
 };

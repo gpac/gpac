@@ -1582,6 +1582,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	case GF_M2TS_METADATA_PES:
 	case GF_M2TS_METADATA_ID3_HLS:
 	case GF_M2TS_METADATA_ID3_KLVA:
+	case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 		// nothing to do
 		break;
 	default:
