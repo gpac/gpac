@@ -113,6 +113,8 @@ const char *gf_m2ts_get_stream_name(GF_M2TSStreamType streamType)
 		return "ID3/HLS Metadata (PES)";
 	case GF_M2TS_METADATA_ID3_KLVA:
 		return "ID3/KLV Metadata (PES)";
+	case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
+		return "SCTE35 splice_info_section (Section)";
 
 	default:
 		return "Unknown";
@@ -351,6 +353,13 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
 		}
 #endif
+		else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_SCTE35_SPLICE_INFO)) ) {
+			GF_M2TS_SL_PCK pck;
+			pck.data_len = sec->length;
+			pck.data = sec->section;
+			pck.stream = (GF_M2TS_ES *)ses;
+			ts->on_event(ts, GF_M2TS_EVT_SCTE35_SPLICE_INFO, &pck);
+		}
 		else if (ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -1176,6 +1185,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					/* don't know what to do with it for now, delete */
 					gf_m2ts_metadata_pointer_descriptor_del(metapd);
 				}
+			} else if(tag == GF_M2TS_REGISTRATION_DESCRIPTOR && len >= 4) {
+				u32 reg_desc_format = GF_4CC(data[6], data[7], data[8], data[9]);
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Registration descriptor with format_identifier \"%s\"\n", gf_4cc_to_str(reg_desc_format)));
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) and others not supported\n", tag));
 			}
@@ -1365,6 +1377,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_PRIVATE_SECTION:
 		case GF_M2TS_QUALITY_SEC:
 		case GF_M2TS_MORE_SEC:
+		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			if (!ses) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
@@ -1380,6 +1393,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Quality metadata sections on pid %d\n", pid));
 			} else if (stream_type == GF_M2TS_MORE_SEC) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("MORE sections on pid %d\n", pid));
+			} else if (stream_type == GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("SCTE35 Splice Info sections on pid %d\n", pid));
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("stream type DSM CC user private sections on pid %d \n", pid));
 			}
@@ -1447,12 +1462,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						/* cf https://smpte-ra.org/registered-mpeg-ts-ids */
 						switch (reg_desc_format) {
 						case GF_M2TS_RA_STREAM_AC3:
-							//don't overwrite if alread EAC3 or TrueHD
+							//don't overwrite if already EAC3 or TrueHD
 							if ((es->stream_type != GF_M2TS_AUDIO_EC3) && (es->stream_type != GF_M2TS_AUDIO_TRUEHD))
 								es->stream_type = GF_M2TS_AUDIO_AC3;
 							break;
 						case GF_M2TS_RA_STREAM_EAC3:
-							//don't overwrite if alread AC3 or TrueHD
+							//don't overwrite if already AC3 or TrueHD
 							if ((es->stream_type != GF_M2TS_AUDIO_AC3) && (es->stream_type != GF_M2TS_AUDIO_TRUEHD))
 								es->stream_type = GF_M2TS_AUDIO_EC3;
 							break;
@@ -1474,6 +1489,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							break;
 						case GF_M2TS_RA_STREAM_AV1:
 							es->stream_type = GF_M2TS_VIDEO_AV1;
+							break;
+						case GF_M2TS_RA_STREAM_SCTE35:
+							es->stream_type = GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS;
 							break;
 
 						case GF_M2TS_RA_STREAM_GPAC:
@@ -1579,7 +1597,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						gf_m2ts_metadata_descriptor_del(metad);
 					}
 				}
-				break;
+					break;
 				case GF_M2TS_HEVC_VIDEO_DESCRIPTOR:
 					if (es) es->stream_type = GF_M2TS_VIDEO_HEVC;
 					break;
@@ -2982,6 +3000,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 		case GF_M2TS_AUDIO_EC3:
 		case GF_M2TS_METADATA_ID3_HLS:
 		case GF_M2TS_METADATA_ID3_KLVA:
+		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 		case 0xA1:
 			//for all our supported codec types, use a reframer filter
 			pes->reframe = gf_m2ts_reframe_default;
