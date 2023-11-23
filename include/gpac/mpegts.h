@@ -504,6 +504,9 @@ enum
 	/*! a SCTE35 splice info has been found*/
 	GF_M2TS_EVT_SCTE35_SPLICE_INFO,
 
+	/*! a generic ID3 tag has been found*/
+	GF_M2TS_EVT_ID3,
+
 	/*! a stream is about to be removed -  - associated parameter: pointer to GF_M2TS_ES being removed*/
 	GF_M2TS_EVT_STREAM_REMOVED
 };
