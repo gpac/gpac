@@ -157,6 +157,20 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	return 0;
 }
 
+static u32 gf_m2ts_reframe_add_prop(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
+{
+	GF_M2TS_PES_PCK pck;
+	pck.flags = 0;
+	pck.DTS = pes->DTS;
+	pck.PTS = pes->PTS;
+	pck.data = (char *)data;
+	pck.data_len = data_len;
+	pck.stream = pes;
+	pck.stream->stream_type = pes->stream_type;
+	ts->on_event(ts, GF_M2TS_EVT_ID3/*should depend on pes->streamtype*/, &pck);
+	return 0;
+}
+
 static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_check)
 {
 	u32 i=0;
@@ -1577,7 +1591,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					gf_bs_del(metadatad_bs);
 					if (metad->application_format_identifier == GF_M2TS_META_ID3 &&
 					        metad->format_identifier == GF_M2TS_META_ID3) {
-						/*HLS ID3 Metadata */
+						/*HLS ID3 Metadata*/
 						if (pes) {
 							if (pes->metadata_descriptor)
 								gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
@@ -2999,8 +3013,6 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_EC3:
 		case GF_M2TS_METADATA_ID3_HLS:
-		case GF_M2TS_METADATA_ID3_KLVA:
-		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 		case 0xA1:
 			//for all our supported codec types, use a reframer filter
 			pes->reframe = gf_m2ts_reframe_default;
@@ -3009,6 +3021,11 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 		case GF_M2TS_PRIVATE_DATA:
 			/* TODO: handle DVB subtitle streams */
 			break;
+
+		case GF_M2TS_METADATA_ID3_KLVA:
+			pes->reframe = gf_m2ts_reframe_add_prop;
+			break;
+
 		default:
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
