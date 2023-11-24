@@ -5,7 +5,7 @@ my_ext = {
     icon: "gpac.bt",
     author: "JeanLF",
     description: "GPAC demonstrations",
-    url: "http://gpac.io/",
+    url: "https://gpac.io/",
     execjs: ["showroom.js"],
     autostart: false,
     config_id: "Showroom",

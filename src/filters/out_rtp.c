@@ -116,7 +116,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		if (src)
 			gf_fprintf(sdp_out, "i=%s\n", src);
 	}
-	gf_fprintf(sdp_out, "u=%s\n", url ? url : "http://gpac.io");
+	gf_fprintf(sdp_out, "u=%s\n", url ? url : "https://gpac.io");
 	if (email) {
 		gf_fprintf(sdp_out, "e=%s\n", email);
 	}
@@ -132,7 +132,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	}
 
 	if (gf_sys_is_test_mode()) {
-		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC - http://gpac.io\n");
+		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC - https://gpac.io\n");
 	} else {
 		gf_fprintf(sdp_out, "a=x-copyright: Streamed with GPAC %s - %s\n", gf_gpac_version(), gf_gpac_copyright() );
 	}

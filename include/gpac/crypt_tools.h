@@ -240,7 +240,7 @@ typedef struct
 	GF_Err last_parse_error;
 } GF_CryptInfo;
 
-/*! loads a given crypto configuration file. Full doc is available at https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+/*! loads a given crypto configuration file. Full doc is available at https://gpac.io/mp4box/encryption/common-encryption/
 \param file name of the crypt XML file
 \param out_err set to return error
 \return the crypt info

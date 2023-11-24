@@ -3190,7 +3190,7 @@ generate_pkgconfig () {
 	echo ""
 	echo "Name: gpac"
 	echo "Description: GPAC Multimedia Framework"
-	echo "URL: http://gpac.io"
+	echo "URL: https://gpac.io"
 	echo "Version:$version"
 	echo "Cflags: -I\${prefix}/include"
 	echo "Libs: -L\${libdir} -lgpac"

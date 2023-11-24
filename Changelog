@@ -397,8 +397,8 @@ It also adds several small features:
  - The counter source from the DASH sequences added to the public content.
  - HLS and DASH playback minor fixes.
  - Cleanup of DASH client logs.
- - Added support for DASH SRD in 360 for independent videos videos (NxM partial spheres) [more](https://gpac.wp.imt.fr/2016/05/25/srd/)
- - Added support for DASH SRD in 360 for HEV Ctiled videos (NxM tiles on one sphere) - [checkout tuto](https://gpac.wp.imt.fr/2017/02/01/hevc-tile-based-adaptation-guide/)
+ - Added support for DASH SRD in 360 for independent videos videos (NxM partial spheres) [more](https://gpac.io/2016/05/25/srd/)
+ - Added support for DASH SRD in 360 for HEV Ctiled videos (NxM tiles on one sphere) - [checkout tuto](https://gpac.io/2017/02/01/hevc-tile-based-adaptation-guide/)
  - Apple VideoToolBox hardware decoding support for OSX and iOS for AVC|H264.
  - Android hardware decoding hardware acceleration for AVC|H264 (HEVC on its way).
  - Android build is based on Android Studio.

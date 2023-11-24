@@ -6,7 +6,7 @@ Release: 2.3-DEV
 License: LGPL
 Group: Applications/Multimedia
 Source0: gpac-2.3-DEV.tar.gz
-URL: http://gpac.io/
+URL: https://gpac.io/
 BuildRoot: %{_tmppath}/%{name}-root
 Requires: SDL
 %{!?_without_freetype:Requires: freetype}
