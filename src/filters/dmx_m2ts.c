@@ -40,12 +40,27 @@ typedef struct {
 	u32 pid;
 } GF_M2TSDmxCtx_Prog;
 
+typedef enum
+{
+	M2TS_TEMI_INFO,
+	M2TS_ID3,
+	M2TS_SCTE35
+} GF_M2TS_PropType;
+
+#define GF_M2TS_PROP       \
+	GF_M2TS_PropType type; \
+	u32 len;               \
+	u8 *data;              \
+
 typedef struct {
+	GF_M2TS_PROP
+} GF_M2TS_Prop;
+
+typedef struct {
+	GF_M2TS_PROP
 	u32 timeline_id;
 	Bool is_loc;
-	u32 len;
-	u8 *data;
-} GF_TEMIInfo;
+} GF_M2TS_Prop_TEMIInfo;
 
 enum
 {
@@ -604,16 +619,26 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	}
 }
 
-static void m2tdmx_merge_temi(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
+static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
 {
 	if (stream->props) {
 		char szID[100];
 		while (gf_list_count(stream->props)) {
-			GF_TEMIInfo *t = gf_list_pop_front(stream->props);
-			snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
+			GF_M2TS_Prop *p = gf_list_pop_front(stream->props);
+			switch(p->type) {
+				case M2TS_TEMI_INFO: {
+					GF_M2TS_Prop_TEMIInfo *t = (GF_M2TS_Prop_TEMIInfo*)p;
+					snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
+					break;
+				}
+				default:
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] unknown property %d - skipping\n", p->type) );
+					gf_free(p);
+					continue;
+			}
 
-			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(t->data, t->len));
-			gf_free(t);
+			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			gf_free(p);
 		}
 		gf_list_del(stream->props);
 		stream->props = NULL;
@@ -622,7 +647,6 @@ static void m2tdmx_merge_temi(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPa
 			stream->flags |= GF_M2TS_ES_TEMI_INFO;
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_TEMI, &PROP_BOOL(GF_TRUE) );
 		}
-		
 	}
 }
 
@@ -721,7 +745,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 			}
 		}
 	}
-	m2tdmx_merge_temi(opid, (GF_M2TS_ES *)pck->stream, dst_pck);
+	m2tdmx_merge_props(opid, (GF_M2TS_ES *)pck->stream, dst_pck);
 
 	if (pck->stream->is_seg_start) {
 		pck->stream->is_seg_start = GF_FALSE;
@@ -800,7 +824,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	gf_filter_pck_set_carousel_version(dst_pck, pck->version_number);
 
-	m2tdmx_merge_temi(opid, pck->stream, dst_pck);
+	m2tdmx_merge_props(opid, pck->stream, dst_pck);
 	if (pck->stream->is_seg_start) {
 		pck->stream->is_seg_start = GF_FALSE;
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
@@ -1033,7 +1057,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		u32 len;
 		GF_BitStream *bs;
 		GF_M2TS_ES *es=NULL;
-		GF_TEMIInfo *t;
+		GF_M2TS_Prop_TEMIInfo *t;
 		if ((temi_l->pid<8192) && (ctx->ts->ess[temi_l->pid])) {
 			es = ctx->ts->ess[temi_l->pid];
 		}
@@ -1041,7 +1065,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] TEMI location not assigned to a given PID, not supported\n"));
 			break;
 		}
-		GF_SAFEALLOC(t, GF_TEMIInfo);
+		GF_SAFEALLOC(t, GF_M2TS_Prop_TEMIInfo);
 		if (!t) break;
 		t->timeline_id = temi_l->timeline_id;
 		t->is_loc = GF_TRUE;
@@ -1075,7 +1099,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	{
 		GF_M2TS_TemiTimecodeDescriptor *temi_t = (GF_M2TS_TemiTimecodeDescriptor*)param;
 		GF_BitStream *bs;
-		GF_TEMIInfo *t;
+		GF_M2TS_Prop_TEMIInfo *t;
 		GF_M2TS_ES *es=NULL;
 		if ((temi_t->pid<8192) && (ctx->ts->ess[temi_t->pid])) {
 			es = ctx->ts->ess[temi_t->pid];
@@ -1084,7 +1108,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] TEMI timing not assigned to a given PID, not supported\n"));
 			break;
 		}
-		GF_SAFEALLOC(t, GF_TEMIInfo);
+		GF_SAFEALLOC(t, GF_M2TS_Prop_TEMIInfo);
 		if (!t) break;
 		t->timeline_id = temi_t->timeline_id;
 
@@ -1114,7 +1138,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		GF_M2TS_ES *es = (GF_M2TS_ES *)param;
 		if (es && es->props) {
 			while (gf_list_count(es->props)) {
-				GF_TEMIInfo *t = gf_list_pop_back(es->props);
+				GF_M2TS_Prop_TEMIInfo *t = gf_list_pop_back(es->props);
 				gf_free(t->data);
 				gf_free(t);
 			}
