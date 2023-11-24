@@ -508,7 +508,7 @@ u32 gf_stream_type_by_name(const char *val)
 			return GF_StreamTypes[i].st;
 	}
 	if (strnicmp(val, "unkn", 4) && strnicmp(val, "undef", 5)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknow stream type %s\n", val));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknown stream type %s\n", val));
 	}
 	return GF_STREAM_UNKNOWN;
 }
@@ -2005,7 +2005,7 @@ u32 gf_cicp_parse_color_primaries(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color primaries type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown CICP color primaries type %s\n", val));
 	}
 	return (u32) -1;
 }
@@ -2075,7 +2075,7 @@ u32 gf_cicp_parse_color_transfer(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color transfer type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown CICP color transfer type %s\n", val));
 	}
 	return (u32) -1;
 }
@@ -2136,7 +2136,7 @@ u32 gf_cicp_parse_color_matrix(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color matrix type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown CICP color matrix type %s\n", val));
 	}
 	return (u32) -1;
 }
