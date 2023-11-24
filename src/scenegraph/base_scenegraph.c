@@ -2238,7 +2238,7 @@ GF_NamespaceType gf_xml_get_namespace_id(char *name)
 	else if (!strcmp(name, "http://www.w3.org/2000/svg")) return GF_XMLNS_SVG;
 	else if (!strcmp(name, "urn:mpeg:mpeg4:LASeR:2005")) return GF_XMLNS_LASER;
 	else if (!strcmp(name, "http://www.w3.org/ns/xbl")) return GF_XMLNS_XBL;
-	else if (!strcmp(name, "http://gpac.io/svg-extensions")) return GF_XMLNS_SVG_GPAC_EXTENSION;
+	else if (!strcmp(name, "https://gpac.io/svg-extensions")) return GF_XMLNS_SVG_GPAC_EXTENSION;
 	return GF_XMLNS_UNDEFINED;
 }
 

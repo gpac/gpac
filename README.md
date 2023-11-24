@@ -33,7 +33,7 @@ GPAC is an open-source multimedia framework focused on modularity and standards 
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
 GPAC is best-known for its wide MP4/ISOBMFF capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and professional broadcasters.
 
-For more information, visit [GPAC website](http://gpac.io)
+For more information, visit [https://gpac.io](https://gpac.io)
 
 GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.motionspell.com/gpac-licensing).
 
@@ -76,7 +76,7 @@ The gpac application is a direct interface to the filter engine of GPAC, allowin
 
 # Getting started
 ## Download
-Stable and nightly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.wp.imt.fr/downloads/).
+Stable and nightly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.io/downloads/).
 
 If you want to compile GPAC yourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
 
@@ -101,7 +101,7 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 ## Contributing
 A complex project like GPAC wouldn’t exist and persist without the support of its community. Please contribute: a nice message, supporting us in our communication, reporting issues when you see them… any gesture, even the smallest ones, counts. 
 
-If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for a [good first issue](https://github.com/gpac/gpac/labels/good%20first%20issue). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
+If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.io/jobs/google-summer-of-code-ideas/) or look for a [good first issue](https://github.com/gpac/gpac/labels/good%20first%20issue). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
 
 # Team
 GPAC is brought to you by an experienced team of developers with a wide track-record on media processing. 

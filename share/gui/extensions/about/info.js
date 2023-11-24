@@ -2,7 +2,7 @@ extension = {
     start: function () {
 
         var str = 'Version ' +  scene.get_option('core', 'version');
-        str += '\nMore info: http://gpac.io';
+        str += '\nMore info: https://gpac.io';
         str += '\nDistributed under LGPL v2.1 or any later version';
         str += '\n(c) 2002-2020 Telecom Paris';
         str += '\n\nThanks to all great OSS tools used in GPAC:\nQuickJS, FreeType, FFMPEG, OpenHEVC, libjpeg, libpng, faad2, libmad, SDL, ...\n\n';

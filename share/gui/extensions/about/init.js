@@ -5,7 +5,7 @@ my_ext = {
     icon: "info.svg",
     author: "JeanLF",
     description: "About GPAC",
-    url: "http://gpac.io/",
+    url: "https://gpac.io/",
     execjs: ["info.js"],
     autostart: false,
     config_id: "ABOUT",
