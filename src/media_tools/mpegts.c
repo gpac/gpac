@@ -2021,7 +2021,7 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	}
 	gf_bs_del(bs);
 	pes->temi_tc_desc_len = 0;
-	pes->temi_pending = 1;
+	pes->descriptor_pending_flags |= GF_M2TS_DESC_TEMI_INFO_FLAG;
 }
 
 void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_type)
@@ -2159,19 +2159,19 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 				}
 			}
 
-			if (!pes->temi_pending && pes->temi_tc_desc_len) {
+			if ( pes->temi_tc_desc_len && !(pes->descriptor_pending_flags & GF_M2TS_DESC_TEMI_INFO_FLAG) ) {
 				gf_m2ts_store_temi(ts, pes);
 			}
 
-			if (pes->temi_pending) {
-				pes->temi_pending = 0;
+			if (pes->descriptor_pending_flags) {
+				pes->descriptor_pending_flags &= ~GF_M2TS_DESC_TEMI_INFO_FLAG;
 				pes->temi_tc.pes_pts = pes->PTS;
 				pes->temi_tc.pid = pes->pid;
 				if (ts->on_event)
 					ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
 			}
 
-			if (! ts->seek_mode)
+			if (!ts->seek_mode)
 				remain = pes->reframe(ts, pes, same_pts, pes->pck_data+offset, pes->pck_data_len-offset, &pesh);
 
 			//CLEANUP alloc stuff
