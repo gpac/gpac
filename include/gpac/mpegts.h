@@ -830,17 +830,6 @@ typedef struct tag_m2ts_metadata_descriptor {
 	u8 decoder_config_service_id;
 } GF_M2TS_MetadataDescriptor;
 
-/*! Custom filter prop flags*/
-enum
-{
-	/*!TEMI Time Info*/
-	GF_M2TS_PROP_DESC_TEMI_INFO_FLAG = 1,
-	/*!SCTE35*/
-	GF_M2TS_PROP_SECTION_SCTE35      = 1 << 1,
-	/*!ID3*/
-	GF_M2TS_PROP_PES_ID3             = 1 << 2,
-};
-
 //! @cond Doxygen_Suppress
 
 /*! MPEG-2 TS ES object*/
@@ -906,9 +895,8 @@ typedef struct tag_m2ts_pes
 	u32 temi_tc_desc_alloc_size;
 	/*! last decoded temi (may be one ahead of time as the last received TEMI)*/
 	GF_M2TS_TemiTimecodeDescriptor temi_tc;
-
-	/*! set to indicate that custom descriptors should be flushed with next packet*/
-	Bool descriptor_pending_flags;
+	/*! flag set to indicate a TEMI descriptor should be flushed with next packet*/
+	Bool temi_pending;
 
 	/*! flag set to indicate the last PES packet was not flushed (HLS) to avoid warning on same PTS/DTS used*/
 	Bool is_resume;

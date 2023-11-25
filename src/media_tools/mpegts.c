@@ -2021,7 +2021,7 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	}
 	gf_bs_del(bs);
 	pes->temi_tc_desc_len = 0;
-	pes->descriptor_pending_flags |= GF_M2TS_PROP_DESC_TEMI_INFO_FLAG;
+	pes->temi_pending = GF_TRUE;
 }
 
 void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_type)
@@ -2159,19 +2159,16 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 				}
 			}
 
-			if ( pes->temi_tc_desc_len && !(pes->descriptor_pending_flags & GF_M2TS_PROP_DESC_TEMI_INFO_FLAG) ) {
+			if (pes->temi_tc_desc_len && !pes->temi_pending) {
 				gf_m2ts_store_temi(ts, pes);
 			}
 
-			if (pes->descriptor_pending_flags) {
-				// process flags
-				if (pes->descriptor_pending_flags & GF_M2TS_PROP_DESC_TEMI_INFO_FLAG) {
-					pes->descriptor_pending_flags &= ~GF_M2TS_PROP_DESC_TEMI_INFO_FLAG;
-					pes->temi_tc.pes_pts = pes->PTS;
-					pes->temi_tc.pid = pes->pid;
-					if (ts->on_event)
-						ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
-				}
+			if (pes->temi_pending) {
+				pes->temi_pending = GF_FALSE;
+				pes->temi_tc.pes_pts = pes->PTS;
+				pes->temi_tc.pid = pes->pid;
+				if (ts->on_event)
+					ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
 			}
 
 			if (!ts->seek_mode)
