@@ -1174,8 +1174,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				es->props = gf_list_new();
 			}
 			gf_list_add(es->props, t);
-
-			es->descriptor_pending_flags |= GF_M2TS_PROP_PES_ID3;
 		}
 	}
 	break;
@@ -1213,8 +1211,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				es->props = gf_list_new();
 			}
 			gf_list_add(es->props, t);
-
-			es->descriptor_pending_flags |= GF_M2TS_PROP_SECTION_SCTE35;
 		}
 	}
 	break;
