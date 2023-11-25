@@ -611,7 +611,7 @@ enum metadata_carriage {
 	METADATA_CARRIAGE_OTHER			= 3
 };
 
-/*! MPEG-2 TS demuxer metadat pointer*/
+/*! MPEG-2 TS demuxer metadata pointer*/
 typedef struct tag_m2ts_metadata_pointer_descriptor {
 	u16 application_format;
 	u32 application_format_identifier;
@@ -830,11 +830,15 @@ typedef struct tag_m2ts_metadata_descriptor {
 	u8 decoder_config_service_id;
 } GF_M2TS_MetadataDescriptor;
 
-/*! Custom descriptor flags*/
+/*! Custom filter prop flags*/
 enum
 {
 	/*!TEMI Time Info*/
-	GF_M2TS_DESC_TEMI_INFO_FLAG = 1,
+	GF_M2TS_PROP_DESC_TEMI_INFO_FLAG = 1,
+	/*!SCTE35*/
+	GF_M2TS_PROP_SECTION_SCTE35      = 1 << 1,
+	/*!ID3*/
+	GF_M2TS_PROP_PES_ID3             = 1 << 2,
 };
 
 //! @cond Doxygen_Suppress
@@ -886,8 +890,7 @@ typedef struct tag_m2ts_pes
 	u32 last_pat_packet_number, before_last_pat_pn, before_last_pes_start_pn;
 
 	/*! PES reframer callback. If NULL, pes processing is skipped
-
-	returns the number of bytes NOT consumed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
+	    returns the number of bytes NOT consumed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
 	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, u8 *data, u32 data_len, GF_M2TS_PESHeader *hdr);
 
 	/*! DVB subtitling info*/

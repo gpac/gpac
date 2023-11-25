@@ -1083,7 +1083,6 @@ struct __gf_filter_pid
 	volatile u32 num_pidinst_del_pending;
 
 	u32 link_flags;
-
 };
 
 

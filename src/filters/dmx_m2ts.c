@@ -631,6 +631,12 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 					snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
 					break;
 				}
+				case M2TS_SCTE35:
+					snprintf(szID, 100, "scte35");
+					break;
+				case M2TS_ID3:
+					snprintf(szID, 100, "id3");
+					break;
 				default:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] unknown property %d - skipping\n", p->type) );
 					gf_free(p);
@@ -1110,6 +1116,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		GF_SAFEALLOC(t, GF_M2TS_Prop_TEMIInfo);
 		if (!t) break;
+		t->type = M2TS_TEMI_INFO;
 		t->timeline_id = temi_t->timeline_id;
 
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1133,12 +1140,90 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		gf_list_add(es->props, t);
 	}
 	break;
+	case GF_M2TS_EVT_ID3:
+	{
+		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
+		GF_BitStream *bs;
+		GF_M2TS_Prop *t;
+		u32 count = gf_list_count(pck->stream->program->streams);
+		for (i=0; i<count; i++) {
+			GF_M2TS_PES *es = gf_list_get(pck->stream->program->streams, i);
+			if (!es->user) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] ID3 metadata not assigned to a given PID, not supported\n"));
+				continue;
+			}
+
+			// attach ID3 markers to audio
+			GF_FilterPid *opid = (GF_FilterPid *)es->user;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(opid, GF_PROP_PID_STREAM_TYPE);
+			if (!p) return;
+			if (p->value.uint != GF_STREAM_AUDIO)
+				continue;
+
+			GF_SAFEALLOC(t, GF_M2TS_Prop);
+			if (!t) break;
+			t->type = M2TS_ID3;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(bs, 90000);                     // timescale
+			gf_bs_write_u64(bs, pck->PTS);                  // pts
+			gf_bs_write_data(bs, pck->data, pck->data_len); // data
+			gf_bs_get_content(bs, &t->data, &t->len);
+			gf_bs_del(bs);
+
+			if (!es->props) {
+				es->props = gf_list_new();
+			}
+			gf_list_add(es->props, t);
+
+			es->descriptor_pending_flags |= GF_M2TS_PROP_PES_ID3;
+		}
+	}
+	break;
+	case GF_M2TS_EVT_SCTE35_SPLICE_INFO:
+	{
+		GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK*)param;
+		GF_BitStream *bs;
+		GF_M2TS_Prop *t;
+
+		// convey SCTE35 splice info to all streams of the program
+		u32 count = gf_list_count(pck->stream->program->streams);
+		for (i=0; i<count; i++) {
+			GF_M2TS_PES *es = gf_list_get(pck->stream->program->streams, i);
+			if (!es->user) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] SCTE35 section not assigned to a given PID, not supported\n"));
+				continue;
+			}
+
+			// attach SCTE35 info to audio and video
+			GF_FilterPid *opid = (GF_FilterPid *)es->user;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(opid, GF_PROP_PID_STREAM_TYPE);
+			if (!p) return;
+			if (p->value.uint != GF_STREAM_AUDIO || p->value.uint != GF_STREAM_VISUAL)
+				continue;
+
+			GF_SAFEALLOC(t, GF_M2TS_Prop);
+			if (!t) break;
+			t->type = M2TS_SCTE35;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_data(bs, pck->data, pck->data_len);
+			gf_bs_get_content(bs, &t->data, &t->len);
+			gf_bs_del(bs);
+
+			if (!es->props) {
+				es->props = gf_list_new();
+			}
+			gf_list_add(es->props, t);
+
+			es->descriptor_pending_flags |= GF_M2TS_PROP_SECTION_SCTE35;
+		}
+	}
+	break;
 	case GF_M2TS_EVT_STREAM_REMOVED:
 	{
 		GF_M2TS_ES *es = (GF_M2TS_ES *)param;
 		if (es && es->props) {
 			while (gf_list_count(es->props)) {
-				GF_M2TS_Prop_TEMIInfo *t = gf_list_pop_back(es->props);
+				GF_M2TS_Prop *t = gf_list_pop_back(es->props);
 				gf_free(t->data);
 				gf_free(t);
 			}
