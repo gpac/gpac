@@ -6474,18 +6474,22 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				e = mp4_mux_start_fragment(ctx, orig_frag_bounds ? pck : NULL);
 				if (e) return e;
 
-				//push emsgonce the segment is started
+				//push emsg boxes once the segment is started
+				GF_Err gf_isom_set_emsg(GF_ISOFile *movie, u8 *data, u32 size);
+
 				const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "grp_EMSG");
 				if (emsg && (emsg->type==GF_PROP_DATA) && emsg->value.data.ptr) {
-					GF_Err gf_isom_set_emsg(GF_ISOFile *movie, u8 *data, u32 size);
+					gf_isom_set_emsg(ctx->file, emsg->value.data.ptr, emsg->value.data.size);
+				}
 
+				emsg = gf_filter_pck_get_property_str(pck, "id3");
+				if (emsg && (emsg->type==GF_PROP_DATA) && emsg->value.data.ptr) {
 					gf_isom_set_emsg(ctx->file, emsg->value.data.ptr, emsg->value.data.size);
 				}
 
 				ctx->nb_frags++;
 				if (ctx->dash_mode)
 					ctx->nb_frags_in_seg++;
-
 			}
 
 
