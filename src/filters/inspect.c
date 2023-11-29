@@ -1083,10 +1083,11 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				else
 					gf_bs_reassign_buffer(pctx->bs, ptr, ptr_size);
 				bs = pctx->bs;
+				dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+				dump_sei(dump, bs, NULL, NULL, NULL);
 			}
-			dump_sei(dump, bs, pctx->avc_state, pctx->hevc_state, pctx->vvc_state);
 			if (!pctx) gf_bs_del(bs);
 			inspect_printf(dump, "   </NALU>\n");
 		} else {
