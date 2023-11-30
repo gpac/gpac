@@ -1419,6 +1419,9 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 			if (sinf && sinf->scheme_type) {
 				saiz_aux_info_type = sinf_fmt = sinf->scheme_type->scheme_type;
 			}
+			//default to cenc for smooth
+			else if (traf->trex->track->moov->mov->is_smooth)
+				saiz_aux_info_type = sinf_fmt = GF_ISOM_CENC_SCHEME;
 		}
 		if (!saiz_aux_info_type && (c1==1) && (c2==1)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saiz box without flags nor aux info type and no default scheme, ignoring\n"));
@@ -1458,6 +1461,9 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 			if (sinf && sinf->scheme_type) {
 				saio_aux_info_type = sinf_fmt = sinf->scheme_type->scheme_type;
 			}
+			//default to cenc for smooth
+			else if (traf->trex->track->moov->mov->is_smooth)
+				saio_aux_info_type = sinf_fmt = GF_ISOM_CENC_SCHEME;
 		}
 		if (!saio_aux_info_type && (c1==1) && (c2==1)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saio box without flags nor aux info type and no default scheme, ignoring\n"));
