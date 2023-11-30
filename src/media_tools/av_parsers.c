@@ -2620,7 +2620,7 @@ static void av1_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_lengt
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state)
 {
 	if (!state) return GF_BAD_PARAM;
-	Bool first_obu = GF_TRUE;
+	state->has_temporal_delim = 0;
 
 	while (1) {
 		GF_Err e;
@@ -2639,17 +2639,16 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		}
 
 		if (state->obu_type == OBU_TEMPORAL_DELIMITER) {
-			if (!first_obu) {
+			if (state->has_temporal_delim) {
 				// seek back
 				gf_bs_seek(bs, pos);
 				break;
 			}
+			state->has_temporal_delim = 1;
 		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] Section5 OBU detected (size "LLU")\n", obu_size));
 		av1_populate_state_from_obu(bs, pos, obu_size, state->obu_type, state);
-
-		first_obu = GF_FALSE;
 	}
 
 	return GF_OK;
