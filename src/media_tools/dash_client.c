@@ -742,7 +742,7 @@ setup_route:
 		}
 
 		for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
-			u64 sr, seg_dur;
+			u64 sr, seg_dur_ms;
 			u32 j, len, nb_space=0;
 			GF_MPD_AdaptationSet *set;
 			char *sep, *start, *end, *seg_url = NULL;
@@ -770,7 +770,7 @@ setup_route:
 					continue;
 				}
 				u32 tpl_use_time=0;
-				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur, NULL, NULL, NULL, &tpl_use_time);
+				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur_ms, NULL, NULL, NULL, &tpl_use_time);
 
 				dyn_period->duration = dur;
 
@@ -873,7 +873,7 @@ setup_route:
 									group->dash->route_low_latency = GF_TRUE;
 									number--;
 								}
-								timeline_offset_ms = seg_dur * ( 1 + number - startNum);
+								timeline_offset_ms = segdur * ( 1 + number - startNum);
 							}
 							found = 1;
 							timeline_offset_ms = gf_timestamp_rescale(timeline_offset_ms, timescale, 1000);
