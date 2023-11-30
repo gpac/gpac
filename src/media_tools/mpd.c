@@ -1573,7 +1573,8 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 	GF_SAFEALLOC(info, GF_MPD_ProgramInfo);
 	if (!info) return GF_OUT_OF_MEM;
-	info->more_info_url = gf_strdup("https://gpac.io");
+	if (gf_sys_is_test_mode()) info->more_info_url = gf_strdup("http://gpac.io");
+	else info->more_info_url = gf_strdup("https://gpac.io");
 	info->title = gf_strdup(title);
 	sprintf(str, "Generated from URL %s", gf_file_basename(src_base_url));
 	info->source = gf_strdup(str);
