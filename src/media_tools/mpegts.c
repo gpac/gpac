@@ -2423,6 +2423,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 		}
 
 		if (! af_desc_not_present) {
+			if (af_extension + afext_bytes > data+size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
+				return;
+			}
 			while (afext_bytes) {
 				GF_BitStream *bs;
 				char *desc;
