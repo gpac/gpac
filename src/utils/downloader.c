@@ -4669,9 +4669,9 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 
 		if (! (*read_size) && (e==GF_IP_NETWORK_EMPTY)) {
 #ifdef GPAC_HAS_HTTP2
-			if (sess->h2_sess && sess->bytes_done && !sess->total_size
+			if (sess->h2_sess && !sess->total_size
 				//for client, wait for close - for server move to data_transfered as soon as we're done pushing data
-				&& (!sess->h2_stream_id || (sess->h2_data_done && sess->server_mode))
+				&& ((!sess->h2_stream_id && sess->bytes_done) || (sess->h2_data_done && sess->server_mode))
 			) {
 				sess->status = GF_NETIO_DATA_TRANSFERED;
 				SET_LAST_ERR(GF_OK)
