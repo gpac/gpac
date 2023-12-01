@@ -185,8 +185,8 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	//player mode
 	
-	//quit event seen, do not flush, just abort and return last error
-	if (ctx->check_eos_state) {
+	//quit event seen or session is ending, do not flush, just abort and return last error
+	if (ctx->check_eos_state || gf_filter_end_of_session(filter)) {
 		gf_filter_abort(filter);
 		return ctx->last_error ? ctx->last_error : GF_EOS;
 	}
