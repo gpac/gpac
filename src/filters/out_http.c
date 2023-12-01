@@ -143,7 +143,7 @@ typedef struct __httpout_input
 	Bool dash_mode;
 	char *mime;
 	u32 nb_dest;
-	Bool hold;
+	Bool hold, write_not_ready;
 
 	Bool is_open, done, is_delete;
 	Bool patch_blocks;
@@ -3102,6 +3102,7 @@ static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool f
 		in->done = GF_TRUE;
 		in->is_open = GF_FALSE;
 		in->is_delete = GF_FALSE;
+		in->write_not_ready = GF_FALSE;
 	}
 	return res;
 }
@@ -3831,6 +3832,9 @@ next_pck:
 		if (in->flush_llhls_open) {
 			skip_start = GF_TRUE;
 		}
+		//last retry, we couldn't write but we could open the upload, skip start
+		if (in->is_open && in->write_not_ready)
+			skip_start = GF_TRUE;
 
 		if (start && !skip_start) {
 			Bool is_static = in->is_manifest;
@@ -3987,7 +3991,9 @@ next_pck:
 			continue;
 		}
 
+		in->write_not_ready=GF_FALSE;
 		if (!httpout_input_write_ready(ctx, in)) {
+			in->write_not_ready=GF_TRUE;
 			ctx->next_wake_us = 1;
 			continue;
 		}
