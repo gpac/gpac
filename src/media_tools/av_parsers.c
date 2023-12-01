@@ -1635,7 +1635,7 @@ static u32 av1_uvlc(GF_BitStream *bs, const char *fname)
 {
 	u32 res;
 	u8 leadingZeros = 0;
-	while (1) {
+	while (gf_bs_available(bs)) {
 		Bool done = gf_bs_read_int(bs, 1);
 		if (done)
 			break;

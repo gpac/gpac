@@ -549,7 +549,6 @@ u8 gf_bs_read_bit(GF_BitStream *bs)
 #else
 	return (u8) (bs->current & bit_mask[bs->nbBits++]) ? 1 : 0;
 #endif
-
 }
 
 GF_EXPORT
