@@ -79,9 +79,12 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		return GF_NOT_SUPPORTED;
 
 	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;
+	//may happen if first frame not yet received by reframer
+	if (!dcd)
+		crc = -1;
+	else
+		crc = gf_crc_32(dcd->value.data.ptr, dcd->value.data.size);
 
-	crc = gf_crc_32(dcd->value.data.ptr, dcd->value.data.size);
 	if (ctx->crc == crc) return GF_OK;
 	ctx->crc = crc;
 
@@ -95,8 +98,10 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	ctx->ipid = pid;
 	ctx->passthrough = GF_FALSE;
-	p =  gf_filter_pid_get_property_str(pid, "nodata");
+	p = gf_filter_pid_get_property_str(pid, "nodata");
 	if (p && p->value.boolean) ctx->passthrough = GF_TRUE;
+
+	if (!dcd) return GF_OK;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	ctx->codec_id = p ? p->value.uint : 0;
