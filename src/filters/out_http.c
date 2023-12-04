@@ -410,7 +410,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess)
 {
 	Bool last_connection = GF_TRUE;
 	if (!sess->http_sess) return;
-	assert(!sess->flush_close);
+
 	if (sess->is_h2) {
 		u32 nb_sub_sess = gf_dm_sess_subsession_count(sess->http_sess);
 		if (nb_sub_sess > 1) {
@@ -432,6 +432,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess)
 	sess->http_sess = NULL;
 	sess->socket = NULL;
 	sess->done = 1;
+	sess->flush_close = 0;
 
 	if (sess->in_source) sess->in_source->nb_dest--;
 }
@@ -3062,8 +3063,6 @@ session_done:
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Done sending %s to %s ("LLU"/"LLU" bytes)\n", sess->path, sess->peer_address, sess->nb_bytes, sess->bytes_in_req));
 		}
 
-		log_request_done(sess);
-
 		//keep resource active
 		sess->canceled = GF_FALSE;
 
@@ -4174,8 +4173,8 @@ static GF_Err httpout_process(GF_Filter *filter)
 				gf_filter_post_process_task(filter);
 				continue;
 			}
-			//push
-			if (sess->in_source) continue;
+			//if true push, don't process
+			if (sess->in_source && !sess->file_in_progress) continue;
 
 			//regular download
 			if (sess->http_sess)
