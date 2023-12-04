@@ -40,7 +40,12 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	count = gf_isom_get_chapter_count(file, 0);
 	if (count) {
 		times.vals = gf_malloc(sizeof(u32)*count);
+		if (!times.vals) return;
 		names.vals = gf_malloc(sizeof(char *)*count);
+		if (!names.vals) {
+			gf_free(times.vals);
+			return;
+		}
 		times.nb_items = names.nb_items = count;
 
 		for (i=0; i<count; i++) {
@@ -48,7 +53,7 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 			u64 start;
 			gf_isom_get_chapter(file, 0, i+1, &start, &name);
 			times.vals[i] = (u32) start;
-			names.vals[i] = gf_strdup(name);
+			names.vals[i] = gf_strdup(name ? name : "");
 		}
 		p.type = GF_PROP_UINT_LIST;
 		p.value.uint_list = times;
@@ -78,13 +83,22 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	if (!chap_tk) return;
 
 	times.vals = gf_malloc(sizeof(u32)*count);
+	if (!times.vals) return;
 	names.vals = gf_malloc(sizeof(char *)*count);
+	if (!names.vals) {
+		gf_free(times.vals);
+		return;
+	}
 	times.nb_items = names.nb_items = count;
 
 	for (i=0; i<count; i++) {
 		u32 di;
 		GF_ISOSample *s = gf_isom_get_sample(file, chap_tk, i+1, &di);
-		if (!s) continue;
+		if (!s) {
+			times.vals[i] = 0;
+			names.vals[i] = gf_strdup("");
+			continue;
+		}
 		GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 		if (txt) {
