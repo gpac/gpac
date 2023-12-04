@@ -1123,12 +1123,12 @@ void gpac_suggest_arg(char *aname)
 	}
 }
 
-void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
+Bool gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 {
 	Bool found = GF_FALSE;
 	Bool first = GF_FALSE;
 	u32 i, count, pass_exact = GF_TRUE;
-	if (!fname) return;
+	if (!fname) return GF_FALSE;
 
 	if (filter_only || !is_help) pass_exact = GF_FALSE;
 
@@ -1188,6 +1188,7 @@ redo_pass:
 						if (!doc) doc = "Not documented";
 						GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: %s\n", alias, doc));
 						found = GF_TRUE;
+						if (is_help) return GF_TRUE;
 					}
 				}
 				else if (gf_sys_word_match(fname, alias)) {
@@ -1294,6 +1295,7 @@ redo_pass:
 			is_help ? ", gpac -h or search all help using gpac -hx" : ""
 		));
 	}
+	return GF_FALSE;
 }
 
 static void gpac_suggest_filter_arg(GF_Config *opts, const char *argname, u32 atype)
@@ -2167,7 +2169,8 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 
 	if (found) return GF_TRUE;
 
-	gpac_suggest_filter(fname, GF_TRUE, GF_FALSE);
+	if (gpac_suggest_filter(fname, GF_TRUE, GF_FALSE))
+		return GF_TRUE;
 	return GF_FALSE;
 }
 
