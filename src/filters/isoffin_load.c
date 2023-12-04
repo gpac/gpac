@@ -1412,7 +1412,11 @@ props_done:
 	if (m_subtype)
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_SUBTYPE, &PROP_4CC(m_subtype) );
 
-	if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
+	if (stxtcfg) {
+		//copy mem to make sure we have a null-terminated string
+		char *dupm = gf_strdup((char *)stxtcfg);
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dupm, (u32) strlen(stxtcfg) ));
+	}
 
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE)
