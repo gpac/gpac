@@ -215,7 +215,7 @@ start (dbl, default: 0.0):     set playback start offset. A negative value means
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU), similar to -bsdbg option of reframer filters
 .br
 * off: no analyzing
 .br
@@ -7243,7 +7243,7 @@ When running in server mode, multiple HTTP outputs with same URL/port may be use
 .br
 Example
 .br
-gpac -i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag
+gpac -i dash.mpd dashin:forward=file:FID=D1 dashin:forward=segb:FID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag
 .br
 
 .br
@@ -9532,6 +9532,44 @@ clip (bool, default: false):   clip YUV data to valid SDI range, slower
 port (uint, default: 1):       set sdi output port of card
 .br
 start (dbl, default: 0.0):     set playback start offset, [-1, 0] means percent of media dur, e.g. -1 == dur
+.br
+
+.br
+.SH ohevcdec
+.LP
+.br
+Description: OpenHEVC decoder
+.br
+
+.br
+This filter decodes HEVC and LHVC (HEVC scalable extensions) from one or more PIDs through the OpenHEVC library
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+threading (enum, default: frame): set threading mode
+.br
+* frameslice: parallel decoding of both frames and slices
+.br
+* frame: parallel decoding of frames
+.br
+* slice: parallel decoding of slices
+.br
+
+.br
+nb_threads (uint, default: 0): set number of threads (if 0, uses number of cores minus one)
+.br
+no_copy (bool, default: false): directly dispatch internal decoded frame without copy
+.br
+pack_hfr (bool, default: false): pack 4 consecutive frames in a single output
+.br
+seek_reset (bool, default: false): reset decoder when seeking
+.br
+force_stereo (bool, default: true): use stereo output for multiview (top-bottom only)
+.br
+reset_switch (bool, default: false): reset decoder at config change
 .br
 
 .br
