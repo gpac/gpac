@@ -1,0 +1,35 @@
+name: GitHub Actions
+run-name: build with docker
+on: [push]
+
+jobs:
+    master-build-and-deploy:
+        runs-on: ubuntu-latest
+        if:  ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v3
+              with:
+                fetch-depth: 0
+            - name: build image
+              run: docker build -t gpac-ubuntu -f build/docker/ubuntu.Dockerfile .
+            - name: check docker images
+              run: docker image list
+            - name: check docker run
+              run: docker run gpac-ubuntu || true
+            - name: login docker hub
+              run: docker login --username gpac  --password ${{secrets.DOCKER_HUB_TOKEN}}
+            - name: tag docker image
+              run: docker tag gpac-ubuntu gpac/ubuntu:latest
+            - name: push docker image
+              run: docker push gpac/ubuntu:latest
+
+
+    other-builds:
+        runs-on: ubuntu-latest
+        if:  ${{ github.ref != 'refs/heads/master' || github.event_name != 'push' }}
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v3
+            - name: build image
+              run: docker build -t gpac-ubuntu -f build/docker/ubuntu.Dockerfile .
