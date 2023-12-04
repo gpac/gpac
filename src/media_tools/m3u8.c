@@ -374,6 +374,15 @@ static char** extract_attributes(const char *name, const char *line, const int n
 	if (v > attributes->compatibility_version) \
 		attributes->compatibility_version = v;
 
+static void free_attrs(char** attributes)
+{
+	u32 i = 0;
+	while (attributes[i] != NULL) {
+		gf_free(attributes[i]);
+		i++;
+	}
+	gf_free(attributes);
+}
 /**
  * Parses the attributes and accumulate into the attributes structure
  */
@@ -608,6 +617,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		}
 		if (!attributes->bandwidth) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-STREAM-INF: no BANDWIDTH found. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 		return ret;
@@ -694,6 +704,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(CLOSED_CAPTIONS, attributes->group.closed_captions);
 				} else if (attributes->type == MEDIA_TYPE_UNKNOWN) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:GROUP-ID=%s. Ignoring the line.\n", ret[i]+9));
+					free_attrs(ret);
 					return NULL;
 				}
 			} else if (safe_start_equals("LANGUAGE=\"", ret[i])) {
@@ -739,6 +750,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 
 		if (attributes->type == MEDIA_TYPE_UNKNOWN) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: TYPE is missing. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 		if (attributes->type == MEDIA_TYPE_CLOSED_CAPTIONS && attributes->mediaURL) {
@@ -749,10 +761,12 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		if ((attributes->type == MEDIA_TYPE_AUDIO && !attributes->group.audio)
 		        || (attributes->type == MEDIA_TYPE_VIDEO && !attributes->group.video)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: missing GROUP-ID attribute. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 		if (!attributes->stream_id) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: no ID was computed. Check previous errors. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 
