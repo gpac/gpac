@@ -1097,13 +1097,13 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (needs_reset) {
 		u8 *dsi=NULL;
 		u32 dsi_size=0;
-		if (ch->check_avc_ps) {
+		if (ch->check_avc_ps && ch->avcc) {
 			gf_odf_avc_cfg_write(ch->avcc, &dsi, &dsi_size);
 		}
-		else if (ch->check_hevc_ps) {
+		else if (ch->check_hevc_ps && ch->hvcc) {
 			gf_odf_hevc_cfg_write(ch->hvcc, &dsi, &dsi_size);
 		}
-		else if (ch->check_vvc_ps) {
+		else if (ch->check_vvc_ps && ch->vvcc) {
 			gf_odf_vvc_cfg_write(ch->vvcc, &dsi, &dsi_size);
 		}
 		if (dsi && dsi_size) {
