@@ -1722,9 +1722,22 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att;
 		const GF_XMLAttribute *in_att = & attributes[i];
+		u32 j;
+		Bool dup=GF_FALSE;
+		for (j=0;j<i; j++) {
+			GF_XMLAttribute *p_att = gf_list_get(node->attributes, j);
+			if (!p_att) break;
+			if (!strcmp(p_att->name, in_att->name)) {
+				dup=GF_TRUE;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[SAX] Duplicated attribute %s on node %s, ignoring\n", in_att->name, name));
+				break;
+			}
+		}
+		if (dup) continue;
+
 		GF_SAFEALLOC(att, GF_XMLAttribute);
 		if (! att) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SAX] Failed to allocate attribute"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SAX] Failed to allocate attribute\n"));
 			par->parser->sax_state = SAX_STATE_ALLOC_ERROR;
 			return;
 		}
