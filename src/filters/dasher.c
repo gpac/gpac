@@ -7751,6 +7751,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_GROUPID);
 			if (p)
 				ds->rep->groupID = p->value.string;
+			p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_FORCE_INF);
+			if (p)
+				ds->rep->hls_forced = p->value.string;
 
 			ds->rep->dash_dur = ds->dash_dur;
 			ds->rep->hls_max_seg_dur = ds->dash_dur;

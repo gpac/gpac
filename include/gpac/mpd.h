@@ -676,6 +676,7 @@ typedef struct {
 	u32 trackID;
 
 	Bool sub_forced;
+	const char *hls_forced;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
