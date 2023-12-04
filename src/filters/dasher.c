@@ -6841,6 +6841,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 				ds->nb_rep++;
 				//add non-conditional adaptation set descriptors
 				dasher_add_descriptors(&ds->set->x_children, a_ds->p_as_any_desc);
+			} else if (ds->as_id && (ds->as_id==a_ds->as_id)){
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Streams not switchable (codec %s vs %s) but same ASID requested, ignoring ASID\n", gf_codecid_file_ext(ds->codec_id), gf_codecid_file_ext(a_ds->codec_id) ));
 			}
 		}
 	}
