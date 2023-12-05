@@ -3145,7 +3145,7 @@ GF_Filter *gf_filter_clone(GF_Filter *filter, GF_Filter *source_filter)
 		GF_Filter *old_source;
 		GF_FilterPidInst *first_in = gf_list_get(filter->input_pids, 0);
 		//if source filter is set, this is a clone due to a new instance request, so we have at least one input
-		assert(first_in);
+		if (!first_in) return NULL;
 		old_source = first_in->pid->filter;
 		//get source arguments for new source filter connecting to the clone
 		const char *args_src_new = gf_filter_get_args_stripped(filter->session, source_filter->src_args ? source_filter->src_args : source_filter->orig_args, GF_FALSE);
