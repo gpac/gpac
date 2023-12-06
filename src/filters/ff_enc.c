@@ -1755,7 +1755,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->timescale = ctx->encoder->time_base.den = prop ? prop->value.uint : 1000;
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-		if (prop) {
+		if (prop && prop->value.frac.den) {
 			Bool reset_gop = GF_FALSE;
 			//don't write gop info for these codecs, unless ctx->gop_size is set (done later)
 			if (codec_id==AV_CODEC_ID_FFV1) reset_gop = GF_TRUE;
@@ -1864,6 +1864,9 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->encoder->pix_fmt = ctx->pixel_fmt;
 		ctx->init_cts_setup = GF_TRUE;
 		ctx->frame->format = ctx->encoder->pix_fmt;
+
+		if (ctx->codecid==GF_CODECID_AV1)
+			av_dict_set(&ctx->options, "strict", "experimental", 0);
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->encoder->sample_rate = ctx->sample_rate;
 		ctx->encoder->channels = ctx->channels;
