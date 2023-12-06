@@ -2002,6 +2002,21 @@ void gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const cha
 		if (!stricmp(name, "Keep-Alive")) return;
 	}
 #endif
+	//check existing headers
+	u32 i, count = gf_list_count(sess->headers);
+	for (i=0; i<count; i++) {
+		hdr = gf_list_get(sess->headers, i);
+		if (stricmp(hdr->name, name)) continue;
+		gf_free(hdr->value);
+		if (value) {
+			hdr->value = gf_strdup(value);
+			return;
+		}
+		gf_list_rem(sess->headers, i);
+		gf_free(hdr->name);
+		gf_free(hdr);
+		return;
+	}
 
 	GF_SAFEALLOC(hdr, GF_HTTPHeader)
 	if (hdr) {

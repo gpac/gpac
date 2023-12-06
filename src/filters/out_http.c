@@ -98,6 +98,7 @@ typedef struct
 	Bool close, hold, quit, post, dlist, ice, reopen, blockio;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka;
 	s32 max_cache_segs;
+	GF_PropStringList hdrs;
 
 	//internal
 	GF_Filter *filter;
@@ -1683,6 +1684,12 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 	}
 
+	for (i=0; i<sess->ctx->hdrs.nb_items; i+=2) {
+		char *hdr=sess->ctx->hdrs.vals[i];
+		char *val=sess->ctx->hdrs.vals[i+1];
+		gf_dm_sess_set_header(sess->http_sess, hdr, val);
+	}
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending response to %s\n", sess->peer_address));
 
 	if (sess->do_log) {
@@ -2173,6 +2180,10 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	char *sep, *url;
 	GF_HTTPOutCtx *ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
 
+	if (ctx->hdrs.nb_items%2) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Invalid custom headers, got odd number but expecting even number\n"));
+		return GF_BAD_PARAM;
+	}
 
 	port = ctx->port;
 	ip = ctx->ifce;
@@ -2482,7 +2493,7 @@ static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Boo
 {
 	if (!in->hls_chunk) return;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Closing LL-HLS %s output\n", in->hls_chunk_path));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[HTTPOut] Closing LL-HLS %s output\n", in->hls_chunk_path));
 
 	gf_fclose(in->hls_chunk);
 	in->hls_chunk = NULL;
@@ -3173,7 +3184,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		sep = name;
     }
     if (!sep) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] %s output file %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] %s output file %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
 		return GF_FALSE;
 	}
 
@@ -3186,7 +3197,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 	}
 
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening", sep+1));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening", sep+1));
 	if (in->upload) {
 		GF_Err e;
 		in->done = GF_FALSE;
@@ -3360,7 +3371,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	in->is_open = GF_FALSE;
 	in->done = GF_TRUE;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Closing output %s\n", in->local_path ? in->local_path : in->path));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[HTTPOut] Closing output %s\n", in->local_path ? in->local_path : in->path));
 
 	if (in->upload) {
 		GF_Err e;
@@ -3471,7 +3482,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 
 	if (!in->is_open) return 0;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Writing %d bytes to output file %s\n", pck_size, in->local_path ? in->local_path : in->path));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[HTTPOut] Writing %d bytes to output file %s\n", pck_size, in->local_path ? in->local_path : in->path));
 
 	if (in->upload) {
 		char szChunkHdr[100];
@@ -3545,7 +3556,7 @@ retry:
 			}
 
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error writing to output file %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[HTTPOut] Error writing to output file %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
 				out = 0;
 			}
 		}
@@ -4359,6 +4370,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(max_async_buf), "maximum async buffer size in bytes when sharing output over multiple connection without file IO", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(blockio), "use blocking IO in push or source mode or in server mode with no read dir", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ka), "keep input alive if failure in push mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(hdrs), "additional HTTP headers to inject, even values are names, odd values are values ", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -4396,6 +4408,8 @@ GF_FilterRegister HTTPOutRegister = {
 		"Listing can be enabled on server using [-dlist]().\n"
 		"When disabled, a GET on a directory will fail.\n"
 		"When enabled, a GET on a directory will return a simple HTML listing of the content inspired from Apache.\n"
+		"  \n"
+		"Custom headers can be specified using [-hdrs](), they apply to all requests.\n"
 		"  \n"
 		"# Simple HTTP server\n"
 		"In this mode, the filter does not need any input connection and exposes all files in the directories given by [-rdirs]().\n"
