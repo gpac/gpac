@@ -4538,7 +4538,10 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		}
 	}
 
-	if (act_type==CENC_ADD_FRAG) {
+	if (pck_is_encrypted && (sai_size>255)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] CENC SAI size %u larger than max allowed size (255) in ISOBMFF - please reencode content\n", sai_size ));
+		e = GF_NOT_SUPPORTED;
+	} else if (act_type==CENC_ADD_FRAG) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (pck_is_encrypted) {
 			e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);

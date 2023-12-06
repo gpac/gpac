@@ -5951,7 +5951,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			}
 		}
 		if (use_multikey || ((ptr->flags & 0x2) && (sai->cenc_data_size>iv_size)) ) {
-			u32 j, nb_subs;
+			u32 j, nb_subs, total_bytes=0;
 
 			nb_subs = gf_bs_read_int(bs, subs_bits);
 			gf_fprintf(trace, " SubsampleCount=\"%u\"", nb_subs);
@@ -5967,7 +5967,10 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				clear = gf_bs_read_u16(bs);
 				crypt = gf_bs_read_u32(bs);
 				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, crypt);
+				total_bytes+=clear+crypt;
 			}
+			if (!gf_sys_is_test_mode())
+				gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
 		} else {
 			gf_fprintf(trace, ">\n");
 		}
