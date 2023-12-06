@@ -954,6 +954,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 			//destroy pid instance
 			gf_filter_pid_inst_del(pidinst);
+			pidinst = NULL;
 			gf_mx_v(pid->filter->tasks_mx);
 		}
 
@@ -1073,10 +1074,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 						if (filter->swap_pidinst_dst->props) {
 							GF_FilterPidInst *swap_pidi = filter->swap_pidinst_dst;
 							if (safe_int_dec(&swap_pidi->props->reference_count)==0) {
-								gf_mx_p(swap_pidi->pid->filter->tasks_mx);
-								gf_list_del_item(swap_pidi->pid->properties, pidinst->props);
-								gf_mx_v(swap_pidi->pid->filter->tasks_mx);
-								gf_props_del(pidinst->props);
+								if (pidinst) {
+									gf_mx_p(swap_pidi->pid->filter->tasks_mx);
+									gf_list_del_item(swap_pidi->pid->properties, pidinst->props);
+									gf_mx_v(swap_pidi->pid->filter->tasks_mx);
+									gf_props_del(pidinst->props);
+								}
 							}
 							filter->swap_pidinst_dst->props = NULL;
 						}
@@ -1126,7 +1129,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 	if (ctype==GF_PID_CONF_REMOVE) {
 		gf_mx_p(filter->tasks_mx);
-		gf_list_del_item(filter->input_pids, pidinst);
+		if (pidinst)
+			gf_list_del_item(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		if (!filter->num_input_pids)
 			filter->single_source = NULL;
@@ -1138,12 +1142,14 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		//on the first gf_filter_pid_inst_delete_task executed.
 		//we therefore track at the PID level the number of gf_filter_pid_inst_delete_task tasks pending and
 		//won't destroy the PID until that number is O
-		gf_mx_p(pidinst->pid->filter->tasks_mx);
-		pidinst->pid->num_pidinst_del_pending ++;
-		gf_list_del_item(pidinst->pid->destinations, pidinst);
-		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
-		gf_filter_instance_detach_pid(pidinst);
-		gf_mx_v(pidinst->pid->filter->tasks_mx);
+		if (pidinst) {
+			gf_mx_p(pidinst->pid->filter->tasks_mx);
+			pidinst->pid->num_pidinst_del_pending ++;
+			gf_list_del_item(pidinst->pid->destinations, pidinst);
+			pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
+			gf_filter_instance_detach_pid(pidinst);
+			gf_mx_v(pidinst->pid->filter->tasks_mx);
+		}
 
 		//disconnected the last input, flag as removed
 		if (!filter->num_input_pids && !filter->sticky) {
@@ -1151,7 +1157,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			filter->removed = 1;
 		}
 		//post a pid_delete task to also trigger removal of the filter if needed
-		gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, pid->filter, pid, "pid_inst_delete", pidinst);
+		if (pidinst)
+			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, pid->filter, pid, "pid_inst_delete", pidinst);
 
 		return e;
 	}
@@ -1162,7 +1169,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 			//we must resent play/pause events when a new pid is reattached to an old pid instance
 			//in case one of the injected filter(s) monitors play state of the pids (eg reframers)
-			if (refire_events) {
+			if (refire_events && pidinst) {
 				GF_FilterEvent evt;
 				if (pidinst->is_playing) {
 					pidinst->is_playing = GF_FALSE;

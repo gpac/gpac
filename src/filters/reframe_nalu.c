@@ -2984,8 +2984,13 @@ static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
 							ctx->prev_cts -= 3000;
 							ctx->prev_cts += diff;
 						}
-					} else if (ctx->cur_fps.den > diff)
+						if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
+							gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+					} else if (ctx->cur_fps.den > diff) {
 						ctx->cur_fps.den = (u32) diff;
+						if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
+							gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
+					}
 
 					ctx->prev_dts = ts;
 				}
