@@ -7046,6 +7046,10 @@ When enabled, a GET on a directory will return a simple HTML listing of the cont
 .br
   
 .br
+Custom headers can be specified using .I hdrs, they apply to all requests.
+.br
+  
+.br
 .SH Simple HTTP server
 .LP
 .br
@@ -7335,6 +7339,8 @@ max_async_buf (uint, default: 100000): maximum async buffer size in bytes when s
 blockio (bool, default: false): use blocking IO in push or source mode or in server mode with no read dir
 .br
 ka (bool, default: true):      keep input alive if failure in push mode
+.br
+hdrs (strl):                   additional HTTP headers to inject, even values are names, odd values are values 
 .br
 
 .br
