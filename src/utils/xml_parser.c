@@ -503,7 +503,6 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 
 att_retry:
 
-		assert(parser->att_sep);
 		if (!parser->att_sep) {
 			format_sax_error(parser, parser->current_pos, "Invalid character %c before attribute value separator", parser->buffer[parser->current_pos]);
 			return GF_TRUE;
