@@ -196,7 +196,7 @@ typedef struct
 	char *title, *source, *info, *cprt, *lang;
 	char *chain, *chain_fbk;
 	GF_PropStringList location, base;
-	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force;
+	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force, keep_segs;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool cmpd, dual, sreg;
@@ -1893,6 +1893,27 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	}
 	dasher_check_chaining(ctx, "urn:mpeg:dash:mpd-chaining:2016", ctx->chain);
 	dasher_check_chaining(ctx, "urn:mpeg:dash:fallback:2016", ctx->chain_fbk);
+
+	//final move from dynamic to static, reset all tsb entry indexes to write the complete manifest
+	if (ctx->move_to_static && (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST) && ctx->keep_segs) {
+		u32 i=0;
+		GF_MPD_Period *p;
+		while ((p=gf_list_enum(ctx->mpd->periods, &i))) {
+			u32 j=0;
+			GF_MPD_AdaptationSet *as;
+			while ((as=gf_list_enum(p->adaptation_sets, &j))) {
+				u32 k=0;
+				if (as->segment_template) as->segment_template->tsb_first_entry = 0;
+				if (as->segment_list) as->segment_list->tsb_first_entry=0;
+				GF_MPD_Representation *rep;
+				while ((rep=gf_list_enum(as->representations, &k))) {
+					rep->tsb_first_entry=0;
+					if (rep->segment_template) rep->segment_template->tsb_first_entry = 0;
+					if (rep->segment_list) rep->segment_list->tsb_first_entry = 0;
+				}
+			}
+		}
+	}
 	return GF_OK;
 }
 static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
@@ -3495,7 +3516,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHLS, &PROP_UINT(ctx->llhls) );
 	}
 
-	if ((ctx->dmode > GF_DASH_STATIC) && (ctx->tsb>=0)) {
+	if ((ctx->dmode > GF_DASH_STATIC) && (ctx->tsb>=0) && !ctx->keep_segs) {
 		u32 tsb_seg = ds->dash_dur.num ? ((u32) (ctx->tsb * ds->dash_dur.den / ds->dash_dur.num)) : 0;
 		tsb_seg++;
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESHIFT_SEGS, &PROP_UINT(tsb_seg) );
@@ -4451,11 +4472,13 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 		if (!ds->rep) continue;
 		if (!ds->rep->state_seg_list) continue;
 
+		ds->rep->tsb_first_entry = 0;
+		u32 state_idx=0;
 		while (1) {
 			Double time, dur;
 			Bool seg_url_found = GF_FALSE;
 			Bool has_seg_list = GF_FALSE;
-			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, 0);
+			GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, state_idx);
 			if (!sctx) break;
 			/*not yet flushed*/
 			if (gf_list_find(ds->pending_segment_states, sctx)>=0) break;
@@ -4463,7 +4486,26 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			time /= ds->mpd_timescale;
 			dur = (Double) sctx->dur;
 			dur/= ds->timescale;
-			if (time + dur >= min_valid_mpd_time) break;
+			if (time + dur >= min_valid_mpd_time) {
+				if (ctx->keep_segs) {
+					ds->rep->tsb_first_entry = state_idx;
+
+					if (ds->rep->segment_template) ds->rep->segment_template->tsb_first_entry = state_idx;
+					if (ds->rep->segment_list) ds->rep->segment_list->tsb_first_entry = state_idx;
+
+					if (ds->owns_set) {
+						if (ds->set->segment_template) ds->set->segment_template->tsb_first_entry = state_idx;
+						if (ds->set->segment_list) ds->set->segment_list->tsb_first_entry = state_idx;
+					}
+				}
+				break;
+			}
+			//we found our first segment
+
+			if (ctx->keep_segs) {
+				state_idx++;
+				continue;
+			}
 			if (sctx->filepath) {
 				GF_FilterEvent evt;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] removing segment %s\n", sctx->filename ? sctx->filename : sctx->filepath));
@@ -7221,17 +7263,20 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 			//update entry
 			s->duration -= (u32) prev_patch_dur;
 			//merge with old one if possible
-			GF_MPD_SegmentTimelineEntry *prev = (nb_ent>1) ? gf_list_get(tl->entries, nb_ent-2) : NULL;
-			if (prev && (prev->duration==s->duration) && (prev->start_time + (prev->repeat_count+1) * prev->duration == s->start_time)) {
-				prev->repeat_count++;
-				gf_list_pop_back(tl->entries);
-				gf_free(s);
-				s=prev;
+			if (!ctx->keep_segs) {
+				GF_MPD_SegmentTimelineEntry *prev = (nb_ent>1) ? gf_list_get(tl->entries, nb_ent-2) : NULL;
+				if (prev && (prev->duration==s->duration) && (prev->start_time + (prev->repeat_count+1) * prev->duration == s->start_time)) {
+					prev->repeat_count++;
+					gf_list_pop_back(tl->entries);
+					gf_free(s);
+					s=prev;
+				}
 			}
 		}
 	}
 
-	if (s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)) {
+	//add to last entry ONLY if not keeping segments
+	if (!ctx->keep_segs && s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)) {
 		s->repeat_count++;
 		return;
 	}
@@ -7382,13 +7427,18 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		if (ctx->do_m3u8) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 			if (gf_timestamp_less(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, segdur, base_ds->timescale)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Changing HLS target duration from %u to %u, either increase the segment duration or re-encode the content\n",
-						(u32) gf_ceil( ((Double) base_ds->rep->hls_max_seg_dur.num) / base_ds->rep->hls_max_seg_dur.den),
-						(u32) gf_ceil( ((Double) segdur) / base_ds->timescale)
-				));
+				s64 diff = gf_timestamp_rescale(base_ds->rep->hls_max_seg_dur.num, base_ds->rep->hls_max_seg_dur.den, 1000);
+				diff -= gf_timestamp_rescale(segdur, base_ds->timescale, 1000);
+				//allow 50ms variation
+				if (diff < -50) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Changing HLS target duration from %u to %u, either increase the segment duration or re-encode the content\n",
+							(u32) gf_ceil( ((Double) base_ds->rep->hls_max_seg_dur.num) / base_ds->rep->hls_max_seg_dur.den),
+							(u32) gf_ceil( ((Double) segdur) / base_ds->timescale)
+					));
 
-				base_ds->rep->hls_max_seg_dur.num = (s32) segdur;
-				base_ds->rep->hls_max_seg_dur.den = base_ds->timescale;
+					base_ds->rep->hls_max_seg_dur.num = (s32) segdur;
+					base_ds->rep->hls_max_seg_dur.den = base_ds->timescale;
+				}
 			}
 		}
 
@@ -10442,6 +10492,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(base), "set base URLs of MPD", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(refresh), "refresh rate for dynamic manifests, in seconds (a negative value sets the MPD duration, value 0 uses dash duration)", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsb), "time-shift buffer depth in seconds (a negative value means infinity)", GF_PROP_DOUBLE, "30", NULL, 0},
+	{ OFFS(keep_segs), "do not delete segments no longer in time-shift buffer", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(subdur), "maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ast), "set start date (as xs:date, e.g. YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(state), "path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},

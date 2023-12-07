@@ -5694,6 +5694,8 @@ refresh (dbl, default: 0):     refresh rate for dynamic manifests, in seconds (a
 .br
 tsb (dbl, default: 30):        time-shift buffer depth in seconds (a negative value means infinity)
 .br
+keep_segs (bool, default: false): do not delete segments no longer in time-shift buffer
+.br
 subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration
 .br
 ast (str):                     set start date (as xs:date, e.g. YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!

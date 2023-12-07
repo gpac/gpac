@@ -2775,31 +2775,57 @@ static void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, s32 inde
 	gf_mpd_lf(out, indent);
 }
 
-static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl, s32 indent)
+static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl, s32 indent, u32 tsb_first_entry)
 {
-	u32 i;
+	u32 i, count, rcount;
 	u64 start_time=0;
-	GF_MPD_SegmentTimelineEntry *se;
+	GF_MPD_SegmentTimelineEntry *se, *prev;
 
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<SegmentTimeline>");
 	gf_mpd_lf(out, indent);
 
-	i = 0;
-	while ( (se = gf_list_enum(tl->entries, &i))) {
-		gf_mpd_nl(out, indent+1);
-		gf_fprintf(out, "<S");
-		if (!start_time || (se->start_time != start_time)) {
-			gf_fprintf(out, " t=\""LLD"\"", se->start_time);
-			start_time = se->start_time;
+	prev = gf_list_get(tl->entries, tsb_first_entry);
+	count = gf_list_count(tl->entries);
+	if (!prev) goto done_tl;
+
+	gf_mpd_nl(out, indent+1);
+	gf_fprintf(out, "<S");
+	gf_fprintf(out, " t=\""LLD"\"", prev->start_time);
+	if (prev->duration) gf_fprintf(out, " d=\"%d\"", prev->duration);
+	rcount = prev->repeat_count;
+	start_time = prev->start_time + (prev->repeat_count+1) * prev->duration;
+
+	for (i = tsb_first_entry+1; i<count && prev; i++) {
+		se = gf_list_get(tl->entries, i);
+		//close entry
+		if ((se->start_time != start_time) || (prev->duration!=se->duration)) {
+			if (rcount) gf_fprintf(out, " r=\"%d\"", rcount);
+			gf_fprintf(out, "/>");
+			gf_mpd_lf(out, indent);
+			//start new one
+			gf_mpd_nl(out, indent+1);
+			gf_fprintf(out, "<S");
+			if (se->start_time != start_time) {
+				gf_fprintf(out, " t=\""LLD"\"", se->start_time);
+				start_time = se->start_time;
+			}
+			if (se->duration) gf_fprintf(out, " d=\"%d\"", se->duration);
+			rcount=0;
+		} else {
+			rcount++;
 		}
 		start_time += (se->repeat_count+1) * se->duration;
-
-		if (se->duration) gf_fprintf(out, " d=\"%d\"", se->duration);
-		if (se->repeat_count) gf_fprintf(out, " r=\"%d\"", se->repeat_count);
-		gf_fprintf(out, "/>");
-		gf_mpd_lf(out, indent);
+		rcount += se->repeat_count;
+		prev = se;
 	}
+	//close last entry
+	if (rcount) gf_fprintf(out, " r=\"%d\"", rcount);
+	gf_fprintf(out, "/>");
+	gf_mpd_lf(out, indent);
+
+
+done_tl:
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "</SegmentTimeline>");
 	gf_mpd_lf(out, indent);
@@ -2834,7 +2860,7 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 	if (ms->initialization_segment) gf_mpd_print_url(out, ms->initialization_segment, "Initialization", indent+1);
 	if (ms->representation_index) gf_mpd_print_url(out, ms->representation_index, "RepresentationIndex", indent+1);
 
-	if (ms->segment_timeline) gf_mpd_print_segment_timeline(out, ms->segment_timeline, indent+1);
+	if (ms->segment_timeline) gf_mpd_print_segment_timeline(out, ms->segment_timeline, indent+1, ms->tsb_first_entry);
 	if (ms->bitstream_switching_url) gf_mpd_print_url(out, ms->bitstream_switching_url, "BitstreamSwitching", indent+1);
 	return 0;
 }
@@ -2864,7 +2890,7 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, s32 inde
 	if (s->segment_URLs) {
 		u32 i;
 		GF_MPD_SegmentURL *url;
-		i = 0;
+		i = s->tsb_first_entry;
 		while ( (url = gf_list_enum(s->segment_URLs, &i))) {
 			gf_mpd_nl(out, indent+1);
 			if (s->index_mode) {
@@ -3699,7 +3725,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	}
 
 	count = gf_list_count(rep->state_seg_list);
-	sctx = gf_list_get(rep->state_seg_list, 0);
+	sctx = gf_list_get(rep->state_seg_list, rep->tsb_first_entry);
 
 	gf_fprintf(out,"#EXTM3U\n");
 	gf_fprintf(out,"#EXT-X-TARGETDURATION:%d\n", (u32) gf_ceil( ((Double) rep->hls_max_seg_dur.num) / rep->hls_max_seg_dur.den) );
@@ -3747,7 +3773,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			}
 		}
 
-		for (i=0; i<count; i++) {
+		for (i=rep->tsb_first_entry; i<count; i++) {
 			Double dur;
 			sctx = gf_list_get(rep->state_seg_list, i);
 			assert(sctx->filename);
@@ -3946,7 +3972,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			}
 		}
 
-		for (i=0; i<count; i++) {
+		for (i=rep->tsb_first_entry; i<count; i++) {
 			Double dur;
 			sctx = gf_list_get(rep->state_seg_list, i);
 			assert(!sctx->filename);
@@ -4017,7 +4043,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 				return GF_BAD_PARAM;
 			}
 
-			sctx = gf_list_get(rep->state_seg_list, 0);
+			sctx = gf_list_get(rep->state_seg_list, rep->tsb_first_entry);
 			if (sctx && !sctx->filename) use_range = GF_TRUE;
 			if (gf_list_count(rep->content_protection))  { /*use_crypt = GF_TRUE; */ }
 
@@ -4078,7 +4104,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
-			u32 k=0;
+			u32 k=rep->tsb_first_entry;
 			//figure out max part duration for this version of the playlist
 			Double max_part_dur=0;
 			GF_DASH_SegmentContext *sctx;
