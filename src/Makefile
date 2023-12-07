@@ -404,7 +404,7 @@ DEPS := $(SRCS:%.c=.deps/%.dep)
 -include .depend
 
 .depend: $(DEPS)
-	cat $^ > "$@"
+	@cat $^ > "$@"
 
 .deps/%.dep: %.c
 	@mkdir -p $(dir $@)
