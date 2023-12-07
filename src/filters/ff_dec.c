@@ -253,6 +253,8 @@ restart:
 
 	FF_INIT_PCK(ctx, pkt)
 
+	//reset as we may get re-called from goto
+	pck_src=NULL;
 	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
 
