@@ -1243,7 +1243,7 @@ u32 gf_isom_has_track_reference(GF_ISOFile *isom_file, u32 trackNumber, u32 refe
 \param trackNumber the target track
 \param referenceType the four character code of the reference to query
 \return the track number of the first track  referencing the target track, 0 otherwise*/
-u32 gf_isom_is_track_referenced(GF_ISOFile *movie, u32 trackNumber, u32 referenceType);
+u32 gf_isom_is_track_referenced(GF_ISOFile *isom_file, u32 trackNumber, u32 referenceType);
 
 /*! fetches a sample for a given movie time, handling possible track edit lists.
 
@@ -5479,7 +5479,7 @@ GF_Err gf_isom_text_set_wrap(GF_TextSample *tx_samp, u8 wrap_flags);
 
 /*! sets force for the sample
 \param tx_samp the target text sample
-\param is_force for ce sample if TRUE
+\param is_forced for ce sample if TRUE
 \return error if any
 */
 GF_Err gf_isom_text_set_forced(GF_TextSample *tx_samp, Bool is_forced);
@@ -6165,7 +6165,7 @@ u32 gf_isom_meta_get_item_ref_id(GF_ISOFile *isom_file, Bool root_meta, u32 trac
 \param isom_file the target ISO file
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
 \param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
-\param from_id item ID to check
+\param to_id item ID to check
 \param type reference type to check
 \return number of referenced items*/
 u32 gf_isom_meta_item_has_ref(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 to_id, u32 type);

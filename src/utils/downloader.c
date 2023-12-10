@@ -1989,7 +1989,7 @@ void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  co
 	}
 }
 
-void gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value)
+void gf_dm_sess_set_header_ex(GF_DownloadSession *sess, const char *name, const char *value, Bool allow_overwrite)
 {
 	GF_HTTPHeader *hdr;
 	if (!sess) return;
@@ -2007,6 +2007,8 @@ void gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const cha
 	for (i=0; i<count; i++) {
 		hdr = gf_list_get(sess->headers, i);
 		if (stricmp(hdr->name, name)) continue;
+		if (!allow_overwrite) return;
+
 		gf_free(hdr->value);
 		if (value) {
 			hdr->value = gf_strdup(value);
@@ -2026,7 +2028,12 @@ void gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const cha
 	}
 }
 
-GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, Bool no_body)
+void gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value)
+{
+	gf_dm_sess_set_header_ex(sess, name, value, GF_TRUE);
+}
+
+GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body)
 {
 	u32 i, count;
 	GF_Err e;
@@ -2060,7 +2067,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 		if (response_body) {
 			no_body = GF_FALSE;
 			sess->h2_send_data = (u8 *) response_body;
-			sess->h2_send_data_len = (u32) strlen(response_body);
+			sess->h2_send_data_len = body_len;
 			sess->h2_is_eos = 1;
 		} else if (!no_body) {
 			switch (reply_code) {
@@ -2146,14 +2153,14 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] send reply for %s:\n%s\n", sess->orig_url, rsp_buf));
 
-	if (response_body) {
-		gf_dynstrcat(&rsp_buf, response_body, NULL);
-		if (!rsp_buf) return GF_OUT_OF_MEM;
-	}
-
 	count = (u32) strlen(rsp_buf);
+	if (response_body) {
+		rsp_buf = gf_realloc(rsp_buf, count+body_len);
+		if (!rsp_buf) return GF_OUT_OF_MEM;
+		memcpy(rsp_buf+count, response_body, body_len);
+		count+=body_len;
+	}
 	e = dm_sess_write(sess, rsp_buf, count);
-
 	gf_free(rsp_buf);
 	return e;
 }
@@ -5895,6 +5902,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		if (e) return e;
 		sess->connection_close = GF_FALSE;
 		sess->h2_upgrade_state = 2;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP] Upgraded connection to HTTP/2\n"));
 		return GF_OK;
 	}
 //	if (sess->h2_upgrade_state<2)

@@ -3719,7 +3719,7 @@ static s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_
 
 GF_EXPORT
 GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,
-		void (*period_reset)(void *rate_adaptation, u32 type),
+		void (*period_reset)(void *udta, u32 type),
 		void (*new_group)(void *udta, u32 group_idx, void *dash),
 		s32 (*rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_low_complex, void *stats),
 		s32 (*download_monitor)(void *udta, u32 group_idx, void *stats)

@@ -24,6 +24,7 @@
  
 ## Filters
 - Async HTTP request in all filters
+- JS/Python/NodeJS bindings for httpout server
 - Fixed cors and mime types in httpout for wasm and sharedArrayuffer support
 - Allow compilation without threads
 - Allow compilation without network
