@@ -171,7 +171,7 @@ However it is currently not capable of running asynchronous callbacks into Node.
 The consequences are:
 - any custom JS filter will run on the main thread (EventLoop or worker thread)
 - any packet dispatched by a custom filter and requiring a JS callback upon packet destruction (shared data dispatch) will force filters consuming these packets to run on the main thread as well.
-- any filter assigned with a JS binding (only `dashin` for now) will be scheduled on the main thread
+- any filter assigned with a JS binding will be scheduled on the main thread
 
 For better multithreaded usage, it is therefore not recommended to use packets with shared JS data.
 
@@ -434,9 +434,10 @@ FilterStatistics get_statistics();
 /*! enforces sourceID to be present for output pids of this filter - see \ref gf_filter_require_source_id*/
 void require_source_id();
 
-/*!  Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
+/*!  Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer and httpout  for the current time
 
-For DASH, the object must derive implement the methods of the \ref _DASHCustomAlgorithm interface
+For DASH, the object must implement the methods of the \ref _DASHCustomAlgorithm interface
+For DASH, the object must implement the methods of the \ref _HTTPRequestHandler interface
 
 \param interf interface object to bind
 */
@@ -1143,7 +1144,7 @@ interface _FilterEvent
 \brief DASH and HLS user-defined rate adaptation algorithms
 
 
-The DASH demuxer can be provided with a custom JS algorithm, provided as an object implementing the the DASHAlgorithm interface.
+The DASH demuxer can be provided with a custom JS algorithm, provided as an object implementing the DASHAlgorithm interface.
 
 When running the session in multithreaded mode, the dash demuxer will always be scheduled on the main thread if a custom algorithm is bound.
 
@@ -1517,6 +1518,106 @@ boolean exists(DOMString URL);
 
 };
 
+/*! @} */
+
+
+
+/*!
+
+\defgroup nodehttp_grp HTTPRequestHandler interface
+\ingroup nodejs_grp
+\brief HTTP server user-defined request handler
+
+
+The httpout server can use a custom request handler, provided as an object implementing the HTTPRequestHandler interface.
+
+When running the session in multithreaded mode, the httpout filter  will always be scheduled on the main thread if a custom request handler is bound.
+
+@{
+
+*/
+
+/*! interface for HTTP custom request handler
+*/
+interface _HTTPRequestHandler
+{
+
+/*! Callback called upon a period reset.
+\param request the request to process
+*/
+void on_request(_HTTPRequest request);
+
+};
+
+
+/*! interface for HTTP request */
+interface _HTTPRequest
+{
+
+/*! send the response to the request*/
+attribute void send();
+
+/*! HTTP reply code to use. If 0, the request is handled by GPAC as usual. Otherwise, the request is handled by your script if the reply does not indicate an error*/
+attribute unsigned long reply;
+
+/*! HTTP method of the request */
+attribute readonly DOMString method;
+
+/*! HTTP URL of the request */
+attribute readonly DOMString url;
+
+/*! Authentication reply code - requests are pre-identified using GPAC credentials: a value of 401 indicates no identification, 200 indicates identification OK, 403 indicates failure */
+attribute readonly unsigned long auth_code;
+
+/*! HTTP headers of the request, array of _HTTPHeader objects*/
+attribute readonly Array headers_in;
+
+/*! HTTP headers to set on the response, array of _HTTPHeader objects (initialized as empty)*/
+attribute Array headers_out;
+
+/*! reply body. It is undefined by default
+ - if reply is 0, this can be set to a file path to serve. If not set, usual URL resolving of httpout is done
+ - if reply is not 0, this can be set to a string containing the body. To deliver a binary file or a large file, use the read function
+*/
+attribute DOMString body
+
+
+/*! callback function used to throttle the download, can be used even if the request is handled by gpac. It is undefined by default
+\param done amount of bytes already sent in request
+\param total total amount of bytes in request
+\return a delay for next send in milliseconds
+*/
+attribute unsigned long throttle(unsigned long long done, unsigned long long total);
+
+/*! callback function used to get data (GET requests). It is undefined by default
+\param buffer array buffer to fill (shared array, do NOT keep)
+\return the number of bytes read, negative value means no data available yet, 0 means end of file
+*/
+attribute signed long read(ArrayBuffer buffer);
+
+/*! callback function used to receive data (PUT/POST requests). It is undefined by default
+\param buffer array buffer received. If null, end of stream is reached
+\return the number of bytes written (informative only)
+*/
+attribute unsigned long write(ArrayBuffer buffer);
+
+/*! callback function used to monitor end of session. It is undefined by default
+\param error GPAC error code for the session
+*/
+attribute void close(unsigned long error);
+
+};
+
+/*! interface for HTTP header */
+interface _HTTPHeader
+{
+
+/*! header name */
+attribute readonly DOMString name;
+
+/*! header value */
+attribute readonly DOMString value;
+};
 
 /*! @} */
 

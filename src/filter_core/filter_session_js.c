@@ -1474,6 +1474,14 @@ static JSValue jsff_bind(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "DASH client disabled in build");
 #endif
 	}
+	if (!strcmp(f->freg->name, "httpout")) {
+#ifndef GPAC_DISABLE_NETWORK
+		JSValue httpout_bind_js(GF_Filter *f, JSContext *jsctx, JSValueConst obj);
+		return httpout_bind_js(f, ctx, argv[0]);
+#else
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "HTTPOut disabled in build");
+#endif
+	}
 
 	return js_throw_err_msg(ctx, GF_BAD_PARAM, "filter class %s has no JS bind capabilities", f->freg->name);
 }

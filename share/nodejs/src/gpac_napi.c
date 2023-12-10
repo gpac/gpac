@@ -135,10 +135,14 @@ napi_type_tag filterpid_tag = {0x475041434e4f4445, 0x46696c7472506964};
 napi_type_tag filterpck_tag = {0x475041434e4f4445, 0x47465041434b4554};
 napi_type_tag filterevent_tag = {0x475041434e4f4445, 0x4746464556454e54};
 napi_type_tag dashbind_tag = {0x475041434e4f4445, 0x44415348494e4a53};
-napi_type_tag fileio_tag = {0x475041434e4f4445, 0x474646494c45494f};
+napi_type_tag fileio_tag = {0x475041434e4f4445,   0x474646494c45494f};
+napi_type_tag httpsess_tag = {0x475041434e4f4445, 0x474646494cf0df5c};
 
 napi_value dashin_bind(napi_env env, napi_callback_info info);
 void dashin_detach_binding(NAPI_Filter *napi_f);
+
+napi_value httpout_bind(napi_env env, napi_callback_info info);
+void httpout_detach_binding(NAPI_Filter *napi_f);
 
 
 void dummy_finalize(napi_env env, void* finalize_data, void* finalize_hint)
@@ -159,7 +163,7 @@ napi_value gpac_init(napi_env env, napi_callback_info info)
 		if (gpac->str_buf) gf_free(gpac->str_buf);
 		gpac->str_buf = NULL;
 		gpac->str_buf_alloc = 0;
-		gf_sys_close(mem_track, profile);
+		gf_sys_close();
 		gf_sys_init(mem_track, profile);
 		gpac->is_init = GF_TRUE;
 		if (profile) free(profile);
@@ -2004,7 +2008,7 @@ napi_value filter_insert(napi_env env, napi_callback_info info)
 			}
 		}
 	}
-	NARG_STR(link_ext, offset, NULL);
+	NARG_STR(link_ext, (u32)offset, NULL);
 
 	e = gf_filter_set_source(f, ins_f, link_ext);
 	if (e)
@@ -2038,7 +2042,9 @@ napi_value filter_bind(napi_env env, napi_callback_info info)
 	const char *fname = gf_filter_get_name(f);
 	if (fname && !strcmp(fname, "dashin")) {
 		return dashin_bind(env, info);
-
+	}
+	if (fname && !strcmp(fname, "httpout")) {
+		return httpout_bind(env, info);
 	}
 	napi_throw_error(env, NULL, "Failed to bind to filter, not dashin filter");
 	return NULL;
@@ -3909,6 +3915,9 @@ void fs_on_filter_creation(void *udta, GF_Filter *filter, Bool is_destroy)
 			if (fname && !strcmp(fname, "dashin"))
 				dashin_detach_binding(napi_f);
 
+			if (fname && !strcmp(fname, "httpour"))
+				httpout_detach_binding(napi_f);
+
 			napi_reference_unref(napi_f->env, napi_f->binding_ref, &rcount);
 			napi_delete_reference(napi_f->env, napi_f->binding_ref);
 		}
@@ -5594,6 +5603,374 @@ void dashin_detach_binding(NAPI_Filter *napi_f)
 	NAPI_Dash *napi_dash = (NAPI_Dash *) napi_f->binding_stack;
 	if (!napi_dash) return;
 	gf_free(napi_dash);
+}
+
+typedef struct
+{
+	napi_ref ref;
+	napi_env env;
+} NAPI_HTTPOut;
+
+void httpoutbind_finalize(napi_env env, void* finalize_data, void* finalize_hint)
+{
+}
+
+typedef struct
+{
+	void *httpout_session;
+	napi_env env;
+	napi_ref req_ref;
+} NAPI_HTTPSession;
+
+void napi_http_del(napi_env env, void *finalize_data, void* finalize_hint)
+{
+	NAPI_HTTPSession *napi_http = (NAPI_HTTPSession *)finalize_data;
+	if (napi_http) gf_free(napi_http);
+}
+
+
+static u32 httpout_throttle_cbk(void *udta, u64 done, u64 total)
+{
+	napi_value req;
+	napi_value fun_val, args[2], res;
+	u32 retval=0;
+	NAPI_HTTPSession *napi_sess = (NAPI_HTTPSession *)udta;
+
+	//call
+	napi_get_reference_value(napi_sess->env, napi_sess->req_ref, &req);
+	napi_get_named_property(napi_sess->env, req, "throttle", &fun_val);
+	napi_create_int64(napi_sess->env, done, &args[0]);
+	napi_create_int64(napi_sess->env, total, &args[1]);
+	napi_call_function(napi_sess->env, req, fun_val, 2, args, &res);
+	napi_get_value_uint32(napi_sess->env, res, &retval);
+
+	return retval;
+}
+static s32 httpout_read_cbk(void *udta, u8 *buffer, u32 buffer_size)
+{
+	napi_value req;
+	napi_value fun_val, arg, ab, res;
+	u32 nb_bytes=0;
+	napi_status status;
+	NAPI_HTTPSession *napi_sess = (NAPI_HTTPSession *)udta;
+
+
+	//call
+	napi_get_reference_value(napi_sess->env, napi_sess->req_ref, &req);
+	napi_get_named_property(napi_sess->env, req, "read", &fun_val);
+
+	//create arg
+#if NAPI_VERSION >= 7
+	status = napi_create_external_arraybuffer(napi_sess->env, buffer, buffer_size, NULL, NULL, &ab);
+#else
+	void *buf_data=NULL;
+	status = napi_create_arraybuffer(napi_sess->env, buffer_size, &buf_data, &ab);
+#endif
+
+	if (status==napi_ok)
+		status = napi_create_typedarray(napi_sess->env, napi_uint8_array, buffer_size, ab, 0, &arg);
+
+	//call
+	if (status==napi_ok)
+		status = napi_call_function(napi_sess->env, req, fun_val, 1, &arg, &res);
+
+	if (status==napi_ok)
+		status = napi_get_value_uint32(napi_sess->env, res, &nb_bytes);
+
+#if NAPI_VERSION >= 7
+	//detach array buffer
+	napi_detach_arraybuffer(napi_sess->env, ab);
+#else
+	if ((status==napi_ok) && buf_data && nb_bytes)
+		memcpy(buffer, buf_data, nb_bytes);
+#endif
+	return nb_bytes;
+}
+static u32 httpout_write_cbk(void *udta, const u8 *buffer, u32 buffer_size)
+{
+	napi_value req;
+	napi_value fun_val, arg, ab, res;
+	u32 nb_bytes=0;
+	napi_status status;
+	NAPI_HTTPSession *napi_sess = (NAPI_HTTPSession *)udta;
+
+	//call
+	napi_get_reference_value(napi_sess->env, napi_sess->req_ref, &req);
+	napi_get_named_property(napi_sess->env, req, "write", &fun_val);
+
+	//create arg
+#if NAPI_VERSION >= 7
+	status = napi_create_external_arraybuffer(napi_sess->env, (void *)buffer, buffer_size, NULL, NULL, &ab);
+#else
+	void *buf_data=NULL;
+	status = napi_create_arraybuffer(napi_sess->env, buffer_size, &buf_data, &ab);
+	if (status == napi_ok) {
+		memcpy(buf_data, buffer, buffer_size);
+	}
+#endif
+
+	if (status==napi_ok)
+		status = napi_create_typedarray(napi_sess->env, napi_uint8_array, buffer_size, ab, 0, &arg);
+
+	//call
+	if (status==napi_ok)
+		status = napi_call_function(napi_sess->env, req, fun_val, 1, &arg, &res);
+
+	if (status==napi_ok)
+		status = napi_get_value_uint32(napi_sess->env, res, &nb_bytes);
+
+#if NAPI_VERSION >= 7
+	//detach arraybuffer
+	napi_detach_arraybuffer(napi_sess->env, ab);
+#endif
+
+	if (status!=napi_ok) return 0;
+	return nb_bytes;
+}
+static void httpout_on_close_cbk(void *udta, GF_Err reason)
+{
+	napi_value req;
+	NAPI_HTTPSession *napi_sess = (NAPI_HTTPSession *)udta;
+
+	//call
+	napi_get_reference_value(napi_sess->env, napi_sess->req_ref, &req);
+
+	Bool has_p = GF_FALSE;
+	napi_has_named_property(napi_sess->env, req, "close", (bool *) &has_p);
+	if (has_p) {
+		napi_value fun_val, arg, res;
+		napi_get_named_property(napi_sess->env, req, "close", &fun_val);
+		napi_create_uint32(napi_sess->env, reason, &arg);
+		napi_call_function(napi_sess->env, req, fun_val, 1, &arg, &res);
+	}
+	napi_delete_reference(napi_sess->env, napi_sess->req_ref);
+}
+
+GF_Err gf_httpout_send_request(void *sess, void *udta,
+	u32 reply,
+	char *body_or_file,
+	u32 nb_headers,
+	const char **headers,
+	u32 (*throttle)(void *udta, u64 done, u64 total),
+	s32 (*read)(void *udta, u8 *buffer, u32 buffer_size),
+	u32 (*write)(void *udta, const u8 *buffer, u32 buffer_size),
+	void (*close)(void *udta, GF_Err reason)
+);
+
+napi_value httpout_send_cbk(napi_env env, napi_callback_info info)
+{
+	napi_value val;
+	u32 i, reply=0;
+	size_t size;
+	char *body_or_file=NULL;
+	u32 nb_headers=0;
+	char **headers=NULL;
+	Bool use_throttle=GF_FALSE;
+	Bool use_read=GF_FALSE;
+	Bool use_write=GF_FALSE;
+
+	NARG_THIS
+
+	NAPI_HTTPSession *napi_hsess;
+	bool _tag;
+	NAPI_CALL( napi_check_object_type_tag(env, this_val, &httpsess_tag, &_tag) );
+	if (!_tag) {
+		napi_throw_error(env, NULL, "Not a HTTP session object");
+		return NULL;
+	}
+	NAPI_CALL( napi_unwrap(env, this_val, (void**) &napi_hsess) );
+
+	napi_get_named_property(env, this_val, "reply", &val);
+	napi_get_value_uint32(env, val, &reply);
+
+	Bool has_p = GF_FALSE;
+	napi_has_named_property(env, this_val, "body", (bool *) &has_p);
+	if (has_p) {
+		napi_get_named_property(env, this_val, "body", &val);
+		napi_get_value_string_utf8(env, val, NULL, 0, &size);
+		body_or_file = gf_malloc(sizeof(char) * (size+1) );
+		napi_get_value_string_utf8(env, val, body_or_file, size+1, &size);
+		body_or_file[size]=0;
+	}
+
+	napi_has_named_property(env, this_val, "headers_out", (bool *) &has_p);
+	if (has_p) {
+		napi_value hdrs;
+		u32 nb_items;
+		napi_get_named_property(env, this_val, "headers_out", &hdrs);
+		napi_get_array_length(env, hdrs, &nb_items);
+		for (i=0; i<nb_items; i++) {
+			napi_value h;
+			napi_get_element(env, hdrs, i, &h);
+			napi_has_named_property(env, h, "name", (bool *) &has_p);
+			if (!has_p) continue;
+			napi_has_named_property(env, h, "value", (bool *) &has_p);
+			if (!has_p) continue;
+
+			headers = gf_realloc(headers, sizeof(char *) * (nb_headers+2));
+
+			napi_get_named_property(env, h, "name", &val);
+			napi_get_value_string_utf8(env, val, NULL, 0, &size);
+			headers[nb_headers] = gf_malloc(sizeof(char) * (size+1) );
+			napi_get_value_string_utf8(env, val, headers[nb_headers], size+1, &size);
+			headers[nb_headers][size]=0;
+
+			napi_get_named_property(env, h, "value", &val);
+			napi_get_value_string_utf8(env, val, NULL, 0, &size);
+			headers[nb_headers+1] = gf_malloc(sizeof(char) * (size+1) );
+			napi_get_value_string_utf8(env, val, headers[nb_headers+1], size+1, &size);
+			headers[nb_headers+1][size]=0;
+			nb_headers += 2;
+		}
+	}
+
+	napi_has_named_property(env, this_val, "throttle", (bool *) &has_p);
+	if (has_p) use_throttle = GF_TRUE;
+	napi_has_named_property(env, this_val, "read", (bool *) &has_p);
+	if (has_p) use_read = GF_TRUE;
+	napi_has_named_property(env, this_val, "write", (bool *) &has_p);
+	if (has_p) use_write = GF_TRUE;
+
+	gf_httpout_send_request(napi_hsess->httpout_session, napi_hsess, reply, body_or_file, nb_headers, (const char**) headers,
+		use_throttle ? httpout_throttle_cbk : NULL,
+		use_read ? httpout_read_cbk : NULL,
+		use_write ? httpout_write_cbk : NULL,
+		httpout_on_close_cbk);
+
+	if (body_or_file) gf_free(body_or_file);
+	if (headers) {
+		for (i=0; i<nb_headers; i++) {
+			gf_free(headers[i]);
+		}
+		gf_free(headers);
+	}
+	return NULL;
+}
+
+s32 httpout_on_request(void *udta, void *session, const char *method, const char *url, u32 auth_code, u32 nb_hdrs, const char **hdrs)
+{
+	napi_status status;
+	napi_value req_obj;
+	u32 i;
+	napi_value obj, fun_val, res;
+	NAPI_HTTPOut *napi_http = (NAPI_HTTPOut *)udta;
+	NAPI_HTTPSession *napi_sess;
+
+	//create request object
+	GF_SAFEALLOC(napi_sess, NAPI_HTTPSession);
+	if (!napi_sess) return 1;
+	napi_sess->httpout_session = session;
+	napi_sess->env = napi_http->env;
+
+	napi_create_object(napi_http->env, &req_obj);
+	napi_create_reference(napi_http->env, req_obj, 1, &napi_sess->req_ref);
+	napi_type_tag_object(napi_http->env, req_obj, &httpsess_tag);
+	napi_wrap(napi_http->env, req_obj, napi_sess, napi_http_del, NULL, NULL);
+
+	//set properties
+	napi_value val;
+	status = napi_create_string_utf8(napi_http->env, method, NAPI_AUTO_LENGTH, &val);
+	if (status==napi_ok) status = napi_set_named_property(napi_http->env, req_obj, "method", val);
+	if (status!=napi_ok) return 1;
+
+	status = napi_create_string_utf8(napi_http->env, url, NAPI_AUTO_LENGTH, &val);
+	if (status==napi_ok) status = napi_set_named_property(napi_http->env, req_obj, "url", val);
+	if (status!=napi_ok) return 1;
+
+	status = napi_create_uint32(napi_http->env, auth_code, &val);
+	if (status==napi_ok) status = napi_set_named_property(napi_http->env, req_obj, "auth_code", val);
+	if (status!=napi_ok) return 1;
+
+	status = napi_create_uint32(napi_http->env, 0, &val);
+	if (status==napi_ok) status = napi_set_named_property(napi_http->env, req_obj, "reply", val);
+	if (status!=napi_ok) return 1;
+
+	status = napi_create_function(napi_http->env, "send", NAPI_AUTO_LENGTH, httpout_send_cbk, napi_http, &val);
+	if (status==napi_ok) status = napi_set_named_property(napi_http->env, req_obj, "send", val);
+	if (status!=napi_ok) return 1;
+
+	napi_value in_headers;
+	napi_create_array(napi_http->env, &in_headers);
+	for (i=0; i<nb_hdrs;i+=2) {
+		napi_value h;
+		napi_create_object(napi_http->env, &h);
+		napi_create_string_utf8(napi_http->env, hdrs[i], NAPI_AUTO_LENGTH, &val);
+		napi_set_named_property(napi_http->env, h, "name", val);
+		napi_create_string_utf8(napi_http->env, hdrs[i+1], NAPI_AUTO_LENGTH, &val);
+		napi_set_named_property(napi_http->env, h, "value", val);
+		napi_set_element(napi_http->env, in_headers, i/2, h);
+	}
+	napi_set_named_property(napi_http->env, req_obj, "headers_in", in_headers);
+
+	napi_value out_headers;
+	napi_create_array(napi_http->env, &out_headers);
+	napi_set_named_property(napi_http->env, req_obj, "headers_out", out_headers);
+
+	//call
+	napi_get_reference_value(napi_http->env, napi_http->ref, &obj);
+	status = napi_get_named_property(napi_http->env, obj, "on_request", &fun_val);
+	if (status!=napi_ok) return 1;
+	napi_call_function(napi_http->env, obj, fun_val, 1, &req_obj, &res);
+	return 0;
+}
+
+GF_Err gf_filter_bind_httpout_callbacks(GF_Filter *filter, void *udta,
+	s32 (*on_request)(void *udta, void *session, const char *method, const char *url, u32 auth_code, u32 nb_hdrs, const char **hdrs)
+);
+
+napi_value httpout_bind(napi_env env, napi_callback_info info)
+{
+	GF_Err e;
+	NAPI_HTTPOut *napi_http;
+
+	NARG_ARGS_THIS(1,1)
+	FILTER
+
+	NAPI_Filter *napi_f = (NAPI_Filter *) gf_filter_get_rt_udta(f);
+
+	Bool has_fun = GF_FALSE;
+	napi_has_named_property(napi_f->env, argv[0], "on_request", (bool *) &has_fun);
+	if (!has_fun) {
+		napi_throw_error(env, NULL, "Invalid httpout binding object, missing on_request callback");
+		return NULL;
+	}
+
+	GF_SAFEALLOC(napi_http, NAPI_HTTPOut);
+	if (!napi_http) {
+		napi_throw_error(env, NULL, "Failed to allocate httpout binding");
+		return NULL;
+	}
+
+	napi_create_reference(env, argv[0], 1, &napi_f->binding_ref);
+	napi_http->ref = napi_f->binding_ref;
+	napi_http->env = env;
+	napi_f->binding_stack = napi_http;
+
+	napi_type_tag_object(env, argv[0], &dashbind_tag);
+	NAPI_CALL( napi_wrap(env, argv[0], napi_http, httpoutbind_finalize, NULL, NULL) );
+
+	e = gf_filter_bind_httpout_callbacks(f, napi_http, httpout_on_request);
+	if (e) {
+		u32 rcount;
+		napi_reference_unref(env, napi_f->binding_ref, &rcount);
+		napi_delete_reference(env, napi_f->binding_ref);
+		napi_f->binding_ref = NULL;
+		napi_f->binding_stack = NULL;
+		gf_free(napi_http);
+
+		napi_throw_error(env, gf_error_to_string(e), "Failed to bind httpout callbacks");
+		return NULL;
+	}
+	//tag httpout filter to run on main thread only
+	gf_filter_force_main_thread(napi_f->f, GF_TRUE);
+	return NULL;
+}
+
+void httpout_detach_binding(NAPI_Filter *napi_f)
+{
+	NAPI_HTTPOut *napi_http = (NAPI_HTTPOut *) napi_f->binding_stack;
+	if (!napi_http) return;
+	gf_free(napi_http);
 }
 
 typedef struct _napi_fio

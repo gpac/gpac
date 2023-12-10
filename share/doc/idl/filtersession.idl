@@ -357,7 +357,7 @@ void remove();
 */
 void insert(DOMString filter_to_add, optional DOMString link_args=null);
 
-/*! binds a JSObject with underlying filter javascript extensions, if any. Currently only dashin filter has such an extension (see \ref JSDASHClient).
+/*! binds a JSObject with underlying filter javascript extensions, if any. Currently only dashin  (see \ref JSDASHClient) and httpout  (see \ref JSHTTPServer) filters have such an extension.
 This will throw an exception if failure or no JS binding available
 \param obj the JS object to use as interface for the underlying filter script
 */
