@@ -335,7 +335,6 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ffmx),
 	REG_IT(ffavf),
 	REG_IT(ffbsf),
-	REG_IT(ffbsf),
 
 	REG_IT(jsf),
 	REG_IT(routeout),
