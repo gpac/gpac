@@ -1458,7 +1458,8 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	}
 	if (!tspid) tspid = gf_list_get(ctx->pids, 0);
 
-	if (ctx->nb_sidx_entries) {
+	//in MP4Box HLS mode, sub_sidx can be 0 (single sidx per segment) but not produced (ctx->idx_file_name is empty)
+	if (ctx->nb_sidx_entries && ctx->idx_file_name[0]) {
 		GF_FilterPacket *idx_pck;
 		u8 *output;
 		Bool large_sidx = GF_FALSE;
