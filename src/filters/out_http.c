@@ -3429,12 +3429,12 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	}
 
 	if (!gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE)) {
-		ctx->next_wake_us=1;
+		ctx->next_wake_us = 1;
 		return;
 	}
 	//flush session if async, with no select
 	if (gf_dm_sess_flush_async(sess->http_sess, GF_TRUE)==GF_IP_NETWORK_EMPTY) {
-		ctx->next_wake_us=1;
+		ctx->next_wake_us = 1;
 		return;
 	}
 	//resource is not set
@@ -3483,7 +3483,7 @@ resend:
 		s32 nb_read = sess->cbk_read(sess->rt_udta, sess->buffer, sess->ctx->block_size);
 
 		if (nb_read<0) {
-			ctx->next_wake_us=1;
+			ctx->next_wake_us = 1;
 			sess->last_active_time = gf_sys_clock_high_res();
 			return;
 		}
@@ -4288,11 +4288,11 @@ next_pck:
 			continue;
 		}
 		if (gf_dm_sess_flush_async(in->upload, GF_TRUE) == GF_IP_NETWORK_EMPTY) {
-			ctx->next_wake_us=1;
+			ctx->next_wake_us = 1;
 			continue;
 		}
 		if (gf_dm_sess_flush_async(in->llhls_upload, GF_TRUE) == GF_IP_NETWORK_EMPTY) {
-			ctx->next_wake_us=1;
+			ctx->next_wake_us = 1;
 			continue;
 		}
 
@@ -4310,7 +4310,7 @@ next_pck:
 				if (in->flush_close || in->flush_close_llhls)
 					keep_alive = GF_TRUE;
 			}
-			ctx->next_wake_us=0;
+			ctx->next_wake_us = 100;
 			continue;
 		}
 		if (in->in_error) {
