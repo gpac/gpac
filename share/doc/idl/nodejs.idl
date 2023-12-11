@@ -295,11 +295,13 @@ boolean is_supported_source(DOMString url, DOMString parent=null);
 
 \note Custom filters are always created with the flag GF_FS_REG_MAIN_THREAD set, so that they always run in the main thread
 
+\note If the custom filter is a source, it must be initially scheduled using \ref reschedule
+
 \param name name for the filter
 \param flags filter flags
 \return new custom filter
 */
-CustomFilter new_filter(DOMString name="Custom", unsigend long flags=0);
+CustomFilter new_filter(DOMString name="Custom", unsigned long flags=0);
 
 };
 
@@ -839,7 +841,7 @@ void forward(_FilterPacket ipck);
 \param prop property value to set, or null to remove property
 \param custom_type type of property if user-defined property. If not set and user-defined, property is a string
 */
-void set_prop(DOMString pcode, PropertyValue prop, unsigend long custom_type);
+void set_prop(DOMString pcode, PropertyValue prop, unsigned long custom_type);
 
 /*! set a info property the current pid - see \ref gf_filter_pid_set_info and \ref gf_filter_pid_set_info_str
 \param pcode property type
