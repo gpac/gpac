@@ -3655,7 +3655,8 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 			else if (hls_group) continue;
 			//always match if no groups are specified
 
-			if (!grp_codecs || !strstr(grp_codecs, r_rep->codecs))
+			//some reps do not have codecs (raw formats, onlly mime is used)
+			if (r_rep->codecs && (!grp_codecs || !strstr(grp_codecs, r_rep->codecs)))
 				gf_dynstrcat(&grp_codecs, r_rep->codecs, ",");
 
 			if (r_rep->streamtype==GF_STREAM_AUDIO) {
