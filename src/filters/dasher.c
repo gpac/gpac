@@ -9659,12 +9659,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 		Bool update_manifest = GF_FALSE;
 		if (ctx->purge_segments) update_period = GF_TRUE;
 		if (ctx->mpd) {
-			//segment timeline used, always update manifest
-			if (ctx->stl)
-				update_manifest = GF_TRUE;
-			else if (ctx->dmode==GF_DASH_DYNAMIC) {
+			if (ctx->dmode>=GF_DASH_DYNAMIC) {
 				//publish time not set, we never send the manifest, do it
-				if (!ctx->mpd->publishTime) {
+				//segment timeline used, always update manifest
+				if (!ctx->mpd->publishTime || ctx->stl) {
 					update_manifest = GF_TRUE;
 				}
 				//whenever we have a new seg in HLS, push new manifest
