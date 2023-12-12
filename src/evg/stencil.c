@@ -324,8 +324,8 @@ GF_Color gf_evg_stencil_get_brush_color(GF_EVGStencil * st)
 //we map texture coords, pt1 is {0,0} pt2 is {1,0} pt3 is {0,1}
 //y flip is done by switching the points in evg_raster_render_path_3d
 #define PERSP_APPLY \
-	Float ix = ((Float) pbc2) / persp_denum;\
-	Float iy = ((Float) pbc3) / persp_denum;\
+	Fixed ix = FLT2FIX(pbc2 / persp_denum);\
+	Fixed iy = FLT2FIX(pbc3 / persp_denum);\
 	pbc2 += pbc2_inc;\
 	pbc3 += pbc3_inc;\
 	persp_denum += pers_denum_inc;
