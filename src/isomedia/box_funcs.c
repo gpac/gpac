@@ -196,7 +196,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 				compressed_size = (u32) (size - 8 - extra_bytes);
 				gf_bs_read_data(bs, compb, compressed_size);
-				e = gf_gz_decompress_payload_ex(compb, compressed_size, &uncomp_data, &osize, (do_uncompress==2) ? GF_TRUE : GF_FALSE);
+				e = gf_gz_decompress_payload_ex(compb, compressed_size, &uncomp_data, &osize, GF_FALSE);
 				if (e) {
 					gf_free(compb);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Failed to uncompress payload for box type %s (0x%08X)\n", gf_4cc_to_str(otype), otype));

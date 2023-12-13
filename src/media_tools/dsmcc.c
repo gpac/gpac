@@ -610,7 +610,7 @@ static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2
 				u32 uncomp_size;
 				u8* uncompressed_data;
 
-				gf_gz_decompress_payload(dsmcc_module->buffer,dsmcc_module->byte_sift, &uncompressed_data, &uncomp_size);
+				gf_gz_decompress_payload_ex(dsmcc_module->buffer,dsmcc_module->byte_sift, &uncompressed_data, &uncomp_size, GF_TRUE);
 				//dsmcc_process_biop_data(dsmcc_overlord,dsmcc_module,uncompressed_data,dsmcc_module->original_size);
 
 				if(dsmcc_module->original_size == uncomp_size) {

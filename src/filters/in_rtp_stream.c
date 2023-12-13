@@ -502,7 +502,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 				gf_free(rvc_data);
 				return NULL;
 #else
-				gf_gz_decompress_payload(rvc_data, rvc_size, &tmp->depacketizer->sl_map.rvc_config, &tmp->depacketizer->sl_map.rvc_config_size);
+				gf_gz_decompress_payload_ex(rvc_data, rvc_size, &tmp->depacketizer->sl_map.rvc_config, &tmp->depacketizer->sl_map.rvc_config_size, GF_TRUE);
 				gf_free(rvc_data);
 #endif
 			} else {
