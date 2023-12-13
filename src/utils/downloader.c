@@ -4758,7 +4758,7 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
 		return GF_EOS;
 	}
 	else if (sess->status == GF_NETIO_STATE_ERROR)
-		return GF_SERVICE_ERROR;
+		return sess->last_error ? sess->last_error : GF_SERVICE_ERROR;
 	return GF_OK;
 }
 
