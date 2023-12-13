@@ -929,16 +929,17 @@ static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTra
 
 GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_type, GF_BitStream *bs, u32 *box_csize);
 
-void flush_ref_samples(GF_ISOFile *movie, u64 *out_seg_size, Bool use_seg_marker)
+void flush_ref_samples(GF_ISOFile *movie, u64 *out_seg_size, Bool is_last_moof)
 {
 	u32 i=0;
 	if (movie->in_sidx_write) return;
+
 	u32 trun_count = gf_list_count(movie->moof->trun_list);
 	for (i=0; i<trun_count; i++) {
 		GF_TrackFragmentRunBox *trun = gf_list_get(movie->moof->trun_list, i);
 		u32 s_count = gf_list_count(trun->sample_refs);
 		while (s_count) {
-			if (!use_seg_marker && movie->on_last_block_start && (i+1==trun_count) && (s_count==1)) {
+			if (is_last_moof && movie->on_last_block_start && (i+1==trun_count) && (s_count==1)) {
 				movie->on_last_block_start(movie->on_block_out_usr_data);
 			}
 			GF_TrafSampleRef *sref = gf_list_pop_front(trun->sample_refs);
@@ -1266,7 +1267,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	if (e) return e;
 
 	if (trun_ref_size) {
-		flush_ref_samples(movie, NULL, GF_FALSE);
+		flush_ref_samples(movie, NULL, gf_list_count(movie->moof_list) ? GF_FALSE : GF_TRUE);
 	} else {
 		if (movie->on_last_block_start && !gf_list_count(movie->moof_list))
 			movie->on_last_block_start(movie->on_block_out_usr_data);
@@ -2331,7 +2332,7 @@ exit:
 			movie->on_block_out(movie->on_block_out_usr_data, movie->moof->moof_data, movie->moof->moof_data_len, NULL, 0);
 			if (out_seg_size) *out_seg_size += movie->moof->moof_data_len;
 
-			flush_ref_samples(movie, out_seg_size, segment_marker_4cc ? GF_TRUE : GF_FALSE);
+			flush_ref_samples(movie, NULL, (segment_marker_4cc || gf_list_count(defer_moofs)) ? GF_FALSE : GF_TRUE);
 
 			gf_free(movie->moof->moof_data);
 			gf_isom_box_del((GF_Box *) movie->moof);
