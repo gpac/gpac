@@ -2332,7 +2332,7 @@ exit:
 			movie->on_block_out(movie->on_block_out_usr_data, movie->moof->moof_data, movie->moof->moof_data_len, NULL, 0);
 			if (out_seg_size) *out_seg_size += movie->moof->moof_data_len;
 
-			flush_ref_samples(movie, NULL, (segment_marker_4cc || gf_list_count(defer_moofs)) ? GF_FALSE : GF_TRUE);
+			flush_ref_samples(movie, out_seg_size, (segment_marker_4cc || gf_list_count(defer_moofs)) ? GF_FALSE : GF_TRUE);
 
 			gf_free(movie->moof->moof_data);
 			gf_isom_box_del((GF_Box *) movie->moof);
