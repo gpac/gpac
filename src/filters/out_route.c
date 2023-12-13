@@ -1239,7 +1239,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
 	serv->stsid_bundle = (u8 *) payload_text;
 	serv->stsid_bundle_size = 1 + (u32) strlen(payload_text);
-	gf_gz_compress_payload(&serv->stsid_bundle, serv->stsid_bundle_size, &serv->stsid_bundle_size);
+	gf_gz_compress_payload_ex(&serv->stsid_bundle, serv->stsid_bundle_size, &serv->stsid_bundle_size, 0, GF_FALSE, NULL, GF_TRUE);
 
 	serv->stsid_bundle_toi = 0x80000000; //compressed
 	if (manifest_updated) serv->stsid_bundle_toi |= (1<<18);
@@ -1930,7 +1930,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		comp_size = 2*len;
 		payload = gf_malloc(sizeof(char)*(comp_size+4));
 		pay_start = payload + 4;
-		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_FALSE);
+		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
 		gf_free(payload_text);
 		payload_text = NULL;
 
@@ -2022,7 +2022,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 		comp_size = 2*len;
 		payload = gf_malloc(sizeof(char)*(comp_size+4));
 		pay_start = payload + 4;
-		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_FALSE);
+		gf_gz_compress_payload_ex((u8 **) &payload_text, len, &comp_size, 0, GF_FALSE, &pay_start, GF_TRUE);
 		gf_free(payload_text);
 		payload_text = NULL;
 

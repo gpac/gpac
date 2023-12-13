@@ -108,7 +108,7 @@ typedef struct
 #endif
 	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice, reopen, blockio;
-	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka;
+	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka, zmax;
 	s32 max_cache_segs;
 	GF_PropStringList hdrs;
 
@@ -269,6 +269,8 @@ struct __httpout_session {
 	Bool force_destroy;
 
 	HTTP_DIRInfo *dir_desc;
+
+	u8 *comp_data;
 
 #ifdef GPAC_HAS_QJS
 	JSValue obj;
@@ -469,6 +471,10 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 	gf_dm_sess_del(sess->http_sess);
 	sess->http_sess = NULL;
 	sess->socket = NULL;
+	if (sess->comp_data) {
+		gf_free(sess->comp_data);
+		sess->comp_data = NULL;
+	}
 	sess->done = 1;
 	sess->flush_close = 0;
 	if (sess->cbk_close)
@@ -1358,6 +1364,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	sess->nb_ranges = 0;
 	sess->do_log = httpout_do_log(sess, parameter->reply);
 	sess->dir_desc = NULL;
+	if (sess->comp_data) {
+		gf_free(sess->comp_data);
+		sess->comp_data=NULL;
+	}
 
 	if (!sess->async_pending && sess->ctx->on_request) {
 		sess->async_pending = 1;
@@ -1916,6 +1926,14 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->reply_code = 200;
 	}
 
+	u32 content_encoding=0;
+	const char *encode = (char *) gf_dm_sess_get_header(sess->http_sess, "Accept-Encoding");
+	if (encode) {
+		if (strstr(encode, "gzip")) content_encoding=1;
+		else if (strstr(encode, "deflate")) content_encoding=2;
+	}
+
+
 	//copy range for logs before resetting session headers
 	if (sess->do_log && range) {
 		strncpy(szRange, range, 199);
@@ -1980,6 +1998,28 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		} else if (sess->in_source && !sess->ctx->has_read_dir) {
 			sess->nb_ranges = 0;
 			gf_dm_sess_set_header(sess->http_sess, "Cache-Control", "no-cache, no-store");
+		}
+		//setup compression if asked, only if no chunk transfer and no ranges
+		if (!is_head && !sess->use_chunk_transfer && !sess->nb_ranges
+			&& !sess->file_in_progress && content_encoding
+			&& (sess->file_size<=sess->ctx->zmax)
+		) {
+			u8 *data;
+			u32 osize;
+			if (gf_file_load_data_filep(sess->resource, &data, &osize)==GF_OK) {
+				u32 comp_size=0;
+				//only compress text files
+				if (gf_utf8_is_legal(data, osize)
+					&& (gf_gz_compress_payload_ex((u8 **) &data, osize, &comp_size, 0, GF_FALSE, NULL, (content_encoding==1) ? GF_TRUE : GF_FALSE) == GF_OK)
+				) {
+					sess->comp_data = data;
+					data = NULL;
+					sess->file_size = comp_size;
+					sess->bytes_in_req = comp_size;
+					gf_dm_sess_set_header(sess->http_sess, "Content-Encoding", (content_encoding==1) ? "gzip" : "deflate");
+				}
+				if (data) gf_free(data);
+			}
 		}
 		//only put content length if not using chunk transfer - bytes_in_req may be > 0 if we have a byte range on a chunk-transfer session
 		if (sess->bytes_in_req && !sess->use_chunk_transfer) {
@@ -3536,7 +3576,11 @@ resend:
 		if (to_read > (u64) sess->ctx->block_size)
 			to_read = (u64) sess->ctx->block_size;
 
-		if (sess->resource) {
+		if (sess->comp_data) {
+			memcpy(sess->buffer, sess->comp_data+sess->file_pos, to_read);
+			read = to_read;
+		}
+		else if (sess->resource) {
 			read = (u32) gf_fread(sess->buffer, (u32) to_read, sess->resource);
 			//may happen when file writing is in progress
 			if (!read) {
@@ -3613,6 +3657,9 @@ session_done:
 		}
 		if (sess->resource) gf_fclose(sess->resource);
 		sess->resource = NULL;
+
+		if (sess->comp_data) gf_free(sess->comp_data);
+		sess->comp_data = NULL;
 
 		if (sess->nb_bytes) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Done sending %s to %s ("LLU"/"LLU" bytes)\n", sess->path, sess->peer_address, sess->nb_bytes, sess->bytes_in_req));
@@ -4957,8 +5004,9 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(ka), "keep input alive if failure in push mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(hdrs), "additional HTTP headers to inject, even values are names, odd values are values ", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 #ifdef GPAC_HAS_QJS
-	{ OFFS(js), "jaavscript logic for server", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(js), "javascript logic for server", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 #endif
+	{ OFFS(zmax), "maximum uncompressed size allowed for gzip or deflate compression for text files (only enabled if client indicates it), 0 will disable compression", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -4997,7 +5045,9 @@ GF_FilterRegister HTTPOutRegister = {
 		"When disabled, a GET on a directory will fail.\n"
 		"When enabled, a GET on a directory will return a simple HTML listing of the content inspired from Apache.\n"
 		"  \n"
-		"Custom headers can be specified using [-hdrs](), they apply to all requests.\n"
+		"Custom headers can be specified using [-hdrs](), they apply to all requests. For more advanced control on requests, use a javascript binding (see [-js]() and howtos).\n"
+		"  \n"
+		"Text files are compressed using gzip or deflate if the client accepts these encodings, unless [-no_z]() is set.\n"
 		"  \n"
 		"# Simple HTTP server\n"
 		"In this mode, the filter does not need any input connection and exposes all files in the directories given by [-rdirs]().\n"

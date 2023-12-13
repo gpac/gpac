@@ -400,7 +400,7 @@ start:
 	if (compress_dims) {
 #ifndef GPAC_DISABLE_ZLIB
 		dims_header |= GF_DIMS_UNIT_C;
-		e = gf_gz_compress_payload(&buffer, buffer_len, &buffer_len);
+		e = gf_gz_compress_payload_ex(&buffer, buffer_len, &buffer_len, 0, GF_FALSE, NULL, GF_TRUE);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("/ compressed (%d)", buffer_len));
 		if (e) goto exit;
 #else

@@ -1846,7 +1846,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			e = gf_file_load_data(rvc_config, (u8 **) &data, &size);
 			GOTO_EXIT("loading RVC config file")
 
-			gf_gz_compress_payload(&data, size, &size);
+			gf_gz_compress_payload_ex (&data, size, &size, 0, GF_FALSE, NULL, GF_TRUE);
 			e |= gf_isom_set_rvc_config(dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
 			gf_free(data);
 			GOTO_EXIT("compressing and assigning RVC config")

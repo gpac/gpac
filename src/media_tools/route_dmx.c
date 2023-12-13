@@ -1362,7 +1362,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		}
 		memcpy(routedmx->buffer, object->payload, object->total_length);
 		raw_size = routedmx->unz_buffer_size;
-		e = gf_gz_decompress_payload(routedmx->buffer, object->total_length, &routedmx->unz_buffer, &raw_size);
+		e = gf_gz_decompress_payload_ex(routedmx->buffer, object->total_length, &routedmx->unz_buffer, &raw_size, GF_TRUE);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to decompress signaling bundle: %s\n", s->service_id, gf_error_to_string(e) ));
 			return e;
@@ -1747,7 +1747,7 @@ static GF_Err gf_route_dmx_process_lls(GF_ROUTEDmx *routedmx)
 		return GF_OK;
 	}
 
-	e = gf_gz_decompress_payload(&routedmx->buffer[4], read-4, &routedmx->unz_buffer, &raw_size);
+	e = gf_gz_decompress_payload_ex(&routedmx->buffer[4], read-4, &routedmx->unz_buffer, &raw_size, GF_TRUE);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to decompress %s table: %s\n", name, gf_error_to_string(e) ));
 		return e;

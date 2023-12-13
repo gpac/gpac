@@ -385,7 +385,7 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 		*box_csize = (u32) root_box->size;
 
 	gf_bs_get_content(comp_bs, &box_data, &box_size);
-	gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, use_cmov ? 0 : 8, GF_FALSE, NULL, use_cmov);
+	gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, use_cmov ? 0 : 8, GF_FALSE, NULL, GF_FALSE);
 	if ((mov->compress_flags & GF_ISOM_COMP_FORCE_ALL) || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
 		if (bs) {
 			if (use_cmov) {
@@ -569,7 +569,7 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 		}
 
 		gf_bs_get_content(bs, &box_data, &box_size);
-		gf_gz_compress_payload_ex(&box_data, box_size, &osize, 0, GF_FALSE, NULL, GF_TRUE);
+		gf_gz_compress_payload_ex(&box_data, box_size, &osize, 0, GF_FALSE, NULL, GF_FALSE);
 		gf_free(box_data);
 		gf_bs_del(bs);
 		return osize + 8 + 8 + 12 + 12;
