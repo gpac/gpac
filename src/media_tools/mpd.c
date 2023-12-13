@@ -2424,6 +2424,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 			return GF_NOT_READY;
 		}
 		rep->in_progress = GF_FALSE;
+		if (e<0)
+			return e;
 
 		loc_file = getter->get_cache_name(getter);
 		if (!loc_file) {

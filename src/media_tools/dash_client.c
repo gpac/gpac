@@ -167,7 +167,7 @@ struct __dash_client
 	Bool initial_period_tunein;
 	u32 preroll_state;
 
-	Bool llhls_single_range;
+	u32 llhls_single_range;
 	Bool m3u8_reload_master;
 	u32 hls_reload_time;
 
@@ -438,6 +438,7 @@ struct __dash_group
 	u32 sidx_offset;
 	u32 sidx_start;
 	GF_MPD_Representation *pending_sidx_rep;
+	u32 last_error_time;
 };
 
 //wait time before requesting again a M3U8 child playlist update when something goes wrong during the update: either same file or the expected next segment is not there
@@ -627,6 +628,16 @@ static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *grou
 
 	/*M3U8 does not use NTP sync, we solve edge while loading subplaylist */
 	if (group->dash->is_m3u8) {
+		//check if we talk to GPAC, in which case allow the tune-in request to use an open-range
+		//otherwise, only allow merging of open-range on the first part of the segment
+		//this is because http does not allow a range request response to have an undefined size (only the resource size can be unknown)
+		val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server");
+		if (!val || strncmp(val, "GPAC ", 5)) {
+			if (group->dash->llhls_single_range) {
+				group->dash->llhls_single_range = 2;
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Server is not GPAC, disabling llhls byte-range merging on tune-in parts\n", group->download_segment_index));
+			}
+		}
 		return;
 	}
 
@@ -2852,6 +2863,7 @@ process_m3u8_manifest:
 					if (same_rep) break;
 
 					if (e==GF_OK) {
+						group->last_error_time = 0;
 						if (dash->is_m3u8 && is_static) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[m3u8] MPD type changed from dynamic to static\n"));
 							group->dash->mpd->type = GF_MPD_TYPE_STATIC;
@@ -2860,6 +2872,15 @@ process_m3u8_manifest:
 								group->dash->mpd->media_presentation_duration = dur;
 							if (group->period->duration < dur)
 								group->period->duration = dur;
+						}
+					} else {
+						if (!group->last_error_time) {
+							group->last_error_time = gf_sys_clock();
+						} else if (gf_sys_clock() - group->last_error_time > (u32) (group->segment_duration*1000)) {
+							if (!dash->in_error) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update manifest: %s, aborting\n", gf_error_to_string(e)));
+								dash->in_error = GF_TRUE;
+							}
 						}
 					}
 				}
@@ -7201,7 +7222,7 @@ llhls_rety:
 			if (!group->first_hls_chunk && hlsseg->media_range->start_range) {
 				if (!hlsseg->can_merge) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] LL-HLS part cannot be merged with previously open byte-range request, disabling merging !\n"));
-					dash->llhls_single_range = GF_FALSE;
+					dash->llhls_single_range = 0;
 				}
 				group->download_segment_index++;
 				if (new_base_seg_url) gf_free(new_base_seg_url);
@@ -7210,11 +7231,18 @@ llhls_rety:
 				key_url = NULL;
 				goto llhls_rety;
 			}
-			group->first_hls_chunk = GF_FALSE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Changing LL-HLS request %s @ "LLU"->"LLU" to open end range\n", new_base_seg_url, start_range, end_range));
-			end_range = (u64) -1;
-			llhls_live_edge_type = 2;
-			group->llhls_last_was_merged = GF_TRUE;
+			//tune-in on non-first part, if not talking to GPAC, disable merging
+			if (group->first_hls_chunk && hlsseg->media_range->start_range && (dash->llhls_single_range==2)) {
+				group->llhls_last_was_merged = GF_FALSE;
+				if (hlsseg->hls_ll_chunk_type)
+					llhls_live_edge_type = 1;
+			} else {
+				group->first_hls_chunk = GF_FALSE;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Changing LL-HLS request %s @ "LLU"->"LLU" to open end range\n", new_base_seg_url, start_range, end_range));
+				end_range = (u64) -1;
+				llhls_live_edge_type = 2;
+				group->llhls_last_was_merged = GF_TRUE;
+			}
 		} else {
 			group->llhls_last_was_merged = GF_FALSE;
 			if (hlsseg->hls_ll_chunk_type)
@@ -8818,7 +8846,7 @@ void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_cou
 GF_EXPORT
 void gf_dash_enable_single_range_llhls(GF_DashClient *dash, Bool enable)
 {
-	dash->llhls_single_range = enable;
+	dash->llhls_single_range = enable ? 1 : 0;
 }
 
 GF_EXPORT
