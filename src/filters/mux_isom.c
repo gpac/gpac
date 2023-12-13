@@ -402,6 +402,7 @@ typedef struct
 	u32 wait_dts_timescale;
 	Bool force_seg_sync;
 	u32 seg_flush_state;
+	u32 last_block_in_segment;
 	u64 flush_idx_start_range, flush_idx_end_range;
 	Bool flush_ll_hls;
 
@@ -5587,7 +5588,7 @@ static void mp4mux_send_output(GF_MP4MuxCtx *ctx)
 				gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(ctx->cur_file_suffix) );
 				ctx->cur_file_suffix = NULL;
 			}
-			ctx->notify_filename = 0;
+			ctx->notify_filename = GF_FALSE;
 			if (ctx->dash_seg_start.den)
 				gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) );
 		}
@@ -5645,8 +5646,11 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 			gf_filter_pck_set_carousel_version(ctx->dst_pck, 1);
 		}
 		//also inject m4cc after init seg - cf issue 2482
+		//don't send as new packet as this wll break framing if init segment, just expand the packet
+		//the init segment packet is always an allocated one, so expanding it is safe
 		if (is_init && ctx->eos_marker) {
-			u8 data[8];
+			u8 *data;
+			gf_filter_pck_expand(ctx->dst_pck, 8, NULL, &data, NULL);
 			memset(data, 0, 8);
 			data[3] = 8;
 			data[4] = ctx->m4cc[0];
@@ -6722,6 +6726,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			s32 subs_sidx = -1;
 			u32 track_ref_id = 0;
 
+			ctx->last_block_in_segment = 1;
 			idx_start_range = idx_end_range = 0;
 			if (ctx->subs_sidx>=0) {
 				subs_sidx = ctx->subs_sidx;
@@ -6738,6 +6743,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				ctx->ref_tkw->negctts_shift ? 0 : ctx->ref_tkw->ts_delay,
 				next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 			ctx->ref_tkw->first_dts_in_seg_plus_one = 0;
+			ctx->last_block_in_segment = 0;
 			if (e) return e;
 			flush_refs = GF_TRUE;
 
@@ -7453,6 +7459,9 @@ static void mp4_mux_on_packet_destruct(GF_Filter *filter, GF_FilterPid *PID, GF_
 static void mp4_mux_on_last_block_start(void *cbk)
 {
 	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
+
+	if (ctx->last_block_in_segment == 1)
+		ctx->last_block_in_segment = 2;
 	if (ctx->force_seg_sync)
 		ctx->seg_flush_state = 1;
 }
@@ -7546,7 +7555,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 
 	if (!cbk_data)
 		memcpy(output, data, block_size);
-	gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, GF_FALSE);
+	//set framing - if we use separate files, mark end of file (for faster flush in sinks)
+	gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, (ctx->cur_file_idx_plus_one && (ctx->last_block_in_segment==2)) ? GF_TRUE : GF_FALSE);
 
 	//set packet prop as string since we may discard the seg_name  packet before this packet is processed
 	if (!ctx->first_pck_sent && ctx->seg_name) {
