@@ -890,7 +890,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 	//not ready, waiting for manifest
 	if (!serv->manifest && !nb_raw_files) {
-		return GF_OK;
+		return GF_NOT_READY;
 	}
 	//already setup and no changes
 	else if (!serv->wait_for_inputs) {
@@ -1055,7 +1055,8 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		char szIP[GF_MAX_IP_NAME_LEN];
 		src_ip = ctx->ifce;
 		if (!src_ip) {
-			gf_sk_get_local_ip(rlct->sock, szIP);
+			if (gf_sk_get_local_ip(rlct->sock, szIP) != GF_OK)
+				strcpy(szIP, "127.0.0.1");
 			src_ip = szIP;
 		}
 
@@ -1669,10 +1670,12 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 	GF_Err e;
 
 	e = routeout_check_service_updates(ctx, serv);
+	if (e==GF_NOT_READY)
+		return GF_OK;
 
 	if (serv->stsid_bundle) {
 		u64 diff = ctx->clock - serv->last_stsid_clock;
-		if (diff >= ctx->carousel) {
+		if (!serv->last_stsid_clock || (diff >= ctx->carousel)) {
 			routeout_service_send_bundle(ctx, serv);
 			serv->last_stsid_clock = ctx->clock;
 		} else {
@@ -2004,7 +2007,8 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 
 			src_ip = ctx->ifce;
 			if (!src_ip) {
-				gf_sk_get_local_ip(serv->rlct_base->sock, szIP);
+				if (gf_sk_get_local_ip(serv->rlct_base->sock, szIP)!=GF_OK)
+					strcpy(szIP, "127.0.0.1");
 				src_ip = szIP;
 			}
 			int res = snprintf(tmp, 1000, "  <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n"
