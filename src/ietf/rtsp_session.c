@@ -1023,7 +1023,8 @@ GF_EXPORT
 GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char buffer[GF_MAX_IP_NAME_LEN])
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
-	gf_sk_get_local_ip(sess->connection, buffer);
+	if (gf_sk_get_local_ip(sess->connection, buffer) != GF_OK)
+		strcpy(buffer, "127.0.0.1");
 	return GF_OK;
 }
 

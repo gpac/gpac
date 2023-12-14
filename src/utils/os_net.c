@@ -641,6 +641,8 @@ GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 	} else {
 		struct sockaddr_storage clientaddr;
 		socklen_t addrlen = sizeof(clientaddr);
+		if (sock->flags & GF_SOCK_IS_MULTICAST)
+			return GF_BAD_PARAM;
 		if (getsockname(sock->socket, (struct sockaddr *)&clientaddr, &addrlen)) return GF_IP_NETWORK_FAILURE;
 
 		if (getnameinfo((struct sockaddr *)&clientaddr, addrlen, clienthost, sizeof(clienthost), NULL, 0, NI_NUMERICHOST))
