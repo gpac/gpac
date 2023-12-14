@@ -1977,7 +1977,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data
 Decompresses a data buffer using zlib/inflate.
 \param data data buffer to be decompressed
 \param data_len length of the data buffer to be decompressed
-\param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+\param uncompressed_data pointer to the uncompressed data buffer. The resulting buffer is NULL-terminated. It is the responsibility of the caller to free this buffer.
 \param out_size size of the uncompressed buffer
 \return error if any
  */
@@ -1987,7 +1987,7 @@ GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 Decompresses a data buffer using zlib/inflate.
 \param data data buffer to be decompressed
 \param data_len length of the data buffer to be decompressed
-\param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+\param uncompressed_data pointer to the uncompressed data buffer. The resulting buffer is NULL-terminated. It is the responsibility of the caller to free this buffer.
 \param out_size size of the uncompressed buffer
 \param use_gz if true, gz header is present
 \return error if any
