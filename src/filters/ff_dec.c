@@ -1145,6 +1145,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!codec_id) {
 			switch (gpac_codecid) {
 			case GF_CODECID_MVC: codec_id = AV_CODEC_ID_H264; break;
+			case GF_CODECID_DTS_EXPRESS_LBR: codec_id = AV_CODEC_ID_DTS; break;
 			}
 
 		}

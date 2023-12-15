@@ -934,6 +934,10 @@ ISOM_BOX_IMPL_DECL(dvvC)
 ISOM_BOX_IMPL_DECL(dvhe)
 ISOM_BOX_IMPL_DECL(dfla)
 
+/* DTS audio */
+ISOM_BOX_IMPL_DECL(ddts)
+ISOM_BOX_IMPL_DECL(udts)
+
 ISOM_BOX_IMPL_DECL(pcmC)
 ISOM_BOX_IMPL_DECL(chnl)
 
@@ -1724,6 +1728,16 @@ static struct box_registry_entry {
 
 	BOX_DEFINE_S(GF_4CC('G','M','C','W'), unkn, "stsd", "GPAC"),
 	BOX_DEFINE_S(GF_4CC('G','M','C','C'), unkn, "GMCW", "GPAC"),
+
+	// DTS in ISOBMFF boxes
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSC, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSE, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSH, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSL, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSX, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSY, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DDTS, ddts, "audio_sample_entry", "DTS"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_UDTS, udts, "audio_sample_entry", "DTS"),
 
 	/* for now we don't parse these*/
 	BOX_DEFINE_S(GF_ISOM_SUBTYPE_UNCV, unkn, "stsd", "rawff"),
