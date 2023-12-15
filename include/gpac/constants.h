@@ -631,6 +631,9 @@ typedef enum
 
 	GF_CODECID_ALAC = GF_4CC('A','L','A','C'),
 
+	/*! codecid for DTS:X Profile 2 audio */
+	GF_CODECID_DTSX = GF_4CC('d','t','s','x'),
+
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
 } GF_CodecID;
