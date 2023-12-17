@@ -129,7 +129,8 @@ void chpl_box_del(GF_Box *s)
 /*this is using chpl format according to some NeroRecode samples*/
 GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 {
-	GF_ChapterEntry *ce;
+	GF_Err e;
+	GF_ChapterEntry *ce=NULL;
 	u32 nb_chaps, len, i, count;
 	GF_ChapterListBox *ptr = (GF_ChapterListBox *)s;
 
@@ -142,14 +143,17 @@ GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 	while (nb_chaps) {
 		GF_SAFEALLOC(ce, GF_ChapterEntry);
 		if (!ce) return GF_OUT_OF_MEM;
-		ISOM_DECREASE_SIZE(ptr, 9)
+		ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 9)
 		ce->start_time = gf_bs_read_u64(bs);
 		len = gf_bs_read_u8(bs);
 		if (ptr->size<len) return GF_ISOM_INVALID_FILE;
 		if (len) {
 			ce->name = (char *)gf_malloc(sizeof(char)*(len+1));
-			if (!ce->name) return GF_OUT_OF_MEM;
-			ISOM_DECREASE_SIZE(ptr, len)
+			if (!ce->name) {
+				e = GF_OUT_OF_MEM;
+				goto exit;
+			}
+			ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, len)
 			gf_bs_read_data(bs, ce->name, len);
 			ce->name[len] = 0;
 		} else {
@@ -167,8 +171,12 @@ GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 		if (ce) gf_list_add(ptr->list, ce);
 		count++;
 		nb_chaps--;
+		ce = NULL;
 	}
 	return GF_OK;
+exit:
+	if (ce) gf_free(ce);
+	return e;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
