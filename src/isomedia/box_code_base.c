@@ -10127,6 +10127,11 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		for (i=0; i<ptr->num_subpic_ref_idx; i++) {
 			ptr->subp_track_ref_idx[i] = gf_bs_read_u16(bs);
 			*total_bytes += 2;
+			if (gf_bs_is_overflow(bs)) {
+				gf_free(ptr->subp_track_ref_idx);
+				gf_free(ptr);
+				return NULL;
+			}
 		}
 		if (ptr->subpic_id_info_flag) {
 			ptr->spinfo.subpic_id_len_minus1 = gf_bs_read_int(bs, 4);
@@ -10160,6 +10165,11 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		for (i=0; i<ptr->nb_entries; i++) {
 			ptr->groupIDs[i] = gf_bs_read_u16(bs);
 			*total_bytes += 2;
+			if (gf_bs_is_overflow(bs)) {
+				gf_free(ptr->groupIDs);
+				gf_free(ptr);
+				return NULL;
+			}
 		}
 		return ptr;
 	}
@@ -10192,6 +10202,11 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		for (i=0; i<ptr->nb_types; i++) {
 			ptr->group_types[i] = gf_bs_read_u32(bs);
 			*total_bytes += 4;
+			if (gf_bs_is_overflow(bs)) {
+				gf_free(ptr->group_types);
+				gf_free(ptr);
+				return NULL;
+			}
 		}
 		return ptr;
 	}
@@ -10507,6 +10522,9 @@ GF_Err sgpd_box_read(GF_Box *s, GF_BitStream *bs)
 		if ((p->version>=1) && !size) {
 			size = gf_bs_read_u32(bs);
 			ISOM_DECREASE_SIZE(p, 4);
+		}
+		if (size && size>p->size) {
+			return GF_ISOM_INVALID_FILE;
 		}
 		ptr = sgpd_parse_entry(p, bs, (s32) p->size, size, &parsed_bytes);
 		//don't return an error, just stop parsing so that we skip over the sgpd box
