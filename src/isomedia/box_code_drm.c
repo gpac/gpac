@@ -1329,6 +1329,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			}
 		} else
 #endif
+		if (trak->Media->information->sampleTable->SampleSize)
 			max_nb_samples = trak->Media->information->sampleTable->SampleSize->sampleCount;
 	}
 
