@@ -416,9 +416,10 @@ GF_Err ctts_box_read(GF_Box *s, GF_BitStream *bs)
 			}
 		}
 
-		if (ptr->max_cts_delta <= ABS(ptr->entries[i].decodingOffset)) {
+		if (ptr->entries[i].decodingOffset == INT_MIN) {
+			ptr->max_cts_delta = INT_MAX;
+		} else if (ptr->max_cts_delta <= ABS(ptr->entries[i].decodingOffset)) {
 			ptr->max_cts_delta = ABS(ptr->entries[i].decodingOffset);
-			//ptr->sample_num_max_cts_delta = sampleCount;
 		}
 		sampleCount += ptr->entries[i].sampleCount;
 	}
