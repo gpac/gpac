@@ -11674,7 +11674,7 @@ GF_Err extr_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_ExtraDataBox *ptr = (GF_ExtraDataBox *)s;
 
-	e = gf_isom_box_parse((GF_Box**) &ptr->feci, bs);
+	e = gf_isom_box_parse_ex((GF_Box**) &ptr->feci, bs, GF_ISOM_BOX_TYPE_EXTR, GF_FALSE, ptr->size);
 	if (e) return e;
 	if (!ptr->feci || ptr->feci->size > ptr->size) return GF_ISOM_INVALID_MEDIA;
 	ptr->data_length = (u32) (ptr->size - ptr->feci->size);
