@@ -284,7 +284,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	} else {
 		//OK, create the box based on the type
 		is_special = GF_FALSE;
-		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type, skip_logs, is_root_box);
+		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type, skip_logs, is_root_box, uuid_type ? GF_TRUE : GF_FALSE);
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 	}
 
@@ -1816,7 +1816,7 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 	return 0;
 }
 
-GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box)
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box, Bool is_uuid)
 {
 	GF_Box *a;
 	const char *opt;
@@ -1857,7 +1857,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			}
 		}
 #endif
-        if (boxType==GF_ISOM_BOX_TYPE_UUID) {
+        if (is_uuid || (boxType==GF_ISOM_BOX_TYPE_UUID)) {
             a = uuid_box_new();
             if (a) a->registry = &box_registry[1];
         } else {
@@ -1893,7 +1893,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 GF_EXPORT
 GF_Box *gf_isom_box_new(u32 boxType)
 {
-	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE);
+	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE, GF_FALSE);
 }
 
 GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)

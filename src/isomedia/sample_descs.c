@@ -1691,7 +1691,7 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_nu
 		if (!tcmi) return GF_OUT_OF_MEM;
 	}
 
-	entry = (GF_TimeCodeSampleEntryBox *) gf_isom_box_new_ex(GF_QT_BOX_TYPE_TMCD, GF_ISOM_BOX_TYPE_STSD, GF_FALSE, GF_FALSE);
+	entry = (GF_TimeCodeSampleEntryBox *) gf_isom_box_new_ex(GF_QT_BOX_TYPE_TMCD, GF_ISOM_BOX_TYPE_STSD, GF_FALSE, GF_FALSE, GF_FALSE);
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->flags = 0;
 	if (is_drop) entry->flags |= 0x00000001;
