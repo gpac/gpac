@@ -4960,6 +4960,15 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 					group->download_segment_index++;
 				}
 			}
+			//if init seg failed at tune-in, re-estimate route clock - this ensures we are always bootstraping on the last correct state
+			//otherwise we could init clock at segN in low latency but tune-in at segN+1, hence having one extra segment delay
+			else if (dash->initial_period_tunein) {
+				group->timeline_setup = GF_FALSE;
+				group->force_timeline_reeval = GF_TRUE;
+				dash->utc_drift_estimate = 0;
+				dash->route_clock_state = 1;
+				dash->route_low_latency = 0;
+			}
 			gf_free(base_init_url);
 			return e;
 		}

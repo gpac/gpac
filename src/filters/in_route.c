@@ -559,7 +559,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
-        //fallthrough
+		//fallthrough
 
     case GF_ROUTE_EVT_DYN_SEG_FRAG:
         //for now we only push complete files
@@ -584,10 +584,14 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
         }
 #endif
 			
-		if (!ctx->clock_init_seg) {
+		if (!ctx->clock_init_seg
+			//if full seg push of previsously advertized init, reset x-route-ll header
+			|| ((evt==GF_ROUTE_EVT_DYN_SEG) && !strcmp(ctx->clock_init_seg, finfo->filename))
+		) {
 			DownloadedCacheEntry mpd_cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
 			if (mpd_cache_entry) {
-				ctx->clock_init_seg = gf_strdup(finfo->filename);
+				if (!ctx->clock_init_seg)
+					ctx->clock_init_seg = gf_strdup(finfo->filename);
 				sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\n", evt_param, ctx->clock_init_seg);
 				if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
 					strcat(szPath, "x-route-ll: yes\r\n");
@@ -650,7 +654,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		}
 			
         if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
-            GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Pushing fragment from file %s to cache\n", finfo->filename));
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Pushing fragment from file %s to cache\n", finfo->filename));
 			break;
         }
 			
