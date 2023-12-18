@@ -192,7 +192,7 @@ typedef struct __httpout_input
 
 	u8 *tunein_data;
 	u32 tunein_data_size;
-    
+
     Bool force_dst_name;
     Bool in_error;
     u32 clock_first_error;
@@ -2510,7 +2510,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		gf_filter_pid_init_play_event(pid, &evt, 0.0, 1.0, "HTTPOut");
 		gf_filter_pid_send_event(pid, &evt);
-            
+
 	}
 	if (is_remove) {
 		return GF_OK;
@@ -2618,7 +2618,7 @@ check_next_conn:
 	gf_list_add(ctx->sessions, sess);
 	gf_list_add(ctx->active_sessions, sess);
 	gf_sk_group_register(ctx->sg, sess->socket);
-	
+
 	gf_sk_set_buffer_size(new_conn, GF_FALSE, ctx->block_size);
 	gf_sk_set_buffer_size(new_conn, GF_TRUE, ctx->block_size);
 	strcpy(sess->peer_address, peer_address);
@@ -3751,7 +3751,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
                 if (ctx->dst && !an_in->force_dst_name) continue;
                 if (!gf_filter_pid_share_origin(in->ipid, an_in->ipid))
                     continue;
-                
+
                 o_url = gf_strdup(an_in->path);
                 path_sep = strrchr(o_url, '/');
                 if (path_sep) {
@@ -5154,6 +5154,9 @@ const GF_FilterRegister *httpout_register(GF_FilterSession *session)
 }
 
 #else
+
+typedef void GF_HTTPOutSession ;
+
 const GF_FilterRegister *httpout_register(GF_FilterSession *session)
 {
 	return NULL;
