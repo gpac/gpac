@@ -2344,9 +2344,9 @@
 			buildRules = (
 			);
 			dependencies = (
-				922B0FCA2A6029AD003690BB /* PBXTargetDependency */,
 				92C403DF2181F1ED00331F39 /* PBXTargetDependency */,
 				92BD5563205AB89D007C4C06 /* PBXTargetDependency */,
+				922B0FCA2A6029AD003690BB /* PBXTargetDependency */,
 			);
 			name = gpac;
 			productName = gpac;
@@ -3216,6 +3216,7 @@
 					"-lXv",
 					"-lX11",
 					"-lXext",
+					"-lvvenc",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
@@ -3367,6 +3368,7 @@
 					"-lXv",
 					"-lX11",
 					"-lXext",
+					"-lvvenc",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
@@ -3472,6 +3474,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = " -lcaca ";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
