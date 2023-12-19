@@ -143,17 +143,6 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 			if (!szfont) continue;
 			strcpy(szfont, face->family_name);
 
-			/*remember first font found which looks like a alphabetical one*/
-			if (!ftpriv->font_default) {
-				u32 gidx;
-				FT_Select_Charmap(face, FT_ENCODING_UNICODE);
-				gidx = FT_Get_Char_Index(face, (u32) 'a');
-				if (gidx) gidx = FT_Get_Char_Index(face, (u32) 'z');
-				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '1');
-				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '@');
-				if (gidx) ftpriv->font_default = gf_strdup(szfont);
-			}
-
 			bold = italic = 0;
 
 			if (face->style_name) {
@@ -175,6 +164,17 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 				if (italic) strcat(szfont, " Italic");
 			}
 			gf_opts_set_key("FontCache", szfont, file_path);
+
+			/*remember first font found which looks like a alphabetical one*/
+			if (!ftpriv->font_default) {
+				u32 gidx;
+				FT_Select_Charmap(face, FT_ENCODING_UNICODE);
+				gidx = FT_Get_Char_Index(face, (u32) 'a');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) 'z');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '1');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '@');
+				if (gidx) ftpriv->font_default = gf_strdup(szfont);
+			}
 
 			/*try to assign default fixed fonts*/
 			if (!bold && !italic) {
@@ -305,7 +305,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	gf_opts_set_key("FontCache", "FontSans", ftpriv->font_sans);
 	gf_opts_save();
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font directories scanned\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font directories scanned - defaults: SANS %s FIXED %s SERIF %s\n", ftpriv->font_sans, ftpriv->font_fixed, ftpriv->font_serif));
 }
 
 
