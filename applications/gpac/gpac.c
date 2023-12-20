@@ -1098,7 +1098,7 @@ restart:
 		}
 
 		if (print_filters(argc, argv, argmode)==GF_FALSE)
-			e = GF_FILTER_NOT_FOUND;
+			e = GF_NOT_FOUND;
 		ERR_EXIT
 	}
 	if (view_filter_conn) {
@@ -1425,7 +1425,8 @@ exit:
 
 	{
 		if (e) {
-			fprintf(stderr, "session error: %s\n", gf_error_to_string(e) );
+			if (e!=GF_NOT_FOUND)
+				fprintf(stderr, "session error: %s\n", gf_error_to_string(e) );
 		} else {
 			e = gf_fs_get_last_connect_error(session);
 			if (e<0) fprintf(stderr, "session last connect error %s\n", gf_error_to_string(e) );

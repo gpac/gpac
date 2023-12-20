@@ -1127,6 +1127,7 @@ void gpac_suggest_arg(char *aname)
 Bool gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 {
 	Bool found = GF_FALSE;
+	Bool exact_match = GF_FALSE;
 	Bool first = GF_FALSE;
 	u32 i, count, pass_exact = GF_TRUE;
 	if (!fname) return GF_FALSE;
@@ -1213,15 +1214,21 @@ redo_pass:
 				i++;
 
 				if (gf_sys_word_match(fname, arg->name)) {
-					if (!first) {
+					if (!strcmp(fname, arg->name)) {
+						gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s: %s\n", arg->name, arg->description);
 						first = GF_TRUE;
-						if (!found) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
-							found = GF_TRUE;
+						exact_match = GF_TRUE;
+					} else {
+						if (!first) {
+							first = GF_TRUE;
+							if (!found) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+								found = GF_TRUE;
+							}
+							GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\nClosest core option: \n"));
 						}
-						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\nClosest core option: \n"));
+						GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-%s: %s\n", arg->name, arg->description));
 					}
-					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-%s: %s\n", arg->name, arg->description));
 				}
 			}
 
@@ -1238,8 +1245,9 @@ redo_pass:
 
 					if (pass_exact) {
 						if (!strcmp(fname, arg->arg_name)) {
-							gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s %s\n", reg->name, arg->arg_name, arg->arg_desc);
+							gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s: %s\n", reg->name, arg->arg_name, arg->arg_desc);
 							found = GF_TRUE;
+							exact_match = GF_TRUE;
 						}
 						continue;
 					}
@@ -1285,6 +1293,7 @@ redo_pass:
 
 		}
 	}
+	if (exact_match) return GF_TRUE;
 	if (!found) {
 		if (pass_exact) {
 			pass_exact = GF_FALSE;

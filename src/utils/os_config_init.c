@@ -1432,7 +1432,7 @@ GF_GPACArg GPAC_Args[] = {
  "This will record packets to dump.gpc\n"
  "\nEX -netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp\n"
  "This will read packets from dump.gpc only for session1.sdp and let session2.sdp use regular sockets\n"
- "\nEX {p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}\n"
+ "\nEX -netcap={p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}\n"
  "This will use regular network interface and drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 #endif
 
