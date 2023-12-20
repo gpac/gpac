@@ -1181,6 +1181,8 @@ GF_Err gf_netcap_setup(char *rules)
 	char *dst=NULL;
 	s32 cap_loop=0;
 	Bool cap_rt=GF_TRUE;
+	char *rsep = strchr(rules, '{');
+	if (rsep) rsep[0] = 0;
 	//extract src or dst, nrt flag and loop flag
 	while (rules) {
 		char *sep = strchr(rules, ',');
@@ -1205,6 +1207,10 @@ GF_Err gf_netcap_setup(char *rules)
 		sep[0] = ',';
 		rules = sep+1;
 		if (rules[0]=='{') break;
+	}
+	if (rsep) {
+		rsep[0] = '{';
+		rules = rsep;
 	}
 	if (!dst && !src && !rules) {
 		if (id) gf_free(id);
