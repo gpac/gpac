@@ -2353,6 +2353,12 @@ static void httpout_in_io_ex(void *usr_cbk, GF_NETIO_Parameter *parameter, Bool 
 		default:
 			parameter->name = NULL;
 			parameter->value = NULL;
+			if (2 * ( *cur_header - HTTP_PUT_HEADER_DONE) < in->ctx->hdrs.nb_items) {
+				u32 h_idx = 2*( *cur_header - HTTP_PUT_HEADER_DONE);
+				parameter->name = in->ctx->hdrs.vals[h_idx];
+				parameter->value = in->ctx->hdrs.vals[h_idx+1];
+				*cur_header = *cur_header+1;
+			}
 			break;
 		}
 	}
