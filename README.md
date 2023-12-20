@@ -72,7 +72,7 @@ MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media 
 
 ## gpac 
 GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box.
-The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
+The gpac application is a direct interface to the filter engine of GPAC, allowing any combination of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
 
 # Getting started
 ## Download
