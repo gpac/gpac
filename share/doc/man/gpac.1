@@ -896,7 +896,7 @@ set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap a
 .br
 * nrt: disable real-time playback
 .br
-[RULES] is an optional list of {OPT,OPT2...} with OPT in:
+[RULES] is an optional list of [OPT,OPT2...] with OPT in:
 .br
 * m=N: set rule mode - N can be r for reception only (default), w for send only or rw for both
 .br
@@ -940,7 +940,7 @@ This will read packets from dump.gpc only for session1.sdp and let session2.sdp 
 .br
 Example
 .br
-{p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}
+-netcap=[p=1234,s=100,n=20][r=200,s=500,o=10,v=FE]
 .br
 
 .br

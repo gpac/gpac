@@ -1418,7 +1418,7 @@ GF_GPACArg GPAC_Args[] = {
  "- dst=F: output packets to `F` (no pcap/pcapng support), cannot be set if src is set\n"
  "- loop[=N]: loop capture file N times, or forever if N is not set or negative\n"
  "- nrt: disable real-time playback\n"
- "[RULES] is an optional list of `{OPT,OPT2...}` with OPT in:\n"
+ "[RULES] is an optional list of `[OPT,OPT2...]` with OPT in:\n"
  "- m=N: set rule mode - `N` can be `r` for reception only (default), `w` for send only or `rw` for both\n"
  "- s=N: set packet start range to `N`\n"
  "- e=N: set packet end range to `N` (only used for `r` and `f` rules)\n"
@@ -1432,7 +1432,7 @@ GF_GPACArg GPAC_Args[] = {
  "This will record packets to dump.gpc\n"
  "\nEX -netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp\n"
  "This will read packets from dump.gpc only for session1.sdp and let session2.sdp use regular sockets\n"
- "\nEX -netcap={p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}\n"
+ "\nEX -netcap=[p=1234,s=100,n=20][r=200,s=500,o=10,v=FE]\n"
  "This will use regular network interface and drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 #endif
 
@@ -2118,6 +2118,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			line_pos=0;
 			continue;
 		}
+		if (!line[0]) flags &= ~GF_PRINTARG_HIGHLIGHT_FIRST;
 
 		if ((line[0]=='#') && (line[1]==' ')) {
 			if (!gen_doc)
