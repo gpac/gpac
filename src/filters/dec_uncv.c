@@ -1181,7 +1181,7 @@ static void uncv_start_frame(UNCVDecCtx *ctx, const u8 *data, u32 size)
 {
 	UNCVConfig *config = ctx->cfg;
 
-	if (ctx->nb_bsrs>1) {
+	if ((ctx->nb_bsrs>1) || (ctx->cfg->nb_comps==1)) {
 		u32 offset = 0;
 		u32 comp_row_size=0;
 		for (u32 i=0; i<config->nb_comps; i++) {
