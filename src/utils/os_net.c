@@ -1181,7 +1181,7 @@ GF_Err gf_netcap_setup(char *rules)
 	char *dst=NULL;
 	s32 cap_loop=0;
 	Bool cap_rt=GF_TRUE;
-	char *rsep = strchr(rules, '{');
+	char *rsep = strchr(rules, '[');
 	if (rsep) rsep[0] = 0;
 	//extract src or dst, nrt flag and loop flag
 	while (rules) {
@@ -1206,10 +1206,10 @@ GF_Err gf_netcap_setup(char *rules)
 		}
 		sep[0] = ',';
 		rules = sep+1;
-		if (rules[0]=='{') break;
+		if (rules[0]=='[') break;
 	}
 	if (rsep) {
-		rsep[0] = '{';
+		rsep[0] = '[';
 		rules = rsep;
 	}
 	if (!dst && !src && !rules) {
@@ -1271,9 +1271,9 @@ GF_Err gf_netcap_setup(char *rules)
 		s32 patch_val=-1;
 		u32 rand_every = 0;
 		char *rule_str;
-		char *sep = strchr(rules, '{');
+		char *sep = strchr(rules, '[');
 		if (!sep) break;
-		sep = strchr(sep+1, '}');
+		sep = strchr(sep+1, ']');
 		if (!sep) break;
 
 		sep[0] = 0;
@@ -1340,7 +1340,7 @@ GF_Err gf_netcap_setup(char *rules)
 		rule->nb_pck = num_pck;
 
 		gf_list_add(nf->rules, rule);
-		sep[0] = '}';
+		sep[0] = ']';
 		rules = sep+1;
 	}
 	nf->nb_rules = gf_list_count(nf->rules);
