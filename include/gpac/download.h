@@ -470,6 +470,14 @@ Retrieves the HTTP header name and value for the given header index.
 GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val);
 
 /*!
+\brief set netcap rule ID
+
+Sets ID of netcap rules for this session
+\param sess the current session
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+ */
+void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id);
+/*!
 \brief sets download manager max rate per session
 
 Sets the maximum rate (per session only at the current time).

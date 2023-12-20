@@ -1411,11 +1411,14 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-fd", NULL, "use buffered IO instead of file descriptor for read/write - this can speed up operations on small files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-mx", NULL, "disable all mutexes, threads and semaphores (do not use if unsure about threading used)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 #ifndef GPAC_DISABLE_NETCAP
- GF_DEF_ARG("netcap-dst", NULL, "output packets to indicated file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("netcap-src", NULL, "read packets from indicated file, as produced by -netcap-dst or a pcap or pcapng file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("netcap-nrt", NULL, "ignore real-time regulation when reading packet from capture file", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("netcap-loop", NULL, "set number of loops of capture file, -1 means forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("net-filter", NULL, "set packet filtering rules (live or from file). Value is a list of `{OPT,OPT2...}` with OPT in:\n"
+ GF_DEF_ARG("netcap", NULL, "set packet capture and filtering rules formatted as [CFG][RULES]. Each `-netcap` argument will define a configuration\n"
+ "[CFG] is an optional comma-separated list of:\n"
+ "- id=ID: ID (string) for this configuration. If NULL, configuration will apply to all sockets not specifying a netcap ID\n"
+ "- src=F: read packets from `F`, as produced by GPAC or a pcap or pcapng file\n"
+ "- dst=F: output packets to `F` (no pcap/pcapng support), cannot be set if src is set\n"
+ "- loop[=N]: loop capture file N times, or forever if N is not set or negative\n"
+ "- nrt: disable real-time playback\n"
+ "[RULES] is an optional list of `{OPT,OPT2...}` with OPT in:\n"
  "- m=N: set rule mode - `N` can be `r` for reception only (default), `w` for send only or `rw` for both\n"
  "- s=N: set packet start range to `N`\n"
  "- e=N: set packet end range to `N` (only used for `r` and `f` rules)\n"
@@ -1425,8 +1428,12 @@ GF_GPACArg GPAC_Args[] = {
  "- p=P: local port number to filter, if not set the rule applies to all packets\n"
  "- o=N: patch packet instead of droping (always true for TCP), replacing byte at offset `N` (0 is first byte, <0 for random)\n"
  "- v=N: set patch byte value to `N` (hexa) or negative value for random (default)\n"
+ "\nEX -netcap=dst=dump.gpc\n"
+ "This will record packets to dump.gpc\n"
+ "\nEX -netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp\n"
+ "This will read packets from dump.gpc only for session1.sdp and let session2.sdp use regular sockets\n"
  "\nEX {p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}\n"
- "This will drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ "This will use regular network interface and drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
 #endif
 
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),

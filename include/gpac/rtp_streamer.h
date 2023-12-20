@@ -94,6 +94,65 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
         Bool is_crypted, u32 IV_length, u32 KI_length,
         u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime, u32 au_sn_len, Bool for_rtsp);
 
+/*! RTP streamer configuration*/
+typedef struct
+{
+	//! type of the stream (GF_STREAM_* as defined in <gpac/constants.h>
+	u32 streamType;
+	//! codec ID for the stream (GF_CODEC_* as defined in <gpac/constants.h>)
+	u32 codecid;
+	//! unit to express timestamps of access units
+	u32 timeScale;
+	//! IP address of the destination
+	const char *ip_dest;
+	//! port number of the destination
+	u16 port;
+	//! Maximum Transmission Unit size to use
+	u32 MTU;
+	//! Time To Leave
+	u8 TTL;
+	//! IP of the local interface to use (may be NULL)
+	const char *ifce_addr;
+	//! set of RTP flags passed to the streamer
+	u32 flags;
+	//! MPEG-4 Decoder Specific Info for the stream
+	const u8 *dsi;
+	//! length of the dsi parameter
+	u32 dsi_len;
+	//! RTP payload type
+	u32 PayloadType;
+	//!  audio sample rate
+	u32 sample_rate;
+	//! number of channels in audio streams
+	u32 nb_ch;
+	//! indicating if the stream is crypted
+	Bool is_crypted;
+	//! length of the Initialisation Vector used for ISMA encryption
+	u32 IV_length;
+	//! length of the key index
+	u32 KI_length;
+	//! minimum AU size, 0 if unknown
+	u32 MinSize;
+	//maximum AU size, 0 if unknown
+	u32 MaxSize;
+	//! average TS delta in timeScale, 0 if unknown
+	u32 avgTS;
+	//! maximum DTS delta in timeScale, 0 if unknown
+	u32 maxDTSDelta;
+	//! constant duration in timeScale, 0 if unknown
+	u32 const_dur;
+	//! bandwidth, 0 if unknown
+	u32 bandwidth;
+	//! maximum packet duration in timeScale, 0 if unknown
+	u32 max_ptime;
+	//! length of the MPEG-4 SL descriptor AU sequence number field, 0 if unknown
+	u32 au_sn_len;
+	//! ID of netcap configuration to use, may be null (see gpac -h netcap)
+	const char *netcap_id;
+} GF_RTPStreamerConfig;
+
+GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for_rtsp);
+
 /*!
 \brief RTP file streamer destructor
 

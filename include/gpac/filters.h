@@ -3291,6 +3291,12 @@ GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source
 */
 Bool gf_filter_has_connect_errors(GF_Filter *filter);
 
+/*! Get ID of netcap configuration associated with filter, if any
+\param filter target filter
+\return netcap ID if set, NULL otherwise
+*/
+const char *gf_filter_get_netcap_id(GF_Filter *filter);
+
 
 /*! Sets names of sub-instances involved in a meta-filter instance
 \param filter target filter

@@ -880,29 +880,23 @@ use buffered IO instead of file descriptor for read/write - this can speed up op
 disable all mutexes, threads and semaphores (do not use if unsure about threading used)
 .br
 .TP
-.B \-netcap-dst (string)
+.B \-netcap (string)
 .br
-output packets to indicated file
+set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap argument will define a configuration
 .br
-.TP
-.B \-netcap-src (string)
+[CFG] is an optional comma-separated list of:
 .br
-read packets from indicated file, as produced by -netcap-dst or a pcap or pcapng file
+* id=ID: ID (string) for this configuration. If NULL, configuration will apply to all sockets not specifying a netcap ID
 .br
-.TP
-.B \-netcap-nrt
+* src=F: read packets from F, as produced by GPAC or a pcap or pcapng file
 .br
-ignore real-time regulation when reading packet from capture file
+* dst=F: output packets to F (no pcap/pcapng support), cannot be set if src is set
 .br
-.TP
-.B \-netcap-loop (int)
+* loop[=N]: loop capture file N times, or forever if N is not set or negative
 .br
-set number of loops of capture file, -1 means forever
+* nrt: disable real-time playback
 .br
-.TP
-.B \-net-filter (string)
-.br
-set packet filtering rules (live or from file). Value is a list of {OPT,OPT2...} with OPT in:
+[RULES] is an optional list of {OPT,OPT2...} with OPT in:
 .br
 * m=N: set rule mode - N can be r for reception only (default), w for send only or rw for both
 .br
@@ -926,11 +920,31 @@ set packet filtering rules (live or from file). Value is a list of {OPT,OPT2...}
 .br
 Example
 .br
+-netcap=dst=dump.gpc
+.br
+
+.br
+This will record packets to dump.gpc
+.br
+
+.br
+Example
+.br
+-netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp
+.br
+
+.br
+This will read packets from dump.gpc only for session1.sdp and let session2.sdp use regular sockets
+.br
+
+.br
+Example
+.br
 {p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}
 .br
 
 .br
-This will drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE
+This will use regular network interface and drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE
 .br
 .TP
 .B \-cache (string)
@@ -2513,6 +2527,8 @@ As seen previously, the following options may be set on any filter, but are not 
 * gpac: argument separator for URLs (no value)
 .br
 * ccp: filter replacement control (string list value)
+.br
+* NCID: ID of netcap configuration to use (string)
 .br
 
 .br

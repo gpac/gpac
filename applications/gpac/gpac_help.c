@@ -486,6 +486,7 @@ const char *gpac_doc =
 "- gfopt: following options are not tracked (no value)\n"
 "- gpac: argument separator for URLs (no value)\n"
 "- ccp: filter replacement control (string list value)\n"
+"- NCID: ID of netcap configuration to use (string)\n"
 "\n"
 "The buffer control options are used to change the default buffering of PIDs of a filter:\n"
 "- `FBT` controls the maximum buffer time of output PIDs of a filter\n"

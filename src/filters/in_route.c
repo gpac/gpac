@@ -711,6 +711,15 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 	return GF_TRUE;
 }
 
+static void routein_set_eos(GF_Filter *filter)
+{
+	u32 i, nb_out = gf_filter_get_opid_count(filter);
+	for (i=0; i<nb_out; i++) {
+		GF_FilterPid *opid = gf_filter_get_opid(filter, i);
+		if (opid) gf_filter_pid_set_eos(opid);
+	}
+}
+
 static GF_Err routein_process(GF_Filter *filter)
 {
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
@@ -727,6 +736,7 @@ static GF_Err routein_process(GF_Filter *filter)
 					u32 diff = gf_sys_clock() - ctx->last_timeout;
 					if (diff > ctx->timeout) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] No data for %d ms, aborting\n", diff));
+						routein_set_eos(filter);
 						return GF_EOS;
 					}
 				}
@@ -735,6 +745,9 @@ static GF_Err routein_process(GF_Filter *filter)
 			break;
 		} else if (!e) {
 			ctx->last_timeout = 0;
+		} else if (e==GF_EOS) {
+			routein_set_eos(filter);
+			return e;
 		} else {
 			break;
 		}
@@ -744,6 +757,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	 	if (diff>ctx->timeout) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] No data for %d ms, aborting\n", diff));
 			gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
+			routein_set_eos(filter);
 			return GF_EOS;
 		}
 	}
@@ -804,7 +818,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		ctx->nbcached = 1;
 
 	if (is_atsc) {
-		ctx->route_dmx = gf_route_atsc_dmx_new(ctx->ifce, ctx->buffer, routein_on_event, ctx);
+		ctx->route_dmx = gf_route_atsc_dmx_new_ex(ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 	} else {
 		char *sep, *root;
 		u32 port;
@@ -824,7 +838,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 			sep[0] = ':';
 			return GF_BAD_PARAM;
 		}
-		ctx->route_dmx = gf_route_dmx_new(ctx->src+8, port, ctx->ifce, ctx->buffer, routein_on_event, ctx);
+		ctx->route_dmx = gf_route_dmx_new_ex(ctx->src+8, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 		sep[0] = ':';
 	}
 	if (!ctx->route_dmx) return GF_SERVICE_ERROR;

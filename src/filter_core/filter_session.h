@@ -625,6 +625,8 @@ struct __gf_filter
 	char *tag;
 	//filter itag
 	char *itag;
+	//ID of netcap configuration for the filter
+	char *netcap_id;
 
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex

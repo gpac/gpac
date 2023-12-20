@@ -99,6 +99,7 @@ typedef struct
 	u32 mcast, trp;
 	Bool latm;
 
+	GF_Filter *filter;
 	GF_Socket *server_sock;
 	GF_List *sessions;
 
@@ -398,7 +399,7 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	payt = ctx->payt + gf_list_find(sess->streams, stream);
 
-	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id, 0);
+	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id, 0, gf_filter_get_netcap_id(filter));
 	if (e) return e;
 
 	if (ctx->loop) {
@@ -420,6 +421,7 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	if (!single_session) {
 		new_sess = gf_rtsp_session_new_server(ctx->server_sock, ctx->htun, ctx->ssl_ctx);
 		if (!new_sess) return GF_OK;
+		gf_rtsp_session_set_netcap_id(new_sess, gf_filter_get_netcap_id(ctx->filter));
 	}
 
 	GF_SAFEALLOC(sess, GF_RTSPOutSession);
@@ -473,6 +475,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 	if (ctx->payt<96) ctx->payt = 96;
 	if (ctx->payt>127) ctx->payt = 127;
 	ctx->sessions = gf_list_new();
+	ctx->filter = filter;
 
 	ip = ctx->ifce;
 	//move to sec
@@ -548,7 +551,7 @@ static GF_Err rtspout_initialize(GF_Filter *filter)
 	if (!port)
 		port = ctx->port;
 
-	ctx->server_sock = gf_sk_new(GF_SOCK_TYPE_TCP);
+	ctx->server_sock = gf_sk_new_ex(GF_SOCK_TYPE_TCP, gf_filter_get_netcap_id(filter));
 	e = gf_sk_bind(ctx->server_sock, NULL, port, ip, 0, GF_SOCK_REUSE_PORT);
 	if (!e) e = gf_sk_listen(ctx->server_sock, ctx->maxc);
 	if (e) {

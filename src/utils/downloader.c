@@ -179,6 +179,7 @@ struct __gf_download_session
 	char *mime_type;
 	GF_List *headers;
 
+	const char *netcap_id;
 	GF_Socket *sock;
 	u32 num_retry;
 	GF_NetIOStatus status;
@@ -3401,7 +3402,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 	Bool register_sock = GF_FALSE;
 	if (!sess->sock) {
-		sess->sock = gf_sk_new(GF_SOCK_TYPE_TCP);
+		sess->sock = gf_sk_new_ex(GF_SOCK_TYPE_TCP, sess->netcap_id);
 
 		if (sess->sock && (sess->flags & GF_NETIO_SESSION_NO_BLOCK))
 			gf_sk_set_block_mode(sess->sock, GF_TRUE);
@@ -7188,6 +7189,11 @@ void gf_dm_sess_set_timeout(GF_DownloadSession *sess, u32 timeout)
 	if (sess) sess->request_timeout = 1000*timeout;
 }
 
+void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id)
+{
+	if (sess) sess->netcap_id = netcap_id;
+}
+
 
 //end GAPC_DISABLE_NETWORK
 #elif defined(GPAC_CONFIG_EMSCRIPTEN)
@@ -8067,5 +8073,10 @@ void gf_dm_sess_detach_async(GF_DownloadSession *sess)
 	sess->dl_flags &= ~GF_NETIO_SESSION_NOT_THREADED;
 	gf_dm_sess_force_memory_mode(sess, 1);
 }
+void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id)
+{
+
+}
+
 #endif // GPAC_CONFIG_EMSCRIPTEN
 

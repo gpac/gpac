@@ -31,7 +31,7 @@
 
 
 GF_EXPORT
-GF_RTPChannel *gf_rtp_new()
+GF_RTPChannel *gf_rtp_new_ex(const char *netcap_id)
 {
 	GF_RTPChannel *tmp;
 	GF_SAFEALLOC(tmp, GF_RTPChannel);
@@ -41,7 +41,14 @@ GF_RTPChannel *gf_rtp_new()
 	tmp->SSRC = gf_rand();
 	tmp->bs_r = gf_bs_new("d", 1, GF_BITSTREAM_READ);
 	tmp->bs_w = gf_bs_new("d", 1, GF_BITSTREAM_WRITE);
+	tmp->netcap_id = netcap_id;
 	return tmp;
+}
+
+GF_EXPORT
+GF_RTPChannel *gf_rtp_new()
+{
+	return gf_rtp_new_ex(NULL);
 }
 
 GF_EXPORT
@@ -231,7 +238,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		//
 		//	RTP
 		//
-		ch->rtp = gf_sk_new(GF_SOCK_TYPE_UDP);
+		ch->rtp = gf_sk_new_ex(GF_SOCK_TYPE_UDP, ch->netcap_id);
 		if (!ch->rtp) return GF_IP_NETWORK_FAILURE;
 		if (ch->net_info.IsUnicast) {
 			//if client, bind and connect the socket
@@ -272,7 +279,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		//
 		//	RTCP
 		//
-		ch->rtcp = gf_sk_new(GF_SOCK_TYPE_UDP);
+		ch->rtcp = gf_sk_new_ex(GF_SOCK_TYPE_UDP, ch->netcap_id);
 		if (!ch->rtcp) return GF_IP_NETWORK_FAILURE;
 		if (ch->net_info.IsUnicast) {
 			if (!IsSource) {
@@ -786,7 +793,7 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port)
 	p = NextAvailablePort;
 	if (ch->net_info.client_port_first) return GF_OK;
 
-	sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+	sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, ch->netcap_id);
 	if (!sock) return GF_IO_ERR;
 
 	/*should be way enough (more than 100 rtp streams open on the machine)*/

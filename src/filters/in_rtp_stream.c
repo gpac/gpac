@@ -282,7 +282,7 @@ GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, 
 	tmp->buffer = gf_malloc(sizeof(char) * rtp->block_size);
 
 	/*create an RTP channel*/
-	tmp->rtp_ch = gf_rtp_new();
+	tmp->rtp_ch = gf_rtp_new_ex(gf_filter_get_netcap_id(rtp->filter));
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = "RTP/AVP";
@@ -423,7 +423,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	}
 
 	/*create an RTP channel*/
-	tmp->rtp_ch = gf_rtp_new();
+	tmp->rtp_ch = gf_rtp_new_ex(gf_filter_get_netcap_id(rtp->filter));
 	if (ctrl) tmp->control = gf_strdup(ctrl);
 	tmp->ES_ID = ESID;
 	tmp->OD_ID = ODID;
