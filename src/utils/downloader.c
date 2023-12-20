@@ -4934,7 +4934,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			continue;
 		}
 
-		PUSH_HDR(par.name, par.value)
+		gf_dm_sess_set_header_ex(sess, par.name, par.value, GF_TRUE);
 
 		if (!stricmp(par.name, "Accept")) has_accept = GF_TRUE;
 		else if (!stricmp(par.name, "Range")) has_range = GF_TRUE;
