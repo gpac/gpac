@@ -657,6 +657,10 @@ static GF_Err rtpin_process(GF_Filter *filter)
 					ctx->eos_probe_start = gf_sys_clock();
 				else if (e==GF_IP_CONNECTION_CLOSED)
 					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
+				else if (e==GF_EOS) {
+					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
+					e = GF_OK;
+				}
 			}
 			break;
 		}

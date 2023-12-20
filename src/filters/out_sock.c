@@ -186,7 +186,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	url = strchr(ctx->dst, ':');
 	url += 3;
 
-	ctx->socket = gf_sk_new(sock_type);
+	ctx->socket = gf_sk_new_ex(sock_type, gf_filter_get_netcap_id(filter));
 	if (! ctx->socket ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Failed to open socket for %s\n", ctx->dst));
 		return GF_IO_ERR;

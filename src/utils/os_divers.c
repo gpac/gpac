@@ -915,10 +915,6 @@ char gf_prog_lf = '\r';
 
 #ifndef GPAC_DISABLE_NETWORK
 extern Bool gpac_use_poll;
-#ifndef GPAC_DISABLE_NETCAP
-extern Bool gpac_netcap_rt;
-extern s32 gpac_netcap_loop;
-#endif
 #endif
 
 GF_EXPORT
@@ -1007,21 +1003,15 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 #endif
 			}
 #if !defined(GPAC_DISABLE_NETCAP)
-			else if (!stricmp(arg, "-netcap-dst") && arg_val) {
-				void gf_netcap_record(char *filename);
-				gf_netcap_record(arg_val);
-			} else if (!stricmp(arg, "-netcap-src") && arg_val) {
-				void gf_netcap_playback(char *filename);
-				gf_netcap_playback(arg_val);
-			} else if (!stricmp(arg, "-netcap-nrt")) {
-				gpac_netcap_rt = !bool_value;
-			} else if (!stricmp(arg, "-net-filter") && arg_val) {
-				void gf_net_filter_set_rules(char *rules);
-				gf_net_filter_set_rules(arg_val);
-			} else if (!stricmp(arg, "-netcap-loop")) {
-				gpac_netcap_loop = atoi(arg_val);
+			else if (!stricmp(arg, "-netcap")) {
+				if (!arg_val) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("[core] Missing value for argument -netcap, ignoring\n"));
+				} else {
+					GF_Err gf_netcap_setup(char *rules);
+					e = gf_netcap_setup(arg_val);
+					if (e) return e;
+				}
 			}
-
 #endif
 			else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;

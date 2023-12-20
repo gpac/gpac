@@ -219,6 +219,11 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 	return sess;
 }
 
+GF_EXPORT
+void gf_rtsp_session_set_netcap_id(GF_RTSPSession *sess, const char *netcap_id)
+{
+	if (sess) sess->netcap_id = netcap_id;
+}
 
 GF_EXPORT
 void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
@@ -417,7 +422,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 
 	//socket is destroyed, recreate
 	if (!sess->connection) {
-		sess->connection = gf_sk_new(sess->ConnectionType);
+		sess->connection = gf_sk_new_ex(sess->ConnectionType, sess->netcap_id);
 		if (!sess->connection) return GF_OUT_OF_MEM;
 
 		//work in non-blocking mode
@@ -817,8 +822,8 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 		}
 
 		//	3. send "POST /sample.mov HTTP/1.0\r\n ..."
-		sess->http = gf_sk_new(GF_SOCK_TYPE_TCP);
-		if (!sess->http ) {
+		sess->http = gf_sk_new_ex(GF_SOCK_TYPE_TCP, sess->netcap_id);
+		if (!sess->http) {
 			sess->tunnel_state = 0;
 			return GF_IP_NETWORK_FAILURE;
 		}

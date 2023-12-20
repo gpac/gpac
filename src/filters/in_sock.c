@@ -118,7 +118,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	url = strchr(ctx->src, ':');
 	url += 3;
 
-	ctx->sock_c.socket = gf_sk_new(sock_type);
+	ctx->sock_c.socket = gf_sk_new_ex(sock_type, gf_filter_get_netcap_id(filter));
 	if (! ctx->sock_c.socket ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Failed to open socket for %s\n", ctx->src));
 		return GF_IO_ERR;
@@ -482,11 +482,11 @@ static GF_Err sockin_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 1000);
 		return GF_OK;
 	}
-	else if (e==GF_IP_CONNECTION_CLOSED) {
+	else if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_EOS)) {
 		ctx->is_stop = GF_TRUE;
 		if (ctx->sock_c.pid)
 			gf_filter_pid_set_eos(ctx->sock_c.pid);
-		return e;
+		return e<0 ? e : 0;
 	}
 	else if (e) {
 		return e;

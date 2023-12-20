@@ -275,7 +275,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	return GF_OK;
 }
 
-GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id, u32 file_mode)
+GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id, u32 file_mode, const char *netcap_id)
 {
 	Bool disable_mpeg4 = GF_FALSE;
 	u32 flags, average_size, max_size, max_tsdelta, codecid, const_dur, nb_ch, samplerate, max_cts_offset, bandwidth, IV_length, KI_length, dsi_len, max_ptime, au_sn_len;
@@ -517,14 +517,36 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DEPENDENCY_ID);
 	if (p) stream->depends_on = p->value.uint;
 
+	GF_RTPStreamerConfig cfg;
+	memset(&cfg, 0, sizeof(GF_RTPStreamerConfig));
+	cfg.streamType = stream->streamtype;
+	cfg.codecid = codecid;
+	cfg.timeScale = stream->timescale;
+	cfg.ip_dest = (char *) ipdest;
+	cfg.port = stream->port;
+	cfg.MTU = mtu;
+	cfg.TTL = ttl;
+	cfg.ifce_addr = ifce;
+	cfg.flags = flags;
+	cfg.dsi = dsi;
+	cfg.dsi_len = dsi_len;
+	cfg.PayloadType = payt;
+	cfg.sample_rate = samplerate;
+	cfg.nb_ch = nb_ch;
+	cfg.is_crypted = is_crypted;
+	cfg.IV_length = IV_length;
+	cfg.KI_length = KI_length;
+	cfg.MinSize = average_size;
+	cfg.MaxSize = max_size;
+	cfg.avgTS = max_tsdelta;
+	cfg.maxDTSDelta = max_cts_offset;
+	cfg.const_dur = const_dur;
+	cfg.bandwidth = bandwidth;
+	cfg.max_ptime = max_ptime;
+	cfg.au_sn_len = au_sn_len;
+	cfg.netcap_id = netcap_id;
 
-	/*init packetizer*/
-	stream->rtp = gf_rtp_streamer_new(stream->streamtype, codecid, stream->timescale,
-				 (char *) ipdest, stream->port, mtu, ttl, ifce,
-				 flags, dsi, dsi_len,
-				 payt, samplerate, nb_ch,
-				 is_crypted, IV_length, KI_length,
-				 average_size, max_size, max_tsdelta, max_cts_offset, const_dur, bandwidth, max_ptime, au_sn_len, is_rtsp);
+	stream->rtp = gf_rtp_streamer_new_ex(&cfg, is_rtsp);
 
 	if (!stream->rtp) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Could not initialize RTP for stream %s:  not supported\n", gf_filter_pid_get_name(stream->pid) ));
@@ -717,7 +739,7 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	payt = ctx->payt + gf_list_find(ctx->streams, stream);
 	//init rtp
-	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id, ctx->single_stream);
+	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id, ctx->single_stream, gf_filter_get_netcap_id(filter));
 	if (e) return e;
 
 	stream->selected = GF_TRUE;

@@ -172,7 +172,7 @@ typedef struct
 } ROUTEPid;
 
 
-ROUTELCT *route_create_lct_channel(GF_ROUTEOutCtx *ctx, const char *ip, u32 port, GF_Err *e)
+ROUTELCT *route_create_lct_channel(GF_Filter *filter, GF_ROUTEOutCtx *ctx, const char *ip, u32 port, GF_Err *e)
 {
 	*e = GF_OUT_OF_MEM;
 	ROUTELCT *rlct;
@@ -189,7 +189,7 @@ ROUTELCT *route_create_lct_channel(GF_ROUTEOutCtx *ctx, const char *ip, u32 port
 	}
 
 	if (rlct->ip) {
-		rlct->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+		rlct->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
 		if (rlct->sock) {
 			*e = gf_sk_setup_multicast(rlct->sock, rlct->ip, rlct->port, ctx->ttl, GF_FALSE, ctx->ifce);
 			if (*e) {
@@ -207,7 +207,7 @@ fail:
 	return NULL;
 }
 
-ROUTEService *routeout_create_service(GF_ROUTEOutCtx *ctx, u32 service_id, const char *ip, u32 port, GF_Err *e)
+ROUTEService *routeout_create_service(GF_Filter *filter, GF_ROUTEOutCtx *ctx, u32 service_id, const char *ip, u32 port, GF_Err *e)
 {
 	ROUTEService *rserv;
 	ROUTELCT *rlct = NULL;
@@ -215,7 +215,7 @@ ROUTEService *routeout_create_service(GF_ROUTEOutCtx *ctx, u32 service_id, const
 	GF_SAFEALLOC(rserv, ROUTEService);
 	if (!rserv) return NULL;
 
-	rlct = route_create_lct_channel(ctx, ip, port, e);
+	rlct = route_create_lct_channel(filter, ctx, ip, port, e);
 	if (!rlct) {
 		gf_free(rserv);
 		return NULL;
@@ -412,7 +412,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			else ctx->first_port++;
 		}
 
-		rserv = routeout_create_service(ctx, service_id, service_ip, port, &e);
+		rserv = routeout_create_service(filter, ctx, service_id, service_ip, port, &e);
 		if (!rserv) return e;
 		rserv->dash_mode = pid_dash_mode;
 	}
@@ -528,7 +528,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			GF_Err e;
 			rserv->first_port++;
 			ctx->first_port++;
-			rpid->rlct = route_create_lct_channel(ctx, NULL, rserv->first_port, &e);
+			rpid->rlct = route_create_lct_channel(filter, ctx, NULL, rserv->first_port, &e);
 			if (e) return e;
 			if (rpid->rlct) {
 				gf_list_add(rserv->rlcts, rpid->rlct);
@@ -637,7 +637,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	ctx->services = gf_list_new();
 
 	if (is_atsc) {
-		ctx->sock_atsc_lls = gf_sk_new(GF_SOCK_TYPE_UDP);
+		ctx->sock_atsc_lls = gf_sk_new_ex(GF_SOCK_TYPE_UDP, gf_filter_get_netcap_id(filter) );
 		gf_sk_setup_multicast(ctx->sock_atsc_lls, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 0, GF_FALSE, ctx->ifce);
 	}
 

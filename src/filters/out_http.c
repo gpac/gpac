@@ -2895,7 +2895,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (ctx->hmode==MODE_SOURCE)
 		gf_filter_get_download_manager(ctx->filter);
 
-	ctx->server_sock = gf_sk_new(GF_SOCK_TYPE_TCP);
+	ctx->server_sock = gf_sk_new_ex(GF_SOCK_TYPE_TCP, gf_filter_get_netcap_id(filter) );
 	e = gf_sk_bind(ctx->server_sock, NULL, ctx->port, ip, 0, GF_SOCK_REUSE_PORT);
 	if (!e) e = gf_sk_listen(ctx->server_sock, ctx->maxc);
 	if (e) {

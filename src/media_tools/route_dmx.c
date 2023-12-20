@@ -135,6 +135,7 @@ typedef struct
 
 struct __gf_routedmx {
 	const char *ip_ifce;
+	const char *netcap_id;
 	GF_Socket *atsc_sock;
 	u8 *buffer;
 	u32 buffer_size;
@@ -252,7 +253,7 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx)
 	gf_free(routedmx);
 }
 
-static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_size, Bool is_atsc,
+static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_size, const char *netcap_id, Bool is_atsc,
 							  void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
 							  void *udta)
 {
@@ -264,6 +265,7 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 		return NULL;
 	}
 	routedmx->ip_ifce = ifce;
+	routedmx->netcap_id = netcap_id;
 	routedmx->dom = gf_xml_dom_new();
 	if (!routedmx->dom) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to allocate DOM parser\n" ));
@@ -323,7 +325,7 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	if (!is_atsc)
 		return routedmx;
 
-	routedmx->atsc_sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+	routedmx->atsc_sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
 	if (!routedmx->atsc_sock) {
 		gf_route_dmx_del(routedmx);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to create UDP socket\n"));
@@ -376,7 +378,7 @@ static void gf_route_create_service(GF_ROUTEDmx *routedmx, const char *dst_ip, u
 	service->service_id = service_id;
 	service->protocol = protocol;
 
-	service->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+	service->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
 	gf_sk_set_usec_wait(service->sock, 1);
 	e = gf_sk_setup_multicast(service->sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
 	if (e) {
@@ -422,15 +424,33 @@ GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, u32 sock_buffer_size,
 								   void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
 								   void *udta)
 {
-	return gf_route_dmx_new_internal(ifce, sock_buffer_size, GF_TRUE, on_event, udta);
-
+	return gf_route_dmx_new_internal(ifce, sock_buffer_size, NULL, GF_TRUE, on_event, udta);
 }
 GF_EXPORT
 GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size,
 							  void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
 							  void *udta)
 {
-	GF_ROUTEDmx *routedmx = gf_route_dmx_new_internal(ifce, sock_buffer_size, GF_FALSE, on_event, udta);
+	GF_ROUTEDmx *routedmx = gf_route_dmx_new_internal(ifce, sock_buffer_size, NULL, GF_FALSE, on_event, udta);
+	if (!routedmx) return NULL;
+	gf_route_create_service(routedmx, ip, port, 1, 1);
+	return routedmx;
+}
+
+
+GF_EXPORT
+GF_ROUTEDmx *gf_route_atsc_dmx_new_ex(const char *ifce, u32 sock_buffer_size, const char *netcap_id,
+								   void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
+								   void *udta)
+{
+	return gf_route_dmx_new_internal(ifce, sock_buffer_size, netcap_id, GF_TRUE, on_event, udta);
+}
+GF_EXPORT
+GF_ROUTEDmx *gf_route_dmx_new_ex(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id,
+							  void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *info),
+							  void *udta)
+{
+	GF_ROUTEDmx *routedmx = gf_route_dmx_new_internal(ifce, sock_buffer_size, netcap_id, GF_FALSE, on_event, udta);
 	if (!routedmx) return NULL;
 	gf_route_create_service(routedmx, ip, port, 1, 1);
 	return routedmx;
@@ -1129,7 +1149,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 		//need a new socket for the session
 		if ((strcmp(s->dst_ip, dst_ip)) || (s->port != dst_port) ) {
-			rsess->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+			rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
 			gf_sk_set_usec_wait(rsess->sock, 1);
 			e = gf_sk_setup_multicast(rsess->sock, dst_ip, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
 			if (e) {

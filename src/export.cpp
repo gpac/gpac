@@ -309,6 +309,7 @@
 
 /* Socket */
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sk_new_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_set_buffer_size) )
@@ -1249,6 +1250,7 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_new_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp_extended) )
@@ -2296,7 +2298,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )
 
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_route_atsc_dmx_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_route_atsc_dmx_new_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_new_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_atsc3_tune_in) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_route_dmx_process) )
@@ -2507,6 +2512,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_hint_single_clock ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_clock_hint ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_override_caps ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_netcap_id ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_reset_source ) )

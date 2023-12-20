@@ -724,6 +724,9 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->meta_instances)
 		gf_free(filter->meta_instances);
 
+	if (filter->netcap_id)
+		gf_free(filter->netcap_id);
+
 #ifdef GPAC_HAS_QJS
 	if (filter->iname)
 		gf_free(filter->iname);
@@ -2041,6 +2044,12 @@ skip_date:
 						filter->force_demux = 0;
 					}
 				}
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
+			else if (!strcmp("NCID", szArg)) {
+				if (filter->netcap_id) gf_free(filter->netcap_id);
+				filter->netcap_id = value ? gf_strdup(value) : NULL;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
@@ -5314,6 +5323,13 @@ const char *gf_filter_meta_get_instances(GF_Filter *filter)
 void gf_filter_skip_seg_size_events(GF_Filter *filter)
 {
 	if (filter) filter->no_segsize_evts=GF_TRUE;
+}
+
+	//filter netcap_id
+GF_EXPORT
+const char *gf_filter_get_netcap_id(GF_Filter *filter)
+{
+	return filter ? filter->netcap_id : NULL;
 }
 
 
