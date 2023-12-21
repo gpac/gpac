@@ -5286,6 +5286,8 @@ GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source
 	if (!filter) return GF_BAD_PARAM;
 	//ignored in non implicit mode
 	if (! (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)) return GF_OK;
+	//subsession explicitly assigned
+	if (filter->subsession_id) return filter->subsession_id;
 	filter->subsession_id = subsession_id;
 	if (gf_filter_is_sink(filter))
 		filter->subsource_id = 0;

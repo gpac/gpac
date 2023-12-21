@@ -3276,12 +3276,14 @@ If  sourceIDs are used on destination filter, subsession and source IDs are igno
 If filters do not have the same subsession ID, they cannot link to each
 If filters do not have the same sourceID, they cannot link to each other except if destination is a sink
 
+Function does nothing if the filter is allready assigned to a subsession
+
 \note In non-implicit mode, subsession tagging must be done through filter option :FS=
 
 \param filter target filter
 \param subsession_id subsession identifier
 \param source_id subsession identifier
-\return error if any
+\return error if any, GF_OK or the value of the already assigned subsession ID
 */
 GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source_id);
 
