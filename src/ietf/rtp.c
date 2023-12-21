@@ -968,7 +968,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 		s32 diff = ts_in;
 		diff-=ts_pck;
 		if (diff<0) diff=-diff;
-		if (po->TimeScale && (diff > 2*po->TimeScale)) {
+		if (po->TimeScale && ((u32) diff > 2*po->TimeScale)) {
 			cur = po->in;
 			while (cur->next) cur = cur->next;
 			cur->next = it;

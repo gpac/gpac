@@ -178,7 +178,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	if (gf_rtp_is_disc(stream->rtp_ch)) {
 		s64 delta = stream->prev_cts + stream->min_dur_rtp;
 		delta -= hdr->compositionTimeStamp;
-		stream->ts_offset -= delta;
+		stream->ts_offset -= (s32) delta;
 
 		stream->prev_cts = (u32) hdr->compositionTimeStamp;
 	}
