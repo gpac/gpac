@@ -119,7 +119,7 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 	} else if (new_filter) {
 		arg = jsfs_new_filter_obj(task->ctx, new_filter);
 	} else {
-		assert(del_filter);
+		gf_assert(del_filter);
 		arg = JS_DupValue(task->ctx, del_filter->jsval);
 	}
 
@@ -355,7 +355,7 @@ Bool jsfs_on_event(GF_FilterSession *fs, GF_Event *evt)
 
 	JSValue arg, ret;
 	Bool res;
-	assert(fs->on_evt_task);
+	gf_assert(fs->on_evt_task);
 	gf_js_lock(fs->on_evt_task->ctx, GF_TRUE);
 
 	memset(&fevt, 0, sizeof(GF_FilterEvent));
@@ -450,7 +450,7 @@ Bool jsfs_on_auth(GF_FilterSession *fs, GF_Event *evt)
 	JSValue args[5], ret, obj;
 	Bool res = GF_TRUE;
 	JSContext *ctx;
-	assert(fs->on_auth_task);
+	gf_assert(fs->on_auth_task);
 	ctx = fs->on_auth_task->ctx;
 	gf_js_lock(ctx, GF_TRUE);
 

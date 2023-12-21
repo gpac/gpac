@@ -1851,7 +1851,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				gf_bs_seek(ctx->bs_r, pos);
 
 				clear_bytes = ranges[0].clear;
-				assert(frame_sizes[0] == ranges[0].clear + ranges[0].encrypted);
+				gf_assert(frame_sizes[0] == ranges[0].clear + ranges[0].encrypted);
 				nalu_size = frame_sizes[0];
 
 				//final superframe index must be in clear
@@ -2004,7 +2004,8 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					if (cstr->tci->crypt_byte_block && cstr->tci->skip_byte_block) {
 						u32 res = nalu_size - clear_bytes - clear_bytes_at_end;
 						pos = cur_pos;
-						assert((res % 16) == 0);
+						//don't use modulo in case we use fatal_assert
+						gf_assert((res / 16) * 16 == res);
 
 						while (res) {
 							e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+pos, res >= (u32) (16*cstr->tci->crypt_byte_block) ? 16*cstr->tci->crypt_byte_block : res);
@@ -2100,7 +2101,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						nalu_size = clear_bytes + ranges[range_idx].encrypted;
 					} else { /*last*/
 						nalu_size = clear_bytes = ranges[range_idx].clear;
-						assert(ranges[range_idx].encrypted == 0);
+						gf_assert(ranges[range_idx].encrypted == 0);
 					}
 					break;
 				default:

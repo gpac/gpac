@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2022
+ *			Copyright (c) Telecom ParisTech 2020-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE output filter
@@ -899,7 +899,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 	}
 	if (serv->wait_for_inputs) {
 		if (!serv->manifest) {
-			assert(nb_raw_files);
+			gf_assert(nb_raw_files);
 			serv->stsid_changed = GF_TRUE;
 		}
 		serv->wait_for_inputs = GF_FALSE;
@@ -1323,7 +1323,7 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	//start_offset
 	PUT_U32(offset_in_frame);
 
-	assert(send_payl_size+hpos <= ctx->mtu);
+	gf_assert(send_payl_size+hpos <= ctx->mtu);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] LCT SID %u TSI %u TOI %u size %u (frag %u total %u) offset %u (%u in obj)\n", service_id, tsi, toi, send_payl_size, len, total_size, offset, offset_in_frame));
 
@@ -1431,7 +1431,7 @@ retry:
 	p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_INIT);
 	if (p && p->value.boolean) {
 		u32 crc;
-		assert(start && end);
+		gf_assert(start && end);
 		crc = gf_crc_32(rpid->pck_data, rpid->pck_size);
 		//whenever init seg changes, bump stsid version
 		if (crc != rpid->init_seg_crc) {
@@ -1455,7 +1455,7 @@ retry:
 	p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PID_HLS_PLAYLIST);
 	if (p && p->value.string) {
 		u32 crc;
-		assert(start && end);
+		gf_assert(start && end);
 		crc = gf_crc_32(rpid->pck_data, rpid->pck_size);
 		//whenever init seg changes, bump stsid version
 		if (crc != rpid->hld_child_pl_crc) {
@@ -1503,7 +1503,7 @@ retry:
 	}
 
 	if (rpid->raw_file) {
-		assert(start && end);
+		gf_assert(start && end);
 
 		if (rpid->seg_name) gf_free(rpid->seg_name);
 		rpid->seg_name = "unknown";

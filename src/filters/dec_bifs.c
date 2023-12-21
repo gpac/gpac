@@ -167,9 +167,8 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 		GF_FilterPid *opid = gf_filter_pid_get_udta(pid);
 
 		GF_ObjectManager *odm = gf_filter_pid_get_udta(opid);
-		if (!odm) continue;
 		//object clock shall be valid
-		assert(odm->ck);
+		if (!odm || !odm->ck) continue;
 
 		pck = gf_filter_pid_get_packet(pid);
 		if (!pck) {

@@ -483,7 +483,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		u32 frame_idx = 0;
 		//temporal unit
 		gf_av1_leb128_write(ctx->bs_w, av1b_frame_size);
-		assert(frame_sizes[0]);
+		gf_assert(frame_sizes[0]);
 		gf_av1_leb128_write(ctx->bs_w, frame_sizes[0]);
 
 		//write temporal delim with obu size set
@@ -527,7 +527,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_data(ctx->bs_w, data+start, obu_size);
 
 		}
-		assert(gf_bs_get_position(ctx->bs_w) == size);
+		gf_assert(gf_bs_get_position(ctx->bs_w) == size);
 	} else {
 
 		//write IVF headers

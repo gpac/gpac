@@ -219,7 +219,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 
 	/*we are looking for the config file path - make sure it is writable*/
-	assert(path_type == GF_PATH_CFG);
+	gf_assert(path_type == GF_PATH_CFG);
 
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
@@ -634,7 +634,7 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_pat
 	if (!res) return;
 
 	sep = strstr(res, ".gpac");
-	assert(sep);
+	gf_assert(sep);
 	sep[0] = 0;
 	gf_cfg_set_key(cfg, "core", "docs-dir", res);
 	if (!gf_cfg_get_key(cfg, "core", "last-dir"))
@@ -2421,7 +2421,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 
 			if (has_token && tid==TOK_OPTLINK) {
 				char *link = strchr(line, '(');
-				assert(link);
+				gf_assert(link);
 				link++;
 				char *end_link = strchr(line, ')');
 				if (end_link) end_link[0] = 0;

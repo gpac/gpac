@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -567,8 +567,11 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 				}
 			}
 		}
-		assert(par);
-		gf_node_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
+		if (par) {
+			gf_node_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
+		} else {
+			gf_assert(0);
+		}
 		gf_list_rem(parser->deferred_listeners, i);
 		i--;
 		count--;
@@ -605,9 +608,12 @@ static void svg_init_root_element(GF_SVG_Parser *parser, SVG_Element *root_svg)
 		}
 	}
 	if (parser->load->type == GF_SM_LOAD_XSR) {
-		assert(parser->command);
-		assert(parser->command->tag == GF_SG_LSR_NEW_SCENE);
-		parser->command->node = (GF_Node *)root_svg;
+		if (parser->command) {
+			gf_assert(parser->command->tag == GF_SG_LSR_NEW_SCENE);
+			parser->command->node = (GF_Node *)root_svg;
+		} else {
+			gf_assert(0);
+		}
 	}
 	gf_sg_set_root_node(parser->load->scene_graph, (GF_Node *)root_svg);
 	parser->has_root = 1;
@@ -854,10 +860,13 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			if (gf_svg_is_animation_tag(tag)) {
 				/* For xlink:href in animation elements,
 				we try to locate the target of the xlink:href to determine the type of values to be animated */
-				assert(anim);
-				anim->target_id = gf_strdup(att->value);
-				/*The target may be NULL, if it has not yet been parsed, we will try to resolve it later on */
-				anim->target = (SVG_Element *) gf_sg_find_node_by_name(parser->load->scene_graph, anim->target_id + 1);
+				if (anim) {
+					anim->target_id = gf_strdup(att->value);
+					/*The target may be NULL, if it has not yet been parsed, we will try to resolve it later on */
+					anim->target = (SVG_Element *) gf_sg_find_node_by_name(parser->load->scene_graph, anim->target_id + 1);
+				} else {
+					gf_assert(0);
+				}
 				continue;
 			} else {
 				/* For xlink:href attribute on elements other than animation elements,
@@ -1643,7 +1652,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 		if ((parser->load->type==GF_SM_LOAD_XSR) && !parser->laser_au && !cond) {
 			if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
-				assert(parser->laser_es);
+				if (!parser->laser_es) {
+					svg_report(parser, GF_NON_COMPLIANT_BITSTREAM, NULL);
+					return;
+				}
 				parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, GF_FALSE);
 				if (!parser->laser_au) {
 					svg_report(parser, GF_OUT_OF_MEM, NULL);
@@ -1759,8 +1771,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				field->field_ptr = &field->new_node;
 			}
 		} else {
-			assert(parser->command->tag==GF_SG_LSR_NEW_SCENE);
-			assert(gf_node_get_tag((GF_Node *)elt) == TAG_SVG_svg);
+			gf_assert(parser->command->tag==GF_SG_LSR_NEW_SCENE);
+			gf_assert(gf_node_get_tag((GF_Node *)elt) == TAG_SVG_svg);
 			if(!parser->command->node)
 				parser->command->node = (GF_Node *)elt;
 		}

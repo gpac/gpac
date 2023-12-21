@@ -359,7 +359,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 		drawable_node_del(node);
 		return;
 	}
-	assert(tr_state->traversing_mode!=TRAVERSE_DRAW_2D);
+	gf_assert(tr_state->traversing_mode!=TRAVERSE_DRAW_2D);
 
 
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {

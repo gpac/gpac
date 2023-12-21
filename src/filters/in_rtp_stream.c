@@ -163,14 +163,14 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	hdr->seekFlag = 0;
 	hdr->compositionTimeStamp += stream->ts_adjust;
 	if (stream->first_rtp_ts) {
-		assert(hdr->compositionTimeStamp >= stream->first_rtp_ts - 1);
+		gf_assert(hdr->compositionTimeStamp >= stream->first_rtp_ts - 1);
 		hdr->compositionTimeStamp -= stream->first_rtp_ts - 1;
 	}
 
 	if (hdr->decodingTimeStamp) {
 		hdr->decodingTimeStamp += stream->ts_adjust;
 		if (stream->first_rtp_ts) {
-			assert(hdr->decodingTimeStamp >= stream->first_rtp_ts - 1);
+			gf_assert(hdr->decodingTimeStamp >= stream->first_rtp_ts - 1);
 			hdr->decodingTimeStamp -= stream->first_rtp_ts - 1;
 		}
 	}

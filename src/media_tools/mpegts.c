@@ -973,7 +973,7 @@ See annex C of DVB-SI ETSI EN 300468 */
 	time_table->hour   = 10*((data[2]&0xf0)>>4) + (data[2]&0x0f);
 	time_table->minute = 10*((data[3]&0xf0)>>4) + (data[3]&0x0f);
 	time_table->second = 10*((data[4]&0xf0)>>4) + (data[4]&0x0f);
-	assert(time_table->hour<24 && time_table->minute<60 && time_table->second<60);
+	gf_assert(time_table->hour<24 && time_table->minute<60 && time_table->second<60);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream UTC time is %u/%02u/%02u %02u:%02u:%02u\n", time_table->year, time_table->month, time_table->day, time_table->hour, time_table->minute, time_table->second));
 
 	switch (table_id) {
@@ -1036,7 +1036,7 @@ See annex C of DVB-SI ETSI EN 300468 */
 	if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TOT, time_table);
 	break;
 	default:
-		assert(0);
+		gf_assert(0);
 		goto error_exit;
 	}
 
@@ -2221,8 +2221,8 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 			pes->prev_data_len = 0;
 			if (remain) {
 				pes->prev_data = gf_malloc(sizeof(char)*remain);
-				assert(pes->pck_data_len >= remain);
-				memcpy(pes->prev_data, pes->pck_data + pes->pck_data_len - remain, remain);
+				if (pes->pck_data_len >= remain)
+					memcpy(pes->prev_data, pes->pck_data + pes->pck_data_len - remain, remain);
 				pes->prev_data_len = remain;
 			}
 		}
@@ -2556,16 +2556,12 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	case 3:
 		af_size = data[4];
 		if (af_size>183) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d AF field larger than 183 !\n", ts->pck_number));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d AF field larger than 183  for AF type 3!\n", ts->pck_number));
 			//error
 			return GF_CORRUPTED_DATA;
 		}
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
-		//this will stop you when processing invalid (yet existing) mpeg2ts streams in debug
-		assert( af_size<=183);
-		if (af_size>183)
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d Detected wrong adaption field size %u when control value is 3\n", ts->pck_number, af_size));
 		if (af_size) gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		pos += 1+af_size;
 		payload_size = 183 - af_size;
@@ -2788,7 +2784,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 			e |= gf_m2ts_process_packet(ts, (unsigned char *)ts->buffer);
 			data += copy_size;
 			data_size = data_size - copy_size;
-			assert((s32)data_size >= 0);
+			gf_assert((s32)data_size >= 0);
 		}
 		//not sync, copy over the complete buffer
 		else {
@@ -2826,7 +2822,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 			if (!ts->buffer_size) {
 				return e;
 			}
-			assert(ts->buffer_size<pck_size);
+			gf_assert(ts->buffer_size<pck_size);
 
 			if (is_align) {
 				u32 s = ts->buffer_size;
@@ -3297,7 +3293,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	ptr[4] &= 0x1;
 	ptr[4] |= (unsigned char)((TS&0x00000007fULL)<<1);
 
-	assert(((u64)(ptr[0]&0xe)<<29) + ((u64)ptr[1]<<22) + ((u64)(ptr[2]&0xfe)<<14) + ((u64)ptr[3]<<7) + ((ptr[4]&0xfe)>>1) == TS);
+	gf_assert(((u64)(ptr[0]&0xe)<<29) + ((u64)ptr[1]<<22) + ((u64)(ptr[2]&0xfe)<<14) + ((u64)ptr[3]<<7) + ((ptr[4]&0xfe)>>1) == TS);
 }
 
 #define ADJUST_TIMESTAMP(_TS) \

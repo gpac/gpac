@@ -2119,7 +2119,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 					if (movie->root_ssix) {
 						ssix = movie->root_ssix;
 						if (ssix->subsegment_count <= cur_index) {
-							assert(ssix->subsegment_count == cur_index);
+							gf_assert(ssix->subsegment_count == cur_index);
 							ssix->subsegment_count = cur_index+1;
 							ssix->subsegment_alloc = ssix->subsegment_count;
 							ssix->subsegments = gf_realloc(ssix->subsegments, ssix->subsegment_count * sizeof(GF_SubsegmentInfo));
@@ -2127,7 +2127,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 							ssix->subsegments[cur_index].ranges = gf_malloc(sizeof(GF_SubsegmentRangeInfo)*2);
 						}
 					}
-					assert(ssix);
+					gf_assert(ssix);
 					ssix->subsegments[cur_index].ranges[0].level = 1;
 					ssix->subsegments[cur_index].ranges[0].range_size = moof_get_first_sap_end(movie->moof);
 
@@ -2226,7 +2226,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 
 	if (movie->root_sidx) {
 		if (last_segment && !movie->dyn_root_sidx) {
-			assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
+			gf_assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
 			sidx_rewrite(movie->root_sidx, movie->editFileMap->bs, movie->root_sidx_offset, movie->root_ssix);
 			gf_isom_box_del((GF_Box*) movie->root_sidx);
@@ -2245,7 +2245,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 	}
 
 	if (sidx) {
-		assert(!root_sidx);
+		gf_assert(!root_sidx);
 		sidx_rewrite(sidx, movie->editFileMap->bs, sidx_start, ssix);
 		gf_isom_box_del((GF_Box*)sidx);
 	}
@@ -2377,7 +2377,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1)
 	bs = gf_bs_new_cbk_buffer(isom_on_block_out, movie, movie->block_buffer, movie->block_buffer_size);
 	gf_bs_prevent_dispatch(bs, GF_TRUE);
 	
-	assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
+	gf_assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
 	if (force_v1)
 		movie->root_sidx->version = 1;
@@ -2498,7 +2498,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 		movie->write_styp = 1;
 		if (e) return e;
 	} else {
-		assert(gf_list_count(movie->moof_list) == 0);
+		gf_assert(gf_list_count(movie->moof_list) == 0);
 		movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
 		/*if movieFileMap is not null, we are concatenating segments to the original movie, force a copy*/
 		if (movie->movieFileMap)

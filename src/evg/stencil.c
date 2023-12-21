@@ -343,7 +343,7 @@ static void lg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 	u64 *data_wide = rctx->surf->not_8bits ? rctx->stencil_pix_run : NULL;
 	EVG_LinearGradient *_this = (EVG_LinearGradient *) p;
 
-	assert(data);
+	gf_assert(data);
 
 	if (rctx->surf->is_3d_matrix) {
 		PERSP_VARS_DECL
@@ -440,7 +440,7 @@ static void rg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 	u64 *data_wide = rctx->surf->not_8bits ? rctx->stencil_pix_run : NULL;
 	EVG_RadialGradient *_this = (EVG_RadialGradient *) p;
 
-	assert(data);
+	gf_assert(data);
 
 	if (rctx->surf->is_3d_matrix) {
 		PERSP_VARS_DECL

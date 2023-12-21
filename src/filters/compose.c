@@ -427,7 +427,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 			continue;
 		}
-		assert(sns->owner);
+		gf_fatal_assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
 			Bool scene_setup = GF_FALSE;
 			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
@@ -474,7 +474,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					return GF_OK;
 				}
 
-				assert(sns->owner->parentscene);
+				gf_fatal_assert(sns->owner->parentscene);
 				sns->owner->subscene = gf_scene_new(ctx, sns->owner->parentscene);
 				sns->owner->subscene->root_od = sns->owner;
 			}
@@ -483,7 +483,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	if (!scene) scene = def_scene;
-	assert(scene);
+	if (!scene) return GF_SERVICE_ERROR;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Configuring PID %s\n", gf_stream_type_name(mtype)));
 

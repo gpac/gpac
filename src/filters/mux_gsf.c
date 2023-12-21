@@ -260,7 +260,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		gsfmx_write_vlen(ctx, to_write);
 
 		hdr_size = (u32) gf_bs_get_position(ctx->bs_w);
-		assert(hdr_size + to_write == osize);
+		gf_assert(hdr_size + to_write == osize);
 		memcpy(output+hdr_size, ctx->buffer + pck_offset, to_write);
 		bytes_remain -= to_write;
 		pck_offset += to_write;
@@ -826,7 +826,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	else { tsdiffmode=3; tsdiffmodebits=32; }
 
 
-	assert(tsmodebits<=32);
+	gf_assert(tsmodebits<=32);
 
 	//first flags byte
 	//flags first byte: 1(has_dts) 1(has_cts) 1(has_dur) 1(cts_diff_neg) 2(ts_mode) 2(ts_diff_mode)

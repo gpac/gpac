@@ -578,7 +578,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 	uncv_check_comps_type(cfg->comps, cfg->nb_comps, &has_mono, &has_yuv, &has_rgb, &has_alpha, &has_depth, &has_disp, &has_pal, &has_fa, &has_pad, &has_non_int);
 
 	if (has_pal) {
-		assert(cfg->palette);
+		gf_assert(cfg->palette);
 		uncv_check_comps_type(cfg->palette->comps, cfg->palette->nb_comps, &has_mono, &has_yuv, &has_rgb, &has_alpha, &has_depth, &has_disp, &has_pal, &has_fa, &has_pad, &has_non_int);
 	}
 	if (cfg->fa_map) {

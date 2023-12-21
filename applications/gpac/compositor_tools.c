@@ -792,10 +792,9 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 	case GF_EVENT_AUTHORIZATION:
 	{
 		u32 nb_retry = 4;
-		assert( evt->type == GF_EVENT_AUTHORIZATION);
-		assert( evt->auth.user);
-		assert( evt->auth.password);
-		assert( evt->auth.site_url);
+		gf_fatal_assert( evt->auth.user);
+		gf_fatal_assert( evt->auth.password);
+		gf_assert( evt->auth.site_url);
 		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (nb_retry > 0) ) {
 			nb_retry--;
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);

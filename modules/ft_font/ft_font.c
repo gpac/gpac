@@ -95,8 +95,6 @@ static const char * BEST_SANS_FONTS[] = {
  */
 static Bool isBestFontFor(const char * listOfFonts[], const char * currentBestFont, const char * fontName) {
 	u32 i;
-	assert( fontName );
-	assert( listOfFonts );
 	for (i = 0 ; listOfFonts[i]; i++) {
 		const char * best = listOfFonts[i];
 		if (!stricmp(best, fontName))
@@ -255,6 +253,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 		const char *opt;
 		char fkey[GF_MAX_PATH];
 		const char *key = gf_opts_get_key_name("FontCache", i);
+		if (!key) continue;
 		opt = gf_opts_get_key("FontCache", key);
 		if (!strchr(opt, '/') && !strchr(opt, '\\')) continue;
 
@@ -832,8 +831,6 @@ static void ft_delete(GF_BaseInterface *ifce)
 	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
 	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
 	if (ftpriv->font_default) gf_free(ftpriv->font_default);
-	assert(!gf_list_count(ftpriv->loaded_fonts) );
-
 	gf_list_del(ftpriv->loaded_fonts);
 
 	gf_free(dr->udta);

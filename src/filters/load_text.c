@@ -821,7 +821,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 		if (style_def_type==1)  {
 			/*store prev style*/
 			if (*set_end_c) {
-				assert(*set_start_c);
+				gf_assert(*set_start_c);
 				gf_isom_text_add_style(ctx->samp, &ctx->style);
 				*set_end_c = *set_start_c = GF_FALSE;
 				ctx->style.style_flags &= ~rem_styles;
@@ -1371,7 +1371,7 @@ static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **out_body_node)
 					body_num = gf_list_count(body_node->content);
 					while (body_num--) {
 						GF_XMLNode *content_node = (GF_XMLNode*)gf_list_get(body_node->content, 0);
-						assert(gf_list_find(body_node->content, content_node) == 0);
+						gf_assert(gf_list_find(body_node->content, content_node) == 0);
 						gf_list_rem(body_node->content, 0);
 						gf_xml_dom_node_del(content_node);
 					}
@@ -2052,7 +2052,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	e = gf_xml_dom_parse(ctx->parser_working_copy, ctx->file_name, NULL, NULL);
 	assert (e == GF_OK);
 	ctx->root_working_copy = gf_xml_dom_get_root(ctx->parser_working_copy);
-	assert(ctx->root_working_copy);
+	if (!ctx->root_working_copy) return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (body_node) {
 		/*remove all the sample entries (instances in body) entries from the working copy, we will add each sample in this clone DOM  to create full XML of each sample*/
@@ -2232,7 +2232,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 					gf_xml_dom_append_child(copy_div_node, prev_child);
 				}
 				e = gf_xml_dom_append_child(copy_div_node, div_child);
-				assert(e == GF_OK);
+				gf_assert(e == GF_OK);
 				has_content = GF_TRUE;
 			}
 
@@ -2275,7 +2275,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 						gf_xml_dom_append_child(copy_div_node, prev_child);
 					}
 					e = gf_xml_dom_append_child(copy_div_node, div_child);
-					assert(e == GF_OK);
+					gf_assert(e == GF_OK);
 					has_content = GF_TRUE;
 					break;
 				}

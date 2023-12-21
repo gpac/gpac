@@ -539,7 +539,7 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	assert(prop);
+	gf_fatal_assert(prop);
 	switch (prop->value.uint) {
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:

@@ -542,7 +542,7 @@ static Bool adts_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void adts_dmx_update_cts(GF_ADTSDmxCtx *ctx)
 {
-	assert(ctx->dts_inc);
+	gf_assert(ctx->dts_inc);
 
 	if (ctx->timescale) {
 		u64 inc = ctx->dts_inc;

@@ -42,7 +42,7 @@
 #define PCK_IS_INPUT(__pck) ((__pck->pck==__pck) ? GF_FALSE : GF_TRUE)
 #define PCK_IS_OUTPUT(__pck) ((__pck->pck==__pck) ? GF_TRUE : GF_FALSE)
 
-#define FSESS_CHECK_THREAD(__f) assert( !(__f)->process_th_id || ( (__f)->process_th_id == gf_th_id() ) );
+#define FSESS_CHECK_THREAD(__f) gf_assert( !(__f)->process_th_id || ( (__f)->process_th_id == gf_th_id() ) );
 
 struct __gf_prop_entry
 {

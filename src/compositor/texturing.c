@@ -349,8 +349,8 @@ GF_EXPORT
 void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 {
 	txh->needs_refresh = 0;
+	if (!txh->stream) return;
 	if (txh->needs_release) {
-		assert(txh->stream);
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, (txh->needs_release==2) ? 3 :0);
 		if (txh->needs_release==2) {
 			txh->last_frame_time = -1;
@@ -359,7 +359,7 @@ void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 		txh->frame_ifce = NULL;
 
 	}
-	if (txh->stream) txh->stream->config_changed = GF_FALSE;
+	txh->stream->config_changed = GF_FALSE;
 }
 
 

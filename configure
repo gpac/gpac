@@ -121,7 +121,7 @@ is_emcfg="no"
 has_remotery="yes"
 em_type="js"
 em_size="0"
-
+fatal_assert="no"
 
 #flags not set by generic lib config
 has_x11="no"
@@ -381,6 +381,7 @@ GPAC build options:
   --enable-gprof           enable profiling
   --enable-gcov            enable coverage
   --enable-pic             enable Position Independant Code for shared objects
+  --fatal-assert           make any call to assert abort program
   --strip                  enable strip
   --std-allocator          uses standard lib memory allocator
   --enable-sanitizer       enable address sanitizer
@@ -635,6 +636,8 @@ for opt do
         --enable-afl) cc_orig="afl-gcc"; cxx_orig="afl-g++"
             ;;
         --enable-afl-clang) cc_orig="afl-clang"; cxx_orig="afl-clang++"
+            ;;
+        --fatal-assert) fatal_assert="yes";
             ;;
         --verbose) verbose="yes";
             ;;
@@ -2746,6 +2749,11 @@ echo "#define GPAC_DISABLE_QJS_LIBC" >> $TMPH
 fi
 
 fi
+
+if test "$fatal_assert" = "yes" ; then
+echo "#define GPAC_ASSERT_FATAL" >> $TMPH
+fi
+
 
 echo "HAS_OPENSSL=$has_ssl" >> config.mak
 if test "$has_ssl" != "no" ; then

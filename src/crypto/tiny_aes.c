@@ -550,7 +550,7 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, u8* buf, u32 length)
 {
   unsigned i;
   int bi = (AES_BLOCKLEN - ctx->counter_pos);
-  assert(ctx->counter_pos<AES_BLOCKLEN);
+  gf_assert(ctx->counter_pos<AES_BLOCKLEN);
 
   for (i = 0; i < length; ++i, ++bi)
   {

@@ -568,7 +568,7 @@ static Bool OnProximitySensor2D(GF_SensorHandler *sh, Bool is_over, Bool is_canc
 	M_ProximitySensor2D *ps = (M_ProximitySensor2D *)sh->sensor;
 	Prox2DStack *stack = (Prox2DStack *) gf_node_get_private(sh->sensor);
 
-	assert(ps->enabled);
+	gf_assert(ps->enabled);
 
 	if (is_over) {
 		stack->last_time = gf_node_get_scene_time(sh->sensor);

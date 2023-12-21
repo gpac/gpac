@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -281,7 +281,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 	Bool ret;
 	/*URL/String conversion clone*/
 	void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_field_type);
-	assert(r->FromNode);
+	gf_assert(r->FromNode);
 	if (!r->is_setup) {
 		gf_sg_route_setup(r);
 		if (!r->is_setup) return 0;

@@ -1481,8 +1481,10 @@ GF_EXPORT
 GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
 {
 	u32 i = 0;
-	gf_bs_write_int(bs, cfg->marker, 1); assert(cfg->marker == 1);
-	gf_bs_write_int(bs, cfg->version, 7); assert(cfg->version == 1);
+	gf_bs_write_int(bs, cfg->marker, 1);
+	gf_assert(cfg->marker == 1);
+	gf_bs_write_int(bs, cfg->version, 7);
+	gf_assert(cfg->version == 1);
 	gf_bs_write_int(bs, cfg->seq_profile, 3);
 	gf_bs_write_int(bs, cfg->seq_level_idx_0, 5);
 	gf_bs_write_int(bs, cfg->seq_tier_0, 1);
@@ -1671,7 +1673,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
-		assert(obu_size == gf_bs_get_position(bs) - pos);
+		gf_assert(obu_size == gf_bs_get_position(bs) - pos);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
 		if (!av1_is_obu_header(obu_type)) {

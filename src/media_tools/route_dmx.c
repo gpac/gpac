@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2022
+ *			Copyright (c) Telecom ParisTech 2018-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools ROUTE (ATSC3, DVB-I) demux sub-project
@@ -641,7 +641,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
     if (obj->rlct_file) {
         filepath = obj->rlct_file->filename ? obj->rlct_file->filename : "ghost-init.mp4";
         is_init = GF_TRUE;
-        assert(final_push);
+        gf_assert(final_push);
     } else {
         if (!obj->solved_path[0]) {
 			if (!obj->rlct->toi_template) {
@@ -691,7 +691,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
             evt_type = GF_ROUTE_EVT_DYN_SEG;
             finfo.nb_frags = obj->nb_frags;
             finfo.frags = obj->frags;
-			assert(obj->total_length <= obj->alloc_size);
+			gf_assert(obj->total_length <= obj->alloc_size);
         }
         else
             evt_type = GF_ROUTE_EVT_DYN_SEG_FRAG;
@@ -716,7 +716,8 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : internal error, no LCT ROUTE channel defined for object TSI %u TOI %u\n", s->service_id, obj->tsi, obj->toi));
 		return GF_SERVICE_ERROR;
 	}
-	assert(obj->status>GF_LCT_OBJ_RECEPTION);
+	if (obj->status<GF_LCT_OBJ_RECEPTION)
+		return GF_SERVICE_ERROR;
 
 	if (obj->status==GF_LCT_OBJ_DONE_ERR) {
 		if (obj->rlct->tsi_init) {
@@ -911,8 +912,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		s->last_active_obj = obj;
 	}
 	*gather_obj = obj;
-	assert(obj->toi == toi);
-	assert(obj->tsi == tsi);
+	gf_assert(obj->toi == toi);
+	gf_assert(obj->tsi == tsi);
 
 	//keep receiving if we are done with errors
 	if (obj->status >= GF_LCT_OBJ_DONE) {
@@ -980,8 +981,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	obj->nb_recv_frags++;
 	obj->status = GF_LCT_OBJ_RECEPTION;
 
-	assert(obj->toi == toi);
-	assert(obj->tsi == tsi);
+	gf_assert(obj->toi == toi);
+	gf_assert(obj->tsi == tsi);
 	if (start_offset + size > obj->alloc_size) {
 		obj->alloc_size = start_offset + size;
 		//use total size if available
@@ -996,14 +997,14 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
         obj->blob.data = obj->payload;
         gf_mx_v(routedmx->blob_mx);
     }
-	assert(obj->alloc_size >= start_offset + size);
+	gf_assert(obj->alloc_size >= start_offset + size);
 
 	memcpy(obj->payload + start_offset, data, size);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u append LCT fragment, offset %d total size %d recv bytes %d - offset diff since last %d\n", s->service_id, obj->tsi, obj->toi, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
 
 	obj->prev_start_offset = start_offset;
-	assert(obj->toi == toi);
-	assert(obj->tsi == tsi);
+	gf_assert(obj->toi == toi);
+	gf_assert(obj->tsi == tsi);
     
     //not a file (uses templates->segment) and can push
     if (do_push && !obj->rlct_file && obj->rlct) {
@@ -1523,7 +1524,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	}
 
 	if (e != GF_OK) return e;
-	assert(nb_read);
+	gf_assert(nb_read);
 
 	routedmx->nb_packets++;
 	routedmx->total_bytes_recv += nb_read;

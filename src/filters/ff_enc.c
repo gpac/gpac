@@ -929,14 +929,14 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 
 	bytes_per_chan = ctx->bytes_per_sample / ctx->channels;
 	src_frame_size = size / ctx->bytes_per_sample;
-	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->audio_buffer_size);
-	assert(!data || (sample_offset + nb_samples <= src_frame_size));
-	assert(ctx->encoder->frame_size);
+	gf_assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->audio_buffer_size);
+	gf_assert(!data || (sample_offset + nb_samples <= src_frame_size));
+	gf_assert(ctx->encoder->frame_size);
 
 	f_idx = ctx->samples_in_audio_buffer / ctx->encoder->frame_size;
 	s_idx = ctx->samples_in_audio_buffer % ctx->encoder->frame_size;
 	if (s_idx) {
-		assert(s_idx + nb_samples <= (u32) ctx->encoder->frame_size);
+		gf_assert(s_idx + nb_samples <= (u32) ctx->encoder->frame_size);
 	}
 
 	offset = (f_idx * ctx->channels * ctx->encoder->frame_size + s_idx) * bytes_per_chan;
@@ -953,7 +953,7 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 			nb_samples_to_copy = ctx->encoder->frame_size;
 
 		if (data) {
-			assert(sample_offset<src_frame_size);
+			gf_assert(sample_offset<src_frame_size);
 			src = data + sample_offset * bytes_per_chan;
 		}
 

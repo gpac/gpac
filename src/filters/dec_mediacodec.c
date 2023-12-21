@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / mediacodec decoder filter
@@ -917,9 +917,9 @@ static GF_Err mcdec_process(GF_Filter *filter)
 		in_buffer = NULL;
 		in_buffer_size = 0;
 	} else {
-		assert(ref_pid);
+		gf_assert(ref_pid);
 		pck = gf_filter_pid_get_packet(ref_pid);
-		assert(pck);
+		gf_assert(pck);
 
 		in_buffer = (u8 *) gf_filter_pck_get_data(pck, &in_buffer_size);
 		cts = gf_filter_pck_get_cts(pck);

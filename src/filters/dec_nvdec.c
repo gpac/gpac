@@ -158,7 +158,7 @@ static GF_Err nvdec_init_decoder(NVDecCtx *ctx)
 	CUresult res;
 	CUVIDDECODECREATEINFO cuvid_info;
 
-	assert(ctx->dec_inst);
+	gf_assert(ctx->dec_inst);
 
 	memset(&cuvid_info, 0, sizeof(CUVIDDECODECREATEINFO));
 	cuvid_info.CodecType = ctx->codec_type;
@@ -191,7 +191,7 @@ static GF_Err nvdec_init_decoder(NVDecCtx *ctx)
 		return GF_IO_ERR;
 	}
 	global_nb_loaded_decoders++;
-	assert(global_nb_loaded_decoders);
+	gf_assert(global_nb_loaded_decoders);
 	ctx->dec_inst->id = global_nb_loaded_decoders;
 	ctx->dec_inst->th_id = gf_th_id();
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] decoder instance %d created (%dx%d) - %d total decoders loaded\n", ctx->dec_inst->id, ctx->width, ctx->height, global_nb_loaded_decoders) );
@@ -378,8 +378,8 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt));
 
 
-	assert(ctx->out_size);
-	assert(ctx->stride);
+	gf_assert(ctx->out_size);
+	gf_assert(ctx->stride);
 	ctx->dec_inst->stride = ctx->stride;
 
 	if (! ctx->dec_inst->cu_decoder) {
@@ -603,7 +603,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->unload == 2) {
 			global_nb_loaded_nvdec--;
 			if (ctx->dec_inst) {
-				assert(global_unactive_decoders);
+				gf_assert(global_unactive_decoders);
 				gf_mx_p(global_inst_mutex);
 				ctx->dec_inst->ctx = NULL;
 				gf_list_add(global_unactive_decoders, ctx->dec_inst);
@@ -776,7 +776,7 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		if (ctx->unload == 2) {
 			if (ctx->dec_inst) {
-				assert(global_unactive_decoders);
+				gf_assert(global_unactive_decoders);
 				gf_mx_p(global_inst_mutex);
 				if (ctx->decode_error) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] deactivating decoder %dx%d and destroying instance\n", ctx->width, ctx->height ) );
@@ -1015,7 +1015,7 @@ static GF_Err nvdec_flush_frame(NVDecCtx *ctx, NVDecFrame *f)
 		return nvdec_send_hw_frame(ctx, f);
 	}
 
-	assert(ctx->out_size);
+	gf_assert(ctx->out_size);
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
@@ -1200,7 +1200,7 @@ GF_Err nvframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map GL texture data %s\n", cudaGetErrorEnum(res) ) );
 		return GF_IO_ERR;
 	}
-	assert(tx_pitch != 0);
+	gf_assert(tx_pitch != 0);
 
 	memset(&params, 0, sizeof(params));
 	params.progressive_frame = f->frame_info.progressive_frame;
@@ -1212,7 +1212,7 @@ GF_Err nvframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map decoded picture data %s\n", cudaGetErrorEnum(res) ) );
 		return GF_IO_ERR;
 	}
-	assert(vid_pitch != 0);
+	gf_assert(vid_pitch != 0);
 
 	memset(&mcpi, 0, sizeof(CUDA_MEMCPY2D));
 	mcpi.srcMemoryType = CU_MEMORYTYPE_DEVICE;

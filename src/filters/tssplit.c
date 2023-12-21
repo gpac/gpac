@@ -191,7 +191,7 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			u8 *buffer;
 			Bool first_pck=GF_FALSE;
 			GF_M2TS_Program *prog = gf_list_get(ctx->dmx->programs, i);
-			assert(prog->pmt_pid);
+			gf_assert(prog->pmt_pid);
 
 			for (j=0; j<gf_list_count(ctx->streams); j++) {
 				stream = gf_list_get(ctx->streams, j);

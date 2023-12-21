@@ -70,7 +70,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 
 	if (read->pid) {
 		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);
-		assert(prop);
+		gf_fatal_assert(prop);
 		src = prop->value.string;
 	} else {
 		src = read->src;
@@ -1269,10 +1269,10 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	}
 	read->last_min_offset = min_offset;
 
-	assert(min_offset>=read->bytes_removed);
+	gf_assert(min_offset>=read->bytes_removed);
 	//min_offset is given in absolute file position
 	nb_bytes_to_purge = (u32) (min_offset - read->bytes_removed);
-	assert(nb_bytes_to_purge<=read->mem_blob.size);
+	gf_assert(nb_bytes_to_purge<=read->mem_blob.size);
 	if (!nb_bytes_to_purge) {
 		read->force_fetch = GF_TRUE;
 		return;
@@ -1307,7 +1307,7 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 			ch->sample_num = 1;
 
 		num_samples = gf_isom_get_sample_count(read->mov, ch->track);
-		assert(ch->sample_num<=num_samples);
+		gf_assert(ch->sample_num<=num_samples);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d samples now in track %d (prev %d)\n", num_samples, ch->track_id, prev_samples));
 	}
 }

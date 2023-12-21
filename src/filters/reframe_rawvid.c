@@ -363,7 +363,7 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 
 		Bool use_ref = GF_FALSE;
 		if (!ctx->out_pck) {
-			assert(! ctx->nb_bytes_in_frame);
+			gf_assert(! ctx->nb_bytes_in_frame);
 			if (!ctx->copy && (pck_size >= ctx->frame_size)) {
 				ctx->out_pck = gf_filter_pck_new_ref(ctx->opid, offset_in_pck, ctx->frame_size, pck);
 				use_ref = GF_TRUE;

@@ -320,8 +320,8 @@ static Bool h263dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void h263dmx_update_cts(GF_H263DmxCtx *ctx)
 {
-	assert(ctx->fps.num);
-	assert(ctx->fps.den);
+	gf_assert(ctx->fps.num);
+	gf_assert(ctx->fps.den);
 
 	if (!ctx->notime) {
 		u64 inc = ctx->fps.den;

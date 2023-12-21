@@ -1462,7 +1462,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 				if (importer->run_in_session) {
 					gf_dynstrcat(&importer->update_mux_sid, prev_id, importer->update_mux_sid ? "," : ":SID=");
 				} else {
-					assert(isobmff_mux);
+					gf_assert(isobmff_mux);
 					gf_filter_set_source(isobmff_mux, prev_filter, NULL);
 				}
 				prev_filter = NULL;

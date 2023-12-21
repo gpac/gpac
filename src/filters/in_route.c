@@ -200,7 +200,7 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
             u32 remain = size - pos;
-            assert(remain);
+            gf_assert(remain);
             if (remain<8) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
                 return;

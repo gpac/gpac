@@ -513,9 +513,11 @@ restart:
 		}
 		return GF_OK;
 	}
-	assert(pkt->stream_index>=0);
-	assert(pkt->stream_index < (s32) ctx->demuxer->nb_streams);
-
+	if (pkt->stream_index<0) {
+		GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Packet not associated to any stream in file %s, discarding\n", ctx->fname));
+		FF_FREE_PCK(pkt);
+		return GF_OK;
+	}
 	if (pkt->stream_index >= (s32) ctx->nb_streams) {
 		GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] More streams (%d) than initialy declared (%d), buggy source demux or not supported, ignoring packet in stream %d\n", ctx->fname, ctx->demuxer->nb_streams, ctx->nb_streams, pkt->stream_index+1 ));
 		FF_FREE_PCK(pkt);

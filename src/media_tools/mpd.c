@@ -596,7 +596,7 @@ static GF_Err gf_mpd_parse_descriptor_ex(GF_List *container, GF_MPD_Descriptor *
 	if (container)
 		gf_list_add(container, mpd_desc);
 	else {
-		assert(out_ptr);
+		gf_assert(out_ptr);
 		if (*out_ptr) gf_mpd_descriptor_free(*out_ptr);
 		*out_ptr = mpd_desc;
 	}
@@ -871,11 +871,11 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 		}
 		*/
 		else if (!strcmp(child->name, "dasher")) {
-			assert(!rep->dasher_ctx);
+			gf_assert(!rep->dasher_ctx);
 			rep->dasher_ctx = gf_mpd_parse_dasher_context(mpd, child);
 		}
 		else if (!strcmp(child->name, "segments")) {
-			assert(!rep->state_seg_list);
+			gf_assert(!rep->state_seg_list);
 			rep->state_seg_list = gf_mpd_parse_segments_context(mpd, child);
 		} else {
 			gf_mpd_parse_common_representation_child(mpd, (GF_MPD_CommonAttributes*)rep, root, child, &i, child_idx);
@@ -1507,7 +1507,7 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 
 static void gf_mpd_init_struct(GF_MPD *mpd)
 {
-	assert(!mpd->periods);
+	gf_assert(!mpd->periods);
 	mpd->periods = gf_list_new();
 	mpd->program_infos = gf_list_new();
 	mpd->base_URLs = gf_list_new();
@@ -2243,8 +2243,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	the_pe = NULL;
 	pe = NULL;
 	i = 0;
-	assert(pl);
-	assert(pl->streams);
+	gf_assert(pl);
+	gf_assert(pl->streams);
 	while ((stream = gf_list_enum(pl->streams, &i))) {
 		j = 0;
 		while (NULL != (pe = gf_list_enum(stream->variants, &j))) {
@@ -2355,8 +2355,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	if (!title || strlen(title) < 2)
 		title = the_pe->url;
 
-	assert(mpd_file);
-	assert(mpd);
+	gf_assert(mpd_file);
+	gf_assert(mpd);
 
 	e = gf_m3u8_fill_mpd_struct(pl, m3u8_file, base_url, mpd_file, title, update_interval, mimeTypeForM3U8Segments, do_import, use_mpd_templates, use_segment_timeline, is_end,  max_dur, mpd, parse_sub_playlist);
 
@@ -2448,8 +2448,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 		return e;
 	}
 
-	assert(pl);
-	assert(pl->streams);
+	gf_assert(pl);
+	gf_assert(pl->streams);
 
 	if (!gf_list_count(pl->streams)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M3U8] Playlist %s still empty\n", rep->segment_list->xlink_href));
@@ -2457,7 +2457,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 		return GF_IP_NETWORK_EMPTY;
 	}
 
-	assert(gf_list_count(pl->streams) == 1);
+	gf_assert(gf_list_count(pl->streams) == 1);
 
 
 	memcpy(last_sig, signature, GF_SHA1_DIGEST_SIZE);
@@ -2467,7 +2467,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 	}
 
 	stream = (Stream *)gf_list_get(pl->streams, 0);
-	assert(gf_list_count(stream->variants) == 1);
+	gf_assert(gf_list_count(stream->variants) == 1);
 	pe = (PlaylistElement *)gf_list_get(stream->variants, 0);
 
 	if (duration) {
@@ -3482,7 +3482,7 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	time_ms = mpd->publishTime;
 	sec = (u32)(time_ms / 1000);
 	time_ms -= ((u64)sec) * 1000;
-	assert(time_ms<1000);
+	gf_assert(time_ms<1000);
 
 	gtime = sec;
 	t = gf_gmtime(&gtime);
@@ -3779,7 +3779,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		for (i=rep->tsb_first_entry; i<count; i++) {
 			Double dur;
 			sctx = gf_list_get(rep->state_seg_list, i);
-			assert(sctx->filename);
+			gf_assert(sctx->filename);
 
 			if (rep->crypto_type) {
 				const char *kms;
@@ -3869,7 +3869,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 				if (mpd->llhls_preload) {
 					//last seg has no parts yet, we just started it (live edge), advertise first part
 					if (!sctx->nb_frags) {
-						assert(sctx->filename);
+						gf_assert(sctx->filename);
 						if (sctx->llhls_mode==2) next_seg_idx = 1;
 						else next_br_start_plus_one = 1;
 					}
@@ -3959,7 +3959,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		base_url = gf_list_get(rep->base_URLs, 0);
 
 		if (init) {
-			assert(base_url);
+			gf_assert(base_url);
 			if (force_base_url)
 				force_url = gf_url_concatenate(force_base_url, base_url->URL);
 
@@ -3978,8 +3978,8 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		for (i=rep->tsb_first_entry; i<count; i++) {
 			Double dur;
 			sctx = gf_list_get(rep->state_seg_list, i);
-			assert(!sctx->filename);
-			assert(sctx->file_size);
+			gf_assert(!sctx->filename);
+			gf_assert(sctx->file_size);
 
 			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
@@ -4575,7 +4575,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	url = gf_mpd_get_base_url(period->base_URLs, url, &base_url_index);
 	url = gf_mpd_get_base_url(set->base_URLs, url, &base_url_index);
 	url = gf_mpd_get_base_url(rep->base_URLs, url, &base_url_index);
-	assert(url);
+	gf_assert(url);
 
 	if (resolve_type == GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE) {
 		resolve_type = GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE;
@@ -5273,7 +5273,7 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 				break;
 			}
 		} else {
-			assert(0);
+			gf_assert(0);
 			return GF_NOT_SUPPORTED;
 		}
 

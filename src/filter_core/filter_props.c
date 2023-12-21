@@ -704,7 +704,7 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 			}
 			return GF_FALSE;
 		}
-		assert(strchr(p1->value.string, '|')==NULL);
+		gf_assert(strchr(p1->value.string, '|')==NULL);
 		return !strcmp(p1->value.string, p2->value.string) ? GF_TRUE : GF_FALSE;
 
 	case GF_PROP_DATA:
@@ -807,7 +807,7 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 		map->properties = gf_list_new();
 #endif
 	}
-	assert(!map->reference_count);
+	gf_assert(!map->reference_count);
 	map->reference_count = 1;
 	return map;
 }
@@ -843,7 +843,7 @@ void gf_props_reset_single(GF_PropertyValue *p)
 }
 void gf_props_del_property(GF_PropertyEntry *it)
 {
-	assert(it->reference_count);
+	gf_assert(it->reference_count);
 	if (safe_int_dec(&it->reference_count) == 0 ) {
 		if (it->pname && it->name_alloc)
 			gf_free(it->pname);
@@ -855,7 +855,7 @@ void gf_props_del_property(GF_PropertyEntry *it)
 			it->prop.value.string = NULL;
 		}
 		else if (it->prop.type==GF_PROP_DATA) {
-			assert(it->alloc_size);
+			gf_assert(it->alloc_size);
 			//DATA props are collected at session level for future reuse
 		}
 		//string list are destroyed
@@ -878,7 +878,7 @@ void gf_props_del_property(GF_PropertyEntry *it)
 		}
 		it->prop.value.data.size = 0;
 		if (it->alloc_size) {
-			assert(it->prop.type==GF_PROP_DATA);
+			gf_assert(it->prop.type==GF_PROP_DATA);
 			if (gf_fq_res_add(it->session->prop_maps_entry_data_alloc_reservoir, it)) {
 				if (it->prop.value.data.ptr) gf_free(it->prop.value.data.ptr);
 				gf_free(it);
@@ -927,7 +927,7 @@ void gf_props_reset(GF_PropertyMap *prop)
 
 void gf_props_del(GF_PropertyMap *map)
 {
-	assert(!map->pckrefs_reference_count || !map->reference_count);
+	gf_assert(!map->pckrefs_reference_count || !map->reference_count);
 	//we still have a ref
 	if (map->pckrefs_reference_count || map->reference_count) return;
 
@@ -1012,13 +1012,13 @@ static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyVal
 				prop->alloc_size = 0;
 				return GF_OUT_OF_MEM;
 			}
-			assert(prop->alloc_size);
+			gf_assert(prop->alloc_size);
 		}
 		memcpy(prop->prop.value.data.ptr, value->value.data.ptr, value->value.data.size);
 	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
 		prop->prop.type = GF_PROP_DATA;
 		prop->alloc_size = value->value.data.size;
-		assert(prop->alloc_size);
+		gf_assert(prop->alloc_size);
 	}
 	//use uint_list as base type for list
 	else if ((prop->prop.type == GF_PROP_UINT_LIST) || (prop->prop.type == GF_PROP_4CC_LIST) || (prop->prop.type == GF_PROP_SINT_LIST) || (prop->prop.type == GF_PROP_VEC2I_LIST)) {
@@ -1073,7 +1073,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 			for (i=0; i<count; i++) {
 				GF_PropertyEntry *prop_c = gf_list_get(map->hash_table[hash], i);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
-				assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
+				gf_assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
 			}
 		}
 	}
@@ -1210,7 +1210,7 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 			count = gf_list_count(list);
 			for (i=0; i<count; i++) {
 				GF_PropertyEntry *prop = gf_list_get(list, i);
-				assert(prop->reference_count);
+				gf_assert(prop->reference_count);
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
 

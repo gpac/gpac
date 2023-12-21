@@ -620,7 +620,7 @@ void gray_sweep_line(EVGRasterCtx *raster, AAScanline *sl, int y, u32 fill_rule)
 		x      = start->x;
 		area   = start->area;
 		cover += start->cover;
-		assert(sl->num);
+
 		/* accumulate all start cells */
 		while(--sl->num) {
 			++cur ;

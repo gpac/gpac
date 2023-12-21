@@ -3563,8 +3563,8 @@ static GF_Err color_write_yuv420_to_yuv(GF_VideoSurface *vs_dst, GF_VideoSurface
 	if (is_planar_yuv(vs_dst->pixel_format)) {
 		/*complete source copy*/
 		if ((vs_dst->pitch_y == (s32)vs_src->pitch_y) && (w == vs_src->width) && (h == vs_src->height)) {
-			assert(!ox);
-			assert(!oy);
+			gf_assert(!ox);
+			gf_assert(!oy);
 			memcpy(vs_dst->video_buffer, pY, sizeof(u8)*w*h);
 			if (vs_dst->pixel_format == GF_PIXEL_YUV) {
 				memcpy(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height, pV, sizeof(u8)*w*h/ 4);

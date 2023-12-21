@@ -46,10 +46,8 @@ Double gf_scene_get_time(void *_is)
 #if 1
 	u64 ret;
 	GF_Clock *ck;
-	assert(scene);
-	assert(scene->root_od);
+	if (!scene || scene->root_od || scene->root_od->ck) return 0.0;
 	ck = scene->root_od->ck;
-	if (!ck) return 0.0;
 	ret = gf_clock_time_absolute(ck);
 	if ((scene->root_od->media_stop_time>0) && ((u64) scene->root_od->media_stop_time<ret))
 		ret = scene->root_od->media_stop_time;
@@ -299,7 +297,7 @@ GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 	/*init inline scene*/
 	if (parentScene) {
 		tmp->graph = gf_sg_new_subscene(parentScene->graph);
-		assert(!compositor || (compositor==parentScene->compositor));
+		gf_assert(!compositor || (compositor==parentScene->compositor));
 		tmp->compositor = parentScene->compositor;
 	} else {
 		tmp->graph = gf_sg_new();
@@ -347,7 +345,7 @@ GF_EXPORT
 void gf_scene_del(GF_Scene *scene)
 {
 	gf_list_del(scene->resources);
-	assert(!gf_list_count(scene->extra_scenes) );
+	gf_assert(!gf_list_count(scene->extra_scenes) );
 	gf_list_del(scene->extra_scenes);
 
 #ifndef GPAC_DISABLE_VRML
@@ -1115,7 +1113,6 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 		if (obj->odm && (odm->source_id != obj->odm->source_id)) continue;
 
 		if (obj->OD_ID==GF_MEDIA_EXTERNAL_ID) {
-			//assert(obj->odm);
 			if (obj->odm == odm) {
 				/*assign FINAL OD, not parent*/
 				obj->odm = odm;
@@ -1850,8 +1847,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 				create_movie(scene, n1, szName, szTex, szGeom, GF_FALSE);
 			}
 		}
-		assert(max_x>min_x);
-		assert(max_y>min_y);
+		gf_assert(max_x>min_x);
+		gf_assert(max_y>min_y);
 
 		scene->srd_min_x = min_x;
 		scene->srd_min_y = min_y;
@@ -2045,7 +2042,7 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 			if (odm->ServiceID != scene->selected_service_id) continue;
 			if (odm->redirect_url) {
 				remote_odm = odm;
-				assert(remote_odm->scene_ns->nb_odm_users);
+				gf_assert(remote_odm->scene_ns->nb_odm_users);
 				remote_odm->scene_ns->nb_odm_users--;
 				remote_odm->scene_ns = scene->root_od->scene_ns;
 				remote_odm->scene_ns->nb_odm_users++;
@@ -3254,8 +3251,8 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		addon->media_pts = addon_time->media_pts;
 		addon->media_timestamp = addon_time->media_timestamp;
 		addon->media_timescale = addon_time->media_timescale;
-		assert(addon_time->media_timescale);
-		assert(!addon->loop_detected);
+		gf_assert(addon_time->media_timescale);
+		gf_assert(!addon->loop_detected);
 	}
 
 	if (!addon->timeline_ready) {
@@ -3304,7 +3301,7 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 	addon->media_pts = addon->past_media_pts;
 	addon->media_timestamp = addon->past_media_timestamp;
 	addon->media_timescale = addon->past_media_timescale;
-	assert(addon->past_media_timescale);
+	gf_assert(addon->past_media_timescale);
 	addon->past_media_pts = 0;
 	addon->past_media_timestamp = 0;
 	addon->past_media_timescale = 0;
@@ -3356,7 +3353,7 @@ Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u
 s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 {
 	s64 media_ts_ms;
-	assert(addon->timeline_ready);
+	gf_assert(addon->timeline_ready);
 	if (addon->is_splicing) {
 		if (!addon->min_dts_set || (orig_ts<addon->splice_min_dts)) {
 			addon->splice_min_dts = orig_ts;

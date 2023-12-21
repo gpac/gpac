@@ -6969,7 +6969,10 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			continue;
 		}
 		//we are sure to have an unknown box here
-		assert(a->type==GF_ISOM_BOX_TYPE_UNKNOWN);
+		if (a->type!=GF_ISOM_BOX_TYPE_UNKNOWN) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Sample description %s not supported\n", gf_4cc_to_str(a->type) ));
+			continue;
+		}
 
 		if (!a->data || (a->dataSize<8) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Sample description %s does not have at least 8 bytes!\n", gf_4cc_to_str(a->original_4cc) ));
@@ -8023,7 +8026,7 @@ static u32 ctrn_ctts_to_index(GF_TrackFragmentRunBox *ctrn, s32 ctts)
 		if (ctrn->ctso_multiplier) return ctrn_s32_to_index(ctts / ctrn->ctso_multiplier);
 		return ctrn_s32_to_index(ctts);
 	}
-	assert(ctts>0);
+	gf_assert(ctts>0);
 	if (ctrn->ctso_multiplier) return ctrn_u32_to_index((u32)ctts / ctrn->ctso_multiplier);
 	return ctrn_s32_to_index((u32)ctts);
 }

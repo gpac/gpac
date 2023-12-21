@@ -1787,7 +1787,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn)
 
 static void gf_sk_free(GF_Socket *sock)
 {
-	assert( sock );
+	gf_assert( sock );
 	if (!sock->socket) return;
 
 	/*leave multicast*/
@@ -1819,7 +1819,7 @@ static void gf_sk_free(GF_Socket *sock)
 GF_EXPORT
 void gf_sk_del(GF_Socket *sock)
 {
-	assert( sock );
+	gf_assert( sock );
 	gf_sk_free(sock);
 #ifdef WIN32
 	wsa_init --;
@@ -3295,7 +3295,7 @@ void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 	sg->fds[sg->nb_fds].events = sg->last_mask;
 	sg->fds[sg->nb_fds].revents = 0;
 	sk->poll_idx = sg->nb_fds+1;
-	assert(sg->fds[sg->nb_fds].fd != 0);
+	gf_assert(sg->fds[sg->nb_fds].fd != 0);
 	sg->nb_fds++;
 #endif
 }
@@ -3411,7 +3411,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 			sg->last_mask = mask;
 			for (i=0; i<sg->nb_fds; i++) {
 				sg->fds[i].events = mask;
-				assert(sg->fds[i].fd != 0);
+				gf_assert(sg->fds[i].fd != 0);
 			}
 		}
 		int res = poll(sg->fds, sg->nb_fds, usec_wait/1000);

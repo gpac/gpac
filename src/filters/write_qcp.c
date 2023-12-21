@@ -253,7 +253,7 @@ static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
 	gf_bs_del(bs);
 
 	if (!ctx->first) {
-		assert(ctx->needs_final_pach);
+		gf_assert(ctx->needs_final_pach);
 		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 		gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 		gf_filter_pck_set_byte_offset(dst_pck, 0);

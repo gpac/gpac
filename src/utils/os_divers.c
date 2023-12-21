@@ -1658,7 +1658,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	u32 entry_time;
 	HANDLE hSnapShot;
 
-	assert(sys_init);
+	gf_assert(sys_init);
 
 	if (!rti) return GF_FALSE;
 
@@ -2116,7 +2116,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.total_cpu_usage = the_rti.process_cpu_usage;
 
     kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
-    assert(kr == KERN_SUCCESS);
+    gf_assert(kr == KERN_SUCCESS);
 
 
 	if (last_update_time) {
@@ -2169,7 +2169,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	char szProc[100];
 	char line[2048];
 
-	assert(sys_init);
+	gf_assert(sys_init);
 
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
@@ -2563,7 +2563,7 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName) {
 	switch (WaitForSingleObject(lock->hMutex, INFINITE)) {
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		assert(0); /*serious error: someone has modified the object elsewhere*/
+		gf_assert(0); /*serious error: someone has modified the object elsewhere*/
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't get the global lock\n"));
 		gf_global_resource_unlock(lock);
 		return NULL;
@@ -2585,7 +2585,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 	if (!lock)
 		return GF_BAD_PARAM;
 #ifndef WIN32
-	assert( lock->pidFile);
+	gf_assert( lock->pidFile);
 	close(lock->fd);
 	if (unlink(lock->pidFile))
 		perror("Failed to unlink lock file");

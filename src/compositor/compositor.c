@@ -162,7 +162,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		}
 		/*scene size has been overridden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
-			assert(!(compositor->override_size_flags & 2));
+			gf_assert(!(compositor->override_size_flags & 2));
 			compositor->msg_type &= ~GF_SR_CFG_OVERRIDE_SIZE;
 			compositor->override_size_flags |= 2;
 			width = compositor->scene_width;
@@ -1257,7 +1257,7 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 	}
 #endif
 
-	assert(!compositor->visual->overlays);
+	gf_assert(!compositor->visual->overlays);
 
 	compositor->reset_graphics = 0;
 	compositor->trans_x = compositor->trans_y = 0;
@@ -1506,7 +1506,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	compositor->new_width = NewWidth;
 	compositor->new_height = NewHeight;
 	compositor->msg_type |= GF_SR_CFG_SET_SIZE;
-	assert(compositor->new_width);
+	gf_assert(compositor->new_width);
 
 	/*if same size only request for video setup */
 	compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
@@ -2137,7 +2137,7 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 		diff -= compositor->frame_time[fidx];
 		if (diff<0) {
 			diff += 0xFFFFFFFFUL;
-			assert(diff >= 0);
+			gf_assert(diff >= 0);
 		}
 		run_time = (u32) diff;
 		frames = GF_SR_FPS_COMPUTE_SIZE-1;
@@ -3120,7 +3120,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 						next_frame = pck_frame_ts + gf_filter_pck_get_duration(pck);
 						next_frame *= 1000;
 						next_frame /= compositor->passthrough_timescale;
-						assert(next_frame>=compositor->scene_sampled_clock);
+						gf_assert(next_frame>=compositor->scene_sampled_clock);
 						compositor->scene_sampled_clock = (u32) next_frame;
 					}
 					// if buffering, remember to update clock at next frame
@@ -3217,7 +3217,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				res *= compositor->fps.den;
 				res *= 1000;
 				res /= compositor->fps.num;
-				assert(res >= compositor->scene_sampled_clock);
+				gf_assert(res >= compositor->scene_sampled_clock);
 				compositor->scene_sampled_clock = (u32) res;
 			}
 
@@ -4275,7 +4275,7 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, G
 Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms, u32 dur_in_ms)
 {
 	Bool is_early=GF_FALSE;
-	assert(odm);
+	gf_assert(odm);
 
 	if (for_pid)
 		gf_odm_check_buffering(odm, for_pid);
@@ -4705,7 +4705,7 @@ void gf_sc_connect_from_time(GF_Compositor *compositor, const char *URL, u64 sta
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] Connecting to %s\n", URL));
 
-	assert(!compositor->root_scene);
+	gf_assert(!compositor->root_scene);
 
 	/*create a new scene*/
 	scene = gf_scene_new(compositor, NULL);

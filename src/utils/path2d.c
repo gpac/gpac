@@ -490,7 +490,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 
 	rxsq = gf_mulfix(r_x, r_x);
 	rysq = gf_mulfix(r_y, r_y);
-	assert(rxsq && rysq);
+	gf_assert(rxsq && rysq);
 
 	radius_scale = gf_divfix(xmidpsq, rxsq) + gf_divfix(ymidpsq, rysq);
 	if (radius_scale > FIX_ONE) {

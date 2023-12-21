@@ -1087,7 +1087,9 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 				}
 			} else {
 				/* not possible */
-				assert(0);
+				gf_assert(0);
+				if (header) gf_free(header);
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			break;
 		case WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD:
@@ -1251,7 +1253,7 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 	GF_WebVTTSample *prev_wsample;
 	Bool            has_continuation_cue = GF_FALSE;
 
-	assert(gf_list_count(parser->samples) <= 1);
+	gf_assert(gf_list_count(parser->samples) <= 1);
 
 	wsample = gf_webvtt_sample_new();
 	wsample->start = start;
@@ -1490,7 +1492,7 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 GF_Err gf_webvtt_parser_finalize(GF_WebVTTParser *parser, u64 duration)
 {
 	GF_WebVTTSample *sample;
-	assert(gf_list_count(parser->samples) <= 1);
+	gf_assert(gf_list_count(parser->samples) <= 1);
 	sample = (GF_WebVTTSample *)gf_list_get(parser->samples, 0);
 	if (sample) {
 		while (gf_list_count(sample->cues)) {

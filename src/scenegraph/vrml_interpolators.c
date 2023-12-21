@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -74,7 +74,7 @@ static Fixed Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
 static Fixed GetInterpolateFraction(Fixed key1, Fixed key2, Fixed fraction)
 {
 	Fixed keyDiff = key2 - key1;
-	assert((fraction >= key1) && (fraction <= key2));
+	gf_assert((fraction >= key1) && (fraction <= key2));
 	if (ABS(keyDiff) < FIX_EPSILON) return 0;
 	return gf_divfix(fraction - key1, keyDiff);
 }

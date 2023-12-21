@@ -2008,7 +2008,7 @@ JSClassID svg_get_element_class(GF_Node *n)
 	if ((n->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG)) {
 #ifdef GPAC_ENABLE_HTML5_MEDIA
 		if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
-			assert(0);
+			gf_assert(0);
 			return html_get_element_class(n);
 		}
 #endif

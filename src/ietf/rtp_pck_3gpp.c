@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -80,7 +80,7 @@ GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 			builder->rtp_header.Marker = 0;	/*never set*/
 			builder->rtp_header.SequenceNumber += 1;
 			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
-			assert(builder->pck_hdr==NULL);
+			gf_assert(builder->pck_hdr==NULL);
 
 			/*always have header and TOC*/
 			builder->pck_hdr = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -112,7 +112,7 @@ GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 		builder->bytesInPacket += size;
 		offset += size;
 		rtp_ts += block_size;
-		assert(builder->bytesInPacket<=builder->Path_MTU);
+		gf_assert(builder->bytesInPacket<=builder->Path_MTU);
 		/*take care of aggregation, flush if needed*/
 		if (builder->last_au_sn==builder->auh_size) rtp_amr_flush(builder);
 	}
@@ -177,7 +177,7 @@ GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, u8 *data, u32 data_siz
 		builder->bytesInPacket += size;
 		offset += size;
 		rtp_ts += 160;
-		assert(builder->bytesInPacket<=builder->Path_MTU);
+		gf_assert(builder->bytesInPacket<=builder->Path_MTU);
 
 		/*take care of aggregation, flush if needed*/
 		builder->last_au_sn++;
@@ -243,7 +243,7 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 			builder->rtp_header.Marker = 0;	/*never set*/
 			builder->rtp_header.SequenceNumber += 1;
 			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
-			assert(builder->pck_hdr==NULL);
+			gf_assert(builder->pck_hdr==NULL);
 
 			if (builder->auh_size>1) {
 				builder->pck_hdr = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -274,7 +274,7 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 		builder->bytesInPacket += size;
 		offset += size;
 		rtp_ts += 160;
-		assert(builder->bytesInPacket<=builder->Path_MTU);
+		gf_assert(builder->bytesInPacket<=builder->Path_MTU);
 		/*take care of aggregation, flush if needed*/
 		if (builder->last_au_sn==builder->auh_size) rtp_evrc_smv_flush(builder);
 	}
@@ -696,7 +696,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 				builder->bytesInPacket += size;
 			}
 			du_offset += size+size_offset;
-			assert(du_size>= size+size_offset);
+			gf_assert(du_size>= size+size_offset);
 			du_size -= size+size_offset;
 		}
 		offset += orig_size;
@@ -777,7 +777,7 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 	}
 
 	/*need fragmentation*/
-	assert(!builder->bytesInPacket);
+	gf_assert(!builder->bytesInPacket);
 	offset = 0;
 	nb_pck = data_size / (builder->Path_MTU-2);
 	if (data_size % (builder->Path_MTU-2)) nb_pck++;
