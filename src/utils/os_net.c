@@ -1269,7 +1269,7 @@ GF_Err gf_netcap_setup(char *rules)
 		u32 pck_end=0;
 		s32 patch_offset=-1;
 		s32 patch_val=-1;
-		u32 rand_every = 0;
+		s32 rand_every = 0;
 		char *rule_str;
 		char *sep = strchr(rules, '[');
 		if (!sep) break;
@@ -3556,7 +3556,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 
 		if (sock!=nf->read_sock_selected) return GF_IP_NETWORK_EMPTY;
 		u32 to_read = length;
-		if (to_read > nf->pck_len) to_read = nf->pck_len;
+		if ((s32) to_read > nf->pck_len) to_read = nf->pck_len;
 		u32 res = gf_bs_read_data(nf->cap_bs, buffer, to_read);
 		if (nf->read_sock_selected->cap_info->patch_offset) {
 			if (nf->read_sock_selected->cap_info->patch_offset-1<res) {

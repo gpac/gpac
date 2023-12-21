@@ -1559,7 +1559,7 @@ retry:
 				rpid->route->is_done = GF_TRUE;
 				gf_filter_pid_set_discard(rpid->pid, GF_TRUE);
 			}
-			rpid->current_toi = p->value.lfrac.num;
+			rpid->current_toi = (u32) p->value.lfrac.num;
 		} else {
 			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENUM);
 			if (p)

@@ -819,21 +819,21 @@ setup_route:
 						GF_MPD_SegmentTimeline *seg_timeline=NULL;
 						if (dyn_period->segment_template) {
 							startNum = dyn_period->segment_template->start_number;
-							segdur = dyn_period->segment_template->duration;
+							segdur = (u32) dyn_period->segment_template->duration;
 							seg_timeline = dyn_period->segment_template->segment_timeline;
 							pto = dyn_period->segment_template->presentation_time_offset;
 							timescale = dyn_period->segment_template->timescale;
 						}
 						if (set->segment_template) {
 							startNum = set->segment_template->start_number;
-							if (set->segment_template->duration) segdur = set->segment_template->duration;
+							if (set->segment_template->duration) segdur = (u32) set->segment_template->duration;
 							if (set->segment_template->segment_timeline) seg_timeline = set->segment_template->segment_timeline;
 							if (set->segment_template->presentation_time_offset) pto = set->segment_template->presentation_time_offset;
 							if (set->segment_template->timescale) timescale = set->segment_template->timescale;
 						}
 						if (rep->segment_template) {
 							startNum = rep->segment_template->start_number;
-							if (rep->segment_template->duration) segdur = rep->segment_template->duration;
+							if (rep->segment_template->duration) segdur = (u32) rep->segment_template->duration;
 							if (rep->segment_template->segment_timeline) seg_timeline = rep->segment_template->segment_timeline;
 							if (rep->segment_template->presentation_time_offset) pto = rep->segment_template->presentation_time_offset;
 							if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
@@ -2066,7 +2066,7 @@ static u32 gf_dash_purge_segment_timeline(GF_DASH_Group *group, Double min_start
 	if (nb_removed) {
 		GF_MPD_SegmentList *segment_list;
 		/*update next download index*/
-		gf_fatal_assert(group->download_segment_index >= nb_removed);
+		gf_fatal_assert(group->download_segment_index >= (s32) nb_removed);
 		group->download_segment_index -= nb_removed;
 		gf_fatal_assert(group->nb_segments_in_rep >= nb_removed);
 		group->nb_segments_in_rep -= nb_removed;

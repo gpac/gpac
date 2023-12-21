@@ -3584,7 +3584,7 @@ resend:
 
 		if (sess->comp_data) {
 			memcpy(sess->buffer, sess->comp_data+sess->file_pos, to_read);
-			read = to_read;
+			read = (u32) to_read;
 		}
 		else if (sess->resource) {
 			read = (u32) gf_fread(sess->buffer, (u32) to_read, sess->resource);
@@ -3594,7 +3594,7 @@ resend:
 				return;
 			}
 		} else {
-			read = to_read;
+			read = (u32) to_read;
 		}
 		//transfer of file being uploaded, use chunk transfer
 		if (!sess->is_h2 && sess->use_chunk_transfer) {

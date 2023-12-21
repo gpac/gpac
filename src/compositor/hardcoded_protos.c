@@ -1760,11 +1760,11 @@ void mesh_new_spherical_srd(GF_Mesh *mesh, Fixed radius, const GF_PropertyValue 
 						u32 i, nb_items = srd->value.uint_list.nb_items / 8;
 						u32 *vals = srd->value.uint_list.vals;
 						for (i=0; i<nb_items; i++) {
-							if (orig_x < vals[8*i+4]) continue;
-							if (orig_x > vals[8*i+4] + vals[8*i+6]) continue;
+							if ((u32) orig_x < vals[8*i+4]) continue;
+							if ((u32) orig_x > vals[8*i+4] + vals[8*i+6]) continue;
 
-							if (orig_y < vals[8*i+5]) continue;
-							if (orig_y > vals[8*i+5] + vals[8*i+7]) continue;
+							if ((u32) orig_y < vals[8*i+5]) continue;
+							if ((u32) orig_y > vals[8*i+5] + vals[8*i+7]) continue;
 
 							orig_x -= vals[8*i+4]; //remove tx orig
 							orig_y -= vals[8*i+5]; //remove ty orig
