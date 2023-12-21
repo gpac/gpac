@@ -461,12 +461,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
 		if (!ctx->sdp_loaded && pck) {
-			Bool start, end;
 			u32 sdp_len;
 			const char *sdp_data;
-			gf_filter_pck_get_framing(pck, &start, &end);
-			assert(end);
-		
+
 			sdp_data = gf_filter_pck_get_data(pck, &sdp_len);
 			rtpin_load_sdp(ctx, (char *)sdp_data, sdp_len, NULL);
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -764,9 +761,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, ctx->nb_bytes_rcv ? 1000 : 10000);
 	}
 	else {
-		assert(ctx->min_frame_dur_ms <= (u32) ctx->max_sleep);
 		//reschedule in half the frame dur
-		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*500);
+		if (ctx->min_frame_dur_ms <= (u32) ctx->max_sleep)
+			gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*500);
 	}
 	return GF_OK;
 }

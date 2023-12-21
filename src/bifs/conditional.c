@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -68,7 +68,7 @@ static void Conditional_execute(M_Conditional *node)
 	/*set the codec working graph to the node one (to handle conditional in protos)*/
 	prev_graph = priv->codec->current_graph;
 	priv->codec->current_graph = gf_node_get_graph((GF_Node*)node);
-	assert(priv->codec->current_graph);
+	if (!priv->codec->current_graph) return;
 
 	priv->codec->info = priv->info;
 	prevproto = priv->codec->pCurrentProto;

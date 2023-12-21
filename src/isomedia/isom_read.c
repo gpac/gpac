@@ -5656,7 +5656,7 @@ exit:
 				senc->piff_type = 2;
 				senc->IV_size = 8;
 			}
-			assert(senc->IV_size);
+			gf_assert(senc->IV_size);
 			if (IsEncrypted) *IsEncrypted = GF_TRUE;
 			if (key_info_size) *key_info_size = senc->IV_size;
 		}
@@ -6246,7 +6246,7 @@ GF_Err gf_isom_get_chunk_info(GF_ISOFile *movie, u32 trackNumber, u32 chunk_num,
 				*sample_per_chunk = stsc->entries[i].samplesPerChunk;
 			break;
 		}
-		assert(stsc->entries[i].firstChunk<chunk_num);
+		if (stsc->entries[i].firstChunk>=chunk_num) return GF_ISOM_INVALID_FILE;
 
 		if ((i+1 == stsc->nb_entries)
 			|| (stsc->entries[i+1].firstChunk>chunk_num)
@@ -6258,7 +6258,7 @@ GF_Err gf_isom_get_chunk_info(GF_ISOFile *movie, u32 trackNumber, u32 chunk_num,
 				*sample_per_chunk = stsc->entries[i].samplesPerChunk;
 			break;
 		}
-		assert(stsc->entries[i+1].firstChunk > stsc->entries[i].firstChunk);
+		if (stsc->entries[i+1].firstChunk <= stsc->entries[i].firstChunk) return GF_ISOM_INVALID_FILE;
 
 		nb_chunks_before = stsc->entries[i+1].firstChunk - stsc->entries[i].firstChunk;
 		nb_samples += stsc->entries[i].samplesPerChunk * nb_chunks_before;

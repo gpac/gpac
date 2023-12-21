@@ -380,7 +380,7 @@ static GF_FileIO *httpio_open(GF_FileIO *fileio_ref, const char *url, const char
 			httpio_del(ioctx);
 			//last read session on a discarded object, fallthrough to discard parent
 			if (!par->nb_used && par->do_remove) {
-				assert(par->in);
+				gf_assert(par->in);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] delete old version of input file %s\n", gf_fileio_resource_url(ioctx->fio) ));
 				gf_list_del_item(par->in->mem_files, par);
 				httpio_del(par);
@@ -388,7 +388,7 @@ static GF_FileIO *httpio_open(GF_FileIO *fileio_ref, const char *url, const char
 			return NULL;
 		}
 		//write file io
-		assert(ioctx->in);
+		gf_assert(ioctx->in);
 
 		//purge old files
 		count = gf_list_count(ioctx->in->mem_files);
@@ -462,7 +462,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 		}
 	}
 	if (last_connection) {
-		assert(sess->ctx->nb_connections);
+		gf_assert(sess->ctx->nb_connections);
 		sess->ctx->nb_connections--;
 
 		gf_sk_group_unregister(sess->ctx->sg, sess->socket);
@@ -745,7 +745,7 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
 	char *dir;
 	u32 len;
-	assert(in->path);
+	gf_assert(in->path);
 	//not recording
 	if (!ctx->has_read_dir) return;
 	HTTP_DIRInfo *di = gf_list_get(ctx->directories, 0);
@@ -1496,7 +1496,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->file_in_progress = GF_FALSE;
 		sess->nb_bytes = 0;
 		sess->done = GF_FALSE;
-		assert(full_path);
+		gf_assert(full_path);
 		if (sess->path) gf_free(sess->path);
 		sess->path = full_path;
 		if (sess->resource) gf_fclose(sess->resource);
@@ -1578,7 +1578,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	Bool no_longer_avail = GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_HTTPOutInput *in = gf_list_get(sess->ctx->inputs, i);
-		assert(in->path[0] == '/');
+		gf_assert(in->path[0] == '/');
 		//matching name and input pid not done: file has been created and is in progress
 		//if input pid done, try from file
 		if (!strcmp(in->path, url)) {
@@ -1823,8 +1823,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			sess->in_source_is_ll_hls_chunk = source_pid_is_ll_hls_chunk;
 
 			sess->file_in_progress = GF_TRUE;
-			assert(!full_path);
-			assert(source_pid->local_path);
+			gf_assert(!full_path);
+			gf_assert(source_pid->local_path);
 			if (source_pid_is_ll_hls_chunk)
 				full_path = gf_strdup(source_pid->hls_chunk_local_path);
 			else
@@ -2135,7 +2135,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	sess->nb_consecutive_errors = 0;
 	sess->canceled = GF_FALSE;
-	assert(sess->reply_code);
+	gf_assert(sess->reply_code);
 	e = gf_dm_sess_send_reply(sess->http_sess, sess->reply_code, response_body, response_body ? (u32) strlen(response_body) : 0, no_body);
 	sess->headers_done = GF_TRUE;
 	sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
@@ -3031,7 +3031,7 @@ static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Boo
 			if (!sess->in_source_is_ll_hls_chunk) continue;
 			if (strcmp(sess->path, in->local_path)) continue;
 
-			assert(sess->file_in_progress);
+			gf_assert(sess->file_in_progress);
 			if (sess->in_source) {
 				sess->in_source->nb_dest--;
 				sess->in_source = NULL;
@@ -3171,7 +3171,7 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		return GF_OK;
 	}
 	if (!sess->resource) {
-		assert(0);
+		gf_fatal_assert(0);
 	}
 	if (!sess->nb_ranges) {
 		write = (u32) gf_fwrite(data, size, sess->resource);
@@ -4006,7 +4006,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 		}
 
 		if (in->resource) {
-			assert(in->local_path);
+			gf_assert(in->local_path);
 			//close all LL-HLS chunks before closing session
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
 
@@ -4015,7 +4015,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 			for (i=0; i<count; i++) {
 				GF_HTTPOutSession *sess = gf_list_get(ctx->sessions, i);
 				if (sess->in_source != in) continue;
-				assert(sess->file_in_progress);
+				gf_assert(sess->file_in_progress);
 				if (sess->in_source) {
 					//in mem mode, sess->path may still be a local path, convert to gfio of source if needed
 					httpout_check_mem_path(sess, sess->in_source);

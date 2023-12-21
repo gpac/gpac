@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -716,7 +716,7 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 	while (cur) {
 		char b;
 		char *st = strstr(cur, "\r\n");
-		assert(st);
+		if (!st) break;
 		st += 2;
 		if (!st[0]) {
 			AddSDPLine(lines, gf_strdup(cur), is_movie_sdp);

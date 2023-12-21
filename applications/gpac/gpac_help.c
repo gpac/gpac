@@ -3455,7 +3455,7 @@ Bool gpac_expand_alias(int o_argc, char **o_argv)
 		argv[a_idx] = o_argv[i];
 		a_idx++;
 	}
-	assert(argc==a_idx);
+	gf_assert(argc==a_idx);
 
 	for (i=0; i< (u32) argc; i++) {
 		char *arg = argv[i];

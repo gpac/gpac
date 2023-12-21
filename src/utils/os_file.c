@@ -520,8 +520,8 @@ static Bool gf_unregister_file_handle(FILE *ptr)
 {
 	u32 i, count;
 	Bool res = GF_FALSE;
-	assert(gpac_file_handles);
-	gpac_file_handles--;
+	if (gpac_file_handles)
+		gpac_file_handles--;
 
 	if (!gpac_open_files)
 		return GF_FALSE;

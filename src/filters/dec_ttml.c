@@ -171,7 +171,7 @@ static GF_Err ttmldec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 	//TODO: we need to cleanup cap checking upon reconfigure
 	if (ctx->ipid && !gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
-	assert(!ctx->ipid || (ctx->ipid == pid));
+	gf_assert(!ctx->ipid || (ctx->ipid == pid));
 
 	ctx->ipid = pid;
 	if (!ctx->opid) {

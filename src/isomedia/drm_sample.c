@@ -1211,7 +1211,7 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 {
 	u32 i;
 	Bool is_first_saiz = GF_FALSE;
-	assert(stbl);
+	gf_assert(stbl);
 
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SAIZ);

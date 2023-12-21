@@ -442,7 +442,7 @@ static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void latm_dmx_update_cts(GF_LATMDmxCtx *ctx)
 {
-	assert(ctx->dts_inc);
+	gf_assert(ctx->dts_inc);
 
 	if (ctx->timescale) {
 		u64 inc = ctx->dts_inc;
@@ -596,11 +596,14 @@ restart:
 
 	if (pck) {
 		pos = (u32) gf_bs_get_position(ctx->bs);
-		assert(ctx->latm_buffer_size >= pos);
-		memmove(ctx->latm_buffer, ctx->latm_buffer+pos, ctx->latm_buffer_size - pos);
-		ctx->latm_buffer_size -= pos;
+		if (ctx->latm_buffer_size >= pos) {
+			memmove(ctx->latm_buffer, ctx->latm_buffer+pos, ctx->latm_buffer_size - pos);
+			ctx->latm_buffer_size -= pos;
+		} else {
+			ctx->latm_buffer_size = 0;
+		}
 		gf_filter_pid_drop_packet(ctx->ipid);
-		assert(!ctx->resume_from);
+		gf_assert(!ctx->resume_from);
 	} else {
 		ctx->latm_buffer_size = 0;
 		//avoid recursive call

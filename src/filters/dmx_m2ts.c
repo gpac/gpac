@@ -862,7 +862,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 #if 0  //unused
 static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
 {
-	assert(ctx->eit_pid == NULL);
+	gf_assert(ctx->eit_pid == NULL);
 	ctx->eit_pid = gf_filter_pid_new(ctx->filter);
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_ID, &PROP_UINT(GF_M2TS_PID_EIT_ST_CIT) );
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_PRIVATE_SCENE) );
@@ -895,7 +895,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PMT_FOUND:
 		m2tsdmx_setup_program(ctx, param);
 		if (ctx->mux_tune_state == DMX_TUNE_WAIT_PROGS) {
-			assert(ctx->wait_for_progs);
+			gf_assert(ctx->wait_for_progs);
 			ctx->wait_for_progs--;
 			if (!ctx->wait_for_progs) {
 				ctx->mux_tune_state = DMX_TUNE_WAIT_SEEK;
@@ -940,7 +940,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
 
-		assert(pck->stream);
+		gf_fatal_assert(pck->stream);
 		if (!ctx->sigfrag && ctx->index) {
 			m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
 		}

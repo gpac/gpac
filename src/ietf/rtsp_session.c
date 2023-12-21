@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -577,7 +577,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 				sess->RTSP_SignalData(sess, ch->ch_ptr, buffer+4, paySize, IsRTCP);
 			}
 			sess->CurrentPos += paySize+4;
-			assert(sess->CurrentPos <= sess->CurrentSize);
+			gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 		} else {
 			/*missed end of pck ?*/
 			if (sess->payloadSize) {
@@ -597,7 +597,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 			}
 			memcpy(sess->rtsp_pck_buf, buffer+4, Size-4);
 			sess->CurrentPos += Size;
-			assert(sess->CurrentPos <= sess->CurrentSize);
+			gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 		}
 	}
 	/*end of packet*/
@@ -617,7 +617,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 		sess->pck_start = 0;
 		sess->InterID = (u8) -1;
 		sess->CurrentPos += res;
-		assert(sess->CurrentPos <= sess->CurrentSize);
+		gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 	}
 	/*middle of packet*/
 	else {
@@ -625,7 +625,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 		memcpy(sess->rtsp_pck_buf + sess->pck_start, buffer, Size);
 		sess->pck_start += Size;
 		sess->CurrentPos += Size;
-		assert(sess->CurrentPos <= sess->CurrentSize);
+		gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 	}
 	return GF_OK;
 }
@@ -811,7 +811,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 				e = GF_IP_CONNECTION_FAILURE;
 			return e;
 		}
-		assert(size);
+		gf_assert(size);
 		sess->tunnel_state = 2;
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Got reply %s", buffer));
 

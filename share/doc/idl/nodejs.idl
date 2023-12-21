@@ -295,7 +295,7 @@ boolean is_supported_source(DOMString url, DOMString parent=null);
 
 \note Custom filters are always created with the flag GF_FS_REG_MAIN_THREAD set, so that they always run in the main thread
 
-\note If the custom filter is a source, it must be initially scheduled using \ref reschedule
+\note If the custom filter is a source, it must be initially scheduled using reschedule
 
 \param name name for the filter
 \param flags filter flags

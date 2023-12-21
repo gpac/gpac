@@ -438,7 +438,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		assert(ctx->pid == pid);
+		gf_assert(ctx->pid == pid);
 		ctx->do_rem_pid = GF_TRUE;
 		//set a NULL clock hint in case other sinks using clock hints are still running
 		GF_Fraction64 mtime;
@@ -447,7 +447,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_hint_single_clock(filter, 0, mtime);
 		return GF_OK;
 	}
-	assert(!ctx->pid || (ctx->pid==pid));
+	gf_assert(!ctx->pid || (ctx->pid==pid));
 	ctx->do_rem_pid = GF_FALSE;
 
 	if (!gf_filter_pid_check_caps(pid))

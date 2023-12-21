@@ -291,7 +291,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	GF_Filter *filter;
 	GF_Err e;
 	u32 i;
-	assert(fsess);
+	if (!fsess) return NULL;
 
 	GF_SAFEALLOC(filter, GF_Filter);
 	if (!filter) {
@@ -596,12 +596,10 @@ void task_del(void *_task)
 
 void gf_filter_del(GF_Filter *filter)
 {
+	gf_assert(filter);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
-	assert(filter);
-//	assert(!filter->detached_pid_inst);
-	assert(!filter->detach_pid_tasks_pending);
-//	assert(!filter->swap_pidinst_dst);
-	assert(!filter->swap_pidinst_src);
+	gf_assert(!filter->detach_pid_tasks_pending);
+	gf_assert(!filter->swap_pidinst_src);
 
 
 #ifdef GPAC_HAS_QJS
@@ -759,7 +757,7 @@ void gf_filter_del(GF_Filter *filter)
 GF_EXPORT
 void *gf_filter_get_udta(GF_Filter *filter)
 {
-	assert(filter);
+	gf_assert(filter);
 
 	return filter->filter_udta;
 }
@@ -767,7 +765,7 @@ void *gf_filter_get_udta(GF_Filter *filter)
 GF_EXPORT
 const char * gf_filter_get_name(GF_Filter *filter)
 {
-	assert(filter);
+	gf_assert(filter);
 	if (filter->name)
 		return (const char *)filter->name;
 	return (const char *)filter->freg->name;
@@ -776,7 +774,7 @@ const char * gf_filter_get_name(GF_Filter *filter)
 GF_EXPORT
 void gf_filter_set_name(GF_Filter *filter, const char *name)
 {
-	assert(filter);
+	gf_assert(filter);
 
 	if (filter->name) gf_free(filter->name);
 	filter->name = gf_strdup(name ? name : filter->freg->name);
@@ -784,7 +782,7 @@ void gf_filter_set_name(GF_Filter *filter, const char *name)
 
 void gf_filter_set_id(GF_Filter *filter, const char *ID)
 {
-	assert(filter);
+	gf_assert(filter);
 
 	if (filter->id) gf_free(filter->id);
 	filter->id = ID ? gf_strdup(ID) : NULL;
@@ -803,7 +801,7 @@ void gf_filter_reset_source(GF_Filter *filter)
 
 static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 {
-	assert(filter);
+	gf_assert(filter);
 
 	gf_mx_p(filter->session->filters_mx);
 
@@ -2263,10 +2261,10 @@ void gf_filter_check_output_reconfig(GF_Filter *filter)
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			//PID was reconfigured, update props
 			if (pidi->reconfig_pid_props) {
-				assert(pidi->props);
+				gf_assert(pidi->props);
 				if (pidi->props != pidi->reconfig_pid_props) {
 					//unassign old property list and set the new one
-					assert(pidi->props->reference_count);
+					gf_assert(pidi->props->reference_count);
 					if (safe_int_dec(& pidi->props->reference_count) == 0) {
 						//see \ref gf_filter_pid_merge_properties_internal for mutex
 						gf_mx_p(pidi->pid->filter->tasks_mx);
@@ -2296,7 +2294,7 @@ static GF_FilterPidInst *filter_relink_get_upper_pid(GF_FilterPidInst *src_pidin
 		//filter was explicitly loaded, cannot go beyond
 		if (! pidinst->filter->dynamic_filter && !pidinst->filter->encoder_codec_id) break;
 		opid = gf_list_get(pidinst->filter->output_pids, 0);
-		assert(opid);
+		if (!opid) break;
 		//we have a fan-out, we cannot replace the filter graph after that point
 		//this would affect the other branches of the upper graph
 		if (opid->num_destinations != 1) break;
@@ -2323,7 +2321,7 @@ void gf_filter_relink_task(GF_FSTask *task)
 		return;
 	}
 	//good do go, unprotect pid
-	assert(cur_pidinst->detach_pending);
+	gf_assert(cur_pidinst->detach_pending);
 	safe_int_dec(&cur_pidinst->detach_pending);
 	task->filter->removed = 0;
 	e = cur_pidinst->loss_rate;
@@ -2348,7 +2346,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst, GF_Err reason)
 	}
 	//locate the true destination
 	dst_pidinst = filter_relink_get_upper_pid(src_pidinst, &needs_flush);
-	assert(dst_pidinst);
+	gf_fatal_assert(dst_pidinst);
 
 	//make sure we flush the end of the pipeline  !
 	if (needs_flush) {
@@ -2424,7 +2422,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	GF_Filter *new_f, *src_f;
 	Bool reconfig_only = src_pidi ? GF_FALSE: GF_TRUE;
 
-	assert(filter);
+	gf_assert(filter);
 
 	if (!filter_dst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
@@ -2451,7 +2449,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	) {
 		GF_FilterPidInst *a_dst_pidi;
 		new_f = pid->filter;
-		assert(pid->num_destinations==1);
+		gf_assert(pid->num_destinations==1);
 		a_dst_pidi = gf_list_get(pid->destinations, 0);
 		//we are replacing the chain, remove filters until dest, keeping the final PID connected since we will detach
 		// and reattach it
@@ -2460,7 +2458,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		is_new_chain = GF_FALSE;
 
 		//we will reassign packets from that pid instance to the new connection
-		assert(!filter_dst->swap_pidinst_dst);
+		gf_assert(!filter_dst->swap_pidinst_dst);
 		filter_dst->swap_pidinst_dst = a_dst_pidi;
 		filter_dst->swap_pending = GF_TRUE;
 
@@ -2523,8 +2521,8 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		if (is_new_chain) {
 			//signal a stream reset is pending to prevent filter entering endless loop
 			safe_int_inc(&dst_pidi->filter->stream_reset_pending);
-			assert(!new_f->swap_pidinst_dst);
-			assert(!new_f->swap_pidinst_src);
+			gf_assert(!new_f->swap_pidinst_dst);
+			gf_assert(!new_f->swap_pidinst_src);
 			//keep track of the pidinst being detached in the target filter
 			new_f->swap_pidinst_dst = dst_pidi;
 			//keep track of the pidinst being detached from the source filter
@@ -2541,7 +2539,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	}
 
 	if (reconfig_only) {
-		assert(pid->caps_negociate);
+		gf_fatal_assert(pid->caps_negociate);
 		new_f->caps_negociate = pid->caps_negociate;
 		safe_int_inc(&new_f->caps_negociate->reference_count);
 	}
@@ -2567,8 +2565,8 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 	if (filter->is_pid_adaptation_filter) {
 		//do not remove from destination_filters, needed for end of pid_init task
 		if (!filter->dst_filter) filter->dst_filter = gf_list_get(filter->destination_filters, 0);
-		assert(filter->dst_filter);
-		assert(filter->num_input_pids==1);
+		gf_assert(filter->dst_filter);
+		gf_assert(filter->num_input_pids==1);
 	}
 	//swap to pid
 	pid->caps_negociate = filter->caps_negociate;
@@ -2595,7 +2593,7 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 		gf_list_del(pid->adapters_blacklist);
 		src_pid->adapters_blacklist = NULL;
 	}
-	assert(pid->caps_negociate->reference_count);
+	gf_assert(pid->caps_negociate->reference_count);
 	if (safe_int_dec(&pid->caps_negociate->reference_count) == 0) {
 		gf_props_del(pid->caps_negociate);
 	}
@@ -2610,7 +2608,7 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_insert)
 {
 	u32 i, j;
-	assert(filter->nb_caps_renegociate );
+	gf_assert(filter->nb_caps_renegociate );
 	safe_int_dec(& filter->nb_caps_renegociate );
 
 	gf_mx_p(filter->tasks_mx);
@@ -2640,7 +2638,7 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 
 						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration error %s, discarding filter and reloading new adaptation chain\n", filter->name, gf_error_to_string(e)));
 
-						assert(filter->num_input_pids==1);
+						gf_assert(filter->num_input_pids==1);
 
 						gf_filter_pid_retry_caps_negotiate(src_pidi->pid, pid, pidi->filter);
 
@@ -2674,12 +2672,12 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 				//we are disconnected (unload of a previous adaptation filter)
 				else {
 					filter_dst = pid->caps_dst_filter;
-					assert(pid->num_destinations==0);
+					gf_assert(pid->num_destinations==0);
 					pid->caps_dst_filter = NULL;
 					gf_filter_renegociate_output_dst(pid, filter, filter_dst, NULL, NULL);
 				}
 			}
-			assert(pid->caps_negociate->reference_count);
+			gf_assert(pid->caps_negociate->reference_count);
 			if (safe_int_dec(&pid->caps_negociate->reference_count) == 0) {
 				gf_props_del(pid->caps_negociate);
 			}
@@ -2717,8 +2715,8 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	//TODO: find a way to bypass this mutex ?
 	gf_mx_p(filter->tasks_mx);
 
-	assert(filter->scheduled_for_next_task || filter->session->direct_mode);
-	assert(filter->process_task_queued);
+	gf_assert(filter->scheduled_for_next_task || filter->session->direct_mode);
+	gf_assert(filter->process_task_queued);
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
 		if (filter->pending_packets && filter->num_input_pids) {
@@ -2865,9 +2863,9 @@ static void gf_filter_process_task(GF_FSTask *task)
 	Bool skip_block_mode = GF_FALSE;
 	GF_Filter *filter = task->filter;
 	Bool force_block_state_check=GF_FALSE;
-	assert(task->filter);
-	assert(filter->freg);
-	assert(filter->freg->process);
+	gf_assert(task->filter);
+	gf_assert(filter->freg);
+	gf_assert(filter->freg->process);
 	task->can_swap = 1;
 
 	filter->schedule_next_time = 0;
@@ -2886,7 +2884,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		//we would not longer call it
 		task->requeue_request = GF_TRUE;
 
- 		assert(filter->process_task_queued);
+ 		gf_assert(filter->process_task_queued);
 		//in we are during the graph resolution phase, to not ask for RT reschedule: this can post-pone process tasks and change their initial
 		//scheduling order, resulting in random change of input pid declaration, for example:
 		//fin1 -> reframe1 -> fA
@@ -2926,11 +2924,14 @@ static void gf_filter_process_task(GF_FSTask *task)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has stream reset pending, postponing process\n", filter->name));
 		filter->nb_tasks_done--;
 		task->requeue_request = GF_TRUE;
-		assert(filter->process_task_queued);
+		gf_assert(filter->process_task_queued);
 		return;
 	}
-	assert(filter->process_task_queued);
-	assert(!filter->multi_sink_target);
+	gf_assert(filter->process_task_queued);
+	if (filter->multi_sink_target) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s is a multi-sink target, process disabled\n", filter->name));
+		return;
+	}
 
 	//the following breaks demuxers where PIDs are not all known from start: if we filter some pids due to user request,
 	//we may end up with the following test true but not all PIDs yet declared, hence no more processing
@@ -3041,14 +3042,14 @@ static void gf_filter_process_task(GF_FSTask *task)
 		if (filter->schedule_next_time)
 			task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
-		assert(filter->process_task_queued);
+		gf_assert(filter->process_task_queued);
 	}
 	//filter requested a requeue
 	else if (filter->schedule_next_time) {
 		if (!filter->session->in_final_flush) {
 			task->schedule_next_time = filter->schedule_next_time;
 			task->requeue_request = GF_TRUE;
-			assert(filter->process_task_queued);
+			gf_assert(filter->process_task_queued);
 		}
 	}
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
@@ -3068,14 +3069,14 @@ static void gf_filter_process_task(GF_FSTask *task)
 		}
 		task->requeue_request = GF_TRUE;
 		task->can_swap = 2;
-		assert(filter->process_task_queued);
+		gf_assert(filter->process_task_queued);
 	}
 	else {
-		assert (!filter->schedule_next_time);
+		gf_assert (!filter->schedule_next_time);
 		gf_filter_check_pending_tasks(filter, task);
 		if (task->requeue_request) {
 			task->can_swap = 2;
-			assert(filter->process_task_queued);
+			gf_assert(filter->process_task_queued);
 		}
 	}
 }
@@ -3234,7 +3235,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 
 	//lock task mx to take the decision whether to post a new task or not (cf gf_filter_check_pending_tasks)
 	gf_mx_p(filter->tasks_mx);
-	assert((s32)filter->process_task_queued>=0);
+	gf_assert((s32)filter->process_task_queued>=0);
 
 	if (use_direct_dispatch) {
 		safe_int_inc(&filter->process_task_queued);
@@ -3244,7 +3245,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s skip post process task\n", filter->name));
-		assert(filter->session->run_status
+		gf_assert(filter->session->run_status
 		 		|| filter->session->in_final_flush
 		 		|| filter->disabled
 				|| filter->scheduled_for_next_task
@@ -3253,7 +3254,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 		);
 	}
 	if (!filter->session->direct_mode && !use_direct_dispatch) {
-		assert(filter->process_task_queued);
+		gf_assert(filter->process_task_queued);
 	}
 	gf_mx_v(filter->tasks_mx);
 }
@@ -3488,7 +3489,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 		return;
 	}
 
-	assert(f->finalized);
+	gf_assert(f->finalized);
 
 	if (count!=1) {
 		task->requeue_request = GF_TRUE;
@@ -3536,9 +3537,9 @@ void gf_filter_post_remove(GF_Filter *filter)
 {
 	//session about to be destroy, don't post task
 	if (filter->session->run_status==GF_EOS) return;
-	assert(!filter->swap_pidinst_dst);
-	assert(!filter->swap_pidinst_src);
-	assert(!filter->finalized);
+	gf_assert(!filter->swap_pidinst_dst);
+	gf_assert(!filter->swap_pidinst_src);
+	gf_assert(!filter->finalized);
 	filter->finalized = GF_TRUE;
 
 	//post remove task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
@@ -3627,7 +3628,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s from session\n", filter->name));
 	}
 	//get all dest pids, post disconnect and mark filters as removed
-	assert(!filter->removed);
+	gf_assert(!filter->removed);
 	filter->removed = 1;
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
@@ -3716,7 +3717,7 @@ void gf_filter_remove(GF_Filter *filter)
 		} else {
 			GF_FilterEvent fevt;
 			//source filter still active, mark output pid as not connected, send a stop and post disconnect
-			assert(pidi->pid->num_destinations==1);
+			gf_assert(pidi->pid->num_destinations==1);
 			pidi->pid->not_connected=1;
 			pidi->pid->filter->num_out_pids_not_connected++;
 			GF_FEVT_INIT(fevt, GF_FEVT_STOP, (GF_FilterPid *) pidi);

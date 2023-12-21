@@ -2262,7 +2262,7 @@ static JSValue jsf_pid_get_packet(JSContext *ctx, JSValueConst this_val, int arg
 
 	if (pctx->pck_head) {
 		pckctx = pctx->pck_head;
-		assert(pckctx->pck == pck);
+		gf_assert(pckctx->pck == pck);
 		return JS_DupValue(ctx, pckctx->jsobj);
 	}
 
@@ -2746,7 +2746,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			JS_FreeValue(ctx, obj);
 			return res;
 		}
-		assert(f_ifce);
+		gf_assert(f_ifce);
 		pckc->pck = gf_filter_pck_new_frame_interface(pctx->pid, f_ifce, pck_del);
 		goto pck_done;
 	}
@@ -4364,7 +4364,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	pctx = gf_filter_pid_get_udta(pid);
 
 	if (is_remove) {
-		assert(pctx);
+		gf_assert(pctx);
 		gf_js_lock(jsf->ctx, GF_TRUE);
 		ret = JS_Call(jsf->ctx, jsf->funcs[JSF_EVT_REMOVE_PID], jsf->filter_obj, 1, &pctx->jsobj);
 		if (JS_IsException(ret)) {

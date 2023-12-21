@@ -123,7 +123,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	pctx->is_video = GF_FALSE;
 	GF_Fraction *delay = NULL;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-	assert(prop);
+	gf_fatal_assert(prop);
 	switch (prop->value.uint) {
 	case GF_STREAM_VISUAL:
 		pctx->is_video = GF_TRUE;
@@ -522,7 +522,7 @@ static GF_Err restamp_process(GF_Filter *filter)
 					gf_filter_pck_ref(&pctx->pck_ref);
 					discard = GF_TRUE;
 				}
-				assert(pctx->pck_ref);
+				gf_assert(pctx->pck_ref);
 				opck = gf_filter_pck_new_ref(pctx->opid, 0, 0, pctx->pck_ref);
 				if (!opck) return GF_OUT_OF_MEM;
 				gf_filter_pck_merge_properties(pck, opck);

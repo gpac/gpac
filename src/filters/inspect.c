@@ -672,7 +672,7 @@ static void dump_avc_pic_timing(FILE *dump, GF_BitStream *bs, AVCState *avc)
 
 	if (sps_id < 0) {
 		/*sps_active_idx equals -1 when no sps has been detected. In this case SEI should not be decoded.*/
-		assert(0);
+		gf_assert(0);
 		return;
 	}
 
@@ -1480,7 +1480,8 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
-	assert(pctx || obu_size >= 2);
+	if (!pctx && (obu_size >= 2))
+		return obu_size;
 
 	if (pctx) {
 		InspectLogCbk lcbk;
@@ -2419,7 +2420,7 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 	u32 size=0;
 	const char *data=NULL;
 	char *str = ctx->fmt;
-	assert(str);
+	gf_assert(str);
 
 	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
@@ -2919,7 +2920,7 @@ static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_
 	if (superframe_index_size)
 		inspect_printf(dump, " nb_frames=\"%u\" index_size=\"%u\">\n", num_frames_in_superframe, superframe_index_size);
 	else {
-		assert(num_frames_in_superframe==1);
+		gf_assert(num_frames_in_superframe==1);
 	}
 	for (i = 0; i < num_frames_in_superframe; ++i) {
 		u64 pos2 = gf_bs_get_position(pctx->bs);
@@ -4554,7 +4555,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
-		assert(pctx->src_pid == pid);
+		gf_assert(pctx->src_pid == pid);
 		if (is_remove)
 			pctx->src_pid = NULL;
 		else if (!ctx->is_prober)

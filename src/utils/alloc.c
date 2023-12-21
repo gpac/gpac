@@ -192,9 +192,8 @@ enum
 size_t gpac_allocated_memory = 0;
 size_t gpac_nb_alloc_blocs = 0;
 
-#ifdef _WIN32_WCE
-#define assert(p)
-#endif
+//defs for gf_assert
+#include <gpac/setup.h>
 
 //backtrace not supported on these platforms
 #if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
@@ -256,7 +255,7 @@ static void store_backtrace(char *s_backtrace)
 		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
 	}
-	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
+	gf_assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
 	s_backtrace[bt_idx-1] = '\0';
 }
 
@@ -294,7 +293,7 @@ static void store_backtrace(char *s_backtrace)
 		bt_idx += (len+1);
 
 	}
-	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
+	gf_assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
 	s_backtrace[bt_idx-1] = '\0';
 	free(messages);
 #endif
@@ -330,7 +329,6 @@ static char *gf_mem_strdup_basic(const char *str, const char *filename, int line
 	STRDUP(str);
 }
 
-
 static unsigned int nb_calls_alloc = 0;
 static unsigned int nb_calls_calloc = 0;
 static unsigned int nb_calls_realloc = 0;
@@ -341,7 +339,7 @@ void *gf_mem_malloc_tracker(size_t size, const char *filename, int line)
 	void *ptr = MALLOC(size);
 	if (!ptr) {
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] malloc() has returned a NULL pointer\n");
-		assert(0);
+		gf_assert(0);
 	} else {
 		register_address(ptr, size, filename, line);
 	}
@@ -357,7 +355,7 @@ void *gf_mem_calloc_tracker(size_t num, size_t size_of, const char *filename, in
 	void *ptr = CALLOC(num, size_of);
 	if (!ptr) {
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] calloc() has returned a NULL pointer\n");
-		assert(0);
+		gf_assert(0);
 	} else {
 		register_address(ptr, size, filename, line);
 	}
@@ -398,7 +396,7 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, const char *filename, int l
 		/*b) The return value is NULL if there is not enough available memory to expand the block to the given size. In this case, the original block is unchanged.*/
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] realloc() has returned a NULL pointer\n");
 		register_address(ptr, size_prev, filename, line);
-		assert(0);
+		gf_assert(0);
 	} else {
 		register_address(ptr_g, size, filename, line);
 //		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at %p (instead of %p)\n", size, size_prev, ptr_g, ptr);
@@ -606,7 +604,7 @@ static void gf_memory_add(memory_list *p, void *ptr, unsigned int size, const ch
 {
 	unsigned int hash;
 	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
-	assert(*p);
+	gf_fatal_assert(*p);
 
 	hash = gf_memory_hash(ptr);
 	gf_memory_add_stack(&((*p)[hash]), ptr, size, filename, line);
@@ -616,7 +614,7 @@ static void gf_memory_add(memory_list *p, void *ptr, unsigned int size, const ch
 static int gf_memory_find(memory_list p, void *ptr)
 {
 	unsigned int hash;
-	assert(p);
+	gf_assert(p);
 	if (!p) return 0;
 	hash = gf_memory_hash(ptr);
 	return gf_memory_find_stack(p[hash], ptr);
@@ -628,7 +626,7 @@ static unsigned int gf_memory_del_item(memory_list *p, void *ptr)
 	unsigned int ret;
 	memory_element **sub_list;
 	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
-	assert(*p);
+	gf_fatal_assert(*p);
 	hash = gf_memory_hash(ptr);
 	sub_list = &((*p)[hash]);
 	if (!sub_list) return 0;
@@ -666,8 +664,8 @@ static void register_address(void *ptr, size_t size, const char *filename, int l
 {
 	/*mutex initialization*/
 	if (gpac_allocations_lock == 0) {
-		assert(!memory_add);
-		assert(!memory_rem);
+		gf_assert(!memory_add);
+		gf_assert(!memory_rem);
 		gpac_allocations_lock = (GF_Mutex*)1; /*must be non-null to avoid a recursive infinite call*/
 		gpac_allocations_lock = gf_mx_new("gpac_allocations_lock");
 	}
@@ -720,14 +718,13 @@ Bool gf_mem_check_address(void *ptr)
 		int i;
 		unsigned int hash = gf_memory_hash(ptr);
 		memory_element *element = memory_rem[hash];
-		assert(element);
+		gf_assert(element);
 		for (i=1; i<pos; i++)
 			element = element->next;
-		assert(element);
+		gf_assert(element);
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed in:\n", ptr);
 		res = GF_FALSE;
         log_backtrace(GF_MEMORY_ERROR, element);
-//		assert(0);
 	}
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
@@ -749,28 +746,28 @@ static int unregister_address(void *ptr, const char *filename, int line)
 			  than being called by free() before the first allocation occured*/
 			return 1;
 			/*gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] calling free() before the first allocation occured\n");
-			   assert(0); */
+			   gf_assert(0); */
 		}
 	} else {
 		if (!gf_memory_find(memory_add, ptr)) {
 			int pos;
 			if (!(pos=gf_memory_find(memory_rem, ptr))) {
 				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] trying to free a never allocated block (%p)\n", ptr);
-				/* assert(0); */ /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
+				/* gf_assert(0); */ /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
 				int i;
 				unsigned int hash = gf_memory_hash(ptr);
 				memory_element *element = memory_rem[hash];
 
-				assert(element);
+				gf_assert(element);
 				for (i=1; i<pos; i++)
 					element = element->next;
-				assert(element);
+				gf_assert(element);
 				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p trying to be deleted in:\n", ptr);
 				gf_memory_log(GF_MEMORY_ERROR, "             file %s at line %d\n", filename, line);
 				gf_memory_log(GF_MEMORY_ERROR, "             was already freed in:\n");
 				log_backtrace(GF_MEMORY_ERROR, element);
-				assert(0);
+				gf_fatal_assert(0);
 			}
 		} else {
 			size = gf_memory_del_item(&memory_add, ptr);
@@ -783,8 +780,8 @@ static int unregister_address(void *ptr, const char *filename, int line)
 
 			/*the allocation list is empty: free the lists to avoid a leak (we should be exiting)*/
 			if (!memory_add) {
-				assert(!gpac_allocated_memory);
-				assert(!gpac_nb_alloc_blocs);
+				gf_assert(!gpac_allocated_memory);
+				gf_assert(!gpac_nb_alloc_blocs);
 
 				/*we destroy the mutex we own, then we return*/
 				gf_mx_del(gpac_allocations_lock);
@@ -830,10 +827,10 @@ static int unregister_address(void *ptr, const char *filename, int line)
 static void gf_memory_log(unsigned int level, const char *fmt, ...)
 {
 	va_list vl;
-	char msg[1024];
-	assert(strlen(fmt) < 200);
+	char msg[1025];
 	va_start(vl, fmt);
 	vsnprintf(msg, 1024, fmt, vl);
+	msg[1024] = 0;
 	GF_LOG(level, GF_LOG_MEMORY, (msg));
 	va_end(vl);
 }
@@ -856,11 +853,11 @@ void gf_memory_print()
 {
 	/*if lists are empty, the mutex is also NULL*/
 	if (!memory_add) {
-		assert(!gpac_allocations_lock);
+		gf_assert(!gpac_allocations_lock);
 		gf_memory_log(GF_MEMORY_INFO, "[MemTracker] gf_memory_print(): the memory tracker is not initialized, some file handles are not closed.\n");
 	} else {
 		int i=0;
-		assert(gpac_allocations_lock);
+		gf_assert(gpac_allocations_lock);
 		const char *enum_open_handles(u32 *idx);
 		u32 nb_handles = gf_file_handles_count();
 

@@ -1779,7 +1779,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		multi_pid_stsd = p->value.ptr;
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_MULTI_PID_IDX);
-		assert(p);
+		gf_fatal_assert(p);
 		multi_pid_final_stsd_idx = p->value.uint;
 
 		//should never be the case
@@ -3225,7 +3225,7 @@ sample_entry_setup:
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 
 	} else {
-		assert(0);
+		gf_fatal_assert(0);
 	}
 
 	if (!tkw->all_stsd_crc) {
@@ -4448,7 +4448,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		u8 *sai_d;
 		u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
-		assert(tkw->cenc_subsamples);
+		gf_assert(tkw->cenc_subsamples);
 
 		//multi-key skip all IV inits
 		if (tkw->cenc_ki->value.data.ptr[0]) {
@@ -6044,7 +6044,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	} else {
 		mp4_mux_flush_seg(ctx, GF_TRUE, 0, 0, GF_TRUE);
 	}
-	assert(!ctx->dst_pck);
+	gf_assert(!ctx->dst_pck);
 
 	//change major brand for segments
 	if (ctx->styp && (strlen(ctx->styp)>=4)) {
@@ -6315,11 +6315,11 @@ GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 		tkw->samples_in_stsd = 0;
 		tkw->samples_in_frag = 0;
 	}
-	assert(ctx->next_file_idx);
+	gf_assert(ctx->next_file_idx);
 	ctx->cur_file_idx_plus_one = ctx->next_file_idx;
 	ctx->next_file_idx = 0;
 	ctx->notify_filename = GF_TRUE;
-	assert(!ctx->cur_file_suffix);
+	gf_assert(!ctx->cur_file_suffix);
 	if (ctx->next_file_suffix) {
 		ctx->cur_file_suffix = gf_strdup(ctx->next_file_suffix);
 		ctx->next_file_suffix = NULL;
@@ -6765,7 +6765,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					 if (!ctx->alloc_seg_sizes) ctx->alloc_seg_sizes = 10;
 					 ctx->seg_sizes = gf_realloc(ctx->seg_sizes, sizeof(u32) * ctx->alloc_seg_sizes);
 				}
-				assert(segment_size_in_bytes);
+				gf_assert(segment_size_in_bytes);
 				ctx->seg_sizes[ctx->nb_seg_sizes] = (u32) segment_size_in_bytes;
 				ctx->nb_seg_sizes++;
 			}
@@ -7493,7 +7493,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			gf_filter_pck_send(pck);
 		} else {
 			GF_BitStream *bs;
-			assert(!ctx->dst_pck);
+			gf_assert(!ctx->dst_pck);
 
 			if (block_size > ctx->sidx_max_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Final SIDX chunk larger than preallocated block, will not flush SIDX (output file still readable). Try disabling nocache mode\n"));
@@ -7952,10 +7952,11 @@ static GF_Err mp4_mux_done(GF_MP4MuxCtx *ctx, Bool is_final)
 				if (force_rewrite) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 					GF_ESD *esd = gf_isom_get_esd(ctx->file, tkw->track_num, tkw->stsd_idx);
-					assert(esd);
-					gf_m4v_rewrite_pl(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
-					gf_isom_change_mpeg4_description(ctx->file, tkw->track_num, tkw->stsd_idx, esd);
-					gf_odf_desc_del((GF_Descriptor*)esd);
+					if (esd) {
+						gf_m4v_rewrite_pl(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
+						gf_isom_change_mpeg4_description(ctx->file, tkw->track_num, tkw->stsd_idx, esd);
+						gf_odf_desc_del((GF_Descriptor*)esd);
+					}
 #endif
 
 				}

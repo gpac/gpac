@@ -992,8 +992,8 @@ void gf_mx2d_apply_rect(GF_Matrix2D *_this, GF_Rect *rc)
 	rc->height = MIN(c1.y, MIN(c2.y, MIN(c3.y, c4.y)));
 	rc->y = MAX(c1.y, MAX(c2.y, MAX(c3.y, c4.y)));
 	rc->height = rc->y - rc->height;
-	assert(rc->height>=0);
-	assert(rc->width>=0);
+	gf_assert(rc->height>=0);
+	gf_assert(rc->width>=0);
 }
 
 /*
@@ -1540,7 +1540,7 @@ void gf_mx_inverse(GF_Matrix *mx)
 	GF_Matrix rev;
 	gf_mx_init(rev);
 
-	assert(! ((mx->m[3] != 0) || (mx->m[7] != 0) || (mx->m[11] != 0) || (mx->m[15] != FIX_ONE)) );
+	gf_assert(! ((mx->m[3] != 0) || (mx->m[7] != 0) || (mx->m[11] != 0) || (mx->m[15] != FIX_ONE)) );
 
 
 #ifdef GPAC_FIXED_POINT
@@ -1732,7 +1732,7 @@ GF_EXPORT
 void gf_mx_get_yaw_pitch_roll(GF_Matrix *mx, Fixed *yaw, Fixed *pitch, Fixed *roll)
 {
 	Fixed locmat[16];
-	assert(mx->m[15]);
+	gf_assert(mx->m[15]);
 	memcpy(locmat, mx->m, sizeof(Fixed)*16);
 	*pitch = (Float) atan(locmat[4]/locmat[0]);
 	*yaw = (Float) atan(-locmat[8]/gf_sqrt(pow(locmat[9],2) + pow(locmat[10],2)));
@@ -1748,7 +1748,7 @@ void gf_mx_decompose(GF_Matrix *mx, GF_Vec *translate, GF_Vec *scale, GF_Vec4 *r
 	GF_Matrix tmp;
 	GF_Vec row0, row1, row2;
 	Fixed shear_xy, shear_xz, shear_yz;
-	assert(mx->m[15]);
+	gf_assert(mx->m[15]);
 
 	memcpy(locmat, mx->m, sizeof(Fixed)*16);
 	/*no perspective*/

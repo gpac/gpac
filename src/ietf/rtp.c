@@ -100,7 +100,6 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 		ch->net_info.Profile = gf_strdup(trans_info->Profile);
 
 	if (!ch->net_info.IsUnicast && trans_info->destination) {
-		assert( trans_info->destination );
 		ch->net_info.source = gf_strdup(trans_info->destination);
 		if (ch->net_info.client_port_first) {
 			ch->net_info.port_first = ch->net_info.client_port_first;
@@ -420,7 +419,6 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 		e = gf_sk_receive(ch->rtp, buffer, buffer_size, &res);
 	}
 	if (!res || e || (res < 12)) {
-		assert(res==0);
 		res = 0;
 	}
 	if (res) {
@@ -1045,7 +1043,7 @@ void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush, B
 	if (!po->in) return NULL;
 
 	if (po->disc) {
-		assert(po->in);
+		gf_assert(po->in);
 		goto send_it;
 	}
 

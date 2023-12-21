@@ -773,9 +773,12 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		}
 	}
 	if (consumed) {
-		assert(remain>=consumed);
-		remain -= consumed;
-		start += consumed;
+		if (remain>=consumed) {
+			remain -= consumed;
+			start += consumed;
+		} else {
+			remain=0;
+		}
 	}
 
 skip:

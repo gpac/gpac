@@ -635,7 +635,7 @@ restart:
 				}
 				cur_buf = hdr_start+1;
 				cur_size = (u32) (cur_buf - start);
-				assert(cur_size<=remain);
+				gf_fatal_assert(cur_size<=remain);
 				cur_size = remain - cur_size;
 				hdr_start = NULL;
 			}
@@ -764,11 +764,11 @@ restart:
 		}
 		flac_dmx_update_cts(ctx, nb_samp);
 
-		assert (start[0] == 0xFF);
-		assert((start[1]&0xFC) == 0xF8);
+		gf_assert (start[0] == 0xFF);
+		gf_assert((start[1]&0xFC) == 0xF8);
 
 		start += next_frame;
-		assert(remain >= next_frame);
+		gf_assert(remain >= next_frame);
 		remain -= next_frame;
 
 	}

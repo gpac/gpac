@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -395,7 +395,11 @@ start:
 
 	/* Then, if compression is asked, we do it */
 	buffer_len = (u32)fsize;
-	assert(fsize < 0x80000000);
+	if (fsize >= 0x80000000) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("DIMS unit too big\n"));
+		e = GF_NOT_SUPPORTED;
+		goto exit;
+	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len));
 	if (compress_dims) {
 #ifndef GPAC_DISABLE_ZLIB

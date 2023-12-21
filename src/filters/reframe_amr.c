@@ -368,7 +368,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->opid)
 				gf_filter_pid_set_eos(ctx->opid);
-			assert(ctx->remaining == 0);
+			gf_assert(ctx->remaining == 0);
 			return GF_EOS;
 		}
 		return GF_OK;

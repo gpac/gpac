@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -443,20 +443,26 @@ static s32 SDP_MakeSeconds(char *buf)
 	memset(num, 0, 30);
 	test = strstr(buf, "d");
 	if (test) {
-		assert(strlen(buf)-strlen(test) < sizeof(num));
-		memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
+		if (strlen(buf)-strlen(test) < sizeof(num))
+			memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
+		else
+			gf_assert(0);
 		return (atoi(num)*sign*86400);
 	}
 	test = strstr(buf, "h");
 	if (test) {
-		assert(strlen(buf)-strlen(test) < sizeof(num));
-		memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
+		if (strlen(buf)-strlen(test) < sizeof(num))
+			memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
+		else
+			gf_assert(0);
 		return (atoi(num)*sign*3600);
 	}
 	test = strstr(buf, "m");
 	if (test) {
-		assert(strlen(buf)-strlen(test) < sizeof(num));
-		memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
+		if (strlen(buf)-strlen(test) < sizeof(num))
+			memcpy(num, buf, MIN(sizeof(num)-1, strlen(buf)-strlen(test)));
+		else
+			gf_assert(0);
 		return (atoi(num)*sign*60);
 	}
 	return (atoi(buf) * sign);

@@ -1020,12 +1020,12 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 			}
 		} else if (ctx->forward==DFWD_SBOUND_MANIFEST) {
 			if (group_idx>=0) {
-				assert(manifest_name);
+				gf_assert(manifest_name);
 				if (!ctx->hls_variants) ctx->hls_variants = gf_list_new();
 				if (!ctx->hls_variants_names) ctx->hls_variants_names = gf_list_new();
 				gf_list_add(ctx->hls_variants, manifest_payload);
 				manifest_payload = NULL;
-				gf_list_add(ctx->hls_variants_names, gf_strdup(manifest_name) );
+				gf_list_add(ctx->hls_variants_names, gf_strdup(manifest_name ? manifest_name : "manifest.mpd") );
 
 			} else {
 				if (ctx->manifest_payload) gf_free(ctx->manifest_payload);
@@ -2019,7 +2019,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (opid == NULL) {
 		u32 run_status;
 		group = gf_dash_get_group_udta(ctx->dash, group_idx);
-		assert(group);
+		if (!group) return GF_SERVICE_ERROR;
 		//for now we declare every component from the input source
 		opid = dashdmx_create_output_pid(ctx, pid, &run_status, group);
 		gf_filter_pid_set_udta(opid, group);
@@ -2444,7 +2444,6 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 static void dashdmx_finalize(GF_Filter *filter)
 {
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
-	assert(ctx);
 
 	if (ctx->dash)
 		gf_dash_del(ctx->dash);
@@ -2919,7 +2918,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	}
 
 fetch_next:
-	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
+	gf_assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
 	group->wait_for_pck = GF_TRUE;
 	group->in_error = GF_FALSE;
 	if (group->segment_sent) {
@@ -3032,7 +3031,10 @@ fetch_next:
 	//setup group quality before sending the event, in case the segment switching does not trigger a reconfigure of the PID(s)
 	dashdmx_notify_group_quality(ctx, group);
 
-	assert(next_url);
+	if (!next_url) {
+		gf_assert(0);
+		next_url = "missing_segment";
+	}
 	group->seg_was_not_ready = GF_FALSE;
 
 	if (next_url_init_or_switch_segment && !group->init_switch_seg_sent) {

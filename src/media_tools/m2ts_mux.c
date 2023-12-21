@@ -531,7 +531,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux *mux, GF_M2TS_Mux_Stream *str
 	}
 
 	section = stream->current_section;
-	assert(section);
+	gf_assert(section);
 
 	bs = mux->pck_bs;
 
@@ -562,7 +562,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux *mux, GF_M2TS_Mux_Stream *str
 #endif
 	}
 
-	assert(payload_length + stream->current_section_offset <= section->length);
+	gf_assert(payload_length + stream->current_section_offset <= section->length);
 
 	//CC field shall not be incremented for if adaptation field only, rewind counter
 	if (adaptation_field_control == GF_M2TS_ADAPTATION_ONLY) {
@@ -1308,7 +1308,6 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 		/*EOS*/
 		if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) return ret;
-		assert(stream->ifce->input_ctrl);
 		stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_PULL, &stream->curr_pck);
 	} else {
 		GF_M2TS_Packet *curr_pck;
@@ -1441,7 +1440,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		stream->sl_header.accessUnitStartFlag = (stream->curr_pck.flags & GF_ESI_DATA_AU_START) ? 1 : 0;
 		stream->sl_header.accessUnitEndFlag = (stream->curr_pck.flags & GF_ESI_DATA_AU_END) ? 1 : 0;
 #if 0
-		assert(stream->sl_header.accessUnitLength + stream->curr_pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
+		gf_assert(stream->sl_header.accessUnitLength + stream->curr_pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
 		stream->sl_header.accessUnitLength += stream->curr_pck.data_len;
 #endif
 		stream->sl_header.randomAccessPointFlag = (stream->curr_pck.sap_type) ? 1: 0;
@@ -1471,7 +1470,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		stream->sl_header.accessUnitStartFlag = (stream->curr_pck.flags & GF_ESI_DATA_AU_START) ? 1 : 0;
 		stream->sl_header.accessUnitEndFlag = (stream->curr_pck.flags & GF_ESI_DATA_AU_END) ? 1 : 0;
 #if 0
-		assert(stream->sl_header.accessUnitLength + stream->curr_pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
+		gf_assert(stream->sl_header.accessUnitLength + stream->curr_pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
 		stream->sl_header.accessUnitLength += stream->curr_pck.data_len;
 #endif
 		stream->sl_header.randomAccessPointFlag = (stream->curr_pck.sap_type) ? 1: 0;
@@ -1807,7 +1806,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 
 Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_length)
 {
-	assert(stream->pes_data_remain==0);
+	gf_assert(stream->pes_data_remain==0);
 	stream->pes_data_len = stream->curr_pck.data_len - stream->pck_offset;
 
 	stream->copy_from_next_packets = 0;
@@ -1958,7 +1957,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 	}
 
 	/*PES packet length: number of bytes in the PES packet following the last byte of the field "pes packet length"*/
-	assert(stream->pes_data_len);
+	gf_assert(stream->pes_data_len);
 	pes_len = stream->pes_data_len + 3; // 3 = header size
 	if (use_pts) pes_len += 5;
 	if (use_dts) pes_len += 5;
@@ -2015,7 +2014,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	Bool needs_pcr, first_pass;
 	u32 adaptation_field_control, payload_length, payload_to_copy, padding_length, hdr_len, pos, copy_next;
 
-	assert(stream->pid);
+	gf_assert(stream->pid);
 
 	if (stream->pcr_only_mode) {
 		payload_length = 184 - 8;
@@ -2088,13 +2087,13 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			}
 
 			if (hdr_len) {
-				assert(!stream->pes_data_remain);
+				gf_assert(!stream->pes_data_remain);
 				if (! gf_m2ts_stream_compute_pes_length(stream, payload_length)) {
 					first_pass = GF_FALSE;
 					continue;
 				}
 
-				assert(stream->pes_data_remain==stream->pes_data_len);
+				gf_assert(stream->pes_data_remain==stream->pes_data_len);
 			}
 			break;
 		}
@@ -2245,12 +2244,18 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		return;
 	}
 
-	assert(stream->curr_pck.data_len - stream->pck_offset >= payload_to_copy);
-	memcpy(packet+pos, stream->curr_pck.data + stream->pck_offset, payload_to_copy);
+	if (stream->curr_pck.data_len - stream->pck_offset >= payload_to_copy)
+		memcpy(packet+pos, stream->curr_pck.data + stream->pck_offset, payload_to_copy);
+	else {
+		gf_assert(0);
+	}
 	stream->pck_offset += payload_to_copy;
-	assert(stream->pes_data_remain >= payload_to_copy);
-	stream->pes_data_remain -= payload_to_copy;
-
+	if (stream->pes_data_remain >= payload_to_copy)
+		stream->pes_data_remain -= payload_to_copy;
+	else {
+		stream->pes_data_remain = 0;
+		gf_assert(0);
+	}
 	/*update stream time, including headers
 	Note that we don't do that if mux is not operating in fixed rate because the rate can be wrong (way too low)
 	causing time to increase too fast on IDRs
@@ -2327,7 +2332,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 				memcpy(packet+pos, stream->curr_pck.data + stream->pck_offset, copy_next);
 				stream->pck_offset += copy_next;
-				assert(stream->pes_data_remain >= copy_next);
+				gf_assert(stream->pes_data_remain >= copy_next);
 				stream->pes_data_remain -= copy_next;
 
 				if (stream->copy_from_next_packets > copy_next) {
@@ -2337,7 +2342,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 				}
 
 				if (stream->pck_offset == stream->curr_pck.data_len) {
-					assert(!remain || (remain>=stream->min_bytes_copy_from_next));
+					gf_assert(!remain || (remain>=stream->min_bytes_copy_from_next));
 					/*PES has been sent, discard internal buffer*/
 					if (stream->discard_data) gf_free(stream->curr_pck.data);
 					stream->curr_pck.data = NULL;
@@ -3314,7 +3319,7 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 					if (now.nanosec <= muxer->time.nanosec) {
 						diff += (muxer->time.nanosec - now.nanosec) / 1000;
 					} else {
-						assert(diff);
+						gf_assert(diff);
 						diff -= 1000000;
 						diff += (1000000000 + muxer->time.nanosec - now.nanosec) / 1000;
 					}

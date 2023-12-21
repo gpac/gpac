@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -154,10 +154,10 @@ GF_Err rtpin_stream_setup(GF_RTPInStream *stream, RTPIn_StreamDescribe *ch_desc)
 
 	/*assign channel handle if not done*/
 	if (ch_desc && stream->opid) {
-		assert(stream->opid == ch_desc->opid);
+		gf_assert(stream->opid == ch_desc->opid);
 	} else if (!stream->opid && stream->rtsp && !stream->rtsp->satip) {
-		assert(ch_desc);
-		assert(ch_desc->opid);
+		gf_assert(ch_desc);
+		gf_assert(ch_desc->opid);
 		stream->opid = ch_desc->opid;
 	}
 
@@ -232,7 +232,7 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 	if (!sess->session_id) sess->session_id = gf_strdup(sess->rtsp_rsp->Session);
 
 	if (! (stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
-		assert(!stream->session_id);
+		gf_assert(!stream->session_id);
 		stream->session_id = gf_strdup(sess->rtsp_rsp->Session);
 	}
 
@@ -525,8 +525,8 @@ Bool rtpin_rtsp_usercom_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com)
 			return GF_FALSE;
 		}
 
-		assert(stream->rtsp == sess);
-		assert(stream->opid == ch_ctrl->evt.base.on_pid);
+		gf_assert(stream->rtsp == sess);
+		gf_assert(stream->opid == ch_ctrl->evt.base.on_pid);
 	}
 
 	if (!com->Session) {
@@ -588,7 +588,7 @@ void rtpin_rtsp_usercom_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err 
 			return;
 		}
 
-		assert(stream->opid==ch_ctrl->evt.base.on_pid);
+		gf_assert(stream->opid==ch_ctrl->evt.base.on_pid);
 	}
 
 	/*some consistency checking: on interleaved sessions, some servers do NOT reply to the

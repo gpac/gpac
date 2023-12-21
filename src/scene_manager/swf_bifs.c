@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -470,7 +470,7 @@ static GF_Node *s2b_shape_to_curve2d(SWFReader *read, SWFShape *shape, SWFShapeR
 	}
 
 
-	assert(srec->path->nbType);
+	gf_assert(srec->path->nbType);
 
 	pt_idx = 0;
 	for (i=0; i<srec->path->nbType; i++) {
@@ -914,7 +914,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 					dx += gr->dx[j];
 					continue;
 				}
-				assert((gf_node_get_tag(gl->geometry)==TAG_MPEG4_Curve2D) || (gf_node_get_tag(gl->geometry)==TAG_MPEG4_XCurve2D));
+				gf_assert((gf_node_get_tag(gl->geometry)==TAG_MPEG4_Curve2D) || (gf_node_get_tag(gl->geometry)==TAG_MPEG4_XCurve2D));
 
 				gl_par = (M_Transform2D *) s2b_new_node(read, TAG_MPEG4_Transform2D);
 				gl->appearance = s2b_get_appearance(read, (GF_Node *) gl, gr->col, 0, 0);
@@ -1298,7 +1298,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	ID = read->load->ctx->max_node_id;
 	gf_node_set_id(n, ID, szDEF);
 	par = gf_sg_find_node_by_name(read->load->scene_graph, "DICTIONARY");
-	assert(par);
+	gf_assert(par);
 	gf_node_list_add_child(&((M_Switch *)par)->choice, n);
 	gf_node_register(n, par);
 	par = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");

@@ -354,8 +354,6 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
 
 	if (CudaDrvLib) return CUDA_SUCCESS;
 
-	assert(CudaDrvLib == 0);
-
 	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib));
 	curr_lib = CudaDrvLib;
 

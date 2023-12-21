@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -528,20 +528,29 @@ static void swf_referse_path(SWFPath *path)
 		types[j] = path->types[path->nbType - i - 1];
 		switch (types[j]) {
 		case 2:
-			assert(ptj<=path->nbPts-2);
+			if (ptj>path->nbPts-2) {
+				gf_assert(0);
+				break;
+			}
 			pts[ptj] = path->pts[pti];
 			pts[ptj+1] = path->pts[pti-1];
 			pti-=2;
 			ptj+=2;
 			break;
 		case 1:
-			assert(ptj<=path->nbPts-1);
+			if(ptj>path->nbPts-1) {
+				gf_assert(0);
+				break;
+			}
 			pts[ptj] = path->pts[pti];
 			pti--;
 			ptj++;
 			break;
 		case 0:
-			assert(ptj<=path->nbPts-1);
+			if (ptj>path->nbPts-1) {
+				gf_assert(0);
+				break;
+			}
 			pts[ptj] = path->pts[pti];
 			pti--;
 			ptj++;
@@ -678,7 +687,7 @@ restart:
 						idx += 1;
 						break;
 					default:
-						assert(0);
+						gf_assert(0);
 						break;
 					}
 				}
@@ -710,7 +719,7 @@ restart:
 						idx += 1;
 						break;
 					default:
-						assert(0);
+						gf_assert(0);
 						break;
 					}
 				}

@@ -1773,7 +1773,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 
 		/*write cover data*/
-		assert(!(tlen & 0x80000000));
+		if (tlen & 0x80000000) return GF_NON_COMPLIANT_BITSTREAM;
 		tlen &= 0x7FFFFFFF;
 
 		if (read->expart && !isom_contains_video) {

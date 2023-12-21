@@ -2189,7 +2189,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	}
 	/*not colinear*/
 	else {
-		assert(nb_scp<=nb_spine);
+		gf_assert(nb_scp<=nb_spine);
 
 		/*now non-cap SCPs axis*/
 		for (i=1; i<nb_scp-1; i++) {
@@ -2399,7 +2399,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 		if (smooth_normals) {
 			faces_info[begin_face].nor = n;
-			assert(gf_vec_len(n));
+			gf_assert(gf_vec_len(n));
 		}
 		cur_pts_in_cross = 0;
 		cur = 0;
@@ -2455,7 +2455,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 		if (smooth_normals) {
 			faces_info[end_face].nor = n;
-			assert(gf_vec_len(n));
+			gf_assert(gf_vec_len(n));
 		}
 		cur_pts_in_cross = 0;
 

@@ -31,7 +31,7 @@ static void free_evt(GF_FilterEvent *evt);
 
 static void pcki_del(GF_FilterPacketInstance *pcki)
 {
-	assert(pcki->pck->reference_count);
+	gf_assert(pcki->pck->reference_count);
 	if (safe_int_dec(&pcki->pck->reference_count) == 0) {
 		gf_filter_packet_destroy(pcki->pck);
 	}
@@ -40,7 +40,7 @@ static void pcki_del(GF_FilterPacketInstance *pcki)
 
 void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst)
 {
-	assert(pidinst);
+	gf_assert(pidinst);
 	while (gf_fq_count(pidinst->packets)) {
 		GF_FilterPacketInstance *pcki = gf_fq_pop(pidinst->packets);
 		pcki_del(pcki);
@@ -54,14 +54,14 @@ void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst)
 
 void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 {
-	assert(pidinst);
+	gf_assert(pidinst);
 	gf_filter_pid_inst_reset(pidinst);
 
  	gf_fq_del(pidinst->packets, (gf_destruct_fun) pcki_del);
 	gf_mx_del(pidinst->pck_mx);
 	gf_list_del(pidinst->pck_reassembly);
 	if (pidinst->props) {
-		assert(pidinst->props->reference_count);
+		gf_assert(pidinst->props->reference_count);
 		gf_mx_p(pidinst->pid->filter->tasks_mx);
 		//not in parent pid, may happen when reattaching a pid inst to a different pid
 		//in this case do NOT delete the props
@@ -112,14 +112,14 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		if (!pid->would_block) {
 			safe_int_inc(&pid->would_block);
 			safe_int_inc(&pid->filter->would_block);
-			assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
+			gf_assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
 		}
 		return;
 	}
 
 	unblock=GF_FALSE;
 
-	assert(pid->playback_speed_scaler);
+	gf_assert(pid->playback_speed_scaler);
 
 	//we block according to the number of dispatched units (decoder output) or to the requested buffer duration
 	//for other streams - unblock accordingly
@@ -141,10 +141,12 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 	if (pid->would_block) {
 		safe_int_dec(&pid->would_block);
 
-		assert(pid->filter->would_block);
+		gf_assert(pid->filter->would_block);
+
 		safe_int_dec(&pid->filter->would_block);
-		assert((s32)pid->filter->would_block>=0);
-		assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
+
+		gf_assert((s32)pid->filter->would_block>=0);
+		gf_assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked (filter has %d blocking pids)\n", pid->pid->filter->name, pid->pid->name, pid->pid->filter->would_block));
 
@@ -363,7 +365,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	GF_Filter *filter = pid->filter;
 	Bool pid_still_alive = GF_FALSE;
 
-	assert(filter);
+	gf_assert(filter);
 	//reset in process
 	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending || filter->abort_pending) {
 		TASK_REQUEUE(task)
@@ -397,7 +399,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	gf_mx_v(filter->tasks_mx);
 
 	if (pidinst->is_decoder_input) {
-		assert(pid->nb_decoder_inputs);
+		gf_assert(pid->nb_decoder_inputs);
 		safe_int_dec(&pid->nb_decoder_inputs);
 	}
 	gf_filter_pid_inst_del(pidinst);
@@ -419,7 +421,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		pid->buffer_duration = 0;
 	}
 
-	assert(pid->filter == filter);
+	gf_assert(pid->filter == filter);
 
 	if (pid_still_alive)
 		return;
@@ -441,7 +443,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	}
 	//no more destinations on pid, unblock if blocking
 	if (pid->would_block) {
-		assert(pid->filter->would_block);
+		gf_assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 	}
 
@@ -489,7 +491,7 @@ static void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid,
 
 
 	if (pidinst->is_decoder_input) {
-		assert(pid->nb_decoder_inputs);
+		gf_assert(pid->nb_decoder_inputs);
 		safe_int_dec(&pid->nb_decoder_inputs);
 	}
 	//this pid instance is registered to destination filter for chain reconfigure, don't discard it
@@ -552,9 +554,12 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 	if (filter->swap_needs_init) {
 		//we are in detach state, the packet queue of the old PID is never read
-		assert(filter->swap_pidinst_dst && filter->swap_pidinst_dst->detach_pending);
+		if (!filter->swap_pidinst_dst || !filter->swap_pidinst_dst->detach_pending) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s swaping PID %s failed\n", filter->name, src->pid->name));
+			return;
+		}
 		//we are in pending state, the origin of the old PID is never dispatching
-//		assert(dst->pid && dst->pid->filter && dst->pid->filter->out_pid_connection_pending);
+//		gf_assert(dst->pid && dst->pid->filter && dst->pid->filter->out_pid_connection_pending);
 		//we can therefore swap the packet queues safely and other important info
 	}
 	//otherwise we actually swap the pid instance on the same PID
@@ -583,11 +588,11 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		while (1) {
 			pcki = gf_fq_pop(src->packets);
 			if (!pcki) break;
-			assert(src->filter->pending_packets);
+			gf_assert(src->filter->pending_packets);
 			safe_int_dec(&src->filter->pending_packets);
 
 			if (pcki->pck->info.flags & GF_PCKF_FORCE_MAIN) {
-				assert(src->filter->nb_main_thread_forced);
+				gf_assert(src->filter->nb_main_thread_forced);
 				safe_int_dec(&src->filter->nb_main_thread_forced);
 				safe_int_inc(&dst->filter->nb_main_thread_forced);
 			}
@@ -624,7 +629,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		if (prev_dst_props) {
 			if (dst->props) {
 				gf_props_merge_property(dst->props, prev_dst_props, NULL, NULL);
-				assert(prev_dst_props->reference_count);
+				gf_assert(prev_dst_props->reference_count);
 				if (safe_int_dec(&prev_dst_props->reference_count) == 0) {
 					gf_props_del(prev_dst_props);
 				}
@@ -643,7 +648,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	if (src) {
 		if (filter->swap_needs_init) {
 			//exit out special handling of the pid since we are ready to detach
-			assert(src->filter->stream_reset_pending);
+			gf_assert(src->filter->stream_reset_pending);
 			safe_int_dec(&src->filter->stream_reset_pending);
 
 			//post detach task, we will reset the swap_pidinst only once truly deconnected from filter
@@ -652,8 +657,8 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			gf_fs_post_task(filter->session, gf_filter_pid_detach_task_no_flush, src->filter, src->pid, "pidinst_detach", filter);
 		} else {
 			GF_Filter *src_filter = src->filter;
-			assert(!src->filter->sticky);
-			assert(src->filter->num_input_pids==1);
+			gf_assert(!src->filter->sticky);
+			gf_assert(src->filter->num_input_pids==1);
 
 			gf_mx_p(src_filter->tasks_mx);
 			gf_list_del_item(src_filter->input_pids, src);
@@ -674,7 +679,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 
 	if (filter->swap_pidinst_src) {
 		src = filter->swap_pidinst_src;
-		assert(!src->filter->swap_pidinst_dst);
+		gf_assert(!src->filter->swap_pidinst_dst);
 		src->filter->swap_pidinst_dst = filter->swap_pidinst_dst;
 		src->filter->swap_pending = GF_TRUE;
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_swap_delete_task, src->filter, src->pid, "pid_inst_delete", src);
@@ -694,7 +699,7 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 		GF_FilterPacketInstance *pcki = gf_fq_get(pidinst->packets, i);
 		if (!pcki) break;
 		if (pcki->pck->info.flags & GF_PCKF_FORCE_MAIN) {
-			assert(pidinst->filter->nb_main_thread_forced);
+			gf_assert(pidinst->filter->nb_main_thread_forced);
 			safe_int_dec(&pidinst->filter->nb_main_thread_forced);
 		}
 	}
@@ -703,7 +708,7 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 		GF_FilterPacketInstance *pcki = gf_list_get(pidinst->pck_reassembly, i);
 		if (!pcki) break;
 		if (pcki->pck->info.flags & GF_PCKF_FORCE_MAIN) {
-			assert(pidinst->filter->nb_main_thread_forced);
+			gf_assert(pidinst->filter->nb_main_thread_forced);
 			safe_int_dec(&pidinst->filter->nb_main_thread_forced);
 		}
 	}
@@ -764,11 +769,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter = filter->multi_sink_target;
 	}
 
-	assert(filter->freg->configure_pid);
+	gf_assert(filter->freg->configure_pid);
 	if (filter->finalized) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to configure PID %s in finalized filter %s\n",  pid->name, filter->name));
 		if (ctype==GF_PID_CONF_CONNECT) {
-			assert(pid->filter->out_pid_connection_pending);
+			gf_assert(pid->filter->out_pid_connection_pending);
 			safe_int_dec(&pid->filter->out_pid_connection_pending);
 		}
 		return GF_SERVICE_ERROR;
@@ -784,7 +789,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				pidinst->filter = filter;
 				pidinst->pid = pid;
 
-				assert(!pidinst->props);
+				gf_assert(!pidinst->props);
 
 				//and treat as new pid inst
 				if (ctype == GF_PID_CONF_CONNECT) {
@@ -792,7 +797,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					if (!pid->filter->nb_pids_playing && (pidinst->is_playing || pidinst->is_paused))
 						refire_events = GF_TRUE;
 				}
-				assert(pidinst->detach_pending);
+				gf_assert(pidinst->detach_pending);
 				safe_int_dec(&pidinst->detach_pending);
 				//revert temp sticky flag
 				if (filter->sticky == 2)
@@ -831,7 +836,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 	//if new, add the PID to input/output before calling configure
 	if (new_pid_inst) {
-		assert(pidinst);
+		if (!pidinst) return GF_OUT_OF_MEM;
 		gf_mx_p(pid->filter->tasks_mx);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Registering %s:%s as destination for %s:%s\n", pid->filter->name, pid->name, pidinst->filter->name, pidinst->pid->name));
@@ -1041,14 +1046,14 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				//do not assign session->last_connect_error since we are retrying a connection
 
 				if (ctype==GF_PID_CONF_CONNECT) {
-					assert(pid->filter->out_pid_connection_pending);
+					gf_assert(pid->filter->out_pid_connection_pending);
 					safe_int_dec(&pid->filter->out_pid_connection_pending);
 				}
 				//3- post a re-init on this pid
 				gf_filter_pid_post_init_task(pid->filter, pid);
 
 				if (unload_filter) {
-					assert(!gf_list_count(filter->input_pids));
+					gf_assert(!gf_list_count(filter->input_pids));
 
 					if (filter->num_output_pids) {
 						for (i=0; i<filter->num_output_pids; i++) {
@@ -1066,8 +1071,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					filter->swap_pidinst_src = NULL;
 					if (filter->swap_pidinst_dst) {
 						GF_Filter *target = filter->swap_pidinst_dst->filter;
-						assert(target);
-						if (!target->detached_pid_inst) {
+						if (target && !target->detached_pid_inst) {
 							target->detached_pid_inst = gf_list_new();
 						}
 						//detach props
@@ -1084,7 +1088,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 							filter->swap_pidinst_dst->props = NULL;
 						}
 						filter->swap_pidinst_dst->pid = NULL;
-						if (gf_list_find(target->detached_pid_inst, filter->swap_pidinst_dst)<0)
+						if (target && (gf_list_find(target->detached_pid_inst, filter->swap_pidinst_dst)<0))
 							gf_list_add(target->detached_pid_inst, filter->swap_pidinst_dst);
 					}
 					filter->swap_pidinst_dst = NULL;
@@ -1164,7 +1168,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 
 	if (ctype==GF_PID_CONF_CONNECT) {
-		assert(pid->filter->out_pid_connection_pending);
+		gf_assert(pid->filter->out_pid_connection_pending);
 		if (safe_int_dec(&pid->filter->out_pid_connection_pending) == 0) {
 
 			//we must resent play/pause events when a new pid is reattached to an old pid instance
@@ -1217,7 +1221,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
 			}
-			assert(filter->in_pid_connection_pending);
+			gf_assert(filter->in_pid_connection_pending);
 			safe_int_dec(&filter->in_pid_connection_pending);
 			if (task->pid->pid) {
 				gf_mx_p(filter->tasks_mx);
@@ -1243,7 +1247,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	}
 
 	//filter may now be the clone, decrement on original filter
-	assert(task->filter->in_pid_connection_pending);
+	gf_assert(task->filter->in_pid_connection_pending);
 	safe_int_dec(&task->filter->in_pid_connection_pending);
 
 	gf_fs_cleanup_filters(fsess);
@@ -1347,23 +1351,23 @@ static void gf_filter_pid_detach_task_ex(GF_FSTask *task, Bool no_flush)
 		return;
 	}
 
-	assert(filter->freg->configure_pid);
+	gf_assert(filter->freg->configure_pid);
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s detach from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
-	assert(pid->filter->detach_pid_tasks_pending);
+	gf_assert(pid->filter->detach_pid_tasks_pending);
 	safe_int_dec(&pid->filter->detach_pid_tasks_pending);
 
 	//first connection of this PID to this filter
 	if (!pidinst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not present in filter %s inputs\n",  pid->name, filter->name));
 		//when swaping encoder, we may have swap_pidinst_dst not NULL so only check swap_pidinst_src
-		assert(!new_chain_input->swap_pidinst_src);
+		gf_assert(!new_chain_input->swap_pidinst_src);
 		new_chain_input->swap_needs_init = GF_FALSE;
 		return;
 	}
 
 	//detach props
 	if (pidinst->props) {
-		assert(pidinst->props->reference_count);
+		gf_assert(pidinst->props->reference_count);
 		if (safe_int_dec(& pidinst->props->reference_count) == 0) {
 			//see \ref gf_filter_pid_merge_properties_internal for mutex
 			gf_mx_p(pidinst->pid->filter->tasks_mx);
@@ -1377,7 +1381,7 @@ static void gf_filter_pid_detach_task_ex(GF_FSTask *task, Bool no_flush)
 	gf_mx_p(filter->tasks_mx);
 	//detach pid - remove all packets in our pid instance and also update filter pending_packets
 	count = gf_fq_count(pidinst->packets);
-	assert(count <= filter->pending_packets);
+	gf_assert(count <= filter->pending_packets);
 	safe_int_sub(&filter->pending_packets, (s32) count);
 	gf_filter_pid_inst_reset(pidinst);
 	pidinst->pid = NULL;
@@ -1401,7 +1405,7 @@ static void gf_filter_pid_detach_task_ex(GF_FSTask *task, Bool no_flush)
 		new_chain_input->swap_pidinst_src = NULL;
 		new_chain_input->swap_needs_init = GF_FALSE;
 	}
-	assert(new_chain_input->detach_pid_tasks_pending);
+	gf_assert(new_chain_input->detach_pid_tasks_pending);
 	safe_int_dec(&new_chain_input->detach_pid_tasks_pending);
 }
 
@@ -1811,7 +1815,7 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, GF_Fil
 sourceid_reassign:
 	source_ids = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
 	if (!first_pass) {
-		assert(dst_filter->dynamic_source_ids);
+		gf_assert(dst_filter->dynamic_source_ids);
 		source_ids = dst_filter->dynamic_source_ids;
 	}
 	has_default_match = GF_FALSE;
@@ -1865,7 +1869,7 @@ sourceid_reassign:
 		if (!last) {
 			frag_clone = gf_strdup(frag_name);
 			char *nsep = strchr(frag_clone, src_pid->filter->session->sep_list);
-			assert(nsep);
+			gf_assert(nsep);
 			nsep[0] = 0;
 			frag_name = frag_clone;
 		}
@@ -1884,7 +1888,7 @@ sourceid_reassign:
 					if (first_pass) {
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
 						char *frag_sep = strchr(frag_name, dst_filter->session->sep_name);
-						assert(frag_sep);
+						gf_assert(frag_sep);
 						if (next_frag) next_frag[0] = src_pid->filter->session->sep_frag;
 
 						char *new_source_ids = gf_malloc(sizeof(char) * (strlen(sid) + strlen(prop_dump_buffer)+1));
@@ -2027,7 +2031,7 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 	u32 nb_in_caps;
 
 	if (!freg) {
-		assert(dst_filter);
+		if (!dst_filter) return GF_FALSE;
 		freg = dst_filter->freg;
 		skip_explicit_load = GF_TRUE;
 	}
@@ -2906,9 +2910,9 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 						reg_desc->nb_alloc_edges += 10;
 						reg_desc->edges = gf_realloc(reg_desc->edges, sizeof(GF_FilterRegEdge) * reg_desc->nb_alloc_edges);
 					}
-					assert(path_weight<0xFF);
-					assert(k<0xFFFF);
-					assert(l<0xFFFF);
+					gf_assert(path_weight<0xFF);
+					gf_assert(k<0xFFFF);
+					gf_assert(l<0xFFFF);
 					edge = &reg_desc->edges[reg_desc->nb_edges];
 					memset(edge, 0, sizeof(GF_FilterRegEdge));
 					edge->src_reg = a_reg;
@@ -3193,12 +3197,12 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 		//don't add source filters except if PID is from source
 		if (!freg->configure_pid && (freg!=pid->filter->freg)) {
-			assert(freg != dst->freg);
+			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//freg shall be instantiated
 		else if ((freg->flags & (GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM)) && (freg != pid->filter->freg) && (freg != dst->freg) ) {
-			assert(freg != dst->freg);
+			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//no output caps, cannot add
@@ -3207,21 +3211,21 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 		//we only want reconfigurable output filters
 		else if (reconf_only && !freg->reconfigure_output && (freg != dst->freg)) {
-			assert(freg != dst->freg);
+			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 		//blacklisted filter
 		else if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0) {
 			//this commented because not true for multi-pids inputs (tiling) to a decoder
-			//assert(freg != dst->freg);
+			//gf_assert(freg != dst->freg);
 			if (!reconfigurable_only) {
-				assert(freg != pid->filter->freg);
+				gf_assert(freg != pid->filter->freg);
 			}
 			disable_filter = GF_TRUE;
 		}
 		//blacklisted adaptation filter
 		else if (pid->adapters_blacklist && (gf_list_find(pid->adapters_blacklist, (void *) freg)>=0)) {
-			assert(freg != dst->freg);
+			gf_assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
 
@@ -3572,7 +3576,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		GF_Filter *prev_af;
 
 		if (skip_if_in_filter_list) {
-			assert(skipped);
+			gf_assert(skipped);
 			*skipped = GF_FALSE;
 			u32 nb_skip = gf_list_count(skip_if_in_filter_list);
 			const GF_FilterRegister *chain_start_freg = gf_list_get(filter_chain, 0);
@@ -4268,7 +4272,7 @@ static const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_fir
 
 void gf_filter_pid_retry_caps_negotiate(GF_FilterPid *src_pid, GF_FilterPid *pid, GF_Filter *dst_filter)
 {
-	assert(dst_filter);
+	gf_assert(dst_filter);
 	src_pid->caps_negociate = pid->caps_negociate;
 	pid->caps_negociate = NULL;
 	src_pid->caps_dst_filter = dst_filter;
@@ -4449,7 +4453,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	const char *filter_id;
 
 	if (pid->destroyed || pid->removed) {
-		assert(pid->init_task_pending);
+		gf_assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		return;
 	}
@@ -5125,7 +5129,7 @@ single_retry:
 				if (pid->filter->session->run_status!=GF_OK) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init canceled (session abort)\n", pid->filter->name, pid->name));
 					gf_mx_v(filter->session->filters_mx);
-					assert(pid->init_task_pending);
+					gf_assert(pid->init_task_pending);
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
@@ -5141,7 +5145,7 @@ single_retry:
 						continue;
 					}
 					gf_mx_v(filter->session->filters_mx);
-					assert(pid->init_task_pending);
+					gf_assert(pid->init_task_pending);
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
 					gf_list_del(linked_dest_filters);
@@ -5165,7 +5169,7 @@ single_retry:
 					if (!new_f) {
 						if (reassigned) {
 							gf_mx_v(filter->session->filters_mx);
-							assert(pid->init_task_pending);
+							gf_assert(pid->init_task_pending);
 							safe_int_dec(&pid->init_task_pending);
 							if (loaded_filters) gf_list_del(loaded_filters);
 							gf_list_del(linked_dest_filters);
@@ -5206,7 +5210,7 @@ single_retry:
 		}
 
 		if (!(filter_dst->freg->flags & (GF_FS_REG_ALLOW_CYCLIC|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM))) {
-			assert(pid->pid->filter->freg != filter_dst->freg);
+			gf_assert(pid->pid->filter->freg != filter_dst->freg);
 		}
 
 		safe_int_inc(&pid->filter->out_pid_connection_pending);
@@ -5318,7 +5322,7 @@ single_retry:
 
     //connection task posted, nothing left to do
 	if (found_dest) {
-		assert(pid->init_task_pending);
+		gf_assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		gf_mx_v(filter->session->filters_mx);
 		pid->filter->disabled = GF_FILTER_ENABLED;
@@ -5328,7 +5332,7 @@ single_retry:
 		gf_fs_check_graph_load(filter->session, GF_FALSE);
 		if (pid->not_connected) {
 			pid->not_connected = 0;
-			assert(pid->filter->num_out_pids_not_connected);
+			gf_assert(pid->filter->num_out_pids_not_connected);
 			pid->filter->num_out_pids_not_connected--;
 		}
 		return;
@@ -5338,7 +5342,7 @@ single_retry:
 	if (dynamic_filter_clone && !num_pass) {
 		GF_Filter *clone = gf_filter_clone(dynamic_filter_clone, NULL);
 		if (clone) {
-			assert(dynamic_filter_clone->dynamic_source_ids);
+			gf_assert(dynamic_filter_clone->dynamic_source_ids);
 			gf_free(clone->source_ids);
 			clone->source_ids = gf_strdup(dynamic_filter_clone->dynamic_source_ids);
 			clone->cloned_from = NULL;
@@ -5392,14 +5396,14 @@ single_retry:
 	gf_mx_v(filter->session->filters_mx);
 
 	if (pid->num_destinations && !pid->not_connected) {
-		assert(pid->init_task_pending);
+		gf_assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		return;
 	}
 	filter->num_out_pids_not_connected ++;
 	//remove sparse info
 	if (pid->is_sparse) {
-		assert(filter->nb_sparse_pids);
+		gf_assert(filter->nb_sparse_pids);
 		safe_int_dec(&filter->nb_sparse_pids);
 		pid->is_sparse = 0;
 	}
@@ -5416,7 +5420,7 @@ single_retry:
 			filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 			filter->session->run_status = GF_FILTER_NOT_FOUND;
 			filter->session->in_final_flush = GF_TRUE;
-			assert(pid->init_task_pending);
+			gf_assert(pid->init_task_pending);
 			safe_int_dec(&pid->init_task_pending);
 			return;
 		}
@@ -5453,19 +5457,19 @@ single_retry:
 		filter->session->last_connect_error = GF_FILTER_NOT_FOUND;
 	}
 
-	assert(pid->init_task_pending);
+	gf_assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
 	return;
 }
 
 void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 {
-	assert(pid->pid);
-	assert(pid->filter != filter);
+	gf_assert(pid->pid);
+	gf_assert(pid->filter != filter);
 	if (!(filter->freg->flags & (GF_FS_REG_ALLOW_CYCLIC|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM))) {
-		assert(pid->filter->freg != filter->freg);
+		gf_assert(pid->filter->freg != filter->freg);
 	}
-	assert(filter->freg->configure_pid);
+	gf_assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
 	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE);
@@ -5544,7 +5548,7 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 
 	while (gf_list_count(pid->properties)) {
 		GF_PropertyMap *prop = gf_list_pop_back(pid->properties);
-		assert(prop->reference_count);
+		gf_assert(prop->reference_count);
 		if (safe_int_dec(&prop->reference_count) == 0) {
 			gf_props_del(prop);
 		}
@@ -5552,7 +5556,7 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 	gf_list_del(pid->properties);
 
 	if(pid->caps_negociate) {
-		assert(pid->caps_negociate->reference_count);
+		gf_assert(pid->caps_negociate->reference_count);
 		if (safe_int_dec(&pid->caps_negociate->reference_count) == 0) {
 			gf_props_del(pid->caps_negociate);
 		}
@@ -5562,7 +5566,7 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 		gf_list_del(pid->adapters_blacklist);
 
 	if (pid->infos) {
-		assert(pid->infos->reference_count);
+		gf_assert(pid->infos->reference_count);
 		if (safe_int_dec(&pid->infos->reference_count) == 0) {
 			gf_props_del(pid->infos);
 		}
@@ -5607,7 +5611,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 		if (merge_props)
 			gf_props_merge_property(map, old_map, NULL, NULL);
 
-		assert(old_map->reference_count);
+		gf_assert(old_map->reference_count);
 		if (safe_int_dec(&old_map->reference_count) == 0) {
 			//see \ref gf_filter_pid_merge_properties_internal for mutex
 			gf_mx_p(pid->filter->tasks_mx);
@@ -5755,7 +5759,7 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 	}
 	pid = pid->pid;
 	if (!pid->caps_negociate) {
-		assert(!pid->caps_negociate_pidi_list);
+		gf_assert(!pid->caps_negociate_pidi_list);
 		pid->caps_negociate = gf_props_new(pid->filter);
 		pid->caps_negociate_pidi_list = gf_list_new();
 		pid->caps_negociate_direct = GF_TRUE;
@@ -5832,7 +5836,7 @@ static GF_PropertyMap *filter_pid_get_prop_map(GF_FilterPid *pid, Bool first_pro
 			gf_mx_p(pid->filter->tasks_mx);
 			pidi->props = gf_list_get(pid->pid->properties, 0);
 			gf_mx_v(pid->filter->tasks_mx);
-			assert(pidi->props);
+			gf_fatal_assert(pidi->props);
 			safe_int_inc(&pidi->props->reference_count);
 		}
 		return pidi->props;
@@ -6140,7 +6144,7 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 			gf_mx_p(src_pid->filter->tasks_mx);
 			pidi->props = gf_list_get(src_pid->pid->properties, 0);
 			gf_mx_v(src_pid->filter->tasks_mx);
-			assert(pidi->props);
+			gf_fatal_assert(pidi->props);
 			safe_int_inc(&pidi->props->reference_count);
 		}
 		src_props = pidi->props;
@@ -6208,7 +6212,7 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 	if (ctype == GF_PCK_CMD_PID_EOS ) {
 		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pidi->pid->name, pidi->filter->name, pcki->pid->pid->has_seen_eos));
-		assert(pcki->pid->nb_eos_signaled);
+		gf_assert(pcki->pid->nb_eos_signaled);
 		safe_int_dec(&pcki->pid->nb_eos_signaled);
 		is_internal = GF_TRUE;
 	} else if (ctype == GF_PCK_CMD_PID_REM) {
@@ -6221,10 +6225,10 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 	if (ctype) {
 		u32 timescale;
 		if (pcki->pid->handles_clock_references) return GF_FALSE;
-		assert(pcki->pid->nb_clocks_signaled);
+		gf_assert(pcki->pid->nb_clocks_signaled);
 		safe_int_dec(&pcki->pid->nb_clocks_signaled);
 		//signal destination
-		assert(!pcki->pid->filter->next_clock_dispatch_type || !pcki->pid->filter->num_output_pids);
+		gf_assert(!pcki->pid->filter->next_clock_dispatch_type || !pcki->pid->filter->num_output_pids);
 
 		timescale = pcki->pck->pid_props ? pcki->pck->pid_props->timescale : 0;
 		pcki->pid->filter->next_clock_dispatch = pcki->pck->info.cts;
@@ -6238,7 +6242,7 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPidInst *pidi, GF_Filt
 			pcki->pid->last_clock_type = ctype;
 
 		if (ctype == GF_FILTER_CLOCK_PCR_DISC) {
-			assert(pcki->pid->last_clock_type == GF_FILTER_CLOCK_PCR_DISC);
+			gf_assert(pcki->pid->last_clock_type == GF_FILTER_CLOCK_PCR_DISC);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Internal clock reference packet filtered - PID %s clock ref "LLU"/%d - type %d\n", pcki->pid->pid->name, pcki->pid->last_clock_value, pcki->pid->last_clock_timescale, pcki->pid->last_clock_type));
 		//the following call to drop_packet will trigger clock forwarding to all output pids
@@ -6264,7 +6268,7 @@ static Bool filter_pck_check_prop_change(GF_FilterPidInst *pidinst, GF_FilterPac
 			if (pidinst->force_reconfig || (pidinst->props != pcki->pck->pid_props)) {
 				//destroy if last occurence, removing it from pid as well
 				//only remove if last about to be destroyed, since we may have several pid instances consuming from this pid
-				assert(pidinst->props->reference_count);
+				gf_assert(pidinst->props->reference_count);
 				if (safe_int_dec(& pidinst->props->reference_count) == 0) {
 					//see \ref gf_filter_pid_merge_properties_internal for mutex
 					gf_mx_p(pidinst->pid->filter->tasks_mx);
@@ -6289,7 +6293,7 @@ static Bool filter_pck_check_prop_change(GF_FilterPidInst *pidinst, GF_FilterPac
 			if (do_notif) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
 
-				assert(pidinst->filter->freg->configure_pid);
+				gf_assert(pidinst->filter->freg->configure_pid);
 			}
 
 			//reset the blacklist whenever reconfiguring, since we may need to reload a new filter chain
@@ -6339,7 +6343,7 @@ restart:
 		pidinst->filter->nb_pck_io++;
 		return NULL;
 	}
-	assert(pcki->pck);
+	gf_assert(pcki->pck);
 
 	if (gf_filter_pid_filter_internal_packet(pidinst, pcki)) {
 		//first time we get here in keepalive, return NULL even if we have a packet to force flush
@@ -6430,7 +6434,7 @@ Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 	if (!pcki) {
 		return GF_FALSE;
 	}
-	assert(pcki->pck);
+	gf_assert(pcki->pck);
 	if (pidinst->requires_full_data_block && !(pcki->pck->info.flags & GF_PCKF_BLOCK_END))
 		return GF_FALSE;
 
@@ -6458,7 +6462,7 @@ Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 	if (!pcki) {
 		return GF_TRUE;
 	}
-	assert(pcki->pck);
+	gf_assert(pcki->pck);
 
 	if (pidinst->requires_full_data_block && !(pcki->pck->info.flags & GF_PCKF_BLOCK_END))
 		return GF_TRUE;
@@ -6481,7 +6485,7 @@ Bool gf_filter_pid_first_packet_is_blocking_ref(GF_FilterPid *pid)
 	if (!pcki) {
 		return GF_FALSE;
 	}
-	assert(pcki->pck);
+	gf_assert(pcki->pck);
 	return gf_filter_pck_is_blocking_ref(pcki->pck);
 }
 
@@ -6619,7 +6623,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	//if not detached, undo main_thread flag - cf gf_filter_instance_detach_pid
 	if (pidinst->filter && (pck->info.flags & GF_PCKF_FORCE_MAIN)) {
-		assert(pidinst->filter->nb_main_thread_forced);
+		gf_assert(pidinst->filter->nb_main_thread_forced);
 		safe_int_dec(&pidinst->filter->nb_main_thread_forced);
 	}
 
@@ -6643,7 +6647,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Corrupted buffer level in PID instance %s (%s -> %s), dropping packet duration "LLD" us greater than buffer duration "LLU" us\n", pid->name, pid->filter->name, pidinst->filter ? pidinst->filter->name : "disconnected", d, pidinst->buffer_duration));
 			d = pidinst->buffer_duration;
 		}
-		assert(d <= pidinst->buffer_duration);
+		gf_assert(d <= pidinst->buffer_duration);
 		safe_int64_sub(&pidinst->buffer_duration, (s32) d);
 	}
 
@@ -6708,7 +6712,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		gf_free(pcki);
 	}
 	//unref pck
-	assert(pck->reference_count);
+	gf_assert(pck->reference_count);
 	if (safe_int_dec(&pck->reference_count) == 0) {
 		gf_filter_packet_destroy(pck);
 	}
@@ -6724,7 +6728,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	//decrement number of pending packet on target filter if this is not a destroy
 	if (pidinst->filter) {
-		assert(pidinst->filter->pending_packets);
+		gf_assert(pidinst->filter->pending_packets);
 		safe_int_dec(&pidinst->filter->pending_packets);
 
 		gf_filter_forward_clock(pidinst->filter);
@@ -6911,7 +6915,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	if (would_block && !pid->would_block) {
 		safe_int_inc(&pid->would_block);
 		safe_int_inc(&pid->filter->would_block);
-		assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
+		gf_assert(pid->filter->would_block + pid->filter->num_out_pids_not_connected <= pid->filter->num_output_pids);
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
@@ -6923,7 +6927,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		}
 #endif
 	}
-	assert(pid->filter->would_block <= pid->filter->num_output_pids);
+	gf_assert(pid->filter->would_block <= pid->filter->num_output_pids);
 	gf_mx_v(pid->filter->tasks_mx);
 	return result;
 }
@@ -7119,7 +7123,7 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 
 	gf_filter_pidinst_reset_stats(pidi);
 
-	assert(pidi->discard_packets);
+	gf_assert(pidi->discard_packets);
 	safe_int_dec(&pidi->discard_packets);
 
 	pidi->last_block_ended = GF_TRUE;
@@ -7131,7 +7135,7 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 	pidi->pid->has_seen_eos = GF_FALSE;
 	pidi->last_clock_type = 0;
 
-	assert(pidi->pid->filter->stream_reset_pending);
+	gf_assert(pidi->pid->filter->stream_reset_pending);
 	safe_int_dec(& pidi->pid->filter->stream_reset_pending );
 
 	pidi->pid->nb_buffer_unit = 0;
@@ -7190,7 +7194,7 @@ static void free_evt(GF_FilterEvent *evt)
 {
 	GF_RefString *rstr = evt_get_refstr(evt);
 	if (rstr) {
-		assert(rstr->ref_count);
+		gf_assert(rstr->ref_count);
 		if (safe_int_dec(&rstr->ref_count) == 0) {
 			gf_free(rstr);
 		}
@@ -7284,7 +7288,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	}
 
 	if (evt->base.on_pid) {
-		assert(evt->base.on_pid->filter->num_events_queued);
+		gf_assert(evt->base.on_pid->filter->num_events_queued);
 		safe_int_dec(&evt->base.on_pid->filter->num_events_queued);
 	}
 	if (f->finalized) {
@@ -8806,7 +8810,7 @@ void gf_filter_pid_discard_block(GF_FilterPid *pid)
 	gf_mx_p(pid->filter->tasks_mx);
 	if (pid->would_block) {
 		safe_int_dec(&pid->would_block);
-		assert(pid->filter->would_block);
+		gf_assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 	}
 	gf_mx_v(pid->filter->tasks_mx);

@@ -383,11 +383,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 
 	if (is_remove) {
-		assert(ctx->pid==pid);
+		gf_assert(ctx->pid==pid);
 		ctx->pid=NULL;
 		return GF_OK;
 	}
-	assert(!ctx->pid || (ctx->pid==pid));
+	gf_assert(!ctx->pid || (ctx->pid==pid));
 	if (pid && !gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 

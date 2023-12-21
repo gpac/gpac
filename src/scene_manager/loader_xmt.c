@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -259,7 +259,10 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	else ID = 0;
 
 	/*write OD_ID*/
-	assert(url->count);
+	if (!url->count) {
+		gf_assert(0);
+		return;
+	}
 	i = url->count - 1;
 	url->vals[i].OD_ID = 0;
 	url->vals->OD_ID = ID;
@@ -532,7 +535,7 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 		}
 		if (l->od) {
 			if (!l->ID) l->ID = l->od->objectDescriptorID;
-			assert(l->ID == l->od->objectDescriptorID);
+			gf_assert(l->ID == l->od->objectDescriptorID);
 		}
 	}
 
@@ -832,7 +835,10 @@ static u32 xmt_parse_url(GF_XMTParser *parser, const char *name, MFURL *val, GF_
 	res = xmt_parse_string(parser, name, &sfstr, is_mf, a_value);
 	if (parser->last_error) return res;
 
-	assert(val->count);
+	if (!val->count) {
+		gf_assert(0);
+		return 0;
+	}
 	idx = val->count - 1;
 	if (val->vals[idx].url) gf_free(val->vals[idx].url);
 	val->vals[idx].url = sfstr.buffer;
@@ -1873,8 +1879,11 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			gf_node_list_add_child_last( (GF_ChildNodeItem **)container.far_ptr, node, &parent->last);
 			gf_node_register(node, parent->node);
 		}
-		assert(parent->node);
-		gf_node_changed(parent->node, NULL);
+		if (parent->node)
+			gf_node_changed(parent->node, NULL);
+		else {
+			gf_assert(0);
+		}
 	}
 
 	if (!parser->parsing_proto && (tag || proto) )
@@ -2071,8 +2080,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 	if (!strcmp(name, "repField")) {
 		char *fieldName = NULL;
 		char *fieldValue = NULL;
-		assert(parser->command);
-		if (!parser->command->node) return;
+		if (!parser->command || !parser->command->node) return;
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
@@ -2110,8 +2118,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 	if (!strcmp(name, "repValue")) {
 		s32 position = -1;
 		char *fieldValue = NULL;
-		assert(parser->command);
-		if (!parser->command->node) return;
+		if (!parser->command || !parser->command->node) return;
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
@@ -2705,7 +2712,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->state = XMT_STATE_BODY;
 		}
 		else if (parser->state == XMT_STATE_ELEMENTS) {
-			assert((parser->doc_type != 1) || parser->command);
+			gf_assert((parser->doc_type != 1) || parser->command);
 			if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete")) {
 				parser->command = NULL;
 				parser->state = XMT_STATE_COMMANDS;
@@ -2849,7 +2856,10 @@ attach_node:
 			if (parser->doc_type == 1) {
 				GF_CommandField *inf;
 				Bool single_node = 0;
-				assert(parser->command);
+				if (!parser->command) {
+					gf_assert(0);
+					return;
+				}
 				switch (parser->command->tag) {
 				case GF_SG_SCENE_REPLACE:
 					if (parser->parsing_proto) {

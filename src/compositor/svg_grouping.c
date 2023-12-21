@@ -922,7 +922,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 
 	if (event->event_phase & GF_DOM_EVENT_PHASE_PREVENT) return;
 
-	assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_a);
+	gf_assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_a);
 	a = (SVG_Element *) event->currentTarget->ptr;
 	gf_svg_flatten_attributes(a, &all_atts);
 

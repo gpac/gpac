@@ -1646,7 +1646,7 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 					continue;
 				}
 			}
-			assert(nb_args>i);
+			gf_assert(nb_args>i);
 			args[i] = ffmpeg_arg_translate(opt);
 			i++;
 		}

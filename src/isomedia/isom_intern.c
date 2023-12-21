@@ -72,7 +72,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		} else if (mov->is_smooth) {
 			trak = gf_list_get(mov->moov->trackList, 0);
 			traf->trex = (GF_TrackExtendsBox*)gf_list_get(mov->moov->mvex->TrackExList, 0);
-			assert(traf->trex);
+			gf_fatal_assert(traf->trex);
 			traf->trex->trackID = trak->Header->trackID = traf->tfhd->trackID;
 		} else {
 			trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
@@ -367,7 +367,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 	/*restart from where we stopped last*/
 	top_start = mov->current_top_box_start;
 	if (mov->bytes_removed) {
-		assert(top_start >= mov->bytes_removed);
+		gf_assert(top_start >= mov->bytes_removed);
 		top_start -= mov->bytes_removed;
 	}
 	gf_bs_seek(mov->movieFileMap->bs, top_start);

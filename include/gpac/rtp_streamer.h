@@ -151,7 +151,14 @@ typedef struct
 	const char *netcap_id;
 } GF_RTPStreamerConfig;
 
-GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for_rtsp);
+/*!
+\brief RTP Streamer constructor with extended parameters
+
+Constructs a new RTP file streamer
+\param cfg configuration of the streamer
+\param for_rtsp indicates this is an RTP channel in an RTSP session, RTP channel will not be created, use \ref gf_rtp_streamer_init_rtsp
+\return a new RTP streamer, or NULL of error or not supported
+ */GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for_rtsp);
 
 /*!
 \brief RTP file streamer destructor

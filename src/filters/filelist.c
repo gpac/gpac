@@ -414,7 +414,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		//check matching stream types if out pit not connected, and reuse if matching
 		if (!iopid->ipid) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-			assert(p);
+			if (!p) return GF_NOT_SUPPORTED;
 			if (p->value.uint == iopid->stream_type) {
 				iopid->ipid = pid;
 				prev_timescale = iopid->timescale;
@@ -448,7 +448,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!iopid->opid) {
 		iopid->opid = gf_filter_pid_new(filter);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-		assert(p);
+		if (!p) return GF_NOT_SUPPORTED;
 		iopid->stream_type = p->value.uint;
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
@@ -1494,8 +1494,8 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 	GF_FilterSAPType sap;
 	GF_FilterPid *ipid;
 	Bool is_raw_audio;
-	assert(ctx->splice_ctrl);
-	assert(ctx->splice_state);
+	gf_assert(ctx->splice_ctrl);
+	gf_assert(ctx->splice_state);
 
 	ipid = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ipid : ctx->splice_ctrl->ipid;
 	is_raw_audio = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ra_info.is_raw : ctx->splice_ctrl->ra_info.is_raw;
@@ -1581,7 +1581,7 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 				ctx->splice_state = FL_SPLICE_ACTIVE;
 				ctx->splice_start_cts = filelist_translate_splice_cts(ctx->splice_ctrl, cts);
 				//we just activate splice, iopid->dts_sub_splice is not set yet !!
-				assert(!ctx->splice_ctrl->dts_sub_splice);
+				gf_assert(!ctx->splice_ctrl->dts_sub_splice);
 				ctx->splice_start_cts -= ctx->splice_ctrl->dts_sub;
 
 				if (ctx->flags_splice_end & FL_SPLICE_DELTA) {
@@ -1727,11 +1727,11 @@ static void filelist_forward_splice_pck(FileListPid *iopid, GF_FilterPacket *pck
 static void filelist_purge_slice(GF_FileListCtx *ctx)
 {
 	u32 i, count = gf_list_count(ctx->io_pids);
-	assert(ctx->splice_ctrl);
+	gf_assert(ctx->splice_ctrl);
 
 	if (ctx->mark_only)
 		return;
-	assert(ctx->splice_ctrl->splice_ipid);
+	gf_assert(ctx->splice_ctrl->splice_ipid);
 
 	for (i=0; i<count; i++) {
 		FileListPid *iopid = gf_list_get(ctx->io_pids, i);
@@ -2522,7 +2522,7 @@ restart:
 		nb_inactive = 0;
 		nb_done = count;
 
-		assert(!ctx->splice_pid_props);
+		gf_assert(!ctx->splice_pid_props);
 		ctx->splice_pid_props = ctx->pid_props;
 		ctx->pid_props = NULL;
 

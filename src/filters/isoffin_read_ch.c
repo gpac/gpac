@@ -96,13 +96,13 @@ static void init_reader(ISOMChannel *ch)
 
 	ch->au_seq_num = 1;
 
-	assert(ch->sample==NULL);
+	gf_assert(ch->sample==NULL);
 	if (!ch->static_sample) {
 		ch->static_sample = gf_isom_sample_new();
 	}
 
 	if (ch->streamType==GF_STREAM_OCR) {
-		assert(!ch->sample);
+		gf_assert(!ch->sample);
 		ch->sample = gf_isom_sample_new();
 		ch->sample->IsRAP = RAP;
 		ch->sample->DTS = ch->start;

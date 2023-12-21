@@ -386,7 +386,7 @@ static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 {
 	gf_bs_seek(m4v->bs, start);
 
-	assert(start < (u64)1<<31);
+	gf_fatal_assert(start < (u64)1<<31);
 	m4v->current_object_start = (u32)start;
 	m4v->current_object_type = 0;
 	return GF_OK;
@@ -808,7 +808,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi
 		if (m4v->step_mode)
 			return GF_OK;
 	}
-	assert(m4v->current_object_start >= *start);
+	if (m4v->current_object_start < *start) return GF_NON_COMPLIANT_BITSTREAM;
 	*size = m4v->current_object_start - *start;
 	return GF_OK;
 }
@@ -1535,7 +1535,7 @@ static u32 av1_read_ns(GF_BitStream *bs, u32 n, const char *fname)
 	Bool extra_bit;
 	int w = (u32)(log(n) / log(2)) + 1;
 	u32 m = (1 << w) - n;
-	assert(w < 32);
+	gf_assert(w < 32);
 	v = gf_bs_read_int(bs, w - 1);
 	if (v < m) {
 		if (fname) {
@@ -1863,7 +1863,7 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 	u32 dw = 0;
 
 	if (!width || !height || !codec_fourcc || !timebase_den || !timebase_num || !num_frames) {
-		assert(0);
+		gf_assert(0);
 		return GF_BAD_PARAM;
 	}
 
@@ -1928,7 +1928,7 @@ GF_Err gf_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_fr
 	u64 pos = gf_bs_get_position(bs), i = 0;
 	GF_Err e;
 
-	assert(bs && num_frames_in_superframe);
+	gf_assert(bs && num_frames_in_superframe);
 
 	/*initialize like there is no superframe*/
 	memset(frame_sizes, 0, VP9_MAX_FRAMES_IN_SUPERFRAME * sizeof(frame_sizes[0]));
@@ -2267,7 +2267,7 @@ GF_Err gf_vp9_parse_sample(GF_BitStream *bs, GF_VPConfig *vp9_cfg, Bool *key_fra
 	int Sb64Cols = 0, Sb64Rows = 0, i;
 	u8 refresh_frame_flags = 0;
 
-	assert(bs && key_frame);
+	gf_assert(bs && key_frame);
 
 	/*uncompressed header*/
 	/*frame_marker = */gf_bs_read_int_log(bs, 2, "frame_marker");
@@ -2561,14 +2561,14 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 				GF_BitStream *bsLeb128 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				/*write size field*/
 				gf_av1_leb128_write(bsLeb128, obu_size);
-				assert(gf_bs_get_position(bsLeb128) == leb_size);
+				gf_assert(gf_bs_get_position(bsLeb128) == leb_size);
 				gf_bs_get_content(bsLeb128, &output, &out_size);
 				gf_bs_del(bsLeb128);
 				memcpy(a->obu + hdr_size, output, out_size);
 				gf_free(output);
 			}
 			gf_bs_read_data(bs, a->obu + hdr_size + leb_size, (u32)(obu_size));
-			assert(gf_bs_get_position(bs) == pos + obu_length);
+			gf_assert(gf_bs_get_position(bs) == pos + obu_length);
 		}
 		else {
 			u32 remain;
@@ -2587,7 +2587,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 				gf_bs_write_data(state->bs, block, block_size);
 				remain -= block_size;
 			}
-			assert(gf_bs_get_position(bs) == pos + obu_length);
+			gf_assert(gf_bs_get_position(bs) == pos + obu_length);
 			return;
 		}
 	}
@@ -2784,7 +2784,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 			frame_unit_size -= obu_size;
 		}
 	}
-	assert(sz == 0);
+	gf_assert(sz == 0);
 	if (tusize != gf_bs_get_position(bs) - tupos) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Annex B TU size "LLU" different from consumed bytes "LLU".\n", tusize, gf_bs_get_position(bs) - tupos));
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -5256,7 +5256,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		}
 
 		if (sps->ChromaArrayType == 0) {
-			assert(SubWidthC == -1);
+			gf_assert(SubWidthC == -1);
 			CropUnitX = 1;
 			CropUnitY = 2 - sps->frame_mbs_only_flag;
 		}
@@ -5763,7 +5763,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	if (si->nal_unit_type == 20 || si->nal_unit_type == 21) {
 		//ref_pic_list_mvc_modification(); /* specified in Annex H */
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] unimplemented ref_pic_list_mvc_modification() in slide header\n"));
-		assert(0);
+		gf_assert(0);
 		return -1;
 	}
 	else {
@@ -5878,7 +5878,7 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 
 	if (sps_id < 0) {
 		/*sps_active_idx equals -1 when no sps has been detected. In this case SEI should not be decoded.*/
-		assert(0);
+		gf_assert(0);
 		return 1;
 	}
 	if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
@@ -6870,12 +6870,10 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 
 GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 {
-	GF_BitStream *orig, *mod;
 	AVCState avc;
 	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_AVCConfigSlot *slc;
-	orig = NULL;
 
 	if (!avcc)
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -6885,12 +6883,11 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 
 	i=0;
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
+		GF_BitStream *orig, *mod;
 		u8 *no_emulation_buf = NULL;
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
 		idx = gf_avc_read_sps(slc->data, slc->size, &avc, 0, &bit_offset);
 		if (idx<0) {
-			if ( orig )
-				gf_bs_del(orig);
 			continue;
 		}
 
@@ -6904,8 +6901,7 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 		/*copy over till vui flag*/
-		assert(bit_offset >= 8);
-		while (bit_offset - 8/*bit_offset doesn't take care of the first byte (NALU type)*/) {
+		while (bit_offset > 8/*bit_offset doesn't take care of the first byte (NALU type)*/) {
 			flag = gf_bs_read_int(orig, 1);
 			gf_bs_write_int(mod, flag, 1);
 			bit_offset--;
@@ -7063,7 +7059,9 @@ static Bool hevc_parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u
 		if (idx_rps == sps->num_short_term_ref_pic_sets)
 			delta_idx_minus1 = gf_bs_read_ue_log_idx(bs, "delta_idx_minus1", idx_rps);
 
-		assert(delta_idx_minus1 <= idx_rps - 1);
+		if (delta_idx_minus1 > idx_rps - 1)
+			return GF_FALSE;
+
 		ref_idx = idx_rps - 1 - delta_idx_minus1;
 		delta_rps_sign = gf_bs_read_int_log_idx(bs, 1, "delta_rps_sign", idx_rps);
 		abs_delta_rps_minus1 = gf_bs_read_ue_log_idx(bs, "abs_delta_rps_minus1", idx_rps);
@@ -8875,7 +8873,6 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 		/*copy over till vui flag*/
-		assert(bit_offset >= 0);
 		while (bit_offset) {
 			flag = gf_bs_read_int(orig, 1);
 			gf_bs_write_int(mod, flag, 1);
@@ -9344,7 +9341,7 @@ next_block:
 	hdr->sample_rate = freq;
 	hdr->framesize += framesize;
 	if (strmtyp != 1) {
-		assert(cur_main_id == substreamid);
+		gf_assert(cur_main_id == substreamid);
 		hdr->streams[substreamid].lfon = lfon;
 		hdr->streams[substreamid].bsid = bsid;
 		hdr->streams[substreamid].bsmod = bsmod;
@@ -11287,7 +11284,7 @@ static s32 vvc_parse_ref_pic_lists(GF_BitStream *bs, VVCSliceInfo *si, Bool is_p
 			else if (si->sps->num_ref_pic_lists[i] == 1) {
 				rpl_idx = 0;
 			} else {
-				assert(p_rpl_idx[0] != -1);
+				gf_assert(p_rpl_idx[0] != -1);
 				rpl_idx = p_rpl_idx[0];
 			}
 			p_rpl_idx[i] = rpl_idx;
@@ -12232,7 +12229,6 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 		/*copy over till vui flag*/
-		assert(bit_offset >= 0);
 		while (bit_offset) {
 			flag = gf_bs_read_int(orig, 1);
 			gf_bs_write_int(mod, flag, 1);

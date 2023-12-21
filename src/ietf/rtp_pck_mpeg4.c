@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -487,8 +487,8 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size,
 	/*fragmentation unit*/
 	else {
 		u32 offset;
-		assert(nalu_size>=builder->Path_MTU);
-		assert(!builder->bytesInPacket);
+		gf_assert(nalu_size>=builder->Path_MTU);
+		gf_assert(!builder->bytesInPacket);
 		/*FU payload doesn't have the NAL hdr*/
 		bytesLeft = nalu_size - 1;
 		offset = 1;
@@ -635,8 +635,8 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size
 		char payload_hdr[2];
 		char shdr;
 
-		assert(nalu_size + 4 >=builder->Path_MTU);
-		assert(!builder->bytesInPacket);
+		gf_assert(nalu_size + 4 >=builder->Path_MTU);
+		gf_assert(!builder->bytesInPacket);
 
 		/*FU payload doesn't have the NAL hdr (2 bytes*/
 		bytesLeft = nalu_size - 2;
@@ -789,8 +789,8 @@ GF_Err gp_rtp_builder_do_vvc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size,
 		u8 payload_hdr[2];
 		u8 shdr;
 
-		assert(nalu_size + 4 >=builder->Path_MTU);
-		assert(!builder->bytesInPacket);
+		gf_assert(nalu_size + 4 >=builder->Path_MTU);
+		gf_assert(!builder->bytesInPacket);
 
 		/*FU payload doesn't have the NAL hdr (2 bytes*/
 		bytesLeft = nalu_size - 2;
@@ -889,7 +889,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 		latm_hdr_size = (data_size / 255) + 1;
 		/*fragmenting*/
 		if (latm_hdr_size + data_size > builder->Path_MTU) {
-			assert(!builder->bytesInPacket);
+			gf_assert(!builder->bytesInPacket);
 			fragmented = GF_TRUE;
 			latm_hdr_size = (builder->Path_MTU / 255) + 1;
 			size = builder->Path_MTU - latm_hdr_size;

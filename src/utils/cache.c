@@ -185,9 +185,9 @@ void gf_cache_entry_set_persistent(const DownloadedCacheEntry entry)
 Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info) {
 	const char * startPattern;
 	int sz;
-	assert( cbck );
-	assert( item_name );
-	assert( item_path);
+	gf_assert( cbck );
+	gf_assert( item_name );
+	gf_assert( item_path);
 	startPattern = (const char *) cbck;
 	sz = (u32) strlen( startPattern );
 	if (!strncmp(startPattern, item_name, sz)) {
@@ -460,7 +460,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 		char name[1024];
 		snprintf(name, sizeof(name), "CachedEntryWriteMx=%p, url=%s", (void*) entry, url);
 		entry->write_mutex = gf_mx_new(name);
-		assert(entry->write_mutex);
+		gf_assert(entry->write_mutex);
 	}
 #endif
 
@@ -589,7 +589,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	CHECK_ENTRY;
 	if (!sess || !entry->write_session || entry->write_session != sess)
 		return GF_OK;
-	assert( sess == entry->write_session );
+	gf_assert( sess == entry->write_session );
 	if (entry->writeFilePtr) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE,
 		       ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
@@ -649,7 +649,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 #endif
 	entry->write_session = sess;
 	if (!entry->continue_file) {
-		assert( ! entry->writeFilePtr);
+		gf_assert( ! entry->writeFilePtr);
 
 		entry->written_in_cache = 0;
 	}
@@ -709,7 +709,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	if (entry->memory_stored) {
 		if (!entry->cache_blob.mx)
 			entry->cache_blob.mx = mx;
-		assert(mx);
+		gf_assert(mx);
 		gf_mx_p(entry->cache_blob.mx);
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
@@ -844,7 +844,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     }
 	entry->dm = NULL;
 	if (entry->sessions) {
-		assert( gf_list_count(entry->sessions) == 0);
+		gf_assert( gf_list_count(entry->sessions) == 0);
 		gf_list_del(entry->sessions);
 		entry->sessions = NULL;
 	}

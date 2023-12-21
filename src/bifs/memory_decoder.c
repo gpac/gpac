@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -1039,7 +1039,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, u8 *data, u3
 	if (codec->info->config.elementaryMasks ) return GF_NOT_SUPPORTED;
 
 	/*root parse (not conditionals)*/
-	assert(codec->scenegraph);
+	if (!codec->scenegraph) return GF_BAD_PARAM;
 	/*setup current scene graph*/
 	codec->current_graph = codec->scenegraph;
 

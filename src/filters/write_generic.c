@@ -1411,7 +1411,7 @@ GF_Err writegen_process(GF_Filter *filter)
 					dur *= p->value.uint;
 					dur /= timescale;
 				}
-				assert(pck_size >= bpp * dur);
+				gf_assert(pck_size >= bpp * dur);
 				pck_size = bpp * dur;
 
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &odata);
