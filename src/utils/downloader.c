@@ -526,7 +526,7 @@ static int h2_begin_headers_callback(nghttp2_session *session, const nghttp2_fra
 	if (!sess) {
 		GF_H2_Session *h2sess = (GF_H2_Session *)user_data;
 		GF_DownloadSession *par_sess = h2sess->net_sess;
-		if (par_sess || !par_sess->server_mode)
+		if (!par_sess || !par_sess->server_mode)
 			return NGHTTP2_ERR_CALLBACK_FAILURE;
 
 
@@ -3163,6 +3163,7 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		if (*out_read > 0) {
 			ssize_t read_len = nghttp2_session_mem_recv(sess->h2_sess->ng_sess, data, *out_read);
 			if(read_len < 0 ) {
+				*out_read = 0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error:  %s\n", nghttp2_strerror((int) read_len)));
 				return GF_IO_ERR;
 			}

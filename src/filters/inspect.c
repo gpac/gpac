@@ -1480,7 +1480,7 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
-	if (!pctx && (obu_size >= 2))
+	if (!pctx && (obu_size <= 2))
 		return obu_size;
 
 	if (pctx) {
