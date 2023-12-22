@@ -666,6 +666,7 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
 void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
 GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
 void gf_dm_del(GF_DownloadManager *dm);
+void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id);
 
 
 #endif //GPAC_CONFIG_EMSCRIPTEN
