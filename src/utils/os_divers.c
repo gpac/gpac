@@ -2166,9 +2166,10 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	u32 entry_time;
 	u64 process_u_k_time;
 	u32 u_k_time, idle_time;
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	char szProc[100];
 	char line[2048];
-
+#endif
 	gf_assert(sys_init);
 
 	entry_time = gf_sys_clock();
