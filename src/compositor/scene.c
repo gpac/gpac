@@ -46,7 +46,7 @@ Double gf_scene_get_time(void *_is)
 #if 1
 	u64 ret;
 	GF_Clock *ck;
-	if (!scene || scene->root_od || scene->root_od->ck) return 0.0;
+	if (!scene || !scene->root_od || !scene->root_od->ck) return 0.0;
 	ck = scene->root_od->ck;
 	ret = gf_clock_time_absolute(ck);
 	if ((scene->root_od->media_stop_time>0) && ((u64) scene->root_od->media_stop_time<ret))
