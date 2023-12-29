@@ -2305,7 +2305,7 @@ sample_entry_setup:
 
 			if (req_non_planar_type) {
 				if (is_true_pid)
-					gf_filter_pid_negociate_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
+					gf_filter_pid_negotiate_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
 				else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] raw audio format planar in DASH multi-stsd mode is not supported, try assigning a resampler before the dasher\n"));
 					return GF_NOT_SUPPORTED;

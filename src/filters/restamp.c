@@ -137,7 +137,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				if (prop && !prop->value.boolean) {
 					pctx->raw_vid_copy = GF_TRUE;
 				} else {
-					gf_filter_pid_negociate_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+					gf_filter_pid_negotiate_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 					return GF_OK;
 				}
 			}

@@ -2804,7 +2804,7 @@ static JSValue jsf_pid_set_property_ex(JSContext *ctx, JSValueConst this_val, in
 		if (mode==1) {
 			e = gf_filter_pid_set_info_dyn(pctx->pid, (char *) name, &prop);
 		} else if (mode==2) {
-			e = gf_filter_pid_negociate_property_dyn(pctx->pid, (char *) name, &prop);
+			e = gf_filter_pid_negotiate_property_dyn(pctx->pid, (char *) name, &prop);
 		} else {
 			e = gf_filter_pid_set_property_dyn(pctx->pid, (char *) name, &prop);
 		}
@@ -2822,7 +2822,7 @@ static JSValue jsf_pid_set_property_ex(JSContext *ctx, JSValueConst this_val, in
 		if (mode==1) {
 			e = gf_filter_pid_set_info(pctx->pid, p4cc, the_prop);
 		} else if (mode==2) {
-			e = gf_filter_pid_negociate_property(pctx->pid, p4cc, the_prop);
+			e = gf_filter_pid_negotiate_property(pctx->pid, p4cc, the_prop);
 		} else {
 			e = gf_filter_pid_set_property(pctx->pid, p4cc, the_prop);
 		}
@@ -2841,7 +2841,7 @@ static JSValue jsf_pid_set_info(JSContext *ctx, JSValueConst this_val, int argc,
 {
 	return jsf_pid_set_property_ex(ctx, this_val, argc, argv, 1);
 }
-static JSValue jsf_pid_negociate_prop(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue jsf_pid_negotiate_prop(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	return jsf_pid_set_property_ex(ctx, this_val, argc, argv, 2);
 }
@@ -2960,7 +2960,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CFUNC_DEF("reset_props", 0, jsf_pid_reset_props),
     JS_CFUNC_DEF("copy_props", 0, jsf_pid_copy_props),
     JS_CFUNC_DEF("forward", 0, jsf_pid_forward),
-    JS_CFUNC_DEF("negociate_prop", 0, jsf_pid_negociate_prop),
+    JS_CFUNC_DEF("negotiate_prop", 0, jsf_pid_negotiate_prop),
     JS_CFUNC_DEF("ignore_blocking", 0, jsf_pid_ignore_blocking),
 };
 
