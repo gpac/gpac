@@ -63,7 +63,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 	Fixed scale, vp_w, vp_h;
 	Fixed parent_width, parent_height, doc_width, doc_height;
 
-	/*canvas size negociation has already been done when attaching the scene to the compositor*/
+	/*canvas size negotiation has already been done when attaching the scene to the compositor*/
 	if (atts->width && (atts->width->type==SVG_NUMBER_PERCENTAGE) ) {
 		parent_width = gf_mulfix(tr_state->vp_size.x, atts->width->value/100);
 		doc_width = 0;

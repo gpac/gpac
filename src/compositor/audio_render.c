@@ -36,9 +36,9 @@ void gf_ar_rcfg_done(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 		ar->wait_for_rcfg --;
 
 	if (ar->wait_for_rcfg) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure negociation %d still pending\n", ar->wait_for_rcfg));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure negotiation %d still pending\n", ar->wait_for_rcfg));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure negociation done\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] Reconfigure negotiation done\n"));
 	}
 }
 

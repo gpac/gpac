@@ -1453,7 +1453,7 @@ napi_value filterpid_query_cap(napi_env env, napi_callback_info info)
 	return ret;
 }
 
-napi_value filterpid_negociate_cap(napi_env env, napi_callback_info info)
+napi_value filterpid_negotiate_cap(napi_env env, napi_callback_info info)
 {
 	u32 p4cc;
 	GF_Err e;
@@ -1468,12 +1468,12 @@ napi_value filterpid_negociate_cap(napi_env env, napi_callback_info info)
 	NAPI_CALL( prop_from_napi(env, argv[1], p4cc, pname, custom_type, &p) );
 
 	if (p4cc) {
-		e = gf_filter_pid_negociate_property(pid, p4cc, &p);
+		e = gf_filter_pid_negotiate_property(pid, p4cc, &p);
 	} else {
-		e = gf_filter_pid_negociate_property_dyn(pid, pname, &p);
+		e = gf_filter_pid_negotiate_property_dyn(pid, pname, &p);
 	}
 	if (e) {
-		napi_throw_error(env, gf_error_to_string(e), "Failed to negociate cap for PID");
+		napi_throw_error(env, gf_error_to_string(e), "Failed to negotiate cap for PID");
 	}
 	gf_props_reset_single(&p);
 	return NULL;
@@ -2999,7 +2999,7 @@ static NAPI_FilterPid *wrap_filter_pid(napi_env env, GF_Filter *filter, GF_Filte
 		{ "recompute_dts", 0, filterpid_recompute_dts, 0, 0, 0, napi_enumerable, 0 },
 		{ "resolve_template", 0, filterpid_resolve_template, 0, 0, 0, napi_enumerable, 0 },
 		{ "query_cap", 0, filterpid_query_cap, 0, 0, 0, napi_enumerable, 0 },
-		{ "negociate_cap", 0, filterpid_negociate_cap, 0, 0, 0, napi_enumerable, 0 },
+		{ "negotiate_cap", 0, filterpid_negotiate_cap, 0, 0, 0, napi_enumerable, 0 },
 		{ "get_packet", 0, filterpid_get_packet, 0, 0, 0, napi_enumerable, 0 },
 		{ "drop_packet", 0, filterpid_drop_packet, 0, 0, 0, napi_enumerable, 0 },
 		{ "send_event", 0, filterpid_send_event, 0, 0, 0, napi_enumerable, 0 },

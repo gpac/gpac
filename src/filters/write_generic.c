@@ -369,7 +369,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				//forcing pixel format regardless of extension
 				if (ctx->pfmt) {
 					if (pf != ctx->pfmt) {
-						gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pfmt));
+						gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pfmt));
 						//make sure we reconfigure
 						ctx->codecid = 0;
 						pf = ctx->pfmt;
@@ -377,7 +377,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				}
 				//use extension to derive pixel format
 				else if (pf != ctx->target_pfmt) {
-					gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->target_pfmt));
+					gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->target_pfmt));
 					strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
 					//make sure we reconfigure
 					ctx->codecid = 0;
@@ -421,7 +421,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				//forcing sample format regardless of extension
 				if (ctx->afmt) {
 					if (sfmt != ctx->afmt) {
-						gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
+						gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
 						//make sure we reconfigure
 						ctx->codecid = 0;
 						sfmt = ctx->afmt;
@@ -429,7 +429,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				}
 				//use extension to derive sample format
 				else if (sfmt != ctx->target_afmt) {
-					gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->target_afmt));
+					gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->target_afmt));
 					strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
 					//make sure we reconfigure
 					ctx->codecid = 0;

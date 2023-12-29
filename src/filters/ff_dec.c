@@ -1066,7 +1066,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
 			if (!prop || !prop->value.boolean) {
 				gf_filter_override_caps(filter, FFDecodeAnnexBCaps, GF_ARRAY_LENGTH(FFDecodeAnnexBCaps));
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 				return GF_OK;
 			}
 		}

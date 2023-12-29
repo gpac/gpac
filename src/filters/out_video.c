@@ -815,7 +815,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			force_pf = GF_PIXEL_RGB;
 		}
 		if (ctx->pfmt != force_pf) {
-			gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(force_pf) );
+			gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(force_pf) );
 			return GF_OK;
 		}
 	}

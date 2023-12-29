@@ -108,7 +108,7 @@ typedef struct _gf_ffenc_ctx
 	GF_BitStream *sdbs;
 
 	Bool reconfig_pending;
-	Bool infmt_negociate;
+	Bool infmt_negotiate;
 	Bool remap_ts;
 	Bool force_reconfig;
 	u32 setup_failed;
@@ -432,8 +432,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
-		//no encoder: if negociating input format or input pid props not known yet, wait
-		if (ctx->infmt_negociate || !ctx->setup_failed) return GF_OK;
+		//no encoder: if negotiating input format or input pid props not known yet, wait
+		if (ctx->infmt_negotiate || !ctx->setup_failed) return GF_OK;
 
 		if (ctx->setup_failed==1) {
 			GF_FilterEvent fevt;
@@ -991,8 +991,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
-		//no encoder: if negociating input format or input pid props not known yet, wait
-		if (ctx->infmt_negociate || !ctx->setup_failed) return GF_OK;
+		//no encoder: if negotiating input format or input pid props not known yet, wait
+		if (ctx->infmt_negotiate || !ctx->setup_failed) return GF_OK;
 
 		if (ctx->setup_failed==1) {
 			GF_FilterEvent fevt;
@@ -1643,10 +1643,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				ff_pmft = ffmpeg_pixfmt_from_gpac(ctx->pfmt, GF_FALSE);
 			}
 			pfmt = ffmpeg_pixfmt_to_gpac(ff_pmft, GF_FALSE);
-			gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
-			ctx->infmt_negociate = GF_TRUE;
+			gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
+			ctx->infmt_negotiate = GF_TRUE;
 		} else {
-			ctx->infmt_negociate = GF_FALSE;
+			ctx->infmt_negotiate = GF_FALSE;
 		}
 	} else {
 		u32 change_input_sr = 0;
@@ -1704,26 +1704,26 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			if (ctx->sample_fmt != change_input_fmt) {
 				ctx->sample_fmt = codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
 				afmt = ffmpeg_audio_fmt_to_gpac(ctx->sample_fmt);
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
 			}
 			if (ctx->sample_rate != change_input_sr) {
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codec->supported_samplerates[0]) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codec->supported_samplerates[0]) );
 			}
 			if (ctx->channel_layout != change_chan_layout) {
 				if (!change_chan_layout)
 					change_chan_layout = ffmpeg_channel_layout_to_gpac(codec->channel_layouts[0]);
 				u32 nb_chans = gf_audio_fmt_get_num_channels_from_layout(change_chan_layout);
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chans) );
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(change_chan_layout) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chans) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(change_chan_layout) );
 			}
-			ctx->infmt_negociate = GF_TRUE;
+			ctx->infmt_negotiate = GF_TRUE;
 		} else {
-			ctx->infmt_negociate = GF_FALSE;
+			ctx->infmt_negotiate = GF_FALSE;
 		}
 	}
 
-	//renegociate input, wait for reconfig call
-	if (ctx->infmt_negociate) return GF_OK;
+	//renegotiate input, wait for reconfig call
+	if (ctx->infmt_negotiate) return GF_OK;
 
 	ctx->gpac_pixel_fmt = pfmt;
 	ctx->gpac_audio_fmt = afmt;

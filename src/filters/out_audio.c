@@ -129,15 +129,15 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt) || !ctx->speed_set) {
 		if (ctx->sr != sr)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 
 		if (ctx->afmt != afmt)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 
 		if (ctx->nb_ch != nb_ch)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 		if (!ctx->speed_set)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
 
 		ctx->speed_set = (ctx->speed==1.0) ? 1 : 2;
 		ctx->needs_recfg = GF_FALSE;
