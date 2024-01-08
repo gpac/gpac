@@ -4574,7 +4574,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		strcpy(entry->compressor_name, udesc->compressor_name);
+		strncpy(entry->compressor_name, udesc->compressor_name, GF_ARRAY_LENGTH(entry->compressor_name));
+		entry->compressor_name[ GF_ARRAY_LENGTH(entry->compressor_name) - 1] = 0;
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
 		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
