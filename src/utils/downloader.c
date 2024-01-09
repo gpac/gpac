@@ -5690,7 +5690,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			GF_SAFEALLOC(hdrp, GF_HTTPHeader);
 			if (hdrp) {
 				hdrp->name = gf_strdup(hdr);
-				hdrp->value = gf_strdup(hdr_val);
+				if (hdr_val)
+					hdrp->value = gf_strdup(hdr_val);
 				gf_list_add(sess->headers, hdrp);
 			}
 
