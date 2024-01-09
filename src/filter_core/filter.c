@@ -2165,7 +2165,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 	const GF_FilterArgs *index_arg = NULL;
 #endif
 
-	//instantiate all args with defauts value
+	//instantiate all args with defaults value
 	f_args = filter->freg->args;
 	if (for_script)
 		f_args = filter->instance_args;
@@ -2233,7 +2233,7 @@ static void reset_filter_args(GF_Filter *filter)
 	//removed or no stack
 	if (!filter->filter_udta) return;
 
-	//instantiate all args with defauts value
+	//instantiate all args with defaults value
 	while (filter->freg->args) {
 		GF_PropertyValue argv;
 		const GF_FilterArgs *a = &filter->freg->args[i];
