@@ -1490,7 +1490,7 @@ props_done:
 			}
 #endif
 		}
-	} else if (codec_id==GF_CODECID_DTSX) {
+	} else if (codec_id==GF_CODECID_DTS_X) {
 		GF_UDTSConfig cfg;
 		if (gf_isom_get_udts_config(ch->owner->mov, ch->track, 1, &cfg) == GF_OK) {
 			u64 ch_layout = cfg.ChannelMask;
