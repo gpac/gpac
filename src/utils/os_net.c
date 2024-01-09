@@ -1434,11 +1434,12 @@ static Bool netcap_filter_pck(GF_Socket *sock, u32 pck_len, Bool for_send)
 		sock->cap_info->patch_offset = 1+bo;
 
 		u32 val = (r->patch_val>=0) ? r->patch_val : gf_rand();
-		val = val % 255;
+		val = val % 256;
 
 		sock->cap_info->patch_val = val;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[NetCap] Patching packet %d byte offset %d to 0x%02X\n", cur_pck, bo, val));
-		return GF_FALSE;
+		// we want to patch many bytes of same packet
+		// return GF_FALSE;
 	}
 	return GF_FALSE;
 }
