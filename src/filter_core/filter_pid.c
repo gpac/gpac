@@ -1122,7 +1122,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		filter->has_pending_pids = GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
 			GF_FilterPid *a_pid=gf_fq_pop(filter->pending_pids);
-			//filter is a pid adaptation filter (dynamically loaded to solve prop negociation)
+			//filter is a pid adaptation filter (dynamically loaded to solve prop negotiation)
 			//copy over play state if the input PID was already playing
 			if (pid->is_playing && filter->is_pid_adaptation_filter)
 				a_pid->is_playing = GF_TRUE;
@@ -1190,7 +1190,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			if (e==GF_OK) {
 				//postponed packets dispatched by source while setting up PID, flush through process()
 				//pending packets (not yet consumed but in PID buffer), start processing
-				if (pid->filter->postponed_packets || pid->filter->pending_packets || pid->filter->nb_caps_renegociate) {
+				if (pid->filter->postponed_packets || pid->filter->pending_packets || pid->filter->nb_caps_renegotiate) {
 					gf_filter_post_process_task(pid->filter);
 				}
 			}
@@ -3145,10 +3145,10 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	//and if present consider this filter suitable
 	//note that encoders must use reconfigure output
 	if (reconfigurable_only
-		&& pid->caps_negociate
-		&& (gf_list_count(pid->caps_negociate->properties)==1)
+		&& pid->caps_negotiate
+		&& (gf_list_count(pid->caps_negotiate->properties)==1)
 	) {
-		const GF_PropertyValue *cid = gf_props_get_property(pid->caps_negociate, GF_PROP_PID_CODECID, NULL);
+		const GF_PropertyValue *cid = gf_props_get_property(pid->caps_negotiate, GF_PROP_PID_CODECID, NULL);
 		//for now we only check decoders, encoders must use reconfigure output
 		if (cid && (cid->value.uint==GF_CODECID_RAW)) {
 			check_codec_id_raw = cid->value.uint;
@@ -4273,14 +4273,14 @@ static const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_fir
 void gf_filter_pid_retry_caps_negotiate(GF_FilterPid *src_pid, GF_FilterPid *pid, GF_Filter *dst_filter)
 {
 	gf_assert(dst_filter);
-	src_pid->caps_negociate = pid->caps_negociate;
-	pid->caps_negociate = NULL;
+	src_pid->caps_negotiate = pid->caps_negotiate;
+	pid->caps_negotiate = NULL;
 	src_pid->caps_dst_filter = dst_filter;
 	//blacklist filter for adaptation
 	if (!src_pid->adapters_blacklist) src_pid->adapters_blacklist = gf_list_new();
 	gf_list_add(src_pid->adapters_blacklist, (void *) pid->filter->freg);
 	//once != 0 will trigger reconfiguration, so set this once all vars have been set
-	safe_int_inc(& src_pid->filter->nb_caps_renegociate );
+	safe_int_inc(& src_pid->filter->nb_caps_renegotiate );
 
 	//disconnect source pid from filter - this will unload the filter itself
 	gf_fs_post_task(src_pid->filter->session, gf_filter_pid_disconnect_task, pid->filter, src_pid, "pidinst_disconnect", NULL);
@@ -4465,7 +4465,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 		task->can_swap = 1;
 		return;
 	}
-	if (filter->caps_negociate) {
+	if (filter->caps_negotiate) {
 		if (! gf_filter_reconf_output(filter, pid))
 			return;
 	}
@@ -5555,10 +5555,10 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 	}
 	gf_list_del(pid->properties);
 
-	if(pid->caps_negociate) {
-		gf_assert(pid->caps_negociate->reference_count);
-		if (safe_int_dec(&pid->caps_negociate->reference_count) == 0) {
-			gf_props_del(pid->caps_negociate);
+	if(pid->caps_negotiate) {
+		gf_assert(pid->caps_negotiate->reference_count);
+		if (safe_int_dec(&pid->caps_negotiate->reference_count) == 0) {
+			gf_props_del(pid->caps_negotiate);
 		}
 	}
 
@@ -5748,49 +5748,49 @@ GF_Err gf_filter_pid_set_info_dyn(GF_FilterPid *pid, char *name, const GF_Proper
 	return gf_filter_pid_set_property_full(pid, 0, NULL, name, value, GF_TRUE);
 }
 
-static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
+static GF_Err gf_filter_pid_negotiate_property_full(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *) pid;
 	if (!prop_4cc) return GF_BAD_PARAM;
 
 	if (PID_IS_OUTPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to negociate property on output PID in filter %s - ignoring\n", pid->filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to negotiate property on output PID in filter %s - ignoring\n", pid->filter->name));
 		return GF_BAD_PARAM;
 	}
 	pid = pid->pid;
-	if (!pid->caps_negociate) {
-		gf_assert(!pid->caps_negociate_pidi_list);
-		pid->caps_negociate = gf_props_new(pid->filter);
-		pid->caps_negociate_pidi_list = gf_list_new();
-		pid->caps_negociate_direct = GF_TRUE;
-		gf_list_add(pid->caps_negociate_pidi_list, pidi);
+	if (!pid->caps_negotiate) {
+		gf_assert(!pid->caps_negotiate_pidi_list);
+		pid->caps_negotiate = gf_props_new(pid->filter);
+		pid->caps_negotiate_pidi_list = gf_list_new();
+		pid->caps_negotiate_direct = GF_TRUE;
+		gf_list_add(pid->caps_negotiate_pidi_list, pidi);
 		//we start a new caps negotiation step, reset any blacklist on pid
 		if (pid->adapters_blacklist) {
 			gf_list_del(pid->adapters_blacklist);
 			pid->adapters_blacklist = NULL;
 		}
-		safe_int_inc(&pid->filter->nb_caps_renegociate);
+		safe_int_inc(&pid->filter->nb_caps_renegotiate);
 	}
 	else {
 		const GF_PropertyValue *p;
-		//new PID instance asking for cap negociation
-		if (gf_list_find(pid->caps_negociate_pidi_list, pidi)<0) {
-			gf_list_add(pid->caps_negociate_pidi_list, pidi);
+		//new PID instance asking for cap negotiation
+		if (gf_list_find(pid->caps_negotiate_pidi_list, pidi)<0) {
+			gf_list_add(pid->caps_negotiate_pidi_list, pidi);
 		}
 
 		//check if same property to list
-		p = gf_props_get_property(pid->caps_negociate, prop_4cc, prop_name);
+		p = gf_props_get_property(pid->caps_negotiate, prop_4cc, prop_name);
 		if (p) {
 			if (gf_props_equal(p, value))
 				return GF_OK;
-			//not the same value, disable direct caps negociate
-			pid->caps_negociate_direct = GF_FALSE;
+			//not the same value, disable direct caps negotiate
+			pid->caps_negotiate_direct = GF_FALSE;
 		}
 	}
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO)) {
 		char p_dump[GF_PROP_DUMP_ARG_SIZE];
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s negociate property %s to %s\n",
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s negotiate property %s to %s\n",
 			pid->filter->name, 	prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc),
 			gf_props_dump(prop_4cc, value, p_dump, GF_PROP_DUMP_DATA_NONE)
 		));
@@ -5799,30 +5799,30 @@ static GF_Err gf_filter_pid_negociate_property_full(GF_FilterPid *pid, u32 prop_
 
 	//pid is end of stream or pid instance has packet pendings, we will need a new chain to adapt these packets formats
 	if (pid->has_seen_eos || gf_fq_count(pidi->packets)) {
-		gf_fs_post_task(pid->filter->session, gf_filter_renegociate_output_task, pid->filter, NULL, "filter renegociate", NULL);
+		gf_fs_post_task(pid->filter->session, gf_filter_renegotiate_output_task, pid->filter, NULL, "filter renegotiate", NULL);
 	}
-	return gf_props_set_property(pid->caps_negociate, prop_4cc, prop_name, dyn_name, value);
+	return gf_props_set_property(pid->caps_negotiate, prop_4cc, prop_name, dyn_name, value);
 }
 
 GF_EXPORT
-GF_Err gf_filter_pid_negociate_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
+GF_Err gf_filter_pid_negotiate_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
 {
 	if (!prop_4cc) return GF_BAD_PARAM;
-	return gf_filter_pid_negociate_property_full(pid, prop_4cc, NULL, NULL, value);
+	return gf_filter_pid_negotiate_property_full(pid, prop_4cc, NULL, NULL, value);
 }
 
 GF_EXPORT
-GF_Err gf_filter_pid_negociate_property_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value)
+GF_Err gf_filter_pid_negotiate_property_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value)
 {
 	if (!name) return GF_BAD_PARAM;
-	return gf_filter_pid_negociate_property_full(pid, 0, name, NULL, value);
+	return gf_filter_pid_negotiate_property_full(pid, 0, name, NULL, value);
 }
 
 GF_EXPORT
-GF_Err gf_filter_pid_negociate_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value)
+GF_Err gf_filter_pid_negotiate_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value)
 {
 	if (!name) return GF_BAD_PARAM;
-	return gf_filter_pid_negociate_property_full(pid, 0, NULL, name, value);
+	return gf_filter_pid_negotiate_property_full(pid, 0, NULL, name, value);
 }
 
 
@@ -6304,7 +6304,7 @@ static Bool filter_pck_check_prop_change(GF_FilterPidInst *pidinst, GF_FilterPac
 			if (do_notif) {
 				e = gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_PID_CONF_RECONFIG);
 				if (e != GF_OK) return GF_TRUE;
-				if (pidinst->pid->caps_negociate)
+				if (pidinst->pid->caps_negotiate)
 					return GF_TRUE;
 			}
 		}
@@ -8227,7 +8227,7 @@ GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc)
 {
 	u32 i;
-	GF_PropertyMap *map = pid->pid->caps_negociate;
+	GF_PropertyMap *map = pid->pid->caps_negotiate;
 	if (PID_IS_INPUT(pid)) {
 		u32 k;
 		GF_Filter *dst = pid->filter->cap_dst_filter;
@@ -8314,7 +8314,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *pid, const ch
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Reconfig caps query on input PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
 		return NULL;
 	}
-	map = pid->caps_negociate;
+	map = pid->caps_negotiate;
 	return map ? gf_props_get_property(map, 0, prop_name) : NULL;
 }
 

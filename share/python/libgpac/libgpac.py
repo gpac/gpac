@@ -137,7 +137,7 @@
 # - process: callback for processing
 # - process_event: callback for processing and event
 # - probe_data: callback for probing a data format
-# - reconfigure_output: callback for output reconfiguration (PID capability negociation)
+# - reconfigure_output: callback for output reconfiguration (PID capability negotiation)
 #
 # A custom filter must also declare its capabilities, input and output, using push_cap method 
 # \code
@@ -3296,8 +3296,8 @@ _libgpac.gf_filter_pid_caps_query.restype = POINTER(PropertyValue)
 _libgpac.gf_filter_pid_caps_query_str.argtypes = [_gf_filter_pid, c_char_p]
 _libgpac.gf_filter_pid_caps_query_str.restype = POINTER(PropertyValue)
 
-_libgpac.gf_filter_pid_negociate_property.argtypes = [_gf_filter_pid, c_uint, POINTER(PropertyValue)]
-_libgpac.gf_filter_pid_negociate_property_dyn.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
+_libgpac.gf_filter_pid_negotiate_property.argtypes = [_gf_filter_pid, c_uint, POINTER(PropertyValue)]
+_libgpac.gf_filter_pid_negotiate_property_dyn.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
 
 _libgpac.gf_filter_pck_new_ref.argtypes = [_gf_filter_pid, c_uint, c_uint, _gf_filter_packet]
 _libgpac.gf_filter_pck_new_ref.restype = _gf_filter_packet
@@ -3669,14 +3669,14 @@ class FilterPid:
             return _prop_to_python(pname, prop.contents)
         return None
 
-    ##negociates a capability property on input PID - see \ref gf_filter_pid_negociate_property and \ref gf_filter_pid_negociate_property_dyn
+    ##negotiates a capability property on input PID - see \ref gf_filter_pid_negotiate_property and \ref gf_filter_pid_negotiate_property_dyn
     #\param pcode property to negotiate
     #\param prop property to negotiate
     #\param custom_type type of property if user-defined property. If not set and user-defined, property is a string
     #\return
-    def negociate_cap(self, pcode, prop, custom_type=0):
+    def negotiate_cap(self, pcode, prop, custom_type=0):
         if not self._input:
-            raise Exception('Cannot negociate caps on output PID')
+            raise Exception('Cannot negotiate caps on output PID')
             return
         prop_4cc = pcode
         prop_name = None
@@ -3688,9 +3688,9 @@ class FilterPid:
 
         prop_val = _make_prop(prop_4cc, pcode, prop, custom_type)
         if prop_4cc:
-            _libgpac.gf_filter_pid_negociate_property(self._pid, prop_4cc, byref(prop_val))
+            _libgpac.gf_filter_pid_negotiate_property(self._pid, prop_4cc, byref(prop_val))
         else:
-            _libgpac.gf_filter_pid_negociate_property_dyn(self._pid, prop_name, byref(prop_val))
+            _libgpac.gf_filter_pid_negotiate_property_dyn(self._pid, prop_name, byref(prop_val))
 
     ##resolves a template string - see \ref gf_filter_pid_resolve_file_template
     #\param template the template string
