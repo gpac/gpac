@@ -2356,6 +2356,8 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	else if (ds->stream_type==GF_STREAM_AUDIO) {
 		Bool use_cicp = GF_FALSE;
 		Bool use_dolbyx = GF_FALSE;
+		Bool use_dtshd = GF_FALSE;
+		Bool use_dtsx = GF_FALSE;
 		GF_MPD_Descriptor *desc;
 		char value[256];
 		ds->rep->samplerate = ds->sr;
@@ -2363,8 +2365,12 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		if (ds->nb_surround || ds->nb_lfe) use_cicp = GF_TRUE;
 		if ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA)) use_cicp = GF_TRUE;
 		if ((ds->codec_id==GF_CODECID_DTS_EXPRESS_LBR) || (ds->codec_id==GF_CODECID_DTS_CA) || (ds->codec_id==GF_CODECID_DTS_HD_HR_MASTER)
-		    || (ds->codec_id==GF_CODECID_DTS_HD_LOSSLESS) || (ds->codec_id==GF_CODECID_DTS_X) || (ds->codec_id==GF_CODECID_DTS_Y))
-			use_cicp = GF_TRUE;
+			|| (ds->codec_id==GF_CODECID_DTS_HD_LOSSLESS)) {
+			use_dtshd = GF_TRUE;
+		}
+		if ((ds->codec_id==GF_CODECID_DTS_X) || (ds->codec_id==GF_CODECID_DTS_Y)) {
+			if (ds->ch_layout) use_dtsx = GF_TRUE;
+		}
 
 		if ((ds->codec_id==GF_CODECID_AC3) || (ds->codec_id==GF_CODECID_EAC3)) {
 			//if regular MPEG-DASH, use CICP, otherwise use Dolby signaling
@@ -2381,8 +2387,13 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 			sprintf(value, "%X", gf_audio_fmt_get_dolby_chanmap(cicp_layout) );
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
-		}
-		else if (!use_cicp) {
+		} else if (use_dtshd) {
+			sprintf(value, "%d", ds->nb_ch);
+			desc = gf_mpd_descriptor_new(NULL, "tag:dts.com,2014:dash:audio_channel_configuration:2012", value);
+		} else if (use_dtsx) {
+			sprintf(value, "%lX", ds->ch_layout);
+			desc = gf_mpd_descriptor_new(NULL, "tag:dts.com,2018:uhd:audio_channel_configuration", value);
+		} else if (!use_cicp) {
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011", value);
 		} else {
@@ -9007,8 +9018,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			split_dur_next = 0;
 
 			//patch to align old arch with new
+			//but if audio has sync frames, check_dur of sample duration would start the next segment one audio sample early
 			check_dur = 0;
-			if (ds->stream_type==GF_STREAM_AUDIO)
+			if ((ds->stream_type==GF_STREAM_AUDIO) && (ds->sync_points_type!=DASHER_SYNC_PRESENT))
 				check_dur = dur;
 
 			//perform regulation of inputs to avoid dashing one stream faster than the others

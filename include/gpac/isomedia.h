@@ -3783,6 +3783,17 @@ GF_Err gf_isom_get_dims_description(GF_ISOFile *isom_file, u32 trackNumber, u32 
 GF_Err gf_isom_new_dims_description(GF_ISOFile *isom_file, u32 trackNumber, GF_DIMSDescription *desc, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+/*! gets a UDTS Specific Configuration sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param desc set to the UDTS Specific Configuration
+\return error if any
+*/
+GF_Err gf_isom_get_udts_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_UDTSConfig *cfg);
+
+
 /*! gets an AC3 sample description
 \param isom_file the target ISO file
 \param trackNumber the target track

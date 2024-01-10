@@ -12435,6 +12435,181 @@ GF_Err dfla_box_size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+GF_Box *ddts_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_DTSSpecificBox, GF_ISOM_BOX_TYPE_DDTS);
+	return (GF_Box *)tmp;
+}
+
+void ddts_box_del(GF_Box *s)
+{
+	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)s;
+	if (ptr) gf_free(ptr);
+}
+
+GF_Err ddts_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)s;
+
+	ptr->cfg.SamplingFrequency = gf_bs_read_u32(bs);
+	ptr->cfg.MaxBitrate = gf_bs_read_u32(bs);
+	ptr->cfg.AvgBitrate = gf_bs_read_u32(bs);
+	ptr->cfg.SampleDepth = gf_bs_read_u8(bs);
+	ptr->cfg.FrameDuration = gf_bs_read_int(bs, 2);
+	ptr->cfg.StreamConstruction = gf_bs_read_int(bs, 5);
+	ptr->cfg.CoreLFEPresent = gf_bs_read_int(bs, 1);
+	ptr->cfg.CoreLayout = gf_bs_read_int(bs, 6);
+	ptr->cfg.CoreSize = gf_bs_read_int(bs, 14);
+	ptr->cfg.StereoDownmix = gf_bs_read_int(bs, 1);
+	ptr->cfg.RepresentationType = gf_bs_read_int(bs, 3);
+	ptr->cfg.ChannelLayout = gf_bs_read_u16(bs);
+	ptr->cfg.MultiAssetFlag = gf_bs_read_int(bs, 1);
+	ptr->cfg.LBRDurationMod = gf_bs_read_int(bs, 1);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err ddts_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->cfg.SamplingFrequency);
+	gf_bs_write_u32(bs, ptr->cfg.MaxBitrate);
+	gf_bs_write_u32(bs, ptr->cfg.AvgBitrate);
+	gf_bs_write_u8(bs, ptr->cfg.SampleDepth);
+	gf_bs_write_int(bs, ptr->cfg.FrameDuration, 2);
+	gf_bs_write_int(bs, ptr->cfg.StreamConstruction, 5);
+	gf_bs_write_int(bs, ptr->cfg.CoreLFEPresent, 1);
+	gf_bs_write_int(bs, ptr->cfg.CoreLayout, 6);
+	gf_bs_write_int(bs, ptr->cfg.CoreSize, 14);
+	gf_bs_write_int(bs, ptr->cfg.StereoDownmix, 1);
+	gf_bs_write_int(bs, ptr->cfg.RepresentationType, 3);
+	gf_bs_write_u16(bs, ptr->cfg.ChannelLayout);
+	gf_bs_write_int(bs, ptr->cfg.MultiAssetFlag, 1);
+	gf_bs_write_int(bs, ptr->cfg.LBRDurationMod, 1);
+	gf_bs_write_int(bs, 0, 6);  // ReservedBoxPresent and reserved bits
+	return GF_OK;
+}
+
+GF_Err ddts_box_size(GF_Box *s)
+{
+	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)s;
+	ptr->size += 20;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *udts_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_UDTSSpecificBox, GF_ISOM_BOX_TYPE_DDTS);
+	return (GF_Box *)tmp;
+}
+
+void udts_box_del(GF_Box *s)
+{
+	GF_UDTSSpecificBox *ptr = (GF_UDTSSpecificBox *)s;
+	if (ptr) {
+		if (ptr->cfg.PresentationIDTagData) gf_free(ptr->cfg.PresentationIDTagData);
+		if (ptr->cfg.ExpansionBoxData) gf_free(ptr->cfg.ExpansionBoxData);
+		gf_free(ptr);
+	}
+}
+
+GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_UDTSSpecificBox *ptr = (GF_UDTSSpecificBox *)s;
+	u8 i;
+	u64 start = gf_bs_get_position(bs);
+	u64 bytes_read;
+
+	ptr->cfg.DecoderProfileCode = gf_bs_read_int(bs, 6);
+	ptr->cfg.FrameDurationCode = gf_bs_read_int(bs, 2);
+	ptr->cfg.MaxPayloadCode = gf_bs_read_int(bs, 3);
+	ptr->cfg.NumPresentationsCode = gf_bs_read_int(bs, 5);
+	ptr->cfg.ChannelMask = gf_bs_read_u32(bs);
+	ptr->cfg.BaseSamplingFrequencyCode = gf_bs_read_int(bs, 1);
+	ptr->cfg.SampleRateMod = gf_bs_read_int(bs, 2);
+	ptr->cfg.RepresentationType = gf_bs_read_int(bs, 3);
+	ptr->cfg.StreamIndex = gf_bs_read_int(bs, 3);
+	ptr->cfg.ExpansionBoxPresent = gf_bs_read_int(bs, 1);
+	ptr->cfg.PresentationIDTagDataSize = 0;
+	for (i=0; i<=ptr->cfg.NumPresentationsCode; i++) {
+		ptr->cfg.IDTagPresent[i] = gf_bs_read_int(bs, 1);
+		ptr->cfg.PresentationIDTagDataSize += 16 * (ptr->cfg.IDTagPresent[i] != 0);
+	}
+	gf_bs_align(bs);
+	if (ptr->cfg.PresentationIDTagDataSize > 0) {
+		ptr->cfg.PresentationIDTagData = gf_realloc(ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
+		if (!ptr->cfg.PresentationIDTagData) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
+	} else if (ptr->cfg.PresentationIDTagData) {
+		gf_free(ptr->cfg.PresentationIDTagData);
+		ptr->cfg.PresentationIDTagData = NULL;
+	}
+	bytes_read = gf_bs_get_position(bs) - start;
+	if (ptr->size > bytes_read && ptr->cfg.ExpansionBoxPresent) {
+		ptr->cfg.ExpansionBoxDataSize = ptr->size - bytes_read;
+		ptr->cfg.ExpansionBoxData = gf_realloc(ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
+		if (!ptr->cfg.ExpansionBoxData) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
+	} else {
+		if (ptr->cfg.ExpansionBoxData) gf_free(ptr->cfg.ExpansionBoxData);
+		ptr->cfg.ExpansionBoxData = NULL;
+		ptr->cfg.ExpansionBoxDataSize = 0;
+		ptr->cfg.ExpansionBoxPresent = 0;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err udts_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_UDTSSpecificBox *ptr = (GF_UDTSSpecificBox *)s;
+	u8 i;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_int(bs, ptr->cfg.DecoderProfileCode, 6);
+	gf_bs_write_int(bs, ptr->cfg.FrameDurationCode, 2);
+	gf_bs_write_int(bs, ptr->cfg.MaxPayloadCode, 3);
+	gf_bs_write_int(bs, ptr->cfg.NumPresentationsCode, 5);
+	gf_bs_write_u32(bs, ptr->cfg.ChannelMask);
+	gf_bs_write_int(bs, ptr->cfg.BaseSamplingFrequencyCode, 1);
+	gf_bs_write_int(bs, ptr->cfg.SampleRateMod, 2);
+	gf_bs_write_int(bs, ptr->cfg.RepresentationType, 3);
+	gf_bs_write_int(bs, ptr->cfg.StreamIndex, 3);
+	gf_bs_write_int(bs, ptr->cfg.ExpansionBoxPresent, 1);
+	for (i=0; i<=ptr->cfg.NumPresentationsCode; i++)
+		gf_bs_write_int(bs, ptr->cfg.IDTagPresent[i], 1);
+	gf_bs_align(bs);
+	if (ptr->cfg.PresentationIDTagData && ptr->cfg.PresentationIDTagDataSize)
+		gf_bs_write_data(bs, ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
+	if (ptr->cfg.ExpansionBoxData && ptr->cfg.ExpansionBoxDataSize)
+		gf_bs_write_data(bs, ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
+	return GF_OK;
+}
+
+GF_Err udts_box_size(GF_Box *s)
+{
+	GF_UDTSSpecificBox *ptr = (GF_UDTSSpecificBox *)s;
+	u32 bits = 58 + ptr->cfg.NumPresentationsCode + 1;  // 58 bits for fixed fields
+	ptr->size += (bits + 7) / 8;  // align to next byte
+	ptr->size += ptr->cfg.PresentationIDTagDataSize + ptr->cfg.ExpansionBoxDataSize;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 void mvcg_box_del(GF_Box *s)
 {

@@ -1796,6 +1796,45 @@ GF_Err gf_odf_desc_list_write(GF_List *descList, u8 **outEncList, u32 *outSize);
 GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
 
 
+typedef struct
+{
+	u32 SamplingFrequency;
+	u32 MaxBitrate;
+	u32 AvgBitrate;
+	u8 SampleDepth;
+	u8 FrameDuration;
+	u8 StreamConstruction;
+	u8 CoreLFEPresent;
+	u8 CoreLayout;
+	u16 CoreSize;
+	u8 StereoDownmix;
+	u8 RepresentationType;
+	u16 ChannelLayout;
+	u8 MultiAssetFlag;
+	u8 LBRDurationMod;
+} GF_DTSConfig;
+
+
+typedef struct
+{
+	u8 DecoderProfileCode;
+	u8 FrameDurationCode;
+	u8 MaxPayloadCode;
+	u8 NumPresentationsCode;
+	u32 ChannelMask;
+	u8 BaseSamplingFrequencyCode;
+	u8 SampleRateMod;
+	u8 RepresentationType;
+	u8 StreamIndex;
+	u8 ExpansionBoxPresent;
+	u8 IDTagPresent[32];
+	u8 *PresentationIDTagData;
+	u16 PresentationIDTagDataSize;
+	u8 *ExpansionBoxData;
+	u32 ExpansionBoxDataSize;
+} GF_UDTSConfig;
+
+
 //! @cond Doxygen_Suppress
 
 #ifndef GPAC_MINIMAL_ODF
