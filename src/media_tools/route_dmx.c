@@ -1368,7 +1368,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *object, u8 cc, u32 stsid_version, u32 mpd_version)
 {
-	char *payload, *boundary=NULL, *sep;
+	char *payload, *boundary=NULL, *sep, *header_entity;
 	char szContentType[100], szContentLocation[1024];
 	u32 payload_size;
 	GF_Err e;
@@ -1394,6 +1394,10 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 	} else {
 		payload = object->payload;
 		payload_size = object->total_length;
+		// Verifying that the payload is not erroneously treated as plaintext
+		if(!isprint(payload[0])) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d package appears to be compressed but is being treated as plaintext:\n%s\n", s->service_id, payload));
+		}
 	}
 	payload[payload_size] = 0;
 
@@ -1434,25 +1438,32 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		}
 
 		//extract headers
-		while (strncmp(payload, "\r\n\r\n", 4)) {
+		while (payload[0] && strncmp(payload, "\r\n\r\n", 4)) {
 			u32 i=0;
-			while (strchr("\n\r", payload[0]) != NULL) payload++;
-			while (strchr("\r\n", payload[i]) == NULL) i++;
+			while (payload[0] && strchr("\n\r", payload[0]) != NULL) payload++;
+			while (payload[i] && strchr("\r\n", payload[i]) == NULL) i++;
 
 			if (!strnicmp(payload, "Content-Type: ", 14)) {
 				u32 copy = MIN(i-14, 100);
 				strncpy(szContentType, payload+14, copy);
 				szContentType[copy]=0;
-				payload += i;
 			}
 			else if (!strnicmp(payload, "Content-Location: ", 18)) {
 				u32 copy = MIN(i-18, 1024);
 				strncpy(szContentLocation, payload+18, copy);
 				szContentLocation[copy]=0;
-				payload += i;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unrecognized header entity in package:\n%s\n", s->service_id, payload ));
+				char tmp = payload[i]; 
+				payload[i] = 0;
+				header_entity = gf_strdup(payload);
+				payload[i] = tmp;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unrecognized header entity in package:\n%s\n", s->service_id, header_entity));
 			}
+			payload += i;
+		}
+		if(!payload[0]) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d end of package has been prematurely reached\n", s->service_id));
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		payload += 4;
 		content = boundary ? strstr(payload, "\r\n--") : strstr(payload, "\r\n\r\n");
@@ -1696,7 +1707,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	start_offset = gf_bs_read_u32(routedmx->bs);
 	pos = (u32) gf_bs_get_position(routedmx->bs);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : LCT packet TSI %u TOI %u size %d startOffset %u TOL "LLU"\n", s->service_id, tsi, toi, nb_read-pos, start_offset, tol_size));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : LCT packet TSI %u TOI %u size %d startOffset %u TOL "LLU" (PckNum %d)\n", s->service_id, tsi, toi, nb_read-pos, start_offset, tol_size, routedmx->nb_packets));
 
 	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) tol_size, B, in_order, rlct, &gather_object);
 
