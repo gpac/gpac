@@ -541,7 +541,7 @@ A custom filter must implement the \ref CustomFilter class, and optionally provi
 - configure_pid: callback for PID configuration, mandatory if your filter is not a source
 - process: callback for processing
 - process_event: callback for processing and event
-- reconfigure_output: callback for output reconfiguration (PID capability negociation)
+- reconfigure_output: callback for output reconfiguration (PID capability negotiation)
 
 A custom filter must also declare its capabilities, input and output, using push_cap method 
 \code
@@ -917,12 +917,12 @@ void recompute_dts(boolean do_compute);
 */
 PropertyValue query_cap(DOMString pcode);
 
-/*! negociates a capability property on input PID - see \ref gf_filter_pid_negociate_property and \ref gf_filter_pid_negociate_property_dyn
+/*! negotiates a capability property on input PID - see \ref gf_filter_pid_negotiate_property and \ref gf_filter_pid_negotiate_property_dyn
 \param pcode property to negotiate
 \param prop property to negotiate
 \param custom_type type of property if user-defined property. If not set and user-defined, property is a string
 */
-void negociate_cap(DOMString pcode, PropertyValue prop, unsigned long custom_type=0);
+void negotiate_cap(DOMString pcode, PropertyValue prop, unsigned long custom_type=0);
 
 /*! resolves a template string - see \ref gf_filter_pid_resolve_file_template
 \param template the template string

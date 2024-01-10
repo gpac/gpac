@@ -303,7 +303,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	odm = gf_filter_pid_get_udta(pid);
 
-	//in filter mode, check we can handle creating a canvas from input video format. If not, negociate a supported format
+	//in filter mode, check we can handle creating a canvas from input video format. If not, negotiate a supported format
 	if (!ctx->player) {
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 		if (prop && (!odm || (odm->mo && (odm->mo->pixelformat != prop->value.uint)))) {
@@ -322,7 +322,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				} else {
 					new_fmt = transparent ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 				}
-				gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(new_fmt) );
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(new_fmt) );
 				return GF_OK;
 			}
 		}

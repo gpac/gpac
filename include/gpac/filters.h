@@ -3557,33 +3557,33 @@ GF_Err gf_filter_pid_push_properties(GF_FilterPid *PID, char *args, Bool direct_
 
 
 /*! Negotiate a given property on an input PID for built-in properties
-Filters may accept some PID connection but may need an adaptaion chain to be able to process packets, eg change pixel format or sample rate
+Filters may accept some PID connection but may need an adaptation chain to be able to process packets, eg change pixel format or sample rate
 This function will trigger a reconfiguration of the filter chain to try to adapt this. If failing, the filter chain will disconnect
-This process is asynchronous, the filter asking for a PID negociation will see the notification through a pid_reconfigure if success.
+This process is asynchronous, the filter asking for a PID negotiation will see the notification through a pid_reconfigure if success.
 \param PID the target filter PID - this MUST be an input PID
 \param prop_4cc the built-in property code to negotiate
 \param value the new value to negotiate, SHALL NOT be NULL
 \return error code if any
 */
-GF_Err gf_filter_pid_negociate_property(GF_FilterPid *PID, u32 prop_4cc, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negotiate_property(GF_FilterPid *PID, u32 prop_4cc, const GF_PropertyValue *value);
 
 /*! Negotiate a given property on an input PID for regular properties
-see \ref gf_filter_pid_negociate_property
+see \ref gf_filter_pid_negotiate_property
 \param PID the target filter PID - this MUST be an input PID
 \param name name of the property to negotiate
 \param value the new value to negotiate, SHALL NOT be NULL
 \return error code if any
 */
-GF_Err gf_filter_pid_negociate_property_str(GF_FilterPid *PID, const char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negotiate_property_str(GF_FilterPid *PID, const char *name, const GF_PropertyValue *value);
 
 /*! Negotiate a given property on an input PID for regular properties
-see \ref gf_filter_pid_negociate_property
+see \ref gf_filter_pid_negotiate_property
 \param PID the target filter PID - this MUST be an input PID
 \param name the name of the property to modify. The name will be copied to the property, and memory destruction performed by the filter session
 \param value the new value to negotiate, SHALL NOT be NULL
 \return error code if any
 */
-GF_Err gf_filter_pid_negociate_property_dyn(GF_FilterPid *PID, char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negotiate_property_dyn(GF_FilterPid *PID, char *name, const GF_PropertyValue *value);
 
 /*! Queries a negotiated built-in capability on an output PID
 Filters may check if a property negotiation was done on an output PID, and check the property value.
@@ -3592,14 +3592,14 @@ This can be done on an input PID in a generic reconfigure_pid
 
 \param PID the target filter PID
 \param prop_4cc the built-in property code to negotiate
-\return the negociated property value
+\return the negotiated property value
 */
 const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *PID, u32 prop_4cc);
 
 /*! Queries a negotiated capability on an output PID - see \ref gf_filter_pid_caps_query
 \param PID the target filter PID
 \param prop_name the property name to negotiate
-\return the negociated property value
+\return the negotiated property value
 */
 const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *PID, const char *prop_name);
 
