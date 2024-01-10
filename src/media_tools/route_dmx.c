@@ -1368,7 +1368,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *object, u8 cc, u32 stsid_version, u32 mpd_version)
 {
-	char *payload, *boundary=NULL, *sep, *header_entity;
+	char *payload, *boundary=NULL, *sep;
 	char szContentType[100], szContentLocation[1024];
 	u32 payload_size;
 	GF_Err e;
@@ -1455,9 +1455,8 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 			} else {
 				char tmp = payload[i]; 
 				payload[i] = 0;
-				header_entity = gf_strdup(payload);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unrecognized header entity in package:\n%s\n", s->service_id, payload));
 				payload[i] = tmp;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unrecognized header entity in package:\n%s\n", s->service_id, header_entity));
 			}
 			payload += i;
 		}
