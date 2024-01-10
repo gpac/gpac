@@ -970,6 +970,36 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+GF_EXPORT
+GF_Err gf_isom_get_udts_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_UDTSConfig *cfg)
+{
+	GF_Box *sample_entry;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
+	GF_UDTSSpecificBox *udts = NULL;
+
+	if (!trak || !descriptionIndex || !cfg) return GF_BAD_PARAM;
+	sample_entry = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, descriptionIndex-1);
+	if (sample_entry && sample_entry->type == GF_ISOM_BOX_TYPE_DTSX)
+		udts = (GF_UDTSSpecificBox *)gf_list_get(sample_entry->child_boxes, 0);
+
+	memset(cfg, 0, sizeof(GF_UDTSConfig));
+	if (!udts)
+		return GF_BAD_PARAM;
+
+	cfg->DecoderProfileCode = udts->cfg.DecoderProfileCode;
+	cfg->FrameDurationCode = udts->cfg.FrameDurationCode;
+	cfg->MaxPayloadCode = udts->cfg.MaxPayloadCode;
+	cfg->NumPresentationsCode = udts->cfg.NumPresentationsCode;
+	cfg->ChannelMask = udts->cfg.ChannelMask;
+	cfg->BaseSamplingFrequencyCode = udts->cfg.BaseSamplingFrequencyCode;
+	cfg->SampleRateMod = udts->cfg.SampleRateMod;
+	cfg->RepresentationType = udts->cfg.RepresentationType;
+	cfg->StreamIndex = udts->cfg.RepresentationType;
+	return GF_OK;
+}
+
+
 GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
 {
 	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)lsr, GF_TRUE);

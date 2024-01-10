@@ -527,6 +527,16 @@ enum
 	GF_ISOM_BOX_TYPE_FLAC	= GF_4CC( 'f', 'L', 'a', 'C' ),
 	GF_ISOM_BOX_TYPE_DFLA	= GF_4CC( 'd', 'f', 'L', 'a' ),
 
+	/* DTS audio */
+	GF_ISOM_BOX_TYPE_DDTS = GF_4CC('d','d','t','s'),
+	GF_ISOM_BOX_TYPE_DTSC = GF_4CC('d','t','s','c'),
+	GF_ISOM_BOX_TYPE_DTSH = GF_4CC('d','t','s','h'),
+	GF_ISOM_BOX_TYPE_DTSL = GF_4CC('d','t','s','l'),
+	GF_ISOM_BOX_TYPE_DTSE = GF_4CC('d','t','s','e'),
+	GF_ISOM_BOX_TYPE_DTSX = GF_4CC('d','t','s','x'),
+	GF_ISOM_BOX_TYPE_DTSY = GF_4CC('d','t','s','y'),
+	GF_ISOM_BOX_TYPE_UDTS = GF_4CC('u','d','t','s'),
+
 	//internal only
 	GF_QT_SUBTYPE_RAW_AUD 	= GF_4CC('Q','T','R','A'),
 	GF_QT_SUBTYPE_RAW_VID 	= GF_4CC('Q','T','R','V'),
@@ -1702,6 +1712,21 @@ typedef struct
 	GF_ISOM_BOX
 	GF_OpusConfig opcfg;
 } GF_OpusSpecificBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_DTSConfig cfg;
+} GF_DTSSpecificBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_UDTSConfig cfg;
+} GF_UDTSSpecificBox;
+
 
 typedef struct
 {

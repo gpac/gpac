@@ -1490,6 +1490,12 @@ props_done:
 			}
 #endif
 		}
+	} else if (codec_id==GF_CODECID_DTS_X) {
+		GF_UDTSConfig cfg;
+		if (gf_isom_get_udts_config(ch->owner->mov, ch->track, 1, &cfg) == GF_OK) {
+			u64 ch_layout = cfg.ChannelMask;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
+		}
 	}
 
 	if (udesc) {
