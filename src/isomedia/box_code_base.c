@@ -12450,6 +12450,7 @@ void ddts_box_del(GF_Box *s)
 GF_Err ddts_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)s;
+	const u64 ddtsBoxSize = 20;
 
 	ptr->cfg.SamplingFrequency = gf_bs_read_u32(bs);
 	ptr->cfg.MaxBitrate = gf_bs_read_u32(bs);
@@ -12465,6 +12466,12 @@ GF_Err ddts_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->cfg.ChannelLayout = gf_bs_read_u16(bs);
 	ptr->cfg.MultiAssetFlag = gf_bs_read_int(bs, 1);
 	ptr->cfg.LBRDurationMod = gf_bs_read_int(bs, 1);
+	gf_bs_read_int(bs, 6); // ReservedBox flag and reserved bits
+
+	// gf_isom_box_parse_ex expects ddts box to be fully read and byte aligned
+	if (ptr->size > ddtsBoxSize)
+		gf_bs_skip_bytes(bs, ptr->size - ddtsBoxSize);
+
 	return GF_OK;
 }
 
