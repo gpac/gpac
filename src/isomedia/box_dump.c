@@ -6838,7 +6838,7 @@ GF_Err udts_box_dump(GF_Box *a, FILE * trace)
 	if ((ptr->cfg.NumPresentationsCode + 1) * 16 < ptr->cfg.PresentationIDTagDataSize) {
 		data = ptr->cfg.PresentationIDTagData;
 		for (i=0; i<=ptr->cfg.NumPresentationsCode; i++) {
-			if (ptr->cfg.IDTagPresent) {
+			if (ptr->cfg.IDTagPresent[i]) {
 				gf_fprintf(trace, " PresentationIDTag%d=\"", i + 1);
 				for (byte=0; byte<16; byte++)
 					gf_fprintf(trace, "%02X", *data++);

@@ -2391,7 +2391,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dts.com,2014:dash:audio_channel_configuration:2012", value);
 		} else if (use_dtsx) {
-			sprintf(value, "%lX", ds->ch_layout);
+			sprintf(value, LLX, ds->ch_layout);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dts.com,2018:uhd:audio_channel_configuration", value);
 		} else if (!use_cicp) {
 			sprintf(value, "%d", ds->nb_ch);
