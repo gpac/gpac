@@ -3669,13 +3669,13 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 
 static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_name, GF_Filter *js_filter, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) )
 {
-	GF_CapsBundleStore capstore;
 	const char *js_name = NULL;
 	GF_Err e=GF_OK;
 	u32 i, j, count, nb_js_caps;
 	GF_List *sources, *sinks;
 	GF_FilterRegister loaded_freg;
 	Bool has_output, has_input;
+	GF_FilterRegDesc local_reg;
 
 	if (!js_filter) {
 		if (!filter_name) return;
@@ -3700,7 +3700,8 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 	has_output = gf_filter_has_out_caps(js_filter->forced_caps, js_filter->nb_forced_caps);
 	has_input = gf_filter_has_in_caps(js_filter->forced_caps, js_filter->nb_forced_caps);
 
-	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
+	memset(&local_reg, 0, sizeof(GF_FilterRegDesc));
+	GF_SAFEALLOC(local_reg.bundle_cache, GF_BundleCache);
 	sources = gf_list_new();
 	sinks = gf_list_new();
 	//edges for JS are for the unloaded JSF (eg accept anything, output anything).
@@ -3715,21 +3716,21 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 
 		//check which cap of this filter matches our destination
 		nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
+		GF_SAFEALLOC(a_reg->bundle_cache, GF_BundleCache);
 		for (k=0; k<nb_src_caps; k++) {
 			for (l=0; l<nb_js_caps; l++) {
-				s32 bundle_idx;
 				u32 loaded_filter_only_flags = 0;
 				u32 path_weight;
 				if (has_input && !src_match) {
-					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) &loaded_freg, 0, NULL, &bundle_idx, l, &loaded_filter_only_flags, &capstore);
-					if (path_weight && (bundle_idx == l))
+					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) &loaded_freg, NULL, l, &loaded_filter_only_flags, NULL, a_reg->bundle_cache, local_reg.bundle_cache);
+					if (path_weight)
 						src_match = GF_TRUE;
 				}
 				if (has_output && !sink_match) {
 					loaded_filter_only_flags = 0;
-					path_weight = gf_filter_caps_to_caps_match(&loaded_freg, l, a_reg->freg, 0, NULL, &bundle_idx, k, &loaded_filter_only_flags, &capstore);
+					path_weight = gf_filter_caps_to_caps_match(&loaded_freg, l, a_reg->freg, NULL, k, &loaded_filter_only_flags, NULL, local_reg.bundle_cache, a_reg->bundle_cache);
 
-					if (path_weight && (bundle_idx == k))
+					if (path_weight)
 						sink_match = GF_TRUE;
 				}
 			}
@@ -3738,7 +3739,10 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 		}
 		if (src_match) gf_list_add(sources, (void *) a_reg->freg);
 		if (sink_match) gf_list_add(sinks, (void *) a_reg->freg);
+
+		bundle_cache_free(a_reg);
 	}
+	bundle_cache_free(&local_reg);
 
 	for (i=0; i<2; i++) {
 		GF_List *from = i ? sinks : sources;
@@ -3774,9 +3778,7 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 		}
 	}
 
-	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
-	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
-	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+	reset_bundle_cache(session);
 	gf_list_del(sources);
 	gf_list_del(sinks);
 }
