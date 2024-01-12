@@ -77,6 +77,13 @@ doc:
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
+unit_tests:
+	@echo "Building  unit tests"
+	$(SRC_PATH)/unittests/build.sh > bin/gcc/unittests.c 
+	@gcc -I$(SRC_PATH) -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H bin/gcc/unittests.c $(SRC_PATH)/unittests/tests.c $(shell find src/ -path "*/unittests/*.c" | sort) -o bin/gcc/unittests -Lbin/gcc -lgpac
+	@echo "Executing unit tests"
+	LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
+
 test_suite:
 	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -precommit -p=0
 
