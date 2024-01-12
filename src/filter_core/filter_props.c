@@ -680,6 +680,9 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 			if (!strcmp(p1->value.string, "*")) return GF_TRUE;
 			if (!strcmp(p2->value.string, "*")) return GF_TRUE;
 		}
+		if (!strcmp(p1->value.string, p2->value.string))
+			return GF_TRUE;
+
 		if (strchr(p2->value.string, '|')) {
 			u32 len = (u32) strlen(p1->value.string);
 			char *cur = p2->value.string;
@@ -704,8 +707,7 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 			}
 			return GF_FALSE;
 		}
-		gf_assert(strchr(p1->value.string, '|')==NULL);
-		return !strcmp(p1->value.string, p2->value.string) ? GF_TRUE : GF_FALSE;
+		return GF_FALSE;
 
 	case GF_PROP_DATA:
 	case GF_PROP_DATA_NO_COPY:

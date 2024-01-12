@@ -153,7 +153,7 @@ const FilterSessionPromise = (fs_run_task) => {
 
 const run_task = () => {
 	return new Promise((resolve, reject) => {
-	  resolve( fs.run_step() );
+	  resolve( fs.run() );
 	});
 }
 FilterSessionPromise(run_task).then( ).finally( ()=> { console.log('session is done'); } ) );

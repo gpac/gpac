@@ -1048,6 +1048,7 @@ s32 ogg_sync_wrote(ogg_sync_state *oy, s32 bytes) {
 */
 
 s32 ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og) {
+	if (!oy->data) return 0;
 	unsigned char *page=oy->data+oy->returned;
 	unsigned char *next;
 	s32 bytes=oy->fill-oy->returned;

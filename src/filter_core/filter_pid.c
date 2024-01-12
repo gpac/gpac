@@ -2286,355 +2286,327 @@ Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps)
 	return gf_filter_has_in_out_caps(caps, nb_caps, GF_TRUE);
 }
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, u32 nb_in_bundles, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
+static void cache_bundle_free(GF_BundleDesc *b)
+{
+	if (b->caps) {
+		u32 i;
+		for (i=0; i<b->alloc_caps;i++) {
+			GF_CapBundleDesc *cap = &b->caps[i];
+			if (cap->vals) gf_free(cap->vals);
+		}
+		if (b->caps) gf_free(b->caps);
+	}
+	gf_free(b);
+}
+
+static GF_BundleDesc *caps_load_bundle(const GF_FilterRegister *freg, u32 b_idx, GF_BundleCache *bundle_cache, const GF_FilterCapability *caps, u32 nb_caps, Bool for_output)
+{
+	GF_BundleDesc *bundle;
+	u32 cur_idx=0, nb_st=0;
+
+	if (for_output) {
+		if (b_idx<bundle_cache->nb_src) return bundle_cache->bundles_src[b_idx];
+		gf_assert(b_idx==bundle_cache->nb_src);
+	} else {
+		if (b_idx<bundle_cache->nb_dst) return bundle_cache->bundles_dst[b_idx];
+		gf_assert(b_idx==bundle_cache->nb_dst);
+	}
+
+	GF_SAFEALLOC(bundle, GF_BundleDesc);
+	if (!bundle) return NULL;
+
+	while (nb_caps--) {
+		u32 j;
+		const GF_FilterCapability *a_cap = &caps[0];
+		u32 cap_flags = a_cap->flags;
+		caps++;
+		//move to next bundle
+		if (!(cap_flags & GF_CAPFLAG_IN_BUNDLE)) {
+			cur_idx++;
+			//we are done (static cap flag only applies to the following bundles, not the previous ones)
+			if (cur_idx>b_idx)
+				break;
+		}
+		//not our bundle
+		if ((cur_idx!=b_idx) && !(cap_flags & GF_CAPFLAG_STATIC)) continue;
+		//not our type
+		if (for_output) {
+			if (!(cap_flags & GF_CAPFLAG_OUTPUT)) continue;
+		} else {
+			if (!(cap_flags & GF_CAPFLAG_INPUT)) continue;
+		}
+		//cap is in our cap bundle
+		GF_CapBundleDesc *bundle_cap = NULL;
+		for (j=0; j<bundle->nb_caps; j++) {
+			bundle_cap = &bundle->caps[j];
+			if (bundle_cap->code) {
+				if (cap_code_match(bundle_cap->code, a_cap->code)) break;
+			} else {
+				if (a_cap->name && !strcmp(bundle_cap->name, a_cap->name)) break;
+			}
+			bundle_cap=NULL;
+		}
+		if (!bundle_cap) {
+			//not found
+			if (bundle->nb_caps >= bundle->alloc_caps) {
+				bundle->caps = gf_realloc(bundle->caps, (bundle->alloc_caps+10) * sizeof(GF_CapBundleDesc));
+				if (!bundle->caps) {
+					cache_bundle_free(bundle);
+					return NULL;
+				}
+				u32 k, max=bundle->alloc_caps+10;
+				//reset all vals pointers in allocated area, don't memzero the rest (done when using the value)
+				for (k=bundle->alloc_caps;k<max;k++)
+					bundle->caps[k].vals = NULL;
+
+				bundle->alloc_caps+=10;
+			}
+			bundle_cap = &bundle->caps[bundle->nb_caps];
+			bundle->nb_caps++;
+			bundle_cap->code = a_cap->code;
+			bundle_cap->name = a_cap->name;
+			bundle_cap->nb_vals = bundle_cap->alloc_vals = 0;
+		}
+		if (bundle_cap->nb_vals >= bundle_cap->alloc_vals) {
+			bundle_cap->alloc_vals += 10;
+			bundle_cap->vals = gf_realloc(bundle_cap->vals, bundle_cap->alloc_vals * sizeof(GF_FilterCapability *));
+			if (!bundle_cap->vals) {
+				cache_bundle_free(bundle);
+				return NULL;
+			}
+		}
+		bundle_cap->vals[bundle_cap->nb_vals] = a_cap;
+		bundle_cap->nb_vals++;
+
+		if (!(cap_flags & GF_CAPFLAG_EXCLUDED)) {
+			u32 cap_stype=0;
+			if (a_cap->code==GF_PROP_PID_STREAM_TYPE)
+				cap_stype = a_cap->val.value.uint;
+			else if ((a_cap->code == GF_PROP_PID_MIME) || (a_cap->code == GF_PROP_PID_FILE_EXT) )
+				cap_stype = GF_STREAM_FILE;
+
+			if (cap_stype && (bundle->stream_type!=cap_stype)) {
+				bundle->stream_type = (s32) cap_stype;
+				nb_st++;
+			}
+		}
+	}
+	if (nb_st>1)
+		bundle->stream_type = -1;
+
+	if (for_output) {
+		if (bundle_cache->nb_src>=bundle_cache->nb_src_alloc) {
+			bundle_cache->nb_src_alloc += 10;
+			bundle_cache->bundles_src = gf_realloc(bundle_cache->bundles_src, sizeof(GF_BundleDesc*)*bundle_cache->nb_src_alloc);
+		}
+		bundle_cache->bundles_src[bundle_cache->nb_src] = bundle;
+		bundle_cache->nb_src++;
+	} else {
+		if (bundle_cache->nb_dst>=bundle_cache->nb_dst_alloc) {
+			bundle_cache->nb_dst_alloc += 10;
+			bundle_cache->bundles_dst = gf_realloc(bundle_cache->bundles_dst, sizeof(GF_BundleDesc*)*bundle_cache->nb_dst_alloc);
+		}
+		bundle_cache->bundles_dst[bundle_cache->nb_dst] = bundle;
+		bundle_cache->nb_dst++;
+	}
+	return bundle;
+}
+
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 dst_bundle_idx, u32 *loaded_filter_flags, s32 *src_stream_type, GF_BundleCache *bundle_cache_src, GF_BundleCache *bundle_cache_dst)
 {
 	u32 i=0;
-	s32 first_static_cap=-1;
-	u32 cur_bundle_start = 0;
-	u32 cur_bundle_idx = 0;
-	u32 nb_matched=0;
-	//u32 nb_out_caps=0;
-	u32 bundle_score = 0;
-	u32 *bundles_in_ok = NULL;
-	u32 *bundles_cap_found = NULL;
-	u32 *bundles_in_scores = NULL;
-	//initialize caps matched to true for first cap bundle
-	Bool all_caps_matched = GF_TRUE;
+	u32 bundle_in_matched = 0;
+	u32 bundle_in_score = 0;
 	const GF_FilterCapability *dst_caps = dst_reg->caps;
 	u32 nb_dst_caps = dst_reg->nb_caps;
+	gf_assert(bundle_cache_src && bundle_cache_dst);
 
 	if (dst_filter && dst_filter->freg==dst_reg && dst_filter->forced_caps) {
 		dst_caps = dst_filter->forced_caps;
 		nb_dst_caps = dst_filter->nb_forced_caps;
-		nb_in_bundles = dst_filter->nb_forced_bundles;
 	}
-
-	//check all input caps of dst filter, count bundles
-	if (! gf_filter_has_out_caps(src->caps, src->nb_caps)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no output caps, cannot match filter %s inputs\n", src->name, dst_reg->name));
+	//build out cap
+	GF_BundleDesc *src_bundle = caps_load_bundle(src, src_bundle_idx, bundle_cache_src, src->caps, src->nb_caps, GF_TRUE);
+	if (!src_bundle) return 0;
+	if (!src_bundle->nb_caps) {
+		if (!src_bundle_idx) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no output caps, cannot match filter %s inputs\n", src->name, dst_reg->name));
+		}
 		return 0;
 	}
 
-	//check all input caps of dst filter, count bundles
-	if (!nb_in_bundles)
-		nb_in_bundles = gf_filter_caps_bundle_count(dst_caps, nb_dst_caps);
-
-	if (!nb_in_bundles) {
+	//build in cap
+	GF_BundleDesc *dst_bundle = caps_load_bundle(dst_reg, dst_bundle_idx, bundle_cache_dst, dst_caps, nb_dst_caps, GF_FALSE);
+	if (!dst_bundle) return 0;
+	if (!dst_bundle->nb_caps) {
 		if (dst_reg->configure_pid) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no caps but pid configure possible, assuming possible connection\n", dst_reg->name));
+			if (!dst_bundle_idx) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no caps but pid configure possible, assuming possible connection\n", dst_reg->name));
+			}
+			if (src_stream_type)
+				*src_stream_type = src_bundle->stream_type;
 			return 1;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no caps and no pid configure, no possible connection\n", dst_reg->name));
+		if (!dst_bundle_idx) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has no caps and no pid configure, no possible connection\n", dst_reg->name));
+		}
 		return 0;
-	}
-	if (capstore->nb_allocs < nb_in_bundles) {
-		capstore->nb_allocs = nb_in_bundles;
-		capstore->bundles_in_ok = gf_realloc(capstore->bundles_in_ok, sizeof(u32) * nb_in_bundles);
-		capstore->bundles_cap_found = gf_realloc(capstore->bundles_cap_found, sizeof(u32) * nb_in_bundles);
-		capstore->bundles_in_scores = gf_realloc(capstore->bundles_in_scores,  sizeof(u32) * nb_in_bundles);
-	}
-	bundles_in_ok =	capstore->bundles_in_ok;
-	bundles_cap_found = capstore->bundles_cap_found;
-	bundles_in_scores = capstore->bundles_in_scores;
-
-	for (i=0; i<nb_in_bundles; i++) {
-		bundles_in_ok[i] = 1;
-		bundles_cap_found[i] = 0;
-		bundles_in_scores[i] = 0;
 	}
 
 	//check all output caps of src filter
-	for (i=0; i<src->nb_caps; i++) {
+	for (i=0; i<src_bundle->nb_caps; i++) {
 		u32 j, k;
-		Bool already_tested = GF_FALSE;
-		const GF_FilterCapability *out_cap = &src->caps[i];
+		u32 bundle_caps_matched = 0;
+		Bool bundle_caps_excluded=GF_FALSE;
+		GF_CapBundleDesc *src_cap = &src_bundle->caps[i];
 
-		if (i<cur_bundle_start) {
-			if (!(out_cap->flags & GF_CAPFLAG_STATIC))
-				continue;
-		}
+		GF_CapBundleDesc *dst_cap = NULL;
+		for (j=0; j<dst_bundle->nb_caps; j++) {
+			dst_cap = &dst_bundle->caps[j];
 
-		if (!(out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
-			all_caps_matched = GF_TRUE;
-			cur_bundle_start = i+1;
-			cur_bundle_idx++;
-			if (src_bundle_idx < cur_bundle_idx)
-				break;
-
-			if (first_static_cap>=0)
-				i = (u32) (first_static_cap-1);
-			continue;
-		}
-
-		//not our selected output and not static cap
-		if ((src_bundle_idx != cur_bundle_idx) && ! (out_cap->flags & GF_CAPFLAG_STATIC) ) {
-			continue;
-		}
-
-		//not an output cap
-		if (!(out_cap->flags & GF_CAPFLAG_OUTPUT) ) continue;
-
-		if ((first_static_cap==-1) && (out_cap->flags & GF_CAPFLAG_STATIC)) {
-			first_static_cap = i;
-		}
-
-
-		//no match possible for this cap, wait until next cap start
-		if (!all_caps_matched) continue;
-
-		//check we didn't test a cap with same name/code before us
-		for (k=cur_bundle_start; k<i; k++) {
-			const GF_FilterCapability *an_out_cap = &src->caps[k];
-			if (! (an_out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
-				break;
+			if (dst_cap->code) {
+				if (cap_code_match(dst_cap->code, src_cap->code))
+					break;
+			} else {
+				if (dst_cap->name && src_cap->name && !strcmp(dst_cap->name, src_cap->name))
+					break;
 			}
-			if (! (an_out_cap->flags & GF_CAPFLAG_OUTPUT) ) {
-				continue;
-			}
-			if (out_cap->code && (out_cap->code == an_out_cap->code) ) {
-				already_tested = GF_TRUE;
-				break;
-			}
-			if (out_cap->name && an_out_cap->name && !strcmp(out_cap->name, an_out_cap->name)) {
-				already_tested = GF_TRUE;
-				break;
-			}
-		}
-		if (already_tested) {
-			continue;
-		}
-		//nb_out_caps++;
-
-		//set cap as OK in all bundles
-		for (k=0; k<nb_in_bundles; k++) {
-			bundles_cap_found[k] = 0;
+			dst_cap = NULL;
 		}
 
-		//check all output caps in this bundle with the same code/name, consider OK if one is matched
-		if (first_static_cap>=0)
-			k = first_static_cap-1;
-		else
-			k = cur_bundle_start;
-
-		for (; k<src->nb_caps; k++) {
-			u32 cur_dst_bundle=0;
-			Bool static_matched = GF_FALSE;
-			u32 nb_caps_tested = 0;
+		for (k=0; k<src_cap->nb_vals; k++) {
 			u32 cap_loaded_filter_only = 0;
-			Bool matched=GF_FALSE;
-			Bool exclude=GF_FALSE;
+			Bool prop_matched=GF_FALSE;
+			Bool prop_exclude=GF_FALSE;
 			Bool prop_found=GF_FALSE;
-			const GF_FilterCapability *an_out_cap = &src->caps[k];
 
-			if (k<cur_bundle_start) {
-				if (!(an_out_cap->flags & GF_CAPFLAG_STATIC))
-					continue;
-			}
-			if (! (an_out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
-				break;
-			}
-			if (! (an_out_cap->flags & GF_CAPFLAG_OUTPUT) ) {
-				continue;
-			}
-			if (out_cap->code && !cap_code_match(out_cap->code, an_out_cap->code) )
-				continue;
+			const GF_FilterCapability *out_cap = src_cap->vals[k];
+			u32 out_cap_flags = out_cap->flags;
+			register Bool out_cap_flags_excl = out_cap_flags & GF_CAPFLAG_EXCLUDED;
 
-			if (out_cap->name && (!an_out_cap->name || strcmp(out_cap->name, an_out_cap->name)))
-				continue;
-
-			//not our selected output and not static cap
-			if ((src_bundle_idx != cur_bundle_idx) && ! (an_out_cap->flags & GF_CAPFLAG_STATIC) ) {
-				continue;
-			}
-
-			nb_matched = 0;
+			u32 nb_matched = 0;
+			u32 nb_caps_in_dst_bundle = dst_cap ? dst_cap->nb_vals : 0;
 			//check all input caps of dst filter, count ones that are matched
-			for (j=0; j<nb_dst_caps; j++) {
-				Bool prop_equal;
-				const GF_FilterCapability *in_cap = &dst_caps[j];
+			for (j=0; j<nb_caps_in_dst_bundle; j++) {
+				const GF_FilterCapability *in_cap = dst_cap->vals[j];
+				u32 in_cap_flags = in_cap->flags;
+				register Bool in_cap_flags_excl = in_cap_flags & GF_CAPFLAG_EXCLUDED;
 
-				if (! (in_cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
-					if (((cur_dst_bundle >= for_dst_bundle) || (in_cap->flags & GF_CAPFLAG_STATIC))) {
-						if (!matched && !nb_caps_tested && (out_cap->flags & GF_CAPFLAG_EXCLUDED)) {
-							matched = GF_TRUE;
-						}
-					}
-
-					//we found a prop, excluded but with != value hence acceptable, default matching to true
-					if (!matched && prop_found) matched = GF_TRUE;
-
-					//match, flag this bundle as ok
-					if (matched) {
-						if (!bundles_cap_found[cur_dst_bundle])
-							bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
-
-						nb_matched++;
-					}
-
-					matched = static_matched ? GF_TRUE : GF_FALSE;
-					if (exclude) {
-						bundles_cap_found[cur_dst_bundle] = 0;
-						exclude = GF_FALSE;
-					}
-					prop_found = GF_FALSE;
-					nb_caps_tested = 0;
-					cur_dst_bundle++;
-					if (cur_dst_bundle > for_dst_bundle)
-						break;
-
-					continue;
-				}
-				//not an input cap
-				if (!(in_cap->flags & GF_CAPFLAG_INPUT) )
-					continue;
-
-				//optional cap, ignore
-				if (in_cap->flags & GF_CAPFLAG_OPTIONAL)
-					continue;
-
-				if ((cur_dst_bundle < for_dst_bundle) && !(in_cap->flags & GF_CAPFLAG_STATIC))
-					continue;
-
-				//prop was excluded, cannot match in bundle
-				if (exclude) continue;
-				//prop was matched, no need to check other caps in the current bundle
-				if (matched) continue;
-
-				if (out_cap->code && !cap_code_match(out_cap->code, in_cap->code) )
-					continue;
-
-				if (out_cap->name && (!in_cap->name || strcmp(out_cap->name, in_cap->name)))
-					continue;
-
-				nb_caps_tested++;
 				//we found a property of that type , check if equal equal
-				prop_equal = gf_props_equal(&in_cap->val, &an_out_cap->val);
-				if ((in_cap->flags & GF_CAPFLAG_EXCLUDED) && !(an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
+				if (in_cap_flags_excl && !out_cap_flags_excl) {
+					Bool prop_equal;
 					//special case for excluded output caps marked for loaded filter only and optional:
 					//always consider no match, the actual pid link resolving will sort this out
 					//this fixes a bug in reframer -> ffdec links: since ffdec only specifies excluded GF_CODEC_ID caps,
 					//not doing so will always force reframer->ufnalu->rfnalu->ffdec
-					if (an_out_cap->flags & (GF_CAPFLAG_OPTIONAL|GF_CAPFLAG_LOADED_FILTER))
+					if (out_cap_flags & (GF_CAPFLAG_OPTIONAL|GF_CAPFLAG_LOADED_FILTER))
 						prop_equal = GF_FALSE;
+					else
+						prop_equal = gf_props_equal(&in_cap->val, &out_cap->val);
 
 					//prop type matched, output includes it and input excludes it: no match, don't look any further
 					if (prop_equal) {
 						//ignore if we have a previous match for same cap - this is needed for filters declaring multiple stream types
 						//which are only known after filter loading
-						if (!bundles_cap_found[cur_dst_bundle]) {
-							matched = GF_FALSE;
-							exclude = GF_TRUE;
+						if (!bundle_caps_matched) {
+							prop_exclude = GF_TRUE;
+							//we may have prop_found = TRUE here if a previous prop was found, force reset
 							prop_found = GF_FALSE;
+							//prop excluded, cannot match in bundle
+							break;
 						}
 					} else {
 						//remember we found a prop of same type but excluded value
 						// we will match unless we match an excluded value
 						prop_found = GF_TRUE;
+						if (in_cap_flags & GF_CAPFLAG_LOADED_FILTER)
+							cap_loaded_filter_only = 1;
 					}
-				} else if (!(in_cap->flags & GF_CAPFLAG_EXCLUDED) && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
+				} else if (!in_cap_flags_excl && out_cap_flags_excl) {
 					//prop type matched, input includes it and output excludes it: no match, don't look any further
-					if (prop_equal) {
-						matched = GF_FALSE;
-						exclude = GF_TRUE;
+					if (gf_props_equal(&in_cap->val, &out_cap->val)) {
+						prop_exclude = GF_TRUE;
+						//we may have prop_found = TRUE here if a previous prop was found, force reset
 						prop_found = GF_FALSE;
+						//prop excluded, cannot match in bundle
+						break;
 					} else {
 						//remember we found a prop of same type but excluded value
 						//we will match unless we match an excluded value
 						prop_found = GF_TRUE;
+						if (in_cap_flags & GF_CAPFLAG_LOADED_FILTER)
+							cap_loaded_filter_only = 1;
 					}
-				} else if (prop_equal) {
-					matched = GF_TRUE;
-//					if (an_out_cap->flags & GF_CAPFLAG_STATIC)
-//						static_matched = GF_TRUE;
-				} else if ((in_cap->flags & GF_CAPFLAG_EXCLUDED) && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
-					//prop type matched, input excludes it and output excludes it and no match, remmeber we found the prop type
+				} else if (gf_props_equal(&in_cap->val, &out_cap->val)) {
+					prop_matched = GF_TRUE;
+					if (in_cap_flags & GF_CAPFLAG_LOADED_FILTER)
+						cap_loaded_filter_only = 1;
+					//prop matched, no need to check other caps in the current bundle
+					break;
+				} else if ((in_cap_flags & GF_CAPFLAG_EXCLUDED) && (out_cap_flags & GF_CAPFLAG_EXCLUDED) ) {
+					//prop type matched, input excludes it and output excludes it and no match, remember we found the prop type
 					prop_found = GF_TRUE;
+					if (in_cap_flags & GF_CAPFLAG_LOADED_FILTER)
+						cap_loaded_filter_only = 1;
 				}
-
-				if (prop_found && (in_cap->flags & GF_CAPFLAG_LOADED_FILTER))
-					cap_loaded_filter_only = 1;
 			}
-			if (nb_caps_tested) {
-				//we found a prop, excluded but with != value hence acceptable, default matching to true
-				if (!matched && prop_found) matched = GF_TRUE;
-				//not match, flag this bundle as not ok
-				if (matched) {
-					if (!bundles_cap_found[cur_dst_bundle])
-						bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
+			//done checking all possible dest values for source cap
 
+			if (nb_caps_in_dst_bundle) {
+				//we have a match
+				if (prop_matched
+					//or we found a prop excluded but with != value hence acceptable, match it
+					|| prop_found
+				) {
+					bundle_caps_matched = cap_loaded_filter_only ? 2 : 1;
 					nb_matched++;
 				}
 				//excluded cap was found, disable bundle (might have been activated before we found the excluded cap)
-				else if (exclude) {
-					bundles_cap_found[cur_dst_bundle] = 0;
+				else if (prop_exclude) {
+					bundle_caps_matched = 0;
+					bundle_caps_excluded = GF_TRUE;
 				}
 			} else if (!nb_dst_caps) {
-				if (!bundles_cap_found[cur_dst_bundle])
-					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
-
+				bundle_caps_matched = cap_loaded_filter_only ? 2 : 1;
 				nb_matched++;
-			} else if (!nb_matched && !prop_found && (an_out_cap->flags & (GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_OPTIONAL)) && (cur_dst_bundle<nb_in_bundles) ) {
-				if (!bundles_cap_found[cur_dst_bundle])
-					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
-
+			} else if (!nb_matched && !prop_found && (out_cap_flags & (GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_OPTIONAL)) ) {
+				bundle_caps_matched = cap_loaded_filter_only ? 2 : 1;
 				nb_matched++;
 			}
 		}
-		//merge bundle cap
-		nb_matched=0;
-		for (k=0; k<nb_in_bundles; k++) {
-			if (!bundles_cap_found[k])
-				bundles_in_ok[k] = 0;
-			else {
-				nb_matched += 1;
-				//we matched this property, keep score for the bundle
-				bundles_in_scores[k] ++;
-				//mark if connection is only valid for loaded inputs
-				if (bundles_cap_found[k]==2)
-				 	bundles_in_ok[k] |= 1<<1;
-				//mark if connection is only valid for loaded outputs
-				if (out_cap->flags & GF_CAPFLAG_LOADED_FILTER)
-					bundles_in_ok[k] |= 1<<2;
+		//done checking all source caps, check if we found a match
+		if (!bundle_caps_matched) {
+			bundle_in_matched = 0;
+			//caps were found but explicitly excluded, no possible match
+			if (bundle_caps_excluded)
+				break;
+			//not matched and not excluded, cannot link to this bundle
+			if (!(src_cap->vals[0]->flags & (GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_OPTIONAL))) {
+				bundle_in_matched = 0;
+				break;
 			}
-		}
-
-		//not matched and not excluded, skip until next bundle
-		if (!nb_matched && !(out_cap->flags & (GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_OPTIONAL))) {
-			all_caps_matched = GF_FALSE;
-		}
-	}
-
-	//get bundle with highest score
-	bundle_score = 0;
-	nb_matched = 0;
-
-	for (i=0; i<nb_in_bundles; i++) {
-		if (bundles_in_ok[i]) {
-			nb_matched++;
-			if (bundle_score < bundles_in_scores[i]) {
-				*dst_bundle_idx = i;
-				bundle_score = bundles_in_scores[i];
-				if (loaded_filter_flags) {
-					*loaded_filter_flags = (bundles_in_ok[i]>>1);
-				}
-			}
-			if (for_dst_bundle==i) {
-				*dst_bundle_idx = i;
-				if (loaded_filter_flags) {
-					*loaded_filter_flags = (bundles_in_ok[i]>>1);
-				}
-				return bundles_in_scores[i];
-			}
+		} else {
+			bundle_in_matched |= 1;
+			//we matched this property, keep score for the bundle
+			bundle_in_score ++;
+			//mark if connection is only valid for loaded inputs
+			if (bundle_caps_matched==2)
+				bundle_in_matched |= 1<<1;
+			//mark if connection is only valid for loaded outputs
+			if (src_cap->vals[0]->flags & GF_CAPFLAG_LOADED_FILTER)
+				bundle_in_matched |= 1<<2;
 		}
 	}
-#if 0
-	if (!bundle_score) {
-//		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs cap bundle %d do not match filter %s inputs\n", src->name, src_bundle_idx, dst_reg->name));
-	} else {
-//		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s outputs cap bundle %d matches filter %s inputs caps bundle %d (%d total bundle matches, bundle matched %d/%d caps)\n", src->name, src_bundle_idx, dst_reg->name, *dst_bundle_idx, nb_matched, bundle_score, nb_out_caps));
+
+	if (bundle_in_matched) {
+		if (loaded_filter_flags) {
+			*loaded_filter_flags = (bundle_in_matched>>1);
+		}
+		if (src_stream_type)
+			*src_stream_type = src_bundle->stream_type;
+		return bundle_in_score;
 	}
-#endif
-	return bundle_score;
+	return 0;
 }
 
 GF_EXPORT
@@ -2720,43 +2692,6 @@ static Bool gf_filter_out_caps_solved_by_connection(const GF_FilterRegister *fre
 	return GF_FALSE;
 }
 
-static s32 gf_filter_reg_get_bundle_stream_type(const GF_FilterRegister *freg, u32 cap_idx, Bool for_output)
-{
-	u32 i, cur_bundle, stype=0, nb_stype=0;
-
-	cur_bundle = 0;
-	for (i=0; i<freg->nb_caps; i++) {
-		u32 cap_stype=0;
-		const GF_FilterCapability *cap = &freg->caps[i];
-		if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
-			cur_bundle++;
-			continue;
-		}
-		if (for_output) {
-			if (!(cap->flags & GF_CAPFLAG_OUTPUT)) continue;
-		} else {
-			if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
-		}
-		if ((cur_bundle != cap_idx) && !(cap->flags & GF_CAPFLAG_STATIC) ) continue;
-		//output type is file or same media type, allow looking for filter chains
-		if (cap->flags & GF_CAPFLAG_EXCLUDED) continue;
-
-		if (cap->code == GF_PROP_PID_STREAM_TYPE)
-			cap_stype = cap->val.value.uint;
-		else if ((cap->code == GF_PROP_PID_MIME) || (cap->code == GF_PROP_PID_FILE_EXT) )
-			cap_stype = GF_STREAM_FILE;
-
-		if (!cap_stype) continue;
-
-		if (stype != cap_stype) {
-			stype = cap_stype;
-			nb_stype++;
-		}
-	}
-	if (nb_stype==1) return (s32) stype;
-	if (nb_stype) return -1;
-	return 0;
-}
 
 /*recursively enable edges of the graph.
 	returns 0 if subgraph shall be disabled (will marke edge at the root of the subgraph disabled)
@@ -2880,31 +2815,31 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 	return 0;
 }
 
-static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const GF_FilterRegister *freg, u32 nb_bundles, GF_FilterRegDesc *a_reg, Bool freg_has_output, u32 nb_dst_caps, GF_CapsBundleStore *capstore, GF_Filter *dst_filter)
+static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, GF_FilterRegDesc *a_reg, u32 nb_dst_caps, GF_Filter *dst_filter)
 {
 	u32 nb_src_caps, k, l;
 	u32 path_weight;
+	const GF_FilterRegister *freg = reg_desc->freg;
+	Bool freg_has_input = reg_desc->has_input ? 1 : 0;
+	Bool freg_has_output = reg_desc->has_output ? 1 : 0;
+	Bool a_reg_has_input = a_reg->has_input ? 1 : 0;
+	Bool a_reg_has_output = a_reg->has_output ? 1 : 0;
 
-	Bool freg_has_input = gf_filter_has_in_caps(freg->caps, freg->nb_caps);
-	Bool a_reg_has_input = gf_filter_has_in_caps(a_reg->freg->caps, a_reg->freg->nb_caps);
-	Bool a_reg_has_output = gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps);
-	//for scripts force checking inputs
-	if (freg->flags & GF_FS_REG_SCRIPT) {
-		freg_has_input = GF_TRUE;
-	}
+	if (!reg_desc->bundle_cache) GF_SAFEALLOC(reg_desc->bundle_cache, GF_BundleCache);
+	if (!a_reg->bundle_cache) GF_SAFEALLOC(a_reg->bundle_cache, GF_BundleCache);
 
 	//check which cap of this filter matches our destination
 	nb_src_caps = a_reg->nb_bundles;
 	for (k=0; k<nb_src_caps; k++) {
 		for (l=0; l<nb_dst_caps; l++) {
-			s32 bundle_idx;
 
 			if (freg_has_input && a_reg_has_output) {
 				u32 loaded_filter_only_flags = 0;
+				s32 src_stream_type=0;
 
-				path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, nb_bundles, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
+				path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, l, &loaded_filter_only_flags, &src_stream_type, a_reg->bundle_cache, reg_desc->bundle_cache);
 
-				if (path_weight && (bundle_idx == l)) {
+				if (path_weight) {
 					GF_FilterRegEdge *edge;
 					if (reg_desc->nb_edges==reg_desc->nb_alloc_edges) {
 						reg_desc->nb_alloc_edges += 10;
@@ -2925,17 +2860,18 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 						edge->loaded_filter_only |= EDGE_LOADED_DEST_ONLY;
 					if (loaded_filter_only_flags & EDGE_LOADED_DEST_ONLY)
 						edge->loaded_filter_only |= EDGE_LOADED_SOURCE_ONLY;
-					edge->src_stream_type = gf_filter_reg_get_bundle_stream_type(edge->src_reg->freg, edge->src_cap_idx, GF_TRUE);
+					edge->src_stream_type = src_stream_type;
 					reg_desc->nb_edges++;
 				}
 			}
 
 			if ( freg_has_output && a_reg_has_input) {
 				u32 loaded_filter_only_flags = 0;
+				s32 src_stream_type=0;
 
-				path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, a_reg->nb_bundles, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
+				path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, k, &loaded_filter_only_flags, &src_stream_type, reg_desc->bundle_cache, a_reg->bundle_cache);
 
-				if (path_weight && (bundle_idx == k)) {
+				if (path_weight) {
 					GF_FilterRegEdge *edge;
 					if (a_reg->nb_edges==a_reg->nb_alloc_edges) {
 						a_reg->nb_alloc_edges += 10;
@@ -2948,7 +2884,7 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 					edge->dst_cap_idx = (u16) k;
 					edge->priority = 0;
 					edge->loaded_filter_only = loaded_filter_only_flags;
-					edge->src_stream_type = gf_filter_reg_get_bundle_stream_type(edge->src_reg->freg, edge->src_cap_idx, GF_TRUE);
+					edge->src_stream_type = src_stream_type;
 					a_reg->nb_edges++;
 				}
 			}
@@ -2956,11 +2892,9 @@ static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const G
 	}
 }
 
-static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_CapsBundleStore *capstore, GF_FilterPid *src_pid, GF_Filter *dst_filter, u32 orig_nb_bundles)
+static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_FilterPid *src_pid, GF_Filter *dst_filter, u32 orig_nb_bundles)
 {
 	u32 nb_dst_caps, nb_regs, i, nb_caps;
-	Bool freg_has_output;
-
 	GF_FilterRegDesc *reg_desc = NULL;
 	const GF_FilterCapability *caps = freg->caps;
 	nb_caps = freg->nb_caps;
@@ -2970,17 +2904,24 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 		orig_nb_bundles = dst_filter->nb_forced_bundles;
 	}
 
-	freg_has_output = gf_filter_has_out_caps(caps, nb_caps);
-
 	GF_SAFEALLOC(reg_desc, GF_FilterRegDesc);
 	if (!reg_desc) return NULL;
 
 	reg_desc->freg = freg;
 	reg_desc->nb_bundles = nb_dst_caps = orig_nb_bundles ? orig_nb_bundles : gf_filter_caps_bundle_count(caps, nb_caps);
-
+	//for scripts force checking inputs
+	if (freg->flags & GF_FS_REG_SCRIPT) {
+		reg_desc->has_input = GF_TRUE;
+	} else {
+		reg_desc->has_input = gf_filter_has_in_caps(caps, nb_caps);
+	}
 
 	//we are building a register descriptor acting as destination, ignore any output caps
-	if (src_pid || dst_filter) freg_has_output = GF_FALSE;
+	//this only happens during dijkstra resolver
+	if (src_pid || dst_filter)
+		reg_desc->has_output = GF_FALSE;
+	else
+		reg_desc->has_output = gf_filter_has_out_caps(caps, nb_caps);
 
 	//setup all connections
 	nb_regs = gf_list_count(links);
@@ -2988,25 +2929,51 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 		GF_FilterRegDesc *a_reg = gf_list_get(links, i);
 		if (a_reg->freg == freg) continue;
 
-		gf_filter_reg_build_graph_single(reg_desc, freg, reg_desc->nb_bundles, a_reg, freg_has_output, nb_dst_caps, capstore, dst_filter);
+		gf_filter_reg_build_graph_single(reg_desc, a_reg, nb_dst_caps, dst_filter);
 	}
 
 	if (!dst_filter && (freg->flags & GF_FS_REG_ALLOW_CYCLIC)) {
-		gf_filter_reg_build_graph_single(reg_desc, freg, reg_desc->nb_bundles, reg_desc, freg_has_output, nb_dst_caps, capstore, NULL);
+		gf_filter_reg_build_graph_single(reg_desc, reg_desc, nb_dst_caps, NULL);
 	}
 	return reg_desc;
+}
+
+void bundle_cache_free(GF_FilterRegDesc *reg_desc)
+{
+	u32 j;
+	if (!reg_desc->bundle_cache) return;
+	if (reg_desc->bundle_cache->bundles_src) {
+		for (j=0; j<reg_desc->bundle_cache->nb_src; j++) {
+			cache_bundle_free(reg_desc->bundle_cache->bundles_src[j]);
+		}
+		gf_free(reg_desc->bundle_cache->bundles_src);
+	}
+	if (reg_desc->bundle_cache->nb_dst) {
+		for (j=0; j<reg_desc->bundle_cache->nb_dst; j++) {
+			cache_bundle_free(reg_desc->bundle_cache->bundles_dst[j]);
+		}
+		gf_free(reg_desc->bundle_cache->bundles_dst);
+	}
+	gf_free(reg_desc->bundle_cache);
+	reg_desc->bundle_cache=NULL;
+}
+
+void reset_bundle_cache(GF_FilterSession *fsess)
+{
+	u32 i, count = gf_list_count(fsess->links);
+	for (i=0; i<count; i++) {
+		bundle_cache_free( gf_list_get(fsess->links, i) );
+	}
 }
 
 void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister *for_reg)
 {
 	u32 i, count;
-	GF_CapsBundleStore capstore;
-	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
 
 	if (!fsess->links) fsess->links = gf_list_new();
 
 	if (for_reg) {
-		GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, for_reg, &capstore, NULL, NULL, 0);
+		GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, for_reg, NULL, NULL, 0);
 		if (!freg_desc) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to build graph entry for filter %s\n", for_reg->name));
 		} else {
@@ -3019,7 +2986,7 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 		count = gf_list_count(fsess->registry);
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
-			GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, freg, &capstore, NULL, NULL, 0);
+			GF_FilterRegDesc *freg_desc = gf_filter_reg_build_graph(fsess->links, freg, NULL, NULL, 0);
 			if (!freg_desc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to build graph entry for filter %s\n", freg->name));
 			} else {
@@ -3041,9 +3008,7 @@ void gf_filter_sess_build_graph(GF_FilterSession *fsess, const GF_FilterRegister
 			}
 		}
 	}
-	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
-	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
-	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+	reset_bundle_cache(fsess);
 }
 
 void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister *freg)
@@ -3124,7 +3089,6 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	GF_FilterSession *fsess = pid->filter->session;
 	//build all edges
 	u32 i, dijsktra_node_count, dijsktra_edge_count, count;
-	GF_CapsBundleStore capstore;
 	Bool first;
 	Bool check_codec_id_raw = GF_FALSE;
 	u32 path_weight, pid_stream_type, max_weight=0;
@@ -3206,7 +3170,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			disable_filter = GF_TRUE;
 		}
 		//no output caps, cannot add
-		else if ((freg != dst->freg) && !gf_filter_has_out_caps(freg->caps, freg->nb_caps)) {
+		else if ((freg != dst->freg) && !reg_desc->has_output) {
 			disable_filter = GF_TRUE;
 		}
 		//we only want reconfigurable output filters
@@ -3280,11 +3244,16 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 	}
 	//create a new node for the destination based on eligible filters in the graph
-	memset(&capstore, 0, sizeof(GF_CapsBundleStore));
-	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, &capstore, pid, dst, orig_nb_bundles);
+	reg_dst = gf_filter_reg_build_graph(dijkstra_nodes, dst->freg, pid, dst, orig_nb_bundles);
 	reg_dst->dist = 0;
 	reg_dst->priority = 0;
 	reg_dst->in_edges_enabling = 0;
+
+#ifndef GPAC_DISABLE_LOG
+	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
+		dump_dijstra_edges(GF_TRUE, reg_dst, dijkstra_nodes);
+	}
+#endif
 
 	//enable edges of destination, potentially disabling edges from source filters to dest
 	for (i=0; i<reg_dst->nb_edges; i++) {
@@ -3331,9 +3300,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		gf_filter_pid_enable_edges(fsess, edge->src_reg, edge->src_cap_idx, pid->filter->freg, 1, edge->src_stream_type, reg_dst, pid, pid_stream_type);
 	}
 
-	if (capstore.bundles_cap_found) gf_free(capstore.bundles_cap_found);
-	if (capstore.bundles_in_ok) gf_free(capstore.bundles_in_ok);
-	if (capstore.bundles_in_scores) gf_free(capstore.bundles_in_scores);
+	reset_bundle_cache(fsess);
 
 #ifndef GPAC_DISABLE_LOG
 	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
@@ -3480,6 +3447,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	}
 	gf_list_del(dijkstra_nodes);
 
+	bundle_cache_free(reg_dst);
 	gf_free(reg_dst->edges);
 	gf_free(reg_dst);
 }

@@ -4417,6 +4417,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[%s] Error configure pid\n", jsf->log_name));
 		js_dump_error(jsf->ctx);
 		e = GF_BAD_PARAM;
+		gf_filter_abort(filter);
 	}
 	else if (JS_IsInteger(ret))
 			JS_ToInt32(jsf->ctx, (int*)&e, ret);

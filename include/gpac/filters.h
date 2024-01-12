@@ -2057,7 +2057,7 @@ enum
 	GF_CAPFLAG_EXCLUDED = 1<<3,
 	/*! when set, the capability is validated only for filter loaded for this destination filter*/
 	GF_CAPFLAG_LOADED_FILTER = 1<<4,
-	/*! Only used for output capabilities, indicates that this capability applies to all bundles. This avoids repeating capabilities common to all bundles by setting them only in the first*/
+	/*! indicates that this capability (input or output) applies to all following bundles. This avoids repeating capabilities common to all bundles by setting them only in the first*/
 	GF_CAPFLAG_STATIC = 1<<5,
 	/*! Only used for input capabilities, indicates that this capability is optional in the input PID */
 	GF_CAPFLAG_OPTIONAL = 1<<6,
