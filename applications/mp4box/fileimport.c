@@ -589,7 +589,7 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 			if (e) goto error;
 		}
 		else if (edits[0]=='e') {
-			u64 movie_t, media_t, edur;
+			u64 movie_t, media_t, edur, edur_max;
 			u32 rate;
 			GF_Fraction64 movie_time, media_time, media_rate, edit_dur;
 			char *mtime_sep;
@@ -627,20 +627,16 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 				goto error;
 			}
 			movie_t = movie_time.num * movie_ts / movie_time.den;
+			edur_max = media_dur * movie_ts / media_ts;
 			if (!edit_dur.den || !edit_dur.num) {
-				edur = media_dur;
-				edur *= movie_ts;
-				edur /= media_ts;
+				edur = edur_max;
 			} else {
-				edur = edit_dur.num;
-				edur *= movie_ts;
-				edur /= edit_dur.den;
-				if (edur>media_dur)
-					edur = media_dur;
+				edur = edit_dur.num * movie_ts / edit_dur.den;
 			}
 			if (!media_time.den) {
 				e = gf_isom_set_edit(dest, track, movie_t, edur, 0, GF_ISOM_EDIT_EMPTY);
 			} else {
+				media_t = media_time.num * media_ts / media_time.den;
 				rate = 0;
 				if (media_rate.den) {
 					u64 frac;
@@ -648,9 +644,16 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 					frac = media_rate.num - rate*media_rate.den;
 					frac *= 0xFFFF;
 					frac /= media_rate.den;
-					rate = (rate<<16) | (u32) frac;
+					rate = (rate << 16) | (u32) frac;
+					if (rate) {
+						edur_max -= media_t * movie_ts / media_ts;
+						edur_max <<= 16;
+						edur_max /= rate;
+						if (edur > edur_max) {
+							edur = edur_max;
+						}
+					}
 				}
-				media_t = media_time.num * media_ts / media_time.den;
 				e = gf_isom_set_edit_with_rate(dest, track, movie_t, edur, media_t, rate);
 			}
 			if (e==GF_EOS) {
