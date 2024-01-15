@@ -2068,9 +2068,9 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 	if (!strcmp(arg_name, "b") && arg_val->value.string) {
 		ctx->target_rate = atoi(arg_val->value.string);
-		if (strchr(arg_val->value.string, 'm') || strchr(arg_val->value.string, 'M'))
+		if (strpbrk(arg_val->value.string, "mM"))
 			ctx->target_rate *= 1000000;
-		else if (strchr(arg_val->value.string, 'k') || strchr(arg_val->value.string, 'K'))
+		else if (strpbrk(arg_val->value.string, "kK"))
 			ctx->target_rate *= 1000;
 
 		sprintf(szOverrideOpt, "%d", ctx->target_rate);

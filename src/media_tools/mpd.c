@@ -2049,7 +2049,7 @@ retry_import:
 				//if byte-range media file, add base URL
 				byte_range_media_file
 				//otherwise if we have different location for HLS vs MPD url or if child playlist is not in same path as master HLS
-				|| (rel_url || variant_base_url || strchr(elt->url, '/') || strchr(elt->url, '\\'))
+				|| (rel_url || variant_base_url || strpbrk(elt->url, "/\\"))
 			)) {
 				GF_MPD_BaseURL *url;
 				GF_SAFEALLOC(url, GF_MPD_BaseURL);
