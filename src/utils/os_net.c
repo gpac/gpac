@@ -2924,7 +2924,7 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 #if defined(GPAC_HAS_IFADDRS)
 			//get sockaddr if this is an IP address and compare with enumerated interface
 			aip = NULL;
-			if (ifce_ip_or_name && (strchr(ifce_ip_or_name, '.') || strchr(ifce_ip_or_name, ':'))) {
+			if (ifce_ip_or_name && strpbrk(ifce_ip_or_name, ".:")) {
 				aip = gf_sk_get_ipv6_addr(ifce_ip_or_name, MultiPortNumber, ifce_ipv6 ? AF_INET6 : AF_UNSPEC, AI_PASSIVE, type);
 			}
 			struct ifaddrs *ifap=NULL, *ifa;
