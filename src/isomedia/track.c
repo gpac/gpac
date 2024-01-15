@@ -375,7 +375,7 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 }
 
 
-GF_Err SetTrackDuration(GF_TrackBox *trak)
+GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc)
 {
 	u64 trackDuration;
 	u32 i;
@@ -407,9 +407,14 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 		return GF_OK;
 	}
 	trak->Header->duration = trackDuration;
-	if (!trak->moov->mov->keep_utc && !gf_sys_is_test_mode() )
+	if (!keep_utc && !trak->moov->mov->keep_utc && !gf_sys_is_test_mode() )
 		trak->Header->modificationTime = gf_isom_get_mp4time();
 	return GF_OK;
+}
+
+GF_Err SetTrackDuration(GF_TrackBox *trak)
+{
+	return SetTrackDurationEx(trak, GF_FALSE);
 }
 
 
