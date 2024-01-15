@@ -4434,8 +4434,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			ctx->dump_pck = GF_FALSE;
 		}
 	}
-	// count is already set in line 4415
-	// count = gf_list_count(ctx->src_pids);
+	
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = NULL;
