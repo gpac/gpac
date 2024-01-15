@@ -4314,6 +4314,7 @@ GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber,
 GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl);
 GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl);
 GF_Err SetTrackDuration(GF_TrackBox *trak);
+GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc);
 GF_Err Media_SetDuration(GF_TrackBox *trak);
 
 /*rewrites 3GP samples desc as MPEG-4 ESD*/
