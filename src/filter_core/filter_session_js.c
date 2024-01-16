@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -71,10 +71,22 @@ static void jsfs_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 		gf_fs_lock_filters(fs, GF_FALSE);
     }
 }
+#define GF_FS_FLAG_USER_SESSION	(1<<29)
+
+static void jsfs_finalizer(JSRuntime *rt, JSValue val)
+{
+    GF_FilterSession *fs = JS_GetOpaque(val, fs_class_id);
+    if (!fs) return;
+
+	if (fs->flags & GF_FS_FLAG_USER_SESSION ) {
+		gf_fs_del(fs);
+	}
+}
 
 static JSClassDef fs_class = {
     "FilterSession",
-	.gc_mark = jsfs_mark
+	.gc_mark = jsfs_mark,
+	.finalizer = jsfs_finalizer
 };
 
 
@@ -1174,6 +1186,60 @@ static JSValue jsfs_filter_args(JSContext *ctx, JSValueConst this_val, int argc,
 }
 
 
+static JSValue jsfs_run_sess(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs) return GF_JS_EXCEPTION(ctx);
+	if (!(fs->flags & GF_FS_FLAG_USER_SESSION))
+		return GF_JS_EXCEPTION(ctx);
+
+	GF_Err e = gf_fs_run(fs);
+	return JS_NewInt32(ctx, e);
+}
+
+
+static JSValue jsfs_stop_sess(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs) return GF_JS_EXCEPTION(ctx);
+	if (!(fs->flags & GF_FS_FLAG_USER_SESSION))
+		return GF_JS_EXCEPTION(ctx);
+
+	GF_Err e = gf_fs_stop(fs);
+	return JS_NewInt32(ctx, e);
+}
+
+static JSValue jsfs_abort_sess(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 flush_type = GF_FS_FLUSH_NONE;
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs) return GF_JS_EXCEPTION(ctx);
+	if (!(fs->flags & GF_FS_FLAG_USER_SESSION))
+		return GF_JS_EXCEPTION(ctx);
+
+	if (argc)
+		JS_ToInt32(ctx, &flush_type, argv[0]);
+	GF_Err e = gf_fs_abort(fs, flush_type);
+	return JS_NewInt32(ctx, e);
+}
+
+
+static JSValue jsfs_print_connections(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs) return GF_JS_EXCEPTION(ctx);
+	gf_fs_print_connections(fs);
+	return JS_UNDEFINED;
+}
+
+static JSValue jsfs_print_stats(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs) return GF_JS_EXCEPTION(ctx);
+	gf_fs_print_stats(fs);
+	return JS_UNDEFINED;
+}
+
 static JSValue jsff_get_arg(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 idx;
@@ -1811,6 +1877,11 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("remove_filter", 0, jsfs_remove_filter),
     JS_CFUNC_DEF("set_auth_fun", 0, jsfs_set_auth_fun),
 	JS_CFUNC_DEF("filter_args", 0, jsfs_filter_args),
+	JS_CFUNC_DEF("run", 0, jsfs_run_sess),
+	JS_CFUNC_DEF("stop", 0, jsfs_stop_sess),
+	JS_CFUNC_DEF("abort", 0, jsfs_abort_sess),
+	JS_CFUNC_DEF("print_connections", 0, jsfs_print_connections),
+	JS_CFUNC_DEF("print_stats", 0, jsfs_print_stats),
 
 };
 
@@ -1832,6 +1903,54 @@ void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
 	gf_mx_v(fs->filters_mx);
 }
 
+
+static JSValue session_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	JSValue anobj;
+	GF_FilterSession *fs;
+
+	if (!argc) {
+		fs = gf_fs_new_defaults(0);
+	} else if (JS_IsObject(argv[0])) {
+		s32 nb_threads=0;
+		u32 sched_type=0;
+		u32 flags=0;
+		const char *blacklist=NULL;
+		JSValue val = JS_GetPropertyStr(ctx, argv[0], "threads");
+		if (!JS_IsUndefined(val))
+			JS_ToInt32(ctx, &nb_threads, val);
+		JS_FreeValue(ctx, val);
+
+		val = JS_GetPropertyStr(ctx, argv[0], "scheduler");
+		if (!JS_IsUndefined(val))
+			JS_ToInt32(ctx, &sched_type, val);
+		JS_FreeValue(ctx, val);
+
+		val = JS_GetPropertyStr(ctx, argv[0], "flags");
+		if (!JS_IsUndefined(val))
+			JS_ToInt32(ctx, &flags, val);
+		JS_FreeValue(ctx, val);
+
+		val = JS_GetPropertyStr(ctx, argv[0], "blacklist");
+		if (JS_IsString(val))
+			blacklist = JS_ToCString(ctx, val);
+		JS_FreeValue(ctx, val);
+
+		fs = gf_fs_new(nb_threads, sched_type, flags, blacklist);
+		JS_FreeCString(ctx, blacklist);
+	} else {
+		return GF_JS_EXCEPTION(ctx);
+	}
+	fs->flags |= GF_FS_FLAG_USER_SESSION;
+
+	anobj = JS_NewObjectClass(ctx, fs_class_id);
+	if (JS_IsException(anobj)) {
+		gf_fs_del(fs);
+		return anobj;
+	}
+    JS_SetOpaque(anobj, fs);
+	return anobj;
+}
 GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 {
 	JSValue fs_obj;
@@ -1879,6 +1998,15 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
     JS_SetPropertyFunctionList(c, fs_obj, fs_funcs, countof(fs_funcs));
     JS_SetOpaque(fs_obj, fs);
 	JS_SetPropertyStr(c, global_obj, "session", fs_obj);
+
+	//filtersession constructor
+	proto = JS_NewObjectClass(c, fs_class_id);
+	JS_SetPropertyFunctionList(c, proto, fs_funcs, countof(fs_funcs));
+	JS_SetClassProto(c, fs_class_id, proto);
+	JSValue ctor = JS_NewCFunction2(c, session_constructor, "FilterSession", 1, JS_CFUNC_constructor, 0);
+	JS_SetPropertyStr(c, global_obj, "FilterSession", ctor);
+    /*JS_SetModuleExport(c, m, "FilterSession", ctor);
+	*/
 
     JS_FreeValue(c, global_obj);
     return GF_OK;
@@ -2001,6 +2129,14 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		count--;
 	}
 	if (fs->js_ctx) {
+		gf_js_lock(fs->js_ctx, GF_TRUE);
+		JSValue global_obj = JS_GetGlobalObject(fs->js_ctx);
+		JSValue fsobj = JS_GetPropertyStr(fs->js_ctx, global_obj, "session");
+		JS_SetOpaque(fsobj, NULL);
+		JS_SetPropertyStr(fs->js_ctx, global_obj, "session", JS_NULL);
+		JS_FreeValue(fs->js_ctx, global_obj);
+		JS_FreeValue(fs->js_ctx, fsobj);
+		gf_js_lock(fs->js_ctx, GF_FALSE);
 		gf_js_delete_context(fs->js_ctx);
 		fs->js_ctx = NULL;
 	}

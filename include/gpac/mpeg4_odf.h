@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 Object Descriptor sub-project
@@ -1795,7 +1795,7 @@ GF_Err gf_odf_desc_list_write(GF_List *descList, u8 **outEncList, u32 *outSize);
  */
 GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
 
-
+/*! DTS audio configuration*/
 typedef struct
 {
 	u32 SamplingFrequency;
@@ -1815,6 +1815,7 @@ typedef struct
 } GF_DTSConfig;
 
 
+/*! UDTS audio configuration*/
 typedef struct
 {
 	u8 DecoderProfileCode;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / general OS configuration file
@@ -852,6 +852,7 @@ size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
 #endif
 #else
 #ifndef GPAC_ENABLE_DEBUG
+/*! Macro for detecting debug configurations*/
 #define GPAC_ENABLE_DEBUG
 #endif
 #endif

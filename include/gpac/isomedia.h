@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3788,10 +3788,10 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *isom_file, u32 trackNumber, GF_D
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index
-\param desc set to the UDTS Specific Configuration
+\param cfg set to the UDTS Specific Configuration
 \return error if any
 */
-GF_Err gf_isom_get_udts_config(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_UDTSConfig *cfg);
+GF_Err gf_isom_get_udts_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_UDTSConfig *cfg);
 
 
 /*! gets an AC3 sample description

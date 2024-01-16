@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -203,33 +203,37 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT
 } GF_FilterSchedulerType;
 
-/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various sub-filters.
-The sub-filters are usually not exposed as filters, only the parent one is.
-When set, all sub-filters are exposed. This should only be set when inspecting filters help*/
-#define GF_FS_FLAG_LOAD_META	1<<1
-/*! Flag set to run session in non-blocking mode. Each call to \ref gf_fs_run will return as soon as there are no more pending tasks on the main thread */
-#define GF_FS_FLAG_NON_BLOCKING	1<<2
-/*! Flag set to disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory occupancy but slower)*/
-#define GF_FS_FLAG_NO_GRAPH_CACHE	1<<3
-/*! Flag set to disable session regulation (no sleep)*/
-#define GF_FS_FLAG_NO_REGULATION	1<<4
-/*! Flag set to disable data probe*/
-#define GF_FS_FLAG_NO_PROBE	(1<<5)
-/*! Flag set to disable source reassignment (e.g. switching from fin to ffdmx) in PID resolution*/
-#define GF_FS_FLAG_NO_REASSIGN	(1<<6)
-/*! Flag set to print enabled/disabled edges for debug of PID resolution*/
-#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<7)
-/*! Flag set to disable argument checking*/
-#define GF_FS_FLAG_NO_ARG_CHECK	(1<<8)
-/*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
-#define GF_FS_FLAG_NO_RESERVOIR (1<<9)
-/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
-#define GF_FS_FLAG_FULL_LINK (1<<10)
-/*! Flag set to disable implicit linking
- By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successfull pid if destination is not a sink, or links only to sinks otherwise.
- \note This implies that the order in which filters are added to the session matters
-*/
-#define GF_FS_FLAG_NO_IMPLICIT	(1<<11)
+/*! Filter session flags */
+typedef enum
+{
+	/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various sub-filters.
+	The sub-filters are usually not exposed as filters, only the parent one is.
+	When set, all sub-filters are exposed. This should only be set when inspecting filters help*/
+	GF_FS_FLAG_LOAD_META = 1<<1,
+	/*! Flag set to run session in non-blocking mode. Each call to \ref gf_fs_run will return as soon as there are no more pending tasks on the main thread */
+	GF_FS_FLAG_NON_BLOCKING = 1<<2,
+	/*! Flag set to disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory occupancy but slower)*/
+	GF_FS_FLAG_NO_GRAPH_CACHE = 1<<3,
+	/*! Flag set to disable session regulation (no sleep)*/
+	GF_FS_FLAG_NO_REGULATION = 1<<4,
+	/*! Flag set to disable data probe*/
+	GF_FS_FLAG_NO_PROBE = 1<<5,
+	/*! Flag set to disable source reassignment (e.g. switching from fin to ffdmx) in PID resolution*/
+	GF_FS_FLAG_NO_REASSIGN = 1<<6,
+	/*! Flag set to print enabled/disabled edges for debug of PID resolution*/
+	GF_FS_FLAG_PRINT_CONNECTIONS = 1<<7,
+	/*! Flag set to disable argument checking*/
+	GF_FS_FLAG_NO_ARG_CHECK = 1<<8,
+	/*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
+	GF_FS_FLAG_NO_RESERVOIR = 1<<9,
+	/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
+	GF_FS_FLAG_FULL_LINK = 1<<10,
+	/*! Flag set to disable implicit linking
+	 By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successfull pid if destination is not a sink, or links only to sinks otherwise.
+	 \note This implies that the order in which filters are added to the session matters
+	*/
+	GF_FS_FLAG_NO_IMPLICIT = 1<<11
+} GF_FilterSessionFlags;
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
@@ -238,13 +242,13 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 \param blacklist string containing comma-separated names of filters to disable. If first character is '-', this describes a whitelist, i.e. only filters listed in this string will be allowed
 \return the created filter session
 */
-GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
+GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, GF_FilterSessionFlags flags, const char *blacklist);
 
 /*! Creates a new filter session, loading parameters from gpac config. This will also load all available filter registers not blacklisted.
 \param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META,  \ref GF_FS_FLAG_NON_BLOCKING , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
 \return the created filter session
 */
-GF_FilterSession *gf_fs_new_defaults(u32 flags);
+GF_FilterSession *gf_fs_new_defaults(GF_FilterSessionFlags flags);
 
 /*! Destructs the filter session
 \param session the filter session to destruct

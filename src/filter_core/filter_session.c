@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -205,7 +205,7 @@ static Bool fs_check_locales(void *__self, const char *locales_parent_path, cons
 #endif
 
 GF_EXPORT
-GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
+GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, GF_FilterSessionFlags flags, const char *blacklist)
 {
 	const char *opt;
 	Bool gf_sys_has_filter_global_args();
@@ -523,7 +523,7 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 
 
 GF_EXPORT
-GF_FilterSession *gf_fs_new_defaults(u32 inflags)
+GF_FilterSession *gf_fs_new_defaults(GF_FilterSessionFlags inflags)
 {
 	GF_FilterSession *fsess;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
