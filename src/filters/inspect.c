@@ -2350,12 +2350,11 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		if (ctx->dtype)
 			inspect_printf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
 			
-		if (pname && (strchr(pname, ' ') || strchr(pname, ':'))) {
+		if (pname && (strpbrk(pname, " :"))) { 
 			u32 i=0, k;
 			char *pname_no_space = gf_strdup(pname);
 			while (pname_no_space[i]) {
-				if (pname_no_space[i]==' ') pname_no_space[i]='_';
-				if (pname_no_space[i]==':') pname_no_space[i]='_';
+				if ((pname_no_space[i]==' ') || (pname_no_space[i]==':')) pname_no_space[i]='_';
 				i++;
 			}
 
@@ -4435,7 +4434,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			ctx->dump_pck = GF_FALSE;
 		}
 	}
-	count = gf_list_count(ctx->src_pids);
+	
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = NULL;

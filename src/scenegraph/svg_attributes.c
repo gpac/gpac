@@ -919,7 +919,7 @@ static GF_Err svg_parse_clock_value(char *d, Double *clock_value)
 		'+-2s'
 		'1++s' even though sscanf returns the right values
 	*/
-	if (strchr(d, '+') || strchr(d, '-')) return GF_BAD_PARAM;
+	if (strpbrk(d, "+-")) return GF_BAD_PARAM;
 
 	/* No embedded white space is allowed in clock values,
 	   although leading and trailing white space characters will be ignored.*/

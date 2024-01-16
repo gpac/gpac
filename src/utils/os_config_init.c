@@ -1038,7 +1038,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 	if (profile && !prof_len)
 		profile = NULL;
 
-	if (profile && (strchr(profile, '/') || strchr(profile, '\\')) ) {
+	if (profile && strpbrk(profile, "/\\")) {
 		if (!gf_file_exists(profile)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Config file %s does not exist\n", profile));
 			goto exit;

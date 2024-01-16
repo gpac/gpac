@@ -4952,7 +4952,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 		if (e!=GF_OK) {
 			//ROUTE + segment format not using init segment, we must wait for the segment to be available
-			//i fnot available after segment duration, check next segment
+			//if not available after segment duration, check next segment
 			if (group->no_init_seg) {
 				u32 ck = gf_sys_clock();
 				if (!group->time_at_first_failure) {
