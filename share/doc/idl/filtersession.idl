@@ -37,9 +37,22 @@ void print(long log_level, DOMString log_str);
 
 The JSFilterSession interface has a single instance exposed to the script under the name "session".
 It implements binding to the underlying filter session object, see \ref GF_FilterSession.
+
 */
 interface JSFilterSession {
 
+/*!
+Constructor for creating a user-defined filter session
+\return a filter session, created in blocking mode
+*/
+JSFilterSession FilterSession();
+
+/*!
+Constructor for creating a user-defined filter session
+\param config configuration for session
+\return a filter session
+*/
+JSFilterSession FilterSession(JSFilterSessionConfig config);
 
 /*! posts a task to the main scheduler - see \ref gf_fs_post_user_task
 \param task_callback the callback function to use. This callback functions has no parameters, and returns false or an exception to abort the task, true to reschedule the task immediately or a reschedule time in milliseconds
@@ -155,8 +168,29 @@ JSFilter new_filter(DOMString name=null);
 */
 Array filter_args(DOMString desciption);
 
+/*! print graph for session*/
+void print_connections();
 
-/*! number of filters in the session - see \ref gf_fs_get_filters_count. 
+/*! print stats for session*/
+void print_stats();
+
+/*! run a session, only valid for user-created sessions
+\return error code if any
+*/
+long run();
+
+/*! stop a session, only valid for user-created sessions
+\return error code if any
+*/
+long stop();
+
+/*! abort a session, only valid for user-created sessions
+\param flush_type flush type, cf \ref GF_FSFlushType
+\return error code if any
+*/
+long abort(optional unsigned long flush_type);
+
+/*! number of filters in the session - see \ref gf_fs_get_filters_count.
 This number is only valid when session is locked*/
 attribute long nb_filters;
 
@@ -182,6 +216,18 @@ readonly attribute DOMString jspath;
 
 };
 
+/*! Configuration object for user-defined sessions*/
+interface JSFilterSessionConfig
+{
+/*! number of extra threads to use, -1 means all available cores*/
+readonly signed long threads;
+/*! scheduler mode, cf \ref GF_FilterSchedulerType*/
+readonly unsigned long scheduler;
+/*! flags for session, cf \ref GF_FilterSessionFlags*/
+readonly unsigned long flags;
+/*! blacklist of filters for session, same as -blcakclist option, cf \ref gf_fs_new*/
+readonly DOMString blacklist;
+};
 
 /*!\brief JSFSFilter API
 

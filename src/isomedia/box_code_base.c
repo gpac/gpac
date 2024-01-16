@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -12508,7 +12508,7 @@ GF_Err ddts_box_size(GF_Box *s)
 
 GF_Box *udts_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_UDTSSpecificBox, GF_ISOM_BOX_TYPE_DDTS);
+	ISOM_DECL_BOX_ALLOC(GF_UDTSSpecificBox, GF_ISOM_BOX_TYPE_UDTS);
 	return (GF_Box *)tmp;
 }
 
