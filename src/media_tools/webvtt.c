@@ -680,7 +680,8 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 		sample_end = sample->end;
 		if (cue_start < sample->start) {
 			/* cues must be ordered according to their start time, so drop the cue */
-			/* TODO delete the cue */
+			gf_webvtt_cue_del(cue);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VTT] Cue not in order, broken file\n"));
 			return GF_BAD_PARAM;
 		} else if (cue_start == sample->start && cue_end == sample->end) {
 			/* if the timing of the new cue matches the sample, no need to split, add the cue to the sample */
