@@ -9709,7 +9709,11 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, u8 *data, u32 data_len)
 			gf_free(class_dims);
 		}
 		else {
-			oggpack_read(&opb, 8 + 16 + 16 + 6 + 8);
+			oggpack_read(&opb, 8);
+			oggpack_read(&opb, 16);
+			oggpack_read(&opb, 16);
+			oggpack_read(&opb, 6);
+			oggpack_read(&opb, 8);
 			nb_books = oggpack_read(&opb, 4) + 1;
 			for (j = 0; j < nb_books; j++)
 				oggpack_read(&opb, 8);

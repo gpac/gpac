@@ -363,6 +363,7 @@ void oggpackB_adv1(oggpack_buffer *b) {
 /* bits <= 32 */
 s32 oggpack_read(oggpack_buffer *b,s32 bits) {
 	u32 ret;
+	gf_assert(bits<33);
 	u32 m=mask[bits];
 
 	bits+=b->endbit;
