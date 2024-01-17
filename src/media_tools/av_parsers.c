@@ -5208,6 +5208,11 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 
 	if (sps->poc_type == 0) {
 		sps->log2_max_poc_lsb = gf_bs_read_ue_log(bs, "log2_max_poc_lsb") + 4;
+		//log2_max_poc_lsb shall be in the range of 0 to 12, inclusive
+		if (sps->log2_max_poc_lsb>16) {
+			sps->log2_max_poc_lsb=0;
+			return -1;
+		}
 	}
 	else if (sps->poc_type == 1) {
 		sps->delta_pic_order_always_zero_flag = gf_bs_read_int_log(bs, 1, "delta_pic_order_always_zero_flag");
