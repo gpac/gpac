@@ -227,6 +227,8 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Could not parse video header - duration  not estimated\n"));
 		ctx->file_loaded = GF_TRUE;
+		gf_m4v_parser_del(vparser);
+		gf_fclose(stream);
 		return;
 	}
 
