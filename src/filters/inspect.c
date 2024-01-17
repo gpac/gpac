@@ -1587,7 +1587,7 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 		inspect_printf(dump, "   </OBU>\n");
 		break;
 	case OBU_METADATA:
-		{
+		if (obu_ptr_length>hdr_size) {
 			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
 			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
@@ -3241,7 +3241,7 @@ props_done:
 			u64 obu_size = 0;
 			u32 hdr_size = 0;
 
-			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, obu_size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
 
 			if (obu_size > size) {
 				inspect_printf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
