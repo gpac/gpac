@@ -788,6 +788,11 @@ GF_Err unkn_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->dataSize = bytesToRead;
 	gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 
+	//don't try to load sub boxes if already in udta child box loading
+	if (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_IN_UDTA) {
+		return GF_OK;
+	}
+
 	//try to parse container boxes, check if next 8 bytes match a subbox
 	sub_bs = gf_bs_new(ptr->data, ptr->dataSize, GF_BITSTREAM_READ);
 	sub_size = gf_bs_read_u32(sub_bs);
@@ -803,7 +808,7 @@ GF_Err unkn_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (e == GF_OK) {
 		gf_bs_seek(sub_bs, 0);
-		gf_bs_set_cookie(sub_bs, GF_ISOM_BS_COOKIE_NO_LOGS);
+		gf_bs_set_cookie(sub_bs, GF_ISOM_BS_COOKIE_NO_LOGS|GF_ISOM_BS_COOKIE_IN_UDTA);
 		e = gf_isom_box_array_read(s, sub_bs);
 	}
 	gf_bs_del(sub_bs);
