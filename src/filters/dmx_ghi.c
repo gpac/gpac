@@ -1000,8 +1000,10 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 		e = ghi_dmx_init_bin(filter, ctx, bs);
 		if (!e && gf_bs_is_overflow(bs)) e = GF_NON_COMPLIANT_BITSTREAM;
-	} else {
+	} else if (gf_utf8_is_legal(data, size))
 		e = ghi_dmx_init_xml(filter, ctx, data);
+	else {
+		e = GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (e) {
 		if (bs) gf_bs_del(bs);
