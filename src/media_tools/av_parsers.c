@@ -5493,7 +5493,9 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 		return -1;
 	}
 	/*sps_id may be refer to regular SPS or subseq sps, depending on the coded slice referring to the pps*/
-	if (!avc->sps[pps->sps_id].state && !avc->sps[pps->sps_id + GF_SVC_SSPS_ID_SHIFT].state) {
+	if (!avc->sps[pps->sps_id].state
+		&& ((pps->sps_id + GF_SVC_SSPS_ID_SHIFT<32) && !avc->sps[pps->sps_id + GF_SVC_SSPS_ID_SHIFT].state)
+	) {
 		return -1;
 	}
 	avc->pps_active_idx = pps->id; /*set active sps*/
@@ -5821,6 +5823,8 @@ static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
 	si->pps->id = pps_id;
 	if (!si->pps->slice_group_count)
 		return -2;
+	if (si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT>=32)
+		return -1;
 	si->sps = &avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT];
 	if (!si->sps->log2_max_frame_num)
 		return -2;
