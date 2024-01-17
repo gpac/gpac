@@ -834,7 +834,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		if (root) root[0] = '/';
 
 		if (!gf_sk_is_multicast_address(ctx->src+8)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] %s is not a multicast address\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] %s is not a multicast address\n", ctx->src));
 			sep[0] = ':';
 			return GF_BAD_PARAM;
 		}
