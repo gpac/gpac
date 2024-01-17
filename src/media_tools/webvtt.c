@@ -933,7 +933,7 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 
 GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cue)
 {
-	char szLine[2048];
+	char szLine[2049];
 	char *sOK;
 	u32 len;
 	GF_Err e;
@@ -949,6 +949,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		parser->on_header_parsed(parser->user, "WEBVTT\n");
 	}
 
+	szLine[2048]=0;
 	while (!parser->is_eof) {
 		if (!cue && parser->suspend)
 			break;
