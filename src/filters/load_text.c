@@ -3458,21 +3458,27 @@ static GF_Err txtin_texml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	u32 ID, OCR_ES_ID, i;
 	u64 file_size;
 	GF_XMLAttribute *att;
-	GF_XMLNode *root;
+	GF_XMLNode *root=NULL;
 
 	ctx->parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(ctx->parser, ctx->file_name, ttxt_dom_progress, ctx);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TeXML file: Line %d - %s", gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TeXML file: Line %d - %s\n", gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
 		gf_xml_dom_del(ctx->parser);
 		ctx->parser = NULL;
 		return e;
 	}
 
 	root = gf_xml_dom_get_root(ctx->parser);
+	if (!root) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Empty TeXML file\n"));
+		gf_xml_dom_del(ctx->parser);
+		ctx->parser = NULL;
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	if (strcmp(root->name, "text3GTrack")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Invalid QT TeXML file - expecting root \"text3GTrack\" got \"%s\"", root->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Invalid QT TeXML file - expecting root \"text3GTrack\" got \"%s\"\n", root->name));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	file_size = ctx->end;
