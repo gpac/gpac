@@ -7776,12 +7776,19 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->sample_alloc = ptr->nb_samples = 1;
 		ptr->samples[0].nb_pack = ptr->sample_count;
 	} else {
-		//if we get here, at least one flag (so at least 4 bytes) is set, check size
-		if (ptr->sample_count * 4 > ptr->size) {
-			ISOM_DECREASE_SIZE(ptr, ptr->sample_count*4);
+		u32 base_size=0;
+		//check size
+		if (ptr->flags & GF_ISOM_TRUN_DURATION) base_size+=4;
+		if (ptr->flags & GF_ISOM_TRUN_SIZE) base_size+=4;
+		if (ptr->flags & GF_ISOM_TRUN_FLAGS) base_size+=4;
+		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) base_size+=4;
+
+		if ((u64) ptr->sample_count * base_size > ptr->size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of samples %u in trun for box size %u\n", ptr->sample_count, ptr->size));
+			return GF_ISOM_INVALID_FILE;
 		}
 		if ((u64)ptr->sample_count > (u64)SIZE_MAX/sizeof(GF_TrunEntry)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of samples %d in trun\n", ptr->sample_count));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of samples %u in trun\n", ptr->sample_count));
 			return GF_ISOM_INVALID_FILE;
 		}
 		ptr->samples = gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
