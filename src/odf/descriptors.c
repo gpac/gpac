@@ -1648,11 +1648,6 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	cfg->chroma_sample_position = gf_bs_read_int(bs, 2);
 
 	reserved = gf_bs_read_int(bs, 3);
-	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong avcC reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
-		gf_odf_av1_cfg_del(cfg);
-		return NULL;
-	}
 	cfg->initial_presentation_delay_present = gf_bs_read_int(bs, 1);
 	if (cfg->initial_presentation_delay_present) {
 		cfg->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
@@ -1661,6 +1656,13 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		cfg->initial_presentation_delay_minus_one = 0;
 	}
 	size -= 4;
+
+	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong av1C reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
+		gf_odf_av1_cfg_del(cfg);
+		return NULL;
+	}
+
 
 	while (size) {
 		u64 pos, obu_size;
