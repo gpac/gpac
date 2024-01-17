@@ -841,14 +841,14 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 	ctx->session = rtpin_rtsp_new(ctx, (char *) ctx->src);
+	if (!ctx->session)
+		return GF_NOT_SUPPORTED;
+
 	if (!strnicmp(ctx->src, "satip://", 8)) {
 		ctx->session->satip = GF_TRUE;
 		ctx->session->satip_server = gf_malloc(GF_MAX_PATH);
 		rtpin_satip_get_server_ip(ctx->src, ctx->session->satip_server);
 	}
-
-	if (!ctx->session)
-		return GF_NOT_SUPPORTED;
 
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!strnicmp(ctx->src, "rtsps://", 8)
