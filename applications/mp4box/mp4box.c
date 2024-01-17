@@ -6124,7 +6124,7 @@ int mp4box_main(int argc, char **argv)
 		if (file) gf_isom_close(file);
 		file = gf_isom_open(inName, GF_ISOM_OPEN_KEEP_FRAGMENTS, NULL);
 		if (file) gf_isom_close(file);
-		return 0;
+		return mp4box_cleanup(0);
 	}
 
 	e = gf_sys_set_args(argc, (const char **) argv);

@@ -146,7 +146,10 @@ GF_Err chpl_box_read(GF_Box *s,GF_BitStream *bs)
 		ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 9)
 		ce->start_time = gf_bs_read_u64(bs);
 		len = gf_bs_read_u8(bs);
-		if (ptr->size<len) return GF_ISOM_INVALID_FILE;
+		if (ptr->size<len) {
+			e = GF_ISOM_INVALID_FILE;
+			goto exit;
+		}
 		if (len) {
 			ce->name = (char *)gf_malloc(sizeof(char)*(len+1));
 			if (!ce->name) {
