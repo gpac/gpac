@@ -8395,6 +8395,12 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 
 	sps->log2_min_transform_block_size = 2 + gf_bs_read_ue_log(bs, "log2_min_transform_block_size_minus2");
 	sps->log2_max_transform_block_size = sps->log2_min_transform_block_size  + gf_bs_read_ue_log(bs, "log2_max_transform_block_size");
+	//The CVS shall not contain data that result in MinTbLog2SizeY greater than or equal to MinCbLog2SizeY
+	if (sps->log2_min_transform_block_size/*MinTbLog2SizeY*/ >= sps->log2_min_luma_coding_block_size/*MinCbLog2SizeY*/)
+		return -1;
+	//The CVS shall not contain data that result in MaxTbLog2SizeY greater than Min( CtbLog2SizeY, 5 ).
+	if (sps->log2_max_transform_block_size /*MaxTbLog2SizeY*/ > MIN( sps->log2_min_luma_coding_block_size+ sps->log2_diff_max_min_luma_coding_block_size /*CtbLog2SizeY*/, 5 ))
+		return -1;
 
 	depth = 0;
 	sps->max_transform_hierarchy_depth_inter = gf_bs_read_ue_log(bs, "max_transform_hierarchy_depth_inter");
