@@ -295,7 +295,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 			//then mime
 			sep = memchr(buf+1, 0, fsize-1);
 			/*pic_type = sep[1];*/
-			sep_desc = memchr(sep+2, 0, fsize-1);
+			sep_desc = sep ? memchr(sep+2, 0, fsize-1) : NULL;
 
 			if (sep_desc) {
 				GF_Err e;
