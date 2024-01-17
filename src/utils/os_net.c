@@ -1892,7 +1892,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 				gf_sk_set_block_mode(sock, GF_TRUE);
 		}
 		server_add.sun_family = AF_UNIX;
-		strcpy(server_add.sun_path, PeerName);
+		strncpy(server_add.sun_path, PeerName, sizeof(server_add.sun_path));
 		if (connect(sock->socket, (struct sockaddr *)&server_add, sizeof(struct sockaddr_un)) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Failed to connect unix domain socket to %s\n", PeerName));
 			return GF_IP_CONNECTION_FAILURE;
@@ -2188,7 +2188,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 				gf_sk_set_block_mode(sock, GF_TRUE);
 		}
 		server_un.sun_family = AF_UNIX;
-		strcpy(server_un.sun_path, peer_name);
+		strncpy(server_un.sun_path, peer_name, sizeof(server_un.sun_path));
 		ret = bind(sock->socket, (struct sockaddr *) &server_un, (int) sizeof(struct sockaddr_un));
 		if (ret == SOCKET_ERROR) {
 			if (LASTSOCKERROR == EADDRINUSE) {
