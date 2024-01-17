@@ -3710,7 +3710,16 @@ naldmx_flush:
 
 			/*if #pics, compute smallest POC increase*/
 			if (slice_poc != ctx->last_poc) {
-				s32 pdiff = ABS(ctx->last_poc - slice_poc);
+//				s32 pdiff = ABS(ctx->last_poc - slice_poc);
+				s64 pdiff = ctx->last_poc;
+				pdiff -= slice_poc;
+				if (pdiff<0) pdiff=-pdiff;
+				if (pdiff>GF_INT_MAX) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] POC diff overflow %d vs last %d, reseting poc counter - timing will likely be corrupted\n", ctx->log_name, slice_poc, ctx->last_poc));
+					pdiff=0;
+					slice_poc=ctx->last_poc;
+					ctx->poc_shift=slice_poc;
+				}
 
 				if ((slice_poc < 0) && !ctx->last_poc)
 					ctx->poc_diff = 0;
