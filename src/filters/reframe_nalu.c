@@ -1317,7 +1317,8 @@ static Bool naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 				cfg->ptl_frame_only_constraint = vps->ptl[0].frame_only_constraint;
 				cfg->ptl_multilayer_enabled = vps->ptl[0].multilayer_enabled;
 
-				cfg->general_constraint_info = gf_malloc(sizeof(u8) * cfg-> num_constraint_info);
+				if (cfg->general_constraint_info) gf_free(cfg->general_constraint_info);
+				cfg->general_constraint_info = gf_malloc(sizeof(u8) * cfg->num_constraint_info);
 				if (cfg->general_constraint_info)
 					memcpy(cfg->general_constraint_info, vps->ptl[0].gci, cfg->num_constraint_info);
 
