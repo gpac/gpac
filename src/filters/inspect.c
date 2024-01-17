@@ -3271,6 +3271,10 @@ props_done:
 			pos = 0;
 			while (size) {
 				hdr = gf_mp3_get_next_header_mem(data, size, &pos);
+				if (!hdr) {
+					inspect_printf(dump, "<!-- Invalid MPEGAudioFrame -->\n");
+					break;
+				}
 				fsize = gf_mp3_frame_size(hdr);
 				inspect_printf(dump, "<MPEGAudioFrame size=\"%d\" layer=\"%d\" version=\"%d\" bitrate=\"%d\" channels=\"%d\" samplesPerFrame=\"%d\" samplerate=\"%d\"/>\n", fsize, gf_mp3_layer(hdr), gf_mp3_version(hdr), gf_mp3_bit_rate(hdr), gf_mp3_num_channels(hdr), gf_mp3_window_size(hdr), gf_mp3_sampling_rate(hdr));
 				if (size<pos+fsize) break;
