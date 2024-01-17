@@ -43,7 +43,7 @@ typedef struct
 {
 	char *dst, *ext, *mime, *ifce, *ip;
 	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
-	Bool korean, llmode, noreg;
+	Bool korean, llmode, noreg, nozip;
 
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
@@ -1236,13 +1236,15 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Updated Manifest+S-TSID bundle to:\n%s\n", payload_text));
 
-	//compress and store as final payload
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
 	serv->stsid_bundle = (u8 *) payload_text;
 	serv->stsid_bundle_size = 1 + (u32) strlen(payload_text);
-	gf_gz_compress_payload_ex(&serv->stsid_bundle, serv->stsid_bundle_size, &serv->stsid_bundle_size, 0, GF_FALSE, NULL, GF_TRUE);
-
-	serv->stsid_bundle_toi = 0x80000000; //compressed
+	if(!ctx->nozip) {
+		//compress and store as final payload
+		gf_gz_compress_payload_ex(&serv->stsid_bundle, serv->stsid_bundle_size, &serv->stsid_bundle_size, 0, GF_FALSE, NULL, GF_TRUE);
+		
+		serv->stsid_bundle_toi = 0x80000000; //compressed
+	}
 	if (manifest_updated) serv->stsid_bundle_toi |= (1<<18);
 	if (serv->stsid_changed) {
 		serv->stsid_bundle_toi |= (1<<17);
@@ -2181,6 +2183,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 	{ OFFS(noreg), "disable rate regulation for media segments, pushing them as fast as received", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(runfor), "run for the given time in ms", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(nozip), "do not zip manifest", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
