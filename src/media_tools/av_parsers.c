@@ -7089,10 +7089,11 @@ static Bool hevc_parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u
 			}
 			if ((ref_idc == 1) || (ref_idc == 2)) {
 				s32 deltaPOC = deltaRPS;
-				if (i < nb_ref_pics)
+				if ((i < nb_ref_pics) && (i<16))
 					deltaPOC += ref_ps->delta_poc[i];
 
-				rps->delta_poc[k] = deltaPOC;
+				if (k<16)
+					rps->delta_poc[k] = deltaPOC;
 
 				if (deltaPOC < 0)  k0++;
 				else k1++;
