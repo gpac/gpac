@@ -776,6 +776,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 				i++;
 			}
 		}
+		gf_bs_align(bs);
 		inspect_printf(dump, "/>\n");
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
