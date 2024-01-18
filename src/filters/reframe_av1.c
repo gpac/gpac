@@ -277,7 +277,8 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 			return e;
 		}
 		if (!ctx->timescale && !ctx->state.has_temporal_delim) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter - NOT SUPPORTED\n", gf_av1_get_obu_name(ctx->state.obu_type) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter\n", gf_av1_get_obu_name(ctx->state.obu_type) ));
+			if (!e) e = GF_NON_COMPLIANT_BITSTREAM;
 			gf_filter_setup_failure(filter, e);
 			ctx->bsmode = UNSUPPORTED;
 			return e;
@@ -600,6 +601,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->is_av1 && !gf_list_count(ctx->state.frame_state.header_obus)) return;
 
 	if (!ctx->opid) {
+		if (ctx->bsmode==UNSUPPORTED) return;
 		ctx->opid = gf_filter_pid_new(filter);
 		av1dmx_check_dur(filter, ctx);
 	}
