@@ -1757,8 +1757,10 @@ GF_Err aeib_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
 	u32 len;
 
-	if (!ptr->size)
+	if (!ptr->size) {
+		//will force error exit
 		ISOM_DECREASE_SIZE(ptr, 1);
+	}
 
 	len = (u32) ptr->size - 1;
 	if (len) {
