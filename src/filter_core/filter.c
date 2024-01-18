@@ -4336,7 +4336,15 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(tmp_ext));
 			ext_len = (u32) strlen(tmp_ext);
 		} else {
-			char *ext = gf_file_ext_start(url);
+			char *ext=NULL;
+			char *scheme = strstr(url, "://");
+			if (scheme) {
+				scheme = strchr(scheme+3, '/');
+				if (scheme)
+					ext = gf_file_ext_start(scheme);
+			} else {
+				ext = gf_file_ext_start(url);
+			}
 			if (ext) ext++;
 
 			if (ext) {
