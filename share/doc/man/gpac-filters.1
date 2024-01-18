@@ -2265,7 +2265,17 @@ abs_offset (bool, default: false): use absolute file offset in fragments rather 
 .br
 fsap (bool, default: true):    split truns in video fragments at SAPs to reduce file size
 .br
-subs_sidx (sint, default: -1): number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source PID
+subs_sidx (sint, default: -1): number of subsegments per sidx
+.br
+* 0: single sidx
+.br
+* >0: hierarchical or daisy-chained sidx
+.br
+* <0: disables sidx
+.br
+* -2: removes sidx if present in source PID
+.br
+
 .br
 m4cc (str):                    4 character code of empty box to append at the end of a segment (DASH mode) or of a fragment (non-DASH mode)
 .br
