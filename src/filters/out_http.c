@@ -2020,6 +2020,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				}
 				if (data) gf_free(data);
 			}
+			gf_fseek(sess->resource, 0, SEEK_SET);
 		}
 		//only put content length if not using chunk transfer - bytes_in_req may be > 0 if we have a byte range on a chunk-transfer session
 		if (sess->bytes_in_req && !sess->use_chunk_transfer) {
