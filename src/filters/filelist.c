@@ -859,6 +859,11 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 			if (ctx->floop != 0) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
+				if (last_found) {
+					if (!ctx->floop) return GF_FALSE;
+					if (ctx->floop>0) ctx->floop--;
+					ctx->last_url_crc=0;
+				}
 				last_found = GF_TRUE;
 				lineno=0;
 				continue;
