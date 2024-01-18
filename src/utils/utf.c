@@ -656,6 +656,8 @@ GF_Err gf_utf_get_utf8_string_from_bom(const u8 *data, u32 size, char **out_ptr,
 	*result = (char *) data;
 
 	if (size>=5) {
+		if (!gf_utf8_is_legal(data+4, size-4))
+			return GF_IO_ERR;
 		/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/
 		if ((data[0]==0xFF) && (data[1]==0xFE)) {
 			if (!data[2] && !data[3]) {
