@@ -1208,22 +1208,6 @@ static JSValue jsfs_stop_sess(JSContext *ctx, JSValueConst this_val, int argc, J
 	GF_Err e = gf_fs_stop(fs);
 	return JS_NewInt32(ctx, e);
 }
-
-static JSValue jsfs_abort_sess(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	u32 flush_type = GF_FS_FLUSH_NONE;
-	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
-	if (!fs) return GF_JS_EXCEPTION(ctx);
-	if (!(fs->flags & GF_FS_FLAG_USER_SESSION))
-		return GF_JS_EXCEPTION(ctx);
-
-	if (argc)
-		JS_ToInt32(ctx, &flush_type, argv[0]);
-	GF_Err e = gf_fs_abort(fs, flush_type);
-	return JS_NewInt32(ctx, e);
-}
-
-
 static JSValue jsfs_print_connections(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
@@ -1879,10 +1863,8 @@ static const JSCFunctionListEntry fs_funcs[] = {
 	JS_CFUNC_DEF("filter_args", 0, jsfs_filter_args),
 	JS_CFUNC_DEF("run", 0, jsfs_run_sess),
 	JS_CFUNC_DEF("stop", 0, jsfs_stop_sess),
-	JS_CFUNC_DEF("abort", 0, jsfs_abort_sess),
 	JS_CFUNC_DEF("print_connections", 0, jsfs_print_connections),
-	JS_CFUNC_DEF("print_stats", 0, jsfs_print_stats),
-
+	JS_CFUNC_DEF("print_stats", 0, jsfs_print_stats)
 };
 
 void gf_fs_unload_js_api(JSContext *c, GF_FilterSession *fs)
