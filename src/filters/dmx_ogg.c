@@ -266,7 +266,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	}
 }
 
-static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *oggpage)
+static GF_Err oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *oggpage)
 {
 	ogg_packet oggpacket;
 	u32 serial_no, i;
@@ -282,7 +282,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 			ogg_stream_init(&st->os, st->serial_no);
 			ogg_stream_pagein(&st->os, oggpage);
 			st->parse_headers = st->info.num_init_headers;
-			return;
+			return GF_OK;
 		}
 	}
 
@@ -297,10 +297,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	}
 	if (!st) {
 		GF_SAFEALLOC(st, GF_OGGStream);
-		if (!st) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to allocate stream for demux\n"));
-			return;
-		}
+		if (!st) return GF_OUT_OF_MEM;
 		gf_list_add(ctx->streams, st);
 	}
 	st->eos_detected = GF_FALSE;
@@ -308,7 +305,10 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	ogg_stream_init(&st->os, st->serial_no);
 	ogg_stream_pagein(&st->os, oggpage);
 
-	ogg_stream_packetpeek(&st->os, &oggpacket);
+	if (ogg_stream_packetpeek(&st->os, &oggpacket)<=0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[OGG] Invalid OGG page\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	oggdmx_get_stream_info(&oggpacket, &st->info);
 
 	st->parse_headers = st->info.num_init_headers;
@@ -343,6 +343,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 			ctx->duration.den = ctx->global_rate;
 		}
 	}
+	return GF_OK;
 }
 
 GF_Err oggdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -761,7 +762,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 		}
 
 		if (ogg_page_bos(&oggpage)) {
-			oggdmx_new_stream(filter, ctx, &oggpage);
+			GF_Err e = oggdmx_new_stream(filter, ctx, &oggpage);
+			if (e) return e;
 			continue;
 		}
 
