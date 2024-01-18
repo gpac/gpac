@@ -2057,7 +2057,7 @@ skip_date:
 					char szLine[2001];
 					FILE *arg_file = gf_fopen(szArg, "rt");
 					szLine[2000]=0;
-					while (!gf_feof(arg_file)) {
+					while (arg_file && !gf_feof(arg_file)) {
 						u32 llen;
 						char *subarg, *res_line;
 						szLine[0] = 0;
@@ -2086,7 +2086,11 @@ skip_date:
 
 						filter_parse_dyn_args(filter, subarg, arg_type, for_script, szSrc, szDst, szEscape, szSecName, has_meta_args, argfile_level+1);
 					}
-					gf_fclose(arg_file);
+					if (arg_file) {
+						gf_fclose(arg_file);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Failed to open argument file %s, ignoring\n", szArg));
+					}
 				} else if (!for_script) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter argument file has too many nested levels of sub-files, maximum allowed is 5\n"));
 				}
