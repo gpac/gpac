@@ -990,6 +990,7 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 		LHEVC_DependentLayer *dep;
 		u32 j, k;
 		if (i==MAX_LHVC_LAYERS) break;
+		if (vps->layer_id_in_nuh[i]>=MAX_LHVC_LAYERS) break;
 
 		GF_SAFEALLOC(dep, LHEVC_DependentLayer);
 		if (!dep) return GF_OUT_OF_MEM;
