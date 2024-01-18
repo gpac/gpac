@@ -11651,6 +11651,9 @@ static s32 vvc_get_ctb_info_in_slice(VVCSliceInfo *si, u32 sh_slice_address, u32
 			u32 min_ctby=0;
 			u32 max_ctby=0;
 
+			if (tileY>=VVC_MAX_TILE_ROWS) return -1;
+			if (tileX>=VVC_MAX_TILE_COLS) return -1;
+
 			for (i=0; i<tileY; i++) min_ctby += si->pps->tile_rows_height_ctb[i];
 			max_ctby = min_ctby + si->pps->tile_rows_height_ctb[i];
 
@@ -11792,6 +11795,10 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 
 	if (!si->pps->rect_slice_flag && (si->pps->num_tiles_in_pic - slice_address > 1)) {
 		num_tiles_in_slice = 1 + gf_bs_read_ue_log(bs, "sh_num_tiles_in_slice_minus1");
+		if (num_tiles_in_slice > si->pps->num_tiles_in_pic) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] Invalid number of tiles in slice %u, should be less than %u\n", num_tiles_in_slice, si->pps->num_tiles_in_pic));
+			num_tiles_in_slice = si->pps->num_tiles_in_pic;
+		}
 	}
 
 	if (si->inter_slice_allowed_flag )
