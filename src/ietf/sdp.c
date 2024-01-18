@@ -507,6 +507,8 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			sdp->Version = atoi(comp);
 			break;
 		case 'o':
+			//only use first one
+			if (sdp->o_username) break;
 			pos = gf_token_get(LineBuf, 2, " \t\r\n", comp, 3000);
 			sdp->o_username = gf_strdup(comp);
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
@@ -524,22 +526,27 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			sdp->o_address = gf_strdup(comp);
 			break;
 		case 's':
+			if (sdp->s_session_name) break;
 			/*pos = */gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
 			sdp->s_session_name = gf_strdup(comp);
 			break;
 		case 'i':
+			if (sdp->i_description) break;
 			/*pos = */gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
 			sdp->i_description = gf_strdup(comp);
 			break;
 		case 'u':
+			if (sdp->u_uri) break;
 			/*pos = */gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
 			sdp->u_uri = gf_strdup(comp);
 			break;
 		case 'e':
+			if (sdp->e_email) break;
 			/*pos = */gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
 			sdp->e_email = gf_strdup(comp);
 			break;
 		case 'p':
+			if (sdp->p_phone) break;
 			/*pos = */gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
 			sdp->p_phone = gf_strdup(comp);
 			break;
@@ -636,6 +643,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			}
 			break;
 		case 'k':
+			if (sdp->k_method) break;
 			pos = gf_token_get(LineBuf, 2, ":\t\r\n", comp, 3000);
 			if (media) {
 				media->k_method = gf_strdup(comp);
