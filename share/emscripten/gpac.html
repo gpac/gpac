@@ -312,7 +312,7 @@
             text+="worker         toggles worker mode on or off (" + (GPAC.worker ? "on" : "off") + ")\n";
             text+="threads        views number of pre-allocated workers\n";
           }
-          text+="stack          prints availble size in stack\n";
+          text+="stack          prints available size in stack\n";
           text+="clearh [N]     clears command history. If N is set, only keeps last N items, otherwise clears everything\n";
           text+="fetch          toggles fetch support in libgpac\n";
           text+="bsize          sets block size used to read from local disk (default " + GPAC.read_block_size + ")\n";
@@ -1554,7 +1554,7 @@
             function restore_stack() {
               LIBGPAC.stackRestore(stack_init);
             }
-            //we may be called asynchronously here if emscripten main loop is used, so retore stack on main thread only
+            //we may be called asynchronously here if emscripten main loop is used, so restore stack on main thread only
             setTimeout(restore_stack, 1);
           }
         },
