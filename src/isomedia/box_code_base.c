@@ -12541,48 +12541,50 @@ void udts_box_del(GF_Box *s)
 GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_UDTSSpecificBox *ptr = (GF_UDTSSpecificBox *)s;
-	u8 i;
-	u64 start = gf_bs_get_position(bs);
-	u64 bytes_read;
+	u32 i, bits;
 
+	ISOM_DECREASE_SIZE(ptr, 6);
 	ptr->cfg.DecoderProfileCode = gf_bs_read_int(bs, 6);
 	ptr->cfg.FrameDurationCode = gf_bs_read_int(bs, 2);
 	ptr->cfg.MaxPayloadCode = gf_bs_read_int(bs, 3);
 	ptr->cfg.NumPresentationsCode = gf_bs_read_int(bs, 5);
 	ptr->cfg.ChannelMask = gf_bs_read_u32(bs);
+
+	//non-aligned syntax, count bits
+	bits = 10;
 	ptr->cfg.BaseSamplingFrequencyCode = gf_bs_read_int(bs, 1);
 	ptr->cfg.SampleRateMod = gf_bs_read_int(bs, 2);
 	ptr->cfg.RepresentationType = gf_bs_read_int(bs, 3);
 	ptr->cfg.StreamIndex = gf_bs_read_int(bs, 3);
 	ptr->cfg.ExpansionBoxPresent = gf_bs_read_int(bs, 1);
 	ptr->cfg.PresentationIDTagDataSize = 0;
+
 	for (i=0; i<=ptr->cfg.NumPresentationsCode; i++) {
 		ptr->cfg.IDTagPresent[i] = gf_bs_read_int(bs, 1);
+		bits++;
 		ptr->cfg.PresentationIDTagDataSize += 16 * (ptr->cfg.IDTagPresent[i] != 0);
 	}
-	gf_bs_align(bs);
+	bits+= gf_bs_align(bs);
+	bits/=8;
+	ISOM_DECREASE_SIZE(ptr, bits);
+
 	if (ptr->cfg.PresentationIDTagDataSize > 0) {
+		ISOM_DECREASE_SIZE(ptr, ptr->cfg.PresentationIDTagDataSize);
+
 		ptr->cfg.PresentationIDTagData = gf_realloc(ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
 		if (!ptr->cfg.PresentationIDTagData) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->cfg.PresentationIDTagData, ptr->cfg.PresentationIDTagDataSize);
-	} else if (ptr->cfg.PresentationIDTagData) {
-		gf_free(ptr->cfg.PresentationIDTagData);
-		ptr->cfg.PresentationIDTagData = NULL;
 	}
-	bytes_read = gf_bs_get_position(bs) - start;
-	if (ptr->size > bytes_read && ptr->cfg.ExpansionBoxPresent) {
-		ptr->cfg.ExpansionBoxDataSize = ptr->size - bytes_read;
+	//leftover
+	if (ptr->size && ptr->cfg.ExpansionBoxPresent) {
+		ptr->cfg.ExpansionBoxDataSize = ptr->size;
+		ISOM_DECREASE_SIZE(ptr, ptr->cfg.ExpansionBoxDataSize);
 		ptr->cfg.ExpansionBoxData = gf_realloc(ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
 		if (!ptr->cfg.ExpansionBoxData) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
 	} else {
-		if (ptr->cfg.ExpansionBoxData) gf_free(ptr->cfg.ExpansionBoxData);
-		ptr->cfg.ExpansionBoxData = NULL;
-		ptr->cfg.ExpansionBoxDataSize = 0;
 		ptr->cfg.ExpansionBoxPresent = 0;
 	}
-	bytes_read = gf_bs_get_position(bs) - start;
-	ISOM_DECREASE_SIZE(ptr, bytes_read);
 	return GF_OK;
 }
 
