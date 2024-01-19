@@ -2530,6 +2530,8 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * NCID: ID of netcap configuration to use (string)
 .br
+* DBG: debug missing input PID property (=pid), missing input packet property (=pck) or both (=all)
+.br
 
 .br
 The buffer control options are used to change the default buffering of PIDs of a filter:
@@ -2546,7 +2548,7 @@ If another filter sends a buffer requirement messages, the maximum value of FBT 
 .br
 
 .br
-These options can be set:
+The options FBT, FBU, FBD  and DBG can be set:
 .br
 * per filter instance: fA reframer:FBU=2
 .br

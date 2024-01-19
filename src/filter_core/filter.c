@@ -1354,6 +1354,21 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 					is_ok = 2;
 					loc_alen=3;
 				}
+#ifdef GPAC_ENABLE_DEBUG
+				else if (!strncmp(arg, "DBG", len)) {
+					const char *val = sep+1;
+					if (val && !stricmp(val, "pid")) filter->prop_dump = 1;
+					else if (val && !stricmp(val, "pck")) filter->prop_dump = 2;
+					else if (val && !stricmp(val, "all")) filter->prop_dump = 3;
+					else if (!val) filter->prop_dump = 3;
+					else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Invalid DBG param syntax %s, expecting pid, pck or all\n", arg));
+					}
+					is_ok = 2;
+					loc_alen=3;
+				}
+#endif
+
 			}
 			if (!is_ok) continue;
 
@@ -2051,6 +2066,16 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+#ifdef GPAC_ENABLE_DEBUG
+			else if (!strcmp("DBG", szArg)) {
+				if (value && !stricmp(value, "pid")) filter->prop_dump = 1;
+				else if (value && !stricmp(value, "pck")) filter->prop_dump = 2;
+				else if (value && !stricmp(value, "all")) filter->prop_dump = 3;
+				else if (!value) filter->prop_dump = 3;
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
+#endif
 			else if (!value && gf_file_exists(szArg)) {
 				internal_arg = GF_TRUE;
 				if (!for_script && (argfile_level<5) ) {

@@ -2183,7 +2183,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 	{ OFFS(noreg), "disable rate regulation for media segments, pushing them as fast as received", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(runfor), "run for the given time in ms", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(nozip), "do not zip manifest", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(nozip), "do not zip signaling package (STSID+manifest)", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

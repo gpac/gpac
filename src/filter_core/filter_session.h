@@ -816,6 +816,9 @@ struct __gf_filter
 	Bool reconfigure_outputs;
 	//when set, indicates the filter uses PID property overwrite in its arguments, needed to rewrite the props at pid init time
 	Bool user_pid_props;
+#ifdef GPAC_ENABLE_DEBUG
+	u32 prop_dump;
+#endif
 
 	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
 	u32 encoder_codec_id;
@@ -1001,7 +1004,16 @@ struct __gf_filter_pid_inst
 	/*! loss rate in per-thousand - input pid only */
 	u32 loss_rate;
 
+#ifndef GPAC_DISABLE_DEBUG
+	GF_List *prop_dump;
+#endif
 };
+
+typedef struct
+{
+	u32 p4cc;
+	const char *name;
+}GF_PropCheck;
 
 struct __gf_filter_pid
 {
