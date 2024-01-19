@@ -1518,22 +1518,59 @@ Bool gf_filter_pck_has_properties(GF_FilterPacket *pck)
 	return GF_TRUE;
 }
 
+#ifdef GPAC_ENABLE_DEBUG
+static GFINLINE const GF_PropertyValue *pck_check_prop(GF_FilterPacket *pck, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *ret)
+{
+	if (!ret && (pck!=pck->pck)) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *)pck;
+		if (!(pcki->pid->filter->prop_dump&2)) return ret;
+		u32 i, count;
+		GF_PropCheck *p;
+		if (!pcki->pid->prop_dump) pcki->pid->prop_dump = gf_list_new();
+		count = gf_list_count(pcki->pid->prop_dump);
+		for (i=0;i<count; i++) {
+			p = gf_list_get(pcki->pid->prop_dump, i);
+			if (prop_4cc) {
+				if (p->p4cc==prop_4cc) return ret;
+			} else if (p->name && !strcmp(p->name, prop_name)) {
+				return ret;
+			}
+		}
+
+		const char *pidname = pck->pid->pid->name;
+		if (prop_4cc) {
+			const char *name = gf_props_4cc_get_name(prop_4cc);
+			if (!name) name = "internal";
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s PID %s input packet property %s (%s) not found\n", pck->pid->filter->name, pidname, gf_4cc_to_str(prop_4cc), name));
+		} else if (prop_name) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s PID %s input packet property %s not found\n", pck->pid->filter->name, pidname, prop_name));
+		}
+		GF_SAFEALLOC(p, GF_PropCheck);
+		p->name = prop_name;
+		p->p4cc = prop_4cc;
+		gf_list_add(pcki->pid->prop_dump, p);
+	}
+	return ret;
+}
+#else
+#define pck_check_prop(_a, _b, _str, c) c
+#endif
 GF_EXPORT
-const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc)
+const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *_pck, u32 prop_4cc)
 {
 	//get true packet pointer
-	pck = pck->pck;
+	GF_FilterPacket *pck = _pck->pck;
 	if (!pck->props) return NULL;
-	return gf_props_get_property(pck->props, prop_4cc, NULL);
+	return pck_check_prop(_pck, prop_4cc, NULL, gf_props_get_property(pck->props, prop_4cc, NULL));
 }
 
 GF_EXPORT
-const GF_PropertyValue *gf_filter_pck_get_property_str(GF_FilterPacket *pck, const char *prop_name)
+const GF_PropertyValue *gf_filter_pck_get_property_str(GF_FilterPacket *_pck, const char *prop_name)
 {
 	//get true packet pointer
-	pck = pck->pck;
+	GF_FilterPacket *pck = _pck->pck;
 	if (!pck->props) return NULL;
-	return gf_props_get_property(pck->props, 0, prop_name);
+	return pck_check_prop(_pck, 0, prop_name, gf_props_get_property(pck->props, 0, prop_name) );
 }
 
 GF_EXPORT

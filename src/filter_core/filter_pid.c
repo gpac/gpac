@@ -74,6 +74,16 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 		}
 		gf_mx_v(pidinst->pid->filter->tasks_mx);
 	}
+#ifdef GPAC_ENABLE_DEBUG
+	if (pidinst->prop_dump) {
+		while (1) {
+			GF_PropCheck *p = gf_list_pop_back(pidinst->prop_dump);
+			if (!p) break;
+			gf_free(p);
+		}
+		gf_list_del(pidinst->prop_dump);
+	}
+#endif
 	gf_free(pidinst);
 }
 
@@ -5825,13 +5835,49 @@ static GF_PropertyMap *filter_pid_get_prop_map(GF_FilterPid *pid, Bool first_pro
 	return NULL;
 }
 
+#ifdef GPAC_ENABLE_DEBUG
+static GFINLINE const GF_PropertyValue *pid_check_prop(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *ret)
+{
+	if (!ret && (pid!=pid->pid) &&(pid->filter->prop_dump&1)) {
+		u32 i, count;
+		GF_PropCheck *p;
+		GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
+		if (!pidi->prop_dump) pidi->prop_dump = gf_list_new();
+		count = gf_list_count(pidi->prop_dump);
+		for (i=0;i<count; i++) {
+			p = gf_list_get(pidi->prop_dump, i);
+			if (prop_4cc) {
+				if (p->p4cc==prop_4cc) return ret;
+			} else if (p->name && !strcmp(p->name, prop_name)) {
+				return ret;
+			}
+		}
+		const char *pidname = pid->pid->name;
+		if (prop_4cc) {
+			const char *name = gf_props_4cc_get_name(prop_4cc);
+			if (!name) name = "internal";
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s input PID %s property %s (%s) not found\n", pid->filter->name, pidname, gf_4cc_to_str(prop_4cc), name));
+		} else if (prop_name) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s input PID %s property %s not found\n", pid->filter->name, pidname, prop_name));
+		}
+		GF_SAFEALLOC(p, GF_PropCheck);
+		p->name = prop_name;
+		p->p4cc = prop_4cc;
+		gf_list_add(pidi->prop_dump, p);
+	}
+	return ret;
+}
+#else
+#define pid_check_prop(_a, _b, _str, c) c
+#endif
+
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc)
 {
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_FALSE);
 	if (!map)
 		return NULL;
-	return gf_props_get_property(map, prop_4cc, NULL);
+	return pid_check_prop(pid, prop_4cc, NULL, gf_props_get_property(map, prop_4cc, NULL) );
 }
 
 const GF_PropertyValue *gf_filter_pid_get_property_first(GF_FilterPid *pid, u32 prop_4cc)
@@ -5839,7 +5885,7 @@ const GF_PropertyValue *gf_filter_pid_get_property_first(GF_FilterPid *pid, u32 
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_TRUE);
 	if (!map)
 		return NULL;
-	return gf_props_get_property(map, prop_4cc, NULL);
+	return pid_check_prop(pid, prop_4cc, NULL, gf_props_get_property(map, prop_4cc, NULL) );
 }
 
 GF_EXPORT
@@ -5848,7 +5894,7 @@ const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const 
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_FALSE);
 	if (!map)
 		return NULL;
-	return gf_props_get_property(map, 0, prop_name);
+	return pid_check_prop(pid, 0, prop_name, gf_props_get_property(map, 0, prop_name) );
 }
 
 const GF_PropertyValue *gf_filter_pid_get_property_str_first(GF_FilterPid *pid, const char *prop_name)
@@ -5856,7 +5902,7 @@ const GF_PropertyValue *gf_filter_pid_get_property_str_first(GF_FilterPid *pid, 
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_TRUE);
 	if (!map)
 		return NULL;
-	return gf_props_get_property(map, 0, prop_name);
+	return pid_check_prop(pid, 0, prop_name, gf_props_get_property(map, 0, prop_name) );
 }
 
 const GF_PropertyEntry *gf_filter_pid_get_property_entry(GF_FilterPid *pid, u32 prop_4cc)
