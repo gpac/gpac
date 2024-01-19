@@ -499,29 +499,24 @@ static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
 			   min_display_mastering_luminance*1.0/(isMPEG?10000:(1<<14)));
 }
 
-static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
+static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 {
-	u32 read_bytes = 0;
 	u32 country_code = gf_bs_read_u8(bs);
 	inspect_printf(dump, " country_code=\"0x%x\"", country_code);
 	if (country_code == 0xFF) {
 		u32 country_code_extension = gf_bs_read_u8(bs);
-		read_bytes++;
 		inspect_printf(dump, " country_code_extension=\"0x%x\"", country_code_extension);
 	}
 	u32 terminal_provider_code = gf_bs_read_u16(bs);
 	inspect_printf(dump, " terminal_provider_code=\"0x%x\"", terminal_provider_code);
 
-	read_bytes+=3;
 	if ((terminal_provider_code==49) || (terminal_provider_code==47)) {
 		u32 code = gf_bs_read_u32(bs);
 		u32 udta_code = gf_bs_read_u8(bs);
-		read_bytes+=5;
 		inspect_printf(dump, " user_id=\"%s\"", gf_4cc_to_str(code) );
 		inspect_printf(dump, " user_data_type=\"%d\"", udta_code);
 		if (terminal_provider_code==47) {
 			inspect_printf(dump, " directv_user_data_length %d\n", gf_bs_read_u8(bs) );
-			read_bytes+=1;
 		}
 		if (udta_code==3) {
 			u32 i;
@@ -531,7 +526,6 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 			u32 cc_count = gf_bs_read_int(bs, 5);
 			inspect_printf(dump, " cc_count=\"%d\"\n", cc_count);
 			inspect_printf(dump, " em_data=\"%x\"\n", gf_bs_read_u8(bs));
-			read_bytes+=2;
 
 			inspect_printf(dump, " cc_data=\"[");
 			for (i=0; i< cc_count; ++i) {
@@ -544,7 +538,6 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 					inspect_printf(dump, "%d 0x%x", type, data);
 				else
 					inspect_printf(dump, "skip");
-				read_bytes+=3;
 			}
 			inspect_printf(dump, "]\"");
 		}
@@ -552,12 +545,10 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 		u32 terminal_provider_oriented_code = gf_bs_read_u16(bs);
 		u32 application_identifier = gf_bs_read_u8(bs);
 		u32 application_mode = gf_bs_read_u8(bs);
-		read_bytes+=4;
 		inspect_printf(dump, " terminal_provider_oriented_code=\"0x%x\" application_identifier=\"%u\" application_mode=\"%u\"",
 				   terminal_provider_oriented_code,
 				   application_identifier, application_mode);
 	}
-	return read_bytes;
 }
 
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
@@ -734,7 +725,6 @@ static void dump_avc_pic_timing(FILE *dump, GF_BitStream *bs, AVCState *avc)
 
 static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hevc, VVCState *vvc)
 {
-	u32 i;
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	//skip nal header
@@ -743,6 +733,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 	while (gf_bs_available(bs) ) {
 		u32 sei_type = 0;
 		u32 sei_size = 0;
+		u32 sei_pos;
 		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
 			sei_type += 255;
 			gf_bs_read_int(bs, 8);
@@ -753,6 +744,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 			gf_bs_read_int(bs, 8);
 		}
 		sei_size += gf_bs_read_int(bs, 8);
+		sei_pos = (u32) gf_bs_get_position(bs);
 
 		inspect_printf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type) );
 		if (sei_type == 144) {
@@ -764,20 +756,17 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 		} else if (sei_type == 136) {
 			dump_time_code_hevc(dump, bs);
 		} else if (sei_type == 4) {
-			i = dump_t35(dump, bs, sei_size);
-			while (i < sei_size) {
-				gf_bs_read_u8(bs);
-				i++;
-			}
-		} else {
-			i=0;
-			while (i < sei_size) {
-				gf_bs_read_u8(bs);
-				i++;
-			}
+			dump_t35(dump, bs, sei_size);
 		}
-		gf_bs_align(bs);
 		inspect_printf(dump, "/>\n");
+
+		//don't trust sei parsers, force jumping to next - use byte-per-byte read for EPB removal
+		gf_bs_seek(bs, sei_pos);
+		while (sei_size) {
+			gf_bs_read_u8(bs);
+			sei_size--;
+		}
+
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
