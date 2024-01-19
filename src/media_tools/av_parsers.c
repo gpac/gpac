@@ -7311,7 +7311,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 					num_long_term_sps = gf_bs_read_ue_log(bs, "num_long_term_sps");
 				}
 				num_long_term_pics = gf_bs_read_ue_log(bs, "num_long_term_pics");
-
+				if (num_long_term_sps+num_long_term_pics>32) return -1;
+				
 				for (i = 0; i < num_long_term_sps + num_long_term_pics; i++) {
 					if (i < num_long_term_sps) {
 						if (sps->num_long_term_ref_pic_sps > 1)
