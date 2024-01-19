@@ -1261,6 +1261,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (ds->duration.num<0) ds->duration.num = 0;
 
 		CHECK_PROP(GF_PROP_PID_ID, ds->id, GF_EOS)
+		if (!p) GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input PID %s has no explicit ID. Segment names may not be correct.\n", gf_filter_pid_get_name(pid)));
 		CHECK_PROP(GF_PROP_PID_DEPENDENCY_ID, ds->dep_id, GF_EOS)
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HAS_SYNC);
@@ -3440,7 +3441,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	if (ctx->pssh == GF_DASH_PSSH_MPD) {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_CENC_PSSH, NULL);
 	}
-	//multi-stsd disabled, remove sdsd template (only needed at init)
+	//multi-stsd disabled, remove stsd template (only needed at init)
 	if (ctx->pswitch != DASHER_PSWITCH_STSD) {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_ISOM_STSD_ALL_TEMPLATES, NULL);
 	}
