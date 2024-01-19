@@ -1042,6 +1042,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 	return mov;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
 			gf_isom_on_block_out on_block_out,
 			gf_isom_on_block_patch on_block_patch,
