@@ -553,37 +553,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, GF_ISOOpenMode OpenMode, const ch
 	return (GF_ISOFile *) movie;
 }
 
-
-#if 0
-/*! gets access to the data bitstream  - see \ref gf_isom_open
-\param isom_file the target ISO file
-\param out_bs set to the file input bitstream - do NOT destroy
-\return error if any
-*/
-GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
-{
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	if (!movie || movie->openMode != GF_ISOM_OPEN_WRITE || !movie->editFileMap) //memory mode
-		return GF_NOT_SUPPORTED;
-
-	if (movie->segment_bs)
-		*out_bs = movie->segment_bs;
-	else
-		*out_bs = movie->editFileMap->bs;
-
-	if (movie->moof)
-		movie->moof->fragment_offset = 0;
-
-	return GF_OK;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-#endif
-
-
-GF_EXPORT
-GF_Err gf_isom_write(GF_ISOFile *movie)
+static GF_Err gf_isom_write(GF_ISOFile *movie)
 {
 	GF_Err e;
 	if (movie == NULL) return GF_ISOM_INVALID_FILE;

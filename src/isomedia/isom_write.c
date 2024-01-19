@@ -64,7 +64,7 @@ GF_Err FlushCaptureMode(GF_ISOFile *movie)
 	/*make sure nothing was added*/
 	if (gf_bs_get_position(movie->editFileMap->bs)) return GF_OK;
 
-	if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
+	if (movie->fileName && !strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
 		if (!movie->on_block_out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
 			return GF_BAD_PARAM;
