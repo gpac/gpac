@@ -4341,7 +4341,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 {
 	char *dst = NULL;
 	char *res=NULL;
-	GF_Err e = gf_utf_get_utf8_string_from_bom((char *)data, data_size, &dst, &res);
+	GF_Err e = gf_utf_get_string_from_bom((char *)data, data_size, &dst, &res, NULL);
 	if (e) return NULL;
 
 	data = res;
