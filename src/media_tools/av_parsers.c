@@ -5097,6 +5097,11 @@ u32 gf_media_nalu_remove_emulation_bytes(const u8 *buffer_src, u8 *buffer_dst, u
 	return nal_size - emulation_bytes_count;
 }
 
+#define AVC_SPS_BROKEN {\
+	memset(sps, 0, sizeof(AVC_SPS)); \
+	return -1;\
+	}
+
 static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos, u32 nal_hdr)
 {
 	AVC_SPS *sps;
@@ -5148,7 +5153,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 	case 44:
 		/*sanity checks: note1 from 7.4.2.1.1 of iso/iec 14496-10-N11084*/
 		if (pcomp & 0xE0)
-			return -1;
+			AVC_SPS_BROKEN
 	case 83:
 	case 86:
 	case 118:
@@ -5193,14 +5198,12 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 	sps->log2_max_frame_num = gf_bs_read_ue_log(bs, "log2_max_frame_num") + 4;
 	if (sps->log2_max_frame_num>16) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid SPS: log2_max_frame_num_minus4 shall be less than 12, but is %d\n", sps->log2_max_frame_num-4));
-		sps->log2_max_frame_num=0;
-		return -1;
+		AVC_SPS_BROKEN
 	}
 	sps->poc_type = gf_bs_read_ue_log(bs, "poc_type");
 	if (sps->poc_type>2) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid SPS: pic_order_cnt_type shall be less than 2, but is %d\n", sps->poc_type));
-		sps->log2_max_frame_num=0;
-		return -1;
+		AVC_SPS_BROKEN
 	}
 	sps->chroma_format = chroma_format_idc;
 	sps->luma_bit_depth_m8 = luma_bd;
@@ -5210,8 +5213,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		sps->log2_max_poc_lsb = gf_bs_read_ue_log(bs, "log2_max_poc_lsb") + 4;
 		//log2_max_poc_lsb shall be in the range of 0 to 12, inclusive
 		if (sps->log2_max_poc_lsb>16) {
-			sps->log2_max_poc_lsb=0;
-			return -1;
+			AVC_SPS_BROKEN
 		}
 	}
 	else if (sps->poc_type == 1) {
@@ -5220,15 +5222,14 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		sps->offset_for_top_to_bottom_field = gf_bs_read_se_log(bs, "offset_for_top_to_bottom_field");
 		sps->poc_cycle_length = gf_bs_read_ue_log(bs, "poc_cycle_length");
 		if (sps->poc_cycle_length > GF_ARRAY_LENGTH(sps->offset_for_ref_frame)) {
-			sps->poc_cycle_length = 255;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] offset_for_ref_frame overflow from poc_cycle_length\n"));
-			return -1;
+			AVC_SPS_BROKEN
 		}
 		for (i = 0; i < sps->poc_cycle_length; i++)
 			sps->offset_for_ref_frame[i] = gf_bs_read_se_log_idx(bs, "offset_for_ref_frame", i);
 	}
 	if (sps->poc_type > 2) {
-		return -1;
+		AVC_SPS_BROKEN
 	}
 	sps->max_num_ref_frames = gf_bs_read_ue_log(bs, "max_num_ref_frames");
 	sps->gaps_in_frame_num_value_allowed_flag = gf_bs_read_int_log(bs, 1, "gaps_in_frame_num_value_allowed_flag");
@@ -5236,7 +5237,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 	mb_height = gf_bs_read_ue_log(bs, "pic_height_in_map_units_minus1") + 1;
 	//5.1 level max frame size in MBs is 36864, we set our limit at 16k x 16x pixels (eg 1 M MBs) for fuzzed stream detection
 	if ( (u64) mb_width * (u64) mb_height > 1000000) {
-		return -1;
+		AVC_SPS_BROKEN
 	}
 
 	sps->frame_mbs_only_flag = gf_bs_read_int_log(bs, 1, "frame_mbs_only_flag");
@@ -5348,11 +5349,13 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 
 		sps->vui.nal_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "nal_hrd_parameters_present_flag");
 		if (sps->vui.nal_hrd_parameters_present_flag)
-			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0) return -1;
+			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0)
+				AVC_SPS_BROKEN
 
 		sps->vui.vcl_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "vcl_hrd_parameters_present_flag");
 		if (sps->vui.vcl_hrd_parameters_present_flag)
-			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0) return -1;
+			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0)
+				AVC_SPS_BROKEN
 
 		if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag)
 			sps->vui.low_delay_hrd_flag = gf_bs_read_int_log(bs, 1, "low_delay_hrd_flag");
@@ -5429,7 +5432,7 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		}
 	}
 	if (gf_bs_is_overflow(bs))
-		return -1;
+		AVC_SPS_BROKEN
 	return sps_id;
 }
 
@@ -5472,6 +5475,11 @@ exit:
 	return sps_id;
 }
 
+#define AVC_PPS_BROKEN {\
+	memset(pps, 0, sizeof(AVC_PPS)); \
+	return -1;\
+	}
+
 static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_hdr)
 {
 	s32 pps_id;
@@ -5494,14 +5502,13 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	if (!pps->status) pps->status = 1;
 	pps->sps_id = gf_bs_read_ue_log(bs, "sps_id");
 	if ((pps->sps_id<0) || (pps->sps_id >= 32)) {
-		pps->sps_id = 0;
-		return -1;
+		AVC_PPS_BROKEN
 	}
 	/*sps_id may be refer to regular SPS or subseq sps, depending on the coded slice referring to the pps*/
 	if (!avc->sps[pps->sps_id].state
 		&& ((pps->sps_id + GF_SVC_SSPS_ID_SHIFT<32) && !avc->sps[pps->sps_id + GF_SVC_SSPS_ID_SHIFT].state)
 	) {
-		return -1;
+		AVC_PPS_BROKEN
 	}
 	avc->pps_active_idx = pps->id; /*set active sps*/
 	avc->sps_active_idx = pps->sps_id; /*set active sps*/
@@ -5550,7 +5557,7 @@ static s32 gf_avc_read_pps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 nal_
 	pps->redundant_pic_cnt_present = gf_bs_read_int_log(bs, 1, "redundant_pic_cnt_present");
 
 	if (gf_bs_is_overflow(bs))
-		return -1;
+		AVC_PPS_BROKEN
 	return pps_id;
 }
 
@@ -8030,6 +8037,11 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	return GF_TRUE;
 }
 
+#define HEVC_VPS_BROKEN {\
+	memset(vps, 0, sizeof(HEVC_VPS)); \
+	return -1;\
+	}
+
 static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool stop_at_vps_ext)
 {
 	u8 vps_sub_layer_ordering_info_present_flag, vps_extension_flag;
@@ -8055,8 +8067,7 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 	vps->max_layers = 1 + gf_bs_read_int_log(bs, 6, "max_layers_minus1");
 	if (vps->max_layers > MAX_LHVC_LAYERS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] %d layers in VPS but only %d supported in GPAC\n", vps->max_layers, MAX_LHVC_LAYERS));
-		vps->max_layers = MAX_LHVC_LAYERS;
-		return -1;
+		HEVC_VPS_BROKEN
 	}
 	vps->max_sub_layers = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1") + 1;
 	vps->temporal_id_nesting = gf_bs_read_int_log(bs, 1, "temporal_id_nesting");
@@ -8072,13 +8083,12 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 	vps->max_layer_id = gf_bs_read_int_log(bs, 6, "max_layer_id");
 	if (vps->max_layer_id >= MAX_LHVC_LAYERS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] VPS max layer ID %u but GPAC only supports %u\n", vps->max_layer_id, MAX_LHVC_LAYERS));
-		vps->max_layer_id = 0;
-		return -1;
+		HEVC_VPS_BROKEN
 	}
 	vps->num_layer_sets = gf_bs_read_ue_log(bs, "num_layer_sets_minus1") + 1;
 	if (vps->num_layer_sets > MAX_LHVC_LAYERS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Wrong number of layer sets in VPS %d\n", vps->num_layer_sets));
-		return -1;
+		HEVC_VPS_BROKEN
 	}
 	for (i = 1; i < vps->num_layer_sets; i++) {
 		for (j = 0; j <= vps->max_layer_id; j++) {
@@ -8125,7 +8135,7 @@ static s32 gf_hevc_read_vps_bs_internal(GF_BitStream *bs, HEVCState *hevc, Bool 
 		res = hevc_parse_vps_extension(vps, bs);
 		if (res != GF_TRUE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Failed to parse VPS extensions\n"));
-			return -1;
+			HEVC_VPS_BROKEN
 		}
 		if (gf_bs_read_int_log(bs, 1, "vps_extension2_flag")) {
 #if 0
@@ -8258,6 +8268,11 @@ static const struct {
 	{ 64, 33 }, { 160,99 }, { 4,3}, { 3,2}, { 2,1}
 };
 
+#define HEVC_SPS_BROKEN {\
+	memset(sps, 0, sizeof(HEVC_SPS)); \
+	return -1;\
+	}
+
 static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 layer_id, u32 *vui_flag_pos)
 {
 	s32 vps_id, sps_id = -1;
@@ -8324,8 +8339,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		}
 		if (sps->rep_format_idx>15) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid rep_format_idx index %d\n", sps->rep_format_idx));
-			sps->rep_format_idx=0;
-			return -1;
+			HEVC_SPS_BROKEN
 		}
 		sps->width = vps->rep_formats[sps->rep_format_idx].pic_width_luma_samples;
 		sps->height = vps->rep_formats[sps->rep_format_idx].pic_height_luma_samples;
@@ -8372,8 +8386,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps->log2_max_pic_order_cnt_lsb = 4 + gf_bs_read_ue_log(bs, "log2_max_pic_order_cnt_lsb_minus4");
 	if (sps->log2_max_pic_order_cnt_lsb>16) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid log2_max_pic_order_cnt_lsb_minus4 %d, max shall be 12\n", sps->log2_max_pic_order_cnt_lsb-4));
-		sps->log2_max_pic_order_cnt_lsb = 16;
-		return -1;
+		HEVC_SPS_BROKEN
 	}
 
 	if (!multiLayerExtSpsFlag) {
@@ -8389,7 +8402,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps->log2_diff_max_min_luma_coding_block_size = gf_bs_read_ue_log(bs, "log2_diff_max_min_luma_coding_block_size");
 	//we allow more than in max profile, but make sure we don't overflow max CU W/H compute below
 	if (sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size >= 30) {
-		return -1;
+		HEVC_SPS_BROKEN
 	}
 	sps->max_CU_width = (1 << (sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
 	sps->max_CU_height = (1 << (sps->log2_min_luma_coding_block_size + sps->log2_diff_max_min_luma_coding_block_size));
@@ -8398,10 +8411,10 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps->log2_max_transform_block_size = sps->log2_min_transform_block_size  + gf_bs_read_ue_log(bs, "log2_max_transform_block_size");
 	//The CVS shall not contain data that result in MinTbLog2SizeY greater than or equal to MinCbLog2SizeY
 	if (sps->log2_min_transform_block_size/*MinTbLog2SizeY*/ >= sps->log2_min_luma_coding_block_size/*MinCbLog2SizeY*/)
-		return -1;
+		HEVC_SPS_BROKEN
 	//The CVS shall not contain data that result in MaxTbLog2SizeY greater than Min( CtbLog2SizeY, 5 ).
 	if (sps->log2_max_transform_block_size /*MaxTbLog2SizeY*/ > MIN( sps->log2_min_luma_coding_block_size+ sps->log2_diff_max_min_luma_coding_block_size /*CtbLog2SizeY*/, 5 ))
-		return -1;
+		HEVC_SPS_BROKEN
 
 	depth = 0;
 	sps->max_transform_hierarchy_depth_inter = gf_bs_read_ue_log(bs, "max_transform_hierarchy_depth_inter");
@@ -8417,7 +8430,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	while (nb_CTUs > (u32)(1 << sps->bitsSliceSegmentAddress)) {
 		sps->bitsSliceSegmentAddress++;
 		if (sps->bitsSliceSegmentAddress==31)
-			return -1;
+			HEVC_SPS_BROKEN
 	}
 
 	sps->scaling_list_enable_flag = gf_bs_read_int_log(bs, 1, "scaling_list_enable_flag");
@@ -8449,7 +8462,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps->num_short_term_ref_pic_sets = gf_bs_read_ue_log(bs, "num_short_term_ref_pic_sets");
 	if (sps->num_short_term_ref_pic_sets > 64) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid number of short term reference picture sets %d\n", sps->num_short_term_ref_pic_sets));
-		return -1;
+		HEVC_SPS_BROKEN
 	}
 
 	for (i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
@@ -8457,7 +8470,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		/*cannot parse short_term_ref_pic_set, skip VUI parsing*/
 		if (!ret) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid short_term_ref_pic_set\n"));
-			return -1;
+			HEVC_SPS_BROKEN
 		}
 	}
 	sps->long_term_ref_pics_present_flag = gf_bs_read_int_log(bs, 1, "long_term_ref_pics_present_flag");
@@ -8552,7 +8565,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 
 	}
 	if (gf_bs_is_overflow(bs))
-		return -1;
+		HEVC_SPS_BROKEN
 	return sps_id;
 }
 
@@ -8593,6 +8606,10 @@ s32 gf_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc)
 	return gf_hevc_read_sps_bs_internal(bs, hevc, layer_id, NULL);
 }
 
+#define HEVC_PPS_BROKEN {\
+	memset(pps, 0, sizeof(HEVC_PPS)); \
+	return -1;\
+	}
 
 static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 {
@@ -8616,8 +8633,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 	pps->sps_id = gf_bs_read_ue_log(bs, "sps_id");
 	if (((s32)pps->sps_id<0) || (pps->sps_id >= 16)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] wrong SPS ID %d in PPS\n", pps->sps_id));
-		pps->sps_id=0;
-		return -1;
+		HEVC_PPS_BROKEN
 	}
 	hevc->sps_active_idx = pps->sps_id; /*set active sps*/
 	pps->dependent_slice_segments_enabled_flag = gf_bs_read_int_log(bs, 1, "dependent_slice_segments_enabled_flag");
@@ -8646,12 +8662,12 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 		pps->num_tile_columns = 1 + gf_bs_read_ue_log(bs, "num_tile_columns_minus1");
 		if (pps->num_tile_columns > 22) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_columns %u\n", pps->num_tile_columns));
-			return -1;
+			HEVC_PPS_BROKEN
 		}
 		pps->num_tile_rows = 1 + gf_bs_read_ue_log(bs, "num_tile_rows_minus1");
 		if (pps->num_tile_rows > 20) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_rows %u\n", pps->num_tile_rows));
-			return -1;
+			HEVC_PPS_BROKEN
 		}
 		pps->uniform_spacing_flag = gf_bs_read_int_log(bs, 1, "uniform_spacing_flag");
 		if (!pps->uniform_spacing_flag) {
@@ -8688,7 +8704,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 	}
 
 	if (gf_bs_is_overflow(bs))
-		return -1;
+		HEVC_PPS_BROKEN
 	return pps_id;
 }
 
@@ -10368,6 +10384,11 @@ static void vvc_profile_tier_level(GF_BitStream *bs, VVC_ProfileTierLevel *ptl, 
 	}
 }
 
+#define VVC_VPS_BROKEN {\
+	memset(vps, 0, sizeof(VVC_VPS)); \
+	return -1;\
+	}
+
 static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool stop_at_vps_ext)
 {
 	u32 i, j;
@@ -10390,8 +10411,7 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 	vps->max_layers = 1 + gf_bs_read_int_log(bs, 6, "max_layers");
 	if (vps->max_layers > VVC_MAX_LAYERS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] %d layers in VPS but only %d supported in GPAC\n", vps->max_layers, VVC_MAX_LAYERS));
-		vps->max_layers = VVC_MAX_LAYERS;
-		return -1;
+		VVC_VPS_BROKEN
 	}
 	vps->max_sub_layers = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1") + 1;
 
@@ -10458,7 +10478,7 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 
 
 	if (gf_bs_is_overflow(bs))
-		return -1;
+		VVC_VPS_BROKEN
 	return vps_id;
 }
 
@@ -10575,6 +10595,11 @@ static void vvc_parse_ols_timing_hrd_parameters(GF_BitStream *bs, u32 firstSubLa
 		}
 	}
 }
+
+#define VVC_SPS_BROKEN {\
+	memset(sps, 0, sizeof(VVC_SPS)); \
+	return -1;\
+	}
 
 static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer_id, u32 *vui_flag_pos)
 {
@@ -10795,10 +10820,11 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	for (i=0; i<sps_rpl1_same_as_rpl0; i++) {
 		u32 j;
 		sps->num_ref_pic_lists[i] = gf_bs_read_ue_log_idx(bs, "sps_num_ref_pic_lists", i);
-		if (sps->num_ref_pic_lists[i] > 64) return -1;
+		if (sps->num_ref_pic_lists[i] > 64) VVC_SPS_BROKEN
+
 		for (j=0; j<sps->num_ref_pic_lists[i]; j++) {
 			s32 res = vvc_parse_ref_pic_list_struct(bs, sps, i, j, &sps->rps[i][j]);
-			if (res<0) return res;
+			if (res<0) VVC_SPS_BROKEN
 		}
 	}
 	gf_bs_read_int_log(bs, 1, "sps_ref_wraparound_enabled_flag");
@@ -10965,9 +10991,15 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	}
 
 	if (gf_bs_is_overflow(bs))
-		return -1;
+		VVC_SPS_BROKEN
 	return sps_id;
 }
+
+#define VVC_PPS_BROKEN {\
+	memset(pps, 0, sizeof(VVC_PPS)); \
+	return -1;\
+	}
+
 
 static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 {
@@ -10991,8 +11023,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 	pps->sps_id = gf_bs_read_int_log(bs, 4, "sps_id");
 	if (((s32)pps->sps_id<0) || (pps->sps_id >= 16)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong SPS ID %d in PPS\n", pps->sps_id));
-		pps->sps_id=0;
-		return -1;
+		VVC_PPS_BROKEN
 	}
 	vvc->sps_active_idx = pps->sps_id; /*set active sps*/
 	pps->mixed_nal_types = gf_bs_read_int_log(bs, 1, "mixed_nal_types");
@@ -11037,13 +11068,11 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 
 		if (num_exp_tile_columns > VVC_MAX_TILE_COLS) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong num tile columns %d in PPS\n", num_exp_tile_columns));
-			pps->sps_id=0;
-			return -1;
+			VVC_PPS_BROKEN
 		}
 		if (num_exp_tile_rows > VVC_MAX_TILE_ROWS) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong num tile rows %d in PPS\n", num_exp_tile_rows));
-			pps->sps_id=0;
-			return -1;
+			VVC_PPS_BROKEN
 		}
 
 		ctu_size = 1<<ctu_size;
@@ -11058,32 +11087,28 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		for (i=0; i<num_exp_tile_columns; i++) {
 			u32 nb_ctb_width = 1 + gf_bs_read_ue_log_idx(bs, "tile_column_width_minus1", i);
 			if (nb_ctb_left < nb_ctb_width) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 			nb_ctb_left -= nb_ctb_width;
 			pps->tile_cols_width_ctb[i] = nb_ctb_width;
 			nb_ctb_last = nb_ctb_width;
 			pps->num_tile_cols++;
 			if (pps->num_tile_cols > VVC_MAX_TILE_COLS) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 		}
 		u32 uni_size_ctb = nb_ctb_last;
 		while (nb_ctb_left >= uni_size_ctb) {
 			nb_ctb_left -= uni_size_ctb;
 			if (pps->num_tile_cols >= VVC_MAX_TILE_COLS) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 			pps->tile_cols_width_ctb[pps->num_tile_cols] = uni_size_ctb;
 			pps->num_tile_cols++;
 		}
 		if (nb_ctb_left>0) {
 			if (pps->num_tile_cols >= VVC_MAX_TILE_COLS) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 			pps->tile_cols_width_ctb[pps->num_tile_cols] = nb_ctb_left;
 			pps->num_tile_cols++;
@@ -11095,32 +11120,28 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		for (i=0; i<num_exp_tile_rows; i++) {
 			u32 nb_ctb_height = 1 + gf_bs_read_ue_log_idx(bs, "tile_row_height_minus1", i);
 			if (nb_ctb_left < nb_ctb_height) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 			nb_ctb_left -= nb_ctb_height;
 			pps->tile_rows_height_ctb[i] = nb_ctb_height;
 			pps->num_tile_rows++;
 			nb_ctb_last = nb_ctb_height;
 			if (pps->num_tile_rows > VVC_MAX_TILE_ROWS) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 		}
 		uni_size_ctb = nb_ctb_last;
 		while (nb_ctb_left >= uni_size_ctb) {
 			nb_ctb_left -= uni_size_ctb;
 			if (pps->num_tile_rows >= VVC_MAX_TILE_ROWS) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 			pps->tile_rows_height_ctb[pps->num_tile_rows] = uni_size_ctb;
 			pps->num_tile_rows++;
 		}
 		if (nb_ctb_left>0) {
 			if (pps->num_tile_rows >= VVC_MAX_TILE_ROWS) {
-				pps->sps_id=0;
-				return -1;
+				VVC_PPS_BROKEN
 			}
 			pps->tile_rows_height_ctb[pps->num_tile_rows] = nb_ctb_left;
 			pps->num_tile_rows++;
@@ -11261,7 +11282,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 	//rbsp_trailing_bits()
 
 	if (gf_bs_is_overflow(bs))
-		return -1;
+		VVC_PPS_BROKEN
 	return pps_id;
 }
 
