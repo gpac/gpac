@@ -7312,7 +7312,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				}
 				num_long_term_pics = gf_bs_read_ue_log(bs, "num_long_term_pics");
 				if (num_long_term_sps+num_long_term_pics>32) return -1;
-				
+
 				for (i = 0; i < num_long_term_sps + num_long_term_pics; i++) {
 					if (i < num_long_term_sps) {
 						if (sps->num_long_term_ref_pic_sps > 1)
@@ -8416,6 +8416,8 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps->bitsSliceSegmentAddress = 0;
 	while (nb_CTUs > (u32)(1 << sps->bitsSliceSegmentAddress)) {
 		sps->bitsSliceSegmentAddress++;
+		if (sps->bitsSliceSegmentAddress==31)
+			return -1;
 	}
 
 	sps->scaling_list_enable_flag = gf_bs_read_int_log(bs, 1, "scaling_list_enable_flag");
