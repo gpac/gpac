@@ -12465,7 +12465,7 @@ void ddts_box_del(GF_Box *s)
 GF_Err ddts_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)s;
-
+	ISOM_DECREASE_SIZE(ptr, 20);
 	ptr->cfg.SamplingFrequency = gf_bs_read_u32(bs);
 	ptr->cfg.MaxBitrate = gf_bs_read_u32(bs);
 	ptr->cfg.AvgBitrate = gf_bs_read_u32(bs);
@@ -12480,6 +12480,7 @@ GF_Err ddts_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->cfg.ChannelLayout = gf_bs_read_u16(bs);
 	ptr->cfg.MultiAssetFlag = gf_bs_read_int(bs, 1);
 	ptr->cfg.LBRDurationMod = gf_bs_read_int(bs, 1);
+	gf_bs_read_int(bs, 6); // ReservedBox flag and reserved bits
 	return GF_OK;
 }
 
@@ -12580,6 +12581,8 @@ GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->cfg.ExpansionBoxDataSize = 0;
 		ptr->cfg.ExpansionBoxPresent = 0;
 	}
+	bytes_read = gf_bs_get_position(bs) - start;
+	ISOM_DECREASE_SIZE(ptr, bytes_read);
 	return GF_OK;
 }
 
