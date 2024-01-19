@@ -3732,7 +3732,13 @@ naldmx_flush:
 				if (!ctx->poc_diff || (ctx->poc_diff > (s32) pdiff ) ) {
 					ctx->poc_diff = pdiff;
 					ctx->poc_probe_done = GF_FALSE;
-				} else if (first_in_au) {
+				}
+				//first slice (new au) with poc greater than last poc, good to go
+				//We must wait for poc increase for IDR with leading pics (cf #2716):
+				//POCs: 23(IDR) 15 7 3 1 0 2
+				//diffs: 23 8 8 7 4 2 1 1
+				//we would use 8 instead of 1
+				else if (first_in_au && (ctx->last_poc<slice_poc)) {
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
 					ctx->poc_probe_done = GF_TRUE;
 				}
