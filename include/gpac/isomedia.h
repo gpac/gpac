@@ -665,15 +665,14 @@ u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_rang
 u32 gf_isom_probe_data(const u8*inBuf, u32 inSize);
 
 /*! opens an isoMedia File.
-If fileName is NULL data will be written in memory ; write with gf_isom_write() ; use gf_isom_get_bs() to get the data ; use gf_isom_delete() to delete the internal data.
-\param fileName name of the file to open, , gmem:// or gfio:// resource. The special name "_gpac_isobmff_redirect" is used to indicate that segment shall be written to a memory buffer passed to callback function set through \ref gf_isom_set_write_callback.
+\param fileName name of the file to open, , gmem:// or gfio:// resource. The special name "_gpac_isobmff_redirect" is used to indicate that segment shall be written to a memory buffer passed to callback function set through \ref gf_isom_set_write_callback. SHALL not be NULL.
 \param OpenMode file opening mode
 \param tmp_dir for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default libgpac temporary file management schemes.
 \return the created ISO file if no error
 */
 GF_ISOFile *gf_isom_open(const char *fileName, GF_ISOOpenMode OpenMode, const char *tmp_dir);
 
-/*! closes the file, write it if new/edited - equivalent to gf_isom_write()+gf_isom_delete()
+/*! closes the file, write it if new/edited or if pending fragment
 \param isom_file the target ISO file
 \return error if any
 */
@@ -1831,12 +1830,6 @@ typedef enum
 	GF_ISOM_STORE_FASTSTART,
 } GF_ISOStorageMode;
 
-/*! writes the file without deleting (see \ref gf_isom_delete)
-\param isom_file the target ISO file
-\return error if any
-*/
-GF_Err gf_isom_write(GF_ISOFile *isom_file);
-
 /*! freezes order of the current box tree in the file.
 By default the library always reorder boxes in the recommended order in the various specifications implemented.
 New created tracks or meta items will not have a frozen order of boxes, but the function can be called several time
@@ -2833,19 +2826,46 @@ GF_Err gf_isom_make_interleave_ex(GF_ISOFile *isom_file, GF_Fraction *fTimeInSec
 */
 void gf_isom_set_progress_callback(GF_ISOFile *isom_file, void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total), void *progress_cbk_udta);
 
+/*! Callback function to receive new data blocks
+\param usr_data user callback, as passed to \ref gf_isom_set_write_callback
+\param block data block to write
+\param block_size data block size in bytes
+\param sample_cbk_data callback data of sample or NULL
+\param sample_cbk_magic callback magic of sample or 0
+\return error if any
+*/
+typedef GF_Err (*gf_isom_on_block_out)(void *usr_data, u8 *block, u32 block_size, void *sample_cbk_data, u32 sample_cbk_magic);
+
+/*! Callback function to receive new data blocks, only used in non-fragmented mode:
+ -  to patch mdat size
+ - to inject moov for GF_ISOM_STORE_FASTSTART mode
+\param usr_data user callback, as passed to \ref gf_isom_set_write_callback
+\param block data block to write
+\param block_size data block size in bytes
+\param block_offset offset in file for block to patch
+\param is_insert if GF_TRUE, indicates the bytes must be inserted at the given offset. Otherwise bytes are to be replaced
+\return error if any
+*/
+typedef GF_Err (*gf_isom_on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert);
+
+/*! Callback function to indicate the last call to \ref gf_isom_on_block_out is about to be produced for a segment, unused for non-fragmented or non-dash cases
+ \param usr_data user callback, as passed to \ref gf_isom_set_write_callback
+*/
+typedef void (*gf_isom_on_last_block_start)(void *usr_data);
+
 /*! sets write callback functions for in-memory file writing
 \param isom_file the target ISO file
-\param on_block_out the block write callback function
-\param on_block_patch the block patch callback function
+\param on_block_out the block write callback function, mandatory
+\param on_block_patch the block patch callback function, may be NULL if only fragmented files or very small files are being produced
 \param on_last_block_start called before writing the last block of a sequence of movie fragments
 \param usr_data opaque user data passed to callback functions
 \param block_size desired block size in bytes
 \return error if any
 */
 GF_Err gf_isom_set_write_callback(GF_ISOFile *isom_file,
-			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic),
-			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert),
- 			void (*on_last_block_start)(void *cbk),
+			gf_isom_on_block_out on_block_out,
+			gf_isom_on_block_patch on_block_patch,
+			gf_isom_on_last_block_start on_last_block_start,
  			void *usr_data,
  			u32 block_size);
 

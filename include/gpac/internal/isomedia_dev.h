@@ -4228,6 +4228,7 @@ struct __tag_isom {
 	u64 fragmented_file_pos;
 	u8 *block_buffer;
 	u32 block_buffer_size;
+	Bool blocks_sent;
 
 	u32 nb_box_init_seg;
 

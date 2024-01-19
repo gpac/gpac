@@ -1043,9 +1043,9 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 }
 
 GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
-			GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size, void *cbk_data, u32 cbk_magic),
-			GF_Err (*on_block_patch)(void *usr_data, u8 *block, u32 block_size, u64 block_offset, Bool is_insert),
-			void (*on_last_block_start)(void *usr_data),
+			gf_isom_on_block_out on_block_out,
+			gf_isom_on_block_patch on_block_patch,
+			gf_isom_on_last_block_start on_last_block_start,
  			void *usr_data,
  			u32 block_size)
 {
@@ -1053,6 +1053,7 @@ GF_Err gf_isom_set_write_callback(GF_ISOFile *mov,
 	if (mov->finalName && !strcmp(mov->finalName, "_gpac_isobmff_redirect")) {}
 	else if (mov->fileName && !strcmp(mov->fileName, "_gpac_isobmff_redirect")) {}
 	else return GF_BAD_PARAM;
+	if (!on_block_out) return GF_BAD_PARAM;
 	mov->on_block_out = on_block_out;
 	mov->on_block_patch = on_block_patch;
 	mov->on_last_block_start = on_last_block_start;
@@ -1410,7 +1411,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 	GF_Err e;
 
 	GF_ISOFile *mov = gf_isom_new_movie();
-	if (!mov) return NULL;
+	if (!mov || !fileName) return NULL;
 	mov->openMode = OpenMode;
 	//then set up our movie
 
@@ -1422,7 +1423,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 		const char *ext;
 		//THIS IS NOT A TEMP FILE, WRITE mode is used for "live capture"
 		//this file will be the final file...
-		mov->fileName = fileName ? gf_strdup(fileName) : NULL;
+		mov->fileName = gf_strdup(fileName);
 		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
 		if (e) goto err_exit;
 
@@ -1435,7 +1436,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 		}
 	} else {
 		//we are in EDIT mode but we are creating the file -> temp file
-		mov->finalName = fileName ? gf_strdup(fileName) : NULL;
+		mov->finalName = gf_strdup(fileName);
 		e = gf_isom_datamap_new("_gpac_isobmff_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
