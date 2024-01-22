@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020-2023
+#          Copyright (c) Telecom Paris 2020-2024
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)
@@ -734,7 +734,12 @@ class FEVT_Play(Structure):
         ("full_file_only", c_ubyte),
         ("forced_dash_segment_switch", c_ubyte),
         ("drop_non_ref", c_ubyte),
-        ("no_byterange_forward", c_ubyte)
+        ("no_byterange_forward", c_ubyte),
+        ("to_pck", c_uint),
+        ("orig_delay", c_uint),
+        ("hint_first_dts", c_ulonglong),
+        ("hint_start_offset", c_ulonglong),
+        ("hint_end_offset", c_ulonglong)
     ]
     ## \endcond
 
@@ -766,7 +771,24 @@ class FEVT_SegmentSize(Structure):
         ("media_range_start", c_ulonglong),
         ("media_range_end", c_ulonglong),
         ("idx_range_start", c_ulonglong),
-        ("idx_range_end", c_ulonglong)
+        ("idx_range_end", c_ulonglong),
+        ("is_init", c_ubyte),
+        ("is_shift", c_ubyte)
+    ]
+    ## \endcond
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_FEVT_FragmentSize
+class FEVT_FragmentSize(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_uint),
+        ("on_pid", _gf_filter_pid),
+        ("is_last", gf_bool),
+        ("offset", c_ulonglong),
+        ("size", c_ulonglong),
+        ("duration", Fraction64),
+        ("independent", gf_bool),
     ]
     ## \endcond
 
@@ -841,6 +863,138 @@ class FEVT_BufferRequirement(Structure):
     ## \endcond
 
 ## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_FEVT_EncodeHints
+class FEVT_EncodeHints(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_uint),
+        ("on_pid", _gf_filter_pid),
+        ("intra_period", Fraction),
+        ("gen_dsi_only", gf_bool)
+    ]
+    ## \endcond
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_FEVT_NTPRef
+class FEVT_NTPRef(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_uint),
+        ("on_pid", _gf_filter_pid),
+        ("ntp", c_ulonglong)
+    ]
+    ## \endcond
+
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_EventMouse
+class EVT_mouse(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_ubyte),
+        ("x", c_int),
+        ("y", c_int),
+        ("wheel", c_float),
+        ("button", c_int),
+        ("keys", c_uint),
+        ("window_id", c_uint)
+    ]
+    ## \endcond
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_EventMultiTouch
+class EVT_mtouch(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_ubyte),
+        ("x", c_float),
+        ("y", c_float),
+        ("rotation", c_float),
+        ("pinch", c_float),
+        ("num_fingers", c_uint),
+        ("window_id", c_uint)
+    ]
+    ## \endcond
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_EventKey
+class EVT_keys(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_ubyte),
+        ("key_code", c_uint),
+        ("hw_code", c_uint),
+        ("flags", c_uint),
+        ("window_id", c_uint)
+    ]
+    ## \endcond
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_EventChar
+class EVT_char(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_ubyte),
+        ("unicode_char", c_uint),
+        ("window_id", c_uint)
+    ]
+    ## \endcond
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_EventSize
+class EVT_size(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_ubyte),
+        ("width", c_uint),
+        ("height", c_uint),
+        ("orientation", c_uint),
+        ("window_id", c_uint)
+    ]
+    ## \endcond
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_EventShow
+class EVT_show(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_ubyte),
+        ("show_type", c_uint),
+        ("window_id", c_uint)
+    ]
+    ## \endcond
+
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as GF_Event
+#only common events from GPAC video ouput are mapped
+class EVT_base(Union):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_ubyte),
+        ("mouse", EVT_mouse),
+        ("mtouch", EVT_mtouch),
+        ("keys", EVT_keys),
+        ("char", EVT_char),
+        ("size", EVT_size),
+        ("show", EVT_show)
+    ]
+    ## \endcond
+
+
+## event value, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_FEVT_Event
+class FEVT_UserEvent(Structure):
+    ## \cond private
+    _fields_ =  [
+        ("type", c_uint),
+        ("on_pid", _gf_filter_pid),
+        ("event", EVT_base)
+    ]
+    ## \endcond
+
+
+## event value, as defined in libgpac and usable as a Python object
 #Fields have the same types, names and semantics as GF_FilterEvent
 class FilterEvent(Union):
     ## constructor
@@ -855,12 +1009,15 @@ class FilterEvent(Union):
         ("play", FEVT_Play),
         ("seek", FEVT_SourceSeek),
         ("attach_scene", FEVT_AttachScene),
-        #("user_event", FEVT_Event,
+        ("user", FEVT_UserEvent),
         ("quality_switch", FEVT_QualitySwitch),
         ("visibility_hint", FEVT_VisibilityHint),
         ("buffer_req", FEVT_BufferRequirement),
         ("seg_size", FEVT_SegmentSize),
-        ("file_del", FEVT_FileDelete)
+        ("frag_size", FEVT_FragmentSize),
+        ("file_del", FEVT_FileDelete),
+        ("encode_hints", FEVT_EncodeHints),
+        ("ntp", FEVT_NTPRef)
     ]
     ## \endcond
 
@@ -3824,7 +3981,7 @@ class FilterPid:
     ##True if end of stream was seen on pid but some packets are still pending - see \ref gf_filter_pid_eos_received
     #\return
     @property
-    def eos_receievd(self):
+    def eos_received(self):
         return _libgpac.gf_filter_pid_eos_received(self._pid)
 
     ##True if PID would block - see \ref gf_filter_pid_would_block
