@@ -1031,9 +1031,11 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			} else if (!pck->info.duration && !(pck->info.flags & GF_PCKF_DUR_SET) ) {
 				if (!unreliable_dts && (pck->info.dts!=GF_FILTER_NO_TS)) {
 					duration = pck->info.dts - pid->last_pck_dts;
-					if (duration<0) duration = -duration;
+					if (duration<GF_INT_MIN) duration=GF_INT_MAX;
+					else if (duration<0) duration = -duration;
 				} else if (pck->info.cts!=GF_FILTER_NO_TS) {
 					duration = pck->info.cts - pid->last_pck_cts;
+					if (duration<GF_INT_MIN) duration=GF_INT_MAX;
 					if (duration<0) duration = -duration;
 				}
 
