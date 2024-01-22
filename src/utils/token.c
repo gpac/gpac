@@ -39,6 +39,8 @@ GF_EXPORT
 s32 gf_token_get(const char *Buffer, s32 Start,  const char *Separator,  char *Container, s32 ContainerSize)
 {
 	s32 i, start, end, Len;
+	Container[0]=0;
+	if (Start<0) return -1;
 
 	Len = (s32) strlen( Buffer );
 	for (i=Start; i<Len; i++ ) {

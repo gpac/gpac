@@ -329,7 +329,7 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 
 	if (e == GF_OK) e = rtpin_setup_sdp(rtp, sdp, stream);
 
-	if (!gf_list_count(rtp->streams))
+	if (!gf_list_count(rtp->streams) && !e)
 		e = GF_NOT_SUPPORTED;
 
 	if (e != GF_OK) {

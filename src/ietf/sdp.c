@@ -500,7 +500,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 		if (LinePos <= 0) break;
 		if (!strcmp(LineBuf, "\r\n") || !strcmp(LineBuf, "\n") || !strcmp(LineBuf, "\r")) continue;
 
-
+		pos=0;
 		switch (LineBuf[0]) {
 		case 'v':
 			/*pos = */gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
@@ -621,11 +621,11 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 			timing->ActiveDuration = SDP_MakeSeconds(comp);
 			while (pos>=0) {
+				if (timing->NbRepeatOffsets == GF_SDP_MAX_TIMEOFFSET) break;
 				pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 				if (pos <= 0) break;
 				timing->OffsetFromStart[timing->NbRepeatOffsets] = SDP_MakeSeconds(comp);
 				timing->NbRepeatOffsets += 1;
-				if (timing->NbRepeatOffsets == GF_SDP_MAX_TIMEOFFSET) break;
 			}
 			break;
 		case 'z':
@@ -701,6 +701,9 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			gf_list_add(sdp->media_desc, media);
 			break;
 		}
+
+		if (pos<0)
+			return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	//finally rewrite the fmt_list for all media, and remove dynamic payloads
 	//from the list
