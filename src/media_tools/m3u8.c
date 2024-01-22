@@ -327,6 +327,9 @@ static char** extract_attributes(const char *name, const char *line, const int n
 	if (!safe_start_equals(name, line))
 		return NULL;
 	ret = gf_calloc((num_attributes + 1), sizeof(char*));
+	if (!ret) return NULL;
+	if (!num_attributes) return ret;
+	
 	curr_attribute = 0;
 	for (i=start; i<=len; i++) {
 		if (line[i] == '\0' || (!quote && line[i] == ',')  || (line[i] == quote)) {
@@ -628,7 +631,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		M3U8_COMPATIBILITY_VERSION(1);
 		return ret;
 	}
-	ret = extract_attributes("#EXT-X-DISCONTINUITY-SEQUENCE", line, 0);
+	ret = extract_attributes("#EXT-X-DISCONTINUITY-SEQUENCE", line, 1);
 	if (ret) {
 		if (ret[0]) {
 			int_value = (s32)strtol(ret[0], &end_ptr, 10);
