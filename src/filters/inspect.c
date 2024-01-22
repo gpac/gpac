@@ -758,6 +758,10 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 		} else if (sei_type == 4) {
 			dump_t35(dump, bs, sei_size);
 		}
+		else if (avc && (sei_type==6)) {
+			u32 frame_cnt = gf_bs_read_ue(bs);
+			inspect_printf(dump, " frame_count=\"%u\"", frame_cnt);
+		}
 		inspect_printf(dump, "/>\n");
 
 		//don't trust sei parsers, force jumping to next - use byte-per-byte read for EPB removal
@@ -1015,7 +1019,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				u32 mode = s[0];
 				remain -= 1;
 				s += 1;
-				if (mode) {
+				if (!remain) {
+					inspect_printf(dump, "error=\"invalid inband data extractor size, no bytes remaining\"/>\n");
+					return;
+				} else if (mode) {
 					u32 len = s[0];
 					if (len+1>remain) {
 						inspect_printf(dump, "error=\"invalid inband data extractor size: %d vs %d remaining\"/>\n", len, remain);
