@@ -10207,7 +10207,7 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		GF_SAFEALLOC(ptr, GF_EssentialSamplegroupEntry);
 		if (!ptr) return NULL;
 		ptr->nb_types = gf_bs_read_u32(bs);
-		if (ptr->nb_types * 4 + 4 > entry_size) {
+		if ((u64)ptr->nb_types * 4 + 4 > entry_size) {
 			gf_free(ptr);
 			return NULL;
 		}
