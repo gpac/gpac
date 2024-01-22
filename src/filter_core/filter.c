@@ -4362,7 +4362,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 			ext_len = (u32) strlen(tmp_ext);
 		} else {
 			char *ext=NULL;
-			char *scheme = strstr(url, "://");
+			char *scheme = strncmp(url, "gfio://", 7) ? strstr(url, "://") : NULL;
 			if (scheme) {
 				scheme = strchr(scheme+3, '/');
 				if (scheme)
