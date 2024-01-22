@@ -72,6 +72,7 @@ GF_Err RTSP_UnpackURL(char *sURL, char Server[1024], u16 *Port, char Service[102
 	//extract the schema
 	i = 0;
 	while (i<=strlen(sURL)) {
+		if (i==10) return GF_BAD_PARAM;
 		if (sURL[i] == ':') goto found;
 		schema[i] = sURL[i];
 		i += 1;
