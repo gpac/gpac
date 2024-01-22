@@ -862,8 +862,10 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	probe_data = res;
 
 	//strip all spaces and \r\n
-	while (probe_data[0] && strchr("\n\r\t ", (char) probe_data[0]))
+	while (probe_size && probe_data[0] && strchr("\n\r\t ", (char) probe_data[0])) {
 		probe_data ++;
+		probe_size--;
+	}
 
 	//for XML, strip doctype, <?xml and comments
 	while (1) {
