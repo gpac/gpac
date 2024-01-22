@@ -7765,8 +7765,8 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 					dim_bit_offset[i] += dimension_id_len[j];
 			}
 			if (num_bits>=6) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Too many its defined for dimension IDs (%d vs 5 max)\n", num_bits));
-				return -1;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Too many bits defined for dimension IDs (%d vs 5 max)\n", num_bits));
+				return GF_FALSE;
 			}
 			dimension_id_len[num_scalability_types - 1] = 6 - num_bits; //1 + (5 - dim_bit_offset[num_scalability_types - 1]);
 			dim_bit_offset[num_scalability_types - 1] = 6;
@@ -7786,7 +7786,7 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		if (vps->layer_id_in_nuh[i] >= MAX_LHVC_LAYERS) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] %d layers in VPS ext but only %d supported in GPAC\n", 1+vps->layer_id_in_nuh[i], MAX_LHVC_LAYERS));
 			vps->layer_id_in_nuh[i] = 0;
-			return -1;
+			return GF_FALSE;
 		}
 		vps->layer_id_in_vps[vps->layer_id_in_nuh[i]] = i;
 
@@ -7798,9 +7798,15 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	}
 
 	if (splitting_flag) {
+		if (num_scalability_types==16)
+			return GF_FALSE;
 		for (i = 0; i < vps->max_layers; i++)
-			for (j = 0; j < num_scalability_types; j++)
-				vps->dimension_id[i][j] = ((vps->layer_id_in_nuh[i] & ((1 << dim_bit_offset[j + 1]) - 1)) >> dim_bit_offset[j]);
+			for (j = 0; j < num_scalability_types; j++) {
+				if (dim_bit_offset[j + 1] <= 31)
+					vps->dimension_id[i][j] = ((vps->layer_id_in_nuh[i] & ((1 << dim_bit_offset[j + 1]) - 1)) >> dim_bit_offset[j]);
+				else
+					return GF_FALSE;
+			}
 	}
 	else {
 		for (j = 0; j < num_scalability_types; j++)
