@@ -737,8 +737,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
-
-			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, MIN_HDR_STORE - ctx->bytes_in_header);
+			//the two zones may overlap
+			memmove(ctx->hdr_store + ctx->bytes_in_header, start, MIN_HDR_STORE - ctx->bytes_in_header);
 			current = mpgviddmx_next_start_code(ctx->hdr_store, MIN_HDR_STORE);
 
 			//no start code in stored buffer
