@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2021-2023
+ *			Copyright (c) Telecom ParisTech 2021-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NodeJS module
@@ -4136,6 +4136,11 @@ static u32 FEVT_PROP_NTP_REF = 62;
 static u32 FEVT_PROP_NAME = 63;
 static u32 FEVT_PROP_UI_NAME = 64;
 static u32 FEVT_PROP_PID = 65;
+static u32 FEVT_PROP_TO_PCK = 66;
+static u32 FEVT_PROP_ORIG_DELAY = 67;
+static u32 FEVT_PROP_HINT_FIRST_DTS = 68;
+static u32 FEVT_PROP_HINT_START_OFFSET = 69;
+static u32 FEVT_PROP_HINT_END_OFFSET = 70;
 
 
 #define FILTEREVENT\
@@ -4161,6 +4166,11 @@ static u32 FEVT_PROP_PID = 65;
 	EVT_BOOL(FEVT_PROP_FORCED_DASH_SWITCH, evt->play.forced_dash_segment_switch);\
 	EVT_BOOL(FEVT_PROP_DROP_NON_REF, evt->play.drop_non_ref);\
 	EVT_BOOL(FEVT_PROP_NO_BYTERANGE, evt->play.no_byterange_forward);\
+	EVT_U32(FEVT_PROP_TO_PCK, evt->play.to_pck);\
+	EVT_U32(FEVT_PROP_ORIG_DELAY, evt->play.orig_delay);\
+	EVT_U64(FEVT_PROP_HINT_FIRST_DTS, evt->play.hint_first_dts);\
+	EVT_U64(FEVT_PROP_HINT_START_OFFSET, evt->play.hint_start_offset);\
+	EVT_U64(FEVT_PROP_HINT_END_OFFSET, evt->play.hint_end_offset);\
 	EVT_U64(FEVT_PROP_START_OFFSET, evt->seek.start_offset);\
 	EVT_U64(FEVT_PROP_END_OFFSET, evt->seek.end_offset);\
 	EVT_U32(FEVT_PROP_HINT_BLOCK_SIZE, evt->seek.hint_block_size);\
@@ -4421,6 +4431,11 @@ napi_value wrap_filterevent(napi_env env, GF_FilterEvent *evt, napi_value *for_v
 			{ "forced_dash_segment_switch", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_FORCED_DASH_SWITCH},
 			{ "drop_non_ref", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_DROP_NON_REF},
 			{ "no_byterange_forward", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_NO_BYTERANGE},
+			{ "to_pck", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_TO_PCK},
+			{ "orig_delay", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_ORIG_DELAY},
+			{ "hint_first_dts", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_HINT_FIRST_DTS},
+			{ "hint_start_offset", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_HINT_START_OFFSET},
+			{ "hint_end_offset", NULL, NULL, fevt_getter, evt_set, NULL, napi_enumerable, &FEVT_PROP_HINT_END_OFFSET},
 		};
 		NAPI_CALL( napi_define_properties(env, obj, sizeof(fevt_properties)/sizeof(napi_property_descriptor), fevt_properties) );
 	}
