@@ -3102,8 +3102,11 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 		}
 
 		/*set TTL*/
-		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &TTL, sizeof(TTL));
-		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		if (TTL != 0) {
+			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &TTL, sizeof(TTL));
+			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		}
+
 		/*enable loopback*/
 		optval = 1;
 		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &optval, sizeof(optval));
