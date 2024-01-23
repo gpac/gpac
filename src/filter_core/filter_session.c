@@ -3753,7 +3753,7 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 			if (print_fn)
 				print_fn(stderr, 1, "%s: no %s\n", js_name, type);
 			else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: no %s\n", type));
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: no %s\n", js_name, type));
 			}
 			continue;
 		}
