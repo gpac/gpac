@@ -608,7 +608,7 @@ Performs multicast setup (BIND and JOIN) for the socket object
 \param local_interface_ip the local interface IP address if desired. If NULL, the default interface will be used.
 \return error if any
  */
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip);
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, const char *local_interface_ip);
 
 /*!
 \brief source-specific multicast setup
@@ -626,7 +626,7 @@ Performs multicast setup (BIND and JOIN) for the socket object using allowed and
 \param nb_src_ip_exc number of sources to exclude
 \return error if any
  */
-GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc);
+GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, const char *local_interface_ip, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc);
 
 /*!
  \brief multicast address test
