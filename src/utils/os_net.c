@@ -2828,7 +2828,7 @@ Bool gf_net_enum_interfaces(gf_net_ifce_enum do_enum, void *enum_cbk)
 }
 
 GF_EXPORT
-GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *ifce_ip_or_name,
+GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, const char *ifce_ip_or_name,
 	const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc)
 {
 	s32 ret;
@@ -3227,7 +3227,7 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 }
 
 GF_EXPORT
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, const char *local_interface_ip)
 {
 	return gf_sk_setup_multicast_ex(sock, multi_IPAdd, MultiPortNumber, TTL, NoBind, local_interface_ip, NULL, 0, NULL, 0);
 
