@@ -1870,7 +1870,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 			sidx->earliest_presentation_time = prev_earliest_cts;
 
 			/*if more subsegments requested than fragments available, make a single sidx*/
-			if ((s32) count <= subsegments_per_sidx)
+			if ((s32) count < subsegments_per_sidx)
 				subsegments_per_sidx = 0;
 
 			if (daisy_chain_sidx && (subsegments_per_sidx<2))
