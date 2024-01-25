@@ -1756,8 +1756,6 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	return jsfs_new_filter_obj(ctx, new_f);
 }
 
-Bool gf_fs_fire_event(GF_FilterSession *fs, GF_Filter *f, GF_FilterEvent *evt, Bool upstream);
-
 static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	Bool upstream = GF_FALSE;

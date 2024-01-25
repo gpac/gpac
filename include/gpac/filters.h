@@ -1592,7 +1592,7 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 \ingroup filters_grp
 \brief Filter Events
 
-PIDs may receive commands and may emit messages using this system.
+PIDs may receive commands and may emit messages using an event system.
 
 Events may flow downwards (towards the source), in which case they are commands, or upwards (towards the sink), in which case they are informative event.
 
@@ -1610,6 +1610,19 @@ GF_FEVT_PLAY and GF_FEVT_SET_SPEED events will trigger larger (abs(speed)>1) or 
 
 GF_FEVT_STOP and GF_FEVT_SOURCE_SEEK events are filtered to reset the PID buffers.
 
+The following events may be used globally on a filter, e.g. without a  PID associated to the event:
+
+GF_FEVT_FILE_DELETE: used for source and sinks, indicata a file deletion
+
+GF_FEVT_SOURCE_SWITCH: used for source filters only, indicate URL switching
+
+GF_FEVT_QUALITY_SWITCH: globally change quality of of the filters for all pids (typically used in scalable contexts)
+
+GF_FEVT_USER:
+
+The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data wgile paused.
+The GF_FEVT_PAUSE and GF_FEVT_RESUME events are only used to trigger pause and resume on interactive channels such as an RTSP session, i.e. to tell the remote peer to stop and resume.
+
 @{
  */
 
@@ -1626,7 +1639,7 @@ typedef enum
 	GF_FEVT_PAUSE,
 	/*! PID resume, usually triggered by sink - see \ref GF_FilterPidPlaybackMode*/
 	GF_FEVT_RESUME,
-	/*! PID source seek, allows seeking in bytes the source*/
+	/*! PID byte-seek of source, allows seeking in bytes the source - typically used by demuxer to convert time ranges to byte ranges*/
 	GF_FEVT_SOURCE_SEEK,
 	/*! PID source switch, allows a source filter to switch its source URL for the same protocol*/
 	GF_FEVT_SOURCE_SWITCH,
@@ -1645,7 +1658,7 @@ typedef enum
 	/*! buffer requirement event. This event is NOT sent to filters, it is internaly processed by the filter session. Filters may however send this
 	event to indicate their buffereing preference (real-time sinks mostly)*/
 	GF_FEVT_BUFFER_REQ,
-	/*! filter session capability change, sent whenever global capabilities (max width, max heoght, ... ) are changed*/
+	/*! filter session capability change, sent whenever global capabilities (max width, max height, ... ) are changed*/
 	GF_FEVT_CAPS_CHANGE,
 	/*! inidicates the PID could not be connected - the PID passed is an output PID of the filter, no specific event structure is associated*/
 	GF_FEVT_CONNECT_FAIL,
