@@ -1720,7 +1720,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//packages
 
 			gf_route_dmx_process_service_signaling(routedmx, s, gather_object, cc, a_S ? v : 0, a_M ? v : 0);
-			//we don't release the LCT object, so that we can disard future versions
+			//we don't release the LCT object, so that we can discard future versions
 		} else {
 			gf_route_dmx_process_object(routedmx, s, gather_object);
 		}
