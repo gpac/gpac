@@ -2667,6 +2667,11 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	} else if (evt->base.type==GF_FEVT_STOP) {
 		st->is_playing = GF_FALSE;
+		st->cts_us_at_init = 0;
+		st->sys_clock_at_init = 0;
+	} else if (evt->base.type==GF_FEVT_RESUME) {
+		st->cts_us_at_init = 0;
+		st->sys_clock_at_init = 0;
 	} else if (evt->base.type==GF_FEVT_SET_SPEED) {
 		if (ctx->speed==0)
 			ctx->rt_speed = evt->play.speed;
@@ -2685,6 +2690,21 @@ static void reframer_finalize(GF_Filter *filter)
 		reframer_reset_stream(ctx, st, GF_TRUE);
 	}
 	gf_list_del(ctx->streams);
+}
+
+static GF_Err reframer_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
+{
+	//for real-time control, reset clock
+	if (!strcmp(arg_name, "rt") || !strcmp(arg_name, "speed")) {
+		GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
+		u32 i, count = gf_list_count(ctx->streams);
+		for (i=0;i<count;i++) {
+			RTStream *st = gf_list_get(ctx->streams, i);
+			st->cts_us_at_init = 0;
+			st->sys_clock_at_init = 0;
+		}
+	}
+	return GF_OK;
 }
 
 static const GF_FilterCapability ReframerCaps[] =
@@ -2709,16 +2729,16 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(rt), "real-time regulation mode of input\n"
 	"- off: disables real-time regulation\n"
 	"- on: enables real-time regulation, one clock per PID\n"
-	"- sync: enables real-time regulation one clock for all PIDs", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(saps), "list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(speed), "speed for real-time regulation mode, a value of 0 uses speed from play commands", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	"- sync: enables real-time regulation one clock for all PIDs", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_NORMAL|GF_FS_ARG_UPDATE},
+	{ OFFS(saps), "list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_NORMAL|GF_FS_ARG_UPDATE},
+	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL|GF_FS_ARG_UPDATE},
+	{ OFFS(speed), "speed for real-time regulation mode, a value of 0 uses speed from play commands", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(raw), "force input AV streams to be in raw format\n"
 	"- no: do not force decoding of inputs\n"
 	"- av: force decoding of audio and video inputs\n"
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(frames), "drop all except listed frames (first being 1). A negative value `-V` keeps only first frame every `V` frames", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(frames), "drop all except listed frames (first being 1). A negative value `-V` keeps only first frame every `V` frames", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(xs), "extraction start time(s)", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xe), "extraction end time(s). If less values than start times, the last time interval extracted is an open range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xround), "adjust start time of extraction range to I-frame\n"
@@ -2740,11 +2760,11 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- any: use UTC of media, or UTC of local host if not found in media after probing time\n"
 	"- media: use UTC of media (abort if none found)", GF_PROP_UINT, "any", "local|any|media", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(utc_probe), "timeout in milliseconds to try to acquire UTC reference from media", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(copy), "try copying frame interface into packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(copy), "try copying frame interface into packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(cues), "cue filtering mode\n"
 	"- no: do no filter frames based on cue info\n"
 	"- segs: only forward frames marked as segment start\n"
-	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT},
+	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -2863,6 +2883,7 @@ GF_FilterRegister ReframerRegister = {
 	.configure_pid = reframer_configure_pid,
 	.process = reframer_process,
 	.process_event = reframer_process_event,
+	.update_arg = reframer_update_arg
 };
 
 
