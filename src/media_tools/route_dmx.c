@@ -1719,8 +1719,13 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//we don't assign version here, we use mbms envelope for that since the bundle may have several
 			//packages
 
-			gf_route_dmx_process_service_signaling(routedmx, s, gather_object, cc, a_S ? v : 0, a_M ? v : 0);
+			e = gf_route_dmx_process_service_signaling(routedmx, s, gather_object, cc, a_S ? v : 0, a_M ? v : 0);
 			//we don't release the LCT object, so that we can discard future versions
+			if(e) {
+				//ignore this object in order to be able to accept future versions
+				s->last_dispatched_toi_on_tsi_zero=0;
+				gf_list_pop_back(s->objects); 
+			}
 		} else {
 			gf_route_dmx_process_object(routedmx, s, gather_object);
 		}
