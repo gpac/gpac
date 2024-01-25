@@ -942,7 +942,7 @@ napi_value filterpck_set_prop(napi_env env, napi_callback_info info)
 	if (p4cc) {
 		e = gf_filter_pck_set_property(pck, p4cc, is_null ? NULL : &p);
 	} else {
-		e = gf_filter_pck_set_property_str(pck, pname, is_null ? NULL : &p);
+		e = gf_filter_pck_set_property_dyn(pck, pname, is_null ? NULL : &p);
 	}
 	if (e) {
 		napi_throw_error(env, gf_error_to_string(e), "Cannot set packet property");
@@ -1232,9 +1232,9 @@ napi_value filterpid_set_prop_internal(napi_env env, napi_callback_info info, Bo
 		}
 	} else {
 		if (is_info) {
-			e = gf_filter_pid_set_info_str(pid, pname, is_null ? NULL : &p);
+			e = gf_filter_pid_set_info_dyn(pid, pname, is_null ? NULL : &p);
 		} else {
-			e = gf_filter_pid_set_property_str(pid, pname, is_null ? NULL : &p);
+			e = gf_filter_pid_set_property_dyn(pid, pname, is_null ? NULL : &p);
 		}
 	}
 	if (e) {

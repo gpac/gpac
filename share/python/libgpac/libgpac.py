@@ -3377,9 +3377,9 @@ _libgpac.gf_filter_pid_copy_properties.argtypes = [_gf_filter_pid, _gf_filter_pi
 _libgpac.gf_filter_pck_forward.argtypes = [_gf_filter_packet, _gf_filter_pid]
 
 _libgpac.gf_filter_pid_set_property.argtypes = [_gf_filter_pid, c_uint, POINTER(PropertyValue)]
-_libgpac.gf_filter_pid_set_property_str.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
+_libgpac.gf_filter_pid_set_property_dyn.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
 _libgpac.gf_filter_pid_set_info.argtypes = [_gf_filter_pid, c_uint, POINTER(PropertyValue)]
-_libgpac.gf_filter_pid_set_info_str.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
+_libgpac.gf_filter_pid_set_info_dyn.argtypes = [_gf_filter_pid, c_char_p, POINTER(PropertyValue)]
 _libgpac.gf_filter_pid_clear_eos.argtypes = [_gf_filter_pid, gf_bool]
 _libgpac.gf_filter_pid_check_caps.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_check_caps.restype = gf_bool
@@ -3672,14 +3672,14 @@ class FilterPid:
             if prop_4cc:
                 _libgpac.gf_filter_pid_set_property(self._pid, prop_4cc, None)
             else:
-                _libgpac.gf_filter_pid_set_property_str(self._pid, prop_name, None)
+                _libgpac.gf_filter_pid_set_property_dyn(self._pid, prop_name, None)
             return
 
         prop_val = _make_prop(prop_4cc, pcode, prop, custom_type)
         if prop_4cc:
             _libgpac.gf_filter_pid_set_property(self._pid, prop_4cc, byref(prop_val))
         else:
-            _libgpac.gf_filter_pid_set_property_str(self._pid, prop_name, byref(prop_val))
+            _libgpac.gf_filter_pid_set_property_dyn(self._pid, prop_name, byref(prop_val))
 
     ##set a info property the current pid - see \ref gf_filter_pid_set_info and \ref gf_filter_pid_set_info_str
     #\param pcode property type
@@ -3702,14 +3702,14 @@ class FilterPid:
             if prop_4cc:
                 _libgpac.gf_filter_pid_set_info(self._pid, prop_4cc, None)
             else:
-                _libgpac.gf_filter_pid_set_info_str(self._pid, prop_name, None)
+                _libgpac.gf_filter_pid_set_info_dyn(self._pid, prop_name, None)
             return
 
         prop_val = _make_prop(prop_4cc, pcode, prop, custom_type)
         if prop_4cc:
             _libgpac.gf_filter_pid_set_info(self._pid, prop_4cc, byref(prop_val))
         else:
-            _libgpac.gf_filter_pid_set_info_str(self._pid, prop_name, byref(prop_val))
+            _libgpac.gf_filter_pid_set_info_dyn(self._pid, prop_name, byref(prop_val))
 
     ##clears EOS on the current PID - see \ref gf_filter_pid_clear_eos
     #\param all_pids if True, clears eos on all input pids
@@ -4189,7 +4189,7 @@ _libgpac.gf_filter_pck_send.argtypes = [_gf_filter_packet]
 _libgpac.gf_filter_pck_merge_properties.argtypes = [_gf_filter_packet, _gf_filter_packet]
 
 _libgpac.gf_filter_pck_set_property.argtypes = [_gf_filter_packet, c_uint, POINTER(PropertyValue)]
-_libgpac.gf_filter_pck_set_property_str.argtypes = [_gf_filter_packet, c_char_p, POINTER(PropertyValue)]
+_libgpac.gf_filter_pck_set_property_dyn.argtypes = [_gf_filter_packet, c_char_p, POINTER(PropertyValue)]
 _libgpac.gf_filter_pck_truncate.argtypes = [_gf_filter_packet, c_uint]
 
 _libgpac.gf_filter_pck_dangling_copy.argtypes = [_gf_filter_packet, _gf_filter_packet]
@@ -4417,14 +4417,14 @@ class FilterPacket:
             if prop_4cc:
                 _libgpac.gf_filter_pck_set_property(self._pck, prop_4cc, None)
             else:
-                _libgpac.gf_filter_pck_set_property_str(self._pck, prop_name, None)
+                _libgpac.gf_filter_pck_set_property_dyn(self._pck, prop_name, None)
             return
 
         prop_val = _make_prop(prop_4cc, pcode, prop, custom_type)
         if prop_4cc:
             _libgpac.gf_filter_pck_set_property(self._pck, prop_4cc, byref(prop_val))
         else:
-            _libgpac.gf_filter_pck_set_property_str(self._pck, prop_name, byref(prop_val))
+            _libgpac.gf_filter_pck_set_property_dyn(self._pck, prop_name, byref(prop_val))
 
     ##truncates an output packet to the given size - see \ref gf_filter_pck_truncate
     #\param size new size of packet
