@@ -7812,17 +7812,38 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 		}
 	}
 
-	an_evt = init_evt(evt);
-
-	if (evt->base.on_pid) {
-		safe_int_inc(&evt->base.on_pid->filter->num_events_queued);
+	//check if we need to force the event on each input pid or just use a global filter event
+	u32 i, nb_pids = 1;
+	Bool all_pids=GF_FALSE;
+	if (!evt->base.on_pid && !upstream) {
+		switch (evt->base.type) {
+		case GF_FEVT_FILE_DELETE:
+		case GF_FEVT_SOURCE_SWITCH:
+		case GF_FEVT_QUALITY_SWITCH:
+		case GF_FEVT_USER:
+			break;
+		default:
+			if (filter->num_input_pids) {
+				nb_pids = filter->num_input_pids;
+				all_pids = GF_TRUE;
+			}
+			break;
+		}
 	}
-	if (upstream)
-		gf_fs_post_task_class(filter->session, gf_filter_pid_send_event_upstream, filter, evt->base.on_pid, "upstream_event", an_evt, TASK_TYPE_EVENT);
-	else
-		gf_fs_post_task_class(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", an_evt, TASK_TYPE_EVENT);
+	for (i=0;i<nb_pids; i++) {
+		an_evt = init_evt(evt);
+		if (all_pids) {
+			an_evt->base.on_pid = gf_list_get(upstream ? filter->output_pids : filter->input_pids, i);
+		}
+		if (an_evt->base.on_pid) {
+			safe_int_inc(&an_evt->base.on_pid->filter->num_events_queued);
+		}
+		if (upstream)
+			gf_fs_post_task_class(filter->session, gf_filter_pid_send_event_upstream, filter, an_evt->base.on_pid, "upstream_event", an_evt, TASK_TYPE_EVENT);
+		else
+			gf_fs_post_task_class(filter->session, gf_filter_pid_send_event_downstream, filter, an_evt->base.on_pid, "downstream_event", an_evt, TASK_TYPE_EVENT);
+	}
 }
-
 
 GF_EXPORT
 void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
