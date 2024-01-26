@@ -84,6 +84,10 @@ unit_tests:
 	@echo "Executing unit tests"
 	LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
 
+unit_tests_clean:
+	@echo "Cleaning unit tests artifacts"
+	@rm -f bin/gcc/unittests.c bin/gcc/unittests
+
 test_suite:
 	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -precommit -p=0
 

@@ -1,6 +1,45 @@
 #pragma once
 
 #define unittest(suffix) int test_##suffix(void)
+extern int checks_passed;
+extern int checks_failed;
+// provide some flovoured asserts 
+
+#define verbose_assert(expr)                                        \
+    do {                                                             \
+        if (expr) {                                                  \
+            printf("Assertion passed: %s\nValue: %d\nFile: %s\nLine: %d\nFunction: %s\n", #expr, (expr), __FILE__, __LINE__, __ASSERT_FUNCTION); \
+            checks_passed++;                                         \
+        } else {                                                     \
+            printf("Assertion failed: %s\nValue: %d\nFile: %s\nLine: %d\nFunction: %s\n", #expr, (expr), __FILE__, __LINE__, __ASSERT_FUNCTION); \
+            checks_failed++;                                         \
+            __ASSERT_VOID_CAST (0);                                  \
+        }                                                            \
+    } while (0)
+
+#define custom_message_assert(expr, msg)                            \
+    do {                                                             \
+        if (expr) {                                                  \
+            checks_passed++;                                         \
+        } else {                                                     \
+            checks_failed++;                                         \
+        }                                                            \
+        ((expr)                                                      \
+         ? __ASSERT_VOID_CAST (0)                                    \
+         : printf("Assertion failed: %s\nMessage: %s\nFile: %s\nLine: %d\nFunction: %s\n", #expr, msg, __FILE__, __LINE__, __ASSERT_FUNCTION)); \
+    } while (0)
+
+#define custom_action_assert(expr, action)                          \
+    do {                                                             \
+        if (expr) {                                                  \
+            checks_passed++;                                         \
+        } else {                                                     \
+            checks_failed++;                                         \
+        }                                                            \
+        ((expr)                                                      \
+         ? __ASSERT_VOID_CAST (0)                                    \
+         : (action, __ASSERT_VOID_CAST (0)));                        \
+    } while (0)
 
 #if 0 // TODO
 extern int checks_passed;
