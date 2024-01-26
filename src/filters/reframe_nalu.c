@@ -180,6 +180,7 @@ typedef struct
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	//set to TRUE once 3 frames with same min poc diff are found, enabling dispatch of the frames
 	Bool poc_probe_done;
+	Bool min_poc_probe_done;
 	//pointer to the first packet of the current frame (the one holding timing info)
 	//this packet is in the packet queue
 	GF_FilterPacket *first_pck_in_au;
@@ -720,7 +721,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 {
 	//TODO: we are dispatching frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
-	if (flush_ref && ctx->pck_queue && ctx->poc_diff) {
+	if (flush_ref && ctx->pck_queue && ctx->poc_diff && ctx->min_poc_probe_done) {
 		u32 dts_inc=0;
 		s32 last_poc = 0;
 		Bool patch_missing_frame = GF_FALSE;
@@ -800,9 +801,8 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 					last_poc = poc;
 					dts += dts_inc;
 				}
-				//poc is stored as diff since last IDR which has min_poc
-				cts = ( (ctx->min_poc + (s32) poc) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
-
+				//poc is stored as diff to adjusted POC (poc_shift) of last IDR
+				cts = ( ((s32) poc ) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
@@ -2348,6 +2348,8 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 		} else {
 			//we don't set the CTS, it will be set once we detect frame end
 			gf_filter_pck_set_dts(dst_pck, ctx->dts);
+			//reset CTS since if we merged props before
+			if (ctx->src_pck) gf_filter_pck_set_cts(dst_pck, GF_FILTER_NO_TS);
 		}
 		//we use the carousel flag temporarily to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(dst_pck, ctx->notime ? 1 : 0);
@@ -3086,6 +3088,7 @@ restart:
 			//single-frame stream
 			if (!ctx->poc_diff) ctx->poc_diff = 1;
 			ctx->strict_poc = STRICT_POC_OFF;
+			ctx->min_poc_probe_done = GF_TRUE;
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 			if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 			ctx->src_pck = NULL;
@@ -3691,21 +3694,24 @@ naldmx_flush:
 			}
 
 			if (slice_poc < ctx->poc_shift) {
-				u32 i, count = gf_list_count(ctx->pck_queue);
-				for (i=0; i<count; i++) {
-					u64 dts, cts;
-					GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
-					gf_assert(q_pck);
-					dts = gf_filter_pck_get_dts(q_pck);
-					if (dts == GF_FILTER_NO_TS) continue;
-					cts = gf_filter_pck_get_cts(q_pck);
-					//cts may be unset at this point (nal in middle of AU)
-					if (cts == GF_FILTER_NO_TS) continue;
-					cts += ctx->poc_shift;
-					cts -= slice_poc;
-					gf_filter_pck_set_cts(q_pck, cts);
+				//slice_poc less than poc shift, update all pending packets if not an IDR
+				//if IDR just update poc_shift
+				if ((au_sap_type != GF_FILTER_SAP_1) && (au_sap_type != GF_FILTER_SAP_2)) {
+					u32 i, count = gf_list_count(ctx->pck_queue);
+					for (i=0; i<count; i++) {
+						u64 dts, cts;
+						GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
+						gf_assert(q_pck);
+						dts = gf_filter_pck_get_dts(q_pck);
+						if (dts == GF_FILTER_NO_TS) continue;
+						cts = gf_filter_pck_get_cts(q_pck);
+						//cts may be unset at this point (nal in middle of AU)
+						if (cts == GF_FILTER_NO_TS) continue;
+						cts += ctx->poc_shift;
+						cts -= slice_poc;
+						gf_filter_pck_set_cts(q_pck, cts);
+					}
 				}
-
 				ctx->poc_shift = slice_poc;
 			}
 
@@ -3717,9 +3723,9 @@ naldmx_flush:
 				if (pdiff<0) pdiff=-pdiff;
 				if (pdiff>GF_INT_MAX) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] POC diff overflow %d vs last %d, reseting poc counter - timing will likely be corrupted\n", ctx->log_name, slice_poc, ctx->last_poc));
-					pdiff=0;
-					slice_poc=ctx->last_poc;
-					ctx->poc_shift=slice_poc;
+					pdiff = 0;
+					slice_poc = ctx->last_poc;
+					ctx->poc_shift = slice_poc;
 				}
 
 				if ((slice_poc < 0) && !ctx->last_poc)
@@ -3727,6 +3733,15 @@ naldmx_flush:
 				else if ((slice_poc < 0) && (-slice_poc < ctx->poc_diff)) {
 					pdiff = -slice_poc;
 					ctx->poc_diff = 0;
+				}
+
+				//estimate min poc in GOP to cover cases where some GOPs use a min_poc > than other GOPs (cf #2716)
+				if (!ctx->min_poc_probe_done) {
+					if (slice_poc < ctx->min_poc) {
+						ctx->min_poc = slice_poc;
+					} else {
+						ctx->min_poc_probe_done = GF_TRUE;
+					}
 				}
 
 				if (!ctx->poc_diff || (ctx->poc_diff > (s32) pdiff ) ) {
@@ -3738,7 +3753,7 @@ naldmx_flush:
 				//POCs: 23(IDR) 15 7 3 1 0 2
 				//diffs: 23 8 8 7 4 2 1 1
 				//we would use 8 instead of 1
-				else if (first_in_au && (ctx->last_poc<slice_poc)) {
+				else if (!ctx->poc_probe_done && first_in_au && (ctx->last_poc<slice_poc)) {
 					//second frame with the same poc diff, we should be able to properly recompute CTSs
 					ctx->poc_probe_done = GF_TRUE;
 				}
@@ -3768,11 +3783,15 @@ naldmx_flush:
 						if (!ctx->au_sap2_poc_reset)
 							ctx->last_poc = 0;
 
+						//use IDR POC as new poc_shift
+						ctx->poc_shift = ctx->last_poc;
+						//use IDR POC as min_poc, and restart min_poc_probing
+						ctx->min_poc = ctx->last_poc;
+						ctx->min_poc_probe_done = GF_FALSE;
 						ctx->max_last_poc = ctx->last_poc;
 						ctx->max_last_b_poc = ctx->last_poc;
-						ctx->poc_shift = 0;
 						//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
-						ctx->poc_probe_done = 0;
+						ctx->poc_probe_done = GF_FALSE;
 					}
 					ctx->last_frame_is_idr = GF_TRUE;
 					if (temp_poc_diff)
