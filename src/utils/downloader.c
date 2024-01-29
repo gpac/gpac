@@ -280,7 +280,9 @@ struct __gf_download_session
 
 	u8 *h2_upgrade_settings;
 	u32 h2_upgrade_settings_len;
-	u8 h2_headers_seen, h2_ready_to_send, h2_is_eos, h2_data_paused, h2_upgrade_state, h2_data_done, h2_switch_sess;
+	u8 h2_headers_seen, h2_ready_to_send, h2_is_eos, h2_data_paused, h2_data_done, h2_switch_sess;
+	//0: upgrade not started; 1: upgrade headers send; 2: upgrade done; 3: upgrade retry without SSL APN; 4: H2 disabled for session
+	u8 h2_upgrade_state;
 #endif
 };
 static GF_Err dm_sess_write(GF_DownloadSession *sess, const u8 *buffer, u32 size);
@@ -1659,7 +1661,8 @@ static GF_Err gf_ssl_write(GF_DownloadSession *sess, const u8 *buffer, u32 size,
 				if (err==SSL_ERROR_SSL) {
 					char msg[1024];
 					SSL_load_error_strings();
-					ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+					ERR_error_string_n(ERR_get_error(), msg, 1023);
+					msg[1023]=0;
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", msg));
 				}
 			}
@@ -3136,12 +3139,11 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		if (size < 0) {
 			int err = SSL_get_error(sess->ssl, size);
 			if (err==SSL_ERROR_SSL) {
-/*
 				char msg[1024];
 				SSL_load_error_strings();
-				ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+				ERR_error_string_n(ERR_get_error(), msg, 1023);
+				msg[1023]=0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot read, error %s\n", msg));
-*/
 				e = GF_IO_ERR;
 			} else {
 				e = gf_sk_probe(sess->sock);
@@ -3348,12 +3350,18 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		return;
 	}
 
-	if (sess->dm && !sess->dm->disable_http2 && !sess->sock && (sess->h2_upgrade_state!=3)) {
+	if (sess->dm && !sess->dm->disable_http2 && !sess->sock && (sess->h2_upgrade_state<3)) {
 		u32 i, count = gf_list_count(sess->dm->sessions);
 		for (i=0; i<count; i++) {
 			GF_DownloadSession *a_sess = gf_list_get(sess->dm->sessions, i);
 			if (strcmp(a_sess->server_name, sess->server_name)) continue;
 			if (!a_sess->h2_sess) {
+				//we already ahd a connection to this server with H2 failure, do not try h2
+				if (a_sess->h2_upgrade_state==4) {
+					sess->h2_upgrade_state=4;
+					break;
+				}
+
 				//we have the same server name
 				//trick in non-block mode, we want to wait for upgrade to be completed
 				//before creating a new socket
@@ -3556,6 +3564,10 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 					SSL_set_alpn_protos(sess->ssl, NULL, 0);
 					sess->h2_upgrade_state = 0;
 				}
+				//h1 disabled, don't use alpn
+				else if (sess->h2_upgrade_state==4) {
+					SSL_set_alpn_protos(sess->ssl, NULL, 0);
+				}
 #endif
 			}
 
@@ -3580,7 +3592,8 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 					char msg[1024];
 					SSL_load_error_strings();
-					ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+					ERR_error_string_n(ERR_get_error(), msg, 1023);
+					msg[1023]=0;
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
 #ifdef GPAC_HAS_HTTP2
 					if (!sess->dm->disable_http2) {
@@ -3612,6 +3625,8 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 #endif
 					if (alpn == NULL || alpnlen != 2 || memcmp("h2", alpn, 2) != 0) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] HTTP/2 is not negotiated\n"));
+						//disable h2 for the session
+						sess->h2_upgrade_state = 4;
 					} else {
 						h2_initialize_session(sess);
 					}
@@ -5913,7 +5928,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP] Upgraded connection to HTTP/2\n"));
 		return GF_OK;
 	}
-//	if (sess->h2_upgrade_state<2)
+	if (sess->h2_upgrade_state<4)
 		sess->h2_upgrade_state = 2;
 #endif
 
