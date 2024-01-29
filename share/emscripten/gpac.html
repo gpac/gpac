@@ -1615,18 +1615,15 @@
               cmdElement.value = '';
               break;
             case 76: // Ctrl+L
-              event.preventDefault();
               var outputElement = document.getElementById('output');
               outputElement.innerHTML = '';
               break;
             case 65: // Ctrl+A
-              event.preventDefault();
               var cmdElement = document.getElementById('cmd');
               cmdElement.selectionStart = 0;
               cmdElement.selectionEnd = 0;
               break;
             case 69: // Ctrl+E
-              event.preventDefault();
               var cmdElement = document.getElementById('cmd');
               cmdElement.selectionStart = cmdElement.value.length;
               cmdElement.selectionEnd = cmdElement.value.length;
@@ -1861,6 +1858,19 @@
           var text = element.innerHTML;
           text += "\nversion " + GPAC.version();;
           element.innerHTML = text;
+
+          // disable some shortcuts
+          document.addEventListener("keydown", (event) => {
+            if (event.ctrlKey) {
+              switch (event.keyCode) {
+                case 76: // Ctrl+L
+                case 65: // Ctrl+A
+                case 69: // Ctrl+E
+                  event.preventDefault();
+                  break;
+              }
+            }
+          })
 
           //mount IDBFS
           FS.mkdir('/idbfs');
