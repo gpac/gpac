@@ -784,6 +784,10 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		//todo extract I/intra rate for speed adaptation
 		return NULL;
 	}
+	//ignored for now
+	if (!strncmp(line, "#EXT-X-BITRATE", strlen("#EXT-X-BITRATE") )) {
+		return NULL;
+	}
 	if (!strncmp(line, "#EXT-X-PART-INF", strlen("#EXT-X-PART-INF") )) {
 		attributes->low_latency = GF_TRUE;
 		return NULL;
