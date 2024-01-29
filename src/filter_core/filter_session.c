@@ -3929,6 +3929,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 	gf_log_set_tool_level(GF_LOG_FILTER, llev);
 }
 
+
 GF_EXPORT
 void gf_filter_print_all_connections(GF_Filter *filter, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) )
 {
