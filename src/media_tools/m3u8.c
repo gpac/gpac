@@ -329,7 +329,7 @@ static char** extract_attributes(const char *name, const char *line, const int n
 	ret = gf_calloc((num_attributes + 1), sizeof(char*));
 	if (!ret) return NULL;
 	if (!num_attributes) return ret;
-	
+
 	curr_attribute = 0;
 	for (i=start; i<=len; i++) {
 		if (line[i] == '\0' || (!quote && line[i] == ',')  || (line[i] == quote)) {
@@ -1102,9 +1102,10 @@ static void reset_attribs(s_accumulated_attributes *attribs, Bool is_cleanup)
 	RST_ATTR(group.audio)
 	RST_ATTR(language)
 	RST_ATTR(title)
-	if (is_cleanup)
+	if (is_cleanup) {
 		RST_ATTR(key_url)
-
+		RST_ATTR(name)
+	}
 	RST_ATTR(init_url)
 	RST_ATTR(mediaURL)
 }
