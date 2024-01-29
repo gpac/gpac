@@ -95,7 +95,7 @@ const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path,
 	if (sep && ((sep[5]==sess->sep_args) || (sep[5]==0)))
 		return sep;
 	//for local files, check if file/dir exists for each ':' specified
-	//this allows for file path with ':' 
+	//this allows for file path with ':'
 	if (!strncmp(path, "file://", 7) || !strstr(path, "://")) {
 		sep = (char*)res;
 		while (1) {
@@ -1054,7 +1054,8 @@ void filter_solve_prop_template(GF_Filter *filter, GF_FilterPid *pid, char **val
 		inc_sep[0] = 0;
 		inc_end[0] = 0;
 		inc_end+=1;
-		strcpy(szInt, inc_sep+6);
+		strncpy(szInt, inc_sep+6, GF_ARRAY_LENGTH(szInt));
+		szInt[ GF_ARRAY_LENGTH(szInt) - 1 ] = 0;
 		ainc_crc = (u32) gf_crc_32(szInt, (u32) strlen(szInt) );
 		step_sep = strchr(szInt, ',');
 		if (step_sep) {
@@ -1415,7 +1416,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 			filter->pid_decode_buffer_max_us = ap.value.uint;
 		}
 	}
-	
+
 	//ifce (used by socket and other filters), use core default
 	if (!strcmp(arg_name, "ifce")) {
 		opt = gf_opts_get_key("core", "ifce");
@@ -1543,7 +1544,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 	) {
 		filter->force_demux = 1;
 	}
-	//implicit linking mode: if not a script or if script init (initialized called) and no extra pid set, enable clonable 
+	//implicit linking mode: if not a script or if script init (initialized called) and no extra pid set, enable clonable
 	if ( (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)
 		&& !filter->max_extra_pids
 		&& (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT))
