@@ -1022,7 +1022,7 @@ This is mostly used when processing raw audio tracks, for which extracting sampl
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param pack_num_samples the target number of samples to pack in one ISOSample
-\return GF_TRUE if packing was successfull, GF_FALSE otherwise (non constant size and non constant duration)
+\return GF_TRUE if packing was successful, GF_FALSE otherwise (non constant size and non constant duration)
 */
 Bool gf_isom_enable_raw_pack(GF_ISOFile *isom_file, u32 trackNumber, u32 pack_num_samples);
 

@@ -3898,7 +3898,7 @@ naldmx_flush:
 		remain -= nal_size;
 		naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 
-		//don't demux too much of input, abort when we would block. This avoid dispatching
+		//don't demux too much of input, abort when we would block. This avoids dispatching
 		//a huge number of frames in a single call
 		if (remain && gf_filter_pid_would_block(ctx->opid)) {
 			ctx->resume_from = (u32) (start - ctx->nal_store);

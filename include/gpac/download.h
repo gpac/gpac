@@ -632,7 +632,7 @@ GF_UserCredentials *gf_user_credentials_find_for_site(GF_DownloadManager *dm, co
  \param server_name sever name without protocol scheme - must not be NULL
  \param username user name, must not be NULL
  \param password user password, must not be NULL
- \param valid indicates if credentials are valid (successfull authentication)
+ \param valid indicates if credentials are valid (successful authentication)
  \return credential object or NULL if error
 */
 GF_UserCredentials * gf_user_credentials_register(GF_DownloadManager * dm, Bool secure, const char * server_name, const char * username, const char * password, Bool valid);
