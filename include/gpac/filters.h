@@ -229,7 +229,7 @@ typedef enum
 	/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
 	GF_FS_FLAG_FULL_LINK = 1<<10,
 	/*! Flag set to disable implicit linking
-	 By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successfull pid if destination is not a sink, or links only to sinks otherwise.
+	 By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successful pid if destination is not a sink, or links only to sinks otherwise.
 	 \note This implies that the order in which filters are added to the session matters
 	*/
 	GF_FS_FLAG_NO_IMPLICIT = 1<<11
@@ -2903,7 +2903,7 @@ Properties retrieved shall be released using \ref gf_filter_release_property. Fa
 
 If the propentry pointer references a non-null value, this value will be released using \ref gf_filter_release_property,
 so make sure to initialize the pointer to a NULL value on the first call.
-This avoid calling  \ref gf_filter_release_property after each get_info in the calling code:
+This avoids calling  \ref gf_filter_release_property after each get_info in the calling code:
 
 \code{.c}
 GF_PropertyEntry *pe=NULL;

@@ -895,7 +895,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	}
 
 	count = gf_list_count(compositor->sensors);
-	/*if we have a hit node at the compositor level, use "touch" as default cursor - this avoid
+	/*if we have a hit node at the compositor level, use "touch" as default cursor - this avoids
 	resetting the cursor when the picked node is a DOM node in a composite texture*/
 //	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
 	stype = GF_CURSOR_NORMAL;

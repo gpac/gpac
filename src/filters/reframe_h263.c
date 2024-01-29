@@ -652,7 +652,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		h263dmx_update_cts(ctx);
 
 
-		//don't demux too much of input, abort when we would block. This avoid dispatching
+		//don't demux too much of input, abort when we would block. This avoids dispatching
 		//a huge number of frames in a single call
 		if (gf_filter_pid_would_block(ctx->opid)) {
 			ctx->resume_from = (u32) ( (char *)start -  (char *)data);

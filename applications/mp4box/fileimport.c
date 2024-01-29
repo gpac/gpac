@@ -547,7 +547,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 
 	//get dur and timescale to compute fps
 	//we don't divide mdur by nb_samples but rather multiple timescale with nb_samples
-	//this avoid rounding errors with non FPS-aligned input timescale (eg mkv using 1000 regardless of FPS)
+	//this avoids rounding errors with non FPS-aligned input timescale (eg mkv using 1000 regardless of FPS)
 	u64 mdur;
 	u64 timescale = gf_isom_get_media_timescale(dest, track);
 	mdur = gf_isom_get_media_duration(dest, track);
