@@ -1129,16 +1129,16 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 	//flush all pending pid init requests following the call to init
 	if (filter->has_pending_pids) {
-		filter->has_pending_pids = GF_FALSE;
-		while (gf_fq_count(filter->pending_pids)) {
-			GF_FilterPid *a_pid=gf_fq_pop(filter->pending_pids);
-			//filter is a pid adaptation filter (dynamically loaded to solve prop negotiation)
-			//copy over play state if the input PID was already playing
-			if (pid->is_playing && filter->is_pid_adaptation_filter)
+		//filter is a pid adaptation filter (dynamically loaded to solve prop negotiation)
+		//copy over play state if the input PID was already playing
+		if (pid->is_playing && filter->is_pid_adaptation_filter) {
+			u32 k=0, p_count=gf_fq_count(filter->pending_pids);
+			for (k=0; k<p_count; k++) {
+				GF_FilterPid *a_pid = gf_fq_get(filter->pending_pids, k);
 				a_pid->is_playing = GF_TRUE;
-
-			gf_filter_pid_post_init_task(filter, a_pid);
+			}
 		}
+		gf_filter_check_pending_pids(filter);
 	}
 
 	if (ctype==GF_PID_CONF_REMOVE) {
@@ -6007,8 +6007,7 @@ const GF_PropertyValue *gf_filter_pid_get_info_str(GF_FilterPid *pid, const char
 	return gf_filter_pid_get_info_internal(pid, 0, prop_name, GF_TRUE, propentry);
 }
 
-GF_EXPORT
-const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
+static const GF_PropertyValue *gf_filter_pid_enum_info_local(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name, GF_List **list)
 {
 	u32 i, cur_idx=0, nb_in_pid=0;
 
@@ -6018,6 +6017,9 @@ const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32
 	pid = pid->pid;
 	cur_idx = *idx;
 	if (pid->infos) {
+		//we already checked that pid
+		if (*list && gf_list_find(* list, pid)>=0)
+			return NULL;
 		cur_idx = *idx;
 		const GF_PropertyValue *prop = gf_props_enum_property(pid->infos, &cur_idx, prop_4cc, prop_name);
 		if (prop) {
@@ -6026,14 +6028,26 @@ const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32
 		}
 		nb_in_pid = cur_idx;
 		cur_idx = *idx - nb_in_pid;
+		//remember we checked that pid to avoid counting it twice (demuxers...)
+		if (! *list) *list = gf_list_new();
+		gf_list_add(*list, pid);
 	}
+
+	if (!pid->filter->num_input_pids) return NULL;
 
 	gf_mx_p(pid->filter->tasks_mx);
 	for (i=0; i<pid->filter->num_input_pids; i++) {
 		u32 sub_idx = cur_idx;
 		const GF_PropertyValue * prop;
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
-		prop = gf_filter_pid_enum_info((GF_FilterPid *)pidinst, &sub_idx, prop_4cc, prop_name);
+
+		if (*list && gf_list_find(* list, pidinst)>=0)
+			continue;
+
+		if (! *list) *list = gf_list_new();
+		gf_list_add(*list, pid);
+
+		prop = gf_filter_pid_enum_info_local((GF_FilterPid *)pidinst, &sub_idx, prop_4cc, prop_name, list);
 		if (prop) {
 			*idx = nb_in_pid + sub_idx;
 			gf_mx_v(pid->filter->tasks_mx);
@@ -6045,7 +6059,14 @@ const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32
 	gf_mx_v(pid->filter->tasks_mx);
 	return NULL;
 }
-
+GF_EXPORT
+const GF_PropertyValue *gf_filter_pid_enum_info(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
+{
+	GF_List *list=NULL;
+	const GF_PropertyValue *p = gf_filter_pid_enum_info_local(pid, idx, prop_4cc, prop_name, &list);
+	if (list) gf_list_del(list);
+	return p;
+}
 
 static const GF_PropertyValue *gf_filter_get_info_internal(GF_Filter *filter, u32 prop_4cc, const char *prop_name, GF_PropertyEntry **propentry)
 {

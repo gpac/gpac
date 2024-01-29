@@ -258,6 +258,31 @@ void gf_fs_del(GF_FilterSession *session);
 Value can be omitted for boolean, defaulting to true (eg :allt). Using '!' before the name negates the result (eg :!moof_first).
 Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enum names in one filter.
 
+Options are either options for the target filter class, options to be inherited between the new filter and its implicit source(s) or implici destination(s), or generic filter options.
+
+Generic filter options are:
+- FID: filter identifier (string value)
+- SID: filter source(s) (string value)
+- N=NAME: filter name (string value)
+- FS: sub-session identifier (unsigned int value)
+- RSID: require sourceID to be present on target filters (no value)
+- TAG: filter tag (string value)
+- ITAG: filter inherited tag (string value)
+- FBT: buffer time in microseconds (unsigned int value)
+- FBU: buffer units (unsigned int value)
+- FBD: decode buffer time in microseconds (unsigned int value)
+- clone: explicitly enable/disable filter cloning flag (no value)
+- nomux: enable/disable direct file copy (no value)
+- gfreg: preferred filter registry names for link solving (string value)
+- gfloc: following options are local to filter declaration, not inherited (no value)
+- gfopt: following options are not tracked (no value)
+- gpac: argument separator for URLs (no value)
+- ccp: filter replacement control (string list value)
+- NCID: ID of netcap configuration to use (string)
+- DBG: debug missing input PID property (`=pid`), missing input packet property (`=pck`) or both (`=all`)
+- DL: enable defer linkling of filter (no value) - the filter output pids will not be connected until a call to \ref gf_filter_reconnect_output
+
+
 \param session filter session
 \param name name and arguments of the filter register to instantiate.
 \param err_code set to error code if any - may be NULL. If initially set to GF_EOS, disables log messages.
@@ -348,7 +373,7 @@ void gf_fs_register_test_filters(GF_FilterSession *session);
 /*! Loads a source filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error
@@ -358,7 +383,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *session, const char *url, const c
 /*! Loads a destination filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error
@@ -3251,6 +3276,23 @@ const GF_FilterArgs *gf_filter_enumerate_args(GF_Filter *filter, u32 idx);
 */
 Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url);
 
+
+/*! Probes for link resolution towards a given filter description
+\param filter target filter
+\param opid_idx output pid index of target filter
+\param fname textual description of filter - If a source is used, returns an error. Destination can be identified using dst=URL pattern
+\param result_chain resulting chain as comma-separated list, or NULL if error. MUST be freed by caller
+\return error if any
+*/
+GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, char **result_chain);
+
+/*! Gets list of possible destinations for this filter
+\param filter target filter
+\param opid_idx output pid index of target filter. If negative, will check destinations for any of the output pids
+\param result_list resulting list as comma-separated list, or NULL if error. MUST be freed by caller
+\return error if any
+*/
+GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char **result_list);
 
 /*! Returns the register of a given filter
 \param filter target filter

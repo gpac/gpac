@@ -752,6 +752,7 @@ struct __gf_filter
 	//requested by a filter to disable blocking
 	Bool prevent_blocking;
 	Bool in_eos_resume;
+	Bool deferred_link;
 
 	//filter destroy task has been posted
 	Bool finalized;
@@ -1125,6 +1126,8 @@ u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
 void gf_filter_set_id(GF_Filter *filter, const char *ID);
 
 void gf_filter_post_remove(GF_Filter *filter);
+
+void gf_filter_check_pending_pids(GF_Filter *filter);
 
 typedef struct
 {
