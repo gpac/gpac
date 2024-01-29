@@ -1724,7 +1724,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			if(e) {
 				//ignore this object in order to be able to accept future versions
 				s->last_dispatched_toi_on_tsi_zero=0;
-				gf_list_pop_back(s->objects); 
+				gf_route_obj_to_reservoir(routedmx, s, gather_object);
 			}
 		} else {
 			gf_route_dmx_process_object(routedmx, s, gather_object);
