@@ -1720,6 +1720,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	if (e==GF_EOS) {
 		if (!tsi) {
 			if (gather_object->status==GF_LCT_OBJ_DONE_ERR) {
+				s->last_dispatched_toi_on_tsi_zero=0;
 				gf_route_obj_to_reservoir(routedmx, s, gather_object);
 				return GF_OK;
 			}
