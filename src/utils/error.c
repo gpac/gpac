@@ -147,7 +147,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 
 static gf_on_progress_cbk prog_cbk = NULL;
 static void *user_cbk = NULL;
-#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_EMSCRIPTEN)
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
 static Bool gpac_no_color_logs = GF_TRUE;
 #else
 static Bool gpac_no_color_logs = GF_FALSE;
