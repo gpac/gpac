@@ -470,7 +470,8 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 			if (ret==SSL_ERROR_SSL) {
 				char msg[1024];
 				SSL_load_error_strings();
-				ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+				ERR_error_string_n(ERR_get_error(), msg, 1023);
+				msg[1023]=0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
 				return GF_IP_CONNECTION_FAILURE;
 			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
@@ -738,7 +739,8 @@ static GF_Err rstp_do_write_sock(GF_RTSPSession *sess, GF_Socket *sock, const u8
 				if (err==SSL_ERROR_SSL) {
 					char msg[1024];
 					SSL_load_error_strings();
-					ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+					ERR_error_string_n(ERR_get_error(), msg, 1023);
+					msg[1023]=0;
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", msg));
 				}
 				return GF_IP_NETWORK_FAILURE;
@@ -862,7 +864,8 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 			if (ret==SSL_ERROR_SSL) {
 				char msg[1024];
 				SSL_load_error_strings();
-				ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+				ERR_error_string_n(ERR_get_error(), msg, 1023);
+				msg[1023]=0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
 				return GF_IP_CONNECTION_FAILURE;
 			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
