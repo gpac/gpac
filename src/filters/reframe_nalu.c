@@ -2248,7 +2248,7 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 	if (ts == GF_FILTER_NO_TS) {
 		/*we store the POC (last POC minus the poc shift) as the CTS offset and re-update the CTS when dispatching*/
 		gf_assert(ctx->last_poc >= ctx->poc_shift);
-		gf_filter_pck_set_cts(ctx->first_pck_in_au, CTS_POC_OFFSET_SAFETY + ctx->last_poc - ctx->poc_shift);
+		gf_filter_pck_set_cts(ctx->first_pck_in_au, (u64)(CTS_POC_OFFSET_SAFETY + (s64)ctx->last_poc - (s64)ctx->poc_shift));
 		//we use the carousel flag temporarily to indicate the cts must be recomputed
 		gf_filter_pck_set_carousel_version(ctx->first_pck_in_au, 1);
 	}
