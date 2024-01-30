@@ -1558,7 +1558,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	cp = gf_bs_read_int(routedmx->bs, 8);
 
 	if (v!=1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong LCT header version %d\n", s->service_id, v));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong LCT header version %d, expecting 1\n", s->service_id, v));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (C!=0) {
@@ -1570,19 +1570,19 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (S!=1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header S, shall be 1\n", s->service_id));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header S, should be 1\n", s->service_id));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (O!=1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header 0, shall be b01\n", s->service_id));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header O, should be b01\n", s->service_id));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	else if (H!=0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header H, shall be 0\n", s->service_id));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header H, should be 0\n", s->service_id));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (hdr_len<4) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header len %d, shall be at least 4 0\n", s->service_id, hdr_len));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE LCT header len %d, should be at least 4\n", s->service_id, hdr_len));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -1719,8 +1719,13 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//we don't assign version here, we use mbms envelope for that since the bundle may have several
 			//packages
 
-			gf_route_dmx_process_service_signaling(routedmx, s, gather_object, cc, a_S ? v : 0, a_M ? v : 0);
-			//we don't release the LCT object, so that we can disard future versions
+			e = gf_route_dmx_process_service_signaling(routedmx, s, gather_object, cc, a_S ? v : 0, a_M ? v : 0);
+			//we don't release the LCT object, so that we can discard future versions
+			if(e) {
+				//ignore this object in order to be able to accept future versions
+				s->last_dispatched_toi_on_tsi_zero=0;
+				gf_route_obj_to_reservoir(routedmx, s, gather_object);
+			}
 		} else {
 			gf_route_dmx_process_object(routedmx, s, gather_object);
 		}
