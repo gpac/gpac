@@ -349,7 +349,7 @@ Object opid_stats(unsigned long idx, optional unsigned int mode=0);
 void require_source_id();
 
 
-/*! computes link from an output pid of the filter to a given filter description
+/*! computes link from an output pid of the filter to a given filter description - cf \ref gf_filter_probe_link
 \param idx the index of the output pid to query
 \param description filter descrition, destination can be specified using dst=URL
 \param load_args if set, will load all possible arguments for each filter
@@ -362,6 +362,13 @@ If arguments are not loaded, the return value is an array registry names
 */
 Array compute_link(unsigned long idx, DOMString description, optional Boolean load_args=false);
 
+
+
+/*! get possible direct destinations for a filter - cf \ref gf_filter_get_possible_destinations
+\param pid_idx the index of the output pid to query, -1 to consider all output pids
+\return comma-separated string of found filters, NULL if not found
+*/
+DOMString get_destinations(unsigned long pid_idx=-1);
 
 /*! Gets source filter for an input pid
 \param idx the index of the input pid to query
@@ -402,6 +409,12 @@ void remove();
 \param link_args specify any additional arguments to pass to the SID option of the new filter - see \ref gf_filter_set_source
 */
 void insert(DOMString filter_to_add, optional DOMString link_args=null);
+
+
+/*! reconnects a filter ouput(s)
+\param pid_idx output pid to reconnect, -1 for all output pids
+*/
+void reconnect(long pid_idx=-1);
 
 /*! binds a JSObject with underlying filter javascript extensions, if any. Currently only dashin  (see \ref JSDASHClient) and httpout  (see \ref JSHTTPServer) filters have such an extension.
 This will throw an exception if failure or no JS binding available

@@ -2011,11 +2011,91 @@ napi_value filter_insert(napi_env env, napi_callback_info info)
 	NARG_STR(link_ext, (u32)offset, NULL);
 
 	e = gf_filter_set_source(f, ins_f, link_ext);
-	if (e)
+	if (e) {
 		napi_throw_error(env, gf_error_to_string(e), "Failed to set source");
-	else
-		gf_filter_reconnect_output(f, opid);
+		return NULL;
+	}
+	e = gf_filter_reconnect_output(f, opid);
+	if (e)
+		napi_throw_error(env, gf_error_to_string(e), "Failed to reconnect output");
 	return NULL;
+}
+
+napi_value filter_reconnect(napi_env env, napi_callback_info info)
+{
+	GF_FilterPid *opid=NULL;
+	GF_Err e;
+	NARG_ARGS_THIS(1, 0)
+	FILTER
+
+	//check if 2nd param is int, get opid
+	if (argc) {
+		s32 idx = -1;
+		if (napi_get_value_int32(env, argv[0], &idx) == napi_ok) {
+			if (idx>=0) {
+				opid = gf_filter_get_opid(f, (u32) idx);
+				if (!opid) {
+					napi_throw_error(env, NULL, "Invalid output PID index");
+					return NULL;
+				}
+			}
+		}
+	}
+	e = gf_filter_reconnect_output(f, opid);
+	if (e)
+		napi_throw_error(env, gf_error_to_string(e), "Failed to reconnect output");
+	return NULL;
+}
+
+napi_value filter_probe_link(napi_env env, napi_callback_info info)
+{
+	GF_Err e;
+	char *res=NULL;
+	s32 idx = -1;
+	s32 offset=1;
+	NARG_ARGS_THIS(2, 1)
+	FILTER
+
+	//check if 2nd param is int, get opid
+	if (argc>1) {
+		if (napi_get_value_int32(env, argv[0], &idx) == napi_ok) {
+			offset=2;
+		}
+	}
+	NARG_STR(fdesc, (u32)offset, NULL);
+
+	e = gf_filter_probe_link(f, idx, fdesc, &res);
+	if (e) {
+		napi_throw_error(env, gf_error_to_string(e), "Failed to probe links");
+		return NULL;
+	}
+	napi_value val;
+	NAPI_CALL( napi_create_string_utf8(env, res, NAPI_AUTO_LENGTH, &val) );
+	gf_free(res);
+	return val;
+}
+
+napi_value filter_get_destinations(napi_env env, napi_callback_info info)
+{
+	GF_Err e;
+	char *res=NULL;
+	s32 idx = -1;
+	NARG_ARGS_THIS(1, 0)
+	FILTER
+
+	//check if 2nd param is int, get opid
+	if (argc && (napi_get_value_int32(env, argv[0], &idx) == napi_ok)) {
+	}
+
+	e = gf_filter_get_possible_destinations(f, idx, &res);
+	if (e) {
+		napi_throw_error(env, gf_error_to_string(e), "Failed to get destinations");
+		return NULL;
+	}
+	napi_value val;
+	NAPI_CALL( napi_create_string_utf8(env, res, NAPI_AUTO_LENGTH, &val) );
+	gf_free(res);
+	return val;
 }
 
 napi_value filter_require_source_id(napi_env env, napi_callback_info info)
@@ -3477,6 +3557,7 @@ napi_value fs_wrap_filter(napi_env env, GF_FilterSession *fs, GF_Filter *filter)
 		{ "set_source", 0, filter_set_source, 0, 0, 0, napi_enumerable, 0 },
 		{ "set_source_restricted", 0, filter_set_source_restricted, 0, 0, 0, napi_enumerable, 0 },
 		{ "insert", 0, filter_insert, 0, 0, 0, napi_enumerable, 0 },
+		{ "reconnect", 0, filter_reconnect, 0, 0, 0, napi_enumerable, 0 },
 		{ "ipid_prop", 0, filter_ipid_prop, 0, 0, 0, napi_enumerable, 0 },
 		{ "ipid_enum_props", 0, filter_ipid_enum_props, 0, 0, 0, napi_enumerable, 0 },
 		{ "opid_prop", 0, filter_opid_prop, 0, 0, 0, napi_enumerable, 0 },
@@ -3490,6 +3571,8 @@ napi_value fs_wrap_filter(napi_env env, GF_FilterSession *fs, GF_Filter *filter)
 		{ "bind", 0, filter_bind, 0, 0, 0, napi_enumerable, 0 },
 		{ "ipid_stats", 0, filter_ipid_stats, 0, 0, 0, napi_enumerable, 0 },
 		{ "opid_stats", 0, filter_opid_stats, 0, 0, 0, napi_enumerable, 0 },
+		{ "probe_link", 0, filter_probe_link, 0, 0, 0, napi_enumerable, 0 },
+		{ "get_destinations", 0, filter_get_destinations, 0, 0, 0, napi_enumerable, 0 },
 	};
 
 	if (napi_f) {
