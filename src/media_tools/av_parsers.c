@@ -7148,7 +7148,7 @@ void hevc_pred_weight_table(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si
 	u8 luma_weights[20], chroma_weights[20];
 	u32 ChromaArrayType = sps->separate_colour_plane_flag ? 0 : sps->chroma_format_idc;
 
-	num_ref_idx = num_ref_idx_l0_active;
+	num_ref_idx = num_ref_idx_l0_active < 20 ? num_ref_idx_l0_active : 19 ;
 
 	gf_bs_read_ue_log(bs, "luma_log2_weight_denom");
 	if (ChromaArrayType != 0)
@@ -7182,7 +7182,7 @@ parse_weights:
 	if (si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 		if (!first_pass) return;
 		first_pass = GF_FALSE;
-		num_ref_idx = num_ref_idx_l1_active;
+		num_ref_idx = num_ref_idx_l1_active < 20 ? num_ref_idx_l1_active : 19 ;
 		goto parse_weights;
 	}
 }
