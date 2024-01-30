@@ -4520,6 +4520,10 @@ u32 gf_mp3_bit_rate(u32 hdr)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[MPEG-1/2 Audio] layer index not valid\n"));
 		return 0;
 	}
+	if (bitRateIndex>14) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[MPEG-1/2 Audio] Bitrate index not valid\n"));
+		return 0;
+	}
 	return bitrate_table[lidx][bitRateIndex];
 }
 
