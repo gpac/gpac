@@ -783,6 +783,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 	}
 
+	if(start_offset + size > total_len) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Possible corrupted data: Offset (%u) + Size (%u) exceeds Total Size of the object (%u), skipping\n", s->service_id, tsi, toi, start_offset, size, total_len));
+		return GF_NOT_SUPPORTED;
+	}
+
 	if (!obj || (obj->tsi!=tsi) || (obj->toi!=toi)) {
 		count = gf_list_count(s->objects);
 		for (i=0; i<count; i++) {
@@ -1707,13 +1712,6 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	pos = (u32) gf_bs_get_position(routedmx->bs);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : LCT packet TSI %u TOI %u size %d startOffset %u TOL "LLU" (PckNum %d)\n", s->service_id, tsi, toi, nb_read-pos, start_offset, tol_size, routedmx->nb_packets));
-	if(start_offset >= tol_size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : startOffset %u is beyond object size TOL %llu. skipping packet (TOI %u)\n", s->service_id, start_offset, tol_size, toi));
-		return GF_CORRUPTED_DATA;
-	} else if(start_offset + nb_read - pos > tol_size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : possible corrupted data, packet data end %u is beyond object size TOL %u, skipping packet (TOI %u)\n", s->service_id, start_offset+nb_read-pos, tol_size, toi));
-		return GF_CORRUPTED_DATA;
-	}
 
 	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) tol_size, B, in_order, rlct, &gather_object);
 
