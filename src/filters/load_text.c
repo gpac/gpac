@@ -337,7 +337,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 				}
 				/*UTF8 3 bytes char*/
 				else if ( (szLine[i] & 0xf0) == 0xe0) {
-					if (j+1 >= GF_ARRAY_LENGTH(szLineConv))
+					if (j+1 >= GF_ARRAY_LENGTH(szLineConv) || i+1 >= len)
 						break;
 					szLineConv[j] = szLine[i];
 					i++;
@@ -348,7 +348,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 				}
 				/*UTF8 4 bytes char*/
 				else if ( (szLine[i] & 0xf8) == 0xf0) {
-					if (j+2 >= GF_ARRAY_LENGTH(szLineConv))
+					if (j+2 >= GF_ARRAY_LENGTH(szLineConv) || i+2 >= len)
 						break;
 					szLineConv[j] = szLine[i];
 					i++;
