@@ -1933,6 +1933,10 @@ _libgpac.gf_filter_get_info_str.restype = POINTER(PropertyValue)
 
 _libgpac.gf_filter_require_source_id.argtypes = [_gf_filter]
 
+_libgpac.gf_filter_probe_link.argtypes = [_gf_filter, c_uint, c_char_p, POINTER(c_char_p)]
+_libgpac.gf_filter_get_possible_destinations.argtypes = [_gf_filter, c_int, POINTER(c_char_p)]
+
+
 _libgpac.gf_httpout_send_request.argtypes = [c_void_p, py_object, c_uint, c_char_p, c_uint, POINTER(POINTER(c_char)), c_void_p, c_void_p, c_void_p, c_void_p]
 
 @CFUNCTYPE(c_uint, c_void_p, c_ulonglong, c_ulonglong)
@@ -2600,6 +2604,19 @@ class Filter:
             if err<0:
                 raise Exception('Failed to reconnect output: ' + e2s(err))
 
+    ## reconnect the filter output - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
+    #\param opid index of output pid to reconnect, -1 for all pids
+    #\return
+    def reconnect(self, opid=-1):
+        pid = None
+        if opid>=0:
+            pid = _libgpac.gf_filter_get_opid(self._filter, opid)
+            if not pid:
+                raise Exception('No output PID with index ' + str(opid) + ' in filter ' + self.name )
+        err = _libgpac.gf_filter_reconnect_output(self._filter, pid)
+        if err<0:
+            raise Exception('Failed to reconnect output: ' + e2s(err))
+
     ## \cond private
     def _pid_prop_ex(self, prop_name, pid, IsInfo):
         _name = prop_name.encode('utf-8')
@@ -2798,6 +2815,35 @@ class Filter:
         if err<0:
             raise Exception('Failed to require sourceID for filter: ' + e2s(err))
         return
+
+    ##Resolves link from given output pid of filter to a filter description. The described filter is not loaded in the graph - see \ref gf_filter_probe_link
+    #\param opid_idx 0-based index of the output pid
+    #\param name filter description to link to; this can be any filter description
+    #\return None if no possible link or a list containing the filters in the resolved chain from current filter to destination
+    def probe_link(self, opid_idx, name):
+        links = c_char_p(0)
+        ret = _libgpac.gf_filter_probe_link(self._filter, opid_idx, name.encode("utf-8"), byref(links))
+        if ret<0:
+            return None
+        if not links:
+            return None
+        link_list = links.value.decode('utf-8').split(",")
+        _libgpac.gf_url_free(links)
+        return link_list
+
+    ##Gets all possible destination filter for this filter or one of its output PID - see \ref gf_filter_get_possible_destinations
+    #\param opid_idx 0-based index of the output pid, use -1 to check all output pids
+    #\return None if no possible connections to known filter, or a list containing all possible direct connections
+    def get_destinations(self, opid_idx):
+        dests = c_char_p(0)
+        ret = _libgpac.gf_filter_get_possible_destinations(self._filter, opid_idx, byref(dests))
+        if ret<0:
+            return None
+        if not dests:
+            return None
+        dests_list = dests.value.decode('utf-8').split(",")
+        _libgpac.gf_url_free(dests)
+        return dests_list
 
     ##\cond private
     def _bind_dash_algo(self, object):

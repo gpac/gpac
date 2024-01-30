@@ -1407,6 +1407,50 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 	return jsfs_new_filter_obj(ctx, new_f);
 }
 
+static JSValue jsff_reconnect_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Err e;
+	GF_FilterPid *opid=NULL;
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f)
+		return GF_JS_EXCEPTION(ctx);
+
+	if (argc>1) {
+		s32 opid_idx=-1;
+		if (JS_ToInt32(ctx, &opid_idx, argv[1])) return GF_JS_EXCEPTION(ctx);
+		if (opid_idx>=0) {
+			opid = gf_filter_get_opid(f, opid_idx);
+			if (!opid) return GF_JS_EXCEPTION(ctx);
+		}
+	}
+	//reconnect outputs of source
+	e = gf_filter_reconnect_output((GF_Filter *) f, opid);
+	if (e)
+		return js_throw_err_msg(ctx, e, "Cannot reconnect output: %s\n", gf_error_to_string(e));
+	return JS_UNDEFINED;
+}
+
+static JSValue jsff_get_destinations(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Err e;
+	s32 opid_idx=-1;
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	if (!f)
+		return GF_JS_EXCEPTION(ctx);
+
+	if (argc && JS_ToInt32(ctx, &opid_idx, argv[0])) return GF_JS_EXCEPTION(ctx);
+
+	char *res=NULL;
+	//reconnect outputs of source
+	e = gf_filter_get_possible_destinations(f, opid_idx, &res);
+
+	if (e)
+		return js_throw_err_msg(ctx, e, "Cannot get possible destinations: %s\n", gf_error_to_string(e));
+	if (!res) return JS_NULL;
+	JSValue ret = JS_NewString(ctx, res);
+	gf_free(res);
+	return ret;
+}
 static Bool jsfs_get_filter_args(JSContext *ctx, GF_FilterSession *fs, GF_FilterSession **meta_fs, char *regname, GF_Filter *finst, JSValue args);
 static void del_meta_fs(GF_FilterSession *metafs);
 
@@ -1646,12 +1690,14 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("update", 0, jsff_update),
 	JS_CFUNC_DEF("remove", 0, jsff_remove),
 	JS_CFUNC_DEF("insert", 0, jsff_insert_filter),
+	JS_CFUNC_DEF("reconnect", 0, jsff_reconnect_filter),
 	JS_CFUNC_DEF("bind", 0, jsff_bind),
 	JS_CFUNC_DEF("lock", 0, jsff_lock),
 	JS_CFUNC_DEF("ipid_stats", 0, jsff_ipid_stats),
 	JS_CFUNC_DEF("opid_stats", 0, jsff_opid_stats),
 	JS_CFUNC_DEF("compute_link", 0, jsff_compute_link),
 	JS_CFUNC_DEF("require_source_id", 0, jsff_require_source_id),
+	JS_CFUNC_DEF("get_destinations", 0, jsff_get_destinations),
 };
 
 static JSValue jsfs_new_filter_obj(JSContext *ctx, GF_Filter *f)

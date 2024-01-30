@@ -364,6 +364,25 @@ void set_source_restricted(_Filter src, DOMString link_args=null);
 */
 void insert(_Filter f, long pid_idx=-1, DOMString link_args=null);
 
+
+/*! reconnect the filter output - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
+\param pid_idx index of output pid to reconnect, -1 for all pids
+*/
+void reconnect(long pid_idx=-1);
+
+/*! Resolves link from given output pid of filter to a filter description. The described filter is not loaded in the graph - see \ref gf_filter_probe_link
+\param pid_idx 0-based index of the output pid
+\param name filter description to link to; this can be any filter description
+\return comma-spearated string list of the filter names in the resolved chain from current filter to destination
+*/
+DOMString probe_link(long pid_idx, DOMString name);
+
+/*! Gets all possible destination filter for this filter or one of its output PID - see \ref gf_filter_get_possible_destinations
+\param pid_idx 0-based index of the output pid, use -1 to check all output pids
+\return None if no possible connections to known filter, or a comma-separated string list containing all possible direct connections
+*/
+DOMString get_destinations(long pid_idx=-1);
+
 /*! get an input pid property by name
 \param idx index of input pid
 \param prop_name name of property
