@@ -643,7 +643,7 @@ restart:
 
 
 		//ready to send packet
-		if (size + 1 < remain-bytes_skipped) {
+		if (size + 3 < remain-bytes_skipped) {
 			//make sure we are sync!
 			if (sync[size] !=0xFF) {
 				if ((sync[size]=='T') && (sync[size+1]=='A') && (sync[size+2]=='G')) {
