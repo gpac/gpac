@@ -788,6 +788,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		return GF_NOT_SUPPORTED;
 	}
 
+	if(close_flag && (start_offset==0) && (size < total_len)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Inconsistent object data for a single-packet transmission. Size (%u) should be equal to total length (%u), skipping\n", s->service_id, tsi, toi, size, total_len));
+		return GF_CORRUPTED_DATA;
+	}
+
 	if (!obj || (obj->tsi!=tsi) || (obj->toi!=toi)) {
 		count = gf_list_count(s->objects);
 		for (i=0; i<count; i++) {
