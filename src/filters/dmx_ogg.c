@@ -299,6 +299,8 @@ static GF_Err oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *
 		GF_SAFEALLOC(st, GF_OGGStream);
 		if (!st) return GF_OUT_OF_MEM;
 		gf_list_add(ctx->streams, st);
+	} else {
+		ogg_stream_clear(&st->os);
 	}
 	st->eos_detected = GF_FALSE;
 	st->serial_no = serial_no;
