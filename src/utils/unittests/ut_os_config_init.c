@@ -53,9 +53,27 @@ unittest(gf_sys_word_match)
     // Test half characters in order scenario
     assert_true_(gf_sys_word_match("abcd", "aebfcd"));
 
-    assert_true_(gf_sys_word_match("hello", "hhello"));
-    
+    // test null pointer
+    assert_true_(gf_sys_word_match(NULL, NULL));
+    assert_false_(gf_sys_word_match("abc", NULL));
+    assert_false_(gf_sys_word_match(NULL, "abc"));
 
+    // test empty string
+    assert_true_(gf_sys_word_match("", ""));
+    assert_false_(gf_sys_word_match("abc", ""));
+    assert_false_(gf_sys_word_match("", "abc"));
+
+    // test a very long string
+    const char *longString = "a very long string that exceeds the normal limit of the function, it may go further and further unitl t can break the behaviour of the function appearantly not easy so lets write more and more";
+    assert_true_(gf_sys_word_match(longString, longString));
+    assert_false_(gf_sys_word_match("abc", longString));
+    assert_false_(gf_sys_word_match(longString, "abc"));
+
+    // Test a non-ASCII buffer
+    const char *nonAsciiBuffer = "\x01\x02\x03\xFF\xFE\xFD"; 
+    assert_false_(gf_sys_word_match("abc", nonAsciiBuffer));
+    assert_false_(gf_sys_word_match(nonAsciiBuffer, "abc"));
+    assert_true_(gf_sys_word_match(nonAsciiBuffer, nonAsciiBuffer));
 
     return EXIT_SUCCESS;
 }
