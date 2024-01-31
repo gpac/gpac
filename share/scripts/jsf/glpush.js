@@ -50,6 +50,9 @@ filter.configure_pid = function(pid)
   let i_pf = pid.get_prop('PixelFormat');
   let i_stride = pid.get_prop('Stride');
   let i_stride_uv = pid.get_prop('StrideUV');
+  //not ready yet
+  if (!i_w || !i_h || !i_pf) return;
+  //same config
   if ((i_w == pid.o_w) && (i_h == pid.o_h) && (i_pf == pid.o_pf)) return;
 
   pid.o_w = i_w;
