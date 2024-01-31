@@ -2162,6 +2162,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (is_remove) {
 		cstr = gf_filter_pid_get_udta(pid);
+		if (!cstr) return GF_OK; //configure failure
 		if (cstr->opid) {
 			gf_filter_pid_remove(cstr->opid);
 		}
