@@ -232,7 +232,10 @@ typedef enum
 	 By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successful pid if destination is not a sink, or links only to sinks otherwise.
 	 \note This implies that the order in which filters are added to the session matters
 	*/
-	GF_FS_FLAG_NO_IMPLICIT = 1<<11
+	GF_FS_FLAG_NO_IMPLICIT = 1<<11,
+	/*! Flag set to force all filters to require a source ID (same as setting RSID option on all filters). This is typically used when the app sets links on all used filters while declaring more, unused filters.
+	*/
+	GF_FS_FLAG_REQUIRE_SOURCE_ID = 1<<12,
 } GF_FilterSessionFlags;
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
