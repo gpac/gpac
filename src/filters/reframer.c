@@ -150,7 +150,7 @@ typedef struct
 	u32 xround, utc_ref, utc_probe;
 	Double seeksafe;
 	GF_PropStringList props;
-	Bool copy;
+	Bool copy, rmseek;
 	u32 cues;
 
 	//internal
@@ -1056,14 +1056,17 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				st->split_start = (u32) ndur;
 			}
 		}
-
+		if (ctx->rmseek)
+			gf_filter_pck_set_seek_flag(new_pck, GF_FALSE);
 		gf_filter_pck_send(new_pck);
 	} else {
-		GF_FilterPacket *dst = ctx->copy ? gf_filter_pck_new_copy(st->opid, pck, NULL) : NULL;
-		if (dst)
+		GF_FilterPacket *dst = ctx->copy ? gf_filter_pck_new_copy(st->opid, pck, NULL) : gf_filter_pck_new_ref(st->opid, 0, 0, pck);
+		if (dst) {
+			gf_filter_pck_merge_properties(pck, dst);
+			if (ctx->rmseek)
+				gf_filter_pck_set_seek_flag(dst, GF_FALSE);
 			gf_filter_pck_send(dst);
-		else
-			gf_filter_pck_forward(pck, st->opid);
+		}
 	}
 
 
@@ -2767,6 +2770,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- no: do no filter frames based on cue info\n"
 	"- segs: only forward frames marked as segment start\n"
 	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(rmseek), "remove seek flag of all sent packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 
