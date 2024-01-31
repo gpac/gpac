@@ -720,7 +720,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Misformed #EXT-X-MEDIA:LANGUAGE=%s. Quotes are incorrect.\n", ret[i]+5));
 				}
-			} else if (safe_start_equals("NAME=", ret[i])) {
+			} else if (safe_start_equals("NAME=\"", ret[i])) {
 				if (attributes->name) gf_free(attributes->name);
 				attributes->name = gf_strdup(ret[i]+5+1);
 				u32 len = (u32) strlen(attributes->name);
