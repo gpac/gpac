@@ -1341,7 +1341,7 @@ static Bool naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
 			if (ctx->notime && first && (!ctx->fps.num || !ctx->fps.den) && sps->has_timing_info
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
-				&& sps->time_scale && (sps->time_scale / 1000 <= sps->num_units_in_tick)
+				&& sps->time_scale && sps->num_units_in_tick && (sps->time_scale / 1000 <= sps->num_units_in_tick)
 			) {
 				ctx->cur_fps.num = sps->time_scale;
 				ctx->cur_fps.den = sps->num_units_in_tick;
