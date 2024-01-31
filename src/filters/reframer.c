@@ -2673,6 +2673,8 @@ static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		st->cts_us_at_init = 0;
 		st->sys_clock_at_init = 0;
 	} else if (evt->base.type==GF_FEVT_SET_SPEED) {
+		st->cts_us_at_init = 0;
+		st->sys_clock_at_init = 0;
 		if (ctx->speed==0)
 			ctx->rt_speed = evt->play.speed;
 	}
