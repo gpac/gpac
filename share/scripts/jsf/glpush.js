@@ -1,5 +1,6 @@
 import {WebGLContext} from 'webgl'
 import {Texture, Matrix} from 'evg'
+import { Sys as sys } from 'gpaccore'
 
 
 //metadata
@@ -15,6 +16,10 @@ filter.set_cap({id: "CodecID", value: "raw", inout: true} );
 
 let gl=null;
 filter.initialize = function() {
+  let gpac_help = sys.get_opt("temp", "gpac-help");
+  let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
+  //don't initialize gl if doc gen or help
+  if (gpac_help || gpac_doc) return;
   gl = new WebGLContext(16, 16);
 }
 
