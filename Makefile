@@ -78,11 +78,17 @@ man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
 unit_tests:
-	@echo "Building  unit tests"
-	$(SRC_PATH)/unittests/build.sh > bin/gcc/unittests.c 
-	@gcc -I$(SRC_PATH) -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H bin/gcc/unittests.c $(SRC_PATH)/unittests/tests.c $(shell find src/ -path "*/unittests/*.c" | sort) -o bin/gcc/unittests -Lbin/gcc -lgpac -lcmocka
+	@echo "Building unit tests"
+	$(SRC_PATH)/unittests/build.sh > bin/gcc/unittests.c
+	@gcc -I$(SRC_PATH) -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H -g \
+		-o bin/gcc/unittests bin/gcc/unittests.c \
+		$(SRC_PATH)/unittests/tests.c \
+		$(shell find src/ -path "*/unittests/*.c" | sort) \
+		-Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -lcmocka -Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -L. -Wl,-rpath=$(realpath .) -lgpac
 	@echo "Executing unit tests"
 	LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
+
+
 
 unit_tests_clean:
 	@echo "Cleaning unit tests artifacts"
