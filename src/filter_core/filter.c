@@ -2158,7 +2158,7 @@ skip_date:
 			}
 		}
 
-		if (!internal_arg && !opaque_arg && !opts_optional)
+		if (!internal_arg && (!has_meta_args || !opaque_arg) && !opts_optional)
 			gf_fs_push_arg(filter->session, szArg, found, GF_ARGTYPE_LOCAL, meta_filter, NULL);
 
 skip_arg:

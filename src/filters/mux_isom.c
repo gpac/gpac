@@ -7644,6 +7644,10 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use data reference in movie fragments, not supported. Ignoring it\n"));
 			ctx->dref = GF_FALSE;
 		}
+		if (ctx->noinit && (ctx->store<MP4MX_MODE_FRAG)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot skip init segment if not fragmented. Ignoring noinit\n"));
+			ctx->noinit = GF_FALSE;
+		}
 
 		if (ctx->store==MP4MX_MODE_FASTSTART) {
 			gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_FASTSTART);
