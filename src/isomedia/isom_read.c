@@ -5520,7 +5520,8 @@ GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_S
 	if (trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
 		u32 chunkNum;
 		u64 offset;
-		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, NULL);
+		GF_Err e = stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, NULL);
+		if (e) return e;
 	} else {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		//this is dump mode of fragments, we haven't merged tables yet - use current stsd idx indicated in trak
