@@ -134,7 +134,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool revert, sigcues, fdel, keepts;
+	Bool revert, sigcues, fdel, keepts, flush;
 	u32 raw;
 	s32 floop;
 	u32 fsort;
@@ -180,6 +180,7 @@ typedef struct
 
 	char *unknown_params;
 	char *pid_props;
+	Bool flushed;
 
 	GF_Fraction64 splice_start, splice_end;
 	u32 flags_splice_start, flags_splice_end;
@@ -854,7 +855,6 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
 		char *l = gf_fgets(szURL, GF_MAX_PATH, f);
-		url_crc = 0;
 		if (!l || (gf_feof(f) && !szURL[0]) ) {
 			if (ctx->floop != 0) {
 				gf_fseek(f, 0, SEEK_SET);
@@ -868,6 +868,13 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				lineno=0;
 				continue;
 			}
+			if (ctx->ka && !is_end && !last_found && url_crc) {
+				gf_fseek(f, 0, SEEK_SET);
+				last_found = GF_TRUE;
+				lineno=0;
+				continue;
+			}
+
 			gf_fclose(f);
 			if (is_end) {
 				ctx->ka = 0;
@@ -877,6 +884,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 			}
 			return GF_FALSE;
 		}
+		url_crc = 0;
 
 		len = (u32) strlen(szURL);
 		//in keep-alive mode, each line shall end with \n, of not consider the file is not yet ready
@@ -960,8 +968,10 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 					if (aval)
 						sscanf(aval, LLU, &end_range);
 				} else if (!strcmp(args, "end")) {
-					if (ctx->ka)
+					if (ctx->ka) {
 						is_end = GF_TRUE;
+						ctx->ka=0;
+					}
 				} else if (!strcmp(args, "ka")) {
 					sscanf(aval, "%u", &ctx->ka);
 				} else if (!strcmp(args, "raw")) {
@@ -1180,9 +1190,20 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 
 	if (!next_url_ok && ctx->ka) {
 		gf_filter_ask_rt_reschedule(filter, ctx->ka*1000);
+		if (ctx->flush && !ctx->flushed) {
+			count = gf_list_count(ctx->io_pids);
+			for (i=0; i<count; i++) {
+				iopid = gf_list_get(ctx->io_pids, i);
+				gf_filter_pid_send_flush(iopid->opid);
+				if (iopid->opid_aux)
+					gf_filter_pid_send_flush(iopid->opid_aux);
+			}
+			ctx->flushed = GF_TRUE;
+		}
 		return GF_OK;
 	}
 	count = gf_list_count(ctx->io_pids);
+	ctx->flushed = GF_FALSE;
 
 	if (ctx->wait_splice_start) {
 		if (!next_url_ok) {
@@ -2970,6 +2991,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	"- av: force decoding of audio and video inputs\n"
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(flush), "send a flush signal once playlist is done before entering keepalive", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
