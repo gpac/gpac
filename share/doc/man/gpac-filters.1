@@ -3559,7 +3559,7 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .br
 exporter (bool, default: false): compatibility with old exporter, displays export results
 .br
-rt (enum, default: off):       real-time regulation mode of input
+rt (enum, default: off, updatable): real-time regulation mode of input
 .br
 * off: disables real-time regulation
 .br
@@ -3569,13 +3569,13 @@ rt (enum, default: off):       real-time regulation mode of input
 .br
 
 .br
-saps (uintl, minmax: 0|1|2|3|4): list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)
+saps (uintl, minmax: 0|1|2|3|4, updatable): list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)
 .br
 
 .br
-refs (bool, default: false):   forward only frames used as reference frames, if indicated in the input stream
+refs (bool, default: false, updatable): forward only frames used as reference frames, if indicated in the input stream
 .br
-speed (dbl, default: 0.0):     speed for real-time regulation mode, a value of 0 uses speed from play commands
+speed (dbl, default: 0.0, updatable): speed for real-time regulation mode, a value of 0 uses speed from play commands
 .br
 raw (enum, default: no):       force input AV streams to be in raw format
 .br
@@ -3589,7 +3589,7 @@ raw (enum, default: no):       force input AV streams to be in raw format
 .br
 
 .br
-frames (sintl):                drop all except listed frames (first being 1). A negative value -V keeps only first frame every V frames
+frames (sintl, updatable):     drop all except listed frames (first being 1). A negative value -V keeps only first frame every V frames
 .br
 xs (strl):                     extraction start time(s)
 .br
@@ -3637,9 +3637,9 @@ utc_ref (enum, default: any):  set reference mode for UTC range extraction
 .br
 utc_probe (uint, default: 5000): timeout in milliseconds to try to acquire UTC reference from media
 .br
-copy (bool, default: false):   try copying frame interface into packets
+copy (bool, default: false, updatable): try copying frame interface into packets
 .br
-cues (enum, default: no):      cue filtering mode
+cues (enum, default: no, updatable): cue filtering mode
 .br
 * no: do no filter frames based on cue info
 .br
@@ -3648,6 +3648,8 @@ cues (enum, default: no):      cue filtering mode
 * frags: only forward frames marked as fragment start
 .br
 
+.br
+rmseek (bool, default: false, updatable): remove seek flag of all sent packets
 .br
 
 .br
@@ -8932,7 +8934,7 @@ noreg (bool, default: false):  disable rate regulation for media segments, pushi
 .br
 runfor (uint, default: 0):     run for the given time in ms
 .br
-nozip (bool, default: false):  do not zip manifest
+nozip (bool, default: false):  do not zip signaling package (STSID+manifest)
 .br
 
 .br
