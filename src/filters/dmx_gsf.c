@@ -1272,13 +1272,16 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 	while (buf) {
 		char *start_sig = memchr(buf, 'G', avail);
 		if (!start_sig) return NULL;
+		buf = start_sig;
+		avail = data_size - (u32) ( buf - (char *) data);
+		if (avail<5) return NULL;
 		//signature found and version is 2
 		if (!strncmp(start_sig, "GS5F", 4) && (start_sig[4] == GF_GSF_VERSION)) {
 			*score = GF_FPROBE_SUPPORTED;
 			return "application/x-gpac-sf";
 		}
-		buf = start_sig+1;
-		avail = data_size - (u32) ( buf - (char *) data);
+		buf ++;
+		avail --;
 	}
 	return NULL;
 }
