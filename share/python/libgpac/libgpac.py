@@ -1103,7 +1103,9 @@ GF_FS_FLAG_FULL_LINK=1<<10
 ##\hideinitializer
 #see \ref GF_FS_FLAG_NO_IMPLICIT
 GF_FS_FLAG_NO_IMPLICIT=1<<11
-
+##\hideinitializer
+#see \ref GF_FS_FLAG_REQUIRE_SOURCE_ID
+GF_FS_FLAG_REQUIRE_SOURCE_ID=1<<12
 
 ##\hideinitializer
 #see \ref GF_PROP_FORBIDDEN
@@ -2811,9 +2813,7 @@ class Filter:
     ##enforces sourceID to be present for output pids of this filter - see \ref gf_filter_require_source_id
     #\return
     def require_source_id(self):
-        err = _libgpac.gf_filter_require_source_id(self._filter)
-        if err<0:
-            raise Exception('Failed to require sourceID for filter: ' + e2s(err))
+        _libgpac.gf_filter_require_source_id(self._filter)
         return
 
     ##Resolves link from given output pid of filter to a filter description. The described filter is not loaded in the graph - see \ref gf_filter_probe_link

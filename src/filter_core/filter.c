@@ -304,6 +304,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->session = fsess;
 	filter->max_extra_pids = freg->max_extra_pids;
 	filter->dynamic_filter = is_dynamic_filter ? 1 : 0;
+	filter->require_source_id = (fsess->flags & GF_FS_FLAG_REQUIRE_SOURCE_ID) ? GF_TRUE : GF_FALSE;
 
 #ifdef GPAC_HAS_QJS
 	filter->jsval = JS_UNDEFINED;
