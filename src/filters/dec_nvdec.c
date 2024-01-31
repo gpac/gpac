@@ -658,6 +658,8 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		nvdec_copy_props(ctx);
+		ctx->pix_fmt = GF_PIXEL_NV12;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt));
 	}
 
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
