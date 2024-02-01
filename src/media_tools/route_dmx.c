@@ -2056,7 +2056,7 @@ void gf_route_dmx_purge_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 		//if object is static file keep it - this may need refinement in case we had init segment updates
 		if (obj->rlct_file) continue;
 		//obj being received do not destroy
-		if (obj->status == GF_LCT_OBJ_RECEPTION) continue;
+		if (obj->status <= GF_LCT_OBJ_RECEPTION) continue;
 		//trash
 		gf_route_obj_to_reservoir(routedmx, s, obj);
 	}
