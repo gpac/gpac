@@ -869,7 +869,19 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
         }
 		obj->total_length = total_len;
 	} else if (total_len && (obj->total_length != total_len)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u mismatch in total-length %u  assigned, %u redeclared\n", s->service_id, tsi, toi, obj->total_length, total_len));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u mismatch in total-length %u assigned, %u redeclared, purging objet\n", s->service_id, tsi, toi, obj->total_length, total_len));
+		obj->nb_frags = obj->nb_recv_frags = 0;
+		obj->nb_bytes = obj->nb_recv_bytes = 0;
+		obj->total_length = total_len;
+
+		gf_mx_p(routedmx->blob_mx);
+		obj->payload = gf_realloc(obj->payload, obj->total_length);
+		obj->alloc_size = obj->total_length;
+		obj->blob.size = obj->total_length;
+		obj->blob.data = obj->payload;
+		gf_mx_v(routedmx->blob_mx);
+
+		obj->status = GF_LCT_OBJ_INIT;
 	}
 	if (s->last_active_obj != obj) {
 		//last object had EOS and not completed
