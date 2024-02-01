@@ -71,6 +71,11 @@ void set_args(Array args);
 */
 void set_rmt_fun(function callback);
 
+/*! send log message to profiler (Remotery) - see \ref gf_sys_profiler_log
+\param text text to send
+*/
+void rmt_log(DOMString text);
+
 /*! send message to profiler (Remotery) - see \ref gf_sys_profiler_send
 \param text text to send
 */

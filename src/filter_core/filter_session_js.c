@@ -319,6 +319,18 @@ static JSValue jsfs_enable_rmt(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_UNDEFINED;
 }
 
+static JSValue jsfs_rmt_log(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *msg;
+	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
+	if (!fs ||!argc) return GF_JS_EXCEPTION(ctx);
+	msg = JS_ToCString(ctx, argv[0]);
+	if (!msg) return GF_JS_EXCEPTION(ctx);
+	gf_sys_profiler_log(msg);
+	JS_FreeCString(ctx, msg);
+	return JS_UNDEFINED;
+}
+
 static JSValue jsfs_rmt_send(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *msg;
@@ -1894,6 +1906,7 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("lock_filters", 0, jsfs_lock_filters),
     JS_CFUNC_DEF("enable_rmt", 0, jsfs_enable_rmt),
     JS_CFUNC_DEF("rmt_send", 0, jsfs_rmt_send),
+    JS_CFUNC_DEF("rmt_log", 0, jsfs_rmt_log),
     JS_CFUNC_DEF("set_rmt_fun", 0, jsfs_set_rmt_fun),
     JS_CFUNC_DEF("set_new_filter_fun", 0, jsfs_set_new_filter_fun),
     JS_CFUNC_DEF("set_del_filter_fun", 0, jsfs_set_del_filter_fun),

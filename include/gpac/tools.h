@@ -601,6 +601,12 @@ typedef void (*gf_rmt_user_callback)(void *udta, const char* text);
 GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback rmt_usr_cbk);
 
 
+/*! Sends a log message to remotery web client
+\param msg text message to send. The message format should be json
+\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
+*/
+GF_Err gf_sys_profiler_log(const char *msg);
+
 /*! Sends a message to remotery web client
 \param msg text message to send. The message format should be json
 \return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
