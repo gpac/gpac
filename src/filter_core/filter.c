@@ -251,8 +251,6 @@ static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_
 		}
 		else if (!strncmp(in_args, "TAG", 3) && (in_args[3]==fsess->sep_name)) {
 		}
-		else if (!strncmp(in_args, "ITAG", 4) && (in_args[4]==fsess->sep_name)) {
-		}
 		else if (!strncmp(in_args, "FS", 2) && (in_args[2]==fsess->sep_name)) {
 		}
 		else if (!strncmp(in_args, "RSID", 4) && (!in_args[4] || (in_args[4]==fsess->sep_args))) {
@@ -2052,10 +2050,8 @@ skip_date:
 			}
 			//filter itag
 			else if (!strcmp("ITAG", szArg)) {
-				if (! filter->dynamic_filter) {
-					if (filter->itag) gf_free(filter->itag);
-					filter->itag = value ? gf_strdup(value) : NULL;
-				}
+				if (filter->itag) gf_free(filter->itag);
+				filter->itag = value ? gf_strdup(value) : NULL;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}

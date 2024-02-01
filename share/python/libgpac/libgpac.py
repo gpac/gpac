@@ -297,6 +297,7 @@ _libgpac.gf_props_get_type_name.restype = c_char_p
 _libgpac.gf_sys_clock.restype = c_uint
 _libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
+_libgpac.gf_sys_profiler_log.argtypes = [c_char_p]
 _libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
 _libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
 _libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
@@ -419,6 +420,15 @@ def set_rmt_fun(callback_obj):
     if hasattr(callback_obj, 'on_rmt_event')==False:
         raise Exception('No on_rmt_event function on callback')
     err = _libgpac.gf_sys_profiler_set_callback(py_object(callback_obj), rmt_fun_cbk)
+    if err<0:
+        return False
+    return True
+
+## send message to profiler (Remotery) - see \ref gf_sys_profiler_log
+# \param text text to send
+# \return True if success, False if no Remotery support
+def rmt_log(text):
+    err = _libgpac.gf_sys_profiler_log(text.encode('utf-8'))
     if err<0:
         return False
     return True
