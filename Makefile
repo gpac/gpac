@@ -80,11 +80,11 @@ man:
 unit_tests:
 	@echo "Building unit tests"
 	$(SRC_PATH)/unittests/build.sh > bin/gcc/unittests.c
-	@gcc -I$(SRC_PATH) -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H -g \
+	@$(CC) -I$(SRC_PATH) -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H -g \
 		-o bin/gcc/unittests bin/gcc/unittests.c \
 		$(SRC_PATH)/unittests/tests.c \
 		$(shell find src/ -path "*/unittests/*.c" | sort) \
-		-Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -lcmocka -Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -L. -Wl,-rpath=$(realpath .) -lgpac
+		-Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -L. -Wl,-rpath=$(realpath .) -lgpac
 	@echo "Executing unit tests"
 	LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
 
