@@ -40,7 +40,8 @@ extern int checks_failed;
          ? __ASSERT_VOID_CAST (0)                                    \
          : (action, __ASSERT_VOID_CAST (0)));                        \
     } while (0)
-#define assert_true_(expr)                                           \
+
+#define assert_true(expr)                                           \
     do {                                                             \
         if (expr) {                                                  \
             printf("Assertion passed: %s\nValue: %d\nFile: %s\nLine: %d\nFunction: %s\n", #expr, (expr), __FILE__, __LINE__, __ASSERT_FUNCTION); \
@@ -52,7 +53,7 @@ extern int checks_failed;
         }                                                            \
     } while (0)
 
-#define assert_false_(expr)                                          \
+#define assert_false(expr)                                          \
     do {                                                             \
         if (!(expr)) {                                               \
             printf("Assertion passed: !(%s)\nValue: %d\nFile: %s\nLine: %d\nFunction: %s\n", #expr, !(expr), __FILE__, __LINE__, __ASSERT_FUNCTION); \
@@ -63,6 +64,7 @@ extern int checks_failed;
             __ASSERT_VOID_CAST (0);                                  \
         }                                                            \
     } while (0)
+
 #if 0 // TODO
 extern int checks_passed;
 extern int checks_failed;
