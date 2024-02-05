@@ -2542,24 +2542,22 @@ Bool gf_strnistr(const char *text, const char *subtext, u32 subtext_len)
 
 GF_EXPORT
 Bool gf_sys_word_match(const char *orig, const char *dst)
-{    
-
-	if (orig == NULL && dst == NULL){
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, (" gf_sys_word_match: NULL arguments \n"));
-			return GF_TRUE;
-		}
-	
-	if (orig == NULL || dst == NULL) {
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, (" gf_sys_word_match: NULL argument \n"));
-    return GF_FALSE;
-	}
-
+{
 	s32 dist = 0;
 	u32 match = 0;
 	u32 i;
 	u32 olen = (u32) strlen(orig);
 	u32 dlen = (u32) strlen(dst);
 	u32 *run;
+
+	if (orig == NULL && dst == NULL) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, (" gf_sys_word_match: NULL arguments \n"));
+		return GF_TRUE;
+	}
+	if (orig == NULL || dst == NULL) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, (" gf_sys_word_match: NULL argument \n"));
+		return GF_FALSE;
+	}
 
 	if ((olen>=3) && (olen<dlen) && !strncmp(orig, dst, olen))
 		return GF_TRUE;
