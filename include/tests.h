@@ -1,9 +1,14 @@
 #pragma once
 
+#include <string.h> //strcmp
+#include <stdio.h>  //printf
+#include <assert.h> //__ASSERT_VOID_CAST
+
 #define unittest(suffix) int test_##suffix(void)
+
 extern int checks_passed;
 extern int checks_failed;
-// provide some flovoured asserts 
+// provide some flavoured asserts 
 
 #define verbose_assert(expr)                                        \
     do {                                                             \
@@ -65,7 +70,21 @@ extern int checks_failed;
         }                                                            \
     } while (0)
 
+#define assert_equal_str(str1, str2)                                          \
+    do {                                                             \
+        if (strcmp(str1, str2)) {                                               \
+            printf("Assertion passed:\nValue: %s, %s\nFile: %s\nLine: %d\nFunction: %s\n", #str1, #str2, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+            checks_passed++;                                         \
+        } else {                                                     \
+            printf("Assertion failed:\nValue: %s, %s\nFile: %s\nLine: %d\nFunction: %s\n", #str1, #str2, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+            checks_failed++;                                         \
+            __ASSERT_VOID_CAST (0);                                  \
+        }                                                            \
+    } while (0)
+
 #if 0 // TODO
+gf_fatal_assert
+
 extern int checks_passed;
 extern int checks_failed;
 
