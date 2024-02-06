@@ -60,6 +60,4 @@ unittest(gf_sys_word_match)
     // Test non-string: will crash because this exported function doesn't provide a str max len argument
     char str[3] = {'a', 'b', 'c'};
     //DISABLED: gf_sys_word_match("abc", str);
-
-    return EXIT_SUCCESS;
 }

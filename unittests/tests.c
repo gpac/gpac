@@ -64,8 +64,9 @@ int run_tests(int argc, char *argv[])
 
     printf("Running test: %s... ", tests[i].name);
 
-    int ret = tests[i].test_function();
-    if(ret != EXIT_SUCCESS) {
+    int prev_checks_failed = checks_failed;
+    tests[i].test_function();
+    if(checks_failed > prev_checks_failed) {
       printf("Failed\n");
       ret = EXIT_FAILURE;
       tests_failed++;
