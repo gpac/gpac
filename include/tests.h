@@ -2,7 +2,7 @@
 
 #include <gpac/setup.h>
 
-#define unittest(suffix) int test_##suffix(void)
+#define unittest(suffix) void test_##suffix(void)
 
 extern int checks_passed;
 extern int checks_failed;
