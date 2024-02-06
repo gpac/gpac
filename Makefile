@@ -81,7 +81,7 @@ unit_tests:
 	@echo "Building unit tests"
 	$(MAKE) -C src unit_tests
 	@echo "Executing unit tests"
-	LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
+	@LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
 
 unit_tests_clean:
 	@echo "Cleaning unit tests artifacts"

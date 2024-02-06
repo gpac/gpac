@@ -62,7 +62,7 @@ int run_tests(int argc, char *argv[])
     if(selected_tests != (unsigned)-1 && selected_tests != i)
       continue;
 
-    printf("Running test: %s... \n", tests[i].name);
+    printf("Running test: %s... ", tests[i].name);
 
     int ret = tests[i].test_function();
     if(ret != EXIT_SUCCESS) {
