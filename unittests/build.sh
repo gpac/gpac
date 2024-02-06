@@ -16,7 +16,7 @@ int run_tests(int argc, char *argv[]);
 int main(int argc, char *argv[])
 {'
 
-calls=$(find src/ -path "*/unittests/*.c" | xargs grep unittest | cut -d ":" -f 2)
+calls=$(find . -path "*/unittests/*.c" | xargs grep unittest | cut -d ":" -f 2)
 for call in $calls; do
     echo "  $call;"
 done

@@ -79,16 +79,9 @@ man:
 
 unit_tests:
 	@echo "Building unit tests"
-	$(SRC_PATH)/unittests/build.sh > bin/gcc/unittests.c
-	@$(CC) -I$(SRC_PATH) -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H -g \
-		-o bin/gcc/unittests bin/gcc/unittests.c \
-		$(SRC_PATH)/unittests/tests.c \
-		$(shell find src/ -path "*/unittests/*.c" | sort) \
-		-Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -Lbin/gcc -Wl,-rpath=$(realpath bin/gcc) -L. -Wl,-rpath=$(realpath .) -lgpac
+	$(MAKE) -C src unit_tests
 	@echo "Executing unit tests"
 	LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
-
-
 
 unit_tests_clean:
 	@echo "Cleaning unit tests artifacts"

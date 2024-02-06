@@ -418,3 +418,11 @@ clean:
 
 distclean: clean
 	rm -f Makefile.bak .depend $(DEPS)
+
+unit_tests:
+	$(SRC_PATH)/unittests/build.sh > ../bin/gcc/unittests.c
+	$(CC) -I$(SRC_PATH) -I$(SRC_PATH)/include -I.. \
+		-DGPAC_HAVE_CONFIG_H -DGPAC_UNIT_TESTS \
+		-o ../bin/gcc/unittests ../bin/gcc/unittests.c \
+		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | sort) \
+		-L../bin/gcc -Wl,-rpath=$(realpath ../bin/gcc) -Lbin/gcc -lgpac
