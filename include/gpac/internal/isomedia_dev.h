@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3572,7 +3572,7 @@ typedef struct
 /*CENCSampleEncryptionGroupEntry - 'seig' type*/
 typedef struct
 {
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 IsProtected;
 	u8 *key_info;
 	u32 key_info_size;
@@ -3594,7 +3594,7 @@ typedef struct __cenc_tenc_box
 {
 	GF_ISOM_FULL_BOX
 
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 isProtected;
 
 	//single key
@@ -3683,7 +3683,7 @@ typedef struct __traf_mss_timeref_box
 GF_SampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
-void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
+void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 
 GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak,
@@ -3692,7 +3692,7 @@ GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak,
 #else
 	void *traf,
 #endif
-	GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
+	GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak,

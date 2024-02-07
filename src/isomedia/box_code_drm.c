@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -862,9 +862,13 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (!ptr->version) {
 		gf_bs_read_u8(bs); //reserved
-	} else {
+	} else if (ptr->version==1) {
 		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
+	} else {
+		ptr->crypt_byte_block = gf_bs_read_u32(bs);
+		ptr->skip_byte_block = gf_bs_read_u32(bs);
+		ISOM_DECREASE_SIZE(ptr, 7);
 	}
 	ptr->isProtected = gf_bs_read_u8(bs);
 
@@ -909,8 +913,13 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!ptr->version) {
 		gf_bs_write_u8(bs, 0); //reserved
 	} else {
-		gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
-		gf_bs_write_int(bs, ptr->skip_byte_block, 4);
+		if (ptr->version==1) {
+			gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
+			gf_bs_write_int(bs, ptr->skip_byte_block, 4);
+		} else {
+			gf_bs_write_u32(bs, ptr->crypt_byte_block);
+			gf_bs_write_u32(bs, ptr->skip_byte_block);
+		}
 	}
 	gf_bs_write_u8(bs, ptr->isProtected);
 
@@ -927,6 +936,10 @@ GF_Err tenc_box_size(GF_Box *s)
 {
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 	ptr->size += 3;
+	if ((ptr->crypt_byte_block>15) || (ptr->skip_byte_block>15)) {
+		ptr->version=2;
+		ptr->size += 7;
+	}
 
 	ptr->size += 17;
 	if ((ptr->isProtected == 1) && ! ptr->key_info[3]) {

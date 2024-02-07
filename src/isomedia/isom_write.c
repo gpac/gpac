@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -7527,7 +7527,7 @@ Bool sg_encryption_compare_entry(void *udta, void *_entry)
 
 /*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 crypt_byte_block, u8 skip_byte_block, u8 *key_info, u32 key_info_size)
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u32 crypt_byte_block, u32 skip_byte_block, u8 *key_info, u32 key_info_size)
 {
 	GF_CENCSampleEncryptionGroupEntry entry;
 	if (!key_info || (key_info_size<19))
