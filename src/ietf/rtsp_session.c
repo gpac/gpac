@@ -113,7 +113,7 @@ found:
 	if (retest && strstr(retest, "/")) {
 		retest += 1;
 		i=0;
-		while (i<strlen(retest)) {
+		while (i<strlen(retest) && i<1023) {
 			if (retest[i] == '/') break;
 			text[i] = retest[i];
 			i += 1;
@@ -152,7 +152,7 @@ found:
 		i += 1;
 	}
 	text[i] = 0;
-	strncpy(Server, text, 1023);
+	strncpy(Server, text, 1024);
 	Server[1023]=0;
 	if (sep) sep[0] = '?';
 
@@ -957,7 +957,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_
 	//OK create a new session
 	GF_SAFEALLOC(sess, GF_RTSPSession);
 	if (!sess) return NULL;
-	
+
 	sess->connection = new_conn;
 	sess->Port = port;
 	sess->ConnectionType = fam;
