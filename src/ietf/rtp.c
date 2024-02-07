@@ -521,7 +521,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader 
 	}
 	if (ch->first_SR && !ch->SenderSSRC && rtp_hdr->SSRC) {
 		ch->SenderSSRC = rtp_hdr->SSRC;
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Assigning SSRC to %d because none was specified through SDP/RTSP\n", ch->SenderSSRC));
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Assigning SSRC to %d for stream on port %u because none was specified through SDP/RTSP\n", ch->SenderSSRC, ch->net_info.client_port_first));
 	}
 
 	if (!ch->ntp_init && ch->SenderSSRC && (ch->SenderSSRC != rtp_hdr->SSRC) ) {
@@ -604,7 +604,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader 
 	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
 		ch->total_bytes += pck_size-12;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP]\t%d\t%d\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP Packet]\t%d\t%d\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n",
 		                                  ch->SenderSSRC,
 		                                  rtp_hdr->SequenceNumber,
 		                                  rtp_hdr->TimeStamp,
@@ -996,7 +996,9 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 		if (!cur->next) {
 			cur->next = it;
 			po->Count += 1;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Appending packet %d (last %d)\n", pck_seqnum, cur->pck_seq_num));
+			if (pck_seqnum != 1+cur->pck_seq_num) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Appending packet %d (last %d)\n", pck_seqnum, cur->pck_seq_num));
+			}
 			return GF_OK;
 		}
 
@@ -1090,7 +1092,9 @@ check_timeout:
 
 
 send_it:
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetching %d\n", po->in->pck_seq_num));
+	if (!po->in->next || (po->in->pck_seq_num+1 != po->in->next->pck_seq_num)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetching %d\n", po->in->pck_seq_num));
+	}
 	*pck_size = po->in->size;
 	t = po->in;
 	po->in = po->in->next;
