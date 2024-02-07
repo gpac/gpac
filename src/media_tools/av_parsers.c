@@ -114,7 +114,7 @@ void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur)
 		*timescale = res;
 		*sample_dur = 1;
 	}
-	else if ((double)(*timescale * 1001 - (res + 1) * *sample_dur * 1000) / ((res + 1) * *sample_dur * 1000) < 0.001) {
+	else if ((double)((u64)*timescale * 1001 - (u64)(res + 1) * (u64)*sample_dur * 1000) / ((u64)(res + 1) * (u64)*sample_dur * 1000) < 0.001) {
 		*timescale = (res + 1) * 1000;
 		*sample_dur = 1001;
 	}
