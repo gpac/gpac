@@ -5854,7 +5854,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *isom_file, u32 trackNumber
 \return error if any
 */
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_crypt_byte_block, u8 default_skip_byte_block,
+                                   u32 scheme_version, u32 default_IsEncrypted, u32 default_crypt_byte_block, u32 default_skip_byte_block,
 								    u8 *key_info, u32 key_info_size);
 
 
@@ -5872,7 +5872,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *isom_file, u32 trackNumber, u32 s
 \return error if any
 */
 GF_Err gf_isom_set_cenc_protection_mkey(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_crypt_byte_block, u8 default_skip_byte_block,
+                                   u32 scheme_version, u32 default_IsEncrypted, u32 default_crypt_byte_block, u32 default_skip_byte_block,
 								    u8 *key_info, u32 key_info_size);
 
 
@@ -5985,7 +5985,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, 
 \param key_info_size set to multikey descriptor size
 \return error if any
 */
-GF_Err gf_isom_cenc_get_default_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
+GF_Err gf_isom_cenc_get_default_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 /*! gets the number of PSSH defined
 \param isom_file the target ISO file
@@ -6035,7 +6035,7 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 
 \param key_info_size set to key descriptor size
 \return error if any
 */
-GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, Bool *IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 /*! @} */
 
@@ -6163,7 +6163,7 @@ GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *isom_file, Bool root_meta, u32 
 \return error if any
 */
 GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_id, Bool *is_protected,
-	u8 *skip_byte_block, u8 *crypt_byte_block, const u8 **key_info, u32 *key_info_size, u32 *aux_info_type_parameter,
+	u32 *skip_byte_block, u32 *crypt_byte_block, const u8 **key_info, u32 *key_info_size, u32 *aux_info_type_parameter,
 	u8 **sai_out_data, u32 *sai_out_size, u32 *sai_out_alloc_size);
 
 /*! gets primary item ID
@@ -6227,8 +6227,8 @@ typedef struct
 {
 	u32 scheme_type;
 	u32 scheme_version;
-	u8 crypt_byte_block;
-	u8 skip_byte_block;
+	u32 crypt_byte_block;
+	u32 skip_byte_block;
 	const u8 *key_info;
 	u32 key_info_size;
 	const u8 *sai_data;
@@ -7119,7 +7119,7 @@ GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *isom_file, u32 trackNumber, u32
 \param key_info_size multikey descriptor size
 \return error if any
 */
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u8 isEncrypted, u8 crypt_byte_block, u8 skip_byte_block, u8 *key_info, u32 key_info_size);
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u8 isEncrypted, u32 crypt_byte_block, u32 skip_byte_block, u8 *key_info, u32 key_info_size);
 
 
 /*! sets a sample using the default CENC parameters in a CENC saig sample group SEIG, creating a sample group description if needed (when seig is already defined)

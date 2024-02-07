@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -191,7 +191,7 @@ typedef struct
 	u32 clear_bytes;
 
 	/*! CENS/CBCS pattern */
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 
 	/* ! for avc1 ctr CENC edition 1 */
 	Bool allow_encrypted_slice_header;

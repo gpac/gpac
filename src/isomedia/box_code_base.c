@@ -9971,9 +9971,15 @@ void *sgpd_parse_entry(GF_SampleGroupDescriptionBox *p, GF_BitStream *bs, s32 by
 		GF_SAFEALLOC(ptr, GF_CENCSampleEncryptionGroupEntry);
 		if (!ptr) return NULL;
 		Bool use_mkey = gf_bs_read_int(bs, 1);
-		gf_bs_read_int(bs, 7); //reserved
-		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
-		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
+		Bool ext_pattern = gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 6); //reserved
+		if (ext_pattern) {
+			ptr->crypt_byte_block = gf_bs_read_u32(bs);
+			ptr->skip_byte_block = gf_bs_read_u32(bs);
+		} else {
+			ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
+			ptr->skip_byte_block = gf_bs_read_int(bs, 4);
+		}
 		ptr->IsProtected = gf_bs_read_u8(bs);
 		bytes_in_box -= 3;
 		if (use_mkey) {
@@ -10350,9 +10356,16 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 			nb_keys |= seig->key_info[2];
 		}
 		gf_bs_write_int(bs, use_mkey ? 1 : 0, 1);
-		gf_bs_write_int(bs, 0, 7);
-		gf_bs_write_int(bs, seig->crypt_byte_block, 4);
-		gf_bs_write_int(bs, seig->skip_byte_block, 4);
+		if ((seig->crypt_byte_block>15) || (seig->skip_byte_block>15)) {
+			gf_bs_write_int(bs, 1, 1);
+			gf_bs_write_int(bs, 0, 6);
+			gf_bs_write_u32(bs, seig->crypt_byte_block);
+			gf_bs_write_u32(bs, seig->skip_byte_block);
+		} else {
+			gf_bs_write_int(bs, 0, 7);
+			gf_bs_write_int(bs, seig->crypt_byte_block, 4);
+			gf_bs_write_int(bs, seig->skip_byte_block, 4);
+		}
 		gf_bs_write_u8(bs, seig->IsProtected);
 		if (nb_keys>1) {
 			gf_bs_write_data(bs, seig->key_info+1, seig->key_info_size-1);
@@ -10452,11 +10465,15 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 	case GF_ISOM_SAMPLE_GROUP_SEIG:
 	{
 		GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
+		u32 base_size = 3;
+		if ((seig->crypt_byte_block>15) || (seig->skip_byte_block>15)) {
+			base_size += 7;
+		}
 		Bool use_mkey = seig->key_info[0] ? GF_TRUE : GF_FALSE;
 		if (use_mkey) {
-			return 3 + seig->key_info_size-1;
+			return base_size + seig->key_info_size-1;
 		}
-		return seig->key_info_size; //== 3 + (seig->key_info_size-3);
+		return base_size + seig->key_info_size-3;
 	}
 	case GF_ISOM_SAMPLE_GROUP_OINF:
 		return gf_isom_oinf_size_entry(entry);

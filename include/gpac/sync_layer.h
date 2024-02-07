@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / SL header file
@@ -128,7 +128,7 @@ typedef struct
 	u8 IV_size;
 
 	//for CENC pattern encryption mode
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 constant_IV_size;
 	bin128 constant_IV;
 	/*version_number are pushed from m2ts sections to the mpeg4sl layer so as to handle mpeg4 stream dependencies*/

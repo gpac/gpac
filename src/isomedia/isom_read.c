@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -5489,9 +5489,9 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 }
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
+GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 #else
-GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
+GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 #endif
 {
 	GF_SampleGroupBox *sample_group;
@@ -5637,7 +5637,7 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, Bool *IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
 	GF_SampleEncryptionBox *senc = trak->sample_encryption;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -188,7 +188,7 @@ typedef struct
 	u32 last_sample_desc_index;
 	u32 isLeading, dependsOn, dependedOn, redundant;
 	u64 dts, cts;
-	u8 skip_byte_block, crypt_byte_block;
+	u32 skip_byte_block, crypt_byte_block;
 	u32 au_seq_num;
 	u64 sender_ntp, ntp_at_server_ntp;
 

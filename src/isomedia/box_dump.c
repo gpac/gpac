@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -5801,7 +5801,7 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 	}
 	dump_data_hex(trace, (char *) ptr->key_info+4, 16);
 	if (ptr->version)
-		gf_fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
+		gf_fprintf(trace, "\" crypt_byte_block=\"%u\" skip_byte_block=\"%u", ptr->crypt_byte_block, ptr->skip_byte_block);
 	gf_fprintf(trace, "\">\n");
 
 	if (!ptr->size) {
@@ -7025,7 +7025,7 @@ GF_Err ienc_box_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "ItemEncryptionPropertyBox", trace);
 	if (ptr->version)
-		gf_fprintf(trace, " skip_byte_block=\"%d\" crypt_byte_block=\"%d\"", ptr->skip_byte_block, ptr->crypt_byte_block);
+		gf_fprintf(trace, " skip_byte_block=\"%u\" crypt_byte_block=\"%u\"", ptr->skip_byte_block, ptr->crypt_byte_block);
 	gf_fprintf(trace, ">\n");
 	nb_keys = ptr->key_info ? ptr->key_info[2] : 0;
 	kpos = 3;

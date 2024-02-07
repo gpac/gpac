@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -199,7 +199,7 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 	GF_Err e;
 	Bool Is_Encrypted;
 	u32 out_size;
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 piff_info[20];
 	u8 *key_info = NULL;
 	u32 key_info_size = 0;
