@@ -635,11 +635,11 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			while (1) {
 				pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 				if (pos <= 0) break;
+				if (timing->NbZoneOffsets >= GF_SDP_MAX_TIMEOFFSET) break;
 				timing->AdjustmentTime[timing->NbZoneOffsets] = atoi(comp);
 				pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 				timing->AdjustmentOffset[timing->NbZoneOffsets] = SDP_MakeSeconds(comp);
 				timing->NbZoneOffsets += 1;
-				if (timing->NbZoneOffsets == GF_SDP_MAX_TIMEOFFSET) break;
 			}
 			break;
 		case 'k':
