@@ -7128,7 +7128,7 @@ static Bool hevc_parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u
 			poc = prev - delta_poc_s0_minus1 - 1;
 			prev = poc;
 			sps->rps[idx_rps].delta_poc[i] = poc;
-			gf_bs_read_int_log_idx2(bs, 1, "delta_poc_s0_minus1", idx_rps, i);
+			gf_bs_read_int_log_idx2(bs, 1, "used_by_curr_pic_s0_flag", idx_rps, i);
 		}
 		for (i = 0; i < sps->rps[idx_rps].num_positive_pics; i++) {
 			u32 delta_poc_s1_minus1 = gf_bs_read_ue_log_idx2(bs, "delta_poc_s1_minus1" , idx_rps, i);
