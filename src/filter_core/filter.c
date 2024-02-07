@@ -1122,12 +1122,13 @@ Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH])
 #endif
 
 	if (path && path[0]) {
-		strcpy(szPath, path);
+		strncpy(szPath, path, GF_MAX_PATH-1);
+		szPath[GF_MAX_PATH-1] = 0;
 		u32 len = (u32) strlen(szPath);
 		if ((szPath[len-1]=='/') || (szPath[len-1]=='\\'))
 			szPath[len-1]=0;
 
-		strcat(szPath, url+6);
+		strncat(szPath, url+6, GF_MAX_PATH-strlen(szPath)-1);
 		return GF_TRUE;
 	}
 	return GF_FALSE;
