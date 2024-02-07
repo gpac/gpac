@@ -789,11 +789,6 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		return GF_NOT_SUPPORTED;
 	}
 
-	if(close_flag && (start_offset==0) && (size < total_len)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Inconsistent object data for a single-packet transmission. Size (%u) should be equal to total length (%u), skipping\n", s->service_id, tsi, toi, size, total_len));
-		return GF_CORRUPTED_DATA;
-	}
-
 	if (!obj || (obj->tsi!=tsi) || (obj->toi!=toi)) {
 		count = gf_list_count(s->objects);
 		for (i=0; i<count; i++) {
@@ -869,18 +864,20 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
             gf_mx_v(routedmx->blob_mx);
         }
 		obj->total_length = total_len;
-	} else if (total_len && (obj->total_length != total_len)) {
+	} else if (total_len && (obj->total_length != total_len) && (obj->status < GF_LCT_OBJ_DONE)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u mismatch in total-length %u assigned, %u redeclared, purging objet\n", s->service_id, tsi, toi, obj->total_length, total_len));
 		obj->nb_frags = obj->nb_recv_frags = 0;
 		obj->nb_bytes = obj->nb_recv_bytes = 0;
 		obj->total_length = total_len;
 
-		gf_mx_p(routedmx->blob_mx);
-		obj->payload = gf_realloc(obj->payload, obj->total_length);
-		obj->alloc_size = obj->total_length;
-		obj->blob.size = obj->total_length;
-		obj->blob.data = obj->payload;
-		gf_mx_v(routedmx->blob_mx);
+		if (obj->alloc_size < total_len) {
+			gf_mx_p(routedmx->blob_mx);
+			obj->payload = gf_realloc(obj->payload, obj->total_length);
+			obj->alloc_size = obj->total_length;
+			obj->blob.size = obj->total_length;
+			obj->blob.data = obj->payload;
+			gf_mx_v(routedmx->blob_mx);
+		}
 
 		obj->status = GF_LCT_OBJ_INIT;
 	}
