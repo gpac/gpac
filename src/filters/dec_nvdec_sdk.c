@@ -236,9 +236,9 @@ static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance, const char *lib_path)
     return CUDA_SUCCESS;
 }
 
-static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance)
+static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance, const char *lib_path)
 {
-    *pInstance = LoadLibrary(__CuvidLibName);
+    *pInstance = LoadLibrary(lib_path ? lib_path : __CuvidLibName);
     if (*pInstance == NULL) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] LoadLibrary \"%s\" failed!\n", __CuvidLibName));
         return CUDA_ERROR_UNKNOWN;
@@ -284,9 +284,9 @@ static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance, const char *lib_path)
     return CUDA_SUCCESS;
 }
 
-static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance)
+static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance, const char *lib_path)
 {
-    *pInstance = dlopen(__CuvidLibName, RTLD_NOW);
+    *pInstance = dlopen(lib_path ? lib_path : __CuvidLibName, RTLD_NOW);
     if (*pInstance == NULL) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec]dlopen \"%s\" failed!\n", __CuvidLibName));
         return CUDA_ERROR_UNKNOWN;
@@ -347,18 +347,23 @@ void CUDAAPI cuUninit()
 	CuvidDrvLib = 0;
 }
 
-CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion, const char *lib_path)
+CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion, const char *cuda_path, const char *cuvid_path)
 {
     int driverVer = 1000;
 	CUDADRIVER curr_lib ;
 
 	if (CudaDrvLib) return CUDA_SUCCESS;
 
-	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib, lib_path));
+	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib, cuda_path));
 	curr_lib = CudaDrvLib;
 
 	// cuInit is required; alias it to _cuInit
     GET_PROC_EX(cuInit, _cuInit, 1);
+    if (_cuInit==NULL) {
+ 		cuUninit();
+        CudaDrvLib=NULL;
+        return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
+    }
     CHECKED_CALL(_cuInit(Flags));
 
     // available since 2.2. if not present, version 1.0 is assumed
@@ -611,7 +616,12 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion, const char *lib_pat
     }
 
 	//init cuvid
-    CHECKED_CALL(LOAD_LIBRARY_CUVID(&CuvidDrvLib));
+    CUresult result = LOAD_LIBRARY_CUVID(&CuvidDrvLib, cuvid_path);
+    if (result !=CUDA_SUCCESS) {
+ 		cuUninit();
+        CudaDrvLib=NULL;
+        return result;
+    }
 
 	curr_lib = CuvidDrvLib;
 #if !defined(__APPLE__)
@@ -628,7 +638,11 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion, const char *lib_pat
     GET_PROC(cuvidCreateVideoParser);
     GET_PROC(cuvidParseVideoData);
     GET_PROC(cuvidDestroyVideoParser);
-
+    if (cuvidCreateVideoParser==NULL) {
+ 		cuUninit();
+        CudaDrvLib=NULL;
+        return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
+    }
     GET_PROC(cuvidCreateDecoder);
     GET_PROC(cuvidDestroyDecoder);
     GET_PROC(cuvidDecodePicture);

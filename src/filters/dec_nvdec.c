@@ -1432,13 +1432,15 @@ static void init_cuda_sdk()
 #else
 		CUresult res;
 		int device_count;
-		const char *path = gf_opts_get_key("core", "cuda_lib");
-		if (!path) 
-			path = gf_opts_get_key("temp", "cuda_lib");
-	    res = cuInit(0, __CUDA_API_VERSION, path);
-		if (path && (res == CUDA_ERROR_SHARED_OBJECT_INIT_FAILED)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] cuda lib %s invalid, retrying with system path\n", path) );
-		    res = cuInit(0, __CUDA_API_VERSION, NULL);
+			const char *cuda_path = gf_opts_get_key("core", "cuda_lib");
+		if (!cuda_path) cuda_path = gf_opts_get_key("temp", "cuda_lib");
+		const char *cuvid_path = gf_opts_get_key("core", "cuvid_lib");
+		if (!cuvid_path) cuvid_path = gf_opts_get_key("temp", "cuvid_lib");
+
+	    res = cuInit(0, __CUDA_API_VERSION, cuda_path, cuvid_path);
+		if ((cuda_path||cuvid_path) && (res != CUDA_SUCCESS)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] loading cuda/cuvid with custom path failed, retrying with system path\n") );
+		    res = cuInit(0, __CUDA_API_VERSION, NULL, NULL);
 		}
 		cuvid_load_state = 1;
 		if (res == CUDA_ERROR_SHARED_OBJECT_INIT_FAILED) {
@@ -1564,6 +1566,7 @@ GF_FilterRegister NVDecRegister = {
 	"If the SDK is not available, the configuration key `nvdec@disabled` will be written in configuration file to avoid future load attempts.\n"
 	"\n"
 	"The absolute path to cuda lib can be set using the `cuda_lib` option in `core` or `temp` section of the config file, e.g. `-cfg=temp:cuda_lib=PATH_TO_CUDA`\n"
+	"The absolute path to cuvid lib can be set using the `cuvid_lib` option in `core` or `temp` section of the config file, e.g. `-cfg=temp:cuvid_lib=PATH_TO_CUDA`\n"
 	)
 	.private_size = sizeof(NVDecCtx),
 	SETCAPS(NVDecCaps),
