@@ -395,8 +395,9 @@ void gpac_em_sig_handler(int type)
 		gf_fs_abort(session, GF_FS_FLUSH_FAST);
 		break;
 	case 3:
-		fprintf(stderr, "Aborting without flush ...\n");
+		fprintf(stderr, "Aborting without flush %s...\n", nb_loops ? "and stoping loops" : "");
 		gf_fs_abort(session, GF_FS_FLUSH_NONE);
+		nb_loops=0;
 		break;
 	case 4:
 		if (!enable_reports) {
@@ -1501,6 +1502,7 @@ exit:
 		gf_log_reset_file();
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
+		emscripten_cancel_main_loop();
 		return gpac_run();
 #else
 		goto restart;
