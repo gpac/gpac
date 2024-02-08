@@ -1685,7 +1685,7 @@ extern tcuTexRefGetAddress             *cuTexRefGetAddress;
 extern tcuGraphicsResourceGetMappedPointer   *cuGraphicsResourceGetMappedPointer;
 
 /************************************/
-CUresult CUDAAPI cuInit   (unsigned int, int cudaVersion);
+CUresult CUDAAPI cuInit   (unsigned int, int cudaVersion, const char *lib_path);
 void CUDAAPI cuUninit();
 /************************************/
 

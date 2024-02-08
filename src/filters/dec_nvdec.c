@@ -1432,7 +1432,14 @@ static void init_cuda_sdk()
 #else
 		CUresult res;
 		int device_count;
-	    res = cuInit(0, __CUDA_API_VERSION);
+		const char *path = gf_opts_get_key("core", "cuda_lib");
+		if (!path) 
+			path = gf_opts_get_key("temp", "cuda_lib");
+	    res = cuInit(0, __CUDA_API_VERSION, path);
+		if (path && (res == CUDA_ERROR_SHARED_OBJECT_INIT_FAILED)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] cuda lib %s invalid, retrying with system path\n", path) );
+		    res = cuInit(0, __CUDA_API_VERSION, NULL);
+		}
 		cuvid_load_state = 1;
 		if (res == CUDA_ERROR_SHARED_OBJECT_INIT_FAILED) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] cuda lib not found on system\n") );
@@ -1554,7 +1561,10 @@ GF_FilterRegister NVDecRegister = {
 	GF_FS_SET_DESCRIPTION("NVidia decoder")
 	GF_FS_SET_HELP("This filter decodes MPEG-2, MPEG-4 Part 2, AVC|H264 and HEVC streams through NVidia decoder. It allows GPU frame dispatch or direct frame copy."
 	"\n"
-	"If the SDK is not available, the configuration key `nvdec@disabled` will be written in configuration file to avoid future load attempts.")
+	"If the SDK is not available, the configuration key `nvdec@disabled` will be written in configuration file to avoid future load attempts.\n"
+	"\n"
+	"The absolute path to cuda lib can be set using the `cuda_lib` option in `core` or `temp` section of the config file, e.g. `-cfg=temp:cuda_lib=PATH_TO_CUDA`\n"
+	)
 	.private_size = sizeof(NVDecCtx),
 	SETCAPS(NVDecCaps),
 	.flags = GF_FS_REG_CONFIGURE_MAIN_THREAD,

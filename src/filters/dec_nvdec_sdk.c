@@ -226,9 +226,9 @@ static LPCSTR __CuvidLibName = "nvcuvid.dll";
 typedef HMODULE CUDADRIVER;
 typedef HMODULE CUVIDDRIVER;
 
-static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance)
+static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance, const char *lib_path)
 {
-    *pInstance = LoadLibrary(__CudaLibName);
+    *pInstance = LoadLibrary(lib_path ? lib_path : __CudaLibName);
     if (*pInstance == NULL) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] LoadLibrary \"%s\" failed!\n", __CudaLibName));
         return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
@@ -274,9 +274,9 @@ static char __CuvidLibName[] = "libnvcuvid.so";
 
 typedef void *CUVIDDRIVER;
 
-static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance)
+static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance, const char *lib_path)
 {
-    *pInstance = dlopen(__CudaLibName, RTLD_NOW);
+    *pInstance = dlopen(lib_path ? lib_path : __CudaLibName, RTLD_NOW);
     if (*pInstance == NULL) {
         GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] dlopen \"%s\" failed!\n", __CudaLibName));
         return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
@@ -347,14 +347,14 @@ void CUDAAPI cuUninit()
 	CuvidDrvLib = 0;
 }
 
-CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
+CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion, const char *lib_path)
 {
     int driverVer = 1000;
 	CUDADRIVER curr_lib ;
 
 	if (CudaDrvLib) return CUDA_SUCCESS;
 
-	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib));
+	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib, lib_path));
 	curr_lib = CudaDrvLib;
 
 	// cuInit is required; alias it to _cuInit
