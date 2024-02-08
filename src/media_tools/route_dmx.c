@@ -23,6 +23,7 @@
  *
  */
 
+#include <math.h>
 #include <gpac/route.h>
 
 #if !defined(GPAC_DISABLE_ROUTE)
@@ -762,7 +763,7 @@ static GF_Err gf_route_service_flush_object(GF_ROUTEService *s, GF_LCTObject *ob
 
 static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, u32 tsi, u32 toi, u32 start_offset, char *data, u32 size, u32 total_len, Bool close_flag, Bool in_order, GF_ROUTELCTChannel *rlct, GF_LCTObject **gather_obj)
 {
-	Bool inserted, done;
+	Bool /*inserted,*/ done;
 	u32 i, count;
     Bool do_push = GF_FALSE;
 	GF_LCTObject *obj = s->last_active_obj;
@@ -927,7 +928,71 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
     }
 	obj->nb_recv_bytes += size;
 
-	inserted = GF_FALSE;
+	//inserted = GF_FALSE;
+
+	int start_frag = -1;
+	int end_frag = -1;
+	for (i=0; (i < obj->nb_frags) && (start_frag==-1 || end_frag==-1); i++) {
+		if((start_frag == -1) && (start_offset <= obj->frags[i].offset + obj->frags[i].size)) {
+			start_frag = i;
+		}
+
+		if((end_frag == -1) && (start_offset + size < obj->frags[i].offset)) {
+			end_frag = i;
+		} 
+	}
+	if(start_frag == -1) {
+		start_frag = obj->nb_frags;
+	}
+	if(end_frag == -1) {
+		end_frag = obj->nb_frags;
+	}
+
+	if(start_frag == end_frag) {
+		// insert new fragment between two already received fragments or at the end
+		if (obj->nb_frags==obj->nb_alloc_frags) {
+			obj->nb_alloc_frags *= 2;
+			obj->frags = gf_realloc(obj->frags, sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+		}
+		memmove(&obj->frags[start_frag+1], &obj->frags[start_frag], sizeof(GF_LCTFragInfo) * (obj->nb_frags - start_frag));
+		obj->frags[start_frag].offset = start_offset;
+		obj->frags[start_frag].size = size;
+		obj->nb_bytes += size;
+		obj->nb_frags++;
+		//inserted = GF_TRUE;
+
+	} else {
+		int old_size = obj->frags[start_frag].size;
+
+		int end = fmax(start_offset+size, obj->frags[end_frag-1].offset+obj->frags[end_frag-1].size);
+		obj->frags[start_frag].offset = fmin(obj->frags[start_frag].offset, start_offset);
+		obj->frags[start_frag].size = end - obj->frags[start_frag].offset;
+
+		if(end_frag == start_frag + 1) {
+			// received extends fragment of index start_frag
+			if(obj->frags[start_frag].size < old_size + size) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d Overlapping or already received LCT fragment [%u, %u]\n", s->service_id, start_offset, start_offset+size-1));
+			}
+			obj->nb_bytes += obj->frags[start_frag].size - old_size;
+
+		} else if(end_frag > start_frag + 1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d Overlapping LCT fragment\n", s->service_id));
+
+			memmove(&obj->frags[start_frag+1], &obj->frags[end_frag], sizeof(GF_LCTFragInfo) * (obj->nb_frags - end_frag));
+			obj->nb_frags += start_frag - end_frag + 1;
+
+			obj->nb_bytes = 0;
+			for(int i=0; i < obj->nb_frags; i++) {
+				obj->nb_bytes += obj->frags[i].size;
+			}
+		}
+		//inserted = GF_TRUE;
+	}
+
+	if (!start_frag) {
+		do_push = start_offset ? GF_FALSE : routedmx->progressive_dispatch;
+	}
+	/*
 	for (i=0; i<obj->nb_frags; i++) {
 		if ((obj->frags[i].offset <= start_offset) && (obj->frags[i].offset + obj->frags[i].size >= start_offset + size) ) {
             //data already received
@@ -978,6 +1043,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
         if (obj->nb_frags==1)
             do_push = start_offset ? GF_FALSE : routedmx->progressive_dispatch;
 	}
+	*/
 	obj->nb_recv_frags++;
 	obj->status = GF_LCT_OBJ_RECEPTION;
 
