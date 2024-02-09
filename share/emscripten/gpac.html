@@ -115,6 +115,11 @@
         let edit_name = null;
         let is_eval = false;
         let is_bsize = false;
+        let is_custfs = false;
+        let fsess=null;
+        let prev_filter=null;
+        let prev_filter_defer=false;
+        let step_mode=false;
         var FS = null;
         var element = document.getElementById('output');
         if (element) element.value = '/ %';
@@ -218,6 +223,11 @@
           runElement.hidden = true;
           return com_exit(err);
         }
+        function set_text(txt)
+        {
+            var element = document.getElementById('output');
+            if (element) element.innerText = txt;
+        }
 
         //utility to log command error and append '/cwd/ %' at end of textArea
         function com_exit() {
@@ -240,6 +250,11 @@
          GPAC.no_log = false;
 
          args = cmd.split(' ');
+
+         if (is_custfs) {
+          run_prompt(cmd);
+          return;
+        }
 
          //in eval mode, run
          if (is_eval) {
@@ -289,7 +304,7 @@
 
          //webpage help
          if ((args[0]=="help") || (args[0]=="h")) {
-          let text = "GPAC WASM demo - " + GPAC.copyright() + "\n";
+          let text = "GPAC WASM demo - " + LIBGPAC.copyright() + "\n";
           text+="Use the command line input to run gpac, MP4Box or perform simple filesystem manipulations\n";
           text+="If program name is not given, 'gpac' is assumed\n";
           text+="\n";
@@ -311,7 +326,7 @@
           text+="cp N1 N2:      copies file N1 to N2 (no recursive copy support)\n";
           text+="show NAME:     shows content of file NAME\n";
           text+="edit NAME:     edits content of file NAME, use 'save' to save and close, 'close' to discard and close\n";
-          if (GPAC.has_threads) {
+          if (LIBGPAC.has_threads) {
             text+="worker         toggles worker mode on or off (" + (GPAC.worker ? "on" : "off") + ")\n";
             text+="threads        views number of pre-allocated workers\n";
           }
@@ -320,6 +335,7 @@
           text+="fetch          toggles fetch support in libgpac\n";
           text+="bsize          sets block size used to read from local disk (default " + GPAC.read_block_size + ")\n";
           text+="eval           evaluates JS code\n";
+          text+="fs             interactive graph builder\n";
           text+="\n";
           text+="Up and Down arrows can be used for command history\n";
           text+="\n";
@@ -345,7 +361,7 @@
           text+="\t-step=0 will use browser defaults for requestAnimationFrame frequency\n";
           text+="\t-step=100 will request callback every 10 ms\n";
           text+="\t-step=100:1000 will request callback every 10 ms, calling at most 1000 times the session\n";
-          if (GPAC.has_threads) {
+          if (LIBGPAC.has_threads) {
             text+="\n";
             text+="When running without worker, internal threading of filters (e.g. ffmpeg & co) will be disabled if the session runs only on the main thread.\n"
             text+="Use -threads=N with N>0 (typically -threads=1) to enable threading in these filters.\n";
@@ -545,7 +561,7 @@
          }
          //worker tag set
          if (args[0]=='worker') {
-            if (!GPAC.has_threads) {
+            if (!LIBGPAC.has_threads) {
               LIBGPAC.gpac_worker=false;
               return com_exit('GPAC compiled without threads');
             }
@@ -576,7 +592,7 @@
          }
          //show allocated threads - usefull to check how many threads were indeed created by the previous run
          if (args[0]=='threads') {
-            if (GPAC.has_threads) {
+            if (LIBGPAC.has_threads) {
               do_log('Threads Pool Size: ' + LIBGPAC['PThread'].unusedWorkers.length);
               return com_exit();
             }
@@ -602,6 +618,12 @@
             let runElement = document.getElementById('run_script');
             runElement.hidden = false;
             return;
+         }
+         if (args[0]=='fs') {
+              set_status('Starting interactive graph builder');
+              set_text('');
+              is_custfs = true;
+              return;
          }
          if (args[0]=='bsize') {
             set_status('Enter new block size to use (current ' + GPAC.read_block_size + ')');
@@ -687,6 +709,145 @@
             }
           }
          }
+
+         function run_prompt(cmd) {
+            let args = cmd.split(' ');
+            if (!args.length) return;
+            if (args[0]=='q') {
+              is_custfs=false;
+              if (fsess) {
+                LIBGPAC.fs_del(fsess);
+                fsess=null;
+                LIBGPAC.uninit();
+                set_status("leaving interactive mode");
+              }
+              return;
+            }
+            if (args[0]=='s') {
+              if (!fsess) {
+                step_mode = !step_mode;
+                set_status("will use step mode: " + (step_mode ? "yes" : "no"));
+              }
+              return;
+            }
+            if (args[0]=='a') {
+              if (args.length<2) return set_status('Invalid add command');
+              if (!fsess) {
+                let flag = step_mode ? (1<<2) : 0;
+                LIBGPAC.init(0, null);
+                fsess = LIBGPAC.fs_new_defaults(flag);
+                set_status("Creating filter session in " + step_mode ? 'non-blocking mode' : 'blocking mode');
+              }
+              if (prev_filter) {
+                if (prev_filter_defer)
+                  LIBGPAC.filter_reconnect_output(prev_filter, null);
+                prev_filter=null;
+                prev_filter_defer=false;
+              }
+
+              let fdesc = args[1]; 
+              let select_start = fdesc.indexOf('$(');
+              let select_end = (select_start>=0) ? fdesc.indexOf(')') : 0;
+              if (select_end) {
+                let hint = fdesc.substring(select_start, select_end+1);
+                let fio = GFIO.create(hint, 0); //can only use this for read mode at the time being
+                let wrap_url = fio.gfio_url();
+                fdesc = fdesc.replace(hint, wrap_url);
+              }
+
+              const e = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+              LIBGPAC.HEAP32.set([0], e/LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+              let f;
+              if (fdesc.startsWith('src=')) {
+                fdesc = fdesc.substring(4);
+                f = LIBGPAC.fs_load_source(fsess, fdesc, null, null, e);
+                if (f) {
+                  prev_filter = f;
+                }
+              } else if (fdesc.startsWith('dst=')) {
+                fdesc = fdesc.substring(4);
+                f = LIBGPAC.fs_load_destination(fsess, fdesc, null, null, e);
+              } else {
+                fdesc+=":gfloc:DL";
+                f = LIBGPAC.fs_load_filter(fsess, fdesc, e);
+                if (f) {
+                  prev_filter = f;
+                  prev_filter_defer=true;
+                }
+              }
+              let res = LIBGPAC.getValue(e, 'i32');
+              LIBGPAC._free(e);
+              set_status("added filter "+args[1]+ " returned " + res);
+              prev_filter_defer=false;
+              return;
+            }
+            if (args[0]=='r') {
+              if (!fsess) return set_status('No valid session, add a filter first');
+              is_custfs=false;
+              LIBGPAC.fs_run(fsess);
+              is_custfs=true;
+              return;
+            }
+            if (args[0]=='p') {
+              let idx=0;
+              let n;
+              if (!fsess) return set_status('No valid session, add a filter first');
+              if (!prev_filter) return set_status('No filter loaded, cannot probe');
+              if (args.length<2) return set_status('No name provided');
+              if (args.length>2) {
+                idx=parseInt(args[1]);
+                n=args[2];
+              } else {
+                n=args[1];
+              }
+              var p_str = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+              var res = LIBGPAC.filter_probe_link(prev_filter, idx, n, p_str);
+              if (!res) {
+                var c_str = LIBGPAC.getValue(p_str, "i32");
+                var chain = LIBGPAC.UTF8ToString(c_str);
+                LIBGPAC.free(c_str);
+                set_text('resolved chain to ' + n + ' is: ' + chain);
+              }
+              LIBGPAC._free(p_str);
+              return set_status(res ? ('Failed'+res) : 'OK');
+            }
+            if (args[0]=='l') {
+              let idx=-1;
+              let n;
+              if (!fsess) return set_status('No valid session, add a filter first');
+              if (!prev_filter) return set_status('No filter loaded, cannot check destinations');
+              if (args.length>1) {
+                idx=parseInt(args[1]);
+              }
+              var p_str = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+              var res = LIBGPAC.filter_get_destinations(prev_filter, idx, p_str);
+              if (!res) {
+                var c_str = LIBGPAC.getValue(p_str, "i32");
+                var chain = LIBGPAC.UTF8ToString(c_str);
+                LIBGPAC.free(c_str);
+                set_text('possible destinations: ' + chain);
+              }
+              LIBGPAC._free(p_str);
+              return set_status(res ? ('Failed'+res) : 'OK');
+            }
+            if (args[0]=='v') {
+              if (!fsess) return set_status('No valid session, add a filter first');
+              LIBGPAC.fs_print_stats(fsess);
+              LIBGPAC.fs_print_connections(fsess);
+              return;
+            }
+
+            set_status("unknown command "+cmd);
+            let help="Possible commands:\n";
+            help+= "- s: set non session blocking\n";
+            help+= "- a DESC: add filter, use src=URL for source, dst=URL for sinks. $(name) replacement rules are allowed\n";
+            help+= "- r: run session\n";
+            help+= "- v: view connections and stats\n";
+            help+= "- p [pid_idx=0] DESC: probe resolution from pid with index pid_idx of last added filter to filter description DESC\n";
+            help+= "- l [pid_idx=-1]: list possible destinations for pid of index pid_idx (-1 for all pids) of last added filter";            
+            set_text(help);
+         }
+
 
          let controlElement = document.getElementById('controls');
          //controlElement.hidden = is_mp4box ? true : false;
@@ -995,7 +1156,7 @@
             });
             input.click();
             set_status('Select input file for ' + fio.url);
-            return GPAC.OK;
+            return LIBGPAC.OK;
           },
 
           //open for write a file on user disk - showSaveFilePicker->createWitable, or blob->download if not supported
@@ -1004,10 +1165,10 @@
               if (GFIO.ALLOW_WRITE_DEFER) {
                 fio._defer_write = new Uint8Array();
                 fio._select = 0;
-                return GPAC.OK;
+                return LIBGPAC.OK;
               }
               do_log_err('File System Access API not supported');
-              return GPAC.NOT_SUPPORTED;
+              return LIBGPAC.NOT_SUPPORTED;
             }
             //create file writer
             GFIO.set_ready(fio._gfio, GFIO.WRITE_WAIT);
@@ -1024,12 +1185,12 @@
                 GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
                 fio._select = 2;
             });
-            return GPAC.OK;
+            return LIBGPAC.OK;
           },
 
           //open a remote file (fetch)
           _open_read_remote: function (fio) {
-            let res = GPAC.OK;
+            let res = LIBGPAC.OK;
             fio._controller = new AbortController();
             let options = {
               signal: fio._controller.signal,
@@ -1058,7 +1219,7 @@
             .catch( (e) => {
               fio._select=2;
               GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
-              res = GPAC.URL_ERROR;
+              res = LIBGPAC.URL_ERROR;
               do_log_err('Fetch error: ' + e);
             });
             return res;
@@ -1066,16 +1227,16 @@
 
           //write a remote file (fetch with readableStream if supported or fetch at end of file)
           _open_write_remote: function (fio) {
-            let res = GPAC.OK;
+            let res = LIBGPAC.OK;
             fio._defer_write = null;
             if (!GFIO.supportsRequestStreams) {
               if (GFIO.ALLOW_WRITE_DEFER) {
                 fio._defer_write = new Uint8Array();
                 fio._select=0;
-                return GPAC.OK;
+                return LIBGPAC.OK;
               }
               do_log_err('Fetch upload with readable streams not supported');
-              return GPAC.NOT_SUPPORTED;
+              return LIBGPAC.NOT_SUPPORTED;
             }
             fio._controller = new AbortController();
             GFIO.set_ready(fio._gfio, GFIO.WRITE_WAIT);
@@ -1116,14 +1277,14 @@
               if (GFIO.ALLOW_WRITE_DEFER) {
                 fio._defer_write = new Uint8Array();
                 fio._select=0;
-                res = GPAC.OK;
+                res = LIBGPAC.OK;
                 fio._upstream = null;
                 fio._upstream_dst = null;
                 fio._controller = null;
                 GFIO.set_ready(fio._gfio, GFIO.WRITE_READY);
               } else {
                 GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
-                res = GPAC.NOT_SUPPORTED;
+                res = LIBGPAC.NOT_SUPPORTED;
               }
             });
             return res;
@@ -1181,7 +1342,7 @@
             //close file
             if (mode=='close') {
               GFIO._close(fio);
-              LIBGPAC.setValue(out_e, GPAC.OK, 'i32');
+              LIBGPAC.setValue(out_e, LIBGPAC.OK, 'i32');
               return 0;
             }
             //checks if file exists - we only probe for EM's FS for now
@@ -1189,9 +1350,9 @@
               let rurl = url.startsWith('gfio://') ? fio.url : url;
               try {
                 let stats = FS.stat(rurl);
-                LIBGPAC.setValue(out_e, GPAC.OK, 'i32');
+                LIBGPAC.setValue(out_e, LIBGPAC.OK, 'i32');
               } catch (e) {
-                LIBGPAC.setValue(out_e, GPAC.URL_ERROR, 'i32');
+                LIBGPAC.setValue(out_e, LIBGPAC.URL_ERROR, 'i32');
               }
               return 0;
             }
@@ -1210,9 +1371,9 @@
             //special mode URL to create a new GFIO from parent file name but without creating the file (used in dashing)
             if (mode=="url") {
               if (!url) return null;
-              let _newurl = GPAC.url_cat(fio.url, url);
+              let _newurl = LIBGPAC.url_cat(fio.url, url);
               var new_gfio = GFIO.create( LIBGPAC.UTF8ToString(_newurl), 0);
-              GPAC.free(newurl);
+              LIBGPAC.free(newurl);
               return new_gfio._gfio;
             }
             //no URL, close file
@@ -1228,7 +1389,7 @@
             mode = mode.replace('+', '');
             //we don't support append modes
             if ((mode != "r") && (mode != "w")) {
-              LIBGPAC.setValue(out_e, GPAC.NOT_SUPPORTED, 'i32');
+              LIBGPAC.setValue(out_e, LIBGPAC.NOT_SUPPORTED, 'i32');
               set_status('Unsupported open mode ' + mode);
               return null;
             }
@@ -1237,7 +1398,7 @@
             if (!fio._stream && !fio._file && !fio._fetch && !fio._upstream
                 && (url.startsWith("gfio://") || (url == fio.url)) 
             ) {
-              var res=GPAC.OK;
+              var res=LIBGPAC.OK;
               fio._pos = 0;
               // URL is NOT an EM's FS file
               if (fio._wrap_io) {
@@ -1267,11 +1428,11 @@
                     GFIO.set_stats(fio._gfio, BigInt(stats.size), BigInt(stats.size), 1, 0);
                   }
                 } catch (e) {
-                  res = GPAC.URL_ERROR;
+                  res = LIBGPAC.URL_ERROR;
                 }
               }
               LIBGPAC.setValue(out_e, res, 'i32');
-              if (res != GPAC.OK) return null;
+              if (res != LIBGPAC.OK) return null;
               //return ourself
               return fio._gfio;
             }
@@ -1279,7 +1440,7 @@
             //file handle already open (file is being opened twice), create a new gfio or check if we have already created one
             //we only support this for local files 
             if (!fio._stream) {
-              LIBGPAC.setValue(out_e, GPAC.NOT_SUPPORTED, 'i32');
+              LIBGPAC.setValue(out_e, LIBGPAC.NOT_SUPPORTED, 'i32');
               return null;
             }
             let fio_ref = fio;
@@ -1302,19 +1463,19 @@
                 if (no_concatenate) {
                   path = url;
                 } else {
-                  _path = GPAC.url_cat(fio_ref.url, url);
+                  _path = LIBGPAC.url_cat(fio_ref.url, url);
                   path = LIBGPAC.UTF8ToString(_path);
                 }
               } else {
                 path = fio_ref.url;
               }
-              let res=GPAC.OK;
+              let res=LIBGPAC.OK;
               try {
                 fio = GFIO.create(path, 0);
               } catch (e) {
-                res = GPAC.OUT_OF_MEM;
+                res = LIBGPAC.OUT_OF_MEM;
               }
-              if (_path) GPAC.free(_path);
+              if (_path) LIBGPAC.free(_path);
               LIBGPAC.setValue(out_e, res, 'i32');
               if (res) return null;
             }
@@ -1326,7 +1487,7 @@
               }
             } catch (e) {
               //todo cleanup of old gfios
-              LIBGPAC.setValue(out_e, GPAC.IO_ERR, 'i32');
+              LIBGPAC.setValue(out_e, LIBGPAC.IO_ERR, 'i32');
               return null;
             }
 
@@ -1340,8 +1501,8 @@
           //seek callback from libgpac
           seek: function(fileio, offset, whence) {
             let fio = GFIO.to_obj(fileio);
-            if (fio._select==1) return GPAC.OK;
-            if (fio._defer_write) return GPAC.NOT_SUPPORTED;
+            if (fio._select==1) return LIBGPAC.OK;
+            if (fio._defer_write) return LIBGPAC.NOT_SUPPORTED;
 
             if (fio._file || fio._writer || fio._fetch) {
               let abspos = Number(offset);
@@ -1351,7 +1512,7 @@
               if (fio._writer) {
                 fio._pos = abspos;
                 fio._writer.seek(abspos);
-                return GPAC.OK;
+                return LIBGPAC.OK;
               }
 
               if (abspos != fio._pos) {
@@ -1359,14 +1520,14 @@
                 fio._pos = abspos;
                 fio._block_pos_in_file = abspos;
               }
-              return GPAC.OK;
+              return LIBGPAC.OK;
             }
             try {
                fio._pos = FS.llseek(fio._stream, Number(offset), whence);
             } catch (e) {
-              return GPAC.IO_ERR;
+              return LIBGPAC.IO_ERR;
             }
-            return GPAC.OK;
+            return LIBGPAC.OK;
           },
           //read callback from libgpac
           read: function(fileio, buffer, bytes) {
@@ -1585,8 +1746,10 @@
       <!-- span>Enter command: </span -->
       <span><input type="text" id="cmd" placeholder="Enter command or type h for help" autofocus onkeypress="
         if (event.keyCode == 13) {
-          var cwd = FS.cwd() == '/' ? '~' : FS.cwd();
-          document.getElementById('output').innerHTML += 'user@gpac:' + cwd + '$ ' + this.value + '<br><br>';
+          if (!is_custfs) {
+            var cwd = FS.cwd() == '/' ? '~' : FS.cwd();
+            document.getElementById('output').innerHTML += 'user@gpac:' + cwd + '$ ' + this.value + '<br><br>';
+          } 
           process_command();
         }
       " onkeyup="
@@ -1666,10 +1829,10 @@
   <span><input type="button" value="Run"  onclick="run_script('');"> </span>
   <span><input type="button" value="Cancel"  onclick="run_script('no');"> </span>
   </div>
-    <!-- mescriptem module load -->
+    <!-- emscriptem module load -->
     <script type='text/javascript'>
 
-      function load_libgpac(_lib)
+      function load_libgpac(_lib, _lib)
       {
         let gpac_has_threads = LIBGPAC.cwrap('gpac_has_threads', 'number', []);
         _lib.has_threads = gpac_has_threads();
@@ -1713,6 +1876,21 @@
         _lib.copyright = LIBGPAC.cwrap('gf_gpac_copyright', 'string', []);
         _lib.url_cat = LIBGPAC.cwrap('gf_url_concatenate', 'number', ['string', 'string']);
         _lib.free = LIBGPAC.cwrap('gf_url_free', null, ['number']);
+
+        //load basic filter session api
+        _lib.fs_new_defaults = LIBGPAC.cwrap('gf_fs_new_defaults', 'number', ['number']);
+        _lib.fs_del = LIBGPAC.cwrap('gf_fs_del', null, ['number']);
+        _lib.fs_print_stats = LIBGPAC.cwrap('gf_fs_print_stats', null, ['number']);
+        _lib.fs_print_connections = LIBGPAC.cwrap('gf_fs_print_connections', null, ['number']);
+
+        _lib.fs_load_filter = LIBGPAC.cwrap('gf_fs_load_filter', 'number', ['number', 'string', 'number']);
+        _lib.fs_load_source = LIBGPAC.cwrap('gf_fs_load_source', 'number', ['number', 'string', 'string', 'string', 'number']);
+        _lib.fs_load_destination = LIBGPAC.cwrap('gf_fs_load_destination', 'number', ['number', 'string', 'string', 'string', 'number']);
+
+        _lib.fs_run = LIBGPAC.cwrap('gf_fs_run', 'number', ['number']);
+        _lib.filter_reconnect_output = LIBGPAC.cwrap('gf_filter_reconnect_output', 'number', ['number','number']);
+        _lib.filter_probe_link = LIBGPAC.cwrap('gf_filter_probe_link', 'number', ['number','number','string', 'number']);
+        _lib.filter_get_destinations = LIBGPAC.cwrap('gf_filter_get_possible_destinations', 'number', ['number','number', 'number']);
       }
 
 
@@ -1724,7 +1902,7 @@
           GPAC.running = false;
           GPAC.do_log = false;
           //in case we had an exception, force a gf_sys_close
-          GPAC.uninit();
+          LIBGPAC.uninit();
           if (GPAC.restore_worker) {
             LIBGPAC.gpac_worker = true;
             GPAC.restore_worker = false;
@@ -1848,7 +2026,7 @@
         },
         onRuntimeInitialized: function() {
           FS = LIBGPAC['FS'];
-          load_libgpac(GPAC);
+          load_libgpac(LIBGPAC, LIBGPAC);
           GPAC.toggle_reporting = function(value) {
             const gpac_em_sig_handler = LIBGPAC.cwrap('gpac_em_sig_handler', null, ['number']);
             gpac_em_sig_handler(value);
@@ -1856,7 +2034,7 @@
 
           var element = document.getElementById('header');
           var text = element.innerHTML;
-          text += "\nversion " + GPAC.version();;
+          text += "\nversion " + LIBGPAC.version();;
           element.innerHTML = text;
 
           // disable some shortcuts
