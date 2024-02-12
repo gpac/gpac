@@ -9,7 +9,7 @@ endif
 
 vpath %.c $(SRC_PATH)
 
-all:	version
+all: version unit_tests
 	$(MAKE) -C src all
 	$(MAKE) -C applications all
 ifneq ($(STATIC_BINARY),yes)
@@ -54,7 +54,7 @@ depend:
 	$(MAKE) -C applications dep
 	$(MAKE) -C modules dep
 
-clean:
+clean: unit_tests_clean
 	$(MAKE) -C src clean
 	$(MAKE) -C applications clean
 	$(MAKE) -C modules clean
@@ -77,15 +77,48 @@ doc:
 man:
 	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
+
+UT_CFG_PATH:=unittests/build/config
+
 unit_tests:
+ifeq ($(UNIT_TESTS),yes)
+	@echo "Configuring unit tests"
+	@mkdir -p unittests/build/bin/gcc
+
+	@cp config.mak unittests/build/
+	@sed 's|$(BUILD_PATH)|$(BUILD_PATH)/unittests/build|g' config.mak > $(UT_CFG_PATH).mak.new
+	@if [ -e $(UT_CFG_PATH).mak ]; then \
+		if ! diff -q $(UT_CFG_PATH).mak $(UT_CFG_PATH).mak.new >/dev/null ; then \
+			mv $(UT_CFG_PATH).mak.new $(UT_CFG_PATH).mak; \
+		fi; \
+	else \
+		mv $(UT_CFG_PATH).mak.new $(UT_CFG_PATH).mak; \
+	fi
+
+	@sed 's/GF_STATIC static/GF_STATIC GF_EXPORT/' config.h > $(UT_CFG_PATH).h.new
+	@if [ -e $(UT_CFG_PATH).h ]; then \
+		if ! diff -q $(UT_CFG_PATH).h $(UT_CFG_PATH).h.new >/dev/null ; then \
+			mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
+		fi; \
+	else \
+		mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
+	fi
+
+	@$(SRC_PATH)/unittests/build.sh > unittests/build/bin/gcc/unittests.c
+
 	@echo "Building unit tests"
-	$(MAKE) -C src unit_tests
+	@cd unittests/build && $(MAKE) -C src && $(MAKE) -C src unit_tests
+
 	@echo "Executing unit tests"
-	@LD_LIBRARY_PATH=bin/gcc bin/gcc/unittests
+	@LD_LIBRARY_PATH=unittests/build/bin/gcc unittests/build/bin/gcc/unittests
+endif
 
 unit_tests_clean:
+ifeq ($(UNIT_TESTS),yes)
 	@echo "Cleaning unit tests artifacts"
-	@rm -f bin/gcc/unittests.c bin/gcc/unittests
+	@rm -rf unittests/build/bin
+	@cd unittests/build && $(MAKE) -C src clean
+endif
 
 test_suite:
 	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -precommit -p=0

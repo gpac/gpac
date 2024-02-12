@@ -1,4 +1,5 @@
 #!/bin/bash
+readonly scriptDir=$(dirname $(readlink -f $0))
 
 echo '#include <stdio.h>
 #include <stdlib.h> // EXIT_FAILURE
@@ -16,7 +17,7 @@ int run_tests(int argc, char *argv[]);
 int main(int argc, char *argv[])
 {'
 
-calls=$(find . -path "*/unittests/*.c" | xargs grep unittest | cut -d ":" -f 2)
+calls=$(find "$scriptDir/.." -path "*/unittests/*.c" | grep -v bin | xargs grep unittest | cut -d ":" -f 2)
 for call in $calls; do
     echo "  $call;"
 done

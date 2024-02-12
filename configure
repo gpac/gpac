@@ -91,6 +91,7 @@ libgpac_cflags=""
 libgpac_extralibs=""
 static_build="no"
 static_bin="no"
+unit_tests="no"
 static_modules="no"
 lm_lib=""
 has_directx="no"
@@ -390,6 +391,7 @@ GPAC build options:
   --disable-opt            disable GCC optimizations
   --static-build           link statically against libgpac but still allow dependencies to shared libraries (enable --static-modules)
   --static-bin             enable static linking of MP4Box and gpac only (will enable --static-build), disable all libraries not linkable statically.
+  --unittests              enable unit tests [default=no]
   --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]
   --enable-sdl-static      use static SDL linking [default=no]
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
@@ -647,6 +649,8 @@ for opt do
             static_bin="yes"
             ;;
         --enable-sanitizer) enable_sanitizer="yes"
+            ;;
+        --unittests) unit_tests="yes"
             ;;
         --static-modules) static_modules="yes"
             ;;
@@ -2167,6 +2171,8 @@ if test $cpu = "mips"; then
 fi
 echo ""
 echo "** GPAC $version rev$revision Core Configuration **"
+echo "Unit Tests: $unit_tests ('make unit_tests')"
+echo "#define GF_STATIC static" >> $TMPH
 if test "$static_bin" = "yes" ; then
     echo "Static binaries enabled"
     echo "#define GPAC_STATIC_BIN" >> $TMPH
@@ -2631,6 +2637,9 @@ man_dir=${mandir#"$pf"}
 echo "man_dir=$man_dir" >> config.mak
 
 
+echo "UNIT_TESTS=$unit_tests" >> config.mak
+
+
 echo "STATIC_MODULES=$static_modules" >> config.mak
 
 #for cross-compilation
@@ -3078,10 +3087,9 @@ fi
 echo "PKG_CONFIG=$pkg_config" >> config.mak
 
 
-#build tree in object directory if source path is different from current one
-if test "$source_path_used" = "yes" ; then
 
-    echo "Creating compilation tree image"
+build_object_files_directory_tree()
+{
     SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/crypto src/media_tools src/scene_manager src/compositor src/laser src/evg src/quickjs src/jsmods"
 
     APP_DIRS="applications/gpac applications/mp4box"
@@ -3089,44 +3097,51 @@ if test "$source_path_used" = "yes" ; then
     for dir in $SRC_DIRS ; do
         mkdir -p "$dir"
     done
-    ln -sf "$source_path/Makefile" Makefile
-    ln -sf "$source_path/static.mak" static.mak
-    ln -sf "$source_path/src/Makefile" src/Makefile
+    ln -sf "$1/Makefile" Makefile
+    ln -sf "$1/static.mak" static.mak
+    ln -sf "$1/src/Makefile" src/Makefile
 
     mkdir -p applications
-    ln -sf "$source_path/applications/Makefile" applications/Makefile
+    ln -sf "$1/applications/Makefile" applications/Makefile
     mkdir -p applications/testapps
 
     for dir in $APP_DIRS ; do
         mkdir -p "$dir"
-        ln -sf "$source_path/$dir/Makefile" "$dir/Makefile"
+        ln -sf "$1/$dir/Makefile" "$dir/Makefile"
     done
 
-
-    cur_dir="`pwd`"
-    cd "$cur_dir"
-
     mkdir -p modules
-    ln -sf "$source_path/modules/Makefile" modules/Makefile
+    ln -sf "$1/modules/Makefile" modules/Makefile
 
-    for moddir in "$source_path/modules/"* ; do
+    for moddir in "$1/modules/"* ; do
         if [ -d "$moddir"  -a -f "$moddir/Makefile" ]; then
-            dir="${moddir#"$source_path/"}"
+            dir="${moddir#"$1/"}"
             mkdir -p "$dir"
             ln -sf "$moddir/Makefile" "$dir/Makefile"
         fi
     done
     if test "$has_directx" = "yes"; then
-        ln -sf "$source_path/modules/dx_hw/hand.cur" modules/dx_hw/hand.cur
-        ln -sf "$source_path/modules/dx_hw/collide.cur" modules/dx_hw/collide.cur
+        ln -sf "$1/modules/dx_hw/hand.cur" modules/dx_hw/hand.cur
+        ln -sf "$1/modules/dx_hw/collide.cur" modules/dx_hw/collide.cur
     fi
+}
 
-    cd "$cur_dir"
+#build tree in object directory if source path is different from current one
+if test "$source_path_used" = "yes" ; then
+    echo "Creating compilation tree image"
+    build_object_files_directory_tree "$source_path"
 fi
 
 echo "SRC_PATH=$source_path" >> config.mak
 echo "BUILD_PATH=$build_path" >> config.mak
 echo "LOCAL_INC_PATH=$local_inc" >> config.mak
+
+
+if test "$unit_tests" = "yes" ; then
+    mkdir -p unittests/build && cd unittests/build
+    build_object_files_directory_tree "$source_path"
+    cd -
+fi
 
 
 echo "#endif" >> $TMPH
