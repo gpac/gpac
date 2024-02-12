@@ -612,8 +612,7 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 #endif
 
 	if (s->last_active_obj==obj) s->last_active_obj = NULL;
-	if(obj->tsi == 0) s->last_dispatched_toi_on_tsi_zero = 0;
-			obj->closed_flag = 0;
+	obj->closed_flag = 0;
 	obj->force_keep = 0;
 	obj->nb_bytes = 0;
 	obj->nb_frags = GF_FALSE;
@@ -1737,6 +1736,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	if (e==GF_EOS) {
 		if (!tsi) {
 			if (gather_object->status==GF_LCT_OBJ_DONE_ERR) {
+				s->last_dispatched_toi_on_tsi_zero=0;
 				gf_route_obj_to_reservoir(routedmx, s, gather_object);
 				return GF_OK;
 			}
@@ -1748,6 +1748,9 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			if(e) {
 				//ignore this object in order to be able to accept future versions
 				s->last_dispatched_toi_on_tsi_zero=0;
+				s->stsid_version = 0;
+				s->stsid_crc = 0;
+				s->mpd_version = 0;
 				gf_route_obj_to_reservoir(routedmx, s, gather_object);
 			}
 		} else {
