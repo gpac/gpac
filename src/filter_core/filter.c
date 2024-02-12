@@ -1972,7 +1972,7 @@ skip_date:
 				internal_arg = GF_TRUE;
 			}
 			if (!strcmp("FS", szArg)) {
-				if (arg_type != GF_FILTER_ARG_INHERIT)
+				if (value && arg_type != GF_FILTER_ARG_INHERIT)
 					filter->subsession_id = atoi(value);
 
 				found = GF_TRUE;
@@ -1986,14 +1986,14 @@ skip_date:
 			}
 			//per-filter buffer times
 			else if (!strcmp("FBT", szArg)) {
-				if (arg_type!=GF_FILTER_ARG_INHERIT)
+				if (value && arg_type!=GF_FILTER_ARG_INHERIT)
 					filter->pid_buffer_max_us = atoi(value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
 			//per-filter buffer units
 			else if (!strcmp("FBU", szArg)) {
-				if (arg_type!=GF_FILTER_ARG_INHERIT)
+				if (value && arg_type!=GF_FILTER_ARG_INHERIT)
 					filter->pid_buffer_max_units = atoi(value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
