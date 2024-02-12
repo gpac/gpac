@@ -613,7 +613,7 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 
 	if (s->last_active_obj==obj) s->last_active_obj = NULL;
 	if(obj->tsi == 0) s->last_dispatched_toi_on_tsi_zero = 0;
-	obj->closed_flag = 0;
+			obj->closed_flag = 0;
 	obj->force_keep = 0;
 	obj->nb_bytes = 0;
 	obj->nb_frags = GF_FALSE;
@@ -1521,7 +1521,11 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		else if (!strcmp(szContentType, "application/s-tsid") || !strcmp(szContentType, "application/route-s-tsid+xml")) {
 			if (!s->stsid_version || (stsid_version && (stsid_version+1 != s->stsid_version))) {
 				s->stsid_version = stsid_version+1;
-				gf_route_service_setup_stsid(routedmx, s, payload, szContentLocation);
+				e = gf_route_service_setup_stsid(routedmx, s, payload, szContentLocation);
+				if (e) {
+					gf_free(boundary);
+					return e;
+				}
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d same S-TSID version, ignoring\n",s->service_id));
 			}
@@ -1677,7 +1681,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 
 		//for now we only care about S and M
-		if (!a_S && ! a_M) {
+		if (!a_S && !a_M) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : SLT bundle without MPD or S-TSID, skipping packet\n", s->service_id));
 			return GF_OK;
 		}
