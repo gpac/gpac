@@ -4341,9 +4341,13 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 {
 	char *dst = NULL;
 	char *res=NULL;
-	GF_Err e = gf_utf_get_string_from_bom((char *)data, data_size, &dst, &res, NULL);
+	u32 res_size=0;
+
+	GF_Err e = gf_utf_get_string_from_bom((char *)data, data_size, &dst, &res, &res_size);
 	if (e) return NULL;
 
+	u8 orig_end = res[res_size-1];
+	res[res_size-1] = 0;
 	data = res;
 	//strip all spaces and \r\n\t
 	while (data[0] && strchr("\n\r\t ", (char) data[0]))
@@ -4351,6 +4355,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
+		res[res_size-1] = orig_end;\
 		if (dst) gf_free(dst);\
 		return _mime; \
 
@@ -4374,6 +4379,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	}
 	/*XML formats*/
 	if (!strstr(data, "?>") ) {
+		res[res_size-1] = orig_end;
 		if (dst) gf_free(dst);
 		return NULL;
 	}
@@ -4388,6 +4394,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 
+	res[res_size-1] = orig_end;
 	if (dst) gf_free(dst);
 	return NULL;
 }
