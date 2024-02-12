@@ -82,11 +82,13 @@ UT_CFG_PATH:=unittests/build/config
 
 unit_tests:
 ifeq ($(UNIT_TESTS),yes)
-	@echo "Configuring unit tests"
+	@echo "Unit Tests:"
+	@echo "- configuring"
 	@mkdir -p unittests/build/bin/gcc
 
 	@cp config.mak unittests/build/
-	@sed 's|$(BUILD_PATH)|$(BUILD_PATH)/unittests/build|g' config.mak > $(UT_CFG_PATH).mak.new
+	@sed 's|BUILD_PATH=$(BUILD_PATH)|BUILD_PATH=$(BUILD_PATH)/unittests/build|g' config.mak | \
+		sed 's|-I"$(BUILD_PATH)"|-I"$(BUILD_PATH)/unittests/build"|g' > $(UT_CFG_PATH).mak.new
 	@if [ -e $(UT_CFG_PATH).mak ]; then \
 		if ! diff -q $(UT_CFG_PATH).mak $(UT_CFG_PATH).mak.new >/dev/null ; then \
 			mv $(UT_CFG_PATH).mak.new $(UT_CFG_PATH).mak; \
@@ -106,11 +108,13 @@ ifeq ($(UNIT_TESTS),yes)
 
 	@$(SRC_PATH)/unittests/build.sh > unittests/build/bin/gcc/unittests.c
 
-	@echo "Building unit tests"
+	@echo "- building"
 	@cd unittests/build && $(MAKE) -C src && $(MAKE) -C src unit_tests
 
-	@echo "Executing unit tests"
+	@echo "- executing"
 	@LD_LIBRARY_PATH=unittests/build/bin/gcc unittests/build/bin/gcc/unittests
+
+	@echo "- done"
 endif
 
 unit_tests_clean:
