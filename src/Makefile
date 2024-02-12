@@ -397,6 +397,17 @@ ifeq ($(shell fgrep "Libs.private:" ../gpac.pc 1>&2 2> /dev/null ; echo $$?),1)
 	@echo "Libs.private: -lgpac_static $(ALL_LIBS)" >> ../gpac.pc
 endif
 
+
+unit_tests:
+ifeq ($(UNIT_TESTS),yes)
+	$(CC) -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
+		-o ../bin/gcc/unittests \
+		../bin/gcc/unittests.c \
+		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
+		-Wl,-rpath=$(realpath ../bin/gcc) -L../bin/gcc -lgpac
+endif
+
+
 dep:
 
 DEPS := $(SRCS:%.c=.deps/%.dep)
@@ -418,11 +429,3 @@ clean:
 
 distclean: clean
 	rm -f Makefile.bak .depend $(DEPS)
-
-unit_tests:
-	$(SRC_PATH)/unittests/build.sh > ../bin/gcc/unittests.c
-	$(CC) -I$(SRC_PATH) -I$(SRC_PATH)/include -I.. \
-		-DGPAC_HAVE_CONFIG_H -DGPAC_UNIT_TESTS \
-		-o ../bin/gcc/unittests ../bin/gcc/unittests.c \
-		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | sort) \
-		-L../bin/gcc -Wl,-rpath=$(realpath ../bin/gcc) -Lbin/gcc -lgpac
