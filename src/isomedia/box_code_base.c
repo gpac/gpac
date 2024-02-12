@@ -9679,6 +9679,11 @@ GF_Err subs_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 4);
 	entry_count = gf_bs_read_u32(bs);
 
+	if ((u64)entry_count*6 > gf_bs_available(bs)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] subs box: available buffer (%lu) too small for entry count read (%u)\n", gf_bs_available(bs), entry_count));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
 	for (i=0; i<entry_count; i++) {
 		u32 subs_size=0;
 		GF_SubSampleInfoEntry *pSamp = (GF_SubSampleInfoEntry*) gf_malloc(sizeof(GF_SubSampleInfoEntry));
