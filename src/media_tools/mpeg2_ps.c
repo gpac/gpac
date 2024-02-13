@@ -1226,9 +1226,11 @@ static void get_info_for_all_streams (mpeg2ps_t *ps)
 					if (sptr->is_video) {
 						sptr->start_dts -= frames_from_beg * sptr->ticks_per_frame;
 					} else {
-						u64 conv;
-						conv = sptr->samples_per_frame * 90000;
-						conv /= (u64)sptr->freq;
+						u64 conv = (u64) -1;
+						if ((u64)sptr->freq) {
+							conv = sptr->samples_per_frame * 90000;
+							conv /= (u64)sptr->freq;
+						}
 						sptr->start_dts -= conv;
 					}
 				}
