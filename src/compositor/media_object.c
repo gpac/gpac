@@ -480,7 +480,7 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 		evt.type = GF_EVENT_QUALITY_SWITCHED;
 		gf_sc_send_event(scene->compositor, &evt);
 	} else if (check_unchanged) {
-		//reset config changed if nothing changed, this avoid resetting up texture or mixer input
+		//reset config changed if nothing changed, this avoids resetting up texture or mixer input
 		mo->config_changed = GF_FALSE;
 	}
 }
@@ -655,7 +655,8 @@ retry:
 		}
 		is_first = GF_TRUE;
 	}
-	assert(mo->pck);
+	if (!mo->pck) return NULL;
+
 	mo->first_frame_fetched = GF_TRUE;
 	*eos = mo->is_eos = GF_FALSE;
 
@@ -756,7 +757,7 @@ retry:
 		//if no buffer playout we are in low latency configuration, don"t skip resync
 		&& mo->odm->buffer_playout_ms
 	) {
-		assert(mo->odm->parentscene);
+		gf_assert(mo->odm->parentscene);
 		if (! mo->odm->parentscene->compositor->drop) {
 			if (mo->odm->parentscene->compositor->force_late_frame_draw) {
 				mo->flags |= GF_MO_IN_RESYNC;
@@ -831,7 +832,7 @@ retry:
 			gf_filter_pck_unref(mo->pck);
 			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 			gf_odm_check_clock_mediatime(mo->odm);
-			assert(mo->pck);
+			gf_fatal_assert(mo->pck);
 			gf_filter_pck_ref( &mo->pck);
 			check_temi(mo);
 
@@ -1024,7 +1025,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 	if (nb_bytes==0xFFFFFFFF) {
 		mo->RenderedLength = mo->size;
 	} else {
-		assert(mo->RenderedLength + nb_bytes <= mo->size);
+		gf_assert(mo->RenderedLength + nb_bytes <= mo->size);
 		mo->RenderedLength += nb_bytes;
 	}
 
@@ -1110,7 +1111,7 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 			}
 		}
 		/*done prefetching*/
-		assert(! (mo->odm->flags & GF_ODM_PREFETCH) );
+		gf_assert(! (mo->odm->flags & GF_ODM_PREFETCH) );
 
 		gf_odm_start(mo->odm);
 	} else if (mo->odm) {
@@ -1688,7 +1689,7 @@ u32 gf_mo_event_target_count(GF_MediaObject *mo)
 
 void gf_mo_del(GF_MediaObject *mo)
 {
-	assert(gf_list_count(mo->evt_targets) == 0);
+	gf_assert(gf_list_count(mo->evt_targets) == 0);
 	gf_list_del(mo->evt_targets);
 	if (mo->pck) gf_filter_pck_unref(mo->pck);
 	gf_sg_mfurl_del(mo->URLs);

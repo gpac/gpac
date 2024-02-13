@@ -211,7 +211,7 @@ default_sync:
 				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
 #if !defined(GPAC_DISABLE_ZLIB)
-					gf_gz_decompress_payload(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
+					gf_gz_decompress_payload_ex(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength, GF_TRUE);
 					gf_free(rvc_cfg_data);
 #endif
 				} else {
@@ -375,7 +375,7 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 }
 
 
-GF_Err SetTrackDuration(GF_TrackBox *trak)
+GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc)
 {
 	u64 trackDuration;
 	u32 i;
@@ -407,9 +407,14 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 		return GF_OK;
 	}
 	trak->Header->duration = trackDuration;
-	if (!trak->moov->mov->keep_utc && !gf_sys_is_test_mode() )
+	if (!keep_utc && !trak->moov->mov->keep_utc && !gf_sys_is_test_mode() )
 		trak->Header->modificationTime = gf_isom_get_mp4time();
 	return GF_OK;
+}
+
+GF_Err SetTrackDuration(GF_TrackBox *trak)
+{
+	return SetTrackDurationEx(trak, GF_FALSE);
 }
 
 

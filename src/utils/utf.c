@@ -648,12 +648,13 @@ bad_input:
 
 
 GF_EXPORT
-GF_Err gf_utf_get_utf8_string_from_bom(const u8 *data, u32 size, char **out_ptr, char **result)
+GF_Err gf_utf_get_string_from_bom(const u8 *data, u32 size, char **out_ptr, char **result, u32 *res_size)
 {
 	u32 unicode_type = 0;
 	if (!out_ptr || !result || !data) return GF_BAD_PARAM;
 	*out_ptr = NULL;
 	*result = (char *) data;
+	if (res_size) *res_size = size;
 
 	if (size>=5) {
 		/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/
@@ -670,6 +671,7 @@ GF_Err gf_utf_get_utf8_string_from_bom(const u8 *data, u32 size, char **out_ptr,
 				unicode_type = 1;
 			}
 		} else if ((data[0]==0xEF) && (data[1]==0xBB) && (data[2]==0xBF)) {
+			if (res_size) *res_size = size-4;
 			*result = (char *) (data+4);
 			return GF_OK;
 		}
@@ -723,6 +725,7 @@ GF_Err gf_utf_get_utf8_string_from_bom(const u8 *data, u32 size, char **out_ptr,
 		return GF_IO_ERR;
 	}
 	*result = dst;
+	if (res_size) *res_size = res+1;
 	return GF_OK;
 }
 

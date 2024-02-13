@@ -977,7 +977,7 @@ GF_Err stbl_SetSampleCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 {
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
 
-	assert(ctts->unpack_mode);
+	gf_assert(ctts->unpack_mode);
 
 	//if we're setting the CTS of a sample we've skipped...
 	if (ctts->w_LastSampleNumber < sampleNumber) {
@@ -1155,7 +1155,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 		}
 
 		if (nb_samples>1) {
-			assert(sampNum == stbl->SampleSize->sampleCount);
+			gf_assert(sampNum == stbl->SampleSize->sampleCount);
 		}
 		j=0;
 
@@ -1201,14 +1201,14 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples,
 				j++;
 				stts->entries[j].sampleCount = 1;
 				stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
-				assert(stts->entries[j].sampleDelta);
+				gf_assert(stts->entries[j].sampleDelta);
 				sampNum ++;
 			}
 		}
 		stts->w_LastDTS = tot_samples ? DTSs[tot_samples - 1] : 0;
 		gf_free(DTSs);
-		assert(sampNum == tot_samples);
-		assert(sampNum + nb_samples == stbl->SampleSize->sampleCount);
+		gf_assert(sampNum == tot_samples);
+		gf_assert(sampNum + nb_samples == stbl->SampleSize->sampleCount);
 	}
 
 	//reset write the cache to the end
@@ -1226,7 +1226,7 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples)
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
 	if (!ctts) return GF_OK;
 
-	assert(ctts->unpack_mode);
+	gf_assert(ctts->unpack_mode);
 	if ((nb_samples>1) && (sampleNumber>1)) return GF_BAD_PARAM;
 	ctts->max_cts_delta = 0;
 
@@ -1243,7 +1243,7 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples)
 	if (sampleNumber > ctts->w_LastSampleNumber) return GF_OK;
 
 	if (nb_samples==1) {
-		assert(ctts->nb_entries);
+		gf_assert(ctts->nb_entries);
 		memmove(&ctts->entries[sampleNumber-1], &ctts->entries[sampleNumber], sizeof(GF_DttsEntry)* (ctts->nb_entries-sampleNumber) );
 		ctts->nb_entries--;
 	} else {
@@ -1251,7 +1251,7 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples)
 		ctts->nb_entries -= nb_samples;
 	}
 	ctts->w_LastSampleNumber -= nb_samples;
-	assert(ctts->w_LastSampleNumber >= ctts->nb_entries);
+	gf_assert(ctts->w_LastSampleNumber >= ctts->nb_entries);
 
 	return GF_OK;
 }
@@ -1325,10 +1325,10 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_sample
 
 		//update the firstchunk info
 		for (i=sampleNumber-1; i < stsc->nb_entries; i++) {
-			assert(stsc->entries[i].firstChunk >= 1);
+			gf_assert(stsc->entries[i].firstChunk >= 1);
 			stsc->entries[i].firstChunk -= 1;
 			if (stsc->entries[i].nextChunk) {
-				assert(stsc->entries[i].nextChunk >= 1);
+				gf_assert(stsc->entries[i].nextChunk >= 1);
 				stsc->entries[i].nextChunk -= 1;
 			}
 		}
@@ -1360,7 +1360,8 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_sample
 			stco->alloc_size = 0;
 			return GF_OK;
 		}
-		assert(stco->nb_entries - nb_samples == stbl->SampleSize->sampleCount);
+		if (stco->nb_entries - nb_samples != stbl->SampleSize->sampleCount)
+			return GF_ISOM_INVALID_FILE;
 		if (nb_samples==1) {
 			memmove(&stco->offsets[sampleNumber-1], &stco->offsets[sampleNumber], sizeof(u32) * (stco->nb_entries - sampleNumber) );
 		} else {
@@ -1377,7 +1378,8 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_sample
 			return GF_OK;
 		}
 
-		assert(co64->nb_entries - nb_samples == stbl->SampleSize->sampleCount);
+		if (co64->nb_entries - nb_samples != stbl->SampleSize->sampleCount)
+			return GF_ISOM_INVALID_FILE;
 		if (nb_samples==1) {
 			memmove(&co64->offsets[sampleNumber-1], &co64->offsets[sampleNumber], sizeof(u64) * (co64->nb_entries - sampleNumber) );
 		} else {
@@ -1400,7 +1402,7 @@ GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber)
 	if (stss->nb_entries == 1) {
 		if (stss->sampleNumbers[0] != sampleNumber) {
 			if (sampleNumber < stss->sampleNumbers[0]) {
-				assert(stss->sampleNumbers[0]);
+				if (!stss->sampleNumbers[0]) return GF_ISOM_INVALID_FILE;
 				stss->sampleNumbers[0]--;
 			}
 			return GF_OK;
@@ -1422,7 +1424,7 @@ GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber)
 		}
 
 		else if (sampleNumber < stss->sampleNumbers[i]) {
-			assert(stss->sampleNumbers[i]);
+			if (!stss->sampleNumbers[i]) return GF_ISOM_INVALID_FILE;
 			stss->sampleNumbers[i]--;
 		}
 	}

@@ -108,7 +108,7 @@ typedef struct _gf_ffenc_ctx
 	GF_BitStream *sdbs;
 
 	Bool reconfig_pending;
-	Bool infmt_negociate;
+	Bool infmt_negotiate;
 	Bool remap_ts;
 	Bool force_reconfig;
 	u32 setup_failed;
@@ -432,8 +432,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
-		//no encoder: if negociating input format or input pid props not known yet, wait
-		if (ctx->infmt_negociate || !ctx->setup_failed) return GF_OK;
+		//no encoder: if negotiating input format or input pid props not known yet, wait
+		if (ctx->infmt_negotiate || !ctx->setup_failed) return GF_OK;
 
 		if (ctx->setup_failed==1) {
 			GF_FilterEvent fevt;
@@ -929,14 +929,14 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 
 	bytes_per_chan = ctx->bytes_per_sample / ctx->channels;
 	src_frame_size = size / ctx->bytes_per_sample;
-	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->audio_buffer_size);
-	assert(!data || (sample_offset + nb_samples <= src_frame_size));
-	assert(ctx->encoder->frame_size);
+	gf_assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->audio_buffer_size);
+	gf_assert(!data || (sample_offset + nb_samples <= src_frame_size));
+	gf_assert(ctx->encoder->frame_size);
 
 	f_idx = ctx->samples_in_audio_buffer / ctx->encoder->frame_size;
 	s_idx = ctx->samples_in_audio_buffer % ctx->encoder->frame_size;
 	if (s_idx) {
-		assert(s_idx + nb_samples <= (u32) ctx->encoder->frame_size);
+		gf_assert(s_idx + nb_samples <= (u32) ctx->encoder->frame_size);
 	}
 
 	offset = (f_idx * ctx->channels * ctx->encoder->frame_size + s_idx) * bytes_per_chan;
@@ -953,7 +953,7 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 			nb_samples_to_copy = ctx->encoder->frame_size;
 
 		if (data) {
-			assert(sample_offset<src_frame_size);
+			gf_assert(sample_offset<src_frame_size);
 			src = data + sample_offset * bytes_per_chan;
 		}
 
@@ -991,8 +991,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
-		//no encoder: if negociating input format or input pid props not known yet, wait
-		if (ctx->infmt_negociate || !ctx->setup_failed) return GF_OK;
+		//no encoder: if negotiating input format or input pid props not known yet, wait
+		if (ctx->infmt_negotiate || !ctx->setup_failed) return GF_OK;
 
 		if (ctx->setup_failed==1) {
 			GF_FilterEvent fevt;
@@ -1643,10 +1643,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				ff_pmft = ffmpeg_pixfmt_from_gpac(ctx->pfmt, GF_FALSE);
 			}
 			pfmt = ffmpeg_pixfmt_to_gpac(ff_pmft, GF_FALSE);
-			gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
-			ctx->infmt_negociate = GF_TRUE;
+			gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
+			ctx->infmt_negotiate = GF_TRUE;
 		} else {
-			ctx->infmt_negociate = GF_FALSE;
+			ctx->infmt_negotiate = GF_FALSE;
 		}
 	} else {
 		u32 change_input_sr = 0;
@@ -1704,26 +1704,26 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			if (ctx->sample_fmt != change_input_fmt) {
 				ctx->sample_fmt = codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
 				afmt = ffmpeg_audio_fmt_to_gpac(ctx->sample_fmt);
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
 			}
 			if (ctx->sample_rate != change_input_sr) {
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codec->supported_samplerates[0]) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codec->supported_samplerates[0]) );
 			}
 			if (ctx->channel_layout != change_chan_layout) {
 				if (!change_chan_layout)
 					change_chan_layout = ffmpeg_channel_layout_to_gpac(codec->channel_layouts[0]);
 				u32 nb_chans = gf_audio_fmt_get_num_channels_from_layout(change_chan_layout);
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chans) );
-				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(change_chan_layout) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chans) );
+				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(change_chan_layout) );
 			}
-			ctx->infmt_negociate = GF_TRUE;
+			ctx->infmt_negotiate = GF_TRUE;
 		} else {
-			ctx->infmt_negociate = GF_FALSE;
+			ctx->infmt_negotiate = GF_FALSE;
 		}
 	}
 
-	//renegociate input, wait for reconfig call
-	if (ctx->infmt_negociate) return GF_OK;
+	//renegotiate input, wait for reconfig call
+	if (ctx->infmt_negotiate) return GF_OK;
 
 	ctx->gpac_pixel_fmt = pfmt;
 	ctx->gpac_audio_fmt = afmt;
@@ -1755,7 +1755,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->timescale = ctx->encoder->time_base.den = prop ? prop->value.uint : 1000;
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
-		if (prop) {
+		if (prop && prop->value.frac.den) {
 			Bool reset_gop = GF_FALSE;
 			//don't write gop info for these codecs, unless ctx->gop_size is set (done later)
 			if (codec_id==AV_CODEC_ID_FFV1) reset_gop = GF_TRUE;
@@ -1864,6 +1864,9 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->encoder->pix_fmt = ctx->pixel_fmt;
 		ctx->init_cts_setup = GF_TRUE;
 		ctx->frame->format = ctx->encoder->pix_fmt;
+
+		if (ctx->codecid==GF_CODECID_AV1)
+			av_dict_set(&ctx->options, "strict", "experimental", 0);
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->encoder->sample_rate = ctx->sample_rate;
 		ctx->encoder->channels = ctx->channels;
@@ -2065,9 +2068,9 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 	if (!strcmp(arg_name, "b") && arg_val->value.string) {
 		ctx->target_rate = atoi(arg_val->value.string);
-		if (strchr(arg_val->value.string, 'm') || strchr(arg_val->value.string, 'M'))
+		if (strpbrk(arg_val->value.string, "mM"))
 			ctx->target_rate *= 1000000;
-		else if (strchr(arg_val->value.string, 'k') || strchr(arg_val->value.string, 'K'))
+		else if (strpbrk(arg_val->value.string, "kK"))
 			ctx->target_rate *= 1000;
 
 		sprintf(szOverrideOpt, "%d", ctx->target_rate);

@@ -121,7 +121,7 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//TODO: for now we only allow YUV420p input, we should refine this to allow any YUV
 	if (ctx->pixel_format != GF_PIXEL_YUV) {
-		gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV));
+		gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YUV));
 		ctx->in_fmt_negotiate = GF_TRUE;
 		return GF_OK;
 	}

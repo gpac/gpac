@@ -86,7 +86,7 @@ void vcrop_packet_destruct(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 	GF_FilterFrameInterface *frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	if (!frame_ifce) return;
 	vframe = frame_ifce->user_data;
-	assert(vframe->pck);
+	gf_assert(vframe->pck);
 	gf_filter_pck_unref(vframe->pck);
 	vframe->pck = NULL;
 	gf_list_add(vframe->ctx->frames_res, vframe);

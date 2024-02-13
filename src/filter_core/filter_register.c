@@ -335,7 +335,6 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ffmx),
 	REG_IT(ffavf),
 	REG_IT(ffbsf),
-	REG_IT(ffbsf),
 
 	REG_IT(jsf),
 	REG_IT(routeout),
@@ -398,7 +397,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 
 		const GF_FilterRegister *freg = BuiltinFilters[i].fun(a_sess);
 		if (!freg) continue;
-		assert( !strcmp(freg->name, BuiltinFilters[i].name));
+		gf_assert( !strcmp(freg->name, BuiltinFilters[i].name));
 		gf_fs_add_filter_register(fsess, freg);
 
 	}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -160,7 +160,7 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 				//swap back tail at next
 				atomic_compare_and_swap(tail_ptr, tail, next);
 			} else {
-				assert(next);
+				gf_assert(next);
 				data = next->data;
 				//try to advance q->head to next
 				if (atomic_compare_and_swap(head_ptr, head, next))
@@ -175,7 +175,7 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 void gf_lfq_add(GF_FilterQueue *q, void *item)
 {
 	GF_LFQItem *it=NULL;
-	assert(q);
+	gf_assert(q);
 
 	gf_fq_lockfree_dequeue( &q->res_head, &q->res_tail, &it);
 	if (!it) {
@@ -197,7 +197,7 @@ void *gf_lfq_pop(GF_FilterQueue *q)
 	void *data = gf_fq_lockfree_dequeue( &q->head, &q->tail, &slot);
 	if (!data) return NULL;
 	safe_int_dec(&q->nb_items);
-	assert(slot);
+	gf_assert(slot);
 
 	slot->data = NULL;
 	slot->next = NULL;
@@ -215,7 +215,7 @@ u32 gf_fq_count(GF_FilterQueue *q)
 void gf_fq_add(GF_FilterQueue *fq, void *item)
 {
 	GF_LFQItem *it;
-	assert(fq);
+	gf_assert(fq);
 
 	if (! fq->use_mx) {
 		gf_lfq_add(fq, item);
@@ -270,7 +270,7 @@ void *gf_fq_pop(GF_FilterQueue *fq)
 		} else {
 			fq->res_head = fq->res_tail = it;
 		}
-		assert(fq->nb_items);
+		gf_assert(fq->nb_items);
 		fq->nb_items--;
 
 		if (! fq->head) fq->tail = NULL;
@@ -301,7 +301,7 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 {
 	void *data;
 	GF_LFQItem *it;
-	assert(fq);
+	gf_assert(fq);
 
 	if (fq->use_mx) {
 		gf_mx_p(fq->mx);
@@ -331,7 +331,7 @@ void gf_fq_enum(GF_FilterQueue *fq, void (*enum_func)(void *udta1, void *item), 
 {
 	GF_LFQItem *it;
 	if (!enum_func) return;
-	assert(fq);
+	gf_assert(fq);
 
 	if (fq->use_mx) {
 		gf_mx_p(fq->mx);

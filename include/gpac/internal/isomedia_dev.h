@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -527,6 +527,16 @@ enum
 	GF_ISOM_BOX_TYPE_FLAC	= GF_4CC( 'f', 'L', 'a', 'C' ),
 	GF_ISOM_BOX_TYPE_DFLA	= GF_4CC( 'd', 'f', 'L', 'a' ),
 
+	/* DTS audio */
+	GF_ISOM_BOX_TYPE_DDTS = GF_4CC('d','d','t','s'),
+	GF_ISOM_BOX_TYPE_DTSC = GF_4CC('d','t','s','c'),
+	GF_ISOM_BOX_TYPE_DTSH = GF_4CC('d','t','s','h'),
+	GF_ISOM_BOX_TYPE_DTSL = GF_4CC('d','t','s','l'),
+	GF_ISOM_BOX_TYPE_DTSE = GF_4CC('d','t','s','e'),
+	GF_ISOM_BOX_TYPE_DTSX = GF_4CC('d','t','s','x'),
+	GF_ISOM_BOX_TYPE_DTSY = GF_4CC('d','t','s','y'),
+	GF_ISOM_BOX_TYPE_UDTS = GF_4CC('u','d','t','s'),
+
 	//internal only
 	GF_QT_SUBTYPE_RAW_AUD 	= GF_4CC('Q','T','R','A'),
 	GF_QT_SUBTYPE_RAW_VID 	= GF_4CC('Q','T','R','V'),
@@ -574,6 +584,7 @@ enum
 #define GF_ISOM_BS_COOKIE_VISUAL_TRACK	(1<<1)
 #define GF_ISOM_BS_COOKIE_QT_CONV		(1<<2)
 #define GF_ISOM_BS_COOKIE_CLONE_TRACK	(1<<3)
+#define GF_ISOM_BS_COOKIE_IN_UDTA		(1<<4)
 
 
 #ifndef GPAC_DISABLE_ISOM
@@ -660,7 +671,7 @@ typedef struct
 /*constructor*/
 GF_Box *gf_isom_box_new(u32 boxType);
 //some boxes may have different syntax based on container. Use this constructor for this case
-GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box);
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box, Bool is_uuid);
 
 GF_Err gf_isom_box_write(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs);
@@ -1702,6 +1713,21 @@ typedef struct
 	GF_ISOM_BOX
 	GF_OpusConfig opcfg;
 } GF_OpusSpecificBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_DTSConfig cfg;
+} GF_DTSSpecificBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_UDTSConfig cfg;
+} GF_UDTSSpecificBox;
+
 
 typedef struct
 {
@@ -3546,7 +3572,7 @@ typedef struct
 /*CENCSampleEncryptionGroupEntry - 'seig' type*/
 typedef struct
 {
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 IsProtected;
 	u8 *key_info;
 	u32 key_info_size;
@@ -3568,7 +3594,7 @@ typedef struct __cenc_tenc_box
 {
 	GF_ISOM_FULL_BOX
 
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 isProtected;
 
 	//single key
@@ -3657,7 +3683,7 @@ typedef struct __traf_mss_timeref_box
 GF_SampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
-void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
+void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *container_type, Bool *default_IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 
 GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak,
@@ -3666,7 +3692,7 @@ GF_Err gf_isom_get_sample_cenc_info_internal(GF_TrackBox *trak,
 #else
 	void *traf,
 #endif
-	GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u8 *crypt_byte_block, u8 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
+	GF_SampleEncryptionBox *senc, u32 sample_number, Bool *IsEncrypted, u32 *crypt_byte_block, u32 *skip_byte_block, const u8 **key_info, u32 *key_info_size);
 
 
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak,
@@ -4202,6 +4228,7 @@ struct __tag_isom {
 	u64 fragmented_file_pos;
 	u8 *block_buffer;
 	u32 block_buffer_size;
+	Bool blocks_sent;
 
 	u32 nb_box_init_seg;
 
@@ -4289,6 +4316,7 @@ GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber,
 GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl);
 GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl);
 GF_Err SetTrackDuration(GF_TrackBox *trak);
+GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc);
 GF_Err Media_SetDuration(GF_TrackBox *trak);
 
 /*rewrites 3GP samples desc as MPEG-4 ESD*/

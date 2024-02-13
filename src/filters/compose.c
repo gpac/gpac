@@ -185,8 +185,8 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	//player mode
 	
-	//quit event seen, do not flush, just abort and return last error
-	if (ctx->check_eos_state) {
+	//quit event seen or session is ending, do not flush, just abort and return last error
+	if (ctx->check_eos_state || gf_filter_end_of_session(filter)) {
 		gf_filter_abort(filter);
 		return ctx->last_error ? ctx->last_error : GF_EOS;
 	}
@@ -303,7 +303,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	odm = gf_filter_pid_get_udta(pid);
 
-	//in filter mode, check we can handle creating a canvas from input video format. If not, negociate a supported format
+	//in filter mode, check we can handle creating a canvas from input video format. If not, negotiate a supported format
 	if (!ctx->player) {
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 		if (prop && (!odm || (odm->mo && (odm->mo->pixelformat != prop->value.uint)))) {
@@ -322,7 +322,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				} else {
 					new_fmt = transparent ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 				}
-				gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(new_fmt) );
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(new_fmt) );
 				return GF_OK;
 			}
 		}
@@ -427,7 +427,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 			continue;
 		}
-		assert(sns->owner);
+		gf_fatal_assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
 			Bool scene_setup = GF_FALSE;
 			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
@@ -474,7 +474,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					return GF_OK;
 				}
 
-				assert(sns->owner->parentscene);
+				gf_fatal_assert(sns->owner->parentscene);
 				sns->owner->subscene = gf_scene_new(ctx, sns->owner->parentscene);
 				sns->owner->subscene->root_od = sns->owner;
 			}
@@ -483,7 +483,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	if (!scene) scene = def_scene;
-	assert(scene);
+	if (!scene) return GF_SERVICE_ERROR;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Configuring PID %s\n", gf_stream_type_name(mtype)));
 

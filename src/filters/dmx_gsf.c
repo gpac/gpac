@@ -610,8 +610,8 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 	if ((frame_sn>=0) || pck_frag) {
 		while (( gpck = gf_list_enum(gst->packets, &i))) {
 			if (gpck->frame_sn == frame_sn) {
-				assert(gpck->pck_type == pkt_type);
-				assert(gpck->full_block_size == frame_size);
+				gf_assert(gpck->pck_type == pkt_type);
+				gf_assert(gpck->full_block_size == frame_size);
 
 				break;
 			}
@@ -661,7 +661,7 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 	pck->recv_bytes += size;
 	pck->nb_recv_frags++;
 
-	assert(offset + size <= pck->full_block_size);
+	gf_assert(offset + size <= pck->full_block_size);
 
 	for (i=0; i<pck->nb_frags; i++) {
 		if ((pck->frags[i].offset <= offset) && (pck->frags[i].offset + pck->frags[i].size >= offset + size) ) {
@@ -879,9 +879,9 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	consumed = (u32) gf_bs_get_position(bs) - spos;
 	pck_len -= consumed;
 	if (full_pck) {
-		assert(gpck->full_block_size > consumed);
+		gf_fatal_assert(gpck->full_block_size > consumed);
 		gpck->full_block_size -= consumed;
-		assert(gpck->full_block_size == pck_len);
+		gf_assert(gpck->full_block_size == pck_len);
 		gf_filter_pck_truncate(gpck->pck, gpck->full_block_size);
 	}
 	copy_size = gpck->full_block_size;
@@ -971,7 +971,7 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 				return GF_OK;
 			}
 		}
-		assert(gpck->pck);
+		gf_assert(gpck->pck);
 		if (ctx->use_seq_num) {
 			u32 frame_sn;
 			if (!gst->last_frame_sn) frame_sn = gpck->frame_sn;
@@ -1191,7 +1191,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 	}
 
 	if (last_pck_end) {
-		assert(ctx->buf_size>=last_pck_end);
+		gf_fatal_assert(ctx->buf_size>=last_pck_end);
 		memmove(ctx->buffer, ctx->buffer+last_pck_end, sizeof(char) * (ctx->buf_size-last_pck_end));
 		ctx->buf_size -= last_pck_end;
 	}
@@ -1272,13 +1272,16 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 	while (buf) {
 		char *start_sig = memchr(buf, 'G', avail);
 		if (!start_sig) return NULL;
+		buf = start_sig;
+		avail = data_size - (u32) ( buf - (char *) data);
+		if (avail<5) return NULL;
 		//signature found and version is 2
 		if (!strncmp(start_sig, "GS5F", 4) && (start_sig[4] == GF_GSF_VERSION)) {
 			*score = GF_FPROBE_SUPPORTED;
 			return "application/x-gpac-sf";
 		}
-		buf = start_sig+1;
-		avail = data_size - (u32) ( buf - (char *) data);
+		buf ++;
+		avail --;
 	}
 	return NULL;
 }

@@ -143,22 +143,47 @@ typedef struct
 /*! Creates a new ROUTE ATSC3.0 demultiplexer
 \param ifce network interface to monitor, NULL for INADDR_ANY
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
- \param on_event the user callback function
- \param udta the user data passed back by the callback
+\param on_event the user callback function
+\param udta the user data passed back by the callback
 \return the ROUTE demultiplexer created
 */
 GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, u32 sock_buffer_size, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
+
+/*! Creates a new ROUTE ATSC3.0 demultiplexer
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\param on_event the user callback function
+\param udta the user data passed back by the callback
+\return the ROUTE demultiplexer created
+*/
+GF_ROUTEDmx *gf_route_atsc_dmx_new_ex(const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
 
 /*! Creates a new ROUTE demultiplexer
 \param ip IP address of ROUTE session
 \param port port of ROUTE session
 \param ifce network interface to monitor, NULL for INADDR_ANY
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
- \param on_event the user callback function
- \param udta the user data passed back by the callback
+\param on_event the user callback function
+\param udta the user data passed back by the callback
 \return the ROUTE demultiplexer created
 */
 GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
+
+/*! Creates a new ROUTE demultiplexer
+\param ip IP address of ROUTE session
+\param port port of ROUTE session
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\param on_event the user callback function
+\param udta the user data passed back by the callback
+\return the ROUTE demultiplexer created
+*/
+GF_ROUTEDmx *gf_route_dmx_new_ex(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
 /*! Deletes an ROUTE demultiplexer
 \param routedmx the ROUTE demultiplexer to delete

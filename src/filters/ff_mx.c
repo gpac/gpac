@@ -125,7 +125,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	u32 min_timescale=1000;
 	int res;
 
-	assert(ctx->status==FFMX_STATE_AVIO_OPEN);
+	gf_assert(ctx->status==FFMX_STATE_AVIO_OPEN);
 
 	ctx->status = FFMX_STATE_HDR_DONE;
 	ctx->probe_init = 0;

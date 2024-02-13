@@ -183,7 +183,7 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	//TODO: we need to cleanup cap checking upon reconfigure
 	if (ctx->ipid && !gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
-	assert(!ctx->ipid || (ctx->ipid == pid));
+	gf_assert(!ctx->ipid || (ctx->ipid == pid));
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->delay = p ? p->value.longsint : 0;

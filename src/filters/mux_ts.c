@@ -363,7 +363,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 				GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, od_index);
 				esd_index = 0;
 				while ( (esd = gf_list_enum(od->ESDescriptors, &esd_index)) ) {
-					assert(esd->slConfig);
+					gf_assert(esd->slConfig);
 					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
 				}
 			}
@@ -372,7 +372,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 			esdU = (GF_ESDUpdate*)com;
 			esd_index = 0;
 			while ( (esd = gf_list_enum(esdU->ESDescriptors, &esd_index)) ) {
-					assert(esd->slConfig);
+					gf_assert(esd->slConfig);
 					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
 			}
 			break;
@@ -656,7 +656,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				//we don't have reliable dts - double the diff should make sure we don't try to adjust too often
 				diff = cts_diff = 2*(es_pck.dts - es_pck.cts);
 				diff = gf_timestamp_rescale(diff, tspid->esi.timescale, 1000000);
-				assert(tspid->prog->cts_offset <= diff);
+				gf_assert(tspid->prog->cts_offset <= diff);
 				tspid->prog->cts_offset += (u32) diff;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
@@ -1274,7 +1274,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		Bool is_pcr=GF_FALSE;
 		Bool force_pes=GF_FALSE;
 		u32 pes_pid;
-		assert(!tspid->esi.stream_type);
+		gf_assert(!tspid->esi.stream_type);
 		tspid->codec_id = codec_id;
 		tspid->esi.stream_type = streamtype;
 
@@ -1458,7 +1458,8 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	}
 	if (!tspid) tspid = gf_list_get(ctx->pids, 0);
 
-	if (ctx->nb_sidx_entries) {
+	//in MP4Box HLS mode, sub_sidx can be 0 (single sidx per segment) but not produced (ctx->idx_file_name is empty)
+	if (ctx->nb_sidx_entries && ctx->idx_file_name[0]) {
 		GF_FilterPacket *idx_pck;
 		u8 *output;
 		Bool large_sidx = GF_FALSE;

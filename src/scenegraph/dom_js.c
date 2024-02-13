@@ -778,7 +778,7 @@ static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node
 #endif
 
 	if (vrml_node) {
-		assert(handler->js_data);
+		gf_assert(handler->js_data);
 		handler->js_data->ctx = c;
 #ifndef GPAC_DISABLE_VRML
 		if (vrml_node->sgprivate->tag <= GF_NODE_RANGE_LAST_VRML)
@@ -1900,7 +1900,10 @@ static void gf_dom_add_handler_listener(GF_Node *n, u32 evtType, char *handlerCo
 		/* found a listener for this event, override the handler
 		TODO: FIX this, there may be a listener/handler already set with JS, why overriding ? */
 		gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_handler, GF_FALSE, GF_FALSE, &info);
-		assert(info.far_ptr);
+		if (!info.far_ptr) {
+			gf_assert(0);
+			return;
+		}
 		handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		text = (GF_DOMText*)handler->children->node;
 		if (text->sgprivate->tag==TAG_DOMText) {
@@ -1921,13 +1924,15 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 	GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 	while (att) {
 		if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, attribute_name)) {
-			DOM_String *s;
-			assert(att->data_type == DOM_String_datatype);
-			assert(att->data);
-			s = (DOM_String *) att->data;
-			if ( *s ) gf_free( *s);
-			*s = gf_strdup(attribute_content);
-			dom_node_changed((GF_Node *)node, GF_FALSE, NULL);
+			if ((att->data_type == DOM_String_datatype) && att->data) {
+				DOM_String *s;
+				s = (DOM_String *) att->data;
+				if ( *s ) gf_free( *s);
+				*s = gf_strdup(attribute_content);
+				dom_node_changed((GF_Node *)node, GF_FALSE, NULL);
+			} else {
+				gf_assert(0);
+			}
 			return;
 		}
 		prev = att;

@@ -578,7 +578,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 	uncv_check_comps_type(cfg->comps, cfg->nb_comps, &has_mono, &has_yuv, &has_rgb, &has_alpha, &has_depth, &has_disp, &has_pal, &has_fa, &has_pad, &has_non_int);
 
 	if (has_pal) {
-		assert(cfg->palette);
+		gf_assert(cfg->palette);
 		uncv_check_comps_type(cfg->palette->comps, cfg->palette->nb_comps, &has_mono, &has_yuv, &has_rgb, &has_alpha, &has_depth, &has_disp, &has_pal, &has_fa, &has_pad, &has_non_int);
 	}
 	if (cfg->fa_map) {
@@ -1181,7 +1181,7 @@ static void uncv_start_frame(UNCVDecCtx *ctx, const u8 *data, u32 size)
 {
 	UNCVConfig *config = ctx->cfg;
 
-	if (ctx->nb_bsrs>1) {
+	if ((ctx->nb_bsrs>1) || (ctx->cfg->nb_comps==1)) {
 		u32 offset = 0;
 		u32 comp_row_size=0;
 		for (u32 i=0; i<config->nb_comps; i++) {

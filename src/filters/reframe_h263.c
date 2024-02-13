@@ -320,8 +320,8 @@ static Bool h263dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void h263dmx_update_cts(GF_H263DmxCtx *ctx)
 {
-	assert(ctx->fps.num);
-	assert(ctx->fps.den);
+	gf_assert(ctx->fps.num);
+	gf_assert(ctx->fps.den);
 
 	if (!ctx->notime) {
 		u64 inc = ctx->fps.den;
@@ -652,7 +652,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		h263dmx_update_cts(ctx);
 
 
-		//don't demux too much of input, abort when we would block. This avoid dispatching
+		//don't demux too much of input, abort when we would block. This avoids dispatching
 		//a huge number of frames in a single call
 		if (gf_filter_pid_would_block(ctx->opid)) {
 			ctx->resume_from = (u32) ( (char *)start -  (char *)data);

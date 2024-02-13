@@ -1481,8 +1481,10 @@ GF_EXPORT
 GF_Err gf_odf_av1_cfg_write_bs(GF_AV1Config *cfg, GF_BitStream *bs)
 {
 	u32 i = 0;
-	gf_bs_write_int(bs, cfg->marker, 1); assert(cfg->marker == 1);
-	gf_bs_write_int(bs, cfg->version, 7); assert(cfg->version == 1);
+	gf_bs_write_int(bs, cfg->marker, 1);
+	gf_assert(cfg->marker == 1);
+	gf_bs_write_int(bs, cfg->version, 7);
+	gf_assert(cfg->version == 1);
 	gf_bs_write_int(bs, cfg->seq_profile, 3);
 	gf_bs_write_int(bs, cfg->seq_level_idx_0, 5);
 	gf_bs_write_int(bs, cfg->seq_tier_0, 1);
@@ -1646,11 +1648,6 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	cfg->chroma_sample_position = gf_bs_read_int(bs, 2);
 
 	reserved = gf_bs_read_int(bs, 3);
-	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong avcC reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
-		gf_odf_av1_cfg_del(cfg);
-		return NULL;
-	}
 	cfg->initial_presentation_delay_present = gf_bs_read_int(bs, 1);
 	if (cfg->initial_presentation_delay_present) {
 		cfg->initial_presentation_delay_minus_one = gf_bs_read_int(bs, 4);
@@ -1659,6 +1656,13 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		cfg->initial_presentation_delay_minus_one = 0;
 	}
 	size -= 4;
+
+	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong av1C reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
+		gf_odf_av1_cfg_del(cfg);
+		return NULL;
+	}
+
 
 	while (size) {
 		u64 pos, obu_size;
@@ -1671,7 +1675,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
-		assert(obu_size == gf_bs_get_position(bs) - pos);
+		gf_assert(obu_size == gf_bs_get_position(bs) - pos);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
 		if (!av1_is_obu_header(obu_type)) {

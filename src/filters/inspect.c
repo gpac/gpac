@@ -299,7 +299,7 @@ static const tag_to_name SEINames[] =
 	{181, "alternative_depth_info"}
 };
 
-static const char *get_sei_name(u32 sei_type, u32 is_hevc)
+static const char *get_sei_name(u32 sei_type)
 {
 	u32 i, count = sizeof(SEINames) / sizeof(tag_to_name);
 	for (i=0; i<count; i++) {
@@ -499,29 +499,24 @@ static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
 			   min_display_mastering_luminance*1.0/(isMPEG?10000:(1<<14)));
 }
 
-static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
+static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 {
-	u32 read_bytes = 0;
 	u32 country_code = gf_bs_read_u8(bs);
 	inspect_printf(dump, " country_code=\"0x%x\"", country_code);
 	if (country_code == 0xFF) {
 		u32 country_code_extension = gf_bs_read_u8(bs);
-		read_bytes++;
 		inspect_printf(dump, " country_code_extension=\"0x%x\"", country_code_extension);
 	}
 	u32 terminal_provider_code = gf_bs_read_u16(bs);
 	inspect_printf(dump, " terminal_provider_code=\"0x%x\"", terminal_provider_code);
 
-	read_bytes+=3;
 	if ((terminal_provider_code==49) || (terminal_provider_code==47)) {
 		u32 code = gf_bs_read_u32(bs);
 		u32 udta_code = gf_bs_read_u8(bs);
-		read_bytes+=5;
 		inspect_printf(dump, " user_id=\"%s\"", gf_4cc_to_str(code) );
 		inspect_printf(dump, " user_data_type=\"%d\"", udta_code);
 		if (terminal_provider_code==47) {
 			inspect_printf(dump, " directv_user_data_length %d\n", gf_bs_read_u8(bs) );
-			read_bytes+=1;
 		}
 		if (udta_code==3) {
 			u32 i;
@@ -531,7 +526,6 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 			u32 cc_count = gf_bs_read_int(bs, 5);
 			inspect_printf(dump, " cc_count=\"%d\"\n", cc_count);
 			inspect_printf(dump, " em_data=\"%x\"\n", gf_bs_read_u8(bs));
-			read_bytes+=2;
 
 			inspect_printf(dump, " cc_data=\"[");
 			for (i=0; i< cc_count; ++i) {
@@ -544,7 +538,6 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 					inspect_printf(dump, "%d 0x%x", type, data);
 				else
 					inspect_printf(dump, "skip");
-				read_bytes+=3;
 			}
 			inspect_printf(dump, "]\"");
 		}
@@ -552,12 +545,10 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 		u32 terminal_provider_oriented_code = gf_bs_read_u16(bs);
 		u32 application_identifier = gf_bs_read_u8(bs);
 		u32 application_mode = gf_bs_read_u8(bs);
-		read_bytes+=4;
 		inspect_printf(dump, " terminal_provider_oriented_code=\"0x%x\" application_identifier=\"%u\" application_mode=\"%u\"",
 				   terminal_provider_oriented_code,
 				   application_identifier, application_mode);
 	}
-	return read_bytes;
 }
 
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
@@ -601,73 +592,148 @@ static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 	return 0;
 }
 
-static void dump_time_code(FILE *dump, GF_BitStream *bs)
+static void dump_time_code(FILE *dump, GF_BitStream *bs, int i)
 {
-	u32 seconds = 0;
-	u32 minutes = 0;
-	u32 hours = 0;
+	Bool full_timestamp_flag, discontinuity_flag, cnt_dropped_flag;
+	u8 counting_type;
+	u32 n_frames;
+	u32 time_offset_length, time_offset_value;
+	u32 seconds = 0, minutes = 0, hours = 0;
+
+	counting_type = gf_bs_read_int(bs, 5);
+	inspect_printf(dump, " counting_type_%d=\"%d\"", i, counting_type);
+	full_timestamp_flag = gf_bs_read_int(bs, 1);
+	inspect_printf(dump, " full_timestamp_flag_%d=\"%d\"", i, full_timestamp_flag);
+	discontinuity_flag = gf_bs_read_int(bs, 1);
+	inspect_printf(dump, " discontinuity_flag_%d=\"%d\"", i, discontinuity_flag);
+	cnt_dropped_flag = gf_bs_read_int(bs, 1);
+	inspect_printf(dump, " cnt_dropped_flag_%d=\"%d\"", i, cnt_dropped_flag);
+	n_frames = gf_bs_read_int(bs, 9);
+	if (full_timestamp_flag) {
+		seconds = gf_bs_read_int(bs, 6);
+		minutes = gf_bs_read_int(bs, 6);
+		hours = gf_bs_read_int(bs, 5);
+	} else {
+		Bool seconds_flag = gf_bs_read_int(bs, 1);
+		if (seconds_flag) {
+			seconds = gf_bs_read_int(bs, 6);
+			Bool minutes_flag = gf_bs_read_int(bs, 1);
+			if (minutes_flag) {
+				minutes = gf_bs_read_int(bs, 6);
+				Bool hours_flag = gf_bs_read_int(bs, 1);
+				if (hours_flag) {
+					hours = gf_bs_read_int(bs, 5);
+				}
+			}
+		}
+	}
+	inspect_printf(dump, " time_code_%d=\"%02d:%02d:%02d:%02d\"", i, hours, minutes, seconds, n_frames);
+	time_offset_length = gf_bs_read_int(bs, 5);
+	inspect_printf(dump, " time_offset_length_%d=\"%d\"", i, time_offset_length);
+	time_offset_value = 0;
+	if (time_offset_length > 0) {
+		time_offset_value = gf_bs_read_int(bs, time_offset_length);
+	}
+	inspect_printf(dump, " time_offset_value_%d=\"%d\"", i, time_offset_value);
+}
+
+static void dump_time_code_hevc(FILE *dump, GF_BitStream *bs)
+{
 	u8 num_clock_ts = gf_bs_read_int(bs, 2);
 	inspect_printf(dump, " num_clock_ts=\"%d\"", num_clock_ts);
 	for (int i = 0; i < num_clock_ts; i++) {
 		Bool clock_timestamp_flag = gf_bs_read_int(bs, 1);
 		if (clock_timestamp_flag) {
-			Bool units_field_based_flag, full_timestamp_flag, discontinuity_flag, cnt_dropped_flag;
-			u8 counting_type;
-			u32 n_frames;
-			u32 time_offset_length, time_offset_value;
-
-			units_field_based_flag = gf_bs_read_int(bs, 1);
+			Bool units_field_based_flag = gf_bs_read_int(bs, 1);
 			inspect_printf(dump, " units_field_based_flag_%d=\"%d\"", i, units_field_based_flag);
-			counting_type = gf_bs_read_int(bs, 5);
-			inspect_printf(dump, " counting_type_%d=\"%d\"", i, counting_type);
-			full_timestamp_flag = gf_bs_read_int(bs, 1);
-			inspect_printf(dump, " full_timestamp_flag_%d=\"%d\"", i, full_timestamp_flag);
-			discontinuity_flag = gf_bs_read_int(bs, 1);
-			inspect_printf(dump, " discontinuity_flag_%d=\"%d\"", i, discontinuity_flag);
-			cnt_dropped_flag = gf_bs_read_int(bs, 1);
-			inspect_printf(dump, " cnt_dropped_flag_%d=\"%d\"", i, cnt_dropped_flag);
-			n_frames = gf_bs_read_int(bs, 9);
-			if (full_timestamp_flag) {
-				seconds = gf_bs_read_int(bs, 6);
-				minutes = gf_bs_read_int(bs, 6);
-				hours = gf_bs_read_int(bs, 5);
-			} else {
-				Bool seconds_flag = gf_bs_read_int(bs, 1);
-				if (seconds_flag) {
-					seconds = gf_bs_read_int(bs, 6);
-					Bool minutes_flag = gf_bs_read_int(bs, 1);
-					if (minutes_flag) {
-						minutes = gf_bs_read_int(bs, 6);
-						Bool hours_flag = gf_bs_read_int(bs, 1);
-						if (hours_flag) {
-							hours = gf_bs_read_int(bs, 5);
-						}
-					}
-				}
-			}
-			inspect_printf(dump, " time_code_%d=\"%02d:%02d:%02d:%02d\"", i, hours, minutes, seconds, n_frames);
-			time_offset_length = gf_bs_read_int(bs, 5);
-			inspect_printf(dump, " time_offset_length_%d=\"%d\"", i, time_offset_length);
-			time_offset_value = 0;
-			if (time_offset_length > 0) {
-				time_offset_value = gf_bs_read_int(bs, time_offset_length);
-			}
-			inspect_printf(dump, " time_offset_value_%d=\"%d\"", i, time_offset_value);
+			dump_time_code(dump, bs, i);
 		}
 	}
 }
 
-static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
+static u32 gf_bs_inspect_int(GF_BitStream *bs, FILE *dump, char *name, int idx, int nbits)
 {
-	u32 i;
+	u32 val = gf_bs_read_int(bs, nbits);
+	inspect_printf(dump, " %s_%d=\"%d\"", name, idx, val);
+	return val;
+}
+
+static void dump_avc_pic_timing(FILE *dump, GF_BitStream *bs, AVCState *avc)
+{
+	int sps_id = avc->sps_active_idx;
+	const char NumClockTS[] = { 1, 1, 1, 2, 2, 3, 3, 2, 3 };
+	AVCSeiPicTiming *pt = &avc->sei.pic_timing;
+
+	if (sps_id < 0) {
+		/*sps_active_idx equals -1 when no sps has been detected. In this case SEI should not be decoded.*/
+		gf_assert(0);
+		return;
+	}
+
+	if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
+		gf_bs_inspect_int(bs, dump, "cpb_removal_delay_minus1", sps_id, 1 + avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1);
+		gf_bs_inspect_int(bs, dump, "dpb_output_delay_minus1", sps_id, 1 + avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);
+	}
+
+	/*ISO 14496-10 (2003), D.8.2: we need to get pic_struct in order to know if we display top field first or bottom field first*/
+	if (avc->sps[sps_id].vui.pic_struct_present_flag) {
+		int i;
+		pt->pic_struct = gf_bs_inspect_int(bs, dump, "pic_struct", sps_id, 4);
+		if (pt->pic_struct > 8) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] invalid avc pic_struct value %d\n", pt->pic_struct));
+			return;
+		}
+
+		inspect_printf(dump, " num_clock_ts=\"%d\"", NumClockTS[pt->pic_struct]);
+		for (i = 0; i < NumClockTS[pt->pic_struct]; i++) {
+			if (gf_bs_inspect_int(bs, dump, "clock_timestamp_flag", i, 1)) {
+				Bool full_timestamp_flag;
+				/*ct_type*/gf_bs_read_int(bs, 2);
+				gf_bs_inspect_int(bs, dump, "nuit_field_based_flag", i, 1);
+				gf_bs_inspect_int(bs, dump, "counting_type", i, 5);
+				full_timestamp_flag = gf_bs_inspect_int(bs, dump, "full_timestamp_flag", i, 1);
+				gf_bs_inspect_int(bs, dump, "discontinuity_flag", i, 1);
+				gf_bs_inspect_int(bs, dump, "cnt_dropped_flag", i, 1);
+				u32 n_frames = gf_bs_read_int(bs, 8);
+
+				u32 hours=0, minutes=0, seconds=0;
+				if (full_timestamp_flag) {
+					seconds = gf_bs_read_int(bs, 6);
+					minutes = gf_bs_read_int(bs, 6);
+					hours = gf_bs_read_int(bs, 5);
+				} else {
+					if (gf_bs_read_int(bs, 1)) {
+						seconds = gf_bs_read_int(bs, 6);
+						if (gf_bs_read_int(bs, 1)) {
+							minutes = gf_bs_read_int(bs, 6);
+							if (gf_bs_read_int(bs, 1)) {
+								hours = gf_bs_read_int(bs, 5);
+							}
+						}
+					}
+					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0) {
+						inspect_printf(dump, " time_offset_length_%d=\"%d\"", i, avc->sps[sps_id].vui.hrd.time_offset_length);
+						gf_bs_inspect_int(bs, dump, "time_offset_value", i, avc->sps[sps_id].vui.hrd.time_offset_length);
+					}
+				}
+
+				inspect_printf(dump, " time_code_%d=\"%02d:%02d:%02d:%02d\"", i, hours, minutes, seconds, n_frames);
+			}
+		}
+	}
+}
+
+static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hevc, VVCState *vvc)
+{
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
 	//skip nal header
-	gf_bs_read_int(bs, is_hevc ? 16 : 8);
+	gf_bs_read_int(bs, avc ? 8 : 16);
 
 	while (gf_bs_available(bs) ) {
 		u32 sei_type = 0;
 		u32 sei_size = 0;
+		u32 sei_pos;
 		while (gf_bs_peek_bits(bs, 8, 0) == 0xFF) {
 			sei_type += 255;
 			gf_bs_read_int(bs, 8);
@@ -678,28 +744,33 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			gf_bs_read_int(bs, 8);
 		}
 		sei_size += gf_bs_read_int(bs, 8);
+		sei_pos = (u32) gf_bs_get_position(bs);
 
-		inspect_printf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
+		inspect_printf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type) );
 		if (sei_type == 144) {
 			dump_clli(dump, bs);
 		} else if (sei_type == 137) {
 			dump_mdcv(dump, bs, GF_TRUE);
+		} else if (sei_type == 1 && avc) {
+			dump_avc_pic_timing(dump, bs, avc);
 		} else if (sei_type == 136) {
-			dump_time_code(dump, bs);
+			dump_time_code_hevc(dump, bs);
 		} else if (sei_type == 4) {
-			i = dump_t35(dump, bs, sei_size);
-			while (i < sei_size) {
-				gf_bs_read_u8(bs);
-				i++;
-			}
-		} else {
-			i=0;
-			while (i < sei_size) {
-				gf_bs_read_u8(bs);
-				i++;
-			}
+			dump_t35(dump, bs, sei_size);
+		}
+		else if (avc && (sei_type==6)) {
+			u32 frame_cnt = gf_bs_read_ue(bs);
+			inspect_printf(dump, " frame_count=\"%u\"", frame_cnt);
 		}
 		inspect_printf(dump, "/>\n");
+
+		//don't trust sei parsers, force jumping to next - use byte-per-byte read for EPB removal
+		gf_bs_seek(bs, sei_pos);
+		while (sei_size) {
+			gf_bs_read_u8(bs);
+			sei_size--;
+		}
+
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
@@ -948,7 +1019,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				u32 mode = s[0];
 				remain -= 1;
 				s += 1;
-				if (mode) {
+				if (!remain) {
+					inspect_printf(dump, "error=\"invalid inband data extractor size, no bytes remaining\"/>\n");
+					return;
+				} else if (mode) {
 					u32 len = s[0];
 					if (len+1>remain) {
 						inspect_printf(dump, "error=\"invalid inband data extractor size: %d vs %d remaining\"/>\n", len, remain);
@@ -1012,7 +1086,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			dump_sei(dump, bs, GF_TRUE);
+			dump_sei(dump, bs, avc, hevc, vvc);
 			if (!pctx) gf_bs_del(bs);
 			inspect_printf(dump, "   </NALU>\n");
 		} else {
@@ -1171,7 +1245,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			} else {
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
-			dump_sei(dump, bs, GF_TRUE);
+			dump_sei(dump, bs, avc, hevc, vvc);
 			if (!pctx) gf_bs_del(bs);
 			inspect_printf(dump, "   </NALU>\n");
 		} else {
@@ -1362,7 +1436,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (!is_encrypted && (type == GF_AVC_NALU_SEI)) {
 		inspect_printf(dump, ">\n");
 		gf_bs_set_logger(bs, NULL, NULL);
-		dump_sei(dump, bs, GF_FALSE);
+		dump_sei(dump, bs, avc, hevc, vvc);
 		inspect_printf(dump, "   </NALU>\n");
 	} else {
 		inspect_printf(dump, "/>\n");
@@ -1406,7 +1480,8 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
-	assert(pctx || obu_size >= 2);
+	if (!pctx && (obu_size <= 2))
+		return obu_size;
 
 	if (pctx) {
 		InspectLogCbk lcbk;
@@ -1509,11 +1584,14 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 		inspect_printf(dump, "   </OBU>\n");
 		break;
 	case OBU_METADATA:
-		{
+		if (obu_ptr_length>hdr_size) {
 			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
 			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
+				case OBU_METADATA_TYPE_TIMECODE:
+					dump_time_code(dump, bs, 0);
+					break;
 				case OBU_METADATA_TYPE_ITUT_T35:
 					dump_t35(dump, bs, 0);
 					break;
@@ -2432,12 +2510,11 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		if (ctx->dtype)
 			inspect_printf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
 			
-		if (pname && (strchr(pname, ' ') || strchr(pname, ':'))) {
+		if (pname && (strpbrk(pname, " :"))) { 
 			u32 i=0, k;
 			char *pname_no_space = gf_strdup(pname);
 			while (pname_no_space[i]) {
-				if (pname_no_space[i]==' ') pname_no_space[i]='_';
-				if (pname_no_space[i]==':') pname_no_space[i]='_';
+				if ((pname_no_space[i]==' ') || (pname_no_space[i]==':')) pname_no_space[i]='_';
 				i++;
 			}
 
@@ -2516,7 +2593,7 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 	u32 size=0;
 	const char *data=NULL;
 	char *str = ctx->fmt;
-	assert(str);
+	gf_assert(str);
 
 	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
@@ -3016,7 +3093,7 @@ static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_
 	if (superframe_index_size)
 		inspect_printf(dump, " nb_frames=\"%u\" index_size=\"%u\">\n", num_frames_in_superframe, superframe_index_size);
 	else {
-		assert(num_frames_in_superframe==1);
+		gf_assert(num_frames_in_superframe==1);
 	}
 	for (i = 0; i < num_frames_in_superframe; ++i) {
 		u64 pos2 = gf_bs_get_position(pctx->bs);
@@ -3332,7 +3409,7 @@ props_done:
 			u64 obu_size = 0;
 			u32 hdr_size = 0;
 
-			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, obu_size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
 
 			if (obu_size > size) {
 				inspect_printf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
@@ -3362,6 +3439,10 @@ props_done:
 			pos = 0;
 			while (size) {
 				hdr = gf_mp3_get_next_header_mem(data, size, &pos);
+				if (!hdr) {
+					inspect_printf(dump, "<!-- Invalid MPEGAudioFrame -->\n");
+					break;
+				}
 				fsize = gf_mp3_frame_size(hdr);
 				inspect_printf(dump, "<MPEGAudioFrame size=\"%d\" layer=\"%d\" version=\"%d\" bitrate=\"%d\" channels=\"%d\" samplesPerFrame=\"%d\" samplerate=\"%d\"/>\n", fsize, gf_mp3_layer(hdr), gf_mp3_version(hdr), gf_mp3_bit_rate(hdr), gf_mp3_num_channels(hdr), gf_mp3_window_size(hdr), gf_mp3_sampling_rate(hdr));
 				if (size<pos+fsize) break;
@@ -4525,7 +4606,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			ctx->dump_pck = GF_FALSE;
 		}
 	}
-	count = gf_list_count(ctx->src_pids);
+	
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = NULL;
@@ -4651,7 +4732,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
-		assert(pctx->src_pid == pid);
+		gf_assert(pctx->src_pid == pid);
 		if (is_remove)
 			pctx->src_pid = NULL;
 		else if (!ctx->is_prober)

@@ -118,7 +118,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	url = strchr(ctx->src, ':');
 	url += 3;
 
-	ctx->sock_c.socket = gf_sk_new(sock_type);
+	ctx->sock_c.socket = gf_sk_new_ex(sock_type, gf_filter_get_netcap_id(filter));
 	if (! ctx->sock_c.socket ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockIn] Failed to open socket for %s\n", ctx->src));
 		return GF_IO_ERR;
@@ -341,6 +341,7 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	//first run, probe data
 	if (!sock_c->pid) {
 		const char *mime = ctx->mime;
+		const char *ext = ctx->ext;
 		//probe MPEG-2
 		if (ctx->tsprobe) {
 			/*TS over RTP signaled as udp */
@@ -351,12 +352,14 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 				sock_c->is_rtp = GF_TRUE;
 #endif
 				mime = "video/mp2t";
+				ext = "ts";
 			} else if (ctx->buffer[0] == 0x47) {
 				mime = "video/mp2t";
+				ext = "ts";
 			}
 		}
 
-		e = gf_filter_pid_raw_new(filter, ctx->src, NULL, mime, ctx->ext, ctx->buffer, nb_read, GF_TRUE, &sock_c->pid);
+		e = gf_filter_pid_raw_new(filter, ctx->src, NULL, mime, ext, ctx->buffer, nb_read, GF_TRUE, &sock_c->pid);
 		if (e) return e;
 
 //		if (ctx->is_udp) gf_filter_pid_set_property(sock_c->pid, GF_PROP_PID_UDP, &PROP_BOOL(GF_TRUE) );
@@ -482,11 +485,11 @@ static GF_Err sockin_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 1000);
 		return GF_OK;
 	}
-	else if (e==GF_IP_CONNECTION_CLOSED) {
+	else if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_EOS)) {
 		ctx->is_stop = GF_TRUE;
 		if (ctx->sock_c.pid)
 			gf_filter_pid_set_eos(ctx->sock_c.pid);
-		return e;
+		return e<0 ? e : 0;
 	}
 	else if (e) {
 		return e;

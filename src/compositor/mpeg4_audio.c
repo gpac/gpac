@@ -464,7 +464,7 @@ static u8 *audiobuffer_fetch_frame(void *callback, u32 *size, u32 *planar_stride
 			written = gf_mixer_get_output(st->am, st->buffer + st->write_pos, st->buffer_size - st->write_pos, 0);
 			if (!written) break;
 			st->write_pos += written;
-			assert(st->write_pos<=st->buffer_size);
+			gf_fatal_assert(st->write_pos<=st->buffer_size);
 		}
 	}
 	/*not playing*/
@@ -477,7 +477,7 @@ static void audiobuffer_release_frame(void *callback, u32 nb_bytes)
 {
 	AudioBufferStack *st = (AudioBufferStack *) gf_node_get_private( ((GF_AudioInput *) callback)->owner);
 	st->read_pos += nb_bytes;
-	assert(st->read_pos<=st->write_pos);
+	gf_fatal_assert(st->read_pos<=st->write_pos);
 	if (st->read_pos==st->write_pos) {
 		if (st->write_pos<st->buffer_size) {
 			/*reading faster than buffering - let's still attempt to fill the buffer*/
@@ -562,7 +562,7 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 			gf_mixer_set_config(st->am, aifc->samplerate, aifc->chan, aifc->afmt, aifc->ch_layout);
 		}
 		st->is_init = (aifc->samplerate && aifc->chan && aifc->afmt) ? GF_TRUE : GF_FALSE;
-		assert(st->is_init);
+		gf_assert(st->is_init);
 		if (!st->is_init) {
 			aifc->samplerate = aifc->chan = aifc->afmt = 0;
 			aifc->ch_layout = 0;

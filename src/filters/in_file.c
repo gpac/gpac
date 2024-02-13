@@ -373,7 +373,7 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->is_random)
 			return GF_TRUE;
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileIn] Asked to switch source to %s (range "LLU"-"LLU")\n", evt->seek.source_switch ? evt->seek.source_switch : "self", evt->seek.start_offset, evt->seek.end_offset));
-		assert(ctx->is_end);
+		gf_fatal_assert(ctx->is_end);
 		ctx->range.num = evt->seek.start_offset;
 		ctx->range.den = evt->seek.end_offset;
 		if (evt->seek.source_switch) {

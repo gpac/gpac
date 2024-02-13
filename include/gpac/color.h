@@ -150,13 +150,13 @@ typedef u32 GF_Color;
 
 /*!Parses color from HTML name or hexa representation
 \param name name of the color to parse
-\return GF_Color value with alpha set to 0xFF if successfull, 0 otherwise
+\return GF_Color value with alpha set to 0xFF if successful, 0 otherwise
 */
 GF_Color gf_color_parse(const char *name);
 
 /*! Gets color from HTML name or hexa representation
 \param col color to identify
-\return name of the color if successfull, NULL otherwise
+\return name of the color if successful, NULL otherwise
 */
 const char *gf_color_get_name(GF_Color col);
 

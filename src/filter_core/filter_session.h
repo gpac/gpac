@@ -42,7 +42,7 @@
 #define PCK_IS_INPUT(__pck) ((__pck->pck==__pck) ? GF_FALSE : GF_TRUE)
 #define PCK_IS_OUTPUT(__pck) ((__pck->pck==__pck) ? GF_TRUE : GF_FALSE)
 
-#define FSESS_CHECK_THREAD(__f) assert( !(__f)->process_th_id || ( (__f)->process_th_id == gf_th_id() ) );
+#define FSESS_CHECK_THREAD(__f) gf_assert( !(__f)->process_th_id || ( (__f)->process_th_id == gf_th_id() ) );
 
 struct __gf_prop_entry
 {
@@ -625,6 +625,8 @@ struct __gf_filter
 	char *tag;
 	//filter itag
 	char *itag;
+	//ID of netcap configuration for the filter
+	char *netcap_id;
 
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex
@@ -750,6 +752,7 @@ struct __gf_filter
 	//requested by a filter to disable blocking
 	Bool prevent_blocking;
 	Bool in_eos_resume;
+	Bool deferred_link;
 
 	//filter destroy task has been posted
 	Bool finalized;
@@ -774,7 +777,7 @@ struct __gf_filter
 	//set to true during pid link resolution for filters accepting a single pid
 	Bool in_link_resolution;
 	//one of the output PID needs reconfiguration
-	volatile u32 nb_caps_renegociate;
+	volatile u32 nb_caps_renegotiate;
 
 	//number of process tasks queued. There is only one "process" task allocated for the filter, but it is automatically reposted based on this value
 	volatile u32 process_task_queued;
@@ -789,7 +792,7 @@ struct __gf_filter
 
 	GF_Filter *cap_dst_filter;
 	//capability negotiation for the input pid
-	GF_PropertyMap *caps_negociate;
+	GF_PropertyMap *caps_negotiate;
 	//set to true of this filter was instantiated to resolve a capability negotiation between two filters
 	Bool is_pid_adaptation_filter;
 	/*destination pid instance we are swapping*/
@@ -814,6 +817,9 @@ struct __gf_filter
 	Bool reconfigure_outputs;
 	//when set, indicates the filter uses PID property overwrite in its arguments, needed to rewrite the props at pid init time
 	Bool user_pid_props;
+#ifdef GPAC_ENABLE_DEBUG
+	u32 prop_dump;
+#endif
 
 	//for encoder filters, set to the corresponding stream type - used to discard filters during the resolution
 	u32 encoder_codec_id;
@@ -999,7 +1005,16 @@ struct __gf_filter_pid_inst
 	/*! loss rate in per-thousand - input pid only */
 	u32 loss_rate;
 
+#ifndef GPAC_DISABLE_DEBUG
+	GF_List *prop_dump;
+#endif
 };
+
+typedef struct
+{
+	u32 p4cc;
+	const char *name;
+}GF_PropCheck;
 
 struct __gf_filter_pid
 {
@@ -1068,9 +1083,9 @@ struct __gf_filter_pid
 	void *udta;
 	u32 udta_flags;
 
-	GF_PropertyMap *caps_negociate;
-	Bool caps_negociate_direct;
-	GF_List *caps_negociate_pidi_list;
+	GF_PropertyMap *caps_negotiate;
+	Bool caps_negotiate_direct;
+	GF_List *caps_negotiate_pidi_list;
 	GF_List *adapters_blacklist;
 	GF_Filter *caps_dst_filter;
 
@@ -1111,25 +1126,47 @@ void gf_filter_set_id(GF_Filter *filter, const char *ID);
 
 void gf_filter_post_remove(GF_Filter *filter);
 
+void gf_filter_check_pending_pids(GF_Filter *filter);
+
 typedef struct
 {
-	u32 *bundles_in_ok;
-	u32 *bundles_cap_found;
-	u32 *bundles_in_scores;
-	u32 nb_allocs;
-} GF_CapsBundleStore;
+	u32 code;
+	const char *name;
+	u32 nb_vals, alloc_vals;
+	const GF_FilterCapability **vals;
+} GF_CapBundleDesc;
+
+typedef struct
+{
+	u32 magic;
+
+	//streamtype of bundle, 0 if not specified and -1 if multiple stream type values
+	s32 stream_type;
+	u32 nb_caps, alloc_caps;
+	GF_CapBundleDesc *caps;
+} GF_BundleDesc;
+
+typedef struct
+{
+	u32 nb_src, nb_src_alloc;
+	GF_BundleDesc **bundles_src;
+	u32 nb_dst, nb_dst_alloc;
+	GF_BundleDesc **bundles_dst;
+} GF_BundleCache;
+
+void reset_bundle_cache(GF_FilterSession *session);
 
 #define CAP_MATCH_LOADED_INPUT_ONLY		1
 #define CAP_MATCH_LOADED_OUTPUT_ONLY	1<<1
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, u32 nb_in_bundles, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore);
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 for_dst_bundle, u32 *loaded_filter_flags, s32 *src_stream_type, GF_BundleCache *bundle_cache_src, GF_BundleCache *bundle_cache_dst);
 Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps);
 Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps);
 
 void gf_filter_check_output_reconfig(GF_Filter *filter);
 Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid);
 
-void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *dst_pidi, GF_FilterPidInst *src_pidi);
+void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_Filter *filter_dst, GF_FilterPidInst *dst_pidi, GF_FilterPidInst *src_pidi);
 
 GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned);
 GF_Filter *gf_filter_pid_resolve_link_check_loaded(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, GF_List *skip_if_in_filter_list, Bool *skipped);
@@ -1202,9 +1239,14 @@ typedef struct __freg_desc
 	u32 dist;
 	struct __freg_desc *destination;
 	u32 cap_idx;
+	GF_BundleCache *bundle_cache;
 	u8 priority;
 	u8 in_edges_enabling;
+	u8 has_input; //cache value of gf_filter_has_in_caps
+	u8 has_output; //cache value of gf_filter_has_out_caps
 } GF_FilterRegDesc;
+
+void bundle_cache_free(GF_FilterRegDesc *reg_desc);
 
 #ifdef GPAC_MEMORY_TRACKING
 size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
@@ -1218,7 +1260,7 @@ const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path,
 
 void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
 
-void gf_filter_renegociate_output_task(GF_FSTask *task);
+void gf_filter_renegotiate_output_task(GF_FSTask *task);
 
 void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx);
 

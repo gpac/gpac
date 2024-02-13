@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -261,7 +261,7 @@ GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
 	GF_Proto *proto;
 	u32 i;
 
-	assert(sg);
+	gf_assert(sg);
 
 	/*browse all top-level */
 	i=0;
@@ -708,7 +708,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 		break;
 	//used only in proto since this field is created by default for regular nodes
 	case GF_SG_VRML_MFNODE:
-		assert(0);
+		gf_assert(0);
 		return;
 	case GF_SG_VRML_MFSCRIPT:
 		gf_sg_mfscript_del( * ((MFScript *) field));
@@ -717,7 +717,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 		break;
 
 	default:
-		assert(0);
+		gf_assert(0);
 		return;
 	}
 	//free pointer
@@ -1560,7 +1560,7 @@ SFColorRGBA gf_sg_sfcolor_to_rgba(SFColor val)
 GF_EXPORT
 u32 gf_node_get_num_fields_in_mode(GF_Node *Node, u8 IndexMode)
 {
-	assert(Node);
+	gf_assert(Node);
 	if (Node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_num_fields(Node, IndexMode);
 	else if (Node->sgprivate->tag == TAG_MPEG4_Script)
 		return gf_sg_script_get_num_fields(Node, IndexMode);

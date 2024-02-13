@@ -175,7 +175,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			visual_3d_flush_contexts(tr_state->visual, tr_state);
 			tr_state->traversing_mode = TRAVERSE_SORT;
 
-			assert(!gf_list_count(tr_state->visual->alpha_nodes_to_draw));
+			gf_assert(!gf_list_count(tr_state->visual->alpha_nodes_to_draw));
 			gf_list_del(tr_state->visual->alpha_nodes_to_draw);
 			tr_state->visual->alpha_nodes_to_draw = node_list_backup;
 
@@ -329,7 +329,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 	/*drawing a layer means drawing all sub-elements as a whole (no depth sorting with parents)*/
 	case TRAVERSE_DRAW_3D:
-		assert(0);
+		gf_assert(0);
 		break;
 #endif
 	}

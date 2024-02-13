@@ -199,9 +199,9 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *max_size, u8 data
 	stream.opaque = (voidpf)NULL;
 
 	if (use_gz) {
-		err = deflateInit(&stream, 9);
-	} else {
 		err = deflateInit2(&stream, 9, Z_DEFLATED, 16+MAX_WBITS, 8, Z_DEFAULT_STRATEGY);
+	} else {
+		err = deflateInit(&stream, 9);
 	}
 
 	if (err != Z_OK) {
@@ -274,9 +274,9 @@ GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_dat
 	d_stream.avail_out = size;
 
 	if (use_gz) {
-		err = inflateInit(&d_stream);
-	} else {
 		err = inflateInit2(&d_stream, 16+MAX_WBITS);
+	} else {
+		err = inflateInit(&d_stream);
 	}
 
 	if (err == Z_OK) {
@@ -289,13 +289,15 @@ GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_dat
 			if (err==Z_STREAM_END) break;
 
 			size *= 2;
-			*uncompressed_data = (char*)gf_realloc(*uncompressed_data, sizeof(char)*size);
+			*uncompressed_data = (char*)gf_realloc(*uncompressed_data, sizeof(char)*(size+1));
 			if (!*uncompressed_data) return GF_OUT_OF_MEM;
 			d_stream.avail_out = (u32) (size - d_stream.total_out);
 			d_stream.next_out = (Bytef*) ( *uncompressed_data + d_stream.total_out);
 		}
 		*out_size = (u32) d_stream.total_out;
 		inflateEnd(&d_stream);
+		//force last byte to 0
+		(*uncompressed_data)[*out_size] = 0;
 	}
 	if (e!=GF_OK) {
 		if (owns_buffer) {

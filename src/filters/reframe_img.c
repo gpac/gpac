@@ -88,7 +88,7 @@ GF_Err img_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_ReframeImgCtx *ctx = gf_filter_get_udta(filter);
 	const GF_PropertyValue *p;
-	
+
 	if (is_remove) {
 		ctx->ipid = NULL;
 		return GF_OK;
@@ -169,7 +169,7 @@ GF_Err img_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &size);
-	
+
 	if (!ctx->opid || !ctx->codec_id) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		u32 dsi_size;
@@ -309,6 +309,10 @@ GF_Err img_process(GF_Filter *filter)
 	h = fi.biHeight;
 	pf = (fi.biBitCount==24) ? GF_PIXEL_RGB : GF_PIXEL_RGBX;
 	size = (fi.biBitCount==24) ? 3 : 4;
+	if ((u64)size * (u64)h * (u64)w > GF_UINT_MAX ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Image dimensions too large (%lux%lux%lu)\n", w, h, size));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	size *= w;
 	out_stride = size;
 	size *= h;
@@ -319,7 +323,7 @@ GF_Err img_process(GF_Filter *filter)
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
-	
+
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	if (ctx->owns_timescale) {
 		gf_filter_pck_set_cts(dst_pck, 0);
@@ -444,6 +448,3 @@ const GF_FilterRegister *rfimg_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_RFIMG
-
-
-

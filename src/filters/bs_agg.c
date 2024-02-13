@@ -745,15 +745,16 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 	for (u32 j=0; j<nal_count; j++) {
 		NALStore *ns = gf_list_get(pctx->nal_stores, j);
 		if (!ns->size) continue;
-		LHVCLayerInfo *linf = &pctx->linf[ns->lid];
+		if (ns->lid<64) {
+			LHVCLayerInfo *linf = &pctx->linf[ns->lid];
 
-		linf->layer_id_plus_one = ns->lid + 1;
-		if (!linf->min_temporal_id || (linf->min_temporal_id > ns->tid))
-			linf->min_temporal_id = ns->tid;
+			linf->layer_id_plus_one = ns->lid + 1;
+			if (!linf->min_temporal_id || (linf->min_temporal_id > ns->tid))
+				linf->min_temporal_id = ns->tid;
 
-		if (linf->max_temporal_id < ns->tid)
-			linf->max_temporal_id = ns->tid;
-
+			if (linf->max_temporal_id < ns->tid)
+				linf->max_temporal_id = ns->tid;
+		}
 		memcpy(output, ns->data, ns->size);
 		output+= ns->size;
 		ns->size = 0;

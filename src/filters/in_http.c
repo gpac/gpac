@@ -146,6 +146,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		ctx->initial_ack_done = GF_TRUE;
 		return e;
 	}
+	gf_dm_sess_set_netcap_id(ctx->sess, gf_filter_get_netcap_id(filter));
 	if (ctx->range.num || ctx->range.den) {
 		gf_dm_sess_set_range(ctx->sess, ctx->range.num, ctx->range.den, GF_TRUE);
 	}
@@ -254,8 +255,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
 		if (evt->seek.source_switch) {
-			assert(ctx->is_end);
-			assert(!ctx->pck_out);
+			gf_fatal_assert(ctx->is_end);
+			gf_fatal_assert(!ctx->pck_out);
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !ctx->prev_was_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
@@ -329,6 +330,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			else if (ctx->cache==GF_HTTPIN_STORE_NONE) flags |= GF_NETIO_SESSION_NOT_CACHED;
 
 			ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
+			if (ctx->sess) gf_dm_sess_set_netcap_id(ctx->sess, gf_filter_get_netcap_id(filter));
 		}
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
@@ -426,7 +428,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 		u8 *b_data;
 		u32 b_size;
 		const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
-		assert(cached);
+		gf_assert(cached);
 
 		gf_blob_get(cached, &b_data, &b_size, NULL);
 
@@ -520,7 +522,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 						b_size = ctx->block_size;
 						e = GF_OK;
 					}
-					assert(! (b_flags&GF_BLOB_IN_TRANSFER));
+					gf_assert(! (b_flags&GF_BLOB_IN_TRANSFER));
 					memcpy(ctx->block, b_data, b_size);
 					nb_read = b_size;
 					gf_blob_release(cached);

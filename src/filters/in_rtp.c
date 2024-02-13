@@ -461,12 +461,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
 		if (!ctx->sdp_loaded && pck) {
-			Bool start, end;
 			u32 sdp_len;
 			const char *sdp_data;
-			gf_filter_pck_get_framing(pck, &start, &end);
-			assert(end);
-		
+
 			sdp_data = gf_filter_pck_get_data(pck, &sdp_len);
 			rtpin_load_sdp(ctx, (char *)sdp_data, sdp_len, NULL);
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -657,6 +654,10 @@ static GF_Err rtpin_process(GF_Filter *filter)
 					ctx->eos_probe_start = gf_sys_clock();
 				else if (e==GF_IP_CONNECTION_CLOSED)
 					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
+				else if (e==GF_EOS) {
+					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
+					e = GF_OK;
+				}
 			}
 			break;
 		}
@@ -760,9 +761,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, ctx->nb_bytes_rcv ? 1000 : 10000);
 	}
 	else {
-		assert(ctx->min_frame_dur_ms <= (u32) ctx->max_sleep);
 		//reschedule in half the frame dur
-		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*500);
+		if (ctx->min_frame_dur_ms <= (u32) ctx->max_sleep)
+			gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*500);
 	}
 	return GF_OK;
 }
@@ -840,14 +841,14 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 	ctx->session = rtpin_rtsp_new(ctx, (char *) ctx->src);
+	if (!ctx->session)
+		return GF_NOT_SUPPORTED;
+
 	if (!strnicmp(ctx->src, "satip://", 8)) {
 		ctx->session->satip = GF_TRUE;
 		ctx->session->satip_server = gf_malloc(GF_MAX_PATH);
 		rtpin_satip_get_server_ip(ctx->src, ctx->session->satip_server);
 	}
-
-	if (!ctx->session)
-		return GF_NOT_SUPPORTED;
 
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!strnicmp(ctx->src, "rtsps://", 8)

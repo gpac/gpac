@@ -2000,6 +2000,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					i+= 12;
 					continue;
 				}
+				if (i+4>=hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 				n = str2ulong(hdrl_data+i+4);
 				n = PAD_EVEN(n);

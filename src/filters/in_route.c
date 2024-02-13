@@ -200,7 +200,7 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
             u32 remain = size - pos;
-            assert(remain);
+            gf_assert(remain);
             if (remain<8) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
                 return;
@@ -559,7 +559,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
-        //fallthrough
+		//fallthrough
 
     case GF_ROUTE_EVT_DYN_SEG_FRAG:
         //for now we only push complete files
@@ -584,10 +584,14 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
         }
 #endif
 			
-		if (!ctx->clock_init_seg) {
+		if (!ctx->clock_init_seg
+			//if full seg push of previsously advertized init, reset x-route-ll header
+			|| ((evt==GF_ROUTE_EVT_DYN_SEG) && !strcmp(ctx->clock_init_seg, finfo->filename))
+		) {
 			DownloadedCacheEntry mpd_cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
 			if (mpd_cache_entry) {
-				ctx->clock_init_seg = gf_strdup(finfo->filename);
+				if (!ctx->clock_init_seg)
+					ctx->clock_init_seg = gf_strdup(finfo->filename);
 				sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\n", evt_param, ctx->clock_init_seg);
 				if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
 					strcat(szPath, "x-route-ll: yes\r\n");
@@ -650,7 +654,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		}
 			
         if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
-            GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Pushing fragment from file %s to cache\n", finfo->filename));
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Pushing fragment from file %s to cache\n", finfo->filename));
 			break;
         }
 			
@@ -707,6 +711,15 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 	return GF_TRUE;
 }
 
+static void routein_set_eos(GF_Filter *filter)
+{
+	u32 i, nb_out = gf_filter_get_opid_count(filter);
+	for (i=0; i<nb_out; i++) {
+		GF_FilterPid *opid = gf_filter_get_opid(filter, i);
+		if (opid) gf_filter_pid_set_eos(opid);
+	}
+}
+
 static GF_Err routein_process(GF_Filter *filter)
 {
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
@@ -723,6 +736,7 @@ static GF_Err routein_process(GF_Filter *filter)
 					u32 diff = gf_sys_clock() - ctx->last_timeout;
 					if (diff > ctx->timeout) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] No data for %d ms, aborting\n", diff));
+						routein_set_eos(filter);
 						return GF_EOS;
 					}
 				}
@@ -731,6 +745,9 @@ static GF_Err routein_process(GF_Filter *filter)
 			break;
 		} else if (!e) {
 			ctx->last_timeout = 0;
+		} else if (e==GF_EOS) {
+			routein_set_eos(filter);
+			return e;
 		} else {
 			break;
 		}
@@ -740,6 +757,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	 	if (diff>ctx->timeout) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] No data for %d ms, aborting\n", diff));
 			gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
+			routein_set_eos(filter);
 			return GF_EOS;
 		}
 	}
@@ -800,7 +818,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		ctx->nbcached = 1;
 
 	if (is_atsc) {
-		ctx->route_dmx = gf_route_atsc_dmx_new(ctx->ifce, ctx->buffer, routein_on_event, ctx);
+		ctx->route_dmx = gf_route_atsc_dmx_new_ex(ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 	} else {
 		char *sep, *root;
 		u32 port;
@@ -816,11 +834,11 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		if (root) root[0] = '/';
 
 		if (!gf_sk_is_multicast_address(ctx->src+8)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] %s is not a multicast address\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] %s is not a multicast address\n", ctx->src));
 			sep[0] = ':';
 			return GF_BAD_PARAM;
 		}
-		ctx->route_dmx = gf_route_dmx_new(ctx->src+8, port, ctx->ifce, ctx->buffer, routein_on_event, ctx);
+		ctx->route_dmx = gf_route_dmx_new_ex(ctx->src+8, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 		sep[0] = ':';
 	}
 	if (!ctx->route_dmx) return GF_SERVICE_ERROR;

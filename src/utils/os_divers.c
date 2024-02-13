@@ -80,7 +80,7 @@ static u64 sys_start_time_hr = 0;
 #include <gpac/revision.h>
 #define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
 
-#define GPAC_COPYRIGHT "(c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io"
+#define GPAC_COPYRIGHT "(c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io"
 
 GF_EXPORT
 const char *gf_gpac_version()
@@ -915,10 +915,6 @@ char gf_prog_lf = '\r';
 
 #ifndef GPAC_DISABLE_NETWORK
 extern Bool gpac_use_poll;
-#ifndef GPAC_DISABLE_NETCAP
-extern Bool gpac_netcap_rt;
-extern s32 gpac_netcap_loop;
-#endif
 #endif
 
 GF_EXPORT
@@ -1007,21 +1003,15 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 #endif
 			}
 #if !defined(GPAC_DISABLE_NETCAP)
-			else if (!stricmp(arg, "-netcap-dst") && arg_val) {
-				void gf_netcap_record(char *filename);
-				gf_netcap_record(arg_val);
-			} else if (!stricmp(arg, "-netcap-src") && arg_val) {
-				void gf_netcap_playback(char *filename);
-				gf_netcap_playback(arg_val);
-			} else if (!stricmp(arg, "-netcap-nrt")) {
-				gpac_netcap_rt = !bool_value;
-			} else if (!stricmp(arg, "-net-filter") && arg_val) {
-				void gf_net_filter_set_rules(char *rules);
-				gf_net_filter_set_rules(arg_val);
-			} else if (!stricmp(arg, "-netcap-loop")) {
-				gpac_netcap_loop = atoi(arg_val);
+			else if (!stricmp(arg, "-netcap")) {
+				if (!arg_val) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("[core] Missing value for argument -netcap, ignoring\n"));
+				} else {
+					GF_Err gf_netcap_setup(char *rules);
+					e = gf_netcap_setup(arg_val);
+					if (e) return e;
+				}
 			}
-
 #endif
 			else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;
@@ -1248,11 +1238,25 @@ GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback usr_cbk)
 }
 
 GF_EXPORT
-GF_Err gf_sys_profiler_send(const char *msg)
+GF_Err gf_sys_profiler_log(const char *msg)
 {
 #ifndef GPAC_DISABLE_REMOTERY
 	if (remotery_handle) {
 		rmt_LogText(msg);
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_EXPORT
+GF_Err gf_sys_profiler_send(const char *msg)
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		rmt_SendText(msg);
 		return GF_OK;
 	}
 	return GF_BAD_PARAM;
@@ -1668,7 +1672,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	u32 entry_time;
 	HANDLE hSnapShot;
 
-	assert(sys_init);
+	gf_assert(sys_init);
 
 	if (!rti) return GF_FALSE;
 
@@ -2126,7 +2130,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.total_cpu_usage = the_rti.process_cpu_usage;
 
     kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
-    assert(kr == KERN_SUCCESS);
+    gf_assert(kr == KERN_SUCCESS);
 
 
 	if (last_update_time) {
@@ -2176,10 +2180,11 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	u32 entry_time;
 	u64 process_u_k_time;
 	u32 u_k_time, idle_time;
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	char szProc[100];
 	char line[2048];
-
-	assert(sys_init);
+#endif
+	gf_assert(sys_init);
 
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
@@ -2573,7 +2578,7 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName) {
 	switch (WaitForSingleObject(lock->hMutex, INFINITE)) {
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		assert(0); /*serious error: someone has modified the object elsewhere*/
+		gf_assert(0); /*serious error: someone has modified the object elsewhere*/
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't get the global lock\n"));
 		gf_global_resource_unlock(lock);
 		return NULL;
@@ -2595,7 +2600,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 	if (!lock)
 		return GF_BAD_PARAM;
 #ifndef WIN32
-	assert( lock->pidFile);
+	gf_assert( lock->pidFile);
 	close(lock->fd);
 	if (unlink(lock->pidFile))
 		perror("Failed to unlink lock file");

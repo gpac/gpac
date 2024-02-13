@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -64,7 +64,7 @@ GF_Err FlushCaptureMode(GF_ISOFile *movie)
 	/*make sure nothing was added*/
 	if (gf_bs_get_position(movie->editFileMap->bs)) return GF_OK;
 
-	if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
+	if (movie->fileName && !strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
 		if (!movie->on_block_out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block callback, cannot write\n"));
 			return GF_BAD_PARAM;
@@ -731,7 +731,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 			gf_isom_box_del((GF_Box *)mdia);
 			return 0;
 		}
-		assert(trak->child_boxes);
+		gf_assert(trak->child_boxes);
 		gf_list_add(trak->child_boxes, mdia);
 
 		//OK, add this media to our track
@@ -2777,13 +2777,13 @@ GF_Err gf_isom_append_edit(GF_ISOFile *movie, u32 trackNumber, u64 EditDuration,
 		GF_EditBox *edts = (GF_EditBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_EDTS);
 		if (!edts) return GF_OUT_OF_MEM;
 		trak_on_child_box((GF_Box*)trak, (GF_Box *)edts, GF_FALSE);
-		assert(trak->editBox);
+		gf_assert(trak->editBox);
 	}
 	if (!trak->editBox->editList) {
 		GF_EditListBox *elst = (GF_EditListBox *) gf_isom_box_new_parent(&trak->editBox->child_boxes, GF_ISOM_BOX_TYPE_ELST);
 		if (!elst) return GF_OUT_OF_MEM;
 		edts_on_child_box((GF_Box*)trak->editBox, (GF_Box *)elst, GF_FALSE);
-		assert(trak->editBox->editList);
+		gf_assert(trak->editBox->editList);
 	}
 	ent = (GF_EdtsEntry *)gf_malloc(sizeof(GF_EdtsEntry));
 	if (!ent) return GF_OUT_OF_MEM;
@@ -3524,7 +3524,7 @@ found:
 
 	//found
 	if (AddIt) return GF_OK;
-	assert(movie->brand->altCount>1);
+	gf_assert(movie->brand->altCount>1);
 
 	//remove it
 	p = (u32*)gf_malloc(sizeof(u32)*(movie->brand->altCount - 1));
@@ -4082,7 +4082,7 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	//don't serialize senc
 	senc = trak->sample_encryption;
 	if (senc) {
-		assert(trak->child_boxes);
+		gf_assert(trak->child_boxes);
 		gf_list_del_item(trak->child_boxes, senc);
 		trak->sample_encryption = NULL;
 	}
@@ -4251,7 +4251,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 
 	senc = trak->sample_encryption;
 	if (senc) {
-		assert(trak->child_boxes);
+		gf_assert(trak->child_boxes);
 		gf_list_del_item(trak->child_boxes, senc);
 		trak->sample_encryption = NULL;
 	}
@@ -4574,7 +4574,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		entry->spatial_quality = udesc->spatial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		strcpy(entry->compressor_name, udesc->compressor_name);
+		strncpy(entry->compressor_name, udesc->compressor_name, GF_ARRAY_LENGTH(entry->compressor_name));
+		entry->compressor_name[ GF_ARRAY_LENGTH(entry->compressor_name) - 1] = 0;
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
 		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
@@ -6840,7 +6841,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	GF_SampleGroupBox *sgroup = NULL;
 	u32 i, count, last_sample_in_entry;
 	Bool all_samples = GF_FALSE;
-	assert(sampleGroups);
+	gf_assert(sampleGroups);
 	if (!sgdesc) return GF_BAD_PARAM;
 	count = gf_list_count(sampleGroups);
 	for (i=0; i<count; i++) {
@@ -6856,7 +6857,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 //		gf_list_add(sampleGroups, sgroup);
 		//crude patch to align old arch and filters
 		gf_list_insert(sampleGroups, sgroup, 0);
-		assert(parent);
+		gf_assert(parent);
 		gf_list_add(parent, sgroup);
 	}
 	u32 def_insert_value = (sgdesc && (sgdesc->version==2)) ? sgdesc->default_description_index : 0;
@@ -6998,7 +6999,7 @@ static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, void *tra
 		sgdesc = (GF_SampleGroupDescriptionBox *) gf_isom_box_new_parent(parent, GF_ISOM_BOX_TYPE_SGPD);
 		if (!sgdesc) return NULL;
 		sgdesc->grouping_type = grouping_type;
-		assert(groupList);
+		gf_assert(groupList);
 		gf_list_add(groupList, sgdesc);
 	}
 	return sgdesc;
@@ -7426,7 +7427,7 @@ void *sg_rap_create_entry(void *udta)
 {
 	GF_VisualRandomAccessEntry *entry;
 	u32 *num_leading_samples = (u32 *) udta;
-	assert(udta);
+	gf_assert(udta);
 	GF_SAFEALLOC(entry, GF_VisualRandomAccessEntry);
 	if (!entry) return NULL;
 	entry->num_leading_samples = *num_leading_samples;
@@ -7526,7 +7527,7 @@ Bool sg_encryption_compare_entry(void *udta, void *_entry)
 
 /*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 crypt_byte_block, u8 skip_byte_block, u8 *key_info, u32 key_info_size)
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u32 crypt_byte_block, u32 skip_byte_block, u8 *key_info, u32 key_info_size)
 {
 	GF_CENCSampleEncryptionGroupEntry entry;
 	if (!key_info || (key_info_size<19))
@@ -8510,7 +8511,11 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 			// '+' is append after, '-' is insert before
 			if (path_len && ((box_path[0]=='-') || (box_path[0]=='+')) ) {
 				s32 idx = gf_list_find(*parent_list, box);
-				assert(idx>=0);
+				if (idx<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Invalid index for path %s\n", box_path));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto err_exit;
+				}
 				if (box_path[0]=='+') insert_pos = idx+1;
 				else insert_pos = idx;
 			}
@@ -8668,7 +8673,7 @@ GF_Err gf_isom_set_track_index(GF_ISOFile *movie, u32 trackNumber, u32 index, vo
 		for (i=0; i<count; i++) {
 			GF_TrackBox *a_tk = gf_list_get(tracks, i);
 			s32 old_pos = gf_list_find(movie->moov->trackList, a_tk);
-			assert(old_pos>=0);
+			gf_assert(old_pos>=0);
 			if (old_pos != i)
 				track_num_changed(udta, old_pos+1, i+1);
 		}

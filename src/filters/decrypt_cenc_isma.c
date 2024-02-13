@@ -352,7 +352,7 @@ static GF_Err cenc_dec_access_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 		char IV[16];
 		if (cstr->state != DECRYPT_STATE_SETUP)
 			return GF_SERVICE_ERROR;
-		assert(!cstr->crypts[0].crypt);
+		gf_assert(!cstr->crypts[0].crypt);
 
 		//if (!ctx->nb_allow_play) return GF_AUTHENTICATION_FAILURE;
 		//ctx->nb_allow_play--;
@@ -1503,7 +1503,7 @@ static GF_Err cenc_dec_access_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, B
 
 		/*open decrypter - we do NOT initialize decrypter; it wil be done when we decrypt the first crypted sample*/
 		for (i=0; i<cstr->nb_crypts; i++) {
-			assert(!cstr->crypts[i].crypt);
+			gf_assert(!cstr->crypts[i].crypt);
 			if (cstr->is_cenc)
 				cstr->crypts[i].crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 			else
@@ -1530,7 +1530,7 @@ static GF_Err cenc_dec_access_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	if (is_play) {
 		if (cstr->state != DECRYPT_STATE_SETUP)
 			return GF_SERVICE_ERROR;
-		assert(!cstr->crypts[0].crypt);
+		gf_assert(!cstr->crypts[0].crypt);
 
 		cstr->crypts[0].crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 		if (!cstr->crypts[0].crypt) return GF_IO_ERR;
@@ -1840,7 +1840,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 					gf_crypt_decrypt(cstr->crypts[kidx].crypt, out_data + pos, (res >= cryp_block) ? cryp_block : res);
 					if (res >= full_block) {
 						pos += full_block;
-						assert(res>=full_block);
+						gf_assert(res>=full_block);
 						res -= full_block;
 					} else {
 						res = 0;
@@ -2162,6 +2162,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (is_remove) {
 		cstr = gf_filter_pid_get_udta(pid);
+		if (!cstr) return GF_OK; //configure failure
 		if (cstr->opid) {
 			gf_filter_pid_remove(cstr->opid);
 		}

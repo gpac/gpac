@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -5801,7 +5801,7 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 	}
 	dump_data_hex(trace, (char *) ptr->key_info+4, 16);
 	if (ptr->version)
-		gf_fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
+		gf_fprintf(trace, "\" crypt_byte_block=\"%u\" skip_byte_block=\"%u", ptr->crypt_byte_block, ptr->skip_byte_block);
 	gf_fprintf(trace, "\">\n");
 
 	if (!ptr->size) {
@@ -5951,7 +5951,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			}
 		}
 		if (use_multikey || ((ptr->flags & 0x2) && (sai->cenc_data_size>iv_size)) ) {
-			u32 j, nb_subs;
+			u32 j, nb_subs, total_bytes=0;
 
 			nb_subs = gf_bs_read_int(bs, subs_bits);
 			gf_fprintf(trace, " SubsampleCount=\"%u\"", nb_subs);
@@ -5967,7 +5967,10 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				clear = gf_bs_read_u16(bs);
 				crypt = gf_bs_read_u32(bs);
 				gf_fprintf(trace, " NumClearBytes=\"%u\" NumEncryptedBytes=\"%u\"/>\n", clear, crypt);
+				total_bytes+=clear+crypt;
 			}
+			if (!gf_sys_is_test_mode())
+				gf_fprintf(trace, "<!-- counted %u bytes for entry -->\n", total_bytes);
 		} else {
 			gf_fprintf(trace, ">\n");
 		}
@@ -6797,6 +6800,55 @@ GF_Err dfla_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err ddts_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_DTSSpecificBox *ptr = (GF_DTSSpecificBox *)a;
+
+	gf_isom_box_dump_start(a, "DTSpecificBox", trace);
+	gf_fprintf(trace, "SamplingFrequency=\"%d\" MaxBitrate=\"%d\" AvgBitrate=\"%d\" "
+		"SampleDepth=\"%d\" FrameDuration=\"%d\" StreamConstruction=\"%d\" "
+		"CoreLFEPresent=\"%d\" CoreLayout=\"%d\" CoreSize=\"%d\" StereoDownmix=\"%d\" "
+		"RepresentationType=\"%d\" ChannelLayout=\"%d\" MultiAssetFlag=\"%d\" "
+		"LBRDurationMod=\"%d\"",
+		ptr->cfg.SamplingFrequency, ptr->cfg.MaxBitrate, ptr->cfg.AvgBitrate,
+		ptr->cfg.SampleDepth, ptr->cfg.FrameDuration, ptr->cfg.StreamConstruction,
+		ptr->cfg.CoreLFEPresent, ptr->cfg.CoreLayout, ptr->cfg.CoreSize,
+		ptr->cfg.StereoDownmix, ptr->cfg.RepresentationType, ptr->cfg.ChannelLayout,
+		ptr->cfg.MultiAssetFlag, ptr->cfg.LBRDurationMod);
+	gf_isom_box_dump_done("DTSSpecificBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err udts_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_UDTSSpecificBox *ptr = (GF_UDTSSpecificBox *)a;
+	u32 byte;
+	u8 i;
+	u8 *data;
+	gf_isom_box_dump_start(a, "UDTSpecificBox", trace);
+	gf_fprintf(trace,
+		"DecoderProfileCode=\"%d\" FrameDurationCode=\"%d\" MaxPayloadCode=\"%d\" "
+		"NumPresentationsCode=\"%d\" ChannelMask=\"%d\" BaseSamplingFrequencyCode=\"%d\" "
+		"SampleRateMod=\"%d\" RepresentationType=\"%d\" StreamIndex=\"%d\" "
+		"ExpansionBoxPresent=\"%d\"",
+		ptr->cfg.DecoderProfileCode, ptr->cfg.FrameDurationCode, ptr->cfg.MaxPayloadCode,
+		ptr->cfg.NumPresentationsCode, ptr->cfg.ChannelMask,
+		ptr->cfg.BaseSamplingFrequencyCode, ptr->cfg.SampleRateMod,
+		ptr->cfg.RepresentationType, ptr->cfg.StreamIndex, ptr->cfg.ExpansionBoxPresent);
+	if ((ptr->cfg.NumPresentationsCode + 1) * 16 < ptr->cfg.PresentationIDTagDataSize) {
+		data = ptr->cfg.PresentationIDTagData;
+		for (i=0; i<=ptr->cfg.NumPresentationsCode; i++) {
+			if (ptr->cfg.IDTagPresent[i]) {
+				gf_fprintf(trace, " PresentationIDTag%d=\"", i + 1);
+				for (byte=0; byte<16; byte++)
+					gf_fprintf(trace, "%02X", *data++);
+				gf_fprintf(trace, "\"");
+			}
+		}
+	}
+	gf_isom_box_dump_done("UDTSSpecificBox", a, trace);
+	return GF_OK;
+}
 
 GF_Err mvcg_box_dump(GF_Box *a, FILE * trace)
 {
@@ -6973,7 +7025,7 @@ GF_Err ienc_box_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "ItemEncryptionPropertyBox", trace);
 	if (ptr->version)
-		gf_fprintf(trace, " skip_byte_block=\"%d\" crypt_byte_block=\"%d\"", ptr->skip_byte_block, ptr->crypt_byte_block);
+		gf_fprintf(trace, " skip_byte_block=\"%u\" crypt_byte_block=\"%u\"", ptr->skip_byte_block, ptr->crypt_byte_block);
 	gf_fprintf(trace, ">\n");
 	nb_keys = ptr->key_info ? ptr->key_info[2] : 0;
 	kpos = 3;

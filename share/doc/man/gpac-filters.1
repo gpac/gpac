@@ -215,7 +215,7 @@ start (dbl, default: 0.0):     set playback start offset. A negative value means
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU), similar to -bsdbg option of reframer filters
 .br
 * off: no analyzing
 .br
@@ -2265,7 +2265,17 @@ abs_offset (bool, default: false): use absolute file offset in fragments rather 
 .br
 fsap (bool, default: true):    split truns in video fragments at SAPs to reduce file size
 .br
-subs_sidx (sint, default: -1): number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source PID
+subs_sidx (sint, default: -1): number of subsegments per sidx
+.br
+* 0: single sidx
+.br
+* >0: hierarchical or daisy-chained sidx
+.br
+* <0: disables sidx
+.br
+* -2: removes sidx if present in source PID
+.br
+
 .br
 m4cc (str):                    4 character code of empty box to append at the end of a segment (DASH mode) or of a fragment (non-DASH mode)
 .br
@@ -3549,7 +3559,7 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .br
 exporter (bool, default: false): compatibility with old exporter, displays export results
 .br
-rt (enum, default: off):       real-time regulation mode of input
+rt (enum, default: off, updatable): real-time regulation mode of input
 .br
 * off: disables real-time regulation
 .br
@@ -3559,13 +3569,13 @@ rt (enum, default: off):       real-time regulation mode of input
 .br
 
 .br
-saps (uintl, minmax: 0|1|2|3|4): list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)
+saps (uintl, minmax: 0|1|2|3|4, updatable): list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)
 .br
 
 .br
-refs (bool, default: false):   forward only frames used as reference frames, if indicated in the input stream
+refs (bool, default: false, updatable): forward only frames used as reference frames, if indicated in the input stream
 .br
-speed (dbl, default: 0.0):     speed for real-time regulation mode, a value of 0 uses speed from play commands
+speed (dbl, default: 0.0, updatable): speed for real-time regulation mode, a value of 0 uses speed from play commands
 .br
 raw (enum, default: no):       force input AV streams to be in raw format
 .br
@@ -3579,7 +3589,7 @@ raw (enum, default: no):       force input AV streams to be in raw format
 .br
 
 .br
-frames (sintl):                drop all except listed frames (first being 1). A negative value -V keeps only first frame every V frames
+frames (sintl, updatable):     drop all except listed frames (first being 1). A negative value -V keeps only first frame every V frames
 .br
 xs (strl):                     extraction start time(s)
 .br
@@ -3627,9 +3637,9 @@ utc_ref (enum, default: any):  set reference mode for UTC range extraction
 .br
 utc_probe (uint, default: 5000): timeout in milliseconds to try to acquire UTC reference from media
 .br
-copy (bool, default: false):   try copying frame interface into packets
+copy (bool, default: false, updatable): try copying frame interface into packets
 .br
-cues (enum, default: no):      cue filtering mode
+cues (enum, default: no, updatable): cue filtering mode
 .br
 * no: do no filter frames based on cue info
 .br
@@ -3638,6 +3648,8 @@ cues (enum, default: no):      cue filtering mode
 * frags: only forward frames marked as fragment start
 .br
 
+.br
+rmseek (bool, default: false, updatable): remove seek flag of all sent packets
 .br
 
 .br
@@ -4670,6 +4682,8 @@ raw (enum, default: no):       force input AV streams to be in raw format
 .br
 
 .br
+flush (bool, default: false):  send a flush signal once playlist is done before entering keepalive
+.br
 
 .br
 .SH m2tsmx
@@ -5693,6 +5707,8 @@ base (strl):                   set base URLs of MPD
 refresh (dbl, default: 0):     refresh rate for dynamic manifests, in seconds (a negative value sets the MPD duration, value 0 uses dash duration)
 .br
 tsb (dbl, default: 30):        time-shift buffer depth in seconds (a negative value means infinity)
+.br
+keep_segs (bool, default: false): do not delete segments no longer in time-shift buffer
 .br
 subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration
 .br
@@ -7046,6 +7062,14 @@ When enabled, a GET on a directory will return a simple HTML listing of the cont
 .br
   
 .br
+Custom headers can be specified using .I hdrs, they apply to all requests. For more advanced control on requests, use a javascript binding (see .I js and howtos).
+.br
+  
+.br
+Text files are compressed using gzip or deflate if the client accepts these encodings, unless .I no_z is set.
+.br
+  
+.br
 .SH Simple HTTP server
 .LP
 .br
@@ -7243,7 +7267,7 @@ When running in server mode, multiple HTTP outputs with same URL/port may be use
 .br
 Example
 .br
-gpac -i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag
+gpac -i dash.mpd dashin:forward=file:FID=D1 dashin:forward=segb:FID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag
 .br
 
 .br
@@ -7335,6 +7359,12 @@ max_async_buf (uint, default: 100000): maximum async buffer size in bytes when s
 blockio (bool, default: false): use blocking IO in push or source mode or in server mode with no read dir
 .br
 ka (bool, default: true):      keep input alive if failure in push mode
+.br
+hdrs (strl):                   additional HTTP headers to inject, even values are names, odd values are values 
+.br
+js (str):                      javascript logic for server
+.br
+zmax (uint, default: 50000):   maximum uncompressed size allowed for gzip or deflate compression for text files (only enabled if client indicates it), 0 will disable compression
 .br
 
 .br
@@ -7978,7 +8008,7 @@ cicp_idx (uint, default: 2):   target output layout CICP index (see gpac -h layo
 .br
 Description: FFMPEG demultiplexer
 .br
-Version: Lavf60.5.100
+Version: Lavf60.18.100
 .br
 
 .br
@@ -8016,7 +8046,7 @@ strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's 
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc60.14.101
+Version: Lavc60.35.100
 .br
 
 .br
@@ -8075,7 +8105,7 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd60.2.100
+Version: Lavd60.4.100
 .br
 
 .br
@@ -8168,7 +8198,7 @@ probes (uint, default: 10, minmax: 0-100): probe a given number of video frames 
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS7.2.100
+Version: SwS7.6.100
 .br
 
 .br
@@ -8286,7 +8316,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc60.14.101
+Version: Lavc60.35.100
 .br
 
 .br
@@ -8364,7 +8394,7 @@ rld (bool, default: false, updatable): force reloading of encoder when arguments
 .br
 Description: FFMPEG multiplexer
 .br
-Version: Lavf60.5.100
+Version: Lavf60.18.100
 .br
 
 .br
@@ -8428,7 +8458,7 @@ keepts (bool, default: true):  do not shift input timeline back to 0
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavfi9.8.101
+Version: Lavfi9.14.100
 .br
 
 .br
@@ -8571,51 +8601,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFMPEG BitStream filter
 .br
-Version: Lavu58.9.100
-.br
-
-.br
-This filter provides bitstream filters (BSF) for compressed audio and video formats.
-.br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
-.br
-To list all supported bitstream filters for your GPAC build, use gpac -h ffbsf:*.
-.br
-
-.br
-Several BSF may be specified in .I f for different coding types. BSF not matching the coding type are silently ignored.
-.br
-When no BSF matches the input coding type, or when .I f is empty, the filter acts as a passthrough filter.
-.br
-
-.br
-Options are specified after the desired filters:
-.br
-- ffbsf:f=h264_metadata:video_full_range_flag=0
-.br
-- ffbsf:f=h264_metadata,av1_metadata:video_full_range_flag=0:color_range=tv
-.br
-
-.br
-Note: Using BSFs on some media types (e.g. avc, hevc) may trigger creation of a reframer filter (e.g. rfnalu)
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-f (strl):                      bitstream filters name - see filter help
-.br
-* (str):                       any possible options defined for AVBitstreamFilter and sub-classes. See gpac -hx ffbsf and gpac -hx ffbsf:*
-.br
-
-.br
-.SH ffbsf
-.LP
-.br
-Description: FFMPEG BitStream filter
-.br
-Version: Lavu58.9.100
+Version: Lavu58.34.100
 .br
 
 .br
@@ -8949,6 +8935,8 @@ brinc (uint, default: 10):     bitrate increase in percent when estimating timin
 noreg (bool, default: false):  disable rate regulation for media segments, pushing them as fast as received
 .br
 runfor (uint, default: 0):     run for the given time in ms
+.br
+nozip (bool, default: false):  do not zip signaling package (STSID+manifest)
 .br
 
 .br
@@ -9532,6 +9520,44 @@ clip (bool, default: false):   clip YUV data to valid SDI range, slower
 port (uint, default: 1):       set sdi output port of card
 .br
 start (dbl, default: 0.0):     set playback start offset, [-1, 0] means percent of media dur, e.g. -1 == dur
+.br
+
+.br
+.SH ohevcdec
+.LP
+.br
+Description: OpenHEVC decoder
+.br
+
+.br
+This filter decodes HEVC and LHVC (HEVC scalable extensions) from one or more PIDs through the OpenHEVC library
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+threading (enum, default: frame): set threading mode
+.br
+* frameslice: parallel decoding of both frames and slices
+.br
+* frame: parallel decoding of frames
+.br
+* slice: parallel decoding of slices
+.br
+
+.br
+nb_threads (uint, default: 0): set number of threads (if 0, uses number of cores minus one)
+.br
+no_copy (bool, default: false): directly dispatch internal decoded frame without copy
+.br
+pack_hfr (bool, default: false): pack 4 consecutive frames in a single output
+.br
+seek_reset (bool, default: false): reset decoder when seeking
+.br
+force_stereo (bool, default: true): use stereo output for multiview (top-bottom only)
+.br
+reset_switch (bool, default: false): reset decoder at config change
 .br
 
 .br
@@ -11832,7 +11858,7 @@ For bug reports, feature requests, more information and source code, visit https
 .br
 build: 2.3-DEV
 .br
-Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
+Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io
 .br
 .SH SEE ALSO
 .LP

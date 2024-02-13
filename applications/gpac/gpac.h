@@ -69,7 +69,7 @@ void gpac_core_help(GF_SysArgMode mode, Bool for_logs);
 void gpac_usage(GF_SysArgMode argmode);
 void gpac_config_help(void);
 void gpac_suggest_arg(char *aname);
-void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only);
+Bool gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only);
 void gpac_check_session_args(void);
 int gpac_make_lang(char *filename);
 Bool gpac_expand_alias(int o_argc, char **o_argv);

@@ -337,7 +337,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 				}
 				/*UTF8 3 bytes char*/
 				else if ( (szLine[i] & 0xf0) == 0xe0) {
-					if (j+1 >= GF_ARRAY_LENGTH(szLineConv))
+					if (j+1 >= GF_ARRAY_LENGTH(szLineConv) || i+1 >= len)
 						break;
 					szLineConv[j] = szLine[i];
 					i++;
@@ -348,7 +348,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 				}
 				/*UTF8 4 bytes char*/
 				else if ( (szLine[i] & 0xf8) == 0xf0) {
-					if (j+2 >= GF_ARRAY_LENGTH(szLineConv))
+					if (j+2 >= GF_ARRAY_LENGTH(szLineConv) || i+2 >= len)
 						break;
 					szLineConv[j] = szLine[i];
 					i++;
@@ -821,7 +821,7 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 		if (style_def_type==1)  {
 			/*store prev style*/
 			if (*set_end_c) {
-				assert(*set_start_c);
+				gf_assert(*set_start_c);
 				gf_isom_text_add_style(ctx->samp, &ctx->style);
 				*set_end_c = *set_start_c = GF_FALSE;
 				ctx->style.style_flags &= ~rem_styles;
@@ -1371,7 +1371,7 @@ static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **out_body_node)
 					body_num = gf_list_count(body_node->content);
 					while (body_num--) {
 						GF_XMLNode *content_node = (GF_XMLNode*)gf_list_get(body_node->content, 0);
-						assert(gf_list_find(body_node->content, content_node) == 0);
+						gf_assert(gf_list_find(body_node->content, content_node) == 0);
 						gf_list_rem(body_node->content, 0);
 						gf_xml_dom_node_del(content_node);
 					}
@@ -2052,7 +2052,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	e = gf_xml_dom_parse(ctx->parser_working_copy, ctx->file_name, NULL, NULL);
 	assert (e == GF_OK);
 	ctx->root_working_copy = gf_xml_dom_get_root(ctx->parser_working_copy);
-	assert(ctx->root_working_copy);
+	if (!ctx->root_working_copy) return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (body_node) {
 		/*remove all the sample entries (instances in body) entries from the working copy, we will add each sample in this clone DOM  to create full XML of each sample*/
@@ -2232,7 +2232,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 					gf_xml_dom_append_child(copy_div_node, prev_child);
 				}
 				e = gf_xml_dom_append_child(copy_div_node, div_child);
-				assert(e == GF_OK);
+				gf_assert(e == GF_OK);
 				has_content = GF_TRUE;
 			}
 
@@ -2275,7 +2275,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 						gf_xml_dom_append_child(copy_div_node, prev_child);
 					}
 					e = gf_xml_dom_append_child(copy_div_node, div_child);
-					assert(e == GF_OK);
+					gf_assert(e == GF_OK);
 					has_content = GF_TRUE;
 					break;
 				}
@@ -3458,21 +3458,27 @@ static GF_Err txtin_texml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	u32 ID, OCR_ES_ID, i;
 	u64 file_size;
 	GF_XMLAttribute *att;
-	GF_XMLNode *root;
+	GF_XMLNode *root=NULL;
 
 	ctx->parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(ctx->parser, ctx->file_name, ttxt_dom_progress, ctx);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TeXML file: Line %d - %s", gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TeXML file: Line %d - %s\n", gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
 		gf_xml_dom_del(ctx->parser);
 		ctx->parser = NULL;
 		return e;
 	}
 
 	root = gf_xml_dom_get_root(ctx->parser);
+	if (!root) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Empty TeXML file\n"));
+		gf_xml_dom_del(ctx->parser);
+		ctx->parser = NULL;
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	if (strcmp(root->name, "text3GTrack")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Invalid QT TeXML file - expecting root \"text3GTrack\" got \"%s\"", root->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Invalid QT TeXML file - expecting root \"text3GTrack\" got \"%s\"\n", root->name));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	file_size = ctx->end;
@@ -4335,9 +4341,13 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 {
 	char *dst = NULL;
 	char *res=NULL;
-	GF_Err e = gf_utf_get_utf8_string_from_bom((char *)data, data_size, &dst, &res);
+	u32 res_size=0;
+
+	GF_Err e = gf_utf_get_string_from_bom((char *)data, data_size, &dst, &res, &res_size);
 	if (e) return NULL;
 
+	u8 orig_end = res[res_size-1];
+	res[res_size-1] = 0;
 	data = res;
 	//strip all spaces and \r\n\t
 	while (data[0] && strchr("\n\r\t ", (char) data[0]))
@@ -4345,6 +4355,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
+		res[res_size-1] = orig_end;\
 		if (dst) gf_free(dst);\
 		return _mime; \
 
@@ -4368,6 +4379,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	}
 	/*XML formats*/
 	if (!strstr(data, "?>") ) {
+		res[res_size-1] = orig_end;
 		if (dst) gf_free(dst);
 		return NULL;
 	}
@@ -4382,6 +4394,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 
+	res[res_size-1] = orig_end;
 	if (dst) gf_free(dst);
 	return NULL;
 }

@@ -147,7 +147,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 
 static gf_on_progress_cbk prog_cbk = NULL;
 static void *user_cbk = NULL;
-#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_EMSCRIPTEN)
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
 static Bool gpac_no_color_logs = GF_TRUE;
 #else
 static Bool gpac_no_color_logs = GF_FALSE;
@@ -226,7 +226,7 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 	char tmp[GF_LOG_TOOL_MAX_NAME_SIZE];
 	const char *val = tmp;
 	if (!val_) val_ = "";
-	assert(strlen(val_) < GF_LOG_TOOL_MAX_NAME_SIZE);
+	if (strlen(val_) >= GF_LOG_TOOL_MAX_NAME_SIZE) return GF_BAD_PARAM;
 	strncpy(tmp, val_, GF_LOG_TOOL_MAX_NAME_SIZE - 1);
 	tmp[GF_LOG_TOOL_MAX_NAME_SIZE - 1] = 0;
 
@@ -799,7 +799,7 @@ Bool gf_log_set_strict_error(Bool strict)
 GF_EXPORT
 void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level)
 {
-	assert(tool<=GF_LOG_TOOL_MAX);
+	if (tool>GF_LOG_TOOL_MAX) return;
 	if (tool==GF_LOG_ALL) {
 		u32 i;
 		for (i=0; i<GF_LOG_TOOL_MAX; i++) {
@@ -1063,6 +1063,12 @@ static const char *gf_enabled_features()
 #endif
 #ifdef GPAC_CONFIG_IOS
 	                       "GPAC_CONFIG_IOS "
+#endif
+#ifdef GPAC_ENABLE_DEBUG
+	                       "GPAC_ENABLE_DEBUG "
+#endif
+#ifdef GPAC_ASSERT_FATAL
+	                       "GPAC_ASSERT_FATAL "
 #endif
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	                       "GPAC_CONFIG_EMSCRIPTEN "

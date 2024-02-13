@@ -95,8 +95,6 @@ static const char * BEST_SANS_FONTS[] = {
  */
 static Bool isBestFontFor(const char * listOfFonts[], const char * currentBestFont, const char * fontName) {
 	u32 i;
-	assert( fontName );
-	assert( listOfFonts );
 	for (i = 0 ; listOfFonts[i]; i++) {
 		const char * best = listOfFonts[i];
 		if (!stricmp(best, fontName))
@@ -143,17 +141,6 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 			if (!szfont) continue;
 			strcpy(szfont, face->family_name);
 
-			/*remember first font found which looks like a alphabetical one*/
-			if (!ftpriv->font_default) {
-				u32 gidx;
-				FT_Select_Charmap(face, FT_ENCODING_UNICODE);
-				gidx = FT_Get_Char_Index(face, (u32) 'a');
-				if (gidx) gidx = FT_Get_Char_Index(face, (u32) 'z');
-				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '1');
-				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '@');
-				if (gidx) ftpriv->font_default = gf_strdup(szfont);
-			}
-
 			bold = italic = 0;
 
 			if (face->style_name) {
@@ -175,6 +162,17 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 				if (italic) strcat(szfont, " Italic");
 			}
 			gf_opts_set_key("FontCache", szfont, file_path);
+
+			/*remember first font found which looks like a alphabetical one*/
+			if (!ftpriv->font_default) {
+				u32 gidx;
+				FT_Select_Charmap(face, FT_ENCODING_UNICODE);
+				gidx = FT_Get_Char_Index(face, (u32) 'a');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) 'z');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '1');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '@');
+				if (gidx) ftpriv->font_default = gf_strdup(szfont);
+			}
 
 			/*try to assign default fixed fonts*/
 			if (!bold && !italic) {
@@ -255,6 +253,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 		const char *opt;
 		char fkey[GF_MAX_PATH];
 		const char *key = gf_opts_get_key_name("FontCache", i);
+		if (!key) continue;
 		opt = gf_opts_get_key("FontCache", key);
 		if (!strchr(opt, '/') && !strchr(opt, '\\')) continue;
 
@@ -305,7 +304,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	gf_opts_set_key("FontCache", "FontSans", ftpriv->font_sans);
 	gf_opts_save();
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font directories scanned\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font directories scanned - defaults: SANS %s FIXED %s SERIF %s\n", ftpriv->font_sans, ftpriv->font_fixed, ftpriv->font_serif));
 }
 
 
@@ -832,8 +831,6 @@ static void ft_delete(GF_BaseInterface *ifce)
 	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
 	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
 	if (ftpriv->font_default) gf_free(ftpriv->font_default);
-	assert(!gf_list_count(ftpriv->loaded_fonts) );
-
 	gf_list_del(ftpriv->loaded_fonts);
 
 	gf_free(dr->udta);

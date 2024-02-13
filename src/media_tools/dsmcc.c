@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jonathan Sillan, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2011-2022
+ *			Copyright (c) Telecom ParisTech 2011-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / media tools sub-project
@@ -125,7 +125,7 @@ void on_dsmcc_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 		e = gf_m2ts_process_dsmcc(dsmcc_overlord,dsmcc,data,u32_data_size,u32_table_id);
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_DSMCC_FOUND, pck);
-		assert(e == GF_OK);
+		gf_assert(e == GF_OK);
 	}
 }
 
@@ -610,7 +610,7 @@ static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2
 				u32 uncomp_size;
 				u8* uncompressed_data;
 
-				gf_gz_decompress_payload(dsmcc_module->buffer,dsmcc_module->byte_sift, &uncompressed_data, &uncomp_size);
+				gf_gz_decompress_payload_ex(dsmcc_module->buffer,dsmcc_module->byte_sift, &uncompressed_data, &uncomp_size, GF_TRUE);
 				//dsmcc_process_biop_data(dsmcc_overlord,dsmcc_module,uncompressed_data,dsmcc_module->original_size);
 
 				if(dsmcc_module->original_size == uncomp_size) {

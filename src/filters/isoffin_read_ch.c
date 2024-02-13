@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -96,13 +96,13 @@ static void init_reader(ISOMChannel *ch)
 
 	ch->au_seq_num = 1;
 
-	assert(ch->sample==NULL);
+	gf_assert(ch->sample==NULL);
 	if (!ch->static_sample) {
 		ch->static_sample = gf_isom_sample_new();
 	}
 
 	if (ch->streamType==GF_STREAM_OCR) {
-		assert(!ch->sample);
+		gf_assert(!ch->sample);
 		ch->sample = gf_isom_sample_new();
 		ch->sample->IsRAP = RAP;
 		ch->sample->DTS = ch->start;
@@ -199,7 +199,7 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 	GF_Err e;
 	Bool Is_Encrypted;
 	u32 out_size;
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 piff_info[20];
 	u8 *key_info = NULL;
 	u32 key_info_size = 0;
@@ -1097,13 +1097,13 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (needs_reset) {
 		u8 *dsi=NULL;
 		u32 dsi_size=0;
-		if (ch->check_avc_ps) {
+		if (ch->check_avc_ps && ch->avcc) {
 			gf_odf_avc_cfg_write(ch->avcc, &dsi, &dsi_size);
 		}
-		else if (ch->check_hevc_ps) {
+		else if (ch->check_hevc_ps && ch->hvcc) {
 			gf_odf_hevc_cfg_write(ch->hvcc, &dsi, &dsi_size);
 		}
-		else if (ch->check_vvc_ps) {
+		else if (ch->check_vvc_ps && ch->vvcc) {
 			gf_odf_vvc_cfg_write(ch->vvcc, &dsi, &dsi_size);
 		}
 		if (dsi && dsi_size) {

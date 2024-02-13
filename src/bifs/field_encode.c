@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -294,7 +294,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			gf_sg_vrml_mf_get_item(field->far_ptr, field->fieldType, &sffield.far_ptr, i);
 			e = gf_bifs_enc_sf_field(codec, bs, node, &sffield);
 		} else {
-			assert(list);
+			if (!list) return GF_NON_COMPLIANT_BITSTREAM;
 			e = gf_bifs_enc_node(codec, list->node, field->NDTtype, bs, node);
 
 			/*activate QP*/
@@ -330,7 +330,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 
 GF_Err gf_bifs_enc_field(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
 {
-	assert(node);
+	if (!node) return GF_BAD_PARAM;
 	if (field->fieldType == GF_SG_VRML_UNKNOWN)
 		return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -568,7 +568,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	Bool flag, reset_qp14;
 	GF_Err e;
 
-	assert(codec->info);
+	if (!codec->info) return GF_BAD_PARAM;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[BIFS] Encode node %s\n", gf_node_get_class_name(node) ));
 
 	/*NULL node is a USE of maxID*/

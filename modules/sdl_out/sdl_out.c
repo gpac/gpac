@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / SDL audio and video module
@@ -51,8 +51,7 @@ Bool SDLOUT_InitSDL()
 void SDLOUT_CloseSDL()
 {
 	if (!is_init) return;
-	assert(num_users);
-	num_users--;
+	if (num_users) num_users--;
 	if (!num_users)
 		SDL_Quit();
 	return;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2004-2019
+ *			Copyright (c) Telecom ParisTech 2004-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
@@ -90,7 +90,7 @@ void gf_svg_node_del(GF_Node *node)
 			if (gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, 0, 0, &info) == GF_OK) {
 				XMLRI *iri = (XMLRI *)info.far_ptr;
 				if (iri->target) {
-					assert(iri->target==p);
+					gf_assert(iri->target==p);
 					iri->target = NULL;
 				}
 			}

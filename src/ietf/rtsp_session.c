@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -72,6 +72,7 @@ GF_Err RTSP_UnpackURL(char *sURL, char Server[1024], u16 *Port, char Service[102
 	//extract the schema
 	i = 0;
 	while (i<=strlen(sURL)) {
+		if (i==10) return GF_BAD_PARAM;
 		if (sURL[i] == ':') goto found;
 		schema[i] = sURL[i];
 		i += 1;
@@ -112,7 +113,7 @@ found:
 	if (retest && strstr(retest, "/")) {
 		retest += 1;
 		i=0;
-		while (i<strlen(retest)) {
+		while (i<strlen(retest) && i<1023) {
 			if (retest[i] == '/') break;
 			text[i] = retest[i];
 			i += 1;
@@ -150,8 +151,8 @@ found:
 		text[i] = test[i];
 		i += 1;
 	}
-	text[i] = 0;
-	strncpy(Server, text, 1023);
+	text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
+	strncpy(Server, text, 1024);
 	Server[1023]=0;
 	if (sep) sep[0] = '?';
 
@@ -219,6 +220,11 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 	return sess;
 }
 
+GF_EXPORT
+void gf_rtsp_session_set_netcap_id(GF_RTSPSession *sess, const char *netcap_id)
+{
+	if (sess) sess->netcap_id = netcap_id;
+}
 
 GF_EXPORT
 void gf_rtsp_reset_aggregation(GF_RTSPSession *sess)
@@ -417,7 +423,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 
 	//socket is destroyed, recreate
 	if (!sess->connection) {
-		sess->connection = gf_sk_new(sess->ConnectionType);
+		sess->connection = gf_sk_new_ex(sess->ConnectionType, sess->netcap_id);
 		if (!sess->connection) return GF_OUT_OF_MEM;
 
 		//work in non-blocking mode
@@ -464,7 +470,8 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 			if (ret==SSL_ERROR_SSL) {
 				char msg[1024];
 				SSL_load_error_strings();
-				ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+				ERR_error_string_n(ERR_get_error(), msg, 1023);
+				msg[1023]=0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
 				return GF_IP_CONNECTION_FAILURE;
 			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
@@ -572,7 +579,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 				sess->RTSP_SignalData(sess, ch->ch_ptr, buffer+4, paySize, IsRTCP);
 			}
 			sess->CurrentPos += paySize+4;
-			assert(sess->CurrentPos <= sess->CurrentSize);
+			gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 		} else {
 			/*missed end of pck ?*/
 			if (sess->payloadSize) {
@@ -592,7 +599,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 			}
 			memcpy(sess->rtsp_pck_buf, buffer+4, Size-4);
 			sess->CurrentPos += Size;
-			assert(sess->CurrentPos <= sess->CurrentSize);
+			gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 		}
 	}
 	/*end of packet*/
@@ -612,7 +619,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 		sess->pck_start = 0;
 		sess->InterID = (u8) -1;
 		sess->CurrentPos += res;
-		assert(sess->CurrentPos <= sess->CurrentSize);
+		gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 	}
 	/*middle of packet*/
 	else {
@@ -620,7 +627,7 @@ GF_Err gf_rtsp_do_deinterleave(GF_RTSPSession *sess)
 		memcpy(sess->rtsp_pck_buf + sess->pck_start, buffer, Size);
 		sess->pck_start += Size;
 		sess->CurrentPos += Size;
-		assert(sess->CurrentPos <= sess->CurrentSize);
+		gf_fatal_assert(sess->CurrentPos <= sess->CurrentSize);
 	}
 	return GF_OK;
 }
@@ -732,7 +739,8 @@ static GF_Err rstp_do_write_sock(GF_RTSPSession *sess, GF_Socket *sock, const u8
 				if (err==SSL_ERROR_SSL) {
 					char msg[1024];
 					SSL_load_error_strings();
-					ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+					ERR_error_string_n(ERR_get_error(), msg, 1023);
+					msg[1023]=0;
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot send, error %s\n", msg));
 				}
 				return GF_IP_NETWORK_FAILURE;
@@ -806,7 +814,7 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 				e = GF_IP_CONNECTION_FAILURE;
 			return e;
 		}
-		assert(size);
+		gf_assert(size);
 		sess->tunnel_state = 2;
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPTunnel] Got reply %s", buffer));
 
@@ -817,8 +825,8 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 		}
 
 		//	3. send "POST /sample.mov HTTP/1.0\r\n ..."
-		sess->http = gf_sk_new(GF_SOCK_TYPE_TCP);
-		if (!sess->http ) {
+		sess->http = gf_sk_new_ex(GF_SOCK_TYPE_TCP, sess->netcap_id);
+		if (!sess->http) {
 			sess->tunnel_state = 0;
 			return GF_IP_NETWORK_FAILURE;
 		}
@@ -856,7 +864,8 @@ static GF_Err gf_rtsp_http_tunnel_setup(GF_RTSPSession *sess)
 			if (ret==SSL_ERROR_SSL) {
 				char msg[1024];
 				SSL_load_error_strings();
-				ERR_error_string_n(ERR_get_error(), msg, sizeof(msg));
+				ERR_error_string_n(ERR_get_error(), msg, 1023);
+				msg[1023]=0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
 				return GF_IP_CONNECTION_FAILURE;
 			} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
@@ -948,7 +957,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener, Bool allow_
 	//OK create a new session
 	GF_SAFEALLOC(sess, GF_RTSPSession);
 	if (!sess) return NULL;
-	
+
 	sess->connection = new_conn;
 	sess->Port = port;
 	sess->ConnectionType = fam;
@@ -1023,7 +1032,8 @@ GF_EXPORT
 GF_Err gf_rtsp_get_session_ip(GF_RTSPSession *sess, char buffer[GF_MAX_IP_NAME_LEN])
 {
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
-	gf_sk_get_local_ip(sess->connection, buffer);
+	if (gf_sk_get_local_ip(sess->connection, buffer) != GF_OK)
+		strcpy(buffer, "127.0.0.1");
 	return GF_OK;
 }
 

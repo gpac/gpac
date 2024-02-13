@@ -38,10 +38,9 @@ Acknowledgement
 GF_EXPORT
 u32 utf8_to_ucs4(u32 * ucs4_buf, u32 utf8_len, unsigned char *utf8_buf)
 {
+	if (!ucs4_buf || !utf8_buf) return 0;
 	const unsigned char *utf8_endbuf = utf8_buf + utf8_len;
 	u32             ucs_len = 0;
-	assert( ucs4_buf );
-	assert( utf8_buf );
 
 	while (utf8_buf != utf8_endbuf) {
 

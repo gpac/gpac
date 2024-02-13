@@ -308,7 +308,9 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_WVTT:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_GENERIC)
 			return GF_ISOM_INVALID_MEDIA;
-	{
+
+		if (true_desc_only) return GF_ISOM_INVALID_MEDIA;
+		{
 		GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
 		esd =  gf_odf_desc_esd_new(2);
 		*out_esd = esd;
