@@ -282,7 +282,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 	data = (u8 *)gf_filter_pck_get_data(pck, &pkt_size);
 	gf_filter_pck_get_framing(pck, &start, &end);
 	//for now we only work with complete files
-	assert(end);
+	gf_assert(end);
 
 	if (!ctx->bs) {
 		ctx->bs = gf_bs_new(data, pkt_size, GF_BITSTREAM_READ);

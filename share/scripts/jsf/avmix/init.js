@@ -784,8 +784,8 @@ filter.configure_pid = function(pid)
 		pid.afmt = pid.get_prop('AudioFormat');
 		let sr = pid.get_prop('SampleRate');
 		if ((sr != filter.sr) || (pid.afmt != filter.afmt)) {
-			pid.negociate_prop('SampleRate', filter.sr);
-			pid.negociate_prop('AudioFormat', filter.afmt);
+			pid.negotiate_prop('SampleRate', filter.sr);
+			pid.negotiate_prop('AudioFormat', filter.afmt);
 		}
 
 		pid.ch_buf = new Float32Array(pid.channels);

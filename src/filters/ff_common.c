@@ -529,6 +529,7 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_DVB_TELETEXT, GF_CODECID_DVB_TELETEXT, 0},
 	{AV_CODEC_ID_MSMPEG4V3, GF_CODECID_MSPEG4_V3, 0},
 	{AV_CODEC_ID_DTS, GF_CODECID_DTS_CA, 0},
+	{AV_CODEC_ID_DTS, GF_CODECID_DTS_EXPRESS_LBR, 0},
 	{AV_CODEC_ID_ALAC, GF_CODECID_ALAC, 0},
 	{0}
 };
@@ -1646,7 +1647,7 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 					continue;
 				}
 			}
-			assert(nb_args>i);
+			gf_assert(nb_args>i);
 			args[i] = ffmpeg_arg_translate(opt);
 			i++;
 		}

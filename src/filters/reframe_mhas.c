@@ -773,9 +773,12 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		}
 	}
 	if (consumed) {
-		assert(remain>=consumed);
-		remain -= consumed;
-		start += consumed;
+		if (remain>=consumed) {
+			remain -= consumed;
+			start += consumed;
+		} else {
+			remain=0;
+		}
 	}
 
 skip:
@@ -836,6 +839,8 @@ static const char *mhas_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		u32 pos = (u32) (ptr - data);
 		const u8 *sync_start = memchr(ptr, 0xC0, size - pos);
 		if (!sync_start) return NULL;
+		u32 remain = size - (u32) (sync_start-data);
+		if (remain<2) return NULL;
 		if ((sync_start[1]== 0x01) && (sync_start[2]==0xA5)) {
 			sync_pos = pos;
 			break;

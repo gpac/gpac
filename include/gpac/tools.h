@@ -601,6 +601,12 @@ typedef void (*gf_rmt_user_callback)(void *udta, const char* text);
 GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback rmt_usr_cbk);
 
 
+/*! Sends a log message to remotery web client
+\param msg text message to send. The message format should be json
+\return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
+*/
+GF_Err gf_sys_profiler_log(const char *msg);
+
 /*! Sends a message to remotery web client
 \param msg text message to send. The message format should be json
 \return GF_OK if success, GF_BAD_PARAM if profiler is not running, GF_NOT_SUPPORTED if profiler not supported
@@ -1977,7 +1983,7 @@ GF_Err gf_gz_compress_payload_ex(u8 **data, u32 data_len, u32 *out_size, u8 data
 Decompresses a data buffer using zlib/inflate.
 \param data data buffer to be decompressed
 \param data_len length of the data buffer to be decompressed
-\param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+\param uncompressed_data pointer to the uncompressed data buffer. The resulting buffer is NULL-terminated. It is the responsibility of the caller to free this buffer.
 \param out_size size of the uncompressed buffer
 \return error if any
  */
@@ -1987,7 +1993,7 @@ GF_Err gf_gz_decompress_payload(u8 *data, u32 data_len, u8 **uncompressed_data, 
 Decompresses a data buffer using zlib/inflate.
 \param data data buffer to be decompressed
 \param data_len length of the data buffer to be decompressed
-\param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+\param uncompressed_data pointer to the uncompressed data buffer. The resulting buffer is NULL-terminated. It is the responsibility of the caller to free this buffer.
 \param out_size size of the uncompressed buffer
 \param use_gz if true, gz header is present
 \return error if any

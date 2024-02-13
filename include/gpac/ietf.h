@@ -666,6 +666,13 @@ const char *gf_rtsp_get_session_cookie(GF_RTSPSession *sess);
 */
 GF_Err gf_rtsp_merge_tunnel(GF_RTSPSession *sess, GF_RTSPSession *post_sess);
 
+/*! sets associated netcap rules
+\param sess the target RTSP session
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+
+*/
+void gf_rtsp_session_set_netcap_id(GF_RTSPSession *sess, const char *netcap_id);
+
 /*
 		RTP LIB EXPORTS
 */
@@ -719,6 +726,13 @@ typedef struct __tag_rtp_channel GF_RTPChannel;
 \return a newly allocated RTP channel
 */
 GF_RTPChannel *gf_rtp_new();
+
+/*! creates a new RTP channel
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\return a newly allocated RTP channel
+*/
+GF_RTPChannel *gf_rtp_new_ex(const char *netcap_id);
+
 /*! destroys an RTP channel
 \param ch the target RTP channel
 */

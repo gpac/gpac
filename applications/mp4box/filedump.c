@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -2543,7 +2543,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 
 		if (cenc_scheme) {
 			Bool is_protected;
-			u8 skip_byte_block, crypt_byte_block;
+			u32 skip_byte_block, crypt_byte_block;
 			const u8 *key_info;
 			u32 key_info_size;
 			fprintf(stderr, " - Protection scheme: %s v0x%08X", gf_4cc_to_str(cenc_scheme), cenc_version);
@@ -3646,7 +3646,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			const u8 *def_key;
 			u32 def_key_size;
 			Bool IsEncrypted;
-			u8 crypt_byte_block, skip_byte_block;
+			u32 crypt_byte_block, skip_byte_block;
 			IV_size = 0;
 			gf_isom_get_cenc_info(file, trackNum, stsd_idx, NULL, &scheme_type, &version);
 

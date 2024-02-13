@@ -276,8 +276,9 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 			ctx->bsmode = UNSUPPORTED;
 			return e;
 		}
-		if (!ctx->timescale && (ctx->state.obu_type != OBU_TEMPORAL_DELIMITER)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter - NOT SUPPORTED\n", gf_av1_get_obu_name(ctx->state.obu_type) ));
+		if (!ctx->timescale && !ctx->state.has_temporal_delim) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter\n", gf_av1_get_obu_name(ctx->state.obu_type) ));
+			if (!e) e = GF_NON_COMPLIANT_BITSTREAM;
 			gf_filter_setup_failure(filter, e);
 			ctx->bsmode = UNSUPPORTED;
 			return e;
@@ -545,8 +546,8 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void av1dmx_update_cts(GF_AV1DmxCtx *ctx)
 {
-	assert(ctx->cur_fps.num);
-	assert(ctx->cur_fps.den);
+	gf_assert(ctx->cur_fps.num);
+	gf_assert(ctx->cur_fps.den);
 
 	if (!ctx->notime) {
 		u64 inc = ctx->cur_fps.den;
@@ -600,6 +601,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->is_av1 && !gf_list_count(ctx->state.frame_state.header_obus)) return;
 
 	if (!ctx->opid) {
+		if (ctx->bsmode==UNSUPPORTED) return;
 		ctx->opid = gf_filter_pid_new(filter);
 		av1dmx_check_dur(filter, ctx);
 	}
@@ -877,7 +879,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	u32 pck_size = (u32)(gf_bs_get_position(ctx->bs) - pos);
-	assert(pck_size == frame_size);
+	gf_fatal_assert(pck_size == frame_size);
 
 	//check pid state
 	av1dmx_check_pid(filter, ctx);
@@ -938,7 +940,8 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (!ctx->opid)
 		return GF_NON_COMPLIANT_BITSTREAM;
 
-	gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &pck_size, &ctx->state.frame_obus_alloc);
+	if (gf_bs_get_size(ctx->state.bs))
+		gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &pck_size, &ctx->state.frame_obus_alloc);
 
 	if (!pck_size) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[AV1Dmx] no frame OBU, skipping OBU\n"));
@@ -1106,7 +1109,7 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 	}
 
 	if (is_copy && last_obu_end) {
-		assert(ctx->buf_size>=last_obu_end);
+		gf_fatal_assert(ctx->buf_size>=last_obu_end);
 		memmove(ctx->buffer, ctx->buffer+last_obu_end, sizeof(char) * (ctx->buf_size-last_obu_end));
 		ctx->buf_size -= last_obu_end;
 	}
@@ -1216,7 +1219,7 @@ GF_Err av1dmx_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
-		assert(start && end);
+		gf_assert(start && end);
 		//process
 		e = av1dmx_process_buffer(filter, ctx, data, pck_size, GF_FALSE);
 

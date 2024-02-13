@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -677,7 +677,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			u32 container_type;
 			Bool Is_Encrypted;
 			Bool is_mkey=GF_FALSE;
-			u8 crypt_byte_block, skip_byte_block;
+			u32 crypt_byte_block, skip_byte_block;
 			const u8 *key_info=NULL;
 			u32 key_info_len = 0;
 
@@ -1462,7 +1462,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 				if (importer->run_in_session) {
 					gf_dynstrcat(&importer->update_mux_sid, prev_id, importer->update_mux_sid ? "," : ":SID=");
 				} else {
-					assert(isobmff_mux);
+					gf_assert(isobmff_mux);
 					gf_filter_set_source(isobmff_mux, prev_filter, NULL);
 				}
 				prev_filter = NULL;

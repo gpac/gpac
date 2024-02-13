@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / general OS configuration file
@@ -818,6 +818,44 @@ void* gf_realloc(void *ptr, size_t size);
 \return same as strlcpy
 */
 size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
+
+#ifdef GPAC_ASSERT_FATAL
+/*! fatal error assert, will always kill the program if condition is false
+ \param _cond condition to test
+*/
+#define gf_fatal_assert(_cond) if (! (_cond)) { fprintf(stderr, "Fatal error " #_cond " file %s line %d, exiting\n", (strstr(__FILE__, "gpac") ? strstr(__FILE__, "gpac") + 5 : __FILE__), __LINE__ ); exit(10); }
+/*!  error assert, will assert if condition is false but will not always kill the program
+ \param _cond condition to test
+*/
+#define gf_assert(_cond) gf_fatal_assert(_cond)
+#elif defined(NDEBUG)
+//! @cond Doxygen_Suppress
+#define gf_assert(_cond)
+#define gf_fatal_assert(_cond) if (! (_cond)) { fprintf(stderr, "Fatal error " #_cond " file %s line %d, exiting\n", (strstr(__FILE__, "gpac") ? strstr(__FILE__, "gpac") + 5 : __FILE__), __LINE__ ); exit(10); }
+//! @endcond
+#else
+//! @cond Doxygen_Suppress
+#define gf_assert(_cond) assert(_cond)
+#define gf_fatal_assert(_cond) assert(_cond)
+//! @endcond
+#endif
+
+#if defined(_DEBUG)
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#endif
+
+#if defined(NDEBUG)
+#ifdef GPAC_ENABLE_DEBUG
+#undef GPAC_ENABLE_DEBUG
+#endif
+#else
+#ifndef GPAC_ENABLE_DEBUG
+/*! Macro for detecting debug configurations*/
+#define GPAC_ENABLE_DEBUG
+#endif
+#endif
 
 #ifdef __cplusplus
 }

@@ -492,7 +492,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 		goto exit;
 	}
 
-	assert(breaker.to_pos > breaker.from_pos);
+	gf_assert(breaker.to_pos > breaker.from_pos);
 
 
 	ctx->samp_buffer_size = (u32) (breaker.to_pos - breaker.from_pos);
@@ -1544,7 +1544,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			//use full file only if no subbs
 			if (!ctx->samp_buffer_size && !has_subbs && f) {
 				u64 ssize = gf_fsize(f);
-				assert(ssize < 0x80000000);
+				gf_fatal_assert(ssize < 0x80000000);
 				ctx->samp_buffer_size = (u32) ssize;
 			}
 
@@ -1701,7 +1701,7 @@ GF_Err nhmldmx_process(GF_Filter *filter)
 	if (pck) {
 		gf_filter_pck_get_framing(pck, &start, &end);
 		//for now we only work with complete files
-		assert(end);
+		gf_assert(end);
 	}
 
 

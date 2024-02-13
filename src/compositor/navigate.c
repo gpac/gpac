@@ -360,8 +360,6 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 
 	if (!cam) {
 		cam = &compositor->visual->camera;
-		assert(compositor);
-		assert(compositor->scene);
 	}
 	if (!cam || (cam->navigate_mode==GF_NAVIGATE_NONE)) return 0;
 

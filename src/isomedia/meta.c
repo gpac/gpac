@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -455,7 +455,7 @@ GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track
 
 GF_EXPORT
 GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, Bool *is_protected,
-	u8 *skip_byte_block, u8 *crypt_byte_block, const u8 **key_info, u32 *key_info_size, u32 *aux_info_type_param,
+	u32 *skip_byte_block, u32 *crypt_byte_block, const u8 **key_info, u32 *key_info_size, u32 *aux_info_type_param,
 	u8 **cenc_sai_data, u32 *cenc_sai_data_size, u32 *cenc_sai_alloc_size)
 {
 	u32 count, i;

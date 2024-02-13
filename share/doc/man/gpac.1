@@ -42,6 +42,16 @@ The possible options for gpac are:
 
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-ltf
 .br
 load test-unit filters (used for for unit tests only)
@@ -870,29 +880,23 @@ use buffered IO instead of file descriptor for read/write - this can speed up op
 disable all mutexes, threads and semaphores (do not use if unsure about threading used)
 .br
 .TP
-.B \-netcap-dst (string)
+.B \-netcap (string)
 .br
-output packets to indicated file
+set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap argument will define a configuration
 .br
-.TP
-.B \-netcap-src (string)
+[CFG] is an optional comma-separated list of:
 .br
-read packets from indicated file, as produced by -netcap-dst or a pcap or pcapng file
+* id=ID: ID (string) for this configuration. If NULL, configuration will apply to all sockets not specifying a netcap ID
 .br
-.TP
-.B \-netcap-nrt
+* src=F: read packets from F, as produced by GPAC or a pcap or pcapng file
 .br
-ignore real-time regulation when reading packet from capture file
+* dst=F: output packets to F (no pcap/pcapng support), cannot be set if src is set
 .br
-.TP
-.B \-netcap-loop (int)
+* loop[=N]: loop capture file N times, or forever if N is not set or negative
 .br
-set number of loops of capture file, -1 means forever
+* nrt: disable real-time playback
 .br
-.TP
-.B \-net-filter (string)
-.br
-set packet filtering rules (live or from file). Value is a list of {OPT,OPT2...} with OPT in:
+[RULES] is an optional list of [OPT,OPT2...] with OPT in:
 .br
 * m=N: set rule mode - N can be r for reception only (default), w for send only or rw for both
 .br
@@ -900,7 +904,7 @@ set packet filtering rules (live or from file). Value is a list of {OPT,OPT2...}
 .br
 * e=N: set packet end range to N (only used for r and f rules)
 .br
-* n=N: set number of packets to drop to N, 0 or 1 means single packet
+* n=N: set number of packets to drop to N - not set, 0 or 1 means single packet
 .br
 * r=N: random drop one packet every N
 .br
@@ -916,11 +920,31 @@ set packet filtering rules (live or from file). Value is a list of {OPT,OPT2...}
 .br
 Example
 .br
-{p=1234,s=100,n=20}{r=200,s=500,o=10,v=FE}
+-netcap=dst=dump.gpc
 .br
 
 .br
-This will drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE
+This will record packets to dump.gpc
+.br
+
+.br
+Example
+.br
+-netcap=src=dump.gpc,id=NC1 -i session1.sdp:NCID=NC1 -i session2.sdp
+.br
+
+.br
+This will read packets from dump.gpc only for session1.sdp and let session2.sdp use regular sockets
+.br
+
+.br
+Example
+.br
+-netcap=[p=1234,s=100,n=20][r=200,s=500,o=10,v=FE]
+.br
+
+.br
+This will use regular network interface and drop packets 100 to 119 on port 1234 and patch one random packet every 200 starting from packet 500, setting byte 10 to FE
 .br
 .TP
 .B \-cache (string)
@@ -2504,6 +2528,10 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * ccp: filter replacement control (string list value)
 .br
+* NCID: ID of netcap configuration to use (string)
+.br
+* DBG: debug missing input PID property (=pid), missing input packet property (=pck) or both (=all)
+.br
 
 .br
 The buffer control options are used to change the default buffering of PIDs of a filter:
@@ -2520,7 +2548,7 @@ If another filter sends a buffer requirement messages, the maximum value of FBT 
 .br
 
 .br
-These options can be set:
+The options FBT, FBU, FBD  and DBG can be set:
 .br
 * per filter instance: fA reframer:FBU=2
 .br
@@ -3631,6 +3659,11 @@ Name of the HLS variant playlist for this media
 .B HLSGroup (HLGI,str,D )
 .br
 Name of HLS Group of a stream
+.br
+.TP
+.B HLSForce (HLFI,str,D )
+.br
+Force writing EXT-X-STREAM-INF if stream is in a rendition group, value is the name of associated groups (can be empty)
 .br
 .TP
 .B HLSMExt (HLMX,strl,D )
@@ -5114,7 +5147,7 @@ For bug reports, feature requests, more information and source code, visit https
 .br
 build: 2.3-DEV
 .br
-Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
+Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io
 .br
 .SH SEE ALSO
 .LP

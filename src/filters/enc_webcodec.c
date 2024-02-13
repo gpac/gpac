@@ -264,7 +264,7 @@ static GF_Err wcenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				break;
 			}
 			if (ctx->pfmt != ifmt) {
-				gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pfmt) );
+				gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pfmt) );
 				return GF_OK;
 			}
 
@@ -308,7 +308,7 @@ static GF_Err wcenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				break;
 			}
 			if (ctx->afmt != ifmt) {
-				gf_filter_pid_negociate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->afmt) );
+				gf_filter_pid_negotiate_property(ctx->ipid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->afmt) );
 				return GF_OK;
 			}
 			ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->afmt) * ctx->num_channels / 8;

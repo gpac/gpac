@@ -40,7 +40,12 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	count = gf_isom_get_chapter_count(file, 0);
 	if (count) {
 		times.vals = gf_malloc(sizeof(u32)*count);
+		if (!times.vals) return;
 		names.vals = gf_malloc(sizeof(char *)*count);
+		if (!names.vals) {
+			gf_free(times.vals);
+			return;
+		}
 		times.nb_items = names.nb_items = count;
 
 		for (i=0; i<count; i++) {
@@ -48,7 +53,7 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 			u64 start;
 			gf_isom_get_chapter(file, 0, i+1, &start, &name);
 			times.vals[i] = (u32) start;
-			names.vals[i] = gf_strdup(name);
+			names.vals[i] = gf_strdup(name ? name : "");
 		}
 		p.type = GF_PROP_UINT_LIST;
 		p.value.uint_list = times;
@@ -78,13 +83,22 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	if (!chap_tk) return;
 
 	times.vals = gf_malloc(sizeof(u32)*count);
+	if (!times.vals) return;
 	names.vals = gf_malloc(sizeof(char *)*count);
+	if (!names.vals) {
+		gf_free(times.vals);
+		return;
+	}
 	times.nb_items = names.nb_items = count;
 
 	for (i=0; i<count; i++) {
 		u32 di;
 		GF_ISOSample *s = gf_isom_get_sample(file, chap_tk, i+1, &di);
-		if (!s) continue;
+		if (!s) {
+			times.vals[i] = 0;
+			names.vals[i] = gf_strdup("");
+			continue;
+		}
 		GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 		if (txt) {
@@ -1398,7 +1412,11 @@ props_done:
 	if (m_subtype)
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_SUBTYPE, &PROP_4CC(m_subtype) );
 
-	if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
+	if (stxtcfg) {
+		//copy mem to make sure we have a null-terminated string
+		char *dupm = gf_strdup((char *)stxtcfg);
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dupm, (u32) strlen(stxtcfg) ));
+	}
 
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE)
@@ -1471,6 +1489,12 @@ props_done:
 				gf_isom_sample_del(&samp);
 			}
 #endif
+		}
+	} else if (codec_id==GF_CODECID_DTS_X) {
+		GF_UDTSConfig cfg;
+		if (gf_isom_get_udts_config(ch->owner->mov, ch->track, 1, &cfg) == GF_OK) {
+			u64 ch_layout = cfg.ChannelMask;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 		}
 	}
 
@@ -1755,7 +1779,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 
 		/*write cover data*/
-		assert(!(tlen & 0x80000000));
+		if (tlen & 0x80000000) return GF_NON_COMPLIANT_BITSTREAM;
 		tlen &= 0x7FFFFFFF;
 
 		if (read->expart && !isom_contains_video) {

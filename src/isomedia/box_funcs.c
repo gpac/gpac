@@ -138,7 +138,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level. Forbidden, skipping end of parent box !\n", gf_4cc_to_str(type), type, start));
 					return GF_SKIP_BOX;
 				}
-				return GF_OK;
+				return GF_ISOM_INVALID_FILE;
 			}
 		}
 		if ((is_root_box && (size>=8))
@@ -191,12 +191,16 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			}
 #endif
 			if (do_uncompress) {
+				if (size>100000000) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload too large (%u)\n", size));
+					return GF_NOT_SUPPORTED;
+				}
 				compb = gf_malloc((u32) (size-8));
 				if (!compb) return GF_OUT_OF_MEM;
 
 				compressed_size = (u32) (size - 8 - extra_bytes);
 				gf_bs_read_data(bs, compb, compressed_size);
-				e = gf_gz_decompress_payload_ex(compb, compressed_size, &uncomp_data, &osize, (do_uncompress==2) ? GF_TRUE : GF_FALSE);
+				e = gf_gz_decompress_payload_ex(compb, compressed_size, &uncomp_data, &osize, GF_FALSE);
 				if (e) {
 					gf_free(compb);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Failed to uncompress payload for box type %s (0x%08X)\n", gf_4cc_to_str(otype), otype));
@@ -284,7 +288,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	} else {
 		//OK, create the box based on the type
 		is_special = GF_FALSE;
-		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type, skip_logs, is_root_box);
+		newBox = gf_isom_box_new_ex(uuid_type ? uuid_type : type, parent_type, skip_logs, is_root_box, uuid_type ? GF_TRUE : GF_FALSE);
 		if (!newBox) ERR_EXIT(GF_OUT_OF_MEM);
 	}
 
@@ -933,6 +937,10 @@ ISOM_BOX_IMPL_DECL(dvcC)
 ISOM_BOX_IMPL_DECL(dvvC)
 ISOM_BOX_IMPL_DECL(dvhe)
 ISOM_BOX_IMPL_DECL(dfla)
+
+/* DTS audio */
+ISOM_BOX_IMPL_DECL(ddts)
+ISOM_BOX_IMPL_DECL(udts)
 
 ISOM_BOX_IMPL_DECL(pcmC)
 ISOM_BOX_IMPL_DECL(chnl)
@@ -1725,6 +1733,16 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_4CC('G','M','C','W'), unkn, "stsd", "GPAC"),
 	BOX_DEFINE_S(GF_4CC('G','M','C','C'), unkn, "GMCW", "GPAC"),
 
+	// DTS in ISOBMFF boxes
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSC, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSE, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSH, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSL, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSX, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DTSY, audio_sample_entry, "stsd", "DTS"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DDTS, ddts, "audio_sample_entry", "DTS"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_UDTS, udts, "audio_sample_entry", "DTS"),
+
 	/* for now we don't parse these*/
 	BOX_DEFINE_S(GF_ISOM_SUBTYPE_UNCV, unkn, "stsd", "rawff"),
 	BOX_DEFINE_S(GF_4CC('u','n','c','C'), unkn, "video_sample_entry ipco", "rawff"),
@@ -1816,7 +1834,7 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 	return 0;
 }
 
-GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box)
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_root_box, Bool is_uuid)
 {
 	GF_Box *a;
 	const char *opt;
@@ -1857,7 +1875,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			}
 		}
 #endif
-        if (boxType==GF_ISOM_BOX_TYPE_UUID) {
+        if (is_uuid || (boxType==GF_ISOM_BOX_TYPE_UUID)) {
             a = uuid_box_new();
             if (a) a->registry = &box_registry[1];
         } else {
@@ -1893,7 +1911,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 GF_EXPORT
 GF_Box *gf_isom_box_new(u32 boxType)
 {
-	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE);
+	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE, GF_FALSE);
 }
 
 GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)

@@ -561,7 +561,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	ch_layout = 0;
 
 	count = gf_list_count(am->sources);
-	assert(count);
+	gf_assert(count);
 	for (i=0; i<count; i++) {
 		Bool has_cfg;
 		MixerInput *in = (MixerInput *) gf_list_get(am->sources, i);
@@ -734,7 +734,7 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u64 in_ch_lay
 				if (ch==10) return;
 			}
 			pos = get_channel_out_pos((1<<ch), out_ch_layout);
-			assert(pos != GF_AUDIO_MIXER_MAX_CHANNELS);
+			gf_assert(pos != GF_AUDIO_MIXER_MAX_CHANNELS);
 			inChan[pos] = bckup[i];
 			ch++;
 			cfg>>=1;
@@ -1094,7 +1094,7 @@ do_mix:
 			in->out_samples_to_write = 0;
 			in->out_samples_written = 0;
 		} else {
-			assert(in->src->samplerate);
+			gf_assert(in->src->samplerate);
 			in->out_samples_to_write = nb_samples;
 
 			if (!force_mix && !in->src->GetChannelVolume(in->src->callback, in->pan)) {

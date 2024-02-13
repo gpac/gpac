@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -402,6 +402,7 @@ typedef struct
 	u32 wait_dts_timescale;
 	Bool force_seg_sync;
 	u32 seg_flush_state;
+	u32 last_block_in_segment;
 	u64 flush_idx_start_range, flush_idx_end_range;
 	Bool flush_ll_hls;
 
@@ -1778,7 +1779,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		multi_pid_stsd = p->value.ptr;
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DASH_MULTI_PID_IDX);
-		assert(p);
+		gf_fatal_assert(p);
 		multi_pid_final_stsd_idx = p->value.uint;
 
 		//should never be the case
@@ -2304,7 +2305,7 @@ sample_entry_setup:
 
 			if (req_non_planar_type) {
 				if (is_true_pid)
-					gf_filter_pid_negociate_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
+					gf_filter_pid_negotiate_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
 				else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] raw audio format planar in DASH multi-stsd mode is not supported, try assigning a resampler before the dasher\n"));
 					return GF_NOT_SUPPORTED;
@@ -3224,7 +3225,7 @@ sample_entry_setup:
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 
 	} else {
-		assert(0);
+		gf_fatal_assert(0);
 	}
 
 	if (!tkw->all_stsd_crc) {
@@ -4447,7 +4448,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		u8 *sai_d;
 		u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
-		assert(tkw->cenc_subsamples);
+		gf_assert(tkw->cenc_subsamples);
 
 		//multi-key skip all IV inits
 		if (tkw->cenc_ki->value.data.ptr[0]) {
@@ -4538,7 +4539,10 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		}
 	}
 
-	if (act_type==CENC_ADD_FRAG) {
+	if (pck_is_encrypted && (sai_size>255)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] CENC SAI size %u larger than max allowed size (255) in ISOBMFF - please reencode content\n", sai_size ));
+		e = GF_NOT_SUPPORTED;
+	} else if (act_type==CENC_ADD_FRAG) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (pck_is_encrypted) {
 			e = gf_isom_fragment_set_cenc_sai(ctx->file, tkw->track_id, sai, sai_size, tkw->cenc_subsamples, ctx->saio32, tkw->cenc_multikey);
@@ -4881,7 +4885,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 					e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, inband_xps, inband_xps_size, 0);
 				}
 				if (!e) {
-					if (gf_filter_pck_is_blocking_ref(pck)) {
+					if ((ctx->subs_sidx>0) || gf_filter_pck_is_blocking_ref(pck)) {
 						e = gf_isom_fragment_append_data(ctx->file, tkw->track_id, pck_data, pck_data_len, 0);
 					} else {
 						gf_filter_pck_ref(&pck);
@@ -4907,7 +4911,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			insert_subsample_dsi_size = inband_xps_size;
 		} else if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-			if (gf_filter_pck_is_blocking_ref(pck)) {
+			if ((ctx->subs_sidx>0) || gf_filter_pck_is_blocking_ref(pck)) {
 				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &tkw->sample, sample_desc_index, duration, 0, 0, 0);
 			} else {
 				gf_filter_pck_ref(&pck);
@@ -5584,7 +5588,7 @@ static void mp4mux_send_output(GF_MP4MuxCtx *ctx)
 				gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(ctx->cur_file_suffix) );
 				ctx->cur_file_suffix = NULL;
 			}
-			ctx->notify_filename = 0;
+			ctx->notify_filename = GF_FALSE;
 			if (ctx->dash_seg_start.den)
 				gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) );
 		}
@@ -5642,8 +5646,11 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 			gf_filter_pck_set_carousel_version(ctx->dst_pck, 1);
 		}
 		//also inject m4cc after init seg - cf issue 2482
+		//don't send as new packet as this wll break framing if init segment, just expand the packet
+		//the init segment packet is always an allocated one, so expanding it is safe
 		if (is_init && ctx->eos_marker) {
-			u8 data[8];
+			u8 *data;
+			gf_filter_pck_expand(ctx->dst_pck, 8, NULL, &data, NULL);
 			memset(data, 0, 8);
 			data[3] = 8;
 			data[4] = ctx->m4cc[0];
@@ -6037,7 +6044,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	} else {
 		mp4_mux_flush_seg(ctx, GF_TRUE, 0, 0, GF_TRUE);
 	}
-	assert(!ctx->dst_pck);
+	gf_assert(!ctx->dst_pck);
 
 	//change major brand for segments
 	if (ctx->styp && (strlen(ctx->styp)>=4)) {
@@ -6308,11 +6315,11 @@ GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 		tkw->samples_in_stsd = 0;
 		tkw->samples_in_frag = 0;
 	}
-	assert(ctx->next_file_idx);
+	gf_assert(ctx->next_file_idx);
 	ctx->cur_file_idx_plus_one = ctx->next_file_idx;
 	ctx->next_file_idx = 0;
 	ctx->notify_filename = GF_TRUE;
-	assert(!ctx->cur_file_suffix);
+	gf_assert(!ctx->cur_file_suffix);
 	if (ctx->next_file_suffix) {
 		ctx->cur_file_suffix = gf_strdup(ctx->next_file_suffix);
 		ctx->next_file_suffix = NULL;
@@ -6723,6 +6730,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			s32 subs_sidx = -1;
 			u32 track_ref_id = 0;
 
+			ctx->last_block_in_segment = 1;
 			idx_start_range = idx_end_range = 0;
 			if (ctx->subs_sidx>=0) {
 				subs_sidx = ctx->subs_sidx;
@@ -6739,6 +6747,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				ctx->ref_tkw->negctts_shift ? 0 : ctx->ref_tkw->ts_delay,
 				next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 			ctx->ref_tkw->first_dts_in_seg_plus_one = 0;
+			ctx->last_block_in_segment = 0;
 			if (e) return e;
 			flush_refs = GF_TRUE;
 
@@ -6760,7 +6769,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					 if (!ctx->alloc_seg_sizes) ctx->alloc_seg_sizes = 10;
 					 ctx->seg_sizes = gf_realloc(ctx->seg_sizes, sizeof(u32) * ctx->alloc_seg_sizes);
 				}
-				assert(segment_size_in_bytes);
+				gf_assert(segment_size_in_bytes);
 				ctx->seg_sizes[ctx->nb_seg_sizes] = (u32) segment_size_in_bytes;
 				ctx->nb_seg_sizes++;
 			}
@@ -7454,6 +7463,9 @@ static void mp4_mux_on_packet_destruct(GF_Filter *filter, GF_FilterPid *PID, GF_
 static void mp4_mux_on_last_block_start(void *cbk)
 {
 	GF_MP4MuxCtx *ctx = (GF_MP4MuxCtx *) cbk;
+
+	if (ctx->last_block_in_segment == 1)
+		ctx->last_block_in_segment = 2;
 	if (ctx->force_seg_sync)
 		ctx->seg_flush_state = 1;
 }
@@ -7485,7 +7497,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			gf_filter_pck_send(pck);
 		} else {
 			GF_BitStream *bs;
-			assert(!ctx->dst_pck);
+			gf_assert(!ctx->dst_pck);
 
 			if (block_size > ctx->sidx_max_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Final SIDX chunk larger than preallocated block, will not flush SIDX (output file still readable). Try disabling nocache mode\n"));
@@ -7547,7 +7559,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 
 	if (!cbk_data)
 		memcpy(output, data, block_size);
-	gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, GF_FALSE);
+	//set framing - if we use separate files, mark end of file (for faster flush in sinks)
+	gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, (ctx->cur_file_idx_plus_one && (ctx->last_block_in_segment==2)) ? GF_TRUE : GF_FALSE);
 
 	//set packet prop as string since we may discard the seg_name  packet before this packet is processed
 	if (!ctx->first_pck_sent && ctx->seg_name) {
@@ -7634,6 +7647,10 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		if (ctx->dref && (ctx->store>=MP4MX_MODE_FRAG)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use data reference in movie fragments, not supported. Ignoring it\n"));
 			ctx->dref = GF_FALSE;
+		}
+		if (ctx->noinit && (ctx->store<MP4MX_MODE_FRAG)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Cannot skip init segment if not fragmented. Ignoring noinit\n"));
+			ctx->noinit = GF_FALSE;
 		}
 
 		if (ctx->store==MP4MX_MODE_FASTSTART) {
@@ -7943,10 +7960,11 @@ static GF_Err mp4_mux_done(GF_MP4MuxCtx *ctx, Bool is_final)
 				if (force_rewrite) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 					GF_ESD *esd = gf_isom_get_esd(ctx->file, tkw->track_num, tkw->stsd_idx);
-					assert(esd);
-					gf_m4v_rewrite_pl(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
-					gf_isom_change_mpeg4_description(ctx->file, tkw->track_num, tkw->stsd_idx, esd);
-					gf_odf_desc_del((GF_Descriptor*)esd);
+					if (esd) {
+						gf_m4v_rewrite_pl(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
+						gf_isom_change_mpeg4_description(ctx->file, tkw->track_num, tkw->stsd_idx, esd);
+						gf_odf_desc_del((GF_Descriptor*)esd);
+					}
 #endif
 
 				}
@@ -8175,7 +8193,11 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(abs_offset), "use absolute file offset in fragments rather than offsets from moof", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fsap), "split truns in video fragments at SAPs to reduce file size", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(file), "pointer to a write/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
-	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source PID", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(subs_sidx), "number of subsegments per sidx\n"
+	"- 0: single sidx\n"
+	"- >0: hierarchical or daisy-chained sidx\n"
+	"- <0: disables sidx\n"
+	"- -2: removes sidx if present in source PID", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(m4cc), "4 character code of empty box to append at the end of a segment (DASH mode) or of a fragment (non-DASH mode)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_sidx), "use daisy-chaining of SIDX", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(msn), "sequence number of first moof to N", GF_PROP_UINT, "1", NULL, 0},

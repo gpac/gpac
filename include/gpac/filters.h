@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -203,33 +203,40 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT
 } GF_FilterSchedulerType;
 
-/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various sub-filters.
-The sub-filters are usually not exposed as filters, only the parent one is.
-When set, all sub-filters are exposed. This should only be set when inspecting filters help*/
-#define GF_FS_FLAG_LOAD_META	1<<1
-/*! Flag set to run session in non-blocking mode. Each call to \ref gf_fs_run will return as soon as there are no more pending tasks on the main thread */
-#define GF_FS_FLAG_NON_BLOCKING	1<<2
-/*! Flag set to disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory occupancy but slower)*/
-#define GF_FS_FLAG_NO_GRAPH_CACHE	1<<3
-/*! Flag set to disable session regulation (no sleep)*/
-#define GF_FS_FLAG_NO_REGULATION	1<<4
-/*! Flag set to disable data probe*/
-#define GF_FS_FLAG_NO_PROBE	(1<<5)
-/*! Flag set to disable source reassignment (e.g. switching from fin to ffdmx) in PID resolution*/
-#define GF_FS_FLAG_NO_REASSIGN	(1<<6)
-/*! Flag set to print enabled/disabled edges for debug of PID resolution*/
-#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<7)
-/*! Flag set to disable argument checking*/
-#define GF_FS_FLAG_NO_ARG_CHECK	(1<<8)
-/*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
-#define GF_FS_FLAG_NO_RESERVOIR (1<<9)
-/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
-#define GF_FS_FLAG_FULL_LINK (1<<10)
-/*! Flag set to disable implicit linking
- By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successfull pid if destination is not a sink, or links only to sinks otherwise.
- \note This implies that the order in which filters are added to the session matters
-*/
-#define GF_FS_FLAG_NO_IMPLICIT	(1<<11)
+/*! Filter session flags */
+typedef enum
+{
+	/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various sub-filters.
+	The sub-filters are usually not exposed as filters, only the parent one is.
+	When set, all sub-filters are exposed. This should only be set when inspecting filters help*/
+	GF_FS_FLAG_LOAD_META = 1<<1,
+	/*! Flag set to run session in non-blocking mode. Each call to \ref gf_fs_run will return as soon as there are no more pending tasks on the main thread */
+	GF_FS_FLAG_NON_BLOCKING = 1<<2,
+	/*! Flag set to disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory occupancy but slower)*/
+	GF_FS_FLAG_NO_GRAPH_CACHE = 1<<3,
+	/*! Flag set to disable session regulation (no sleep)*/
+	GF_FS_FLAG_NO_REGULATION = 1<<4,
+	/*! Flag set to disable data probe*/
+	GF_FS_FLAG_NO_PROBE = 1<<5,
+	/*! Flag set to disable source reassignment (e.g. switching from fin to ffdmx) in PID resolution*/
+	GF_FS_FLAG_NO_REASSIGN = 1<<6,
+	/*! Flag set to print enabled/disabled edges for debug of PID resolution*/
+	GF_FS_FLAG_PRINT_CONNECTIONS = 1<<7,
+	/*! Flag set to disable argument checking*/
+	GF_FS_FLAG_NO_ARG_CHECK = 1<<8,
+	/*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
+	GF_FS_FLAG_NO_RESERVOIR = 1<<9,
+	/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
+	GF_FS_FLAG_FULL_LINK = 1<<10,
+	/*! Flag set to disable implicit linking
+	 By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successful pid if destination is not a sink, or links only to sinks otherwise.
+	 \note This implies that the order in which filters are added to the session matters
+	*/
+	GF_FS_FLAG_NO_IMPLICIT = 1<<11,
+	/*! Flag set to force all filters to require a source ID (same as setting RSID option on all filters). This is typically used when the app sets links on all used filters while declaring more, unused filters.
+	*/
+	GF_FS_FLAG_REQUIRE_SOURCE_ID = 1<<12,
+} GF_FilterSessionFlags;
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
@@ -238,13 +245,13 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 \param blacklist string containing comma-separated names of filters to disable. If first character is '-', this describes a whitelist, i.e. only filters listed in this string will be allowed
 \return the created filter session
 */
-GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
+GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, GF_FilterSessionFlags flags, const char *blacklist);
 
 /*! Creates a new filter session, loading parameters from gpac config. This will also load all available filter registers not blacklisted.
 \param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META,  \ref GF_FS_FLAG_NON_BLOCKING , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
 \return the created filter session
 */
-GF_FilterSession *gf_fs_new_defaults(u32 flags);
+GF_FilterSession *gf_fs_new_defaults(GF_FilterSessionFlags flags);
 
 /*! Destructs the filter session
 \param session the filter session to destruct
@@ -253,6 +260,31 @@ void gf_fs_del(GF_FilterSession *session);
 /*! Loads a given filter by its register name. Filter are created using their register name, with options appended as a list of colon-separated Name=Value pairs.
 Value can be omitted for boolean, defaulting to true (eg :allt). Using '!' before the name negates the result (eg :!moof_first).
 Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enum names in one filter.
+
+Options are either options for the target filter class, options to be inherited between the new filter and its implicit source(s) or implici destination(s), or generic filter options.
+
+Generic filter options are:
+- FID: filter identifier (string value)
+- SID: filter source(s) (string value)
+- N=NAME: filter name (string value)
+- FS: sub-session identifier (unsigned int value)
+- RSID: require sourceID to be present on target filters (no value)
+- TAG: filter tag (string value)
+- ITAG: filter inherited tag (string value)
+- FBT: buffer time in microseconds (unsigned int value)
+- FBU: buffer units (unsigned int value)
+- FBD: decode buffer time in microseconds (unsigned int value)
+- clone: explicitly enable/disable filter cloning flag (no value)
+- nomux: enable/disable direct file copy (no value)
+- gfreg: preferred filter registry names for link solving (string value)
+- gfloc: following options are local to filter declaration, not inherited (no value)
+- gfopt: following options are not tracked (no value)
+- gpac: argument separator for URLs (no value)
+- ccp: filter replacement control (string list value)
+- NCID: ID of netcap configuration to use (string)
+- DBG: debug missing input PID property (`=pid`), missing input packet property (`=pck`) or both (`=all`)
+- DL: enable defer linkling of filter (no value) - the filter output pids will not be connected until a call to \ref gf_filter_reconnect_output
+
 
 \param session filter session
 \param name name and arguments of the filter register to instantiate.
@@ -344,7 +376,7 @@ void gf_fs_register_test_filters(GF_FilterSession *session);
 /*! Loads a source filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error
@@ -354,7 +386,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *session, const char *url, const c
 /*! Loads a destination filter from a URL and arguments
 \param session filter session
 \param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
-\param args arguments for the filter, see \ref gf_fs_load_filter
+\param args arguments for the filter, see \ref gf_fs_load_filter - the arguments can also be set in the url, typycally using `:gpac:` option delimiter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
 \return the filter loaded or NULL if error
@@ -1215,6 +1247,7 @@ enum
 	GF_PROP_PID_CLAMP_DUR = GF_4CC('D','C','M','D'),
 	GF_PROP_PID_HLS_PLAYLIST = GF_4CC('H','L','V','P'),
 	GF_PROP_PID_HLS_GROUPID = GF_4CC('H','L','G','I'),
+	GF_PROP_PID_HLS_FORCE_INF = GF_4CC('H','L','F','I'),
 	GF_PROP_PID_HLS_EXT_MASTER = GF_4CC('H','L','M','X'),
 	GF_PROP_PID_HLS_EXT_VARIANT = GF_4CC('H','L','V','X'),
 	GF_PROP_PID_DASH_CUE = GF_4CC('D','C','U','E'),
@@ -1587,7 +1620,7 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 \ingroup filters_grp
 \brief Filter Events
 
-PIDs may receive commands and may emit messages using this system.
+PIDs may receive commands and may emit messages using an event system.
 
 Events may flow downwards (towards the source), in which case they are commands, or upwards (towards the sink), in which case they are informative event.
 
@@ -1605,6 +1638,19 @@ GF_FEVT_PLAY and GF_FEVT_SET_SPEED events will trigger larger (abs(speed)>1) or 
 
 GF_FEVT_STOP and GF_FEVT_SOURCE_SEEK events are filtered to reset the PID buffers.
 
+The following events may be used globally on a filter, e.g. without a  PID associated to the event:
+
+GF_FEVT_FILE_DELETE: used for source and sinks, indicata a file deletion
+
+GF_FEVT_SOURCE_SWITCH: used for source filters only, indicate URL switching
+
+GF_FEVT_QUALITY_SWITCH: globally change quality of of the filters for all pids (typically used in scalable contexts)
+
+GF_FEVT_USER:
+
+The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data wgile paused.
+The GF_FEVT_PAUSE and GF_FEVT_RESUME events are only used to trigger pause and resume on interactive channels such as an RTSP session, i.e. to tell the remote peer to stop and resume.
+
 @{
  */
 
@@ -1621,7 +1667,7 @@ typedef enum
 	GF_FEVT_PAUSE,
 	/*! PID resume, usually triggered by sink - see \ref GF_FilterPidPlaybackMode*/
 	GF_FEVT_RESUME,
-	/*! PID source seek, allows seeking in bytes the source*/
+	/*! PID byte-seek of source, allows seeking in bytes the source - typically used by demuxer to convert time ranges to byte ranges*/
 	GF_FEVT_SOURCE_SEEK,
 	/*! PID source switch, allows a source filter to switch its source URL for the same protocol*/
 	GF_FEVT_SOURCE_SWITCH,
@@ -1640,7 +1686,7 @@ typedef enum
 	/*! buffer requirement event. This event is NOT sent to filters, it is internaly processed by the filter session. Filters may however send this
 	event to indicate their buffereing preference (real-time sinks mostly)*/
 	GF_FEVT_BUFFER_REQ,
-	/*! filter session capability change, sent whenever global capabilities (max width, max heoght, ... ) are changed*/
+	/*! filter session capability change, sent whenever global capabilities (max width, max height, ... ) are changed*/
 	GF_FEVT_CAPS_CHANGE,
 	/*! inidicates the PID could not be connected - the PID passed is an output PID of the filter, no specific event structure is associated*/
 	GF_FEVT_CONNECT_FAIL,
@@ -2056,7 +2102,7 @@ enum
 	GF_CAPFLAG_EXCLUDED = 1<<3,
 	/*! when set, the capability is validated only for filter loaded for this destination filter*/
 	GF_CAPFLAG_LOADED_FILTER = 1<<4,
-	/*! Only used for output capabilities, indicates that this capability applies to all bundles. This avoids repeating capabilities common to all bundles by setting them only in the first*/
+	/*! indicates that this capability (input or output) applies to all following bundles. This avoids repeating capabilities common to all bundles by setting them only in the first*/
 	GF_CAPFLAG_STATIC = 1<<5,
 	/*! Only used for input capabilities, indicates that this capability is optional in the input PID */
 	GF_CAPFLAG_OPTIONAL = 1<<6,
@@ -2860,7 +2906,7 @@ Properties retrieved shall be released using \ref gf_filter_release_property. Fa
 
 If the propentry pointer references a non-null value, this value will be released using \ref gf_filter_release_property,
 so make sure to initialize the pointer to a NULL value on the first call.
-This avoid calling  \ref gf_filter_release_property after each get_info in the calling code:
+This avoids calling  \ref gf_filter_release_property after each get_info in the calling code:
 
 \code{.c}
 GF_PropertyEntry *pe=NULL;
@@ -3234,6 +3280,23 @@ const GF_FilterArgs *gf_filter_enumerate_args(GF_Filter *filter, u32 idx);
 Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url);
 
 
+/*! Probes for link resolution towards a given filter description
+\param filter target filter
+\param opid_idx output pid index of target filter
+\param fname textual description of filter - If a source is used, returns an error. Destination can be identified using dst=URL pattern
+\param result_chain resulting chain as comma-separated list, or NULL if error. MUST be freed by caller
+\return error if any
+*/
+GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, char **result_chain);
+
+/*! Gets list of possible destinations for this filter
+\param filter target filter
+\param opid_idx output pid index of target filter. If negative, will check destinations for any of the output pids
+\param result_list resulting list as comma-separated list, or NULL if error. MUST be freed by caller
+\return error if any
+*/
+GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char **result_list);
+
 /*! Returns the register of a given filter
 \param filter target filter
 \return the register object, or NULL if error
@@ -3275,12 +3338,14 @@ If  sourceIDs are used on destination filter, subsession and source IDs are igno
 If filters do not have the same subsession ID, they cannot link to each
 If filters do not have the same sourceID, they cannot link to each other except if destination is a sink
 
+Function does nothing if the filter is allready assigned to a subsession
+
 \note In non-implicit mode, subsession tagging must be done through filter option :FS=
 
 \param filter target filter
 \param subsession_id subsession identifier
 \param source_id subsession identifier
-\return error if any
+\return error if any, GF_OK or the value of the already assigned subsession ID
 */
 GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source_id);
 
@@ -3289,6 +3354,12 @@ GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source
 \return GF_TRUE if parent session has seen connection errors, GF_FALSE otherwise
 */
 Bool gf_filter_has_connect_errors(GF_Filter *filter);
+
+/*! Get ID of netcap configuration associated with filter, if any
+\param filter target filter
+\return netcap ID if set, NULL otherwise
+*/
+const char *gf_filter_get_netcap_id(GF_Filter *filter);
 
 
 /*! Sets names of sub-instances involved in a meta-filter instance
@@ -3548,33 +3619,33 @@ GF_Err gf_filter_pid_push_properties(GF_FilterPid *PID, char *args, Bool direct_
 
 
 /*! Negotiate a given property on an input PID for built-in properties
-Filters may accept some PID connection but may need an adaptaion chain to be able to process packets, eg change pixel format or sample rate
+Filters may accept some PID connection but may need an adaptation chain to be able to process packets, eg change pixel format or sample rate
 This function will trigger a reconfiguration of the filter chain to try to adapt this. If failing, the filter chain will disconnect
-This process is asynchronous, the filter asking for a PID negociation will see the notification through a pid_reconfigure if success.
+This process is asynchronous, the filter asking for a PID negotiation will see the notification through a pid_reconfigure if success.
 \param PID the target filter PID - this MUST be an input PID
 \param prop_4cc the built-in property code to negotiate
 \param value the new value to negotiate, SHALL NOT be NULL
 \return error code if any
 */
-GF_Err gf_filter_pid_negociate_property(GF_FilterPid *PID, u32 prop_4cc, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negotiate_property(GF_FilterPid *PID, u32 prop_4cc, const GF_PropertyValue *value);
 
 /*! Negotiate a given property on an input PID for regular properties
-see \ref gf_filter_pid_negociate_property
+see \ref gf_filter_pid_negotiate_property
 \param PID the target filter PID - this MUST be an input PID
 \param name name of the property to negotiate
 \param value the new value to negotiate, SHALL NOT be NULL
 \return error code if any
 */
-GF_Err gf_filter_pid_negociate_property_str(GF_FilterPid *PID, const char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negotiate_property_str(GF_FilterPid *PID, const char *name, const GF_PropertyValue *value);
 
 /*! Negotiate a given property on an input PID for regular properties
-see \ref gf_filter_pid_negociate_property
+see \ref gf_filter_pid_negotiate_property
 \param PID the target filter PID - this MUST be an input PID
 \param name the name of the property to modify. The name will be copied to the property, and memory destruction performed by the filter session
 \param value the new value to negotiate, SHALL NOT be NULL
 \return error code if any
 */
-GF_Err gf_filter_pid_negociate_property_dyn(GF_FilterPid *PID, char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_negotiate_property_dyn(GF_FilterPid *PID, char *name, const GF_PropertyValue *value);
 
 /*! Queries a negotiated built-in capability on an output PID
 Filters may check if a property negotiation was done on an output PID, and check the property value.
@@ -3583,14 +3654,14 @@ This can be done on an input PID in a generic reconfigure_pid
 
 \param PID the target filter PID
 \param prop_4cc the built-in property code to negotiate
-\return the negociated property value
+\return the negotiated property value
 */
 const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *PID, u32 prop_4cc);
 
 /*! Queries a negotiated capability on an output PID - see \ref gf_filter_pid_caps_query
 \param PID the target filter PID
 \param prop_name the property name to negotiate
-\return the negociated property value
+\return the negotiated property value
 */
 const GF_PropertyValue *gf_filter_pid_caps_query_str(GF_FilterPid *PID, const char *prop_name);
 
@@ -4304,7 +4375,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *PID);
 /*! Gets data associated with the packet.
 \param pck the target packet
 \param size set to the packet data size
-\return packet data if any, NULL if empty or if the packet uses a frame interface object. see \ref gf_filter_pck_get_frame_interface
+\return packet data if any, NULL if empty or if the packet uses a frame interface object. See \ref gf_filter_pck_get_frame_interface
 */
 const u8 *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
 

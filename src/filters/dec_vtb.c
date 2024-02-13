@@ -187,7 +187,7 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	GF_VTBHWFrame *frame;
 	u32 i, count, timescale;
 	u64 cts, dts;
-	assert(ctx->cur_pck);
+	gf_assert(ctx->cur_pck);
 
     if (!image) {
 		if (status != kCVReturnSuccess) {
@@ -228,7 +228,7 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 		memset(frame, 0, sizeof(GF_VTBHWFrame));
 	}
 
-	assert( gf_filter_pck_get_seek_flag(ctx->cur_pck) == 0 );
+	gf_assert( gf_filter_pck_get_seek_flag(ctx->cur_pck) == 0 );
 
 	frame->frame_ifce.user_data = frame;
 	frame->frame = CVPixelBufferRetain(image);
@@ -1210,7 +1210,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if (ctx->vtb_session) {
-		assert(ctx->reconfig_needed);
+		gf_assert(ctx->reconfig_needed);
 		return GF_OK;
 	}
 
@@ -1265,7 +1265,10 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		nal_size = gf_media_nalu_next_start_code((u8 *) inBuffer, inBufferLength, &sc_size);
 		if (!sc_size) return GF_NON_COMPLIANT_BITSTREAM;
 		ptr += nal_size + sc_size;
-		assert(inBufferLength >= nal_size + sc_size);
+		if (inBufferLength < nal_size + sc_size) {
+			gf_assert(0);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		inBufferLength -= nal_size + sc_size;
 	}
 	
@@ -1572,9 +1575,9 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		gf_filter_pid_set_eos(ctx->opid);
 		return GF_EOS;
 	}
-	assert(ref_pid);
+	gf_assert(ref_pid);
 	pck = gf_filter_pid_get_packet(ref_pid);
-	assert(pck);
+	gf_assert(pck);
 
 	if (ctx->drop_non_refs && !gf_filter_pck_get_sap(pck)) {
 		gf_filter_pid_drop_packet(ref_pid);
@@ -1787,7 +1790,7 @@ GF_Err vtbframe_get_plane(GF_FilterFrameInterface *frame, u32 plane_idx, const u
 	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
 	*outPlane = NULL;
-	assert(f->frame);
+	gf_assert(f->frame);
 	if (!f->locked) {
 		status = CVPixelBufferLockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
 		if (status != kCVReturnSuccess) {

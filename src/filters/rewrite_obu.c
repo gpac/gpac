@@ -79,9 +79,12 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		return GF_NOT_SUPPORTED;
 
 	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;
+	//may happen if first frame not yet received by reframer
+	if (!dcd)
+		crc = -1;
+	else
+		crc = gf_crc_32(dcd->value.data.ptr, dcd->value.data.size);
 
-	crc = gf_crc_32(dcd->value.data.ptr, dcd->value.data.size);
 	if (ctx->crc == crc) return GF_OK;
 	ctx->crc = crc;
 
@@ -95,8 +98,10 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	ctx->ipid = pid;
 	ctx->passthrough = GF_FALSE;
-	p =  gf_filter_pid_get_property_str(pid, "nodata");
+	p = gf_filter_pid_get_property_str(pid, "nodata");
 	if (p && p->value.boolean) ctx->passthrough = GF_TRUE;
+
+	if (!dcd) return GF_OK;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	ctx->codec_id = p ? p->value.uint : 0;
@@ -478,7 +483,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		u32 frame_idx = 0;
 		//temporal unit
 		gf_av1_leb128_write(ctx->bs_w, av1b_frame_size);
-		assert(frame_sizes[0]);
+		gf_assert(frame_sizes[0]);
 		gf_av1_leb128_write(ctx->bs_w, frame_sizes[0]);
 
 		//write temporal delim with obu size set
@@ -522,7 +527,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_data(ctx->bs_w, data+start, obu_size);
 
 		}
-		assert(gf_bs_get_position(ctx->bs_w) == size);
+		gf_assert(gf_bs_get_position(ctx->bs_w) == size);
 	} else {
 
 		//write IVF headers

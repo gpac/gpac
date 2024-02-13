@@ -592,9 +592,11 @@ void gf_mx_v(GF_Mutex *mx)
 	caller = gf_th_id();
 
 	/*only if we own*/
-	assert(caller == mx->Holder);
-	if (caller != mx->Holder) return;
-	assert(mx->HolderCount > 0);
+	if (caller != mx->Holder) {
+		gf_fatal_assert(0);
+		return;
+	}
+	gf_fatal_assert(mx->HolderCount > 0);
 	mx->HolderCount -= 1;
 
 	if (mx->HolderCount == 0) {
@@ -672,7 +674,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Deadlock detected.\n", mx, mx->log_name));
 		}
 #endif /* GPAC_DISABLE_LOG */
-		assert(0);
+		gf_assert(0);
 		return 0;
 	}
 #endif /* NOT WIN32 */
@@ -731,7 +733,7 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 		}
 #endif
 	default:
-		assert(0);
+		gf_assert(0);
 		return GF_FALSE;
 	}
 #else

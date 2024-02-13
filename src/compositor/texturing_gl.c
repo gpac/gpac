@@ -602,8 +602,7 @@ common:
 			txh->tx_io->conv_data = gf_malloc(sizeof(char)*txh->stride*txh->height);
 			txh->tx_io->conv_format = txh->pixelformat;
 		}
-		assert(txh->tx_io->conv_data );
-		assert(txh->data );
+		if (!txh->tx_io->conv_data || txh->data) return 0;
 		/*if texture is using RECT extension, flip image manually because
 				texture transforms are not supported in this case ...*/
 		for (i=0; i<txh->height; i++) {

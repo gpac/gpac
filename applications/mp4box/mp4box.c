@@ -218,7 +218,7 @@ Double interleaving_time, split_duration, split_start, dash_duration, dash_subdu
 
 Bool arg_parse_res, dash_duration_strict, dvbhdemux, keep_sys_tracks, align_cat;
 Bool do_hint, do_save, full_interleave, do_frag, hint_interleave, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, remove_root_od;
-Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_scene_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, dump_chunk, dump_check_xml;
+Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_scene_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, dump_chunk, dump_check_xml, fuzz_chk;
 Bool do_hash, verbose, force_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf;
 Bool hls_clock, do_mpd_rip, merge_vtt_cues, get_nb_tracks, no_inplace, merge_last_seg, freeze_box_order, no_odf_conf;
 Bool insert_utc, chunk_mode, HintCopy, hint_no_offset, do_bin_xml, frag_real_time, force_co64, live_scene, use_mfra, dump_iod, samplegroups_in_traf;
@@ -279,7 +279,7 @@ static void init_global_vars()
 	dash_duration_strict = dvbhdemux = keep_sys_tracks = do_hint = do_save = full_interleave = do_frag = hint_interleave = GF_FALSE;
 	dump_rtp = regular_iod = remove_sys_tracks = remove_hint = remove_root_od = print_sdp = open_edit = GF_FALSE;
 	dump_cr = force_ocr = encode = do_scene_log = dump_srt = dump_ttxt = do_saf = dump_m2ts = dump_cart = dump_chunk = GF_FALSE;
-	dump_check_xml = do_hash = verbose = force_cat = pack_wgt = single_group = clean_groups = dash_live = no_fragments_defaults = GF_FALSE;
+	dump_check_xml = do_hash = verbose = force_cat = pack_wgt = single_group = clean_groups = dash_live = no_fragments_defaults = fuzz_chk = GF_FALSE;
 	single_traf_per_moof = tfdt_per_traf = hls_clock = do_mpd_rip = merge_vtt_cues = get_nb_tracks = GF_FALSE;
 	no_inplace = merge_last_seg = freeze_box_order = no_odf_conf = GF_FALSE;
 	insert_utc = chunk_mode = HintCopy = hint_no_offset = do_bin_xml = frag_real_time = force_co64 = live_scene = GF_FALSE;
@@ -1324,6 +1324,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("wget", "fetch resource from http(s) URL", GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &do_wget, 0, 0),
  	MP4BOX_ARG("dm2ts", "dump timing of an input MPEG-2 TS stream sample timing", GF_ARG_BOOL, 0, &dump_m2ts, 0, 0),
  	MP4BOX_ARG("check-xml", "check XML output format for -dnal*, -diso* and -dxml options", GF_ARG_BOOL, 0, &dump_check_xml, 0, 0),
+ 	MP4BOX_ARG("fuzz-chk", "open file without probing and exit (for fuzz tests)", GF_ARG_BOOL, GF_FS_ARG_HINT_EXPERT, &fuzz_chk, 0, 0),
  	{0}
 };
 
@@ -6115,6 +6116,16 @@ int mp4box_main(int argc, char **argv)
 	if (mem_track)
 		gf_log_set_tool_level(GF_LOG_MEMORY, level);
 #endif
+
+	if (fuzz_chk) {
+		file = gf_isom_open(inName, GF_ISOM_OPEN_READ_DUMP, NULL);
+		if (file) gf_isom_close(file);
+		file = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
+		if (file) gf_isom_close(file);
+		file = gf_isom_open(inName, GF_ISOM_OPEN_KEEP_FRAGMENTS, NULL);
+		if (file) gf_isom_close(file);
+		return mp4box_cleanup(0);
+	}
 
 	e = gf_sys_set_args(argc, (const char **) argv);
 	if (e) {

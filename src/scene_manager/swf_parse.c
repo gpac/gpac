@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -322,6 +322,7 @@ static char *swf_get_string(SWFReader *read)
 	while (1) {
 		if (i>=read->size) {
 			read->ioerr = GF_NON_COMPLIANT_BITSTREAM;
+			name[read->size-1] = 0;
 			break;
 		}
 		name[i] = swf_read_int(read, 8);
@@ -527,20 +528,29 @@ static void swf_referse_path(SWFPath *path)
 		types[j] = path->types[path->nbType - i - 1];
 		switch (types[j]) {
 		case 2:
-			assert(ptj<=path->nbPts-2);
+			if (ptj>path->nbPts-2) {
+				gf_assert(0);
+				break;
+			}
 			pts[ptj] = path->pts[pti];
 			pts[ptj+1] = path->pts[pti-1];
 			pti-=2;
 			ptj+=2;
 			break;
 		case 1:
-			assert(ptj<=path->nbPts-1);
+			if(ptj>path->nbPts-1) {
+				gf_assert(0);
+				break;
+			}
 			pts[ptj] = path->pts[pti];
 			pti--;
 			ptj++;
 			break;
 		case 0:
-			assert(ptj<=path->nbPts-1);
+			if (ptj>path->nbPts-1) {
+				gf_assert(0);
+				break;
+			}
 			pts[ptj] = path->pts[pti];
 			pti--;
 			ptj++;
@@ -677,7 +687,7 @@ restart:
 						idx += 1;
 						break;
 					default:
-						assert(0);
+						gf_assert(0);
 						break;
 					}
 				}
@@ -709,7 +719,7 @@ restart:
 						idx += 1;
 						break;
 					default:
-						assert(0);
+						gf_assert(0);
 						break;
 					}
 				}
@@ -1754,13 +1764,6 @@ static GF_Err swf_def_sprite(SWFReader *read)
 	read->display_list = gf_list_new();
 
 	e = read->define_sprite(read, frame_count);
-	if (e) return e;
-
-	/*close sprite soundStream*/
-	swf_delete_sound_stream(read);
-	/*restore sound stream*/
-	read->sound_stream = snd;
-	read->max_depth = prev_depth;
 
 	while (gf_list_count(read->display_list)) {
 		DispShape *s = (DispShape *)gf_list_get(read->display_list, 0);
@@ -1769,6 +1772,13 @@ static GF_Err swf_def_sprite(SWFReader *read)
 	}
 	gf_list_del(read->display_list);
 	read->display_list = prev_dlist;
+
+	if (e) return e;
+
+	/*close sprite soundStream*/
+	/*restore sound stream*/
+	read->sound_stream = snd;
+	read->max_depth = prev_depth;
 
 	read->current_frame = prev_frame;
 	read->current_sprite_id = prev_sprite;
@@ -2128,6 +2138,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		char *dst, *raw;
 		u32 codecid;
 		u32 osize, w, h, j, pf;
+		uLongf destLen;
 		GF_BitStream *bs;
 
 		/*decompress jpeg*/
@@ -2153,9 +2164,10 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		osize = w*h;
 		dst = gf_malloc(sizeof(char)*osize);
-		uncompress((Bytef *) dst, (uLongf *) &osize, buf, AlphaPlaneSize);
+		destLen = (uLongf)osize;
+		uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
 		/*write alpha channel*/
-		for (j=0; j<osize; j++) {
+		for (j=0; j<(u32)destLen; j++) {
 			raw[4*j + 3] = dst[j];
 		}
 		gf_free(dst);
@@ -2169,7 +2181,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		osize = w*h*4;
 		buf = gf_realloc(buf, sizeof(char)*osize);
-		gf_img_png_enc(raw, w, h, h*4, GF_PIXEL_RGBA, (char *)buf, &osize);
+		gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (char *)buf, &osize);
 
 		file = gf_fopen(szName, "wb");
 		if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
@@ -2652,6 +2664,11 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 #endif
 
 	read = gf_swf_reader_new(load->localPath, load->fileName);
+	if (!read) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("SWF Loader - Error opening file %s\n", load->fileName));
+		e = GF_IO_ERR;
+		goto exit;
+	}
 	read->load = load;
 	read->flags = load->swf_import_flags;
 	read->flat_limit = FLT2FIX(load->swf_flatten_limit);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -716,7 +716,7 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 	while (cur) {
 		char b;
 		char *st = strstr(cur, "\r\n");
-		assert(st);
+		if (!st) break;
 		st += 2;
 		if (!st[0]) {
 			AddSDPLine(lines, gf_strdup(cur), is_movie_sdp);
@@ -853,7 +853,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxes, 0);
 
 	if (!hnti->SDP) {
-		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI, 0, GF_FALSE);
+		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI, 0, GF_FALSE, GF_FALSE);
 		if (!a) return GF_OUT_OF_MEM;
 		hnti_on_child_box((GF_Box*)hnti, a, GF_FALSE);
 		if (!hnti->child_boxes) hnti->child_boxes = gf_list_new();

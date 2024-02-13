@@ -933,6 +933,13 @@ const char *gf_audio_fmt_get_layout_name(u64 ch_layout)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].channel_mask == ch_layout) return GF_CICPLayouts[i].name;
 	}
+	if (!(ch_layout & GF_AUDIO_CH_REAR_SURROUND_LEFT) && !(ch_layout & GF_AUDIO_CH_REAR_SURROUND_RIGHT)
+		&& (ch_layout & GF_AUDIO_CH_SURROUND_LEFT) && (ch_layout & GF_AUDIO_CH_SURROUND_RIGHT)
+	) {
+		ch_layout &= ~(GF_AUDIO_CH_SURROUND_LEFT|GF_AUDIO_CH_SURROUND_RIGHT);
+		ch_layout |= (GF_AUDIO_CH_REAR_SURROUND_LEFT|GF_AUDIO_CH_REAR_SURROUND_RIGHT);
+		return gf_audio_fmt_get_layout_name(ch_layout);
+	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported audio layout value "LLU"\n", ch_layout));
 	return "unknown";
 }

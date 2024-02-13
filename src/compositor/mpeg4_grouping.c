@@ -109,7 +109,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
 		/*reset sensor stack if any sensors at this level*/
 		sensor_backup = tr_state->vrml_sensors;
-		assert(group->sensors);
+		gf_assert(group->sensors);
 		tr_state->vrml_sensors = group->sensors;
 	}
 

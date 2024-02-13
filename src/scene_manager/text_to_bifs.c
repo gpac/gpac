@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -300,7 +300,11 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 				inf->field_ptr = gf_sg_vrml_field_pointer_new(string.fieldType);
 				gf_list_add(au->commands, com);
 			}
-			assert(inf);
+			if (!inf) {
+				gf_assert(0);
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				goto exit;
+			}
 			gf_sg_vrml_mf_append(inf->field_ptr, GF_SG_VRML_MFSTRING, (void **) &sfstr);
 			len = 0;
 			for (i=0; i<strlen(ptr); i++) {

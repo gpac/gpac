@@ -263,7 +263,7 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	}
 	//TODO: we need to cleanup cap checking upon reconfigure
 	if (ctx->ipid && !gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
-	assert(!ctx->ipid || (ctx->ipid == pid));
+	gf_assert(!ctx->ipid || (ctx->ipid == pid));
 
 	st = codecid = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -1372,7 +1372,9 @@ static GF_Err ttd_process(GF_Filter *filter)
 	ctx->is_eos = GF_FALSE;
 
 	//object clock shall be valid
-	assert(ctx->odm->ck);
+	if (!ctx->odm || !ctx->odm->ck)
+		return GF_OK;
+
 	if (pck) {
 		s64 delay;
 		cts = gf_filter_pck_get_cts( pck );
@@ -1455,7 +1457,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 			break;
 		} else {
 			//tx3g mode, single sample per AU
-			assert(gf_bs_available(ctx->bs_r)==0);
+			gf_assert(gf_bs_available(ctx->bs_r)==0);
 			break;
 		}
 	}

@@ -63,7 +63,7 @@ typedef struct
 
 /*adds rect to list - expand if needed*/
 #define ra_add(ra, rc) {	\
-	assert((rc)->width); 	\
+	gf_assert((rc)->width); 	\
 	if ((ra)->count==(ra)->alloc) { \
 		(ra)->alloc += RA_DEFAULT_STEP; \
 		(ra)->list = (GF_RectArrayEntry*)gf_realloc((ra)->list, sizeof(GF_RectArrayEntry) * (ra)->alloc); \

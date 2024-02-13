@@ -50,6 +50,7 @@ struct __rtp_streamer
 	u32 in_timescale;
 	char rtcp_buf[RTCP_BUF_SIZE];
 
+	const char *netcap_id;
 	GF_Err last_err;
 };
 
@@ -100,12 +101,12 @@ static void rtp_stream_on_data(void *cbk, u8 *data, u32 data_size, Bool is_head)
 }
 
 
-GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTransport  *tr, const char *ifce_addr)
+GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTransport *tr, const char *ifce_addr)
 {
 	GF_Err res;
 
 	if (!rtp->channel) {
-		rtp->channel = gf_rtp_new();
+		rtp->channel = gf_rtp_new_ex(rtp->netcap_id);
 		if (!rtp->channel) return GF_OUT_OF_MEM;
 		rtp->channel->TimeScale = rtp->packetizer->sl_config.timestampResolution;
 	}
@@ -122,12 +123,12 @@ GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTrans
 	}
 	return GF_OK;
 }
-static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const char * dest, int port, int ttl, const char *ifce_addr)
+static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const char * dest, int port, int ttl, const char *ifce_addr, const char *netcap_id)
 {
 	GF_RTSPTransport tr;
 	GF_Err res;
 
-	rtp->channel = gf_rtp_new();
+	rtp->channel = gf_rtp_new_ex(netcap_id);
 	if (!rtp->channel) return GF_OUT_OF_MEM;
 	rtp->channel->TimeScale = rtp->packetizer->sl_config.timestampResolution;
 
@@ -167,13 +168,7 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 }
 
 GF_EXPORT
-GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
-        const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
-        u32 flags, const u8 *dsi, u32 dsi_len,
-        u32 PayloadType, u32 sample_rate, u32 nb_ch,
-        Bool is_crypted, u32 IV_length, u32 KI_length,
-        u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime,
-        u32 au_sn_len, Bool for_rtsp)
+GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for_rtsp)
 {
 	GF_SLConfig slc;
 	GF_RTPStreamer *stream;
@@ -184,7 +179,13 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	Bool has_mpeg4_mapping;
 	GF_Err e;
 
-	if (!timeScale) timeScale = 1000;
+	u32 timeScale = cfg->timeScale ? cfg->timeScale : 1000;
+	u32 flags = cfg->flags;
+	u32 streamType = cfg->streamType;
+	u32 codecid = cfg->codecid;
+	u32 PayloadType = cfg->PayloadType;
+	u32 maxDTSDelta = cfg->maxDTSDelta;
+	u32 max_ptime = cfg->max_ptime;
 
 	GF_SAFEALLOC(stream, GF_RTPStreamer);
 	if (!stream) return NULL;
@@ -203,28 +204,28 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	default_rtp_rate = 90000;
 
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
-	switch (streamType) {
+	switch (cfg->streamType) {
 	case GF_STREAM_AUDIO:
-		required_rate = sample_rate;
+		required_rate = cfg->sample_rate;
 		break;
 	case GF_STREAM_VISUAL:
 		rtp_type = GF_RTP_PAYT_MPEG4;
 		required_rate = default_rtp_rate;
-		if (is_crypted) {
+		if (cfg->is_crypted) {
 			/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
-			if (codecid==GF_CODECID_MPEG4_PART2) force_dts_delta = 22;
+			if (cfg->codecid==GF_CODECID_MPEG4_PART2) force_dts_delta = 22;
 			flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_TS;
 		}
 		break;
 	case GF_STREAM_SCENE:
 	case GF_STREAM_OD:
-		if (codecid == GF_CODECID_DIMS) {
+		if (cfg->codecid == GF_CODECID_DIMS) {
 #if GPAC_ENABLE_3GPP_DIMS_RTP
 			rtp_type = GF_RTP_PAYT_3GPP_DIMS;
 			has_mpeg4_mapping = GF_FALSE;
 #else
 			gf_rtp_streamer_del(stream);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] 3GPP DIMS over RTP disabled in build\n", streamType));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] 3GPP DIMS over RTP disabled in build\n", cfg->streamType));
 			return NULL;
 #endif
 		} else {
@@ -233,7 +234,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 		break;
 	}
 
-	switch (codecid) {
+	switch (cfg->codecid) {
 	/*AAC*/
 	case GF_CODECID_AAC_MPEG4:
 	case GF_CODECID_AAC_MPEG2_MP:
@@ -242,12 +243,12 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 		PL_ID = 0x01;
 		mpeg4mode = "AAC";
 		rtp_type = GF_RTP_PAYT_MPEG4;
-		required_rate = sample_rate;
+		required_rate = cfg->sample_rate;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (dsi) {
+		if (cfg->dsi) {
 			GF_M4ADecSpecInfo a_cfg;
-			gf_m4a_get_config((u8 *)dsi, dsi_len, &a_cfg);
+			gf_m4a_get_config((u8 *)cfg->dsi, cfg->dsi_len, &a_cfg);
 			//nb_ch = a_cfg.nb_chan;
 			//sample_rate = a_cfg.base_sr;
 			PL_ID = a_cfg.audioPL;
@@ -280,7 +281,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	case GF_CODECID_MPEG2_PART3:
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG_AUDIO_L1:
-		if (!is_crypted) {
+		if (!cfg->is_crypted) {
 			rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
 			/*use official RTP/AVP payload type*/
 			OfficialPayloadType = 14;
@@ -296,9 +297,9 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	case GF_CODECID_MPEG4_PART2:
 		PL_ID = 1;
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (dsi) {
+		if (cfg->dsi) {
 			GF_M4VDecSpecInfo vhdr;
-			gf_m4v_get_config((u8 *)dsi, dsi_len, &vhdr);
+			gf_m4v_get_config((u8 *)cfg->dsi, cfg->dsi_len, &vhdr);
 			PL_ID = vhdr.VideoPL;
 		}
 #endif
@@ -312,7 +313,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	case GF_CODECID_MPEG2_SPATIAL:
 	case GF_CODECID_MPEG2_HIGH:
 	case GF_CODECID_MPEG2_422:
-		if (!is_crypted) {
+		if (!cfg->is_crypted) {
 			rtp_type = GF_RTP_PAYT_MPEG12_VIDEO;
 			OfficialPayloadType = 32;
 		}
@@ -443,8 +444,8 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 
 	/*update flags in MultiSL*/
 	if (flags & GP_RTP_PCK_USE_MULTI) {
-		if (MinSize != MaxSize) flags |= GP_RTP_PCK_SIGNAL_SIZE;
-		if (!const_dur) flags |= GP_RTP_PCK_SIGNAL_TS;
+		if (cfg->MinSize != cfg->MaxSize) flags |= GP_RTP_PCK_SIGNAL_SIZE;
+		if (!cfg->const_dur) flags |= GP_RTP_PCK_SIGNAL_TS;
 	}
 
 	/*default SL for RTP */
@@ -464,8 +465,8 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	/*switch to RTP TS*/
 	max_ptime = (u32) (max_ptime * slc.timestampResolution / 1000);
 
-	slc.AUSeqNumLength = au_sn_len;
-	slc.CUDuration = const_dur;
+	slc.AUSeqNumLength = cfg->au_sn_len;
+	slc.CUDuration = cfg->const_dur;
 
 	if (flags & GP_RTP_PCK_SIGNAL_RAP) {
 		slc.useRandomAccessPointFlag = 1;
@@ -485,14 +486,14 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 		return NULL;
 	}
 
-	gf_rtp_builder_init(stream->packetizer, (u8) PayloadType, MTU, max_ptime,
-	                    streamType, codecid, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
+	gf_rtp_builder_init(stream->packetizer, (u8) PayloadType, cfg->MTU, max_ptime,
+	                    streamType, codecid, PL_ID, cfg->MinSize, cfg->MaxSize, cfg->avgTS, maxDTSDelta, cfg->IV_length, cfg->KI_length, mpeg4mode);
 
 
 	if (force_dts_delta) stream->packetizer->slMap.DTSDeltaLength = force_dts_delta;
 
 	if (!for_rtsp) {
-		e = rtp_stream_init_channel(stream, MTU + 12, ip_dest, port, TTL, ifce_addr);
+		e = rtp_stream_init_channel(stream, cfg->MTU + 12, cfg->ip_dest, cfg->port, cfg->TTL, cfg->ifce_addr, cfg->netcap_id);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Failed to create RTP channel - error %s\n", gf_error_to_string(e) ));
 			gf_rtp_streamer_del(stream);
@@ -501,11 +502,55 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	}
 
 	stream->in_timescale = timeScale;
+	stream->netcap_id = cfg->netcap_id;
 
-	stream->buffer_alloc = MTU+12;
+	stream->buffer_alloc = cfg->MTU+12;
 	stream->buffer = (char*)gf_malloc(sizeof(char) * stream->buffer_alloc);
 
 	return stream;
+}
+
+GF_EXPORT
+GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
+        const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
+        u32 flags, const u8 *dsi, u32 dsi_len,
+        u32 PayloadType, u32 sample_rate, u32 nb_ch,
+        Bool is_crypted, u32 IV_length, u32 KI_length,
+        u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime,
+        u32 au_sn_len, Bool for_rtsp)
+{
+	GF_RTPStreamerConfig cfg;
+	memset(&cfg, 0, sizeof(GF_RTPStreamerConfig));
+#define RTCFG_SET(_t) cfg._t = _t
+
+	RTCFG_SET(streamType);
+	RTCFG_SET(codecid);
+	RTCFG_SET(timeScale);
+	RTCFG_SET(ip_dest);
+	RTCFG_SET(port);
+	RTCFG_SET(MTU);
+	RTCFG_SET(TTL);
+	RTCFG_SET(ifce_addr);
+	RTCFG_SET(flags);
+	RTCFG_SET(dsi);
+	RTCFG_SET(dsi_len);
+	RTCFG_SET(PayloadType);
+	RTCFG_SET(sample_rate);
+	RTCFG_SET(nb_ch);
+	RTCFG_SET(is_crypted);
+	RTCFG_SET(IV_length);
+	RTCFG_SET(KI_length);
+	RTCFG_SET(MinSize);
+	RTCFG_SET(MaxSize);
+	RTCFG_SET(avgTS);
+	RTCFG_SET(maxDTSDelta);
+	RTCFG_SET(const_dur);
+	RTCFG_SET(bandwidth);
+	RTCFG_SET(max_ptime);
+	RTCFG_SET(au_sn_len);
+#undef RTCFG_SET
+
+	return gf_rtp_streamer_new_ex(&cfg, for_rtsp);
 }
 
 

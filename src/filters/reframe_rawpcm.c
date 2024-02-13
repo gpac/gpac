@@ -354,6 +354,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			if (!hdr_found) {
 				if (ctx->probe_data_size<=10000) {
 					gf_filter_pid_drop_packet(ctx->ipid);
+					gf_bs_del(bs);
 					return GF_OK;
 				}
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[PCMReframe] Cannot find wave data chunk after %d bytes, aborting\n", ctx->probe_data_size));

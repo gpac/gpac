@@ -324,8 +324,8 @@ GF_Color gf_evg_stencil_get_brush_color(GF_EVGStencil * st)
 //we map texture coords, pt1 is {0,0} pt2 is {1,0} pt3 is {0,1}
 //y flip is done by switching the points in evg_raster_render_path_3d
 #define PERSP_APPLY \
-	Float ix = ((Float) pbc2) / persp_denum;\
-	Float iy = ((Float) pbc3) / persp_denum;\
+	Fixed ix = FLT2FIX(pbc2 / persp_denum);\
+	Fixed iy = FLT2FIX(pbc3 / persp_denum);\
 	pbc2 += pbc2_inc;\
 	pbc3 += pbc3_inc;\
 	persp_denum += pers_denum_inc;
@@ -343,7 +343,7 @@ static void lg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 	u64 *data_wide = rctx->surf->not_8bits ? rctx->stencil_pix_run : NULL;
 	EVG_LinearGradient *_this = (EVG_LinearGradient *) p;
 
-	assert(data);
+	gf_assert(data);
 
 	if (rctx->surf->is_3d_matrix) {
 		PERSP_VARS_DECL
@@ -440,7 +440,7 @@ static void rg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 	u64 *data_wide = rctx->surf->not_8bits ? rctx->stencil_pix_run : NULL;
 	EVG_RadialGradient *_this = (EVG_RadialGradient *) p;
 
-	assert(data);
+	gf_assert(data);
 
 	if (rctx->surf->is_3d_matrix) {
 		PERSP_VARS_DECL

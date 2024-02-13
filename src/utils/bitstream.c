@@ -329,7 +329,7 @@ void gf_bs_prevent_dispatch(GF_BitStream *bs, Bool prevent_dispatch)
 	bs->prevent_dispatch --;
 
 	if (bs->on_block_out && !bs->prevent_dispatch) {
-		assert(bs->position >= bs->bytes_out);
+		gf_assert(bs->position >= bs->bytes_out);
 		if (bs->position > bs->bytes_out) {
 			bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out));
 			bs->bytes_out = bs->position;
@@ -486,7 +486,7 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 	if (!is_eos) {
 		u8 res;
 		Bool loc_eos=GF_FALSE;
-		assert(bs->position<=bs->size);
+		gf_assert(bs->position<=bs->size);
 		bs->position++;
 
 		res = gf_bs_load_byte(bs, &loc_eos);
@@ -520,7 +520,7 @@ bs_eof:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overread bitstream\n"));
 		}
 	}
-	assert(bs->position <= 1+bs->size);
+	gf_assert(bs->position <= 1+bs->size);
 	return 0;
 }
 
@@ -549,7 +549,6 @@ u8 gf_bs_read_bit(GF_BitStream *bs)
 #else
 	return (u8) (bs->current & bit_mask[bs->nbBits++]) ? 1 : 0;
 #endif
-
 }
 
 GF_EXPORT
@@ -576,7 +575,7 @@ u32 gf_bs_read_int(GF_BitStream *bs, u32 nBits)
 GF_EXPORT
 u32 gf_bs_read_u8(GF_BitStream *bs)
 {
-	assert(bs->nbBits==8);
+	gf_fatal_assert(bs->nbBits==8);
 	if (bs->cache_read && (bs->cache_read_pos+1<bs->cache_read_size) ) {
 		u32 ret = bs->cache_read[bs->cache_read_pos];
 		bs->cache_read_pos+=1;
@@ -616,7 +615,7 @@ GF_EXPORT
 u32 gf_bs_read_u16(GF_BitStream *bs)
 {
 	u32 ret;
-	assert(bs->nbBits==8);
+	gf_fatal_assert(bs->nbBits==8);
 	if (bs->cache_read && (bs->cache_read_pos+2<bs->cache_read_size) ) {
 		ret = bs->cache_read[bs->cache_read_pos];
 		ret<<=8;
@@ -637,7 +636,7 @@ GF_EXPORT
 u32 gf_bs_read_u24(GF_BitStream *bs)
 {
 	u32 ret;
-	assert(bs->nbBits==8);
+	gf_fatal_assert(bs->nbBits==8);
 
 	if (bs->cache_read && (bs->cache_read_pos+3<bs->cache_read_size) ) {
 		ret = bs->cache_read[bs->cache_read_pos];
@@ -662,7 +661,7 @@ GF_EXPORT
 u32 gf_bs_read_u32(GF_BitStream *bs)
 {
 	u32 ret;
-	assert(bs->nbBits==8);
+	gf_fatal_assert(bs->nbBits==8);
 
 	if (bs->cache_read && (bs->cache_read_pos+4<bs->cache_read_size) ) {
 		ret = bs->cache_read[bs->cache_read_pos];
@@ -854,7 +853,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 	if ( (bs->bsmode == GF_BITSTREAM_WRITE) || (bs->bsmode == GF_BITSTREAM_WRITE_DYN) ) {
 		//if callback mode and dispatch is not blocked, dispatch
 		if (bs->on_block_out && !bs->prevent_dispatch) {
-			assert(bs->position >= bs->bytes_out);
+			gf_assert(bs->position >= bs->bytes_out);
 			if (bs->position - bs->bytes_out == bs->size) {
 				bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out));
 				bs->bytes_out = bs->position;
@@ -862,7 +861,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (bs->original)
 				bs->original[bs->position - bs->bytes_out] = val;
 			bs->position++;
-			assert(bs->position >= bs->bytes_out);
+			gf_assert(bs->position >= bs->bytes_out);
 			return;
 		}
 		//otherwise store
@@ -970,7 +969,7 @@ void gf_bs_write_long_int(GF_BitStream *bs, s64 _value, s32 nBits)
 GF_EXPORT
 void gf_bs_write_u8(GF_BitStream *bs, u32 value)
 {
-	assert(!bs->nbBits);
+	gf_fatal_assert(!bs->nbBits);
 
 	if (bs->cache_write && (bs->buffer_written+1 < bs->cache_write_size) ) {
 		bs->cache_write[bs->buffer_written] = (u8) value;
@@ -983,7 +982,7 @@ void gf_bs_write_u8(GF_BitStream *bs, u32 value)
 GF_EXPORT
 void gf_bs_write_u16(GF_BitStream *bs, u32 value)
 {
-	assert(!bs->nbBits);
+	gf_fatal_assert(!bs->nbBits);
 	if (bs->cache_write && (bs->buffer_written+2 < bs->cache_write_size) ) {
 		bs->cache_write[bs->buffer_written] = (u8) ((value>>8)&0xff);
 		bs->cache_write[bs->buffer_written+1] = (u8) ((value)&0xff);
@@ -997,7 +996,7 @@ void gf_bs_write_u16(GF_BitStream *bs, u32 value)
 GF_EXPORT
 void gf_bs_write_u24(GF_BitStream *bs, u32 value)
 {
-	assert(!bs->nbBits);
+	gf_fatal_assert(!bs->nbBits);
 	if (bs->cache_write && (bs->buffer_written+3 < bs->cache_write_size) ) {
 		bs->cache_write[bs->buffer_written] = (u8) ((value>>16)&0xff);
 		bs->cache_write[bs->buffer_written+1] = (u8) ((value>>8)&0xff);
@@ -1013,7 +1012,7 @@ void gf_bs_write_u24(GF_BitStream *bs, u32 value)
 GF_EXPORT
 void gf_bs_write_u32(GF_BitStream *bs, u32 value)
 {
-	assert(!bs->nbBits);
+	gf_fatal_assert(!bs->nbBits);
 	if (bs->cache_write && (bs->buffer_written+4 < bs->cache_write_size) ) {
 		bs->cache_write[bs->buffer_written] = (u8) ((value>>24)&0xff);
 		bs->cache_write[bs->buffer_written+1] = (u8) ((value>>16)&0xff);
@@ -1031,7 +1030,7 @@ void gf_bs_write_u32(GF_BitStream *bs, u32 value)
 GF_EXPORT
 void gf_bs_write_u64(GF_BitStream *bs, u64 value)
 {
-	assert(!bs->nbBits);
+	gf_fatal_assert(!bs->nbBits);
 	gf_bs_write_u32(bs, (u32) ((value>>32)&0xffffffff));
 	gf_bs_write_u32(bs, (u32) (value&0xffffffff));
 }
@@ -1145,7 +1144,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 		case GF_BITSTREAM_WRITE_DYN:
 			//if callback mode and dispatch not disabled, dispatch bytes
 			if (bs->on_block_out && !bs->prevent_dispatch) {
-				assert(bs->position >= bs->bytes_out);
+				gf_assert(bs->position >= bs->bytes_out);
 
 				if (bs->position - bs->bytes_out + nbBytes <= bs->size) {
 					memcpy(bs->original + bs->position - bs->bytes_out, data, nbBytes);
@@ -1159,7 +1158,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const u8 *data, u32 nbBytes)
 					bs->position += nbBytes;
 					bs->bytes_out = bs->position;
 				}
-				assert(bs->position >= bs->bytes_out);
+				gf_assert(bs->position >= bs->bytes_out);
 				return nbBytes;
 			}
 			//otherwise store
@@ -1437,7 +1436,7 @@ void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 	nbBytes = (nbBits+8)>>3;
 	nbBits = nbBytes*8 - nbBits;
 	gf_bs_align(bs);
-	assert(bs->position >= nbBytes);
+	gf_assert(bs->position >= nbBytes);
 	bs->position -= nbBytes + 1;
 	gf_bs_read_int(bs, (u32)nbBits);
 	return;
@@ -1937,7 +1936,7 @@ GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const ch
 #ifndef GPAC_DISABLE_AVPARSE_LOGS
 void gf_bs_log_idx(GF_BitStream *bs, u32 nBits, const char *fname, s64 val, s32 idx1, s32 idx2, s32 idx3)
 {
-	assert(bs);
+	gf_assert(bs);
 	if (bs->on_log) bs->on_log(bs->log_udta, fname, nBits, val, idx1, idx2, idx3);
 }
 #endif

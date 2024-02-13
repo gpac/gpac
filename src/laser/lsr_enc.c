@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2019
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR codec sub-project
@@ -35,7 +35,7 @@
 
 #define GF_LSR_WRITE_INT(_codec, _val, _nbBits, _str)	{\
 	gf_bs_write_int(_codec->bs, _val, _nbBits);	\
-	assert(_str);\
+	gf_assert(_str);\
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
 	}\
  
@@ -205,7 +205,7 @@ static void lsr_write_vluimsbf5(GF_LASeRCodec *lsr, u32 val, const char *name)
 	u32 nb_bits = val ? gf_get_bit_size(val) : 1;
 	nb_words = nb_bits / 4;
 	if (nb_bits%4) nb_words++;
-	assert(nb_words * 4 >= nb_bits);
+	gf_assert(nb_words * 4 >= nb_bits);
 	nb_bits = 4*nb_words;
 	while (nb_words) {
 		nb_words--;
@@ -223,7 +223,7 @@ static void lsr_write_vluimsbf5_ex(GF_LASeRCodec *lsr, u32 val, u32 extra_words,
 	if (nb_bits%4) nb_words++;
 	nb_words += extra_words;
 
-	assert(nb_words * 4 >= nb_bits);
+	gf_assert(nb_words * 4 >= nb_bits);
 	nb_bits = 4*nb_words;
 	while (nb_words) {
 		nb_words--;
@@ -249,7 +249,7 @@ static void lsr_write_vluimsbf8(GF_LASeRCodec *lsr, u32 val, const char *name)
 	u32 nb_tot, nb_bits = val ? gf_get_bit_size(val) : 1;
 	nb_words = nb_bits / 7;
 	if (nb_bits%7) nb_words++;
-	assert(nb_words * 7 >= nb_bits);
+	gf_assert(nb_words * 7 >= nb_bits);
 	nb_bits = nb_words * 7;
 	nb_tot = nb_words+nb_bits;
 	while (nb_words) {
@@ -279,7 +279,7 @@ static void lsr_write_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *n
 		nID = 1+href->lsr_stream_id;
 	else
 		nID=1;
-	assert(nID);
+	gf_assert(nID);
 
 	lsr_write_vluimsbf5(lsr, nID-1, name);
 	GF_LSR_WRITE_INT(lsr, 0, 1, "reserved");
@@ -288,7 +288,7 @@ static void lsr_write_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *n
 static void lsr_write_codec_IDREF_Node(GF_LASeRCodec *lsr, GF_Node *href, const char *name)
 {
 	u32 nID = gf_node_get_id(href);
-	assert(nID);
+	gf_assert(nID);
 	lsr_write_vluimsbf5(lsr, nID-1, name);
 	GF_LSR_WRITE_INT(lsr, 0, 1, "reserved");
 }
@@ -298,12 +298,12 @@ static u32 lsr_get_IDREF_nb_bits(GF_LASeRCodec *lsr, GF_Node *href)
 	u32 nb_bits, nb_words, nID;
 
 	nID = gf_node_get_id(href);
-	assert(nID);
+	gf_assert(nID);
 
 	nb_bits = nID ? gf_get_bit_size(nID) : 1;
 	nb_words = nb_bits / 4;
 	if (nb_bits%4) nb_words++;
-	assert(nb_words * 4 >= nb_bits);
+	gf_assert(nb_words * 4 >= nb_bits);
 	nb_bits = nb_words * 4;
 	return nb_words+nb_bits /*IDREF part*/ + 1 /*reserevd bit*/;
 }
@@ -494,13 +494,11 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 static void lsr_write_private_element_container(GF_LASeRCodec *lsr)
 {
 	/*NO PRIVATE DATA ON ENCODING YET*/
-	assert(0);
 }
 
 static void lsr_write_private_att_class(GF_LASeRCodec *lsr)
 {
 	/*NO PRIVATE DATA ON ENCODING YET*/
-	assert(0);
 }
 
 static void lsr_write_extend_class(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
@@ -516,7 +514,6 @@ static void lsr_write_extend_class(GF_LASeRCodec *lsr, char *data, u32 len, cons
 
 static void lsr_write_private_attr_container(GF_LASeRCodec *lsr, u32 index, const char *name)
 {
-	assert(0);
 }
 
 static Bool lsr_float_list_equal(GF_List *l1, GF_List *l2)
@@ -611,7 +608,7 @@ static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] nb_bits %d not large enough to encode positive number %g!\n", nb_bits, FIX2FLT(x) ));
 			res = max;
 		}
-		assert( ! (res & (1<<(nb_bits-1)) ));
+		gf_assert( ! (res & (1<<(nb_bits-1)) ));
 		return (u32) res;
 	}
 	res += 1<<(nb_bits);
@@ -619,7 +616,7 @@ static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] nb_bits %d not large enough to encode negative number %g!\n", nb_bits, FIX2FLT(x) ));
 		res = max+1;
 	}
-	assert( res & (1<<(nb_bits-1)) );
+	gf_assert( res & (1<<(nb_bits-1)) );
 	return res;
 }
 
@@ -1619,7 +1616,7 @@ static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_ty
 	}
 
 	/*locate field - checkme, this may not work since anim is not setup...*/
-	assert(anim_type->name || anim_type->tag);
+	gf_assert(anim_type->name || anim_type->tag);
 	if (!anim_type->tag) anim_type->tag = gf_xml_get_attribute_tag((GF_Node*)iri->target, anim_type->name, 0);
 	if (!anim_type->type) anim_type->type = gf_xml_get_attribute_type(anim_type->tag);
 	a_type = gf_lsr_anim_type_from_attribute(anim_type->tag);
@@ -2203,14 +2200,14 @@ static void lsr_write_sync_behavior(GF_LASeRCodec *lsr, SMIL_SyncBehavior *sync,
 {
 	GF_LSR_WRITE_INT(lsr, sync ? 1 : 0, 1, name);
 	if (!sync) return;
-	assert(*sync!=SMIL_SYNCBEHAVIOR_INHERIT);
+	gf_assert(*sync!=SMIL_SYNCBEHAVIOR_INHERIT);
 	GF_LSR_WRITE_INT(lsr, *sync-1, 2, name);
 }
 static void lsr_write_sync_tolerance(GF_LASeRCodec *lsr, SMIL_SyncTolerance *sync, const char *name)
 {
 	GF_LSR_WRITE_INT(lsr, sync ? 1 : 0, 1, name);
 	if (!sync) return;
-	assert(sync->type!=SMIL_SYNCTOLERANCE_INHERIT);
+	gf_assert(sync->type!=SMIL_SYNCTOLERANCE_INHERIT);
 
 	if (sync->type==SMIL_SYNCTOLERANCE_DEFAULT) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, name);
@@ -3697,7 +3694,7 @@ static void lsr_write_group_content(GF_LASeRCodec *lsr, SVG_Element *elt, Bool s
 static void lsr_write_update_value(GF_LASeRCodec *lsr, SVG_Element *elt, u32 fieldType, u32 att_tag, u32 transformType, void *val, Bool is_indexed)
 {
 	if (is_indexed) {
-		assert(gf_list_count(*(GF_List **)val));
+		gf_assert(gf_list_count(*(GF_List **)val));
 		switch (fieldType) {
 		case SVG_Points_datatype:/*points*/
 		{
@@ -4049,7 +4046,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_
 		old_bs = lsr->bs;
 		lsr->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	}
-	assert(count>= (u32) (first_implicit ? 1 : 0) );
+	gf_assert(count>= (u32) (first_implicit ? 1 : 0) );
 
 	lsr_write_vluimsbf5(lsr, count-first_implicit, "occ0");
 
