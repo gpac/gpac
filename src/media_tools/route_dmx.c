@@ -1142,8 +1142,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	e = gf_xml_dom_parse_string(routedmx->dom, content);
 	root = gf_xml_dom_get_root(routedmx->dom);
 	if (e || !root) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to parse S-TSID: %s\n", s->service_id, gf_error_to_string(e) ));
-		return e;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to parse S-TSID: %s\n", s->service_id, (e)?gf_error_to_string(e) : "Unknown error"));
+		return GF_CORRUPTED_DATA;
 	}
 	i=0;
 	while ((rs = gf_list_enum(root->content, &i))) {
@@ -1535,7 +1535,13 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 	}
 
 	gf_free(boundary);
-	return GF_OK;
+	payload_size = strlen(payload);
+	if(payload_size > 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d Unable to process %d remaining characters in the payload due to data corruption\n",s->service_id, payload_size));
+		return GF_CORRUPTED_DATA;
+	} else {
+		return GF_OK;
+	}
 }
 
 

@@ -265,7 +265,7 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 	}
 	parser->buffer[parser->elt_name_end - 1] = c;
 	parser->node_depth--;
-	if (!parser->init_state && !parser->node_depth) parser->sax_state = SAX_STATE_DONE;
+	if (!parser->init_state && !parser->node_depth && parser->sax_state<SAX_STATE_SYNTAX_ERROR) parser->sax_state = SAX_STATE_DONE;
 	xml_sax_swap(parser);
 	parser->text_start = parser->text_end = 0;
 }
