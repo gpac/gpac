@@ -151,7 +151,7 @@ found:
 		text[i] = test[i];
 		i += 1;
 	}
-	text[i] = 0;
+	text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
 	strncpy(Server, text, 1024);
 	Server[1023]=0;
 	if (sep) sep[0] = '?';
