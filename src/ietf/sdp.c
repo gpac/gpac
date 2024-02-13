@@ -226,8 +226,12 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
 	att->Name = gf_strdup(comp);
 	att->Value = NULL;
-	pos += 1;
-	if (buffer[pos] == ' ') pos += 1;
+
+	if (pos+1 < (s32)strlen(buffer)) {
+		pos += 1;
+		if (buffer[pos] == ' ') pos += 1;
+	}
+
 	pos = gf_token_get(buffer, pos, "\r\n", comp, 3000);
 	if (pos > 0) att->Value = gf_strdup(comp);
 
