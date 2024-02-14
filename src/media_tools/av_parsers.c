@@ -9927,9 +9927,9 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
         return 0;
     if (!header)
         return 0;
-    if (!memcmp(data, "OpusHead", sizeof(char)*8))
+    if (data_length>=8 && !memcmp(data, "OpusHead", sizeof(char)*8))
         return 0;
-    if (!memcmp(data, "OpusTags", sizeof(char)*8))
+    if (data_length>=8 && !memcmp(data, "OpusTags", sizeof(char)*8))
         return 0;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("Processing Opus packet, self: %d, size %d\n", self_delimited, data_length));
