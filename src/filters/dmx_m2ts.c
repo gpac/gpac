@@ -410,8 +410,8 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			break;
 		case GF_M2TS_METADATA_ID3_KLVA:
 		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
-			// ignore actively: they will be attached to packets as properties
-			break;
+			//ignore actively: these sections will be attached verbatim as properties to audio and video packets
+			return;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
@@ -586,6 +586,26 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
 }
 
+static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
+{
+	u32 i, count;
+	GF_M2TS_ES *es = NULL;
+
+	count = gf_list_count(prog->streams);
+	for (i=0; i<count; i++) {
+		es = gf_list_get(prog->streams, i);
+		if (es->pid==prog->pmt_pid) continue;
+		if (es->flags & GF_M2TS_GPAC_CODEC_ID) continue;
+		if (es->stream_type == GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS) {
+			//declare empty property now on each audio and video pids to signal scte35 presence
+			//and avoid later dynamic downstream filters' (e.g. muxers) reconfigurations
+			GF_M2TS_SL_PCK pck = {0};
+			pck.stream = (GF_M2TS_ES *)es;
+			ctx->ts->on_event(ctx->ts, GF_M2TS_EVT_SCTE35_SPLICE_INFO, &pck);
+		}
+	}
+}
+
 static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
 	u32 i, count;
@@ -617,6 +637,8 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 			count--;
 		}
 	}
+
+	m2tsdmx_setup_scte35(ctx, prog);
 }
 
 static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
@@ -643,7 +665,12 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 					continue;
 			}
 
-			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			if (p->data) {
+				gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			} else {
+				static char c = 'X'; // fake data, used to initialize the property when no real data is yet available
+				gf_filter_pck_set_property_dyn(pck, szID, &PROP_CONST_DATA(&c, 1));
+			}
 			gf_free(p);
 		}
 		gf_list_del(stream->props);
@@ -1203,7 +1230,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			if (!t) break;
 			t->type = M2TS_SCTE35;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_data(bs, pck->data, pck->data_len);
+			gf_bs_write_data(bs, pck->data+3, pck->data_len-3);
 			gf_bs_get_content(bs, &t->data, &t->len);
 			gf_bs_del(bs);
 

@@ -214,7 +214,7 @@ enum {
 	GF_M2TS_TABLE_ID_DIT			= 0x7E,
 	GF_M2TS_TABLE_ID_SIT			= 0x7F, /* max size for section 4096 */
 	/* 0x80 - 0xfe reserved */
-	GF_M2TS_TABLE_SCTE35_SPLICE_INFO	= 0xFC,
+	GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO	= 0xFC,
 	/* 0xff reserved */
 };
 

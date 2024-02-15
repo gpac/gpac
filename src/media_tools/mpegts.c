@@ -367,7 +367,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);
 		}
 #endif
-		else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_SCTE35_SPLICE_INFO)) ) {
+		else if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;

@@ -2170,6 +2170,9 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 
 static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
 {
+	if (att->value.data.size == 1 && *att->value.data.ptr == 'X')
+		return; // fake declaration packet
+
 	if (ctx->xml) {
 		inspect_printf(dump, " <SCTE35");
 	} else {
@@ -2181,17 +2184,6 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 	else
 		gf_bs_reassign_buffer(pctx->bs, att->value.data.ptr, att->value.data.size);
 
-	uint8_t table_id = gf_bs_read_u8(pctx->bs);
-	assert(table_id == 0xFC);
-	Bool section_syntax_indicator = gf_bs_read_int(pctx->bs, 1);
-	assert(section_syntax_indicator == 0);
-	Bool private_indicator = gf_bs_read_int(pctx->bs, 1);
-	assert(private_indicator == 0);
-
-	u8 sap_type = gf_bs_read_int(pctx->bs, 2);
-	DUMP_ATT_U("sap_type", sap_type);
-
-	/*int section_length = */gf_bs_read_int(pctx->bs, 12);
 	/*u8 protocol_version = */gf_bs_read_u8(pctx->bs);
 	Bool encrypted_packet = gf_bs_read_int(pctx->bs, 1);
 	DUMP_ATT_U("encrypted_packet", encrypted_packet);
@@ -2538,13 +2530,14 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				inspect_printf(dump, " %s=\"%s\"", pname_no_space, gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data));
 			}
 			gf_free(pname_no_space);
-		} /*else if (!p4cc && !strncmp(pname, "scte35", 6)) {
+		/*TODO: how to enable these? gpac -i scte35.ts inspect:analyze=full:deep:props
+		} else if (!p4cc && !strncmp(pname, "scte35", 6)) {
 			dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
 		} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
 			dump_temi_loc(ctx, pctx, dump, pname, att);
 		} else if (!p4cc && !strncmp(pname, "temi_t", 6)) {
-			dump_temi_time(ctx, pctx, dump, pname, att);
-		} */else {
+			dump_temi_time(ctx, pctx, dump, pname, att);*/
+		} else {
 			inspect_printf(dump, " %s=\"%s\"", pname ? pname : gf_4cc_to_str(p4cc), gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data));
 		}
 	} else {

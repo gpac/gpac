@@ -122,6 +122,11 @@ typedef struct
 	u32 last_log_time;
 	Bool pmt_update_pending;
 
+	//SCTE-35 data is conveyed by packet properties
+	GF_M2TS_Mux_Stream *scte35_stream;
+	u8 *scte35_payload;
+	u32 scte35_size;
+
 	u32 dash_mode;
 	Bool init_dash;
 	u32 dash_seg_num;
@@ -397,6 +402,29 @@ static void tsmux_check_mpd_start_time(GF_TSMuxCtx *ctx, GF_FilterPacket *pck)
 	}
 }
 
+void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_extension,
+                              u8 *table_payload, u32 table_payload_length,
+                              Bool use_syntax_indicator, Bool private_indicator,
+                              Bool use_checksum);
+static u32 tsmux_stream_process_scte35(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
+{
+	if (stream->table_needs_update) { /* generate table payload */
+		GF_TSMuxCtx *ctx = ((M2Pid*)stream->ifce->input_udta)->ctx;
+		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO, stream->program->number, ctx->scte35_payload, ctx->scte35_size, GF_FALSE, GF_FALSE, GF_FALSE);
+		ctx->scte35_size = 0;
+		gf_free(ctx->scte35_payload);
+		ctx->scte35_payload = NULL;
+
+		stream->table_needs_update = GF_FALSE;
+		stream->table_needs_send = GF_TRUE;
+	}
+	if (stream->table_needs_send)
+		return 1;
+	if (stream->refresh_rate_ms)
+		return 1;
+	return 0;
+}
+
 static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	u32 cversion;
@@ -633,6 +661,63 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			es_pck.mpeg2_af_descriptors = tspid->af_data;
 		}
 		es_pck.cts += tspid->max_media_skip + tspid->media_delay;
+
+		p = gf_filter_pck_get_property_str(pck, "scte35");
+		if (p) {
+			//TODO: we should identify more precisely SCTE35 streams (e.g. with namespaces) to avoid redundancy properly
+			if (!tspid->ctx->scte35_stream) {
+				M2Pid *m2pid;
+				GF_SAFEALLOC(m2pid, M2Pid);
+				if (!m2pid) return GF_OUT_OF_MEM;
+
+				m2pid->sid = tspid->sid; // belongs to the same service
+				m2pid->ctx = tspid->ctx;
+				m2pid->codec_id = GF_CODECID_SCTE35;
+				m2pid->is_sparse = GF_TRUE;
+				m2pid->prog = tspid->prog;
+
+				m2pid->esi.stream_type = GF_STREAM_METADATA;
+				m2pid->esi.codecid = GF_CODECID_SCTE35;
+				m2pid->esi.timescale = tspid->esi.timescale;
+				m2pid->esi.caps = GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS|GF_ESI_STREAM_SPARSE;
+				//m2pid->esi.input_ctrl = tsmux_esi_ctrl;
+				m2pid->esi.input_udta = m2pid;
+
+				gf_list_add(tspid->ctx->pids, m2pid);
+
+				int scte35_pid = gf_m2ts_mux_program_get_pmt_pid(m2pid->prog);
+				scte35_pid += 1 + gf_m2ts_mux_program_get_stream_count(m2pid->prog);
+				m2pid->ctx->scte35_stream = gf_m2ts_program_stream_add(m2pid->prog, &m2pid->esi, scte35_pid, GF_FALSE, GF_FALSE, GF_FALSE);
+
+				GF_M2TSDescriptor *scte35_desc;
+				GF_SAFEALLOC(scte35_desc, GF_M2TSDescriptor);
+				if (!scte35_desc) return GF_OUT_OF_MEM;
+				scte35_desc->tag = GF_M2TS_REGISTRATION_DESCRIPTOR;
+				scte35_desc->data = gf_malloc(4);
+				if (!scte35_desc->data) return GF_OUT_OF_MEM;
+				scte35_desc->data[0] = 'C';
+				scte35_desc->data[1] = 'U';
+				scte35_desc->data[2] = 'E';
+				scte35_desc->data[3] = 'I';
+				scte35_desc->data_len = 4;
+				gf_list_add(m2pid->prog->loop_descriptors, scte35_desc);
+
+				m2pid->ctx->scte35_stream->process = tsmux_stream_process_scte35;
+
+				m2pid->prog->pmt->table_needs_update = GF_TRUE;
+				m2pid->ctx->pmt_update_pending = GF_TRUE;
+				m2pid->ctx->update_mux = GF_TRUE;
+			}
+
+			if (p->value.data.size > 1) { // skip fake declaration packet
+				gf_assert(!tspid->ctx->scte35_payload);
+				tspid->ctx->scte35_payload = gf_malloc(p->value.data.size);
+				memcpy(tspid->ctx->scte35_payload, p->value.data.ptr, p->value.data.size);
+				tspid->ctx->scte35_size = p->value.data.size;
+				tspid->ctx->scte35_stream->table_needs_update = GF_TRUE;
+				tspid->ctx->scte35_stream->table_needs_send = GF_TRUE;
+			}
+		}
 
 		if (tspid->nb_repeat_last) {
 			es_pck.cts += tspid->nb_repeat_last * ifce->timescale * tspid->ctx->repeat_img / 1000;
@@ -1906,7 +1991,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 0);
 	}
 	//PMT update management is still under progress...
-	ctx->pmt_update_pending = 0;
+	ctx->pmt_update_pending = GF_FALSE;
 
 	return GF_OK;
 }
