@@ -1528,6 +1528,8 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d same S-TSID version, ignoring\n",s->service_id));
 			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unsupported content type (%s), parsing payload is skipped\n", s->service_id, szContentType));
 		}
 		if (!sep) break;
 		sep[0] = boundary[0];
