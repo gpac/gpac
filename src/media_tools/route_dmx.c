@@ -783,8 +783,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 	}
 
-	if(start_offset + size > total_len) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Possible corrupted data: Offset (%u) + Size (%u) exceeds Total Size of the object (%u), skipping\n", s->service_id, tsi, toi, start_offset, size, total_len));
+	if(total_len && (start_offset + size > total_len)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Corrupted data: Offset (%u) + Size (%u) exceeds Total Size of the object (%u), skipping\n", s->service_id, tsi, toi, start_offset, size, total_len));
 		return GF_NOT_SUPPORTED;
 	}
 
