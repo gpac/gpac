@@ -6327,6 +6327,52 @@ GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *emsg_prop)
+{
+	GF_BitStream *bs = gf_bs_new(emsg_prop->value.data.ptr, emsg_prop->value.data.size, GF_BITSTREAM_READ);
+	GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
+	emsg->version = 1;
+	gf_bs_read_u32(bs); // timescale, to be hardcoded to 90000
+	emsg->timescale = 90000;
+	emsg->presentation_time_delta = gf_bs_read_u64(bs);
+
+	emsg->event_duration = 0xFFFFFFFF;
+	emsg->event_id = 0;
+
+	emsg->scheme_id_uri = (char *)gf_malloc(29);
+	strcpy(emsg->scheme_id_uri, "https://aomedia.org/emsg/ID3");
+
+	emsg->value = (char *)gf_malloc(23);
+	strcpy(emsg->value, "www.nielsen.com:id3:v1");
+
+	emsg->message_data_size = 271;
+	emsg->message_data = (u8 *)gf_malloc(emsg->message_data_size);
+
+	u32 read = gf_bs_read_data(bs, emsg->message_data, emsg->message_data_size);
+	if (read != emsg->message_data_size)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Got less bytes than expected when reading ID3 data, expecting %u, got %u\n", emsg->message_data_size, read))
+
+	gf_bs_del(bs);
+
+	// insert only if its presentation time is not already present
+	u32 insert_emsg = GF_TRUE;
+	for (int i=0; i<gf_list_count(moof->emsgs); ++i)
+	{
+		GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
+		if (!strcmp(existing_emsg->scheme_id_uri, "https://aomedia.org/emsg/ID3") && !strcpy(existing_emsg->value, "www.nielsen.com:id3:v1")) {
+			if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta) {
+				insert_emsg = GF_FALSE;
+				break;
+			}
+		}
+	}
+
+	if (insert_emsg == GF_TRUE)
+		gf_list_add(moof->emsgs, emsg);
+}
+#endif
+
 static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -6490,8 +6536,8 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				}
 
 				emsg = gf_filter_pck_get_property_str(pck, "id3");
-				if (emsg && (emsg->type==GF_PROP_DATA) && emsg->value.data.ptr) {
-					gf_isom_set_emsg(ctx->file, emsg->value.data.ptr, emsg->value.data.size);
+				if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
+					mp4_process_id3(ctx->file->moof, emsg);
 				}
 
 				ctx->nb_frags++;
@@ -8371,7 +8417,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"- `sai_A4CC_param`: same as above and sets `aux_info_type_parameter`to `param`\n"
 	"  \n"
 	"The property `grp_EMSG` consists in one or more `EventMessageBox` as defined in MPEG-DASH.\n"
-	"- in fragmented mode, presence of these boxes in a packet will start a new fragment, with the boxes written before the `moof`\n"
+	"- in fragmented mode, presence of this property in a packet will start a new fragment, with the boxes written before the `moof`\n"
 	"- in regular mode, an internal sample group of type `EMSG` is currently used for `emsg` box storage\n"
 	"  \n"
 	"# Notes\n"
