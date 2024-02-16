@@ -265,7 +265,7 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 	}
 	parser->buffer[parser->elt_name_end - 1] = c;
 	parser->node_depth--;
-	if (!parser->init_state && !parser->node_depth) parser->sax_state = SAX_STATE_DONE;
+	if (!parser->init_state && !parser->node_depth && parser->sax_state<SAX_STATE_SYNTAX_ERROR) parser->sax_state = SAX_STATE_DONE;
 	xml_sax_swap(parser);
 	parser->text_start = parser->text_end = 0;
 }
@@ -631,8 +631,8 @@ static void xml_sax_skip_doctype(GF_SAXParser *parser)
 
 static void xml_sax_skip_xml_proc(GF_SAXParser *parser)
 {
-	while (parser->current_pos + 1 < parser->line_size) {
-		if ((parser->buffer[parser->current_pos]=='?') && (parser->buffer[parser->current_pos+1]=='>')) {
+	while (parser->current_pos < parser->line_size) {
+		if ((parser->current_pos + 1 < parser->line_size) && (parser->buffer[parser->current_pos]=='?') && (parser->buffer[parser->current_pos+1]=='>')) {
 			parser->sax_state = SAX_STATE_ELEMENT;
 			parser->current_pos++;
 			xml_sax_swap(parser);

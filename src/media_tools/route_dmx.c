@@ -783,6 +783,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 	}
 
+	if(total_len && (start_offset + size > total_len)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Corrupted data: Offset (%u) + Size (%u) exceeds Total Size of the object (%u), skipping\n", s->service_id, tsi, toi, start_offset, size, total_len));
+		return GF_NOT_SUPPORTED;
+	}
+
 	if (!obj || (obj->tsi!=tsi) || (obj->toi!=toi)) {
 		count = gf_list_count(s->objects);
 		for (i=0; i<count; i++) {
@@ -858,8 +863,22 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
             gf_mx_v(routedmx->blob_mx);
         }
 		obj->total_length = total_len;
-	} else if (total_len && (obj->total_length != total_len)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u mismatch in total-length %u  assigned, %u redeclared\n", s->service_id, tsi, toi, obj->total_length, total_len));
+	} else if (total_len && (obj->total_length != total_len) && (obj->status < GF_LCT_OBJ_DONE)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u mismatch in total-length %u assigned, %u redeclared, purging objet\n", s->service_id, tsi, toi, obj->total_length, total_len));
+		obj->nb_frags = obj->nb_recv_frags = 0;
+		obj->nb_bytes = obj->nb_recv_bytes = 0;
+		obj->total_length = total_len;
+
+		if (obj->alloc_size < total_len) {
+			gf_mx_p(routedmx->blob_mx);
+			obj->payload = gf_realloc(obj->payload, obj->total_length);
+			obj->alloc_size = obj->total_length;
+			obj->blob.size = obj->total_length;
+			obj->blob.data = obj->payload;
+			gf_mx_v(routedmx->blob_mx);
+		}
+
+		obj->status = GF_LCT_OBJ_INIT;
 	}
 	if (s->last_active_obj != obj) {
 		//last object had EOS and not completed
@@ -1123,8 +1142,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	e = gf_xml_dom_parse_string(routedmx->dom, content);
 	root = gf_xml_dom_get_root(routedmx->dom);
 	if (e || !root) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to parse S-TSID: %s\n", s->service_id, gf_error_to_string(e) ));
-		return e;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to parse S-TSID: %s\n", s->service_id, (e)?gf_error_to_string(e) : "Unknown error"));
+		return GF_CORRUPTED_DATA;
 	}
 	i=0;
 	while ((rs = gf_list_enum(root->content, &i))) {
@@ -1501,7 +1520,11 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		else if (!strcmp(szContentType, "application/s-tsid") || !strcmp(szContentType, "application/route-s-tsid+xml")) {
 			if (!s->stsid_version || (stsid_version && (stsid_version+1 != s->stsid_version))) {
 				s->stsid_version = stsid_version+1;
-				gf_route_service_setup_stsid(routedmx, s, payload, szContentLocation);
+				e = gf_route_service_setup_stsid(routedmx, s, payload, szContentLocation);
+				if (e) {
+					gf_free(boundary);
+					return e;
+				}
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d same S-TSID version, ignoring\n",s->service_id));
 			}
@@ -1512,7 +1535,13 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 	}
 
 	gf_free(boundary);
-	return GF_OK;
+	payload_size = strlen(payload);
+	if(payload_size > 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d Unable to process %d remaining characters in the payload due to data corruption\n",s->service_id, payload_size));
+		return GF_CORRUPTED_DATA;
+	} else {
+		return GF_OK;
+	}
 }
 
 
@@ -1657,7 +1686,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 
 		//for now we only care about S and M
-		if (!a_S && ! a_M) {
+		if (!a_S && !a_M) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : SLT bundle without MPD or S-TSID, skipping packet\n", s->service_id));
 			return GF_OK;
 		}
@@ -1713,6 +1742,7 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	if (e==GF_EOS) {
 		if (!tsi) {
 			if (gather_object->status==GF_LCT_OBJ_DONE_ERR) {
+				s->last_dispatched_toi_on_tsi_zero=0;
 				gf_route_obj_to_reservoir(routedmx, s, gather_object);
 				return GF_OK;
 			}
@@ -1724,6 +1754,9 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			if(e) {
 				//ignore this object in order to be able to accept future versions
 				s->last_dispatched_toi_on_tsi_zero=0;
+				s->stsid_version = 0;
+				s->stsid_crc = 0;
+				s->mpd_version = 0;
 				gf_route_obj_to_reservoir(routedmx, s, gather_object);
 			}
 		} else {
@@ -2033,7 +2066,7 @@ void gf_route_dmx_purge_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 		//if object is static file keep it - this may need refinement in case we had init segment updates
 		if (obj->rlct_file) continue;
 		//obj being received do not destroy
-		if (obj->status == GF_LCT_OBJ_RECEPTION) continue;
+		if (obj->status <= GF_LCT_OBJ_RECEPTION) continue;
 		//trash
 		gf_route_obj_to_reservoir(routedmx, s, obj);
 	}
