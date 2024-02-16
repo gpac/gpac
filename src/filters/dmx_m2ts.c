@@ -409,9 +409,10 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stream->flags |= GF_M2TS_ES_FULL_AU;
 			break;
 		case GF_M2TS_METADATA_ID3_KLVA:
+			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
+			//fallthrough
 		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
-			//ignore actively: these sections will be attached verbatim as properties to audio and video packets
-			return;
+			return; //ignore actively: these streams will be attached verbatim as properties to audio and video packets
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
