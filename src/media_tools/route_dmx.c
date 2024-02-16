@@ -1560,6 +1560,16 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d Unable to process %d remaining characters in the payload due to data corruption\n",s->service_id, payload_size));
 		return GF_CORRUPTED_DATA;
 	} else {
+		GF_ROUTESession *rsess;
+		u32 i=0;
+		u32 nb_channels=0;
+		while ((rsess = gf_list_enum(s->route_sessions, &i))) {
+			nb_channels += gf_list_count(rsess->channels);
+		}
+		if(nb_channels == 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d No session found, dropping manifest\n", s->service_id));
+			return GF_INVALID_CONFIGURATION;
+		}
 		return GF_OK;
 	}
 }
