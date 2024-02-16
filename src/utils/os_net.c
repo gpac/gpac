@@ -514,6 +514,7 @@ static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber
 	}
 	if (PeerName) {
 		strncpy(node, PeerName, MAX_PEER_NAME_LEN-1);
+		node[MAX_PEER_NAME_LEN-1] = 0;
 		if (node[0]=='[') {
 			node[strlen(node)-1] = 0;
 			memmove(node, &node[1], MAX_PEER_NAME_LEN-1);
@@ -2052,7 +2053,7 @@ conn_ok:
 			sock->cap_info->peer_port = first_tcp_port;
 			first_tcp_port++;
 		}
-		
+
 		//play/record, don't create socket
 		if (sock->cap_info->nf->cap_mode) {
 			sock->flags |= GF_SOCK_HAS_PEER;
