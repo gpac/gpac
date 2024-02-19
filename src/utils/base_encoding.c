@@ -282,7 +282,7 @@ GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_dat
 	if (err == Z_OK) {
 		while (d_stream.total_in < data_len) {
 			err = inflate(&d_stream, Z_NO_FLUSH);
-			if (err < Z_OK) {
+			if (err < Z_OK || err == Z_NEED_DICT) {
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				break;
 			}
