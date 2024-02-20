@@ -1243,7 +1243,7 @@ do_mix:
 	else if (am->afmt == GF_AUDIO_FMT_FLT_BE) {
 		Float *out_flt = (Float *)buffer;
 #ifndef GPAC_BIG_ENDIAN
-		u32 *out_u32 = (s32 *)buffer;
+		u32 *out_u32 = (u32 *)buffer;
 #endif
 		for (i = 0; i < nb_written; i++) {
 			for (j = 0; j < am->nb_channels; j++) {
@@ -1262,7 +1262,7 @@ do_mix:
 	else if (am->afmt == GF_AUDIO_FMT_FLTP) {
 		Float *out_flt = (Float *)buffer;
 #ifdef GPAC_BIG_ENDIAN
-		u32 *out_s32 = (u32 *)buffer;
+		u32 *out_u32 = (u32 *)buffer;
 #endif
 		for (j = 0; j < am->nb_channels; j++) {
 			out_mix = am->output + j;
