@@ -1193,7 +1193,14 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//extract TSI
 			k=0;
 			while ((att = gf_list_enum(ls->attributes, &k))) {
-				if (!strcmp(att->name, "tsi")) sscanf(att->value, "%u", &tsi);
+				if (!strcmp(att->name, "tsi")) {
+					char* end_ptr;
+					tsi = strtol(att->value, &end_ptr, 10); 
+					if(end_ptr == att->value || *end_ptr != '\0') {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TSI value (%s), it should be numeric \n", s->service_id, att->value));
+						return GF_CORRUPTED_DATA;
+					}
+				}
 			}
 			if (!tsi) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d missing TSI in LS/ROUTE session\n", s->service_id));
