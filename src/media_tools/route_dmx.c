@@ -1196,7 +1196,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				if (!strcmp(att->name, "tsi")) {
 					char* end_ptr;
 					tsi = strtol(att->value, &end_ptr, 10); 
-					if(end_ptr == att->value || *end_ptr != '\0') {
+					if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TSI value (%s), it should be numeric \n", s->service_id, att->value));
 						return GF_CORRUPTED_DATA;
 					}
@@ -1254,7 +1254,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 								else if (!strcmp(att->name, "TOI")) {
 									char * end_ptr;
 									rf->toi = strtol(att->value, &end_ptr, 10); 
-									if(end_ptr == att->value || *end_ptr != '\0') {
+									if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
 										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
 										gf_free(rf->filename);
 										gf_free(rf);
@@ -1291,7 +1291,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 								else if (!strcmp(att->name, "TOI")) {
 									char * end_ptr;
 									rf->toi = strtol(att->value, &end_ptr, 10); 
-									if(end_ptr == att->value || *end_ptr != '\0') {
+									if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
 										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
 										gf_free(rf->filename);
 										gf_free(rf);
