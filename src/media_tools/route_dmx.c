@@ -1159,7 +1159,17 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		j=0;
 		while ((att = gf_list_enum(rs->attributes, &j))) {
 			if (!stricmp(att->name, "dIpAddr")) dst_ip = att->value;
-			else if (!stricmp(att->name, "dPort")) dst_port = atoi(att->value);
+			else if (!stricmp(att->name, "dPort")) {
+				char* end_ptr;
+				dst_port = strtol(att->value, &end_ptr, 10); 
+				if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong dPort value (%s), it should be numeric \n", s->service_id, att->value));
+					return GF_CORRUPTED_DATA;
+				} else if(dst_port >= 65536 || dst_port < 0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong dPort value (%s), it should belong to the interval [0, 65535] \n", s->service_id, att->value));
+					return GF_CORRUPTED_DATA;
+				}
+			}
 		}
 
 		GF_SAFEALLOC(rsess, GF_ROUTESession);
