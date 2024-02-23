@@ -481,7 +481,7 @@ GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *file, Bool root_meta,
 
 			if (ienc->type!=GF_ISOM_BOX_TYPE_IENC) continue;
 			if (ienc->key_info_size<19) return GF_ISOM_INVALID_FILE;
-			
+
 			*skip_byte_block = ienc->skip_byte_block;
 			*crypt_byte_block = ienc->crypt_byte_block;
 			*key_info = ienc->key_info;
@@ -702,7 +702,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 	if (i & 0x1)
 		prop->hidden = GF_TRUE;
 
-	count = gf_list_count(ipma->entries);
+	count = (ipma && ipma->entries) ? gf_list_count(ipma->entries) : 0;
 	for (i = 0; i < count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
 		if (entry->item_id != item_id) continue;
@@ -927,7 +927,7 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 			}
 		}
 		break;
-		
+
 		default:
 			if (prop->config) {
 				if (gf_isom_box_equal(prop->config, b)) {
@@ -1436,7 +1436,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		infe->item_ID = ++lastItemID;
 	}
 	if (io_item_id) *io_item_id = infe->item_ID;
-	
+
 	if (tk_id && sample_num) {
 		data_len = gf_isom_get_sample_size(file, tk_id, sample_num);
 		if (item_name)
@@ -1708,7 +1708,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			if (data) {
 				infe->full_path = (char *)gf_malloc(sizeof(char) * data_len);
 				if (!infe->full_path) return GF_OUT_OF_MEM;
-				
+
 				memcpy(infe->full_path, data, sizeof(char) * data_len);
 				infe->data_len = data_len;
 			}
