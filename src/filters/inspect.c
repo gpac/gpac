@@ -3217,6 +3217,10 @@ props_done:
 			}
 		}
 		while (size) {
+			if (size < pctx->nalu_size_length) {
+				inspect_printf(dump, "   <!-- NALU is corrupted: nalu_size_length is %u but only %d remains -->\n", pctx->nalu_size_length, size);
+				break;
+			}
 			u32 nal_size = inspect_get_nal_size((char*)data, pctx->nalu_size_length);
 			data += pctx->nalu_size_length;
 
