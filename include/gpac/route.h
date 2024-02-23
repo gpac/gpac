@@ -36,13 +36,13 @@ extern "C" {
 
 /*!
 \file <gpac/route.h>
-\brief Specific extensions for ROUTE ( ATSC3, DVB-I) protocol
+\brief Specific extensions for ROUTE (ATSC3, DVB-I) protocol
 */
 
 /*!
 \addtogroup route_grp ROUTE
 \ingroup media_grp
-\brief ROUTE ATSC 3.0 reciever
+\brief ROUTE ATSC 3.0 receiver
 
 The ROUTE receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
 It gathers objects from a ROUTE session and sends them back to the user through a callback, or deletes them if no callback is sent.
