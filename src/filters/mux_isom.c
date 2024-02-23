@@ -6368,8 +6368,10 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 		}
 	}
 
-	if (insert_emsg == GF_TRUE)
+	if (insert_emsg == GF_TRUE) {
+		if (!moof->emsgs) moof->emsgs = gf_list_new();
 		gf_list_add(moof->emsgs, emsg);
+	}
 }
 #endif
 
