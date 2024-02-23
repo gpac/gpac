@@ -1804,6 +1804,7 @@ int AVI_close(avi_t *AVI)
 
 #define ERR_EXIT(x) \
 { \
+   if (hdrl_data) { gf_free(hdrl_data); hdrl_data=NULL; }\
    AVI_close(AVI); \
    AVI_errno = x; \
    return 0; \
@@ -1886,7 +1887,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 {
 	int rate, scale, idx_type;
 	s64 n, i;
-	unsigned char *hdrl_data;
+	unsigned char *hdrl_data = NULL;
 	u64 header_offset=0;
 	int hdrl_len=0;
 	int nvi, nai[AVI_MAX_TRACKS], ioff;
@@ -1949,7 +1950,6 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				header_offset = gf_ftell(AVI->fdes);
 
 				if( avi_read(AVI->fdes,(char *)hdrl_data, (u32) n) != n ) {
-					if (hdrl_data) gf_free(hdrl_data);
 					ERR_EXIT(AVI_ERR_READ)
 				}
 			}
@@ -1968,14 +1968,12 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			AVI->n_idx = AVI->max_idx = (u32) (n/16);
 			AVI->idx = (unsigned  char((*)[16]) ) gf_malloc((u32)n);
 			if(AVI->idx==0) {
-				if (hdrl_data) gf_free(hdrl_data);
 				ERR_EXIT(AVI_ERR_NO_MEM)
 			}
 			if(avi_read(AVI->fdes, (char *) AVI->idx, (u32) n) != n ) {
 				gf_free( AVI->idx);
 				AVI->idx=NULL;
 				AVI->n_idx = 0;
-				if (hdrl_data) gf_free(hdrl_data);
 				ERR_EXIT(AVI_ERR_READ)
 			}
 		}
@@ -2319,6 +2317,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			}
 
 	gf_free(hdrl_data);
+	hdrl_data = NULL;
 
 	if(!vids_strh_seen || !vids_strf_seen) ERR_EXIT(AVI_ERR_NO_VIDS)
 
