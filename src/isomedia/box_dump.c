@@ -6975,6 +6975,44 @@ GF_Err emsg_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err emib_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_EventMessageBox *p = (GF_EventMessageBox *) a;
+
+	gf_isom_box_dump_start(a, "EventMessageInstanceBox", trace);
+	fprintf(trace, "presentation_time_delta=\""LLU"\" event_duration=\"%u\" event_id=\"%u\"",
+		p->presentation_time_delta, p->event_duration, p->event_id);
+
+	if (p->scheme_id_uri)
+		fprintf(trace, " scheme_id_uri=\"%s\"", p->scheme_id_uri);
+	if (p->value)
+		fprintf(trace, " value=\"%s\"", p->value);
+
+	if (p->message_data)
+		dump_data_attribute(trace, " message_data", p->message_data, p->message_data_size);
+
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("EventMessageInstanceBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err emeb_box_dump(GF_Box *a, FILE * trace)
+{
+	gf_isom_box_dump_start(a, "EventMessageEmptyBox", trace);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("EventMessageEmptyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err evte_box_dump(GF_Box *a, FILE * trace)
+{
+	//GF_EventMessageSampleEntryBox *p = (GF_EventMessageSampleEntryBox *)a;
+	gf_isom_box_dump_start(a, "EventMessageSampleEntryBox", trace);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("EventMessageSampleEntryBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err csgp_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;

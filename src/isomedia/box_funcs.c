@@ -831,6 +831,10 @@ ISOM_BOX_IMPL_DECL(pcrb)
 ISOM_BOX_IMPL_DECL(tfdt)
 ISOM_BOX_IMPL_DECL(emsg)
 
+ISOM_BOX_IMPL_DECL(emib)
+ISOM_BOX_IMPL_DECL(emeb)
+ISOM_BOX_IMPL_DECL(evte)
+
 #endif
 
 ISOM_BOX_IMPL_DECL(rvcc)
@@ -1313,6 +1317,10 @@ static struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SSIX, ssix, "file", 0),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PCRB, pcrb, "file", "dash"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMSG, emsg, "file", 1, "dash"),
+
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMIB, emib, "file", 1, "EventTrack"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EMEB, emeb, "file", "EventTrack"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_EVTE, gen_sample_entry, "stsd", "EventTrack"),
 #endif
 
 
