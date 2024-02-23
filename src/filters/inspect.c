@@ -766,7 +766,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 
 		//don't trust sei parsers, force jumping to next - use byte-per-byte read for EPB removal
 		gf_bs_seek(bs, sei_pos);
-		while (sei_size) {
+		while (sei_size && gf_bs_available(bs)) {
 			gf_bs_read_u8(bs);
 			sei_size--;
 		}
@@ -2346,8 +2346,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	if (ctx->xml) {
 		if (ctx->dtype)
 			inspect_printf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
-			
-		if (pname && (strpbrk(pname, " :"))) { 
+
+		if (pname && (strpbrk(pname, " :"))) {
 			u32 i=0, k;
 			char *pname_no_space = gf_strdup(pname);
 			while (pname_no_space[i]) {
@@ -3220,8 +3220,8 @@ props_done:
 			u32 nal_size = inspect_get_nal_size((char*)data, pctx->nalu_size_length);
 			data += pctx->nalu_size_length;
 
-			if (pctx->nalu_size_length + nal_size > size) {
-				inspect_printf(dump, "   <!-- NALU is corrupted: size is %d but only %d remains -->\n", nal_size, size);
+			if (nal_size >= GF_UINT_MAX - pctx->nalu_size_length || pctx->nalu_size_length + nal_size > size) {
+				inspect_printf(dump, "   <!-- NALU is corrupted: size is %u but only %d remains -->\n", nal_size, size);
 				break;
 			} else {
 				inspect_printf(dump, "   <NALU size=\"%d\" ", nal_size);
@@ -4435,7 +4435,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			ctx->dump_pck = GF_FALSE;
 		}
 	}
-	
+
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = NULL;
@@ -4494,7 +4494,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			}
 		}
 		if (!pck) continue;
-		
+
 		pctx->pck_for_config++;
 		pctx->pck_num++;
 
@@ -4510,7 +4510,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 				}
 			}
 		}
-		
+
 		if (ctx->dur.num && ctx->dur.den) {
 			u64 timescale = gf_filter_pck_get_timescale(pck);
 			u64 ts = gf_filter_pck_get_dts(pck);
@@ -5025,6 +5025,3 @@ const GF_FilterRegister *probe_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_INSPECT
-
-
-
