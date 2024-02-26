@@ -216,8 +216,8 @@ static GF_Err uncv_load_profile(UNCVConfig *uncv)
 	uncv->comps[2].idx = 2;
 	uncv->comps[2].bits = 8;
 	if (nb_comps>3) {
-		uncv->comps[4].idx = 3;
-		uncv->comps[4].bits = 8;
+		uncv->comps[3].idx = 3;
+		uncv->comps[3].bits = 8;
 	}
 	uncv->interleave = 1;
 	return GF_OK;
@@ -236,6 +236,9 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 	}
 	UNCVConfig *uncv;
 	GF_SAFEALLOC(uncv, UNCVConfig);
+
+	uncv->num_tile_cols = uncv->num_tile_rows = 1; // defaults to prevent FPE
+
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		s32 size = gf_bs_read_u32(bs);
