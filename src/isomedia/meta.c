@@ -334,15 +334,11 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 		u32 j, nb_assoc;
 		GF_HEVCConfigurationBox *hvcc = NULL;
 		GF_AVCConfigurationBox *avcc = NULL;
-		if (! meta->item_props) return GF_NON_COMPLIANT_BITSTREAM;
-		if (! meta->item_props->property_container) {
+		if (!meta->item_props || !meta->item_props->property_container || !meta->item_props->property_association) {
 			if (item_bs) gf_bs_del(item_bs);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		if (! meta->item_props->property_association) {
-			if (item_bs) gf_bs_del(item_bs);
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
+
 		nb_assoc = gf_list_count(meta->item_props->property_association->entries);
 		for (i=0; i<nb_assoc; i++) {
 			GF_ItemPropertyAssociationEntry *ent = gf_list_get(meta->item_props->property_association->entries, i);
