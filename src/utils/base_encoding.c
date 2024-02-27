@@ -294,7 +294,7 @@ GF_Err gf_gz_decompress_payload_ex(u8 *data, u32 data_len, u8 **uncompressed_dat
 			d_stream.avail_out = (u32) (size - d_stream.total_out);
 			d_stream.next_out = (Bytef*) ( *uncompressed_data + d_stream.total_out);
 		}
-		*out_size = (u32) d_stream.total_out;
+		*out_size = MIN( (size?size-1:0) , (u32) d_stream.total_out );
 		inflateEnd(&d_stream);
 		//force last byte to 0
 		(*uncompressed_data)[*out_size] = 0;
