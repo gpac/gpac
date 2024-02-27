@@ -3116,8 +3116,8 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 								td.font_count += 1;
 								td.fonts = (GF_FontRecord*)gf_realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
 								m=0;
+								td.fonts[td.font_count-1].fontName = NULL;
 								while ( (att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &m))) {
-									td.fonts[td.font_count-1].fontName = NULL;
 									if (!stricmp(att->name, "fontID")) td.fonts[td.font_count-1].fontID = atoi(att->value);
 									else if (!stricmp(att->name, "fontName")) td.fonts[td.font_count-1].fontName = gf_strdup(att->value);
 								}
