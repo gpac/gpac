@@ -6368,7 +6368,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 				disabled = 1;
 				break;
 			}
-			if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014")) {
+			if (mpd_desc && mpd_desc->scheme_id_uri && !strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014") && mpd_desc->value) {
 				u32 id, w, h, res;
 				w = h = 0;
 				res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
