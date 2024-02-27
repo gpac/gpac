@@ -107,6 +107,7 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 			(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * txt->font_table->entry_count);
 			for (i=0; i<txt->font_table->entry_count; i++) {
 				(*out_desc)->fonts[i].fontID = txt->font_table->fonts[i].fontID;
+				(*out_desc)->fonts[i].fontName = NULL;
 				if (txt->font_table->fonts[i].fontName)
 					(*out_desc)->fonts[i].fontName = gf_strdup(txt->font_table->fonts[i].fontName);
 			}
