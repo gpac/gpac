@@ -322,7 +322,7 @@ static char *swf_get_string(SWFReader *read)
 	while (1) {
 		if (i>=read->size) {
 			read->ioerr = GF_NON_COMPLIANT_BITSTREAM;
-			name[read->size-1] = 0;
+			name[read->size ? read->size-1 : 0] = 0;
 			break;
 		}
 		name[i] = swf_read_int(read, 8);
