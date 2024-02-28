@@ -616,7 +616,7 @@ enum
 	GF_VVC_SLICE_TYPE_UNKNOWN = 10,
 };
 
-#define VVC_MAX_REF_PICS	29
+#define VVC_MAX_REF_PICS	64
 
 #define VVC_RPL_ST 0
 #define VVC_RPL_LT 1
@@ -640,6 +640,16 @@ typedef struct
 #define VVC_MAX_TILE_COLS 30
 #define VVC_MAX_TILE_ROWS 33
 
+//max number of subpics supported in GPAC
+#define VVC_MAX_SUBPIC	200
+
+typedef struct
+{
+	u16 x, y, w, h;
+	u16 id;
+	u16 num_slices;
+} VVC_SubpicInfo;
+
 typedef struct
 {
 	s32 id;
@@ -662,8 +672,9 @@ typedef struct
 
 	//subpic info, not fully implemented yet
 	u8 subpic_info_present, independent_subpic_flags, subpic_same_size, subpicid_mapping_explicit, subpicid_mapping_present;
-	u32 nb_subpics; //up to 600
+	u32 nb_subpics; //up to VVC_MAX_SUBPIC
 	u32 subpicid_len;
+	VVC_SubpicInfo subpics[VVC_MAX_SUBPIC];
 
 	Bool has_timing_info;
 	u32 num_units_in_tick, time_scale;
@@ -717,6 +728,8 @@ typedef struct
 	u32 width, height;
 	u8 conf_window;
 	u32 cw_left, cw_right, cw_top, cw_bottom;
+
+	VVC_SubpicInfo subpics[VVC_MAX_SUBPIC];
 
 	//tile info
 	u32 tile_rows_height_ctb[VVC_MAX_TILE_ROWS];
