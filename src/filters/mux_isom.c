@@ -3080,6 +3080,12 @@ sample_entry_setup:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new TrueHD Audio sample description: %s\n", gf_error_to_string(e) ));
 			return e;
 		}
+	} else if (codec_id==GF_CODECID_SCTE35) { //EventMessage Track
+		e = gf_isom_evte_config_new(ctx->file, tkw->track_num, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new EventMessage Track sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
 	} else if (use_gen_sample_entry) {
 		u8 isor_ext_buf[14], *gpac_meta_dsi=NULL;
 		u32 len = 0;
@@ -6548,7 +6554,6 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				mp4_process_id3(ctx->file->moof, emsg);
 			}
 
-
 			if (ctx->dash_mode) {
 				if (p) {
 					mp4mux_check_mpd_start_time(ctx, pck);
@@ -8182,7 +8187,6 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	if (ctx->seg_sizes) gf_free(ctx->seg_sizes);
 
 	if (ctx->cur_file_suffix) gf_free(ctx->cur_file_suffix);
-
 }
 
 static const GF_FilterCapability MP4MuxCaps[] =
