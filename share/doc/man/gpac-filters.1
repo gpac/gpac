@@ -1942,6 +1942,12 @@ decrypt (enum, default: full): decrypt mode (CENC only)
 .br
 * skip: decrypt nothing
 .br
+* pad0: decrypt nothing and replace all crypted bits with 0
+.br
+* pad1: decrypt nothing and replace all crypted bits with 1
+.br
+* padsc: decrypt nothing and replace all crypted bytes with start codes
+.br
 
 .br
 drop_keys (uintl):             consider keys with given 1-based indexes as not available (multi-key debug)
@@ -6455,6 +6461,12 @@ Description: NVidia decoder
 This filter decodes MPEG-2, MPEG-4 Part 2, AVC|H264 and HEVC streams through NVidia decoder. It allows GPU frame dispatch or direct frame copy.
 .br
 If the SDK is not available, the configuration key nvdec@disabled will be written in configuration file to avoid future load attempts.
+.br
+
+.br
+The absolute path to cuda lib can be set using the cuda_lib option in core or temp section of the config file, e.g. -cfg=temp:cuda_lib=PATH_TO_CUDA
+.br
+The absolute path to cuvid lib can be set using the cuvid_lib option in core or temp section of the config file, e.g. -cfg=temp:cuvid_lib=PATH_TO_CUDA
 .br
 
 .br
