@@ -53,6 +53,9 @@ enum
 	DECRYPT_FULL=0,
 	DECRYPT_NOKEY,
 	DECRYPT_SKIP,
+	DECRYPT_PAD0,
+	DECRYPT_PAD1,
+	DECRYPT_PADSC,
 };
 
 typedef struct
@@ -618,7 +621,7 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 			if (match) {
 				memcpy(cstr->crypts[i].key, cstr->keys[j], 16);
 				found = GF_TRUE;
-				if (ctx->decrypt==DECRYPT_SKIP) {
+				if (ctx->decrypt>=DECRYPT_SKIP) {
 					cstr->crypts[i].key_valid = GF_FALSE;
 				} else {
 					cstr->crypts[i].key_valid = GF_TRUE;
@@ -1590,7 +1593,25 @@ static GF_Err cenc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 
 u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
-
+static GFINLINE void cenc_decrypt_block(GF_CENCDecCtx *ctx, GF_Crypt *crypt, Bool valid_key, u8 *data, u32 size)
+{
+	if (!valid_key) {
+		if (ctx->decrypt==DECRYPT_PAD1) {
+			memset(data, 0xF, size);
+		}
+		else if (ctx->decrypt==DECRYPT_PAD0) {
+			memset(data, 0x0, size);
+		}
+		else if (ctx->decrypt==DECRYPT_PADSC) {
+			memset(data, 0x0, size-1);
+			data[size-1] = 1;
+		} else {
+			//skip, do nothing
+		}
+	} else {
+		gf_crypt_decrypt(crypt, data, size);
+	}
+}
 static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
 {
 	GF_Err e = GF_OK;
@@ -1705,7 +1726,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		}
 
 		if (!sai_payload && !skey_const_iv_size) {
-			if (ctx->decrypt == DECRYPT_SKIP) {
+			if (ctx->decrypt >= DECRYPT_SKIP) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
 				e = GF_OK;
 				goto send_packet;
@@ -1755,6 +1776,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		u32 cur_pos = 0;
 
 		while (cur_pos < data_size) {
+			Bool valid_key;
 			u8 const_iv_size=0;
 			const u8 *const_iv=NULL;
 			u32 kidx = 0;
@@ -1818,8 +1840,8 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			}
 			/*skip clear data*/
 			cur_pos += bytes_clear_data;
-
-			if (!cstr->crypts[kidx].key_valid) {
+			valid_key = (ctx->decrypt>=DECRYPT_SKIP) ? GF_FALSE : cstr->crypts[kidx].key_valid;
+			if (!valid_key && (ctx->decrypt==DECRYPT_SKIP)) {
 				cur_pos += bytes_encrypted_data;
 				continue;
 			}
@@ -1837,7 +1859,9 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				}
 
 				while (res) {
-					gf_crypt_decrypt(cstr->crypts[kidx].crypt, out_data + pos, (res >= cryp_block) ? cryp_block : res);
+					u32 c_len = (res >= cryp_block) ? cryp_block : res;
+					cenc_decrypt_block(ctx, cstr->crypts[kidx].crypt, valid_key, out_data + pos, c_len);
+
 					if (res >= full_block) {
 						pos += full_block;
 						gf_assert(res>=full_block);
@@ -1858,20 +1882,25 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 					u32 clear_trailing = res % 16;
 					res -= clear_trailing;
 				}
-				gf_crypt_decrypt(cstr->crypts[kidx].crypt, out_data+cur_pos, res);
+				cenc_decrypt_block(ctx, cstr->crypts[kidx].crypt, valid_key, out_data+cur_pos, res);
 			}
 			cur_pos += bytes_encrypted_data;
 		}
 	}
 	//full sample encryption in single key mode
 	else {
-		if (cstr->is_cenc) {
-			gf_crypt_decrypt(cstr->crypts[0].crypt, out_data, data_size);
-		} else {
+		u32 cbytes = data_size;
+		if (!cstr->is_cenc) {
 			u32 ret = data_size % 16;
 			if (data_size >= 16) {
-				gf_crypt_decrypt(cstr->crypts[0].crypt, out_data, data_size-ret);
+				cbytes = data_size-ret;
+			} else {
+				cbytes = 0;
 			}
+		}
+		if (cbytes) {
+			Bool valid_key = (ctx->decrypt>=DECRYPT_SKIP) ? GF_FALSE : cstr->crypts[0].key_valid;
+			cenc_decrypt_block(ctx, cstr->crypts[0].crypt, valid_key, out_data, cbytes);
 		}
 	}
 
@@ -1914,7 +1943,7 @@ static GF_Err cenc_dec_process_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cs
 	//packet has been fetched, we now MUST have a key info
 
 	if (!cstr->hls_key_url && !cstr->cenc_ki && !ctx->cinfo) {
-		if (ctx->decrypt == DECRYPT_SKIP) {
+		if (ctx->decrypt >= DECRYPT_SKIP) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HLS_SAES] Packet encrypted but no KEY info\n" ) );
 			e = GF_OK;
 			goto send_packet;
@@ -2465,8 +2494,11 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 	{ OFFS(decrypt), "decrypt mode (CENC only)\n"
 		"- full: decrypt everything, throwing error if keys are not found\n"
 		"- nokey: decrypt everything for which a key is found, skip decryption otherwise\n"
-		"- skip: decrypt nothing"
-		, GF_PROP_UINT, "full", "full|nokey|skip", GF_ARG_HINT_ADVANCED},
+		"- skip: decrypt nothing\n"
+		"- pad0: decrypt nothing and replace all crypted bits with 0\n"
+		"- pad1: decrypt nothing and replace all crypted bits with 1\n"
+		"- padsc: decrypt nothing and replace all crypted bytes with start codes"
+		, GF_PROP_UINT, "full", "full|nokey|skip|pad0|pad1|padsc", GF_ARG_HINT_ADVANCED},
 	{ OFFS(drop_keys), "consider keys with given 1-based indexes as not available (multi-key debug)", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(kids), "define KIDs. If `keys` is empty, consider keys with given KID (as hex string) as not available (debug)", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(keys), "define key values for each of the specified KID", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
