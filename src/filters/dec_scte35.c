@@ -24,6 +24,7 @@
  */
 
 #include <gpac/filters.h>
+#include <gpac/internal/isomedia_dev.h>
 
 typedef struct {
 	GF_FilterPid *ipid;
@@ -59,7 +60,6 @@ GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SCTE35) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SPARSE, &PROP_BOOL(GF_TRUE) );
 
 	return GF_OK;
 }
@@ -67,6 +67,7 @@ GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 GF_Err scte35dec_process(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
+
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
@@ -79,19 +80,72 @@ GF_Err scte35dec_process(GF_Filter *filter)
 	GF_FilterPacket *pck_dst = NULL;
 	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
 	if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
-		u8 *output = NULL;
-		pck_dst = gf_filter_pck_new_alloc(ctx->opid, emsg->value.data.size, &output);
-		if (!pck_dst) return GF_OUT_OF_MEM;
+		GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
+		if (!emib) return GF_OUT_OF_MEM;
 
-		memcpy(output, emsg->value.data.ptr, emsg->value.data.size);
-		gf_filter_pck_set_framing(pck_dst, GF_TRUE, GF_TRUE);
-		gf_filter_pck_set_sap(pck_dst, GF_FILTER_SAP_1);
-		//TODO: compute duration when available in the SCTE35 payload
-		gf_filter_pck_set_duration(pck_dst, (u32)(gf_filter_pck_get_cts(pck) - ctx->last_cts));
-		ctx->last_cts = gf_filter_pck_get_cts(pck);
-		gf_filter_pck_set_cts(pck_dst, ctx->last_cts);
-		gf_filter_pck_send(pck_dst);
+		// Values according to SCTE 214-3 2015
+		emib->timescale = gf_filter_pck_get_timescale(pck);
+		emib->presentation_time_delta = 0;
+		emib->event_duration = 0xFFFFFFFF;
+		emib->event_id = 0;
+		emib->scheme_id_uri = gf_strdup("urn:scte:scte35:2013:bin");
+		emib->value = gf_strdup("1001");
+		emib->message_data_size = emsg->value.data.size;
+		emib->message_data = emsg->value.data.ptr;
+
+		GF_Err e = gf_isom_box_size((GF_Box*)emib);
+		if (e) {
+			emib->message_data = NULL;
+			gf_isom_box_del((GF_Box*)emib);
+			return e;
+		}
+
+		u8 *output = NULL;
+		pck_dst = gf_filter_pck_new_alloc(ctx->opid, emib->size, &output);
+		if (!pck_dst) {
+			emib->message_data = NULL;
+			gf_isom_box_del((GF_Box*)emib);
+			return GF_OUT_OF_MEM;
+		}
+
+		GF_BitStream *bs = gf_bs_new(output, emib->size, GF_BITSTREAM_WRITE);
+		e = gf_isom_box_write((GF_Box*)emib, bs);
+		gf_bs_del(bs);
+		emib->message_data = NULL;
+		gf_isom_box_del((GF_Box*)emib);
+		if (e) return e;
+	} else {
+		GF_Box *emeb = gf_isom_box_new(GF_ISOM_BOX_TYPE_EMEB);
+		if (!emeb) return GF_OUT_OF_MEM;
+
+		GF_Err e = gf_isom_box_size((GF_Box*)emeb);
+		if (e) {
+			gf_isom_box_del(emeb);
+			return e;
+		}
+
+		u8 *output = NULL;
+		pck_dst = gf_filter_pck_new_alloc(ctx->opid, emeb->size, &output);
+		if (!pck_dst) {
+			gf_isom_box_del(emeb);
+			return GF_OUT_OF_MEM;
+		}
+
+		GF_BitStream *bs = gf_bs_new(output, emeb->size, GF_BITSTREAM_WRITE);
+		e = gf_isom_box_write((GF_Box*)emeb, bs);
+		gf_bs_del(bs);
+		gf_isom_box_del(emeb);
+		if (e) return e;
 	}
+
+	gf_filter_pck_set_framing(pck_dst, GF_TRUE, GF_TRUE);
+	gf_filter_pck_set_sap(pck_dst, GF_FILTER_SAP_1);
+	//TODO: compute duration when available in the SCTE35 payload
+	gf_filter_pck_set_duration(pck_dst, (u32)(gf_filter_pck_get_cts(pck) - ctx->last_cts));
+	ctx->last_cts = gf_filter_pck_get_cts(pck);
+	gf_filter_pck_set_dts(pck_dst, gf_filter_pck_get_dts(pck));
+	gf_filter_pck_set_cts(pck_dst, ctx->last_cts);
+	gf_filter_pck_send(pck_dst);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
