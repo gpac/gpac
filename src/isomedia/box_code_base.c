@@ -13322,7 +13322,7 @@ GF_Err emeb_box_read(GF_Box *s,GF_BitStream *bs)
 
 GF_Err emeb_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_write(s, bs);
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err emeb_box_size(GF_Box *)
@@ -13352,7 +13352,7 @@ GF_Err evte_box_read(GF_Box *s,GF_BitStream *bs)
 
 GF_Err evte_box_write(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_write(s, bs);
+	return gf_isom_box_write_header(s, bs);
 }
 
 GF_Err evte_box_size(GF_Box *)
