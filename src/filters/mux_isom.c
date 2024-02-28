@@ -6346,11 +6346,8 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	emsg->event_duration = 0xFFFFFFFF;
 	emsg->event_id = 0;
 
-	emsg->scheme_id_uri = (char *)gf_malloc(29);
-	strcpy(emsg->scheme_id_uri, "https://aomedia.org/emsg/ID3");
-
-	emsg->value = (char *)gf_malloc(23);
-	strcpy(emsg->value, "www.nielsen.com:id3:v1");
+	emsg->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
+	emsg->value = gf_strdup("www.nielsen.com:id3:v1");
 
 	emsg->message_data_size = 271;
 	emsg->message_data = (u8 *)gf_malloc(emsg->message_data_size);
