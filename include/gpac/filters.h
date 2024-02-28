@@ -1688,7 +1688,7 @@ typedef enum
 	GF_FEVT_BUFFER_REQ,
 	/*! filter session capability change, sent whenever global capabilities (max width, max height, ... ) are changed*/
 	GF_FEVT_CAPS_CHANGE,
-	/*! inidicates the PID could not be connected - the PID passed is an output PID of the filter, no specific event structure is associated*/
+	/*! indicates the PID could not be connected - the PID passed is an output PID of the filter, no specific event structure is associated*/
 	GF_FEVT_CONNECT_FAIL,
 	/*! user event, sent from compositor/vout down to filters*/
 	GF_FEVT_USER,

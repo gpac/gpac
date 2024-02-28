@@ -534,7 +534,7 @@ typedef enum
 	/*!
 		\brief OGG DecoderConfig
 
-	 The DecoderConfig for theora, vorbis and speek contains all intitialization ogg packets for the codec
+	 The DecoderConfig for theora, vorbis and speek contains all initialization ogg packets for the codec
 	  and is formatted as follows:\n
 	 \code
 	  while (dsi_size) {
