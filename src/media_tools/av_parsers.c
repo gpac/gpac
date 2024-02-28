@@ -10616,6 +10616,15 @@ static void vvc_parse_ols_timing_hrd_parameters(GF_BitStream *bs, u32 firstSubLa
 	return -1;\
 	}
 
+static u32 vvc_ceillog2(u32 val)
+{
+	u32 maxBits=0;
+	while (val > (u32)(1 << maxBits)) {
+		maxBits++;
+	}
+	return maxBits;
+}
+
 static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer_id, u32 *vui_flag_pos)
 {
 	s32 vps_id, sps_id;
@@ -10694,26 +10703,35 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	sps->subpic_info_present = gf_bs_read_int_log(bs, 1, "subpic_info_present");
 	if (sps->subpic_info_present) {
 		sps->nb_subpics = 1 + gf_bs_read_ue_log(bs, "nb_subpics_minus1");
+		if (sps->nb_subpics>1000) VVC_SPS_BROKEN
+		if (sps->nb_subpics>VVC_MAX_SUBPIC) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] Maximum subpics supported by GPAC is %u, got %u\n", VVC_MAX_SUBPIC, sps->nb_subpics));
+			VVC_SPS_BROKEN
+		}
+
 		if (sps->nb_subpics>1) {
-			u32 tmpWidthVal, tmpHeightVal;
+			u32 tmpWidthBits, tmpHeightBits;
 			sps->independent_subpic_flags = gf_bs_read_int_log(bs, 1, "independent_subpic_flags");
 			sps->subpic_same_size = gf_bs_read_int_log(bs, 1, "subpic_same_size");
 
-			tmpWidthVal = (sps->width + CtbSizeY-1) / CtbSizeY;
-			tmpWidthVal = gf_get_bit_size(tmpWidthVal);
-			tmpHeightVal = (sps->height + CtbSizeY-1) / CtbSizeY;
-			tmpHeightVal = gf_get_bit_size(tmpHeightVal);
+			tmpWidthBits = vvc_ceillog2((sps->width + CtbSizeY-1) / CtbSizeY);
+			tmpHeightBits = vvc_ceillog2((sps->height + CtbSizeY-1) / CtbSizeY);
 
 			for (i=0; i<sps->nb_subpics; i++) {
+				VVC_SubpicInfo *sp = &sps->subpics[i];
+				sp->id = i;
 				if( !sps->subpic_same_size || !i) {
 					if (i && (sps->width > CtbSizeY))
-						gf_bs_read_int_log(bs, tmpWidthVal, "subpic_ctu_top_left_x");
+						sp->x = gf_bs_read_int_log(bs, tmpWidthBits, "subpic_ctu_top_left_x");
 					if (i && (sps->height > CtbSizeY))
-						gf_bs_read_int_log(bs, tmpHeightVal, "subpic_ctu_top_left_y");
+						sp->y = gf_bs_read_int_log(bs, tmpHeightBits, "subpic_ctu_top_left_y");
 					if ((i+1 < sps->nb_subpics) && (sps->width > CtbSizeY))
-						gf_bs_read_int_log(bs, tmpWidthVal, "subpic_width_minus1");
+						sp->w = 1 + gf_bs_read_int_log(bs, tmpWidthBits, "subpic_width_minus1");
 					if ((i+1 < sps->nb_subpics) && (sps->height > CtbSizeY))
-						gf_bs_read_int_log(bs, tmpHeightVal, "subpic_height_minus1");
+						sp->h = 1 + gf_bs_read_int_log(bs, tmpHeightBits, "subpic_height_minus1");
+				} else {
+					sp->w = sps->subpics[0].w;
+					sp->h = sps->subpics[0].h;
 				}
 				if (!sps->independent_subpic_flags) {
 					gf_bs_read_int_log(bs, 1, "subpic_treated_as_pic_flag");
@@ -10726,7 +10744,8 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 				sps->subpicid_mapping_present = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_present_flag");
 				if (sps->subpicid_mapping_present) {
 					for (i=0; i<sps->nb_subpics; i++) {
-						gf_bs_read_ue_log(bs, "subpic_id");
+						VVC_SubpicInfo *sp = &sps->subpics[i];
+						sp->id = gf_bs_read_ue_log(bs, "subpic_id");
 					}
 				}
 			}
@@ -11061,15 +11080,24 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 	pps->output_flag_present_flag = gf_bs_read_int_log(bs, 1, "output_flag_present_flag");
 	pps->no_pic_partition_flag = gf_bs_read_int_log(bs, 1, "no_pic_partition_flag");
 	pps->subpic_id_mapping_present_flag = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_present_flag");
+
+	VVC_SPS *sps = &vvc->sps[pps->sps_id];
+	memcpy(pps->subpics, sps->subpics, sizeof(VVC_SubpicInfo)*sps->nb_subpics);
+
 	u32 pps_num_subpics = 1;
 	if (pps->subpic_id_mapping_present_flag) {
 		u32 pps_subpic_id_len;
 		if (!pps->no_pic_partition_flag) {
 			pps_num_subpics = 1+gf_bs_read_ue_log(bs, "pps_num_subpics_minus1");
+			if (pps_num_subpics != sps->nb_subpics) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong number of subpictures %u in PPS vs %u in SPS\n", pps_num_subpics, sps->nb_subpics));
+				VVC_PPS_BROKEN
+			}
 		}
 		pps_subpic_id_len = 1 + gf_bs_read_ue(bs);
 		for (i=0; i<pps_num_subpics; i++) {
-			gf_bs_read_int_log_idx(bs, pps_subpic_id_len, "subpic_id", i);
+			VVC_SubpicInfo *sp = &pps->subpics[i];
+			sp->id = gf_bs_read_int_log_idx(bs, pps_subpic_id_len, "subpic_id", i);
 		}
 	}
 	pps->single_slice_per_subpic_flag = 1;
@@ -11163,7 +11191,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		}
 
 		pps->num_tiles_in_pic = pps->num_tile_cols * pps->num_tile_rows;
-		pps->slice_address_len = gf_get_bit_size(pps->num_tiles_in_pic);
+		pps->slice_address_len = vvc_ceillog2(pps->num_tiles_in_pic);
 		if (pps->num_tiles_in_pic > 1) {
 			gf_bs_read_int_log(bs, 1, "pps_loop_filter_across_tiles_enabled_flag");
 			pps->rect_slice_flag = gf_bs_read_int_log(bs, 1, "pps_rect_slice_flag");
@@ -11218,6 +11246,13 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		}
 	}
 
+	//update subpic info - TODO, for now we assume single slice per subpic
+	if (sps->nb_subpics>1) {
+		for (i=0; i<pps_num_subpics; i++) {
+			VVC_SubpicInfo *sp = &pps->subpics[i];
+			sp->num_slices=1;
+		}
+	}
 
 	pps->cabac_init_present_flag = gf_bs_read_int_log(bs, 1, "pps_cabac_init_present_flag");
 	for (i=0; i<2; i++) {
@@ -11337,7 +11372,7 @@ static s32 vvc_parse_ref_pic_lists(GF_BitStream *bs, VVCSliceInfo *si, Bool is_p
 
 		if (rpl_sps_flag) {
 			if ((si->sps->num_ref_pic_lists[i]>1) && (!i || si->pps->rpl1_idx_present_flag)) {
-				u32 nb_bits =  gf_get_bit_size(si->sps->num_ref_pic_lists[i]);
+				u32 nb_bits =  vvc_ceillog2(si->sps->num_ref_pic_lists[i]);
 				rpl_idx = gf_bs_read_int_log_idx(bs, nb_bits, "rpl_idx", i);
 			}
 			else if (si->sps->num_ref_pic_lists[i] == 1) {
@@ -11789,7 +11824,7 @@ static u32 vvc_get_num_entry_points(VVCSliceInfo *si, u32 sh_slice_address, u32 
 
 static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 {
-	u32 i, slice_address=0, num_tiles_in_slice=1;
+	u32 i, subpic_id=0, slice_address=0, num_tiles_in_slice=1;
 
 	si->picture_header_in_slice_header_flag = gf_bs_read_int_log(bs, 1, "picture_header_in_slice_header_flag");
 	if (si->picture_header_in_slice_header_flag) {
@@ -11800,29 +11835,31 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 	if (!si->pps) return -1;
 	si->slice_type = GF_VVC_SLICE_TYPE_I;
 	if (si->sps->subpic_info_present) {
-		gf_bs_read_int_log(bs, si->sps->subpicid_len, "subpic_id");
+		subpic_id = gf_bs_read_int_log(bs, si->sps->subpicid_len, "subpic_id");
 	}
 
 	if (si->pps->rect_slice_flag) {
 		if ((si->sps->nb_subpics==1) && (si->pps->num_slices_in_pic<=1)) {
 
 		} else {
-			if (vvc->parse_mode==1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] sub-picture parsing not yet implemented, wrong slice header size estimation (result might be non-compliant) - patch welcome\n"));
-
-				gf_bs_align(bs);
-				si->payload_start_offset = (u32) gf_bs_get_position(bs);
-				return -2;
+			if (!vvc->parse_mode) {
+				return 0;
 			}
-			if (vvc->parse_mode) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] sub-picture parsing not supported, aborting slice header parsing - patch welcome\n"));
+			VVC_SubpicInfo *sp = NULL;
+			for (i=0;i<si->sps->nb_subpics; i++) {
+				if (si->pps->subpics[i].id==subpic_id) {
+					sp = &si->pps->subpics[i];
+					break;
+				}
 			}
-			return 0;
-			//TODO
-	// update CurrSubpicIdx
-	//		if (NumSlicesInSubpic[CurrSubpicIdx] > 1) {
-	//			sh_slice_address
-	//		}
+			if (!sp) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] sub-picture with id %u not found\n", subpic_id));
+				return -1;
+			}
+			if (sp->num_slices > 1 ) {
+				u32 shbits = vvc_ceillog2(sp->num_slices);
+				slice_address = gf_bs_read_int_log(bs, shbits, "sh_slice_address");
+			}
 		}
 	} else {
 		if (si->pps->num_tiles_in_pic > 1) {
