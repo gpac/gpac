@@ -834,7 +834,7 @@ void gf_net_close_capture()
 	netcap_filters = NULL;
 }
 
-static void gf_netcap_record(GF_NetcapFilter *nf)
+static GF_Err gf_netcap_record(GF_NetcapFilter *nf)
 {
 #ifdef GPAC_HAS_FD
 	if (!gf_opts_get_bool("core", "no-fd")) {
@@ -850,7 +850,7 @@ static void gf_netcap_record(GF_NetcapFilter *nf)
 	}
 	if (!nf->cap_bs) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Failed to setup net capture\n"));
-		exit(1);
+		return GF_IO_ERR;
 	}
 	nf->cap_mode = NETCAP_GPAC;
 	gf_bs_write_u32(nf->cap_bs, GF_GPC_MAGIC);
@@ -862,6 +862,7 @@ static void gf_netcap_record(GF_NetcapFilter *nf)
 	gf_bs_write_u32(nf->cap_bs, frac);
 	//header extension size
 	gf_bs_write_u32(nf->cap_bs, 0);
+	return GF_OK;
 }
 
 static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
@@ -941,7 +942,7 @@ static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
 	}
 }
 
-static void pcapng_load_shb(GF_NetcapFilter *nf)
+static GF_Err pcapng_load_shb(GF_NetcapFilter *nf)
 {
 	u32 blen = gf_bs_read_u32(nf->cap_bs);
 	u32 le_magic = gf_bs_read_u32(nf->cap_bs);
@@ -952,10 +953,11 @@ static void pcapng_load_shb(GF_NetcapFilter *nf)
 	} else {
 		gf_net_close_capture();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrrupted pacpng file\n"));
-		exit(1);
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	gf_bs_skip_bytes(nf->cap_bs, blen-12);
 	nf->pcap_num_interfaces = 0;
+	return GF_OK;
 }
 
 static void pcapng_load_idb(GF_NetcapFilter *nf)
@@ -977,7 +979,8 @@ static void pcapng_load_idb(GF_NetcapFilter *nf)
 #define SKIP_PCAP_PCK \
 	if (clen<0) {\
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));\
-		exit(1);\
+		nf->is_eos = GF_TRUE;\
+		return;\
 	}\
 	gf_bs_skip_bytes(nf->cap_bs, clen);\
 	clen=0;\
@@ -1010,7 +1013,11 @@ refetch_pcap:
 
 		u32 btype = nf->pcap_le ? gf_bs_read_u32_le(nf->cap_bs) : gf_bs_read_u32(nf->cap_bs);
 		if (btype==GF_4CC(0x0A, 0x0D, 0x0D, 0x0A)) {
-			pcapng_load_shb(nf);
+			GF_Err e = pcapng_load_shb(nf);
+			//if failure, nf is destroyed by gf_net_close_capture
+			if (e) {
+				return;
+			}
 			goto refetch_pcap;
 		} else if (btype==0x00000001) {
 			pcapng_load_idb(nf);
@@ -1145,7 +1152,8 @@ refetch_pcap:
 	}
 	if (clen<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));
-		exit(1);
+		nf->is_eos = GF_TRUE;
+		return;
 	}
 	//for pcap, skip ethernet CRC
 	if ((nf->cap_mode==NETCAP_PCAP) && (link_type==1))
@@ -1173,7 +1181,7 @@ refetch_pcap:
 	if (!clen) goto refetch_pcap;
 }
 
-static void gf_netcap_playback(GF_NetcapFilter *nf);
+static GF_Err gf_netcap_playback(GF_NetcapFilter *nf);
 
 GF_Err gf_netcap_setup(char *rules)
 {
@@ -1346,9 +1354,14 @@ GF_Err gf_netcap_setup(char *rules)
 	}
 	nf->nb_rules = gf_list_count(nf->rules);
 
-	if (nf->dst) gf_netcap_record(nf);
-	if (nf->src) gf_netcap_playback(nf);
-
+	if (nf->dst) {
+		GF_Err e = gf_netcap_record(nf);
+		if (e) return e;
+	}
+	if (nf->src) {
+		GF_Err e = gf_netcap_playback(nf);
+		if (e) return e;
+	}
 	return GF_OK;
 }
 
@@ -1522,7 +1535,7 @@ refetch:
 	}
 }
 
-static void gf_netcap_playback(GF_NetcapFilter *nf)
+static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 {
 #ifdef GPAC_HAS_FD
 	if (!gf_opts_get_bool("core", "no-fd")) {
@@ -1536,7 +1549,7 @@ static void gf_netcap_playback(GF_NetcapFilter *nf)
 	}
 	if (!nf->cap_bs) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Failed to setup capture playback\n"));
-		exit(1);
+		return GF_IO_ERR;
 	}
 	nf->read_socks = gf_list_new();
 
@@ -1561,14 +1574,14 @@ static void gf_netcap_playback(GF_NetcapFilter *nf)
 	} else {
 		gf_net_close_capture();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Unsupported capture file magic %s\n", gf_4cc_to_str(magic)));
-		exit(1);
+		return GF_NOT_SUPPORTED;
 	}
 	if (nf->cap_mode==NETCAP_GPAC) {
 		/*ntp_sec = */gf_bs_read_u32(nf->cap_bs);
 		/*ntp_frac = */gf_bs_read_u32(nf->cap_bs);
 		magic = gf_bs_read_u32(nf->cap_bs);
 		gf_bs_skip_bytes(nf->cap_bs, magic);
-		return;
+		return GF_OK;
 	}
 
 	if (nf->cap_mode==NETCAP_PCAP) {
@@ -1580,21 +1593,23 @@ static void gf_netcap_playback(GF_NetcapFilter *nf)
 		if (nf->link_types[0] > 1) {
 			gf_net_close_capture();
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Only ethernet and BSD-loopback pcap files are supported\n"));
-			exit(1);
+			return GF_NOT_SUPPORTED;
 		}
 	}
 	//pcapng
 	else if (nf->cap_mode==NETCAP_PCAPNG) {
-		pcapng_load_shb(nf);
+		GF_Err e = pcapng_load_shb(nf);
+		if (e) return e;
 
 		u32 btype = nf->pcap_le ? gf_bs_read_u32_le(nf->cap_bs) : gf_bs_read_u32(nf->cap_bs);
 		if (btype != 1) {
 			gf_net_close_capture();
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Missing IDB block after pacpng header\n"));
-			exit(1);
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		pcapng_load_idb(nf);
 	}
+	return GF_OK;
 }
 
 static GF_Err gf_netcap_send(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written)
