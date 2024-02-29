@@ -1597,7 +1597,7 @@ static GFINLINE void cenc_decrypt_block(GF_CENCDecCtx *ctx, GF_Crypt *crypt, Boo
 {
 	if (!valid_key) {
 		if (ctx->decrypt==DECRYPT_PAD1) {
-			memset(data, 0xF, size);
+			memset(data, 0xFF, size);
 		}
 		else if (ctx->decrypt==DECRYPT_PAD0) {
 			memset(data, 0x0, size);
