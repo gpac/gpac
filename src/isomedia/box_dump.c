@@ -367,11 +367,12 @@ GF_Err dinf_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err url_box_dump(GF_Box *a, FILE * trace)
 {
-	GF_DataEntryURLBox *p;
-
-	p = (GF_DataEntryURLBox *)a;
-	gf_isom_box_dump_start(a, "URLDataEntryBox", trace);
-	if (p->location) {
+	GF_DataEntryURLBox *p = (GF_DataEntryURLBox *)a;
+	const char *name = (p->type==GF_ISOM_BOX_TYPE_IMDT) ? "DataEntryImdaBox" : "URLDataEntryBox";
+	gf_isom_box_dump_start(a, name, trace);
+	if (p->type==GF_ISOM_BOX_TYPE_IMDT) {
+		gf_fprintf(trace, " imda_ID=\"%u\">\n", p->imda_ref_id);
+	} else if (p->location) {
 		gf_fprintf(trace, " URL=\"%s\">\n", p->location);
 	} else {
 		gf_fprintf(trace, ">\n");
@@ -383,7 +384,7 @@ GF_Err url_box_dump(GF_Box *a, FILE * trace)
 			}
 		}
 	}
-	gf_isom_box_dump_done("URLDataEntryBox", a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 

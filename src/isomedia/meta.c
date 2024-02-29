@@ -287,20 +287,46 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 			return GF_BAD_PARAM;
 		}
 	}
+	else if (location_entry->construction_method == 2) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Item %d use from-item construction method, not supported - patch welcome\n", item_num));
+		return GF_NOT_SUPPORTED;
+	}
 	/* when construction_method==1, data_reference_index is ignored */
 	/*FIXME*/
 	else if (location_entry->data_reference_index) {
 		char *item_url = NULL, *item_urn = NULL;
-		GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->child_boxes, location_entry->data_reference_index-1);
+		GF_FullBox *a = (GF_FullBox *)gf_list_get(meta->file_locations->dref->child_boxes, location_entry->data_reference_index-1);
 		if (!a) return GF_ISOM_INVALID_FILE;
 		if (a->type==GF_ISOM_BOX_TYPE_URL) {
-			item_url = ((GF_DataEntryURLBox*)a)->location;
+			if (!(a->flags & 1)) {
+				item_url = ((GF_DataEntryURLBox*)a)->location;
+			}
 		} else if (a->type==GF_ISOM_BOX_TYPE_URN) {
 			item_url = ((GF_DataEntryURNBox*)a)->location;
 			item_urn = ((GF_DataEntryURNBox*)a)->nameURN;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Item already outside the ISO file at URL: %s, URN: %s\n", (item_url?item_url:"N/A"), (item_urn?item_urn:"N/A") ));
-		return GF_OK;
+		if (item_url || item_urn) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[IsoMedia] Item already outside the ISO file at URL: %s, URN: %s\n", (item_url?item_url:"N/A"), (item_urn?item_urn:"N/A") ));
+			return GF_OK;
+		}
+		if (a->type==GF_ISOM_BOX_TYPE_IMDT) {
+			Bool found = GF_FALSE;
+			u32 imda_id = ((GF_DataEntryURLBox*)a)->imda_ref_id;
+			count = gf_list_count(file->TopBoxes);
+			for (i=0; i<count; i++) {
+				GF_MediaDataBox *imda = (GF_MediaDataBox *)gf_list_get(file->TopBoxes, i);
+				if (imda->type != GF_ISOM_BOX_TYPE_MDAT) continue;
+				if (!imda->is_imda) continue;
+				if (imda->imda_id != imda_id) continue;
+				idat_offset = imda->bsOffset;
+				found = GF_TRUE;
+				break;
+			}
+			if (!found) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Item %d references an inexistant imda box of id %u\n", item_num, imda_id));
+				return GF_BAD_PARAM;
+			}
+		}
 	}
 
 	/*don't extract self-reference item*/
