@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -979,10 +979,22 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				if (!entry) return GF_OUT_OF_MEM;
 				gf_list_add(iloc->extent_entries, entry);
 			}
-			entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
-			entry->extent_offset = 0;
-			/*0 means full length of referenced file*/
-			entry->extent_length = 0;
+			//if we use imdt, do NOT reset the extent length
+			GF_Box *url = gf_list_get(meta->file_locations->dref->child_boxes, iloc->data_reference_index-1);
+			if (!url || (url->type != GF_ISOM_BOX_TYPE_IMDT)) {
+				entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
+				entry->extent_offset = 0;
+				/*0 means full length of referenced file*/
+				entry->extent_length = 0;
+			} else {
+				u32 idx, icount = gf_list_count(file->TopBoxes);
+				for (idx=0; idx<icount; idx++) {
+					GF_MediaDataBox *mdat = (GF_MediaDataBox *)gf_list_get(file->TopBoxes, idx);
+					if (mdat->type!=GF_ISOM_BOX_TYPE_MDAT) continue;
+					if (!mdat->is_imda) continue;
+					mdat->is_imda = 2; //mark as used
+				}
+			}
 		}
 	}
 
@@ -2709,6 +2721,30 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 		} else {
 			e = WriteInplace(&mw, bs);
 		}
+
+		//rewrite all imda boxes
+		u32 i, count = gf_list_count(movie->TopBoxes);
+		for (i=0; i<count; i++) {
+			GF_MediaDataBox *mdat = (GF_MediaDataBox *)gf_list_get(movie->TopBoxes, i);
+			if (mdat->type!=GF_ISOM_BOX_TYPE_MDAT) continue;
+			//not an imda or not used by any item
+			//we could further optimize and do a partial purge of imda content
+			if (mdat->is_imda != 2) continue;
+
+			u64 offset = mdat->bsOffset-12;
+			u32 size = mdat->dataSize+12;
+			u64 orig_pos = gf_bs_get_position(movie->movieFileMap->bs);
+			gf_bs_seek(movie->movieFileMap->bs, offset);
+			while (size) {
+				u8 buf[2048];
+				u32 read = (size>2048) ? 2048 : size;
+				gf_bs_read_data(movie->movieFileMap->bs, buf, read);
+				gf_bs_write_data(bs, buf, read);
+				size -= read;
+			}
+			gf_bs_seek(movie->movieFileMap->bs, orig_pos);
+		}
+
 
 		gf_bs_del(bs);
 		if (!is_stdout)

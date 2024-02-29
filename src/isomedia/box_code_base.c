@@ -597,6 +597,13 @@ GF_Err url_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_DataEntryURLBox *ptr = (GF_DataEntryURLBox *)s;
 
+	//imdt case
+	if (ptr->type == GF_ISOM_BOX_TYPE_IMDT) {
+		ISOM_DECREASE_SIZE(ptr, 4);
+		ptr->imda_ref_id = gf_bs_read_u32(bs);
+		return GF_OK;
+	}
+
 	if (ptr->size) {
 		u32 location_size = (u32) ptr->size;
 		if (location_size < 1) {
@@ -629,6 +636,11 @@ GF_Err url_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
+	//imdt case
+	if (ptr->type == GF_ISOM_BOX_TYPE_IMDT) {
+		gf_bs_write_u32(bs, ptr->imda_ref_id);
+		return GF_OK;
+	}
 	//the flag set indicates we have a string (WE HAVE TO for URLs)
 	if ( !(ptr->flags & 1)) {
 		if (ptr->location) {
@@ -642,6 +654,11 @@ GF_Err url_box_size(GF_Box *s)
 {
 	GF_DataEntryURLBox *ptr = (GF_DataEntryURLBox *)s;
 
+	//imdt case
+	if (ptr->type == GF_ISOM_BOX_TYPE_IMDT) {
+		ptr->size+=4;
+		return GF_OK;
+	}
 	if ( !(ptr->flags & 1)) {
 		if (ptr->location) ptr->size += 1 + strlen(ptr->location);
 	}
