@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2023 Telecom ParisTech
+#     (c) 2003-2024 Telecom ParisTech
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -3122,10 +3122,6 @@ if test "$source_path_used" = "yes" ; then
     fi
 
     cd "$cur_dir"
-
-    echo "SRC_LOCAL_PATH=no" >> config.mak
-else
-    echo "SRC_LOCAL_PATH=yes" >> config.mak
 fi
 
 echo "SRC_PATH=$source_path" >> config.mak
