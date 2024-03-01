@@ -3599,7 +3599,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 
 
 	/*Crypto info*/
-	if (gf_isom_is_track_encrypted(file, trackNum)) {
+	if (gf_isom_is_media_encrypted(file, trackNum, stsd_idx)) {
 		const char *scheme_URI, *KMS_URI;
 		u32 scheme_type, version;
 		u32 IV_size;
