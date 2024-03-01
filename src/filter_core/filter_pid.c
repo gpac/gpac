@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -4034,7 +4034,15 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		if (!parse_prop)
 			goto skip_arg;
 
-		if (value && strpbrk(value, "$@")) {
+		//the following properties are templates, do not try to solve them here
+		switch (p4cc) {
+		case GF_PROP_PID_HLS_PLAYLIST:
+		case GF_PROP_PID_TEMPLATE:
+			parse_prop = GF_FALSE;
+			break;
+		}
+
+		if (parse_prop && value && strpbrk(value, "$@")) {
 			char *a_value = gf_strdup(value);
 			filter_solve_prop_template(filter, pid, &a_value);
 			strncpy(ref_prop_dump, a_value, GF_PROP_DUMP_ARG_SIZE-1);
