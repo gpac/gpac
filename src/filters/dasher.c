@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-DASH/HLS segmenter
@@ -1421,6 +1421,25 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->clamped_dur.den = 1;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAMP_DUR);
 		if (p && p->value.lfrac.den) ds->clamped_dur = p->value.lfrac;
+
+		//HLS variant playlist is allowed to use templates, resolve
+		if (ds->hls_vp_name) {
+			char szTempName[GF_MAX_PATH], szFinalName[GF_MAX_PATH];
+			e = gf_filter_pid_resolve_file_template(ds->ipid, ds->hls_vp_name, szTempName, 0, NULL);
+
+			if (!e) {
+				e = gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT, GF_FALSE, szFinalName, ds->rep_id, NULL, szTempName, NULL, 0, ds->bitrate, 0, ds->stl, ctx->tpl_force);
+			}
+
+			if (!e) {
+				gf_free(ds->hls_vp_name);
+				ds->hls_vp_name = gf_strdup(szFinalName);
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Failed to solve HLS variant playlist template %s: %s - will use default\n", ds->hls_vp_name, gf_error_to_string(e)));
+				gf_free(ds->hls_vp_name);
+				ds->hls_vp_name = NULL;
+			}
+		}
 
 		//HDR
 #if !defined(GPAC_DISABLE_AV_PARSERS)
@@ -3577,6 +3596,16 @@ static void dasher_set_content_components(GF_DashStream *ds)
 	gf_list_add(base_ds->set->content_component, component);
 }
 
+static char * dasher_cat_mpd_url(GF_DasherCtx *ctx, GF_DashStream *ds, const char *url)
+{
+	//if M3U8 and custom variant name, we must do the concatenation since the input URL is relative to the variant playlist
+	//but we produce a URL for the MPD
+	if (ctx->do_m3u8 && ds->hls_vp_name) {
+		char *rel = gf_url_concatenate(ds->hls_vp_name, url);
+		if (rel) return rel;
+	}
+	return gf_strdup(url);
+}
 typedef struct
 {
 	//this is not the template string, this is the resolved segment name for first segment, startNumber=0 and time=0
@@ -3584,7 +3613,7 @@ typedef struct
 	u32 nb_reused;
 } DashTemplateRecord;
 
-static u32 dasher_check_template_reuse(GF_DasherCtx *ctx, const char *tpl)
+static u32 dasher_check_template_reuse(GF_DasherCtx *ctx, GF_DashStream *ds, const char *tpl)
 {
 	DashTemplateRecord *tr;
 	u32 i, count = gf_list_count(ctx->tpl_records);
@@ -3596,9 +3625,24 @@ static u32 dasher_check_template_reuse(GF_DasherCtx *ctx, const char *tpl)
 		}
 	}
 	GF_SAFEALLOC(tr, DashTemplateRecord)
-	tr->tpl = gf_strdup(tpl);
+	tr->tpl = dasher_cat_mpd_url(ctx, ds, tpl);
 	gf_list_add(ctx->tpl_records, tr);
 	return 0;
+}
+
+static Bool dasher_check_hls_variant_path(GF_DasherCtx *ctx, GF_DashStream *ds, GF_DashStream *a_ds)
+{
+	if (ctx->do_m3u8 && a_ds->hls_vp_name && ds->hls_vp_name && strcmp(a_ds->hls_vp_name, ds->hls_vp_name)) {
+		Bool same_path = GF_FALSE;
+		char * n1 = gf_url_concatenate(a_ds->hls_vp_name, "test.mp4");
+		char * n2 = gf_url_concatenate(ds->hls_vp_name, "test.mp4");
+		if (n1 && n2 && !strcmp(n1, n2)) same_path = GF_TRUE;
+		if (n1) gf_free(n1);
+		if (n2) gf_free(n2);
+		if (!same_path)
+			return GF_TRUE;
+	}
+	return GF_FALSE;
 }
 
 static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
@@ -3713,6 +3757,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		if (ads->set == set) continue;
+		//custom HLS variant files are set and differ, no need to split set names
+		if (dasher_check_hls_variant_path(ctx, ds, ads))
+				continue;
+
 		frag_uri = strrchr(ds->src_url, '#');
 		if (frag_uri) len1 = (u32) (frag_uri-1 - ds->src_url);
 		else len1 = (u32) strlen(ds->src_url);
@@ -3764,6 +3812,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			a_ds = rep->playback.udta;
 
 			if (a_ds->muxed_base == ds)
+				continue;
+
+			//custom HLS variant files are set and differ, no need to split rep names
+			if (dasher_check_hls_variant_path(ctx, ds, a_ds))
 				continue;
 
 			p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_FILEPATH);
@@ -4084,7 +4136,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, is_source_template ? NULL : "mp4", 0, ds->bitrate, 0, ds->stl, ctx->tpl_force);
 
-			reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
+			reused_template_idx = dasher_check_template_reuse(ctx, ds, szInitSegmentFilename);
 			if (reused_template_idx) {
 				char szExName[20];
 				sprintf(szExName, "_r%d_", reused_template_idx);
@@ -4303,14 +4355,14 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
 					if (seg_template) {
 						if (skip_init_type) {
-							seg_template->initialization = force_init_seg_tpl ? gf_strdup(force_init_seg_tpl) : NULL;
+							seg_template->initialization = force_init_seg_tpl ? dasher_cat_mpd_url(ctx, ds, force_init_seg_tpl) : NULL;
 							seg_template->hls_init_name = force_init_seg_tpl ? tile_base_ds->init_seg : NULL;
 						} else {
 							//bs switching, if we have still template fields init segment template use resolved init file name - cf #2141
 							if (!force_init_template && is_bs_switch && strchr(szInitSegmentTemplate, '$'))
-								seg_template->initialization = gf_strdup(szInitSegmentFilename);
+								seg_template->initialization = dasher_cat_mpd_url(ctx, ds, szInitSegmentFilename);
 							else
-								seg_template->initialization = gf_strdup(szInitSegmentTemplate);
+								seg_template->initialization = dasher_cat_mpd_url(ctx, ds, szInitSegmentTemplate);
 							seg_template->hls_init_name = ds->init_seg;
 						}
 					}
@@ -4320,9 +4372,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, skip_init_type);
 
 				if (single_template) {
-					seg_template->media = gf_strdup(szSegmentName);
+					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
-						seg_template->index = gf_strdup(szIndexSegmentName);
+						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
 
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -4347,10 +4399,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					rep->segment_template = seg_template;
 					if (!init_template_done) {
 						if (skip_init_type) {
-							seg_template->initialization = force_init_seg_tpl ? gf_strdup(force_init_seg_tpl) : NULL;
+							seg_template->initialization = force_init_seg_tpl ? dasher_cat_mpd_url(ctx, ds, force_init_seg_tpl) : NULL;
 							seg_template->hls_init_name = force_init_seg_tpl ? tile_base_ds->init_seg : NULL;
 						} else {
-							seg_template->initialization = gf_strdup(szInitSegmentTemplate);
+							seg_template->initialization = dasher_cat_mpd_url(ctx, ds, szInitSegmentTemplate);
 							seg_template->hls_init_name = ds->init_seg;
 						}
 						dasher_open_destination(filter, ctx, rep, szInitSegmentFilename, skip_init_type);
@@ -4358,9 +4410,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 						dasher_open_destination(filter, ctx, rep, szInitSegmentFilename,
 							(skip_init_type==DASH_INITSEG_NONE) ? DASH_INITSEG_NONE : (set->bitstream_switching ? DASH_INITSEG_SKIP : DASH_INITSEG_PRESENT) );
 					}
-					seg_template->media = gf_strdup(szSegmentName);
+					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
-						seg_template->index = gf_strdup(szIndexSegmentName);
+						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -4385,7 +4437,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 			if (ctx->sseg) {
 				GF_MPD_SegmentBase *segment_base;
-				baseURL->URL = gf_strdup(szInitSegmentFilename);
+				baseURL->URL = dasher_cat_mpd_url(ctx, ds, szInitSegmentFilename);
+				baseURL->hls_vp_rel_url = ds->init_seg;
 				GF_SAFEALLOC(segment_base, GF_MPD_SegmentBase);
 				if (!segment_base) continue;
 				rep->segment_base = segment_base;
@@ -4397,7 +4450,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				GF_SAFEALLOC(seg_list->initialization_segment, GF_MPD_URL);
 				if (!seg_list->initialization_segment) continue;
 				seg_list->start_number = (u32) -1;
-				baseURL->URL = gf_strdup(szInitSegmentFilename);
+				baseURL->URL = dasher_cat_mpd_url(ctx, ds, szInitSegmentFilename);
+				baseURL->hls_vp_rel_url = ds->init_seg;
 				seg_list->dasher_segment_name = gf_strdup(szSegmentName);
 				seg_list->timescale = ds->mpd_timescale;
 				seg_list->duration = (u64) (ds->dash_dur.num) * ds->mpd_timescale / ds->dash_dur.den;
@@ -4418,7 +4472,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				GF_SAFEALLOC(seg_list->initialization_segment, GF_MPD_URL);
 				if (!seg_list->initialization_segment) continue;
 
-				seg_list->initialization_segment->sourceURL = gf_strdup(szInitSegmentFilename);
+				seg_list->initialization_segment->sourceURL = dasher_cat_mpd_url(ctx, ds, szInitSegmentFilename);
 			}
 			seg_list->dasher_segment_name = gf_strdup(szSegmentName);
 			seg_list->timescale = ds->mpd_timescale;
@@ -8037,7 +8091,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 
 		gf_list_add(ds->rep->segment_list->segment_URLs, seg_url);
 		if (szIndexName[0])
-			seg_url->index = gf_strdup(szIndexName);
+			seg_url->index = dasher_cat_mpd_url(ctx, ds, szIndexName);
 
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *frag_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
@@ -8161,7 +8215,7 @@ send_packet:
 		if (seg_url) {
 			gf_list_add(ds->rep->segment_list->segment_URLs, seg_url);
 			if (!ctx->do_index) {
-				seg_url->media = gf_strdup(szSegmentName);
+				seg_url->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 				if (!ctx->index_media_duration) {
 					gf_list_add(ds->pending_segment_urls, seg_url);
 					ctx->nb_seg_url_pending++;
@@ -8188,7 +8242,7 @@ send_packet:
 				}
 			}
 			if (szIndexName[0])
-				seg_url->index = gf_strdup(szIndexName);
+				seg_url->index = dasher_cat_mpd_url(ctx, ds, szIndexName);
 		}
 	}
 	if (pck)
@@ -10679,6 +10733,7 @@ GF_FilterRegister DasherRegister = {
 "- `CropOrigin`: indicates x and y coordinates of video for SRD (size is video size)\n"
 "- `SRD`: indicates SRD position and size of video for SRD, ignored if `CropOrigin` is set\n"
 "- `SRDRef`: indicates global width and height of SRD, ignored if `CropOrigin` is set\n"
+"- `HLSPL`: name of variant playlist, can use templates\n"
 "- `HLSMExt`: list of extensions to add to master playlist entries, ['foo','bar=val'] added as `,foo,bar=val`\n"
 "- `HLSVExt`: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as `#foo \\n #bar=val`\n"
 "- Non-dash properties: `Bitrate`, `SAR`, `Language`, `Width`, `Height`, `SampleRate`, `NumChannels`, `Language`, `ID`, `DependencyID`, `FPS`, `Interlaced`, `Codec`. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
@@ -10710,8 +10765,12 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "The segmenter will create multiplexing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.\n"
 "\n"
-"For HLS, the output PID will deliver the master playlist **and** the variant playlists.\n"
+"For HLS, the output manifest PID will deliver the master playlist **and** the variant playlists.\n"
 "The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant.\n"
+"\n"
+"When HLS mode is enabled, the segment [-template]() is relative to the variant playlist file, which can also be templated.\n"
+"EX gpac -i av.mp4:#HLSPL=$Type$/index.m3u8 -o dash/live.m3u8:dual:template='$Number$'\n"
+"This will put video segments and playlist in `dash/video/` and audio segments and playlist in `dash/audio/`\n"
 "\n"
 "## Segmentation\n"
 "The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.\n"

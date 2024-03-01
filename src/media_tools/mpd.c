@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -3946,6 +3946,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		}
 	} else {
 		GF_MPD_BaseURL *base_url=NULL;
+		const char *b_url=NULL;
 		GF_MPD_URL *init=NULL;
 
 		if (rep->segment_base && rep->segment_base->initialization_segment) init = rep->segment_base->initialization_segment;
@@ -3957,16 +3958,21 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		if (period->segment_list && period->segment_list->initialization_segment) init = period->segment_list->initialization_segment;
 
 		base_url = gf_list_get(rep->base_URLs, 0);
+		if (!base_url) {
+			if (close_file)
+				gf_fclose(out);
+			return GF_SERVICE_ERROR;
+		}
+		b_url = base_url->hls_vp_rel_url ? base_url->hls_vp_rel_url : base_url->URL;
 
 		if (init) {
-			gf_assert(base_url);
 			if (force_base_url)
-				force_url = gf_url_concatenate(force_base_url, base_url->URL);
+				force_url = gf_url_concatenate(force_base_url, b_url);
 
 			if (init->byte_range) {
-				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", force_url ? force_url : base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", force_url ? force_url : b_url, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
 			} else {
-				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : base_url->URL);
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : b_url);
 			}
 
 			if (force_url) {
@@ -3986,9 +3992,9 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			gf_fprintf(out,"#EXTINF:%g\n", dur);
 			gf_fprintf(out,"#EXT-X-BYTERANGE:%d@"LLU"\n", sctx->file_size, sctx->file_offset);
 			if (force_base_url)
-				force_url = gf_url_concatenate(force_base_url, base_url->URL);
+				force_url = gf_url_concatenate(force_base_url, b_url);
 
-			gf_fprintf(out,"%s\n", force_url ? force_url : base_url->URL);
+			gf_fprintf(out,"%s\n", force_url ? force_url : b_url);
 
 			if (force_url) {
 				gf_free(force_url);

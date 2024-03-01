@@ -5057,6 +5057,8 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * `SRDRef`: indicates global width and height of SRD, ignored if CropOrigin is set
 .br
+* `HLSPL`: name of variant playlist, can use templates
+.br
 * `HLSMExt`: list of extensions to add to master playlist entries, ['foo','bar=val'] added as ,foo,bar=val
 .br
 * `HLSVExt`: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as #foo \n #bar=val
@@ -5163,9 +5165,21 @@ The segmenter will create multiplexing filter chains for each representation and
 .br
 
 .br
-For HLS, the output PID will deliver the master playlist and the variant playlists.
+For HLS, the output manifest PID will deliver the master playlist and the variant playlists.
 .br
 The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant.
+.br
+
+.br
+When HLS mode is enabled, the segment .I template is relative to the variant playlist file, which can also be templated.
+.br
+Example
+.br
+gpac -i av.mp4:#HLSPL=$Type$/index.m3u8 -o dash/live.m3u8:dual:template='$Number$'
+.br
+
+.br
+This will put video segments and playlist in dash/video/ and audio segments and playlist in dash/audio/
 .br
 
 .br
