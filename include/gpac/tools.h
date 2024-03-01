@@ -379,6 +379,16 @@ Compares two timestamps
  */
 Bool gf_timestamp_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
 
+/*!
+\brief strict convert str into integer
+
+Validate and parse str into integer
+\param str text to convert to integer
+\param integer to fill
+\return GF_TRUE if str represents an integer without any leading space nor extra chars
+ */
+Bool gf_strict_atoi(const char* str, int* ans);
+
 /*! @} */
 
 /*!
