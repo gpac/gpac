@@ -1160,9 +1160,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		while ((att = gf_list_enum(rs->attributes, &j))) {
 			if (!stricmp(att->name, "dIpAddr")) dst_ip = att->value;
 			else if (!stricmp(att->name, "dPort")) {
-				char* end_ptr;
-				dst_port = strtol(att->value, &end_ptr, 10); 
-				if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
+				if(! gf_strict_atoi(att->value, &dst_port)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong dPort value (%s), it should be numeric \n", s->service_id, att->value));
 					return GF_CORRUPTED_DATA;
 				} else if(dst_port >= 65536 || dst_port < 0) {
@@ -1204,9 +1202,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			k=0;
 			while ((att = gf_list_enum(ls->attributes, &k))) {
 				if (!strcmp(att->name, "tsi")) {
-					char* end_ptr;
-					tsi = strtol(att->value, &end_ptr, 10); 
-					if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
+					if(! gf_strict_atoi(att->value, &tsi)) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TSI value (%s), it should be numeric \n", s->service_id, att->value));
 						return GF_CORRUPTED_DATA;
 					}
@@ -1262,9 +1258,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 							while ((att = gf_list_enum(fdt->attributes, &n))) {
 								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
 								else if (!strcmp(att->name, "TOI")) {
-									char * end_ptr;
-									rf->toi = strtol(att->value, &end_ptr, 10); 
-									if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
+									if(! gf_strict_atoi(att->value, &rf->toi)) {
 										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
 										gf_free(rf->filename);
 										gf_free(rf);
@@ -1299,9 +1293,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 							while ((att = gf_list_enum(fdt->attributes, &n))) {
 								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
 								else if (!strcmp(att->name, "TOI")) {
-									char * end_ptr;
-									rf->toi = strtol(att->value, &end_ptr, 10); 
-									if(isspace(*att->value) || end_ptr == att->value || *end_ptr != '\0') {
+									if(! gf_strict_atoi(att->value, &rf->toi)) {
 										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
 										gf_free(rf->filename);
 										gf_free(rf);

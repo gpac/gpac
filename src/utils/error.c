@@ -2169,3 +2169,9 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 	frac->den = (u32) r.den;
 	return res;
 }
+
+Bool gf_strict_atoi(const char* str, int* ans) {
+    char * end_ptr;
+    *ans = strtol(str, &end_ptr, 10); 
+    return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
+}
