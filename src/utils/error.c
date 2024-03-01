@@ -2171,7 +2171,7 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 }
 
 Bool gf_strict_atoi(const char* str, int* ans) {
-    char * end_ptr;
+    char* end_ptr = NULL;
     *ans = strtol(str, &end_ptr, 10); 
     return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
 }
