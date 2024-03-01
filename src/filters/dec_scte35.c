@@ -29,7 +29,7 @@
 typedef struct {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
-	u64 last_cts;
+	u64 last_dts;
 } SCTE35DecCtx;
 
 GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -141,10 +141,9 @@ GF_Err scte35dec_process(GF_Filter *filter)
 	gf_filter_pck_set_framing(pck_dst, GF_TRUE, GF_TRUE);
 	gf_filter_pck_set_sap(pck_dst, GF_FILTER_SAP_1);
 	//TODO: compute duration when available in the SCTE35 payload
-	gf_filter_pck_set_duration(pck_dst, (u32)(gf_filter_pck_get_cts(pck) - ctx->last_cts));
-	ctx->last_cts = gf_filter_pck_get_cts(pck);
-	gf_filter_pck_set_dts(pck_dst, gf_filter_pck_get_dts(pck));
-	gf_filter_pck_set_cts(pck_dst, ctx->last_cts);
+	gf_filter_pck_set_duration(pck_dst, (u32)(gf_filter_pck_get_dts(pck) - ctx->last_dts));
+	ctx->last_dts = gf_filter_pck_get_dts(pck);
+	gf_filter_pck_set_dts(pck_dst, ctx->last_dts);
 	gf_filter_pck_send(pck_dst);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
