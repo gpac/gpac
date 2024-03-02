@@ -1345,6 +1345,8 @@ enum
 
 	//PID has temi information
 	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M'),
+	//PID has SCTE35 information and PID number
+	GF_PROP_PID_SCTE35_PID = GF_4CC('S','C','3','5'),
 	//PID has no init segment associated (file forward mode of dasher)
 	GF_PROP_PID_NO_INIT = GF_4CC('P','N','I','N'),
 
