@@ -615,6 +615,9 @@ typedef enum
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
+	/*Event Message Track*/
+	GF_CODECID_EVTE = GF_4CC('e','v','t','e'),
+
 	/*! codecid for FFV1*/
 	GF_CODECID_FFV1 = GF_4CC('f','f','v','1'),
 
