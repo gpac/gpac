@@ -664,59 +664,13 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		p = gf_filter_pck_get_property_str(pck, "scte35");
 		if (p) {
-			//TODO: we should identify more precisely SCTE35 streams (e.g. with namespaces) to avoid redundancy properly
-			if (!tspid->ctx->scte35_stream) {
-				M2Pid *m2pid;
-				GF_SAFEALLOC(m2pid, M2Pid);
-				if (!m2pid) return GF_OUT_OF_MEM;
-
-				m2pid->sid = tspid->sid; // belongs to the same service
-				m2pid->ctx = tspid->ctx;
-				m2pid->codec_id = GF_CODECID_SCTE35;
-				m2pid->is_sparse = GF_TRUE;
-				m2pid->prog = tspid->prog;
-
-				m2pid->esi.stream_type = GF_STREAM_METADATA;
-				m2pid->esi.codecid = GF_CODECID_SCTE35;
-				m2pid->esi.timescale = tspid->esi.timescale;
-				m2pid->esi.caps = GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS|GF_ESI_STREAM_SPARSE;
-				//m2pid->esi.input_ctrl = tsmux_esi_ctrl;
-				m2pid->esi.input_udta = m2pid;
-
-				gf_list_add(tspid->ctx->pids, m2pid);
-
-				int scte35_pid = gf_m2ts_mux_program_get_pmt_pid(m2pid->prog);
-				scte35_pid += 1 + gf_m2ts_mux_program_get_stream_count(m2pid->prog);
-				m2pid->ctx->scte35_stream = gf_m2ts_program_stream_add(m2pid->prog, &m2pid->esi, scte35_pid, GF_FALSE, GF_FALSE, GF_FALSE);
-
-				GF_M2TSDescriptor *scte35_desc;
-				GF_SAFEALLOC(scte35_desc, GF_M2TSDescriptor);
-				if (!scte35_desc) return GF_OUT_OF_MEM;
-				scte35_desc->tag = GF_M2TS_REGISTRATION_DESCRIPTOR;
-				scte35_desc->data = gf_malloc(4);
-				if (!scte35_desc->data) return GF_OUT_OF_MEM;
-				scte35_desc->data[0] = 'C';
-				scte35_desc->data[1] = 'U';
-				scte35_desc->data[2] = 'E';
-				scte35_desc->data[3] = 'I';
-				scte35_desc->data_len = 4;
-				gf_list_add(m2pid->prog->loop_descriptors, scte35_desc);
-
-				m2pid->ctx->scte35_stream->process = tsmux_stream_process_scte35;
-
-				m2pid->prog->pmt->table_needs_update = GF_TRUE;
-				m2pid->ctx->pmt_update_pending = GF_TRUE;
-				m2pid->ctx->update_mux = GF_TRUE;
-			}
-
-			if (p->value.data.size > 1) { // skip fake declaration packet
-				gf_assert(!tspid->ctx->scte35_payload);
-				tspid->ctx->scte35_payload = gf_malloc(p->value.data.size);
-				memcpy(tspid->ctx->scte35_payload, p->value.data.ptr, p->value.data.size);
-				tspid->ctx->scte35_size = p->value.data.size;
-				tspid->ctx->scte35_stream->table_needs_update = GF_TRUE;
-				tspid->ctx->scte35_stream->table_needs_send = GF_TRUE;
-			}
+			gf_assert(tspid->ctx->scte35_stream);
+			gf_assert(!tspid->ctx->scte35_payload);
+			tspid->ctx->scte35_payload = gf_malloc(p->value.data.size);
+			memcpy(tspid->ctx->scte35_payload, p->value.data.ptr, p->value.data.size);
+			tspid->ctx->scte35_size = p->value.data.size;
+			tspid->ctx->scte35_stream->table_needs_update = GF_TRUE;
+			tspid->ctx->scte35_stream->table_needs_send = GF_TRUE;
 		}
 
 		if (tspid->nb_repeat_last) {
@@ -1347,6 +1301,48 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		//move to NO_TS, adjust min when checking buffering
 		if (ctx->keepts) {
 			prog->force_first_pts = GF_FILTER_NO_TS;
+		}
+
+		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_SCTE35_PID);
+		if (p && !tspid->ctx->scte35_stream) {
+			M2Pid *m2pid;
+			GF_SAFEALLOC(m2pid, M2Pid);
+			if (!m2pid) return GF_OUT_OF_MEM;
+
+			m2pid->sid = service_id; // belongs to the same service
+			m2pid->ipid = pid;       // attach to parent pid
+			m2pid->ctx = ctx;
+			m2pid->codec_id = GF_CODECID_SCTE35;
+			m2pid->is_sparse = GF_TRUE;
+			m2pid->prog = prog;
+
+			m2pid->esi.stream_type = GF_STREAM_METADATA;
+			m2pid->esi.codecid = GF_CODECID_SCTE35;
+			m2pid->esi.timescale = 90000;
+			m2pid->esi.caps = GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS|GF_ESI_STREAM_SPARSE;
+			//m2pid->esi.input_ctrl = tsmux_esi_ctrl;
+			m2pid->esi.input_udta = m2pid;
+
+			gf_list_add(tspid->ctx->pids, m2pid);
+
+			int scte35_pid = gf_m2ts_mux_program_get_pmt_pid(m2pid->prog);
+			scte35_pid += 1 + gf_m2ts_mux_program_get_stream_count(m2pid->prog);
+			m2pid->ctx->scte35_stream = gf_m2ts_program_stream_add(m2pid->prog, &m2pid->esi, scte35_pid, GF_FALSE, GF_FALSE, GF_FALSE);
+
+			GF_M2TSDescriptor *scte35_desc;
+			GF_SAFEALLOC(scte35_desc, GF_M2TSDescriptor);
+			if (!scte35_desc) return GF_OUT_OF_MEM;
+			scte35_desc->tag = GF_M2TS_REGISTRATION_DESCRIPTOR;
+			scte35_desc->data = gf_strdup("CUEI");
+			if (!scte35_desc->data) return GF_OUT_OF_MEM;
+			scte35_desc->data_len = 4;
+			gf_list_add(m2pid->prog->loop_descriptors, scte35_desc);
+
+			m2pid->ctx->scte35_stream->process = tsmux_stream_process_scte35;
+
+			m2pid->prog->pmt->table_needs_update = GF_TRUE;
+			m2pid->ctx->pmt_update_pending = GF_TRUE;
+			m2pid->ctx->update_mux = GF_TRUE;
 		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));

@@ -412,7 +412,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
 			//fallthrough
 		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
-			return; //ignore actively: these streams will be attached verbatim as properties to audio and video packets
+			return; //ignore actively: these streams will be attached verbatim as properties to audio and/or video packets
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
@@ -589,20 +589,24 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
-	u32 i, count;
-	GF_M2TS_ES *es = NULL;
-
-	count = gf_list_count(prog->streams);
-	for (i=0; i<count; i++) {
-		es = gf_list_get(prog->streams, i);
-		if (es->pid==prog->pmt_pid) continue;
-		if (es->flags & GF_M2TS_GPAC_CODEC_ID) continue;
-		if (es->stream_type == GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS) {
-			//declare empty property now on each audio and video pids to signal scte35 presence
+	u32 count = gf_list_count(prog->streams);
+	for (u32 i=0; i<count; i++) {
+		GF_M2TS_ES *es_scte35 = gf_list_get(prog->streams, i);
+		if (es_scte35->pid==prog->pmt_pid) continue;
+		if (es_scte35->flags & GF_M2TS_GPAC_CODEC_ID) continue;
+		if (es_scte35->stream_type == GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS) {
+			//declare static property on the first video pid to signal scte35 presence
 			//and avoid later dynamic downstream filters' (e.g. muxers) reconfigurations
-			GF_M2TS_SL_PCK pck = {0};
-			pck.stream = (GF_M2TS_ES *)es;
-			ctx->ts->on_event(ctx->ts, GF_M2TS_EVT_SCTE35_SPLICE_INFO, &pck);
+			for (u32 j=0; j<count; j++) {
+				GF_M2TS_ES *es = gf_list_get(prog->streams, j);
+				if (!es->user) continue;
+				const GF_PropertyValue *p = gf_filter_pid_get_property(es->user, GF_PROP_PID_STREAM_TYPE);
+				if (!p) continue;
+				if (p->value.uint == GF_STREAM_VISUAL) {
+					gf_filter_pid_set_property(es->user, GF_PROP_PID_SCTE35_PID, &PROP_UINT(es_scte35->pid) );
+					return;
+				}
+			}
 		}
 	}
 }
@@ -666,12 +670,7 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 					continue;
 			}
 
-			if (p->data) {
-				gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
-			} else {
-				static char c = 'X'; // fake data, used to initialize the property when no real data is yet available
-				gf_filter_pck_set_property_dyn(pck, szID, &PROP_CONST_DATA(&c, 1));
-			}
+			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
 			gf_free(p);
 		}
 		gf_list_del(stream->props);
@@ -1239,6 +1238,9 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				es->props = gf_list_new();
 			}
 			gf_list_add(es->props, t);
+
+			// send SCTE35 info only to the first video pid
+			break;
 		}
 	}
 	break;

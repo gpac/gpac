@@ -2170,9 +2170,6 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 
 static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
 {
-	if (att->value.data.size == 1 && *att->value.data.ptr == 'X')
-		return; // fake declaration packet
-
 	if (ctx->xml) {
 		inspect_printf(dump, " <SCTE35");
 	} else {
