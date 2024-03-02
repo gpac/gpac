@@ -84,6 +84,7 @@ GF_Err scte35dec_process(GF_Filter *filter)
 		if (!emib) return GF_OUT_OF_MEM;
 
 		// Values according to SCTE 214-3 2015
+		// TODO: parse SCTE-35: missing embedded dts=pcr (when from m2ts), presentation_time_delta=pts-dts
 		emib->timescale = gf_filter_pck_get_timescale(pck);
 		emib->presentation_time_delta = 0;
 		emib->event_duration = 0xFFFFFFFF;
@@ -141,7 +142,8 @@ GF_Err scte35dec_process(GF_Filter *filter)
 	gf_filter_pck_set_framing(pck_dst, GF_TRUE, GF_TRUE);
 	gf_filter_pck_set_sap(pck_dst, GF_FILTER_SAP_1);
 	//TODO: compute duration when available in the SCTE35 payload
-	gf_filter_pck_set_duration(pck_dst, (u32)(gf_filter_pck_get_dts(pck) - ctx->last_dts));
+	if (ctx->last_dts)
+		gf_filter_pck_set_duration(pck_dst, (u32)(gf_filter_pck_get_dts(pck) - ctx->last_dts));
 	ctx->last_dts = gf_filter_pck_get_dts(pck);
 	gf_filter_pck_set_dts(pck_dst, ctx->last_dts);
 	gf_filter_pck_send(pck_dst);
