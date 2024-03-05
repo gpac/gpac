@@ -639,15 +639,18 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 		//check if we can get the sample (make sure we have enougth data...)
 		new_size = gf_bs_get_size(mdia->information->dataHandler->bs);
+		if (offset > new_size) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("%s:%d datahandler %p data %p dataLength %d offset %ld data_size %d new_size %ld\n", __FILE__, __LINE__, mdia->information->dataHandler, (*samp)->data, (*samp)->dataLength, offset, data_size, new_size));
+		}
 		if (offset + data_size > new_size) {
 			//always refresh the size to avoid wrong info on http/ftp
 			new_size = gf_bs_get_refreshed_size(mdia->information->dataHandler->bs);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("%s:%d datahandler %p data %p dataLength %d offset %ld data_size %d new_size %ld\n", __FILE__, __LINE__, mdia->information->dataHandler, (*samp)->data, (*samp)->dataLength, offset, data_size, new_size));
 			if (offset + data_size > new_size) {
 				mdia->BytesMissing = offset + data_size - new_size;
 				return GF_ISOM_INCOMPLETE_FILE;
 			}
 		}
-
 		bytesRead = gf_isom_datamap_get_data(mdia->information->dataHandler, (*samp)->data, (*samp)->dataLength, offset);
 		//if bytesRead != sampleSize, we have an IO err
 		if (bytesRead < data_size) {
