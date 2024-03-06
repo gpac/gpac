@@ -2172,6 +2172,28 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 
 Bool gf_strict_atoi(const char* str, int* ans) {
     char* end_ptr = NULL;
-    *ans = strtol(str, &end_ptr, 10); 
+    *ans = strtol(str, &end_ptr, 10);
     return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
+}
+
+const char* gf_strmemstr(const char *data, u32 data_size, const char *pat)
+{
+       if (!pat || !data) return NULL;
+
+       u32 len_pat = (u32) strlen(pat);
+       if (len_pat==0) return data;
+       if (len_pat>data_size) return NULL;
+
+       //basically a memmem clone (we don't use for portability reasons)
+       while (1) {
+               char *next = memchr(data, pat[0], data_size);
+               if (!next) return NULL;
+               u32 left = data_size - (u32) (next-data);
+               if (left<len_pat) return NULL;
+               if (!memcmp(next, pat, len_pat)) return next;
+               //left is always at least 1
+               data_size = left-1;
+               data = next+1;
+       }
+       return NULL;
 }
