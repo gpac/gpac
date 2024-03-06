@@ -23,7 +23,6 @@
  *
  */
 
-#include <math.h>
 #include <gpac/route.h>
 
 #if !defined(GPAC_DISABLE_ROUTE)
@@ -960,8 +959,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	} else {
 		int old_size = obj->frags[start_frag].size;
 
-		int end = fmax(start_offset+size, obj->frags[end_frag-1].offset+obj->frags[end_frag-1].size);
-		obj->frags[start_frag].offset = fmin(obj->frags[start_frag].offset, start_offset);
+		int end = MAX(start_offset+size, obj->frags[end_frag-1].offset+obj->frags[end_frag-1].size);
+		obj->frags[start_frag].offset = MIN(obj->frags[start_frag].offset, start_offset);
 		obj->frags[start_frag].size = end - obj->frags[start_frag].offset;
 
 		if(end_frag == start_frag + 1) {
