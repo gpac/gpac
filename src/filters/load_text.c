@@ -4347,8 +4347,6 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	GF_Err e = gf_utf_get_string_from_bom((char *)data, data_size, &dst, &res, &res_size);
 	if (e) return NULL;
 
-	u8 orig_end = res[res_size-1];
-	res[res_size-1] = 0;
 	data = res;
 	//strip all spaces and \r\n\t
 	while (data[0] && strchr("\n\r\t ", (char) data[0]))
@@ -4356,7 +4354,6 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
-		res[res_size-1] = orig_end;\
 		if (dst) gf_free(dst);\
 		return _mime; \
 
@@ -4364,7 +4361,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	if (!strncmp(data, "WEBVTT", 6)) {
 		PROBE_OK(GF_FPROBE_SUPPORTED, "subtitle/vtt")
 	}
-	if (strstr(data, " --> ")) {
+	if (gf_strmemstr(data, res_size, " --> ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/srt")
 	}
 	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
@@ -4374,28 +4371,26 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ssa")
 	}
 
-	if ((data[0]=='{') && strstr(data, "}{")) {
+	if ((data[0]=='{') && gf_strmemstr(data, res_size, "}{")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/sub")
 
 	}
 	/*XML formats*/
-	if (!strstr(data, "?>") ) {
-		res[res_size-1] = orig_end;
+	if (!gf_strmemstr(data, res_size, "?>") ) {
 		if (dst) gf_free(dst);
 		return NULL;
 	}
 
-	if (strstr(data, "<x-quicktime-tx3g") || strstr(data, "<text3GTrack")) {
+	if (gf_strmemstr(data, res_size, "<x-quicktime-tx3g") || gf_strmemstr(data, res_size, "<text3GTrack")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "quicktime/text")
 	}
-	if (strstr(data, "TextStream")) {
+	if (gf_strmemstr(data, res_size, "TextStream")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttxt")
 	}
-	if (strstr(data, "<tt ") || strstr(data, ":tt ")) {
+	if (gf_strmemstr(data, res_size, "<tt ") || gf_strmemstr(data, res_size, ":tt ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 
-	res[res_size-1] = orig_end;
 	if (dst) gf_free(dst);
 	return NULL;
 }

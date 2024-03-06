@@ -296,6 +296,16 @@ Search a substring in a string without checking for case
  */
 Bool gf_strnistr(const char *text, const char *subtext, u32 subtext_len);
 
+/*!
+\brief search string in buffer
+
+Search for a substring in a memory buffer of characters that may not be null-terminated
+\param data buffer of chars in which to search
+\param data_size size of data buffer
+\param pat pattern to search for as a null-terminated string
+\return a pointer to the first occurrence of pat in data, or null if not found (may not be null-terminated)
+ */
+const char* gf_strmemstr(const char *data, u32 data_size, const char *pat);
 
 /*!
 \brief safe timestamp rescale
@@ -2308,7 +2318,7 @@ Bool gf_creds_check_membership(const char *username, const char *users, const ch
 
 /*to call whenever the OpenGL library is opened - this function is needed to bind OpenGL and remotery, and to load
 OpenGL extensions on windows
-not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL 
+not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL
 calls are made by the caller*/
 void gf_opengl_init();
 
@@ -2373,4 +2383,3 @@ void gf_gl_txw_reset(GF_GLTextureWrapper *tx);
 
 
 #endif		/*_GF_CORE_H_*/
-
