@@ -1159,7 +1159,15 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		j=0;
 		while ((att = gf_list_enum(rs->attributes, &j))) {
 			if (!stricmp(att->name, "dIpAddr")) dst_ip = att->value;
-			else if (!stricmp(att->name, "dPort")) dst_port = atoi(att->value);
+			else if (!stricmp(att->name, "dPort")) {
+				if(! gf_strict_atoi(att->value, &dst_port)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong dPort value (%s), it should be numeric \n", s->service_id, att->value));
+					return GF_CORRUPTED_DATA;
+				} else if(dst_port >= 65536 || dst_port < 0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong dPort value (%s), it should belong to the interval [0, 65535] \n", s->service_id, att->value));
+					return GF_CORRUPTED_DATA;
+				}
+			}
 		}
 
 		GF_SAFEALLOC(rsess, GF_ROUTESession);
@@ -1193,7 +1201,12 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//extract TSI
 			k=0;
 			while ((att = gf_list_enum(ls->attributes, &k))) {
-				if (!strcmp(att->name, "tsi")) sscanf(att->value, "%u", &tsi);
+				if (!strcmp(att->name, "tsi")) {
+					if(! gf_strict_atoi(att->value, &tsi)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TSI value (%s), it should be numeric \n", s->service_id, att->value));
+						return GF_CORRUPTED_DATA;
+					}
+				}
 			}
 			if (!tsi) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d missing TSI in LS/ROUTE session\n", s->service_id));
@@ -1244,7 +1257,14 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 							u32 n=0;
 							while ((att = gf_list_enum(fdt->attributes, &n))) {
 								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
-								else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &rf->toi);
+								else if (!strcmp(att->name, "TOI")) {
+									if(! gf_strict_atoi(att->value, &rf->toi)) {
+										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
+										gf_free(rf->filename);
+										gf_free(rf);
+										return GF_CORRUPTED_DATA;
+									}
+								}
 							}
 							if (!rf->filename) {
 								gf_free(rf);
@@ -1272,7 +1292,14 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 							u32 n=0;
 							while ((att = gf_list_enum(fdt->attributes, &n))) {
 								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
-								else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &rf->toi);
+								else if (!strcmp(att->name, "TOI")) {
+									if(! gf_strict_atoi(att->value, &rf->toi)) {
+										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
+										gf_free(rf->filename);
+										gf_free(rf);
+										return GF_CORRUPTED_DATA;
+									}
+								}
 							}
 							if (!rf->filename) {
 								gf_free(rf);
@@ -1528,6 +1555,8 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d same S-TSID version, ignoring\n",s->service_id));
 			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unsupported content type (%s), parsing payload is skipped\n", s->service_id, szContentType));
 		}
 		if (!sep) break;
 		sep[0] = boundary[0];
@@ -1540,6 +1569,16 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d Unable to process %d remaining characters in the payload due to data corruption\n",s->service_id, payload_size));
 		return GF_CORRUPTED_DATA;
 	} else {
+		GF_ROUTESession *rsess;
+		u32 i=0;
+		u32 nb_channels=0;
+		while ((rsess = gf_list_enum(s->route_sessions, &i))) {
+			nb_channels += gf_list_count(rsess->channels);
+		}
+		if(nb_channels == 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d No session found, dropping manifest\n", s->service_id));
+			return GF_INVALID_CONFIGURATION;
+		}
 		return GF_OK;
 	}
 }
