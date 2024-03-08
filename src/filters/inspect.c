@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -3883,6 +3883,18 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 				else if (!strcmp(prop_name, "tmcd:frames_per_tick"))
 					pctx->tmcd_fpt = p->value.uint;
 
+			}
+		}
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODEC);
+		if (!p &&!gf_sys_is_test_mode()) {
+			char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
+			szCodec[0] = 0;
+			if (gf_filter_pid_get_rfc_6381_codec_string(pid, szCodec, GF_FALSE, GF_FALSE, NULL, NULL)==GF_OK) {
+				GF_PropertyValue _p;
+				_p.type = GF_PROP_STRING;
+				_p.value.string = szCodec;
+				inspect_dump_property(ctx, dump, GF_PROP_PID_CODEC, NULL, &_p, pctx);
 			}
 		}
 	} else {
