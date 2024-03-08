@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -394,7 +394,7 @@ Bool gf_timestamp_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
 
 Validate and parse str into integer
 \param str text to convert to integer
-\param integer to fill
+\param ans integer to fill
 \return GF_TRUE if str represents an integer without any leading space nor extra chars
  */
 Bool gf_strict_atoi(const char* str, int* ans);
