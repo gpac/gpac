@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1987,6 +1987,14 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 	return "";
 }
 
+GF_EXPORT
+char *gf_props_dump_alloc(u32 p4cc, const GF_PropertyValue *att, GF_PropDumpDataMode dump_data_mode)
+{
+	char dump[GF_PROP_DUMP_ARG_SIZE];
+	const char *res = gf_props_dump(p4cc, att, dump, dump_data_mode);
+	if (!res) return NULL;
+	return gf_strdup(res);
+}
 
 GF_Err gf_prop_matrix_decompose(const GF_PropertyValue *p, u32 *flip_mode, u32 *rot_mode)
 {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -534,6 +534,10 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	gf_filter_set_name(filter, NULL);
 
 	gf_filter_parse_args(filter, args, arg_type, GF_FALSE);
+
+	if (! filter->dynamic_filter && (filter->session->flags & GF_FS_FLAG_FORCE_DEFER_LINK)) {
+		filter->deferred_link = GF_TRUE;
+	}
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	//not runing as worker and using sync read, force main thread
@@ -2996,7 +3000,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 				//packet is pending so was added at the end of our postponed queue - remove from queue and reinsert in front
 				gf_list_del_item(task->filter->postponed_packets, pck);
 				gf_list_insert(task->filter->postponed_packets, pck, 0);
-				task->requeue_request = GF_TRUE;
+				task->requeue_request = filter->deferred_link ? GF_FALSE : GF_TRUE;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s still has postponed packets, postponing process\n", filter->name));
 				return;
 			}
