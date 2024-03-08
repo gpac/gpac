@@ -236,6 +236,9 @@ typedef enum
 	/*! Flag set to force all filters to require a source ID (same as setting RSID option on all filters). This is typically used when the app sets links on all used filters while declaring more, unused filters.
 	*/
 	GF_FS_FLAG_REQUIRE_SOURCE_ID = 1<<12,
+	/*! Flag set to force all explicitly added filters to be loaded in deferred link state - linking will only happen once  \ref gf_filter_reconnect_output is called on the filter.
+	*/
+	GF_FS_FLAG_FORCE_DEFER_LINK = 1<<13
 } GF_FilterSessionFlags;
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.

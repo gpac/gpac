@@ -557,6 +557,12 @@ GF_FilterSession *gf_fs_new_defaults(GF_FilterSessionFlags inflags)
 	if (inflags & GF_FS_FLAG_NO_IMPLICIT)
 		flags |= GF_FS_FLAG_NO_IMPLICIT;
 
+	if (inflags & GF_FS_FLAG_REQUIRE_SOURCE_ID)
+		flags |= GF_FS_FLAG_REQUIRE_SOURCE_ID;
+
+	if (inflags & GF_FS_FLAG_FORCE_DEFER_LINK)
+		flags |= GF_FS_FLAG_FORCE_DEFER_LINK;
+
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 

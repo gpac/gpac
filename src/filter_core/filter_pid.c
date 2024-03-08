@@ -9071,6 +9071,7 @@ GF_Err rfc_6381_get_codec_uncv(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size
 GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id);
 
 
+GF_EXPORT
 GF_Err gf_filter_pid_get_rfc_6381_codec_string(GF_FilterPid *pid, char *szCodec, Bool force_inband, Bool force_sbr, const GF_PropertyValue *tile_base_dcd, u32 *out_inband_forced)
 {
 	u32 subtype=0, subtype_src=0, codec_id, stream_type;

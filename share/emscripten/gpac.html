@@ -118,8 +118,8 @@
         let is_custfs = false;
         let fsess=null;
         let prev_filter=null;
-        let prev_filter_defer=false;
         let step_mode=false;
+        let defer_mode=false;
         var FS = null;
         var element = document.getElementById('output');
         if (element) element.value = '/ %';
@@ -622,6 +622,8 @@
          if (args[0]=='fs') {
               set_status('Starting interactive graph builder');
               set_text('');
+              step_mode=false;
+              defer_mode=true;
               is_custfs = true;
               return;
          }
@@ -730,19 +732,27 @@
               }
               return;
             }
+            if (args[0]=='d') {
+              if (!fsess) {
+                defer_mode = !defer_mode;
+                set_status("will use defer linking mode: " + (defer_mode ? "yes" : "no"));
+              }
+              return;
+            }
             if (args[0]=='a') {
               if (args.length<2) return set_status('Invalid add command');
               if (!fsess) {
-                let flag = step_mode ? (1<<2) : 0;
+                let flag = 0;
+                if (step_mode) flag |= (1<<2);
+                if (defer_mode) flag |= (1<<13);
+
                 LIBGPAC.init(0, null);
                 fsess = LIBGPAC.fs_new_defaults(flag);
-                set_status("Creating filter session in " + step_mode ? 'non-blocking mode' : 'blocking mode');
+                set_status("Creating filter session in " + (step_mode ? 'non-blocking mode' : 'blocking mode') + (defer_mode ? ' - deferred linking' : '') );
               }
-              if (prev_filter) {
-                if (prev_filter_defer)
-                  LIBGPAC.filter_reconnect_output(prev_filter, null);
+              if (prev_filter && defer_mode) {
+                LIBGPAC.filter_reconnect_output(prev_filter, null);
                 prev_filter=null;
-                prev_filter_defer=false;
               }
 
               let fdesc = args[1]; 
@@ -768,17 +778,14 @@
                 fdesc = fdesc.substring(4);
                 f = LIBGPAC.fs_load_destination(fsess, fdesc, null, null, e);
               } else {
-                fdesc+=":gfloc:DL";
                 f = LIBGPAC.fs_load_filter(fsess, fdesc, e);
                 if (f) {
                   prev_filter = f;
-                  prev_filter_defer=true;
                 }
               }
               let res = LIBGPAC.getValue(e, 'i32');
               LIBGPAC._free(e);
               set_status("added filter "+args[1]+ " returned " + res);
-              prev_filter_defer=false;
               return;
             }
             if (args[0]=='r') {
@@ -806,7 +813,7 @@
                 var c_str = LIBGPAC.getValue(p_str, "i32");
                 var chain = LIBGPAC.UTF8ToString(c_str);
                 LIBGPAC.free(c_str);
-                set_text('resolved chain to ' + n + ' is: ' + chain);
+                set_text('resolved chain from ' + LIBGPAC.filter_get_name(prev_filter) + ' to ' + n + ' is: ' + chain);
               }
               LIBGPAC._free(p_str);
               return set_status(res ? ('Failed'+res) : 'OK');
@@ -825,7 +832,7 @@
                 var c_str = LIBGPAC.getValue(p_str, "i32");
                 var chain = LIBGPAC.UTF8ToString(c_str);
                 LIBGPAC.free(c_str);
-                set_text('possible destinations: ' + chain);
+                set_text('possible destinations for ' + LIBGPAC.filter_get_name(prev_filter) +': ' + chain);
               }
               LIBGPAC._free(p_str);
               return set_status(res ? ('Failed'+res) : 'OK');
@@ -836,13 +843,43 @@
               LIBGPAC.fs_print_connections(fsess);
               return;
             }
+            if (args[0]=='i') {
+              if (!prev_filter) return set_status('No current fiter, add a filter first');
+              txt='Filter ' + LIBGPAC.filter_get_name(prev_filter) + ' PID info:\n';
+
+              let c_i =  LIBGPAC.filter_get_ipid_count(prev_filter);
+              if (c_i) {
+                for (let idx=0; idx<c_i; idx++) {
+                  let pid = LIBGPAC.filter_get_ipid(prev_filter, idx);
+                  txt+='Input PID ' + (idx+1) + ' Properties:\n';
+                  let props = LIBGPAC.filter_pid_get_props(pid);
+                  txt+=JSON.stringify(props);
+                  txt+='\n\n';
+                }
+              }
+              let c_o =  LIBGPAC.filter_get_opid_count(prev_filter);
+              if (c_o) {
+                for (let idx=0; idx<c_o; idx++) {
+                  let pid = LIBGPAC.filter_get_opid(prev_filter, idx);
+                  txt+='Output PID ' + (idx+1) + ' Properties:\n';
+                  let props = LIBGPAC.filter_pid_get_props(pid);
+                  txt+=JSON.stringify(props);
+                  txt+='\n\n';
+                }
+              }
+              if (!c_i && !c_o) txt+='No PIDs - run session';
+              set_text(txt);
+              return;
+            }
 
             set_status("unknown command "+cmd);
             let help="Possible commands:\n";
-            help+= "- s: set non session blocking\n";
+            help+= "- s: set non session blocking (default: "+ step_mode + ")\n";
+            help+= "- s: set defer linking mode (default: "+ step_mode + ")\n";
             help+= "- a DESC: add filter, use src=URL for source, dst=URL for sinks. $(name) replacement rules are allowed\n";
             help+= "- r: run session\n";
             help+= "- v: view connections and stats\n";
+            help+= "- i: print pid properties\n";
             help+= "- p [pid_idx=0] DESC: probe resolution from pid with index pid_idx of last added filter to filter description DESC\n";
             help+= "- l [pid_idx=-1]: list possible destinations for pid of index pid_idx (-1 for all pids) of last added filter";            
             set_text(help);
@@ -1832,6 +1869,15 @@
     <!-- emscriptem module load -->
     <script type='text/javascript'>
 
+       function prop_to_js(_p, p4cc) {
+          //TODO: for now we only dump the property to string, we don't map it to JS values
+          let res = LIBGPAC.props_dump_alloc(p4cc, _p, 0);
+          if (!res) return null;
+          let val = LIBGPAC.UTF8ToString(res);
+          LIBGPAC._free(res);
+          return val;
+      }
+
       function load_libgpac(_lib, _lib)
       {
         let gpac_has_threads = LIBGPAC.cwrap('gpac_has_threads', 'number', []);
@@ -1888,9 +1934,48 @@
         _lib.fs_load_destination = LIBGPAC.cwrap('gf_fs_load_destination', 'number', ['number', 'string', 'string', 'string', 'number']);
 
         _lib.fs_run = LIBGPAC.cwrap('gf_fs_run', 'number', ['number']);
+        _lib.filter_get_name = LIBGPAC.cwrap('gf_filter_get_name', 'string', ['number']);
         _lib.filter_reconnect_output = LIBGPAC.cwrap('gf_filter_reconnect_output', 'number', ['number','number']);
         _lib.filter_probe_link = LIBGPAC.cwrap('gf_filter_probe_link', 'number', ['number','number','string', 'number']);
         _lib.filter_get_destinations = LIBGPAC.cwrap('gf_filter_get_possible_destinations', 'number', ['number','number', 'number']);
+        _lib.filter_get_ipid_count = LIBGPAC.cwrap('gf_filter_get_ipid_count', 'number', ['number']);
+        _lib.filter_get_ipid = LIBGPAC.cwrap('gf_filter_get_ipid', 'number', ['number','number']);
+        _lib.filter_get_opid_count = LIBGPAC.cwrap('gf_filter_get_opid_count', 'number', ['number']);
+        _lib.filter_get_opid = LIBGPAC.cwrap('gf_filter_get_opid', 'number', ['number','number']);
+        _lib.filter_is_sink = LIBGPAC.cwrap('gf_filter_is_sink', 'number', ['number']);
+        _lib.filter_is_source = LIBGPAC.cwrap('gf_filter_is_source', 'number', ['number']);
+        _lib.filter_pid_get_property = LIBGPAC.cwrap('gf_filter_pid_get_property', 'number', ['number', 'number']);
+        _lib.filter_pid_get_property_str = LIBGPAC.cwrap('gf_filter_pid_get_property', 'number', ['number', 'string']);
+        _lib.filter_pid_enum_properties = LIBGPAC.cwrap('gf_filter_pid_enum_properties', 'number', ['number', 'number', 'number', 'string']);
+        _lib.props_4cc_name = LIBGPAC.cwrap('gf_props_4cc_get_name', 'string', ['number']);
+        _lib.props_dump_alloc = LIBGPAC.cwrap('gf_props_dump_alloc', 'number', ['number','number','number']);
+
+        _lib.filter_pid_get_props = (pid) => {
+            props = [];
+            const p_idx = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            const p_4cc = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            const p_name = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            LIBGPAC.HEAP32.set([0], p_idx/LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            while (1) {
+              let _p = _lib.filter_pid_enum_properties(pid, p_idx, p_4cc, p_name);
+              if (!_p) break;
+
+              let prop_4cc = LIBGPAC.getValue(p_4cc, 'i32');
+              let c_str = LIBGPAC.getValue(p_name, "i32"); //const, no need to free
+              let prop_name = c_str ? LIBGPAC.UTF8ToString(c_str) : null;
+
+              p = {};
+              p.name = prop_4cc ? _lib.props_4cc_name(prop_4cc) : prop_name;
+
+              p.value = prop_to_js(_p, prop_4cc);
+              if (p.value)
+                props.push(p);
+            }
+            LIBGPAC._free(p_idx);
+            LIBGPAC._free(p_4cc);
+            LIBGPAC._free(p_name);
+            return props;
+        };
       }
 
 
