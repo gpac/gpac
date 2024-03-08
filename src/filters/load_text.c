@@ -4349,8 +4349,10 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 
 	data = res;
 	//strip all spaces and \r\n\t
-	while (data[0] && strchr("\n\r\t ", (char) data[0]))
-		data ++;
+	while (data[0] && strchr("\n\r\t ", (char) data[0])) {
+		data++;
+		res_size--;
+	}
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
