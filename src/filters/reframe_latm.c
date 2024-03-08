@@ -629,7 +629,7 @@ static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	while (1) {
 		u32 nb_skipped = 0;
 		if (!latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL, &nb_skipped)) break;
-		if (acfg.base_sr_index > sizeof(GF_M4ASampleRates) / sizeof(GF_M4ASampleRates[0]) || GF_M4ASampleRates[acfg.base_sr_index] == 0) {
+		if (acfg.base_sr_index >= GF_ARRAY_LENGTH(GF_M4ASampleRates) || GF_M4ASampleRates[acfg.base_sr_index] == 0) {
 			nb_frames = 0;
 			break;
 		}
