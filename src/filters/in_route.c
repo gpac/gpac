@@ -190,7 +190,7 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
     //if box completely in a received byte range, keep as is
     //if mdat or free box, keep as is
     //otherwise change box type to free
-    while (pos + 8 < size) {
+    while ((u64)pos + 8 < size) {
         u32 i;
 		Bool is_mdat = GF_FALSE;
         Bool box_complete = GF_FALSE;
