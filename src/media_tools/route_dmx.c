@@ -830,6 +830,14 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->tsi = tsi;
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
+		if (obj->alloc_size < total_len) {
+            gf_mx_p(routedmx->blob_mx);
+            obj->payload = gf_realloc(obj->payload, total_len);
+            obj->alloc_size = total_len;
+            obj->blob.size = total_len;
+            obj->blob.data = obj->payload;
+            gf_mx_v(routedmx->blob_mx);
+        }
 		if (tsi && rlct) {
 			count = gf_list_count(rlct->static_files);
 			obj->rlct = rlct;
