@@ -54,7 +54,7 @@ enum
 typedef struct
 {
 	//options
-	char *src, *ifce, *odir;
+	char *src, *ifce, *odir, *repair_url;
 	Bool gcache, kc, skipr, reorder, fullseg;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
 	s32 tunein, stsi;
@@ -283,11 +283,17 @@ static Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo
 	if (finfo->blob->mx)
 		gf_mx_p(finfo->blob->mx);
 	
-    if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
-        drop_if_first = routein_repair_segment_ts(ctx, finfo);
-    } else {
-        routein_repair_segment_isobmf(ctx, finfo);
-    }
+	if(ctx->repair==ROUTEIN_REPAIR_FULL && ctx->repair_url) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Initiating repair procedure for object (TSI=%u, TOI=%u) using repair URL: %s \n", finfo->tsi, finfo->toi, ctx->repair_url));
+		// create unicast connexion
+		
+	} else {
+		if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
+			drop_if_first = routein_repair_segment_ts(ctx, finfo);
+		} else {
+			routein_repair_segment_isobmf(ctx, finfo);
+		}
+	}
 
 	if (finfo->blob->mx)
 		gf_mx_v(finfo->blob->mx);
@@ -911,6 +917,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- strict: incomplete mdat boxes will be lost as well as preceding `moof` boxes\n"
 		"- full: HTTP-based repair, not yet implemented"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(repair_url), "repair url", GF_PROP_NAME, NULL, NULL, 0},
 
 	{0}
 };
