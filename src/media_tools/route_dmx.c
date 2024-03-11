@@ -783,7 +783,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 	}
 
-	if(total_len && (start_offset + size > total_len)) {
+	if(total_len && ((u64)start_offset + size > total_len)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Corrupted data: Offset (%u) + Size (%u) exceeds Total Size of the object (%u), skipping\n", s->service_id, tsi, toi, start_offset, size, total_len));
 		return GF_NOT_SUPPORTED;
 	}
@@ -1025,7 +1025,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
         obj->blob.data = obj->payload;
         gf_mx_v(routedmx->blob_mx);
     }
-	gf_assert(obj->alloc_size >= start_offset + size);
+	gf_assert(obj->alloc_size >= (u64)start_offset + size);
 
 	memcpy(obj->payload + start_offset, data, size);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u append LCT fragment, offset %d total size %d recv bytes %d - offset diff since last %d\n", s->service_id, obj->tsi, obj->toi, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
