@@ -1821,7 +1821,7 @@ typedef void *CUDADRIVER;
 
 
 
-#if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
+#if defined(__x86_64) || defined(AMD64) || defined(_M_AMD64) || defined(__aarch64__)
 #if (CUDA_VERSION >= 3020) && (!defined(CUDA_FORCE_API_VERSION) || (CUDA_FORCE_API_VERSION >= 3020))
 #define __CUVID_DEVPTR64
 #endif
@@ -2526,7 +2526,7 @@ typedef CUresult CUDAAPI tcuvidMapVideoFrame(CUvideodecoder hDecoder, int nPicId
 typedef CUresult CUDAAPI tcuvidUnmapVideoFrame(CUvideodecoder hDecoder, unsigned int DevPtr);
 #endif
 
-#if defined(WIN64) || defined(_WIN64) || defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
+#if defined(WIN64) || defined(_WIN64) || defined(__x86_64) || defined(AMD64) || defined(_M_AMD64) || defined(__aarch64__)
 /**
  * \fn CUresult CUDAAPI cuvidMapVideoFrame64(CUvideodecoder hDecoder, int nPicIdx, unsigned long long *pDevPtr, unsigned int *pPitch, CUVIDPROCPARAMS *pVPP);
  * map a video frame
