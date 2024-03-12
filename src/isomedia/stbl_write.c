@@ -1980,7 +1980,9 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 	ctts->nb_entries++;
 	if (offset<0) ctts->version=1;
 
-	if (ABS(offset) >= ctts->max_cts_delta) {
+	if(offset == GF_INT_MIN) {
+		ctts->max_cts_delta = GF_INT_MAX;
+	} else if (ABS(offset) > ctts->max_cts_delta) {
 		ctts->max_cts_delta = ABS(offset);
 		//ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
 	}
