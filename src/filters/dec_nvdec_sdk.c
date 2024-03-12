@@ -197,7 +197,7 @@ tcuvidDecodePicture                   *cuvidDecodePicture;
 tcuvidMapVideoFrame                   *cuvidMapVideoFrame;
 tcuvidUnmapVideoFrame                 *cuvidUnmapVideoFrame;
 
-#if defined(WIN64) || defined(_WIN64) || defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
+#if defined(WIN64) || defined(_WIN64) || defined(__x86_64) || defined(AMD64) || defined(_M_AMD64) || defined(__aarch64__)
 tcuvidMapVideoFrame64                 *cuvidMapVideoFrame64;
 tcuvidUnmapVideoFrame64               *cuvidUnmapVideoFrame64;
 #endif
