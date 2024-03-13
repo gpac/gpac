@@ -110,7 +110,7 @@ DrawPath shall always be called after TexturePath*/
 void visual_2d_draw_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_EVGStencil * brush, GF_EVGStencil * pen, GF_TraverseState *tr_state);
 /*special texturing extension for text, using a given path (text rectangle) and texture*/
 void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_ctx, GF_Path *path, GF_Rect *object_bounds, GF_TextureHandler *txh, GF_TraverseState *tr_state);
-/*fill given rect with given color with given ctx transform and clipper (used for text hilighting only)
+/*fill given rect with given color with given ctx transform and clipper (used for text highlighting only)
 if rc is NULL, fills object bounds*/
 void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect *rc, u32 color, u32 strike_color, GF_TraverseState *tr_state);
 
