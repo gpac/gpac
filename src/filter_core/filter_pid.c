@@ -5520,6 +5520,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 		GF_FilterPid *pidi = gf_list_get(filter->input_pids, 0);
 		gf_filter_pid_copy_properties(pid, pidi);
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s created new PID - defer link %d\n", filter->name, filter->deferred_link));
 	gf_mx_v(filter->tasks_mx);
 	return pid;
 }
@@ -8479,8 +8480,12 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		} else if (!strcmp(name, "FS")) {
 			str_val = file_suffix ? file_suffix : "";
 			is_ok = GF_TRUE;
-		} else if (!strcmp(name, "Type")) {
+		} else if (!strcmp(name, "Type") || !strcmp(name, "OType")) {
 			prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
+			//for OType resolve to original type if encrypted
+			if (!strcmp(name, "OType") && prop_val && (prop_val->value.uint==GF_STREAM_ENCRYPTED)) {
+				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+			}
 			if (prop_val) {
 				str_val = gf_stream_type_short_name(prop_val->value.uint);
 				is_ok = GF_TRUE;

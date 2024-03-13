@@ -341,6 +341,7 @@ const char *gpac_doc =
 "- URL: URL of source file\n"
 "- File: path on disk for source file; if not found, use URL if set, or PID name otherwise\n"
 "- Type: name of stream type of PID (`video`, `audio` ...)\n"
+"- OType: same as `Type` but uses original type when stream is encrypted (e.g. move from `crypt` to `video`)\n"
 "- p4cc=ABCD: uses PID property with 4CC value `ABCD`\n"
 "- pname=VAL: uses PID property with name `VAL`\n"
 "- cts, dts, dur, sap: uses properties of first packet in PID at template resolution time\n"
