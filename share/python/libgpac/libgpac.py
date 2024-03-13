@@ -44,7 +44,7 @@
 #
 # Properties types are automatically converted to and from string. If the property name is not a built-in property type, the property is assumed to be a user-defined property. 
 # For example, when querying or setting a stream type property, use the property name `StreamType`.
-# See [`gpac -h props`](https://github.com/gpac/gpac/wiki/filters_properties) for the complete list of built-in property names.
+# See [`gpac -h props`](https://wiki.gpac.io/Filters/filters_properties/) for the complete list of built-in property names.
 #
 # Properties values are automatically converted to or from python types whenever possible. Types with no python equivalent (vectors, fractions) are defined as classes in python.
 # For example:
