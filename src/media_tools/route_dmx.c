@@ -861,7 +861,14 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		gf_list_add(s->objects, obj);
 	} else if (!obj->total_length && total_len) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->service_id, tsi, toi, total_len));
-        
+        // Check if there are no fragments in the object that extend beyond the total length
+		for (i=0; i < obj->nb_frags; i++) {
+			if((u64) obj->frags[i].offset + obj->frags[i].size > total_len) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u: TOL (%u) doesn't cover previously received fragment [%u, %u[, purging object \n", s->service_id, tsi, toi, total_len, obj->frags[i].offset, obj->frags[i].offset+obj->frags[i].size));
+				obj->nb_frags = obj->nb_recv_frags = 0;
+				obj->nb_bytes = obj->nb_recv_bytes = 0;
+			}
+		}
         if (obj->alloc_size < total_len) {
             gf_mx_p(routedmx->blob_mx);
             obj->payload = gf_realloc(obj->payload, total_len);
