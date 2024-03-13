@@ -60,8 +60,8 @@ GPAC can process, analyse, package, stream, encode, decode and playback a wide v
 - Python and NodeJS bindings
 
 Features are encapsulated in processing modules called filters:
-- to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://github.com/gpac/gpac/wiki/Filters).
-- to get the full list of playback features, check [the dedicated wiki page](https://github.com/gpac/gpac/wiki/Player-Features).
+- to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://wiki.gpac.io/Filters/Filters/).
+- to get the full list of playback features, check [the dedicated wiki page](https://wiki.gpac.io/Player/Player/).
 
 
 # Tools
@@ -81,7 +81,7 @@ Stable and nightly builds installers for Windows, Linux, OSX, Android, iOS are a
 If you want to compile GPAC yourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
 
 ## Documentation
-The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://github.com/gpac/gpac/wiki/Howtos).
+The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://wiki.gpac.io/Howtos/howtos/).
 
 GPAC tools are mostly wrappers around an underlying library called libgpac which can easily be embedded in your projects. The libgpac developer documentation is available at [doxygen.gpac.io](https://doxygen.gpac.io), including documentation of [JS APIs](https://doxygen.gpac.io/group__jsapi__grp.html), [Python APIs](https://doxygen.gpac.io/group__pyapi__grp.html) and [NodeJS APIs](https://doxygen.gpac.io/group__nodejs__grp.html).
 
@@ -89,7 +89,7 @@ GPAC tools are mostly wrappers around an underlying library called libgpac which
 ## Testing
 GPAC has a test suite exercising most features of the framework. The test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
 
-For more details on the test suite, read [this page](https://github.com/gpac/gpac/wiki/GPAC_tests) and check the [testsuite readme](https://github.com/gpac/testsuite).
+For more details on the test suite, read [this page](https://wiki.gpac.io/Build/tests/GPAC_tests/) and check the [testsuite readme](https://github.com/gpac/testsuite).
 
 Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
