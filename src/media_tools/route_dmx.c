@@ -1773,6 +1773,9 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 		case GF_LCT_EXT_TOL24:
 			tol_size = gf_bs_read_int(routedmx->bs, 24);
+			if(! tol_size) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong TOL=%u value \n", s->service_id, tol_size));
+			}
 			break;
 
 		case GF_LCT_EXT_TOL48:
@@ -1781,6 +1784,9 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				continue;
 			}
 			tol_size = gf_bs_read_long_int(routedmx->bs, 48);
+			if(! tol_size) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong TOL=%u value \n", s->service_id, tol_size));
+			}
 			break;
 
 		default:
