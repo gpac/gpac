@@ -112,7 +112,7 @@ ifeq ($(UNIT_TESTS),yes)
 	@cd unittests/build && $(MAKE) -C src && $(MAKE) -C src unit_tests
 
 	@echo "- executing"
-	@LD_LIBRARY_PATH=unittests/build/bin/gcc unittests/build/bin/gcc/unittests
+	unittests/launch.sh
 
 	@echo "- done"
 endif
