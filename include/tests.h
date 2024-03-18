@@ -9,32 +9,6 @@ extern int checks_failed;
 
 static Bool verbose_ut = GF_FALSE;
 
-// provide some flavoured asserts 
-
-#define custom_message_assert(expr, msg)                             \
-    do {                                                             \
-        if (expr) {                                                  \
-            checks_passed++;                                         \
-        } else {                                                     \
-            checks_failed++;                                         \
-        }                                                            \
-        ((expr)                                                      \
-         ? gf_fatal_assert(0)                                        \
-         : printf("Assertion failed: %s\nMessage: %s\n\tFile: %s\nLine: %d\nFunction: %s\n", #expr, msg, __FILE__, __LINE__, __ASSERT_FUNCTION)); \
-    } while (0)
-
-#define custom_action_assert(expr, action)                           \
-    do {                                                             \
-        if (expr) {                                                  \
-            checks_passed++;                                         \
-        } else {                                                     \
-            checks_failed++;                                         \
-        }                                                            \
-        ((expr)                                                      \
-         ? gf_fatal_assert(0)                                        \
-         : (action, gf_fatal_assert(0)));                            \
-    } while (0)
-
 #define assert_true(expr)                                            \
     do {                                                             \
         if (expr) {                                                  \
@@ -46,15 +20,12 @@ static Bool verbose_ut = GF_FALSE;
         }                                                            \
     } while (0)
 
-#define assert_false(expr) assert_true(!(expr))
-
-#define assert_equal_str(str1, str2)                                 \
-    do {                                                             \
-        if (!strcmp(str1, str2)) {                                   \
-            if (verbose_ut) printf("Assertion passed: Value: (%s, %s), File: %s, Line: %d, Function: %s\n", #str1, #str2, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-            checks_passed++;                                         \
-        } else {                                                     \
-            checks_failed++;                                         \
-            gf_assert(0);                                            \
-        }                                                            \
-    } while (0)
+#define assert_false(expr)                assert_true(!(expr))
+#define assert_equal_str(str1, str2)      assert_true(!strcmp((str1), (str2)))
+#define assert_not_equal_str(str1, str2)  assert_true(strcmp((str1), (str2)))
+#define assert_equal(a, b)                assert_true((a) == (b))
+#define assert_greater(a, b)              assert_true((a) > (b))
+#define assert_greater_equal(a, b)        assert_true((a) >= (b))
+#define assert_less(a, b)                 assert_true((a) < (b))
+#define assert_less_equal(a, b)           assert_true((a) <= (b))
+#define assert_not_null(ptr)              assert_true((ptr) != NULL)
