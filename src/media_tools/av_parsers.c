@@ -10745,7 +10745,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 				if (sps->subpicid_mapping_present) {
 					for (i=0; i<sps->nb_subpics; i++) {
 						VVC_SubpicInfo *sp = &sps->subpics[i];
-						sp->id = gf_bs_read_ue_log(bs, "subpic_id");
+						sp->id = gf_bs_read_int_log_idx(bs, sps->subpicid_len, "subpic_id", i);
 					}
 				}
 			}
