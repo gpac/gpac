@@ -116,13 +116,30 @@
         let is_eval = false;
         let is_bsize = false;
         let is_custfs = false;
-        let fsess=null;
+        var fsess=null;
         let prev_filter=null;
-        let step_mode=false;
         let defer_mode=false;
+        let suspend_sess=false;
+        let fs_steps=20;
         var FS = null;
         var element = document.getElementById('output');
         if (element) element.value = '/ %';
+
+        const run_session = () => {
+          let i=fs_steps;
+          while (i) {
+            let e = LIBGPAC.fs_run(fsess);
+            if (e) break;
+            i--;
+          }
+          if (suspend_sess || LIBGPAC.fs_last_task(fsess)) {
+              animElement.stop();
+              if (!suspend_sess) set_status('Session done');
+              suspend_sess=false;
+          } else {
+            setTimeout(run_session, 0);
+          }
+        }
 
         //start anim on logo
         animElement.start = function() {
@@ -204,12 +221,13 @@
         function run_script(cmd) {
           var element = document.getElementById('output');
           if (!element) return;
-          var js_txt = element.value;
-          element.setAttribute('readonly', true);
-          element.value = '';
+          var js_txt = element.innerText;
+          element.removeAttribute('contenteditable');
+          element.innerText = '';
           is_eval = false;
           set_status('');
           err = '';
+          console.log('text is ' + js_txt);
           if (!cmd.length || (cmd=='go')) {
               var fun = Function(js_txt);
               try {
@@ -221,12 +239,15 @@
           }
           let runElement = document.getElementById('run_script');
           runElement.hidden = true;
+          var cmdDiv = document.getElementById('cmd_div');
+          cmdDiv.hidden = false;
           return com_exit(err);
         }
         function set_text(txt)
         {
             var element = document.getElementById('output');
-            if (element) element.innerText = txt;
+            if (txt.length) element.innerText += txt;
+            else element.innerText = '';
         }
 
         //utility to log command error and append '/cwd/ %' at end of textArea
@@ -245,20 +266,37 @@
         function process_command() {
          var cmdElement = document.getElementById('cmd');
          var cmd = cmdElement.value;
+         set_status('cmd is '+cmdElement.value);
          cmdElement.value = '';
-         set_status('');
          GPAC.no_log = false;
 
          args = cmd.split(' ');
 
-         if (is_custfs) {
-          run_prompt(cmd);
-          return;
-        }
+
+         //evaluates a script - turns textArea in write mode and wait for go/cancel
+         if (args[0]=='eval') {
+            var element = document.getElementById('output');
+            if (element) {
+              element.setAttribute('contenteditable', true);
+              element.innerText = '';
+              set_status('Edit your JS and click run to evaluate, cancel to abort');
+            }
+            is_eval = true;
+            let runElement = document.getElementById('run_script');
+            runElement.hidden = false;
+            var cmdDiv = document.getElementById('cmd_div');
+            cmdDiv.hidden = true;
+            return;
+         }
 
          //in eval mode, run
          if (is_eval) {
           run_script(cmd);
+          return;
+         }
+
+         if (is_custfs) {
+          run_prompt(cmd);
           return;
          }
 
@@ -287,7 +325,7 @@
           }
           var element = document.getElementById('output');
           if (element) {
-            element.setAttribute('readonly', true);
+            element.removeAttribute('contenteditable');
             if (do_save) {
               FS.writeFile(edit_name, element.innerText);
             }
@@ -554,7 +592,7 @@
           edit_name = args[1];
           var element = document.getElementById('output');
           if (element) {
-            element.removeAttribute('readonly');
+            element.setAttribute('contenteditable', true);
             element.innerText = str;
           }
           return;
@@ -605,25 +643,11 @@
             do_log('libgpac fetch() ' + (LIBGPAC.gpac_fetch ? 'on' : 'off') );
             return com_exit();
          }
-
-         //evaluates a script - turns textArea in write mode and wait for go/cancel
-         if (args[0]=='eval') {
-            var element = document.getElementById('output');
-            if (element) {
-              element.removeAttribute('readonly');
-              element.innerText = '';
-              set_status('Edit your JS and type return or "go" in prompt to evaluate, anything else to cancel');
-            }
-            is_eval = true;
-            let runElement = document.getElementById('run_script');
-            runElement.hidden = false;
-            return;
-         }
          if (args[0]=='fs') {
               set_status('Starting interactive graph builder');
               set_text('');
-              step_mode=false;
               defer_mode=true;
+              fs_steps=20;
               is_custfs = true;
               return;
          }
@@ -639,8 +663,7 @@
             return;
           }
           if (args.length>1) {
-            const gf_log_set_tools_levels = LIBGPAC.cwrap('gf_log_set_tools_levels', 'number', ['string', 'number']);
-            gf_log_set_tools_levels(args[1], 1);
+            LIBGPAC.log_set_tools_levels(args[1], 1);
           }
           return;
          }
@@ -711,7 +734,6 @@
             }
           }
          }
-
          function run_prompt(cmd) {
             let args = cmd.split(' ');
             if (!args.length) return;
@@ -725,13 +747,6 @@
               }
               return;
             }
-            if (args[0]=='s') {
-              if (!fsess) {
-                step_mode = !step_mode;
-                set_status("will use step mode: " + (step_mode ? "yes" : "no"));
-              }
-              return;
-            }
             if (args[0]=='d') {
               if (!fsess) {
                 defer_mode = !defer_mode;
@@ -739,16 +754,23 @@
               }
               return;
             }
+            if (args[0]=='s') {
+              if (args.length>1) {
+                fs_steps = parseInt(args[1]);
+                if (fs_steps<=0) fs_steps=1;
+                set_status("will use " + fs_steps + " steps per callback");
+              }
+              return;
+            }
             if (args[0]=='a') {
               if (args.length<2) return set_status('Invalid add command');
               if (!fsess) {
-                let flag = 0;
-                if (step_mode) flag |= (1<<2);
+                let flag = 1<<2; //always run async
                 if (defer_mode) flag |= (1<<13);
 
                 LIBGPAC.init(0, null);
                 fsess = LIBGPAC.fs_new_defaults(flag);
-                set_status("Creating filter session in " + (step_mode ? 'non-blocking mode' : 'blocking mode') + (defer_mode ? ' - deferred linking' : '') );
+                set_status("Creating filter session in non-blocking mode" + (defer_mode ? ' - deferred linking' : '') );
               }
               if (prev_filter && defer_mode) {
                 LIBGPAC.filter_reconnect_output(prev_filter, null);
@@ -771,18 +793,13 @@
               if (fdesc.startsWith('src=')) {
                 fdesc = fdesc.substring(4);
                 f = LIBGPAC.fs_load_source(fsess, fdesc, null, null, e);
-                if (f) {
-                  prev_filter = f;
-                }
               } else if (fdesc.startsWith('dst=')) {
                 fdesc = fdesc.substring(4);
                 f = LIBGPAC.fs_load_destination(fsess, fdesc, null, null, e);
               } else {
                 f = LIBGPAC.fs_load_filter(fsess, fdesc, e);
-                if (f) {
-                  prev_filter = f;
-                }
               }
+              prev_filter = f;
               let res = LIBGPAC.getValue(e, 'i32');
               LIBGPAC._free(e);
               set_status("added filter "+args[1]+ " returned " + res);
@@ -790,11 +807,19 @@
             }
             if (args[0]=='r') {
               if (!fsess) return set_status('No valid session, add a filter first');
-              is_custfs=false;
-              LIBGPAC.fs_run(fsess);
-              is_custfs=true;
+              animElement.start();
+              run_session();
               return;
             }
+            if (args[0]=='c') {
+              if (fsess) {
+                suspend_sess = true;
+                set_status("Suspending session");
+              }
+              return;
+            }
+
+
             if (args[0]=='p') {
               let idx=0;
               let n;
@@ -872,16 +897,19 @@
               return;
             }
 
-            set_status("unknown command "+cmd);
+            set_status("Unknown command "+cmd);
             let help="Possible commands:\n";
-            help+= "- s: set non session blocking (default: "+ step_mode + ")\n";
-            help+= "- s: set defer linking mode (default: "+ step_mode + ")\n";
+            help+= "- d: set defer linking mode (default: "+ defer_mode + ")\n";
+            help+= "- s: set number of steps before returning control to JS (default: "+ fs_steps + ")\n";
             help+= "- a DESC: add filter, use src=URL for source, dst=URL for sinks. $(name) replacement rules are allowed\n";
-            help+= "- r: run session\n";
+            help+= "- r: run or resume session\n";
+            help+= "- c: suspend session while running\n";
             help+= "- v: view connections and stats\n";
+            help+= "\nThe following only apply to the last added filter:\n";
             help+= "- i: print pid properties\n";
             help+= "- p [pid_idx=0] DESC: probe resolution from pid with index pid_idx of last added filter to filter description DESC\n";
-            help+= "- l [pid_idx=-1]: list possible destinations for pid of index pid_idx (-1 for all pids) of last added filter";            
+            help+= "- l [pid_idx=-1]: list possible destinations for pid of index pid_idx (-1 for all pids) of last added filter\n";
+            help+= "\n";
             set_text(help);
          }
 
@@ -1774,12 +1802,12 @@
 
 
     <div class="gpac">
-      <canvas class="gpac" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1 width="0" height="0"></canvas>
+      <canvas class="gpac" id="canvas" tabindex=-1 width="0" height="0"></canvas>
     </div>
-    <div id="output" readonly></div>
+    <div id="output"></div>
 
     <!-- command line input -->
-    <div class="gpac">
+    <div id="cmd_div">
       <!-- span>Enter command: </span -->
       <span><input type="text" id="cmd" placeholder="Enter command or type h for help" autofocus onkeypress="
         if (event.keyCode == 13) {
@@ -1796,6 +1824,10 @@
         else {
           if (event.keyCode == 17) ctrl_down=false;
           else if (event.keyCode == 18) opt_down=false;
+          if (document.activeElement === LIBGPAC['canvas']) {
+            event.preventDefault();
+            set_status('canvas is def');
+          }
           return;
         }
         if (idx>=cmd_history.length) return;
@@ -1833,6 +1865,10 @@
      " onkeydown="
           if (event.keyCode == 17) ctrl_down=true;
           else if (event.keyCode == 18) opt_down=true;
+          if (document.activeElement === LIBGPAC['canvas']) 
+          {
+            event.preventDefault();
+          }
      "
  
       /></span>
@@ -1923,6 +1959,8 @@
         _lib.url_cat = LIBGPAC.cwrap('gf_url_concatenate', 'number', ['string', 'string']);
         _lib.free = LIBGPAC.cwrap('gf_url_free', null, ['number']);
 
+        _lib.log_set_tools_levels = LIBGPAC.cwrap('gf_log_set_tools_levels', 'number', ['string', 'number']);
+
         //load basic filter session api
         _lib.fs_new_defaults = LIBGPAC.cwrap('gf_fs_new_defaults', 'number', ['number']);
         _lib.fs_del = LIBGPAC.cwrap('gf_fs_del', null, ['number']);
@@ -1934,6 +1972,7 @@
         _lib.fs_load_destination = LIBGPAC.cwrap('gf_fs_load_destination', 'number', ['number', 'string', 'string', 'string', 'number']);
 
         _lib.fs_run = LIBGPAC.cwrap('gf_fs_run', 'number', ['number']);
+        _lib.fs_last_task = LIBGPAC.cwrap('gf_fs_is_last_task', 'number', ['number']);
         _lib.filter_get_name = LIBGPAC.cwrap('gf_filter_get_name', 'string', ['number']);
         _lib.filter_reconnect_output = LIBGPAC.cwrap('gf_filter_reconnect_output', 'number', ['number','number']);
         _lib.filter_probe_link = LIBGPAC.cwrap('gf_filter_probe_link', 'number', ['number','number','string', 'number']);
@@ -1944,6 +1983,7 @@
         _lib.filter_get_opid = LIBGPAC.cwrap('gf_filter_get_opid', 'number', ['number','number']);
         _lib.filter_is_sink = LIBGPAC.cwrap('gf_filter_is_sink', 'number', ['number']);
         _lib.filter_is_source = LIBGPAC.cwrap('gf_filter_is_source', 'number', ['number']);
+        _lib.filter_get_max_extra_input_pids = LIBGPAC.cwrap('gf_filter_get_max_extra_input_pids', 'number', ['number']);
         _lib.filter_pid_get_property = LIBGPAC.cwrap('gf_filter_pid_get_property', 'number', ['number', 'number']);
         _lib.filter_pid_get_property_str = LIBGPAC.cwrap('gf_filter_pid_get_property', 'number', ['number', 'string']);
         _lib.filter_pid_enum_properties = LIBGPAC.cwrap('gf_filter_pid_enum_properties', 'number', ['number', 'number', 'number', 'string']);
@@ -2034,7 +2074,11 @@
       };
 
       var LIBGPAC = {
-        preRun: [],
+        preRun: [
+//          function() {
+//            LIBGPAC.ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "#canvas";
+//          }
+        ],
         postRun: [
         ],
         print: (function() {

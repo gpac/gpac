@@ -5089,11 +5089,15 @@ GF_Err gf_filter_reconnect_output(GF_Filter *filter, GF_FilterPid *for_pid)
 		if (PID_IS_INPUT(for_pid)) return GF_BAD_PARAM;
 	}
 	//in case we had pending output pids
-	if (filter->deferred_link && filter->has_pending_pids) {
+	if (filter->deferred_link) {
 		filter->deferred_link = GF_FALSE;
-		gf_filter_check_pending_pids(filter);
-		if (!for_pid) return GF_OK;
+		if (filter->has_pending_pids) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Applying defer linking of filter %s\n", filter->name));
+			gf_filter_check_pending_pids(filter);
+		}
+		return GF_OK;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Relinking filter %s PID %s\n", filter->name, for_pid ? for_pid->name : "all"));
 
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
