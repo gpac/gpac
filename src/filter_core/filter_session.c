@@ -290,8 +290,12 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->ui_event_proc = fs_default_event_proc;
 	fsess->ui_opaque = fsess;
 
-	if (flags & GF_FS_FLAG_NON_BLOCKING)
+	if (flags & GF_FS_FLAG_NON_BLOCKING) {
 		fsess->non_blocking = 1;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Creating session in non-blocking mode\n"));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Creating session in blocking mode\n"));
+	}
 
 	if (!fsess->semaphore_main)
 		nb_threads=0;

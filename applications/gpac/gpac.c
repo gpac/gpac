@@ -365,6 +365,8 @@ void gf_fs_force_non_blocking(GF_FilterSession *fs);
 
 void gpac_force_step_mode(Bool for_display)
 {
+	if (!session) return;
+
 	if (!use_step_mode) {
 		use_step_mode = GF_TRUE;
 		fprintf(stdout, "forcing step mode\n");
