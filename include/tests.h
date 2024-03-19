@@ -8,6 +8,7 @@ extern int checks_passed;
 extern int checks_failed;
 
 static Bool verbose_ut = GF_FALSE;
+static Bool fatal_ut = GF_TRUE;
 
 #define assert_true(expr)                                            \
     do {                                                             \
@@ -16,7 +17,7 @@ static Bool verbose_ut = GF_FALSE;
             checks_passed++;                                         \
         } else {                                                     \
             checks_failed++;                                         \
-            gf_assert(0);                                            \
+            if (fatal_ut) gf_assert(0);                                            \
         }                                                            \
     } while (0)
 
