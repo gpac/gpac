@@ -112,7 +112,7 @@ ifeq ($(UNIT_TESTS),yes)
 	@cd unittests/build && $(MAKE) -C src && $(MAKE) -C src unit_tests
 
 	@echo "- executing"
-	unittests/launch.sh
+	$(SRC_PATH)/unittests/launch.sh
 
 	@echo "- done"
 endif

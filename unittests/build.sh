@@ -17,7 +17,8 @@ int run_tests(int argc, char *argv[]);
 int main(int argc, char *argv[])
 {'
 
-calls=$(find "$scriptDir/.." -path "*/unittests/*.c" | grep -v bin | xargs grep unittest | cut -d ":" -f 2)
+
+calls=$(cd "$scriptDir/.." && find . -path "*/unittests/*.c" -not -path "./unittests/*" | grep -v bin | xargs grep unittest | cut -d ":" -f 2)
 for call in $calls; do
     echo "  $call;"
 done
