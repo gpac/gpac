@@ -376,7 +376,7 @@ It also adds several small features:
     * Added temi periodic toggle and manual toggle in MP42TS
 
 # 26/04/2017: GPAC 0.7.1
- - Full changelog at https://github.com/gpac/gpac/wiki/GPAC-0.7.0
+ - Full changelog at https://github.com/gpac/gpac/releases/tag/v0.7.0
  - Many security fixes (static compile and fuzzing through [AFL](http://lcamtuf.coredump.cx/afl/), always ongoing)
  - Colorized log.
  - Fix pkg-config Private.libs.
