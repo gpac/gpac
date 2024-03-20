@@ -74,14 +74,6 @@ GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	return GF_OK;
 }
 
-//Romain: valgrind
-#if 0
-static _finalize()
-{
-	gf_filter_pid_drop_packet(ctx->opid);
-}
-#endif
-
 static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if (evt->base.type==GF_FEVT_ENCODE_HINTS) {
@@ -99,6 +91,7 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts)
 	if (ctx->last_dts) {
 		gf_filter_pck_set_duration(pck, (u32)(dts - ctx->last_dts));
 	}
+	printf("Romain: send dts="LLU" dur="LLU"\n", ctx->last_dts, dts - ctx->last_dts);
 	gf_filter_pck_set_dts(pck, ctx->last_dts);
 	ctx->last_dts = dts;
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
