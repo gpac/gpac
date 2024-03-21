@@ -2020,7 +2020,7 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 	i=0;
 	while ((obj = gf_list_enum(s->objects, &i))) {
 		u32 toi;
-		if (obj->rlct && (sscanf(fileName, obj->rlct->toi_template, &toi) == 1)) {
+		if (obj->rlct && obj->rlct->toi_template && (sscanf(fileName, obj->rlct->toi_template, &toi) == 1)) {
 			u32 tsi;
 			if (toi == obj->toi) {
 				GF_ROUTELCTChannel *rlct = obj->rlct;
