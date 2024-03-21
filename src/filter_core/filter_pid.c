@@ -5613,7 +5613,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 	nb_recf = 0;
 	for (i=0; i<pid->num_destinations; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
-		if (!pidi->filter->process_task_queued) {
+		if (!pidi->filter || !pidi->filter->process_task_queued) {
 			//remember the pid prop map to use
 			pidi->reconfig_pid_props = map;
 			nb_recf++;
