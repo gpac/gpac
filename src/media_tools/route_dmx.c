@@ -783,8 +783,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 	}
 
-	if((u64)start_offset + size > UINT32_MAX) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Not supported: Offset (%u) + Size (%u) exceeds the maximum supported value (%u), skipping\n", s->service_id, tsi, toi, start_offset, size, UINT32_MAX));
+	if((u64)start_offset + size > GF_UINT_MAX) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u Not supported: Offset (%u) + Size (%u) exceeds the maximum supported value (%u), skipping\n", s->service_id, tsi, toi, start_offset, size, GF_UINT_MAX));
 		return GF_NOT_SUPPORTED;
 	}
 	if(total_len && (start_offset + size > total_len)) {
