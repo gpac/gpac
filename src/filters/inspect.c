@@ -28,6 +28,7 @@
 #include <gpac/list.h>
 #include <gpac/xml.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 
 #ifndef GPAC_DISABLE_INSPECT
 
@@ -3055,6 +3056,24 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, 
 	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_fpt, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
+static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, u32 size, FILE *dump)
+{
+	if (ctx->dump) {
+		GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		GF_Err e = GF_OK;
+		while (gf_bs_available(bs) > 0) {
+			GF_Box *a = NULL;
+			e = gf_isom_box_parse(&a, bs);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] Event Track: error while parsing data boxes\n"));
+				break; //don't parse any further
+			}
+			gf_isom_box_dump(a, dump);
+			data += a->size;
+		}
+	}
+}
+
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)
 {
 	GF_Err e;
@@ -3442,6 +3461,9 @@ props_done:
 			break;
 		case GF_CODECID_TMCD:
 			inspect_dump_tmcd(ctx, pctx, (char *) data, size, dump);
+			break;
+		case GF_CODECID_EVTE:
+			inspect_dump_boxes(ctx, pctx, (char *) data, size, dump);
 			break;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
@@ -4316,6 +4338,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MPEG2_PART3:
 	case GF_CODECID_MPEG_AUDIO_L1:
 	case GF_CODECID_TMCD:
+	case GF_CODECID_EVTE:
 		inspect_printf(dump, "/>\n");
 		return;
 	case GF_CODECID_SUBS_XML:
