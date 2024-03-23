@@ -30,6 +30,8 @@ typedef struct {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
 
+	u32 last_event_id;
+
 	// used to compute event duration
 	u64 last_dts;
 
@@ -61,6 +63,7 @@ GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		ctx->opid = gf_filter_pid_new(filter);
 		if (!ctx->opid) return GF_OUT_OF_MEM;
 		gf_filter_pid_set_udta(pid, ctx->opid);
+		ctx->last_event_id = gf_rand();
 	}
 	ctx->ipid = pid;
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
@@ -91,7 +94,6 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts)
 	if (ctx->last_dts) {
 		gf_filter_pck_set_duration(pck, (u32)(dts - ctx->last_dts));
 	}
-	printf("Romain: send dts="LLU" dur="LLU"\n", ctx->last_dts, dts - ctx->last_dts);
 	gf_filter_pck_set_dts(pck, ctx->last_dts);
 	ctx->last_dts = dts;
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
@@ -148,6 +150,90 @@ exit:
 	return e;
 }
 
+
+
+static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
+{
+	Bool time_specified_flag = gf_bs_read_int(bs, 1);
+	if (time_specified_flag == 1) {
+		/*reserved = */gf_bs_read_int(bs, 6);
+		u64 pts_time = gf_bs_read_long_int(bs, 33);
+		return pts_time;
+	} else {
+		/*reserved = */gf_bs_read_int(bs, 7);
+		return 0;
+	}
+}
+
+static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u32 *splice_event_id)
+{
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	
+	/*u8 protocol_version = */gf_bs_read_u8(bs);
+	Bool encrypted_packet = gf_bs_read_int(bs, 1);
+	/*u8 encryption_algorithm = */gf_bs_read_int(bs, 6);
+	u64 pts_adjustment = gf_bs_read_long_int(bs, 33);
+
+	if (encrypted_packet)
+		goto exit;
+
+	/*u8 cw_index = */gf_bs_read_u8(bs);
+	/*int tier = */gf_bs_read_int(bs, 12);
+
+	int splice_command_length = gf_bs_read_int(bs, 12);
+	if (splice_command_length > gf_bs_available(bs)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n", gf_bs_available(bs), splice_command_length));
+		goto exit;
+	}
+
+	u8 splice_command_type = gf_bs_read_u8(bs);
+	switch(splice_command_type) {
+	case 0x05: //splice_insert()
+		{
+			*splice_event_id = gf_bs_read_u32(bs);
+			Bool splice_event_cancel_indicator = gf_bs_read_int(bs, 1);
+			/*reserved = */gf_bs_read_int(bs, 7);
+			if (splice_event_cancel_indicator == 0) {
+				/*Bool out_of_network_indicator = */gf_bs_read_int(bs, 1);
+				Bool program_splice_flag = gf_bs_read_int(bs, 1);
+				Bool duration_flag = gf_bs_read_int(bs, 1);
+				Bool splice_immediate_flag = gf_bs_read_int(bs, 1);
+				/*reserved = */gf_bs_read_int(bs, 4);
+
+				if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
+					*pts = scte35dec_parse_splice_time(bs) + pts_adjustment;
+				}
+
+				if (program_splice_flag == 0) {
+					u8 component_count = gf_bs_read_u8(bs);
+					for (int i=0; i<component_count; i++) {
+						/*u8 component_tag = */gf_bs_read_u8(bs);
+						if (splice_immediate_flag == 0) {
+							gf_assert(*pts == 0); // we've never encounter multi component streams
+							*pts = scte35dec_parse_splice_time(bs) + pts_adjustment;
+						}
+					}
+				}
+				if (duration_flag == 1) {
+					//break_duration()
+					/*Bool auto_return = */gf_bs_read_int(bs, 1);
+					/*reserved = */gf_bs_read_int(bs, 6);
+					*dur = gf_bs_read_long_int(bs, 33);
+				}
+
+				// truncated parsing (so we only parse the first command...)
+			}
+		}
+		break;
+	case 0x06: //time_signal()
+		*pts = scte35dec_parse_splice_time(bs) + pts_adjustment;
+		break;
+	}
+
+exit:;
+	gf_bs_del(bs);
+}
+
 GF_Err scte35dec_process(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
@@ -175,11 +261,13 @@ GF_Err scte35dec_process(GF_Filter *filter)
 		if (!emib) return GF_OUT_OF_MEM;
 
 		// Values according to SCTE 214-3 2015
-		// TODO: parse SCTE-35: missing embedded dts=pcr (when from m2ts), presentation_time_delta=pts-dts
 		emib->timescale = gf_filter_pck_get_timescale(pck);
-		emib->presentation_time_delta = 0;
-		emib->event_duration = 0xFFFFFFFF;
-		emib->event_id = 0;
+		u64 pts = 0;
+		u32 dur = 0xFFFFFFFF;
+		scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id); // only check in first splice command
+		emib->presentation_time_delta = pts - dts;
+		emib->event_duration = dur;
+		emib->event_id = ctx->last_event_id++;
 		emib->scheme_id_uri = gf_strdup("urn:scte:scte35:2013:bin");
 		emib->value = gf_strdup("1001");
 		emib->message_data_size = emsg->value.data.size;
@@ -208,6 +296,7 @@ GF_Err scte35dec_process(GF_Filter *filter)
 		if (e) return e;
 
 		//TODO: compute duration when available in the SCTE35 payload
+		//TODO: we need to segment emib and recompute the offsets too!
 		scte35dec_send_pck(ctx, pck_dst, ctx->last_dts);
 	}
 
