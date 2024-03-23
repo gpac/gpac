@@ -2187,7 +2187,7 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 	DUMP_ATT_U("encrypted_packet", encrypted_packet);
 	u8 encryption_algorithm = gf_bs_read_int(pctx->bs, 6);
 
-	u64 pts_adjustment = gf_bs_read_int(pctx->bs, 33);
+	u64 pts_adjustment = gf_bs_read_long_int(pctx->bs, 33);
 	DUMP_ATT_LLU("pts_adjustment", pts_adjustment);
 
 	if (encrypted_packet) {
@@ -2249,7 +2249,7 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 					//break_duration()
 					/*Bool auto_return = */gf_bs_read_int(pctx->bs, 1);
 					/*reserved = */gf_bs_read_int(pctx->bs, 6);
-					u64 duration = gf_bs_read_int(pctx->bs, 33);
+					u64 duration = gf_bs_read_long_int(pctx->bs, 33);
 					DUMP_ATT_LLU("duration", duration);
 				}
 				/*u16 unique_program_id = */gf_bs_read_u16(pctx->bs);
@@ -2290,6 +2290,8 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 	}
 
 	assert(gf_bs_get_position(pctx->bs) == pos + splice_command_length);
+
+	//FIXME: we only parse the first command
 
 #if 0 //not implemented
 	int descriptor_loop_length = gf_bs_read_int(pctx->bs, 12);
@@ -3071,6 +3073,7 @@ static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data,
 			gf_isom_box_dump(a, dump);
 			data += a->size;
 		}
+		gf_bs_del(bs);
 	}
 }
 
