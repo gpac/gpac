@@ -3266,7 +3266,7 @@ typedef struct
 	char *scheme_id_uri;
 	char *value;
 	u32 timescale;
-	u64 presentation_time_delta;
+	s64 presentation_time_delta;
 	u32 event_duration;
 	u32 event_id;
 	u8 *message_data;

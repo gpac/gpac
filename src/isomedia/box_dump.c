@@ -6980,7 +6980,7 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 	GF_EventMessageBox *p = (GF_EventMessageBox *) a;
 
 	gf_isom_box_dump_start(a, "EventMessageInstanceBox", trace);
-	fprintf(trace, "presentation_time_delta=\""LLU"\" event_duration=\"%u\" event_id=\"%u\"",
+	fprintf(trace, "presentation_time_delta=\""LLD"\" event_duration=\"%u\" event_id=\"%u\"",
 		p->presentation_time_delta, p->event_duration, p->event_id);
 
 	if (p->scheme_id_uri)
