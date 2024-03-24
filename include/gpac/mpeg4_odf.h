@@ -855,7 +855,7 @@ typedef struct {
 } GF_ContentCreatorInfo;
 
 /*! Content Creator Name GF_Descriptor
-\note The desctructor will delete all the items in the list
+\note The destructor will delete all the items in the list
 (GF_ContentCreatorInfo items) */
 typedef struct {
 	BASE_DESCRIPTOR
