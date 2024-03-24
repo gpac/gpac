@@ -1342,7 +1342,7 @@ static JSValue jsf_filter_new_pid(JSContext *ctx, JSValueConst this_val, int arg
 	pctx->jsf = jsf;
 	pctx->pid = opid;
 	pctx->jsobj = JS_NewObjectClass(ctx, jsf_pid_class_id);
-	//keep ref to value we destroy it upon pid removal or filter desctruction
+	//keep ref to value we destroy it upon pid removal or filter destruction
 	pctx->jsobj = JS_DupValue(ctx, pctx->jsobj);
 	JS_SetOpaque(pctx->jsobj, pctx);
 	gf_filter_pid_set_udta(pctx->pid, pctx);

@@ -2390,7 +2390,7 @@ struct __gf_filter_register
 	*/
 	GF_Err (*initialize)(GF_Filter *filter);
 
-	/*! optional - callback for filter desctruction -  private stack of filter is freed by framework
+	/*! optional - callback for filter destruction -  private stack of filter is freed by framework
 	\param filter the target filter
 	*/
 	void (*finalize)(GF_Filter *filter);
