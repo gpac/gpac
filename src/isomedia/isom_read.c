@@ -3093,7 +3093,7 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 			GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
 			if (trak->Media->information->dataHandler == previous_movie_fileMap_address) {
-				//reaasign for later destruction
+				//reassign for later destruction
 				trak->Media->information->scalableDataHandler = movie->movieFileMap;
 				//reassign for Media_GetSample function
 				trak->Media->information->dataHandler = movie->movieFileMap;
