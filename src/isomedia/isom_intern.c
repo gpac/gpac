@@ -1086,6 +1086,22 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 {
 	if (!mov) return;
 
+	// track datahandlers might point to the movieFileMap that we are about to delete
+	// remove the association to avoid double frees
+	if (mov->moov && mov->moov->trackList) {
+		for (int i=0; i<gf_list_count(mov->moov->trackList); i++) {
+			GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(mov->moov->trackList, i);
+
+			if (trak && trak->Media && trak->Media->information) {
+				if (trak->Media->information->dataHandler == mov->movieFileMap)
+					trak->Media->information->dataHandler = NULL;
+
+				if (trak->Media->information->scalableDataHandler == mov->movieFileMap)
+					trak->Media->information->scalableDataHandler = NULL;
+			}
+		}
+	}
+
 	//these are our two main files
 	if (mov->movieFileMap) gf_isom_datamap_del(mov->movieFileMap);
 
