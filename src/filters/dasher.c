@@ -7892,6 +7892,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				case DASHER_MUX_RAW:
 					break;
 				default:
+					//rawmux, don't inject init segment URI
+					if (ds->rawmux)
+						break;
 					if (ds->set->bitstream_switching && ds->set->segment_template)
 						ds->rep->hls_single_file_name = ds->set->segment_template->hls_init_name;
 					else
