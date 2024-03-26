@@ -2324,7 +2324,7 @@ static void dasher_get_mime_and_ext(GF_DasherCtx *ctx, GF_DashStream *ds, const 
 	if (!mux_ext) mux_ext = "mp4";
 	if (out_ext) *out_ext = mux_ext;
 	//if not muxing in isom, force raw subs
-	if ((ctx->muxtype != DASHER_MUX_ISOM) && (ds->stream_type==GF_STREAM_TEXT))
+	if (strcmp(subtype, "mp4") && (ds->stream_type==GF_STREAM_TEXT))
 		ctx->rawsub = GF_TRUE;
 
 }
