@@ -237,9 +237,9 @@ static GF_Err scte35dec_flush(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 	GF_Err e = scte35dec_flush_emib(ctx, timestamp, dur);
 	if (e) return e;
 
-	if (ctx->seg_dur.den && ctx->seg_dur.num>0) {
+	if ((ctx->seg_dur.den && ctx->seg_dur.num>0) && ctx->clock < timestamp + dur ) {
 		// complete the segment with an empty box
-		return scte35dec_flush_emeb(ctx, timestamp + dur);
+		return scte35dec_flush_emeb(ctx, ctx->clock);
 	} else {
 		return GF_OK;
 	}
@@ -272,7 +272,6 @@ static GF_Err scte35dec_dispatch(SCTE35DecCtx *ctx, u64 dts)
 					ctx->last_dispatched_dts -= (ctx->seg_dur.num * ctx->timescale / ctx->seg_dur.den);
 				ctx->nb_forced++;
 				ctx->clock = dts;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] segment "LLU" dur=%u\n", dts, ctx->seg_dur.num * ctx->timescale / ctx->seg_dur.den));
 				return scte35dec_flush(ctx, dts, ctx->seg_dur.num * ctx->timescale / ctx->seg_dur.den);
 			}
 		}
