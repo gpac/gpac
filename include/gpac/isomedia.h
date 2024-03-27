@@ -3856,7 +3856,7 @@ GF_Err gf_isom_ac3_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 GF_Err gf_isom_truehd_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *format_info, u32 *peak_data_rate);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-/*! creates a FLAC sample description
+/*! creates a TrueHD sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param URLname URL value of the data reference, NULL if no data reference (media in the file)
@@ -3969,6 +3969,19 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *isom_file, u32 trackNumber, u32 fps_n
 \return error if any
 */
 GF_Err gf_isom_get_tmcd_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *tmcd_flags, u32 *tmcd_fps_num, u32 *tmcd_fps_den, u32 *tmcd_fpt);
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+/*! creates an event message track metadata sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_evte_config_new(GF_ISOFile *isom_file, u32 trackNumber, u32 *outDescriptionIndex);
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*! gets information of a raw PCM  sample description, ISOBMFF style
 \param isom_file the target ISO file

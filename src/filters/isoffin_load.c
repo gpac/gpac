@@ -462,6 +462,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			load_default = GF_TRUE;
 			break;
 
+		case GF_4CC('e','v','t','e'):
+			codec_id = m_subtype;
+			load_default = GF_TRUE;
+			break;
+
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id || (codec_id==GF_CODECID_RAW)) {
