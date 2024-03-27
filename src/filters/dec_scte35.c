@@ -42,6 +42,7 @@ typedef struct {
 
 	// used to compute event duration
 	u32 timescale;
+	u32 last_pck_dur;
 	u64 last_dispatched_dts;
 
 	// used to segment empty boxes
@@ -135,6 +136,7 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] send dts="LLU" dur=%u\n", dts, dur));
 	gf_filter_pck_set_dts(pck, dts);
 	ctx->last_dispatched_dts = dts;
+	ctx->last_pck_dur = dur;
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	gf_filter_pck_send(pck);
@@ -142,8 +144,10 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 
 static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts)
 {
-	if (ctx->clock > dts)
+	if (ctx->clock > dts) {
+		ctx->last_dispatched_dts = dts;
 		return GF_OK;
+	}
 
 	GF_FilterPacket *seg_emeb = gf_filter_pck_new_shared(ctx->opid, ctx->emeb_box, sizeof(ctx->emeb_box), NULL);
 	if (!seg_emeb) return GF_OUT_OF_MEM;
@@ -374,11 +378,19 @@ GF_Err scte35dec_process(GF_Filter *filter)
 
 	// handle internal clock, timescale and duration
 	u64 dts = gf_filter_pck_get_dts(pck);
-	ctx->clock = MAX(ctx->clock, dts);
 	if (!ctx->last_dispatched_dts) {
 		ctx->timescale = gf_filter_pck_get_timescale(pck);
 		ctx->last_dispatched_dts = dts;
+		ctx->last_pck_dur = gf_filter_pck_get_duration(pck);
+	} else if (ctx->clock < dts && !(ctx->seg_dur.den && ctx->seg_dur.num>0) &&
+	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
+		// drift control
+		s32 drift = ctx->last_pck_dur + ctx->last_dispatched_dts - dts;
+		GF_LOG(ABS(drift) <= 1 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
+		ctx->last_dispatched_dts += drift;
+		dts += drift;
 	}
+	ctx->clock = MAX(ctx->clock, dts);
 
 	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
 	if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
