@@ -259,7 +259,7 @@ struct __gf_filter_pck
 
 	GF_FilterFrameInterface *frame_ifce;
 	
-	// properties applying to this packet
+	//properties applying to this packet
 	GF_PropertyMap *props;
 	//pid properties applying to this packet
 	GF_PropertyMap *pid_props;

@@ -46,7 +46,7 @@ typedef struct {
 
 	// used to segment empty boxes
 	GF_Fraction seg_dur;
-	GF_FilterPacket *seg_emeb;
+	u8 emeb_box[8];
 	Bool seg_setup;
 	u64 orig_ts;
 	u32 nb_forced;
@@ -56,6 +56,17 @@ GF_Err scte35dec_initialize(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 	ctx->ordered_events = gf_list_new();
+
+	GF_Box *emeb = gf_isom_box_new(GF_ISOM_BOX_TYPE_EMEB);
+	if (!emeb) return GF_OUT_OF_MEM;
+	GF_Err e = gf_isom_box_size((GF_Box*)emeb);
+	if (e) return e;
+	GF_BitStream *bs = gf_bs_new(ctx->emeb_box, sizeof(ctx->emeb_box), GF_BITSTREAM_WRITE);
+	e = gf_isom_box_write((GF_Box*)emeb, bs);
+	gf_bs_del(bs);
+	if (e) return e;
+	gf_isom_box_del(emeb);
+
 	return GF_OK;
 }
 
@@ -134,42 +145,14 @@ static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts)
 	if (ctx->clock > dts)
 		return GF_OK;
 
-	GF_Err e;
-	GF_Box *emeb = gf_isom_box_new(GF_ISOM_BOX_TYPE_EMEB);
-	if (!emeb) {
-		e = GF_OUT_OF_MEM;
-		goto exit;
-	}
+	GF_FilterPacket *seg_emeb = gf_filter_pck_new_shared(ctx->opid, ctx->emeb_box, sizeof(ctx->emeb_box), NULL);
+	if (!seg_emeb) return GF_OUT_OF_MEM;
 
-	e = gf_isom_box_size((GF_Box*)emeb);
-	if (e) goto exit;
+	gf_filter_pck_set_dts(seg_emeb, dts);
 
-	u8 *output = NULL;
-	ctx->seg_emeb = gf_filter_pck_new_alloc(ctx->opid, emeb->size, &output);
-	if (!ctx->seg_emeb) {
-		e = GF_OUT_OF_MEM;
-		goto exit;
-	}
-	gf_filter_pck_set_dts(ctx->seg_emeb, dts);
-
-	GF_BitStream *bs = gf_bs_new(output, emeb->size, GF_BITSTREAM_WRITE);
-	e = gf_isom_box_write((GF_Box*)emeb, bs);
-	gf_bs_del(bs);
-	if (e) goto exit;
-	gf_isom_box_del(emeb);
-
-	scte35dec_send_pck(ctx, ctx->seg_emeb, dts, dts - ctx->last_dispatched_dts);
-	ctx->seg_emeb = NULL;
+	scte35dec_send_pck(ctx, seg_emeb, dts, dts - ctx->last_dispatched_dts);
 
 	return GF_OK;
-
-exit:
-	gf_isom_box_del(emeb);
-	if (ctx->seg_emeb) {
-		gf_filter_pid_drop_packet(ctx->opid);
-		ctx->seg_emeb = NULL;
-	}
-	return e;
 }
 
 static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
