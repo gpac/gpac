@@ -4457,7 +4457,7 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(ttml_zero), "set subtitle zero time for TTML", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_empty), "do not send empty samples", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stxtdur), "duration for simple text", GF_PROP_FRACTION, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(stxtmod), "simple text stream mode"
+	{ OFFS(stxtmod), "simple text stream mode\n"
 	"- none: declares output PID as simple text stream\n"
 	"- tx3g: declares output PID as TX3G/Apple stream\n"
 	"- vtt: declares output PID as WebVTT stream", GF_PROP_UINT, "none", "none|tx3g|vtt", GF_FS_ARG_HINT_EXPERT},

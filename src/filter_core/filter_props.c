@@ -88,9 +88,34 @@ Bool gf_props_type_is_enum(GF_PropType type)
 	return GF_FALSE;
 }
 
+static Bool parse_time(const char *str, u64 *val)
+{
+	u32 h=0, m=0, s=0, ms=0;
+	if (!str) return GF_FALSE;
+	if ((str[0]!='t') && (str[0]!='T')) return GF_FALSE;
+	str += 1;
+	if (sscanf(str, "%02u:%02u:%02u.%02u", &h, &m, &s, &ms) == 4) {
+	}
+	else if (sscanf(str, "%02u:%02u:%02u", &h, &m, &s) == 3) {
+		ms=0;
+	}
+	else if (sscanf(str, "%02u:%02u.%02u", &m, &s, &ms) == 3) {
+		h=0;
+	}
+	else if (sscanf(str, "%02u:%02u", &m, &s) == 2) {
+		h=ms=0;
+	}
+	*val = 3600*h;
+	*val += 60*m;
+	*val += s;
+	*val = *val * 1000 + ms;
+	return GF_TRUE;
+}
+
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
+	u64 tval;
 	char *unit_sep=NULL;
 	s32 unit = 0;
 	memset(&p, 0, sizeof(GF_PropertyValue));
@@ -135,6 +160,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_SINT:
 		if (value && !strcmp(value, "+I")) p.value.sint = GF_INT_MAX;
 		else if (value && !strcmp(value, "-I")) p.value.sint = GF_INT_MIN;
+		else if (parse_time(value, &tval)) p.value.sint = (s32) tval;
 		else if (!value || (sscanf(value, "%d", &p.value.sint)!=1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for int arg %s - using 0\n", value, name));
 			p.value.sint = 0;
@@ -199,7 +225,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.uint *= unit;
 			}
 		} else if (value) {
-			if (sscanf(value, "%d", &p.value.uint)!=1) {
+			if (parse_time(value, &tval)) p.value.uint = (u32) tval;
+			else if (sscanf(value, "%d", &p.value.uint)!=1) {
 				if (strlen(value)==4) {
 					p.value.uint = GF_4CC(value[0],value[1],value[2],value[3]);
 				} else {
@@ -224,6 +251,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_LSINT:
 		if (value && !strcmp(value, "+I")) p.value.longsint = 0x7FFFFFFFFFFFFFFFUL;
 		else if (value && !strcmp(value, "-I")) p.value.longsint = 0x8000000000000000UL;
+		else if (parse_time(value, &tval)) p.value.longsint = (s64) tval;
 		else if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
@@ -233,6 +261,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_LUINT:
 		if (value && !strcmp(value, "+I")) p.value.longuint = 0xFFFFFFFFFFFFFFFFUL;
+		else if (parse_time(value, &tval)) p.value.longuint = (u64) tval;
 		else if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
@@ -241,14 +270,22 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_FRACTION:
-		if (gf_parse_frac(value, &p.value.frac)==GF_FALSE) {
+		if (parse_time(value, &tval)) {
+			p.value.frac.num = (s32) tval;
+			p.value.frac.den = 1000;
+		}
+		else if (gf_parse_frac(value, &p.value.frac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 			p.value.frac.num = 0;
 			p.value.frac.den = 1;
 		}
 		break;
 	case GF_PROP_FRACTION64:
-		if (gf_parse_lfrac(value, &p.value.lfrac)==GF_FALSE) {
+		if (parse_time(value, &tval)) {
+			p.value.lfrac.num = (s64) tval;
+			p.value.lfrac.den = 1000;
+		}
+		else if (gf_parse_lfrac(value, &p.value.lfrac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 			p.value.lfrac.num = 0;
 			p.value.lfrac.den = 1;
@@ -257,6 +294,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_FLOAT:
 		if (value && !strcmp(value, "+I")) p.value.fnumber = FIX_MAX;
 		else if (value && !strcmp(value, "-I")) p.value.fnumber = FIX_MIN;
+		else if (parse_time(value, &tval)) p.value.fnumber = INT2FIX(tval);
 		else if (!value) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for float arg %s - using 0\n", value, name));
 			p.value.fnumber = 0;
@@ -274,6 +312,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_DOUBLE:
 		if (value && !strcmp(value, "+I")) p.value.number = GF_MAX_DOUBLE;
 		else if (value && !strcmp(value, "-I")) p.value.number = GF_MIN_DOUBLE;
+		else if (parse_time(value, &tval)) p.value.number = (Double) tval;
 		else if (value && (value[0]=='T')) {
 			u32 h=0, m=0, s=0, ms=0;
 			if (sscanf(value+1, "%u:%u:%u.%u", &h, &m, &s, &ms)==4) {

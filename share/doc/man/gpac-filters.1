@@ -2912,7 +2912,9 @@ no_empty (bool, default: false): do not send empty samples
 .br
 stxtdur (frac, default: 1):    duration for simple text
 .br
-stxtmod (enum, default: none): simple text stream mode- none: declares output PID as simple text stream
+stxtmod (enum, default: none): simple text stream mode
+.br
+* none: declares output PID as simple text stream
 .br
 * tx3g: declares output PID as TX3G/Apple stream
 .br
@@ -7984,8 +7986,9 @@ Description: TTML to WebVTT
 .br
 
 .br
-This filter converts TTML frames to unframed WebVTT
-.
+This filter converts TTML frames to unframed WebVTT.
+.br
+
 .br
 Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.
 .br
@@ -8002,8 +8005,9 @@ Description: TTML to SRT
 .br
 
 .br
-This filter converts TTML frames to unframed SRT
-.
+This filter converts TTML frames to unframed SRT.
+.br
+
 .br
 Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.
 .br
