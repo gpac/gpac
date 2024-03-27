@@ -6975,6 +6975,7 @@ GF_Err emsg_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+void scte35_dump_xml(FILE *dump, GF_BitStream *bs);
 GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_EventMessageBox *p = (GF_EventMessageBox *) a;
@@ -6988,10 +6989,17 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 	if (p->value)
 		fprintf(trace, " value=\"%s\"", p->value);
 
-	if (p->message_data)
+	if (p->message_data) {
 		dump_data_attribute(trace, " message_data", p->message_data, p->message_data_size);
+		gf_fprintf(trace, ">\n");
 
-	gf_fprintf(trace, ">\n");
+		GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
+		scte35_dump_xml(trace, bs);
+		gf_bs_del(bs);
+	} else {
+		gf_fprintf(trace, ">\n");
+	}
+
 	gf_isom_box_dump_done("EventMessageInstanceBox", a, trace);
 	return GF_OK;
 }

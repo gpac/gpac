@@ -185,6 +185,12 @@ static void inspect_printf(FILE *dump, const char *fmt, ...)
 		inspect_printf(dump, " %s 0x%08X", _name, _val);\
 	}
 
+#define DUMP_ATT_BOOL(_name, _val)  if (_val == 0) { \
+		DUMP_ATT_STR(_name, "False")\
+	} else {\
+		DUMP_ATT_STR(_name, "True")\
+	}
+
 #define DUMP_ATT_FRAC(_name, _val)  if (ctx->xml) { \
 		inspect_printf(dump, " %s=\"%d/%u\"", _name, _val.num, _val.den);\
 	} else {\
@@ -2160,34 +2166,28 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 
 static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
+	inspect_printf(dump, "     <scte35:SpliceTime");
 	Bool time_specified_flag = gf_bs_read_int(bs, 1);
 	if (time_specified_flag == 1) {
 		/*reserved = */gf_bs_read_int(bs, 6);
 		u64 pts_time = gf_bs_read_int(bs, 33);
 		DUMP_ATT_LLU("pts_time", pts_time);
-	} else
+	} else {
 		/*reserved = */gf_bs_read_int(bs, 7);
+	}
+	inspect_printf(dump, "/>\n");
 }
 
-static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
+static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs) //Romain: check arguments are used
 {
-	if (ctx->xml) {
-		inspect_printf(dump, " <SCTE35");
-	} else {
-		inspect_printf(dump, " SCTE35");
-	}
+	inspect_printf(dump, "  <scte35:SpliceInfoSection");
 
-	if (!pctx->bs)
-		pctx->bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
-	else
-		gf_bs_reassign_buffer(pctx->bs, att->value.data.ptr, att->value.data.size);
-
-	/*u8 protocol_version = */gf_bs_read_u8(pctx->bs);
-	Bool encrypted_packet = gf_bs_read_int(pctx->bs, 1);
+	u8 protocol_version = gf_bs_read_u8(bs);
+	DUMP_ATT_U("protocol_version", protocol_version);
+	Bool encrypted_packet = gf_bs_read_int(bs, 1);
 	DUMP_ATT_U("encrypted_packet", encrypted_packet);
-	u8 encryption_algorithm = gf_bs_read_int(pctx->bs, 6);
-
-	u64 pts_adjustment = gf_bs_read_long_int(pctx->bs, 33);
+	u8 encryption_algorithm = gf_bs_read_int(bs, 6);
+	u64 pts_adjustment = gf_bs_read_long_int(bs, 33);
 	DUMP_ATT_LLU("pts_adjustment", pts_adjustment);
 
 	if (encrypted_packet) {
@@ -2203,110 +2203,146 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 		goto exit;
 	}
 
-	/*u8 cw_index = */gf_bs_read_u8(pctx->bs);
-	/*int tier = */gf_bs_read_int(pctx->bs, 12);
+	/*u8 cw_index = */gf_bs_read_u8(bs);
+	int tier = gf_bs_read_int(bs, 12);
+	DUMP_ATT_D("tier", tier);
 
-	int splice_command_length = gf_bs_read_int(pctx->bs, 12);
-	u8 splice_command_type = gf_bs_read_u8(pctx->bs);
-	u64 pos = gf_bs_get_position(pctx->bs);
+	inspect_printf(dump, ">\n");
+
+	int splice_command_length = gf_bs_read_int(bs, 12);
+	u8 splice_command_type = gf_bs_read_u8(bs);
+	u64 pos = gf_bs_get_position(bs);
 
 	switch(splice_command_type) {
-	case 0x05:
-		DUMP_ATT_STR("splice_command_type", "insert");
-		//splice_insert()
+	case 0x05: //splice_insert()
 		{
-			u32 splice_event_id = gf_bs_read_u32(pctx->bs);
+			inspect_printf(dump, "   <scte35:SpliceInsert");
+			u32 splice_event_id = gf_bs_read_u32(bs);
 			DUMP_ATT_U("splice_event_id", splice_event_id);
-			Bool splice_event_cancel_indicator = gf_bs_read_int(pctx->bs, 1);
-			DUMP_ATT_U("splice_event_cancel_indicator", splice_event_cancel_indicator);
-			/*reserved = */gf_bs_read_int(pctx->bs, 7);
+			Bool splice_event_cancel_indicator = gf_bs_read_int(bs, 1);
+			DUMP_ATT_BOOL("splice_event_cancel_indicator", splice_event_cancel_indicator);
+			/*reserved = */gf_bs_read_int(bs, 7);
 			if (splice_event_cancel_indicator == 0) {
-				Bool out_of_network_indicator = gf_bs_read_int(pctx->bs, 1);
-				DUMP_ATT_U("out_of_network_indicator", out_of_network_indicator);
-				Bool program_splice_flag = gf_bs_read_int(pctx->bs, 1);
-				DUMP_ATT_U("program_splice_flag", program_splice_flag);
-				Bool duration_flag = gf_bs_read_int(pctx->bs, 1);
-				DUMP_ATT_U("duration_flag", duration_flag);
-				Bool splice_immediate_flag = gf_bs_read_int(pctx->bs, 1);
-				DUMP_ATT_U("splice_immediate_flag", splice_immediate_flag);
-				/*reserved = */gf_bs_read_int(pctx->bs, 4);
+				Bool out_of_network_indicator = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("out_of_network_indicator", out_of_network_indicator);
+				Bool program_splice_flag = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("program_splice_flag", program_splice_flag);
+				Bool duration_flag = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("duration_flag", duration_flag);
+				Bool splice_immediate_flag = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("splice_immediate_flag", splice_immediate_flag);
+				/*reserved = */gf_bs_read_int(bs, 4);
+				inspect_printf(dump, "/>\n");
 
 				if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
-					scte35_parse_splice_time(ctx, dump, pctx->bs);
+					scte35_parse_splice_time(ctx, dump, bs);
 				}
 
 				if (program_splice_flag == 0) {
-					u8 component_count = gf_bs_read_u8(pctx->bs);
+					u8 component_count = gf_bs_read_u8(bs);
 					DUMP_ATT_U("component_count", component_count);
 					for (int i=0; i<component_count; i++) {
-						/*u8 component_tag = */gf_bs_read_u8(pctx->bs);
+						inspect_printf(dump, "    <scte35:Program>\n");
+						/*u8 component_tag = */gf_bs_read_u8(bs);
 						if (splice_immediate_flag == 0) {
-							scte35_parse_splice_time(ctx, dump, pctx->bs);
+							scte35_parse_splice_time(ctx, dump, bs);
 						}
+						inspect_printf(dump, "    </scte35:Program>\n");
 					}
 				}
-				if (duration_flag == 1) {
+				if (duration_flag == GF_TRUE) {
 					//break_duration()
-					/*Bool auto_return = */gf_bs_read_int(pctx->bs, 1);
-					/*reserved = */gf_bs_read_int(pctx->bs, 6);
-					u64 duration = gf_bs_read_long_int(pctx->bs, 33);
+					inspect_printf(dump, "    <scte35:BreakDuration");
+					/*Bool auto_return = */gf_bs_read_int(bs, 1);
+					/*reserved = */gf_bs_read_int(bs, 6);
+					u64 duration = gf_bs_read_long_int(bs, 33);
 					DUMP_ATT_LLU("duration", duration);
+					inspect_printf(dump, "/>\n");
 				}
-				/*u16 unique_program_id = */gf_bs_read_u16(pctx->bs);
-				/*u8 avail_num = */gf_bs_read_u8(pctx->bs);
-				/*u8 avails_expected = */gf_bs_read_u8(pctx->bs);
+				/*u16 unique_program_id = */gf_bs_read_u16(bs);
+				/*u8 avail_num = */gf_bs_read_u8(bs);
+				/*u8 avails_expected = */gf_bs_read_u8(bs);
+			} else {
+				inspect_printf(dump, "/>\n");
 			}
+			inspect_printf(dump, "   </scte35:SpliceInsert>\n");
 		}
 		break;
 	case 0x06: //time_signal()
-		DUMP_ATT_STR("splice_command_type", "time_signal");
-		scte35_parse_splice_time(ctx, dump, pctx->bs);
+		inspect_printf(dump, "   <scte35:TimeSignal/>\n");
+		scte35_parse_splice_time(ctx, dump, bs);
 		break;
 	case 0x00: //splice_null()
+		inspect_printf(dump, "   <scte35:Null/>\n");
 		DUMP_ATT_STR("splice_command_type", "null");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice null command\n"));
-		gf_bs_skip_bytes(pctx->bs, splice_command_length);
+		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	case 0x04: //splice_schedule()
-		DUMP_ATT_STR("splice_command_type", "schedule");
+		inspect_printf(dump, "   <scte35:SpliceSchedule/>\n");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice schedule command\n"));
-		gf_bs_skip_bytes(pctx->bs, splice_command_length);
+		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	case 0x07: //bandwidth_reservation()
-		DUMP_ATT_STR("splice_command_type", "bandwidth_reservation");
+		inspect_printf(dump, "   <scte35:BandwidthReservation/>\n");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice bandwidth reservation command\n"));
-		gf_bs_skip_bytes(pctx->bs, splice_command_length);
+		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	case 0xff: //private_command()
-		DUMP_ATT_STR("splice_command_type", "private_command");
+		inspect_printf(dump, "   <scte35:PrivateCommand/>\n");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice private command\n"));
-		gf_bs_skip_bytes(pctx->bs, splice_command_length);
+		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	default:
-		DUMP_ATT_STR("splice_command_type", "unknown");
+		inspect_printf(dump, "   <scte35:Unknown/>\n");
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] skip unknown SCTE-35 splice command 0x%X\n", splice_command_type));
-		gf_bs_skip_bytes(pctx->bs, splice_command_length);
+		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	}
 
-	assert(gf_bs_get_position(pctx->bs) == pos + splice_command_length);
+	assert(gf_bs_get_position(bs) == pos + splice_command_length);
 
 	//FIXME: we only parse the first command
 
 #if 0 //not implemented
-	int descriptor_loop_length = gf_bs_read_int(pctx->bs, 12);
+	int descriptor_loop_length = gf_bs_read_int(bs, 12);
 	for (i=0; i<N1; i++)
 		splice_descriptor();
 	for (i=0; i<N2; i++)
-		/*alignment_stuffing =*/ gf_bs_read_u8(pctx->bs);
+		/*alignment_stuffing =*/ gf_bs_read_u8(bs);
 	if (encrypted_packet)
 		E_CRC_32 32 rpchof E
 	CRC_32 32 rpchof
 #endif
 
 exit:
+	inspect_printf(dump, "  </scte35:SpliceInfoSection>\n");
+}
+
+void scte35_dump_xml(FILE *dump, GF_BitStream *bs)
+{
+	GF_InspectCtx ctx = {0};
+	ctx.xml = GF_TRUE;
+	scte35_dump(&ctx, dump, bs);
+}
+
+static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
+{
 	if (ctx->xml) {
-		inspect_printf(dump, "/>\n");
+		inspect_printf(dump, " <SCTE35>\n");
+	} else {
+		inspect_printf(dump, " SCTE35");
+	}
+
+	if (!pctx->bs)
+		pctx->bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+	else
+		gf_bs_reassign_buffer(pctx->bs, att->value.data.ptr, att->value.data.size);
+
+	scte35_dump(ctx, dump, pctx->bs);
+
+	if (ctx->xml) {
+		inspect_printf(dump, " </SCTE35");
 	} else {
 		inspect_printf(dump, "\n");
 	}
@@ -2530,10 +2566,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				inspect_printf(dump, " %s=\"%s\"", pname_no_space, gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data));
 			}
 			gf_free(pname_no_space);
-		/*TODO: how to enable these? gpac -i scte35.ts inspect:analyze=full:deep:props
 		} else if (!p4cc && !strncmp(pname, "scte35", 6)) {
+			inspect_printf(dump, "/>\n");
 			dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
-		} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
+		/*} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
 			dump_temi_loc(ctx, pctx, dump, pname, att);
 		} else if (!p4cc && !strncmp(pname, "temi_t", 6)) {
 			dump_temi_time(ctx, pctx, dump, pname, att);*/
@@ -3257,7 +3293,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 			if (ts==GF_FILTER_NO_TS) inspect_printf(dump, " PCR=\"N/A\"");
 			else inspect_printf(dump, " PCR=\""LLU"\" ", ts );
 			if (ck_type!=GF_FILTER_CLOCK_PCR) inspect_printf(dump, " discontinuity=\"true\"");
-			inspect_printf(dump, "/>");
+			inspect_printf(dump, "/>\n");
 		} else {
 			if (ts==GF_FILTER_NO_TS) inspect_printf(dump, " PCR N/A");
 			else inspect_printf(dump, " PCR%s "LLU"\n", (ck_type==GF_FILTER_CLOCK_PCR) ? "" : " discontinuity", ts );
