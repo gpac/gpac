@@ -5641,6 +5641,10 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	Bool is_template = (seg_type==GF_DASH_TEMPLATE_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool is_init_template = (seg_type==GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE) ? GF_TRUE : GF_FALSE;
 	Bool is_index_template = (seg_type==GF_DASH_TEMPLATE_REPINDEX_TEMPLATE) ? GF_TRUE : GF_FALSE;
+	//except in old arch compat mode, we always append "init" if no "$Init" template, even in BS switching
+	//this avoids confusion in init segment naming when BS switching is on - cf #2773
+	if (!gf_sys_old_arch_compat())
+		is_bs_switching = GF_FALSE;
 	Bool needs_init=((is_init || is_init_template) && !is_bs_switching) ? GF_TRUE : GF_FALSE;
 	u32 has_init_keyword = 0;
 	Bool needs_index = GF_FALSE;
