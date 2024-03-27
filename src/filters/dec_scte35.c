@@ -129,7 +129,7 @@ static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 
 static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts, u32 dur)
 {
-	if (dts - ctx->last_dispatched_dts > 0) {
+	if (dur > 0) {
 		gf_filter_pck_set_duration(pck, dur);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] send dts="LLU" dur=%u\n", dts, dur));
@@ -282,8 +282,7 @@ static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
 	Bool time_specified_flag = gf_bs_read_int(bs, 1);
 	if (time_specified_flag == 1) {
 		/*reserved = */gf_bs_read_int(bs, 6);
-		u64 pts_time = gf_bs_read_long_int(bs, 33);
-		return pts_time;
+		return /*pts_time =*/ gf_bs_read_long_int(bs, 33);
 	} else {
 		/*reserved = */gf_bs_read_int(bs, 7);
 		return 0;
