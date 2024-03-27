@@ -462,7 +462,6 @@ GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct)
 {
 	return gf_filter_pck_new_shared_internal(pid, data, data_size, destruct, GF_FALSE);
-
 }
 
 GF_EXPORT
