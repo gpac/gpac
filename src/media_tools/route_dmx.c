@@ -1002,7 +1002,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->frags[start_frag].size = end - obj->frags[start_frag].offset;
 
 		if(end_frag == start_frag + 1) {
-			// received extends fragment of index start_frag
+			// received data extends fragment of index start_frag
 			if(obj->frags[start_frag].size < old_size + size) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d Overlapping or already received LCT fragment [%u, %u]\n", s->service_id, start_offset, start_offset+size-1));
 			}
