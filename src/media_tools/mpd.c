@@ -5164,7 +5164,7 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 	if (!rep->segment_template && !set->segment_template && !period->segment_template) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Representation without any SegmentBase, SegmentList or SegmentTemplate (non compliant). Assuming default SegmentBase\n"));
 		*out_segment_start_time = start_time;
-		return GF_OK;
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
 	if (period->segment_template) {
