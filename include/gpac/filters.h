@@ -286,7 +286,7 @@ Generic filter options are:
 - ccp: filter replacement control (string list value)
 - NCID: ID of netcap configuration to use (string)
 - DBG: debug missing input PID property (`=pid`), missing input packet property (`=pck`) or both (`=all`)
-- DL: enable defer linkling of filter (no value) - the filter output pids will not be connected until a call to \ref gf_filter_reconnect_output
+- DL: enable defer linking of filter (no value) - the filter output pids will not be connected until a call to \ref gf_filter_reconnect_output
 
 
 \param session filter session
