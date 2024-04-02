@@ -14,13 +14,13 @@ int checks_failed = 0;
 
 static struct TestCase {
   const char *name;
-  int (*test_function)(void);
+  void (*test_function)(void);
 } tests[MAX_NUM_TESTS];
 
 static unsigned int test_count = 0; // global number of registered tests
 
 // Function to register a test case
-int register_test(const char *name, int (*test_function)(void))
+int register_test(const char *name, void (*test_function)(void))
 {
   if(test_count < sizeof(tests) / sizeof(tests[0])) {
     tests[test_count].name = name;
