@@ -17,7 +17,7 @@ static Bool fatal_ut = GF_TRUE;
             checks_passed++;                                         \
         } else {                                                     \
             checks_failed++;                                         \
-            if (fatal_ut) gf_assert(0);                                            \
+            if (fatal_ut) checks_failed|=0x8000000;                                            \
         }                                                            \
     } while (0)
 
