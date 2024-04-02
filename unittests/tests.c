@@ -70,6 +70,11 @@ int run_tests(int argc, char *argv[])
       printf("Failed\n");
       ret = EXIT_FAILURE;
       tests_failed++;
+      if (checks_failed & 0x8000000) {
+        checks_failed &= ~0x8000000;
+        printf("Failure is fatal. Aborting test execution.\n");
+        break;
+      }
     } else {
       printf("Success\n");
       tests_passed++;
