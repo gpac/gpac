@@ -180,7 +180,7 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 			gf_bs_del(bs);
 			if (e) goto exit;
 
-			u32 dur = MIN(evt->emib->event_duration == 0xFFFFFFFF ? 1 : evt->emib->event_duration, max_dur);
+			u32 dur = MIN(evt->emib->event_duration == 0xFFFFFFFF ? ctx->last_pck_dur : evt->emib->event_duration, max_dur);
 			scte35dec_send_pck(ctx, pck_dst, evt->dts + evt->consumed_duration, dur);
 			ctx->clock += dur;
 			evt->consumed_duration += dur;
@@ -385,7 +385,7 @@ GF_Err scte35dec_process(GF_Filter *filter)
 	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
 		// drift control
 		s32 drift = ctx->last_pck_dur + ctx->last_dispatched_dts - dts;
-		GF_LOG(ABS(drift) <= 1 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
+		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
 		ctx->last_dispatched_dts += drift;
 		dts += drift;
 	}
