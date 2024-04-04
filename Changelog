@@ -48,8 +48,7 @@
 - FFMPEG 6 support
 - Added features for configure (vout, aout, fonts, doc, evg)
 - Allow specifying network interface by name or IP instead of IP only
-- UDP/TCP recording to GPAC gpc files
-- UDP/TCP capture playback and filtering from pcap, pcapng and gpc files
+- UDP/TCP filtering and recording to / playback from pcap, pcapng and GPAC gpc files
 
 
 # 19/12/2022: GPAC 2.2

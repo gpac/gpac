@@ -1415,7 +1415,7 @@ GF_GPACArg GPAC_Args[] = {
  "[CFG] is an optional comma-separated list of:\n"
  "- id=ID: ID (string) for this configuration. If NULL, configuration will apply to all sockets not specifying a netcap ID\n"
  "- src=F: read packets from `F`, as produced by GPAC or a pcap or pcapng file\n"
- "- dst=F: output packets to `F` (no pcap/pcapng support), cannot be set if src is set\n"
+ "- dst=F: output packets to `F` (GPAC or pcap/pcapng file), cannot be set if src is set\n"
  "- loop[=N]: loop capture file N times, or forever if N is not set or negative\n"
  "- nrt: disable real-time playback\n"
  "[RULES] is an optional list of `[OPT,OPT2...]` with OPT in:\n"
