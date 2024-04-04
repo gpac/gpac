@@ -1,6 +1,6 @@
 # On-going: GPAC 2.3-DEV
 
-## Emscripten support
+## Emscripten|WebAssembly(WASM) support
 - Session can run in worker or in main browser loop
 - Automatic disable of ffdec and ffenc threads when not running in worker
 - Use fetch() api for downloader
@@ -8,15 +8,16 @@
 - Support for getUserMedia and canvas readable streams
 - gpac.html demo page
 
-
 ## Media Formats
 - Fixes in text subtitle converters
-- Improved DV muxing from mkv
+- Improved DolbyVision muxing from mkv
 - Dasher support for inputs with multiple stsd entries
 - Allow multiplexed representations for LL-HLS
 - Improved eac3 support
 - QT cmov support (reading and writing)
 - QT lpcm support
+- Improved chaptering support
+- Improved timecode inspection
 - Support for big-endian PCM formats
 - Support for uncv (raw video in mp4 and heif)
 - Support for forced subtitles
@@ -25,7 +26,7 @@
 ## Filters
 - Async HTTP request in all filters
 - JS/Python/NodeJS bindings for httpout server
-- Fixed cors and mime types in httpout for wasm and sharedArrayuffer support
+- Fixed CORS and mime types in httpout for wasm and sharedArrayuffer support
 - Allow compilation without threads
 - Allow compilation without network
 - Fixed GF_FileIO for async read and write modes
@@ -42,13 +43,15 @@
 - Conditional filter replacement to identify based on codecID 
 
 ## MP4Box
-- add track reordering option
+- Add track reordering option
 
 ## Misc
+- Migrated doc from github's wiki to wiki.gpac.io
 - FFMPEG 6 support
 - Added features for configure (vout, aout, fonts, doc, evg)
-- Allow specifying network interface by name or IP instead of IP only
+- Allow specifying network interface by name or IP (instead of IP only)
 - UDP/TCP filtering and recording to / playback from pcap, pcapng and GPAC gpc files
+- Added Nix and Docker build files
 
 
 # 19/12/2022: GPAC 2.2
