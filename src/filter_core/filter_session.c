@@ -2771,7 +2771,6 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-"));
 			i++;
 		}
-
 		if (src_num_tiled_pids>1) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("(tilePID[%d]) ", src_num_tiled_pids));
 		}
@@ -2833,6 +2832,8 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (")\n"));
 	}
+	if (f->num_output_pids<=1)
+		src_num_tiled_pids = 0;
 
 	GF_List *dests = gf_list_new();
 	for (i=0; i<f->num_output_pids; i++) {

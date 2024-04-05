@@ -306,7 +306,7 @@ The following libgpac core options allow customizing the filter session:
 .TP
 .B \-dbg-edges
 .br
-log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
+log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status(disable_depth), weight, src_cap_idx -> dst_cap_idx)
 .br
 .TP
 .B \-full-link
@@ -1064,7 +1064,7 @@ enable intermediate copy of data in nghttp2 (default is disabled but may report 
 .TP
 .B \-dbg-edges
 .br
-log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
+log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status(disable_depth), weight, src_cap_idx -> dst_cap_idx)
 .br
 .TP
 .B \-full-link

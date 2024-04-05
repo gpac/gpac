@@ -3062,13 +3062,13 @@ void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister
 }
 
 #ifndef GPAC_DISABLE_LOG
-void dump_dijstra_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkstra_nodes)
+void dump_graph_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkstra_nodes)
 {
 	u32 i, count;
 	if (! gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG))
 		return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dijstra edges %s edge solving\n", is_before ? "before" : "after"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Graph edges %s solving\n", is_before ? "before" : "after"));
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", reg_dst->freg->name));
 	for (i=0; i<reg_dst->nb_edges; i++) {
@@ -3261,7 +3261,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 #ifndef GPAC_DISABLE_LOG
 	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
-		dump_dijstra_edges(GF_TRUE, reg_dst, dijkstra_nodes);
+		dump_graph_edges(GF_TRUE, reg_dst, dijkstra_nodes);
 	}
 #endif
 
@@ -3314,7 +3314,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 #ifndef GPAC_DISABLE_LOG
 	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
-		dump_dijstra_edges(GF_FALSE, reg_dst, dijkstra_nodes);
+		dump_graph_edges(GF_FALSE, reg_dst, dijkstra_nodes);
 	}
 #endif
 
