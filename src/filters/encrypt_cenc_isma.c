@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA encrypt module
@@ -1900,6 +1900,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 #else
 			clear_bytes = nalu_size;
 #endif
+			if (clear_bytes < cstr->tci->crypt_byte_offset) {
+				clear_bytes = cstr->tci->crypt_byte_offset;
+				if (clear_bytes>nalu_size) clear_bytes = nalu_size;
+			}
 			if (nalu_size > gf_bs_available(ctx->bs_r)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Invalid NALU size %u remaining bytes %u\n", nalu_size, gf_bs_available(ctx->bs_r)));
 				return GF_NON_COMPLIANT_BITSTREAM;

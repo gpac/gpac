@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -297,6 +297,9 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			}
 			else if (!stricmp(att->name, "clear_bytes")) {
 				tkc->clear_bytes = atoi(att->value);
+			}
+			else if (!stricmp(att->name, "byte_offset")) {
+				tkc->crypt_byte_offset = atoi(att->value);
 			}
 			else if (!stricmp(att->name, "constant_IV_size")
 				|| (!stricmp(att->name, "IV_size") && (tkc->scheme_type == GF_CRYPT_TYPE_CBCS))
