@@ -2880,7 +2880,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			/*if not forcing cat, check the media codec config is the same*/
 			if (!gf_isom_is_same_sample_description(orig, i+1, 0, dest, dst_tk, 0)) {
 				//we will need to merge the same descriptions
-				if (!force_cat) dst_tk_sample_entry = dst_tk;
+				if (!force_cat && !dst_tk_sample_entry) dst_tk_sample_entry = dst_tk;
 				dst_tk = 0;
 			}
 			/*we force the same visual resolution*/
