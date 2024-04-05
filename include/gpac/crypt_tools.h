@@ -192,6 +192,8 @@ typedef struct
 
 	/*! CENS/CBCS pattern */
 	u32 crypt_byte_block, skip_byte_block;
+	/*! forces a minimum clear range for subsamples (ignored otherwise) - the final offset is at least the slice header size*/
+	u32 crypt_byte_offset;
 
 	/* ! for avc1 ctr CENC edition 1 */
 	Bool allow_encrypted_slice_header;
