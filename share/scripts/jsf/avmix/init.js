@@ -1062,7 +1062,7 @@ filter.process = function()
 		return GF_OK;
 
 	//we had pending events, waiting for import module resolutions, flush them
-	if (watchers_defered.length) {
+	if (watchers_deferred.length) {
 		flush_watchers();
 	}
 
@@ -4475,7 +4475,7 @@ function validate_watcher(pl)
 
 let watchers=[];
 let defer_parse_watchers = null;
-let watchers_defered = [];
+let watchers_deferred = [];
 let event_watchers=[];
 
 function remove_watcher(watcher, parent_only)
@@ -4669,17 +4669,17 @@ function parse_watcher(pl)
 
 function flush_watchers()
 {
-	watchers_defered.forEach(evt => {
+	watchers_deferred.forEach(evt => {
 		trigger_watcher(evt.elem, evt.prop, evt.val);
 	});
-	watchers_defered.length = 0;
+	watchers_deferred.length = 0;
 }
 
 function trigger_watcher(src, prop_name, value)
 {
 	if (defer_parse_watchers) {
 		let evt = {elem: src, prop: prop_name, val: value};
-		watchers_defered.push(evt);
+		watchers_deferred.push(evt);
 		return;
 	}
 
@@ -4912,7 +4912,7 @@ function load_playlist()
 
 	//reset root
 	root_scene.scenes.length = 0;
-	watchers_defered.length = 0;
+	watchers_deferred.length = 0;
 	defer_parse_watchers = [];
 
 	if (Array.isArray(pl) ) {
@@ -5868,7 +5868,7 @@ function update_timer(timer)
 			}
 			let update_type = target.update_type;
 
-			//update type was defered (scene not loaded)
+			//update type was deferred (scene not loaded)
 			if ((update_type == -3) && target.scene) {
 				if (typeof target.scene.mod[target.field] != 'undefined') {
 					update_type = scene_mod_option_update_time(target.scene, target.field);
