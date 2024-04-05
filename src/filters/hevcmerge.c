@@ -1679,6 +1679,7 @@ GF_FilterRegister HEVCMergeRegister = {
 		"Assuming the two sources are encoded at 320x240 and merged as src1 above src2, the output will be a 320x480 video with a `SRDMap` of `{0,0,320,240,0,0,320,240,640,0,320,240,0,240,320,240}`\n"
 	)
 	.private_size = sizeof(GF_HEVCMergeCtx),
+	.flags = GF_FS_REG_DYNAMIC_REUSE,
 	SETCAPS(HEVCMergeCaps),
 	.initialize = hevcmerge_initialize,
 	.finalize = hevcmerge_finalize,
