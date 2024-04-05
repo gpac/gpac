@@ -567,6 +567,9 @@ GF_FilterSession *gf_fs_new_defaults(GF_FilterSessionFlags inflags)
 	if (inflags & GF_FS_FLAG_FORCE_DEFER_LINK)
 		flags |= GF_FS_FLAG_FORCE_DEFER_LINK;
 
+	if (inflags & GF_FS_FLAG_PREVENT_PLAY)
+		flags |= GF_FS_FLAG_PREVENT_PLAY;
+
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
@@ -4763,6 +4766,35 @@ Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const ch
 {
 	if (!filter) return 0;
 	return gf_fs_relocate_url(filter->session, service_url, parent_url, out_relocated_url, out_localized_url);
+}
+
+GF_EXPORT
+void gf_fs_send_deferred_play(GF_FilterSession *fsess)
+{
+	if (!fsess || !(fsess->flags & GF_FS_FLAG_PREVENT_PLAY)) return;
+	fsess->flags &= ~GF_FS_FLAG_PREVENT_PLAY;
+
+	gf_mx_p(fsess->filters_mx);
+	u32 i, count=gf_list_count(fsess->filters);
+	for (i=0;i<count;i++) {
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		u32 j;
+		if (f->has_out_caps) continue;;
+		for (j=0;j<f->num_input_pids; j++) {
+			GF_PropertyValue p;
+			GF_FilterEvent evt;
+			GF_FilterPid *pid = gf_list_get(f->input_pids, j);
+			Double start = 0;
+			Double speed = 1;
+
+			if (gf_filter_get_arg(f, "start", &p)) start = p.value.number;
+			if (gf_filter_get_arg(f, "speed", &p)) speed = p.value.number;
+
+			gf_filter_pid_init_play_event(pid, &evt, start, speed, f->name);
+			gf_filter_pid_send_event(pid, &evt);
+		}
+	}
+	gf_mx_v(fsess->filters_mx);
 }
 
 

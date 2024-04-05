@@ -2414,6 +2414,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_separators) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_filters_registers_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_filter_register) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_send_deferred_play) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_lock_filters) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_filters_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_filter) )

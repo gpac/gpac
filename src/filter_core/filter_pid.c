@@ -7702,6 +7702,12 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 		pid = evt->base.on_pid;
 		if (!pid) return;
 	}
+	if ((pid->filter->session->flags & GF_FS_FLAG_PREVENT_PLAY) && (evt->base.type==GF_FEVT_PLAY)) {
+		//only for sinks
+		if (!pid->filter->has_out_caps)
+			return;
+	}
+
 	//filter is being shut down, prevent any event posting
 	if (pid->filter->finalized) return;
 

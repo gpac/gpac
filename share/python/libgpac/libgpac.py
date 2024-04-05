@@ -1116,6 +1116,12 @@ GF_FS_FLAG_NO_IMPLICIT=1<<11
 ##\hideinitializer
 #see \ref GF_FS_FLAG_REQUIRE_SOURCE_ID
 GF_FS_FLAG_REQUIRE_SOURCE_ID=1<<12
+##\hideinitializer
+#see \ref GF_FS_FLAG_FORCE_DEFER_LINK
+GF_FS_FLAG_FORCE_DEFER_LINK = 1<<13
+##\hideinitializer
+#see \ref GF_FS_FLAG_PREVENT_PLAY
+GF_FS_FLAG_PREVENT_PLAY = 1<<14
 
 ##\hideinitializer
 #see \ref GF_PROP_FORBIDDEN

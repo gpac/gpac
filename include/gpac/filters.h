@@ -238,7 +238,10 @@ typedef enum
 	GF_FS_FLAG_REQUIRE_SOURCE_ID = 1<<12,
 	/*! Flag set to force all explicitly added filters to be loaded in deferred link state - linking will only happen once  \ref gf_filter_reconnect_output is called on the filter.
 	*/
-	GF_FS_FLAG_FORCE_DEFER_LINK = 1<<13
+	GF_FS_FLAG_FORCE_DEFER_LINK = 1<<13,
+	/*! Flag set to ignore all PLAY events from sinks - use \ref gf_fs_send_deferred_play to start playback
+	*/
+	GF_FS_FLAG_PREVENT_PLAY = 1<<14
 } GF_FilterSessionFlags;
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
@@ -419,6 +422,11 @@ void gf_fs_add_filter_register(GF_FilterSession *session, const GF_FilterRegiste
 \param freg filter register to remove
 */
 void gf_fs_remove_filter_register(GF_FilterSession *session, GF_FilterRegister *freg);
+
+/*! Sends PLAY event on all sinks, ignored if GF_FS_FLAG_PREVENT_PLAY flag is not set
+\param session filter session
+*/
+void gf_fs_send_deferred_play(GF_FilterSession *session);
 
 /*! Posts a user task to the session
 \param session filter session
