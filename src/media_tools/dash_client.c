@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2023
+ *			Copyright (c) Telecom ParisTech 2010-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -10150,10 +10150,18 @@ u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx)
 	u32 i=0;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return 0;
+	GF_List *l = group->adaptation_set->audio_channels;
+	if (!gf_list_count(l)) {
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
+		if (rep && rep->audio_channels) l = rep->audio_channels;
+	}
 
-	while ((mpd_desc=gf_list_enum(group->adaptation_set->audio_channels, &i))) {
+	while ((mpd_desc=gf_list_enum(l, &i))) {
 		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011")) {
 			return atoi(mpd_desc->value);
+		}
+		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:ChannelConfiguration")) {
+			return gf_audio_fmt_get_num_channels_from_layout( gf_audio_fmt_get_layout_from_cicp(atoi(mpd_desc->value)));
 		}
 	}
 	return 0;

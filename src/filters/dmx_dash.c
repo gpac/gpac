@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -1007,6 +1007,13 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 		}
 
 		if ((ctx->forward==DFWD_FILE) && ctx->output_mpd_pid) {
+			//for routeout
+			u32 manifest_type = gf_dash_is_m3u8(ctx->dash) ? 2 : 1;
+			if (!gf_sys_is_test_mode() && gf_dash_is_dynamic_mpd(ctx->dash))
+				manifest_type |= 0x80000000;
+
+			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
+
 			GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->output_mpd_pid, manifest_payload_len, &output);
 			if (pck) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s updated, forwarding\n", manifest_name));
@@ -1636,6 +1643,11 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		) {
 			stream_type = GF_STREAM_TEXT;
 		}
+		if (qinfo.mime) {
+			if (!strncmp(qinfo.mime, "video/", 6)) stream_type = GF_STREAM_VISUAL;
+			else if (!strncmp(qinfo.mime, "audio/", 6)) stream_type = GF_STREAM_AUDIO;
+			if (!strncmp(qinfo.mime, "text/", 5)) stream_type = GF_STREAM_TEXT;
+		}
 		dashdm_format_qinfo(&qdesc, &qinfo);
 
 		qualities.value.string_list.vals = gf_realloc(qualities.value.string_list.vals, sizeof(char *) * (qualities.value.string_list.nb_items+1));
@@ -1965,8 +1977,6 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Creating manifest output PID\n"));
 			//for routeout
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_PREMUX_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
-			u32 manifest_type = gf_dash_is_m3u8(ctx->dash) ? 2 : 1;
-			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
 		}
 
 
@@ -1976,6 +1986,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_setup_failure(filter, e);
 			return e;
 		}
+
 		frag = strchr(p->value.string, '#');
 		if (frag) {
 			if (ctx->frag_url) gf_free(ctx->frag_url);
