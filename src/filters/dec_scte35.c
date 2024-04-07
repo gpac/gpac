@@ -46,7 +46,7 @@ typedef struct {
 	u64 last_dispatched_dts;
 
 	// used to segment empty boxes
-	GF_Fraction seg_dur;
+	GF_Fraction segdur;
 	u8 emeb_box[8];
 	Bool seg_setup;
 	u64 orig_ts;
@@ -121,7 +121,7 @@ static Bool scte35dec_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 	if (evt->base.type==GF_FEVT_ENCODE_HINTS) {
 		SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 		if (evt->encode_hints.intra_period.den && evt->encode_hints.intra_period.num) {
-			ctx->seg_dur = evt->encode_hints.intra_period;
+			ctx->segdur = evt->encode_hints.intra_period;
 		}
 		return GF_TRUE;
 	}
@@ -237,7 +237,7 @@ static GF_Err scte35dec_flush(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 	GF_Err e = scte35dec_flush_emib(ctx, timestamp, dur);
 	if (e) return e;
 
-	if ((ctx->seg_dur.den && ctx->seg_dur.num>0) && ctx->clock < timestamp + dur ) {
+	if ((ctx->segdur.den && ctx->segdur.num>0) && ctx->clock < timestamp + dur ) {
 		// complete the segment with an empty box
 		return scte35dec_flush_emeb(ctx, ctx->clock);
 	} else {
@@ -247,7 +247,7 @@ static GF_Err scte35dec_flush(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 
 static GF_Err scte35dec_dispatch(SCTE35DecCtx *ctx, u64 dts)
 {
-	if ( !(ctx->seg_dur.den && ctx->seg_dur.num>0) ) {
+	if ( !(ctx->segdur.den && ctx->segdur.num>0) ) {
 		// unsegmented: dispatch at each frame
 		gf_assert(gf_list_count(ctx->ordered_events) <= 1);
 		GF_Err e = scte35dec_flush(ctx, dts, UINT32_MAX);
@@ -265,14 +265,14 @@ static GF_Err scte35dec_dispatch(SCTE35DecCtx *ctx, u64 dts)
 			ctx->nb_forced = 0;
 		} else {
 			GF_Fraction64 ts_diff = { ctx->clock - ctx->orig_ts, ctx->timescale };
-			if (ts_diff.num * ctx->seg_dur.den >= (ctx->nb_forced+1) * ctx->seg_dur.num * ts_diff.den) {
+			if (ts_diff.num * ctx->segdur.den >= (ctx->nb_forced+1) * ctx->segdur.num * ts_diff.den) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n", ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
-				u64 dts = ctx->orig_ts + ctx->nb_forced * ctx->seg_dur.num * ctx->timescale / ctx->seg_dur.den;
+				u64 dts = ctx->orig_ts + ctx->nb_forced * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
 				if (dts == ctx->last_dispatched_dts) // first segment
-					ctx->last_dispatched_dts -= (ctx->seg_dur.num * ctx->timescale / ctx->seg_dur.den);
+					ctx->last_dispatched_dts -= (ctx->segdur.num * ctx->timescale / ctx->segdur.den);
 				ctx->nb_forced++;
 				ctx->clock = dts;
-				return scte35dec_flush(ctx, dts, ctx->seg_dur.num * ctx->timescale / ctx->seg_dur.den);
+				return scte35dec_flush(ctx, dts, ctx->segdur.num * ctx->timescale / ctx->segdur.den);
 			}
 		}
 	}
@@ -381,7 +381,7 @@ GF_Err scte35dec_process(GF_Filter *filter)
 		ctx->timescale = gf_filter_pck_get_timescale(pck);
 		ctx->last_dispatched_dts = dts;
 		ctx->last_pck_dur = gf_filter_pck_get_duration(pck);
-	} else if (ctx->clock < dts && !(ctx->seg_dur.den && ctx->seg_dur.num>0) &&
+	} else if (ctx->clock < dts && !(ctx->segdur.den && ctx->segdur.num>0) &&
 	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
 		// drift control
 		s32 drift = ctx->last_pck_dur + ctx->last_dispatched_dts - dts;
@@ -406,7 +406,7 @@ GF_Err scte35dec_process(GF_Filter *filter)
 		// set values according to SCTE 214-3 2015
 		emib->timescale = gf_filter_pck_get_timescale(pck);
 		emib->presentation_time_delta = pts - dts;
-		if (pts < ctx->clock && !(ctx->seg_dur.den && ctx->seg_dur.num>0))
+		if (pts < ctx->clock && !(ctx->segdur.den && ctx->segdur.num>0))
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
 		emib->event_duration = dur;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
@@ -441,6 +441,14 @@ static const GF_FilterCapability SCTE35DecCaps[] =
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
+#define OFFS(_n)	#_n, offsetof(SCTE35DecCtx, _n)
+static const GF_FilterArgs SCTE35DecArgs[] =
+{
+	{ OFFS(segdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
+	{0}
+};
+
+
 GF_FilterRegister SCTE35DecRegister = {
 	.name = "scte35dec",
 	GF_FS_SET_DESCRIPTION("SCTE35 decoder")
@@ -448,6 +456,7 @@ GF_FilterRegister SCTE35DecRegister = {
 	               "packets as 23001-18 'emib' boxes. It also creates empty 'emeb' box in between\n"
 	               "following segmentation as hinted by the graph.")
 	.private_size = sizeof(SCTE35DecCtx),
+	.args = SCTE35DecArgs,
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS(SCTE35DecCaps),
 	.process = scte35dec_process,
