@@ -2266,6 +2266,8 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs) //Roma
 				inspect_printf(dump, "/>\n");
 			}
 			inspect_printf(dump, "   </scte35:SpliceInsert>\n");
+
+			gf_bs_seek(bs, pos + splice_command_length);
 		}
 		break;
 	case 0x06: //time_signal()
