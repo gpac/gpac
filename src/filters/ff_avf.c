@@ -582,8 +582,13 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				ctx->frame->sample_aspect_ratio.num = ipid->sar.num;
 				ctx->frame->sample_aspect_ratio.den = ipid->sar.den;
 			} else {
+#if AV_VERSION_INT(LIBAVFILTER_VERSION_MAJOR, LIBAFILTER_VERSION_MINOR, 0) < AV_VERSION_INT(8, 28, 0)
 				ctx->frame->channel_layout = ipid->ch_layout;
 				ctx->frame->channels = ipid->nb_ch;
+#else
+				ctx->frame->ch_layout.u.mask = ipid->ch_layout;
+				ctx->frame->ch_layout.nb_channels = ipid->nb_ch;
+#endif
 				ctx->frame->sample_rate = ipid->sr;
 				ctx->frame->format = ipid->pfmt;
 				ctx->frame->nb_samples = data_size / ipid->nb_ch / ipid->bps;
@@ -727,25 +732,32 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			u32 j, out_size;
 			GF_FilterPacket *pck;
 			Bool update_props=GF_TRUE;
+#if AV_VERSION_INT(LIBAVFILTER_VERSION_MAJOR, LIBAFILTER_VERSION_MINOR, 0) < AV_VERSION_INT(8, 28, 0)
+			u64 ffmpeg_channel_layout = frame->channel_layout;
+			u32 ffmpeg_channels = frame->channels;
+#else
+			u64 ffmpeg_channel_layout = frame->ch_layout.u.mask;
+			u32 ffmpeg_channels = frame->ch_layout.nb_channels;
+#endif
 			if (frame->sample_rate!=opid->sr) {}
-			else if (frame->channel_layout!=opid->ch_layout) {}
-			else if (frame->channels != opid->nb_ch) {}
+			else if (ffmpeg_channel_layout!=opid->ch_layout) {}
+			else if (ffmpeg_channels != opid->nb_ch) {}
 			else if (frame->format != opid->pfmt) {}
 			else {
 				update_props = GF_FALSE;
 			}
 			if (update_props) {
-				u64 gpac_ch_layout = ffmpeg_channel_layout_to_gpac(frame->channel_layout);
+				u64 gpac_ch_layout = ffmpeg_channel_layout_to_gpac(ffmpeg_channel_layout);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(frame->sample_rate));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(gpac_ch_layout));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(frame->channels));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ffmpeg_channels));
 				opid->gf_pfmt = ffmpeg_audio_fmt_to_gpac(frame->format);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(opid->gf_pfmt));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(opid->io_filter_ctx->inputs[0]->time_base.den) );
 
 				opid->sr = frame->sample_rate;
-				opid->ch_layout = frame->channel_layout;
-				opid->nb_ch = frame->channels;
+				opid->ch_layout = ffmpeg_channel_layout;
+				opid->nb_ch = ffmpeg_channels;
 				opid->pfmt = frame->format;
 				opid->tb_num = opid->io_filter_ctx->inputs[0]->time_base.num;
 				opid->bps = gf_audio_fmt_bit_depth(opid->gf_pfmt) / 8;
@@ -890,7 +902,15 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 		if (!p) return GF_OK; //not ready yet
 		nb_ch = p->value.uint;
+#if AV_VERSION_INT(LIBAVFILTER_VERSION_MAJOR, LIBAFILTER_VERSION_MINOR, 0) < AV_VERSION_INT(8, 28, 0)
 		if (!ch_layout) ch_layout = av_get_default_channel_layout(p->value.uint);
+#else
+		if (!ch_layout) {
+			AVChannelLayout avcl = {0};
+			av_channel_layout_default(&avcl, p->value.uint);
+			ch_layout = avcl.u.mask;
+		}
+#endif
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (!p) return GF_OK; //not ready yet

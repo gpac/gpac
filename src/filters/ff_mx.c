@@ -247,7 +247,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 }
 
 
-static int ffavio_write_packet(void *opaque, uint8_t *buf, int buf_size)
+static int ffavio_write_packet(void *opaque, const uint8_t *buf, int buf_size)
 {
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *)opaque;
 	return (int) gf_fwrite(buf, buf_size, ctx->gfio);
@@ -412,7 +412,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 		segmux->max_delay = ctx->muxer->max_delay;
 		av_dict_copy(&segmux->metadata, ctx->muxer->metadata, 0);
 		segmux->opaque = ctx->muxer->opaque;
-		segmux->io_close = ctx->muxer->io_close;
+		segmux->io_close2 = ctx->muxer->io_close2;
 		segmux->io_open = ctx->muxer->io_open;
 		segmux->flags = ctx->muxer->flags;
 
@@ -459,7 +459,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 		avformat_free_context(ctx->muxer);
 		ctx->muxer = segmux;
 	} else {
-		ctx->muxer->io_close(ctx->muxer, ctx->muxer->pb);
+		ctx->muxer->io_close2(ctx->muxer, ctx->muxer->pb);
 		ctx->muxer->pb = NULL;
 	}
 
@@ -605,20 +605,33 @@ void ffmx_inject_config(GF_FilterPid *pid, GF_FFMuxStream *st, AVPacket *pkt)
 	if (st->reconfig_stream & FFMX_INJECT_AUD_INFO) {
 		u32 sr, ch, size=12;
 		u64 ch_layout;
-		u32 flags = AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_COUNT | AV_SIDE_DATA_PARAM_CHANGE_SAMPLE_RATE;
+		u32 flags = AV_SIDE_DATA_PARAM_CHANGE_SAMPLE_RATE;
+#if LIBAVUTIL_VERSION_MAJOR < 59
+		flags |= AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_COUNT;
+#endif
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		sr = p ? p->value.uint : st->stream->codecpar->sample_rate;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+#if AV_VERSION_INT(LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, 0) < AV_VERSION_INT(59, 24, 0)
 		ch = p ? p->value.uint : st->stream->codecpar->channels;
+#else
+		ch = p ? p->value.uint : st->stream->codecpar->ch_layout.nb_channels;
+#endif
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p) {
 			ch_layout = ffmpeg_channel_layout_from_gpac(p->value.uint);
 		} else {
+#if AV_VERSION_INT(LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, 0) < AV_VERSION_INT(59, 24, 0)
 			ch_layout = st->stream->codecpar->channel_layout;
+#else
+			ch_layout = st->stream->codecpar->ch_layout.u.mask;
+#endif
 		}
 		if (ch_layout) {
 			size += 8;
+#if LIBAVUTIL_VERSION_MAJOR < 59
 			flags |= AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_LAYOUT;
+#endif
 		}
 
 		data = av_packet_new_side_data(pkt, AV_PKT_DATA_PARAM_CHANGE, size);
@@ -626,8 +639,10 @@ void ffmx_inject_config(GF_FilterPid *pid, GF_FFMuxStream *st, AVPacket *pkt)
 			GF_BitStream *bs = gf_bs_new(data, 12, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32_le(bs, flags);
 			gf_bs_write_u32_le(bs, ch);
+#if LIBAVUTIL_VERSION_MAJOR < 59
 			if (flags & AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_LAYOUT)
 				gf_bs_write_u64_le(bs, ch_layout);
+#endif
 			gf_bs_write_u32_le(bs, sr);
 			gf_bs_del(bs);
 		}
@@ -1179,7 +1194,14 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			ch_layout = p ? p->value.uint : 0;
 			if (ch_layout)
 				ch_layout = ffmpeg_channel_layout_from_gpac(ch_layout);
-			if ((sr != avst->codecpar->sample_rate) || (ch != avst->codecpar->channels) || (ch_layout!=avst->codecpar->channel_layout))
+#if AV_VERSION_INT(LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, 0) < AV_VERSION_INT(59, 24, 0)
+			u64 ffmpeg_ch_layout = avst->codecpar->channel_layout;
+			u32 ffmpeg_nb_channels = avst->codecpar->channels;
+#else
+			u64 ffmpeg_ch_layout = avst->codecpar->ch_layout.u.mask;
+			u32 ffmpeg_nb_channels = avst->codecpar->ch_layout.nb_channels;
+#endif
+			if ((sr != avst->codecpar->sample_rate) || (ch != ffmpeg_nb_channels) || (ch_layout != ffmpeg_ch_layout))
 				st->reconfig_stream |= FFMX_INJECT_AUD_INFO;
 		}
 
@@ -1244,7 +1266,11 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (p) avst->codecpar->sample_rate = samplerate = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+#if AV_VERSION_INT(LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, 0) < AV_VERSION_INT(59, 24, 0)
 		if (p) avst->codecpar->channels = p->value.uint;
+#else
+		if (p) avst->codecpar->ch_layout.nb_channels = p->value.uint;
+#endif
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLES_PER_FRAME);
 		if (p) avst->codecpar->frame_size = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_BPS);
@@ -1256,14 +1282,21 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		ch_layout = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+#if AV_VERSION_INT(LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, 0) < AV_VERSION_INT(59, 24, 0)
+		u32 ffmpeg_nb_channels = avst->codecpar->channels;
+		u64 *ffmpeg_channel_layout = &avst->codecpar->channel_layout;
+#else
+		u32 ffmpeg_nb_channels = avst->codecpar->ch_layout.nb_channels;
+		u64 *ffmpeg_channel_layout = &avst->codecpar->ch_layout.u.mask;
+#endif
 		if (p)
 			ch_layout = p->value.longuint;
-		else if (avst->codecpar->channels==2)
+		else if (ffmpeg_nb_channels==2)
 			ch_layout = GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT;
-		else if (avst->codecpar->channels==1)
+		else if (ffmpeg_nb_channels==1)
 			ch_layout = GF_AUDIO_CH_FRONT_CENTER;
 
-		avst->codecpar->channel_layout = ch_layout ? ffmpeg_channel_layout_from_gpac(ch_layout) : 0;
+		*ffmpeg_channel_layout = ch_layout ? ffmpeg_channel_layout_from_gpac(ch_layout) : 0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 		if (p && (p->value.sint<0) && samplerate) {
@@ -1399,7 +1432,7 @@ static void ffmx_finalize(GF_Filter *filter)
 		ctx->status = FFMX_STATE_TRAILER_DONE;
 	}
 	if (!ctx->gfio && ctx->muxer && ctx->muxer->pb) {
-		ctx->muxer->io_close(ctx->muxer, ctx->muxer->pb);
+		ctx->muxer->io_close2(ctx->muxer, ctx->muxer->pb);
 	}
 
 #if (LIBAVCODEC_VERSION_MAJOR >= 59)

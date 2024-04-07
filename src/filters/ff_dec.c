@@ -713,8 +713,13 @@ dispatch_next:
 	FF_RELEASE_PCK(pkt);
 
 
+#if LIBAVUTIL_VERSION_MAJOR < 59
 	FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 	FF_CHECK_PROPL(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
+#else
+	FF_CHECK_PROP(channels, ch_layout.nb_channels, GF_PROP_PID_NUM_CHANNELS)
+	FF_CHECK_PROPL(channel_layout, ch_layout.u.mask, GF_PROP_PID_CHANNEL_LAYOUT)
+#endif
 	FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 
 	if (prev_afmt != ctx->decoder->sample_fmt) {
@@ -1202,7 +1207,11 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		if (ctx->sample_rate && ctx->channels) {
 			ctx->decoder->sample_rate = ctx->sample_rate;
+#if LIBAVUTIL_VERSION_MAJOR < 59
 			ctx->decoder->channels = ctx->channels;
+#else
+			ctx->decoder->ch_layout.nb_channels = ctx->channels;
+#endif
 		}
 	}
 
@@ -1353,6 +1362,7 @@ reuse_codec_context:
 		}
 
 		//override PID props with what decoder gives us
+#if LIBAVUTIL_VERSION_MAJOR < 59
 		if (ctx->decoder->channels) {
 			ctx->channels = 0;
 			FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
@@ -1364,6 +1374,7 @@ reuse_codec_context:
 				ctx->channel_layout = ch_lay;
 			}
 		}
+#endif
 		if (ctx->decoder->sample_rate) {
 			ctx->sample_rate = 0;
 			FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
