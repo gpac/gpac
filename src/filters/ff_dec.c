@@ -713,8 +713,13 @@ dispatch_next:
 	FF_RELEASE_PCK(pkt);
 
 
+#ifdef FFMPEG_OLD_CHLAYOUT
 	FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 	FF_CHECK_PROPL(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
+#else
+	FF_CHECK_PROP(channels, ch_layout.nb_channels, GF_PROP_PID_NUM_CHANNELS)
+	FF_CHECK_PROPL(channel_layout, ch_layout.u.mask, GF_PROP_PID_CHANNEL_LAYOUT)
+#endif
 	FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 
 	if (prev_afmt != ctx->decoder->sample_fmt) {
@@ -1202,7 +1207,11 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		if (ctx->sample_rate && ctx->channels) {
 			ctx->decoder->sample_rate = ctx->sample_rate;
+#ifdef FFMPEG_OLD_CHLAYOUT
 			ctx->decoder->channels = ctx->channels;
+#else
+			ctx->decoder->ch_layout.nb_channels = ctx->channels;
+#endif
 		}
 	}
 
@@ -1352,13 +1361,23 @@ reuse_codec_context:
 			ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
 		}
 
+		u32 nb_ch=0;
+		u64 ff_ch_layout=0;
+#ifdef FFMPEG_OLD_CHLAYOUT
+		nb_ch = ctx->decoder->channels;
+		ff_ch_layout = ctx->decoder->channel_layout;
+#else
+		nb_ch = ctx->decoder->ch_layout.nb_channels;
+		ff_ch_layout = (ctx->decoder->ch_layout.order>=AV_CHANNEL_ORDER_CUSTOM) ? 0 : ctx->decoder->ch_layout.u.mask;
+#endif
+
 		//override PID props with what decoder gives us
-		if (ctx->decoder->channels) {
-			ctx->channels = 0;
-			FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
+		if (nb_ch) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch ) );
+			ctx->channels = nb_ch;
 		}
-		if (ctx->decoder->channel_layout) {
-			u64 ch_lay = ffmpeg_channel_layout_to_gpac(ctx->decoder->channel_layout);
+		if (ff_ch_layout) {
+			u64 ch_lay = ffmpeg_channel_layout_to_gpac(ff_ch_layout);
 			if (ctx->channel_layout != ch_lay) {
 				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_lay ) );
 				ctx->channel_layout = ch_lay;
