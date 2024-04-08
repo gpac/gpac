@@ -599,6 +599,7 @@ restart:
 				GF_BitStream *bs = gf_bs_new(sd->data, sd->size, GF_BITSTREAM_READ);
 
 				u32 flags = gf_bs_read_u32_le(bs);
+#ifdef FFMPEG_OLD_CHLAYOUT
 				if (flags & AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_COUNT) {
 					u32 new_ch = gf_bs_read_u32_le(bs);
 					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(new_ch) );
@@ -608,6 +609,10 @@ restart:
 					new_lay = ffmpeg_channel_layout_to_gpac(new_lay);
 					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(new_lay) );
 				}
+#else
+				//no message for ch layout/count change in latest API
+#endif
+
 				if (flags & AV_SIDE_DATA_PARAM_CHANGE_SAMPLE_RATE) {
 					u32 new_sr = gf_bs_read_u32_le(bs);
 					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(new_sr) );
@@ -978,7 +983,11 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		u32 exdata_size = stream->codecpar->extradata_size;
 		u32 codec_sample_rate = stream->codecpar->sample_rate;
 		u32 codec_frame_size = stream->codecpar->frame_size;
+#ifdef FFMPEG_OLD_CHLAYOUT
 		u32 codec_channels = stream->codecpar->channels;
+#else
+		u32 codec_channels = stream->codecpar->ch_layout.nb_channels;
+#endif
 		u32 codec_width = stream->codecpar->width;
 		u32 codec_height = stream->codecpar->height;
 		u32 codec_field_order = stream->codecpar->field_order;
@@ -1068,8 +1077,13 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (grab_type)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_RAWGRAB, &PROP_UINT(grab_type) );
 		else if (ctx->demuxer->iformat) {
-			if ((ctx->demuxer->iformat->flags & AVFMT_SEEK_TO_PTS) || ctx->demuxer->iformat->read_seek)
+			if ((ctx->demuxer->iformat->flags & AVFMT_SEEK_TO_PTS)
+#if (LIBAVFORMAT_VERSION_MAJOR < 59)
+				|| ctx->demuxer->iformat->read_seek
+#endif
+			) {
 				gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
+			}
 		}
 
 

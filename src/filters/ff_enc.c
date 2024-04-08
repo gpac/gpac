@@ -32,6 +32,12 @@
 
 #include "ff_common.h"
 
+#if (LIBAVUTIL_VERSION_MAJOR < 59)
+#define _avf_dur	pkt_duration
+#else
+#define _avf_dur	duration
+#endif
+
 #define ENC_BUF_ALLOC_SAFE	10000
 
 typedef struct _gf_ffenc_ctx
@@ -590,7 +596,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				ctx->frame->top_field_first = (ilaced==2) ? 1 : 0;
 			}
 			ctx->frame->pts = ffenc_get_cts(ctx, pck);
-			ctx->frame->pkt_duration = gf_filter_pck_get_duration(pck);
+			ctx->frame->_avf_dur = gf_filter_pck_get_duration(pck);
 		}
 
 //use signed version of timestamp rescale since we may have negative dts
@@ -601,7 +607,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
 
-			SCALE_TS(ctx->frame->pkt_duration);
+			SCALE_TS(ctx->frame->_avf_dur);
 		}
 
 		//store first frame CTS as will be seen after rescaling (to cope with rounding errors
@@ -673,7 +679,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 		if (ctx->remap_ts) {
 			UNSCALE_TS(ctx->frame->pts);
-			UNSCALE_TS(ctx->frame->pkt_duration);
+			UNSCALE_TS(ctx->frame->_avf_dur);
 			if (gotpck) {
 				UNSCALE_TS(pkt->dts);
 				UNSCALE_TS(pkt->pts);
@@ -857,7 +863,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (pkt->duration) {
 			gf_filter_pck_set_duration(dst_pck, (u32) pkt->duration);
 		} else {
-			gf_filter_pck_set_duration(dst_pck, (u32) ctx->frame->pkt_duration);
+			gf_filter_pck_set_duration(dst_pck, (u32) ctx->frame->_avf_dur);
 		}
 	}
 	if (ctx->gen_dsi) {
@@ -1118,8 +1124,13 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (pck)
 		ctx->frame->nb_samples = ctx->encoder->frame_size;
 	ctx->frame->format = ctx->encoder->sample_fmt;
+#ifdef FFMPEG_OLD_CHLAYOUT
 	ctx->frame->channels = ctx->encoder->channels;
 	ctx->frame->channel_layout = ctx->encoder->channel_layout;
+#else
+	av_channel_layout_copy(&ctx->frame->ch_layout, &ctx->encoder->ch_layout);
+#endif
+
 	gotpck = 0;
 	if (pck || ctx->samples_in_audio_buffer) {
 #if (LIBAVFORMAT_VERSION_MAJOR<59)
@@ -1526,7 +1537,12 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 		if ((type==GF_STREAM_AUDIO)
 			&& (ctx->encoder->codec->id==codec_id) && (ctx->encoder->sample_rate==ctx->sample_rate)
-			&& (ctx->encoder->channels==ctx->channels) && (ctx->gpac_audio_fmt == afmt )
+			&& (ctx->gpac_audio_fmt == afmt )
+#ifdef FFMPEG_OLD_CHLAYOUT
+			&& (ctx->encoder->channels==ctx->channels)
+#else
+			&& (ctx->encoder->ch_layout.nb_channels==ctx->channels)
+#endif
 		) {
 			reuse = GF_TRUE;
 		} else if ((ctx->encoder->codec->id==codec_id)
@@ -1680,6 +1696,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->channel_layout = gf_audio_fmt_get_layout_from_cicp(gf_audio_fmt_get_cicp_layout(ctx->channels, 0, 0));
 		}
 		u64 ff_ch_layout = ffmpeg_channel_layout_from_gpac(ctx->channel_layout);
+#ifdef FFMPEG_OLD_CHLAYOUT
 		if (!codec->channel_layouts)
 			change_chan_layout = ctx->channel_layout;
 
@@ -1691,6 +1708,19 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 			i++;
 		}
+#else
+		if (!codec->ch_layouts)
+			change_chan_layout = ctx->channel_layout;
+
+		while (codec->ch_layouts) {
+			if (!codec->ch_layouts[i].nb_channels) break;
+			if (codec->ch_layouts[i].u.mask == ff_ch_layout) {
+				change_chan_layout = ctx->channel_layout;
+				break;
+			}
+			i++;
+		}
+#endif
 		//vorbis in ffmpeg currently requires stereo but channel_layouts is not set
 		if (ctx->codecid==GF_CODECID_VORBIS) {
 			change_chan_layout = gf_audio_fmt_get_layout_from_cicp(gf_audio_fmt_get_cicp_layout(2, 0, 0));
@@ -1710,8 +1740,13 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codec->supported_samplerates[0]) );
 			}
 			if (ctx->channel_layout != change_chan_layout) {
-				if (!change_chan_layout)
+				if (!change_chan_layout) {
+#ifdef FFMPEG_OLD_CHLAYOUT
 					change_chan_layout = ffmpeg_channel_layout_to_gpac(codec->channel_layouts[0]);
+#else
+					change_chan_layout = ffmpeg_channel_layout_to_gpac(codec->ch_layouts[0].u.mask);
+#endif
+				}
 				u32 nb_chans = gf_audio_fmt_get_num_channels_from_layout(change_chan_layout);
 				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chans) );
 				gf_filter_pid_negotiate_property(ctx->in_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(change_chan_layout) );
@@ -1869,9 +1904,8 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			av_dict_set(&ctx->options, "strict", "experimental", 0);
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->encoder->sample_rate = ctx->sample_rate;
+#ifdef FFMPEG_OLD_CHLAYOUT
 		ctx->encoder->channels = ctx->channels;
-
-		//TODO
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (prop) {
 			ctx->encoder->channel_layout = ffmpeg_channel_layout_from_gpac(prop->value.longuint);
@@ -1880,6 +1914,19 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		} else if (ctx->channels==2) {
 			ctx->encoder->channel_layout = AV_CH_LAYOUT_STEREO;
 		}
+#else
+		av_channel_layout_uninit(&ctx->encoder->ch_layout);
+		ctx->encoder->ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
+		ctx->encoder->ch_layout.nb_channels = ctx->channels;
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+		if (prop) {
+			ctx->encoder->ch_layout.u.mask = ffmpeg_channel_layout_from_gpac(prop->value.longuint);
+		} else if (ctx->channels==1) {
+			ctx->encoder->ch_layout.u.mask = AV_CH_LAYOUT_MONO;
+		} else if (ctx->channels==2) {
+			ctx->encoder->ch_layout.u.mask = AV_CH_LAYOUT_STEREO;
+		}
+#endif
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		if (prop) {
