@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato, Jean Le Feuvre
- *          Copyright (c) Telecom ParisTech 2000-2023
+ *          Copyright (c) Telecom ParisTech 2000-2024
  *                  All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -957,6 +957,10 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		sOK = gf_text_get_utf8_line(szLine, 2048, parser->vtt_in, parser->unicode_type);
 		REM_TRAIL_MARKS(szLine, "\r\n")
 		len = (u32) strlen(szLine);
+		if (parser->is_srt && sOK && !strncmp(sOK, "WEBVTT", 6)) {
+			parser->is_srt = GF_FALSE;
+			parser->state = WEBVTT_PARSER_STATE_WAITING_SIGNATURE;
+		}
 		switch (parser->state) {
 		case WEBVTT_PARSER_STATE_WAITING_SIGNATURE:
 			if (!sOK || len < 6 || strnicmp(szLine, "WEBVTT", 6) || (len > 6 && szLine[6] != ' ' && szLine[6] != '\t')) {
@@ -1162,6 +1166,10 @@ exit:
 GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 {
 	return gf_webvtt_parser_parse_internal(parser, NULL);
+}
+void gf_webvtt_parser_not_done(GF_WebVTTParser *parser)
+{
+	if (parser) parser->is_eof = GF_FALSE;
 }
 
 GF_Err gf_webvtt_parser_flush(GF_WebVTTParser *parser)
