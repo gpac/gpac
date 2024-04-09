@@ -2594,7 +2594,7 @@ class Filter:
     #\return
     def set_source(self, f, link_args=None):
         if f:
-            _libgpac.gf_filter_set_source(self._filter, f._filter, link_args)
+            _libgpac.gf_filter_set_source(self._filter, f._filter, None if not link_args else link_args.encode('utf-8'))
 
     ## set a given filter as restricted source for this filter - see \ref gf_filter_set_source_restricted
     #\param f source Filter
@@ -2602,7 +2602,7 @@ class Filter:
     #\return
     def set_source_restricted(self, f, link_args=None):
         if f:
-            _libgpac.gf_filter_set_source_restricted(self._filter, f._filter, link_args)
+            _libgpac.gf_filter_set_source_restricted(self._filter, f._filter, None if not link_args else link_args.encode('utf-8'))
 
 
     ## insert a given filter after this filter - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
@@ -2612,7 +2612,7 @@ class Filter:
     #\return
     def insert(self, f, opid=-1, link_args=None):
         if f:
-            _libgpac.gf_filter_set_source(f._filter, self._filter, link_args)
+            _libgpac.gf_filter_set_source(f._filter, self._filter, None if not link_args else link_args.encode('utf-8'))
             pid = None
             if opid>=0:
                 pid = _libgpac.gf_filter_get_opid(self._filter, opid)
