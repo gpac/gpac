@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -595,7 +595,7 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx, Bool gen_dsi_onl
 	GF_TextSampleDescriptor *sd;
 
 	if (!gen_dsi_only) {
-		if (!ctx->unframed)
+		if (!ctx->unframed && !ctx->src)
 			ctx->src = gf_fopen(ctx->file_name, "rb");
 
 		if (!ctx->src) return GF_URL_ERROR;
@@ -962,11 +962,11 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacke
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
 		GF_Err e = txtin_setup_srt(filter, ctx, GF_FALSE);
-		if (e || !ctx->unframed) return e;
+		if (e || (!ctx->unframed && ctx->file_name)) return e;
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
 
-	if (!ctx->unframed) {
+	if (!ctx->unframed && ctx->file_name) {
 		if (!ctx->playstate) return GF_OK;
 		else if (ctx->playstate==2) return GF_EOS;
 	}
@@ -1200,7 +1200,7 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 
 	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 
-	if (gf_filter_pid_would_block(ctx->opid))
+	if (gf_filter_pid_would_block(ctx->opid) && ctx->file_name)
 		gf_webvtt_parser_suspend(ctx->vttparser);
 }
 
@@ -1211,7 +1211,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	Bool is_srt;
 	char *ext;
 
-	if (!ctx->unframed)
+	if (!ctx->unframed && !ctx->src)
 		ctx->src = gf_fopen(ctx->file_name, "rb");
 
 	if (ctx->opid && (ctx->playstate==2)) return GF_EOS;
@@ -1270,6 +1270,8 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	return e;
 }
 
+void gf_webvtt_parser_not_done(GF_WebVTTParser *parser);
+
 static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	GF_Err e;
@@ -1302,6 +1304,9 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 			gf_timestamp_rescale(ctx->end, ctx->timescale, 1000),
 			vtt_pre, vtt_cueid, vtt_settings);
 	} else {
+		if (!ctx->file_name)
+			gf_webvtt_parser_not_done(ctx->vttparser);
+
 		e = gf_webvtt_parser_parse(ctx->vttparser);
 	}
 
@@ -3948,7 +3953,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 	if (pck) ctx->is_loaded = GF_FALSE;
 
 	if (!pck) {
-		if (ctx->unframed) {
+		if (ctx->unframed || !ctx->file_name) {
 			if (gf_filter_pid_is_eos(ctx->ipid)) {
 				if (ctx->end) {
 #ifndef GPAC_DISABLE_VTT
@@ -3985,7 +3990,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 		if (e) return e;
 	}
 
-	if (ctx->unframed) {
+	if (ctx->unframed || !ctx->file_name) {
 		if (ctx->simple_text) {
 			e = ctx->text_process(filter, ctx, pck);
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -4001,10 +4006,12 @@ static GF_Err txtin_process(GF_Filter *filter)
 				e = GF_IO_ERR;
 			gf_fseek(ctx->src, 0, SEEK_SET);
 			//init state as parsing SRT payload
-			ctx->state = 2;
-			ctx->start = gf_filter_pck_get_cts(pck);
-			ctx->end = ctx->start + gf_filter_pck_get_duration(pck);
-			ctx->curLine = 0;
+			if (ctx->unframed) {
+				ctx->state = 2;
+				ctx->start = gf_filter_pck_get_cts(pck);
+				ctx->end = ctx->start + gf_filter_pck_get_duration(pck);
+				ctx->curLine = 0;
+			}
 
 			if (!e)
 				e = ctx->text_process(filter, ctx, pck);
@@ -4124,7 +4131,12 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!src && ctx->fio)
 			src = gf_fileio_url(ctx->fio);
 
-		use_file = GF_TRUE;
+		use_file = src ? GF_TRUE : GF_FALSE;
+		//check if mime is a vtt, if so default to vtt output - for other inputs, we'll use tx3g as usual
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (prop && !strcmp(prop->value.string, "subtitle/vtt")) {
+			codec_id = GF_CODECID_WEBVTT;
+		}
 	}
 
 	if (!ctx->ipid) {
@@ -4181,6 +4193,7 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->fmt = ctx->simple_text ? GF_TXTIN_MODE_SIMPLE : GF_TXTIN_MODE_SRT;
 		if (!ctx->opid)
 			ctx->opid = gf_filter_pid_new(filter);
+		if (!ctx->timescale) ctx->timescale = 1000;
 	}
 
 	if (ctx->webvtt && (ctx->fmt == GF_TXTIN_MODE_SRT))
