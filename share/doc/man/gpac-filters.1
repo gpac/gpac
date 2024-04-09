@@ -1417,6 +1417,14 @@ When ports are specified in the URL and the default option separators are used (
 .br
 
 .br
+When the socket is listening in keep-alive .I ka mode:
+.br
+- a single connection is allowed and a single output PID will be produced
+.br
+- each connection close event will triger a pipeline flush
+.br
+
+.br
 On OSX with VM packet replay you will need to force multicast routing, e.g. route add -net 239.255.1.4/32 -interface vboxnet0
 .br
 
@@ -8040,7 +8048,7 @@ cicp_idx (uint, default: 2):   target output layout CICP index (see gpac -h layo
 .br
 Description: FFMPEG demultiplexer
 .br
-Version: Lavf60.18.100
+Version: Lavf61.3.100
 .br
 
 .br
@@ -8078,7 +8086,7 @@ strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's 
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc60.35.100
+Version: Lavc61.5.101
 .br
 
 .br
@@ -8137,7 +8145,7 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd60.4.100
+Version: Lavd61.2.100
 .br
 
 .br
@@ -8230,7 +8238,7 @@ probes (uint, default: 10, minmax: 0-100): probe a given number of video frames 
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS7.6.100
+Version: SwS8.2.100
 .br
 
 .br
@@ -8348,7 +8356,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc60.35.100
+Version: Lavc61.5.101
 .br
 
 .br
@@ -8426,7 +8434,7 @@ rld (bool, default: false, updatable): force reloading of encoder when arguments
 .br
 Description: FFMPEG multiplexer
 .br
-Version: Lavf60.18.100
+Version: Lavf61.3.100
 .br
 
 .br
@@ -8490,7 +8498,7 @@ keepts (bool, default: true):  do not shift input timeline back to 0
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavfi9.14.100
+Version: Lavfi10.2.101
 .br
 
 .br
@@ -8633,7 +8641,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFMPEG BitStream filter
 .br
-Version: Lavu58.34.100
+Version: Lavu59.13.100
 .br
 
 .br
