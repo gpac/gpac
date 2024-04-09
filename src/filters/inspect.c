@@ -3288,6 +3288,7 @@ props_done:
 			break;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
+		case GF_CODECID_SIMPLE_TEXT:
 			dflag=1;
 		case GF_CODECID_SUBS_XML:
 		case GF_CODECID_META_XML:
@@ -3298,6 +3299,23 @@ props_done:
 			}
 			if (dflag)
 				inspect_printf(dump, "]]>\n");
+			break;
+		case GF_CODECID_WEBVTT:
+		{
+			GF_List *cues = gf_webvtt_parse_cues_from_data(data, size, 0, 0);
+			while (gf_list_count(cues)) {
+				GF_WebVTTCue *cue = gf_list_pop_front(cues);
+				if (cue->pre_text) gf_fprintf(dump, "%s\n\n", cue->pre_text);
+				if (cue->id) gf_fprintf(dump, "%s\n", cue->id);
+				if (cue->settings) gf_fprintf(dump, " %s", cue->settings);
+				if (cue->text) gf_fprintf(dump, "%s", cue->text);
+				gf_fprintf(dump, "\n");
+				if (cue->post_text) gf_fprintf(dump, "%s\n\n", cue->post_text);
+
+				gf_webvtt_cue_del(cue);
+			}
+			gf_list_del(cues);
+		}
 			break;
 		case GF_CODECID_APCH:
 		case GF_CODECID_APCO:
@@ -3929,6 +3947,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	hvcc = NULL;
 	lhcc = NULL;
 	vvcC = NULL;
+	Bool dsi_is_text=GF_FALSE;
 	pctx->has_svcc = 0;
 
 	switch (pctx->codec_id) {
@@ -4179,24 +4198,31 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			inspect_printf(dump, "/>\n");
 			return;
 		}
+		inspect_printf(dump, ">\n");
 		inspect_printf(dump, " <XMLTextConfig>\n");
 		for (i=0; i<dsi->value.data.size; i++) {
 			gf_fputc(dsi->value.data.ptr[i], dump);
 		}
 		inspect_printf(dump, "\n </XMLTextConfig>\n");
 		break;
+	case GF_CODECID_WEBVTT:
+		dsi_is_text = GF_TRUE;
 	case GF_CODECID_SUBS_TEXT:
 	case GF_CODECID_META_TEXT:
+	case GF_CODECID_SIMPLE_TEXT:
 		if (!dsi) {
 			inspect_printf(dump, "/>\n");
 			return;
 		}
-		inspect_printf(dump, " <TextConfig>\n");
-		inspect_printf(dump, "<![CDATA[");
+		inspect_printf(dump, ">\n");
+		inspect_printf(dump, " <TextConfig>");
+		if (!dsi_is_text)
+			inspect_printf(dump, "\n<![CDATA[");
 		for (i=0; i<dsi->value.data.size; i++) {
 			gf_fputc(dsi->value.data.ptr[i], dump);
 		}
-		inspect_printf(dump, "]]>\n");
+		if (!dsi_is_text)
+			inspect_printf(dump, "]]>\n");
 		inspect_printf(dump, " </TextConfig>\n");
 		break;
 	case GF_CODECID_APCH:
@@ -4213,13 +4239,14 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			inspect_printf(dump, "/>\n");
 			return;
 		}
-		{
+	{
 		u16 size;
 		if (!pctx->bs)
 			pctx->bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
 		else
 			gf_bs_reassign_buffer(pctx->bs, dsi->value.data.ptr, dsi->value.data.size);
 
+		inspect_printf(dump, ">\n");
 		inspect_printf(dump, " <MPEGHAudioConfig");
 		inspect_printf(dump, " version=\"%d\"", gf_bs_read_u8(pctx->bs) );
 		inspect_printf(dump, " ProfileLevelIndication=\"%d\"", gf_bs_read_u8(pctx->bs) );
@@ -4234,8 +4261,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		} else {
 			inspect_printf(dump, "/>\n");
 		}
-		inspect_printf(dump, "/>\n");
-		}
+	}
 		break;
 	case GF_CODECID_VP8:
 	case GF_CODECID_VP9:
