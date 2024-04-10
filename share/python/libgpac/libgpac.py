@@ -3131,7 +3131,8 @@ def filter_cbk_configure(_f, _pid, is_remove):
 
     if is_remove:
         _libgpac.gf_filter_pid_set_udta(_pid, None)
-        filter.ipids.remove(pid_obj)
+        if pid_obj in filter.ipids:
+            filter.ipids.remove(pid_obj)
         return
 
     if first:
@@ -3200,11 +3201,9 @@ _libgpac.gf_filter_pid_new.restype = _gf_filter_pid
 
 _libgpac.gf_filter_update_status.argtypes = [_gf_filter, c_uint, c_char_p]
 
-_libgpac.gf_filter_ask_rt_reschedule.argtypes = [_gf_filter]
+_libgpac.gf_filter_ask_rt_reschedule.argtypes = [_gf_filter, c_uint]
 _libgpac.gf_filter_post_process_task.argtypes = [_gf_filter]
 
-
-_libgpac.gf_filter_ask_rt_reschedule.argtypes = [_gf_filter, c_int, gf_bool]
 _libgpac.gf_filter_setup_failure.argtypes = [_gf_filter, c_int]
 _libgpac.gf_filter_make_sticky.argtypes = [_gf_filter]
 _libgpac.gf_filter_prevent_blocking.argtypes = [_gf_filter, gf_bool]
@@ -3336,10 +3335,10 @@ class FilterCustom(Filter):
         _libgpac.gf_filter_update_status(self._filter, percent, status.encode('utf-8'))
 
     ##reschedule the filter after a given delay - see \ref gf_filter_ask_rt_reschedule and \ref gf_filter_post_process_task
-    #\param when delay in microseconds
+    #\param when delay in microseconds, negative value will just post a process task. A value of 0 will mark filter as active even if no packet was dropped/sent
     #\return
     def reschedule(self, when=0):
-        if when:
+        if when>=0:
             _libgpac.gf_filter_ask_rt_reschedule(self._filter, when)
         else:
             _libgpac.gf_filter_post_process_task(self._filter)
