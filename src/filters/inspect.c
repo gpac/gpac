@@ -4853,13 +4853,18 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "set probe log filename to print number of streams, GLOG uses GPAC logs `app@info`(default for android)", GF_PROP_STRING,
+	{ OFFS(log), "set probe log filename\n"
+	"- _any: target file path and name\n"
+	"- stderr: dump to stderr\n"
+	"- stdout: dump to stdout\n"
+	"- GLOG: use GPAC logs `app@info\n"
+	"- null: silent mode", GF_PROP_STRING,
 #ifdef GPAC_CONFIG_ANDROID
 		"GLOG"
 #else
 		"stdout"
 #endif
-		, "fileName, stderr, stdout, GLOG or null", 0},
+		, "_any|stderr|stdout|GLOG|null", 0},
 	{ OFFS(mode), "dump mode\n"
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"
@@ -5019,13 +5024,18 @@ static const GF_FilterCapability ProberCaps[] =
 
 static const GF_FilterArgs ProbeArgs[] =
 {
-	{ OFFS(log), "set probe log filename to print number of streams, GLOG uses GPAC logs `app@info`(default for android)", GF_PROP_STRING,
+	{ OFFS(log), "set probe log filename to print number of streams\n"
+	"- _any: target file path and name\n"
+	"- stderr: dump to stderr\n"
+	"- stdout: dump to stdout\n"
+	"- GLOG: use GPAC logs `app@info\n"
+	"- null: silent mode", GF_PROP_STRING,
 #ifdef GPAC_CONFIG_ANDROID
 		"GLOG"
 #else
 		"stdout"
 #endif
-	, "fileName, stderr, stdout GLOG or null", 0},
+	, "_any|stderr|stdout|GLOG|null", 0},
 	{0}
 };
 

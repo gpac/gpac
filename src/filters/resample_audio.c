@@ -464,7 +464,7 @@ static GF_FilterArgs ResamplerArgs[] =
 	{ OFFS(och), "desired number of output audio channels (0 for auto)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(osr), "desired sample rate of output audio (0 for auto)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(osfmt), "desired sample format of output audio (`none` for auto)", GF_PROP_PCMFMT, "none", NULL, 0},
-	{ OFFS(olayout), "desired CICP layout of output audio (null for auto)", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(olayout), "desired CICP layout of output audio (null for auto)", GF_PROP_CICP_LAYOUT, NULL, NULL, 0},
 	{0}
 };
 
@@ -483,8 +483,6 @@ GF_FilterRegister ResamplerRegister = {
 	.reconfigure_output = resample_reconfigure_output,
 	.process_event = resample_process_event,
 };
-
-const char *gf_audio_fmt_cicp_all_names();
 
 const GF_FilterRegister *resample_register(GF_FilterSession *session)
 {

@@ -901,6 +901,8 @@ typedef enum
 	GF_PROP_CICP_COL_TFC	=	GF_PROP_FIRST_ENUM+3,
 	/*! CICP Color Matrix*/
 	GF_PROP_CICP_COL_MX		=	GF_PROP_FIRST_ENUM+4,
+	/*! CICP Layout*/
+	GF_PROP_CICP_LAYOUT		=	GF_PROP_FIRST_ENUM+5,
 	/*! not allowed*/
 	GF_PROP_LAST_DEFINED
 } GF_PropType;
@@ -2025,6 +2027,8 @@ typedef enum
 		The filter should lock itself whenever appropriate using \ref gf_filter_lock
 	*/
 	GF_FS_ARG_UPDATE_SYNC = 1<<8,
+	/*! internal flag used by meta filters (ffmpeg & co) to indicate the argument is an array of the indicated type*/
+	GF_FS_ARG_META_ARRAY = 1<<9,
 } GF_FSArgumentFlags;
 
 /*! Structure holding arguments for a filter*/
