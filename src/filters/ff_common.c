@@ -804,10 +804,12 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	if (!(opt->flags & AV_OPT_FLAG_READONLY))
 		arg.flags |= GF_FS_ARG_UPDATE;
 
-	u32 type = opt->type & ~AV_OPT_TYPE_FLAG_ARRAY;
 #if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) > AV_VERSION_INT(59,0, 0)
+	u32 type = opt->type & ~AV_OPT_TYPE_FLAG_ARRAY;
 	if (opt->type & AV_OPT_TYPE_FLAG_ARRAY)
 		arg.flags |= GF_FS_ARG_META_ARRAY;
+#else
+	u32 type = opt->type;
 #endif
 
 	switch (type) {
