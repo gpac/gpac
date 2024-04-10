@@ -311,6 +311,9 @@ _libgpac.gf_4cc_parse.restype = c_uint
 _libgpac.gf_sleep.argtypes = [c_uint]
 _libgpac.gf_sleep.restype = c_uint
 
+_libgpac.gf_props_enum_name.argtypes = [c_uint, c_uint]
+_libgpac.gf_props_enum_name.restype = c_char_p
+
 #default init of libgpac
 _libgpac.user_init = False
 err = _libgpac.gf_sys_init(0, None)
