@@ -26,6 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/route.h>
 #include <gpac/network.h>
+#include <gpac/download.h>
 #include <gpac/thread.h>
 
 #ifndef GPAC_DISABLE_ROUTE
@@ -277,6 +278,8 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
 static Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
 	Bool drop_if_first = GF_FALSE;
+	GF_Err e;
+
 	if (ctx->repair==ROUTEIN_REPAIR_NO)
 		return GF_FALSE;
 
@@ -286,6 +289,13 @@ static Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo
 	if(ctx->repair==ROUTEIN_REPAIR_FULL && ctx->repair_url) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Initiating repair procedure for object (TSI=%u, TOI=%u) using repair URL: %s \n", finfo->tsi, finfo->toi, ctx->repair_url));
 		// create unicast connexion
+		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
+		char *url = gf_url_concatenate(ctx->repair_url, finfo->filename);
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] url = %s \n", url));
+
+		GF_DownloadSession *dsess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_NOT_CACHED, 0, NULL, &e);
+		
+		
 		
 	} else {
 		if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
