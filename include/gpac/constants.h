@@ -1001,6 +1001,24 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 \return CICP code point, or 0 if no more to enumerate*/
 u32 gf_audio_fmt_cicp_enum(u32 idx, const char **short_name, u64 *ch_mask);
 
+/*! get CICP code  from name
+\param name channel layout name
+\return channel CICP code
+*/
+u32 gf_audio_fmt_get_cicp_from_name(const char *name);
+
+/*! get CICP name from code
+\param cicp_code channel cicp code
+\return channel CICP name
+*/
+const char *gf_audio_fmt_get_cicp_name(u32 cicp_code);
+
+/*! get all CICP layout names
+\return CICP names separated with '|'
+*/
+const char *gf_audio_fmt_cicp_all_names();
+
+
 /*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
   */
 typedef enum

@@ -800,13 +800,15 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	arg.arg_desc = opt->help;
 	arg.offset_in_private=-1;
 	arg.flags = GF_FS_ARG_META;
-	if (opt->name[0] == 0)
-		arg.flags = GF_FS_ARG_META;
 
 	if (!(opt->flags & AV_OPT_FLAG_READONLY))
 		arg.flags |= GF_FS_ARG_UPDATE;
 
-	switch (opt->type) {
+	u32 type = opt->type & ~AV_OPT_TYPE_FLAG_ARRAY;
+	if (opt->type & AV_OPT_TYPE_FLAG_ARRAY)
+		arg.flags |= GF_FS_ARG_META_ARRAY;
+
+	switch (type) {
 	case AV_OPT_TYPE_INT64:
 	case AV_OPT_TYPE_INT:
 #ifdef FFMPEG_OLD_CHLAYOUT
