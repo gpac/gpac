@@ -608,7 +608,7 @@ void task_del(void *_task)
 void gf_filter_del(GF_Filter *filter)
 {
 	gf_assert(filter);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
 	gf_assert(!filter->detach_pid_tasks_pending);
 	gf_assert(!filter->swap_pidinst_src);
 
@@ -3728,14 +3728,47 @@ void gf_filter_remove_src(GF_Filter *filter, GF_Filter *src_filter)
 	gf_filter_remove_internal(src_filter, filter, GF_FALSE);
 }
 
-GF_EXPORT
-void gf_filter_remove(GF_Filter *filter)
+static void gf_filter_remove_local(GF_Filter *filter, GF_FSTask *task);
+static void gf_filter_remove_reschedule(GF_FSTask *task)
+{
+	gf_filter_remove_local(task->filter, task);
+}
+
+static void gf_filter_remove_local(GF_Filter *filter, GF_FSTask *task)
 {
 	u32 i;
+	Bool has_pending=GF_FALSE;
 	if (!filter) return;
 
-	//locate source filter(s)
 	gf_mx_p(filter->tasks_mx);
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		if (pidi->pid->init_task_pending || pidi->pid->filter->out_pid_connection_pending) {
+			has_pending=GF_TRUE;
+			break;
+		}
+	}
+	if (!has_pending) {
+		has_pending = gf_filter_connections_pending(filter);
+	}
+
+	if (has_pending) {
+		if (task) {
+			task->can_swap = GF_TRUE;
+			task->requeue_request = GF_TRUE;
+		} else {
+			gf_fs_post_task(filter->session, gf_filter_remove_reschedule, filter, NULL, "filter_remove", NULL);
+		}
+		gf_mx_v(filter->tasks_mx);
+		return;
+	}
+
+	//disconnect all output pids, this will remove all filters up the chain if no more inputs and outputs
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		gf_filter_pid_remove(pid);
+	}
+	//locate source filter(s)
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		//fanout, only disconnect this pid instance
@@ -3768,6 +3801,12 @@ void gf_filter_remove(GF_Filter *filter)
 	}
 	filter->sticky = 0;
 	gf_mx_v(filter->tasks_mx);
+}
+
+GF_EXPORT
+void gf_filter_remove(GF_Filter *filter)
+{
+	gf_filter_remove_local(filter, NULL);
 }
 
 #if 0
