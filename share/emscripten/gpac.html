@@ -33,6 +33,10 @@
         margin: 0;
       }
 
+      #logo svg:first-child {
+        margin-right: .5em;
+      }
+
       svg.icon-theme-toggle.moon g circle {
           transform: scale(1.4);
           transition-delay: 0s;
@@ -117,13 +121,14 @@
       }
 
       #status-wrapper {
-        font-size: x-small;
+        font-size: small;
         align-items: center;
         min-height: 1em;
+        margin-bottom: 0.5em;
       }
       #status {
         font-weight: bold;
-        color: rgb(120, 120, 120);
+        color: var(--pico-primary);
       }
     </style>
   </head>
