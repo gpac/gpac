@@ -152,8 +152,6 @@ static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts)
 	GF_FilterPacket *seg_emeb = gf_filter_pck_new_shared(ctx->opid, ctx->emeb_box, sizeof(ctx->emeb_box), NULL);
 	if (!seg_emeb) return GF_OUT_OF_MEM;
 
-	gf_filter_pck_set_dts(seg_emeb, dts);
-
 	scte35dec_send_pck(ctx, seg_emeb, dts, dts - ctx->last_dispatched_dts);
 
 	return GF_OK;
