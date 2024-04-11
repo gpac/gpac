@@ -3133,7 +3133,7 @@ def filter_cbk_configure(_f, _pid, is_remove):
         _libgpac.gf_filter_pid_set_udta(_pid, None)
         if pid_obj in filter.ipids:
             filter.ipids.remove(pid_obj)
-        return
+        return res
 
     if first:
         filter.ipids.append(pid_obj)
