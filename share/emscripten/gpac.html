@@ -29,6 +29,10 @@
         color: rgb(20, 20, 20);
       }
 
+      #menu label {
+        margin: 0;
+      }
+
       svg.icon-theme-toggle.moon g circle {
           transform: scale(1.4);
           transition-delay: 0s;
@@ -155,7 +159,7 @@
                 <text id="progress" stroke="black" stroke-width="0.1" fill="white" font-size="3.5" font-weight="bold"> </text>
               </g>
             </svg>
-            <svg id="gpac-brand" data-name="gpac-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 671.14 188.48" width="auto" height="1em" >
+            <svg id="gpac-brand" data-name="gpac-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 671.14 188.48" height="1em" >
               <defs>
                   <style>.cls-1{fill:#1a1c4a;}</style>
               </defs>
@@ -170,16 +174,12 @@
         <li>
           <em>experimental wasm playground</em>
         </li>
-        <!--
         <li>
-          <fieldset>
             <label>
               <input id="threading" name="threading" type="checkbox" role="switch" />
               <em>threaded</em>
             </label>
-          </fieldset>
         </li>
-        -->
       </ul>
       <ul>
         <li>
@@ -244,6 +244,7 @@
               document.getElementById('output').innerHTML += this.value + '<br>';
             } 
             process_command();
+            event.preventDefault();
           }
         " onkeyup="
           let idx=cmd_idx;
@@ -271,19 +272,16 @@
           if (event.ctrlKey) {
             switch (event.keyCode) {
               case 67: // Ctrl+C
-                var cmdElement = document.getElementById('cmd');
                 setCommand('');
                 break;
               case 76: // Ctrl+L
                 outputElement.innerHTML = '';
                 break;
               case 65: // Ctrl+A
-                var cmdElement = document.getElementById('cmd');
                 cmdElement.selectionStart = 0;
                 cmdElement.selectionEnd = 0;
                 break;
               case 69: // Ctrl+E
-                var cmdElement = document.getElementById('cmd');
                 cmdElement.selectionStart = cmdElement.value.length;
                 cmdElement.selectionEnd = cmdElement.value.length;
                 break;
@@ -458,7 +456,7 @@
       const outputElement = document.getElementById('output');
       const abortElement = document.getElementById('abort');
       const threadingElement = document.getElementById('threading');
-      
+
       let console_bck = '';
       let cmd_idx = -1;
       let ctrl_down=false;
@@ -530,12 +528,8 @@
         // unload current GPAC
       }
 
-      threadingElement.onchange = () => {
-        
-      }
-
       function setCommand(value) {
-        cmdElement.value = value;
+        cmdElement.value = value == '' ? null : value;
       };
 
       function onGpacReady() {
@@ -710,11 +704,12 @@
            do_log('Error: ' + arguments[0]); 
         }
         GPAC.no_log = true;
-        outputElement.innerHTML += consolePrefix();
+        outputElement.innerHTML += `<br>${consolePrefix()}`;
         isRunning = false;
-        selCmdElement.removeAttribute("hidden");
+        selCmdElement.hidden = false;
         fsRunForm.hidden = true;
         runElement.hidden = false;
+        setCommand('');
       }
 
       const onCommandRun = (cmd) => {
@@ -723,7 +718,7 @@
         selCmdElement.hidden = true;
         runElement.hidden = true;
         // print command that is being run
-        outputElement.innerHTML += '<span style="color: #fff; font-weight: 200;">'+ cmd +'</span><br><br>';
+        // outputElement.innerHTML += '<span style="color: #fff; font-weight: 200;">'+ cmd +'</span><br><br>';
         fsRunForm.removeAttribute("hidden");
         isRunning = true;
         set_status('');
@@ -2603,6 +2598,16 @@
     <script>
       window.addEventListener('load', function() {
         libgpac(LIBGPAC);
+
+      });
+      document.addEventListener('readystatechange', function() {
+        const threaded = window.location.hostname == 'wasmth.gpac.io';
+        threadingElement.checked = threaded;
+        threadingElement.onchange = () => {
+          const hostname = threaded ? 'wasm.gpac.io' : 'wasmth.gpac.io'; 
+          window.location.href = `https://${hostname}/`; 
+          console.log(hostname);
+        }
       });
     </script>
   </body>
