@@ -477,26 +477,83 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		return 0;
 	}
 
+	/*check system install:
+		- share is PREFIX/share/gpac/
+		- mod_dir is PREFIX/LIBDIR/gpac/
+	*/
+	if ((path_type==GF_PATH_SHARE) || (path_type==GF_PATH_MODULES)) {
+		char lib_arch_scheme[100];
+		lib_arch_scheme[0] = 0;
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
-	strcpy(app_path, "/usr/");
+		strcpy(app_path, "/usr/");
 #else
-	/*locate the app*/
-	if (!get_default_install_path(app_path, GF_PATH_APP)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
-		return 0;
-	}
+		/*locate libgpac path first in case we are not run using gpac apps (eg python bindings)
+			if failure (static build) locate app
+		*/
+		if (!get_default_install_path(app_path, GF_PATH_LIB)) {
+			if (!get_default_install_path(app_path, GF_PATH_APP)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
+				return 0;
+			}
+		}
 #endif
+		//check if we are a lib path and have a .gpac/ here
+		if ((path_type==GF_PATH_MODULES) && strstr(app_path, "/lib")) {
+			strcat(app_path, "/gpac");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			char *sep = strrchr(app_path, '/');
+			if (sep) sep[0]=0;
+		}
 
-	/*installed or symlink on system, user user home directory*/
-	if (!strnicmp(app_path, "/usr/", 5) || !strnicmp(app_path, "/opt/", 5)) {
-		if (path_type==GF_PATH_SHARE) {
-			/*look in possible install dirs ...*/
+		//extract PREFIX
+		//app_path is either PREFIX/lib or PREFIX/lib/arch-specific (shared lib) or PREFIX/bin (if app)
+		//without trailing slash
+		char *root = strrchr(app_path, '/');
+		if (root) {
+			strncpy(lib_arch_scheme, root+1, 99);
+			lib_arch_scheme[99]=0;
+			root[0]=0;
+		}
+		//check if we have a /lib/arch-specific scheme
+		char *lib = strrchr(app_path, '/');
+		if (lib && !strncmp(lib, "/lib/", 4)) {
+			root = lib;
+			root[0] = 0;
+		} else {
+			lib_arch_scheme[0]=0;
+		}
+		if ((path_type==GF_PATH_SHARE) && root) {
+			strcat(app_path, "/share/gpac");
+			if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+
+			/*failsafe - look in possible install dirs ...*/
 			if (check_file_exists("gui/gui.bt", "/usr/share/gpac", file_path)) return 1;
 			if (check_file_exists("gui/gui.bt", "/usr/local/share/gpac", file_path)) return 1;
 			if (check_file_exists("gui/gui.bt", "/opt/share/gpac", file_path)) return 1;
 			if (check_file_exists("gui/gui.bt", "/opt/local/share/gpac", file_path)) return 1;
-		} else if (path_type==GF_PATH_MODULES) {
-			/*look in possible install dirs ...*/
+
+		} else if ((path_type==GF_PATH_MODULES) && root) {
+			//if arch-specific scheme try it first (to avoid loading 64bit versions for 32bit shared...)
+			if (lib_arch_scheme[0]) {
+				strcat(app_path, "/");
+				strcat(app_path, lib_arch_scheme);
+				strcat(app_path, "/gpac");
+				if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+				root[0]=0;
+			}
+			strcat(app_path, "/lib64/gpac");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			root[0]=0;
+			strcat(app_path, "/lib/gpac");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			root[0]=0;
+			strcat(app_path, "/lib/x86_64-linux-gnu/gpac");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			root[0]=0;
+			strcat(app_path, "/lib/i386-linux-gnu/gpac");
+			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+
+			/*failsafe - look in possible install dirs ...*/
 			if (check_file_exists(TEST_MODULE, "/usr/lib64/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/usr/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
@@ -597,6 +654,7 @@ retry_lib:
 	}
 
 	/*OSX way vs iPhone*/
+	get_default_install_path(app_path, GF_PATH_APP);
 	sep = strstr(app_path, ".app/");
 	if (sep) sep[4] = 0;
 
@@ -940,6 +998,7 @@ static void check_modules_dir(GF_Config *cfg)
 	if (gf_cfg_get_key(cfg, "core", "startup-file")==NULL) return;
 
 	if ( get_default_install_path(path, GF_PATH_SHARE) ) {
+		gf_cfg_set_key(cfg, "temp", "share_dir", path);
 		opt = gf_cfg_get_key(cfg, "core", "startup-file");
 		if (strstr(opt, "gui.bt") && strcmp(opt, path) && strstr(path, ".app") ) {
 #if defined(__DARWIN__) || defined(__APPLE__)
@@ -1179,6 +1238,11 @@ exit:
 GF_EXPORT
 Bool gf_opts_default_shared_directory(char *path_buffer)
 {
+	const char *opt = gf_opts_get_key("temp", "share_dir");
+	if (opt) {
+		strcpy(path_buffer, opt);
+		return 1;
+	}
 	return get_default_install_path(path_buffer, GF_PATH_SHARE);
 }
 
