@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Run MP4Box & GPAC in your browser !</title>
+    <link rel="icon" type="image/x-icon" href="favicon-32x32.png">
     <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.red.min.css"
@@ -25,8 +26,13 @@
       }
 
       #menu {
-        height: 8vh;
+        height: 5em;
         color: rgb(20, 20, 20);
+      }
+
+      nav#menu li {
+        padding-top: 0;
+        padding-bottom: 0;
       }
 
       #menu label {
@@ -73,13 +79,14 @@
       }
       .cwd {
         color: var(--pico-primary-hover);
+        height: 8vh;
       }
 
       #cmd_div {
         font-size: small;
-        /* height: 12vh; */
       }
       #cmd {
+        height: 9vh;
         margin: 0;
       }
 
@@ -104,8 +111,11 @@
         padding: none;
       }
       #output {
-        height: 60vh;
+        height: 65vh;
         resize: vertical;
+      }
+      #output:not([readonly]):is(:active,:focus) {
+        border: var(--pico-border-width) solid var(--pico-border-color);
       }
 
       #controls {
@@ -120,14 +130,11 @@
         display: none;
       }
 
-      #status-wrapper {
-        font-size: small;
-        align-items: center;
-        min-height: 1em;
-        margin-bottom: 0.5em;
-      }
       #status {
+        font-size: small;
         font-weight: bold;
+        align-items: center;
+        margin-bottom: 0.5em;
         color: var(--pico-primary);
       }
     </style>
@@ -225,10 +232,8 @@
       </ul>
     </nav>
 
-    <div id="status-wrapper" class="container-fluid">
-      <span id="status">
+    <div id="status" class="container-fluid">
         Downloading...  
-      </span>
     </div>
 
     <div id="output-wrapper" class="container-fluid">
@@ -241,7 +246,7 @@
     <!-- command line input -->
     <div id="cmd_div" class="container-fluid">
       <fieldset class="console-wrapper">
-        <textarea id="cmd" class="console" placeholder="Enter a command, select an example ..." autofocus="" spellcheck="false" autofocus autocomplete="false"
+        <textarea id="cmd" class="console" placeholder="Enter a command ..." spellcheck="false" autofocus autocomplete="false"
           onkeypress="
           if (event.keyCode == 13) {
             if (!is_custfs) {
@@ -412,8 +417,8 @@
     <h3>Configuration commands</h3>
     
     <ul>
-      <li><code>worker</code>: toggles worker mode on or off (off)</li>
-      <li><code>threads</code>: views number of pre-allocated workers</li>
+      <li class="threaded"><code>worker</code>: toggles worker mode on or off (off)</li>
+      <li class="threaded"><code>threads</code>: views number of pre-allocated workers</li>
       <li><code>stack</code>: prints available size in stack</li>
       <li><code>clearh [N]</code>: clears command history. If <code>N</code> is set, only keeps last <code>N</code> items, otherwise clears everything</li>
       <li><code>fetch</code>: toggles fetch support in libgpac</li>
@@ -441,9 +446,9 @@
         </li>
       </ul>
    
-    <p>When running without worker, internal threading of filters (e.g. ffmpeg &amp; co) will be disabled if the session runs only on the main thread.</p>
+    <p class="threaded">When running without worker, internal threading of filters (e.g. ffmpeg &amp; co) will be disabled if the session runs only on the main thread.</p>
     
-    <p>Use <code>-threads=N</code> with <code>N</code> &gt; 0 (typically <code>-threads=1</code>) to enable threading in these filters.</p>
+    <p class="threaded">Use <code>-threads=N</code> with <code>N</code> &gt; 0 (typically <code>-threads=1</code>) to enable threading in these filters.</p>
     
     </div>
 
@@ -478,8 +483,6 @@
       let fs_steps = 20;
       let FS = null;
       
-      let isRunning = false;
-
       const STATIC_SRC = "https://wasm.gpac.io/data";
 
       const examples = [
@@ -550,6 +553,10 @@
         is_eval = !is_eval;
         let cmdDiv = document.getElementById('cmd_div');
         if (is_eval){
+          outputElement.readonly = false;
+          outputElement.setAttribute('contenteditable', true);
+          outputElement.innerText = '';
+          set_status('Edit your JS and click run to evaluate, cancel to abort');
           runElement.hidden = false;
           cancelElement.hidden = false;
           cmdDiv.hidden = true;
@@ -557,12 +564,16 @@
           fsRunForm.hidden = true;
           reportElement.hidden = true;
         } else {
-          runElement.hidden = true;
+          outputElement.setAttribute('contenteditable', false);
+          outputElement.readonly = true;
+          runElement.hidden = false;
           cancelElement.hidden = true;
+          cmdDiv.hidden = false;
           selCmdElement.hidden = false;
-          fsRunForm.hidden = false;
+          fsRunForm.hidden = true;
           reportElement.hidden = false;
         }
+        displayStatus('');
       }
 
       function run_session() {
@@ -600,7 +611,7 @@
         if (is_eval){
           run_script();
         } else {
-          if (!isRunning){
+          if (!GPAC.running){
             if ( cmdElement.value.trim() == '' ) return;
             process_command();
             setCommand('');
@@ -691,9 +702,6 @@
               err = e.message;
             }
         }
-        cancelElement.hidden = true;
-        var cmdDiv = document.getElementById('cmd_div');
-        cmdDiv.hidden = false;
         return com_exit(err);
       }
 
@@ -710,7 +718,6 @@
         }
         GPAC.no_log = true;
         outputElement.innerHTML += `<br>${consolePrefix()}`;
-        isRunning = false;
         selCmdElement.hidden = false;
         fsRunForm.hidden = true;
         runElement.hidden = false;
@@ -722,10 +729,7 @@
         selCmdElement.value = -1;
         selCmdElement.hidden = true;
         runElement.hidden = true;
-        // print command that is being run
-        // outputElement.innerHTML += '<span style="color: #fff; font-weight: 200;">'+ cmd +'</span><br><br>';
         fsRunForm.removeAttribute("hidden");
-        isRunning = true;
         set_status('');
       };
 
@@ -742,11 +746,6 @@
 
        //evaluates a script - turns textArea in write mode and wait for go/cancel
        if (args[0]=='eval') {
-          if (outputElement) {
-            outputElement.setAttribute('contenteditable', true);
-            outputElement.innerText = '';
-            set_status('Edit your JS and click run to evaluate, cancel to abort');
-          }
           toggle_eval_mode();
           return;
        }
@@ -756,7 +755,7 @@
         run_script(cmd);
         return;
        }
-
+              
        if (is_custfs) {
         run_prompt(cmd);
         return;
@@ -2607,6 +2606,8 @@
       });
       document.addEventListener('readystatechange', function() {
         const threaded = window.location.hostname == 'wasmth.gpac.io';
+        const threadedOnly = [...document.getElementsByClassName('threaded')];
+        threadedOnly.forEach(el => el.hidden = !threaded);
         threadingElement.checked = threaded;
         threadingElement.onchange = () => {
           const hostname = threaded ? 'wasm.gpac.io' : 'wasmth.gpac.io'; 
@@ -2615,6 +2616,7 @@
         }
       });
     </script>
+
   </body>
 </html>
 
