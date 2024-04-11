@@ -499,11 +499,11 @@ class Fraction64(Structure):
     ## \endcond
 
 ## filter statistics object, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FilterStats
+#Fields have the same types, names and semantics as \ref GF_FilterStats except for filter (renamed to for_filter) and type (renamed to filter_type)
 class FilterStats(Structure):
     ## \cond private
 	_fields_ = [
-		("filter", _gf_filter),
+		("for_filter", _gf_filter),
 		("filter_alias", _gf_filter),
 		("nb_tasks_done", c_ulonglong),
 		("nb_pck_processed", c_ulonglong),
@@ -525,7 +525,7 @@ class FilterStats(Structure):
 		("nb_pid_out", c_uint),
 		("nb_out_pck", c_ulonglong),
 		("in_eos", gf_bool),
-		("type", c_int),
+		("filter_type", c_int),
 		("stream_type", c_int),
 		("codecid", c_int),
 		("last_ts_sent", Fraction64),
@@ -566,20 +566,20 @@ class FilterPidStatistics(Structure):
 	]
     ## \endcond
 ## filter argument object, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FilterArgs
+#Fields have the same types, names and semantics as \ref GF_FilterArgs except for type (renamed to arg_type)
 class FilterArg(Structure):
     ## \cond private
     _fields_ = [
         ("name", c_char_p),
         ("reserved", c_int),
         ("description", c_char_p),
-        ("type", c_int),
+        ("arg_type", c_int),
         ("default", c_char_p),
         ("min_max_enum", c_char_p),
         ("flags", c_uint)
     ]
     def __str__(self):
-        res = '- ' + self.name.decode('utf-8') + ' (' + _libgpac.gf_props_get_type_name(self.type).decode('utf-8') + '): ' + self.description.decode('utf-8')
+        res = '- ' + self.name.decode('utf-8') + ' (' + _libgpac.gf_props_get_type_name(self.arg_type).decode('utf-8') + '): ' + self.description.decode('utf-8')
         if self.default or self.min_max_enum:
             res += ' ('
             if self.default:
@@ -714,20 +714,20 @@ class PropertyValueUnion(Union):
 	]
 
 ## filter property value, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as GF_PropertyValue
+#Fields have the same types, names and semantics as GF_PropertyValue except for type (renamed to prop_type)
 class PropertyValue(Structure):
 	_fields_ = [
-		("type", c_uint),
+		("prop_type", c_uint),
 		("value", PropertyValueUnion)
 	]
 
 ## \endcond
 
 ## event value, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FEVT_Base
+#Fields have the same types, names and semantics as \ref GF_FEVT_Base except for type (renamed to evt_type)
 class FEVT_Base(Structure):
     ## \cond private
-    _fields_ =  [("type", c_uint), ("on_pid", _gf_filter_pid)]
+    _fields_ =  [("evt_type", c_uint), ("on_pid", _gf_filter_pid)]
     ## \endcond
 
 ## event value, as defined in libgpac and usable as a Python object
@@ -735,7 +735,7 @@ class FEVT_Base(Structure):
 class FEVT_Play(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("start_range", c_double),
         ("end_range", c_double),
@@ -761,7 +761,7 @@ class FEVT_Play(Structure):
 class FEVT_SourceSeek(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("start_offset", c_ulonglong),
         ("end_offset", c_ulonglong),
@@ -777,7 +777,7 @@ class FEVT_SourceSeek(Structure):
 class FEVT_SegmentSize(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("seg_url", c_char_p),
         ("is_init", gf_bool),
@@ -795,7 +795,7 @@ class FEVT_SegmentSize(Structure):
 class FEVT_FragmentSize(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("is_last", gf_bool),
         ("offset", c_ulonglong),
@@ -811,7 +811,7 @@ class FEVT_FragmentSize(Structure):
 class FEVT_AttachScene(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("odm", c_void_p),
         ("node", c_void_p)
@@ -823,7 +823,7 @@ class FEVT_AttachScene(Structure):
 class FEVT_QualitySwitch(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("up", gf_bool),
         ("dependent_group_index", c_uint),
@@ -840,7 +840,7 @@ class FEVT_QualitySwitch(Structure):
 class FEVT_FileDelete(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("url", c_char_p)
     ]
@@ -851,7 +851,7 @@ class FEVT_FileDelete(Structure):
 class FEVT_VisibilityHint(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("min_x", c_uint),
         ("max_x", c_uint),
@@ -866,7 +866,7 @@ class FEVT_VisibilityHint(Structure):
 class FEVT_BufferRequirement(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("max_buffer_us", c_uint),
         ("max_playout_us", c_uint),
@@ -880,7 +880,7 @@ class FEVT_BufferRequirement(Structure):
 class FEVT_EncodeHints(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("intra_period", Fraction),
         ("gen_dsi_only", gf_bool)
@@ -892,7 +892,7 @@ class FEVT_EncodeHints(Structure):
 class FEVT_NTPRef(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("ntp", c_ulonglong)
     ]
@@ -904,7 +904,7 @@ class FEVT_NTPRef(Structure):
 class EVT_mouse(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_ubyte),
+        ("evt_type", c_ubyte),
         ("x", c_int),
         ("y", c_int),
         ("wheel", c_float),
@@ -919,7 +919,7 @@ class EVT_mouse(Structure):
 class EVT_mtouch(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_ubyte),
+        ("evt_type", c_ubyte),
         ("x", c_float),
         ("y", c_float),
         ("rotation", c_float),
@@ -934,7 +934,7 @@ class EVT_mtouch(Structure):
 class EVT_keys(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_ubyte),
+        ("evt_type", c_ubyte),
         ("key_code", c_uint),
         ("hw_code", c_uint),
         ("flags", c_uint),
@@ -947,7 +947,7 @@ class EVT_keys(Structure):
 class EVT_char(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_ubyte),
+        ("evt_type", c_ubyte),
         ("unicode_char", c_uint),
         ("window_id", c_uint)
     ]
@@ -958,7 +958,7 @@ class EVT_char(Structure):
 class EVT_size(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_ubyte),
+        ("evt_type", c_ubyte),
         ("width", c_uint),
         ("height", c_uint),
         ("orientation", c_uint),
@@ -971,7 +971,7 @@ class EVT_size(Structure):
 class EVT_show(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_ubyte),
+        ("evt_type", c_ubyte),
         ("show_type", c_uint),
         ("window_id", c_uint)
     ]
@@ -984,7 +984,7 @@ class EVT_show(Structure):
 class EVT_base(Union):
     ## \cond private
     _fields_ =  [
-        ("type", c_ubyte),
+        ("evt_type", c_ubyte),
         ("mouse", EVT_mouse),
         ("mtouch", EVT_mtouch),
         ("keys", EVT_keys),
@@ -1000,7 +1000,7 @@ class EVT_base(Union):
 class FEVT_UserEvent(Structure):
     ## \cond private
     _fields_ =  [
-        ("type", c_uint),
+        ("evt_type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("event", EVT_base)
     ]
@@ -1013,7 +1013,7 @@ class FilterEvent(Union):
     ## constructor
     #\param type type of event
     def __init__(self, type=0):
-        self.base.type = type
+        self.base.evt_type = type
     ## \cond private
         _libgpac.user_init = True
 
@@ -2466,7 +2466,7 @@ def dash_download_monitor(cbk, groupidx, stats):
 
 
 def _prop_to_python(pname, prop):
-    type = prop.type
+    type = prop.prop_type
 
     if type==GF_PROP_SINT:
         return prop.value.sint
@@ -2969,14 +2969,14 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
     prop_val = PropertyValue()
     if prop4cc==0:
         if not custom_type:
-            prop_val.type = GF_PROP_STRING
+            prop_val.prop_type = GF_PROP_STRING
             prop_val.value.string = str(prop).encode('utf-8')
             return prop_val
         type = custom_type
     else:
         type = _libgpac.gf_props_4cc_get_type(prop4cc)
 
-    prop_val.type = type
+    prop_val.prop_type = type
     if propname=="StreamType":
         prop_val.value.uint = _libgpac.gf_stream_type_by_name(prop.encode('utf-8'))
         return prop_val
