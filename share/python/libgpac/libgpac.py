@@ -499,11 +499,11 @@ class Fraction64(Structure):
     ## \endcond
 
 ## filter statistics object, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FilterStats except for filter (renamed to for_filter) and type (renamed to filter_type)
+#Fields have the same types, names and semantics as \ref GF_FilterStats
 class FilterStats(Structure):
     ## \cond private
 	_fields_ = [
-		("for_filter", _gf_filter),
+		("filter", _gf_filter),
 		("filter_alias", _gf_filter),
 		("nb_tasks_done", c_ulonglong),
 		("nb_pck_processed", c_ulonglong),
@@ -525,7 +525,7 @@ class FilterStats(Structure):
 		("nb_pid_out", c_uint),
 		("nb_out_pck", c_ulonglong),
 		("in_eos", gf_bool),
-		("filter_type", c_int),
+		("type", c_int),
 		("stream_type", c_int),
 		("codecid", c_int),
 		("last_ts_sent", Fraction64),
@@ -566,20 +566,20 @@ class FilterPidStatistics(Structure):
 	]
     ## \endcond
 ## filter argument object, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FilterArgs except for type (renamed to arg_type)
+#Fields have the same types, names and semantics as \ref GF_FilterArgs
 class FilterArg(Structure):
     ## \cond private
     _fields_ = [
         ("name", c_char_p),
         ("reserved", c_int),
         ("description", c_char_p),
-        ("arg_type", c_int),
+        ("type", c_int),
         ("default", c_char_p),
         ("min_max_enum", c_char_p),
         ("flags", c_uint)
     ]
     def __str__(self):
-        res = '- ' + self.name.decode('utf-8') + ' (' + _libgpac.gf_props_get_type_name(self.arg_type).decode('utf-8') + '): ' + self.description.decode('utf-8')
+        res = '- ' + self.name.decode('utf-8') + ' (' + _libgpac.gf_props_get_type_name(self.type).decode('utf-8') + '): ' + self.description.decode('utf-8')
         if self.default or self.min_max_enum:
             res += ' ('
             if self.default:
@@ -714,20 +714,20 @@ class PropertyValueUnion(Union):
 	]
 
 ## filter property value, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as GF_PropertyValue except for type (renamed to prop_type)
+#Fields have the same types, names and semantics as GF_PropertyValue
 class PropertyValue(Structure):
 	_fields_ = [
-		("prop_type", c_uint),
+		("type", c_uint),
 		("value", PropertyValueUnion)
 	]
 
 ## \endcond
 
 ## event value, as defined in libgpac and usable as a Python object
-#Fields have the same types, names and semantics as \ref GF_FEVT_Base except for type (renamed to evt_type)
+#Fields have the same types, names and semantics as \ref GF_FEVT_Base
 class FEVT_Base(Structure):
     ## \cond private
-    _fields_ =  [("evt_type", c_uint), ("on_pid", _gf_filter_pid)]
+    _fields_ =  [("type", c_uint), ("on_pid", _gf_filter_pid)]
     ## \endcond
 
 ## event value, as defined in libgpac and usable as a Python object
@@ -735,7 +735,7 @@ class FEVT_Base(Structure):
 class FEVT_Play(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("start_range", c_double),
         ("end_range", c_double),
@@ -761,7 +761,7 @@ class FEVT_Play(Structure):
 class FEVT_SourceSeek(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("start_offset", c_ulonglong),
         ("end_offset", c_ulonglong),
@@ -777,7 +777,7 @@ class FEVT_SourceSeek(Structure):
 class FEVT_SegmentSize(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("seg_url", c_char_p),
         ("is_init", gf_bool),
@@ -795,7 +795,7 @@ class FEVT_SegmentSize(Structure):
 class FEVT_FragmentSize(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("is_last", gf_bool),
         ("offset", c_ulonglong),
@@ -811,7 +811,7 @@ class FEVT_FragmentSize(Structure):
 class FEVT_AttachScene(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("odm", c_void_p),
         ("node", c_void_p)
@@ -823,7 +823,7 @@ class FEVT_AttachScene(Structure):
 class FEVT_QualitySwitch(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("up", gf_bool),
         ("dependent_group_index", c_uint),
@@ -840,7 +840,7 @@ class FEVT_QualitySwitch(Structure):
 class FEVT_FileDelete(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("url", c_char_p)
     ]
@@ -851,7 +851,7 @@ class FEVT_FileDelete(Structure):
 class FEVT_VisibilityHint(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("min_x", c_uint),
         ("max_x", c_uint),
@@ -866,7 +866,7 @@ class FEVT_VisibilityHint(Structure):
 class FEVT_BufferRequirement(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("max_buffer_us", c_uint),
         ("max_playout_us", c_uint),
@@ -880,7 +880,7 @@ class FEVT_BufferRequirement(Structure):
 class FEVT_EncodeHints(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("intra_period", Fraction),
         ("gen_dsi_only", gf_bool)
@@ -892,7 +892,7 @@ class FEVT_EncodeHints(Structure):
 class FEVT_NTPRef(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("ntp", c_ulonglong)
     ]
@@ -904,7 +904,7 @@ class FEVT_NTPRef(Structure):
 class EVT_mouse(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_ubyte),
+        ("type", c_ubyte),
         ("x", c_int),
         ("y", c_int),
         ("wheel", c_float),
@@ -919,7 +919,7 @@ class EVT_mouse(Structure):
 class EVT_mtouch(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_ubyte),
+        ("type", c_ubyte),
         ("x", c_float),
         ("y", c_float),
         ("rotation", c_float),
@@ -934,7 +934,7 @@ class EVT_mtouch(Structure):
 class EVT_keys(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_ubyte),
+        ("type", c_ubyte),
         ("key_code", c_uint),
         ("hw_code", c_uint),
         ("flags", c_uint),
@@ -947,7 +947,7 @@ class EVT_keys(Structure):
 class EVT_char(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_ubyte),
+        ("type", c_ubyte),
         ("unicode_char", c_uint),
         ("window_id", c_uint)
     ]
@@ -958,7 +958,7 @@ class EVT_char(Structure):
 class EVT_size(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_ubyte),
+        ("type", c_ubyte),
         ("width", c_uint),
         ("height", c_uint),
         ("orientation", c_uint),
@@ -971,7 +971,7 @@ class EVT_size(Structure):
 class EVT_show(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_ubyte),
+        ("type", c_ubyte),
         ("show_type", c_uint),
         ("window_id", c_uint)
     ]
@@ -984,7 +984,7 @@ class EVT_show(Structure):
 class EVT_base(Union):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_ubyte),
+        ("type", c_ubyte),
         ("mouse", EVT_mouse),
         ("mtouch", EVT_mtouch),
         ("keys", EVT_keys),
@@ -1000,7 +1000,7 @@ class EVT_base(Union):
 class FEVT_UserEvent(Structure):
     ## \cond private
     _fields_ =  [
-        ("evt_type", c_uint),
+        ("type", c_uint),
         ("on_pid", _gf_filter_pid),
         ("event", EVT_base)
     ]
@@ -1011,9 +1011,9 @@ class FEVT_UserEvent(Structure):
 #Fields have the same types, names and semantics as GF_FilterEvent
 class FilterEvent(Union):
     ## constructor
-    #\param type type of event
-    def __init__(self, type=0):
-        self.base.evt_type = type
+    #\param evt_type type of event
+    def __init__(self, evt_type=0):
+        self.base.type = evt_type
     ## \cond private
         _libgpac.user_init = True
 
@@ -1683,15 +1683,15 @@ class FilterSession:
         ##\endcond private
 
     ## called whenever a new filter is added, typically used by classes deriving from FilterSession
-    #\param filter Filter object being added
+    #\param _filter Filter object being added
     #\return
-    def on_filter_new(self, filter):
+    def on_filter_new(self, _filter):
         pass
 
     ## called whenever a filter is destroyed, typically used by classes deriving from FilterSession
-    #\param filter Filter object being removed
+    #\param _filter Filter object being removed
     #\return
-    def on_filter_del(self, filter):
+    def on_filter_del(self, _filter):
         pass
 
     ## called whenever a GL context must be activated, typically used by classes deriving from FilterSession
@@ -1710,9 +1710,9 @@ class FilterSession:
         for i, a_f in enumerate(self._filters):
             if a_f._filter == f:
                 return a_f
-        filter = Filter(self, f)
-        self._filters.append(filter)
-        return filter
+        _filter = Filter(self, f)
+        self._filters.append(_filter)
+        return _filter
     ##\endcond private
 
     ##run the session - see \ref gf_fs_run
@@ -1729,13 +1729,13 @@ class FilterSession:
     def load_src(self, URL, parentURL=None):
         errp = c_int(0)
         if parentURL:
-            filter = _libgpac.gf_fs_load_source(self._sess, URL.encode('utf-8'), None, parentURL.encode('utf-8'), byref(errp))
+            _filter = _libgpac.gf_fs_load_source(self._sess, URL.encode('utf-8'), None, parentURL.encode('utf-8'), byref(errp))
         else:
-            filter = _libgpac.gf_fs_load_source(self._sess, URL.encode('utf-8'), None, None, byref(errp))
+            _filter = _libgpac.gf_fs_load_source(self._sess, URL.encode('utf-8'), None, None, byref(errp))
         err = errp.value
         if err<0: 
             raise Exception('Failed to load source filter ' + URL + ': ' + e2s(err))
-        return self._to_filter(filter)
+        return self._to_filter(_filter)
 
     ##load destination filter - see \ref gf_fs_load_destination
     #\param URL source URL to load
@@ -1744,13 +1744,13 @@ class FilterSession:
     def load_dst(self, URL, parentURL=None):
         errp = c_int(0)
         if parentURL:
-            filter = _libgpac.gf_fs_load_destination(self._sess, URL.encode('utf-8'), None, parentURL.encode('utf-8'), byref(errp))
+            _filter = _libgpac.gf_fs_load_destination(self._sess, URL.encode('utf-8'), None, parentURL.encode('utf-8'), byref(errp))
         else:
-            filter = _libgpac.gf_fs_load_destination(self._sess, URL.encode('utf-8'), None, None, byref(errp))
+            _filter = _libgpac.gf_fs_load_destination(self._sess, URL.encode('utf-8'), None, None, byref(errp))
         err = errp.value
         if err<0: 
             raise Exception('Failed to load destination filter ' + URL + ': ' + e2s(err))
-        return self._to_filter(filter)
+        return self._to_filter(_filter)
 
 
     ##load a filter - see \ref gf_fs_load_filter
@@ -1758,11 +1758,11 @@ class FilterSession:
     #\return new Filter object
     def load(self, fname):
         errp = c_int(0)
-        filter = _libgpac.gf_fs_load_filter(self._sess, fname.encode('utf-8'), byref(errp))
+        _filter = _libgpac.gf_fs_load_filter(self._sess, fname.encode('utf-8'), byref(errp))
         err = errp.value
         if err<0: 
             raise Exception('Failed to load filter ' + fname + ': ' + e2s(err))
-        return self._to_filter(filter)
+        return self._to_filter(_filter)
 
     ##post a user task to the filter sesison - see \ref gf_fs_post_user_task
     #\param task task object to post
@@ -1821,12 +1821,12 @@ class FilterSession:
 
     ##fire an event on the given filter if any, or on any filter accepting user events
     # \param evt FilterEvent to fire
-    # \param filter Filter to use as target
+    # \param _filter Filter to use as target
     # \param upstream if true, walks the chain towards the sink, otehrwise towards the source
     #\return
-    def fire_event(self, evt, filter=None, upstream=False):
-        if filter:
-            return _libgpac.gf_fs_fire_event(self._sess, filter._filter, byref(evt), upstream)
+    def fire_event(self, evt, _filter=None, upstream=False):
+        if _filter:
+            return _libgpac.gf_fs_fire_event(self._sess, _filter._filter, byref(evt), upstream)
         return _libgpac.gf_fs_fire_event(self._sess, None, byref(evt), upstream)
 
     ##checks if a given mime is supported - see \ref gf_fs_is_supported_mime
@@ -2466,11 +2466,11 @@ def dash_download_monitor(cbk, groupidx, stats):
 
 
 def _prop_to_python(pname, prop):
-    type = prop.prop_type
+    ptype = prop.type
 
-    if type==GF_PROP_SINT:
+    if ptype==GF_PROP_SINT:
         return prop.value.sint
-    if type==GF_PROP_UINT:
+    if ptype==GF_PROP_UINT:
         if pname=="StreamType":
             return _libgpac.gf_stream_type_name(prop.value.uint).decode('utf-8')
         if pname=="PixelFormat":
@@ -2481,72 +2481,72 @@ def _prop_to_python(pname, prop):
             return names[0]
         return prop.value.uint
 
-    if _libgpac.gf_props_type_is_enum(type):
-        pname = _libgpac.gf_props_enum_name(type, prop.value.uint)
+    if _libgpac.gf_props_type_is_enum(ptype):
+        pname = _libgpac.gf_props_enum_name(ptype, prop.value.uint)
         return pname.decode('utf-8')
 
-    if type==GF_PROP_4CC:
+    if ptype==GF_PROP_4CC:
         return _libgpac.gf_4cc_to_str(prop.value.uint).decode('utf-8')
-    if type==GF_PROP_LSINT:
+    if ptype==GF_PROP_LSINT:
         return prop.value.longsint
-    if type==GF_PROP_LUINT:
+    if ptype==GF_PROP_LUINT:
         return prop.value.longuint
-    if type==GF_PROP_BOOL:
+    if ptype==GF_PROP_BOOL:
         return prop.value.boolean
-    if type==GF_PROP_FRACTION:
+    if ptype==GF_PROP_FRACTION:
         return prop.value.frac
-    if type==GF_PROP_FRACTION64:
+    if ptype==GF_PROP_FRACTION64:
         return prop.value.lfrac
-    if type==GF_PROP_FLOAT:
+    if ptype==GF_PROP_FLOAT:
         return prop.value.fnumber
-    if type==GF_PROP_DOUBLE:
+    if ptype==GF_PROP_DOUBLE:
         return prop.value.number
-    if type==GF_PROP_VEC2I:
+    if ptype==GF_PROP_VEC2I:
         return prop.value.vec2i
-    if type==GF_PROP_VEC2:
+    if ptype==GF_PROP_VEC2:
         return prop.value.vec2
-    if type==GF_PROP_VEC3I:
+    if ptype==GF_PROP_VEC3I:
         return prop.value.vec3i
-    if type==GF_PROP_VEC4I:
+    if ptype==GF_PROP_VEC4I:
         return prop.value.vec4i
-    if type==GF_PROP_STRING or type==GF_PROP_STRING_NO_COPY or type==GF_PROP_NAME:
+    if ptype==GF_PROP_STRING or ptype==GF_PROP_STRING_NO_COPY or ptype==GF_PROP_NAME:
         return prop.value.string.decode('utf-8')
-    if type==GF_PROP_DATA or type==GF_PROP_DATA_NO_COPY or type==GF_PROP_CONST_DATA:
+    if ptype==GF_PROP_DATA or ptype==GF_PROP_DATA_NO_COPY or ptype==GF_PROP_CONST_DATA:
         return prop.value.data
-    if type==GF_PROP_POINTER:
+    if ptype==GF_PROP_POINTER:
         return prop.value.ptr
-    if type==GF_PROP_STRING_LIST:
+    if ptype==GF_PROP_STRING_LIST:
         res = []
         for i in range(prop.value.string_list.nb_items):
             val = prop.value.string_list.vals[i].decode('utf-8')
             res.append(val)
         return res
-    if type==GF_PROP_UINT_LIST:
+    if ptype==GF_PROP_UINT_LIST:
         res = []
         for i in range(prop.value.uint_list.nb_items):
             val = prop.value.uint_list.vals[i]
             res.append(val)
         return res
-    if type==GF_PROP_4CC_LIST:
+    if ptype==GF_PROP_4CC_LIST:
         res = []
         for i in range(prop.value.uint_list.nb_items):
             val = _libgpac.gf_4cc_to_str(prop.value.uint).decode('utf-8')
             res.append(val)
         return res
-    if type==GF_PROP_SINT_LIST:
+    if ptype==GF_PROP_SINT_LIST:
         res = []
         for i in range(prop.value.uint_list.nb_items):
             val = prop.value.sint_list.vals[i]
             res.append(val)
         return res
-    if type==GF_PROP_VEC2I_LIST:
+    if ptype==GF_PROP_VEC2I_LIST:
         res = []
         for i in range(prop.value.v2i_list.nb_items):
             val = prop.value.v2i_list.vals[i]
             res.append(val)
         return res
 
-    raise Exception('Unknown property type ' + str(type))
+    raise Exception('Unknown property type ' + str(ptype))
 
 ## \endcond
 
@@ -2554,8 +2554,8 @@ def _prop_to_python(pname, prop):
 ## filter object
 class Filter:
     ## \cond  private
-    def __init__(self, session, filter):
-        self._filter = filter
+    def __init__(self, session, _filter):
+        self._filter = _filter
         self._session = session
     ## \endcond
         #hack for doxygen to generate member vars (not support for parsing @property)
@@ -2787,8 +2787,8 @@ class Filter:
             f_idx+=1        
             if f==None:
                 break
-            filter = self._session._to_filter(f)
-            res.append(filter)
+            _filter = self._session._to_filter(f)
+            res.append(_filter)
         return res
 
     ##gets all defined options / arguments for a filter
@@ -2969,14 +2969,14 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
     prop_val = PropertyValue()
     if prop4cc==0:
         if not custom_type:
-            prop_val.prop_type = GF_PROP_STRING
+            prop_val.type = GF_PROP_STRING
             prop_val.value.string = str(prop).encode('utf-8')
             return prop_val
-        type = custom_type
+        ptype = custom_type
     else:
-        type = _libgpac.gf_props_4cc_get_type(prop4cc)
+        ptype = _libgpac.gf_props_4cc_get_type(prop4cc)
 
-    prop_val.prop_type = type
+    prop_val.type = ptype
     if propname=="StreamType":
         prop_val.value.uint = _libgpac.gf_stream_type_by_name(prop.encode('utf-8'))
         return prop_val
@@ -2984,19 +2984,19 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
         prop_val.value.uint = _libgpac.gf_codecid_parse(prop.encode('utf-8'))
         return prop_val
 
-    if type==GF_PROP_SINT:
+    if ptype==GF_PROP_SINT:
         prop_val.value.sint = prop
-    elif type==GF_PROP_UINT:
+    elif ptype==GF_PROP_UINT:
         prop_val.value.uint = prop
-    elif type==GF_PROP_4CC:
+    elif ptype==GF_PROP_4CC:
         prop_val.value.uint = _libgpac.gf_4cc_parse(prop.encode('utf-8'))
-    elif type==GF_PROP_LSINT:
+    elif ptype==GF_PROP_LSINT:
         prop_val.value.longsint = prop
-    elif type==GF_PROP_LUINT:
+    elif ptype==GF_PROP_LUINT:
         prop_val.value.longuint = prop
-    elif type==GF_PROP_BOOL:
+    elif ptype==GF_PROP_BOOL:
         prop_val.value.boolean = prop
-    elif type==GF_PROP_FRACTION:
+    elif ptype==GF_PROP_FRACTION:
         if hasattr(prop, 'den') and hasattr(prop, 'num'):
             prop_val.value.frac.num = prop.num
             prop_val.value.frac.den = prop.den
@@ -3006,7 +3006,7 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
         else:
             prop_val.value.frac.num = 1000*prop
             prop_val.value.frac.den = 1000
-    elif type==GF_PROP_FRACTION64:
+    elif ptype==GF_PROP_FRACTION64:
         if hasattr(prop, 'den') and hasattr(prop, 'num'):
             prop_val.value.lfrac.num = prop.num
             prop_val.value.lfrac.den = prop.den
@@ -3016,30 +3016,30 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
         else:
             prop_val.value.lfrac.num = 1000000*prop
             prop_val.value.lfrac.den = 1000000
-    elif type==GF_PROP_FLOAT:
+    elif ptype==GF_PROP_FLOAT:
         prop_val.value.fnumber = prop
-    elif type==GF_PROP_DOUBLE:
+    elif ptype==GF_PROP_DOUBLE:
         prop_val.value.number = prop
-    elif type==GF_PROP_VEC2I:
+    elif ptype==GF_PROP_VEC2I:
         if hasattr(prop, 'x') and hasattr(prop, 'y'):
             prop_val.value.vec2i.x = prop.x
             prop_val.value.vec2i.y = prop.y
         else:
             raise Exception('Invalid property value for vec2i: ' + str(prop))
-    elif type==GF_PROP_VEC2:
+    elif ptype==GF_PROP_VEC2:
         if hasattr(prop, 'x') and hasattr(prop, 'y'):
             prop_val.value.vec2.x = prop.x
             prop_val.value.vec2.y = prop.y
         else:
             raise Exception('Invalid property value for vec2: ' + str(prop))
-    elif type==GF_PROP_VEC3I:
+    elif ptype==GF_PROP_VEC3I:
         if hasattr(prop, 'x') and hasattr(prop, 'y') and hasattr(prop, 'z'):
             prop_val.value.vec3i.x = prop.x
             prop_val.value.vec3i.y = prop.y
             prop_val.value.vec3i.z = prop.z
         else:
             raise Exception('Invalid property value for vec3i: ' + str(prop))
-    elif type==GF_PROP_VEC4I:
+    elif ptype==GF_PROP_VEC4I:
         if hasattr(prop, 'x') and hasattr(prop, 'y') and hasattr(prop, 'z') and hasattr(prop, 'w'):
             prop_val.value.vec4i.x = prop.x
             prop_val.value.vec4i.y = prop.y
@@ -3047,13 +3047,13 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
             prop_val.value.vec4i.w = prop.w
         else:
             raise Exception('Invalid property value for vec4i: ' + str(prop))
-    elif type==GF_PROP_STRING or type==GF_PROP_STRING_NO_COPY or type==GF_PROP_NAME:
+    elif ptype==GF_PROP_STRING or ptype==GF_PROP_STRING_NO_COPY or ptype==GF_PROP_NAME:
         prop_val.value.string = str(prop).encode('utf-8')
-    elif type==GF_PROP_DATA or type==GF_PROP_DATA_NO_COPY or type==GF_PROP_CONST_DATA:
+    elif ptype==GF_PROP_DATA or ptype==GF_PROP_DATA_NO_COPY or ptype==GF_PROP_CONST_DATA:
         raise Exception('Setting data property from python not yet implemented !')
-    elif type==GF_PROP_POINTER:
+    elif ptype==GF_PROP_POINTER:
         raise Exception('Setting pointer property from python not yet implemented !')
-    elif type==GF_PROP_STRING_LIST:
+    elif ptype==GF_PROP_STRING_LIST:
         if isinstance(prop, list)==False:
             raise Exception('Property is not a list')
         prop_val.value.string_list.nb_items = len(prop)
@@ -3062,12 +3062,12 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
         for str in list:
             prop_val.value.string_list.vals[i] = create_string_buffer(str.encode('utf-8'))
             i+=1
-    elif type==GF_PROP_UINT_LIST:
+    elif ptype==GF_PROP_UINT_LIST:
         if isinstance(prop, list)==False:
             raise Exception('Property is not a list')
         prop_val.value.uint_list.nb_items = len(prop)
         prop_val.value.uint_list.vals = (c_uint * len(prop))(*prop)
-    elif type==GF_PROP_4CC_LIST:
+    elif ptype==GF_PROP_4CC_LIST:
         if isinstance(prop, list)==False:
             raise Exception('Property is not a list')
         prop_val.value.uint_list.nb_items = len(prop)
@@ -3076,12 +3076,12 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
         for str in list:
             prop_val.value.uint_list.vals[i] = _libgpac.gf_4cc_parse( str.encode('utf-8') )
             i+=1
-    elif type==GF_PROP_SINT_LIST:
+    elif ptype==GF_PROP_SINT_LIST:
         if isinstance(prop, list)==False:
             raise Exception('Property is not a list')
         prop_val.value.sint_list.nb_items = len(prop)
         prop_val.value.sint_list.vals = (c_int * len(prop))(*prop)
-    elif type==GF_PROP_VEC2I_LIST:
+    elif ptype==GF_PROP_VEC2I_LIST:
         if isinstance(prop, list)==False:
             raise Exception('Property is not a list')
         prop_val.value.sint_list.nb_items = len(prop)
@@ -3090,11 +3090,11 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
             prop_val.value.v2i_list.vals[i].x = prop[i].x
             prop_val.value.v2i_list.vals[i].y = prop[i].y
 
-    elif _libgpac.gf_props_type_is_enum(type):
-        prop_val.value.uint = _libgpac.gf_props_parse_enum(type, prop.encode('utf-8'))
+    elif _libgpac.gf_props_type_is_enum(ptype):
+        prop_val.value.uint = _libgpac.gf_props_parse_enum(ptype, prop.encode('utf-8'))
         return prop_val
     else:
-        raise Exception('Unsupported property type ' + str(type) )
+        raise Exception('Unsupported property type ' + str(ptype) )
 
     return prop_val
 
@@ -3114,7 +3114,7 @@ _libgpac.gf_filter_set_configure_ckb.argtypes = [_gf_filter, c_void_p]
 @CFUNCTYPE(c_int, _gf_filter, _gf_filter_pid, gf_bool)
 def filter_cbk_configure(_f, _pid, is_remove):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
-    filter = cast(obj, py_object).value
+    _filter = cast(obj, py_object).value
     obj = _libgpac.gf_filter_pid_get_udta(_pid)
     if obj:
         pid_obj = cast(obj, py_object).value
@@ -3125,18 +3125,18 @@ def filter_cbk_configure(_f, _pid, is_remove):
     if pid_obj:
         first=False
     else:
-        pid_obj = FilterPid(filter, _pid, True)
+        pid_obj = FilterPid(_filter, _pid, True)
         _libgpac.gf_filter_pid_set_udta(_pid, py_object(pid_obj))
-    res = filter.configure_pid(pid_obj, is_remove)
+    res = _filter.configure_pid(pid_obj, is_remove)
 
     if is_remove:
         _libgpac.gf_filter_pid_set_udta(_pid, None)
-        if pid_obj in filter.ipids:
-            filter.ipids.remove(pid_obj)
+        if pid_obj in _filter.ipids:
+            _filter.ipids.remove(pid_obj)
         return res
 
     if first:
-        filter.ipids.append(pid_obj)
+        _filter.ipids.append(pid_obj)
 
     return res
 
@@ -3145,15 +3145,15 @@ _libgpac.gf_filter_set_process_ckb.argtypes = [_gf_filter, c_void_p]
 @CFUNCTYPE(c_int, _gf_filter)
 def filter_cbk_process(_f):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
-    filter = cast(obj, py_object).value
-    return filter.process()
+    _filter = cast(obj, py_object).value
+    return _filter.process()
 
 _libgpac.gf_filter_set_process_event_ckb.argtypes = [_gf_filter, c_void_p]
 @CFUNCTYPE(c_int, _gf_filter, POINTER(FilterEvent) )
 def filter_cbk_process_event(_f, _evt):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
-    filter = cast(obj, py_object).value
-    res = filter.process_event(_evt.contents)
+    _filter = cast(obj, py_object).value
+    res = _filter.process_event(_evt.contents)
     if res:
         return 1
     return 0
@@ -3162,13 +3162,13 @@ _libgpac.gf_filter_set_probe_data_cbk.argtypes = [_gf_filter, c_void_p]
 @CFUNCTYPE(c_int, POINTER(c_ubyte), c_uint, POINTER(c_uint) )
 def filter_cbk_probe_data(_data, _size, _probe):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
-    filter = cast(obj, py_object).value
+    _filter = cast(obj, py_object).value
     if numpy_support:
         ar_data = np.ctypeslib.as_array(_data, (_size,))
         ar_data.flags.writeable=False
-        res = filter.probe_data(ar_data, _size)
+        res = _filter.probe_data(ar_data, _size)
     else:
-        res = filter.probe_data(_data, _size)
+        res = _filter.probe_data(_data, _size)
     if res==None:
         _probe.contents=0
         return None
@@ -3180,14 +3180,14 @@ _libgpac.gf_filter_set_reconfigure_output_ckb.argtypes = [_gf_filter, c_void_p]
 @CFUNCTYPE(c_int, _gf_filter, _gf_filter_pid )
 def filter_cbk_reconfigure_output(_f, _pid):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
-    filter = cast(obj, py_object).value
+    _filter = cast(obj, py_object).value
     obj = _libgpac.gf_filter_pid_get_udta(_pid)
     if obj:
         pid_obj = cast(obj, py_object).value
     else:
         pid_obj=None
     if pid_obj:
-        return filter.reconfigure_output(_f)
+        return _filter.reconfigure_output(_f)
     raise Exception('Reconfigure on unknown output pid !')
 
 
@@ -3547,7 +3547,7 @@ _libgpac.gf_filter_pck_new_shared.restype = _gf_filter_packet
 @CFUNCTYPE(c_int, _gf_filter, _gf_filter_pid, _gf_filter_packet)
 def filter_cbk_release_packet(_f, _pid, _pck):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
-    filter = cast(obj, py_object).value
+    _filter = cast(obj, py_object).value
     pck_obj=None
     obj = _libgpac.gf_filter_pid_get_udta(_pid)
     if obj:
@@ -3563,7 +3563,7 @@ def filter_cbk_release_packet(_f, _pid, _pck):
     if not pck_obj:
         raise Exception('unknown packet on packet destruction callback')
     pid_obj.pck_refs.remove(pck_obj)
-    filter.packet_release(pid_obj, pck_obj)
+    _filter.packet_release(pid_obj, pck_obj)
     return 0
 
 ## \endcond private
@@ -3571,8 +3571,8 @@ def filter_cbk_release_packet(_f, _pid, _pck):
 ## Object representing a PID of a custom filter
 class FilterPid:
     ## \cond private
-    def __init__(self, filter, pid, IsInput):
-        self._filter = filter
+    def __init__(self, _filter, pid, IsInput):
+        self._filter = _filter
         self._pid = pid
         self._cur_pck = None
         self._input = IsInput
@@ -3816,10 +3816,10 @@ class FilterPid:
         return v
 
     ##check if a filter is in the parent filter chain of the pid - see \ref gf_filter_pid_is_filter_in_parents
-    #\param filter Filter to check
+    #\param _filter Filter to check
     #\return True or False
-    def is_filter_in_parents(self, filter):
-        return _libgpac.gf_filter_pid_is_filter_in_parents(self._pid, filter._f)
+    def is_filter_in_parents(self, _filter):
+        return _libgpac.gf_filter_pid_is_filter_in_parents(self._pid, _filter._f)
 
     ##get buffer occupancy - see \ref gf_filter_pid_get_buffer_occupancy
     #\return BufferOccupancy object
