@@ -797,74 +797,7 @@
        cmd_history.push(cmd);
        save_history();
        cmd_idx = -1;
-
-       //webpage help
-       if ((args[0]=="help") || (args[0]=="h")) {
-        let text = "GPAC WASM demo - " + LIBGPAC.copyright() + "\n";
-        text+="Use the command line input to run gpac, MP4Box or perform simple filesystem manipulations\n";
-        text+="If program name is not given, 'gpac' is assumed\n";
-        text+="\n";
-        text+="Command line helpers\n";
-        text+="ls [N]:        list files in N or in current directory if N not set or print file N info - use 'ls -l N' for details.\n";
-        text+="imp [-d] [N]:  imports files or directory (-d) to local filesystem file.\n";
-        text+="                'imp' : imports single file to current dir using its native name\n";
-        text+="                'imp foo' : imports single file as foo\n";
-        text+="                'imp foo/' : imports one or more files in foo using their native name\n";
-        text+="                'imp -d' : imports a directory to current dir\n";
-        text+="                'imp -d foo' : imports a directory as foo\n";
-        text+="exp NAME:      exports given file NAME\n";
-        text+="cd [NAME]:     changes current working directory, use Emscripten home if NAME not provided\n";
-        text+="cwd:           prints current working directory\n";
-        text+="clear:         clears console output\n";
-        text+="mkdir NAME:    creates directory NAME\n";
-        text+="rm NAME:       removes file or empty directory NAME\n";
-        text+="mv N1 N2:      moves file N1 to N2\n";
-        text+="cp N1 N2:      copies file N1 to N2 (no recursive copy support)\n";
-        text+="show NAME:     shows content of file NAME\n";
-        text+="edit NAME:     edits content of file NAME, use 'save' to save and close, 'close' to discard and close\n";
-        if (LIBGPAC.has_threads) {
-          text+="worker         toggles worker mode on or off (" + (GPAC.worker ? "on" : "off") + ")\n";
-          text+="threads        views number of pre-allocated workers\n";
-        }
-        text+="stack          prints available size in stack\n";
-        text+="clearh [N]     clears command history. If N is set, only keeps last N items, otherwise clears everything\n";
-        text+="fetch          toggles fetch support in libgpac\n";
-        text+="bsize          sets block size used to read from local disk (default " + GPAC.read_block_size + ")\n";
-        text+="eval           evaluates JS code\n";
-        text+="fs             interactive graph builder\n";
-        text+="\n";
-        text+="Up and Down arrows can be used for command history\n";
-        text+="\n";
-        text+="The variable $(NAME) can be used to design a file not on Emscripten's file system.\n"
-        text+="The file will be handled as a stream (not copied). This is the recommended methods for handling large files.\n";
-        text+="If NAME is an absolute URL other than 'file://' scheme:\n"
-        text+="- if used for an input, it will be pulled progressively using Fetch API\n"
-        text+="- if used for an output, it will be pushed progressively using Fetch API. If writable streams fail, the file will be stored in memory until final PUT or canceled.\n"
-        text+="Otherwise, NAME designs a file to be picked on the user's file system\n"
-        text+="- if used for an input, a file picker will be shown and status text will indicate the corresponding NAME\n"
-        text+="- if used for an output, a file saver will be shown with the given NAME. If writable stream failure, the file will be stored in memory until final write or canceled.\n"
-        text+="\n";
-        text+="For output files, the extension will be used to derive the output format, e.g. '($file.ts)' will use MPEG-2 TS.\n"
-        text+="Use '$(file):ext=ts' to override format if desired.\n"
-        text+="\n";
-        text+="This syntax CANNOT work when editing files (MP4Box, dasher context, etc...).\n"
-        text+="\n";
-        text+="IndexedDB is used for persistent storage, mounted at /idbfs. Typing any command will synchronize the file system.\n";
-        text+="\n";
-        text+="The default behaviour for gpac app is to run on the browser/worker main loop in non-blocking mode, running the session at most 100 times before returning control.\n";
-        text+="This can be configured (see gpac -hx), for example:\n";
-        text+="\t-step=-1 will block the main browser/worker thread (WILL DEADLOCK if some filters use JS promises or other async tools)\n";
-        text+="\t-step=0 will use browser defaults for requestAnimationFrame frequency\n";
-        text+="\t-step=100 will request callback every 10 ms\n";
-        text+="\t-step=100:1000 will request callback every 10 ms, calling at most 1000 times the session\n";
-        if (LIBGPAC.has_threads) {
-          text+="\n";
-          text+="When running without worker, internal threading of filters (e.g. ffmpeg & co) will be disabled if the session runs only on the main thread.\n"
-          text+="Use -threads=N with N>0 (typically -threads=1) to enable threading in these filters.\n";
-        }
-        do_log(text);
-        return com_exit();
-       }
+       
        //file or directory import
        if (args[0]=='imp') {
         let is_dir = false;
