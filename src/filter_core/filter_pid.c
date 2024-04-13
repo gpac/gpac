@@ -1207,6 +1207,13 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 		if (remove_filter && !filter->sticky)
 			gf_filter_post_remove(filter);
+		//we injected a filter to adapt on an already playing PID, move pid instance to playing
+		if (filter->is_pid_adaptation_filter && pid->is_playing)
+			pidinst->is_playing = GF_TRUE;
+
+		//new pid instance creating a fanout on an already playing pid: force discarding input packets until we have a PLAY
+		if (new_pid_inst && !filter->is_pid_adaptation_filter && pid->is_playing && pid->nb_pck_sent && (pid->num_destinations>1))
+			pidinst->discard_inputs = GF_TRUE;
 	}
 	//once all pid have been (re)connected, update any internal caps
 	gf_filter_pid_update_caps(pid);
