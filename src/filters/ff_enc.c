@@ -52,7 +52,6 @@ typedef struct _gf_ffenc_ctx
 
 	//internal data
 	Bool gen_dsi;
-	Bool playing;
 	u32 gop_size;
 	u32 target_rate;
 
@@ -1353,9 +1352,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 static GF_Err ffenc_process(GF_Filter *filter)
 {
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
-	if (!ctx->out_pid || gf_filter_pid_would_block(ctx->out_pid)
-		//make sure we receive a play event
-		|| !ctx->playing)
+	if (!ctx->out_pid || gf_filter_pid_would_block(ctx->out_pid))
 		return GF_OK;
 	return ctx->process(filter, ctx);
 }
@@ -2178,13 +2175,7 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
-	if (evt->base.type==GF_FEVT_PLAY) {
-		ctx->playing = GF_TRUE;
-	}
-	else if (evt->base.type==GF_FEVT_PLAY) {
-		ctx->playing = GF_FALSE;
-	}
-	else if (evt->base.type==GF_FEVT_ENCODE_HINTS) {
+	if (evt->base.type==GF_FEVT_ENCODE_HINTS) {
 		if (evt->encode_hints.gen_dsi_only) {
 			ctx->generate_dsi_only = GF_TRUE;
 		}

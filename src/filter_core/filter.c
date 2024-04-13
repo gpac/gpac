@@ -3855,15 +3855,16 @@ static void gf_filter_remove_local(GF_Filter *filter, GF_FSTask *task)
 	if (!filter) return;
 
 	gf_mx_p(filter->tasks_mx);
+	//check the sources for filter does not have any pending PID init task or PID configure task
+	//this avoids deleting the filter before a new filter is inserted at the same source, triggering
+	//destruction of the chain
+	//we don't check for any other pending connections at the session level
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 		if (pidi->pid->init_task_pending || pidi->pid->filter->out_pid_connection_pending) {
 			has_pending=GF_TRUE;
 			break;
 		}
-	}
-	if (!has_pending) {
-		has_pending = gf_filter_connections_pending(filter);
 	}
 
 	if (has_pending) {
