@@ -4460,6 +4460,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		ctx->args_updated = GF_FALSE;
 		for (i=0; i<count; i++) {
 			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+			if (!pctx->src_pid) continue;
 			switch (ctx->mode) {
 			case INSPECT_MODE_PCK:
 			case INSPECT_MODE_REFRAME:

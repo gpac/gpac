@@ -41,6 +41,7 @@
 - MPEG-H decoder using IIS mpeghdec
 - Templating for property assignment 
 - Conditional filter replacement to identify based on codecID 
+- Per-filter logging
 
 ## MP4Box
 - Add track reordering option

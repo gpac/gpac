@@ -1743,6 +1743,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					//post to main
 					gf_fq_add(fsess->main_thread_tasks, task);
 					gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
+#ifndef GPAC_DISABLE_LOG
+					gf_log_pop_extra(current_filter->logs);
+#endif
 					//disable current filter
 					current_filter = NULL;
 					continue;
@@ -1778,6 +1781,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				current_filter->process_th_id = 0;
 				gf_assert(current_filter->in_process);
 				current_filter->in_process = GF_FALSE;
+#ifndef GPAC_DISABLE_LOG
+				gf_log_pop_extra(current_filter->logs);
+#endif
 			}
 			current_filter = NULL;
 			sess_thread->active_time += gf_sys_clock_high_res() - active_start;
@@ -1838,6 +1844,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 		gf_assert(!current_filter || (current_filter==task->filter));
 
+#ifndef GPAC_DISABLE_LOG
+		//moving to new filter, register log
+		if (!current_filter && task->filter) gf_log_push_extra(task->filter->logs);
+#endif
 		current_filter = task->filter;
 
 		//unless task was explicitly forced to main (pid init mostly), reschedule if filter is not on desired thread
@@ -1852,6 +1862,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			}
 			gf_fq_add(fsess->tasks, task);
 			gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
+#ifndef GPAC_DISABLE_LOG
+			gf_log_pop_extra(current_filter->logs);
+#endif
 			current_filter = NULL;
 			continue;
 		}
@@ -2026,6 +2039,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						current_filter->in_process = GF_FALSE;
 						//don't touch the current filter tasks, just repost the task to the main/secondary list
 						gf_assert(gf_fq_count(current_filter->tasks));
+#ifndef GPAC_DISABLE_LOG
+						gf_log_pop_extra(current_filter->logs);
+#endif
 						current_filter = NULL;
 
 #ifdef CHECK_TASK_LIST_INTEGRITY
@@ -2209,6 +2225,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #ifdef CHECK_TASK_LIST_INTEGRITY
 				if (requeue && !skip_filter_task_check) check_task_list(current_filter->tasks, task);
 #endif
+
+#ifndef GPAC_DISABLE_LOG
+				gf_log_pop_extra(current_filter->logs);
+#endif
 				current_filter = NULL;
 			} else {
 				//drop task from filter task list
@@ -2220,6 +2240,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					current_filter->in_process = GF_FALSE;
 					current_filter->scheduled_for_next_task = GF_FALSE;
 					gf_mx_v(current_filter->tasks_mx);
+#ifndef GPAC_DISABLE_LOG
+					gf_log_pop_extra(current_filter->logs);
+#endif
 					current_filter = NULL;
 				} else {
 #ifdef CHECK_TASK_LIST_INTEGRITY
@@ -3114,6 +3137,10 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 	if (!val) {
 		sep = strchr(name, fsess->sep_name);
 		if (sep) sep[0] = 0;
+	}
+	if (!strcmp(name, "LT")) {
+		filter_parse_logs(filter, val);
+		return;
 	}
 
 	//find arg and check if it is only a sync update - if so do it now
