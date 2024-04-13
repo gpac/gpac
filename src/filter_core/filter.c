@@ -261,6 +261,8 @@ static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_
 		}
 		else if (!strncmp(in_args, "DL", 2) && (in_args[2]==fsess->sep_name)) {
 		}
+		else if (!strncmp(in_args, "LT", 2) && (in_args[2]==fsess->sep_name)) {
+		}
 		else if (!is_src && (in_args[0]==fsess->sep_frag)) {
 
 		} else {
@@ -735,6 +737,15 @@ void gf_filter_del(GF_Filter *filter)
 
 	if (filter->netcap_id)
 		gf_free(filter->netcap_id);
+
+#ifndef GPAC_DISABLE_LOG
+	if (filter->logs) {
+		gf_log_pop_extra(filter->logs);
+		if (filter->logs->tools) gf_free(filter->logs->tools);
+		if (filter->logs->levels) gf_free(filter->logs->levels);
+		gf_free(filter->logs);
+	}
+#endif
 
 #ifdef GPAC_HAS_QJS
 	if (filter->iname)
@@ -1300,6 +1311,90 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg);
 }
 
+#ifndef GPAC_DISABLE_LOG
+u32 gf_log_parse_tool(const char *logs);
+void filter_parse_logs(GF_Filter *filter, const char *_logs)
+{
+	if (filter->logs) {
+		if (filter->logs->tools) gf_free(filter->logs->tools);
+		if (filter->logs->levels) gf_free(filter->logs->levels);
+		gf_free(filter->logs);
+	}
+	GF_SAFEALLOC(filter->logs, GF_LogExtra);
+	if (!filter->logs) return;
+
+	GF_LogExtra *lf = filter->logs;
+	char *c_logs = gf_strdup(_logs);
+	char *logs=c_logs;
+
+	while (logs) {
+		u32 i, level = 0;
+		char *l_str=NULL;
+		char *l_tool=NULL;
+
+		char *sep = strchr(logs, '@');
+		char *next = sep ? strchr(sep, ':') : NULL;
+		if (next) next[0] = 0;
+
+		l_str = logs;
+		if (sep) {
+			sep[0] = 0;
+			l_str = sep+1;
+			l_tool = logs;
+		} else {
+			l_tool = "all";
+		}
+
+		if (!strcmp(l_str, "error")) level = GF_LOG_ERROR;
+		else if (!strcmp(l_str, "warning")) level = GF_LOG_WARNING;
+		else if (!strcmp(l_str, "info")) level = GF_LOG_INFO;
+		else if (!strcmp(l_str, "debug")) level = GF_LOG_DEBUG;
+		else if (!strcmp(l_str, "quiet")) level = GF_LOG_QUIET;
+		else if (!strcmp(l_str, "ncl") || !strcmp(l_str, "cl")) {
+			if (!next) break;
+			logs = next+1;
+		} else if (!strcmp(l_str, "strict")) {
+			lf->strict = GF_TRUE;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Unsupported log level %s, ignoring\n", l_str));
+			l_tool=NULL;
+		}
+
+		while (l_tool) {
+			char *n_tool = strchr(l_tool, ':');
+			if (n_tool) n_tool[0]=0;
+
+			u32 found=0, tool = gf_log_parse_tool(l_tool);
+			if (tool==GF_LOG_TOOL_UNDEFINED) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Unsupported log tool %s, ignoring\n", l_tool));
+			} else {
+				for (i=0; i<lf->nb_tools; i++) {
+					if (lf->tools[i] == tool) {
+						lf->levels[i] = level;
+						found=1;
+						break;
+					}
+				}
+				if (!found) {
+					lf->tools = gf_realloc(lf->tools, sizeof(u32) * (lf->nb_tools+1));
+					lf->levels = gf_realloc(lf->levels, sizeof(u32) * (lf->nb_tools+1));
+					lf->tools[lf->nb_tools] = tool;
+					lf->levels[lf->nb_tools] = level;
+					lf->nb_tools++;
+				}
+			}
+
+			if (!n_tool) break;
+			l_tool = n_tool+1;
+		}
+
+		if (!next) break;
+		logs = next+1;
+	}
+	gf_free(c_logs);
+}
+#endif
+
 static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_name, const char *arg_name, const char *arg_val, Bool first_arg)
 {
 	char szArg[101];
@@ -1381,6 +1476,13 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 					loc_alen=3;
 				}
 #endif
+				else if (!strncmp(arg, "LT", len)) {
+					is_ok = 2;
+					loc_alen=2;
+#ifndef GPAC_DISABLE_LOG
+					filter_parse_logs(filter, sep+1);
+#endif
+				}
 
 			}
 			if (!is_ok) continue;
@@ -1419,6 +1521,8 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 			ap = gf_props_parse_value(GF_PROP_UINT, "FBD", opt, NULL, filter->session->sep_list);
 			filter->pid_decode_buffer_max_us = ap.value.uint;
 		}
+		opt = gf_opts_get_key(sec_name, "LT");
+		if (opt) filter_parse_logs(filter, opt);
 	}
 
 	//ifce (used by socket and other filters), use core default
@@ -2010,6 +2114,16 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			else if (!strcmp("LT", szArg)) {
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+#ifndef GPAC_DISABLE_LOG
+				if (value)
+					filter_parse_logs(filter, value);
+#endif
+			}
+
+
 			//internal options, nothing to do here
 			else if (
 				//generic encoder load

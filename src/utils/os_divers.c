@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1629,6 +1629,7 @@ void gf_sys_close()
 		logs_mx = NULL;
 		gf_mx_del(old_log_mx);
 #endif
+		gf_log_reset_extras();
 		if (gpac_argv_state) {
 			gf_free(gpac_argv_state);
 			gpac_argv_state = NULL;

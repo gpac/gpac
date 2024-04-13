@@ -804,6 +804,7 @@ typedef enum
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
 	GF_LOG_TOOL_MAX = GF_LOG_ALL,
+	GF_LOG_TOOL_UNDEFINED
 } GF_LOG_Tool;
 
 /*!
@@ -945,7 +946,30 @@ Resets log file if any log file name was specified, by closing and reopening a n
 */
 void gf_log_reset_file();
 
+//! Extra log instructions
+typedef struct log_extra
+{
+	//! number of tools and levels
+	u32 nb_tools;
+	//! additionnal  tools
+	GF_LOG_Tool *tools;
+	//! additionnal  levels for the tools
+	GF_LOG_Level *levels;
+	//! exit if error
+	Bool strict;
+} GF_LogExtra;
 
+/*! Register a new extra log levels
+ \param log extra levels to add - may be NULL but shall be valid until call to \ref gf_log_pop_extra or \ref gf_log_reset_extras or  end of app
+*/
+void gf_log_push_extra(const GF_LogExtra *log);
+/*! Unregister an extra log levels
+ \param log extra levels to add - may be NULL
+*/
+void gf_log_pop_extra(const GF_LogExtra *log);
+/*! Unregister all  extra log levels
+*/
+void gf_log_reset_extras();
 
 /*!	@} */
 

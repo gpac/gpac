@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -491,6 +491,7 @@ const char *gpac_doc =
 "- gpac: argument separator for URLs (no value)\n"
 "- ccp: filter replacement control (string list value)\n"
 "- NCID: ID of netcap configuration to use (string)\n"
+"- LT: set additionnal log tools and levels for the filter usin same syntax as -logs, e.g. `:LT=filter@debug` (string value)\n"
 "- DBG: debug missing input PID property (`=pid`), missing input packet property (`=pck`) or both (`=all`)\n"
 "\n"
 "The buffer control options are used to change the default buffering of PIDs of a filter:\n"
