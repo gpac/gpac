@@ -133,7 +133,7 @@ u32 gf_gpac_abi_micro()
 }
 
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(GPAC_CONFIG_EMSCRIPTEN)
 
 GF_EXPORT
 u32 gf_sys_clock()
@@ -149,6 +149,23 @@ u64 gf_sys_clock_high_res()
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	return (now.tv_sec)*1000000 + (now.tv_usec) - sys_start_time_hr;
+}
+
+#endif
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+#include <emscripten/emscripten.h>
+
+GF_EXPORT
+u32 gf_sys_clock()
+{
+	return (u32)(emscripten_get_now() - sys_start_time);
+}
+
+GF_EXPORT
+u64 gf_sys_clock_high_res()
+{
+	return (long long)(emscripten_get_now() * 1000.0) - sys_start_time_hr;
 }
 
 #endif
