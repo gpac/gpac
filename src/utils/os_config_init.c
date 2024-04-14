@@ -601,6 +601,8 @@ retry_lib:
 				sep[0] = 0;
 				strcat(app_path, "/share");
 				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
+				strcat(app_path, "/gpac");
+				if (check_file_exists("gui/gui.bt", app_path, file_path)) return 1;
 			}
 			if (try_lib) {
 				try_lib = GF_FALSE;
