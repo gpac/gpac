@@ -768,7 +768,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 {
 	u32 i, count;
 	GF_Err e;
-	Bool refire_events=GF_FALSE;
+	Bool is_pid_swap = GF_FALSE;
+	Bool refire_events = GF_FALSE;
 	Bool new_pid_inst=GF_FALSE;
 	Bool remove_filter=GF_FALSE;
 	GF_FilterPidInst *pidinst=NULL;
@@ -878,6 +879,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	if (filter->swap_pending) {
 		gf_filter_pid_inst_swap(filter, pidinst);
 		filter->swap_pending = GF_FALSE;
+		is_pid_swap = GF_TRUE;
 	}
 
 	filter->in_connect_err = GF_EOS;
@@ -1212,7 +1214,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			pidinst->is_playing = GF_TRUE;
 
 		//new pid instance creating a fanout on an already playing pid: force discarding input packets until we have a PLAY
-		if (new_pid_inst && !filter->is_pid_adaptation_filter && pid->is_playing && pid->nb_pck_sent && (pid->num_destinations>1))
+		if (!is_pid_swap && new_pid_inst && !filter->is_pid_adaptation_filter && pid->is_playing && pid->nb_pck_sent && (pid->num_destinations>1))
 			pidinst->discard_inputs = GF_TRUE;
 	}
 	//once all pid have been (re)connected, update any internal caps
@@ -2309,7 +2311,7 @@ static void cache_bundle_free(GF_BundleDesc *b)
 		u32 i;
 		for (i=0; i<b->alloc_caps;i++) {
 			GF_CapBundleDesc *cap = &b->caps[i];
-			if (cap->vals) gf_free(cap->vals);
+			if (cap->vals) gf_free((GF_FilterCapability **)cap->vals);
 		}
 		if (b->caps) gf_free(b->caps);
 	}
@@ -2386,7 +2388,7 @@ static GF_BundleDesc *caps_load_bundle(const GF_FilterRegister *freg, u32 b_idx,
 		}
 		if (bundle_cap->nb_vals >= bundle_cap->alloc_vals) {
 			bundle_cap->alloc_vals += 10;
-			bundle_cap->vals = gf_realloc(bundle_cap->vals, bundle_cap->alloc_vals * sizeof(GF_FilterCapability *));
+			bundle_cap->vals = gf_realloc((GF_FilterCapability **)bundle_cap->vals, bundle_cap->alloc_vals * sizeof(GF_FilterCapability *));
 			if (!bundle_cap->vals) {
 				cache_bundle_free(bundle);
 				return NULL;
