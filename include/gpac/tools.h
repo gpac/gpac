@@ -397,7 +397,18 @@ Validate and parse str into integer
 \param ans integer to fill
 \return GF_TRUE if str represents an integer without any leading space nor extra chars
  */
-Bool gf_strict_atoi(const char* str, int* ans);
+Bool gf_strict_atoi(const char* str, s32* ans);
+
+/*!
+\brief strict convert str into unsigned integer
+
+Validate and parse str into integer
+\param str text to convert to integer
+\param ans unsigned integer to fill
+\return GF_TRUE if str represents an unsigned integer without any leading space nor extra chars
+*/
+Bool gf_strict_atoui(const char* str, u32* ans);
+
 
 /*! @} */
 
