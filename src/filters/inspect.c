@@ -553,19 +553,25 @@ static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 {
-    u32 udta_id = GF_4CC(data[0], data[1], data[2], data[3]);
+
+    u32 udta_id = 0;
+	if (sei_size < 4)
+		return 1;
+
+	udta_id = GF_4CC(data[0], data[1], data[2], data[3]);
     u32 udta_code = 0;
 
 	inspect_printf(dump, " udta_id=\"%s\"", gf_4cc_to_str(udta_id));
-	if (udta_id==GF_4CC('G','A','9','4'))
+
+	if (udta_id==GF_4CC('G','A','9','4') && sei_size >= 5)
 		udta_code = data[4];
-	else if (udta_id==GF_4CC('D','T','G','1'))
+	else if (udta_id==GF_4CC('D','T','G','1') && sei_size >= 5)
 		udta_code = data[4];
 
 	if (udta_code)
 		inspect_printf(dump, " udta_code=\"0x%X\"", udta_code);
 
-	if (udta_code == 3) {
+	if (udta_code == 3 && sei_size >= 7) {
 		u32 i;
 		data+=5;
 		inspect_printf(dump, " em_data_flag=\"%d\"\n", (data[0] & 0x80) ? 1 : 0);
@@ -575,8 +581,11 @@ static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 		inspect_printf(dump, " cc_count=\"%d\"\n", cc_count);
 		inspect_printf(dump, " em_data=\"%x\"\n", data[1]);
 		data+=2;
+		sei_size-=7;
 		inspect_printf(dump, " cc_data=\"[");
 		for (i=0; i< cc_count; ++i) {
+			if (sei_size < 3)
+				break;
 			u8 valid = (data[0]>>2) & 0x1;
 			u8 type = data[0] & 0x3;
 			u16 ccdata = (data[1]<<8) | data[2];
@@ -586,6 +595,7 @@ static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 				else
 					inspect_printf(dump, "skip");
 			data+=3;
+			sei_size-=3;
 		}
 		inspect_printf(dump, "]\"");
 	}
@@ -2766,7 +2776,8 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 				break;
 			case M2V_UDTA_START_CODE:
 				start = gf_m4v_get_object_start(m4v);
-				dump_udta_m2v(dump, data + start+4, (u32) (size-start-4));
+				if (size > start+4)
+					dump_udta_m2v(dump, data + start+4, (u32) (size-start-4));
 				break;
 			default:
 				break;
