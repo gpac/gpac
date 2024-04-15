@@ -2622,7 +2622,8 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 {
 	if (!state) return GF_BAD_PARAM;
 	state->has_temporal_delim = 0;
-	Bool first_obu = GF_TRUE;
+	//if some OBUs are written, we had a TL before but had to stop parsing due to not enough space
+	Bool first_obu = state->has_frame_data ? GF_FALSE : GF_TRUE;
 
 	while (1) {
 		GF_Err e;
@@ -2647,6 +2648,9 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 				break;
 			}
 			state->has_temporal_delim = 1;
+			state->has_frame_data = 0;
+		} else {
+			state->has_frame_data = 1;
 		}
 		first_obu = GF_FALSE;
 
@@ -4038,6 +4042,7 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 	l2 = state->frame_state.header_obus;
 	memset(&state->frame_state, 0, sizeof(AV1StateFrame));
 	state->frame_state.is_first_frame = GF_TRUE;
+	state->has_frame_data = 0;
 
 	if (is_destroy) {
 		gf_list_del(l1);
