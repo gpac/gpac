@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1577,7 +1577,7 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 	} else
 #endif
 	{
-		nf->file = gf_fopen_ex(nf->src, NULL, "r", GF_FALSE);
+		nf->file = gf_fopen_ex(nf->src, NULL, "rb", GF_FALSE);
 		if (nf->file) nf->cap_bs = gf_bs_from_file(nf->file, GF_BITSTREAM_READ);
 	}
 	if (!nf->cap_bs) {
@@ -1681,7 +1681,7 @@ static GF_Err gf_netcap_send_pcap(GF_NetcapFilter *nf, GF_Socket *sock, const u8
 
 	gf_net_get_ntp(&sec, &frac);
 	gf_bs_write_u32(nf->cap_bs, sec);
-	gf_bs_write_u32(nf->cap_bs, gf_timestamp_rescale(frac, 0xFFFFFFFF, 1000000));
+	gf_bs_write_u32(nf->cap_bs, (u32) gf_timestamp_rescale(frac, 0xFFFFFFFF, 1000000));
 	gf_bs_write_u32(nf->cap_bs, pck_len);
 	gf_bs_write_u32(nf->cap_bs, pck_len);
 
