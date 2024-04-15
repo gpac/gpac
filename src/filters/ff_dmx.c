@@ -1080,6 +1080,9 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			if ((ctx->demuxer->iformat->flags & AVFMT_SEEK_TO_PTS)
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 				|| ctx->demuxer->iformat->read_seek
+#else
+				|| (ctx->demuxer->iformat->flags & AVFMT_GENERIC_INDEX)
+				|| !(ctx->demuxer->iformat->flags & AVFMT_NOBINSEARCH)
 #endif
 			) {
 				gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
