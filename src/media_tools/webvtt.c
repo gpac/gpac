@@ -70,9 +70,9 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent)
 		if (string) {
 			/* remove trailing spaces; spec. \r, \n; skip if empty */
 			size_t len = strlen(string);
-			char const* last = string + len-1;
-			while (len && isspace(*last--))
-				--len;
+			while (len && isspace(string[len-1])) {
+				len--;
+			}
 
 			if (!len) break;
 			if (parent) {
