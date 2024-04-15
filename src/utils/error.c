@@ -2254,10 +2254,16 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 	return res;
 }
 
-Bool gf_strict_atoi(const char* str, int* ans) {
+Bool gf_strict_atoi(const char* str, s32* ans) {
     char* end_ptr = NULL;
     *ans = strtol(str, &end_ptr, 10);
     return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
+}
+
+Bool gf_strict_atoui(const char* str, u32* ans) {
+	char* end_ptr = NULL;
+	*ans = strtoul(str, &end_ptr, 10);
+	return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
 }
 
 const char* gf_strmemstr(const char *data, u32 data_size, const char *pat)
