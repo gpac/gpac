@@ -1576,9 +1576,9 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 				DUMP_OBU_INT(width);
 				DUMP_OBU_INT(height);
 			}
-			if (obu_type==OBU_FRAME_HEADER)
-				break;
 		}
+		if (obu_type==OBU_FRAME_HEADER)
+			break;
 
 	case OBU_TILE_GROUP:
 		if (av1->frame_state.nb_tiles_in_obu) {
