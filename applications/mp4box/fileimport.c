@@ -653,7 +653,7 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 					frac /= media_rate.den;
 					rate = (rate<<16) | (u16) frac;
 					//adjust media dur if rate > 1
-					if (media_rate.num>media_rate.den) {
+					if (media_rate.num > (s64) media_rate.den) {
 						media_dur = media_dur*media_rate.den / media_rate.num;
 					}
 				}

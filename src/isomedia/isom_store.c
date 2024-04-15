@@ -2732,7 +2732,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			if (mdat->is_imda != 2) continue;
 
 			u64 offset = mdat->bsOffset-12;
-			u32 size = mdat->dataSize+12;
+			u32 size = (u32) mdat->dataSize+12;
 			u64 orig_pos = gf_bs_get_position(movie->movieFileMap->bs);
 			gf_bs_seek(movie->movieFileMap->bs, offset);
 			while (size) {

@@ -1015,7 +1015,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			obj->nb_frags += start_frag - end_frag + 1;
 
 			obj->nb_bytes = 0;
-			for(int i=0; i < obj->nb_frags; i++) {
+			u32 i;
+			for(i=0; i < obj->nb_frags; i++) {
 				obj->nb_bytes += obj->frags[i].size;
 			}
 		}
@@ -1592,7 +1593,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 	}
 
 	gf_free(boundary);
-	payload_size = strlen(payload);
+	payload_size = (u32) strlen(payload);
 	if(payload_size > 1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d Unable to process %d remaining characters in the payload due to data corruption\n",s->service_id, payload_size));
 		return GF_CORRUPTED_DATA;
