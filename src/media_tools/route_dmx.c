@@ -92,7 +92,7 @@ typedef struct
 	u32 prev_start_offset;
 
     char solved_path[GF_MAX_PATH];
-    
+
     GF_Blob blob;
 	void *udta;
 } GF_LCTObject;
@@ -145,7 +145,7 @@ struct __gf_routedmx {
 	u32 reorder_timeout;
 	Bool force_reorder;
     Bool progressive_dispatch;
-    
+
 	u32 slt_version, rrt_version, systime_version, aeat_version;
 	GF_List *services;
 
@@ -678,7 +678,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 			obj->blob.flags = GF_BLOB_IN_TRANSFER;
 			obj->blob.size = (u32) bytes_done;
 		}
-		finfo.blob = &obj->blob;		
+		finfo.blob = &obj->blob;
         finfo.total_size = obj->total_length;
         finfo.tsi = obj->tsi;
         finfo.toi = obj->toi;
@@ -805,7 +805,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				obj->total_length = total_len;
 				if (obj->total_length>obj->alloc_size) {
 					gf_mx_p(routedmx->blob_mx);
-					obj->payload = gf_realloc(obj->payload, obj->total_length);
+					obj->payload = gf_realloc(obj->payload, obj->total_length+1);
 					obj->alloc_size = obj->total_length;
 					obj->blob.size = obj->total_length;
 					obj->blob.data = obj->payload;
@@ -836,7 +836,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->total_length = total_len;
 		if (obj->alloc_size < total_len) {
             gf_mx_p(routedmx->blob_mx);
-            obj->payload = gf_realloc(obj->payload, total_len);
+            obj->payload = gf_realloc(obj->payload, total_len+1);
             obj->alloc_size = total_len;
             obj->blob.size = total_len;
             obj->blob.data = obj->payload;
@@ -875,7 +875,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
         if (obj->alloc_size < total_len) {
             gf_mx_p(routedmx->blob_mx);
-            obj->payload = gf_realloc(obj->payload, total_len);
+            obj->payload = gf_realloc(obj->payload, total_len+1);
             obj->alloc_size = total_len;
             obj->blob.size = total_len;
             obj->blob.data = obj->payload;
@@ -890,7 +890,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
-			obj->payload = gf_realloc(obj->payload, obj->total_length);
+			obj->payload = gf_realloc(obj->payload, obj->total_length+1);
 			obj->alloc_size = obj->total_length;
 			obj->blob.size = obj->total_length;
 			obj->blob.data = obj->payload;
@@ -974,7 +974,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 		if((end_frag == -1) && (start_offset + size < obj->frags[i].offset)) {
 			end_frag = i;
-		} 
+		}
 	}
 	if(start_frag == -1) {
 		start_frag = obj->nb_frags;
@@ -1053,7 +1053,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	obj->prev_start_offset = start_offset;
 	gf_assert(obj->toi == toi);
 	gf_assert(obj->tsi == tsi);
-    
+
     //not a file (uses templates->segment) and can push
     if (do_push && !obj->rlct_file && obj->rlct) {
         gf_route_dmx_push_object(routedmx, s, obj, GF_FALSE, GF_TRUE, GF_FALSE, obj->frags[0].size);
@@ -1466,15 +1466,16 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		if (raw_size > routedmx->unz_buffer_size) routedmx->unz_buffer_size = raw_size;
 		payload = routedmx->unz_buffer;
 		payload_size = raw_size;
+		payload[payload_size] = 0;
 	} else {
 		payload = object->payload;
 		payload_size = object->total_length;
+		payload[payload_size] = 0;
 		// Verifying that the payload is not erroneously treated as plaintext
 		if(!isprint(payload[0])) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d package appears to be compressed but is being treated as plaintext:\n%s\n", s->service_id, payload));
 		}
 	}
-	payload[payload_size] = 0;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got TSI 0 config package:\n%s\n", s->service_id, payload ));
 
@@ -1528,7 +1529,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 				strncpy(szContentLocation, payload+18, copy);
 				szContentLocation[copy]=0;
 			} else {
-				char tmp = payload[i]; 
+				char tmp = payload[i];
 				payload[i] = 0;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unrecognized header entity in package:\n%s\n", s->service_id, payload));
 				payload[i] = tmp;
