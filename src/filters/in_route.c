@@ -278,7 +278,8 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
 static Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
 	Bool drop_if_first = GF_FALSE;
-	GF_Err e;
+	GF_Err e = GF_OK;
+	u32 i, inf, sup;
 
 	if (ctx->repair==ROUTEIN_REPAIR_NO)
 		return GF_FALSE;
@@ -290,13 +291,88 @@ static Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Initiating repair procedure for object (TSI=%u, TOI=%u) using repair URL: %s \n", finfo->tsi, finfo->toi, ctx->repair_url));
 		// create unicast connexion
 		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
-		char *url = gf_url_concatenate(ctx->repair_url, finfo->filename);
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] url = %s \n", url));
+		char * url = gf_url_concatenate(ctx->repair_url, finfo->filename);
 
-		GF_DownloadSession *dsess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_NOT_CACHED, 0, NULL, &e);
-		
-		
-		
+		GF_DownloadSession *dsess = NULL;
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] List of all gaps in segment (TSI=%u, TOI=%u): ", finfo->tsi, finfo->toi));
+		for(i=0; i <= finfo->nb_frags; i++) {
+			inf = (i==0)? 0: finfo->frags[i-1].offset + finfo->frags[i-1].size;
+			sup = (i == finfo->nb_frags)? finfo->total_size : finfo->frags[i].offset;
+
+			if(inf < sup) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%u, %u] ", inf, sup-1));
+			}
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("\n"));
+
+
+		for(i=0; i <= finfo->nb_frags; i++) {
+			//"inf" and "sup" represent the lower and upper bounds of the gaps intervals within the segment
+			inf = (i==0)? 0: finfo->frags[i-1].offset + finfo->frags[i-1].size;
+			sup = (i == finfo->nb_frags)? finfo->total_size : finfo->frags[i].offset;
+
+			if(sup > inf) {
+				u32 nb_loss = sup - inf;
+				e = GF_OK;
+				u32 pos = inf;
+				
+				if (!dsess) {
+					dsess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_NOT_CACHED | GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT, NULL, NULL, &e);
+					gf_dm_sess_set_netcap_id(dsess, "__ignore");
+				} else {
+					e = gf_dm_sess_setup_from_url(dsess, url, GF_FALSE);
+				}
+
+				gf_dm_sess_set_range(dsess, inf, sup-1, GF_TRUE);
+				while (nb_loss) {
+					u8 data[1000];
+					u32 nb_read=0;
+					e = gf_dm_sess_fetch_data(dsess, data, 1000, &nb_read);
+					if (e==GF_IP_NETWORK_EMPTY) continue;
+					if (e<0) break;
+
+					nb_loss -= nb_read;
+					memcpy(finfo->blob->data + pos, data, nb_read);
+					pos += nb_read;
+					if (e) break;
+				}
+
+				if (nb_loss) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Error %s while repairing object (TSI=%u, TOI=%u): gap [%u, %u] is not completely repaired \n", gf_error_to_string(e), finfo->tsi, finfo->toi, inf, sup-1));
+					if(i == 0) {
+						/* Could be problematic if allocated memory is not sufficient */
+						memmove(&finfo->frags[1], &finfo->frags[0], sizeof(GF_LCTFragInfo) * (finfo->nb_frags));
+						finfo->frags[0].offset = 0;
+						finfo->frags[0].size = sup - inf - nb_loss;
+						finfo->nb_frags++;
+						i++;
+					} else {
+						finfo->frags[i-1].size += sup - inf - nb_loss;
+					}
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Object (TSI=%u, TOI=%u): gap [%u, %u] successfully repaired\n", finfo->tsi, finfo->toi, inf, sup-1));
+					if(i == 0) {
+						finfo->frags[0].offset = 0;
+						finfo->frags[0].size += sup;
+					} else {
+						finfo->frags[i-1].size += (sup - inf);
+						if(i < finfo->nb_frags) { 
+							finfo->frags[i-1].size += finfo->frags[i].size;
+							memmove(&finfo->frags[i], &finfo->frags[i+1], sizeof(GF_LCTFragInfo) * (finfo->nb_frags - i - 1));
+							finfo->nb_frags--;
+							i--;
+						}
+					}
+				}
+			}
+		}
+
+
+		gf_free(url);
+		//store session at filter context level
+		//gf_dm_sess_del(dsess);
+
 	} else {
 		if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
 			drop_if_first = routein_repair_segment_ts(ctx, finfo);
