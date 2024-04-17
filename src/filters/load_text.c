@@ -2567,7 +2567,7 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	}
 	if (e==GF_EOS) {
 		if (ctx->swf_parse->finalize) {
-			ctx->swf_parse->finalize(ctx->swf_parse);
+			ctx->swf_parse->finalize(ctx->swf_parse, GF_FALSE);
 			ctx->swf_parse->finalize = NULL;
 		}
 	}
