@@ -331,7 +331,8 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 	Bool ret = GF_FALSE;
 
 	gf_sc_ar_send_or_reconfig(compositor->audio_renderer);
-
+	if (!compositor->vout) return GF_FALSE;
+	
 	//frame still pending
 	if (compositor->frame_ifce.user_data)
 		return GF_TRUE;
