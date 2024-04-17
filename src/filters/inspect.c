@@ -3259,6 +3259,10 @@ props_done:
 				inspect_printf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
 				break;
 			}
+			if (!obu_size) {
+				inspect_printf(dump, "   <!-- OBU is corrupted: size 0 -->\n", (u32) obu_size, size);
+				break;
+			}
 			data += obu_size;
 			size -= (u32)obu_size;
 			idx++;
