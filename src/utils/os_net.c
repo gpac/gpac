@@ -468,7 +468,7 @@ u32 gf_net_has_ipv6()
 GF_EXPORT
 Bool gf_net_is_ipv6(const char *address)
 {
-	u32 i, nb_seps=0, nb_dseps=0, nb_dig=0, count = (u32) strlen(address);
+	u32 i, nb_seps=0, nb_dseps=0, nb_dig=0, count = address ? (u32) strlen(address) : 0;
 	for (i=0;i<count; i++) {
 		if (address[i]==':') {
 			nb_seps++;
@@ -988,7 +988,7 @@ static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
 	}
 }
 
-static GF_Err pcapng_load_shb(GF_NetcapFilter *nf)
+static GF_Err pcapng_load_shb(GF_NetcapFilter *nf, Bool is_init)
 {
 	u32 blen = gf_bs_read_u32(nf->cap_bs);
 	u32 le_magic = gf_bs_read_u32(nf->cap_bs);
@@ -997,7 +997,10 @@ static GF_Err pcapng_load_shb(GF_NetcapFilter *nf)
 		nf->pcap_le = GF_TRUE;
 		blen = ntohl(blen);
 	} else {
-		gf_net_close_capture();
+		if (is_init)
+			gf_net_close_capture();
+		else
+			nf->is_eos = GF_TRUE;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrrupted pacpng file\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -1059,7 +1062,7 @@ refetch_pcap:
 
 		u32 btype = nf->pcap_le ? gf_bs_read_u32_le(nf->cap_bs) : gf_bs_read_u32(nf->cap_bs);
 		if (btype==GF_4CC(0x0A, 0x0D, 0x0D, 0x0A)) {
-			GF_Err e = pcapng_load_shb(nf);
+			GF_Err e = pcapng_load_shb(nf, GF_FALSE);
 			//if failure, nf is destroyed by gf_net_close_capture
 			if (e) {
 				return;
@@ -1095,6 +1098,11 @@ refetch_pcap:
 		frac = gf_bs_read_u32(nf->cap_bs);
 		clen = gf_bs_read_u32(nf->cap_bs);
 		/*olen = */gf_bs_read_u32(nf->cap_bs);
+	}
+	if (clen<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));
+		nf->is_eos = GF_TRUE;
+		return;
 	}
 
 	if (nf->cap_mode==NETCAP_PCAPNG) {
@@ -1166,6 +1174,9 @@ refetch_pcap:
 			default:
 				SKIP_PCAP_PCK
 			}
+			if (gf_bs_is_overflow(nf->cap_bs)) {
+				break;
+			}
 		}
 	} else {
 		gf_bs_skip_bytes(nf->cap_bs, 9);
@@ -1199,7 +1210,7 @@ refetch_pcap:
 		SKIP_PCAP_PCK
 	}
 
-	if (clen<0) {
+	if ((clen<0)|| gf_bs_is_overflow(nf->cap_bs)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));
 		nf->is_eos = GF_TRUE;
 		return;
@@ -1647,7 +1658,7 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 	}
 	//pcapng
 	else if (nf->cap_mode==NETCAP_PCAPNG) {
-		GF_Err e = pcapng_load_shb(nf);
+		GF_Err e = pcapng_load_shb(nf, GF_TRUE);
 		if (e) return e;
 
 		u32 btype = nf->pcap_le ? gf_bs_read_u32_le(nf->cap_bs) : gf_bs_read_u32(nf->cap_bs);
