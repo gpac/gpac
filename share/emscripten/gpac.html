@@ -483,7 +483,10 @@
       let fs_steps = 20;
       let FS = null;
       
-      const STATIC_SRC = `${window.location.origin}/data`;
+      let STATIC_SRC;
+      if (window.location.origin.indexOf('.gpac.io')>0) STATIC_SRC = `${window.location.origin}/data`;
+      else if (window.location.origin.startsWith('http://')) STATIC_SRC = 'http://wasm.gpac.io/data';
+      else STATIC_SRC = 'https://wasm.gpac.io/data';
 
       const examples = [
         {
@@ -527,14 +530,6 @@
         let item = examples[idx];
         setCommand(item.cmd.trim());
       };
-
-      async function toggle_threading() {
-        if (LIBGPAC.has_threads()){
-          
-        }
-        // if GPAC is running, abort
-        // unload current GPAC
-      }
 
       function setCommand(value) {
         cmdElement.value = value == '' ? null : value;
@@ -2373,6 +2368,23 @@
         }
       }
 
+      function check_threading() {
+        const threaded = LIBGPAC.has_threads;
+        const threadedOnly = [...document.getElementsByClassName('threaded')];
+        threadedOnly.forEach(el => el.hidden = !threaded);
+        const thStatus = document.getElementById('threading_status');
+
+        threadingElement.checked = threaded;
+        if (window.location.href.indexOf('.gpac.io')<0) {
+          threadingElement.disabled = true;
+        } else {
+          threadingElement.onchange = () => {
+            const hostname = threaded ? 'wasm.gpac.io' : 'wasmth.gpac.io';
+            window.location.href = `https://${hostname}/`;
+            console.log('Reloading to ' + window.location.href);
+          }
+        }
+      }
       const LIBGPAC = {
         preRun: [
           // function() { LIBGPAC.ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "#canvas"; }
@@ -2481,6 +2493,7 @@
               load_history();
             }
           });
+          check_threading();
 
           onGpacReady();
         },
@@ -2548,17 +2561,6 @@
       window.addEventListener('load', function() {
         libgpac(LIBGPAC);
 
-      });
-      document.addEventListener('readystatechange', function() {
-        const threaded = window.location.hostname == 'wasmth.gpac.io';
-        const threadedOnly = [...document.getElementsByClassName('threaded')];
-        threadedOnly.forEach(el => el.hidden = !threaded);
-        threadingElement.checked = threaded;
-        threadingElement.onchange = () => {
-          const hostname = threaded ? 'wasm.gpac.io' : 'wasmth.gpac.io'; 
-          window.location.href = `https://${hostname}/`; 
-          console.log(hostname);
-        }
       });
     </script>
 
