@@ -833,6 +833,9 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 static void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+Bool gpac_log_console = GF_FALSE;
+#endif
 
 GF_EXPORT
 Bool gf_log_use_color()
@@ -843,12 +846,26 @@ Bool gf_log_use_color()
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	if (gpac_log_console && (call_tool!=GF_LOG_APP)) {
+		EM_ASM({
+			libgpac.in_logs = true;
+		});
+	}
+#endif
 	va_list vl;
 	va_start(vl, fmt);
 	gf_mx_p(logs_mx);
 	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
 	gf_mx_v(logs_mx);
 	va_end(vl);
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	if (gpac_log_console && (call_tool!=GF_LOG_APP)) {
+		EM_ASM({
+			libgpac.in_logs = false;
+		});
+	}
+#endif
 	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);
 	}
