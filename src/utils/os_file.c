@@ -1797,6 +1797,8 @@ int gf_fflush(FILE *stream)
 GF_EXPORT
 int gf_feof(FILE *stream)
 {
+	if (!stream) return 1;
+
 	if (gf_fileio_check(stream)) {
 		return gf_fileio_eof((GF_FileIO *)stream) ? 1 : 0;
 	}
