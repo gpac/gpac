@@ -7715,7 +7715,6 @@ EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb
       libgpac._fetcher_set_header(fetcher.sess, 0, 0);
 	} else {
 	  libgpac._fetcher_set_reply(fetcher.sess, response.status, null);
-	  do_log_err('fetcher for ' + url + ' failed ' + response.status);
 	  fetcher._state = 3;
 	}
   })

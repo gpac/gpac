@@ -900,6 +900,9 @@ Bool gf_sys_is_cov_mode()
 const char *gpac_log_file_name=NULL;
 #ifndef GPAC_DISABLE_LOG
 extern Bool gpac_log_dual;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+extern Bool gpac_log_console;
+#endif
 #endif
 
 GF_EXPORT
@@ -908,6 +911,14 @@ void gf_log_reset_file()
 #ifndef GPAC_DISABLE_LOG
 	if (gpac_log_file_name) {
 		if (gpac_log_file) gf_fclose(gpac_log_file);
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		gpac_log_console = GF_FALSE;
+		if (gpac_log_file_name && !strcmp(gpac_log_file_name, "console")) {
+			gpac_log_file = NULL;
+			gpac_log_console = GF_TRUE;
+			return;
+		}
+#endif
 		gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
 	}
 #endif
@@ -1051,9 +1062,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 
 
 #ifndef GPAC_DISABLE_LOG
-		if (gpac_log_file_name) {
-			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
-		}
+		gf_log_reset_file();
 #endif
 		if (gf_opts_get_bool("core", "rmt"))
 			gf_sys_enable_remotery(GF_TRUE, GF_FALSE);

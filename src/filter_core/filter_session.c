@@ -1602,7 +1602,11 @@ Bool em_check_yield_th_proc(u32 thid, GF_SessionThread *sess_thread, u64 enter_t
 }
 #endif
 
+#ifndef GPAC_DISABLE_THREADS
 const char *gf_th_log_name(GF_Thread *t);
+#else
+#define gf_th_log_name(_t) "Main Process"
+#endif
 
 static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 {
