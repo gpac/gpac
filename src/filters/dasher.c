@@ -1068,6 +1068,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_filter_pid_set_name(opid, "manifest_mpd" );
 				manifest_type = 1;
 			}
+			if (!gf_sys_is_test_mode() && (ctx->dmode>=GF_DASH_DYNAMIC))
+				manifest_type |= 0x80000000;
+
 			gf_filter_pid_set_property(opid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
 		}
 
@@ -1320,6 +1323,11 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_LHVC:
 				if (!ctx->bs_switch)
 					period_switch = GF_TRUE;
+				break;
+			//ignore reconfig for these subtitle formats
+			case GF_CODECID_SIMPLE_TEXT:
+			case GF_CODECID_WEBVTT:
+			case GF_CODECID_SUBS_XML:
 				break;
 			default:
 				period_switch = GF_TRUE;
@@ -7149,6 +7157,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	//good to go !
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (ctx->force_period_switch) return GF_OK;
+
 		if (inject_ds && (ds != inject_ds))
 			continue;
 		//setup segmentation

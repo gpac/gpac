@@ -582,8 +582,14 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				ctx->frame->sample_aspect_ratio.num = ipid->sar.num;
 				ctx->frame->sample_aspect_ratio.den = ipid->sar.den;
 			} else {
+#ifdef FFMPEG_OLD_CHLAYOUT
 				ctx->frame->channel_layout = ipid->ch_layout;
 				ctx->frame->channels = ipid->nb_ch;
+#else
+				ctx->frame->ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
+				ctx->frame->ch_layout.nb_channels = ipid->nb_ch;
+				ctx->frame->ch_layout.u.mask = ipid->ch_layout;
+#endif
 				ctx->frame->sample_rate = ipid->sr;
 				ctx->frame->format = ipid->pfmt;
 				ctx->frame->nb_samples = data_size / ipid->nb_ch / ipid->bps;
@@ -728,24 +734,36 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			GF_FilterPacket *pck;
 			Bool update_props=GF_TRUE;
 			if (frame->sample_rate!=opid->sr) {}
+#ifdef FFMPEG_OLD_CHLAYOUT
 			else if (frame->channel_layout!=opid->ch_layout) {}
 			else if (frame->channels != opid->nb_ch) {}
+#else
+			else if (frame->ch_layout.u.mask!=opid->ch_layout) {}
+			else if (frame->ch_layout.nb_channels != opid->nb_ch) {}
+#endif
 			else if (frame->format != opid->pfmt) {}
 			else {
 				update_props = GF_FALSE;
 			}
 			if (update_props) {
-				u64 gpac_ch_layout = ffmpeg_channel_layout_to_gpac(frame->channel_layout);
+#ifdef FFMPEG_OLD_CHLAYOUT
+				u32 nb_ch = frame->channels;
+				u64 ff_ch_layout = frame->channel_layout;
+#else
+				u32 nb_ch = frame->ch_layout.nb_channels;
+				u64 ff_ch_layout = (frame->ch_layout.order>=AV_CHANNEL_ORDER_CUSTOM) ? 0 : frame->ch_layout.u.mask;
+#endif
+				u64 gpac_ch_layout = ffmpeg_channel_layout_to_gpac(ff_ch_layout);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(frame->sample_rate));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(gpac_ch_layout));
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(frame->channels));
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 				opid->gf_pfmt = ffmpeg_audio_fmt_to_gpac(frame->format);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(opid->gf_pfmt));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(opid->io_filter_ctx->inputs[0]->time_base.den) );
 
 				opid->sr = frame->sample_rate;
-				opid->ch_layout = frame->channel_layout;
-				opid->nb_ch = frame->channels;
+				opid->ch_layout = ff_ch_layout;
+				opid->nb_ch = nb_ch;
 				opid->pfmt = frame->format;
 				opid->tb_num = opid->io_filter_ctx->inputs[0]->time_base.num;
 				opid->bps = gf_audio_fmt_bit_depth(opid->gf_pfmt) / 8;
@@ -890,8 +908,15 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 		if (!p) return GF_OK; //not ready yet
 		nb_ch = p->value.uint;
-		if (!ch_layout) ch_layout = av_get_default_channel_layout(p->value.uint);
-
+		if (!ch_layout) {
+#ifdef FFMPEG_OLD_CHLAYOUT
+			ch_layout = av_get_default_channel_layout(p->value.uint);
+#else
+			AVChannelLayout ff_ch_layout;
+			av_channel_layout_default(&ff_ch_layout, p->value.uint);
+			ch_layout = ff_ch_layout.u.mask;
+#endif
+		}
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (!p) return GF_OK; //not ready yet
 		sr = p->value.uint;

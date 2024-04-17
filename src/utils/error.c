@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -218,6 +218,20 @@ static struct log_tool_info {
 #define GF_LOG_TOOL_MAX_NAME_SIZE (GF_LOG_TOOL_MAX*10)
 
 #endif
+
+u32 gf_log_parse_tool(const char *logs)
+{
+#ifndef GPAC_DISABLE_LOG
+	u32 i;
+	for (i=0; i<GF_LOG_TOOL_MAX; i++) {
+		if (!strcmp(global_log_tools[i].name, logs))
+			return global_log_tools[i].type;
+	}
+	if (!strcmp(logs, "all"))
+		return GF_LOG_ALL;
+#endif
+	return GF_LOG_TOOL_UNDEFINED;
+}
 
 GF_EXPORT
 GF_Err gf_log_modify_tools_levels(const char *val_)
@@ -630,9 +644,71 @@ win32_ismtty:
 u32 call_lev = 0;
 u32 call_tool = 0;
 
+extern GF_Mutex *logs_mx;
+
+#include <gpac/list.h>
+GF_List *logs_extras = NULL;
+
+GF_EXPORT
+void gf_log_push_extra(const GF_LogExtra *log)
+{
+	if (!log) return;
+	gf_mx_p(logs_mx);
+	if (!logs_extras) logs_extras = gf_list_new();
+	if (gf_list_find(logs_extras, (void*)log)<0) {
+		gf_list_add(logs_extras, (void*)log);
+	}
+	gf_mx_v(logs_mx);
+}
+GF_EXPORT
+void gf_log_pop_extra(const GF_LogExtra *log)
+{
+	if (!log) return;
+	gf_mx_p(logs_mx);
+	gf_list_del_item(logs_extras, (void*)log);
+	gf_mx_v(logs_mx);
+}
+
+GF_EXPORT
+void gf_log_reset_extras()
+{
+	gf_mx_p(logs_mx);
+	gf_list_del(logs_extras);
+	logs_extras=NULL;
+	gf_mx_v(logs_mx);
+}
+
 GF_EXPORT
 Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
+	if (logs_extras) {
+		gf_mx_p(logs_mx);
+		u32 i, count = gf_list_count(logs_extras);
+		for (i=0;i<count;i++) {
+			GF_LogExtra *lf = gf_list_get(logs_extras, i);
+			u32 j;
+			for (j=0; j<lf->nb_tools; j++) {
+				if (lf->tools[j]==GF_LOG_ALL) {}
+				else if (lf->tools[j]==GF_LOG_TOOL_UNDEFINED) {
+					lf->tools[j] = log_tool;
+				}
+				else if (log_tool!=lf->tools[j])
+					continue;
+
+				if (lf->levels[j] >= log_level) {
+					gf_mx_v(logs_mx);
+					if (lf->strict && (log_level==GF_LOG_ERROR) && (log_tool != GF_LOG_MEMORY))
+						gf_log_set_strict_error(GF_TRUE);
+					return GF_TRUE;
+				}
+				if (lf->levels[j] == GF_LOG_QUIET) {
+					gf_mx_v(logs_mx);
+					return GF_FALSE;
+				}
+			}
+		}
+		gf_mx_v(logs_mx);
+	}
 	if (log_tool==GF_LOG_TOOL_MAX) return GF_TRUE;
 	if (log_tool>GF_LOG_TOOL_MAX) return GF_FALSE;
 	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
@@ -757,7 +833,9 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 static void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
-extern GF_Mutex *logs_mx;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+Bool gpac_log_console = GF_FALSE;
+#endif
 
 GF_EXPORT
 Bool gf_log_use_color()
@@ -768,12 +846,26 @@ Bool gf_log_use_color()
 GF_EXPORT
 void gf_log(const char *fmt, ...)
 {
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	if (gpac_log_console && (call_tool!=GF_LOG_APP)) {
+		EM_ASM({
+			libgpac.in_logs = true;
+		});
+	}
+#endif
 	va_list vl;
 	va_start(vl, fmt);
 	gf_mx_p(logs_mx);
 	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
 	gf_mx_v(logs_mx);
 	va_end(vl);
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	if (gpac_log_console && (call_tool!=GF_LOG_APP)) {
+		EM_ASM({
+			libgpac.in_logs = false;
+		});
+	}
+#endif
 	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);
 	}
@@ -876,6 +968,15 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
 	return GF_FALSE;
 }
+
+GF_EXPORT
+void gf_log_push_extra(const GF_LogExtra *log){}
+
+GF_EXPORT
+void gf_log_pop_extra(const GF_LogExtra *log){}
+
+GF_EXPORT
+void gf_log_reset_extras(){}
 
 #endif
 
@@ -2170,10 +2271,16 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 	return res;
 }
 
-Bool gf_strict_atoi(const char* str, int* ans) {
+Bool gf_strict_atoi(const char* str, s32* ans) {
     char* end_ptr = NULL;
     *ans = strtol(str, &end_ptr, 10);
     return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
+}
+
+Bool gf_strict_atoui(const char* str, u32* ans) {
+	char* end_ptr = NULL;
+	*ans = strtoul(str, &end_ptr, 10);
+	return !isspace(*str) && end_ptr != str && *end_ptr == '\0';
 }
 
 const char* gf_strmemstr(const char *data, u32 data_size, const char *pat)

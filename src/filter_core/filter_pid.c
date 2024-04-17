@@ -768,7 +768,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 {
 	u32 i, count;
 	GF_Err e;
-	Bool refire_events=GF_FALSE;
+	Bool is_pid_swap = GF_FALSE;
+	Bool refire_events = GF_FALSE;
 	Bool new_pid_inst=GF_FALSE;
 	Bool remove_filter=GF_FALSE;
 	GF_FilterPidInst *pidinst=NULL;
@@ -878,6 +879,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	if (filter->swap_pending) {
 		gf_filter_pid_inst_swap(filter, pidinst);
 		filter->swap_pending = GF_FALSE;
+		is_pid_swap = GF_TRUE;
 	}
 
 	filter->in_connect_err = GF_EOS;
@@ -1207,6 +1209,13 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		}
 		if (remove_filter && !filter->sticky)
 			gf_filter_post_remove(filter);
+		//we injected a filter to adapt on an already playing PID, move pid instance to playing
+		if (filter->is_pid_adaptation_filter && pid->is_playing)
+			pidinst->is_playing = GF_TRUE;
+
+		//new pid instance creating a fanout on an already playing pid: force discarding input packets until we have a PLAY
+		if (!is_pid_swap && new_pid_inst && !filter->is_pid_adaptation_filter && pid->is_playing && pid->nb_pck_sent && (pid->num_destinations>1))
+			pidinst->discard_inputs = GF_TRUE;
 	}
 	//once all pid have been (re)connected, update any internal caps
 	gf_filter_pid_update_caps(pid);
@@ -2302,7 +2311,7 @@ static void cache_bundle_free(GF_BundleDesc *b)
 		u32 i;
 		for (i=0; i<b->alloc_caps;i++) {
 			GF_CapBundleDesc *cap = &b->caps[i];
-			if (cap->vals) gf_free(cap->vals);
+			if (cap->vals) gf_free((GF_FilterCapability **)cap->vals);
 		}
 		if (b->caps) gf_free(b->caps);
 	}
@@ -2379,7 +2388,7 @@ static GF_BundleDesc *caps_load_bundle(const GF_FilterRegister *freg, u32 b_idx,
 		}
 		if (bundle_cap->nb_vals >= bundle_cap->alloc_vals) {
 			bundle_cap->alloc_vals += 10;
-			bundle_cap->vals = gf_realloc(bundle_cap->vals, bundle_cap->alloc_vals * sizeof(GF_FilterCapability *));
+			bundle_cap->vals = gf_realloc((GF_FilterCapability **)bundle_cap->vals, bundle_cap->alloc_vals * sizeof(GF_FilterCapability *));
 			if (!bundle_cap->vals) {
 				cache_bundle_free(bundle);
 				return NULL;
@@ -3062,13 +3071,13 @@ void gf_filter_sess_reset_graph(GF_FilterSession *fsess, const GF_FilterRegister
 }
 
 #ifndef GPAC_DISABLE_LOG
-void dump_dijstra_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkstra_nodes)
+void dump_graph_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkstra_nodes)
 {
 	u32 i, count;
 	if (! gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG))
 		return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dijstra edges %s edge solving\n", is_before ? "before" : "after"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Graph edges %s solving\n", is_before ? "before" : "after"));
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s sources: ", reg_dst->freg->name));
 	for (i=0; i<reg_dst->nb_edges; i++) {
@@ -3261,7 +3270,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 #ifndef GPAC_DISABLE_LOG
 	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
-		dump_dijstra_edges(GF_TRUE, reg_dst, dijkstra_nodes);
+		dump_graph_edges(GF_TRUE, reg_dst, dijkstra_nodes);
 	}
 #endif
 
@@ -3314,7 +3323,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 
 #ifndef GPAC_DISABLE_LOG
 	if (fsess->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
-		dump_dijstra_edges(GF_FALSE, reg_dst, dijkstra_nodes);
+		dump_graph_edges(GF_FALSE, reg_dst, dijkstra_nodes);
 	}
 #endif
 
@@ -4558,6 +4567,11 @@ single_retry:
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed || filter_dst->disabled || filter_dst->marked_for_removal || filter_dst->no_inputs) continue;
 		if (filter_dst->target_filter == pid->filter) continue;
+		//PID requires a sourceID on target filter and none is set, ignore
+		if (pid->require_source_id && !filter_dst->source_ids) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s requires source ID, not set for filter %s\n", pid->name, filter_dst->name));
+			continue;
+		}
 
 		//handle re-entrant filter registries (eg filter foo of type A output usually cannot connect to filter bar of type A)
 		if (pid->pid->filter->freg == filter_dst->freg) {
@@ -4900,11 +4914,14 @@ single_retry:
 					use_explicit_link = GF_TRUE;
 			}
 			//if no source ID on the dst filter, this means the dst filter accepts any possible connections from out filter
+
+#if 0	//this is now checked above regardless of whether a filterID is set
 			//unless prevented for this pid
 			else if (pid->require_source_id) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s requires source ID, not set for filter %s\n", pid->name, filter_dst->name));
 				continue;
 			}
+#endif
 		}
 		//no filterID and dst expects only specific filters, continue
 		else if (filter_dst->source_ids && !ignore_source_ids) {
@@ -5031,12 +5048,18 @@ single_retry:
 			cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1);
 		}
 
-		//implicit mode with a possible link found and this destination is a sink or an explicit filter, do not match caps in first pass
+		//implicit mode with a possible link found and this destination is:
+		//- a sink
+		//- or an explicit filter
+		//- or a filter not allowing reuse in linker when dynamically loaded
+		//then do not match caps in first pass
 		//otherwise we could link directly to destination (due to caps mismatch) while a valid path could be found to a previously
 		//specified filter
 		//see testsuite restamp-fps
-		if (!num_pass && possible_link_found_implicit_mode && (is_sink || !filter_dst->dynamic_filter))
+		if (!num_pass && possible_link_found_implicit_mode
+			&& (is_sink || !filter_dst->dynamic_filter || !(filter_dst->freg->flags & GF_FS_REG_DYNAMIC_REUSE)) ) {
 			cap_matched = GF_FALSE;
+		}
 
 		if (!cap_matched) {
 			Bool skipped = GF_FALSE;
@@ -7696,6 +7719,12 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 		pid = evt->base.on_pid;
 		if (!pid) return;
 	}
+	if ((pid->filter->session->flags & GF_FS_FLAG_PREVENT_PLAY) && (evt->base.type==GF_FEVT_PLAY)) {
+		//only for sinks
+		if (!pid->filter->has_out_caps)
+			return;
+	}
+
 	//filter is being shut down, prevent any event posting
 	if (pid->filter->finalized) return;
 

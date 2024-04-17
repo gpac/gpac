@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -852,16 +852,46 @@ static GF_Err gf_netcap_record(GF_NetcapFilter *nf)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Failed to setup net capture\n"));
 		return GF_IO_ERR;
 	}
-	nf->cap_mode = NETCAP_GPAC;
-	gf_bs_write_u32(nf->cap_bs, GF_GPC_MAGIC);
-	nf->init_time = gf_sys_clock_high_res();
-	u32 sec, frac;
-	gf_net_get_ntp(&sec, &frac);
-	//NTP start time of capture
-	gf_bs_write_u32(nf->cap_bs, sec);
-	gf_bs_write_u32(nf->cap_bs, frac);
-	//header extension size
-	gf_bs_write_u32(nf->cap_bs, 0);
+	char *ext = gf_file_ext_start(nf->dst);
+	if (ext && !strcmp(ext, ".pcap")) {
+		nf->cap_mode = NETCAP_PCAP;
+		gf_bs_write_u32(nf->cap_bs, 0xA1B2C3D4);
+		gf_bs_write_u16(nf->cap_bs, 2);
+		gf_bs_write_u16(nf->cap_bs, 4);
+		gf_bs_write_u32(nf->cap_bs, 0);
+		gf_bs_write_u32(nf->cap_bs, 0);
+		gf_bs_write_u32(nf->cap_bs, 0xFFFF); //snapLen
+		gf_bs_write_u16(nf->cap_bs, 0); //FCS+f+reserved
+		gf_bs_write_u16(nf->cap_bs, 0); //linktype
+	} else if (ext && !strcmp(ext, ".pcapng")) {
+		nf->cap_mode = NETCAP_PCAPNG;
+		//SHB
+		gf_bs_write_u32(nf->cap_bs, 0x0a0d0d0a);
+		gf_bs_write_u32(nf->cap_bs, 12+16);
+		gf_bs_write_u32(nf->cap_bs, 0x1A2B3C4D);
+		gf_bs_write_u16(nf->cap_bs, 1);
+		gf_bs_write_u16(nf->cap_bs, 0);
+		gf_bs_write_u64(nf->cap_bs, 0);
+		gf_bs_write_u32(nf->cap_bs, 12+16);
+		//IDB
+		gf_bs_write_u32(nf->cap_bs, 1);
+		gf_bs_write_u32(nf->cap_bs, 12+8);
+		gf_bs_write_u16(nf->cap_bs, 0); //linktype
+		gf_bs_write_u16(nf->cap_bs, 0); //reserved
+		gf_bs_write_u32(nf->cap_bs, 0); //snapLen
+		gf_bs_write_u32(nf->cap_bs, 12+8);
+	} else {
+		nf->cap_mode = NETCAP_GPAC;
+		gf_bs_write_u32(nf->cap_bs, GF_GPC_MAGIC);
+		nf->init_time = gf_sys_clock_high_res();
+		u32 sec, frac;
+		gf_net_get_ntp(&sec, &frac);
+		//NTP start time of capture
+		gf_bs_write_u32(nf->cap_bs, sec);
+		gf_bs_write_u32(nf->cap_bs, frac);
+		//header extension size
+		gf_bs_write_u32(nf->cap_bs, 0);
+	}
 	return GF_OK;
 }
 
@@ -1084,6 +1114,7 @@ refetch_pcap:
 		goto refetch_pcap;
 	}
 
+	u8 protocol_type=0;
 	if (ip_v6) {
 		gf_bs_skip_bytes(nf->cap_bs, 4);
 		/*pay_len = */gf_bs_read_u16(nf->cap_bs);
@@ -1113,6 +1144,7 @@ refetch_pcap:
 				break;
 			case 6:
 			case 17:
+				protocol_type=next_hdr;
 				has_hdr=0;
 				break;
 			default:
@@ -1121,35 +1153,36 @@ refetch_pcap:
 		}
 	} else {
 		gf_bs_skip_bytes(nf->cap_bs, 9);
-		u8 ptype = gf_bs_read_u8(nf->cap_bs);
+		protocol_type = gf_bs_read_u8(nf->cap_bs);
 		gf_bs_skip_bytes(nf->cap_bs, 2);
 		nf->src_v4 = gf_bs_read_u32_le(nf->cap_bs);
 		nf->dst_v4 = gf_bs_read_u32_le(nf->cap_bs);
 		clen-=20;
-		//UDP
-		if (ptype==17) {
-			nf->src_port = gf_bs_read_u16(nf->cap_bs);
-			nf->dst_port = gf_bs_read_u16(nf->cap_bs);
-			gf_bs_skip_bytes(nf->cap_bs, 4);
-			clen-=8;
-		}
-		//TCP
-		else if (ptype==6) {
-			nf->src_port = gf_bs_read_u16(nf->cap_bs);
-			nf->dst_port = gf_bs_read_u16(nf->cap_bs);
-			/*sn = */gf_bs_read_u32(nf->cap_bs);
-			/*ack = */gf_bs_read_u32(nf->cap_bs);
-			u32 data_offset = gf_bs_read_int(nf->cap_bs, 4);
-			gf_bs_read_int(nf->cap_bs, 4);
-			gf_bs_skip_bytes(nf->cap_bs, 7);
-			if (data_offset>5)
-				gf_bs_skip_bytes(nf->cap_bs, (data_offset-5)*4);
-			clen -= data_offset*4;
-		} else {
-			//no support
-			SKIP_PCAP_PCK
-		}
 	}
+	//UDP
+	if (protocol_type==17) {
+		nf->src_port = gf_bs_read_u16(nf->cap_bs);
+		nf->dst_port = gf_bs_read_u16(nf->cap_bs);
+		gf_bs_skip_bytes(nf->cap_bs, 4);
+		clen-=8;
+	}
+	//TCP
+	else if (protocol_type==6) {
+		nf->src_port = gf_bs_read_u16(nf->cap_bs);
+		nf->dst_port = gf_bs_read_u16(nf->cap_bs);
+		/*sn = */gf_bs_read_u32(nf->cap_bs);
+		/*ack = */gf_bs_read_u32(nf->cap_bs);
+		u32 data_offset = gf_bs_read_int(nf->cap_bs, 4);
+		gf_bs_read_int(nf->cap_bs, 4);
+		gf_bs_skip_bytes(nf->cap_bs, 7);
+		if (data_offset>5)
+			gf_bs_skip_bytes(nf->cap_bs, (data_offset-5)*4);
+		clen -= data_offset*4;
+	} else {
+		//no support
+		SKIP_PCAP_PCK
+	}
+
 	if (clen<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));
 		nf->is_eos = GF_TRUE;
@@ -1544,7 +1577,7 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 	} else
 #endif
 	{
-		nf->file = gf_fopen_ex(nf->src, NULL, "r", GF_FALSE);
+		nf->file = gf_fopen_ex(nf->src, NULL, "rb", GF_FALSE);
 		if (nf->file) nf->cap_bs = gf_bs_from_file(nf->file, GF_BITSTREAM_READ);
 	}
 	if (!nf->cap_bs) {
@@ -1612,9 +1645,114 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 	return GF_OK;
 }
 
-static GF_Err gf_netcap_send(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written)
+static GF_Err gf_netcap_send_pcap(GF_NetcapFilter *nf, GF_Socket *sock, const u8 *buffer, u32 length, u32 *written, Bool is_ng)
 {
-	GF_NetcapFilter *nf = sock->cap_info->nf;
+	u32 sec, frac, pck_len, ng_size=0, ng_trail=0;
+	if (!sock->cap_info->host_port) return GF_BAD_PARAM;
+
+	pck_len = length;
+	pck_len += 4;
+	if (sock->flags & GF_SOCK_IS_IPV6) {
+		pck_len += 40;
+	} else {
+		pck_len += 20;
+	}
+	if (sock->flags & GF_SOCK_IS_TCP) {
+		pck_len += 20;
+	} else {
+		pck_len += 8;
+	}
+
+	if (is_ng) {
+		ng_size = pck_len/4;
+		ng_trail = pck_len%4;
+		if (ng_trail) {
+			ng_size++;
+			ng_trail = 4-ng_trail;
+		}
+		ng_size += 5;
+		ng_size *= 4;
+		ng_size+=12;
+
+		gf_bs_write_u32(nf->cap_bs, 6);
+		gf_bs_write_u32(nf->cap_bs, ng_size);
+		gf_bs_write_u32(nf->cap_bs, 0);
+	}
+
+	gf_net_get_ntp(&sec, &frac);
+	gf_bs_write_u32(nf->cap_bs, sec);
+	gf_bs_write_u32(nf->cap_bs, (u32) gf_timestamp_rescale(frac, 0xFFFFFFFF, 1000000));
+	gf_bs_write_u32(nf->cap_bs, pck_len);
+	gf_bs_write_u32(nf->cap_bs, pck_len);
+
+	gf_bs_write_u32(nf->cap_bs, (sock->flags & GF_SOCK_IS_IPV6) ? 24 : 2);
+	pck_len-=4;
+
+	u8 protocol_type = (sock->flags & GF_SOCK_IS_TCP) ? 6 : 17;
+	if (sock->flags & GF_SOCK_IS_IPV6) {
+		gf_bs_write_int(nf->cap_bs, 6, 4);
+		gf_bs_write_int(nf->cap_bs, 0, 4);
+		gf_bs_write_u24(nf->cap_bs, 0);
+		gf_bs_write_u16(nf->cap_bs, pck_len);
+		gf_bs_write_u8(nf->cap_bs, protocol_type);
+		gf_bs_write_u8(nf->cap_bs, 10);
+		gf_bs_write_data(nf->cap_bs, sock->cap_info->host_addr_v6, 16);
+		gf_bs_write_data(nf->cap_bs, sock->cap_info->peer_addr_v6, 16);
+	} else {
+		u32 chk_sum = 0x4500;
+		gf_bs_write_int(nf->cap_bs, 4, 4);
+		gf_bs_write_int(nf->cap_bs, 5, 4);
+		gf_bs_write_u8(nf->cap_bs, 0);
+		chk_sum += pck_len;
+		gf_bs_write_u16(nf->cap_bs, pck_len);
+		gf_bs_skip_bytes(nf->cap_bs, 4);
+		gf_bs_write_u8(nf->cap_bs, 10);
+		gf_bs_write_u8(nf->cap_bs, protocol_type);
+		chk_sum += (0x0a00 | protocol_type);
+
+		chk_sum += ((sock->cap_info->host_addr_v4&0xFF)<<8) | ((sock->cap_info->host_addr_v4>>8)&0xFF);
+		chk_sum += (((sock->cap_info->host_addr_v4>>16)&0xFF)<<8) | ((sock->cap_info->host_addr_v4>>24)&0xFF);
+		chk_sum += ((sock->cap_info->peer_addr_v4&0xFF)<<8) | ((sock->cap_info->peer_addr_v4>>8)&0xFF);
+		chk_sum += (((sock->cap_info->peer_addr_v4>>16)&0xFF)<<8) | ((sock->cap_info->peer_addr_v4>>24)&0xFF);
+		if (chk_sum>0xFFFF) {
+			u32 high = chk_sum>0xFFFF;
+			chk_sum += high;
+		}
+		gf_bs_write_u16(nf->cap_bs, ~chk_sum);
+		gf_bs_write_u32_le(nf->cap_bs, sock->cap_info->host_addr_v4);
+		gf_bs_write_u32_le(nf->cap_bs, sock->cap_info->peer_addr_v4);
+	}
+	//UDP
+	if (protocol_type==17) {
+		gf_bs_write_u16(nf->cap_bs, sock->cap_info->host_port);
+		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->peer_port);
+		gf_bs_write_u16(nf->cap_bs, 8+length);
+		//skip checksum
+		gf_bs_skip_bytes(nf->cap_bs, 2);
+	}
+	//TCP
+	else if (protocol_type==6) {
+		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->host_port);
+		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->peer_port);
+		/*sn = */gf_bs_write_u32(nf->cap_bs, 0);
+		/*ack = */gf_bs_write_u32(nf->cap_bs, 0);
+		gf_bs_write_int(nf->cap_bs, 5, 4);
+		gf_bs_write_int(nf->cap_bs, 0, 4);
+		gf_bs_skip_bytes(nf->cap_bs, 7);
+	}
+
+	gf_bs_write_data(nf->cap_bs, buffer, length);
+	if (is_ng) {
+		if (ng_trail) gf_bs_skip_bytes(nf->cap_bs, ng_trail);
+		gf_bs_write_u32(nf->cap_bs, ng_size);
+	}
+	if (written) *written = length;
+	return GF_OK;
+}
+
+
+static GF_Err gf_netcap_send_gpac(GF_NetcapFilter *nf, GF_Socket *sock, const u8 *buffer, u32 length, u32 *written)
+{
 	u64 now = gf_sys_clock_high_res();
 	if (!sock->cap_info->host_port) return GF_BAD_PARAM;
 	if (!nf->init_time) nf->init_time = now;
@@ -1658,6 +1796,17 @@ static GF_Err gf_netcap_send(GF_Socket *sock, const u8 *buffer, u32 length, u32 
 	return GF_OK;
 }
 
+static GF_Err gf_netcap_send(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written)
+{
+	GF_NetcapFilter *nf = sock->cap_info->nf;
+	if (nf->cap_mode==NETCAP_PCAP) {
+		return gf_netcap_send_pcap(nf, sock, buffer, length, written, GF_FALSE);
+	} else if (nf->cap_mode==NETCAP_PCAPNG) {
+		return gf_netcap_send_pcap(nf, sock, buffer, length, written, GF_TRUE);
+	} else {
+		return gf_netcap_send_gpac(nf, sock, buffer, length, written);
+	}
+}
 #endif //GPAC_DISABLE_NETCAP
 
 

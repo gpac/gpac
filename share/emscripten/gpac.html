@@ -1419,6 +1419,15 @@
         var ansiCodes = []
         // Replace with markup.
         var ret = text.replace(/\033\[(\d+)m/g, function (match, seq) {
+          if (seq=='0') {
+              r = '';
+              ansiCodes.forEach( c => {
+                if (c == '3') r+='</i>';
+                else if (c == '4') r+='</b>';
+              });
+              ansiCodes.length=0;
+              return r+'</span>';
+          }
           var ot = _openTags[seq]
           if (ot) {
             // If current sequence has been opened, close it.
@@ -2208,6 +2217,7 @@
       {
         let gpac_has_threads = LIBGPAC.cwrap('gpac_has_threads', 'number', []);
         _lib.has_threads = gpac_has_threads();
+        _lib.in_logs = false;
         //error codes
         _lib.SCRIPT_INFO = 3;
         _lib.PENDING_PACKET = 2;
@@ -2402,8 +2412,10 @@
           };
         })(),
         printErr: function(text) {
-          //console.log(text);
-          LIBGPAC.print(text);
+          if (LIBGPAC.in_logs)
+            console.log(text);
+          else
+            LIBGPAC.print(text);
         },
 
         canvas: (function() {

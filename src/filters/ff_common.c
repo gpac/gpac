@@ -800,16 +800,24 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	arg.arg_desc = opt->help;
 	arg.offset_in_private=-1;
 	arg.flags = GF_FS_ARG_META;
-	if (opt->name[0] == 0)
-		arg.flags = GF_FS_ARG_META;
 
 	if (!(opt->flags & AV_OPT_FLAG_READONLY))
 		arg.flags |= GF_FS_ARG_UPDATE;
 
-	switch (opt->type) {
+#if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) > AV_VERSION_INT(59,0, 0)
+	u32 type = opt->type & ~AV_OPT_TYPE_FLAG_ARRAY;
+	if (opt->type & AV_OPT_TYPE_FLAG_ARRAY)
+		arg.flags |= GF_FS_ARG_META_ARRAY;
+#else
+	u32 type = opt->type;
+#endif
+
+	switch (type) {
 	case AV_OPT_TYPE_INT64:
 	case AV_OPT_TYPE_INT:
+#ifdef FFMPEG_OLD_CHLAYOUT
 	case AV_OPT_TYPE_CHANNEL_LAYOUT:
+#endif
 		if (opt->type==AV_OPT_TYPE_INT64) arg.arg_type = GF_PROP_LSINT;
 		else if (opt->type==AV_OPT_TYPE_INT) arg.arg_type = GF_PROP_SINT;
 		else arg.arg_type = GF_PROP_UINT; //channel layout, map to int
@@ -2091,12 +2099,21 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 	}
 	else if (streamtype==GF_STREAM_AUDIO) {
 		u64 ch_layout;
-		u32 samplerate=0;
+		u32 nb_ch=0, samplerate=0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (p) codecpar->sample_rate = samplerate = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-		if (p) codecpar->channels = p->value.uint;
+		if (p) {
+			nb_ch = p->value.uint;
+#ifdef FFMPEG_OLD_CHLAYOUT
+			codecpar->channels = p->value.uint;
+#else
+			codecpar->ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
+			codecpar->ch_layout.nb_channels = p->value.uint;
+#endif
+		}
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLES_PER_FRAME);
 		if (p) codecpar->frame_size = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_BPS);
@@ -2110,10 +2127,13 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p)
 			ch_layout = p->value.longuint;
-		else if (codecpar->channels==2)
+		else if (nb_ch==2)
 			ch_layout = GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT;
+#ifdef FFMPEG_OLD_CHLAYOUT
 		codecpar->channel_layout = ffmpeg_channel_layout_from_gpac(ch_layout);
-
+#else
+		codecpar->ch_layout.u.mask = ffmpeg_channel_layout_from_gpac(ch_layout);
+#endif
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 		if (p && (p->value.sint<0) && samplerate) {
 			s64 pad = -p->value.longsint;
@@ -2173,10 +2193,19 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 	if (codecpar->sample_rate)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codecpar->sample_rate));
 
-	if (codecpar->channels) {
-		gf_filter_pid_set_property(opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(codecpar->channels));
-		if (codecpar->channel_layout) {
-			gf_filter_pid_set_property(opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT( ffmpeg_channel_layout_to_gpac(codecpar->channel_layout) ));
+	u32 nb_ch=0;
+	u64 ch_layout=0;
+#ifdef FFMPEG_OLD_CHLAYOUT
+	nb_ch = codecpar->channels;
+	ch_layout = codecpar->channel_layout;
+#else
+	nb_ch = codecpar->ch_layout.nb_channels;
+	ch_layout = (codecpar->ch_layout.order>=AV_CHANNEL_ORDER_CUSTOM) ? 0 : codecpar->ch_layout.u.mask;
+#endif
+	if (nb_ch) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+		if (ch_layout) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT( ffmpeg_channel_layout_to_gpac(ch_layout) ));
 		}
 
 		if (codecpar->frame_size)
