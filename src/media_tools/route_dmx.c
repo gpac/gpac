@@ -1466,11 +1466,11 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		if (raw_size > routedmx->unz_buffer_size) routedmx->unz_buffer_size = raw_size;
 		payload = routedmx->unz_buffer;
 		payload_size = raw_size;
-		payload[payload_size] = 0;
+		payload[payload_size] = 0; //gf_gz_decompress_payload_ex adds one extra byte at end
 	} else {
 		payload = object->payload;
 		payload_size = object->total_length;
-		payload[payload_size] = 0;
+		payload[payload_size] = 0; //object->payload is allocated with one extra byte
 		// Verifying that the payload is not erroneously treated as plaintext
 		if(!isprint(payload[0])) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d package appears to be compressed but is being treated as plaintext:\n%s\n", s->service_id, payload));
@@ -1613,6 +1613,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 	}
 }
 
+#define GF_ROUTE_MAX_SIZE 0x40000000
 
 static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_ROUTESession *route_sess)
 {
@@ -1808,6 +1809,14 @@ static GF_Err gf_route_dmx_process_service(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	}
 
 	start_offset = gf_bs_read_u32(routedmx->bs);
+	if (start_offset>=GF_ROUTE_MAX_SIZE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE start offset %u\n", s->service_id, start_offset));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	if (tol_size>=GF_ROUTE_MAX_SIZE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d : wrong ROUTE object size %u\n", s->service_id, tol_size));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	pos = (u32) gf_bs_get_position(routedmx->bs);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : LCT packet TSI %u TOI %u size %d startOffset %u TOL "LLU" (PckNum %d)\n", s->service_id, tsi, toi, nb_read-pos, start_offset, tol_size, routedmx->nb_packets));
