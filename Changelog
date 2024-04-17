@@ -1,4 +1,4 @@
-# On-going: GPAC 2.3-DEV
+#04/2024: GPAC 2.4
 
 ## Emscripten|WebAssembly(WASM) support
 - Session can run in worker or in main browser loop
@@ -32,6 +32,7 @@
 - Fixed GF_FileIO for async read and write modes
 - Added seeking in mp4dmx in mem mode
 - vout updated to use VBO (required for gles2)
+- libcaca video output support
 - Allow ffdmx to work as demux filter on gpac input file pids
 - GHI format for pre-indexing DASH/HLS session for JIT packaging/encryption/transcode
 - Zero-copy for mp4dmx and fragmented mp4mx
@@ -48,11 +49,12 @@
 
 ## Misc
 - Migrated doc from github's wiki to wiki.gpac.io
-- FFMPEG 6 support
+- FFMPEG 7 support
 - Added features for configure (vout, aout, fonts, doc, evg)
 - Allow specifying network interface by name or IP (instead of IP only)
 - UDP/TCP filtering and recording to / playback from pcap, pcapng and GPAC gpc files
 - Added Nix and Docker build files
+- many bug fixes, improvements and security patches
 
 
 # 19/12/2022: GPAC 2.2

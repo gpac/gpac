@@ -37,11 +37,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.3-DEV</string>
+	<string>2.4</string>
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
 	<key>CFBundleVersion</key>
-	<string>12.10.0</string>
+	<string>12.14.0</string>
 	<key>NSCameraUsageDescription</key>
 	<string>GPAC needs camera access to handle this URL</string>
 	<key>NSMicrophoneUsageDescription</key>

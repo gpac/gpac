@@ -613,10 +613,8 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 			Bool match = GF_FALSE;
 			if (cstr->is_hls) {
 				match = GF_TRUE;
-			} else if (cstr->KIDs[j]) {
-				if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
-					match = GF_TRUE;
-				}
+			} else if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
+				match = GF_TRUE;
 			}
 			if (match) {
 				memcpy(cstr->crypts[i].key, cstr->keys[j], 16);
