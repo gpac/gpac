@@ -4227,6 +4227,8 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	//gpac's internal obu_size includes the header + the payload
 	*obu_size += hdr_size;
 	if (obu_hdr_size) *obu_hdr_size = hdr_size;
+	if (!*obu_size)
+		return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (*obu_type != OBU_SEQUENCE_HEADER && *obu_type != OBU_TEMPORAL_DELIMITER &&
 		state->OperatingPointIdc != 0 && state->obu_extension_flag == 1)
@@ -4249,10 +4251,12 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 
 	switch (*obu_type) {
 	case OBU_SEQUENCE_HEADER:
-		av1_parse_sequence_header_obu(bs, state);
-		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) > pos + *obu_size)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Sequence header parsing consumed too many bytes !\n"));
-			e = GF_NON_COMPLIANT_BITSTREAM;
+		if (state->config) {
+			av1_parse_sequence_header_obu(bs, state);
+			if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) > pos + *obu_size)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Sequence header parsing consumed too many bytes !\n"));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+			}
 		}
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
