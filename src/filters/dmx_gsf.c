@@ -338,6 +338,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	case GF_PROP_CONST_DATA:
 		p->type = GF_PROP_DATA_NO_COPY;
 		p->value.data.size = gsfdmx_read_vlen(bs);
+		if (!p->value.data.size) return GF_NON_COMPLIANT_BITSTREAM;
 		p->value.data.ptr = gf_malloc(sizeof(char) * p->value.data.size);
 		gf_bs_read_data(bs, p->value.data.ptr, p->value.data.size);
 		break;
