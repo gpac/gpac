@@ -185,6 +185,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	//skip ://
 	url = strchr(ctx->dst, ':');
 	url += 3;
+	if (!url[0]) return GF_IP_ADDRESS_NOT_FOUND;
 
 	ctx->socket = gf_sk_new_ex(sock_type, gf_filter_get_netcap_id(filter));
 	if (! ctx->socket ) {
