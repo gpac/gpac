@@ -653,7 +653,7 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 					frac /= media_rate.den;
 					rate = (rate<<16) | (u16) frac;
 					//adjust media dur if rate > 1
-					if (media_rate.num>media_rate.den) {
+					if (media_rate.num > (s64) media_rate.den) {
 						media_dur = media_dur*media_rate.den / media_rate.num;
 					}
 				}
@@ -2879,6 +2879,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			if (gf_isom_get_sample_description_count(orig, i+1) != gf_isom_get_sample_description_count(dest, dst_tk)) dst_tk = 0;
 			/*if not forcing cat, check the media codec config is the same*/
 			if (!gf_isom_is_same_sample_description(orig, i+1, 0, dest, dst_tk, 0)) {
+				//we will need to merge the same descriptions
+				if (!force_cat && !dst_tk_sample_entry) dst_tk_sample_entry = dst_tk;
 				dst_tk = 0;
 			}
 			/*we force the same visual resolution*/

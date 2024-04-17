@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -491,6 +491,7 @@ const char *gpac_doc =
 "- gpac: argument separator for URLs (no value)\n"
 "- ccp: filter replacement control (string list value)\n"
 "- NCID: ID of netcap configuration to use (string)\n"
+"- LT: set additionnal log tools and levels for the filter usin same syntax as -logs, e.g. `:LT=filter@debug` (string value)\n"
 "- DBG: debug missing input PID property (`=pid`), missing input packet property (`=pck`) or both (`=all`)\n"
 "\n"
 "The buffer control options are used to change the default buffering of PIDs of a filter:\n"
@@ -1495,7 +1496,10 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", a->arg_name);
 		gf_sys_format_help(helpout, help_flags, "</a> (%s", is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
 	} else {
-		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s", a->arg_name, is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%s%s", a->arg_name,
+			is_enum ? "enum" : gf_props_get_type_name(a->arg_type),
+			(a->flags & GF_FS_ARG_META_ARRAY) ? " array" : ""
+		);
 	}
 	if (a->arg_default_val) {
 		if (!strcmp(a->arg_default_val, "2147483647"))
@@ -1508,10 +1512,11 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 //		gf_sys_format_help(helpout, help_flags, ", no default");
 	}
 	if (a->min_max_enum && !is_enum) {
+		const char *min_max_type = strchr(a->min_max_enum, '|') ? "Enum" : "minmax";
 		if (!strcmp(a->min_max_enum, "-2147483648-I"))
-			gf_sys_format_help(helpout, help_flags, ", %s: -I-I", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax");
+			gf_sys_format_help(helpout, help_flags, ", %s: -I-I", min_max_type);
 		else
-			gf_sys_format_help(helpout, help_flags, ", %s: %s", /*strchr(a->min_max_enum, '|') ? "Enum" : */"minmax", a->min_max_enum);
+			gf_sys_format_help(helpout, help_flags, ", %s: %s", min_max_type, a->min_max_enum);
 	}
 	if (a->flags & GF_FS_ARG_UPDATE) gf_sys_format_help(helpout, help_flags, ", updatable");
 //		if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
@@ -1836,7 +1841,12 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 			if (a->min_max_enum) {
 				//check format
-                if ((a->arg_type!=GF_PROP_UINT_LIST) && !(a->flags&GF_FS_ARG_META) && strchr(a->min_max_enum, '|') && (!a->arg_default_val || strcmp(a->arg_default_val, "-1")) ) {
+                if ((a->arg_type!=GF_PROP_UINT_LIST)
+					&& (a->arg_type<GF_PROP_FIRST_ENUM)
+					&& !(a->flags&GF_FS_ARG_META)
+					&& strchr(a->min_max_enum, '|')
+					&& (!a->arg_default_val || strcmp(a->arg_default_val, "-1"))
+				) {
 					const char *a_val = a->min_max_enum;
 					while (a_val[0] == '|') a_val++;
 					if (strstr(a->arg_desc, "see filter "))

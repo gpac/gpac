@@ -43,7 +43,8 @@ static struct {
 	{GF_PROP_PCMFMT, (cst_parse_proto) gf_audio_fmt_parse, (cst_name_proto) gf_audio_fmt_name, gf_audio_fmt_all_names},
 	{GF_PROP_CICP_COL_PRIM, gf_cicp_parse_color_primaries, gf_cicp_color_primaries_name, gf_cicp_color_primaries_all_names},
 	{GF_PROP_CICP_COL_TFC, gf_cicp_parse_color_transfer, gf_cicp_color_transfer_name, gf_cicp_color_transfer_all_names},
-	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names}
+	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names},
+	{GF_PROP_CICP_LAYOUT, gf_audio_fmt_get_cicp_from_name, gf_audio_fmt_get_cicp_name, gf_audio_fmt_cicp_all_names}
 };
 
 GF_EXPORT
@@ -1367,7 +1368,8 @@ GF_PropTypeDef PropTypes[] =
 	{GF_PROP_PCMFMT, "afmt", "raw audio format"},
 	{GF_PROP_CICP_COL_PRIM, "cprm", "color primaries, string or int value from ISO/IEC 23091-2"},
 	{GF_PROP_CICP_COL_TFC, "ctfc", "color transfer characteristics, string or int value from ISO/IEC 23091-2"},
-	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"}
+	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"},
+	{GF_PROP_CICP_LAYOUT, "alay", "channel layout configuration, string or int value from ISO/IEC 23091-3"}
 };
 
 GF_EXPORT
@@ -1674,7 +1676,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_SCENE_NODE, "SceneNode", "PID is a scene node decoder (AFX BitWrapper in BIFS)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_ORIG_CRYPT_SCHEME, "OrigCryptoScheme", "Original crypto scheme on a decrypted PID", GF_PROP_4CC),
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_SEGS, "TSBSegs", "Time shift in number of segments for HAS streams, only set by dashin and dasher filters", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest\n"
+	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest (MSB=1 if live)\n"
 	"- 0: not a manifest\n"
 	"- 1: DASH manifest\n"
 	"- 2: HLS manifest\n"

@@ -12616,7 +12616,7 @@ GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	//leftover
 	if (ptr->size && ptr->cfg.ExpansionBoxPresent) {
-		ptr->cfg.ExpansionBoxDataSize = ptr->size;
+		ptr->cfg.ExpansionBoxDataSize = (u32) ptr->size;
 		ISOM_DECREASE_SIZE(ptr, ptr->cfg.ExpansionBoxDataSize);
 		ptr->cfg.ExpansionBoxData = gf_realloc(ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
 		if (!ptr->cfg.ExpansionBoxData) return GF_OUT_OF_MEM;

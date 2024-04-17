@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools ROUTE (ATSC3, DVB-I) demux sub-project
@@ -92,7 +92,7 @@ typedef struct
 	u32 prev_start_offset;
 
     char solved_path[GF_MAX_PATH];
-    
+
     GF_Blob blob;
 	void *udta;
 } GF_LCTObject;
@@ -145,7 +145,7 @@ struct __gf_routedmx {
 	u32 reorder_timeout;
 	Bool force_reorder;
     Bool progressive_dispatch;
-    
+
 	u32 slt_version, rrt_version, systime_version, aeat_version;
 	GF_List *services;
 
@@ -678,7 +678,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 			obj->blob.flags = GF_BLOB_IN_TRANSFER;
 			obj->blob.size = (u32) bytes_done;
 		}
-		finfo.blob = &obj->blob;		
+		finfo.blob = &obj->blob;
         finfo.total_size = obj->total_length;
         finfo.tsi = obj->tsi;
         finfo.toi = obj->toi;
@@ -805,7 +805,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				obj->total_length = total_len;
 				if (obj->total_length>obj->alloc_size) {
 					gf_mx_p(routedmx->blob_mx);
-					obj->payload = gf_realloc(obj->payload, obj->total_length);
+					obj->payload = gf_realloc(obj->payload, obj->total_length+1);
 					obj->alloc_size = obj->total_length;
 					obj->blob.size = obj->total_length;
 					obj->blob.data = obj->payload;
@@ -836,7 +836,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->total_length = total_len;
 		if (obj->alloc_size < total_len) {
             gf_mx_p(routedmx->blob_mx);
-            obj->payload = gf_realloc(obj->payload, total_len);
+            obj->payload = gf_realloc(obj->payload, total_len+1);
             obj->alloc_size = total_len;
             obj->blob.size = total_len;
             obj->blob.data = obj->payload;
@@ -875,7 +875,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
         if (obj->alloc_size < total_len) {
             gf_mx_p(routedmx->blob_mx);
-            obj->payload = gf_realloc(obj->payload, total_len);
+            obj->payload = gf_realloc(obj->payload, total_len+1);
             obj->alloc_size = total_len;
             obj->blob.size = total_len;
             obj->blob.data = obj->payload;
@@ -890,7 +890,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 		if (obj->alloc_size < total_len) {
 			gf_mx_p(routedmx->blob_mx);
-			obj->payload = gf_realloc(obj->payload, obj->total_length);
+			obj->payload = gf_realloc(obj->payload, obj->total_length+1);
 			obj->alloc_size = obj->total_length;
 			obj->blob.size = obj->total_length;
 			obj->blob.data = obj->payload;
@@ -974,7 +974,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 		if((end_frag == -1) && (start_offset + size < obj->frags[i].offset)) {
 			end_frag = i;
-		} 
+		}
 	}
 	if(start_frag == -1) {
 		start_frag = obj->nb_frags;
@@ -1002,7 +1002,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		obj->frags[start_frag].size = end - obj->frags[start_frag].offset;
 
 		if(end_frag == start_frag + 1) {
-			// received extends fragment of index start_frag
+			// received data extends fragment of index start_frag
 			if(obj->frags[start_frag].size < old_size + size) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d Overlapping or already received LCT fragment [%u, %u]\n", s->service_id, start_offset, start_offset+size-1));
 			}
@@ -1015,7 +1015,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			obj->nb_frags += start_frag - end_frag + 1;
 
 			obj->nb_bytes = 0;
-			for(int i=0; i < obj->nb_frags; i++) {
+			u32 i;
+			for(i=0; i < obj->nb_frags; i++) {
 				obj->nb_bytes += obj->frags[i].size;
 			}
 		}
@@ -1047,17 +1048,17 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	gf_assert(obj->alloc_size >= start_offset + size);
 
 	memcpy(obj->payload + start_offset, data, size);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u append LCT fragment, offset %d total size %d recv bytes %d - offset diff since last %d\n", s->service_id, obj->tsi, obj->toi, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u append LCT fragment, offset %u total size %u recv bytes %u - offset diff since last %ld\n", s->service_id, obj->tsi, obj->toi, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
 
 	obj->prev_start_offset = start_offset;
 	gf_assert(obj->toi == toi);
 	gf_assert(obj->tsi == tsi);
-    
+
     //not a file (uses templates->segment) and can push
     if (do_push && !obj->rlct_file && obj->rlct) {
         gf_route_dmx_push_object(routedmx, s, obj, GF_FALSE, GF_TRUE, GF_FALSE, obj->frags[0].size);
     } else {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u: %d bytes inserted on non-first fragment (%d totals), cannot push\n", s->service_id, obj->tsi, obj->toi, size, obj->nb_frags));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u: %u bytes inserted on non-first fragment (%u totals), cannot push\n", s->service_id, obj->tsi, obj->toi, size, obj->nb_frags));
     }
 
 check_done:
@@ -1188,10 +1189,10 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		while ((att = gf_list_enum(rs->attributes, &j))) {
 			if (!stricmp(att->name, "dIpAddr")) dst_ip = att->value;
 			else if (!stricmp(att->name, "dPort")) {
-				if(! gf_strict_atoi(att->value, &dst_port)) {
+				if(! gf_strict_atoui(att->value, &dst_port)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong dPort value (%s), it should be numeric \n", s->service_id, att->value));
 					return GF_CORRUPTED_DATA;
-				} else if(dst_port >= 65536 || dst_port < 0) {
+				} else if(dst_port >= 65536) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong dPort value (%s), it should belong to the interval [0, 65535] \n", s->service_id, att->value));
 					return GF_CORRUPTED_DATA;
 				}
@@ -1230,7 +1231,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			k=0;
 			while ((att = gf_list_enum(ls->attributes, &k))) {
 				if (!strcmp(att->name, "tsi")) {
-					if(! gf_strict_atoi(att->value, &tsi)) {
+					if(! gf_strict_atoui(att->value, &tsi)) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TSI value (%s), it should be numeric \n", s->service_id, att->value));
 						return GF_CORRUPTED_DATA;
 					}
@@ -1286,7 +1287,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 							while ((att = gf_list_enum(fdt->attributes, &n))) {
 								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
 								else if (!strcmp(att->name, "TOI")) {
-									if(! gf_strict_atoi(att->value, &rf->toi)) {
+									if(! gf_strict_atoui(att->value, &rf->toi)) {
 										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
 										gf_free(rf->filename);
 										gf_free(rf);
@@ -1321,7 +1322,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 							while ((att = gf_list_enum(fdt->attributes, &n))) {
 								if (!strcmp(att->name, "Content-Location")) rf->filename = gf_strdup(att->value);
 								else if (!strcmp(att->name, "TOI")) {
-									if(! gf_strict_atoi(att->value, &rf->toi)) {
+									if(! gf_strict_atoui(att->value, &rf->toi)) {
 										GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d wrong TOI value (%s), it should be numeric \n", s->service_id, att->value));
 										gf_free(rf->filename);
 										gf_free(rf);
@@ -1465,15 +1466,16 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 		if (raw_size > routedmx->unz_buffer_size) routedmx->unz_buffer_size = raw_size;
 		payload = routedmx->unz_buffer;
 		payload_size = raw_size;
+		payload[payload_size] = 0;
 	} else {
 		payload = object->payload;
 		payload_size = object->total_length;
+		payload[payload_size] = 0;
 		// Verifying that the payload is not erroneously treated as plaintext
 		if(!isprint(payload[0])) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d package appears to be compressed but is being treated as plaintext:\n%s\n", s->service_id, payload));
 		}
 	}
-	payload[payload_size] = 0;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d got TSI 0 config package:\n%s\n", s->service_id, payload ));
 
@@ -1527,7 +1529,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 				strncpy(szContentLocation, payload+18, copy);
 				szContentLocation[copy]=0;
 			} else {
-				char tmp = payload[i]; 
+				char tmp = payload[i];
 				payload[i] = 0;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d unrecognized header entity in package:\n%s\n", s->service_id, payload));
 				payload[i] = tmp;
@@ -1592,7 +1594,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 	}
 
 	gf_free(boundary);
-	payload_size = strlen(payload);
+	payload_size = (u32) strlen(payload);
 	if(payload_size > 1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d Unable to process %d remaining characters in the payload due to data corruption\n",s->service_id, payload_size));
 		return GF_CORRUPTED_DATA;

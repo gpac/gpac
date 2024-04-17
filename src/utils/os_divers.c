@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -133,7 +133,7 @@ u32 gf_gpac_abi_micro()
 }
 
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(GPAC_CONFIG_EMSCRIPTEN)
 
 GF_EXPORT
 u32 gf_sys_clock()
@@ -149,6 +149,23 @@ u64 gf_sys_clock_high_res()
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	return (now.tv_sec)*1000000 + (now.tv_usec) - sys_start_time_hr;
+}
+
+#endif
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+#include <emscripten/emscripten.h>
+
+GF_EXPORT
+u32 gf_sys_clock()
+{
+	return (u32)(emscripten_get_now() - sys_start_time);
+}
+
+GF_EXPORT
+u64 gf_sys_clock_high_res()
+{
+	return (long long)(emscripten_get_now() * 1000.0) - sys_start_time_hr;
 }
 
 #endif
@@ -883,6 +900,9 @@ Bool gf_sys_is_cov_mode()
 const char *gpac_log_file_name=NULL;
 #ifndef GPAC_DISABLE_LOG
 extern Bool gpac_log_dual;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+extern Bool gpac_log_console;
+#endif
 #endif
 
 GF_EXPORT
@@ -891,6 +911,14 @@ void gf_log_reset_file()
 #ifndef GPAC_DISABLE_LOG
 	if (gpac_log_file_name) {
 		if (gpac_log_file) gf_fclose(gpac_log_file);
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		gpac_log_console = GF_FALSE;
+		if (gpac_log_file_name && !strcmp(gpac_log_file_name, "console")) {
+			gpac_log_file = NULL;
+			gpac_log_console = GF_TRUE;
+			return;
+		}
+#endif
 		gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
 	}
 #endif
@@ -1034,9 +1062,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 
 
 #ifndef GPAC_DISABLE_LOG
-		if (gpac_log_file_name) {
-			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
-		}
+		gf_log_reset_file();
 #endif
 		if (gf_opts_get_bool("core", "rmt"))
 			gf_sys_enable_remotery(GF_TRUE, GF_FALSE);
@@ -1629,6 +1655,7 @@ void gf_sys_close()
 		logs_mx = NULL;
 		gf_mx_del(old_log_mx);
 #endif
+		gf_log_reset_extras();
 		if (gpac_argv_state) {
 			gf_free(gpac_argv_state);
 			gpac_argv_state = NULL;

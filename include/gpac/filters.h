@@ -238,7 +238,10 @@ typedef enum
 	GF_FS_FLAG_REQUIRE_SOURCE_ID = 1<<12,
 	/*! Flag set to force all explicitly added filters to be loaded in deferred link state - linking will only happen once  \ref gf_filter_reconnect_output is called on the filter.
 	*/
-	GF_FS_FLAG_FORCE_DEFER_LINK = 1<<13
+	GF_FS_FLAG_FORCE_DEFER_LINK = 1<<13,
+	/*! Flag set to ignore all PLAY events from sinks - use \ref gf_fs_send_deferred_play to start playback
+	*/
+	GF_FS_FLAG_PREVENT_PLAY = 1<<14
 } GF_FilterSessionFlags;
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
@@ -286,7 +289,7 @@ Generic filter options are:
 - ccp: filter replacement control (string list value)
 - NCID: ID of netcap configuration to use (string)
 - DBG: debug missing input PID property (`=pid`), missing input packet property (`=pck`) or both (`=all`)
-- DL: enable defer linkling of filter (no value) - the filter output pids will not be connected until a call to \ref gf_filter_reconnect_output
+- DL: enable defer linking of filter (no value) - the filter output pids will not be connected until a call to \ref gf_filter_reconnect_output
 
 
 \param session filter session
@@ -419,6 +422,11 @@ void gf_fs_add_filter_register(GF_FilterSession *session, const GF_FilterRegiste
 \param freg filter register to remove
 */
 void gf_fs_remove_filter_register(GF_FilterSession *session, GF_FilterRegister *freg);
+
+/*! Sends PLAY event on all sinks, ignored if GF_FS_FLAG_PREVENT_PLAY flag is not set
+\param session filter session
+*/
+void gf_fs_send_deferred_play(GF_FilterSession *session);
 
 /*! Posts a user task to the session
 \param session filter session
@@ -893,6 +901,8 @@ typedef enum
 	GF_PROP_CICP_COL_TFC	=	GF_PROP_FIRST_ENUM+3,
 	/*! CICP Color Matrix*/
 	GF_PROP_CICP_COL_MX		=	GF_PROP_FIRST_ENUM+4,
+	/*! CICP Layout*/
+	GF_PROP_CICP_LAYOUT		=	GF_PROP_FIRST_ENUM+5,
 	/*! not allowed*/
 	GF_PROP_LAST_DEFINED
 } GF_PropType;
@@ -2017,6 +2027,8 @@ typedef enum
 		The filter should lock itself whenever appropriate using \ref gf_filter_lock
 	*/
 	GF_FS_ARG_UPDATE_SYNC = 1<<8,
+	/*! internal flag used by meta filters (ffmpeg & co) to indicate the argument is an array of the indicated type*/
+	GF_FS_ARG_META_ARRAY = 1<<9,
 } GF_FSArgumentFlags;
 
 /*! Structure holding arguments for a filter*/
@@ -2313,7 +2325,7 @@ typedef enum
 	GF_FS_REG_FORCE_REMUX = 1<<12,
 	/*! Indicates the filter must always be run by the same thread, except for the initialize and finalize methods*/
 	GF_FS_REG_SINGLE_THREAD = 1<<13,
-	/*! Indicates the filter needs to be initialized even if temoorary - see \ref gf_filter_is_temporary. Always enabled if GF_FS_REG_META is set */
+	/*! Indicates the filter needs to be initialized even if temporary - see \ref gf_filter_is_temporary. Always enabled if GF_FS_REG_META is set */
 	GF_FS_REG_TEMP_INIT = 1<<14,
 	/*! Indicates the filter uses libc sync file read - only needed for emscripten multithreaded support for now, translated into GF_FS_REG_MAIN_THREAD */
 	GF_FS_REG_USE_SYNC_READ = 1<<15,
@@ -2321,6 +2333,10 @@ typedef enum
 	GF_FS_REG_BLOCK_MAIN = 1<<16,
 	/*! Indicates the filter uses async tools (JS promises & co) blocking the calling thread until resolved - only needed for emscripten multithreaded support*/
 	GF_FS_REG_ASYNC_BLOCK = 1<<17,
+	/*! Indicates a dynamic instance of the filter can be reused in resolver even if the source PID already has a possible link to an explicit non-sink filter
+		This is typically required by PID merger filters allowing implicit loading (tileagg, hevcmerge, etc)
+	*/
+	GF_FS_REG_DYNAMIC_REUSE = 1<<18,
 
 
 	/*! flag dynamically set at runtime for custom filters*/

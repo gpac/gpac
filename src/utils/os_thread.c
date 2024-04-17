@@ -107,6 +107,10 @@ static const char *log_th_name(u32 id)
 	}
 	return "Main Process";
 }
+const char *gf_th_log_name(GF_Thread *t)
+{
+	return t ? t->log_name : "Main Process";
+}
 
 #endif
 
@@ -172,6 +176,9 @@ GF_Thread * gf_th_current() {
 
 #endif /* GPAC_CONFIG_ANDROID */
 
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+#include <emscripten/eventloop.h>
+#endif
 
 #ifdef WIN32
 DWORD WINAPI RunThread(void *ptr)
@@ -202,7 +209,7 @@ void * RunThread(void *ptr)
 
 #ifdef GPAC_CONFIG_ANDROID
 	if (pthread_once(&currentThreadInfoKey_once, &currentThreadInfoKey_alloc) || pthread_setspecific(currentThreadInfoKey, t))
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't run thread %s, ID 0x%08x\n", t->log_name, t->id));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't run thread %s, ID %u\n", t->log_name, t->id));
 #endif /* GPAC_CONFIG_ANDROID */
 	t->status = GF_THREAD_STATUS_RUN;
 
@@ -211,7 +218,7 @@ void * RunThread(void *ptr)
 
 #ifndef GPAC_DISABLE_LOG
 	t->id = gf_th_id();
-	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] At %d Entering thread proc - thread ID 0x%08x\n", t->log_name, gf_sys_clock(), t->id));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] At %d Entering thread proc - thread ID %u\n", t->log_name, gf_sys_clock(), t->id));
 #endif
 
 	/* Each thread has its own seed */
@@ -223,8 +230,11 @@ void * RunThread(void *ptr)
 exit:
 
 	if (t->no_kill) {
-		t->no_kill = 0;
-#ifdef WIN32
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Thread %s] exit with no kill - unwinding to JS event loop\n", t->log_name));
+		emscripten_unwind_to_js_event_loop();
+		return (void *)ret;
+#elif defined(WIN32)
 		return ret;
 #else
 		return (void *)ret;
@@ -326,6 +336,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 GF_Err gf_th_async_call(GF_Thread *t, u32 (*Run)(void *param), void *param)
 {
 	t->no_kill = 1;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Thread %s] async EM call\n", t->log_name));
 	emscripten_dispatch_to_thread_async_(t->threadH, EM_FUNC_SIG_II, Run, NULL, param);
 	return GF_OK;
 }
@@ -364,7 +375,7 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 			if (emscripten_is_main_runtime_thread()) {
 				int pthread_tryjoin_np(pthread_t, void **);
 				void *rval=NULL;
-				if (pthread_tryjoin_np(t->threadH, &rval))
+				if (!t->no_kill && pthread_tryjoin_np(t->threadH, &rval))
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Thread %s] pthread_join() returned an error with thread ID 0x%08x\n", t->log_name, t->id));
 			}
 #else

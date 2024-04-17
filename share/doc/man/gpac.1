@@ -306,7 +306,7 @@ The following libgpac core options allow customizing the filter session:
 .TP
 .B \-dbg-edges
 .br
-log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
+log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status(disable_depth), weight, src_cap_idx -> dst_cap_idx)
 .br
 .TP
 .B \-full-link
@@ -890,7 +890,7 @@ set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap a
 .br
 * src=F: read packets from F, as produced by GPAC or a pcap or pcapng file
 .br
-* dst=F: output packets to F (no pcap/pcapng support), cannot be set if src is set
+* dst=F: output packets to F (GPAC or pcap/pcapng file), cannot be set if src is set
 .br
 * loop[=N]: loop capture file N times, or forever if N is not set or negative
 .br
@@ -1064,7 +1064,7 @@ enable intermediate copy of data in nghttp2 (default is disabled but may report 
 .TP
 .B \-dbg-edges
 .br
-log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)
+log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status(disable_depth), weight, src_cap_idx -> dst_cap_idx)
 .br
 .TP
 .B \-full-link
@@ -2538,6 +2538,8 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * NCID: ID of netcap configuration to use (string)
 .br
+* LT: set additionnal log tools and levels for the filter usin same syntax as -logs, e.g. :LT=filter@debug (string value)
+.br
 * DBG: debug missing input PID property (=pid), missing input packet property (=pck) or both (=all)
 .br
 
@@ -2726,6 +2728,11 @@ color transfer characteristics, string or int value from ISO/IEC 23091-2
 .B cmxc
 .br
 color matrix coefficients, string or int value from ISO/IEC 23091-2
+.br
+.TP
+.B alay
+.br
+channel layout configuration, string or int value from ISO/IEC 23091-3
 .br
 
 .br
@@ -3956,7 +3963,7 @@ Time shift in number of segments for HAS streams, only set by dashin and dasher 
 .TP
 .B IsManifest (PHSM,uint,D )
 .br
-PID is a HAS manifest
+PID is a HAS manifest (MSB=1 if live)
 .br
 * 0: not a manifest
 .br

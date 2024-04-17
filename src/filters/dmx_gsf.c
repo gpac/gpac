@@ -497,6 +497,9 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		GF_PropertyValue p;
 
 		u32 len = gsfdmx_read_vlen(bs);
+		if (len >= GF_UINT_MAX-1)
+			return GF_BAD_PARAM;
+
 		char *pname = gf_malloc(sizeof(char)*(len+1));
 		gf_bs_read_data(bs, pname, len);
 		pname[len]=0;
@@ -1095,7 +1098,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		//buffer was not big enough to contain all the vlen fields, we need more data
 		if (ctx->buffer_too_small)
 			break;
-			
+
 		if (full_pck) {
 			block_size = pck_len;
 			block_offset = 0;
@@ -1376,7 +1379,7 @@ GF_FilterRegister GSFDemuxRegister = {
 #endif
 		,
 #endif
-	
+
 	.private_size = sizeof(GSF_DemuxCtx),
 	.args = GSFDemuxArgs,
 	.flags = GF_FS_REG_DYNAMIC_PIDS,
@@ -1400,4 +1403,3 @@ const GF_FilterRegister *gsfdmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_GSFDMX
-

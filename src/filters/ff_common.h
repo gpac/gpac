@@ -64,6 +64,10 @@
 #include <libavcodec/bsf.h>
 #endif
 
+#if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) < AV_VERSION_INT(59, 0, 0)
+#define FFMPEG_OLD_CHLAYOUT
+#endif
+
 
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
 void ffmpeg_setup_logs(u32 log_class);
