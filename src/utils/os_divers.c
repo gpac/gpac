@@ -80,7 +80,7 @@ static u64 sys_start_time_hr = 0;
 #include <gpac/revision.h>
 #define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
 
-#define GPAC_COPYRIGHT "(c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io"
+#define GPAC_COPYRIGHT "(c) 2000-2024 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io"
 
 GF_EXPORT
 const char *gf_gpac_version()
