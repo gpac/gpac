@@ -882,9 +882,9 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	consumed = (u32) gf_bs_get_position(bs) - spos;
 	pck_len -= consumed;
 	if (full_pck) {
-		gf_fatal_assert(gpck->full_block_size > consumed);
+		if (gpck->full_block_size < consumed) return GF_NON_COMPLIANT_BITSTREAM;
 		gpck->full_block_size -= consumed;
-		gf_assert(gpck->full_block_size == pck_len);
+		if (gpck->full_block_size != pck_len) return GF_NON_COMPLIANT_BITSTREAM;
 		gf_filter_pck_truncate(gpck->pck, gpck->full_block_size);
 	}
 	copy_size = gpck->full_block_size;
@@ -1000,7 +1000,10 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 				e = gsfdmx_parse_pid_info(filter, ctx, gst, gpck, (gpck->pck_type==GFS_PCKTYPE_PID_INFO_UPDATE) ? GF_TRUE : GF_FALSE);
 			else
 				e = GF_CORRUPTED_DATA;
-			if (gpck->pck) gf_filter_pck_discard(gpck->pck);
+			if (gpck->pck) {
+				gf_filter_pck_discard(gpck->pck);
+				gpck->pck=NULL;
+			}
 			break;
 		case GFS_PCKTYPE_PID_REMOVE:
 			if (gpck->pck) {
@@ -1180,6 +1183,12 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 					}
 					if (!e)
 						e = gsfdmx_process_packets(filter, ctx, gst);
+					else if (gpck) {
+						gf_list_del_item(gst->packets, gpck);
+						if (gpck->pck) gf_filter_pck_discard(gpck->pck);
+						gsfdmx_pck_reset(gpck);
+						gf_list_add(ctx->pck_res, gpck);
+					}
 				}
 			}
 		}
