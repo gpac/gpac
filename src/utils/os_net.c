@@ -468,11 +468,27 @@ u32 gf_net_has_ipv6()
 GF_EXPORT
 Bool gf_net_is_ipv6(const char *address)
 {
-	char *sep;
-	if (!address) return GF_FALSE;
-	sep = strchr(address, ':');
-	if (sep) sep = strchr(address, ':');
-	return sep ? GF_TRUE : GF_FALSE;
+	u32 i, nb_seps=0, nb_dseps=0, nb_dig=0, count = (u32) strlen(address);
+	for (i=0;i<count; i++) {
+		if (address[i]==':') {
+			nb_seps++;
+			nb_dig=0;
+			if ((i+1<count) && (address[i+1]==':')) {
+				nb_dseps++;
+				i++;
+			}
+		}
+		else if (strchr("0123456789ABCDEFabcdef",address[i])==NULL) {
+			return GF_FALSE;
+		} else {
+			nb_dig++;
+			if (nb_dig>4) return GF_FALSE;
+		}
+	}
+	if (nb_seps>7) return GF_FALSE;
+	if (nb_seps==7) return GF_TRUE;
+	if (nb_dseps!=1) return GF_FALSE;
+	return GF_TRUE;
 }
 
 #if defined(GPAC_WIN_HAS_ADAPTER_INFO)
@@ -2732,32 +2748,32 @@ GF_Err gf_sk_select(GF_Socket *sock, GF_SockSelectMode mode)
 GF_EXPORT
 u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 {
+	if (!multi_IPAdd) return 0;
 #ifdef GPAC_HAS_IPV6
 	u32 val;
 	char *sep;
 	struct addrinfo *res;
-	if (!multi_IPAdd) return 0;
-	/*IPV6 multicast address*/
-	sep = strchr(multi_IPAdd, ':');
-	if (sep) sep = strchr(multi_IPAdd, ':');
-	if (sep && !strnicmp(multi_IPAdd, "ff", 2)) return 1;
-	//mapped address
-	if (!strnicmp(multi_IPAdd, "::ffff:", 7)) multi_IPAdd+=7;
-	/*ipv4 multicast address*/
-	res = gf_sk_get_ipv6_addr((char*)multi_IPAdd, 7000, AF_UNSPEC, AI_PASSIVE, SOCK_DGRAM);
-	if (!res) return 0;
-	val = 0;
-	if (res->ai_addr->sa_family == AF_INET) {
-		val = IN_MULTICAST(ntohl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr));
-	} else if (res->ai_addr->sa_family == AF_INET6) {
-		val = IN6_IS_ADDR_MULTICAST(& ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr);
+	if (gf_net_is_ipv6(multi_IPAdd)) {
+		/*IPV6 multicast address*/
+		sep = strchr(multi_IPAdd, ':');
+		if (sep) sep = strchr(multi_IPAdd, ':');
+		if (sep && !strnicmp(multi_IPAdd, "ff", 2)) return 1;
+		//mapped address
+		if (!strnicmp(multi_IPAdd, "::ffff:", 7)) multi_IPAdd+=7;
+		/*ipv4 multicast address*/
+		res = gf_sk_get_ipv6_addr((char*)multi_IPAdd, 7000, AF_UNSPEC, AI_PASSIVE, SOCK_DGRAM);
+		if (!res) return 0;
+		val = 0;
+		if (res->ai_addr->sa_family == AF_INET) {
+			val = IN_MULTICAST(ntohl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr));
+		} else if (res->ai_addr->sa_family == AF_INET6) {
+			val = IN6_IS_ADDR_MULTICAST(& ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr);
+		}
+		freeaddrinfo(res);
+		return val;
 	}
-	freeaddrinfo(res);
-	return val;
-#else
-	if (!multi_IPAdd) return 0;
-	return ((htonl(inet_addr(multi_IPAdd)) >> 8) & 0x00f00000) == 0x00e00000;
 #endif
+	return ((htonl(inet_addr(multi_IPAdd)) >> 8) & 0x00f00000) == 0x00e00000;
 }
 
 static GF_Err sk_join_ipv4(GF_Socket *sock, struct ip_mreq *M_req, u32 TTL, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc)

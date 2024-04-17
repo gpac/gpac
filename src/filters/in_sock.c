@@ -118,6 +118,7 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 
 	url = strchr(ctx->src, ':');
 	url += 3;
+	if (!url[0]) return GF_IP_ADDRESS_NOT_FOUND;
 
 	ctx->sock_c.socket = gf_sk_new_ex(sock_type, gf_filter_get_netcap_id(filter));
 	if (! ctx->sock_c.socket ) {
