@@ -753,6 +753,7 @@
               
        if (is_custfs) {
         run_prompt(cmd);
+        setCommand('');
         return;
        }
 
@@ -1030,6 +1031,7 @@
        if (args[0]=='fs') {
             set_status('Starting interactive graph builder');
             set_text('');
+            setCommand('');
             defer_mode=true;
             fs_steps=20;
             is_custfs = true;
@@ -1126,9 +1128,11 @@
               LIBGPAC.fs_del(fsess);
               fsess=null;
               LIBGPAC.uninit();
-              set_status("leaving interactive mode");
             }
-            return;
+            set_status("leaving interactive mode");
+            set_text('');
+            setCommand('');
+            return com_exit();
           }
           if (args[0]=='d') {
             if (!fsess) {
@@ -1289,6 +1293,7 @@
           help+= "- r: run or resume session\n";
           help+= "- c: suspend session while running\n";
           help+= "- v: view connections and stats\n";
+          help+= "- q: exit custom  mode\n";
           help+= "\nThe following only apply to the last added filter:\n";
           help+= "- i: print pid properties\n";
           help+= "- p [pid_idx=0] DESC: probe resolution from pid with index pid_idx of last added filter to filter description DESC\n";
