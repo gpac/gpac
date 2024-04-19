@@ -759,7 +759,6 @@ void *gf_fs_get_rt_udta(GF_FilterSession *session);
  */
 Bool gf_fs_fire_event(GF_FilterSession *session, GF_Filter *filter, GF_FilterEvent *evt, Bool upstream);
 
-
 /*! callback functions for external monitoring of filter creation or destruction
 \param udta user data passed back to callback
 \param do_activate if true context must be activated for calling thread, otherwise context is no longer used
@@ -774,6 +773,7 @@ typedef	GF_Err (*gf_fs_gl_activate)(void *udta, Bool do_activate);
 \return error if any
  */
 GF_Err gf_fs_set_external_gl_provider(GF_FilterSession *session, gf_fs_gl_activate on_gl_activate, void *udta);
+
 
 /*! Flags for debug info*/
 typedef enum
@@ -2902,7 +2902,7 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 /*! Trigger reconnection of output PIDs of a filter. This is needed when inserting a filter in the chain while the session is running
 \param filter the target filter
 \param for_pid reconnects only the given output PID - if NULL, reconnect all output PIDs
-\return error if any
+\return error if any, GF_EOS if no output pids available
 */
 GF_Err gf_filter_reconnect_output(GF_Filter *filter, GF_FilterPid *for_pid);
 
