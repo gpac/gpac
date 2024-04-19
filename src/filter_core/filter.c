@@ -2881,7 +2881,10 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	gf_assert(filter->process_task_queued);
 	if (safe_int_dec(&filter->process_task_queued) == 0) {
 		//we have pending packets, auto-post and requeue
-		if (filter->pending_packets && filter->num_input_pids) {
+		if (filter->pending_packets && filter->num_input_pids
+			//do NOT do this if running in prevent play mode and blocking mode, as user is likely expecting fs_run() to return until the play event is sent
+			&& !filter->session->non_blocking && !(filter->session->flags & GF_FS_FLAG_PREVENT_PLAY)
+		) {
 			safe_int_inc(&filter->process_task_queued);
 			task->requeue_request = GF_TRUE;
 		}
@@ -3157,7 +3160,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	//if eos but we still have pending packets or process tasks queued, move to GF_OK so that
 	//we evaluate the blocking state
 	if (e==GF_EOS) {
-		if (filter->postponed_packets) {
+		if (filter->postponed_packets && filter->num_input_pids) {
 		 	e = GF_OK;
 		} else if (filter->process_task_queued) {
 			e = GF_OK;
@@ -3213,6 +3216,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
 	else if ((filter->would_block < filter->num_output_pids)
 			&& filter->pending_packets
+			&& (filter->nb_pids_playing>0)
 			&& (gf_fq_count(filter->tasks)<=1)
 	) {
 		//prune eos packets that could still be present
@@ -5243,6 +5247,8 @@ GF_Err gf_filter_reconnect_output(GF_Filter *filter, GF_FilterPid *for_pid)
 	if (for_pid) {
 		if (PID_IS_INPUT(for_pid)) return GF_BAD_PARAM;
 	}
+	if (!filter->num_output_pids)
+		return GF_EOS;
 	//in case we had pending output pids
 	if (filter->deferred_link) {
 		filter->deferred_link = GF_FALSE;
