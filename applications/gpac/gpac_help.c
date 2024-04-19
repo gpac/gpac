@@ -704,6 +704,12 @@ void gpac_core_help(GF_SysArgMode mode, Bool for_logs)
 	gf_sys_print_core_help(helpout, help_flags, mode, mask);
 }
 
+#ifdef GPAC_DEFER_MODE
+#define GPAC_DEFER_H "- defer: print defer mode help\n"
+#else
+#define GPAC_DEFER_H
+#endif
+
 static GF_GPACArg gpac_args[] =
 {
 #ifdef GPAC_MEMORY_TRACKING
@@ -776,6 +782,7 @@ static GF_GPACArg gpac_args[] =
 			"- layouts: print the builtin CICP audio channel layout names and their values\n"
 			"- links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)\n"
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"
+			GPAC_DEFER_H
 			"- FNAME: print filter `FNAME` info (multiple FNAME can be given)\n"
 			"  - For meta-filters, use `FNAME:INST`, e.g. `ffavin:avfoundation`\n"
 			"  - Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__)\n"
@@ -872,6 +879,59 @@ void gpac_usage(GF_SysArgMode argmode)
 		gf_sys_format_help(helpout, help_flags, "\ngpac - GPAC command line filter engine - version %s\n%s\n", gf_gpac_version(), gf_gpac_copyright_cite() );
 	}
 }
+
+#ifdef GPAC_DEFER_MODE
+#ifndef GPAC_DISABLE_DOC
+static const char *gpac_defer =
+{
+"# Defer test mode\n"
+"This mode can be used to test loading filters one by one and asking for link resolution explicitly.\n"
+"This is mostly used to reproduce how sessions are build in more complex applications.\n"
+"\n"
+"The options `rl`, `pi` and `pl` allow adressing a filter by index `F` in a list.\n"
+"- if the option is suffixed with an `x` (e.g. `rlx=`), `F=0` means the last filter in the list of filters in the session\n"
+"- otherwise, `F=0` means the last filter located before the option\n"
+"\n"
+"The relink options `-rl` and `-rlx` always flush the session (run until no more tasks are scheduled).\n"
+"The last run can be omitted.\n"
+"\n"
+"EX gpac -dl -np -i SRC reframer -g -rl -g inspect -g -rl\n"
+"This will load SRC and reframer, print the graph (no connection), relink SRC, print the graph (connection to reframer), insert inspect, print the graph (no connection), relink reframer and run. No play event is sent here.\n"
+"EX gpac -dl -np -i SRC reframer inspect:deep -g -rl=2 -g -rl -se\n"
+"This will load SRC, reframer and inspect, print the graph (no connection), relink SRC, print the graph (connection to reframer), print the graph (no connection), relink reframer, send play and run.\n"
+};
+#endif
+static GF_GPACArg gpac_defer_args[] =
+{
+	GF_DEF_ARG("dl", NULL, "enable defer linking mode for step-by-step graph building tests", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("np", NULL, "prevent play event from sinks", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("rl[=F]", NULL, "relink outputs of filter `F` (default 1)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("wl[=F]", NULL, "same as `-rl`but does not flush session)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("pi=[F[:i]]", NULL, "print pid info (all or of index `i`) of filter `F` (default 0)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("pl=[F[:i]]@NAME", NULL, "probe filter chain from filter  `F` (default 0) to the given filter `NAME`", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("f", NULL, "flush session until no more tasks", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("g", NULL, "print graph", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("s", NULL, "print stats", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("se", NULL, "send PLAY event from sinks (only done once)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	{0}
+};
+
+void gpac_defer_help()
+{
+	u32 i=0;
+#ifndef GPAC_DISABLE_DOC
+	gf_sys_format_help(helpout, help_flags, "%s", gf_sys_localized("gpac", "config", gpac_defer) );
+#else
+	gf_sys_format_help(helpout, help_flags, "%s", "GPAC compiled without built-in doc.\n");
+#endif
+
+	while (gpac_defer_args[i].name) {
+		GF_GPACArg *arg = &gpac_defer_args[i];
+		i++;
+		gf_sys_print_arg(helpout, help_flags, arg, "gpac");
+	}
+}
+#endif
 
 #ifndef GPAC_DISABLE_DOC
 static const char *gpac_config =
@@ -1164,7 +1224,11 @@ redo_pass:
 	if (is_help) {
 		if (!pass_exact) {
 			const char *doc_helps[] = {
-				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "formats", "exts", "protocols", "links", "bin", "filters", "filters:*", "filters:@", "mp4c", "net", NULL
+				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "formats", "exts", "protocols", "links", "bin", "filters", "filters:*", "filters:@", "mp4c", "net",
+#ifdef GPAC_DEFER_MODE
+				"defer",
+#endif
+				NULL
 			};
 			first = GF_FALSE;
 			i=0;

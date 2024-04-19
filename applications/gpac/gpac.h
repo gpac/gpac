@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -94,3 +94,13 @@ void carbon_set_hook(void);
 #endif
 
 void gpac_open_urls(const char *urls);
+
+#if !defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_CONFIG_IOD)
+//support for step-by-stpe graph construction
+#define GPAC_DEFER_MODE
+#endif
+
+#ifdef GPAC_DEFER_MODE
+void gpac_defer_help(void);
+#endif // GPAC_DEFER_MODE
+

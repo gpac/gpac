@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -119,6 +119,11 @@ static void cleanup_file_io(void);
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
+#ifdef GPAC_DEFER_MODE
+static GF_Err print_pid_props(char *arg);
+static GF_Err probe_pid_link(char *arg);
+#endif
+
 #ifdef WIN32
 #include <windows.h>
 static BOOL WINAPI gpac_sig_handler(DWORD sig);
@@ -441,7 +446,9 @@ static Bool write_extensions=GF_FALSE;
 static const char *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
-
+#ifdef GPAC_DEFER_MODE
+static Bool defer_mode = GF_FALSE;
+#endif
 
 #ifndef GPAC_DISABLE_NETWORK
 static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flags)
@@ -461,6 +468,20 @@ static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flag
 	return GF_FALSE;
 }
 #endif
+
+#ifdef GPAC_DEFER_MODE
+static void run_sess(void)
+{
+	if (use_step_mode) {
+		while (!gf_fs_is_last_task(session)) {
+			gf_fs_run(session);
+		}
+	} else {
+		gf_fs_run(session);
+	}
+}
+#endif
+
 
 #ifndef GPAC_CONFIG_ANDROID
 static
@@ -507,8 +528,9 @@ int gpac_main(int _argc, char **_argv)
 	override_seps = view_filter_conn = dump_codecs = dump_formats = dump_proto_schemes = GF_FALSE;
 	write_profile = write_core_opts = write_extensions = has_xopt = GF_FALSE;
 	nothing_to_do = GF_TRUE;
-
-
+#ifdef GPAC_DEFER_MODE
+	defer_mode = GF_FALSE;
+#endif
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	window_swap = GF_FALSE;
@@ -691,6 +713,11 @@ int gpac_main(int _argc, char **_argv)
 			} else if (!strcmp(argv[i+1], "prompt")) {
 				gpac_fsess_task_help();
 				gpac_exit(0);
+#ifdef GPAC_DEFER_MODE
+			} else if (!strcmp(argv[i+1], "defer")) {
+				gpac_defer_help();
+				gpac_exit(0);
+#endif
 			} else if (!strcmp(argv[i+1], "mp4c")) {
 #if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_DISABLE_COMPOSITOR)
 				gf_sys_format_help(helpout, help_flags, "-mp4c unavailable for android\n");
@@ -958,6 +985,24 @@ int gpac_main(int _argc, char **_argv)
 			do_unit_tests = GF_TRUE;
 		} else if (!strcmp(arg, "-cl")) {
 			sflags |= GF_FS_FLAG_NO_IMPLICIT;
+		} else if (!strcmp(arg, "-sid")) {
+			sflags |= GF_FS_FLAG_REQUIRE_SOURCE_ID;
+#ifdef GPAC_DEFER_MODE
+		} else if (!strcmp(arg, "-dl")) {
+			sflags |= GF_FS_FLAG_FORCE_DEFER_LINK;
+			defer_mode=GF_TRUE;
+		} else if (!strcmp(arg, "-np")) {
+			sflags |= GF_FS_FLAG_PREVENT_PLAY;
+		} else if (!strncmp(arg, "-rl", 2)
+			|| !strncmp(arg, "-wl", 2)
+			|| !strcmp(arg, "-f")
+			|| !strcmp(arg, "-s")
+			|| !strcmp(arg, "-g")
+			|| !strcmp(arg, "-pi")
+			|| !strcmp(arg, "-pl")
+			|| !strcmp(arg, "-se")
+		) {
+#endif
 		} else if (!strcmp(arg, "-step")) {
 			use_step_mode = GF_TRUE;
 #ifdef GPAC_CONFIG_EMSCRIPTEN
@@ -1080,7 +1125,6 @@ restart:
 
 	if (view_conn_for_filter && (argmode>=GF_ARGMODE_EXPERT))
 		sflags |= GF_FS_FLAG_PRINT_CONNECTIONS;
-
 	session = gf_fs_new_defaults(sflags);
 
 	if (!session) {
@@ -1148,6 +1192,79 @@ restart:
 		Bool is_simple=GF_FALSE;
 		Bool f_loaded = GF_FALSE;
 		char *arg = argv[i];
+
+#ifdef GPAC_DEFER_MODE
+		if (defer_mode) {
+			if (!strncmp(arg, "-rl", 3) || !strncmp(arg, "-wl", 3)) {
+				Bool do_run = GF_TRUE;
+				Bool use_all_filters = (arg[4]=='x') ? GF_TRUE : GF_FALSE;
+				char *sep = strchr(arg,'=');
+				s32 relink = sep ? atoi(sep+1) : 1;
+				if (!strncmp(arg, "-wl", 3)) do_run=GF_FALSE;
+				if (relink>=0) {
+					GF_Filter *f = NULL;
+					if (use_all_filters) {
+						u32 count = gf_fs_get_filters_count(session);
+						f = gf_fs_get_filter(session, count-1-relink);
+					} else {
+						f = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-relink);
+					}
+					if (!f) {
+						fprintf(stderr, "Invalid filter index in %s\n", arg);
+						e=GF_BAD_PARAM;
+						ERR_EXIT
+					}
+					fprintf(stderr, "Relinking filter %s\n", gf_filter_get_name(f));
+					while (1) {
+						e = gf_filter_reconnect_output(f, NULL);
+						//no output pids and no input, consider this is a source and retry
+						if ((e==GF_EOS) && !gf_filter_get_ipid_count(f) && do_run) {
+							run_sess();
+							continue;
+						}
+						if (e) {
+							fprintf(stderr, "Error relinking filter %s\n", gf_filter_get_name(f));
+							ERR_EXIT
+						}
+						if (do_run)
+							run_sess();
+						break;
+					}
+					fprintf(stderr, "\n");
+				}
+				continue;
+			} else if (!strcmp(arg, "-f")) {
+				fprintf(stderr, "Running session\n");
+				run_sess();
+				continue;
+			} else if (!strcmp(arg, "-g")) {
+				gf_fs_print_connections(session);
+				fprintf(stderr, "\n");
+				continue;
+			} else if (!strcmp(arg, "-s")) {
+				gf_fs_print_stats(session);
+				fprintf(stderr, "\n");
+				continue;
+			} else if (!strcmp(arg, "-stat")) {
+				//gf_fs_print_stats(session);
+				fprintf(stderr, "\n");
+				continue;
+			} else if (!strncmp(arg, "-pi", 3)) {
+				e = print_pid_props(arg);
+				if (e) break;
+				continue;
+			} else if (!strncmp(arg, "-pl", 3)) {
+				e = probe_pid_link(arg);
+				if (e) {
+					ERR_EXIT
+				}
+				continue;
+			} else if (!strncmp(arg, "-se", 3)) {
+				fprintf(stderr, "Sending PLAY event\n");
+				gf_fs_send_deferred_play(session);
+			}
+		}
+#endif
 
 		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib")  || !strcmp(arg, "-ibx") ) {
 			if (!strcmp(arg, "-ib") || !strcmp(arg, "-ibx")) {
@@ -1293,6 +1410,10 @@ restart:
 			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
 		}
 
+#ifdef GPAC_DEFER_MODE
+		if (defer_mode)
+			fprintf(stdout, "Added filter %s\n\n", gf_filter_get_name(filter));
+#endif
 		gf_list_add(loaded_filters, filter);
 
 		//implicit mode, check changes of source and sinks
@@ -1736,6 +1857,90 @@ static void gpac_fsess_task_help()
 		i++;
 	}
 }
+
+#ifdef GPAC_DEFER_MODE
+static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx)
+{
+	Bool use_all_filters = (arg[3]=='x') ? GF_TRUE : GF_FALSE;
+	char *sep = strchr(arg,'=');
+	char *sep_pid = sep ? strchr(sep+1,':') : NULL;
+	if (sep_pid) sep_pid[0]=0;
+	char *sep_f = strchr(arg,'@');
+	if (sep_f) sep_f[0]=0;
+
+	u32 f_idx = sep ? atoi(sep+1) : 0;
+	*opid_idx=-1;
+	if (sep_pid) {
+		sep_pid[0]=':';
+		*opid_idx = atoi(sep_pid+1);
+	}
+	if (sep_f) sep_f[0]='@';
+	u32 count;
+	*o_f = NULL;
+	if (use_all_filters) {
+		count = gf_fs_get_filters_count(session);
+		*o_f = gf_fs_get_filter(session, count-1-f_idx);
+	} else {
+		count = gf_list_count(loaded_filters);
+		*o_f = gf_list_get(loaded_filters, count-1-f_idx);
+	}
+	if (!*o_f) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter at index %d in arg %s\n", f_idx, arg));
+		return GF_BAD_PARAM;
+	}
+	if ((*opid_idx>=0) && (*opid_idx>=count)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter pid at index %d in filter %s in arg %s\n", *opid_idx, gf_filter_get_name(*o_f), arg ));
+		return GF_BAD_PARAM;
+	}
+	return GF_OK;
+}
+
+static GF_Err print_pid_props(char *arg)
+{
+	GF_Filter *f;
+	s32 p_idx;
+	GF_Err e = extract_filter_and_pid(arg, &f, &p_idx);
+	if (e) return e;
+	u32 j, count = gf_filter_get_opid_count(f);
+	for (j=0; j<count;j++) {
+		char szDump[GF_PROP_DUMP_ARG_SIZE];
+		u32 prop_idx=0;
+		GF_FilterPid *pid = gf_filter_get_opid(f, j);
+		if ((p_idx>=0) && (p_idx != j)) continue;
+		fprintf(stderr, "Filter %s PID %s properties:\n", gf_filter_get_name(f), gf_filter_pid_get_name(pid) );
+		while (1) {
+			u32 p4cc=0;
+			const char *pname=NULL;
+			const GF_PropertyValue *p = gf_filter_pid_enum_properties(pid, &prop_idx, &p4cc, &pname);
+			if (!p) break;
+			fprintf(stdout, "Prop %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE));
+		}
+		fprintf(stderr, "\n");
+	}
+	return GF_OK;
+}
+static GF_Err probe_pid_link(char *arg)
+{
+	GF_Filter *f;
+	s32 opid_idx;
+	char *fname = strchr(arg, '@');
+	if (!fname) return GF_BAD_PARAM;
+
+	GF_Err e = extract_filter_and_pid(arg, &f, &opid_idx);
+	if (e) return e;
+	if (opid_idx<0) opid_idx=0;
+	char *res = NULL;
+	e = gf_filter_probe_link(f, opid_idx, fname+1, &res);
+	if (res) {
+		fprintf(stdout, "Probed chain from %s to %s: %s\n\n", gf_filter_get_name(f), fname+1, res);
+		gf_free(res);
+	} else {
+		fprintf(stdout, "No filter chain from %s to %s: %s\n\n", gf_filter_get_name(f), fname+1, gf_error_to_string(e));
+
+	}
+	return GF_OK;
+}
+#endif
 
 
 static char szFilter[100];
