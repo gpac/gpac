@@ -275,6 +275,158 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
 	finfo->blob->flags = 0;
 }
 
+static GF_Err repair_intervale(GF_LCTFragInfo *frags, u32 *nb_frags, u32 *nb_alloc_frags, u32 start, u32 size, ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo) {
+	//insert intervalle into frags
+	GF_Err e;
+	u32 nb_loss = size;
+	u32 pos = start;
+	u32 nb_inserted = 0, i;
+	GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
+	GF_DownloadSession *dsess = NULL;
+
+	gf_assert(finfo->blob->size == finfo->total_size);
+	gf_assert(*nb_frags <= *nb_alloc_frags);
+
+	if(start + size > finfo->total_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Repair procedure failed for [%u, %u]: trying to get data beyond segment intervale \n", start, start+size-1));
+		return GF_BAD_PARAM;
+	}
+	char *url = gf_url_concatenate(ctx->repair_url, finfo->filename);
+	if (!dsess) {
+		dsess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_NOT_CACHED | GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT, NULL, NULL, &e);
+		gf_dm_sess_set_netcap_id(dsess, "__ignore");
+	} else {
+		e = gf_dm_sess_setup_from_url(dsess, url, GF_FALSE);
+	}
+	gf_dm_sess_set_range(dsess, start, start+size-1, GF_TRUE);
+
+	while (nb_loss) {
+		u8 data[1000];
+		u32 nb_read=0;
+		e = gf_dm_sess_fetch_data(dsess, data, 1000, &nb_read);
+		if (e==GF_IP_NETWORK_EMPTY) continue;
+		if (e<0) break;
+
+		nb_loss -= nb_read;
+		memcpy(finfo->blob->data + pos, data, nb_read);
+		pos += nb_read;
+		if (e) break;
+	}
+
+	if (nb_loss) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Repair procedure failed for [%u, %u]: %u bytes were not received \n", start, start+size-1, nb_loss));
+		e = GF_IP_NETWORK_FAILURE;
+	} else {
+		e = GF_OK;
+	}
+	nb_inserted = size - nb_loss;
+	if(!nb_inserted) return e;
+
+	//update frags
+
+	int start_frag = -1;
+	int end_frag = -1;
+	for (i=0; (i < *nb_frags) && (start_frag==-1 || end_frag==-1); i++) {
+		if((start_frag == -1) && (start <= frags[i].offset + frags[i].size)) {
+			start_frag = i;
+		}
+
+		if((end_frag == -1) && (start + nb_inserted < frags[i].offset)) {
+			end_frag = i;
+		} 
+	}
+	if(start_frag == -1) {
+		start_frag = *nb_frags;
+	}
+	if(end_frag == -1) {
+		end_frag = *nb_frags;
+	}
+
+	if(start_frag == end_frag) {
+		// insert new fragment between two already received fragments or at the end
+		if (*nb_frags==*nb_alloc_frags) {
+			*nb_alloc_frags *= 2;
+			frags = gf_realloc(frags, sizeof(GF_LCTFragInfo) * *nb_alloc_frags);
+		}
+		memmove(&frags[start_frag+1], &frags[start_frag], sizeof(GF_LCTFragInfo) * (*nb_frags - start_frag));
+		frags[start_frag].offset = start;
+		frags[start_frag].size = nb_inserted;
+		(*nb_frags)++;
+	} else {
+		int end = MAX(start + nb_inserted, frags[end_frag-1].offset + frags[end_frag-1].size);
+		frags[start_frag].offset = MIN(frags[start_frag].offset, start);
+		frags[start_frag].size = end - frags[start_frag].offset;
+
+		if(end_frag > start_frag + 1) {
+			memmove(&frags[start_frag+1], &frags[end_frag], sizeof(GF_LCTFragInfo) * (*nb_frags - end_frag));
+			*nb_frags += start_frag - end_frag + 1;
+		}
+	}
+	return e;
+}
+
+static Bool does_belong(GF_LCTFragInfo *frags, u32 nb_frags, u32 start, u32 size) {
+	// check if intervale [start, start+size[ belongs to frags list of intervales
+	u32 i;
+	if(start > GF_UINT_MAX - size) return GF_FALSE;
+	for(i=0; i < nb_frags; i++) {
+		if(start < frags[i].offset) return GF_FALSE;
+		if(start < frags[i].offset + frags[i].size) {
+			return start + size <= frags[i].offset + frags[i].size;
+		}
+	}
+	return GF_FALSE;
+}
+
+static void routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo) {
+	int pos = 0;
+	u32 box_size, type;
+	u32 threshold = 100; // seuil ! 
+
+	u32 nb_frags = finfo->nb_frags;
+	u32 nb_alloc_frags = nb_frags;
+	Bool size_checked_belong = GF_FALSE, type_checked_belong = GF_FALSE;
+	GF_LCTFragInfo *frags = gf_calloc(nb_alloc_frags, sizeof(GF_LCTFragInfo));
+
+	memcpy(frags, finfo->frags, nb_frags * sizeof(GF_LCTFragInfo));
+
+	while(pos+8 <= finfo->total_size) {
+		if(size_checked_belong || does_belong(frags, nb_frags, pos, 4)) {
+			box_size = GF_4CC(finfo->blob->data[pos], finfo->blob->data[pos+1], finfo->blob->data[pos+2], finfo->blob->data[pos+3]);
+			size_checked_belong = GF_FALSE;
+
+			if(!type_checked_belong && !does_belong(frags, nb_frags, pos+4, 4)) {
+				if(box_size <= threshold) {
+					repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos, box_size+8, ctx, finfo); // whole box + size and type of next box
+					pos += box_size;
+					size_checked_belong = GF_TRUE;
+					type_checked_belong = GF_TRUE;
+					continue;
+				} else {
+					repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+4, 4, ctx, finfo); // type!
+				}
+			}
+		} else {
+			repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos, 8, ctx, finfo); // size + type
+			box_size = GF_4CC(finfo->blob->data[pos], finfo->blob->data[pos+1], finfo->blob->data[pos+2], finfo->blob->data[pos+3]);
+			size_checked_belong = GF_FALSE;
+		}
+
+		type = GF_4CC(finfo->blob->data[pos+4], finfo->blob->data[pos+5], finfo->blob->data[pos+6], finfo->blob->data[pos+7]);
+		type_checked_belong = GF_FALSE;
+
+		// check type
+		if(type == GF_4CC('m', 'o', 'o', 'f')) {
+			if(! does_belong(frags, nb_frags, pos, box_size)) {
+				repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+8, box_size, ctx, finfo);
+				size_checked_belong = GF_TRUE;
+				type_checked_belong = GF_TRUE;
+			}
+		}
+		pos += box_size;
+	}
+}
+
 static Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
 	Bool drop_if_first = GF_FALSE;
