@@ -1,5 +1,10 @@
 # Ongoing: GPAC 2.5-DEV
 
+## gpac
+- Added mode for testing defered graph linking apps
+
+##Emscripten
+- Fixes in UI
 
 #04/2024: GPAC 2.4
 
