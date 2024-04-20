@@ -4313,30 +4313,33 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	caps = dst->forced_caps ? dst->forced_caps : dst->freg->caps;
 	nb_caps = dst->forced_caps ? dst->nb_forced_caps : dst->freg->nb_caps;
 
-	Bool matched=GF_FALSE;
-	Bool mismatched=GF_FALSE;
+	s32 out_stream_type=0;
 	for (i=0; i<nb_caps; i++) {
 		const GF_FilterCapability *cap = &caps[i];
-		if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
-
-		if (!(cap->flags & GF_CAPFLAG_EXCLUDED) && (cap->code == GF_PROP_PID_STREAM_TYPE)) {
+		//for implicit filter, check if output stream type differs from PID stream type
+		if (!(dst->freg->flags & GF_FS_REG_EXPLICIT_ONLY)
+			&& (cap->flags & GF_CAPFLAG_OUTPUT)
+			&& (cap->code == GF_PROP_PID_STREAM_TYPE)
+		) {
 			switch (cap->val.value.uint) {
 			case GF_STREAM_FILE:
 			case GF_STREAM_ENCRYPTED:
 				break;
 			default:
-				if (stream_type->value.uint == cap->val.value.uint) matched = GF_TRUE;
-				else mismatched = GF_TRUE;
+				if (!out_stream_type) out_stream_type = cap->val.value.uint;
+				//multiple output types
+				else if (out_stream_type!=cap->val.value.uint) out_stream_type = -1;
 				break;
 			}
 		}
 
+		if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 		if (cap->code != GF_PROP_PID_CODECID) continue;
 		if (cap->val.value.uint==GF_CODECID_RAW)
 			dst_has_raw_cid_in = GF_TRUE;
 	}
 	//not file, not encrypted and mismatch of stream type, we need explicit filter
-	if (mismatched && !matched)
+	if ((out_stream_type>0) && (out_stream_type!=stream_type->value.uint))
 		return GF_TRUE;
 
 	for (i=0; i<nb_caps; i++) {
