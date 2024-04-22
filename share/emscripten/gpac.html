@@ -479,6 +479,7 @@
       let fsess = null;
       let prev_filter = null;
       let defer_mode = false;
+      let logs_val = null;
       let suspend_sess = false;
       let fs_steps = 20;
       let FS = null;
@@ -1141,23 +1142,35 @@
             }
             return;
           }
+          if (args[0]=='l') {
+            logs_val = args[1];
+            return;
+          }
+
           if (args[0]=='s') {
             if (args.length>1) {
               fs_steps = parseInt(args[1]);
-              if (fs_steps<=0) fs_steps=1;
-              set_status("will use " + fs_steps + " steps per callback");
+              if (fs_steps==0) fs_steps=1;
+              if (fs_steps<0)
+                set_status("will use blocking mode");
+              else
+                set_status("will use " + fs_steps + " steps per callback");
             }
             return;
           }
           if (args[0]=='a') {
             if (args.length<2) return set_status('Invalid add command');
             if (!fsess) {
-              let flag = 1<<2; //always run async
+              let flag = 0;
+              if (fs_steps>0) flag |= 1<<2; 
               if (defer_mode) flag |= (1<<13);
 
               LIBGPAC.init(0, null);
+              if (logs_val)
+                LIBGPAC.log_set_tools_levels(logs_val, 1);
               fsess = LIBGPAC.fs_new_defaults(flag);
-              set_status("Creating filter session in non-blocking mode" + (defer_mode ? ' - deferred linking' : '') );
+              set_status("Creating filter session in " + ((fs_steps<0) ? "" : "non-") + "blocking mode" + (defer_mode ? ' - deferred linking' : '') );
+              if (fs_steps<0) fs_steps=1; //for run_session
             }
             if (prev_filter && defer_mode) {
               LIBGPAC.filter_reconnect_output(prev_filter, null);
@@ -1288,7 +1301,8 @@
           
           let help="Possible commands:\n";
           help+= "- d: set defer linking mode (default: "+ defer_mode + ")\n";
-          help+= "- s: set number of steps before returning control to JS (default: "+ fs_steps + ")\n";
+          help+= "- s: set number of steps before returning control to JS, use -1 for blocking mode (default: "+ fs_steps + ")\n";
+          help+= "- l LT: set log tools and levels, same syntax as -logs\n";
           help+= "- a DESC: add filter, use src=URL for source, dst=URL for sinks. $(name) replacement rules are allowed\n";
           help+= "- r: run or resume session\n";
           help+= "- c: suspend session while running\n";
