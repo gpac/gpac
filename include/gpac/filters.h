@@ -750,6 +750,13 @@ GF_Err gf_fs_set_filter_creation_callback(GF_FilterSession *session, gf_fs_on_fi
  */
 void *gf_fs_get_rt_udta(GF_FilterSession *session);
 
+/*! Checks if a filter is still valid - typically used when not monitoring filter destruction at session level using \ref gf_fs_set_filter_creation_callback
+\param session filter session
+\param filter filter to check
+\return GF_TRUE if filter is still valid until the next call to \ref gf_fs_run, GF_FALSE otherwise
+*/
+Bool gf_fs_check_filter(GF_FilterSession *session, GF_Filter *filter);
+
 /*! Fires an event on filter
 \param session filter session
 \param filter target filter - if NULL, event will be executed on all filters. Otherwise, the event will be executed directly if its type is \ref GF_FEVT_USER, and fired otherwise

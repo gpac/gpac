@@ -1583,13 +1583,8 @@ void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_fla
 //this defines the sleep time for this case
 #define MONOTH_MIN_SLEEP	5
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
-// && !defined(GPAC_DISABLE_THREADS)
-#include <emscripten/threading.h>
-#endif
-
 #if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
-//#include <emscripten/threading.h>
+#include <emscripten/threading.h>
 GF_Err gf_th_async_call(GF_Thread *t, u32 (*Run)(void *param), void *param);
 static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread);
 
@@ -1636,8 +1631,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	Bool skip_next_sema_wait = GF_FALSE;
 	GF_Filter *current_filter = NULL;
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
-// && !defined(GPAC_DISABLE_THREADS)
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
 	Bool flush_main_blocking = (!thid && !fsess->is_worker) ? GF_TRUE : GF_FALSE;
 	if (flush_main_blocking) do_regulate = GF_FALSE;
 #endif
@@ -1702,11 +1696,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 #endif
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
-//&& !defined(GPAC_DISABLE_THREADS)
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
 		if (flush_main_blocking) {
-//			emscripten_main_thread_process_queued_calls();
-			emscripten_current_thread_process_queued_calls();
+			emscripten_main_thread_process_queued_calls();
 		}
 #endif
 
@@ -4856,6 +4848,18 @@ void gf_fs_send_deferred_play(GF_FilterSession *fsess)
 	gf_mx_v(fsess->filters_mx);
 }
 
+GF_EXPORT
+Bool gf_fs_check_filter(GF_FilterSession *fs, GF_Filter *filter)
+{
+	if (!fs) return GF_FALSE;
+	s32 res=-1;
+	gf_mx_p(fs->filters_mx);
+	res = gf_list_find(fs->filters, filter);
+	gf_mx_v(fs->filters_mx);
+	if (res<0) return GF_FALSE;
+	if (filter->removed) return GF_FALSE;
+	return GF_TRUE;
+}
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 void gf_fs_force_non_blocking(GF_FilterSession *fs)
