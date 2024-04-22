@@ -650,7 +650,9 @@ GF_FilterRegister HTTPInRegister = {
 	"\n"
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
 	.private_size = sizeof(GF_HTTPInCtx),
-	.flags = GF_FS_REG_USE_SYNC_READ,
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	.flags = GF_FS_REG_MAIN_THREAD,
+#endif
 	.args = HTTPInArgs,
 	SETCAPS(HTTPInCaps),
 	.initialize = httpin_initialize,
