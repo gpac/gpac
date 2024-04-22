@@ -664,7 +664,7 @@
         s = FS.analyzePath('/idbfs/.gpac/history.txt', true);
         if (s.error) return;
         let strs = FS.readFile('/idbfs/.gpac/history.txt', { encoding: "utf8"}).split('\n');
-        strs.forEach(s => { if (s.length) cmd_history.push(s); });
+        strs.forEach(s => { if (s.length && (cmd_history.indexOf(s)<0)) cmd_history.push(s); });
       }
       //save command history to /idbfs/.gpac/history.txt
       function save_history() {
@@ -791,6 +791,10 @@
        }
 
        //save history
+       let cmd_idx = cmd_history.indexOf(cmd);
+       if (cmd_idx>=0) {
+          cmd_history.splice(cmd_idx, 1);
+       }
        cmd_history.push(cmd);
        save_history();
        cmd_idx = -1;
@@ -1216,6 +1220,10 @@
               suspend_sess = true;
               set_status("Suspending session");
             }
+            return;
+          }
+          if (args[0]=='clear') {
+            if (outputElement) outputElement.innerText = '';
             return;
           }
 
