@@ -3847,6 +3847,7 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
 	return chain_len;
 }
 
+static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter *dst);
 
 GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst)
 {
@@ -3857,6 +3858,8 @@ GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst)
 
 	if (!fsess->max_resolve_chain_len) return NULL;
 	if (!dst) return NULL;
+	if (gf_filter_pid_needs_explicit_resolution(pid, dst))
+		return NULL;
 
 	filter_chain = gf_list_new();
 
@@ -4672,7 +4675,13 @@ single_retry:
 			s32 ours = gf_list_find(pid->filter->destination_filters, filter_dst);
 			if (ours<0) {
 				ours = num_pass ? gf_list_del_item(pid->filter->destination_links, filter_dst) : -1;
-				if (!filter_dst->source_ids && (ours<0)) {
+				if ((ours<0) && (
+					//no source ID on filter, exclude
+					!filter_dst->source_ids
+					//dst is already linked and cannot accept more inputs, don't try to connect (this would trigger a clone)
+					//this is typically needed with defer linking when we reconnect outputs of a filter already connected
+					|| (filter_dst->num_input_pids && !filter_dst->max_extra_pids)
+				)) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has destination filters, filter %s not one of them\n", pid->name, filter_dst->name));
 					continue;
 				}
