@@ -2387,6 +2387,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_type_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_type_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_parse_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_dump) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_dump_val) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_dump_alloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_id) )
