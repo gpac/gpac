@@ -3311,8 +3311,8 @@ GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, 
 /*! Gets list of possible destinations for this filter
 \param filter target filter
 \param opid_idx output pid index of target filter. If negative, will check destinations for any of the output pids
-\param result_list resulting list as comma-separated list, or NULL if error. MUST be freed by caller
-\return error if any
+\param result_list resulting list as comma-separated list, or NULL if error. MUST be freed by caller. An empty chain means direct connection is possible
+\return error if any, GF_FILTER_NOT_FOUND if no available chain
 */
 GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char **result_list);
 
