@@ -95,7 +95,7 @@ void carbon_set_hook(void);
 
 void gpac_open_urls(const char *urls);
 
-#if !defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_CONFIG_IOD)
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_CONFIG_IOD)
 //support for step-by-stpe graph construction
 #define GPAC_DEFER_MODE
 #endif
