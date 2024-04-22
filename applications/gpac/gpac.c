@@ -473,8 +473,12 @@ static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flag
 static void run_sess(void)
 {
 	if (use_step_mode) {
-		while (!gf_fs_is_last_task(session)) {
+		//max run (in case some filters are asking for RT reschedule
+		//this is only used for defer mdoe
+		u32 retry=10;
+		while (retry && !gf_fs_is_last_task(session)) {
 			gf_fs_run(session);
+			retry--;
 		}
 	} else {
 		gf_fs_run(session);
@@ -1202,6 +1206,7 @@ restart:
 				s32 relink = sep ? atoi(sep+1) : 1;
 				if (!strncmp(arg, "-wl", 3)) do_run=GF_FALSE;
 				if (relink>=0) {
+					u32 retry=100;
 					GF_Filter *f = NULL;
 					if (use_all_filters) {
 						u32 count = gf_fs_get_filters_count(session);
@@ -1215,11 +1220,15 @@ restart:
 						ERR_EXIT
 					}
 					fprintf(stderr, "Relinking filter %s\n", gf_filter_get_name(f));
-					while (1) {
+					while (retry && gf_fs_check_filter(session, f)) {
+						retry--;
 						e = gf_filter_reconnect_output(f, NULL);
 						//no output pids and no input, consider this is a source and retry
 						if ((e==GF_EOS) && !gf_filter_get_ipid_count(f) && do_run) {
 							run_sess();
+#ifndef GPAC_CONFIG_EMSCRIPTEN
+							gf_sleep(10);
+#endif
 							continue;
 						}
 						if (e) {
@@ -1229,6 +1238,14 @@ restart:
 						if (do_run)
 							run_sess();
 						break;
+					}
+					if ((e==GF_EOS) && !retry && do_run) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No output pid after running session for %s - cannot flush session\n", gf_filter_get_name(f)));
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\tThis may require unwinding to  main JS loop, not supported in defer mode (always blocking)\n", gf_filter_get_name(f)));
+#endif
+						e = GF_NOT_SUPPORTED;
+						ERR_EXIT
 					}
 					fprintf(stderr, "\n");
 				}
@@ -1412,7 +1429,7 @@ restart:
 
 #ifdef GPAC_DEFER_MODE
 		if (defer_mode)
-			fprintf(stdout, "Added filter %s\n\n", gf_filter_get_name(filter));
+			fprintf(stdout, "Added filter %s for %s\n\n", gf_filter_get_name(filter), arg);
 #endif
 		gf_list_add(loaded_filters, filter);
 
@@ -1859,10 +1876,20 @@ static void gpac_fsess_task_help()
 }
 
 #ifdef GPAC_DEFER_MODE
-static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx)
+static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx, u8 *prefix_c)
 {
 	Bool use_all_filters = (arg[3]=='x') ? GF_TRUE : GF_FALSE;
+	if (prefix_c) *prefix_c = 0;
 	char *sep = strchr(arg,'=');
+	if (sep) {
+		switch (sep[1]) {
+		case '-':
+		case '+':
+			if (prefix_c) *prefix_c = sep[1];
+			sep++;
+			break;
+		}
+	}
 	char *sep_pid = sep ? strchr(sep+1,':') : NULL;
 	if (sep_pid) sep_pid[0]=0;
 	char *sep_f = strchr(arg,'@');
@@ -1884,10 +1911,11 @@ static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx)
 		count = gf_list_count(loaded_filters);
 		*o_f = gf_list_get(loaded_filters, count-1-f_idx);
 	}
-	if (!*o_f) {
+	if (!*o_f || !gf_fs_check_filter(session, *o_f)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter at index %d in arg %s\n", f_idx, arg));
 		return GF_BAD_PARAM;
 	}
+
 	if ((*opid_idx>=0) && (*opid_idx>=count)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter pid at index %d in filter %s in arg %s\n", *opid_idx, gf_filter_get_name(*o_f), arg ));
 		return GF_BAD_PARAM;
@@ -1899,14 +1927,23 @@ static GF_Err print_pid_props(char *arg)
 {
 	GF_Filter *f;
 	s32 p_idx;
-	GF_Err e = extract_filter_and_pid(arg, &f, &p_idx);
+	u8 prefix;
+	GF_Err e = extract_filter_and_pid(arg, &f, &p_idx, &prefix);
 	if (e) return e;
 	u32 j, count = gf_filter_get_opid_count(f);
+	if (!count) {
+		fprintf(stderr, "Filter %s has no output\n", gf_filter_get_name(f));
+		return GF_OK;
+	}
 	for (j=0; j<count;j++) {
 		char szDump[GF_PROP_DUMP_ARG_SIZE];
 		u32 prop_idx=0;
 		GF_FilterPid *pid = gf_filter_get_opid(f, j);
 		if ((p_idx>=0) && (p_idx != j)) continue;
+		if (prefix=='-') {
+			fprintf(stderr, "Filter %s PID #%d name: %s\n", gf_filter_get_name(f), j, gf_filter_pid_get_name(pid) );
+			continue;
+		}
 		fprintf(stderr, "Filter %s PID %s properties:\n", gf_filter_get_name(f), gf_filter_pid_get_name(pid) );
 		while (1) {
 			u32 p4cc=0;
@@ -1914,6 +1951,14 @@ static GF_Err print_pid_props(char *arg)
 			const GF_PropertyValue *p = gf_filter_pid_enum_properties(pid, &prop_idx, &p4cc, &pname);
 			if (!p) break;
 			fprintf(stdout, "Prop %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE));
+		}
+		prop_idx=0;
+		while (prefix=='+') {
+			u32 p4cc=0;
+			const char *pname=NULL;
+			const GF_PropertyValue *p = gf_filter_pid_enum_info(pid, &prop_idx, &p4cc, &pname);
+			if (!p) break;
+			fprintf(stdout, "Info %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE));
 		}
 		fprintf(stderr, "\n");
 	}
@@ -1926,7 +1971,7 @@ static GF_Err probe_pid_link(char *arg)
 	char *fname = strchr(arg, '@');
 	if (!fname) return GF_BAD_PARAM;
 
-	GF_Err e = extract_filter_and_pid(arg, &f, &opid_idx);
+	GF_Err e = extract_filter_and_pid(arg, &f, &opid_idx, NULL);
 	if (e) return e;
 	if (opid_idx<0) opid_idx=0;
 	char *res = NULL;
