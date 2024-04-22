@@ -7658,7 +7658,7 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 
 EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb_headers, int req_body, int req_body_size), {
   let url = _url ? libgpac.UTF8ToString(_url) : null;
-  ret = GPAC.OK;
+  ret = libgpac.OK;
 
   let fetcher = libgpac._get_fetcher(sess);
   if (!fetcher) {
@@ -7719,8 +7719,8 @@ EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb
 	}
   })
   .catch( (e) => {
-	  do_log_err('fetcher exception ' + e);
-	  ret = GPAC.REMOTE_SERVICE_ERROR;
+	  libgpac.printErr('fetcher exception ' + e);
+	  ret = libgpac.REMOTE_SERVICE_ERROR;
 	  libgpac._del_fetcher(fetcher);
   });
   return ret;
