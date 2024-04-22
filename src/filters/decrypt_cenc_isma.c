@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -815,6 +815,7 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 #ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
+	if (!dm) return GF_SERVICE_ERROR;
 	cstr->sess = gf_dm_sess_new(dm, ck_url, 0, ck_http_io, cstr, &e);
 	if (e) return e;
 	ctx->pending_keys++;
@@ -952,6 +953,7 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 		GF_Err e = GF_SERVICE_ERROR;
 #ifdef GPAC_USE_DOWNLOADER
 		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
+		if (!dm) return GF_SERVICE_ERROR;
 		GF_DownloadSession *sess = gf_dm_sess_new(dm, key_url, GF_NETIO_SESSION_NOT_CACHED, hls_kms_io, cstr, &e);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Failed to setup download session for key %s: %s\n", key_url, gf_error_to_string(e)))

@@ -1583,8 +1583,13 @@ void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_fla
 //this defines the sleep time for this case
 #define MONOTH_MIN_SLEEP	5
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
+// && !defined(GPAC_DISABLE_THREADS)
 #include <emscripten/threading.h>
+#endif
+
+#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+//#include <emscripten/threading.h>
 GF_Err gf_th_async_call(GF_Thread *t, u32 (*Run)(void *param), void *param);
 static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread);
 
@@ -1631,7 +1636,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	Bool skip_next_sema_wait = GF_FALSE;
 	GF_Filter *current_filter = NULL;
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
+// && !defined(GPAC_DISABLE_THREADS)
 	Bool flush_main_blocking = (!thid && !fsess->is_worker) ? GF_TRUE : GF_FALSE;
 	if (flush_main_blocking) do_regulate = GF_FALSE;
 #endif
@@ -1696,9 +1702,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 #endif
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN) && !defined(GPAC_DISABLE_THREADS)
-		if (flush_main_blocking)
-			emscripten_main_thread_process_queued_calls();
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
+//&& !defined(GPAC_DISABLE_THREADS)
+		if (flush_main_blocking) {
+//			emscripten_main_thread_process_queued_calls();
+			emscripten_current_thread_process_queued_calls();
+		}
 #endif
 
 		safe_int_dec(&fsess->active_threads);
@@ -4051,6 +4060,14 @@ static GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs)
 {
 #ifdef GPAC_USE_DOWNLOADER
 	if (!fs->download_manager) {
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		if (!fs->non_blocking) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("Fetch cannot be used in blocking mode as it requires returning to main/worker JS event loop\n"));
+			return NULL;
+		}
+#endif
+
 		fs->download_manager = gf_dm_new(fs);
 
 #ifndef GPAC_DISABLE_NETWORK
