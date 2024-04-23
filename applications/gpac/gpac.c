@@ -122,6 +122,7 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 #ifdef GPAC_DEFER_MODE
 static GF_Err print_pid_props(char *arg);
 static GF_Err probe_pid_link(char *arg);
+static GF_Err print_pid_dests(char *arg);
 #endif
 
 #ifdef WIN32
@@ -1004,6 +1005,7 @@ int gpac_main(int _argc, char **_argv)
 			|| !strcmp(arg, "-g")
 			|| !strcmp(arg, "-pi")
 			|| !strcmp(arg, "-pl")
+			|| !strcmp(arg, "-pd")
 			|| !strcmp(arg, "-se")
 		) {
 #endif
@@ -1215,11 +1217,11 @@ restart:
 						f = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-relink);
 					}
 					if (!f) {
-						fprintf(stderr, "Invalid filter index in %s\n", arg);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Invalid filter index in %s\n", arg));
 						e=GF_BAD_PARAM;
 						ERR_EXIT
 					}
-					fprintf(stderr, "Relinking filter %s\n", gf_filter_get_name(f));
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Relinking filter %s\n", gf_filter_get_name(f)));
 					while (retry && gf_fs_check_filter(session, f)) {
 						retry--;
 						e = gf_filter_reconnect_output(f, NULL);
@@ -1232,7 +1234,7 @@ restart:
 							continue;
 						}
 						if (e) {
-							fprintf(stderr, "Error relinking filter %s\n", gf_filter_get_name(f));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Error relinking filter %s\n", gf_filter_get_name(f)));
 							ERR_EXIT
 						}
 						if (do_run)
@@ -1247,24 +1249,20 @@ restart:
 						e = GF_NOT_SUPPORTED;
 						ERR_EXIT
 					}
-					fprintf(stderr, "\n");
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 				}
 				continue;
 			} else if (!strcmp(arg, "-f")) {
-				fprintf(stderr, "Running session\n");
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session\n"));
 				run_sess();
 				continue;
 			} else if (!strcmp(arg, "-g")) {
 				gf_fs_print_connections(session);
-				fprintf(stderr, "\n");
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 				continue;
 			} else if (!strcmp(arg, "-s")) {
 				gf_fs_print_stats(session);
-				fprintf(stderr, "\n");
-				continue;
-			} else if (!strcmp(arg, "-stat")) {
-				//gf_fs_print_stats(session);
-				fprintf(stderr, "\n");
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 				continue;
 			} else if (!strncmp(arg, "-pi", 3)) {
 				e = print_pid_props(arg);
@@ -1276,8 +1274,14 @@ restart:
 					ERR_EXIT
 				}
 				continue;
+			} else if (!strncmp(arg, "-pd", 3)) {
+				e = print_pid_dests(arg);
+				if (e) {
+					ERR_EXIT
+				}
+				continue;
 			} else if (!strncmp(arg, "-se", 3)) {
-				fprintf(stderr, "Sending PLAY event\n");
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Sending PLAY event\n"));
 				gf_fs_send_deferred_play(session);
 			}
 		}
@@ -1932,7 +1936,7 @@ static GF_Err print_pid_props(char *arg)
 	if (e) return e;
 	u32 j, count = gf_filter_get_opid_count(f);
 	if (!count) {
-		fprintf(stderr, "Filter %s has no output\n", gf_filter_get_name(f));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s has no output\n", gf_filter_get_name(f)));
 		return GF_OK;
 	}
 	for (j=0; j<count;j++) {
@@ -1941,16 +1945,16 @@ static GF_Err print_pid_props(char *arg)
 		GF_FilterPid *pid = gf_filter_get_opid(f, j);
 		if ((p_idx>=0) && (p_idx != j)) continue;
 		if (prefix=='-') {
-			fprintf(stderr, "Filter %s PID #%d name: %s\n", gf_filter_get_name(f), j, gf_filter_pid_get_name(pid) );
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s PID #%d name: %s\n", gf_filter_get_name(f), j, gf_filter_pid_get_name(pid) ));
 			continue;
 		}
-		fprintf(stderr, "Filter %s PID %s properties:\n", gf_filter_get_name(f), gf_filter_pid_get_name(pid) );
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s PID %s properties:\n", gf_filter_get_name(f), gf_filter_pid_get_name(pid) ));
 		while (1) {
 			u32 p4cc=0;
 			const char *pname=NULL;
 			const GF_PropertyValue *p = gf_filter_pid_enum_properties(pid, &prop_idx, &p4cc, &pname);
 			if (!p) break;
-			fprintf(stdout, "Prop %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Prop %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE)));
 		}
 		prop_idx=0;
 		while (prefix=='+') {
@@ -1958,9 +1962,12 @@ static GF_Err print_pid_props(char *arg)
 			const char *pname=NULL;
 			const GF_PropertyValue *p = gf_filter_pid_enum_info(pid, &prop_idx, &p4cc, &pname);
 			if (!p) break;
-			fprintf(stdout, "Info %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Info %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE)));
 		}
-		fprintf(stderr, "\n");
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+	}
+	if (prefix=='-') {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 	}
 	return GF_OK;
 }
@@ -1968,20 +1975,72 @@ static GF_Err probe_pid_link(char *arg)
 {
 	GF_Filter *f;
 	s32 opid_idx;
+	u8 prefix;
 	char *fname = strchr(arg, '@');
-	if (!fname) return GF_BAD_PARAM;
+	if (!fname) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Missing `@` directive in probe link\n"));
+		return GF_BAD_PARAM;
+	}
 
-	GF_Err e = extract_filter_and_pid(arg, &f, &opid_idx, NULL);
+	GF_Err e = extract_filter_and_pid(arg, &f, &opid_idx, &prefix);
 	if (e) return e;
 	if (opid_idx<0) opid_idx=0;
 	char *res = NULL;
-	e = gf_filter_probe_link(f, opid_idx, fname+1, &res);
+	if (prefix=='+')
+		e = gf_filter_probe_links(f, opid_idx, fname+1, &res);
+	else
+		e = gf_filter_probe_link(f, opid_idx, fname+1, &res);
+
 	if (res) {
-		fprintf(stdout, "Probed chain from %s to %s: %s\n\n", gf_filter_get_name(f), fname+1, res);
+		if (!res[0]) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Probed chain from %s to %s: direct connection\n\n", gf_filter_get_name(f), fname+1));
+		} else if (strchr(res, '|')) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Probed chains from %s to %s:\n", gf_filter_get_name(f), fname+1));
+			char *cur=res;
+			while (1) {
+				u32 distance=0;
+				u32 priority=0;
+				char *sep = strchr(cur, '|');
+				if (sep) sep[0] = 0;
+				char *w_sep = strchr(cur, ',');
+				if (w_sep) {
+					w_sep[0] = 0;
+					sscanf(cur, "%u;%u", &distance, &priority);
+					w_sep[0] = ',';
+				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t- %s (priority %u distance %u)\n", w_sep ? w_sep+1 : cur, priority, distance));
+				if (!sep) break;
+				sep[0] = '|';
+				cur = sep+1;
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Probed chain from %s to %s: %s\n", gf_filter_get_name(f), fname+1, res));
+		}
 		gf_free(res);
 	} else {
-		fprintf(stdout, "No filter chain from %s to %s: %s\n\n", gf_filter_get_name(f), fname+1, gf_error_to_string(e));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("No filter chain from %s to %s: %s\n\n", gf_filter_get_name(f), fname+1, gf_error_to_string(e)));
+	}
+	return GF_OK;
+}
 
+static GF_Err print_pid_dests(char *arg)
+{
+	GF_Filter *f;
+	s32 p_idx;
+	u8 prefix;
+	char *res;
+	GF_Err e = extract_filter_and_pid(arg, &f, &p_idx, &prefix);
+	if (e) return e;
+
+	e = gf_filter_get_possible_destinations(f, p_idx, &res);
+	if (res) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible destinations for %s: %s\n", gf_filter_get_name(f), res));
+		gf_free(res);
+	} else if (e==GF_FILTER_NOT_FOUND){
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("No destinations for %s\n", gf_filter_get_name(f)));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Failed to probe possible destinations for %s: %s\n\n", gf_filter_get_name(f), gf_error_to_string(e)));
 	}
 	return GF_OK;
 }

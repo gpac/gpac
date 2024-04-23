@@ -888,9 +888,9 @@ static const char *gpac_defer =
 "This mode can be used to test loading filters one by one and asking for link resolution explicitly.\n"
 "This is mostly used to reproduce how sessions are build in more complex applications.\n"
 "\n"
-"The options `rl`, `pi` and `pl` allow adressing a filter by index `F` in a list.\n"
+"The options `rl`, `pi`, `pl` and `pd` allow adressing a filter by index `F` in a list.\n"
 "- if the option is suffixed with an `x` (e.g. `rlx=`), `F=0` means the last filter in the list of filters in the session\n"
-"- otherwise, `F=0` means the last filter located before the option\n"
+"- otherwise, `F=0` means the last filter declared before the option\n"
 "\n"
 "The relink options `-rl` and `-rlx` always flush the session (run until no more tasks are scheduled).\n"
 "The last run can be omitted.\n"
@@ -910,7 +910,9 @@ static GF_GPACArg gpac_defer_args[] =
 	GF_DEF_ARG("pi=[+|-][F[:i]]", NULL, "print PID properties (all or of index `i`) of filter `F` (default 0)\n"
 	"- if prefixed with `-`: only list PIDs\n"
 	"- if prefixed with `+`: also print PID info", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("pl=[F[:i]]@NAME", NULL, "probe filter chain from filter `F` (default 0) to the given filter `NAME`", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("pl=[+][F[:i]]@NAME", NULL, "probe filter chain from filter `F` (default 0) to the given filter `NAME`: \n"
+		"- if prefixed with `+`: print all known chains and their priorities", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("pd=[F[:i]]", NULL, "print possible PID destinations (all or of index `i`) of filter `F` (default 0)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("f", NULL, "flush session until no more tasks", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("g", NULL, "print graph", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("s", NULL, "print stats", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),

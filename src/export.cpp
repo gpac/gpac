@@ -2545,6 +2545,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_meta_set_instances ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_meta_get_instances ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_probe_link ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_probe_links ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_possible_destinations ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )

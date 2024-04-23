@@ -1276,8 +1276,13 @@ Bool gf_fs_check_filter_register_cap_ex(const GF_FilterRegister *f_reg, u32 inco
 
 Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const char *arg_value, Bool is_sync_call);
 
+typedef struct
+{
+	u32 distance;
+	u32 priority;
+} GF_LinkInfo;
 
-GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst);
+GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst, GF_List *tmp_blacklist, GF_LinkInfo *link_info);
 
 GF_PropertyValue gf_filter_parse_prop_solve_env_var(GF_FilterSession *fs, GF_Filter *f, u32 type, const char *name, const char *value, const char *enum_values);
 
