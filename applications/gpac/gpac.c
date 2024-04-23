@@ -1920,7 +1920,7 @@ static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx, 
 		return GF_BAD_PARAM;
 	}
 
-	if ((*opid_idx>=0) && (*opid_idx>=count)) {
+	if ((*opid_idx>=0) && (*opid_idx>=(s32)count)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter pid at index %d in filter %s in arg %s\n", *opid_idx, gf_filter_get_name(*o_f), arg ));
 		return GF_BAD_PARAM;
 	}
