@@ -5593,8 +5593,7 @@ void gf_filter_dump_buffers(GF_Filter *f)
 }
 #endif
 
-GF_EXPORT
-GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, char **res_chain)
+static GF_Err gf_filter_probe_link_internal(GF_Filter *filter, u32 opid_idx, const char *fname, Bool all_links, char **res_chain)
 {
 	char *fdesc=NULL;
 	char szFmt[20];
@@ -5602,6 +5601,7 @@ GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, 
 	GF_Err e;
 	GF_FilterPid *opid=NULL;
 	GF_FilterSession *fs;
+	GF_List *tmp_blacklist;
 	if (!filter || !fname || !res_chain) return GF_BAD_PARAM;
 	*res_chain = NULL;
 	fs = filter->session;
@@ -5632,27 +5632,58 @@ GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, 
 		gf_fs_lock_filters(fs, GF_FALSE);
 		return e;
 	}
+	tmp_blacklist = gf_list_new();
+	while (1) {
+		GF_LinkInfo link_info;
+		const GF_FilterRegister *last_freg = NULL;
+		GF_List *fchain = gf_filter_pid_compute_link(opid, new_f, tmp_blacklist, &link_info);
+		if (!fchain) break;
+		if (*res_chain && (*res_chain)[0]) {
+			gf_dynstrcat(res_chain, "|", NULL);
+		}
+		if (all_links) {
+			char szTmp[20];
+			sprintf(szTmp, "%u;%u,", link_info.distance, link_info.priority);
+			gf_dynstrcat(res_chain, szTmp, NULL);
+		}
 
-	GF_List *fchain = gf_filter_pid_compute_link(opid, new_f);
-	if (fchain) {
 		u32 i, count = gf_list_count(fchain);
 		for (i=0; i<count; i+=2) {
 			const GF_FilterRegister *freg = gf_list_get(fchain, i);
-			gf_dynstrcat(res_chain, freg->name, ",");
+			if ((i+2==count) && (freg == new_f->freg))
+				break;
+			gf_dynstrcat(res_chain, freg->name, i ? "," : NULL);
+			last_freg = freg;
 		}
 		gf_list_del(fchain);
-	} else {
-		e = GF_FILTER_NOT_FOUND;
+		if (! *res_chain) *res_chain = gf_strdup("");
+		if (!last_freg) break;
+		gf_list_add(tmp_blacklist, (void*)last_freg);
+		if (!all_links) break;
 	}
+	gf_list_del(tmp_blacklist);
+
 	gf_list_del_item(fs->filters, new_f);
 	if (!new_f->finalized && new_f->freg->finalize) {
 		new_f->freg->finalize(new_f);
 	}
 	gf_filter_del(new_f);
 	gf_fs_lock_filters(fs, GF_FALSE);
-	return e;
+	if (*res_chain) return GF_OK;
+	return GF_FILTER_NOT_FOUND;
 }
 
+GF_EXPORT
+GF_Err gf_filter_probe_links(GF_Filter *filter, u32 opid_idx, const char *fname, char **res_chain)
+{
+	return gf_filter_probe_link_internal(filter, opid_idx, fname, GF_TRUE, res_chain);
+}
+
+GF_EXPORT
+GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, char **res_chain)
+{
+	return gf_filter_probe_link_internal(filter, opid_idx, fname, GF_FALSE, res_chain);
+}
 
 
 GF_EXPORT
@@ -5664,6 +5695,8 @@ GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char
 	if (opid_idx>=0) {
 		opid = gf_list_get(filter->output_pids, opid_idx);
 		if (opid==NULL) return GF_BAD_PARAM;
+	} else {
+		if (!filter->num_output_pids) return GF_FILTER_NOT_FOUND;
 	}
 	*res_list = NULL;
 	count = gf_list_count(filter->session->links);
@@ -5696,5 +5729,6 @@ GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char
 			gf_dynstrcat(res_list, src->freg->name, ",");
 		}
 	}
+	if (! *res_list) return GF_FILTER_NOT_FOUND;
 	return GF_OK;
 }

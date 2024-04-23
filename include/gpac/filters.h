@@ -3315,11 +3315,26 @@ Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const ch
 */
 GF_Err gf_filter_probe_link(GF_Filter *filter, u32 opid_idx, const char *fname, char **result_chain);
 
+/*! Probes for possible link resolution towards a given filter description. Same as \ref gf_filter_probe_link but tests multiple links
+
+The syntax for each chain is `D;P,filters` with:
+- `D`: distance between the source and target, as seen by the graph resolver (some filters may hide their distance)
+- `P`: priority of the chain
+- `filters`: comma-separated list of filters
+
+\param filter target filter
+\param opid_idx output pid index of target filter
+\param fname textual description of filter - If a source is used, returns an error. Destination can be identified using dst=URL pattern
+\param result_chain resulting chains separated by a pipe character ('|') or NULL if error. MUST be freed by caller
+\return error if any
+*/
+GF_Err gf_filter_probe_links(GF_Filter *filter, u32 opid_idx, const char *fname, char **result_chain);
+
 /*! Gets list of possible destinations for this filter
 \param filter target filter
 \param opid_idx output pid index of target filter. If negative, will check destinations for any of the output pids
 \param result_list resulting list as comma-separated list, or NULL if error. MUST be freed by caller. An empty chain means direct connection is possible
-\return error if any, GF_FILTER_NOT_FOUND if no available chain
+\return error if any, GF_FILTER_NOT_FOUND if no available destinations
 */
 GF_Err gf_filter_get_possible_destinations(GF_Filter *filter, s32 opid_idx, char **result_list);
 

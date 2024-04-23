@@ -3113,7 +3113,7 @@ void dump_graph_edges(Bool is_before, GF_FilterRegDesc *reg_dst, GF_List *dijkst
 }
 #endif
 
-static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegister, Bool reconfigurable_only, GF_List *out_reg_chain)
+static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *dst, const char *prefRegister, Bool reconfigurable_only, GF_List *tmp_blacklist, GF_LinkInfo *link_info, GF_List *out_reg_chain)
 {
 	GF_FilterRegDesc *reg_dst, *result;
 	u32 orig_nb_bundles=0;
@@ -3159,6 +3159,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		Bool reconf_only = reconfigurable_only;
 		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
 		const GF_FilterRegister *freg = reg_desc->freg;
+		if (tmp_blacklist && (gf_list_find(tmp_blacklist, (void*)freg)>=0))
+			continue;
 
 		if (check_codec_id_raw) {
 			Bool has_raw_out=GF_FALSE, has_non_raw_in=GF_FALSE;
@@ -3464,10 +3466,22 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	dijkstra_time_us = gf_sys_clock_high_res() - start_time_us;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra: sorted filters in "LLU" us, Dijkstra done in "LLU" us on %d nodes %d edges\n", sort_time_us, dijkstra_time_us, dijsktra_node_count, dijsktra_edge_count));
 
+	if (link_info) {
+		link_info->distance = 0;
+		link_info->priority = 0;
+	}
 	if (result && result->destination) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[Filters] Dijkstra result: %s(%d)", result->freg->name, result->cap_idx));
+		if (link_info) {
+			link_info->distance += result->dist;
+			link_info->priority += result->priority;
+		}
 		result = result->destination;
 		while (result->destination) {
+			if (link_info) {
+				link_info->distance += result->dist;
+				link_info->priority += result->priority;
+			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, (" %s(%d)", result->freg->name, result->cap_idx ));
 			gf_list_add(out_reg_chain, (void *) result->freg);
 			gf_list_add(out_reg_chain, (void *) &result->freg->caps[result->cap_idx]);
@@ -3523,7 +3537,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	concat_reg(pid->filter->session, prefRegister, szForceReg, dst->dst_args);
 
 	gf_mx_p(fsess->links_mx);
-	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegister, reconfigurable_only, filter_chain);
+	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegister, reconfigurable_only, NULL, NULL, filter_chain);
 	gf_mx_v(fsess->links_mx);
 
 	count = gf_list_count(filter_chain);
@@ -3849,7 +3863,7 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
 
 static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter *dst);
 
-GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst)
+GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst, GF_List *tmp_blacklist, GF_LinkInfo *link_info)
 {
 	GF_FilterSession *fsess = pid->filter->session;
 	GF_List *filter_chain;
@@ -3882,7 +3896,7 @@ GF_List *gf_filter_pid_compute_link(GF_FilterPid *pid, GF_Filter *dst)
 	concat_reg(pid->filter->session, prefRegister, szForceReg, dst->dst_args);
 
 	gf_mx_p(fsess->links_mx);
-	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegister, GF_FALSE, filter_chain);
+	gf_filter_pid_resolve_link_dijkstra(pid, dst, prefRegister, GF_FALSE, tmp_blacklist, link_info, filter_chain);
 	gf_mx_v(fsess->links_mx);
 	if (!gf_list_count(filter_chain)) {
 		gf_list_del(filter_chain);
@@ -5475,8 +5489,9 @@ single_retry:
 			return;
 		}
 
-		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
-
+		if (!(filter->session->flags & GF_FS_FLAG_FORCE_DEFER_LINK) && !filter->deferred_link) {
+			GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
+		}
 		if (pid->filter->freg->process_event) {
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
