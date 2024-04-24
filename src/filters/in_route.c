@@ -275,7 +275,7 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
 	finfo->blob->flags = 0;
 }
 
-static GF_Err repair_intervale(GF_LCTFragInfo *frags, u32 *nb_frags, u32 *nb_alloc_frags, u32 start, u32 size, ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo) {
+static GF_Err repair_intervale(GF_LCTFragInfo **frags, u32 *nb_frags, u32 *nb_alloc_frags, u32 start, u32 size, ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo) {
 	//insert intervalle into frags
 	GF_Err e;
 	u32 nb_loss = size;
@@ -320,18 +320,21 @@ static GF_Err repair_intervale(GF_LCTFragInfo *frags, u32 *nb_frags, u32 *nb_all
 		e = GF_OK;
 	}
 	nb_inserted = size - nb_loss;
-	if(!nb_inserted) return e;
+	if(!nb_inserted) {
+		gf_free(url);
+		return e;
+	}
 
 	//update frags
 
 	int start_frag = -1;
 	int end_frag = -1;
 	for (i=0; (i < *nb_frags) && (start_frag==-1 || end_frag==-1); i++) {
-		if((start_frag == -1) && (start <= frags[i].offset + frags[i].size)) {
+		if((start_frag == -1) && (start <= (*frags)[i].offset + (*frags)[i].size)) {
 			start_frag = i;
 		}
 
-		if((end_frag == -1) && (start + nb_inserted < frags[i].offset)) {
+		if((end_frag == -1) && (start + nb_inserted < (*frags)[i].offset)) {
 			end_frag = i;
 		} 
 	}
@@ -346,22 +349,23 @@ static GF_Err repair_intervale(GF_LCTFragInfo *frags, u32 *nb_frags, u32 *nb_all
 		// insert new fragment between two already received fragments or at the end
 		if (*nb_frags==*nb_alloc_frags) {
 			*nb_alloc_frags *= 2;
-			frags = gf_realloc(frags, sizeof(GF_LCTFragInfo) * *nb_alloc_frags);
+			*frags = gf_realloc(*frags, sizeof(GF_LCTFragInfo) * *nb_alloc_frags);
 		}
-		memmove(&frags[start_frag+1], &frags[start_frag], sizeof(GF_LCTFragInfo) * (*nb_frags - start_frag));
-		frags[start_frag].offset = start;
-		frags[start_frag].size = nb_inserted;
+		memmove(&(*frags)[start_frag+1], &(*frags)[start_frag], sizeof(GF_LCTFragInfo) * (*nb_frags - start_frag));
+		(*frags)[start_frag].offset = start;
+		(*frags)[start_frag].size = nb_inserted;
 		(*nb_frags)++;
 	} else {
-		int end = MAX(start + nb_inserted, frags[end_frag-1].offset + frags[end_frag-1].size);
-		frags[start_frag].offset = MIN(frags[start_frag].offset, start);
-		frags[start_frag].size = end - frags[start_frag].offset;
+		int end = MAX(start + nb_inserted, (*frags)[end_frag-1].offset + (*frags)[end_frag-1].size);
+		(*frags)[start_frag].offset = MIN((*frags)[start_frag].offset, start);
+		(*frags)[start_frag].size = end - (*frags)[start_frag].offset;
 
 		if(end_frag > start_frag + 1) {
-			memmove(&frags[start_frag+1], &frags[end_frag], sizeof(GF_LCTFragInfo) * (*nb_frags - end_frag));
+			memmove(&(*frags)[start_frag+1], &(*frags)[end_frag], sizeof(GF_LCTFragInfo) * (*nb_frags - end_frag));
 			*nb_frags += start_frag - end_frag + 1;
 		}
 	}
+	gf_free(url);
 	return e;
 }
 
@@ -381,7 +385,7 @@ static Bool does_belong(GF_LCTFragInfo *frags, u32 nb_frags, u32 start, u32 size
 static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo) {
 	int pos = 0;
 	u32 box_size, type, i=0, size;
-	u32 threshold = 100; // seuil ! 
+	u32 threshold = 1000; // seuil ! 
 
 	u32 nb_frags = finfo->nb_frags;
 	u32 nb_alloc_frags = nb_frags;
@@ -403,7 +407,7 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 				if(box_size <= threshold) {
 					size = (pos + box_size + 8 > finfo->total_size)? box_size-4: box_size+4;
 					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Top-level box size below thresholed %u, repairing top-level box n°%u and header of next one\n", threshold, i));
-					e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+4, size, ctx, finfo); // whole box + size and type of next box if there is one
+					e = repair_intervale(&frags, &nb_frags, &nb_alloc_frags, pos+4, size, ctx, finfo); // whole box + size and type of next box if there is one
 					if(e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Something went wrong while repairing  \n"));
 						return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
@@ -415,7 +419,7 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 					continue;
 				} else {
 					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repairing type header of top-level box n°%u\n", i));
-					e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+4, 4, ctx, finfo); // type!
+					e = repair_intervale(&frags, &nb_frags, &nb_alloc_frags, pos+4, 4, ctx, finfo); // type!
 					if(e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Something went wrong while repairing  \n"));
 						return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
@@ -424,7 +428,7 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 			}
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repairing header of top-level box n°%u\n", i));
-			e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos, 8, ctx, finfo); // size + type
+			e = repair_intervale(&frags, &nb_frags, &nb_alloc_frags, pos, 8, ctx, finfo); // size + type
 			if(e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Something went wrong while repairing header of top-level box\n"));
 				return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
@@ -444,7 +448,7 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 			if(! does_belong(frags, nb_frags, pos, box_size)) {
 				size = (pos + box_size + 8 > finfo->total_size)? box_size-8: box_size;
 				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repairing top-level box n°%u (type 'moof')\n", i));
-				e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+8, size, ctx, finfo);
+				e = repair_intervale(&frags, &nb_frags, &nb_alloc_frags, pos+8, size, ctx, finfo);
 				if(e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Something went wrong while repairing moof top-level box\n"));
 					return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
