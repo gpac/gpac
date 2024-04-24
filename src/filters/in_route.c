@@ -380,7 +380,7 @@ static Bool does_belong(GF_LCTFragInfo *frags, u32 nb_frags, u32 start, u32 size
 
 static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo) {
 	int pos = 0;
-	u32 box_size, type, i=0;
+	u32 box_size, type, i=0, size;
 	u32 threshold = 100; // seuil ! 
 
 	u32 nb_frags = finfo->nb_frags;
@@ -401,8 +401,9 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 
 			if(!type_checked_belong && !does_belong(frags, nb_frags, pos+4, 4)) {
 				if(box_size <= threshold) {
+					size = (pos + box_size + 8 > finfo->total_size)? box_size-4: box_size+4;
 					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Top-level box size below thresholed %u, repairing top-level box n°%u and header of next one\n", threshold, i));
-					e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+4, box_size+4, ctx, finfo); // whole box + size and type of next box
+					e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+4, size, ctx, finfo); // whole box + size and type of next box if there is one
 					if(e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Something went wrong while repairing  \n"));
 						return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
@@ -441,8 +442,9 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 		// check type
 		if(type == GF_4CC('m', 'o', 'o', 'f')) {
 			if(! does_belong(frags, nb_frags, pos, box_size)) {
+				size = (pos + box_size + 8 > finfo->total_size)? box_size-8: box_size;
 				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repairing top-level box n°%u (type 'moof')\n", i));
-				e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+8, box_size, ctx, finfo);
+				e = repair_intervale(frags, &nb_frags, &nb_alloc_frags, pos+8, size, ctx, finfo);
 				if(e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Something went wrong while repairing moof top-level box\n"));
 					return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
