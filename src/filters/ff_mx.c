@@ -247,7 +247,7 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 }
 
 
-#if (LIBAVFORMAT_VERSION_MAJOR <= 59)
+#if (LIBAVFORMAT_VERSION_MAJOR < 61)
 static int ffavio_write_packet(void *opaque, uint8_t *buf, int buf_size)
 #else
 static int ffavio_write_packet(void *opaque, const uint8_t *buf, int buf_size)
