@@ -413,8 +413,8 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 						return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
 					}
 					pos += box_size;
-					size_checked_belong = GF_TRUE;
-					type_checked_belong = GF_TRUE;
+					size_checked_belong = (pos + box_size + 8 <= finfo->total_size);
+					type_checked_belong = (pos + box_size + 8 <= finfo->total_size);
 					i++;
 					continue;
 				} else {
@@ -453,8 +453,8 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Something went wrong while repairing moof top-level box\n"));
 					return (e == GF_IP_NETWORK_FAILURE)? e: GF_NON_COMPLIANT_BITSTREAM;
 				}
-				size_checked_belong = GF_TRUE;
-				type_checked_belong = GF_TRUE;
+				size_checked_belong = (pos + box_size + 8 <= finfo->total_size);
+				type_checked_belong = (pos + box_size + 8 <= finfo->total_size);
 			}
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Ignoring top-level box n°%u of type '%c%c%c%c'\n", i, finfo->blob->data[pos+4], finfo->blob->data[pos+5], finfo->blob->data[pos+6], finfo->blob->data[pos+7]));
