@@ -2,54 +2,60 @@
   description = "GPAC Multimedia Open Source Project";
   inputs =  {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
   };
-  outputs = { self, nixpkgs }@inputs: 
-  let
-    pkgs = nixpkgs.legacyPackages.x86_64-linux;
-    buildInputs = with pkgs; [ 
-      zlib 
-      git
-      freetype 
-      libjpeg_turbo 
-      libpng 
-      libmad 
-      faad2 
-      libogg 
-      libvorbis 
-      libtheora
-      a52dec
-      ffmpeg
-      xorg.libX11
-      xorg.libXv
-      xorg.xorgproto
-      mesa
-      xvidcore
-      openssl
-      alsa-lib
-      jack2
-      pulseaudio
-      SDL2
-      mesa-demos
-    ];
-    nativeBuildInputs = with pkgs; [ pkg-config ];
- in
-  with pkgs; {  
-    devShells.x86_64-linux.default = mkShell {
-        inherit buildInputs nativeBuildInputs;
-    };
-    packages.x86_64-linux.default =  with import nixpkgs { system = "x86_64-linux"; };
-      stdenv.mkDerivation {
-        name = "gpac";
-        src = self;
-        inherit buildInputs nativeBuildInputs;
-        configurePhase = ''
-          runHook preConfigure
-          ./configure --prefix=$out
-          runHook postConfigure
-        '';
-        buildPhase = "make -j $NIX_BUILD_CORES";
-        installPhase = "make install";
-      }; 
+    outputs = { self, nixpkgs, flake-utils }: 
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+          name = "gpac";
+          src = self;
+          pkgs = nixpkgs.legacyPackages.${system};
+          buildInputs = with pkgs; [ 
+            zlib 
+            freetype 
+            libjpeg_turbo 
+            libpng 
+            libmad 
+            faad2 
+            libogg 
+            libvorbis 
+            libtheora
+            a52dec
+            ffmpeg
+            xvidcore
+            openssl
+            alsa-lib
+            SDL2
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            darwin.CarbonHeaders
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+            mesa
+            mesa-demos
+            pulseaudio
+            jack2
+            xorg.libX11
+            xorg.libXv
+            xorg.xorgproto
+          ];
+          nativeBuildInputs = with pkgs; [ git pkg-config ];
+      in
+      with pkgs;
+      {
+        packages.default = stdenv.mkDerivation {
+          inherit buildInputs name src nativeBuildInputs;
+        };
 
-  };
+        devShells.default = mkShell {
+          inherit buildInputs nativeBuildInputs;
+        };
+
+        meta = with nixpkgs.lib; {
+          homepage = "https://gpac.io";
+          description =
+            "For Video Streaming and Next-Gen Multimedia Transcoding, Packaging and Delivery.";
+          platforms = platforms.all;
+        };
+      }
+    );
+  
 }
