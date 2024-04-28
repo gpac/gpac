@@ -8,7 +8,6 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
           name = "gpac";
-          src = self;
           pkgs = nixpkgs.legacyPackages.${system};
           buildInputs = with pkgs; [ 
             zlib 
@@ -24,37 +23,45 @@
             ffmpeg
             xvidcore
             openssl
-            alsa-lib
             SDL2
           ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
             darwin.CarbonHeaders
+            darwin.apple_sdk.frameworks.Carbon
           ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
             mesa
             mesa-demos
+            alsa-lib
             pulseaudio
             jack2
             xorg.libX11
             xorg.libXv
             xorg.xorgproto
           ];
-          nativeBuildInputs = with pkgs; [ git pkg-config ];
+          nativeBuildInputs = with pkgs; [ 
+            git 
+            pkg-config 
+          ];
       in
       with pkgs;
       {
         packages.default = stdenv.mkDerivation {
-          inherit buildInputs name src nativeBuildInputs;
+          inherit buildInputs name nativeBuildInputs;
+          src = self;
+          meta = with nixpkgs.lib; {
+            homepage = "https://gpac.io";
+            description =
+              "For Video Streaming and Next-Gen Multimedia Transcoding, Packaging and Delivery.";
+            platforms = platforms.darwin ++ platforms.linux;
+            mainProgram = "gpac";
+            #TODO support Nix uses glibtool instead of Apple libtool, we do not support it   
+            darwinConfigureFlags = [ "--disable-static" ];
+          };
         };
 
         devShells.default = mkShell {
           inherit buildInputs nativeBuildInputs;
         };
 
-        meta = with nixpkgs.lib; {
-          homepage = "https://gpac.io";
-          description =
-            "For Video Streaming and Next-Gen Multimedia Transcoding, Packaging and Delivery.";
-          platforms = platforms.all;
-        };
       }
     );
   

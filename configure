@@ -92,6 +92,7 @@ libgpac_extralibs=""
 static_build="no"
 static_bin="no"
 static_modules="no"
+libgpac_static="yes"
 lm_lib=""
 has_directx="no"
 win32="no"
@@ -673,6 +674,8 @@ for opt do
         --enable-static-bin)
             echo "$opt deprecated, use --static-build instead"
             static_build="yes";
+            ;;
+        --disable-static) libgpac_static="no";
             ;;
         --enable-fixed-point) use_fixed_point="yes"
             ;;
@@ -3001,6 +3004,7 @@ echo "DEBUGBUILD=$debuginfo" >> config.mak
 echo "GPROFBUILD=$gprof_build" >> config.mak
 echo "STATIC_BINARY=$static_bin" >> config.mak
 echo "STATIC_BUILD=$static_build" >> config.mak
+echo "LIBGPAC_STATIC=$libgpac_static" >> config.mak
 
 echo "CONFIG_IPV6=$has_ipv6" >> config.mak
 if test "$has_ipv6" = "yes" ; then
