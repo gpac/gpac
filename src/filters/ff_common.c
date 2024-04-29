@@ -256,7 +256,7 @@ enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt, Bool no_warn)
 		i++;
 	}
 	if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
 	}
 	return AV_PIX_FMT_NONE;
 }
@@ -266,7 +266,7 @@ u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn)
 	const AVPixFmtDescriptor *ffdesc = av_pix_fmt_desc_get(pfmt);
 	if (!ffdesc) {
 		if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unrecognized FFMPEG pixel format %d\n", pfmt ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFmpeg] Unrecognized FFmpeg pixel format %d\n", pfmt ));
 		}
 		return 0;
 	}
@@ -277,7 +277,7 @@ u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn)
 		i++;
 	}
 	if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg pixel format %s, patch welcome\n", ffdesc->name));
 	}
 	return 0;
 }
@@ -340,7 +340,7 @@ u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].ff_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
 	return 0;
 }
 
@@ -352,7 +352,7 @@ u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].gpac_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG audio format %d, patch welcome\n", sfmt ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg audio format %d, patch welcome\n", sfmt ));
 	return 0;
 }
 
@@ -554,7 +554,7 @@ u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag)
 		if (c) return c->id;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC codec %s\n", gf_codecid_name(codec_id) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC codec %s\n", gf_codecid_name(codec_id) ));
 	return 0;
 }
 
@@ -566,7 +566,7 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 			return FF2GPAC_CodecIDs[i].gpac_codec_id;
 		i++;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG codec ID %s\n", avcodec_get_name(codec_id) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg codec ID %s\n", avcodec_get_name(codec_id) ));
 	return 0;
 }
 
@@ -606,7 +606,7 @@ u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
 			return FF2GPAC_StreamTypes[i].ff_st;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC stream type %s, assuming data\n", gf_stream_type_name(streamtype) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC stream type %s, assuming data\n", gf_stream_type_name(streamtype) ));
 	return AVMEDIA_TYPE_DATA;
 }
 
@@ -619,7 +619,7 @@ u32 ffmpeg_stream_type_to_gpac(u32 streamtype)
 			return FF2GPAC_StreamTypes[i].gpac_st;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG stream type %d, assuming data\n", streamtype ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg stream type %d, assuming data\n", streamtype ));
 	return GF_STREAM_METADATA;
 }
 
@@ -922,7 +922,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 #endif
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unknown ffmpeg option type %d\n", opt->type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unknown ffmpeg option type %d\n", opt->type));
 		break;
 	}
 	return arg;
@@ -2272,10 +2272,10 @@ void ffmpeg_check_threads(GF_Filter *filter, AVDictionary *options, AVCodecConte
 		codecctx->thread_count = 0;
 		codecctx->thread_type = 0;
 		if (num_threads>0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("Using FFMPEG threads on main thread would deadlock, disabling threading (use -threads=1 to have one extra gpac thread)\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("Using FFmpeg threads on main thread would deadlock, disabling threading (use -threads=1 to have one extra gpac thread)\n"));
 		}
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("FFMPEG threads (%d type %d) enabled\n", num_threads, codecctx->thread_type));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("FFmpeg threads (%d type %d) enabled\n", num_threads, codecctx->thread_type));
 	}
 #elif defined(GPAC_CONFIG_EMSCRIPTEN)
 	//no thread support in build, disable ffmpeg threading

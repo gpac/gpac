@@ -242,8 +242,8 @@ push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multit
 push_feature "tinygl" "!TinyGL support"
 push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
-push_feature "avdevice" "avdevice support in FFMPEG"
-push_feature "avfilter" "avfilter support in FFMPEG"
+push_feature "avdevice" "avdevice support in FFmpeg"
+push_feature "avfilter" "avfilter support in FFmpeg"
 push_feature "net-cap" "network grab and replay support"
 
 push_feature "compositor" "*Compositor"
@@ -394,7 +394,7 @@ GPAC build options:
   --enable-sdl-static      use static SDL linking [default=no]
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
   --dxsdk-path=DX_PATH     specify DirectX SDK for MinGW [$dxsdk_path]
-  --extra-ff-ldflags=EF    add EF flags to FFMPEG LDFLAGS [$ffmpeg_extra_ldflags]
+  --extra-ff-ldflags=EF    add EF flags to FFmpeg LDFLAGS [$ffmpeg_extra_ldflags]
   --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
@@ -2517,9 +2517,9 @@ fi
 fi
 
 if [ -z $ffopts ] ; then
-echo "FFMPEG: $has_ffmpeg"
+echo "FFmpeg: $has_ffmpeg"
 else
-echo "FFMPEG: $has_ffmpeg - \"$ffopts\" supported"
+echo "FFmpeg: $has_ffmpeg - \"$ffopts\" supported"
 fi
 
 

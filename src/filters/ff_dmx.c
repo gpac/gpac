@@ -1745,9 +1745,9 @@ static const GF_FilterCapability FFDmxCaps[] =
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG demultiplexer")
-	GF_FS_SET_HELP("This filter demultiplexes an input file or open a source protocol using FFMPEG.\n"
-	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	GF_FS_SET_DESCRIPTION("FFmpeg demultiplexer")
+	GF_FS_SET_HELP("This filter demultiplexes an input file or open a source protocol using FFmpeg.\n"
+	"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported demultiplexers for your GPAC build, use `gpac -h ffdmx:*`.\n"
 	"This will list both supported input formats and protocols.\n"
 	"Input protocols are listed with `Description: Input protocol`, and the subclass name identifies the protocol scheme.\n"
@@ -1830,7 +1830,7 @@ static void ffdmxpid_finalize(GF_Filter *filter)
 const GF_FilterRegister FFDemuxPidRegister = {
 	.name = "ffdmxpid",
 	.version=LIBAVFORMAT_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG demultiplexer")
+	GF_FS_SET_DESCRIPTION("FFmpeg demultiplexer")
 	GF_FS_SET_HELP("Alias of ffdmx for GPAC pid demultiplexing, same options as ffdmx.\n")
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFPidDmxCaps),
@@ -1901,7 +1901,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 			dev_fmt = NULL;
 		}
 #else
-		//not supported for old FFMPEG versions
+		//not supported for old FFmpeg versions
 #endif
 	}
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
@@ -2133,9 +2133,9 @@ static const GF_FilterCapability FFAVInCaps[] =
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.version = LIBAVDEVICE_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG AV Capture")
-	GF_FS_SET_HELP("Reads from audio/video capture devices using FFMPEG.\n"
-	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	GF_FS_SET_DESCRIPTION("FFmpeg AV Capture")
+	GF_FS_SET_HELP("Reads from audio/video capture devices using FFmpeg.\n"
+	"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported grabbers for your GPAC build, use `gpac -h ffavin:*`.\n"
 	"\n"
 	"# Device identification\n"
