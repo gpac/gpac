@@ -160,13 +160,13 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_APCS, 0, GF_STREAM_VISUAL, "ProRes Video 422 LT", "prores|apcs", "apcs", "video/prores", GF_CODECID_APCH, .unframe=GF_TRUE},
 	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video 4444 XQ", "prores|ap4x", "ap4x", "video/prores", GF_CODECID_APCH, .unframe=GF_TRUE},
 	{GF_CODECID_AP4H, 0, GF_STREAM_VISUAL, "ProRes Video 4444", "prores|ap4h", "ap4h", "video/prores", GF_CODECID_APCH, .unframe=GF_TRUE},
-	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
+	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFmpeg unmapped codec", "ffmpeg", NULL, NULL},
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc", .unframe=GF_TRUE},
 	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC, .unframe=GF_TRUE},
 	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac", .unframe=GF_TRUE},
-	{GF_CODECID_FFV1, 0, GF_STREAM_VISUAL, "FFMPEG Video Codec 1", "ffv1", NULL, "video/x-ffv1"},
+	{GF_CODECID_FFV1, 0, GF_STREAM_VISUAL, "FFmpeg Video Codec 1", "ffv1", NULL, "video/x-ffv1"},
 
 	{GF_CODECID_DVB_SUBS, 0, GF_STREAM_TEXT, "DVB Subtitles", "dvbs", NULL, NULL},
 	{GF_CODECID_DVB_TELETEXT, 0, GF_STREAM_TEXT, "DVB-TeleText", "dvbs", NULL, NULL},

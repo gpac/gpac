@@ -1092,7 +1092,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 				ff_codec_id = AV_CODEC_ID_PCM_F64BE;
 				break;
 			default:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Unmapped raw audio format %s to FFMPEG, patch welcome\n", gf_audio_fmt_name(p->value.uint) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Unmapped raw audio format %s to FFmpeg, patch welcome\n", gf_audio_fmt_name(p->value.uint) ));
 				return GF_NOT_SUPPORTED;
 			}
 		}
@@ -1521,10 +1521,10 @@ static const GF_FilterCapability FFMuxCaps[] =
 GF_FilterRegister FFMuxRegister = {
 	.name = "ffmx",
 	.version = LIBAVFORMAT_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG multiplexer")
+	GF_FS_SET_DESCRIPTION("FFmpeg multiplexer")
 
-	GF_FS_SET_HELP("Multiplexes files and open output protocols using FFMPEG.\n"
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	GF_FS_SET_HELP("Multiplexes files and open output protocols using FFmpeg.\n"
+		"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 		"To list all supported multiplexers for your GPAC build, use `gpac -h ffmx:*`."
 		"This will list both supported output formats and protocols.\n"
 		"Output protocols are listed with `Description: Output protocol`, and the subclass name identifies the protocol scheme.\n"

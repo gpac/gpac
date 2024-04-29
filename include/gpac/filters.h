@@ -1381,7 +1381,7 @@ enum
 	GF_PROP_PCK_SPLIT_END = GF_4CC('P','S','P','E'),
 
 
-	/*! Internal property used for meta demuxers ( FFMPEG, ...) codec ID
+	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec ID
 
 	Property can be:
 	- pointer to codec context: only for ffdmx with old ffmpeg versions)
@@ -1389,10 +1389,10 @@ enum
 	*/
 	GF_PROP_PID_META_DEMUX_CODEC_ID = GF_4CC('M','D','C','I'),
 
-	/*! Internal property used for meta demuxers ( FFMPEG, ...) codec name*/
+	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec name*/
 	GF_PROP_PID_META_DEMUX_CODEC_NAME = GF_4CC('M','D','C','N'),
 
-	/*! Internal property used for meta demuxers ( FFMPEG, ...) codec opaque data, u32*/
+	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec opaque data, u32*/
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
 };
 

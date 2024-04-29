@@ -1082,16 +1082,16 @@ static const GF_FilterCapability FFAVFilterCaps[] =
 GF_FilterRegister FFAVFilterRegister = {
 	.name = "ffavf",
 	.version = LIBAVFILTER_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG AVFilter")
+	GF_FS_SET_DESCRIPTION("FFmpeg AVFilter")
 	GF_FS_SET_HELP("This filter provides libavfilter raw audio and video tools.\n"
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details\n"
+		"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details\n"
 		"To list all supported avfilters for your GPAC build, use `gpac -h ffavf:*`.\n"
 		"\n"
 		"# Declaring a filter\n"
 		"The filter loads a filter or a filter chain description from the [-f]() option.\n"
 		"EX ffavf:f=showspectrum\n"
 		"\n"
-		"Unlike other FFMPEG bindings in GPAC, this filter does not parse other libavfilter options, you must specify them directly in the filter chain, and the [-f]() option will have to be escaped.\n"
+		"Unlike other FFmpeg bindings in GPAC, this filter does not parse other libavfilter options, you must specify them directly in the filter chain, and the [-f]() option will have to be escaped.\n"
 		"EX ffavf::f=showspectrum=size=320x320 or ffavf::f=showspectrum=size=320x320::pfmt=rgb\n"
 		"EX ffavf::f=anullsrc=channel_layout=5.1:sample_rate=48000\n"
 		"\n"

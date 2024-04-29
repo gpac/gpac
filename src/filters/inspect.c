@@ -3799,7 +3799,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			} else {
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
 				if (p && (p->type==GF_PROP_UINT)) codec_id = p->value.uint;
-				inspect_printf(dump, " FFMPEG %d", codec_id);
+				inspect_printf(dump, " FFmpeg %d", codec_id);
 			}
 		} else {
 			inspect_printf(dump, " %s", gf_codecid_name(codec_id));
