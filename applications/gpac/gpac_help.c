@@ -829,7 +829,7 @@ void gpac_usage(GF_SysArgMode argmode)
 		"__[LINK]__: a link instruction (e.g., `@`, `@2`, `@2#StreamType=Visual`, ...), see %s.\n"
 		"__[options]__: one or more option strings, each starting with a `-` character.\n"
 		"  - an option using a single `-` indicates an option of gpac (see %s) or of libgpac (see %s)\n"
-		"  - an option using `--` indicates a global filter or meta-filter (e.g. FFMPEG) option, e.g. `--block_size=1000` or `--profile=Baseline` (see %s)\n"
+		"  - an option using `--` indicates a global filter or meta-filter (e.g. FFmpeg) option, e.g. `--block_size=1000` or `--profile=Baseline` (see %s)\n"
 		"  \n"
 		"Filter declaration order may impact the link resolver which will try linking in declaration order. Most of the time for simple graphs, this has no impact. However, for complex graphs with no link declarations, this can lead to different results.  \n"
 		"Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.  \n"

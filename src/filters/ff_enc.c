@@ -2210,9 +2210,9 @@ static const GF_FilterCapability FFEncodeCaps[] =
 GF_FilterRegister FFEncodeRegister = {
 	.name = "ffenc",
 	.version=LIBAVCODEC_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG encoder")
-	GF_FS_SET_HELP("This filter encodes audio and video streams using FFMPEG.\n"
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	GF_FS_SET_DESCRIPTION("FFmpeg encoder")
+	GF_FS_SET_HELP("This filter encodes audio and video streams using FFmpeg.\n"
+		"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 		"To list all supported encoders for your GPAC build, use `gpac -h ffenc:*`.\n"
 		"\n"
 		"The filter will try to resolve the codec name in [-c]() against a libavcodec codec name (e.g. `libx264`) and use it if found.\n"

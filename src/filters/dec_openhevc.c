@@ -1420,7 +1420,7 @@ GF_FilterRegister OHEVCDecRegister = {
 	.process_event = ohevcdec_process_event,
 	.flags = GF_FS_REG_BLOCK_MAIN,
 	.max_extra_pids = (HEVC_MAX_STREAMS-1),
-	//by default take over FFMPEG
+	//by default take over FFmpeg
 	.priority = 100
 };
 

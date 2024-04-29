@@ -1047,8 +1047,8 @@ static const GF_FilterCapability FFSWSCaps[] =
 GF_FilterRegister FFSWSRegister = {
 	.name = "ffsws",
 	.version=LIBSWSCALE_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG video rescaler")
-	GF_FS_SET_HELP("This filter rescales raw video data using FFMPEG to the specified size and pixel format.\n"
+	GF_FS_SET_DESCRIPTION("FFmpeg video rescaler")
+	GF_FS_SET_HELP("This filter rescales raw video data using FFmpeg to the specified size and pixel format.\n"
 	"## Output size assignment\n"
 	"If [-osize]() is {0,0}, the output dimensions will be set to the input size, and input aspect ratio will be ignored.\n"
 	"\n"
@@ -1077,7 +1077,7 @@ GF_FilterRegister FFSWSRegister = {
 	"- for gauss [-p1]() tunes the exponent and thus cutoff frequency\n"
 	"- for lanczos [-p1]() tunes the width of the window function\n"
 	"\n"
-	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
+	"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details")
 	.private_size = sizeof(GF_FFSWScaleCtx),
 	.args = FFSWSArgs,
 	.configure_pid = ffsws_configure_pid,
