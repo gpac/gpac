@@ -16,17 +16,17 @@ MP4Box is a multimedia packager, with a vast number of functionalities: conversi
 .br
 MP4Box provides a large set of options, classified by categories (see .I -h). These options do not follow any particular ordering.
 .br
-  
+
 .br
 By default, MP4Box rewrites the input file. You can change this behavior by using the .I out option.
 .br
 MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov ...) at the beginning, making it suitable for HTTP download-and-play. This may however takes longer to store the file, use .I flat to change this behavior.
 .br
-  
+
 .br
 MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with .I tmp.
 .br
-  
+
 .br
 Track identifier for track-based operations (usually referred to as tkID in the help) use the following syntax:
 .br
@@ -38,7 +38,7 @@ Track identifier for track-based operations (usually referred to as tkID in the 
 .br
 * `audioN`, `videoN`, `textN`: target is the Nth audio, video or text track, with N=1 being the first track of desired type
 .br
-  
+
 .br
 Option values:
 .br
@@ -46,7 +46,7 @@ Unless specified otherwise, a track operation option of type integer expects a t
 .br
 An option of type boolean expects no following value.
 .br
-  
+
 .br
 .TP
 .B \-mem-track
@@ -66,7 +66,7 @@ use indicated profile for the global GPAC config. If not found, config file is c
 .TP
 .B \-inter (number, default: 0.5)
 .br
-interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving 
+interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving
 .br
 .TP
 .B \-old-inter (number)
@@ -300,7 +300,7 @@ create a new grouping information in the file. Format is a colon-separated list 
 .br
 * trackID=ID: track to add to this group
 .br
-  
+
 .br
 Warning: Options modify state as they are parsed, trackID=1:criteria=lang:trackID=2 is different from criteria=lang:trackID=1:trackID=2
 .br
@@ -392,7 +392,7 @@ set edit list. The following syntax is used (no separators between entries):
 .br
  * `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time in seconds (int, double, fraction) and rate (fraction or INT)
 .br
- * Examples: 
+ * Examples:
 .br
    - re0-5e5-3,4: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track
 .br
@@ -430,7 +430,7 @@ set media creation time
 .br
 MP4Box can be used to extract media tracks from MP4 files. If you need to convert these tracks however, please check the filters doc.
 .br
-  
+
 .br
 Options:
 .br
@@ -502,11 +502,11 @@ extract file IOD in raw format
 .TP
 .B \-mpd (string)
 .br
-convert given HLS or smooth manifest (local or remote http) to MPD - options -url-template and -segment-timelinecan be used in this mode.  
+convert given HLS or smooth manifest (local or remote http) to MPD - options -url-template and -segment-timelinecan be used in this mode.
 .br
 Note: This only provides basic conversion, for more advanced conversions, see gpac -h dasher
 .br
-  
+
 .br
 Warning: This is not compatible with other DASH options and does not convert associated segments
 .br
@@ -697,7 +697,7 @@ insert UTC clock at the beginning of each ISOBMF segment
 .TP
 .B \-base-url (string)
 .br
-set Base url at MPD level. Can be used several times.  
+set Base url at MPD level. Can be used several times.
 .br
 Warning: this does not  modify generated files location
 .br
@@ -970,7 +970,7 @@ throw error if something is wrong while parsing cues or applying cue-based segme
 .br
 merge last segment if shorter than half the target duration
 .br
-  
+
 .br
 .SH File splitting
 .LP
@@ -985,7 +985,7 @@ The input file must have enough random access points in order to be split. If th
 .br
 You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without splitting) will not be stored.
 .br
-  
+
 .br
 Time ranges are specified as follows:
 .br
@@ -995,7 +995,7 @@ Time ranges are specified as follows:
 .br
 * `S:end` or `S:end-N`: S start time in seconds (int, double), N number of seconds (int, double) before the end
 .br
-  
+
 .br
 MP4Box splitting runs a filter session using the reframer filter as follows:
 .br
@@ -1013,7 +1013,7 @@ MP4Box splitting runs a filter session using the reframer filter as follows:
 .br
 - for -splitx, option xround=closest and propbe_ref are enforced if not specified at prompt
 .br
-  
+
 .br
 The default output storage mode is to full interleave and will require a temp file for each output. This behavior can be modified using -flat, -newfs, -inter and -frag.
 .br
@@ -1021,7 +1021,7 @@ The output file name(s) can be specified using -out and templates (e.g. -out spl
 .br
 Multiple time ranges can be specified as a comma-separated list for -splitx, -splitz and -splitg.
 .br
-  
+
 .br
 .TP
 .B \-split (string)
@@ -1083,11 +1083,11 @@ extract the specified time range and insert edits such that the extracted output
 .SH File Dumping
 .LP
 .br
-  
+
 .br
 MP4Box has many dump functionalities, from simple track listing to more complete reporting of special tracks.
 .br
-  
+
 .br
 Options:
 .br
@@ -1388,7 +1388,7 @@ This process will create the destination file if not existing, and add the track
 .br
 The supported input media types depend on your installation, check filters documentation for more info.
 .br
-  
+
 .br
 To select a desired media track from a source, a fragment identifier '#' can be specified, before any other options. The following syntax is used:
 .br
@@ -1408,13 +1408,13 @@ To select a desired media track from a source, a fragment identifier '#' can be 
 .br
 * `#program=NAME`: name of desired program for MPEG-2 TS sources
 .br
-  
+
 .br
 By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding original ISOBMF file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using .I -flat option, but this disables media interleaving.
 .br
-  
+
 .br
-If you wish to create an interleaved new file with no temporary storage, use the .I -newfs option. The interleaving might not be as precise as when using .I new since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: 
+If you wish to create an interleaved new file with no temporary storage, use the .I -newfs option. The interleaving might not be as precise as when using .I new since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode:
 .br
  - Some multiplexing options (marked with X below) will be activated for all inputs (e.g. it is not possible to import one AVC track with xps_inband and another without).
 .br
@@ -1422,19 +1422,19 @@ If you wish to create an interleaved new file with no temporary storage, use the
 .br
  - Usage of .I cat is possible, but concatenated sources will not be interleaved in the output. If you wish to perform more complex cat/add operations without temp file, use a playlist.
 .br
-  
+
 .br
 Source URL can be any URL supported by GPAC, not limited to local files.
 .br
-  
+
 .br
 Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likely not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check TTXT doc.
 .br
-  
+
 .br
 When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options per stream, set per-file options using the syntax -add stream[:opt1:...:optN].
 .br
-  
+
 .br
 The import file name may be set to empty or self, indicating that the import options should be applied to the destination file track(s).
 .br
@@ -1456,11 +1456,11 @@ This will apply moovts and noedit option to track with ID=2 in src.mp4
 .br
 Only per-file options marked with a S are possible in this mode.
 .br
-  
+
 .br
 When importing an ISOBMFF/QT file, only options marked as C or S can be used.
 .br
-  
+
 .br
 Allowed per-file options:
 .br
@@ -2086,7 +2086,7 @@ add given file tracks to file. Multiple inputs can be specified using +, e.g. -a
 .TP
 .B \-cat (string)
 .br
-concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using +, e.g/ -cat url1+url2.  
+concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using +, e.g/ -cat url1+url2.
 .br
 Note: This aligns initial timestamp of the file to be concatenated
 .br
@@ -2098,7 +2098,7 @@ same as .I cat but new tracks can be imported before concatenation by specifying
 .TP
 .B \-catpl (string)
 .br
-concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).  
+concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).
 .br
 Note: Each listed file is concatenated as if called with -cat
 .br
@@ -2110,7 +2110,7 @@ do not attempt to align timestamps of samples in-between tracks
 .TP
 .B \-force-cat
 .br
-skip media configuration check when concatenating file.  
+skip media configuration check when concatenating file.
 .br
 Warning: THIS MAY BREAK THE CONCATENATED TRACK(S)
 .br
@@ -2122,7 +2122,7 @@ keep all MPEG-4 Systems info when using .I add and .I cat (only used when adding
 .TP
 .B \-dref
 .br
-keep media data in original file using data referencing. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developing content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  
+keep media data in original file using data referencing. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developing content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.
 .br
 Note: Data referencing may fail on some files because it requires the framed data (e.g. an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (AVC or HEVC cannot use this option)
 .br
@@ -2164,7 +2164,7 @@ oversample SBR import (SBR AAC, PS AAC and oversampled SBR cannot be detected at
 .TP
 .B \-fps (string)
 .br
-force frame rate for video and SUB subtitles import to the given value, expressed as a number, as TS-inc or TS/inc.  
+force frame rate for video and SUB subtitles import to the given value, expressed as a number, as TS-inc or TS/inc.
 .br
 Note: For raw H263 import, default FPS is 15, otherwise 25. This is accepted for ISOBMFF import but :rescale option should be preferred
 .br
@@ -2187,7 +2187,7 @@ MP4Box supports creation of hint tracks for RTSP servers supporting these such a
 .br
 Note: GPAC streaming tools rtp output and rtsp server do not use hint tracks, they use on-the-fly packetization from any media sources, not just MP4
 .br
-  
+
 .br
 Options:
 .br
@@ -2290,7 +2290,7 @@ MP4Box supports encoding and decoding of of BT, XMT, VRML and (partially) X3D fo
 .br
 Any media track specified through a MuxInfo element will be imported in the resulting MP4 file.
 .br
-See https://wiki.gpac.io/MPEG-4-BIFS-Textual-Format and related pages.
+See https://wiki.gpac.io/Howtos/scenecoding/MPEG-4-BIFS-Textual-Format and related pages.
 .br
 .SS Scene Random Access
 .br
@@ -2304,7 +2304,7 @@ Commands with a timing of 0 in the input will modify the carousel version only (
 .br
 Commands with a timing different from 0 in the input will generate new AUs.
 .br
-  
+
 .br
 Options:
 .br
@@ -2383,11 +2383,11 @@ resolution is given as if using .I resolution but the res is inferred (BIFS enco
 .br
 MP4Box supports encryption and decryption of ISMA, OMA and CENC content, see encryption filter `gpac -h cecrypt`.
 .br
-It requires a specific XML file called CryptFile, whose syntax is available at https://wiki.gpac.io/Common-Encryption
+It requires a specific XML file called CryptFile, whose syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption/
 .br
 Image files (HEIF) can also be crypted / decrypted, using CENC only.
 .br
-  
+
 .br
 Options:
 .br
@@ -2411,11 +2411,11 @@ change ISMA/OMA KMS location for a given track or for all tracks if all= is used
 .br
 IsoMedia files can be used as generic meta-data containers, for examples storing XML information and sample images for a movie. The resulting file may not always contain a movie as is the case with some HEIF files or MPEG-21 files.
 .br
-  
+
 .br
-These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the movie or track level for a regular movie.  
+These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the movie or track level for a regular movie.
 .br
-  
+
 .br
 .TP
 .B \-set-meta ABCD[:tk=tkID]
@@ -2578,7 +2578,7 @@ MP4Box can import simple Macromedia Flash files (".SWF")
 .br
 You can specify a SWF input file with '-bt', '-xmt' and '-mp4' options
 .br
-  
+
 .br
 Options:
 .br
@@ -2650,7 +2650,7 @@ Unsupported tags can be added using their four character code as a tag name, and
 .br
 If the tag name length is 3, the prefix 0xA9 is used to create the four character code.
 .br
-  
+
 .br
 Tags can also be loaded from a text file using -itags filename. The file must be in UTF8 with:
 .br
@@ -2658,11 +2658,11 @@ Tags can also be loaded from a text file using -itags filename. The file must be
 .br
 - other lines specify the remainder of the last declared tag
 .br
-  
+
 .br
 If tag name starts with WM/, the tag is added to Xtra box (WMA tag, string only).
 .br
-  
+
 .br
 .SS QT metadata key
 .br
@@ -2672,7 +2672,7 @@ The tag is added as a QT metadata key if:
 .br
 - or tag_name is not recognized and longer than 4 characters
 .br
-  
+
 .br
 The tag_name can optionally be prefixed with HDLR@, indicating the tag namespace 4CC, the default namespace being mdta.
 .br
@@ -2714,7 +2714,7 @@ The tag_value can also be formatted as:
 .br
 * FNAME: data is loaded from FNAME, type set to jpeg or png if needed
 .br
-  
+
 .br
 .SS Supported tag names (name, value, type, aliases)
 .br
@@ -2912,7 +2912,7 @@ source of scene updates
 .br
 duration in ms of base carousel; you can specify the RAP period of a single ESID (not in DIMS) using ESID=X:time
 .br
-  
+
 .br
 Runtime options:
 .br
@@ -2934,7 +2934,7 @@ Runtime options:
 .br
 .SH EXAMPLES
 .TP
-Basic and advanced examples are available at https://wiki.gpac.io/MP4Box
+Basic and advanced examples are available at https://wiki.gpac.io/MP4Box/MP4Box
 .SH MORE
 .LP
 Authors: GPAC developers, see git repo history (-log)

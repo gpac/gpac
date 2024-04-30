@@ -133,7 +133,7 @@ typedef struct
 	//options
 	const char *cfile;
 	Bool allc, bk_stats;
-	
+
 	//internal
 	GF_CryptInfo *cinfo;
 
@@ -1263,7 +1263,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT(tci->force_clear_stsd_idx) );
 	}
-	
+
 	if (cstr->passthrough) return GF_OK;
 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
@@ -1397,7 +1397,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	memcpy(output+isma_hdr_size, data, sizeof(char)*size);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
-	
+
 	/*isma e&a stores AVC1 in AVC/H264 annex B bitstream fashion, with 0x00000001 start codes*/
 	if (cstr->nalu_size_length) {
 		u32 done = 0;
@@ -2164,7 +2164,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			return e;
 		}
 	}
-	
+
 	if (prev_entry_bytes_clear || prev_entry_bytes_crypt) {
 		if (!nb_subsamples) gf_bs_write_int(sai_bs, 0, nb_subsamples_bits);
 		nb_subsamples++;
@@ -2449,7 +2449,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		GF_FilterPacket *dst_pck;
 		dst_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, pck);
 		if (!dst_pck) return GF_OUT_OF_MEM;
-		
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 
 		if (force_clear && !cstr->tci->force_clear_stsd_idx)
@@ -2703,7 +2703,7 @@ GF_FilterRegister CENCEncRegister = {
 	.name = "cecrypt",
 	GF_FS_SET_DESCRIPTION("CENC encryptor")
 	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.\n"
-	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
+	"The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption\n"
 	"The DRM config file can be set per PID using the property `CryptInfo`, or set at the filter level using [-cfile]().\n"
 	"When the DRM config file is set per PID, the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` is used (regardless of the `CrypTrack` ID).\n"
 	"When the DRM config file is set globally (not per PID), the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` with ID 0 or not set is used.\n"

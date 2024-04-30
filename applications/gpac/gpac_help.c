@@ -71,12 +71,12 @@ const char *gpac_doc =
 "- string: formatted as:\n"
 "  - `value`: copies value to string.\n"
 "  - `file@FILE`: load string from local `FILE` (opened in binary mode).\n"
-"  - `bxml@FILE`: binarize XML from local `FILE` and set property type to data - see https://wiki.gpac.io/NHML-Format.\n"
+"  - `bxml@FILE`: binarize XML from local `FILE` and set property type to data - see https://wiki.gpac.io/xmlformats/NHML-Format.\n"
 "- data: formatted as:\n"
 "  - `size@address`: constant data block, not internally copied; `size` gives the size of the block, `address` the data pointer.\n"
 "  - `0xBYTESTRING`: data block specified in hexadecimal, internally copied.\n"
 "  - `file@FILE`: load data from local `FILE` (opened in binary mode).\n"
-"  - `bxml@FILE`: binarize XML from local `FILE` - see https://wiki.gpac.io/NHML-Format.\n"
+"  - `bxml@FILE`: binarize XML from local `FILE` - see https://wiki.gpac.io/xmlformats/NHML-Format.\n"
 "  - `b64@DATA`: load data from base-64 encoded `DATA`.\n"
 "- pointer: pointer address as formatted by `%p` in C.\n"
 "- string lists: formatted as `val1,val2[,...]`. Each value can also use `file@FILE` syntax.\n"
@@ -1347,7 +1347,7 @@ redo_pass:
 			while ((prop_info = gf_props_get_description(i))) {
 				i++;
 				if (!prop_info->name) continue;
-				
+
 				if (gf_sys_word_match(fname, prop_info->name)) {
 					if (!first) {
 						first = GF_TRUE;

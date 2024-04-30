@@ -141,7 +141,7 @@ fmt="PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$"
 .br
 This dumps packet number, cts and dts as follows: PID 1 packet 10 DTS 100 CTS 108 \n
 .br
-  
+
 .br
 An unrecognized keyword or missing property will resolve to an empty string.
 .br
@@ -696,7 +696,7 @@ camlay (enum, default: offaxis, updatable): camera layout in multiview modes
 .br
 
 .br
-iod (flt, default: 6.4, updatable): inter-ocular distance (eye separation) in cm (distance between the cameras). 
+iod (flt, default: 6.4, updatable): inter-ocular distance (eye separation) in cm (distance between the cameras).
 .br
 rview (bool, default: false, updatable): reverse view order
 .br
@@ -1350,7 +1350,7 @@ This filter demultiplexes OGG files/data into a set of media PIDs and frames.
 .SH Options (expert):
 .LP
 .br
-index (dbl, default: 1.0):     indexing window length (not implemented), use 0 to disable stream probing for duration), 
+index (dbl, default: 1.0):     indexing window length (not implemented), use 0 to disable stream probing for duration),
 .br
 expart (bool, default: false): expose pictures as a dedicated video PID
 .br
@@ -1484,7 +1484,7 @@ block (bool, default: false):  set blocking mode for socket(s)
 .br
 timeout (uint, default: 10000): set timeout in ms for UDP socket(s), 0 to disable timeout
 .br
-reorder_pck (uint, default: 100): number of packets delay for RTP reordering (M2TS over RTP) 
+reorder_pck (uint, default: 100): number of packets delay for RTP reordering (M2TS over RTP)
 .br
 reorder_delay (uint, default: 10): number of ms delay for RTP reordering (M2TS over RTP)
 .br
@@ -1503,7 +1503,7 @@ Description: DVB for Linux
 .br
 Experimental DVB support for linux, requires a channel config file through .I chcfg
 .br
-  
+
 .br
 The URL syntax is dvb://CHANNAME[@FRONTEND], with:
 .br
@@ -1555,7 +1555,7 @@ This filter decodes video streams through OSX/iOS VideoToolBox (MPEG-2, H263, AV
 .br
 reorder (uint, default: 6):    number of frames to wait for temporal re-ordering
 .br
-no_copy (bool, default: true): dispatch decoded frames as OpenGL textures (true) or as copied packets (false) 
+no_copy (bool, default: true): dispatch decoded frames as OpenGL textures (true) or as copied packets (false)
 .br
 ofmt (pfmt, default: nv12):    set default pixel format for decoded video. If not found, fall back to nv12
 .br
@@ -1957,7 +1957,7 @@ For HLS, key is retrieved according to the key URI in the manifest.
 .br
 Otherwise, the filter uses a configuration file.
 .br
-The syntax is available at https://wiki.gpac.io/Common-Encryption
+The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption
 .br
 The DRM config file can be set per PID using the property DecryptInfo (highest priority), CryptInfo (lower priority) or set at the filter level using .I cfile (lowest priority).
 .br
@@ -2005,7 +2005,7 @@ Description: CENC encryptor
 .br
 The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.
 .br
-The syntax is available at https://wiki.gpac.io/Common-Encryption
+The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption
 .br
 The DRM config file can be set per PID using the property CryptInfo, or set at the filter level using .I cfile.
 .br
@@ -2037,7 +2037,7 @@ Description: ISOBMFF/QT multiplexer
 .br
 This filter multiplexes streams to ISOBMFF (14496-12 and derived specifications) or QuickTime
 .br
-  
+
 .br
 .SH Tracks and Items
 .LP
@@ -2052,7 +2052,7 @@ gpac -i source.mp4:itemid=false -o file.mp4
 .br
 
 .br
-  
+
 .br
 To force non-item streams to be multiplexed as items, use #ItemID option on that PID:
 .br
@@ -2062,14 +2062,14 @@ gpac -i source.jpg:#ItemID=1 -o file.mp4
 .br
 
 .br
-  
+
 .br
 .SH Storage
 .LP
 .br
 The .I store option allows controlling if the file is fragmented or not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either flat or fstart modes.
 .br
-  
+
 .br
 The .I vodcache option allows controlling how DASH onDemand segments are generated:
 .br
@@ -2081,7 +2081,7 @@ The .I vodcache option allows controlling how DASH onDemand segments are generat
 .br
 The on and insert modes will produce exactly the same file, while the mode replace may inject a free box before the sidx.
 .br
-  
+
 .br
 .SH Custom boxes
 .LP
@@ -2106,13 +2106,13 @@ gpac -i source:1ItemID=1:#boxpatch=myfile.xml -o mux.mp4
 .br
 
 .br
-  
+
 .br
 The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.
 .br
 The box patch can either be a filename or the full XML string.
 .br
-  
+
 .br
 .SH Tagging
 .LP
@@ -2131,7 +2131,7 @@ Other tag class may be specified using tag_NAME property names, and will be adde
 .br
 - the CRC32 of the NAME as a box 4CC if NAME is not four characters long
 .br
-  
+
 .br
 .SH User data
 .LP
@@ -2148,7 +2148,7 @@ The filter will look for the following PID properties to create user data entrie
 .br
 * `tkgp_T4CC`: set/remove membership to track group with type T4CC and ID given by property value. A negative value N removes from track group with ID -N
 .br
-  
+
 .br
 Example
 .br
@@ -2158,7 +2158,7 @@ gpac -i src.mp4:#mudtab=data@box.bin -o tag.mp4
 .br
 
 .br
-  
+
 .br
 .SH Custom sample group descriptions and sample auxiliary info
 .LP
@@ -2173,7 +2173,7 @@ The filter watches the following custom data properties on incoming packets:
 .br
 * `sai_A4CC_param`: same as above and sets aux_info_type_parameterto param
 .br
-  
+
 .br
 The property grp_EMSG consists in one or more EventMessageBox as defined in MPEG-DASH.
 .br
@@ -2181,14 +2181,14 @@ The property grp_EMSG consists in one or more EventMessageBox as defined in MPEG
 .br
 - in regular mode, an internal sample group of type EMSG is currently used for emsg box storage
 .br
-  
+
 .br
 .SH Notes
 .LP
 .br
 The filter watches the property FileNumber on incoming packets to create new files (regular mode) or new segments (DASH mode).
 .br
-  
+
 .br
 The filter watches the property DSIWrap (4CC as int or string) on incoming PID to wrap decoder configuration in a box of given type (unknown wrapping)
 .br
@@ -2212,13 +2212,13 @@ Such packets are only injected when a whole in the timeline is detected.
 .br
 - if Sparse is false, empty packet is never injected
 .br
-  
+
 .br
-The default media type used for a PID can be overriden using property StreamSubtype. 
+The default media type used for a PID can be overriden using property StreamSubtype.
 .br
 Example
 .br
--i src.srt:#StreamSubtype=sbtl [-i ...]  -o test.mp4 
+-i src.srt:#StreamSubtype=sbtl [-i ...]  -o test.mp4
 .br
 
 .br
@@ -2228,11 +2228,11 @@ Subtitle streams may be used as chapters by setting the property IsChap on the d
 .br
 Example
 .br
--i src.srt:#IsChap  [-i ...] -o test.mp4 
+-i src.srt:#IsChap  [-i ...] -o test.mp4
 .br
 
 .br
-This will force the text stream to be used as a QT chapter track.  
+This will force the text stream to be used as a QT chapter track.
 .br
 
 .br
@@ -2612,7 +2612,7 @@ Description: NHNT reader
 .br
 This filter reads NHNT files/data to produce a media PID and frames.
 .br
-NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
+NHNT documentation is available at https://wiki.gpac.io/xmlformats/NHNT-Format
 .br
 
 .br
@@ -2634,7 +2634,7 @@ Description: NHML reader
 .br
 This filter reads NHML files/data to produce a media PID and frames.
 .br
-NHML documentation is available at https://wiki.gpac.io/NHML-Format
+NHML documentation is available at https://wiki.gpac.io/xmlformats/NHML-Format
 .br
 
 .br
@@ -2799,7 +2799,7 @@ The filter supports the following formats:
 .br
 * WebVTT: https://www.w3.org/TR/webvtt1/
 .br
-* TTXT: https://wiki.gpac.io/TTXT-Format-Documentation
+* TTXT: https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation
 .br
 * QT 3GPP Text XML (TexML): Apple QT6, likely deprecated
 .br
@@ -2811,7 +2811,7 @@ The filter supports the following formats:
 .br
 
 .br
-Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal frame format is: 
+Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal frame format is:
 .br
 * WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues
 .br
@@ -2969,7 +2969,7 @@ Description: TTXT/TX3G decoder
 .br
 This filter decodes TTXT/TX3G streams into a BIFS scene graph of the compositor filter.
 .br
-The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation
+The TTXT documentation is available at https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation
 .br
 
 .br
@@ -3107,9 +3107,9 @@ This filter handles SDP/RTSP/RTP input reading. It supports:
 .br
 - RTSP session processing through rtsp:// and satip:// protocol schemes
 .br
- 
+
 .br
-The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS). 
+The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).
 .br
 The filter will use:
 .br
@@ -3119,7 +3119,7 @@ The filter will use:
 .br
 - RTSP over HTTPS tunnel if server port is 443 and if protocol scheme is rtsph://.
 .br
- 
+
 .br
 The filter will attempt reconnecting in TLS mode after two consecutive initial connection failures.
 .br
@@ -3377,13 +3377,13 @@ This filter provides various tools on inputs:
 .br
 - time-range extraction and splitting
 .br
-  
+
 .br
 This filter forces input PIDs to be properly framed (1 packet = 1 Access Unit).
 .br
 It is typically needed to force remultiplexing in file to file operations when source and destination files use the same format.
 .br
-  
+
 .br
 .SH SAP filtering
 .LP
@@ -3392,7 +3392,7 @@ The filter can remove packets based on their SAP types using .I saps option.
 .br
 For example, this can be used to extract only the key frame (SAP 1,2,3) of a video to create a trick mode version.
 .br
-  
+
 .br
 .SH Frame filtering
 .LP
@@ -3401,7 +3401,7 @@ This filter can keep only specific Access Units of the source using .I frames op
 .br
 For example, this can be used to extract only specific key pictures of a video to create a HEIF collection.
 .br
-  
+
 .br
 .SH Frame decoding
 .LP
@@ -3427,7 +3427,7 @@ gpac -i m.mp4 reframer:rt=on -o live.mpd:dynamic
 .br
 
 .br
-  
+
 .br
 .SH Range extraction
 .LP
@@ -3448,7 +3448,7 @@ The formats allowed for times specifiers are:
 .br
 * XML DateTime: specify absolute UTC time
 .br
-  
+
 .br
 In this mode, the timestamps are rewritten to form a continuous timeline, unless .I xots is set.
 .br
@@ -3840,7 +3840,7 @@ Description: NHNT writer
 .br
 This filter converts a single stream to an NHNT output file.
 .br
-NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
+NHNT documentation is available at https://wiki.gpac.io/xmlformats/NHNT-Format
 .br
 
 .br
@@ -3862,7 +3862,7 @@ Description: NHML writer
 .br
 This filter converts a single stream to an NHML output file.
 .br
-NHML documentation is available at https://wiki.gpac.io/NHML-Format
+NHML documentation is available at https://wiki.gpac.io/xmlformats/NHML-Format
 .br
 
 .br
@@ -4817,7 +4817,7 @@ Each TEMI description is formatted as ID_OR_URL or #OPT1[#OPT2]#ID_OR_URL. Optio
 .br
 * ID_OR_URL: If number, indicate the TEMI ID to use for external timeline. Otherwise, give the URL to insert
 .br
-  
+
 .br
 Example
 .br
@@ -5035,7 +5035,7 @@ If input is foo.mp4 with 640x360 video resolution, this will resolve in Great_fo
 .br
 
 .br
-Standard DASH replacement strings: 
+Standard DASH replacement strings:
 .br
 * $Number[%%0Nd]$: replaced by the segment number, possibly prefixed with 0
 .br
@@ -5115,7 +5115,7 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 .br
-  
+
 .br
 Example
 .br
@@ -6065,7 +6065,7 @@ The filter can create the pipe if not found using .I mkp. On windows hosts, this
 .br
 On non windows hosts, the created pipe will delete the pipe file upon filter destruction.
 .br
-  
+
 .br
 Input pipes can be setup to run forever using .I ka. In this case:
 .br
@@ -6075,21 +6075,21 @@ Input pipes can be setup to run forever using .I ka. In this case:
 .br
 - final end of stream will be triggered upon session close.
 .br
-  
+
 .br
 This can be useful to pipe raw streams from different process into gpac:
 .br
 * Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka
 .br
-* Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264  
+* Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264
 .br
 The pipeline flush is signaled as EOS while keeping the stream active.
 .br
 This is typically needed for mux filters waiting for EOS to flush their data.
 .br
-  
+
 .br
-If .I marker is set, the following strings (all 8-bytes with 
+If .I marker is set, the following strings (all 8-bytes with
 .br
 
 .br
@@ -6139,7 +6139,7 @@ The pipe name indicated in .I dst can use template mechanisms from gpac, e.g. ds
 .br
 
 .br
-On Windows hosts, the default pipe prefix is \\.\pipe\gpac\ if no prefix is set 
+On Windows hosts, the default pipe prefix is \\.\pipe\gpac\ if no prefix is set
 .br
 dst=mypipe resolves in \\.\pipe\gpac\mypipe
 .br
@@ -6597,7 +6597,7 @@ In cached mode, repeated files are always pushed to cache.
 .br
 The maximum number of media segment objects in cache per service is defined by .I nbcached; this is a safety used to force object removal in case DASH client timing is wrong and some files are never requested at cache level.
 .br
-  
+
 .br
 The cached MPD is assigned the following headers:
 .br
@@ -6609,7 +6609,7 @@ The cached MPD is assigned the following headers:
 .br
 * `x-route-loop`: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
 .br
-  
+
 .br
 The cached files are assigned the following headers:
 .br
@@ -6920,13 +6920,13 @@ name=bar
 .br
 Content RES of this directory is exposed as rtsp://SERVER/bar/RES.
 .br
-  
+
 .br
 
 .br
 In this mode, it is possible to load any source supported by gpac by setting the option .I dynurl.
 .br
-The expected syntax of the dynamic RTSP URLs is rtsp://servername/?URL1[&URLN] or rtsp://servername/@URL1[@URLN] 
+The expected syntax of the dynamic RTSP URLs is rtsp://servername/?URL1[&URLN] or rtsp://servername/@URL1[@URLN]
 .br
 Each URL can be absolute or local, in which case it is resolved against the mount point(s).
 .br
@@ -7086,7 +7086,7 @@ The HTTP output filter can act as:
 .br
 - an HTTP server source
 .br
-  
+
 .br
 The server currently handles GET, HEAD, PUT, POST, DELETE methods, and basic OPTIONS support.
 .br
@@ -7096,11 +7096,11 @@ Single or multiple byte ranges are supported for both GET and PUT/POST methods, 
 .br
 - for PUT/POST, the received data is pushed to the target file according to the byte ranges specified in the client request.
 .br
-  
+
 .br
 Warning: the partial PUT request is RFC2616 compliant but not compliant with RFC7230. PATCH method is not yet implemented in GPAC.
 .br
-  
+
 .br
 When a single read directory is specified, the server root / is the content of this directory.
 .br
@@ -7108,7 +7108,7 @@ When multiple read directories are specified, the server root / contains the lis
 .br
 When a write directory is specified, the upload resource name identifies a file in this directory (the write directory name is not present in the URL).
 .br
-  
+
 .br
 A directory rule file (cf gpac -h creds) can be specified in .I rdirs but NOT in .I wdir. When rules are used:
 .br
@@ -7128,7 +7128,7 @@ name=bar
 .br
 Content RES of this directory is exposed as http://SERVER/bar/RES.
 .br
-  
+
 .br
 Listing can be enabled on server using .I dlist.
 .br
@@ -7136,15 +7136,15 @@ When disabled, a GET on a directory will fail.
 .br
 When enabled, a GET on a directory will return a simple HTML listing of the content inspired from Apache.
 .br
-  
+
 .br
 Custom headers can be specified using .I hdrs, they apply to all requests. For more advanced control on requests, use a javascript binding (see .I js and howtos).
 .br
-  
+
 .br
 Text files are compressed using gzip or deflate if the client accepts these encodings, unless .I no_z is set.
 .br
-  
+
 .br
 .SH Simple HTTP server
 .LP
@@ -7161,7 +7161,7 @@ gpac httpout:rdirs=outcoming
 .br
 This sets up a read-only server.
 .br
-  
+
 .br
 Example
 .br
@@ -7171,7 +7171,7 @@ gpac httpout:wdir=incoming
 .br
 This sets up a write-only server.
 .br
-  
+
 .br
 Example
 .br
@@ -7181,7 +7181,7 @@ gpac httpout:rdirs=outcoming:wdir=incoming:port=8080
 .br
 This sets up a read-write server running on .I port 8080.
 .br
-  
+
 .br
 .SH HTTP server sink
 .LP
@@ -7210,7 +7210,7 @@ gpac -i MP3_SOURCE reframer:rt=on -o http://localhost/live.mp3
 .br
 In this example, the server will push each input packet to all connected clients, or trash the packet if no connected clients.
 .br
-  
+
 .br
 In this mode, ICECast meta-data can be inserted using .I ice. The default inserted values are ice-audio-info, icy-br, icy-pub (set to 1) and icy-name if input ServiceName property is set.
 .br
@@ -7222,15 +7222,15 @@ gpac -i source.mp3:#ice-Genre=CoolRock -o http://IP/live.mp3 --ice
 .br
 
 .br
-This will inject the header ice-Genre: CoolRock in the response.  
+This will inject the header ice-Genre: CoolRock in the response.
 .br
 Once one complete input file is sent, it is no longer available for download unless .I reopen is set and input PID is not over.
 .br
-  
+
 .br
 This mode should not be used with multiple files muxers such as DASH or HLS.
 .br
-  
+
 .br
 .SH HTTP server file sink
 .LP
@@ -7249,7 +7249,7 @@ Upon client GET request, the server will check if the requested URL matches the 
 .br
 - If not so, the server will simply send the file from the disk as a regular HTTP session, without chunk transfer.
 .br
-  
+
 .br
 This mode is typically used for origin server in HAS sessions where clients may request files while they are being produced (low latency DASH).
 .br
@@ -7261,13 +7261,13 @@ gpac -i SOURCE reframer:rt=on -o http://localhost:8080/live.mpd --rdirs=temp --d
 .br
 In this example, a real-time dynamic DASH session with chunks of 100ms is created, writing files to temp. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.
 .br
-  
+
 .br
 The server can store incoming files to memory mode by setting the read directory to gmem.
 .br
 In this mode, .I max_cache_segs is always at least 1.
 .br
-  
+
 .br
 If .I max_cache_segs value N is not 0, each incoming PID will store at most:
 .br
@@ -7279,7 +7279,7 @@ If .I max_cache_segs value N is not 0, each incoming PID will store at most:
 .br
 - unlimited otherwise (files stored locally, N is positive and no time-shift info)
 .br
-  
+
 .br
 .SH HTTP client sink
 .LP
@@ -7298,7 +7298,7 @@ gpac -i SOURCE -o http://targethost:8080/live.mpd:gpac:hmode=push
 .br
 In this example, the filter will send PUT methods to the server running on .I port 8080 at targethost location (IP address or name).
 .br
-  
+
 .br
 .SH HTTP server source
 .LP
@@ -7317,7 +7317,7 @@ gpac httpout:hmode=source vout aout
 .br
 In this example, the filter will try to play uploaded files through video and audio output.
 .br
-  
+
 .br
 .SH HTTPS server
 .LP
@@ -7328,7 +7328,7 @@ Both certificate and key must be in PEM format.
 .br
 The server currently only operates in either HTTPS or HTTP mode and cannot run both modes at the same time. You will need to use two httpout filters for this, one operating in HTTPS and one operating in HTTP.
 .br
-  
+
 .br
 .SH Multiple destinations on single server
 .LP
@@ -7436,7 +7436,7 @@ blockio (bool, default: false): use blocking IO in push or source mode or in ser
 .br
 ka (bool, default: true):      keep input alive if failure in push mode
 .br
-hdrs (strl):                   additional HTTP headers to inject, even values are names, odd values are values 
+hdrs (strl):                   additional HTTP headers to inject, even values are names, odd values are values
 .br
 js (str):                      javascript logic for server
 .br
@@ -7502,7 +7502,7 @@ In this mode, it is the caller responsibility to set coordinates so that all til
 .br
 - If a vertical blank is detected in the layout, it is ignored.
 .br
-  
+
 .br
 .SS Spatial Relationship Description (SRD)
 .br
@@ -7533,7 +7533,7 @@ src2:SRD=640x0x640x480:SRDRef=1280x720
 .br
 This indicates that src1 contains a video located at 640,0, with a size of 640x480 pixels in a virtual source of 1280x720 pixels.
 .br
- 
+
 .br
 Each merged input is described by 8 integers in the output SRDMap:
 .br
@@ -7541,7 +7541,7 @@ Each merged input is described by 8 integers in the output SRDMap:
 .br
 - the source location in the reconstructed video forms the second part (4 integers) of the SRDMap (i.e. where are the input pixels in the output ?)
 .br
- 
+
 .br
 Assuming the two sources are encoded at 320x240 and merged as src2 above src1, the output will be a 320x480 video with a SRDMap of {0,160,160,240,0,0,320,240,0,0,160,240,0,240,320,240}
 .br
@@ -7557,7 +7557,7 @@ Alternatively to using SRD and SRDRef, it is possible to specify CropOrigin prop
 .br
 Example
 .br
-src1:CropOrigin=0x0  src1:CropOrigin=640x0 
+src1:CropOrigin=0x0  src1:CropOrigin=640x0
 .br
 
 .br
@@ -7713,13 +7713,13 @@ The filter can currently modify the following properties in video bitstreams:
 .br
   - color primaries, transfer characteristics and matrix coefficients
 .br
-  
+
 .br
 Values are by default initialized to -1, implying to keep the related info (present or not) in the bitstream.
 .br
 A .I sar value of 0/0 will remove sample aspect ratio info from bitstream if possible.
 .br
-  
+
 .br
 The filter can currently modify the following properties in the stream configuration but not in the bitstream:
 .br
@@ -7727,7 +7727,7 @@ The filter can currently modify the following properties in the stream configura
 .br
 * VVC: profile IDC, general profile and level indication
 .br
-  
+
 .br
 The filter will work in passthrough mode for all other codecs and media types.
 .br
@@ -8735,9 +8735,9 @@ Description: JavaScript filter
 .br
 This filter runs a javascript file specified in .I js defining a new JavaScript filter.
 .br
-  
+
 .br
-For more information on how to use JS filters, please check https://wiki.gpac.io/jsfilter
+For more information on how to use JS filters, please check https://wiki.gpac.io/Howtos/jsf/jsfilter
 .br
 
 .br
@@ -8779,7 +8779,7 @@ The filter only accepts input PIDs of type FILE.
 .br
 - A PID without OrigStreamType property set is delivered as a regular LCT object file (called raw hereafter).
 .br
-  
+
 .br
 For raw file PIDs, the filter will look for the following properties:
 .br
@@ -9143,7 +9143,7 @@ Note: frames are simply copied or dropped with no motion compensation.
 .br
 
 .br
-When .I align is not 0, if the difference between two consecutive timestamps is greater than the specified threshold, the new timestamp 
+When .I align is not 0, if the difference between two consecutive timestamps is greater than the specified threshold, the new timestamp
 .br
 is set to the last computed timestamp plus the minimum packet duration for the stream.
 .br
@@ -9193,7 +9193,7 @@ This filter multiplexes audio and video to produce an OGG stream.
 .br
 
 .br
-The .I cdur option allows specifying the interleaving duration (max time difference between consecutive packets of different streams). 
+The .I cdur option allows specifying the interleaving duration (max time difference between consecutive packets of different streams).
 .br
 
 .br
@@ -9815,7 +9815,7 @@ This filter generates screenshots from a video stream.
 .br
 
 .br
-The input video is down-sampled by the .I scale factor. The output size is configured based on the number of images per line and per column in the .I grid. 
+The input video is down-sampled by the .I scale factor. The output size is configured based on the number of images per line and per column in the .I grid.
 .br
 Once configured, the output size is no longer modified.
 .br
@@ -10068,7 +10068,7 @@ When operating live, the mixer will initially wait for video frames to be ready 
 .br
 The main components in a playlist are:
 .br
-* Media sources and sequences: each source is described by one or more URL to the media data, and each sequence is a set of sources to be played continuously 
+* Media sources and sequences: each source is described by one or more URL to the media data, and each sequence is a set of sources to be played continuously
 .br
 * Transitions: sources in a sequence can be combined using transitions
 .br
@@ -10142,9 +10142,9 @@ If JS code needs to manipulate colors, use sys.color_lerp and sys.color_componen
 .br
 
 .br
-Some object types allow for custom JS code to be executed. 
+Some object types allow for custom JS code to be executed.
 .br
-The script code can either be the value of the property, or located in a file indicated in the property. 
+The script code can either be the value of the property, or located in a file indicated in the property.
 .br
 The code is turned into a function (i.e. new Function(args, js_code)) upon initial playlist parsing or reload, hereafter called JSFun.
 .br
@@ -10160,7 +10160,7 @@ The code can use the global functions and modules defined, especially:
 .br
 * evg: GPAC EVG module
 .br
-* os: QuickJS OS module 
+* os: QuickJS OS module
 .br
 * video_playing: video playing state
 .br
@@ -10224,7 +10224,7 @@ Warning: Results are undefined if JS code modifies the scene/group objects in an
 .br
 
 .br
-Other playlist objects (as well as scene and group objects) can be queried using query_element(ID, propName) or modified using update_element(ID, propName, value) (see playlist update below).   
+Other playlist objects (as well as scene and group objects) can be queried using query_element(ID, propName) or modified using update_element(ID, propName, value) (see playlist update below).
 .br
 
 .br
@@ -10300,11 +10300,11 @@ This allows different instances of the filter using the same playlist to initial
 .br
 When reloading the playlist:
 .br
-- if the sequence is active, start value is ignored 
+- if the sequence is active, start value is ignored
 .br
-- if the sequence was not started, start value is updated 
+- if the sequence was not started, start value is updated
 .br
-- if the sequence was over, start value is updated only of greater than previous resolved UTC start time. 
+- if the sequence was over, start value is updated only of greater than previous resolved UTC start time.
 .br
 
 .br
@@ -10474,7 +10474,7 @@ The 3D local transformation matrix is computed as translate(x, y, z) * rotate(cx
 .br
 The default unit system (rel) is relative to the current established reference space:
 .br
-- by default, the reference space is {output_width, output_height}, the origin {0,0} being the center of the output frame 
+- by default, the reference space is {output_width, output_height}, the origin {0,0} being the center of the output frame
 .br
 - any group with reference=true, width>0 and height>0 establishes a new reference space {group.width, group.height}
 .br
@@ -10618,7 +10618,7 @@ Properties for group objects
 .br
 * reverse (false): reverse scenes order before draw
 .br
-* reference (false): group is a reference space for relative coordinate of children nodes 
+* reference (false): group is a reference space for relative coordinate of children nodes
 .br
 
 .br
@@ -10836,7 +10836,7 @@ The JSFun specified by mode has one input parameter interp equal to the interpol
 .br
 Example
 .br
-"mode":"return interp*interp;" 
+"mode":"return interp*interp;"
 .br
 
 .br
@@ -10846,7 +10846,7 @@ The JSFun specified by postfun has two input parameters res (the current interpl
 .br
 Example
 .br
-"postfun": "if (interp<0.5) return res*res; return res;" 
+"postfun": "if (interp<0.5) return res*res; return res;"
 .br
 
 .br
@@ -10882,7 +10882,7 @@ The JSFun function specified by fun has no input parameter. The return value (de
 .br
 EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
 .br
-This will change scene s1 rotation every 2 seconds 
+This will change scene s1 rotation every 2 seconds
 .br
 
 .br
@@ -11260,13 +11260,13 @@ Options:
 .br
   * use_inv: mask is enabled, further draw operations will be filtered by 1-mask
 .br
-  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
+  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0
 .br
- 
+
 .br
 .SS Scene clear
 .br
-This scene clears the canvas area covered by the scene with a given color. 
+This scene clears the canvas area covered by the scene with a given color.
 .br
 
 .br
@@ -11354,7 +11354,7 @@ Warning: Color replacement operations cannot be used with transition or mix effe
 .br
 
 .br
-.SS Text options 
+.SS Text options
 .br
 
 .br
@@ -11384,9 +11384,9 @@ Predefined keywords can be used in input text, identified as $KEYWORD$. The foll
 .br
 * ldate: replaced by locale date (Y/M/D)
 .br
-* mtime: replaced by output media time 
+* mtime: replaced by output media time
 .br
-* mtime_SRC: replaced by media time of input source SRC 
+* mtime_SRC: replaced by media time of input source SRC
 .br
 * cpu: replaced by current CPU usage of process
 .br
@@ -11935,7 +11935,7 @@ logt (bool):                   log frame time to console
 .br
 .SH EXAMPLES
 .TP
-Basic and advanced examples are available at https://wiki.gpac.io/Filters
+Basic and advanced examples are available at https://wiki.gpac.io/Filters/Filters
 .SH MORE
 .LP
 Authors: GPAC developers, see git repo history (-log)

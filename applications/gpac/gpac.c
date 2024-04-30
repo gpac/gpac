@@ -238,7 +238,7 @@ static int gpac_exit_fun(int code)
 	}
 	if ((helpout != stdout) && (helpout != stderr)) {
 		if (gen_doc==2) {
-			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
+			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters/Filters\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 			".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"
@@ -872,7 +872,7 @@ int gpac_main(int _argc, char **_argv)
 //			dump_codecs = GF_TRUE;
 
 			if (gen_doc==2) {
-				fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
+				fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters/Filters\n");
 				fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 				".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 				".br\nbuild: %s\n"
