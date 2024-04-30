@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1764,7 +1764,13 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
 		gf_assert(e);
 		url = gf_cache_get_url(e);
 		gf_assert( url );
-		if (strcmp(url, sess->orig_url)) continue;
+
+		if (!strncmp(url, "http://groute/", 14)) {
+			char *sep_1 = strchr(url+14, '/');
+			char *sep_2 = strchr(sess->orig_url+14, '/');
+			if (!sep_1 || !sep_2 || strcmp(sep_1, sep_2))
+				continue;
+		} else if (strcmp(url, sess->orig_url)) continue;
 
 		if (! sess->is_range_continuation) {
 			if (sess->range_start != gf_cache_get_start_range(e)) continue;

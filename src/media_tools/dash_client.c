@@ -751,6 +751,13 @@ setup_route:
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Waiting for ROUTE clock ...\n"));
 			return;
 		}
+		const char *root_url = strstr(group->dash->base_url+7, "groute/");
+		if (root_url) {
+			root_url = strchr(root_url+7, '/');
+			if (root_url) root_url++;
+		}
+		else root_url = group->dash->base_url;
+		if (!strstr(root_url, "://")) root_url = "./";
 
 		for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
 			u64 sr, seg_dur_ms;
@@ -781,7 +788,7 @@ setup_route:
 					continue;
 				}
 				u32 tpl_use_time=0;
-				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur_ms, NULL, NULL, NULL, &tpl_use_time);
+				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, root_url, 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur_ms, NULL, NULL, NULL, &tpl_use_time);
 
 				dyn_period->duration = dur;
 

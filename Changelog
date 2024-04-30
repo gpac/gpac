@@ -6,6 +6,9 @@
 ##Emscripten
 - Fixes in UI
 
+## Filters
+- experimental DVB-I MABR flute demux
+
 #04/2024: GPAC 2.4
 
 ## Emscripten|WebAssembly(WASM) support

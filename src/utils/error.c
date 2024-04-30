@@ -183,12 +183,13 @@ static struct log_tool_info {
 	u32 type;
 	const char *name;
 	GF_LOG_Level level;
+	const char *alt;
 } global_log_tools [] =
 {
 	{ GF_LOG_CORE, "core", GF_LOG_WARNING },
 	{ GF_LOG_CODING, "coding", GF_LOG_WARNING },
 	{ GF_LOG_CONTAINER, "container", GF_LOG_WARNING },
-	{ GF_LOG_NETWORK, "network", GF_LOG_WARNING },
+	{ GF_LOG_NETWORK, "network", GF_LOG_WARNING, .alt = "net"  },
 	{ GF_LOG_HTTP, "http", GF_LOG_WARNING },
 	{ GF_LOG_RTP, "rtp", GF_LOG_WARNING },
 	{ GF_LOG_CODEC, "codec", GF_LOG_WARNING },
@@ -210,7 +211,7 @@ static struct log_tool_info {
 	{ GF_LOG_DASH, "dash", GF_LOG_WARNING },
 	{ GF_LOG_FILTER, "filter", GF_LOG_WARNING },
 	{ GF_LOG_SCHEDULER, "sched", GF_LOG_WARNING },
-	{ GF_LOG_ROUTE, "route", GF_LOG_WARNING },
+	{ GF_LOG_ROUTE, "route", GF_LOG_WARNING, .alt = "flute" },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
 };
@@ -225,6 +226,8 @@ u32 gf_log_parse_tool(const char *logs)
 	u32 i;
 	for (i=0; i<GF_LOG_TOOL_MAX; i++) {
 		if (!strcmp(global_log_tools[i].name, logs))
+			return global_log_tools[i].type;
+		if (global_log_tools[i].alt && !strcmp(global_log_tools[i].alt, logs))
 			return global_log_tools[i].type;
 	}
 	if (!strcmp(logs, "all"))
@@ -331,7 +334,9 @@ GF_Err gf_log_modify_tools_levels(const char *val_)
 			else {
 				Bool found = GF_FALSE;
 				for (i=0; i<GF_LOG_TOOL_MAX; i++) {
-					if (!strcmp(global_log_tools[i].name, tools)) {
+					if (!strcmp(global_log_tools[i].name, tools)
+						|| (global_log_tools[i].alt && !strcmp(global_log_tools[i].alt, tools))
+					) {
 						global_log_tools[i].level = level;
 						found = GF_TRUE;
 						break;
