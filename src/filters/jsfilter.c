@@ -2256,7 +2256,7 @@ static JSValue jsf_pid_get_packet(JSContext *ctx, JSValueConst this_val, int arg
     if (!pctx) return GF_JS_EXCEPTION(ctx);
 	if (!pctx->jsf->filter->in_process)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to query packet outside process callback not allowed!\n", pctx->jsf->filter->name);
-		
+
     pck = gf_filter_pid_get_packet(pctx->pid);
 	if (!pck) return JS_NULL;
 
@@ -4403,7 +4403,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!pctx) {
 		GF_SAFEALLOC(pctx, GF_JSPidCtx);
 		if (!pctx) return GF_OUT_OF_MEM;
-		
+
 		pctx->jsf = jsf;
 		pctx->pid = pid;
 		pctx->jsobj = JS_NewObjectClass(jsf->ctx, jsf_pid_class_id);
@@ -5236,7 +5236,7 @@ GF_FilterRegister JSFilterRegister = {
 	GF_FS_SET_DESCRIPTION("JavaScript filter")
 	GF_FS_SET_HELP("This filter runs a javascript file specified in [-js]() defining a new JavaScript filter.\n"
 	"  \n"
-	"For more information on how to use JS filters, please check https://wiki.gpac.io/jsfilter\n")
+	"For more information on how to use JS filters, please check https://wiki.gpac.io/Howtos/jsf/jsfilter\n")
 	.private_size = sizeof(GF_JSFilterCtx),
 	.flags = GF_FS_REG_SCRIPT | GF_FS_REG_TEMP_INIT,
 	.args = JSFilterArgs,
@@ -5291,4 +5291,3 @@ const GF_FilterRegister *jsf_register(GF_FilterSession *session)
 }
 
 #endif
-

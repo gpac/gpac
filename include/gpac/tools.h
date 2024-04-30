@@ -424,9 +424,9 @@ The library can usually be configured from command line if your program uses \re
 
 The library can also be configured from your program using \ref gf_opts_set_key and related functions right after initializing the library.
 
-For more information on configuration options, see \code gpac -hx core \endcode and https://wiki.gpac.io/core_options
+For more information on configuration options, see \code gpac -hx core \endcode and https://wiki.gpac.io/Filters/core_options
 
-For more information on filters configuration options, see https://wiki.gpac.io/Filters
+For more information on filters configuration options, see https://wiki.gpac.io/Filters/Filters
 
 @{
  */

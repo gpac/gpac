@@ -7,7 +7,7 @@ REBUILD=0
 CLEAN=0
 #DEBUG="NDK_DEBUG=0"
 DEBUG="NDK_DEBUG=0 APP_OPTIM=release"
-#default should be assembleRelease but not working with gradle 2, to fix 
+#default should be assembleRelease but not working with gradle 2, to fix
 GRADLE_FLAG="assembleDebug"
 VERB=""
 
@@ -66,7 +66,7 @@ echo "-debug: build with debug symbols "
 echo "-h: print this screen"
 echo "-v: verbose build"
 echo ""
-echo -e "\n\033[32m If you have problem using this script, check wiki.gpac.io/GPAC-Build-Guide-for-Android or gpac/build/android/README \033[0m\n"
+echo -e "\n\033[32m If you have problem using this script, check https://wiki.gpac.io/Build/build/GPAC-Build-Guide-for-Android or gpac/build/android/README \033[0m\n"
 exit 0
 fi
 

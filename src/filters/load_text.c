@@ -4491,7 +4491,7 @@ GF_FilterRegister TXTInRegister = {
 	"The filter supports the following formats:\n"
 	"- SRT: https://en.wikipedia.org/wiki/SubRip\n"
 	"- WebVTT: https://www.w3.org/TR/webvtt1/\n"
-	"- TTXT: https://wiki.gpac.io/TTXT-Format-Documentation\n"
+	"- TTXT: https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation\n"
 	"- QT 3GPP Text XML (TexML): Apple QT6, likely deprecated\n"
 	"- TTML: https://www.w3.org/TR/ttml2/\n"
 	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"

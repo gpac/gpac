@@ -406,7 +406,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
 
 	gf_bs_reassign_buffer(ctx->bs_r, in_data, data_size);
-	
+
 	if (cstr->selective_encryption) {
 		if (gf_bs_read_int(ctx->bs_r, 1)) is_encrypted=GF_TRUE;
 		gf_bs_read_int(ctx->bs_r, 7);
@@ -2513,7 +2513,7 @@ GF_FilterRegister CENCDecRegister = {
 	"\n"
 	"For HLS, key is retrieved according to the key URI in the manifest.\n"
 	"Otherwise, the filter uses a configuration file.\n"
-	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
+	"The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption\n"
 	"The DRM config file can be set per PID using the property `DecryptInfo` (highest priority), `CryptInfo` (lower priority) "
 	"or set at the filter level using [-cfile]() (lowest priority).\n"
 	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used."

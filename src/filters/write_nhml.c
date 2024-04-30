@@ -479,7 +479,7 @@ static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 			gf_filter_pck_send(dst_pck);
 		}
 	}
-	
+
 	NHML_PRINT_STRING(0, "meta:encoding", "encoding")
 	NHML_PRINT_STRING(0, "meta:contentEncoding", "content_encoding")
 	ctx->uncompress = GF_FALSE;
@@ -1024,7 +1024,7 @@ GF_FilterRegister NHMLDumpRegister = {
 	.name = "nhmlw",
 	GF_FS_SET_DESCRIPTION("NHML writer")
 	GF_FS_SET_HELP("This filter converts a single stream to an NHML output file.\n"
-	"NHML documentation is available at https://wiki.gpac.io/NHML-Format\n")
+	"NHML documentation is available at https://wiki.gpac.io/xmlformats/NHML-Format\n")
 	.private_size = sizeof(GF_NHMLDumpCtx),
 	.args = NHMLDumpArgs,
 	.initialize = nhmldump_initialize,
@@ -1044,5 +1044,3 @@ const GF_FilterRegister *nhmlw_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_NHMLW
-
-
