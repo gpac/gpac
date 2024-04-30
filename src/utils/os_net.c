@@ -988,6 +988,13 @@ static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
 	}
 }
 
+enum
+{
+	PCAP_LT_LOOPBACK=0,
+	PCAP_LT_ETHERNET=1,
+	PCAP_LT_CHAOS=5
+};
+
 static GF_Err pcapng_load_shb(GF_NetcapFilter *nf, Bool is_init)
 {
 	u32 blen = gf_bs_read_u32(nf->cap_bs);
@@ -1019,8 +1026,14 @@ static void pcapng_load_idb(GF_NetcapFilter *nf)
 	nf->link_types[nf->pcap_num_interfaces] = nf->pcap_le ? gf_bs_read_u16_le(nf->cap_bs) : gf_bs_read_u16(nf->cap_bs);
 	gf_bs_skip_bytes(nf->cap_bs, blen-10);
 
-	if (nf->link_types[nf->pcap_num_interfaces]>1) {
+	switch (nf->link_types[nf->pcap_num_interfaces]) {
+	case PCAP_LT_LOOPBACK:
+	case PCAP_LT_ETHERNET:
+	case PCAP_LT_CHAOS:
+		break;
+	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[NetCap] Only ethernet and BSD-loopback pcap files are supported, skipping packets\n"));
+		break;
 	}
 	nf->pcap_num_interfaces++;
 }
@@ -1131,6 +1144,9 @@ refetch_pcap:
 		} else {
 			SKIP_PCAP_PCK
 		}
+	}
+	//raw IPv4
+	else if (link_type==5) {
 	}
 	//not supported
 	else {
@@ -1650,9 +1666,14 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 		nf->link_types[0] = gf_bs_read_int(nf->cap_bs, 28);
 		if (nf->pcap_le) nf->link_types[0] = ntohl(nf->link_types[0]);
 
-		if (nf->link_types[0] > 1) {
+		switch (nf->link_types[0]) {
+		case PCAP_LT_LOOPBACK:
+		case PCAP_LT_ETHERNET:
+		case PCAP_LT_CHAOS:
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Only ethernet and BSD-loopback pcap files are supported, got %u\n", nf->link_types[0]));
 			gf_net_close_capture();
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Only ethernet and BSD-loopback pcap files are supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
 	}
@@ -3477,6 +3498,8 @@ void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 	if (sk->cap_info) {
 		sg->nb_nfs++;
 		sg->nb_socks = gf_list_count(sg->sockets);
+		if (sk->cap_info->nf && (gf_list_find(sk->cap_info->nf->read_socks, sk)<0))
+			gf_list_add(sk->cap_info->nf->read_socks, sk);
 		return;
 	}
 #endif
@@ -3505,7 +3528,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 
 #ifndef GPAC_DISABLE_NETCAP
 	if (sk->cap_info && sk->cap_info->nf->read_socks) {
-		if (sg->nb_nfs)
+		if (sg->nb_nfs && (pidx>=0))
 			sg->nb_nfs--;
 		sg->nb_socks = gf_list_count(sg->sockets);
 
@@ -3515,6 +3538,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 			sk->cap_info->nf->read_sock_selected=NULL;
 			//do not load a new packet here as this could go into infinite loop when netcap-loop=-1 ...
 		}
+		gf_list_del_item(sk->cap_info->nf->read_socks, sk);
 		return;
 	}
 #endif
