@@ -1591,6 +1591,7 @@ config_package ssl "openssl" "" "$ssl_lflags" "" '#include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <stddef.h>
 int main( void ) {  SSL_CTX_set_options(NULL, SSL_OP_ALL); return 0; }'
 
 
@@ -1617,6 +1618,7 @@ int main( void ) { opj_create_decompress(CODEC_J2K); return 0; }'
 fi
 
 config_package png "libpng" "" "-lpng -lz" "png" '#include <png.h>
+#include <stddef.h>
 int main( void ) {  png_struct *png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); return 0; }'
 
 
@@ -1633,6 +1635,7 @@ int main( void ) { a52_state_t *codec; a52_free(codec); return 0; }'
 
 
 config_package xvid "xvid" "" "-lxvidcore $PTHREAD_LDFLAGS" "" '#include <xvid.h>
+#include <stddef.h>
 int main( void ) { void *codec; xvid_decore(codec, XVID_DEC_DESTROY, NULL, NULL); return 0; }'
 
 config_package faad "faad2" "" "-lfaad -lm" "" '#include <faad.h>
@@ -1686,6 +1689,7 @@ fi
 
 
 config_package freenect "libfreenect" "" "-lfreenect" "freenect" '#include <libfreenect/libfreenect.h>
+#include <stddef.h>
 int main( void ) { freenect_context *f_ctx; freenect_init(&f_ctx, NULL); return 0; }'
 
 
