@@ -3012,7 +3012,6 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 		case GF_M2TS_AUDIO_LATM_AAC:
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_EC3:
-		case GF_M2TS_METADATA_ID3_HLS:
 		case 0xA1:
 			//for all our supported codec types, use a reframer filter
 			pes->reframe = gf_m2ts_reframe_default;
@@ -3022,6 +3021,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, GF_M2TSPesFraming mode)
 			/* TODO: handle DVB subtitle streams */
 			break;
 
+		case GF_M2TS_METADATA_ID3_HLS:
 		case GF_M2TS_METADATA_ID3_KLVA:
 			pes->reframe = gf_m2ts_reframe_add_prop;
 			break;
