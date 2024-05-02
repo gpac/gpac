@@ -253,17 +253,18 @@ static void gf_route_service_del(GF_ROUTEDmx *routedmx, GF_ROUTEService *s)
 		gf_sk_group_unregister(routedmx->active_sockets, s->sock);
 		gf_sk_del(s->sock);
 	}
+	while (gf_list_count(s->objects)) {
+		GF_LCTObject *o = gf_list_pop_back(s->objects);
+		gf_route_lct_obj_del(o);
+	}
+	gf_list_del(s->objects);
+
 	while (gf_list_count(s->route_sessions)) {
 		GF_ROUTESession *rsess = gf_list_pop_back(s->route_sessions);
 		gf_route_route_session_del(rsess);
 	}
 	gf_list_del(s->route_sessions);
 
-	while (gf_list_count(s->objects)) {
-		GF_LCTObject *o = gf_list_pop_back(s->objects);
-		gf_route_lct_obj_del(o);
-	}
-	gf_list_del(s->objects);
 	if (s->dst_ip) gf_free(s->dst_ip);
 	if (s->log_name) gf_free(s->log_name);
 	gf_free(s);
