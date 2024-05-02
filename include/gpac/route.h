@@ -79,6 +79,8 @@ typedef enum
     GF_ROUTE_EVT_DYN_SEG_FRAG,
     /*! Object deletion (only for dynamic TOIs), used to notify the cache that an object is no longer available. File info only contains the filename being removed*/
     GF_ROUTE_EVT_FILE_DELETE,
+	/*! Delayed data reception */
+	GF_ROUTE_EVT_LATE_DATA,
 } GF_ROUTEEventType;
 
 enum
@@ -134,6 +136,8 @@ typedef struct
     /*! fragment info, only set for GF_ROUTE_EVT_DYN_SEG*/
     GF_LCTFragInfo *frags;
 	
+	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
+	u32 late_fragment_offset;
 	/*! user data set to current object after callback, and passed back on next callbacks on same object
 	 Only used for GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG, GF_ROUTE_EVT_DYN_SEG_FRAG and GF_ROUTE_EVT_FILE_DELETE
 	 */
