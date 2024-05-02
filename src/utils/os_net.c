@@ -1581,6 +1581,20 @@ refetch:
 	u32 i=0;
 	GF_Socket *s = NULL;
 	while ((s=gf_list_enum(nf->read_socks, &i))) {
+		//in pcap mode, check multicast - if enabled, match dst
+		//in GPC mode with multicast, only multicast address is used, in host port/addr fields
+		if ((nf->cap_mode!=NETCAP_GPAC) && (s->flags & GF_SOCK_IS_MULTICAST)) {
+			if (s->cap_info->peer_port != nf->dst_port)
+				continue;
+			if (nf->pck_flags & NETCAP_IS_IPV6) {
+				if (memcmp(s->cap_info->peer_addr_v6, nf->dst_v6, 16)) continue;
+			} else {
+				if (s->cap_info->peer_addr_v4 != nf->dst_v4) continue;
+			}
+			nf->read_sock_selected = s;
+			s->cap_info->patch_offset = 0;
+			break;
+		}
 		if (s->cap_info->host_port != nf->dst_port)
 			continue;
 		if (nf->pck_flags & NETCAP_IS_IPV6) {
@@ -1773,15 +1787,15 @@ static GF_Err gf_netcap_send_pcap(GF_NetcapFilter *nf, GF_Socket *sock, const u8
 	//UDP
 	if (protocol_type==17) {
 		gf_bs_write_u16(nf->cap_bs, sock->cap_info->host_port);
-		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->peer_port);
+		gf_bs_write_u16(nf->cap_bs, sock->cap_info->peer_port);
 		gf_bs_write_u16(nf->cap_bs, 8+length);
 		//skip checksum
 		gf_bs_skip_bytes(nf->cap_bs, 2);
 	}
 	//TCP
 	else if (protocol_type==6) {
-		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->host_port);
-		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->peer_port);
+		gf_bs_write_u16(nf->cap_bs, sock->cap_info->host_port);
+		gf_bs_write_u16(nf->cap_bs, sock->cap_info->peer_port);
 		/*sn = */gf_bs_write_u32(nf->cap_bs, 0);
 		/*ack = */gf_bs_write_u32(nf->cap_bs, 0);
 		gf_bs_write_int(nf->cap_bs, 5, 4);
@@ -2467,11 +2481,11 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 			if (peer_name && peer_port) {
 				if (sock->dest_addr.ss_family==AF_INET) {
 					struct sockaddr_in *r_add = (struct sockaddr_in *) &sock->dest_addr;
-					sock->cap_info->peer_port = r_add->sin_port;
+					sock->cap_info->peer_port = ntohs(r_add->sin_port);
 					sock->cap_info->peer_addr_v4 = r_add->sin_addr.s_addr;
 				} else {
 					struct sockaddr_in6 *r_add = (struct sockaddr_in6 *) &sock->dest_addr;
-					sock->cap_info->peer_port = r_add->sin6_port;
+					sock->cap_info->peer_port = ntohs(r_add->sin6_port);
 					memcpy(sock->cap_info->peer_addr_v6, &(r_add->sin6_addr), sizeof(bin128));
 				}
 			}
@@ -3365,8 +3379,16 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 
 #ifndef GPAC_DISABLE_NETCAP
 	if (sock->cap_info && sock->cap_info->nf->cap_mode) {
-		sock->cap_info->host_port = MultiPortNumber;
-		sock->cap_info->host_addr_v4 = inet_addr(multi_IPAdd);
+		//in GPC mode, store in host port/addr
+		if (sock->cap_info->nf->cap_mode==NETCAP_GPAC) {
+			sock->cap_info->host_port = MultiPortNumber;
+			sock->cap_info->host_addr_v4 = inet_addr(multi_IPAdd);
+		} else {
+			sock->cap_info->host_port = MultiPortNumber;
+			sock->cap_info->host_addr_v4 = inet_addr_from_name(ifce_ip_or_name ? ifce_ip_or_name : "127.0.0.1");
+			sock->cap_info->peer_port = MultiPortNumber;
+			sock->cap_info->peer_addr_v4 = inet_addr(multi_IPAdd);
+		}
 		sock->flags &= ~GF_SOCK_IS_IPV6;
 		sock->flags |= GF_SOCK_IS_MULTICAST;
 		return GF_OK;
