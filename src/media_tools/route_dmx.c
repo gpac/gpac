@@ -770,17 +770,26 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	if (routedmx->force_reorder)
 		in_order = GF_FALSE;
 
-	//in case last packet(s) are duplicated after we sent the object, skip them
-	if (rlct) {
-		if ((tsi==rlct->last_dispatched_tsi) && (toi==rlct->last_dispatched_toi)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u LCT fragment on already dispatched object, skipping\n", s->service_id, tsi, toi));
-			return GF_OK;
+	if((rlct && (tsi==rlct->last_dispatched_tsi) && (toi==rlct->last_dispatched_toi)) || (!rlct && !tsi && (toi==s->last_dispatched_toi_on_tsi_zero))) {
+		if(routedmx->on_event) {
+			// Sending event about the delayed data received.
+			GF_ROUTEEventFileInfo finfo;
+			GF_Blob blob;
+			memset(&finfo, 0, sizeof(GF_ROUTEEventFileInfo));
+			memset(&blob, 0, sizeof(GF_Blob));
+			blob.data = data;
+			blob.size = size;
+			finfo.blob = &blob;
+			finfo.total_size = size;
+			finfo.tsi = tsi;
+			finfo.toi = toi;
+			finfo.late_fragment_offset = start_offset;
+			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d received delayed data [%u, %u] for object tsi=%u, toi=%u, event sent\n", s->service_id, start_offset, start_offset+size-1, tsi, toi));
+			routedmx->on_event(routedmx->udta, GF_ROUTE_EVT_LATE_DATA, s->service_id, &finfo);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d received delayed data [%u, %u] for object tsi=%u, toi=%u, ignoring\n", s->service_id, start_offset, start_offset+size-1, tsi, toi));
 		}
-	} else {
-		if (!tsi && (toi==s->last_dispatched_toi_on_tsi_zero)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d TSI %u TOI %u LCT fragment on already dispatched object, skipping\n", s->service_id, tsi, toi));
-			return GF_OK;
-		}
+		return GF_OK;
 	}
 
 	if((u64)start_offset + size > GF_UINT_MAX) {
@@ -955,7 +964,24 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 	//keep receiving if we are done with errors
 	if (obj->status >= GF_LCT_OBJ_DONE) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u already received - skipping\n", s->service_id, tsi, toi ));
+		if(routedmx->on_event) {
+			// Sending event about the delayed data received.
+			GF_ROUTEEventFileInfo finfo;
+			GF_Blob blob;
+			memset(&finfo, 0, sizeof(GF_ROUTEEventFileInfo));
+			memset(&blob, 0, sizeof(GF_Blob));
+			blob.data = data;
+			blob.size = size;
+			finfo.blob = &blob;
+			finfo.total_size = size;
+			finfo.tsi = tsi;
+			finfo.toi = toi;
+			finfo.late_fragment_offset = start_offset;
+			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Service %d received delayed data [%u, %u] for object tsi=%u, toi=%u, event sent\n", s->service_id, start_offset, start_offset+size-1, tsi, toi));
+			routedmx->on_event(routedmx->udta, GF_ROUTE_EVT_LATE_DATA, s->service_id, &finfo);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d received delayed data [%u, %u] for object tsi=%u, toi=%u, ignoring\n", s->service_id, start_offset, start_offset+size-1, tsi, toi));
+		}
 		return GF_EOS;
 	}
 	obj->last_gather_time = gf_sys_clock();
