@@ -221,9 +221,6 @@ This section documents the base data types of GPAC.
 #error "Unknown target platform used with static configuration file"
 #endif
 
-/*needed for unittests (disabled)*/
-#define GF_STATIC static
-
 /*disables player */
 //#define GPAC_DISABLE_COMPOSITOR
 
