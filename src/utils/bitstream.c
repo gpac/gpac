@@ -135,6 +135,9 @@ GF_BitStream *gf_bs_new(const u8 *buffer, u64 BufferSize, u32 mode)
 	GF_BitStream *tmp = (GF_BitStream *)gf_malloc(sizeof(GF_BitStream));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_BitStream));
+#ifdef GPAC_HAS_FD
+	tmp->fd = -1;
+#endif
 
 	tmp->original = (char*)buffer;
 	tmp->size = BufferSize;
@@ -1603,7 +1606,6 @@ GF_EXPORT
 u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 {
 	s64 offset;
-
 	switch (bs->bsmode) {
 	case GF_BITSTREAM_READ:
 	case GF_BITSTREAM_WRITE:

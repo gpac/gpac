@@ -101,7 +101,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, u32 type, GF_G
 		gf_bs_write_data(bs, szName, 80);
 		ent = stbl->TimeToSample->nb_entries ? &stbl->TimeToSample->entries[0] : NULL;
 		sample_rate = entry->samplerate_hi;
-		block_size = ent ? ent->sampleDelta : 160;
+		block_size = (ent && ent->sampleDelta) ? ent->sampleDelta : 160;
 		gf_bs_write_u16_le(bs, 8*sample_size*sample_rate/block_size);
 		gf_bs_write_u16_le(bs, sample_size);
 		gf_bs_write_u16_le(bs, block_size);
@@ -647,7 +647,6 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 				return GF_ISOM_INCOMPLETE_FILE;
 			}
 		}
-
 		bytesRead = gf_isom_datamap_get_data(mdia->information->dataHandler, (*samp)->data, (*samp)->dataLength, offset);
 		//if bytesRead != sampleSize, we have an IO err
 		if (bytesRead < data_size) {

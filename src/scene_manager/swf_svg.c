@@ -466,10 +466,12 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
 	return GF_OK;
 }
 
-static void swf_svg_finalize(SWFReader *read)
+static void swf_svg_finalize(SWFReader *read, Bool is_destroy)
 {
-	swf_svg_print(read, "</svg>\n");
-	read->add_header(read->user, read->svg_data, read->svg_data_size, GF_FALSE);
+	if (!is_destroy) {
+		swf_svg_print(read, "</svg>\n");
+		read->add_header(read->user, read->svg_data, read->svg_data_size, GF_FALSE);
+	}
 	gf_free(read->svg_data);
 	read->svg_data = NULL;
 	read->svg_data_size = 0;

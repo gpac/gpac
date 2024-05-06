@@ -62,6 +62,7 @@ enum
 	GF_ISOM_BOX_TYPE_MDAT	= GF_4CC( 'm', 'd', 'a', 't' ),
 	GF_ISOM_BOX_TYPE_IDAT	= GF_4CC( 'i', 'd', 'a', 't' ),
 	GF_ISOM_BOX_TYPE_IMDA	= GF_4CC( 'i', 'm', 'd', 'a' ),
+	GF_ISOM_BOX_TYPE_IMDT	= GF_4CC( 'i', 'm', 'd', 't' ),
 	GF_ISOM_BOX_TYPE_MDHD	= GF_4CC( 'm', 'd', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_MINF	= GF_4CC( 'm', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_MOOV	= GF_4CC( 'm', 'o', 'o', 'v' ),
@@ -743,6 +744,7 @@ typedef struct
 	u8 *data;
 
 	u32 imda_id;
+	//0: regular mdat, 1: imda, 2: imda with items refering to it (edit/write mode)
 	u8 is_imda;
 } GF_MediaDataBox;
 
@@ -1139,6 +1141,7 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 	GF_ISOM_DATAENTRY_FIELDS
+	u32 imda_ref_id;
 } GF_DataEntryURLBox;
 
 typedef struct

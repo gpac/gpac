@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1149,6 +1149,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_DINF, dinf, "minf meta"),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_URL, url, "dref", 0, 1),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_URN, urn, "dref", 0, 1),
+	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_IMDT, url, "dref", 0, 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_CPRT, cprt, "udta", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_KIND, kind, "udta", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_HDLR, hdlr, "mdia meta minf", 0),	//minf container is OK in QT ...

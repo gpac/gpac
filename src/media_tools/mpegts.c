@@ -2420,18 +2420,20 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 						char *_url = URL;
 						u8 scheme = gf_bs_read_int(bs, 8);
 						u8 url_len = gf_bs_read_int(bs, 8);
+						u8 scheme_len = 0;
 						switch (scheme) {
 						case 1:
 							strcpy(URL, "http://");
-							_url = URL+7;
+							scheme_len = 7;
 							break;
 						case 2:
 							strcpy(URL, "https://");
-							_url = URL+8;
+							scheme_len = 8;
 							break;
 						}
+						_url = URL + scheme_len;
 						gf_bs_read_data(bs, _url, url_len);
-						_url[url_len >= GF_ARRAY_LENGTH(URL) ? GF_ARRAY_LENGTH(URL)-1 : url_len] = 0;
+						_url[MIN(url_len, GF_ARRAY_LENGTH(URL)-1-scheme_len)] = 0;
 					}
 					temi_loc.external_URL = URL;
 

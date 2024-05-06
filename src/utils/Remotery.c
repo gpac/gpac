@@ -5335,7 +5335,7 @@ RMT_API void _rmt_SendText(rmtPStr text)
 
     ThreadSampler* ts;
     Message* message;
-    rmtU32 size = strlen(text);
+    rmtU32 size = (rmtU32) strlen(text);
 
     Remotery_GetThreadSampler(g_Remotery, &ts);
 

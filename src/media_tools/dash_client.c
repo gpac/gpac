@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2023
+ *			Copyright (c) Telecom ParisTech 2010-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -751,6 +751,13 @@ setup_route:
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Waiting for ROUTE clock ...\n"));
 			return;
 		}
+		const char *root_url = strstr(group->dash->base_url+7, "groute/");
+		if (root_url) {
+			root_url = strchr(root_url+7, '/');
+			if (root_url) root_url++;
+		}
+		else root_url = group->dash->base_url;
+		if (!strstr(root_url, "://")) root_url = "./";
 
 		for (i=0; i<gf_list_count(dyn_period->adaptation_sets); i++) {
 			u64 sr, seg_dur_ms;
@@ -781,7 +788,7 @@ setup_route:
 					continue;
 				}
 				u32 tpl_use_time=0;
-				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur_ms, NULL, NULL, NULL, &tpl_use_time);
+				gf_mpd_resolve_url(group->dash->mpd, rep, set, dyn_period, root_url, 0, GF_MPD_RESOLVE_URL_MEDIA_NOSTART, 9876, 0, &seg_url, &sr, &sr, &seg_dur_ms, NULL, NULL, NULL, &tpl_use_time);
 
 				dyn_period->duration = dur;
 
@@ -6368,7 +6375,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 				disabled = 1;
 				break;
 			}
-			if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014")) {
+			if (mpd_desc && mpd_desc->scheme_id_uri && !strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014") && mpd_desc->value) {
 				u32 id, w, h, res;
 				w = h = 0;
 				res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
@@ -10150,10 +10157,18 @@ u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx)
 	u32 i=0;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return 0;
+	GF_List *l = group->adaptation_set->audio_channels;
+	if (!gf_list_count(l)) {
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
+		if (rep && rep->audio_channels) l = rep->audio_channels;
+	}
 
-	while ((mpd_desc=gf_list_enum(group->adaptation_set->audio_channels, &i))) {
+	while ((mpd_desc=gf_list_enum(l, &i))) {
 		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011")) {
 			return atoi(mpd_desc->value);
+		}
+		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:mpegB:cicp:ChannelConfiguration")) {
+			return gf_audio_fmt_get_num_channels_from_layout( gf_audio_fmt_get_layout_from_cicp(atoi(mpd_desc->value)));
 		}
 	}
 	return 0;

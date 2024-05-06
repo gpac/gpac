@@ -3173,6 +3173,7 @@ void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *an
 	char *str;
 	s32 psemi = -1;
 	GF_FieldInfo info;
+	info.name = NULL;
 	info.fieldType = anim_value_type;
 	anim_values->type = anim_value_type;
 

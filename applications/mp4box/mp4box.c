@@ -1141,7 +1141,7 @@ void PrintEncodeUsage()
 		"## General considerations\n"
 		"MP4Box supports encoding and decoding of of BT, XMT, VRML and (partially) X3D formats int MPEG-4 BIFS, and encoding and decoding of XSR and SVG into MPEG-4 LASeR\n"
 		"Any media track specified through a `MuxInfo` element will be imported in the resulting MP4 file.\n"
-		"See https://wiki.gpac.io/MPEG-4-BIFS-Textual-Format and related pages.\n"
+		"See https://wiki.gpac.io/Howtos/scenecoding/MPEG-4-BIFS-Textual-Format and related pages.\n"
 		"## Scene Random Access\n"
 		"MP4Box can encode BIFS or LASeR streams and insert random access points at a given frequency. This is useful when packaging content for broadcast, where users will not turn in the scene at the same time. In MPEG-4 terminology, this is called the __scene carousel__."
 		"## BIFS Chunk Processing\n"
@@ -1173,7 +1173,7 @@ void PrintEncryptUsage()
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "# Encryption/Decryption Options\n"
 	"MP4Box supports encryption and decryption of ISMA, OMA and CENC content, see [encryption filter `gpac -h cecrypt`](cecrypt).\n"
-	"It requires a specific XML file called `CryptFile`, whose syntax is available at https://wiki.gpac.io/Common-Encryption\n"
+	"It requires a specific XML file called `CryptFile`, whose syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption\n"
 	"Image files (HEIF) can also be crypted / decrypted, using CENC only.\n"
 	"  \n"
 	"Options:\n"
@@ -3285,7 +3285,7 @@ u32 parse_gendoc(char *name, u32 opt)
 		PrintLiveUsage();
 #endif
 
-		fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/MP4Box\n");
+		fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/MP4Box/MP4Box\n");
 		fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 		".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 		".br\nbuild: %s\n"

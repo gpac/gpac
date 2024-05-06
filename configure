@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2023 Telecom ParisTech
+#     (c) 2003-2024 Telecom ParisTech
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -91,6 +91,7 @@ libgpac_cflags=""
 libgpac_extralibs=""
 static_build="no"
 static_bin="no"
+unit_tests="no"
 static_modules="no"
 lm_lib=""
 has_directx="no"
@@ -242,8 +243,8 @@ push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multit
 push_feature "tinygl" "!TinyGL support"
 push_feature "doc" "Embedded documentation"
 push_feature "evg" "EVG (GPAC vector graphics tools)"
-push_feature "avdevice" "avdevice support in FFMPEG"
-push_feature "avfilter" "avfilter support in FFMPEG"
+push_feature "avdevice" "avdevice support in FFmpeg"
+push_feature "avfilter" "avfilter support in FFmpeg"
 push_feature "net-cap" "network grab and replay support"
 
 push_feature "compositor" "*Compositor"
@@ -390,11 +391,12 @@ GPAC build options:
   --disable-opt            disable GCC optimizations
   --static-build           link statically against libgpac but still allow dependencies to shared libraries (enable --static-modules)
   --static-bin             enable static linking of MP4Box and gpac only (will enable --static-build), disable all libraries not linkable statically.
+  --unittests              enable unit tests [default=no]
   --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]
   --enable-sdl-static      use static SDL linking [default=no]
   --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]
   --dxsdk-path=DX_PATH     specify DirectX SDK for MinGW [$dxsdk_path]
-  --extra-ff-ldflags=EF    add EF flags to FFMPEG LDFLAGS [$ffmpeg_extra_ldflags]
+  --extra-ff-ldflags=EF    add EF flags to FFmpeg LDFLAGS [$ffmpeg_extra_ldflags]
   --emscripten             configure for emscripten build (same as running emconfigure configure) - this will disable some features by default (network, avdevice), use --enable-FOO to re-enable
   --em-type=EXT            output type, can be js, html or wasm [$em_type]
   --em-size=V              total memory in bytes to use for emscripten - if 0, dynamic memory growth will be used [$em_size]
@@ -647,6 +649,8 @@ for opt do
             static_bin="yes"
             ;;
         --enable-sanitizer) enable_sanitizer="yes"
+            ;;
+        --unittests) unit_tests="yes"
             ;;
         --static-modules) static_modules="yes"
             ;;
@@ -1591,6 +1595,7 @@ config_package ssl "openssl" "" "$ssl_lflags" "" '#include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <stddef.h>
 int main( void ) {  SSL_CTX_set_options(NULL, SSL_OP_ALL); return 0; }'
 
 
@@ -1617,6 +1622,7 @@ int main( void ) { opj_create_decompress(CODEC_J2K); return 0; }'
 fi
 
 config_package png "libpng" "" "-lpng -lz" "png" '#include <png.h>
+#include <stddef.h>
 int main( void ) {  png_struct *png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); return 0; }'
 
 
@@ -1633,6 +1639,7 @@ int main( void ) { a52_state_t *codec; a52_free(codec); return 0; }'
 
 
 config_package xvid "xvid" "" "-lxvidcore $PTHREAD_LDFLAGS" "" '#include <xvid.h>
+#include <stddef.h>
 int main( void ) { void *codec; xvid_decore(codec, XVID_DEC_DESTROY, NULL, NULL); return 0; }'
 
 config_package faad "faad2" "" "-lfaad -lm" "" '#include <faad.h>
@@ -1686,6 +1693,7 @@ fi
 
 
 config_package freenect "libfreenect" "" "-lfreenect" "freenect" '#include <libfreenect/libfreenect.h>
+#include <stddef.h>
 int main( void ) { freenect_context *f_ctx; freenect_init(&f_ctx, NULL); return 0; }'
 
 
@@ -2167,6 +2175,8 @@ if test $cpu = "mips"; then
 fi
 echo ""
 echo "** GPAC $version rev$revision Core Configuration **"
+echo "Unit Tests: $unit_tests ('make unit_tests')"
+echo "#define GF_STATIC static" >> $TMPH
 if test "$static_bin" = "yes" ; then
     echo "Static binaries enabled"
     echo "#define GPAC_STATIC_BIN" >> $TMPH
@@ -2517,9 +2527,9 @@ fi
 fi
 
 if [ -z $ffopts ] ; then
-echo "FFMPEG: $has_ffmpeg"
+echo "FFmpeg: $has_ffmpeg"
 else
-echo "FFMPEG: $has_ffmpeg - \"$ffopts\" supported"
+echo "FFmpeg: $has_ffmpeg - \"$ffopts\" supported"
 fi
 
 
@@ -2629,6 +2639,9 @@ echo "lib_dir=$lib_dir" >> config.mak
 pf="$prefix/"
 man_dir=${mandir#"$pf"}
 echo "man_dir=$man_dir" >> config.mak
+
+
+echo "UNIT_TESTS=$unit_tests" >> config.mak
 
 
 echo "STATIC_MODULES=$static_modules" >> config.mak
@@ -3078,10 +3091,9 @@ fi
 echo "PKG_CONFIG=$pkg_config" >> config.mak
 
 
-#build tree in object directory if source path is different from current one
-if test "$source_path_used" = "yes" ; then
 
-    echo "Creating compilation tree image"
+build_object_files_directory_tree()
+{
     SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/crypto src/media_tools src/scene_manager src/compositor src/laser src/evg src/quickjs src/jsmods"
 
     APP_DIRS="applications/gpac applications/mp4box"
@@ -3089,48 +3101,51 @@ if test "$source_path_used" = "yes" ; then
     for dir in $SRC_DIRS ; do
         mkdir -p "$dir"
     done
-    ln -sf "$source_path/Makefile" Makefile
-    ln -sf "$source_path/static.mak" static.mak
-    ln -sf "$source_path/src/Makefile" src/Makefile
+    ln -sf "$1/Makefile" Makefile
+    ln -sf "$1/static.mak" static.mak
+    ln -sf "$1/src/Makefile" src/Makefile
 
     mkdir -p applications
-    ln -sf "$source_path/applications/Makefile" applications/Makefile
+    ln -sf "$1/applications/Makefile" applications/Makefile
     mkdir -p applications/testapps
 
     for dir in $APP_DIRS ; do
         mkdir -p "$dir"
-        ln -sf "$source_path/$dir/Makefile" "$dir/Makefile"
+        ln -sf "$1/$dir/Makefile" "$dir/Makefile"
     done
 
-
-    cur_dir="`pwd`"
-    cd "$cur_dir"
-
     mkdir -p modules
-    ln -sf "$source_path/modules/Makefile" modules/Makefile
+    ln -sf "$1/modules/Makefile" modules/Makefile
 
-    for moddir in "$source_path/modules/"* ; do
+    for moddir in "$1/modules/"* ; do
         if [ -d "$moddir"  -a -f "$moddir/Makefile" ]; then
-            dir="${moddir#"$source_path/"}"
+            dir="${moddir#"$1/"}"
             mkdir -p "$dir"
             ln -sf "$moddir/Makefile" "$dir/Makefile"
         fi
     done
     if test "$has_directx" = "yes"; then
-        ln -sf "$source_path/modules/dx_hw/hand.cur" modules/dx_hw/hand.cur
-        ln -sf "$source_path/modules/dx_hw/collide.cur" modules/dx_hw/collide.cur
+        ln -sf "$1/modules/dx_hw/hand.cur" modules/dx_hw/hand.cur
+        ln -sf "$1/modules/dx_hw/collide.cur" modules/dx_hw/collide.cur
     fi
+}
 
-    cd "$cur_dir"
-
-    echo "SRC_LOCAL_PATH=no" >> config.mak
-else
-    echo "SRC_LOCAL_PATH=yes" >> config.mak
+#build tree in object directory if source path is different from current one
+if test "$source_path_used" = "yes" ; then
+    echo "Creating compilation tree image"
+    build_object_files_directory_tree "$source_path"
 fi
 
 echo "SRC_PATH=$source_path" >> config.mak
 echo "BUILD_PATH=$build_path" >> config.mak
 echo "LOCAL_INC_PATH=$local_inc" >> config.mak
+
+
+if test "$unit_tests" = "yes" ; then
+    mkdir -p unittests/build && cd unittests/build
+    build_object_files_directory_tree "$source_path"
+    cd -
+fi
 
 
 echo "#endif" >> $TMPH

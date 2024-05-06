@@ -107,6 +107,7 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 			(*out_desc)->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * txt->font_table->entry_count);
 			for (i=0; i<txt->font_table->entry_count; i++) {
 				(*out_desc)->fonts[i].fontID = txt->font_table->fonts[i].fontID;
+				(*out_desc)->fonts[i].fontName = NULL;
 				if (txt->font_table->fonts[i].fontName)
 					(*out_desc)->fonts[i].fontName = gf_strdup(txt->font_table->fonts[i].fontName);
 			}
@@ -204,7 +205,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	if (e) return e;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media || !desc || !desc->font_count) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !desc) return GF_BAD_PARAM;
 
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:
@@ -240,6 +241,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	txt->font_table = (GF_FontTableBox *)gf_isom_box_new_parent(&txt->child_boxes, GF_ISOM_BOX_TYPE_FTAB);
 	if (!txt->font_table) return GF_OUT_OF_MEM;
 	txt->font_table->entry_count = desc->font_count;
+	if (!desc->font_count) return GF_OK;
 
 	txt->font_table->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord) * desc->font_count);
 	if (!txt->font_table->fonts) return GF_OUT_OF_MEM;

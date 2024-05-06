@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -78,6 +78,7 @@ typedef struct
 
 	u32 nb_playing;
 	Bool initial_play_forced;
+	Bool evt_interrupt;
 } ROUTEInCtx;
 
 
@@ -190,7 +191,7 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
     //if box completely in a received byte range, keep as is
     //if mdat or free box, keep as is
     //otherwise change box type to free
-    while (pos + 8 < size) {
+    while ((u64)pos + 8 < size) {
         u32 i;
 		Bool is_mdat = GF_FALSE;
         Bool box_complete = GF_FALSE;
@@ -300,6 +301,7 @@ static GF_FilterProbeScore routein_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "atsc://", 7)) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "route://", 8)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "flute://", 8)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -473,6 +475,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 	Bool drop_if_first = GF_FALSE;
 	Bool is_loop = GF_FALSE;
 	DownloadedCacheEntry cache_entry;
+	ctx->evt_interrupt = GF_TRUE;
 
 	//events without finfo
 	if (evt==GF_ROUTE_EVT_SERVICE_FOUND) {
@@ -726,6 +729,7 @@ static GF_Err routein_process(GF_Filter *filter)
 
 	if (!ctx->nb_playing)
 		return GF_EOS;
+	ctx->evt_interrupt = GF_FALSE;
 
 	while (1) {
 		GF_Err e = gf_route_dmx_process(ctx->route_dmx);
@@ -745,6 +749,7 @@ static GF_Err routein_process(GF_Filter *filter)
 			break;
 		} else if (!e) {
 			ctx->last_timeout = 0;
+			if (ctx->evt_interrupt) break;
 		} else if (e==GF_EOS) {
 			routein_set_eos(filter);
 			return e;
@@ -761,6 +766,7 @@ static GF_Err routein_process(GF_Filter *filter)
 			return GF_EOS;
 		}
 	}
+
 
 	if (ctx->stats) {
 		u32 now = gf_sys_clock() - ctx->start_time;
@@ -793,12 +799,16 @@ static GF_Err routein_process(GF_Filter *filter)
 static GF_Err routein_initialize(GF_Filter *filter)
 {
 	Bool is_atsc = GF_TRUE;
+	Bool is_flute = GF_FALSE;
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
 	ctx->filter = filter;
 
 	if (!ctx->src) return GF_BAD_PARAM;
 	if (!strncmp(ctx->src, "route://", 8)) {
 		is_atsc = GF_FALSE;
+	} else if (!strncmp(ctx->src, "flute://", 8)){
+		is_atsc = GF_FALSE;
+		is_flute = GF_TRUE;
 	} else if (strcmp(ctx->src, "atsc://"))
 		return GF_BAD_PARAM;
 
@@ -838,12 +848,16 @@ static GF_Err routein_initialize(GF_Filter *filter)
 			sep[0] = ':';
 			return GF_BAD_PARAM;
 		}
-		ctx->route_dmx = gf_route_dmx_new_ex(ctx->src+8, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
+		if (is_flute)
+			ctx->route_dmx = gf_dvbi_flute_dmx_new(ctx->src+8, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
+		else
+			ctx->route_dmx = gf_route_dmx_new_ex(ctx->src+8, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 		sep[0] = ':';
 	}
 	if (!ctx->route_dmx) return GF_SERVICE_ERROR;
 	
 	gf_route_set_allow_progressive_dispatch(ctx->route_dmx, !ctx->fullseg);
+	gf_route_set_max_cache(ctx->route_dmx, ctx->nbcached);
 
 	gf_route_set_reorder(ctx->route_dmx, ctx->reorder, ctx->rtimeout);
 
@@ -853,8 +867,8 @@ static GF_Err routein_initialize(GF_Filter *filter)
 
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
-	if (is_atsc) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] ATSC 3.0 Tunein started\n"));
+	if (is_atsc || is_flute) {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Tunein started\n"));
 		if (ctx->tune_service_id)
             gf_route_atsc3_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
 		else

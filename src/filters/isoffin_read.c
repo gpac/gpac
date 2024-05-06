@@ -331,7 +331,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	gf_filter_post_process_task(filter);
 
 	count = gf_list_count(read->channels);
-	
+
 	if (e<0) {
 		count = gf_list_count(read->channels);
         read->invalid_segment = GF_TRUE;
@@ -460,7 +460,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		read->end_range = er;
 		read->input_loaded = GF_FALSE;
 		read->eos_signaled = GF_FALSE;
-		
+
 		//we need to reconfigure
 		return isoffin_reconfigure(filter, read, next_url);
 	}
@@ -1538,7 +1538,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
 					if (!pck) return GF_OUT_OF_MEM;
 
-					memcpy(data, ch->sample->data, ch->sample->dataLength);
+					if (ch->sample->data)
+						memcpy(data, ch->sample->data, ch->sample->dataLength);
 				}
 				gf_filter_pck_set_dts(pck, ch->dts);
 				gf_filter_pck_set_cts(pck, ch->cts);
@@ -1854,4 +1855,3 @@ const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
-

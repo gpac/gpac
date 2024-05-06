@@ -241,7 +241,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		}
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
 	}
-	if (notif_size) {
+	if (notif_size && compositor->vout) {
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->display_width));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->display_height));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_MIRROR, compositor->is_opengl ? &PROP_UINT(1) : NULL );
@@ -331,7 +331,8 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 	Bool ret = GF_FALSE;
 
 	gf_sc_ar_send_or_reconfig(compositor->audio_renderer);
-
+	if (!compositor->vout) return GF_FALSE;
+	
 	//frame still pending
 	if (compositor->frame_ifce.user_data)
 		return GF_TRUE;

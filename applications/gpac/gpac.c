@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -119,6 +119,12 @@ static void cleanup_file_io(void);
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
+#ifdef GPAC_DEFER_MODE
+static GF_Err print_pid_props(char *arg);
+static GF_Err probe_pid_link(char *arg);
+static GF_Err print_pid_dests(char *arg);
+#endif
+
 #ifdef WIN32
 #include <windows.h>
 static BOOL WINAPI gpac_sig_handler(DWORD sig);
@@ -232,7 +238,7 @@ static int gpac_exit_fun(int code)
 	}
 	if ((helpout != stdout) && (helpout != stderr)) {
 		if (gen_doc==2) {
-			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
+			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters/Filters\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 			".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"
@@ -365,6 +371,8 @@ void gf_fs_force_non_blocking(GF_FilterSession *fs);
 
 void gpac_force_step_mode(Bool for_display)
 {
+	if (!session) return;
+
 	if (!use_step_mode) {
 		use_step_mode = GF_TRUE;
 		fprintf(stdout, "forcing step mode\n");
@@ -439,7 +447,9 @@ static Bool write_extensions=GF_FALSE;
 static const char *session_js=NULL;
 static Bool has_xopt = GF_FALSE;
 static Bool nothing_to_do = GF_TRUE;
-
+#ifdef GPAC_DEFER_MODE
+static Bool defer_mode = GF_FALSE;
+#endif
 
 #ifndef GPAC_DISABLE_NETWORK
 static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flags)
@@ -459,6 +469,24 @@ static Bool enum_net_ifces(void *cbk, const char *name, const char *IP, u32 flag
 	return GF_FALSE;
 }
 #endif
+
+#ifdef GPAC_DEFER_MODE
+static void run_sess(void)
+{
+	if (use_step_mode) {
+		//max run (in case some filters are asking for RT reschedule
+		//this is only used for defer mdoe
+		u32 retry=10;
+		while (retry && !gf_fs_is_last_task(session)) {
+			gf_fs_run(session);
+			retry--;
+		}
+	} else {
+		gf_fs_run(session);
+	}
+}
+#endif
+
 
 #ifndef GPAC_CONFIG_ANDROID
 static
@@ -505,8 +533,9 @@ int gpac_main(int _argc, char **_argv)
 	override_seps = view_filter_conn = dump_codecs = dump_formats = dump_proto_schemes = GF_FALSE;
 	write_profile = write_core_opts = write_extensions = has_xopt = GF_FALSE;
 	nothing_to_do = GF_TRUE;
-
-
+#ifdef GPAC_DEFER_MODE
+	defer_mode = GF_FALSE;
+#endif
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	window_swap = GF_FALSE;
@@ -555,6 +584,7 @@ int gpac_main(int _argc, char **_argv)
 #endif
 
 	if (do_creds) {
+		gf_sys_set_args(argc, (const char **)argv);
 		return gpac_do_creds(creds_args);
 	}
 
@@ -688,6 +718,11 @@ int gpac_main(int _argc, char **_argv)
 			} else if (!strcmp(argv[i+1], "prompt")) {
 				gpac_fsess_task_help();
 				gpac_exit(0);
+#ifdef GPAC_DEFER_MODE
+			} else if (!strcmp(argv[i+1], "defer")) {
+				gpac_defer_help();
+				gpac_exit(0);
+#endif
 			} else if (!strcmp(argv[i+1], "mp4c")) {
 #if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_DISABLE_COMPOSITOR)
 				gf_sys_format_help(helpout, help_flags, "-mp4c unavailable for android\n");
@@ -837,7 +872,7 @@ int gpac_main(int _argc, char **_argv)
 //			dump_codecs = GF_TRUE;
 
 			if (gen_doc==2) {
-				fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
+				fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters/Filters\n");
 				fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 				".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 				".br\nbuild: %s\n"
@@ -955,6 +990,25 @@ int gpac_main(int _argc, char **_argv)
 			do_unit_tests = GF_TRUE;
 		} else if (!strcmp(arg, "-cl")) {
 			sflags |= GF_FS_FLAG_NO_IMPLICIT;
+		} else if (!strcmp(arg, "-sid")) {
+			sflags |= GF_FS_FLAG_REQUIRE_SOURCE_ID;
+#ifdef GPAC_DEFER_MODE
+		} else if (!strcmp(arg, "-dl")) {
+			sflags |= GF_FS_FLAG_FORCE_DEFER_LINK;
+			defer_mode=GF_TRUE;
+		} else if (!strcmp(arg, "-np")) {
+			sflags |= GF_FS_FLAG_PREVENT_PLAY;
+		} else if (!strncmp(arg, "-rl", 2)
+			|| !strncmp(arg, "-wl", 2)
+			|| !strcmp(arg, "-f")
+			|| !strcmp(arg, "-s")
+			|| !strcmp(arg, "-g")
+			|| !strcmp(arg, "-pi")
+			|| !strcmp(arg, "-pl")
+			|| !strcmp(arg, "-pd")
+			|| !strcmp(arg, "-se")
+		) {
+#endif
 		} else if (!strcmp(arg, "-step")) {
 			use_step_mode = GF_TRUE;
 #ifdef GPAC_CONFIG_EMSCRIPTEN
@@ -1077,7 +1131,6 @@ restart:
 
 	if (view_conn_for_filter && (argmode>=GF_ARGMODE_EXPERT))
 		sflags |= GF_FS_FLAG_PRINT_CONNECTIONS;
-
 	session = gf_fs_new_defaults(sflags);
 
 	if (!session) {
@@ -1145,6 +1198,94 @@ restart:
 		Bool is_simple=GF_FALSE;
 		Bool f_loaded = GF_FALSE;
 		char *arg = argv[i];
+
+#ifdef GPAC_DEFER_MODE
+		if (defer_mode) {
+			if (!strncmp(arg, "-rl", 3) || !strncmp(arg, "-wl", 3)) {
+				Bool do_run = GF_TRUE;
+				Bool use_all_filters = (arg[4]=='x') ? GF_TRUE : GF_FALSE;
+				char *sep = strchr(arg,'=');
+				s32 relink = sep ? atoi(sep+1) : 1;
+				if (!strncmp(arg, "-wl", 3)) do_run=GF_FALSE;
+				if (relink>=0) {
+					u32 retry=100;
+					GF_Filter *f = NULL;
+					if (use_all_filters) {
+						u32 count = gf_fs_get_filters_count(session);
+						f = gf_fs_get_filter(session, count-1-relink);
+					} else {
+						f = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-relink);
+					}
+					if (!f) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Invalid filter index in %s\n", arg));
+						e=GF_BAD_PARAM;
+						ERR_EXIT
+					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Relinking filter %s\n", gf_filter_get_name(f)));
+					while (retry && gf_fs_check_filter(session, f)) {
+						retry--;
+						e = gf_filter_reconnect_output(f, NULL);
+						//no output pids and no input, consider this is a source and retry
+						if ((e==GF_EOS) && !gf_filter_get_ipid_count(f) && do_run) {
+							run_sess();
+#ifndef GPAC_CONFIG_EMSCRIPTEN
+							gf_sleep(10);
+#endif
+							continue;
+						}
+						if (e) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Error relinking filter %s\n", gf_filter_get_name(f)));
+							ERR_EXIT
+						}
+						if (do_run)
+							run_sess();
+						break;
+					}
+					if ((e==GF_EOS) && !retry && do_run) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No output pid after running session for %s - cannot flush session\n", gf_filter_get_name(f)));
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\tThis may require unwinding to  main JS loop, not supported in defer mode (always blocking)\n", gf_filter_get_name(f)));
+#endif
+						e = GF_NOT_SUPPORTED;
+						ERR_EXIT
+					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+				}
+				continue;
+			} else if (!strcmp(arg, "-f")) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Running session\n"));
+				run_sess();
+				continue;
+			} else if (!strcmp(arg, "-g")) {
+				gf_fs_print_connections(session);
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+				continue;
+			} else if (!strcmp(arg, "-s")) {
+				gf_fs_print_stats(session);
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+				continue;
+			} else if (!strncmp(arg, "-pi", 3)) {
+				e = print_pid_props(arg);
+				if (e) break;
+				continue;
+			} else if (!strncmp(arg, "-pl", 3)) {
+				e = probe_pid_link(arg);
+				if (e) {
+					ERR_EXIT
+				}
+				continue;
+			} else if (!strncmp(arg, "-pd", 3)) {
+				e = print_pid_dests(arg);
+				if (e) {
+					ERR_EXIT
+				}
+				continue;
+			} else if (!strncmp(arg, "-se", 3)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Sending PLAY event\n"));
+				gf_fs_send_deferred_play(session);
+			}
+		}
+#endif
 
 		if (!strcmp(arg, "-src") || !strcmp(arg, "-i") || !strcmp(arg, "-ib")  || !strcmp(arg, "-ibx") ) {
 			if (!strcmp(arg, "-ib") || !strcmp(arg, "-ibx")) {
@@ -1290,6 +1431,10 @@ restart:
 			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
 		}
 
+#ifdef GPAC_DEFER_MODE
+		if (defer_mode)
+			fprintf(stdout, "Added filter %s for %s\n\n", gf_filter_get_name(filter), arg);
+#endif
 		gf_list_add(loaded_filters, filter);
 
 		//implicit mode, check changes of source and sinks
@@ -1733,6 +1878,173 @@ static void gpac_fsess_task_help()
 		i++;
 	}
 }
+
+#ifdef GPAC_DEFER_MODE
+static GF_Err extract_filter_and_pid(char *arg, GF_Filter **o_f, s32 *opid_idx, u8 *prefix_c)
+{
+	Bool use_all_filters = (arg[3]=='x') ? GF_TRUE : GF_FALSE;
+	if (prefix_c) *prefix_c = 0;
+	char *sep = strchr(arg,'=');
+	if (sep) {
+		switch (sep[1]) {
+		case '-':
+		case '+':
+			if (prefix_c) *prefix_c = sep[1];
+			sep++;
+			break;
+		}
+	}
+	char *sep_pid = sep ? strchr(sep+1,':') : NULL;
+	if (sep_pid) sep_pid[0]=0;
+	char *sep_f = strchr(arg,'@');
+	if (sep_f) sep_f[0]=0;
+
+	u32 f_idx = sep ? atoi(sep+1) : 0;
+	*opid_idx=-1;
+	if (sep_pid) {
+		sep_pid[0]=':';
+		*opid_idx = atoi(sep_pid+1);
+	}
+	if (sep_f) sep_f[0]='@';
+	u32 count;
+	*o_f = NULL;
+	if (use_all_filters) {
+		count = gf_fs_get_filters_count(session);
+		*o_f = gf_fs_get_filter(session, count-1-f_idx);
+	} else {
+		count = gf_list_count(loaded_filters);
+		*o_f = gf_list_get(loaded_filters, count-1-f_idx);
+	}
+	if (!*o_f || !gf_fs_check_filter(session, *o_f)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter at index %d in arg %s\n", f_idx, arg));
+		return GF_BAD_PARAM;
+	}
+
+	if ((*opid_idx>=0) && (*opid_idx>=(s32)count)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter pid at index %d in filter %s in arg %s\n", *opid_idx, gf_filter_get_name(*o_f), arg ));
+		return GF_BAD_PARAM;
+	}
+	return GF_OK;
+}
+
+static GF_Err print_pid_props(char *arg)
+{
+	GF_Filter *f;
+	s32 p_idx;
+	u8 prefix;
+	GF_Err e = extract_filter_and_pid(arg, &f, &p_idx, &prefix);
+	if (e) return e;
+	u32 j, count = gf_filter_get_opid_count(f);
+	if (!count) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s has no output\n", gf_filter_get_name(f)));
+		return GF_OK;
+	}
+	for (j=0; j<count;j++) {
+		char szDump[GF_PROP_DUMP_ARG_SIZE];
+		u32 prop_idx=0;
+		GF_FilterPid *pid = gf_filter_get_opid(f, j);
+		if ((p_idx>=0) && (p_idx != j)) continue;
+		if (prefix=='-') {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s PID #%d name: %s\n", gf_filter_get_name(f), j, gf_filter_pid_get_name(pid) ));
+			continue;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filter %s PID %s properties:\n", gf_filter_get_name(f), gf_filter_pid_get_name(pid) ));
+		while (1) {
+			u32 p4cc=0;
+			const char *pname=NULL;
+			const GF_PropertyValue *p = gf_filter_pid_enum_properties(pid, &prop_idx, &p4cc, &pname);
+			if (!p) break;
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Prop %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE)));
+		}
+		prop_idx=0;
+		while (prefix=='+') {
+			u32 p4cc=0;
+			const char *pname=NULL;
+			const GF_PropertyValue *p = gf_filter_pid_enum_info(pid, &prop_idx, &p4cc, &pname);
+			if (!p) break;
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Info %s: %s\n", p4cc ? gf_props_4cc_get_name(p4cc) : pname, gf_props_dump(p4cc, p, szDump, GF_PROP_DUMP_DATA_NONE)));
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+	}
+	if (prefix=='-') {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+	}
+	return GF_OK;
+}
+static GF_Err probe_pid_link(char *arg)
+{
+	GF_Filter *f;
+	s32 opid_idx;
+	u8 prefix;
+	char *fname = strchr(arg, '@');
+	if (!fname) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Missing `@` directive in probe link\n"));
+		return GF_BAD_PARAM;
+	}
+
+	GF_Err e = extract_filter_and_pid(arg, &f, &opid_idx, &prefix);
+	if (e) return e;
+	if (opid_idx<0) opid_idx=0;
+	char *res = NULL;
+	if (prefix=='+')
+		e = gf_filter_probe_links(f, opid_idx, fname+1, &res);
+	else
+		e = gf_filter_probe_link(f, opid_idx, fname+1, &res);
+
+	if (res) {
+		if (!res[0]) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Probed chain from %s to %s: direct connection\n\n", gf_filter_get_name(f), fname+1));
+		} else if (strchr(res, '|')) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Probed chains from %s to %s:\n", gf_filter_get_name(f), fname+1));
+			char *cur=res;
+			while (1) {
+				u32 distance=0;
+				u32 priority=0;
+				char *sep = strchr(cur, '|');
+				if (sep) sep[0] = 0;
+				char *w_sep = strchr(cur, ',');
+				if (w_sep) {
+					w_sep[0] = 0;
+					sscanf(cur, "%u;%u", &distance, &priority);
+					w_sep[0] = ',';
+				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\t- %s (priority %u distance %u)\n", w_sep ? w_sep+1 : cur, priority, distance));
+				if (!sep) break;
+				sep[0] = '|';
+				cur = sep+1;
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Probed chain from %s to %s: %s\n", gf_filter_get_name(f), fname+1, res));
+		}
+		gf_free(res);
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("No filter chain from %s to %s: %s\n\n", gf_filter_get_name(f), fname+1, gf_error_to_string(e)));
+	}
+	return GF_OK;
+}
+
+static GF_Err print_pid_dests(char *arg)
+{
+	GF_Filter *f;
+	s32 p_idx;
+	u8 prefix;
+	char *res;
+	GF_Err e = extract_filter_and_pid(arg, &f, &p_idx, &prefix);
+	if (e) return e;
+
+	e = gf_filter_get_possible_destinations(f, p_idx, &res);
+	if (res) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible destinations for %s: %s\n", gf_filter_get_name(f), res));
+		gf_free(res);
+	} else if (e==GF_FILTER_NOT_FOUND){
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("No destinations for %s\n", gf_filter_get_name(f)));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Failed to probe possible destinations for %s: %s\n\n", gf_filter_get_name(f), gf_error_to_string(e)));
+	}
+	return GF_OK;
+}
+#endif
 
 
 static char szFilter[100];
@@ -3208,6 +3520,10 @@ static int gpac_do_creds(char *creds_args)
 				fprintf(stdout, "Users in group: %s\n", g);
 			} else {
 				fprintf(stdout, "No such group %s\n", creds_args);
+				if (gf_sys_is_test_mode()) {
+					if (creds) gf_cfg_del(creds);
+					return 0;
+				}
 				goto err_exit;
 			}
 		}
@@ -3217,6 +3533,10 @@ static int gpac_do_creds(char *creds_args)
 	u32 keys = gf_cfg_get_key_count(creds, creds_args);
 	if (!keys && !is_add) {
 		fprintf(stderr, "No such user %s\n", creds_args);
+		if (gf_sys_is_test_mode()) {
+			if (creds) gf_cfg_del(creds);
+			return 0;
+		}
 		goto err_exit;
 	}
 
