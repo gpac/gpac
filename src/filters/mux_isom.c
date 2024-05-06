@@ -6340,18 +6340,21 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 {
 	GF_BitStream *bs = gf_bs_new(emsg_prop->value.data.ptr, emsg_prop->value.data.size, GF_BITSTREAM_READ);
 	GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
-	emsg->version = 1;
-	gf_bs_read_u32(bs); // timescale, to be hardcoded to 90000
-	emsg->timescale = 90000;
-	emsg->presentation_time_delta = gf_bs_read_u64(bs);
 
+	u32 timescale = gf_bs_read_u32(bs); 	// timescale
+	u64 pts = gf_bs_read_u64(bs); 			// presentation time delta
+	u32 data_length = gf_bs_read_u32(bs); 	// message data length
+
+	emsg->version = 1;
+	
+	emsg->timescale = timescale;
+	emsg->presentation_time_delta = pts;
 	emsg->event_duration = 0xFFFFFFFF;
 	emsg->event_id = 0;
-
 	emsg->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
 	emsg->value = gf_strdup("www.nielsen.com:id3:v1");
 
-	emsg->message_data_size = 271;
+	emsg->message_data_size = data_length;
 	emsg->message_data = (u8 *)gf_malloc(emsg->message_data_size);
 
 	u32 read = gf_bs_read_data(bs, emsg->message_data, emsg->message_data_size);
