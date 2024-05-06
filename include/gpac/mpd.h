@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2023
+ *			Copyright (c) Telecom ParisTech 2010-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -171,6 +171,8 @@ typedef struct
 
 	/*!GPAC internal: redirection for that URL */
 	char *redirection;
+	/*!GPAC internal: original URL relative to HLS  variant playlist  */
+	const char *hls_vp_rel_url;
 } GF_MPD_BaseURL;
 
 /*! MPD URL*/

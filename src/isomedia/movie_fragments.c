@@ -2212,7 +2212,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 					sidx_idx++;
 
 					if (defer_moofs && gf_list_count(movie->moof_list)) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Hierarchical or chain sidx cannot be used with defered sample storage\n"));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Hierarchical or chain sidx cannot be used with deferred sample storage\n"));
 						e = GF_NOT_SUPPORTED;
 						goto exit;
 					}
@@ -2292,7 +2292,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 			//subsegment (commented below) - cf #2733
 			//entry->sidx->refs[entry->sidx->nb_refs-1].reference_size = (u32) (last_entry_end_offset - next_entry->start_offset);
 			gf_isom_box_size((GF_Box *)next_entry->sidx);
-			entry->sidx->refs[entry->sidx->nb_refs-1].reference_size = next_entry->sidx->size;
+			entry->sidx->refs[entry->sidx->nb_refs-1].reference_size = (u32) next_entry->sidx->size;
 			sidx_rewrite(entry->sidx, movie->editFileMap->bs, entry->start_offset, NULL);
 		}
 		while (gf_list_count(daisy_sidx)) {
@@ -2341,7 +2341,7 @@ exit:
 		gf_bs_del(movie->editFileMap->bs);
 		movie->editFileMap->bs = orig_bs;
 	}
-	//flush all defered
+	//flush all deferred
 	if (!e && defer_moofs) {
 		while (gf_list_count(defer_moofs)) {
 			movie->moof = gf_list_pop_front(defer_moofs);

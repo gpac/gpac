@@ -290,7 +290,7 @@ void visual_3d_has_inactive_light(GF_VisualManager *visual);
 
 /*set fog*/
 void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color, Fixed density, Fixed visibility);
-/*fill given rect with given color (used for text hilighting only) - context shall not be altered*/
+/*fill given rect with given color (used for text highlighting only) - context shall not be altered*/
 void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color);
 
 void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -526,6 +526,11 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
                         mdat_end=0;
                     }
 				}
+			}
+			//keep all imda boxes for later rewrite
+			else if (((GF_MediaDataBox *)a)->is_imda) {
+				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
 			}
 			/*if we don't have any MDAT yet, create one (edit-write mode)
 			We only work with one mdat, but we're puting it at the place
@@ -1080,6 +1085,23 @@ u64 gf_isom_get_mp4time()
 void gf_isom_delete_movie(GF_ISOFile *mov)
 {
 	if (!mov) return;
+
+	// track datahandlers might point to the movieFileMap that we are about to delete
+	// remove the association to avoid double frees
+	if (mov->moov && mov->moov->trackList) {
+		u32 i;
+		for (i=0; i<gf_list_count(mov->moov->trackList); i++) {
+			GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(mov->moov->trackList, i);
+
+			if (trak && trak->Media && trak->Media->information) {
+				if (trak->Media->information->dataHandler == mov->movieFileMap)
+					trak->Media->information->dataHandler = NULL;
+
+				if (trak->Media->information->scalableDataHandler == mov->movieFileMap)
+					trak->Media->information->scalableDataHandler = NULL;
+			}
+		}
+	}
 
 	//these are our two main files
 	if (mov->movieFileMap) gf_isom_datamap_del(mov->movieFileMap);

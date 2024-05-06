@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -296,6 +296,16 @@ Search a substring in a string without checking for case
  */
 Bool gf_strnistr(const char *text, const char *subtext, u32 subtext_len);
 
+/*!
+\brief search string in buffer
+
+Search for a substring in a memory buffer of characters that may not be null-terminated
+\param data buffer of chars in which to search
+\param data_size size of data buffer
+\param pat pattern to search for as a null-terminated string
+\return a pointer to the first occurrence of pat in data, or null if not found (may not be null-terminated)
+ */
+const char* gf_strmemstr(const char *data, u32 data_size, const char *pat);
 
 /*!
 \brief safe timestamp rescale
@@ -379,6 +389,27 @@ Compares two timestamps
  */
 Bool gf_timestamp_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
 
+/*!
+\brief strict convert str into integer
+
+Validate and parse str into integer
+\param str text to convert to integer
+\param ans integer to fill
+\return GF_TRUE if str represents an integer without any leading space nor extra chars
+ */
+Bool gf_strict_atoi(const char* str, s32* ans);
+
+/*!
+\brief strict convert str into unsigned integer
+
+Validate and parse str into integer
+\param str text to convert to integer
+\param ans unsigned integer to fill
+\return GF_TRUE if str represents an unsigned integer without any leading space nor extra chars
+*/
+Bool gf_strict_atoui(const char* str, u32* ans);
+
+
 /*! @} */
 
 /*!
@@ -393,9 +424,9 @@ The library can usually be configured from command line if your program uses \re
 
 The library can also be configured from your program using \ref gf_opts_set_key and related functions right after initializing the library.
 
-For more information on configuration options, see \code gpac -hx core \endcode and https://wiki.gpac.io/core_options
+For more information on configuration options, see \code gpac -hx core \endcode and https://wiki.gpac.io/Filters/core_options
 
-For more information on filters configuration options, see https://wiki.gpac.io/Filters
+For more information on filters configuration options, see https://wiki.gpac.io/Filters/Filters
 
 @{
  */
@@ -784,6 +815,7 @@ typedef enum
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
 	GF_LOG_TOOL_MAX = GF_LOG_ALL,
+	GF_LOG_TOOL_UNDEFINED
 } GF_LOG_Tool;
 
 /*!
@@ -925,7 +957,30 @@ Resets log file if any log file name was specified, by closing and reopening a n
 */
 void gf_log_reset_file();
 
+//! Extra log instructions
+typedef struct log_extra
+{
+	//! number of tools and levels
+	u32 nb_tools;
+	//! additionnal  tools
+	GF_LOG_Tool *tools;
+	//! additionnal  levels for the tools
+	GF_LOG_Level *levels;
+	//! exit if error
+	Bool strict;
+} GF_LogExtra;
 
+/*! Register a new extra log levels
+ \param log extra levels to add - may be NULL but shall be valid until call to \ref gf_log_pop_extra or \ref gf_log_reset_extras or  end of app
+*/
+void gf_log_push_extra(const GF_LogExtra *log);
+/*! Unregister an extra log levels
+ \param log extra levels to add - may be NULL
+*/
+void gf_log_pop_extra(const GF_LogExtra *log);
+/*! Unregister all  extra log levels
+*/
+void gf_log_reset_extras();
 
 /*!	@} */
 
@@ -2298,7 +2353,7 @@ Bool gf_creds_check_membership(const char *username, const char *users, const ch
 
 /*to call whenever the OpenGL library is opened - this function is needed to bind OpenGL and remotery, and to load
 OpenGL extensions on windows
-not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL 
+not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL
 calls are made by the caller*/
 void gf_opengl_init();
 
@@ -2363,4 +2418,3 @@ void gf_gl_txw_reset(GF_GLTextureWrapper *tx);
 
 
 #endif		/*_GF_CORE_H_*/
-

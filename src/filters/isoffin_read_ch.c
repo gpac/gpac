@@ -895,13 +895,15 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 	ch->xps_mask |= state;
 	*needs_reset = 1;
 
-	GF_SAFEALLOC(sl, GF_NALUFFParam);
-	if (!sl) return;
-	sl->data = gf_malloc(sizeof(char)*size);
-	memcpy(sl->data, data, size);
-	sl->size = size;
-	sl->id = ps_id;
-	gf_list_add(list, sl);
+	if (list) {
+		GF_SAFEALLOC(sl, GF_NALUFFParam);
+		if (!sl) return;
+		sl->data = gf_malloc(sizeof(char)*size);
+		memcpy(sl->data, data, size);
+		sl->size = size;
+		sl->id = ps_id;
+		gf_list_add(list, sl);
+	}
 }
 
 u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);

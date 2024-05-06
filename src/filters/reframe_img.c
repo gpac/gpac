@@ -151,7 +151,7 @@ GF_Err img_process(GF_Filter *filter)
 	GF_FilterPacket *pck, *dst_pck;
 	GF_Err e;
 	u8 *data, *output;
-	u32 size, w=0, h=0, pf=0;
+	u32 size, w=0, h=0, pf=0, data_size=0;
 	u8 *pix;
 	u32 i, j, irow, in_stride, out_stride;
 	GF_BitStream *bs;
@@ -169,6 +169,7 @@ GF_Err img_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &size);
+	data_size = size;
 
 	if (!ctx->opid || !ctx->codec_id) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -310,12 +311,21 @@ GF_Err img_process(GF_Filter *filter)
 	pf = (fi.biBitCount==24) ? GF_PIXEL_RGB : GF_PIXEL_RGBX;
 	size = (fi.biBitCount==24) ? 3 : 4;
 	if ((u64)size * (u64)h * (u64)w > GF_UINT_MAX ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Image dimensions too large (%lux%lux%lu)\n", w, h, size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Image dimensions too large (%lux%lux%lu)\n", w, h, size));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	size *= w;
 	out_stride = size;
 	size *= h;
+
+	in_stride = out_stride;
+	while (in_stride % 4) in_stride++;
+
+	u32 max_offset = fh.bfOffBits+(h-1)*in_stride + out_stride ;
+	if (data_size < max_offset) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Trying to output image of size %lu but provided only %lu input bytes\n", max_offset, data_size));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, & PROP_UINT(pf));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(w));
@@ -330,9 +340,6 @@ GF_Err img_process(GF_Filter *filter)
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1 );
 		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 	}
-
-	in_stride = out_stride;
-	while (in_stride % 4) in_stride++;
 
 	if (fi.biBitCount==24) {
 		for (i=0; i<h; i++) {

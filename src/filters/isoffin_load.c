@@ -497,8 +497,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 		if (load_default) {
 			if (!codec_id) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", track, gf_4cc_to_str(m_subtype) ));
-
+				if (!read->allt || !read->alltk || !read->mov) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", track, gf_4cc_to_str(m_subtype) ));
+				}
 				codec_id = m_subtype;
 			}
 			udesc = gf_isom_get_generic_sample_description(read->mov, track, stsd_idx);
@@ -1686,10 +1687,18 @@ GF_Err isor_declare_objects(ISOMReader *read)
 		case GF_ISOM_MEDIA_TIMECODE:
 			streamtype = GF_STREAM_METADATA;
 			break;
-		/*hint tracks are never exported*/
+		/*hint tracks are never exported except when dumping from file*/
 		case GF_ISOM_MEDIA_HINT:
+			if (read->allt && read->alltk && read->mov) {
+				streamtype = GF_STREAM_METADATA;
+				break;
+			}
 			continue;
 		default:
+			if (read->allt && read->alltk && read->mov) {
+				streamtype = GF_STREAM_METADATA;
+				break;
+			}
 			if (!read->allt) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not supported, ignoring track - you may retry by specifying allt option\n", i+1, gf_4cc_to_str(mtype) ));
 				continue;

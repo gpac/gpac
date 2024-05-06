@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1764,7 +1764,13 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
 		gf_assert(e);
 		url = gf_cache_get_url(e);
 		gf_assert( url );
-		if (strcmp(url, sess->orig_url)) continue;
+
+		if (!strncmp(url, "http://groute/", 14)) {
+			char *sep_1 = strchr(url+14, '/');
+			char *sep_2 = strchr(sess->orig_url+14, '/');
+			if (!sep_1 || !sep_2 || strcmp(sep_1, sep_2))
+				continue;
+		} else if (strcmp(url, sess->orig_url)) continue;
 
 		if (! sess->is_range_continuation) {
 			if (sess->range_start != gf_cache_get_start_range(e)) continue;
@@ -7658,7 +7664,7 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 
 EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb_headers, int req_body, int req_body_size), {
   let url = _url ? libgpac.UTF8ToString(_url) : null;
-  ret = GPAC.OK;
+  ret = libgpac.OK;
 
   let fetcher = libgpac._get_fetcher(sess);
   if (!fetcher) {
@@ -7715,13 +7721,12 @@ EM_JS(int, dm_fetch_init, (int sess, int _url, int _method, int _headers, int nb
       libgpac._fetcher_set_header(fetcher.sess, 0, 0);
 	} else {
 	  libgpac._fetcher_set_reply(fetcher.sess, response.status, null);
-	  do_log_err('fetcher for ' + url + ' failed ' + response.status);
 	  fetcher._state = 3;
 	}
   })
   .catch( (e) => {
-	  do_log_err('fetcher exception ' + e);
-	  ret = GPAC.REMOTE_SERVICE_ERROR;
+	  libgpac.printErr('fetcher exception ' + e);
+	  ret = libgpac.REMOTE_SERVICE_ERROR;
 	  libgpac._del_fetcher(fetcher);
   });
   return ret;

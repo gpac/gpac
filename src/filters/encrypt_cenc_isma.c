@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA encrypt module
@@ -73,6 +73,7 @@ typedef struct
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
 	GF_TrackCryptInfo *tci;
+	u32 crypt_byte_block, skip_byte_block;
 
 	//active keys (for multikey support)
 	u32 nb_keys;
@@ -123,14 +124,16 @@ typedef struct
 	//0: no generation, >0: use v-1 as key idx
 	u32 pssh_template_plus_one;
 	GF_List *pssh_templates;
+
+	u64 num_block_crypted;
 } GF_CENCStream;
 
 typedef struct
 {
 	//options
 	const char *cfile;
-	Bool allc;
-	
+	Bool allc, bk_stats;
+
 	//internal
 	GF_CryptInfo *cinfo;
 
@@ -655,8 +658,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 	cstr->dsi_crc = dsi_crc;
 	if (cstr->is_saes) {
-		cstr->tci->crypt_byte_block = 1;
-		cstr->tci->skip_byte_block = 9;
+		cstr->crypt_byte_block = 1;
+		cstr->skip_byte_block = 9;
 	}
 
 
@@ -852,12 +855,12 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 	if (((cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) || (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) ) && (cstr->cenc_codec>CENC_FULL_SAMPLE) && (cstr->cenc_codec<=CENC_AV1)
 	)  {
-		if (!cstr->tci->crypt_byte_block || !cstr->tci->skip_byte_block) {
-			if (cstr->tci->crypt_byte_block || cstr->tci->skip_byte_block) {
+		if (!cstr->crypt_byte_block || !cstr->skip_byte_block) {
+			if (cstr->crypt_byte_block || cstr->skip_byte_block) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
 			}
-			cstr->tci->crypt_byte_block = 1;
-			cstr->tci->skip_byte_block = 9;
+			cstr->crypt_byte_block = 1;
+			cstr->skip_byte_block = 9;
 		}
 	}
 
@@ -874,12 +877,12 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
 		const GF_PropertyValue *prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_STREAM_TYPE);
 		if (prop && prop->value.uint != GF_STREAM_VISUAL) {
-			if (cstr->tci->skip_byte_block) {
+			if (cstr->skip_byte_block) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("\n[CENC] Using cbcs pattern mode on-video track is disabled in GPAC, using whole-block full encryption\n"));
-				cstr->tci->skip_byte_block = 0;
+				cstr->skip_byte_block = 0;
 			}
 		}
-		if (cstr->tci->skip_byte_block) {
+		if (cstr->skip_byte_block) {
 			cstr->use_subsamples = GF_TRUE;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("\n[CENC] Using cbcs pattern mode on non NAL video track, this may not be supported by most devices; consider setting skip_byte_block to 0\n\n"));
 			//cbcs allows bytes of clear data
@@ -890,20 +893,20 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 #if 0
 		//setup defaults
 		else if (!cstr->crypt_byte_block) {
-			cstr->tci->crypt_byte_block = 1;
+			cstr->crypt_byte_block = 1;
 		}
 #else
 		else {
-			cstr->tci->crypt_byte_block = 0;
+			cstr->crypt_byte_block = 0;
 		}
 #endif
 	}
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) {
-		if (cstr->tci->skip_byte_block) {
+		if (cstr->skip_byte_block) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Using cens pattern mode on non NAL video track not allowed, forcing skip_byte_block to 0\n"));
-			cstr->tci->skip_byte_block = 0;
-			if (!cstr->tci->crypt_byte_block) {
-				cstr->tci->crypt_byte_block = 1;
+			cstr->skip_byte_block = 0;
+			if (!cstr->crypt_byte_block) {
+				cstr->crypt_byte_block = 1;
 			}
 		}
 	}
@@ -1040,8 +1043,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_HLS_KMS, hls_info ? &PROP_STRING(hls_info) : NULL);
 	}
 
-	if (cstr->tci->skip_byte_block || cstr->tci->crypt_byte_block) {
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(cstr->tci->skip_byte_block, cstr->tci->crypt_byte_block ) );
+	if (cstr->skip_byte_block || cstr->crypt_byte_block) {
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, &PROP_FRAC_INT(cstr->skip_byte_block, cstr->crypt_byte_block ) );
 	} else {
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
 	}
@@ -1205,6 +1208,12 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	cstr->cinfo = (cinfo != ctx->cinfo) ? cinfo : NULL;
 	cstr->tci = tci;
 	cstr->passthrough = tci ? GF_FALSE : GF_TRUE;
+	if (tci) {
+		cstr->crypt_byte_block = cstr->tci->crypt_byte_block;
+		cstr->skip_byte_block = cstr->tci->skip_byte_block;
+	} else {
+		cstr->crypt_byte_block = cstr->skip_byte_block = 0;
+	}
 
 	if (tci && tci->rand_keys) {
 		if (!tci->nb_keys) {
@@ -1254,7 +1263,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STSD_MODE, &PROP_UINT(tci->force_clear_stsd_idx) );
 	}
-	
+
 	if (cstr->passthrough) return GF_OK;
 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
@@ -1388,7 +1397,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	memcpy(output+isma_hdr_size, data, sizeof(char)*size);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
-	
+
 	/*isma e&a stores AVC1 in AVC/H264 annex B bitstream fashion, with 0x00000001 start codes*/
 	if (cstr->nalu_size_length) {
 		u32 done = 0;
@@ -1429,6 +1438,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		}
 		gf_crypt_encrypt(cstr->keys[0].crypt, output+isma_hdr_size, size);
 		cstr->prev_pck_encrypted = GF_TRUE;
+		cstr->num_block_crypted += size/16;
 	} else {
 		cstr->prev_pck_encrypted = GF_FALSE;
 	}
@@ -1515,6 +1525,7 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 		memset(output+adobe_hdr_size+size, padding_bytes, sizeof(char)*padding_bytes);
 
 		gf_crypt_encrypt(cstr->keys[0].crypt, output+adobe_hdr_size, len);
+		cstr->num_block_crypted += len/16;
 
 		/*write encrypted AU header*/
 		output[0] = 0x10;
@@ -1889,6 +1900,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 #else
 			clear_bytes = nalu_size;
 #endif
+			if (clear_bytes < cstr->tci->crypt_byte_offset) {
+				clear_bytes = cstr->tci->crypt_byte_offset;
+				if (clear_bytes>nalu_size) clear_bytes = nalu_size;
+			}
 			if (nalu_size > gf_bs_available(ctx->bs_r)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Invalid NALU size %u remaining bytes %u\n", nalu_size, gf_bs_available(ctx->bs_r)));
 				return GF_NON_COMPLIANT_BITSTREAM;
@@ -2001,17 +2016,21 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						gf_crypt_set_IV(cstr->keys[key_idx].crypt, cstr->keys[key_idx].IV, 16);
 
 					//pattern encryption
-					if (cstr->tci->crypt_byte_block && cstr->tci->skip_byte_block) {
+					if (cstr->crypt_byte_block && cstr->skip_byte_block) {
 						u32 res = nalu_size - clear_bytes - clear_bytes_at_end;
 						pos = cur_pos;
 						//don't use modulo in case we use fatal_assert
 						gf_assert((res / 16) * 16 == res);
 
 						while (res) {
-							e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+pos, res >= (u32) (16*cstr->tci->crypt_byte_block) ? 16*cstr->tci->crypt_byte_block : res);
-							if (res >= (u32) (16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block))) {
-								pos += 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
-								res -= 16 * (cstr->tci->crypt_byte_block + cstr->tci->skip_byte_block);
+							u32 to_crypt = (res >= (u32) (16*cstr->crypt_byte_block)) ? 16*cstr->crypt_byte_block : res;
+
+							e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+pos, to_crypt);
+							cstr->num_block_crypted += to_crypt/16;
+
+							if (res >= (u32) (16 * (cstr->crypt_byte_block + cstr->skip_byte_block))) {
+								pos += 16 * (cstr->crypt_byte_block + cstr->skip_byte_block);
+								res -= 16 * (cstr->crypt_byte_block + cstr->skip_byte_block);
 							} else {
 								res = 0;
 							}
@@ -2021,7 +2040,9 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					else {
 						//clear_bytes_at_end is 0 unless NALU-based cbcs without pattern (not defined in CENC)
 						//in this case, we must only encrypt a multiple of 16-byte blocks
-						e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, nalu_size - clear_bytes - clear_bytes_at_end);
+						u32 to_crypt = nalu_size - clear_bytes - clear_bytes_at_end;
+						e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, to_crypt);
+						cstr->num_block_crypted += to_crypt/16;
 					}
 				}
 
@@ -2115,6 +2136,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		else if (cstr->ctr_mode) {
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
 			e = gf_crypt_encrypt(cstr->keys[0].crypt, output, pck_size);
+			cstr->num_block_crypted += pck_size/16;
 		}
 		//CBC full sample with padding
 		else {
@@ -2130,7 +2152,9 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				gf_crypt_set_IV(cstr->keys[0].crypt, cstr->keys[0].IV, 16);
 
 			if (pck_size >= 16) {
-				gf_crypt_encrypt(cstr->keys[0].crypt, output+clear_header, pck_size - clear_header - clear_trailing);
+				u32 to_crypt = pck_size - clear_header - clear_trailing;
+				gf_crypt_encrypt(cstr->keys[0].crypt, output+clear_header, to_crypt);
+				cstr->num_block_crypted += to_crypt/16;
 			}
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
 		}
@@ -2140,7 +2164,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			return e;
 		}
 	}
-	
+
 	if (prev_entry_bytes_clear || prev_entry_bytes_crypt) {
 		if (!nb_subsamples) gf_bs_write_int(sai_bs, 0, nb_subsamples_bits);
 		nb_subsamples++;
@@ -2425,7 +2449,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		GF_FilterPacket *dst_pck;
 		dst_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, pck);
 		if (!dst_pck) return GF_OUT_OF_MEM;
-		
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 
 		if (force_clear && !cstr->tci->force_clear_stsd_idx)
@@ -2639,15 +2663,20 @@ static GF_Err cenc_enc_initialize(GF_Filter *filter)
 
 static void cenc_enc_finalize(GF_Filter *filter)
 {
+	u64 num_block_crypted = 0;
 	GF_CENCEncCtx *ctx = (GF_CENCEncCtx *)gf_filter_get_udta(filter);
 	if (ctx->cinfo) gf_crypt_info_del(ctx->cinfo);
 	while (gf_list_count(ctx->streams)) {
 		GF_CENCStream *s = gf_list_pop_back(ctx->streams);
+		num_block_crypted+=s->num_block_crypted;
 		cenc_free_pid_context(s);
 	}
 	gf_list_del(ctx->streams);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
+	if (ctx->bk_stats) {
+		fprintf(stdout, "16-byte Blocks encrypted "LLU"\n", num_block_crypted);
+	}
 }
 
 
@@ -2666,6 +2695,7 @@ static const GF_FilterArgs GF_CENCEncArgs[] =
 {
 	{ OFFS(cfile), "crypt file location", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(allc), "throw error if no DRM config file is found for a PID", GF_PROP_BOOL, NULL, NULL, 0},
+	{ OFFS(bk_stats), "print number of encrypted blocks to stdout upon exit", GF_PROP_BOOL, NULL, NULL, 0},
 	{0}
 };
 
@@ -2673,7 +2703,7 @@ GF_FilterRegister CENCEncRegister = {
 	.name = "cecrypt",
 	GF_FS_SET_DESCRIPTION("CENC encryptor")
 	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.\n"
-	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
+	"The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption\n"
 	"The DRM config file can be set per PID using the property `CryptInfo`, or set at the filter level using [-cfile]().\n"
 	"When the DRM config file is set per PID, the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` is used (regardless of the `CrypTrack` ID).\n"
 	"When the DRM config file is set globally (not per PID), the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` with ID 0 or not set is used.\n"

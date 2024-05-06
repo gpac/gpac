@@ -313,7 +313,7 @@ static const GF_FilterCapability TTMLConvCaps[] =
 GF_FilterRegister TTMLConvRegister = {
 	.name = "ttml2vtt",
 	GF_FS_SET_DESCRIPTION("TTML to WebVTT")
-	GF_FS_SET_HELP("This filter converts TTML frames to unframed WebVTT\n."
+	GF_FS_SET_HELP("This filter converts TTML frames to unframed WebVTT.\n"
 	"\n"
 	"Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.\n"
 	)
@@ -354,7 +354,7 @@ static const GF_FilterCapability TTMLConv2Caps[] =
 GF_FilterRegister TTMLConv2Register = {
 	.name = "ttml2srt",
 	GF_FS_SET_DESCRIPTION("TTML to SRT")
-	GF_FS_SET_HELP("This filter converts TTML frames to unframed SRT\n."
+	GF_FS_SET_HELP("This filter converts TTML frames to unframed SRT.\n"
 	"\n"
 	"Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.\n"
 	)

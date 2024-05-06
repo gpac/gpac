@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -128,13 +128,18 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr
 #else
 				const char *ascTime = "Not Available";
 #endif
-				GF_LOG(ch->first_SR ? GF_LOG_INFO : GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP %sSR: SSRC %d - RTP Time %u - Nb Pck %d - Nb Bytes %d - Time %s\n",
+				u64 clock_us = ch->last_SR_NTP_frac;
+				clock_us *= 1000000;
+				clock_us /= 0xFFFFFFFF;
+
+				GF_LOG(ch->first_SR ? GF_LOG_INFO : GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP %sSR: SSRC %d - RTP Time %u - Nb Pck %d - Nb Bytes %d - NTP %s %u us\n",
 											   ch->first_SR ? "Initial " : "",
 				                                 ch->SenderSSRC,
 				                                 ch->last_SR_rtp_time,
 				                                 ch->total_pck,
 				                                 ch->total_bytes,
-				                                 ascTime
+				                                 ascTime,
+				                                 clock_us
 				                                ));
 			}
 #endif

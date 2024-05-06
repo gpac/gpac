@@ -40,7 +40,7 @@
 	this scene graph is then used as an extra graph by the renderer, and manipulated by the decoder
 	for any time animation handling.
 	Translation from text to MPEG-4 scene graph:
-		* all modifiers (styles, hilight, etc) are unrolled into chunks forming a unique, linear
+		* all modifiers (styles, highlight, etc) are unrolled into chunks forming a unique, linear
 	sequence of text data (startChar, endChar) with associated styles & modifs
 		* chunks are mapped to classic MPEG-4/VRML text
 		* these chunks are then gathered in a Form node (supported by 2D and 3D renderers), with
@@ -54,7 +54,7 @@
 		* text color
 		* proper alignment (H and V) with horizontal text. Vertical text may not be properly layed out (not fully tested)
 		* style Records (font, size, fontstyles, and colors change) - any nb per sample supported
-		* hilighting (static only) with color or reverse video - any nb per sample supported
+		* highlighting (static only) with color or reverse video - any nb per sample supported
 		* hypertext links - any nb per sample supported
 		* blinking - any nb per sample supported
 		* complete scrolling: in, out, in+out, up, down, right and left directions. All other
@@ -62,7 +62,7 @@
 		* scroll delay
 
 	It does NOT support:
-		* dynamic hilighting (karaoke)
+		* dynamic highlighting (karaoke)
 		* wrap
 
 	The decoder only accepts complete timed text units TTU(1). In band reconfig (TTU(5) is not supported,
@@ -592,8 +592,8 @@ typedef struct
 {
 	u32 start_char, end_char;
 	GF_StyleRecord *srec;
-	Bool is_hilight;
-	u32 hilight_col;	/*0 means RV*/
+	Bool is_highlight;
+	u32 highlight_col;	/*0 means RV*/
 	GF_TextHyperTextBox *hlink;
 	Bool has_blink;
 	/*karaoke not done yet*/
@@ -682,10 +682,10 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 	if ((styleFlags & GF_TXT_STYLE_UNDERLINED) || (tc->hlink && tc->hlink->URL)) strcat(szStyle, " UNDERLINED");
 	if (styleFlags & GF_TXT_STYLE_STRIKETHROUGH) strcat(szStyle, " STRIKETHROUGH");
 
-	if (tc->is_hilight) {
-		if (tc->hilight_col) {
+	if (tc->is_highlight) {
+		if (tc->highlight_col) {
 			char szTxt[50];
-			sprintf(szTxt, " HIGHLIGHT#%x", tc->hilight_col);
+			sprintf(szTxt, " HIGHLIGHT#%x", tc->highlight_col);
 			strcat(szStyle, szTxt);
 		} else {
 			strcat(szStyle, " HIGHLIGHT#RV");
@@ -830,8 +830,8 @@ static void ttd_split_chunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, 
 		/*assign mod*/
 		switch (mod->type) {
 		case GF_ISOM_BOX_TYPE_HLIT:
-			tc->is_hilight = GF_TRUE;
-			if (txt->highlight_color) tc->hilight_col = txt->highlight_color->hil_color;
+			tc->is_highlight = GF_TRUE;
+			if (txt->highlight_color) tc->highlight_col = txt->highlight_color->hil_color;
 			break;
 		case GF_ISOM_BOX_TYPE_HREF:
 			tc->hlink = (GF_TextHyperTextBox *) mod;
@@ -1511,7 +1511,7 @@ GF_FilterRegister TTXTDecRegister = {
 	.name = "ttxtdec",
 	GF_FS_SET_DESCRIPTION("TTXT/TX3G decoder")
 	GF_FS_SET_HELP("This filter decodes TTXT/TX3G streams into a BIFS scene graph of the compositor filter.\n"
-		"The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation\n"
+		"The TTXT documentation is available at https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation\n"
 		"\n"
 		"In stand-alone rendering (no associated video), the filter will use:\n"
 		"- `Width` and `Height` properties of input pid if any\n"
@@ -1540,6 +1540,3 @@ const GF_FilterRegister *ttxtdec_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-
-
-

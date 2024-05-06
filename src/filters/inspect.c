@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -560,19 +560,25 @@ static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 {
-    u32 udta_id = GF_4CC(data[0], data[1], data[2], data[3]);
+
+    u32 udta_id = 0;
+	if (sei_size < 4)
+		return 1;
+
+	udta_id = GF_4CC(data[0], data[1], data[2], data[3]);
     u32 udta_code = 0;
 
 	inspect_printf(dump, " udta_id=\"%s\"", gf_4cc_to_str(udta_id));
-	if (udta_id==GF_4CC('G','A','9','4'))
+
+	if (udta_id==GF_4CC('G','A','9','4') && sei_size >= 5)
 		udta_code = data[4];
-	else if (udta_id==GF_4CC('D','T','G','1'))
+	else if (udta_id==GF_4CC('D','T','G','1') && sei_size >= 5)
 		udta_code = data[4];
 
 	if (udta_code)
 		inspect_printf(dump, " udta_code=\"0x%X\"", udta_code);
 
-	if (udta_code == 3) {
+	if (udta_code == 3 && sei_size >= 7) {
 		u32 i;
 		data+=5;
 		inspect_printf(dump, " em_data_flag=\"%d\"\n", (data[0] & 0x80) ? 1 : 0);
@@ -582,8 +588,11 @@ static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 		inspect_printf(dump, " cc_count=\"%d\"\n", cc_count);
 		inspect_printf(dump, " em_data=\"%x\"\n", data[1]);
 		data+=2;
+		sei_size-=7;
 		inspect_printf(dump, " cc_data=\"[");
 		for (i=0; i< cc_count; ++i) {
+			if (sei_size < 3)
+				break;
 			u8 valid = (data[0]>>2) & 0x1;
 			u8 type = data[0] & 0x3;
 			u16 ccdata = (data[1]<<8) | data[2];
@@ -593,6 +602,7 @@ static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 				else
 					inspect_printf(dump, "skip");
 			data+=3;
+			sei_size-=3;
 		}
 		inspect_printf(dump, "]\"");
 	}
@@ -773,7 +783,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 
 		//don't trust sei parsers, force jumping to next - use byte-per-byte read for EPB removal
 		gf_bs_seek(bs, sei_pos);
-		while (sei_size) {
+		while (sei_size && gf_bs_available(bs)) {
 			gf_bs_read_u8(bs);
 			sei_size--;
 		}
@@ -1573,9 +1583,9 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 				DUMP_OBU_INT(width);
 				DUMP_OBU_INT(height);
 			}
-			if (obu_type==OBU_FRAME_HEADER)
-				break;
 		}
+		if (obu_type==OBU_FRAME_HEADER)
+			break;
 
 	case OBU_TILE_GROUP:
 		if (av1->frame_state.nb_tiles_in_obu) {
@@ -2539,8 +2549,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	if (ctx->xml) {
 		if (ctx->dtype)
 			inspect_printf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
-			
-		if (pname && (strpbrk(pname, " :"))) { 
+
+		if (pname && (strpbrk(pname, " :"))) {
 			u32 i=0, k;
 			char *pname_no_space = gf_strdup(pname);
 			while (pname_no_space[i]) {
@@ -2968,7 +2978,8 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 				break;
 			case M2V_UDTA_START_CODE:
 				start = gf_m4v_get_object_start(m4v);
-				dump_udta_m2v(dump, data + start+4, (u32) (size-start-4));
+				if (size > start+4)
+					dump_udta_m2v(dump, data + start+4, (u32) (size-start-4));
 				break;
 			default:
 				break;
@@ -3438,11 +3449,15 @@ props_done:
 			}
 		}
 		while (size) {
+			if (size < pctx->nalu_size_length) {
+				inspect_printf(dump, "   <!-- NALU is corrupted: nalu_size_length is %u but only %d remains -->\n", pctx->nalu_size_length, size);
+				break;
+			}
 			u32 nal_size = inspect_get_nal_size((char*)data, pctx->nalu_size_length);
 			data += pctx->nalu_size_length;
 
-			if (pctx->nalu_size_length + nal_size > size) {
-				inspect_printf(dump, "   <!-- NALU is corrupted: size is %d but only %d remains -->\n", nal_size, size);
+			if (nal_size >= GF_UINT_MAX - pctx->nalu_size_length || pctx->nalu_size_length + nal_size > size) {
+				inspect_printf(dump, "   <!-- NALU is corrupted: size is %u but only %d remains -->\n", nal_size, size);
 				break;
 			} else {
 				inspect_printf(dump, "   <NALU size=\"%d\" ", nal_size);
@@ -3463,6 +3478,10 @@ props_done:
 
 			if (obu_size > size) {
 				inspect_printf(dump, "   <!-- OBU is corrupted: size is %d but only %d remains -->\n", (u32) obu_size, size);
+				break;
+			}
+			if (!obu_size) {
+				inspect_printf(dump, "   <!-- OBU is corrupted: size 0 -->\n", (u32) obu_size, size);
 				break;
 			}
 			data += obu_size;
@@ -3508,6 +3527,7 @@ props_done:
 			break;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
+		case GF_CODECID_SIMPLE_TEXT:
 			dflag=1;
 		case GF_CODECID_SUBS_XML:
 		case GF_CODECID_META_XML:
@@ -3518,6 +3538,23 @@ props_done:
 			}
 			if (dflag)
 				inspect_printf(dump, "]]>\n");
+			break;
+		case GF_CODECID_WEBVTT:
+		{
+			GF_List *cues = gf_webvtt_parse_cues_from_data(data, size, 0, 0);
+			while (gf_list_count(cues)) {
+				GF_WebVTTCue *cue = gf_list_pop_front(cues);
+				if (cue->pre_text) gf_fprintf(dump, "%s\n\n", cue->pre_text);
+				if (cue->id) gf_fprintf(dump, "%s\n", cue->id);
+				if (cue->settings) gf_fprintf(dump, " %s", cue->settings);
+				if (cue->text) gf_fprintf(dump, "%s", cue->text);
+				gf_fprintf(dump, "\n");
+				if (cue->post_text) gf_fprintf(dump, "%s\n\n", cue->post_text);
+
+				gf_webvtt_cue_del(cue);
+			}
+			gf_list_del(cues);
+		}
 			break;
 		case GF_CODECID_APCH:
 		case GF_CODECID_APCO:
@@ -3986,7 +4023,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			} else {
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_META_DEMUX_CODEC_ID);
 				if (p && (p->type==GF_PROP_UINT)) codec_id = p->value.uint;
-				inspect_printf(dump, " FFMPEG %d", codec_id);
+				inspect_printf(dump, " FFmpeg %d", codec_id);
 			}
 		} else {
 			inspect_printf(dump, " %s", gf_codecid_name(codec_id));
@@ -4105,6 +4142,18 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 			}
 		}
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODEC);
+		if (!p &&!gf_sys_is_test_mode()) {
+			char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
+			szCodec[0] = 0;
+			if (gf_filter_pid_get_rfc_6381_codec_string(pid, szCodec, GF_FALSE, GF_FALSE, NULL, NULL)==GF_OK) {
+				GF_PropertyValue _p;
+				_p.type = GF_PROP_STRING;
+				_p.value.string = szCodec;
+				inspect_dump_property(ctx, dump, GF_PROP_PID_CODEC, NULL, &_p, pctx);
+			}
+		}
 	} else {
 		while (ctx->info) {
 			u32 prop_4cc;
@@ -4137,6 +4186,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	hvcc = NULL;
 	lhcc = NULL;
 	vvcC = NULL;
+	Bool dsi_is_text=GF_FALSE;
 	pctx->has_svcc = 0;
 
 	switch (pctx->codec_id) {
@@ -4388,24 +4438,31 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			inspect_printf(dump, "/>\n");
 			return;
 		}
+		inspect_printf(dump, ">\n");
 		inspect_printf(dump, " <XMLTextConfig>\n");
 		for (i=0; i<dsi->value.data.size; i++) {
 			gf_fputc(dsi->value.data.ptr[i], dump);
 		}
 		inspect_printf(dump, "\n </XMLTextConfig>\n");
 		break;
+	case GF_CODECID_WEBVTT:
+		dsi_is_text = GF_TRUE;
 	case GF_CODECID_SUBS_TEXT:
 	case GF_CODECID_META_TEXT:
+	case GF_CODECID_SIMPLE_TEXT:
 		if (!dsi) {
 			inspect_printf(dump, "/>\n");
 			return;
 		}
-		inspect_printf(dump, " <TextConfig>\n");
-		inspect_printf(dump, "<![CDATA[");
+		inspect_printf(dump, ">\n");
+		inspect_printf(dump, " <TextConfig>");
+		if (!dsi_is_text)
+			inspect_printf(dump, "\n<![CDATA[");
 		for (i=0; i<dsi->value.data.size; i++) {
 			gf_fputc(dsi->value.data.ptr[i], dump);
 		}
-		inspect_printf(dump, "]]>\n");
+		if (!dsi_is_text)
+			inspect_printf(dump, "]]>\n");
 		inspect_printf(dump, " </TextConfig>\n");
 		break;
 	case GF_CODECID_APCH:
@@ -4422,13 +4479,14 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			inspect_printf(dump, "/>\n");
 			return;
 		}
-		{
+	{
 		u16 size;
 		if (!pctx->bs)
 			pctx->bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
 		else
 			gf_bs_reassign_buffer(pctx->bs, dsi->value.data.ptr, dsi->value.data.size);
 
+		inspect_printf(dump, ">\n");
 		inspect_printf(dump, " <MPEGHAudioConfig");
 		inspect_printf(dump, " version=\"%d\"", gf_bs_read_u8(pctx->bs) );
 		inspect_printf(dump, " ProfileLevelIndication=\"%d\"", gf_bs_read_u8(pctx->bs) );
@@ -4443,8 +4501,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		} else {
 			inspect_printf(dump, "/>\n");
 		}
-		inspect_printf(dump, "/>\n");
-		}
+	}
 		break;
 	case GF_CODECID_VP8:
 	case GF_CODECID_VP9:
@@ -4643,6 +4700,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		ctx->args_updated = GF_FALSE;
 		for (i=0; i<count; i++) {
 			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+			if (!pctx->src_pid) continue;
 			switch (ctx->mode) {
 			case INSPECT_MODE_PCK:
 			case INSPECT_MODE_REFRAME:
@@ -4660,7 +4718,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			ctx->dump_pck = GF_FALSE;
 		}
 	}
-	
+
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 		GF_FilterPacket *pck = NULL;
@@ -4719,7 +4777,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			}
 		}
 		if (!pck) continue;
-		
+
 		pctx->pck_for_config++;
 		pctx->pck_num++;
 
@@ -4735,7 +4793,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 				}
 			}
 		}
-		
+
 		if (ctx->dur.num && ctx->dur.den) {
 			u64 timescale = gf_filter_pck_get_timescale(pck);
 			u64 ts = gf_filter_pck_get_dts(pck);
@@ -5036,13 +5094,18 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "set probe log filename to print number of streams, GLOG uses GPAC logs `app@info`(default for android)", GF_PROP_STRING,
+	{ OFFS(log), "set probe log filename\n"
+	"- _any: target file path and name\n"
+	"- stderr: dump to stderr\n"
+	"- stdout: dump to stdout\n"
+	"- GLOG: use GPAC logs `app@info\n"
+	"- null: silent mode", GF_PROP_STRING,
 #ifdef GPAC_CONFIG_ANDROID
 		"GLOG"
 #else
 		"stdout"
 #endif
-		, "fileName, stderr, stdout, GLOG or null", 0},
+		, "_any|stderr|stdout|GLOG|null", 0},
 	{ OFFS(mode), "dump mode\n"
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"
@@ -5202,13 +5265,18 @@ static const GF_FilterCapability ProberCaps[] =
 
 static const GF_FilterArgs ProbeArgs[] =
 {
-	{ OFFS(log), "set probe log filename to print number of streams, GLOG uses GPAC logs `app@info`(default for android)", GF_PROP_STRING,
+	{ OFFS(log), "set probe log filename to print number of streams\n"
+	"- _any: target file path and name\n"
+	"- stderr: dump to stderr\n"
+	"- stdout: dump to stdout\n"
+	"- GLOG: use GPAC logs `app@info\n"
+	"- null: silent mode", GF_PROP_STRING,
 #ifdef GPAC_CONFIG_ANDROID
 		"GLOG"
 #else
 		"stdout"
 #endif
-	, "fileName, stderr, stdout GLOG or null", 0},
+	, "_any|stderr|stdout|GLOG|null", 0},
 	{0}
 };
 
@@ -5250,6 +5318,3 @@ const GF_FilterRegister *probe_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_INSPECT
-
-
-

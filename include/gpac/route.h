@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
- *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) demuxer
+ *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) and DVBI-Flute demuxer
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -36,13 +36,13 @@ extern "C" {
 
 /*!
 \file <gpac/route.h>
-\brief Specific extensions for ROUTE ( ATSC3, DVB-I) protocol
+\brief Specific extensions for ROUTE (ATSC3, DVB-I) protocol
 */
 
 /*!
 \addtogroup route_grp ROUTE
 \ingroup media_grp
-\brief ROUTE ATSC 3.0 reciever
+\brief ROUTE ATSC 3.0 receiver
 
 The ROUTE receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
 It gathers objects from a ROUTE session and sends them back to the user through a callback, or deletes them if no callback is sent.
@@ -185,6 +185,18 @@ GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, u32 so
 */
 GF_ROUTEDmx *gf_route_dmx_new_ex(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
+/*! Creates a new DVBI+Flute MABR demultiplexer
+\param ip IP address of LCT session carrying the initial FDT
+\param port port of LCT session carrying the initial FDT
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\param on_event the user callback function
+\param udta the user data passed back by the callback
+\return the demultiplexer created
+*/
+GF_ROUTEDmx *gf_dvbi_flute_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
 /*! Deletes an ROUTE demultiplexer
 \param routedmx the ROUTE demultiplexer to delete
 */
@@ -214,6 +226,13 @@ GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeo
 \return error code if any
  */
 GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive);
+
+/*! Sets maximum number of object per session, mostly used for regulation when reading from pcap
+\param routedmx the ROUTE demultiplexer
+\param max_cache  max number of objects per media stream in the session. If 0, no maximum applies
+\return error code if any
+ */
+GF_Err gf_route_set_max_cache(GF_ROUTEDmx *routedmx, u32 max_cache);
 
 /*! Sets the service ID to tune into for ATSC 3.0
 \param routedmx the ROUTE demultiplexer

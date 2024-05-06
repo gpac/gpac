@@ -80,7 +80,7 @@ void rtpin_satip_get_server_ip(const char *sURL, char *Server)
 
 	//extract the schema
 	i = 0;
-	while (i <= strlen(sURL)) {
+	while (i < strlen(sURL)) {
 		if (sURL[i] == ':')
 			goto found;
 		schema[i] = sURL[i];
@@ -89,7 +89,7 @@ void rtpin_satip_get_server_ip(const char *sURL, char *Server)
 	return;
 
 found:
-	schema[i] = 0;
+	schema[MIN(i, GF_ARRAY_LENGTH(schema)-1)] = 0;
 	if (stricmp(schema, "satip")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Wrong SATIP schema %s - not setting up\n", schema));
 		return;
@@ -105,25 +105,25 @@ found:
 	if (retest && strstr(retest, "/")) {
 		retest += 1;
 		i = 0;
-		while (i<strlen(retest)) {
+		while (i<strlen(retest) && i<GF_ARRAY_LENGTH(text)) {
 			if (retest[i] == '/') break;
 			text[i] = retest[i];
 			i += 1;
 		}
-		text[i] = 0;
+		text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
 	}
 	//get the server name
 	is_ipv6 = GF_FALSE;
 	len = (u32)strlen(test);
 	i = 0;
-	while (i<len) {
+	while (i<len && i<GF_ARRAY_LENGTH(text)) {
 		if (test[i] == '[') is_ipv6 = GF_TRUE;
 		else if (test[i] == ']') is_ipv6 = GF_FALSE;
 		if ((test[i] == '/') || (!is_ipv6 && (test[i] == ':'))) break;
 		text[i] = test[i];
 		i += 1;
 	}
-	text[i] = 0;
+	text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
 	strcpy(Server, text);
 }
 
@@ -852,7 +852,7 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!strnicmp(ctx->src, "rtsps://", 8)
-		|| (!strnicmp(ctx->src, "rtsph://", 8) && 
+		|| (!strnicmp(ctx->src, "rtsph://", 8) &&
 			((gf_rtsp_get_session_port(ctx->session->session) == 443) || (gf_rtsp_get_session_port(ctx->session->session) == 8443)))
 	) {
 #ifdef GPAC_HAS_SSL
@@ -1021,4 +1021,3 @@ const GF_FilterRegister *rtpin_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-

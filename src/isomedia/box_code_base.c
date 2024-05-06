@@ -597,6 +597,13 @@ GF_Err url_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_DataEntryURLBox *ptr = (GF_DataEntryURLBox *)s;
 
+	//imdt case
+	if (ptr->type == GF_ISOM_BOX_TYPE_IMDT) {
+		ISOM_DECREASE_SIZE(ptr, 4);
+		ptr->imda_ref_id = gf_bs_read_u32(bs);
+		return GF_OK;
+	}
+
 	if (ptr->size) {
 		u32 location_size = (u32) ptr->size;
 		if (location_size < 1) {
@@ -629,6 +636,11 @@ GF_Err url_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
+	//imdt case
+	if (ptr->type == GF_ISOM_BOX_TYPE_IMDT) {
+		gf_bs_write_u32(bs, ptr->imda_ref_id);
+		return GF_OK;
+	}
 	//the flag set indicates we have a string (WE HAVE TO for URLs)
 	if ( !(ptr->flags & 1)) {
 		if (ptr->location) {
@@ -642,6 +654,11 @@ GF_Err url_box_size(GF_Box *s)
 {
 	GF_DataEntryURLBox *ptr = (GF_DataEntryURLBox *)s;
 
+	//imdt case
+	if (ptr->type == GF_ISOM_BOX_TYPE_IMDT) {
+		ptr->size+=4;
+		return GF_OK;
+	}
 	if ( !(ptr->flags & 1)) {
 		if (ptr->location) ptr->size += 1 + strlen(ptr->location);
 	}
@@ -3020,7 +3037,7 @@ void mdhd_box_del(GF_Box *s)
 // https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap4/qtff4.html#//apple_ref/doc/uid/TP40000939-CH206-34320
 // to 3-letter codes (per ISO/IEC 639-2/T, https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
 // NOTE that Media Info maps them to 2-letter codes, possibly with region codes https://github.com/MediaArea/MediaInfoLib/blob/72213574cbf2ca01c0fbb97d2239b53891ad7b9d/Source/MediaInfo/Multiple/File_Mpeg4.cpp#L754
-// NOTE that FFMPEG mostly maps to ISO/IEC 639-2/B and sometimes 2-letter code
+// NOTE that FFmpeg mostly maps to ISO/IEC 639-2/B and sometimes 2-letter code
 // (see https://ffmpeg.org/doxygen/trunk/isom_8c_source.html)
 static const char* qtLanguages[] = {
 	"eng", //  0 English
@@ -12599,7 +12616,7 @@ GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	//leftover
 	if (ptr->size && ptr->cfg.ExpansionBoxPresent) {
-		ptr->cfg.ExpansionBoxDataSize = ptr->size;
+		ptr->cfg.ExpansionBoxDataSize = (u32) ptr->size;
 		ISOM_DECREASE_SIZE(ptr, ptr->cfg.ExpansionBoxDataSize);
 		ptr->cfg.ExpansionBoxData = gf_realloc(ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
 		if (!ptr->cfg.ExpansionBoxData) return GF_OUT_OF_MEM;

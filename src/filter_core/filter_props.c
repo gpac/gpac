@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -43,7 +43,8 @@ static struct {
 	{GF_PROP_PCMFMT, (cst_parse_proto) gf_audio_fmt_parse, (cst_name_proto) gf_audio_fmt_name, gf_audio_fmt_all_names},
 	{GF_PROP_CICP_COL_PRIM, gf_cicp_parse_color_primaries, gf_cicp_color_primaries_name, gf_cicp_color_primaries_all_names},
 	{GF_PROP_CICP_COL_TFC, gf_cicp_parse_color_transfer, gf_cicp_color_transfer_name, gf_cicp_color_transfer_all_names},
-	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names}
+	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names},
+	{GF_PROP_CICP_LAYOUT, gf_audio_fmt_get_cicp_from_name, gf_audio_fmt_get_cicp_name, gf_audio_fmt_cicp_all_names}
 };
 
 GF_EXPORT
@@ -88,9 +89,34 @@ Bool gf_props_type_is_enum(GF_PropType type)
 	return GF_FALSE;
 }
 
+static Bool parse_time(const char *str, u64 *val)
+{
+	u32 h=0, m=0, s=0, ms=0;
+	if (!str) return GF_FALSE;
+	if ((str[0]!='t') && (str[0]!='T')) return GF_FALSE;
+	str += 1;
+	if (sscanf(str, "%02u:%02u:%02u.%02u", &h, &m, &s, &ms) == 4) {
+	}
+	else if (sscanf(str, "%02u:%02u:%02u", &h, &m, &s) == 3) {
+		ms=0;
+	}
+	else if (sscanf(str, "%02u:%02u.%02u", &m, &s, &ms) == 3) {
+		h=0;
+	}
+	else if (sscanf(str, "%02u:%02u", &m, &s) == 2) {
+		h=ms=0;
+	}
+	*val = 3600*h;
+	*val += 60*m;
+	*val += s;
+	*val = *val * 1000 + ms;
+	return GF_TRUE;
+}
+
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
+	u64 tval;
 	char *unit_sep=NULL;
 	s32 unit = 0;
 	memset(&p, 0, sizeof(GF_PropertyValue));
@@ -135,6 +161,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_SINT:
 		if (value && !strcmp(value, "+I")) p.value.sint = GF_INT_MAX;
 		else if (value && !strcmp(value, "-I")) p.value.sint = GF_INT_MIN;
+		else if (parse_time(value, &tval)) p.value.sint = (s32) tval;
 		else if (!value || (sscanf(value, "%d", &p.value.sint)!=1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for int arg %s - using 0\n", value, name));
 			p.value.sint = 0;
@@ -199,7 +226,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.uint *= unit;
 			}
 		} else if (value) {
-			if (sscanf(value, "%d", &p.value.uint)!=1) {
+			if (parse_time(value, &tval)) p.value.uint = (u32) tval;
+			else if (sscanf(value, "%d", &p.value.uint)!=1) {
 				if (strlen(value)==4) {
 					p.value.uint = GF_4CC(value[0],value[1],value[2],value[3]);
 				} else {
@@ -224,6 +252,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_LSINT:
 		if (value && !strcmp(value, "+I")) p.value.longsint = 0x7FFFFFFFFFFFFFFFUL;
 		else if (value && !strcmp(value, "-I")) p.value.longsint = 0x8000000000000000UL;
+		else if (parse_time(value, &tval)) p.value.longsint = (s64) tval;
 		else if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
@@ -233,6 +262,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_LUINT:
 		if (value && !strcmp(value, "+I")) p.value.longuint = 0xFFFFFFFFFFFFFFFFUL;
+		else if (parse_time(value, &tval)) p.value.longuint = (u64) tval;
 		else if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
@@ -241,14 +271,22 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_FRACTION:
-		if (gf_parse_frac(value, &p.value.frac)==GF_FALSE) {
+		if (parse_time(value, &tval)) {
+			p.value.frac.num = (s32) tval;
+			p.value.frac.den = 1000;
+		}
+		else if (gf_parse_frac(value, &p.value.frac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 			p.value.frac.num = 0;
 			p.value.frac.den = 1;
 		}
 		break;
 	case GF_PROP_FRACTION64:
-		if (gf_parse_lfrac(value, &p.value.lfrac)==GF_FALSE) {
+		if (parse_time(value, &tval)) {
+			p.value.lfrac.num = (s64) tval;
+			p.value.lfrac.den = 1000;
+		}
+		else if (gf_parse_lfrac(value, &p.value.lfrac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 			p.value.lfrac.num = 0;
 			p.value.lfrac.den = 1;
@@ -257,6 +295,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_FLOAT:
 		if (value && !strcmp(value, "+I")) p.value.fnumber = FIX_MAX;
 		else if (value && !strcmp(value, "-I")) p.value.fnumber = FIX_MIN;
+		else if (parse_time(value, &tval)) p.value.fnumber = INT2FIX(tval);
 		else if (!value) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for float arg %s - using 0\n", value, name));
 			p.value.fnumber = 0;
@@ -274,6 +313,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_DOUBLE:
 		if (value && !strcmp(value, "+I")) p.value.number = GF_MAX_DOUBLE;
 		else if (value && !strcmp(value, "-I")) p.value.number = GF_MIN_DOUBLE;
+		else if (parse_time(value, &tval)) p.value.number = (Double) tval;
 		else if (value && (value[0]=='T')) {
 			u32 h=0, m=0, s=0, ms=0;
 			if (sscanf(value+1, "%u:%u:%u.%u", &h, &m, &s, &ms)==4) {
@@ -1328,7 +1368,8 @@ GF_PropTypeDef PropTypes[] =
 	{GF_PROP_PCMFMT, "afmt", "raw audio format"},
 	{GF_PROP_CICP_COL_PRIM, "cprm", "color primaries, string or int value from ISO/IEC 23091-2"},
 	{GF_PROP_CICP_COL_TFC, "ctfc", "color transfer characteristics, string or int value from ISO/IEC 23091-2"},
-	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"}
+	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"},
+	{GF_PROP_CICP_LAYOUT, "alay", "channel layout configuration, string or int value from ISO/IEC 23091-3"}
 };
 
 GF_EXPORT
@@ -1635,7 +1676,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_SCENE_NODE, "SceneNode", "PID is a scene node decoder (AFX BitWrapper in BIFS)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_ORIG_CRYPT_SCHEME, "OrigCryptoScheme", "Original crypto scheme on a decrypted PID", GF_PROP_4CC),
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_SEGS, "TSBSegs", "Time shift in number of segments for HAS streams, only set by dashin and dasher filters", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest\n"
+	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest (MSB=1 if live)\n"
 	"- 0: not a manifest\n"
 	"- 1: DASH manifest\n"
 	"- 2: HLS manifest\n"
@@ -1987,6 +2028,14 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 	return "";
 }
 
+GF_EXPORT
+char *gf_props_dump_alloc(u32 p4cc, const GF_PropertyValue *att, GF_PropDumpDataMode dump_data_mode)
+{
+	char dump[GF_PROP_DUMP_ARG_SIZE];
+	const char *res = gf_props_dump(p4cc, att, dump, dump_data_mode);
+	if (!res) return NULL;
+	return gf_strdup(res);
+}
 
 GF_Err gf_prop_matrix_decompose(const GF_PropertyValue *p, u32 *flip_mode, u32 *rot_mode)
 {

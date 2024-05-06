@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -106,9 +106,8 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 	ctx->dm = gf_filter_get_download_manager(filter);
-#ifndef GPAC_CONFIG_EMSCRIPTEN
 	if (!ctx->dm) return GF_SERVICE_ERROR;
-#endif
+
 	ctx->block = gf_malloc(ctx->block_size +1);
 
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
@@ -135,7 +134,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
-	if (server && strstr(server, "://")) {
+	if (server && strncmp(ctx->src, "http://groute", 13) && strstr(server, "://")) {
 		ctx->is_end = GF_TRUE;
 		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 	}
@@ -651,7 +650,9 @@ GF_FilterRegister HTTPInRegister = {
 	"\n"
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
 	.private_size = sizeof(GF_HTTPInCtx),
-	.flags = GF_FS_REG_USE_SYNC_READ,
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	.flags = GF_FS_REG_MAIN_THREAD,
+#endif
 	.args = HTTPInArgs,
 	SETCAPS(HTTPInCaps),
 	.initialize = httpin_initialize,

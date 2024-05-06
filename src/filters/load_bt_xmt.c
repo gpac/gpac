@@ -825,23 +825,6 @@ static void ctxload_finalize(GF_Filter *filter)
 	}
 }
 
-static const char* my_strstr(const char *str, const char *pat, u32 str_len)
-{
-	u32 len_pat = (u32) strlen(pat);
-	if (len_pat>str_len) return NULL;
-	//basically a memmem clone (we don't use for portability reasons)
-	while (1) {
-		char *next = memchr(str, pat[0], str_len);
-		if (!next) return NULL;
-		u32 left = str_len - (u32) (next-str);
-		if (left<len_pat) return NULL;
-		if (!memcmp(next, pat, len_pat)) return next;
-		//left is always at least 1
-		str_len = left-1;
-		str = next+1;
-	}
-	return NULL;
-}
 #include <gpac/utf.h>
 static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterProbeScore *score)
 {
@@ -882,7 +865,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		} else {
 			break;
 		}
-		const char *res = my_strstr(probe_data, search, probe_size);
+		const char *res = gf_strmemstr(probe_data, probe_size, search);
 		if (!res) goto exit;
 		res += strlen(search);
 		probe_size -= (u32) (res - (char*)probe_data);
@@ -895,24 +878,24 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 	//probe_data is now the first element of the document, if XML
 	//we should refine by getting the xmlns attribute value rather than searching for its value...
 
-	if (my_strstr(probe_data, "http://www.w3.org/1999/XSL/Transform", probe_size)
+	if (gf_strmemstr(probe_data, probe_size, "http://www.w3.org/1999/XSL/Transform")
 	) {
 	} else if (!strncmp(probe_data, "<XMT-A", strlen("<XMT-A"))
-		|| my_strstr(probe_data, "urn:mpeg:mpeg4:xmta:schema:2002", probe_size)
+		|| gf_strmemstr(probe_data, probe_size, "urn:mpeg:mpeg4:xmta:schema:2002")
 	) {
 		mime_type = "application/x-xmt";
-	} else if (my_strstr(probe_data, "<X3D", probe_size)
-		|| my_strstr(probe_data, "http://www.web3d.org/specifications/x3d-3.0.xsd", probe_size)
+	} else if (gf_strmemstr(probe_data, probe_size, "<X3D")
+		|| gf_strmemstr(probe_data, probe_size, "http://www.web3d.org/specifications/x3d-3.0.xsd")
 	) {
 		mime_type = "model/x3d+xml";
-	} else if (my_strstr(probe_data, "<saf", probe_size)
-		|| my_strstr(probe_data, "urn:mpeg:mpeg4:SAF:2005", probe_size)
-		|| my_strstr(probe_data, "urn:mpeg:mpeg4:LASeR:2005", probe_size)
+	} else if (gf_strmemstr(probe_data, probe_size, "<saf")
+		|| gf_strmemstr(probe_data, probe_size, "urn:mpeg:mpeg4:SAF:2005")
+		|| gf_strmemstr(probe_data, probe_size, "urn:mpeg:mpeg4:LASeR:2005")
 	) {
 		mime_type = "application/x-LASeR+xml";
 	} else if (!strncmp(probe_data, "<DIMSStream", strlen("<DIMSStream") ) ) {
 		mime_type = "application/dims";
-	} else if (!strncmp(probe_data, "<svg", 4) || my_strstr(probe_data, "http://www.w3.org/2000/svg", probe_size) ) {
+	} else if (!strncmp(probe_data, "<svg", 4) || gf_strmemstr(probe_data, probe_size, "http://www.w3.org/2000/svg") ) {
 		mime_type = "image/svg+xml";
 	} else if (!strncmp(probe_data, "<widget", strlen("<widget") ) ) {
 		mime_type = "application/widget";
@@ -955,12 +938,12 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 				break;
 			}
 			//skip line and go one
-			const char *next = my_strstr(probe_data, "\n", probe_size);
+			const char *next = gf_strmemstr(probe_data, probe_size, "\n");
 			if (!next) goto exit;
 			probe_size -= (u32) (next - (char*)probe_data);
 			probe_data = next;
 		}
-		
+
 		if (!strncmp(probe_data, "InitialObjectDescriptor", strlen("InitialObjectDescriptor"))
 			|| !strncmp(probe_data, "EXTERNPROTO", strlen("EXTERNPROTO"))
 			|| !strncmp(probe_data, "PROTO", strlen("PROTO"))
@@ -969,7 +952,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 			|| !strncmp(probe_data, "Layer2D", strlen("Layer2D"))
 			|| !strncmp(probe_data, "Layer3D", strlen("Layer3D"))
 		) {
-			if (my_strstr(probe_data, "children", probe_size))
+			if (gf_strmemstr(probe_data, probe_size, "children"))
 				mime_type = "application/x-bt";
 		}
 	}
@@ -1032,5 +1015,3 @@ const GF_FilterRegister *btplay_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-
-

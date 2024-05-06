@@ -722,11 +722,11 @@ static GF_Node *xmt_find_node(GF_XMTParser *parser, char *ID)
 	}		\
 	while (str[0] == ' ') str += 1;	\
 	i = 0;	\
-	while ((str[i] != ' ') && str[i]) {	\
+	while ((str[i] != ' ') && str[i] && i<100) {	\
 		value[i] = str[i];			\
 		i++;				\
 	}					\
-	value[i] = 0;	\
+	value[MIN(i, 99)] = 0;	\
 	while ((str[i] == ' ') && str[i]) i++;
 
 static u32 xmt_parse_int(GF_XMTParser *parser, const char *name, SFInt32 *val, char *a_value)

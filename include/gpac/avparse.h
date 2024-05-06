@@ -384,8 +384,8 @@ u32 gf_opus_check_frame(GF_OpusConfig *cfg, u8 *data, u32 data_len);
 u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3);
 
 /*! parse profile and level from a MHAS payload
-\param ptr the MHAS payhload
-\param size size of the MHAS payhload
+\param ptr the MHAS payload
+\param size size of the MHAS payload
 \param chan_layout set to the channel layout if found, 0 otherwise - optional, may be NULL
 \return the MHAS profile found, or -1 of not found
 */

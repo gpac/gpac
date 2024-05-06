@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -595,7 +595,7 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx, Bool gen_dsi_onl
 	GF_TextSampleDescriptor *sd;
 
 	if (!gen_dsi_only) {
-		if (!ctx->unframed)
+		if (!ctx->unframed && !ctx->src)
 			ctx->src = gf_fopen(ctx->file_name, "rb");
 
 		if (!ctx->src) return GF_URL_ERROR;
@@ -962,11 +962,11 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacke
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
 		GF_Err e = txtin_setup_srt(filter, ctx, GF_FALSE);
-		if (e || !ctx->unframed) return e;
+		if (e || (!ctx->unframed && ctx->file_name)) return e;
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
 
-	if (!ctx->unframed) {
+	if (!ctx->unframed && ctx->file_name) {
 		if (!ctx->playstate) return GF_OK;
 		else if (ctx->playstate==2) return GF_EOS;
 	}
@@ -1144,7 +1144,13 @@ static void gf_webvtt_import_header(void *user, const char *config)
 {
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
 	if (!ctx->hdr_parsed) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (u32) (1+strlen(config)) ) );
+		u32 len = (u32) strlen(config);
+		//if \n is set, ignore it - this avoids decoder config updates
+		if ((len<=7) && !strncmp(config, "WEBVTT", 6)) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((u8 *) "WEBVTT", 7) );
+		} else {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *) config, (u32) (1+strlen(config)) ) );
+		}
 		ctx->hdr_parsed = GF_TRUE;
 		gf_webvtt_parser_suspend(ctx->vttparser);
 	}
@@ -1194,7 +1200,7 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 
 	gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 
-	if (gf_filter_pid_would_block(ctx->opid))
+	if (gf_filter_pid_would_block(ctx->opid) && ctx->file_name)
 		gf_webvtt_parser_suspend(ctx->vttparser);
 }
 
@@ -1205,7 +1211,7 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	Bool is_srt;
 	char *ext;
 
-	if (!ctx->unframed)
+	if (!ctx->unframed && !ctx->src)
 		ctx->src = gf_fopen(ctx->file_name, "rb");
 
 	if (ctx->opid && (ctx->playstate==2)) return GF_EOS;
@@ -1264,6 +1270,8 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	return e;
 }
 
+void gf_webvtt_parser_not_done(GF_WebVTTParser *parser);
+
 static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	GF_Err e;
@@ -1296,6 +1304,9 @@ static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 			gf_timestamp_rescale(ctx->end, ctx->timescale, 1000),
 			vtt_pre, vtt_cueid, vtt_settings);
 	} else {
+		if (!ctx->file_name)
+			gf_webvtt_parser_not_done(ctx->vttparser);
+
 		e = gf_webvtt_parser_parse(ctx->vttparser);
 	}
 
@@ -2556,7 +2567,7 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPac
 	}
 	if (e==GF_EOS) {
 		if (ctx->swf_parse->finalize) {
-			ctx->swf_parse->finalize(ctx->swf_parse);
+			ctx->swf_parse->finalize(ctx->swf_parse, GF_FALSE);
 			ctx->swf_parse->finalize = NULL;
 		}
 	}
@@ -3116,6 +3127,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 								td.font_count += 1;
 								td.fonts = (GF_FontRecord*)gf_realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
 								m=0;
+								td.fonts[td.font_count-1].fontName = NULL;
 								while ( (att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &m))) {
 									if (!stricmp(att->name, "fontID")) td.fonts[td.font_count-1].fontID = atoi(att->value);
 									else if (!stricmp(att->name, "fontName")) td.fonts[td.font_count-1].fontName = gf_strdup(att->value);
@@ -3941,7 +3953,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 	if (pck) ctx->is_loaded = GF_FALSE;
 
 	if (!pck) {
-		if (ctx->unframed) {
+		if (ctx->unframed || !ctx->file_name) {
 			if (gf_filter_pid_is_eos(ctx->ipid)) {
 				if (ctx->end) {
 #ifndef GPAC_DISABLE_VTT
@@ -3978,7 +3990,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 		if (e) return e;
 	}
 
-	if (ctx->unframed) {
+	if (ctx->unframed || !ctx->file_name) {
 		if (ctx->simple_text) {
 			e = ctx->text_process(filter, ctx, pck);
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -3994,10 +4006,12 @@ static GF_Err txtin_process(GF_Filter *filter)
 				e = GF_IO_ERR;
 			gf_fseek(ctx->src, 0, SEEK_SET);
 			//init state as parsing SRT payload
-			ctx->state = 2;
-			ctx->start = gf_filter_pck_get_cts(pck);
-			ctx->end = ctx->start + gf_filter_pck_get_duration(pck);
-			ctx->curLine = 0;
+			if (ctx->unframed) {
+				ctx->state = 2;
+				ctx->start = gf_filter_pck_get_cts(pck);
+				ctx->end = ctx->start + gf_filter_pck_get_duration(pck);
+				ctx->curLine = 0;
+			}
 
 			if (!e)
 				e = ctx->text_process(filter, ctx, pck);
@@ -4117,7 +4131,12 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!src && ctx->fio)
 			src = gf_fileio_url(ctx->fio);
 
-		use_file = GF_TRUE;
+		use_file = src ? GF_TRUE : GF_FALSE;
+		//check if mime is a vtt, if so default to vtt output - for other inputs, we'll use tx3g as usual
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (prop && !strcmp(prop->value.string, "subtitle/vtt")) {
+			codec_id = GF_CODECID_WEBVTT;
+		}
 	}
 
 	if (!ctx->ipid) {
@@ -4174,6 +4193,7 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->fmt = ctx->simple_text ? GF_TXTIN_MODE_SIMPLE : GF_TXTIN_MODE_SRT;
 		if (!ctx->opid)
 			ctx->opid = gf_filter_pid_new(filter);
+		if (!ctx->timescale) ctx->timescale = 1000;
 	}
 
 	if (ctx->webvtt && (ctx->fmt == GF_TXTIN_MODE_SRT))
@@ -4346,16 +4366,15 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	GF_Err e = gf_utf_get_string_from_bom((char *)data, data_size, &dst, &res, &res_size);
 	if (e) return NULL;
 
-	u8 orig_end = res[res_size-1];
-	res[res_size-1] = 0;
 	data = res;
 	//strip all spaces and \r\n\t
-	while (data[0] && strchr("\n\r\t ", (char) data[0]))
-		data ++;
+	while (data[0] && strchr("\n\r\t ", (char) data[0])) {
+		data++;
+		res_size--;
+	}
 
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
-		res[res_size-1] = orig_end;\
 		if (dst) gf_free(dst);\
 		return _mime; \
 
@@ -4363,7 +4382,7 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	if (!strncmp(data, "WEBVTT", 6)) {
 		PROBE_OK(GF_FPROBE_SUPPORTED, "subtitle/vtt")
 	}
-	if (strstr(data, " --> ")) {
+	if (gf_strmemstr(data, res_size, " --> ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/srt")
 	}
 	if (!strncmp(data, "FWS", 3) || !strncmp(data, "CWS", 3)) {
@@ -4373,28 +4392,26 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ssa")
 	}
 
-	if ((data[0]=='{') && strstr(data, "}{")) {
+	if ((data[0]=='{') && gf_strmemstr(data, res_size, "}{")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/sub")
 
 	}
 	/*XML formats*/
-	if (!strstr(data, "?>") ) {
-		res[res_size-1] = orig_end;
+	if (!gf_strmemstr(data, res_size, "?>") ) {
 		if (dst) gf_free(dst);
 		return NULL;
 	}
 
-	if (strstr(data, "<x-quicktime-tx3g") || strstr(data, "<text3GTrack")) {
+	if (gf_strmemstr(data, res_size, "<x-quicktime-tx3g") || gf_strmemstr(data, res_size, "<text3GTrack")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "quicktime/text")
 	}
-	if (strstr(data, "TextStream")) {
+	if (gf_strmemstr(data, res_size, "TextStream")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttxt")
 	}
-	if (strstr(data, "<tt ") || strstr(data, ":tt ")) {
+	if (gf_strmemstr(data, res_size, "<tt ") || gf_strmemstr(data, res_size, ":tt ")) {
 		PROBE_OK(GF_FPROBE_MAYBE_SUPPORTED, "subtitle/ttml")
 	}
 
-	res[res_size-1] = orig_end;
 	if (dst) gf_free(dst);
 	return NULL;
 }
@@ -4459,7 +4476,7 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(ttml_zero), "set subtitle zero time for TTML", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_empty), "do not send empty samples", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stxtdur), "duration for simple text", GF_PROP_FRACTION, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(stxtmod), "simple text stream mode"
+	{ OFFS(stxtmod), "simple text stream mode\n"
 	"- none: declares output PID as simple text stream\n"
 	"- tx3g: declares output PID as TX3G/Apple stream\n"
 	"- vtt: declares output PID as WebVTT stream", GF_PROP_UINT, "none", "none|tx3g|vtt", GF_FS_ARG_HINT_EXPERT},
@@ -4474,7 +4491,7 @@ GF_FilterRegister TXTInRegister = {
 	"The filter supports the following formats:\n"
 	"- SRT: https://en.wikipedia.org/wiki/SubRip\n"
 	"- WebVTT: https://www.w3.org/TR/webvtt1/\n"
-	"- TTXT: https://wiki.gpac.io/TTXT-Format-Documentation\n"
+	"- TTXT: https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation\n"
 	"- QT 3GPP Text XML (TexML): Apple QT6, likely deprecated\n"
 	"- TTML: https://www.w3.org/TR/ttml2/\n"
 	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"

@@ -1968,11 +1968,11 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 	return GF_OK;
 }
 
-static void swf_bifs_finalize(SWFReader *read)
+static void swf_bifs_finalize(SWFReader *read, Bool is_destroy)
 {
 	u32 i, count;
-
-	swf_bifs_end_of_clip(read);
+	if (!is_destroy)
+		swf_bifs_end_of_clip(read);
 
 	while (gf_list_count(read->buttons)) {
 		S2BBtnRec *btnrec = gf_list_get(read->buttons, 0);

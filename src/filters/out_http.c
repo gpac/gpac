@@ -2670,7 +2670,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		cplen = (u32) (sep-ctx->dst-7);
 		if (cplen>1023) cplen=1023;
 		strncpy(szIP, ctx->dst+7, cplen);
-		szIP[1023] = 0;
+		szIP[MIN(cplen,1023)] = 0;
 		sep = strchr(szIP, ':');
 		if (sep) {
 			port = atoi(sep+1);
