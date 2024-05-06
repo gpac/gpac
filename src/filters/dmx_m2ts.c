@@ -1193,6 +1193,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32(bs, 90000);                     // timescale
 			gf_bs_write_u64(bs, pck->PTS);                  // pts
+			gf_bs_write_u32(bs, pck->data_len);				// data length (bytes)
 			gf_bs_write_data(bs, pck->data, pck->data_len); // data
 			gf_bs_get_content(bs, &t->data, &t->len);
 			gf_bs_del(bs);
