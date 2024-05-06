@@ -70,8 +70,6 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_MPEGHDECODER
 #define GPAC_HAS_LIBCACA
 
-/*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
-
 #define GPAC_MEMORY_TRACKING
 
 /*Win32 IPv6 is evaluated at compile time, !! do not uncomment !!*/
@@ -223,6 +221,8 @@ This section documents the base data types of GPAC.
 #error "Unknown target platform used with static configuration file"
 #endif
 
+/*needed for unittests (disabled)*/
+#define GF_STATIC static
 
 /*disables player */
 //#define GPAC_DISABLE_COMPOSITOR
