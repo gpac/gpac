@@ -2292,7 +2292,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 			//subsegment (commented below) - cf #2733
 			//entry->sidx->refs[entry->sidx->nb_refs-1].reference_size = (u32) (last_entry_end_offset - next_entry->start_offset);
 			gf_isom_box_size((GF_Box *)next_entry->sidx);
-			entry->sidx->refs[entry->sidx->nb_refs-1].reference_size = next_entry->sidx->size;
+			entry->sidx->refs[entry->sidx->nb_refs-1].reference_size = (u32) next_entry->sidx->size;
 			sidx_rewrite(entry->sidx, movie->editFileMap->bs, entry->start_offset, NULL);
 		}
 		while (gf_list_count(daisy_sidx)) {

@@ -25,9 +25,9 @@
 
 # GPAC Introduction
 
-Current version: 2.3-DEV
+Current version: 2.5-DEV
 
-Latest Release: 2.2
+Latest Release: 2.4
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
@@ -60,25 +60,25 @@ GPAC can process, analyse, package, stream, encode, decode and playback a wide v
 - Python and NodeJS bindings
 
 Features are encapsulated in processing modules called filters:
-- to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://wiki.gpac.io/Filters/Filters/).
-- to get the full list of playback features, check [the dedicated wiki page](https://wiki.gpac.io/Player/Player/).
+- to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://wiki.gpac.io/Filters/Filters).
+- to get the full list of playback features, check [the dedicated wiki page](https://wiki.gpac.io/Player/Player).
 
 
 # Tools
 
 ## MP4Box
-MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box).
+MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box/MP4Box).
 
 
 ## gpac 
-GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box.
-The gpac application is a direct interface to the filter engine of GPAC, allowing any combination of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
+GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Filters/Rearchitecture) for more discussion on how this impacts MP4Box.
+The gpac application is a direct interface to the filter engine of GPAC, allowing any combination of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters/Filters) for more details.
 
 # Getting started
 ## Download
 Stable and nightly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.io/downloads/).
 
-If you want to compile GPAC yourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
+If you want to compile GPAC yourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build/Build-Introduction) of our wiki.
 
 ## Documentation
 The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://wiki.gpac.io/Howtos/howtos/).
@@ -116,8 +116,9 @@ Users are encouraged to use the latest tag or the master branch.
 
 ## V2.X
 Targets:
-- [ ] Web integration (emscripten, Remotery UI)
 - [ ] DASH event support
-- [ ] Better TTML2 / SMPTE ST 2052-1 support
-- [ ] GUI cleanup ?
-
+- [ ] Web GUI
+- [ ] QUIC support
+- [ ] ROUTE file repair support
+- [ ] FLUTE support
+- [ ] Rust Bindings

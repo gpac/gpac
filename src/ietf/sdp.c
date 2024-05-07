@@ -83,18 +83,21 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	if (!strcmp(comp, "cat")) {
 		if (media) return;
 		/*pos = */gf_token_get(buffer, pos, ":\t\r\n", comp, 3000);
+		if (sdp->a_cat) return;
 		sdp->a_cat = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "keywds")) {
 		if (media) return;
 		/*pos = */gf_token_get(buffer, pos, ":\t\r\n", comp, 3000);
+		if (sdp->a_keywds) return;
 		sdp->a_keywds = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "tool")) {
 		if (media) return;
 		/*pos = */gf_token_get(buffer, pos, ":\r\n", comp, 3000);
+		if (sdp->a_tool) return;
 		sdp->a_tool = gf_strdup(comp);
 		return;
 	}
@@ -132,26 +135,31 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	if (!strcmp(comp, "orient")) {
 		if (!media || media->Type) return;
 		/*pos = */gf_token_get(buffer, pos, ":\r\n", comp, 3000);
+		if (media->orientation) return;
 		media->orientation = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "type")) {
 		if (media) return;
 		/*pos = */gf_token_get(buffer, pos, ":\r\n", comp, 3000);
+		if (sdp->a_type) return;
 		sdp->a_type = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "charset")) {
 		if (media) return;
 		/*pos = */gf_token_get(buffer, pos, ":\r\n", comp, 3000);
+		if (sdp->a_charset)
 		sdp->a_charset = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "sdplang")) {
 		/*pos = */gf_token_get(buffer, pos, ":\r\n", comp, 3000);
 		if (media) {
+			if (media->sdplang) return;
 			media->sdplang = gf_strdup(comp);
 		} else {
+			if (sdp->a_sdplang) return;
 			sdp->a_sdplang = gf_strdup(comp);
 		}
 		return;
@@ -159,8 +167,10 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	if (!strcmp(comp, "lang")) {
 		/*pos = */gf_token_get(buffer, pos, ":\r\n", comp, 3000);
 		if (media) {
+			if (media->lang) return;
 			media->lang = gf_strdup(comp);
 		} else {
+			if (sdp->a_lang) return;
 			sdp->a_lang = gf_strdup(comp);
 		}
 		return;

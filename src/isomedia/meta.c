@@ -728,6 +728,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 	for (i = 0; i < count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
 		if (entry->item_id != item_id) continue;
+		if (entry->nb_associations && !ipco) return GF_ISOM_INVALID_FILE;
 		for (j = 0; j < entry->nb_associations; j++) {
 			GF_Box *b;
 			u32 index = entry->associations[j].index;

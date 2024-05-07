@@ -449,7 +449,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, len, &output);
 		if (!dst_pck) return GF_OUT_OF_MEM;
-		
+
 		res = (u32) gf_fread(output, len, ctx->mdia);
 		if (res != len) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[NHNT] Read failure, expecting %d bytes got %d", len, res));
@@ -509,7 +509,7 @@ GF_FilterRegister NHNTDmxRegister = {
 	.name = "nhntr",
 	GF_FS_SET_DESCRIPTION("NHNT reader")
 	GF_FS_SET_HELP("This filter reads NHNT files/data to produce a media PID and frames.\n"
-	"NHNT documentation is available at https://wiki.gpac.io/NHNT-Format\n")
+	"NHNT documentation is available at https://wiki.gpac.io/xmlformats/NHNT-Format\n")
 	.private_size = sizeof(GF_NHNTDmxCtx),
 	.flags = GF_FS_REG_USE_SYNC_READ,
 	.args = GF_NHNTDmxArgs,
@@ -531,4 +531,3 @@ const GF_FilterRegister *nhntr_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_NHNTR
-

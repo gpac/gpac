@@ -765,6 +765,37 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_list_add(ctx->frames_res, f);
 		}
 	}
+	else if (evt->base.type == GF_FEVT_STOP) {
+		while (gf_list_count(ctx->frames)) {
+			NVDecFrame *f = gf_list_pop_back(ctx->frames);
+			gf_list_add(ctx->frames_res, f);
+		}
+		if (ctx->unload == 2) {
+			if (ctx->dec_inst) {
+				gf_assert(global_unactive_decoders);
+				gf_mx_p(global_inst_mutex);
+				if (ctx->decode_error) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] deactivating decoder %dx%d and destroying instance\n", ctx->width, ctx->height ) );
+					nvdec_destroy_decoder(ctx->dec_inst);
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] deactivating decoder %dx%d\n", ctx->width, ctx->height ) );
+				}
+				ctx->dec_inst->ctx = NULL;
+				gf_list_add(global_unactive_decoders, ctx->dec_inst);
+				ctx->dec_inst = NULL;
+				gf_mx_v(global_inst_mutex);
+			}
+			ctx->needs_resetup = 1;
+			ctx->dec_create_error = CUDA_SUCCESS;
+		} else {
+			if (ctx->dec_inst) {
+				nvdec_destroy_decoder(ctx->dec_inst);
+				ctx->dec_inst=0;
+			}
+			ctx->needs_resetup = 1;
+			ctx->dec_create_error = CUDA_SUCCESS;
+		}
+	}
 	return GF_FALSE;
 }
 

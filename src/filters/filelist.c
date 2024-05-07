@@ -973,7 +973,8 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 						ctx->ka=0;
 					}
 				} else if (!strcmp(args, "ka")) {
-					sscanf(aval, "%u", &ctx->ka);
+					if (aval)
+						sscanf(aval, "%u", &ctx->ka);
 				} else if (!strcmp(args, "raw")) {
 					u32 raw_type = 0;
 					if (aval) {
@@ -1004,8 +1005,10 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 					if (ctx->splice_props) gf_free(ctx->splice_props);
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
 				} else if (!strcmp(args, "chap") && aval) {
-					strncpy(chap_name, aval, 1023);
-					chap_name[1023]=0;
+					if (aval) {
+						strncpy(chap_name, aval, 1023);
+						chap_name[1023]=0;
+					}
 				} else {
 					if (!ctx->unknown_params || !strstr(ctx->unknown_params, args)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Unrecognized directive %s, ignoring\n", args));

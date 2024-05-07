@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-1/2/4(Part2) video reframer filter
@@ -737,9 +737,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
 		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
+			u32 csize = MIN_HDR_STORE - ctx->bytes_in_header;
+			if (csize > (u32) remain) csize=remain;
 			//the two zones may overlap
-			memmove(ctx->hdr_store + ctx->bytes_in_header, start, MIN_HDR_STORE - ctx->bytes_in_header);
-			current = mpgviddmx_next_start_code(ctx->hdr_store, MIN_HDR_STORE);
+			memmove(ctx->hdr_store + ctx->bytes_in_header, start, csize);
+			current = mpgviddmx_next_start_code(ctx->hdr_store, ctx->bytes_in_header+csize);
 
 			//no start code in stored buffer
 			if ((current<0) || (current >= (s32) ctx->bytes_in_header) )  {
