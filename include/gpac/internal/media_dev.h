@@ -145,9 +145,9 @@ typedef struct
 	s32 profile_idc;
 	s32 level_idc;
 	s32 prof_compat;
-	s32 log2_max_frame_num;
+	u32 log2_max_frame_num;
 	u32 poc_type, poc_cycle_length;
-	s32 log2_max_poc_lsb;
+	u32 log2_max_poc_lsb;
 	s32 delta_pic_order_always_zero_flag;
 	s32 offset_for_non_ref_pic, offset_for_top_to_bottom_field;
 	Bool frame_mbs_only_flag;
@@ -993,6 +993,7 @@ typedef struct
 
 	//set to one if a temporal delim is found when calling aom_av1_parse_temporal_unit_from_section5
 	u8 has_temporal_delim;
+	u8 has_frame_data;
 } AV1State;
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);

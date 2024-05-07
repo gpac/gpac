@@ -2622,7 +2622,8 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 {
 	if (!state) return GF_BAD_PARAM;
 	state->has_temporal_delim = 0;
-	Bool first_obu = GF_TRUE;
+	//if some OBUs are written, we had a TL before but had to stop parsing due to not enough space
+	Bool first_obu = state->has_frame_data ? GF_FALSE : GF_TRUE;
 
 	while (1) {
 		GF_Err e;
@@ -2647,6 +2648,9 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 				break;
 			}
 			state->has_temporal_delim = 1;
+			state->has_frame_data = 0;
+		} else {
+			state->has_frame_data = 1;
 		}
 		first_obu = GF_FALSE;
 
@@ -3398,7 +3402,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 		if (frame_state->show_existing_frame == GF_TRUE) {
 			frame_state->frame_to_show_map_idx = gf_bs_read_int_log(bs, 3, "frame_to_show_map_idx");
 			frame_state->frame_type = state->RefFrameType[frame_state->frame_to_show_map_idx];
-
+			frame_state->order_hint = state->RefOrderHint[frame_state->frame_to_show_map_idx];
 			if (state->decoder_model_info_present_flag && !state->equal_picture_interval) {
 				gf_bs_read_int_log(bs, state->frame_presentation_time_length, "frame_presentation_time");
 			}
@@ -4038,6 +4042,7 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 	l2 = state->frame_state.header_obus;
 	memset(&state->frame_state, 0, sizeof(AV1StateFrame));
 	state->frame_state.is_first_frame = GF_TRUE;
+	state->has_frame_data = 0;
 
 	if (is_destroy) {
 		gf_list_del(l1);
@@ -4222,6 +4227,8 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	//gpac's internal obu_size includes the header + the payload
 	*obu_size += hdr_size;
 	if (obu_hdr_size) *obu_hdr_size = hdr_size;
+	if (!*obu_size)
+		return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (*obu_type != OBU_SEQUENCE_HEADER && *obu_type != OBU_TEMPORAL_DELIMITER &&
 		state->OperatingPointIdc != 0 && state->obu_extension_flag == 1)
@@ -4244,10 +4251,12 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 
 	switch (*obu_type) {
 	case OBU_SEQUENCE_HEADER:
-		av1_parse_sequence_header_obu(bs, state);
-		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) > pos + *obu_size)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Sequence header parsing consumed too many bytes !\n"));
-			e = GF_NON_COMPLIANT_BITSTREAM;
+		if (state->config) {
+			av1_parse_sequence_header_obu(bs, state);
+			if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) > pos + *obu_size)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Sequence header parsing consumed too many bytes !\n"));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+			}
 		}
 		gf_bs_seek(bs, pos + *obu_size);
 		break;

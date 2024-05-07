@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -406,7 +406,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
 
 	gf_bs_reassign_buffer(ctx->bs_r, in_data, data_size);
-	
+
 	if (cstr->selective_encryption) {
 		if (gf_bs_read_int(ctx->bs_r, 1)) is_encrypted=GF_TRUE;
 		gf_bs_read_int(ctx->bs_r, 7);
@@ -613,10 +613,8 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 			Bool match = GF_FALSE;
 			if (cstr->is_hls) {
 				match = GF_TRUE;
-			} else if (cstr->KIDs[j]) {
-				if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
-					match = GF_TRUE;
-				}
+			} else if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
+				match = GF_TRUE;
 			}
 			if (match) {
 				memcpy(cstr->crypts[i].key, cstr->keys[j], 16);
@@ -817,6 +815,7 @@ static GF_Err cenc_dec_set_clearkey(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 #ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
+	if (!dm) return GF_SERVICE_ERROR;
 	cstr->sess = gf_dm_sess_new(dm, ck_url, 0, ck_http_io, cstr, &e);
 	if (e) return e;
 	ctx->pending_keys++;
@@ -954,6 +953,7 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 		GF_Err e = GF_SERVICE_ERROR;
 #ifdef GPAC_USE_DOWNLOADER
 		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
+		if (!dm) return GF_SERVICE_ERROR;
 		GF_DownloadSession *sess = gf_dm_sess_new(dm, key_url, GF_NETIO_SESSION_NOT_CACHED, hls_kms_io, cstr, &e);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Failed to setup download session for key %s: %s\n", key_url, gf_error_to_string(e)))
@@ -2513,7 +2513,7 @@ GF_FilterRegister CENCDecRegister = {
 	"\n"
 	"For HLS, key is retrieved according to the key URI in the manifest.\n"
 	"Otherwise, the filter uses a configuration file.\n"
-	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
+	"The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption\n"
 	"The DRM config file can be set per PID using the property `DecryptInfo` (highest priority), `CryptInfo` (lower priority) "
 	"or set at the filter level using [-cfile]() (lowest priority).\n"
 	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used."

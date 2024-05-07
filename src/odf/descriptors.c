@@ -108,7 +108,7 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	newDesc->tag = tag;
 	err = gf_odf_read_descriptor(bs, newDesc, *desc_size);
 
-	/*FFMPEG fix*/
+	/*FFmpeg fix*/
 	if ((tag==GF_ODF_SLC_TAG) && (((GF_SLConfig*)newDesc)->predefined==2)) {
 		if (*desc_size==3) {
 			*desc_size = 1;

@@ -1511,7 +1511,7 @@ GF_FilterRegister TTXTDecRegister = {
 	.name = "ttxtdec",
 	GF_FS_SET_DESCRIPTION("TTXT/TX3G decoder")
 	GF_FS_SET_HELP("This filter decodes TTXT/TX3G streams into a BIFS scene graph of the compositor filter.\n"
-		"The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation\n"
+		"The TTXT documentation is available at https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation\n"
 		"\n"
 		"In stand-alone rendering (no associated video), the filter will use:\n"
 		"- `Width` and `Height` properties of input pid if any\n"
@@ -1540,6 +1540,3 @@ const GF_FilterRegister *ttxtdec_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-
-
-

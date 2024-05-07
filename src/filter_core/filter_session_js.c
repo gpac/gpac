@@ -1518,7 +1518,7 @@ static JSValue jsff_compute_link(JSContext *ctx, JSValueConst this_val, int argc
 	}
 
 	JSValue res;
-	GF_List *fchain = gf_filter_pid_compute_link(opid, new_f);
+	GF_List *fchain = gf_filter_pid_compute_link(opid, new_f, NULL, 0);
 	if (fchain) {
 		res = JS_NewArray(ctx);
 		u32 i, count = gf_list_count(fchain);

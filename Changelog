@@ -1,4 +1,15 @@
-# On-going: GPAC 2.3-DEV
+# Ongoing: GPAC 2.5-DEV
+
+## gpac
+- Added mode for testing defered graph linking apps
+
+##Emscripten
+- Fixes in UI
+
+## Filters
+- experimental DVB-I MABR flute demux
+
+#04/2024: GPAC 2.4
 
 ## Emscripten|WebAssembly(WASM) support
 - Session can run in worker or in main browser loop
@@ -32,6 +43,7 @@
 - Fixed GF_FileIO for async read and write modes
 - Added seeking in mp4dmx in mem mode
 - vout updated to use VBO (required for gles2)
+- libcaca video output support
 - Allow ffdmx to work as demux filter on gpac input file pids
 - GHI format for pre-indexing DASH/HLS session for JIT packaging/encryption/transcode
 - Zero-copy for mp4dmx and fragmented mp4mx
@@ -41,17 +53,19 @@
 - MPEG-H decoder using IIS mpeghdec
 - Templating for property assignment 
 - Conditional filter replacement to identify based on codecID 
+- Per-filter logging
 
 ## MP4Box
 - Add track reordering option
 
 ## Misc
 - Migrated doc from github's wiki to wiki.gpac.io
-- FFMPEG 6 support
+- FFmpeg 7 support
 - Added features for configure (vout, aout, fonts, doc, evg)
 - Allow specifying network interface by name or IP (instead of IP only)
 - UDP/TCP filtering and recording to / playback from pcap, pcapng and GPAC gpc files
 - Added Nix and Docker build files
+- many bug fixes, improvements and security patches
 
 
 # 19/12/2022: GPAC 2.2
@@ -61,7 +75,7 @@
 - Conversion filters for VTT, TXG3 and TTML
 - SubstationAlpha subtitle import (basic)
 - DVB subpictures in M2TS mux and demux
-- FFMPEG (mostly for Matroska) subtitle import and export (SRT/SSA to TX3G, TX3G to SRT, WebVTT and DVB subpictures)
+- FFmpeg (mostly for Matroska) subtitle import and export (SRT/SSA to TX3G, TX3G to SRT, WebVTT and DVB subpictures)
 - EC3+Atmos signaling support
 - ALAC support
 - Improved DolbyVision muxing
@@ -78,7 +92,7 @@
 - UTC-based range extraction in reframer
 - Thumbnail generator filter
 - Added unframer filter
-- FFMPEG bitstream filters support
+- FFmpeg bitstream filters support
 - Initseg support in mp4dmx filter
 - Access to GPU textures of decoders in Python and JSF bindings (glpush filter for tests)
 - Chapters editing and original timestamp dispatch in reformer range extraction 
@@ -238,11 +252,11 @@ It also adds several small features:
 - HEVC tile splitting and merging filters
 - Compositor is a standalone filter (SVG/BIFS/VRML graphics in a filter chain)
 - Image encoding support through libjpg and libpng
-- Full FFMPEG support:
-    * Encoding/decoding through FFMPEG libavcodec
-    * Multiplexing/demultiplexing through FFMPEG libavformat
-    * Device grabbers through FFMPEG libavdevice
-    * Raw audio and video filters through FFMPEG libavfilter
+- Full FFmpeg support:
+    * Encoding/decoding through FFmpeg libavcodec
+    * Multiplexing/demultiplexing through FFmpeg libavformat
+    * Device grabbers through FFmpeg libavdevice
+    * Raw audio and video filters through FFmpeg libavfilter
 - Support for QuickJS (ES2002) and bindings for:
     * Complete filter API
     * GPAC software rasterizer (EVG)
@@ -721,7 +735,7 @@ It also adds several small features:
   - fixed 3GPP text display bug when stopping and changing an animationStream using a 3GPP text object.
   - fixed AVC/H264 HP parsing
   - added BIFS track visual size info at BT/XMT encoding stage
-  - MOVED FFMPEG INCLUDE FILES TO LATEST CVS VERSION to support AVC/H264 HP decoding
+  - MOVED FFmpeg INCLUDE FILES TO LATEST CVS VERSION to support AVC/H264 HP decoding
 	- added meta self reference item for dual-headed files
 	- commit MPEG-4 LATM Audio hinting patch and added rtp aggregation. RTP reassembler NOT UPDATED YET
 	- fixed bugs in TeXML parser
@@ -867,7 +881,7 @@ It also adds several small features:
 	- Xiph OGG demuxer: supports file, http download (not tested) and icecast servers.
 	- Xiph Vorbis decoder
 	- Xiph Theora support (should work with fluendo but I can't get any data from the server...)
-	- Better FFMPEG support (moved to latest ffmpeg cvs tarball).
+	- Better FFmpeg support (moved to latest ffmpeg cvs tarball).
 	- all file associations in client are made through mime types, and changed handling of service (mime type query if possible before loading plugin)
 	- network stats & changed all UIs for that.
 	- decoder stats & changed all UIs for that.
@@ -1071,16 +1085,16 @@ It also adds several small features:
 	- PocketPC installer
 	- OpenDivx plugin
 	- clean-up extra lib package, install notes and added missing libs
-	- FFMPEG demuxer done (synchro not good and seeking pbs). GPAC now supports all FFMPEG-supported formats.
+	- FFmpeg demuxer done (synchro not good and seeking pbs). GPAC now supports all FFmpeg-supported formats.
 	- new NSIS script for complete install
 	- fixed hang on PocketPC WavOut and misc cleanups for PocketPC compilation
-	- H263 in 3GP files (use FFMPEG dec)
+	- H263 in 3GP files (use FFmpeg dec)
 	- H263 streaming (RFC 2429)
 	- B-frame parsing and CTS reconstruction in AVI importer (needs debug).
 	- muxInfo.duration parameter is now in milliseconds (was in seconds)
 	- '-node' options to MP4Box to get a given node syntax (fields default value and QP info)
 	- relative time stamps in BT ('AT D1000 ' means 'at last AU TS + 1000')
-	- FFMPEG decoder plugin now working with latest CVS snapshot
+	- FFmpeg decoder plugin now working with latest CVS snapshot
 	- MediaControl switching (several MC on single object)
 	- separate file downloader API and streaming client API / cleanup of plugins and ESM module
 	- base support for non-MPEG4 URLs in the scene (eg, url "http://whatever/resource")

@@ -3037,7 +3037,7 @@ void mdhd_box_del(GF_Box *s)
 // https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap4/qtff4.html#//apple_ref/doc/uid/TP40000939-CH206-34320
 // to 3-letter codes (per ISO/IEC 639-2/T, https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
 // NOTE that Media Info maps them to 2-letter codes, possibly with region codes https://github.com/MediaArea/MediaInfoLib/blob/72213574cbf2ca01c0fbb97d2239b53891ad7b9d/Source/MediaInfo/Multiple/File_Mpeg4.cpp#L754
-// NOTE that FFMPEG mostly maps to ISO/IEC 639-2/B and sometimes 2-letter code
+// NOTE that FFmpeg mostly maps to ISO/IEC 639-2/B and sometimes 2-letter code
 // (see https://ffmpeg.org/doxygen/trunk/isom_8c_source.html)
 static const char* qtLanguages[] = {
 	"eng", //  0 English
@@ -12616,7 +12616,7 @@ GF_Err udts_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	//leftover
 	if (ptr->size && ptr->cfg.ExpansionBoxPresent) {
-		ptr->cfg.ExpansionBoxDataSize = ptr->size;
+		ptr->cfg.ExpansionBoxDataSize = (u32) ptr->size;
 		ISOM_DECREASE_SIZE(ptr, ptr->cfg.ExpansionBoxDataSize);
 		ptr->cfg.ExpansionBoxData = gf_realloc(ptr->cfg.ExpansionBoxData, ptr->cfg.ExpansionBoxDataSize);
 		if (!ptr->cfg.ExpansionBoxData) return GF_OUT_OF_MEM;

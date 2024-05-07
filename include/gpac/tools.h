@@ -397,7 +397,18 @@ Validate and parse str into integer
 \param ans integer to fill
 \return GF_TRUE if str represents an integer without any leading space nor extra chars
  */
-Bool gf_strict_atoi(const char* str, int* ans);
+Bool gf_strict_atoi(const char* str, s32* ans);
+
+/*!
+\brief strict convert str into unsigned integer
+
+Validate and parse str into integer
+\param str text to convert to integer
+\param ans unsigned integer to fill
+\return GF_TRUE if str represents an unsigned integer without any leading space nor extra chars
+*/
+Bool gf_strict_atoui(const char* str, u32* ans);
+
 
 /*! @} */
 
@@ -413,9 +424,9 @@ The library can usually be configured from command line if your program uses \re
 
 The library can also be configured from your program using \ref gf_opts_set_key and related functions right after initializing the library.
 
-For more information on configuration options, see \code gpac -hx core \endcode and https://wiki.gpac.io/core_options
+For more information on configuration options, see \code gpac -hx core \endcode and https://wiki.gpac.io/Filters/core_options
 
-For more information on filters configuration options, see https://wiki.gpac.io/Filters
+For more information on filters configuration options, see https://wiki.gpac.io/Filters/Filters
 
 @{
  */
@@ -804,6 +815,7 @@ typedef enum
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
 	GF_LOG_TOOL_MAX = GF_LOG_ALL,
+	GF_LOG_TOOL_UNDEFINED
 } GF_LOG_Tool;
 
 /*!
@@ -945,7 +957,30 @@ Resets log file if any log file name was specified, by closing and reopening a n
 */
 void gf_log_reset_file();
 
+//! Extra log instructions
+typedef struct log_extra
+{
+	//! number of tools and levels
+	u32 nb_tools;
+	//! additionnal  tools
+	GF_LOG_Tool *tools;
+	//! additionnal  levels for the tools
+	GF_LOG_Level *levels;
+	//! exit if error
+	Bool strict;
+} GF_LogExtra;
 
+/*! Register a new extra log levels
+ \param log extra levels to add - may be NULL but shall be valid until call to \ref gf_log_pop_extra or \ref gf_log_reset_extras or  end of app
+*/
+void gf_log_push_extra(const GF_LogExtra *log);
+/*! Unregister an extra log levels
+ \param log extra levels to add - may be NULL
+*/
+void gf_log_pop_extra(const GF_LogExtra *log);
+/*! Unregister all  extra log levels
+*/
+void gf_log_reset_extras();
 
 /*!	@} */
 

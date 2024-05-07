@@ -1,1907 +1,2228 @@
 <!doctype html>
-<html lang="en-us">
+<html lang="en-us" data-theme="light">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>GPAC WASM</title>
-    <style>
+    <title>Run MP4Box & GPAC in your browser !</title>
+    <link rel="icon" type="image/x-icon" href="favicon-32x32.png">
+    <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.red.min.css"
+    />
+      <style>
+      :root {
+        font-size: 14px;
+      }
       body {
         font-family: arial;
         margin: 0;
         padding: none;
       }
 
-      .gpac { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-      div.gpac { text-align: center; }      
-      canvas.gpac { border: 0px none; background-color: black; }
+      #logo {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+      }
+
+      #menu {
+        height: 5em;
+        color: rgb(20, 20, 20);
+      }
+
+      nav#menu li {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+
+      #menu label {
+        margin: 0;
+      }
+
+      #logo svg:first-child {
+        margin-right: .5em;
+      }
+
+      svg.icon-theme-toggle.moon g circle {
+          transform: scale(1.4);
+          transition-delay: 0s;
+      }
+
+      svg.icon-theme-toggle.moon g path {
+          transform: scale(.75);
+          transition-delay: 0s;
+      }
+      svg.icon-theme-toggle g circle, svg.icon-theme-toggle g path {
+          transform-origin: center;
+          transition: transform calc(var(--theme-toggle-duration)* .65) cubic-bezier(0,0,0,1.25) calc(var(--theme-toggle-duration)* .35);
+      }
+      svg.icon-theme-toggle :first-child path {
+          transition-duration: calc(var(--theme-toggle-duration)* .6);
+          transition-property: transform, d;
+          transition-timing-function: cubic-bezier(0,0,.5,1);
+      }
+      svg.icon-theme-toggle.moon :first-child path {
+          d: path("M-9 3h25a1 1 0 0017 13v30H0Z");
+          transition-delay: calc(var(--theme-toggle-duration)* .4);
+          transition-timing-function: cubic-bezier(0,0,0,1.25);
+      }
+      .console-wrapper { 
+        background-color: rgb(8, 8, 8);
+      }
+      .console {
+        width: 100%;
+        background-color: black;
+        color: white;
+        font-family: 'Lucida Console', Monaco, monospace;
+        overflow-y: scroll;
+        padding: 0.5rem !important;
+      }
+      .cwd {
+        color: var(--pico-primary-hover);
+        height: 8vh;
+      }
+
+      #cmd_div {
+        font-size: small;
+      }
+      #cmd {
+        height: 9vh;
+        margin: 0;
+      }
+
+      #run, #cancel {
+        width: 6em;
+      }
+
+      #fsRunForm{
+        display: flex;
+        gap: 10px;
+      }
+
+      #flush{
+        width: 8em;
+      }
+
+      #output-wrapper {
+        display: flex;
+        align-items: top;
+        gap: 0;
+        margin: none;
+        padding: none;
+      }
+      #output {
+        height: 65vh;
+        resize: vertical;
+      }
+      #output:not([readonly]):is(:active,:focus) {
+        border: var(--pico-border-width) solid var(--pico-border-color);
+      }
+
+      #controls {
+        height: 10vh;
+        gap: 1em;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      /* @FIXME overlay fullscren on canvas */
+      #fullscreen {
+        display: none;
+      }
 
       #status {
-        display: inline-block;
-        vertical-align: top;
-        margin-top: 30px;
-        margin-left: 20px;
+        font-size: small;
         font-weight: bold;
-        color: rgb(120, 120, 120);
-      }
-
-      .controls {
-        display: none;
-        float: left;
-        vertical-align: top;
-        margin-top: 10px;
-        margin-left: 10px;
-      }
-
-      #output {
-        width: 99%;
-        height: 60vh;
-        margin: 0 auto;
-        margin-top: 10px;
-        border-left: 0px;
-        border-right: 0px;
-        padding-left: 0px;
-        padding-right: 0px;
-        display: block;
-        background-color: black;
-        color: white;
-        font-family: 'Lucida Console', Monaco, monospace;
-        outline: none;
-        resize: vertical;
-        border: 1px solid #ccc;
-        overflow-y: scroll;
-      }
-
-      #logo { transform-origin: center; }
-
-      #cmd {
-        background-color: black;
-        width: 99%;
-        color: white;
-        font-family: 'Lucida Console', Monaco, monospace;
-        outline: none;
-        margin: 0 auto;
-        margin-top: 0px;
-        border-left: 0px;
-        border-right: 0px;
-        padding-left: 0px;
-        padding-right: 0px;
-        display: block;
-        border: 1px solid #ccc;
+        align-items: center;
+        margin-bottom: 0.5em;
+        color: var(--pico-primary);
       }
     </style>
   </head>
+
   <body>
+    <nav id="menu" class="container-fluid">
+      <ul>
+        <li>
+          <a id="logo" href="https://gpac.io/" target="_blank">
+            <svg viewBox="0 0 2000 2000" width="2.5em" height="2.5em" xml:space="preserve">
+              <defs>
+                <style>
+                  .cls-1{fill:#8f182b;}
+                  .cls-2{fill:#ef524f;}
+                  .cls-3{fill:#ba2030;}
+                  .cls-4{fill:#cd2044;}
+                  .cls-5{fill:#d92f32;}
+                  .cls-6{fill:#1a1c4a;}
+                </style>
+              </defs>
+              <g transform-origin="997.7 537.6">
+                <polygon class="cls-1" points="1291.1 306.35 704.27 306.35 997.68 768.75 1291.1 306.35 1291.1 306.35"/>
+                <rect class="cls-6" x="542.76" y="761.44" width="906.68" height="906.68" rx="453.34"/>
+                <animateTransform id="logo_anim" attributeName="transform" attributeType="XML" type="scale" values="1 1; -1 1; 1 1" keyTimes="0; 0.5; 1" dur="1s" repeatCount="indefinite"/>
+              </g>
+              <g>
+                <path class="cls-2" d="M1000,330.1a666.82,666.82,0,1,1-260.67,52.52A665.55,665.55,0,0,1,1000,330.1m0-284.51C472.89,45.59,45.59,472.89,45.59,1000s427.3,954.41,954.41,954.41,954.41-427.3,954.41-954.41S1527.11,45.59,1000,45.59Z"/>
+                <path class="cls-3" d="M1408.86,1857.84a950.83,950.83,0,0,1-403.56,89.25c-527.12,0-954.42-427.3-954.42-954.41,0-188.39,54.58-364,148.81-512-1.85,5.14-3.66,10.31-5.39,15.49C121.83,627.22,81,775.58,81,932.75c0,531.12,466.61,961.67,1042.19,961.67A1124.55,1124.55,0,0,0,1408.86,1857.84Z"/>
+                <path class="cls-4" d="M1683.45,1664.24a957,957,0,0,1-274.59,193.6,1124.55,1124.55,0,0,1-285.7,36.58C547.58,1894.42,81,1463.87,81,932.75c0-157.17,40.86-305.53,113.33-436.54-.49,1.45-1,2.9-1.46,4.34,0,0,0,0,0,0s0,0,0,.05A881.86,881.86,0,0,0,118,856.32c0,523.63,460,948.1,1027.47,948.1C1342.73,1804.42,1527,1753.14,1683.45,1664.24Z"/>
+                <path class="cls-5" d="M1834.94,1464.76a956.45,956.45,0,0,1-151.47,199.46s0,0,0,0c-156.46,88.9-340.72,140.18-537.94,140.18C578.06,1804.42,118,1380,118,856.32A881.86,881.86,0,0,1,192.8,500.64a865.83,865.83,0,0,0-44,272.85c0,514.46,452,931.5,1009.5,931.5C1418.62,1705,1655.92,1614.09,1834.94,1464.76Z"/>
+              </g>
+              <g transform="translate(5.6 15)">
+                <text id="progress" stroke="black" stroke-width="0.1" fill="white" font-size="3.5" font-weight="bold"> </text>
+              </g>
+            </svg>
+            <svg id="gpac-brand" data-name="gpac-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 671.14 188.48" height="1em" >
+              <defs>
+                  <style>.cls-1{fill:#1a1c4a;}</style>
+              </defs>
+              <path class="cls-1" d="M509.26,203h-79.6L415,243.58H389.86l66-187.82h27.49l65.72,187.82H523.93ZM469.46,85.08l-33,98.54h66Z" transform="translate(-64.43 -55.76)"/>
+              <path class="cls-1" d="M651,56.9c39.54,0,71,19.9,84.58,55.25H707c-9.95-22-29.33-34.3-56-34.3-38.22,0-66.77,27.75-66.77,72.53,0,44.51,28.55,72.27,66.77,72.27,26.71,0,46.09-12.31,56-34h28.54c-13.62,35.08-45,54.72-84.58,54.72-51,0-91.12-38.23-91.12-93S599.94,56.9,651,56.9Z" transform="translate(-64.43 -55.76)"/>
+              <path class="cls-1" d="M240.13,113.06H211.59c-10-21.21-29.85-33.52-55.51-33.52-38.49,0-67.3,27.76-67.3,71.75,0,43.73,28.81,71.48,67.3,71.48,35.87,0,60.48-23,64.15-59.18h-72.8V144.22h98.2v18.33c-4.19,45.3-40.07,81.69-89.55,81.69-51.32,0-91.65-38.23-91.65-93s40.33-93.22,91.65-93.22C194.57,58.07,226.51,78,240.13,113.06Z" transform="translate(-64.43 -55.76)"/>
+              <path class="cls-1" d="M336,162.84H300.88v80.74H277.05v-187H336c42.94,0,63.1,23.57,63.1,53.42C399.07,137.7,381.26,162.84,336,162.84Zm0-19.64c27.23,0,38.75-12.83,38.75-33.25,0-21.21-11.52-33.78-38.75-33.78H300.88v67Z" transform="translate(-64.43 -55.76)"/>
+              <rect class="cls-1" x="145.07" y="88.42" width="97.98" height="18.62"/>
+          </svg>
+          </a>
+        </li>
+        <li>
+          <em>experimental wasm playground</em>
+        </li>
+        <li>
+            <label>
+              <input id="threading" name="threading" type="checkbox" role="switch" />
+              <em>threaded</em>
+            </label>
+        </li>
+      </ul>
+      <ul>
+        <li>
+          <a class="contrast" aria-label="Switch to dark mode" onclick="
+            const html = document.getElementsByTagName('html')[0];
+            const theme = html.getAttribute('data-theme'); 
+            const target = theme == 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', target);
+            this.setAttribute('aria-label', `Switch to ${theme} mode`);
+            const toggle = document.querySelector('svg.icon-theme-toggle');
+            if(target == 'light'){
+              toggle.classList.remove('moon');
+            } else {
+              toggle.classList.add('moon');
+            }
+            ">
+            <svg id="icon-theme-toggle" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32" fill="currentColor" class="icon-theme-toggle">
+              <clipPath id="theme-toggle-cutout"><path d="M0-11h25a1 1 0 0017 13v30H0Z"></path></clipPath>
+              <g clip-path="url(#theme-toggle-cutout)">
+                <circle cx="16" cy="16" r="8.4"></circle>
+                <path d="M18.3 3.2c0 1.3-1 2.3-2.3 2.3s-2.3-1-2.3-2.3S14.7.9 16 .9s2.3 1 2.3 2.3zm-4.6 25.6c0-1.3 1-2.3 2.3-2.3s2.3 1 2.3 2.3-1 2.3-2.3 2.3-2.3-1-2.3-2.3zm15.1-10.5c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zM3.2 13.7c1.3 0 2.3 1 2.3 2.3s-1 2.3-2.3 2.3S.9 17.3.9 16s1-2.3 2.3-2.3zm5.8-7C9 7.9 7.9 9 6.7 9S4.4 8 4.4 6.7s1-2.3 2.3-2.3S9 5.4 9 6.7zm16.3 21c-1.3 0-2.3-1-2.3-2.3s1-2.3 2.3-2.3 2.3 1 2.3 2.3-1 2.3-2.3 2.3zm2.4-21c0 1.3-1 2.3-2.3 2.3S23 7.9 23 6.7s1-2.3 2.3-2.3 2.4 1 2.4 2.3zM6.7 23C8 23 9 24 9 25.3s-1 2.3-2.3 2.3-2.3-1-2.3-2.3 1-2.3 2.3-2.3z"></path>
+              </g>
+            </svg>
+          </a>
+        </li>
+        <li>
+          <a href="#help" target="blank">Console usage</a>
+        </li>
+        <li>
+          <a href="https://wiki.gpac.io/" target="blank">GPAC's wiki</a>
+        </li>
+        <li>
+          <a href="https://github.com/gpac/gpac/labels/wasm" target="blank">Support</a>
+        </li>
+        <li>
+          <a href="https://github.com/gpac/gpac" target="blank">Github</a>
+        </li>
+      </ul>
+    </nav>
 
-    <div style="width: 100%">
-      <span style="float: left"><a href="https://gpac.io">Home</a> <a href="https://wiki.gpac.io">Wiki</a></span>
-      <span style="text-align: center; margin: 0 0 0 20%">GPAC@WASM - Run MP4Box and gpac in your browser !</span>
-      <span id="header" style="float: right"></span>
+    <div id="status" class="container-fluid">
+        Downloading...  
     </div>
 
-<svg viewBox="0 0 20.773 20.773" xml:space="preserve" width="80" height="80">
-<radialGradient id="gradR" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-  <stop offset="0%" style="stop-color:rgb(0,0,0); stop-opacity:0" />
-<stop offset="80%" style="stop-color:rgb(128,0,0); stop-opacity:1" />
-<stop offset="90%" style="stop-color:rgb(255,0,0); stop-opacity:1" />
-<stop offset="100%" style="stop-color:rgb(128,0,0);stop-opacity:1" />
-</radialGradient>
-<radialGradient id="gradB" cx="50%" cy="50%" r="50%" fx="45%" fy="55%">
-<stop offset="0%" style="stop-color:rgb(140,140,140); stop-opacity:1" />
-<stop offset="100%" style="stop-color:rgb(0,0,0);stop-opacity:1" />
-</radialGradient>
-<g id="logo">
-<path fill="url(#gradB)" d="M 10.5, 13.6 m -5.5, 0 a 5.5,5.5 0 1,0 11,0 a 5.5,5.5 0 1,0 -11,0 M 10.5, 8.1 L 14.5, 1.6 L 6.5, 1.6 L 10.5, 8.1"/>
-<animateTransform id="logo_anim" attributeName="transform" attributeType="XML" type="scale" values="1 1; -1 1; 1 1" keyTimes="0; 0.5; 1" dur="1s" repeatCount="indefinite"/>
-</g>
-<path fill="url(#gradR)" d="M 10.331,0 C 4.595,0.031 -0.031,4.706 0,10.443 0.03,16.179 4.708,20.804 10.442,20.774 16.181,20.743 20.804,16.068 20.773,10.332 20.742,4.594 16.07,-0.03 10.331,0 z m 0.103,19.082 C 5.632,19.106 1.723,15.236 1.696,10.434 1.671,5.633 5.538,1.718 10.34,1.692 c 4.802,-0.026 8.716,3.848 8.743,8.647 0.025,4.803 -3.848,8.716 -8.649,8.743"/>
-
-<g transform="translate(5.6 15)">
-    <text id="progress" stroke="black" stroke-width="0.1" fill="white" font-size="3.5" font-weight="bold"> </text>
-</g>
-</svg>
-
-    <div class="gpac" id="status">Downloading...</div>
-
-      <script>
-        var console_bck = '';
-        var cmd_history = [];
-        var cmd_idx = -1;
-        var statusElement = document.getElementById('status');
-        var progressTxt = document.getElementById('progress').childNodes[0];
-        var animElement = document.getElementById('logo_anim');
-        var ctrl_down=false;
-        var opt_down=false;
-        let use_idbfs = false;
-        let edit_name = null;
-        let is_eval = false;
-        let is_bsize = false;
-        let is_custfs = false;
-        var fsess=null;
-        let prev_filter=null;
-        let defer_mode=false;
-        let suspend_sess=false;
-        let fs_steps=20;
-        var FS = null;
-        var element = document.getElementById('output');
-        if (element) element.value = '/ %';
-
-        const run_session = () => {
-          let i=fs_steps;
-          while (i) {
-            let e = LIBGPAC.fs_run(fsess);
-            if (e) break;
-            i--;
-          }
-          if (suspend_sess || LIBGPAC.fs_last_task(fsess)) {
-              animElement.stop();
-              if (!suspend_sess) set_status('Session done');
-              suspend_sess=false;
-          } else {
-            setTimeout(run_session, 0);
-          }
-        }
-
-        //start anim on logo
-        animElement.start = function() {
-            if (! this.started) {
-              this.setAttribute('dur', '2s');
-              this.beginElement();
-              this.started=true;
-            }
-        };
-        //stop anim on logo
-        animElement.stop = function() {
-          this.endElementAt(0);
-          this.setAttribute('dur', 'indefinite');
-          this.started=false;
-        };
-
-        //create missing dirs in an output path 
-        function check_file_dir(fname, is_directory) {
-          let paths = fname.split('/');
-          let path ='/';
-          while (paths.length) {
-            if (!paths[0].length) {
-              paths.shift();
-              continue;
-            }
-            path += paths[0];
-            if ((paths.length==1) && !is_directory) break;
-            if (paths.length>1) path+='/';
-            try {
-                FS.mkdir(path);
-            } catch(e) {
-            }
-            paths.shift();
-          }
-        }
-        //set status
-        function set_status(str)
-        {
-         statusElement.innerHTML = str;
-        }
-        function do_log(str) {
-          LIBGPAC.print(str);
-        }
-        function do_log_err(str) {
-          LIBGPAC.printErr(str);
-        }
-
-        //load command history from /idbfs/.gpac/history.txt
-        function load_history() {
-          let s = FS.analyzePath('/idbfs', true);
-          if (s.error) {
-            set_status('IDBFS not mounted');
-            return;
-          }
-          use_idbfs = true;
-          s = FS.analyzePath('/idbfs/.gpac', true);
-          if (s.error) FS.mkdir('/idbfs/.gpac');
-          s = FS.analyzePath('/idbfs/.gpac/history.txt', true);
-          if (s.error) return;
-          let strs = FS.readFile('/idbfs/.gpac/history.txt', { encoding: "utf8"}).split('\n');
-          strs.forEach(s => { if (s.length) cmd_history.push(s); });
-        }
-        //save command history to /idbfs/.gpac/history.txt
-        function save_history() {
-          if (!use_idbfs) {
-            return;
-          }
-          let txt='';
-          cmd_history.forEach( c => { txt += c + '\n';});
-          FS.writeFile('/idbfs/.gpac/history.txt', txt);
-          FS.syncfs(false, () => {
-            if (arguments.length) {
-              err('Failed to sync IDBFS: ' + arguments[0]);
-            }
-          });
-        }
-
-        //runs a given script
-        function run_script(cmd) {
-          var element = document.getElementById('output');
-          if (!element) return;
-          var js_txt = element.innerText;
-          element.removeAttribute('contenteditable');
-          element.innerText = '';
-          is_eval = false;
-          set_status('');
-          err = '';
-          console.log('text is ' + js_txt);
-          if (!cmd.length || (cmd=='go')) {
-              var fun = Function(js_txt);
-              try {
-                //eval(js_txt);
-                fun();
-              } catch (e) {
-                err = e.message;
-              }
-          }
-          let runElement = document.getElementById('run_script');
-          runElement.hidden = true;
-          var cmdDiv = document.getElementById('cmd_div');
-          cmdDiv.hidden = false;
-          return com_exit(err);
-        }
-        function set_text(txt)
-        {
-            var element = document.getElementById('output');
-            if (txt.length) element.innerText += txt;
-            else element.innerText = '';
-        }
-
-        //utility to log command error and append '/cwd/ %' at end of textArea
-        function com_exit() {
-          if (arguments.length && arguments[0].length) {
-             do_log('Error: ' + arguments[0]); 
-          }
-          var d = FS.cwd().split('/');
-          var n = d.length ? d[d.length-1] : '/';
-          if (!n.length) n= '/';
-          do_log(n+ ' %');
-          GPAC.no_log = true;
-        }
-
-        //our basic terminal emulation
-        function process_command() {
-         var cmdElement = document.getElementById('cmd');
-         var cmd = cmdElement.value;
-         set_status('cmd is '+cmdElement.value);
-         cmdElement.value = '';
-         GPAC.no_log = false;
-
-         args = cmd.split(' ');
-
-
-         //evaluates a script - turns textArea in write mode and wait for go/cancel
-         if (args[0]=='eval') {
-            var element = document.getElementById('output');
-            if (element) {
-              element.setAttribute('contenteditable', true);
-              element.innerText = '';
-              set_status('Edit your JS and click run to evaluate, cancel to abort');
-            }
-            is_eval = true;
-            let runElement = document.getElementById('run_script');
-            runElement.hidden = false;
-            var cmdDiv = document.getElementById('cmd_div');
-            cmdDiv.hidden = true;
-            return;
-         }
-
-         //in eval mode, run
-         if (is_eval) {
-          run_script(cmd);
-          return;
-         }
-
-         if (is_custfs) {
-          run_prompt(cmd);
-          return;
-         }
-
-         if (is_bsize) {
-          let s = parseInt(cmd);
-          is_bsize = false;
-          set_status('');
-          if (s != s) return com_exit('Inavlid value ' + cmd);
-          GPAC.read_block_size = s;
-          return com_exit();
-         }
-
-         //nothing to do
-         if (!cmd.length) {
-          return com_exit();
-         }
-
-         //in edit mode, save/discard content
-         if (edit_name != null) {
-          let do_save = false;
-          if (args[0]=='save') {
-            do_save = true;
-          } else if (args[0] != 'close') {
-             set_status('Use save or close to exit editor, not ' + args[0]);
-             return;
-          }
-          var element = document.getElementById('output');
-          if (element) {
-            element.removeAttribute('contenteditable');
-            if (do_save) {
-              FS.writeFile(edit_name, element.innerText);
-            }
-            element.innerHTML = '';
-          }
-          edit_name = null;
-          return com_exit();
-         }
-
-         //save history
-         cmd_history.push(cmd);
-         save_history();
-         cmd_idx = -1;
-
-         //webpage help
-         if ((args[0]=="help") || (args[0]=="h")) {
-          let text = "GPAC WASM demo - " + LIBGPAC.copyright() + "\n";
-          text+="Use the command line input to run gpac, MP4Box or perform simple filesystem manipulations\n";
-          text+="If program name is not given, 'gpac' is assumed\n";
-          text+="\n";
-          text+="Command line helpers\n";
-          text+="ls [N]:        list files in N or in current directory if N not set or print file N info - use 'ls -l N' for details.\n";
-          text+="imp [-d] [N]:  imports files or directory (-d) to local filesystem file.\n";
-          text+="                'imp' : imports single file to current dir using its native name\n";
-          text+="                'imp foo' : imports single file as foo\n";
-          text+="                'imp foo/' : imports one or more files in foo using their native name\n";
-          text+="                'imp -d' : imports a directory to current dir\n";
-          text+="                'imp -d foo' : imports a directory as foo\n";
-          text+="exp NAME:      exports given file NAME\n";
-          text+="cd [NAME]:     changes current working directory, use Emscripten home if NAME not provided\n";
-          text+="cwd:           prints current working directory\n";
-          text+="clear:         clears console output\n";
-          text+="mkdir NAME:    creates directory NAME\n";
-          text+="rm NAME:       removes file or empty directory NAME\n";
-          text+="mv N1 N2:      moves file N1 to N2\n";
-          text+="cp N1 N2:      copies file N1 to N2 (no recursive copy support)\n";
-          text+="show NAME:     shows content of file NAME\n";
-          text+="edit NAME:     edits content of file NAME, use 'save' to save and close, 'close' to discard and close\n";
-          if (LIBGPAC.has_threads) {
-            text+="worker         toggles worker mode on or off (" + (GPAC.worker ? "on" : "off") + ")\n";
-            text+="threads        views number of pre-allocated workers\n";
-          }
-          text+="stack          prints available size in stack\n";
-          text+="clearh [N]     clears command history. If N is set, only keeps last N items, otherwise clears everything\n";
-          text+="fetch          toggles fetch support in libgpac\n";
-          text+="bsize          sets block size used to read from local disk (default " + GPAC.read_block_size + ")\n";
-          text+="eval           evaluates JS code\n";
-          text+="fs             interactive graph builder\n";
-          text+="\n";
-          text+="Up and Down arrows can be used for command history\n";
-          text+="\n";
-          text+="The variable $(NAME) can be used to design a file not on Emscripten's file system.\n"
-          text+="The file will be handled as a stream (not copied). This is the recommended methods for handling large files.\n";
-          text+="If NAME is an absolute URL other than 'file://' scheme:\n"
-          text+="- if used for an input, it will be pulled progressively using Fetch API\n"
-          text+="- if used for an output, it will be pushed progressively using Fetch API. If writable streams fail, the file will be stored in memory until final PUT or canceled.\n"
-          text+="Otherwise, NAME designs a file to be picked on the user's file system\n"
-          text+="- if used for an input, a file picker will be shown and status text will indicate the corresponding NAME\n"
-          text+="- if used for an output, a file saver will be shown with the given NAME. If writable stream failure, the file will be stored in memory until final write or canceled.\n"
-          text+="\n";
-          text+="For output files, the extension will be used to derive the output format, e.g. '($file.ts)' will use MPEG-2 TS.\n"
-          text+="Use '$(file):ext=ts' to override format if desired.\n"
-          text+="\n";
-          text+="This syntax CANNOT work when editing files (MP4Box, dasher context, etc...).\n"
-          text+="\n";
-          text+="IndexedDB is used for persistent storage, mounted at /idbfs. Typing any command will synchronize the file system.\n";
-          text+="\n";
-          text+="The default behaviour for gpac app is to run on the browser/worker main loop in non-blocking mode, running the session at most 100 times before returning control.\n";
-          text+="This can be configured (see gpac -hx), for example:\n";
-          text+="\t-step=-1 will block the main browser/worker thread (WILL DEADLOCK if some filters use JS promises or other async tools)\n";
-          text+="\t-step=0 will use browser defaults for requestAnimationFrame frequency\n";
-          text+="\t-step=100 will request callback every 10 ms\n";
-          text+="\t-step=100:1000 will request callback every 10 ms, calling at most 1000 times the session\n";
-          if (LIBGPAC.has_threads) {
-            text+="\n";
-            text+="When running without worker, internal threading of filters (e.g. ffmpeg & co) will be disabled if the session runs only on the main thread.\n"
-            text+="Use -threads=N with N>0 (typically -threads=1) to enable threading in these filters.\n";
-          }
-          do_log(text);
-          return com_exit();
-         }
-         //file or directory import
-         if (args[0]=='imp') {
-          let is_dir = false;
-          let is_mdir = false;
-          args.shift();
-          if (args.length && (args[0]=='-d')) {
-            is_mdir = true;
-            args.shift();
-          }
-          let file_name = null;
-          if (args.length) file_name = args[0];
-
-          if (file_name && (file_name.charAt(file_name.length-1) == '/'))
-            is_dir = true;
-
-          if (file_name && !is_dir && is_mdir) {
-            file_name += '/';
-          }
-          if (is_mdir) is_dir=true;
-
-          if (file_name)
-            check_file_dir(file_name, is_dir);
-
-          let input = document.createElement('input'); 
-          input['type'] = 'file';
-          if (!is_mdir) {
-            input.multiple = is_dir;
-          } else {
-            input.directory = true;
-            input.mozDirectory = true;
-            input.webkitdirectory = true;
-          }
-          input.click();
-          input.onchange = function() {
-            for (const file of event.target.files) {
-              if (file.name.charAt(0) == '.') continue;
-              let read = new FileReader();
-              let fname = file_name; //can be null
-              if (is_dir) {
-                if (is_mdir) {
-                  if (fname) {
-                    //strip dir name
-                    let name = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf("/") + 1);
-                    fname += name;
-                  } else {
-                    //copy as is
-                    fname = file.webkitRelativePath;                   
-                  }
-                } else {
-                  fname += file.name;
-                }
-              }
-              if (!fname) fname = file.name;
-              read.addEventListener('loadend', (e) => {
-                const uint8_view = new Uint8Array(read.result);
-                if (is_mdir) check_file_dir(fname, false);
-                FS.writeFile(fname, uint8_view);
-              });
-              read.readAsArrayBuffer(file);
-            }
-          }
-          return com_exit();
-         }
-         //file or directory listing
-         if (args[0]=='ls') {
-          let list=0;
-          if ((args.length>1) && (args[1]=='-l')) {
-            list=1;
-            args.splice(1, 1);
-          }
-          else if ((args.length>1) && (args[1]=='-la')) {
-            list=2;
-            args.splice(1, 1);
-          }
-          var d = ((args.length>1) && args[1].length) ? args[1] : FS.cwd();
-
-          try {
-
-          let stats = FS.stat(d);
-          if (FS.isDir(stats.mode)) {
-            var children = FS.readdir(d, { parent: false });
-            //do_log('Contents of ' + d + ':');
-            children.forEach(i => {
-              let text;
-              if ((i=='.') || (i=='..')) return;
-              text=i;
-              if (list) {
-                stats = FS.stat(d+'/'+i);
-                if (list==1) {
-                  if (FS.isDir(stats.mode)) text += ' directory';
-                  else text += ' size ' + stats.size;
-
-                  text += ' modified ' + stats.mtime.toUTCString();
-                } else {
-                    text = JSON.stringify(stats);
-                }
-              }
-              do_log(text);
-            });
-          } else {
-            let text;
-            if (list==2) text = JSON.stringify(stats);
-            else {
-              text = '' + stats.size + ' modified ' + stats.mtime;
-            }
-            do_log(text);
-          }
-          return com_exit();
-          } catch (e) {
-            return com_exit('No such file');
-          }
-         }
-         //get current working directory
-         if (args[0]=='cwd') {
-          do_log(FS.cwd());
-          return com_exit();
-         }
-         //change directory
-         if (args[0]=='cd') {
-          var d = (args.length>1) ? args[1] : '/home/web_user';
-          FS.chdir(d);
-          return com_exit();
-         }
-         //creates directory
-         if (args[0]=='mkdir') {
-          if (args.length>1)
-            FS.mkdir(args[1]);
-          return com_exit();
-         }
-         //remove file
-         if (args[0]=='rm') {
-          if (args.length<2) return com_exit('Missing name');
-          let stats = FS.stat(args[1]);
-          if (FS.isDir(stats.mode)) FS.rmdir(args[1]);
-          else FS.unlink(args[1]);
-          return com_exit();
-         }
-         //rename file
-         if (args[0]=='mv') {
-          if (args.length<3) return com_exit('Missing file names');
-          let stats = FS.stat(args[1]);
-          if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
-          FS.rename(args[1], args[2]);
-          return com_exit();
-         }
-         //copy file
-         if (args[0]=='cp') {
-          if (args.length<3) return com_exit('Missing file names');
-          let stats = FS.stat(args[1]);
-          if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
-          FS.writeFile(args[2], FS.readFile(args[1], {encoding: "binary"}));
-          return com_exit();
-         }
-         //export file to user file system
-         if (args[0]=='exp') {
-          if (args.length<2) return com_exit('Missing file name');
-          let stats = FS.stat(args[1]);
-          if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
-          var blob = new Blob([FS.readFile(args[1], {encoding: "binary"})], {type: "application/octet-stream"});
-          var a = document.createElement("a");
-          var url = window.URL.createObjectURL(blob);
-          a.href = url;
-          a.download = args[1];
-          a.click();
-          window.URL.revokeObjectURL(url);
-          return com_exit();
-         }
-         //show file
-         if (args[0]=='show') {
-          if (args.length<2) return com_exit('Missing file name');
-          let stats = FS.stat(args[1]);
-          if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
-          let str = FS.readFile(args[1], { encoding: "utf8"});
-          do_log(str);
-          return com_exit();
-         }
-         //edit file
-         if (args[0]=='edit') {
-          if (args.length<2) return com_exit('Missing file name');;
-          let stats = FS.stat(args[1]);
-          if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
-          let str = FS.readFile(args[1], { encoding: "utf8"});
-          edit_name = args[1];
-          var element = document.getElementById('output');
-          if (element) {
-            element.setAttribute('contenteditable', true);
-            element.innerText = str;
-          }
-          return;
-         }
-         //worker tag set
-         if (args[0]=='worker') {
-            if (!LIBGPAC.has_threads) {
-              LIBGPAC.gpac_worker=false;
-              return com_exit('GPAC compiled without threads');
-            }
-            LIBGPAC.gpac_worker = !LIBGPAC.gpac_worker;
-            do_log('Worker Thread for main: ' + (LIBGPAC.gpac_worker ? 'on' : 'off') );
-            return com_exit();
-         }
-         //print stack free size
-         if (args[0]=='stack') {
-            const get_stack_free = LIBGPAC.cwrap('emscripten_stack_get_free', 'number', [])
-            do_log('Free stack: ' + get_stack_free() + ' bytes');
-            return com_exit();
-         }
-         //clear console
-         if (args[0]=='clear') {
-          var element = document.getElementById('output');
-          if (element) element.innerText = '';
-          return com_exit();
-         }
-         //clear history
-         if (args[0]=='clearh') {
-            if (args.length>1)
-                cmd_history = cmd_history.slice(- parseInt(args[1]) );
-            else
-                cmd_history=[];
-            save_history();
-            return com_exit();
-         }
-         //show allocated threads - usefull to check how many threads were indeed created by the previous run
-         if (args[0]=='threads') {
-            if (LIBGPAC.has_threads) {
-              do_log('Threads Pool Size: ' + LIBGPAC['PThread'].unusedWorkers.length);
-              return com_exit();
-            }
-            return com_exit('GPAC compiled without threads');
-         }
-
-         //worker tag set
-         if (args[0]=='fetch') {
-            LIBGPAC.gpac_fetch = !LIBGPAC.gpac_fetch;
-            do_log('libgpac fetch() ' + (LIBGPAC.gpac_fetch ? 'on' : 'off') );
-            return com_exit();
-         }
-         if (args[0]=='fs') {
-              set_status('Starting interactive graph builder');
-              set_text('');
-              defer_mode=true;
-              fs_steps=20;
-              is_custfs = true;
-              return;
-         }
-         if (args[0]=='bsize') {
-            set_status('Enter new block size to use (current ' + GPAC.read_block_size + ')');
-            is_bsize = true;
-            return;
-         }
-         //set logs at runtime (doesn't work when video output is used, text input is always directed to SDL in this case...)
-         if (args[0]=='logs') {
-           if (!GPAC.running) {
-            do_log('GPAC not running');
-            return;
-          }
-          if (args.length>1) {
-            LIBGPAC.log_set_tools_levels(args[1], 1);
-          }
-          return;
-         }
-         //
-         //end of commands
-
-         //
-         //run gpac or mp4box
-         if (GPAC.running) {
-            set_status('Already running, ignoring command');
-            return;
-         }
-         cmdElement.readonly = true;
-
-         let will_block=false;
-         let is_mp4box=false;
-         if (args[0].toLowerCase()=='gpac') {
-            args.shift();
-         }
-         else if (args[0].toLowerCase()=='mp4box') {
-            args.shift();
-            is_mp4box = true;
-            if (LIBGPAC.gpac_worker==false) will_block=true;
-         }
-         //when using vout or compositor in standalone mode, don't use a worker thread since we run through emscripten_main_loop
-         let use_video=false;
-         let has_report = false;
-         for (let i=0; i<args.length; i++) {
-          a = args[i];
-          if (a.includes('vout') || a.includes('-play') || a.includes('-gui')) {
-            use_video=true;
-          } else if (a.includes('compositor')) {
-            if (a.includes('base') || a.includes('gui')) use_video=true;
-          } else if ((LIBGPAC.gpac_worker==false) && (a.startsWith('-step='))) {
-           var val = parseInt(a.substring(6));
-           if (val<0) will_block = true;
-          }
-          else if (a.startsWith('-r')) {
-            has_report = true;
-          }
-          //input file io
-          else if (a=='-ib') {
-            args[i] = '-i';
-            let f = args[i+1];
-            let fio = GFIO.create(f, 1);
-            let wrap_url = fio.gfio_url();
-            args[i+1] = wrap_url;
-            i++;
-          }
-          //output file io
-          else if (a=='-ob') {
-            args[i] = '-o';
-            let f = args[i+1];
-            let fio = GFIO.create(f, 2);
-            let wrap_url = fio.gfio_url();
-            args[i+1] = wrap_url;
-            i++;
-          }
-          //look for automated wrappers $(NAME), create fileIOs and replace names
-          else {
-            let select_start = a.indexOf('$(');
-            let select_end = (select_start>=0) ? a.indexOf(')') : 0;
-            if (select_end) {
-              let hint = a.substring(select_start, select_end+1);
-              let fio = GFIO.create(hint, 0); //can only use this for read mode at the time being
-              let wrap_url = fio.gfio_url();
-              args[i] = a.replace(hint, wrap_url);
-            }
-          }
-         }
-         function run_prompt(cmd) {
-            let args = cmd.split(' ');
-            if (!args.length) return;
-            if (args[0]=='q') {
-              is_custfs=false;
-              if (fsess) {
-                LIBGPAC.fs_del(fsess);
-                fsess=null;
-                LIBGPAC.uninit();
-                set_status("leaving interactive mode");
-              }
-              return;
-            }
-            if (args[0]=='d') {
-              if (!fsess) {
-                defer_mode = !defer_mode;
-                set_status("will use defer linking mode: " + (defer_mode ? "yes" : "no"));
-              }
-              return;
-            }
-            if (args[0]=='s') {
-              if (args.length>1) {
-                fs_steps = parseInt(args[1]);
-                if (fs_steps<=0) fs_steps=1;
-                set_status("will use " + fs_steps + " steps per callback");
-              }
-              return;
-            }
-            if (args[0]=='a') {
-              if (args.length<2) return set_status('Invalid add command');
-              if (!fsess) {
-                let flag = 1<<2; //always run async
-                if (defer_mode) flag |= (1<<13);
-
-                LIBGPAC.init(0, null);
-                fsess = LIBGPAC.fs_new_defaults(flag);
-                set_status("Creating filter session in non-blocking mode" + (defer_mode ? ' - deferred linking' : '') );
-              }
-              if (prev_filter && defer_mode) {
-                LIBGPAC.filter_reconnect_output(prev_filter, null);
-                prev_filter=null;
-              }
-
-              let fdesc = args[1]; 
-              let select_start = fdesc.indexOf('$(');
-              let select_end = (select_start>=0) ? fdesc.indexOf(')') : 0;
-              if (select_end) {
-                let hint = fdesc.substring(select_start, select_end+1);
-                let fio = GFIO.create(hint, 0); //can only use this for read mode at the time being
-                let wrap_url = fio.gfio_url();
-                fdesc = fdesc.replace(hint, wrap_url);
-              }
-
-              const e = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
-              LIBGPAC.HEAP32.set([0], e/LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
-              let f;
-              if (fdesc.startsWith('src=')) {
-                fdesc = fdesc.substring(4);
-                f = LIBGPAC.fs_load_source(fsess, fdesc, null, null, e);
-              } else if (fdesc.startsWith('dst=')) {
-                fdesc = fdesc.substring(4);
-                f = LIBGPAC.fs_load_destination(fsess, fdesc, null, null, e);
-              } else {
-                f = LIBGPAC.fs_load_filter(fsess, fdesc, e);
-              }
-              prev_filter = f;
-              let res = LIBGPAC.getValue(e, 'i32');
-              LIBGPAC._free(e);
-              set_status("added filter "+args[1]+ " returned " + res);
-              return;
-            }
-            if (args[0]=='r') {
-              if (!fsess) return set_status('No valid session, add a filter first');
-              animElement.start();
-              run_session();
-              return;
-            }
-            if (args[0]=='c') {
-              if (fsess) {
-                suspend_sess = true;
-                set_status("Suspending session");
-              }
-              return;
-            }
-
-
-            if (args[0]=='p') {
-              let idx=0;
-              let n;
-              if (!fsess) return set_status('No valid session, add a filter first');
-              if (!prev_filter) return set_status('No filter loaded, cannot probe');
-              if (args.length<2) return set_status('No name provided');
-              if (args.length>2) {
-                idx=parseInt(args[1]);
-                n=args[2];
-              } else {
-                n=args[1];
-              }
-              var p_str = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
-              var res = LIBGPAC.filter_probe_link(prev_filter, idx, n, p_str);
-              if (!res) {
-                var c_str = LIBGPAC.getValue(p_str, "i32");
-                var chain = LIBGPAC.UTF8ToString(c_str);
-                LIBGPAC.free(c_str);
-                set_text('resolved chain from ' + LIBGPAC.filter_get_name(prev_filter) + ' to ' + n + ' is: ' + chain);
-              }
-              LIBGPAC._free(p_str);
-              return set_status(res ? ('Failed'+res) : 'OK');
-            }
-            if (args[0]=='l') {
-              let idx=-1;
-              let n;
-              if (!fsess) return set_status('No valid session, add a filter first');
-              if (!prev_filter) return set_status('No filter loaded, cannot check destinations');
-              if (args.length>1) {
-                idx=parseInt(args[1]);
-              }
-              var p_str = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
-              var res = LIBGPAC.filter_get_destinations(prev_filter, idx, p_str);
-              if (!res) {
-                var c_str = LIBGPAC.getValue(p_str, "i32");
-                var chain = LIBGPAC.UTF8ToString(c_str);
-                LIBGPAC.free(c_str);
-                set_text('possible destinations for ' + LIBGPAC.filter_get_name(prev_filter) +': ' + chain);
-              }
-              LIBGPAC._free(p_str);
-              return set_status(res ? ('Failed'+res) : 'OK');
-            }
-            if (args[0]=='v') {
-              if (!fsess) return set_status('No valid session, add a filter first');
-              LIBGPAC.fs_print_stats(fsess);
-              LIBGPAC.fs_print_connections(fsess);
-              return;
-            }
-            if (args[0]=='i') {
-              if (!prev_filter) return set_status('No current fiter, add a filter first');
-              txt='Filter ' + LIBGPAC.filter_get_name(prev_filter) + ' PID info:\n';
-
-              let c_i =  LIBGPAC.filter_get_ipid_count(prev_filter);
-              if (c_i) {
-                for (let idx=0; idx<c_i; idx++) {
-                  let pid = LIBGPAC.filter_get_ipid(prev_filter, idx);
-                  txt+='Input PID ' + (idx+1) + ' Properties:\n';
-                  let props = LIBGPAC.filter_pid_get_props(pid);
-                  txt+=JSON.stringify(props);
-                  txt+='\n\n';
-                }
-              }
-              let c_o =  LIBGPAC.filter_get_opid_count(prev_filter);
-              if (c_o) {
-                for (let idx=0; idx<c_o; idx++) {
-                  let pid = LIBGPAC.filter_get_opid(prev_filter, idx);
-                  txt+='Output PID ' + (idx+1) + ' Properties:\n';
-                  let props = LIBGPAC.filter_pid_get_props(pid);
-                  txt+=JSON.stringify(props);
-                  txt+='\n\n';
-                }
-              }
-              if (!c_i && !c_o) txt+='No PIDs - run session';
-              set_text(txt);
-              return;
-            }
-
-            set_status("Unknown command "+cmd);
-            let help="Possible commands:\n";
-            help+= "- d: set defer linking mode (default: "+ defer_mode + ")\n";
-            help+= "- s: set number of steps before returning control to JS (default: "+ fs_steps + ")\n";
-            help+= "- a DESC: add filter, use src=URL for source, dst=URL for sinks. $(name) replacement rules are allowed\n";
-            help+= "- r: run or resume session\n";
-            help+= "- c: suspend session while running\n";
-            help+= "- v: view connections and stats\n";
-            help+= "\nThe following only apply to the last added filter:\n";
-            help+= "- i: print pid properties\n";
-            help+= "- p [pid_idx=0] DESC: probe resolution from pid with index pid_idx of last added filter to filter description DESC\n";
-            help+= "- l [pid_idx=-1]: list possible destinations for pid of index pid_idx (-1 for all pids) of last added filter\n";
-            help+= "\n";
-            set_text(help);
-         }
-
-
-         let controlElement = document.getElementById('controls');
-         //controlElement.hidden = is_mp4box ? true : false;
-         controlElement.style.display = is_mp4box ? 'none' : 'inline-block';
-         let abortElement = document.getElementById('abort');
-         abortElement.selectedIndex = 0;
-         let reportElement = document.getElementById('reports');
-         reportElement.checked = has_report;
-         let fsElement = document.getElementById('fullscreen');
-         fsElement.hidden = use_video ? false : true;
-
-         GPAC.running = true;
-         set_status('Running ' + (is_mp4box ? "MP4Box " : "gpac ") + cmd);
-         animElement.start();
-
-         if (use_video && LIBGPAC.gpac_worker) {
-            LIBGPAC.gpac_worker = false;
-            GPAC.restore_worker = true;
-            //cannot run SDL + main_loop in thread unless for offscreen canvas
-            do_log('Main video output used, disabling worker mode for this run');
-         }
-
-         //our own version of callMain to deal with:
-         //- stack save/restore missing in emscripten callMain
-         //- even if it where there, we may exit aynchronously and can only restore stack on main thread in gpac.on_done
-         function call_gpac() {
-           GPAC.stack = LIBGPAC.stackSave();
-           args.unshift(is_mp4box ? "MP4Box" : "gpac");
-           var argc = args.length;
-           var argv = LIBGPAC.stackAlloc((argc + 1) * 4);
-           var argv_ptr = argv >> 2;
-           args.forEach(arg => {
-            LIBGPAC.HEAP32[argv_ptr++] = LIBGPAC.allocateUTF8OnStack(arg);
-           });
-           LIBGPAC.HEAP32[argv_ptr] = 0;
-
-           try {
-            LIBGPAC["_main"](argc, argv);
-           } catch (e) {
-            //unwind thrown by emscripten main 
-            if (e != 'unwind') {
-              GPAC.on_done();
-              return com_exit('Exception while running - ' + e);
-            }
-           }          
-         };
-
-         if (will_block) {
-            let warn='Worker for main disabled - web page will be blocked!';
-            do_log(warn);
-            set_status(warn);
-            //use setTimeout to have time to display above warning...
-            setTimeout(call_gpac, 1);
-         } else {
-           call_gpac();
-         }
-        }
-        //end of command line processing
-
-        // Include ANSI escape codes convert
-        // @link: https://www.npmjs.com/package/ansi-html
-        // Reference to https://github.com/sindresorhus/ansi-regex
-        var _regANSI = /(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/
-
-        var _defColors = {
-          reset: ['fff', '000'], // [FOREGROUD_COLOR, BACKGROUND_COLOR]
-          black: '000',
-          red: 'ff0000',
-          green: '209805',
-          yellow: 'e8bf03',
-          blue: '0000ff',
-          magenta: 'ff00ff',
-          cyan: '00ffee',
-          lightgrey: 'f0f0f0',
-          darkgrey: '888'
-        }
-        var _styles = {
-          30: 'black',
-          31: 'red',
-          32: 'green',
-          33: 'yellow',
-          34: 'blue',
-          35: 'magenta',
-          36: 'cyan',
-          37: 'lightgrey'
-        }
-        var _openTags = {
-          '1': 'font-weight:bold', // bold
-          '2': 'opacity:0.5', // dim
-          '3': '<i>', // italic
-          '4': '<u>', // underscore
-          '8': 'display:none', // hidden
-          '9': '<del>' // delete
-        }
-        var _closeTags = {
-          '23': '</i>', // reset italic
-          '24': '</u>', // reset underscore
-          '29': '</del>' // reset delete
-        }
-
-        ;[0, 21, 22, 27, 28, 39, 49].forEach(function (n) {
-          _closeTags[n] = '</span>'
-        })
-
-        /**
-         * Converts text with ANSI color codes to HTML markup.
-         * @param {String} text
-         * @returns {*}
-         */
-        function ansiHTML (text) {
-          // Returns the text if the string has no ANSI escape code.
-          if (!_regANSI.test(text)) {
-            return text
-          }
-
-          // Cache opened sequence.
-          var ansiCodes = []
-          // Replace with markup.
-          var ret = text.replace(/\033\[(\d+)m/g, function (match, seq) {
-            var ot = _openTags[seq]
-            if (ot) {
-              // If current sequence has been opened, close it.
-              if (!!~ansiCodes.indexOf(seq)) { // eslint-disable-line no-extra-boolean-cast
-                ansiCodes.pop()
-                return '</span>'
-              }
-              // Open tag.
-              ansiCodes.push(seq)
-              return ot[0] === '<' ? ot : '<span style="' + ot + ';">'
-            }
-
-            var ct = _closeTags[seq]
-            if (ct) {
-              // Pop sequence
-              ansiCodes.pop()
-              return ct
-            }
-            return ''
-          })
-
-          // Make sure tags are closed.
-          var l = ansiCodes.length
-          ;(l > 0) && (ret += Array(l + 1).join('</span>'))
-
-          return ret
-        }
-
-        /**
-         * Customize colors.
-         * @param {Object} colors reference to _defColors
-         */
-        ansiHTML.setColors = function (colors) {
-          if (typeof colors !== 'object') {
-            throw new Error('`colors` parameter must be an Object.')
-          }
-
-          var _finalColors = {}
-          for (var key in _defColors) {
-            var hex = colors.hasOwnProperty(key) ? colors[key] : null
-            if (!hex) {
-              _finalColors[key] = _defColors[key]
-              continue
-            }
-            if ('reset' === key) {
-              if (typeof hex === 'string') {
-                hex = [hex]
-              }
-              if (!Array.isArray(hex) || hex.length === 0 || hex.some(function (h) {
-                return typeof h !== 'string'
-              })) {
-                throw new Error('The value of `' + key + '` property must be an Array and each item could only be a hex string, e.g.: FF0000')
-              }
-              var defHexColor = _defColors[key]
-              if (!hex[0]) {
-                hex[0] = defHexColor[0]
-              }
-              if (hex.length === 1 || !hex[1]) {
-                hex = [hex[0]]
-                hex.push(defHexColor[1])
-              }
-
-              hex = hex.slice(0, 2)
-            } else if (typeof hex !== 'string') {
-              throw new Error('The value of `' + key + '` property must be a hex string, e.g.: FF0000')
-            }
-            _finalColors[key] = hex
-          }
-          _setTags(_finalColors)
-        }
-
-        /**
-         * Reset colors.
-         */
-        ansiHTML.reset = function () {
-          _setTags(_defColors)
-        }
-
-        /**
-         * Expose tags, including open and close.
-         * @type {Object}
-         */
-        ansiHTML.tags = {}
-
-        if (Object.defineProperty) {
-          Object.defineProperty(ansiHTML.tags, 'open', {
-            get: function () { return _openTags }
-          })
-          Object.defineProperty(ansiHTML.tags, 'close', {
-            get: function () { return _closeTags }
-          })
-        } else {
-          ansiHTML.tags.open = _openTags
-          ansiHTML.tags.close = _closeTags
-        }
-
-        function _setTags (colors) {
-          // reset all
-          _openTags['0'] = 'font-weight:normal;opacity:1;color:#' + colors.reset[0] + ';background:#' + colors.reset[1]
-          // inverse
-          _openTags['7'] = 'color:#' + colors.reset[1] + ';background:#' + colors.reset[0]
-          // dark grey
-          _openTags['90'] = 'color:#' + colors.darkgrey
-
-          for (var code in _styles) {
-            var color = _styles[code]
-            var oriColor = colors[color] || '000'
-            _openTags[code] = 'color:#' + oriColor
-            code = parseInt(code)
-            _openTags[(code + 10).toString()] = 'background:#' + oriColor
-          }
-        }
-
-        ansiHTML.reset()
-
-        //
-        //Until end of this script: GFIO wrapper
-        //
-        //This demo comes with a GF_FileIO wrapper for 
-        // - Emscripten FS file access
-        // - User file system access
-        // - protocols supported by Fetch() API
-        //
-        // It is not optimized but can help you design your own fileIOs for custom GPAC@WASM integration
-
-        //check support for fetch upload using readable stream
-        const supportsRequestStreams = (() => {
-          let duplexAccessed = false;
-
-          const hasContentType = new Request('', {
-            body: new ReadableStream(),
-            method: 'POST',
-            get duplex() {
-              duplexAccessed = true;
-              return 'half';
-            },
-          }).headers.has('Content-Type');
-
-          return duplexAccessed && !hasContentType;
-        })();
-
-        //our GFIO object
-        var GFIO = {
-          //all defined GF_IOs
-          dict: [],
-          //constants used by gf_fileio_set_write_state
-          WRITE_READY: 0,
-          WRITE_WAIT: 1,
-          WRITE_CANCEL: 2,
-          //default method used for upload
-          UPLOAD_METHOD: 'POST',
-          //allow defer upload of file (aggregates to mem then basic POST/PUT or ar->blob->download)
-          ALLOW_WRITE_DEFER: true,
-
-          //open for read a file on user disk (input['type']='file')
-          _open_read_local: function (fio) {
-            let input = document.createElement('input');
-            input['type'] = 'file';
-
-            //no cancel handler, set a timer to 20s
-            fio._timer = window.setTimeout( ()=> {
-              if (!fio._select) return;
-              set_status('timeout on file selection for ' + fio.url);
-              fio._select = 2;
-              fio._timer = null;
-            }, 20000);
-
-            input.addEventListener("change", e => {
-              set_status('');
-              if (e.target.files[0]) {
-                fio._file = e.target.files[0];
-                fio._select = 0;
-                fio._pos = 0;
-                fio._size = fio._file.size;
-                //if more than 1G, load by 10M blocks
-                if ((fio._size>1000000000) && (fio._max_bsize<10000000)) fio._max_bsize = 10000000;
-                //if more than 1m, load by 500k blocks
-                else if ((fio._size>1000000) && (fio._max_bsize<500000)) fio._max_bsize = 500000;
-
-                GFIO.set_stats(fio._gfio, BigInt(0), BigInt(fio._size), 2, 0);
-                GFIO._load_block(fio);
-              } else {
-                _fio._select = 2;
-              }
-              window.clearTimeout(fio._timer);
-              fio._timer = null;
-            });
-            input.click();
-            set_status('Select input file for ' + fio.url);
-            return LIBGPAC.OK;
-          },
-
-          //open for write a file on user disk - showSaveFilePicker->createWitable, or blob->download if not supported
-          _open_write_local: function (fio) {
-            if (typeof window.showSaveFilePicker == 'undefined') {
-              if (GFIO.ALLOW_WRITE_DEFER) {
-                fio._defer_write = new Uint8Array();
-                fio._select = 0;
-                return LIBGPAC.OK;
-              }
-              do_log_err('File System Access API not supported');
-              return LIBGPAC.NOT_SUPPORTED;
-            }
-            //create file writer
-            GFIO.set_ready(fio._gfio, GFIO.WRITE_WAIT);
-            set_status('Select output file for ' + fio.url);
-            fio._writer = null;
-            const options = { suggestedName: fio.url, types: [ { description: fio.url, accept: { '*/*': [], } } ] };
-            window.showSaveFilePicker(options).then( filep => {
-              return filep.createWritable();
-            }).then( writer => {
-              fio._writer = writer;
-              fio._select = 0;
-              GFIO.set_ready(fio._gfio, GFIO.WRITE_READY);
-            }).catch(val => {
-                GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
-                fio._select = 2;
-            });
-            return LIBGPAC.OK;
-          },
-
-          //open a remote file (fetch)
-          _open_read_remote: function (fio) {
-            let res = LIBGPAC.OK;
-            fio._controller = new AbortController();
-            let options = {
-              signal: fio._controller.signal,
-              mode: 'no-cors',
-            };
-            options.headers = {};
-            if (fio._pos) {
-              options.headers['range'] = 'bytes='+ fio._pos+'-';
-            }
-            options.headers['cross-origin-embedder-policy'] = 'credentialless';
-            options.headers['cross-origin-resource-policy'] = 'cross-origin';
-
-            GFIO.set_stats(fio._gfio, BigInt(0), BigInt(0), 2, 0);
-            fetch(fio.url, options).then((response) => {
-              if (response.ok) {
-                fio._select=0;
-                fio._fetch_wait=true;
-                fio._fetch = response.body.getReader();
-                fio._size = response.headers.get('Content-Length') || 0;
-                GFIO.set_stats(fio._gfio, BigInt(0), BigInt(fio._size), 2, 0);
-              } else {
-                GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
-                fio._select=2;
-              }
-            })
-            .catch( (e) => {
-              fio._select=2;
-              GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
-              res = LIBGPAC.URL_ERROR;
-              do_log_err('Fetch error: ' + e);
-            });
-            return res;
-          },
-
-          //write a remote file (fetch with readableStream if supported or fetch at end of file)
-          _open_write_remote: function (fio) {
-            let res = LIBGPAC.OK;
-            fio._defer_write = null;
-            if (!GFIO.supportsRequestStreams) {
-              if (GFIO.ALLOW_WRITE_DEFER) {
-                fio._defer_write = new Uint8Array();
-                fio._select=0;
-                return LIBGPAC.OK;
-              }
-              do_log_err('Fetch upload with readable streams not supported');
-              return LIBGPAC.NOT_SUPPORTED;
-            }
-            fio._controller = new AbortController();
-            GFIO.set_ready(fio._gfio, GFIO.WRITE_WAIT);
-            fio._upstream_dst=null;
-            fio._upstream = new ReadableStream({
-              start(controller) {
-                fio._select=0;
-                fio._upstream_dst = controller;
-                GFIO.set_ready(fio._gfio, GFIO.WRITE_READY);
-              },
-              pull(controller) {
-                fio._upstream_dst = controller;
-              },
-              cancel() {
-                GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
-              }
-            });
-            let options = {
-              method: GFIO.UPLOAD_METHOD,
-              signal: fio._controller.signal,
-              body: fio._upstream,
-              duplex: 'half',
-              headers: { 'Content-Type': 'application/octet-stream' },
-              AllowHTTP1ForStreamingUpload: true
-            };
-            if (fio._pos) {
-              options.headers = {
-                'range': 'bytes='+ fio._pos+'-'
-              };
-            }
-
-            fetch(fio.url, options).then((response) => {
-              fio._select=0;
-              fio._size = fio._pos;
-              do_log('PUT got response ' + response.ok);
-            })
-            .catch( (e) => {
-              if (GFIO.ALLOW_WRITE_DEFER) {
-                fio._defer_write = new Uint8Array();
-                fio._select=0;
-                res = LIBGPAC.OK;
-                fio._upstream = null;
-                fio._upstream_dst = null;
-                fio._controller = null;
-                GFIO.set_ready(fio._gfio, GFIO.WRITE_READY);
-              } else {
-                GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
-                res = LIBGPAC.NOT_SUPPORTED;
-              }
-            });
-            return res;
-          },
-
-          _close: function(fio) {
-            if (fio._stream) FS.close(fio._stream);
-            if (fio._writer) fio._writer.close();
-            if (fio._fetch) {
-                fio._controller.abort();
-                fio._controller = null;
-            }
-            if (fio._defer_write) {
-              if ((fio.url.indexOf('://')>0) && !fio.url.startsWith('file://')) {
-                let options = {
-                  method: GFIO.UPLOAD_METHOD,
-                  body: fio._defer_write,
-                  headers: { 'Content-Type': 'application/octet-stream' },
-                };
-                if (fio._pos&&0) {
-                  options.headers = {
-                    'range': 'bytes='+ fio._pos+'-'
-                  };
-                }
-                fetch(fio.url, options).then((response) => {
-                  if (!response.ok) do_log('Error uploading ' + fio.url);
-                })
-                .catch( (e) => {
-                  do_log('Error uploading ' + fio.url + ': ' + e);
-                });
-              } else {
-                var blob = new Blob([fio._defer_write.buffer], {type: 'application/octet-stream'});
-                var a = document.createElement("a");
-                var blob_url = window.URL.createObjectURL(blob);
-                a.href = blob_url;
-                a.download = fio.url;
-                a.click();
-                window.URL.revokeObjectURL(blob_url);
-              }
-            }
-            fio._stream = null;
-            fio._writer = null;
-            fio._fetch = null;
-            fio._defer_write = null;
-            fio._upstream = null;
-            fio._pos = 0;
-          },
-
-          //open callback from libgpac for GF_FileIO objects
-          open: function(fileio_ref, _url, _mode, out_e) {
-            let fio = GFIO.to_obj(fileio_ref);
-            let url = _url ? LIBGPAC.UTF8ToString(_url) : null;
-            let mode = LIBGPAC.UTF8ToString(_mode);
-
-            //close file
-            if (mode=='close') {
-              GFIO._close(fio);
-              LIBGPAC.setValue(out_e, LIBGPAC.OK, 'i32');
-              return 0;
-            }
-            //checks if file exists - we only probe for EM's FS for now
-            if (mode=='probe') {
-              let rurl = url.startsWith('gfio://') ? fio.url : url;
-              try {
-                let stats = FS.stat(rurl);
-                LIBGPAC.setValue(out_e, LIBGPAC.OK, 'i32');
-              } catch (e) {
-                LIBGPAC.setValue(out_e, LIBGPAC.URL_ERROR, 'i32');
-              }
-              return 0;
-            }
-            //add ref to this object 
-            if (mode=='ref') {
-              fio._refs++;
-              return fileio_ref;
-            }
-            //remove ref from this object 
-            if (mode=='unref') {
-              if (!fio._refs) return null;
-              fio._refs--;
-              if (fio._refs) return fileio_ref;
-              url = null;
-            }
-            //special mode URL to create a new GFIO from parent file name but without creating the file (used in dashing)
-            if (mode=="url") {
-              if (!url) return null;
-              let _newurl = LIBGPAC.url_cat(fio.url, url);
-              var new_gfio = GFIO.create( LIBGPAC.UTF8ToString(_newurl), 0);
-              LIBGPAC.free(newurl);
-              return new_gfio._gfio;
-            }
-            //no URL, close file
-            if (!url) {
-              GFIO._close(fio);
-              //TODO, cleanup of unused gfio refs ?
-              //if (!fio._refs) {}
-              return null;
-            }
-
-            mode = mode.replace('b', '');
-            mode = mode.replace('t', '');
-            mode = mode.replace('+', '');
-            //we don't support append modes
-            if ((mode != "r") && (mode != "w")) {
-              LIBGPAC.setValue(out_e, LIBGPAC.NOT_SUPPORTED, 'i32');
-              set_status('Unsupported open mode ' + mode);
-              return null;
-            }
-
-            //file handle not opened, we can use the current gfio
-            if (!fio._stream && !fio._file && !fio._fetch && !fio._upstream
-                && (url.startsWith("gfio://") || (url == fio.url)) 
-            ) {
-              var res=LIBGPAC.OK;
-              fio._pos = 0;
-              // URL is NOT an EM's FS file
-              if (fio._wrap_io) {
-                  fio._select = 1;
-                  if (mode=='r') {
-                    if ((fio.url.indexOf('://')>0) && !fio.url.startsWith('file://')) {
-                      res = GFIO._open_read_remote(fio);
-                    } else {
-                      res = GFIO._open_read_local(fio);
-                    }
-                  }
-                  else if (mode=='w') {
-                    if ((fio.url.indexOf('://')>0) && !fio.url.startsWith('file://')) {
-                      res = GFIO._open_write_remote(fio);
-                    } else {
-                      res = GFIO._open_write_local(fio);
-                    }
-                  }
-              }
-              // URL is an EM's FS file
-              else {
-                try {
-                  fio._stream = FS.open(fio.url, mode);
-                  if (mode.startsWith('r')) {
-                    let stats = FS.stat(fio.url);
-                    fio._size = stats.size;
-                    GFIO.set_stats(fio._gfio, BigInt(stats.size), BigInt(stats.size), 1, 0);
-                  }
-                } catch (e) {
-                  res = LIBGPAC.URL_ERROR;
-                }
-              }
-              LIBGPAC.setValue(out_e, res, 'i32');
-              if (res != LIBGPAC.OK) return null;
-              //return ourself
-              return fio._gfio;
-            }
-
-            //file handle already open (file is being opened twice), create a new gfio or check if we have already created one
-            //we only support this for local files 
-            if (!fio._stream) {
-              LIBGPAC.setValue(out_e, LIBGPAC.NOT_SUPPORTED, 'i32');
-              return null;
-            }
-            let fio_ref = fio;
-            fio = null;
-            let no_concatenate=false;
-            GFIO.dict.forEach(a_gfio => {
-              if (fio) return;
-              if (a_gfio.url != url) return;
-              if (a_gfio._stream) {
-                no_concatenate = true;
-              } else {
-                fio = a_gfio;
-              }
-            });
-
-            if (!fio) {
-              let _path = null;
-              let path = null;
-              if (!url.startsWith("gfio://")) {
-                if (no_concatenate) {
-                  path = url;
-                } else {
-                  _path = LIBGPAC.url_cat(fio_ref.url, url);
-                  path = LIBGPAC.UTF8ToString(_path);
-                }
-              } else {
-                path = fio_ref.url;
-              }
-              let res=LIBGPAC.OK;
-              try {
-                fio = GFIO.create(path, 0);
-              } catch (e) {
-                res = LIBGPAC.OUT_OF_MEM;
-              }
-              if (_path) LIBGPAC.free(_path);
-              LIBGPAC.setValue(out_e, res, 'i32');
-              if (res) return null;
-            }
-            try {
-              if (!url.startsWith("gfio://")) {
-                fio._stream = FS.open(fio.url, mode);
-              } else {
-                fio._stream = FS.open(fio_ref.url, mode);
-              }
-            } catch (e) {
-              //todo cleanup of old gfios
-              LIBGPAC.setValue(out_e, LIBGPAC.IO_ERR, 'i32');
-              return null;
-            }
-
-            if (mode.startsWith('r')) {
-              let stats = FS.stat(fio.url);
-              fio._size = stats.size;
-              GFIO.set_stats(fio._gfio, BigInt(stats.size), BigInt(stats.size), 1, 0);
-            }
-            return fio._gfio;
-          },
-          //seek callback from libgpac
-          seek: function(fileio, offset, whence) {
-            let fio = GFIO.to_obj(fileio);
-            if (fio._select==1) return LIBGPAC.OK;
-            if (fio._defer_write) return LIBGPAC.NOT_SUPPORTED;
-
-            if (fio._file || fio._writer || fio._fetch) {
-              let abspos = Number(offset);
-              if (whence==1) abspos += fio._pos;
-              else if (whence==2) abspos = fio._size;
-
-              if (fio._writer) {
-                fio._pos = abspos;
-                fio._writer.seek(abspos);
-                return LIBGPAC.OK;
-              }
-
-              if (abspos != fio._pos) {
-                fio._discard_next = true;
-                fio._pos = abspos;
-                fio._block_pos_in_file = abspos;
-              }
-              return LIBGPAC.OK;
-            }
-            try {
-               fio._pos = FS.llseek(fio._stream, Number(offset), whence);
-            } catch (e) {
-              return LIBGPAC.IO_ERR;
-            }
-            return LIBGPAC.OK;
-          },
-          //read callback from libgpac
-          read: function(fileio, buffer, bytes) {
-            let fio = GFIO.to_obj(fileio);
-            //IO being created, wait
-            if (fio._select) return 0;
-
-            //file system stream or fetch
-            if (fio._file || fio._fetch) {
-              let load_next=false;
-              if (bytes>fio._max_bsize) fio._max_bsize = bytes;
-              if (!fio._ab) {
-                //fetch
-                if (fio._fetch_wait) {
-                  fio._fetch_wait = false;
-                  fio._fetch.read().then( block => {
-                    if (block.done) {
-                      //done, force size in case it was not set
-                      fio._size = fio._pos;
-                    } else {
-                      fio._ab = block.value; fio._block_pos = 0;
-                    }
-                  });
-                }
-                return 0;
-              }
-
-              if (fio._discard_next) {
-                fio._ab = null;
-                fio._block_pos = 0;
-                fio._discard_next = 0;
-                if (fio._fetch) {
-                  fio._controller.abort();
-                  fio._controller = null;
-                  GFIO._open_read_remote(fio);
-                } else {
-                  GFIO._load_block(fio);
-                }
-                return 0;
-              }
-              let remain = fio._ab.byteLength - fio._block_pos;
-              if (bytes > remain) {
-                load_next = true;
-                bytes = remain;
-              }
-
-              //copy array buffer
-              let src;
-              if (fio._fetch)
-                src = fio._ab.subarray(fio._block_pos, fio._block_pos+bytes);
-              else
-                src = new Uint8Array(fio._ab, fio._block_pos, bytes);
-
-              let dst = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
-              dst.set(src);
-
-              fio._pos += bytes;
-              if (load_next) {
-                fio._block_pos_in_file += fio._ab.byteLength;
-                fio._ab = null;
-                fio._block_pos = 0;
-                if (fio._file && (fio._pos < fio._size)) {
-                  GFIO._load_block(fio);
-                }
-                if (fio._fetch) fio._fetch_wait = true;
-              } else {
-                fio._block_pos += bytes;
-              }
-              return bytes;
-            }
-            //Emscripten's FS
-            if (!fio._stream) return 0;
-            if (bytes + fio._pos > fio._size) {
-              bytes = fio._size - fio._pos;
-            }
-            fio._pos += bytes;
-            let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
-            FS.read(fio._stream, ab, 0, bytes);
-            return bytes;
-          },
-          //write callback from libgpac
-          write: function(fileio, buffer, bytes) {
-            let fio = GFIO.to_obj(fileio);
-            //IO being created, wait
-            if (fio._select) return 0;
-
-            //defer write, cat arrays
-            if (fio._defer_write) {
-              let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
-              let new_st = new Uint8Array(bytes + fio._defer_write.length);
-              new_st.set(fio._defer_write);
-              new_st.set(ab, fio._defer_write.length);
-              fio._defer_write = new_st;
-              return bytes;
-            }
-            //writable stream API
-            if (fio._writer) {
-              let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
-              fio._writer.write( new Uint8Array(ab) );
-              return bytes;
-            }
-            //fetch+PUT+readableStream API
-            if (fio._upstream) {
-              let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
-              fio._upstream_dst.enqueue(ab);
-              return bytes;
-            }
-            //EM's FS
-            if (!fio._stream) return 0;
-            fio._pos+=bytes;
-            if (fio._size < fio._pos) fio._size = fio._pos;
-            let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
-            FS.write(fio._stream, ab, 0, bytes);
-            return bytes;
-          },
-          //tell callback from libgpac - we maintain position in resource ourself, so tell/eof are valid for all methods 
-          tell: function(fileio) {
-            let fio = GFIO.to_obj(fileio);
-            if (fio._select) return BigInt(0);
-            return BigInt(fio._pos);
-          },
-          //eof callback from libgpac
-          eof: function(fileio) {
-            let fio = GFIO.to_obj(fileio);
-            if (fio._select==2) return 1;
-            if (fio._select) return 0;
-            if (fio._fetch && !fio._size) return 0;
-            if (fio._pos == fio._size) return 1;
-            return 0;
-          },
-          //get fileIO object from its userdata - for now we just use an index in the global dict that we reset upon gpac.on_done
-          to_obj: function(fileio) {
-            let udta = this.get_udta(fileio);
-            return this.dict[udta];
-          },
-          //create file IO from URL and mode (0: r/w, 1: r, 2: w), used by command line parser
-          create: function (url, mode) {
-            if (typeof this.wrap_new == 'undefined') {
-              //gf_fileio_new(url, udta, open, seek, read, write, tell, eof, printf)
-              this.wrap_new = LIBGPAC.cwrap('gf_fileio_new', 'number', ['string', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']);
-              this.wrap_del = LIBGPAC.cwrap('gf_fileio_del', '', ['number']);
-              this.get_udta = LIBGPAC.cwrap('gf_fileio_get_udta', 'number', ['number']);
-              this.get_url = LIBGPAC.cwrap('gf_fileio_url', 'string', ['number']);
-              this.tag_main = LIBGPAC.cwrap('gf_fileio_tag_main_thread', 'number', ['number']);
-              this.set_stats = LIBGPAC.cwrap('gf_fileio_set_stats', null, ['number', 'bigint', 'bigint', 'boolean', 'number']);
-              this.set_ready = LIBGPAC.cwrap('gf_fileio_set_write_state', null, ['number', 'number']);
-
-              //create function pointers
-              //
-              this._pf_open = LIBGPAC.addFunction(this.open, 'iiiii');
-              this._pf_seek = LIBGPAC.addFunction(this.seek, 'iiji');
-              this._pf_read = LIBGPAC.addFunction(this.read, 'iiii');
-              this._pf_write = LIBGPAC.addFunction(this.write, 'iiii');
-              this._pf_tell = LIBGPAC.addFunction(this.tell, 'ji');
-              this._pf_eof = LIBGPAC.addFunction(this.eof, 'ii');
-            }
-
-            let wrap_io = false;
-            if (url.startsWith('$(')) {
-              let select_end = url.indexOf(')');
-              url = url.substring(2, select_end);
-              wrap_io = true;
-            }
-
-            let fio = {
-              udta: this.dict.length,
-              url: url,
-              _wrap_io: wrap_io,
-              _pos: 0,
-              _size: 0,
-              _stream: null, //FS.open stream object
-              _file: null, //fileSelector file object
-              _refs: 0,
-              _select: 0,
-              _block_pos_in_file: 0,
-              _block_pos: 0, //amount of bytes read from block
-              _ab: null,
-              _max_bsize: GPAC.read_block_size, //min size, will grow to block_size of fin filter
-              _discard_next: null,
-              _timer: null,
-              _writer: null,
-              _fetch: null,
-              _fetch_wait: null,
-              gfio_url: function() {
-                return GFIO.get_url(fio._gfio);
-              }
-            };
-            this.dict.push(fio);
-            fio._gfio = this.wrap_new(url, fio.udta, this._pf_open, this._pf_seek, (mode==2) ? 0 : this._pf_read, (mode==1) ? 0 : this._pf_write, this._pf_tell, this._pf_eof, 0);
-            //only run gfio on main thread ?
-            this.tag_main(fio._gfio);
-            return fio;
-          },
-          //for file system read, loads next block from file
-          _load_block: function(fio) {
-            let max_bsize = fio._max_bsize;
-            let bsize = (fio._block_pos_in_file + max_bsize > fio._size) ? (fio._size - fio._block_pos_in_file) : max_bsize;
-            let blob = fio._file.slice(fio._block_pos_in_file, fio._block_pos_in_file + bsize);
-            let read = new FileReader();
-            read.onload = function(evt) {
-              fio._ab = evt.target.result;
-            };
-            read.readAsArrayBuffer(blob);
-          }
-        };
-      </script> 
-
-
-    <div class="gpac">
-      <canvas class="gpac" id="canvas" tabindex=-1 width="0" height="0"></canvas>
+    <div id="output-wrapper" class="container-fluid">
+      <div class="console-wrapper">
+        <canvas id="canvas" tabindex=-1 width="0" height="0"></canvas>
+      </div>
+      <div id="output" class="console"></div>    
     </div>
-    <div id="output"></div>
 
     <!-- command line input -->
-    <div id="cmd_div">
-      <!-- span>Enter command: </span -->
-      <span><input type="text" id="cmd" placeholder="Enter command or type h for help" autofocus onkeypress="
-        if (event.keyCode == 13) {
-          if (!is_custfs) {
-            var cwd = FS.cwd() == '/' ? '~' : FS.cwd();
-            document.getElementById('output').innerHTML += 'user@gpac:' + cwd + '$ ' + this.value + '<br><br>';
-          } 
-          process_command();
-        }
-      " onkeyup="
-        let idx=cmd_idx;
-        if (event.keyCode == 38) { idx++; }
-        else if (event.keyCode == 40) { idx--;}
-        else {
-          if (event.keyCode == 17) ctrl_down=false;
-          else if (event.keyCode == 18) opt_down=false;
-          if (document.activeElement === LIBGPAC['canvas']) {
+    <div id="cmd_div" class="container-fluid">
+      <fieldset class="console-wrapper">
+        <textarea id="cmd" class="console" placeholder="Enter a command ..." spellcheck="false" autofocus autocomplete="false"
+          onkeypress="
+          if (event.keyCode == 13) {
+            if (!is_custfs) {
+              var cwd = FS.cwd() == '/' ? '~' : FS.cwd();
+              document.getElementById('output').innerHTML += this.value + '<br>';
+            } 
+            process_command();
             event.preventDefault();
-            set_status('canvas is def');
           }
-          return;
-        }
-        if (idx>=cmd_history.length) return;
-        var cmd_e = document.getElementById('cmd');
-        if (idx<0) {
-          cmd_idx = -1;
-          cmd_e.value = '';
-          return;
-        }
-        cmd_idx = idx;
-        cmd_e.value = cmd_history[cmd_history.length-1-idx];
+        " onkeyup="
+          let idx=cmd_idx;
+          if (event.keyCode == 38) { idx++; } // UP
+          else if (event.keyCode == 40) { idx--;} // DOWN
+          else {
+            if (event.keyCode == 17) ctrl_down=false;  
+            else if (event.keyCode == 18) opt_down=false;
+            if (document.activeElement === LIBGPAC['canvas']) {
+              event.preventDefault();
+              set_status('canvas is def');
+            }
+            return;
+          }
+          if (idx>=cmd_history.length) return;
+          var cmd_e = document.getElementById('cmd');
+          if (idx<0) {
+            cmd_idx = -1;
+            cmd_e.value = '';
+            return;
+          }
+          cmd_idx = idx;
+          cmd_e.value = cmd_history[cmd_history.length-1-idx];
 
-        if (event.ctrlKey) {
-          switch (event.keyCode) {
-            case 67: // Ctrl+C
-              var cmdElement = document.getElementById('cmd');
-              cmdElement.value = '';
-              break;
-            case 76: // Ctrl+L
-              var outputElement = document.getElementById('output');
-              outputElement.innerHTML = '';
-              break;
-            case 65: // Ctrl+A
-              var cmdElement = document.getElementById('cmd');
-              cmdElement.selectionStart = 0;
-              cmdElement.selectionEnd = 0;
-              break;
-            case 69: // Ctrl+E
-              var cmdElement = document.getElementById('cmd');
-              cmdElement.selectionStart = cmdElement.value.length;
-              cmdElement.selectionEnd = cmdElement.value.length;
-              break;
+          if (event.ctrlKey) {
+            switch (event.keyCode) {
+              case 67: // Ctrl+C
+                setCommand('');
+                break;
+              case 76: // Ctrl+L
+                outputElement.innerHTML = '';
+                break;
+              case 65: // Ctrl+A
+                cmdElement.selectionStart = 0;
+                cmdElement.selectionEnd = 0;
+                break;
+              case 69: // Ctrl+E
+                cmdElement.selectionStart = cmdElement.value.length;
+                cmdElement.selectionEnd = cmdElement.value.length;
+                break;
+            }
           }
-        }
-     " onkeydown="
-          if (event.keyCode == 17) ctrl_down=true;
-          else if (event.keyCode == 18) opt_down=true;
-          if (document.activeElement === LIBGPAC['canvas']) 
-          {
-            event.preventDefault();
-          }
-     "
- 
-      /></span>
-      <!-- span><input type="button" id="run" value="Run !" onclick="process_command();"></span -->
+      " onkeydown="
+            if (event.keyCode == 17) ctrl_down=true;
+            else if (event.keyCode == 18) opt_down=true;
+            if (document.activeElement === LIBGPAC['canvas']) 
+            {
+              event.preventDefault();
+            }
+      "></textarea>
+      </fieldset>
     </div>
-
     
-    <div class="controls" id='controls'>
-    <span>
-<select id="abort" onChange="
-  if (this.selectedIndex) GPAC.toggle_reporting(this.selectedIndex);
-">
-<option  value="none" selected="selected">Abort</option>
-<option value="1">Full Flush</option>
-<option value="2">Fast Flush</option>
-<option value="3">No Flush</option>
-</select>
-    </span>
-  <span><label>Reporting</label><input type="checkbox" checked id="reports" onclick="
-    GPAC.toggle_reporting(4);
-  ">
-  </span>
-  <span><input type="button" value="Fullscreen" id="fullscreen" onclick="
-    //LIBGPAC.requestFullscreen(document.getElementById('pointerLock').checked, document.getElementById('resize').checked)
-    LIBGPAC['canvas'].requestFullscreen();
-  ">
-  </span>
+    <!-- session controls -->
+    <div id="controls" class="container-fluid">
+
+      <select disabled id="commands" aria-label="select an example">
+        <option selected="" value="-1">Select an example</option>
+      </select>
+
+      <input id="run" type="button" value="Run &#10550;" disabled/>
+      <input id="cancel" type="button" value="Cancel" hidden/>
+      
+      <form id="fsRunForm" hidden>
+
+        <label>
+          <input id="reports" type="checkbox" role="switch" onclick="GPAC.toggle_reporting(4);"/>
+          reporting
+        </label>
+
+        <fieldset role="group">
+          <select name="flush" aria-label="Select Flush behavior on abort" id="flush">
+            <option value="1">Full Flush</option>
+            <option value="2">Fast Flush</option>
+            <option value="3" selected>No Flush</option>
+          </select>
+          <input id="abort" type="button" name="abort" value="Abort" onclick="
+            let el = document.getElementById('flush');
+            let val = el.options[el.selectedIndex].value;
+            GPAC.toggle_reporting(val);
+            console.log(val);
+          " />
+        </fieldset>
+
+      </form>
+
+      <input type="button" value="Fullscreen" id="fullscreen" onclick="
+        LIBGPAC['canvas'].requestFullscreen();
+      ">
+
     </div>
 
-  <div id="run_script" hidden>
-  <span><input type="button" value="Run"  onclick="run_script('');"> </span>
-  <span><input type="button" value="Cancel"  onclick="run_script('no');"> </span>
-  </div>
+    <div id="help" class="container-fluid">
+      <h2>Console usage</h2>
+      <p>This page allows running the <strong>MP4Box</strong> and <strong>GPAC</strong> applications in web browsers.</p>
+      <p>The webassembly build is experimental. It tries to uses webcodecs whenever decoding or encoding is involved. If webcodecs can't be used, it falls back to software implementation running in wasm.</p>
+      <p>Select an exemple and make edits, or type in your own command. Finally press <code>Enter</code> key or click the <code>Run</code> button.</p>
+      <p>Remote <strong>DASH</strong> and <strong>HLS</strong> playlists can be used as input, provided that they are hosted with proper <strong>CORS</strong> configurations.</p>
+      <p>The console also provides basic shell file system, commands to import media export media files, and support advanced gpac configuration, as described below:</p>
+      <h3>
+        File import / export
+      </h3>
+      <ul>
+        <li><code>imp [-d] [N]</code>: imports files or directory <code>-d</code> to local filesystem file.</li>
+        <li><code>imp</code> : imports single file to current dir using its native name</li>
+        <li><code>imp NAME</code> : imports single file as <code>NAME</code></li>
+        <li><code>imp NAME/</code> : imports one or more files in <code>NAME</code> using their native name</li>
+        <li><code>imp -d</code> : imports a directory to current dir</li>
+        <li><code>imp -d NAME</code> : imports a directory as <code>NAME</code></li>
+        <li><code>exp NAME</code>: exports given file <code>NAME</code></li>
+      </ul>
+
+      <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API">IndexedDB</a> is used for persistent storage, mounted at <code>/idbfs</code>. Typing any command will synchronize the file system.</p>
+      
+      <h4>Handling large files</h4>
+      
+      <p>The variable <code>$(NAME)</code> can be used to design a file not on Emscripten's file system.
+      The file will be handled as a stream (not copied). This is the recommended methods for handling large files.</p>
+      
+      <p>If <code>NAME</code> is an absolute URL other than <code>file://</code> scheme:
+      </p><ul>
+        <li>
+          if used for an input, it will be pulled progressively using <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API">Fetch API</a>.
+        </li>
+        <li>
+          if used for an output, it will be pushed progressively using <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API">Fetch API</a>. If writable streams fail, the file will be stored in memory until final PUT or canceled.<p></p>
+        </li>  
+      </ul>
+      
+      <p>Otherwise, <code>NAME</code> designs a file to be picked on the user's file system
+        </p><ul>
+          <li>
+            if used for an input, a file picker will be shown and status text will indicate the corresponding <code>NAME</code>
+          </li>
+          <li>
+            if used for an output, a file saver will be shown with the given <code>NAME</code>. If writable stream failure, the file will be stored in memory until final write or canceled.<p></p>
+          </li>
+        </ul>
+      
+      <p>For output files, the extension will be used to derive the output format, e.g. <code>($file.ts)</code> will use MPEG-2 TS.
+      Use <code>$(file):ext=ts</code> to override format if desired. <em>This syntax CANNOT work when editing files (MP4Box, dasher context, etc...).</em></p>
+    
+
+    <h3>Shell commands</h3>
+    
+    <ul>
+      <li><code>↑</code><code>↓</code> : Use up &amp; down arrows can be used for command history.</li>
+      <li><code>ls [N]</code>: list files in <code>N</code> or in current directory if <code>N</code> not set or print file N info - use 'ls -l N' for details.</li>
+      <li><code>cd [NAME]</code>: changes current working directory, use Emscripten home if <code>NAME</code> not provided</li>
+      <li><code>cwd</code>: prints current working directory</li>
+      <li><code>clear</code>: clears console output</li>
+      <li><code>mkdir NAME</code>: creates directory <code>NAME</code></li>
+      <li><code>rm NAME</code>: removes file or empty directory <code>NAME</code></li>
+      <li><code>mv N1 N2</code>: moves file <code>N1</code> to <code>N2</code></li>
+      <li><code>cp N1 N2</code>: copies file <code>N1</code> to <code>N2</code> (no recursive copy support)</li>
+      <li><code>show NAME</code>: shows content of file <code>NAME</code></li>
+      <li><code>edit NAME</code>: edits content of file <code>NAME</code>, use <code>save</code> to save and close, <code>close</code> to discard and close</li>
+    </ul>
+    
+    <h3>Configuration commands</h3>
+    
+    <ul>
+      <li class="threaded"><code>worker</code>: toggles worker mode on or off (off)</li>
+      <li class="threaded"><code>threads</code>: views number of pre-allocated workers</li>
+      <li><code>stack</code>: prints available size in stack</li>
+      <li><code>clearh [N]</code>: clears command history. If <code>N</code> is set, only keeps last <code>N</code> items, otherwise clears everything</li>
+      <li><code>fetch</code>: toggles fetch support in libgpac</li>
+      <li><code>bsize</code>: sets block size used to read from local disk (default 10000)</li>
+      <li><code>eval</code>: evaluates JS code</li>
+    </ul>
+    
+    <h4>Performances</h4>
+    
+    <p>The default behaviour for gpac app is to run on the browser/worker main loop in non-blocking mode, running the session at most 100 times before returning control.</p>
+    
+    <p>This can be configured when calling gpac (see <code>gpac -hx</code>), for example:
+      </p><ul>
+        <li>
+          <code>-step=-1</code> will block the main browser/worker thread (WILL DEADLOCK if some filters use JS promises or other async tools)
+        </li>
+        <li>
+          <code>-step=0</code> will use browser defaults for requestAnimationFrame frequency
+        </li>
+        <li>
+          <code>-step=100</code> will request callback every 10 ms
+        </li>
+        <li>
+          <code>-step=100:1000</code> will request callback every 10 ms, calling at most 1000 times the session<p></p>
+        </li>
+      </ul>
+   
+    <p class="threaded">When running without worker, internal threading of filters (e.g. ffmpeg &amp; co) will be disabled if the session runs only on the main thread.</p>
+    
+    <p class="threaded">Use <code>-threads=N</code> with <code>N</code> &gt; 0 (typically <code>-threads=1</code>) to enable threading in these filters.</p>
+    
+    </div>
+
+    <script>
+      const cmd_history = [];
+      const statusElement = document.getElementById('status');
+      const progressTxt = document.getElementById('progress').childNodes[0];
+      const animElement = document.getElementById('logo_anim');
+      const runElement = document.getElementById('run');
+      const cancelElement = document.getElementById('cancel');
+      const flushElement = document.getElementById('flush');
+      const cmdElement = document.getElementById('cmd');
+      const reportElement = document.getElementById('reports');
+      const selCmdElement = document.getElementById('commands');
+      const outputElement = document.getElementById('output');
+      const abortElement = document.getElementById('abort');
+      const threadingElement = document.getElementById('threading');
+
+      let console_bck = '';
+      let cmd_idx = -1;
+      let ctrl_down=false;
+      let opt_down=false;
+      let use_idbfs = false;
+      let edit_name = null;
+      let is_eval = false;
+      let is_bsize = false;
+      let is_custfs = false;
+      let fsess = null;
+      let prev_filter = null;
+      let defer_mode = false;
+      let logs_val = null;
+      let suspend_sess = false;
+      let fs_steps = 20;
+      let FS = null;
+      
+      let STATIC_SRC;
+      if (window.location.origin.indexOf('.gpac.io')>0) STATIC_SRC = `${window.location.origin}/data`;
+      else if (window.location.origin.startsWith('http://')) STATIC_SRC = 'http://wasm.gpac.io/data';
+      else STATIC_SRC = 'https://wasm.gpac.io/data';
+
+      const examples = [
+        {
+          "name": "media playback",
+          "cmd": `gpac -graph -i ${STATIC_SRC}/video_180.mp4 -i ${STATIC_SRC}/audio.mp4 aout vout`,
+          "info": '<a href="https://wiki.gpac.io/Player/filters-playback/">simple playback</a> of audio and video files. The <code>-graph</code> option prints out the internal graph showing all filters involved in the media processing pipeline.'
+        },
+        {
+          "name": "describe streams available in a media",
+          "cmd": `gpac -i ${STATIC_SRC}/video_180.mp4 inspect:full`,
+          "info": 'inspect a media and print its <a href="https://wiki.gpac.io/Filters/Rearchitecture/?h=pid#pid-description">PIDs</a> information, eg. information about the streams it contains.'
+        },
+        {
+          "name": "extract the first 2 seconds of a video",
+          "cmd": `gpac -i ${STATIC_SRC}/video_180.mp4 reframer:xs=0:xe=T00:00:02 -o xs0-xe02.mp4`,
+          "info": 'extract the first 2 seconds of a video.'
+        },
+        {
+          "name": "trick play: mux all IDR frames to a single MP4",
+          "cmd": `gpac -logs=all@info -i ${STATIC_SRC}/video_180.mp4 @#Video reframer:saps=1 @ -o trick_play.mp4`,
+          "info": "creates a video containing only the IDR frames (SAP=1) from the input source."
+        },
+        {
+          "name": "download remote DASH content",
+          "cmd": `gpac -stats -i ${STATIC_SRC}/dash/bbb_30fps.mpd dashin:forward=file -o dump/$File$:dynext`,
+          "info": null
+        }
+      ];
+      examples.forEach((el, i) => {
+        if (el.cmd){
+          let opt = document.createElement("option");
+          opt.text = el.name;
+          opt.value = i;
+          selCmdElement.add(opt);
+        }
+      });
+
+      selCmdElement.onchange = () => {
+        let idx = parseInt(selCmdElement.value);
+        if (idx<0) return;
+        let item = examples[idx];
+        setCommand(item.cmd.trim());
+      };
+
+      function setCommand(value) {
+        cmdElement.value = value == '' ? null : value;
+      };
+
+      function onGpacReady() {
+        cmdElement.removeAttribute("disabled");       
+        selCmdElement.removeAttribute("disabled");
+        runElement.removeAttribute("disabled");
+        cmdElement.setAttribute("placeholder", "Enter a command ...");
+        outputElement.setAttribute("aria-busy", "false");
+        outputElement.innerHTML += '<span class="version">GPAC' + LIBGPAC.version() + '</span><br><br>' + consolePrefix();
+      };
+
+      function toggle_eval_mode() {
+        is_eval = !is_eval;
+        let cmdDiv = document.getElementById('cmd_div');
+        if (is_eval){
+          outputElement.readonly = false;
+          outputElement.setAttribute('contenteditable', true);
+          outputElement.innerText = '';
+          set_status('Edit your JS and click run to evaluate, cancel to abort');
+          runElement.hidden = false;
+          cancelElement.hidden = false;
+          cmdDiv.hidden = true;
+          selCmdElement.hidden = true;
+          fsRunForm.hidden = true;
+          reportElement.hidden = true;
+        } else {
+          outputElement.setAttribute('contenteditable', false);
+          outputElement.readonly = true;
+          runElement.hidden = false;
+          cancelElement.hidden = true;
+          cmdDiv.hidden = false;
+          selCmdElement.hidden = false;
+          fsRunForm.hidden = true;
+          reportElement.hidden = false;
+        }
+        displayStatus('');
+      }
+
+      function run_session() {
+        let i=fs_steps;
+        while (i) {
+          let e = LIBGPAC.fs_run(fsess);
+          if (e) break;
+          i--;
+        }
+        if (suspend_sess || LIBGPAC.fs_last_task(fsess)) {
+            animElement.stop();
+            if (!suspend_sess) set_status('Session done');
+            suspend_sess=false;
+        } else {
+          setTimeout(run_session, 0);
+        }
+      }
+
+      //start anim on logo
+      animElement.start = function() {
+          if (! this.started) {
+            this.setAttribute('dur', '2s');
+            this.beginElement();
+            this.started=true;
+          }
+      };
+      //stop anim on logo
+      animElement.stop = function() {
+        this.endElementAt(0);
+        this.setAttribute('dur', 'indefinite');
+        this.started=false;
+      };
+
+      runElement.onclick = function() {
+        if (is_eval){
+          run_script();
+        } else {
+          if (!GPAC.running){
+            if ( cmdElement.value.trim() == '' ) return;
+            process_command();
+            setCommand('');
+            return;
+          }
+          if(GPAC.running){
+            GPAC.toggle_reporting(flushElement.value);      
+          }
+        }
+      }
+      cancelElement.onclick = toggle_eval_mode
+
+      //create missing dirs in an output path 
+      function check_file_dir(fname, is_directory) {
+        let paths = fname.split('/');
+        let path ='/';
+        while (paths.length) {
+          if (!paths[0].length) {
+            paths.shift();
+            continue;
+          }
+          path += paths[0];
+          if ((paths.length==1) && !is_directory) break;
+          if (paths.length>1) path+='/';
+          try {
+              FS.mkdir(path);
+          } catch(e) {
+          }
+          paths.shift();
+        }
+      }
+      //set status
+      function set_status(str)
+      {
+       statusElement.innerHTML = str;
+      }
+      function do_log(str) {
+        LIBGPAC.print(str);
+      }
+      function do_log_err(str) {
+        LIBGPAC.printErr(str);
+      }
+
+      //load command history from /idbfs/.gpac/history.txt
+      function load_history() {
+        let s = FS.analyzePath('/idbfs', true);
+        if (s.error) {
+          set_status('IDBFS not mounted');
+          return;
+        }
+        use_idbfs = true;
+        s = FS.analyzePath('/idbfs/.gpac', true);
+        if (s.error) FS.mkdir('/idbfs/.gpac');
+        s = FS.analyzePath('/idbfs/.gpac/history.txt', true);
+        if (s.error) return;
+        let strs = FS.readFile('/idbfs/.gpac/history.txt', { encoding: "utf8"}).split('\n');
+        strs.forEach(s => { if (s.length && (cmd_history.indexOf(s)<0)) cmd_history.push(s); });
+      }
+      //save command history to /idbfs/.gpac/history.txt
+      function save_history() {
+        if (!use_idbfs) {
+          return;
+        }
+        let txt='';
+        cmd_history.forEach( c => { txt += c + '\n';});
+        FS.writeFile('/idbfs/.gpac/history.txt', txt);
+        FS.syncfs(false, () => {
+          if (arguments.length) {
+            err('Failed to sync IDBFS: ' + arguments[0]);
+          }
+        });
+      }
+
+      //runs a given script
+      function run_script(cmd) {
+        toggle_eval_mode();
+        var js_txt = outputElement.innerText;
+        outputElement.removeAttribute('contenteditable');
+        outputElement.innerText = '';
+        set_status('');
+        err = '';
+        console.log('text is ' + js_txt);
+        if (!cmd.length || (cmd=='go')) {
+            var fun = Function(js_txt);
+            try {
+              fun();
+            } catch (e) {
+              err = e.message;
+            }
+        }
+        return com_exit(err);
+      }
+
+      function set_text(txt)
+      {
+          if (txt.length) outputElement.innerText += txt;
+          else outputElement.innerText = '';
+      }
+
+      //utility to log command error and append '/cwd/ %' at end of textArea
+      function com_exit() {
+        if (arguments.length && arguments[0].length) {
+           do_log('Error: ' + arguments[0]); 
+        }
+        GPAC.no_log = true;
+        outputElement.innerHTML += `<br>${consolePrefix()}`;
+        selCmdElement.hidden = false;
+        fsRunForm.hidden = true;
+        runElement.hidden = false;
+        setCommand('');
+      }
+
+      const onCommandRun = (cmd) => {
+        // reset select example 
+        selCmdElement.value = -1;
+        selCmdElement.hidden = true;
+        runElement.hidden = true;
+        fsRunForm.removeAttribute("hidden");
+        set_status('');
+      };
+
+      //our basic terminal emulation
+      function process_command() {
+       const cmd = cmdElement.value;
+        if (cmd.trim() == ''){
+          return;
+        }
+        onCommandRun(cmd);
+        GPAC.no_log = false;
+
+       args = cmd.trim().split(' ');
+
+       //evaluates a script - turns textArea in write mode and wait for go/cancel
+       if (args[0]=='eval') {
+          toggle_eval_mode();
+          return;
+       }
+
+       //in eval mode, run
+       if (is_eval) {
+        run_script(cmd);
+        return;
+       }
+              
+       if (is_custfs) {
+        run_prompt(cmd);
+        setCommand('');
+        return;
+       }
+
+       if (is_bsize) {
+        let s = parseInt(cmd);
+        is_bsize = false;
+        set_status('');
+        if (s != s) return com_exit('Inavlid value ' + cmd);
+        GPAC.read_block_size = s;
+        return com_exit();
+       }
+
+       //nothing to do
+       if (!cmd.length) {
+        return com_exit();
+       }
+
+       //in edit mode, save/discard content
+       if (edit_name != null) {
+        let do_save = false;
+        if (args[0]=='save') {
+          do_save = true;
+        } else if (args[0] != 'close') {
+           set_status('Use save or close to exit editor, not ' + args[0]);
+           return;
+        }
+        outputElement.removeAttribute('contenteditable');
+        if (do_save) {
+          FS.writeFile(edit_name, outputElement.innerText);
+        }
+        outputElement.innerHTML = '';
+        edit_name = null;
+        return com_exit();
+       }
+
+       //save history
+       let cmd_idx = cmd_history.indexOf(cmd);
+       if (cmd_idx>=0) {
+          cmd_history.splice(cmd_idx, 1);
+       }
+       cmd_history.push(cmd);
+       save_history();
+       cmd_idx = -1;
+       
+       //file or directory import
+       if (args[0]=='imp') {
+        let is_dir = false;
+        let is_mdir = false;
+        args.shift();
+        if (args.length && (args[0]=='-d')) {
+          is_mdir = true;
+          args.shift();
+        }
+        let file_name = null;
+        if (args.length) file_name = args[0];
+
+        if (file_name && (file_name.charAt(file_name.length-1) == '/'))
+          is_dir = true;
+
+        if (file_name && !is_dir && is_mdir) {
+          file_name += '/';
+        }
+        if (is_mdir) is_dir=true;
+
+        if (file_name)
+          check_file_dir(file_name, is_dir);
+
+        let input = document.createElement('input'); 
+        input['type'] = 'file';
+        if (!is_mdir) {
+          input.multiple = is_dir;
+        } else {
+          input.directory = true;
+          input.mozDirectory = true;
+          input.webkitdirectory = true;
+        }
+        input.click();
+        input.onchange = function() {
+          for (const file of event.target.files) {
+            if (file.name.charAt(0) == '.') continue;
+            let read = new FileReader();
+            let fname = file_name; //can be null
+            if (is_dir) {
+              if (is_mdir) {
+                if (fname) {
+                  //strip dir name
+                  let name = file.webkitRelativePath.substring(file.webkitRelativePath.indexOf("/") + 1);
+                  fname += name;
+                } else {
+                  //copy as is
+                  fname = file.webkitRelativePath;                   
+                }
+              } else {
+                fname += file.name;
+              }
+            }
+            if (!fname) fname = file.name;
+            read.addEventListener('loadend', (e) => {
+              const uint8_view = new Uint8Array(read.result);
+              if (is_mdir) check_file_dir(fname, false);
+              FS.writeFile(fname, uint8_view);
+            });
+            read.readAsArrayBuffer(file);
+          }
+        }
+        return com_exit();
+       }
+       //file or directory listing
+       if (args[0]=='ls') {
+        let list=0;
+        if ((args.length>1) && (args[1]=='-l')) {
+          list=1;
+          args.splice(1, 1);
+        }
+        else if ((args.length>1) && (args[1]=='-la')) {
+          list=2;
+          args.splice(1, 1);
+        }
+        var d = ((args.length>1) && args[1].length) ? args[1] : FS.cwd();
+
+        try {
+
+        let stats = FS.stat(d);
+        if (FS.isDir(stats.mode)) {
+          var children = FS.readdir(d, { parent: false });
+          //do_log('Contents of ' + d + ':');
+          children.forEach(i => {
+            let text;
+            if ((i=='.') || (i=='..')) return;
+            text=i;
+            if (list) {
+              stats = FS.stat(d+'/'+i);
+              if (list==1) {
+                if (FS.isDir(stats.mode)) text += ' directory';
+                else text += ' size ' + stats.size;
+
+                text += ' modified ' + stats.mtime.toUTCString();
+              } else {
+                  text = JSON.stringify(stats);
+              }
+            }
+            do_log(text);
+          });
+        } else {
+          let text;
+          if (list==2) text = JSON.stringify(stats);
+          else {
+            text = '' + stats.size + ' modified ' + stats.mtime;
+          }
+          do_log(text);
+        }
+        return com_exit();
+        } catch (e) {
+          return com_exit('No such file');
+        }
+       }
+       //get current working directory
+       if (args[0]=='cwd') {
+        do_log(FS.cwd());
+        return com_exit();
+       }
+       //change directory
+       if (args[0]=='cd') {
+        var d = (args.length>1) ? args[1] : '/home/web_user';
+        FS.chdir(d);
+        return com_exit();
+       }
+       //creates directory
+       if (args[0]=='mkdir') {
+        if (args.length>1)
+          FS.mkdir(args[1]);
+        return com_exit();
+       }
+       //remove file
+       if (args[0]=='rm') {
+        if (args.length<2) return com_exit('Missing name');
+        let stats = FS.stat(args[1]);
+        if (FS.isDir(stats.mode)) FS.rmdir(args[1]);
+        else FS.unlink(args[1]);
+        return com_exit();
+       }
+       //rename file
+       if (args[0]=='mv') {
+        if (args.length<3) return com_exit('Missing file names');
+        let stats = FS.stat(args[1]);
+        if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
+        FS.rename(args[1], args[2]);
+        return com_exit();
+       }
+       //copy file
+       if (args[0]=='cp') {
+        if (args.length<3) return com_exit('Missing file names');
+        let stats = FS.stat(args[1]);
+        if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
+        FS.writeFile(args[2], FS.readFile(args[1], {encoding: "binary"}));
+        return com_exit();
+       }
+       //export file to user file system
+       if (args[0]=='exp') {
+        if (args.length<2) return com_exit('Missing file name');
+        let stats = FS.stat(args[1]);
+        if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
+        var blob = new Blob([FS.readFile(args[1], {encoding: "binary"})], {type: "application/octet-stream"});
+        var a = document.createElement("a");
+        var url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = args[1];
+        a.click();
+        window.URL.revokeObjectURL(url);
+        return com_exit();
+       }
+       //show file
+       if (args[0]=='show') {
+        if (args.length<2) return com_exit('Missing file name');
+        let stats = FS.stat(args[1]);
+        if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
+        let str = FS.readFile(args[1], { encoding: "utf8"});
+        do_log(str);
+        return com_exit();
+       }
+       //edit file
+       if (args[0]=='edit') {
+        if (args.length<2) return com_exit('Missing file name');;
+        let stats = FS.stat(args[1]);
+        if (FS.isDir(stats.mode)) return com_exit(args[1] + ' is a directory');
+        let str = FS.readFile(args[1], { encoding: "utf8"});
+        edit_name = args[1];
+        if (outputElement) {
+          outputElement.setAttribute('contenteditable', true);
+          outputElement.innerText = str;
+        }
+        return;
+       }
+       //worker tag set
+       if (args[0]=='worker') {
+          if (!LIBGPAC.has_threads) {
+            LIBGPAC.gpac_worker=false;
+            return com_exit('GPAC compiled without threads');
+          }
+          LIBGPAC.gpac_worker = !LIBGPAC.gpac_worker;
+          do_log('Worker Thread for main: ' + (LIBGPAC.gpac_worker ? 'on' : 'off') );
+          return com_exit();
+       }
+       //print stack free size
+       if (args[0]=='stack') {
+          const get_stack_free = LIBGPAC.cwrap('emscripten_stack_get_free', 'number', [])
+          do_log('Free stack: ' + get_stack_free() + ' bytes');
+          return com_exit();
+       }
+       //clear console
+       if (args[0]=='clear') {
+        if (outputElement) outputElement.innerText = '';
+        return com_exit();
+       }
+       //clear history
+       if (args[0]=='clearh') {
+          if (args.length>1)
+              cmd_history = cmd_history.slice(- parseInt(args[1]) );
+          else
+              cmd_history=[];
+          save_history();
+          return com_exit();
+       }
+       //show allocated threads - usefull to check how many threads were indeed created by the previous run
+       if (args[0]=='threads') {
+          if (LIBGPAC.has_threads) {
+            do_log('Threads Pool Size: ' + LIBGPAC['PThread'].unusedWorkers.length);
+            return com_exit();
+          }
+          return com_exit('GPAC compiled without threads');
+       }
+
+       //worker tag set
+       if (args[0]=='fetch') {
+          LIBGPAC.gpac_fetch = !LIBGPAC.gpac_fetch;
+          do_log('libgpac fetch() ' + (LIBGPAC.gpac_fetch ? 'on' : 'off') );
+          return com_exit();
+       }
+       if (args[0]=='fs') {
+            set_status('Starting interactive graph builder');
+            set_text('');
+            setCommand('');
+            defer_mode=true;
+            fs_steps=20;
+            is_custfs = true;
+            return;
+       }
+       if (args[0]=='bsize') {
+          set_status('Enter new block size to use (current ' + GPAC.read_block_size + ')');
+          is_bsize = true;
+          return;
+       }
+       //set logs at runtime (doesn't work when video output is used, text input is always directed to SDL in this case...)
+       if (args[0]=='logs') {
+         if (!GPAC.running) {
+          do_log('GPAC not running');
+          return;
+        }
+        if (args.length>1) {
+          LIBGPAC.log_set_tools_levels(args[1], 1);
+        }
+        return;
+       }
+       //
+       //end of commands
+
+       //
+       //run gpac or mp4box
+       if (GPAC.running) {
+          set_status('Already running, ignoring command');
+          return;
+       }
+
+       let will_block=false;
+       let is_mp4box=false;
+       if (args[0].toLowerCase()=='gpac') {
+          args.shift();
+       }
+       else if (args[0].toLowerCase()=='mp4box') {
+          args.shift();
+          is_mp4box = true;
+          if (LIBGPAC.gpac_worker==false) will_block=true;
+       }
+       //when using vout or compositor in standalone mode, don't use a worker thread since we run through emscripten_main_loop
+       let use_video=false;
+       let has_report = false;
+       for (let i=0; i<args.length; i++) {
+        a = args[i];
+        if (a.includes('vout') || a.includes('-play') || a.includes('-gui')) {
+          use_video=true;
+        } else if (a.includes('compositor')) {
+          if (a.includes('base') || a.includes('gui')) use_video=true;
+        } else if ((LIBGPAC.gpac_worker==false) && (a.startsWith('-step='))) {
+         var val = parseInt(a.substring(6));
+         if (val<0) will_block = true;
+        }
+        else if (a.startsWith('-r')) {
+          has_report = true;
+        }
+        //input file io
+        else if (a=='-ib') {
+          args[i] = '-i';
+          let f = args[i+1];
+          let fio = GFIO.create(f, 1);
+          let wrap_url = fio.gfio_url();
+          args[i+1] = wrap_url;
+          i++;
+        }
+        //output file io
+        else if (a=='-ob') {
+          args[i] = '-o';
+          let f = args[i+1];
+          let fio = GFIO.create(f, 2);
+          let wrap_url = fio.gfio_url();
+          args[i+1] = wrap_url;
+          i++;
+        }
+        //look for automated wrappers $(NAME), create fileIOs and replace names
+        else {
+          let select_start = a.indexOf('$(');
+          let select_end = (select_start>=0) ? a.indexOf(')') : 0;
+          if (select_end) {
+            let hint = a.substring(select_start, select_end+1);
+            let fio = GFIO.create(hint, 0); //can only use this for read mode at the time being
+            let wrap_url = fio.gfio_url();
+            args[i] = a.replace(hint, wrap_url);
+          }
+        }
+       }
+       function run_prompt(cmd) {
+          let args = cmd.split(' ');
+          if (!args.length) return;
+          if (args[0]=='q') {
+            is_custfs=false;
+            if (fsess) {
+              LIBGPAC.fs_del(fsess);
+              fsess=null;
+              LIBGPAC.uninit();
+            }
+            set_status("leaving interactive mode");
+            set_text('');
+            setCommand('');
+            return com_exit();
+          }
+          if (args[0]=='d') {
+            if (!fsess) {
+              defer_mode = !defer_mode;
+              set_status("will use defer linking mode: " + (defer_mode ? "yes" : "no"));
+            }
+            return;
+          }
+          if (args[0]=='l') {
+            logs_val = args[1];
+            return;
+          }
+
+          if (args[0]=='s') {
+            if (args.length>1) {
+              fs_steps = parseInt(args[1]);
+              if (fs_steps==0) fs_steps=1;
+              if (fs_steps<0)
+                set_status("will use blocking mode");
+              else
+                set_status("will use " + fs_steps + " steps per callback");
+            }
+            return;
+          }
+          if (args[0]=='a') {
+            if (args.length<2) return set_status('Invalid add command');
+            if (!fsess) {
+              let flag = 0;
+              if (fs_steps>0) flag |= 1<<2; 
+              if (defer_mode) flag |= (1<<13);
+
+              LIBGPAC.init(0, null);
+              if (logs_val)
+                LIBGPAC.log_set_tools_levels(logs_val, 1);
+              fsess = LIBGPAC.fs_new_defaults(flag);
+              set_status("Creating filter session in " + ((fs_steps<0) ? "" : "non-") + "blocking mode" + (defer_mode ? ' - deferred linking' : '') );
+              if (fs_steps<0) fs_steps=1; //for run_session
+            }
+            if (prev_filter && defer_mode) {
+              LIBGPAC.filter_reconnect_output(prev_filter, null);
+              prev_filter=null;
+            }
+
+            let fdesc = args[1]; 
+            let select_start = fdesc.indexOf('$(');
+            let select_end = (select_start>=0) ? fdesc.indexOf(')') : 0;
+            if (select_end) {
+              let hint = fdesc.substring(select_start, select_end+1);
+              let fio = GFIO.create(hint, 0); //can only use this for read mode at the time being
+              let wrap_url = fio.gfio_url();
+              fdesc = fdesc.replace(hint, wrap_url);
+            }
+
+            const e = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            LIBGPAC.HEAP32.set([0], e/LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            let f;
+            if (fdesc.startsWith('src=')) {
+              fdesc = fdesc.substring(4);
+              f = LIBGPAC.fs_load_source(fsess, fdesc, null, null, e);
+            } else if (fdesc.startsWith('dst=')) {
+              fdesc = fdesc.substring(4);
+              f = LIBGPAC.fs_load_destination(fsess, fdesc, null, null, e);
+            } else {
+              f = LIBGPAC.fs_load_filter(fsess, fdesc, e);
+            }
+            prev_filter = f;
+            let res = LIBGPAC.getValue(e, 'i32');
+            LIBGPAC._free(e);
+            set_status("added filter "+args[1]+ " returned " + res);
+            return;
+          }
+          if (args[0]=='r') {
+            if (!fsess) return set_status('No valid session, add a filter first');
+            animElement.start();
+            run_session();
+            return;
+          }
+          if (args[0]=='c') {
+            if (fsess) {
+              suspend_sess = true;
+              set_status("Suspending session");
+            }
+            return;
+          }
+          if (args[0]=='clear') {
+            if (outputElement) outputElement.innerText = '';
+            return;
+          }
+
+
+          if (args[0]=='p') {
+            let idx=0;
+            let n;
+            if (!fsess) return set_status('No valid session, add a filter first');
+            if (!prev_filter) return set_status('No filter loaded, cannot probe');
+            if (args.length<2) return set_status('No name provided');
+            if (args.length>2) {
+              idx=parseInt(args[1]);
+              n=args[2];
+            } else {
+              n=args[1];
+            }
+            var p_str = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            var res = LIBGPAC.filter_probe_link(prev_filter, idx, n, p_str);
+            if (!res) {
+              var c_str = LIBGPAC.getValue(p_str, "i32");
+              var chain = LIBGPAC.UTF8ToString(c_str);
+              LIBGPAC.free(c_str);
+              set_text('resolved chain from ' + LIBGPAC.filter_get_name(prev_filter) + ' to ' + n + ' is: ' + chain);
+            }
+            LIBGPAC._free(p_str);
+            return set_status(res ? ('Failed'+res) : 'OK');
+          }
+          if (args[0]=='l') {
+            let idx=-1;
+            let n;
+            if (!fsess) return set_status('No valid session, add a filter first');
+            if (!prev_filter) return set_status('No filter loaded, cannot check destinations');
+            if (args.length>1) {
+              idx=parseInt(args[1]);
+            }
+            var p_str = LIBGPAC._malloc(LIBGPAC.HEAP32.BYTES_PER_ELEMENT);
+            var res = LIBGPAC.filter_get_destinations(prev_filter, idx, p_str);
+            if (!res) {
+              var c_str = LIBGPAC.getValue(p_str, "i32");
+              var chain = LIBGPAC.UTF8ToString(c_str);
+              LIBGPAC.free(c_str);
+              set_text('possible destinations for ' + LIBGPAC.filter_get_name(prev_filter) +': ' + chain);
+            }
+            LIBGPAC._free(p_str);
+            return set_status(res ? ('Failed'+res) : 'OK');
+          }
+          if (args[0]=='v') {
+            if (!fsess) return set_status('No valid session, add a filter first');
+            LIBGPAC.fs_print_stats(fsess);
+            LIBGPAC.fs_print_connections(fsess);
+            return;
+          }
+          if (args[0]=='i') {
+            if (!prev_filter) return set_status('No current fiter, add a filter first');
+            txt='Filter ' + LIBGPAC.filter_get_name(prev_filter) + ' PID info:\n';
+
+            let c_i =  LIBGPAC.filter_get_ipid_count(prev_filter);
+            if (c_i) {
+              for (let idx=0; idx<c_i; idx++) {
+                let pid = LIBGPAC.filter_get_ipid(prev_filter, idx);
+                txt+='Input PID ' + (idx+1) + ' Properties:\n';
+                let props = LIBGPAC.filter_pid_get_props(pid);
+                txt+=JSON.stringify(props);
+                txt+='\n\n';
+              }
+            }
+            let c_o =  LIBGPAC.filter_get_opid_count(prev_filter);
+            if (c_o) {
+              for (let idx=0; idx<c_o; idx++) {
+                let pid = LIBGPAC.filter_get_opid(prev_filter, idx);
+                txt+='Output PID ' + (idx+1) + ' Properties:\n';
+                let props = LIBGPAC.filter_pid_get_props(pid);
+                txt+=JSON.stringify(props);
+                txt+='\n\n';
+              }
+            }
+            if (!c_i && !c_o) txt+='No PIDs - run session';
+            set_text(txt);
+            return;
+          }
+
+          set_status("Unknown command "+cmd);
+          
+          let help="Possible commands:\n";
+          help+= "- d: set defer linking mode (default: "+ defer_mode + ")\n";
+          help+= "- s: set number of steps before returning control to JS, use -1 for blocking mode (default: "+ fs_steps + ")\n";
+          help+= "- l LT: set log tools and levels, same syntax as -logs\n";
+          help+= "- a DESC: add filter, use src=URL for source, dst=URL for sinks. $(name) replacement rules are allowed\n";
+          help+= "- r: run or resume session\n";
+          help+= "- c: suspend session while running\n";
+          help+= "- v: view connections and stats\n";
+          help+= "- q: exit custom  mode\n";
+          help+= "\nThe following only apply to the last added filter:\n";
+          help+= "- i: print pid properties\n";
+          help+= "- p [pid_idx=0] DESC: probe resolution from pid with index pid_idx of last added filter to filter description DESC\n";
+          help+= "- l [pid_idx=-1]: list possible destinations for pid of index pid_idx (-1 for all pids) of last added filter\n";
+          help+= "\n";
+          set_text(help);
+       }
+
+
+       let controlElement = document.getElementById('controls');
+       // controlElement.hidden = is_mp4box ? true : false;
+       // controlElement.style.display = is_mp4box ? 'none' : 'inline-block';
+       flushElement.selectedIndex = 0;
+       reportElement.checked = has_report;
+       let fsElement = document.getElementById('fullscreen');
+       fsElement.hidden = use_video ? false : true;
+
+       GPAC.running = true;
+       set_status('Running ' + (is_mp4box ? "MP4Box " : "gpac ") + cmd);
+       animElement.start();
+
+       if (use_video && LIBGPAC.gpac_worker) {
+          LIBGPAC.gpac_worker = false;
+          GPAC.restore_worker = true;
+          //cannot run SDL + main_loop in thread unless for offscreen canvas
+          do_log('Main video output used, disabling worker mode for this run');
+       }
+
+       //our own version of callMain to deal with:
+       //- stack save/restore missing in emscripten callMain
+       //- even if it where there, we may exit aynchronously and can only restore stack on main thread in gpac.on_done
+       function call_gpac() {
+         GPAC.stack = LIBGPAC.stackSave();
+         args.unshift(is_mp4box ? "MP4Box" : "gpac");
+         var argc = args.length;
+         var argv = LIBGPAC.stackAlloc((argc + 1) * 4);
+         var argv_ptr = argv >> 2;
+         args.forEach(arg => {
+          LIBGPAC.HEAP32[argv_ptr++] = LIBGPAC.allocateUTF8OnStack(arg);
+         });
+         LIBGPAC.HEAP32[argv_ptr] = 0;
+
+         try {
+          LIBGPAC["_main"](argc, argv);
+         } catch (e) {
+          //unwind thrown by emscripten main 
+          if (e != 'unwind') {
+            GPAC.on_done();
+            return com_exit('Exception while running - ' + e);
+          }
+         }          
+       };
+
+       if (will_block) {
+          let warn='Worker for main disabled - web page will be blocked!';
+          do_log(warn);
+          set_status(warn);
+          //use setTimeout to have time to display above warning...
+          setTimeout(call_gpac, 1);
+       } else {
+         call_gpac();
+       }
+      }
+      //end of command line processing
+
+      // Include ANSI escape codes convert
+      // @link: https://www.npmjs.com/package/ansi-html
+      // Reference to https://github.com/sindresorhus/ansi-regex
+      var _regANSI = /(?:(?:\u001b\[)|\u009b)(?:(?:[0-9]{1,3})?(?:(?:;[0-9]{0,3})*)?[A-M|f-m])|\u001b[A-M]/
+
+      var _defColors = {
+        reset: ['fff', '000'], // [FOREGROUD_COLOR, BACKGROUND_COLOR]
+        black: '000',
+        red: 'ff0000',
+        green: '209805',
+        yellow: 'e8bf03',
+        blue: '0000ff',
+        magenta: 'ff00ff',
+        cyan: '00ffee',
+        lightgrey: 'f0f0f0',
+        darkgrey: '888'
+      }
+      var _styles = {
+        30: 'black',
+        31: 'red',
+        32: 'green',
+        33: 'yellow',
+        34: 'blue',
+        35: 'magenta',
+        36: 'cyan',
+        37: 'lightgrey'
+      }
+      var _openTags = {
+        '1': 'font-weight:bold', // bold
+        '2': 'opacity:0.5', // dim
+        '3': '<i>', // italic
+        '4': '<u>', // underscore
+        '8': 'display:none', // hidden
+        '9': '<del>' // delete
+      }
+      var _closeTags = {
+        '23': '</i>', // reset italic
+        '24': '</u>', // reset underscore
+        '29': '</del>' // reset delete
+      }
+
+      ;[0, 21, 22, 27, 28, 39, 49].forEach(function (n) {
+        _closeTags[n] = '</span>'
+      })
+
+      /**
+       * Converts text with ANSI color codes to HTML markup.
+       * @param {String} text
+       * @returns {*}
+       */
+      function ansiHTML (text) {
+        // Returns the text if the string has no ANSI escape code.
+        if (!_regANSI.test(text)) {
+          return text
+        }
+
+        // Cache opened sequence.
+        var ansiCodes = []
+        // Replace with markup.
+        var ret = text.replace(/\033\[(\d+)m/g, function (match, seq) {
+          if (seq=='0') {
+              r = '';
+              ansiCodes.forEach( c => {
+                if (c == '3') r+='</i>';
+                else if (c == '4') r+='</b>';
+              });
+              ansiCodes.length=0;
+              return r+'</span>';
+          }
+          var ot = _openTags[seq]
+          if (ot) {
+            // If current sequence has been opened, close it.
+            if (!!~ansiCodes.indexOf(seq)) { // eslint-disable-line no-extra-boolean-cast
+              ansiCodes.pop()
+              return '</span>'
+            }
+            // Open tag.
+            ansiCodes.push(seq)
+            return ot[0] === '<' ? ot : '<span style="' + ot + ';">'
+          }
+
+          var ct = _closeTags[seq]
+          if (ct) {
+            // Pop sequence
+            ansiCodes.pop()
+            return ct
+          }
+          return ''
+        })
+
+        // Make sure tags are closed.
+        var l = ansiCodes.length
+        ;(l > 0) && (ret += Array(l + 1).join('</span>'))
+
+        return ret
+      }
+
+      /**
+       * Customize colors.
+       * @param {Object} colors reference to _defColors
+       */
+      ansiHTML.setColors = function (colors) {
+        if (typeof colors !== 'object') {
+          throw new Error('`colors` parameter must be an Object.')
+        }
+
+        var _finalColors = {}
+        for (var key in _defColors) {
+          var hex = colors.hasOwnProperty(key) ? colors[key] : null
+          if (!hex) {
+            _finalColors[key] = _defColors[key]
+            continue
+          }
+          if ('reset' === key) {
+            if (typeof hex === 'string') {
+              hex = [hex]
+            }
+            if (!Array.isArray(hex) || hex.length === 0 || hex.some(function (h) {
+              return typeof h !== 'string'
+            })) {
+              throw new Error('The value of `' + key + '` property must be an Array and each item could only be a hex string, e.g.: FF0000')
+            }
+            var defHexColor = _defColors[key]
+            if (!hex[0]) {
+              hex[0] = defHexColor[0]
+            }
+            if (hex.length === 1 || !hex[1]) {
+              hex = [hex[0]]
+              hex.push(defHexColor[1])
+            }
+
+            hex = hex.slice(0, 2)
+          } else if (typeof hex !== 'string') {
+            throw new Error('The value of `' + key + '` property must be a hex string, e.g.: FF0000')
+          }
+          _finalColors[key] = hex
+        }
+        _setTags(_finalColors)
+      }
+
+      /**
+       * Reset colors.
+       */
+      ansiHTML.reset = function () {
+        _setTags(_defColors)
+      }
+
+      /**
+       * Expose tags, including open and close.
+       * @type {Object}
+       */
+      ansiHTML.tags = {}
+
+      if (Object.defineProperty) {
+        Object.defineProperty(ansiHTML.tags, 'open', {
+          get: function () { return _openTags }
+        })
+        Object.defineProperty(ansiHTML.tags, 'close', {
+          get: function () { return _closeTags }
+        })
+      } else {
+        ansiHTML.tags.open = _openTags
+        ansiHTML.tags.close = _closeTags
+      }
+
+      function _setTags (colors) {
+        // reset all
+        _openTags['0'] = 'font-weight:normal;opacity:1;color:#' + colors.reset[0] + ';background:#' + colors.reset[1]
+        // inverse
+        _openTags['7'] = 'color:#' + colors.reset[1] + ';background:#' + colors.reset[0]
+        // dark grey
+        _openTags['90'] = 'color:#' + colors.darkgrey
+
+        for (var code in _styles) {
+          var color = _styles[code]
+          var oriColor = colors[color] || '000'
+          _openTags[code] = 'color:#' + oriColor
+          code = parseInt(code)
+          _openTags[(code + 10).toString()] = 'background:#' + oriColor
+        }
+      }
+
+      ansiHTML.reset()
+
+      //
+      //Until end of this script: GFIO wrapper
+      //
+      //This demo comes with a GF_FileIO wrapper for 
+      // - Emscripten FS file access
+      // - User file system access
+      // - protocols supported by Fetch() API
+      //
+      // It is not optimized but can help you design your own fileIOs for custom GPAC@WASM integration
+
+      const consolePrefix = () => {
+        return "<span class=\"cwd\">~"+FS.cwd()+"</span>$ ";
+      };
+
+      //check support for fetch upload using readable stream
+      const supportsRequestStreams = (() => {
+        let duplexAccessed = false;
+
+        const hasContentType = new Request('', {
+          body: new ReadableStream(),
+          method: 'POST',
+          get duplex() {
+            duplexAccessed = true;
+            return 'half';
+          },
+        }).headers.has('Content-Type');
+
+        return duplexAccessed && !hasContentType;
+      })();
+
+      //our GFIO object
+      var GFIO = {
+        //all defined GF_IOs
+        dict: [],
+        //constants used by gf_fileio_set_write_state
+        WRITE_READY: 0,
+        WRITE_WAIT: 1,
+        WRITE_CANCEL: 2,
+        //default method used for upload
+        UPLOAD_METHOD: 'POST',
+        //allow defer upload of file (aggregates to mem then basic POST/PUT or ar->blob->download)
+        ALLOW_WRITE_DEFER: true,
+
+        //open for read a file on user disk (input['type']='file')
+        _open_read_local: function (fio) {
+          let input = document.createElement('input');
+          input['type'] = 'file';
+
+          //no cancel handler, set a timer to 20s
+          fio._timer = window.setTimeout( ()=> {
+            if (!fio._select) return;
+            set_status('timeout on file selection for ' + fio.url);
+            fio._select = 2;
+            fio._timer = null;
+          }, 20000);
+
+          input.addEventListener("change", e => {
+            set_status('');
+            if (e.target.files[0]) {
+              fio._file = e.target.files[0];
+              fio._select = 0;
+              fio._pos = 0;
+              fio._size = fio._file.size;
+              //if more than 1G, load by 10M blocks
+              if ((fio._size>1000000000) && (fio._max_bsize<10000000)) fio._max_bsize = 10000000;
+              //if more than 1m, load by 500k blocks
+              else if ((fio._size>1000000) && (fio._max_bsize<500000)) fio._max_bsize = 500000;
+
+              GFIO.set_stats(fio._gfio, BigInt(0), BigInt(fio._size), 2, 0);
+              GFIO._load_block(fio);
+            } else {
+              _fio._select = 2;
+            }
+            window.clearTimeout(fio._timer);
+            fio._timer = null;
+          });
+          input.click();
+          set_status('Select input file for ' + fio.url);
+          return LIBGPAC.OK;
+        },
+
+        //open for write a file on user disk - showSaveFilePicker->createWitable, or blob->download if not supported
+        _open_write_local: function (fio) {
+          if (typeof window.showSaveFilePicker == 'undefined') {
+            if (GFIO.ALLOW_WRITE_DEFER) {
+              fio._defer_write = new Uint8Array();
+              fio._select = 0;
+              return LIBGPAC.OK;
+            }
+            do_log_err('File System Access API not supported');
+            return LIBGPAC.NOT_SUPPORTED;
+          }
+          //create file writer
+          GFIO.set_ready(fio._gfio, GFIO.WRITE_WAIT);
+          set_status('Select output file for ' + fio.url);
+          fio._writer = null;
+          const options = { suggestedName: fio.url, types: [ { description: fio.url, accept: { '*/*': [], } } ] };
+          window.showSaveFilePicker(options).then( filep => {
+            return filep.createWritable();
+          }).then( writer => {
+            fio._writer = writer;
+            fio._select = 0;
+            GFIO.set_ready(fio._gfio, GFIO.WRITE_READY);
+          }).catch(val => {
+              GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
+              fio._select = 2;
+          });
+          return LIBGPAC.OK;
+        },
+
+        //open a remote file (fetch)
+        _open_read_remote: function (fio) {
+          let res = LIBGPAC.OK;
+          fio._controller = new AbortController();
+          let options = {
+            signal: fio._controller.signal,
+            mode: 'no-cors',
+          };
+          options.headers = {};
+          if (fio._pos) {
+            options.headers['range'] = 'bytes='+ fio._pos+'-';
+          }
+          options.headers['cross-origin-embedder-policy'] = 'credentialless';
+          options.headers['cross-origin-resource-policy'] = 'cross-origin';
+
+          GFIO.set_stats(fio._gfio, BigInt(0), BigInt(0), 2, 0);
+          fetch(fio.url, options).then((response) => {
+            if (response.ok) {
+              fio._select=0;
+              fio._fetch_wait=true;
+              fio._fetch = response.body.getReader();
+              fio._size = response.headers.get('Content-Length') || 0;
+              GFIO.set_stats(fio._gfio, BigInt(0), BigInt(fio._size), 2, 0);
+            } else {
+              GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
+              fio._select=2;
+            }
+          })
+          .catch( (e) => {
+            fio._select=2;
+            GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
+            res = LIBGPAC.URL_ERROR;
+            do_log_err('Fetch error: ' + e);
+          });
+          return res;
+        },
+
+        //write a remote file (fetch with readableStream if supported or fetch at end of file)
+        _open_write_remote: function (fio) {
+          let res = LIBGPAC.OK;
+          fio._defer_write = null;
+          if (!GFIO.supportsRequestStreams) {
+            if (GFIO.ALLOW_WRITE_DEFER) {
+              fio._defer_write = new Uint8Array();
+              fio._select=0;
+              return LIBGPAC.OK;
+            }
+            do_log_err('Fetch upload with readable streams not supported');
+            return LIBGPAC.NOT_SUPPORTED;
+          }
+          fio._controller = new AbortController();
+          GFIO.set_ready(fio._gfio, GFIO.WRITE_WAIT);
+          fio._upstream_dst=null;
+          fio._upstream = new ReadableStream({
+            start(controller) {
+              fio._select=0;
+              fio._upstream_dst = controller;
+              GFIO.set_ready(fio._gfio, GFIO.WRITE_READY);
+            },
+            pull(controller) {
+              fio._upstream_dst = controller;
+            },
+            cancel() {
+              GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
+            }
+          });
+          let options = {
+            method: GFIO.UPLOAD_METHOD,
+            signal: fio._controller.signal,
+            body: fio._upstream,
+            duplex: 'half',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            AllowHTTP1ForStreamingUpload: true
+          };
+          if (fio._pos) {
+            options.headers = {
+              'range': 'bytes='+ fio._pos+'-'
+            };
+          }
+
+          fetch(fio.url, options).then((response) => {
+            fio._select=0;
+            fio._size = fio._pos;
+            do_log('PUT got response ' + response.ok);
+          })
+          .catch( (e) => {
+            if (GFIO.ALLOW_WRITE_DEFER) {
+              fio._defer_write = new Uint8Array();
+              fio._select=0;
+              res = LIBGPAC.OK;
+              fio._upstream = null;
+              fio._upstream_dst = null;
+              fio._controller = null;
+              GFIO.set_ready(fio._gfio, GFIO.WRITE_READY);
+            } else {
+              GFIO.set_ready(fio._gfio, GFIO.WRITE_CANCEL);
+              res = LIBGPAC.NOT_SUPPORTED;
+            }
+          });
+          return res;
+        },
+
+        _close: function(fio) {
+          if (fio._stream) FS.close(fio._stream);
+          if (fio._writer) fio._writer.close();
+          if (fio._fetch) {
+              fio._controller.abort();
+              fio._controller = null;
+          }
+          if (fio._defer_write) {
+            if ((fio.url.indexOf('://')>0) && !fio.url.startsWith('file://')) {
+              let options = {
+                method: GFIO.UPLOAD_METHOD,
+                body: fio._defer_write,
+                headers: { 'Content-Type': 'application/octet-stream' },
+              };
+              if (fio._pos&&0) {
+                options.headers = {
+                  'range': 'bytes='+ fio._pos+'-'
+                };
+              }
+              fetch(fio.url, options).then((response) => {
+                if (!response.ok) do_log('Error uploading ' + fio.url);
+              })
+              .catch( (e) => {
+                do_log('Error uploading ' + fio.url + ': ' + e);
+              });
+            } else {
+              var blob = new Blob([fio._defer_write.buffer], {type: 'application/octet-stream'});
+              var a = document.createElement("a");
+              var blob_url = window.URL.createObjectURL(blob);
+              a.href = blob_url;
+              a.download = fio.url;
+              a.click();
+              window.URL.revokeObjectURL(blob_url);
+            }
+          }
+          fio._stream = null;
+          fio._writer = null;
+          fio._fetch = null;
+          fio._defer_write = null;
+          fio._upstream = null;
+          fio._pos = 0;
+        },
+
+        //open callback from libgpac for GF_FileIO objects
+        open: function(fileio_ref, _url, _mode, out_e) {
+          let fio = GFIO.to_obj(fileio_ref);
+          let url = _url ? LIBGPAC.UTF8ToString(_url) : null;
+          let mode = LIBGPAC.UTF8ToString(_mode);
+
+          //close file
+          if (mode=='close') {
+            GFIO._close(fio);
+            LIBGPAC.setValue(out_e, LIBGPAC.OK, 'i32');
+            return 0;
+          }
+          //checks if file exists - we only probe for EM's FS for now
+          if (mode=='probe') {
+            let rurl = url.startsWith('gfio://') ? fio.url : url;
+            try {
+              let stats = FS.stat(rurl);
+              LIBGPAC.setValue(out_e, LIBGPAC.OK, 'i32');
+            } catch (e) {
+              LIBGPAC.setValue(out_e, LIBGPAC.URL_ERROR, 'i32');
+            }
+            return 0;
+          }
+          //add ref to this object 
+          if (mode=='ref') {
+            fio._refs++;
+            return fileio_ref;
+          }
+          //remove ref from this object 
+          if (mode=='unref') {
+            if (!fio._refs) return null;
+            fio._refs--;
+            if (fio._refs) return fileio_ref;
+            url = null;
+          }
+          //special mode URL to create a new GFIO from parent file name but without creating the file (used in dashing)
+          if (mode=="url") {
+            if (!url) return null;
+            let _newurl = LIBGPAC.url_cat(fio.url, url);
+            var new_gfio = GFIO.create( LIBGPAC.UTF8ToString(_newurl), 0);
+            LIBGPAC.free(newurl);
+            return new_gfio._gfio;
+          }
+          //no URL, close file
+          if (!url) {
+            GFIO._close(fio);
+            //TODO, cleanup of unused gfio refs ?
+            //if (!fio._refs) {}
+            return null;
+          }
+
+          mode = mode.replace('b', '');
+          mode = mode.replace('t', '');
+          mode = mode.replace('+', '');
+          //we don't support append modes
+          if ((mode != "r") && (mode != "w")) {
+            LIBGPAC.setValue(out_e, LIBGPAC.NOT_SUPPORTED, 'i32');
+            set_status('Unsupported open mode ' + mode);
+            return null;
+          }
+
+          //file handle not opened, we can use the current gfio
+          if (!fio._stream && !fio._file && !fio._fetch && !fio._upstream
+              && (url.startsWith("gfio://") || (url == fio.url)) 
+          ) {
+            var res=LIBGPAC.OK;
+            fio._pos = 0;
+            // URL is NOT an EM's FS file
+            if (fio._wrap_io) {
+                fio._select = 1;
+                if (mode=='r') {
+                  if ((fio.url.indexOf('://')>0) && !fio.url.startsWith('file://')) {
+                    res = GFIO._open_read_remote(fio);
+                  } else {
+                    res = GFIO._open_read_local(fio);
+                  }
+                }
+                else if (mode=='w') {
+                  if ((fio.url.indexOf('://')>0) && !fio.url.startsWith('file://')) {
+                    res = GFIO._open_write_remote(fio);
+                  } else {
+                    res = GFIO._open_write_local(fio);
+                  }
+                }
+            }
+            // URL is an EM's FS file
+            else {
+              try {
+                fio._stream = FS.open(fio.url, mode);
+                if (mode.startsWith('r')) {
+                  let stats = FS.stat(fio.url);
+                  fio._size = stats.size;
+                  GFIO.set_stats(fio._gfio, BigInt(stats.size), BigInt(stats.size), 1, 0);
+                }
+              } catch (e) {
+                res = LIBGPAC.URL_ERROR;
+              }
+            }
+            LIBGPAC.setValue(out_e, res, 'i32');
+            if (res != LIBGPAC.OK) return null;
+            //return ourself
+            return fio._gfio;
+          }
+
+          //file handle already open (file is being opened twice), create a new gfio or check if we have already created one
+          //we only support this for local files 
+          if (!fio._stream) {
+            LIBGPAC.setValue(out_e, LIBGPAC.NOT_SUPPORTED, 'i32');
+            return null;
+          }
+          let fio_ref = fio;
+          fio = null;
+          let no_concatenate=false;
+          GFIO.dict.forEach(a_gfio => {
+            if (fio) return;
+            if (a_gfio.url != url) return;
+            if (a_gfio._stream) {
+              no_concatenate = true;
+            } else {
+              fio = a_gfio;
+            }
+          });
+
+          if (!fio) {
+            let _path = null;
+            let path = null;
+            if (!url.startsWith("gfio://")) {
+              if (no_concatenate) {
+                path = url;
+              } else {
+                _path = LIBGPAC.url_cat(fio_ref.url, url);
+                path = LIBGPAC.UTF8ToString(_path);
+              }
+            } else {
+              path = fio_ref.url;
+            }
+            let res=LIBGPAC.OK;
+            try {
+              fio = GFIO.create(path, 0);
+            } catch (e) {
+              res = LIBGPAC.OUT_OF_MEM;
+            }
+            if (_path) LIBGPAC.free(_path);
+            LIBGPAC.setValue(out_e, res, 'i32');
+            if (res) return null;
+          }
+          try {
+            if (!url.startsWith("gfio://")) {
+              fio._stream = FS.open(fio.url, mode);
+            } else {
+              fio._stream = FS.open(fio_ref.url, mode);
+            }
+          } catch (e) {
+            //todo cleanup of old gfios
+            LIBGPAC.setValue(out_e, LIBGPAC.IO_ERR, 'i32');
+            return null;
+          }
+
+          if (mode.startsWith('r')) {
+            let stats = FS.stat(fio.url);
+            fio._size = stats.size;
+            GFIO.set_stats(fio._gfio, BigInt(stats.size), BigInt(stats.size), 1, 0);
+          }
+          return fio._gfio;
+        },
+        //seek callback from libgpac
+        seek: function(fileio, offset, whence) {
+          let fio = GFIO.to_obj(fileio);
+          if (fio._select==1) return LIBGPAC.OK;
+          if (fio._defer_write) return LIBGPAC.NOT_SUPPORTED;
+
+          if (fio._file || fio._writer || fio._fetch) {
+            let abspos = Number(offset);
+            if (whence==1) abspos += fio._pos;
+            else if (whence==2) abspos = fio._size;
+
+            if (fio._writer) {
+              fio._pos = abspos;
+              fio._writer.seek(abspos);
+              return LIBGPAC.OK;
+            }
+
+            if (abspos != fio._pos) {
+              fio._discard_next = true;
+              fio._pos = abspos;
+              fio._block_pos_in_file = abspos;
+            }
+            return LIBGPAC.OK;
+          }
+          try {
+             fio._pos = FS.llseek(fio._stream, Number(offset), whence);
+          } catch (e) {
+            return LIBGPAC.IO_ERR;
+          }
+          return LIBGPAC.OK;
+        },
+        //read callback from libgpac
+        read: function(fileio, buffer, bytes) {
+          let fio = GFIO.to_obj(fileio);
+          //IO being created, wait
+          if (fio._select) return 0;
+
+          //file system stream or fetch
+          if (fio._file || fio._fetch) {
+            let load_next=false;
+            if (bytes>fio._max_bsize) fio._max_bsize = bytes;
+            if (!fio._ab) {
+              //fetch
+              if (fio._fetch_wait) {
+                fio._fetch_wait = false;
+                fio._fetch.read().then( block => {
+                  if (block.done) {
+                    //done, force size in case it was not set
+                    fio._size = fio._pos;
+                  } else {
+                    fio._ab = block.value; fio._block_pos = 0;
+                  }
+                });
+              }
+              return 0;
+            }
+
+            if (fio._discard_next) {
+              fio._ab = null;
+              fio._block_pos = 0;
+              fio._discard_next = 0;
+              if (fio._fetch) {
+                fio._controller.abort();
+                fio._controller = null;
+                GFIO._open_read_remote(fio);
+              } else {
+                GFIO._load_block(fio);
+              }
+              return 0;
+            }
+            let remain = fio._ab.byteLength - fio._block_pos;
+            if (bytes > remain) {
+              load_next = true;
+              bytes = remain;
+            }
+
+            //copy array buffer
+            let src;
+            if (fio._fetch)
+              src = fio._ab.subarray(fio._block_pos, fio._block_pos+bytes);
+            else
+              src = new Uint8Array(fio._ab, fio._block_pos, bytes);
+
+            let dst = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
+            dst.set(src);
+
+            fio._pos += bytes;
+            if (load_next) {
+              fio._block_pos_in_file += fio._ab.byteLength;
+              fio._ab = null;
+              fio._block_pos = 0;
+              if (fio._file && (fio._pos < fio._size)) {
+                GFIO._load_block(fio);
+              }
+              if (fio._fetch) fio._fetch_wait = true;
+            } else {
+              fio._block_pos += bytes;
+            }
+            return bytes;
+          }
+          //Emscripten's FS
+          if (!fio._stream) return 0;
+          if (bytes + fio._pos > fio._size) {
+            bytes = fio._size - fio._pos;
+          }
+          fio._pos += bytes;
+          let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
+          FS.read(fio._stream, ab, 0, bytes);
+          return bytes;
+        },
+        //write callback from libgpac
+        write: function(fileio, buffer, bytes) {
+          let fio = GFIO.to_obj(fileio);
+          //IO being created, wait
+          if (fio._select) return 0;
+
+          //defer write, cat arrays
+          if (fio._defer_write) {
+            let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
+            let new_st = new Uint8Array(bytes + fio._defer_write.length);
+            new_st.set(fio._defer_write);
+            new_st.set(ab, fio._defer_write.length);
+            fio._defer_write = new_st;
+            return bytes;
+          }
+          //writable stream API
+          if (fio._writer) {
+            let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
+            fio._writer.write( new Uint8Array(ab) );
+            return bytes;
+          }
+          //fetch+PUT+readableStream API
+          if (fio._upstream) {
+            let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
+            fio._upstream_dst.enqueue(ab);
+            return bytes;
+          }
+          //EM's FS
+          if (!fio._stream) return 0;
+          fio._pos+=bytes;
+          if (fio._size < fio._pos) fio._size = fio._pos;
+          let ab = new Uint8Array(LIBGPAC.HEAPU8.buffer, buffer, bytes);
+          FS.write(fio._stream, ab, 0, bytes);
+          return bytes;
+        },
+        //tell callback from libgpac - we maintain position in resource ourself, so tell/eof are valid for all methods 
+        tell: function(fileio) {
+          let fio = GFIO.to_obj(fileio);
+          if (fio._select) return BigInt(0);
+          return BigInt(fio._pos);
+        },
+        //eof callback from libgpac
+        eof: function(fileio) {
+          let fio = GFIO.to_obj(fileio);
+          if (fio._select==2) return 1;
+          if (fio._select) return 0;
+          if (fio._fetch && !fio._size) return 0;
+          if (fio._pos == fio._size) return 1;
+          return 0;
+        },
+        //get fileIO object from its userdata - for now we just use an index in the global dict that we reset upon gpac.on_done
+        to_obj: function(fileio) {
+          let udta = this.get_udta(fileio);
+          return this.dict[udta];
+        },
+        //create file IO from URL and mode (0: r/w, 1: r, 2: w), used by command line parser
+        create: function (url, mode) {
+          if (typeof this.wrap_new == 'undefined') {
+            //gf_fileio_new(url, udta, open, seek, read, write, tell, eof, printf)
+            this.wrap_new = LIBGPAC.cwrap('gf_fileio_new', 'number', ['string', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']);
+            this.wrap_del = LIBGPAC.cwrap('gf_fileio_del', '', ['number']);
+            this.get_udta = LIBGPAC.cwrap('gf_fileio_get_udta', 'number', ['number']);
+            this.get_url = LIBGPAC.cwrap('gf_fileio_url', 'string', ['number']);
+            this.tag_main = LIBGPAC.cwrap('gf_fileio_tag_main_thread', 'number', ['number']);
+            this.set_stats = LIBGPAC.cwrap('gf_fileio_set_stats', null, ['number', 'bigint', 'bigint', 'boolean', 'number']);
+            this.set_ready = LIBGPAC.cwrap('gf_fileio_set_write_state', null, ['number', 'number']);
+
+            //create function pointers
+            //
+            this._pf_open = LIBGPAC.addFunction(this.open, 'iiiii');
+            this._pf_seek = LIBGPAC.addFunction(this.seek, 'iiji');
+            this._pf_read = LIBGPAC.addFunction(this.read, 'iiii');
+            this._pf_write = LIBGPAC.addFunction(this.write, 'iiii');
+            this._pf_tell = LIBGPAC.addFunction(this.tell, 'ji');
+            this._pf_eof = LIBGPAC.addFunction(this.eof, 'ii');
+          }
+
+          let wrap_io = false;
+          if (url.startsWith('$(')) {
+            let select_end = url.indexOf(')');
+            url = url.substring(2, select_end);
+            wrap_io = true;
+          }
+
+          let fio = {
+            udta: this.dict.length,
+            url: url,
+            _wrap_io: wrap_io,
+            _pos: 0,
+            _size: 0,
+            _stream: null, //FS.open stream object
+            _file: null, //fileSelector file object
+            _refs: 0,
+            _select: 0,
+            _block_pos_in_file: 0,
+            _block_pos: 0, //amount of bytes read from block
+            _ab: null,
+            _max_bsize: GPAC.read_block_size, //min size, will grow to block_size of fin filter
+            _discard_next: null,
+            _timer: null,
+            _writer: null,
+            _fetch: null,
+            _fetch_wait: null,
+            gfio_url: function() {
+              return GFIO.get_url(fio._gfio);
+            }
+          };
+          this.dict.push(fio);
+          fio._gfio = this.wrap_new(url, fio.udta, this._pf_open, this._pf_seek, (mode==2) ? 0 : this._pf_read, (mode==1) ? 0 : this._pf_write, this._pf_tell, this._pf_eof, 0);
+          //only run gfio on main thread ?
+          this.tag_main(fio._gfio);
+          return fio;
+        },
+        //for file system read, loads next block from file
+        _load_block: function(fio) {
+          let max_bsize = fio._max_bsize;
+          let bsize = (fio._block_pos_in_file + max_bsize > fio._size) ? (fio._size - fio._block_pos_in_file) : max_bsize;
+          let blob = fio._file.slice(fio._block_pos_in_file, fio._block_pos_in_file + bsize);
+          let read = new FileReader();
+          read.onload = function(evt) {
+            fio._ab = evt.target.result;
+          };
+          read.readAsArrayBuffer(blob);
+        }
+      };
+  </script> 
+
+
     <!-- emscriptem module load -->
     <script type='text/javascript'>
 
@@ -1918,6 +2239,7 @@
       {
         let gpac_has_threads = LIBGPAC.cwrap('gpac_has_threads', 'number', []);
         _lib.has_threads = gpac_has_threads();
+        _lib.in_logs = false;
         //error codes
         _lib.SCRIPT_INFO = 3;
         _lib.PENDING_PACKET = 2;
@@ -2042,18 +2364,8 @@
           GFIO.dict = [];
 
           animElement.stop();
-          let controlsElement = document.getElementById('controls');
-          controlsElement.style.display = 'none';
-/*
-          let abortElement = document.getElementById('abort');
-          abortElement.hidden = true;
-          let repElement = document.getElementById('reports');
-          repElement.hidden = true;
-          let fsElement = document.getElementById('fullscreen');
-          fsElement.hidden = true;
-*/
-          var cmdElement = document.getElementById('cmd');
           cmdElement.readonly = false;
+
           //restore emscripten stack
           if (GPAC.stack != null) {
             var stack_init = GPAC.stack;
@@ -2072,18 +2384,42 @@
         restore_worker: false,
         read_block_size: 10000
       };
+      
+      function displayStatus(text, busy = false, progress = null){
+        statusElement.innerHTML = text;
+        progressTxt.nodeValue = progress !== null ? `${Math.floor(val)} %` : '';
+        if (busy){
+          animElement.start();
+        } else {
+          animElement.stop();
+        }
+      }
 
-      var LIBGPAC = {
+      function check_threading() {
+        const threaded = LIBGPAC.has_threads;
+        const threadedOnly = [...document.getElementsByClassName('threaded')];
+        threadedOnly.forEach(el => el.hidden = !threaded);
+        const thStatus = document.getElementById('threading_status');
+
+        threadingElement.checked = threaded;
+        if (window.location.href.indexOf('.gpac.io')<0) {
+          threadingElement.disabled = true;
+        } else {
+          threadingElement.onchange = () => {
+            const hostname = threaded ? 'wasm.gpac.io' : 'wasmth.gpac.io';
+            window.location.href = `https://${hostname}/`;
+            console.log('Reloading to ' + window.location.href);
+          }
+        }
+      }
+      const LIBGPAC = {
         preRun: [
-//          function() {
-//            LIBGPAC.ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "#canvas";
-//          }
+          // function() { LIBGPAC.ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "#canvas"; }
         ],
         postRun: [
         ],
         print: (function() {
-          var element = document.getElementById('output');
-          if (element) element.innerHTML = ''; // clear browser cache
+          if (outputElement) outputElement.innerHTML = ''; // clear browser cache
           return function(text) {
             if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
             // These replacements are necessary if you render to raw HTML
@@ -2108,15 +2444,17 @@
 
             if (GPAC.no_log)
               console.log(text);
-            else if (element) {
-              element.innerHTML += text + "<br>";
-              element.scrollTop = element.scrollHeight; // focus on bottom
+            else if (outputElement) {
+              outputElement.innerHTML += text + "<br>";
+              outputElement.scrollTop = outputElement.scrollHeight; // focus on bottom
             }
           };
         })(),
         printErr: function(text) {
-          //console.log(text);
-          LIBGPAC.print(text);
+          if (LIBGPAC.in_logs)
+            console.log(text);
+          else
+            LIBGPAC.print(text);
         },
 
         canvas: (function() {
@@ -2137,17 +2475,16 @@
           if (m && now - LIBGPAC.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
           LIBGPAC.setStatus.last.time = now;
           LIBGPAC.setStatus.last.text = text;
-          if (m) {
+          
+          const busy = !!m;
+          let progress = null;
+          if (busy) {
             text = m[1];
-            let val = parseInt(m[2])*100 / parseInt(m[4]);
-            progressTxt.nodeValue = '' + Math.floor(val) + ' %';
-            animElement.start();
-          } else {
-            progressTxt.nodeValue = '';
-            animElement.stop();
+            progress = parseInt(m[2])*100 / parseInt(m[4]);
           }
-          statusElement.innerHTML = text;
+          displayStatus(text, busy, progress);
         },
+
         totalDependencies: 0,
         monitorRunDependencies: function(left) {
           this.totalDependencies = Math.max(this.totalDependencies, left);
@@ -2161,12 +2498,6 @@
             gpac_em_sig_handler(value);
           };
 
-          var element = document.getElementById('header');
-          var text = element.innerHTML;
-          text += "\nversion " + LIBGPAC.version();;
-          element.innerHTML = text;
-
-          // disable some shortcuts
           document.addEventListener("keydown", (event) => {
             if (event.ctrlKey) {
               switch (event.keyCode) {
@@ -2186,9 +2517,12 @@
             if (arguments.length) { 
               err('Failed to sync IDBFS: ' + arguments[0] + ' - will use Emscripten $HOME for config');
             } else {
-              load_history();              
+              load_history();
             }
           });
+          check_threading();
+
+          onGpacReady();
         },
         //do not run until we have something to run
         noInitialRun: true,
@@ -2205,23 +2539,22 @@
         //set console function called by gpac_main
         //code is 1 for console clear, 2 for console save and 3 for console restore (color codes are not forwarded)
         gpac_set_console: function(code) {
-          var element = document.getElementById('output');
-          if (!element) return;
+          if (!outputElement) return;
           switch (code) {
           //clear
           case 1:
-            element.value = '';
+            outputElement.value = '';
             return;
           //save
           case 2:
             if (console_bck.length) return;
-            console_bck = element.value;
-            element.value = '';
+            console_bck = outputElement.value;
+            outputElement.value = '';
             return;
           //restore
           case 3:
             if (!console_bck) return;
-            element.value = console_bck;
+            outputElement.value = console_bck;
             console_bck = '';
             return;
           }
@@ -2236,25 +2569,28 @@
         gpac_extra_headers: {}
       };
 
-      LIBGPAC.setStatus('Downloading...');
+      displayStatus('Downloading...', true);
+
       window.onerror = function(event) {
         // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
-        LIBGPAC.setStatus('Exception thrown, see JavaScript console');
-        animElement.endElement();
-        animElement.started=false;
-        LIBGPAC.setStatus = function(text) {
-          if (text) console.error('[post-exception status] ' + text);
-        };
+        displayStatus('Exception thrown, see JavaScript console');
+        if (LIBGPAC){
+          LIBGPAC.setStatus = function(text) {
+            if (text) console.error('[post-exception status] ' + text);
+          };
+        }
       };
     </script>
 
     <!-- load module - default emscripten compil is with MODULARIZE and export name "libgpac" --> 
     <script async type="text/javascript" src="gpac.js"></script>
     <script>
-    window.addEventListener('load', function() {
-      libgpac(LIBGPAC);
-    });
+      window.addEventListener('load', function() {
+        libgpac(LIBGPAC);
+
+      });
     </script>
+
   </body>
 </html>
 

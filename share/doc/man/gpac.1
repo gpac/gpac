@@ -23,11 +23,11 @@ FILTER: a single filter declaration (e.g., -i file, -o dump, inspect, ...), see 
 .br
   - an option using -- indicates a global filter or meta-filter (e.g. FFMPEG) option, e.g. --block_size=1000 or --profile=Baseline (see gpac -h doc)
 .br
-  
+
 .br
-Filter declaration order may impact the link resolver which will try linking in declaration order. Most of the time for simple graphs, this has no impact. However, for complex graphs with no link declarations, this can lead to different results.  
+Filter declaration order may impact the link resolver which will try linking in declaration order. Most of the time for simple graphs, this has no impact. However, for complex graphs with no link declarations, this can lead to different results.
 .br
-Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.  
+Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.
 .br
 Boolean values do not need any value specified. Other types shall be formatted as opt=val, except .I -i, -src, .I -o, -dst and .I -h options.
 .br
@@ -172,7 +172,7 @@ test step mode in non-blocking session
 .TP
 .B \-h,-help,-ha,-hx,-hh (string)
 .br
-print help. Use -help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all.  
+print help. Use -help or -h for basic options, -ha for advanced options, -hx for expert options and -hh for all.
 .br
 Note: The @ character can be used in place of the * character. String parameter can be:
 .br
@@ -219,6 +219,8 @@ Note: The @ character can be used in place of the * character. String parameter 
 * links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)
 .br
 * links FNAME: print sources and sinks for filter FNAME (either builtin or JS filter)
+.br
+* defer: print defer mode help
 .br
 * FNAME: print filter FNAME info (multiple FNAME can be given)
 .br
@@ -297,11 +299,11 @@ setup credentials as used by servers
 .br
 
 .br
-  
+
 .br
 The following libgpac core options allow customizing the filter session:
 .br
-  
+
 .br
 .TP
 .B \-dbg-edges
@@ -497,7 +499,7 @@ Example
 .br
 
 .br
-The command gpac plist f1 f2 f3 expands to gpac aout vout flist:srcs="f1,f2,f3"  
+The command gpac plist f1 f2 f3 expands to gpac aout vout flist:srcs="f1,f2,f3"
 .br
 
 .br
@@ -720,7 +722,7 @@ Example
 .br
 This is equivalent to specifying -o dump.264:profile=Baseline.
 .br
-  
+
 .br
 For both syntaxes, it is possible to specify the filter registry name of the option, using --FNAME:OPTNAME=VAL or --FNAME@OPTNAME=VAL.
 .br
@@ -1336,13 +1338,13 @@ log UTC time in ms before each log line except for app tool
 .TP
 .B \-logs (string)
 .br
-set log tools and levels.  
+set log tools and levels.
 .br
-  
+
 .br
-You can independently log different tools involved in a session.  
+You can independently log different tools involved in a session.
 .br
-log_args is formatted as a colon (':') separated list of toolX[:toolZ]@levelX  
+log_args is formatted as a colon (':') separated list of toolX[:toolZ]@levelX
 .br
 levelX can be one of:
 .br
@@ -1412,11 +1414,11 @@ toolX can be one of:
 .br
 * rti: run-time stats of compositor
 .br
-* all: all tools logged - other tools can be specified afterwards.  
+* all: all tools logged - other tools can be specified afterwards.
 .br
-The special keyword ncl can be set to disable color logs.  
+The special keyword ncl can be set to disable color logs.
 .br
-The special keyword strict can be set to exit at first error.  
+The special keyword strict can be set to exit at first error.
 .br
 
 .br
@@ -1445,11 +1447,11 @@ Filters are configurable processing units consuming and producing data packets. 
 .br
 Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run, unless .I -full-link is set.
 .br
-  
+
 .br
 Each output PID carries a set of properties describing the data it delivers (e.g. width, height, codec, ...). Properties can be built-in (see gpac -h props ), or user-defined. Each PID tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (e.g. unload a video decoder when switching from compressed to uncompressed sources).
 .br
-  
+
 .br
 Each filter exposes a set of argument to configure itself, using property types and values described as strings formatted with separators. This help is given with default separator sets :=#,@ to specify filters, properties and options. Use .I -seps to change them.
 .br
@@ -1476,7 +1478,7 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
   * `file@FILE`: load string from local FILE (opened in binary mode).
 .br
-  * `bxml@FILE`: binarize XML from local FILE and set property type to data - see https://wiki.gpac.io/NHML-Format.
+  * `bxml@FILE`: binarize XML from local FILE and set property type to data - see https://wiki.gpac.io/xmlformats/NHML-Format.
 .br
 * data: formatted as:
 .br
@@ -1486,7 +1488,7 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
   * `file@FILE`: load data from local FILE (opened in binary mode).
 .br
-  * `bxml@FILE`: binarize XML from local FILE - see https://wiki.gpac.io/NHML-Format.
+  * `bxml@FILE`: binarize XML from local FILE - see https://wiki.gpac.io/xmlformats/NHML-Format.
 .br
   * `b64@DATA`: load data from base-64 encoded DATA.
 .br
@@ -1517,9 +1519,9 @@ Each filter is declared by its name, with optional filter arguments appended as 
 .br
 
 .br
-  
+
 .br
-When string parameters are used (e.g. URLs), it is recommended to escape the string using the keyword gpac.  
+When string parameters are used (e.g. URLs), it is recommended to escape the string using the keyword gpac.
 .br
 Example
 .br
@@ -1571,7 +1573,7 @@ filter::opt1=UDP://IP:PORT/:someopt=VAL::opt2=VAL2
 .br
 This will pass UDP://IP:PORT/:someopt=VAL to opt1 without inspecting it, and VAL2 to opt2.
 .br
-  
+
 .br
 .SS Source and Sink filters
 .br
@@ -2143,19 +2145,19 @@ gpac -i file.mp4 -o file.aac:OPTFOO:gfopt:OPTBAR -o file.264
 .br
 This will warn if OPTFOO is not consumed, but will not track OPTBAR.
 .br
-  
+
 .br
 A filter may be assigned a name (for inspection purposes, not inherited) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
 .br
-  
+
 .br
 A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution. Tags are not inherited, therefore dynamically loaded filters never have a tag.
 .br
-  
+
 .br
 A filter may also be assigned an inherited tag (any string) using :ITAG=name option. Such tags are inherited, and are typically used to track dynamically loaded filters.
 .br
-  
+
 .br
 .SH URL templating
 .LP
@@ -2184,7 +2186,7 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
 * OTHER: locates property 4CC for the given name, or property name if no 4CC matches.
 .br
-  
+
 .br
 $$ is an escape for $
 .br
@@ -2538,6 +2540,8 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * NCID: ID of netcap configuration to use (string)
 .br
+* LT: set additionnal log tools and levels for the filter usin same syntax as -logs, e.g. :LT=filter@debug (string value)
+.br
 * DBG: debug missing input PID property (=pid), missing input packet property (=pck) or both (=all)
 .br
 
@@ -2726,6 +2730,11 @@ color transfer characteristics, string or int value from ISO/IEC 23091-2
 .B cmxc
 .br
 color matrix coefficients, string or int value from ISO/IEC 23091-2
+.br
+.TP
+.B alay
+.br
+channel layout configuration, string or int value from ISO/IEC 23091-3
 .br
 
 .br
@@ -3378,7 +3387,7 @@ Packets for the stream are by default encrypted (however the encryption state is
 .TP
 .B OMAPreview (ODPR,luint,  )
 .br
-OMA Preview range 
+OMA Preview range
 .br
 .TP
 .B CENC_PSSH (PSSH,mem,  )
@@ -3956,7 +3965,7 @@ Time shift in number of segments for HAS streams, only set by dashin and dasher 
 .TP
 .B IsManifest (PHSM,uint,D )
 .br
-PID is a HAS manifest
+PID is a HAS manifest (MSB=1 if live)
 .br
 * 0: not a manifest
 .br
@@ -5146,16 +5155,16 @@ Layout 0x000000600036630f
 .br
 .SH EXAMPLES
 .TP
-Basic and advanced examples are available at https://wiki.gpac.io/Filters
+Basic and advanced examples are available at https://wiki.gpac.io/Filters/Filters
 .SH MORE
 .LP
 Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV
+build: 2.5-DEV
 .br
-Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io
+Copyright: (c) 2000-2024 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io
 .br
 .SH SEE ALSO
 .LP

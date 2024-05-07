@@ -160,13 +160,13 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_APCS, 0, GF_STREAM_VISUAL, "ProRes Video 422 LT", "prores|apcs", "apcs", "video/prores", GF_CODECID_APCH, .unframe=GF_TRUE},
 	{GF_CODECID_AP4X, 0, GF_STREAM_VISUAL, "ProRes Video 4444 XQ", "prores|ap4x", "ap4x", "video/prores", GF_CODECID_APCH, .unframe=GF_TRUE},
 	{GF_CODECID_AP4H, 0, GF_STREAM_VISUAL, "ProRes Video 4444", "prores|ap4h", "ap4h", "video/prores", GF_CODECID_APCH, .unframe=GF_TRUE},
-	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFMPEG unmapped codec", "ffmpeg", NULL, NULL},
+	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFmpeg unmapped codec", "ffmpeg", NULL, NULL},
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc", .unframe=GF_TRUE},
 	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC, .unframe=GF_TRUE},
 	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac", .unframe=GF_TRUE},
-	{GF_CODECID_FFV1, 0, GF_STREAM_VISUAL, "FFMPEG Video Codec 1", "ffv1", NULL, "video/x-ffv1"},
+	{GF_CODECID_FFV1, 0, GF_STREAM_VISUAL, "FFmpeg Video Codec 1", "ffv1", NULL, "video/x-ffv1"},
 
 	{GF_CODECID_DVB_SUBS, 0, GF_STREAM_TEXT, "DVB Subtitles", "dvbs", NULL, NULL},
 	{GF_CODECID_DVB_TELETEXT, 0, GF_STREAM_TEXT, "DVB-TeleText", "dvbs", NULL, NULL},
@@ -532,7 +532,7 @@ const char *gf_stream_type_all_names()
 				break;
 			}
 			if (i) {
-				strcat((char *)szAllStreamTypes, ",");
+				strcat((char *)szAllStreamTypes, "|");
 				tot_len += 1;
 			}
 			strcat((char *)szAllStreamTypes, GF_StreamTypes[i].name);
@@ -685,7 +685,7 @@ const char *gf_audio_fmt_all_names()
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all audio formats!!\n"));
 				break;
 			}
-			strcat((char *)szAllAudioFormats, ",");
+			strcat((char *)szAllAudioFormats, "|");
 			tot_len += 1;
 			strcat((char *)szAllAudioFormats, GF_AudioFormats[i].name);
 			tot_len += len;
@@ -972,12 +972,6 @@ u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
 	return 255;
 }
 
-//unused
-#if 0
-/*! get channel CICP code  from name
-\param name channel layout name
-\return channel CICP code
-*/
 u32 gf_audio_fmt_get_cicp_from_name(const char *name)
 {
 	u32 i, iname, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
@@ -993,10 +987,6 @@ u32 gf_audio_fmt_get_cicp_from_name(const char *name)
 	return 0;
 }
 
-/*! get channel CICP name from
-\param cicp_code channel cicp code
-\return channel CICP name
-*/
 const char *gf_audio_fmt_get_cicp_name(u32 cicp_code)
 {
 	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
@@ -1006,7 +996,6 @@ const char *gf_audio_fmt_get_cicp_name(u32 cicp_code)
 	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout for channel layout "LLU"\n", cicp_code));
 	return NULL;
 }
-#endif
 
 
 GF_EXPORT
@@ -1026,7 +1015,7 @@ const char *gf_audio_fmt_cicp_all_names()
 	if (szCICPLayoutAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(GF_CICPLayouts);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPLayoutAllNames, ",");
+			if (i) strcat(szCICPLayoutAllNames, "|");
 			strcat(szCICPLayoutAllNames, GF_CICPLayouts[i].name);
 		}
 	}
@@ -1266,7 +1255,7 @@ const char *gf_pixel_fmt_all_names()
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
 			}
-			strcat((char *)szAllPixelFormats, ",");
+			strcat((char *)szAllPixelFormats, "|");
 			tot_len += 1;
 			strcat((char *)szAllPixelFormats, GF_PixelFormats[i].name);
 			tot_len += len;
@@ -2037,7 +2026,7 @@ const char *gf_cicp_color_primaries_all_names()
 	if (szCICPPrimAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorPrimaries);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPPrimAllNames, ",");
+			if (i) strcat(szCICPPrimAllNames, "|");
 			strcat(szCICPPrimAllNames, CICPColorPrimaries[i].name);
 		}
 	}
@@ -2107,7 +2096,7 @@ const char *gf_cicp_color_transfer_all_names()
 	if (szCICPTFCAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorTransfer);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPTFCAllNames, ",");
+			if (i) strcat(szCICPTFCAllNames, "|");
 			strcat(szCICPTFCAllNames, CICPColorTransfer[i].name);
 		}
 	}
@@ -2167,7 +2156,7 @@ const char *gf_cicp_color_matrix_all_names()
 	if (szCICPMXAllNames[0] == 0) {
 		u32 i, count = GF_ARRAY_LENGTH(CICPColorMatrixCoefficients);
 		for (i=0; i<count; i++) {
-			if (i) strcat(szCICPMXAllNames, ",");
+			if (i) strcat(szCICPMXAllNames, "|");
 			strcat(szCICPMXAllNames, CICPColorMatrixCoefficients[i].name);
 		}
 	}

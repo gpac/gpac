@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -468,11 +468,27 @@ u32 gf_net_has_ipv6()
 GF_EXPORT
 Bool gf_net_is_ipv6(const char *address)
 {
-	char *sep;
-	if (!address) return GF_FALSE;
-	sep = strchr(address, ':');
-	if (sep) sep = strchr(address, ':');
-	return sep ? GF_TRUE : GF_FALSE;
+	u32 i, nb_seps=0, nb_dseps=0, nb_dig=0, count = address ? (u32) strlen(address) : 0;
+	for (i=0;i<count; i++) {
+		if (address[i]==':') {
+			nb_seps++;
+			nb_dig=0;
+			if ((i+1<count) && (address[i+1]==':')) {
+				nb_dseps++;
+				i++;
+			}
+		}
+		else if (strchr("0123456789ABCDEFabcdef",address[i])==NULL) {
+			return GF_FALSE;
+		} else {
+			nb_dig++;
+			if (nb_dig>4) return GF_FALSE;
+		}
+	}
+	if (nb_seps>7) return GF_FALSE;
+	if (nb_seps==7) return GF_TRUE;
+	if (nb_dseps!=1) return GF_FALSE;
+	return GF_TRUE;
 }
 
 #if defined(GPAC_WIN_HAS_ADAPTER_INFO)
@@ -972,7 +988,14 @@ static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
 	}
 }
 
-static GF_Err pcapng_load_shb(GF_NetcapFilter *nf)
+enum
+{
+	PCAP_LT_LOOPBACK=0,
+	PCAP_LT_ETHERNET=1,
+	PCAP_LT_CHAOS=5
+};
+
+static GF_Err pcapng_load_shb(GF_NetcapFilter *nf, Bool is_init)
 {
 	u32 blen = gf_bs_read_u32(nf->cap_bs);
 	u32 le_magic = gf_bs_read_u32(nf->cap_bs);
@@ -981,7 +1004,10 @@ static GF_Err pcapng_load_shb(GF_NetcapFilter *nf)
 		nf->pcap_le = GF_TRUE;
 		blen = ntohl(blen);
 	} else {
-		gf_net_close_capture();
+		if (is_init)
+			gf_net_close_capture();
+		else
+			nf->is_eos = GF_TRUE;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrrupted pacpng file\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -1000,8 +1026,14 @@ static void pcapng_load_idb(GF_NetcapFilter *nf)
 	nf->link_types[nf->pcap_num_interfaces] = nf->pcap_le ? gf_bs_read_u16_le(nf->cap_bs) : gf_bs_read_u16(nf->cap_bs);
 	gf_bs_skip_bytes(nf->cap_bs, blen-10);
 
-	if (nf->link_types[nf->pcap_num_interfaces]>1) {
+	switch (nf->link_types[nf->pcap_num_interfaces]) {
+	case PCAP_LT_LOOPBACK:
+	case PCAP_LT_ETHERNET:
+	case PCAP_LT_CHAOS:
+		break;
+	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[NetCap] Only ethernet and BSD-loopback pcap files are supported, skipping packets\n"));
+		break;
 	}
 	nf->pcap_num_interfaces++;
 }
@@ -1043,7 +1075,7 @@ refetch_pcap:
 
 		u32 btype = nf->pcap_le ? gf_bs_read_u32_le(nf->cap_bs) : gf_bs_read_u32(nf->cap_bs);
 		if (btype==GF_4CC(0x0A, 0x0D, 0x0D, 0x0A)) {
-			GF_Err e = pcapng_load_shb(nf);
+			GF_Err e = pcapng_load_shb(nf, GF_FALSE);
 			//if failure, nf is destroyed by gf_net_close_capture
 			if (e) {
 				return;
@@ -1080,6 +1112,11 @@ refetch_pcap:
 		clen = gf_bs_read_u32(nf->cap_bs);
 		/*olen = */gf_bs_read_u32(nf->cap_bs);
 	}
+	if (clen<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));
+		nf->is_eos = GF_TRUE;
+		return;
+	}
 
 	if (nf->cap_mode==NETCAP_PCAPNG) {
 		nf->pcapng_trail = bsize - 28 - clen;
@@ -1107,6 +1144,9 @@ refetch_pcap:
 		} else {
 			SKIP_PCAP_PCK
 		}
+	}
+	//raw IPv4
+	else if (link_type==5) {
 	}
 	//not supported
 	else {
@@ -1150,6 +1190,9 @@ refetch_pcap:
 			default:
 				SKIP_PCAP_PCK
 			}
+			if (gf_bs_is_overflow(nf->cap_bs)) {
+				break;
+			}
 		}
 	} else {
 		gf_bs_skip_bytes(nf->cap_bs, 9);
@@ -1183,7 +1226,7 @@ refetch_pcap:
 		SKIP_PCAP_PCK
 	}
 
-	if (clen<0) {
+	if ((clen<0)|| gf_bs_is_overflow(nf->cap_bs)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));
 		nf->is_eos = GF_TRUE;
 		return;
@@ -1538,6 +1581,20 @@ refetch:
 	u32 i=0;
 	GF_Socket *s = NULL;
 	while ((s=gf_list_enum(nf->read_socks, &i))) {
+		//in pcap mode, check multicast - if enabled, match dst
+		//in GPC mode with multicast, only multicast address is used, in host port/addr fields
+		if ((nf->cap_mode!=NETCAP_GPAC) && (s->flags & GF_SOCK_IS_MULTICAST)) {
+			if (s->cap_info->peer_port != nf->dst_port)
+				continue;
+			if (nf->pck_flags & NETCAP_IS_IPV6) {
+				if (memcmp(s->cap_info->peer_addr_v6, nf->dst_v6, 16)) continue;
+			} else {
+				if (s->cap_info->peer_addr_v4 != nf->dst_v4) continue;
+			}
+			nf->read_sock_selected = s;
+			s->cap_info->patch_offset = 0;
+			break;
+		}
 		if (s->cap_info->host_port != nf->dst_port)
 			continue;
 		if (nf->pck_flags & NETCAP_IS_IPV6) {
@@ -1577,7 +1634,7 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 	} else
 #endif
 	{
-		nf->file = gf_fopen_ex(nf->src, NULL, "r", GF_FALSE);
+		nf->file = gf_fopen_ex(nf->src, NULL, "rb", GF_FALSE);
 		if (nf->file) nf->cap_bs = gf_bs_from_file(nf->file, GF_BITSTREAM_READ);
 	}
 	if (!nf->cap_bs) {
@@ -1623,15 +1680,20 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 		nf->link_types[0] = gf_bs_read_int(nf->cap_bs, 28);
 		if (nf->pcap_le) nf->link_types[0] = ntohl(nf->link_types[0]);
 
-		if (nf->link_types[0] > 1) {
+		switch (nf->link_types[0]) {
+		case PCAP_LT_LOOPBACK:
+		case PCAP_LT_ETHERNET:
+		case PCAP_LT_CHAOS:
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Only ethernet and BSD-loopback pcap files are supported, got %u\n", nf->link_types[0]));
 			gf_net_close_capture();
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Only ethernet and BSD-loopback pcap files are supported\n"));
 			return GF_NOT_SUPPORTED;
 		}
 	}
 	//pcapng
 	else if (nf->cap_mode==NETCAP_PCAPNG) {
-		GF_Err e = pcapng_load_shb(nf);
+		GF_Err e = pcapng_load_shb(nf, GF_TRUE);
 		if (e) return e;
 
 		u32 btype = nf->pcap_le ? gf_bs_read_u32_le(nf->cap_bs) : gf_bs_read_u32(nf->cap_bs);
@@ -1681,7 +1743,7 @@ static GF_Err gf_netcap_send_pcap(GF_NetcapFilter *nf, GF_Socket *sock, const u8
 
 	gf_net_get_ntp(&sec, &frac);
 	gf_bs_write_u32(nf->cap_bs, sec);
-	gf_bs_write_u32(nf->cap_bs, gf_timestamp_rescale(frac, 0xFFFFFFFF, 1000000));
+	gf_bs_write_u32(nf->cap_bs, (u32) gf_timestamp_rescale(frac, 0xFFFFFFFF, 1000000));
 	gf_bs_write_u32(nf->cap_bs, pck_len);
 	gf_bs_write_u32(nf->cap_bs, pck_len);
 
@@ -1725,15 +1787,15 @@ static GF_Err gf_netcap_send_pcap(GF_NetcapFilter *nf, GF_Socket *sock, const u8
 	//UDP
 	if (protocol_type==17) {
 		gf_bs_write_u16(nf->cap_bs, sock->cap_info->host_port);
-		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->peer_port);
+		gf_bs_write_u16(nf->cap_bs, sock->cap_info->peer_port);
 		gf_bs_write_u16(nf->cap_bs, 8+length);
 		//skip checksum
 		gf_bs_skip_bytes(nf->cap_bs, 2);
 	}
 	//TCP
 	else if (protocol_type==6) {
-		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->host_port);
-		gf_bs_write_u16_le(nf->cap_bs, sock->cap_info->peer_port);
+		gf_bs_write_u16(nf->cap_bs, sock->cap_info->host_port);
+		gf_bs_write_u16(nf->cap_bs, sock->cap_info->peer_port);
 		/*sn = */gf_bs_write_u32(nf->cap_bs, 0);
 		/*ack = */gf_bs_write_u32(nf->cap_bs, 0);
 		gf_bs_write_int(nf->cap_bs, 5, 4);
@@ -2419,11 +2481,11 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 			if (peer_name && peer_port) {
 				if (sock->dest_addr.ss_family==AF_INET) {
 					struct sockaddr_in *r_add = (struct sockaddr_in *) &sock->dest_addr;
-					sock->cap_info->peer_port = r_add->sin_port;
+					sock->cap_info->peer_port = ntohs(r_add->sin_port);
 					sock->cap_info->peer_addr_v4 = r_add->sin_addr.s_addr;
 				} else {
 					struct sockaddr_in6 *r_add = (struct sockaddr_in6 *) &sock->dest_addr;
-					sock->cap_info->peer_port = r_add->sin6_port;
+					sock->cap_info->peer_port = ntohs(r_add->sin6_port);
 					memcpy(sock->cap_info->peer_addr_v6, &(r_add->sin6_addr), sizeof(bin128));
 				}
 			}
@@ -2732,32 +2794,32 @@ GF_Err gf_sk_select(GF_Socket *sock, GF_SockSelectMode mode)
 GF_EXPORT
 u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 {
+	if (!multi_IPAdd) return 0;
 #ifdef GPAC_HAS_IPV6
 	u32 val;
 	char *sep;
 	struct addrinfo *res;
-	if (!multi_IPAdd) return 0;
-	/*IPV6 multicast address*/
-	sep = strchr(multi_IPAdd, ':');
-	if (sep) sep = strchr(multi_IPAdd, ':');
-	if (sep && !strnicmp(multi_IPAdd, "ff", 2)) return 1;
-	//mapped address
-	if (!strnicmp(multi_IPAdd, "::ffff:", 7)) multi_IPAdd+=7;
-	/*ipv4 multicast address*/
-	res = gf_sk_get_ipv6_addr((char*)multi_IPAdd, 7000, AF_UNSPEC, AI_PASSIVE, SOCK_DGRAM);
-	if (!res) return 0;
-	val = 0;
-	if (res->ai_addr->sa_family == AF_INET) {
-		val = IN_MULTICAST(ntohl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr));
-	} else if (res->ai_addr->sa_family == AF_INET6) {
-		val = IN6_IS_ADDR_MULTICAST(& ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr);
+	if (gf_net_is_ipv6(multi_IPAdd)) {
+		/*IPV6 multicast address*/
+		sep = strchr(multi_IPAdd, ':');
+		if (sep) sep = strchr(multi_IPAdd, ':');
+		if (sep && !strnicmp(multi_IPAdd, "ff", 2)) return 1;
+		//mapped address
+		if (!strnicmp(multi_IPAdd, "::ffff:", 7)) multi_IPAdd+=7;
+		/*ipv4 multicast address*/
+		res = gf_sk_get_ipv6_addr((char*)multi_IPAdd, 7000, AF_UNSPEC, AI_PASSIVE, SOCK_DGRAM);
+		if (!res) return 0;
+		val = 0;
+		if (res->ai_addr->sa_family == AF_INET) {
+			val = IN_MULTICAST(ntohl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr));
+		} else if (res->ai_addr->sa_family == AF_INET6) {
+			val = IN6_IS_ADDR_MULTICAST(& ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr);
+		}
+		freeaddrinfo(res);
+		return val;
 	}
-	freeaddrinfo(res);
-	return val;
-#else
-	if (!multi_IPAdd) return 0;
-	return ((htonl(inet_addr(multi_IPAdd)) >> 8) & 0x00f00000) == 0x00e00000;
 #endif
+	return ((htonl(inet_addr(multi_IPAdd)) >> 8) & 0x00f00000) == 0x00e00000;
 }
 
 static GF_Err sk_join_ipv4(GF_Socket *sock, struct ip_mreq *M_req, u32 TTL, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc)
@@ -3317,8 +3379,16 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 
 #ifndef GPAC_DISABLE_NETCAP
 	if (sock->cap_info && sock->cap_info->nf->cap_mode) {
-		sock->cap_info->host_port = MultiPortNumber;
-		sock->cap_info->host_addr_v4 = inet_addr(multi_IPAdd);
+		//in GPC mode, store in host port/addr
+		if (sock->cap_info->nf->cap_mode==NETCAP_GPAC) {
+			sock->cap_info->host_port = MultiPortNumber;
+			sock->cap_info->host_addr_v4 = inet_addr(multi_IPAdd);
+		} else {
+			sock->cap_info->host_port = MultiPortNumber;
+			sock->cap_info->host_addr_v4 = inet_addr_from_name(ifce_ip_or_name ? ifce_ip_or_name : "127.0.0.1");
+			sock->cap_info->peer_port = MultiPortNumber;
+			sock->cap_info->peer_addr_v4 = inet_addr(multi_IPAdd);
+		}
 		sock->flags &= ~GF_SOCK_IS_IPV6;
 		sock->flags |= GF_SOCK_IS_MULTICAST;
 		return GF_OK;
@@ -3450,6 +3520,8 @@ void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 	if (sk->cap_info) {
 		sg->nb_nfs++;
 		sg->nb_socks = gf_list_count(sg->sockets);
+		if (sk->cap_info->nf && (gf_list_find(sk->cap_info->nf->read_socks, sk)<0))
+			gf_list_add(sk->cap_info->nf->read_socks, sk);
 		return;
 	}
 #endif
@@ -3478,7 +3550,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 
 #ifndef GPAC_DISABLE_NETCAP
 	if (sk->cap_info && sk->cap_info->nf->read_socks) {
-		if (sg->nb_nfs)
+		if (sg->nb_nfs && (pidx>=0))
 			sg->nb_nfs--;
 		sg->nb_socks = gf_list_count(sg->sockets);
 
@@ -3488,6 +3560,7 @@ void gf_sk_group_unregister(GF_SockGroup *sg, GF_Socket *sk)
 			sk->cap_info->nf->read_sock_selected=NULL;
 			//do not load a new packet here as this could go into infinite loop when netcap-loop=-1 ...
 		}
+		gf_list_del_item(sk->cap_info->nf->read_socks, sk);
 		return;
 	}
 #endif
