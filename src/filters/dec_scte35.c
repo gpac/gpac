@@ -53,9 +53,8 @@ typedef struct {
 	u32 nb_forced;
 } SCTE35DecCtx;
 
-GF_Err scte35dec_initialize(GF_Filter *filter)
+GF_STATIC GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
 {
-	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 	ctx->ordered_events = gf_list_new();
 
 	GF_Box *emeb = gf_isom_box_new(GF_ISOM_BOX_TYPE_EMEB);
@@ -71,7 +70,13 @@ GF_Err scte35dec_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-void scte35dec_finalize(GF_Filter *filter)
+static GF_Err scte35dec_initialize(GF_Filter *filter)
+{
+	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
+	return scte35dec_initialize_internal(ctx);
+}
+
+static void scte35dec_finalize(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 	for (u32 i=0; i<gf_list_count(ctx->ordered_events); i++) {
@@ -82,7 +87,7 @@ void scte35dec_finalize(GF_Filter *filter)
 	gf_list_del(ctx->ordered_events);
 }
 
-GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 
@@ -359,7 +364,7 @@ exit:;
 	gf_bs_del(bs);
 }
 
-GF_Err scte35dec_process(GF_Filter *filter)
+static GF_Err scte35dec_process(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 
