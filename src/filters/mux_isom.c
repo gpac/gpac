@@ -6341,14 +6341,14 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	GF_BitStream *bs = gf_bs_new(emsg_prop->value.data.ptr, emsg_prop->value.data.size, GF_BITSTREAM_READ);
 	GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
 
-	u32 timescale = gf_bs_read_u32(bs); 	// timescale
-	u64 pts = gf_bs_read_u64(bs); 			// presentation time delta
-	u32 data_length = gf_bs_read_u32(bs); 	// message data length
+	u32 timescale = gf_bs_read_u32(bs);   // timescale
+	u64 pts_delta = gf_bs_read_u64(bs);   // presentation time delta
+	u32 data_length = gf_bs_read_u32(bs); // message data length
 
 	emsg->version = 1;
 	
 	emsg->timescale = timescale;
-	emsg->presentation_time_delta = pts;
+	emsg->presentation_time_delta = pts_delta;
 	emsg->event_duration = 0xFFFFFFFF;
 	emsg->event_id = 0;
 	emsg->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
