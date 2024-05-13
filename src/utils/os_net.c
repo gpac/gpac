@@ -3813,7 +3813,8 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		nf->pck_len -= res;
 		if (!nf->pck_len) {
 			nf->dst_port = 0;
-			gf_netcap_load_pck(nf, 0);
+			//do not load packet once done as this could lead to packet drop if the target socket is not yet created
+			//gf_netcap_load_pck(nf, 0);
 		}
 
 		if (BytesRead)

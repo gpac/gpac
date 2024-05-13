@@ -328,6 +328,7 @@
 		921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9E1CF8665900B437C2 /* CoreLocation.framework */; };
 		921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9C1CF8664800B437C2 /* CoreMotion.framework */; };
 		92261A89239E326900C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A88239E326900C14199 /* out_http.c */; };
+		92277E1D2BE910E1005E0955 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 92277E1C2BE910E1005E0955 /* md5.c */; };
 		9227B8582799F8E700BF3D1B /* bs_agg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9227B8562799F8E600BF3D1B /* bs_agg.c */; };
 		9227B8592799F8E700BF3D1B /* bs_split.c in Sources */ = {isa = PBXBuildFile; fileRef = 9227B8572799F8E600BF3D1B /* bs_split.c */; };
 		922B0FAC2A5EBCF2003690BB /* dec_mpeghdec.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B0FAB2A5EBCF2003690BB /* dec_mpeghdec.c */; };
@@ -938,6 +939,7 @@
 		921FEB9C1CF8664800B437C2 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		921FEB9E1CF8665900B437C2 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		92261A88239E326900C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = ../../src/filters/out_http.c; sourceTree = "<group>"; };
+		92277E1C2BE910E1005E0955 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = md5.c; sourceTree = "<group>"; };
 		9227B8562799F8E600BF3D1B /* bs_agg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_agg.c; path = ../../src/filters/bs_agg.c; sourceTree = "<group>"; };
 		9227B8572799F8E600BF3D1B /* bs_split.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_split.c; path = ../../src/filters/bs_split.c; sourceTree = "<group>"; };
 		922B0FAB2A5EBCF2003690BB /* dec_mpeghdec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_mpeghdec.c; path = ../../src/filters/dec_mpeghdec.c; sourceTree = "<group>"; };
@@ -1668,6 +1670,7 @@
 		71CCF2291277045100339E12 /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				92277E1C2BE910E1005E0955 /* md5.c */,
 				7141FF2F1292CB9200FCB27D /* alloc.c */,
 				71CCF22A1277045100339E12 /* base_encoding.c */,
 				71CCF22B1277045100339E12 /* bitstream.c */,
@@ -2647,6 +2650,7 @@
 				9296BF2422CFBB3900DC9742 /* reframe_flac.c in Sources */,
 				71CCF3141277045100339E12 /* x3d_nodes.c in Sources */,
 				71CCF3161277045100339E12 /* xml_ns.c in Sources */,
+				92277E1D2BE910E1005E0955 /* md5.c in Sources */,
 				92EB6E1A20E4E19700A97A49 /* in_http.c in Sources */,
 				92EB6E1720E4E19700A97A49 /* enc_jpg.c in Sources */,
 				92B2A4AF229D6646002A65A7 /* hevcsplit.c in Sources */,

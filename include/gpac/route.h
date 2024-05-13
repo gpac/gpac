@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
- *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) and DVBI-Flute demuxer
+ *  This file is part of GPAC / ROUTE (ATSC3, DVB-MABR) and DVB-MABR demuxer
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -189,7 +189,7 @@ GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, u32 so
 */
 GF_ROUTEDmx *gf_route_dmx_new_ex(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
-/*! Creates a new DVBI+Flute MABR demultiplexer
+/*! Creates a new DVB MABR Flute demultiplexer
 \param ip IP address of LCT session carrying the initial FDT
 \param port port of LCT session carrying the initial FDT
 \param ifce network interface to monitor, NULL for INADDR_ANY
@@ -199,7 +199,7 @@ GF_ROUTEDmx *gf_route_dmx_new_ex(const char *ip, u32 port, const char *ifce, u32
 \param udta the user data passed back by the callback
 \return the demultiplexer created
 */
-GF_ROUTEDmx *gf_dvbi_flute_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+GF_ROUTEDmx *gf_dvb_mabr_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
 /*! Deletes an ROUTE demultiplexer
 \param routedmx the ROUTE demultiplexer to delete
