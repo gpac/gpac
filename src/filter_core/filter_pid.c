@@ -6991,6 +6991,8 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	//input pid(s) are being flushed, prevent blocking
 	if (pid->filter->in_force_flush)
 		return GF_FALSE;
+	if (pid->not_connected)
+		return GF_FALSE;
 
 	gf_mx_p(pid->filter->tasks_mx);
 	//either block according to the number of dispatched units (decoder output) or to the requested buffer duration

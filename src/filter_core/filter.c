@@ -3704,7 +3704,6 @@ void gf_filter_post_remove(GF_Filter *filter)
 	gf_assert(!filter->swap_pidinst_src);
 	gf_assert(!filter->finalized);
 	filter->finalized = GF_TRUE;
-
 	//post remove task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
 	gf_fs_post_task_ex(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL, GF_FALSE, filter->session->force_main_thread_tasks, GF_FALSE, TASK_TYPE_NONE);
 }
@@ -3915,8 +3914,12 @@ static void gf_filter_remove_local(GF_Filter *filter, GF_FSTask *task)
 			GF_FilterEvent fevt;
 			//source filter still active, mark output pid as not connected, send a stop and post disconnect
 			gf_assert(pidi->pid->num_destinations==1);
-			pidi->pid->not_connected=1;
-			pidi->pid->filter->num_out_pids_not_connected++;
+			pidi->pid->not_connected = 1;
+			pidi->pid->filter->num_out_pids_not_connected ++;
+			if (pidi->pid->would_block) {
+				safe_int_dec(&pidi->pid->would_block);
+				safe_int_dec(&pidi->pid->filter->would_block);
+			}
 			GF_FEVT_INIT(fevt, GF_FEVT_STOP, (GF_FilterPid *) pidi);
 			fevt.play.initial_broadcast_play = 2;
 			gf_filter_pid_send_event((GF_FilterPid *) pidi, &fevt);
