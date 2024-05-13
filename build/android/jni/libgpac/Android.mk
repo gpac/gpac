@@ -423,6 +423,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/path2d_stroker.c \
 	../../../../src/utils/sha1.c \
 	../../../../src/utils/sha256.c \
+	../../../../src/utils/md5.c \
 	../../../../src/utils/token.c \
 	../../../../src/utils/uni_bidi.c \
 	../../../../src/utils/unicode.c \

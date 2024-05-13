@@ -301,7 +301,7 @@ static GF_FilterProbeScore routein_probe_url(const char *url, const char *mime)
 {
 	if (!strnicmp(url, "atsc://", 7)) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "route://", 8)) return GF_FPROBE_SUPPORTED;
-	if (!strnicmp(url, "flute://", 8)) return GF_FPROBE_SUPPORTED;
+	if (!strnicmp(url, "mabr://", 7)) return GF_FPROBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -799,16 +799,19 @@ static GF_Err routein_process(GF_Filter *filter)
 static GF_Err routein_initialize(GF_Filter *filter)
 {
 	Bool is_atsc = GF_TRUE;
-	Bool is_flute = GF_FALSE;
+	Bool is_mabr = GF_FALSE;
+	u32 prot_offset=0;
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
 	ctx->filter = filter;
 
 	if (!ctx->src) return GF_BAD_PARAM;
 	if (!strncmp(ctx->src, "route://", 8)) {
 		is_atsc = GF_FALSE;
-	} else if (!strncmp(ctx->src, "flute://", 8)){
+		prot_offset = 8;
+	} else if (!strncmp(ctx->src, "mabr://", 7)){
 		is_atsc = GF_FALSE;
-		is_flute = GF_TRUE;
+		is_mabr = GF_TRUE;
+		prot_offset = 7;
 	} else if (strcmp(ctx->src, "atsc://"))
 		return GF_BAD_PARAM;
 
@@ -832,7 +835,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	} else {
 		char *sep, *root;
 		u32 port;
-		sep = strrchr(ctx->src+8, ':');
+		sep = strrchr(ctx->src+prot_offset, ':');
 		if (!sep) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing port number\n"));
 			return GF_BAD_PARAM;
@@ -843,15 +846,15 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		port = atoi(sep+1);
 		if (root) root[0] = '/';
 
-		if (!gf_sk_is_multicast_address(ctx->src+8)) {
+		if (!gf_sk_is_multicast_address(ctx->src+prot_offset)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] %s is not a multicast address\n", ctx->src));
 			sep[0] = ':';
 			return GF_BAD_PARAM;
 		}
-		if (is_flute)
-			ctx->route_dmx = gf_dvbi_flute_dmx_new(ctx->src+8, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
+		if (is_mabr)
+			ctx->route_dmx = gf_dvb_mabr_dmx_new(ctx->src+prot_offset, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 		else
-			ctx->route_dmx = gf_route_dmx_new_ex(ctx->src+8, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
+			ctx->route_dmx = gf_route_dmx_new_ex(ctx->src+prot_offset, port, ctx->ifce, ctx->buffer, gf_filter_get_netcap_id(filter), routein_on_event, ctx);
 		sep[0] = ':';
 	}
 	if (!ctx->route_dmx) return GF_SERVICE_ERROR;
@@ -867,7 +870,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
-	if (is_atsc || is_flute) {
+	if (is_atsc || is_mabr) {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Tunein started\n"));
 		if (ctx->tune_service_id)
             gf_route_atsc3_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
@@ -938,9 +941,10 @@ GF_FilterRegister ROUTEInRegister = {
 	.name = "routein",
 	GF_FS_SET_DESCRIPTION("ROUTE input")
 #ifndef GPAC_DISABLE_DOC
-	.help = "This filter is a receiver for ROUTE sessions (ATSC 3.0 and generic ROUTE).\n"
+	.help = "This filter is a receiver for ROUTE sessions (ATSC 3.0 and generic ROUTE) and DVB-MABR flute sessions.\n"
 	"- ATSC 3.0 mode is identified by the URL `atsc://`.\n"
 	"- Generic ROUTE mode is identified by the URL `route://IP:PORT`.\n"
+	"- DVB-MABR mode is identified by the URL `mabr://IP:PORT` pointing to the bootstrap FLUTE channel carrying the multicast gateway configuration.\n"
 	"\n"
 	"The filter can work in cached mode, source mode or standalone mode.\n"
 	"# Cached mode\n"
@@ -1003,7 +1007,7 @@ GF_FilterRegister ROUTEInRegister = {
 const GF_FilterRegister *routein_register(GF_FilterSession *session)
 {
 	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
-		gf_opts_set_key("temp_in_proto", ROUTEInRegister.name, "atsc,route");
+		gf_opts_set_key("temp_in_proto", ROUTEInRegister.name, "atsc,route,mabr");
 	}
 	return &ROUTEInRegister;
 }
