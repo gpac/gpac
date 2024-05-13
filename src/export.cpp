@@ -1553,6 +1553,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha256_csum) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_md5_csum) )
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_parser_new) )

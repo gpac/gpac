@@ -858,10 +858,12 @@ size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
 #endif
 
 
+//! @cond Doxygen_Suppress
 /*needed for unittests (disabled)*/
 #ifndef GF_STATIC
 #define GF_STATIC static
 #endif
+//! @endcond
 
 #ifdef __cplusplus
 }

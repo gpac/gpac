@@ -178,6 +178,7 @@
 		92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */; };
 		9225DD752326790C00F94C42 /* mpd.h in Headers */ = {isa = PBXBuildFile; fileRef = 9225DD742326790C00F94C42 /* mpd.h */; };
 		92261A87239A6E4600C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A86239A6E4600C14199 /* out_http.c */; };
+		92277E1B2BE8F32B005E0955 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 92277E1A2BE8F32B005E0955 /* md5.c */; };
 		922B0FAA2A5E81EB003690BB /* dec_mpeghdec.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B0FA92A5E81EB003690BB /* dec_mpeghdec.c */; };
 		922B0FC72A602176003690BB /* caca_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B0FC62A602176003690BB /* caca_out.c */; };
 		922B0FC82A6028C5003690BB /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
@@ -813,6 +814,7 @@
 		92256CCC20E0DA26004EB243 /* encrypt_cenc_isma.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = encrypt_cenc_isma.c; path = filters/encrypt_cenc_isma.c; sourceTree = "<group>"; };
 		9225DD742326790C00F94C42 /* mpd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpd.h; path = ../include/gpac/mpd.h; sourceTree = "<group>"; };
 		92261A86239A6E4600C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = filters/out_http.c; sourceTree = "<group>"; };
+		92277E1A2BE8F32B005E0955 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = md5.c; sourceTree = "<group>"; };
 		922B0FA92A5E81EB003690BB /* dec_mpeghdec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_mpeghdec.c; path = filters/dec_mpeghdec.c; sourceTree = "<group>"; };
 		922B0FC12A602153003690BB /* gm_caca_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_caca_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		922B0FC62A602176003690BB /* caca_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = caca_out.c; path = ../../modules/caca_out/caca_out.c; sourceTree = "<group>"; };
@@ -1404,6 +1406,7 @@
 				92E164BA20F8F2860024A9CA /* Remotery.c */,
 				920100A418D5A444003D1ACA /* sha1.c */,
 				925A760E292F965D00664F38 /* sha256.c */,
+				92277E1A2BE8F32B005E0955 /* md5.c */,
 				920100A718D5A444003D1ACA /* token.c */,
 				920100A818D5A444003D1ACA /* uni_bidi.c */,
 				920100A918D5A444003D1ACA /* unicode.c */,
@@ -2530,6 +2533,7 @@
 				920100B618D5A444003D1ACA /* field_decode.c in Sources */,
 				92BB85721F7BFB63009BC9C8 /* ff_common.c in Sources */,
 				920100B718D5A444003D1ACA /* field_encode.c in Sources */,
+				92277E1B2BE8F32B005E0955 /* md5.c in Sources */,
 				92455F8C2A52B4B90080321C /* dec_cc.c in Sources */,
 				9234CF471FD8344000CCDFA1 /* in_rtp.c in Sources */,
 				92B9A5911F8660D700A24FE4 /* mpeg4_geometry_2d.c in Sources */,

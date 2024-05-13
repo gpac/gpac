@@ -59,6 +59,7 @@ const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path,
 			|| !strncmp(path, "udpu://", 7)
 			|| !strncmp(path, "rtp://", 6)
 			|| !strncmp(path, "route://", 8)
+			|| !strncmp(path, "mabr://", 7)
 		) {
 			char *sep2 = res ? strchr(res+1, ':') : NULL;
 			char *sep3 = res ? strchr(res+1, '/') : NULL;
@@ -1741,6 +1742,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						|| !strncmp(args+4, "atsc://", 7)
 						|| !strncmp(args+4, "gfio://", 7)
 						|| !strncmp(args+4, "route://", 8)
+						|| !strncmp(args+4, "mabr://", 7)
 						)
 					) {
 						internal_url = GF_TRUE;
@@ -1751,6 +1753,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							|| !strncmp(args+4, "udpu://", 7)
 							|| !strncmp(args+4, "rtp://", 6)
 							|| !strncmp(args+4, "route://", 8)
+							|| !strncmp(args+4, "mabr://", 7)
 						) {
 							char *sep2 = sep ? strchr(sep+1, ':') : NULL;
 							char *sep3 = sep ? strchr(sep+1, '/') : NULL;
@@ -1928,6 +1931,7 @@ skip_date:
 				else if (!strncmp(args+4, "tcp://", 6)) file_exists = GF_TRUE;
 				else if (!strncmp(args+4, "udp://", 6)) file_exists = GF_TRUE;
 				else if (!strncmp(args+4, "route://", 8)) file_exists = GF_TRUE;
+				else if (!strncmp(args+4, "mabr://", 7)) file_exists = GF_TRUE;
 				else file_exists = gf_file_exists(args+4);
 
 				if (!file_exists) {
