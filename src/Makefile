@@ -400,7 +400,7 @@ endif
 
 unit_tests:
 ifeq ($(UNIT_TESTS),yes)
-	$(CC) -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
+	$(CC) $(CFLAGS) -Wno-unused-variable -I.. -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H  \
 		-o ../bin/gcc/unittests \
 		../bin/gcc/unittests.c \
 		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
