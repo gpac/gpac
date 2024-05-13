@@ -1055,6 +1055,9 @@
     <ClCompile Include="..\..\src\utils\sha256.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\md5.c">
+      <Filter>utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\utils\token.c">
       <Filter>utils</Filter>
     </ClCompile>
