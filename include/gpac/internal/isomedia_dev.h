@@ -1204,6 +1204,7 @@ typedef struct
 	u32 r_FirstSampleInEntry;
 
 	s32 max_cts_delta;
+	s32 min_neg_cts_offset;
 	//u32 sample_num_max_cts_delta;
 } GF_CompositionOffsetBox;
 

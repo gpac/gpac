@@ -1724,6 +1724,24 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *isom_file, u32 trackNumber, u8 **o
 */
 GF_Err gf_isom_get_trex_template(GF_ISOFile *isom_file, u32 trackNumber, u8 **output, u32 *output_size);
 
+/*! Query mode for min negative ctts query*/
+typedef enum
+{
+	/*! Use CLSG if found, otherwise min value in samples*/
+	GF_ISOM_MIN_NEGCTTS_ANY = 0,
+	/*! Use CLSG only*/
+	GF_ISOM_MIN_NEGCTTS_CLSG,
+	/*! Use min value in samples only*/
+	GF_ISOM_MIN_NEGCTTS_SAMPLES,
+} GF_ISOMMinNegCtsQuery;
+/*! gets the minimum CTS offset for tracks using negative cts
+\param isom_file the destination ISO file
+\param trackNumber the destination track
+\param query_mode if set, ignore any CompositionToDecode box present
+\return minimum negative CTS offset
+*/
+s32 gf_isom_get_min_negative_cts_offset(GF_ISOFile *isom_file, u32 trackNumber, GF_ISOMMinNegCtsQuery query_mode);
+
 /*! sets the number of removed bytes form the input bitstream when using gmem:// url
  The number of bytes shall be the total number since the opening of the movie
 \param isom_file the target ISO file
