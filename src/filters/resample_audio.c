@@ -306,6 +306,8 @@ static GF_Err resample_process(GF_Filter *filter)
 				}
 			}
 		}
+		if (!ctx->speed)
+			return GF_OK;
 
 		if (ctx->passthrough) {
 			gf_filter_pck_forward(ctx->in_pck, ctx->opid);
