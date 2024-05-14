@@ -693,6 +693,20 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 	if (!gf_opts_get_key("core", "video-output")) {
 		gf_opts_set_key("core", "video-output", compositor->video_out->module_name);
 	}
+	//also send a video setup as some drivers may init openGL only then
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_VIDEO_SETUP;
+	evt.setup.width = 128;
+	evt.setup.height = 128;
+	evt.setup.disable_vsync = compositor->bench_mode ? GF_TRUE : GF_FALSE;
+
+#ifndef GPAC_DISABLE_3D
+	evt.setup.use_opengl = GF_TRUE;
+	evt.setup.system_memory = GF_FALSE;
+	evt.setup.back_buffer = GF_TRUE;
+#endif
+	compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 	gf_filter_register_opengl_provider(compositor->filter, GF_TRUE);
 	return GF_OK;
 }
