@@ -930,6 +930,14 @@ lightp (bool, default: false): load minimal set of properties
 .br
 initseg (str):                 local init segment name when input is a single ISOBMFF segment
 .br
+ctso (sint):                   value to add to CTS offset for tracks using negative ctts
+.br
+- set to -1 to use the cslg box info or the minimum cts offset present in the track
+.br
+- set to -2 to use the minimum cts offset present in the track (cslg ignored)
+.br
+
+.br
 
 .br
 .SH bifsdec
@@ -2243,7 +2251,9 @@ m4sys (bool, default: false):  force MPEG-4 Systems signaling of tracks
 .br
 dref (bool, default: false):   only reference data from source file - not compatible with all media sources
 .br
-ctmode (enum, default: edit):  set composition offset mode for video tracks
+ctmode (enum, default: auto):  set composition offset mode for video tracks
+.br
+* auto: if fragmenting an ISOBMFF source, use source settings otherwise resolve to edit
 .br
 * edit: uses edit lists to shift first frame to presentation time 0
 .br

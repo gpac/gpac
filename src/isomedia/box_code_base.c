@@ -425,6 +425,8 @@ GF_Err ctts_box_read(GF_Box *s, GF_BitStream *bs)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid decodingOffset (%d) in entry #%i - defaulting to 0.\n", ptr->entries[i].decodingOffset, i));
 				ptr->entries[i].decodingOffset = 0;
 			}
+			if (ptr->entries[i].decodingOffset<ptr->min_neg_cts_offset)
+				ptr->min_neg_cts_offset = ptr->entries[i].decodingOffset;
 		}
 
 		if (ptr->entries[i].decodingOffset == INT_MIN) {
