@@ -1206,6 +1206,10 @@ GF_PROP_4CC=25
 #see \ref GF_PROP_4CC_LIST
 GF_PROP_4CC_LIST=26
 
+##\cond private
+GF_PROP_STRING_LIST_COPY=27
+##\endcond
+
 ##\hideinitializer
 #see \ref GF_PROP_FIRST_ENUM
 GF_PROP_FIRST_ENUM=40
@@ -1578,6 +1582,9 @@ _libgpac.gf_fs_is_supported_source.restype = gf_bool
 
 _libgpac.gf_pixel_fmt_sname.argtypes = [c_uint]
 _libgpac.gf_pixel_fmt_sname.restype = c_char_p
+
+_libgpac.gf_audio_fmt_sname.argtypes = [c_uint]
+_libgpac.gf_audio_fmt_sname.restype = c_char_p
 
 
 @CFUNCTYPE(c_int, _gf_filter_session, c_void_p, POINTER(c_uint))
@@ -2473,6 +2480,8 @@ def _prop_to_python(pname, prop):
             return _libgpac.gf_stream_type_name(prop.value.uint).decode('utf-8')
         if pname=="PixelFormat":
             return _libgpac.gf_pixel_fmt_sname(prop.value.uint).decode('utf-8')
+        if pname=="AudioFormat":
+            return _libgpac.gf_audio_fmt_sname(prop.value.uint).decode('utf-8')
         if pname=="CodecID":
             cid = _libgpac.gf_codecid_file_ext(prop.value.uint).decode('utf-8')
             names=cid.split('|')
@@ -2985,6 +2994,12 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
     elif propname=="CodecID":
         prop_val.value.uint = _libgpac.gf_codecid_parse(prop.encode('utf-8'))
         return prop_val
+    elif propname=="PixelFormat":
+        prop_val.value.uint = _libgpac.gf_pixel_fmt_parse(prop.encode('utf-8'))
+        return prop_val
+    elif propname=="AudioFormat":
+        prop_val.value.uint = _libgpac.gf_audio_fmt_parse(prop.encode('utf-8'))
+        return prop_val
 
     if ptype==GF_PROP_SINT:
         prop_val.value.sint = prop
@@ -3058,6 +3073,8 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
     elif ptype==GF_PROP_STRING_LIST:
         if isinstance(prop, list)==False:
             raise Exception('Property is not a list')
+        #force copy of prop
+        prop_val.type = GF_PROP_STRING_LIST_COPY
         nb_vals = len(prop)
         prop_val.value.string_list.nb_items = nb_vals
         prop_val.value.string_list.vals = cast((POINTER(c_char) * nb_vals)(), POINTER(c_char_p))
