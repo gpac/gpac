@@ -397,6 +397,7 @@ struct __gf_filter_session
 	volatile Bool in_main_sem_wait;
 	volatile u32 active_threads;
 
+	volatile u32 remove_tasks;
 	//if more than one thread, this mutex protects access to loaded filters list, to avoid concurrent calls to destruct and
 	//filter testing (graph resolution, update sending, non thread-safe graph traversal...)
 	GF_Mutex *filters_mx;
@@ -900,7 +901,8 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 
 GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only, const GF_FilterRegister **probe_reg);
 
-void gf_filter_pid_inst_delete_task(GF_FSTask *task);
+void gf_fs_post_pid_instance_delete_task(GF_FilterSession *session, GF_Filter *filter, GF_FilterPid *pid, GF_FilterPidInst *pidinst);
+
 
 void gf_filter_pid_inst_reset(GF_FilterPidInst *pidinst);
 void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst);
@@ -1123,10 +1125,13 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid);
 void gf_filter_pid_reconfigure_task(GF_FSTask *task);
 void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task);
 void gf_filter_update_arg_task(GF_FSTask *task);
-void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
 void gf_filter_pid_detach_task(GF_FSTask *task);
 void gf_filter_pid_detach_task_no_flush(GF_FSTask *task);
+
+//disconnect this pid instance from its current decoder
+void gf_fs_post_disconnect_task(GF_FilterSession *session, GF_Filter *filter, GF_FilterPid *pid);
+
 
 u32 gf_filter_caps_bundle_count(const GF_FilterCapability *caps, u32 nb_caps);
 void gf_filter_set_id(GF_Filter *filter, const char *ID);

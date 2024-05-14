@@ -1035,11 +1035,11 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u Posted task %p Filter %s::%s (%d (%d) pending, %d process tasks) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, gf_fq_count(filter->tasks), filter->process_task_queued, task->notified ? (force_main_thread ? "main" : "secondary") : "filter"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SCHEDULER, ("Thread %u Posted task %p Filter %s::%s (%d (%d) pending, %d process tasks) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, gf_fq_count(filter->tasks), filter->process_task_queued, task->notified ? (force_main_thread ? "main" : "secondary") : "filter"));
 	} else {
 		task->notified = notified = GF_TRUE;
 		task->force_main = force_main_thread;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u Posted filter-less task %s (%d pending) on secondary task list\n", gf_th_id(), task->log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SCHEDULER, ("Thread %u Posted filter-less task %s (%d pending) on secondary task list\n", gf_th_id(), task->log_name, fsess->tasks_pending));
 	}
 
 	//WARNING, do not use task->notified since the task may have been posted to the filter task list and may already have been swapped
@@ -2362,7 +2362,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 
 		//no main thread, return
-		if (!thid && fsess->non_blocking && !current_filter && !fsess->pid_connect_tasks_pending) {
+		if (!thid && fsess->non_blocking && !fsess->remove_tasks && !current_filter && !fsess->pid_connect_tasks_pending) {
 			gf_rmt_end();
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
 			safe_int_dec(&fsess->active_threads);
