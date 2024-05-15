@@ -1231,28 +1231,39 @@ static JSValue jsf_filter_set_cap(JSContext *ctx, JSValueConst this_val, int arg
 
 	}
 
+	u32 flags = 0;
+	if (prop_id) {
+		flags = GF_CAPFLAG_IN_BUNDLE;
+		if (is_inputoutput) {
+			flags |= GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT;
+		} else if (is_output) {
+			flags |= GF_CAPFLAG_OUTPUT;
+		} else {
+			flags |= GF_CAPFLAG_INPUT;
+		}
+		if (is_excluded)
+			flags |= GF_CAPFLAG_EXCLUDED;
+		if (is_static)
+			flags |= GF_CAPFLAG_STATIC;
+		if (is_loaded_filter_only)
+			flags |= GF_CAPFLAG_LOADED_FILTER;
+		if (is_optional)
+			flags |= GF_CAPFLAG_OPTIONAL;
+	}
+
+	if (jsf->filter->freg->flags & GF_FS_REG_CUSTOM) {
+		GF_Err e = gf_filter_push_caps(jsf->filter, prop_id, &p, NULL, flags, 0);
+		if (e) return GF_JS_EXCEPTION(ctx);
+		return JS_UNDEFINED;
+	}
+
 	jsf->caps = gf_realloc(jsf->caps, sizeof(GF_FilterCapability)*(jsf->nb_caps+1));
 	memset(&jsf->caps[jsf->nb_caps], 0, sizeof(GF_FilterCapability));
 	if (prop_id) {
 		GF_FilterCapability *cap = &jsf->caps[jsf->nb_caps];
 		cap->code = prop_id;
 		cap->val = p;
-		cap->flags = GF_CAPFLAG_IN_BUNDLE;
-		if (is_inputoutput) {
-			cap->flags |= GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT;
-		} else if (is_output) {
-			cap->flags |= GF_CAPFLAG_OUTPUT;
-		} else {
-			cap->flags |= GF_CAPFLAG_INPUT;
-		}
-		if (is_excluded)
-			cap->flags |= GF_CAPFLAG_EXCLUDED;
-		if (is_static)
-			cap->flags |= GF_CAPFLAG_STATIC;
-		if (is_loaded_filter_only)
-			cap->flags |= GF_CAPFLAG_LOADED_FILTER;
-		if (is_optional)
-			cap->flags |= GF_CAPFLAG_OPTIONAL;
+		cap->flags = flags;
 	}
 	jsf->nb_caps ++;
 	gf_filter_override_caps(jsf->filter, jsf->caps, jsf->nb_caps);
@@ -5271,8 +5282,8 @@ JSValue jsfilter_initialize_custom(GF_Filter *filter, JSContext *ctx)
 	((GF_FilterRegister *) filter->freg)->process_event = jsfilter_process_event;
 //	((GF_FilterRegister *) filter->freg)->reconfigure_output = jsfilter_reconfigure_output;
 //	((GF_FilterRegister *) filter->freg)->probe_data = jsfilter_probe_data;
-	//signal reg is script, so we don't free the filter reg caps as with custom filters
-	((GF_FilterRegister *) filter->freg)->flags |= GF_FS_REG_SCRIPT;
+
+	//do NOT signal reg is script, only custom (done by caller)
 	return JS_DupValue(ctx, jsf->filter_obj);
 }
 

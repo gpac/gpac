@@ -1770,7 +1770,7 @@ static void naludmx_set_dolby_vision(GF_NALUDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOLBY_VISION, &PROP_DATA(dv_cfg, 24));
 }
 
-static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_au_flush)
+static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_au_flush, Bool next_is_idr)
 {
 	u32 w, h, ew, eh;
 	u8 *dsi, *dsi_enh;
@@ -1841,7 +1841,18 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	if (force_au_flush) {
 		naludmx_end_access_unit(ctx);
 	}
-	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+	//special case for IDRs while in poc probe phase (typically if consecutive IDRs at start)
+	if (next_is_idr && !ctx->min_poc_probe_done) {
+		ctx->min_poc_probe_done = GF_TRUE;
+		u32 old_poc_diff = ctx->poc_diff;
+		if (!ctx->poc_diff) ctx->poc_diff = 1;
+		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+		ctx->min_poc_probe_done = GF_FALSE;
+		ctx->poc_diff = old_poc_diff;
+	} else {
+		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+	}
+
 	if (!ctx->analyze && (gf_list_count(ctx->pck_queue)>1))  {
 		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
 	}
@@ -2416,7 +2427,7 @@ static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc
 	ctx->sei_buffer_size += size + ctx->nal_length;
 }
 
-static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
+static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, u32 *is_slice, Bool *is_islice)
 {
 	s32 ps_idx = 0;
 	s32 res;
@@ -2512,7 +2523,10 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
 		if (! ctx->is_playing) return 0;
-		*is_slice = GF_TRUE;
+		*is_slice = 1;
+		if ((nal_unit_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_unit_type==GF_HEVC_NALU_SLICE_IDR_N_LP))
+			*is_slice = 2;
+
 		ctx->last_layer_id = layer_id;
 		ctx->last_temporal_id = temporal_id;
 		if (! *skip_nal) {
@@ -2591,7 +2605,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 }
 
 
-static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
+static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, u32 *is_slice, Bool *is_islice)
 {
 	s32 ps_idx = 0;
 	s32 res;
@@ -2711,7 +2725,10 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_SLICE_CRA:
 	case GF_VVC_NALU_SLICE_GDR:
 		if (! ctx->is_playing) return 0;
-		*is_slice = GF_TRUE;
+		*is_slice = 1;
+		if ((nal_unit_type==GF_VVC_NALU_SLICE_IDR_W_RADL) || (nal_unit_type==GF_VVC_NALU_SLICE_IDR_N_LP))
+			*is_slice = 2;
+
 		ctx->last_layer_id = layer_id;
 		ctx->last_temporal_id = temporal_id;
 		if (! *skip_nal) {
@@ -2772,7 +2789,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	return res;
 }
 
-static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 nal_type, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
+static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 nal_type, Bool *skip_nal, u32 *is_slice, Bool *is_islice)
 {
 	s32 ps_idx = 0;
 	s32 res = 0;
@@ -2859,7 +2876,10 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	case GF_AVC_NALU_DP_B_SLICE:
 	case GF_AVC_NALU_DP_C_SLICE:
 	case GF_AVC_NALU_IDR_SLICE:
-		*is_slice = GF_TRUE;
+		*is_slice = 1;
+		if (nal_type==GF_AVC_NALU_IDR_SLICE)
+			*is_slice = 2;
+
 		switch (ctx->avc_state->s_info.slice_type) {
 		case GF_AVC_TYPE_P:
 		case GF_AVC_TYPE2_P:
@@ -2901,7 +2921,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 				}
 			}
 		}
-		*is_slice = GF_TRUE;
+		*is_slice = 1;
 		//we disable temporal scalability when parsing mvc - never used and many encoders screw up POC in enhancement
 		if (ctx->is_mvc && (res>=0)) {
 			res=0;
@@ -2925,7 +2945,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
         }
         break;
 	case GF_AVC_NALU_SLICE_AUX:
-		*is_slice = GF_TRUE;
+		*is_slice = 1;
 		break;
 
 	case GF_AVC_NALU_DV_RPU:
@@ -3186,7 +3206,7 @@ naldmx_flush:
 		u32 next_sc_size=0;
 		s32 nal_parse_result;
 		Bool slice_is_idr, slice_force_ref;
-		Bool is_slice = GF_FALSE;
+		u32 is_slice = 0;
 		Bool is_islice = GF_FALSE;
 		u32 field_type = 0;
 		Bool au_start;
@@ -3377,7 +3397,7 @@ naldmx_flush:
 
 		if (!ctx->opid) {
 			//check output pid cfg before checking NAL skip only if no output pid
-			naludmx_check_pid(filter, ctx, force_au_flush);
+			naludmx_check_pid(filter, ctx, force_au_flush, GF_FALSE);
 			if (!ctx->opid) skip_nal = GF_TRUE;
 		}
 
@@ -3390,7 +3410,7 @@ naldmx_flush:
 			continue;
 		}
 		//check output pid cfg after skiping nal, to make sure we can flush pending packets when config change
-		naludmx_check_pid(filter, ctx, force_au_flush);
+		naludmx_check_pid(filter, ctx, force_au_flush, (is_slice==2) ? GF_TRUE : GF_FALSE);
 
 		if (!ctx->is_playing) {
 			ctx->resume_from = (u32) (start - ctx->nal_store);

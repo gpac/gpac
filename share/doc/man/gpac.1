@@ -4022,6 +4022,11 @@ Amount of media to skip from beginning of packet in PID timescale
 Packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)
 .br
 .TP
+.B OriginalDuration (PCOD,frac, P)
+.br
+Elapsed time (.num) and original duration (.den, 0 if last copy of packet) for redundant packets
+.br
+.TP
 .B HLSRef (HPLR,luint,DP)
 .br
 HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists

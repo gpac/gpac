@@ -73,6 +73,7 @@ typedef struct
 	Bool nocrypt, strtxt, lightp;
 	u32 nodata;
 	u32 mstore_purge, mstore_samples, mstore_size;
+	s32 ctso;
 
 	//internal
 
@@ -151,6 +152,7 @@ typedef struct
 	GF_ISOSampleRollType sap_4_type;
 	s32 roll;
 	u32 xps_mask;
+	u32 cts_offset;
 	
 	u32 sample_num, sample_last;
 	s64 ts_offset;

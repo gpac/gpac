@@ -1360,7 +1360,6 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	Bool done;
 	u32 i, j, count;
     Bool do_push = GF_FALSE;
-    Bool is_flute = (flute_esi<0) ? GF_FALSE : GF_TRUE;
 	GF_LCTObject *obj = s->last_active_obj;
 	GF_FLUTELLMapEntry *ll_map = NULL;
 

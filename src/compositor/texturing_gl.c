@@ -780,8 +780,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				}
 			}
 			if (!pData) {
-				if (!txh->compositor->last_error)
+				if (!txh->compositor->last_error) {
 					txh->compositor->last_error = GF_NOT_SUPPORTED;
+					if (!txh->compositor->player) {
+						gf_filter_abort(txh->compositor->filter);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to fetch hardware texture data - try specifying `:drv=yes`\n"));
+					}
+				}
 				return 0;
 			}
 

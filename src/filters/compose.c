@@ -233,7 +233,8 @@ static void compositor_setup_vout(GF_Compositor *ctx)
 	pid = ctx->vout = gf_filter_pid_new(ctx->filter);
 	gf_filter_pid_set_name(pid, "vout");
 	//compositor initiated for RT playback, vout pid may not be connected
-	gf_filter_pid_set_loose_connect(pid);
+	if (ctx->player)
+		gf_filter_pid_set_loose_connect(pid);
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
