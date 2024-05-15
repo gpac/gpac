@@ -1871,6 +1871,11 @@ static GF_Err gf_netcap_send(GF_Socket *sock, const u8 *buffer, u32 length, u32 
 }
 #endif //GPAC_DISABLE_NETCAP
 
+Bool gf_sk_has_nrt_netcap(GF_Socket *sk)
+{
+	if (sk && sk->cap_info && !sk->cap_info->nf->rt) return GF_TRUE;
+	return GF_FALSE;
+}
 
 GF_EXPORT
 GF_Socket *gf_sk_new_ex(u32 SocketType, const char *netcap_id)

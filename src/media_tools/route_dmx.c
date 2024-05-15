@@ -34,6 +34,8 @@
 
 #define GF_ROUTE_SOCK_SIZE	0x80000
 
+Bool gf_sk_has_nrt_netcap(GF_Socket *sk);
+
 typedef struct __route_service GF_ROUTEService;
 
 typedef enum
@@ -330,6 +332,7 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	}
 	routedmx->ip_ifce = ifce;
 	routedmx->netcap_id = netcap_id;
+	routedmx->max_seg_cache = 1;
 	routedmx->dom = gf_xml_dom_new();
 	if (!routedmx->dom) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to allocate DOM parser\n", log_name));
@@ -395,6 +398,8 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to create UDP socket\n", log_name));
 		return NULL;
 	}
+	if (!gf_sk_has_nrt_netcap(routedmx->atsc_sock))
+		routedmx->max_seg_cache = 0;
 
 	gf_sk_set_usec_wait(routedmx->atsc_sock, 1);
 	e = gf_sk_setup_multicast(routedmx->atsc_sock, GF_ATSC_MCAST_ADDR, GF_ATSC_MCAST_PORT, 1, GF_FALSE, (char *) ifce);
@@ -464,6 +469,8 @@ static GF_ROUTEService *gf_route_create_service(GF_ROUTEDmx *routedmx, const cha
 	service->log_name = gf_strdup(log_name);
 
 	service->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+	if (!gf_sk_has_nrt_netcap(service->sock))
+		routedmx->max_seg_cache = 0;
 	gf_sk_set_usec_wait(service->sock, 1);
 	e = gf_sk_setup_multicast(service->sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
 	if (e) {
@@ -471,6 +478,7 @@ static GF_ROUTEService *gf_route_create_service(GF_ROUTEDmx *routedmx, const cha
 		gf_route_service_del(routedmx, service);
 		return NULL;
 	}
+
 	gf_sk_set_buffer_size(service->sock, GF_FALSE, routedmx->unz_buffer_size);
 	//gf_sk_set_block_mode(service->sock, GF_TRUE);
 
@@ -620,7 +628,8 @@ GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow
 GF_Err gf_route_set_max_cache(GF_ROUTEDmx *routedmx, u32 max_cache)
 {
     if (!routedmx) return GF_BAD_PARAM;
-    routedmx->max_seg_cache = max_cache;
+    if (routedmx->max_seg_cache)
+		routedmx->max_seg_cache = 1+max_cache;
     return GF_OK;
 }
 
@@ -816,6 +825,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         GF_ROUTEEventFileInfo finfo;
         memset(&finfo, 0,sizeof(GF_ROUTEEventFileInfo));
         finfo.filename = filepath;
+        gf_mx_p(obj->blob.mx);
 		obj->blob.data = obj->payload;
 		obj->blob.flags = 0;
 		if (final_push) {
@@ -828,6 +838,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 			obj->blob.flags = GF_BLOB_IN_TRANSFER;
 			obj->blob.size = (u32) bytes_done;
 		}
+        gf_mx_v(obj->blob.mx);
 		finfo.blob = &obj->blob;
         finfo.total_size = obj->total_length;
         finfo.tsi = obj->tsi;
@@ -1215,6 +1226,9 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			//need a new socket for the session
 			if ((strcmp(new_s->dst_ip, dst_add)) || (new_s->port != dst_port) ) {
 				rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+				if (!gf_sk_has_nrt_netcap(rsess->sock))
+					routedmx->max_seg_cache = 0;
+
 				gf_sk_set_usec_wait(rsess->sock, 1);
 				e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
 				if (e) {
@@ -1885,6 +1899,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 		//need a new socket for the session
 		if ((strcmp(s->dst_ip, dst_ip)) || (s->port != dst_port) ) {
 			rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+			if (!gf_sk_has_nrt_netcap(rsess->sock))
+				routedmx->max_seg_cache = 0;
 			gf_sk_set_usec_wait(rsess->sock, 1);
 			e = gf_sk_setup_multicast(rsess->sock, dst_ip, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
 			if (e) {
@@ -1950,6 +1966,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				if (!strcmp(node->name, "FileTemplate")) {
 					GF_XMLNode *cnode = gf_list_get(node->content, 0);
 					if (cnode->type==GF_XML_TEXT_TYPE) file_template = cnode->name;
+					s->nb_media_streams++;
 				}
 				else if (!strcmp(node->name, "FDTParameters")) {
 					u32 l=0;
@@ -1986,7 +2003,10 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					u32 l=0;
 					GF_XMLNode *fdt = NULL;
 					while ((att = gf_list_enum(node->attributes, &l))) {
-						if (strstr(att->name, "fileTemplate")) file_template = att->value;
+						if (strstr(att->name, "fileTemplate")) {
+							file_template = att->value;
+							s->nb_media_streams++;
+						}
 					}
 					l=0;
 					while ((fdt = gf_list_enum(node->content, &l))) {
@@ -2805,13 +2825,30 @@ static GF_Err gf_route_dmx_process_lls(GF_ROUTEDmx *routedmx)
 GF_EXPORT
 GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 {
-	u32 i, count, nb_obj=0;
+	u32 i, j, count, nb_obj=0;
 	GF_Err e;
 
 	//check all active sockets
 	e = gf_sk_group_select(routedmx->active_sockets, 10, GF_SK_SELECT_READ);
-	if (e) return e;
-
+	if (e) {
+		//this only happens when netcap is used, flush all pending objects
+		if (e==GF_EOS) {
+			count = gf_list_count(routedmx->services);
+			for (i=0; i<count; i++) {
+				GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
+				if (s->tune_mode==GF_ROUTE_TUNE_OFF) continue;
+				j=0;
+				GF_LCTObject *obj;
+				while ((obj=gf_list_enum(s->objects, &j))) {
+					if (obj->status==GF_LCT_OBJ_RECEPTION) {
+						obj->status = GF_LCT_OBJ_DONE_ERR;
+						gf_route_dmx_process_object(routedmx, s, obj);
+					}
+				}
+			}
+		}
+		return e;
+	}
 	if (routedmx->atsc_sock) {
 		if (gf_sk_group_sock_is_set(routedmx->active_sockets, routedmx->atsc_sock, GF_SK_SELECT_READ)) {
 			e = gf_route_dmx_process_lls(routedmx);
@@ -2821,7 +2858,7 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 
 	count = gf_list_count(routedmx->services);
 	for (i=0; i<count; i++) {
-		u32 j, nb_obj_service;
+		u32 nb_obj_service;
 		GF_ROUTESession *rsess;
 		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
 		if (s->tune_mode==GF_ROUTE_TUNE_OFF) continue;

@@ -1146,6 +1146,23 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob
  */
 GF_Err gf_blob_release(const char *blob_url);
 
+
+/*!
+ * Retrieves data associated with a blob. If success, \ref gf_blob_release_ex must be called after this
+\param blob the blob object
+\param out_data if success, set to blob data pointer
+\param out_size if success, set to blob data size
+\param blob_flags if success, set to blob flags - may be NULL
+\return error code
+ */
+GF_Err gf_blob_get_ex(GF_Blob *blob, u8 **out_data, u32 *out_size, u32 *blob_flags);
+/*!
+ * Releases blob data
+\param blob the blob object
+\return error code
+ */
+GF_Err gf_blob_release_ex(GF_Blob *blob);
+
 /*!
  * Registers a new blob
 \param blob  blob object

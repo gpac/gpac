@@ -529,6 +529,11 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 
 	if (ptr->blob) {
 		gf_mx_p(ptr->blob->mx);
+		//TODO: we need an API for blob valid data range query
+		if (ptr->blob->flags & GF_BLOB_IN_TRANSFER) {
+			gf_mx_v(ptr->blob->mx);
+			return 0;
+		}
 		gf_bs_reassign_buffer(ptr->bs, ptr->blob->data, ptr->blob->size);
 		if (gf_bs_seek(ptr->bs, fileOffset) != GF_OK) {
 			gf_mx_v(ptr->blob->mx);
