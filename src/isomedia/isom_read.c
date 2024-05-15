@@ -6500,4 +6500,20 @@ GF_Err gf_isom_set_sample_alloc(GF_ISOFile *the_file, u32 trackNumber, 	u8 *(*sa
 	return GF_OK;
 }
 
+s32 gf_isom_get_min_negative_cts_offset(GF_ISOFile *the_file, u32 trackNumber, GF_ISOMMinNegCtsQuery query_mode)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return 0;
+	if (!trak->Media->information->sampleTable) return 0;
+	if (query_mode!=GF_ISOM_MIN_NEGCTTS_SAMPLES) {
+		if (trak->Media->information->sampleTable->CompositionToDecode) {
+			return -trak->Media->information->sampleTable->CompositionToDecode->compositionToDTSShift;
+		}
+		if (query_mode==GF_ISOM_MIN_NEGCTTS_CLSG) return 0;
+	}
+	if (!trak->Media->information->sampleTable->CompositionOffset) return 0;
+	return trak->Media->information->sampleTable->CompositionOffset->min_neg_cts_offset;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/

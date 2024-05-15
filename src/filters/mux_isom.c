@@ -227,6 +227,7 @@ enum
 
 enum
 {
+	MP4MX_CT_AUTO,
 	MP4MX_CT_EDIT=0,
 	MP4MX_CT_NOEDIT,
 	MP4MX_CT_NEGCTTS,
@@ -270,7 +271,7 @@ typedef struct
 	Bool m4sys, dref;
 	GF_Fraction dur;
 	u32 pack3gp, ctmode;
-	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband;
+	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband, rsot;
 	u32 xps_inband, moovpad;
 	u32 block_size;
 	u32 store, tktpl, mudta;
@@ -3910,6 +3911,7 @@ sample_entry_done:
 	if (is_true_pid && !tkw->nb_samples && !tkw->is_item) {
 		Bool use_negccts = GF_FALSE;
 		Bool remove_edits = GF_FALSE;
+		Bool has_pid_delay = GF_FALSE;
 		s64 moffset=0;
 		ctx->config_timing = GF_TRUE;
 		ctx->update_report = GF_TRUE;
@@ -3936,6 +3938,7 @@ sample_entry_done:
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DELAY);
 		if (p) {
+			has_pid_delay = GF_TRUE;
 			//media skip
 			if (p->value.longsint < 0) {
 				//if cmf2, remove edits and use negctss
@@ -3987,6 +3990,18 @@ sample_entry_done:
 				gf_isom_remove_edits(ctx->file, tkw->track_num);
 			}
 		}
+
+		if (!has_pid_delay) {
+			if (ctx->ctmode==MP4MX_CT_NEGCTTS)
+				use_negccts=GF_TRUE;
+			else if ((ctx->cmaf==MP4MX_CMAF_CMF2) && (tkw->stream_type==GF_STREAM_VISUAL))
+				use_negccts=GF_TRUE;
+			else if ((ctx->ctmode==MP4MX_CT_AUTO) && (ctx->store>=MP4MX_MODE_FRAG)) {
+				if ( gf_isom_get_min_negative_cts_offset(ctx->file, tkw->track_num, GF_ISOM_MIN_NEGCTTS_CLSG) != 0)
+					use_negccts=GF_TRUE;
+			}
+		}
+
 		if (use_negccts) {
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
 
@@ -3997,12 +4012,22 @@ sample_entry_done:
 				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO2, GF_FALSE);
 				gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO3, GF_FALSE);
 			}
-
+			//can be 0 if remuxing from ISOBMFF with negctts
 			tkw->negctts_shift = (tkw->ts_delay<0) ? -tkw->ts_delay : 0;
 		} else {
+			if (!has_pid_delay && (ctx->store>=MP4MX_MODE_FRAG)) {
+				//when PID delay is signaled, CTS is always >= DTS
+				//otherwise, and only when refragmenting ISOBMFF sources, we need to patch CTS offset (when remuxing negctts to non neg ctts)
+				//check from isobmf file if info was present (cslg is cloned in track template)
+				tkw->negctts_shift = gf_isom_get_min_negative_cts_offset(ctx->file, tkw->track_num, GF_ISOM_MIN_NEGCTTS_CLSG);
+				if (tkw->negctts_shift)
+					gf_isom_set_edit(ctx->file, tkw->track_num, 0, 0, -tkw->negctts_shift, GF_ISOM_EDIT_NORMAL);
+			}
 			//this will remove any cslg in the track due to template
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
 		}
+		if (ctx->ctmode==MP4MX_CT_NOEDIT)
+			gf_isom_remove_edits(ctx->file, tkw->track_num);
 
 		if (!ctx->noinit) {
 			mp4_mux_set_tags(ctx, tkw);
@@ -6661,6 +6686,11 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			//process packet
 			e = mp4_mux_process_sample(ctx, tkw, pck, GF_TRUE);
 
+			p = ctx->rsot ? gf_filter_pck_get_property(pck, GF_PROP_PCK_ORIG_DUR) : NULL;
+			if (p) {
+				gf_isom_set_fragment_original_duration(ctx->file, tkw->track_id, p->value.frac.den, (u32) p->value.frac.num);
+			}
+
 			//discard
 			gf_filter_pid_drop_packet(tkw->ipid);
 
@@ -8171,9 +8201,10 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(m4sys), "force MPEG-4 Systems signaling of tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dref), "only reference data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctmode), "set composition offset mode for video tracks\n"
+	"- auto: if fragmenting an ISOBMFF source, use source settings otherwise resolve to `edit`\n"
 	"- edit: uses edit lists to shift first frame to presentation time 0\n"
 	"- noedit: ignore edit lists and does not shift timeline\n"
-	"- negctts: uses ctts v1 with possibly negative offsets and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
+	"- negctts: uses ctts v1 with possibly negative offsets and no edit lists", GF_PROP_UINT, "auto", "auto|edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dur), "only import the specified duration. If negative, specify the number of coded frames to import", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(pack3gp), "pack a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -8313,6 +8344,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- prof: enabled and write profile if known\n"
 	"- tiny: enabled and write reduced version if profile known and compatible", GF_PROP_UINT, "prof", "off|gen|prof|tiny", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rsot), "inject redundant sample timing info when ^resent", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

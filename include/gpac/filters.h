@@ -1344,6 +1344,7 @@ enum
 	//we also use this property on PID to signal sample-accurate seek info is present
 	GF_PROP_PCK_SKIP_BEGIN = GF_4CC('P','C','K','S'),
 	GF_PROP_PCK_SKIP_PRES = GF_4CC('P','C','K','D'),
+	GF_PROP_PCK_ORIG_DUR = GF_4CC('P','C','O','D'),
 	//internal for DASH forward mode
 	GF_PROP_PID_DASH_FWD = GF_4CC('D','F','W','D'),
 	GF_PROP_PCK_DASH_MANIFEST = GF_4CC('D','M','P','D'),

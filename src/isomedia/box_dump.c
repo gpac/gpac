@@ -5204,6 +5204,17 @@ GF_Err tfdt_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_done("TrackFragmentBaseMediaDecodeTimeBox", a, trace);
 	return GF_OK;
 }
+GF_Err rsot_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_TFOriginalDurationBox *ptr = (GF_TFOriginalDurationBox*) a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "RedundantSampleOriginalTimingBox", trace);
+	if (ptr->flags & 1) gf_fprintf(trace, " originalDuration=\"%u\"", ptr->original_duration);
+	if (ptr->flags & 2) gf_fprintf(trace, " elapsedDuration=\"%u\"", ptr->elapsed_duration);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("RedundantSampleOriginalTimingBox", a, trace);
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 GF_Err rvcc_box_dump(GF_Box *a, FILE * trace)
