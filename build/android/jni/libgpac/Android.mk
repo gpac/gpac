@@ -202,6 +202,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/hevcmerge.c \
 	../../../../src/filters/hevcsplit.c \
 	../../../../src/filters/in_route.c \
+	../../../../src/filters/in_route_repair.c \
 	../../../../src/filters/in_dvb4linux.c \
 	../../../../src/filters/in_file.c \
 	../../../../src/filters/in_http.c \
