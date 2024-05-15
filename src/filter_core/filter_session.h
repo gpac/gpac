@@ -268,7 +268,6 @@ struct __gf_filter_pck
 	//note that packets with frame_ifce are always considered as read-only memory
 	u8 filter_owns_mem;
 	u8 is_dangling;
-
 };
 
 /*!

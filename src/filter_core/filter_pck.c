@@ -129,7 +129,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		closest = pck_enum_state.closest;
 	}
 
-	//stop allocating after a while - TODO we for sur can design a better algo...
+	//stop allocating after a while - TODO we for sure can design a better algo...
 	max_reservoir_size = pid->num_destinations ? 10 : 1;
 	//if pid is file, force 1 max
 	if (!pck && (pid->stream_type==GF_STREAM_FILE))
@@ -430,6 +430,10 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *
 {
 	GF_FilterPacket *pck;
 
+	if (!pid) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on a NULL PID\n"));
+		return NULL;
+	}
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on an input PID in filter %s\n", pid->filter->name));
 		return NULL;
@@ -1363,12 +1367,13 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 GF_EXPORT
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
+	if (!pck || !pck->pid) return GF_BAD_PARAM;
+
 	//dangling packet
 	if (pck->is_dangling) {
 		gf_filter_pck_discard(pck);
 		return GF_OK;
 	}
-	gf_assert(pck->pid);
 	return gf_filter_pck_send_internal(pck, GF_TRUE);
 }
 
