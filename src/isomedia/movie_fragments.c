@@ -3148,6 +3148,24 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, GF_ISOTrackID TrackID, 
 	return gf_isom_add_subsample_info(subs, last_sample, subSampleSize, priority, reserved, discardable);
 }
 
+
+GF_Err gf_isom_set_fragment_original_duration(GF_ISOFile *movie, GF_ISOTrackID TrackID, u32 orig_dur, u32 elapsed_dur)
+{
+	GF_TrackFragmentBox *traf;
+	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+
+	traf = gf_isom_get_traf(movie, TrackID);
+	if (!traf) return GF_BAD_PARAM;
+
+	if (!traf->rsot) {
+		traf->rsot = (GF_TFOriginalDurationBox *) gf_isom_box_new_parent(&traf->child_boxes, GF_ISOM_BOX_TYPE_RSOT);
+		if (!traf->rsot) return GF_OUT_OF_MEM;
+	}
+	if (orig_dur) traf->rsot->original_duration = orig_dur;
+	if (elapsed_dur) traf->rsot->elapsed_duration = elapsed_dur;
+	return GF_OK;
+}
+
 #if 0 //unused
 static GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf)
 {

@@ -831,6 +831,7 @@ ISOM_BOX_IMPL_DECL(ssix)
 ISOM_BOX_IMPL_DECL(leva)
 ISOM_BOX_IMPL_DECL(pcrb)
 ISOM_BOX_IMPL_DECL(tfdt)
+ISOM_BOX_IMPL_DECL(rsot)
 ISOM_BOX_IMPL_DECL(emsg)
 
 #endif
@@ -1310,6 +1311,7 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_CTRN, trun, "traf", 0, 0),
 #endif
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TFDT, tfdt, "traf", 1),
+	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_RSOT, rsot, "traf", 0, 0x000001|0x000002),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STYP, ftyp, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PRFT, prft, "file", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_SIDX, sidx, "file", 1),
