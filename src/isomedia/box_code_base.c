@@ -6509,6 +6509,9 @@ GF_Err traf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 	case GF_ISOM_BOX_TYPE_TFDT:
 		BOX_FIELD_ASSIGN(tfdt, GF_TFBaseMediaDecodeTimeBox)
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_RSOT:
+		BOX_FIELD_ASSIGN(rsot, GF_TFOriginalDurationBox)
+		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SUBS:
 		BOX_FIELD_LIST_ASSIGN(sub_samples)
 		return GF_OK;
@@ -6592,6 +6595,7 @@ GF_Err traf_box_size(GF_Box *s)
 	gf_isom_check_position_list(s, ptr->sub_samples, &pos);
 
 	gf_isom_check_position(s, (GF_Box *)ptr->tfdt, &pos);
+	gf_isom_check_position(s, (GF_Box *)ptr->rsot, &pos);
 
 	//cmaf-like
 	if (ptr->truns_first) {
@@ -9795,6 +9799,68 @@ GF_Err tfdt_box_size(GF_Box *s)
 	} else {
 		ptr->version = 1;
 		ptr->size += 8;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *rsot_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TFOriginalDurationBox, GF_ISOM_BOX_TYPE_RSOT);
+	return (GF_Box *)tmp;
+}
+
+void rsot_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+/*this is using chpl format according to some NeroRecode samples*/
+GF_Err rsot_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_TFOriginalDurationBox *ptr = (GF_TFOriginalDurationBox *)s;
+
+	if (ptr->flags & 1) {
+		ISOM_DECREASE_SIZE(ptr, 4);
+		ptr->original_duration = gf_bs_read_u32(bs);
+	}
+	if (ptr->flags & 2) {
+		ISOM_DECREASE_SIZE(ptr, 4);
+		ptr->elapsed_duration = (u32) gf_bs_read_u32(bs);
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err rsot_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TFOriginalDurationBox *ptr = (GF_TFOriginalDurationBox *) s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	if (ptr->flags & 1) {
+		gf_bs_write_u32(bs, ptr->original_duration);
+	}
+	if (ptr->flags & 2) {
+		gf_bs_write_u32(bs, (u32) ptr->elapsed_duration);
+	}
+	return GF_OK;
+}
+
+GF_Err rsot_box_size(GF_Box *s)
+{
+	GF_TFOriginalDurationBox *ptr = (GF_TFOriginalDurationBox *)s;
+
+	if (ptr->original_duration) {
+		ptr->flags |= 1;
+		ptr->size+=4;
+	}
+	if (ptr->elapsed_duration) {
+		ptr->flags |= 2;
+		ptr->size+=4;
 	}
 	return GF_OK;
 }

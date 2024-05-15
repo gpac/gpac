@@ -4737,6 +4737,16 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *isom_file, s32 subsegs_per_sidx, Bool d
 */
 GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags);
 
+/*! sets up track fragment defaults using the given template. The template shall be a serialized array of one or more trex boxes
+
+\param isom_file the target ISO file
+\param TrackID ID of the target track
+\param orig_dur  last sample original duration
+\param elapsed_dur   first sample elapsed duration
+\return error if any
+*/
+GF_Err gf_isom_set_fragment_original_duration(GF_ISOFile *movie, GF_ISOTrackID TrackID, u32 orig_dur, u32 elapsed_dur);
+
 #ifdef GF_ENABLE_CTRN
 /*! enables track fragment inheriting from a given traf.
 This shall only be set when the inherited traf shares exactly the same syntax except the sample sizes, this library does not compute which

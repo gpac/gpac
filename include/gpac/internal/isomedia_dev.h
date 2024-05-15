@@ -235,6 +235,7 @@ enum
 	GF_ISOM_BOX_TYPE_LEVA   = GF_4CC( 'l', 'e', 'v', 'a' ),
 	GF_ISOM_BOX_TYPE_PCRB	= GF_4CC( 'p', 'c', 'r', 'b' ),
 	GF_ISOM_BOX_TYPE_EMSG	= GF_4CC( 'e', 'm', 's', 'g' ),
+	GF_ISOM_BOX_TYPE_RSOT	= GF_4CC( 'r', 's', 'o', 't' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
@@ -2708,6 +2709,14 @@ typedef struct
 	u64 baseMediaDecodeTime;
 } GF_TFBaseMediaDecodeTimeBox;
 
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 original_duration;
+	u32 elapsed_duration;
+} GF_TFOriginalDurationBox;
+
 typedef struct
 {
 	GF_ISOM_BOX
@@ -2735,6 +2744,7 @@ typedef struct
 	/*when data caching is on*/
 	u32 DataCache;
 	GF_TFBaseMediaDecodeTimeBox *tfdt;
+	GF_TFOriginalDurationBox *rsot;
 
 	u64 moof_start_in_bs;
 #ifdef GF_ENABLE_CTRN
