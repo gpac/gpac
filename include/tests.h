@@ -23,6 +23,7 @@ static Bool fatal_ut = GF_TRUE;
 
 #define assert_false(expr)                assert_true(!(expr))
 #define assert_equal_str(str1, str2)      assert_true(!strcmp((str1), (str2)))
+#define assert_equal_mem(m1, m2, sz)      assert_true(memcmp(m1, m2, sz) == 0)
 #define assert_not_equal_str(str1, str2)  assert_true(strcmp((str1), (str2)))
 #define assert_equal(a, b)                assert_true((a) == (b))
 #define assert_greater(a, b)              assert_true((a) > (b))

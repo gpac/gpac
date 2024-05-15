@@ -36,6 +36,11 @@ typedef struct {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
 
+	// override gf_filter_*() calls for testability
+	GF_FilterPacket* (*pck_new_shared)(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
+	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
+	GF_Err (*pck_send)(GF_FilterPacket *pck);
+
 	GF_List *ordered_events; /*Event, ordered by dispatch time*/
 	u64 clock;
 	u32 last_event_id;
@@ -53,7 +58,7 @@ typedef struct {
 	u32 nb_forced;
 } SCTE35DecCtx;
 
-GF_STATIC GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
+static GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
 {
 	ctx->ordered_events = gf_list_new();
 
@@ -73,18 +78,26 @@ GF_STATIC GF_Err scte35dec_initialize_internal(SCTE35DecCtx *ctx)
 static GF_Err scte35dec_initialize(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
+	ctx->pck_new_shared = gf_filter_pck_new_shared;
+	ctx->pck_new_alloc = gf_filter_pck_new_alloc;
+	ctx->pck_send = gf_filter_pck_send;
 	return scte35dec_initialize_internal(ctx);
 }
 
-static void scte35dec_finalize(GF_Filter *filter)
+static void scte35dec_finalize_internal(SCTE35DecCtx *ctx)
 {
-	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
 	for (u32 i=0; i<gf_list_count(ctx->ordered_events); i++) {
 		Event *evt = gf_list_get(ctx->ordered_events, i);
 		gf_isom_box_del((GF_Box*)evt->emib);
 		gf_free(evt);
 	}
 	gf_list_del(ctx->ordered_events);
+}
+
+static void scte35dec_finalize(GF_Filter *filter)
+{
+	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
+	scte35dec_finalize_internal(ctx);
 }
 
 static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -144,7 +157,7 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 	ctx->last_pck_dur = dur;
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-	gf_filter_pck_send(pck);
+	ctx->pck_send(pck);
 }
 
 static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts)
@@ -154,7 +167,7 @@ static GF_Err scte35dec_flush_emeb(SCTE35DecCtx *ctx, u64 dts)
 		return GF_OK;
 	}
 
-	GF_FilterPacket *seg_emeb = gf_filter_pck_new_shared(ctx->opid, ctx->emeb_box, sizeof(ctx->emeb_box), NULL);
+	GF_FilterPacket *seg_emeb = ctx->pck_new_shared(ctx->opid, ctx->emeb_box, sizeof(ctx->emeb_box), NULL);
 	if (!seg_emeb) return GF_OUT_OF_MEM;
 
 	scte35dec_send_pck(ctx, seg_emeb, dts, dts - ctx->last_dispatched_dts);
@@ -172,7 +185,7 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 	while ( (evt = gf_list_pop_front(ctx->ordered_events)) ) {
 		if (evt->dts + evt->emib->presentation_time_delta >= dts) {
 			u8 *output = NULL;
-			GF_FilterPacket *pck_dst = gf_filter_pck_new_alloc(ctx->opid, evt->emib->size, &output);
+			GF_FilterPacket *pck_dst = ctx->pck_new_alloc(ctx->opid, evt->emib->size, &output);
 			if (!pck_dst) {
 				e = GF_OUT_OF_MEM;
 				goto exit;
@@ -207,7 +220,8 @@ exit:
 
 static void scte35dec_schedule(SCTE35DecCtx *ctx, u64 dts, GF_EventMessageBox *emib)
 {
-	Event *evt_new = gf_malloc(sizeof(Event));
+	Event *evt_new;
+    GF_SAFEALLOC(evt_new, Event);
 	evt_new->dts = dts;
 	evt_new->emib = emib;
 
@@ -364,6 +378,67 @@ exit:;
 	gf_bs_del(bs);
 }
 
+static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, u32 dur)
+{
+	// handle internal clock, timescale and duration
+	if (!ctx->last_dispatched_dts) {
+		ctx->timescale = timescale;
+		ctx->last_dispatched_dts = dts;
+		ctx->last_pck_dur = dur;
+	} else if (ctx->clock < dts && !(ctx->segdur.den && ctx->segdur.num>0) &&
+	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
+		// drift control
+		s32 drift = ctx->last_pck_dur + ctx->last_dispatched_dts - dts;
+		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
+		ctx->last_dispatched_dts += drift;
+		dts += drift;
+	}
+	ctx->clock = MAX(ctx->clock, dts);
+}
+
+static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *emsg, u64 dts, u32 timescale)
+{
+	u64 pts = 0;
+	u32 dur = 0xFFFFFFFF;
+	// parsing is incomplete so we only check the first splice command ...
+	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id);
+	if (dur == 0xFFFFFFFF)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] No duration found in SCTE-35 message\n"));
+
+	GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
+	if (!emib) return GF_OUT_OF_MEM;
+
+	// set values according to SCTE 214-3 2015
+	emib->timescale = timescale;
+	emib->presentation_time_delta = pts - dts;
+	if (pts < ctx->clock && !(ctx->segdur.den && ctx->segdur.num>0))
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
+	emib->event_duration = dur;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
+	emib->event_id = ctx->last_event_id++;
+	emib->scheme_id_uri = gf_strdup("urn:scte:scte35:2013:bin");
+	emib->value = gf_strdup("1001");
+	emib->message_data_size = emsg->value.data.size;
+	emib->message_data = gf_malloc(emib->message_data_size);
+	if (!emib->message_data) return GF_OUT_OF_MEM;
+	memcpy(emib->message_data, emsg->value.data.ptr, emib->message_data_size);
+
+	GF_Err e = gf_isom_box_size((GF_Box*)emib);
+	if (e) {
+		gf_isom_box_del((GF_Box*)emib);
+		return e;
+	}
+
+	scte35dec_schedule(ctx, dts, emib);
+
+	return GF_OK;
+}
+
+static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
+{
+	return scte35dec_dispatch(ctx, dts);
+}
+
 static GF_Err scte35dec_process(GF_Filter *filter)
 {
 	SCTE35DecCtx *ctx = gf_filter_get_udta(filter);
@@ -378,61 +453,18 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	// handle internal clock, timescale and duration
 	u64 dts = gf_filter_pck_get_dts(pck);
-	if (!ctx->last_dispatched_dts) {
-		ctx->timescale = gf_filter_pck_get_timescale(pck);
-		ctx->last_dispatched_dts = dts;
-		ctx->last_pck_dur = gf_filter_pck_get_duration(pck);
-	} else if (ctx->clock < dts && !(ctx->segdur.den && ctx->segdur.num>0) &&
-	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
-		// drift control
-		s32 drift = ctx->last_pck_dur + ctx->last_dispatched_dts - dts;
-		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
-		ctx->last_dispatched_dts += drift;
-		dts += drift;
-	}
-	ctx->clock = MAX(ctx->clock, dts);
+	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), gf_filter_pck_get_duration(pck));
 
 	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
 	if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
-		u64 pts = 0;
-		u32 dur = 0xFFFFFFFF;
-		// parsing is incomplete so we only check the first splice command ...
-		scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id);
-		if (dur == 0xFFFFFFFF)
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] No duration found in SCTE-35 message\n"));
-
-		GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
-		if (!emib) return GF_OUT_OF_MEM;
-
-		// set values according to SCTE 214-3 2015
-		emib->timescale = gf_filter_pck_get_timescale(pck);
-		emib->presentation_time_delta = pts - dts;
-		if (pts < ctx->clock && !(ctx->segdur.den && ctx->segdur.num>0))
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
-		emib->event_duration = dur;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] detected pts="LLU" (delta="LLU") dur=%u at dts="LLU"\n", pts, pts-dts, dur, dts));
-		emib->event_id = ctx->last_event_id++;
-		emib->scheme_id_uri = gf_strdup("urn:scte:scte35:2013:bin");
-		emib->value = gf_strdup("1001");
-		emib->message_data_size = emsg->value.data.size;
-		emib->message_data = gf_malloc(emib->message_data_size);
-		if (!emib->message_data) return GF_OUT_OF_MEM;
-		memcpy(emib->message_data, emsg->value.data.ptr, emib->message_data_size);
-
-		GF_Err e = gf_isom_box_size((GF_Box*)emib);
-		if (e) {
-			gf_isom_box_del((GF_Box*)emib);
-			return e;
-		}
-
-		scte35dec_schedule(ctx, dts, emib);
+		GF_Err e = scte35dec_process_emsg(ctx, emsg, dts, gf_filter_pck_get_timescale(pck));
+		if (e) return e;
 	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 
-	return scte35dec_dispatch(ctx, dts);
+	return scte35dec_process_dispatch(ctx, dts);
 }
 
 static const GF_FilterCapability SCTE35DecCaps[] =
