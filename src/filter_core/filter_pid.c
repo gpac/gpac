@@ -5573,6 +5573,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 {
 	char szName[30];
 	GF_FilterPid *pid;
+	if (!filter) return NULL;
 	GF_SAFEALLOC(pid, GF_FilterPid);
 	if (!pid) return NULL;
 	pid->filter = filter;
@@ -6720,6 +6721,10 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	GF_FilterPacketInstance *pcki;
 	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
 
+	if (!pid) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to discard a packet on a NULL PID\n"));
+		return;
+	}
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to discard a packet on an output PID in filter %s\n", pid->filter->name));
 		return;
