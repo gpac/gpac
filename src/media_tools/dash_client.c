@@ -925,12 +925,12 @@ setup_route:
 				}
 			} else {
 				//adjust so that nb_seg = current_time/segdur = (fetch-ast)/seg_dur;
-				// = (fetch- ( mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate) / segdur;
+				// = (fetch - (mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate) / segdur;
 				//hence nb_seg*seg_dur = fetch - mpd->availabilityStartTime - group->dash->utc_shift - group->dash->utc_drift_estimate
 				//so group->dash->utc_drift_estimate = fetch - (mpd->availabilityStartTime + nb_seg*seg_dur)
+				//this must also be compensated by the last publishTime
 
-
-				u64 utc = mpd->availabilityStartTime + dyn_period->start + timeline_offset_ms;
+				u64 utc = mpd->availabilityStartTime + (fetch_time - mpd->publishTime) + dyn_period->start + timeline_offset_ms;
 				group->dash->utc_drift_estimate = ((s64) fetch_time - (s64) utc);
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff of ROUTE broadcast "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU" - bootstraping on segment %s\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime, val));
 			}
