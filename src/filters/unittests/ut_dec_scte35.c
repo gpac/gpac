@@ -39,8 +39,12 @@ static u8 scte35_payload[] = {
     0x00, 0x00, 0x18, 0x9f, 0x1d, 0x41, 0x47
 };
 
+static u8 emeb_box[EMEB] = {
+    0x00, 0x00, 0x00, 0x08, 0x65, 0x6d, 0x65, 0x62
+};
+
 #define TIMESCALE 90000
-#define FPS 25
+#define FPS 2
 
 #define SEND_VIDEO(num_frames) { \
         for (int i=0; i<num_frames; ++i) { \
@@ -63,6 +67,57 @@ unittest(scte35dec_safety)
 }
 
 static GF_Err pck_send_no_event(GF_FilterPacket *pck)
+{
+    #define expected_calls 6
+    static int calls = 0;
+    static u64 expected_dts[expected_calls] = { 0, 1 * TIMESCALE / FPS, 2 * TIMESCALE / FPS, 3 * TIMESCALE / FPS, 4 * TIMESCALE / FPS, 5 * TIMESCALE / FPS };
+    static u32 expected_dur[expected_calls] = { 0, 0, TIMESCALE/FPS, TIMESCALE/FPS, TIMESCALE/FPS, TIMESCALE/FPS };
+    static u32 expected_size[expected_calls] = { EMEB, EMEB, EMEB, EMEB, EMEB, EMEB };
+
+    if (pck == NULL) {
+        // checks at termination
+        assert_equal(calls, expected_calls);
+        return GF_OK;
+    }
+
+    // dynamic checks
+    assert_less(calls, expected_calls);
+    assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
+    assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
+
+    u32 size = 0;
+    const u8 *data = gf_filter_pck_get_data(pck, &size);
+    assert_equal(size, expected_size[calls]);
+    assert_less_equal(EMEB, size);
+    assert_equal_mem(data, emeb_box, EMEB);
+
+    // update context
+    if (!pck->filter_owns_mem) gf_free(pck->data);
+    gf_free(pck);
+    calls++;
+    #undef expected_calls
+
+    return GF_OK;
+}
+
+unittest(scte35dec_no_event)
+{
+    SCTE35DecCtx ctx = {0};
+    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
+    ctx.pck_new_shared = pck_new_shared;
+	ctx.pck_new_alloc = pck_new_alloc;
+    ctx.pck_send = pck_send_no_event;
+
+    u64 pts = 0;
+    SEND_VIDEO(FPS*3); // send 3 seconds of heartbeat
+
+    assert_equal(scte35dec_flush(&ctx, 0, UINT32_MAX), GF_OK);
+    scte35dec_finalize_internal(&ctx);
+
+    pck_send_no_event(NULL); // trigger checks
+}
+
+static GF_Err pck_send_simple(GF_FilterPacket *pck)
 {
     #define expected_calls 1
     static int calls = 0;
@@ -91,24 +146,7 @@ static GF_Err pck_send_no_event(GF_FilterPacket *pck)
     if (!pck->filter_owns_mem) gf_free(pck->data);
     gf_free(pck);
     calls++;
+    #undef expected_calls
 
     return GF_OK;
 }
-
-unittest(scte35dec_no_event)
-{
-    SCTE35DecCtx ctx = {0};
-    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
-    ctx.pck_new_shared = pck_new_shared;
-	ctx.pck_new_alloc = pck_new_alloc;
-    ctx.pck_send = pck_send_no_event;
-
-    u64 pts = 0;
-    SEND_VIDEO(FPS*10); // send 10 seconds of heartbeat
-
-    assert_equal(scte35dec_flush(&ctx, 0, UINT32_MAX), GF_OK);
-    scte35dec_finalize_internal(&ctx);
-
-    pck_send_no_event(NULL); // trigger checks
-}
-
