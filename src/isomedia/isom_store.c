@@ -631,7 +631,7 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 		map = mw->movie->movieFileMap;
 	}
 	//get the payload...
-	bytes = gf_isom_datamap_get_data(map, mw->buffer, size, offset);
+	bytes = gf_isom_datamap_get_data(map, mw->buffer, size, offset, NULL);
 	if (bytes != size)
 		return GF_IO_ERR;
 	//write it to our stream...

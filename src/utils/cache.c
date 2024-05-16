@@ -1012,7 +1012,7 @@ const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size)
     if (!entry) return NULL;
     if (entry->external_blob) {
         u8 *data;
-       GF_Err  e = gf_blob_get(entry->cache_filename, &data, size, NULL);
+		GF_Err e = gf_blob_get_ex(entry->external_blob, &data, size, NULL);
         if (e) return NULL;
         return data;
     }
@@ -1023,7 +1023,7 @@ void gf_cache_release_content(const DownloadedCacheEntry entry)
 {
     if (!entry) return;
     if (!entry->external_blob) return;
-    gf_blob_release(entry->cache_filename);
+    gf_blob_release_ex(entry->external_blob);
 }
 Bool gf_cache_is_deleted(const DownloadedCacheEntry entry)
 {

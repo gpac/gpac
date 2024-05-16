@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -1610,6 +1610,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				if (dep_flags)
 					gf_filter_pck_set_dependency_flags(pck, dep_flags);
+				if (ch->sample->corrupted)
+					gf_filter_pck_set_corrupted(pck, GF_TRUE);
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
