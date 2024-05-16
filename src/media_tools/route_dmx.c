@@ -3131,4 +3131,83 @@ void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi)
 	if (routedmx) routedmx->debug_tsi = tsi;
 }
 
+GF_EXPORT
+GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end)
+{
+	u32 i=0;
+	Bool is_patched=GF_FALSE;
+	if (!routedmx) return GF_BAD_PARAM;
+	GF_ROUTEService *s=NULL;
+	GF_LCTObject *obj = NULL;
+	while ((s = gf_list_enum(routedmx->services, &i))) {
+		if (s->service_id == service_id) break;
+		s = NULL;
+	}
+	if (!s) return GF_BAD_PARAM;
+	i=0;
+	while ((obj = gf_list_enum(s->objects, &i))) {
+		if ((obj->tsi == finfo->tsi) && (obj->toi == finfo->toi))
+			break;
+	}
+	if (!obj) return GF_BAD_PARAM;
+	gf_mx_p(obj->blob.mx);
+
+	for (i=0; i<obj->nb_frags; i++) {
+		if (br_start < obj->frags[i].offset) {
+			//we patched until begining of this fragment, merge
+			if (br_end >= obj->frags[i].offset) {
+				u32 last_end = i ? (obj->frags[i-1].offset+obj->frags[i-1].size) : 0;
+				obj->frags[i].offset = (last_end > br_start) ? last_end : br_start;
+				is_patched = GF_TRUE;
+				break;
+			}
+			//we need a new fragment
+			if (obj->nb_frags+1>obj->nb_alloc_frags) {
+				obj->nb_alloc_frags = obj->nb_frags+1;
+				obj->frags = gf_realloc(obj->frags, sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+				if (!obj->frags) {
+					finfo->nb_frags = obj->nb_frags = 0;
+					finfo->frags = obj->frags;
+					gf_mx_v(obj->blob.mx);
+					return GF_OUT_OF_MEM;
+				}
+			}
+			memmove(&obj->frags[i+1], &obj->frags[i], sizeof(GF_LCTFragInfo) * (obj->nb_frags - i));
+			obj->frags[i].offset = br_start;
+			obj->frags[i].size = br_end - br_start;
+			obj->nb_frags++;
+			is_patched = GF_TRUE;
+			break;
+		}
+	}
+	if (!is_patched) {
+		if (obj->nb_frags+1>obj->nb_alloc_frags) {
+			obj->nb_alloc_frags = obj->nb_frags+1;
+			obj->frags = gf_realloc(obj->frags, sizeof(GF_LCTFragInfo)*obj->nb_alloc_frags);
+			if (!obj->frags) {
+				finfo->nb_frags = obj->nb_frags = 0;
+				finfo->frags = obj->frags;
+				gf_mx_v(obj->blob.mx);
+				return GF_OUT_OF_MEM;
+			}
+		}
+		obj->frags[obj->nb_frags].offset = br_start;
+		obj->frags[obj->nb_frags].size = br_end - br_start;
+		obj->nb_frags++;
+	}
+	for (i=1; i<obj->nb_frags; i++) {
+		if (obj->frags[i-1].offset+obj->frags[i-1].size == obj->frags[i].offset) {
+			obj->frags[i-1].size += obj->frags[i].size;
+			if (i+1<obj->nb_frags)
+				memmove(&obj->frags[i], &obj->frags[i+1], sizeof(GF_LCTFragInfo) * (obj->nb_frags - i - 1));
+			obj->nb_frags--;
+		}
+	}
+	finfo->nb_frags = obj->nb_frags;
+	finfo->frags = obj->frags;
+
+	gf_mx_v(obj->blob.mx);
+	return GF_OK;
+}
+
 #endif /* !GPAC_DISABLE_ROUTE */

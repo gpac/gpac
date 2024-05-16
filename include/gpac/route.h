@@ -337,6 +337,17 @@ void gf_route_dmx_set_service_udta(GF_ROUTEDmx *routedmx, u32 service_id, void *
  */
 void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
 
+
+/*! Patch fragment info of object after a repair
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param finfo file info event as passed to the caller. Only tsi and toi info are used to loacate the object. The frags and nb_frags fileds are updated by this function
+\param br_start start offset of byte range being patched
+\param br_end end offset of byte range being patched
+\return error if any
+ */
+GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
+
 /*! @} */
 #ifdef __cplusplus
 }
