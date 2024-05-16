@@ -531,6 +531,8 @@
 		92E249902057B973002CC029 /* resample_audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E2498F2057B973002CC029 /* resample_audio.c */; };
 		92E318CF20645036007BE021 /* ff_rescale.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318CE20645036007BE021 /* ff_rescale.c */; };
 		92E318D120651834007BE021 /* vcrop.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E318D020651834007BE021 /* vcrop.c */; };
+		92E8E7EB2BF4B482003D785B /* in_route.h in Headers */ = {isa = PBXBuildFile; fileRef = 92E8E7E92BF4B481003D785B /* in_route.h */; };
+		92E8E7EC2BF4B482003D785B /* in_route_repair.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E8E7EA2BF4B481003D785B /* in_route_repair.c */; };
 		92E9167C2073F1DB00EE92FB /* ff_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92E9167B2073F1DB00EE92FB /* ff_enc.c */; };
 		92EB479120F50C4200E1F2DD /* reframe_av1.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB479020F50C4200E1F2DD /* reframe_av1.c */; };
 		92EB479320F6333900E1F2DD /* rewrite_obu.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB479220F6333800E1F2DD /* rewrite_obu.c */; };
@@ -1172,6 +1174,8 @@
 		92E2498F2057B973002CC029 /* resample_audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = resample_audio.c; path = filters/resample_audio.c; sourceTree = "<group>"; };
 		92E318CE20645036007BE021 /* ff_rescale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_rescale.c; path = filters/ff_rescale.c; sourceTree = "<group>"; };
 		92E318D020651834007BE021 /* vcrop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcrop.c; path = filters/vcrop.c; sourceTree = "<group>"; };
+		92E8E7E92BF4B481003D785B /* in_route.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = in_route.h; path = filters/in_route.h; sourceTree = "<group>"; };
+		92E8E7EA2BF4B481003D785B /* in_route_repair.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_route_repair.c; path = filters/in_route_repair.c; sourceTree = "<group>"; };
 		92E9167B2073F1DB00EE92FB /* ff_enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_enc.c; path = filters/ff_enc.c; sourceTree = "<group>"; };
 		92EB479020F50C4200E1F2DD /* reframe_av1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_av1.c; path = filters/reframe_av1.c; sourceTree = "<group>"; };
 		92EB479220F6333800E1F2DD /* rewrite_obu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_obu.c; path = filters/rewrite_obu.c; sourceTree = "<group>"; };
@@ -2053,6 +2057,8 @@
 				92BB855E1F7BFB61009BC9C8 /* in_http.c */,
 				9206822B20EA41530041169F /* in_pipe.c */,
 				928E9FA2250F5BC9000C0631 /* in_route.c */,
+				92E8E7EA2BF4B481003D785B /* in_route_repair.c */,
+				92E8E7E92BF4B481003D785B /* in_route.h */,
 				9234CF4C1FD8344500CCDFA1 /* in_rtp */,
 				9203644C20EE0F190087883E /* in_sock.c */,
 				92BB855F1F7BFB62009BC9C8 /* inspect.c */,
@@ -2223,6 +2229,7 @@
 				92B9A5AA1F8660D700A24FE4 /* texturing.h in Headers */,
 				92BBFCFC1A7122AD006A7735 /* scenegraph_vrml.h in Headers */,
 				92BB85771F7BFB63009BC9C8 /* isoffin.h in Headers */,
+				92E8E7EB2BF4B482003D785B /* in_route.h in Headers */,
 				92BBFD031A7122AD006A7735 /* thread.h in Headers */,
 				92BBFD051A7122AD006A7735 /* tools.h in Headers */,
 				92BBFCB91A7122AD006A7735 /* dsmcc.h in Headers */,
@@ -2832,6 +2839,7 @@
 				922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */,
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,
 				92B9A5681F8660D700A24FE4 /* mpeg4_layer_3d.c in Sources */,
+				92E8E7EC2BF4B482003D785B /* in_route_repair.c in Sources */,
 				9201019118D5A445003D1ACA /* xml_ns.c in Sources */,
 				923EB53223D1B78D00E1FFA1 /* libbf.c in Sources */,
 				92B9A59F1F8660D700A24FE4 /* mpeg4_inline.c in Sources */,

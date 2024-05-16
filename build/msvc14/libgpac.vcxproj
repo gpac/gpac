@@ -300,6 +300,7 @@
     <ClCompile Include="..\..\src\filters\hevcsplit.c" />
     <ClCompile Include="..\..\src\filters\inspect.c" />
     <ClCompile Include="..\..\src\filters\in_route.c" />
+    <ClCompile Include="..\..\src\filters\in_route_repair.c" />
     <ClCompile Include="..\..\src\filters\in_dvb4linux.c" />
     <ClCompile Include="..\..\src\filters\in_file.c" />
     <ClCompile Include="..\..\src\filters\in_http.c" />
