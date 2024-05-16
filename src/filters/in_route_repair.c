@@ -222,6 +222,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, GF_ROUTEEventFi
 	finfo->blob->flags &= ~GF_BLOB_CORRUPTED;
 }
 
+#if 0
 static GF_Err repair_intervale(GF_LCTFragInfo **frags, u32 *nb_frags, u32 *nb_alloc_frags, u32 start, u32 size, ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo) {
 	//insert intervalle into frags
 	GF_Err e;
@@ -412,118 +413,49 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 	return GF_OK;
 }
 
-Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+#endif
+
+static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, GF_ROUTEEventFileInfo *finfo)
 {
-	Bool drop_if_first = GF_FALSE;
-	GF_Err e = GF_OK;
-	u32 i, inf, sup;
+	u32 i;
+	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
+	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
+	for (i=0; i<=finfo->nb_frags; i++) {
+		u32 br_start = 0, br_end = 0;
+		// first range
+		if (!i) {
+			br_end = finfo->frags[i].offset;
+		}
+		//middle ranges
+		else if (i < finfo->nb_frags) {
+			br_start = finfo->frags[i-1].offset + rsi->finfo.frags[i-1].size;
+			br_end  = finfo->frags[i].offset;
+		}
+		//last range
+		else {
+			br_start = finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size;
+			br_end = finfo->total_size;
+		}
 
-	if (ctx->repair==ROUTEIN_REPAIR_NO)
-		return GF_FALSE;
+		//this was correctly received !
+		if (br_end <= br_start) continue;
 
-	if (finfo->blob->mx)
-		gf_mx_p(finfo->blob->mx);
-	
-	if (ctx->repair==ROUTEIN_REPAIR_FULL && ctx->repair_url) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Initiating repair procedure for object (TSI=%u, TOI=%u) using repair URL: %s \n", finfo->tsi, finfo->toi, ctx->repair_url));
-		// create unicast connexion
-		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
-		char * url = gf_url_concatenate(ctx->repair_url, finfo->filename);
-
-		GF_DownloadSession *dsess = NULL;
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] List of all gaps in segment (TSI=%u, TOI=%u): ", finfo->tsi, finfo->toi));
-		for(i=0; i <= finfo->nb_frags; i++) {
-			inf = (i==0)? 0: finfo->frags[i-1].offset + finfo->frags[i-1].size;
-			sup = (i == finfo->nb_frags)? finfo->total_size : finfo->frags[i].offset;
-
-			if(inf < sup) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%u, %u] ", inf, sup-1));
+		RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
+		if (!rr) {
+			GF_SAFEALLOC(rr, RouteRepairRange);
+			if (!rr) {
+				rsi->nb_errors++;
+				continue;
 			}
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("\n"));
+		rr->br_start = br_start;
+		rr->br_end = br_end;
+		rr->priority = 0;
 
-
-		for(i=0; i <= finfo->nb_frags; i++) {
-			//"inf" and "sup" represent the lower and upper bounds of the gaps intervals within the segment
-			inf = (i==0)? 0: finfo->frags[i-1].offset + finfo->frags[i-1].size;
-			sup = (i == finfo->nb_frags)? finfo->total_size : finfo->frags[i].offset;
-
-			if(sup > inf) {
-				u32 nb_loss = sup - inf;
-				e = GF_OK;
-				u32 pos = inf;
-				
-				if (!dsess) {
-					dsess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_NOT_CACHED | GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT, NULL, NULL, &e);
-					gf_dm_sess_set_netcap_id(dsess, "__ignore");
-				} else {
-					e = gf_dm_sess_setup_from_url(dsess, url, GF_FALSE);
-				}
-
-				gf_dm_sess_set_range(dsess, inf, sup-1, GF_TRUE);
-				while (nb_loss) {
-					u8 data[1000];
-					u32 nb_read=0;
-					e = gf_dm_sess_fetch_data(dsess, data, 1000, &nb_read);
-					if (e==GF_IP_NETWORK_EMPTY) continue;
-					if (e<0) break;
-
-					nb_loss -= nb_read;
-					memcpy(finfo->blob->data + pos, data, nb_read);
-					pos += nb_read;
-					if (e) break;
-				}
-
-				if (nb_loss) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Error %s while repairing object (TSI=%u, TOI=%u): gap [%u, %u] is not completely repaired \n", gf_error_to_string(e), finfo->tsi, finfo->toi, inf, sup-1));
-					if(i == 0) {
-						/* Could be problematic if allocated memory is not sufficient */
-						memmove(&finfo->frags[1], &finfo->frags[0], sizeof(GF_LCTFragInfo) * (finfo->nb_frags));
-						finfo->frags[0].offset = 0;
-						finfo->frags[0].size = sup - inf - nb_loss;
-						finfo->nb_frags++;
-						i++;
-					} else {
-						finfo->frags[i-1].size += sup - inf - nb_loss;
-					}
-				} else {
-					GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Object (TSI=%u, TOI=%u): gap [%u, %u] successfully repaired\n", finfo->tsi, finfo->toi, inf, sup-1));
-					if(i == 0) {
-						finfo->frags[0].offset = 0;
-						finfo->frags[0].size += sup;
-					} else {
-						finfo->frags[i-1].size += (sup - inf);
-						if(i < finfo->nb_frags) { 
-							finfo->frags[i-1].size += finfo->frags[i].size;
-							memmove(&finfo->frags[i], &finfo->frags[i+1], sizeof(GF_LCTFragInfo) * (finfo->nb_frags - i - 1));
-							finfo->nb_frags--;
-							i--;
-						}
-					}
-				}
-			}
-		}
-
-
-		gf_free(url);
-		//store session at filter context level
-		//gf_dm_sess_del(dsess);
-
-	} else {
-		if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
-			drop_if_first = routein_repair_segment_ts_local(ctx, finfo);
-		} else {
-			routein_repair_segment_isobmf_new(ctx, finfo);
-		}
+		gf_list_add(rsi->ranges, rr);
 	}
 
-	if (finfo->blob->mx)
-		gf_mx_v(finfo->blob->mx);
-
-	return drop_if_first;
 }
-
 
 void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo)
 {
@@ -576,44 +508,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	rsi->service_id = evt_param;
 	rsi->finfo = *finfo;
 
-	u32 i;
-	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
-	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
-	for (i=0; i<=finfo->nb_frags; i++) {
-		u32 br_start = 0, br_end = 0;
-		// first range
-		if (!i) {
-			br_end = finfo->frags[i].offset;
-		}
-		//middle ranges
-		else if (i < finfo->nb_frags) {
-			br_start = finfo->frags[i-1].offset + rsi->finfo.frags[i-1].size;
-			br_end  = finfo->frags[i].offset;
-		}
-		//last range
-		else {
-			br_start = finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size;
-			br_end = finfo->total_size;
-		}
-
-		//this was correctly received !
-		if (br_end <= br_start) continue;
-
-		RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
-		if (!rr) {
-			GF_SAFEALLOC(rr, RouteRepairRange);
-			if (!rr) {
-				rsi->nb_errors++;
-				continue;
-			}
-		}
-		rr->br_start = br_start;
-		rr->br_end = br_end;
-		rr->priority = 0;
-
-		gf_list_add(rsi->ranges, rr);
-	}
-
+	route_repair_build_ranges_full(ctx, rsi, finfo);
 
 	gf_mx_p(finfo->blob->mx);
 	if (finfo->blob->flags & GF_BLOB_IN_TRANSFER)
@@ -624,10 +519,16 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	gf_list_add(ctx->seg_repair_queue, rsi);
 }
 
+
+
 static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_Err res_code)
 {
 	RepairSegmentInfo *rsi = rsess->current_si;
 	if (!rsi) return;
+
+	//notify routedmx we have received a byte range
+	gf_routedmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
+
 	rsess->current_si = NULL;
 	memset(rsess->range, 0, sizeof(RouteRepairRange));
 	gf_list_add(ctx->seg_range_reservoir, rsess->range);
@@ -701,19 +602,19 @@ restart:
 		gf_dm_sess_set_range(rsess->dld, rsess->range->br_start, rsess->range->br_end-1, GF_TRUE);
 	}
 
+	u32 offset = rsess->range->br_start + rsess->range->done;
 	u32 nb_read=0;
 	e = gf_dm_sess_fetch_data(rsess->dld, http_buf, REPAIR_BUF_SIZE, &nb_read);
 	if (e==GF_IP_NETWORK_EMPTY) return;
 
-	if (rsess->range->br_start+nb_read > rsess->range->br_end)
+	if (offset + nb_read > rsess->range->br_end)
 		e = GF_REMOTE_SERVICE_ERROR;
 
 	if (nb_read && (e>=GF_OK)) {
 		gf_mx_p(rsi->finfo.blob->mx);
-		memcpy(rsi->finfo.blob->data + rsess->range->br_start, http_buf, nb_read);
+		memcpy(rsi->finfo.blob->data + offset, http_buf, nb_read);
 		gf_mx_v(rsi->finfo.blob->mx);
-		rsess->range->br_start += nb_read;
-
+		rsess->range->done += nb_read;
 		//TODO, update frag info
 	}
 	if (e==GF_OK) return;

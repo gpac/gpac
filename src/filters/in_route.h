@@ -61,6 +61,7 @@ typedef struct
 {
 	u32 br_start;
 	u32 br_end;
+	u32 done;
 	u32 priority;
 } RouteRepairRange;
 
