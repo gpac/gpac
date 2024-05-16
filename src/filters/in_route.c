@@ -75,9 +75,17 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_del(ctx->seg_repair_queue);
 	while (gf_list_count(ctx->seg_repair_reservoir)) {
 		RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
+		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
+		gf_list_del(rsi->ranges);
 		gf_free(rsi);
 	}
 	gf_list_del(ctx->seg_repair_reservoir);
+
+	while (gf_list_count(ctx->seg_range_reservoir)) {
+		RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
+		gf_free(rr);
+	}
+	gf_list_del(ctx->seg_range_reservoir);
 
 	for (i=0; i<ctx->nb_http_repair; i++) {
 		if (ctx->http_repair_sessions[i].dld)
@@ -219,7 +227,7 @@ static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEvent
 	}
 }
 
-void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool is_async_repair, Bool drop_if_first)
+void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool is_defer_repair, Bool drop_if_first)
 {
 	char szPath[GF_MAX_PATH];
 	u32 nb_obj;
@@ -315,7 +323,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			if (drop_if_first) {
 				break;
 			}
-		} else if (!is_async_repair && (ctx->sync_tsi == finfo->tsi)) {
+		} else if (!is_defer_repair && (ctx->sync_tsi == finfo->tsi)) {
 			if (ctx->last_toi > finfo->toi) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", ctx->tune_service_id, finfo->tsi, ctx->last_toi, finfo->toi));
 
@@ -466,7 +474,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	ROUTEInCtx *ctx = gf_filter_get_udta(filter);
 
 	if (!ctx->nb_playing)
-		return routein_do_repair_async(ctx);
+		return routein_do_repair(ctx);
 
 	ctx->evt_interrupt = GF_FALSE;
 
@@ -490,7 +498,7 @@ static GF_Err routein_process(GF_Filter *filter)
 			ctx->last_timeout = 0;
 			if (ctx->evt_interrupt) break;
 		} else if (e==GF_EOS) {
-			e = routein_do_repair_async(ctx);
+			e = routein_do_repair(ctx);
 			if (e == GF_EOS)
 				routein_set_eos(filter);
 			return e;
@@ -508,7 +516,7 @@ static GF_Err routein_process(GF_Filter *filter)
 		}
 	}
 
-	routein_do_repair_async(ctx);
+	routein_do_repair(ctx);
 
 
 	if (ctx->stats) {
@@ -638,6 +646,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 
 		ctx->seg_repair_queue = gf_list_new();
 		ctx->seg_repair_reservoir = gf_list_new();
+		ctx->seg_range_reservoir = gf_list_new();
 	}
 	return GF_OK;
 }
