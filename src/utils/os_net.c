@@ -1516,7 +1516,7 @@ static Bool netcap_filter_pck(GF_Socket *sock, u32 pck_len, Bool for_send)
 		}
 
 		if ((r->patch_offset==-1) && !(sock->flags & GF_SOCK_IS_TCP)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[NetCap] Droping packet %d\n", cur_pck));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[NetCap] Dropping packet %d\n", cur_pck));
 			return GF_TRUE;
 		}
 		u32 bo = (r->patch_offset>=0) ? r->patch_offset : gf_rand();

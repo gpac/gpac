@@ -969,7 +969,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 	/*this was a gf_filter_process_task request but direct call could not be done or requeue is requested.
 	process_task_queued was incremented by caller without checking for existing process task
 		- If the task was not treated, dec / inc will give the same state, undo process_task_queued increment
-		- If the task was requeued, dec will undo the increment done when requeing the task in gf_filter_check_pending_tasks
+		- If the task was requeued, dec will undo the increment done when requeuing the task in gf_filter_check_pending_tasks
 
 	In both cases, inc will redo the same logic as in gf_filter_post_process_task_internal, not creating task if gf_filter_process_task is
 	already scheduled for the filter
@@ -2214,7 +2214,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						//requeue task
 						gf_fq_add(current_filter->tasks, task);
 
-						//ans swap task for later requeing
+						//ans swap task for later requeuing
 						if (next_task) task = next_task;
 					}
 					//otherwise (can't swap) keep task first in the list

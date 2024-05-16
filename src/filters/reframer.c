@@ -2005,7 +2005,7 @@ refetch_streams:
 					//time-based extraction or dur split, try to clone packet
 					if (st->can_split && !ctx->start_frame_idx_plus_one) {
 						if (gf_timestamp_less(ts, st->timescale, ctx->cur_end.num, ctx->cur_end.den)) {
-							//force enqueing this packet
+							//force enqueuing this packet
 							enqueue = GF_TRUE;
 							st->split_end = (u32) ( (ctx->cur_end.num * st->timescale) / ctx->cur_end.den - ts);
 							st->range_end_reached_ts += st->split_end;
