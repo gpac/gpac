@@ -596,6 +596,8 @@ typedef struct
 
 	/*! read API only - sample duration (multiply by nb_pack to get full duration)*/
 	u32 duration;
+	/*! read API only - set to GF_TRUE if sample data is corrupted*/
+	u32 corrupted;
 } GF_ISOSample;
 
 

@@ -633,6 +633,26 @@ GF_Err gf_route_set_max_cache(GF_ROUTEDmx *routedmx, u32 max_cache)
     return GF_OK;
 }
 
+static GF_BlobRangeStatus routedmx_check_blob_range(GF_Blob *blob, u64 start_offset, u32 size)
+{
+	GF_LCTObject *obj = blob->range_udta;
+	if (!obj) return GF_BLOB_RANGE_CORRUPTED;
+	if (obj->status==GF_LCT_OBJ_INIT)
+		return GF_BLOB_RANGE_CORRUPTED;
+	u32 i;
+	gf_mx_p(blob->mx);
+	for (i=0; i<obj->nb_frags; i++) {
+		GF_LCTFragInfo *frag = &obj->frags[i];
+		if ((frag->offset<=start_offset) && (start_offset+size <= frag->offset + frag->size)) {
+			gf_mx_v(blob->mx);
+			return GF_BLOB_RANGE_VALID;
+		}
+	}
+	if (blob->flags & GF_BLOB_IN_TRANSFER)
+		return GF_BLOB_RANGE_IN_TRANSFER;
+	return GF_BLOB_RANGE_CORRUPTED;
+}
+
 
 static GF_Err gf_route_dmx_process_slt(GF_ROUTEDmx *routedmx, GF_XMLNode *root)
 {
@@ -1040,6 +1060,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		}
 		obj->toi = toi;
 		obj->tsi = tsi;
+
 		if (ll_is_last) content_length += ll_offset;
 
 		obj->flute_symbol_size = flute_symbol_size;
@@ -1492,6 +1513,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 		obj->toi = toi;
 		obj->tsi = tsi;
+		obj->blob.range_valid = routedmx_check_blob_range;
+		obj->blob.range_udta = obj;
 		obj->status = GF_LCT_OBJ_INIT;
 		obj->total_length = total_len;
 		if (fdt_symbol_length) obj->flute_type = GF_FLUTE_FDT;
