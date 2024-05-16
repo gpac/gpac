@@ -39,46 +39,76 @@ static u8 scte35_payload[] = {
     0x00, 0x00, 0x18, 0x9f, 0x1d, 0x41, 0x47
 };
 
-static GF_Err pck_send(GF_FilterPacket *pck)
+#define TIMESCALE 90000
+#define FPS 25
+
+#define SEND_VIDEO(num_frames) { \
+        for (int i=0; i<num_frames; ++i) { \
+            scte35dec_process_timing(&ctx, pts, TIMESCALE, TIMESCALE/FPS); \
+            scte35dec_process_dispatch(&ctx, pts); \
+            pts += TIMESCALE/FPS; \
+        } \
+    }
+
+#define SEND_EVENT(dur) { \
+        GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
+        scte35dec_process_timing(&ctx, pts, TIMESCALE, dur); \
+        scte35dec_process_emsg(&ctx, &emsg, pts, timescale); \
+        scte35dec_process_dispatch(&ctx, pts); \
+    }
+
+unittest(scte35dec_safety)
+{
+    assert_equal(TIMESCALE % FPS, 0);
+}
+
+static GF_Err pck_send_no_event(GF_FilterPacket *pck)
 {
     #define expected_calls 1
     static int calls = 0;
-    assert_less(calls, expected_calls);
-
     static u64 expected_dts[expected_calls] = { 0 };
-    assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
-
     static u32 expected_dur[expected_calls] = { 5402397 };
+    static u32 expected_size[expected_calls] = { EMIB };
+
+    if (pck == NULL) {
+        // checks at termination
+        assert_equal(calls, expected_calls);
+        return GF_OK;
+    }
+
+    // dynamic checks
+    assert_less(calls, expected_calls);
+    assert_equal(gf_filter_pck_get_dts(pck), expected_dts[calls]);
     assert_equal(gf_filter_pck_get_duration(pck), expected_dur[calls]);
 
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
-    static u32 expected_size[expected_calls] = { EMIB };
     assert_equal(size, expected_size[calls]);
     assert_less_equal(sizeof(scte35_payload), size);
     assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
 
+    // update context
     if (!pck->filter_owns_mem) gf_free(pck->data);
     gf_free(pck);
     calls++;
+
     return GF_OK;
 }
 
-unittest(scte35dec_simple)
+unittest(scte35dec_no_event)
 {
     SCTE35DecCtx ctx = {0};
     assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
     ctx.pck_new_shared = pck_new_shared;
 	ctx.pck_new_alloc = pck_new_alloc;
-    ctx.pck_send = pck_send;
+    ctx.pck_send = pck_send_no_event;
 
-    u64 dts = 0;
-    u32 timescale = 90000, dur = 2250;
-    scte35dec_process_timing(&ctx, dts, timescale, dur);
-    GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)};
-    scte35dec_process_emsg(&ctx, &emsg, dts, timescale);
-    scte35dec_process_dispatch(&ctx, dts);
+    u64 pts = 0;
+    SEND_VIDEO(FPS*10); // send 10 seconds of heartbeat
 
     assert_equal(scte35dec_flush(&ctx, 0, UINT32_MAX), GF_OK);
     scte35dec_finalize_internal(&ctx);
+
+    pck_send_no_event(NULL); // trigger checks
 }
+
