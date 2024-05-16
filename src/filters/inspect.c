@@ -2188,7 +2188,7 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 	inspect_printf(dump, "/>\n");
 }
 
-static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs) //Romain: check arguments are used
+static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
 	inspect_printf(dump, "  <scte35:SpliceInfoSection");
 
