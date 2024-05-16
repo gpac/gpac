@@ -562,6 +562,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
 	if (!rsi) {
 		GF_SAFEALLOC(rsi, RepairSegmentInfo);
+		rsi->ranges = gf_list_new();
 	}
 
 	if (!rsi) {
@@ -574,7 +575,46 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	rsi->evt = evt;
 	rsi->service_id = evt_param;
 	rsi->finfo = *finfo;
-	rsi->nb_ranges = finfo->nb_frags+1; //max ranges to repair: if N interval received, at max N+1 interval losts
+
+	u32 i;
+	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
+	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
+	for (i=0; i<=finfo->nb_frags; i++) {
+		u32 br_start = 0, br_end = 0;
+		// first range
+		if (!i) {
+			br_end = finfo->frags[i].offset;
+		}
+		//middle ranges
+		else if (i < finfo->nb_frags) {
+			br_start = finfo->frags[i-1].offset + rsi->finfo.frags[i-1].size;
+			br_end  = finfo->frags[i].offset;
+		}
+		//last range
+		else {
+			br_start = finfo->frags[finfo->nb_frags-1].offset + finfo->frags[finfo->nb_frags-1].size;
+			br_end = finfo->total_size;
+		}
+
+		//this was correctly received !
+		if (br_end <= br_start) continue;
+
+		RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
+		if (!rr) {
+			GF_SAFEALLOC(rr, RouteRepairRange);
+			if (!rr) {
+				rsi->nb_errors++;
+				continue;
+			}
+		}
+		rr->br_start = br_start;
+		rr->br_end = br_end;
+		rr->priority = 0;
+
+		gf_list_add(rsi->ranges, rr);
+	}
+
+
 	gf_mx_p(finfo->blob->mx);
 	if (finfo->blob->flags & GF_BLOB_IN_TRANSFER)
 		rsi->was_partial = GF_TRUE;
@@ -589,10 +629,12 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	RepairSegmentInfo *rsi = rsess->current_si;
 	if (!rsi) return;
 	rsess->current_si = NULL;
-	rsess->br_start = rsess->br_end = 0;
+	memset(rsess->range, 0, sizeof(RouteRepairRange));
+	gf_list_add(ctx->seg_range_reservoir, rsess->range);
+	rsess->range = NULL;
 	rsi->pending--;
 	if (res_code<0) rsi->nb_errors++;
-	if (!rsi->pending && (rsi->next_range_idx>=rsi->nb_ranges)) {
+	if (!rsi->pending && !gf_list_count(rsi->ranges)) {
 		//flush
 		gf_mx_p(rsi->finfo.blob->mx);
 		if (!rsi->nb_errors) rsi->finfo.blob->flags &= ~GF_BLOB_CORRUPTED;
@@ -603,7 +645,9 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 
 		routein_on_event_file(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_TRUE, GF_FALSE);
 		gf_list_del_item(ctx->seg_repair_queue, rsi);
+		GF_List *bck = rsi->ranges;
 		memset(rsi, 0, sizeof(RepairSegmentInfo));
+		rsi->ranges = bck;
 		gf_list_add(ctx->seg_repair_reservoir, rsi);
 	}
 }
@@ -618,41 +662,26 @@ static void repair_session_run(ROUTEInCtx *ctx, RouteRepairSession *rsess)
 restart:
 	rsi = rsess->current_si;
 	if (!rsi) {
+		RouteRepairRange *rr = NULL;
 		u32 i, count;
 		count = gf_list_count(ctx->seg_repair_queue);
 		for (i=0; i<count;i++) {
+			u32 j, nb_ranges;
 			rsi = gf_list_get(ctx->seg_repair_queue, i);
-			if (rsi->next_range_idx < rsi->nb_ranges) break;
+			nb_ranges = gf_list_count(rsi->ranges);
+			for (j=0; j<nb_ranges; j++) {
+				rr = gf_list_get(rsi->ranges, j);
+				//todo check priotiry
+			}
+			if (rr) break;
 			rsi = NULL;
 		}
 		if (!rsi) return;
 		rsess->current_si = rsi;
 		rsi->pending++;
-		rsess->current_range_idx = rsi->next_range_idx;
-		rsi->next_range_idx++;
+		rsess->range = rr;
+		gf_list_del_item(rsi->ranges, rr);
 
-		//compute byte range - TODO, select byte range priorities & co, check if we want multiple byte ranges??
-		rsess->br_start = rsess->br_end = 0;
-		// first range
-		if (!rsess->current_range_idx) {
-			rsess->br_end = rsi->finfo.frags[0].offset;
-		}
-		//middle ranges
-		else if (rsess->current_range_idx < rsi->finfo.nb_frags) {
-			rsess->br_start = rsi->finfo.frags[rsess->current_range_idx-1].offset + rsi->finfo.frags[rsess->current_range_idx-1].size;
-			rsess->br_end  = rsi->finfo.frags[rsess->current_range_idx].offset;
-		}
-		//last range
-		else {
-			rsess->br_start = rsi->finfo.frags[rsi->finfo.nb_frags-1].offset + rsi->finfo.frags[rsi->finfo.nb_frags-1].size;
-			rsess->br_end = rsi->finfo.total_size;
-		}
-
-		//this was correctly received !
-		if (rsess->br_end <= rsess->br_start) {
-			repair_session_done(ctx, rsess, GF_OK);
-			goto restart;
-		}
 		char *url = gf_url_concatenate(ctx->repair_url, rsi->finfo.filename);
 
 		if (!rsess->dld) {
@@ -669,26 +698,25 @@ restart:
 			repair_session_done(ctx, rsess, e);
 			return;
 		}
-		gf_dm_sess_set_range(rsess->dld, rsess->br_start, rsess->br_end-1, GF_TRUE);
+		gf_dm_sess_set_range(rsess->dld, rsess->range->br_start, rsess->range->br_end-1, GF_TRUE);
 	}
 
 	u32 nb_read=0;
 	e = gf_dm_sess_fetch_data(rsess->dld, http_buf, REPAIR_BUF_SIZE, &nb_read);
 	if (e==GF_IP_NETWORK_EMPTY) return;
 
-	if (rsess->br_start+nb_read > rsess->br_end)
+	if (rsess->range->br_start+nb_read > rsess->range->br_end)
 		e = GF_REMOTE_SERVICE_ERROR;
 
-	if (e>=GF_OK) {
+	if (nb_read && (e>=GF_OK)) {
 		gf_mx_p(rsi->finfo.blob->mx);
-		memcpy(rsi->finfo.blob->data + rsess->br_start, http_buf, nb_read);
+		memcpy(rsi->finfo.blob->data + rsess->range->br_start, http_buf, nb_read);
 		gf_mx_v(rsi->finfo.blob->mx);
-		rsess->br_start += nb_read;
+		rsess->range->br_start += nb_read;
 
 		//TODO, update frag info
-
-		if (e==GF_OK) return;
 	}
+	if (e==GF_OK) return;
 
 	repair_session_done(ctx, rsess, e);
 	if (e<0) return;
@@ -697,7 +725,7 @@ restart:
 
 }
 
-GF_Err routein_do_repair_async(ROUTEInCtx *ctx)
+GF_Err routein_do_repair(ROUTEInCtx *ctx)
 {
 	u32 i, nb_active=0;
 	for (i=0; i<ctx->nb_http_repair; i++) {
