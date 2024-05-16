@@ -163,7 +163,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	}
 	gf_filter_override_caps(filter, ctx->in_caps, 2);
 
-	/*create our ourput socket*/
+	/*create our output socket*/
 
 	if (!strnicmp(ctx->dst, "udp://", 6)) {
 		sock_type = GF_SOCK_TYPE_UDP;
