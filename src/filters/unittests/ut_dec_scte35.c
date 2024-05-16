@@ -27,7 +27,7 @@ static GF_FilterPacket* pck_new_shared(GF_FilterPid *pid, const u8 *data, u32 da
 }
 
 // ISOBMFF box sizes (used for identifying the eponym boxes)
-#define EMIB 109
+#define EMIB 113
 #define EMEB 8
 
 static u8 scte35_payload[] = {
@@ -39,12 +39,17 @@ static u8 scte35_payload[] = {
     0x00, 0x00, 0x18, 0x9f, 0x1d, 0x41, 0x47
 };
 
+#define SCTE35_PTS 5691009215ULL
+#define SCTE35_DUR 5402397U
+#define SCTE35_LAST_EVENT_ID 1342177266U
+
 static u8 emeb_box[EMEB] = {
     0x00, 0x00, 0x00, 0x08, 0x65, 0x6d, 0x65, 0x62
 };
 
-#define TIMESCALE 90000
-#define FPS 2
+#define TIMESCALE 90000 // usual value
+#define FPS 3           // allows to put event at the beginning, midlle, and end
+#define EVENT_DUR 2
 
 #define SEND_VIDEO(num_frames) { \
         for (int i=0; i<num_frames; ++i) { \
@@ -57,8 +62,9 @@ static u8 emeb_box[EMEB] = {
 #define SEND_EVENT(dur) { \
         GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
         scte35dec_process_timing(&ctx, pts, TIMESCALE, dur); \
-        scte35dec_process_emsg(&ctx, &emsg, pts, timescale); \
+        scte35dec_process_emsg(&ctx, &emsg, pts, TIMESCALE); \
         scte35dec_process_dispatch(&ctx, pts); \
+        pts += dur; \
     }
 
 unittest(scte35dec_safety)
@@ -70,7 +76,7 @@ static GF_Err pck_send_no_event(GF_FilterPacket *pck)
 {
     #define expected_calls 6
     static int calls = 0;
-    static u64 expected_dts[expected_calls] = { 0, 1 * TIMESCALE / FPS, 2 * TIMESCALE / FPS, 3 * TIMESCALE / FPS, 4 * TIMESCALE / FPS, 5 * TIMESCALE / FPS };
+    static u64 expected_dts[expected_calls] = { 0, TIMESCALE/FPS, 2*TIMESCALE/FPS, 3*TIMESCALE/FPS, 4*TIMESCALE/FPS, 5*TIMESCALE/FPS };
     static u32 expected_dur[expected_calls] = { 0, 0, TIMESCALE/FPS, TIMESCALE/FPS, TIMESCALE/FPS, TIMESCALE/FPS };
     static u32 expected_size[expected_calls] = { EMEB, EMEB, EMEB, EMEB, EMEB, EMEB };
 
@@ -88,7 +94,7 @@ static GF_Err pck_send_no_event(GF_FilterPacket *pck)
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
     assert_equal(size, expected_size[calls]);
-    assert_less_equal(EMEB, size);
+    assert_equal(EMEB, size);
     assert_equal_mem(data, emeb_box, EMEB);
 
     // update context
@@ -109,21 +115,24 @@ unittest(scte35dec_no_event)
     ctx.pck_send = pck_send_no_event;
 
     u64 pts = 0;
-    SEND_VIDEO(FPS*3); // send 3 seconds of heartbeat
+    SEND_VIDEO(FPS*2); // send 2 seconds of heartbeat
 
     assert_equal(scte35dec_flush(&ctx, 0, UINT32_MAX), GF_OK);
     scte35dec_finalize_internal(&ctx);
 
-    pck_send_no_event(NULL); // trigger checks
+    pck_send_no_event(NULL); // final checks
 }
 
 static GF_Err pck_send_simple(GF_FilterPacket *pck)
 {
-    #define expected_calls 1
+    #define expected_calls FPS
     static int calls = 0;
-    static u64 expected_dts[expected_calls] = { 0 };
-    static u32 expected_dur[expected_calls] = { 5402397 };
-    static u32 expected_size[expected_calls] = { EMIB };
+    static u64 expected_dts[expected_calls] = { 0, TIMESCALE/FPS, 2*TIMESCALE/FPS };
+    static u32 expected_dur[expected_calls] = { 0, SCTE35_DUR, 0 };
+    static u32 expected_size[expected_calls] = { EMEB, EMIB, EMEB };
+    static s64 expected_event_pts_delta[expected_calls] = { 0, SCTE35_PTS-TIMESCALE/FPS, 0 };
+    static u32 expected_event_duration[expected_calls] = { 0, SCTE35_DUR, 0 };
+    static u32 expected_event_id[expected_calls] = { 0, SCTE35_LAST_EVENT_ID, 0 };
 
     if (pck == NULL) {
         // checks at termination
@@ -139,8 +148,27 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
     assert_equal(size, expected_size[calls]);
-    assert_less_equal(sizeof(scte35_payload), size);
-    assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
+
+    switch(size) {
+        case EMEB:
+            assert_equal(EMEB, size);
+            assert_equal_mem(data, emeb_box, EMEB);
+            break;
+        case EMIB: {
+            assert_less_equal(sizeof(scte35_payload), size);
+            assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
+
+            GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+            gf_bs_seek(bs, 20);
+            assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls]); //presentation_time_delta
+            assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls]);  //event_duration
+            assert_equal(gf_bs_read_u32(bs), expected_event_id[calls]);        //event_id
+            gf_bs_del(bs);
+            break;
+        }
+        default:
+            assert_true(0);
+    }
 
     // update context
     if (!pck->filter_owns_mem) gf_free(pck->data);
@@ -149,4 +177,23 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
     #undef expected_calls
 
     return GF_OK;
+}
+
+unittest(scte35dec_simple)
+{
+    SCTE35DecCtx ctx = {0};
+    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
+    ctx.pck_new_shared = pck_new_shared;
+	ctx.pck_new_alloc = pck_new_alloc;
+    ctx.pck_send = pck_send_simple;
+
+    u64 pts = 0;
+    SEND_VIDEO(1);
+    SEND_EVENT(EVENT_DUR);
+    SEND_VIDEO(1);
+
+    assert_equal(scte35dec_flush(&ctx, 0, UINT32_MAX), GF_OK);
+    scte35dec_finalize_internal(&ctx);
+
+    pck_send_no_event(NULL); // trigger checks
 }
