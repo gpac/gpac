@@ -80,6 +80,7 @@ typedef struct
 	char *src, *ifce, *odir, *repair_url;
 	Bool gcache, kc, skipr, reorder, fullseg;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
+	u32 max_sess;
 	s32 tunein, stsi;
 	
 	//internal
@@ -103,7 +104,6 @@ typedef struct
 	Bool initial_play_forced;
 	Bool evt_interrupt;
 
-	u32 nb_http_repair;
 	RouteRepairSession *http_repair_sessions;
 
 	GF_List *seg_repair_queue;
