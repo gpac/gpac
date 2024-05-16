@@ -415,7 +415,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		return;
 
 	if (evt==GF_ROUTE_EVT_FILE_DELETE) {
-		//routein_repair_file_delete(ctx, finfo->filename);
+		routein_repair_mark_file(ctx, evt_param, finfo->filename, GF_TRUE);
 		return;
 	}
 
@@ -453,6 +453,7 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
         gf_route_atsc3_tune_in(ctx->route_dmx, sid, GF_TRUE);
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Cache accessing object %s\n", url));
+		routein_repair_mark_file(ctx, sid, subr+1, GF_FALSE);
 		//mark object as in-use to prevent it from being discarded
 		gf_route_dmx_force_keep_object_by_name(ctx->route_dmx, sid, subr+1);
 	}

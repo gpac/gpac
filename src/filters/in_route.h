@@ -117,6 +117,7 @@ struct _route_repair_seg_info
 	GF_ROUTEEventFileInfo finfo;
 	GF_ROUTEEventType evt;
 	u32 service_id;
+	Bool removed;
 	u32 pending;
 	GF_List *ranges;
 	u32 nb_errors;
@@ -126,7 +127,7 @@ struct _route_repair_seg_info
 
 
 Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo);
-void routein_repair_file_delete(ROUTEInCtx *ctx, const char *filename);
+void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filename, Bool is_delete);
 void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo);
 
 void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool is_defer_repair, Bool drop_if_first);

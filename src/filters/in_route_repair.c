@@ -418,6 +418,18 @@ static GF_Err routein_repair_segment_isobmf_new(ROUTEInCtx *ctx, GF_ROUTEEventFi
 static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *rsi, GF_ROUTEEventFileInfo *finfo)
 {
 	u32 i;
+
+	//collect decoder stats, or if not found direct output
+	if (ctx->opid) {
+		GF_FilterPidStatistics stats;
+		GF_Err e = gf_filter_pid_get_statistics(ctx->opid, &stats, GF_STATS_DECODER_SINK);
+		if (e) e = gf_filter_pid_get_statistics(ctx->opid, &stats, GF_STATS_SINK);
+		if (!e) {
+			//log is set as warning for now as this is work in progress
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[RPUTE] Repairing segment - buffer status: %d ms (%u for rebuffer %u max buffer)\n", (u32) (stats.buffer_time/1000) , (u32) (stats.min_playout_time/1000), (u32) (stats.max_buffer_time/1000) ));
+		}
+	}
+
 	//compute byte range - max ranges to repair: if N interval received, at max N+1 interval losts
 	//TODO, select byte range priorities & co, check if we want multiple byte ranges??
 	for (i=0; i<=finfo->nb_frags; i++) {
@@ -447,10 +459,11 @@ static void route_repair_build_ranges_full(ROUTEInCtx *ctx, RepairSegmentInfo *r
 				rsi->nb_errors++;
 				continue;
 			}
+		} else {
+			memset(rr, 0, sizeof(RouteRepairRange));
 		}
 		rr->br_start = br_start;
 		rr->br_end = br_end;
-		rr->priority = 0;
 
 		gf_list_add(rsi->ranges, rr);
 	}
@@ -530,12 +543,18 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	gf_routedmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
 
 	rsess->current_si = NULL;
-	memset(rsess->range, 0, sizeof(RouteRepairRange));
 	gf_list_add(ctx->seg_range_reservoir, rsess->range);
 	rsess->range = NULL;
 	rsi->pending--;
 	if (res_code<0) rsi->nb_errors++;
-	if (!rsi->pending && !gf_list_count(rsi->ranges)) {
+	if (rsi->pending) return;
+	if (rsi->removed) {
+		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
+	}
+
+	if (gf_list_count(rsi->ranges)) return;
+
+	if (!rsi->removed) {
 		//flush
 		gf_mx_p(rsi->finfo.blob->mx);
 		if (!rsi->nb_errors) rsi->finfo.blob->flags &= ~GF_BLOB_CORRUPTED;
@@ -545,12 +564,13 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[REPAIR] Repair done for object %s (TSI=%u, TOI=%u)%s\n", rsi->finfo.filename, rsi->finfo.tsi, rsi->finfo.toi, rsi->nb_errors ? " - errors remain" : ""));
 
 		routein_on_event_file(ctx, rsi->evt, rsi->service_id, &rsi->finfo, GF_TRUE, GF_FALSE);
-		gf_list_del_item(ctx->seg_repair_queue, rsi);
-		GF_List *bck = rsi->ranges;
-		memset(rsi, 0, sizeof(RepairSegmentInfo));
-		rsi->ranges = bck;
-		gf_list_add(ctx->seg_repair_reservoir, rsi);
 	}
+
+	gf_list_del_item(ctx->seg_repair_queue, rsi);
+	GF_List *bck = rsi->ranges;
+	memset(rsi, 0, sizeof(RepairSegmentInfo));
+	rsi->ranges = bck;
+	gf_list_add(ctx->seg_repair_reservoir, rsi);
 }
 
 #define REPAIR_BUF_SIZE	5000
@@ -636,6 +656,25 @@ GF_Err routein_do_repair(ROUTEInCtx *ctx)
 	}
 	return nb_active ? GF_OK : GF_EOS;
 }
+
+
+void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filename, Bool is_delete)
+{
+	u32 i, count = gf_list_count(ctx->seg_repair_queue);
+	for (i=0; i<count; i++) {
+		RepairSegmentInfo *rsi = gf_list_get(ctx->seg_repair_queue, i);
+		if ((rsi->service_id==service_id) && !strcmp(rsi->finfo.filename, filename)) {
+			//we don't cancel sessions now, this should be done in session_done
+			if (is_delete) {
+				rsi->removed = GF_TRUE;
+			} else {
+				//TODO: decide if we need to be more agressive ?
+			}
+			return;
+		}
+	}
+}
+
 
 #endif /* GPAC_DISABLE_ROUTE */
 
