@@ -87,7 +87,7 @@ static void routein_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->seg_range_reservoir);
 
-	for (i=0; i<ctx->nb_http_repair; i++) {
+	for (i=0; i<ctx->max_sess; i++) {
 		if (ctx->http_repair_sessions[i].dld)
 			gf_dm_sess_del(ctx->http_repair_sessions[i].dld);
 	}
@@ -641,9 +641,9 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	if (ctx->repair_url) ctx->repair = ROUTEIN_REPAIR_FULL;
 
 	if (ctx->repair == ROUTEIN_REPAIR_FULL) {
-		ctx->nb_http_repair = 1;
-		ctx->http_repair_sessions = gf_malloc(sizeof(RouteRepairSession)*ctx->nb_http_repair);
-		memset(ctx->http_repair_sessions, 0, sizeof(RouteRepairSession)*ctx->nb_http_repair);
+		if (!ctx->max_sess) ctx->max_sess = 1;
+		ctx->http_repair_sessions = gf_malloc(sizeof(RouteRepairSession)*ctx->max_sess);
+		memset(ctx->http_repair_sessions, 0, sizeof(RouteRepairSession)*ctx->max_sess);
 
 		ctx->seg_repair_queue = gf_list_new();
 		ctx->seg_repair_reservoir = gf_list_new();
@@ -692,7 +692,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- full: HTTP-based repair, not yet implemented"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(repair_url), "repair url", GF_PROP_NAME, NULL, NULL, 0},
-
+	{ OFFS(max_sess), "max number of concurrent HTTP repair sassions", GF_PROP_UINT, "1", NULL, 0},
 	{0}
 };
 
