@@ -49,6 +49,7 @@ typedef struct {
 	u32 timescale;
 	u32 last_pck_dur;
 	u64 last_dispatched_dts;
+	Bool last_dispatched_dts_init;
 
 	// used to segment empty boxes
 	GF_Fraction segdur;
@@ -262,6 +263,17 @@ static GF_Err scte35dec_flush(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 	}
 }
 
+static GF_Err new_segment(SCTE35DecCtx *ctx)
+{
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n", ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
+	u64 dts = ctx->orig_ts + ctx->nb_forced * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
+	if (dts == ctx->last_dispatched_dts) // first segment
+		ctx->last_dispatched_dts -= (ctx->segdur.num * ctx->timescale / ctx->segdur.den);
+	ctx->nb_forced++;
+	ctx->clock = dts;
+	return scte35dec_flush(ctx, dts, ctx->segdur.num * ctx->timescale / ctx->segdur.den);
+}
+
 static GF_Err scte35dec_dispatch(SCTE35DecCtx *ctx, u64 dts)
 {
 	if ( !(ctx->segdur.den && ctx->segdur.num>0) ) {
@@ -282,15 +294,8 @@ static GF_Err scte35dec_dispatch(SCTE35DecCtx *ctx, u64 dts)
 			ctx->nb_forced = 0;
 		} else {
 			GF_Fraction64 ts_diff = { ctx->clock - ctx->orig_ts, ctx->timescale };
-			if (ts_diff.num * ctx->segdur.den >= (ctx->nb_forced+1) * ctx->segdur.num * ts_diff.den) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n", ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
-				u64 dts = ctx->orig_ts + ctx->nb_forced * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
-				if (dts == ctx->last_dispatched_dts) // first segment
-					ctx->last_dispatched_dts -= (ctx->segdur.num * ctx->timescale / ctx->segdur.den);
-				ctx->nb_forced++;
-				ctx->clock = dts;
-				return scte35dec_flush(ctx, dts, ctx->segdur.num * ctx->timescale / ctx->segdur.den);
-			}
+			if (ts_diff.num * ctx->segdur.den >= (ctx->nb_forced+1) * ctx->segdur.num * ts_diff.den)
+				return new_segment(ctx);
 		}
 	}
 
@@ -381,10 +386,11 @@ exit:;
 static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, u32 dur)
 {
 	// handle internal clock, timescale and duration
-	if (!ctx->last_dispatched_dts) {
+	if (!ctx->last_dispatched_dts_init) {
 		ctx->timescale = timescale;
 		ctx->last_dispatched_dts = dts;
 		ctx->last_pck_dur = dur;
+		ctx->last_dispatched_dts_init = GF_TRUE;
 	} else if (ctx->clock < dts && !(ctx->segdur.den && ctx->segdur.num>0) &&
 	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
 		// drift control
@@ -393,6 +399,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 		ctx->last_dispatched_dts += drift;
 		dts += drift;
 	}
+
 	ctx->clock = MAX(ctx->clock, dts);
 }
 

@@ -59,10 +59,13 @@ int run_tests(int argc, char *argv[])
 
   int ret = EXIT_SUCCESS;
   for(unsigned i = 0; i < test_count; i++) {
-    if(selected_tests != (unsigned)-1 && selected_tests != i)
-      continue;
+    printf("Test %04d: %s... ", i, tests[i].name);
 
-    printf("Running test: %s... ", tests[i].name);
+    if(selected_tests != (unsigned)-1 && selected_tests != i) {
+      printf("Skipping\n");
+      continue;
+    }
+
 
     int prev_checks_failed = checks_failed;
     tests[i].test_function();
