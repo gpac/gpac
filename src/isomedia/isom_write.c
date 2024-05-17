@@ -5111,7 +5111,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !trak->Media->mediaHeader) return GF_BAD_PARAM;
 	if ((trak->Media->mediaHeader->timeScale==newTS) && !new_tsinc)
-		return GF_EOS;
+		return GF_OK; //nothing to do
 
 	if (!newTS) newTS = trak->Media->mediaHeader->timeScale;
 	scale = newTS;
