@@ -195,7 +195,8 @@ static GF_Err scte35dec_flush_emib(SCTE35DecCtx *ctx, u64 dts, u32 max_dur)
 			if (e) goto exit;
 
 			u32 dur = MIN(evt->emib->event_duration == 0xFFFFFFFF ? ctx->last_pck_dur : evt->emib->event_duration, max_dur);
-			scte35dec_send_pck(ctx, pck_dst, evt->dts + evt->consumed_duration, dur);
+			u64 emib_dts = IS_SEGMENTED ? evt->dts + evt->consumed_duration : dts;
+			scte35dec_send_pck(ctx, pck_dst, emib_dts, dur);
 			ctx->clock += dur;
 			evt->consumed_duration += dur;
 			evt->emib->presentation_time_delta -= dur;
@@ -233,24 +234,40 @@ static void scte35dec_schedule(SCTE35DecCtx *ctx, u64 dts, GF_EventMessageBox *e
 	gf_list_add(ctx->ordered_events, evt_new);
 }
 
+static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt, u64 timestamp, u32 dur)
+{
+	if (dur == UINT32_MAX) dur = first_evt->dts - timestamp;
+	gf_assert(timestamp + dur >= first_evt->dts);
+	dur -= (first_evt->dts - timestamp);
+	ctx->last_dispatched_dts += (timestamp - dur);
+	GF_Err e = scte35dec_flush_emeb(ctx, timestamp);
+	ctx->clock += dur;
+	return e;
+}
+
 static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 {
 	if (gf_list_count(ctx->ordered_events) == 0)
 		return scte35dec_flush_emeb(ctx, timestamp);
 
+	GF_Err e = GF_OK;
 	Event *first_evt = gf_list_get(ctx->ordered_events, 0);
-	if (timestamp < first_evt->dts) {
-		// prefix the segment with an empty box
-		if (dur == UINT32_MAX) dur = first_evt->dts - timestamp;
-		gf_assert(timestamp + dur >= first_evt->dts);
-		dur -= (first_evt->dts - timestamp);
-		//FIXME: ctx->last_dispatched_dts += dur;
-		GF_Err e = scte35dec_flush_emeb(ctx, timestamp);
-		ctx->clock += dur;
-		if (e) return e;
+	if (IS_SEGMENTED) {
+		// pre-signal events in each segment
+		if (timestamp < first_evt->dts) {
+			e = scte35_insert_emeb_before_emib(ctx, first_evt, timestamp, dur);
+			if (e) return e;
+		}
+	} else {
+		// immediate dispatch: jump directly to event
+		if (timestamp < first_evt->dts + first_evt->emib->presentation_time_delta) {
+			e = scte35_insert_emeb_before_emib(ctx, first_evt, timestamp, first_evt->dts + first_evt->emib->presentation_time_delta - timestamp);
+			if (e) return e;
+			timestamp = first_evt->dts + first_evt->emib->presentation_time_delta;
+		}
 	}
 
-	GF_Err e = scte35dec_flush_emib(ctx, timestamp, dur);
+	e = scte35dec_flush_emib(ctx, timestamp, dur);
 	if (e) return e;
 
 	if (IS_SEGMENTED && ctx->clock < timestamp + dur ) {
@@ -444,7 +461,7 @@ static void scte35dec_flush(SCTE35DecCtx *ctx)
 	if (ctx->clock == ctx->last_dispatched_dts)
 		return; //nothing to flush
 
-	if (IS_SEGMENTED) {//FIXME: + if (ctx->clock > ctx->last_dispatched_dts + ctx->last_pck_dur)
+	if (IS_SEGMENTED) {
 			new_segment(ctx);
 	} else {
 		scte35dec_push_box(ctx, 0, UINT32_MAX);

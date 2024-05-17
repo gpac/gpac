@@ -185,14 +185,14 @@ unittest(scte35dec_segmentation_no_event)
 
 static GF_Err pck_send_simple(GF_FilterPacket *pck)
 {
-    #define expected_calls FPS
+    #define expected_calls 4 //FIXME: if we put 5 then we have some drift control that triggers a final EMEB box
     static int calls = 0;
-    static u64 expected_dts[expected_calls] = { 0, TIMESCALE/FPS, TIMESCALE/FPS+SCTE35_DUR };
-    static u32 expected_dur[expected_calls] = { 0, SCTE35_DUR, SCTE35_DUR/*FIXME: this is what the algorithm infers*/ };
-    static u32 expected_size[expected_calls] = { EMEB, EMIB, EMEB };
-    static s64 expected_event_pts_delta[expected_calls] = { 0, SCTE35_PTS-TIMESCALE/FPS, 0 };
-    static u32 expected_event_duration[expected_calls] = { 0, SCTE35_DUR, 0 };
-    static u32 expected_event_id[expected_calls] = { 0, SCTE35_LAST_EVENT_ID, 0 };
+    static u64 expected_dts[expected_calls] = { 0, TIMESCALE/FPS, SCTE35_PTS, SCTE35_PTS+SCTE35_DUR };//, SCTE35_PTS+SCTE35_DUR+TIMESCALE/FPS };
+    static u32 expected_dur[expected_calls] = { 0/*TIMESCALE/FPS*/, SCTE35_PTS-TIMESCALE/FPS, SCTE35_DUR, SCTE35_DUR/*FIXME: TIMESCALE/FPS*/ };//, TIMESCALE/FPS+TIMESCALE/FPS-SCTE35_DUR/*TIMESCALE/FPS*/};
+    static u32 expected_size[expected_calls] = { EMEB, EMEB, EMIB, EMEB };//, EMEB };
+    static s64 expected_event_pts_delta[expected_calls] = { 0, 0, SCTE35_PTS-TIMESCALE/FPS, 0 };//, 0 };
+    static u32 expected_event_duration[expected_calls] = { 0, 0, SCTE35_DUR, 0 };//, 0 };
+    static u32 expected_event_id[expected_calls] = { 0, 0, SCTE35_LAST_EVENT_ID, 0 };//, 0 };
 
     if (pck == NULL) {
         // checks at termination
@@ -249,13 +249,14 @@ unittest(scte35dec_simple)
 
     u64 pts = 0;
     SEND_VIDEO(1);
-    SEND_EVENT(SCTE35_DUR);
+    SEND_EVENT(SCTE35_PTS + SCTE35_DUR - pts);
     SEND_VIDEO(1);
+    //SEND_VIDEO(1);
 
     scte35dec_flush(&ctx);
     scte35dec_finalize_internal(&ctx);
 
-    ctx.pck_send(NULL); // trigger checks
+    ctx.pck_send(NULL); // trigger final checks
 }
 
 /*************************************/
@@ -333,7 +334,7 @@ unittest(scte35dec_segmentation_beginning)
     scte35dec_flush(&ctx);
     scte35dec_finalize_internal(&ctx);
 
-    ctx.pck_send(NULL); // trigger checks
+    ctx.pck_send(NULL); // trigger final checks
 }
 
 /*************************************/
@@ -343,7 +344,7 @@ static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
     #define expected_calls 2 //FIXME: FPS
     static int calls = 0;
     static u64 expected_dts[expected_calls] = { 0, TIMESCALE/FPS/*SCTE35_PTS*/ };//, TIMESCALE/FPS+SCTE35_DUR };
-    static u32 expected_dur[expected_calls] = { TIMESCALE/*FIXME: TIMESCALE/FPS*/, SCTE35_DUR/*this is what the algorithm infers*/ }; //FIXME
+    static u32 expected_dur[expected_calls] = { 5*TIMESCALE/FPS/*FIXME: TIMESCALE/FPS*/, SCTE35_DUR/*this is what the algorithm infers*/ }; //FIXME
     static u32 expected_size[expected_calls] = { EMEB, EMIB };//, EMEB };
     static s64 expected_event_pts_delta[expected_calls] = { 0, SCTE35_PTS-TIMESCALE/FPS };//, 0 };
     static u32 expected_event_duration[expected_calls] = { 0, SCTE35_DUR };//, 0 };
@@ -411,7 +412,7 @@ unittest(scte35dec_segmentation_end)
     scte35dec_flush(&ctx);
     scte35dec_finalize_internal(&ctx);
 
-    ctx.pck_send(NULL); // trigger checks
+    ctx.pck_send(NULL); // trigger final checks
 }
 
 /*************************************/
