@@ -648,6 +648,8 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		ctx->seg_repair_queue = gf_list_new();
 		ctx->seg_repair_reservoir = gf_list_new();
 		ctx->seg_range_reservoir = gf_list_new();
+	} else {
+		ctx->max_sess = 0;
 	}
 	return GF_OK;
 }
