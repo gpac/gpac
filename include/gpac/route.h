@@ -231,13 +231,6 @@ GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeo
  */
 GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive);
 
-/*! Sets maximum number of object per session, mostly used for regulation when reading from pcap
-\param routedmx the ROUTE demultiplexer
-\param max_cache  max number of objects per media stream in the session. If 0, no maximum applies
-\return error code if any
- */
-GF_Err gf_route_set_max_cache(GF_ROUTEDmx *routedmx, u32 max_cache);
-
 /*! Sets the service ID to tune into for ATSC 3.0
 \param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to tune in. 0 means no service, 0xFFFFFFFF means all services and 0xFFFFFFFE means first service found

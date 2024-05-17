@@ -368,7 +368,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
             GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Pushing fragment from file %s to cache\n", finfo->filename));
 			break;
         }
-		finfo->blob->flags &=~GF_BLOB_IN_TRANSFER;
+		finfo->blob->flags &=~ GF_BLOB_IN_TRANSFER;
 			
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Pushing file %s to cache\n", finfo->filename));
 		if (ctx->max_segs && (evt==GF_ROUTE_EVT_DYN_SEG))
@@ -443,6 +443,8 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 	if (is_destroy) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Cache releasing object %s\n", url));
 		gf_route_dmx_remove_object_by_name(ctx->route_dmx, sid, subr+1, GF_TRUE);
+		//for non real-time netcap, we may need to reschedule processing
+		gf_filter_post_process_task(ctx->filter);
 	} else if (sid && (sid != ctx->tune_service_id)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Request on service %d but tuned on service %d, retuning\n", sid, ctx->tune_service_id));
 		ctx->tune_service_id = sid;
@@ -612,7 +614,6 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	if (!ctx->route_dmx) return GF_SERVICE_ERROR;
 	
 	gf_route_set_allow_progressive_dispatch(ctx->route_dmx, !ctx->fullseg);
-	gf_route_set_max_cache(ctx->route_dmx, ctx->nbcached);
 
 	gf_route_set_reorder(ctx->route_dmx, ctx->reorder, ctx->rtimeout);
 
