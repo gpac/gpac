@@ -456,6 +456,7 @@ restart:
 GF_Err routein_do_repair(ROUTEInCtx *ctx)
 {
 	u32 i, nb_active=0;
+
 	for (i=0; i<ctx->max_sess; i++) {
 		RouteRepairSession *rsess = &ctx->http_repair_sessions[i];
 		repair_session_run(ctx, rsess);

@@ -900,23 +900,25 @@ set packet capture and filtering rules formatted as [CFG][RULES]. Each -netcap a
 .br
 [RULES] is an optional list of [OPT,OPT2...] with OPT in:
 .br
-* m=N: set rule mode - N can be r for reception only (default), w for send only or rw for both
+* m=K: set rule mode - K can be r for reception only (default), w for send only or rw for both
 .br
-* s=N: set packet start range to N
+* s=K: set packet start range to K
 .br
-* e=N: set packet end range to N (only used for r and f rules)
+* e=K: set packet end range to K - only used for r and f rules, 0 or not set means rule apply until end
 .br
-* n=N: set number of packets to drop to N - not set, 0 or 1 means single packet
+* n=K: set number of packets to drop to K - not set, 0 or 1 means single packet
 .br
-* r=N: random drop one packet every N
+* r=K: random drop n packet every K
 .br
-* f=N: drop first packet every N
+* f=K: drop first n packets every K
 .br
-* p=P: local port number to filter, if not set the rule applies to all packets
+* d=K: reorder n packets after the next K packets, can be used with f or r rules
 .br
-* o=N: patch packet instead of droping (always true for TCP), replacing byte at offset N (0 is first byte, <0 for random)
+* p=K: filter packets on port K only, if not set the rule applies to all packets
 .br
-* v=N: set patch byte value to N (hexa) or negative value for random (default)
+* o=K: patch packet instead of droping (always true for TCP), replacing byte at offset K (0 is first byte, <0 for random)
+.br
+* v=K: set patch byte value to K (hexa) or negative value for random (default)
 .br
 
 .br
