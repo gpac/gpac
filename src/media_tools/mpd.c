@@ -2532,6 +2532,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 		//NOTE: for GPAC now, we disable stream AAC to avoid the problem when switching quality. It should be improved later !
 		if (strstr(elt->url, ".aac")) {
 			rep->playback.disabled = GF_TRUE;
+			gf_m3u8_master_playlist_del(&pl);
 			return GF_OK;
 		}
 		if (elt->drm_method==DRM_AES_128)
