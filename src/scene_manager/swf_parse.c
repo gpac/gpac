@@ -2119,7 +2119,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 				break;
 			}
 		}
-		if ((buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
+		if ((size>3) && (buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
 			skip = 2;
 		}
 		if (version==2) {
