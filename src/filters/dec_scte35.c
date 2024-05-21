@@ -239,7 +239,7 @@ static GF_Err scte35_insert_emeb_before_emib(SCTE35DecCtx *ctx, Event *first_evt
 	if (dur == UINT32_MAX) dur = first_evt->dts - timestamp;
 	gf_assert(timestamp + dur >= first_evt->dts);
 	dur -= (first_evt->dts - timestamp);
-	ctx->last_dispatched_dts += (timestamp - dur);
+	ctx->last_dispatched_dts -= dur;
 	GF_Err e = scte35dec_flush_emeb(ctx, timestamp);
 	ctx->clock += dur;
 	return e;
@@ -255,8 +255,17 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 	if (IS_SEGMENTED) {
 		// pre-signal events in each segment
 		if (timestamp < first_evt->dts) {
-			e = scte35_insert_emeb_before_emib(ctx, first_evt, timestamp, dur);
-			if (e) return e;
+			u64 curr_dur = dur;
+			u64 curr_timestamp = timestamp;
+			u64 segdur = ctx->segdur.num * ctx->timescale / ctx->segdur.den;
+			while (curr_dur > 0) {
+				u32 emeb_dur = curr_dur % segdur;
+				if (!emeb_dur) emeb_dur = segdur;
+				e = scte35_insert_emeb_before_emib(ctx, first_evt, curr_timestamp, emeb_dur);
+				if (e) return e;
+				curr_dur -= emeb_dur;
+				curr_timestamp += emeb_dur;
+			}
 		}
 	} else {
 		// immediate dispatch: jump directly to event
@@ -397,7 +406,7 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 	// parsing is incomplete so we only check the first splice command ...
 	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id);
 	if (dur == 0xFFFFFFFF)
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] No duration found in SCTE-35 message\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] No duration found in SCTE-35 message\n"));
 
 	GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
 	if (!emib) return GF_OUT_OF_MEM;
