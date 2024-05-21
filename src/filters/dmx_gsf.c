@@ -328,6 +328,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	case GF_PROP_NAME:
 		p->type = GF_PROP_STRING_NO_COPY;
 		len = gsfdmx_read_vlen(bs);
+		if (len >= GF_UINT_MAX-1) {
+			p->value.string = NULL;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in string property\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		p->value.string = gf_malloc(sizeof(char)*(len+1));
 		gf_bs_read_data(bs, p->value.string, len);
 		p->value.string[len]=0;
