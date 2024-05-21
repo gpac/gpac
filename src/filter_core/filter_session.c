@@ -3225,6 +3225,7 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 			if (len>99) len=99;
 			strncpy(szExt, ext_arg, len);
 			szExt[len] = 0;
+			strlwr(szExt);
 			ext = szExt;
 		}
 	}
@@ -3357,6 +3358,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			if (sep) sep[0] = 0;
 			mime_type = szMime;
 		}
+		strlwr(szMime);
 		sprintf(szForceExt, "%cext=", fsess->sep_args);
 		char *ext = strstr(url, szForceExt);
 		if (ext) {
@@ -3368,6 +3370,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		} else {
 			szForceExt[0] = 0;
 		}
+		strlwr(szForceExt);
 	}
 	sURL = NULL;
 	if (filter) {
