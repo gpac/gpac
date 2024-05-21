@@ -9,6 +9,10 @@
 ## Filters
 - DVB-I MABR flute aux and demux
 
+## Misc
+- added packet reordering rule for netcap replay from file
+
+
 #04/2024: GPAC 2.4
 
 ## Emscripten|WebAssembly(WASM) support

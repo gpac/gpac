@@ -324,7 +324,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 				break;
 			}
 		} else if (!is_defer_repair && (ctx->sync_tsi == finfo->tsi)) {
-			if (ctx->last_toi > finfo->toi) {
+			if (ctx->cloop && (ctx->last_toi > finfo->toi + 100)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", ctx->tune_service_id, finfo->tsi, ctx->last_toi, finfo->toi));
 
 				gf_route_dmx_purge_objects(ctx->route_dmx, evt_param);
@@ -662,7 +662,7 @@ static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->initial_play_forced)
 			ctx->nb_playing++;
 		ctx->initial_play_forced = GF_FALSE;
-	} else {
+	} else if (evt->base.type==GF_FEVT_STOP) {
 		ctx->nb_playing--;
 	}
 	return GF_TRUE;
@@ -685,8 +685,9 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_segs), "maximum number of segments to keep on disk", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(odir), "output directory for standalone mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(reorder), "ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(rtimeout), "default timeout in ms to wait when gathering out-of-order packets", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(reorder), "consider packets are not always in order - if false, this will evaluate an LCT object as done when TOI changes", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cloop), "check for loops based on TOI (used for capture replay)", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repair), "repair mode for corrupted files\n"
 		"- no: no repair is performed\n"
@@ -695,7 +696,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- full: HTTP-based repair, not yet implemented"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(repair_url), "repair url", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(max_sess), "max number of concurrent HTTP repair sassions", GF_PROP_UINT, "1", NULL, 0},
+	{ OFFS(max_sess), "max number of concurrent HTTP repair sessions", GF_PROP_UINT, "1", NULL, 0},
 	{0}
 };
 
@@ -723,7 +724,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"- `x-route`: integer value, indicates the ROUTE service ID.\n"
 	"- `x-route-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.\n"
     "- `x-route-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).\n"
-    "- `x-route-loop`: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).\n"
+    "- `x-route-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if [-cloop]() is set.\n"
 	"  \n"
 	"The cached files are assigned the following headers:\n"
 	"- `x-route`: boolean value, if yes indicates the file comes from an ROUTE session.\n"
