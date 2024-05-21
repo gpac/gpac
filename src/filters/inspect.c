@@ -2592,7 +2592,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			}
 			gf_free(pname_no_space);
 		} else if (!p4cc && !strncmp(pname, "scte35", 6)) {
-			inspect_printf(dump, "/>\n");
+			inspect_printf(dump, ">\n");
 			dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
 		/*} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
 			dump_temi_loc(ctx, pctx, dump, pname, att);
