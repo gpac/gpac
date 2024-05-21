@@ -1668,7 +1668,8 @@ refetch:
 		s->cap_info->patch_offset = 0;
 		break;
 	}
-	if (netcap_filter_pck(nf->read_sock_selected, nf->pck_len, GF_FALSE))
+	//apply rule(s) except when sending delayed packets
+	if (!nf->reorder_resume_pos && netcap_filter_pck(nf->read_sock_selected, nf->pck_len, GF_FALSE))
 		nf->read_sock_selected = NULL;
 
 	if (!nf->read_sock_selected) {

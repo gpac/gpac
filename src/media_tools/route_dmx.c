@@ -119,7 +119,7 @@ typedef struct
 	GF_LCTFragInfo *frags;
 	GF_LCTObjectStatus status;
 	u32 start_time_ms, download_time_ms;
-	u32 last_gather_time;
+	u64 last_gather_time;
 	u8 closed_flag;
 	u8 force_keep;
 	//flag set when the last chunk has been declared in ll_map
@@ -203,8 +203,8 @@ struct __gf_routedmx {
 	u8 *unz_buffer;
 	u32 unz_buffer_size;
 
-	u32 reorder_timeout;
-	Bool force_reorder;
+	u64 reorder_timeout;
+	Bool force_in_order;
     Bool progressive_dispatch;
 	u32 nrt_max_seg;
 
@@ -391,7 +391,7 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	//create static bs
 	routedmx->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
-	routedmx->reorder_timeout = 5000;
+	routedmx->reorder_timeout = 1000;
 
 	routedmx->on_event = on_event;
 	routedmx->udta = udta;
@@ -621,7 +621,7 @@ GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeo
 {
 	if (!routedmx) return GF_BAD_PARAM;
 	routedmx->reorder_timeout = timeout_ms;
-	routedmx->force_reorder = force_reorder;
+	routedmx->force_in_order = !force_reorder;
 	return GF_OK;
 }
 
@@ -1399,7 +1399,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	GF_LCTObject *obj = s->last_active_obj;
 	GF_FLUTELLMapEntry *ll_map = NULL;
 
-	if (routedmx->force_reorder)
+	//not on a broadcast channel, ignore in_order flag
+	if (!routedmx->force_in_order)
 		in_order = GF_FALSE;
 
 	if (fdt_symbol_length) {
@@ -1595,9 +1596,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			} else {
 				gf_route_obj_to_reservoir(routedmx, s, o);
 			}
-		}
-		//note that if not in order and no timeout, we wait forever !
-		else if (in_order || routedmx->reorder_timeout) {
+		} else {
 			count = gf_list_count(s->objects);
 			for (i=0; i<count; i++) {
 				u32 new_count;
@@ -1617,12 +1616,13 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				) {
 					continue;
 				}
-				else if (!in_order) {
-					u32 elapsed = gf_sys_clock() - o->last_gather_time;
+				//packets not in order and timeout used
+				else if (!in_order && routedmx->reorder_timeout) {
+					u64 elapsed = gf_sys_clock_high_res() - o->last_gather_time;
 					if (elapsed < routedmx->reorder_timeout)
 						continue;
 
-					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d ms - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d us - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
 				} else if (o->rlct && !o->rlct->tsi_init) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u incomplete (tune-in) - forcing dispatch\n", s->log_name, o->tsi, o->toi, toi ));
 				}
@@ -1677,7 +1677,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 		return GF_EOS;
 	}
-	obj->last_gather_time = gf_sys_clock();
+	obj->last_gather_time = gf_sys_clock_high_res();
 
     if (!size) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Empty LCT packet TSI %u TOI %u\n", s->log_name, tsi, toi));
@@ -2593,7 +2593,6 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 	u32 nb_read, cp , v, C, psi, S, O, H, /*Res, A,*/ B, hdr_len, cc, tsi, toi, pos;
 	u32 /*a_G=0, a_U=0,*/ a_S=0, a_M=0/*, a_A=0, a_H=0, a_D=0*/;
 	u64 transfert_length=0;
-	Bool in_order = GF_TRUE;
 	u32 start_offset=0;
 	GF_ROUTELCTChannel *rlct=NULL;
 	GF_LCTObject *gather_object=NULL;
@@ -2735,7 +2734,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 		}
 	}
 
-	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) transfert_length, B, in_order, rlct, &gather_object, ESI, fdt_symbol_length);
+	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) transfert_length, B, GF_FALSE, rlct, &gather_object, ESI, fdt_symbol_length);
 
 	start_offset += (nb_read ) * ESI; 
 	
