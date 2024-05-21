@@ -4728,7 +4728,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	"Partial Segment containing an independent frame SHOULD carry it to increase the efficiency with which clients can join and switch Renditions"
 		-> if used for switching, this only allows SAP 1 and 2
 
-	Spec should be fixed to allow for both cases (fast tune-in or in-segment switchingà)
+	Spec should be fixed to allow for both cases (fast tune-in or in-segment switching)
 	*/
 	if ((tkw->sample.IsRAP == SAP_TYPE_1) || (tkw->sample.IsRAP == SAP_TYPE_2))
 		ctx->frag_has_intra = GF_TRUE;
@@ -6550,7 +6550,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					ctx->nb_frags_in_seg++;
 			}
 
-			//push packet properties as emsg
+			//push ID3 packet properties as emsg
 			const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "id3");
 			if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
 				mp4_process_id3(ctx->file->moof, emsg);
