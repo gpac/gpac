@@ -410,7 +410,9 @@ static u32 tsmux_stream_process_scte35(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *s
 {
 	if (stream->table_needs_update) { /* generate table payload */
 		GF_TSMuxCtx *ctx = ((M2Pid*)stream->ifce->input_udta)->ctx;
-		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO, stream->program->number, ctx->scte35_payload, ctx->scte35_size, GF_FALSE, GF_FALSE, GF_FALSE);
+		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO, stream->program->number,
+			ctx->scte35_payload+3, ctx->scte35_size-3, // remove redundancy since payload already contains an entire SCTE 35 splice_info_section
+			GF_FALSE, GF_FALSE, GF_FALSE);
 		ctx->scte35_size = 0;
 		gf_free(ctx->scte35_payload);
 		ctx->scte35_payload = NULL;

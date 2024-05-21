@@ -13285,7 +13285,6 @@ GF_Err emib_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, 0); /*reserved*/
-	gf_bs_write_u32(bs, ptr->timescale);
 	gf_bs_write_u64(bs, ptr->presentation_time_delta);
 	gf_bs_write_u32(bs, ptr->event_duration);
 	gf_bs_write_u32(bs, ptr->event_id);
@@ -13307,8 +13306,8 @@ GF_Err emib_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err emib_box_size(GF_Box *s)
 {
 	GF_EventMessageBox *ptr = (GF_EventMessageBox*) s;
-	ptr->size += 24;
-	ptr->size+=2; //1 NULL-terminated strings
+	ptr->size += 20;
+	ptr->size += 2; //1 NULL-terminated strings
 	if (ptr->scheme_id_uri) ptr->size += strlen(ptr->scheme_id_uri);
 	if (ptr->value) ptr->size += strlen(ptr->value);
 	if (ptr->message_data)

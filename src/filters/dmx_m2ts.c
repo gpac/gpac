@@ -1231,7 +1231,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			if (!t) break;
 			t->type = M2TS_SCTE35;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_data(bs, pck->data+3, pck->data_len-3);
+			// ANSI/SCTE 67 2017 (13.1.1.3): "the entire SCTE 35 splice_info_section starting at the table_id and ending with the CRC_32"
+			gf_bs_write_data(bs, pck->data, pck->data_len);
 			gf_bs_get_content(bs, &t->data, &t->len);
 			gf_bs_del(bs);
 

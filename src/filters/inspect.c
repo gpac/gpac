@@ -561,12 +561,12 @@ static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 {
 
-    u32 udta_id = 0;
+	u32 udta_id = 0;
 	if (sei_size < 4)
 		return 1;
 
 	udta_id = GF_4CC(data[0], data[1], data[2], data[3]);
-    u32 udta_code = 0;
+	u32 udta_code = 0;
 
 	inspect_printf(dump, " udta_id=\"%s\"", gf_4cc_to_str(udta_id));
 
@@ -1825,7 +1825,7 @@ GF_EXPORT
 void gf_inspect_dump_opus(FILE *dump, u8 *ptr, u64 size, u32 channel_count, Bool dump_crc)
 {
 	if (!dump) return;
-    gf_inspect_dump_opus_internal(dump, ptr, (u32) size, channel_count, dump_crc, NULL);
+	gf_inspect_dump_opus_internal(dump, ptr, (u32) size, channel_count, dump_crc, NULL);
 }
 
 enum {
@@ -2176,7 +2176,7 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 
 static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
-	inspect_printf(dump, "     <scte35:SpliceTime");
+	inspect_printf(dump, "    <scte35:SpliceTime");
 	Bool time_specified_flag = gf_bs_read_int(bs, 1);
 	if (time_specified_flag == 1) {
 		/*reserved = */gf_bs_read_int(bs, 6);
@@ -2191,6 +2191,19 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
 	inspect_printf(dump, "  <scte35:SpliceInfoSection");
+
+	uint8_t table_id = gf_bs_read_u8(bs);
+	assert(table_id == 0xFC);
+	Bool section_syntax_indicator = gf_bs_read_int(bs, 1);
+	assert(section_syntax_indicator == 0);
+	Bool private_indicator = gf_bs_read_int(bs, 1);
+	assert(private_indicator == 0);
+
+	u8 sap_type = gf_bs_read_int(bs, 2);
+	DUMP_ATT_U("sap_type", sap_type);
+
+	int section_length = gf_bs_read_int(bs, 12);
+	assert(section_length + 3 == gf_bs_get_size(bs));
 
 	u8 protocol_version = gf_bs_read_u8(bs);
 	DUMP_ATT_U("protocol_version", protocol_version);
@@ -2242,7 +2255,7 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 				Bool splice_immediate_flag = gf_bs_read_int(bs, 1);
 				DUMP_ATT_BOOL("splice_immediate_flag", splice_immediate_flag);
 				/*reserved = */gf_bs_read_int(bs, 4);
-				inspect_printf(dump, "/>\n");
+				inspect_printf(dump, ">\n");
 
 				if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
 					scte35_parse_splice_time(ctx, dump, bs);
