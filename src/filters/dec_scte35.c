@@ -154,7 +154,7 @@ static void scte35dec_send_pck(SCTE35DecCtx *ctx, GF_FilterPacket *pck, u64 dts,
 	if (dur > 0) {
 		gf_filter_pck_set_duration(pck, dur);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] send dts="LLU" dur=%u\n", dts, dur));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Send dts="LLU" dur=%u\n", dts, dur));
 	gf_filter_pck_set_dts(pck, dts);
 	ctx->last_dispatched_dts = dts;
 	ctx->last_pck_dur = dur;
@@ -289,7 +289,8 @@ static GF_Err scte35dec_push_box(SCTE35DecCtx *ctx, u64 timestamp, u32 dur)
 
 static GF_Err new_segment(SCTE35DecCtx *ctx)
 {
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n", ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] New segment at DTS %d/%u (%lf). Flushing the previous one.\n",
+		ctx->clock, ctx->timescale, (double)ctx->clock/ctx->timescale));
 	u64 dts = ctx->orig_ts + ctx->nb_forced * ctx->segdur.num * ctx->timescale / ctx->segdur.den;
 	if (dts == ctx->last_dispatched_dts) // first segment
 		ctx->last_dispatched_dts -= (ctx->segdur.num * ctx->timescale / ctx->segdur.den);
@@ -319,15 +320,18 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	/*u8 encryption_algorithm = */gf_bs_read_int(bs, 6);
 	u64 pts_adjustment = gf_bs_read_long_int(bs, 33);
 
-	if (encrypted_packet)
+	if (encrypted_packet) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Encrypted packet, not supported (pts_adjustment="LLU")\n", pts_adjustment));
 		goto exit;
+	}
 
 	/*u8 cw_index = */gf_bs_read_u8(bs);
 	/*int tier = */gf_bs_read_int(bs, 12);
 
 	int splice_command_length = gf_bs_read_int(bs, 12);
 	if (splice_command_length > gf_bs_available(bs)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n", gf_bs_available(bs), splice_command_length));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n",
+			gf_bs_available(bs), splice_command_length));
 		goto exit;
 	}
 
@@ -335,6 +339,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	switch(splice_command_type) {
 	case 0x05: //splice_insert()
 		{
+			u64 splice_time = 0;
 			*splice_event_id = gf_bs_read_u32(bs);
 			Bool splice_event_cancel_indicator = gf_bs_read_int(bs, 1);
 			/*reserved = */gf_bs_read_int(bs, 7);
@@ -346,7 +351,8 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 				/*reserved = */gf_bs_read_int(bs, 4);
 
 				if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
-					*pts = scte35dec_parse_splice_time(bs) + pts_adjustment;
+					splice_time = scte35dec_parse_splice_time(bs);
+					*pts = splice_time + pts_adjustment;
 				}
 
 				if (program_splice_flag == 0) {
@@ -355,7 +361,8 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 						/*u8 component_tag = */gf_bs_read_u8(bs);
 						if (splice_immediate_flag == 0) {
 							gf_assert(*pts == 0); // we've never encounter multi component streams
-							*pts = scte35dec_parse_splice_time(bs) + pts_adjustment;
+							splice_time = scte35dec_parse_splice_time(bs);
+							*pts = splice_time + pts_adjustment;
 						}
 					}
 				}
@@ -368,10 +375,20 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 
 				// truncated parsing (so we only parse the first command...)
 			}
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_insert() (*splice_event_id=%u, pts_adjustment="LLU", dur=%u, splice_time="LLU")\n",
+				*splice_event_id, pts_adjustment, *dur, splice_time));
 		}
 		break;
 	case 0x06: //time_signal()
-		*pts = scte35dec_parse_splice_time(bs) + pts_adjustment;
+		u64 splice_time = scte35dec_parse_splice_time(bs);
+		*pts = splice_time + pts_adjustment;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found time_signal() for PTS="LLU" (splice_time="LLU", pts_adjustment="LLU")\n",
+			*pts, splice_time, pts_adjustment));
+		break;
+	default:
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_command_type=0x%02X length=%d pts_adjustment="LLU"\n",
+			splice_command_type, splice_command_length, pts_adjustment));
 		break;
 	}
 
@@ -391,7 +408,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	           ctx->last_pck_dur && (ctx->last_pck_dur + ctx->last_dispatched_dts != dts)) {
 		// drift control
 		s32 drift = ctx->last_pck_dur + ctx->last_dispatched_dts - dts;
-		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
+		GF_LOG(ABS(drift) <= 2 ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected drift of %d at dts="LLU", rectifying.\n", drift, dts));
 		ctx->last_dispatched_dts += drift;
 		dts += drift;
 	}
@@ -405,8 +422,6 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 	u32 dur = 0xFFFFFFFF;
 	// parsing is incomplete so we only check the first splice command ...
 	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id);
-	if (dur == 0xFFFFFFFF)
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] No duration found in SCTE-35 message\n"));
 
 	GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
 	if (!emib) return GF_OUT_OF_MEM;
@@ -471,7 +486,7 @@ static void scte35dec_flush(SCTE35DecCtx *ctx)
 		return; //nothing to flush
 
 	if (IS_SEGMENTED) {
-			new_segment(ctx);
+		new_segment(ctx);
 	} else {
 		scte35dec_push_box(ctx, 0, UINT32_MAX);
 	}
