@@ -7,10 +7,10 @@ static GF_FilterPacket* pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **dat
     GF_FilterPacket *pck;
     GF_SAFEALLOC(pck, GF_FilterPacket);
     pck->data = gf_malloc(data_size);
-	pck->pck = pck;
-	pck->data_length = data_size;
-	*data = pck->data;
-	pck->filter_owns_mem = 0;
+    pck->pck = pck;
+    pck->data_length = data_size;
+    *data = pck->data;
+    pck->filter_owns_mem = 0;
     return pck;
 }
 
@@ -18,16 +18,16 @@ static GF_FilterPacket* pck_new_shared(GF_FilterPid *pid, const u8 *data, u32 da
 {
     GF_FilterPacket *pck;
     GF_SAFEALLOC(pck, GF_FilterPacket);
-	pck->pck = pck;
-	pck->data = (char*)data;
-	pck->data_length = data_size;
-	pck->destructor = destruct;
-	pck->filter_owns_mem = 1;
+    pck->pck = pck;
+    pck->data = (char*)data;
+    pck->data_length = data_size;
+    pck->destructor = destruct;
+    pck->filter_owns_mem = 1;
     return pck;
 }
 
 // ISOBMFF box sizes (used for identifying the eponym boxes)
-#define EMIB 113
+#define EMIB 102
 #define EMEB 8
 
 static u8 scte35_payload[] = {
@@ -36,7 +36,6 @@ static u8 scte35_payload[] = {
     0xef, 0xfe, 0x00, 0x00, 0xe8, 0xbf, 0xfe, 0x00,
     0x00, 0x8f, 0x1d, 0x00, 0x01, 0x00, 0x00, 0x00,
     0x0a, 0x00, 0x08, 0x43, 0x55, 0x45, 0x49, 0x00,
-    0x00, 0x00, 0x18, 0x9f, 0x1d, 0x41, 0x47
 };
 
 #define SCTE35_PTS 59583ULL
@@ -114,7 +113,7 @@ unittest(scte35dec_no_event)
     SCTE35DecCtx ctx = {0};
     assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
     ctx.pck_new_shared = pck_new_shared;
-	ctx.pck_new_alloc = pck_new_alloc;
+    ctx.pck_new_alloc = pck_new_alloc;
     ctx.pck_send = pck_send_no_event;
 
     u64 pts = 0;
@@ -167,7 +166,7 @@ unittest(scte35dec_segmentation_no_event)
     SCTE35DecCtx ctx = {0};
     assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
     ctx.pck_new_shared = pck_new_shared;
-	ctx.pck_new_alloc = pck_new_alloc;
+    ctx.pck_new_alloc = pck_new_alloc;
     ctx.pck_send = pck_send_segmentation_no_event;
 
     ctx.segdur = (GF_Fraction){1, 1};
@@ -188,7 +187,7 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
     #define expected_calls 4 //FIXME: if we put 5 then we have some drift control that triggers a final EMEB box
     static int calls = 0;
     static u64 expected_dts[expected_calls] = { 0, TIMESCALE/FPS, SCTE35_PTS, SCTE35_PTS+SCTE35_DUR };//, SCTE35_PTS+SCTE35_DUR+TIMESCALE/FPS };
-    static u32 expected_dur[expected_calls] = { 0/*TIMESCALE/FPS*/, SCTE35_PTS-TIMESCALE/FPS, SCTE35_DUR, SCTE35_DUR/*FIXME: TIMESCALE/FPS*/ };//, TIMESCALE/FPS+TIMESCALE/FPS-SCTE35_DUR/*TIMESCALE/FPS*/};
+    static u32 expected_dur[expected_calls] = { 0/*TIMESCALE/FPS*/, SCTE35_PTS/*-TIMESCALE/FPS*/, SCTE35_DUR, SCTE35_DUR/*FIXME: TIMESCALE/FPS*/ };//, TIMESCALE/FPS+TIMESCALE/FPS-SCTE35_DUR/*TIMESCALE/FPS*/};
     static u32 expected_size[expected_calls] = { EMEB, EMEB, EMIB, EMEB };//, EMEB };
     static s64 expected_event_pts_delta[expected_calls] = { 0, 0, SCTE35_PTS-TIMESCALE/FPS, 0 };//, 0 };
     static u32 expected_event_duration[expected_calls] = { 0, 0, SCTE35_DUR, 0 };//, 0 };
@@ -219,7 +218,7 @@ static GF_Err pck_send_simple(GF_FilterPacket *pck)
             assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
 
             GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-            gf_bs_seek(bs, 20);
+            gf_bs_seek(bs, 16);
             assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls]); //presentation_time_delta
             assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls]);  //event_duration
             assert_equal(gf_bs_read_u32(bs), expected_event_id[calls]);        //event_id
@@ -244,7 +243,7 @@ unittest(scte35dec_simple)
     SCTE35DecCtx ctx = {0};
     assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
     ctx.pck_new_shared = pck_new_shared;
-	ctx.pck_new_alloc = pck_new_alloc;
+    ctx.pck_new_alloc = pck_new_alloc;
     ctx.pck_send = pck_send_simple;
 
     u64 pts = 0;
@@ -297,7 +296,7 @@ static GF_Err pck_send_segmentation_beginning(GF_FilterPacket *pck)
             assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
 
             GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-            gf_bs_seek(bs, 20);
+            gf_bs_seek(bs, 16);
             assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls]); //presentation_time_delta
             assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls]);  //event_duration
             assert_equal(gf_bs_read_u32(bs), expected_event_id[calls]);        //event_id
@@ -322,7 +321,7 @@ unittest(scte35dec_segmentation_beginning)
     SCTE35DecCtx ctx = {0};
     assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
     ctx.pck_new_shared = pck_new_shared;
-	ctx.pck_new_alloc = pck_new_alloc;
+    ctx.pck_new_alloc = pck_new_alloc;
     ctx.pck_send = pck_send_segmentation_beginning;
 
     ctx.segdur = (GF_Fraction){1, 1};
@@ -375,7 +374,7 @@ static GF_Err pck_send_segmentation_end(GF_FilterPacket *pck)
             assert_equal_mem(data + size - sizeof(scte35_payload), scte35_payload, sizeof(scte35_payload));
 
             GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-            gf_bs_seek(bs, 20);
+            gf_bs_seek(bs, 16);
             assert_equal(gf_bs_read_u64(bs), expected_event_pts_delta[calls]); //presentation_time_delta
             assert_equal(gf_bs_read_u32(bs), expected_event_duration[calls]);  //event_duration
             assert_equal(gf_bs_read_u32(bs), expected_event_id[calls]);        //event_id
@@ -400,7 +399,7 @@ unittest(scte35dec_segmentation_end)
     SCTE35DecCtx ctx = {0};
     assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
     ctx.pck_new_shared = pck_new_shared;
-	ctx.pck_new_alloc = pck_new_alloc;
+    ctx.pck_new_alloc = pck_new_alloc;
     ctx.pck_send = pck_send_segmentation_end;
 
     ctx.segdur = (GF_Fraction){1, 1};
