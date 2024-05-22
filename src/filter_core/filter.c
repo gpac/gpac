@@ -2151,6 +2151,12 @@ skip_date:
 						GF_PropertyValue res = gf_filter_parse_prop_solve_env_var(filter->session, filter, GF_PROP_STRING_LIST, "ccp", value, NULL);
 						filter->skip_cids = res.value.string_list;
 					} else {
+						if (filter->skip_cids.vals) {
+							GF_PropertyValue prop;
+							prop.value.string_list = filter->skip_cids;
+							prop.type = GF_PROP_STRING_LIST;
+							gf_props_reset_single(&prop);
+						}
 						filter->skip_cids.nb_items = 1;
 						filter->skip_cids.vals = gf_malloc(sizeof(char*));
 						filter->skip_cids.vals[0] = gf_strdup("AUTO");
