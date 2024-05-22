@@ -7325,27 +7325,33 @@ typedef struct
 
 #define TO_REFSTRING(_v) _v ? (GF_RefString *) (_v - offsetof(GF_RefString, string)) : NULL
 
-static GF_RefString *evt_get_refstr(GF_FilterEvent *evt, u32 r_idx)
+static Bool evt_get_refstr(GF_FilterEvent *evt, u32 r_idx, GF_RefString **ref_str)
 {
 	if (evt->base.type == GF_FEVT_FILE_DELETE) {
-		if (!r_idx)
-			return TO_REFSTRING(evt->file_del.url);
+		if (r_idx) return GF_FALSE;
+		*ref_str = TO_REFSTRING(evt->file_del.url);
+		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_SOURCE_SWITCH) {
-		if (!r_idx)
-			return TO_REFSTRING(evt->seek.source_switch);
+		if (r_idx) return GF_FALSE;
+		*ref_str = TO_REFSTRING(evt->seek.source_switch);
+		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_SEGMENT_SIZE) {
-		if (!r_idx)
-			return TO_REFSTRING(evt->seg_size.seg_url);
+		if (r_idx) return GF_FALSE;
+		*ref_str = TO_REFSTRING(evt->seg_size.seg_url);
+		return GF_TRUE;
 	}
 	if (evt->base.type == GF_FEVT_DASH_QUALITY_SELECT) {
 		if (!r_idx)
-			return TO_REFSTRING(evt->dash_select.period_id);
-		if (r_idx==1)
-			return TO_REFSTRING(evt->dash_select.rep_id);
+			*ref_str = TO_REFSTRING(evt->dash_select.period_id);
+		else if (r_idx==1)
+			*ref_str = TO_REFSTRING(evt->dash_select.rep_id);
+		else
+			return GF_FALSE;
+		return GF_TRUE;
 	}
-	return NULL;
+	return GF_FALSE;
 }
 static GF_FilterEvent *dup_evt(GF_FilterEvent *evt)
 {
@@ -7354,9 +7360,10 @@ static GF_FilterEvent *dup_evt(GF_FilterEvent *evt)
 	memcpy(an_evt, evt, sizeof(GF_FilterEvent));
 	u32 i=0;
 	while (1) {
-		GF_RefString *rstr = evt_get_refstr(evt, i);
-		if (!rstr) break;
-		safe_int_inc(&rstr->ref_count);
+		GF_RefString *rstr;
+		if (!evt_get_refstr(evt, i, &rstr)) break;
+		if (rstr)
+			safe_int_inc(&rstr->ref_count);
 		i++;
 	}
 	return an_evt;
@@ -7366,11 +7373,13 @@ static void free_evt(GF_FilterEvent *evt)
 {
 	u32 i=0;
 	while (1) {
-		GF_RefString *rstr = evt_get_refstr(evt, i);
-		if (!rstr) break;
-		gf_assert(rstr->ref_count);
-		if (safe_int_dec(&rstr->ref_count) == 0) {
-			gf_free(rstr);
+		GF_RefString *rstr;
+		if (!evt_get_refstr(evt, i, &rstr)) break;
+		if (rstr) {
+			gf_assert(rstr->ref_count);
+			if (safe_int_dec(&rstr->ref_count) == 0) {
+				gf_free(rstr);
+			}
 		}
 		i++;
 	}
