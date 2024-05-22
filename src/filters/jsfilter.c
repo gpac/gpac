@@ -2916,6 +2916,31 @@ static JSValue jsf_pid_forward(JSContext *ctx, JSValueConst this_val, int argc, 
     return JS_UNDEFINED;
 }
 
+static JSValue jsf_pid_match_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSValue ret = JS_FALSE;
+	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
+    if (!pctx || !argc) return GF_JS_EXCEPTION(ctx);
+    if (pctx->pid == pctx->pid->pid) return GF_JS_EXCEPTION(ctx);
+    const char *src_id = JS_ToCString(ctx, argv[0]);
+    if (!src_id)
+		return ret;
+	const char *sid = src_id;
+	if (!strncmp(src_id, "ipid://", 7)) sid+=7;
+
+
+	Bool pid_excluded, needs_clone;
+	if (filter_source_id_match(pctx->pid, pctx->pid->pid->filter->id, NULL, &pid_excluded, &needs_clone, sid)) {
+		ret = JS_TRUE;
+	} else {
+		const char *src_filter_id = gf_filter_last_id_in_chain(pctx->pid->pid->filter, GF_TRUE);
+		if (src_filter_id && filter_source_id_match(pctx->pid, src_filter_id, NULL, &pid_excluded, &needs_clone, sid)) {
+			ret = JS_TRUE;
+		}
+	}
+	JS_FreeCString(ctx, src_id);
+    return ret;
+}
 
 static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("name", jsf_pid_get_prop, jsf_pid_set_prop, JSF_PID_NAME),
@@ -2973,6 +2998,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CFUNC_DEF("forward", 0, jsf_pid_forward),
     JS_CFUNC_DEF("negotiate_prop", 0, jsf_pid_negotiate_prop),
     JS_CFUNC_DEF("ignore_blocking", 0, jsf_pid_ignore_blocking),
+    JS_CFUNC_DEF("match_source", 0, jsf_pid_match_source),
 };
 
 enum

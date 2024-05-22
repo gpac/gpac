@@ -257,9 +257,13 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		if (st) {
-			if (st->opid)
+			if (st->opid) {
 				gf_filter_pid_remove(st->opid);
+				gf_filter_pid_set_udta(st->opid, NULL);
+			}
 			gf_list_del_item(ctx->streams, st);
+			if (st->ipid)
+				gf_filter_pid_set_udta(st->ipid, NULL);
 			reframer_reset_stream(ctx, st, GF_TRUE);
 		}
 		return GF_OK;
