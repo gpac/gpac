@@ -1973,7 +1973,7 @@ static GF_Err swf_soundstream_hdr(SWFReader *read)
 		read->sound_stream->szFileName = gf_strdup(szName);
 		read->setup_sound(read, read->sound_stream, 0);
 		break;
-	case 3:
+	default:
 		swf_report(read, GF_NOT_SUPPORTED, "Unrecognized sound format");
 		gf_free(snd);
 		break;
