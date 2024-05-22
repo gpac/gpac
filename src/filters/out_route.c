@@ -246,6 +246,7 @@ typedef struct
 	//target send rate
 	u32 bitrate;
 
+	Bool use_time_tpl;
 	//for flute
 	u32 init_toi, hls_child_toi;
 	//set to true to force sending fragment name (flute LL mode)
@@ -1269,9 +1270,11 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					serv->is_done = GF_TRUE;
 					return GF_SERVICE_ERROR;
 				}
+				rpid->use_time_tpl = GF_FALSE;
 				if (!sep) {
 					sep = sep2;
 					key = "$Time";
+					rpid->use_time_tpl = GF_TRUE;
 				}
 				if (sep) {
 					sep[0] = 0;
@@ -1677,7 +1680,7 @@ static GF_Err routeout_service_send_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEServi
 	return GF_OK;
 }
 
-static void routeout_fetch_packet(GF_ROUTEOutCtx *ctx, ROUTEPid *rpid)
+static GF_Err routeout_fetch_packet(GF_ROUTEOutCtx *ctx, ROUTEPid *rpid)
 {
 	const GF_PropertyValue *p;
 	Bool start, end;
@@ -1720,9 +1723,9 @@ retry:
 			}
 			//done
 			rpid->res_size = 0;
-			return;
+			return GF_OK;
 		}
-		return;
+		return GF_OK;
 	}
 	//skip eods packets
 	if (rpid->route->dash_mode && gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_EODS)) {
@@ -1860,7 +1863,7 @@ retry:
 		}
 		rpid->clock_at_pck = rpid->current_cts_us = rpid->cts_us_at_frame_start = ctx->clock;
 		rpid->full_frame_size = rpid->pck_size;
-		return;
+		return GF_OK;
 	}
 
 	if (start) {
@@ -1874,16 +1877,33 @@ retry:
 		rpid->seg_name = gf_strdup(rpid->seg_name);
 
 		//file num increased per packet, open new file
-		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_MPD_SEGSTART);
+		Bool in_error = GF_FALSE;
+		p = rpid->use_time_tpl ? gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_MPD_SEGSTART) : NULL;
+		if (rpid->use_time_tpl && !p) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing MPD Time on segment, cannot map to TOI - aborting\n", rpid->route->log_name));
+			in_error = GF_TRUE;
+		}
 		if (ctx->dvb_mabr) {
 			//keep using only 16bits but no TOI =0 (reserved for FDT)
 			rpid->current_toi = (rpid->current_toi+1) % 0xFFFF;
 			if (!rpid->current_toi) rpid->current_toi = 1;
-		} else if (p) {
-			if (p->value.lfrac.num >= ROUTE_INIT_TOI) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] MPD Time "LLU" greater than 32 bits, session no longer valid, aborting\n", rpid->route->log_name, p->value.lfrac.num));
+		} else if (p || in_error) {
+			if (p && p->value.lfrac.num >= ROUTE_INIT_TOI) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] MPD Time "LLU" greater than 32 bits, cannot map on TOI - aborting\n", rpid->route->log_name, p->value.lfrac.num));
+				in_error = GF_TRUE;
+			}
+			if (in_error) {
+				u32 i;
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_STOP, NULL);
 				rpid->route->is_done = GF_TRUE;
-				gf_filter_pid_set_discard(rpid->pid, GF_TRUE);
+				for (i=0; i<gf_list_count(rpid->route->pids); i++) {
+					ROUTEPid *r_pid = gf_list_get(rpid->route->pids, i);
+					gf_filter_pid_set_discard(r_pid->pid, GF_TRUE);
+					evt.base.on_pid = r_pid->pid;
+					gf_filter_pid_send_event(r_pid->pid, &evt);
+				}
+				return GF_SERVICE_ERROR;
 			}
 			rpid->current_toi = (u32) p->value.lfrac.num;
 		} else {
@@ -1993,6 +2013,7 @@ retry:
 	}
 
 	rpid->res_size += rpid->pck_size;
+	return GF_OK;
 }
 
 void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
@@ -2076,7 +2097,9 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 next_packet:
 
 		if (!rpid->current_pck) {
-			routeout_fetch_packet(ctx, rpid);
+			GF_Err e = routeout_fetch_packet(ctx, rpid);
+			if (e) return e;
+
 			if (!rpid->current_pck) {
 				if (gf_filter_pid_is_eos(rpid->pid) && !gf_filter_pid_is_flush_eos(rpid->pid))
 					nb_done++;
@@ -2184,6 +2207,9 @@ next_packet:
 						break;
 					}
 				}
+			}
+			if (ctx->dvb_mabr && !rpid->pck_offset && rpid->raw_file) {
+				routeout_send_fdt(ctx, serv, rpid);
 			}
 			//we use codepoint 8 (media segment, file mode) for media segments, otherwise as listed in S-TSID
 			codepoint = rpid->raw_file ? rpid->fmtp : 8;
@@ -2477,7 +2503,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 	u32 carousel_size=0;
 	for (i=0; i<count; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
-		if (!serv->manifest_mime) {
+		if (!serv->manifest_mime && serv->dash_mode) {
 			gf_free(payload_text);
 			return;
 		}
@@ -2488,6 +2514,8 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			carousel_size += rpid->init_seg_size;
 			if (rpid->hld_child_pl)
 				carousel_size += (u32) strlen(rpid->hld_child_pl);
+			if (rpid->raw_file)
+				carousel_size += rpid->pck_size;
 		}
 	}
 	gf_dynstrcat(&payload_text, "<ObjectCarousel aggregateTransportSize=\"", NULL);
@@ -2496,6 +2524,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 	gf_dynstrcat(&payload_text, "\">\n", NULL);
 	for (i=0; i<count; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
+		if (!serv->dash_mode) continue;
 		//inject manifest and init segs
 		gf_dynstrcat(&payload_text, "<PresentationManifests serviceIdRef=\"", NULL);
 		gf_dynstrcat(&payload_text, serv->service_name, NULL);
@@ -2518,6 +2547,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		const GF_PropertyValue *p;
 		ROUTEPid *rpid;
 		ROUTEService *serv = gf_list_get(ctx->services, i);
+		if (!serv->manifest_mime && serv->dash_mode) continue;
 
 		u32 sid = serv->service_id;
 		if (!sid) sid = 1;
@@ -2711,6 +2741,7 @@ static GF_Err routeout_process(GF_Filter *filter)
 	count = gf_list_count(ctx->services);
 	for (i=0; i<count; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
+		if (serv->is_done) continue;
 		e = routeout_check_service_updates(ctx, serv);
 		if (!serv->service_ready || (e==GF_NOT_READY)) return GF_OK;
 	}

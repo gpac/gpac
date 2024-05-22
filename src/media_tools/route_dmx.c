@@ -966,6 +966,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		if (!toi) continue;
 
 		GF_LCTObject *obj=NULL;
+		GF_ROUTELCTChannel *prev_rlct=NULL;
 		u32 i;
 		for (i=0; i<gf_list_count(s->objects); i++) {
 			obj = gf_list_get(s->objects, i);
@@ -983,6 +984,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		}
 		if (obj && !obj->ll_maps_count) {
 			gf_list_del_item(s->objects, obj);
+			prev_rlct = obj->rlct;
 			gf_route_obj_to_reservoir(routedmx, s, obj);
 			obj=NULL;
 		}
@@ -1085,12 +1087,25 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 				obj->flute_type = GF_FLUTE_DVB_MABR_CFG;
 			} else if (strstr(HAS_MIMES, content_type)) {
 				obj->flute_type = GF_FLUTE_HAS_MANIFEST;
+				obj->rlct = prev_rlct;
 			}
 		}
 
 		if (obj->total_length!=content_length) {
 			obj->status = GF_LCT_OBJ_INIT;
 			obj->total_length = content_length;
+			obj->nb_frags = obj->nb_recv_frags = 0;
+			obj->nb_bytes = obj->nb_recv_bytes = 0;
+
+			if (obj->alloc_size < content_length) {
+				gf_mx_p(routedmx->blob_mx);
+				obj->payload = gf_realloc(obj->payload, obj->total_length+1);
+				obj->alloc_size = obj->total_length;
+				obj->blob.size = obj->total_length;
+				obj->blob.data = obj->payload;
+				gf_mx_v(routedmx->blob_mx);
+			}
+			obj->payload[obj->total_length] = 0;
 		}
 		if (!obj->rlct_file) {
 			GF_SAFEALLOC(obj->rlct_file, GF_ROUTELCTFile);
@@ -1557,6 +1572,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
             obj->blob.data = obj->payload;
             gf_mx_v(routedmx->blob_mx);
         }
+		if (obj->payload)
+			obj->payload[total_len] = 0;
 		if (tsi && rlct) {
 			count = gf_list_count(rlct->static_files);
 			obj->rlct = rlct;
@@ -1597,6 +1614,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
             gf_mx_v(routedmx->blob_mx);
         }
 		obj->total_length = total_len;
+		if (obj->payload)
+			obj->payload[total_len] = 0;
 	} else if (total_len && (obj->total_length != total_len) && (obj->status < GF_LCT_OBJ_DONE)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u mismatch in total-length %u assigned, %u redeclared, purging objet\n", s->log_name, tsi, toi, obj->total_length, total_len));
 		obj->nb_frags = obj->nb_recv_frags = 0;
@@ -1612,6 +1631,8 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			gf_mx_v(routedmx->blob_mx);
 		}
 
+		if (obj->payload)
+			obj->payload[total_len] = 0;
 		obj->status = GF_LCT_OBJ_INIT;
 	}
 	if (s->last_active_obj != obj) {
