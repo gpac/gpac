@@ -4747,7 +4747,7 @@ GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *isom_file, GF_ISOTrackI
 \param elapsed_dur   first sample elapsed duration
 \return error if any
 */
-GF_Err gf_isom_set_fragment_original_duration(GF_ISOFile *movie, GF_ISOTrackID TrackID, u32 orig_dur, u32 elapsed_dur);
+GF_Err gf_isom_set_fragment_original_duration(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, u32 orig_dur, u32 elapsed_dur);
 
 #ifdef GF_ENABLE_CTRN
 /*! enables track fragment inheriting from a given traf.

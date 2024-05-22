@@ -341,6 +341,18 @@ void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
  */
 GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
 
+/*! Set active status of a representation
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param period_id ID of the DASH period containing the representation, may be NULL
+\param as_id ID of the DASH adaptation set containing the representation, may be 0
+\param rep_id ID of the period containing the representation or HLS variant playlist URL, shall not be NULL
+\param is_selected representation status
+\return error if any
+ */
+GF_Err gf_routedmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected);
+
+
 /*! @} */
 #ifdef __cplusplus
 }

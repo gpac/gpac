@@ -633,10 +633,10 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		if (do_split) {
 			GF_Err e;
-			rserv->next_port++;
-			ctx->first_port++;
 			rpid->rlct = route_create_lct_channel(filter, ctx, NULL, rserv->next_port, &e);
 			if (e) return e;
+			rserv->next_port++;
+			ctx->first_port++;
 			if (rpid->rlct) {
 				gf_list_add(rserv->rlcts, rpid->rlct);
 			}
@@ -1208,6 +1208,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 
 	for (j=0; j<gf_list_count(serv->rlcts); j++) {
 		ROUTELCT *rlct = gf_list_get(serv->rlcts, j);
+		Bool has_rs_hdr=GF_FALSE;
 
 		const char *src_ip;
 		char szIP[GF_MAX_IP_NAME_LEN];
@@ -1218,18 +1219,21 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 			src_ip = szIP;
 		}
 
-		gf_dynstrcat(&payload_text, " <RS dIpAddr=\"", NULL);
-		gf_dynstrcat(&payload_text, rlct->ip, NULL);
-		snprintf(temp, 1000, "\" dPort=\"%d\" sIpAddr=\"", rlct->port);
-		gf_dynstrcat(&payload_text, temp, NULL);
-		gf_dynstrcat(&payload_text, src_ip, NULL);
-		gf_dynstrcat(&payload_text, "\">\n", NULL);
-
 		for (i=0; i<nb_pids; i++) {
 			const GF_PropertyValue *p;
 			ROUTEPid *rpid = gf_list_get(serv->pids, i);
 			if (rpid->manifest_type) continue;
 			if (rpid->rlct != rlct) continue;
+
+			if (!has_rs_hdr) {
+				gf_dynstrcat(&payload_text, " <RS dIpAddr=\"", NULL);
+				gf_dynstrcat(&payload_text, rlct->ip, NULL);
+				snprintf(temp, 1000, "\" dPort=\"%d\" sIpAddr=\"", rlct->port);
+				gf_dynstrcat(&payload_text, temp, NULL);
+				gf_dynstrcat(&payload_text, src_ip, NULL);
+				gf_dynstrcat(&payload_text, "\">\n", NULL);
+				has_rs_hdr = GF_TRUE;
+			}
 
 			if (rpid->bandwidth) {
 				u32 kbps = rpid->bandwidth / 1000;
@@ -1385,7 +1389,8 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					"   </SrcFlow>\n"
 					"  </LS>\n", NULL);
 		}
-		gf_dynstrcat(&payload_text, " </RS>\n", NULL);
+		if (has_rs_hdr)
+			gf_dynstrcat(&payload_text, " </RS>\n", NULL);
 	}
 
 	gf_dynstrcat(&payload_text, "</S-TSID>\n\r\n", NULL);
