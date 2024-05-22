@@ -67,6 +67,7 @@ static void gradient_update(EVG_BaseGradient *_this)
 	if (_this->pos[0]>=0) {
 		if(_this->pos[0]>0) {
 			end = FIX2INT(gf_mulfix(_this->pos[0], maxPos));
+			end = MIN(end, EVGGRADIENTMAXINTPOS);
 			for (i=0; i<= end; i++) {
 				_this->precomputed_argb[i] = _this->col[0];
 			}
@@ -78,6 +79,7 @@ static void gradient_update(EVG_BaseGradient *_this)
 				start = FIX2INT(gf_mulfix(pos, maxPos));
 				pos = MIN(_this->pos[c+1], FIX_ONE);
 				end = FIX2INT(gf_mulfix(pos, maxPos));
+				end = MIN(end, EVGGRADIENTMAXINTPOS);
 				diff = end-start;
 
 				if (diff) {
