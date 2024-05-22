@@ -7401,6 +7401,8 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 			} else {
 				break;
 			}
+		} else {
+			break;
 		}
 		if (url_addr_src) {
 			char *url = *url_addr_src;
