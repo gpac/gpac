@@ -664,6 +664,8 @@ static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->initial_play_forced = GF_FALSE;
 	} else if (evt->base.type==GF_FEVT_STOP) {
 		ctx->nb_playing--;
+	} else if (evt->base.type==GF_FEVT_DASH_QUALITY_SELECT) {
+		gf_routedmx_mark_active_quality(ctx->route_dmx, evt->dash_select.service_id, evt->dash_select.period_id, evt->dash_select.as_id, evt->dash_select.rep_id, (evt->dash_select.select_type==GF_QUALITY_SELECTED) ? GF_TRUE : GF_FALSE);
 	}
 	return GF_TRUE;
 }
@@ -693,7 +695,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- no: no repair is performed\n"
 		"- simple: simple repair is performed (incomplete `mdat` boxes will be kept)\n"
 		"- strict: incomplete mdat boxes will be lost as well as preceding `moof` boxes\n"
-		"- full: HTTP-based repair, not yet implemented"
+		"- full: HTTP-based repair of all lost packets"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(repair_url), "repair url", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(max_sess), "max number of concurrent HTTP repair sessions", GF_PROP_UINT, "1", NULL, 0},

@@ -79,6 +79,12 @@ typedef struct
 	u32 flute_fdt_crc;
 
 	GF_ROUTEService *flute_parent_service;
+
+	Bool is_active;
+
+	char *dash_period_id;
+	s32 dash_as_id;
+	char *dash_rep_id;
 } GF_ROUTELCTChannel;
 
 typedef enum
@@ -147,8 +153,11 @@ typedef struct
 typedef struct
 {
 	GF_Socket *sock;
+	u32 nb_active;
 
 	GF_List *channels;
+	char *mcast_addr;
+	u32 mcast_port;
 } GF_ROUTESession;
 
 typedef enum
@@ -255,9 +264,12 @@ static void gf_route_route_session_del(GF_ROUTESession *rs)
 	while (gf_list_count(rs->channels)) {
 		GF_ROUTELCTChannel *lc = gf_list_pop_back(rs->channels);
 		gf_route_static_files_del(lc->static_files);
-		gf_free(lc->toi_template);
+		if (lc->toi_template) gf_free(lc->toi_template);
+		if (lc->dash_period_id) gf_free(lc->dash_period_id);
+		if (lc->dash_rep_id) gf_free(lc->dash_rep_id);
 		gf_free(lc);
 	}
+	if (rs->mcast_addr) gf_free(rs->mcast_addr);
 	gf_list_del(rs->channels);
 	gf_free(rs);
 }
@@ -1261,6 +1273,9 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				new_s->secondary_sockets++;
 				if (new_s->tune_mode == GF_ROUTE_TUNE_ON)
 					gf_sk_group_register(routedmx->active_sockets, rsess->sock);
+
+				rsess->mcast_addr = gf_strdup(dst_add);
+				rsess->mcast_port = dst_port;
 			}
 			gf_list_add(new_s->route_sessions, rsess);
 
@@ -1278,6 +1293,9 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			lreg->order = 1; //default
 			lreg->codepoint = 0;
 			lreg->format_id = 1;
+			rlct->is_active = GF_TRUE;
+			rsess->nb_active ++;
+
 			gf_list_add(rsess->channels, rlct);
 			//associate manifest object with first channel we use
 			if (mani_obj && !mani_obj->rlct) {
@@ -1287,20 +1305,26 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			}
 
 			trp = _xml_get_child(tr_sess, "ServiceComponentIdentifier");
-			const char *hls_child = _xml_get_attr(trp, "mediaPlaylistLocator");
-			if (hls_child) {
+			const char *trp_attr = _xml_get_attr(trp, "mediaPlaylistLocator");
+			if (trp_attr) {
+				rlct->dash_rep_id = gf_strdup(trp_attr);
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
 					GF_LCTObject *obj = gf_list_get(parent_s->objects, i);
-					if (obj->rlct_file && !strcmp(obj->rlct_file->filename, hls_child)) {
+					if (obj->rlct_file && !strcmp(obj->rlct_file->filename, trp_attr)) {
 						obj->rlct = rlct;
 						obj->flute_type = GF_FLUTE_HAS_HLS_VARIANT;
 						break;
 					}
 				}
+			} else {
+				trp_attr = _xml_get_attr(trp, "periodIdentifier");
+				if (trp_attr) rlct->dash_period_id = gf_strdup(trp_attr);
+				trp_attr = _xml_get_attr(trp, "adaptationSetIdentifier");
+				if (trp_attr) rlct->dash_as_id = atoi(trp_attr);
+				trp_attr = _xml_get_attr(trp, "representationIdentifier");
+				if (trp_attr) rlct->dash_rep_id = gf_strdup(trp_attr);
 			}
-
-
 		}
 		if (new_s && (new_s->tune_mode != GF_ROUTE_TUNE_ON))
 			gf_route_register_service_sockets(routedmx, new_s, GF_FALSE);
@@ -1413,6 +1437,10 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			return GF_NOT_SUPPORTED;
 		}
 		start_offset = flute_esi * fdt_symbol_length;
+	}
+
+	if (rlct && !rlct->is_active) {
+		return GF_OK;
 	}
 
 	if((rlct && (tsi==rlct->last_dispatched_tsi) && (toi==rlct->last_dispatched_toi)) || (!rlct && !tsi && (toi==s->last_dispatched_toi_on_tsi_zero))) {
@@ -1898,12 +1926,12 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	while ((rs = gf_list_enum(root->content, &i))) {
 		char *dst_ip = s->dst_ip;
 		u32 dst_port = s->port;
-		char *file_template = NULL;
 		GF_ROUTESession *rsess;
 		GF_ROUTELCTChannel *rlct;
 		u32 tsi = 0;
 		if (rs->type != GF_XML_NODE_TYPE) continue;
 		if (strcmp(rs->name, "RS")) continue;
+		if (!_xml_get_child_count(rs, "LS")) continue;
 
 		j=0;
 		while ((att = gf_list_enum(rs->attributes, &j))) {
@@ -1940,11 +1968,16 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
 			s->secondary_sockets++;
 			if (s->tune_mode == GF_ROUTE_TUNE_ON) gf_sk_group_register(routedmx->active_sockets, rsess->sock);
+
+			rsess->mcast_addr = gf_strdup(dst_ip);
+			rsess->mcast_port = dst_port;
 		}
 		gf_list_add(s->route_sessions, rsess);
 
 		j=0;
 		while ((ls = gf_list_enum(rs->content, &j))) {
+			char *hls_variant_name = NULL;
+			char *file_template = NULL;
 			GF_List *static_files;
 			char *sep;
 			if (ls->type != GF_XML_NODE_TYPE) continue;
@@ -2061,6 +2094,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 								gf_free(rf);
 							} else {
 								gf_list_add(static_files, rf);
+								if (strstr(rf->filename, ".m3u8"))
+									hls_variant_name = rf->filename;
 							}
 						}
 					}
@@ -2099,6 +2134,9 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			rlct->static_files = static_files;
 			rlct->tsi = tsi;
 			rlct->toi_template = NULL;
+			if (hls_variant_name)
+				rlct->dash_rep_id = gf_strdup(hls_variant_name);
+
 			if (file_template) {
 				sep = strstr(file_template, "$TOI");
 				sep[0] = 0;
@@ -2155,8 +2193,17 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						break;
 					}
 				}
+				else if (!strcmp(node->name, "ContentInfo") && !rlct->dash_rep_id) {
+					const GF_XMLNode *n = _xml_get_child(node, "MediaInfo");
+					if (n) {
+						const char *rep = _xml_get_attr(n, "repId");
+						if (rep) rlct->dash_rep_id = gf_strdup(rep);
+					}
+				}
 			}
 
+			rlct->is_active = GF_TRUE;
+			rsess->nb_active ++;
 			gf_list_add(rsess->channels, rlct);
 		}
 	}
@@ -2292,6 +2339,7 @@ static GF_Err gf_route_dmx_process_service_signaling(GF_ROUTEDmx *routedmx, GF_R
 			|| !strcmp(szContentType, "video/vnd.3gpp.mpd")
 			|| !strcmp(szContentType, "audio/mpegurl")
 			|| !strcmp(szContentType, "video/mpegurl")
+			|| !strcmp(szContentType, "application/vnd.apple.mpegURL")
 		) {
 			if (!s->mpd_version || (mpd_version && (mpd_version+1 != s->mpd_version))) {
 				s->mpd_version = mpd_version+1;
@@ -3248,6 +3296,79 @@ GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROU
 	finfo->frags = obj->frags;
 
 	gf_mx_v(obj->blob.mx);
+	return GF_OK;
+}
+
+GF_Err gf_routedmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected)
+{
+	u32 count, i=0;
+	if (!routedmx || !rep_id) return GF_BAD_PARAM;
+	GF_ROUTEService *s=NULL;
+	while ((s = gf_list_enum(routedmx->services, &i))) {
+		if (s->service_id == service_id) break;
+		s = NULL;
+	}
+	if (!s) return GF_BAD_PARAM;
+
+	GF_ROUTESession *mcast_sess=NULL;
+	GF_ROUTELCTChannel *rlct=NULL;
+	count = gf_list_count(s->route_sessions);
+	for (i=0; i<count; i++) {
+		GF_ROUTESession *rsess = gf_list_get(s->route_sessions, i);
+		u32 j, nb_chan = gf_list_count(rsess->channels);
+		for (j=0; j<nb_chan; j++) {
+			rlct = gf_list_get(rsess->channels, j);
+			//if periodID is set, amke sure they match
+			if (period_id && rlct->dash_period_id && strcmp(period_id, rlct->dash_period_id))
+				continue;
+			if (rlct->dash_as_id && (rlct->dash_as_id!=as_id))
+				continue;
+
+			if (rep_id && rlct->dash_rep_id && !strcmp(rep_id, rlct->dash_rep_id)) {
+				mcast_sess = rsess;
+				break;
+			}
+		}
+		if (mcast_sess) break;
+	}
+	if (!mcast_sess) return GF_OK;
+
+	GF_Socket **sock = mcast_sess->mcast_addr ? &mcast_sess->sock : &s->sock;
+	if (is_selected) {
+		if (rlct->is_active) return GF_OK;
+
+		rlct->is_active = GF_TRUE;
+		if (!mcast_sess->nb_active && !(*sock)) {
+			*sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+
+			gf_sk_set_usec_wait(*sock, 1);
+			const char *dst_add = mcast_sess->mcast_addr ? mcast_sess->mcast_addr : s->dst_ip;
+			u32 dst_port = mcast_sess->mcast_addr ? mcast_sess->mcast_port : s->port;
+			GF_Err e = gf_sk_setup_multicast(*sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to resetup multicast for route session on %s:%d\n", s->log_name, dst_add, dst_port));
+				return e;
+			}
+			gf_sk_set_buffer_size(*sock, GF_FALSE, routedmx->unz_buffer_size);
+			gf_sk_group_register(routedmx->active_sockets, *sock);
+			if (mcast_sess->mcast_addr)
+				s->secondary_sockets++;
+		}
+		mcast_sess->nb_active++;
+	} else {
+		if (!rlct->is_active) return GF_OK;
+		rlct->is_active = 0;
+		mcast_sess->nb_active--;
+		//we cannot deactivate service socket in ROUTE, we need to get MPD and STSID updates
+		//for mabr (flute or route) we can
+		if (!mcast_sess->nb_active && (mcast_sess->mcast_addr || routedmx->dvb_mabr) ) {
+			gf_sk_group_unregister(routedmx->active_sockets, *sock);
+			gf_sk_del(*sock);
+			*sock = NULL;
+			if (mcast_sess->mcast_addr)
+				s->secondary_sockets--;
+		}
+	}
 	return GF_OK;
 }
 
