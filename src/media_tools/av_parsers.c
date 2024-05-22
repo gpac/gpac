@@ -3626,7 +3626,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	s32 DeltaQVDc = 0;
 	s32 DeltaQVAc = 0;
 	s32 DeltaQYDc = av1_delta_q(bs, "DeltaQYDc_coded", "DeltaQYDc");
-	if (!state->config->monochrome) {
+	if (!state->config || !state->config->monochrome) {
 		u8 diff_uv_delta = 0;
 		if (state->separate_uv_delta_q)
 			diff_uv_delta = gf_bs_read_int_log(bs, 1, "diff_uv_delta");
