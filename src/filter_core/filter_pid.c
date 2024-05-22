@@ -1858,7 +1858,7 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	return is_equal;
 }
 
-static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, GF_Filter *dst_filter, Bool *pid_excluded, Bool *needs_clone)
+Bool filter_source_id_match(GF_FilterPid *src_pid, const char *src_filter_id, GF_Filter *dst_filter, Bool *pid_excluded, Bool *needs_clone, const char *ext_source_ids)
 {
 	const char *source_ids;
 	char *resolved_source_ids = NULL;
@@ -1867,15 +1867,15 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, GF_Fil
 	Bool has_default_match;
 	Bool is_pid_excluded;
 	*pid_excluded = GF_FALSE;
-	if (!dst_filter->source_ids)
+	if (!ext_source_ids || (dst_filter && !dst_filter->source_ids))
 		return GF_TRUE;
-	if (!id)
+	if (dst_filter && !src_filter_id)
 		return GF_FALSE;
 
 sourceid_reassign:
-	source_ids = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
+	source_ids = resolved_source_ids ? resolved_source_ids : (dst_filter ? dst_filter->source_ids : ext_source_ids);
 	if (!first_pass) {
-		gf_assert(dst_filter->dynamic_source_ids);
+		gf_assert(dst_filter && dst_filter->dynamic_source_ids);
 		source_ids = dst_filter->dynamic_source_ids;
 	}
 	has_default_match = GF_FALSE;
@@ -1912,7 +1912,11 @@ sourceid_reassign:
 		if (source_ids[0]=='*') { }
 		// id does not match
 		else {
-			Bool res = strncmp(id, source_ids, sublen) ? GF_FALSE : GF_TRUE;
+			Bool res;
+			if (src_filter_id)
+				res = strncmp(src_filter_id, source_ids, sublen) ? GF_FALSE : GF_TRUE;
+			else
+				res = sublen ? GF_FALSE : GF_TRUE;
 			if (use_neg) res = !res;
 			if (!res) {
 				source_ids += len+1;
@@ -1945,7 +1949,7 @@ sourceid_reassign:
 
 			if (! filter_pid_check_fragment(src_pid, frag_name, &local_pid_excluded, &needs_resolve, &prop_not_found, prop_dump_buffer)) {
 				if (needs_resolve) {
-					if (first_pass) {
+					if (first_pass && dst_filter) {
 						char *sid = resolved_source_ids ? resolved_source_ids : dst_filter->source_ids;
 						char *frag_sep = strchr(frag_name, dst_filter->session->sep_name);
 						gf_assert(frag_sep);
@@ -1974,6 +1978,8 @@ sourceid_reassign:
 				//remember we succeed because PID has no matching property
 				if (!prop_not_found)
 					all_frags_not_found = GF_FALSE;
+				else if (ext_source_ids)
+					all_matched = GF_FALSE;
 			}
 
 			if (!next_frag) break;
@@ -2004,14 +2010,14 @@ sourceid_reassign:
 
 	if (!result) {
 		if (resolved_source_ids) gf_free(resolved_source_ids);
-		if (dst_filter->dynamic_source_ids && first_pass) {
+		if (dst_filter && dst_filter->dynamic_source_ids && first_pass) {
 			first_pass = GF_FALSE;
 			goto sourceid_reassign;
 		}
 		*pid_excluded = is_pid_excluded;
 		return GF_FALSE;
 	}
-	if (resolved_source_ids) {
+	if (resolved_source_ids && dst_filter) {
 		if (!dst_filter->dynamic_source_ids) {
 			dst_filter->dynamic_source_ids = dst_filter->source_ids;
 			dst_filter->source_ids = resolved_source_ids;
@@ -4292,7 +4298,7 @@ void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 	pid->request_property_map = req_map_bck;
 }
 
-static const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first)
+const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_first)
 {
 	u32 i;
 	const char *id;
@@ -4966,7 +4972,7 @@ single_retry:
 		if (filter_id) {
 			if (filter_dst->source_ids) {
 				Bool pid_excluded=GF_FALSE;
-				if (!filter_source_id_match(pid, filter_id, filter_dst, &pid_excluded, &needs_clone)) {
+				if (!filter_source_id_match(pid, filter_id, filter_dst, &pid_excluded, &needs_clone, NULL)) {
 					Bool not_ours=GF_TRUE;
 					//if filter is a dynamic one with an ID set, fetch ID from previous filter in chain
 					//this is need for cases such as "-i source filterFoo @ -o live.mpd":
@@ -4976,7 +4982,7 @@ single_retry:
 					//which is the filter ID of filterFoo
 					if (filter->dynamic_filter && filter->id) {
 						const char *src_filter_id = gf_filter_last_id_in_chain(filter, GF_TRUE);
-						if (filter_source_id_match(pid, src_filter_id, filter_dst, &pid_excluded, &needs_clone)) {
+						if (filter_source_id_match(pid, src_filter_id, filter_dst, &pid_excluded, &needs_clone, NULL)) {
 							not_ours = GF_FALSE;
 						}
 					}
@@ -5016,7 +5022,7 @@ single_retry:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s does not match filter %s source ID\n", pid->name, filter_dst->name));
 				continue;
 			}
-			if (!filter_source_id_match(pid, "*", filter_dst, &pid_excluded, &needs_clone)) {
+			if (!filter_source_id_match(pid, "*", filter_dst, &pid_excluded, &needs_clone, NULL)) {
 				if (pid_excluded && !num_pass) filter_found_but_pid_excluded = GF_TRUE;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s is excluded by filter %s source ID\n", pid->name, filter_dst->name));
 				continue;

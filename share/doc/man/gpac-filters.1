@@ -6760,7 +6760,7 @@ repair (enum, default: simple): repair mode for corrupted files
 .br
 * strict: incomplete mdat boxes will be lost as well as preceding moof boxes
 .br
-* full: HTTP-based repair, not yet implemented
+* full: HTTP-based repair of all lost packets
 .br
 
 .br
@@ -10428,6 +10428,34 @@ Properties for sourceURL objects
 .P
 .B
 Notes
+.br
+The special URL scheme ipid:// can be used to locate an input pid by link directives.
+.br
+Example
+.br
+in=ipid://#foo=bar
+.br
+
+.br
+This will use pids having property foo with value bar, regardless of source filter ID.
+.br
+
+.br
+Example
+.br
+in=ipid://TEST#foo=bar
+.br
+
+.br
+This will use pids having property foo with value bar coming from filter with ID TEST.
+.br
+
+.br
+When using the ipid:// scheme, filter chains cannot be specified (in accepts a single argument) and port is ignored.
+.br
+The syntax for link directive is the same as in gpac. However, if a listed property is not found on the input pid, the matching will fail.
+.br
+
 .br
 When launching a child process, the input filter is created first and the child process launched afterwards.
 .br

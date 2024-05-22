@@ -8,6 +8,7 @@
 
 ## Filters
 - DVB-I MABR flute aux and demux
+- avmix playlists now accept ipid:// urls to locate input pics, allowing to specify playlists independently from source URLs.
 
 ## Misc
 - added packet reordering rule for netcap replay from file
