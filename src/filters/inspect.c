@@ -2192,7 +2192,7 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
 	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"urn:scte:scte35:2013:bin\"");
 
-	uint8_t table_id = gf_bs_read_u8(bs);
+	u8 table_id = gf_bs_read_u8(bs);
 	assert(table_id == 0xFC);
 	Bool section_syntax_indicator = gf_bs_read_int(bs, 1);
 	assert(section_syntax_indicator == 0);

@@ -13409,8 +13409,9 @@ GF_Err emeb_box_write(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_box_write_header(s, bs);
 }
 
-GF_Err emeb_box_size(GF_Box *)
+GF_Err emeb_box_size(GF_Box *s)
 {
+	(void)s;
 	return GF_OK;
 }
 #endif // GPAC_DISABLE_ISOM_WRITE
@@ -13439,8 +13440,9 @@ GF_Err evte_box_write(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_box_write_header(s, bs);
 }
 
-GF_Err evte_box_size(GF_Box *)
+GF_Err evte_box_size(GF_Box *s)
 {
+	(void)s;
 	return GF_OK;
 }
 #endif // GPAC_DISABLE_ISOM_WRITE
