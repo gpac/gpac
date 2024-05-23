@@ -903,7 +903,7 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 		gf_fprintf(trace, ">\n");
 		return;
 	}
-	
+
 	GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);
 	while (gf_bs_available(bs)) {
@@ -1684,8 +1684,9 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 			case 2:
 				if (types[i].bits==64)
 					sprintf(szTmp, " C%d=\"%f + %fi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
-				else if (types[i].bits==128)
-					sprintf(szTmp, " C%d=\"%f + %fi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
+				else if (types[i].bits==128) {
+					sprintf(szTmp, " C%d=\"%g + %gi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
+				}
 				else
 					sprintf(szTmp, " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
 				break;
@@ -3199,7 +3200,7 @@ GF_Err trun_box_dump(GF_Box *a, FILE * trace)
 	if (full_dump) {
 		for (i=0; i<p->nb_samples; i++) {
 			GF_TrunEntry *ent = &p->samples[i];
-			
+
 			gf_fprintf(trace, "<TrackRunEntry");
 
 #ifdef GF_ENABLE_CTRN
@@ -5204,6 +5205,17 @@ GF_Err tfdt_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_done("TrackFragmentBaseMediaDecodeTimeBox", a, trace);
 	return GF_OK;
 }
+GF_Err rsot_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_TFOriginalDurationBox *ptr = (GF_TFOriginalDurationBox*) a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "RedundantSampleOriginalTimingBox", trace);
+	if (ptr->flags & 1) gf_fprintf(trace, " originalDuration=\"%u\"", ptr->original_duration);
+	if (ptr->flags & 2) gf_fprintf(trace, " elapsedDuration=\"%u\"", ptr->elapsed_duration);
+	gf_fprintf(trace, ">\n");
+	gf_isom_box_dump_done("RedundantSampleOriginalTimingBox", a, trace);
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 GF_Err rvcc_box_dump(GF_Box *a, FILE * trace)
@@ -5979,7 +5991,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 	}
 	if (bs)
 		gf_bs_del(bs);
-		
+
 	if (!ptr->size) {
 		gf_fprintf(trace, "<SampleEncryptionEntry sampleCount=\"\" IV=\"\" SubsampleCount=\"\">\n");
 		gf_fprintf(trace, "<SubSampleEncryptionEntry NumClearBytes=\"\" NumEncryptedBytes=\"\"/>\n");

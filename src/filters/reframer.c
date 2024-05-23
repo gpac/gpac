@@ -257,9 +257,13 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		if (st) {
-			if (st->opid)
+			if (st->opid) {
 				gf_filter_pid_remove(st->opid);
+				gf_filter_pid_set_udta(st->opid, NULL);
+			}
 			gf_list_del_item(ctx->streams, st);
+			if (st->ipid)
+				gf_filter_pid_set_udta(st->ipid, NULL);
 			reframer_reset_stream(ctx, st, GF_TRUE);
 		}
 		return GF_OK;
@@ -2005,7 +2009,7 @@ refetch_streams:
 					//time-based extraction or dur split, try to clone packet
 					if (st->can_split && !ctx->start_frame_idx_plus_one) {
 						if (gf_timestamp_less(ts, st->timescale, ctx->cur_end.num, ctx->cur_end.den)) {
-							//force enqueing this packet
+							//force enqueuing this packet
 							enqueue = GF_TRUE;
 							st->split_end = (u32) ( (ctx->cur_end.num * st->timescale) / ctx->cur_end.den - ts);
 							st->range_end_reached_ts += st->split_end;

@@ -202,6 +202,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/hevcmerge.c \
 	../../../../src/filters/hevcsplit.c \
 	../../../../src/filters/in_route.c \
+	../../../../src/filters/in_route_repair.c \
 	../../../../src/filters/in_dvb4linux.c \
 	../../../../src/filters/in_file.c \
 	../../../../src/filters/in_http.c \
@@ -423,6 +424,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/path2d_stroker.c \
 	../../../../src/utils/sha1.c \
 	../../../../src/utils/sha256.c \
+	../../../../src/utils/md5.c \
 	../../../../src/utils/token.c \
 	../../../../src/utils/uni_bidi.c \
 	../../../../src/utils/unicode.c \

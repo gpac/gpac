@@ -325,6 +325,7 @@ struct __dash_group
 	u32 ast_offset;
 
 	Bool init_segment_is_media;
+	u32 init_segment_start_number;
 
 	u32 max_cached_segments, nb_cached_segments;
 	segment_cache_entry *cached;
@@ -807,7 +808,7 @@ setup_route:
 					u64 number=0;
 					char szTemplate[100];
 
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Resolve ROUTE clock on bootstrap segment URL %s template %s\n", val, seg_url+2));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Resolve ROUTE clock on bootstrap segment URL %s template %s\n", val, seg_url));
 
 					strcpy(szTemplate, seg_url);
 					strcat(szTemplate, "%");
@@ -3484,6 +3485,9 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	if (!*out_url) {
 		return e;
 	}
+	//hacky, HLS does not carry startNumber info which can be needed when forwarding files - assume 1
+	if (group->dash->is_m3u8 && out_start_number && ! *out_start_number)
+		*out_start_number = 1;
 
 	if (*out_url && data_url_process && !strncmp(*out_url, "data:", 5)) {
 		char *sep;
@@ -3729,7 +3733,7 @@ retry_pending:
 				rep->playback.init_start_range = r_start;
 				rep->playback.init_end_range = r_end;
 				rep->playback.init_seg_name_start = dash_strip_base_url(r_base_init_url, group->dash->base_url);
-			} else if (e) {
+			} else if (e && (e!=GF_IP_NETWORK_EMPTY)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot solve initialization segment for representation: %s - discarding representation\n", gf_error_to_string(e) ));
 				rep->playback.disabled = 1;
 			}
@@ -4854,15 +4858,17 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	} else if (dash->is_m3u8) {
 		char *tmp_url=NULL;
 		u64 dur, sr, er;
-		u32 startnum;
-		e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &tmp_url, &sr, &er, &dur, NULL, &key_url, &key_iv, NULL, &startnum);
+		e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &tmp_url, &sr, &er, &dur, NULL, &key_url, &key_iv, NULL, &start_number);
 		if (tmp_url) gf_free(tmp_url);
 	}
 
 	base_url = base_url_orig;
 	base_init_url = gf_dash_get_fileio_url(base_url, base_init_url);
 
-	if (nb_segment_read) group->init_segment_is_media = GF_TRUE;
+	if (nb_segment_read) {
+		group->init_segment_is_media = GF_TRUE;
+		group->init_segment_start_number = start_number;
+	}
 
 	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7)
 		|| !strnicmp(base_init_url, "views://", 8) || !strnicmp(base_init_url, "mosaic://", 9)
@@ -6570,6 +6576,7 @@ select_active_rep:
 				break;
 			}
 		}
+		nb_rep_ok=0;
 		for (rep_i = 0; rep_i < nb_rep; rep_i++) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_i);
 			if (!rep->playback.disabled)
@@ -7201,6 +7208,7 @@ llhls_rety:
     }
 
 	base_url = dash->base_url;
+	start_number=0;
 	if (group->period->origin_base_url) base_url = group->period->origin_base_url;
 	/* At this stage, there are some segments left to be downloaded */
 	e = gf_dash_resolve_url(dash->mpd, rep, group, base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL, &start_number);
@@ -7274,11 +7282,11 @@ llhls_rety:
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
 		if (llhls_live_edge_type==2) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queing next segment: %s (live edge merged range: "LLU" -> END)\n", gf_file_basename(new_base_seg_url), start_range));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next segment: %s (live edge merged range: "LLU" -> END)\n", gf_file_basename(new_base_seg_url), start_range));
 		} else if (use_byterange) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queing next %s: %s (range: "LLU" -> "LLU")\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment",  gf_file_basename(new_base_seg_url), start_range, end_range));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next %s: %s (range: "LLU" -> "LLU")\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment",  gf_file_basename(new_base_seg_url), start_range, end_range));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queing next %s: %s\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment", gf_file_basename(new_base_seg_url)));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next %s: %s\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment", gf_file_basename(new_base_seg_url)));
 		}
 	}
 #endif
@@ -7770,7 +7778,7 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 		e = gf_dash_download_init_segment(dash, group);
 
 		//might happen with broadcast DASH (eg ATSC3)
-		if (e == GF_IP_NETWORK_EMPTY) {
+		if ((e == GF_IP_NETWORK_EMPTY) || (e == GF_NOT_READY)) {
 			if (dash->reinit_period_index) {
 				gf_dash_reset_groups(dash);
 				dash->active_period_index = dash->reinit_period_index-1;
@@ -8536,10 +8544,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
 		goto exit;
 	}
-	if (dash->dash_io->manifest_updated) {
-		const char *szName = gf_file_basename(manifest_url);
-		dash->dash_io->manifest_updated(dash->dash_io, szName, local_url, -1);
-	}
 
 	//peek payload, check if m3u8 - MPD and SmoothStreaming are checked after
 	char szLine[100];
@@ -8551,6 +8555,11 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	szLine[99] = 0;
 	if (strstr(szLine, "#EXTM3U"))
 		dash->is_m3u8 = 1;
+
+	if (dash->dash_io->manifest_updated) {
+		const char *szName = gf_file_basename(manifest_url);
+		dash->dash_io->manifest_updated(dash->dash_io, szName, local_url, -1);
+	}
 
 	if (dash->is_m3u8) {
 		if (is_local) {
@@ -9281,6 +9290,9 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 	if ((group->selection==GF_DASH_GROUP_NOT_SELECTED) && select) needs_resetup = 1;
 
 	group->selection = select ? GF_DASH_GROUP_SELECTED : GF_DASH_GROUP_NOT_SELECTED;
+	if (!select) {
+		group->dash->dash_io->on_dash_event(group->dash->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->groups_idx, GF_OK);
+	}
 
 	/*this set is part of a group, make sure no all other sets from the indicated group are unselected*/
 	if (dash->enable_group_selection && select && (group->adaptation_set->group>=0)) {
@@ -9526,7 +9538,7 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 depen
 			*init_segment = rep ? rep->playback.init_seg_name_start : NULL;
 		}
 		if (group->init_segment_is_media) {
-			if (seg_number) *seg_number = 0;
+			if (seg_number) *seg_number = group->init_segment_start_number;
 			if (seg_time || seg_dur_ms) {
 				u64 segment_dur, res;
 				u32 seg_scale;
@@ -10335,12 +10347,16 @@ GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_
 	quality->bandwidth = rep->bandwidth;
 	quality->ID = rep->id;
 	quality->interlaced = (rep->scan_type == GF_MPD_SCANTYPE_INTERLACED) ? 1 : ( (group->adaptation_set->scan_type == GF_MPD_SCANTYPE_INTERLACED) ? 1 : 0);
+	if (dash->is_m3u8 && rep->segment_list)
+		quality->hls_variant_url = rep->segment_list->previous_xlink_href;
 
 	if (group->was_segment_base && rep->segment_list)
 		quality->seg_urls = rep->segment_list->segment_URLs;
 
 	//scalable rep, selected quality is max_complementary_rep_index
-	if (group->base_rep_index_plus_one) {
+	if ((group->selection == GF_DASH_GROUP_NOT_SELECTED) || (group->selection == GF_DASH_GROUP_NOT_SELECTABLE)) {
+		quality->is_selected = GF_FALSE;
+	} else if (group->base_rep_index_plus_one) {
 		quality->is_selected = (quality_idx==group->max_complementary_rep_index) ? 1 : 0;
 	} else {
 		quality->is_selected = (quality_idx==group->active_rep_index) ? 1 : 0;

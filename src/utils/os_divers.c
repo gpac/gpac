@@ -1316,11 +1316,8 @@ Bool gf_sys_profiler_sampling_enabled()
 GF_List *all_blobs = NULL;
 
 GF_EXPORT
-GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_flags)
+GF_Err gf_blob_get_ex(GF_Blob *blob, u8 **out_data, u32 *out_size, u32 *out_flags)
 {
-	GF_Blob *blob = NULL;
-	if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
-	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
 	if (!blob)
 		return GF_BAD_PARAM;
 	if (gf_list_find(all_blobs, blob)<0)
@@ -1332,13 +1329,18 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_
 	if (out_flags) *out_flags = blob->flags;
 	return GF_OK;
 }
+GF_EXPORT
+GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_flags)
+{
+	GF_Blob *blob = NULL;
+	if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
+	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+	return gf_blob_get_ex(blob, out_data, out_size, out_flags);
+}
 
 GF_EXPORT
-GF_Err gf_blob_release(const char *blob_url)
+GF_Err gf_blob_release_ex(GF_Blob *blob)
 {
-    GF_Blob *blob = NULL;
-    if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
-    if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
     if (!blob)
 		return GF_BAD_PARAM;
 	if (gf_list_find(all_blobs, blob)<0)
@@ -1346,6 +1348,15 @@ GF_Err gf_blob_release(const char *blob_url)
     if (blob->data && blob->mx)
         gf_mx_v(blob->mx);
     return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_blob_release(const char *blob_url)
+{
+    GF_Blob *blob = NULL;
+    if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
+    if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+	return gf_blob_release_ex(blob);
 }
 
 GF_EXPORT
@@ -1385,6 +1396,17 @@ GF_Blob *gf_blob_from_url(const char *blob_url)
 	return blob;
 }
 #endif
+
+
+GF_EXPORT
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size)
+{
+	if (!blob) return GF_BLOB_RANGE_CORRUPTED;
+	if (blob->range_valid) return blob->range_valid(blob, start_offset, size);
+
+	if (blob->flags & GF_BLOB_IN_TRANSFER) return GF_BLOB_RANGE_IN_TRANSFER;
+	return GF_BLOB_RANGE_VALID;
+}
 
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config(Bool discard_config);

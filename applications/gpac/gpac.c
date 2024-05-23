@@ -3379,6 +3379,7 @@ static u64 creds_set_pass(GF_Config *creds, const char *user, const char *passwd
 	u64 now = gf_sys_clock_high_res();
 	sprintf(szVAL, LLU, now);
 	gf_cfg_set_key(creds, user, "pass_date", szVAL);
+	gf_free(pass);
 	return now;
 }
 

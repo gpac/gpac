@@ -861,6 +861,8 @@ typedef struct
 	Double average_duration;
 	/*! list of segmentURLs if known, NULL otherwise. Used for onDemand profile to get segment sizes*/
 	const GF_List *seg_urls;
+	/*! URL (relative) of variant playlist*/
+	const char *hls_variant_url;
 } GF_DASHQualityInfo;
 
 /*! gets information on  a given quality

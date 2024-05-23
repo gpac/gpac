@@ -7,7 +7,12 @@
 - Fixes in UI
 
 ## Filters
-- experimental DVB-I MABR flute demux
+- DVB-I MABR flute aux and demux
+- avmix playlists now accept ipid:// urls to locate input pics, allowing to specify playlists independently from source URLs.
+
+## Misc
+- added packet reordering rule for netcap replay from file
+
 
 #04/2024: GPAC 2.4
 

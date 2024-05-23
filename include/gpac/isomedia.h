@@ -596,6 +596,8 @@ typedef struct
 
 	/*! read API only - sample duration (multiply by nb_pack to get full duration)*/
 	u32 duration;
+	/*! read API only - set to GF_TRUE if sample data is corrupted*/
+	u32 corrupted;
 } GF_ISOSample;
 
 
@@ -1723,6 +1725,24 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *isom_file, u32 trackNumber, u8 **o
 \return error if any
 */
 GF_Err gf_isom_get_trex_template(GF_ISOFile *isom_file, u32 trackNumber, u8 **output, u32 *output_size);
+
+/*! Query mode for min negative ctts query*/
+typedef enum
+{
+	/*! Use CLSG if found, otherwise min value in samples*/
+	GF_ISOM_MIN_NEGCTTS_ANY = 0,
+	/*! Use CLSG only*/
+	GF_ISOM_MIN_NEGCTTS_CLSG,
+	/*! Use min value in samples only*/
+	GF_ISOM_MIN_NEGCTTS_SAMPLES,
+} GF_ISOMMinNegCtsQuery;
+/*! gets the minimum CTS offset for tracks using negative cts
+\param isom_file the destination ISO file
+\param trackNumber the destination track
+\param query_mode if set, ignore any CompositionToDecode box present
+\return minimum negative CTS offset
+*/
+s32 gf_isom_get_min_negative_cts_offset(GF_ISOFile *isom_file, u32 trackNumber, GF_ISOMMinNegCtsQuery query_mode);
 
 /*! sets the number of removed bytes form the input bitstream when using gmem:// url
  The number of bytes shall be the total number since the opening of the movie
@@ -4731,6 +4751,16 @@ GF_Err gf_isom_allocate_sidx(GF_ISOFile *isom_file, s32 subsegs_per_sidx, Bool d
 \return error if any
 */
 GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, u8 *boxes, u32 boxes_size, u8 force_traf_flags);
+
+/*! sets up track fragment defaults using the given template. The template shall be a serialized array of one or more trex boxes
+
+\param isom_file the target ISO file
+\param TrackID ID of the target track
+\param orig_dur  last sample original duration
+\param elapsed_dur   first sample elapsed duration
+\return error if any
+*/
+GF_Err gf_isom_set_fragment_original_duration(GF_ISOFile *isom_file, GF_ISOTrackID TrackID, u32 orig_dur, u32 elapsed_dur);
 
 #ifdef GF_ENABLE_CTRN
 /*! enables track fragment inheriting from a given traf.

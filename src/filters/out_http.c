@@ -1631,7 +1631,17 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (!strchr("/\\", mdir[len-1]))
 				gf_dynstrcat(&full_path, "/", NULL);
 
+			char *querystring = strchr(res_url, '?');
+
+			// ignore query string when looking for a file on disk
+			if (querystring)
+				querystring[0] = 0;
+
 			gf_dynstrcat(&full_path, res_url, NULL);
+
+			// restore query string in original url
+			if (querystring)
+				querystring[0] = '?';
 
 			if (gf_file_exists(full_path) || gf_dir_exists(full_path) ) {
 				the_dir = adi;

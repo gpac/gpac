@@ -969,7 +969,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 	/*this was a gf_filter_process_task request but direct call could not be done or requeue is requested.
 	process_task_queued was incremented by caller without checking for existing process task
 		- If the task was not treated, dec / inc will give the same state, undo process_task_queued increment
-		- If the task was requeued, dec will undo the increment done when requeing the task in gf_filter_check_pending_tasks
+		- If the task was requeued, dec will undo the increment done when requeuing the task in gf_filter_check_pending_tasks
 
 	In both cases, inc will redo the same logic as in gf_filter_post_process_task_internal, not creating task if gf_filter_process_task is
 	already scheduled for the filter
@@ -1035,11 +1035,11 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u Posted task %p Filter %s::%s (%d (%d) pending, %d process tasks) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, gf_fq_count(filter->tasks), filter->process_task_queued, task->notified ? (force_main_thread ? "main" : "secondary") : "filter"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SCHEDULER, ("Thread %u Posted task %p Filter %s::%s (%d (%d) pending, %d process tasks) on %s task list\n", gf_th_id(), task, filter->name, task->log_name, fsess->tasks_pending, gf_fq_count(filter->tasks), filter->process_task_queued, task->notified ? (force_main_thread ? "main" : "secondary") : "filter"));
 	} else {
 		task->notified = notified = GF_TRUE;
 		task->force_main = force_main_thread;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u Posted filter-less task %s (%d pending) on secondary task list\n", gf_th_id(), task->log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SCHEDULER, ("Thread %u Posted filter-less task %s (%d pending) on secondary task list\n", gf_th_id(), task->log_name, fsess->tasks_pending));
 	}
 
 	//WARNING, do not use task->notified since the task may have been posted to the filter task list and may already have been swapped
@@ -2214,7 +2214,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						//requeue task
 						gf_fq_add(current_filter->tasks, task);
 
-						//ans swap task for later requeing
+						//ans swap task for later requeuing
 						if (next_task) task = next_task;
 					}
 					//otherwise (can't swap) keep task first in the list
@@ -2362,7 +2362,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 
 		//no main thread, return
-		if (!thid && fsess->non_blocking && !current_filter && !fsess->pid_connect_tasks_pending) {
+		if (!thid && fsess->non_blocking && !fsess->remove_tasks && !current_filter && !fsess->pid_connect_tasks_pending) {
 			gf_rmt_end();
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Main thread proc exit\n"));
 			safe_int_dec(&fsess->active_threads);
@@ -3225,6 +3225,7 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 			if (len>99) len=99;
 			strncpy(szExt, ext_arg, len);
 			szExt[len] = 0;
+			strlwr(szExt);
 			ext = szExt;
 		}
 	}
@@ -3357,6 +3358,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			if (sep) sep[0] = 0;
 			mime_type = szMime;
 		}
+		strlwr(szMime);
 		sprintf(szForceExt, "%cext=", fsess->sep_args);
 		char *ext = strstr(url, szForceExt);
 		if (ext) {
@@ -3368,6 +3370,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		} else {
 			szForceExt[0] = 0;
 		}
+		strlwr(szForceExt);
 	}
 	sURL = NULL;
 	if (filter) {
