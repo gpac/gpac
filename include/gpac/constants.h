@@ -994,6 +994,12 @@ u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout);
 */
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 
+/*! get dloby chanmap value from channel layout
+\param channel_layout channel layout mask
+\return dolby chanmap
+*/
+u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
+
 /*! enumerates CICP channel layout
 \param idx index of cicp layout value to query
 \param short_name set t o CICP name as used in GPAC - may be NULL

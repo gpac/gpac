@@ -3492,7 +3492,7 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config, Bool is_info, PidCtx *pctx)
 {
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
-	const GF_PropertyValue *p, *dsi, *dsi_enh;
+	const GF_PropertyValue *p, *dsi, *dsi_enh, *sr;
 	Bool is_raw=GF_FALSE;
 	Bool is_protected=GF_FALSE;
 	u32 codec_id=0;
@@ -3547,8 +3547,11 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump, GF_FALSE);
 
+	sr = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	if (p) inspect_printf(dump, " timescale %d", p->value.uint);
+	if (p && (!sr || (sr->value.uint != p->value.uint)))
+		inspect_printf(dump, " timescale %d", p->value.uint);
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (p) inspect_printf(dump, " delay "LLD, p->value.longsint);
 
@@ -3587,15 +3590,15 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			if (p) inspect_printf(dump, " raw format %s", gf_pixel_fmt_name(p->value.uint) );
 		}
 	}
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
-	if (p) {
-		inspect_printf(dump, " %d Hz", p->value.uint);
+
+	if (sr) {
+		inspect_printf(dump, " %d Hz", sr->value.uint);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p) {
-			inspect_printf(dump, " %s", gf_audio_fmt_get_layout_name(p->value.longuint));
+			inspect_printf(dump, " %s chan", gf_audio_fmt_get_layout_name(p->value.longuint));
 		} else {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-			if (p) inspect_printf(dump, " %d channels", p->value.uint);
+			if (p) inspect_printf(dump, " %d chan", p->value.uint);
 		}
 		if (is_raw) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);

@@ -247,7 +247,10 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
-
+	if (!gf_sys_is_test_mode()) {
+		u64 layout = gf_ac3_get_channel_layout(&ctx->hdr);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(layout) );
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_eac3 ? GF_CODECID_EAC3 : GF_CODECID_AC3) );
 
 	ctx->hdr.is_ec3 = ctx->is_eac3;

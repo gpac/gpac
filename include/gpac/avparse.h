@@ -684,6 +684,12 @@ Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 */
 u32 gf_eac3_get_chan_loc_count(u32 chan_loc);
 
+/*! gets the channel layout mask  from EAC3 config
+\param ac3 the decoded AC3 configuration
+\return channel mask
+*/
+u64 gf_ac3_get_channel_layout(GF_AC3Config *ac3);
+
 /*! gets the total number of channels in an AC3 frame, including surround but not lfe
 \param acmod acmod of the associated frame header
 \return number of channels
