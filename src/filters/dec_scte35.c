@@ -393,10 +393,12 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 		}
 		break;
 	case 0x06: //time_signal()
-		u64 splice_time = scte35dec_parse_splice_time(bs);
-		*pts = splice_time + pts_adjustment;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found time_signal() for PTS="LLU" (splice_time="LLU", pts_adjustment="LLU")\n",
-			*pts, splice_time, pts_adjustment));
+		{
+			u64 splice_time = scte35dec_parse_splice_time(bs);
+			*pts = splice_time + pts_adjustment;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found time_signal() for PTS="LLU" (splice_time="LLU", pts_adjustment="LLU")\n",
+				*pts, splice_time, pts_adjustment));
+		}
 		break;
 	default:
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_command_type=0x%02X length=%d pts_adjustment="LLU"\n",
