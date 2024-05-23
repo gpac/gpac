@@ -300,6 +300,7 @@
     <ClCompile Include="..\..\src\filters\hevcsplit.c" />
     <ClCompile Include="..\..\src\filters\inspect.c" />
     <ClCompile Include="..\..\src\filters\in_route.c" />
+    <ClCompile Include="..\..\src\filters\in_route_repair.c" />
     <ClCompile Include="..\..\src\filters\in_dvb4linux.c" />
     <ClCompile Include="..\..\src\filters\in_file.c" />
     <ClCompile Include="..\..\src\filters\in_http.c" />
@@ -585,6 +586,7 @@
     <ClCompile Include="..\..\src\utils\Remotery.c" />
     <ClCompile Include="..\..\src\utils\sha1.c" />
     <ClCompile Include="..\..\src\utils\sha256.c" />
+    <ClCompile Include="..\..\src\utils\md5.c" />
     <ClCompile Include="..\..\src\utils\token.c" />
     <ClCompile Include="..\..\src\utils\unicode.c" />
     <ClCompile Include="..\..\src\utils\uni_bidi.c" />

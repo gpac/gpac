@@ -1055,6 +1055,9 @@
     <ClCompile Include="..\..\src\utils\sha256.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\md5.c">
+      <Filter>utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\utils\token.c">
       <Filter>utils</Filter>
     </ClCompile>
@@ -1485,6 +1488,12 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\in_route.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_route_repair.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\in_route.h">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\evg\ftgrays.c">

@@ -1579,7 +1579,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 		evt_clone = gf_malloc(sizeof(GF_Event));
 		memcpy(evt_clone, evt, sizeof(GF_Event));
 		gf_list_add(sjs->event_queue, evt_clone);
-		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[SCENEJS] Couldn't lock % mutex, queing event\n", (lock_fail==2) ? "JavaScript" : "Compositor"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[SCENEJS] Couldn't lock % mutex, queuing event\n", (lock_fail==2) ? "JavaScript" : "Compositor"));
 		gf_mx_v(sjs->event_mx);
 
 		if (lock_fail==2){

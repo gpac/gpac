@@ -2100,10 +2100,21 @@ function update_display_list()
 	root_scene.scenes.forEach(elm => do_traverse_all(elm, update_scene) );
 }
 
+let nolive_timeout_start = 0;
 function process_video()
 {
 	if (!video_inputs_ready) {
 		if (!video_time && !live_forced_play) {
+			let waitfor = filter.lwait;
+			if (!filter.live) waitfor *= 10;
+
+			if (!nolive_timeout_start) nolive_timeout_start = current_utc_clock;
+			else if (current_utc_clock - nolive_timeout_start > waitfor) {
+				print(GF_LOG_ERROR, 'No video input after ' + waitfor + ' ms in non-live mode, aborting');
+				do_terminate();
+				do_audio = false;
+				return;
+			}
 			print(GF_LOG_DEBUG, 'video not init');
 			do_audio = false;
 			return;
@@ -3255,6 +3266,13 @@ function get_source_by_pid(pid)
 	let res = null;
 	sources.forEach( elem => { 
 		elem.fsrc.forEach( (f, index) => {
+			if (typeof f.__dummy_tmp != 'undefined') {
+				if (pid.match_source(f._tmp_arg)) {
+					pid.skipped = false;
+					res = elem;
+				}
+				return;
+			}
 			if (!pid.is_filter_in_parents(f)) return;
 
 			if ((f.media_type=="all") 
@@ -3268,7 +3286,7 @@ function get_source_by_pid(pid)
 				pid.skipped = true;
 			}
 
-		} );
+		} );		
 	} );
 	return res;
 }
@@ -3399,13 +3417,12 @@ function apply_links(links, target, fchain)
 		return;
 	} 
 	let f_src = fchain[link_idx];
-
 	if (target) {
 		target.set_source(f_src, link_arg);
 	} else {
 		filter.set_source_restricted(f_src, link_arg);
 	}
-
+	f_src.require_source_id = true;
 	});
 	return broken_links;
 }
@@ -3425,16 +3442,19 @@ function open_source(s)
 
 	let f, args, i;
 	let port="";
-	let opts="";
 	let append_filter = null;
 	let local_filter = null;
-	if (typeof src.port == 'string') port = src.port;
-	if (typeof src.opts == 'string') opts = src.opts;
-	let use_raw = (typeof src.raw == 'boolean') ? src.raw : true;
+
+	if (src.in.indexOf('ipid://')<0) {
+		if (typeof src.port == 'string') port = src.port;
+	}
 
 	src.local_pipe = null;
 	src.process_id = null;
 	if (port.length) {
+		let use_raw = (typeof src.raw == 'boolean') ? src.raw : true;
+		let opts="";
+		if (typeof src.opts == 'string') opts = src.opts;
 		let do_cat_url = true;
 		let src_url = "";
 		let rfopts = "reframer";
@@ -3559,8 +3579,21 @@ function open_source(s)
 		try { 
 			if (prev_f) {
 				f = filter.add_filter(arg);
-			} else {
-				//relative to playlist
+			}
+			//ipid load 
+			else if (arg.startsWith('ipid://')) {
+				f = {};
+				f.__dummy_tmp = true;
+				f._tmp_arg = arg;
+				f.remove = function(){};
+				links.length = 0;
+					if (i+1<args.length) {
+					print(GF_LOG_WARNING, 'Cannot use filter chain with ipid:// source scheme, chain must be specified at prompt or when creating graph - ignoring');
+					args.length = 0;
+				}
+			}
+			//relative to playlist
+			else {
 				f = filter.add_source(arg, filter.pl);
 				links.length = 0;
 			}
@@ -3599,7 +3632,7 @@ function open_source(s)
 		}
 		prev_f = null;	
 	}
-	if (prev_f) {
+	if (prev_f && (typeof f.__dummy_tmp == 'undefined')) {
 		filter.set_source_restricted(prev_f);
 	}
 

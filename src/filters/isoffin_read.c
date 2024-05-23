@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -212,6 +212,32 @@ static void isoffin_disconnect(ISOMReader *read)
 	read->pid = NULL;
 }
 
+static void isoffin_set_channel_ctso(ISOMReader *read, ISOMChannel *ch)
+{
+	s32 min_neg_cts_offset = gf_isom_get_min_negative_cts_offset(ch->owner->mov, ch->track, (read->ctso==-2) ? GF_ISOM_MIN_NEGCTTS_SAMPLES : GF_ISOM_MIN_NEGCTTS_ANY);
+	if (min_neg_cts_offset>=0) return;
+	if (ch->has_edit_list) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Track has complex edit list, cannot use ctso option (try adding `edits=no` option to demuxer)\n"));
+		read->ctso = 0;
+		return;
+	}
+
+	if (read->ctso<0) {
+		ch->cts_offset = MAX(ch->cts_offset, (u32) -min_neg_cts_offset);
+		ch->has_edit_list = GF_FALSE;
+	} else {
+		if (-min_neg_cts_offset > read->ctso) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] requested CTS offset %d less than %d in track, adjusting\n"));
+			ch->cts_offset = (u32) -min_neg_cts_offset;
+		} else {
+			ch->cts_offset = (u32) read->ctso;
+		}
+	}
+	//send PID delay
+	ch->ts_offset = - (s32) ch->cts_offset;
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( ch->ts_offset) );
+}
+
 static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const char *next_url)
 {
 	const GF_PropertyValue *prop;
@@ -264,6 +290,10 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 				u32 nb_samples = gf_isom_get_sample_count(read->mov, ch->track);
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(nb_samples));
 			}
+			if (read->ctso) {
+				isoffin_set_channel_ctso(read, ch);
+			}
+
 		}
 
 #ifndef GPAC_DISABLE_LOG
@@ -748,6 +778,8 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		else
 			ch->has_edit_list = 0;
 	}
+	if (read->ctso)
+		isoffin_set_channel_ctso(read, ch);
 
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? 1 : 0;
 	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
@@ -1542,7 +1574,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						memcpy(data, ch->sample->data, ch->sample->dataLength);
 				}
 				gf_filter_pck_set_dts(pck, ch->dts);
-				gf_filter_pck_set_cts(pck, ch->cts);
+				gf_filter_pck_set_cts(pck, ch->cts + ch->cts_offset);
 				if (ch->sample->IsRAP==-1) {
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 					ch->redundant = 1;
@@ -1578,6 +1610,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				if (dep_flags)
 					gf_filter_pck_set_dependency_flags(pck, dep_flags);
+				if (ch->sample->corrupted)
+					gf_filter_pck_set_corrupted(pck, GF_TRUE);
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
@@ -1783,6 +1817,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- fake: allocate sample but no data copy", GF_PROP_UINT, "no", "no|yes|fake", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lightp), "load minimal set of properties", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(initseg), "local init segment name when input is a single ISOBMFF segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ctso), "value to add to CTS offset for tracks using negative ctts\n"
+	"- set to `-1` to use the `cslg` box info or the minimum cts offset present in the track\n"
+	"- set to `-2` to use the minimum cts offset present in the track (`cslg` ignored)", GF_PROP_SINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

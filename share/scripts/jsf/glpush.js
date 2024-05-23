@@ -20,7 +20,6 @@ filter.initialize = function() {
   let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
   //don't initialize gl if doc gen or help
   if (gpac_help || gpac_doc) return;
-  gl = new WebGLContext(16, 16);
 }
 
 let pids=[];
@@ -28,13 +27,19 @@ let pids=[];
 function cleanup_texture(pid)
 {
   pid.o_textures.forEach( t => {
-    gl.deleteTexture(t.id);
+    if (t.id) gl.deleteTexture(t.id);
 
   });
   pid.o_textures = [];  
 }
 filter.configure_pid = function(pid)
 {
+  //init gl only when configuring input - doing it at init may result in uninitialized GL
+  if (!gl) {
+    gl = new WebGLContext(16, 16);
+    if (!gl) return GF_SERVICE_ERROR;
+  }
+
   if (typeof pid.o_pid == 'undefined') {
       pid.o_pid = this.new_pid();
       pid.o_pid.i_pid = pid;
@@ -64,7 +69,7 @@ filter.configure_pid = function(pid)
   pid.o_h = i_h;
   pid.o_pf = i_pf;
   cleanup_texture(pid);
-  print('Configure pid ' + pid.o_w + 'x' + pid.o_h + '@' + pid.o_pf);
+  print(GF_LOG_DEBUG, 'Configure pid ' + pid.o_w + 'x' + pid.o_h + '@' + pid.o_pf);
 
     if (!i_stride) i_stride = i_w;
 

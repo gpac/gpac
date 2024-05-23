@@ -726,6 +726,7 @@ typedef struct
 	u32 nb_pck;
 	u32 port;
 	s32 patch_offset, patch_val;
+	s32 delay;
 } NetFilterRule;
 
 static GF_List *netcap_filters=NULL;
@@ -761,6 +762,7 @@ struct __netcap_filter
 	u64 init_time;
 	Bool is_eos;
 
+	u64 pck_start_offset;
 
 	//loaded packet size in bytes - this is the payload of the UDP/TCP packet - if 0, packet fetch failed
 	s32 pck_len;
@@ -800,6 +802,9 @@ struct __netcap_filter
 	u32 pck_idx_w;
 	u32 next_pck_range;
 	u32 next_rand;
+
+	u32 reorder_max_pck, reorder_nb_pck, delay_nb_pck;
+	u64 reorder_seek_pos, reorder_resume_pos;
 };
 
 static GF_NetcapFilter *gf_net_filter_get(const char *id)
@@ -913,6 +918,7 @@ static GF_Err gf_netcap_record(GF_NetcapFilter *nf)
 
 static void gf_netcap_load_pck_gpac(GF_NetcapFilter *nf)
 {
+	nf->pck_start_offset = gf_bs_get_position(nf->cap_bs);
 	if (gf_bs_available(nf->cap_bs)>4)
 		nf->pck_len = gf_bs_read_u32(nf->cap_bs);
 	else
@@ -1069,6 +1075,7 @@ refetch_pcap:
 		nf->is_eos = GF_TRUE;
 		return;
 	}
+	nf->pck_start_offset = gf_bs_get_position(nf->cap_bs);
 
 	u32 link_type;
 	if (nf->cap_mode==NETCAP_PCAPNG) {
@@ -1355,6 +1362,7 @@ GF_Err gf_netcap_setup(char *rules)
 		s32 patch_offset=-1;
 		s32 patch_val=-1;
 		s32 rand_every = 0;
+		s32 delay = 0;
 		char *rule_str;
 		char *sep = strchr(rules, '[');
 		if (!sep) break;
@@ -1404,6 +1412,13 @@ GF_Err gf_netcap_setup(char *rules)
 				if (strchr(rule_str, '-')) patch_val =-1;
 				else patch_val = strtol(rule_str+2, NULL, 16);
 				break;
+			case 'd':
+				if (!nf->src) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[NetCap] Reoder rule only supported from pcap playback, ignoring\n"));
+					break;
+				}
+				delay = atoi(rule_str+2);
+				break;
 			default:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[NetCap] Unknown directive %c, ignoring\n", rule_str[0]));
 			}
@@ -1423,6 +1438,7 @@ GF_Err gf_netcap_setup(char *rules)
 		rule->pck_end = pck_end>pck_start ? pck_end : 0;
 		rule->rand_every = rand_every;
 		rule->nb_pck = num_pck;
+		rule->delay = delay;
 
 		gf_list_add(nf->rules, rule);
 		sep[0] = ']';
@@ -1516,7 +1532,17 @@ static Bool netcap_filter_pck(GF_Socket *sock, u32 pck_len, Bool for_send)
 		}
 
 		if ((r->patch_offset==-1) && !(sock->flags & GF_SOCK_IS_TCP)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[NetCap] Droping packet %d\n", cur_pck));
+			if (r->delay) {
+				if (!nf->reorder_seek_pos) {
+					nf->reorder_seek_pos = nf->pck_start_offset;
+					nf->reorder_max_pck = r->nb_pck;
+					nf->delay_nb_pck = r->delay;
+					nf->reorder_nb_pck = 0;
+				}
+				nf->reorder_nb_pck ++;
+				return GF_TRUE;
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[NetCap] Dropping packet %d\n", cur_pck));
 			return GF_TRUE;
 		}
 		u32 bo = (r->patch_offset>=0) ? r->patch_offset : gf_rand();
@@ -1540,6 +1566,7 @@ static void gf_netcap_load_pck(GF_NetcapFilter *nf, u64 now)
 refetch:
 	//no packet loaded
 	if (!nf->dst_port) {
+		Bool discard=GF_FALSE;
 		nf->pck_flags=0;
 		nf->read_sock_selected = NULL;
 
@@ -1553,6 +1580,30 @@ refetch:
 				gf_bs_skip_bytes(nf->cap_bs, 24);
 		}
 
+		if (nf->reorder_seek_pos) {
+			//we passed all packets to reorder
+			if (nf->reorder_nb_pck == nf->reorder_max_pck) {
+				if (!nf->delay_nb_pck) {
+					//remember pos after reorder
+					nf->reorder_resume_pos = gf_bs_get_position(nf->cap_bs);
+					gf_bs_seek(nf->cap_bs, nf->reorder_seek_pos);
+					nf->reorder_seek_pos = 0;
+					nf->pcapng_trail = nf->pcap_trail = 0;
+					nf->reorder_nb_pck = 1;
+				} else {
+					nf->delay_nb_pck--;
+				}
+			}
+		} else if (nf->reorder_resume_pos) {
+			if (nf->reorder_nb_pck == nf->reorder_max_pck) {
+				gf_bs_seek(nf->cap_bs, nf->reorder_resume_pos);
+				nf->reorder_resume_pos = 0;
+				nf->pcapng_trail = nf->pcap_trail = 0;
+				nf->reorder_nb_pck = 0;
+			} else {
+				nf->reorder_nb_pck++;
+			}
+		}
 		if (nf->cap_mode==NETCAP_GPAC)
 			gf_netcap_load_pck_gpac(nf);
 		else
@@ -1561,7 +1612,9 @@ refetch:
 		//eof
 		if (!nf->dst_port) return;
 		//force discard
-		if ((nf->pck_flags & NETCAP_DROP)) {
+		if ((nf->pck_flags & NETCAP_DROP)) discard = GF_TRUE;
+
+		if (discard) {
 			gf_bs_skip_bytes(nf->cap_bs, nf->pck_len);
 			nf->dst_port = 0;
 			goto refetch;
@@ -1615,7 +1668,8 @@ refetch:
 		s->cap_info->patch_offset = 0;
 		break;
 	}
-	if (netcap_filter_pck(nf->read_sock_selected, nf->pck_len, GF_FALSE))
+	//apply rule(s) except when sending delayed packets
+	if (!nf->reorder_resume_pos && netcap_filter_pck(nf->read_sock_selected, nf->pck_len, GF_FALSE))
 		nf->read_sock_selected = NULL;
 
 	if (!nf->read_sock_selected) {
@@ -1871,6 +1925,11 @@ static GF_Err gf_netcap_send(GF_Socket *sock, const u8 *buffer, u32 length, u32 
 }
 #endif //GPAC_DISABLE_NETCAP
 
+Bool gf_sk_has_nrt_netcap(GF_Socket *sk)
+{
+	if (sk && sk->cap_info && !sk->cap_info->nf->rt) return GF_TRUE;
+	return GF_FALSE;
+}
 
 GF_EXPORT
 GF_Socket *gf_sk_new_ex(u32 SocketType, const char *netcap_id)
@@ -3813,7 +3872,8 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		nf->pck_len -= res;
 		if (!nf->pck_len) {
 			nf->dst_port = 0;
-			gf_netcap_load_pck(nf, 0);
+			//do not load packet once done as this could lead to packet drop if the target socket is not yet created
+			//gf_netcap_load_pck(nf, 0);
 		}
 
 		if (BytesRead)

@@ -100,6 +100,7 @@ typedef struct
 
 	/*max width & height in all active representations*/
 	u32 width, height;
+	u32 service_id;
 
 	Double seek_request;
 	Double media_start_range;
@@ -274,6 +275,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				if (seg_name) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(seg_name) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENUM, &PROP_UINT(seg_number) );
+					gf_filter_pck_set_property(ref, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(seg_time));
+
 					if (group->url_changed && group->current_url) {
 						gf_filter_pck_set_property(ref, GF_PROP_PCK_FRAG_RANGE, NULL);
 						gf_filter_pck_set_property(ref, GF_PROP_PID_URL, &PROP_STRING(group->current_url));
@@ -1244,13 +1247,28 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
 
 		if (!group) {
-			group_idx = gf_dash_group_has_dependent_group(ctx->dash, group_idx);
-			group = gf_dash_get_group_udta(ctx->dash, group_idx);
+			s32 dep_group_idx = gf_dash_group_has_dependent_group(ctx->dash, group_idx);
+			group = gf_dash_get_group_udta(ctx->dash, dep_group_idx);
 		}
 		//do not notify HAS status (selected qualities & co) right away, we are still potentially processing packets from previous segment(s)
 		if (group)
 			group->notify_quality_change = GF_TRUE;
 
+
+		GF_FilterEvent sel_evt;
+		GF_FEVT_INIT(sel_evt, GF_FEVT_DASH_QUALITY_SELECT, ctx->mpd_pid);
+		sel_evt.dash_select.service_id = ctx->service_id;
+		sel_evt.dash_select.as_id = gf_dash_group_get_as_id(ctx->dash, group_idx);
+		sel_evt.dash_select.period_id = gf_dash_get_period_id(ctx->dash);
+
+		u32 i, count = gf_dash_group_get_num_qualities(ctx->dash, group_idx);
+		for (i=0; i<count; i++) {
+			GF_DASHQualityInfo qinfo;
+			gf_dash_group_get_quality_info(ctx->dash, group_idx, i, &qinfo);
+			sel_evt.dash_select.rep_id = qinfo.hls_variant_url ? qinfo.hls_variant_url : qinfo.ID;
+			sel_evt.dash_select.select_type = qinfo.is_selected ? 0 : (qinfo.disabled ? 2 : 1);
+			gf_filter_pid_send_event(ctx->mpd_pid, &sel_evt);
+		}
 		return GF_OK;
 	}
 	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_UPDATE) {
@@ -1633,8 +1651,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			stream_type = GF_STREAM_VISUAL;
 		} else if (qinfo.sample_rate || qinfo.nb_channels) {
 			stream_type = GF_STREAM_AUDIO;
-		} else if (strstr(qinfo.mime, "text")
-			|| strstr(qinfo.codec, "vtt")
+		} else if (strstr(qinfo.codec, "vtt")
 			|| strstr(qinfo.codec, "srt")
 			|| strstr(qinfo.codec, "text")
 			|| strstr(qinfo.codec, "tx3g")
@@ -1642,11 +1659,13 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			|| strstr(qinfo.codec, "stpp")
 		) {
 			stream_type = GF_STREAM_TEXT;
-		}
-		if (qinfo.mime) {
-			if (!strncmp(qinfo.mime, "video/", 6)) stream_type = GF_STREAM_VISUAL;
-			else if (!strncmp(qinfo.mime, "audio/", 6)) stream_type = GF_STREAM_AUDIO;
-			if (!strncmp(qinfo.mime, "text/", 5)) stream_type = GF_STREAM_TEXT;
+		} else if (qinfo.mime) {
+			if (!strncmp(qinfo.mime, "video/", 6))
+				stream_type = GF_STREAM_VISUAL;
+			else if (!strncmp(qinfo.mime, "audio/", 6))
+				stream_type = GF_STREAM_AUDIO;
+			else if (!strncmp(qinfo.mime, "text/", 5))
+				stream_type = GF_STREAM_TEXT;
 		}
 		dashdm_format_qinfo(&qdesc, &qinfo);
 
@@ -2006,6 +2025,8 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_send_event(ctx->mpd_pid, &evt);
 			gf_filter_post_process_task(filter);
 		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
+		if (p) ctx->service_id = p->value.uint;
 		return GF_OK;
 	} else if (ctx->mpd_pid == pid) {
 		return GF_OK;
@@ -2691,6 +2712,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 		gf_filter_pid_send_event(ipid, &src_evt);
 		gf_filter_post_process_task(filter);
+
 		//cancel the event
 		return GF_TRUE;
 

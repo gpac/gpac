@@ -1104,16 +1104,30 @@ Parses 128 bit from string
 GF_Err gf_bin128_parse(const char *string, bin128 value);
 
 
+/*! blob range status */
+typedef enum
+{
+	/*! blob range is valid */
+	GF_BLOB_RANGE_VALID=0,
+	/*! blob range is not valid, still in transfer */
+	GF_BLOB_RANGE_IN_TRANSFER,
+	/*! blob range is not in transfer and is (partially or completely) lost */
+	GF_BLOB_RANGE_CORRUPTED,
+} GF_BlobRangeStatus;
+
+/*! blob flags*/
 enum
 {
+	/*! blob is in transfer */
     GF_BLOB_IN_TRANSFER = 1,
+	/*! blob is corrupted */
     GF_BLOB_CORRUPTED = 1<<1,
 };
 
 /*!
  * Blob structure used to pass data pointer around
  */
-typedef struct
+typedef struct __gf_blob
 {
 	/*! data block of blob */
 	u8 *data;
@@ -1127,6 +1141,11 @@ typedef struct
     /*! blob mutex for multi-thread access */
     struct __tag_mutex *mx;
 #endif
+	/*! function used to query if a range of a blob in transfer is valid. If NULL, any range is invalid until transfer is done
+	when set this function overrides the blob flags for gf_blob_query_range*/
+	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, u64 start, u32 size);
+	/*! private data for range_valid function*/
+	void *range_udta;
 } GF_Blob;
 
 /*!
@@ -1140,11 +1159,37 @@ typedef struct
 GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob_flags);
 
 /*!
+ * Checks if a given byte range is valid in blob
+\param blob  blob object
+\param start_offset start offset of data to check in blob
+\param size size of data to check in blob
+\return blob range status
+ */
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size);
+
+/*!
  * Releases blob data
 \param blob_url URL of blob object (ie gmem://%p)
 \return error code
  */
 GF_Err gf_blob_release(const char *blob_url);
+
+
+/*!
+ * Retrieves data associated with a blob. If success, \ref gf_blob_release_ex must be called after this
+\param blob the blob object
+\param out_data if success, set to blob data pointer
+\param out_size if success, set to blob data size
+\param blob_flags if success, set to blob flags - may be NULL
+\return error code
+ */
+GF_Err gf_blob_get_ex(GF_Blob *blob, u8 **out_data, u32 *out_size, u32 *blob_flags);
+/*!
+ * Releases blob data
+\param blob the blob object
+\return error code
+ */
+GF_Err gf_blob_release_ex(GF_Blob *blob);
 
 /*!
  * Registers a new blob
@@ -2184,7 +2229,7 @@ GF_Err gf_sha1_file_ptr(FILE *file, u8 digest[GF_SHA1_DIGEST_SIZE] );
 
 /*! gets SHA-1 of input buffer
 \param buf input buffer to hash
-\param buflen sizeo of input buffer in bytes
+\param buflen size of input buffer in bytes
 \param digest buffer to store message digest
  */
 void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
@@ -2194,11 +2239,21 @@ void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE]);
 #define GF_SHA256_DIGEST_SIZE 32
 /*! gets SHA-256 of input buffer
 \param buf input buffer to hash
-\param buflen sizeo of input buffer in bytes
+\param buflen size of input buffer in bytes
 \param digest buffer to store message digest
  */
 void gf_sha256_csum(const void *buf, u64 buflen, u8 digest[GF_SHA256_DIGEST_SIZE]);
 
+
+/*! checksum size for MD5*/
+#define GF_MD5_DIGEST_SIZE	16
+
+/*! gets MD5 of input buffer
+\param buf input buffer to hash
+\param buflen size of input buffer in bytes
+\param digest buffer to store message digest
+ */
+void gf_md5_csum(const void *buf, u64 buflen, u8 digest[GF_MD5_DIGEST_SIZE]);
 
 /*!
 \addtogroup libsys_grp

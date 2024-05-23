@@ -235,6 +235,7 @@ enum
 	GF_ISOM_BOX_TYPE_LEVA   = GF_4CC( 'l', 'e', 'v', 'a' ),
 	GF_ISOM_BOX_TYPE_PCRB	= GF_4CC( 'p', 'c', 'r', 'b' ),
 	GF_ISOM_BOX_TYPE_EMSG	= GF_4CC( 'e', 'm', 's', 'g' ),
+	GF_ISOM_BOX_TYPE_RSOT	= GF_4CC( 'r', 's', 'o', 't' ),
 
 	/* 23001-18 EventMessage Track */
 	GF_ISOM_BOX_TYPE_EMIB	= GF_4CC( 'e', 'm', 'i', 'b' ),
@@ -1209,6 +1210,7 @@ typedef struct
 	u32 r_FirstSampleInEntry;
 
 	s32 max_cts_delta;
+	s32 min_neg_cts_offset;
 	//u32 sample_num_max_cts_delta;
 } GF_CompositionOffsetBox;
 
@@ -2712,6 +2714,14 @@ typedef struct
 	u64 baseMediaDecodeTime;
 } GF_TFBaseMediaDecodeTimeBox;
 
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 original_duration;
+	u32 elapsed_duration;
+} GF_TFOriginalDurationBox;
+
 typedef struct
 {
 	GF_ISOM_BOX
@@ -2739,6 +2749,7 @@ typedef struct
 	/*when data caching is on*/
 	u32 DataCache;
 	GF_TFBaseMediaDecodeTimeBox *tfdt;
+	GF_TFOriginalDurationBox *rsot;
 
 	u64 moof_start_in_bs;
 #ifdef GF_ENABLE_CTRN
@@ -4061,12 +4072,12 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 void gf_isom_datamap_del(GF_DataMap *ptr);
 GF_Err gf_isom_datamap_open(GF_MediaBox *minf, u32 dataRefIndex, u8 Edit);
 void gf_isom_datamap_close(GF_MediaInformationBox *minf);
-u32 gf_isom_datamap_get_data(GF_DataMap *map, u8 *buffer, u32 bufferLength, u64 Offset);
+u32 gf_isom_datamap_get_data(GF_DataMap *map, u8 *buffer, u32 bufferLength, u64 Offset, GF_BlobRangeStatus *range_status);
 
 /*File-based data map*/
 GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode);
 void gf_isom_fdm_del(GF_FileDataMap *ptr);
-u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset);
+u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset, GF_BlobRangeStatus *range_status);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_DataMap *gf_isom_fdm_new_temp(const char *sTempPath);

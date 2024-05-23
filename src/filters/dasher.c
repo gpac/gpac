@@ -9636,6 +9636,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				u64 diff=0;
 				u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 				u64 ts = gf_filter_pck_get_cts(pck);
+
 				if (ts != GF_FILTER_NO_TS) {
 					cts += ds->first_cts;
 					gf_assert(cts >= ts);
@@ -9644,6 +9645,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 					cts = ds->last_cts;
 				}
 				if (dst) {
+					GF_Fraction pck_orig_dur;
+					pck_orig_dur.num = split_dur_next;
+					pck_orig_dur.den = split_dur ? gf_filter_pck_get_duration(pck) : 0;
+					gf_filter_pck_set_property(dst, GF_PROP_PCK_ORIG_DUR, &PROP_FRAC(pck_orig_dur));
+
 					gf_filter_pck_set_cts(dst, cts + ds->ts_offset);
 
 					ts = gf_filter_pck_get_dts(pck);
@@ -9664,9 +9670,17 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			//if split, adjust duration - this may happen on a split packet, if it covered 3 or more segments
 			if (split_dur) {
+				GF_Fraction pck_orig_dur;
 				u32 cumulated_split_dur = split_dur;
-				if (dst)
+				if (dst) {
 					gf_filter_pck_set_duration(dst, split_dur);
+
+					//original dur
+					pck_orig_dur.num = ds->split_dur_next;
+					pck_orig_dur.den = dur;
+					gf_filter_pck_set_property(dst, GF_PROP_PCK_ORIG_DUR, &PROP_FRAC(pck_orig_dur));
+				}
+
 				//adjust dur
 				cumulated_split_dur += (u32) (cts - orig_cts);
 				gf_assert( dur > split_dur);

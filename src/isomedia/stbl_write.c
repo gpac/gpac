@@ -246,7 +246,11 @@ GF_Err AddCompositionOffset(GF_CompositionOffsetBox *ctts, s32 offset)
 		ctts->entries[ctts->nb_entries].sampleCount = 1;
 		ctts->nb_entries++;
 	}
-	if (offset<0) ctts->version=1;
+	if (offset<0) {
+		ctts->version=1;
+		if (offset<ctts->min_neg_cts_offset)
+			ctts->min_neg_cts_offset = offset;
+	}
 	ctts->w_LastSampleNumber++;
 	return GF_OK;
 }
@@ -1985,6 +1989,9 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 	} else if (ABS(offset) > ctts->max_cts_delta) {
 		ctts->max_cts_delta = ABS(offset);
 		//ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
+	}
+	if (offset<ctts->min_neg_cts_offset) {
+		ctts->min_neg_cts_offset = offset;
 	}
 
 	return GF_OK;

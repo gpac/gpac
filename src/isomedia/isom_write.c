@@ -4012,6 +4012,27 @@ exit:
 	return e;
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+static GF_Err gf_isom_get_trex_props(GF_ISOFile *file, GF_TrackBox *trak, GF_TrackExtendsBox **trex, GF_TrackExtensionPropertiesBox **trexprop)
+{
+	u32 i;
+	if (!file->moov->mvex) return GF_NOT_FOUND;
+	for (i=0; i<gf_list_count(file->moov->mvex->TrackExList); i++) {
+		*trex = gf_list_get(file->moov->mvex->TrackExList, i);
+		if ((*trex)->trackID == trak->Header->trackID) break;
+		*trex = NULL;
+	}
+	if (! *trex) return GF_NOT_FOUND;
+
+	for (i=0; i<gf_list_count(file->moov->mvex->TrackExPropList); i++) {
+		*trexprop = gf_list_get(file->moov->mvex->TrackExPropList, i);
+		if ((*trexprop)->trackID== trak->Header->trackID) break;
+		*trexprop = NULL;
+	}
+	return GF_OK;
+}
+#endif
+
 GF_EXPORT
 GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 *output_size)
 {
@@ -4066,6 +4087,23 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	gf_list_add(stbl_temp->child_boxes, stbl->CompositionToDecode);
 
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	//get CSLG from trex if not in stbl
+	GF_CompositionToDecodeBox *trex_cslg=NULL;
+	if (!stbl_temp->CompositionToDecode) {
+		GF_TrackExtendsBox *trex;
+		GF_TrackExtensionPropertiesBox *trexprop=NULL;
+		gf_isom_get_trex_props(file, trak, &trex, &trexprop);
+		if (trexprop) {
+			trex_cslg = (GF_CompositionToDecodeBox *) gf_isom_box_find_child(trexprop->child_boxes, GF_ISOM_BOX_TYPE_CSLG);
+			if (trex_cslg) {
+				stbl_temp->CompositionToDecode = trex_cslg;
+				gf_list_add(stbl_temp->child_boxes, trex_cslg);
+			}
+		}
+	}
+#endif
+
 	count = gf_list_count(trak->child_boxes);
 	for (i=0;i<count; i++) {
 		GF_UnknownBox *b = gf_list_get(trak->child_boxes, i);
@@ -4106,6 +4144,12 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 		trak->sample_encryption = senc;
 		gf_list_add(trak->child_boxes, senc);
 	}
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (trex_cslg) {
+		stbl_temp->CompositionToDecode = NULL;
+		gf_list_del_item(stbl_temp->child_boxes, trex_cslg);
+	}
+#endif
 
 	stbl_temp->sampleGroupsDescription = NULL;
 	count = gf_list_count(stbl->sampleGroupsDescription);
@@ -4132,7 +4176,6 @@ GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, u8 **output, u32 *
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	GF_TrackBox *trak;
 	GF_BitStream *bs;
-	u32 i;
 	GF_TrackExtendsBox *trex = NULL;
 	GF_TrackExtensionPropertiesBox *trexprop = NULL;
 
@@ -4142,18 +4185,9 @@ GF_Err gf_isom_get_trex_template(GF_ISOFile *file, u32 track, u8 **output, u32 *
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 	if (!file->moov->mvex) return GF_NOT_FOUND;
-	for (i=0; i<gf_list_count(file->moov->mvex->TrackExList); i++) {
-		trex = gf_list_get(file->moov->mvex->TrackExList, i);
-		if (trex->trackID == trak->Header->trackID) break;
-		trex = NULL;
-	}
-	if (!trex) return GF_NOT_FOUND;
+	GF_Err e = gf_isom_get_trex_props(file, trak, &trex, &trexprop);
+	if (e) return e;
 
-	for (i=0; i<gf_list_count(file->moov->mvex->TrackExPropList); i++) {
-		trexprop = gf_list_get(file->moov->mvex->TrackExPropList, i);
-		if (trexprop->trackID== trak->Header->trackID) break;
-		trexprop = NULL;
-	}
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_isom_box_size( (GF_Box *) trex);
 	gf_isom_box_write((GF_Box *) trex, bs);

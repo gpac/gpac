@@ -1973,7 +1973,7 @@ static GF_Err swf_soundstream_hdr(SWFReader *read)
 		read->sound_stream->szFileName = gf_strdup(szName);
 		read->setup_sound(read, read->sound_stream, 0);
 		break;
-	case 3:
+	default:
 		swf_report(read, GF_NOT_SUPPORTED, "Unrecognized sound format");
 		gf_free(snd);
 		break;
@@ -2119,7 +2119,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 				break;
 			}
 		}
-		if ((buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
+		if ((size>3) && (buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
 			skip = 2;
 		}
 		if (version==2) {
