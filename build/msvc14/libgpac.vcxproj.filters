@@ -1187,6 +1187,9 @@
     <ClCompile Include="..\..\src\filters\dec_opensvc.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_scte35.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_theora.c">
       <Filter>filters</Filter>
     </ClCompile>
