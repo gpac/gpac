@@ -5081,7 +5081,13 @@ static GF_Err do_meta_act()
 		MetaAction *meta = &metas[i];
 		u32 tk_id = get_track_id(file, &meta->track_id);
 
-		if (tk_id) tk = gf_isom_get_track_by_id(file, tk_id);
+		if (tk_id)
+			tk = gf_isom_get_track_by_id(file, tk_id);
+
+		if (!tk && meta->track_id.ID_or_num) {
+			M4_LOG(GF_LOG_ERROR, ("No such track %s %d in destination file\n", (meta->track_id.type==1) ? "number" : "ID", meta->track_id.ID_or_num));
+			return GF_BAD_PARAM;
+		}
 
 		switch (meta->act_type) {
 #ifndef GPAC_DISABLE_ISOM_WRITE
