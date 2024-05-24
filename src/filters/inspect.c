@@ -2294,8 +2294,9 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 		}
 		break;
 	case 0x06: //time_signal()
-		inspect_printf(dump, "   <scte35:TimeSignal/>\n");
+		inspect_printf(dump, "   <scte35:TimeSignal>\n");
 		scte35_parse_splice_time(ctx, dump, bs);
+		inspect_printf(dump, "   </scte35:TimeSignal>\n");
 		break;
 	case 0x00: //splice_null()
 		inspect_printf(dump, "   <scte35:Null/>\n");
