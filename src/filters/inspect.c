@@ -2193,17 +2193,17 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"urn:scte:scte35:2013:bin\"");
 
 	u8 table_id = gf_bs_read_u8(bs);
-	assert(table_id == 0xFC);
+	gf_assert(table_id == 0xFC);
 	Bool section_syntax_indicator = gf_bs_read_int(bs, 1);
-	assert(section_syntax_indicator == 0);
+	gf_assert(section_syntax_indicator == 0);
 	Bool private_indicator = gf_bs_read_int(bs, 1);
-	assert(private_indicator == 0);
+	gf_assert(private_indicator == 0);
 
 	u8 sap_type = gf_bs_read_int(bs, 2);
 	DUMP_ATT_U("sap_type", sap_type);
 
 	int section_length = gf_bs_read_int(bs, 12);
-	assert(section_length + 3 == gf_bs_get_size(bs));
+	gf_assert(section_length + 3 == gf_bs_get_size(bs));
 
 	u8 protocol_version = gf_bs_read_u8(bs);
 	DUMP_ATT_U("protocol_version", protocol_version);
@@ -2325,7 +2325,7 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 		break;
 	}
 
-	assert(gf_bs_get_position(bs) == pos + splice_command_length);
+	gf_assert(gf_bs_get_position(bs) == pos + splice_command_length);
 
 	//FIXME: we only parse the first command
 

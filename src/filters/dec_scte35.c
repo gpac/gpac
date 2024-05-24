@@ -25,6 +25,7 @@
 
 #include <gpac/filters.h>
 #include <gpac/internal/isomedia_dev.h>
+#include <stdint.h> // UINT32_MAX
 
 #define IS_SEGMENTED (ctx->segdur.den && ctx->segdur.num>0)
 
@@ -316,7 +317,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 
 	// splice_info_section() : the full MPEG2-TS Section is in here
-	uint8_t table_id = gf_bs_read_u8(bs);
+	u8 table_id = gf_bs_read_u8(bs);
 	if (table_id != 0xFC) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Invalid splice_info_section() table_id. Abort parsing.\n"));
 		goto exit;
@@ -325,7 +326,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	/*Bool private_indicator = */gf_bs_read_int(bs, 1);
 	/*u8 sap_type = */gf_bs_read_int(bs, 2);
 	int section_length = gf_bs_read_int(bs, 12);
-	assert(section_length + 3 == gf_bs_get_size(bs));
+	gf_assert(section_length + 3 == gf_bs_get_size(bs));
 	
 	/*u8 protocol_version = */gf_bs_read_u8(bs);
 	Bool encrypted_packet = gf_bs_read_int(bs, 1);
