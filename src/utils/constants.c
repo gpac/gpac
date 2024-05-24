@@ -1071,6 +1071,7 @@ u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 	return res;
 }
 
+GF_EXPORT
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 {
 	u64 layout = gf_audio_fmt_get_layout_from_cicp(cicp);
