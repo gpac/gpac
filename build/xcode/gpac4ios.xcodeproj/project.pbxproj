@@ -307,6 +307,7 @@
 		71CCF3FC12770A8C00339E12 /* tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AD12770A8C00339E12 /* tools.h */; };
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
+		89162EF52C00DA10004EA21C /* dec_scte35.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DC020E6E19700A97A49 /* dec_scte35.c */; };
 		8925C0EE25DD6F8900AFB064 /* libnghttp2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8925C0ED25DD6F8900AFB064 /* libnghttp2.a */; };
 		8959AC77211C9A26004D2C87 /* dmx_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 8959AC76211C9A26004D2C87 /* dmx_gsf.c */; };
 		8959AC79211C9B29004D2C87 /* reframe_av1.c in Sources */ = {isa = PBXBuildFile; fileRef = 8959AC78211C9B29004D2C87 /* reframe_av1.c */; };
@@ -539,7 +540,6 @@
 		92EB6E1620E4E19700A97A49 /* decrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DBE20E4E19700A97A49 /* decrypt_cenc_isma.c */; };
 		92EB6E1720E4E19700A97A49 /* enc_jpg.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DBF20E4E19700A97A49 /* enc_jpg.c */; };
 		92EB6E1820E4E19700A97A49 /* dec_opensvc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DC020E4E19700A97A49 /* dec_opensvc.c */; };
-		92EB6E1A20E4E19700A97A49 /* dec_scte35.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DC020E6E19700A97A49 /* dec_scte35.c */; };
 		92EB6E1920E4E19700A97A49 /* ff_enc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DC120E4E19700A97A49 /* ff_enc.c */; };
 		92EB6E1A20E4E19700A97A49 /* in_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DC220E4E19700A97A49 /* in_http.c */; };
 		92EB6E1B20E4E19700A97A49 /* dec_vtb.c in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6DC320E4E19700A97A49 /* dec_vtb.c */; };
@@ -2344,6 +2344,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				89162EF52C00DA10004EA21C /* dec_scte35.c in Sources */,
 				92F930861A5ADC1A0072A85C /* os_divers.c in Sources */,
 				92EB6DCB20E4E19700A97A49 /* out_video.c in Sources */,
 				92E9DFA52215CE9A00628420 /* g_crypt.c in Sources */,
@@ -2675,7 +2676,7 @@
 				92EB6DC720E4E19700A97A49 /* mux_ts.c in Sources */,
 				92EB6DD220E4E19700A97A49 /* ff_common.c in Sources */,
 				92EB6E1820E4E19700A97A49 /* dec_opensvc.c in Sources */,
-				92EB6E1A20E4E19700A97A49 /* dec_scte35.c in Sources */,
+				92EB6E1A20E4E19700A97A49 /* in_http.c in Sources */,
 				92EB6E3620E4E58E00A97A49 /* media_object.c in Sources */,
 				92EB6E0420E4E19700A97A49 /* ff_dmx.c in Sources */,
 				92EB6DCE20E4E19700A97A49 /* filelist.c in Sources */,
