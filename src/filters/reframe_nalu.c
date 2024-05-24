@@ -4321,7 +4321,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 		"- hlg2100: HLG BT.2100 gamut in ITU-R BT.2020\n"
 		"- bt2020: SDR BT.2020\n"
 		"- brd: Ultra HD Blu-ray Disc HDR", GF_PROP_UINT, "auto", "auto|none|hdr10|bt709|hlg709|hlg2100|bt2020|brd", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(bsdbg), "debug NAL parsing in `parser@debug` logs\n"
+	{ OFFS(bsdbg), "debug NAL parsing in `media@debug` logs\n"
 		"- off: not enabled\n"
 		"- on: enabled\n"
 		"- full: enable with number of bits dumped", GF_PROP_UINT, "off", "off|on|full", GF_FS_ARG_HINT_EXPERT},
