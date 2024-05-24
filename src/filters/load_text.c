@@ -122,7 +122,6 @@ struct __txtin_ctx
 
 	//TTML state
 	GF_XMLNode *root_working_copy, *body_node;
-	GF_DOMParser *parser_working_copy;
 	Bool non_compliant_ttml;
 	u32 tick_rate, ttml_fps_num, ttml_fps_den, ttml_sfps;
 	GF_List *ttml_resources;
@@ -1460,34 +1459,64 @@ u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *tt
 		if (sf)
 			ts += ((s64) 1000 * sf * *ttml_fps_den / *ttml_sfps) / *ttml_fps_num;
 	}
-	else if (sscanf(value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
-		ts = (h*3600 + m*60+s)*1000+ms;
-	}
-	else if (sscanf(value, "%u:%u:%u:%u.%u", &h, &m, &s, &f, &sf) == 5) {
-		ts = (h*3600 + m*60+s)*1000;
-		if (! *ttml_fps_num) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
-			*ttml_fps_num = 25;
-			*ttml_fps_den = 1;
+	else {
+		u32 nb_val=0;
+		Bool has_dot=GF_FALSE;
+		u32 vals[6];
+		char *cur = value;
+		while (cur) {
+			char sep;
+			char *next_col = strchr(cur, ':');
+			if (!next_col) next_col = strchr(cur, '.');
+			if (next_col) {
+				sep = next_col[0];
+				next_col[0] = 0;
+			}
+			vals[nb_val] = atoi(cur);
+			nb_val++;
+			if (!next_col) break;
+			has_dot = (sep=='.') ? GF_TRUE : GF_FALSE;
+			next_col[0] = sep;
+			cur = next_col+1;
+			if (nb_val>6) break;
 		}
-		if (! *ttml_sfps) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
-			*ttml_sfps = 1;
+		h = vals[0];
+		m = vals[1];
+		s = vals[2];
+		if (nb_val==4) {
+			ms = vals[3];
+			if (has_dot) {
+				ts = (h*3600 + m*60+s)*1000+ms;
+			} else {
+				ts = (h*3600 + m*60+s)*1000;
+				if (! *ttml_fps_num) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+					*ttml_fps_num = 25;
+					*ttml_fps_den = 1;
+				}
+				ts += ((s64) 1000 * ms * *ttml_fps_den) / *ttml_fps_num;
+			}
+		} else if (nb_val==5) {
+			ms = vals[3];
+			sf = vals[4];
+			ts = (h*3600 + m*60+s)*1000;
+			if (! *ttml_fps_num) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+				*ttml_fps_num = 25;
+				*ttml_fps_den = 1;
+			}
+			if (! *ttml_sfps) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
+				*ttml_sfps = 1;
+			}
+			ts += ((s64) 1000 * ms * *ttml_fps_den) / *ttml_fps_num;
+			ts += ((s64) 1000 * sf * *ttml_fps_den / *ttml_sfps) / *ttml_fps_num;
+		} else if (nb_val==3) {
+			ts = (h*3600 + m*60+s)*1000;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] Invalid timestamp %s\n", value));
+			ts = (h*3600 + m*60+s)*1000;
 		}
-		ts += ((s64) 1000 * f * *ttml_fps_den) / *ttml_fps_num;
-		ts += ((s64) 1000 * sf * *ttml_fps_den / *ttml_sfps) / *ttml_fps_num;
-	}
-	else if (sscanf(value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
-		ts = (h*3600 + m*60+s)*1000;
-		if (! *ttml_fps_num) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
-			*ttml_fps_num = 25;
-			*ttml_fps_den = 1;
-		}
-		ts += ((s64) 1000 * f * *ttml_fps_den) / *ttml_fps_num;
-	}
-	else if (sscanf(value, "%u:%u:%u", &h, &m, &s) == 3) {
-		ts = (h*3600 + m*60+s)*1000;
 	}
 	return ts;
 }
@@ -1810,7 +1839,7 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 			s64 begin=-1, end=-1;
 			GF_XMLNode *adiv_child = (GF_XMLNode*)gf_list_get(div_node->content, k);
 			if (adiv_child->type) continue;
-			e = gf_xml_get_element_check_namespace(adiv_child, "p", root->ns);
+			e = gf_xml_dom_node_check_namespace(adiv_child, "p", root->ns);
 			if (e) continue;
 
 			p_idx = 0;
@@ -1841,7 +1870,7 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 			p_idx = 0;
 			while ( (p_node = (GF_XMLNode*)gf_list_enum(adiv_child->content, &p_idx))) {
 				s64 s_begin=-1, s_end=-1;
-				e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
+				e = gf_xml_dom_node_check_namespace(p_node, "span", root->ns);
 				if (e) continue;
 
 				u32 span_idx = 0;
@@ -1980,7 +2009,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 
 	/*look for TTML*/
-	if (gf_xml_get_element_check_namespace(root, "tt", NULL) != GF_OK) {
+	if (gf_xml_dom_node_check_namespace(root, "tt", NULL) != GF_OK) {
 		if (root->ns) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML file not recognized: root element is \"%s:%s\" (check your namespaces)\n", root->ns, root->name));
 		} else {
@@ -2006,7 +2035,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		if (node->type) {
 			continue;
 		}
-		e = gf_xml_get_element_check_namespace(node, "body", root->ns);
+		e = gf_xml_dom_node_check_namespace(node, "body", root->ns);
 		if (e == GF_BAD_PARAM) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
 		} else if (e == GF_OK) {
@@ -2033,7 +2062,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		i=0;
 		while ( (node = (GF_XMLNode*)gf_list_enum(body_node->content, &i))) {
 			if (!node->type) {
-				e = gf_xml_get_element_check_namespace(node, "div", root->ns);
+				e = gf_xml_dom_node_check_namespace(node, "div", root->ns);
 				if (e == GF_BAD_PARAM) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
 				}
@@ -2059,10 +2088,7 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property_str(ctx->opid, "meta:xmlns", &PROP_STRING(TTML_NAMESPACE) );
 
 	/*** body ***/
-	ctx->parser_working_copy = gf_xml_dom_new();
-	e = gf_xml_dom_parse(ctx->parser_working_copy, ctx->file_name, NULL, NULL);
-	assert (e == GF_OK);
-	ctx->root_working_copy = gf_xml_dom_get_root(ctx->parser_working_copy);
+	ctx->root_working_copy = gf_xml_dom_node_clone(gf_xml_dom_get_root(ctx->parser));
 	if (!ctx->root_working_copy) return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (body_node) {
@@ -2209,7 +2235,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 			if (div_child->type) {
 				continue;
 			}
-			e = gf_xml_get_element_check_namespace(div_child, "p", root->ns);
+			e = gf_xml_dom_node_check_namespace(div_child, "p", root->ns);
 			if (e == GF_BAD_PARAM) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", div_child->name));
 				continue;
@@ -2252,7 +2278,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 			while ( (p_node = (GF_XMLNode*)gf_list_enum(div_child->content, &p_idx))) {
 				u32 span_idx = 0;
 				GF_XMLAttribute *span_att;
-				e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
+				e = gf_xml_dom_node_check_namespace(p_node, "span", root->ns);
 				if (e == GF_BAD_PARAM) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", p_node->name));
 				}
@@ -4065,8 +4091,8 @@ static void ttxtin_reset(GF_TXTIn *ctx)
 #endif
 	if (ctx->parser) gf_xml_dom_del(ctx->parser);
 	ctx->parser = NULL;
-	if (ctx->parser_working_copy) gf_xml_dom_del(ctx->parser_working_copy);
-	ctx->parser_working_copy = NULL;
+	if (ctx->root_working_copy) gf_xml_dom_node_del(ctx->root_working_copy);
+	ctx->root_working_copy = NULL;
 }
 
 static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)

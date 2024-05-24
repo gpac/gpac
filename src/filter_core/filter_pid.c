@@ -1867,11 +1867,13 @@ Bool filter_source_id_match(GF_FilterPid *src_pid, const char *src_filter_id, GF
 	Bool has_default_match;
 	Bool is_pid_excluded;
 	*pid_excluded = GF_FALSE;
-	if (!ext_source_ids || (dst_filter && !dst_filter->source_ids))
-		return GF_TRUE;
-	if (dst_filter && !src_filter_id)
-		return GF_FALSE;
-
+	if (dst_filter) {
+		if (!dst_filter->source_ids)
+			return GF_TRUE;
+		if (!src_filter_id)
+			return GF_FALSE;
+	}
+	
 sourceid_reassign:
 	source_ids = resolved_source_ids ? resolved_source_ids : (dst_filter ? dst_filter->source_ids : ext_source_ids);
 	if (!first_pass) {

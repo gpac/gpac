@@ -1994,7 +1994,6 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		else if (att->value.uint == GF_PLAYBACK_MODE_FASTFORWARD) return "forward";
 		else return "none";
 
-
 	case GF_PROP_PCK_SENDER_NTP:
 	case GF_PROP_PCK_RECEIVER_NTP:
 	case GF_PROP_PCK_UTC_TIME:
@@ -2017,6 +2016,14 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
 	}
 		return dump;
+
+	case GF_PROP_PID_CHANNEL_LAYOUT:
+		if (!gf_sys_is_test_mode()) {
+			u32 cicp = gf_audio_fmt_get_cicp_from_layout(att->value.longuint);
+			const char *name = gf_audio_fmt_get_cicp_name(cicp);
+			if (name) return name;
+		}
+		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
 
 	default:
 		if (att->type==GF_PROP_UINT) {

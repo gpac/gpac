@@ -938,7 +938,7 @@ void gf_dom_listener_reset_deferred(GF_SceneGraph *sg);
 
 void gf_node_delete_attributes(GF_Node *node);
 
-GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep);
+GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep);
 
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 

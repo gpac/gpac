@@ -3708,6 +3708,47 @@ static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const G
 	return url;
 }
 
+static void hls_insert_crypt_info(FILE *out, GF_MPD_Representation *rep, GF_DASH_SegmentContext *sctx, const char **last_kms)
+{
+	if (!rep->crypto_type) return;
+	const char *kms;
+	if (!sctx->encrypted)
+		kms = "NONE";
+	else if (sctx->hls_key_uri) kms = sctx->hls_key_uri;
+	else {
+		kms = "URI=\"gpac:hls:key:locator:null\"";
+		if (!rep->def_kms_used) {
+			rep->def_kms_used = 1;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[HLS] Missing key URI in one or more keys - will use dummy one %s\n", kms));
+		}
+	}
+
+	if (! *last_kms || strcmp(kms, *last_kms)) {
+		if (!strcmp(kms, "NONE")) {
+			gf_fprintf(out,"#EXT-X-KEY:METHOD=NONE\n");
+		} else {
+			char *subkms = (char *) kms;
+			while (1) {
+				char *next = strstr(subkms, ",URI");
+				if (next) next[0] = 0;
+				if (rep->crypto_type==1) {
+					u32 k;
+					gf_fprintf(out,"#EXT-X-KEY:METHOD=AES-128,%s,IV=0x", subkms);
+					for (k=0; k<16; k++)
+						gf_fprintf(out, "%02X", sctx->hls_iv[k]);
+					gf_fprintf(out, "\n");
+				} else {
+					gf_fprintf(out,"#EXT-X-KEY:METHOD=SAMPLE-AES,%s\n", subkms);
+				}
+				if (!next) break;
+				next[0] = ',';
+				subkms = next+1;
+			}
+		}
+		*last_kms = (rep->crypto_type==2) ? kms : NULL;
+	}
+}
+
 static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session, const char *force_base_url)
 {
 	u32 i, count;
@@ -3760,11 +3801,13 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		gf_fprintf(out, "\n");
 	}
 
+	//things common to onDemand and live profiles
+	if (as->intra_only) {
+		gf_fprintf(out,"#EXT-X-I-FRAMES-ONLY\n");
+	}
 
+	//one file per segment
 	if (sctx && sctx->filename) {
-		if (as->intra_only) {
-			gf_fprintf(out,"#EXT-X-I-FRAMES-ONLY\n");
-		}
 		if (rep->hls_single_file_name) {
 			if (force_base_url)
 				force_url = gf_url_concatenate(force_base_url, rep->hls_single_file_name);
@@ -3782,46 +3825,12 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			sctx = gf_list_get(rep->state_seg_list, i);
 			gf_assert(sctx->filename);
 
-			if (rep->crypto_type) {
-				const char *kms;
-				if (!sctx->encrypted) kms = "NONE";
-				else if (sctx->hls_key_uri) kms = sctx->hls_key_uri;
-				else {
-					kms = "URI=\"gpac:hls:key:locator:null\"";
-					if (!rep->def_kms_used) {
-						rep->def_kms_used = 1;
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[HLS] Missing key URI in one or more keys - will use dummy one %s\n", kms));
-					}
-				}
-
-				if (!last_kms || strcmp(kms, last_kms)) {
-					if (!strcmp(kms, "NONE")) {
-						gf_fprintf(out,"#EXT-X-KEY:METHOD=NONE\n");
-					} else {
-						char *subkms = (char *) kms;
-						while (1) {
-							char *next = strstr(subkms, ",URI");
-							if (next) next[0] = 0;
-							if (rep->crypto_type==1) {
-								u32 k;
-								gf_fprintf(out,"#EXT-X-KEY:METHOD=AES-128,%s,IV=0x", subkms);
-								for (k=0; k<16; k++)
-									gf_fprintf(out, "%02X", sctx->hls_iv[k]);
-								gf_fprintf(out, "\n");
-							} else {
-								gf_fprintf(out,"#EXT-X-KEY:METHOD=SAMPLE-AES,%s\n", subkms);
-							}
-							if (!next) break;
-							next[0] = ',';
-							subkms = next+1;
-						}
-					}
-					last_kms = (rep->crypto_type==2) ? kms : NULL;
-				}
-			}
+			hls_insert_crypt_info(out, rep, sctx, &last_kms);
 
 			u64 next_br_start_plus_one=0;
 			u32 next_seg_idx=0;
+
+			//LL-HLS related
 			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {
 				u32 k, nb_parts=sctx->nb_frags;
 				//EXT-X-PART tags SHOULD be removed from the Playlist after they are greater than three Target Durations from the end of the Playlist.
@@ -3945,7 +3954,9 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 				force_url = NULL;
 			}
 		}
-	} else {
+	}
+	//byte-range in single file
+	else {
 		GF_MPD_BaseURL *base_url=NULL;
 		const char *b_url=NULL;
 		GF_MPD_URL *init=NULL;
@@ -3987,6 +3998,8 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			sctx = gf_list_get(rep->state_seg_list, i);
 			gf_assert(!sctx->filename);
 			gf_assert(sctx->file_size);
+
+			hls_insert_crypt_info(out, rep, sctx, &last_kms);
 
 			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
