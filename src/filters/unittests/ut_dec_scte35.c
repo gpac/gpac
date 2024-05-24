@@ -61,7 +61,7 @@ static u8 emeb_box[EMEB] = {
 #define SEND_EVENT(dur) { \
         GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
         scte35dec_process_timing(&ctx, pts, TIMESCALE, dur); \
-        scte35dec_process_emsg(&ctx, &emsg, pts, TIMESCALE); \
+        scte35dec_process_emsg(&ctx, &emsg, pts); \
         scte35dec_process_dispatch(&ctx, pts); \
         pts += dur; \
     }
