@@ -1584,6 +1584,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_surround_channels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_bitrate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_eac3_get_chan_loc_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channel_layout) )
 
 #ifndef GPAC_DISABLE_OGG
 #pragma comment (linker, EXPORT_SYMBOL(gf_vorbis_parse_header) )
@@ -2350,6 +2351,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_dolby_chanmap) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_dolby_chanmap_from_layout) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_to_isobmf) )
 
 

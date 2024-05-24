@@ -857,6 +857,8 @@ u32 gf_audio_fmt_get_cicp_layout(u32 nb_chan, u32 nb_surr, u32 nb_lfe)
 	else if ((nb_chan==2) && (nb_surr==1) && !nb_lfe) return 9;
 	else if ((nb_chan==2) && (nb_surr==2) && !nb_lfe) return 10;
 	else if ((nb_chan==3) && (nb_surr==3) && (nb_lfe==1)) return 11;
+	else if ((nb_chan==4) && (nb_surr==2) && (nb_lfe==1)) return 11;
+
 	else if ((nb_chan==3) && (nb_surr==4) && (nb_lfe==1)) return 12;
 	else if ((nb_chan==11) && (nb_surr==11) && (nb_lfe==2)) return 13;
 	//we miss left / right front center vs left / right front vertical to signal this one
@@ -1037,20 +1039,19 @@ u32 gf_audio_fmt_cicp_enum(u32 idx, const char **short_name, u64 *ch_mask)
 
 
 GF_EXPORT
-u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
+u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 layout)
 {
 	u16 res = 0;
-	u64 layout = gf_audio_fmt_get_layout_from_cicp(cicp);
 
 	if (layout & GF_AUDIO_CH_FRONT_LEFT) res |= (1<<15); // 0
 	if (layout & GF_AUDIO_CH_FRONT_CENTER) res |= (1<<14); //1
 	if (layout & GF_AUDIO_CH_FRONT_RIGHT) res |= (1<<13); //2
-	if (layout & GF_AUDIO_CH_REAR_SURROUND_LEFT) res |= (1<<12); //3
-	if (layout & GF_AUDIO_CH_REAR_SURROUND_RIGHT) res |= (1<<11); //4
+	if (layout & GF_AUDIO_CH_SURROUND_LEFT) res |= (1<<12); //3
+	if (layout & GF_AUDIO_CH_SURROUND_RIGHT) res |= (1<<11); //4
 	//Lc/Rc
 	if (layout & GF_AUDIO_CH_FRONT_CENTER_LEFT) res |= (1<<11); //5
 	//Lrs/Rrs
-	if (layout & GF_AUDIO_CH_SURROUND_LEFT) res |= (1<<9); //6
+	if (layout & GF_AUDIO_CH_REAR_SURROUND_LEFT) res |= (1<<9); //6
 	//Cs
 	if (layout & GF_AUDIO_CH_REAR_CENTER) res |= (1<<8); //7
 	//Ts
@@ -1058,7 +1059,7 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 	//Lsd/Rsd
 	if (layout & GF_AUDIO_CH_SIDE_SURROUND_LEFT) res |= (1<<6); //9
 	//Lw/Rw
-	if (layout & GF_AUDIO_CH_FRONT_CENTER_LEFT) res |= (1<<5); //10
+	if (layout & GF_AUDIO_CH_WIDE_FRONT_LEFT) res |= (1<<5); //10
 	//Vhl/Vhr
 	if (layout & GF_AUDIO_CH_FRONT_TOP_LEFT) res |= (1<<4); //11
 	//Vhc
@@ -1070,9 +1071,14 @@ u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 	//LFE
 	if (layout & GF_AUDIO_CH_LFE) res |= (1); //15
 	return res;
-
 }
 
+GF_EXPORT
+u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
+{
+	u64 layout = gf_audio_fmt_get_layout_from_cicp(cicp);
+	return gf_audio_fmt_get_dolby_chanmap_from_layout(layout);
+}
 
 typedef struct
 {

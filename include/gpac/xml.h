@@ -98,7 +98,9 @@ typedef struct _xml_node
 	/*! list of children nodes of the node, for XML node type only - can be NULL if no content*/
 	GF_List *content;
 	/*! original pos in parent (used for DASH MPD)*/
-	u32 orig_pos;
+	u16 orig_pos;
+	/*! set to 1 if content comes from an existing XML and character checking should be skipped*/
+	u16 valid_content;
 } GF_XMLNode;
 
 /*! @} */
@@ -367,7 +369,7 @@ void gf_xml_dom_node_reset(GF_XMLNode *node, Bool reset_attribs, Bool reset_chil
 \param expected_ns_prefix optional expected namespace prefix for node n
 \return error code or GF_OK
  */
-GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix);
+GF_Err gf_xml_dom_node_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix);
 
 /*! Writes a string to an xml file and replaces forbidden chars with xml entities
  *\param file       the xml output file
@@ -376,6 +378,13 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
  *\param after     optional string suffix (assumed xml-valid, pass NULL if not needed)
  */
 void gf_xml_dump_string(FILE* file, const char* before, const char* str, const char* after);
+
+/*! Deep cloning of a node
+ *\param node  the node to clone
+ *\return the cloned node
+ */
+GF_XMLNode *gf_xml_dom_node_clone(GF_XMLNode *node);
+
 
 /*! @} */
 

@@ -1535,6 +1535,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						_nb_ch += gf_eac3_get_chan_loc_count(ac3.streams[0].chan_loc);
 					}
                     if (ds->nb_lfe) _nb_ch++;
+                    ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
 				}
 				break;
 			}
@@ -2407,13 +2408,14 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			}
 		}
 		if (use_dolbyx) {
-			u32 cicp_layout = 0;
-			if (ds->ch_layout)
-				cicp_layout = gf_audio_fmt_get_cicp_from_layout(ds->ch_layout);
-			if (!cicp_layout)
-				cicp_layout = gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe);
-
-			sprintf(value, "%X", gf_audio_fmt_get_dolby_chanmap(cicp_layout) );
+			u32 chanmap=0;
+			if (ds->ch_layout) {
+				chanmap = gf_audio_fmt_get_dolby_chanmap_from_layout(ds->ch_layout);
+			} else {
+				u32 cicp_layout = gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe);
+				chanmap = gf_audio_fmt_get_dolby_chanmap(cicp_layout);
+			}
+			sprintf(value, "%X", chanmap);
 			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2014:dash:audio_channel_configuration:2011", value);
 		} else if (use_dtshd) {
 			sprintf(value, "%d", ds->nb_ch);
@@ -2425,7 +2427,14 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 			sprintf(value, "%d", ds->nb_ch);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011", value);
 		} else {
-			sprintf(value, "%d", gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe));
+			u32 val1 = ds->ch_layout ? gf_audio_fmt_get_cicp_from_layout(ds->ch_layout) : 255;
+			u32 val2 = gf_audio_fmt_get_cicp_layout(ds->nb_ch, ds->nb_surround, ds->nb_lfe);
+			if (val1==255) val1 = val2;
+
+			if (val2 && (val1!=val2)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Mismatch between channel layout and channels %d/%d.%d, using layout\n", ds->nb_ch, ds->nb_surround, ds->nb_lfe));
+			}
+			sprintf(value, "%u", val1);
 			desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:ChannelConfiguration", value);
 		}
 

@@ -41,6 +41,8 @@
 
 #define XML_INPUT_SIZE	4096
 
+static u32 XML_MAX_CONTENT_SIZE = 0;
+
 
 static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current);
 
@@ -783,8 +785,10 @@ restart:
 				}
 
 				if (parser->current_pos+i==parser->line_size) {
-					if ((parser->line_size>=2*XML_INPUT_SIZE) && !parser->init_state)
+					if ((parser->line_size >= XML_MAX_CONTENT_SIZE) && !parser->init_state) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Content size larger than max allowed %u, try increasing limit using `-xml-max-csize`\n", XML_MAX_CONTENT_SIZE));
 						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+					}
 
 					goto exit;
 				}
@@ -1354,6 +1358,9 @@ GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start,
 	parser->sax_node_end = on_node_end;
 	parser->sax_text_content = on_text_content;
 	parser->sax_cbck = cbck;
+	if (!XML_MAX_CONTENT_SIZE) {
+		XML_MAX_CONTENT_SIZE = gf_opts_get_int("core", "xml-max-csize");
+	}
 	return parser;
 }
 
@@ -1771,6 +1778,7 @@ static void on_dom_node_end(void *cbk, const char *name, const char *ns)
 
 		gf_list_add(node->content, last);
 	}
+	last->valid_content = 1;
 }
 
 static void on_dom_text_content(void *cbk, const char *content, Bool is_cdata)
@@ -1933,18 +1941,17 @@ GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx)
 
 static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape, char **str, u32 *alloc_size, u32 *size)
 {
-	u32 i, count, vlen;
+	u32 i, count, vlen, tot_s;
 	char *name;
 
 #define SET_STRING(v)	\
 	vlen = (u32) strlen(v);	\
-	if (vlen + (*size) >= (*alloc_size)) {	\
-		(*alloc_size) += 1024;	\
-		if (vlen + (*size) >= (*alloc_size)) (*alloc_size) = vlen + (*size) + 1;\
+	tot_s = vlen + (*size); \
+	if (tot_s >= (*alloc_size)) {	\
+		(*alloc_size) = MAX(tot_s, 2 * (*alloc_size) ) + 1;	\
 		(*str) = gf_realloc((*str), (*alloc_size));	\
-		(*str)[(*size)] = 0;	\
 	}	\
-	strcat((*str), v);	\
+	memcpy((*str) + (*size), v, vlen+1);	\
 	*size += vlen;	\
 
 	switch (node->type) {
@@ -2022,7 +2029,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 	count = gf_list_count(node->content);
 	for (i=0; i<count; i++) {
 		GF_XMLNode *child = (GF_XMLNode*)gf_list_get(node->content, i);
-		gf_xml_dom_node_serialize(child, GF_FALSE, GF_FALSE, str, alloc_size, size);
+		gf_xml_dom_node_serialize(child, GF_FALSE, node->valid_content, str, alloc_size, size);
 	}
 	if (!content_only) {
 		SET_STRING("</");
@@ -2053,7 +2060,8 @@ char *gf_xml_dom_serialize_root(GF_XMLNode *node, Bool content_only, Bool no_esc
 	gf_dynstrcat(&str, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", NULL);
 	if (!str) return NULL;
 
-	alloc_size = size = (u32) strlen(str) + 1;
+	alloc_size = size = (u32) strlen(str);
+	alloc_size = size + 1;
 	gf_xml_dom_node_serialize(node, content_only, no_escape, &str, &alloc_size, &size);
 	return str;
 }
@@ -2452,7 +2460,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, u8 
 	return GF_OK;
 }
 
-GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix) {
+GF_Err gf_xml_dom_node_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix) {
 	u32 i;
 	GF_XMLAttribute *att;
 
@@ -2526,4 +2534,47 @@ void gf_xml_dump_string(FILE* file, const char *before, const char *str, const c
 	if (after) {
 		gf_fprintf(file, "%s", after);
 	}
+}
+
+
+GF_XMLNode *gf_xml_dom_node_clone(GF_XMLNode *node)
+{
+	GF_XMLNode *clone, *child;
+	GF_XMLAttribute *att;
+	u32 i;
+	GF_SAFEALLOC(clone, GF_XMLNode);
+	if (!clone) return NULL;
+
+	clone->type = node->type;
+	clone->valid_content = node->valid_content;
+	clone->orig_pos = node->orig_pos;
+	if (node->name)
+		clone->name = gf_strdup(node->name);
+	if (node->ns)
+		clone->ns = gf_strdup(node->ns);
+
+	clone->attributes = gf_list_new();
+	i = 0;
+	while ((att = gf_list_enum(node->attributes, &i))) {
+		GF_XMLAttribute *att_clone;
+		GF_SAFEALLOC(att_clone, GF_XMLAttribute);
+		if (!att_clone) {
+			gf_xml_dom_node_del(clone);
+			return NULL;
+		}
+		att_clone->name = gf_strdup(att->name);
+		att_clone->value = gf_strdup(att->value);
+		gf_list_add(clone->attributes, att_clone);
+	}
+	clone->content = gf_list_new();
+	i=0;
+	while ((child = gf_list_enum(node->content, &i))) {
+		GF_XMLNode *child_clone = gf_xml_dom_node_clone(child);
+		if (!child_clone) {
+			gf_xml_dom_node_del(clone);
+			return NULL;
+		}
+		gf_list_add(clone->content, child_clone);
+	}
+	return clone;
 }

@@ -9195,6 +9195,52 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 }
 
 GF_EXPORT
+u64 gf_ac3_get_channel_layout(GF_AC3Config *ac3)
+{
+	u64 layout = 0;
+	switch (ac3->streams[0].acmod) {
+	case 0:
+		layout |= GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
+		break;
+	case 1:
+		layout |= GF_AUDIO_CH_FRONT_CENTER;
+		break;
+	case 2:
+		layout |= GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
+		break;
+	case 3:
+		layout |= GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER;
+		break;
+	case 4:
+		layout |= GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_REAR_CENTER;
+		break;
+	case 5:
+		layout |= GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_CENTER;
+		break;
+	case 6:
+		layout |= GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT;
+		break;
+	case 7:
+		layout |= GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SURROUND_RIGHT;
+		break;
+	}
+	if (ac3->streams[0].lfon) layout |= GF_AUDIO_CH_LFE;
+	if (ac3->streams[0].nb_dep_sub) {
+		u32 chan_loc = ac3->streams[0].chan_loc;
+		if (chan_loc & 1) layout |= GF_AUDIO_CH_FRONT_CENTER_LEFT | GF_AUDIO_CH_FRONT_CENTER_RIGHT; //Lc/Rc pair
+		if (chan_loc & (1<<1)) layout |= GF_AUDIO_CH_REAR_SURROUND_LEFT|GF_AUDIO_CH_REAR_SURROUND_RIGHT; //Lrs/Rrs pair
+		if (chan_loc & (1<<2)) layout |= GF_AUDIO_CH_REAR_CENTER; //Cs
+		if (chan_loc & (1<<3)) layout |= GF_AUDIO_CH_REAR_CENTER_TOP; //Ts
+		if (chan_loc & (1<<4)) layout |= GF_AUDIO_CH_SIDE_SURROUND_LEFT | GF_AUDIO_CH_SIDE_SURROUND_RIGHT; //Lsd/Rsd pair
+		if (chan_loc & (1<<5)) layout |= GF_AUDIO_CH_WIDE_FRONT_LEFT | GF_AUDIO_CH_WIDE_FRONT_RIGHT ; //Lw/Rw pair
+		if (chan_loc & (1<<6)) layout |= GF_AUDIO_CH_FRONT_TOP_LEFT | GF_AUDIO_CH_FRONT_TOP_RIGHT; //Lvh/Rvh pair
+		if (chan_loc & (1<<7)) layout |= GF_AUDIO_CH_FRONT_TOP_CENTER; //Cvh
+		if (chan_loc & (1<<8)) layout |= GF_AUDIO_CH_LFE2; //LFE2
+	}
+	return layout;
+}
+
+GF_EXPORT
 u32 gf_eac3_get_chan_loc_count(u32 chan_loc)
 {
 	u32 nb_ch=0;

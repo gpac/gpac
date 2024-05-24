@@ -91,7 +91,7 @@ GF_SceneGraph *gf_sg_new()
 		gf_node_parent_of(NULL, NULL);
 		gf_sg_get_parent(tmp);
 		gf_node_get_attribute_count(NULL);
-		gf_xml_node_clone(NULL, NULL, NULL, NULL, 0);
+		gf_sg_xml_node_clone(NULL, NULL, NULL, NULL, 0);
 		gf_dom_flatten_textContent(NULL);
 		gf_smil_timing_pause(NULL);
 		gf_smil_timing_resume(NULL);
@@ -2220,7 +2220,7 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 		return NULL;
 	} else {
 #ifndef GPAC_DISABLE_SVG
-		return gf_xml_node_clone(inScene, orig, cloned_parent, id, deep);
+		return gf_sg_xml_node_clone(inScene, orig, cloned_parent, id, deep);
 #endif
 	}
 	return NULL;
