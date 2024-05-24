@@ -430,7 +430,7 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	ctx->clock = MAX(ctx->clock, dts);
 }
 
-static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *emsg, u64 dts, u32 timescale)
+static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *emsg, u64 dts)
 {
 	u64 pts = 0;
 	u32 dur = 0xFFFFFFFF;
@@ -441,7 +441,6 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 	if (!emib) return GF_OUT_OF_MEM;
 
 	// set values according to SCTE 214-3 2015
-	emib->timescale = timescale;
 	emib->presentation_time_delta = pts - dts;
 	if (pts < ctx->clock && !IS_SEGMENTED)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] event overlap detected in immediate dispatch mode (not segmented)\n"));
@@ -525,8 +524,8 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 
 	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
 	if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
-		GF_Err e = scte35dec_process_emsg(ctx, emsg, dts, gf_filter_pck_get_timescale(pck));
-		if (e) return e;
+		GF_Err e = scte35dec_process_emsg(ctx, emsg, dts);
+		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while 'emsg' at dts="LLU"\n", dts));
 	}
 
 	gf_filter_pid_drop_packet(ctx->ipid);
