@@ -4298,7 +4298,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		break;
 	case OBU_TEMPORAL_DELIMITER:
 		state->frame_state.seen_frame_header = GF_FALSE;
-		state->clli_valid = state->mdcv_valid = 0;
+		// fallthru
 	case OBU_PADDING:
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
