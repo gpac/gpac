@@ -163,6 +163,8 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFmpeg unmapped codec", "ffmpeg", NULL, NULL},
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
+	{GF_CODECID_SCTE35, 0, GF_STREAM_METADATA, "SCTE35", "scte", "evte", NULL},
+	{GF_CODECID_EVTE, 0, GF_STREAM_METADATA, "Event Messages", "evte", "evte", NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc", .unframe=GF_TRUE},
 	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC, .unframe=GF_TRUE},
 	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac", .unframe=GF_TRUE},
@@ -508,7 +510,7 @@ u32 gf_stream_type_by_name(const char *val)
 			return GF_StreamTypes[i].st;
 	}
 	if (strnicmp(val, "unkn", 4) && strnicmp(val, "undef", 5)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknow stream type %s\n", val));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknown stream type %s\n", val));
 	}
 	return GF_STREAM_UNKNOWN;
 }
@@ -2007,7 +2009,7 @@ u32 gf_cicp_parse_color_primaries(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color primaries type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown CICP color primaries type %s\n", val));
 	}
 	return (u32) -1;
 }
@@ -2077,7 +2079,7 @@ u32 gf_cicp_parse_color_transfer(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color transfer type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown CICP color transfer type %s\n", val));
 	}
 	return (u32) -1;
 }
@@ -2138,7 +2140,7 @@ u32 gf_cicp_parse_color_matrix(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color matrix type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown CICP color matrix type %s\n", val));
 	}
 	return (u32) -1;
 }

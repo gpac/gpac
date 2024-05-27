@@ -1366,6 +1366,8 @@ enum
 
 	//PID has temi information
 	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M'),
+	//PID has SCTE35 information and PID number
+	GF_PROP_PID_SCTE35_PID = GF_4CC('S','C','3','5'),
 	//PID has no init segment associated (file forward mode of dasher)
 	GF_PROP_PID_NO_INIT = GF_4CC('P','N','I','N'),
 
@@ -1709,7 +1711,7 @@ typedef enum
 	GF_FEVT_BUFFER_REQ,
 	/*! filter session capability change, sent whenever global capabilities (max width, max height, ... ) are changed*/
 	GF_FEVT_CAPS_CHANGE,
-	/*! inidicates the PID could not be connected - the PID passed is an output PID of the filter, no specific event structure is associated*/
+	/*! indicates the PID could not be connected - the PID passed is an output PID of the filter, no specific event structure is associated*/
 	GF_FEVT_CONNECT_FAIL,
 	/*! user event, sent from compositor/vout down to filters*/
 	GF_FEVT_USER,

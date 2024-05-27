@@ -28,6 +28,7 @@
 #include <gpac/list.h>
 #include <gpac/xml.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 
 #ifndef GPAC_DISABLE_INSPECT
 
@@ -182,6 +183,12 @@ static void inspect_printf(FILE *dump, const char *fmt, ...)
 		inspect_printf(dump, " %s=\"0x%08X\"", _name, _val);\
 	} else {\
 		inspect_printf(dump, " %s 0x%08X", _name, _val);\
+	}
+
+#define DUMP_ATT_BOOL(_name, _val)  if (_val == 0) { \
+		DUMP_ATT_STR(_name, "False")\
+	} else {\
+		DUMP_ATT_STR(_name, "True")\
 	}
 
 #define DUMP_ATT_FRAC(_name, _val)  if (ctx->xml) { \
@@ -554,12 +561,12 @@ static void dump_t35(FILE *dump, GF_BitStream *bs, u32 sei_size)
 static u32 dump_udta_m2v(FILE *dump, u8 *data, u32 sei_size)
 {
 
-    u32 udta_id = 0;
+	u32 udta_id = 0;
 	if (sei_size < 4)
 		return 1;
 
 	udta_id = GF_4CC(data[0], data[1], data[2], data[3]);
-    u32 udta_code = 0;
+	u32 udta_code = 0;
 
 	inspect_printf(dump, " udta_id=\"%s\"", gf_4cc_to_str(udta_id));
 
@@ -1818,7 +1825,7 @@ GF_EXPORT
 void gf_inspect_dump_opus(FILE *dump, u8 *ptr, u64 size, u32 channel_count, Bool dump_crc)
 {
 	if (!dump) return;
-    gf_inspect_dump_opus_internal(dump, ptr, (u32) size, channel_count, dump_crc, NULL);
+	gf_inspect_dump_opus_internal(dump, ptr, (u32) size, channel_count, dump_crc, NULL);
 }
 
 enum {
@@ -2167,6 +2174,206 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 	}
 }
 
+static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
+{
+	inspect_printf(dump, "    <scte35:SpliceTime");
+	Bool time_specified_flag = gf_bs_read_int(bs, 1);
+	if (time_specified_flag == 1) {
+		/*reserved = */gf_bs_read_int(bs, 6);
+		u64 pts_time = gf_bs_read_int(bs, 33);
+		DUMP_ATT_LLU("pts_time", pts_time);
+	} else {
+		/*reserved = */gf_bs_read_int(bs, 7);
+	}
+	inspect_printf(dump, "/>\n");
+}
+
+static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
+{
+	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"urn:scte:scte35:2013:bin\"");
+
+	u8 table_id = gf_bs_read_u8(bs);
+	gf_assert(table_id == 0xFC);
+	Bool section_syntax_indicator = gf_bs_read_int(bs, 1);
+	gf_assert(section_syntax_indicator == 0);
+	Bool private_indicator = gf_bs_read_int(bs, 1);
+	gf_assert(private_indicator == 0);
+
+	u8 sap_type = gf_bs_read_int(bs, 2);
+	DUMP_ATT_U("sap_type", sap_type);
+
+	int section_length = gf_bs_read_int(bs, 12);
+	gf_assert(section_length + 3 == gf_bs_get_size(bs));
+
+	u8 protocol_version = gf_bs_read_u8(bs);
+	DUMP_ATT_U("protocol_version", protocol_version);
+	Bool encrypted_packet = gf_bs_read_int(bs, 1);
+	DUMP_ATT_U("encrypted_packet", encrypted_packet);
+	u8 encryption_algorithm = gf_bs_read_int(bs, 6);
+	u64 pts_adjustment = gf_bs_read_long_int(bs, 33);
+	DUMP_ATT_LLU("pts_adjustment", pts_adjustment);
+
+	if (encrypted_packet) {
+		const char* enc_algos[4] = {"No encryption", "DES - ECB mode", "DES - CBC mode", "Triple DES EDE3 - ECB mode" };
+		if (encryption_algorithm < sizeof(enc_algos)/sizeof(enc_algos[0])) {
+			DUMP_ATT_STR("encryption_algorithm", enc_algos[encryption_algorithm]);
+		} else if (encryption_algorithm < 32) {
+			DUMP_ATT_STR("encryption_algorithm", "Reserved");
+		} else {
+			DUMP_ATT_STR("encryption_algorithm", "User private");
+		}
+		//early exit
+		goto exit;
+	}
+
+	/*u8 cw_index = */gf_bs_read_u8(bs);
+	int tier = gf_bs_read_int(bs, 12);
+	DUMP_ATT_D("tier", tier);
+
+	inspect_printf(dump, ">\n");
+
+	int splice_command_length = gf_bs_read_int(bs, 12);
+	u8 splice_command_type = gf_bs_read_u8(bs);
+	u64 pos = gf_bs_get_position(bs);
+
+	switch(splice_command_type) {
+	case 0x05: //splice_insert()
+		{
+			inspect_printf(dump, "   <scte35:SpliceInsert");
+			u32 splice_event_id = gf_bs_read_u32(bs);
+			DUMP_ATT_U("splice_event_id", splice_event_id);
+			Bool splice_event_cancel_indicator = gf_bs_read_int(bs, 1);
+			DUMP_ATT_BOOL("splice_event_cancel_indicator", splice_event_cancel_indicator);
+			/*reserved = */gf_bs_read_int(bs, 7);
+			if (splice_event_cancel_indicator == 0) {
+				Bool out_of_network_indicator = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("out_of_network_indicator", out_of_network_indicator);
+				Bool program_splice_flag = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("program_splice_flag", program_splice_flag);
+				Bool duration_flag = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("duration_flag", duration_flag);
+				Bool splice_immediate_flag = gf_bs_read_int(bs, 1);
+				DUMP_ATT_BOOL("splice_immediate_flag", splice_immediate_flag);
+				/*reserved = */gf_bs_read_int(bs, 4);
+				inspect_printf(dump, ">\n");
+
+				if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
+					scte35_parse_splice_time(ctx, dump, bs);
+				}
+
+				if (program_splice_flag == 0) {
+					u8 component_count = gf_bs_read_u8(bs);
+					DUMP_ATT_U("component_count", component_count);
+					for (int i=0; i<component_count; i++) {
+						inspect_printf(dump, "    <scte35:Program>\n");
+						/*u8 component_tag = */gf_bs_read_u8(bs);
+						if (splice_immediate_flag == 0) {
+							scte35_parse_splice_time(ctx, dump, bs);
+						}
+						inspect_printf(dump, "    </scte35:Program>\n");
+					}
+				}
+				if (duration_flag == GF_TRUE) {
+					//break_duration()
+					inspect_printf(dump, "    <scte35:BreakDuration");
+					/*Bool auto_return = */gf_bs_read_int(bs, 1);
+					/*reserved = */gf_bs_read_int(bs, 6);
+					u64 duration = gf_bs_read_long_int(bs, 33);
+					DUMP_ATT_LLU("duration", duration);
+					inspect_printf(dump, "/>\n");
+				}
+				/*u16 unique_program_id = */gf_bs_read_u16(bs);
+				/*u8 avail_num = */gf_bs_read_u8(bs);
+				/*u8 avails_expected = */gf_bs_read_u8(bs);
+			} else {
+				inspect_printf(dump, "/>\n");
+			}
+			inspect_printf(dump, "   </scte35:SpliceInsert>\n");
+
+			gf_bs_seek(bs, pos + splice_command_length);
+		}
+		break;
+	case 0x06: //time_signal()
+		inspect_printf(dump, "   <scte35:TimeSignal>\n");
+		scte35_parse_splice_time(ctx, dump, bs);
+		inspect_printf(dump, "   </scte35:TimeSignal>\n");
+		break;
+	case 0x00: //splice_null()
+		inspect_printf(dump, "   <scte35:Null/>\n");
+		DUMP_ATT_STR("splice_command_type", "null");
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice null command\n"));
+		gf_bs_skip_bytes(bs, splice_command_length);
+		break;
+	case 0x04: //splice_schedule()
+		inspect_printf(dump, "   <scte35:SpliceSchedule/>\n");
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice schedule command\n"));
+		gf_bs_skip_bytes(bs, splice_command_length);
+		break;
+	case 0x07: //bandwidth_reservation()
+		inspect_printf(dump, "   <scte35:BandwidthReservation/>\n");
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice bandwidth reservation command\n"));
+		gf_bs_skip_bytes(bs, splice_command_length);
+		break;
+	case 0xff: //private_command()
+		inspect_printf(dump, "   <scte35:PrivateCommand/>\n");
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice private command\n"));
+		gf_bs_skip_bytes(bs, splice_command_length);
+		break;
+	default:
+		inspect_printf(dump, "   <scte35:Unknown/>\n");
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] skip unknown SCTE-35 splice command 0x%X\n", splice_command_type));
+		gf_bs_skip_bytes(bs, splice_command_length);
+		break;
+	}
+
+	gf_assert(gf_bs_get_position(bs) == pos + splice_command_length);
+
+	//FIXME: we only parse the first command
+
+#if 0 //not implemented
+	int descriptor_loop_length = gf_bs_read_int(bs, 12);
+	for (i=0; i<N1; i++)
+		splice_descriptor();
+	for (i=0; i<N2; i++)
+		/*alignment_stuffing =*/ gf_bs_read_u8(bs);
+	if (encrypted_packet)
+		E_CRC_32 32 rpchof E
+	CRC_32 32 rpchof
+#endif
+
+exit:
+	inspect_printf(dump, "  </scte35:SpliceInfoSection>\n");
+}
+
+void scte35_dump_xml(FILE *dump, GF_BitStream *bs)
+{
+	GF_InspectCtx ctx = {0};
+	ctx.xml = GF_TRUE;
+	scte35_dump(&ctx, dump, bs);
+}
+
+static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
+{
+	if (ctx->xml) {
+		inspect_printf(dump, " <SCTE35>\n");
+	} else {
+		inspect_printf(dump, " SCTE35");
+	}
+
+	if (!pctx->bs)
+		pctx->bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+	else
+		gf_bs_reassign_buffer(pctx->bs, att->value.data.ptr, att->value.data.size);
+
+	scte35_dump(ctx, dump, pctx->bs);
+
+	if (ctx->xml) {
+		inspect_printf(dump, " </SCTE35");
+	} else {
+		inspect_printf(dump, "\n");
+	}
+}
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 static void gf_inspect_dump_truehd_frame(FILE *dump, GF_BitStream *bs)
 {
@@ -2385,6 +2592,13 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				inspect_printf(dump, " %s=\"%s\"", pname_no_space, gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data));
 			}
 			gf_free(pname_no_space);
+		} else if (!p4cc && !strncmp(pname, "scte35", 6)) {
+			inspect_printf(dump, ">\n");
+			dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
+		/*} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
+			dump_temi_loc(ctx, pctx, dump, pname, att);
+		} else if (!p4cc && !strncmp(pname, "temi_t", 6)) {
+			dump_temi_time(ctx, pctx, dump, pname, att);*/
 		} else {
 			inspect_printf(dump, " %s=\"%s\"", pname ? pname : gf_4cc_to_str(p4cc), gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data));
 		}
@@ -2392,7 +2606,9 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		if (ctx->dtype) {
 			inspect_printf(dump, "\t%s (%s): ", pname ? pname : gf_4cc_to_str(p4cc), gf_props_get_type_name(att->type));
 		} else {
-			if (!p4cc && !strncmp(pname, "temi_l", 6))
+			if (!p4cc && !strncmp(pname, "scte35", 6))
+				dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
+			else if (!p4cc && !strncmp(pname, "temi_l", 6))
 				dump_temi_loc(ctx, pctx, dump, pname, att);
 			else if (!p4cc && !strncmp(pname, "temi_t", 6))
 				dump_temi_time(ctx, pctx, dump, pname, att);
@@ -2905,6 +3121,25 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, 
 	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_fpt, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
+static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, u32 size, FILE *dump)
+{
+	if (ctx->dump) {
+		GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		GF_Err e = GF_OK;
+		while (gf_bs_available(bs) > 0) {
+			GF_Box *a = NULL;
+			e = gf_isom_box_parse(&a, bs);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] Event Track: error while parsing data boxes\n"));
+				break; //don't parse any further
+			}
+			gf_isom_box_dump(a, dump);
+			data += a->size;
+		}
+		gf_bs_del(bs);
+	}
+}
+
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)
 {
 	GF_Err e;
@@ -3085,7 +3320,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 			if (ts==GF_FILTER_NO_TS) inspect_printf(dump, " PCR=\"N/A\"");
 			else inspect_printf(dump, " PCR=\""LLU"\" ", ts );
 			if (ck_type!=GF_FILTER_CLOCK_PCR) inspect_printf(dump, " discontinuity=\"true\"");
-			inspect_printf(dump, "/>");
+			inspect_printf(dump, "/>\n");
 		} else {
 			if (ts==GF_FILTER_NO_TS) inspect_printf(dump, " PCR N/A");
 			else inspect_printf(dump, " PCR%s "LLU"\n", (ck_type==GF_FILTER_CLOCK_PCR) ? "" : " discontinuity", ts );
@@ -3184,8 +3419,8 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		DUMP_ATT_X("CRC32", gf_crc_32(data, size) )
 	}
 	if (ctx->xml) {
-		if (!ctx->props) goto props_done;
-
+		if (!ctx->props)
+			goto props_done;
 	} else {
 		inspect_printf(dump, "\n");
 	}
@@ -3300,6 +3535,9 @@ props_done:
 			break;
 		case GF_CODECID_TMCD:
 			inspect_dump_tmcd(ctx, pctx, (char *) data, size, dump);
+			break;
+		case GF_CODECID_EVTE:
+			inspect_dump_boxes(ctx, pctx, (char *) data, size, dump);
 			break;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
@@ -4208,6 +4446,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MPEG2_PART3:
 	case GF_CODECID_MPEG_AUDIO_L1:
 	case GF_CODECID_TMCD:
+	case GF_CODECID_EVTE:
 		inspect_printf(dump, "/>\n");
 		return;
 	case GF_CODECID_SUBS_XML:

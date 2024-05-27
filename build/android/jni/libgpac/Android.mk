@@ -163,6 +163,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/dec_odf.c \
 	../../../../src/filters/dec_openhevc.c \
 	../../../../src/filters/dec_opensvc.c \
+	../../../../src/filters/dec_scte35.c \
 	../../../../src/filters/decrypt_cenc_isma.c \
 	../../../../src/filters/dec_theora.c \
 	../../../../src/filters/dec_ttml.c \

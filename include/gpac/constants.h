@@ -528,10 +528,13 @@ typedef enum
 
 	GF_CODECID_DVB_SUBS = GF_4CC( 'd', 'v', 'b', 's' ),
 	GF_CODECID_DVB_TELETEXT = GF_4CC( 'd', 'v', 'b', 't' ),
+
+	GF_CODECID_SCTE35 = GF_4CC( 's', 'c', '3', '5' ),
+
 	/*!
 		\brief OGG DecoderConfig
 
-	 The DecoderConfig for theora, vorbis and speek contains all intitialization ogg packets for the codec
+	 The DecoderConfig for theora, vorbis and speek contains all initialization ogg packets for the codec
 	  and is formatted as follows:\n
 	 \code
 	  while (dsi_size) {
@@ -611,6 +614,9 @@ typedef enum
 	GF_CODECID_AP4H	= GF_4CC( 'a', 'p', '4', 'h' ),
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
+
+	/*Event Message Track*/
+	GF_CODECID_EVTE = GF_4CC('e','v','t','e'),
 
 	/*! codecid for FFV1*/
 	GF_CODECID_FFV1 = GF_4CC('f','f','v','1'),
