@@ -3496,7 +3496,7 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	return GF_OK;
 }
 
-static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Representation *rep, char *m3u8_name, const char *codec_ext, const char *g_type, const char *g_id_pref, const char *g2_type, const char *g2_id_pref, const GF_MPD_AdaptationSet *set, u32 max_alt_bandwidth, u32 max_alt_width, u32 max_alt_height, Double max_alt_fps)
+static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Representation *rep, char *m3u8_name, const char *codec_ext, const char *g_type, const char *g_id_pref, const char *g2_type, const char *g2_id_pref, const GF_MPD_AdaptationSet *set, u32 max_alt_bandwidth, u32 max_alt_width, u32 max_alt_height, Double max_alt_fps, u32 hls_version)
 {
 	u32 i;
 
@@ -3532,8 +3532,14 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 		gf_fprintf(out,",%s=\"%s", g2_type, g2_id_pref);
 		gf_fprintf(out,"\"");
 	}
+	Bool has_cc = GF_FALSE;
 	for (i=0; i<rep->nb_hls_master_tags; i++) {
 		gf_fprintf(out,",%s", rep->hls_master_tags[i]);
+		if (strstr(rep->hls_master_tags[i], "CLOSED-CAPTIONS"))
+			has_cc = GF_TRUE;
+	}
+	if (!has_cc && !gf_sys_is_test_mode() && (hls_version>=6)) {
+		gf_fprintf(out, ",CLOSED-CAPTIONS=NONE");
 	}
 	gf_fprintf(out,"\n");
 
@@ -3541,7 +3547,7 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 
 }
 
-static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 as_idx, const GF_MPD_Representation *rep, FILE *out, char *m3u8_name, GF_MPD_Period *period, u32 nb_alt_media, u32 nb_subs, u32 nb_cc, const char *forced_inf_ids)
+static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 as_idx, const GF_MPD_Representation *rep, FILE *out, char *m3u8_name, GF_MPD_Period *period, u32 nb_alt_media, u32 nb_subs, u32 nb_cc, const char *forced_inf_ids, u32 hls_version)
 {
 	u32 i;
 	GF_MPD_AdaptationSet *r_as;
@@ -3621,7 +3627,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 
 	//no other streams, directly write the entry
 	if (!nb_alt_media && !nb_subs && !nb_cc && (!forced_inf_ids || !forced_inf_ids[0])) {
-		gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, NULL, NULL, NULL, NULL, NULL, as, 0, 0, 0, 0);
+		gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, NULL, NULL, NULL, NULL, NULL, as, 0, 0, 0, 0, hls_version);
 		return;
 	}
 
@@ -3686,7 +3692,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 	if (gf_sys_is_test_mode() && !g_m_width)
 		g_m_bandwidth = 0;
 
-	gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, grp_codecs, g_type, g_id, g_type_subs, g_id_subs, as, g_m_bandwidth, g_m_width, g_m_height, g_m_fps);
+	gf_mpd_write_m3u8_playlist_tags_entry(out, rep, m3u8_name, grp_codecs, g_type, g_id, g_type_subs, g_id_subs, as, g_m_bandwidth, g_m_width, g_m_height, g_m_fps, hls_version);
 	if (grp_codecs) gf_free(grp_codecs);
 	grp_codecs=NULL;
 }
@@ -4048,6 +4054,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Bool has_muxed_comp = GF_FALSE;
 	Bool has_video = GF_FALSE;
 	Bool has_audio = GF_FALSE;
+	Bool has_cc = GF_FALSE;
 
 	if (!m3u8_name || !period) return GF_BAD_PARAM;
 
@@ -4079,13 +4086,23 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			if (rep->streamtype==GF_STREAM_AUDIO) nb_audio++;
 			else if (rep->streamtype==GF_STREAM_TEXT) nb_subs++;
 			else if (rep->streamtype==GF_STREAM_VISUAL) nb_video++;
+
+			if (!has_cc) {
+				u32 k;
+				for (k=0; k<rep->nb_hls_master_tags; k++) {
+					if (strstr(rep->hls_master_tags[k], "CLOSED-CAPTIONS")) {
+						has_cc = GF_TRUE;
+						break;
+					}
+				}
+			}
 		}
 	}
 	//we by default use floating point durations
 	hls_version = 3;
 	if (use_range) hls_version = 4;
 	if (use_intra_only) hls_version = 5;
-	if (is_fmp4 || use_init) hls_version = 6;
+	if (is_fmp4 || use_init || has_cc) hls_version = 6;
 
 	if (mode!=GF_M3U8_WRITE_CHILD) {
 
@@ -4295,11 +4312,11 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			if (force_base_url && ((mpd->hls_abs_url==2) || (mpd->hls_abs_url==3)))
 				force_url = gf_url_concatenate(force_base_url, name);
 
-			gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, force_url ? force_url : name, is_primary ? period : NULL, nb_alt_streams, nb_subs, nb_cc, 0);
+			gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, force_url ? force_url : name, is_primary ? period : NULL, nb_alt_streams, nb_subs, nb_cc, 0, hls_version);
 			gf_fprintf(out, "\n");
 
 			if (!is_primary && rep->hls_forced) {
-				gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, force_url ? force_url : name, period, 0, 0, 0, rep->hls_forced);
+				gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, force_url ? force_url : name, period, 0, 0, 0, rep->hls_forced, hls_version);
 				gf_fprintf(out, "\n");
 			}
 
