@@ -3689,12 +3689,14 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		}
 
 		dst_args = dst->src_args ? dst->src_args : dst->orig_args;
-
+		//gather source args, but only until previous explicit filter
 		while (a_pid) {
 			GF_FilterPidInst *pidi;
 			args = a_pid->filter->src_args;
 			if (!args) args = a_pid->filter->orig_args;
 			if (args) break;
+			if (!a_pid->filter->dynamic_filter)
+				break;
 			gf_mx_p(a_pid->filter->tasks_mx);
 			pidi = gf_list_get(a_pid->filter->input_pids, 0);
 			gf_mx_v(a_pid->filter->tasks_mx);
@@ -4817,6 +4819,10 @@ single_retry:
 
 			//pid does not allow linking to a new clone
 			if (pid->link_flags & PID_DISABLE_CLONE)
+				continue;
+
+			//filter requires source IDs, do not allow cloning
+			if (filter_dst->require_source_id)
 				continue;
 
 			//explicitly clonable but caps don't match, don't connect to it

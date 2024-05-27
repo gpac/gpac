@@ -8147,7 +8147,8 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (ctx->owns_mov && (ctx->file || (ctx->store>=MP4MX_MODE_FRAG))) {
-		if (ctx->store < MP4MX_MODE_FRAG) {
+		//if PLAY was seen and not in fragmented mode, throw warning
+		if (ctx->force_play && (ctx->store < MP4MX_MODE_FRAG)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Session aborted before writing to file, use fragmented storage mode to record session\n"));
 		}
 		gf_isom_delete(ctx->file);
@@ -8344,7 +8345,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- prof: enabled and write profile if known\n"
 	"- tiny: enabled and write reduced version if profile known and compatible", GF_PROP_UINT, "prof", "off|gen|prof|tiny", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(trunv1), "force using version 1 of trun regardless of media type or CMAF brand", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(rsot), "inject redundant sample timing info when ^resent", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rsot), "inject redundant sample timing information when present", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
