@@ -1066,8 +1066,9 @@ GF_Err av1dmx_parse_av1(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		return GF_OK;
 	}
 
-	return av1dmx_parse_flush_sample(filter, ctx);
-
+	e = av1dmx_parse_flush_sample(filter, ctx);
+	ctx->state.clli_valid = ctx->state.mdcv_valid = 0;
+	return e;
 }
 
 GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
