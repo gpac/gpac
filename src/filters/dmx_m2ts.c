@@ -40,12 +40,27 @@ typedef struct {
 	u32 pid;
 } GF_M2TSDmxCtx_Prog;
 
+typedef enum
+{
+	M2TS_TEMI_INFO,
+	M2TS_ID3,
+	M2TS_SCTE35
+} GF_M2TS_PropType;
+
+#define GF_M2TS_PROP       \
+	GF_M2TS_PropType type; \
+	u32 len;               \
+	u8 *data;              \
+
 typedef struct {
+	GF_M2TS_PROP
+} GF_M2TS_Prop;
+
+typedef struct {
+	GF_M2TS_PROP
 	u32 timeline_id;
 	Bool is_loc;
-	u32 len;
-	u8 *data;
-} GF_TEMIInfo;
+} GF_M2TS_Prop_TEMIInfo;
 
 enum
 {
@@ -53,7 +68,6 @@ enum
 	DMX_TUNE_INIT,
 	DMX_TUNE_WAIT_PROGS,
 	DMX_TUNE_WAIT_SEEK,
-
 };
 
 typedef struct
@@ -354,7 +368,6 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			if (!esd) return;
 			break;
 		case GF_M2TS_METADATA_PES:
-		case GF_M2TS_METADATA_ID3_HLS:
 			stype = GF_STREAM_METADATA;
 			codecid = GF_CODECID_SIMPLE_TEXT;
 			break;
@@ -394,6 +407,12 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			codecid = GF_CODECID_DVB_TELETEXT;
 			stream->flags |= GF_M2TS_ES_FULL_AU;
 			break;
+		case GF_M2TS_METADATA_ID3_HLS:
+		case GF_M2TS_METADATA_ID3_KLVA:
+			gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
+			//fallthrough
+		case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
+			return; //ignore actively: these streams will be attached verbatim as properties to audio and/or video packets
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
@@ -568,6 +587,30 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
 }
 
+static void m2tsdmx_setup_scte35(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
+{
+	u32 count = gf_list_count(prog->streams);
+	for (u32 i=0; i<count; i++) {
+		GF_M2TS_ES *es_scte35 = gf_list_get(prog->streams, i);
+		if (es_scte35->pid==prog->pmt_pid) continue;
+		if (es_scte35->flags & GF_M2TS_GPAC_CODEC_ID) continue;
+		if (es_scte35->stream_type == GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS) {
+			//declare static property on the first video pid to signal scte35 presence
+			//and avoid later dynamic downstream filters' (e.g. muxers) reconfigurations
+			for (u32 j=0; j<count; j++) {
+				GF_M2TS_ES *es = gf_list_get(prog->streams, j);
+				if (!es->user) continue;
+				const GF_PropertyValue *p = gf_filter_pid_get_property(es->user, GF_PROP_PID_STREAM_TYPE);
+				if (!p) continue;
+				if (p->value.uint == GF_STREAM_VISUAL) {
+					gf_filter_pid_set_property(es->user, GF_PROP_PID_SCTE35_PID, &PROP_UINT(es_scte35->pid) );
+					return;
+				}
+			}
+		}
+	}
+}
+
 static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 {
 	u32 i, count;
@@ -599,18 +642,36 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 			count--;
 		}
 	}
+
+	m2tsdmx_setup_scte35(ctx, prog);
 }
 
-static void m2tdmx_merge_temi(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
+static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
 {
 	if (stream->props) {
 		char szID[100];
 		while (gf_list_count(stream->props)) {
-			GF_TEMIInfo *t = gf_list_pop_front(stream->props);
-			snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
+			GF_M2TS_Prop *p = gf_list_pop_front(stream->props);
+			switch(p->type) {
+				case M2TS_TEMI_INFO: {
+					GF_M2TS_Prop_TEMIInfo *t = (GF_M2TS_Prop_TEMIInfo*)p;
+					snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
+					break;
+				}
+				case M2TS_SCTE35:
+					snprintf(szID, 100, "scte35");
+					break;
+				case M2TS_ID3:
+					snprintf(szID, 100, "id3");
+					break;
+				default:
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] unknown property %d - skipping\n", p->type) );
+					gf_free(p);
+					continue;
+			}
 
-			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(t->data, t->len));
-			gf_free(t);
+			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			gf_free(p);
 		}
 		gf_list_del(stream->props);
 		stream->props = NULL;
@@ -619,7 +680,6 @@ static void m2tdmx_merge_temi(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPa
 			stream->flags |= GF_M2TS_ES_TEMI_INFO;
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_TEMI, &PROP_BOOL(GF_TRUE) );
 		}
-		
 	}
 }
 
@@ -718,7 +778,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 			}
 		}
 	}
-	m2tdmx_merge_temi(opid, (GF_M2TS_ES *)pck->stream, dst_pck);
+	m2tdmx_merge_props(opid, (GF_M2TS_ES *)pck->stream, dst_pck);
 
 	if (pck->stream->is_seg_start) {
 		pck->stream->is_seg_start = GF_FALSE;
@@ -797,7 +857,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	gf_filter_pck_set_carousel_version(dst_pck, pck->version_number);
 
-	m2tdmx_merge_temi(opid, pck->stream, dst_pck);
+	m2tdmx_merge_props(opid, pck->stream, dst_pck);
 	if (pck->stream->is_seg_start) {
 		pck->stream->is_seg_start = GF_FALSE;
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
@@ -1030,7 +1090,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		u32 len;
 		GF_BitStream *bs;
 		GF_M2TS_ES *es=NULL;
-		GF_TEMIInfo *t;
+		GF_M2TS_Prop_TEMIInfo *t;
 		if ((temi_l->pid<8192) && (ctx->ts->ess[temi_l->pid])) {
 			es = ctx->ts->ess[temi_l->pid];
 		}
@@ -1038,7 +1098,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] TEMI location not assigned to a given PID, not supported\n"));
 			break;
 		}
-		GF_SAFEALLOC(t, GF_TEMIInfo);
+		GF_SAFEALLOC(t, GF_M2TS_Prop_TEMIInfo);
 		if (!t) break;
 		t->timeline_id = temi_l->timeline_id;
 		t->is_loc = GF_TRUE;
@@ -1072,7 +1132,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	{
 		GF_M2TS_TemiTimecodeDescriptor *temi_t = (GF_M2TS_TemiTimecodeDescriptor*)param;
 		GF_BitStream *bs;
-		GF_TEMIInfo *t;
+		GF_M2TS_Prop_TEMIInfo *t;
 		GF_M2TS_ES *es=NULL;
 		if ((temi_t->pid<8192) && (ctx->ts->ess[temi_t->pid])) {
 			es = ctx->ts->ess[temi_t->pid];
@@ -1081,8 +1141,9 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] TEMI timing not assigned to a given PID, not supported\n"));
 			break;
 		}
-		GF_SAFEALLOC(t, GF_TEMIInfo);
+		GF_SAFEALLOC(t, GF_M2TS_Prop_TEMIInfo);
 		if (!t) break;
+		t->type = M2TS_TEMI_INFO;
 		t->timeline_id = temi_t->timeline_id;
 
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -1106,12 +1167,91 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		gf_list_add(es->props, t);
 	}
 	break;
+	case GF_M2TS_EVT_ID3:
+	{
+		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
+		GF_BitStream *bs;
+		GF_M2TS_Prop *t;
+		u32 count = gf_list_count(pck->stream->program->streams);
+		for (i=0; i<count; i++) {
+			GF_M2TS_PES *es = gf_list_get(pck->stream->program->streams, i);
+			if (!es->user) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] ID3 metadata not assigned to a given PID, not supported\n"));
+				continue;
+			}
+
+			// attach ID3 markers to audio
+			GF_FilterPid *opid = (GF_FilterPid *)es->user;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(opid, GF_PROP_PID_STREAM_TYPE);
+			if (!p) return;
+			if (p->value.uint != GF_STREAM_AUDIO)
+				continue;
+
+			GF_SAFEALLOC(t, GF_M2TS_Prop);
+			if (!t) break;
+			t->type = M2TS_ID3;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(bs, 90000);                     // timescale
+			gf_bs_write_u64(bs, pck->PTS);                  // pts
+			gf_bs_write_u32(bs, pck->data_len);				// data length (bytes)
+			gf_bs_write_data(bs, pck->data, pck->data_len); // data
+			gf_bs_get_content(bs, &t->data, &t->len);
+			gf_bs_del(bs);
+
+			if (!es->props) {
+				es->props = gf_list_new();
+			}
+			gf_list_add(es->props, t);
+		}
+	}
+	break;
+	case GF_M2TS_EVT_SCTE35_SPLICE_INFO:
+	{
+		GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK*)param;
+		GF_BitStream *bs;
+		GF_M2TS_Prop *t;
+
+		// convey SCTE35 splice info to all streams of the program
+		u32 count = gf_list_count(pck->stream->program->streams);
+		for (i=0; i<count; i++) {
+			GF_M2TS_PES *es = gf_list_get(pck->stream->program->streams, i);
+			if (!es->user) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] SCTE35 section not assigned to a given PID, not supported\n"));
+				continue;
+			}
+
+			// attach SCTE35 info to video only
+			GF_FilterPid *opid = (GF_FilterPid *)es->user;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(opid, GF_PROP_PID_STREAM_TYPE);
+			if (!p) return;
+			if (p->value.uint != GF_STREAM_VISUAL)
+				continue;
+
+			GF_SAFEALLOC(t, GF_M2TS_Prop);
+			if (!t) break;
+			t->type = M2TS_SCTE35;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			// ANSI/SCTE 67 2017 (13.1.1.3): "the entire SCTE 35 splice_info_section starting at the table_id and ending with the CRC_32"
+			gf_bs_write_data(bs, pck->data, pck->data_len);
+			gf_bs_get_content(bs, &t->data, &t->len);
+			gf_bs_del(bs);
+
+			if (!es->props) {
+				es->props = gf_list_new();
+			}
+			gf_list_add(es->props, t);
+
+			// send SCTE35 info only to the first video pid
+			break;
+		}
+	}
+	break;
 	case GF_M2TS_EVT_STREAM_REMOVED:
 	{
 		GF_M2TS_ES *es = (GF_M2TS_ES *)param;
 		if (es && es->props) {
 			while (gf_list_count(es->props)) {
-				GF_TEMIInfo *t = gf_list_pop_back(es->props);
+				GF_M2TS_Prop *t = gf_list_pop_back(es->props);
 				gf_free(t->data);
 				gf_free(t);
 			}

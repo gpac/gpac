@@ -259,7 +259,7 @@ struct __gf_filter_pck
 
 	GF_FilterFrameInterface *frame_ifce;
 	
-	// properties applying to this packet
+	//properties applying to this packet
 	GF_PropertyMap *props;
 	//pid properties applying to this packet
 	GF_PropertyMap *pid_props;
@@ -268,7 +268,6 @@ struct __gf_filter_pck
 	//note that packets with frame_ifce are always considered as read-only memory
 	u8 filter_owns_mem;
 	u8 is_dangling;
-
 };
 
 /*!
@@ -1106,7 +1105,6 @@ struct __gf_filter_pid
 	volatile u32 num_pidinst_del_pending;
 
 	u32 link_flags;
-
 };
 
 

@@ -46,7 +46,7 @@ static u32 XML_MAX_CONTENT_SIZE = 0;
 
 static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current);
 
-static char *xml_translate_xml_string(char *str)
+GF_STATIC char *xml_translate_xml_string(char *str)
 {
 	char *value;
 	u32 size, i, j;

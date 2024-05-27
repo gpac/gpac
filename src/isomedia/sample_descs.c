@@ -1737,6 +1737,39 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_nu
 	return e;
 }
 
+GF_EXPORT
+GF_Err gf_isom_evte_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_EventMessageSampleEntryBox *entry;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, NULL, NULL, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(the_file, trak->Media->information->dataInformation->dref, NULL, NULL, &dataRefIndex);
+		if (e) return e;
+	}
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	entry = (GF_EventMessageSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EVTE);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->dataReferenceIndex = dataRefIndex;
+	gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);
+	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
+
+	return e;
+}
+
 GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const char *URLname, const char *URNname, u32 *outDescriptionIndex, u8 *dsi, u32 dsi_size, u32 mha_subtype)
 {
 	GF_TrackBox *trak;
