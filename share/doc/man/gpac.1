@@ -165,6 +165,11 @@ specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)
 force complete mode when no link directive are set - see filters help (-h doc)
 .br
 .TP
+.B \-sid
+.br
+force source IDs to be present when attempting to link - see filters help (-h doc)
+.br
+.TP
 .B \-step
 .br
 test step mode in non-blocking session
@@ -1744,6 +1749,8 @@ For each filter DST accepting a connection from the PID, directly or with interm
 In all linking modes, a filter can prevent being linked to a filter with no link directives by setting RSID option on the filter.
 .br
 This is typically needed when dynamically inserting/removing filters in an existing session where some filters have no ID defined and are not desired for the inserted chain.
+.br
+A filter with RSID set is not clonable.
 .br
 
 .br

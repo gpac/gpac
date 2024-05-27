@@ -182,6 +182,7 @@ const char *gpac_doc =
 "\n"
 "In all linking modes, a filter can prevent being linked to a filter with no link directives by setting `RSID` option on the filter.\n"
 "This is typically needed when dynamically inserting/removing filters in an existing session where some filters have no ID defined and are not desired for the inserted chain.\n"
+"A filter with `RSID` set is not clonable.\n"
 "\n"
 "EX gpac -i file.mp4 c=avc -o output\n"
 "With this setup in __implicit mode__:\n"
@@ -747,6 +748,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("ibx", NULL, "specify an input file to wrap as GF_FileIO object without caching (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("ob", NULL, "specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("cl", NULL, "force complete mode when no link directive are set - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("sid", NULL, "force source IDs to be present when attempting to link - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 	GF_DEF_ARG("step[=FPS[:STEPS]", NULL, "configure step mode in non-blocking session (enabled by default if no worker). Step mode is driven by requestAnimationFrame\n"
