@@ -172,6 +172,7 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 		maxSectionLength = 4096;
 		break;
 	case GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO:
+		maxSectionLength = 1024;
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Cannot create sections for table id %d\n", stream->pid, table_id));
