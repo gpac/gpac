@@ -372,6 +372,11 @@ set maximum chain length when resolving filter links. Default value covers for [
 set maximum sleep time slot in milliseconds when regulation is enabled
 .br
 .TP
+.B \-step-link
+.br
+load filters one by one when solvink a link instead of loading all filters for the solved path
+.br
+.TP
 .B \-threads (int)
 .br
 set N extra thread for the session. -1 means use all available cores
@@ -1135,6 +1140,11 @@ set maximum chain length when resolving filter links. Default value covers for [
 .B \-max-sleep (int, default: 50)
 .br
 set maximum sleep time slot in milliseconds when regulation is enabled
+.br
+.TP
+.B \-step-link
+.br
+load filters one by one when solvink a link instead of loading all filters for the solved path
 .br
 .TP
 .B \-threads (int)
@@ -5028,6 +5038,16 @@ FFmpeg unmapped codec
 .B tmcd
 .br
 QT TimeCode
+.br
+.TP
+.B scte
+.br
+SCTE35
+.br
+.TP
+.B evte
+.br
+Event Messages
 .br
 .TP
 .B vvc|266|h266
