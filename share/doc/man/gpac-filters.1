@@ -2185,7 +2185,7 @@ The filter watches the following custom data properties on incoming packets:
 .br
 The property grp_EMSG consists in one or more EventMessageBox as defined in MPEG-DASH.
 .br
-- in fragmented mode, presence of these boxes in a packet will start a new fragment, with the boxes written before the moof
+- in fragmented mode, presence of this property in a packet will start a new fragment, with the boxes written before the moof
 .br
 - in regular mode, an internal sample group of type EMSG is currently used for emsg box storage
 .br
@@ -9631,6 +9631,28 @@ Only a subset of CEA 608/708 is supported.
 
 .br
 No options
+.br
+
+.br
+.SH scte35dec
+.LP
+.br
+Description: SCTE35 decoder
+.br
+
+.br
+This filter extracts SCTE-35 markers attached as properties to audio and video
+.br
+packets as 23001-18 'emib' boxes. It also creates empty 'emeb' box in between
+.br
+following segmentation as hinted by the graph.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+segdur (frac, default: 1/1):   segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)
 .br
 
 .br

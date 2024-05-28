@@ -3624,6 +3624,10 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 		const char *args = pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
 		GF_Filter *prev_af;
+		Bool use_step_link = GF_FALSE;
+		if (!min_chain_len) {
+			use_step_link = gf_opts_get_bool("core", "step-link");
+		}
 
 		if (skip_if_in_filter_list) {
 			gf_assert(skipped);
@@ -3748,9 +3752,10 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 					cur_bundle++;
 				}
 			}
+
 			//if first filter has multiple possible outputs, don't bother loading the entire chain since it is likely wrong
 			//(eg demuxers, we don't know yet what's in the file)
-			if (!i && gf_filter_out_caps_solved_by_connection(freg, bundle_idx)) {
+			if (!i && (use_step_link || gf_filter_out_caps_solved_by_connection(freg, bundle_idx))) {
 				load_first_only = GF_TRUE;
 			} else if (i) {
 				Bool break_chain = GF_FALSE;

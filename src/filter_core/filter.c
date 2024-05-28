@@ -296,6 +296,13 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	u32 i;
 	if (!fsess) return NULL;
 
+	//check if this is a sink, if so move to GF_FILTER_ARG_EXPLICIT_SINK (for force_demux setup)
+	if (src_args && (arg_type == GF_FILTER_ARG_EXPLICIT)) {
+		char *dst_arg = strstr(src_args, "dst");
+		if (dst_arg && (dst_arg[3]==fsess->sep_name))
+			arg_type = GF_FILTER_ARG_EXPLICIT_SINK;
+	}
+
 	GF_SAFEALLOC(filter, GF_Filter);
 	if (!filter) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc filter for %s\n", freg->name));
