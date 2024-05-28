@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML demuxer filter
@@ -1355,6 +1355,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		if (stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) {
 			if (!strcmp(node->name, "NHNTReconfig")) {
 				nhmldmx_config_output(filter, ctx, node);
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Unknown XML node %s in %s - ignoring\n", node->name, ctx->is_dims ? "DIMSStream" : "NHNTStream"));
 			}
 			continue;
 		}
