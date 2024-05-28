@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS reframer filter
@@ -601,6 +601,10 @@ restart:
 			ctx->latm_buffer_size -= pos;
 		} else {
 			ctx->latm_buffer_size = 0;
+		}
+		if (!ctx->src_pck) {
+			ctx->src_pck = pck;
+			gf_filter_pck_ref_props(&ctx->src_pck);
 		}
 		gf_filter_pid_drop_packet(ctx->ipid);
 		gf_assert(!ctx->resume_from);

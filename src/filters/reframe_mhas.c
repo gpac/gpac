@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2023
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS reframer filter
@@ -725,9 +725,8 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			if (!has_cfg)
 				mhas_sap = 0;
 
-			if (mhas_sap) {
-				gf_filter_pck_set_sap(dst, GF_FILTER_SAP_1);
-			}
+			gf_filter_pck_set_sap(dst, mhas_sap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+
 			gf_filter_pck_set_dts(dst, ctx->cts);
 			gf_filter_pck_set_cts(dst, ctx->cts);
 			gf_filter_pck_set_duration(dst, (u32) pck_dur);
@@ -796,10 +795,15 @@ skip:
 	if (!ctx->mhas_buffer_size) {
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 		ctx->src_pck = NULL;
+	} else if (in_pck && !ctx->src_pck) {
+		ctx->src_pck = in_pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
 	}
 
-	if (in_pck)
+
+	if (in_pck) {
 		gf_filter_pid_drop_packet(ctx->ipid);
+	}
 
 	return GF_OK;
 }
