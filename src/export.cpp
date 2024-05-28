@@ -2353,7 +2353,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_dolby_chanmap) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_dolby_chanmap_from_layout) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_to_isobmf) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_sname) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
