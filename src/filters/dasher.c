@@ -5990,12 +5990,13 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 		ctx->current_period->period->duration = 0;
 	}
 
+	u32 as_idx;
 	nb_as = gf_list_count(ctx->current_period->period->adaptation_sets);
-	for (j=0; j<nb_as; j++) {
+	for (as_idx=0; as_idx<nb_as; as_idx++) {
 		GF_DashStream *set_ds = NULL;
 		GF_List *multi_pids = NULL;
 		Bool use_multi_pid_init = GF_FALSE;
-		GF_MPD_AdaptationSet *set = gf_list_get(ctx->current_period->period->adaptation_sets, j);
+		GF_MPD_AdaptationSet *set = gf_list_get(ctx->current_period->period->adaptation_sets, as_idx);
 		nb_rep = gf_list_count(set->representations);
 		for (k=0; k<nb_rep; k++) {
 			GF_DashStream *ds;
