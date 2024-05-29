@@ -2027,6 +2027,19 @@ void gf_m2ts_mux_program_force_keep_ts(GF_M2TS_Mux_Program *program);
 */
 void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *muxer, u32 refresh_rate_ms);
 
+/*! update a given table
+\param stream target stream carrying the section
+\param table_id ID of the table
+\param table_id_extension extended ID of the table
+\param table_payload payload to send
+\param table_payload_length payload length to send
+\param use_syntax_indicator  inject section syntax extension (extended ID and fragmentation info of the table)
+\param private_indicator private indicator flag of section header
+*/
+void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_extension,
+                              u8 *table_payload, u32 table_payload_length,
+                              Bool use_syntax_indicator, Bool private_indicator);
+
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 
 
