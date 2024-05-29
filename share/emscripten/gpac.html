@@ -1206,7 +1206,7 @@
             prev_filter = f;
             let res = LIBGPAC.getValue(e, 'i32');
             LIBGPAC._free(e);
-            set_status("added filter "+args[1]+ " returned " + res);
+            set_status("added filter "+args[1]+ " returned: " + LIBGPAC.e2s(res));
             return;
           }
           if (args[0]=='r') {
@@ -1246,10 +1246,13 @@
               var c_str = LIBGPAC.getValue(p_str, "i32");
               var chain = LIBGPAC.UTF8ToString(c_str);
               LIBGPAC.free(c_str);
-              set_text('resolved chain from ' + LIBGPAC.filter_get_name(prev_filter) + ' to ' + n + ' is: ' + chain);
+              if (chain.length)
+                set_text('resolved chain from ' + LIBGPAC.filter_get_name(prev_filter) + ' to ' + n + ' is: ' + chain);
+              else
+                set_text('Direct connection from from ' + LIBGPAC.filter_get_name(prev_filter) + ' to ' + n + ' is possible');
             }
             LIBGPAC._free(p_str);
-            return set_status(res ? ('Failed'+res) : 'OK');
+            return set_status(res ? ('Failed: '+ LIBGPAC.e2s(res) ) : 'OK');
           }
           if (args[0]=='l') {
             let idx=-1;
@@ -2282,6 +2285,7 @@
         _lib.free = LIBGPAC.cwrap('gf_url_free', null, ['number']);
 
         _lib.log_set_tools_levels = LIBGPAC.cwrap('gf_log_set_tools_levels', 'number', ['string', 'number']);
+        _lib.e2s = LIBGPAC.cwrap('gf_error_to_string', 'string', ['number']);
 
         //load basic filter session api
         _lib.fs_new_defaults = LIBGPAC.cwrap('gf_fs_new_defaults', 'number', ['number']);
