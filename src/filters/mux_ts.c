@@ -402,17 +402,13 @@ static void tsmux_check_mpd_start_time(GF_TSMuxCtx *ctx, GF_FilterPacket *pck)
 	}
 }
 
-void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_extension,
-                              u8 *table_payload, u32 table_payload_length,
-                              Bool use_syntax_indicator, Bool private_indicator,
-                              Bool use_checksum);
 static u32 tsmux_stream_process_scte35(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
 	if (stream->table_needs_update) { /* generate table payload */
 		GF_TSMuxCtx *ctx = ((M2Pid*)stream->ifce->input_udta)->ctx;
 		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO, stream->program->number,
 			ctx->scte35_payload+3, ctx->scte35_size-3, // remove redundancy since payload already contains an entire SCTE 35 splice_info_section
-			GF_FALSE, GF_FALSE, GF_FALSE);
+			GF_FALSE, GF_FALSE);
 		ctx->scte35_size = 0;
 		gf_free(ctx->scte35_payload);
 		ctx->scte35_payload = NULL;
