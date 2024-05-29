@@ -5245,6 +5245,18 @@ This will put video segments and playlist in dash/video/ and audio segments and 
 .br
 
 .br
+When reloading a DASH context using .I state, PIDs are reassigned by checking that the PID ID match between the calls and:
+.br
+- the input file names match between the calls
+.br
+- or the representation ID (and period ID if sepcified) match between the calls
+.br
+
+.br
+If a PID is not matched, it will be assigned to a new period.
+.br
+
+.br
 .SS Segmentation
 .br
 The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.
