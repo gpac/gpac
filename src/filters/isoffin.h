@@ -66,7 +66,8 @@ typedef struct
 	Bool alltk;
 	u32 frame_size;
 	char* tkid;
-	Bool analyze;
+	u32 analyze;
+	Bool norw;
 	u32 xps_check;
 	char *catseg;
 	Bool sigfrag;
