@@ -4402,11 +4402,18 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	if ((out_stream_type>0) && (out_stream_type!=stream_type->value.uint))
 		return GF_TRUE;
 
+	Bool has_excluded_nomatch=GF_FALSE;
 	for (i=0; i<nb_caps; i++) {
 		const GF_FilterCapability *cap = &caps[i];
 		if (!(cap->flags & GF_CAPFLAG_INPUT)) continue;
 
 		if (cap->code != GF_PROP_PID_STREAM_TYPE) continue;
+
+		if (cap->flags & GF_CAPFLAG_EXCLUDED) {
+			if (cap->val.value.uint==stream_type->value.uint) return GF_TRUE;
+			has_excluded_nomatch=GF_TRUE;
+		}
+
 		//output type is file or same media type, allow looking for filter chains
 		if ((cap->val.value.uint==GF_STREAM_FILE) || (cap->val.value.uint==stream_type->value.uint)) return GF_FALSE;
 		//allow text|scene|video -> raw video for dynamic compositor
@@ -4421,6 +4428,8 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 			}
 		}
 	}
+	if (has_excluded_nomatch) return GF_FALSE;
+	
 	//no mathing type found, we will need an explicit filter to solve this link (ie the link will be to the explicit filter)
 	return GF_TRUE;
 }
