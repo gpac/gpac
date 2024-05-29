@@ -5751,8 +5751,9 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 		ds->rep->dasher_ctx->multi_pids = ds->multi_pids ? GF_TRUE : GF_FALSE;
 		ds->rep->dasher_ctx->dash_dur = ds->dash_dur;
 
-		if (strcmp(ds->period_id, DEFAULT_PERIOD_ID))
-			ds->rep->dasher_ctx->period_id = ds->period_id;
+		if (strcmp(ds->period_id, DEFAULT_PERIOD_ID)) {
+			ds->rep->dasher_ctx->period_id = gf_strdup(ds->period_id);
+		}
 
 		ds->rep->dasher_ctx->owns_set = (ds->set->udta == ds) ? GF_TRUE : GF_FALSE;
 
@@ -5775,20 +5776,33 @@ void dasher_context_update_period_start(GF_DasherCtx *ctx)
 	}
 }
 
-static GF_DashStream *dasher_get_stream(GF_DasherCtx *ctx, const char *src_url, u32 original_pid, u32 pid_id)
+static GF_DashStream *dasher_get_stream(GF_DasherCtx *ctx, const char *src_url, u32 original_pid, const char *original_period_id, const char *original_rep_id)
 {
 	u32 i, count = gf_list_count(ctx->pids);
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->pids, i);
-		if (pid_id && (ds->pid_id==pid_id)) return ds;
-		if (src_url && ds->src_url && !strcmp(ds->src_url, src_url) && (ds->id == original_pid) ) return ds;
+		if (ds->id != original_pid) continue;
+		const char *period_id = ds->period_id;
+		if (ds->period_id && !strcmp(ds->period_id, DEFAULT_PERIOD_ID))
+			period_id = NULL;
+
+		if ((!period_id && !original_period_id)
+			|| (period_id && original_period_id && !strcmp(period_id, original_period_id))
+		) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_REP_ID);
+			if (original_rep_id && p && p->value.string && !strcmp(original_rep_id, p->value.string)) {
+				return ds;
+			}
+		}
+		if (src_url && ds->src_url && !strcmp(ds->src_url, src_url) ) return ds;
 	}
 	return NULL;
 }
 
-static GF_Err dasher_reload_muxed_comp(GF_DasherCtx *ctx, GF_DashStream *base_ds, char *mux_pids, Bool check_only)
+static GF_Err dasher_reload_muxed_comp(GF_DasherCtx *ctx, GF_DashStream *base_ds, GF_MPD_Representation *base_rep_ctx, Bool check_only)
 {
 	GF_Err e = GF_OK;
+	char *mux_pids = base_rep_ctx->dasher_ctx->mux_pids;
 	while (mux_pids) {
 		u32 pid_id;
 		GF_DashStream *ds;
@@ -5796,7 +5810,7 @@ static GF_Err dasher_reload_muxed_comp(GF_DasherCtx *ctx, GF_DashStream *base_ds
 		if (sep) sep[0] = 0;
 
 		pid_id = atoi(mux_pids);
-		ds = dasher_get_stream(ctx, base_ds->src_url, pid_id, 0);
+		ds = dasher_get_stream(ctx, base_ds->src_url, pid_id, base_rep_ctx->dasher_ctx->period_id, base_rep_ctx->id);
 		if (ds) {
 			if (!check_only) {
 				if (ds->rep) gf_mpd_representation_free(ds->rep);
@@ -5895,12 +5909,12 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				if (! rep->dasher_ctx) continue;
 
 				//ensure we have the same settings - if not consider the dash stream has been resetup for a new period
-				ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, 0);
+				ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, rep->dasher_ctx->period_id, rep->id);
 				if (!ds) {
 					rep->dasher_ctx->done = 1;
 					nb_done_in_period++;
-					if (rep->dasher_ctx->last_dyn_period_id >= ctx->last_dyn_period_id)
-						ctx->last_dyn_period_id = 1 + rep->dasher_ctx->last_dyn_period_id;
+					if (rep->dasher_ctx->last_dyn_period_id > ctx->last_dyn_period_id)
+						ctx->last_dyn_period_id = rep->dasher_ctx->last_dyn_period_id;
 					continue;
 				}
 
@@ -5934,7 +5948,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				}
 				//check we can reload muxed components - if not consider this source as removed
 				if (rep->dasher_ctx->mux_pids) {
-					e = dasher_reload_muxed_comp(ctx, ds, rep->dasher_ctx->mux_pids, GF_TRUE);
+					e = dasher_reload_muxed_comp(ctx, ds, rep, GF_TRUE);
 					if (e) {
 						rep->dasher_ctx->done = 1;
 						nb_done_in_period++;
@@ -5988,7 +6002,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			GF_MPD_Representation *rep = gf_list_get(set->representations, k);
 			if (! rep->dasher_ctx) continue;
 
-			ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, 0);
+			ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, rep->dasher_ctx->period_id, rep->id);
 			if (!ds) continue;
 
 			//restore everything
@@ -6097,7 +6111,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 
 			if (rep->dasher_ctx->mux_pids) {
-				e = dasher_reload_muxed_comp(ctx, ds, rep->dasher_ctx->mux_pids, GF_FALSE);
+				e = dasher_reload_muxed_comp(ctx, ds, rep, GF_FALSE);
 				if (e) return e;
 			}
 		}
@@ -6576,12 +6590,15 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 	//assign period ID if none specified
-	if (strcmp(period_id, DEFAULT_PERIOD_ID))
+	if (strcmp(period_id, DEFAULT_PERIOD_ID)) {
+		if (ctx->current_period->period->ID) gf_free(ctx->current_period->period->ID);
 		ctx->current_period->period->ID = gf_strdup(period_id);
+	}
 	//assign ID if dynamic - if dash_ctx also assign ID since we could have moved from dynamic to static
 	else if (!ctx->current_period->period->ID && ((ctx->dmode != GF_MPD_TYPE_STATIC) || ctx->state) ) {
 		char szPName[50];
 		sprintf(szPName, "DID%d", ctx->last_dyn_period_id + 1);
+		if (ctx->current_period->period->ID) gf_free(ctx->current_period->period->ID);
 		ctx->current_period->period->ID = gf_strdup(szPName);
 	}
 
@@ -10807,6 +10824,12 @@ GF_FilterRegister DasherRegister = {
 "When HLS mode is enabled, the segment [-template]() is relative to the variant playlist file, which can also be templated.\n"
 "EX gpac -i av.mp4:#HLSPL=$Type$/index.m3u8 -o dash/live.m3u8:dual:template='$Number$'\n"
 "This will put video segments and playlist in `dash/video/` and audio segments and playlist in `dash/audio/`\n"
+"\n"
+"When reloading a DASH context using [-state](), PIDs are reassigned by checking that the PID ID match between the calls and:\n"
+"- the input file names match between the calls\n"
+"- or the representation ID (and period ID if specified) match between the calls\n"
+"\n"
+"If a PID is not matched, it will be assigned to a new period.\n"
 "\n"
 "## Segmentation\n"
 "The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.\n"
