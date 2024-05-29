@@ -2098,8 +2098,8 @@ refetch_streams:
 				RTStream *st = gf_filter_pid_get_udta(ipid);
 				if (!st->is_playing) continue;
 				gf_assert(st->range_start_computed || st->in_eos);
-				//eos
-				if (st->range_start_computed==2) {
+				//eos and no packets queued
+				if (!gf_list_count(st->pck_queue) && (st->range_start_computed==2)) {
 					continue;
 				}
 				//packet will be reinserted at cut time, do not check its timestamp
