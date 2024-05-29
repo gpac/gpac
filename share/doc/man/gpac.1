@@ -1563,7 +1563,7 @@ This will fail to extract it and keep :opt=VAL as part of the URL.
 .br
 The escape mechanism is not needed for local source, for which file existence is probed during argument parsing. It is also not needed for builtin protocol handlers (avin://, video://, audio://, pipe://)
 .br
-For tcp:// and udp:// protocols, the escape is not needed if a trailing / is appended after the port number.
+For schemes not using a server path, e.g. tcp:// and udp://, the escape is not needed if a trailing / is appended after the port number.
 .br
 Example
 .br
@@ -1585,7 +1585,7 @@ Note: one trick to avoid the escape sequence is to declare the URLs option at th
 .br
 
 .br
-It is possible to disable option parsing (for string options) by duplicating the separator.
+It is possible to locally disable option parsing (usefull for string options) by duplicating the separator.
 .br
 Example
 .br

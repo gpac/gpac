@@ -938,6 +938,8 @@ ctso (sint):                   value to add to CTS offset for tracks using negat
 .br
 
 .br
+norw (bool, default: false):   skip reformating of samples - should only be used when rewriting fragments
+.br
 
 .br
 .SH bifsdec
@@ -5249,7 +5251,7 @@ When reloading a DASH context using .I state, PIDs are reassigned by checking th
 .br
 - the input file names match between the calls
 .br
-- or the representation ID (and period ID if sepcified) match between the calls
+- or the representation ID (and period ID if specified) match between the calls
 .br
 
 .br

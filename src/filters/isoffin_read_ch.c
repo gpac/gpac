@@ -1009,7 +1009,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 		return;
 	}
 	//analyze mode, do not rewrite
-	if (ch->owner->analyze) return;
+	if (ch->owner->analyze || ch->owner->norw) return;
 
 	//we cannot touch the payload if encrypted but no SAI buffer
 	if (ch->pck_encrypted && !ch->sai_buffer)
