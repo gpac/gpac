@@ -285,11 +285,11 @@ const char *gf_xml_dom_get_error(GF_DOMParser *parser);
 */
 u32 gf_xml_dom_get_line(GF_DOMParser *parser);
 
-/*! Force marking all text nodes as unchecked , so that re-serializing performs checks
+/*! Enable marking all text nodes as already validated , so that re-serializing will skip text string checking
 \param dom the dom parser
 \return error if any
  */
-GF_Err gf_xml_dom_force_check(GF_DOMParser *dom);
+GF_Err gf_xml_dom_enable_passthrough(GF_DOMParser *dom);
 
 /*! Gets the number of root nodes in the document (not XML compliant, but used in DASH for remote periods)
 \param parser the DOM parser to use
