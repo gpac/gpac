@@ -660,6 +660,7 @@ static GF_BlobRangeStatus routedmx_check_blob_range(GF_Blob *blob, u64 start_off
 			return GF_BLOB_RANGE_VALID;
 		}
 	}
+	gf_mx_v(blob->mx);
 	if (blob->flags & GF_BLOB_IN_TRANSFER)
 		return GF_BLOB_RANGE_IN_TRANSFER;
 	return GF_BLOB_RANGE_CORRUPTED;
