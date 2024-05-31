@@ -855,6 +855,13 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 					es_info_length += 2 + dv_len;
 				}
 				break;
+			case GF_M2TS_HLS_AC3_CRYPT:
+			case GF_M2TS_HLS_EC3_CRYPT:
+			case GF_M2TS_HLS_AAC_CRYPT:
+			case GF_M2TS_HLS_AVC_CRYPT:
+				es_info_length += 6;
+				break;
+
 			default:
 				if (es->ifce->codecid==GF_CODECID_DVB_SUBS) {
 					es_info_length += 2 + 5+3;
@@ -1002,6 +1009,27 @@ static u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 				gf_bs_write_int(bs, GF_M2TS_DVB_PRIVATE_DATA_SPECIFIER_DESCRIPTOR, 8);
 				gf_bs_write_int(bs, 4, 8);
 				gf_bs_write_u32(bs, GF_4CC('A', 'O', 'M', 'S'));
+				break;
+
+			case GF_M2TS_HLS_AC3_CRYPT:
+				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
+				gf_bs_write_u8(bs, 4);
+				gf_bs_write_u32(bs,	GF_4CC('a', 'c', '3', 'd'));
+				break;
+			case GF_M2TS_HLS_EC3_CRYPT:
+				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
+				gf_bs_write_u8(bs, 4);
+				gf_bs_write_u32(bs,	GF_4CC('e', 'c', '3', 'd'));
+				break;
+			case GF_M2TS_HLS_AAC_CRYPT:
+				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
+				gf_bs_write_u8(bs, 4);
+				gf_bs_write_u32(bs,	GF_4CC('a', 'a', 'c', 'd'));
+				break;
+			case GF_M2TS_HLS_AVC_CRYPT:
+				gf_bs_write_u8(bs,	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR);
+				gf_bs_write_u8(bs, 4);
+				gf_bs_write_u32(bs,	GF_4CC('z', 'a', 'v', 'c'));
 				break;
 
 			default:
