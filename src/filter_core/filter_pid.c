@@ -1754,6 +1754,12 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	//check for built-in property
 	p4cc = gf_props_get_id(frag_name);
 
+	//if pid is from a source filter (no inputs) of type file, allow further connection as PIDNAME is likely the name of a demuxed PID
+	if ((p4cc==GF_PROP_PID_STREAM_TYPE) && (stream_type == GF_STREAM_FILE) && !src_pid->filter->num_input_pids) {
+		psep[0] = c;
+		return GF_TRUE;
+	}
+
 	if (!p4cc && (strlen(frag_name)==4))
 		p4cc = GF_4CC(frag_name[0], frag_name[1], frag_name[2], frag_name[3]);
 
