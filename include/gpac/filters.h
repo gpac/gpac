@@ -2159,7 +2159,7 @@ enum
 	GF_CAPFLAG_LOADED_FILTER = 1<<4,
 	/*! indicates that this capability (input or output) applies to all following bundles. This avoids repeating capabilities common to all bundles by setting them only in the first*/
 	GF_CAPFLAG_STATIC = 1<<5,
-	/*! Only used for input capabilities, indicates that this capability is optional in the input PID */
+	/*! Currently only used for output  capabilities, indicates that this capability is optional in the  PID */
 	GF_CAPFLAG_OPTIONAL = 1<<6,
 };
 

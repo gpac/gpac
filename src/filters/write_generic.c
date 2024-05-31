@@ -2105,7 +2105,7 @@ static GF_Err ttmlmerge_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-/* writeuf: same as writegen but declare unframed output cap rather than mime / ext , used to force unframed format for all streams handled by writegen */
+/* ttml merger: we reuse writegen logic for TTML merging, but keeping sample timing*/
 static GF_FilterCapability TTMLMergeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
@@ -2118,7 +2118,7 @@ const GF_FilterRegister TTMLMergeRegister = {
 	.name = "ttmlmerge",
 	GF_FS_SET_DESCRIPTION("TTML sample merger")
 	GF_FS_SET_HELP("Merge input samples into a single TTML sample. Merging restarts at the start of DASH segments.\n")
-	.flags = GF_FS_REG_EXPLICIT_ONLY,
+//	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.private_size = sizeof(GF_GenDumpCtx),
 	.initialize = ttmlmerge_initialize,
 	.finalize = writegen_finalize,
