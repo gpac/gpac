@@ -4044,6 +4044,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Bool use_intra_only = GF_FALSE;
 	Bool use_init = GF_FALSE;
 	Bool use_ind_segments = GF_TRUE;
+	Bool use_saes_crypto = GF_FALSE;
 	Bool is_fmp4 = GF_FALSE;
 	char *szVariantName;
 	char *m3u8_name_rad, *sep, *force_base_url=NULL;
@@ -4087,6 +4088,8 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			else if (rep->streamtype==GF_STREAM_TEXT) nb_subs++;
 			else if (rep->streamtype==GF_STREAM_VISUAL) nb_video++;
 
+			if (rep->crypto_type==2) use_saes_crypto = GF_TRUE;
+
 			if (!has_cc) {
 				u32 k;
 				for (k=0; k<rep->nb_hls_master_tags; k++) {
@@ -4101,7 +4104,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	//we by default use floating point durations
 	hls_version = 3;
 	if (use_range) hls_version = 4;
-	if (use_intra_only) hls_version = 5;
+	if (use_intra_only || use_saes_crypto) hls_version = 5;
 	if (is_fmp4 || use_init || has_cc) hls_version = 6;
 
 	if (mode!=GF_M3U8_WRITE_CHILD) {

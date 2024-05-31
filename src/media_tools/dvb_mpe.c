@@ -657,7 +657,7 @@ u32  descriptorDSMCC_INT_UNT(GF_M2TS_IP_Stream *ip_str,u8 *data)
 	switch (id) {
 
 
-	case GF_M2TS_DVB_TARGET_IP_SLASH_DESCRIPTOR:
+	case GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR:
 	{
 
 		gf_m2ts_target_ip(ip_str,data);
