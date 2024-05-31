@@ -961,7 +961,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			else {
 				sprintf(szSourceID, "%s", frag_val);
 			}
-			if (fID || !strcmp(frag_val, "audio") || !strcmp(frag_val, "video")) {
+			if (fID || !strcmp(frag_val, "audio") || !strcmp(frag_val, "video") || (strlen(frag_val)==4)) {
 				//we set tkid for demuxers able to fetch specific tracks (eg isobmf)
 				sprintf(szArg, "tkid=%s", frag_val);
 				e |= gf_dynstrcat(&args, szArg, ":");
