@@ -2039,6 +2039,8 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 	ctx->is_setup = GF_TRUE;
 	ctx->parser = gf_xml_dom_new();
+	//we will reserialize the TTML, so enable passthrough
+	gf_xml_dom_enable_passthrough(ctx->parser);
 	e = gf_xml_dom_parse(ctx->parser, ctx->file_name ? ctx->file_name : ctx->blob_name, ttxt_dom_progress, ctx);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Error parsing TTML file: Line %d - %s. Abort.\n", gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));

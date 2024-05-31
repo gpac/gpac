@@ -1809,7 +1809,7 @@ GF_DOMParser *gf_xml_dom_new()
 	if (!dom) return NULL;
 
 	dom->root_nodes = gf_list_new();
-	dom->keep_valid = 1;
+	dom->keep_valid = 0;
 	return dom;
 }
 
@@ -1899,10 +1899,10 @@ GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 }
 
 GF_EXPORT
-GF_Err gf_xml_dom_force_check(GF_DOMParser *dom)
+GF_Err gf_xml_dom_enable_passthrough(GF_DOMParser *dom)
 {
 	if (!dom) return GF_BAD_PARAM;
-	dom->keep_valid = 0;
+	dom->keep_valid = 1;
 	return GF_OK;
 }
 
