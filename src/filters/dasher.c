@@ -199,7 +199,7 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force, keep_segs;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool cmpd, dual, sreg;
+	Bool cmpd, dual, sreg, ttml_agg;
 	char *styp;
 	Bool sigfrag;
 	u32 sbound, pswitch;
@@ -3576,6 +3576,18 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	} else {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESHIFT_SEGS, NULL);
 	}
+
+	//inject ttml agg filter
+	if (ctx->ttml_agg && !ctx->rawsub && (ds->codec_id==GF_CODECID_SUBS_XML)) {
+		GF_Err e;
+		GF_Filter *ttml_agg = gf_filter_load_filter(filter, "ttmlmerge", &e);
+		gf_filter_set_source(ttml_agg, filter, NULL);
+
+		sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
+		gf_filter_reset_source(ds->dst_filter);
+		gf_filter_set_source(ds->dst_filter, ttml_agg, szSRC);
+	}
+
 }
 
 static void dasher_set_content_components(GF_DashStream *ds)
@@ -10724,6 +10736,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
