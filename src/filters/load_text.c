@@ -56,8 +56,10 @@ typedef struct __txtin_ctx GF_TXTIn;
 enum
 {
 	STXT_MODE_STXT=0,
+	STXT_MODE_SBTT,
 	STXT_MODE_TX3G,
 	STXT_MODE_VTT,
+	STXT_MODE_WEBVTT,
 };
 
 struct __txtin_ctx
@@ -66,7 +68,7 @@ struct __txtin_ctx
 	u32 width, height, txtx, txty, fontsize, stxtmod;
 	s32 zorder;
 	const char *fontname, *lang, *ttml_zero;
-	Bool nodefbox, noflush, webvtt, ttml_embed, no_empty;
+	Bool nodefbox, noflush, ttml_embed, no_empty;
 	u32 timescale;
 	GF_Fraction fps;
 	Bool ttml_split;
@@ -100,7 +102,7 @@ struct __txtin_ctx
 	Bool hdr_parsed;
 	//if source is framed (but in "unframe" format), used in text conversion
 	Bool pid_framed;
-	Bool simple_text;
+	Bool single_text_chunk;
 
 	//state vars for srt
 	u32 state, default_color;
@@ -648,7 +650,14 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx, Bool gen_dsi_onl
 	if (!ctx->pid_framed) {
 		if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_TX3G) );
+
+		if (ctx->stxtmod == STXT_MODE_STXT)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SIMPLE_TEXT) );
+		else if (ctx->stxtmod == STXT_MODE_SBTT)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SUBS_TEXT) );
+		else
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_TX3G) );
+
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 		if (file_size)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
@@ -714,7 +723,6 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 {
 	GF_FilterPacket *dst_pck;
 	u8 *pck_data;
-	u32 size;
 
 	if (!txt_samp)
 		return;
@@ -728,14 +736,20 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 		ctx->seek_state = 0;
 	}
 
-	size = gf_isom_text_sample_size(txt_samp);
+	if (!ctx->pid_framed && (ctx->stxtmod <=STXT_MODE_SBTT)) {
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, txt_samp->len, &pck_data);
+		if (!dst_pck) return;
+		memcpy(pck_data, txt_samp->text, txt_samp->len);
+	} else {
+		u32 size = gf_isom_text_sample_size(txt_samp);
 
-	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
-	if (!dst_pck) return;
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+		if (!dst_pck) return;
 
+		gf_bs_reassign_buffer(ctx->bs_w, pck_data, size);
+		gf_isom_text_sample_write_bs(txt_samp, ctx->bs_w);
+	}
 	ctx->has_forced |= 4;
-	gf_bs_reassign_buffer(ctx->bs_w, pck_data, size);
-	gf_isom_text_sample_write_bs(txt_samp, ctx->bs_w);
 
 	ts = gf_timestamp_rescale(ts, 1000, ctx->timescale);
 	duration = (u32) gf_timestamp_rescale(duration, 1000, ctx->timescale);
@@ -4016,6 +4030,8 @@ static GF_Err txtin_process_simple(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		opck = gf_filter_pck_new_ref(ctx->opid, 0, 0, ipck);
 	}
 	if (!opck) return GF_OUT_OF_MEM;
+	gf_filter_pck_merge_properties(ipck, opck);
+	gf_filter_pck_set_framing(opck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_set_sap(opck, GF_FILTER_SAP_1);
 	if (gf_filter_pck_get_cts(ipck)==GF_FILTER_NO_TS) {
 		gf_filter_pck_set_dts(opck, 0);
@@ -4107,7 +4123,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 	}
 
 	if (ctx->pid_framed || !ctx->file_name) {
-		if (ctx->simple_text) {
+		if (ctx->single_text_chunk) {
 			e = ctx->text_process(filter, ctx, pck);
 			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
 			return e;
@@ -4247,7 +4263,7 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	ctx->pid_framed = GF_FALSE;
-	ctx->simple_text = GF_FALSE;
+	ctx->single_text_chunk = GF_FALSE;
 
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
@@ -4279,11 +4295,11 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->pid_framed = GF_TRUE;
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		ctx->timescale = prop ? prop->value.uint : 1000;
-		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+		//no timescale, this is a single chunk of text to transform into stxt/vtt/tx3g
 		if (!prop) {
-			ctx->simple_text = GF_TRUE;
-			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+			ctx->single_text_chunk = GF_TRUE;
 		}
+		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	} else {
 		//otherwise check we have a file path
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
@@ -4348,9 +4364,18 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->fmt = GF_TXTIN_MODE_WEBVTT;
 		else if (codec_id == GF_CODECID_SUBS_SSA)
 			ctx->fmt = GF_TXTIN_MODE_SSA;
-		else if (ctx->simple_text)
+		else if (ctx->single_text_chunk)
 			ctx->fmt = GF_TXTIN_MODE_SIMPLE;
-		else {
+		//if we receive simple text streams in framed mode (one packet==one sub), decide how to translate it
+		else if (ctx->pid_framed && ((codec_id==GF_CODECID_SIMPLE_TEXT) || (codec_id==GF_CODECID_SUBS_TEXT))) {
+			if (ctx->stxtmod == STXT_MODE_VTT) {
+				ctx->fmt = GF_TXTIN_MODE_WEBVTT;
+			} else if (ctx->stxtmod==STXT_MODE_TX3G) {
+				ctx->fmt = GF_TXTIN_MODE_SRT;
+			} else {
+				ctx->fmt = GF_TXTIN_MODE_SIMPLE;
+			}
+		} else {
 			//we don't know the format - we could probe from mime but let's wait for first packet
 			ctx->fmt = GF_TXTIN_MODE_PROBE;
 			return GF_OK;
@@ -4363,20 +4388,29 @@ static GF_Err txtin_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 force_format:
 
-	if (ctx->webvtt && (ctx->fmt == GF_TXTIN_MODE_SRT))
-		ctx->fmt = GF_TXTIN_MODE_WEBVTT;
+	if (ctx->fmt == GF_TXTIN_MODE_SRT) {
+		if (ctx->stxtmod==STXT_MODE_VTT) ctx->fmt = GF_TXTIN_MODE_WEBVTT;
+	}
 
 	if (!src) {
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
 
-		if (!ctx->simple_text) {
+		if (!ctx->single_text_chunk) {
 			if (ctx->fmt == GF_TXTIN_MODE_WEBVTT) codec_id = GF_CODECID_WEBVTT;
 			else if (ctx->fmt == GF_TXTIN_MODE_TTML) codec_id = GF_CODECID_SUBS_XML;
+			//no change in codec id (either simple_text or text_sub)
+			else if (ctx->fmt == GF_TXTIN_MODE_SIMPLE) {}
 			else codec_id = GF_CODECID_TX3G;
-		} else if (ctx->stxtmod) {
-			codec_id = (ctx->stxtmod==STXT_MODE_VTT) ? GF_CODECID_WEBVTT : GF_CODECID_TX3G;
 		}
+		//simple text as vtt
+		else if (ctx->stxtmod==STXT_MODE_VTT)
+			codec_id = GF_CODECID_WEBVTT;
+		//simple text as tx3g
+		else if (ctx->stxtmod==STXT_MODE_TX3G)
+			codec_id = GF_CODECID_TX3G;
+		//otherwise keep codec id from source
+
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_id) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
@@ -4498,6 +4532,8 @@ GF_Err txtin_initialize(GF_Filter *filter)
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
 	ctx->has_forced = 2;
+	//WEBVTT name used for backward comaptibility with old :webvtt option
+	if (ctx->stxtmod==STXT_MODE_WEBVTT) ctx->stxtmod = STXT_MODE_VTT;
 	return GF_OK;
 }
 
@@ -4642,7 +4678,6 @@ static const GF_FilterCapability TXTInCaps[] =
 
 static const GF_FilterArgs TXTInArgs[] =
 {
-	{ OFFS(webvtt), "force WebVTT import of SRT files", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nodefbox), "skip default text box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noflush), "skip final sample flush for srt", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fontname), "default font", GF_PROP_STRING, NULL, NULL, 0},
@@ -4661,10 +4696,12 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(ttml_zero), "set subtitle zero time for TTML", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_empty), "do not send empty samples", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stxtdur), "duration for simple text", GF_PROP_FRACTION, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(stxtmod), "simple text stream mode\n"
-	"- none: declares output PID as simple text stream\n"
-	"- tx3g: declares output PID as TX3G/Apple stream\n"
-	"- vtt: declares output PID as WebVTT stream", GF_PROP_UINT, "none", "none|tx3g|vtt", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(stxtmod), "text stream mode for simple text streams and SRT inputs\n"
+	"- stxt: output PID formatted as simple text stream\n"
+	"- sbtt: output PID formatted as subtitle text stream\n"
+	"- tx3g: output PID formatted as TX3G/Apple stream\n"
+	"- vtt: output PID formatted as WebVTT stream\n"
+	"- webvtt: same as vtt (for backward compatiblity", GF_PROP_UINT, "tx3g", "stxt|sbtt|tx3g|vtt|webvtt", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
@@ -4685,6 +4722,7 @@ GF_FilterRegister TXTInRegister = {
 	"Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal frame format is: \n"
 	"- WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues\n"
 	"- TTML: ISO/IEC 14496-30 XML subtitles\n"
+	"- stxt and sbtt: ISO/IEC 14496-30 text stream and text subtitles\n"
 	"- Others: 3GPP/QT Timed Text\n"
 	"\n"
 	"# TTML Support\n"
@@ -4716,7 +4754,7 @@ GF_FilterRegister TXTInRegister = {
 	"EX MP4Box -add test.ttml --ttml_zero=10:00:00 [...]\n"
 	"\n"
 	"# Simple Text Support\n"
-	"The text loader can convert input files in simple text streams of a single packet, by forcing the codec type on the input:"
+	"The text loader can convert input files in simple text streams of a single packet, by forcing the codec type on the input:\n"
 	"EX gpac -i test.txt:#CodecID=stxt  [...]\n"
 	"EX gpac fin:pck=\"Text Data\":#CodecID=stxt  [...]\n"
 	"\n"
@@ -4724,6 +4762,11 @@ GF_FilterRegister TXTInRegister = {
 	"In this mode, the [-stxtdur]() option is used to control the duration of the generated subtitle:\n"
 	"- a positive value always forces the duration\n"
 	"- a negative value forces the duration if input packet duration is not known\n"
+	"\n"
+	"# Notes\n"
+	"When reframing simple text streams from demuxers (e.g. subtitles from MKV), the output format of these streams can be selected using [-stxtmod]().\n"
+	"\n"
+	"When importing SRT, SUB or SSA files, the output format of the PID can be selected using [-stxtmod]().\n"
 	)
 
 	.private_size = sizeof(GF_TXTIn),
