@@ -8611,8 +8611,8 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			pck = gf_filter_pck_new_alloc(ds->opid, 0, &data);
 		}
 
-		gf_filter_pck_set_dts(pck, ds->first_cts_in_seg);
-		gf_filter_pck_set_cts(pck, ds->first_cts_in_seg);
+		gf_filter_pck_set_dts(pck, ds->first_cts_in_seg+ds->first_cts);
+		gf_filter_pck_set_cts(pck, ds->first_cts_in_seg+ds->first_cts);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 		//we don't assign a duration
 
@@ -9763,6 +9763,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->rep->first_tfdt_plus_one = 1 + gf_filter_pck_get_dts(dst);
 				ds->rep->first_tfdt_timescale = ds->timescale;
 			}
+
 			//send packet
 			if (dst)
 				gf_filter_pck_send(dst);
