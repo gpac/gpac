@@ -707,12 +707,15 @@ restart:
 			ts = (pctx->fake_dts_plus_one-1 - pctx->fake_dts_orig + pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
 			if (!pctx->fake_dts_set) {
+				//this is NOT a PID delay, CTS=0 means 0, we simply dispatch in negctts mode
+#if 0
 				if (pctx->fake_dts_plus_one) {
 					s64 offset = pctx->fake_dts_plus_one-1;
 					offset -= pctx->fake_dts_orig;
 					if (offset)
 						gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
 				}
+#endif
 				pctx->fake_dts_set = GF_TRUE;
 				if (pctx->pck_queue) {
 					while (gf_list_count(pctx->pck_queue)) {
