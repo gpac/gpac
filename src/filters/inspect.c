@@ -75,6 +75,24 @@ typedef struct
 	u32 buf_start_time;
 	u64 last_pcr;
 	GF_FilterClockType last_clock_type;
+
+	char *stat_codecs;
+	GF_FilterSAPType start_with_sap;
+	u32 timescale;
+	u64 total_dur;
+	u64 last_sap_cts;
+	u32 nb_sap1, nb_sap2, nb_sap3, nb_sap4;
+	u32 min_sap_diff, max_sap_diff, avg_sap_diff;
+	u64 nb_bytes;
+	s64 max_ctso, min_ctso;
+	Bool has_disc, has_corr;
+	u8 has_crypted;
+	u32 nb_recfg;
+	u32 max_sap_size, avg_sap_size, avg_nosap_size;
+	u32 nb_nosaps;
+	u32 constant_dur, max_dur;
+	u64 first_dts, first_cts;
+	u32 bytes_in_wnd, max_rate;
 } PidCtx;
 
 enum
@@ -111,6 +129,7 @@ typedef struct
 	Bool interleave;
 	Bool dump_data;
 	Bool deep;
+	Bool stats;
 	char *log;
 	char *fmt;
 	u32 analyze;
@@ -2008,6 +2027,9 @@ static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
 	}
 }
 
+static void inspect_dump_stats(GF_InspectCtx *ctx);
+
+
 static void inspect_finalize(GF_Filter *filter)
 {
 	Bool concat=GF_FALSE;
@@ -2033,8 +2055,9 @@ static void inspect_finalize(GF_Filter *filter)
 			else if (!ctx->interleave) concat=GF_TRUE;
 		}
 
-
-		if (!ctx->interleave && ctx->dump) {
+		if (ctx->stats) {
+			inspect_dump_stats(ctx);
+		} else if (!ctx->interleave && ctx->dump) {
 			finalize_dump(ctx, GF_STREAM_AUDIO, concat);
 			finalize_dump(ctx, GF_STREAM_VISUAL, concat);
 			finalize_dump(ctx, GF_STREAM_SCENE, concat);
@@ -3281,6 +3304,7 @@ static void inspect_dump_packet_as_info(GF_InspectCtx *ctx, FILE *dump, GF_Filte
 
 	inspect_printf(dump, "\n");
 }
+
 static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
 {
 	u32 idx=0, size, sap;
@@ -4110,6 +4134,16 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	if (ctx->test==INSPECT_TEST_NOPROP) return;
 	if (!ctx->dump_log && !dump) return;
 
+	if (ctx->stats) {
+		char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
+		if (gf_filter_pid_get_rfc_6381_codec_string(pid, szCodec, GF_FALSE, GF_FALSE, NULL, NULL)==GF_OK) {
+			if (!pctx->stat_codecs || !strstr(pctx->stat_codecs, szCodec))
+				gf_dynstrcat(&pctx->stat_codecs, szCodec, ",");
+		}
+		pctx->nb_recfg++;
+		return;
+	}
+
 	if (!ctx->full) {
 		inspect_dump_pid_as_info(ctx, dump, pid, pid_idx, is_connect, is_remove, pck_for_config, is_info, pctx);
 		return;
@@ -4706,6 +4740,147 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	inspect_printf(dump, "</%s>\n", elt_name);
 }
 
+static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPacket *pck)
+{
+	GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
+	u64 dts, cts;
+	dts = gf_filter_pck_get_dts(pck);
+	cts = gf_filter_pck_get_cts(pck);
+	if (dts==GF_FILTER_NO_TS) dts = cts;
+
+	u32 dur = gf_filter_pck_get_duration(pck);
+	pctx->total_dur += dur;
+	if (pctx->pck_num==1) {
+		pctx->start_with_sap = sap;
+		pctx->timescale = gf_filter_pck_get_timescale(pck);
+		pctx->constant_dur = dur;
+		pctx->first_dts = dts;
+		pctx->first_cts = cts;
+	} else if (pctx->constant_dur != dur) {
+		pctx->constant_dur = 0;
+	}
+
+	if (dur>pctx->max_dur) pctx->max_dur = dur;
+	u32 size;
+	gf_filter_pck_get_data(pck, &size);
+	switch (sap) {
+	case GF_FILTER_SAP_1: pctx->nb_sap1++; break;
+	case GF_FILTER_SAP_2: pctx->nb_sap2++; break;
+	case GF_FILTER_SAP_3: pctx->nb_sap3++; break;
+	case GF_FILTER_SAP_4:
+	case GF_FILTER_SAP_4_PROL:
+		pctx->nb_sap4++;
+		break;
+	default: break;
+	}
+	pctx->nb_bytes += size;
+	s64 ts_diff = (s64) cts - (s64) dts;
+	if (pctx->max_ctso < ts_diff) pctx->max_ctso = ts_diff;
+	if (pctx->min_ctso > ts_diff) pctx->min_ctso = ts_diff;
+
+	if (gf_filter_pck_get_corrupted(pck))
+		pctx->has_corr = GF_TRUE;
+	if (gf_filter_pck_get_clock_type(pck)==GF_FILTER_CLOCK_PCR_DISC)
+		pctx->has_disc = GF_TRUE;
+	if (gf_filter_pck_get_crypt_flags(pck) & GF_FILTER_PCK_CRYPT)
+		pctx->has_crypted |= 1<<2;
+	else
+		pctx->has_crypted |= 1<<1;
+
+	if (dts!=GF_FILTER_NO_TS) {
+		if (!pctx->prev_dts) {
+			pctx->prev_dts = dts;
+		} else if (dts - pctx->prev_dts > pctx->timescale) {
+			u64 rate = pctx->bytes_in_wnd*8;
+			rate *= pctx->timescale ;
+			rate /= dts - pctx->prev_dts;
+			if (pctx->max_rate<rate)
+				pctx->max_rate = rate;
+			pctx->prev_dts = dts;
+			pctx->bytes_in_wnd = 0;
+		}
+		pctx->bytes_in_wnd += size;
+	}
+
+	if (!sap || (sap>SAP_TYPE_3)) {
+		pctx->avg_nosap_size += size;
+		pctx->nb_nosaps ++;
+		return;
+	}
+	if (!pctx->last_sap_cts) {
+		pctx->last_sap_cts = cts;
+	} else {
+		u64 sap_diff = cts - pctx->last_sap_cts;
+		if (!pctx->min_sap_diff || (sap_diff<pctx->min_sap_diff)) pctx->min_sap_diff = sap_diff;
+		if (!pctx->max_sap_diff || (sap_diff>pctx->max_sap_diff)) pctx->max_sap_diff = sap_diff;
+		pctx->avg_sap_diff += sap_diff;
+		pctx->last_sap_cts = cts;
+	}
+	pctx->avg_sap_size += size;
+	if (size>pctx->max_sap_size) pctx->max_sap_size = size;
+}
+
+static void inspect_dump_stats(GF_InspectCtx *ctx)
+{
+	u32 i, count = gf_list_count(ctx->src_pids);
+	ctx->stats=0;
+	for (i=0; i<count; i++) {
+		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+		//dump as usual
+		inspect_dump_pid(ctx, ctx->dump, pctx->src_pid, i+1, GF_TRUE, GF_FALSE, 0, GF_FALSE, pctx);
+
+		inspect_printf(ctx->dump, "\tNb Frames: %u\n", pctx->pck_num);
+		if (!pctx->constant_dur)
+			inspect_printf(ctx->dump, "\tFrame Rate: VFR - frame duration avg %d max %d", pctx->total_dur/pctx->pck_num, pctx->max_dur);
+		else
+			inspect_printf(ctx->dump, "\tFrame Rate: CFR - frame duration %d", pctx->constant_dur);
+		inspect_printf(ctx->dump, "\n");
+		inspect_printf(ctx->dump, "\tCumulated Duration: "LLU, pctx->total_dur);
+		format_duration(pctx->total_dur-pctx->first_cts, pctx->timescale, ctx->dump, GF_TRUE);
+		inspect_printf(ctx->dump, "\n");
+		if ((pctx->first_dts==GF_FILTER_NO_TS) && (pctx->first_cts==GF_FILTER_NO_TS))
+			inspect_printf(ctx->dump, "\tFirst packet: No initial timestamps\n");
+		else
+			inspect_printf(ctx->dump, "\tFirst packet: DTS "LLU" CTS "LLU"\n", pctx->first_dts, pctx->first_cts);
+		if (pctx->max_ctso || pctx->min_ctso) {
+			inspect_printf(ctx->dump, "\tCTS offset: min %d max %d\n", pctx->min_ctso, pctx->max_ctso);
+		}
+
+		u32 nb_saps = pctx->nb_sap1+pctx->nb_sap2+pctx->nb_sap3;
+		inspect_printf(ctx->dump, "\tSAP frames: %u - types", nb_saps);
+		if (pctx->nb_nosaps) inspect_printf(ctx->dump, " 0(%u)", pctx->nb_nosaps);
+		if (pctx->nb_sap1) inspect_printf(ctx->dump, " 1(%u)", pctx->nb_sap1);
+		if (pctx->nb_sap2) inspect_printf(ctx->dump, " 2(%u)", pctx->nb_sap2);
+		if (pctx->nb_sap3) inspect_printf(ctx->dump, " 3(%u)", pctx->nb_sap3);
+		if (pctx->nb_sap4) inspect_printf(ctx->dump, " 4(%u)", pctx->nb_sap4);
+		inspect_printf(ctx->dump, "\n");
+		inspect_printf(ctx->dump, "\tStart with SAP: %d\n", pctx->start_with_sap);
+
+		if (pctx->nb_nosaps)
+			inspect_printf(ctx->dump, "\tAverage non-SAP frame size: %d bytes\n", pctx->avg_nosap_size / pctx->nb_nosaps);
+		if (nb_saps) {
+			inspect_printf(ctx->dump, "\tAverage SAP frame size: %d bytes\n", pctx->avg_sap_size / nb_saps);
+			inspect_printf(ctx->dump, "\tMax SAP frame size: %d bytes\n", pctx->max_sap_size);
+			if (nb_saps>2)
+				inspect_printf(ctx->dump, "\tSAP time diff: min %u max %u avg %u\n", pctx->min_sap_diff, pctx->max_sap_diff, pctx->avg_sap_diff/(nb_saps-2));
+		}
+
+
+		inspect_printf(ctx->dump, "\tTotal size: "LLU" bytes\n", pctx->nb_bytes);
+		if (!pctx->total_dur) continue;
+		u64 br = pctx->nb_bytes;
+		br *= 8*pctx->timescale;
+		br /= pctx->total_dur;
+		if (br>10000000)
+			inspect_printf(ctx->dump, "\tBitrate: avg "LLU" max "LLU" mbps\n", br/1000000, pctx->max_rate/1000000);
+		else if (br>10000)
+			inspect_printf(ctx->dump, "\tBitrate: avg "LLU" max "LLU" kbps\n", br/1000, pctx->max_rate/1000);
+		else
+			inspect_printf(ctx->dump, "\tBitrate: avg "LLU" max "LLU" bps\n", br, pctx->max_rate);
+	}
+	ctx->stats=1;
+}
+
 static GF_Err inspect_process(GF_Filter *filter)
 {
 	u32 i, count, nb_done=0, nb_hdr_done=0;
@@ -4798,8 +4973,9 @@ static GF_Err inspect_process(GF_Filter *filter)
 		pctx->pck_for_config++;
 		pctx->pck_num++;
 
-		if (ctx->dump_pck) {
-
+		if (ctx->stats) {
+			inspect_stats_packet(ctx, pctx, pck);
+		} else if (ctx->dump_pck) {
 			if (ctx->is_prober) {
 				nb_done++;
 			} else {
@@ -5047,6 +5223,11 @@ GF_Err inspect_initialize(GF_Filter *filter)
 
 	if (!ctx->log) return GF_BAD_PARAM;
 
+	if (ctx->stats) {
+		ctx->analyze = GF_FALSE;
+		ctx->allp = GF_TRUE;
+		ctx->deep = GF_FALSE;
+	}
 	if (ctx->analyze) {
 		ctx->xml = GF_TRUE;
 	}
@@ -5153,6 +5334,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(buffer), "set playback buffer in ms", GF_PROP_UINT, "0", NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(mbuffer), "set max buffer occupancy in ms. If less than buffer, use buffer", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(rbuffer), "rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(stats), "compute statistics for PIDs", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(test), "skip predefined set of properties, used for test mode\n"
 		"- no: no properties skipped\n"
