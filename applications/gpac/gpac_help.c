@@ -901,6 +901,16 @@ static const char *gpac_defer =
 "This will load SRC and reframer, print the graph (no connection), relink SRC, print the graph (connection to reframer), insert inspect, print the graph (no connection), relink reframer and run. No play event is sent here.\n"
 "EX gpac -dl -np -i SRC reframer inspect:deep -g -rl=2 -g -rl -se\n"
 "This will load SRC, reframer and inspect, print the graph (no connection), relink SRC, print the graph (connection to reframer), print the graph (no connection), relink reframer, send play and run.\n"
+"\n"
+"Linking can be done once filters are loaded, using the syntax `@F@SRC` or `@@F@SRC`:\n"
+"- `@F` indicates the destination filter using a 0-based index `F` starting from the last laoded filter, e.g. `@0` indicates the last loaded filter.\n"
+"- `@@F` indicates the target filter using a 0-based index `F` starting from the first laoded filter, e.g. `@@1` indicates the second loaded filter.\n"
+"- `@SRC`or `@@SRC`: same syntax as link directives\n"
+"Sources MUST be set before relinking outputs using (-rl)[].\n"
+"EX gpac -dl -i SRC F1 F2 [...] @1@2 @0@2\n"
+"This will set SRC as source to F1 and SRC as source to F2 after loading all filters.\n"
+"\n"
+"The following options are used in defer mode:\n\n",
 };
 #endif
 static GF_GPACArg gpac_defer_args[] =
@@ -912,13 +922,14 @@ static GF_GPACArg gpac_defer_args[] =
 	GF_DEF_ARG("pi=[+|-][F[:i]]", NULL, "print PID properties (all or of index `i`) of filter `F` (default 0)\n"
 	"- if prefixed with `-`: only list PIDs\n"
 	"- if prefixed with `+`: also print PID info", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("pl=[+][F[:i]]@NAME", NULL, "probe filter chain from filter `F` (default 0) to the given filter `NAME`: \n"
+	GF_DEF_ARG("pl=[+][F[:i]]@NAME", NULL, "probe filter chain from filter `F` (default 0) to the given filter `NAME`:\n"
 		"- if prefixed with `+`: print all known chains and their priorities", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("pd=[F[:i]]", NULL, "print possible PID destinations (all or of index `i`) of filter `F` (default 0)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("f", NULL, "flush session until no more tasks", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("g", NULL, "print graph", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("s", NULL, "print stats", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("se", NULL, "send PLAY event from sinks (only done once)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("m", NULL, "print message", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	{0}
 };
 
