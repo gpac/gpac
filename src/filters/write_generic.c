@@ -1347,7 +1347,7 @@ GF_Err writegen_process(GF_Filter *filter)
 				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
 			}
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SAR);
-			if (p) {
+			if (p && (p->value.frac.num>0)) {
 				sprintf(szInfo, " A%d:%d", p->value.frac.num, p->value.frac.den);
 				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
 			}

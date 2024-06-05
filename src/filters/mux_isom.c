@@ -3745,6 +3745,11 @@ sample_entry_done:
 			gf_isom_update_sample_description_from_template(ctx->file, tkw->track_num, tkw->stsd_idx, p->value.data.ptr, p->value.data.size);
 		}
 
+		//special case for pasp: if negative values are set, remove pasp box even if present in source  template
+		if (width && ((sar.num<0) || (sar.den<0))) {
+			gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, GF_FALSE);
+		}
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHAP_TIMES);
 		const GF_PropertyValue *p2 = gf_filter_pid_get_property(pid, GF_PROP_PID_CHAP_NAMES);
 		if (p && p2 && (p->value.uint_list.nb_items == p2->value.string_list.nb_items)) {
@@ -5499,7 +5504,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ALPHA);
 	if (p) image_props.alpha = p->value.boolean;
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_SAR);
-	if (p) {
+	if (p && (p->value.frac.num>0)) {
 		image_props.hSpacing = p->value.frac.num;
 		image_props.vSpacing = p->value.frac.den;
 	} else {

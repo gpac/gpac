@@ -2078,7 +2078,7 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (p) {
+		if (p && (p->value.frac.num>0)) {
 			codecpar->sample_aspect_ratio.num = p->value.frac.num;
 			codecpar->sample_aspect_ratio.den = p->value.frac.den;
 		}

@@ -1474,7 +1474,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_BIT_DEPTH_UV, "BitDepthChroma", "Bit depth for chroma components", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION),
 	DEC_PROP( GF_PROP_PID_INTERLACED, "Interlaced", "Video is interlaced", GF_PROP_BOOL),
-	DEC_PROP( GF_PROP_PID_SAR, "SAR", "Sample (i.e. pixel) aspect ratio", GF_PROP_FRACTION),
+	DEC_PROP( GF_PROP_PID_SAR, "SAR", "Sample (i.e. pixel) aspect ratio (negative values mean no SAR and removal of info in containers)", GF_PROP_FRACTION),
 	DEC_PROP( GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Maximum width (video / text / graphics) of all enhancement layers", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_HEIGHT_MAX, "MaxHeight", "Maximum height (video / text / graphics) of all enhancement layers", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_SINT),

@@ -2058,7 +2058,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
 			if (prop) info->height = prop->value.uint;
 			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-			if (prop) info->par = (prop->value.frac.num) << 16 | (prop->value.frac.den);
+			if (prop && (prop->value.frac.num>0)) info->par = (prop->value.frac.num) << 16 | (prop->value.frac.den);
 			break;
 		case GF_STREAM_AUDIO:
 			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);

@@ -1283,7 +1283,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 					if (p->value.frac.den) tki->video_info.FPS /= p->value.frac.den;
 				}
 				p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-				if (p) tki->video_info.par = (p->value.frac.num << 16) | p->value.frac.den;
+				if (p && (p->value.frac.num>0)) tki->video_info.par = (p->value.frac.num << 16) | p->value.frac.den;
 			}
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 			if (p) {
