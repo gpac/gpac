@@ -4160,6 +4160,14 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				goto skip_arg;
 		}
 
+		if (!strcmp(value, "")) {
+			if (p4cc)
+				gf_filter_pid_set_property(pid, p4cc, NULL);
+			else
+				gf_filter_pid_set_property_str(pid, name, NULL);
+			goto skip_arg;
+		}
+
 		if (prop_type != GF_PROP_FORBIDDEN) {
 			GF_PropertyValue p;
 			p.type = GF_PROP_FORBIDDEN;

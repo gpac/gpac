@@ -2554,6 +2554,18 @@ This will assign DASH Representation ID to the PID ServiceID value.
 .br
 
 .br
+A property can also be removed by not specifying any value. Condiftional removal is possible using the above syntax.
+.br
+Example
+.br
+gpac -i source.ts:#FOO=
+.br
+
+.br
+This will remove the FOO property on the output PID.
+.br
+
+.br
 .SH Using option files
 .LP
 .br
