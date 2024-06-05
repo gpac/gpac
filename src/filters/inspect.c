@@ -2216,17 +2216,19 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"urn:scte:scte35:2013:bin\"");
 
 	u8 table_id = gf_bs_read_u8(bs);
-	gf_assert(table_id == 0xFC);
 	Bool section_syntax_indicator = gf_bs_read_int(bs, 1);
-	gf_assert(section_syntax_indicator == 0);
 	Bool private_indicator = gf_bs_read_int(bs, 1);
-	gf_assert(private_indicator == 0);
 
 	u8 sap_type = gf_bs_read_int(bs, 2);
 	DUMP_ATT_U("sap_type", sap_type);
 
 	int section_length = gf_bs_read_int(bs, 12);
-	gf_assert(section_length + 3 == gf_bs_get_size(bs));
+
+	if ((table_id != 0xFC) || (section_syntax_indicator != 0) || (private_indicator != 0) || (section_length + 3 != gf_bs_get_size(bs))) {
+		DUMP_ATT_STR("error", "invalid section");
+		inspect_printf(dump, "/>\n");
+		return;
+	}
 
 	u8 protocol_version = gf_bs_read_u8(bs);
 	DUMP_ATT_U("protocol_version", protocol_version);
@@ -4802,7 +4804,7 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 		pctx->bytes_in_wnd += size;
 	}
 
-	if (!sap || (sap>SAP_TYPE_3)) {
+	if (!sap || (sap>GF_FILTER_SAP_3)) {
 		pctx->avg_nosap_size += size;
 		pctx->nb_nosaps ++;
 		return;
