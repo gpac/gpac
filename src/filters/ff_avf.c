@@ -874,7 +874,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		pix_fmt = ffmpeg_pixfmt_from_gpac(gf_pfmt, GF_FALSE);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (p && p->value.frac.num && p->value.frac.den) sar = p->value.frac;
+		if (p && (p->value.frac.num>0) && p->value.frac.den) sar = p->value.frac;
 
 		pid_ctx->stride = pid_ctx->stride_uv = 0;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);

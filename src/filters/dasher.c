@@ -1213,7 +1213,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			CHECK_PROP(GF_PROP_PID_HEIGHT, ds->height, GF_EOS)
 			//don't return if not defined
 			CHECK_PROP_FRAC(GF_PROP_PID_SAR, ds->sar, GF_EOS)
-			if (!ds->sar.num) ds->sar.num = ds->sar.den = 1;
+			if (ds->sar.num<=0) ds->sar.num = ds->sar.den = 1;
 			CHECK_PROP_FRAC(GF_PROP_PID_FPS, ds->fps, GF_EOS)
 
 

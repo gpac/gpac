@@ -3843,7 +3843,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (p && p->value.frac.num!=p->value.frac.den)
+		if (p && (p->value.frac.num>0) && p->value.frac.num!=p->value.frac.den)
 			inspect_printf(dump, " SAR %d/%u", p->value.frac.num, p->value.frac.den);
 		else
 			inspect_printf(dump, " SAR 1/1");
