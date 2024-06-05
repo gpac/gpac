@@ -46,8 +46,8 @@ RUN ./wasm_extra_libs.sh --enable-threading
 # Build GPAC
 FROM base as gpac
 
-# Checkout GPAC source code
-RUN git clone --depth 1 https://github.com/gpac/gpac.git gpac_public
+# Copy GPAC source code
+COPY . /gpac_public
 WORKDIR /gpac_public
 
 # Copy GPAC WASM dependencies
@@ -55,8 +55,9 @@ COPY --from=deps /deps_wasm/wasm_thread /deps_wasm/wasm_thread
 ENV PKG_CONFIG_PATH=/deps_wasm/wasm_thread/lib/pkgconfig
 
 # Configure GPAC
-RUN ./configure --emscripten --extra-cflags="-Wno-pointer-sign -Wno-implicit-const-int-float-conversion"
+RUN make distclean; ./configure --emscripten --extra-cflags="-Wno-pointer-sign -Wno-implicit-const-int-float-conversion"
 
 # Build GPAC
 RUN sed -i "s/-sMODULARIZE=1/-O2 -sMODULARIZE=1/g" applications/gpac/Makefile
 RUN make -j$(nproc)
+RUN cp -a --remove-destination /gpac_public/share/emscripten/gpac.html  /gpac_public/bin/gcc/
