@@ -325,8 +325,11 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	/*Bool section_syntax_indicator = */gf_bs_read_int(bs, 1);
 	/*Bool private_indicator = */gf_bs_read_int(bs, 1);
 	/*u8 sap_type = */gf_bs_read_int(bs, 2);
-	int section_length = gf_bs_read_int(bs, 12);
-	gf_assert(section_length + 3 == gf_bs_get_size(bs));
+	u32 section_length = gf_bs_read_int(bs, 12);
+	if (section_length + 3 != gf_bs_get_size(bs)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Invalid section length %d\n", section_length));
+		goto exit;
+	}
 	
 	/*u8 protocol_version = */gf_bs_read_u8(bs);
 	Bool encrypted_packet = gf_bs_read_int(bs, 1);
@@ -339,9 +342,9 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	}
 
 	/*u8 cw_index = */gf_bs_read_u8(bs);
-	/*int tier = */gf_bs_read_int(bs, 12);
+	/*u32 tier = */gf_bs_read_int(bs, 12);
 
-	int splice_command_length = gf_bs_read_int(bs, 12);
+	u32 splice_command_length = gf_bs_read_int(bs, 12);
 	if (splice_command_length > gf_bs_available(bs)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short (" LLU " bytes) while parsing splice command (%u bytes)\n",
 			gf_bs_available(bs), splice_command_length));
@@ -369,8 +372,9 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 				}
 
 				if (program_splice_flag == 0) {
-					u8 component_count = gf_bs_read_u8(bs);
-					for (int i=0; i<component_count; i++) {
+					u32 i;
+					u32 component_count = gf_bs_read_u8(bs);
+					for (i=0; i<component_count; i++) {
 						/*u8 component_tag = */gf_bs_read_u8(bs);
 						if (splice_immediate_flag == 0) {
 							gf_assert(*pts == 0); // we've never encounter multi component streams

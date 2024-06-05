@@ -629,8 +629,12 @@ static unsigned int gf_memory_del_item(memory_list *p, void *ptr)
 	gf_fatal_assert(*p);
 	hash = gf_memory_hash(ptr);
 	sub_list = &((*p)[hash]);
-	if (!sub_list) return 0;
+	//code does nothing as &((*p)[hash]) always evaluates to true - commenting it
+//	if (!sub_list) return 0;
 	ret = gf_memory_del_item_stack(sub_list, ptr);
+
+	//code does nothing as &((*p)[i]) always evaluates to true - commenting it
+#if 0
 	if (ret && !((*p)[hash])) {
 		/*check for deletion*/
 		int i;
@@ -640,6 +644,7 @@ static unsigned int gf_memory_del_item(memory_list *p, void *ptr)
 			FREE(*p);
 		}
 	}
+#endif
 	return ret;
 }
 
