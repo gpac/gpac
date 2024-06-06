@@ -251,6 +251,7 @@ typedef struct
 	u32 init_toi, hls_child_toi;
 	//set to true to force sending fragment name (flute LL mode)
 	Bool push_frag_name;
+	Bool init_cfg_done;
 } ROUTEPid;
 
 
@@ -2625,7 +2626,9 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				if (p && p->value.string) {
 					id = p->value.string;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing Period ID on PID using \"1\"\n", serv->log_name));
+					if (!rpid->init_cfg_done) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing Period ID on PID using \"1\"\n", serv->log_name));
+					}
 					id = "1";
 				}
 				gf_dynstrcat(&payload_text, id, NULL);
@@ -2636,7 +2639,9 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 					sprintf(tmp, "%u", p->value.uint);
 					id = tmp;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing AS ID on PID, using \"1\"\n", serv->log_name));
+					if (!rpid->init_cfg_done) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing AS ID on PID, using \"1\"\n", serv->log_name));
+					}
 					id = "1";
 				}
 				gf_dynstrcat(&payload_text, id, NULL);
@@ -2645,13 +2650,16 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				if (p && p->value.string) {
 					id = p->value.string;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing representation ID on PID (broken input filter), using \"1\"\n", serv->log_name));
+					if (!rpid->init_cfg_done) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing representation ID on PID (broken input filter), using \"1\"\n", serv->log_name));
+					}
 					id = "1";
 				}
 				gf_dynstrcat(&payload_text, id, NULL);
 				gf_dynstrcat(&payload_text, "\"", NULL);
 			}
 			gf_dynstrcat(&payload_text, "/>\n</MulticastTransportSession>\n", NULL);
+			rpid->init_cfg_done = GF_TRUE;
 		}
 		gf_dynstrcat(&payload_text, "</MulticastSession>\n", NULL);
 	}
