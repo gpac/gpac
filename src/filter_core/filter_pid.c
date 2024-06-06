@@ -1754,6 +1754,12 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	//check for built-in property
 	p4cc = gf_props_get_id(frag_name);
 
+	//if pid is from a source filter (no inputs) of type file, allow further connection as PIDNAME is likely the name of a demuxed PID
+	if ((p4cc==GF_PROP_PID_STREAM_TYPE) && (stream_type == GF_STREAM_FILE) && !src_pid->filter->num_input_pids) {
+		psep[0] = c;
+		return GF_TRUE;
+	}
+
 	if (!p4cc && (strlen(frag_name)==4))
 		p4cc = GF_4CC(frag_name[0], frag_name[1], frag_name[2], frag_name[3]);
 
@@ -3784,6 +3790,25 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 					break;
 				}
 			}
+			//if first in new chain is the same as one of the existing output relink the existing output and do not load chain
+			//this avoids loading multiple times the same filters instead of using fanouts on dynamicallly loaded filter
+			//see examples in #2851
+			if (!i && pid->num_destinations) {
+				u32 pidx;
+				GF_Filter *relink_dest_f = NULL;
+				for (pidx=0; pidx<pid->num_destinations; pidx++) {
+					GF_FilterPidInst *pidi = gf_list_get(pid->destinations, pidx);
+					if (pidi->filter->dynamic_filter && pidi->filter->freg == freg) {
+						relink_dest_f = pidi->filter;
+						break;
+					}
+				}
+				if (relink_dest_f) {
+					if (skipped) *skipped = GF_TRUE;
+					gf_filter_reconnect_output(relink_dest_f, NULL);
+					break;
+				}
+			}
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
@@ -4133,6 +4158,14 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			value = (char*) ref_prop_dump;
 			if (!value[0])
 				goto skip_arg;
+		}
+
+		if (!strcmp(value, "")) {
+			if (p4cc)
+				gf_filter_pid_set_property(pid, p4cc, NULL);
+			else
+				gf_filter_pid_set_property_str(pid, name, NULL);
+			goto skip_arg;
 		}
 
 		if (prop_type != GF_PROP_FORBIDDEN) {
@@ -4723,8 +4756,17 @@ single_retry:
 			u32 j;
 			Bool already_linked = GF_FALSE;
 			for (j=0; j<pid->num_destinations; j++) {
+				//check direct connections
 				GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 				if (pidi->filter == filter_dst) {
+					already_linked=GF_TRUE;
+					break;
+				}
+				//check indirect connections
+				gf_mx_v(filter->session->filters_mx);
+				in_parent_chain = gf_filter_in_parent_chain(filter_dst, pidi->filter);
+				RELOCK_FILTER_LIST
+				if (in_parent_chain) {
 					already_linked=GF_TRUE;
 					break;
 				}

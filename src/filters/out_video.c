@@ -411,7 +411,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	ctx->sar.num = ctx->sar.den = 1;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-	if (p && p->value.frac.den && p->value.frac.num) {
+	if (p && p->value.frac.den && (p->value.frac.num>0)) {
 		if (ctx->sar.num * p->value.frac.den != p->value.frac.num * ctx->sar.den)
 			sar_changed = GF_TRUE;
 		ctx->sar = p->value.frac;

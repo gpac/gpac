@@ -622,6 +622,137 @@ With this configuration:
 .br
 Servers in GPAC currently only support the Basic HTTP authentication scheme, and should preferably be run over TLS.
 .br
+.SH Defer test mode
+.LP
+.br
+This mode can be used to test loading filters one by one and asking for link resolution explicitly.
+.br
+This is mostly used to reproduce how sessions are build in more complex applications.
+.br
+
+.br
+The options rl, pi, pl and pd allow adressing a filter by index F in a list.
+.br
+- if the option is suffixed with an x (e.g. rlx=), F=0 means the last filter in the list of filters in the session
+.br
+- otherwise, F=0 means the last filter declared before the option
+.br
+
+.br
+The relink options -rl and -rlx always flush the session (run until no more tasks are scheduled).
+.br
+The last run can be omitted.
+.br
+
+.br
+Example
+.br
+gpac -dl -np -i SRC reframer -g -rl -g inspect -g -rl
+.br
+
+.br
+This will load SRC and reframer, print the graph (no connection), relink SRC, print the graph (connection to reframer), insert inspect, print the graph (no connection), relink reframer and run. No play event is sent here.
+.br
+Example
+.br
+gpac -dl -np -i SRC reframer inspect:deep -g -rl=2 -g -rl -se
+.br
+
+.br
+This will load SRC, reframer and inspect, print the graph (no connection), relink SRC, print the graph (connection to reframer), print the graph (no connection), relink reframer, send play and run.
+.br
+
+.br
+Linking can be done once filters are loaded, using the syntax @F@SRC or @@F@SRC:
+.br
+- @F indicates the destination filter using a 0-based index F starting from the last laoded filter, e.g. @0 indicates the last loaded filter.
+.br
+- @@F indicates the target filter using a 0-based index F starting from the first laoded filter, e.g. @@1 indicates the second loaded filter.
+.br
+* `@SRC`or `@@SRC`: same syntax as link directives
+.br
+Sources MUST be set before relinking outputs using (-rl)[].
+.br
+Example
+.br
+gpac -dl -i SRC F1 F2 [...] @1@2 @0@2
+.br
+
+.br
+This will set SRC as source to F1 and SRC as source to F2 after loading all filters.
+.br
+
+.br
+The following options are used in defer mode:
+.br
+
+.br
+.TP
+.B \-dl
+.br
+enable defer linking mode for step-by-step graph building tests
+.br
+.TP
+.B \-np
+.br
+prevent play event from sinks
+.br
+.TP
+.B \-rl[=F] (string)
+.br
+relink outputs of filter F (default 1)
+.br
+.TP
+.B \-wl[=F] (string)
+.br
+same as -rl but does not flush session)
+.br
+.TP
+.B \-pi=[+|-][F[:i]] (string)
+.br
+print PID properties (all or of index i) of filter F (default 0)
+.br
+* if prefixed with `-`: only list PIDs
+.br
+* if prefixed with `+`: also print PID info
+.br
+.TP
+.B \-pl=[+][F[:i]]@NAME (string)
+.br
+probe filter chain from filter F (default 0) to the given filter NAME:
+.br
+* if prefixed with `+`: print all known chains and their priorities
+.br
+.TP
+.B \-pd=[F[:i]] (string)
+.br
+print possible PID destinations (all or of index i) of filter F (default 0)
+.br
+.TP
+.B \-f
+.br
+flush session until no more tasks
+.br
+.TP
+.B \-g
+.br
+print graph
+.br
+.TP
+.B \-s
+.br
+print stats
+.br
+.TP
+.B \-se
+.br
+send PLAY event from sinks (only done once)
+.br
+.TP
+.B \-m (string)
+.br
+print message
+.br
 .SH Configuration file
 .LP
 .br
@@ -2420,6 +2551,18 @@ gpac -i source.ts:#RepresentationID=$ServiceID$
 
 .br
 This will assign DASH Representation ID to the PID ServiceID value.
+.br
+
+.br
+A property can also be removed by not specifying any value. Condiftional removal is possible using the above syntax.
+.br
+Example
+.br
+gpac -i source.ts:#FOO=
+.br
+
+.br
+This will remove the FOO property on the output PID.
 .br
 
 .br
@@ -5115,17 +5258,17 @@ Layout 0x0000000000000407
 .TP
 .B 3/2.0 (int 5)
 .br
-Layout 0x0000000000000307
+Layout 0x0000000000000037
 .br
 .TP
 .B 3/2.1 (int 6)
 .br
-Layout 0x000000000000030f
+Layout 0x000000000000003f
 .br
 .TP
 .B 5/2.1 (int 7)
 .br
-Layout 0x000000000000030f
+Layout 0x000000000000003f
 .br
 .TP
 .B 1+1 (int 8)
@@ -5160,12 +5303,12 @@ Layout 0x000000003ffe67cf
 .TP
 .B 5/2.1 (int 14)
 .br
-Layout 0x000000000006030f
+Layout 0x000000000006003f
 .br
 .TP
 .B 5/5.2 (int 15)
 .br
-Layout 0x000000000606630f
+Layout 0x000000000606603f
 .br
 .TP
 .B 5/4.1 (int 16)

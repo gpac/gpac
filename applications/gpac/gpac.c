@@ -487,6 +487,64 @@ static void run_sess(void)
 }
 #endif
 
+static GF_Err process_link_directive(char *link, GF_Filter *filter, GF_List *loaded_filters, char *ext_link)
+{
+	char *link_prev_filter_ext = NULL;
+	GF_Filter *link_from;
+	Bool reverse_order = GF_FALSE;
+	s32 link_filter_idx = -1;
+
+	if (!filter) {
+		u32 idx=0, count = gf_list_count(loaded_filters);
+		if (!ext_link || !count) return GF_BAD_PARAM;
+		ext_link[0] = 0;
+		if (link[1] == separator_set[SEP_LINK]) {
+			idx = atoi(link+2);
+		} else {
+			idx = atoi(link+1);
+			if (count - 1 < idx) return GF_BAD_PARAM;
+			idx = count-1-idx;
+		}
+		ext_link[0] = separator_set[SEP_LINK];
+		filter = gf_list_get(loaded_filters, idx);
+		link = ext_link;
+	}
+
+	char *ext = strchr(link, separator_set[SEP_FRAG]);
+	if (ext) {
+		ext[0] = 0;
+		link_prev_filter_ext = ext+1;
+	}
+	if (strlen(link)>1) {
+		if (link[1] == separator_set[SEP_LINK] ) {
+			reverse_order = GF_TRUE;
+			link++;
+		}
+		link_filter_idx = 0;
+		if (strlen(link)>1) {
+			link_filter_idx = get_u32(link+1, "Link filter index");
+			if (link_filter_idx < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
+				return GF_BAD_PARAM;
+			}
+		}
+	} else {
+		link_filter_idx = 0;
+	}
+	if (ext) ext[0] = separator_set[SEP_FRAG];
+
+	if (reverse_order)
+		link_from = gf_list_get(loaded_filters, link_filter_idx);
+	else
+		link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
+
+	if (!link_from) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
+		return GF_BAD_PARAM;
+	}
+	gf_filter_set_source(filter, link_from, link_prev_filter_ext);
+	return GF_OK;
+}
 
 #ifndef GPAC_CONFIG_ANDROID
 static
@@ -827,9 +885,11 @@ int gpac_main(int _argc, char **_argv)
 			}
 			gpac_alias_help(GF_ARGMODE_EXPERT);
 
-
 			gpac_credentials_help(GF_ARGMODE_EXPERT);
 
+#ifdef GPAC_DEFER_MODE
+			gpac_defer_help();
+#endif
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("core_config.md", "w");
@@ -1007,6 +1067,7 @@ int gpac_main(int _argc, char **_argv)
 			|| !strcmp(arg, "-pl")
 			|| !strcmp(arg, "-pd")
 			|| !strcmp(arg, "-se")
+			|| !strcmp(arg, "-m")
 		) {
 #endif
 		} else if (!strcmp(arg, "-step")) {
@@ -1283,6 +1344,8 @@ restart:
 			} else if (!strncmp(arg, "-se", 3)) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Sending PLAY event\n"));
 				gf_fs_send_deferred_play(session);
+			} else if (!strncmp(arg, "-m=", 3)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ( "%s\n", arg+3));
 			}
 		}
 #endif
@@ -1323,7 +1386,20 @@ restart:
 			continue;
 		}
 		if (!f_loaded && !has_xopt) {
-			if (arg[0]== separator_set[SEP_LINK] ) {
+			if (arg[0] == separator_set[SEP_LINK] ) {
+				char *next_sep = NULL;
+				if (arg[1]==separator_set[SEP_LINK]) {
+					next_sep = strchr(arg+2, separator_set[SEP_LINK]);
+				} else {
+					next_sep = strchr(arg+1, separator_set[SEP_LINK]);
+				}
+				if (next_sep) {
+					e = process_link_directive(arg, NULL, loaded_filters, next_sep);
+					if (e) {
+						ERR_EXIT
+					}
+					continue;
+				}
 				gf_list_add(links_directive, arg);
 				continue;
 			}
@@ -1389,46 +1465,11 @@ restart:
 			gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
 
 		while (gf_list_count(links_directive)) {
-			char *link_prev_filter_ext = NULL;
-			GF_Filter *link_from;
-			Bool reverse_order = GF_FALSE;
-			s32 link_filter_idx = -1;
 			char *link = gf_list_pop_front(links_directive);
-			char *ext = strchr(link, separator_set[SEP_FRAG]);
-			if (ext) {
-				ext[0] = 0;
-				link_prev_filter_ext = ext+1;
-			}
-			if (strlen(link)>1) {
-				if (link[1] == separator_set[SEP_LINK] ) {
-					reverse_order = GF_TRUE;
-					link++;
-				}
-				link_filter_idx = 0;
-				if (strlen(link)>1) {
-					link_filter_idx = get_u32(link+1, "Link filter index");
-					if (link_filter_idx < 0) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
-						e = GF_BAD_PARAM;
-						ERR_EXIT
-					}
-				}
-			} else {
-				link_filter_idx = 0;
-			}
-			if (ext) ext[0] = separator_set[SEP_FRAG];
-
-			if (reverse_order)
-				link_from = gf_list_get(loaded_filters, link_filter_idx);
-			else
-				link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
-
-			if (!link_from) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
-				e = GF_BAD_PARAM;
+			e = process_link_directive(link, filter, loaded_filters, NULL);
+			if (e) {
 				ERR_EXIT
 			}
-			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
 		}
 
 #ifdef GPAC_DEFER_MODE

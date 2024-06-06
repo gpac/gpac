@@ -379,7 +379,7 @@ static GF_Err vflip_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 	if (p) pfmt = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-	if (p) sar = p->value.frac;
+	if (p && (p->value.frac.num>0)) sar = p->value.frac;
 	else sar.den = sar.num = 1;
 
 	if (!w || !h || !pfmt) {

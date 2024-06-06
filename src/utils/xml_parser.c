@@ -1656,7 +1656,7 @@ struct _tag_dom_parser
 	//usually only one :)
 	GF_List *root_nodes;
 	u32 depth;
-
+	Bool keep_valid;
 	void (*OnProgress)(void *cbck, u64 done, u64 tot);
 	void *cbk;
 };
@@ -1778,7 +1778,7 @@ static void on_dom_node_end(void *cbk, const char *name, const char *ns)
 
 		gf_list_add(node->content, last);
 	}
-	last->valid_content = 1;
+	last->valid_content = par->keep_valid;
 }
 
 static void on_dom_text_content(void *cbk, const char *content, Bool is_cdata)
@@ -1809,6 +1809,7 @@ GF_DOMParser *gf_xml_dom_new()
 	if (!dom) return NULL;
 
 	dom->root_nodes = gf_list_new();
+	dom->keep_valid = 0;
 	return dom;
 }
 
@@ -1895,6 +1896,14 @@ GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 	e = gf_xml_sax_init(dom->parser, (unsigned char *) string);
 	gf_xml_dom_reset(dom, GF_FALSE);
 	return e<0 ? e : GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_xml_dom_enable_passthrough(GF_DOMParser *dom)
+{
+	if (!dom) return GF_BAD_PARAM;
+	dom->keep_valid = 1;
+	return GF_OK;
 }
 
 #if 0 //unused

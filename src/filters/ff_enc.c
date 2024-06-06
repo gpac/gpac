@@ -1779,7 +1779,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->encoder->width = ctx->width;
 		ctx->encoder->height = ctx->height;
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (prop) {
+		if (prop && (prop->value.frac.num>0)) {
 			ctx->encoder->sample_aspect_ratio.num = prop->value.frac.num;
 			ctx->encoder->sample_aspect_ratio.den = prop->value.frac.den;
 		} else {

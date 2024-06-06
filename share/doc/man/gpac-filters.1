@@ -253,6 +253,8 @@ mbuffer (uint, default: 0):    set max buffer occupancy in ms. If less than buff
 .br
 rbuffer (uint, default: 0, updatable): rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering
 .br
+stats (bool, default: false):  compute statistics for PIDs
+.br
 test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
 * no: no properties skipped
@@ -2831,6 +2833,8 @@ Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal
 .br
 * TTML: ISO/IEC 14496-30 XML subtitles
 .br
+* stxt and sbtt: ISO/IEC 14496-30 text stream and text subtitles
+.br
 * Others: 3GPP/QT Timed Text
 .br
 
@@ -2901,9 +2905,11 @@ MP4Box -add test.ttml --ttml_zero=10:00:00 [...]
 .SH Simple Text Support
 .LP
 .br
-The text loader can convert input files in simple text streams of a single packet, by forcing the codec type on the input:EX gpac -i test.txt:#CodecID=stxt  [...]
+The text loader can convert input files in simple text streams of a single packet, by forcing the codec type on the input:
 .br
 Example
+.br
+gpac -i test.txt:#CodecID=stxt  [...]
 .br
 gpac fin:pck="Text Data":#CodecID=stxt  [...]
 .br
@@ -2921,10 +2927,19 @@ In this mode, the .I stxtdur option is used to control the duration of the gener
 .br
 
 .br
-.SH Options (expert):
+.SH Notes
 .LP
 .br
-webvtt (bool, default: false): force WebVTT import of SRT files
+When reframing simple text streams from demuxers (e.g. subtitles from MKV), the output format of these streams can be selected using .I stxtmod.
+.br
+
+.br
+When importing SRT, SUB or SSA files, the output format of the PID can be selected using .I stxtmod.
+.br
+
+.br
+.SH Options (expert):
+.LP
 .br
 nodefbox (bool, default: false): skip default text box
 .br
@@ -2962,13 +2977,17 @@ no_empty (bool, default: false): do not send empty samples
 .br
 stxtdur (frac, default: 1):    duration for simple text
 .br
-stxtmod (enum, default: none): simple text stream mode
+stxtmod (enum, default: tx3g): text stream mode for simple text streams and SRT inputs
 .br
-* none: declares output PID as simple text stream
+* stxt: output PID formatted as simple text stream
 .br
-* tx3g: declares output PID as TX3G/Apple stream
+* sbtt: output PID formatted as subtitle text stream
 .br
-* vtt: declares output PID as WebVTT stream
+* tx3g: output PID formatted as TX3G/Apple stream
+.br
+* vtt: output PID formatted as WebVTT stream
+.br
+* webvtt: same as vtt (for backward compatiblity
 .br
 
 .br
@@ -5900,6 +5919,8 @@ hlsdrm (str):                  cryp file info for HLS full segment encryption
 .br
 hlsx (strl):                   list of string to append to master HLS header before variants with ['#foo','#bar=val'] added as #foo \n #bar=val
 .br
+hlsiv (bool, default: true):   inject IV in variant HLS playlist
+.br
 ll_preload_hint (bool, default: true): inject preload hint for LL-HLS
 .br
 ll_rend_rep (bool, default: true): inject rendition reports for LL-HLS
@@ -5975,6 +5996,8 @@ dkid (enum, default: auto):    control injection of default KID in MPD
 
 .br
 tpl_force (bool, default: false): use template string as is without trying to add extension or solve conflicts in names
+.br
+ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH segment into a single sample
 .br
 
 .br
@@ -9310,6 +9333,21 @@ Description: Stream to unframed format
 
 .br
 Generic single stream to unframed format converter, used when converting PIDs. This filter should not be explicitly loaded.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH ttmlmerge
+.LP
+.br
+Description: TTML sample merger
+.br
+
+.br
+Merge input samples into a single TTML sample. Merging restarts at the start of DASH segments.
 .br
 
 .br

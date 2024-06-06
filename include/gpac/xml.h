@@ -285,6 +285,12 @@ const char *gf_xml_dom_get_error(GF_DOMParser *parser);
 */
 u32 gf_xml_dom_get_line(GF_DOMParser *parser);
 
+/*! Enable marking all text nodes as already validated , so that re-serializing will skip text string checking
+\param dom the dom parser
+\return error if any
+ */
+GF_Err gf_xml_dom_enable_passthrough(GF_DOMParser *dom);
+
 /*! Gets the number of root nodes in the document (not XML compliant, but used in DASH for remote periods)
 \param parser the DOM parser to use
 \return the number of root elements in the document
@@ -310,7 +316,6 @@ GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
 \return The resulting serialization. The string has to be freed with gf_free
  */
 char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape);
-
 
 /*! Serialize a root document node - same as \ref gf_xml_dom_serialize but insert \code <?xml version="1.0" encoding="UTF-8"?> \endcode at beginning
 \param node the node to flush

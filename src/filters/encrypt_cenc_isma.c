@@ -878,7 +878,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		const GF_PropertyValue *prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_STREAM_TYPE);
 		if (prop && prop->value.uint != GF_STREAM_VISUAL) {
 			if (cstr->skip_byte_block) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("\n[CENC] Using cbcs pattern mode on-video track is disabled in GPAC, using whole-block full encryption\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("\n[CENC] Using cbcs pattern mode on non-video track is disabled in GPAC, using whole-block full encryption\n"));
 				cstr->skip_byte_block = 0;
 			}
 		}
