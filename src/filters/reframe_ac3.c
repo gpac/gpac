@@ -557,6 +557,7 @@ static void ac3dmx_finalize(GF_Filter *filter)
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->ac3_buffer) gf_free(ctx->ac3_buffer);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 }
 
 static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeScore *score)

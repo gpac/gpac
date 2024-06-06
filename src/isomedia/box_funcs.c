@@ -94,7 +94,7 @@ u64 unused_bytes = 0;
 
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box, u64 parent_size)
 {
-	u32 type, uuid_type, hdr_size, restore_type;
+	u32 type, otype, uuid_type, hdr_size, restore_type;
 	u64 size, start, comp_start, end;
 	char uuid[16];
 	GF_Err e;
@@ -120,9 +120,9 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	/*fix for some boxes found in some old hinted files*/
 	if ((size >= 2) && (size <= 4)) {
 		size = 4;
-		type = GF_ISOM_BOX_TYPE_VOID;
+		type = otype = GF_ISOM_BOX_TYPE_VOID;
 	} else {
-		type = gf_bs_read_u32(bs);
+		type = otype = gf_bs_read_u32(bs);
 		hdr_size += 4;
 		/*no size means till end of file - EXCEPT FOR some old QuickTime boxes...*/
 		if (type == GF_ISOM_BOX_TYPE_TOTL)
@@ -157,11 +157,22 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			else if (type==GF_QT_BOX_TYPE_CMOV) {
 				do_uncompress = 2;
 				u32 cbtype, cbsize, ctype;
+
+				if (!skip_logs) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size %d start "LLU"\n", gf_4cc_to_str(type), size, start));
+				}
+				start+=8;
 				//parse child boxes directly
 				cbsize = gf_bs_read_u32(bs);
 				if (cbsize != 12) return GF_ISOM_INVALID_FILE;
 				cbtype = gf_bs_read_u32(bs);
 				if (cbtype != GF_QT_BOX_TYPE_DCOM) return GF_ISOM_INVALID_FILE;
+
+				if (!skip_logs) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size %d start "LLU"\n", gf_4cc_to_str(cbtype), cbsize, start));
+				}
+				skip_logs = 1;
+
 				ctype = gf_bs_read_u32(bs);
 				if (ctype != GF_4CC('z', 'l', 'i', 'b')) return GF_NOT_SUPPORTED;
 				cbsize = gf_bs_read_u32(bs);
@@ -238,6 +249,10 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		hdr_size += 16;
 		uuid_type = gf_isom_solve_uuid_box(uuid);
 	}
+	else if ((parent_type==GF_QT_BOX_TYPE_CMVD) && (type == GF_ISOM_BOX_TYPE_MOOV)) {
+		parent_type = GF_QT_BOX_TYPE_CMOV;
+		otype = GF_QT_BOX_TYPE_CMVD;
+	}
 
 	//handle large box
 	if (size == 1) {
@@ -248,15 +263,15 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		hdr_size += 8;
 	}
 	if (!skip_logs)
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), size,  start));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(otype), size,  start));
 
 	if ( size < hdr_size ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLD" less than box header size %d\n", gf_4cc_to_str(type), size, hdr_size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLD" less than box header size %d\n", gf_4cc_to_str(otype), size, hdr_size));
 		ERR_EXIT(GF_ISOM_INVALID_FILE);
 	}
 	//if parent size is given, make sure box fits within parent
 	if (parent_size && (parent_size<size)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLU" is larger than remaining parent size "LLU"\n", gf_4cc_to_str(type), size, parent_size ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLU" is larger than remaining parent size "LLU"\n", gf_4cc_to_str(otype), size, parent_size ));
 		ERR_EXIT(GF_ISOM_INVALID_FILE);
 	}
 	restore_type = 0;
@@ -1139,8 +1154,8 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MDAT, mdat, "file"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_IDAT, mdat, "meta"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_IMDA, mdat, "file"),
-	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MOOV, moov, "file cmvd"),
-	BOX_DEFINE_CHILD( GF_QT_BOX_TYPE_CMVD, moov, "cmov moov"),
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_MOOV, moov, "file"),
+	BOX_DEFINE_CHILD( GF_QT_BOX_TYPE_CMVD, moov, "cmov"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MVHD, mvhd, "moov", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MDHD, mdhd, "mdia", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_VMHD, vmhd, "minf", 0),
@@ -1818,6 +1833,9 @@ static u32 get_box_reg_idx(u32 boxCode, u32 parent_type, u32 start_from)
 		if (box_registry[i].box_4cc != boxCode)
 			continue;
 
+		if ((boxCode== GF_ISOM_BOX_TYPE_MOOV) && (parent_type==GF_QT_BOX_TYPE_CMOV))
+			return i;
+
 		if (!parent_type)
 			return i;
 		if (strstr(box_registry[i].parents_4cc, gf_4cc_to_str_safe(parent_type, p4cc) ) != NULL)
@@ -1863,6 +1881,9 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
 			case GF_QT_BOX_TYPE_WAVE:
 				break;
+			case GF_QT_BOX_TYPE_CMOV:
+				if (boxType==GF_ISOM_BOX_TYPE_MOOV) break;
+
 			//some sample descritions are handled as generic ones but we know them, don't warn
 			case GF_ISOM_BOX_TYPE_STSD:
 				//fallthrough
@@ -1972,6 +1993,12 @@ GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
 			if (strstr(a->registry->parents_4cc, parent_code) != NULL) {
 				parent_OK = GF_TRUE;
 			} else if (!strcmp(a->registry->parents_4cc, "*") || strstr(a->registry->parents_4cc, "* ") || strstr(a->registry->parents_4cc, " *")) {
+				parent_OK = GF_TRUE;
+			}
+			//these next two are needed because we don't parse CMVD as a smvd box but as a moov box after decompressing the payload
+			else if ((a->type == GF_QT_BOX_TYPE_CMVD) && (parent->type==GF_ISOM_BOX_TYPE_MOOV)) {
+				parent_OK = GF_TRUE;
+			} else if ((parent->type == GF_QT_BOX_TYPE_CMVD) && (a->type==GF_ISOM_BOX_TYPE_MOOV)) {
 				parent_OK = GF_TRUE;
 			} else {
 				//parent must be a sample entry

@@ -1345,7 +1345,7 @@ reuse_codec_context:
 		}
 		//if SAR is given ignore sar detection
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (prop) {
+		if (prop && (prop->value.frac.num>0)) {
 			ctx->sar.num = 0;
 			ctx->sar.den = 0;
 		} else if (ctx->sar.num) {

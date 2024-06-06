@@ -759,6 +759,7 @@ static void truehd_finalize(GF_Filter *filter)
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->truehd_buffer) gf_free(ctx->truehd_buffer);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 }
 
 static const char *truehd_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -832,4 +833,3 @@ const GF_FilterRegister *rftruehd_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_RFTRUEHD
-

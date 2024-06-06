@@ -98,6 +98,9 @@ typedef struct
 
 	Bool unframe_only;
 	Bool vc1_ilaced;
+	Bool ttml_merger;
+	u32 ttml_first_cts;
+	GF_FilterPacket *ttml_first_pck;
 } GF_GenDumpCtx;
 
 
@@ -505,6 +508,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(stype));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(cid));
+	}
+	if (ctx->ttml_merger) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NB_FRAMES, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
@@ -1121,9 +1128,23 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 		gf_filter_pck_unref(ctx->ttml_dash_pck);
 		ctx->ttml_dash_pck = NULL;
 	}
-	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	gf_xml_dom_node_del(ctx->ttml_root);
 	ctx->ttml_root = NULL;
+
+	if (ctx->ttml_first_pck) {
+		gf_filter_pck_merge_properties(ctx->ttml_first_pck, pck);
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+		gf_filter_pck_set_dts(pck, ctx->ttml_first_cts);
+		gf_filter_pck_set_cts(pck, ctx->ttml_first_cts);
+		u64 last_cts = gf_filter_pck_get_cts(ctx->ttml_first_pck);
+		last_cts += gf_filter_pck_get_duration(ctx->ttml_first_pck);
+		gf_filter_pck_set_duration(pck, last_cts - ctx->ttml_first_cts);
+
+		gf_filter_pck_unref(ctx->ttml_first_pck);
+		ctx->ttml_first_pck = NULL;
+		ctx->ttml_first_cts = 0;
+	}
+	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	return gf_filter_pck_send(pck);
 }
 
@@ -1326,7 +1347,7 @@ GF_Err writegen_process(GF_Filter *filter)
 				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
 			}
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SAR);
-			if (p) {
+			if (p && (p->value.frac.num>0)) {
 				sprintf(szInfo, " A%d:%d", p->value.frac.num, p->value.frac.den);
 				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
 			}
@@ -1379,6 +1400,15 @@ GF_Err writegen_process(GF_Filter *filter)
 	} else if (ctx->ttml_agg) {
 		GF_Err e = writegen_push_ttml(ctx, data, pck_size, pck);
 		ctx->first = GF_FALSE;
+		if (ctx->ttml_merger) {
+			if (!ctx->ttml_first_pck) {
+				ctx->ttml_first_cts = gf_filter_pck_get_cts(pck);
+				ctx->ttml_first_pck = pck;
+				gf_filter_pck_ref_props(&ctx->ttml_first_pck);
+			} else {
+				gf_filter_pck_merge_properties(pck, ctx->ttml_first_pck);
+			}
+		}
 		if (e) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return e;
@@ -2064,12 +2094,54 @@ const GF_FilterRegister *writeuf_register(GF_FilterSession *session)
 	return &WriteUFRegister;
 }
 
+
+
+static GF_Err ttmlmerge_initialize(GF_Filter *filter)
+{
+	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
+	ctx->unframe_only = GF_TRUE;
+	ctx->ttml_merger = GF_TRUE;
+	ctx->ttml_agg = GF_TRUE;
+	return GF_OK;
+}
+
+/* ttml merger: we reuse writegen logic for TTML merging, but keeping sample timing*/
+static GF_FilterCapability TTMLMergeCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_SUBS_XML),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+};
+
+
+const GF_FilterRegister TTMLMergeRegister = {
+	.name = "ttmlmerge",
+	GF_FS_SET_DESCRIPTION("TTML sample merger")
+	GF_FS_SET_HELP("Merge input samples into a single TTML sample. Merging restarts at the start of DASH segments.\n")
+//	.flags = GF_FS_REG_EXPLICIT_ONLY,
+	.private_size = sizeof(GF_GenDumpCtx),
+	.initialize = ttmlmerge_initialize,
+	.finalize = writegen_finalize,
+	SETCAPS(TTMLMergeCaps),
+	.configure_pid = writegen_configure_pid,
+	.process = writegen_process
+};
+const GF_FilterRegister *ttmlmerge_register(GF_FilterSession *session)
+{
+	return &TTMLMergeRegister;
+}
+
+
 #else
 const GF_FilterRegister *writegen_register(GF_FilterSession *session)
 {
 	return NULL;
 }
 const GF_FilterRegister *writeuf_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *ttmlmerge_register(GF_FilterSession *session)
 {
 	return NULL;
 }

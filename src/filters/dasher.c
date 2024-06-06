@@ -199,7 +199,7 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src, tpl_force, keep_segs;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool cmpd, dual, sreg;
+	Bool cmpd, dual, sreg, ttml_agg;
 	char *styp;
 	Bool sigfrag;
 	u32 sbound, pswitch;
@@ -209,6 +209,7 @@ typedef struct
 	char *ckurl;
 	GF_PropStringList hlsx;
 	u32 llhls;
+	Bool hlsiv;
 	//inherited from mp4mx
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
@@ -1212,7 +1213,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			CHECK_PROP(GF_PROP_PID_HEIGHT, ds->height, GF_EOS)
 			//don't return if not defined
 			CHECK_PROP_FRAC(GF_PROP_PID_SAR, ds->sar, GF_EOS)
-			if (!ds->sar.num) ds->sar.num = ds->sar.den = 1;
+			if (ds->sar.num<=0) ds->sar.num = ds->sar.den = 1;
 			CHECK_PROP_FRAC(GF_PROP_PID_FPS, ds->fps, GF_EOS)
 
 
@@ -3575,6 +3576,18 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	} else {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESHIFT_SEGS, NULL);
 	}
+
+	//inject ttml agg filter
+	if (ctx->ttml_agg && !ctx->rawsub && (ds->codec_id==GF_CODECID_SUBS_XML)) {
+		GF_Err e;
+		GF_Filter *ttml_agg = gf_filter_load_filter(filter, "ttmlmerge", &e);
+		gf_filter_set_source(ttml_agg, filter, NULL);
+
+		sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
+		gf_filter_reset_source(ds->dst_filter);
+		gf_filter_set_source(ds->dst_filter, ttml_agg, szSRC);
+	}
+
 }
 
 static void dasher_set_content_components(GF_DashStream *ds)
@@ -7982,7 +7995,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		//we need a hard copy as the pid may reconfigure before we flush the segment
 		if (kms_uri) {
 			//insert IV if not mp4
-			if (!ds->tci && !strstr(kms_uri, "IV=") && (ctx->muxtype!=DASHER_MUX_ISOM)) {
+			if (!ds->tci && ctx->hlsiv && !strstr(kms_uri, "IV=") && (ctx->muxtype!=DASHER_MUX_ISOM)) {
 				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CENC_KEY_INFO);
 				if (p && (p->value.data.size==37)) {
 					char *kms_iv=NULL;
@@ -8598,8 +8611,8 @@ static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
 			pck = gf_filter_pck_new_alloc(ds->opid, 0, &data);
 		}
 
-		gf_filter_pck_set_dts(pck, ds->first_cts_in_seg);
-		gf_filter_pck_set_cts(pck, ds->first_cts_in_seg);
+		gf_filter_pck_set_dts(pck, ds->first_cts_in_seg+ds->first_cts);
+		gf_filter_pck_set_cts(pck, ds->first_cts_in_seg+ds->first_cts);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 		//we don't assign a duration
 
@@ -9750,6 +9763,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->rep->first_tfdt_plus_one = 1 + gf_filter_pck_get_dts(dst);
 				ds->rep->first_tfdt_timescale = ds->timescale;
 			}
+
 			//send packet
 			if (dst)
 				gf_filter_pck_send(dst);
@@ -10683,6 +10697,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(hlsx), "list of string to append to master HLS header before variants with `['#foo','#bar=val']` added as `#foo \\n #bar=val`", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(hlsiv), "inject IV in variant HLS playlist`", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_preload_hint), "inject preload hint for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -10722,6 +10737,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };

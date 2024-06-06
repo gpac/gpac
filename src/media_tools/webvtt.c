@@ -778,7 +778,7 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 		} else break;	\
 	}
 
-extern char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type);
+extern char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *in_progress);
 
 GF_Err gf_webvtt_parse_timestamp(GF_WebVTTParser *parser, GF_WebVTTTimestamp *ts, const char *line)
 {
@@ -932,7 +932,7 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 	return e;
 }
 
-GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cue)
+GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cue, FILE *ext_file, Bool is_eof)
 {
 	char szLine[2049];
 	char *sOK;
@@ -952,9 +952,14 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 
 	szLine[2048]=0;
 	while (!parser->is_eof) {
+		Bool in_progress = is_eof;
 		if (!cue && parser->suspend)
 			break;
-		sOK = gf_text_get_utf8_line(szLine, 2048, parser->vtt_in, parser->unicode_type);
+		sOK = gf_text_get_utf8_line(szLine, 2048, ext_file ? ext_file : parser->vtt_in, parser->unicode_type, &in_progress);
+		if (in_progress) {
+			parser->suspend = GF_TRUE;
+			break;
+		}
 		REM_TRAIL_MARKS(szLine, "\r\n")
 		len = (u32) strlen(szLine);
 		if (parser->is_srt && sOK && !strncmp(sOK, "WEBVTT", 6)) {
@@ -1165,8 +1170,14 @@ exit:
 
 GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 {
-	return gf_webvtt_parser_parse_internal(parser, NULL);
+	return gf_webvtt_parser_parse_internal(parser, NULL, NULL, GF_TRUE);
 }
+GF_Err gf_webvtt_parser_parse_ext(GF_WebVTTParser *parser, FILE *ext_file, Bool in_eos)
+{
+	return gf_webvtt_parser_parse_internal(parser, NULL, ext_file, in_eos);
+}
+
+
 void gf_webvtt_parser_not_done(GF_WebVTTParser *parser)
 {
 	if (parser) parser->is_eof = GF_FALSE;
@@ -1194,7 +1205,7 @@ GF_Err gf_webvtt_parser_parse_payload(GF_WebVTTParser *parser, u64 start, u64 en
 	if (vtt_settings) cue->settings = gf_strdup(vtt_settings);
 	if (vtt_pre) cue->pre_text = gf_strdup(vtt_pre);
 
-	GF_Err e = gf_webvtt_parser_parse_internal(parser, cue);
+	GF_Err e = gf_webvtt_parser_parse_internal(parser, cue, NULL, GF_TRUE);
 	parser->is_eof = GF_FALSE;
 	return e;
 }
