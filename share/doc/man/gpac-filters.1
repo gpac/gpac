@@ -1005,6 +1005,22 @@ The filter handles both files and GF_FileIO objects as input URL.
 .br
 
 .br
+.SS Packet Injecting
+.br
+The filter can be used to inject a single packet instead of a file using (-pck)[] option.
+.br
+No specific properties are attached, except a timescale if (-ptime)[] is set.
+.br
+Example
+.br
+gpac fin:pck=str@"My Sample Text":ptime=2500/100:#CodecID=stxt:#StreamType=text
+.br
+
+.br
+This will declare the PID as WebVTT and send a single packet with payload My Sample Text and a timestamp value of 25 second.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -1019,6 +1035,8 @@ ext (cstr):                    override file extension
 mime (cstr):                   set file mime type
 .br
 pck (mem):                     data to use instead of file
+.br
+ptime (frac, default: 0/0):    timing for data packet, ignored if den is 0
 .br
 
 .br

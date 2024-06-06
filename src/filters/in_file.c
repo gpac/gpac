@@ -52,6 +52,7 @@ typedef struct
 	u32 block_size;
 	GF_PropData pck;
 	GF_Fraction64 range;
+	GF_Fraction ptime;
 
 	//only one output pid declared
 	GF_FilterPid *pid;
@@ -90,7 +91,14 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 		GF_Err e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, ctx->pck.ptr, ctx->pck.size, GF_FALSE, &ctx->pid);
 		if (e) return e;
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_URL, &PROP_STRING("NULL"));
+		if (ctx->ptime.den && (ctx->ptime.num>=0))
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->ptime.den));
 		opck = gf_filter_pck_new_shared(ctx->pid, ctx->pck.ptr, ctx->pck.size, NULL);
+		if (ctx->ptime.den && (ctx->ptime.num>=0)) {
+			gf_filter_pck_set_dts(opck, ctx->ptime.num);
+			gf_filter_pck_set_cts(opck, ctx->ptime.num);
+		}
+		gf_filter_pck_set_sap(opck, GF_FILTER_SAP_1);
 		gf_filter_pck_send(opck);
 		gf_filter_pid_set_eos(ctx->pid);
 		ctx->is_end = GF_TRUE;
@@ -720,6 +728,7 @@ static const GF_FilterArgs FileInArgs[] =
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(pck), "data to use instead of file", GF_PROP_DATA, NULL, NULL, 0},
+	{ OFFS(ptime), "timing for data packet, ignored if den is 0", GF_PROP_FRACTION, "0/0", NULL, 0},
 	{0}
 };
 
@@ -740,6 +749,12 @@ GF_FilterRegister FileInRegister = {
 	"The special file name `randsc` is used to generate random data with `0x000001` start-code prefix.\n"
 	"\n"
 	"The filter handles both files and GF_FileIO objects as input URL.\n"
+	"\n"
+	"## Packet Injecting\n"
+	"The filter can be used to inject a single packet instead of a file using (-pck)[] option.\n"
+	"No specific properties are attached, except a timescale if (-ptime)[] is set.\n"
+	"EX gpac fin:pck=str@\"My Sample Text\":ptime=2500/100:#CodecID=stxt:#StreamType=text\n"
+	"This will declare the PID as WebVTT and send a single packet with payload `My Sample Text` and a timestamp value of 25 second.\n"
 	)
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,

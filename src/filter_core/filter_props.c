@@ -89,6 +89,79 @@ Bool gf_props_type_is_enum(GF_PropType type)
 	return GF_FALSE;
 }
 
+static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const char *name, const char *value, const char *prefix, const char *scode, u32 size)
+{
+	u32 nb_items=1;
+	Bool is_string = GF_FALSE;
+	char *str_val = NULL;
+	u32 str_val_len = 0;
+	const char *v = value;
+	while (1) {
+		char *sep = strchr(v, list_sep_char);
+		if (!sep) break;
+		nb_items++;
+		v = sep+1;
+	}
+	if (!strcmp(scode, "%s"))
+		is_string = GF_TRUE;
+	else
+		p->value.data.ptr = gf_malloc(nb_items*size);
+
+	u32 res = 0;
+	if (is_string || p->value.data.ptr) {
+		char *vdup = gf_strdup(value);
+		const char *v = vdup;
+		nb_items = 0;
+		while (1) {
+			u32 lres;
+			char *sep = strchr(v, list_sep_char);
+			if (sep) sep[0] = 0;
+
+			if (!strcmp(prefix, "u8@")) {
+				u32 _val;
+				lres = sscanf(v, scode, &_val);
+				if (lres) p->value.data.ptr[nb_items] = (u8) _val;
+			}
+			else if (!strcmp(prefix, "s8@")) {
+				u32 _val;
+				lres = sscanf(v, scode, &_val);
+				if (lres) p->value.data.ptr[nb_items] = (s8) _val;
+			} else if (is_string) {
+				//copy also the trailing 0
+				u32 slen = 1 + (u32) strlen(v);
+				str_val = gf_realloc(str_val, str_val_len+slen);
+				memcpy(str_val+str_val_len, str_val, slen);
+				str_val_len += slen;
+				lres = 1;
+			} else {
+				lres = sscanf(value, scode, &p->value.data.ptr[nb_items*size]);
+			}
+			nb_items++;
+			res += lres;
+			if (!sep) break;
+			if (!lres) break;
+			v = sep+1;
+		}
+		gf_free(vdup);
+	}
+	if (str_val)
+		p->value.data.ptr = str_val;
+
+	if (res==nb_items) {
+		p->value.data.size = str_val ? str_val_len : (nb_items*size);
+		p->type = GF_PROP_DATA;
+	} else {
+		if (p->value.data.ptr) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Invalid value %s for %s syntax of property %s, parsed only %d for %d items\n", value, prefix, name, res, nb_items));
+			gf_free(p->value.data.ptr);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate data for value %s%s of property %s\n", prefix, value, name));
+		}
+		p->value.data.size = 0;
+		p->value.data.ptr = NULL;
+		p->type=GF_PROP_FORBIDDEN;
+	}
+}
 static Bool parse_time(const char *str, u64 *val)
 {
 	u32 h=0, m=0, s=0, ms=0;
@@ -511,6 +584,30 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.size = 0;
 				p.type=GF_PROP_FORBIDDEN;
 			}
+		} else if (!strnicmp(value, "u8@", 3) ) {
+			parse_data_format(&p, list_sep_char, name, value+3, "u8@", "%c", 1);
+		} else if (!strnicmp(value, "s8@", 3) ) {
+			parse_data_format(&p, list_sep_char, name, value+3, "s8@", "%c", 1);
+		} else if (!strnicmp(value, "u16@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "u16@", "%hu", 2);
+		} else if (!strnicmp(value, "s16@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "s16@", "%hd", 2);
+		} else if (!strnicmp(value, "u32@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "u32@", "%u", 4);
+		} else if (!strnicmp(value, "s32@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "s32@", "%d", 4);
+		} else if (!strnicmp(value, "u64@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "u64@", LLU, 8);
+		} else if (!strnicmp(value, "s64@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "s64@", LLD, 8);
+		} else if (!strnicmp(value, "flt@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "flt@", "%f", 4);
+		} else if (!strnicmp(value, "dbl@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "dbl@", "%g", 8);
+		} else if (!strnicmp(value, "hex@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "hex@", "%X", 4);
+		} else if (!strnicmp(value, "str@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "str@", "%s", 4);
 		} else {
 			p.value.data.size = (u32) strlen(value);
 			if (p.value.data.size)

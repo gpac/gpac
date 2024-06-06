@@ -1645,6 +1645,8 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
   * `b64@DATA`: load data from base-64 encoded DATA.
 .br
+  * `FMT@val`: load values from val (comma-separated list) with FMT being u8, s8, u16, s16, u32, s32, u64, s64, flt, dbl, hex or str.
+.br
 * pointer: pointer address as formatted by %p in C.
 .br
 * string lists: formatted as val1,val2[,...]. Each value can also use file@FILE syntax.
@@ -3210,7 +3212,7 @@ Video is interlaced
 .TP
 .B SAR (PSAR,frac,  )
 .br
-Sample (i.e. pixel) aspect ratio
+Sample (i.e. pixel) aspect ratio (negative values mean no SAR and removal of info in containers)
 .br
 .TP
 .B MaxWidth (MWID,uint,  )
