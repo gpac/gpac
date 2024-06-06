@@ -7521,7 +7521,9 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		}
 
 		nb_zeros = gf_bs_get_emulation_byte_removed(bs);
-
+		if (hevc) {
+			hevc->has_3d_ref_disp_info = 0;
+		}
 		switch (ptype) {
 		case 4: /*user registered ITU-T T35*/
 			if (hevc) {
@@ -7552,6 +7554,12 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 				hevc->mdcv_valid = 1;
 			} else {
 				vvc->mdcv_valid = 1;
+			}
+			break;
+		// three_dimensional_reference_displays_info
+		case 176:
+			if (hevc) {
+				hevc->has_3d_ref_disp_info = 1;
 			}
 			break;
 		default:
@@ -8319,8 +8327,10 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 	sps_ext_or_max_sub_layers_minus1 = 0;
 	if (layer_id == 0)
 		max_sub_layers_minus1 = gf_bs_read_int_log(bs, 3, "max_sub_layers_minus1");
-	else
+	else {
 		sps_ext_or_max_sub_layers_minus1 = gf_bs_read_int_log(bs, 3, "sps_ext_or_max_sub_layers_minus1");
+		max_sub_layers_minus1 = sps_ext_or_max_sub_layers_minus1 == 7 ? hevc->vps[vps_id].max_sub_layers - 1 : sps_ext_or_max_sub_layers_minus1;
+	}
 	multiLayerExtSpsFlag = (layer_id != 0) && (sps_ext_or_max_sub_layers_minus1 == 7);
 	if (!multiLayerExtSpsFlag) {
 		gf_bs_read_int_log(bs, 1, "temporal_id_nesting_flag");
