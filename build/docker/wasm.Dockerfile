@@ -30,7 +30,7 @@ ENV EMSDK_NODE="/emsdk/node/18.20.3_64bit/bin/node"
 FROM base as deps
 
 # Install GPAC WASM dependencies
-RUN git clone --recurse-submodules --shallow-submodules --depth 1 https://github.com/gpac/deps_wasm
+RUN git clone --recurse-submodules --depth 1 https://github.com/gpac/deps_wasm
 
 # Build GPAC WASM dependencies
 WORKDIR /deps_wasm
