@@ -78,6 +78,7 @@ const char *gpac_doc =
 "  - `file@FILE`: load data from local `FILE` (opened in binary mode).\n"
 "  - `bxml@FILE`: binarize XML from local `FILE` - see https://wiki.gpac.io/xmlformats/NHML-Format.\n"
 "  - `b64@DATA`: load data from base-64 encoded `DATA`.\n"
+"  - `FMT@val`: load values from val (comma-separated list) with `FMT` being `u8`, `s8`, `u16`, `s16`, `u32`, `s32`, `u64`, `s64`, `flt`, `dbl`, `hex` or `str`.\n"
 "- pointer: pointer address as formatted by `%p` in C.\n"
 "- string lists: formatted as `val1,val2[,...]`. Each value can also use `file@FILE` syntax.\n"
 "- integer lists: formatted as `val1,val2[,...]`\n"
