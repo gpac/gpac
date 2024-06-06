@@ -887,8 +887,9 @@ int gpac_main(int _argc, char **_argv)
 
 			gpac_credentials_help(GF_ARGMODE_EXPERT);
 
+#ifdef GPAC_DEFER_MODE
 			gpac_defer_help();
-
+#endif
 			if (gen_doc==1) {
 				gf_fclose(helpout);
 				helpout = gf_fopen("core_config.md", "w");
