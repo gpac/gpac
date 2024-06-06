@@ -1,7 +1,7 @@
 [![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu64)](https://buildbot.gpac.io/#/grid?branch=master)
 [![Tests](https://tests.gpac.io/testres/badge/tests/linux64)](https://tests.gpac.io/)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu32)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/debian32)](https://buildbot.gpac.io/#/grid?branch=master)
 [![Tests](https://tests.gpac.io/testres/badge/tests/linux32)](https://tests.gpac.io/)
 
 [![Build Status](https://tests.gpac.io/testres/badge/build/windows64)](https://buildbot.gpac.io/#/grid?branch=master)
