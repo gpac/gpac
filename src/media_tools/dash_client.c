@@ -822,7 +822,7 @@ setup_route:
 					if (sscanf(val, szTemplate, &number) == 1) {
 						u32 startNum = 1;
 						u64 pto=0;
-						u32 segdur=0, timescale=0;
+						u32 segdur=0, timescale=1; //MPD timescale is 1 if not present
 						Bool is_valid = GF_TRUE;
 						GF_MPD_SegmentTimeline *seg_timeline=NULL;
 						if (dyn_period->segment_template) {
@@ -830,7 +830,7 @@ setup_route:
 							segdur = (u32) dyn_period->segment_template->duration;
 							seg_timeline = dyn_period->segment_template->segment_timeline;
 							pto = dyn_period->segment_template->presentation_time_offset;
-							timescale = dyn_period->segment_template->timescale;
+							if (dyn_period->segment_template->timescale) timescale = dyn_period->segment_template->timescale;
 						}
 						if (set->segment_template) {
 							startNum = set->segment_template->start_number;
@@ -1107,8 +1107,9 @@ setup_route:
 			availabilityStartTime = current_time;
 			current_time = 0;
 		}
+	} else {
+		current_time -= availabilityStartTime;
 	}
-	else current_time -= availabilityStartTime;
 
 	if (gf_list_count(group->dash->mpd->periods)) {
 		u64 seg_start_ms = current_time;
@@ -1173,7 +1174,7 @@ setup_route:
 	group->dash->time_in_tsb = group->dash->prev_time_in_tsb = 0;
 
 	timeline = NULL;
-	timescale=1;
+	timescale=1; //MPD timescale is 1 if not present
 	u64 rep_pto = 0;
 	start_number=0;
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
@@ -1720,7 +1721,8 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 	u32 timescale;
 	u64 duration;
 	GF_MPD_SegmentTimeline *timeline = NULL;
-	*nb_segments = timescale = 0;
+	*nb_segments = 0;
+	timescale = 1; //MPD timescale is 1 if not present
 	duration = 0;
 
 	if (rep->segment_list || set->segment_list || period->segment_list) {
@@ -1949,7 +1951,8 @@ static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 s
 static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient *dash, GF_MPD_SegmentList *old_list, GF_MPD_SegmentTemplate *old_template, GF_MPD_SegmentList *new_list, GF_MPD_SegmentTemplate *new_template, Double min_start_time)
 {
 	GF_MPD_SegmentTimeline *old_timeline, *new_timeline;
-	u32 i, idx, timescale, nb_new_segs;
+	u32 i, idx, nb_new_segs;
+	u32 timescale = 1; //MPD timescale is 1 if not present
 	GF_MPD_SegmentTimelineEntry *ent;
 
 	old_timeline = new_timeline = NULL;
@@ -1960,7 +1963,7 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 		}
 		old_timeline = old_list->segment_timeline;
 		new_timeline = new_list->segment_timeline;
-		timescale = new_list->timescale;
+		if (new_list->timescale) timescale = new_list->timescale;
 	} else if (old_template && old_template->segment_timeline) {
 		if (!new_template || !new_template->segment_timeline) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: segment timeline not present in new MPD segmentTemplate\n"));
@@ -1968,7 +1971,7 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 		}
 		old_timeline = old_template->segment_timeline;
 		new_timeline = new_template->segment_timeline;
-		timescale = new_template->timescale;
+		if (new_template->timescale) timescale = new_template->timescale;
 	}
 	if (!old_timeline && !new_timeline) return GF_OK;
 
@@ -8556,11 +8559,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	if (strstr(szLine, "#EXTM3U"))
 		dash->is_m3u8 = 1;
 
-	if (dash->dash_io->manifest_updated) {
-		const char *szName = gf_file_basename(manifest_url);
-		dash->dash_io->manifest_updated(dash->dash_io, szName, local_url, -1);
-	}
-
 	if (dash->is_m3u8) {
 		if (is_local) {
 			char *sep;
@@ -8623,6 +8621,13 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			dash_purge_xlink(dash->mpd);
 
 	}
+	//notify manifest update after parsing it as the callback could ask for some properties of the MPD
+	if (!e && dash->dash_io->manifest_updated) {
+		const char *szName = gf_file_basename(manifest_url);
+		dash->dash_io->manifest_updated(dash->dash_io, szName, local_url, -1);
+	}
+
+
 	//for both DASH and HLS, we support ROUTE
 	if (!is_local) {
 		const char *hdr = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "x-route");
@@ -9505,21 +9510,31 @@ GF_Err gf_dash_group_get_segment_duration(GF_DashClient *dash, u32 idx, u32 *dur
 	if (!rep) return GF_BAD_PARAM;
 
 	*dur = 0;
-	*timescale = 0;
-	if (rep->segment_template) { *dur = (u32) rep->segment_template->duration; (*timescale) = rep->segment_template->timescale; }
-	else if (rep->segment_list) { *dur = (u32) rep->segment_list->duration; *timescale = rep->segment_list->timescale; }
+	*timescale = 1; //MPD timescale is 1 if not present
+	if (rep->segment_template) {
+		*dur = (u32) rep->segment_template->duration;
+		if (rep->segment_template->timescale) (*timescale) = rep->segment_template->timescale;
+	}
+	else if (rep->segment_list) {
+		*dur = (u32) rep->segment_list->duration;
+		if (rep->segment_list->timescale) *timescale = rep->segment_list->timescale;
+	}
 
 	if (group->adaptation_set->segment_template && ! *dur) *dur = (u32) group->adaptation_set->segment_template->duration;
 	else if (group->adaptation_set->segment_list && ! *dur) *dur = (u32) group->adaptation_set->segment_list->duration;
 
-	if (group->adaptation_set->segment_template && ! *timescale) *timescale = group->adaptation_set->segment_template->timescale;
-	else if (group->adaptation_set->segment_list && ! *timescale) *timescale = group->adaptation_set->segment_list->timescale;
+	if (group->adaptation_set->segment_template && group->adaptation_set->segment_template->timescale)
+		*timescale = group->adaptation_set->segment_template->timescale;
+	else if (group->adaptation_set->segment_list && group->adaptation_set->segment_list->timescale)
+		*timescale = group->adaptation_set->segment_list->timescale;
 
 	if (group->period->segment_template && ! *dur) *dur = (u32) group->period->segment_template->timescale;
 	else if (group->period->segment_list && ! *dur) *dur = (u32) group->period->segment_list->timescale;
 
-	if (group->period->segment_template && ! *timescale) *timescale = group->period->segment_template->timescale;
-	else if (group->period->segment_list && ! *timescale) *timescale = group->period->segment_list->timescale;
+	if (group->period->segment_template && group->period->segment_template->timescale)
+		*timescale = group->period->segment_template->timescale;
+	else if (group->period->segment_list && group->period->segment_list->timescale)
+		*timescale = group->period->segment_list->timescale;
 	return GF_OK;
 }
 
@@ -10319,7 +10334,7 @@ GF_EXPORT
 GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_idx, GF_DASHQualityInfo *quality)
 {
 	GF_MPD_Fractional *sar;
-	u32 timescale = 0;
+	u32 timescale = 1; //MPD timescale is 1 if not present
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	GF_MPD_Representation *rep;
 	if (!group || !quality) return GF_BAD_PARAM;
@@ -10364,17 +10379,17 @@ GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_
 
 	if (rep->segment_template) {
 		if (!quality->ast_offset) quality->ast_offset = rep->segment_template->availability_time_offset;
-		if (!timescale) timescale = rep->segment_template->timescale;
+		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (!quality->average_duration) quality->average_duration = (Double) rep->segment_template->duration;
 	}
 	if (group->adaptation_set->segment_template) {
 		if (!quality->ast_offset) quality->ast_offset = group->adaptation_set->segment_template->availability_time_offset;
-		if (!timescale) timescale = group->adaptation_set->segment_template->timescale;
+		if (group->adaptation_set->segment_template->timescale) timescale = group->adaptation_set->segment_template->timescale;
 		if (!quality->average_duration) quality->average_duration =  (Double) group->adaptation_set->segment_template->duration;
 	}
 	if (group->period->segment_template) {
 		if (!quality->ast_offset) quality->ast_offset = group->period->segment_template->availability_time_offset;
-		if (!timescale) timescale = group->period->segment_template->timescale;
+		if (group->period->segment_template->timescale) timescale = group->period->segment_template->timescale;
 		if (!quality->average_duration) quality->average_duration =  (Double) group->period->segment_template->duration;
 	}
 
