@@ -1,0 +1,26 @@
+name: branches actions
+run-name: build with docker
+on:
+  push:
+    branches-ignore:
+      - master
+
+jobs:
+
+    linux-image-build:
+        runs-on: ubuntu-latest
+        #if:  ${{ github.ref != 'refs/heads/master' || github.event_name != 'push' }}
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v3
+            - name: build image
+              run: docker build -t gpac-ubuntu -f build/docker/ubuntu.Dockerfile .
+
+    wasm-image-build:
+        runs-on: ubuntu-latest
+        #if:  ${{ github.ref != 'refs/heads/master' || github.event_name != 'push' }}
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v3
+            - name: build image
+              run: docker build -t gpac-wasm -f build/docker/wasm.Dockerfile .
