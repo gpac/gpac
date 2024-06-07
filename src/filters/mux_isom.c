@@ -6400,8 +6400,26 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	GF_BitStream *bs = gf_bs_new(emsg_prop->value.data.ptr, emsg_prop->value.data.size, GF_BITSTREAM_READ);
 	GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
 
-	u32 timescale = gf_bs_read_u32(bs);   // timescale
-	u64 pts_delta = gf_bs_read_u64(bs);   // presentation time delta
+	u32 timescale = gf_bs_read_u32(bs);			// timescale
+	u64 pts_delta = gf_bs_read_u64(bs);				// presentation time delta
+	u32 scheme_uri_length = gf_bs_read_u32(bs); // scheme id uri length plus null character
+
+	// scheme id uri
+	char *scheme_uri = (u8 *)gf_malloc(scheme_uri_length);
+	u32 bytes_read = gf_bs_read_data(bs, scheme_uri, scheme_uri_length);
+	if (bytes_read != scheme_uri_length)
+	{
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Got less bytes than expected when reading scheme id uri, expecting %u, got %u\n", scheme_uri_length, bytes_read))
+	}
+
+	u32 value_length = gf_bs_read_u32(bs); // value length plus null character
+	char *value_uri = (u8 *)gf_malloc(value_length);
+	bytes_read = gf_bs_read_data(bs, value_uri, value_length);
+	if (bytes_read != value_length)
+	{
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Got less bytes than expected when reading value uri, expecting %u, got %u\n", value_length, bytes_read))
+	}
+
 	u32 data_length = gf_bs_read_u32(bs); // message data length
 
 	emsg->version = 1;
@@ -6410,8 +6428,8 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	emsg->presentation_time_delta = pts_delta;
 	emsg->event_duration = 0xFFFFFFFF;
 	emsg->event_id = 0;
-	emsg->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
-	emsg->value = gf_strdup("www.nielsen.com:id3:v1");
+	emsg->scheme_id_uri = gf_strdup(scheme_uri);
+	emsg->value = gf_strdup(value_uri);
 
 	emsg->message_data_size = data_length;
 	emsg->message_data = (u8 *)gf_malloc(emsg->message_data_size);
@@ -6427,8 +6445,10 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	for (int i=0; i<gf_list_count(moof->emsgs); ++i)
 	{
 		GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
-		if (!strcmp(existing_emsg->scheme_id_uri, "https://aomedia.org/emsg/ID3") && !strcpy(existing_emsg->value, "www.nielsen.com:id3:v1")) {
-			if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta) {
+		if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta) {
+			if (!strcmp(existing_emsg->scheme_id_uri, scheme_uri) && !strcmp(existing_emsg->value, value_uri))
+			{
+				if (existing_emsg->message_data_size == emsg->message_data_size && !memcmp(existing_emsg->message_data, emsg->message_data, emsg->message_data_size))
 				insert_emsg = GF_FALSE;
 				break;
 			}
@@ -6439,6 +6459,9 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 		if (!moof->emsgs) moof->emsgs = gf_list_new();
 		gf_list_add(moof->emsgs, emsg);
 	}
+
+	gf_free(scheme_uri);
+	gf_free(value_uri);
 }
 #endif
 
