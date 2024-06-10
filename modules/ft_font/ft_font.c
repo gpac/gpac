@@ -176,6 +176,18 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 
 			/*try to assign default fixed fonts*/
 			if (!bold && !italic) {
+
+				/* if a bold or italic default has been set, prefer a regular one */
+				if (ftpriv->font_default && (strstr(ftpriv->font_default, " Bold") || strstr(ftpriv->font_default, " Italic"))) {
+					u32 gidx;
+					FT_Select_Charmap(face, FT_ENCODING_UNICODE);
+					gidx = FT_Get_Char_Index(face, (u32) 'a');
+					if (gidx) gidx = FT_Get_Char_Index(face, (u32) 'z');
+					if (gidx) gidx = FT_Get_Char_Index(face, (u32) '1');
+					if (gidx) gidx = FT_Get_Char_Index(face, (u32) '@');
+					if (gidx) ftpriv->font_default = gf_strdup(szfont);
+				}
+
 				strcpy(szfont, face->family_name);
 				strlwr(szfont);
 
