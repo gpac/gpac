@@ -946,17 +946,18 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 				continue;
 			}
 			if (info.fieldType == SVG_ID_datatype) {
-				/*"when both 'id' and 'xml:id'  are specified on the same element but with different values,
-				the SVGElement::id field must return either of the values but should give precedence to
-				the 'xml:id'  attribute."*/
-				if (!node_name || (info.fieldIndex == TAG_XML_ATT_id)) {
-					node_name = *(SVG_ID *)info.far_ptr;
-					/* Check if ID start with a digit, which is not a valid ID for a node according to XML (see http://www.w3.org/TR/xml/#id) */
-					if (isdigit(node_name[0])) {
-						svg_report(parser, GF_BAD_PARAM, "Invalid value %s for node %s %s", node_name, name, att->name);
-						node_name = NULL;
-					}
+
+				/* in this case gf_svg_parse_attribute will have deleted the previous info.far_ptr if it existed
+				 * so we need to overwrite node_name in order to avoid have a use-after-free
+				 */
+
+				node_name = *(SVG_ID *)info.far_ptr;
+				/* Check if ID start with a digit, which is not a valid ID for a node according to XML (see http://www.w3.org/TR/xml/#id) */
+				if (isdigit(node_name[0])) {
+					svg_report(parser, GF_BAD_PARAM, "Invalid value %s for node %s %s", node_name, name, att->name);
+					node_name = NULL;
 				}
+
 			} else {
 				switch (info.fieldIndex) {
 				case TAG_SVG_ATT_syncMaster:
@@ -2188,7 +2189,7 @@ GF_Err load_svg_parse_string(GF_SceneLoader *load, const char *str)
 	}
 	if (e<0) svg_report(parser, e, "Unable to parse chunk: %s", parser ? gf_xml_sax_get_error(parser->sax_parser) : "no parser");
 	else e = parser->last_error;
-	
+
 
 	svg_flush_animations(parser);
 
@@ -2248,4 +2249,3 @@ GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *in_scene, char *node_str)
 }
 
 #endif
-
