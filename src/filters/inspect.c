@@ -32,6 +32,8 @@
 
 #ifndef GPAC_DISABLE_INSPECT
 
+static u32 inspect_log_tool = GF_LOG_APP;
+
 typedef struct
 {
 	GF_FilterPid *src_pid;
@@ -160,10 +162,10 @@ static void inspect_printf(FILE *dump, const char *fmt, ...)
 	va_list list;
 	if (dump == NULL) {
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_APP, GF_LOG_INFO) ) {
-			gf_log_lt(GF_LOG_INFO, GF_LOG_APP);
+		if (gf_log_tool_level_on(inspect_log_tool, GF_LOG_INFO) ) {
+			gf_log_lt(GF_LOG_INFO, inspect_log_tool);
 			va_start(list, fmt);
-			gf_log_va_list(GF_LOG_INFO, GF_LOG_APP, fmt, list);
+			gf_log_va_list(GF_LOG_INFO, inspect_log_tool, fmt, list);
 			va_end(list);
 		}
 #endif
@@ -2011,7 +2013,7 @@ static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
 				u32 read = (u32) gf_fread(szLine, 1024, pctx->tmp);
 				if (ctx->dump_log) {
 					szLine[1024] = 0;
-					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", szLine));
+					GF_LOG(GF_LOG_INFO, inspect_log_tool, ("%s", szLine));
 				} else {
 					if (gf_fwrite(szLine, read, ctx->dump) != read) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] failed to concatenate trace: %s\n", gf_error_to_string(GF_IO_ERR)));
@@ -5208,8 +5210,18 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	const char *name = gf_filter_get_name(filter);
 	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
-	if (ctx->log && !strcmp(ctx->log, "GLOG"))
-		ctx->dump_log = GF_TRUE;
+	if (ctx->log) {
+		if (!strcmp(ctx->log, "GLOG")) {
+			ctx->dump_log = GF_TRUE;
+			inspect_log_tool = GF_LOG_APP;
+		} else {
+			u32 ltool = gf_log_parse_tool(ctx->log);
+			if (ltool!=GF_LOG_TOOL_UNDEFINED) {
+				ctx->dump_log = GF_TRUE;
+				inspect_log_tool = ltool;
+			}
+		}
+	}
 
 	if (name && !strcmp(name, "probe") ) {
 		ctx->is_prober = GF_TRUE;
@@ -5298,14 +5310,15 @@ static const GF_FilterArgs InspectArgs[] =
 	"- _any: target file path and name\n"
 	"- stderr: dump to stderr\n"
 	"- stdout: dump to stdout\n"
-	"- GLOG: use GPAC logs `app@info\n"
+	"- GLOG: use GPAC logs `app@info`\n"
+	"- TL: use GPAC log tool `TL` at level `info`\n"
 	"- null: silent mode", GF_PROP_STRING,
 #ifdef GPAC_CONFIG_ANDROID
 		"GLOG"
 #else
 		"stdout"
 #endif
-		, "_any|stderr|stdout|GLOG|null", 0},
+		, "_any|stderr|stdout|GLOG|TL|null", 0},
 	{ OFFS(mode), "dump mode\n"
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"
