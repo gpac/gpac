@@ -938,6 +938,15 @@ Checks if logs are stored to file
 */
 Bool gf_log_use_file();
 
+/*!
+\brief Parses a log tool
+
+Parses a log tool by name
+\param logs the name to parse
+\return log tool value
+*/
+u32 gf_log_parse_tool(const char *logs);
+
 #ifdef GPAC_DISABLE_LOG
 void gf_log_check_error(u32 ll, u32 lt);
 #define GF_LOG(_ll, _lm, __args) gf_log_check_error(_ll, _lm);
@@ -1142,8 +1151,9 @@ typedef struct __gf_blob
     struct __tag_mutex *mx;
 #endif
 	/*! function used to query if a range of a blob in transfer is valid. If NULL, any range is invalid until transfer is done
-	when set this function overrides the blob flags for gf_blob_query_range*/
-	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, u64 start, u32 size);
+	when set this function overrides the blob flags for gf_blob_query_range
+	size is updated to the maximum number of consecutive bytes starting from the goven offset */
+	GF_BlobRangeStatus (*range_valid)(struct __gf_blob *blob, u64 start, u32 *size);
 	/*! private data for range_valid function*/
 	void *range_udta;
 } GF_Blob;

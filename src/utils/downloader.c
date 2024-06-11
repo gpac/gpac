@@ -1765,7 +1765,7 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
 		url = gf_cache_get_url(e);
 		gf_assert( url );
 
-		if (!strncmp(url, "http://groute/", 14)) {
+		if (!strncmp(url, "http://gmcast/", 14)) {
 			char *sep_1 = strchr(url+14, '/');
 			char *sep_2 = strchr(sess->orig_url+14, '/');
 			if (!sep_1 || !sep_2 || strcmp(sep_1, sep_2))
@@ -2584,7 +2584,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 
 char *gf_cache_get_forced_headers(const DownloadedCacheEntry entry);
 u32 gf_cache_get_downtime(const DownloadedCacheEntry entry);
-Bool gf_cache_is_done(const DownloadedCacheEntry entry);
+u32 gf_cache_is_done(const DownloadedCacheEntry entry);
 Bool gf_cache_is_deleted(const DownloadedCacheEntry entry);
 
 static void gf_dm_sess_reload_cached_headers(GF_DownloadSession *sess)
@@ -4538,7 +4538,7 @@ static void gf_dm_sess_estimate_chunk_rate(GF_DownloadSession *sess, u32 nb_byte
 	}
 }
 
-const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size);
+const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 *max_valid_size);
 void gf_cache_release_content(const DownloadedCacheEntry entry);
 
 GF_EXPORT
@@ -4604,35 +4604,42 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			e = GF_OK;
 		}
     } else if (sess->local_cache_only) {
-        u32 to_copy, data_size;
+        u32 to_copy, full_cache_size, max_valid_size=0, cache_done;
         const u8 *ptr;
         e = GF_OK;
         gf_assert(sess->cache_entry);
         //always refresh total size
         sess->total_size = gf_cache_get_content_length(sess->cache_entry);
 
-        ptr = gf_cache_get_content(sess->cache_entry, &data_size);
+        ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size);
         if (!ptr) return GF_OUT_OF_MEM;
 
-        if (sess->bytes_done >= data_size) {
+		cache_done = gf_cache_is_done(sess->cache_entry);
+		if ((sess->bytes_done >= full_cache_size)|| (cache_done==2)) {
             *read_size = 0;
 			gf_cache_release_content(sess->cache_entry);
-            if (gf_cache_is_done(sess->cache_entry)) {
+            if (cache_done==2) {
+                sess->status = GF_NETIO_STATE_ERROR;
+                SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
+                return GF_IP_NETWORK_FAILURE;
+            }
+            else if (cache_done) {
                 sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR(GF_OK)
+                SET_LAST_ERR( GF_OK)
                 return GF_EOS;
             }
             return GF_IP_NETWORK_EMPTY;
         }
-        to_copy = data_size - sess->bytes_done;
+        //only copy valid bytes for http
+        to_copy = max_valid_size - sess->bytes_done;
         if (to_copy > buffer_size) to_copy = buffer_size;
 
         memcpy(buffer, ptr + sess->bytes_done, to_copy);
         sess->bytes_done += to_copy;
         *read_size = to_copy;
-        if (gf_cache_is_done(sess->cache_entry)) {
+        if (cache_done==1) {
             sess->status = GF_NETIO_DATA_TRANSFERED;
-			SET_LAST_ERR(GF_OK)
+			SET_LAST_ERR( (cache_done==2) ? GF_IP_NETWORK_FAILURE : GF_OK)
 		} else {
 			sess->total_size = 0;
 		}

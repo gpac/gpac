@@ -536,6 +536,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
+			ch->nb_empty_retry = 0;
 			if (ch->owner->mem_load_mode==2)
 				ch->owner->force_fetch = GF_TRUE;
 

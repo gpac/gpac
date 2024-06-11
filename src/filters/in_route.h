@@ -78,7 +78,7 @@ typedef struct
 {
 	//options
 	char *src, *ifce, *odir, *repair_url;
-	Bool gcache, kc, skipr, reorder, fullseg, cloop;
+	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
 	u32 max_sess;
 	s32 tunein, stsi;
@@ -109,6 +109,8 @@ typedef struct
 	GF_List *seg_repair_queue;
 	GF_List *seg_repair_reservoir;
 	GF_List *seg_range_reservoir;
+
+	const char *log_name;
 } ROUTEInCtx;
 
 struct _route_repair_seg_info

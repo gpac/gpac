@@ -352,7 +352,6 @@ static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleG
 	}
 }
 
-
 static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Box *a;
@@ -375,7 +374,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 
 	/*while we have some data, parse our boxes*/
-	while (gf_bs_available(mov->movieFileMap->bs)) {
+	while (gf_isom_datamap_top_level_box_avail(mov->movieFileMap)) {
 		*bytesMissing = 0;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;

@@ -109,9 +109,13 @@ typedef struct
 	//multicast gateway config
 	u8 *dvb_mabr_config;
 	u32 dvb_mabr_config_len;
+	u32 dvb_mabr_config_toi;
 	//FDT for mcast config + manifests + init segments
 	u8 *dvb_mabr_fdt;
 	u32 dvb_mabr_fdt_len;
+	u32 dvb_mabr_fdt_instance_id;
+
+	u32 next_toi_avail;
 } GF_ROUTEOutCtx;
 
 typedef struct
@@ -252,6 +256,7 @@ typedef struct
 	//set to true to force sending fragment name (flute LL mode)
 	Bool push_frag_name;
 	Bool init_cfg_done;
+	u32 fdt_instance_id;
 } ROUTEPid;
 
 
@@ -644,7 +649,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 		}
 	}
-	//reset MABR manifest
+	//a new pid has appeared, we need to reset MABR manifest
 	if (ctx->dvb_mabr_config) {
 		gf_free(ctx->dvb_mabr_config);
 		ctx->dvb_mabr_config = NULL;
@@ -778,6 +783,11 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	//move to microseconds
 	ctx->carousel *= 1000;
 	ctx->next_raw_file_toi = ctx->dvb_mabr ? 0x7FFF : 1;
+	ctx->next_toi_avail = 1;
+	if (ctx->llmode && (ctx->csum == DVB_CSUM_ALL)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Low-latency mode is activated but `csum=all`set, using `csum=meta`\n", ctx->log_name));
+		ctx->csum = DVB_CSUM_META;
+	}
 	return GF_OK;
 }
 
@@ -871,6 +881,8 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						rpid->init_seg_size = len;
 						rpid->init_seg_crc = crc;
 						rpid->init_seg_sent = GF_FALSE;
+						//we need a new TOI since init seg changed
+						rpid->init_toi = 0;
 						serv->needs_reconfig = GF_TRUE;
 						rpid->current_toi = 0;
 
@@ -955,6 +967,8 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					memcpy(media_pid->hld_child_pl, data, len);
 					media_pid->hld_child_pl[len] = 0;
 					media_pid->hld_child_pl_crc = crc;
+					//we need a new TOI since manifest changed
+					media_pid->hls_child_toi = 0;
 
 					if (!media_pid->hld_child_pl_name || strcmp(media_pid->hld_child_pl_name, file_name)) {
 						if (media_pid->hld_child_pl_name) gf_free(media_pid->init_seg_name);
@@ -962,6 +976,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						serv->needs_reconfig = GF_TRUE;
 					}
 					media_pid->update_hls_child_pl = GF_TRUE;
+					manifest_updated = GF_TRUE;
 				}
 			} else {
 				const u8 *man_data = gf_filter_pck_get_data(pck, &man_size);
@@ -982,6 +997,8 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					else
 						serv->manifest_name = gf_strdup((serv->manifest_type==2) ? "live.m3u8" : "live.mpd");
 					manifest_updated = GF_TRUE;
+					//we need a new TOI since manifest changed
+					serv->mani_toi = 0;
 
 					if (serv->manifest_server) gf_free(serv->manifest_server);
 					if (serv->manifest_url) gf_free(serv->manifest_url);
@@ -1478,39 +1495,64 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
 	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
 
-	inject_fdt_file_desc(ctx, &payload, NULL, "dvb_mabr_config.xml", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, 1, GF_FALSE);
+	if (!ctx->dvb_mabr_config_toi) {
+		ctx->dvb_mabr_config_toi = ctx->next_toi_avail;
+		ctx->next_toi_avail++;
+	}
+	inject_fdt_file_desc(ctx, &payload, NULL, "dvb_mabr_config.xml", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, ctx->dvb_mabr_config_toi, GF_FALSE);
 
-	u32 toi_base = 2; //1 used for mabr toi
 	nb_serv = gf_list_count(ctx->services);
 	for (i=0; i<nb_serv; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
 		//inject manifest
-		if (!serv->manifest || !serv->manifest_type) continue;;
-		u32 len = (u32) strlen(serv->manifest);
-		serv->mani_toi = toi_base;
-		inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name,
-			(serv->manifest_type==2) ? "application/vnd.apple.mpegURL" : "application/dash+xml",
-				serv->manifest, len, serv->mani_toi, ctx->furl);
-		toi_base++;
+		if (serv->manifest && serv->manifest_type) {
+			u32 len = (u32) strlen(serv->manifest);
+			if (!serv->mani_toi) {
+				serv->mani_toi = ctx->next_toi_avail;
+				ctx->next_toi_avail++;
+			}
+			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name,
+				(serv->manifest_type==2) ? "application/vnd.apple.mpegURL" : "application/dash+xml",
+					serv->manifest, len, serv->mani_toi, ctx->furl);
+		}
 
-		//inject init segs
+		//inject init segs and HLS variant or RAW info
 		u32 j, nb_pids = gf_list_count(serv->pids);
 		for (j=0; j<nb_pids; j++) {
 			ROUTEPid *pid = gf_list_get(serv->pids, j);
+			if (pid->raw_file) {
+				if (!pid->current_toi || !pid->full_frame_size)
+					continue;
 
-			if (pid->init_seg_data) {
-				pid->init_toi = toi_base;
-				toi_base++;
-				inject_fdt_file_desc(ctx, &payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
+				char *mime;
+				const GF_PropertyValue *p = gf_filter_pid_get_property(pid->pid, GF_PROP_PID_MIME);
+				if (p && p->value.string && strcmp(p->value.string, "*")) {
+					mime = p->value.string;
+				} else {
+					mime = "application/octet-string";
+				}
+				inject_fdt_file_desc(ctx, &payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi, ctx->furl);
+				continue;
 			}
 
+			if (pid->init_seg_data) {
+				if (!pid->init_toi) {
+					pid->init_toi = ctx->next_toi_avail;
+					ctx->next_toi_avail++;
+				}
+				inject_fdt_file_desc(ctx, &payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
+			}
 			if (pid->hld_child_pl) {
-				pid->hls_child_toi = toi_base;
-				toi_base++;
+				if (!pid->hls_child_toi) {
+					pid->hls_child_toi = ctx->next_toi_avail;
+					ctx->next_toi_avail++;
+				}
 				inject_fdt_file_desc(ctx, &payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi, ctx->furl);
 			}
 		}
 	}
+
+
 	gf_dynstrcat(&payload, "</FDT-Instance>", NULL);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Updated Bootstrap FDT info to:\n%s\n", ctx->log_name, payload));
@@ -1518,12 +1560,12 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	ctx->dvb_mabr_fdt = payload;
 	ctx->dvb_mabr_fdt_len = (u32) strlen(payload);
 	ctx->last_dvb_mabr_clock = 0;
-
+	ctx->dvb_mabr_fdt_instance_id = (ctx->dvb_mabr_fdt_instance_id+1) % 0xFFFFF;
 	return GF_OK;
 }
 
 
-u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame)
+u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id)
 {
 	u32 max_size = ctx->mtu;
 	u32 send_payl_size;
@@ -1605,7 +1647,7 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 			//set FDT
 			gf_bs_write_u8(ctx->lct_bs, GF_LCT_EXT_FDT);
 			gf_bs_write_int(ctx->lct_bs, 1, 4);
-			gf_bs_write_int(ctx->lct_bs, 0, 20);
+			gf_bs_write_int(ctx->lct_bs, fdt_instance_id, 20);
 			hpos+=4; //32 bits
 
 			//set FTI
@@ -1661,11 +1703,11 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	return send_payl_size;
 }
 
-static void routeout_send_file(GF_ROUTEOutCtx *ctx, ROUTEService *serv, GF_Socket *sock, u32 tsi, u32 toi, u8 *payload, u32 size, u32 codepoint)
+static void routeout_send_file(GF_ROUTEOutCtx *ctx, ROUTEService *serv, GF_Socket *sock, u32 tsi, u32 toi, u8 *payload, u32 size, u32 codepoint, u32 fdt_instance_id)
 {
 	u32 offset=0;
 	while (offset<size) {
-		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset);
+		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset, fdt_instance_id);
 	}
 }
 
@@ -1677,7 +1719,7 @@ static GF_Err routeout_service_send_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEServi
 	their carriage over the ROUTE session/LCT channel assigned by the SLT shall be in accordance to the Unsigned Packaged Mode or
 	the Signed Package Mode as described in Section A.3.3.4 and A.3.3.5, respectively"
 	*/
-	routeout_send_file(ctx, serv, serv->rlct_base->sock, 0, serv->stsid_bundle_toi, serv->stsid_bundle, serv->stsid_bundle_size, 3);
+	routeout_send_file(ctx, serv, serv->rlct_base->sock, 0, serv->stsid_bundle_toi, serv->stsid_bundle, serv->stsid_bundle_size, 3, 0);
 	return GF_OK;
 }
 
@@ -1871,11 +1913,13 @@ retry:
 		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENAME);
 		if (rpid->seg_name) gf_free(rpid->seg_name);
 		if (p) {
-			rpid->seg_name = rpid->use_basename ? gf_file_basename(p->value.string) : p->value.string;
+			if (rpid->use_basename)
+				rpid->seg_name = gf_strdup(gf_file_basename(p->value.string));
+			else
+				rpid->seg_name = routeout_strip_base(rpid->route, p->value.string);
 		} else {
-			rpid->seg_name = "unknown";
+			rpid->seg_name = gf_strdup("unknown");
 		}
-		rpid->seg_name = gf_strdup(rpid->seg_name);
 
 		//file num increased per packet, open new file
 		Bool in_error = GF_FALSE;
@@ -2050,8 +2094,9 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 
 	if (payload) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Sending FDT for segment %s:\n%s\n", serv->log_name, seg_name, payload));
-		routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, 0, payload, (u32) strlen(payload), 0);
+		routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, 0, payload, (u32) strlen(payload), 0, rpid->fdt_instance_id);
 		gf_free(payload);
+		rpid->fdt_instance_id = (rpid->fdt_instance_id+1) % 0xFFFFF;
 	}
 }
 
@@ -2132,7 +2177,7 @@ next_packet:
 					if (!manifest_sent) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
 						manifest_sent = GF_TRUE;
-						routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0);
+						routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0);
 					}
 					init_sock = ctx->sock_dvb_mabr;
 					init_tsi = ctx->dvb_mabr_tsi;
@@ -2148,7 +2193,7 @@ next_packet:
 					codepoint = 5;
 				}
 				//send init asap
-				routeout_send_file(ctx, serv, init_sock, init_tsi, init_toi, (u8 *) rpid->init_seg_data, rpid->init_seg_size, codepoint);
+				routeout_send_file(ctx, serv, init_sock, init_tsi, init_toi, (u8 *) rpid->init_seg_data, rpid->init_seg_size, codepoint, 0);
 
 				if (ctx->reporting_on) {
 					ctx->total_size += rpid->init_seg_size;
@@ -2163,10 +2208,10 @@ next_packet:
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending HLS sub playlist %s\n", rpid->route->log_name, rpid->hld_child_pl_name));
 
 			if (ctx->sock_dvb_mabr) {
-				routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0);
+				routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0, 0);
 			} else {
 				//we use codepoint 1 (NRT - file mode) for subplaylists
-				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, rpid->hld_child_pl, hls_len, 1);
+				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, rpid->hld_child_pl, hls_len, 1, 0);
 			}
 
 			if (ctx->reporting_on) {
@@ -2216,9 +2261,9 @@ next_packet:
 			codepoint = rpid->raw_file ? rpid->fmtp : 8;
 			//ll mode in flute, each packet is sent as an object so use packet offset instead of file offset
 			if (ctx->dvb_mabr && ctx->llmode) {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset, 0);
 			} else {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset, 0);
 			}
 			rpid->pck_offset += sent;
 			if (ctx->reporting_on) {
@@ -2669,6 +2714,8 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 
 	ctx->dvb_mabr_config = payload_text;
 	ctx->dvb_mabr_config_len = (u32) strlen(payload_text);
+	//we need a new TOI since config changed
+	ctx->dvb_mabr_config_toi = 0;
 
 	//reset FDT
 	if (ctx->dvb_mabr_fdt) {
@@ -2703,9 +2750,9 @@ static void routeout_send_mabr_manifest(GF_ROUTEOutCtx *ctx)
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Bootstrap info\n", ctx->log_name));
 
 	//send fdt
-	routeout_send_file(ctx, NULL, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, 0, ctx->dvb_mabr_fdt, ctx->dvb_mabr_fdt_len, 0);
+	routeout_send_file(ctx, NULL, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, 0, ctx->dvb_mabr_fdt, ctx->dvb_mabr_fdt_len, 0, ctx->dvb_mabr_fdt_instance_id);
 	//send mcast gateway config
-	routeout_send_file(ctx, NULL, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, 1, ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, 0);
+	routeout_send_file(ctx, NULL, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, ctx->dvb_mabr_config_toi, ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, 0, 0);
 }
 
 static GF_Err routeout_process(GF_Filter *filter)

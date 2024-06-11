@@ -63,7 +63,7 @@ typedef struct
 	u32 smode, edits;
 	u32 stsd;
 	Bool expart;
-	Bool alltk;
+	Bool alltk, keepc;
 	u32 frame_size;
 	char* tkid;
 	u32 analyze;

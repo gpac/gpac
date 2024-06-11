@@ -67,8 +67,10 @@ typedef enum
 	GF_ROUTE_EVT_SERVICE_FOUND = 0,
 	/*! Service scan completed, no evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_SCAN,
-	/*! New MPD available for service, service ID is in evt_param, no file info*/
+	/*! New MPD or HLS master playlist available for service, service ID is in evt_param, file info carries manifest info*/
 	GF_ROUTE_EVT_MPD,
+	/*! HLS variant update for service, service ID is in evt_param, file info carries variant info*/
+	GF_ROUTE_EVT_HLS_VARIANT,
 	/*! static file update (with predefined TOI), service ID is in evt_param*/
 	GF_ROUTE_EVT_FILE,
 	/*! Segment reception, identified through a file template, service ID is in evt_param*/
@@ -118,6 +120,8 @@ typedef struct
 {
 	/*! original file name*/
 	const char *filename;
+	/*! mime type if known, NULL otherwise*/
+	const char *mime;
 	/*! blob data pointer*/
 	GF_Blob *blob;
     /*! total size of object if known, 0 otherwise*/

@@ -3105,9 +3105,11 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 			gf_isom_datamap_del(previous_movie_fileMap_address);
 		}
 	}
-
-	prevsize = gf_bs_get_refreshed_size(movie->movieFileMap->bs);
-	if (prevsize==size) return GF_OK;
+	//if data map uses a blob, we cannot check the size, as it may be correctly advertized before but incomplete at last refresh (multicast source)
+	if (!movie->movieFileMap->use_blob) {
+		prevsize = gf_bs_get_refreshed_size(movie->movieFileMap->bs);
+		if (prevsize==size) return GF_OK;
+	}
 
 	if (!movie->moov->mvex)
 		return GF_OK;
