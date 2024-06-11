@@ -9632,7 +9632,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 			dst = NULL;
 			if (!ctx->do_index && !ctx->index_media_duration) {
 				dst = gf_filter_pck_new_ref(ds->opid, 0, 0, pck);
-				if (!dst) return GF_OUT_OF_MEM;
+				if (!dst) {
+					if (ds && ds->rep) {
+						gf_mpd_representation_free(ds->rep);
+						ds->rep = NULL;
+					}
+					return GF_OUT_OF_MEM;
+				}
 
 				//merge all props
 				gf_filter_pck_merge_properties(pck, dst);
