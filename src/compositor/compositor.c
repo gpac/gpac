@@ -332,7 +332,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 
 	gf_sc_ar_send_or_reconfig(compositor->audio_renderer);
 	if (!compositor->vout) return GF_FALSE;
-	
+
 	//frame still pending
 	if (compositor->frame_ifce.user_data)
 		return GF_TRUE;
@@ -443,7 +443,7 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 		}
 	}
 
-	
+
 #ifndef GPAC_DISABLE_3D
 	return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
 #else
@@ -1395,6 +1395,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			do_notif = 1;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
+				if (width>=GF_INT_MAX)
+					width = SC_DEF_WIDTH;
 			} else if ((u32) FIX2INT(vb->width)<compositor->video_out->max_screen_width)  {
 				width = FIX2INT(vb->width);
 			} else {
@@ -1403,6 +1405,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
 				height = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, h) );
+				if (height>=GF_INT_MAX)
+					height = SC_DEF_WIDTH;
 			} else if ((u32) FIX2INT(vb->height)<compositor->video_out->max_screen_height)  {
 				height = FIX2INT(vb->height);
 			} else {
@@ -2775,7 +2779,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			compositor->scene_sampled_clock = compositor->passthrough_txh->last_frame_time + dur;
 		}
 	}
-	
+
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
 	//forced a relayout - do it right away
 	if (compositor->msg_type) {
@@ -4714,7 +4718,7 @@ void gf_sc_connect_from_time(GF_Compositor *compositor, const char *URL, u64 sta
 			}
 		}
 		if (is_self) return;
-		
+
 		/*disconnect*/
 		gf_sc_disconnect(compositor);
 	}
