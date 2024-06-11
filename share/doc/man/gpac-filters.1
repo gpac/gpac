@@ -175,7 +175,7 @@ This will play the session at 2x speed, using 30s of maximum buffering, consumin
 .SH Options (expert):
 .LP
 .br
-log (str, default: stdout, Enum: _any|stderr|stdout|GLOG|null): set probe log filename
+log (str, default: stdout, Enum: _any|stderr|stdout|GLOG|TL|null): set probe log filename
 .br
 * _any: target file path and name
 .br
@@ -184,6 +184,8 @@ log (str, default: stdout, Enum: _any|stderr|stdout|GLOG|null): set probe log fi
 * stdout: dump to stdout
 .br
 * GLOG: use GPAC logs app@info
+.br
+* TL: use GPAC log tool TL at level info
 .br
 * null: silent mode
 .br
@@ -941,6 +943,8 @@ ctso (sint):                   value to add to CTS offset for tracks using negat
 
 .br
 norw (bool, default: false):   skip reformating of samples - should only be used when rewriting fragments
+.br
+keepc (bool, default: false):  keep corrupted samples - should only be used in multicast modes
 .br
 
 .br
@@ -1872,7 +1876,7 @@ shift_utc (sint, default: 0):  shift DASH UTC clock in ms
 .br
 spd (sint, default: -I):       suggested presentation delay in ms
 .br
-route_shift (sint, default: 0): shift ROUTE requests time by given ms
+mcast_shift (sint, default: 0): shift ROUTE requests time by given ms
 .br
 server_utc (bool, default: yes): use ServerUTC or Date HTTP headers instead of local UTC
 .br
@@ -6645,7 +6649,7 @@ Description: ROUTE input
 .br
 
 .br
-This filter is a receiver for ROUTE sessions (ATSC 3.0 and generic ROUTE) and DVB-MABR flute sessions.
+This filter is a receiver for adaptive streaming sessions over multicast (ATSC 3.0, generic ROUTE and DVB-MABR flute).
 .br
 - ATSC 3.0 mode is identified by the URL atsc://.
 .br
@@ -6660,7 +6664,7 @@ The filter can work in cached mode, source mode or standalone mode.
 .SH Cached mode
 .LP
 .br
-The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using http://groute/serviceN/ as service root, N being the ROUTE service ID.
+The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using http://gmcast/serviceN/ as service root, N being the multicast service ID.
 .br
 In cached mode, repeated files are always pushed to cache.
 .br
@@ -6670,19 +6674,19 @@ The maximum number of media segment objects in cache per service is defined by .
 .br
 The cached MPD is assigned the following headers:
 .br
-* `x-route`: integer value, indicates the ROUTE service ID.
+* `x-mcast`: boolean value, if yes indicates the file comes from a multicast.
 .br
-* `x-route-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.
+* `x-mcast-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.
 .br
-* `x-route-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).
+* `x-mcast-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).
 .br
-* `x-route-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if .I cloop is set.
+* `x-mcast-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if .I cloop is set.
 .br
   
 .br
 The cached files are assigned the following headers:
 .br
-* `x-route`: boolean value, if yes indicates the file comes from an ROUTE session.
+* `x-mcast`: boolean value, if yes indicates the file comes from a multicast.
 .br
 
 .br
@@ -6758,7 +6762,7 @@ route add -net 224.0.23.60/32 -interface vboxnet0
 .br
 
 .br
-Then for each ROUTE service in the multicast:
+Then for each multicast service in the multicast:
 .br
 Example
 .br
@@ -6822,6 +6826,8 @@ repair (enum, default: simple): repair mode for corrupted files
 repair_url (cstr):             repair url
 .br
 max_sess (uint, default: 1):   max number of concurrent HTTP repair sessions
+.br
+llmode (bool, default: true):  enable low-latency access
 .br
 
 .br

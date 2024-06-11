@@ -1402,7 +1402,7 @@ GF_EXPORT
 GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size)
 {
 	if (!blob) return GF_BLOB_RANGE_CORRUPTED;
-	if (blob->range_valid) return blob->range_valid(blob, start_offset, size);
+	if (blob->range_valid) return blob->range_valid(blob, start_offset, &size);
 
 	if (blob->flags & GF_BLOB_IN_TRANSFER) return GF_BLOB_RANGE_IN_TRANSFER;
 	return GF_BLOB_RANGE_VALID;

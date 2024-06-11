@@ -157,7 +157,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		}
 		p_pid = &tsio->opid;
 
-		if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD)) {
+		if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD) || (evt_type==GF_ROUTE_EVT_HLS_VARIANT)) {
 			if (ctx->skipr && !finfo->updated) return;
 		}
 	}
@@ -203,12 +203,12 @@ static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEvent
 
 	out = gf_fopen(szPath, "wb");
 	if (!out) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to create MPD file %s\n", service_id, szPath ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Service %d failed to create MPD file %s\n", ctx->log_name, service_id, szPath ));
 	} else {
 		u32 bytes = (u32) gf_fwrite(finfo->blob->data, finfo->blob->size, out);
 		gf_fclose(out);
 		if (bytes != finfo->blob->size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Service %d failed to write file %s:  %d written for %d total\n", service_id, finfo->filename, bytes, finfo->blob->size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Service %d failed to write file %s:  %d written for %d total\n", ctx->log_name, service_id, finfo->filename, bytes, finfo->blob->size));
 		}
 	}
 
@@ -230,6 +230,7 @@ static void routein_write_to_disk(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEvent
 void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo, Bool is_defer_repair, Bool drop_if_first)
 {
 	char szPath[GF_MAX_PATH];
+	char *mime;
 	u32 nb_obj;
 	Bool is_init = GF_TRUE;
 	Bool is_loop = GF_FALSE;
@@ -243,8 +244,9 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 	szPath[0] = 0;
 	switch (evt) {
 	case GF_ROUTE_EVT_MPD:
+	case GF_ROUTE_EVT_HLS_VARIANT:
 		if (!ctx->tune_time) ctx->tune_time = gf_sys_clock();
-			
+
 		if (ctx->odir) {
 			routein_write_to_disk(ctx, evt_param, finfo, evt);
 			break;
@@ -253,31 +255,36 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
+		sprintf(szPath, "http://gmcast/service%d/%s", evt_param, finfo->filename);
+		mime = finfo->mime ? (char*)finfo->mime : "application/dash+xml";
+		//also set x-mcast header to all manifest and variant
+		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, mime, GF_TRUE, 0);
+		gf_dm_force_headers(ctx->dm, cache_entry, "x-mcast: yes\r\n");
 
-		if (!ctx->opid) {
-			ctx->opid = gf_filter_pid_new(ctx->filter);
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
+		if (evt==GF_ROUTE_EVT_MPD) {
+			char *fext = finfo->filename ? gf_file_ext_start(finfo->filename) : NULL;
+			if (fext) fext++;
+			else fext = "mpd";
+
+			if (!ctx->opid) {
+				ctx->opid = gf_filter_pid_new(ctx->filter);
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
+			}
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(evt_param));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(evt_param));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING(fext));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mime));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_REDIRECT_URL, &PROP_STRING(szPath));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_URL, &PROP_STRING(szPath));
+			//remember the cache entry
+			gf_route_dmx_set_service_udta(ctx->route_dmx, evt_param, cache_entry);
+			ctx->sync_tsi = 0;
+			ctx->last_toi = 0;
+			ctx->tune_service_id = evt_param;
 		}
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(evt_param));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(evt_param));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("mpd"));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("application/dash+xml"));
-
-		sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_REDIRECT_URL, &PROP_STRING(szPath));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_URL, &PROP_STRING(szPath));
-
-		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, "application/dash+xml", GF_TRUE, 0);
-
-		sprintf(szPath, "x-route: %d\r\n", evt_param);
-		gf_dm_force_headers(ctx->dm, cache_entry, szPath);
-		gf_route_dmx_set_service_udta(ctx->route_dmx, evt_param, cache_entry);
-
-		ctx->sync_tsi = 0;
-		ctx->last_toi = 0;
+		//reset clock sync at each manifest or HLS variant
 		if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 		ctx->clock_init_seg = NULL;
-		ctx->tune_service_id = evt_param;
 		break;
 	case GF_ROUTE_EVT_DYN_SEG:
 
@@ -298,16 +305,16 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
         }
 			
 		if (!ctx->clock_init_seg
-			//if full seg push of previsously advertized init, reset x-route-ll header
+			//if full seg push of previsously advertized init, reset x-mcast-ll header
 			|| ((evt==GF_ROUTE_EVT_DYN_SEG) && !strcmp(ctx->clock_init_seg, finfo->filename))
 		) {
 			DownloadedCacheEntry mpd_cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
 			if (mpd_cache_entry) {
 				if (!ctx->clock_init_seg)
 					ctx->clock_init_seg = gf_strdup(finfo->filename);
-				sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\n", evt_param, ctx->clock_init_seg);
+				sprintf(szPath, "x-mcast: yes\r\nx-mcast-first-seg: %s\r\n", ctx->clock_init_seg);
 				if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
-					strcat(szPath, "x-route-ll: yes\r\n");
+					strcat(szPath, "x-mcast-ll: yes\r\n");
 				gf_dm_force_headers(ctx->dm, mpd_cache_entry, szPath);
 				szPath[0] = 0;
 			}
@@ -325,14 +332,14 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			}
 		} else if (!is_defer_repair && (ctx->sync_tsi == finfo->tsi)) {
 			if (ctx->cloop && (ctx->last_toi > finfo->toi + 100)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", ctx->tune_service_id, finfo->tsi, ctx->last_toi, finfo->toi));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", ctx->log_name, ctx->tune_service_id, finfo->tsi, ctx->last_toi, finfo->toi));
 
 				gf_route_dmx_purge_objects(ctx->route_dmx, evt_param);
 				is_loop = GF_TRUE;
 				if (cache_entry) {
 					if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 					ctx->clock_init_seg = gf_strdup(finfo->filename);
-					sprintf(szPath, "x-route: %d\r\nx-route-first-seg: %s\r\nx-route-loop: yes\r\n", evt_param, ctx->clock_init_seg);
+					sprintf(szPath, "x-mcast: yes\r\nx-mcast-first-seg: %s\r\nx-mcast-loop: yes\r\n", ctx->clock_init_seg);
 					gf_dm_force_headers(ctx->dm, cache_entry, szPath);
 					szPath[0] = 0;
 				}
@@ -354,23 +361,26 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 
 		if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc) return;
 
+		if (!ctx->llmode && (evt==GF_ROUTE_EVT_DYN_SEG_FRAG))
+			return;
+
 		if (!cache_entry) {
-			sprintf(szPath, "http://groute/service%d/%s", evt_param, finfo->filename);
+			sprintf(szPath, "http://gmcast/service%d/%s", evt_param, finfo->filename);
 			//we copy over the init segment, but only share the data pointer for segments
-			cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, "video/mp4", is_init ? GF_TRUE : GF_FALSE, finfo->download_ms);
+			cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, finfo->mime ? finfo->mime : "video/mp4", is_init ? GF_TRUE : GF_FALSE, finfo->download_ms);
 			if (cache_entry) {
-				gf_dm_force_headers(ctx->dm, cache_entry, "x-route: yes\r\n");
+				gf_dm_force_headers(ctx->dm, cache_entry, "x-mcast: yes\r\n");
 				finfo->udta = cache_entry;
 			}
 		}
 			
         if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Pushing fragment from file %s to cache\n", finfo->filename));
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Pushing fragment from file %s to cache\n", ctx->log_name, finfo->filename));
 			break;
         }
 		finfo->blob->flags &=~ GF_BLOB_IN_TRANSFER;
 			
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Pushing file %s to cache\n", finfo->filename));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushing file %s to cache\n", ctx->log_name, finfo->filename));
 		if (ctx->max_segs && (evt==GF_ROUTE_EVT_DYN_SEG))
 			push_seg_info(ctx, ctx->opid, finfo);
 
@@ -404,7 +414,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 	if (evt==GF_ROUTE_EVT_SERVICE_SCAN) {
 		if (ctx->tune_service_id && !gf_route_dmx_find_atsc3_service(ctx->route_dmx, ctx->tune_service_id)) {
 
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Asked to tune to service %d but no such service, tuning to first one\n", ctx->tune_service_id));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Asked to tune to service %d but no such service, tuning to first one\n", ctx->log_name, ctx->tune_service_id));
 
 			ctx->tune_service_id = 0;
 			gf_route_atsc3_tune_in(ctx->route_dmx, (u32) -2, GF_TRUE);
@@ -432,7 +442,7 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 	ROUTEInCtx *ctx = (ROUTEInCtx *)par;
 	u32 sid=0;
 	char *subr;
-	if (strncmp(url, "http://groute/service", 21)) return GF_FALSE;
+	if (strncmp(url, "http://gmcast/service", 21)) return GF_FALSE;
 
 	subr = strchr(url+21, '/');
 	subr[0] = 0;
@@ -441,12 +451,12 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 	//this is not a thread-safe callback (typically called from httpin filter)
 	gf_filter_lock(ctx->filter, GF_TRUE);
 	if (is_destroy) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Cache releasing object %s\n", url));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Cache releasing object %s\n", ctx->log_name, url));
 		gf_route_dmx_remove_object_by_name(ctx->route_dmx, sid, subr+1, GF_TRUE);
 		//for non real-time netcap, we may need to reschedule processing
 		gf_filter_post_process_task(ctx->filter);
 	} else if (sid && (sid != ctx->tune_service_id)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Request on service %d but tuned on service %d, retuning\n", sid, ctx->tune_service_id));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Request on service %d but tuned on service %d, retuning\n", ctx->log_name, sid, ctx->tune_service_id));
 		ctx->tune_service_id = sid;
 		ctx->sync_tsi = 0;
 		ctx->last_toi = 0;
@@ -454,7 +464,7 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 		ctx->clock_init_seg = NULL;
         gf_route_atsc3_tune_in(ctx->route_dmx, sid, GF_TRUE);
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Cache accessing object %s\n", url));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Cache accessing object %s\n", ctx->log_name, url));
 		routein_repair_mark_file(ctx, sid, subr+1, GF_FALSE);
 		//mark object as in-use to prevent it from being discarded
 		gf_route_dmx_force_keep_object_by_name(ctx->route_dmx, sid, subr+1);
@@ -489,7 +499,7 @@ static GF_Err routein_process(GF_Filter *filter)
 				else {
 					u32 diff = gf_sys_clock() - ctx->last_timeout;
 					if (diff > ctx->timeout) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] No data for %d ms, aborting\n", diff));
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] No data for %d ms, aborting\n", ctx->log_name, diff));
 						routein_set_eos(filter);
 						return GF_EOS;
 					}
@@ -512,7 +522,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	if (!ctx->tune_time) {
 	 	u32 diff = gf_sys_clock() - ctx->start_time;
 	 	if (diff>ctx->timeout) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] No data for %d ms, aborting\n", diff));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] No data for %d ms, aborting\n", ctx->log_name, diff));
 			gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
 			routein_set_eos(filter);
 			return GF_EOS;
@@ -559,13 +569,17 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	ctx->filter = filter;
 
 	if (!ctx->src) return GF_BAD_PARAM;
+	ctx->log_name = "ATSC3";
+
 	if (!strncmp(ctx->src, "route://", 8)) {
 		is_atsc = GF_FALSE;
 		prot_offset = 8;
+		ctx->log_name = "ROUTE";
 	} else if (!strncmp(ctx->src, "mabr://", 7)){
 		is_atsc = GF_FALSE;
 		is_mabr = GF_TRUE;
 		prot_offset = 7;
+		ctx->log_name = "DVB-MABR";
 	} else if (strcmp(ctx->src, "atsc://"))
 		return GF_BAD_PARAM;
 
@@ -591,7 +605,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		u32 port;
 		sep = strrchr(ctx->src+prot_offset, ':');
 		if (!sep) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing port number\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing port number\n", ctx->log_name));
 			return GF_BAD_PARAM;
 		}
 		sep[0] = 0;
@@ -601,7 +615,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		if (root) root[0] = '/';
 
 		if (!gf_sk_is_multicast_address(ctx->src+prot_offset)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] %s is not a multicast address\n", ctx->src));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] %s is not a multicast address\n", ctx->log_name, ctx->src));
 			sep[0] = ':';
 			return GF_BAD_PARAM;
 		}
@@ -624,7 +638,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	if (ctx->tunein>0) ctx->tune_service_id = ctx->tunein;
 
 	if (is_atsc || is_mabr) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Tunein started\n"));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Tunein started\n", ctx->log_name));
 		if (ctx->tune_service_id)
             gf_route_atsc3_tune_in(ctx->route_dmx, ctx->tune_service_id, GF_FALSE);
 		else
@@ -699,6 +713,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(repair_url), "repair url", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(max_sess), "max number of concurrent HTTP repair sessions", GF_PROP_UINT, "1", NULL, 0},
+	{ OFFS(llmode), "enable low-latency access", GF_PROP_BOOL, "true", NULL, 0},
 	{0}
 };
 
@@ -711,25 +726,25 @@ GF_FilterRegister ROUTEInRegister = {
 	.name = "routein",
 	GF_FS_SET_DESCRIPTION("ROUTE input")
 #ifndef GPAC_DISABLE_DOC
-	.help = "This filter is a receiver for ROUTE sessions (ATSC 3.0 and generic ROUTE) and DVB-MABR flute sessions.\n"
+	.help = "This filter is a receiver for file delivery over multicast. It currently supports ATSC 3.0, generic ROUTE and DVB-MABR flute.\n"
 	"- ATSC 3.0 mode is identified by the URL `atsc://`.\n"
 	"- Generic ROUTE mode is identified by the URL `route://IP:PORT`.\n"
 	"- DVB-MABR mode is identified by the URL `mabr://IP:PORT` pointing to the bootstrap FLUTE channel carrying the multicast gateway configuration.\n"
 	"\n"
 	"The filter can work in cached mode, source mode or standalone mode.\n"
 	"# Cached mode\n"
-	"The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using `http://groute/serviceN/` as service root, `N being the ROUTE service ID.\n"
+	"The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using `http://gmcast/serviceN/` as service root, `N being the multicast service ID.\n"
 	"In cached mode, repeated files are always pushed to cache.\n"
 	"The maximum number of media segment objects in cache per service is defined by [-nbcached](); this is a safety used to force object removal in case DASH client timing is wrong and some files are never requested at cache level.\n"
 	"  \n"
 	"The cached MPD is assigned the following headers:\n"
-	"- `x-route`: integer value, indicates the ROUTE service ID.\n"
-	"- `x-route-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.\n"
-    "- `x-route-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).\n"
-    "- `x-route-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if [-cloop]() is set.\n"
+	"- `x-mcast`: boolean value, if `yes` indicates the file comes from a multicast.\n"
+	"- `x-mcast-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.\n"
+    "- `x-mcast-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).\n"
+    "- `x-mcast-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if [-cloop]() is set.\n"
 	"  \n"
 	"The cached files are assigned the following headers:\n"
-	"- `x-route`: boolean value, if yes indicates the file comes from an ROUTE session.\n"
+	"- `x-mcast`: boolean value, if `yes` indicates the file comes from a multicast.\n"
 	"\n"
 	"If [-max_segs]() is set, file deletion event will be triggered in the filter chain.\n"
 	"\n"
@@ -760,7 +775,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"
 	"For ATSC, you will have to do this for the base signaling multicast (224.0.23.60):\n"
 	"EX route add -net 224.0.23.60/32 -interface vboxnet0\n"
-	"Then for each ROUTE service in the multicast:\n"
+	"Then for each multicast service in the multicast:\n"
 	"EX route add -net 239.255.1.4/32 -interface vboxnet0\n"
 	"",
 #endif //GPAC_DISABLE_DOC

@@ -65,7 +65,7 @@ enum {
 typedef struct
 {
 	//opts
-	s32 shift_utc, spd, route_shift;
+	s32 shift_utc, spd, mcast_shift;
 	u32 max_buffer, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 auto_switch;
 	s32 init_timeshift;
@@ -1012,7 +1012,7 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 		if ((ctx->forward==DFWD_FILE) && ctx->output_mpd_pid) {
 			//for routeout
 			u32 manifest_type = gf_dash_is_m3u8(ctx->dash) ? 2 : 1;
-			if (!gf_sys_is_test_mode() && gf_dash_is_dynamic_mpd(ctx->dash))
+			if (gf_dash_is_dynamic_mpd(ctx->dash))
 				manifest_type |= 0x80000000;
 
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
@@ -2415,7 +2415,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_algo(ctx->dash, algo);
 	gf_dash_set_utc_shift(ctx->dash, ctx->shift_utc);
 	gf_dash_set_suggested_presentation_delay(ctx->dash, ctx->spd);
-	gf_dash_set_route_ast_shift(ctx->dash, ctx->route_shift);
+	gf_dash_set_mcast_ast_shift(ctx->dash, ctx->mcast_shift);
 	gf_dash_enable_utc_drift_compensation(ctx->dash, ctx->server_utc);
 	gf_dash_set_tile_adaptation_mode(ctx->dash, ctx->tile_mode, ctx->tiles_rate);
 
@@ -2913,7 +2913,7 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_SIZE, &pe);
 	if (p) file_size = p->value.longuint;
 
-	p = gf_filter_get_info_str(group->seg_filter_src, "x-route", &pe);
+	p = gf_filter_get_info_str(group->seg_filter_src, "x-mcast", &pe);
 	if (p && p->value.string && !strcmp(p->value.string, "yes")) {
 		broadcast_flag = GF_TRUE;
 	}
@@ -3558,7 +3558,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 
 	{ OFFS(shift_utc), "shift DASH UTC clock in ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(spd), "suggested presentation delay in ms", GF_PROP_SINT, "-I", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(route_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mcast_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(server_utc), "use `ServerUTC` or `Date` HTTP headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(init_timeshift), "set initial timeshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},

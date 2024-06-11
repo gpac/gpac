@@ -300,6 +300,7 @@ u32 gf_isom_datamap_get_data(GF_DataMap *map, u8 *buffer, u32 bufferLength, u64 
 	}
 }
 
+
 void gf_isom_datamap_flush(GF_DataMap *map)
 {
 	if (!map) return;
@@ -421,6 +422,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 			gf_free(tmp);
 			return NULL;
 		}
+		tmp->use_blob = 1;
 		return (GF_DataMap *)tmp;
 	}
 
@@ -574,6 +576,48 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 	return bytesRead;
 }
 
+static Bool gf_isom_fdm_check_top_level(GF_FileDataMap *ptr)
+{
+	if (!ptr->blob) {
+		if (!gf_bs_available(ptr->bs)) return GF_FALSE;
+		return GF_TRUE;
+	}
+	//if we use a blob, make sure the top-level box is complete
+	gf_mx_p(ptr->blob->mx);
+	u64 fileOffset = gf_bs_get_position(ptr->bs);
+	gf_bs_reassign_buffer(ptr->bs, ptr->blob->data, ptr->blob->size);
+	if (ptr->blob->size < fileOffset+8) {
+		gf_mx_v(ptr->blob->mx);
+		return GF_FALSE;
+	}
+	gf_bs_seek(ptr->bs, fileOffset);
+	u32 size = gf_bs_peek_bits(ptr->bs, 32, 0);
+	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, size);
+	gf_mx_v(ptr->blob->mx);
+	if (rs==GF_BLOB_RANGE_IN_TRANSFER)
+		return GF_FALSE;
+	return GF_TRUE;
+}
+
+Bool gf_isom_datamap_top_level_box_avail(GF_DataMap *map)
+{
+	if (!map) return GF_FALSE;
+
+	switch (map->type) {
+	case GF_ISOM_DATA_FILE:
+	case GF_ISOM_DATA_MEM:
+		return gf_isom_fdm_check_top_level((GF_FileDataMap *)map);
+
+#if 0
+	case GF_ISOM_DATA_FILE_MAPPING:
+		if (gf_bs_available( ((GF_FileMappingDataMap*)map)->bs)) return GF_TRUE;
+		return GF_FALSE;
+#endif
+
+	default:
+		return 0;
+	}
+}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
