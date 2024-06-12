@@ -797,7 +797,7 @@ void PrintDASHUsage()
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "# DASH Options\n"
 		"Also see:\n"
-		"- the [dasher `gpac -h dash`](dasher) filter documentation\n"
+		"- the [dasher `gpac -h dasher`](dasher) filter documentation\n"
 		"- [[DASH wiki|DASH-intro]].\n"
 		"\n"
 		"# Specifying input files\n"
@@ -1668,10 +1668,11 @@ void PrintUsage()
 		i++;
 		gf_sys_print_arg(helpout, help_flags, arg, "mp4box-general");
 	}
-	gf_sys_format_help(helpout, help_flags, "\nReturn codes are 0 for no error, 1 for error"
+	gf_sys_format_help(helpout, help_flags, "\nReturn codes are:\n- 0: no error\n- 1: error\n"
 #ifdef GPAC_MEMORY_TRACKING
-		" and 2 for memory leak detection when -mem-track is used"
+		"- 2: memory leak detection when -mem-track is used\n"
 #endif
+		"- 3: call is too early when resuming dashing from an existing context\n"
 		"\n");
 }
 
@@ -4688,6 +4689,7 @@ static GF_Err do_dash()
 {
 	GF_Err e;
 	u32 i;
+	Bool call_too_early = GF_FALSE;
 	Bool del_file = GF_FALSE;
 	char szMPD[GF_MAX_PATH], *sep;
 	char szStateFile[GF_MAX_PATH];
@@ -4834,6 +4836,7 @@ static GF_Err do_dash()
 		if (!dash_live && (e==GF_EOS) ) {
 			M4_LOG(GF_LOG_INFO, ("Nothing to dash, too early ...\n"));
 			e = GF_OK;
+			if (!dash_live) call_too_early = GF_TRUE;
 		}
 
 		if (do_abort)
@@ -4907,6 +4910,7 @@ static GF_Err do_dash()
 	if (del_file)
 		gf_file_delete(inName);
 
+	if (call_too_early) return GF_NOT_READY;
 	return e;
 }
 
@@ -6261,7 +6265,8 @@ int mp4box_main(int argc, char **argv)
 
 	if (dash_duration) {
 		e = do_dash();
-		if (e) return mp4box_cleanup(1);
+		if (e==GF_NOT_READY) return mp4box_cleanup(3);
+		else if (e) return mp4box_cleanup(1);
 		goto exit;
 	}
 

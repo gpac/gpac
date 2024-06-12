@@ -1876,7 +1876,7 @@ shift_utc (sint, default: 0):  shift DASH UTC clock in ms
 .br
 spd (sint, default: -I):       suggested presentation delay in ms
 .br
-mcast_shift (sint, default: 0): shift ROUTE requests time by given ms
+mcast_shift (sint, default: 0): shift requests time by given ms for multicast sources
 .br
 server_utc (bool, default: yes): use ServerUTC or Date HTTP headers instead of local UTC
 .br
@@ -5288,18 +5288,6 @@ This will put video segments and playlist in dash/video/ and audio segments and 
 .br
 
 .br
-When reloading a DASH context using .I state, PIDs are reassigned by checking that the PID ID match between the calls and:
-.br
-- the input file names match between the calls
-.br
-- or the representation ID (and period ID if specified) match between the calls
-.br
-
-.br
-If a PID is not matched, it will be assigned to a new period.
-.br
-
-.br
 .SS Segmentation
 .br
 The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.
@@ -5600,6 +5588,34 @@ Warning: Options for segment destination cannot be set through the .I template, 
 .br
 
 .br
+.SS Batch Operations
+.br
+The segmentation can be performed in multiple calls using a DASH context set with .I state.
+.br
+Between calls, the PIDs are reassigned by checking that the PID ID match between the calls and:
+.br
+- the input file names match between the calls
+.br
+- or the representation ID (and period ID if specified) match between the calls
+.br
+
+.br
+If a PID is not matched, it will be assigned to a new period.
+.br
+
+.br
+The default behaviour assume that the same inputs are used for segmentation and rebuilds a contiguous timeline at each new file start.
+.br
+If the inputs change but form a continuous timeline, [-keep_ts])() must be used to skip timeline reconstruction.
+.br
+
+.br
+The inputs will be segmented for a duration of .I subdur if set, otherwise the input media duration.
+.br
+When inputs are over, they are restarted if .I loop is set otherwise a new period is created.
+.br
+
+.br
 .SS Output redirecting
 .br
 When loaded implicitly during link resolution, the dasher will only link its outputs to the target sink
@@ -5847,13 +5863,15 @@ tsb (dbl, default: 30):        time-shift buffer depth in seconds (a negative va
 .br
 keep_segs (bool, default: false): do not delete segments no longer in time-shift buffer
 .br
-subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration
-.br
 ast (str):                     set start date (as xs:date, e.g. YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!
 .br
 state (str):                   path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions
 .br
+keep_ts (bool, default: false): do not shift timestamp when reloading a context
+.br
 loop (bool, default: false):   loop sources when dashing with subdur and state. If not set, a new period is created once the sources are over
+.br
+subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration
 .br
 split (bool, default: true):   enable cloning samples for text/metadata/scene description streams, marking further clones as redundant
 .br
@@ -6649,7 +6667,7 @@ Description: ROUTE input
 .br
 
 .br
-This filter is a receiver for adaptive streaming sessions over multicast (ATSC 3.0, generic ROUTE and DVB-MABR flute).
+This filter is a receiver for file delivery over multicast. It currently supports ATSC 3.0, generic ROUTE and DVB-MABR flute.
 .br
 - ATSC 3.0 mode is identified by the URL atsc://.
 .br
