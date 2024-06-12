@@ -1211,6 +1211,9 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		GF_BitStream *bs;
 		GF_M2TS_Prop *t;
 
+		//for now all SCTE35 must be associated with a stream
+		if (!pck->stream) return;
+
 		// convey SCTE35 splice info to all streams of the program
 		u32 count = gf_list_count(pck->stream->program->streams);
 		for (i=0; i<count; i++) {
