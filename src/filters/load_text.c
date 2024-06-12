@@ -2545,7 +2545,7 @@ static GF_Err swf_svg_add_iso_sample(void *user, const u8 *data, u32 length, u64
 	}
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
-	if (pck) {
+	if (pck && data && length) {
 		memcpy(pck_data, data, length);
 		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale*timestamp/1000) );
 		gf_filter_pck_set_sap(pck, isRap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
