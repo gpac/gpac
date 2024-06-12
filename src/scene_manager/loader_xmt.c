@@ -2673,6 +2673,13 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			else if (!parser->od_command) {
 				xmt_report(parser, GF_OK, "Warning: descriptor %s defined outside scene scope - skipping", name);
 				gf_odf_desc_del(desc);
+				XMT_ODLink *prev_l = gf_list_last(parser->od_links);
+				if ((GF_Descriptor *) prev_l->od == desc) {
+					gf_list_pop_back(parser->od_links);
+					if (prev_l->desc_name) gf_free(prev_l->desc_name);
+					gf_list_del(prev_l->mf_urls);
+					gf_free(prev_l);
+				}
 			} else {
 				switch (parser->od_command->tag) {
 				case GF_ODF_ESD_UPDATE_TAG:
