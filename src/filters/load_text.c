@@ -2535,6 +2535,7 @@ static GF_Err swf_svg_add_iso_sample(void *user, const u8 *data, u32 length, u64
 	GF_FilterPacket *pck;
 	u8 *pck_data;
 	GF_TXTIn *ctx = (GF_TXTIn *)user;
+	if (!data || !length) return GF_BAD_PARAM;
 
 	if (ctx->seek_state==2) {
 		Double ts = (Double) timestamp;
