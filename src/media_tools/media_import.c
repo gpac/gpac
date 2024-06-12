@@ -383,51 +383,82 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	}
 	mtype = gf_isom_get_media_type(import->orig, track_in);
 	if (mtype==GF_ISOM_MEDIA_VISUAL) {
+		Bool skip_profile=GF_FALSE;
 		u8 PL = iod ? iod->visual_profileAndLevel : 0xFE;
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
-#ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/
-		if (origin_esd
-			&& origin_esd->decoderConfig
-			&& (origin_esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2)
-		) {
-			if (origin_esd->decoderConfig->decoderSpecificInfo) {
-				GF_M4VDecSpecInfo dsi;
-				gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-				w = dsi.width;
-				h = dsi.height;
-				PL = dsi.VideoPL;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing DecoderSpecificInfo in MPEG-4 Visual (Part2) stream\n"));
+		if (origin_esd && origin_esd->decoderConfig) {
+			switch (origin_esd->decoderConfig->objectTypeIndication) {
+#ifndef GPAC_DISABLE_AV_PARSERS
+			case GF_CODECID_MPEG4_PART2:
+				if (origin_esd->decoderConfig->decoderSpecificInfo) {
+					GF_M4VDecSpecInfo dsi;
+					gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+					w = dsi.width;
+					h = dsi.height;
+					PL = dsi.VideoPL;
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing DecoderSpecificInfo in MPEG-4 Visual (Part2) stream\n"));
+				}
+				break;
+#endif
+			case GF_CODECID_MPEG1:
+			case GF_CODECID_MPEG2_422:
+			case GF_CODECID_MPEG2_SNR:
+			case GF_CODECID_MPEG2_HIGH:
+			case GF_CODECID_MPEG2_MAIN:
+			case GF_CODECID_MPEG2_SIMPLE:
+			case GF_CODECID_MPEG2_SPATIAL:
+			case GF_CODECID_AVC:
+			case GF_CODECID_SVC:
+			case GF_CODECID_MVC:
+				break;
+			default:
+				skip_profile=GF_TRUE;
+				break;
 			}
 		}
-#endif
-		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, PL);
+		if (!skip_profile)
+			gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, PL);
 	}
 	else if (mtype==GF_ISOM_MEDIA_AUDIO) {
+		Bool skip_profile = GF_FALSE;
 		u8 PL = iod ? iod->audio_profileAndLevel : 0xFE;
 		bps = 16;
 		sr = ch = sbr_sr = 0;
 		sbr = GF_FALSE;
 		ps = GF_FALSE;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
+		if (origin_esd && origin_esd->decoderConfig) {
+			switch (origin_esd->decoderConfig->objectTypeIndication) {
+			case GF_CODECID_AAC_MPEG4:
+			case GF_CODECID_AAC_MPEG2_MP:
+			case GF_CODECID_AAC_MPEG2_LCP:
+			case GF_CODECID_AAC_MPEG2_SSRP:
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (origin_esd && origin_esd->decoderConfig && (origin_esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4)) {
-			if (origin_esd->decoderConfig->decoderSpecificInfo) {
-				GF_M4ADecSpecInfo dsi;
-				gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-				sr = dsi.base_sr;
-				if (dsi.has_sbr) sbr_sr = dsi.sbr_sr;
-				ch = dsi.nb_chan;
-				PL = dsi.audioPL;
-				sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR || dsi.base_object_type==GF_M4A_AAC_PS) ? 2 : 1) : GF_FALSE;
-				ps = dsi.has_ps;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing DecoderSpecificInfo in MPEG-4 AAC stream\n"));
+				if (origin_esd->decoderConfig->decoderSpecificInfo) {
+					GF_M4ADecSpecInfo dsi;
+					gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+					sr = dsi.base_sr;
+					if (dsi.has_sbr) sbr_sr = dsi.sbr_sr;
+					ch = dsi.nb_chan;
+					PL = dsi.audioPL;
+					sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR || dsi.base_object_type==GF_M4A_AAC_PS) ? 2 : 1) : GF_FALSE;
+					ps = dsi.has_ps;
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing DecoderSpecificInfo in MPEG-4 AAC stream\n"));
+				}
+				break;
+#endif
+			case GF_CODECID_MPEG_AUDIO:
+				break;
+			default:
+				skip_profile=GF_TRUE;
+				break;
 			}
 		}
-#endif
-		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);
+		if (!skip_profile)
+			gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);
 	}
 	else if (mtype==GF_ISOM_MEDIA_SUBPIC) {
 		w = h = 0;
