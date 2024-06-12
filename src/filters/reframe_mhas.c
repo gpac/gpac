@@ -730,6 +730,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			gf_filter_pck_set_dts(dst, ctx->cts);
 			gf_filter_pck_set_cts(dst, ctx->cts);
 			gf_filter_pck_set_duration(dst, (u32) pck_dur);
+			gf_filter_pck_set_framing(dst, GF_TRUE, GF_TRUE);
 			if (ctx->byte_offset != GF_FILTER_NO_BO) {
 				u64 offset = (u64) (start - ctx->mhas_buffer);
 				offset += ctx->byte_offset + au_start;
