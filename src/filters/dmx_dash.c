@@ -3558,7 +3558,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 
 	{ OFFS(shift_utc), "shift DASH UTC clock in ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(spd), "suggested presentation delay in ms", GF_PROP_SINT, "-I", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mcast_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mcast_shift), "shift requests time by given ms for multicast sources", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(server_utc), "use `ServerUTC` or `Date` HTTP headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(init_timeshift), "set initial timeshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
