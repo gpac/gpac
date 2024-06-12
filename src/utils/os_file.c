@@ -1877,11 +1877,18 @@ char* gf_file_ext_start(const char* filename)
 
 	if (basename) {
 		char *ext = strrchr(basename, '.');
-		if (ext && !strcmp(ext, ".gz")) {
+		if (!ext) return NULL;
+		if (!strcmp(ext, ".gz")) {
 			ext[0] = 0;
 			char *ext2 = strrchr(basename, '.');
 			ext[0] = '.';
 			if (ext2) return ext2;
+		}
+		//consider that if we have a space after a dot and before any common separator, we have no file extension
+		u32 i;
+		for (i=1; ext[i] ; i++) {
+			if ((ext[i]==':') || (ext[i]=='@') || (ext[i]=='#') || (ext[i]=='?')) break;
+			if (ext[i]==' ') return NULL;
 		}
 		return ext;
 	}
