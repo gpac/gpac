@@ -1724,11 +1724,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			} else if (ch->last_state==GF_ISOM_INVALID_FILE) {
-				ch->nb_empty_retry++;
 				if (!ch->eos_sent) {
 					ch->eos_sent = 1;
 					read->eos_signaled = GF_TRUE;
 					gf_filter_pid_set_eos(ch->pid);
+					ch->playing = GF_FALSE;
 				}
 				return ch->last_state;
 			} else {
