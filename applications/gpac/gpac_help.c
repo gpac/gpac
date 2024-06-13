@@ -434,7 +434,7 @@ const char *gpac_doc =
 "EX gpac -i source.ts:#RepresentationID=$ServiceID$\n"
 "This will assign DASH Representation ID to the PID ServiceID value.\n"
 "\n"
-"A property can also be removed by not specifying any value. Condiftional removal is possible using the above syntax.\n"
+"A property can also be removed by not specifying any value. Conditional removal is possible using the above syntax.\n"
 "EX gpac -i source.ts:#FOO=\n"
 "This will remove the `FOO` property on the output PID.\n"
 "\n"
