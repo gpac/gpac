@@ -2213,6 +2213,94 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 	inspect_printf(dump, "/>\n");
 }
 
+static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
+{
+	inspect_printf(dump, "    <scte35:SegmentationDescriptor");
+
+	inspect_printf(dump, " segmentation_event_id=\"%u\"", gf_bs_read_u32(bs));
+	Bool segmentation_event_cancel_indicator = gf_bs_read_int(bs, 1);
+	inspect_printf(dump, " segmentation_event_cancel_indicator=\"%u\"", segmentation_event_cancel_indicator);
+	gf_bs_read_int(bs, 7); //reserved
+	if (segmentation_event_cancel_indicator == 0) {
+		u32 program_segmentation_flag = gf_bs_read_int(bs, 1);
+		inspect_printf(dump, " program_segmentation_flag=\"%u\"", program_segmentation_flag);
+		u32 segmentation_duration_flag = gf_bs_read_int(bs, 1);
+		inspect_printf(dump, " segmentation_duration_flag=\"%u\"", segmentation_duration_flag);
+		u32 delivery_not_restricted_flag = gf_bs_read_int(bs, 1);
+		inspect_printf(dump, " delivery_not_restricted_flag=\"%u\"", delivery_not_restricted_flag);
+		if (delivery_not_restricted_flag == 0) {
+			inspect_printf(dump, " web_delivery_allowed_flag=\"%u\"", gf_bs_read_int(bs, 1));
+			inspect_printf(dump, " no_regional_blackout_flag=\"%u\"", gf_bs_read_int(bs, 1));
+			inspect_printf(dump, " archive_allowed_flag=\"%u\"", gf_bs_read_int(bs, 1));
+			inspect_printf(dump, " device_restrictions=\"%u\"", gf_bs_read_int(bs, 2));
+		} else {
+			gf_bs_read_int(bs, 5); //reserved
+		}
+		if (program_segmentation_flag == 0) {
+			u8 component_count = gf_bs_read_u8(bs);
+			inspect_printf(dump, " component_count=\"%u\"", component_count);
+			for (u8 i=0; i<component_count; i++) {
+				inspect_printf(dump, " component_tag=\"%u\"", gf_bs_read_u8(bs));
+				gf_bs_read_int(bs, 7); //reserved
+				inspect_printf(dump, " component_tag=\"%u\"", gf_bs_read_u8(bs));
+				inspect_printf(dump, " pts_offset=\""LLU"\"", gf_bs_read_long_int(bs, 33));
+			}
+		}
+		if (segmentation_duration_flag == 1) {
+			inspect_printf(dump, " segmentation_duration=\""LLU"\"", gf_bs_read_long_int(bs, 40));
+		}
+		inspect_printf(dump, " segmentation_upid_type=\"%u\"", gf_bs_read_u8(bs));
+		u8 segmentation_upid_length = gf_bs_read_u8(bs);
+		inspect_printf(dump, " segmentation_upid_length=\"%u\"", segmentation_upid_length);
+		gf_bs_skip_bytes(bs, segmentation_upid_length);
+		u8 segmentation_type_id = gf_bs_read_u8(bs);
+		inspect_printf(dump, " segmentation_type_id=\"%u\"", segmentation_type_id);
+		inspect_printf(dump, " segment_num=\"%u\"", gf_bs_read_u8(bs));
+		inspect_printf(dump, " segments_expected=\"%u\"", gf_bs_read_u8(bs));
+		if (segmentation_type_id == 0x34 || segmentation_type_id == 0x36 || segmentation_type_id == 0x38 || segmentation_type_id == 0x3A) {
+			inspect_printf(dump, " sub_segment_num=\"%u\"", gf_bs_read_u8(bs));
+			inspect_printf(dump, " sub_segments_expected=\"%u\"", gf_bs_read_u8(bs));
+		}
+	}
+
+	inspect_printf(dump, "/>\n");
+}
+
+static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
+{
+	if (gf_bs_available(bs) < 2)
+		return GF_FALSE;
+
+	u8 splice_descriptor_tag = gf_bs_read_u8(bs);
+	u8 descriptor_length = gf_bs_read_u8(bs);
+	if (descriptor_length < 4 || descriptor_length > 254) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] SCTE-35 splice descriptor: invalid descriptor_length=%u\n", descriptor_length));
+		return GF_FALSE;
+	}
+	if (gf_bs_available(bs) < descriptor_length) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] not enough bits to parse SCTE-35 splice descriptor\n"));
+		return GF_FALSE;
+	}
+
+	u32 identifier = gf_bs_read_u32(bs);
+	if (identifier != 0x43554549/*"CUEI"*/) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] unexpected SCTE-35 splice descriptor identifier \"%s\" instead of \"CUEI\". Skipping.\n", gf_4cc_to_str(identifier)));
+		return GF_FALSE;
+	}
+
+	inspect_printf(dump, "   <scte35:SpliceDescriptor splice_descriptor_tag=\"%u\" identifier=\"%s\"", splice_descriptor_tag, gf_4cc_to_str(identifier));
+
+	if (splice_descriptor_tag == 0x02) {
+		inspect_printf(dump, ">\n");
+		scte35_parse_segmentation_descriptor(dump, bs);
+		inspect_printf(dump, "   </scte35:SpliceDescriptor>\n");
+	} else {
+		inspect_printf(dump, "/>\n");
+	}
+
+	return GF_TRUE;
+}
+
 static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
 	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"urn:scte:scte35:2013:bin\"");
@@ -2354,19 +2442,12 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	}
 
 	gf_assert(gf_bs_get_position(bs) == pos + splice_command_length);
+	pos += splice_command_length;
 
-	//FIXME: we only parse the first command
-
-#if 0 //not implemented
-	int descriptor_loop_length = gf_bs_read_int(bs, 12);
-	for (i=0; i<N1; i++)
-		splice_descriptor();
-	for (i=0; i<N2; i++)
-		/*alignment_stuffing =*/ gf_bs_read_u8(bs);
-	if (encrypted_packet)
-		E_CRC_32 32 rpchof E
-	CRC_32 32 rpchof
-#endif
+	int descriptor_loop_length = gf_bs_read_int(bs, 16);
+	while ( (gf_bs_get_position(bs) < pos + descriptor_loop_length) && scte35_parse_splice_descriptor(dump, bs) )
+	{
+	}
 
 exit:
 	inspect_printf(dump, "  </scte35:SpliceInfoSection>\n");
