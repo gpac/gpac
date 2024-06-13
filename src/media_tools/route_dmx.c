@@ -1240,8 +1240,13 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
     GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Got TSI %d MulticastGateway configuration:\n%s\n", parent_s->log_name, object->tsi, object->payload));
 	GF_XMLNode *mcast_sess;
 	u32 s_idx=0;
+	Bool has_stsid_session=GF_FALSE;
 	while ( (mcast_sess = gf_list_enum(root->content, &s_idx)) ) {
-		if (!mcast_sess || !mcast_sess->name || strcmp(mcast_sess->name, "MulticastSession"))
+		Bool is_cfg_session=GF_FALSE;
+		if (!mcast_sess || !mcast_sess->name) continue;
+		if (!strcmp(mcast_sess->name, "MulticastGatewayConfigurationTransportSession")) {
+			is_cfg_session = GF_TRUE;
+		} else if (strcmp(mcast_sess->name, "MulticastSession"))
 			continue;
 
 		GF_ROUTEService *new_s = NULL;
@@ -1251,7 +1256,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 		u32 trs_idx=0;
 		while ( (tr_sess = gf_list_enum(mcast_sess->content, &trs_idx)) ) {
 			if (!tr_sess || !tr_sess->name) continue;
-			if (!strcmp(tr_sess->name, "PresentationManifestLocator")) {
+			if (!strcmp(tr_sess->name, "PresentationManifestLocator") && !is_cfg_session) {
 				tr_sess = gf_list_get(tr_sess->content, 0);
 				if (!tr_sess || !tr_sess->name) continue;
 				u32 i, count=gf_list_count(parent_s->objects);
@@ -1264,20 +1269,25 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				}
 				continue;
 			}
-			else if (strcmp(tr_sess->name, "MulticastTransportSession"))
-				continue;
-
-			const GF_XMLNode *trp = _xml_get_child(tr_sess, "TransportProtocol");
-			const char *mode = _xml_get_attr(trp, "protocolIdentifier");
-			if (mode && !strcmp(mode, "urn:dvb:metadata:cs:MulticastTransportProtocolCS:2019:FLUTE"))
-				proto_id = GF_SERVICE_DVB_FLUTE;
-			else if (mode && !strcmp(mode, "urn:dvb:metadata:cs:MulticastTransportProtocolCS:2019:ROUTE"))
-				proto_id = GF_SERVICE_ROUTE;
-			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Unrecognized protocol type %s, ignoring\n", parent_s->log_name, mode ? mode : "UNSPECIFIED"));
+			else if (is_cfg_session) {
+				tr_sess = mcast_sess;
+			} else if (strcmp(tr_sess->name, "MulticastTransportSession")) {
 				continue;
 			}
 
+			const GF_XMLNode *trp = _xml_get_child(tr_sess, "TransportProtocol");
+			const char *mode = _xml_get_attr(trp, "protocolIdentifier");
+			if (mode && !strcmp(mode, "urn:dvb:metadata:cs:MulticastTransportProtocolCS:2019:FLUTE")) {
+				proto_id = GF_SERVICE_DVB_FLUTE;
+			} else if (mode && !strcmp(mode, "urn:dvb:metadata:cs:MulticastTransportProtocolCS:2019:ROUTE")) {
+				proto_id = GF_SERVICE_ROUTE;
+				//spec is really bad here, there is no way to match a ROUTE config session with the declared channels in the MulticastConfig
+				//we assume that if the config session is present, setup will be done using stsid
+				if (!is_cfg_session && has_stsid_session) continue;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Unrecognized protocol type %s, ignoring\n", parent_s->log_name, mode ? mode : "UNSPECIFIED"));
+				continue;
+			}
 			trp = _xml_get_child(tr_sess, "EndpointAddress");
 			if (!trp) continue;
 
@@ -1293,6 +1303,12 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				new_s = gf_route_create_service(routedmx, dst_add, dst_port, service_id, proto_id);
 				if (!new_s) continue;
 			}
+			if (proto_id==GF_SERVICE_ROUTE) {
+				//setup done through stsid
+				has_stsid_session = GF_TRUE;
+				break;
+			}
+
 			new_s->nb_media_streams += _xml_get_child_count(tr_sess, "ServiceComponentIdentifier");
 
 			GF_ROUTESession *rsess=NULL;
@@ -1342,6 +1358,8 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			lreg->format_id = 1;
 			rlct->is_active = GF_TRUE;
 			rsess->nb_active ++;
+			if (new_s->protocol==GF_SERVICE_ROUTE)
+				rlct->static_files = gf_list_new();
 
 			gf_list_add(rsess->channels, rlct);
 			//associate manifest object with first channel we use
@@ -2790,8 +2808,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 {
 	GF_Err e;
 	u32 fdt_symbol_length=0;
-	u32 nb_read, cp , v, C, psi, S, O, H, /*Res, A,*/ B, hdr_len, cc, tsi, toi, pos;
-	u32 /*a_G=0, a_U=0,*/ a_S=0, a_M=0/*, a_A=0, a_H=0, a_D=0*/;
+	u32 nb_read, cp , v, C, psi, S, O, H, /*Res, A,*/ B, hdr_len, tsi, toi, pos;
 	u64 transfert_length=0;
 	u32 start_offset=0;
 	GF_ROUTELCTChannel *rlct=NULL;
@@ -2857,8 +2874,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-
-	cc = gf_bs_read_u32(routedmx->bs);
+	/*cc = */gf_bs_read_u32(routedmx->bs);
 	if (H) {
 		tsi = gf_bs_read_u16(routedmx->bs);
 		toi = gf_bs_read_u16(routedmx->bs);
@@ -2944,28 +2960,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 	start_offset += (nb_read ) * ESI; 
 	
 	if (e==GF_EOS) {
-		if (!tsi) {
-			if (gather_object->status==GF_LCT_OBJ_DONE_ERR) {
-				s->last_dispatched_toi_on_tsi_zero=0;
-				gf_route_obj_to_reservoir(routedmx, s, gather_object);
-				return GF_OK;
-			}
-			//we don't assign version here, we use mbms envelope for that since the bundle may have several
-			//packages
-
-			e = gf_route_dmx_process_service_signaling(routedmx, s, gather_object, cc, a_S ? v : 0, a_M ? v : 0);
-			//we don't release the LCT object, so that we can discard future versions
-			if(e) {
-				//ignore this object in order to be able to accept future versions
-				s->last_dispatched_toi_on_tsi_zero=0;
-				s->stsid_version = 0;
-				s->stsid_crc = 0;
-				s->mpd_version = 0;
-				gf_route_obj_to_reservoir(routedmx, s, gather_object);
-			}
-		} else {
-			gf_route_dmx_process_object(routedmx, s, gather_object);
-		}
+		gf_route_dmx_process_object(routedmx, s, gather_object);
 	}
 
 	return GF_OK;
