@@ -605,6 +605,50 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 }
 
 
+static void xmt_remove_link_for_descriptor(GF_XMTParser* parser, GF_Descriptor* desc) {
+
+	u32 i=0;
+	XMT_ODLink *l, *to_del=NULL;
+	while ((l = (XMT_ODLink*)gf_list_enum(parser->od_links, &i)) ) {
+		if (l->od && l->od == (GF_ObjectDescriptor*)desc) {
+			l->od = NULL;
+			to_del = l;
+			break;
+		}
+	}
+	if (to_del) {
+
+		i=0;
+		GF_Descriptor* subdesc;
+		while ((subdesc = gf_list_enum(((GF_ObjectDescriptor*)desc)->ESDescriptors, &i))) {
+			if (subdesc) xmt_remove_link_for_descriptor(parser, subdesc);
+		}
+
+		gf_list_del_item(parser->od_links, to_del);
+		if (to_del->desc_name) gf_free(to_del->desc_name);
+		gf_list_del(to_del->mf_urls);
+		gf_free(to_del);
+	}
+
+	XMT_ESDLink *esdl, *esdl_del=NULL;
+	i=0;
+	while ((esdl = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
+		if (esdl->esd && esdl->esd == (GF_ESD*)desc) {
+			esdl->esd = NULL;
+			esdl_del = esdl;
+			break;
+		}
+	}
+
+	if (esdl_del) {
+		gf_list_del_item(parser->esd_links, esdl_del);
+		if (esdl_del->desc_name) gf_free(esdl_del->desc_name);
+		gf_free(esdl_del);
+	}
+
+}
+
+
 static u32 xmt_get_next_node_id(GF_XMTParser *parser)
 {
 	u32 ID;
@@ -1996,6 +2040,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 		e = gf_odf_desc_add_desc(parent, desc);
 		if (e) {
 			xmt_report(parser, GF_OK, "Invalid child descriptor");
+			xmt_remove_link_for_descriptor(parser, desc);
 			gf_odf_desc_del(desc);
 			return NULL;
 		}
@@ -2672,14 +2717,10 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			}
 			else if (!parser->od_command) {
 				xmt_report(parser, GF_OK, "Warning: descriptor %s defined outside scene scope - skipping", name);
+
+				xmt_remove_link_for_descriptor(parser, desc);
 				gf_odf_desc_del(desc);
-				XMT_ODLink *prev_l = gf_list_last(parser->od_links);
-				if ((GF_Descriptor *) prev_l->od == desc) {
-					gf_list_pop_back(parser->od_links);
-					if (prev_l->desc_name) gf_free(prev_l->desc_name);
-					gf_list_del(prev_l->mf_urls);
-					gf_free(prev_l);
-				}
+
 			} else {
 				switch (parser->od_command->tag) {
 				case GF_ODF_ESD_UPDATE_TAG:
