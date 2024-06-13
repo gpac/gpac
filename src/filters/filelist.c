@@ -211,6 +211,7 @@ typedef struct
 	//for isobmf cat mode in sigfrag
 	char *rel_url, *abs_url, *init_url;
 
+	Bool src_has_seen_eos;
 
 	GF_PropUIntList chap_times;
 	GF_PropStringList chap_names;
@@ -1189,6 +1190,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 	char szURL[GF_MAX_PATH];
 	Bool next_url_ok;
 
+	ctx->src_has_seen_eos = GF_FALSE;
 	next_url_ok = filelist_next_url(filter, ctx, szURL, GF_FALSE);
 
 	if (!next_url_ok && ctx->ka) {
@@ -2188,6 +2190,7 @@ restart:
 						iopid->splice_ready = GF_TRUE;
 					} else {
 						iopid->is_eos = GF_TRUE;
+						ctx->src_has_seen_eos = GF_TRUE;
 						if (ctx->splice_state==FL_SPLICE_ACTIVE)
 							purge_splice = GF_TRUE;
 					}
@@ -2197,8 +2200,9 @@ restart:
 					nb_done++;
 				break;
 			}
-
-			if (gf_filter_pid_would_block(iopid->opid) && (!iopid->opid_aux || gf_filter_pid_would_block(iopid->opid_aux))) {
+			//if EOS has been seen on one input, do not regulate as the consumer(s) could wait for the next packet in
+			//the next file on one of the EOS stream (eg dasher consumer)
+			if (!ctx->src_has_seen_eos && gf_filter_pid_would_block(iopid->opid) && (!iopid->opid_aux || gf_filter_pid_would_block(iopid->opid_aux))) {
 				break;
 			}
 
@@ -2944,7 +2948,7 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 				if (!c) return NULL;
 				if ( isalnum(c)) continue;
 				//valid URL chars plus backslash for win path
-				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\", c)) {
+				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\ ", c)) {
 					line_empty = GF_FALSE;
 					continue;
 				}
