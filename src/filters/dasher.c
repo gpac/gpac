@@ -4421,7 +4421,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				dasher_open_destination(filter, ctx, rep, szInitSegmentFilename,
 					(skip_init_type==DASH_INITSEG_NONE) ? DASH_INITSEG_NONE : (set->bitstream_switching ? DASH_INITSEG_SKIP : DASH_INITSEG_PRESENT));
 			}
-			//first rep in set and no bs switching or mutliple templates, create segment template at rep level
+			//first rep in set and no bs switching or multiple templates, create segment template at rep level
 			else if (i || !single_template) {
 				GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
 				if (seg_template) {
@@ -10694,7 +10694,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- intra: ignore SAP types greater than 3 on all media types"
 	, GF_PROP_UINT, "off", "off|sig|on|intra", GF_FS_ARG_HINT_EXPERT},
 
-	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(subs_sidx), "number of subsegments per sidx. Negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
