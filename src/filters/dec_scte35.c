@@ -390,7 +390,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 					*dur = gf_bs_read_long_int(bs, 33);
 				}
 
-				// truncated parsing (so we only parse the first command...)
+				// truncated parsing: we make the assumption that there is only one command (which is the case from M2TS section sources)
 			}
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_insert() (*splice_event_id=%u, pts_adjustment="LLU", dur=%u, splice_time="LLU")\n",
