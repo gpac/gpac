@@ -756,7 +756,7 @@ static JSValue svg_udom_get_trait(JSContext *c, JSValueConst obj, int argc, JSVa
 	case SVG_Motion_datatype:
 	/*end SVGT 1.2 default traits*/
 
-	/*unimplemented/unnkown/FIXME traits*/
+	/*unimplemented/unknown/FIXME traits*/
 	case SMIL_SyncTolerance_datatype:
 	case SVG_TransformType_datatype:
 	case SVG_TransformList_datatype:
@@ -767,7 +767,7 @@ static JSValue svg_udom_get_trait(JSContext *c, JSValueConst obj, int argc, JSVa
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
 	default:
-		/*end unimplemented/unnkown/FIXME traits*/
+		/*end unimplemented/unknown/FIXME traits*/
 		return GF_JS_EXCEPTION(c);
 #endif
 	}
