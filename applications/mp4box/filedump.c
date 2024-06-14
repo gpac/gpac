@@ -61,7 +61,7 @@
 #ifndef GPAC_DISABLE_SWF_IMPORT
 extern u32 swf_flags;
 #endif
-extern Float swf_flatten_angle;
+extern Double swf_flatten_angle;
 extern GF_FileType get_file_type_by_ext(char *inName);
 extern u32 fs_dump_flags;
 extern Bool dump_check_xml;
