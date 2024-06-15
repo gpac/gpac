@@ -47,6 +47,7 @@ typedef struct {
 	GF_List *ordered_events; /*Event, ordered by dispatch time*/
 	u64 clock;
 	u32 last_event_id;
+	Bool pass;
 
 	// used to compute event duration
 	u32 timescale;
@@ -131,6 +132,8 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
+	if (ctx->pass) return GF_OK;
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SCTE35) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_FALSE) );
@@ -470,6 +473,15 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 	return GF_OK;
 }
 
+static scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 dts)
+{
+	Event *evt = gf_list_get(ctx->ordered_events, 0);
+	if (!evt) return GF_FALSE;
+	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == dts);
+	if (is_splice) gf_list_pop_front(ctx->ordered_events);
+	return is_splice;
+}
+
 static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
 {
 	if (!IS_SEGMENTED) {
@@ -500,6 +512,7 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
 
 static void scte35dec_flush(SCTE35DecCtx *ctx)
 {
+	if (ctx->pass) return; //pass-through mode
 	if (ctx->clock == ctx->last_dispatched_dts)
 		return; //nothing to flush
 
@@ -533,9 +546,24 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while 'emsg' at dts="LLU"\n", dts));
 	}
 
+	GF_Err e;
+	if (ctx->pass) {
+		GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(ctx->opid, pck, NULL);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
+		if (scte35dec_is_splice_point(ctx, dts)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at dts="LLU"\n", dts));
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SCTE35_BREAK, &PROP_BOOL(GF_TRUE));
+		}
+
+		e = gf_filter_pck_send(dst_pck);
+	} else {
+		e = scte35dec_process_dispatch(ctx, dts);
+	}
+
 	gf_filter_pid_drop_packet(ctx->ipid);
 
-	return scte35dec_process_dispatch(ctx, dts);
+	return e;
 }
 
 static const GF_FilterCapability SCTE35DecCaps[] =
@@ -550,6 +578,7 @@ static const GF_FilterCapability SCTE35DecCaps[] =
 #define OFFS(_n)	#_n, offsetof(SCTE35DecCtx, _n)
 static const GF_FilterArgs SCTE35DecArgs[] =
 {
+	{ OFFS(pass), "pass-through mode, sets 'CueStart' at each splice point", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(segdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
 	{0}
 };
