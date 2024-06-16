@@ -473,11 +473,11 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 	return GF_OK;
 }
 
-static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 dts)
+static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
 {
 	Event *evt = gf_list_get(ctx->ordered_events, 0);
 	if (!evt) return GF_FALSE;
-	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == dts);
+	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == cts);
 	if (is_splice) gf_list_pop_front(ctx->ordered_events);
 	return is_splice;
 }
@@ -551,7 +551,8 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(ctx->opid, pck, NULL);
 		if (!dst_pck) return GF_OUT_OF_MEM;
 
-		if (scte35dec_is_splice_point(ctx, dts)) {
+		u64 cts = gf_filter_pck_get_cts(pck);
+		if (scte35dec_is_splice_point(ctx, cts)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at dts="LLU"\n", dts));
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SCTE35_BREAK, &PROP_BOOL(GF_TRUE));
 		}
