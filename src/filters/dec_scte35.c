@@ -473,7 +473,7 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 	return GF_OK;
 }
 
-static scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 dts)
+static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 dts)
 {
 	Event *evt = gf_list_get(ctx->ordered_events, 0);
 	if (!evt) return GF_FALSE;
