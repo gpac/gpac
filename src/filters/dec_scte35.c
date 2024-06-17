@@ -419,13 +419,13 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	for (u16 i=0; i<descriptor_loop_length; i++) {
 		u8 splice_descriptor_tag = gf_bs_read_u8(bs);
 		u8 descriptor_length = gf_bs_read_u8(bs);
-		/*u32 identifier = */gf_bs_read_u32(bs);
 
 		if (descriptor_length > gf_bs_available(bs)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short while parsing descriptor (%u bytes)\n", descriptor_length));
 			goto exit;
 		}
 
+		/*u32 identifier = */gf_bs_read_u32(bs);
 		switch (splice_descriptor_tag) {
 		case 0x02: //segmentation_descriptor()
 			{
@@ -483,7 +483,7 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 			}
 			break;
 		default:
-			gf_bs_skip_bytes(bs, descriptor_length);
+			gf_bs_skip_bytes(bs, MAX(0, descriptor_length - 4));
 			break;
 		}
 	}
