@@ -620,21 +620,16 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 			(*samp)->alloc_size = 0;
 
 		/*and finally get the data, include padding if needed*/
-		if ((*samp)->alloc_size) {
-			if ((*samp)->alloc_size < data_size + mdia->mediaTrack->padding_bytes) {
-				(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( data_size + mdia->mediaTrack->padding_bytes) );
-				if (! (*samp)->data) return GF_OUT_OF_MEM;
-
-				(*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;
-			}
+		if (ext_realloc) {
+			(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(data_size + mdia->mediaTrack->padding_bytes, mdia->mediaTrack->sample_alloc_udta);
+		} else if ((*samp)->alloc_size) {
+			(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( data_size + mdia->mediaTrack->padding_bytes) );
+			if ((*samp)->data) (*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;
 		} else {
-			if (ext_realloc) {
-				(*samp)->data = mdia->mediaTrack->sample_alloc_cbk(data_size + mdia->mediaTrack->padding_bytes, mdia->mediaTrack->sample_alloc_udta);
-			} else {
-				(*samp)->data = (u8 *) gf_malloc(data_size + mdia->mediaTrack->padding_bytes);
-			}
-			if (! (*samp)->data) return GF_OUT_OF_MEM;
+			(*samp)->data = (u8 *) gf_malloc(data_size + mdia->mediaTrack->padding_bytes);
 		}
+		if (! (*samp)->data) return GF_OUT_OF_MEM;
+
 		(*samp)->dataLength = data_size;
 		if (mdia->mediaTrack->padding_bytes)
 			memset((*samp)->data + data_size, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
