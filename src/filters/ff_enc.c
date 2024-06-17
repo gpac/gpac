@@ -495,11 +495,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (p && p->value.boolean) {
 		force_intra = 2;
 	}
-	//if SCTE35_BREAK is set on input, this is a splice point, set frame as I-frame
-	p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_SCTE35_BREAK) : NULL;
-	if (p && p->value.boolean) {
-		force_intra = 1;
-	}
 
 	//check if we need to force a closed gop
 	if (pck && (ctx->fintra.den && (ctx->fintra.num>0)) && !ctx->force_reconfig) {

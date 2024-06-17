@@ -1663,7 +1663,6 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_FILESUF, "FileSuffix", "File suffix name, replacement for $FS$ in tile templates", GF_PROP_STRING, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_EODS, "EODS", "End of DASH segment", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_CUE_START, "CueStart", "Set on packets marking the beginning of a DASH/HLS segment for cue-driven segmentation - see dasher help", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
-	DEC_PROP_F( GF_PROP_PCK_SCTE35_BREAK, "SCTE35Break", "Set on packets marking the beginning of a SCTE-35 break", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_MEDIA_TIME, "MediaTime", "Corresponding media time of the parent packet (0 being the origin)", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - changes are signaled through PID info change (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_AVG_FRAME_SIZE, "AvgFrameSize", "Average size of frame in stream (ISOBMFF only, static property)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
