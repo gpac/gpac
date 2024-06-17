@@ -2258,7 +2258,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				GF_ROUTELCTFile *fdt_file = NULL;
 				for (l=0; l<gf_list_count(purge_rlct); l++) {
 					fdt_file = gf_list_get(purge_rlct, l);
-					if ((fdt_file->toi==toi) && !strcmp(fdt_file->filename, location)) {
+					if ((fdt_file->toi==toi) && fdt_file->filename && !strcmp(fdt_file->filename, location)) {
 						gf_list_rem(purge_rlct, l);
 						break;
 					}
