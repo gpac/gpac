@@ -2282,7 +2282,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				base64_prefix_bits = atoi(att->value);
 			} else if (!stricmp(att->name, "id")) {
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unkown attribute %s, ignoring\n", att->name));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unknown attribute %s, ignoring\n", att->name));
 			}
 		}
 

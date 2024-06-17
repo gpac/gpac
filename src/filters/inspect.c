@@ -2206,23 +2206,145 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 	if (time_specified_flag == 1) {
 		/*reserved = */gf_bs_read_int(bs, 6);
 		u64 pts_time = gf_bs_read_int(bs, 33);
-		DUMP_ATT_LLU("pts_time", pts_time);
+		DUMP_ATT_LLU("ptsTime", pts_time);
 	} else {
 		/*reserved = */gf_bs_read_int(bs, 7);
 	}
 	inspect_printf(dump, "/>\n");
 }
 
+static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
+{
+	inspect_printf(dump, "    <scte35:SegmentationDescriptor");
+
+	inspect_printf(dump, " segmentationEventId=\"%u\"", gf_bs_read_u32(bs));
+	Bool segmentation_event_cancel_indicator = gf_bs_read_int(bs, 1);
+	inspect_printf(dump, " segmentationEventCancelIndicator=\"%u\"", segmentation_event_cancel_indicator);
+	gf_bs_read_int(bs, 7); //reserved
+	if (segmentation_event_cancel_indicator == 0) {
+		u32 program_segmentation_flag = gf_bs_read_int(bs, 1);
+		//inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
+		u32 segmentation_duration_flag = gf_bs_read_int(bs, 1);
+		//inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
+		u32 delivery_not_restricted_flag = gf_bs_read_int(bs, 1);
+		//inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
+		if (delivery_not_restricted_flag == 0) {
+			inspect_printf(dump, " webDeliveryAllowedFlag=\"%u\"", gf_bs_read_int(bs, 1));
+			inspect_printf(dump, " noRegionalBlackoutFlag=\"%u\"", gf_bs_read_int(bs, 1));
+			inspect_printf(dump, " archiveAllowedFlag=\"%u\"", gf_bs_read_int(bs, 1));
+			inspect_printf(dump, " deviceRestrictions=\"%u\"", gf_bs_read_int(bs, 2));
+		} else {
+			gf_bs_read_int(bs, 5); //reserved
+		}
+		if (program_segmentation_flag == 0) {
+			u8 component_count = gf_bs_read_u8(bs);
+			inspect_printf(dump, " componentCount=\"%u\"", component_count);
+			for (u8 i=0; i<component_count; i++) {
+				inspect_printf(dump, " componentTag=\"%u\"", gf_bs_read_u8(bs));
+				gf_bs_read_int(bs, 7); //reserved
+				inspect_printf(dump, " componentTag=\"%u\"", gf_bs_read_u8(bs));
+				inspect_printf(dump, " ptsOffset=\""LLU"\"", gf_bs_read_long_int(bs, 33));
+			}
+		}
+		if (segmentation_duration_flag == 1) {
+			inspect_printf(dump, " segmentationDuration=\""LLU"\"", gf_bs_read_long_int(bs, 40));
+		}
+
+		u8 segmentation_upid_type = gf_bs_read_u8(bs);
+		u8 segmentation_upid_length = gf_bs_read_u8(bs);
+		u64 segmentation_upid_pos = gf_bs_get_position(bs);
+		gf_bs_skip_bytes(bs, segmentation_upid_length);
+
+		u8 segmentation_type_id = gf_bs_read_u8(bs);
+		inspect_printf(dump, " segmentationTypeId=\"%u\"", segmentation_type_id);
+		inspect_printf(dump, " segmentNum=\"%u\"", gf_bs_read_u8(bs));
+		inspect_printf(dump, " segmentsExpected=\"%u\"", gf_bs_read_u8(bs));
+		if (segmentation_type_id == 0x34 || segmentation_type_id == 0x36 || segmentation_type_id == 0x38 || segmentation_type_id == 0x3A) {
+			inspect_printf(dump, " subSegmentNum=\"%u\"", gf_bs_read_u8(bs));
+			inspect_printf(dump, " subSegmentsExpected=\"%u\"", gf_bs_read_u8(bs));
+		}
+
+		inspect_printf(dump, ">");
+
+		if (segmentation_upid_length) {
+			// jump back to SegmentUpid to dump values
+			gf_bs_seek(bs, segmentation_upid_pos);
+			inspect_printf(dump, "     <scte35:SegmentationUpid segmentationUpidType=\"%u\">", segmentation_upid_type);
+			for (u8 i=0; i<segmentation_upid_length; ++i)
+				printf("%02X", gf_bs_read_u8(bs));
+			inspect_printf(dump, "     </scte35:SegmentationUpid>\n");
+
+#if 0 //TODO: identify segmentationUpidType as per the example below (we don't have any sample):
+<SegmentationDescriptor
+segmentationDuration="2700000"
+segmentationEventId="1207959671"
+segmentationEventCancelIndicator="0"
+segmentationTypeId="48" segmentNum="1"
+segmentsExpected="1"
+>
+<!-- EIDR of Video Service (Cartoon Network) -->
+<SegmentationUpid segmentationUpidType="10">14778BE5E3F6000000000000</SegmentationUpid>
+<!-- EIDR of Content (TV/Movie) (Lord of the Rings: The Fellowship of the Ring) -->
+<SegmentationUpid segmentationUpidType="10">1478E030107BC08ABF93AC79</SegmentationUpid>
+<!-- Ad Id (ABCD238Q000H) -->
+<SegmentationUpid segmentationUpidType="3">414243443233385130303048</SegmentationUpid>
+</SegmentationDescriptor>
+#endif
+			inspect_printf(dump, "     </scte35:SegmentationUpid>\n");
+		}
+
+		inspect_printf(dump, "    </scte35:SegmentationDescriptor>\n");
+	} else {
+		inspect_printf(dump, "/>\n");
+	}
+}
+
+static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
+{
+	if (gf_bs_available(bs) < 2)
+		return GF_FALSE;
+
+	u8 splice_descriptor_tag = gf_bs_read_u8(bs);
+	u8 descriptor_length = gf_bs_read_u8(bs);
+	if (descriptor_length < 4 || descriptor_length > 254) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] SCTE-35 splice descriptor: invalid descriptor_length=%u\n", descriptor_length));
+		return GF_FALSE;
+	}
+	if (gf_bs_available(bs) < descriptor_length) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] not enough bits to parse SCTE-35 splice descriptor\n"));
+		return GF_FALSE;
+	}
+
+	u32 identifier = gf_bs_read_u32(bs);
+	if (identifier != 0x43554549/*"CUEI"*/) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] unexpected SCTE-35 splice descriptor identifier \"%s\" instead of \"CUEI\". Skipping.\n", gf_4cc_to_str(identifier)));
+		return GF_FALSE;
+	}
+
+	//inspect_printf(dump, "   <scte35:SpliceDescriptor spliceDescriptorTag=\"%u\" identifier=\"%s\"", splice_descriptor_tag, gf_4cc_to_str(identifier));
+
+	if (splice_descriptor_tag == 0x02) {
+		//inspect_printf(dump, ">\n");
+		scte35_parse_segmentation_descriptor(dump, bs);
+		//inspect_printf(dump, "   </scte35:SpliceDescriptor>\n");
+	} else {
+		//inspect_printf(dump, "/>\n");
+	}
+
+	return GF_TRUE;
+}
+
 static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
-	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"urn:scte:scte35:2013:bin\"");
+	//some inspect_printf() are commented to be xsd compliant
+	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"http://www.scte.org/schemas/35\"");
 
 	u8 table_id = gf_bs_read_u8(bs);
 	Bool section_syntax_indicator = gf_bs_read_int(bs, 1);
 	Bool private_indicator = gf_bs_read_int(bs, 1);
 
 	u8 sap_type = gf_bs_read_int(bs, 2);
-	DUMP_ATT_U("sap_type", sap_type);
+	DUMP_ATT_U("sapType", sap_type);
 
 	int section_length = gf_bs_read_int(bs, 12);
 
@@ -2233,21 +2355,21 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	}
 
 	u8 protocol_version = gf_bs_read_u8(bs);
-	DUMP_ATT_U("protocol_version", protocol_version);
+	DUMP_ATT_U("protocolVersion", protocol_version);
 	Bool encrypted_packet = gf_bs_read_int(bs, 1);
-	DUMP_ATT_U("encrypted_packet", encrypted_packet);
+	//DUMP_ATT_U("encryptedPacket", encrypted_packet); //should be an Element, cf xsd
 	u8 encryption_algorithm = gf_bs_read_int(bs, 6);
 	u64 pts_adjustment = gf_bs_read_long_int(bs, 33);
-	DUMP_ATT_LLU("pts_adjustment", pts_adjustment);
+	DUMP_ATT_LLU("ptsAdjustment", pts_adjustment);
 
 	if (encrypted_packet) {
 		const char* enc_algos[4] = {"No encryption", "DES - ECB mode", "DES - CBC mode", "Triple DES EDE3 - ECB mode" };
 		if (encryption_algorithm < sizeof(enc_algos)/sizeof(enc_algos[0])) {
-			DUMP_ATT_STR("encryption_algorithm", enc_algos[encryption_algorithm]);
+			DUMP_ATT_STR("encryptionAlgorithm", enc_algos[encryption_algorithm]);
 		} else if (encryption_algorithm < 32) {
-			DUMP_ATT_STR("encryption_algorithm", "Reserved");
+			DUMP_ATT_STR("encryptionAlgorithm", "Reserved");
 		} else {
-			DUMP_ATT_STR("encryption_algorithm", "User private");
+			DUMP_ATT_STR("encryptionAlgorithm", "User private");
 		}
 		//early exit
 		goto exit;
@@ -2268,19 +2390,19 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 		{
 			inspect_printf(dump, "   <scte35:SpliceInsert");
 			u32 splice_event_id = gf_bs_read_u32(bs);
-			DUMP_ATT_U("splice_event_id", splice_event_id);
+			DUMP_ATT_U("spliceEventId", splice_event_id);
 			Bool splice_event_cancel_indicator = gf_bs_read_int(bs, 1);
-			DUMP_ATT_BOOL("splice_event_cancel_indicator", splice_event_cancel_indicator);
+			DUMP_ATT_BOOL("spliceEventCancelIndicator", splice_event_cancel_indicator);
 			/*reserved = */gf_bs_read_int(bs, 7);
 			if (splice_event_cancel_indicator == 0) {
 				Bool out_of_network_indicator = gf_bs_read_int(bs, 1);
-				DUMP_ATT_BOOL("out_of_network_indicator", out_of_network_indicator);
+				DUMP_ATT_BOOL("outOfNetworkIndicator", out_of_network_indicator);
 				Bool program_splice_flag = gf_bs_read_int(bs, 1);
-				DUMP_ATT_BOOL("program_splice_flag", program_splice_flag);
+				DUMP_ATT_BOOL("programSpliceFlag", program_splice_flag);
 				Bool duration_flag = gf_bs_read_int(bs, 1);
-				DUMP_ATT_BOOL("duration_flag", duration_flag);
+				DUMP_ATT_BOOL("durationFlag", duration_flag);
 				Bool splice_immediate_flag = gf_bs_read_int(bs, 1);
-				DUMP_ATT_BOOL("splice_immediate_flag", splice_immediate_flag);
+				DUMP_ATT_BOOL("spliceImmediateFlag", splice_immediate_flag);
 				/*reserved = */gf_bs_read_int(bs, 4);
 				inspect_printf(dump, ">\n");
 
@@ -2290,19 +2412,19 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 
 				if (program_splice_flag == 0) {
 					u8 component_count = gf_bs_read_u8(bs);
-					DUMP_ATT_U("component_count", component_count);
+					DUMP_ATT_U("componentCount", component_count);
 					for (int i=0; i<component_count; i++) {
-						inspect_printf(dump, "    <scte35:Program>\n");
+						inspect_printf(dump, "    <Program>\n");
 						/*u8 component_tag = */gf_bs_read_u8(bs);
 						if (splice_immediate_flag == 0) {
 							scte35_parse_splice_time(ctx, dump, bs);
 						}
-						inspect_printf(dump, "    </scte35:Program>\n");
+						inspect_printf(dump, "    </Program>\n");
 					}
 				}
 				if (duration_flag == GF_TRUE) {
 					//break_duration()
-					inspect_printf(dump, "    <scte35:BreakDuration");
+					inspect_printf(dump, "    <BreakDuration");
 					/*Bool auto_return = */gf_bs_read_int(bs, 1);
 					/*reserved = */gf_bs_read_int(bs, 6);
 					u64 duration = gf_bs_read_long_int(bs, 33);
@@ -2354,19 +2476,12 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	}
 
 	gf_assert(gf_bs_get_position(bs) == pos + splice_command_length);
+	pos += splice_command_length;
 
-	//FIXME: we only parse the first command
-
-#if 0 //not implemented
-	int descriptor_loop_length = gf_bs_read_int(bs, 12);
-	for (i=0; i<N1; i++)
-		splice_descriptor();
-	for (i=0; i<N2; i++)
-		/*alignment_stuffing =*/ gf_bs_read_u8(bs);
-	if (encrypted_packet)
-		E_CRC_32 32 rpchof E
-	CRC_32 32 rpchof
-#endif
+	int descriptor_loop_length = gf_bs_read_int(bs, 16);
+	while ( (gf_bs_get_position(bs) < pos + descriptor_loop_length) && scte35_parse_splice_descriptor(dump, bs) )
+	{
+	}
 
 exit:
 	inspect_printf(dump, "  </scte35:SpliceInfoSection>\n");

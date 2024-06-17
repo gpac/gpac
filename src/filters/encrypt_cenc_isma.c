@@ -1714,7 +1714,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	}
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
-	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
 
 	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);

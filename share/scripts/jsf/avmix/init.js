@@ -4609,7 +4609,7 @@ function parse_watcher(pl)
 		if (evt != 'events') {
 			watcher.evt = sys.get_event_type(evt[0]);
 			if (!watcher.evt) {
-				print(GF_LOG_WARNING, 'Unkown event type ' + pl.watch + ' discarding watcher');
+				print(GF_LOG_WARNING, 'Unknown event type ' + pl.watch + ' discarding watcher');
 				remove_watcher(watcher, false);
 				return;
 			}
