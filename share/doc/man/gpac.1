@@ -302,6 +302,11 @@ unrecognized options and filters declaration following this option are ignored -
 .br
 setup credentials as used by servers
 .br
+.TP
+.B \-rv
+.br
+return absolute value of GPAC internal error instead of 1 when error
+.br
 
 .br
   
@@ -1102,19 +1107,9 @@ This will use regular network interface and drop packets 100 to 119 on port 1234
 cache directory location
 .br
 .TP
-.B \-proxy-on
+.B \-proxy (string)
 .br
-enable HTTP proxy
-.br
-.TP
-.B \-proxy-name (string)
-.br
-set HTTP proxy address
-.br
-.TP
-.B \-proxy-port (int, default: 80)
-.br
-set HTTP proxy port
+set HTTP proxy server address and port
 .br
 .TP
 .B \-maxrate (int)
@@ -1210,6 +1205,16 @@ disable HTTP2 upgrade (i.e. over non-TLS)
 .B \-h2-copy
 .br
 enable intermediate copy of data in nghttp2 (default is disabled but may report as broken frames in wireshark)
+.br
+.TP
+.B \-curl
+.br
+use CURL instead of GPAC HTTP stack
+.br
+.TP
+.B \-no-h3
+.br
+disable HTTP3 (CURL only)
 .br
 .TP
 .B \-dbg-edges
