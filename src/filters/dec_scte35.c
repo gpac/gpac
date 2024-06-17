@@ -630,7 +630,7 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		u64 cts = gf_filter_pck_get_cts(pck);
 		if (scte35dec_is_splice_point(ctx, cts)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at dts="LLU"\n", dts));
-			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SCTE35_BREAK, &PROP_BOOL(GF_TRUE));
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 		}
 
 		e = gf_filter_pck_send(dst_pck);
