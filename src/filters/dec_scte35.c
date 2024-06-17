@@ -315,7 +315,7 @@ static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
 	}
 }
 
-static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u32 *splice_event_id)
+static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u32 *splice_event_id, Bool *needs_idr)
 {
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 
@@ -393,13 +393,14 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 					*dur = gf_bs_read_long_int(bs, 33);
 				}
 
+				*needs_idr = GF_TRUE;
 				// truncated parsing (so we only parse the first command...)
 			}
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_insert() (*splice_event_id=%u, pts_adjustment="LLU", dur=%u, splice_time="LLU")\n",
 				*splice_event_id, pts_adjustment, *dur, splice_time));
 		}
-		break;
+		goto exit;
 	case 0x06: //time_signal()
 		{
 			u64 splice_time = scte35dec_parse_splice_time(bs);
@@ -411,7 +412,80 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	default:
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_command_type=0x%02X length=%d pts_adjustment="LLU"\n",
 			splice_command_type, splice_command_length, pts_adjustment));
-		break;
+		goto exit;
+	}
+
+	u16 descriptor_loop_length = gf_bs_read_u16(bs);
+	for (u16 i=0; i<descriptor_loop_length; i++) {
+		u8 splice_descriptor_tag = gf_bs_read_u8(bs);
+		u8 descriptor_length = gf_bs_read_u8(bs);
+		/*u32 identifier = */gf_bs_read_u32(bs);
+
+		if (descriptor_length > gf_bs_available(bs)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short while parsing descriptor (%u bytes)\n", descriptor_length));
+			goto exit;
+		}
+
+		switch (splice_descriptor_tag) {
+		case 0x02: //segmentation_descriptor()
+			{
+				/*u32 segmentation_event_id = */gf_bs_read_u32(bs);
+				Bool segmentation_event_cancel_indicator = gf_bs_read_int(bs, 1);
+				/*Bool segmentation_event_id_compliance_indicator = */gf_bs_read_int(bs, 1);
+				/*reserved = */gf_bs_read_int(bs, 6);
+
+				if (segmentation_event_cancel_indicator == 0) {
+					Bool program_segmentation_flag = gf_bs_read_int(bs, 1);
+					Bool segmentation_duration_flag = gf_bs_read_int(bs, 1);
+					/*Bool delivery_not_restricted_flag = */gf_bs_read_int(bs, 1);
+					gf_bs_skip_bytes(bs, 5);
+
+					if (program_segmentation_flag == 0) { //deprecated
+						u8 component_count = gf_bs_read_u8(bs);
+						for (u8 i=0; i<component_count; i++)
+							gf_bs_skip_bytes(bs, 48);
+					}
+
+					if (segmentation_duration_flag == 1) {
+						/*u64 segmentation_duration = */gf_bs_read_long_int(bs, 40);
+					}
+
+					/*u8 segmentation_upid_type = */gf_bs_read_u8(bs);
+					u8 segmentation_upid_length = gf_bs_read_u8(bs);
+					gf_bs_skip_bytes(bs, segmentation_upid_length);
+					u8 segmentation_type_id = gf_bs_read_u8(bs);
+					/*u8 segment_num = */gf_bs_read_u8(bs);
+					/*u8 segments_expected = */gf_bs_read_u8(bs);
+
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found segmentation_descriptor() segmentation_type_id=%u\n", segmentation_type_id));
+
+					switch (segmentation_type_id)
+					{
+					case 0x10:
+						*needs_idr = GF_TRUE;
+						break;
+					case 0x34:
+						*needs_idr = GF_TRUE;
+					case 0x30:
+					case 0x32:
+					case 0x36:
+					case 0x38:
+					case 0x3A:
+					case 0x44:
+					case 0x46:
+						/*u8 sub_segment_num = */gf_bs_read_u8(bs);
+						/*u8 sub_segments_expected = */gf_bs_read_u8(bs);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+			break;
+		default:
+			gf_bs_skip_bytes(bs, descriptor_length);
+			break;
+		}
 	}
 
 exit:;
@@ -442,8 +516,9 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 {
 	u64 pts = 0;
 	u32 dur = 0xFFFFFFFF;
+	Bool needs_idr = GF_FALSE;
 	// parsing is incomplete so we only check the first splice command ...
-	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id);
+	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id, &needs_idr);
 
 	GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
 	if (!emib) return GF_OUT_OF_MEM;
@@ -468,7 +543,8 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 		return e;
 	}
 
-	scte35dec_schedule(ctx, dts, emib);
+	if (!ctx->pass || (ctx->pass && needs_idr))
+		scte35dec_schedule(ctx, dts, emib);
 
 	return GF_OK;
 }
