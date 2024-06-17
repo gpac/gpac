@@ -232,8 +232,7 @@ GF_Err AddDescriptorToESD(GF_ESD *esd, GF_Descriptor *desc)
 		        (desc->tag <= GF_ODF_EXT_END_TAG) ) {
 			return gf_list_add(esd->extensionDescriptors, desc);
 		}
-		gf_odf_delete_descriptor(desc);
-		return GF_OK;
+		return GF_BAD_PARAM;
 	}
 
 	return GF_OK;
@@ -1222,7 +1221,7 @@ GF_Err gf_odf_write_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd)
 	GF_Err e;
 	u32 size, oti;
 	if (! dcd) return GF_BAD_PARAM;
-	
+
 	oti = dcd->objectTypeIndication;
 	if (oti > 0xFF) {
 		oti = gf_codecid_oti(oti);
