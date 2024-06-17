@@ -3746,7 +3746,7 @@ sample_entry_done:
 		}
 
 		//special case for pasp: if negative values are set, remove pasp box even if present in source  template
-		if (width && ((sar.num<0) || (sar.den<0))) {
+		if (width && (sar.num<0)) {
 			gf_isom_set_pixel_aspect_ratio(ctx->file, tkw->track_num, tkw->stsd_idx, 0, 0, GF_FALSE);
 		}
 
