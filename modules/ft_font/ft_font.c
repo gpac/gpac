@@ -185,7 +185,10 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 					if (gidx) gidx = FT_Get_Char_Index(face, (u32) 'z');
 					if (gidx) gidx = FT_Get_Char_Index(face, (u32) '1');
 					if (gidx) gidx = FT_Get_Char_Index(face, (u32) '@');
-					if (gidx) ftpriv->font_default = gf_strdup(szfont);
+					if (gidx) {
+						gf_free(ftpriv->font_default);
+						ftpriv->font_default = gf_strdup(szfont);
+					}
 				}
 
 				strcpy(szfont, face->family_name);
