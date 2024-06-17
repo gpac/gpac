@@ -83,6 +83,7 @@ static GF_Err evt_ret_val = GF_OK;
 static Bool in_sig_handler = GF_FALSE;
 static Bool custom_event_proc=GF_FALSE;
 static u64 run_start_time = 0;
+static Bool return_gferr = GF_FALSE;
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 static Bool has_console;
@@ -210,10 +211,10 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 static void reset_em_thread();
 #endif
 
-static int gpac_exit_fun(int code)
+static int gpac_exit_fun(GF_Err code)
 {
 	u32 i;
-	if (code>=0) {
+	if (code!=GF_BAD_PARAM) {
 		for (i=1; i<gf_sys_get_argc(); i++) {
 			if (!gf_sys_is_arg_used(i)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Warning: argument %s set but not used\n", gf_sys_get_arg(i) ));
@@ -257,6 +258,10 @@ static int gpac_exit_fun(int code)
 	cleanup_logs();
 
 	gf_sys_close();
+	if (code<0) {
+		if (return_gferr) code = -code;
+		else code = 1;
+	}
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (!code && (gf_memory_size() || gf_file_handles_count() )) {
@@ -1000,6 +1005,8 @@ int gpac_main(int _argc, char **_argv)
 			gpac_exit(0);
 		} else if (!strcmp(arg, "-cfg")) {
 			nothing_to_do = GF_FALSE;
+		} else if (!strcmp(arg, "-rv")) {
+			return_gferr = GF_TRUE;
 		}
 
 		else if (!strcmp(arg, "-alias") || !strcmp(arg, "-aliasdoc")) {
@@ -1118,7 +1125,7 @@ int gpac_main(int _argc, char **_argv)
 			else {
 				if (!has_xopt) {
 					gpac_suggest_arg(arg);
-					gpac_exit(-1);
+					gpac_exit(GF_BAD_PARAM);
 				} else {
 					gf_sys_mark_arg_used(i, GF_FALSE);
 				}
@@ -1142,8 +1149,11 @@ int gpac_main(int _argc, char **_argv)
 	}
 	if ((list_filters>=2) || print_meta_filters || dump_codecs || dump_formats || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 
-	if (list_filters || print_filter_info)
+	if (list_filters || print_filter_info) {
 		gf_opts_set_key("temp", "helponly", "yes");
+		if (print_filter_info && (argmode>=GF_ARGMODE_EXPERT))
+			gf_opts_set_key("temp", "helpexpert", "yes");
+	}
 
 	if (dump_proto_schemes || (gen_doc==1))
 		gf_opts_set_key("temp", "get_proto_schemes", "yes");
@@ -1695,7 +1705,7 @@ exit:
 #endif
 	}
 
-	gpac_exit(e<0 ? 1 : 0);
+	gpac_exit(e);
 }
 
 #if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)

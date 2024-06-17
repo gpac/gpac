@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2023
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -1035,10 +1035,8 @@ void load_compositor(GF_Filter *filter)
 	}
 #endif
 
-	if (gf_opts_get_bool("core", "proxy-on")) {
-		str = gf_opts_get_key("core", "proxy-name");
-		if (str) fprintf(stderr, "HTTP Proxy %s enabled\n", str);
-	}
+	str = gf_opts_get_key("core", "proxy");
+	if (str) fprintf(stderr, "HTTP Proxy %s enabled\n", str);
 
 	if (rti_file) {
 		update_rti("At GPAC load time\n");

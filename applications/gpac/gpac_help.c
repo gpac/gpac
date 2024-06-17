@@ -816,6 +816,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("genmd", NULL, "generate markdown doc", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE),
 	GF_DEF_ARG("xopt", NULL, "unrecognized options and filters declaration following this option are ignored - used to pass arguments to GUI", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("creds", NULL, "setup credentials as used by servers", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("rv", NULL, "return absolute value of GPAC internal error instead of 1 when error", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 
 #ifdef GPAC_CONFIG_IOS
 	GF_DEF_ARG("req-gl", NULL, "forces loading SDL - iOS only", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
