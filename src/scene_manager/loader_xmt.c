@@ -609,6 +609,19 @@ static void xmt_remove_link_for_descriptor(GF_XMTParser* parser, GF_Descriptor* 
 
 	u32 i=0;
 	XMT_ODLink *l, *to_del=NULL;
+
+	if (!desc) return;
+
+	// recursively remove sub descriptors links
+	if (desc->tag == GF_ODF_IOD_TAG || desc->tag == GF_ODF_OD_TAG) {
+		GF_Descriptor* subdesc = NULL;
+		u32 i=0;
+		while ((subdesc = gf_list_enum(((GF_ObjectDescriptor*)desc)->ESDescriptors, &i))) {
+			if (subdesc) xmt_remove_link_for_descriptor(parser, subdesc);
+		}
+	}
+
+	i=0;
 	while ((l = (XMT_ODLink*)gf_list_enum(parser->od_links, &i)) ) {
 		if (l->od && l->od == (GF_ObjectDescriptor*)desc) {
 			l->od = NULL;
@@ -616,19 +629,14 @@ static void xmt_remove_link_for_descriptor(GF_XMTParser* parser, GF_Descriptor* 
 			break;
 		}
 	}
+
 	if (to_del) {
-
-		i=0;
-		GF_Descriptor* subdesc;
-		while ((subdesc = gf_list_enum(((GF_ObjectDescriptor*)desc)->ESDescriptors, &i))) {
-			if (subdesc) xmt_remove_link_for_descriptor(parser, subdesc);
-		}
-
 		gf_list_del_item(parser->od_links, to_del);
 		if (to_del->desc_name) gf_free(to_del->desc_name);
 		gf_list_del(to_del->mf_urls);
 		gf_free(to_del);
 	}
+
 
 	XMT_ESDLink *esdl, *esdl_del=NULL;
 	i=0;
