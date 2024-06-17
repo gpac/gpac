@@ -45,7 +45,7 @@
 #ifdef GPAC_HAS_CURL
 #include <curl/curl.h>
 //we need multi API
-#if CURL_AT_LEAST_VERSION(7,9,6)
+#if CURL_AT_LEAST_VERSION(7,80,0)
 #ifndef CURLPIPE_MULTIPLEX
 #define CURLPIPE_MULTIPLEX 0
 #endif
@@ -6363,7 +6363,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 #endif
 
 
+#ifdef GPAC_HAS_CURL
 process_reply:
+#endif
 
 	if (!sess->server_mode) {
 		Bool cache_no_store = GF_FALSE;

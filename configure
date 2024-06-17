@@ -1724,7 +1724,7 @@ int main( void ) { HANDLE_MPEGH_DECODER_CONTEXT codec = mpeghdecoder_init(2); re
 
 
 config_package curl "curl" "" "-lcurl" "" '#include <curl/curl.h>
-int main( void ) { CURLM *curl_multi = curl_multi_init(); return 0; }'
+int main( void ) { CURLM *curl_multi = curl_multi_init(); int fn_opt = CURLOPT_PREREQFUNCTION; const struct curl_easyoption *opt = curl_easy_option_next(NULL); return 0; }'
 
 
 
