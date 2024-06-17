@@ -6125,6 +6125,9 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 		prop_ent = gf_props_get_property_entry(map, prop_4cc, prop_name);
 		if (prop_ent) goto exit;
 	}
+	//detached
+	if (!pid->pid)  goto exit;
+
 	if (pid->pid->infos) {
 		prop_ent = gf_props_get_property_entry(pid->pid->infos, prop_4cc, prop_name);
 		if (prop_ent) goto exit;
@@ -8430,6 +8433,8 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 		return;
 	}
 	pid = pid->pid;
+	//detached
+	if (!pid) return;
 	for (i=0; i<pid->filter->num_output_pids; i++) {
 		GF_FilterPid *apid = gf_list_get(pid->filter->output_pids, i);
 		if (!clear_all && (pid != apid)) continue;
