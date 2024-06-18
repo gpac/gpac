@@ -2205,7 +2205,7 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 	Bool time_specified_flag = gf_bs_read_int(bs, 1);
 	if (time_specified_flag == 1) {
 		/*reserved = */gf_bs_read_int(bs, 6);
-		u64 pts_time = gf_bs_read_int(bs, 33);
+		u64 pts_time = gf_bs_read_long_int(bs, 33);
 		DUMP_ATT_LLU("ptsTime", pts_time);
 	} else {
 		/*reserved = */gf_bs_read_int(bs, 7);
@@ -2215,7 +2215,7 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 
 static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 {
-	inspect_printf(dump, "    <scte35:SegmentationDescriptor");
+	inspect_printf(dump, "   <scte35:SegmentationDescriptor");
 
 	inspect_printf(dump, " segmentationEventId=\"%u\"", gf_bs_read_u32(bs));
 	Bool segmentation_event_cancel_indicator = gf_bs_read_int(bs, 1);
@@ -2264,15 +2264,16 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 			inspect_printf(dump, " subSegmentsExpected=\"%u\"", gf_bs_read_u8(bs));
 		}
 
-		inspect_printf(dump, ">");
+		inspect_printf(dump, ">\n");
 
 		if (segmentation_upid_length) {
 			// jump back to SegmentUpid to dump values
 			gf_bs_seek(bs, segmentation_upid_pos);
-			inspect_printf(dump, "     <scte35:SegmentationUpid segmentationUpidType=\"%u\">", segmentation_upid_type);
+
+			inspect_printf(dump, "    <scte35:SegmentationUpid segmentationUpidType=\"%u\">", segmentation_upid_type);
 			for (u8 i=0; i<segmentation_upid_length; ++i)
 				printf("%02X", gf_bs_read_u8(bs));
-			inspect_printf(dump, "     </scte35:SegmentationUpid>\n");
+			inspect_printf(dump, "    </scte35:SegmentationUpid>\n");
 
 #if 0 //TODO: identify segmentationUpidType as per the example below (we don't have any sample):
 <SegmentationDescriptor
@@ -2290,10 +2291,10 @@ segmentsExpected="1"
 <SegmentationUpid segmentationUpidType="3">414243443233385130303048</SegmentationUpid>
 </SegmentationDescriptor>
 #endif
-			inspect_printf(dump, "     </scte35:SegmentationUpid>\n");
+			inspect_printf(dump, "    </scte35:SegmentationUpid>\n");
 		}
 
-		inspect_printf(dump, "    </scte35:SegmentationDescriptor>\n");
+		inspect_printf(dump, "   </scte35:SegmentationDescriptor>\n");
 	} else {
 		inspect_printf(dump, "/>\n");
 	}
