@@ -2220,7 +2220,8 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 	inspect_printf(dump, " segmentationEventId=\"%u\"", gf_bs_read_u32(bs));
 	Bool segmentation_event_cancel_indicator = gf_bs_read_int(bs, 1);
 	inspect_printf(dump, " segmentationEventCancelIndicator=\"%u\"", segmentation_event_cancel_indicator);
-	gf_bs_read_int(bs, 7); //reserved
+	inspect_printf(dump, " segmentationEventIdComplianceIndicator=\"%u\"", gf_bs_read_int(bs, 1));
+	gf_bs_read_int(bs, 6); //reserved
 	if (segmentation_event_cancel_indicator == 0) {
 		u32 program_segmentation_flag = gf_bs_read_int(bs, 1);
 		//inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
@@ -2259,7 +2260,9 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 		inspect_printf(dump, " segmentationTypeId=\"%u\"", segmentation_type_id);
 		inspect_printf(dump, " segmentNum=\"%u\"", gf_bs_read_u8(bs));
 		inspect_printf(dump, " segmentsExpected=\"%u\"", gf_bs_read_u8(bs));
-		if (segmentation_type_id == 0x34 || segmentation_type_id == 0x36 || segmentation_type_id == 0x38 || segmentation_type_id == 0x3A) {
+		if (segmentation_type_id == 0x34 || segmentation_type_id == 0x30 || segmentation_type_id == 0x32
+		 || segmentation_type_id == 0x36 || segmentation_type_id == 0x38 || segmentation_type_id == 0x3A
+		 || segmentation_type_id == 0x44 || segmentation_type_id == 0x46) {
 			inspect_printf(dump, " subSegmentNum=\"%u\"", gf_bs_read_u8(bs));
 			inspect_printf(dump, " subSegmentsExpected=\"%u\"", gf_bs_read_u8(bs));
 		}
