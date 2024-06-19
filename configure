@@ -1370,13 +1370,13 @@ config_package_test ()
 
                 if test "$pck_cxx" = "yes" ; then
                     echo "$package_src" > $TMPCXX
-                    if docxx $pck_cflags $pck_ldflags ; then
+                    if docxx $pck_cflags $pck_ldflags $LDFLAGS ; then
                         has_pck="$sysname (pkgconfig)"
                         return
                     fi
                 else
                     echo "$package_src" > $TMPC
-                    if docc $pck_cflags $pck_ldflags ; then
+                    if docc $pck_cflags $pck_ldflags $LDFLAGS ; then
                         has_pck="$sysname (pkgconfig)"
                         return
                     fi
