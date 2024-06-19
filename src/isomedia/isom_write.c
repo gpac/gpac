@@ -2667,7 +2667,7 @@ static GF_Err gf_isom_set_edit_internal(GF_ISOFile *movie, u32 trackNumber, u64 
 
 	if (trak->extl) {
 		if (!trak->extl->media_timescale) trak->extl->media_timescale = movie->moov->mvhd->timeScale;
-		trak->extl->flags |= GF_ISOM_EXTK_USE_EDIT;
+		trak->extl->flags |= GF_ISOM_EXTK_EDTS_SKIP;
 	}
 	startTime = 0;
 	ent = NULL;
@@ -2763,7 +2763,7 @@ GF_Err gf_isom_remove_edits(GF_ISOFile *movie, u32 trackNumber)
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	if (trak->extl)	trak->extl->flags &= ~GF_ISOM_EXTK_USE_EDIT;
+	if (trak->extl)	trak->extl->flags &= ~GF_ISOM_EXTK_EDTS_SKIP;
 	if (!trak->editBox || !trak->editBox->editList) return GF_OK;
 
 	while (gf_list_count(trak->editBox->editList->entryList)) {

@@ -13528,10 +13528,8 @@ GF_Err extl_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 8);
 	ptr->referenced_track_ID = gf_bs_read_u32(bs);
 	ptr->referenced_handler_type = gf_bs_read_u32(bs);
-	if (ptr->flags & GF_ISOM_EXTK_USE_EDIT) {
-		ISOM_DECREASE_SIZE(ptr, 4);
-		ptr->media_timescale = gf_bs_read_u32(bs);
-	}
+	ISOM_DECREASE_SIZE(ptr, 4);
+	ptr->media_timescale = gf_bs_read_u32(bs);
 
 	if (ptr->size) {
 		u32 name_size = (u32) ptr->size;
@@ -13564,8 +13562,7 @@ GF_Err extl_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_u32(bs, (u32) ptr->referenced_track_ID);
 	gf_bs_write_u32(bs, (u32) ptr->referenced_handler_type);
-	if (ptr->flags & GF_ISOM_EXTK_USE_EDIT)
-		gf_bs_write_u32(bs, ptr->media_timescale);
+	gf_bs_write_u32(bs, ptr->media_timescale);
 
 	gf_bs_write_utf8(bs, ptr->location);
 	return GF_OK;
@@ -13575,8 +13572,7 @@ GF_Err extl_box_size(GF_Box *s)
 {
 	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)s;
 
-	ptr->size += 8;
-	if (ptr->flags & GF_ISOM_EXTK_USE_EDIT) ptr->size += 4;
+	ptr->size += 12;
 	ptr->size += 1 + (ptr->location ? (u32) strlen(ptr->location) : 0);
 	return GF_OK;
 }

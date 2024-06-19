@@ -1702,7 +1702,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 			read->extk_flags = flags;
 			read->extkid = ext_tk;
 			//we have an edit list in source
-			if (flags & GF_ISOM_EXTK_USE_EDIT) {
+			if (flags & GF_ISOM_EXTK_EDTS_SKIP) {
 				GF_Err gf_isom_merge_external_edit(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track);
 				gf_isom_merge_external_edit(read->mov, i+1, read->extkmov, ext_tk);
 			}

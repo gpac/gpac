@@ -1484,8 +1484,7 @@ u32 gf_isom_get_media_timescale(GF_ISOFile *the_file, u32 trackNumber)
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
 	if (trak->extl) {
-		if (trak->extl->flags & GF_ISOM_EXTK_USE_EDIT) return trak->extl->media_timescale;
-		return 0;
+		return trak->extl->media_timescale;
 	}
 	if (!trak->Media || !trak->Media->mediaHeader) return 0;
 	return trak->Media->mediaHeader->timeScale;

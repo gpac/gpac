@@ -7146,7 +7146,7 @@ GF_Err extl_box_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 	gf_isom_box_dump_start(a, "ExternalTrackLocationBox", trace);
 	gf_fprintf(trace, " referenced_trackID=\"%u\" referenced_type=\"%s\"", ptr->referenced_track_ID, gf_4cc_to_str(ptr->referenced_handler_type));
-	if (ptr->flags & 1) gf_fprintf(trace, " media_timescale=\"%u\"", ptr->media_timescale);
+	gf_fprintf(trace, " media_timescale=\"%u\"", ptr->media_timescale);
 	gf_fprintf(trace, " location=\"%s\">\n", ptr->location ? ptr->location : "NONE");
 	gf_isom_box_dump_done("ExternalTrackLocationBox", a, trace);
 	return GF_OK;
