@@ -2201,7 +2201,7 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 
 static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
-	inspect_printf(dump, "    <scte35:SpliceTime");
+	inspect_printf(dump, "    <SpliceTime");
 	Bool time_specified_flag = gf_bs_read_int(bs, 1);
 	if (time_specified_flag == 1) {
 		/*reserved = */gf_bs_read_int(bs, 6);
@@ -2215,7 +2215,7 @@ static void scte35_parse_splice_time(GF_InspectCtx *ctx, FILE *dump, GF_BitStrea
 
 static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 {
-	inspect_printf(dump, "   <scte35:SegmentationDescriptor");
+	inspect_printf(dump, "   <SegmentationDescriptor");
 
 	inspect_printf(dump, " segmentationEventId=\"%u\"", gf_bs_read_u32(bs));
 	Bool segmentation_event_cancel_indicator = gf_bs_read_int(bs, 1);
@@ -2270,10 +2270,10 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 			// jump back to SegmentUpid to dump values
 			gf_bs_seek(bs, segmentation_upid_pos);
 
-			inspect_printf(dump, "    <scte35:SegmentationUpid segmentationUpidType=\"%u\">", segmentation_upid_type);
+			inspect_printf(dump, "    <SegmentationUpid segmentationUpidType=\"%u\">", segmentation_upid_type);
 			for (u8 i=0; i<segmentation_upid_length; ++i)
 				printf("%02X", gf_bs_read_u8(bs));
-			inspect_printf(dump, "    </scte35:SegmentationUpid>\n");
+			inspect_printf(dump, "    </SegmentationUpid>\n");
 
 #if 0 //TODO: identify segmentationUpidType as per the example below (we don't have any sample):
 <SegmentationDescriptor
@@ -2291,10 +2291,10 @@ segmentsExpected="1"
 <SegmentationUpid segmentationUpidType="3">414243443233385130303048</SegmentationUpid>
 </SegmentationDescriptor>
 #endif
-			inspect_printf(dump, "    </scte35:SegmentationUpid>\n");
+			inspect_printf(dump, "    </SegmentationUpid>\n");
 		}
 
-		inspect_printf(dump, "   </scte35:SegmentationDescriptor>\n");
+		inspect_printf(dump, "   </SegmentationDescriptor>\n");
 	} else {
 		inspect_printf(dump, "/>\n");
 	}
@@ -2322,12 +2322,12 @@ static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 		return GF_FALSE;
 	}
 
-	//inspect_printf(dump, "   <scte35:SpliceDescriptor spliceDescriptorTag=\"%u\" identifier=\"%s\"", splice_descriptor_tag, gf_4cc_to_str(identifier));
+	//inspect_printf(dump, "   <SpliceDescriptor spliceDescriptorTag=\"%u\" identifier=\"%s\"", splice_descriptor_tag, gf_4cc_to_str(identifier));
 
 	if (splice_descriptor_tag == 0x02) {
 		//inspect_printf(dump, ">\n");
 		scte35_parse_segmentation_descriptor(dump, bs);
-		//inspect_printf(dump, "   </scte35:SpliceDescriptor>\n");
+		//inspect_printf(dump, "   </SpliceDescriptor>\n");
 	} else {
 		//inspect_printf(dump, "/>\n");
 	}
@@ -2337,8 +2337,7 @@ static Bool scte35_parse_splice_descriptor(FILE *dump, GF_BitStream *bs)
 
 static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 {
-	//some inspect_printf() are commented to be xsd compliant
-	inspect_printf(dump, "  <scte35:SpliceInfoSection xmlns:scte35=\"http://www.scte.org/schemas/35\"");
+	inspect_printf(dump, "  <SpliceInfoSection xmlns=\"http://www.scte.org/schemas/35\"");
 
 	u8 table_id = gf_bs_read_u8(bs);
 	Bool section_syntax_indicator = gf_bs_read_int(bs, 1);
@@ -2389,7 +2388,7 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	switch(splice_command_type) {
 	case 0x05: //splice_insert()
 		{
-			inspect_printf(dump, "   <scte35:SpliceInsert");
+			inspect_printf(dump, "   <SpliceInsert");
 			u32 splice_event_id = gf_bs_read_u32(bs);
 			DUMP_ATT_U("spliceEventId", splice_event_id);
 			Bool splice_event_cancel_indicator = gf_bs_read_int(bs, 1);
@@ -2438,39 +2437,39 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 			} else {
 				inspect_printf(dump, "/>\n");
 			}
-			inspect_printf(dump, "   </scte35:SpliceInsert>\n");
+			inspect_printf(dump, "   </SpliceInsert>\n");
 
 			gf_bs_seek(bs, pos + splice_command_length);
 		}
 		break;
 	case 0x06: //time_signal()
-		inspect_printf(dump, "   <scte35:TimeSignal>\n");
+		inspect_printf(dump, "   <TimeSignal>\n");
 		scte35_parse_splice_time(ctx, dump, bs);
-		inspect_printf(dump, "   </scte35:TimeSignal>\n");
+		inspect_printf(dump, "   </TimeSignal>\n");
 		break;
 	case 0x00: //splice_null()
-		inspect_printf(dump, "   <scte35:Null/>\n");
+		inspect_printf(dump, "   <Null/>\n");
 		DUMP_ATT_STR("splice_command_type", "null");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice null command\n"));
 		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	case 0x04: //splice_schedule()
-		inspect_printf(dump, "   <scte35:SpliceSchedule/>\n");
+		inspect_printf(dump, "   <SpliceSchedule/>\n");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice schedule command\n"));
 		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	case 0x07: //bandwidth_reservation()
-		inspect_printf(dump, "   <scte35:BandwidthReservation/>\n");
+		inspect_printf(dump, "   <BandwidthReservation/>\n");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice bandwidth reservation command\n"));
 		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	case 0xff: //private_command()
-		inspect_printf(dump, "   <scte35:PrivateCommand/>\n");
+		inspect_printf(dump, "   <PrivateCommand/>\n");
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] skip SCTE-35 splice private command\n"));
 		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
 	default:
-		inspect_printf(dump, "   <scte35:Unknown/>\n");
+		inspect_printf(dump, "   <Unknown/>\n");
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] skip unknown SCTE-35 splice command 0x%X\n", splice_command_type));
 		gf_bs_skip_bytes(bs, splice_command_length);
 		break;
@@ -2485,7 +2484,7 @@ static void scte35_dump(GF_InspectCtx *ctx, FILE *dump, GF_BitStream *bs)
 	}
 
 exit:
-	inspect_printf(dump, "  </scte35:SpliceInfoSection>\n");
+	inspect_printf(dump, "  </SpliceInfoSection>\n");
 }
 
 void scte35_dump_xml(FILE *dump, GF_BitStream *bs)
