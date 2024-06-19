@@ -1741,7 +1741,7 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 nb_samp
 enum
 {
 	/*! edit list override*/
-	GF_ISOM_EXTK_USE_EDIT=1,
+	GF_ISOM_EXTK_EDTS_SKIP=1,
 	/*! location is a URN */
 	GF_ISOM_EXTK_URN=1<<1,
 	/*! ignore source user data */
