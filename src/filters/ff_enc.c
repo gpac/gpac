@@ -112,7 +112,6 @@ typedef struct _gf_ffenc_ctx
 
 	GF_BitStream *sdbs;
 
-	Bool prop_induced_reconfig;
 	Bool reconfig_pending;
 	Bool infmt_negotiate;
 	Bool remap_ts;
@@ -495,16 +494,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_CUE_START) : NULL;
 	if (p && p->value.boolean) {
 		force_intra = 2;
-	}
-
-	//don't repeat IDR sync if we already forced one
-	if (force_intra==2) {
-		if (ctx->prop_induced_reconfig) {
-			force_intra = 1;
-			ctx->prop_induced_reconfig = GF_FALSE;
-		} else {
-			ctx->prop_induced_reconfig = GF_TRUE;
-		}
 	}
 
 	//check if we need to force a closed gop
