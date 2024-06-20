@@ -44,10 +44,12 @@ typedef struct {
 	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
 	GF_Err (*pck_send)(GF_FilterPacket *pck);
 
+	u32 mode;
+	Bool pass;
+
 	GF_List *ordered_events; /*Event, ordered by dispatch time*/
 	u64 clock;
 	u32 last_event_id;
-	Bool pass;
 
 	// used to compute event duration
 	u32 timescale;
@@ -86,6 +88,7 @@ static GF_Err scte35dec_initialize(GF_Filter *filter)
 	ctx->pck_new_shared = gf_filter_pck_new_shared;
 	ctx->pck_new_alloc = gf_filter_pck_new_alloc;
 	ctx->pck_send = gf_filter_pck_send;
+	ctx->pass = ctx->mode == 1;
 	return scte35dec_initialize_internal(ctx);
 }
 
@@ -660,7 +663,9 @@ static const GF_FilterCapability SCTE35DecCaps[] =
 #define OFFS(_n)	#_n, offsetof(SCTE35DecCtx, _n)
 static const GF_FilterArgs SCTE35DecArgs[] =
 {
-	{ OFFS(pass), "pass-through mode, sets 'CueStart' at each splice point", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(mode), "mode to operate in\n"
+		"- 23001-18: extract SCTE-35 markers as emib boxes\n"
+		"- passthrough: pass-through mode", GF_PROP_UINT, "23001-18", "23001-18|passthrough", 0},
 	{ OFFS(segdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
 	{0}
 };
