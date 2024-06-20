@@ -596,8 +596,10 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 		return GF_OUT_OF_MEM;
 
 	u64 cts = gf_filter_pck_get_cts(pck);
-	if (scte35dec_is_splice_point(ctx, cts))
+	if (scte35dec_is_splice_point(ctx, cts)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU "\n", cts));
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+	}
 
 	return ctx->pck_send(dst_pck);
 }
@@ -640,7 +642,6 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 
 	GF_Err e;
 	if (ctx->pass) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at dts=" LLU "\n", dts));
 		e = scte35dec_process_passthrough(ctx, pck);
 	} else {
 		e = scte35dec_process_dispatch(ctx, dts);
