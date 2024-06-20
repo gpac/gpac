@@ -160,6 +160,13 @@ enum
 	IDXMODE_SEG,
 };
 
+enum
+{
+	SFLUSH_OFF=0,
+	SFLUSH_SINGLE,
+	SFLUSH_END
+};
+
 //these are not exported for now
 //get destination name by index
 char *gf_filter_pid_get_destination_ex(GF_FilterPid *pid, u32 dst_idx);
@@ -176,7 +183,7 @@ typedef struct
 	s32 subs_sidx;
 	s32 buf, timescale;
 	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge, keep_ts;
-	u32 mha_compat;
+	u32 mha_compat, sflush;
 	u32 strict_sap;
 	u32 pssh;
 	u32 cmaf;
@@ -856,7 +863,8 @@ static void dasher_get_dash_dur(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 static void dasher_send_encode_hints(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
-	if (!ctx->sfile && !ds->stl && !ctx->use_cues) {
+	//send encode hints even if segment timeline is used
+	if (!ctx->sfile && !ctx->use_cues) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_ENCODE_HINTS, ds->ipid)
 		if (!ds->dash_dur.num)
@@ -5699,9 +5707,10 @@ void dasher_context_update_period_end(GF_DasherCtx *ctx)
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		if (!ds->rep) continue;
 		if (!ds->rep->dasher_ctx) continue;
-		if (ds->done == 1) {
+		if (!ctx->sflush && (ds->done == 1)) {
 			ds->rep->dasher_ctx->done = 1;
 		} else {
+			ds->rep->dasher_ctx->done = 0;
 			//store all dynamic parameters of the rep
 			ds->rep->dasher_ctx->last_pck_idx = ds->nb_pck;
 			ds->seek_to_pck = ds->nb_pck;
@@ -5909,6 +5918,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 	//do a first pass to detect any potential changes in input config, if so consider the period over.
+	GF_MPD_Period *first_active_p = NULL;
 	nb_p = gf_list_count(ctx->mpd->periods);
 	for (i=0; i<nb_p; i++) {
 		u32 nb_done_in_period = 0;
@@ -5924,6 +5934,8 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 				char *p_id;
 				GF_MPD_Representation *rep = gf_list_get(set->representations, k);
 				if (! rep->dasher_ctx) continue;
+				if (!rep->mime_type && set->mime_type)
+					rep->mime_type = gf_strdup(set->mime_type);
 
 				//ensure we have the same settings - if not consider the dash stream has been resetup for a new period
 				ds = dasher_get_stream(ctx, rep->dasher_ctx->src_url, rep->dasher_ctx->source_pid, rep->dasher_ctx->period_id, rep->id);
@@ -5984,8 +5996,8 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 		gf_list_del(restore_streams);
 
 		if (nb_remain_in_period) {
-			gf_assert(i+1==nb_p);
 			last_period_active = GF_TRUE;
+			if (!first_active_p) first_active_p = p;
 		}
 		else if (nb_done_in_period && ctx->subdur  ) {
 			//we are done but we loop the entire streams
@@ -6001,7 +6013,7 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 	if (!last_period_active) return GF_OK;
-	ctx->current_period->period = gf_list_last(ctx->mpd->periods);
+	ctx->current_period->period = first_active_p;
 	gf_list_reset(ctx->current_period->streams);
 	gf_list_del(ctx->next_period->streams);
 	ctx->next_period->streams = gf_list_clone(ctx->pids);
@@ -6142,8 +6154,8 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 		}
 		if (!set_ds) {
-			gf_assert(0);
-			//in case some edits of the context broke everything, just ignore
+			//this may be null if one of the input is not in the same period
+			//also in case some edits of the context broke everything, just ignore
 			continue;
 		}
 		set_ds->nb_rep = gf_list_count(set->representations);
@@ -6902,12 +6914,15 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		if (max_adur.num * min_adur.den != min_adur.num * max_adur.den) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Audio streams in the period have different durations (min "LLU"/"LLD", max "LLU"/"LLD"), may result in bad synchronization while looping\n", min_adur.num, min_adur.den, max_adur.num, max_adur.den));
 		}
-		for (i=0; i<count; i++) {
-			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-			if (ds->duration.num * max_adur.den > max_adur.num * ds->duration.den) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input %s: max audio duration "LLU"/"LLD" in the period is less than duration "LLU"/"LLD", clamping will happen\n", ds->src_url, max_adur.num, max_adur.den, ds->duration.num, ds->duration.den ));
+		//if flush forced do NOT adjust clamp duration
+		if (!ctx->sflush) {
+			for (i=0; i<count; i++) {
+				GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+				if (ds->duration.num * max_adur.den > max_adur.num * ds->duration.den) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input %s: max audio duration "LLU"/"LLD" in the period is less than duration "LLU"/"LLD", clamping will happen\n", ds->src_url, max_adur.num, max_adur.den, ds->duration.num, ds->duration.den ));
+				}
+				ds->clamped_dur = max_adur;
 			}
-			ds->clamped_dur = max_adur;
 		}
 	}
 
@@ -7434,12 +7449,14 @@ static void dasher_copy_segment_timelines(GF_DasherCtx *ctx, GF_MPD_AdaptationSe
 	u32 i, j, count, nb_s;
 	//get as level segment timeline, set it to NULL, reassign it to first rep and clone for other reps
 	if (ctx->tpl) {
-		gf_assert(set->segment_template->segment_timeline);
 		src_tl = set->segment_template->segment_timeline;
+		//may be already NULL when reloading context
+		if (!src_tl) return;
 		set->segment_template->segment_timeline = NULL;
 	} else {
-		gf_assert(set->segment_list->segment_timeline);
 		src_tl = set->segment_list->segment_timeline;
+		//may be already NULL when reloading context
+		if (!src_tl) return;
 		set->segment_list->segment_timeline = NULL;
 	}
 	nb_s = gf_list_count(src_tl->entries);
@@ -7683,7 +7700,8 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 			ds_done = base_ds;
 		else if (base_ds->nb_comp_done==base_ds->nb_comp) ds_not_done = base_ds;
 
-		if (!base_ds->done && base_ds->seg_done) {
+		//update next_seg_start/adjusted_next_seg_start/seg_number even if done, needed for dasher state context
+		if (base_ds->seg_done) {
 			base_ds->seg_done = GF_FALSE;
 			base_ds->nb_comp_done = 0;
 
@@ -8349,7 +8367,7 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 		//one pid is waiting for loop while another has done its subdur and won't process any new segment until the next subdur call, which
 		//will never happen since the first PID waits for loop. We must force early generation in this case
-		if (a_ds->subdur_done && !ctx->force_flush) {
+		if (a_ds->subdur_done && !ctx->sflush) {
 			a_ds->subdur_done = GF_FALSE;
 			//remember the max period dur before this forced segment generation
 			a_ds->subdur_forced_use_period_dur = a_ds->max_period_dur;
@@ -8379,8 +8397,8 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 		if (!ctx->keep_ts || (!a_ds->subdur_done && !a_ds->done && ctx->subdur) ) {
 			ts_offset = gf_timestamp_rescale(max_ts_offset, max_ts_scale, a_ds->timescale);
 			a_ds->ts_offset = ts_offset;
-
-			if (a_ds->ts_offset > a_ds->est_next_dts) {
+			//no loop if flushed is forced
+			if (!ctx->sflush && (a_ds->ts_offset > a_ds->est_next_dts)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Looping streams of unequal duration, inserting "LLU" us of timestamp delay in pid %s from %s\n", ((a_ds->ts_offset - a_ds->est_next_dts) * 1000000) / a_ds->timescale, gf_filter_pid_get_name(a_ds->ipid), a_ds->src_url));
 			}
 		}
@@ -8858,7 +8876,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 					break;
 				}
 
-				if (ds->clamp_done) ds_is_done=GF_TRUE;
+				if (ds->clamp_done)
+					ds_is_done=GF_TRUE;
 				else if (gf_filter_pid_is_eos(ds->ipid)) {
 					if (gf_filter_pid_is_flush_eos(ds->ipid)) {
 						if (ds->segment_started && !ds->seg_done) {
@@ -8906,11 +8925,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 
 
-					if (ctx->loop && dasher_check_loop(ctx, ds)) {
+					if ((ctx->loop || ctx->sflush)  && dasher_check_loop(ctx, ds)) {
 						if (ctx->subdur)
 							break;
 						//loop on the entire source, consider the stream not done for segment flush
-						ds_done = 0;
+						if (ctx->sflush != SFLUSH_END)
+							ds_done = 0;
 					}
 
 					ds->clamp_done = GF_FALSE;
@@ -9222,8 +9242,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 					break;
 				}
 			}
-			//force flush mode, segment is done upon eos
-			else if (ctx->force_flush) {
+			//flush for entire input, segment is done upon eos
+			else if (ctx->sflush==SFLUSH_SINGLE) {
 			}
 			//source-driven fragmentation check for segment start
 			else if (ctx->sigfrag) {
@@ -10080,7 +10100,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	if (evt->base.type == GF_FEVT_PLAY) {
 		ctx->is_playing = GF_TRUE;
-		if (!ctx->sfile && !ctx->stl && !ctx->use_cues) {
+		//send encode hints even if segment timeline is used
+		if (!ctx->sfile && !ctx->use_cues) {
 			GF_FilterEvent anevt;
 			GF_FEVT_INIT(anevt, GF_FEVT_ENCODE_HINTS, NULL)
 			count = gf_list_count(ctx->pids);
@@ -10446,6 +10467,10 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	if (!ctx->initext && (ctx->muxtype==DASHER_MUX_AUTO))
 		ctx->muxtype = DASHER_MUX_ISOM;
 
+	if (ctx->force_flush) {
+		ctx->sflush = SFLUSH_SINGLE;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Option `force_flush` is deprecated and will soon be removed, use `sflush=single` instead\n"));
+	}
 	if ((ctx->segdur.num <= 0) || !ctx->segdur.den) {
 		ctx->segdur.num = 1;
 		ctx->segdur.den = 1;
@@ -10688,8 +10713,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cues), "set cue file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_cues), "strict mode for cues, complains if splitting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_sap), "strict mode for sap\n"
-	"- off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_\n"
-	"- sig: same as [-off]() but keep _startsWithSAP_ to the true SAP value\n"
+	"- off: ignore SAP types for PID other than video, enforcing `AdaptationSet@startsWithSAP=1`\n"
+	"- sig: same as [-off]() but keep `AdaptationSet@startsWithSAP` to the true SAP value\n"
 	"- on: warn if any PID uses SAP 3 or 4 and switch to FULL profile\n"
 	"- intra: ignore SAP types greater than 3 on all media types"
 	, GF_PROP_UINT, "off", "off|sig|on|intra", GF_FS_ARG_HINT_EXPERT},
@@ -10711,7 +10736,10 @@ static const GF_FilterArgs DasherArgs[] =
 	"- otherwise in dynamic mode without context, do not generate segments ahead of time", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(scope_deps), "scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(utcs), "URL to use as time server / UTCTiming source. Special value `inband` enables inband UTC (same as publishTime), special prefix `xsd@` uses xsDateTime schemeURI rather than ISO", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(force_flush), "force generating a single segment for each input. This can be useful in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(sflush), "segment flush mode - see filter help:\n"
+	"- off: no specific actions\n"
+	"- single: force generating a single segment for each input\n"
+	"- end: skip loop detection and clamp duration adjustment at end of input, used for state mode", GF_PROP_UINT, "off", "off|single|end", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(last_seg_merge), "force merging last segment if less than half the target duration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mha_compat), "adaptation set generation mode for compatible MPEG-H Audio profile\n"
 		"- no: only generate the adaptation set for the main profile\n"
@@ -10768,6 +10796,8 @@ static const GF_FilterArgs DasherArgs[] =
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+
+	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 
 	{0}
 };
@@ -10885,6 +10915,8 @@ GF_FilterRegister DasherRegister = {
 "When [-seg_sync]() is disabled, the segmenter will by default announce a new segment in the manifest(s) as soon as its size/offset is known or its name is known, but the segment (or part in LL-HLS) may still not be completely written/sent.\n"
 "This may result in temporary mismatches between segment/part size currently received versus size as advertized in manifest.\n"
 "When [-seg_sync]() is enabled, the segmenter will wait for the last byte of the fragment/segment to be pushed before announcing a new segment in the manifest(s). This can however slightly increase the latency in MPEG-DASH low-latency.\n"
+"\n"
+"When (-sflush)[] is set to `single`, segmentation is skipped and a single segment is generated per input.\n"
 "\n"
 "## Dynamic (real-time live) Mode\n"
 "The dasher does not perform real-time regulation by default.\n"
@@ -11004,6 +11036,18 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "The inputs will be segmented for a duration of [-subdur]() if set, otherwise the input media duration.\n"
 "When inputs are over, they are restarted if [-loop]() is set otherwise a new period is created.\n"
+"To avoid this behaviour, the [-sflush]() option should be set to `end` or `single`, indicating that further sources for the same representations will be added in subsequent calls. When [-sflush]() is not `off`, the (-loop)[] option is ignored.\n"
+"\n"
+"EX gpac -i SRC -o dash.mpd:segdur=2:state=CTX && gpac -i SRC -o dash.mpd:segdur=2:state=CTX\n"
+"This will generate all dash segments for `SRC` (last one possibly shorter) and create a new period at end of input.\n"
+"EX gpac -i SRC -o dash.mpd:segdur=2:state=CTX:loop && gpac -i SRC -o dash.mpd:segdur=2:state=CTX:loop\n"
+"This will generate all dash segments for `SRC` and restart `SRC` to fill-up last segment.\n"
+"EX gpac -i SRC -o dash.mpd:segdur=2:state=CTX:sflush=end && gpac -i SRC -o dash.mpd:segdur=2:state=CTX:sflush=end\n"
+"This will generate all dash segments for `SRC` without looping/closing the period at end of input. Timestamps in the second call will be rewritten to be contiguous with timestamp at end of first call.\n"
+"EX gpac -i SRC1 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts && gpac -i SRC2 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts\n"
+"This will generate all dash segments for `SRC1` without looping/closing the period at end of input, then for `SRC2`. Timestamps of the sources will not be rewritten.\n"
+"\n"
+"Note: The default behaviour of MP4Box `-dash-ctx` option is to set the (-loop)[] to true.\n"
 "\n"
 "## Output redirecting\n"
 "When loaded implicitly during link resolution, the dasher will only link its outputs to the target sink\n"
