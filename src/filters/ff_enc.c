@@ -112,6 +112,7 @@ typedef struct _gf_ffenc_ctx
 
 	GF_BitStream *sdbs;
 
+	GF_FilterPacket *reconfig_from_pck;
 	Bool reconfig_pending;
 	Bool infmt_negotiate;
 	Bool remap_ts;
@@ -494,6 +495,16 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_CUE_START) : NULL;
 	if (p && p->value.boolean) {
 		force_intra = 2;
+	}
+
+	//don't repeat encoder reconfiguration if we already forced one
+	if (force_intra == 2) {
+		if (ctx->reconfig_from_pck == pck) {
+			force_intra = 1;
+			ctx->reconfig_from_pck = NULL;
+		} else {
+			ctx->reconfig_from_pck = pck;
+		}
 	}
 
 	//check if we need to force a closed gop
