@@ -107,7 +107,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 extern u32 swf_flags;
 #endif
 
-extern Float swf_flatten_angle;
+extern Double swf_flatten_angle;
 extern Bool keep_sys_tracks;
 extern u32 fs_dump_flags;
 

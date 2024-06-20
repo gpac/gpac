@@ -765,7 +765,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "dashDuration")) dasher->dash_dur = gf_mpd_parse_fraction(att->value);
 		else if (!strcmp(att->name, "nextSegmentStart")) dasher->next_seg_start = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "firstCTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
-		else if (!strcmp(att->name, "firstDTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "firstDTS")) dasher->first_dts = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "estimatedNextDTS")) dasher->est_next_dts = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "nbRepeat")) dasher->nb_repeat = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "tsOffset")) dasher->ts_offset = gf_mpd_parse_long_int(att->value);
@@ -3247,7 +3247,7 @@ static void gf_mpd_print_dasher_segments(FILE *out, GF_List *segments, s32 inden
 	gf_mpd_lf(out, indent);
 }
 
-static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, Bool write_context, s32 indent, u32 alt_mha_profile)
+static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, Bool write_context, s32 indent, u32 alt_mha_profile, Bool skip_mime)
 {
 	u32 child_idx = 0;
 	char *bck_codecs = NULL;
@@ -3268,7 +3268,10 @@ static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, B
 		sep = strstr(rep->codecs, ".0x");
 		if (sep) strcpy(sep+1, szTmp);
 	}
+	char *mime_type = rep->mime_type;
+	if (skip_mime) rep->mime_type = NULL;
 	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)rep);
+	rep->mime_type = mime_type;
 
 	if (rep->bandwidth) gf_fprintf(out, " bandwidth=\"%d\"", rep->bandwidth);
 	if (rep->quality_ranking) gf_fprintf(out, " qualityRanking=\"%d\"", rep->quality_ranking);
@@ -3342,6 +3345,20 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 		return;
 	}
 
+	//check if all reps have the same mime, if so only write it at AS level
+	char *mime_type = NULL;
+	if (!as->mime_type && !gf_sys_is_test_mode()) {
+		for (i=0; i<gf_list_count(as->representations); i++) {
+			GF_MPD_Representation *rep = gf_list_get(as->representations, i);
+			if (!i)
+				mime_type = rep->mime_type;
+			else if (mime_type && (!rep->mime_type || strcmp(rep->mime_type, mime_type)))
+				mime_type = NULL;
+		}
+		as->mime_type = mime_type;
+	}
+
+
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "<AdaptationSet");
 
@@ -3410,12 +3427,14 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	i=0;
 	while ((rep = (GF_MPD_Representation *)gf_list_enum(as->representations, &i))) {
 		gf_mpd_extensible_print_nodes(out, as->x_children, indent, &child_idx, GF_FALSE);
-		gf_mpd_print_representation(rep, out, write_context, indent+1, alt_mha_profile);
+		gf_mpd_print_representation(rep, out, write_context, indent+1, alt_mha_profile, mime_type ? GF_TRUE : GF_FALSE);
 	}
 	gf_mpd_extensible_print_nodes(out, as->x_children, indent, &child_idx, GF_TRUE);
 	gf_mpd_nl(out, indent);
 	gf_fprintf(out, "</AdaptationSet>");
 	gf_mpd_lf(out, indent);
+
+	if (mime_type) as->mime_type = NULL;
 
 	if (!alt_mha_profile) {
 		for (i=0; i<as->nb_alt_mha_profiles; i++) {

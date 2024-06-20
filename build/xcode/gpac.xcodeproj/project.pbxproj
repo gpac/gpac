@@ -3115,6 +3115,7 @@
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
 					GPAC_HAS_FFMPEG,
+					GPAC_HAS_CURL,
 					FFMPEG_ENABLE_VVC,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
@@ -3233,6 +3234,7 @@
 					"-lX11",
 					"-lXext",
 					"-lvvenc",
+					"-lcurl",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
@@ -3268,6 +3270,8 @@
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
 					GPAC_HAS_FFMPEG,
+					GPAC_HAS_CURL,
+					GPAC_HAS_CURL,
 					FFMPEG_ENABLE_VVC,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3385,6 +3389,7 @@
 					"-lX11",
 					"-lXext",
 					"-lvvenc",
+					"-lcurl",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
@@ -3554,6 +3559,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				LIBRARY_SEARCH_PATHS = "";

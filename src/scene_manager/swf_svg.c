@@ -457,9 +457,14 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
 
 		swf_svg_print(read, "</g>\n");
 	}
-	read->add_sample(read->user, read->svg_data, read->svg_data_size, read->current_frame*1000/read->frame_rate, (read->current_frame == 0));
-	gf_free(read->svg_data);
-	read->svg_data = NULL;
+
+	if (read->svg_data && read->svg_data_size)
+		read->add_sample(read->user, read->svg_data, read->svg_data_size, read->current_frame*1000/read->frame_rate, (read->current_frame == 0));
+
+	if (read->svg_data) {
+		gf_free(read->svg_data);
+		read->svg_data = NULL;
+	}
 	read->svg_data_size = 0;
 
 	read->empty_frame = GF_TRUE;

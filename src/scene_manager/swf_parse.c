@@ -2025,6 +2025,10 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 		bytes[3] = swf_read_int(read, 8);
 		hdr = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
 		size = gf_mp3_frame_size(hdr);
+		if (!size) {
+			e = GF_ISOM_INVALID_MEDIA;
+			break;
+		}
 		if (alloc_size<size-4) {
 			frame = (char*)gf_realloc(frame, sizeof(char)*(size-4));
 			alloc_size = size-4;
