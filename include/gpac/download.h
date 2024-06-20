@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -111,6 +111,8 @@ typedef enum
 	GF_NETIO_SESSION_AUTO_CACHE = 1<<7,
 	/*! use non-blocking IOs*/
 	GF_NETIO_SESSION_NO_BLOCK = 1<<8,
+	/*! session must be able to share underlying GF_Socket */
+	GF_NETIO_SESSION_SHARE_SOCKET = 1<<9,
 } GF_NetIOFlags;
 
 
@@ -163,7 +165,7 @@ typedef struct __gf_filter_session GF_DownloadFilterSession;
 
 /*! URL information object*/
 typedef struct GF_URL_Info_Struct {
-	const char * protocol;
+	char * protocol;
 	char * server_name;
 	char * remotePath;
 	char * canonicalRepresentation;

@@ -250,7 +250,6 @@
           onkeypress="
           if (event.keyCode == 13) {
             if (!is_custfs) {
-              var cwd = FS.cwd() == '/' ? '~' : FS.cwd();
               document.getElementById('output').innerHTML += this.value + '<br>';
             } 
             process_command();
@@ -720,7 +719,7 @@
         setCommand('');
       }
 
-      const onCommandRun = (cmd) => {
+      function onCommandRun(cmd) {
         // reset select example 
         selCmdElement.value = -1;
         selCmdElement.hidden = true;
@@ -728,6 +727,10 @@
         fsRunForm.removeAttribute("hidden");
         set_status('');
       };
+
+      function expandFilePath(fp) {
+        return fp.startsWith('/') ? fp : `${FS.cwd()}/${fp}`
+      }
 
       //our basic terminal emulation
       function process_command() {
@@ -801,27 +804,31 @@
        
        //file or directory import
        if (args[0]=='imp') {
-        let is_dir = false;
-        let is_mdir = false;
+
+        let is_mdir = false; // import directory content
+        let file_name = null;
+        let is_dir = false; // import into directory ?
+        
         args.shift();
+
         if (args.length && (args[0]=='-d')) {
           is_mdir = true;
           args.shift();
         }
-        let file_name = null;
-        if (args.length) file_name = args[0];
-
-        if (file_name && (file_name.charAt(file_name.length-1) == '/'))
-          is_dir = true;
-
-        if (file_name && !is_dir && is_mdir) {
-          file_name += '/';
-        }
-        if (is_mdir) is_dir=true;
-
-        if (file_name)
+        
+        if (args.length){
+          file_name = args[0];
+          is_dir = (file_name.charAt(file_name.length-1) == '/');
+          if (is_mdir  && !is_dir) {
+            file_name += '/';
+          }
+          file_name = expandFilePath(file_name);
           check_file_dir(file_name, is_dir);
+        }
 
+        if (is_mdir)
+          is_dir=true;
+        
         let input = document.createElement('input'); 
         input['type'] = 'file';
         if (!is_mdir) {
@@ -845,7 +852,7 @@
                   fname += name;
                 } else {
                   //copy as is
-                  fname = file.webkitRelativePath;                   
+                  fname = file.webkitRelativePath;
                 }
               } else {
                 fname += file.name;
@@ -854,6 +861,7 @@
             if (!fname) fname = file.name;
             read.addEventListener('loadend', (e) => {
               const uint8_view = new Uint8Array(read.result);
+              fname = expandFilePath(fname);
               if (is_mdir) check_file_dir(fname, false);
               FS.writeFile(fname, uint8_view);
             });
@@ -1579,7 +1587,7 @@
       // It is not optimized but can help you design your own fileIOs for custom GPAC@WASM integration
 
       const consolePrefix = () => {
-        return "<span class=\"cwd\">~"+FS.cwd()+"</span>$ ";
+        return "<span class=\"cwd\">"+FS.cwd()+"</span>$ ";
       };
 
       //check support for fetch upload using readable stream

@@ -341,7 +341,7 @@ get_size()
 
 #zlib MUST be first
 all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora nghttp2"
-all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption mpeghdec libcaca"
+all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb ogg sdl caption mpeghdec libcaca curl"
 disabled_packages=""
 
 #init all has_FOO=no and set FOO_cflags=
@@ -1370,13 +1370,13 @@ config_package_test ()
 
                 if test "$pck_cxx" = "yes" ; then
                     echo "$package_src" > $TMPCXX
-                    if docxx $pck_cflags $pck_ldflags ; then
+                    if docxx $pck_cflags $pck_ldflags $LDFLAGS ; then
                         has_pck="$sysname (pkgconfig)"
                         return
                     fi
                 else
                     echo "$package_src" > $TMPC
-                    if docc $pck_cflags $pck_ldflags ; then
+                    if docc $pck_cflags $pck_ldflags $LDFLAGS ; then
                         has_pck="$sysname (pkgconfig)"
                         return
                     fi
@@ -1721,6 +1721,11 @@ typedef int bool;
 #endif
 #include <mpeghdecoder.h>
 int main( void ) { HANDLE_MPEGH_DECODER_CONTEXT codec = mpeghdecoder_init(2); return 0; }'
+
+
+config_package curl "curl" "" "-lcurl" "" '#include <curl/curl.h>
+int main( void ) { CURLM *curl_multi = curl_multi_init(); int fn_opt = CURLOPT_PREREQFUNCTION; const struct curl_easyoption *opt = curl_easy_option_next(NULL); return 0; }'
+
 
 
 #look for VideoToolBox support
@@ -2518,6 +2523,7 @@ echo "XVID: $has_xvid"
 echo "libcaption: $has_caption"
 echo "MpeghDecoder: $has_mpeghdec"
 echo "libcaca: $has_libcaca"
+echo "libcurl: $has_curl"
 
 ffopts=""
 if test "$has_ffmpeg" != "no" ; then
@@ -2900,7 +2906,6 @@ if test "$has_caption" != "no" ; then
     echo "#define GPAC_HAS_LIBCAPTION" >> $TMPH
 fi
 
-
 if test "$has_libcaca" != "no" ; then
     echo "#define GPAC_HAS_LIBCACA" >> $TMPH
     echo "CONFIG_CACA=yes" >> config.mak
@@ -2910,6 +2915,10 @@ fi
 
 if test "$has_mpeghdec" != "no" ; then
     echo "#define GPAC_HAS_MPEGHDECODER" >> $TMPH
+fi
+
+if test "$has_curl" != "no" ; then
+    echo "#define GPAC_HAS_CURL" >> $TMPH
 fi
 
 #dump all cflags

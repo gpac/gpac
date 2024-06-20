@@ -1302,6 +1302,32 @@ No options
 .br
 
 .br
+.SH xviddec
+.LP
+.br
+Description: XVid decoder
+.br
+
+.br
+This filter decodes MPEG-4 part 2 (and DivX) through libxvidcore library.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+deblock_y (bool, default: false): enable Y deblocking
+.br
+deblock_uv (bool, default: false): enable UV deblocking
+.br
+film_effect (bool, default: false): enable film effect
+.br
+dering_y (bool, default: false): enable Y deblocking
+.br
+dering_uv (bool, default: false): enable UV deblocking
+.br
+
+.br
 .SH j2kdec
 .LP
 .br
@@ -5316,6 +5342,10 @@ When .I seg_sync is enabled, the segmenter will wait for the last byte of the fr
 .br
 
 .br
+When (-sflush)[] is set to single, segmentation is skipped and a single segment is generated per input.
+.br
+
+.br
 .SS Dynamic (real-time live) Mode
 .br
 The dasher does not perform real-time regulation by default.
@@ -5614,6 +5644,46 @@ The inputs will be segmented for a duration of .I subdur if set, otherwise the i
 .br
 When inputs are over, they are restarted if .I loop is set otherwise a new period is created.
 .br
+To avoid this behaviour, the .I sflush option should be set to end or single, indicating that further sources for the same representations will be added in subsequent calls. When .I sflush is not off, the (-loop)[] option is ignored.
+.br
+
+.br
+Example
+.br
+gpac -i SRC -o dash.mpd:segdur=2:state=CTX && gpac -i SRC -o dash.mpd:segdur=2:state=CTX
+.br
+
+.br
+This will generate all dash segments for SRC (last one possibly shorter) and create a new period at end of input.
+.br
+Example
+.br
+gpac -i SRC -o dash.mpd:segdur=2:state=CTX:loop && gpac -i SRC -o dash.mpd:segdur=2:state=CTX:loop
+.br
+
+.br
+This will generate all dash segments for SRC and restart SRC to fill-up last segment.
+.br
+Example
+.br
+gpac -i SRC -o dash.mpd:segdur=2:state=CTX:sflush=end && gpac -i SRC -o dash.mpd:segdur=2:state=CTX:sflush=end
+.br
+
+.br
+This will generate all dash segments for SRC without looping/closing the period at end of input. Timestamps in the second call will be rewritten to be contiguous with timestamp at end of first call.
+.br
+Example
+.br
+gpac -i SRC1 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts && gpac -i SRC2 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts
+.br
+
+.br
+This will generate all dash segments for SRC1 without looping/closing the period at end of input, then for SRC2. Timestamps of the sources will not be rewritten.
+.br
+
+.br
+Note: The default behaviour of MP4Box -dash-ctx option is to set the (-loop)[] to true.
+.br
 
 .br
 .SS Output redirecting
@@ -5883,9 +5953,9 @@ strict_cues (bool, default: false): strict mode for cues, complains if splitting
 .br
 strict_sap (enum, default: off): strict mode for sap
 .br
-* off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_
+* off: ignore SAP types for PID other than video, enforcing AdaptationSet@startsWithSAP=1
 .br
-* sig: same as .I off but keep _startsWithSAP_ to the true SAP value
+* sig: same as .I off but keep AdaptationSet@startsWithSAP to the true SAP value
 .br
 * on: warn if any PID uses SAP 3 or 4 and switch to FULL profile
 .br
@@ -5893,7 +5963,7 @@ strict_sap (enum, default: off): strict mode for sap
 .br
 
 .br
-subs_sidx (sint, default: -1): number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
+subs_sidx (sint, default: -1): number of subsegments per sidx. Negative value disables sidx. Only used to inherit sidx option of destination
 .br
 cmpd (bool, default: false):   skip line feed and spaces in MPD XML for compactness
 .br
@@ -5927,7 +5997,15 @@ scope_deps (bool, default: true): scope PID dependencies to be within source. If
 .br
 utcs (str):                    URL to use as time server / UTCTiming source. Special value inband enables inband UTC (same as publishTime), special prefix xsd@ uses xsDateTime schemeURI rather than ISO
 .br
-force_flush (bool, default: false): force generating a single segment for each input. This can be useful in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater
+sflush (enum, default: off):   segment flush mode - see filter help:
+.br
+* off: no specific actions
+.br
+* single: force generating a single segment for each input
+.br
+* end: skip loop detection and clamp duration adjustment at end of input, used for state mode
+.br
+
 .br
 last_seg_merge (bool, default: false): force merging last segment if less than half the target duration
 .br

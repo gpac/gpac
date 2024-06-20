@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -10793,15 +10793,16 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 					gf_bs_read_int_log(bs, 1, "loop_filter_across_subpic_enabled_flag");
 				}
 			}
-			sps->subpicid_len = gf_bs_read_ue_log(bs, "subpic_id_len_minus1") + 1;
-			sps->subpicid_mapping_explicit = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_explicitly_signalled_flag");
-			if (sps->subpicid_mapping_explicit) {
-				sps->subpicid_mapping_present = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_present_flag");
-				if (sps->subpicid_mapping_present) {
-					for (i=0; i<sps->nb_subpics; i++) {
-						VVC_SubpicInfo *sp = &sps->subpics[i];
-						sp->id = gf_bs_read_int_log_idx(bs, sps->subpicid_len, "subpic_id", i);
-					}
+		}
+		//coded even if nb_subpics<=1
+		sps->subpicid_len = gf_bs_read_ue_log(bs, "subpic_id_len_minus1") + 1;
+		sps->subpicid_mapping_explicit = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_explicitly_signalled_flag");
+		if (sps->subpicid_mapping_explicit) {
+			sps->subpicid_mapping_present = gf_bs_read_int_log(bs, 1, "subpic_id_mapping_present_flag");
+			if (sps->subpicid_mapping_present) {
+				for (i=0; i<sps->nb_subpics; i++) {
+					VVC_SubpicInfo *sp = &sps->subpics[i];
+					sp->id = gf_bs_read_int_log_idx(bs, sps->subpicid_len, "subpic_id", i);
 				}
 			}
 		}

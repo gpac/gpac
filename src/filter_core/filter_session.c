@@ -1562,15 +1562,26 @@ void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_fla
 			struct __pck_size_info pcki;
 			memset(&pcki, 0, sizeof(struct __pck_size_info));
 			pcki.nb_packets = gf_list_count(f->postponed_packets);
+			u32 nb_in_eos = 0, nb_out_eos = 0;
 			for (j=0; j<f->num_input_pids; j++) {
-				u32 k=0;
-				GF_FilterPidInst *pidi = gf_list_get(f->input_pids, k);
+				GF_FilterPidInst *pidi = gf_list_get(f->input_pids, j);
 				gf_fq_enum(pidi->packets, gather_pck_size, &pcki);
+				if (pidi->is_end_of_stream) nb_in_eos++;
+			}
+			for (j=0; j<f->num_output_pids; j++) {
+				GF_FilterPid *pid = gf_list_get(f->output_pids, j);
+				if (pid->has_seen_eos) nb_out_eos++;
 			}
 			if (pcki.nb_packets)
 				fprintf(stderr, " %d packets to process on %d input PIDs "LLU" KBytes\n", pcki.nb_packets, f->num_input_pids, pcki.all_size/1000);
 			if (f->ref_bytes)
 				fprintf(stderr, " "LLU" KBytes of detached packets in destinations\n", f->ref_bytes/1000);
+			if (nb_in_eos)
+				fprintf(stderr, " %u in PIds in EOS", nb_in_eos);
+			if (nb_out_eos)
+				fprintf(stderr, " %u out PIds have seen EOS", nb_out_eos);
+			if (nb_in_eos || nb_out_eos)
+				fprintf(stderr, "\n");
 		}
 		gf_mx_v(fsess->filters_mx);
 	}

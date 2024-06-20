@@ -180,11 +180,23 @@ void httpin_finalize(GF_Filter *filter)
 	if (ctx->cached) gf_fclose(ctx->cached);
 }
 
+#ifndef GPAC_DISABLE_NETWORK
+Bool gf_dm_can_handle_url(const char *url);
+#endif
 static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
 {
 	if (!strnicmp(url, "http://", 7) ) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "https://", 8) ) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "gmem://", 7) ) return GF_FPROBE_SUPPORTED;
+
+#ifndef GPAC_DISABLE_NETWORK
+	if (!strnicmp(url, "file://", 7) ) return GF_FPROBE_NOT_SUPPORTED;
+	//libcurl handling of RTSP has lower priority
+	if (!strnicmp(url, "rtsp://", 7) ) return GF_FPROBE_MAYBE_SUPPORTED;
+	if (gf_dm_can_handle_url(url))
+		return GF_FPROBE_SUPPORTED;
+#endif
+
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -663,11 +675,74 @@ GF_FilterRegister HTTPInRegister = {
 };
 
 
+#ifdef GPAC_HAS_CURL
+#include <curl/curl.h>
+
+
+static void httpin_reg_free(GF_FilterSession *session, struct __gf_filter_register *freg)
+{
+	gf_free((char*)freg->help);
+}
+
+#endif
+
 const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 {
 	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
-		gf_opts_set_key("temp_in_proto", HTTPInRegister.name, "http,https,gmem");
+		char *all_protos = gf_strdup("http,https,gmem");
+#ifdef GPAC_HAS_CURL
+		curl_version_info_data *ver = curl_version_info(CURLVERSION_NOW);
+		u32 i=0;
+		while (ver && ver->protocols[i]) {
+			if (!strcmp(ver->protocols[i], "file")) {}
+			else if (!strcmp(ver->protocols[i], "http")) {}
+			else if (!strcmp(ver->protocols[i], "https")) {}
+			else {
+				gf_dynstrcat(&all_protos, ver->protocols[i], ",");
+			}
+			i++;
+		}
+#endif
+		gf_opts_set_key("temp_in_proto", HTTPInRegister.name, all_protos);
+		gf_free(all_protos);
 	}
+
+
+#ifdef GPAC_HAS_CURL
+	if (!gf_opts_get_bool("temp", "helpexpert"))
+		return &HTTPInRegister;
+
+	char *help = gf_strdup(HTTPInRegister.help);
+	gf_dynstrcat(&help, "\n## libCURL Support\n", NULL);
+	gf_dynstrcat(&help, "This build supports using libcurl for HTTP and other protocol downloads."\
+		" For http(s), the default behaviour is to use GPAC and can be overriden using the option [-curl](core).\n", NULL);
+	gf_dynstrcat(&help, "Session parameters can be set using the `curl` configuration section, eg `-cfg=curl:FTPPORT=222`.\n", NULL);
+	gf_dynstrcat(&help, "The key `curl:trace=yes` can be set to log all CURL activity using logs `http@debug`.\n\n", NULL);
+	gf_dynstrcat(&help, "Libcurl version: ", NULL);
+	curl_version_info_data *ver = curl_version_info(CURLVERSION_NOW);
+	gf_dynstrcat(&help, ver->version, NULL);
+	gf_dynstrcat(&help, "\nLibcurl options (name and value type):\n", NULL);
+	const struct curl_easyoption *opt = curl_easy_option_next(NULL);
+	while (opt) {
+		const char *otype=NULL;
+		switch (opt->type) {
+		case CURLOT_LONG: otype = "int"; break;
+		case CURLOT_VALUES: otype = "unsigned int"; break;
+		case CURLOT_OFF_T: otype = "unsigned long long"; break;
+		case CURLOT_STRING: otype = "string"; break;
+		default: break;
+		}
+		if (otype) {
+			gf_dynstrcat(&help, opt->name, "- ");
+			gf_dynstrcat(&help, otype, ": ");
+			gf_dynstrcat(&help, "\n", NULL);
+		}
+		opt = curl_easy_option_next(opt);
+	}
+	HTTPInRegister.help = help;
+	HTTPInRegister.register_free = httpin_reg_free;
+#endif
+
 	return &HTTPInRegister;
 }
 #else
