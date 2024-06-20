@@ -765,7 +765,7 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "dashDuration")) dasher->dash_dur = gf_mpd_parse_fraction(att->value);
 		else if (!strcmp(att->name, "nextSegmentStart")) dasher->next_seg_start = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "firstCTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
-		else if (!strcmp(att->name, "firstDTS")) dasher->first_cts = gf_mpd_parse_long_int(att->value);
+		else if (!strcmp(att->name, "firstDTS")) dasher->first_dts = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "estimatedNextDTS")) dasher->est_next_dts = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "nbRepeat")) dasher->nb_repeat = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "tsOffset")) dasher->ts_offset = gf_mpd_parse_long_int(att->value);
@@ -3345,7 +3345,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 		return;
 	}
 
-	//check if all reps have the same mime, if so only wite it at AS level
+	//check if all reps have the same mime, if so only write it at AS level
 	char *mime_type = NULL;
 	if (!as->mime_type && !gf_sys_is_test_mode()) {
 		for (i=0; i<gf_list_count(as->representations); i++) {
