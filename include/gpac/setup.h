@@ -413,6 +413,12 @@ typedef u8 bin128[16];
 #define GF_INT_MAX			INT_MAX
 /*! min possible value for s32*/
 #define GF_INT_MIN			INT_MIN
+/*! max possible value for u64*/
+#define GF_UINT64_MAX		ULLONG_MAX
+/*! max possible value for s64*/
+#define GF_INT64_MAX		LLONG_MAX
+/*! min possible value for s64*/
+#define GF_INT64_MIN		LLONG_MIN
 
 #ifndef MIN
 /*! get the smallest of two numbers*/
