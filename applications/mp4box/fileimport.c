@@ -1616,6 +1616,15 @@ reparse_opts:
 			u32 timescale = gf_isom_get_media_timescale(isom_in, ext_tk);
 
 			new_tk = gf_isom_new_external_track(dest, 0, track_id, type, timescale, final_name);
+
+			if (new_tk) {
+				u32 w, h;
+				s32 tx, ty;
+				s16 layer;
+				if (gf_isom_get_track_layout_info(isom_in, ext_tk, &w, &h, &tx, &ty, &layer)==GF_OK) {
+					gf_isom_set_track_layout_info(dest, new_tk, w<<16, h<<16, tx<<16, ty<<16, layer);
+				}
+			}
 		}
 		track_id = gf_isom_get_track_id(dest, new_tk);
 		fake_import = 1;
