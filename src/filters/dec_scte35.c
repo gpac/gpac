@@ -586,6 +586,19 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
 	return GF_OK;
 }
 
+static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *pck)
+{
+	GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(ctx->opid, pck, NULL);
+	if (!dst_pck)
+		return GF_OUT_OF_MEM;
+
+	u64 cts = gf_filter_pck_get_cts(pck);
+	if (scte35dec_is_splice_point(ctx, cts))
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+
+	return ctx->pck_send(dst_pck);
+}
+
 static void scte35dec_flush(SCTE35DecCtx *ctx)
 {
 	if (ctx->pass) return; //pass-through mode
@@ -624,16 +637,8 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 
 	GF_Err e;
 	if (ctx->pass) {
-		GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(ctx->opid, pck, NULL);
-		if (!dst_pck) return GF_OUT_OF_MEM;
-
-		u64 cts = gf_filter_pck_get_cts(pck);
-		if (scte35dec_is_splice_point(ctx, cts)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at dts="LLU"\n", dts));
-			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
-		}
-
-		e = gf_filter_pck_send(dst_pck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at dts=" LLU "\n", dts));
+		e = scte35dec_process_passthrough(ctx, pck);
 	} else {
 		e = scte35dec_process_dispatch(ctx, dts);
 	}
