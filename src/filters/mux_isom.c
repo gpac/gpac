@@ -6381,6 +6381,9 @@ GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 		tkw->sample.CTS_Offset = 0;
 		tkw->samples_in_stsd = 0;
 		tkw->samples_in_frag = 0;
+		if (tkw->cenc_state)
+			tkw->cenc_state = CENC_NEED_SETUP;
+
 	}
 	gf_assert(ctx->next_file_idx);
 	ctx->cur_file_idx_plus_one = ctx->next_file_idx;
