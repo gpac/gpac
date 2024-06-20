@@ -3785,13 +3785,19 @@ naldmx_flush:
 			if (slice_is_idr) {
 				if (first_in_au) {
 					Bool temp_poc_diff = GF_FALSE;
-					//two consecutive IDRs, force poc_diff to 1 if 0 (when we have intra-only) to force frame dispatch
-					if (ctx->last_frame_is_idr && !ctx->poc_diff) {
-						temp_poc_diff = GF_TRUE;
-						ctx->poc_diff = 1;
+					if (ctx->last_frame_is_idr) {
+						//two consecutive IDRs: force frame dispatch
+						ctx->min_poc_probe_done = GF_TRUE;
+
+						if (!ctx->poc_diff) {
+							//force poc_diff to 1 if 0 (when we have intra-only) to force frame dispatch
+							temp_poc_diff = GF_TRUE;
+							ctx->poc_diff = 1;
+						}
 					}
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+					ctx->min_poc_probe_done = GF_FALSE;
 
 					//if IDR with DLP (sap2), only reset poc probing if the poc is below current max poc
 					//otherwise assume no diff in poc
