@@ -3785,6 +3785,7 @@ naldmx_flush:
 			if (slice_is_idr) {
 				if (first_in_au) {
 					Bool temp_poc_diff = GF_FALSE;
+					Bool temp_min_poc_probe_done = ctx->min_poc_probe_done;
 					if (ctx->last_frame_is_idr) {
 						//two consecutive IDRs: force frame dispatch
 						ctx->min_poc_probe_done = GF_TRUE;
@@ -3797,7 +3798,7 @@ naldmx_flush:
 					}
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
-					ctx->min_poc_probe_done = GF_FALSE;
+					ctx->min_poc_probe_done = temp_min_poc_probe_done;
 
 					//if IDR with DLP (sap2), only reset poc probing if the poc is below current max poc
 					//otherwise assume no diff in poc
