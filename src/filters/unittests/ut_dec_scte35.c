@@ -62,7 +62,7 @@ static u8 emeb_box[EMEB] = {
         GF_PropertyValue emsg = { .type=GF_PROP_CONST_DATA, .value.data.ptr=scte35_payload, .value.data.size=sizeof(scte35_payload)}; \
         scte35dec_process_timing(&ctx, pts, TIMESCALE, dur); \
         scte35dec_process_emsg(&ctx, &emsg, pts); \
-        scte35dec_process_dispatch(&ctx, pts); \
+        if (!ctx.pass) scte35dec_process_dispatch(&ctx, pts); \
         pts += dur; \
     }
 
@@ -179,6 +179,22 @@ unittest(scte35dec_segmentation_no_event)
     scte35dec_finalize_internal(&ctx);
 
     ctx.pck_send(NULL); // final checks
+}
+
+/*************************************/
+
+unittest(scte35dec_splice_point_with_idr)
+{
+    SCTE35DecCtx ctx = {0};
+    assert_equal(scte35dec_initialize_internal(&ctx), GF_OK);
+    ctx.pass = GF_TRUE;
+
+    u64 pts = 0;
+    SEND_EVENT(SCTE35_DUR);
+    assert_true(scte35dec_is_splice_point(&ctx, SCTE35_PTS));
+
+    scte35dec_flush(&ctx);
+    scte35dec_finalize_internal(&ctx);
 }
 
 /*************************************/

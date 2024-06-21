@@ -1508,8 +1508,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		if (ds->stream_type==GF_STREAM_AUDIO) {
 			u32 _sr=0, _nb_ch=0;
-#ifndef GPAC_DISABLE_AV_PARSERS
 			switch (ds->codec_id) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			case GF_CODECID_AAC_MPEG4:
 			case GF_CODECID_AAC_MPEG2_MP:
 			case GF_CODECID_AAC_MPEG2_LCP:
@@ -1546,8 +1546,15 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
                     ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
 				}
 				break;
-			}
 #endif
+			case GF_CODECID_MHAS:
+			case GF_CODECID_MPHA:
+				if (!ds->ch_layout && dsi && (dsi->value.data.size>3)) {
+					u8 ref_layout = dsi->value.data.ptr[2];
+					ds->ch_layout = gf_audio_fmt_get_layout_from_cicp(ref_layout);
+				}
+				break;
+			}
 			if (_sr > ds->sr) ds->sr = _sr;
 			if (_nb_ch > ds->nb_ch) ds->nb_ch = _nb_ch;
 		}
