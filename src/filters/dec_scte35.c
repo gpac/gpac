@@ -44,6 +44,9 @@ typedef struct {
 	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
 	GF_Err (*pck_send)(GF_FilterPacket *pck);
 
+	u32 mode;
+	Bool pass;
+
 	GF_List *ordered_events; /*Event, ordered by dispatch time*/
 	u64 clock;
 	u32 last_event_id;
@@ -85,6 +88,7 @@ static GF_Err scte35dec_initialize(GF_Filter *filter)
 	ctx->pck_new_shared = gf_filter_pck_new_shared;
 	ctx->pck_new_alloc = gf_filter_pck_new_alloc;
 	ctx->pck_send = gf_filter_pck_send;
+	ctx->pass = ctx->mode == 1;
 	return scte35dec_initialize_internal(ctx);
 }
 
@@ -131,6 +135,8 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
+	if (ctx->pass) return GF_OK;
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SCTE35) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_FALSE) );
@@ -312,7 +318,7 @@ static u64 scte35dec_parse_splice_time(GF_BitStream *bs)
 	}
 }
 
-static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u32 *splice_event_id)
+static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u32 *splice_event_id, Bool *needs_idr)
 {
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 
@@ -390,13 +396,14 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 					*dur = gf_bs_read_long_int(bs, 33);
 				}
 
+				*needs_idr = GF_TRUE;
 				// truncated parsing: we make the assumption that there is only one command (which is the case from M2TS section sources)
 			}
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_insert() (*splice_event_id=%u, pts_adjustment="LLU", dur=%u, splice_time="LLU")\n",
 				*splice_event_id, pts_adjustment, *dur, splice_time));
 		}
-		break;
+		goto exit;
 	case 0x06: //time_signal()
 		{
 			u64 splice_time = scte35dec_parse_splice_time(bs);
@@ -408,7 +415,80 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 	default:
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found splice_command_type=0x%02X length=%d pts_adjustment="LLU"\n",
 			splice_command_type, splice_command_length, pts_adjustment));
-		break;
+		goto exit;
+	}
+
+	u16 descriptor_loop_length = gf_bs_read_u16(bs);
+	for (u16 i=0; i<descriptor_loop_length; i++) {
+		u8 splice_descriptor_tag = gf_bs_read_u8(bs);
+		u8 descriptor_length = gf_bs_read_u8(bs);
+
+		if (descriptor_length > gf_bs_available(bs)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Bitstream too short while parsing descriptor (%u bytes)\n", descriptor_length));
+			goto exit;
+		}
+
+		/*u32 identifier = */gf_bs_read_u32(bs);
+		switch (splice_descriptor_tag) {
+		case 0x02: //segmentation_descriptor()
+			{
+				/*u32 segmentation_event_id = */gf_bs_read_u32(bs);
+				Bool segmentation_event_cancel_indicator = gf_bs_read_int(bs, 1);
+				/*Bool segmentation_event_id_compliance_indicator = */gf_bs_read_int(bs, 1);
+				/*reserved = */gf_bs_read_int(bs, 6);
+
+				if (segmentation_event_cancel_indicator == 0) {
+					Bool program_segmentation_flag = gf_bs_read_int(bs, 1);
+					Bool segmentation_duration_flag = gf_bs_read_int(bs, 1);
+					/*Bool delivery_not_restricted_flag = */gf_bs_read_int(bs, 1);
+					gf_bs_skip_bytes(bs, 5);
+
+					if (program_segmentation_flag == 0) { //deprecated
+						u8 component_count = gf_bs_read_u8(bs);
+						for (u8 i=0; i<component_count; i++)
+							gf_bs_skip_bytes(bs, 48);
+					}
+
+					if (segmentation_duration_flag == 1) {
+						/*u64 segmentation_duration = */gf_bs_read_long_int(bs, 40);
+					}
+
+					/*u8 segmentation_upid_type = */gf_bs_read_u8(bs);
+					u8 segmentation_upid_length = gf_bs_read_u8(bs);
+					gf_bs_skip_bytes(bs, segmentation_upid_length);
+					u8 segmentation_type_id = gf_bs_read_u8(bs);
+					/*u8 segment_num = */gf_bs_read_u8(bs);
+					/*u8 segments_expected = */gf_bs_read_u8(bs);
+
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found segmentation_descriptor() segmentation_type_id=%u\n", segmentation_type_id));
+
+					switch (segmentation_type_id)
+					{
+					case 0x10:
+						*needs_idr = GF_TRUE;
+						break;
+					case 0x34:
+						*needs_idr = GF_TRUE;
+					case 0x30:
+					case 0x32:
+					case 0x36:
+					case 0x38:
+					case 0x3A:
+					case 0x44:
+					case 0x46:
+						/*u8 sub_segment_num = */gf_bs_read_u8(bs);
+						/*u8 sub_segments_expected = */gf_bs_read_u8(bs);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+			break;
+		default:
+			gf_bs_skip_bytes(bs, MAX(0, descriptor_length - 4));
+			break;
+		}
 	}
 
 exit:;
@@ -439,8 +519,9 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 {
 	u64 pts = 0;
 	u32 dur = 0xFFFFFFFF;
+	Bool needs_idr = GF_FALSE;
 	// parsing is incomplete so we only check the first splice command ...
-	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id);
+	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id, &needs_idr);
 
 	GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
 	if (!emib) return GF_OUT_OF_MEM;
@@ -465,9 +546,19 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 		return e;
 	}
 
-	scte35dec_schedule(ctx, dts, emib);
+	if (!ctx->pass || (ctx->pass && needs_idr))
+		scte35dec_schedule(ctx, dts, emib);
 
 	return GF_OK;
+}
+
+static Bool scte35dec_is_splice_point(SCTE35DecCtx *ctx, u64 cts)
+{
+	Event *evt = gf_list_get(ctx->ordered_events, 0);
+	if (!evt) return GF_FALSE;
+	Bool is_splice = (evt->dts + evt->emib->presentation_time_delta == cts);
+	if (is_splice) gf_list_pop_front(ctx->ordered_events);
+	return is_splice;
 }
 
 static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
@@ -498,8 +589,24 @@ static GF_Err scte35dec_process_dispatch(SCTE35DecCtx *ctx, u64 dts)
 	return GF_OK;
 }
 
+static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *pck)
+{
+	GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(ctx->opid, pck, NULL);
+	if (!dst_pck)
+		return GF_OUT_OF_MEM;
+
+	u64 cts = gf_filter_pck_get_cts(pck);
+	if (scte35dec_is_splice_point(ctx, cts)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU "\n", cts));
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+	}
+
+	return ctx->pck_send(dst_pck);
+}
+
 static void scte35dec_flush(SCTE35DecCtx *ctx)
 {
+	if (ctx->pass) return; //pass-through mode
 	if (ctx->clock == ctx->last_dispatched_dts)
 		return; //nothing to flush
 
@@ -533,9 +640,16 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while 'emsg' at dts="LLU"\n", dts));
 	}
 
+	GF_Err e;
+	if (ctx->pass) {
+		e = scte35dec_process_passthrough(ctx, pck);
+	} else {
+		e = scte35dec_process_dispatch(ctx, dts);
+	}
+
 	gf_filter_pid_drop_packet(ctx->ipid);
 
-	return scte35dec_process_dispatch(ctx, dts);
+	return e;
 }
 
 static const GF_FilterCapability SCTE35DecCaps[] =
@@ -550,6 +664,9 @@ static const GF_FilterCapability SCTE35DecCaps[] =
 #define OFFS(_n)	#_n, offsetof(SCTE35DecCtx, _n)
 static const GF_FilterArgs SCTE35DecArgs[] =
 {
+	{ OFFS(mode), "mode to operate in\n"
+		"- 23001-18: extract SCTE-35 markers as emib boxes\n"
+		"- passthrough: pass-through mode", GF_PROP_UINT, "23001-18", "23001-18|passthrough", 0},
 	{ OFFS(segdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
 	{0}
 };
