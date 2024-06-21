@@ -384,8 +384,8 @@ u32 gf_opus_check_frame(GF_OpusConfig *cfg, u8 *data, u32 data_len);
 u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3);
 
 /*! parse profile and level from a MHAS payload
-\param ptr the MHAS payhload
-\param size size of the MHAS payhload
+\param ptr the MHAS payload
+\param size size of the MHAS payload
 \param chan_layout set to the channel layout if found, 0 otherwise - optional, may be NULL
 \return the MHAS profile found, or -1 of not found
 */
@@ -683,6 +683,12 @@ Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 \return number of channels
 */
 u32 gf_eac3_get_chan_loc_count(u32 chan_loc);
+
+/*! gets the channel layout mask  from EAC3 config
+\param ac3 the decoded AC3 configuration
+\return channel mask
+*/
+u64 gf_ac3_get_channel_layout(GF_AC3Config *ac3);
 
 /*! gets the total number of channels in an AC3 frame, including surround but not lfe
 \param acmod acmod of the associated frame header

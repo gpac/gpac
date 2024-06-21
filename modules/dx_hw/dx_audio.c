@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / DirectX audio and video render module
@@ -312,7 +312,7 @@ void DS_FillBuffer(GF_AudioOutput *dr, u32 buffer)
 		return;
 	}
 
-	assert(size == ctx->buffer_size);
+	gf_assert(size == ctx->buffer_size);
 
 	dr->FillBuffer(dr->audio_renderer, pLock, size);
 

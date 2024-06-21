@@ -317,11 +317,9 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 		GF_SAFEALLOC(bi, BoundInfo);
 		if (!bi) return NULL;
 		if (_prev) {
-//			assert(!_prev->next);
 			_prev->next = bi;
 		}
 		else {
-//			assert(!dri->current_bounds);
 			dri->current_bounds = bi;
 		}
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Allocating new bound info for drawable %s\n", gf_node_get_class_name(ctx->drawable->node)));
@@ -757,7 +755,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	DrawableContext *ctx;
 	Bool skipFill;
 	GF_Node *appear;
-	assert(tr_state->visual);
+	gf_assert(tr_state->visual);
 
 	/*switched-off geometry nodes are not drawn*/
 	if (tr_state->switched_off) {
@@ -874,7 +872,7 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 		if (visual_2d_overlaps_overlay(tr_state->visual, ctx, tr_state))
 			return 0;
 
-		assert(!tr_state->traversing_mode);
+		gf_assert(!tr_state->traversing_mode);
 		tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 		tr_state->ctx = ctx;
 
@@ -895,8 +893,8 @@ void drawable_check_bounds(struct _drawable_context *ctx, GF_VisualManager *visu
 {
 	if (!ctx->bi) {
 		ctx->bi = drawable_check_alloc_bounds(ctx, visual);
-		assert(ctx->bi);
-		ctx->bi->extra_check = ctx->appear;
+		if (ctx->bi)
+			ctx->bi->extra_check = ctx->appear;
 	}
 }
 
@@ -1259,7 +1257,7 @@ static void DestroyLineProps(GF_Node *n, void *rs, Bool is_destroy)
 		if (si->lineProps == n) {
 			/*remove from node*/
 			if (si->drawable) {
-				assert(si->drawable->outline);
+				gf_assert(si->drawable->outline);
 				cur = si->drawable->outline;
 				prev = NULL;
 				while (cur) {
@@ -1499,7 +1497,7 @@ static Bool svg_appearance_flag_dirty(u32 flags)
 DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState *tr_state, SVG_ClipPath *clip_path)
 {
 	DrawableContext *ctx;
-	assert(tr_state->visual);
+	gf_assert(tr_state->visual);
 
 	if (clip_path && !clip_path->target.target) {
 		clip_path->target.target = clip_path->target.string ? gf_sg_find_node_by_name(tr_state->visual->compositor->scene, clip_path->target.string+1) : NULL;

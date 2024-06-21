@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -523,7 +523,7 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 
 //	if (codec->LastError) return codec->LastError;
 
-	assert(node);
+	if (!node) return GF_BAD_PARAM;
 //	if (field->fieldType == GF_SG_VRML_UNKNOWN) return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (gf_sg_vrml_is_sf_field(field->fieldType)) {

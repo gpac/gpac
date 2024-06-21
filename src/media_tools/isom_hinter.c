@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -149,7 +149,7 @@ void MP4T_OnPacketDone(void *cbk, GF_RTPHeader *header)
 	u8 disposable;
 	GF_RTPHinter *tkHint = (GF_RTPHinter *)cbk;
 	if (!tkHint || !tkHint->HintSample) return;
-	assert(header->TimeStamp == tkHint->RTPTime);
+	gf_assert(header->TimeStamp == tkHint->RTPTime);
 
 	disposable = 0;
 	if (tkHint->avc_nalu_size) {
@@ -197,7 +197,7 @@ void MP4T_OnNewPacket(void *cbk, GF_RTPHeader *header)
 	if (!tkHint) return;
 
 	res = (s32) (tkHint->rtp_p->sl_header.compositionTimeStamp - tkHint->rtp_p->sl_header.decodingTimeStamp);
-	assert( !res || tkHint->has_ctts);
+	gf_assert( !res || tkHint->has_ctts);
 	/*do we need a new sample*/
 	if (!tkHint->HintSample || (tkHint->RTPTime != header->TimeStamp)) {
 		/*close current sample*/

@@ -391,7 +391,7 @@ static GF_Err dtout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_PropertyValue val;
 		val.type = GF_PROP_UINT;
 		val.value.uint = GF_PIXEL_YUV;
-		gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &val);
+		gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &val);
 		return GF_OK;
 	}
 	if (!stride) stride = width * (is_10_bits ? 2 : 1);

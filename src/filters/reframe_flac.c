@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / FLAC reframer filter
@@ -635,7 +635,7 @@ restart:
 				}
 				cur_buf = hdr_start+1;
 				cur_size = (u32) (cur_buf - start);
-				assert(cur_size<=remain);
+				gf_fatal_assert(cur_size<=remain);
 				cur_size = remain - cur_size;
 				hdr_start = NULL;
 			}
@@ -764,11 +764,11 @@ restart:
 		}
 		flac_dmx_update_cts(ctx, nb_samp);
 
-		assert (start[0] == 0xFF);
-		assert((start[1]&0xFC) == 0xF8);
+		gf_assert (start[0] == 0xFF);
+		gf_assert((start[1]&0xFC) == 0xF8);
 
 		start += next_frame;
-		assert(remain >= next_frame);
+		gf_assert(remain >= next_frame);
 		remain -= next_frame;
 
 	}
@@ -780,6 +780,10 @@ restart:
 	} else {
 		if (remain < ctx->flac_buffer_size) {
 			memmove(ctx->flac_buffer, start, remain);
+		}
+		if (!ctx->src_pck) {
+			ctx->src_pck = pck;
+			gf_filter_pck_ref_props(&ctx->src_pck);
 		}
 		ctx->flac_buffer_size = remain;
 		gf_filter_pid_drop_packet(ctx->ipid);

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -158,7 +158,7 @@ void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *
 		return;
 	}
 
-	assert(!stream->opid);
+	gf_assert(!stream->opid);
 	stream->opid = gf_filter_pid_new(stream->rtpin->filter);
 
 	gf_filter_pid_set_property(stream->opid, GF_PROP_PID_ID, &PROP_UINT(ch_idx) );
@@ -329,7 +329,7 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 
 	if (e == GF_OK) e = rtpin_setup_sdp(rtp, sdp, stream);
 
-	if (!gf_list_count(rtp->streams))
+	if (!gf_list_count(rtp->streams) && !e)
 		e = GF_NOT_SUPPORTED;
 
 	if (e != GF_OK) {

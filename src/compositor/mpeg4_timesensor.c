@@ -59,7 +59,7 @@ void timesensor_deactivate(TimeSensorStack *stack, M_TimeSensor *ts)
 {
 	ts->isActive = 0;
 	gf_node_event_out((GF_Node *) ts, 7);//"isActive"
-	assert(stack->time_handle.is_registered);
+	gf_assert(stack->time_handle.is_registered);
 	stack->time_handle.needs_unregister = 1;
 	stack->num_cycles = 0;
 }

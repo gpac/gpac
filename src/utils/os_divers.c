@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -80,7 +80,7 @@ static u64 sys_start_time_hr = 0;
 #include <gpac/revision.h>
 #define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
 
-#define GPAC_COPYRIGHT "(c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io"
+#define GPAC_COPYRIGHT "(c) 2000-2024 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io"
 
 GF_EXPORT
 const char *gf_gpac_version()
@@ -133,7 +133,7 @@ u32 gf_gpac_abi_micro()
 }
 
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(GPAC_CONFIG_EMSCRIPTEN)
 
 GF_EXPORT
 u32 gf_sys_clock()
@@ -149,6 +149,23 @@ u64 gf_sys_clock_high_res()
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	return (now.tv_sec)*1000000 + (now.tv_usec) - sys_start_time_hr;
+}
+
+#endif
+
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+#include <emscripten/emscripten.h>
+
+GF_EXPORT
+u32 gf_sys_clock()
+{
+	return (u32)(emscripten_get_now() - sys_start_time);
+}
+
+GF_EXPORT
+u64 gf_sys_clock_high_res()
+{
+	return (long long)(emscripten_get_now() * 1000.0) - sys_start_time_hr;
 }
 
 #endif
@@ -883,6 +900,9 @@ Bool gf_sys_is_cov_mode()
 const char *gpac_log_file_name=NULL;
 #ifndef GPAC_DISABLE_LOG
 extern Bool gpac_log_dual;
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+extern Bool gpac_log_console;
+#endif
 #endif
 
 GF_EXPORT
@@ -891,6 +911,14 @@ void gf_log_reset_file()
 #ifndef GPAC_DISABLE_LOG
 	if (gpac_log_file_name) {
 		if (gpac_log_file) gf_fclose(gpac_log_file);
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+		gpac_log_console = GF_FALSE;
+		if (gpac_log_file_name && !strcmp(gpac_log_file_name, "console")) {
+			gpac_log_file = NULL;
+			gpac_log_console = GF_TRUE;
+			return;
+		}
+#endif
 		gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
 	}
 #endif
@@ -1001,7 +1029,19 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 #ifndef GPAC_DISABLE_NETWORK
 				gpac_use_poll = bool_value;
 #endif
-			} else if (!stricmp(arg, "-ntp-shift")) {
+			}
+#if !defined(GPAC_DISABLE_NETCAP)
+			else if (!stricmp(arg, "-netcap")) {
+				if (!arg_val) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("[core] Missing value for argument -netcap, ignoring\n"));
+				} else {
+					GF_Err gf_netcap_setup(char *rules);
+					e = gf_netcap_setup(arg_val);
+					if (e) return e;
+				}
+			}
+#endif
+			else if (!stricmp(arg, "-ntp-shift")) {
 				s32 shift = arg_val ? atoi(arg_val) : 0;
 				gf_net_set_ntp_shift(shift);
 				if (!use_sep) i += 1;
@@ -1022,9 +1062,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 
 
 #ifndef GPAC_DISABLE_LOG
-		if (gpac_log_file_name) {
-			gpac_log_file = gf_fopen(gpac_log_file_name, "wt");
-		}
+		gf_log_reset_file();
 #endif
 		if (gf_opts_get_bool("core", "rmt"))
 			gf_sys_enable_remotery(GF_TRUE, GF_FALSE);
@@ -1226,11 +1264,25 @@ GF_Err gf_sys_profiler_set_callback(void *udta, gf_rmt_user_callback usr_cbk)
 }
 
 GF_EXPORT
-GF_Err gf_sys_profiler_send(const char *msg)
+GF_Err gf_sys_profiler_log(const char *msg)
 {
 #ifndef GPAC_DISABLE_REMOTERY
 	if (remotery_handle) {
 		rmt_LogText(msg);
+		return GF_OK;
+	}
+	return GF_BAD_PARAM;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_EXPORT
+GF_Err gf_sys_profiler_send(const char *msg)
+{
+#ifndef GPAC_DISABLE_REMOTERY
+	if (remotery_handle) {
+		rmt_SendText(msg);
 		return GF_OK;
 	}
 	return GF_BAD_PARAM;
@@ -1264,11 +1316,8 @@ Bool gf_sys_profiler_sampling_enabled()
 GF_List *all_blobs = NULL;
 
 GF_EXPORT
-GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_flags)
+GF_Err gf_blob_get_ex(GF_Blob *blob, u8 **out_data, u32 *out_size, u32 *out_flags)
 {
-	GF_Blob *blob = NULL;
-	if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
-	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
 	if (!blob)
 		return GF_BAD_PARAM;
 	if (gf_list_find(all_blobs, blob)<0)
@@ -1280,13 +1329,18 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_
 	if (out_flags) *out_flags = blob->flags;
 	return GF_OK;
 }
+GF_EXPORT
+GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_flags)
+{
+	GF_Blob *blob = NULL;
+	if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
+	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+	return gf_blob_get_ex(blob, out_data, out_size, out_flags);
+}
 
 GF_EXPORT
-GF_Err gf_blob_release(const char *blob_url)
+GF_Err gf_blob_release_ex(GF_Blob *blob)
 {
-    GF_Blob *blob = NULL;
-    if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
-    if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
     if (!blob)
 		return GF_BAD_PARAM;
 	if (gf_list_find(all_blobs, blob)<0)
@@ -1294,6 +1348,15 @@ GF_Err gf_blob_release(const char *blob_url)
     if (blob->data && blob->mx)
         gf_mx_v(blob->mx);
     return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_blob_release(const char *blob_url)
+{
+    GF_Blob *blob = NULL;
+    if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
+    if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+	return gf_blob_release_ex(blob);
 }
 
 GF_EXPORT
@@ -1333,6 +1396,17 @@ GF_Blob *gf_blob_from_url(const char *blob_url)
 	return blob;
 }
 #endif
+
+
+GF_EXPORT
+GF_BlobRangeStatus gf_blob_query_range(GF_Blob *blob, u64 start_offset, u32 size)
+{
+	if (!blob) return GF_BLOB_RANGE_CORRUPTED;
+	if (blob->range_valid) return blob->range_valid(blob, start_offset, &size);
+
+	if (blob->flags & GF_BLOB_IN_TRANSFER) return GF_BLOB_RANGE_IN_TRANSFER;
+	return GF_BLOB_RANGE_VALID;
+}
 
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config(Bool discard_config);
@@ -1552,6 +1626,11 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 	return GF_OK;
 }
 
+
+#if !defined(GPAC_DISABLE_NETCAP) && !defined(GPAC_DISABLE_NETWORK)
+void gf_net_close_capture();
+#endif
+
 GF_EXPORT
 void gf_sys_close()
 {
@@ -1598,6 +1677,7 @@ void gf_sys_close()
 		logs_mx = NULL;
 		gf_mx_del(old_log_mx);
 #endif
+		gf_log_reset_extras();
 		if (gpac_argv_state) {
 			gf_free(gpac_argv_state);
 			gpac_argv_state = NULL;
@@ -1609,6 +1689,10 @@ void gf_sys_close()
 
 		gf_list_del(all_blobs);
 		all_blobs = NULL;
+
+#if !defined(GPAC_DISABLE_NETCAP) && !defined(GPAC_DISABLE_NETWORK)
+		gf_net_close_capture();
+#endif
 
 #ifdef GPAC_CONFIG_EMSCRIPTEN
 		fprintf(stderr, "\n\n");
@@ -1637,7 +1721,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	u32 entry_time;
 	HANDLE hSnapShot;
 
-	assert(sys_init);
+	gf_assert(sys_init);
 
 	if (!rti) return GF_FALSE;
 
@@ -2095,7 +2179,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.total_cpu_usage = the_rti.process_cpu_usage;
 
     kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
-    assert(kr == KERN_SUCCESS);
+    gf_assert(kr == KERN_SUCCESS);
 
 
 	if (last_update_time) {
@@ -2145,10 +2229,11 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	u32 entry_time;
 	u64 process_u_k_time;
 	u32 u_k_time, idle_time;
+#ifndef GPAC_CONFIG_EMSCRIPTEN
 	char szProc[100];
 	char line[2048];
-
-	assert(sys_init);
+#endif
+	gf_assert(sys_init);
 
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
@@ -2542,7 +2627,7 @@ GF_GlobalLock * gf_global_resource_lock(const char * resourceName) {
 	switch (WaitForSingleObject(lock->hMutex, INFINITE)) {
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		assert(0); /*serious error: someone has modified the object elsewhere*/
+		gf_assert(0); /*serious error: someone has modified the object elsewhere*/
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't get the global lock\n"));
 		gf_global_resource_unlock(lock);
 		return NULL;
@@ -2564,7 +2649,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 	if (!lock)
 		return GF_BAD_PARAM;
 #ifndef WIN32
-	assert( lock->pidFile);
+	gf_assert( lock->pidFile);
 	close(lock->fd);
 	if (unlink(lock->pidFile))
 		perror("Failed to unlink lock file");
@@ -2875,11 +2960,11 @@ u64 gf_net_parse_date(const char *val)
 	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
-	else if (sscanf(val, LLU, &current_time) == 1 && current_time > 1000000000 && current_time < GF_INT_MAX) {
-		return current_time * 1000; // guessed raw duration since UTC0 in seconds
-	}
-	else if (sscanf(val, LLU, &current_time) == 1 && current_time > 1000000000000ULL && current_time < GF_INT_MAX * 1000ULL) {
+	else if ((sscanf(val, LLU, &current_time) == 1) && current_time > 1000000000000ULL && current_time < GF_INT_MAX * 1000ULL) {
 		return current_time; // guessed duration since UTC0 in milliseconds
+	}
+	else if ((sscanf(val, LLU, &current_time) == 1) && current_time < GF_INT_MAX) {
+		return current_time * 1000; // guessed raw duration since UTC0 in seconds
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot parse date string %s\n", val));
 		return 0;

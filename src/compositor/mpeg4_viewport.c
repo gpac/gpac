@@ -169,8 +169,8 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	/*first traverse, bound if needed*/
 	if (gf_list_find(tr_state->viewpoints, node) < 0) {
 		gf_list_add(tr_state->viewpoints, node);
-		assert(gf_list_find(st->reg_stacks, tr_state->viewpoints)==-1);
-		gf_list_add(st->reg_stacks, tr_state->viewpoints);
+		if (gf_list_find(st->reg_stacks, tr_state->viewpoints)<0)
+			gf_list_add(st->reg_stacks, tr_state->viewpoints);
 
 		if (gf_list_get(tr_state->viewpoints, 0) == vp) {
 			if (!vp->isBound) Bindable_SetIsBound(node, 1);
@@ -358,8 +358,8 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 	/*first traverse, bound if needed*/
 	if (gf_list_find(tr_state->viewpoints, node) < 0) {
 		gf_list_add(tr_state->viewpoints, node);
-		assert(gf_list_find(st->reg_stacks, tr_state->viewpoints)==-1);
-		gf_list_add(st->reg_stacks, tr_state->viewpoints);
+		if (gf_list_find(st->reg_stacks, tr_state->viewpoints)<0)
+			gf_list_add(st->reg_stacks, tr_state->viewpoints);
 
 		if (gf_list_get(tr_state->viewpoints, 0) == vp) {
 			if (!vp->isBound) Bindable_SetIsBound(node, 1);
@@ -474,8 +474,8 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 		if (gf_list_get(tr_state->navigations, 0) == ni) {
 			if (!ni->isBound) Bindable_SetIsBound(node, 1);
 		}
-		assert(gf_list_find(st->reg_stacks, tr_state->navigations)==-1);
-		gf_list_add(st->reg_stacks, tr_state->navigations);
+		if (gf_list_find(st->reg_stacks, tr_state->navigations)<0)
+			gf_list_add(st->reg_stacks, tr_state->navigations);
 		gf_mx_copy(st->world_view_mx, tr_state->model_matrix);
 		/*in any case don't draw the first time*/
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
@@ -602,8 +602,8 @@ static void TraverseFog(GF_Node *node, void *rs, Bool is_destroy)
 		if (gf_list_get(tr_state->fogs, 0) == fog) {
 			if (!fog->isBound) Bindable_SetIsBound(node, 1);
 		}
-		assert(gf_list_find(st->reg_stacks, tr_state->fogs)==-1);
-		gf_list_add(st->reg_stacks, tr_state->fogs);
+		if (gf_list_find(st->reg_stacks, tr_state->fogs)<0)
+			gf_list_add(st->reg_stacks, tr_state->fogs);
 
 		gf_mx_copy(st->world_view_mx, tr_state->model_matrix);
 		/*in any case don't draw the first time*/

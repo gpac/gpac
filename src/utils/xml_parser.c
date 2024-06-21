@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2023
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -41,10 +41,12 @@
 
 #define XML_INPUT_SIZE	4096
 
+static u32 XML_MAX_CONTENT_SIZE = 0;
+
 
 static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current);
 
-static char *xml_translate_xml_string(char *str)
+GF_STATIC char *xml_translate_xml_string(char *str)
 {
 	char *value;
 	u32 size, i, j;
@@ -243,8 +245,8 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 {
 	char *name, c;
 
-	assert(parser->elt_name_start);
-	assert(parser->elt_name_end);
+	gf_assert(parser->elt_name_start);
+	gf_assert(parser->elt_name_end);
 	if (!parser->node_depth) {
 		format_sax_error(parser, 0, "Markup error");
 		return;
@@ -265,7 +267,7 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 	}
 	parser->buffer[parser->elt_name_end - 1] = c;
 	parser->node_depth--;
-	if (!parser->init_state && !parser->node_depth) parser->sax_state = SAX_STATE_DONE;
+	if (!parser->init_state && !parser->node_depth && parser->sax_state<SAX_STATE_SYNTAX_ERROR) parser->sax_state = SAX_STATE_DONE;
 	xml_sax_swap(parser);
 	parser->text_start = parser->text_end = 0;
 }
@@ -276,7 +278,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 	u32 i;
 	char c, *name;
 
-	assert(parser->elt_name_start && parser->elt_name_end);
+	gf_assert(parser->elt_name_start && parser->elt_name_end);
 	c = parser->buffer[parser->elt_name_end - 1];
 	parser->buffer[parser->elt_name_end - 1] = 0;
 	name = parser->buffer + parser->elt_name_start - 1;
@@ -444,7 +446,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 			att->name_start = parser->att_name_start;
 			att->name_end = parser->current_pos + 1;
 			while (strchr(" \n\t", parser->buffer[att->name_end - 2])) {
-				assert(att->name_end);
+				gf_assert(att->name_end);
 				att->name_end --;
 			}
 			att->has_entities = GF_FALSE;
@@ -492,7 +494,8 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					att->val_start = parser->current_pos + 2;
 					break;
 				default:
-					break;
+					// garbage char before value separator -> error
+					goto att_retry;
 				}
 				parser->current_pos++;
 				if (parser->att_sep) break;
@@ -502,7 +505,10 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 
 att_retry:
 
-		assert(parser->att_sep);
+		if (!parser->att_sep) {
+			format_sax_error(parser, parser->current_pos, "Invalid character %c before attribute value separator", parser->buffer[parser->current_pos]);
+			return GF_TRUE;
+		}
 		sep = strchr(parser->buffer + parser->current_pos, parser->att_sep);
 		if (!sep || !sep[1]) return GF_TRUE;
 
@@ -548,7 +554,7 @@ static void xml_sax_flush_text(GF_SAXParser *parser)
 	char *text, c;
 	if (!parser->text_start || parser->init_state || !parser->sax_text_content) return;
 
-	assert(parser->text_start < parser->text_end);
+	gf_assert(parser->text_start < parser->text_end);
 
 	c = parser->buffer[parser->text_end-1];
 	parser->buffer[parser->text_end-1] = 0;
@@ -580,14 +586,14 @@ static void xml_sax_store_text(GF_SAXParser *parser, u32 txt_len)
 		parser->text_start = parser->current_pos + 1;
 		parser->text_end = parser->text_start + txt_len;
 		parser->current_pos += txt_len;
-		assert(parser->current_pos <= parser->line_size);
+		gf_assert(parser->current_pos <= parser->line_size);
 		return;
 	}
 	/*contiguous text*/
 	if (parser->text_end && (parser->text_end-1 == parser->current_pos)) {
 		parser->text_end += txt_len;
 		parser->current_pos += txt_len;
-		assert(parser->current_pos <= parser->line_size);
+		gf_assert(parser->current_pos <= parser->line_size);
 		return;
 	}
 	/*need to flush*/
@@ -596,7 +602,7 @@ static void xml_sax_store_text(GF_SAXParser *parser, u32 txt_len)
 	parser->text_start = parser->current_pos + 1;
 	parser->text_end = parser->text_start + txt_len;
 	parser->current_pos += txt_len;
-	assert(parser->current_pos <= parser->line_size);
+	gf_assert(parser->current_pos <= parser->line_size);
 }
 
 static char *xml_get_current_text(GF_SAXParser *parser)
@@ -627,8 +633,8 @@ static void xml_sax_skip_doctype(GF_SAXParser *parser)
 
 static void xml_sax_skip_xml_proc(GF_SAXParser *parser)
 {
-	while (parser->current_pos + 1 < parser->line_size) {
-		if ((parser->buffer[parser->current_pos]=='?') && (parser->buffer[parser->current_pos+1]=='>')) {
+	while (parser->current_pos < parser->line_size) {
+		if ((parser->current_pos + 1 < parser->line_size) && (parser->buffer[parser->current_pos]=='?') && (parser->buffer[parser->current_pos+1]=='>')) {
 			parser->sax_state = SAX_STATE_ELEMENT;
 			parser->current_pos++;
 			xml_sax_swap(parser);
@@ -678,7 +684,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			ent->namelen = (u32) strlen(ent->name);
 			ent->sep = c;
 			parser->current_pos += 1+i;
-			assert(parser->current_pos < parser->line_size);
+			gf_assert(parser->current_pos < parser->line_size);
 			xml_sax_swap(parser);
 			i=0;
 			gf_list_add(parser->entities, ent);
@@ -691,7 +697,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			if (!ent->value) ent->value = gf_strdup("");
 
 			parser->current_pos += 1;
-			assert(parser->current_pos < parser->line_size);
+			gf_assert(parser->current_pos < parser->line_size);
 			xml_sax_swap(parser);
 			parser->sax_state = SAX_STATE_SKIP_DOCTYPE;
 			return;
@@ -719,7 +725,7 @@ static void xml_sax_cdata(GF_SAXParser *parser)
 		xml_sax_store_text(parser, size);
 		xml_sax_flush_text(parser);
 		parser->current_pos += 3;
-		assert(parser->current_pos <= parser->line_size);
+		gf_assert(parser->current_pos <= parser->line_size);
 		parser->sax_state = SAX_STATE_TEXT_CONTENT;
 	}
 }
@@ -735,7 +741,7 @@ static Bool xml_sax_parse_comments(GF_SAXParser *parser)
 	}
 
 	parser->current_pos += 3 + (u32) (end - (parser->buffer + parser->current_pos) );
-	assert(parser->current_pos <= parser->line_size);
+	gf_assert(parser->current_pos <= parser->line_size);
 	parser->sax_state = SAX_STATE_TEXT_CONTENT;
 	parser->text_start = parser->text_end = 0;
 	xml_sax_swap(parser);
@@ -779,8 +785,10 @@ restart:
 				}
 
 				if (parser->current_pos+i==parser->line_size) {
-					if ((parser->line_size>=2*XML_INPUT_SIZE) && !parser->init_state)
+					if ((parser->line_size >= XML_MAX_CONTENT_SIZE) && !parser->init_state) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Content size larger than max allowed %u, try increasing limit using `-xml-max-csize`\n", XML_MAX_CONTENT_SIZE));
 						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+					}
 
 					goto exit;
 				}
@@ -792,7 +800,7 @@ restart:
 				parser->sax_state = SAX_STATE_ELEMENT;
 			} else if (i) {
 				parser->current_pos += i;
-				assert(parser->current_pos < parser->line_size);
+				gf_assert(parser->current_pos < parser->line_size);
 			}
 			is_end = 0;
 			i = 0;
@@ -871,7 +879,7 @@ restart:
 			elt = parser->buffer + parser->elt_name_start-1;
 
 			parser->sax_state = SAX_STATE_ATT_NAME;
-			assert(parser->elt_start_pos <= parser->file_pos + parser->current_pos);
+			gf_assert(parser->elt_start_pos <= parser->file_pos + parser->current_pos);
 			parser->elt_start_pos = parser->file_pos + parser->current_pos;
 
 			if (!strncmp(elt, "!--", 3)) {
@@ -1051,7 +1059,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 				parser->in_entity = GF_FALSE;
 				continue;
 			}
-			assert(ent);
+			gf_assert(ent);
 			/*truncate input buffer*/
 			parser->line_size -= (u32) strlen(entityStart);
 			entityStart[0] = 0;
@@ -1277,7 +1285,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
             if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
         }
         gf_blob_release(fileName);
-        
+
 		parser->elt_start_pos = parser->elt_end_pos = 0;
 		parser->elt_name_start = parser->elt_name_end = 0;
 		parser->att_name_start = 0;
@@ -1295,7 +1303,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	if (!test) return GF_URL_ERROR;
 
 	filesize = gf_fsize(test);
-	assert(filesize < 0x80000000);
+	gf_fatal_assert(filesize < 0x80000000);
 	parser->file_size = (u32) filesize;
 	gf_fclose(test);
 
@@ -1350,6 +1358,9 @@ GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start,
 	parser->sax_node_end = on_node_end;
 	parser->sax_text_content = on_text_content;
 	parser->sax_cbck = cbck;
+	if (!XML_MAX_CONTENT_SIZE) {
+		XML_MAX_CONTENT_SIZE = gf_opts_get_int("core", "xml-max-csize");
+	}
 	return parser;
 }
 
@@ -1645,7 +1656,7 @@ struct _tag_dom_parser
 	//usually only one :)
 	GF_List *root_nodes;
 	u32 depth;
-
+	Bool keep_valid;
 	void (*OnProgress)(void *cbck, u64 done, u64 tot);
 	void *cbk;
 };
@@ -1717,9 +1728,22 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att;
 		const GF_XMLAttribute *in_att = & attributes[i];
+		u32 j;
+		Bool dup=GF_FALSE;
+		for (j=0;j<i; j++) {
+			GF_XMLAttribute *p_att = gf_list_get(node->attributes, j);
+			if (!p_att) break;
+			if (!strcmp(p_att->name, in_att->name)) {
+				dup=GF_TRUE;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[SAX] Duplicated attribute %s on node %s, ignoring\n", in_att->name, name));
+				break;
+			}
+		}
+		if (dup) continue;
+
 		GF_SAFEALLOC(att, GF_XMLAttribute);
 		if (! att) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SAX] Failed to allocate attribute"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SAX] Failed to allocate attribute\n"));
 			par->parser->sax_state = SAX_STATE_ALLOC_ERROR;
 			return;
 		}
@@ -1754,6 +1778,7 @@ static void on_dom_node_end(void *cbk, const char *name, const char *ns)
 
 		gf_list_add(node->content, last);
 	}
+	last->valid_content = par->keep_valid;
 }
 
 static void on_dom_text_content(void *cbk, const char *content, Bool is_cdata)
@@ -1784,6 +1809,7 @@ GF_DOMParser *gf_xml_dom_new()
 	if (!dom) return NULL;
 
 	dom->root_nodes = gf_list_new();
+	dom->keep_valid = 0;
 	return dom;
 }
 
@@ -1872,6 +1898,14 @@ GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 	return e<0 ? e : GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_xml_dom_enable_passthrough(GF_DOMParser *dom)
+{
+	if (!dom) return GF_BAD_PARAM;
+	dom->keep_valid = 1;
+	return GF_OK;
+}
+
 #if 0 //unused
 GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name) {
 	GF_XMLNode * root;
@@ -1916,18 +1950,17 @@ GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx)
 
 static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape, char **str, u32 *alloc_size, u32 *size)
 {
-	u32 i, count, vlen;
+	u32 i, count, vlen, tot_s;
 	char *name;
 
 #define SET_STRING(v)	\
 	vlen = (u32) strlen(v);	\
-	if (vlen + (*size) >= (*alloc_size)) {	\
-		(*alloc_size) += 1024;	\
-		if (vlen + (*size) >= (*alloc_size)) (*alloc_size) = vlen + (*size) + 1;\
+	tot_s = vlen + (*size); \
+	if (tot_s >= (*alloc_size)) {	\
+		(*alloc_size) = MAX(tot_s, 2 * (*alloc_size) ) + 1;	\
 		(*str) = gf_realloc((*str), (*alloc_size));	\
-		(*str)[(*size)] = 0;	\
 	}	\
-	strcat((*str), v);	\
+	memcpy((*str) + (*size), v, vlen+1);	\
 	*size += vlen;	\
 
 	switch (node->type) {
@@ -2005,7 +2038,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool 
 	count = gf_list_count(node->content);
 	for (i=0; i<count; i++) {
 		GF_XMLNode *child = (GF_XMLNode*)gf_list_get(node->content, i);
-		gf_xml_dom_node_serialize(child, GF_FALSE, GF_FALSE, str, alloc_size, size);
+		gf_xml_dom_node_serialize(child, GF_FALSE, node->valid_content, str, alloc_size, size);
 	}
 	if (!content_only) {
 		SET_STRING("</");
@@ -2036,7 +2069,8 @@ char *gf_xml_dom_serialize_root(GF_XMLNode *node, Bool content_only, Bool no_esc
 	gf_dynstrcat(&str, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", NULL);
 	if (!str) return NULL;
 
-	alloc_size = size = (u32) strlen(str) + 1;
+	alloc_size = size = (u32) strlen(str);
+	alloc_size = size + 1;
 	gf_xml_dom_node_serialize(node, content_only, no_escape, &str, &alloc_size, &size);
 	return str;
 }
@@ -2248,7 +2282,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				base64_prefix_bits = atoi(att->value);
 			} else if (!stricmp(att->name, "id")) {
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unkown attribute %s, ignoring\n", att->name));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unknown attribute %s, ignoring\n", att->name));
 			}
 		}
 
@@ -2435,7 +2469,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, u8 
 	return GF_OK;
 }
 
-GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix) {
+GF_Err gf_xml_dom_node_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix) {
 	u32 i;
 	GF_XMLAttribute *att;
 
@@ -2458,7 +2492,7 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 		const char *ns;
 		ns = strstr(att->name, ":");
 		if (!ns) continue;
-		
+
 		if (!strncmp(att->name, "xmlns", 5)) {
 			if (!strcmp(ns+1, n->ns)) {
 				return GF_OK;
@@ -2509,4 +2543,47 @@ void gf_xml_dump_string(FILE* file, const char *before, const char *str, const c
 	if (after) {
 		gf_fprintf(file, "%s", after);
 	}
+}
+
+
+GF_XMLNode *gf_xml_dom_node_clone(GF_XMLNode *node)
+{
+	GF_XMLNode *clone, *child;
+	GF_XMLAttribute *att;
+	u32 i;
+	GF_SAFEALLOC(clone, GF_XMLNode);
+	if (!clone) return NULL;
+
+	clone->type = node->type;
+	clone->valid_content = node->valid_content;
+	clone->orig_pos = node->orig_pos;
+	if (node->name)
+		clone->name = gf_strdup(node->name);
+	if (node->ns)
+		clone->ns = gf_strdup(node->ns);
+
+	clone->attributes = gf_list_new();
+	i = 0;
+	while ((att = gf_list_enum(node->attributes, &i))) {
+		GF_XMLAttribute *att_clone;
+		GF_SAFEALLOC(att_clone, GF_XMLAttribute);
+		if (!att_clone) {
+			gf_xml_dom_node_del(clone);
+			return NULL;
+		}
+		att_clone->name = gf_strdup(att->name);
+		att_clone->value = gf_strdup(att->value);
+		gf_list_add(clone->attributes, att_clone);
+	}
+	clone->content = gf_list_new();
+	i=0;
+	while ((child = gf_list_enum(node->content, &i))) {
+		GF_XMLNode *child_clone = gf_xml_dom_node_clone(child);
+		if (!child_clone) {
+			gf_xml_dom_node_del(clone);
+			return NULL;
+		}
+		gf_list_add(clone->content, child_clone);
+	}
+	return clone;
 }

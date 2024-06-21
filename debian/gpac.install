@@ -1,12 +1,4 @@
 debian/tmp/usr/bin
-debian/tmp/usr/share/man/man1
+debian/tmp/usr/share
 debian/tmp/usr/lib/*.so*
 debian/tmp/usr/lib/gpac
-debian/tmp/usr/share/gpac/res
-debian/tmp/usr/share/gpac/gui
-debian/tmp/usr/share/gpac/shaders
-debian/tmp/usr/share/gpac/scripts
-debian/tmp/usr/share/icons
-debian/tmp/usr/share/applications
-
-

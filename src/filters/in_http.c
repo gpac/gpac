@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -106,9 +106,8 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 	ctx->dm = gf_filter_get_download_manager(filter);
-#ifndef GPAC_CONFIG_EMSCRIPTEN
 	if (!ctx->dm) return GF_SERVICE_ERROR;
-#endif
+
 	ctx->block = gf_malloc(ctx->block_size +1);
 
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
@@ -135,7 +134,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
-	if (server && strstr(server, "://")) {
+	if (server && strncmp(ctx->src, "http://gmcast", 13) && strstr(server, "://")) {
 		ctx->is_end = GF_TRUE;
 		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 	}
@@ -146,6 +145,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		ctx->initial_ack_done = GF_TRUE;
 		return e;
 	}
+	gf_dm_sess_set_netcap_id(ctx->sess, gf_filter_get_netcap_id(filter));
 	if (ctx->range.num || ctx->range.den) {
 		gf_dm_sess_set_range(ctx->sess, ctx->range.num, ctx->range.den, GF_TRUE);
 	}
@@ -180,11 +180,23 @@ void httpin_finalize(GF_Filter *filter)
 	if (ctx->cached) gf_fclose(ctx->cached);
 }
 
+#ifndef GPAC_DISABLE_NETWORK
+Bool gf_dm_can_handle_url(const char *url);
+#endif
 static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
 {
 	if (!strnicmp(url, "http://", 7) ) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "https://", 8) ) return GF_FPROBE_SUPPORTED;
 	if (!strnicmp(url, "gmem://", 7) ) return GF_FPROBE_SUPPORTED;
+
+#ifndef GPAC_DISABLE_NETWORK
+	if (!strnicmp(url, "file://", 7) ) return GF_FPROBE_NOT_SUPPORTED;
+	//libcurl handling of RTSP has lower priority
+	if (!strnicmp(url, "rtsp://", 7) ) return GF_FPROBE_MAYBE_SUPPORTED;
+	if (gf_dm_can_handle_url(url))
+		return GF_FPROBE_SUPPORTED;
+#endif
+
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
@@ -254,8 +266,8 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
 		if (evt->seek.source_switch) {
-			assert(ctx->is_end);
-			assert(!ctx->pck_out);
+			gf_fatal_assert(ctx->is_end);
+			gf_fatal_assert(!ctx->pck_out);
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !ctx->prev_was_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
@@ -329,6 +341,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			else if (ctx->cache==GF_HTTPIN_STORE_NONE) flags |= GF_NETIO_SESSION_NOT_CACHED;
 
 			ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
+			if (ctx->sess) gf_dm_sess_set_netcap_id(ctx->sess, gf_filter_get_netcap_id(filter));
 		}
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
@@ -426,7 +439,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 		u8 *b_data;
 		u32 b_size;
 		const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
-		assert(cached);
+		gf_assert(cached);
 
 		gf_blob_get(cached, &b_data, &b_size, NULL);
 
@@ -520,7 +533,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 						b_size = ctx->block_size;
 						e = GF_OK;
 					}
-					assert(! (b_flags&GF_BLOB_IN_TRANSFER));
+					gf_assert(! (b_flags&GF_BLOB_IN_TRANSFER));
 					memcpy(ctx->block, b_data, b_size);
 					nb_read = b_size;
 					gf_blob_release(cached);
@@ -649,7 +662,9 @@ GF_FilterRegister HTTPInRegister = {
 	"\n"
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
 	.private_size = sizeof(GF_HTTPInCtx),
-	.flags = GF_FS_REG_USE_SYNC_READ,
+#ifdef GPAC_CONFIG_EMSCRIPTEN
+	.flags = GF_FS_REG_MAIN_THREAD,
+#endif
 	.args = HTTPInArgs,
 	SETCAPS(HTTPInCaps),
 	.initialize = httpin_initialize,
@@ -660,11 +675,74 @@ GF_FilterRegister HTTPInRegister = {
 };
 
 
+#ifdef GPAC_HAS_CURL
+#include <curl/curl.h>
+
+
+static void httpin_reg_free(GF_FilterSession *session, struct __gf_filter_register *freg)
+{
+	gf_free((char*)freg->help);
+}
+
+#endif
+
 const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 {
 	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
-		gf_opts_set_key("temp_in_proto", HTTPInRegister.name, "http,https,gmem");
+		char *all_protos = gf_strdup("http,https,gmem");
+#ifdef GPAC_HAS_CURL
+		curl_version_info_data *ver = curl_version_info(CURLVERSION_NOW);
+		u32 i=0;
+		while (ver && ver->protocols[i]) {
+			if (!strcmp(ver->protocols[i], "file")) {}
+			else if (!strcmp(ver->protocols[i], "http")) {}
+			else if (!strcmp(ver->protocols[i], "https")) {}
+			else {
+				gf_dynstrcat(&all_protos, ver->protocols[i], ",");
+			}
+			i++;
+		}
+#endif
+		gf_opts_set_key("temp_in_proto", HTTPInRegister.name, all_protos);
+		gf_free(all_protos);
 	}
+
+
+#ifdef GPAC_HAS_CURL
+	if (!gf_opts_get_bool("temp", "helpexpert"))
+		return &HTTPInRegister;
+
+	char *help = gf_strdup(HTTPInRegister.help);
+	gf_dynstrcat(&help, "\n## libCURL Support\n", NULL);
+	gf_dynstrcat(&help, "This build supports using libcurl for HTTP and other protocol downloads."\
+		" For http(s), the default behaviour is to use GPAC and can be overriden using the option [-curl](core).\n", NULL);
+	gf_dynstrcat(&help, "Session parameters can be set using the `curl` configuration section, eg `-cfg=curl:FTPPORT=222`.\n", NULL);
+	gf_dynstrcat(&help, "The key `curl:trace=yes` can be set to log all CURL activity using logs `http@debug`.\n\n", NULL);
+	gf_dynstrcat(&help, "Libcurl version: ", NULL);
+	curl_version_info_data *ver = curl_version_info(CURLVERSION_NOW);
+	gf_dynstrcat(&help, ver->version, NULL);
+	gf_dynstrcat(&help, "\nLibcurl options (name and value type):\n", NULL);
+	const struct curl_easyoption *opt = curl_easy_option_next(NULL);
+	while (opt) {
+		const char *otype=NULL;
+		switch (opt->type) {
+		case CURLOT_LONG: otype = "int"; break;
+		case CURLOT_VALUES: otype = "unsigned int"; break;
+		case CURLOT_OFF_T: otype = "unsigned long long"; break;
+		case CURLOT_STRING: otype = "string"; break;
+		default: break;
+		}
+		if (otype) {
+			gf_dynstrcat(&help, opt->name, "- ");
+			gf_dynstrcat(&help, otype, ": ");
+			gf_dynstrcat(&help, "\n", NULL);
+		}
+		opt = curl_easy_option_next(opt);
+	}
+	HTTPInRegister.help = help;
+	HTTPInRegister.register_free = httpin_reg_free;
+#endif
+
 	return &HTTPInRegister;
 }
 #else

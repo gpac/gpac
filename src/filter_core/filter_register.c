@@ -188,9 +188,11 @@ REG_DEC(ttml2vtt)
 REG_DEC(ttml2srt)
 REG_DEC(unframer)
 REG_DEC(writeuf)
+REG_DEC(ttmlmerge)
 REG_DEC(ghidmx)
 REG_DEC(evgs)
 REG_DEC(ccdec)
+REG_DEC(scte35dec)
 REG_DEC(mpeghdec)
 
 typedef const GF_FilterRegister *(*filter_reg_fun)(GF_FilterSession *session);
@@ -335,7 +337,6 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ffmx),
 	REG_IT(ffavf),
 	REG_IT(ffbsf),
-	REG_IT(ffbsf),
 
 	REG_IT(jsf),
 	REG_IT(routeout),
@@ -346,10 +347,12 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(oggmx),
 	REG_IT(unframer),
 	REG_IT(writeuf),
+	REG_IT(ttmlmerge),
 	REG_IT(uncvdec),
 	REG_IT(ghidmx),
 	REG_IT(evgs),
 	REG_IT(ccdec),
+	REG_IT(scte35dec),
 
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
 	REG_IT(wcdec),
@@ -398,7 +401,7 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 
 		const GF_FilterRegister *freg = BuiltinFilters[i].fun(a_sess);
 		if (!freg) continue;
-		assert( !strcmp(freg->name, BuiltinFilters[i].name));
+		gf_assert( !strcmp(freg->name, BuiltinFilters[i].name));
 		gf_fs_add_filter_register(fsess, freg);
 
 	}

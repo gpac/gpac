@@ -209,7 +209,7 @@ static void ft_stroke_border_close( FT_StrokeBorder  border )
 
 static s32 ft_stroke_border_lineto( FT_StrokeBorder  border, GF_Point2D*       to, Bool movable )
 {
-	assert(border->start >= 0);
+	gf_assert(border->start >= 0);
 
 	if ( border->movable ) {
 		/* move last point */
@@ -234,7 +234,7 @@ static s32 ft_stroke_border_lineto( FT_StrokeBorder  border, GF_Point2D*       t
 #if 0 //unused
 static s32 ft_stroke_border_conicto( FT_StrokeBorder  border, GF_Point2D*       control, GF_Point2D*       to )
 {
-	assert( border->start >= 0 );
+	gf_assert( border->start >= 0 );
 	if (ft_stroke_border_grow( border, 2 )==0) {
 		GF_Point2D*  vec = border->points + border->num_points;
 		u8 *tag = border->tags   + border->num_points;
@@ -259,7 +259,7 @@ static s32 ft_stroke_border_cubicto( FT_StrokeBorder  border,
                                      GF_Point2D*       control2,
                                      GF_Point2D*       to )
 {
-	assert( border->start >= 0 );
+	gf_assert( border->start >= 0 );
 
 	if (!ft_stroke_border_grow( border, 3 )) {
 		GF_Point2D*  vec = border->points + border->num_points;
@@ -1052,7 +1052,7 @@ static s32 ft_stroker_add_reverse_left( FT_Stroker *stroker, Bool     open )
 
 	if (!left->num_points) return 0;
 
-	assert( left->start >= 0 );
+	gf_assert( left->start >= 0 );
 	new_points = left->num_points - left->start;
 	if ( new_points > 0 ) {
 		error = ft_stroke_border_grow( right, (u32)new_points );

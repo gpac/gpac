@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -61,7 +61,7 @@
 #ifndef GPAC_DISABLE_SWF_IMPORT
 extern u32 swf_flags;
 #endif
-extern Float swf_flatten_angle;
+extern Double swf_flatten_angle;
 extern GF_FileType get_file_type_by_ext(char *inName);
 extern u32 fs_dump_flags;
 extern Bool dump_check_xml;
@@ -2531,7 +2531,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 					}
 					fprintf(stderr, " bpc)");
 				}
-				if (img_props.hOffset || img_props.vOffset)
+				if (img_props.hOffset || img_props.vOffset || (it_type==GF_ISOM_SUBTYPE_HVT1))
 					fprintf(stderr, " Offset %ux%u", img_props.hOffset, img_props.vOffset);
 				if (img_props.alpha) fprintf(stderr, " Alpha");
 				if (img_props.hidden) fprintf(stderr, " Hidden");
@@ -2544,7 +2544,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 
 		if (cenc_scheme) {
 			Bool is_protected;
-			u8 skip_byte_block, crypt_byte_block;
+			u32 skip_byte_block, crypt_byte_block;
 			const u8 *key_info;
 			u32 key_info_size;
 			fprintf(stderr, " - Protection scheme: %s v0x%08X", gf_4cc_to_str(cenc_scheme), cenc_version);
@@ -3600,7 +3600,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 
 
 	/*Crypto info*/
-	if (gf_isom_is_track_encrypted(file, trackNum)) {
+	if (gf_isom_is_media_encrypted(file, trackNum, stsd_idx)) {
 		const char *scheme_URI, *KMS_URI;
 		u32 scheme_type, version;
 		u32 IV_size;
@@ -3647,7 +3647,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 			const u8 *def_key;
 			u32 def_key_size;
 			Bool IsEncrypted;
-			u8 crypt_byte_block, skip_byte_block;
+			u32 crypt_byte_block, skip_byte_block;
 			IV_size = 0;
 			gf_isom_get_cenc_info(file, trackNum, stsd_idx, NULL, &scheme_type, &version);
 

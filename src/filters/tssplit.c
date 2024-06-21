@@ -191,7 +191,7 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			u8 *buffer;
 			Bool first_pck=GF_FALSE;
 			GF_M2TS_Program *prog = gf_list_get(ctx->dmx->programs, i);
-			assert(prog->pmt_pid);
+			gf_assert(prog->pmt_pid);
 
 			for (j=0; j<gf_list_count(ctx->streams); j++) {
 				stream = gf_list_get(ctx->streams, j);
@@ -338,6 +338,8 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			case GF_M2TS_SYSTEMS_MPEG4_PES:
 			case GF_M2TS_METADATA_PES:
 			case GF_M2TS_METADATA_ID3_HLS:
+			case GF_M2TS_METADATA_ID3_KLVA:
+			case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 				known_streams++;
 				break;
 			default:

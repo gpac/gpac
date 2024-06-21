@@ -144,7 +144,7 @@ struct SWFReader
 	/*performs an action, returns 0 if action not supported*/
 	Bool (*action)(SWFReader *read, SWFAction *act);
 
-	void (*finalize)(SWFReader *read);
+	void (*finalize)(SWFReader *read, Bool is_destroy);
 
 
 	/* <BIFS conversion state> */

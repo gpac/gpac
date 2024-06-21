@@ -56,7 +56,7 @@ typedef struct
 } MeshTess;
 
 static void CALLBACK mesh_tess_begin(GLenum which) {
-	assert(which==GL_TRIANGLES);
+	gf_assert(which==GL_TRIANGLES);
 }
 static void CALLBACK mesh_tess_end(void) {
 }

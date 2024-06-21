@@ -162,7 +162,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		}
 		/*scene size has been overridden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
-			assert(!(compositor->override_size_flags & 2));
+			gf_assert(!(compositor->override_size_flags & 2));
 			compositor->msg_type &= ~GF_SR_CFG_OVERRIDE_SIZE;
 			compositor->override_size_flags |= 2;
 			width = compositor->scene_width;
@@ -241,7 +241,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		}
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
 	}
-	if (notif_size) {
+	if (notif_size && compositor->vout) {
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(compositor->display_width));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(compositor->display_height));
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_MIRROR, compositor->is_opengl ? &PROP_UINT(1) : NULL );
@@ -331,6 +331,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 	Bool ret = GF_FALSE;
 
 	gf_sc_ar_send_or_reconfig(compositor->audio_renderer);
+	if (!compositor->vout) return GF_FALSE;
 
 	//frame still pending
 	if (compositor->frame_ifce.user_data)
@@ -442,7 +443,7 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 		}
 	}
 
-	
+
 #ifndef GPAC_DISABLE_3D
 	return compositor_3d_setup_fbo(evt->setup.width, evt->setup.height, &compositor->fbo_id, &compositor->fbo_tx_id, &compositor->fbo_depth_id);
 #else
@@ -692,6 +693,20 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 	if (!gf_opts_get_key("core", "video-output")) {
 		gf_opts_set_key("core", "video-output", compositor->video_out->module_name);
 	}
+	//also send a video setup as some drivers may init openGL only then
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_VIDEO_SETUP;
+	evt.setup.width = 128;
+	evt.setup.height = 128;
+	evt.setup.disable_vsync = compositor->bench_mode ? GF_TRUE : GF_FALSE;
+
+#ifndef GPAC_DISABLE_3D
+	evt.setup.use_opengl = GF_TRUE;
+	evt.setup.system_memory = GF_FALSE;
+	evt.setup.back_buffer = GF_TRUE;
+#endif
+	compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 	gf_filter_register_opengl_provider(compositor->filter, GF_TRUE);
 	return GF_OK;
 }
@@ -1257,7 +1272,7 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 	}
 #endif
 
-	assert(!compositor->visual->overlays);
+	gf_assert(!compositor->visual->overlays);
 
 	compositor->reset_graphics = 0;
 	compositor->trans_x = compositor->trans_y = 0;
@@ -1380,6 +1395,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			do_notif = 1;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
+				if (width>=GF_INT_MAX)
+					width = SC_DEF_WIDTH;
 			} else if ((u32) FIX2INT(vb->width)<compositor->video_out->max_screen_width)  {
 				width = FIX2INT(vb->width);
 			} else {
@@ -1388,6 +1405,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
 				height = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, h) );
+				if (height>=GF_INT_MAX)
+					height = SC_DEF_WIDTH;
 			} else if ((u32) FIX2INT(vb->height)<compositor->video_out->max_screen_height)  {
 				height = FIX2INT(vb->height);
 			} else {
@@ -1506,7 +1525,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	compositor->new_width = NewWidth;
 	compositor->new_height = NewHeight;
 	compositor->msg_type |= GF_SR_CFG_SET_SIZE;
-	assert(compositor->new_width);
+	gf_assert(compositor->new_width);
 
 	/*if same size only request for video setup */
 	compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
@@ -2137,7 +2156,7 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 		diff -= compositor->frame_time[fidx];
 		if (diff<0) {
 			diff += 0xFFFFFFFFUL;
-			assert(diff >= 0);
+			gf_assert(diff >= 0);
 		}
 		run_time = (u32) diff;
 		frames = GF_SR_FPS_COMPUTE_SIZE-1;
@@ -2760,7 +2779,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			compositor->scene_sampled_clock = compositor->passthrough_txh->last_frame_time + dur;
 		}
 	}
-	
+
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
 	//forced a relayout - do it right away
 	if (compositor->msg_type) {
@@ -3120,7 +3139,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 						next_frame = pck_frame_ts + gf_filter_pck_get_duration(pck);
 						next_frame *= 1000;
 						next_frame /= compositor->passthrough_timescale;
-						assert(next_frame>=compositor->scene_sampled_clock);
+						gf_assert(next_frame>=compositor->scene_sampled_clock);
 						compositor->scene_sampled_clock = (u32) next_frame;
 					}
 					// if buffering, remember to update clock at next frame
@@ -3217,7 +3236,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				res *= compositor->fps.den;
 				res *= 1000;
 				res /= compositor->fps.num;
-				assert(res >= compositor->scene_sampled_clock);
+				gf_assert(res >= compositor->scene_sampled_clock);
 				compositor->scene_sampled_clock = (u32) res;
 			}
 
@@ -4275,7 +4294,7 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, G
 Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms, u32 dur_in_ms)
 {
 	Bool is_early=GF_FALSE;
-	assert(odm);
+	gf_assert(odm);
 
 	if (for_pid)
 		gf_odm_check_buffering(odm, for_pid);
@@ -4699,13 +4718,13 @@ void gf_sc_connect_from_time(GF_Compositor *compositor, const char *URL, u64 sta
 			}
 		}
 		if (is_self) return;
-		
+
 		/*disconnect*/
 		gf_sc_disconnect(compositor);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] Connecting to %s\n", URL));
 
-	assert(!compositor->root_scene);
+	gf_assert(!compositor->root_scene);
 
 	/*create a new scene*/
 	scene = gf_scene_new(compositor, NULL);

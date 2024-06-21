@@ -255,7 +255,7 @@ static const GF_FilterCapability MHASMxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_MHASMxCtx, _n)
 static const GF_FilterArgs MHASMxArgs[] =
 {
-	{ OFFS(syncp), "if set, insert sync packet at each frame, otherwise only at SAP", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(syncp), "if set, insert sync packet at each frame, otherwise only at SAP", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

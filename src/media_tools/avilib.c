@@ -1804,6 +1804,7 @@ int AVI_close(avi_t *AVI)
 
 #define ERR_EXIT(x) \
 { \
+   if (hdrl_data) { gf_free(hdrl_data); hdrl_data=NULL; }\
    AVI_close(AVI); \
    AVI_errno = x; \
    return 0; \
@@ -1886,7 +1887,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 {
 	int rate, scale, idx_type;
 	s64 n, i;
-	unsigned char *hdrl_data;
+	unsigned char *hdrl_data = NULL;
 	u64 header_offset=0;
 	int hdrl_len=0;
 	int nvi, nai[AVI_MAX_TRACKS], ioff;
@@ -1949,7 +1950,6 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				header_offset = gf_ftell(AVI->fdes);
 
 				if( avi_read(AVI->fdes,(char *)hdrl_data, (u32) n) != n ) {
-					if (hdrl_data) gf_free(hdrl_data);
 					ERR_EXIT(AVI_ERR_READ)
 				}
 			}
@@ -1968,14 +1968,12 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			AVI->n_idx = AVI->max_idx = (u32) (n/16);
 			AVI->idx = (unsigned  char((*)[16]) ) gf_malloc((u32)n);
 			if(AVI->idx==0) {
-				if (hdrl_data) gf_free(hdrl_data);
 				ERR_EXIT(AVI_ERR_NO_MEM)
 			}
 			if(avi_read(AVI->fdes, (char *) AVI->idx, (u32) n) != n ) {
 				gf_free( AVI->idx);
 				AVI->idx=NULL;
 				AVI->n_idx = 0;
-				if (hdrl_data) gf_free(hdrl_data);
 				ERR_EXIT(AVI_ERR_READ)
 			}
 		}
@@ -2000,6 +1998,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 					i+= 12;
 					continue;
 				}
+				if (i+4>=hdrl_len) ERR_EXIT(AVI_ERR_READ)
 
 				n = str2ulong(hdrl_data+i+4);
 				n = PAD_EVEN(n);
@@ -2318,6 +2317,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			}
 
 	gf_free(hdrl_data);
+	hdrl_data = NULL;
 
 	if(!vids_strh_seen || !vids_strf_seen) ERR_EXIT(AVI_ERR_NO_VIDS)
 
@@ -3036,7 +3036,8 @@ int AVI_set_audio_position(avi_t *AVI, int byte)
 
 int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 {
-	int nr, todo;
+	int nr;
+	u32 todo;
 	s64 pos;
 
 	if(AVI->mode==AVI_MODE_WRITE) {
@@ -3059,7 +3060,7 @@ int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 	while(bytes>0)
 	{
 		s64 ret;
-		int left = (int) (AVI->track[AVI->aptr].audio_index[AVI->track[AVI->aptr].audio_posc].len - AVI->track[AVI->aptr].audio_posb);
+		u32 left = (u32) (AVI->track[AVI->aptr].audio_index[AVI->track[AVI->aptr].audio_posc].len - AVI->track[AVI->aptr].audio_posb);
 		if(left==0)
 		{
 			if(AVI->track[AVI->aptr].audio_posc>=AVI->track[AVI->aptr].audio_chunks-1) return nr;
@@ -3068,16 +3069,16 @@ int AVI_read_audio(avi_t *AVI, u8 *audbuf, int bytes, int *continuous)
 			*continuous = 0;
 			continue;
 		}
-		if(bytes<left)
+		if((u32)bytes<left)
 			todo = bytes;
 		else
 			todo = left;
 		pos = AVI->track[AVI->aptr].audio_index[AVI->track[AVI->aptr].audio_posc].pos + AVI->track[AVI->aptr].audio_posb;
 		gf_fseek(AVI->fdes, pos, SEEK_SET);
-		AVI->track[AVI->aptr].audio_posb += todo;
-		if ( (ret = avi_read(AVI->fdes,audbuf+nr,todo)) != todo)
+		AVI->track[AVI->aptr].audio_posb += (int)todo;
+		if ( (ret = avi_read(AVI->fdes,audbuf+nr,todo)) != (s64)todo)
 		{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] XXX pos = %"LLD", ret = %"LLD", todo = %ld\n", pos, ret, todo));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] XXX pos = "LLD", ret = "LLD", todo = %ld\n", pos, ret, todo));
 			AVI_errno = AVI_ERR_READ;
 			return -1;
 		}

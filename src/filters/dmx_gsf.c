@@ -75,7 +75,7 @@ typedef struct
 	u32 pad, mq;
 
 
-	//only one output pid declared
+	//only one input pid declared
 	GF_FilterPid *ipid;
 
 	GF_List *streams;
@@ -328,6 +328,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	case GF_PROP_NAME:
 		p->type = GF_PROP_STRING_NO_COPY;
 		len = gsfdmx_read_vlen(bs);
+		if (len >= GF_UINT_MAX-1) {
+			p->value.string = NULL;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in string property\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		p->value.string = gf_malloc(sizeof(char)*(len+1));
 		gf_bs_read_data(bs, p->value.string, len);
 		p->value.string[len]=0;
@@ -338,6 +343,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	case GF_PROP_CONST_DATA:
 		p->type = GF_PROP_DATA_NO_COPY;
 		p->value.data.size = gsfdmx_read_vlen(bs);
+		if (!p->value.data.size) return GF_NON_COMPLIANT_BITSTREAM;
 		p->value.data.ptr = gf_malloc(sizeof(char) * p->value.data.size);
 		gf_bs_read_data(bs, p->value.data.ptr, p->value.data.size);
 		break;
@@ -348,6 +354,16 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		p->value.string_list.vals = gf_malloc(sizeof(char*) * len2);
 		for (i=0; i<len2; i++) {
 			len = gsfdmx_read_vlen(bs);
+			if (len >= GF_UINT_MAX-1) {
+				for (u32 j=0; j<i; j++) {
+					gf_free(p->value.string_list.vals[j]);
+					p->value.string_list.vals[j] = NULL;
+				}
+				p->value.string_list.nb_items = 0;
+				gf_free(p->value.string_list.vals);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid string length in string list property\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			char *str = gf_malloc(sizeof(char)*(len+1));
 			gf_bs_read_data(bs, str, len);
 			str[len] = 0;
@@ -447,7 +463,7 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 
 		memset(&p, 0, sizeof(GF_PropertyValue));
 		p.type = gf_props_4cc_get_type(p4cc);
-		if (p.type==GF_PROP_FORBIDEN) {
+		if (p.type==GF_PROP_FORBIDDEN) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC property type for property 4CC %s\n", gf_4cc_to_str(p4cc) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -497,6 +513,9 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		GF_PropertyValue p;
 
 		u32 len = gsfdmx_read_vlen(bs);
+		if (len >= GF_UINT_MAX-1)
+			return GF_BAD_PARAM;
+
 		char *pname = gf_malloc(sizeof(char)*(len+1));
 		gf_bs_read_data(bs, pname, len);
 		pname[len]=0;
@@ -610,8 +629,8 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 	if ((frame_sn>=0) || pck_frag) {
 		while (( gpck = gf_list_enum(gst->packets, &i))) {
 			if (gpck->frame_sn == frame_sn) {
-				assert(gpck->pck_type == pkt_type);
-				assert(gpck->full_block_size == frame_size);
+				gf_assert(gpck->pck_type == pkt_type);
+				gf_assert(gpck->full_block_size == frame_size);
 
 				break;
 			}
@@ -661,7 +680,7 @@ static void gsfdmx_packet_append_frag(GSF_Packet *pck, u32 size, u32 offset)
 	pck->recv_bytes += size;
 	pck->nb_recv_frags++;
 
-	assert(offset + size <= pck->full_block_size);
+	gf_assert(offset + size <= pck->full_block_size);
 
 	for (i=0; i<pck->nb_frags; i++) {
 		if ((pck->frags[i].offset <= offset) && (pck->frags[i].offset + pck->frags[i].size >= offset + size) ) {
@@ -822,7 +841,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			memset(&p, 0, sizeof(GF_PropertyValue));
 			u32 p4cc = gf_bs_read_u32(bs);
 			p.type = gf_props_4cc_get_type(p4cc);
-			if (p.type==GF_PROP_FORBIDEN) {
+			if (p.type==GF_PROP_FORBIDDEN) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC property type for property 4CC %s\n", gf_4cc_to_str(p4cc) ));
 				gf_filter_pck_discard(gpck->pck);
 				gpck->pck = NULL;
@@ -851,7 +870,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			gf_bs_read_data(bs, pname, len);
 			pname[len] = 0;
 			p.type = gf_bs_read_u8(bs);
-			if (p.type==GF_PROP_FORBIDEN) {
+			if (p.type==GF_PROP_FORBIDDEN) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC property type for property %s\n", pname ));
 				gf_free(pname);
 				gf_filter_pck_discard(gpck->pck);
@@ -879,9 +898,9 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	consumed = (u32) gf_bs_get_position(bs) - spos;
 	pck_len -= consumed;
 	if (full_pck) {
-		assert(gpck->full_block_size > consumed);
+		if (gpck->full_block_size < consumed) return GF_NON_COMPLIANT_BITSTREAM;
 		gpck->full_block_size -= consumed;
-		assert(gpck->full_block_size == pck_len);
+		if (gpck->full_block_size != pck_len) return GF_NON_COMPLIANT_BITSTREAM;
 		gf_filter_pck_truncate(gpck->pck, gpck->full_block_size);
 	}
 	copy_size = gpck->full_block_size;
@@ -971,7 +990,7 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 				return GF_OK;
 			}
 		}
-		assert(gpck->pck);
+		gf_assert(gpck->pck);
 		if (ctx->use_seq_num) {
 			u32 frame_sn;
 			if (!gst->last_frame_sn) frame_sn = gpck->frame_sn;
@@ -997,7 +1016,10 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 				e = gsfdmx_parse_pid_info(filter, ctx, gst, gpck, (gpck->pck_type==GFS_PCKTYPE_PID_INFO_UPDATE) ? GF_TRUE : GF_FALSE);
 			else
 				e = GF_CORRUPTED_DATA;
-			if (gpck->pck) gf_filter_pck_discard(gpck->pck);
+			if (gpck->pck) {
+				gf_filter_pck_discard(gpck->pck);
+				gpck->pck=NULL;
+			}
 			break;
 		case GFS_PCKTYPE_PID_REMOVE:
 			if (gpck->pck) {
@@ -1095,7 +1117,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		//buffer was not big enough to contain all the vlen fields, we need more data
 		if (ctx->buffer_too_small)
 			break;
-			
+
 		if (full_pck) {
 			block_size = pck_len;
 			block_offset = 0;
@@ -1106,7 +1128,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 			break;
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFDemux] found %s on stream %d type %s cryped %d sn %d size %d block_offset %d, hdr size %d at position %d\n",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFDemux] found %s on stream %d type %s crypted %d sn %d size %d block_offset %d, hdr size %d at position %d\n",
 					(pck_len==block_size) ? "full packet" : (pck_frag ? "packet fragment" : "packet start"),
 					st_idx,
 					gsfdmx_pck_name(pck_type),
@@ -1117,7 +1139,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		if ((pck_type != GFS_PCKTYPE_PCK) && (pck_frag || (pck_len < block_size)))
 			needs_agg = GF_TRUE;
 
-		//tunein, we don't care about the seq num (for now, might chenge if we want key roll or other order-dependent features)
+		//tunein, we don't care about the seq num (for now, might change if we want key roll or other order-dependent features)
 		if (!st_idx) {
 			if (ctx->tuned) {
 			} else if (needs_agg) {
@@ -1177,6 +1199,12 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 					}
 					if (!e)
 						e = gsfdmx_process_packets(filter, ctx, gst);
+					else if (gpck) {
+						gf_list_del_item(gst->packets, gpck);
+						if (gpck->pck) gf_filter_pck_discard(gpck->pck);
+						gsfdmx_pck_reset(gpck);
+						gf_list_add(ctx->pck_res, gpck);
+					}
 				}
 			}
 		}
@@ -1191,7 +1219,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 	}
 
 	if (last_pck_end) {
-		assert(ctx->buf_size>=last_pck_end);
+		gf_fatal_assert(ctx->buf_size>=last_pck_end);
 		memmove(ctx->buffer, ctx->buffer+last_pck_end, sizeof(char) * (ctx->buf_size-last_pck_end));
 		ctx->buf_size -= last_pck_end;
 	}
@@ -1232,7 +1260,7 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	}
 
 	//check if all the streams are in block state, if so return.
-	//we need to check for all output since one pid could still be buffering
+	//we need to check for all outputs since one pid could still be buffering
 	while ((st = gf_list_enum(ctx->streams, &i))) {
 		if (st->opid) {
 			if (is_eos) {
@@ -1272,13 +1300,16 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 	while (buf) {
 		char *start_sig = memchr(buf, 'G', avail);
 		if (!start_sig) return NULL;
+		buf = start_sig;
+		avail = data_size - (u32) ( buf - (char *) data);
+		if (avail<5) return NULL;
 		//signature found and version is 2
 		if (!strncmp(start_sig, "GS5F", 4) && (start_sig[4] == GF_GSF_VERSION)) {
 			*score = GF_FPROBE_SUPPORTED;
 			return "application/x-gpac-sf";
 		}
-		buf = start_sig+1;
-		avail = data_size - (u32) ( buf - (char *) data);
+		buf ++;
+		avail --;
 	}
 	return NULL;
 }
@@ -1373,9 +1404,8 @@ GF_FilterRegister GSFDemuxRegister = {
 #endif
 		,
 #endif
-	
+
 	.private_size = sizeof(GSF_DemuxCtx),
-	.max_extra_pids = (u32) -1,
 	.args = GSFDemuxArgs,
 	.flags = GF_FS_REG_DYNAMIC_PIDS,
 	SETCAPS(GSFDemuxCaps),
@@ -1398,4 +1428,3 @@ const GF_FilterRegister *gsfdmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_GSFDMX
-

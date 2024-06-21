@@ -158,7 +158,7 @@ void gf_js_lock(struct JSContext *cx, Bool LockIt)
 GF_EXPORT
 Bool gf_js_try_lock(struct JSContext *cx)
 {
-	assert(cx);
+	gf_assert(cx);
 	if (gf_mx_try_lock(js_rt->mx)) {
 		return 1;
 	}
@@ -2293,7 +2293,7 @@ static JSValue js_audio_mix(JSContext *ctx, JSValueConst this_val, int argc, JSV
 
 			u32 s_pos = pid->samples_used + pid->consumed;
 			if (s_pos >= pid->nb_samples) {
-				assert(0);
+				gf_assert(0);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[AVMix] error mixing\n"));
 			}
 			u32 pos = s_pos * pid->channels;

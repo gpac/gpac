@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH Vorbis decoder filter
@@ -276,7 +276,7 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 		ctx->last_cts += total_samples;
 	}
 
-	assert(size == total_bytes);
+	gf_assert(size == total_bytes);
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
 }

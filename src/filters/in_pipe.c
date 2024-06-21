@@ -303,7 +303,7 @@ static Bool pipein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] Seek request not possible on pipes, ignoring\n"));
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
-		assert(ctx->is_end);
+		gf_fatal_assert(ctx->is_end);
 		if (evt->seek.source_switch) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] source switch request not possible on pipes, ignoring\n"));
 		}
@@ -347,7 +347,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 		return GF_EOS;
 
 	if (ctx->pid && gf_filter_pid_would_block(ctx->pid)) {
-		assert(0);
+		gf_assert(0);
 		return GF_OK;
 	}
 

@@ -23,7 +23,6 @@
  *
  */
 
-
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
@@ -305,7 +304,6 @@ void wcdec_on_frame_copy(GF_WCDecCtx *ctx, GF_FilterPacket *pck, int res_ok)
 
 	if (!ctx->pending_frames && (ctx->in_flush==2))
 		gf_filter_pid_set_eos(ctx->opid);
-
 }
 
 u32 webcodec_pixfmt_to_gpac(char *format)
@@ -538,7 +536,7 @@ static GF_Err wcdec_process(GF_Filter *filter)
 			return GF_OK;
 		}
 		in_buffer = (u8 *) gf_filter_pck_get_data(pck, &in_buffer_size);
-		cts = gf_timestamp_rescale( gf_filter_pck_get_cts(pck), ctx->timescale, 1000000);
+		cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->timescale, 1000000);
 		sap = gf_filter_pck_get_sap(pck);
 		//queue input
 		if (ctx->width) {

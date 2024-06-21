@@ -269,7 +269,9 @@ restart:
 			ctx->wait_pid = ctx->base_id;
 			return GF_OK;
 		} else if (!ctx->ttimeout || (!ctx->force_flush && (gf_sys_clock() - ctx->wait_start < ctx->ttimeout))) {
-			gf_filter_ask_rt_reschedule(filter, 1000);
+			//if not playing don't reschedule
+			if (ctx->is_playing)
+				gf_filter_ask_rt_reschedule(filter, 1000);
 			return GF_OK;
 		}
 		ctx->wait_pid = 0;
@@ -575,6 +577,7 @@ GF_FilterRegister TileAggRegister = {
 	GF_FS_SET_DESCRIPTION("HEVC tile aggregator")
 	GF_FS_SET_HELP("This filter aggregates a set of split tiled HEVC streams (`hvt1` or `hvt2` in ISOBMFF) into a single HEVC stream.")
 	.private_size = sizeof(GF_TileAggCtx),
+	.flags = GF_FS_REG_DYNAMIC_REUSE,
 	SETCAPS(TileAggCaps),
 	.initialize = tileagg_initialize,
 	.finalize = tileagg_finalize,

@@ -728,7 +728,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 	video_src.global_alpha = alpha;
 
-	//overlay queing
+	//overlay queuing
 	if (overlay_type==2) {
 		GF_IRect o_rc;
 		GF_OverlayStack *ol, *first;

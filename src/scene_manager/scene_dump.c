@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -759,7 +759,7 @@ static void gf_dump_vrml_simple_field(GF_SceneDumper *sdump, GF_FieldInfo field,
 		return;
 	case GF_SG_VRML_MFNODE:
 		list = * ((GF_ChildNodeItem **) field.far_ptr);
-		assert( list );
+		gf_assert( list );
 		sdump->indent++;
 		while (list) {
 			gf_dump_vrml_node(sdump, list->node, 1, NULL);
@@ -858,7 +858,7 @@ static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInf
 		}
 #endif
 		list = * ((GF_ChildNodeItem **) field.far_ptr);
-		assert(list);
+		gf_assert(list);
 		if (!sdump->XMLDump || !sdump->X3DDump) StartList(sdump, field.name);
 		sdump->indent++;
 		while (list) {
@@ -2909,7 +2909,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			break;
 		case GF_SG_SCENE_REPLACE:
 			/*we don't support replace scene in conditional*/
-			assert(!sdump->current_com_list);
+			gf_assert(!sdump->current_com_list);
 			sdump->current_com_list = comList;
 			e = DumpSceneReplace(sdump, com);
 			sdump->current_com_list = NULL;
@@ -3396,7 +3396,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 	}
 	/*this happens when converting from xmt to bt*/
 	if (!au->timing) {
-		assert(au->owner->timeScale);
+		gf_assert(au->owner->timeScale);
 		au->timing = (u64) (au->timing_sec * au->owner->timeScale);
 	}
 

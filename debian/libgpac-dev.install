@@ -1,2 +1,3 @@
 debian/tmp/usr/include
 debian/tmp/usr/lib/libgpac_static.a
+debian/tmp/usr/lib/pkgconfig
