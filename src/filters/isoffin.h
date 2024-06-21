@@ -129,7 +129,7 @@ typedef struct
 	GF_Err in_error;
 	Bool force_fetch;
 
-	u32 extkid;
+	u32 extkid, orig_id;
 	GF_ISOFile *extkmov;
 	u32 extk_flags;
 	Bool extk;
