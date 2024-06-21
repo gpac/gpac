@@ -460,8 +460,6 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 					/*u8 segment_num = */gf_bs_read_u8(bs);
 					/*u8 segments_expected = */gf_bs_read_u8(bs);
 
-					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found segmentation_descriptor() segmentation_type_id=%u\n", segmentation_type_id));
-
 					switch (segmentation_type_id)
 					{
 					case 0x10:
@@ -482,6 +480,8 @@ static void scte35dec_get_timing(const u8 *data, u32 size, u64 *pts, u32 *dur, u
 					default:
 						break;
 					}
+
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Scte35Dec] Found segmentation_descriptor() segmentation_type_id=%u (needs_idr=%u)\n", segmentation_type_id, *needs_idr));
 				}
 			}
 			break;
@@ -597,7 +597,7 @@ static GF_Err scte35dec_process_passthrough(SCTE35DecCtx *ctx, GF_FilterPacket *
 
 	u64 cts = gf_filter_pck_get_cts(pck);
 	if (scte35dec_is_splice_point(ctx, cts)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU "\n", cts));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Scte35Dec] Detected splice point at cts=" LLU " - adding cue start property\n", cts));
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 	}
 
@@ -665,8 +665,8 @@ static const GF_FilterCapability SCTE35DecCaps[] =
 static const GF_FilterArgs SCTE35DecArgs[] =
 {
 	{ OFFS(mode), "mode to operate in\n"
-		"- 23001-18: extract SCTE-35 markers as emib boxes\n"
-		"- passthrough: pass-through mode", GF_PROP_UINT, "23001-18", "23001-18|passthrough", 0},
+		"- 23001-18: extract SCTE-35 markers as emib/emeb boxes for Event Tracks\n"
+		"- passthrough: pass-through mode adding cue start property on splice points", GF_PROP_UINT, "23001-18", "23001-18|passthrough", 0},
 	{ OFFS(segdur), "segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)", GF_PROP_FRACTION, "1/1", NULL, 0},
 	{0}
 };
