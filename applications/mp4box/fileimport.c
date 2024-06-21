@@ -1614,8 +1614,9 @@ reparse_opts:
 		} else {
 			u32 type = gf_isom_get_media_type(isom_in, ext_tk);
 			u32 timescale = gf_isom_get_media_timescale(isom_in, ext_tk);
-
 			new_tk = gf_isom_new_external_track(dest, 0, track_id, type, timescale, final_name);
+
+			u32 mvscale = gf_isom_get_timescale(dest);
 
 			if (new_tk) {
 				u32 w, h;
@@ -1623,6 +1624,14 @@ reparse_opts:
 				s16 layer;
 				if (gf_isom_get_track_layout_info(isom_in, ext_tk, &w, &h, &tx, &ty, &layer)==GF_OK) {
 					gf_isom_set_track_layout_info(dest, new_tk, w<<16, h<<16, tx<<16, ty<<16, layer);
+				}
+				if (import.duration.num>=0) {
+					u64 dur;
+					if (import.duration.num)
+						dur = gf_timestamp_rescale(import.duration.num, import.duration.den, mvscale);
+					else
+						dur = gf_timestamp_rescale(gf_isom_get_track_duration(isom_in, ext_tk), gf_isom_get_timescale(isom_in), mvscale);
+					gf_isom_force_track_duration(dest, new_tk, dur);
 				}
 			}
 		}

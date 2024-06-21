@@ -893,6 +893,19 @@ u32 gf_isom_new_external_track(GF_ISOFile *movie, GF_ISOTrackID trakID, GF_ISOTr
 }
 
 GF_EXPORT
+GF_Err gf_isom_force_track_duration(GF_ISOFile *movie, u32 trackNumber, u64 dur)
+{
+	GF_TrackBox *trak;
+	GF_Err e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !trak->Header) return GF_BAD_PARAM;
+	trak->Header->duration = dur;
+	return GF_OK;
+}
+
+
+GF_EXPORT
 GF_Err gf_isom_remove_stream_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex)
 {
 	GF_TrackBox *trak;

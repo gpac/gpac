@@ -1934,6 +1934,14 @@ GF_Err gf_isom_remove_track(GF_ISOFile *isom_file, u32 trackNumber);
 */
 GF_Err gf_isom_set_track_enabled(GF_ISOFile *isom_file, u32 trackNumber, Bool enableTrack);
 
+/*! forces the track duration - should only be used for external tracks
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param duration track duration in movie timescale
+\return error if any
+*/
+GF_Err gf_isom_force_track_duration(GF_ISOFile *isom_file, u32 trackNumber, u64 duration);
+
 /*! Track header flags operation type*/
 typedef enum
 {

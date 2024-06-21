@@ -6371,7 +6371,10 @@ GF_Err grptype_box_dump(GF_Box *a, FILE * trace)
 		a->type = GF_4CC('u','k','n','w');
 	gf_isom_box_dump_start(a, "EntityToGroupTypeBox", trace);
 	a->type = GF_ISOM_BOX_TYPE_GRPT;
-	gf_fprintf(trace, "group_id=\"%d\">\n", ptr->group_id);
+	gf_fprintf(trace, "group_id=\"%d\"", ptr->group_id);
+	if (ptr->data) dump_data_attribute(trace, "data", ptr->data, ptr->data_len);
+	else if (!ptr->size) gf_fprintf(trace, " data=\"\"");
+	gf_fprintf(trace, ">\n");
 
 	for (i=0; i<ptr->entity_id_count ; i++)
 		gf_fprintf(trace, "<EntityToGroupTypeBoxEntry EntityID=\"%d\"/>\n", ptr->entity_ids[i]);

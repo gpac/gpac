@@ -871,7 +871,7 @@ MP4BoxArg m4b_imp_args[] =
 
 
 static MP4BoxArg m4b_imp_fileopt_args [] = {
-	GF_DEF_ARG("dur", NULL, "`XC` import only the specified duration from the media. Value can be:\n"
+	GF_DEF_ARG("dur", NULL, "`XCE` import only the specified duration from the media. Value can be:\n"
 		"  - positive float: specifies duration in seconds\n"
 		"  - fraction: specifies duration as NUM/DEN fraction\n"
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
