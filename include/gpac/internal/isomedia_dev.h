@@ -2193,6 +2193,9 @@ typedef struct
 	u32 group_id;
 	u32 entity_id_count;
 	u32 *entity_ids;
+	u8 *data;
+	u32 data_len;
+
 } GF_EntityToGroupTypeBox;
 
 typedef struct

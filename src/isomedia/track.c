@@ -405,7 +405,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 	if (!trackDuration && trak->Media) {
 		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
 	}
-	if (!trak->Header) {
+	if (!trak->Header || (trak->extl && (trackDuration==0xFFFFFFFF))) {
 		return GF_OK;
 	}
 	trak->Header->duration = trackDuration;
