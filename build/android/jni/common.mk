@@ -1,6 +1,6 @@
 COMMON_PATH := $(call my-dir)
 
-# Common Flags for ligpac and modules
+# Common Flags for libgpac and modules
 LOCAL_CFLAGS += -DGPAC_CONFIG_ANDROID
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DXP_UNIX

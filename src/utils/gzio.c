@@ -407,7 +407,7 @@ int gf_gzread(void *file, voidp buf, unsigned len)
 			uInt n = s->stream.avail_in;
 			if (n > s->stream.avail_out) n = s->stream.avail_out;
 			if (n > 0) {
-				zmemcpy(s->stream.next_out, s->stream.next_in, n);
+				memcpy(s->stream.next_out, s->stream.next_in, n);
 				next_out += n;
 				s->stream.next_out = next_out;
 				s->stream.next_in   += n;

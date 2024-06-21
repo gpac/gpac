@@ -1268,7 +1268,7 @@ speed_crc=4202574190
 desc=CENC, ISMA and adobe decryptor
 desc_crc=3286015280
 help=@The CENC/ISMA decryptor uses a configuration file for retrieving keys. The syntax is available at:
-https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+https://gpac.io/mp4box/encryption/common-encryption/
 The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority)
 or set at the filter option level (lowest priority).
 When the file set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.@
@@ -1279,7 +1279,7 @@ cfile_crc=3044696728
 desc=CENC and ISMA encryptor
 desc_crc=2608147056
 help=@The CENC/ISMA encryptor uses a configuration file for declaring keys. The syntax is available at:
-https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+https://gpac.io/mp4box/encryption/common-encryption/
 The file can be set per PID using the property CryptFile, or set at the filter option level.
 When the file is set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.@
 help_crc=1527605354

@@ -593,12 +593,12 @@ void set_prop(DOMString name, FilterProperty prop, optional boolean is_user=fals
 */
 void set_info(DOMString name, FilterProperty prop, optional boolean is_user=false);
 
-/*! negociates property on an output pid - see \ref gf_filter_pid_negociate_property and \ref gf_filter_pid_negociate_property_str
+/*! negotiates property on an output pid - see \ref gf_filter_pid_negotiate_property and \ref gf_filter_pid_negotiate_property_str
 \param name the ID or name of the builtin property
 \param prop the property to set
 \param is_user if set, indicates the queried property is a user-defined property rather than a built-in property
 */
-void negociate_prop(DOMString name, FilterProperty prop, optional boolean is_user=false);
+void negotiate_prop(DOMString name, FilterProperty prop, optional boolean is_user=false);
 /*! removes an output pid - see \ref gf_filter_pid_remove*/
 void remove();
 

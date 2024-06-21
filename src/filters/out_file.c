@@ -27,6 +27,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/xml.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_FOUT
 
@@ -81,6 +82,7 @@ typedef struct
 	Bool gfio_pending;
 
 	u64 last_file_size;
+	Bool use_rel;
 
 #ifdef GPAC_HAS_FD
 	Bool no_fd;
@@ -169,7 +171,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		if (ctx->use_templates) {
 			GF_Err e;
 			char szName[GF_MAX_PATH];
-			assert(ctx->dst);
+			gf_assert(ctx->dst);
 			if (!strcmp(filename, ctx->dst)) {
 				strcpy(szName, szFinalName);
 				e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);
@@ -445,12 +447,13 @@ static GF_Err fileout_process(GF_Filter *filter)
 	u32 pck_size, nb_write;
 	GF_FileOutCtx *ctx = (GF_FileOutCtx *) gf_filter_get_udta(filter);
 
+	pck = gf_filter_pid_get_packet(ctx->pid);
+
 restart:
 
 	if (ctx->error)
 		return ctx->error;
 
-	pck = gf_filter_pid_get_packet(ctx->pid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->pid) && !gf_filter_pid_is_flush_eos(ctx->pid)) {
 			if (gf_filter_reporting_enabled(filter)) {
@@ -531,6 +534,7 @@ restart:
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null close (file name was %s)\n", ctx->szFileName));
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
+		pck = gf_filter_pid_get_packet(ctx->pid);
 		goto restart;
 	}
 
@@ -590,7 +594,7 @@ restart:
 	}
 
 	if (start) {
-		const GF_PropertyValue *ext, *fnum, *fsuf;
+		const GF_PropertyValue *ext, *fnum, *fsuf, *rel;
 		Bool explicit_overwrite = GF_FALSE;
 		const char *name = NULL;
 		fname = ext = NULL;
@@ -614,7 +618,21 @@ restart:
 			explicit_overwrite = GF_TRUE;
 
 		if (name) {
+			Bool use_rel = GF_FALSE;
+			if (ctx->dst) {
+				use_rel = ctx->use_rel;
+				rel = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_REL);
+				if (rel && rel->value.boolean) use_rel = GF_TRUE;
+			}
+			if (use_rel) {
+				name = gf_url_concatenate(ctx->dst, name);
+			}
 			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite, fsuf ? fsuf->value.string : NULL);
+
+			if (use_rel) {
+				gf_free((char*) name);
+			}
+
 		} else if (!ctx->file && !ctx->noinitraw
 #ifdef GPAC_HAS_FD
 			&& (ctx->fd<0)
@@ -864,6 +882,10 @@ check_gfio:
 		}
 		fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 	}
+	pck = gf_filter_pid_get_packet(ctx->pid);
+	if (pck)
+		goto restart;
+
 	if (gf_filter_reporting_enabled(filter)) {
 		char szStatus[1024];
 		snprintf(szStatus, 1024, "%s: wrote % 16"LLD_SUF" bytes", gf_file_basename(ctx->szFileName), (s64) ctx->nb_write);
@@ -880,7 +902,13 @@ static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null delete (file name was %s)\n", evt->file_del.url));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] delete file %s\n", evt->file_del.url));
-			gf_file_delete(evt->file_del.url);
+			if (ctx->use_rel) {
+				char *fname = gf_url_concatenate(ctx->dst, evt->file_del.url);
+				gf_file_delete(fname);
+				gf_free(fname);
+			} else {
+				gf_file_delete(evt->file_del.url);
+			}
 		}
 		return GF_TRUE;
 	}
@@ -927,6 +955,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(noinitraw), "do not produce initial segment", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(max_cache_segs), "maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_null), "force no output regardless of file name", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(use_rel), "packet filename use relative names (only set by dasher)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 

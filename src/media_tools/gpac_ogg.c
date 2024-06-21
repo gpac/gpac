@@ -363,6 +363,8 @@ void oggpackB_adv1(oggpack_buffer *b) {
 /* bits <= 32 */
 s32 oggpack_read(oggpack_buffer *b,s32 bits) {
 	u32 ret;
+	gf_fatal_assert(bits<33);
+	gf_fatal_assert(b->endbyte<=GF_INT_MAX-4);
 	u32 m=mask[bits];
 
 	bits+=b->endbit;
@@ -370,6 +372,8 @@ s32 oggpack_read(oggpack_buffer *b,s32 bits) {
 	if(b->endbyte+4>=b->storage) {
 		/* not the main path */
 		ret=(u32) (-1);
+
+		gf_fatal_assert(b->endbyte <= GF_INT_MAX/8 - bits);
 		if(b->endbyte*8+bits>b->storage*8)goto overflow;
 	}
 
@@ -1048,6 +1052,7 @@ s32 ogg_sync_wrote(ogg_sync_state *oy, s32 bytes) {
 */
 
 s32 ogg_sync_pageseek(ogg_sync_state *oy,ogg_page *og) {
+	if (!oy->data) return 0;
 	unsigned char *page=oy->data+oy->returned;
 	unsigned char *next;
 	s32 bytes=oy->fill-oy->returned;
@@ -1402,4 +1407,3 @@ void ogg_packet_clear(ogg_packet *op) {
 
 
 #endif /*GPAC_DISABLE_OGG*/
-

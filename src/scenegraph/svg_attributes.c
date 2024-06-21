@@ -919,7 +919,7 @@ static GF_Err svg_parse_clock_value(char *d, Double *clock_value)
 		'+-2s'
 		'1++s' even though sscanf returns the right values
 	*/
-	if (strchr(d, '+') || strchr(d, '-')) return GF_BAD_PARAM;
+	if (strpbrk(d, "+-")) return GF_BAD_PARAM;
 
 	/* No embedded white space is allowed in clock values,
 	   although leading and trailing white space characters will be ignored.*/
@@ -3173,6 +3173,7 @@ void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *an
 	char *str;
 	s32 psemi = -1;
 	GF_FieldInfo info;
+	info.name = NULL;
 	info.fieldType = anim_value_type;
 	anim_values->type = anim_value_type;
 

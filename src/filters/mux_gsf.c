@@ -260,7 +260,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		gsfmx_write_vlen(ctx, to_write);
 
 		hdr_size = (u32) gf_bs_get_position(ctx->bs_w);
-		assert(hdr_size + to_write == osize);
+		gf_assert(hdr_size + to_write == osize);
 		memcpy(output+hdr_size, ctx->buffer + pck_offset, to_write);
 		bytes_remain -= to_write;
 		pck_offset += to_write;
@@ -336,7 +336,7 @@ static Bool gsfmx_can_serialize_prop(const GF_PropertyValue *p, u32 prop_4cc)
 	switch (p->type) {
 	case GF_PROP_POINTER:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
-	case GF_PROP_FORBIDEN:
+	case GF_PROP_FORBIDDEN:
 		return GF_FALSE;
 	default:
 		if (p->type>=GF_PROP_LAST_DEFINED)
@@ -510,7 +510,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
 		if (prop_4cc) {
-			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN) {
+			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDDEN) {
 				nb_str_props++;
 			}
 			//file, only send mime, url, ext and streamtype
@@ -590,7 +590,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 
 		if (prop_name) continue;
-		if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN)
+		if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDDEN)
 			continue;
 
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
@@ -621,7 +621,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		const GF_PropertyValue *p = gf_filter_pid_enum_properties(gst->pid, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
 		if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
-		if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDEN)) continue;
+		if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDDEN)) continue;
 
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
@@ -728,7 +728,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 		if (!p) break;
 		if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 		if (prop_4cc) {
-			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN)
+			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDDEN)
 				nb_str_props++;
 			else
 				nb_4cc_props++;
@@ -826,7 +826,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	else { tsdiffmode=3; tsdiffmodebits=32; }
 
 
-	assert(tsmodebits<=32);
+	gf_assert(tsmodebits<=32);
 
 	//first flags byte
 	//flags first byte: 1(has_dts) 1(has_cts) 1(has_dur) 1(cts_diff_neg) 2(ts_mode) 2(ts_diff_mode)
@@ -924,7 +924,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			if (!p) break;
 			if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 			if (prop_name) continue;
-			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN) continue;
+			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDDEN) continue;
 
 			gf_bs_write_u32(ctx->bs_w, prop_4cc);
 
@@ -940,7 +940,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
 			if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
-			if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDEN)) continue;
+			if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDDEN)) continue;
 			if (!prop_name) prop_name = gf_4cc_to_str(prop_4cc);
 			len = (u32) strlen(prop_name);
 			gsfmx_write_vlen(ctx, len);
@@ -1268,7 +1268,6 @@ static const GF_FilterArgs GSFMxArgs[] =
 	{ OFFS(dst), "target URL in file mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
 	{ OFFS(mime), "file mime for file mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(mixed), "allow GSF to contain both files and media streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
-
 	{0}
 };
 
@@ -1308,7 +1307,7 @@ GF_FilterRegister GSFMxRegister = {
 			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd -o dump.gsf\n"
 			"This will DASH the source and store every files produced as PIDs in the GSF mux.\n"
 			"In order to demultiplex such a file, the `gsfdmx`filter will likely need to be explicitly loaded:\n"
-			"EX gpac -i mux.gsf gsfdmx -o dump/$File$:dynext:clone\n"
+			"EX gpac -i mux.gsf gsfdmx -o dump/$File$:dynext\n"
 			"This will extract all files from the GSF mux.\n"
 			"\n"
 			"By default when working in file mode, the filter only accepts PIDs of type `file` as input.\n"

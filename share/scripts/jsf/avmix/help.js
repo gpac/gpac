@@ -185,6 +185,16 @@ When reloading the playlist:
 - raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using a dedicated gpac process, ignored otherwise
 
 ### Notes
+The special URL scheme \`ipid://\` can be used to locate an input pid by link directives.
+EX in=ipid://#foo=bar
+This will use pids having property \`foo\` with value \`bar\`, regardless of source filter ID.
+
+EX in=ipid://TEST#foo=bar
+This will use pids having property \`foo\` with value \`bar\` coming from filter with ID \`TEST\`.
+
+When using the \`ipid://\` scheme, filter chains cannot be specified (in accepts a single argument) and \`port\` is ignored.
+The syntax for link directive is the same as in gpac. However, if a listed property is not found on the input pid, the matching will fail.
+
 When launching a child process, the input filter is created first and the child process launched afterwards.
 
 Warning: When launching a child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.

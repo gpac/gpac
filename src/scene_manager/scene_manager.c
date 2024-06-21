@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -409,7 +409,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 				carousel_au = gf_sm_stream_au_new(aggregate_on_stream, 0, 0, 1);
 			} else {
 				/* assert we already performed aggregation */
-				assert(gf_list_count(aggregate_on_stream->AUs)==1);
+				gf_assert(gf_list_count(aggregate_on_stream->AUs)==1);
 				carousel_au = gf_list_get(aggregate_on_stream->AUs, 0);
 			}
 			carousel_commands = carousel_au->commands;
@@ -488,8 +488,11 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 						*/
 						default:
 							/*check if we can directly store the command*/
-							assert(carousel_commands);
-							store = store_or_aggregate(sc, com, carousel_commands, &has_modif);
+							if (carousel_commands)
+								store = store_or_aggregate(sc, com, carousel_commands, &has_modif);
+							else {
+								gf_assert(0);
+							}
 							break;
 						}
 					}

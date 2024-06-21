@@ -602,8 +602,7 @@ common:
 			txh->tx_io->conv_data = gf_malloc(sizeof(char)*txh->stride*txh->height);
 			txh->tx_io->conv_format = txh->pixelformat;
 		}
-		assert(txh->tx_io->conv_data );
-		assert(txh->data );
+		if (!txh->tx_io->conv_data || txh->data) return 0;
 		/*if texture is using RECT extension, flip image manually because
 				texture transforms are not supported in this case ...*/
 		for (i=0; i<txh->height; i++) {
@@ -781,8 +780,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				}
 			}
 			if (!pData) {
-				if (!txh->compositor->last_error)
+				if (!txh->compositor->last_error) {
 					txh->compositor->last_error = GF_NOT_SUPPORTED;
+					if (!txh->compositor->player) {
+						gf_filter_abort(txh->compositor->filter);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to fetch hardware texture data - try specifying `:drv=yes`\n"));
+					}
+				}
 				return 0;
 			}
 

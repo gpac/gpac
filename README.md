@@ -1,7 +1,7 @@
 [![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu64)](https://buildbot.gpac.io/#/grid?branch=master)
 [![Tests](https://tests.gpac.io/testres/badge/tests/linux64)](https://tests.gpac.io/)
 
-[![Build Status](https://tests.gpac.io/testres/badge/build/ubuntu32)](https://buildbot.gpac.io/#/grid?branch=master)
+[![Build Status](https://tests.gpac.io/testres/badge/build/debian32)](https://buildbot.gpac.io/#/grid?branch=master)
 [![Tests](https://tests.gpac.io/testres/badge/tests/linux32)](https://tests.gpac.io/)
 
 [![Build Status](https://tests.gpac.io/testres/badge/build/windows64)](https://buildbot.gpac.io/#/grid?branch=master)
@@ -25,15 +25,15 @@
 
 # GPAC Introduction
 
-Current version: 2.3-DEV
+Current version: 2.5-DEV
 
-Latest Release: 2.2
+Latest Release: 2.4
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
 GPAC is best-known for its wide MP4/ISOBMFF capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and professional broadcasters.
 
-For more information, visit [GPAC website](http://gpac.io)
+For more information, visit [https://gpac.io](https://gpac.io)
 
 GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.motionspell.com/gpac-licensing).
 
@@ -60,28 +60,28 @@ GPAC can process, analyse, package, stream, encode, decode and playback a wide v
 - Python and NodeJS bindings
 
 Features are encapsulated in processing modules called filters:
-- to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://github.com/gpac/gpac/wiki/Filters).
-- to get the full list of playback features, check [the dedicated wiki page](https://github.com/gpac/gpac/wiki/Player-Features).
+- to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://wiki.gpac.io/Filters/Filters).
+- to get the full list of playback features, check [the dedicated wiki page](https://wiki.gpac.io/Player/Player).
 
 
 # Tools
 
 ## MP4Box
-MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box).
+MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box/MP4Box).
 
 
 ## gpac 
-GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box.
-The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
+GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Filters/Rearchitecture) for more discussion on how this impacts MP4Box.
+The gpac application is a direct interface to the filter engine of GPAC, allowing any combination of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters/Filters) for more details.
 
 # Getting started
 ## Download
-Stable and nightly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.wp.imt.fr/downloads/).
+Stable and nightly builds installers for Windows, Linux, OSX, Android, iOS are available on [gpac.io](https://gpac.io/downloads/).
 
-If you want to compile GPAC yourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build-Introduction) of our wiki.
+If you want to compile GPAC yourself, please follow the instructions in the [build section](https://wiki.gpac.io/Build/Build-Introduction) of our wiki.
 
 ## Documentation
-The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://github.com/gpac/gpac/wiki/Howtos).
+The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://wiki.gpac.io/Howtos/howtos/).
 
 GPAC tools are mostly wrappers around an underlying library called libgpac which can easily be embedded in your projects. The libgpac developer documentation is available at [doxygen.gpac.io](https://doxygen.gpac.io), including documentation of [JS APIs](https://doxygen.gpac.io/group__jsapi__grp.html), [Python APIs](https://doxygen.gpac.io/group__pyapi__grp.html) and [NodeJS APIs](https://doxygen.gpac.io/group__nodejs__grp.html).
 
@@ -89,7 +89,7 @@ GPAC tools are mostly wrappers around an underlying library called libgpac which
 ## Testing
 GPAC has a test suite exercising most features of the framework. The test suite is in a separate repository [https://github.com/gpac/testsuite/](https://github.com/gpac/testsuite/), but is available as a submodule of the GPAC main repository. To initialize the testsuite submodule, do `git submodule update --init`.
 
-For more details on the test suite, read [this page](https://github.com/gpac/gpac/wiki/GPAC_tests) and check the [testsuite readme](https://github.com/gpac/testsuite).
+For more details on the test suite, read [this page](https://wiki.gpac.io/Build/tests/GPAC_tests/) and check the [testsuite readme](https://github.com/gpac/testsuite).
 
 Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
@@ -101,7 +101,7 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 ## Contributing
 A complex project like GPAC wouldn’t exist and persist without the support of its community. Please contribute: a nice message, supporting us in our communication, reporting issues when you see them… any gesture, even the smallest ones, counts. 
 
-If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for a [good first issue](https://github.com/gpac/gpac/labels/good%20first%20issue). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
+If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.io/jobs/google-summer-of-code-ideas/) or look for a [good first issue](https://github.com/gpac/gpac/labels/good%20first%20issue). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
 
 # Team
 GPAC is brought to you by an experienced team of developers with a wide track-record on media processing. 
@@ -116,8 +116,9 @@ Users are encouraged to use the latest tag or the master branch.
 
 ## V2.X
 Targets:
-- [ ] Web integration (emscripten, Remotery UI)
 - [ ] DASH event support
-- [ ] Better TTML2 / SMPTE ST 2052-1 support
-- [ ] GUI cleanup ?
-
+- [ ] Web GUI
+- [ ] QUIC support
+- [ ] ROUTE file repair support
+- [ ] FLUTE support
+- [ ] Rust Bindings

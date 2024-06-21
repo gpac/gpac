@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -96,13 +96,13 @@ static void init_reader(ISOMChannel *ch)
 
 	ch->au_seq_num = 1;
 
-	assert(ch->sample==NULL);
+	gf_assert(ch->sample==NULL);
 	if (!ch->static_sample) {
 		ch->static_sample = gf_isom_sample_new();
 	}
 
 	if (ch->streamType==GF_STREAM_OCR) {
-		assert(!ch->sample);
+		gf_assert(!ch->sample);
 		ch->sample = gf_isom_sample_new();
 		ch->sample->IsRAP = RAP;
 		ch->sample->DTS = ch->start;
@@ -199,7 +199,7 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 	GF_Err e;
 	Bool Is_Encrypted;
 	u32 out_size;
-	u8 crypt_byte_block, skip_byte_block;
+	u32 crypt_byte_block, skip_byte_block;
 	u8 piff_info[20];
 	u8 *key_info = NULL;
 	u32 key_info_size = 0;
@@ -395,6 +395,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (ch->edit_sync_frame) {
 				ch->edit_sync_frame++;
 				if (ch->edit_sync_frame < ch->sample_num) {
+					ch->static_sample->alloc_size = 0;
+					ch->static_sample->dataLength = 0;
 					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->edit_sync_frame, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
 					if (ch->sample) {
 						ch->sample->DTS = ch->sample_time;
@@ -416,12 +418,20 @@ void isor_reader_get_sample(ISOMChannel *ch)
 							//e = GF_EOS;
 						} else {
 							u32 time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
+
+							ch->static_sample->alloc_size = 0;
+							ch->static_sample->dataLength = 0;
+
 							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 							ch->static_sample->alloc_size = 0;
 							if (e==GF_OK) {
 								if (ch->sample_num == prev_sample) {
 									ch->sample_time += time_diff;
 									ch->sample = NULL;
+									if (ch->pck) {
+										gf_filter_pck_discard(ch->pck);
+										ch->pck = NULL;
+									}
 									return;
 								} else {
 									ch->sample = ch->static_sample;
@@ -437,6 +447,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					GF_ISOSample *found = ch->static_sample;
 					u32 samp_num = ch->sample_num;
 					ch->sample = NULL;
+					ch->static_sample->alloc_size = 0;
+					ch->static_sample->dataLength = 0;
 					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 
 					ch->static_sample->alloc_size = 0;
@@ -883,13 +895,15 @@ static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, B
 	ch->xps_mask |= state;
 	*needs_reset = 1;
 
-	GF_SAFEALLOC(sl, GF_NALUFFParam);
-	if (!sl) return;
-	sl->data = gf_malloc(sizeof(char)*size);
-	memcpy(sl->data, data, size);
-	sl->size = size;
-	sl->id = ps_id;
-	gf_list_add(list, sl);
+	if (list) {
+		GF_SAFEALLOC(sl, GF_NALUFFParam);
+		if (!sl) return;
+		sl->data = gf_malloc(sizeof(char)*size);
+		memcpy(sl->data, data, size);
+		sl->size = size;
+		sl->id = ps_id;
+		gf_list_add(list, sl);
+	}
 }
 
 u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
@@ -995,7 +1009,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 		return;
 	}
 	//analyze mode, do not rewrite
-	if (ch->owner->analyze) return;
+	if (ch->owner->analyze || ch->owner->norw) return;
 
 	//we cannot touch the payload if encrypted but no SAI buffer
 	if (ch->pck_encrypted && !ch->sai_buffer)
@@ -1085,13 +1099,13 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (needs_reset) {
 		u8 *dsi=NULL;
 		u32 dsi_size=0;
-		if (ch->check_avc_ps) {
+		if (ch->check_avc_ps && ch->avcc) {
 			gf_odf_avc_cfg_write(ch->avcc, &dsi, &dsi_size);
 		}
-		else if (ch->check_hevc_ps) {
+		else if (ch->check_hevc_ps && ch->hvcc) {
 			gf_odf_hevc_cfg_write(ch->hvcc, &dsi, &dsi_size);
 		}
-		else if (ch->check_vvc_ps) {
+		else if (ch->check_vvc_ps && ch->vvcc) {
 			gf_odf_vvc_cfg_write(ch->vvcc, &dsi, &dsi_size);
 		}
 		if (dsi && dsi_size) {

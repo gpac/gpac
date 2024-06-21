@@ -219,7 +219,7 @@ Double interleaving_time, split_duration, split_start, dash_duration, dash_subdu
 
 Bool arg_parse_res, dash_duration_strict, dvbhdemux, keep_sys_tracks, align_cat;
 Bool do_hint, do_save, full_interleave, do_frag, hint_interleave, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, remove_root_od;
-Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_scene_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, dump_chunk, dump_check_xml;
+Bool print_sdp, open_edit, dump_cr, force_ocr, encode, do_scene_log, dump_srt, dump_ttxt, do_saf, dump_m2ts, dump_cart, dump_chunk, dump_check_xml, fuzz_chk;
 Bool do_hash, verbose, force_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof, tfdt_per_traf;
 Bool hls_clock, do_mpd_rip, merge_vtt_cues, get_nb_tracks, no_inplace, merge_last_seg, freeze_box_order, no_odf_conf;
 Bool insert_utc, chunk_mode, HintCopy, hint_no_offset, do_bin_xml, frag_real_time, force_co64, live_scene, use_mfra, dump_iod, samplegroups_in_traf;
@@ -280,7 +280,7 @@ static void init_global_vars()
 	dash_duration_strict = dvbhdemux = keep_sys_tracks = do_hint = do_save = full_interleave = do_frag = hint_interleave = GF_FALSE;
 	dump_rtp = regular_iod = remove_sys_tracks = remove_hint = remove_root_od = print_sdp = open_edit = GF_FALSE;
 	dump_cr = force_ocr = encode = do_scene_log = dump_srt = dump_ttxt = do_saf = dump_m2ts = dump_cart = dump_chunk = GF_FALSE;
-	dump_check_xml = do_hash = verbose = force_cat = pack_wgt = single_group = clean_groups = dash_live = no_fragments_defaults = GF_FALSE;
+	dump_check_xml = do_hash = verbose = force_cat = pack_wgt = single_group = clean_groups = dash_live = no_fragments_defaults = fuzz_chk = GF_FALSE;
 	single_traf_per_moof = tfdt_per_traf = hls_clock = do_mpd_rip = merge_vtt_cues = get_nb_tracks = GF_FALSE;
 	no_inplace = merge_last_seg = freeze_box_order = no_odf_conf = GF_FALSE;
 	insert_utc = chunk_mode = HintCopy = hint_no_offset = do_bin_xml = frag_real_time = force_co64 = live_scene = GF_FALSE;
@@ -798,7 +798,7 @@ void PrintDASHUsage()
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "# DASH Options\n"
 		"Also see:\n"
-		"- the [dasher `gpac -h dash`](dasher) filter documentation\n"
+		"- the [dasher `gpac -h dasher`](dasher) filter documentation\n"
 		"- [[DASH wiki|DASH-intro]].\n"
 		"\n"
 		"# Specifying input files\n"
@@ -807,6 +807,7 @@ void PrintDASHUsage()
 		"- #N: only use the track ID N from the source file (mapped to [-tkid](mp4dmx))\n"
 		"- #video: only use the first video track from the source file\n"
 		"- #audio: only use the first audio track from the source file\n"
+		"- #Prop=Value: add PID filtering using the same syntax as SID fragments (cf `gpac -h doc`)\n"
 		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output multiplex.\n"
 		"- :dur=VALUE: process VALUE seconds (fraction) from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
 		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option\n"
@@ -822,7 +823,7 @@ void PrintDASHUsage()
 		"- :desc_as_c=VALUE: add a descriptor at the AdaptationSet level. Value is ignored while creating AdaptationSet elements.\n"
 		"- :desc_rep=VALUE: add a descriptor at the Representation level. Value is ignored while creating AdaptationSet elements.\n"
 		"- :sscale: force movie timescale to match media timescale of the first track in the segment.\n"
-		"- :trackID=N: only use the track ID N from the source file\n"
+		"- :trackID=N: same as setting fragment `#trackID=`\n"
 		"- @f1[:args][@fN:args][@@fK:args]: set a filter chain to insert between the source and the dasher. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](filters_general). If several filters are set:\n"
 		"  - they will be chained in the given order if separated by a single `@`\n"
 		"  - a new filter chain will be created if separated by a double `@@`. In this case, no representation ID is assigned to the source.\n"
@@ -1166,7 +1167,7 @@ void PrintEncodeUsage()
 		"## General considerations\n"
 		"MP4Box supports encoding and decoding of of BT, XMT, VRML and (partially) X3D formats int MPEG-4 BIFS, and encoding and decoding of XSR and SVG into MPEG-4 LASeR\n"
 		"Any media track specified through a `MuxInfo` element will be imported in the resulting MP4 file.\n"
-		"See https://wiki.gpac.io/MPEG-4-BIFS-Textual-Format and related pages.\n"
+		"See https://wiki.gpac.io/Howtos/scenecoding/MPEG-4-BIFS-Textual-Format and related pages.\n"
 		"## Scene Random Access\n"
 		"MP4Box can encode BIFS or LASeR streams and insert random access points at a given frequency. This is useful when packaging content for broadcast, where users will not turn in the scene at the same time. In MPEG-4 terminology, this is called the __scene carousel__."
 		"## BIFS Chunk Processing\n"
@@ -1198,7 +1199,7 @@ void PrintEncryptUsage()
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "# Encryption/Decryption Options\n"
 	"MP4Box supports encryption and decryption of ISMA, OMA and CENC content, see [encryption filter `gpac -h cecrypt`](cecrypt).\n"
-	"It requires a specific XML file called `CryptFile`, whose syntax is available at https://wiki.gpac.io/Common-Encryption\n"
+	"It requires a specific XML file called `CryptFile`, whose syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption\n"
 	"Image files (HEIF) can also be crypted / decrypted, using CENC only.\n"
 	"  \n"
 	"Options:\n"
@@ -1349,6 +1350,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("wget", "fetch resource from http(s) URL", GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &do_wget, 0, 0),
  	MP4BOX_ARG("dm2ts", "dump timing of an input MPEG-2 TS stream sample timing", GF_ARG_BOOL, 0, &dump_m2ts, 0, 0),
  	MP4BOX_ARG("check-xml", "check XML output format for -dnal*, -diso* and -dxml options", GF_ARG_BOOL, 0, &dump_check_xml, 0, 0),
+ 	MP4BOX_ARG("fuzz-chk", "open file without probing and exit (for fuzz tests)", GF_ARG_BOOL, GF_FS_ARG_HINT_EXPERT, &fuzz_chk, 0, 0),
  	{0}
 };
 
@@ -1691,10 +1693,11 @@ void PrintUsage()
 		i++;
 		gf_sys_print_arg(helpout, help_flags, arg, "mp4box-general");
 	}
-	gf_sys_format_help(helpout, help_flags, "\nReturn codes are 0 for no error, 1 for error"
+	gf_sys_format_help(helpout, help_flags, "\nReturn codes are:\n- 0: no error\n- 1: error\n"
 #ifdef GPAC_MEMORY_TRACKING
-		" and 2 for memory leak detection when -mem-track is used"
+		"- 2: memory leak detection when -mem-track is used\n"
 #endif
+		"- 3: call is too early when resuming dashing from an existing context\n"
 		"\n");
 }
 
@@ -3309,7 +3312,7 @@ u32 parse_gendoc(char *name, u32 opt)
 		PrintLiveUsage();
 #endif
 
-		fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/MP4Box\n");
+		fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/MP4Box/MP4Box\n");
 		fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
 		".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 		".br\nbuild: %s\n"
@@ -4711,6 +4714,7 @@ static GF_Err do_dash()
 {
 	GF_Err e;
 	u32 i;
+	Bool call_too_early = GF_FALSE;
 	Bool del_file = GF_FALSE;
 	char szMPD[GF_MAX_PATH], *sep;
 	char szStateFile[GF_MAX_PATH];
@@ -4857,6 +4861,7 @@ static GF_Err do_dash()
 		if (!dash_live && (e==GF_EOS) ) {
 			M4_LOG(GF_LOG_INFO, ("Nothing to dash, too early ...\n"));
 			e = GF_OK;
+			if (!dash_live) call_too_early = GF_TRUE;
 		}
 
 		if (do_abort)
@@ -4930,6 +4935,7 @@ static GF_Err do_dash()
 	if (del_file)
 		gf_file_delete(inName);
 
+	if (call_too_early) return GF_NOT_READY;
 	return e;
 }
 
@@ -5116,7 +5122,13 @@ static GF_Err do_meta_act()
 		MetaAction *meta = &metas[i];
 		u32 tk_id = get_track_id(file, &meta->track_id);
 
-		if (tk_id) tk = gf_isom_get_track_by_id(file, tk_id);
+		if (tk_id)
+			tk = gf_isom_get_track_by_id(file, tk_id);
+
+		if (!tk && meta->track_id.ID_or_num) {
+			M4_LOG(GF_LOG_ERROR, ("No such track %s %d in destination file\n", (meta->track_id.type==1) ? "number" : "ID", meta->track_id.ID_or_num));
+			return GF_BAD_PARAM;
+		}
 
 		switch (meta->act_type) {
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -6157,6 +6169,16 @@ int mp4box_main(int argc, char **argv)
 		gf_log_set_tool_level(GF_LOG_MEMORY, level);
 #endif
 
+	if (fuzz_chk) {
+		file = gf_isom_open(inName, GF_ISOM_OPEN_READ_DUMP, NULL);
+		if (file) gf_isom_close(file);
+		file = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
+		if (file) gf_isom_close(file);
+		file = gf_isom_open(inName, GF_ISOM_OPEN_KEEP_FRAGMENTS, NULL);
+		if (file) gf_isom_close(file);
+		return mp4box_cleanup(0);
+	}
+
 	e = gf_sys_set_args(argc, (const char **) argv);
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Error assigning libgpac arguments: %s\n", gf_error_to_string(e) ));
@@ -6284,7 +6306,8 @@ int mp4box_main(int argc, char **argv)
 
 	if (dash_duration) {
 		e = do_dash();
-		if (e) return mp4box_cleanup(1);
+		if (e==GF_NOT_READY) return mp4box_cleanup(3);
+		else if (e) return mp4box_cleanup(1);
 		goto exit;
 	}
 

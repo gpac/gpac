@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -194,7 +194,7 @@ void gf_rtsp_range_del(GF_RTSPRange *range)
 void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 {
 	char LineBuffer[400], buf[1000], param_name[100], param_val[1000];
-	s32 LinePos, Pos, nPos, s_val;
+	s32 LinePos, Pos, nPos;
 	GF_RTPInfo *info;
 	GF_RTSPTransport *trans;
 	GF_X_Attribute *x_Att;
@@ -288,12 +288,10 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 				if (!stricmp(param_name, "url")) info->url = gf_strdup(param_val);
 				else if (!stricmp(param_name, "seq")) sscanf(param_val, "%u", &info->seq);
 				else if (!stricmp(param_name, "rtptime")) {
-					sscanf(param_val, "%i", &s_val);
-					info->rtp_time = (s_val>0) ? s_val : 0;
+					sscanf(param_val, "%u", &info->rtp_time);
 				}
 				else if (!stricmp(param_name, "ssrc")) {
-					sscanf(param_val, "%i", &s_val);
-					info->ssrc = (s_val>0) ? s_val : 0;
+					sscanf(param_val, "%u", &info->ssrc);
 				}
 			}
 			gf_list_add(rsp->RTP_Infos, info);

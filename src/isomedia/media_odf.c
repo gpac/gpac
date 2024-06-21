@@ -517,6 +517,13 @@ u32 gf_isom_find_od_id_for_track(GF_ISOFile *file, u32 track)
 
 	i=0;
 	while ( (od_tk = (GF_TrackBox*)gf_list_enum(file->moov->trackList, &i))) {
+		if (!od_tk || !od_tk->Media || !od_tk->Media->handler  || !od_tk->Media->information ||
+			!od_tk->Media->information->sampleTable || !od_tk->Media->information->sampleTable->SampleSize ) {
+
+			continue;
+		}
+
+
 		if (od_tk->Media->handler->handlerType != GF_ISOM_MEDIA_OD) continue;
 
 		for (j=0; j<od_tk->Media->information->sampleTable->SampleSize->sampleCount; j++) {

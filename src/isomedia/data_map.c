@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -281,24 +281,25 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 }
 
 //return the NB of bytes actually read (used for HTTP, ...) in case file is uncomplete
-u32 gf_isom_datamap_get_data(GF_DataMap *map, u8 *buffer, u32 bufferLength, u64 Offset)
+u32 gf_isom_datamap_get_data(GF_DataMap *map, u8 *buffer, u32 bufferLength, u64 Offset, GF_BlobRangeStatus *is_corrupted)
 {
 	if (!map || !buffer) return 0;
 
 	switch (map->type) {
 	case GF_ISOM_DATA_FILE:
 	case GF_ISOM_DATA_MEM:
-		return gf_isom_fdm_get_data((GF_FileDataMap *)map, buffer, bufferLength, Offset);
+		return gf_isom_fdm_get_data((GF_FileDataMap *)map, buffer, bufferLength, Offset, is_corrupted);
 
 #if 0
 	case GF_ISOM_DATA_FILE_MAPPING:
-		return gf_isom_fmo_get_data((GF_FileMappingDataMap *)map, buffer, bufferLength, Offset);
+		return gf_isom_fmo_get_data((GF_FileMappingDataMap *)map, buffer, bufferLength, Offset, is_corrupted);
 #endif
 
 	default:
 		return 0;
 	}
 }
+
 
 void gf_isom_datamap_flush(GF_DataMap *map)
 {
@@ -421,6 +422,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 			gf_free(tmp);
 			return NULL;
 		}
+		tmp->use_blob = 1;
 		return (GF_DataMap *)tmp;
 	}
 
@@ -519,7 +521,7 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 	gf_free(ptr);
 }
 
-u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset)
+u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset, GF_BlobRangeStatus *is_corrupted)
 {
 	u32 bytesRead;
 
@@ -527,8 +529,17 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 	if (fileOffset > gf_bs_get_size(ptr->bs))
 		return 0;
 
+	if (is_corrupted)
+		*is_corrupted = GF_BLOB_RANGE_VALID;
+
 	if (ptr->blob) {
 		gf_mx_p(ptr->blob->mx);
+		GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, bufferLength);
+		if (is_corrupted) *is_corrupted = rs;
+		if (rs==GF_BLOB_RANGE_IN_TRANSFER) {
+			gf_mx_v(ptr->blob->mx);
+			return 0;
+		}
 		gf_bs_reassign_buffer(ptr->bs, ptr->blob->data, ptr->blob->size);
 		if (gf_bs_seek(ptr->bs, fileOffset) != GF_OK) {
 			gf_mx_v(ptr->blob->mx);
@@ -545,7 +556,7 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 	//update our cache
 	if (bytesRead == bufferLength) {
 		ptr->curPos += bytesRead;
-	} else {
+	} else if (!ptr->blob) {
 		gf_bs_get_refreshed_size(ptr->bs);
 		gf_bs_seek(ptr->bs, fileOffset);
 		bytesRead = gf_bs_read_data(ptr->bs, buffer, bufferLength);
@@ -565,6 +576,48 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, u8 *buffer, u32 bufferLength, u64 
 	return bytesRead;
 }
 
+static Bool gf_isom_fdm_check_top_level(GF_FileDataMap *ptr)
+{
+	if (!ptr->blob) {
+		if (!gf_bs_available(ptr->bs)) return GF_FALSE;
+		return GF_TRUE;
+	}
+	//if we use a blob, make sure the top-level box is complete
+	gf_mx_p(ptr->blob->mx);
+	u64 fileOffset = gf_bs_get_position(ptr->bs);
+	gf_bs_reassign_buffer(ptr->bs, ptr->blob->data, ptr->blob->size);
+	if (ptr->blob->size < fileOffset+8) {
+		gf_mx_v(ptr->blob->mx);
+		return GF_FALSE;
+	}
+	gf_bs_seek(ptr->bs, fileOffset);
+	u32 size = gf_bs_peek_bits(ptr->bs, 32, 0);
+	GF_BlobRangeStatus rs = gf_blob_query_range(ptr->blob, fileOffset, size);
+	gf_mx_v(ptr->blob->mx);
+	if (rs==GF_BLOB_RANGE_IN_TRANSFER)
+		return GF_FALSE;
+	return GF_TRUE;
+}
+
+Bool gf_isom_datamap_top_level_box_avail(GF_DataMap *map)
+{
+	if (!map) return GF_FALSE;
+
+	switch (map->type) {
+	case GF_ISOM_DATA_FILE:
+	case GF_ISOM_DATA_MEM:
+		return gf_isom_fdm_check_top_level((GF_FileDataMap *)map);
+
+#if 0
+	case GF_ISOM_DATA_FILE_MAPPING:
+		if (gf_bs_available( ((GF_FileMappingDataMap*)map)->bs)) return GF_TRUE;
+		return GF_FALSE;
+#endif
+
+	default:
+		return 0;
+	}
+}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -703,7 +756,7 @@ void gf_isom_fmo_del(GF_FileMappingDataMap *ptr)
 }
 
 
-u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset)
+u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset, GF_BlobRangeStatus *is_corrupted)
 {
 	//can we seek till that point ???
 	if (fileOffset > ptr->file_size) return 0;
@@ -725,9 +778,9 @@ void gf_isom_fmo_del(GF_FileMappingDataMap *ptr)
 	gf_isom_fdm_del((GF_FileDataMap *)ptr);
 }
 
-u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset)
+u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, u8 *buffer, u32 bufferLength, u64 fileOffset, GF_BlobRangeStatus *is_corrupted)
 {
-	return gf_isom_fdm_get_data((GF_FileDataMap *)ptr, buffer, bufferLength, fileOffset);
+	return gf_isom_fdm_get_data((GF_FileDataMap *)ptr, buffer, bufferLength, fileOffset, is_corrupted);
 }
 
 #endif //win32

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AC3 reframer filter
@@ -247,7 +247,10 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
-
+	if (!gf_sys_is_test_mode()) {
+		u64 layout = gf_ac3_get_channel_layout(&ctx->hdr);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(layout) );
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->is_eac3 ? GF_CODECID_EAC3 : GF_CODECID_AC3) );
 
 	ctx->hdr.is_ec3 = ctx->is_eac3;
@@ -342,7 +345,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts;
-	
+
 restart:
 	cts = GF_FILTER_NO_TS;
 
@@ -480,12 +483,11 @@ restart:
 			cts = GF_FILTER_NO_TS;
 		}
 
-		if (!ctx->in_seek) {
+		if (!ctx->in_seek && remain >= sync_pos + ctx->hdr.framesize) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->hdr.framesize, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
-			
-			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
+			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 			memcpy(output, sync, ctx->hdr.framesize);
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -539,6 +541,10 @@ restart:
 		if (remain && (remain < ctx->ac3_buffer_size)) {
 			memmove(ctx->ac3_buffer, start, remain);
 		}
+		if (!ctx->src_pck && pck) {
+			ctx->src_pck = pck;
+			gf_filter_pck_ref_props(&ctx->src_pck);
+		}
 		ctx->ac3_buffer_size = remain;
 		gf_filter_pid_drop_packet(ctx->ipid);
 	}
@@ -551,6 +557,7 @@ static void ac3dmx_finalize(GF_Filter *filter)
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->ac3_buffer) gf_free(ctx->ac3_buffer);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 }
 
 static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeScore *score)

@@ -175,7 +175,21 @@ This will play the session at 2x speed, using 30s of maximum buffering, consumin
 .SH Options (expert):
 .LP
 .br
-log (str, default: stdout, minmax: fileName, stderr, stdout, GLOG or null): set probe log filename to print number of streams, GLOG uses GPAC logs app@info(default for android)
+log (str, default: stdout, Enum: _any|stderr|stdout|GLOG|TL|null): set probe log filename
+.br
+* _any: target file path and name
+.br
+* stderr: dump to stderr
+.br
+* stdout: dump to stdout
+.br
+* GLOG: use GPAC logs app@info
+.br
+* TL: use GPAC log tool TL at level info
+.br
+* null: silent mode
+.br
+
 .br
 mode (enum, default: pck):     dump mode
 .br
@@ -215,7 +229,7 @@ start (dbl, default: 0.0):     set playback start offset. A negative value means
 .br
 dur (frac, default: 0/0):      set inspect duration
 .br
-analyze (enum, default: off, updatable): analyze sample content (NALU, OBU)
+analyze (enum, default: off, updatable): analyze sample content (NALU, OBU), similar to -bsdbg option of reframer filters
 .br
 * off: no analyzing
 .br
@@ -240,6 +254,8 @@ buffer (uint, default: 0):     set playback buffer in ms
 mbuffer (uint, default: 0):    set max buffer occupancy in ms. If less than buffer, use buffer
 .br
 rbuffer (uint, default: 0, updatable): rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering
+.br
+stats (bool, default: false):  compute statistics for PIDs
 .br
 test (enum, default: no, updatable): skip predefined set of properties, used for test mode
 .br
@@ -283,7 +299,19 @@ It is up to the app developer to query input PIDs of the prober and take appropr
 .SH Options (expert):
 .LP
 .br
-log (str, default: stdout, minmax: fileName, stderr, stdout GLOG or null): set probe log filename to print number of streams, GLOG uses GPAC logs app@info(default for android)
+log (str, default: stdout, Enum: _any|stderr|stdout|GLOG|null): set probe log filename to print number of streams
+.br
+* _any: target file path and name
+.br
+* stderr: dump to stderr
+.br
+* stdout: dump to stdout
+.br
+* GLOG: use GPAC logs app@info
+.br
+* null: silent mode
+.br
+
 .br
 
 .br
@@ -498,7 +526,9 @@ ach (uint, default: 0):        force output channels (0 for auto)
 .br
 alayout (uint, default: 0):    force output channel layout (0 for auto)
 .br
-afmt (afmt, default: s16, minmax: none,u8,s16,s16b,s24,s24b,s32,s32b,flt,fltb,dbl,dblb,u8p,s16p,s24p,s32p,fltp,dblp): force output channel format (0 for auto)
+afmt (afmt, default: s16, Enum: none|u8|s16|s16b|s24|s24b|s32|s32b|flt|fltb|dbl|dblb|u8p|s16p|s24p|s32p|fltp|dblp): force output channel format (0 for auto)
+.br
+
 .br
 asize (uint, default: 1024):   audio output packet size in samples
 .br
@@ -724,7 +754,9 @@ player (enum, default: no):    set compositor in player mode
 .br
 noaudio (bool, default: false): disable audio output
 .br
-opfmt (pfmt, default: none, minmax: none,yuv420,yvu420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,uyvl,vyul,yuyl,yvyl,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,yuv444p,v308,yuv444ap,v408,v410,v210,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,uncv): pixel format to use for output. Ignored in .I player mode
+opfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format to use for output. Ignored in .I player mode
+.br
+
 .br
 drv (enum, default: auto):     indicate if graphics driver should be used
 .br
@@ -888,13 +920,33 @@ xps_check (enum, default: auto): parameter sets extraction mode from AVC/HEVC/VV
 .br
 
 .br
-nodata (bool, default: false): do not load sample data
+nodata (enum, default: no):    control sample data loading
+.br
+* no: regular load
+.br
+* yes: skip data loading
+.br
+* fake: allocate sample but no data copy
+.br
+
 .br
 lightp (bool, default: false): load minimal set of properties
 .br
 initseg (str):                 local init segment name when input is a single ISOBMFF segment
 .br
 extk (bool, default: true):    allow external track loading
+.br
+ctso (sint):                   value to add to CTS offset for tracks using negative ctts
+.br
+- set to -1 to use the cslg box info or the minimum cts offset present in the track
+.br
+- set to -2 to use the minimum cts offset present in the track (cslg ignored)
+.br
+
+.br
+norw (bool, default: false):   skip reformating of samples - should only be used when rewriting fragments
+.br
+keepc (bool, default: false):  keep corrupted samples - should only be used in multicast modes
 .br
 
 .br
@@ -959,6 +1011,22 @@ The filter handles both files and GF_FileIO objects as input URL.
 .br
 
 .br
+.SS Packet Injecting
+.br
+The filter can be used to inject a single packet instead of a file using (-pck)[] option.
+.br
+No specific properties are attached, except a timescale if (-ptime)[] is set.
+.br
+Example
+.br
+gpac fin:pck=str@"My Sample Text":ptime=2500/100:#CodecID=stxt:#StreamType=text
+.br
+
+.br
+This will declare the PID as WebVTT and send a single packet with payload My Sample Text and a timestamp value of 25 second.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -973,6 +1041,8 @@ ext (cstr):                    override file extension
 mime (cstr):                   set file mime type
 .br
 pck (mem):                     data to use instead of file
+.br
+ptime (frac, default: 0/0):    timing for data packet, ignored if den is 0
 .br
 
 .br
@@ -1234,6 +1304,32 @@ No options
 .br
 
 .br
+.SH xviddec
+.LP
+.br
+Description: XVid decoder
+.br
+
+.br
+This filter decodes MPEG-4 part 2 (and DivX) through libxvidcore library.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+deblock_y (bool, default: false): enable Y deblocking
+.br
+deblock_uv (bool, default: false): enable UV deblocking
+.br
+film_effect (bool, default: false): enable film effect
+.br
+dering_y (bool, default: false): enable Y deblocking
+.br
+dering_uv (bool, default: false): enable UV deblocking
+.br
+
+.br
 .SH j2kdec
 .LP
 .br
@@ -1408,6 +1504,14 @@ When ports are specified in the URL and the default option separators are used (
 - have a trailing '/', e.g. udp://localhost:1234/[:opts]
 .br
 - use gpac separator, e.g. udp://localhost:1234[:gpac:opts]
+.br
+
+.br
+When the socket is listening in keep-alive .I ka mode:
+.br
+- a single connection is allowed and a single output PID will be produced
+.br
+- each connection close event will triger a pipeline flush
 .br
 
 .br
@@ -1603,7 +1707,7 @@ gpac -i MANIFEST_URL:algo=none:start_with=max_bw -o dest.mp4
 .br
 Example
 .br
-gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4:clone
+gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4
 .br
 
 .br
@@ -1746,7 +1850,7 @@ segstore (enum, default: mem): enable file caching
 .br
 
 .br
-algo (str, default: gbuf, minmax: none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao|JS): adaptation algorithm to use
+algo (str, default: gbuf, Enum: none|grate|gbuf|bba0|bolaf|bolab|bolau|bolao|JS): adaptation algorithm to use
 .br
 * none: no adaptation logic
 .br
@@ -1800,7 +1904,7 @@ shift_utc (sint, default: 0):  shift DASH UTC clock in ms
 .br
 spd (sint, default: -I):       suggested presentation delay in ms
 .br
-route_shift (sint, default: 0): shift ROUTE requests time by given ms
+mcast_shift (sint, default: 0): shift requests time by given ms for multicast sources
 .br
 server_utc (bool, default: yes): use ServerUTC or Date HTTP headers instead of local UTC
 .br
@@ -1915,7 +2019,7 @@ For HLS, key is retrieved according to the key URI in the manifest.
 .br
 Otherwise, the filter uses a configuration file.
 .br
-The syntax is available at https://wiki.gpac.io/Common-Encryption
+The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption
 .br
 The DRM config file can be set per PID using the property DecryptInfo (highest priority), CryptInfo (lower priority) or set at the filter level using .I cfile (lowest priority).
 .br
@@ -1935,6 +2039,12 @@ decrypt (enum, default: full): decrypt mode (CENC only)
 * nokey: decrypt everything for which a key is found, skip decryption otherwise
 .br
 * skip: decrypt nothing
+.br
+* pad0: decrypt nothing and replace all crypted bits with 0
+.br
+* pad1: decrypt nothing and replace all crypted bits with 1
+.br
+* padsc: decrypt nothing and replace all crypted bytes with start codes
 .br
 
 .br
@@ -1957,7 +2067,7 @@ Description: CENC encryptor
 .br
 The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.
 .br
-The syntax is available at https://wiki.gpac.io/Common-Encryption
+The syntax is available at https://wiki.gpac.io/xmlformats/Common-Encryption
 .br
 The DRM config file can be set per PID using the property CryptInfo, or set at the filter level using .I cfile.
 .br
@@ -1975,6 +2085,8 @@ If no DRM config file is defined for a given PID, this PID will not be encrypted
 cfile (str):                   crypt file location
 .br
 allc (bool):                   throw error if no DRM config file is found for a PID
+.br
+bk_stats (bool):               print number of encrypted blocks to stdout upon exit
 .br
 
 .br
@@ -2127,7 +2239,7 @@ The filter watches the following custom data properties on incoming packets:
 .br
 The property grp_EMSG consists in one or more EventMessageBox as defined in MPEG-DASH.
 .br
-- in fragmented mode, presence of these boxes in a packet will start a new fragment, with the boxes written before the moof
+- in fragmented mode, presence of this property in a packet will start a new fragment, with the boxes written before the moof
 .br
 - in regular mode, an internal sample group of type EMSG is currently used for emsg box storage
 .br
@@ -2193,7 +2305,9 @@ m4sys (bool, default: false):  force MPEG-4 Systems signaling of tracks
 .br
 dref (bool, default: false):   only reference data from source file - not compatible with all media sources
 .br
-ctmode (enum, default: edit):  set composition offset mode for video tracks
+ctmode (enum, default: auto):  set composition offset mode for video tracks
+.br
+* auto: if fragmenting an ISOBMFF source, use source settings otherwise resolve to edit
 .br
 * edit: uses edit lists to shift first frame to presentation time 0
 .br
@@ -2259,7 +2373,17 @@ abs_offset (bool, default: false): use absolute file offset in fragments rather 
 .br
 fsap (bool, default: true):    split truns in video fragments at SAPs to reduce file size
 .br
-subs_sidx (sint, default: -1): number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source PID
+subs_sidx (sint, default: -1): number of subsegments per sidx
+.br
+* 0: single sidx
+.br
+* >0: hierarchical or daisy-chained sidx
+.br
+* <0: disables sidx
+.br
+* -2: removes sidx if present in source PID
+.br
+
 .br
 m4cc (str):                    4 character code of empty box to append at the end of a segment (DASH mode) or of a fragment (non-DASH mode)
 .br
@@ -2473,6 +2597,8 @@ uncv (enum, default: prof):    use uncv (ISO 23001-17) for raw video
 .br
 trunv1 (bool, default: false): force using version 1 of trun regardless of media type or CMAF brand
 .br
+rsot (bool, default: false):   inject redundant sample timing information when present
+.br
 
 .br
 .SH rfqcp
@@ -2552,7 +2678,7 @@ Description: NHNT reader
 .br
 This filter reads NHNT files/data to produce a media PID and frames.
 .br
-NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
+NHNT documentation is available at https://wiki.gpac.io/xmlformats/NHNT-Format
 .br
 
 .br
@@ -2574,7 +2700,7 @@ Description: NHML reader
 .br
 This filter reads NHML files/data to produce a media PID and frames.
 .br
-NHML documentation is available at https://wiki.gpac.io/NHML-Format
+NHML documentation is available at https://wiki.gpac.io/xmlformats/NHML-Format
 .br
 
 .br
@@ -2675,7 +2801,7 @@ dv_compatid (enum, default: auto): cross-compatibility ID for DolbyVision
 .br
 
 .br
-bsdbg (enum, default: off):    debug NAL parsing in parser@debug logs
+bsdbg (enum, default: off):    debug NAL parsing in media@debug logs
 .br
 * off: not enabled
 .br
@@ -2739,7 +2865,7 @@ The filter supports the following formats:
 .br
 * WebVTT: https://www.w3.org/TR/webvtt1/
 .br
-* TTXT: https://wiki.gpac.io/TTXT-Format-Documentation
+* TTXT: https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation
 .br
 * QT 3GPP Text XML (TexML): Apple QT6, likely deprecated
 .br
@@ -2756,6 +2882,8 @@ Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal
 * WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues
 .br
 * TTML: ISO/IEC 14496-30 XML subtitles
+.br
+* stxt and sbtt: ISO/IEC 14496-30 text stream and text subtitles
 .br
 * Others: 3GPP/QT Timed Text
 .br
@@ -2827,9 +2955,11 @@ MP4Box -add test.ttml --ttml_zero=10:00:00 [...]
 .SH Simple Text Support
 .LP
 .br
-The text loader can convert input files in simple text streams of a single packet, by forcing the codec type on the input:EX gpac -i test.txt:#CodecID=stxt  [...]
+The text loader can convert input files in simple text streams of a single packet, by forcing the codec type on the input:
 .br
 Example
+.br
+gpac -i test.txt:#CodecID=stxt  [...]
 .br
 gpac fin:pck="Text Data":#CodecID=stxt  [...]
 .br
@@ -2847,10 +2977,19 @@ In this mode, the .I stxtdur option is used to control the duration of the gener
 .br
 
 .br
-.SH Options (expert):
+.SH Notes
 .LP
 .br
-webvtt (bool, default: false): force WebVTT import of SRT files
+When reframing simple text streams from demuxers (e.g. subtitles from MKV), the output format of these streams can be selected using .I stxtmod.
+.br
+
+.br
+When importing SRT, SUB or SSA files, the output format of the PID can be selected using .I stxtmod.
+.br
+
+.br
+.SH Options (expert):
+.LP
 .br
 nodefbox (bool, default: false): skip default text box
 .br
@@ -2888,11 +3027,17 @@ no_empty (bool, default: false): do not send empty samples
 .br
 stxtdur (frac, default: 1):    duration for simple text
 .br
-stxtmod (enum, default: none): simple text stream mode- none: declares output PID as simple text stream
+stxtmod (enum, default: tx3g): text stream mode for simple text streams and SRT inputs
 .br
-* tx3g: declares output PID as TX3G/Apple stream
+* stxt: output PID formatted as simple text stream
 .br
-* vtt: declares output PID as WebVTT stream
+* sbtt: output PID formatted as subtitle text stream
+.br
+* tx3g: output PID formatted as TX3G/Apple stream
+.br
+* vtt: output PID formatted as WebVTT stream
+.br
+* webvtt: same as vtt (for backward compatiblity
 .br
 
 .br
@@ -2907,7 +3052,7 @@ Description: TTXT/TX3G decoder
 .br
 This filter decodes TTXT/TX3G streams into a BIFS scene graph of the compositor filter.
 .br
-The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation
+The TTXT documentation is available at https://wiki.gpac.io/xmlformats/TTXT-Format-Documentation
 .br
 
 .br
@@ -3292,7 +3437,7 @@ This filter converts MPEG-H Audio streams into MHAS encapsulated data.
 .SH Options (expert):
 .LP
 .br
-syncp (bool, default: yes):    if set, insert sync packet at each frame, otherwise only at SAP
+syncp (bool, default: false):  if set, insert sync packet at each frame, otherwise only at SAP
 .br
 
 .br
@@ -3543,7 +3688,7 @@ Note: In these modes, .I splitrange and .I xadjust are implicitly set.
 .br
 exporter (bool, default: false): compatibility with old exporter, displays export results
 .br
-rt (enum, default: off):       real-time regulation mode of input
+rt (enum, default: off, updatable): real-time regulation mode of input
 .br
 * off: disables real-time regulation
 .br
@@ -3553,13 +3698,13 @@ rt (enum, default: off):       real-time regulation mode of input
 .br
 
 .br
-saps (uintl, minmax: 0|1|2|3|4): list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)
+saps (uintl, Enum: 0|1|2|3|4, updatable): list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)
 .br
 
 .br
-refs (bool, default: false):   forward only frames used as reference frames, if indicated in the input stream
+refs (bool, default: false, updatable): forward only frames used as reference frames, if indicated in the input stream
 .br
-speed (dbl, default: 0.0):     speed for real-time regulation mode, a value of 0 uses speed from play commands
+speed (dbl, default: 0.0, updatable): speed for real-time regulation mode, a value of 0 uses speed from play commands
 .br
 raw (enum, default: no):       force input AV streams to be in raw format
 .br
@@ -3573,7 +3718,7 @@ raw (enum, default: no):       force input AV streams to be in raw format
 .br
 
 .br
-frames (sintl):                drop all except listed frames (first being 1). A negative value -V keeps only first frame every V frames
+frames (sintl, updatable):     drop all except listed frames (first being 1). A negative value -V keeps only first frame every V frames
 .br
 xs (strl):                     extraction start time(s)
 .br
@@ -3621,9 +3766,9 @@ utc_ref (enum, default: any):  set reference mode for UTC range extraction
 .br
 utc_probe (uint, default: 5000): timeout in milliseconds to try to acquire UTC reference from media
 .br
-copy (bool, default: false):   try copying frame interface into packets
+copy (bool, default: false, updatable): try copying frame interface into packets
 .br
-cues (enum, default: no):      cue filtering mode
+cues (enum, default: no, updatable): cue filtering mode
 .br
 * no: do no filter frames based on cue info
 .br
@@ -3632,6 +3777,8 @@ cues (enum, default: no):      cue filtering mode
 * frags: only forward frames marked as fragment start
 .br
 
+.br
+rmseek (bool, default: false, updatable): remove seek flag of all sent packets
 .br
 
 .br
@@ -3653,9 +3800,13 @@ The writegen filter should usually not be explicitly loaded without a source ID 
 .br
 exporter (bool, default: false): compatibility with old exporter, displays export results
 .br
-pfmt (pfmt, default: none, minmax: none,yuv420,yvu420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,uyvl,vyul,yuyl,yvyl,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,yuv444p,v308,yuv444ap,v408,v410,v210,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,uncv): pixel format for raw extract. If not set, derived from extension
+pfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format for raw extract. If not set, derived from extension
 .br
-afmt (afmt, default: none, minmax: none,u8,s16,s16b,s24,s24b,s32,s32b,flt,fltb,dbl,dblb,u8p,s16p,s24p,s32p,fltp,dblp): audio format for raw extract. If not set, derived from extension
+
+.br
+afmt (afmt, default: none, Enum: none|u8|s16|s16b|s24|s24b|s32|s32b|flt|fltb|dbl|dblb|u8p|s16p|s24p|s32p|fltp|dblp): audio format for raw extract. If not set, derived from extension
+.br
+
 .br
 decinfo (enum, default: auto): decoder config insert mode
 .br
@@ -3772,7 +3923,7 @@ Description: NHNT writer
 .br
 This filter converts a single stream to an NHNT output file.
 .br
-NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
+NHNT documentation is available at https://wiki.gpac.io/xmlformats/NHNT-Format
 .br
 
 .br
@@ -3794,7 +3945,7 @@ Description: NHML writer
 .br
 This filter converts a single stream to an NHML output file.
 .br
-NHML documentation is available at https://wiki.gpac.io/NHML-Format
+NHML documentation is available at https://wiki.gpac.io/xmlformats/NHML-Format
 .br
 
 .br
@@ -3995,7 +4146,9 @@ osr (uint, default: 0):        desired sample rate of output audio (0 for auto)
 .br
 osfmt (afmt, default: none):   desired sample format of output audio (none for auto)
 .br
-olayout (str, minmax: mono,stereo,3/0.0,3/1.0,3/2.0,3/2.1,5/2.1,1+1,2/1.0,2/2.0,3/3.1,3/4.1,11/11.2,5/2.1,5/5.2,5/4.1,6/5.1,6/7.1,5/6.1,7/6.1): desired CICP layout of output audio (null for auto)
+olayout (alay, Enum: mono|stereo|3/0.0|3/1.0|3/2.0|3/2.1|5/2.1|1+1|2/1.0|2/2.0|3/3.1|3/4.1|11/11.2|5/2.1|5/5.2|5/4.1|6/5.1|6/7.1|5/6.1|7/6.1): desired CICP layout of output audio (null for auto)
+.br
+
 .br
 
 .br
@@ -4205,7 +4358,9 @@ The filter also parses YUV4MPEG format.
 .br
 size (v2di, default: 0x0):     source video resolution
 .br
-spfmt (pfmt, default: none, minmax: none,yuv420,yvu420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,uyvl,vyul,yuyl,yvyl,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,yuv444p,v308,yuv444ap,v408,v410,v210,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,uncv): source pixel format. When not set, derived from file extension
+spfmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): source pixel format. When not set, derived from file extension
+.br
+
 .br
 fps (frac, default: 25/1):     number of frames per second
 .br
@@ -4229,7 +4384,9 @@ This filter parses raw PCM file/data or WAVE files and outputs corresponding raw
 .br
 sr (uint, default: 44100):     sample rate
 .br
-safmt (afmt, default: none, minmax: none,u8,s16,s16b,s24,s24b,s32,s32b,flt,fltb,dbl,dblb,u8p,s16p,s24p,s32p,fltp,dblp): audio format
+safmt (afmt, default: none, Enum: none|u8|s16|s16b|s24|s24b|s32|s32b|flt|fltb|dbl|dblb|u8p|s16p|s24p|s32p|fltp|dblp): audio format
+.br
+
 .br
 ch (uint, default: 2):         number of channels
 .br
@@ -4664,6 +4821,8 @@ raw (enum, default: no):       force input AV streams to be in raw format
 .br
 
 .br
+flush (bool, default: false):  send a flush signal once playlist is done before entering keepalive
+.br
 
 .br
 .SH m2tsmx
@@ -5031,6 +5190,8 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * `SRDRef`: indicates global width and height of SRD, ignored if CropOrigin is set
 .br
+* `HLSPL`: name of variant playlist, can use templates
+.br
 * `HLSMExt`: list of extensions to add to master playlist entries, ['foo','bar=val'] added as ,foo,bar=val
 .br
 * `HLSVExt`: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as #foo \n #bar=val
@@ -5137,9 +5298,21 @@ The segmenter will create multiplexing filter chains for each representation and
 .br
 
 .br
-For HLS, the output PID will deliver the master playlist and the variant playlists.
+For HLS, the output manifest PID will deliver the master playlist and the variant playlists.
 .br
 The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant.
+.br
+
+.br
+When HLS mode is enabled, the segment .I template is relative to the variant playlist file, which can also be templated.
+.br
+Example
+.br
+gpac -i av.mp4:#HLSPL=$Type$/index.m3u8 -o dash/live.m3u8:dual:template='$Number$'
+.br
+
+.br
+This will put video segments and playlist in dash/video/ and audio segments and playlist in dash/audio/
 .br
 
 .br
@@ -5168,6 +5341,10 @@ When .I seg_sync is disabled, the segmenter will by default announce a new segme
 This may result in temporary mismatches between segment/part size currently received versus size as advertized in manifest.
 .br
 When .I seg_sync is enabled, the segmenter will wait for the last byte of the fragment/segment to be pushed before announcing a new segment in the manifest(s). This can however slightly increase the latency in MPEG-DASH low-latency.
+.br
+
+.br
+When (-sflush)[] is set to single, segmentation is skipped and a single segment is generated per input.
 .br
 
 .br
@@ -5443,6 +5620,106 @@ Warning: Options for segment destination cannot be set through the .I template, 
 .br
 
 .br
+.SS Batch Operations
+.br
+The segmentation can be performed in multiple calls using a DASH context set with .I state.
+.br
+Between calls, the PIDs are reassigned by checking that the PID ID match between the calls and:
+.br
+- the input file names match between the calls
+.br
+- or the representation ID (and period ID if specified) match between the calls
+.br
+
+.br
+If a PID is not matched, it will be assigned to a new period.
+.br
+
+.br
+The default behaviour assume that the same inputs are used for segmentation and rebuilds a contiguous timeline at each new file start.
+.br
+If the inputs change but form a continuous timeline, [-keep_ts])() must be used to skip timeline reconstruction.
+.br
+
+.br
+The inputs will be segmented for a duration of .I subdur if set, otherwise the input media duration.
+.br
+When inputs are over, they are restarted if .I loop is set otherwise a new period is created.
+.br
+To avoid this behaviour, the .I sflush option should be set to end or single, indicating that further sources for the same representations will be added in subsequent calls. When .I sflush is not off, the (-loop)[] option is ignored.
+.br
+
+.br
+Example
+.br
+gpac -i SRC -o dash.mpd:segdur=2:state=CTX && gpac -i SRC -o dash.mpd:segdur=2:state=CTX
+.br
+
+.br
+This will generate all dash segments for SRC (last one possibly shorter) and create a new period at end of input.
+.br
+Example
+.br
+gpac -i SRC -o dash.mpd:segdur=2:state=CTX:loop && gpac -i SRC -o dash.mpd:segdur=2:state=CTX:loop
+.br
+
+.br
+This will generate all dash segments for SRC and restart SRC to fill-up last segment.
+.br
+Example
+.br
+gpac -i SRC -o dash.mpd:segdur=2:state=CTX:sflush=end && gpac -i SRC -o dash.mpd:segdur=2:state=CTX:sflush=end
+.br
+
+.br
+This will generate all dash segments for SRC without looping/closing the period at end of input. Timestamps in the second call will be rewritten to be contiguous with timestamp at end of first call.
+.br
+Example
+.br
+gpac -i SRC1 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts && gpac -i SRC2 -o dash.mpd:segdur=2:state=CTX:sflush=end:keep_ts
+.br
+
+.br
+This will generate all dash segments for SRC1 without looping/closing the period at end of input, then for SRC2. Timestamps of the sources will not be rewritten.
+.br
+
+.br
+Note: The default behaviour of MP4Box -dash-ctx option is to set the (-loop)[] to true.
+.br
+
+.br
+.SS Output redirecting
+.br
+When loaded implicitly during link resolution, the dasher will only link its outputs to the target sink
+.br
+Example
+.br
+gpac -i SRC -o URL1:OPTS1 -o URL2:OPTS1
+.br
+
+.br
+This will create one dasher (with options OPTS1) for the URL1 and one dasher (with options OPTS1) for URL2.
+.br
+This allows dashing to multiple outputs with different formats, dash durations, etc.
+.br
+
+.br
+It can be useful to redirect all the filter outputs to several sinks, for example to push through ROUTE and through HTTP the same segments.
+.br
+In order to do this, the filter MUST be explicitly loaded and all options related to dash and MP4 must be set either globally or on the dasher filter.
+.br
+Example
+.br
+gpac -i SRC dasher:cmfc:segdur=2 -o URL1 -o URL2
+.br
+
+.br
+This will create a single dasher whose outputs (manifests and segments) will be redirected to the given URLs.
+.br
+When explicitly loading the filter, the .I dual option will be disabled unless .I mname is set to the alternate output name.
+.br
+
+.br
 .SS Multiplexer development considerations
 .br
 Output multiplexers allowing segmented output must obey the following:
@@ -5656,13 +5933,17 @@ refresh (dbl, default: 0):     refresh rate for dynamic manifests, in seconds (a
 .br
 tsb (dbl, default: 30):        time-shift buffer depth in seconds (a negative value means infinity)
 .br
-subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration
+keep_segs (bool, default: false): do not delete segments no longer in time-shift buffer
 .br
 ast (str):                     set start date (as xs:date, e.g. YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!
 .br
 state (str):                   path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions
 .br
+keep_ts (bool, default: false): do not shift timestamp when reloading a context
+.br
 loop (bool, default: false):   loop sources when dashing with subdur and state. If not set, a new period is created once the sources are over
+.br
+subdur (dbl, default: 0):      maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration
 .br
 split (bool, default: true):   enable cloning samples for text/metadata/scene description streams, marking further clones as redundant
 .br
@@ -5674,9 +5955,9 @@ strict_cues (bool, default: false): strict mode for cues, complains if splitting
 .br
 strict_sap (enum, default: off): strict mode for sap
 .br
-* off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_
+* off: ignore SAP types for PID other than video, enforcing AdaptationSet@startsWithSAP=1
 .br
-* sig: same as .I off but keep _startsWithSAP_ to the true SAP value
+* sig: same as .I off but keep AdaptationSet@startsWithSAP to the true SAP value
 .br
 * on: warn if any PID uses SAP 3 or 4 and switch to FULL profile
 .br
@@ -5684,7 +5965,7 @@ strict_sap (enum, default: off): strict mode for sap
 .br
 
 .br
-subs_sidx (sint, default: -1): number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
+subs_sidx (sint, default: -1): number of subsegments per sidx. Negative value disables sidx. Only used to inherit sidx option of destination
 .br
 cmpd (bool, default: false):   skip line feed and spaces in MPD XML for compactness
 .br
@@ -5718,7 +5999,15 @@ scope_deps (bool, default: true): scope PID dependencies to be within source. If
 .br
 utcs (str):                    URL to use as time server / UTCTiming source. Special value inband enables inband UTC (same as publishTime), special prefix xsd@ uses xsDateTime schemeURI rather than ISO
 .br
-force_flush (bool, default: false): force generating a single segment for each input. This can be useful in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater
+sflush (enum, default: off):   segment flush mode - see filter help:
+.br
+* off: no specific actions
+.br
+* single: force generating a single segment for each input
+.br
+* end: skip loop detection and clamp duration adjustment at end of input, used for state mode
+.br
+
 .br
 last_seg_merge (bool, default: false): force merging last segment if less than half the target duration
 .br
@@ -5732,7 +6021,7 @@ mha_compat (enum, default: no): adaptation set generation mode for compatible MP
 .br
 
 .br
-mname (str):                   output manifest name for ATSC3 multiplexing
+mname (str):                   output manifest name for ATSC3 multiplexing (using 'm3u8' only toggles HLS generation)
 .br
 llhls (enum, default: off):    HLS low latency type
 .br
@@ -5749,6 +6038,8 @@ llhls (enum, default: off):    HLS low latency type
 hlsdrm (str):                  cryp file info for HLS full segment encryption
 .br
 hlsx (strl):                   list of string to append to master HLS header before variants with ['#foo','#bar=val'] added as #foo \n #bar=val
+.br
+hlsiv (bool, default: true):   inject IV in variant HLS playlist
 .br
 ll_preload_hint (bool, default: true): inject preload hint for LL-HLS
 .br
@@ -5825,6 +6116,8 @@ dkid (enum, default: auto):    control injection of default KID in MPD
 
 .br
 tpl_force (bool, default: false): use template string as is without trying to add extension or solve conflicts in names
+.br
+ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH segment into a single sample
 .br
 
 .br
@@ -6134,7 +6427,7 @@ In order to demultiplex such a file, the gsfdmxfilter will likely need to be exp
 .br
 Example
 .br
-gpac -i mux.gsf gsfdmx -o dump/$File$:dynext:clone
+gpac -i mux.gsf gsfdmx -o dump/$File$:dynext
 .br
 
 .br
@@ -6404,6 +6697,12 @@ If the SDK is not available, the configuration key nvdec@disabled will be writte
 .br
 
 .br
+The absolute path to cuda lib can be set using the cuda_lib option in core or temp section of the config file, e.g. -cfg=temp:cuda_lib=PATH_TO_CUDA
+.br
+The absolute path to cuvid lib can be set using the cuvid_lib option in core or temp section of the config file, e.g. -cfg=temp:cuvid_lib=PATH_TO_CUDA
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -6448,11 +6747,13 @@ Description: ROUTE input
 .br
 
 .br
-This filter is a receiver for ROUTE sessions (ATSC 3.0 and generic ROUTE).
+This filter is a receiver for file delivery over multicast. It currently supports ATSC 3.0, generic ROUTE and DVB-MABR flute.
 .br
 - ATSC 3.0 mode is identified by the URL atsc://.
 .br
 - Generic ROUTE mode is identified by the URL route://IP:PORT.
+.br
+- DVB-MABR mode is identified by the URL mabr://IP:PORT pointing to the bootstrap FLUTE channel carrying the multicast gateway configuration.
 .br
 
 .br
@@ -6461,7 +6762,7 @@ The filter can work in cached mode, source mode or standalone mode.
 .SH Cached mode
 .LP
 .br
-The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using http://groute/serviceN/ as service root, N being the ROUTE service ID.
+The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using http://gmcast/serviceN/ as service root, N being the multicast service ID.
 .br
 In cached mode, repeated files are always pushed to cache.
 .br
@@ -6471,19 +6772,19 @@ The maximum number of media segment objects in cache per service is defined by .
 .br
 The cached MPD is assigned the following headers:
 .br
-* `x-route`: integer value, indicates the ROUTE service ID.
+* `x-mcast`: boolean value, if yes indicates the file comes from a multicast.
 .br
-* `x-route-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.
+* `x-mcast-first-seg`: string value, indicates the name of the first segment (completely or currently being) retrieved from the broadcast.
 .br
-* `x-route-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).
+* `x-mcast-ll`: boolean value, if yes indicates that the indicated first segment is currently being received (low latency signaling).
 .br
-* `x-route-loop`: boolean value, if yes indicates a loop in the service has been detected (usually pcap replay loop).
+* `x-mcast-loop`: boolean value, if yes indicates a loop (e.g. pcap replay) in the service has been detected - only checked if .I cloop is set.
 .br
   
 .br
 The cached files are assigned the following headers:
 .br
-* `x-route`: boolean value, if yes indicates the file comes from an ROUTE session.
+* `x-mcast`: boolean value, if yes indicates the file comes from a multicast.
 .br
 
 .br
@@ -6559,7 +6860,7 @@ route add -net 224.0.23.60/32 -interface vboxnet0
 .br
 
 .br
-Then for each ROUTE service in the multicast:
+Then for each multicast service in the multicast:
 .br
 Example
 .br
@@ -6600,9 +6901,11 @@ max_segs (uint, default: 0):   maximum number of segments to keep on disk
 .br
 odir (str):                    output directory for standalone mode
 .br
-reorder (bool, default: false): ignore order flag in ROUTE/LCT packets, avoiding considering object done when TOI changes
+reorder (bool, default: true): consider packets are not always in order - if false, this will evaluate an LCT object as done when TOI changes
 .br
-rtimeout (uint, default: 5000): default timeout in ms to wait when gathering out-of-order packets
+cloop (bool, default: false):  check for loops based on TOI (used for capture replay)
+.br
+rtimeout (uint, default: 1000): default timeout in us to wait when gathering out-of-order packets
 .br
 fullseg (bool, default: false): only dispatch full segments in cache mode (always true for other modes)
 .br
@@ -6614,9 +6917,15 @@ repair (enum, default: simple): repair mode for corrupted files
 .br
 * strict: incomplete mdat boxes will be lost as well as preceding moof boxes
 .br
-* full: HTTP-based repair, not yet implemented
+* full: HTTP-based repair of all lost packets
 .br
 
+.br
+repair_url (cstr):             repair url
+.br
+max_sess (uint, default: 1):   max number of concurrent HTTP repair sessions
+.br
+llmode (bool, default: true):  enable low-latency access
 .br
 
 .br
@@ -7008,6 +7317,14 @@ When enabled, a GET on a directory will return a simple HTML listing of the cont
 .br
   
 .br
+Custom headers can be specified using .I hdrs, they apply to all requests. For more advanced control on requests, use a javascript binding (see .I js and howtos).
+.br
+  
+.br
+Text files are compressed using gzip or deflate if the client accepts these encodings, unless .I no_z is set.
+.br
+  
+.br
 .SH Simple HTTP server
 .LP
 .br
@@ -7205,7 +7522,7 @@ When running in server mode, multiple HTTP outputs with same URL/port may be use
 .br
 Example
 .br
-gpac -i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag
+gpac -i dash.mpd dashin:forward=file:FID=D1 dashin:forward=segb:FID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag
 .br
 
 .br
@@ -7297,6 +7614,12 @@ max_async_buf (uint, default: 100000): maximum async buffer size in bytes when s
 blockio (bool, default: false): use blocking IO in push or source mode or in server mode with no read dir
 .br
 ka (bool, default: true):      keep input alive if failure in push mode
+.br
+hdrs (strl):                   additional HTTP headers to inject, even values are names, odd values are values 
+.br
+js (str):                      javascript logic for server
+.br
+zmax (uint, default: 50000):   maximum uncompressed size allowed for gzip or deflate compression for text files (only enabled if client indicates it), 0 will disable compression
 .br
 
 .br
@@ -7592,11 +7915,17 @@ The filter will work in passthrough mode for all other codecs and media types.
 .SH Options (expert):
 .LP
 .br
-cprim (cprm, default: -1, minmax: reserved0,BT709,undef,reserved3,BT470M,BT470G,SMPTE170,SMPTE240,FILM,BT2020,SMPTE428,SMPTE431,SMPTE432,EBU3213, updatable): color primaries according to ISO/IEC 23001-8 / 23091-2
+cprim (cprm, default: -1, Enum: reserved0|BT709|undef|reserved3|BT470M|BT470G|SMPTE170|SMPTE240|FILM|BT2020|SMPTE428|SMPTE431|SMPTE432|EBU3213, updatable): color primaries according to ISO/IEC 23001-8 / 23091-2
 .br
-ctfc (ctfc, default: -1, minmax: reserved0,BT709,undef,reserved3,BT470M,BT470BG,SMPTE170,SMPTE249,Linear,Log100,Log316,IEC61966,BT1361,sRGB,BT2020_10,BT2020_12,SMPTE2084,SMPTE428,STDB67, updatable): color transfer characteristics according to ISO/IEC 23001-8 / 23091-2
+
 .br
-cmx (cmxc, default: -1, minmax: GBR,BT709,undef,FCC,BT601,SMPTE170,SMPTE240,YCgCo,BT2020,BT2020cl,YDzDx, updatable): color matrix coeficients according to ISO/IEC 23001-8 / 23091-2
+ctfc (ctfc, default: -1, Enum: reserved0|BT709|undef|reserved3|BT470M|BT470BG|SMPTE170|SMPTE249|Linear|Log100|Log316|IEC61966|BT1361|sRGB|BT2020_10|BT2020_12|SMPTE2084|SMPTE428|STDB67, updatable): color transfer characteristics according to ISO/IEC 23001-8 / 23091-2
+.br
+
+.br
+cmx (cmxc, default: -1, Enum: GBR|BT709|undef|FCC|BT601|SMPTE170|SMPTE240|YCgCo|BT2020|BT2020cl|YDzDx, updatable): color matrix coeficients according to ISO/IEC 23001-8 / 23091-2
+.br
+
 .br
 sar (frac, default: -1/-1, updatable): aspect ratio to rewrite
 .br
@@ -7888,8 +8217,9 @@ Description: TTML to WebVTT
 .br
 
 .br
-This filter converts TTML frames to unframed WebVTT
-.
+This filter converts TTML frames to unframed WebVTT.
+.br
+
 .br
 Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.
 .br
@@ -7906,8 +8236,9 @@ Description: TTML to SRT
 .br
 
 .br
-This filter converts TTML frames to unframed SRT
-.
+This filter converts TTML frames to unframed SRT.
+.br
+
 .br
 Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.
 .br
@@ -7938,15 +8269,15 @@ cicp_idx (uint, default: 2):   target output layout CICP index (see gpac -h layo
 .SH ffdmx
 .LP
 .br
-Description: FFMPEG demultiplexer
+Description: FFmpeg demultiplexer
 .br
-Version: Lavf60.5.100
+Version: Lavf61.3.100
 .br
 
 .br
-This filter demultiplexes an input file or open a source protocol using FFMPEG.
+This filter demultiplexes an input file or open a source protocol using FFmpeg.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
 To list all supported demultiplexers for your GPAC build, use gpac -h ffdmx:*.
 .br
@@ -7976,15 +8307,15 @@ strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's 
 .SH ffdec
 .LP
 .br
-Description: FFMPEG decoder
+Description: FFmpeg decoder
 .br
-Version: Lavc60.14.101
+Version: Lavc61.5.101
 .br
 
 .br
-This filter decodes audio and video streams using FFMPEG.
+This filter decodes audio and video streams using FFmpeg.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
 To list all supported decoders for your GPAC build, use gpac -h ffdec:*.
 .br
@@ -7999,13 +8330,13 @@ The default threading mode is to let libavcodec decide how many threads to use. 
 .SH Codec Map
 .LP
 .br
-The .I ffcmap option allows specifying FFMPEG codecs for codecs not supported by GPAC.
+The .I ffcmap option allows specifying FFmpeg codecs for codecs not supported by GPAC.
 .br
 Each entry in the list is formatted as GID@name or GID@+name, with:
 .br
 * GID: 4CC or 32 bit identifier of codec ID, as indicated by gpac -i source inspect:full
 .br
-* name: FFMPEG codec name
+* name: FFmpeg codec name
 .br
 * `+': is set and extra data is set and formatted as an ISOBMFF box, removes box header
 .br
@@ -8035,15 +8366,15 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .SH ffavin
 .LP
 .br
-Description: FFMPEG AV Capture
+Description: FFmpeg AV Capture
 .br
-Version: Lavd60.2.100
+Version: Lavd61.2.100
 .br
 
 .br
-Reads from audio/video capture devices using FFMPEG.
+Reads from audio/video capture devices using FFmpeg.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
 To list all supported grabbers for your GPAC build, use gpac -h ffavin:*.
 .br
@@ -8128,13 +8459,13 @@ probes (uint, default: 10, minmax: 0-100): probe a given number of video frames 
 .SH ffsws
 .LP
 .br
-Description: FFMPEG video rescaler
+Description: FFmpeg video rescaler
 .br
-Version: SwS7.2.100
+Version: SwS8.2.100
 .br
 
 .br
-This filter rescales raw video data using FFMPEG to the specified size and pixel format.
+This filter rescales raw video data using FFmpeg to the specified size and pixel format.
 .br
 .SS Output size assignment
 .br
@@ -8196,7 +8527,7 @@ When sample aspect ratio is kept, the filter will:
 .br
 
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 
 .br
@@ -8205,7 +8536,9 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .br
 osize (v2di):                  osize of output video
 .br
-ofmt (pfmt, default: none, minmax: none,yuv420,yvu420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,uyvl,vyul,yuyl,yvyl,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,yuv444p,v308,yuv444ap,v408,v410,v210,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,uncv): pixel format for output video. When not set, input format is used
+ofmt (pfmt, default: none, Enum: none|yuv420|yvu420|yuv420_10|yuv422|yuv422_10|yuv444|yuv444_10|uyvy|vyuy|yuyv|yvyu|uyvl|vyul|yuyl|yvyl|nv12|nv21|nv1l|nv2l|yuva|yuvd|yuv444a|yuv444p|v308|yuv444ap|v408|v410|v210|grey|algr|gral|rgb4|rgb5|rgb6|rgba|argb|bgra|abgr|rgb|bgr|xrgb|rgbx|xbgr|bgrx|rgbd|rgbds|uncv): pixel format for output video. When not set, input format is used
+.br
+
 .br
 scale (enum, default: bicubic): scaling mode (see filter help) (fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline)
 .br
@@ -8246,15 +8579,15 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .SH ffenc
 .LP
 .br
-Description: FFMPEG encoder
+Description: FFmpeg encoder
 .br
-Version: Lavc60.14.101
+Version: Lavc61.5.101
 .br
 
 .br
-This filter encodes audio and video streams using FFMPEG.
+This filter encodes audio and video streams using FFmpeg.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
 To list all supported encoders for your GPAC build, use gpac -h ffenc:*.
 .br
@@ -8324,15 +8657,15 @@ rld (bool, default: false, updatable): force reloading of encoder when arguments
 .SH ffmx
 .LP
 .br
-Description: FFMPEG multiplexer
+Description: FFmpeg multiplexer
 .br
-Version: Lavf60.5.100
+Version: Lavf61.3.100
 .br
 
 .br
-Multiplexes files and open output protocols using FFMPEG.
+Multiplexes files and open output protocols using FFmpeg.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
 To list all supported multiplexers for your GPAC build, use gpac -h ffmx:*.This will list both supported output formats and protocols.
 .br
@@ -8388,15 +8721,15 @@ keepts (bool, default: true):  do not shift input timeline back to 0
 .SH ffavf
 .LP
 .br
-Description: FFMPEG AVFilter
+Description: FFmpeg AVFilter
 .br
-Version: Lavfi9.8.101
+Version: Lavfi10.2.101
 .br
 
 .br
 This filter provides libavfilter raw audio and video tools.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 To list all supported avfilters for your GPAC build, use gpac -h ffavf:*.
 .br
@@ -8415,7 +8748,7 @@ ffavf:f=showspectrum
 .br
 
 .br
-Unlike other FFMPEG bindings in GPAC, this filter does not parse other libavfilter options, you must specify them directly in the filter chain, and the .I f option will have to be escaped.
+Unlike other FFmpeg bindings in GPAC, this filter does not parse other libavfilter options, you must specify them directly in the filter chain, and the .I f option will have to be escaped.
 .br
 Example
 .br
@@ -8531,59 +8864,15 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .SH ffbsf
 .LP
 .br
-Description: FFMPEG BitStream filter
+Description: FFmpeg BitStream filter
 .br
-Version: Lavu58.9.100
-.br
-
-.br
-This filter provides bitstream filters (BSF) for compressed audio and video formats.
-.br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
-.br
-To list all supported bitstream filters for your GPAC build, use gpac -h ffbsf:*.
-.br
-
-.br
-Several BSF may be specified in .I f for different coding types. BSF not matching the coding type are silently ignored.
-.br
-When no BSF matches the input coding type, or when .I f is empty, the filter acts as a passthrough filter.
-.br
-
-.br
-Options are specified after the desired filters:
-.br
-- ffbsf:f=h264_metadata:video_full_range_flag=0
-.br
-- ffbsf:f=h264_metadata,av1_metadata:video_full_range_flag=0:color_range=tv
-.br
-
-.br
-Note: Using BSFs on some media types (e.g. avc, hevc) may trigger creation of a reframer filter (e.g. rfnalu)
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-f (strl):                      bitstream filters name - see filter help
-.br
-* (str):                       any possible options defined for AVBitstreamFilter and sub-classes. See gpac -hx ffbsf and gpac -hx ffbsf:*
-.br
-
-.br
-.SH ffbsf
-.LP
-.br
-Description: FFMPEG BitStream filter
-.br
-Version: Lavu58.9.100
+Version: Lavu59.13.100
 .br
 
 .br
 This filter provides bitstream filters (BSF) for compressed audio and video formats.
 .br
-See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details
+See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details
 .br
 To list all supported bitstream filters for your GPAC build, use gpac -h ffbsf:*.
 .br
@@ -8627,7 +8916,7 @@ This filter runs a javascript file specified in .I js defining a new JavaScript 
 .br
   
 .br
-For more information on how to use JS filters, please check https://wiki.gpac.io/jsfilter
+For more information on how to use JS filters, please check https://wiki.gpac.io/Howtos/jsf/jsfilter
 .br
 
 .br
@@ -8647,9 +8936,9 @@ Description: ROUTE output
 .br
 
 .br
-The ROUTE output filter is used to distribute a live file-based session using ROUTE.
+The ROUTE output filter is used to distribute a live file-based session using ROUTE or DVB-MABR.
 .br
-The filter supports DASH and HLS inputs, ATSC3.0 signaling and generic ROUTE signaling.
+The filter supports DASH and HLS inputs, ATSC3.0 signaling and generic ROUTE or DVB-MABR signaling.
 .br
 
 .br
@@ -8658,6 +8947,8 @@ The filter is identified using the following URL schemes:
 * `atsc://`: session is a full ATSC 3.0 session
 .br
 * `route://IP:port`: session is a ROUTE session running on given multicast IP and port
+.br
+* `mabr://IP:port`: session is a DVB-MABR session using FLUTE running on given multicast IP and port
 .br
 
 .br
@@ -8681,7 +8972,7 @@ For raw file PIDs, the filter will look for the following properties:
 .br
 
 .br
-When DASHing for ROUTE or single service ATSC, a file extension, either in .I dst or in .I ext, may be used to identify the HAS session type (DASH or HLS).
+When DASHing for ROUTE, DVB-MABR or single service ATSC, a file extension, either in .I dst or in .I ext, may be used to identify the HAS session type (DASH or HLS).
 .br
 Example
 .br
@@ -8715,11 +9006,11 @@ Warning: When forwarding an existing DASH/HLS session, do NOT set any extension 
 .br
 
 .br
-By default, all streams in a service are assigned to a single route session, and differentiated by ROUTE TSI (see .I splitlct).
+By default, all streams in a service are assigned to a single multicast session, and differentiated by TSI (see .I splitlct).
 .br
 TSI are assigned as follows:
 .br
-- signaling TSI is always 0
+- signaling TSI is always 0 for ROUTE, 1 for DVB+Flute
 .br
 - raw files are assigned TSI 1 and increasing number of TOI
 .br
@@ -8766,6 +9057,25 @@ In this mode, only a single service can be distributed by the ROUTE session.
 Note: .I ip is ignored, and .I first_port is used if no port is specified in .I dst.
 .br
 The ROUTE session will include a multi-part MIME unsigned package containing manifest and S-TSID, sent on TSI=0.
+.br
+
+.br
+.SH DVB-MABR mode
+.LP
+.br
+In this mode, the filter allows multiple service multiplexing, identified through the ServiceID and ServiceName properties.
+.br
+Note: .I ip and .I first_port are used to send the multicast gateway configuration, init segments and manifests. .I first_port is used only if no port is specified in .I dst.
+.br
+
+.br
+The session will carry DVB-MABR gateway configuration, maifests and init segments on TSI=1
+.br
+The filter will look for ROUTEIP and ROUTEPort properties on the incoming PID to setup multicast of each service. If not found, the default .I ip and port will be used, with port incremented by one for each new multicast stream.
+.br
+
+.br
+The FLUTE session always uses a symbol length of .I mtu minus 44 bytes.
 .br
 
 .br
@@ -8911,6 +9221,22 @@ brinc (uint, default: 10):     bitrate increase in percent when estimating timin
 noreg (bool, default: false):  disable rate regulation for media segments, pushing them as fast as received
 .br
 runfor (uint, default: 0):     run for the given time in ms
+.br
+nozip (bool, default: false):  do not zip signaling package (STSID+manifest)
+.br
+furl (bool, default: false):   inject full URLs of source service in the signaling instead of stripped server path
+.br
+flute (bool, default: true):   use flute for DVB-MABR object delivery
+.br
+csum (enum, default: meta):    send MD5 checksum for DVB flute
+.br
+* no: do not send checksum
+.br
+* meta: only send checksum for configuration files, manifests and init segments
+.br
+* all: send checksum for everything
+.br
+
 .br
 
 .br
@@ -9131,6 +9457,21 @@ Description: Stream to unframed format
 
 .br
 Generic single stream to unframed format converter, used when converting PIDs. This filter should not be explicitly loaded.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH ttmlmerge
+.LP
+.br
+Description: TTML sample merger
+.br
+
+.br
+Merge input samples into a single TTML sample. Merging restarts at the start of DASH segments.
 .br
 
 .br
@@ -9466,6 +9807,28 @@ Only a subset of CEA 608/708 is supported.
 
 .br
 No options
+.br
+
+.br
+.SH scte35dec
+.LP
+.br
+Description: SCTE35 decoder
+.br
+
+.br
+This filter extracts SCTE-35 markers attached as properties to audio and video
+.br
+packets as 23001-18 'emib' boxes. It also creates empty 'emeb' box in between
+.br
+following segmentation as hinted by the graph.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+segdur (frac, default: 1/1):   segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)
 .br
 
 .br
@@ -10263,6 +10626,34 @@ Properties for sourceURL objects
 .P
 .B
 Notes
+.br
+The special URL scheme ipid:// can be used to locate an input pid by link directives.
+.br
+Example
+.br
+in=ipid://#foo=bar
+.br
+
+.br
+This will use pids having property foo with value bar, regardless of source filter ID.
+.br
+
+.br
+Example
+.br
+in=ipid://TEST#foo=bar
+.br
+
+.br
+This will use pids having property foo with value bar coming from filter with ID TEST.
+.br
+
+.br
+When using the ipid:// scheme, filter chains cannot be specified (in accepts a single argument) and port is ignored.
+.br
+The syntax for link directive is the same as in gpac. However, if a listed property is not found on the input pid, the matching will fail.
+.br
+
 .br
 When launching a child process, the input filter is created first and the child process launched afterwards.
 .br
@@ -11823,16 +12214,16 @@ logt (bool):                   log frame time to console
 .br
 .SH EXAMPLES
 .TP
-Basic and advanced examples are available at https://wiki.gpac.io/Filters
+Basic and advanced examples are available at https://wiki.gpac.io/Filters/Filters
 .SH MORE
 .LP
 Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.3-DEV
+build: 2.5-DEV
 .br
-Copyright: (c) 2000-2023 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
+Copyright: (c) 2000-2024 Telecom Paris distributed under LGPL v2.1+ - https://gpac.io
 .br
 .SH SEE ALSO
 .LP

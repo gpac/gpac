@@ -80,7 +80,7 @@ void rtpin_satip_get_server_ip(const char *sURL, char *Server)
 
 	//extract the schema
 	i = 0;
-	while (i <= strlen(sURL)) {
+	while (i < strlen(sURL)) {
 		if (sURL[i] == ':')
 			goto found;
 		schema[i] = sURL[i];
@@ -89,7 +89,7 @@ void rtpin_satip_get_server_ip(const char *sURL, char *Server)
 	return;
 
 found:
-	schema[i] = 0;
+	schema[MIN(i, GF_ARRAY_LENGTH(schema)-1)] = 0;
 	if (stricmp(schema, "satip")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Wrong SATIP schema %s - not setting up\n", schema));
 		return;
@@ -105,25 +105,25 @@ found:
 	if (retest && strstr(retest, "/")) {
 		retest += 1;
 		i = 0;
-		while (i<strlen(retest)) {
+		while (i<strlen(retest) && i<GF_ARRAY_LENGTH(text)) {
 			if (retest[i] == '/') break;
 			text[i] = retest[i];
 			i += 1;
 		}
-		text[i] = 0;
+		text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
 	}
 	//get the server name
 	is_ipv6 = GF_FALSE;
 	len = (u32)strlen(test);
 	i = 0;
-	while (i<len) {
+	while (i<len && i<GF_ARRAY_LENGTH(text)) {
 		if (test[i] == '[') is_ipv6 = GF_TRUE;
 		else if (test[i] == ']') is_ipv6 = GF_FALSE;
 		if ((test[i] == '/') || (!is_ipv6 && (test[i] == ':'))) break;
 		text[i] = test[i];
 		i += 1;
 	}
-	text[i] = 0;
+	text[MIN(i, GF_ARRAY_LENGTH(text)-1)] = 0;
 	strcpy(Server, text);
 }
 
@@ -461,12 +461,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
 		if (!ctx->sdp_loaded && pck) {
-			Bool start, end;
 			u32 sdp_len;
 			const char *sdp_data;
-			gf_filter_pck_get_framing(pck, &start, &end);
-			assert(end);
-		
+
 			sdp_data = gf_filter_pck_get_data(pck, &sdp_len);
 			rtpin_load_sdp(ctx, (char *)sdp_data, sdp_len, NULL);
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -645,13 +642,23 @@ static GF_Err rtpin_process(GF_Filter *filter)
 
 	/*fetch data on udp*/
 	u32 tot_read=0;
-	while (1) {
+	//add a max for netcap without RT regulation
+	u32 run=100;
+	while (run) {
 		u32 read=0;
 		//select both read and write
 		GF_Err e = gf_sk_group_select(ctx->sockgroup, 10, GF_SK_SELECT_BOTH);
 		if (e) {
-			if ((e==GF_IP_NETWORK_EMPTY) && !ctx->eos_probe_start)
-				ctx->eos_probe_start = gf_sys_clock();
+			if (!tot_read && !ctx->eos_probe_start) {
+				if (e==GF_IP_NETWORK_EMPTY)
+					ctx->eos_probe_start = gf_sys_clock();
+				else if (e==GF_IP_CONNECTION_CLOSED)
+					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
+				else if (e==GF_EOS) {
+					ctx->eos_probe_start = gf_sys_clock() - ctx->udp_timeout;
+					e = GF_OK;
+				}
+			}
 			break;
 		}
 
@@ -662,19 +669,22 @@ static GF_Err rtpin_process(GF_Filter *filter)
 				read += rtpin_stream_read(stream);
 			}
 
+			//if not init, set probe start time to 500ms before eval time since we have explicit notif of eos through rtcp or rtsp
 			if ((stream->flags & RTP_EOS) && !ctx->eos_probe_start)
-				ctx->eos_probe_start = gf_sys_clock();
+				ctx->eos_probe_start = gf_sys_clock() + ctx->udp_timeout - 500;
 		}
 
+		run--;
 		if (!read) {
 			break;
 		}
-		tot_read+=read;
+
+		tot_read += read;
 		ctx->eos_probe_start = 0;
 	}
 
-	//we wait max 300ms to detect eos
-	if (ctx->eos_probe_start && (gf_sys_clock() - ctx->eos_probe_start > 1000) ) {
+	//we wait max udp_timeout ms to detect eos
+	if (ctx->eos_probe_start && (gf_sys_clock() - ctx->eos_probe_start > ctx->udp_timeout) ) {
 		u32 nb_eos=0;
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
@@ -751,9 +761,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, ctx->nb_bytes_rcv ? 1000 : 10000);
 	}
 	else {
-		assert(ctx->min_frame_dur_ms <= (u32) ctx->max_sleep);
 		//reschedule in half the frame dur
-		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*500);
+		if (ctx->min_frame_dur_ms <= (u32) ctx->max_sleep)
+			gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*500);
 	}
 	return GF_OK;
 }
@@ -831,18 +841,18 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 		return GF_OK;
 	}
 	ctx->session = rtpin_rtsp_new(ctx, (char *) ctx->src);
+	if (!ctx->session)
+		return GF_NOT_SUPPORTED;
+
 	if (!strnicmp(ctx->src, "satip://", 8)) {
 		ctx->session->satip = GF_TRUE;
 		ctx->session->satip_server = gf_malloc(GF_MAX_PATH);
 		rtpin_satip_get_server_ip(ctx->src, ctx->session->satip_server);
 	}
 
-	if (!ctx->session)
-		return GF_NOT_SUPPORTED;
-
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!strnicmp(ctx->src, "rtsps://", 8)
-		|| (!strnicmp(ctx->src, "rtsph://", 8) && 
+		|| (!strnicmp(ctx->src, "rtsph://", 8) &&
 			((gf_rtsp_get_session_port(ctx->session->session) == 443) || (gf_rtsp_get_session_port(ctx->session->session) == 8443)))
 	) {
 #ifdef GPAC_HAS_SSL
@@ -1011,4 +1021,3 @@ const GF_FilterRegister *rtpin_register(GF_FilterSession *session)
 	return NULL;
 #endif
 }
-

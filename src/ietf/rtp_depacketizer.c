@@ -240,8 +240,6 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *p
 		if (pay_start >= size) break;
 		num_au ++;
 	}
-//	assert(!au_hdr_size);
-
 	if (hdr->Marker)
 		rtp->flags |= GF_RTP_NEW_AU;
 	else
@@ -573,7 +571,7 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 			rtp->sl_hdr.au_duration = duration;
 			/*done*/
 			if (hdr->Marker) {
-				assert(gf_bs_get_position(rtp->inter_bs) < 1<<7);
+				gf_assert(gf_bs_get_position(rtp->inter_bs) < 1<<7);
 				rtp->txt_len = (u8) gf_bs_get_position(rtp->inter_bs);
 				gf_rtp_ttxt_flush(rtp, ts);
 			}
@@ -581,7 +579,7 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 			if (!rtp->inter_bs) rtp->inter_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			/*first modifier, store effective written text*/
 			if (type==3) {
-				assert(gf_bs_get_position(rtp->inter_bs) < 1<<7);
+				gf_assert(gf_bs_get_position(rtp->inter_bs) < 1<<7);
 				rtp->txt_len = (u8) gf_bs_get_position(rtp->inter_bs);
 			}
 			if (ttu_len<6) break;
@@ -1993,7 +1991,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 		return NULL;
 	}
 
-	assert(tmp->depacketize);
+	gf_assert(tmp->depacketize);
 	tmp->on_sl_packet = sl_packet_cbk;
 	tmp->udta = udta;
 	return tmp;
@@ -2028,7 +2026,7 @@ void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp)
 GF_EXPORT
 void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
-	assert(rtp && rtp->depacketize);
+	gf_assert(rtp && rtp->depacketize);
 	rtp->sl_hdr.sender_ntp = hdr->recomputed_ntp_ts;
 	rtp->depacketize(rtp, hdr, payload, size);
 }

@@ -234,7 +234,7 @@ GF_Err gf_laser_decode_command_list(GF_LASeRCodec *codec, u16 ESID, u8 *data, u3
 
 	for (i=0; i<gf_list_count(codec->unresolved_commands); i++) {
 		GF_Command *com = (GF_Command *)gf_list_get(codec->unresolved_commands, i);
-		assert(!com->node);
+		gf_assert(!com->node);
 		com->node = gf_sg_find_node(codec->sg, com->RouteID);
 		if (com->node) {
 			gf_node_register(com->node, NULL);
@@ -830,8 +830,10 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 			}
 		}
 
-		assert(par);
-		gf_node_dom_listener_add(par, listener);
+		if (par)
+			gf_node_dom_listener_add(par, listener);
+		else
+			gf_assert(0);
 		gf_list_rem(lsr->deferred_listeners, i);
 		i--;
 		count--;
@@ -5442,7 +5444,8 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				if (idx==-1) {
 					lsr_read_update_value(lsr, NULL, fieldIndex, field_type, info.far_ptr, 0);
 				} else {
-					assert(0);
+					gf_assert(0);
+					return GF_NON_COMPLIANT_BITSTREAM;
 				}
 
 
@@ -5857,7 +5860,7 @@ void lsr_exec_command_list(GF_Node *node, void *par, Bool is_destroy)
 	GF_LASeRCodec *codec = (GF_LASeRCodec *)gf_node_get_private((GF_Node*)node);
 
 	if (is_destroy || !up || (up->sgprivate->tag!=TAG_DOMUpdates)) return;
-	assert(!codec->bs);
+	gf_assert(!codec->bs);
 
 	codec->info = lsr_get_stream(codec, 0);
 	if (!codec->info) return;

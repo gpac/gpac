@@ -266,7 +266,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	}
 }
 
-static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *oggpage)
+static GF_Err oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *oggpage)
 {
 	ogg_packet oggpacket;
 	u32 serial_no, i;
@@ -282,7 +282,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 			ogg_stream_init(&st->os, st->serial_no);
 			ogg_stream_pagein(&st->os, oggpage);
 			st->parse_headers = st->info.num_init_headers;
-			return;
+			return GF_OK;
 		}
 	}
 
@@ -297,26 +297,32 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 	}
 	if (!st) {
 		GF_SAFEALLOC(st, GF_OGGStream);
-		if (!st) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to allocate stream for demux\n"));
-			return;
-		}
+		if (!st) return GF_OUT_OF_MEM;
 		gf_list_add(ctx->streams, st);
+	} else {
+		ogg_stream_clear(&st->os);
 	}
 	st->eos_detected = GF_FALSE;
 	st->serial_no = serial_no;
 	ogg_stream_init(&st->os, st->serial_no);
 	ogg_stream_pagein(&st->os, oggpage);
 
-	ogg_stream_packetpeek(&st->os, &oggpacket);
+	if (ogg_stream_packetpeek(&st->os, &oggpacket)<=0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[OGG] Invalid OGG page\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	oggdmx_get_stream_info(&oggpacket, &st->info);
 
 	st->parse_headers = st->info.num_init_headers;
 	switch (st->info.type) {
 	case GF_CODECID_VORBIS:
+		if (st->vorbis_parser)
+			gf_free(st->vorbis_parser);
 		GF_SAFEALLOC(st->vorbis_parser, GF_VorbisParser);
 		break;
 	case GF_CODECID_OPUS:
+		if (st->opus_cfg)
+			gf_free(st->opus_cfg);
 		GF_SAFEALLOC(st->opus_cfg, GF_OpusConfig);
 		break;
 	default:
@@ -343,6 +349,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 			ctx->duration.den = ctx->global_rate;
 		}
 	}
+	return GF_OK;
 }
 
 GF_Err oggdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -426,15 +433,16 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 		if (ogg_page_bos(&oggpage)) {
 			ogg_stream_init(&os, ogg_page_serialno(&oggpage));
 			if (ogg_stream_pagein(&os, &oggpage) >= 0 ) {
-				ogg_stream_packetpeek(&os, &oggpacket);
-				if (ogg_stream_pagein(&os, &oggpage) >= 0 ) {
-					ogg_stream_packetpeek(&os, &oggpacket);
-					oggdmx_get_stream_info(&oggpacket, &info);
-				}
-				if (!has_stream) {
-					has_stream = GF_TRUE;
-					ogg_stream_init(&the_os, ogg_page_serialno(&oggpage));
-					the_info = info;
+				if (ogg_stream_packetpeek(&os, &oggpacket)>0) {
+					if (ogg_stream_pagein(&os, &oggpage) >= 0 ) {
+						ogg_stream_packetpeek(&os, &oggpacket);
+						oggdmx_get_stream_info(&oggpacket, &info);
+					}
+					if (!has_stream) {
+						has_stream = GF_TRUE;
+						ogg_stream_init(&the_os, ogg_page_serialno(&oggpage));
+						the_info = info;
+					}
 				}
 			}
 			ogg_stream_clear(&os);
@@ -761,7 +769,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 		}
 
 		if (ogg_page_bos(&oggpage)) {
-			oggdmx_new_stream(filter, ctx, &oggpage);
+			GF_Err e = oggdmx_new_stream(filter, ctx, &oggpage);
+			if (e) return e;
 			continue;
 		}
 
@@ -808,7 +817,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					gf_bs_write_u16(st->dsi_bs, oggpacket.bytes);
 					gf_bs_write_data(st->dsi_bs, (char *) oggpacket.packet, oggpacket.bytes);
 				}
-				
+
 				st->parse_headers--;
 				if (!st->parse_headers) {
 					st->got_headers = GF_TRUE;
@@ -873,14 +882,14 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					}
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
 					if (!dst_pck) return GF_OUT_OF_MEM;
-					
+
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
 					//compat with old arch (keep same hashes), to remove once dropping it
 					if (!gf_sys_old_arch_compat()) {
 						gf_filter_pck_set_duration(dst_pck, block_size);
 					}
-					
+
 					if (st->info.type == GF_CODECID_VORBIS) {
 						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 					} else if (st->info.type == GF_CODECID_OPUS) {
@@ -995,4 +1004,3 @@ const GF_FilterRegister *oggdmx_register(GF_FilterSession *session)
 #endif
 
 }
-

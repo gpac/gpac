@@ -211,7 +211,7 @@ default_sync:
 				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
 #if !defined(GPAC_DISABLE_ZLIB)
-					gf_gz_decompress_payload(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
+					gf_gz_decompress_payload_ex(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength, GF_TRUE);
 					gf_free(rvc_cfg_data);
 #endif
 				} else {
@@ -375,7 +375,7 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 }
 
 
-GF_Err SetTrackDuration(GF_TrackBox *trak)
+GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc)
 {
 	u64 trackDuration=0xFFFFFFFF;
 	u32 i;
@@ -409,9 +409,14 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 		return GF_OK;
 	}
 	trak->Header->duration = trackDuration;
-	if (!trak->moov->mov->keep_utc && !gf_sys_is_test_mode() )
+	if (!keep_utc && !trak->moov->mov->keep_utc && !gf_sys_is_test_mode() )
 		trak->Header->modificationTime = gf_isom_get_mp4time();
 	return GF_OK;
+}
+
+GF_Err SetTrackDuration(GF_TrackBox *trak)
+{
+	return SetTrackDurationEx(trak, GF_FALSE);
 }
 
 
@@ -1026,6 +1031,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		if (new_idx) gf_free(new_idx);
 	}
 
+	u32 samples_in_traf = trak->Media->information->sampleTable->SampleSize->sampleCount - num_first_sample_in_traf;
+
 	/*content is encrypted*/
 	track_num = gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID);
 	if (gf_isom_is_cenc_media(trak->moov->mov, track_num, DescIndex)
@@ -1109,7 +1116,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				saiz = NULL;
 			}
 			if (saiz && saio && senc) {
-				for (i = 0; i < saiz->sample_count; i++) {
+				u32 saiz_count = saiz->sample_count;
+				if (saiz_count > samples_in_traf) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of CENC SAI samples %d greater than samples in traf %d, skipping merge\n", saiz_count, samples_in_traf));
+					saiz_count = 0;
+				}
+
+				for (i = 0; i < saiz_count; i++) {
 					const u8 *key_info=NULL;
 					u32 key_info_size, samp_num;
 					if (nb_saio != 1) {
@@ -1176,7 +1189,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				}
 			}
 		} else if (traf->sample_encryption) {
-			senc_Parse(trak->moov->mov->movieFileMap->bs, trak, traf, traf->sample_encryption);
+			senc_Parse(trak->moov->mov->movieFileMap->bs, trak, traf, traf->sample_encryption, samples_in_traf);
 			trak->sample_encryption->AlgorithmID = traf->sample_encryption->AlgorithmID;
 			if (!trak->sample_encryption->IV_size)
 				trak->sample_encryption->IV_size = traf->sample_encryption->IV_size;
@@ -1219,6 +1232,11 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		u32 nb_saio = saio->entry_count;
 		if ((nb_saio>1) && (saio->entry_count != gf_list_count(traf->TrackRuns))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of SAI offset does not match number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+			continue;
+		}
+
+		if (saiz->sample_count > samples_in_traf) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of SAI samples %d greater than samples in traf %d, skipping merge SAI %s aux info type %d\n", saiz->sample_count, samples_in_traf, gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
 			continue;
 		}
 

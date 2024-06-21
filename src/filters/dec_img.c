@@ -64,6 +64,8 @@ static GF_Err imgdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_RAW ));
+	//declare a default pixel format - this avoids bad reconfigurations of ffavf
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, & PROP_UINT( GF_PIXEL_RGB ));
 
 	if (ctx->codecid==GF_CODECID_JPEG) {
 		gf_filter_set_name(filter, "imgdec:libjpeg");

@@ -2423,7 +2423,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	//setup mesh normal vertex attribute - only available for some shaders
 	if (!visual->has_material_2d && num_lights && (mesh->mesh_type==MESH_TRIANGLES) ) {
 		GF_Matrix normal_mx;
-		assert(flags & GF_GL_HAS_LIGHT);
+		gf_assert(flags & GF_GL_HAS_LIGHT);
 
 		gf_mx_copy(normal_mx, tr_state->camera->modelview);
 		gf_mx_add_matrix(&normal_mx, &tr_state->model_matrix);

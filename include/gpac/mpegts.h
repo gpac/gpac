@@ -55,6 +55,7 @@ extern "C" {
 /*! metadata types for GF_M2TS_METADATA_POINTER_DESCRIPTOR*/
 enum {
 	GF_M2TS_META_ID3 	= GF_4CC('I','D','3',' '),
+	GF_M2TS_META_KLVA 	= GF_4CC('K','L','V','A'),
 };
 
 
@@ -74,7 +75,7 @@ enum
 	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR						= 0x0A,
 	GF_M2TS_DVB_IP_MAC_PLATFORM_NAME_DESCRIPTOR				= 0x0C,
 	GF_M2TS_DVB_IP_MAC_PLATFORM_PROVIDER_NAME_DESCRIPTOR	= 0x0D,
-	GF_M2TS_DVB_TARGET_IP_SLASH_DESCRIPTOR			= 0x0F,
+	GF_M2TS_PRIVATE_DATA_INDICATOR_DESCRIPTOR			= 0x0F,
 	/* ... */
 	GF_M2TS_DVB_STREAM_LOCATION_DESCRIPTOR        =0x13,
 	/* ... */
@@ -213,6 +214,7 @@ enum {
 	GF_M2TS_TABLE_ID_DIT			= 0x7E,
 	GF_M2TS_TABLE_ID_SIT			= 0x7F, /* max size for section 4096 */
 	/* 0x80 - 0xfe reserved */
+	GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO	= 0xFC,
 	/* 0xff reserved */
 };
 
@@ -279,21 +281,23 @@ typedef enum
 
 	/*the rest is internal use*/
 
-	GF_M2TS_VIDEO_VC1				= 0xEA,
-	GF_M2TS_VIDEO_DCII				= 0x80,
-	GF_M2TS_AUDIO_AC3				= 0x81,
-	GF_M2TS_AUDIO_DTS				= 0x82,
-	GF_M2TS_AUDIO_TRUEHD			= 0x83,
-	GF_M2TS_AUDIO_EC3				= 0x84,
-	GF_M2TS_MPE_SECTIONS            = 0x90,
-	GF_M2TS_SUBTITLE_DVB			= 0x100,
-	GF_M2TS_AUDIO_OPUS				= 0x101,
-	GF_M2TS_VIDEO_AV1				= 0x102,
+	GF_M2TS_VIDEO_VC1					= 0xEA,
+	GF_M2TS_VIDEO_DCII					= 0x80,
+	GF_M2TS_AUDIO_AC3					= 0x81,
+	GF_M2TS_AUDIO_DTS					= 0x82,
+	GF_M2TS_AUDIO_TRUEHD				= 0x83,
+	GF_M2TS_AUDIO_EC3					= 0x84,
+	GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS	= 0x86,
+	GF_M2TS_MPE_SECTIONS	            = 0x90,
+	GF_M2TS_SUBTITLE_DVB				= 0x100,
+	GF_M2TS_AUDIO_OPUS					= 0x101,
+	GF_M2TS_VIDEO_AV1					= 0x102,
 
-	GF_M2TS_DVB_TELETEXT			= 0x152,
-	GF_M2TS_DVB_VBI					= 0x153,
-	GF_M2TS_DVB_SUBTITLE			= 0x154,
-	GF_M2TS_METADATA_ID3_HLS		= 0x155,
+	GF_M2TS_DVB_TELETEXT				= 0x152,
+	GF_M2TS_DVB_VBI						= 0x153,
+	GF_M2TS_DVB_SUBTITLE				= 0x154,
+	GF_M2TS_METADATA_ID3_HLS			= 0x155,
+	GF_M2TS_METADATA_ID3_KLVA			= 0x156,
 
 } GF_M2TSStreamType;
 
@@ -301,18 +305,19 @@ typedef enum
 /*! MPEG-2 TS Registration codes types*/
 enum
 {
-	GF_M2TS_RA_STREAM_AC3	= GF_4CC('A','C','-','3'),
-	GF_M2TS_RA_STREAM_EAC3	= GF_4CC('E','A','C','3'),
-	GF_M2TS_RA_STREAM_VC1	= GF_4CC('V','C','-','1'),
-	GF_M2TS_RA_STREAM_HEVC	= GF_4CC('H','E','V','C'),
-	GF_M2TS_RA_STREAM_DTS1	= GF_4CC('D','T','S','1'),
-	GF_M2TS_RA_STREAM_DTS2	= GF_4CC('D','T','S','2'),
-	GF_M2TS_RA_STREAM_DTS3	= GF_4CC('D','T','S','3'),
-	GF_M2TS_RA_STREAM_OPUS	= GF_4CC('O','p','u','s'),
-	GF_M2TS_RA_STREAM_DOVI	= GF_4CC('D','O','V','I'),
-	GF_M2TS_RA_STREAM_AV1	= GF_4CC('A','V','0','1'),
+	GF_M2TS_RA_STREAM_AC3		= GF_4CC('A','C','-','3'),
+	GF_M2TS_RA_STREAM_EAC3		= GF_4CC('E','A','C','3'),
+	GF_M2TS_RA_STREAM_VC1		= GF_4CC('V','C','-','1'),
+	GF_M2TS_RA_STREAM_HEVC		= GF_4CC('H','E','V','C'),
+	GF_M2TS_RA_STREAM_DTS1		= GF_4CC('D','T','S','1'),
+	GF_M2TS_RA_STREAM_DTS2		= GF_4CC('D','T','S','2'),
+	GF_M2TS_RA_STREAM_DTS3		= GF_4CC('D','T','S','3'),
+	GF_M2TS_RA_STREAM_OPUS		= GF_4CC('O','p','u','s'),
+	GF_M2TS_RA_STREAM_DOVI		= GF_4CC('D','O','V','I'),
+	GF_M2TS_RA_STREAM_AV1		= GF_4CC('A','V','0','1'),
+	GF_M2TS_RA_STREAM_SCTE35	= GF_4CC('C','U','E','I'),
 
-	GF_M2TS_RA_STREAM_GPAC	= GF_4CC('G','P','A','C')
+	GF_M2TS_RA_STREAM_GPAC		= GF_4CC('G','P','A','C')
 };
 
 
@@ -495,6 +500,13 @@ enum
 	GF_M2TS_EVT_TEMI_LOCATION,
 	/*! a TEMI timecode has been found*/
 	GF_M2TS_EVT_TEMI_TIMECODE,
+
+	/*! a SCTE35 splice info has been found*/
+	GF_M2TS_EVT_SCTE35_SPLICE_INFO,
+
+	/*! a generic ID3 tag has been found*/
+	GF_M2TS_EVT_ID3,
+
 	/*! a stream is about to be removed -  - associated parameter: pointer to GF_M2TS_ES being removed*/
 	GF_M2TS_EVT_STREAM_REMOVED
 };
@@ -599,7 +611,7 @@ enum metadata_carriage {
 	METADATA_CARRIAGE_OTHER			= 3
 };
 
-/*! MPEG-2 TS demuxer metadat pointer*/
+/*! MPEG-2 TS demuxer metadata pointer*/
 typedef struct tag_m2ts_metadata_pointer_descriptor {
 	u16 application_format;
 	u32 application_format_identifier;
@@ -867,8 +879,7 @@ typedef struct tag_m2ts_pes
 	u32 last_pat_packet_number, before_last_pat_pn, before_last_pes_start_pn;
 
 	/*! PES reframer callback. If NULL, pes processing is skipped
-
-	returns the number of bytes NOT consumed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
+	    returns the number of bytes NOT consumed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
 	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, u8 *data, u32 data_len, GF_M2TS_PESHeader *hdr);
 
 	/*! DVB subtitling info*/
@@ -882,14 +893,15 @@ typedef struct tag_m2ts_pes
 	u32 temi_tc_desc_len;
 	/*! allocated size of TEMI reception buffer*/
 	u32 temi_tc_desc_alloc_size;
-
 	/*! last decoded temi (may be one ahead of time as the last received TEMI)*/
 	GF_M2TS_TemiTimecodeDescriptor temi_tc;
 	/*! flag set to indicate a TEMI descriptor should be flushed with next packet*/
 	Bool temi_pending;
+
 	/*! flag set to indicate the last PES packet was not flushed (HLS) to avoid warning on same PTS/DTS used*/
 	Bool is_resume;
-	/*! DolbiVison info, last byte set to 1 if non-compatible signaling*/
+
+	/*! DolbyVison info, last byte set to 1 if non-compatible signaling*/
 	u8 dv_info[25];
 
 	u64 map_utc, map_utc_pcr, map_pcr;
@@ -2014,6 +2026,19 @@ void gf_m2ts_mux_program_force_keep_ts(GF_M2TS_Mux_Program *program);
 \param refresh_rate_ms the refresh rate for the SDT. A value of 0 only sends the SDT once
 */
 void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *muxer, u32 refresh_rate_ms);
+
+/*! update a given table
+\param stream target stream carrying the section
+\param table_id ID of the table
+\param table_id_extension extended ID of the table
+\param table_payload payload to send
+\param table_payload_length payload length to send
+\param use_syntax_indicator  inject section syntax extension (extended ID and fragmentation info of the table)
+\param private_indicator private indicator flag of section header
+*/
+void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_extension,
+                              u8 *table_payload, u32 table_payload_length,
+                              Bool use_syntax_indicator, Bool private_indicator);
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 

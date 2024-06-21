@@ -736,7 +736,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 	GF_Node *appear, *prev_appear;
 	GF_List *sensor_bck;
 	M_Appearance *ap = (M_Appearance *)composite_appear;
-	assert(ap && ap->texture);
+	if (!ap || !ap->texture) return 0;
 
 	if (ev->type > GF_EVENT_MOUSEMOVE) return 0;
 	stack = gf_node_get_private(ap->texture);

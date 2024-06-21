@@ -409,7 +409,7 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 nb_rel);
 
 Waits for the semaphore to be accessible (eg, may wait an infinite time).
 \param sm the semaphore object
-\return GF_TRUE if successfull wait, GF_FALSE if wait failed
+\return GF_TRUE if successful wait, GF_FALSE if wait failed
 */
 Bool gf_sema_wait(GF_Semaphore *sm);
 /*!

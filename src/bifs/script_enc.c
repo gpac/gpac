@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -1257,7 +1257,7 @@ u32 TOK_To_ET(u32 tok)
 	case TOK_VAR:
 		return ET_VAR;
 	default:
-		assert(0);
+		gf_assert(0);
 		return (u32) -1;
 	}
 }

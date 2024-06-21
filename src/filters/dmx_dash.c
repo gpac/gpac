@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -65,7 +65,7 @@ enum {
 typedef struct
 {
 	//opts
-	s32 shift_utc, spd, route_shift;
+	s32 shift_utc, spd, mcast_shift;
 	u32 max_buffer, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 auto_switch;
 	s32 init_timeshift;
@@ -90,7 +90,7 @@ typedef struct
 	//http io for manifest
 	GF_DASHFileIO dash_io;
 	GF_DownloadManager *dm;
-	
+
 	GF_DownloadSession *reuse_download_session;
 	Bool first_cache_name_fetched;
 
@@ -100,6 +100,7 @@ typedef struct
 
 	/*max width & height in all active representations*/
 	u32 width, height;
+	u32 service_id;
 
 	Double seek_request;
 	Double media_start_range;
@@ -152,7 +153,7 @@ typedef struct
 	Bool eos_detected;
 	u32 next_dependent_rep_idx, current_dependent_rep_idx;
 	u64 utc_map;
-	
+
 #ifdef GPAC_USE_DOWNLOADER
 	GF_DownloadSession *sess;
 #endif
@@ -274,6 +275,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				if (seg_name) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(seg_name) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENUM, &PROP_UINT(seg_number) );
+					gf_filter_pck_set_property(ref, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(seg_time));
+
 					if (group->url_changed && group->current_url) {
 						gf_filter_pck_set_property(ref, GF_PROP_PCK_FRAG_RANGE, NULL);
 						gf_filter_pck_set_property(ref, GF_PROP_PID_URL, &PROP_STRING(group->current_url));
@@ -427,7 +430,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				diff *= 1000;
 				diff /= ts;
 				if (diff<=1) diff=0;
-				
+
 				diff *= ts;
 				diff /= 1000;
 			}
@@ -481,7 +484,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 	dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
 	if (!dst_pck) return;
-	
+
 	//this will copy over clock info for PCR in TS
 	gf_filter_pck_merge_properties(in_pck, dst_pck);
 	gf_filter_pck_set_dts(dst_pck, dts);
@@ -1007,6 +1010,13 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 		}
 
 		if ((ctx->forward==DFWD_FILE) && ctx->output_mpd_pid) {
+			//for routeout
+			u32 manifest_type = gf_dash_is_m3u8(ctx->dash) ? 2 : 1;
+			if (gf_dash_is_dynamic_mpd(ctx->dash))
+				manifest_type |= 0x80000000;
+
+			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
+
 			GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->output_mpd_pid, manifest_payload_len, &output);
 			if (pck) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Manifest %s updated, forwarding\n", manifest_name));
@@ -1020,12 +1030,12 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 			}
 		} else if (ctx->forward==DFWD_SBOUND_MANIFEST) {
 			if (group_idx>=0) {
-				assert(manifest_name);
+				gf_assert(manifest_name);
 				if (!ctx->hls_variants) ctx->hls_variants = gf_list_new();
 				if (!ctx->hls_variants_names) ctx->hls_variants_names = gf_list_new();
 				gf_list_add(ctx->hls_variants, manifest_payload);
 				manifest_payload = NULL;
-				gf_list_add(ctx->hls_variants_names, gf_strdup(manifest_name) );
+				gf_list_add(ctx->hls_variants_names, gf_strdup(manifest_name ? manifest_name : "manifest.mpd") );
 
 			} else {
 				if (ctx->manifest_payload) gf_free(ctx->manifest_payload);
@@ -1136,8 +1146,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				if (! gf_dash_group_enum_descriptor(ctx->dash, i, GF_MPD_DESC_ESSENTIAL_PROPERTIES, j, &desc_id, &desc_scheme, &desc_value))
 					break;
 				j++;
-				if (!strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
-				} else if (!strcmp(desc_scheme, "http://dashif.org/guidelines/trickmode")) {
+				if (desc_scheme && !strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
+				} else if (desc_scheme && !strcmp(desc_scheme, "http://dashif.org/guidelines/trickmode")) {
 				} else {
 					playable = GF_FALSE;
 					break;
@@ -1237,13 +1247,28 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		GF_DASHGroup *group = gf_dash_get_group_udta(ctx->dash, group_idx);
 
 		if (!group) {
-			group_idx = gf_dash_group_has_dependent_group(ctx->dash, group_idx);
-			group = gf_dash_get_group_udta(ctx->dash, group_idx);
+			s32 dep_group_idx = gf_dash_group_has_dependent_group(ctx->dash, group_idx);
+			group = gf_dash_get_group_udta(ctx->dash, dep_group_idx);
 		}
 		//do not notify HAS status (selected qualities & co) right away, we are still potentially processing packets from previous segment(s)
 		if (group)
 			group->notify_quality_change = GF_TRUE;
 
+
+		GF_FilterEvent sel_evt;
+		GF_FEVT_INIT(sel_evt, GF_FEVT_DASH_QUALITY_SELECT, ctx->mpd_pid);
+		sel_evt.dash_select.service_id = ctx->service_id;
+		sel_evt.dash_select.as_id = gf_dash_group_get_as_id(ctx->dash, group_idx);
+		sel_evt.dash_select.period_id = gf_dash_get_period_id(ctx->dash);
+
+		u32 i, count = gf_dash_group_get_num_qualities(ctx->dash, group_idx);
+		for (i=0; i<count; i++) {
+			GF_DASHQualityInfo qinfo;
+			gf_dash_group_get_quality_info(ctx->dash, group_idx, i, &qinfo);
+			sel_evt.dash_select.rep_id = qinfo.hls_variant_url ? qinfo.hls_variant_url : qinfo.ID;
+			sel_evt.dash_select.select_type = qinfo.is_selected ? 0 : (qinfo.disabled ? 2 : 1);
+			gf_filter_pid_send_event(ctx->mpd_pid, &sel_evt);
+		}
 		return GF_OK;
 	}
 	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_UPDATE) {
@@ -1626,8 +1651,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			stream_type = GF_STREAM_VISUAL;
 		} else if (qinfo.sample_rate || qinfo.nb_channels) {
 			stream_type = GF_STREAM_AUDIO;
-		} else if (strstr(qinfo.mime, "text")
-			|| strstr(qinfo.codec, "vtt")
+		} else if (strstr(qinfo.codec, "vtt")
 			|| strstr(qinfo.codec, "srt")
 			|| strstr(qinfo.codec, "text")
 			|| strstr(qinfo.codec, "tx3g")
@@ -1635,6 +1659,13 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			|| strstr(qinfo.codec, "stpp")
 		) {
 			stream_type = GF_STREAM_TEXT;
+		} else if (qinfo.mime) {
+			if (!strncmp(qinfo.mime, "video/", 6))
+				stream_type = GF_STREAM_VISUAL;
+			else if (!strncmp(qinfo.mime, "audio/", 6))
+				stream_type = GF_STREAM_AUDIO;
+			else if (!strncmp(qinfo.mime, "text/", 5))
+				stream_type = GF_STREAM_TEXT;
 		}
 		dashdm_format_qinfo(&qdesc, &qinfo);
 
@@ -1965,8 +1996,6 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Creating manifest output PID\n"));
 			//for routeout
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_PREMUX_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
-			u32 manifest_type = gf_dash_is_m3u8(ctx->dash) ? 2 : 1;
-			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
 		}
 
 
@@ -1976,6 +2005,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_setup_failure(filter, e);
 			return e;
 		}
+
 		frag = strchr(p->value.string, '#');
 		if (frag) {
 			if (ctx->frag_url) gf_free(ctx->frag_url);
@@ -1995,6 +2025,8 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_send_event(ctx->mpd_pid, &evt);
 			gf_filter_post_process_task(filter);
 		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
+		if (p) ctx->service_id = p->value.uint;
 		return GF_OK;
 	} else if (ctx->mpd_pid == pid) {
 		return GF_OK;
@@ -2019,7 +2051,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (opid == NULL) {
 		u32 run_status;
 		group = gf_dash_get_group_udta(ctx->dash, group_idx);
-		assert(group);
+		if (!group) return GF_SERVICE_ERROR;
 		//for now we declare every component from the input source
 		opid = dashdmx_create_output_pid(ctx, pid, &run_status, group);
 		gf_filter_pid_set_udta(opid, group);
@@ -2383,7 +2415,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	gf_dash_set_algo(ctx->dash, algo);
 	gf_dash_set_utc_shift(ctx->dash, ctx->shift_utc);
 	gf_dash_set_suggested_presentation_delay(ctx->dash, ctx->spd);
-	gf_dash_set_route_ast_shift(ctx->dash, ctx->route_shift);
+	gf_dash_set_mcast_ast_shift(ctx->dash, ctx->mcast_shift);
 	gf_dash_enable_utc_drift_compensation(ctx->dash, ctx->server_utc);
 	gf_dash_set_tile_adaptation_mode(ctx->dash, ctx->tile_mode, ctx->tiles_rate);
 
@@ -2435,7 +2467,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	}
 #endif
 
-	//we are blocking in live mode for manifest update 
+	//we are blocking in live mode for manifest update
 	gf_filter_set_blocking(filter, GF_TRUE);
 
 	return GF_OK;
@@ -2444,7 +2476,6 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 static void dashdmx_finalize(GF_Filter *filter)
 {
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
-	assert(ctx);
 
 	if (ctx->dash)
 		gf_dash_del(ctx->dash);
@@ -2527,7 +2558,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
 				group = gf_dash_get_group_udta(ctx->dash, i);
 				if (!group || !group->template) continue;
-				
+
 				if (!strncmp(group->template, fevt->file_del.url, strlen(group->template) )) {
 					GF_FilterPid *pid = dashdmx_opid_from_group(ctx, group);
 					if (pid) {
@@ -2681,6 +2712,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 		gf_filter_pid_send_event(ipid, &src_evt);
 		gf_filter_post_process_task(filter);
+
 		//cancel the event
 		return GF_TRUE;
 
@@ -2881,7 +2913,7 @@ static void dashdmx_update_group_stats(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	p = gf_filter_get_info(group->seg_filter_src, GF_PROP_PID_DOWN_SIZE, &pe);
 	if (p) file_size = p->value.longuint;
 
-	p = gf_filter_get_info_str(group->seg_filter_src, "x-route", &pe);
+	p = gf_filter_get_info_str(group->seg_filter_src, "x-mcast", &pe);
 	if (p && p->value.string && !strcmp(p->value.string, "yes")) {
 		broadcast_flag = GF_TRUE;
 	}
@@ -2919,7 +2951,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	}
 
 fetch_next:
-	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
+	gf_assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
 	group->wait_for_pck = GF_TRUE;
 	group->in_error = GF_FALSE;
 	if (group->segment_sent) {
@@ -3032,7 +3064,10 @@ fetch_next:
 	//setup group quality before sending the event, in case the segment switching does not trigger a reconfigure of the PID(s)
 	dashdmx_notify_group_quality(ctx, group);
 
-	assert(next_url);
+	if (!next_url) {
+		gf_assert(0);
+		next_url = "missing_segment";
+	}
 	group->seg_was_not_ready = GF_FALSE;
 
 	if (next_url_init_or_switch_segment && !group->init_switch_seg_sent) {
@@ -3112,7 +3147,7 @@ static GF_Err dashin_abort(GF_DASHDmxCtx *ctx)
 {
 	u32 i;
 	if (!ctx || ctx->in_error) return GF_EOS;
-	
+
 	for (i=0; i<gf_filter_get_ipid_count(ctx->filter); i++) {
 		GF_FilterEvent evt;
 		GF_FilterPid *pid = gf_filter_get_ipid(ctx->filter, i);
@@ -3523,7 +3558,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 
 	{ OFFS(shift_utc), "shift DASH UTC clock in ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(spd), "suggested presentation delay in ms", GF_PROP_SINT, "-I", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(route_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mcast_shift), "shift requests time by given ms for multicast sources", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(server_utc), "use `ServerUTC` or `Date` HTTP headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(init_timeshift), "set initial timeshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -3603,7 +3638,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"- run with no adaptation, to grab maximum quality.\n"
 	"EX gpac -i MANIFEST_URL:algo=none:start_with=max_bw -o dest.mp4\n"
 	"- run with no adaptation, fetching all qualities.\n"
-	"EX gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4:clone\n"
+	"EX gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4\n"
 	"\n"
 	"# File mode\n"
 	"When [-forward]() is set to `file`, the client forwards media files without demultiplexing them.\n"
@@ -3719,7 +3754,7 @@ static s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_
 
 GF_EXPORT
 GF_Err gf_filter_bind_dash_algo_callbacks(GF_Filter *filter, void *udta,
-		void (*period_reset)(void *rate_adaptation, u32 type),
+		void (*period_reset)(void *udta, u32 type),
 		void (*new_group)(void *udta, u32 group_idx, void *dash),
 		s32 (*rate_adaptation)(void *udta, u32 group_idx, u32 base_group_idx, Bool force_low_complex, void *stats),
 		s32 (*download_monitor)(void *udta, u32 group_idx, void *stats)

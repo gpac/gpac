@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -259,7 +259,10 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	else ID = 0;
 
 	/*write OD_ID*/
-	assert(url->count);
+	if (!url->count) {
+		gf_assert(0);
+		return;
+	}
 	i = url->count - 1;
 	url->vals[i].OD_ID = 0;
 	url->vals->OD_ID = ID;
@@ -532,7 +535,7 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 		}
 		if (l->od) {
 			if (!l->ID) l->ID = l->od->objectDescriptorID;
-			assert(l->ID == l->od->objectDescriptorID);
+			gf_assert(l->ID == l->od->objectDescriptorID);
 		}
 	}
 
@@ -599,6 +602,58 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 		gf_free(l);
 		gf_list_rem(parser->od_links, 0);
 	}
+}
+
+
+static void xmt_remove_link_for_descriptor(GF_XMTParser* parser, GF_Descriptor* desc) {
+
+	u32 i=0;
+	XMT_ODLink *l, *to_del=NULL;
+
+	if (!desc) return;
+
+	// recursively remove sub descriptors links
+	if (desc->tag == GF_ODF_IOD_TAG || desc->tag == GF_ODF_OD_TAG) {
+		GF_Descriptor* subdesc = NULL;
+		u32 i=0;
+		while ((subdesc = gf_list_enum(((GF_ObjectDescriptor*)desc)->ESDescriptors, &i))) {
+			if (subdesc) xmt_remove_link_for_descriptor(parser, subdesc);
+		}
+	}
+
+	i=0;
+	while ((l = (XMT_ODLink*)gf_list_enum(parser->od_links, &i)) ) {
+		if (l->od && l->od == (GF_ObjectDescriptor*)desc) {
+			l->od = NULL;
+			to_del = l;
+			break;
+		}
+	}
+
+	if (to_del) {
+		gf_list_del_item(parser->od_links, to_del);
+		if (to_del->desc_name) gf_free(to_del->desc_name);
+		gf_list_del(to_del->mf_urls);
+		gf_free(to_del);
+	}
+
+
+	XMT_ESDLink *esdl, *esdl_del=NULL;
+	i=0;
+	while ((esdl = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
+		if (esdl->esd && esdl->esd == (GF_ESD*)desc) {
+			esdl->esd = NULL;
+			esdl_del = esdl;
+			break;
+		}
+	}
+
+	if (esdl_del) {
+		gf_list_del_item(parser->esd_links, esdl_del);
+		if (esdl_del->desc_name) gf_free(esdl_del->desc_name);
+		gf_free(esdl_del);
+	}
+
 }
 
 
@@ -719,11 +774,11 @@ static GF_Node *xmt_find_node(GF_XMTParser *parser, char *ID)
 	}		\
 	while (str[0] == ' ') str += 1;	\
 	i = 0;	\
-	while ((str[i] != ' ') && str[i]) {	\
+	while ((str[i] != ' ') && str[i] && i<100) {	\
 		value[i] = str[i];			\
 		i++;				\
 	}					\
-	value[i] = 0;	\
+	value[MIN(i, 99)] = 0;	\
 	while ((str[i] == ' ') && str[i]) i++;
 
 static u32 xmt_parse_int(GF_XMTParser *parser, const char *name, SFInt32 *val, char *a_value)
@@ -832,7 +887,10 @@ static u32 xmt_parse_url(GF_XMTParser *parser, const char *name, MFURL *val, GF_
 	res = xmt_parse_string(parser, name, &sfstr, is_mf, a_value);
 	if (parser->last_error) return res;
 
-	assert(val->count);
+	if (!val->count) {
+		gf_assert(0);
+		return 0;
+	}
 	idx = val->count - 1;
 	if (val->vals[idx].url) gf_free(val->vals[idx].url);
 	val->vals[idx].url = sfstr.buffer;
@@ -1873,8 +1931,11 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			gf_node_list_add_child_last( (GF_ChildNodeItem **)container.far_ptr, node, &parent->last);
 			gf_node_register(node, parent->node);
 		}
-		assert(parent->node);
-		gf_node_changed(parent->node, NULL);
+		if (parent->node)
+			gf_node_changed(parent->node, NULL);
+		else {
+			gf_assert(0);
+		}
 	}
 
 	if (!parser->parsing_proto && (tag || proto) )
@@ -1987,6 +2048,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 		e = gf_odf_desc_add_desc(parent, desc);
 		if (e) {
 			xmt_report(parser, GF_OK, "Invalid child descriptor");
+			xmt_remove_link_for_descriptor(parser, desc);
 			gf_odf_desc_del(desc);
 			return NULL;
 		}
@@ -2071,8 +2133,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 	if (!strcmp(name, "repField")) {
 		char *fieldName = NULL;
 		char *fieldValue = NULL;
-		assert(parser->command);
-		if (!parser->command->node) return;
+		if (!parser->command || !parser->command->node) return;
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
@@ -2110,8 +2171,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 	if (!strcmp(name, "repValue")) {
 		s32 position = -1;
 		char *fieldValue = NULL;
-		assert(parser->command);
-		if (!parser->command->node) return;
+		if (!parser->command || !parser->command->node) return;
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
@@ -2660,12 +2720,15 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			gf_list_rem_last(parser->descriptors);
 			if (gf_list_count(parser->descriptors)) return;
 
-			if ((parser->doc_type==1) && (parser->state==XMT_STATE_HEAD) && parser->load->ctx && !parser->load->ctx->root_od) {
+			if ((parser->doc_type==1) && (parser->state==XMT_STATE_HEAD) && parser->load->ctx && !parser->load->ctx->root_od && (desc->tag == GF_ODF_IOD_TAG || desc->tag == GF_ODF_OD_TAG) ) {
 				parser->load->ctx->root_od = (GF_ObjectDescriptor *)desc;
 			}
 			else if (!parser->od_command) {
 				xmt_report(parser, GF_OK, "Warning: descriptor %s defined outside scene scope - skipping", name);
+
+				xmt_remove_link_for_descriptor(parser, desc);
 				gf_odf_desc_del(desc);
+
 			} else {
 				switch (parser->od_command->tag) {
 				case GF_ODF_ESD_UPDATE_TAG:
@@ -2705,7 +2768,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->state = XMT_STATE_BODY;
 		}
 		else if (parser->state == XMT_STATE_ELEMENTS) {
-			assert((parser->doc_type != 1) || parser->command);
+			gf_assert((parser->doc_type != 1) || parser->command);
 			if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete")) {
 				parser->command = NULL;
 				parser->state = XMT_STATE_COMMANDS;
@@ -2844,12 +2907,17 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 
 attach_node:
 		top = (XMTNodeStack*)gf_list_last(parser->nodes);
+		Bool node_processed = GF_FALSE;
 		/*add node to command*/
 		if (!top || (top->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER)) {
 			if (parser->doc_type == 1) {
 				GF_CommandField *inf;
 				Bool single_node = 0;
-				assert(parser->command);
+				node_processed = GF_TRUE;
+				if (!parser->command) {
+					gf_assert(0);
+					return;
+				}
 				switch (parser->command->tag) {
 				case GF_SG_SCENE_REPLACE:
 					if (parser->parsing_proto) {
@@ -2952,6 +3020,7 @@ attach_node:
 				        || (tag==TAG_X3D_Script)
 #endif
 				   ) {
+					node_processed = GF_TRUE;
 					/*it may happen that the script uses itself as a field (not sure this is compliant since this
 					implies a cyclic structure, but happens in some X3D conformance seq)*/
 					if (!top || (top->node != node)) {
@@ -2968,6 +3037,11 @@ attach_node:
 					}
 				}
 			}
+		}
+		if (!node_processed) {
+			gf_node_register(node, NULL);
+			gf_node_unregister(node, NULL);
+			node_processed = GF_TRUE;
 		}
 	} else if (parser->current_node_tag==tag) {
 		gf_list_rem_last(parser->nodes);

@@ -45,8 +45,10 @@ static GF_Err compose_process(GF_Filter *filter)
 	Bool ret;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 	if (!ctx) return GF_BAD_PARAM;
-	if (!ctx->vout) return GF_OK;
-
+	//if acting as a source, we may not have a vout setup yet if we have not traversed the graph
+	if (!ctx->vout && !ctx->src) {
+		return GF_OK;
+	}
 	if (ctx->check_eos_state == 2)
 		return GF_EOS;
 
@@ -113,14 +115,17 @@ static GF_Err compose_process(GF_Filter *filter)
 		Bool was_over = GF_FALSE;
 		/*remember to check for eos*/
 		if (ctx->dur<0) {
-			if (ctx->frame_number >= (u32) -ctx->dur)
+			if (ctx->frame_number >= (u32) -ctx->dur) {
 				ctx->check_eos_state = 2;
+				gf_filter_abort(filter);
+			}
 		} else if (ctx->dur>0) {
 			Double n = ctx->scene_sampled_clock;
 			n /= 1000;
-			if (n>=ctx->dur)
+			if (n>=ctx->dur) {
 				ctx->check_eos_state = 2;
-			else if (!ret && ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock && !ctx->validator_mode) {
+				gf_filter_abort(filter);
+			} else if (!ret && ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock && !ctx->validator_mode) {
 				ctx->check_eos_state = 1;
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
@@ -132,6 +137,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			ctx->check_eos_state = 0;
 		} else if (gf_filter_end_of_session(filter)) {
 			ctx->check_eos_state = 2;
+			gf_filter_abort(filter);
 		}
 
 		if (ctx->timeout && (ctx->check_eos_state == 1) && !gf_filter_connections_pending(filter)) {
@@ -185,8 +191,8 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	//player mode
 	
-	//quit event seen, do not flush, just abort and return last error
-	if (ctx->check_eos_state) {
+	//quit event seen or session is ending, do not flush, just abort and return last error
+	if (ctx->check_eos_state || gf_filter_end_of_session(filter)) {
 		gf_filter_abort(filter);
 		return ctx->last_error ? ctx->last_error : GF_EOS;
 	}
@@ -227,7 +233,8 @@ static void compositor_setup_vout(GF_Compositor *ctx)
 	pid = ctx->vout = gf_filter_pid_new(ctx->filter);
 	gf_filter_pid_set_name(pid, "vout");
 	//compositor initiated for RT playback, vout pid may not be connected
-	gf_filter_pid_set_loose_connect(pid);
+	if (ctx->player)
+		gf_filter_pid_set_loose_connect(pid);
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
@@ -303,7 +310,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	odm = gf_filter_pid_get_udta(pid);
 
-	//in filter mode, check we can handle creating a canvas from input video format. If not, negociate a supported format
+	//in filter mode, check we can handle creating a canvas from input video format. If not, negotiate a supported format
 	if (!ctx->player) {
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 		if (prop && (!odm || (odm->mo && (odm->mo->pixelformat != prop->value.uint)))) {
@@ -322,7 +329,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				} else {
 					new_fmt = transparent ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 				}
-				gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(new_fmt) );
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(new_fmt) );
 				return GF_OK;
 			}
 		}
@@ -427,7 +434,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 			continue;
 		}
-		assert(sns->owner);
+		gf_fatal_assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
 			Bool scene_setup = GF_FALSE;
 			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
@@ -474,7 +481,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					return GF_OK;
 				}
 
-				assert(sns->owner->parentscene);
+				gf_fatal_assert(sns->owner->parentscene);
 				sns->owner->subscene = gf_scene_new(ctx, sns->owner->parentscene);
 				sns->owner->subscene->root_od = sns->owner;
 			}
@@ -483,7 +490,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	if (!scene) scene = def_scene;
-	assert(scene);
+	if (!scene) return GF_SERVICE_ERROR;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Configuring PID %s\n", gf_stream_type_name(mtype)));
 
@@ -828,6 +835,8 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	} else if (ctx->noback) {
 		ctx->forced_alpha = GF_TRUE;
 	}
+	if (ctx->src)
+		ctx->vfr = GF_TRUE;
 
 	//playout buffer not greater than max buffer
 	if (ctx->buffer > ctx->mbuffer)

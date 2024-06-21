@@ -89,7 +89,6 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 		visual->num_nodes_current_frame ++;
 		return visual->context;
 	}
-//	assert(visual->cur_context);
 	/*current context is OK*/
 	if (!visual->cur_context->drawable) {
 		/*reset next context in display list for next call*/
@@ -100,7 +99,6 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 	/*need a new context and next one is OK*/
 	if (visual->cur_context->next) {
 		visual->cur_context = visual->cur_context->next;
-//		assert(visual->cur_context->drawable == NULL);
 		/*reset next context in display list for next call*/
 		if (visual->cur_context->next) visual->cur_context->next->drawable = NULL;
 		drawctx_reset(visual->cur_context);
@@ -133,7 +131,7 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 
 void visual_2d_remove_last_context(GF_VisualManager *visual)
 {
-	assert(visual->cur_context);
+	gf_assert(visual->cur_context);
 	visual->cur_context->drawable = NULL;
 }
 
@@ -384,7 +382,7 @@ void ra_union_rect(GF_RectArray *ra, GF_IRect *rc)
 {
 	u32 i;
 
-	assert(rc->width && rc->height);
+	gf_assert(rc->width && rc->height);
 
 	for (i=0; i<ra->count; i++) {
 		if (gf_irect_overlaps(&ra->list[i].rect, rc)) {
@@ -458,7 +456,7 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 	Bool is_transparent = 1;
 #endif
 	GF_IRect *rc = &ctx->bi->clip;
-	assert(rc->width && rc->height);
+	gf_assert(rc->width && rc->height);
 
 	/*node is modified*/
 	needs_redraw = (ctx->flags & CTX_REDRAW_MASK) ? 1 : 0;
@@ -636,7 +634,6 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		drawctx_update_info(ctx, visual);
 		if (!redraw_all) {
 			u32 res;
-//			assert( gf_irect_inside(&visual->top_clipper, &ctx->bi->clip) );
 			res = register_context_rect(&visual->to_redraw, ctx, num_nodes, &first_opaque);
 			if (res) {
 				num_changed ++;
@@ -656,7 +653,6 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	while (it) {
 		while (drawable_get_previous_bound(it->drawable, &refreshRect, visual)) {
 			if (!redraw_all) {
-				//assert( gf_irect_inside(&visual->top_clipper, &refreshRect) );
 				gf_irect_intersect(&refreshRect, &visual->top_clipper);
 				register_dirty_rect(&visual->to_redraw, &refreshRect);
 				has_clear=1;
@@ -798,7 +794,7 @@ skip_background:
 
 		for (i=0; i<visual->to_redraw.count; i++) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\tDirtyRect #%d: %d:%d@%dx%d\n", i+1, visual->to_redraw.list[i].rect.x, visual->to_redraw.list[i].rect.y, visual->to_redraw.list[i].rect.width, visual->to_redraw.list[i].rect.height));
-			assert(visual->to_redraw.list[i].rect.width);
+			gf_assert(visual->to_redraw.list[i].rect.width);
 		}
 	}
 #endif

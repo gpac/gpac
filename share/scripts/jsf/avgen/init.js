@@ -114,12 +114,7 @@ let utc_init = 0;
 let ntp_init = 0;
 
 /*create a text*/
-let text = new evg.Text();
-text.font = 'SANS';
-text.fontsize = 20;
-text.baseline = GF_TEXT_BASELINE_HANGING;
-text.align=GF_TEXT_ALIGN_CENTER;
-text.lineSpacing=0;
+let text = null;
 
 filter.frame_pending = 0;
 
@@ -132,6 +127,18 @@ filter.initialize = function() {
 		this.set_cap({id: "StreamType", value: "Video", output: true} );
 	}
 	this.set_cap({id: "CodecID", value: "raw", output: true} );
+
+	let gpac_help = sys.get_opt("temp", "gpac-help");
+	let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
+	if (gpac_help || gpac_doc) return;
+
+	text = new evg.Text();
+	text.font = 'SANS';
+	text.fontsize = 20;
+	text.baseline = GF_TEXT_BASELINE_HANGING;
+	text.align=GF_TEXT_ALIGN_CENTER;
+	text.lineSpacing=0;
+
 
 	//setup audio
 	if (filter.type != 1) {
@@ -355,7 +362,11 @@ function put_image(vsrc, tx, is_testcard, is_first)
 	else fps = Math.floor(100*fps) / 100;
 
 	vprop += '' + fps + ' FPS';
-	text.set_text(['GPAC AV Generator', 'v'+sys.version_full, ' ',  'UTC Locked: ' + (filter.lock ? 'yes' : 'no'), ' ', vprop]);
+	try {
+		text.set_text(['GPAC AV Generator', 'v'+sys.version_full, ' ',  'UTC Locked: ' + (filter.lock ? 'yes' : 'no'), ' ', vprop]);
+	} catch (e) {
+		print(GF_LOG_WARNING, "Fonts disabled");
+	}
 
 	mmx.identity = true;
 	mmx.translate(t_x+10, oy-rh/5);

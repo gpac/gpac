@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -862,9 +862,13 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (!ptr->version) {
 		gf_bs_read_u8(bs); //reserved
-	} else {
+	} else if (ptr->version==1) {
 		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
+	} else {
+		ptr->crypt_byte_block = gf_bs_read_u32(bs);
+		ptr->skip_byte_block = gf_bs_read_u32(bs);
+		ISOM_DECREASE_SIZE(ptr, 7);
 	}
 	ptr->isProtected = gf_bs_read_u8(bs);
 
@@ -909,8 +913,13 @@ GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!ptr->version) {
 		gf_bs_write_u8(bs, 0); //reserved
 	} else {
-		gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
-		gf_bs_write_int(bs, ptr->skip_byte_block, 4);
+		if (ptr->version==1) {
+			gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
+			gf_bs_write_int(bs, ptr->skip_byte_block, 4);
+		} else {
+			gf_bs_write_u32(bs, ptr->crypt_byte_block);
+			gf_bs_write_u32(bs, ptr->skip_byte_block);
+		}
 	}
 	gf_bs_write_u8(bs, ptr->isProtected);
 
@@ -927,6 +936,10 @@ GF_Err tenc_box_size(GF_Box *s)
 {
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 	ptr->size += 3;
+	if ((ptr->crypt_byte_block>15) || (ptr->skip_byte_block>15)) {
+		ptr->version=2;
+		ptr->size += 7;
+	}
 
 	ptr->size += 17;
 	if ((ptr->isProtected == 1) && ! ptr->key_info[3]) {
@@ -1006,12 +1019,14 @@ GF_Box *piff_psec_box_new()
 void piff_psec_box_del(GF_Box *s)
 {
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
-	while (gf_list_count(ptr->samp_aux_info)) {
-		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, 0);
-		if (sai) gf_isom_cenc_samp_aux_info_del(sai);
-		gf_list_rem(ptr->samp_aux_info, 0);
+	if (ptr->samp_aux_info) {
+		u32 i, count=gf_list_count(ptr->samp_aux_info);
+		for (i=0; i<count; i++) {
+			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
+			if (sai) gf_isom_cenc_samp_aux_info_del(sai);
+		}
+		gf_list_del(ptr->samp_aux_info);
 	}
-	if (ptr->samp_aux_info) gf_list_del(ptr->samp_aux_info);
 	gf_free(s);
 }
 
@@ -1284,9 +1299,9 @@ u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *cons
 #ifndef GPAC_DISABLE_ISOM
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc)
+GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 max_nb_samples)
 #else
-GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc)
+GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc, u32 max_nb_samples)
 #endif
 {
 	GF_Err e;
@@ -1319,6 +1334,19 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	if (senc->flags & 2) subs_size = 8;
 
 	if (senc_size<4) return GF_BAD_PARAM;
+	if (!max_nb_samples) {
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+		if (traf) {
+			i=0;
+			GF_TrackFragmentRunBox *trun;
+			while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+				max_nb_samples += trun->nb_samples;
+			}
+		} else
+#endif
+		if (trak->Media->information->sampleTable->SampleSize)
+			max_nb_samples = trak->Media->information->sampleTable->SampleSize->sampleCount;
+	}
 
 	sample_number = 1;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1355,6 +1383,9 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		//u32 nb_keys = 0;
 		u32 nb_bytes_subsample = 6;
 		u32 nb_subs_bits = 16;
+
+		if (!max_nb_samples)
+			break;
 
 		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 		if (!sai) {
@@ -1477,6 +1508,8 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			sai->key_info_size = key_info_size;
 		}
 		gf_list_add(senc->samp_aux_info, sai);
+
+		max_nb_samples--;
 	}
 	gf_bs_seek(bs, pos);
 	if (parse_failed) {
@@ -1738,6 +1771,11 @@ GF_Err aeib_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
 	u32 len;
+
+	if (!ptr->size) {
+		//will force error exit
+		ISOM_DECREASE_SIZE(ptr, 1);
+	}
 
 	len = (u32) ptr->size - 1;
 	if (len) {

@@ -368,7 +368,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->opid)
 				gf_filter_pid_set_eos(ctx->opid);
-			assert(ctx->remaining == 0);
+			gf_assert(ctx->remaining == 0);
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -541,7 +541,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		if (ctx->remaining) break;
 		amrdmx_update_cts(ctx);
 
-		//don't demux too much of input, abort when we would block. This avoid dispatching
+		//don't demux too much of input, abort when we would block. This avoids dispatching
 		//a huge number of frames in a single call
 		if (gf_filter_pid_would_block(ctx->opid)) {
 			ctx->resume_from = (u32) ( (char *)start -  (char *)data);

@@ -440,7 +440,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 			u32 size = gf_media_nalu_next_start_code((u8 *) data, data_size, &sc_size);
 			if (sc_size) {
 				ptr += size+sc_size;
-				assert(data_size >= size+sc_size);
+				gf_assert(data_size >= size+sc_size);
 				data_size -= size+sc_size;
 			} else
 #endif

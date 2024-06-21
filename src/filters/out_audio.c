@@ -129,15 +129,15 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt) || !ctx->speed_set) {
 		if (ctx->sr != sr)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 
 		if (ctx->afmt != afmt)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 
 		if (ctx->nb_ch != nb_ch)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 		if (!ctx->speed_set)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
 
 		ctx->speed_set = (ctx->speed==1.0) ? 1 : 2;
 		ctx->needs_recfg = GF_FALSE;
@@ -438,7 +438,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		assert(ctx->pid == pid);
+		gf_assert(ctx->pid == pid);
 		ctx->do_rem_pid = GF_TRUE;
 		//set a NULL clock hint in case other sinks using clock hints are still running
 		GF_Fraction64 mtime;
@@ -447,7 +447,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_hint_single_clock(filter, 0, mtime);
 		return GF_OK;
 	}
-	assert(!ctx->pid || (ctx->pid==pid));
+	gf_assert(!ctx->pid || (ctx->pid==pid));
 	ctx->do_rem_pid = GF_FALSE;
 
 	if (!gf_filter_pid_check_caps(pid))

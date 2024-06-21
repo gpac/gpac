@@ -5,7 +5,7 @@ my_ext = {
     icon: "applications-other.svg",
     author: "JeanLF",
     description: "GPAC BIFS Regression Tests",
-    url: "http://gpac.io/",
+    url: "https://gpac.io/",
     execjs: ["bifs_tests.js"],
     autostart: false,
     config_id: "TestSuite",

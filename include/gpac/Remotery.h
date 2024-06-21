@@ -331,6 +331,9 @@ typedef enum rmtSampleFlags
 #define rmt_LogText(text)                                                           \
     RMT_OPTIONAL(RMT_ENABLED, _rmt_LogText(text))
 
+#define rmt_SendText(text)                                                           \
+    RMT_OPTIONAL(RMT_ENABLED, _rmt_SendText(text))
+
 #define rmt_EnableSampling(enable)                                                           \
     RMT_OPTIONAL(RMT_ENABLED, _rmt_EnableSampling(enable))
 
@@ -630,6 +633,7 @@ RMT_API void _rmt_SetGlobalInstance(Remotery* remotery);
 RMT_API Remotery* _rmt_GetGlobalInstance(void);
 RMT_API void _rmt_SetCurrentThreadName(rmtPStr thread_name);
 RMT_API void _rmt_LogText(rmtPStr text);
+RMT_API void _rmt_SendText(rmtPStr text);
 RMT_API void _rmt_BeginCPUSample(rmtPStr name, rmtU32 flags, rmtU32* hash_cache);
 RMT_API void _rmt_EndCPUSample(void);
 RMT_API void _rmt_EnableSampling(rmtBool enable);

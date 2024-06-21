@@ -343,7 +343,7 @@ GF_Descriptor *gf_odf_new_qos()
 }
 
 //
-//	Desctructor
+//	Destructor
 //
 GF_Err gf_odf_del_qos(GF_QoS_Descriptor *qos)
 {

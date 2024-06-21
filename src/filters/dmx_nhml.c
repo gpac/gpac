@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML demuxer filter
@@ -147,7 +147,7 @@ static Bool nhmldmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//post a seek
 		ctx->in_seek = GF_TRUE;
 
-		//lcoate previous RAP sample
+		//locate previous RAP sample
 		while ((node = (GF_XMLNode *) gf_list_enum(ctx->root->content, &i))) {
 			u32 j=0;
 			u64 dts=0;
@@ -492,7 +492,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 		goto exit;
 	}
 
-	assert(breaker.to_pos > breaker.from_pos);
+	gf_assert(breaker.to_pos > breaker.from_pos);
 
 
 	ctx->samp_buffer_size = (u32) (breaker.to_pos - breaker.from_pos);
@@ -505,7 +505,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to read samp->dataLength\n"));
 	}
 	e = GF_OK;
-	
+
 exit:
 	if (xml) gf_fclose(xml);
 	while (gf_list_count(breaker.id_stack)) {
@@ -1087,7 +1087,8 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	nhmldmx_config_output(filter, ctx, ctx->root);
+	e = nhmldmx_config_output(filter, ctx, ctx->root);
+	if (e) return e;
 
 	ctx->media_done = 0;
 	ctx->current_child_idx = 0;
@@ -1354,6 +1355,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		if (stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) {
 			if (!strcmp(node->name, "NHNTReconfig")) {
 				nhmldmx_config_output(filter, ctx, node);
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Unknown XML node %s in %s - ignoring\n", node->name, ctx->is_dims ? "DIMSStream" : "NHNTStream"));
 			}
 			continue;
 		}
@@ -1543,7 +1546,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			//use full file only if no subbs
 			if (!ctx->samp_buffer_size && !has_subbs && f) {
 				u64 ssize = gf_fsize(f);
-				assert(ssize < 0x80000000);
+				gf_fatal_assert(ssize < 0x80000000);
 				ctx->samp_buffer_size = (u32) ssize;
 			}
 
@@ -1700,7 +1703,7 @@ GF_Err nhmldmx_process(GF_Filter *filter)
 	if (pck) {
 		gf_filter_pck_get_framing(pck, &start, &end);
 		//for now we only work with complete files
-		assert(end);
+		gf_assert(end);
 	}
 
 
@@ -1787,7 +1790,7 @@ GF_FilterRegister NHMLDmxRegister = {
 	.name = "nhmlr",
 	GF_FS_SET_DESCRIPTION("NHML reader")
 	GF_FS_SET_HELP("This filter reads NHML files/data to produce a media PID and frames.\n"
-	"NHML documentation is available at https://wiki.gpac.io/NHML-Format\n")
+	"NHML documentation is available at https://wiki.gpac.io/xmlformats/NHML-Format\n")
 	.private_size = sizeof(GF_NHMLDmxCtx),
 	.flags = GF_FS_REG_USE_SYNC_READ,
 	.args = GF_NHMLDmxArgs,

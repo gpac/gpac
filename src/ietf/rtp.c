@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -31,7 +31,7 @@
 
 
 GF_EXPORT
-GF_RTPChannel *gf_rtp_new()
+GF_RTPChannel *gf_rtp_new_ex(const char *netcap_id)
 {
 	GF_RTPChannel *tmp;
 	GF_SAFEALLOC(tmp, GF_RTPChannel);
@@ -41,7 +41,14 @@ GF_RTPChannel *gf_rtp_new()
 	tmp->SSRC = gf_rand();
 	tmp->bs_r = gf_bs_new("d", 1, GF_BITSTREAM_READ);
 	tmp->bs_w = gf_bs_new("d", 1, GF_BITSTREAM_WRITE);
+	tmp->netcap_id = netcap_id;
 	return tmp;
+}
+
+GF_EXPORT
+GF_RTPChannel *gf_rtp_new()
+{
+	return gf_rtp_new_ex(NULL);
 }
 
 GF_EXPORT
@@ -93,7 +100,6 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 		ch->net_info.Profile = gf_strdup(trans_info->Profile);
 
 	if (!ch->net_info.IsUnicast && trans_info->destination) {
-		assert( trans_info->destination );
 		ch->net_info.source = gf_strdup(trans_info->destination);
 		if (ch->net_info.client_port_first) {
 			ch->net_info.port_first = ch->net_info.client_port_first;
@@ -231,7 +237,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		//
 		//	RTP
 		//
-		ch->rtp = gf_sk_new(GF_SOCK_TYPE_UDP);
+		ch->rtp = gf_sk_new_ex(GF_SOCK_TYPE_UDP, ch->netcap_id);
 		if (!ch->rtp) return GF_IP_NETWORK_FAILURE;
 		if (ch->net_info.IsUnicast) {
 			//if client, bind and connect the socket
@@ -266,13 +272,13 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		//create re-ordering queue for UDP only, and receive
 		if (ReorederingSize && !IsSource) {
 			if (!MaxReorderDelay) MaxReorderDelay = 200;
-			ch->po = gf_rtp_reorderer_new(ReorederingSize, MaxReorderDelay);
+			ch->po = gf_rtp_reorderer_new(ReorederingSize, MaxReorderDelay, ch->TimeScale);
 		}
 
 		//
 		//	RTCP
 		//
-		ch->rtcp = gf_sk_new(GF_SOCK_TYPE_UDP);
+		ch->rtcp = gf_sk_new_ex(GF_SOCK_TYPE_UDP, ch->netcap_id);
 		if (!ch->rtcp) return GF_IP_NETWORK_FAILURE;
 		if (ch->net_info.IsUnicast) {
 			if (!IsSource) {
@@ -371,7 +377,7 @@ u32 gf_rtp_read_flush(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 	if (!ch->po) return 0;
 
 	//pck queue may need to be flushed
-	pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_TRUE);
+	pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_TRUE, NULL);
 	if (pck) {
 		memcpy(buffer, pck, res);
 		gf_free(pck);
@@ -389,7 +395,7 @@ u32 gf_rtp_flush_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 	if (!ch || !ch->rtp || !ch->po) return 0;
 
 	//pck queue may need to be flushed
-	pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_FALSE);
+	pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_FALSE, NULL);
 	if (pck) {
 		memcpy(buffer, pck, res);
 		gf_free(pck);
@@ -413,7 +419,6 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 		e = gf_sk_receive(ch->rtp, buffer, buffer_size, &res);
 	}
 	if (!res || e || (res < 12)) {
-		assert(res==0);
 		res = 0;
 	}
 	if (res) {
@@ -422,6 +427,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 	}
 	//add the packet to our Queue if any
 	if (ch->po) {
+		Bool is_disc;
 		char *pck;
 		if (res) {
 			seq_num = ((((u32)buffer[2]) << 8) & 0xFF00) | (buffer[3] & 0xFF);
@@ -429,10 +435,16 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, u8 *buffer, u32 buffer_size)
 		}
 
 		//pck queue may need to be flushed
-		pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_FALSE);
+		pck = (char *) gf_rtp_reorderer_get(ch->po, &res, GF_FALSE, &is_disc);
 		if (pck) {
 			memcpy(buffer, pck, res);
 			gf_free(pck);
+		}
+		if (is_disc && !ch->disc_state) {
+			ch->disc_state = 1;
+		} else if (ch->disc_state) {
+			ch->disc_state = 2;
+			ch->first_SR = 1;
 		}
 	}
 	/*monitor keep-alive period*/
@@ -509,7 +521,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader 
 	}
 	if (ch->first_SR && !ch->SenderSSRC && rtp_hdr->SSRC) {
 		ch->SenderSSRC = rtp_hdr->SSRC;
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Assigning SSRC to %d because none was specified through SDP/RTSP\n", ch->SenderSSRC));
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Assigning SSRC to %d for stream on port %u because none was specified through SDP/RTSP\n", ch->SenderSSRC, ch->net_info.client_port_first));
 	}
 
 	if (!ch->ntp_init && ch->SenderSSRC && (ch->SenderSSRC != rtp_hdr->SSRC) ) {
@@ -592,7 +604,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, GF_RTPHeader 
 	if (gf_log_tool_level_on(GF_LOG_RTP, GF_LOG_DEBUG))  {
 		ch->total_bytes += pck_size-12;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP]\t%d\t%d\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP Packet]\t%d\t%d\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n",
 		                                  ch->SenderSSRC,
 		                                  rtp_hdr->SequenceNumber,
 		                                  rtp_hdr->TimeStamp,
@@ -779,7 +791,7 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch, u16 first_port)
 	p = NextAvailablePort;
 	if (ch->net_info.client_port_first) return GF_OK;
 
-	sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+	sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, ch->netcap_id);
 	if (!sock) return GF_IO_ERR;
 
 	/*should be way enough (more than 100 rtp streams open on the machine)*/
@@ -867,7 +879,7 @@ void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port)
 #define SN_CHECK_OFFSET		0x0A
 
 GF_EXPORT
-GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay)
+GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay, u32 timescale)
 {
 	GF_RTPReorder *tmp;
 
@@ -877,6 +889,7 @@ GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay)
 	if (!tmp) return NULL;
 	tmp->MaxCount = MaxCount;
 	tmp->MaxDelay = MaxDelay;
+	tmp->TimeScale = timescale;
 	return tmp;
 }
 
@@ -948,12 +961,27 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 	if (po->in->pck_seq_num == pck_seqnum) goto discard;
 
 	if ( ( (u16) (pck_seqnum + bounds) <= (u16) (po->in->pck_seq_num + bounds) ) ) {
+		u8 *buffer = (u8*)pck;
+		u32 ts_pck = GF_4CC(buffer[4], buffer[5], buffer[6], buffer[7]);
+		buffer = (u8*)po->in->pck;
+		u32 ts_in = GF_4CC(buffer[4], buffer[5], buffer[6], buffer[7]);
+		s32 diff = ts_in;
+		diff-=ts_pck;
+		if (diff<0) diff=-diff;
+		if (po->TimeScale && ((u32) diff > 2*po->TimeScale)) {
+			cur = po->in;
+			while (cur->next) cur = cur->next;
+			cur->next = it;
+			po->Count += 1;
+			po->disc = it;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: discontinuity detected last ts %u vs new %u\n", ts_in, ts_pck));
+		} else {
+			it->next = po->in;
+			po->in = it;
+			po->Count += 1;
 
-		it->next = po->in;
-		po->in = it;
-		po->Count += 1;
-
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: inserting packet %d at head\n", pck_seqnum));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: inserting packet %d at head\n", pck_seqnum));
+		}
 		return GF_OK;
 	}
 
@@ -968,7 +996,9 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 		if (!cur->next) {
 			cur->next = it;
 			po->Count += 1;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Appending packet %d (last %d)\n", pck_seqnum, cur->pck_seq_num));
+			if (pck_seqnum != 1+cur->pck_seq_num) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Appending packet %d (last %d)\n", pck_seqnum, cur->pck_seq_num));
+			}
 			return GF_OK;
 		}
 
@@ -1000,18 +1030,24 @@ discard:
 //ever received packet if its SeqNum was unknown
 //the BUFFER is yours, you must delete it
 GF_EXPORT
-void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush)
+void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush, Bool *is_disc)
 {
 	GF_POItem *t;
 	u32 bounds;
 	void *ret;
 
+	if (is_disc) *is_disc = GF_FALSE;
 	if (!po || !pck_size) return NULL;
 
 	*pck_size = 0;
 
 	//empty queue
 	if (!po->in) return NULL;
+
+	if (po->disc) {
+		gf_assert(po->in);
+		goto send_it;
+	}
 
 	//check we have received the first packet
 	if ( po->head_seqnum && po->MaxCount
@@ -1056,13 +1092,19 @@ check_timeout:
 
 
 send_it:
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetching %d\n", po->in->pck_seq_num));
+	if (!po->in->next || (po->in->pck_seq_num+1 != po->in->next->pck_seq_num)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetching %d\n", po->in->pck_seq_num));
+	}
 	*pck_size = po->in->size;
 	t = po->in;
 	po->in = po->in->next;
 	//no other output. reset the head seqnum
 	po->head_seqnum = po->in ? po->in->pck_seq_num : 0;
 	po->Count -= 1;
+	if (po->in == po->disc) {
+		if (is_disc) *is_disc = GF_TRUE;
+		po->disc = NULL;
+	}
 	//release the item
 	ret = t->pck;
 	gf_free(t);
@@ -1078,6 +1120,13 @@ GF_Err gf_rtp_set_interleave_callbacks(GF_RTPChannel *ch, gf_rtp_tcp_callback RT
 	return GF_OK;
 }
 
-
+Bool gf_rtp_is_disc(GF_RTPChannel *ch)
+{
+	if (ch->disc_state == 2) {
+		ch->disc_state = 0;
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
 #endif /*GPAC_DISABLE_STREAMING*/
 

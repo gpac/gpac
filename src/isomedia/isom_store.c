@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -386,7 +386,7 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 		*box_csize = (u32) root_box->size;
 
 	gf_bs_get_content(comp_bs, &box_data, &box_size);
-	gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, use_cmov ? 0 : 8, GF_FALSE, NULL, use_cmov);
+	gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, use_cmov ? 0 : 8, GF_FALSE, NULL, GF_FALSE);
 	if ((mov->compress_flags & GF_ISOM_COMP_FORCE_ALL) || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
 		if (bs) {
 			if (use_cmov) {
@@ -570,7 +570,7 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 		}
 
 		gf_bs_get_content(bs, &box_data, &box_size);
-		gf_gz_compress_payload_ex(&box_data, box_size, &osize, 0, GF_FALSE, NULL, GF_TRUE);
+		gf_gz_compress_payload_ex(&box_data, box_size, &osize, 0, GF_FALSE, NULL, GF_FALSE);
 		gf_free(box_data);
 		gf_bs_del(bs);
 		return osize + 8 + 8 + 12 + 12;
@@ -632,7 +632,7 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 		map = mw->movie->movieFileMap;
 	}
 	//get the payload...
-	bytes = gf_isom_datamap_get_data(map, mw->buffer, size, offset);
+	bytes = gf_isom_datamap_get_data(map, mw->buffer, size, offset, NULL);
 	if (bytes != size)
 		return GF_IO_ERR;
 	//write it to our stream...
@@ -980,10 +980,22 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				if (!entry) return GF_OUT_OF_MEM;
 				gf_list_add(iloc->extent_entries, entry);
 			}
-			entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
-			entry->extent_offset = 0;
-			/*0 means full length of referenced file*/
-			entry->extent_length = 0;
+			//if we use imdt, do NOT reset the extent length
+			GF_Box *url = gf_list_get(meta->file_locations->dref->child_boxes, iloc->data_reference_index-1);
+			if (!url || (url->type != GF_ISOM_BOX_TYPE_IMDT)) {
+				entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
+				entry->extent_offset = 0;
+				/*0 means full length of referenced file*/
+				entry->extent_length = 0;
+			} else {
+				u32 idx, icount = gf_list_count(file->TopBoxes);
+				for (idx=0; idx<icount; idx++) {
+					GF_MediaDataBox *mdat = (GF_MediaDataBox *)gf_list_get(file->TopBoxes, idx);
+					if (mdat->type!=GF_ISOM_BOX_TYPE_MDAT) continue;
+					if (!mdat->is_imda) continue;
+					mdat->is_imda = 2; //mark as used
+				}
+			}
 		}
 	}
 
@@ -2484,6 +2496,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 GF_Err isom_on_block_out(void *cbk, u8 *data, u32 block_size)
 {
 	GF_ISOFile *movie = (GF_ISOFile *)cbk;
+	movie->blocks_sent = GF_TRUE;
 	return movie->on_block_out(movie->on_block_out_usr_data, data, block_size, NULL, 0);
 }
 
@@ -2560,11 +2573,12 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 	}
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
-		if (!strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
+		if (movie->fileName && !strcmp(movie->fileName, "_gpac_isobmff_redirect")) {
 			GF_BitStream *bs, *moov_bs=NULL;
 			u64 mdat_end = gf_bs_get_position(movie->editFileMap->bs);
 			u64 mdat_start = movie->mdat->bsOffset;
 			u64 mdat_size = mdat_end - mdat_start;
+			Bool patch_mdat=GF_TRUE;
 
 			if (for_fragments) {
 				if (!movie->on_block_out) {
@@ -2589,14 +2603,27 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 					pad--;
 				}
 			}
+			if (!movie->blocks_sent && mdat_start && mdat_size) {
+				u64 pos = gf_bs_get_position(movie->editFileMap->bs);
+				gf_bs_seek(movie->editFileMap->bs, mdat_start);
+				gf_bs_write_u32(movie->editFileMap->bs, (mdat_size>0xFFFFFFFF) ? 1 : (u32) mdat_size);
+				gf_bs_write_u32(movie->editFileMap->bs, GF_ISOM_BOX_TYPE_MDAT);
+				if  (mdat_size>0xFFFFFFFF)
+					gf_bs_write_u64(movie->editFileMap->bs, mdat_size);
+				else
+					gf_bs_write_u64(movie->editFileMap->bs, 0);
+
+				gf_bs_seek(movie->editFileMap->bs, pos);
+				patch_mdat=GF_FALSE;
+			}
 			//write as non-seekable
 			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_TRUE, GF_FALSE, moov_bs);
 
 			movie->fragmented_file_pos = gf_bs_get_position(movie->editFileMap->bs);
 
-			if (mdat_start && mdat_size) {
+			if (mdat_start && mdat_size && patch_mdat) {
 				u8 data[16];
-				if (!movie->on_block_out) {
+				if (!movie->on_block_patch && movie->blocks_sent) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block patch callback, cannot patch mdat size in flat storage\n"));
 					return GF_BAD_PARAM;
 				}
@@ -2616,6 +2643,10 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			if (moov_bs) {
 				u8 *moov_data;
 				u32 moov_size;
+				if (!movie->on_block_patch) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] Missing output block patch callback, cannot patch mdat size in fast-start storage\n"));
+					return GF_BAD_PARAM;
+				}
 
 				gf_bs_get_content(moov_bs, &moov_data, &moov_size);
 				gf_bs_del(moov_bs);
@@ -2694,6 +2725,30 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 		} else {
 			e = WriteInplace(&mw, bs);
 		}
+
+		//rewrite all imda boxes
+		u32 i, count = gf_list_count(movie->TopBoxes);
+		for (i=0; i<count; i++) {
+			GF_MediaDataBox *mdat = (GF_MediaDataBox *)gf_list_get(movie->TopBoxes, i);
+			if (mdat->type!=GF_ISOM_BOX_TYPE_MDAT) continue;
+			//not an imda or not used by any item
+			//we could further optimize and do a partial purge of imda content
+			if (mdat->is_imda != 2) continue;
+
+			u64 offset = mdat->bsOffset-12;
+			u32 size = (u32) mdat->dataSize+12;
+			u64 orig_pos = gf_bs_get_position(movie->movieFileMap->bs);
+			gf_bs_seek(movie->movieFileMap->bs, offset);
+			while (size) {
+				u8 buf[2048];
+				u32 read = (size>2048) ? 2048 : size;
+				gf_bs_read_data(movie->movieFileMap->bs, buf, read);
+				gf_bs_write_data(bs, buf, read);
+				size -= read;
+			}
+			gf_bs_seek(movie->movieFileMap->bs, orig_pos);
+		}
+
 
 		gf_bs_del(bs);
 		if (!is_stdout)

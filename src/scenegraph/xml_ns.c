@@ -982,7 +982,7 @@ void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 #endif
 }
 
-GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep)
+GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep)
 {
 	GF_DOMAttribute *att;
 	GF_Node *clone;
