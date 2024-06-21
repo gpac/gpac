@@ -710,6 +710,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 		char *lang=NULL;
 		if (read->extkid) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(read->orig_id) );
 			gf_isom_get_media_language(read->extkmov, read->extkid, &lang);
 		}
 		if (lang_desc) {
@@ -1700,6 +1701,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 			if (ref_id && (ref_id != gf_isom_get_track_id(read->mov, i+1))) continue;
 			is_extk = GF_FALSE;
 			read->extk_flags = flags;
+			read->orig_id = read->extkid;
 			read->extkid = ext_tk;
 			//we have an edit list in source
 			if (flags & GF_ISOM_EXTK_EDTS_SKIP) {
