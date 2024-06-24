@@ -102,10 +102,11 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output %u channels %u Hz: %s, defaulting to stereo @ 441000 Hz\n", nb_ch, sr, gf_error_to_string(e) ));
 		afmt = GF_AUDIO_FMT_S16;
 		sr = 44100;
 		nb_ch = 2;
+		e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	}
 	if (ctx->speed == FIX_ONE) ctx->speed_set = 1;
 
