@@ -2371,7 +2371,10 @@ sample_entry_setup:
 		break;
 
 	default:
-		m_subtype = codec_id;
+		if (!m_subtype_src) {
+			m_subtype_src = gf_codecid_4cc_type(codec_id);
+		}
+		m_subtype = m_subtype_src ? m_subtype_src : codec_id;
 		unknown_generic = GF_TRUE;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
@@ -3217,7 +3220,7 @@ sample_entry_setup:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing %s, using generic sample entry with 4CC \"GMCW\" and \"GMCC\" config box\n", gf_codecid_name(codec_id)));
 				udesc.codec_tag = GF_4CC('G', 'M', 'C', 'W');
 				udesc.ext_box_wrap = GF_4CC('G', 'M', 'C', 'C');
-			} else {
+			} else if (!m_subtype_src) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
 			}
 		}

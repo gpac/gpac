@@ -175,6 +175,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_MSPEG4_V3, 0, GF_STREAM_VISUAL, "MS-MPEG4 V3", "div3", NULL, NULL, GF_CODECID_MSPEG4_V3},
 
 	{GF_CODECID_ALAC, 0, GF_STREAM_AUDIO, "Apple Lossless Audio", "caf", NULL, NULL},
+	{GF_CODECID_DNXHD, 0, GF_STREAM_VISUAL, "AViD DNxHD", "dnx", "AVdn", "video/dnx"},
 
 };
 
@@ -320,6 +321,12 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_SMPTE_VC1;
 	default:
 		break;
+	}
+	const char *c4cc = gf_4cc_to_str(isobmftype);
+	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
+	for (i=0; i<count; i++) {
+		if (CodecRegistry[i].rfc_4cc && !strncmp(CodecRegistry[i].rfc_4cc, c4cc, 4))
+			return CodecRegistry[i].codecid;
 	}
 	return 0;
 }
