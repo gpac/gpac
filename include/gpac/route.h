@@ -133,7 +133,7 @@ typedef struct
 	const char *filename;
 	/*! mime type if known, NULL otherwise*/
 	const char *mime;
-	/*! blob data pointer*/
+	/*! blob data pointer - the route user is responsible for setting the blob flags if desired*/
 	GF_Blob *blob;
     /*! total size of object if known, 0 otherwise*/
     u32 total_size;
@@ -158,7 +158,10 @@ typedef struct
 	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
 	u32 late_fragment_offset;
 
-	/*partial state, only used for GF_ROUTE_EVT_DYN_SEG_FRAG*/
+	/*partial state used for all calls
+		if event indicates a file transfer completion (GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG), this relects the corrupted state
+		of the reception
+	*/
 	GF_LCTObjectPartial partial;
 
 	/*! user data set to current object after callback, and passed back on next callbacks on same object

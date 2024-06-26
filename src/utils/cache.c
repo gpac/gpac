@@ -1001,7 +1001,8 @@ u32 gf_cache_is_done(const DownloadedCacheEntry entry)
     if (entry && entry->external_blob) {
         gf_mx_p(entry->external_blob->mx);
         res = (entry->external_blob->flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;
-        if (res && (entry->external_blob->flags & GF_BLOB_CORRUPTED)) res = 2;
+        if (res && (entry->external_blob->flags & GF_BLOB_CORRUPTED))
+			res = 2;
         gf_mx_v(entry->external_blob->mx);
     } else if (entry) {
         res = (entry->cache_blob.flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;

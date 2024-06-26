@@ -5128,7 +5128,6 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
         sess->total_size = gf_cache_get_content_length(sess->cache_entry);
 
         ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size, &was_modified);
-        if (!ptr) return GF_OUT_OF_MEM;
 
 		cache_done = gf_cache_is_done(sess->cache_entry);
 		//something went wrong, we cannot have less valid bytes than what we had at previous call(s)
@@ -5150,6 +5149,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
             }
             return was_modified ? GF_OK : GF_IP_NETWORK_EMPTY;
         }
+        if (!ptr) return GF_OUT_OF_MEM;
+
         //only copy valid bytes for http
         to_copy = max_valid_size - sess->bytes_done;
         if (to_copy > buffer_size) to_copy = buffer_size;

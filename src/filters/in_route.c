@@ -237,8 +237,19 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 	DownloadedCacheEntry cache_entry;
 	ctx->evt_interrupt = GF_TRUE;
 
-
 	gf_assert(finfo->blob);
+	gf_mx_p(finfo->blob->mx);
+	//set blob flags
+	if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
+		finfo->blob->flags |= GF_BLOB_IN_TRANSFER;
+	else
+		finfo->blob->flags &= ~GF_BLOB_IN_TRANSFER;
+
+	if (finfo->partial==GF_LCTO_PARTIAL_ANY)
+		finfo->blob->flags |= GF_BLOB_CORRUPTED;
+	else
+		finfo->blob->flags &= ~GF_BLOB_CORRUPTED;
+	gf_mx_v(finfo->blob->mx);
 
 	cache_entry = finfo->udta;
 	szPath[0] = 0;
@@ -429,15 +440,12 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		return;
 	}
 
-	//corrupted file, try to repair
-	if (ctx->repair && (finfo->blob->flags & GF_BLOB_CORRUPTED)) {
+	//partial, try to repair
+	if (ctx->repair && finfo->partial) {
+		//blob flags are set there
 		routein_queue_repair(ctx, evt, evt_param, finfo);
 	} else {
 		routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
-
-        if (ctx->llmode && (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) && (finfo->partial==GF_LCTO_PARTIAL_ANY) && ctx->repair) {
-			routein_queue_repair(ctx, evt, evt_param, finfo);
-		}
 	}
 }
 
