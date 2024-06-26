@@ -117,13 +117,14 @@ struct _route_repair_seg_info
 {
 	//copy of finfo event, valid until associated object is removed
 	GF_ROUTEEventFileInfo finfo;
+	//copy of filename which is not guaranteed to be kept outside the event callback
+	char *filename;
 	GF_ROUTEEventType evt;
 	u32 service_id;
 	Bool removed;
 	u32 pending;
 	GF_List *ranges;
 	u32 nb_errors;
-	Bool was_partial;
 };
 
 

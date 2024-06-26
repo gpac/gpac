@@ -817,6 +817,11 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 	obj->download_time_ms = obj->start_time_ms = 0;
 	obj->last_gather_time = 0;
 	obj->dispatched = 0;
+	gf_mx_p(obj->blob.mx);
+	obj->blob.data = NULL;
+	obj->blob.size = 0;
+	obj->blob.flags = GF_BLOB_CORRUPTED;
+	gf_mx_v(obj->blob.mx);
 	obj->status = GF_LCT_OBJ_INIT;
 	gf_list_del_item(s->objects, obj);
 	gf_list_add(routedmx->object_reservoir, obj);
@@ -862,10 +867,29 @@ static void gf_route_lct_removed(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_R
 	gf_free(lc);
 }
 
-static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj, Bool final_push, GF_LCTObjectPartial partial, Bool updated, u64 bytes_done)
+static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj, Bool final_push)
 {
     char *filepath;
+    GF_LCTObjectPartial partial;
+	Bool updated = GF_FALSE;
     Bool is_init = GF_FALSE;
+    u64 bytes_done=0;
+
+	if (final_push && (obj->status==GF_LCT_OBJ_DONE)) {
+		partial = GF_LCTO_PARTIAL_NONE;
+	} else {
+		gf_assert(obj->nb_frags);
+		//push=begin, notified size is the start range starting at 0
+		partial = GF_LCTO_PARTIAL_BEGIN;
+		bytes_done = obj->frags[0].size;
+
+		GF_LCTFragInfo *f = &obj->frags[obj->nb_frags-1];
+		//push=any, notified size is the max received size
+		if ((obj->nb_frags>1) || obj->frags[0].offset) {
+			partial = GF_LCTO_PARTIAL_ANY;
+			bytes_done = f->offset+f->size;
+		}
+	}
 
     if (obj->rlct_file) {
         filepath = obj->rlct_file->filename ? obj->rlct_file->filename : "ghost-init.mp4";
@@ -874,6 +898,15 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 			is_init = GF_FALSE;
 		} else {
 			gf_assert(final_push);
+		}
+		if (final_push) {
+			u32 crc = gf_crc_32(obj->payload, obj->total_length);
+			if (crc != obj->rlct_file->crc) {
+				obj->rlct_file->crc = crc;
+				updated = GF_TRUE;
+			} else {
+				updated = GF_FALSE;
+			}
 		}
     } else {
         if (!obj->solved_path[0]) {
@@ -887,10 +920,10 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         filepath = obj->solved_path;
     }
 #ifndef GPAC_DISABLE_LOG
-    if (partial) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] File %s (TSI %u TOI %u) in progress - size %d in %d ms (%d bytes in %d fragments)\n", s->log_name, filepath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
-    } else {
+    if (final_push) {
         GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Got file %s (TSI %u TOI %u) size %d in %d ms\n", s->log_name, filepath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms));
+    } else {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] File %s (TSI %u TOI %u) in progress - size %d in %d ms (%d bytes in %d fragments)\n", s->log_name, filepath, obj->tsi, obj->toi, obj->total_length, obj->download_time_ms, obj->nb_bytes, obj->nb_recv_frags));
     }
 #endif
 
@@ -901,17 +934,12 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         finfo.filename = filepath;
         gf_mx_p(obj->blob.mx);
 		obj->blob.data = obj->payload;
-		obj->blob.flags = 0;
 		if (final_push) {
 			if (!obj->total_length)
 				obj->total_length = obj->alloc_size;
-			if (partial)
-				obj->blob.flags |= GF_BLOB_CORRUPTED;
 			obj->blob.size = (u32) obj->total_length;
 		} else {
-			obj->blob.flags = GF_BLOB_IN_TRANSFER;
 			obj->blob.size = (u32) bytes_done;
-			finfo.partial = partial;
 		}
         gf_mx_v(obj->blob.mx);
 		finfo.blob = &obj->blob;
@@ -919,6 +947,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         finfo.tsi = obj->tsi;
         finfo.toi = obj->toi;
 		finfo.updated = updated;
+		finfo.partial = partial;
 		finfo.udta = obj->udta;
         finfo.download_ms = obj->download_time_ms;
 		finfo.nb_frags = obj->nb_frags;
@@ -1129,6 +1158,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		}
 		obj->toi = toi;
 		obj->tsi = tsi;
+		obj->blob.flags = 0;
 		obj->blob.range_valid = routedmx_check_blob_range;
 		obj->blob.range_udta = obj;
 
@@ -1528,9 +1558,6 @@ exit:
 static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj)
 {
 	u32 crc;
-	GF_LCTObjectPartial partial = GF_LCTO_PARTIAL_NONE;
-	Bool updated = GF_TRUE;
-
 	switch (obj->flute_type) {
 	// if this flute and its an FDT packet parse the fdt and associate the object with the TOI
 	case GF_FLUTE_FDT:
@@ -1571,7 +1598,6 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 		if (obj->rlct && obj->rlct->tsi_init) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u partial received only\n", s->log_name, obj->tsi, obj->toi));
 		}
-		partial = GF_LCTO_PARTIAL_BEGIN;
 	}
 	if (obj->rlct)
 		obj->rlct->tsi_init = GF_TRUE;
@@ -1579,16 +1605,7 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 	if (obj->dispatched) return GF_OK;
 	obj->dispatched = 1;
 
-	if (obj->rlct_file) {
-		u32 crc = gf_crc_32(obj->payload, obj->total_length);
-		if (crc != obj->rlct_file->crc) {
-			obj->rlct_file->crc = crc;
-			updated = GF_TRUE;
-		} else {
-			updated = GF_FALSE;
-		}
-	}
-	return gf_route_dmx_push_object(routedmx, s, obj, GF_TRUE, partial, updated, 0);
+	return gf_route_dmx_push_object(routedmx, s, obj, GF_TRUE);
 }
 
 static GF_Err gf_route_service_flush_object(GF_ROUTEService *s, GF_LCTObject *obj)
@@ -1615,7 +1632,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 {
 	Bool done;
 	u32 i, j, count;
-    u32 do_push = 0;
+    Bool do_push = GF_FALSE;
 	GF_LCTObject *obj = s->last_active_obj;
 	GF_FLUTELLMapEntry *ll_map = NULL;
 
@@ -1943,10 +1960,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 	//only push on first packet of object
 	if (!start_frag) {
-		if (routedmx->dispatch_mode==GF_ROUTE_DISPATCH_OUT_OF_ORDER)
-			do_push = 2;
-		else
-			do_push = start_offset ? 0 : ((routedmx->dispatch_mode==GF_ROUTE_DISPATCH_PROGRESSIVE) ? 1 : 0);
+		if (routedmx->dispatch_mode==GF_ROUTE_DISPATCH_OUT_OF_ORDER) {
+			do_push = GF_TRUE;
+		} else if (!start_offset && (routedmx->dispatch_mode==GF_ROUTE_DISPATCH_PROGRESSIVE)) {
+			do_push = GF_TRUE;
+		}
 	}
 
 	if (start_frag == end_frag) {
@@ -1975,7 +1993,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			obj->nb_bytes += obj->frags[start_frag].size - old_size;
 			//adding bytes in first frag, we can push
 			if (!start_frag && !obj->frags[0].offset)
-				do_push = 1;
+				do_push = GF_TRUE;
 
 		} else if(end_frag > start_frag + 1) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Merging LCT fragment\n", s->log_name));
@@ -2021,16 +2039,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
     //media file (uses templates->segment or is FLUTE obj), push if we can
     if (do_push && obj->rlct && ((!obj->rlct_file && !obj->flute_type) || (obj->flute_type==GF_FLUTE_OBJ))) {
-		u32 osize = obj->frags[0].size;
-		GF_LCTObjectPartial partial = GF_LCTO_PARTIAL_BEGIN;
-		if (do_push==2) {
-			GF_LCTFragInfo *f = &obj->frags[obj->nb_frags-1];
-			osize = f->offset+f->size;
-			if (osize > obj->blob.size)
-				obj->blob.size = osize;
-			partial = GF_LCTO_PARTIAL_ANY;
-		}
-        gf_route_dmx_push_object(routedmx, s, obj, GF_FALSE, partial, GF_FALSE, osize);
+        gf_route_dmx_push_object(routedmx, s, obj, GF_FALSE);
     }
 	//if no TOL specified, update blob size - no need to lock the mutex as we only increase the size but do not change the data pointer
     if (!obj->total_length && (start_offset+size > obj->blob.size))
@@ -3580,6 +3589,15 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 	}
 	if (!obj) return GF_BAD_PARAM;
 	gf_mx_p(obj->blob.mx);
+	if (!br_start && (br_end==obj->total_length)) {
+		obj->nb_frags = 1;
+		obj->frags[0].offset = 0;
+		obj->frags[0].size = obj->total_length;
+		finfo->nb_frags = obj->nb_frags;
+		finfo->frags = obj->frags;
+		gf_mx_v(obj->blob.mx);
+		return GF_OK;
+	}
 
 	for (i=0; i<obj->nb_frags; i++) {
 		if (br_start < obj->frags[i].offset) {
