@@ -3966,7 +3966,7 @@ sample_entry_done:
 			} else {
 				//old arch compat: if we had a simple edit list in source, keep dur and offset
 				//and avoid rewriting it when recomputing edit for b-frames
-				u64 etime, sdur;
+				u64 etime=0, sdur=0;
 				GF_ISOEditType etype;
 				gf_isom_get_edit(ctx->file, tkw->track_num, 1, &etime, &sdur, &moffset, &etype);
 				if (!etime && sdur) {
