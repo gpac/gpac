@@ -434,6 +434,10 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		routein_queue_repair(ctx, evt, evt_param, finfo);
 	} else {
 		routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
+
+        if (ctx->llmode && (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) && (finfo->partial==GF_LCTO_PARTIAL_ANY) && ctx->repair) {
+			routein_queue_repair(ctx, evt, evt_param, finfo);
+		}
 	}
 }
 
@@ -473,12 +477,15 @@ static Bool routein_local_cache_probe(void *par, char *url, Bool is_destroy)
 	return GF_TRUE;
 }
 
-static void routein_set_eos(GF_Filter *filter)
+static void routein_set_eos(GF_Filter *filter, ROUTEInCtx *ctx)
 {
 	u32 i, nb_out = gf_filter_get_opid_count(filter);
 	for (i=0; i<nb_out; i++) {
 		GF_FilterPid *opid = gf_filter_get_opid(filter, i);
 		if (opid) gf_filter_pid_set_eos(opid);
+	}
+	if (ctx->opid) {
+		gf_filter_pid_set_info_str(ctx->opid, "x-mcast-over", &PROP_STRING("yes") );
 	}
 }
 
@@ -500,7 +507,7 @@ static GF_Err routein_process(GF_Filter *filter)
 					u32 diff = gf_sys_clock() - ctx->last_timeout;
 					if (diff > ctx->timeout) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] No data for %d ms, aborting\n", ctx->log_name, diff));
-						routein_set_eos(filter);
+						routein_set_eos(filter, ctx);
 						return GF_EOS;
 					}
 				}
@@ -510,10 +517,13 @@ static GF_Err routein_process(GF_Filter *filter)
 		} else if (!e) {
 			ctx->last_timeout = 0;
 			if (ctx->evt_interrupt) break;
+			//uncomment these to slow down demuxer (usefull when debugging low latency mode)
+//			gf_filter_ask_rt_reschedule(filter, 10000);
+//			break;
 		} else if (e==GF_EOS) {
 			e = routein_do_repair(ctx);
 			if (e == GF_EOS)
-				routein_set_eos(filter);
+				routein_set_eos(filter, ctx);
 			return e;
 		} else {
 			break;
@@ -524,7 +534,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	 	if (diff>ctx->timeout) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] No data for %d ms, aborting\n", ctx->log_name, diff));
 			gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
-			routein_set_eos(filter);
+			routein_set_eos(filter, ctx);
 			return GF_EOS;
 		}
 	}
@@ -626,10 +636,11 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		sep[0] = ':';
 	}
 	if (!ctx->route_dmx) return GF_SERVICE_ERROR;
-	
-	gf_route_set_allow_progressive_dispatch(ctx->route_dmx, !ctx->fullseg);
 
-	gf_route_set_reorder(ctx->route_dmx, ctx->reorder, ctx->rtimeout);
+	gf_route_set_dispatch_mode(ctx->route_dmx, ctx->llmode ? GF_ROUTE_DISPATCH_OUT_OF_ORDER :
+		(ctx->fullseg ? GF_ROUTE_DISPATCH_FULL : GF_ROUTE_DISPATCH_PROGRESSIVE)
+	);
+	gf_route_dmx_set_reorder(ctx->route_dmx, ctx->reorder, ctx->rtimeout);
 
 	if (ctx->tsidbg) {
 		gf_route_dmx_debug_tsi(ctx->route_dmx, ctx->tsidbg);
@@ -679,7 +690,7 @@ static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	} else if (evt->base.type==GF_FEVT_STOP) {
 		ctx->nb_playing--;
 	} else if (evt->base.type==GF_FEVT_DASH_QUALITY_SELECT) {
-		gf_routedmx_mark_active_quality(ctx->route_dmx, evt->dash_select.service_id, evt->dash_select.period_id, evt->dash_select.as_id, evt->dash_select.rep_id, (evt->dash_select.select_type==GF_QUALITY_SELECTED) ? GF_TRUE : GF_FALSE);
+		gf_route_dmx_mark_active_quality(ctx->route_dmx, evt->dash_select.service_id, evt->dash_select.period_id, evt->dash_select.as_id, evt->dash_select.rep_id, (evt->dash_select.select_type==GF_QUALITY_SELECTED) ? GF_TRUE : GF_FALSE);
 	}
 	return GF_TRUE;
 }

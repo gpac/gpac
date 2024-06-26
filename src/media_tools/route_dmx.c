@@ -71,6 +71,7 @@ typedef struct
 	u32 tsi;
 	char *toi_template;
 	GF_List *static_files;
+	u32 num_components;
 
 	GF_ROUTELCTReg CPs[8];
 	u32 nb_cps;
@@ -81,6 +82,7 @@ typedef struct
 	GF_ROUTEService *flute_parent_service;
 
 	Bool is_active;
+	Bool first_seg_received;
 
 	char *dash_period_id;
 	s32 dash_as_id;
@@ -196,6 +198,7 @@ struct __route_service
 	GF_ROUTETuneMode tune_mode;
 	void *udta;
 
+	char *service_identifier;
 	char *log_name;
 };
 
@@ -217,7 +220,7 @@ struct __gf_routedmx {
 
 	u64 reorder_timeout;
 	Bool force_in_order;
-    Bool progressive_dispatch;
+	GF_RouteProgressiveDispatch dispatch_mode;
 	u32 nrt_max_seg;
 
 	u32 slt_version, rrt_version, systime_version, aeat_version;
@@ -312,6 +315,7 @@ static void gf_route_service_del(GF_ROUTEDmx *routedmx, GF_ROUTEService *s)
 
 	if (s->dst_ip) gf_free(s->dst_ip);
 	if (s->log_name) gf_free(s->log_name);
+	if (s->service_identifier) gf_free(s->service_identifier);
 	gf_free(s);
 }
 
@@ -635,7 +639,7 @@ GF_Err gf_route_atsc3_tune_in(GF_ROUTEDmx *routedmx, u32 serviceID, Bool tune_al
 }
 
 GF_EXPORT
-GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms)
+GF_Err gf_route_dmx_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms)
 {
 	if (!routedmx) return GF_BAD_PARAM;
 	routedmx->reorder_timeout = timeout_ms;
@@ -644,10 +648,10 @@ GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeo
 }
 
 GF_EXPORT
-GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive)
+GF_Err gf_route_set_dispatch_mode(GF_ROUTEDmx *routedmx, GF_RouteProgressiveDispatch dispatch_mode)
 {
     if (!routedmx) return GF_BAD_PARAM;
-    routedmx->progressive_dispatch = allow_progressive;
+    routedmx->dispatch_mode = dispatch_mode;
     return GF_OK;
 }
 
@@ -658,11 +662,13 @@ static GF_BlobRangeStatus routedmx_check_blob_range(GF_Blob *blob, u64 start_off
 	if (obj->status==GF_LCT_OBJ_INIT)
 		return GF_BLOB_RANGE_CORRUPTED;
 	u32 i, size = *io_size;
+	*io_size = 0;
 	gf_mx_p(blob->mx);
 	for (i=0; i<obj->nb_frags; i++) {
 		GF_LCTFragInfo *frag = &obj->frags[i];
 		if ((frag->offset<=start_offset) && (start_offset+size <= frag->offset + frag->size)) {
 			gf_mx_v(blob->mx);
+			*io_size = size;
 			return GF_BLOB_RANGE_VALID;
 		}
 		//start is in fragment but exceeds it
@@ -739,7 +745,7 @@ static GF_Err gf_route_dmx_process_slt(GF_ROUTEDmx *routedmx, GF_XMLNode *root)
 			if (!strcmp(dst_ip, orig_serv->dst_ip) && (orig_serv->port==dst_port) && (orig_serv->protocol==protocol)) {
 				continue;
 			}
-			//remove sevice
+			//remove service
 			gf_list_del_item(routedmx->services, orig_serv);
 			gf_route_service_del(routedmx, orig_serv);
 		}
@@ -834,7 +840,29 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 
 }
 
-static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj, Bool final_push, Bool partial, Bool updated, u64 bytes_done)
+static void gf_route_lct_removed(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_ROUTELCTChannel *lc)
+{
+	u32 i, count = gf_list_count(s->objects);
+	for (i=0; i<count; i++) {
+		GF_LCTObject *o = gf_list_get(s->objects, i);
+		if (o->rlct == lc) {
+			o->rlct = NULL;
+			gf_route_obj_to_reservoir(routedmx, s, o);
+		}
+	}
+	count = gf_list_count(s->route_sessions);
+	for (i=0; i<count; i++) {
+		GF_ROUTESession *rsess = gf_list_get(s->route_sessions, i);
+		gf_list_del_item(rsess->channels, lc);
+	}
+	gf_route_static_files_del(lc->static_files);
+	if (lc->toi_template) gf_free(lc->toi_template);
+	if (lc->dash_period_id) gf_free(lc->dash_period_id);
+	if (lc->dash_rep_id) gf_free(lc->dash_rep_id);
+	gf_free(lc);
+}
+
+static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj, Bool final_push, GF_LCTObjectPartial partial, Bool updated, u64 bytes_done)
 {
     char *filepath;
     Bool is_init = GF_FALSE;
@@ -883,6 +911,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 		} else {
 			obj->blob.flags = GF_BLOB_IN_TRANSFER;
 			obj->blob.size = (u32) bytes_done;
+			finfo.partial = partial;
 		}
         gf_mx_v(obj->blob.mx);
 		finfo.blob = &obj->blob;
@@ -892,13 +921,18 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 		finfo.updated = updated;
 		finfo.udta = obj->udta;
         finfo.download_ms = obj->download_time_ms;
-        if (is_init)
-            evt_type = GF_ROUTE_EVT_FILE;
-        else if (final_push) {
-            evt_type = GF_ROUTE_EVT_DYN_SEG;
-            finfo.nb_frags = obj->nb_frags;
-            finfo.frags = obj->frags;
+		finfo.nb_frags = obj->nb_frags;
+		finfo.frags = obj->frags;
+		if (obj->rlct && !is_init) {
+			finfo.first_toi_received = obj->rlct->first_seg_received;
+		}
+
+        if (final_push) {
+            evt_type = is_init ? GF_ROUTE_EVT_FILE : GF_ROUTE_EVT_DYN_SEG;
 			gf_assert(obj->total_length <= obj->alloc_size);
+			if (obj->rlct && !is_init) {
+				obj->rlct->first_seg_received = GF_TRUE;
+			}
         }
         else
             evt_type = GF_ROUTE_EVT_DYN_SEG_FRAG;
@@ -1019,7 +1053,8 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		if (frag_sep) {
 			ll_offset = atoi(frag_sep+1);
 			query_sep = strrchr(content_location, '?');
-			if (query_sep && strstr(query_sep, "isLast")) ll_is_last = GF_TRUE;
+			if (query_sep && strstr(query_sep, "isLast"))
+				ll_is_last = GF_TRUE;
 
 			if (query_sep) query_sep[0] = 0;
 			else frag_sep[0] = 0;
@@ -1029,11 +1064,6 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 				if ((obj->tsi==tsi) && obj->rlct_file && !strcmp(obj->rlct_file->filename, content_location))
 					break;
 				obj = NULL;
-			}
-			if (!content_length) {
-				if (obj && obj->ll_maps_count)
-					obj->ll_map_last = 1;
-				continue;
 			}
 
 			if (obj) {
@@ -1064,6 +1094,8 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 				}
 				if (query_sep) query_sep[0] = 0;
 				else if (frag_sep) frag_sep[0] = 0;
+				if (!content_length)
+					obj->ll_map_last = 1;
 				continue;
 			}
 		}
@@ -1228,6 +1260,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
         GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Package appears to be compressed but is being treated as plaintext:\n%s\n",
 			parent_s->log_name, object->payload));
     }
+    object->payload[object->total_length]=0;
 
 	GF_Err e = gf_xml_dom_parse_string(routedmx->dom, object->payload);
 	GF_XMLNode *root = gf_xml_dom_get_root(routedmx->dom);
@@ -1238,7 +1271,10 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
         return e;
 	}
     GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Got TSI %d MulticastGateway configuration:\n%s\n", parent_s->log_name, object->tsi, object->payload));
-	GF_XMLNode *mcast_sess;
+    GF_List *old_services = gf_list_clone(routedmx->services);
+    gf_list_del_item(old_services, parent_s);
+
+    GF_XMLNode *mcast_sess;
 	u32 s_idx=0;
 	Bool has_stsid_session=GF_FALSE;
 	while ( (mcast_sess = gf_list_enum(root->content, &s_idx)) ) {
@@ -1250,11 +1286,16 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			continue;
 
 		GF_ROUTEService *new_s = NULL;
+		GF_List *old_sessions = NULL;
+		GF_List *old_channels = NULL;
 		GF_LCTObject *mani_obj = NULL;
 		GF_XMLNode *tr_sess;
 		GF_ServiceProtocolType proto_id = 0;
+		const char *service_id_uri = _xml_get_attr(mcast_sess, "serviceIdentifier");
+		if (!service_id_uri) service_id_uri = "unknown";
 		u32 trs_idx=0;
 		while ( (tr_sess = gf_list_enum(mcast_sess->content, &trs_idx)) ) {
+			u32 j;
 			if (!tr_sess || !tr_sess->name) continue;
 			if (!strcmp(tr_sess->name, "PresentationManifestLocator") && !is_cfg_session) {
 				tr_sess = gf_list_get(tr_sess->content, 0);
@@ -1269,7 +1310,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				}
 				continue;
 			}
-			else if (is_cfg_session) {
+			else if (is_cfg_session && !strcmp(tr_sess->name, "TransportProtocol")) {
 				tr_sess = mcast_sess;
 			} else if (strcmp(tr_sess->name, "MulticastTransportSession")) {
 				continue;
@@ -1297,11 +1338,45 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			if (!dst_add || !dst_port_str || !dst_tsi) continue;
 			u16 dst_port = atoi(dst_port_str);
 
-			//TODO locate existing service ?
 			if (!new_s) {
-				u32 service_id = gf_list_count(routedmx->services);
-				new_s = gf_route_create_service(routedmx, dst_add, dst_port, service_id, proto_id);
-				if (!new_s) continue;
+				//config session same as our bootstrap adress, do not process
+				if (!strcmp(dst_add, parent_s->dst_ip) && (parent_s->port == dst_port)) {
+					gf_list_del_item(old_services, parent_s);
+					if (is_cfg_session) continue;
+					new_s = parent_s;
+					old_sessions = gf_list_clone(new_s->route_sessions);
+				} else {
+					GF_ROUTEService *existing = NULL;
+					for (j=0; j<gf_list_count(routedmx->services); j++) {
+						existing = gf_list_get(routedmx->services, j);
+						if (existing->service_identifier
+							&& !strcmp(existing->service_identifier, service_id_uri)
+							&& (existing->port==dst_port)
+							&& !strcmp(existing->dst_ip, dst_add)
+						)
+							break;
+						existing=NULL;
+					}
+					if (!existing) {
+						u32 service_id = gf_list_count(routedmx->services);
+						new_s = gf_route_create_service(routedmx, dst_add, dst_port, service_id, proto_id);
+						if (!new_s) continue;
+						new_s->service_identifier = gf_strdup(service_id_uri);
+					} else {
+						gf_list_del_item(old_services, existing);
+						new_s = existing;
+						old_sessions = gf_list_clone(new_s->route_sessions);
+						old_channels = gf_list_new();
+						for (j=0; j<gf_list_count(new_s->route_sessions); j++) {
+							u32 k;
+							GF_ROUTESession *s = gf_list_get(new_s->route_sessions, j);
+							for (k=0; k<gf_list_count(s->channels); k++) {
+								GF_ROUTELCTChannel *ch = gf_list_get(s->channels, k);
+								gf_list_add(old_channels, ch);
+							}
+						}
+					}
+				}
 			}
 			if (proto_id==GF_SERVICE_ROUTE) {
 				//setup done through stsid
@@ -1309,45 +1384,75 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				break;
 			}
 
-			new_s->nb_media_streams += _xml_get_child_count(tr_sess, "ServiceComponentIdentifier");
-
 			GF_ROUTESession *rsess=NULL;
-			GF_SAFEALLOC(rsess, GF_ROUTESession);
-			if (!rsess) continue;
-
-			rsess->channels = gf_list_new();
-
-			//need a new socket for the session
-			if ((strcmp(new_s->dst_ip, dst_add)) || (new_s->port != dst_port) ) {
-				rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
-				if (gf_sk_has_nrt_netcap(rsess->sock))
-					routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
-
-				gf_sk_set_usec_wait(rsess->sock, 1);
-				e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
-				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_s->log_name, dst_add, dst_port));
-					return e;
+			for (j=0; j<gf_list_count(new_s->route_sessions); j++) {
+				rsess = gf_list_get(new_s->route_sessions, j);
+				if (rsess->mcast_addr && !strcmp(rsess->mcast_addr, dst_add) && (rsess->mcast_port==dst_port))
+					break;
+				if (!rsess->mcast_addr && !strcmp(new_s->dst_ip, dst_add) && (new_s->port==dst_port))
+					break;
+				rsess = NULL;
+			}
+			GF_ROUTELCTChannel *rlct=NULL;
+			if (rsess) {
+				gf_list_del_item(old_sessions, rsess);
+				for (j=0; j<gf_list_count(rsess->channels); j++) {
+					rlct = gf_list_get(rsess->channels, j);
+					if (rlct->tsi == atoi(dst_tsi)) break;
+					rlct = NULL;
 				}
-				gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
-				//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
-				new_s->secondary_sockets++;
-				if (new_s->tune_mode == GF_ROUTE_TUNE_ON)
-					gf_sk_group_register(routedmx->active_sockets, rsess->sock);
-
-				rsess->mcast_addr = gf_strdup(dst_add);
-				rsess->mcast_port = dst_port;
+				if (rlct) gf_list_del_item(old_channels, rlct);
 			} else {
-				new_s->nb_active++;
-			}
-			gf_list_add(new_s->route_sessions, rsess);
+				GF_SAFEALLOC(rsess, GF_ROUTESession);
+				if (!rsess) continue;
+				rsess->channels = gf_list_new();
 
-			//OK setup LCT channel for route
-			GF_ROUTELCTChannel *rlct;
-			GF_SAFEALLOC(rlct, GF_ROUTELCTChannel);
-			if (!rlct) {
-				continue;
+				//need a new socket for the session
+				if ((strcmp(new_s->dst_ip, dst_add)) || (new_s->port != dst_port) ) {
+					rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+					if (gf_sk_has_nrt_netcap(rsess->sock))
+						routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
+
+					gf_sk_set_usec_wait(rsess->sock, 1);
+					e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_s->log_name, dst_add, dst_port));
+						gf_list_del(rsess->channels);
+						gf_free(rsess);
+						gf_list_del(old_sessions);
+						goto exit;
+					}
+					gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
+					//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
+					new_s->secondary_sockets++;
+					if (new_s->tune_mode == GF_ROUTE_TUNE_ON)
+						gf_sk_group_register(routedmx->active_sockets, rsess->sock);
+
+					rsess->mcast_addr = gf_strdup(dst_add);
+					rsess->mcast_port = dst_port;
+				} else {
+					new_s->nb_active++;
+				}
+				gf_list_add(new_s->route_sessions, rsess);
 			}
+
+			if (!rlct) {
+				//OK setup LCT channel for route
+				GF_SAFEALLOC(rlct, GF_ROUTELCTChannel);
+				if (!rlct) {
+					continue;
+				}
+				gf_list_add(rsess->channels, rlct);
+				rlct->is_active = GF_TRUE;
+				rsess->nb_active ++;
+				if (new_s->protocol==GF_SERVICE_ROUTE)
+					rlct->static_files = gf_list_new();
+			}
+
+			new_s->nb_media_streams -= rlct->num_components;
+			rlct->num_components = _xml_get_child_count(tr_sess, "ServiceComponentIdentifier");
+			new_s->nb_media_streams += rlct->num_components;
+
 			rlct->flute_parent_service = new_s;
 			rlct->tsi = atoi(dst_tsi);
 			rlct->toi_template = NULL;
@@ -1356,12 +1461,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			lreg->order = 1; //default
 			lreg->codepoint = 0;
 			lreg->format_id = 1;
-			rlct->is_active = GF_TRUE;
-			rsess->nb_active ++;
-			if (new_s->protocol==GF_SERVICE_ROUTE)
-				rlct->static_files = gf_list_new();
 
-			gf_list_add(rsess->channels, rlct);
 			//associate manifest object with first channel we use
 			if (mani_obj && !mani_obj->rlct) {
 				mani_obj->rlct = rlct;
@@ -1372,6 +1472,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			trp = _xml_get_child(tr_sess, "ServiceComponentIdentifier");
 			const char *trp_attr = _xml_get_attr(trp, "mediaPlaylistLocator");
 			if (trp_attr) {
+				if (rlct->dash_rep_id) gf_free(rlct->dash_rep_id);
 				rlct->dash_rep_id = gf_strdup(trp_attr);
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
@@ -1383,25 +1484,51 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 					}
 				}
 			} else {
+				if (rlct->dash_period_id) gf_free(rlct->dash_period_id);
 				trp_attr = _xml_get_attr(trp, "periodIdentifier");
-				if (trp_attr) rlct->dash_period_id = gf_strdup(trp_attr);
+				rlct->dash_period_id = trp_attr ? gf_strdup(trp_attr) : NULL;
+
 				trp_attr = _xml_get_attr(trp, "adaptationSetIdentifier");
-				if (trp_attr) rlct->dash_as_id = atoi(trp_attr);
+				rlct->dash_as_id = trp_attr ? atoi(trp_attr) : 1;
+
+				if (rlct->dash_rep_id) gf_free(rlct->dash_rep_id);
 				trp_attr = _xml_get_attr(trp, "representationIdentifier");
-				if (trp_attr) rlct->dash_rep_id = gf_strdup(trp_attr);
+				rlct->dash_rep_id = trp_attr ? gf_strdup(trp_attr) : NULL;
 			}
 		}
+		//purge old LCT channels
+		while (gf_list_count(old_channels)) {
+			GF_ROUTELCTChannel *lc = gf_list_pop_back(old_channels);
+			gf_route_lct_removed(routedmx, new_s, lc);
+		}
+		gf_list_del(old_channels);
+
+		//purge old LCT sessions
+		while (gf_list_count(old_sessions)) {
+			GF_ROUTESession *rsess = gf_list_pop_back(old_sessions);
+			gf_route_route_session_del(routedmx, rsess);
+		}
+		gf_list_del(old_sessions);
+
 		if (new_s && (new_s->tune_mode != GF_ROUTE_TUNE_ON))
 			gf_route_register_service_sockets(routedmx, new_s, GF_FALSE);
 	}
-	return GF_OK;
+
+exit:
+	//purge old services sessions
+	while (gf_list_count(old_services)) {
+		GF_ROUTEService *serv = gf_list_pop_back(old_services);
+		gf_route_service_del(routedmx, serv);
+	}
+	gf_list_del(old_services);
+	return e;
 
 }
 
 static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *obj)
 {
 	u32 crc;
-	Bool partial = GF_FALSE;
+	GF_LCTObjectPartial partial = GF_LCTO_PARTIAL_NONE;
 	Bool updated = GF_TRUE;
 
 	switch (obj->flute_type) {
@@ -1444,7 +1571,7 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 		if (obj->rlct && obj->rlct->tsi_init) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u partial received only\n", s->log_name, obj->tsi, obj->toi));
 		}
-		partial = GF_TRUE;
+		partial = GF_LCTO_PARTIAL_BEGIN;
 	}
 	if (obj->rlct)
 		obj->rlct->tsi_init = GF_TRUE;
@@ -1488,7 +1615,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 {
 	Bool done;
 	u32 i, j, count;
-    Bool do_push = GF_FALSE;
+    u32 do_push = 0;
 	GF_LCTObject *obj = s->last_active_obj;
 	GF_FLUTELLMapEntry *ll_map = NULL;
 
@@ -1587,9 +1714,15 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		}
 		u32 flute_nb_symbols = ll_map ? ll_map->flute_nb_symbols : obj->flute_nb_symbols;
 		u32 flute_symbol_size = ll_map ? ll_map->flute_symbol_size : obj->flute_symbol_size;
-		if (flute_nb_symbols <= flute_esi) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] TSI %u TOI %u invalid ESI %u for number of symbols %u (content size %u)\n", s->log_name, tsi, toi, flute_esi, flute_nb_symbols, obj->total_length));
-			return GF_NOT_SUPPORTED;
+		if (flute_nb_symbols) {
+			if (flute_nb_symbols <= flute_esi) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] TSI %u TOI %u invalid ESI %u for number of symbols %u (content size %u)\n", s->log_name, tsi, toi, flute_esi, flute_nb_symbols, obj->total_length));
+				return GF_NOT_SUPPORTED;
+			}
+		}
+		//consider 0-length objects as closed
+		else if (ll_map && obj->ll_map_last) {
+			close_flag = GF_TRUE;
 		}
 		//recompute start offset
 		start_offset = flute_esi * flute_symbol_size;
@@ -1781,6 +1914,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		return GF_EOS;
 	}
 	obj->last_gather_time = gf_sys_clock_high_res();
+	obj->blob.last_modification_time = obj->last_gather_time;
 
     if (!size) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Empty LCT packet TSI %u TOI %u\n", s->log_name, tsi, toi));
@@ -1804,6 +1938,15 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	}
 	if(end_frag == -1) {
 		end_frag = obj->nb_frags;
+	}
+
+
+	//only push on first packet of object
+	if (!start_frag) {
+		if (routedmx->dispatch_mode==GF_ROUTE_DISPATCH_OUT_OF_ORDER)
+			do_push = 2;
+		else
+			do_push = start_offset ? 0 : ((routedmx->dispatch_mode==GF_ROUTE_DISPATCH_PROGRESSIVE) ? 1 : 0);
 	}
 
 	if (start_frag == end_frag) {
@@ -1830,10 +1973,12 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Overlapping or already received LCT fragment [%u, %u]\n", s->log_name, start_offset, start_offset+size-1));
 			}
 			obj->nb_bytes += obj->frags[start_frag].size - old_size;
+			//adding bytes in first frag, we can push
+			if (!start_frag && !obj->frags[0].offset)
+				do_push = 1;
 
 		} else if(end_frag > start_frag + 1) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Merging LCT fragment\n", s->log_name));
-
 			memmove(&obj->frags[start_frag+1], &obj->frags[end_frag], sizeof(GF_LCTFragInfo) * (obj->nb_frags - end_frag));
 			obj->nb_frags += start_frag - end_frag + 1;
 
@@ -1843,11 +1988,6 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				obj->nb_bytes += obj->frags[i].size;
 			}
 		}
-	}
-
-	//only push on first packet of object
-	if (!start_frag) {
-		do_push = start_offset ? GF_FALSE : routedmx->progressive_dispatch;
 	}
 
 	obj->nb_recv_frags++;
@@ -1873,7 +2013,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	gf_assert(obj->alloc_size >= start_offset + size);
 
 	memcpy(obj->payload + start_offset, data, size);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] TSI %u TOI %u append LCT fragment (%d/%d), offset %u total size %u recv bytes %u - offset diff since last %d\n", s->log_name, obj->tsi, obj->toi, start_frag, obj->nb_frags, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] TSI %u TOI %u append LCT fragment (%d/%d), offset %u total size %u recv bytes %u - offset diff since last %d\n", s->log_name, obj->tsi, toi, start_frag, obj->nb_frags, start_offset, obj->total_length, obj->nb_bytes, (s32) start_offset - (s32) obj->prev_start_offset));
 
 	obj->prev_start_offset = start_offset;
 	gf_assert((ll_map ? ll_map->toi : obj->toi) == toi);
@@ -1881,7 +2021,16 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
     //media file (uses templates->segment or is FLUTE obj), push if we can
     if (do_push && obj->rlct && ((!obj->rlct_file && !obj->flute_type) || (obj->flute_type==GF_FLUTE_OBJ))) {
-        gf_route_dmx_push_object(routedmx, s, obj, GF_FALSE, GF_TRUE, GF_FALSE, obj->frags[0].size);
+		u32 osize = obj->frags[0].size;
+		GF_LCTObjectPartial partial = GF_LCTO_PARTIAL_BEGIN;
+		if (do_push==2) {
+			GF_LCTFragInfo *f = &obj->frags[obj->nb_frags-1];
+			osize = f->offset+f->size;
+			if (osize > obj->blob.size)
+				obj->blob.size = osize;
+			partial = GF_LCTO_PARTIAL_ANY;
+		}
+        gf_route_dmx_push_object(routedmx, s, obj, GF_FALSE, partial, GF_FALSE, osize);
     }
 	//if no TOL specified, update blob size - no need to lock the mutex as we only increase the size but do not change the data pointer
     if (!obj->total_length && (start_offset+size > obj->blob.size))
@@ -1896,6 +2045,7 @@ check_done:
 		}
 		else if (close_flag) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u closed flag found (object not yet completed)\n", s->log_name, tsi, toi ));
+			done = GF_TRUE;
 		}
 	} else {
 		if (close_flag && (!ll_map || obj->ll_map_last)) obj->closed_flag = 1;
@@ -2003,13 +2153,23 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	GF_XMLNode *rs, *ls, *srcf, *efdt, *node, *root;
 	u32 i, j, k, crc, nb_lct_channels=0;
 	GF_List *remove_sessions = NULL;
+	GF_List *remove_channels = NULL;
 
 	crc = gf_crc_32(content, (u32) strlen(content) );
 	if (!s->stsid_crc) {
 		s->stsid_crc = crc;
 	} else if (s->stsid_crc != crc) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Update of S-TSID\n", s->log_name));
+		//collect old network sessions
 		remove_sessions = gf_list_clone(s->route_sessions);
+		//collect old LCT channels
+		remove_channels = gf_list_new();
+		for (i=0; i<gf_list_count(s->route_sessions); i++) {
+			GF_ROUTESession *rsess = gf_list_get(s->route_sessions, i);
+			for (j=0; j<gf_list_count(rsess->channels); j++) {
+				gf_list_add(remove_channels, gf_list_get(rsess->channels, j));
+			}
+		}
 	} else {
 		return GF_OK;
 	}
@@ -2019,6 +2179,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 	if (e || !root) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to parse S-TSID: %s - %s\n", s->log_name, gf_error_to_string(e), gf_xml_dom_get_error(routedmx->dom)));
 		gf_list_del(remove_sessions);
+		gf_list_del(remove_channels);
 		return GF_CORRUPTED_DATA;
 	}
 	i=0;
@@ -2039,10 +2200,12 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				if(! gf_strict_atoui(att->value, &dst_port)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Wrong dPort value (%s), it should be numeric \n", s->log_name, att->value));
 					gf_list_del(remove_sessions);
+					gf_list_del(remove_channels);
 					return GF_CORRUPTED_DATA;
 				} else if(dst_port >= 65536) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Wrong dPort value (%s), it should belong to the interval [0, 65535] \n", s->log_name, att->value));
 					gf_list_del(remove_sessions);
+					gf_list_del(remove_channels);
 					return GF_CORRUPTED_DATA;
 				}
 			}
@@ -2068,8 +2231,13 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 		if (!rsess) {
 			GF_SAFEALLOC(rsess, GF_ROUTESession);
-			if (!rsess) return GF_OUT_OF_MEM;
-			rsess->channels = gf_list_new();
+			if (rsess) rsess->channels = gf_list_new();
+			if (!rsess || !rsess->channels) {
+				if (rsess) gf_free(rsess);
+				gf_list_del(remove_sessions);
+				gf_list_del(remove_channels);
+				return GF_OUT_OF_MEM;
+			}
 			gf_list_add(s->route_sessions, rsess);
 
 			//need a new socket for the session
@@ -2085,6 +2253,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					gf_list_del(rsess->channels);
 					gf_list_del_item(s->route_sessions, rsess);
 					gf_list_del(remove_sessions);
+					gf_list_del(remove_channels);
 					gf_free(rsess);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", s->log_name, dst_ip, dst_port));
 					return e;
@@ -2099,6 +2268,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			}
 		}
 
+		u32 nb_media_streams=0;
 		j=0;
 		while ((ls = gf_list_enum(rs->content, &j))) {
 			char *file_template = NULL;
@@ -2113,6 +2283,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					if(! gf_strict_atoui(att->value, &tsi)) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Wrong TSI value (%s), it should be numeric \n", s->log_name, att->value));
 						gf_list_del(remove_sessions);
+						gf_list_del(remove_channels);
 						return GF_CORRUPTED_DATA;
 					}
 				}
@@ -2120,6 +2291,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			if (!tsi) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing TSI in LS/ROUTE session\n", s->log_name));
 				gf_list_del(remove_sessions);
+				gf_list_del(remove_channels);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			k=0;
@@ -2131,6 +2303,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			if (!srcf) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing srcFlow in LS/ROUTE session\n", s->log_name));
 				gf_list_del(remove_sessions);
+				gf_list_del(remove_channels);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			//enum srcf for efdt
@@ -2143,6 +2316,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			if (!efdt) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Missing EFDT element in LS/ROUTE session, not supported\n", s->log_name));
 				gf_list_del(remove_sessions);
+				gf_list_del(remove_channels);
 				return GF_NOT_SUPPORTED;
 			}
 
@@ -2157,7 +2331,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				if (!strcmp(node->name, "FileTemplate")) {
 					GF_XMLNode *cnode = gf_list_get(node->content, 0);
 					if (cnode->type==GF_XML_TEXT_TYPE) file_template = cnode->name;
-					s->nb_media_streams++;
+					nb_media_streams++;
 				}
 				else if (!strcmp(node->name, "FDTParameters")) {
 					u32 l=0;
@@ -2189,7 +2363,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 					while ((att = gf_list_enum(node->attributes, &l))) {
 						if (strstr(att->name, "fileTemplate")) {
 							file_template = att->value;
-							s->nb_media_streams++;
+							nb_media_streams++;
 						}
 					}
 					l=0;
@@ -2236,11 +2410,15 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				if (rlct->tsi == tsi) break;
 				rlct = NULL;
 			}
-			if (!rlct) {
+			if (rlct) {
+				gf_list_del_item(remove_channels, rlct);
+			} else {
 				//OK setup LCT channel for route
 				GF_SAFEALLOC(rlct, GF_ROUTELCTChannel);
 				if (!rlct) {
 					gf_list_del(fdt_files);
+					gf_list_del(remove_sessions);
+					gf_list_del(remove_channels);
 					return GF_OUT_OF_MEM;
 				}
 				rlct->static_files = gf_list_new();
@@ -2317,6 +2495,10 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				gf_dynstrcat(&rlct->toi_template, sep, NULL);
 			}
 
+			s->nb_media_streams -= rlct->num_components;
+			rlct->num_components = nb_media_streams;
+			s->nb_media_streams += rlct->num_components;
+
 			//fill in payloads
 			rlct->nb_cps = 0;
 			k=0;
@@ -2368,6 +2550,12 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			}
 		}
 	}
+
+	while (gf_list_count(remove_channels)) {
+		GF_ROUTELCTChannel *lc = gf_list_pop_back(remove_channels);
+		gf_route_lct_removed(routedmx, s, lc);
+	}
+	gf_list_del(remove_channels);
 
 	while (gf_list_count(remove_sessions)) {
 		GF_ROUTESession *rsess = gf_list_pop_back(remove_sessions);
@@ -3373,7 +3561,7 @@ void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi)
 }
 
 GF_EXPORT
-GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end)
+GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end)
 {
 	u32 i=0;
 	Bool is_patched=GF_FALSE;
@@ -3439,8 +3627,9 @@ GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROU
 	for (i=1; i<obj->nb_frags; i++) {
 		if (obj->frags[i-1].offset+obj->frags[i-1].size == obj->frags[i].offset) {
 			obj->frags[i-1].size += obj->frags[i].size;
-			if (i+1<obj->nb_frags)
+			if (i+1<obj->nb_frags) {
 				memmove(&obj->frags[i], &obj->frags[i+1], sizeof(GF_LCTFragInfo) * (obj->nb_frags - i - 1));
+			}
 			obj->nb_frags--;
 		}
 	}
@@ -3451,7 +3640,7 @@ GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROU
 	return GF_OK;
 }
 
-GF_Err gf_routedmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected)
+GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected)
 {
 	u32 count, i=0;
 	if (!routedmx || !rep_id) return GF_BAD_PARAM;

@@ -9080,7 +9080,7 @@ The FLUTE session always uses a symbol length of .I mtu minus 44 bytes.
 .SH Low latency mode
 .LP
 .br
-When using low-latency mode, the input media segments are not re-assembled in a single packet but are instead sent as they are received.
+When using low-latency mode (-llmode)(), the input media segments are not re-assembled in a single packet but are instead sent as they are received.
 .br
 In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.
 .br
@@ -9091,6 +9091,10 @@ If this fails, the filter will trigger warnings and send as fast as possible.
 Note: The LCT objects are sent with no length (TOL header) assigned until the final segment size is known, potentially leading to a final 0-size LCT fragment signaling only the final size.
 .br
 
+.br
+In this mode, init segments and manifests are sent at the frequency given by property ROUTECarousel of the source PID if set or by (-carousel)[] option.
+.br
+Indicating ROUTECarousel=0 will disable mid-segment repeating of manifests and init segments.
 .br
 .SH Examples
 .LP
@@ -9825,6 +9829,14 @@ following segmentation as hinted by the graph.
 .br
 .SH Options (expert):
 .LP
+.br
+mode (enum, default: 23001-18): mode to operate in
+.br
+* 23001-18: extract SCTE-35 markers as emib/emeb boxes for Event Tracks
+.br
+* passthrough: pass-through mode adding cue start property on splice points
+.br
+
 .br
 segdur (frac, default: 1/1):   segmentation duration in seconds. 0/0 flushes immediately for each input packet (beware of the bitrate overhead)
 .br

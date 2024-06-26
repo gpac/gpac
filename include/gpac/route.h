@@ -115,6 +115,17 @@ typedef struct
 } GF_LCTFragInfo;
 
 
+/*! Type of partial event*/
+typedef enum
+{
+	/* object is done receiving*/
+	GF_LCTO_PARTIAL_NONE=0,
+	/* object data being notfied is the begining of the payload*/
+	GF_LCTO_PARTIAL_BEGIN,
+	/* object data being notfied is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
+	GF_LCTO_PARTIAL_ANY,
+} GF_LCTObjectPartial;
+
 /*! Structure used to communicate file objects properties to the user*/
 typedef struct
 {
@@ -134,14 +145,22 @@ typedef struct
 	u32 download_ms;
 	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/
 	Bool updated;
-    
-    /*! number of fragments, only set for GF_ROUTE_EVT_DYN_SEG*/
-    u32 nb_frags;
-    /*! fragment info, only set for GF_ROUTE_EVT_DYN_SEG*/
-    GF_LCTFragInfo *frags;
+	/*! flag set if first segment has been received for the given TSI - not set for init segments*/
+	Bool first_toi_received;
+
+	/*! number of fragments, only set for GF_ROUTE_EVT_DYN_SEG*/
+	u32 nb_frags;
+	/*! fragment info, set for all file events - this info is shared with the LCT object being reassembled and should not be modified concurrently from route demux
+	Any reallocation of the fragment info SHALL be done using  \ref gf_route_dmx_patch_frag_info
+	*/
+	GF_LCTFragInfo *frags;
 	
 	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
 	u32 late_fragment_offset;
+
+	/*partial state, only used for GF_ROUTE_EVT_DYN_SEG_FRAG*/
+	GF_LCTObjectPartial partial;
+
 	/*! user data set to current object after callback, and passed back on next callbacks on same object
 	 Only used for GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG, GF_ROUTE_EVT_DYN_SEG_FRAG and GF_ROUTE_EVT_FILE_DELETE
 	 */
@@ -223,17 +242,28 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 \param timeout_us maximum delay in microseconds to wait before considering the object is done when ROUTE/LCT order is not used. A value of 0 implies any out-of-order packet triggers a download completion  (default value is 1 ms).
 \return error code if any
  */
-GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool reorder_needed, u32 timeout_us);
+GF_Err gf_route_dmx_set_reorder(GF_ROUTEDmx *routedmx, Bool reorder_needed, u32 timeout_us);
+
+/*! Progressive dispatch mode for LCT objects*/
+typedef enum
+{
+	/*! notification is only sent once the entire object is received*/
+	GF_ROUTE_DISPATCH_FULL = 0,
+	/*! notifications are sent whenever the first byte-range starting at 0 changes, in which case the partial field is set to GF_LCTO_PARTIAL_BEGIN*/
+	GF_ROUTE_DISPATCH_PROGRESSIVE,
+	/*! notifications are sent whenever a new packet is received, in which case the partial field is set to GF_LCTO_PARTIAL_ANY*/
+	GF_ROUTE_DISPATCH_OUT_OF_ORDER,
+} GF_RouteProgressiveDispatch;
 
 /*! Allow segments to be sent while being downloaded.
  
 \note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the beginning of the file in that case.
  
 \param routedmx the ROUTE demultiplexer
-\param allow_progressive if TRUE,  fragments of segments will be sent during download
+\param dispatch_mode set dispatch mode
 \return error code if any
  */
-GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive);
+GF_Err gf_route_set_dispatch_mode(GF_ROUTEDmx *routedmx, GF_RouteProgressiveDispatch dispatch_mode);
 
 /*! Sets the service ID to tune into for ATSC 3.0
 \param routedmx the ROUTE demultiplexer
@@ -343,7 +373,7 @@ void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
 \param br_end end offset of byte range being patched
 \return error if any
  */
-GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
+GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
 
 /*! Set active status of a representation
 \param routedmx the ROUTE demultiplexer
@@ -354,7 +384,7 @@ GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROU
 \param is_selected representation status
 \return error if any
  */
-GF_Err gf_routedmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected);
+GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected);
 
 
 /*! @} */

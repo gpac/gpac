@@ -509,18 +509,18 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 
-		//wait until we have some data to declare the pid
-        if ((e!= GF_EOS) && !nb_read) {
-            gf_filter_ask_rt_reschedule(filter, 1000);
-            return GF_OK;
-        }
-
 		if (!ctx->pid || ctx->do_reconfigure) {
 			u32 idx;
 			GF_Err cfg_e;
-			const char *hname, *hval;
-			const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
+			const char *hname, *hval, *cached;
 
+			//wait until we have some data to declare the pid
+			if ((e!= GF_EOS) && !nb_read) {
+				gf_filter_ask_rt_reschedule(filter, 1000);
+				return GF_OK;
+			}
+
+			cached = gf_dm_sess_get_cache_name(ctx->sess);
 			ctx->do_reconfigure = GF_FALSE;
 
 			if ((e==GF_EOS) && cached) {
@@ -578,9 +578,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 			gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size ? ctx->file_size : bytes_done) );
 		}
 	}
-
 	byte_offset = ctx->nb_read;
 
+	//nb_read may be 0 and error = GF_OK to signal data has been patched somewhere on the reception buffer but not in a contiguous area since last fetch
+	//we send empty packets in this case for filters using the underlying cache object directly (eg isobmf demux)
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
 		if (net_status!=GF_NETIO_DATA_EXCHANGE)
