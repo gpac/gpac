@@ -116,6 +116,8 @@ typedef struct
 	u32 dvb_mabr_fdt_instance_id;
 
 	u32 next_toi_avail;
+	Bool check_pending;
+	u32 check_init_clock;
 } GF_ROUTEOutCtx;
 
 typedef struct
@@ -251,7 +253,7 @@ typedef struct
 	u64 clock_at_pck;
 	//target send rate
 	u32 bitrate;
-
+	u64 last_init_push;
 	Bool use_time_tpl;
 	//for flute
 	u32 init_toi, hls_child_toi;
@@ -428,6 +430,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	rpid = gf_filter_pid_get_udta(pid);
 	if (is_remove) {
 		if (rpid) routeout_remove_pid(rpid, GF_FALSE);
+		ctx->check_pending = GF_TRUE;
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -657,9 +660,19 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_free(ctx->dvb_mabr_config);
 		ctx->dvb_mabr_config = NULL;
 	}
+	ctx->check_pending = GF_TRUE;
 
 	gf_filter_pid_init_play_event(pid, &evt, 0, 1.0, "ROUTEOut");
 	gf_filter_pid_send_event(pid, &evt);
+
+	if (ctx->llmode && !rpid->raw_file) {
+		rpid->carousel_time_us = ctx->carousel;
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ROUTE_CAROUSEL);
+		if (p) {
+			//can be 0
+			rpid->carousel_time_us = gf_timestamp_rescale(p->value.frac.num, p->value.frac.den, 1000000);
+		}
+	}
 
 	rserv->wait_for_inputs = GF_TRUE;
 	//low-latency mode, consume media segment files as they are received (don't wait for full segment reconstruction)
@@ -791,6 +804,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Low-latency mode is activated but `csum=all`set, using `csum=meta`\n", ctx->log_name));
 		ctx->csum = DVB_CSUM_META;
 	}
+	ctx->check_pending = GF_TRUE;
 	return GF_OK;
 }
 
@@ -1891,9 +1905,7 @@ retry:
 		rpid->carousel_time_us = ctx->carousel;
 		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ROUTE_CAROUSEL);
 		if (p) {
-			rpid->carousel_time_us = p->value.frac.num;
-			rpid->carousel_time_us *= 1000000;
-			rpid->carousel_time_us /= p->value.frac.den;
+			rpid->carousel_time_us = gf_timestamp_rescale(p->value.frac.num, p->value.frac.den, 1000000);
 		}
 		//setup upload time
 		rpid->current_dur_us = ctx->carousel;
@@ -2146,6 +2158,7 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 next_packet:
 
 		if (!rpid->current_pck) {
+			Bool push_init;
 			GF_Err e = routeout_fetch_packet(ctx, rpid);
 			if (e) return e;
 
@@ -2165,7 +2178,18 @@ next_packet:
 				ctx->nb_resources++;
 			}
 
-			if (rpid->push_init) {
+			//in low-latency mode, push manifest and child playlists
+			push_init = rpid->push_init;
+			if (ctx->llmode && !push_init
+				&& rpid->carousel_time_us
+				&& (gf_sys_clock_high_res() - rpid->last_init_push > rpid->carousel_time_us)
+			) {
+				push_init = GF_TRUE;
+				if (rpid->hld_child_pl)
+					send_hls_child = GF_TRUE;
+			}
+
+			if (push_init) {
 				GF_Socket *init_sock = rpid->rlct->sock;
 				u32 init_tsi = rpid->tsi;
 				u32 init_toi = ROUTE_INIT_TOI;
@@ -2203,6 +2227,8 @@ next_packet:
 					ctx->total_bytes = rpid->init_seg_size;
 					ctx->nb_resources++;
 				}
+				if (ctx->llmode)
+					rpid->last_init_push = gf_sys_clock_high_res();
 			}
 		}
 		//send child m3u8 asap
@@ -2803,6 +2829,19 @@ static GF_Err routeout_process(GF_Filter *filter)
 		}
 	}
 
+	if (ctx->check_pending) {
+		if (gf_filter_connections_pending(filter)) {
+			if (!ctx->check_init_clock) ctx->check_init_clock = gf_sys_clock();
+			else if (gf_sys_clock() - ctx->check_init_clock > 2000) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] PIDs still pending after 2s, starting broadcast but will need to update signaling\n", ctx->log_name));
+				ctx->check_pending = GF_FALSE;
+			}
+			if (ctx->check_pending) return GF_OK;
+		}
+		ctx->check_pending = GF_FALSE;
+		ctx->check_init_clock = 0;
+	}
+
 	if (ctx->sock_atsc_lls)
 		routeout_send_lls(ctx);
 
@@ -3001,12 +3040,14 @@ GF_FilterRegister ROUTEOutRegister = {
 		"The FLUTE session always uses a symbol length of [-mtu]() minus 44 bytes.\n"
 		"\n"
 		"# Low latency mode\n"
-		"When using low-latency mode, the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
+		"When using low-latency mode (-llmode)(), the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
 		"In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.\n"
 		"If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by [-brinc]() percent for safety.\n"
 		"If this fails, the filter will trigger warnings and send as fast as possible.\n"
 		"Note: The LCT objects are sent with no length (TOL header) assigned until the final segment size is known, potentially leading to a final 0-size LCT fragment signaling only the final size.\n"
 		"\n"
+		"In this mode, init segments and manifests are sent at the frequency given by property `ROUTECarousel` of the source PID if set or by (-carousel)[] option.\n"
+		"Indicating `ROUTECarousel=0` will disable mid-segment repeating of manifests and init segments.\n"
 		"# Examples\n"
 		"Since the ROUTE filter only consumes files, it is required to insert:\n"
 		"- the dash demultiplexer in file forwarding mode when loading a DASH session\n"

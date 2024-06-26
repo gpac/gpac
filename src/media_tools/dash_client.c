@@ -6852,6 +6852,12 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
     if (dash->mcast_clock_state) {
         if (!group->period->origin_base_url)
             min_wait = 50; //50 ms between retries if multicast and not a remote period
+
+		const char *hdr = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "x-mcast-over");
+		if (hdr && !strcmp(hdr, "yes")) {
+			gf_dash_mark_group_done(group);
+			return GF_DASH_DownloadCancel;
+		}
     }
 
     dash_set_min_wait(dash, min_wait);

@@ -27,13 +27,32 @@
 
 #ifndef GPAC_DISABLE_ROUTE
 
+static void update_first_frag(GF_ROUTEEventFileInfo *finfo)
+{
+	//first bytes of segment have been patched (first seg only), update frag size and offset
+	//and update blob if needed
+	gf_mx_p(finfo->blob->mx);
+	finfo->frags[0].size += finfo->frags[0].offset;
+	finfo->frags[0].offset = 0;
+	finfo->blob->last_modification_time = gf_sys_clock_high_res();
+	if (finfo->blob->size < finfo->frags[0].size)
+		finfo->blob->size = finfo->frags[0].size;
+	gf_mx_v(finfo->blob->mx);
+}
 //patch TS file, replacing all 188 bytes packets overlaping a gap by padding packets
 static Bool routein_repair_segment_ts_local(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
     u32 i, pos;
     Bool drop_if_first = GF_FALSE;
     u8 *data = finfo->blob->data;
+    u32 patch_first_range_size = 0;
 
+
+	if (finfo->partial==GF_LCTO_PARTIAL_ANY) {
+		if (!finfo->nb_frags || !finfo->frags[0].offset || finfo->first_toi_received)
+			return GF_FALSE;
+		patch_first_range_size = finfo->frags[0].offset;
+	}
 
     pos = 0;
     for (i=0; i<finfo->nb_frags; i++) {
@@ -59,6 +78,11 @@ static Bool routein_repair_segment_ts_local(ROUTEInCtx *ctx, GF_ROUTEEventFileIn
         //end range not aligned with a packet start, rewind position to prev packet start
 		while (end_range % 188) end_range--;
 		pos = end_range;
+
+		if (patch_first_range_size && (pos>=patch_first_range_size)) {
+			update_first_frag(finfo);
+			return GF_FALSE;
+		}
     }
     //and patch all end packets
     while (pos<finfo->blob->size) {
@@ -134,7 +158,16 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, GF_ROUTEEventFi
     u32 size = finfo->blob->size;
     u32 pos = 0;
 	u32 prev_moof_pos = 0;
-    //walk through all possible top-level boxes in order
+	u32 patch_first_range_size = GF_FALSE;
+	if (finfo->partial==GF_LCTO_PARTIAL_ANY) {
+		//patch start of file only at tune-in, otherwise use regular route repair
+		if (!finfo->nb_frags || finfo->first_toi_received || (finfo->frags[0].offset==0))
+			return;
+
+		size = finfo->frags[0].offset + finfo->frags[0].size;
+		patch_first_range_size = finfo->frags[0].offset;
+	}
+	//walk through all possible top-level boxes in order
     //if box completely in a received byte range, keep as is
     //if mdat or free box, keep as is
     //otherwise change box type to free
@@ -144,9 +177,18 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, GF_ROUTEEventFi
         Bool box_complete = GF_FALSE;
         u32 prev_pos = pos;
         u32 box_size = 0;
+
+		if (patch_first_range_size && (pos+8 >= patch_first_range_size)) {
+			update_first_frag(finfo);
+			return;
+		}
+
         u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
+			if (patch_first_range_size)
+				return;
+
             u32 remain = size - pos;
             gf_assert(remain);
             if (remain<8) {
@@ -347,7 +389,7 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	if (!rsi) return;
 
 	//notify routedmx we have received a byte range
-	gf_routedmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
+	gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
 
 	rsess->current_si = NULL;
 	gf_list_add(ctx->seg_range_reservoir, rsess->range);

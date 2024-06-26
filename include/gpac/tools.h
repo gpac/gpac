@@ -1150,6 +1150,8 @@ typedef struct __gf_blob
     /*! blob mutex for multi-thread access */
     struct __tag_mutex *mx;
 #endif
+    /*! last blob modification time (write access) in microsec , 0 if unknown*/
+    u64 last_modification_time;
 	/*! function used to query if a range of a blob in transfer is valid. If NULL, any range is invalid until transfer is done
 	when set this function overrides the blob flags for gf_blob_query_range
 	size is updated to the maximum number of consecutive bytes starting from the goven offset */

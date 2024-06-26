@@ -3167,8 +3167,12 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 				sess->total_size = gf_cache_get_content_length(sess->cache_entry);
                 sess->bytes_done = sess->total_size;
                 sess->status = GF_NETIO_DATA_TRANSFERED;
-                SET_LAST_ERR(GF_OK)
-            }
+                if (!sess->cache_entry) {
+					SET_LAST_ERR(GF_URL_ERROR)
+				} else {
+					SET_LAST_ERR(GF_OK)
+				}
+			}
 
 			sess->total_time_since_req = gf_cache_get_downtime(sess->cache_entry);
 			if (sess->total_time_since_req)
@@ -5049,7 +5053,7 @@ static void gf_dm_sess_estimate_chunk_rate(GF_DownloadSession *sess, u32 nb_byte
 	}
 }
 
-const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 *max_valid_size);
+const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 *max_valid_size, Bool *was_modified);
 void gf_cache_release_content(const DownloadedCacheEntry entry);
 
 GF_EXPORT
@@ -5115,6 +5119,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			e = GF_OK;
 		}
     } else if (sess->local_cache_only) {
+		Bool was_modified;
         u32 to_copy, full_cache_size, max_valid_size=0, cache_done;
         const u8 *ptr;
         e = GF_OK;
@@ -5122,10 +5127,14 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
         //always refresh total size
         sess->total_size = gf_cache_get_content_length(sess->cache_entry);
 
-        ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size);
+        ptr = gf_cache_get_content(sess->cache_entry, &full_cache_size, &max_valid_size, &was_modified);
         if (!ptr) return GF_OUT_OF_MEM;
 
 		cache_done = gf_cache_is_done(sess->cache_entry);
+		//something went wrong, we cannot have less valid bytes than what we had at previous call(s)
+		if (max_valid_size < sess->bytes_done)
+			cache_done = 2;
+
 		if ((sess->bytes_done >= full_cache_size)|| (cache_done==2)) {
             *read_size = 0;
 			gf_cache_release_content(sess->cache_entry);
@@ -5139,7 +5148,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
                 SET_LAST_ERR( GF_OK)
                 return GF_EOS;
             }
-            return GF_IP_NETWORK_EMPTY;
+            return was_modified ? GF_OK : GF_IP_NETWORK_EMPTY;
         }
         //only copy valid bytes for http
         to_copy = max_valid_size - sess->bytes_done;

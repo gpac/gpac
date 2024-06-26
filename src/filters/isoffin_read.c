@@ -1223,6 +1223,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 {
 	u64 bytes_missing;
 	GF_Err e;
+	if (!data_size) return;
 
 	if (!read->mem_url) {
 		read->mem_url = gf_blob_register(&read->mem_blob);

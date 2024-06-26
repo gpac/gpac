@@ -792,11 +792,19 @@ const char *dashdmx_io_get_mime(GF_DASHFileIO *dashio, GF_DASHFileIOSession sess
 }
 const char *dashdmx_io_get_header_value(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *header_name)
 {
+	const char *hdr;
 #ifdef GPAC_USE_DOWNLOADER
-	return gf_dm_sess_get_header((GF_DownloadSession *)session, header_name);
-#else
-	return NULL;
+	hdr = gf_dm_sess_get_header((GF_DownloadSession *)session, header_name);
+	if (hdr) return hdr;
 #endif
+	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
+	const GF_PropertyValue *p = gf_filter_pid_get_property_str(ctx->mpd_pid, header_name);
+	if (p) return p->value.string;
+	GF_PropertyEntry *pe=NULL;
+	p = gf_filter_pid_get_info_str(ctx->mpd_pid, header_name, &pe);
+	gf_filter_release_property(pe);
+	if (p) return p->value.string;
+	return NULL;
 }
 u64 dashdmx_io_get_utc_start_time(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
