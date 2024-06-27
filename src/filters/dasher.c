@@ -9786,7 +9786,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			//remove NTP
-			if (dst && (ctx->ntp != DASHER_NTP_KEEP))
+			if (dst && (ctx->ntp == DASHER_NTP_REM))
 				gf_filter_pck_set_property(dst, GF_PROP_PCK_SENDER_NTP, NULL);
 
 			//change packet times
