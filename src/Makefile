@@ -374,16 +374,22 @@ crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
 
 ifeq ($(CONFIG_DARWIN),yes)
 
+ifeq ($(STATIC_MODULES),yes)
 	$(LIBTOOL) -s -o ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
+endif
+
 ifneq ($(STATIC_BUILD),yes)
 	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(ALL_LIBS) $(LDFLAGS)
 endif
 
 else
 
+ifeq ($(STATIC_MODULES),yes)
 	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
+endif
+
 ifneq ($(STATIC_BUILD),yes)
 	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(ALL_LIBS) $(LDFLAGS)
 	mv $@ $@.$(VERSION_SONAME)
