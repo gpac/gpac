@@ -1729,7 +1729,8 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to send LCT object TSI %u TOI %u fragment: %s\n", serv ? serv->log_name : ctx->log_name, tsi, toi, gf_error_to_string(e) ));
 		}
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Simulated error loss for LCT object TSI %u TOI %u service_name %s\n", serv ? serv->log_name : ctx->log_name, tsi, toi, serv ? serv->service_name : "N/A"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Simulated error loss for LCT object TSI %u TOI %u service_name %s size %u (frag %u total %u) offset %u (%u in obj)\n",
+			serv ? serv->log_name : ctx->log_name, tsi, toi, serv ? serv->service_name : "N/A", send_payl_size, len, total_size, offset, offset_in_frame));
 	}
 
 	//store what we actually sent including header for rate estimation
