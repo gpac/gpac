@@ -1591,7 +1591,7 @@ static void update_error_simulation_state(GF_ROUTEOutCtx *ctx) {
 	Double p = (gf_rand() % (100 * ERRSIM_ACCURACY)) / (Double)ERRSIM_ACCURACY;
 	Double t = ctx->state_is_error ? ctx->errsim.y : ctx->errsim.x;
 	if (p < t)
-		ctx->state_is_error = 1 - ctx->state_is_error;
+		ctx->state_is_error = !ctx->state_is_error;
 #undef ERRSIM_ACCURACY
 }
 
