@@ -3510,10 +3510,12 @@ u32 mp4box_parse_args(int argc, char **argv)
 	u32 i;
 	/*parse our args*/
 	for (i = 1; i < (u32)argc; i++) {
+		u32 arg_idx = i;
 		char *arg = argv[i];
 		/*input file(s)*/
 		if ((arg[0] != '-') || !stricmp(arg, "--")) {
 			char *arg_val = arg;
+			gf_sys_mark_arg_used(i, GF_TRUE);
 			if (!stricmp(arg, "--")) {
 				if (i+1==(u32)argc) {
 					M4_LOG(GF_LOG_ERROR, ("Missing arg for `--` - please check usage\n"));
@@ -3522,6 +3524,7 @@ u32 mp4box_parse_args(int argc, char **argv)
 				has_next_arg = GF_TRUE;
 				arg_val = argv[i + 1];
 				i++;
+				arg_idx=i;
 			}
 			if (argc < 3) {
 				M4_LOG(GF_LOG_ERROR, ("Error - only one input file found as argument, please check usage\n"));
@@ -3570,10 +3573,12 @@ u32 mp4box_parse_args(int argc, char **argv)
 			return 2;
 		}
 		else if (!strncmp(arg, "-p=", 3)) {
+			gf_sys_mark_arg_used(i, GF_TRUE);
 			continue;
 		}
 #ifndef GPAC_MEMORY_TRACKING
 		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
+			gf_sys_mark_arg_used(i, GF_TRUE);
 			continue;
 		}
 #endif
@@ -3582,6 +3587,10 @@ u32 mp4box_parse_args(int argc, char **argv)
 		else if (mp4box_parse_single_arg(argc, argv, arg, &i)) {
 			if (arg_parse_res)
 				return mp4box_cleanup(arg_parse_res);
+
+			gf_sys_mark_arg_used(arg_idx, GF_TRUE);
+			if (i>arg_idx)
+				gf_sys_mark_arg_used(i, GF_TRUE);
 		}
 		//not a MP4Box arg
 		else {
@@ -3589,8 +3598,13 @@ u32 mp4box_parse_args(int argc, char **argv)
 			if (res==0) {
 				PrintHelp(arg, GF_FALSE, GF_TRUE);
 				return 2;
-			} else if (res==2) {
-				i++;
+			} else {
+				if (strncmp(arg, "--", 2)) {
+					gf_sys_mark_arg_used(arg_idx, GF_TRUE);
+				}
+				if (res==2) {
+					i++;
+				}
 			}
 		}
 		//live scene encoder does not use the unified parsing and should be moved as a scene encoder filter
@@ -5982,6 +5996,18 @@ static u32 mp4box_cleanup(u32 ret_code) {
 		gf_free(dash_inputs);
 		dash_inputs = NULL;
 	}
+	if (!ret_code) {
+		u32 i, found=0, count = gf_sys_get_argc();
+		for (i=1; i<count;i++) {
+			if (gf_sys_is_arg_used(i)) continue;
+			if (!found) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used:\n"));
+				found=1;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", gf_sys_get_arg(i)));
+		}
+	}
+
 	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 
@@ -6050,6 +6076,12 @@ int mp4box_main(int argc, char **argv)
 	}
 
 	helpout = stdout;
+
+	e = gf_sys_set_args(argc, (const char **) argv);
+	if (e) {
+		M4_LOG(GF_LOG_ERROR, ("Error assigning libgpac arguments: %s\n", gf_error_to_string(e) ));
+		return mp4box_cleanup(1);
+	}
 
 	i = mp4box_parse_args(argc, argv);
 	if (i) {
@@ -6136,12 +6168,6 @@ int mp4box_main(int argc, char **argv)
 		file = gf_isom_open(inName, GF_ISOM_OPEN_KEEP_FRAGMENTS, NULL);
 		if (file) gf_isom_close(file);
 		return mp4box_cleanup(0);
-	}
-
-	e = gf_sys_set_args(argc, (const char **) argv);
-	if (e) {
-		M4_LOG(GF_LOG_ERROR, ("Error assigning libgpac arguments: %s\n", gf_error_to_string(e) ));
-		return mp4box_cleanup(1);
 	}
 
 	if (raw_cat)

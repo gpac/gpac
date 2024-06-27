@@ -829,8 +829,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 #define GOTO_EXIT(_msg) if (e) { fail_msg = _msg; goto exit; }
 
-#define CHECK_FAKEIMPORT(_opt) if (fake_import) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
-#define CHECK_FAKEIMPORT_2(_opt) if (fake_import==1) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
+#define CHECK_FAKEIMPORT(_opt) if (fake_import) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for cat or self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
+#define CHECK_FAKEIMPORT_2(_opt) if (fake_import==1) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for cat or self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
 
 
 	handler_name = NULL;
