@@ -6411,7 +6411,7 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	u32 data_length = gf_bs_read_u32(bs); // message data length
 
 	emsg->version = 1;
-	
+
 	emsg->timescale = timescale;
 	emsg->presentation_time_delta = pts_delta;
 	emsg->event_duration = 0xFFFFFFFF;
@@ -7346,7 +7346,8 @@ void mp4_mux_format_report(GF_MP4MuxCtx *ctx, u64 done, u64 total)
 					pc = (u32) ( (10000 * (u64) (tkw->nb_samples + tkw->frame_offset)) / tkw->nb_frames);
 				} else {
 					if (tkw->pid_dur.num && tkw->pid_dur.den && tkw->tk_timescale) {
-						pc = (u32) ((tkw->sample.DTS*10000 * tkw->pid_dur.den) / (tkw->pid_dur.num * tkw->tk_timescale));
+						if (tkw->pid_dur.num  <= GF_INT64_MAX / tkw->tk_timescale )
+							pc = (u32) ((tkw->sample.DTS*10000 * tkw->pid_dur.den) / (tkw->pid_dur.num * tkw->tk_timescale));
 					} else if (tkw->down_bytes && tkw->down_size) {
 						pc = (u32) (((tkw->down_bytes*10000) / tkw->down_size));
 					}
