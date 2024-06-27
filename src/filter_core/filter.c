@@ -1441,6 +1441,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 				flen++;
 				arg += flen;
 			}
+			gf_sys_mark_arg_used(i, GF_TRUE);
 
 			if (sep) {
 				len = (u32) (sep - (arg));

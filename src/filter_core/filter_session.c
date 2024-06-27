@@ -3091,6 +3091,7 @@ void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
 	u32 idx = 0;
 	const char *argname;
 	u32 argtype;
+	Bool first=GF_TRUE;
 
 	while (1) {
 		Bool found = GF_FALSE;
@@ -3115,7 +3116,11 @@ void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
 		}
 		if (found) continue;
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Arg %s set but not used\n", argname));
+		if (first) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used:\n"));
+			first=GF_FALSE;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", argname));
 	}
 }
 
