@@ -5455,6 +5455,12 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	case GF_CODECID_J2K:
 		item_type = GF_ISOM_SUBTYPE_JP2K;
 		media_brand = GF_4CC('j', '2', 'k', 'i');
+		if (dsi) {
+			GF_BitStream *dsi_bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+			gf_isom_box_parse(&config_box, dsi_bs);
+			gf_bs_del(dsi_bs);
+		}
+
 		break;
 	case GF_CODECID_PNG:
 		item_type = GF_ISOM_SUBTYPE_PNG;
