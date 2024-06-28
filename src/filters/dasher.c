@@ -9268,7 +9268,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (p && p->value.boolean) {
 					u32 size;
 					gf_filter_pck_get_data(pck, &size);
-					if (base_ds->segment_started) {
+					if (ds->segment_started) {
 						seg_over = GF_TRUE;
 						if (ds == base_ds) {
 							base_ds->adjusted_next_seg_start = cts;
