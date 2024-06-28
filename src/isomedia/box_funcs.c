@@ -1726,7 +1726,9 @@ static struct box_registry_entry {
 	//J2K boxes
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_MJP2, video_sample_entry, "stsd", "j2k"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_JP2H, jp2h, "mjp2 encv", "j2k"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_J2KH, jp2h, "ipco", "j2k"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_IHDR, ihdr, "jp2h", "j2k"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CDEF, unkn, "j2kH", "j2k"),
 
 	/* Image tracks */
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_JPEG, video_sample_entry, "stsd", "apple"),
