@@ -4901,14 +4901,14 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 				inject_pps = GF_TRUE;
 		}
 
-		if ((tkw->sample.IsRAP || tkw->force_inband_inject || inject_pps) && tkw->xps_inband) {
+		if ((tkw->sample.IsRAP || tkw->force_inband_inject || inject_pps || (sap_type==GF_FILTER_SAP_3)) && tkw->xps_inband) {
 			u8 *inband_xps;
 			u32 inband_xps_size;
 			char *au_delim=NULL;
 			u32 au_delim_size=0;
 			char *pck_data = tkw->sample.data;
 			u32 pck_data_len = tkw->sample.dataLength;
-			if (tkw->sample.IsRAP || tkw->force_inband_inject) {
+			if (tkw->sample.IsRAP || tkw->force_inband_inject || (sap_type==GF_FILTER_SAP_3)) {
 				inband_xps = tkw->inband_hdr;
 				inband_xps_size = tkw->inband_hdr_size;
 				tkw->force_inband_inject = GF_FALSE;
