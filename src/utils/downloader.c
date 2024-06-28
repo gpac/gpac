@@ -5095,10 +5095,10 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		gf_dm_connect(sess);
 		if (sess->last_error)
 			return sess->last_error;
-		e = GF_OK;
+		e = GF_IP_NETWORK_EMPTY;
 	} else if (sess->status < GF_NETIO_DATA_EXCHANGE) {
 		sess->do_requests(sess);
-		e = sess->last_error;
+		e = sess->last_error ? sess->last_error : GF_IP_NETWORK_EMPTY;
 	}
 	/*we're running but we had data previously*/
 	else if (sess->init_data) {
