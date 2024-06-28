@@ -127,6 +127,7 @@ static GF_Err compose_process(GF_Filter *filter)
 				gf_filter_abort(filter);
 			} else if (!ret && ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock && !ctx->validator_mode) {
 				ctx->check_eos_state = 1;
+				ctx->last_check_pass = 0;
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
 			}
