@@ -308,6 +308,7 @@ typedef struct
 
 	Bool move_to_static;
 	Bool explicit_mode;
+    Bool inband_event;
 } GF_DasherCtx;
 
 typedef enum
@@ -1615,8 +1616,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_XLINK, ds->xlink, GF_EOS)
 	}
 
-
-	if (ctx->do_index || ctx->from_index) {
+     if (ctx->do_index || ctx->from_index) {
 		if (!ds->template && ctx->def_template) {
 			p = gf_filter_pid_get_property_str(ds->ipid, "idx_template");
 			if (p) {
@@ -8742,6 +8742,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 			continue;
 		}
 
+        if (ctx->inband_event && ds->stream_type == GF_STREAM_AUDIO) {
+            GF_MPD_Inband_Event *nielsen_event;
+            GF_MPD_AdaptationSet *as = gf_list_get(ctx->current_period->period->adaptation_sets, 0);
+            GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
+            nielsen_event->scheme_id_uri = "https://aomedia.org/emsg/ID3";
+            nielsen_event->value = "";
+            gf_list_add(as->inband_event, nielsen_event);
+        }
+
 		//flush as much as possible
 		while (1) {
 			u32 sap_type, dur, o_dur, split_dur;
@@ -10737,6 +10746,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+    { OFFS(inband_event), "testing: insert a default inband event stream in the DASh manifest", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
