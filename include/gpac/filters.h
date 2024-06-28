@@ -1466,6 +1466,16 @@ Bool gf_props_type_is_enum(GF_PropType type);
 */
 u32 gf_props_parse_enum(u32 type, const char *value);
 
+/*! Parses a property value from string
+\param type property type to parse
+\param name property name to parse (for logs)
+\param value string containing the value to parse
+\param enum_values string containig enum_values, or NULL. enum_values are used for unsigned int properties, take the form "a|b|c" and resolve to 0|1|2.
+\param list_sep_char value of the list separator character to use
+\return the parsed property value
+*/
+GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
+
 /*! Get the name of a constant type property value
 \param type  property type
 \param value value of constant
@@ -1484,17 +1494,6 @@ const char *gf_props_enum_all_names(u32 type);
 \return base property type
 */
 u32 gf_props_get_base_type(u32 type);
-
-
-/*! Parses a property value from string
-\param type property type to parse
-\param name property name to parse (for logs)
-\param value string containing the value to parse
-\param enum_values string containig enum_values, or NULL. enum_values are used for unsigned int properties, take the form "a|b|c" and resolve to 0|1|2.
-\param list_sep_char value of the list separator character to use
-\return the parsed property value
-*/
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char);
 
 /*! Maximum string size to use when dumping a property*/
 #define GF_PROP_DUMP_ARG_SIZE	100
