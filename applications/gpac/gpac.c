@@ -1065,8 +1065,8 @@ int gpac_main(int _argc, char **_argv)
 			defer_mode=GF_TRUE;
 		} else if (!strcmp(arg, "-np")) {
 			sflags |= GF_FS_FLAG_PREVENT_PLAY;
-		} else if (!strncmp(arg, "-rl", 2)
-			|| !strncmp(arg, "-wl", 2)
+		} else if (!strncmp(arg, "-rl", 3)
+			|| !strncmp(arg, "-wl", 3)
 			|| !strcmp(arg, "-f")
 			|| !strcmp(arg, "-s")
 			|| !strcmp(arg, "-g")
@@ -1097,6 +1097,7 @@ int gpac_main(int _argc, char **_argv)
 				}
 			}
 #endif
+
 		} else if (!strcmp(arg, "-xopt")) {
 			has_xopt = GF_TRUE;
 #ifdef GPAC_CONFIG_IOS
