@@ -2751,14 +2751,18 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		if (ctx->dtype) {
 			inspect_printf(dump, "\t%s (%s): ", pname ? pname : gf_4cc_to_str(p4cc), gf_props_get_type_name(att->type));
 		} else {
-			if (!p4cc && !strncmp(pname, "scte35", 6))
+			if (!p4cc && !strncmp(pname, "scte35", 6)) {
 				dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
-			else if (!p4cc && !strncmp(pname, "temi_l", 6))
+				return;
+			} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
 				dump_temi_loc(ctx, pctx, dump, pname, att);
-			else if (!p4cc && !strncmp(pname, "temi_t", 6))
+				return;
+			} else if (!p4cc && !strncmp(pname, "temi_t", 6)) {
 				dump_temi_time(ctx, pctx, dump, pname, att);
-			else
-				inspect_printf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
+				return;
+			}
+
+			inspect_printf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
 		}
 
 		if ((att->type==GF_PROP_UINT_LIST) || (att->type==GF_PROP_4CC_LIST)) {
@@ -2777,7 +2781,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				if (k) inspect_printf(dump, ", ");
 				inspect_printf(dump, "%s", (const char *) att->value.string_list.vals[k]);
 			}
-		}else{
+		} else {
 			inspect_printf(dump, "%s", gf_props_dump(p4cc, att, szDump, (GF_PropDumpDataMode) ctx->dump_data) );
 		}
 		if ((p4cc==GF_PROP_PID_DURATION) && !gf_sys_is_test_mode()) {
