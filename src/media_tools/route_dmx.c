@@ -70,6 +70,7 @@ typedef struct
 {
 	u32 tsi;
 	char *toi_template;
+	//for route services only, list of static files announced in STSID
 	GF_List *static_files;
 	u32 num_components;
 
@@ -1847,6 +1848,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		 		gf_route_service_flush_object(s, o);
 				gf_route_dmx_process_object(routedmx, s, o);
 			} else {
+				o->status = GF_LCT_OBJ_DONE_ERR;
 				gf_route_obj_to_reservoir(routedmx, s, o);
 			}
 		} else {
@@ -2466,6 +2468,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//trash all objects pending on files removed
 			while (gf_list_count(purge_rlct)) {
 				GF_ROUTELCTFile *old_fdt = gf_list_pop_back(purge_rlct);
+				//remove from static file list
+				gf_list_del_item(rlct->static_files, old_fdt);
 				old_fdt->can_remove = GF_TRUE;
 			}
 			gf_list_del(purge_rlct);
@@ -2974,7 +2978,11 @@ static GF_Err dmx_process_service_route(GF_ROUTEDmx *routedmx, GF_ROUTEService *
 	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) tol_size, B, in_order, rlct, &gather_object, -1, 0);
 
 	if (e==GF_EOS) {
-		if (!tsi) {
+		//in case we were pushed a NULL object
+		if (!gather_object->nb_frags) {
+			gf_route_obj_to_reservoir(routedmx, s, gather_object);
+		}
+		else if (!tsi) {
 			if (gather_object->status==GF_LCT_OBJ_DONE_ERR) {
 				s->last_dispatched_toi_on_tsi_zero=0;
 				gf_route_obj_to_reservoir(routedmx, s, gather_object);
@@ -3261,14 +3269,15 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 			count = gf_list_count(routedmx->services);
 			for (i=0; i<count; i++) {
 				GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
-				if (s->tune_mode==GF_ROUTE_TUNE_OFF) continue;
 				j=0;
 				GF_LCTObject *obj;
 				while ((obj=gf_list_enum(s->objects, &j))) {
 					if (obj->status==GF_LCT_OBJ_RECEPTION) {
 						obj->status = GF_LCT_OBJ_DONE_ERR;
-						gf_route_dmx_process_object(routedmx, s, obj);
+						if (s->tune_mode!=GF_ROUTE_TUNE_OFF)
+							gf_route_dmx_process_object(routedmx, s, obj);
 					}
+					obj->blob.flags &= ~GF_BLOB_IN_TRANSFER;
 				}
 			}
 		}
