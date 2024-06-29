@@ -2467,7 +2467,12 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 	}
 
 	stream = (Stream *)gf_list_get(pl->streams, 0);
-	gf_assert(gf_list_count(stream->variants) == 1);
+	if (gf_list_count(stream->variants) != 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Invalid playlist %s resolves to multiple variants %d, disabling it\n", rep->segment_list->xlink_href, gf_list_count(stream->variants)));
+		gf_m3u8_master_playlist_del(&pl);
+		rep->playback.disabled = GF_TRUE;
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	pe = (PlaylistElement *)gf_list_get(stream->variants, 0);
 
 	if (duration) {
