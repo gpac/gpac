@@ -3269,15 +3269,14 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 			count = gf_list_count(routedmx->services);
 			for (i=0; i<count; i++) {
 				GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
+				if (s->tune_mode==GF_ROUTE_TUNE_OFF) continue;
 				j=0;
 				GF_LCTObject *obj;
 				while ((obj=gf_list_enum(s->objects, &j))) {
 					if (obj->status==GF_LCT_OBJ_RECEPTION) {
 						obj->status = GF_LCT_OBJ_DONE_ERR;
-						if (s->tune_mode!=GF_ROUTE_TUNE_OFF)
-							gf_route_dmx_process_object(routedmx, s, obj);
+						gf_route_dmx_process_object(routedmx, s, obj);
 					}
-					obj->blob.flags &= ~GF_BLOB_IN_TRANSFER;
 				}
 			}
 		}
@@ -3744,6 +3743,21 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 		}
 	}
 	return GF_OK;
+}
+
+void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
+{
+	if (!routedmx) return;
+	u32 i, j, count = gf_list_count(routedmx->services);
+	for (i=0; i<count; i++) {
+		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
+		j=0;
+		GF_LCTObject *obj;
+		while ((obj=gf_list_enum(s->objects, &j))) {
+			obj->status = GF_LCT_OBJ_DONE_ERR;
+			gf_route_obj_to_reservoir(routedmx, s, obj);
+		}
+	}
 }
 
 #endif /* !GPAC_DISABLE_ROUTE */

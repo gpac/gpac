@@ -495,6 +495,7 @@ static void routein_set_eos(GF_Filter *filter, ROUTEInCtx *ctx)
 	if (ctx->opid) {
 		gf_filter_pid_set_info_str(ctx->opid, "x-mcast-over", &PROP_STRING("yes") );
 	}
+	gf_route_dmx_reset_all(ctx->route_dmx);
 }
 
 static GF_Err routein_process(GF_Filter *filter)
