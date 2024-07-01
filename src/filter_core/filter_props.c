@@ -186,6 +186,7 @@ static Bool parse_time(const char *str, u64 *val)
 	return GF_TRUE;
 }
 
+GF_EXPORT
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
