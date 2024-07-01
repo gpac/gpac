@@ -470,6 +470,10 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 				gf_bs_write_data(item_bs, buf_cache, cache_size);
 				remain -= cache_size;
 			}
+			if (gf_bs_is_overflow(file->movieFileMap->bs)) {
+				e = GF_ISOM_INVALID_FILE;
+				break;
+			}
 		}
 	}
 	if (out_data) {

@@ -299,7 +299,8 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 	ch->sample->IsRAP = RAP;
 	ch->sample->duration = 1000;
 	ch->dts = ch->cts = 1000 * ch->au_seq_num;
-	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
+	GF_Err e = gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
+	if ((e<0) && ch->sample) ch->sample->corrupted = GF_TRUE;
 
 	if (ch->is_encrypted && ch->is_cenc) {
 		isor_update_cenc_info(ch, GF_TRUE);
