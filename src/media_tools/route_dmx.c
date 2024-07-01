@@ -3688,6 +3688,8 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 	}
 	if (!s) return GF_BAD_PARAM;
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] %s rep %s\n", s->log_name, is_selected ? "Activating" : "Dectivating", rep_id));
+
 	GF_ROUTESession *mcast_sess=NULL;
 	GF_ROUTELCTChannel *rlct=NULL;
 	count = gf_list_count(s->route_sessions);
