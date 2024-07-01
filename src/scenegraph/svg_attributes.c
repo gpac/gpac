@@ -3431,7 +3431,8 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		svg_parse_idref(n, (XMLRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
-		((SMIL_AttributeName *)info->far_ptr)->name = gf_strdup(attribute_content);
+		if (! ((SMIL_AttributeName *)info->far_ptr)->name)
+			((SMIL_AttributeName *)info->far_ptr)->name = gf_strdup(attribute_content);
 		break;
 	case SMIL_Times_datatype:
 		smil_parse_time_list(n, *(GF_List **)info->far_ptr, attribute_content);
