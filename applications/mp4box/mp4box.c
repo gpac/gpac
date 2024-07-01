@@ -3603,6 +3603,7 @@ u32 mp4box_parse_args(int argc, char **argv)
 					gf_sys_mark_arg_used(arg_idx, GF_TRUE);
 				}
 				if (res==2) {
+					gf_sys_mark_arg_used(arg_idx+1, GF_TRUE);
 					i++;
 				}
 			}
@@ -6002,7 +6003,7 @@ static u32 mp4box_cleanup(u32 ret_code) {
 			if (gf_sys_is_arg_used(i)) continue;
 			if (!found) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\nWarning: the following arguments have been set but not used:\n"));
-				found=1;
+				found = 1;
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", gf_sys_get_arg(i)));
 		}
