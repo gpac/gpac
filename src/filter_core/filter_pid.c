@@ -56,23 +56,35 @@ void gf_filter_pid_inst_del(GF_FilterPidInst *pidinst)
 {
 	gf_assert(pidinst);
 	gf_filter_pid_inst_reset(pidinst);
+	if (pidinst->pid) {
+		gf_list_del_item(pidinst->pid->destinations, pidinst);
+		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
+	}
+	if (pidinst->filter) {
+		gf_list_del_item(pidinst->filter->input_pids, pidinst);
+		pidinst->filter->num_input_pids = gf_list_count(pidinst->filter->input_pids);
+	}
 
  	gf_fq_del(pidinst->packets, (gf_destruct_fun) pcki_del);
 	gf_mx_del(pidinst->pck_mx);
 	gf_list_del(pidinst->pck_reassembly);
 	if (pidinst->props) {
 		gf_assert(pidinst->props->reference_count);
-		gf_mx_p(pidinst->pid->filter->tasks_mx);
+		//pidinst->pid may be NULL upon filter setup error
+		if (pidinst->pid)
+			gf_mx_p(pidinst->pid->filter->tasks_mx);
 		//not in parent pid, may happen when reattaching a pid inst to a different pid
 		//in this case do NOT delete the props
-		if (gf_list_find(pidinst->pid->properties, pidinst->props)>=0) {
+		if (!pidinst->pid || gf_list_find(pidinst->pid->properties, pidinst->props)>=0) {
 			if (safe_int_dec(&pidinst->props->reference_count) == 0) {
 				//see \ref gf_filter_pid_merge_properties_internal for mutex
-				gf_list_del_item(pidinst->pid->properties, pidinst->props);
+				if (pidinst->pid)
+					gf_list_del_item(pidinst->pid->properties, pidinst->props);
 				gf_props_del(pidinst->props);
 			}
 		}
-		gf_mx_v(pidinst->pid->filter->tasks_mx);
+		if (pidinst->pid)
+			gf_mx_v(pidinst->pid->filter->tasks_mx);
 	}
 #ifdef GPAC_ENABLE_DEBUG
 	if (pidinst->prop_dump) {

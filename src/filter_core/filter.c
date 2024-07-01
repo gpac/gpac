@@ -662,13 +662,19 @@ void gf_filter_del(GF_Filter *filter)
 	}
 	gf_list_del(filter->output_pids);
 
+	//delete input pids not yet destroyed (may happen upon setup failure)
+	while (gf_list_count(filter->input_pids)) {
+		gf_filter_pid_inst_del(gf_list_pop_back(filter->input_pids));
+	}
+	gf_list_del(filter->input_pids);
+
+
 	gf_list_del(filter->blacklisted);
 	gf_list_del(filter->destination_filters);
 	gf_list_del(filter->destination_links);
 	gf_list_del(filter->source_filters);
 	gf_list_del(filter->temp_input_pids);
 
-	gf_list_del(filter->input_pids);
 	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
 
@@ -2195,7 +2201,7 @@ skip_date:
 			}
 			//temporary filter
 			else if (!strcmp("_GFTMP", szArg)) {
-				filter->removed = GF_TRUE;
+				filter->removed = 1;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
@@ -3535,9 +3541,21 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 		u32 j;
 		GF_FilterPid *pid = gf_list_pop_back(f->output_pids);
 		for (j=0; j<pid->num_destinations; j++) {
-			GF_FilterPid *pidinst = gf_list_get(pid->destinations, j);
-			pidinst->pid = NULL;
+			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, j);
+			//pid instance already detached, remove it
+			if (!pidinst->filter) {
+				gf_list_rem(pid->destinations, j);
+				pid->num_destinations--;
+				j--;
+				gf_filter_pid_inst_del(pidinst);
+			}
+			//marked as detached
+			else {
+				pidinst->pid = NULL;
+			}
 		}
+		gf_list_reset(pid->destinations);
+		gf_filter_pid_del(pid);
 	}
 	gf_mx_v(f->tasks_mx);
 	//avoid destruction of the current task (ourselves)

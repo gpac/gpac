@@ -264,10 +264,10 @@ static int gpac_exit_fun(GF_Err code)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (!code && (gf_memory_size() || gf_file_handles_count() )) {
+	if (gf_memory_size() || gf_file_handles_count() ) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
-		code = 2;
+		if (!code) code = 2;
 	}
 #endif
 

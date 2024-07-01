@@ -6015,6 +6015,7 @@ static u32 mp4box_cleanup(u32 ret_code) {
 	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
+		if (!ret_code) ret_code = 2;
 	}
 #endif
 	return ret_code;
@@ -6971,16 +6972,7 @@ err_exit:
 	return mp4box_cleanup(1);
 
 exit:
-	mp4box_cleanup(0);
-
-#ifdef GPAC_MEMORY_TRACKING
-	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
-		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
-		gf_memory_print();
-		return 2;
-	}
-#endif
-	return 0;
+	return mp4box_cleanup(0);
 }
 
 #if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_CONFIG_EMSCRIPTEN)

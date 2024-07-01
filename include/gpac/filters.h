@@ -4427,6 +4427,8 @@ void gf_filter_pck_check_realloc(GF_FilterPacket *pck, u8 *data, u32 size);
 
 /*! Sends the packet on its output PID. Packets SHALL be sent in processing order (eg, decoding order for video).
 However, packets don't have to be sent in their allocation order.
+Packet shall not be modified after this call, as it may be discarded during the call.
+
 \param pck the target output packet to send
 \return error if any
 */
