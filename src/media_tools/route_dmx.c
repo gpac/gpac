@@ -288,10 +288,11 @@ static void gf_route_lct_obj_del(GF_LCTObject *o)
 {
 	if (o->frags) gf_free(o->frags);
 	if (o->payload) gf_free(o->payload);
-	if (o->rlct_file && o->rlct_file->fdt_tsi) {
+	if (o->rlct_file && (o->rlct_file->fdt_tsi || o->rlct_file->can_remove)) {
 		if (o->rlct_file->filename) gf_free(o->rlct_file->filename);
 		gf_free(o->rlct_file);
 	}
+
 	if (o->ll_map) gf_free(o->ll_map);
 	gf_free(o);
 }
@@ -2470,7 +2471,17 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				GF_ROUTELCTFile *old_fdt = gf_list_pop_back(purge_rlct);
 				//remove from static file list
 				gf_list_del_item(rlct->static_files, old_fdt);
-				old_fdt->can_remove = GF_TRUE;
+				//remove all active objects on this file
+				for (k=0; k<gf_list_count(s->objects);k++) {
+					GF_LCTObject *o = gf_list_get(s->objects, k);
+					if (o->rlct_file==old_fdt) {
+						gf_route_obj_to_reservoir(routedmx, s, o);
+						k--;
+					}
+				}
+				//delete file
+				if (old_fdt->filename) gf_free(old_fdt->filename);
+				gf_free(old_fdt);
 			}
 			gf_list_del(purge_rlct);
 
