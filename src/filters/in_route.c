@@ -77,6 +77,7 @@ static void routein_finalize(GF_Filter *filter)
 		RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
 		gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
 		gf_list_del(rsi->ranges);
+		if (rsi->filename) gf_free(rsi->filename);
 		gf_free(rsi);
 	}
 	gf_list_del(ctx->seg_repair_reservoir);
@@ -699,6 +700,7 @@ static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	} else if (evt->base.type==GF_FEVT_STOP) {
 		ctx->nb_playing--;
 	} else if (evt->base.type==GF_FEVT_DASH_QUALITY_SELECT) {
+		if (!ctx->dynsel) return GF_TRUE;
 		gf_route_dmx_mark_active_quality(ctx->route_dmx, evt->dash_select.service_id, evt->dash_select.period_id, evt->dash_select.as_id, evt->dash_select.rep_id, (evt->dash_select.select_type==GF_QUALITY_SELECTED) ? GF_TRUE : GF_FALSE);
 	}
 	return GF_TRUE;
@@ -734,6 +736,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(repair_url), "repair url", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(max_sess), "max number of concurrent HTTP repair sessions", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(llmode), "enable low-latency access", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(dynsel), "dynamically enable and disable multicast groups based on their selection state", GF_PROP_BOOL, "true", NULL, 0},
 	{0}
 };
 
