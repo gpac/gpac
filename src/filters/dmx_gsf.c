@@ -556,6 +556,16 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		if (is_info_update) gf_filter_pid_set_info_dyn(gst->opid, pname, &p);
 		else gf_filter_pid_set_property_dyn(gst->opid, pname, &p);
 		gf_free(pname);
+		switch (p.type) {
+		case GF_PROP_STRING_LIST:
+		case GF_PROP_DATA:
+		case GF_PROP_DATA_NO_COPY:
+		case GF_PROP_CONST_DATA:
+			break;
+		default:
+			gf_props_reset_single(&p);
+			break;
+		}
 	}
 	return GF_OK;
 }
