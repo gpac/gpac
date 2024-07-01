@@ -716,7 +716,11 @@ u32 gf_svg_get_system_paint_server_type(const char *name)
 static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out_e)
 {
 	char *str = attribute_content;
-	while (str[strlen(attribute_content)-1] == ' ') str[strlen(attribute_content)-1] = 0;
+	u32 len = (u32) strlen(attribute_content);
+	while (len && (str[strlen(attribute_content)-1] == ' ')) {
+		str[len-1] = 0;
+		len--;
+	}
 	while (*str != 0 && (*str == ' ' || *str == ',' || *str == ';')) str++;
 
 	if (!strcmp(str, "currentColor")) {
