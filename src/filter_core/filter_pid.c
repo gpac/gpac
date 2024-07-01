@@ -733,6 +733,7 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 			gf_assert(pidinst->filter->nb_main_thread_forced);
 			safe_int_dec(&pidinst->filter->nb_main_thread_forced);
 		}
+		safe_int_dec(&pidinst->filter->pending_packets);
 	}
 	count = gf_list_count(pidinst->pck_reassembly);
 	for (i=0; i<count; i++) {
@@ -742,6 +743,7 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 			gf_assert(pidinst->filter->nb_main_thread_forced);
 			safe_int_dec(&pidinst->filter->nb_main_thread_forced);
 		}
+		safe_int_dec(&pidinst->filter->pending_packets);
 	}
 	pidinst->filter = NULL;
 }
@@ -1050,6 +1052,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					if (!filter->num_input_pids && !filter->num_output_pids) {
 						remove_filter = GF_TRUE;
 					}
+				} else if (ctype==GF_PID_CONF_RECONFIG) {
+					gf_fs_post_pid_instance_delete_task(filter->session, pidinst->pid->filter, pidinst->pid, pidinst);
 				}
 			} else if (filter->has_out_caps) {
 				Bool unload_filter = GF_TRUE;
