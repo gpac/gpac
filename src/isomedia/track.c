@@ -660,6 +660,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 #endif
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
+		if (! (trun->flags & (GF_ISOM_TRUN_DURATION | GF_ISOM_TRUN_SIZE | GF_ISOM_TRUN_FLAGS | GF_ISOM_TRUN_CTS_OFFSET) ) ) {
+			if (!def_size || (trun->sample_count>0x10000)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid track run for track %d - default size %d num samples %d\n", traf->trex->trackID, def_size, trun->sample_count));
+				return GF_ISOM_INVALID_FILE;
+			}
+		}
+
 		//merge the run
 		for (j=0; j<trun->sample_count; j++) {
 			GF_Err e;
