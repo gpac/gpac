@@ -572,6 +572,7 @@ typedef struct _hevc_state
 	u8 clli_data[4];
 	u8 mdcv_data[24];
 	u8 clli_valid, mdcv_valid;
+	u8 has_3d_ref_disp_info;
 } HEVCState;
 
 typedef struct hevc_combine{

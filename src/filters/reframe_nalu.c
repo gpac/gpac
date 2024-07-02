@@ -155,7 +155,7 @@ typedef struct
 	u32 nal_store_size, nal_store_alloc;
 
 	//list of param sets found
-	GF_List *sps, *pps, *vps, *sps_ext, *pps_svc, *vvc_aps_pre, *vvc_dci, *vvc_opi;
+	GF_List *sps, *pps, *vps, *sps_ext, *pps_svc, *vvc_aps_pre, *vvc_dci, *vvc_opi, *sei_prefix;
 	//set to true if one of the PS has been modified, will potentially trigger a PID reconfigure
 	Bool ps_modified;
 	//set to true if one PS has been changed - if false and ps_modified is set, only new PS have been added
@@ -1196,6 +1196,16 @@ static Bool naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 			naludmx_add_param_nalu(layer_id ? lvcc->param_array : cfg->param_array, sl, GF_HEVC_NALU_PIC_PARAM);
 	}
 
+	cfg = ctx->explicit ? lvcc : hvcc;
+	count = gf_list_count(ctx->sei_prefix);
+	for (i=0; i<count; i++) {
+		GF_NALUFFParam *sl = gf_list_get(ctx->sei_prefix, i);
+		layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+		if (!layer_id) *has_hevc_base = GF_TRUE;
+		if (!ctx->analyze)
+			naludmx_add_param_nalu(layer_id ? lvcc->param_array : cfg->param_array, sl, GF_HEVC_NALU_SEI_PREFIX);
+	}
+
 	*dsi = *dsi_enh = NULL;
 	*dsi_size = *dsi_enh_size = 0;
 
@@ -2088,6 +2098,11 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 			list = ctx->pps;
 			ctx->valid_ps_flags |= 1<<1;
 			break;
+		case GF_HEVC_NALU_SEI_PREFIX:
+			if (!ctx->sei_prefix)
+				ctx->sei_prefix = gf_list_new();
+			list = ctx->sei_prefix;
+			break;
 		default:
 			gf_assert(0);
 			return;
@@ -2487,6 +2502,9 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		break;
 	case GF_HEVC_NALU_SEI_PREFIX:
 		gf_hevc_parse_sei(data, size, ctx->hevc_state);
+		if (ctx->hevc_state->has_3d_ref_disp_info) {
+			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEI_PREFIX, 0, temporal_id, layer_id);
+		}
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
 			naludmx_push_prefix(ctx, data, size, GF_FALSE);
