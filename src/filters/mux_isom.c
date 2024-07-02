@@ -6671,7 +6671,14 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				if (dts==GF_FILTER_NO_TS) dts = cts;
 				if (tkw->first_dts_in_seg_plus_one && (tkw->first_dts_in_seg_plus_one - 1 > dts))
 					tkw->first_dts_in_seg_plus_one = 1 + dts;
+			} else {
+				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
+				if (p) {
+					gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, p->value.longuint, cts);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MuxIsom] Storing NTP TS "LLU" for CTS "LLU" at "LLU" us, at UTC "LLU"\n", p->value.longuint, cts, gf_sys_clock_high_res(), gf_net_get_utc()));
+				}
 			}
+
 			ncts = cts + gf_filter_pck_get_duration(pck);
 			if (tkw->cts_next < ncts)
 				tkw->cts_next = ncts;
