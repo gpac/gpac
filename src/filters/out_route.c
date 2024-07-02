@@ -118,6 +118,10 @@ typedef struct
 	u32 next_toi_avail;
 	Bool check_pending;
 	u32 check_init_clock;
+
+	//simulate errors based on a 2-state Markov chain
+	Bool state_is_error;
+	GF_PropVec2 errsim; //{error->ok, ok->error}
 } GF_ROUTEOutCtx;
 
 typedef struct
@@ -1582,6 +1586,14 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	return GF_OK;
 }
 
+static void update_error_simulation_state(GF_ROUTEOutCtx *ctx) {
+#define ERRSIM_ACCURACY 100
+	Double p = (gf_rand() % (100 * ERRSIM_ACCURACY)) / (Double)ERRSIM_ACCURACY;
+	Double t = ctx->state_is_error ? ctx->errsim.y : ctx->errsim.x;
+	if (p < t)
+		ctx->state_is_error = !ctx->state_is_error;
+#undef ERRSIM_ACCURACY
+}
 
 u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute)
 {
@@ -1709,11 +1721,18 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] LCT TSI %u TOI %u size %u (frag %u total %u) offset %u (%u in obj)\n", serv ? serv->log_name : ctx->log_name, tsi, toi, send_payl_size, len, total_size, offset, offset_in_frame));
 
-	memcpy(ctx->lct_buffer + hpos, payload + offset, send_payl_size);
-	e = gf_sk_send(sock, ctx->lct_buffer, send_payl_size + hpos);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to send LCT object TSI %u TOI %u fragment: %s\n", serv ? serv->log_name : ctx->log_name, tsi, toi, gf_error_to_string(e) ));
+	update_error_simulation_state(ctx);
+	if (!ctx->state_is_error) {
+		memcpy(ctx->lct_buffer + hpos, payload + offset, send_payl_size);
+		e = gf_sk_send(sock, ctx->lct_buffer, send_payl_size + hpos);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to send LCT object TSI %u TOI %u fragment: %s\n", serv ? serv->log_name : ctx->log_name, tsi, toi, gf_error_to_string(e) ));
+		}
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Simulated error loss for LCT object TSI %u TOI %u service_name %s size %u (frag %u total %u) offset %u (%u in obj)\n",
+			serv ? serv->log_name : ctx->log_name, tsi, toi, serv ? serv->service_name : "N/A", send_payl_size, len, total_size, offset, offset_in_frame));
 	}
+
 	//store what we actually sent including header for rate estimation
 	ctx->bytes_sent += send_payl_size + hpos;
 	//but return what we sent from the source
@@ -2962,6 +2981,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- no: do not send checksum\n"
 		"- meta: only send checksum for configuration files, manifests and init segments\n"
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
+	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
 	{0}
 };
 
@@ -3073,6 +3093,11 @@ GF_FilterRegister ROUTEOutRegister = {
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/manifest.mpd\n"
 		"These will demultiplex the input, re-dash it and send the output of the dasher to ROUTE\n"
+		"\n"
+		"# Error simulation\n"
+		"It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:\n"
+		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0\n"
+		"for a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 to transition from error back to OK.\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),
 	.max_extra_pids = -1,
