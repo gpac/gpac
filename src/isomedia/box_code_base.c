@@ -5334,6 +5334,13 @@ GF_Err stbl_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->SampleSize->sampleCount) {
 		if (!ptr->TimeToSample->nb_entries || !ptr->SampleToChunk->nb_entries)
 			return GF_ISOM_INVALID_FILE;
+		//safety check : get info for last sample, if error consider file is invalid
+		u64 sample_offset;
+		u32 di, chunk;
+		e = stbl_GetSampleInfos(ptr, ptr->SampleSize->sampleCount, &sample_offset, &chunk, &di, NULL);
+		if (e) return e;
+		e = stbl_GetSampleDTS(ptr->TimeToSample, ptr->SampleSize->sampleCount, &sample_offset);
+		if (e) return e;
 	}
 	u32 i, max_chunks=0;
 	if (ptr->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
