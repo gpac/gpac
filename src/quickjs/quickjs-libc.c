@@ -3291,7 +3291,7 @@ static JSValue js_os_exec(JSContext *ctx, JSValueConst this_val,
 	char *exec_argv = NULL, *file = NULL, *cwd = NULL;
 	char *envp = NULL;
 	uint32_t exec_argc, i;
-	int ret;
+	DWORD ret;
 	BOOL block_flag = TRUE, use_path = TRUE;
 
 	val = JS_GetPropertyStr(ctx, args, "length");
@@ -3403,9 +3403,9 @@ static JSValue js_os_waitpid(JSContext *ctx, JSValueConst this_val, int argc, JS
 {
 	HANDLE hProcess, hThread;
 	int64_t lval;
-	int status, options, ret, is_over=0;
+	int options, ret, is_over=0;
 	JSValue obj, val;
-	DWORD rval;
+	DWORD rval, status;
 	if (argc < 2) return JS_EXCEPTION;
 
 	val = JS_GetPropertyUint32(ctx, argv[0], 0);

@@ -1180,6 +1180,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			e = dashdmx_load_source(ctx, i, mime, init_segment, start_range, end_range);
 			if (e != GF_OK) {
 				gf_dash_group_select(ctx->dash, i, GF_FALSE);
+				nb_groups_selected--;
 			} else {
 				u32 w, h;
 				/*connect our media service*/
@@ -1202,6 +1203,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 		if (!nb_groups_selected) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] No groups selectable, not playing !\n"));
+			return GF_SERVICE_ERROR;
 		}
 		return GF_OK;
 	}

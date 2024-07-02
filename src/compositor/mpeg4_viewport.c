@@ -246,6 +246,8 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	default:
 		return;
 	}
+	if (!rc.width || !rc.height)
+		return;
 	sx = gf_divfix(rc.width, rc_bckup.width);
 	sy = gf_divfix(rc.height, rc_bckup.height);
 

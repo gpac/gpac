@@ -1133,7 +1133,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				//send a seek request
 				read->is_partial_download = GF_TRUE;
 				read->wait_for_source = GF_TRUE;
-				read->refresh_fragmented = GF_TRUE;
+				if (read->frag_type)
+					read->refresh_fragmented = GF_TRUE;
 
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = max_offset;

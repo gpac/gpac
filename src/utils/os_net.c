@@ -1094,6 +1094,11 @@ refetch_pcap:
 		}
 
 		bsize = nf->pcap_le ? gf_bs_read_u32_le(nf->cap_bs) : gf_bs_read_u32(nf->cap_bs);
+		if (bsize <= 8) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[NetCap] Corrupted PCAP file, aborting\n"));
+			nf->is_eos = GF_TRUE;
+			return;
+		}
 		if (btype!=0x00000006) {
 			gf_bs_skip_bytes(nf->cap_bs, bsize-8);
 			nf->pcapng_trail = 0;

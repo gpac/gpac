@@ -233,11 +233,11 @@ typedef struct __tsmx_pid
 	Bool is_sparse;
 } M2Pid;
 
-static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
+static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
 {
 	u32 len;
 	u32 last_time;
-	if (ntp) {
+	if (ntp && is_realtime) {
 		last_time = 1000*(ntp>>32);
 		last_time += 1000*(ntp&0xFFFFFFFF)/0xFFFFFFFF;
 	} else {
@@ -653,7 +653,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					ntp <<= 32;
 					ntp |= frac;
 				}
-				tsmux_format_af_descriptor(tspid->temi_af_bs, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url);
+				tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url);
 			}
 			gf_bs_get_content_no_truncate(tspid->temi_af_bs, &tspid->af_data, &es_pck.mpeg2_af_descriptors_size, &tspid->af_data_alloc);
 			es_pck.mpeg2_af_descriptors = tspid->af_data;

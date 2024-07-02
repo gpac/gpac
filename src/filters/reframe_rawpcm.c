@@ -369,6 +369,10 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Samplerate %d invalid in wave\n", ctx->sr));
 			wav_ok = GF_FALSE;
 		}
+		if (!ctx->safmt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Audio format unrecognized in wave\n"));
+			wav_ok = GF_FALSE;
+		}
 
 		ctx->wav_hdr_size = (u32) gf_bs_get_position(bs);
 

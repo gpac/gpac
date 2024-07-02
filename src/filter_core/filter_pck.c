@@ -853,7 +853,11 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 #endif
 
 
-	if (!pck->src_filter) return GF_BAD_PARAM;
+	if (!pck->src_filter || (pck->src_filter->removed==1)) {
+		gf_filter_pck_discard(pck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Packet sent on already removed filter, ignoring\n"));
+		return GF_OK;
+	}
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (pck->pid->filter->nb_process_since_reset)
@@ -866,6 +870,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	if (PCK_IS_INPUT(pck)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to dispatch input packet on output PID in filter %s\n", pck->pid->filter->name));
+		gf_filter_pck_discard(pck);
 		return GF_BAD_PARAM;
 	}
 

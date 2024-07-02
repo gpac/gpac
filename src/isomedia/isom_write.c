@@ -5479,6 +5479,12 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 				a = (GF_Box *) avc1->mvc_config;
 			else if (avc1->av1_config)
 				a = (GF_Box *)avc1->av1_config;
+			else if (avc1->vvc_config)
+				a = (GF_Box *)avc1->vvc_config;
+			else if (avc1->vp_config)
+				a = (GF_Box *)avc1->vp_config;
+			else if (avc1->cfg_3gpp)
+				a = (GF_Box *)avc1->cfg_3gpp;
 			else
 				a = (GF_Box *) avc1->avc_config;
 
@@ -5492,10 +5498,22 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 				b = (GF_Box *) avc2->mvc_config;
 			else if (avc2->av1_config)
 				b = (GF_Box *)avc2->av1_config;
+			else if (avc2->vvc_config)
+				b = (GF_Box *)avc2->vvc_config;
+			else if (avc2->vp_config)
+				b = (GF_Box *)avc2->vp_config;
+			else if (avc2->cfg_3gpp)
+				b = (GF_Box *)avc2->cfg_3gpp;
 			else
 				b = (GF_Box *) avc2->avc_config;
 
-			return gf_isom_box_equal(a,b);
+			Bool res = gf_isom_box_equal(a,b);
+			if (!res) return GF_FALSE;
+
+			//check dovi config disabled for now
+			//res = gf_isom_box_equal((GF_Box*)avc1->dovi_config, (GF_Box*)avc2->dovi_config);
+			//if (!res) return GF_FALSE;
+			return GF_TRUE;
 		}
 		break;
 		case GF_ISOM_BOX_TYPE_LSR1:

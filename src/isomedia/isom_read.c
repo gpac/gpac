@@ -3455,9 +3455,13 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 				}
 			}
 
-			trak->sample_count_at_seg_start += base_track_sample_count ? base_track_sample_count : stbl->SampleSize->sampleCount;
+			if (base_track_sample_count) {
+				trak->sample_count_at_seg_start += base_track_sample_count;
+			} else if (stbl->SampleSize) {
+				trak->sample_count_at_seg_start += stbl->SampleSize->sampleCount;
+			}
 
-			if (trak->sample_count_at_seg_start) {
+			if (trak->sample_count_at_seg_start && stbl->SampleSize) {
 				GF_Err e;
 				e = stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
 				if (e == GF_OK) {
@@ -4896,7 +4900,8 @@ void gf_isom_reset_fragment_info(GF_ISOFile *movie, Bool keep_sample_count)
 	if (!movie || !movie->moov) return;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
-		trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
+		if (trak->Media->information->sampleTable->SampleSize)
+			trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	}
 #else

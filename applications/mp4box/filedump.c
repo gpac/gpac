@@ -3461,7 +3461,6 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 #endif
 			);
 			gf_odf_vvc_cfg_del(vvccfg);
-			fprintf(stderr, "\n");
 		}
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 		if (vvc_state) gf_free(vvc_state);
@@ -3860,6 +3859,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	for (i=0; i<count; i++) {
 		DumpStsdInfo(file, trackNum, full_dump, dump_m4sys, mtype, i+1, &is_od_track);
 	}
+	fprintf(stderr, "\n");
 
 	switch (gf_isom_has_sync_points(file, trackNum)) {
 	case 0:

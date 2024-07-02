@@ -30,6 +30,7 @@
 #ifndef GPAC_DISABLE_STREAMING
 
 #include <gpac/token.h>
+#include <gpac/utf.h>
 
 
 #define SDP_WRITE_STEPALLOC		2048
@@ -454,6 +455,7 @@ static s32 SDP_MakeSeconds(char *buf)
 		sign = -1;
 		buf += 1;
 	}
+
 	memset(num, 0, 30);
 	test = strstr(buf, "d");
 	if (test) {
@@ -498,6 +500,9 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	timing = NULL;
 
 	if (!sdp) return GF_BAD_PARAM;
+	if (!gf_utf8_is_legal(sdp_text, text_size))
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {

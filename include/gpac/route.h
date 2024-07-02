@@ -389,6 +389,11 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
  */
 GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected);
 
+/*! Cancel all current transfer on  all services
+\param routedmx the ROUTE demultiplexer
+ */
+void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
+
 
 /*! @} */
 #ifdef __cplusplus
