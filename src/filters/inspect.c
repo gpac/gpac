@@ -2276,7 +2276,7 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 			inspect_printf(dump, "    <SegmentationUpid segmentationUpidType=\"%u\">", segmentation_upid_type);
 			for (u8 i=0; i<segmentation_upid_length; ++i)
 				printf("%02X", gf_bs_read_u8(bs));
-			inspect_printf(dump, "    </SegmentationUpid>\n");
+			inspect_printf(dump, "</SegmentationUpid>\n");
 
 #if 0 //TODO: identify segmentationUpidType as per the example below (we don't have any sample):
 <SegmentationDescriptor
@@ -2294,7 +2294,6 @@ segmentsExpected="1"
 <SegmentationUpid segmentationUpidType="3">414243443233385130303048</SegmentationUpid>
 </SegmentationDescriptor>
 #endif
-			inspect_printf(dump, "    </SegmentationUpid>\n");
 		}
 
 		inspect_printf(dump, "   </SegmentationDescriptor>\n");
