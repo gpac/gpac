@@ -669,6 +669,9 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 	u64 cue_end;
 	u64 sample_end;
 
+	if (!cue)
+		return GF_BAD_PARAM;
+
 	sample_end = 0;
 	cue_start = gf_webvtt_timestamp_get(&cue->start);
 	cue_end   = gf_webvtt_timestamp_get(&cue->end);
@@ -874,32 +877,32 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 	while (pos < len && line[pos] != ' ' && line[pos] != '\t') pos++;
 	if (pos == len) {
 		e = GF_CORRUPTED_DATA;
-		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in", line);
 		return e;
 	}
 	line[pos] = 0;
 	e = gf_webvtt_parse_timestamp(parser, &cue->start, timestamp_string);
 	if (e) {
-		parser->report_message(parser->user, e, "Bad VTT timestamp formatting %s", timestamp_string);
+		parser->report_message(parser->user, e, "Bad VTT timestamp formatting", timestamp_string);
 		return e;
 	}
 	line[pos] = ' ';
 	SKIP_WHITESPACE
 	if (pos == len) {
 		e = GF_CORRUPTED_DATA;
-		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing", line);
 		return e;
 	}
 	if ( (pos+2)>= len || line[pos] != '-' || line[pos+1] != '-' || line[pos+2] != '>') {
 		e = GF_CORRUPTED_DATA;
-		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing", line);
 		return e;
 	} else {
 		pos += 3;
 		SKIP_WHITESPACE
 		if (pos == len) {
 			e = GF_CORRUPTED_DATA;
-			parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+			parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in", line);
 			return e;
 		}
 		timestamp_string = line + pos;
@@ -909,7 +912,7 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 		}
 		e = gf_webvtt_parse_timestamp(parser, &cue->end, timestamp_string);
 		if (e) {
-			parser->report_message(parser->user, e, "Bad VTT timestamp formatting %s", timestamp_string);
+			parser->report_message(parser->user, e, "Bad VTT timestamp formatting", timestamp_string);
 			return e;
 		}
 		if (pos < len) {
@@ -970,7 +973,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		case WEBVTT_PARSER_STATE_WAITING_SIGNATURE:
 			if (!sOK || len < 6 || strnicmp(szLine, "WEBVTT", 6) || (len > 6 && szLine[6] != ' ' && szLine[6] != '\t')) {
 				e = GF_CORRUPTED_DATA;
-				parser->report_message(parser->user, e, "Bad WEBVTT file signature %s", szLine);
+				parser->report_message(parser->user, e, "Bad WEBVTT file signature", szLine);
 				goto exit;
 			} else {
 				if (had_marks) {
