@@ -534,7 +534,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 						e = GF_OK;
 					}
 					gf_assert(! (b_flags&GF_BLOB_IN_TRANSFER));
-					memcpy(ctx->block, b_data, b_size);
+					if (b_data)
+						memcpy(ctx->block, b_data, b_size);
 					nb_read = b_size;
 					gf_blob_release(cached);
 				} else {

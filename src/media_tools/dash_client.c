@@ -3487,8 +3487,13 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	if (!group->timeline_setup) {
 		gf_dash_group_timeline_setup(mpd, group, 0);
 		//we must wait for multicast clock to initialize, even if first period is static remote (we need to know when to tune)
-		if (group->dash->mcast_clock_state == GF_DASH_MCAST_INIT)
+		if (group->dash->mcast_clock_state == GF_DASH_MCAST_INIT) {
+			const char *hdr = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-mcast-over");
+			if (hdr && !strcmp(hdr, "yes")) {
+				gf_dash_mark_group_done(group);
+			}
 			return GF_IP_NETWORK_EMPTY;
+		}
 
 		if (group->dash->reinit_period_index || group->dash->pending_utc_session)
 			return GF_IP_NETWORK_EMPTY;
@@ -5021,6 +5026,12 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 				dash->mcast_low_latency = 0;
 			}
 			gf_free(base_init_url);
+			if (e==GF_IP_NETWORK_EMPTY) {
+				const char *hdr = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "x-mcast-over");
+				if (hdr && !strcmp(hdr, "yes")) {
+					gf_dash_mark_group_done(group);
+				}
+			}
 			return e;
 		}
 	}
@@ -6856,6 +6867,8 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		const char *hdr = dash->dash_io->get_header_value(dash->dash_io, dash->mpd_dnload, "x-mcast-over");
 		if (hdr && !strcmp(hdr, "yes")) {
 			gf_dash_mark_group_done(group);
+			if (new_base_seg_url) gf_free(new_base_seg_url);
+			if (key_url) gf_free(key_url);
 			return GF_DASH_DownloadCancel;
 		}
     }
@@ -7815,7 +7828,7 @@ static GF_Err dash_setup_period_and_groups(GF_DashClient *dash)
 		if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE)
 			continue;
 
-		if (group->group_setup) continue;
+		if (group->group_setup || group->done) continue;
 
 		e = gf_dash_download_init_segment(dash, group);
 

@@ -3235,7 +3235,10 @@ GF_Err av1c_box_read(GF_Box *s, GF_BitStream *bs)
 	pos = gf_bs_get_position(bs);
 
 	ptr->config = gf_odf_av1_cfg_read_bs_size(bs, (u32) ptr->size);
-
+	if (!ptr->config) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AV1ConfigurationBox invalid config\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	read = gf_bs_get_position(bs) - pos;
 
 	if (read < ptr->size)

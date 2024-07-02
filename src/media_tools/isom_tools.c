@@ -1393,7 +1393,13 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_HEVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_hevc_cfg_write(((GF_HEVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_HEVCConfigurationBox *hvcc = props.config;
+			if (hvcc->type==GF_ISOM_BOX_TYPE_HVCC) {
+				gf_odf_hevc_cfg_write(hvcc->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -1415,7 +1421,13 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_AVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_avc_cfg_write(((GF_AVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_AVCConfigurationBox *avcc = props.config;
+			if (avcc->type==GF_ISOM_BOX_TYPE_AVCC) {
+				gf_odf_avc_cfg_write(avcc->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -1436,7 +1448,13 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_AV1;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_av1_cfg_write( ((GF_AV1ConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_AV1ConfigurationBox *av1c = props.config;
+			if (av1c->type==GF_ISOM_BOX_TYPE_AV1C) {
+				gf_odf_av1_cfg_write(av1c->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -1502,13 +1520,44 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_VVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_vvc_cfg_write(((GF_VVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_VVCConfigurationBox *vvcc = props.config;
+			if (vvcc->type == GF_ISOM_BOX_TYPE_VVCC) {
+				gf_odf_vvc_cfg_write(vvcc->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
 	}
+	if (item_type == GF_4CC('j','2','k','1')) {
+		GF_ImageItemProperties props;
+		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
+
+		if (item_id > (1 << 16)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
+		}
+		esd->ESID = (u16)item_id;
+		esd->OCRESID = esd->ESID;
+		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_J2K;
+		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
+		if (e == GF_OK && props.config) {
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_isom_box_write((GF_Box*)props.config, bs);
+			gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_del(bs);
+		}
+		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+		esd->slConfig->useTimestampsFlag = 1;
+		esd->slConfig->timestampResolution = 1000;
+		return esd;
+	}
+
 	if ((item_type == GF_ISOM_SUBTYPE_UNCV) || (item_type == GF_ISOM_ITEM_TYPE_UNCI)) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);

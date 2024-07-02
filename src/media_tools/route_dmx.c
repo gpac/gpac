@@ -70,6 +70,7 @@ typedef struct
 {
 	u32 tsi;
 	char *toi_template;
+	//for route services only, list of static files announced in STSID
 	GF_List *static_files;
 	u32 num_components;
 
@@ -287,10 +288,11 @@ static void gf_route_lct_obj_del(GF_LCTObject *o)
 {
 	if (o->frags) gf_free(o->frags);
 	if (o->payload) gf_free(o->payload);
-	if (o->rlct_file && o->rlct_file->fdt_tsi) {
+	if (o->rlct_file && (o->rlct_file->fdt_tsi || o->rlct_file->can_remove)) {
 		if (o->rlct_file->filename) gf_free(o->rlct_file->filename);
 		gf_free(o->rlct_file);
 	}
+
 	if (o->ll_map) gf_free(o->ll_map);
 	gf_free(o);
 }
@@ -1847,6 +1849,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		 		gf_route_service_flush_object(s, o);
 				gf_route_dmx_process_object(routedmx, s, o);
 			} else {
+				o->status = GF_LCT_OBJ_DONE_ERR;
 				gf_route_obj_to_reservoir(routedmx, s, o);
 			}
 		} else {
@@ -2466,7 +2469,19 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			//trash all objects pending on files removed
 			while (gf_list_count(purge_rlct)) {
 				GF_ROUTELCTFile *old_fdt = gf_list_pop_back(purge_rlct);
-				old_fdt->can_remove = GF_TRUE;
+				//remove from static file list
+				gf_list_del_item(rlct->static_files, old_fdt);
+				//remove all active objects on this file
+				for (k=0; k<gf_list_count(s->objects);k++) {
+					GF_LCTObject *o = gf_list_get(s->objects, k);
+					if (o->rlct_file==old_fdt) {
+						gf_route_obj_to_reservoir(routedmx, s, o);
+						k--;
+					}
+				}
+				//delete file
+				if (old_fdt->filename) gf_free(old_fdt->filename);
+				gf_free(old_fdt);
 			}
 			gf_list_del(purge_rlct);
 
@@ -2974,7 +2989,11 @@ static GF_Err dmx_process_service_route(GF_ROUTEDmx *routedmx, GF_ROUTEService *
 	e = gf_route_service_gather_object(routedmx, s, tsi, toi, start_offset, routedmx->buffer + pos, nb_read-pos, (u32) tol_size, B, in_order, rlct, &gather_object, -1, 0);
 
 	if (e==GF_EOS) {
-		if (!tsi) {
+		//in case we were pushed a NULL object
+		if (!gather_object->nb_frags) {
+			gf_route_obj_to_reservoir(routedmx, s, gather_object);
+		}
+		else if (!tsi) {
 			if (gather_object->status==GF_LCT_OBJ_DONE_ERR) {
 				s->last_dispatched_toi_on_tsi_zero=0;
 				gf_route_obj_to_reservoir(routedmx, s, gather_object);
@@ -3669,6 +3688,8 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 	}
 	if (!s) return GF_BAD_PARAM;
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] %s rep %s\n", s->log_name, is_selected ? "Activating" : "Dectivating", rep_id));
+
 	GF_ROUTESession *mcast_sess=NULL;
 	GF_ROUTELCTChannel *rlct=NULL;
 	count = gf_list_count(s->route_sessions);
@@ -3735,6 +3756,21 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 		}
 	}
 	return GF_OK;
+}
+
+void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx)
+{
+	if (!routedmx) return;
+	u32 i, j, count = gf_list_count(routedmx->services);
+	for (i=0; i<count; i++) {
+		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
+		j=0;
+		GF_LCTObject *obj;
+		while ((obj=gf_list_enum(s->objects, &j))) {
+			obj->status = GF_LCT_OBJ_DONE_ERR;
+			gf_route_obj_to_reservoir(routedmx, s, obj);
+		}
+	}
 }
 
 #endif /* !GPAC_DISABLE_ROUTE */

@@ -90,6 +90,7 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+skip_dsi:
 	if (p && p->value.data.ptr && p->value.data.size) {
 		GF_BitStream *bs;
 		u32 d4cc;
@@ -117,6 +118,8 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				}
 				gf_bs_skip_bytes(bs, bsize-8);
 			}
+		} else if (d4cc==GF_4CC('j','2','k','H')) {
+			dsi_ok=GF_FALSE;
 		} else {
 			dsi_ok=GF_TRUE;
 		}
@@ -128,9 +131,10 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 		gf_bs_del(bs);
 
+		//unrecognized DSI, setup from PID info
 		if (!dsi_ok) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[OpenJPEG] Broken decoder config in j2k stream, cannot decode\n"));
-			return GF_NON_COMPLIANT_BITSTREAM;
+			p = NULL;
+			goto skip_dsi;
 		}
 
 		ctx->out_size = ctx->width * ctx->height * ctx->nb_comp /* * ctx->bpp / 8 */;

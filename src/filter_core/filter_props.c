@@ -186,6 +186,7 @@ static Bool parse_time(const char *str, u64 *val)
 	return GF_TRUE;
 }
 
+GF_EXPORT
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
@@ -1546,7 +1547,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_TIME, "TimeshiftTime", "Time in the timeshift buffer in seconds - changes are signaled through PID info (no reconfigure)", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_STATE, "TimeshiftState", "State of timeshift buffer: 0 is OK, 1 is underflow, 2 is overflow - changes are signaled through PID info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP( GF_PROP_PID_TIMESCALE, "Timescale", "Media timescale (a timestamp delta of N is N/timescale seconds)", GF_PROP_UINT),
-	DEC_PROP_F( GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "Profile and level indication", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP( GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "Decoder configuration data", GF_PROP_DATA),
 	DEC_PROP( GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, "DecoderConfigEnhancement", "Decoder configuration data of the enhancement layer(s). Also used by 3GPP/Apple text streams to give the full sample description table used in SDP.", GF_PROP_DATA),
 	DEC_PROP( GF_PROP_PID_DSI_SUPERSET, "DSISuperset", "Decoder config is a superset of previous decoder config", GF_PROP_BOOL),

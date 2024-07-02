@@ -356,10 +356,11 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	}
 
-	if ((item_type == GF_ISOM_SUBTYPE_HVC1) || (item_type == GF_ISOM_SUBTYPE_AVC_H264) ) {
+	if ((item_type == GF_ISOM_SUBTYPE_HVC1) || (item_type == GF_ISOM_SUBTYPE_AVC_H264)  || (item_type == GF_ISOM_SUBTYPE_VVC1) ) {
 		u32 j, nb_assoc;
 		GF_HEVCConfigurationBox *hvcc = NULL;
 		GF_AVCConfigurationBox *avcc = NULL;
+		GF_VVCConfigurationBox *vvcc = NULL;
 		if (!meta->item_props || !meta->item_props->property_container || !meta->item_props->property_association) {
 			if (item_bs) gf_bs_del(item_bs);
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -377,14 +378,21 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 					if (item_bs) gf_bs_del(item_bs);
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
-				if (hvcc->type == GF_ISOM_BOX_TYPE_HVCC) break;
+				if (hvcc->type == GF_ISOM_BOX_TYPE_HVCC)
+					break;
 				if (hvcc->type == GF_ISOM_BOX_TYPE_AVCC) {
 					avcc = (GF_AVCConfigurationBox *) hvcc;
 					hvcc = NULL;
 					break;
 				}
+				if (hvcc->type == GF_ISOM_BOX_TYPE_VVCC) {
+					vvcc = (GF_VVCConfigurationBox *) hvcc;
+					hvcc = NULL;
+					break;
+				}
+				hvcc = NULL;
 			}
-			if (avcc || hvcc) break;
+			if (avcc || hvcc || vvcc) break;
 		}
 		if (hvcc) {
 			if (! hvcc->config) {
@@ -407,6 +415,17 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 					avcc->config->write_annex_b = GF_FALSE;
 				}
 				nalu_size_length = avcc->config->nal_unit_size;
+			}
+		} else if (vvcc) {
+			if (! vvcc->config) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Missing VVC config in vvcC\n"));
+			} else {
+				if (use_annex_b) {
+					vvcc->config->write_annex_b = GF_TRUE;
+					gf_odf_vvc_cfg_write_bs(vvcc->config, item_bs);
+					vvcc->config->write_annex_b = GF_FALSE;
+				}
+				nalu_size_length = vvcc->config->nal_unit_size;
 			}
 		}
 	}
@@ -450,6 +469,10 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 				gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
 				gf_bs_write_data(item_bs, buf_cache, cache_size);
 				remain -= cache_size;
+			}
+			if (gf_bs_is_overflow(file->movieFileMap->bs)) {
+				e = GF_ISOM_INVALID_FILE;
+				break;
 			}
 		}
 	}
@@ -820,7 +843,9 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 			case GF_ISOM_BOX_TYPE_AVCC:
 			case GF_ISOM_BOX_TYPE_AV1C:
 			case GF_ISOM_BOX_TYPE_VVCC:
-				prop->config = b;
+			case GF_ISOM_BOX_TYPE_J2KH:
+				if (!prop->config)
+					prop->config = b;
 				break;
 
 			default:

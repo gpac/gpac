@@ -611,8 +611,6 @@ static void svg_init_root_element(GF_SVG_Parser *parser, SVG_Element *root_svg)
 		if (parser->command) {
 			gf_assert(parser->command->tag == GF_SG_LSR_NEW_SCENE);
 			parser->command->node = (GF_Node *)root_svg;
-		} else {
-			gf_assert(0);
 		}
 	}
 	gf_sg_set_root_node(parser->load->scene_graph, (GF_Node *)root_svg);
@@ -833,23 +831,28 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		   we defer the parsing and store them temporarily as strings */
 		if (anim) {
 			if (!stricmp(att_name, "to")) {
-				anim->to = gf_strdup(att->value);
+				if (!anim->to)
+					anim->to = gf_strdup(att->value);
 				continue;
 			}
 			if (!stricmp(att_name, "from")) {
-				anim->from = gf_strdup(att->value);
+				if (!anim->from)
+					anim->from = gf_strdup(att->value);
 				continue;
 			}
 			if (!stricmp(att_name, "by")) {
-				anim->by = gf_strdup(att->value);
+				if (!anim->by)
+					anim->by = gf_strdup(att->value);
 				continue;
 			}
 			if (!stricmp(att_name, "values")) {
-				anim->values = gf_strdup(att->value);
+				if (!anim->values)
+					anim->values = gf_strdup(att->value);
 				continue;
 			}
 			if ((tag == TAG_SVG_animateTransform) && !stricmp(att_name, "type")) {
-				anim->type = gf_strdup(att->value);
+				if (!anim->type)
+					anim->type = gf_strdup(att->value);
 				continue;
 			}
 		}
@@ -860,12 +863,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			if (gf_svg_is_animation_tag(tag)) {
 				/* For xlink:href in animation elements,
 				we try to locate the target of the xlink:href to determine the type of values to be animated */
-				if (anim) {
+				if (anim && !anim->target_id) {
 					anim->target_id = gf_strdup(att->value);
 					/*The target may be NULL, if it has not yet been parsed, we will try to resolve it later on */
 					anim->target = (SVG_Element *) gf_sg_find_node_by_name(parser->load->scene_graph, anim->target_id + 1);
-				} else {
-					gf_assert(0);
 				}
 				continue;
 			} else {
@@ -1772,8 +1773,12 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				field->field_ptr = &field->new_node;
 			}
 		} else {
-			gf_assert(parser->command->tag==GF_SG_LSR_NEW_SCENE);
-			gf_assert(gf_node_get_tag((GF_Node *)elt) == TAG_SVG_svg);
+			if ((parser->command->tag!=GF_SG_LSR_NEW_SCENE) || (gf_node_get_tag((GF_Node *)elt) != TAG_SVG_svg)) {
+				gf_list_del_item(parser->node_stack, stack);
+				gf_free(stack);
+				gf_node_unregister((GF_Node *)elt, NULL);
+				return;
+			}
 			if(!parser->command->node)
 				parser->command->node = (GF_Node *)elt;
 		}

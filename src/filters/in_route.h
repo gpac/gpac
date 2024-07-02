@@ -78,7 +78,7 @@ typedef struct
 {
 	//options
 	char *src, *ifce, *odir, *repair_url;
-	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode;
+	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
 	u32 max_sess;
 	s32 tunein, stsi;

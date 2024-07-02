@@ -350,6 +350,7 @@ typedef struct _dash_stream
 	GF_PropVec4i srd;
 	DasherHDRType hdr_type;
 	Bool sscale;
+	Bool skip_sap;
 
 	//TODO: get the values for all below
 	u32 view_id;
@@ -1193,6 +1194,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	ds->tile_base = GF_FALSE;
+	ds->skip_sap = GF_FALSE;
 
 	if (ds->stream_type != GF_STREAM_FILE) {
 		u32 prev_bitrate = ds->bitrate;
@@ -1260,6 +1262,15 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			CHECK_PROP(GF_PROP_PID_SAMPLE_RATE, ds->sr, GF_EOS)
 			CHECK_PROP(GF_PROP_PID_NUM_CHANNELS, ds->nb_ch, GF_EOS)
 			CHECK_PROPL(GF_PROP_PID_CHANNEL_LAYOUT, ds->ch_layout, GF_EOS)
+
+			switch (ds->codec_id) {
+			case GF_CODECID_USAC:
+			case GF_CODECID_MHAS:
+			case GF_CODECID_MPHA:
+				break;
+			default:
+				ds->skip_sap = GF_TRUE;
+			}
 		}
 
 		old_period_switch = period_switch;
@@ -9268,7 +9279,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (p && p->value.boolean) {
 					u32 size;
 					gf_filter_pck_get_data(pck, &size);
-					if (base_ds->segment_started) {
+					if (ds->segment_started) {
 						seg_over = GF_TRUE;
 						if (ds == base_ds) {
 							base_ds->adjusted_next_seg_start = cts;
@@ -9487,8 +9498,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//we exceed segment duration - if segment was started, check if we need to stop segment
 			//if segment was not started we insert the packet anyway
-			else if (!ds->sbound && ds->segment_started && gf_timestamp_greater_or_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale) ) {
-
+			else if (!ds->sbound && ds->segment_started
+				&& gf_timestamp_greater_or_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale)
+			) {
 
 				//we have a base (muxed rep) and it is not yet done, and we exceed estimated next seg start on base
 				//wait for the base to be done as the next seg estimate may change if next segment duration is quite
@@ -9501,8 +9513,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (! ctx->sap) {
 					seg_over = GF_TRUE;
 				}
-				else if ((ds->stream_type==GF_STREAM_AUDIO)
-					&& gf_timestamp_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale)
+				else if (ds->skip_sap && gf_timestamp_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale)
 				) {
 
 				}
