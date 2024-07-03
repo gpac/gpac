@@ -1770,6 +1770,13 @@ GF_Err gf_isom_get_current_top_box_offset(GF_ISOFile *isom_file, u64 *current_to
 */
 GF_Err gf_isom_purge_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 nb_samples);
 
+/*! changes source URL, typically used when seeking operation change cache destination
+\param isom_file the target ISO file
+\param url the new url (local file path or gmem:// blob)
+\return error if any
+*/
+GF_Err gf_isom_switch_source(GF_ISOFile *isom_file, const char *url);
+
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
 /*! dumps file structures into XML trace file

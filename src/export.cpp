@@ -994,6 +994,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_enum_track_references) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_text_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_referenced) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_switch_source) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )

@@ -6523,4 +6523,14 @@ s32 gf_isom_get_min_negative_cts_offset(GF_ISOFile *the_file, u32 trackNumber, G
 	return trak->Media->information->sampleTable->CompositionOffset->min_neg_cts_offset;
 }
 
+GF_EXPORT
+GF_Err gf_isom_switch_source(GF_ISOFile *the_file, const char *new_file)
+{
+	if (!the_file) return GF_BAD_PARAM;
+	if (the_file->openMode>GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
+	gf_isom_datamap_del(the_file->movieFileMap);
+
+	return gf_isom_datamap_new(new_file, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &the_file->movieFileMap);
+}
+
 #endif /*GPAC_DISABLE_ISOM*/
