@@ -3419,9 +3419,8 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Sending PUT response to %s - reply %d\n", sess->peer_address, sess->reply_code));
 
-			log_request_done(sess);
-
 			gf_dm_sess_send_reply(sess->http_sess, sess->reply_code, NULL, 0, GF_TRUE);
+			//logging is done below
 		}
 
 		sess->last_active_time = gf_sys_clock_high_res();
@@ -3538,6 +3537,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 resend:
 	last_range=GF_FALSE;
 	file_in_progress = sess->file_in_progress;
+	if (sess->put_in_progress==1) file_in_progress = GF_TRUE;
 	to_read=0;
 	//we have ranges
 	if (sess->nb_ranges) {
@@ -3649,7 +3649,7 @@ resend:
 		return;
 	}
 	//file not done yet ...
-	if (file_in_progress || (sess->put_in_progress==1)) {
+	if (file_in_progress) {
 		sess->last_active_time = gf_sys_clock_high_res();
 		return;
 	}
