@@ -1616,8 +1616,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_XLINK, ds->xlink, GF_EOS)
 	}
 
-     if (ctx->do_index || ctx->from_index) {
 
+	if (ctx->do_index || ctx->from_index) {
 		if (!ds->template && ctx->def_template) {
 			p = gf_filter_pid_get_property_str(ds->ipid, "idx_template");
 			if (p) {
