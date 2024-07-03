@@ -4101,6 +4101,7 @@ static void naludmx_reset_param_sets(GF_NALUDmxCtx *ctx, Bool do_free)
 	naludmx_del_param_list(ctx->vvc_aps_pre, do_free);
 	naludmx_del_param_list(ctx->vvc_dci, do_free);
 	naludmx_del_param_list(ctx->vvc_opi, do_free);
+	naludmx_del_param_list(ctx->sei_prefix, do_free);
 }
 
 static void naludmx_finalize(GF_Filter *filter)
