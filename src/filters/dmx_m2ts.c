@@ -44,7 +44,7 @@ static const u8 NIELSEN_ID3_TAG_PREFIX[] = {0x49, 0x44, 0x33, 0x04, 0x00, 0x20,
 
 static const char *ID3_PROP_SCHEME_URI = "https://aomedia.org/emsg/ID3";
 static const char *ID3_PROP_VALUE_URI_NIELSEN = "www.nielsen.com:id3:v1";
-static const char *ID3_PROP_VALUE_URI_DEFAULT = "https://aomedia.org/emsg/ID3";
+static const char *ID3_PROP_VALUE_URI_DEFAULT = "www.geniussports.com:id3:v1";
 
 typedef struct {
 	char *fragment;
