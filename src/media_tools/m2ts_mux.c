@@ -1944,7 +1944,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 	}
 
 	/*PES packet length: number of bytes in the PES packet following the last byte of the field "pes packet length"*/
-	gf_assert(stream->pes_data_len);
+	//we allow 0-length PES packet as some media streams may have a signification for this
 	pes_len = stream->pes_data_len + 3; // 3 = header size
 	if (use_pts) pes_len += 5;
 	if (use_dts) pes_len += 5;
