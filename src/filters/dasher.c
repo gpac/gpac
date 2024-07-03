@@ -2847,10 +2847,11 @@ static void dasher_set_inband_event(GF_DashStream *ds) {
 		GF_SAFEALLOC(custom_event, GF_MPD_Inband_Event);
 		custom_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
 		custom_event->value = gf_strdup("www.geniussports.com:id3:v1");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] insertign in band event with scheme: %s and value: %s\n", custom_event->scheme_id_uri,custom_event->value))
 		GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
 		nielsen_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
 		nielsen_event->value = gf_strdup("www.nielsen.com:id3:v1");
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] %s\n", nielsen_event->scheme_id_uri))
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] insertign in band event with scheme: %s and value: %s\n", nielsen_event->scheme_id_uri,nielsen_event->value))
 		gf_list_add(ds->set->inband_event, nielsen_event);
 		gf_list_add(ds->set->inband_event, custom_event);
 	}
