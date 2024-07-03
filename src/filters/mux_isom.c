@@ -283,6 +283,7 @@ typedef struct
 	u32 msn, msninc;
 	GF_Fraction64 tfdt;
 	Bool nofragdef, straf, strun, sgpd_traf, noinit;
+	Bool prft;
 	u32 vodcache;
 	u32 psshs;
 	u32 trackid;
@@ -6671,7 +6672,9 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 				if (dts==GF_FILTER_NO_TS) dts = cts;
 				if (tkw->first_dts_in_seg_plus_one && (tkw->first_dts_in_seg_plus_one - 1 > dts))
 					tkw->first_dts_in_seg_plus_one = 1 + dts;
-			} else {
+			}
+
+			if (ctx->prft && !ctx->dash_mode) {
 				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
 				if (p) {
 					gf_isom_set_fragment_reference_time(ctx->file, tkw->track_id, p->value.longuint, cts);
@@ -7858,6 +7861,9 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		gf_isom_enable_compression(ctx->file, ctx->compress, flags);
 	}
 
+	if (ctx->store < MP4MX_MODE_FRAG)
+		ctx->prft = GF_FALSE;
+
 	if ((ctx->store>=MP4MX_MODE_FRAG) && !ctx->tsalign)
 		ctx->insert_tfdt = GF_TRUE;
 
@@ -8368,6 +8374,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(nofragdef), "disable default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(straf), "use a single traf per moof (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strun), "use a single trun per traf (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(prft), "set `prft` box at segment start, disabled if not fragmented mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(psshs), "set `pssh` boxes store mode\n"
 	"- moof: in first moof of each segments\n"
 	"- moov: in movie box\n"
