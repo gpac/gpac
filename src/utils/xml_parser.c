@@ -1735,7 +1735,7 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 			if (!p_att) break;
 			if (!strcmp(p_att->name, in_att->name)) {
 				dup=GF_TRUE;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[SAX] Duplicated attribute %s on node %s, ignoring\n", in_att->name, name));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[SAX] Duplicated attribute \"%s\" on node \"%s\", ignoring\n", in_att->name, name));
 				break;
 			}
 		}
@@ -2274,7 +2274,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				} else if (!stricmp(att->value, "end")) {
 					if (enc_base64==2) enc_base64 = 3;
 				} else {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Invalid base64 attribute %s, expecting yes/no, start or end\n", att->value));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Invalid base64 attribute \"%s\", expecting yes/no, start or end\n", att->value));
                     e = GF_NON_COMPLIANT_BITSTREAM;
                     goto exit;
 				}
@@ -2282,7 +2282,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				base64_prefix_bits = atoi(att->value);
 			} else if (!stricmp(att->name, "id")) {
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unknown attribute %s, ignoring\n", att->name));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unknown attribute \"%s\", ignoring\n", att->name));
 			}
 		}
 
@@ -2319,7 +2319,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				gf_bs_write_int(bs, ret, nb_bits);
 				gf_bs_write_data(bs, data, ret);
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error decoding base64 %s\n", att->value));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error decoding base64 \"%s\"\n", att->value));
 				gf_free(data);
 				e = GF_BAD_PARAM;
 				goto exit;
@@ -2376,7 +2376,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			}
 
 			if (!_tmp) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error opening file %s\n", szFile));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error opening file \"%s\"\n", szFile));
 				e = GF_URL_ERROR;
 				goto exit;
 			}
