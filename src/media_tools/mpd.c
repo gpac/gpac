@@ -1248,6 +1248,7 @@ void gf_mpd_content_component_free(void *item)
 
 void gf_mpd_inband_event_free(void *item) {
     GF_MPD_Inband_Event *inband_event_desc = (GF_MPD_Inband_Event *) item;
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Free %s\n", inband_event_desc->scheme_id_uri))
     if (inband_event_desc->scheme_id_uri) gf_free(inband_event_desc->scheme_id_uri);
     if (inband_event_desc->value) gf_free(inband_event_desc->value);
     gf_free(item);
@@ -1351,7 +1352,7 @@ void gf_mpd_adaptation_set_free(void *_item)
 	gf_mpd_del_list(ptr->rating, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->viewpoint, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->content_component, gf_mpd_content_component_free, 0);
-    gf_mpd_del_list(ptr->inband_event, gf_mpd_inband_event_free, 0);
+    if (ptr->inband_event) gf_mpd_del_list(ptr->inband_event, gf_mpd_inband_event_free, 0);
 	if (ptr->segment_base) gf_mpd_segment_base_free(ptr->segment_base);
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
