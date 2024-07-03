@@ -1387,6 +1387,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			}
+			if (read->is_partial_download && read->wait_for_source && !read->mem_load_mode) {
+				const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_DOWNLOAD_SESSION);
+				if (prop && prop->type==GF_PROP_POINTER) {
+					const char *new_url = gf_dm_sess_get_cache_name(prop->value.ptr);
+					if (new_url)
+						gf_isom_switch_source(read->mov, new_url);
+				}
+			}
 			read->wait_for_source = GF_FALSE;
 
 			if (read->mem_load_mode) {
