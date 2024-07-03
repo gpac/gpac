@@ -1617,6 +1617,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
      if (ctx->do_index || ctx->from_index) {
+
 		if (!ds->template && ctx->def_template) {
 			p = gf_filter_pid_get_property_str(ds->ipid, "idx_template");
 			if (p) {
@@ -3983,7 +3984,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		//remove representations for streams muxed with others, but still open the output
 		if (ds->muxed_base) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] set_up source\n"));
 			GF_DashStream *ds_set = set->udta;
 			gf_list_rem(set->representations, i);
 			i--;
