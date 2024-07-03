@@ -3959,6 +3959,7 @@ static void gf_filter_remove_local(GF_FSTask *task)
 GF_EXPORT
 void gf_filter_remove(GF_Filter *filter)
 {
+	if (!filter) return;
 	safe_int_inc(&filter->session->remove_tasks);
 	//always post a task for remove, this allows users to do remove() followed by add filter() without triggering stops
 	gf_fs_post_task(filter->session, gf_filter_remove_local, filter, NULL, "filter_remove", NULL);
