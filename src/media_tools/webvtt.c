@@ -1397,18 +1397,18 @@ void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value)
 	if (!ts) return;
 	tmp = value;
 	ts->hour = (u32)(tmp/(3600*1000));
-	tmp -= ts->hour*3600*1000;
+	tmp -= (u64) ts->hour*3600*1000;
 	ts->min  = (u32)(tmp/(60*1000));
-	tmp -= ts->min*60*1000;
+	tmp -= (u64) ts->min*60*1000;
 	ts->sec  = (u32)(tmp/1000);
-	tmp -= ts->sec*1000;
+	tmp -= (u64) ts->sec*1000;
 	ts->ms   = (u32)tmp;
 }
 
 u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts)
 {
 	if (!ts) return 0;
-	return (3600*ts->hour + 60*ts->min + ts->sec)*1000 + ts->ms;
+	return (u64)(3600*ts->hour + 60*ts->min + ts->sec)*1000 + ts->ms;
 }
 
 void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour)
