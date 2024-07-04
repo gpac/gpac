@@ -2401,6 +2401,8 @@ straf (bool, default: false):  use a single traf per moof (smooth streaming and 
 .br
 strun (bool, default: false):  use a single trun per traf (smooth streaming and co)
 .br
+prft (bool, default: true):    set prft box at segment start, disabled if not fragmented mode
+.br
 psshs (enum, default: moov):   set pssh boxes store mode
 .br
 * moof: in first moof of each segments
@@ -4037,7 +4039,7 @@ Description: Audio output
 .br
 
 .br
-This filter writes a single uncompressed audio input PID to a sound card or other audio output device.
+This filter writes a single PCM (uncompressed) audio input PID to a sound card or other audio output device.
 .br
 
 .br
@@ -9183,6 +9185,21 @@ These will demultiplex the input, re-dash it and send the output of the dasher t
 .br
 
 .br
+.SH Error simulation
+.LP
+.br
+It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:
+.br
+Example
+.br
+gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0
+.br
+
+.br
+for a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 to transition from error back to OK.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -9241,6 +9258,10 @@ csum (enum, default: meta):    send MD5 checksum for DVB flute
 * all: send checksum for everything
 .br
 
+.br
+recv_obj_timeout (uint, default: 50): timeout period in ms before resorting to unicast repair
+.br
+errsim (v2d, default: 0.0x100.0): simulate errors using a 2-state Markov chain. Value are percentages
 .br
 
 .br
@@ -9614,7 +9635,11 @@ The filter outputs are PIDs using framed packets marked with segment boundaries 
 .br
 If representation IDs are not assigned during index creation, they default to the 1-based index of the source. You can check them using:
 .br
-EX: gpac -i src.ghi inspect:full
+Example
+.br
+gpac -i src.ghi inspect:full
+.br
+
 .br
 
 .br
@@ -10869,7 +10894,11 @@ The JSFun may return false to indicate that the scene should be considered as in
 .br
 
 .br
-EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
+Example
+.br
+"mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
+.br
+
 .br
 
 .br
@@ -11171,7 +11200,11 @@ The JSFun function specified by fun has no input parameter. The return value (de
 .br
 
 .br
-EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
+Example
+.br
+{ "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
+.br
+
 .br
 This will change scene s1 rotation every 2 seconds 
 .br
@@ -12033,11 +12066,11 @@ live (bool, default: true):    live mode
 .br
 gpu (enum, default: off):      enable GPU usage
 .br
-  * off: no GPU
+* off: no GPU
 .br
-  * mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
+* mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
 .br
-  * all: try to use GPU for everything
+* all: try to use GPU for everything
 .br
 
 .br
@@ -12061,11 +12094,11 @@ pfmt (pfmt, default: yuv):     output pixel format. Use rgba in GPU mode to forc
 .br
 dynpfmt (enum, default: init): allow dynamic change of output pixel format in software mode
 .br
-  * off: pixel format is forced to desired value
+* off: pixel format is forced to desired value
 .br
-  * init: pixel format is forced to format of fullscreen input in first generated frame
+* init: pixel format is forced to format of fullscreen input in first generated frame
 .br
-  * all: pixel format changes each time a full-screen input PID at same resolution is used
+* all: pixel format changes each time a full-screen input PID at same resolution is used
 .br
 
 .br
@@ -12100,7 +12133,7 @@ When .I adjust is set, the first video frame is adjusted such that a full circle
 .br
 By default, video UTC and date are computed at each frame generation from current clock and not from frame number.
 .br
-This will result in broken timing when playing at speeds other than 1.0.
+This will result in broken UTC timing text when playing at speeds other than 1.0.
 .br
 This can be changed using .I lock.
 .br
@@ -12206,11 +12239,11 @@ adjust (bool, default: true):  adjust start time to synchronize counter and UTC
 .br
 pack (enum, default: no):      packing mode for stereo views
 .br
- * no: no packing
+* no: no packing
 .br
- * ss: side by side packing, forces .I views to 2
+* ss: side by side packing, forces .I views to 2
 .br
- * tb: top-bottom packing, forces .I views to 2
+* tb: top-bottom packing, forces .I views to 2
 .br
 
 .br

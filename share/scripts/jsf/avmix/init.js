@@ -269,9 +269,9 @@ filter.set_author("GPAC team");
 filter.set_arg({ name: "pl", desc: "local playlist file to load", type: GF_PROP_STRING, def: "avmix.json" } );
 filter.set_arg({ name: "live", desc: "live mode", type: GF_PROP_BOOL, def: "true"} );
 filter.set_arg({ name: "gpu", desc: `enable GPU usage
-  - off: no GPU
-  - mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
-  - all: try to use GPU for everything`, type: GF_PROP_UINT, def: "off", minmax_enum: 'off|mix|all', hint:"advanced"} );
+- off: no GPU
+- mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
+- all: try to use GPU for everything`, type: GF_PROP_UINT, def: "off", minmax_enum: 'off|mix|all', hint:"advanced"} );
 filter.set_arg({ name: "thread", desc: "use threads for software rasterizer (-1 for all available cores)", type: GF_PROP_SINT, def: "-1", hint:"expert"} );
 filter.set_arg({ name: "lwait", desc: "timeout in ms before considering no signal is present", type: GF_PROP_UINT, def: "1000", hint:"expert"} );
 filter.set_arg({ name: "ltimeout", desc: "timeout in ms before restarting child processes", type: GF_PROP_UINT, def: "4000", hint:"expert"} );
@@ -284,9 +284,9 @@ filter.set_arg({ name: "vsize", desc: "output video size, 0 disable video output
 filter.set_arg({ name: "fps", desc: "output video frame rate", type: GF_PROP_FRACTION, def: "25"} );
 filter.set_arg({ name: "pfmt", desc: "output pixel format. Use \`rgba\` in GPU mode to force alpha channel", type: GF_PROP_PIXFMT, def: "yuv"} );
 filter.set_arg({ name: "dynpfmt", desc: `allow dynamic change of output pixel format in software mode
-  - off: pixel format is forced to desired value
-  - init: pixel format is forced to format of fullscreen input in first generated frame
-  - all: pixel format changes each time a full-screen input PID at same resolution is used`, type: GF_PROP_UINT, def: "init", minmax_enum: 'off|init|all', hint:"expert"} );
+- off: pixel format is forced to desired value
+- init: pixel format is forced to format of fullscreen input in first generated frame
+- all: pixel format changes each time a full-screen input PID at same resolution is used`, type: GF_PROP_UINT, def: "init", minmax_enum: 'off|init|all', hint:"expert"} );
 
 //audio output options
 filter.set_arg({ name: "sr", desc: "output audio sample rate, 0 disable audio output", type: GF_PROP_UINT, def: "44100"} );

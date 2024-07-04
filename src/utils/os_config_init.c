@@ -2137,6 +2137,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 	Bool escape_pipe = GF_FALSE;
 	Bool prev_was_example = GF_FALSE;
 	Bool prev_has_line_after = GF_FALSE;
+	u32 list_depth = 0;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
 	if (flags & GF_PRINTARG_MD) {
@@ -2200,6 +2201,22 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			continue;
 		}
 		if (!line[0]) flags &= ~GF_PRINTARG_HIGHLIGHT_FIRST;
+
+		//detect list start/end for mkdocs
+		if (gen_doc==1) {
+			u32 llev = 0;
+			if (!strncmp(line, "- ", 2)) llev=1;
+			else if (!strncmp(line, " - ", 3) || !strncmp(line, "  - ", 3)) llev=2;
+			else if (!strncmp(line, "    - ", 6)) llev=3;
+			if (llev>list_depth) {
+				list_depth = llev;
+				fprintf(helpout, "\n");
+			}
+			else if (llev<list_depth) {
+				list_depth = llev;
+				fprintf(helpout, "\n");
+			}
+		}
 
 		if ((line[0]=='#') && (line[1]==' ')) {
 			if (!gen_doc)
@@ -2268,25 +2285,39 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			)
 
 			//look for ": "
-			&& ((tok_sep=strstr(line, ": ")) != NULL )
+			&& ( ((tok_sep=strstr(line, ": ")) != NULL ) || list_depth)
 		) {
 			if (!gen_doc)
 				fprintf(helpout, "\t");
 			while (line[0] != '-') {
-				fprintf(helpout, " ");
+				if (!list_depth) {
+					fprintf(helpout, " ");
+				}
 				line++;
 				line_pos++;
 
 			}
-			fprintf(helpout, "* ");
+			if (list_depth && (gen_doc==1)) {
+				if (list_depth==3)
+					fprintf(helpout, "        - ");
+				else if (list_depth==2)
+					fprintf(helpout, "    - ");
+				else fprintf(helpout, "- ");
+			} else {
+				fprintf(helpout, "* ");
+			}
 			line_pos+=2;
 			if (!gen_doc)
 				gf_sys_set_console_code(helpout, GF_CONSOLE_YELLOW);
-			tok_sep[0] = 0;
-			fprintf(helpout, "%s", line+2);
-			line_pos += (u32) strlen(line+2);
-			tok_sep[0] = ':';
-			line = tok_sep;
+			if (tok_sep) {
+				tok_sep[0] = 0;
+				fprintf(helpout, "%s", line+2);
+				line_pos += (u32) strlen(line+2);
+				tok_sep[0] = ':';
+				line = tok_sep;
+			} else {
+				line += 2;
+			}
 			if (!gen_doc)
 				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
 		} else if (flags & (GF_PRINTARG_HIGHLIGHT_FIRST | GF_PRINTARG_OPT_DESC)) {

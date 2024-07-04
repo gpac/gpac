@@ -789,7 +789,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
 	GF_FS_SET_DESCRIPTION("Audio output")
-	GF_FS_SET_HELP("This filter writes a single uncompressed audio input PID to a sound card or other audio output device.\n"
+	GF_FS_SET_HELP("This filter writes a single PCM (uncompressed) audio input PID to a sound card or other audio output device.\n"
 	"\n"
 	"The longer the audio buffering [-bdur]() is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degraded when using large audio buffers.\n"
 	"\n"

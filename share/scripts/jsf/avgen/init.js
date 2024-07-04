@@ -38,7 +38,7 @@ filter.set_help(
 +"\n"
 +"When [-adjust]() is set, the first video frame is adjusted such that a full circle happens at each exact second according to the system UTC clock.\n"
 +"By default, video UTC and date are computed at each frame generation from current clock and not from frame number.\n"
-+"This will result in broken timing when playing at speeds other than 1.0.\n"
++"This will result in broken UTC timing text when playing at speeds other than 1.0.\n"
 +"This can be changed using [-lock]().\n"
 +"\n"
 +"Audio beep is generated every second, with octave (2xfreq) of even beep used every 10 seconds.\n"
@@ -82,7 +82,7 @@ filter.set_arg({ name: "ntp", desc: "send NTP along with packets", type: GF_PROP
 filter.set_arg({ name: "copy", desc: "copy the framebuffer into each video packet instead of using packet references", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "dur", desc: "run for the given time in second", type: GF_PROP_FRACTION, def: "0/0"} );
 filter.set_arg({ name: "adjust", desc: "adjust start time to synchronize counter and UTC", type: GF_PROP_BOOL, def: "true"} );
-filter.set_arg({ name: "pack", desc: "packing mode for stereo views\n - no: no packing\n - ss: side by side packing, forces [-views]() to 2\n - tb: top-bottom packing, forces [-views]() to 2", type: GF_PROP_UINT, def: "no", minmax_enum: "no|ss|tb"} );
+filter.set_arg({ name: "pack", desc: "packing mode for stereo views\n- no: no packing\n- ss: side by side packing, forces [-views]() to 2\n- tb: top-bottom packing, forces [-views]() to 2", type: GF_PROP_UINT, def: "no", minmax_enum: "no|ss|tb"} );
 filter.set_arg({ name: "disparity", desc: "disparity in pixels between left-most and right-most views", type: GF_PROP_UINT, def: "20"} );
 filter.set_arg({ name: "views", desc: "number of views", type: GF_PROP_UINT, def: "1"} );
 filter.set_arg({ name: "rates", desc: "number of target bitrates to assign, one per size", type: GF_PROP_STRING_LIST} );

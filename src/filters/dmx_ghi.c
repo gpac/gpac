@@ -1329,7 +1329,7 @@ GF_FilterRegister GHIDXDmxRegister = {
 	"The filter outputs are PIDs using framed packets marked with segment boundaries and can be chained to other filters before entering the dasher (e.g. for encryption, transcode...).\n"
 	"\n"
 	"If representation IDs are not assigned during index creation, they default to the 1-based index of the source. You can check them using:\n"
-	"EX: `gpac -i src.ghi inspect:full`\n"
+	"EX gpac -i src.ghi inspect:full\n"
 	"\n"
 	"# Muxed Representations\n"
 	"The filter can be used to generate muxed representations, either at manifest generation time or when generating a segment.\n"
