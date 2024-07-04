@@ -6079,6 +6079,18 @@ int mp4box_main(int argc, char **argv)
 
 	helpout = stdout;
 
+	GF_LOG_Level level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
+	gf_log_set_tool_level(GF_LOG_CONTAINER, level);
+	gf_log_set_tool_level(GF_LOG_SCENE, level);
+	gf_log_set_tool_level(GF_LOG_PARSER, level);
+	gf_log_set_tool_level(GF_LOG_MEDIA, level);
+	gf_log_set_tool_level(GF_LOG_CODING, level);
+	gf_log_set_tool_level(GF_LOG_DASH, level);
+#ifdef GPAC_MEMORY_TRACKING
+	if (mem_track)
+		gf_log_set_tool_level(GF_LOG_MEMORY, level);
+#endif
+
 	e = gf_sys_set_args(argc, (const char **) argv);
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Error assigning libgpac arguments: %s\n", gf_error_to_string(e) ));
@@ -6149,18 +6161,6 @@ int mp4box_main(int argc, char **argv)
 			return mp4box_cleanup(1);
 		}
 	}
-
-	GF_LOG_Level level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
-	gf_log_set_tool_level(GF_LOG_CONTAINER, level);
-	gf_log_set_tool_level(GF_LOG_SCENE, level);
-	gf_log_set_tool_level(GF_LOG_PARSER, level);
-	gf_log_set_tool_level(GF_LOG_MEDIA, level);
-	gf_log_set_tool_level(GF_LOG_CODING, level);
-	gf_log_set_tool_level(GF_LOG_DASH, level);
-#ifdef GPAC_MEMORY_TRACKING
-	if (mem_track)
-		gf_log_set_tool_level(GF_LOG_MEMORY, level);
-#endif
 
 	if (fuzz_chk) {
 		file = gf_isom_open(inName, GF_ISOM_OPEN_READ_DUMP, NULL);
