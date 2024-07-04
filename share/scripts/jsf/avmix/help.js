@@ -294,7 +294,7 @@ The \`tr\` parameter is an object containing the following variables that the co
 
 The \`JSFun\` may return false to indicate that the scene should be considered as inactive. Any other return value (undefined or not false) will mark the scene as active.
 
-EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
+EX "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
 
 
 ## Grouping
@@ -431,7 +431,7 @@ Script objects allow read and write access to the playlist from script. They cur
 
 The \`JSFun\` function specified by \`fun\` has no input parameter. The return value (default 0) is the number of seconds (float) to wait until next evaluation of the script.
 
-EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
+EX { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
 This will change scene \`s1\` rotation every 2 seconds 
 
 

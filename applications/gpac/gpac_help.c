@@ -1759,7 +1759,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 #endif
 		gf_sys_format_help(helpout, help_flags, "Register name used to load filter: **%s**\n", reg_name);
 		if (filter_inst) {
-			gf_sys_format_help(helpout, help_flags, "This is a JavaScript filter, not checked during graph resolution and needs explicit loading.\n");
+			gf_sys_format_help(helpout, help_flags, "This is a JavaScript filter. It is not checked during graph resolution and needs explicit loading.\n");
 		} else {
 			if (reg->flags & GF_FS_REG_EXPLICIT_ONLY) {
 				gf_sys_format_help(helpout, help_flags, "This filter is not checked during graph resolution and needs explicit loading.\n");

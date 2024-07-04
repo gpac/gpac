@@ -1470,7 +1470,7 @@ second_pass:
 							par_arg->arg_desc = par_arg->arg_desc ? gf_strdup(par_arg->arg_desc) : NULL;
 							par_arg->flags |= GF_FS_ARG_META_ALLOC;
 						}
-						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n - ");
+						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n- ");
 						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_desc, ": ");
 
 						if (an_arg.arg_default_val)
