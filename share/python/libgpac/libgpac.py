@@ -23,7 +23,7 @@
 #
 
 
-## 
+##
 #  \defgroup pyapi_grp Python APIs
 #  \brief Python API for libgpac.
 #
@@ -39,19 +39,19 @@
 #
 # # Error handling
 #
-# Errors are handled through raising exceptions, except callback methods wich must return a \ref GF_Err value. 
+# Errors are handled through raising exceptions, except callback methods wich must return a \ref GF_Err value.
 # # Properties handling
 #
-# Properties types are automatically converted to and from string. If the property name is not a built-in property type, the property is assumed to be a user-defined property. 
+# Properties types are automatically converted to and from string. If the property name is not a built-in property type, the property is assumed to be a user-defined property.
 # For example, when querying or setting a stream type property, use the property name `StreamType`.
 # See [`gpac -h props`](https://wiki.gpac.io/Filters/filters_properties/) for the complete list of built-in property names.
 #
 # Properties values are automatically converted to or from python types whenever possible. Types with no python equivalent (vectors, fractions) are defined as classes in python.
 # For example:
-# - when setting a UIntList property, pass a python list of ints 
-# - when reading a UIntList property, a python list of ints will be returned 
-# - when setting a PropVec2i property, pass a PropVec2i object 
-# - when setting a PropVec2iList property, pass a python list of PropVec2i 
+# - when setting a UIntList property, pass a python list of ints
+# - when reading a UIntList property, a python list of ints will be returned
+# - when setting a PropVec2i property, pass a PropVec2i object
+# - when setting a PropVec2iList property, pass a python list of PropVec2i
 #
 # 4CCs are handled as strings in python, and list of 4CCs are handled as list of strings
 #
@@ -107,18 +107,18 @@
 #
 #
 # # Posting user tasks
-# 
+#
 # You can post tasks to the session scheduler to get called back (useful when running the session in blocking mode)
 # Tasks must derive FilterTask class and implement their own `execute` method
 # \code
-# class MyTask(FilterTask): 
+# class MyTask(FilterTask):
 #   def exectute(self):
 #       do_something()
 #       #last scheduled task (session is over), abort
 #       if self.session.last_task:
-#           return -1 
-#       //keep task active, reschedule in 500 ms 
-#       return 500 
+#           return -1
+#       //keep task active, reschedule in 500 ms
+#       return 500
 #
 # task = MyTask('CustomTask')
 # fs.post_task(task)
@@ -138,13 +138,13 @@
 # - process_event: callback for processing and event
 # - reconfigure_output: callback for output reconfiguration (PID capability negotiation)
 #
-# A custom filter must also declare its capabilities, input and output, using push_cap method 
+# A custom filter must also declare its capabilities, input and output, using push_cap method
 # \code
-# class MyFilter(FilterTask): 
+# class MyFilter(FilterTask):
 #   def __init__(self, session):
 #    # !! call constructor of parent class first !!
 #    gpac.FilterCustom.__init__(self, session, "PYnspect")
-#    #indicate what we accept and produce - this can be done either in the constructor or after, but before calling \ref run or \ref run_step 
+#    #indicate what we accept and produce - this can be done either in the constructor or after, but before calling \ref run or \ref run_step
 #    #here we indicate we accept anything of type visual, and produce anything of type visual
 #    self.push_cap("StreamType", "Visual", gpac.GF_CAPS_INPUT_OUTPUT)
 #
@@ -173,7 +173,7 @@
 # \endcode
 #
 # \note
-# The \ref FilterCustom object has a list of input and output PIDs created. Before a callback to configure_pid, the input PID is not registered to the list 
+# The \ref FilterCustom object has a list of input and output PIDs created. Before a callback to configure_pid, the input PID is not registered to the list
 # of input PIDs if this is the first time the PID is configured.
 #
 # \code
@@ -188,7 +188,7 @@
 #
 
 
-## 
+##
 #  \defgroup pycore_grp libgpac core tools
 #  \ingroup pyapi_grp Python APIs
 #  \brief Core tools for libgpac.
@@ -277,7 +277,7 @@ gf_bool = c_uint
 #error to string helper
 _libgpac.gf_error_to_string.argtypes = [c_int]
 _libgpac.gf_error_to_string.restype = c_char_p
- 
+
 _libgpac.gf_gpac_version.restype = c_char_p
 _libgpac.gf_gpac_copyright.restype = c_char_p
 _libgpac.gf_gpac_copyright_cite.restype = c_char_p
@@ -454,7 +454,7 @@ def rmt_on():
 def rmt_enable(value):
     _libgpac.user_init = True
     _libgpac.gf_sys_profiler_enable_sampling(value)
-    
+
 
 ## sleep for given time in milliseconds
 # \param value time to sleep
@@ -466,10 +466,10 @@ def sleep(value):
 ## @}
 
 
-## 
+##
 #  \defgroup pystruct_grp Structure Wrappers
 #  \ingroup pyapi_grp
-#  \brief Python Structures 
+#  \brief Python Structures
 #
 # Python Wrappers for gpac C structures used in this API
 #
@@ -1033,7 +1033,7 @@ class FilterEvent(Union):
     ## \endcond
 
 
-## Buffer occupancy object 
+## Buffer occupancy object
 class BufferOccupancy:
   ##\cond private
   def __init__(self, max_units, nb_pck, max_dur, dur, is_final_flush):
@@ -1053,7 +1053,7 @@ class BufferOccupancy:
 ## @}
 
 
-## 
+##
 #  \defgroup pycst_grp Constants
 #  \ingroup pyapi_grp
 #  \brief Constants definitions
@@ -1625,7 +1625,7 @@ def on_gl_ctx_activate(cbk, set_active):
 ##\endcond
 
 
-## Task object for user callbacks from libgpac scheduler 
+## Task object for user callbacks from libgpac scheduler
 class FilterTask:
     ## constructor for tasks
     #\param name name of the task (used for logging)
@@ -1678,7 +1678,7 @@ class FilterSession:
 
 
     ## delete an existing filter session - see \ref gf_fs_del
-    #\warning The filter session must be explicitly destroyed if close (\ref gf_sys_close) is called after that 
+    #\warning The filter session must be explicitly destroyed if close (\ref gf_sys_close) is called after that
     #\return
     def delete(self):
         ##\cond private
@@ -1724,7 +1724,7 @@ class FilterSession:
     #\return
     def run(self):
         err = _libgpac.gf_fs_run(self._sess)
-        if err<0: 
+        if err<0:
             raise Exception('Failed to run session: ' + e2s(err))
 
     ##load source filter - see \ref gf_fs_load_source
@@ -1738,7 +1738,7 @@ class FilterSession:
         else:
             _filter = _libgpac.gf_fs_load_source(self._sess, URL.encode('utf-8'), None, None, byref(errp))
         err = errp.value
-        if err<0: 
+        if err<0:
             raise Exception('Failed to load source filter ' + URL + ': ' + e2s(err))
         return self._to_filter(_filter)
 
@@ -1753,7 +1753,7 @@ class FilterSession:
         else:
             _filter = _libgpac.gf_fs_load_destination(self._sess, URL.encode('utf-8'), None, None, byref(errp))
         err = errp.value
-        if err<0: 
+        if err<0:
             raise Exception('Failed to load destination filter ' + URL + ': ' + e2s(err))
         return self._to_filter(_filter)
 
@@ -1765,7 +1765,7 @@ class FilterSession:
         errp = c_int(0)
         _filter = _libgpac.gf_fs_load_filter(self._sess, fname.encode('utf-8'), byref(errp))
         err = errp.value
-        if err<0: 
+        if err<0:
             raise Exception('Failed to load filter ' + fname + ': ' + e2s(err))
         return self._to_filter(_filter)
 
@@ -1775,7 +1775,7 @@ class FilterSession:
     def post(self, task):
         task.session = self
         err = _libgpac.gf_fs_post_user_task(self._sess, fs_task_fun, py_object(task), task.name.encode('utf-8'))
-        if err<0: 
+        if err<0:
             raise Exception('Failed to post task ' + task.name + ': ' + e2s(err))
         self._tasks.append(task)
 
@@ -1791,7 +1791,7 @@ class FilterSession:
     #\return
     def abort(self, flush=0):
         _libgpac.gf_fs_abort(self._sess, flush)
-        
+
     ##get a filter by index - see \ref gf_fs_get_filter
     #\param index index of filter
     #\return Filter object
@@ -1801,7 +1801,7 @@ class FilterSession:
             raise Exception('Failed to get filter at index ' + str(index) )
         return self._to_filter(f)
 
-        
+
     ##lock the session - see \ref gf_fs_lock_filters
     #\param lock if True, locks otherwise unlocks
     #\return
@@ -1864,7 +1864,7 @@ class FilterSession:
     @property
     def http_bitrate(self):
         return _libgpac.gf_fs_get_http_rate(self._sess)
-    
+
     @property
     def http_max_bitrate(self):
         return _libgpac.gf_fs_get_http_max_rate(self._sess)
@@ -2148,6 +2148,7 @@ class DASHQualityInfoNat(Structure):
         ("ast_offset", c_double),
         ("avg_duration", c_double),
         ("sizes", _gf_list),
+        ("hls_variant_url", c_char_p),
     ]
 
 class DASHByteRange(Structure):
@@ -2179,7 +2180,7 @@ _libgpac.gf_list_get.restype = c_void_p
 
 ## \endcond
 
-## 
+##
 #  \defgroup pydash_grp DASH custom algorithm
 #  \ingroup pyapi_grp
 #  \brief Python API for libgpac DASH client.
@@ -2392,13 +2393,13 @@ class DASHCustomAlgorithm:
     #   - 0: end of period (groups are no longer valid)
     #   - 1: start of a static period
     #   - 2: start of a dynamic (live) period
-    #\return 
+    #\return
     def on_period_reset(self, reset_type):
         pass
 
     ##Callback (optional) called when a new group (adaptation set) is created
     #\param group the newly created \ref DASHGroup
-    #\return 
+    #\return
     def on_new_group(self, group):
         pass
 
@@ -2713,7 +2714,7 @@ class Filter:
 
         self._pid_enum_props_ex(callback_obj, pid)
 
-    ## \endcond    
+    ## \endcond
 
     ##get an input pid property by name
     #\param idx index of input pid
@@ -2791,7 +2792,7 @@ class Filter:
         f_idx=0
         while True:
             f = _libgpac.gf_filter_pid_enum_destinations(pid, f_idx)
-            f_idx+=1        
+            f_idx+=1
             if f==None:
                 break
             _filter = self._session._to_filter(f)
@@ -2835,7 +2836,7 @@ class Filter:
     def get_statistics(self):
         stats = FilterStats()
         err = _libgpac.gf_filter_get_stats(self._filter, byref(stats))
-        if err<0: 
+        if err<0:
             raise Exception('Failed to fetch filter stats: ' + e2s(err))
         return stats
 
@@ -2883,7 +2884,7 @@ class Filter:
             err = _libgpac.gf_filter_bind_dash_algo_callbacks(self._filter, py_object(object), dash_period_reset, dash_group_new, dash_rate_adaptation, dash_download_monitor)
         else:
             err = _libgpac.gf_filter_bind_dash_algo_callbacks(self._filter, py_object(object), dash_period_reset, dash_group_new, dash_rate_adaptation, None)
-        if err<0: 
+        if err<0:
             raise Exception('Failed to bind dash algo: ' + e2s(err))
         return 0
 
@@ -2935,7 +2936,7 @@ class Filter:
     def nb_opid(self):
         return _libgpac.gf_filter_get_opid_count(self._filter)
 
-    ##\endcond 
+    ##\endcond
 
 
 
@@ -3240,7 +3241,7 @@ class FilterCustom(Filter):
         errp = c_int(0)
         _filter = _libgpac.gf_fs_new_filter(session._sess, fname.encode('utf-8'), flags | GF_FS_REG_MAIN_THREAD, byref(errp))
         err = errp.value
-        if err<0: 
+        if err<0:
             raise Exception('Failed to create filter ' + fname + ': ' + e2s(err))
         #create base class
         Filter.__init__(self, session, _filter)
@@ -3320,7 +3321,7 @@ class FilterCustom(Filter):
 
         prop_val = _make_prop(prop_4cc, pcode, prop, custom_type)
         err = _libgpac.gf_filter_push_caps(self._filter, prop_4cc, byref(prop_val), prop_name, flag, priority)
-        if err<0: 
+        if err<0:
             raise Exception('Failed to push cap: ' + e2s(err))
 
     ##create a new output pid for this filter - see \ref gf_filter_pid_new
@@ -3420,19 +3421,19 @@ class FilterCustom(Filter):
     def nb_evts_queued(self):
         return _libgpac.gf_filter_get_num_events_queued(self._filter)
 
-    @property 
+    @property
     def clock_hint_time(self):
         val = c_ulonglong(0)
         _libgpac.gf_filter_get_clock_hint(self._filter, byref(val), None)
         return val.value
 
-    @property 
+    @property
     def clock_hint_mediatime(self):
         val = Fraction64()
         _libgpac.gf_filter_get_clock_hint(self._filter, None, byref(val))
         return val
 
-    @property 
+    @property
     def connections_pending(self):
         return _libgpac.gf_filter_connections_pending(self._filter)
 
@@ -3706,7 +3707,7 @@ class FilterPid:
         err = _libgpac.gf_filter_pid_copy_properties(self._pid, ipid._pid)
         if err<0:
             raise Exception('Cannot copy properties: ' + e2s(err) )
-    
+
     ##removes all properties of the current pid - see \ref gf_filter_pid_reset_properties
     #\return
     def reset_props(self):
@@ -3961,7 +3962,7 @@ class FilterPid:
         return None
 
     ##creates a new packet sharing memory of the filter - see \ref gf_filter_pck_new_shared
-    #The filter object must have a `packet_release` method with arguments [ FilterPid,  FilterPacket ] 
+    #The filter object must have a `packet_release` method with arguments [ FilterPid,  FilterPacket ]
     #\param data the data to use. If NumPy is detected, accept a NP Array. Otherwise data is type casted into POINTER(c_ubyte)
     #\return the new FilterPacket or None if failure
     def new_pck_shared(self, data):
@@ -4272,7 +4273,7 @@ _libgpac.gf_filter_pck_dangling_copy.restype = _gf_filter_packet
 
 ##\endcond private
 
-## OpenGL texture info 
+## OpenGL texture info
 class GLTextureInfo:
   ##\cond private
   def __init__(self, gl_id, gl_format):
@@ -4591,7 +4592,7 @@ class FilterPacket:
             data = np.ctypeslib.as_array(data, (size.value,))
             if self._readonly:
                 data.flags.writeable=False
-        return data        
+        return data
 
     @property
     def start(self):
