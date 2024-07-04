@@ -575,6 +575,16 @@ static void osvcdec_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->src_packets);
 }
+#else
+static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	return GF_NOT_SUPPORTED;
+}
+static GF_Err osvcdec_process(GF_Filter *filter)
+{
+	return GF_NOT_SUPPORTED;
+}
+#endif //GPAC_HAS_OPENSVC
 
 static const GF_FilterCapability OSVCDecCaps[] =
 {
@@ -589,24 +599,27 @@ GF_FilterRegister OSVCDecRegister = {
 	.name = "osvcdec",
 	GF_FS_SET_DESCRIPTION("OpenSVC decoder")
 	GF_FS_SET_HELP("This filter decodes scalable AVC|H264 streams through OpenSVC library.")
-	.private_size = sizeof(GF_OSVCDecCtx),
+
 	SETCAPS(OSVCDecCaps),
-	.initialize = osvcdec_initialize,
-	.finalize = osvcdec_finalize,
 	.configure_pid = osvcdec_configure_pid,
 	.process = osvcdec_process,
+#ifdef GPAC_HAS_OPENSVC
+	.private_size = sizeof(GF_OSVCDecCtx),
+	.initialize = osvcdec_initialize,
+	.finalize = osvcdec_finalize,
 	.process_event = osvcdec_process_event,
 	.max_extra_pids = (SVC_MAX_STREAMS-1),
+#endif
 	.priority = 255
 };
-
-#endif //GPAC_HAS_OPENSVC
 
 const GF_FilterRegister *osvcdec_register(GF_FilterSession *session)
 {
 #ifdef GPAC_HAS_OPENSVC
 	return &OSVCDecRegister;
 #else
-	return NULL;
+	if (!gf_opts_get_bool("temp", "gendoc"))
+		return NULL;
+	return &OSVCDecRegister;
 #endif
 }

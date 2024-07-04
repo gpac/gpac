@@ -27,7 +27,6 @@
 #include <gpac/filters.h>
 #include "gpac.h"
 
-extern FILE *sidebar_md;
 extern FILE *helpout;
 extern u32 gen_doc;
 extern u32 help_flags;
@@ -41,6 +40,8 @@ extern char **alias_argv;
 extern GF_List *args_used;
 extern GF_List *args_alloc;
 extern u32 compositor_mode;
+
+GF_List *sorted_filters = NULL;
 #define SEP_LIST	3
 
 
@@ -1715,37 +1716,18 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		helpout = gf_fopen(szName, "w");
 		fprintf(helpout, "%s", auto_gen_md_warning);
 
-		if (!sidebar_md) {
-			char *sbbuf = NULL;
-			if (gf_file_exists("_Sidebar.md")) {
-				char szLine[1024];
-				u32 end_pos=0;
-				sidebar_md = gf_fopen("_Sidebar.md", "r");
-				gf_fseek(sidebar_md, 0, SEEK_SET);
-				while (!feof(sidebar_md)) {
-					char *read = gf_fgets(szLine, 1024, sidebar_md);
-					if (!read) break;
-					if (!strncmp(szLine, "**Filters Help**", 16)) {
-						end_pos = (u32) gf_ftell(sidebar_md);
-						break;
-					}
-				}
-				if (!end_pos) end_pos = (u32) gf_ftell(sidebar_md);
-				if (end_pos) {
-					sbbuf = gf_malloc(end_pos+1);
-					gf_fseek(sidebar_md, 0, SEEK_SET);
-					end_pos = (u32) gf_fread(sbbuf, end_pos, sidebar_md);
-					sbbuf[end_pos]=0;
-					gf_fclose(sidebar_md);
-				}
-			}
-			sidebar_md = gf_fopen("_Sidebar.md", "w");
-			if (sbbuf) {
-				fprintf(sidebar_md, "%s\n  \n", sbbuf);
-				gf_free(sbbuf);
+		if (!sorted_filters) sorted_filters = gf_list_new();
+		u32 idx, count = gf_list_count(sorted_filters);
+		for (idx=0; idx<count; idx++) {
+			const char *areg_name = gf_list_get(sorted_filters, idx);
+			if (strcmp(reg_name, areg_name)<0) {
+				gf_list_insert(sorted_filters, gf_strdup(reg_name), idx);
+				break;
 			}
 		}
-		fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg_desc, reg_name, reg_name);
+		if (idx==count)
+			gf_list_add(sorted_filters, gf_strdup(reg_name));
+
 #ifndef GPAC_DISABLE_DOC
 
 		if (!reg_help) {
@@ -2080,6 +2062,50 @@ static Bool jsinfo_dir_enum(void *cbck, char *item_name, char *item_path, GF_Fil
 	return GF_FALSE;
 }
 
+static void patch_mkdocs_yml()
+{
+	if (!gf_file_exists("../../mkdocs.yml")) goto exit;
+	char szLine[1024];
+	Bool in_filter_list=GF_FALSE;
+	char *oyml = NULL;
+	FILE *yml = gf_fopen("../../mkdocs.yml", "r");
+	while (!feof(yml)) {
+		char *read = gf_fgets(szLine, 1024, yml);
+		if (!read) break;
+		if (in_filter_list && !strncmp(szLine, "  - ", 4))
+			in_filter_list = GF_FALSE;
+
+		if (!strncmp(szLine, "    - All filters:", 18)) {
+			gf_dynstrcat(&oyml, szLine, NULL);
+			in_filter_list = GF_TRUE;
+
+			while (gf_list_count(sorted_filters)) {
+				char *fname = gf_list_pop_front(sorted_filters);
+				sprintf(szLine, "      - %s: Filters/%s.md\r\n", fname, fname);
+				gf_dynstrcat(&oyml, szLine, NULL);
+				gf_free(fname);
+			}
+			continue;
+		}
+		if (!in_filter_list) {
+			gf_dynstrcat(&oyml, szLine, NULL);
+			continue;
+		}
+	}
+	gf_fclose(yml);
+	if (oyml) {
+		FILE *yml = gf_fopen("../../mkdocs.yml", "w");
+		gf_fwrite(oyml, (u32) strlen(oyml), yml);
+		gf_fclose(yml);
+		gf_free(oyml);
+	}
+
+exit:
+	while (gf_list_count(sorted_filters)) {
+		gf_free(gf_list_pop_back(sorted_filters));
+	}
+	gf_list_del(sorted_filters);
+}
 
 Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 {
@@ -2233,6 +2259,8 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 			}
 			if (!sep) break;
 		}
+		if (gen_doc==1) patch_mkdocs_yml();
+
 		return GF_TRUE;
 	}
 

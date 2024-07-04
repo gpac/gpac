@@ -41,7 +41,6 @@ GF_List *args_used = NULL;
 GF_List *args_alloc = NULL;
 u32 gen_doc = 0;
 u32 help_flags = 0;
-FILE *sidebar_md=NULL;
 FILE *helpout = NULL;
 const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/gpac.c -->\n";
 
@@ -248,11 +247,6 @@ static int gpac_exit_fun(GF_Err code)
 			".LP\ngpac(1), MP4Box(1)\n", GPAC_VERSION, gf_gpac_copyright());
 		}
 		gf_fclose(helpout);
-	}
-
-	if (sidebar_md) {
-		gf_fclose(sidebar_md);
-		sidebar_md = NULL;
 	}
 
 	cleanup_logs();
