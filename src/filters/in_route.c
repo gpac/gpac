@@ -527,7 +527,7 @@ static GF_Err routein_process(GF_Filter *filter)
 		} else if (!e) {
 			ctx->last_timeout = 0;
 			if (ctx->evt_interrupt) break;
-			//uncomment these to slow down demuxer (usefull when debugging low latency mode)
+			//uncomment these to slow down demuxer (useful when debugging low latency mode)
 //			gf_filter_ask_rt_reschedule(filter, 10000);
 //			break;
 		} else if (e==GF_EOS) {
