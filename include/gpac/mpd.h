@@ -732,6 +732,8 @@ typedef struct
 	GF_List *viewpoint;
 	/*! content component descriptor list if any*/
 	GF_List *content_component;
+    /*! inband streams events */
+    GF_List *inband_event;
 
 	/*! base URL (alternate location) list if any*/
 	GF_List *base_URLs;
@@ -765,6 +767,13 @@ typedef struct
 	/*target fragment duration*/
 	Double hls_ll_target_frag_dur;
 } GF_MPD_AdaptationSet;
+
+typedef struct {
+    /* Scheme ID Uri of the inband event */
+    char *scheme_id_uri;
+    /* Value of the inband event */
+    char *value;
+} GF_MPD_Inband_Event;
 
 /*! MPD offering type*/
 typedef enum {
