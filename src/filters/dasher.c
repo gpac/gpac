@@ -2847,7 +2847,7 @@ static void dasher_set_inband_event(GF_DashStream *ds) {
 	if(ds->stream_type == GF_STREAM_AUDIO) {
 		GF_SAFEALLOC(custom_event, GF_MPD_Inband_Event);
 		custom_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
-		custom_event->value = gf_strdup("www.geniussports.com:id3:v1");
+		custom_event->value = gf_strdup("https://aomedia.org/emsg/ID3");
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] insertign in band event with scheme: %s and value: %s\n", custom_event->scheme_id_uri,custom_event->value))
 		GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
 		nielsen_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");

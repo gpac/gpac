@@ -6397,7 +6397,7 @@ GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *emsg_prop, u32 id_secuence)
+static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *emsg_prop, u32 id_sequence)
 {
 	GF_BitStream *bs = gf_bs_new(emsg_prop->value.data.ptr, emsg_prop->value.data.size, GF_BITSTREAM_READ);
 	GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
@@ -6429,7 +6429,7 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	emsg->timescale = timescale;
 	emsg->presentation_time_delta = pts_delta;
 	emsg->event_duration = 0xFFFFFFFF;
-	emsg->event_id = id_secuence;
+	emsg->event_id = id_sequence;
 	emsg->scheme_id_uri = gf_strdup(scheme_uri);
 	emsg->value = gf_strdup(value_uri);
 
