@@ -824,14 +824,17 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	u8 track_ref_index;
 	s8 sample_offset;
 	u32 data_offset, data_size;
+	Bool full_parse = GF_FALSE;
 	s32 idx;
 	InspectLogCbk lcbk;
 	GF_BitStream *bs = NULL;
 	const char *nal_name;
 
-	if (full_bs_dump<INSPECT_ANALYZE_BS)
+	if (full_bs_dump<INSPECT_ANALYZE_BS) {
+		if (!gf_sys_is_test_mode() && full_bs_dump)
+			full_parse = GF_TRUE;
 		full_bs_dump = 0;
-	else {
+	} else {
 		lcbk.dump = dump;
 		lcbk.dump_bits = full_bs_dump==INSPECT_ANALYZE_BS_BITS ? GF_TRUE : GF_FALSE;
 	}
@@ -864,6 +867,8 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			res = gf_hevc_parse_nalu_bs(bs, hevc, &type, &temporal_id, &quality_id);
 		} else {
 			bs = NULL;
+			if (full_parse)
+				hevc->full_slice_header_parse = GF_TRUE;
 			res = gf_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
 			inspect_printf(dump, "code=\"%d\"", type);
 		}
@@ -1102,6 +1107,15 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				inspect_printf(dump, " slice_segment_address=\"%d\"", hevc->s_info.slice_segment_address);
 				inspect_printf(dump, " slice_type=\"%d\"", hevc->s_info.slice_type);
 			}
+		}
+		if (!gf_sys_is_test_mode() && (type < GF_HEVC_NALU_VID_PARAM) && hevc->s_info.nb_reference_pocs) {
+			u32 i;
+			inspect_printf(dump, " POC=\"%d\" referencePOCs=\"", hevc->s_info.poc);
+			for (i=0; i<hevc->s_info.nb_reference_pocs; i++) {
+				if (i) inspect_printf(dump, " ");
+				inspect_printf(dump, "%d", hevc->s_info.reference_pocs[i]);
+			}
+			inspect_printf(dump, "\"");
 		}
 		if (!full_bs_dump)
 			inspect_printf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
@@ -3611,7 +3625,7 @@ props_done:
 				size--;
 			}
 		}
-		while (size) {
+		while (size && pctx->nalu_size_length) {
 			if (size < pctx->nalu_size_length) {
 				inspect_printf(dump, "   <!-- NALU is corrupted: nalu_size_length is %u but only %d remains -->\n", pctx->nalu_size_length, size);
 				break;
@@ -4371,10 +4385,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		if (!dsi) is_enh = GF_TRUE;
 	case GF_CODECID_AVC:
 	case GF_CODECID_AVC_PS:
-		if (!dsi && !dsi_enh) {
-			inspect_printf(dump, "/>\n");
-			return;
-		}
 #ifndef GPAC_DISABLE_AV_PARSERS
 		inspect_reset_parsers(pctx, &pctx->avc_state);
 
@@ -4383,6 +4393,10 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			if (!pctx->avc_state) return;
 		}
 #endif
+		if (!dsi && !dsi_enh) {
+			inspect_printf(dump, "/>\n");
+			return;
+		}
 		inspect_printf(dump, ">\n");
 		inspect_printf(dump, "<AVCParameterSets>\n");
 		if (dsi) {
@@ -4421,11 +4435,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		is_enh = GF_TRUE;
 	case GF_CODECID_HEVC:
 	case GF_CODECID_HEVC_TILES:
-		if (!dsi && !dsi_enh) {
-			inspect_printf(dump, "/>\n");
-			return;
-		}
-
 #ifndef GPAC_DISABLE_AV_PARSERS
 		inspect_reset_parsers(pctx, &pctx->hevc_state);
 
@@ -4434,6 +4443,12 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			if (!pctx->hevc_state) return;
 		}
 #endif
+
+		if (!dsi && !dsi_enh) {
+			inspect_printf(dump, "/>\n");
+			return;
+		}
+
 
 		if (dsi) {
 			if (is_enh && !dsi_enh) {
@@ -4490,11 +4505,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 	case GF_CODECID_VVC:
 	case GF_CODECID_VVC_SUBPIC:
-		if (!dsi) {
-			inspect_printf(dump, "/>\n");
-			return;
-		}
-
 #ifndef GPAC_DISABLE_AV_PARSERS
 		inspect_reset_parsers(pctx, &pctx->vvc_state);
 
@@ -4503,6 +4513,10 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			if (!pctx->vvc_state) return;
 		}
 #endif
+		if (!dsi) {
+			inspect_printf(dump, "/>\n");
+			return;
+		}
 
 		vvcC = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 		if (vvcC)
@@ -5365,6 +5379,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	}
 	if (ctx->analyze) {
 		ctx->xml = GF_TRUE;
+		ctx->mode = INSPECT_MODE_REFRAME;
 	}
 
 
