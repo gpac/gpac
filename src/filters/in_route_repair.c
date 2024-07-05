@@ -492,8 +492,8 @@ restart:
 		rsi->pending++;
 		rsess->range = rr;
 		gf_list_del_item(rsi->ranges, rr);
-gf_assert(rsi->finfo.filename);
-gf_assert(rsi->finfo.filename[0]);
+		gf_assert(rsi->finfo.filename);
+		gf_assert(rsi->finfo.filename[0]);
 
 		char *url = gf_url_concatenate(ctx->repair_url, rsi->finfo.filename);
 

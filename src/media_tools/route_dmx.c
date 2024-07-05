@@ -3421,7 +3421,7 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 						if (obj->rlct_file && !obj->rlct_file->can_remove) continue;
 						if (obj->status <= GF_LCT_OBJ_RECEPTION) continue;
 
-						//crude hack as we currently don't know which media si playing so we need to purge all other ones...
+						//crude hack as we currently don't know which media is playing so we need to purge all other ones...
 						//- don't check LCT channel
 						//- if not same same tsi, prune if received a few segments ago
 						//if (obj->rlct != rlct) continue;
