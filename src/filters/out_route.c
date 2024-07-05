@@ -1526,7 +1526,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	nb_serv = gf_list_count(ctx->services);
 	for (i=0; i<nb_serv; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
-		if (!serv->use_flute) continue;
+		if (!serv->use_flute || ctx->flute_inband_mani_init) continue;
 		//inject manifest
 		if (serv->manifest && serv->manifest_type) {
 			u32 len = (u32) strlen(serv->manifest);
@@ -2104,6 +2104,52 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
 	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
 	//todo: inject manifest, init seg and child playlist ?
+	//inject manifest
+	if (serv->manifest && serv->manifest_type) {
+		u32 len = (u32) strlen(serv->manifest);
+		if (!serv->mani_toi) {
+			serv->mani_toi = ctx->next_toi_avail;
+			ctx->next_toi_avail++;
+		}
+		inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name,
+		(serv->manifest_type==2) ? "application/vnd.apple.mpegURL" : "application/dash+xml",
+					serv->manifest, len, serv->mani_toi, ctx->furl);
+		}
+
+		//inject init segs and HLS variant or RAW info
+		u32 j, nb_pids = gf_list_count(serv->pids);
+		for (j=0; j<nb_pids; j++) {
+			ROUTEPid *pid = gf_list_get(serv->pids, j);
+			if (pid->raw_file) {
+				if (!pid->current_toi || !pid->full_frame_size)
+					continue;
+				char *mime;
+				const GF_PropertyValue *p = gf_filter_pid_get_property(pid->pid, GF_PROP_PID_MIME);
+				if (p && p->value.string && strcmp(p->value.string, "*")) {
+					mime = p->value.string;
+				} else {
+					mime = "application/octet-string";
+				}
+				inject_fdt_file_desc(ctx, &payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi, ctx->furl);
+				continue;
+			}
+
+			if (pid->init_seg_data) {
+				if (!pid->init_toi) {
+					pid->init_toi = ctx->next_toi_avail;
+					ctx->next_toi_avail++;
+				}
+				inject_fdt_file_desc(ctx, &payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
+			}
+			if (pid->hld_child_pl) {
+				if (!pid->hls_child_toi) {
+					pid->hls_child_toi = ctx->next_toi_avail;
+					ctx->next_toi_avail++;
+				}
+				inject_fdt_file_desc(ctx, &payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi, ctx->furl);
+			}
+		}
+
 
 	//cannot use TOI 0 for anything else than FDT
 	if (!rpid->current_toi)
@@ -2224,12 +2270,22 @@ next_packet:
 					if (!manifest_sent) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
 						manifest_sent = GF_TRUE;
-						routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+						if (ctx->flute_inband_mani_init) {
+							routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+						} else {
+							routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+							}
 					}
-					init_sock = ctx->sock_dvb_mabr;
-					init_tsi = ctx->dvb_mabr_tsi;
+					if (ctx->flute_inband_mani_init) {
+						init_sock = rpid->rlct->sock;
+						init_tsi = rpid->tsi;
+						} else {
+							init_sock = ctx->sock_dvb_mabr;
+							init_tsi = ctx->dvb_mabr_tsi;
+							}
+					}
 					init_toi = rpid->init_toi;
-				}
+
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending init segment %s\n", serv->log_name, rpid->init_seg_name));
 				u32 codepoint;
