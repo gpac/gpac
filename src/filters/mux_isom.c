@@ -415,7 +415,7 @@ typedef struct
 
 	GF_List *ref_pcks;
 	//create id3 secuence
-	u32 id3_id_secuence;
+	u32 id3_id_sequence;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
@@ -6494,7 +6494,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 	nb_eos=0;
 	nb_done = 0;
 	nb_suspended = 0;
-	ctx->id3_id_secuence=0;
+	ctx->id3_id_sequence=0;
 	for (i=0; i<count; i++) {
 		u64 cts, dts, ncts;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
@@ -6638,8 +6638,8 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			//push ID3 packet properties as emsg
 			const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "id3");
 			if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
-				mp4_process_id3(ctx->file->moof, emsg, ctx->id3_id_secuence);
-				ctx->id3_id_secuence = ctx->id3_id_secuence + 1;
+				mp4_process_id3(ctx->file->moof, emsg, ctx->id3_id_sequence);
+				ctx->id3_id_sequence = ctx->id3_id_sequence + 1;
 			}
 
 			if (ctx->dash_mode) {
