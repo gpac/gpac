@@ -51,7 +51,7 @@ typedef struct
 	//options
 	char *dst, *ext, *mime, *ifce, *ip;
 	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
-	Bool korean, llmode, noreg, nozip, furl, flute;
+	Bool korean, llmode, noreg, nozip, furl, flute, flute_inband_mani_init;
 	u32 csum;
 	u32 recv_obj_timeout;
 
@@ -2988,6 +2988,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
 	{ OFFS(recv_obj_timeout), "timeout period in ms before resorting to unicast repair", GF_PROP_UINT, "50", NULL, 0},
 	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
+	{ OFFS(flute_inband_mani_init), "DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
