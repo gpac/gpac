@@ -587,6 +587,16 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		gf_list_del_item(traf->child_boxes, traf->tfrf);
 		gf_list_add(trak->child_boxes, trak->tfrf);
 	}
+	if (traf->SampleRefs) {
+		if (!trak->Media->information->sampleTable->SampleRefs) {
+			trak->Media->information->sampleTable->SampleRefs = traf->SampleRefs;
+			gf_list_add(trak->Media->information->sampleTable->child_boxes, traf->SampleRefs);
+			gf_list_del_item(traf->child_boxes, traf->SampleRefs);
+			traf->SampleRefs = NULL;
+		} else {
+			gf_list_transfer(trak->Media->information->sampleTable->SampleRefs->entries, traf->SampleRefs->entries);
+		}
+	}
 
 	if (trak->moov->mov->signal_frag_bounds) {
 		store_traf_map = GF_TRUE;
@@ -613,6 +623,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					if (traf_clone->sdtp) {
 						gf_isom_box_del_parent(&traf_clone->child_boxes, (GF_Box *) traf_clone->sdtp);
 						traf_clone->sdtp = NULL;
+					}
+					if (traf_clone->SampleRefs) {
+						gf_isom_box_del_parent(&traf_clone->child_boxes, (GF_Box *) traf_clone->SampleRefs);
+						traf_clone->SampleRefs = NULL;
 					}
 				}
 				gf_isom_box_size((GF_Box *)moof_clone);

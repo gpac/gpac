@@ -977,6 +977,10 @@ ISOM_BOX_IMPL_DECL(proj_type)
 
 ISOM_BOX_IMPL_DECL(keys)
 
+ISOM_BOX_IMPL_DECL(sref)
+
+
+
 #if defined(GPAC_DISABLE_ISOM_DUMP) && defined(GPAC_DISABLE_ISOM_WRITE)
 
 #define BOX_DECLARATION(_a, _b, _c, _d, _write, _size, _dump, _g, _h, _i, _j, _k, _l, _m) \
@@ -1789,6 +1793,8 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_4CC('d','e','p','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('i','l','c','p'), unkn, "ipco", "rawff"),
 
+
+	FBOX_DEFINE_S(GF_GPAC_BOX_TYPE_SREF, sref, "stbl traf", 0, "GPAC"),
 
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),
