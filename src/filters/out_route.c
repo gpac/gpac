@@ -2986,7 +2986,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- no: do not send checksum\n"
 		"- meta: only send checksum for configuration files, manifests and init segments\n"
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
-	{ OFFS(recv_obj_timeout), "timeout period in ms before resorting to unicast repair", GF_PROP_UINT, "50", NULL, 0},
+	{ OFFS(recv_obj_timeout), "set timeout period in ms before client resorts to unicast repair", GF_PROP_UINT, "50", NULL, 0},
 	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
 	{0}
 };
