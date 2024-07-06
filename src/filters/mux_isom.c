@@ -5026,6 +5026,21 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 	if (e) return e;
 
+	const GF_PropertyValue *p_id = gf_filter_pck_get_property(pck, GF_PROP_PCK_ID);
+	if (p_id) {
+		const GF_PropertyValue *p_refs = gf_filter_pck_get_property(pck, GF_PROP_PCK_REFS);
+		u32 nb_refs = p_refs ? p_refs->value.sint_list.nb_items : 0;
+		s32 *refs = p_refs ? p_refs->value.sint_list.vals : NULL;
+		if (for_fragment)
+			e = gf_isom_fragment_add_sample_references(ctx->file, tkw->track_id, p_id->value.sint, nb_refs, refs);
+		else
+			e = gf_isom_set_sample_references(ctx->file, tkw->track_num, tkw->nb_samples, p_id->value.sint, nb_refs, refs);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample references: %s\n", gf_error_to_string(e) ));
+		}
+	}
+
+
 	if (!for_fragment && sample_timing_ok) {
 		u64 samp_cts;
 		if (!tkw->clamp_ts_plus_one) {

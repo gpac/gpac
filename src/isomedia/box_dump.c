@@ -7235,6 +7235,28 @@ GF_Err keys_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_done("KeysBox", NULL, trace);
 	return GF_OK;
 }
+GF_Err sref_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SampleReferences *ptr = (GF_SampleReferences*)a;
+	u32 i, nb_entries = gf_list_count(ptr->entries);
+
+	gf_isom_box_dump_start(a, "SampleReferences", trace);
+	gf_fprintf(trace, ">\n");
+
+	for (i=0; i<nb_entries; i++) {
+		u32 j;
+		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		gf_fprintf(trace, "<SampleReferenceEntry sampleID=\"%u\" refs=\"", ent->sampleID);
+		for (j=0; j<ent->nb_refs; j++) {
+			if (j) gf_fprintf(trace, " ");
+			gf_fprintf(trace, "%u", ent->sample_refs[j]);
+		}
+		gf_fprintf(trace, "\"/>\n");
+	}
+
+	gf_isom_box_dump_done("SampleReferences", NULL, trace);
+	return GF_OK;
+}
 
 GF_Err empty_box_dump(GF_Box *a, FILE * trace)
 {
