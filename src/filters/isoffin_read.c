@@ -1616,6 +1616,20 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (ch->xps_mask && !gf_filter_pck_get_sap(pck) ) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_XPS_MASK, &PROP_UINT(ch->xps_mask) );
 				}
+				if (!ch->item_id) {
+					u32 ID, nb_refs=0;
+					const u32 *refs=NULL;
+					if (gf_isom_get_sample_references(read->mov, ch->track, ch->sample_num, &ID, &nb_refs, &refs)==GF_OK) {
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_ID, &PROP_SINT(ID));
+						if (refs && nb_refs) {
+							GF_PropertyValue p;
+							p.type = GF_PROP_SINT_LIST;
+							p.value.sint_list.nb_items = nb_refs;
+							p.value.sint_list.vals = (u32*) refs;
+							gf_filter_pck_set_property(pck, GF_PROP_PCK_REFS, &p);
+						}
+					}
+				}
 
 				dep_flags = ch->isLeading;
 				dep_flags <<= 2;
