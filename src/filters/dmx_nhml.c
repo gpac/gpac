@@ -319,7 +319,7 @@ restart:
 		j=0;
 		while ( (bs_child = (GF_XMLNode *)gf_list_enum(childnode->content, &j))) {
 			if (bs_child->type) continue;
-			if (!stricmp(bs_child->name, "BS")) has_bs = GF_TRUE;
+			if (!stricmp(bs_child->name, "BS") || !stricmp(bs_child->name, "SCTE35")) has_bs = GF_TRUE;
 		}
 
 
@@ -1479,7 +1479,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (!stricmp(childnode->name, "SAI")) {
 				has_sai_child = GF_TRUE;
 			}
-			if (!stricmp(childnode->name, "BS")) {
+			if (!stricmp(childnode->name, "BS") || !stricmp(childnode->name, "SCTE35")) {
 				has_subbs = GF_TRUE;
 			}
 			if (!stricmp(childnode->name, "Properties")) {
@@ -1601,6 +1601,10 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (!base_media_file) base_media_file = ctx->media_file;
 			gf_xml_parse_bit_sequence_bs(sample_child ? sample_child : node, ctx->src_url, base_media_file, bs_tmp);
 			gf_bs_get_content(bs_tmp, &output, &ctx->samp_buffer_size);
+			printf("\n");
+			for(int i=0; i<ctx->samp_buffer_size; i++)
+				printf(" %02X", output[i]);
+			printf("\n");
 			gf_bs_del(bs_tmp);
 
 			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc) {
