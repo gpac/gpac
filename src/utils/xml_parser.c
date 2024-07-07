@@ -2186,6 +2186,7 @@ GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name)
 	else sscanf(att->value, _fmt, &_value); \
 	}\
 
+static void xml_scte35_parse(GF_XMLNode *node, GF_BitStream *bs);
 
 GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, const char *base_media_file, GF_BitStream *bs_orig)
 {
@@ -2218,7 +2219,10 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		const char *szData = NULL;
 		if (node->type) continue;
 
-		if (stricmp(node->name, "BS") ) {
+		if (!stricmp(node->name, "SCTE35")) {
+			xml_scte35_parse(node, bs); //Romain: we also need to add the SCTE35 pck property?
+			continue;
+		} else if (stricmp(node->name, "BS") ) {
 			e = gf_xml_parse_bit_sequence_bs(node, parent_url, base_media_file, bs);
 			if (e) goto exit;
 			continue;
@@ -2586,4 +2590,396 @@ GF_XMLNode *gf_xml_dom_node_clone(GF_XMLNode *node)
 		gf_list_add(clone->content, child_clone);
 	}
 	return clone;
+}
+
+
+// SCTE-35 XML parsing ----------------------------------------------
+
+static void xml_scte35_parse_splice_time(GF_XMLNode *root, GF_BitStream *bs)
+{
+	u32 i = 0, j = 0;
+	GF_XMLNode *node = NULL;
+	GF_XMLAttribute *att = NULL;
+
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+		if (!strcmp(att->name, "ptsTime")) {
+			u64 ptsTime = 0;
+			if (sscanf(att->value, LLU, &ptsTime) != 1)
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Invalid value for ptsTime=\"%s\"\n", att->value));
+
+			Bool time_specified_flag = GF_TRUE;
+			gf_bs_write_int(bs, time_specified_flag, 1);
+			if (time_specified_flag == GF_TRUE) {
+				gf_bs_write_int(bs, 0xFF/*reserved*/, 6);
+				gf_bs_write_long_int(bs, ptsTime, 33);
+			} else {
+				gf_bs_write_int(bs, 0xFF/*reserved*/, 7);
+			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceTime\n", att->name));
+		}
+	}
+
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceTime\n", node->name));
+	}
+}
+
+static void xml_scte35_parse_break_duration(GF_XMLNode *root, GF_BitStream *bs)
+{
+	u32 i = 0, j = 0;
+	GF_XMLNode *node = NULL;
+	GF_XMLAttribute *att = NULL;
+
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+		if (!strcmp(att->name, "duration")) {
+			u64 duration = 0;
+			if (sscanf(att->value, LLU, &duration) != 1)
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Invalid value for duration=\"%s\"\n", att->value));
+
+			gf_bs_write_int(bs, 0/*auto_return*/, 1);
+			gf_bs_write_int(bs, 0/*reserved*/, 6);
+			gf_bs_write_long_int(bs, duration, 33);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceTime\n", att->name));
+		}
+	}
+
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceTime\n", node->name));
+	}
+}
+
+static void xml_scte35_parse_time_signal(GF_XMLNode *root, GF_BitStream *bs)
+{
+	u32 i = 0, j = 0;
+	GF_XMLNode *node = NULL;
+	GF_XMLAttribute *att = NULL;
+
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in TimeSignal\n", att->name));
+	}
+
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		if (!strcmp(node->name, "SpliceTime")) {
+			xml_scte35_parse_splice_time(node, bs);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in TimeSignal\n", node->name));
+		}
+	}
+}
+
+static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStream *bs)
+{
+	gf_bs_write_u16(bs, 0/*descriptor_loop_length*/); //placeholder//Romain
+	//Romain: for (u16 i=0; i<descriptor_loop_length; i++) {
+	gf_bs_write_u8(bs, 0x02/*splice_descriptor_tag*/);
+	gf_bs_write_u8(bs, 0/*descriptor_length*/);
+	gf_bs_write_u32(bs, GF_4CC('C', 'U', 'E', 'I'));
+
+	u32 i = 0, j = 0;
+	GF_XMLNode *node = NULL;
+	GF_XMLAttribute *att = NULL;
+	int segmentationEventId;
+	Bool segmentationEventCancelIndicator = GF_FALSE, webDeliveryAllowedFlag = GF_FALSE, noRegionalBlackoutFlag = GF_FALSE, archiveAllowedFlag = GF_FALSE;
+	Bool segmentationEventIdComplianceIndicator = GF_FALSE;
+	Bool programSegmentationFlag = GF_FALSE, segmentationDurationFlag = GF_FALSE, deliveryNotRestrictedFlag = GF_FALSE;
+	u8 deviceRestrictions = 0;
+	u8 segmentationTypeId = 0, segmentNum = 0, segmentsExpected = 0;
+
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+		if (!strcmp(att->name, "segmentationEventId")) {
+			segmentationEventId = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentationEventCancelIndicator")) {
+			segmentationEventCancelIndicator = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentationEventIdComplianceIndicator")) {
+			segmentationEventIdComplianceIndicator = atoi(att->value);
+		} else if (!strcmp(att->name, "webDeliveryAllowedFlag")) {
+			webDeliveryAllowedFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "noRegionalBlackoutFlag")) {
+			noRegionalBlackoutFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "archiveAllowedFlag")) {
+			archiveAllowedFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "deviceRestrictions")) {
+			deviceRestrictions = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentationTypeId")) {
+			segmentationTypeId = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentNum")) {
+			segmentNum = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentsExpected")) {
+			segmentsExpected = atoi(att->value);
+		} else if (!strcmp(att->name, "programSegmentationFlag")) {
+			programSegmentationFlag = atoi(att->value);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in TimeSignal\n", att->name));
+		}
+	}
+
+	gf_bs_write_u32(bs, segmentationEventId);
+
+	gf_bs_write_int(bs, segmentationEventCancelIndicator, 1);
+	gf_bs_write_int(bs, segmentationEventIdComplianceIndicator, 1);
+	gf_bs_write_int(bs, 0/*reserved*/, 6);
+	if (segmentationEventCancelIndicator == 0) {
+		gf_bs_write_int(bs, programSegmentationFlag, 1);
+		gf_bs_write_int(bs, segmentationDurationFlag, 1);
+		gf_bs_write_int(bs, deliveryNotRestrictedFlag, 1);
+		if (deliveryNotRestrictedFlag == 0) {
+			gf_bs_write_int(bs, webDeliveryAllowedFlag, 1);
+			gf_bs_write_int(bs, noRegionalBlackoutFlag, 1);
+			gf_bs_write_int(bs, archiveAllowedFlag, 1);
+			gf_bs_write_int(bs, deviceRestrictions, 2);
+		} else {
+			gf_bs_write_int(bs, 0/*reserved*/, 5);
+		}
+		if (programSegmentationFlag == 0) {
+			assert(0);
+#if 0 //not implemented
+			u8 component_count = gf_bs_write_u8(bs);
+			for (u8 i=0; i<component_count; i++) {
+				gf_bs_write_u8(bs, componentTag);
+				gf_bs_write_int(bs, 0/*reserved*/, 7);
+				gf_bs_write_u8(bs, componentTag);
+				gf_bs_write_long_int(bs, ptsOffset, 33);
+			}
+#endif
+		}
+		if (segmentationDurationFlag == 1) {
+			assert(0);
+#if 0 //not implemented
+			gf_bs_write_long_int(bs, segmentationDuration, 40);
+#endif
+		}
+	}
+
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		if (!strcmp(node->name, "SegmentationUpid")) {
+			GF_XMLAttribute *attx = NULL;
+			while ((attx = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+				if (!strcmp(attx->name, "segmentationUpidType")) {
+				gf_bs_write_u8(bs, segmentationTypeId);
+				gf_bs_write_u8(bs, segmentNum);
+				gf_bs_write_u8(bs, segmentsExpected);
+#if 0 //not implemented //Romain: we should add this if it is in the XML, not depending on conditions
+		gf_bs_write_u8(bs, segmentationUpidType);
+		gf_bs_write_u8(bs, segmentationUpidLength);
+		gf_assert(segmentationUpidLength == 0);
+
+		gf_bs_write_u8(bs, segmentationTypeId);
+		gf_bs_write_u8(bs, segmentNum);
+		gf_bs_write_u8(bs, segmentsExpected);
+		if (segmentationTypeId == 0x34 || segmentationTypeId == 0x30 || segmentationTypeId == 0x32
+		 || segmentationTypeId == 0x36 || segmentationTypeId == 0x38 || segmentationTypeId == 0x3A
+		 || segmentationTypeId == 0x44 || segmentationTypeId == 0x46) {
+			gf_bs_write_u8(bs, subSegmentNum);
+			gf_bs_write_u8(bs, subSegmentsExpected);
+		}
+
+
+		if (segmentationTypeId == 0x34 || segmentationTypeId == 0x30 || segmentationTypeId == 0x32
+		 || segmentationTypeId == 0x36 || segmentationTypeId == 0x38 || segmentationTypeId == 0x3A
+		 || segmentationTypeId == 0x44 || segmentationTypeId == 0x46) {
+			assert(0);
+#if 0 //not implemented
+			gf_bs_write_u8(bs, subSegmentNum);
+			gf_bs_write_u8(bs, subSegmentsExpected);
+#endif
+		}
+#endif
+#if 0 //Romain: seen at the end of TimeSignal
+   <SegmentationDescriptor segmentationEventId="1207959603" segmentationEventCancelIndicator="0" segmentationEventIdComplianceIndicator="1"
+    webDeliveryAllowedFlag="1" noRegionalBlackoutFlag="1" archiveAllowedFlag="1" deviceRestrictions="3"
+	segmentationTypeId="53" segmentNum="0" segmentsExpected="0">
+    <SegmentationUpid segmentationUpidType="8">000000003484D6D5</SegmentationUpid>
+   </SegmentationDescriptor>
+#endif
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SegmentationUpid\n", attx->name));
+				}
+			}
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in TimeSignal\n", node->name));
+		}
+	}
+}
+
+static void xml_scte35_parse_splice_insert(GF_XMLNode *root, GF_BitStream *bs)
+{
+	u32 i = 0, j = 0;
+	GF_XMLNode *node = NULL;
+	GF_XMLAttribute *att = NULL;
+
+	int spliceEventId = 0, spliceEventCancelIndicator = 0, outOfNetworkIndicator = 0, segmentationEventId = 0, programSpliceFlag = 0, durationFlag = 0, spliceImmediateFlag = 0;
+
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+		if (!strcmp(att->name, "spliceEventId")) {
+			spliceEventId = atoi(att->value);
+		} else if (!strcmp(att->name, "spliceEventCancelIndicator")) {
+			spliceEventCancelIndicator = atoi(att->value);
+		} else if (!strcmp(att->name, "outOfNetworkIndicator")) {
+			outOfNetworkIndicator = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentationEventId")) {
+			segmentationEventId = atoi(att->value);
+		} else if (!strcmp(att->name, "programSpliceFlag")) {
+			programSpliceFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "durationFlag")) {
+			durationFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "spliceImmediateFlag")) {
+			spliceImmediateFlag = atoi(att->value);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceInsert\n", att->name));
+		}
+	}
+
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		if (!strcmp(node->name, "SpliceTime")) {
+			xml_scte35_parse_splice_time(node, bs);
+		} else if (!strcmp(node->name, "BreakDuration")) {
+			xml_scte35_parse_break_duration(node, bs);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceInsert\n", node->name));
+		}
+	}
+#if 0 //Romain
+	u64 splice_time = 0;
+	*splice_event_id = gf_bs_read_u32(bs);
+	Bool splice_event_cancel_indicator = gf_bs_write_int(bs, 1);
+	/*reserved = */gf_bs_write_int(bs, 7);
+	if (splice_event_cancel_indicator == 0) {
+		/*Bool out_of_network_indicator = */gf_bs_write_int(bs, 1);
+		Bool program_splice_flag = gf_bs_write_int(bs, 1);
+		Bool duration_flag = gf_bs_write_int(bs, 1);
+		Bool splice_immediate_flag = gf_bs_write_int(bs, 1);
+		/*reserved = */gf_bs_write_int(bs, 4);
+
+		if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
+			splice_time = scte35dec_parse_splice_time(bs);
+			*pts = splice_time + pts_adjustment;
+		}
+
+		if (program_splice_flag == 0) {
+			u32 i;
+			u32 component_count = gf_bs_read_u8(bs);
+			for (i=0; i<component_count; i++) {
+				/*u8 component_tag = */gf_bs_read_u8(bs);
+				if (splice_immediate_flag == 0) {
+					gf_assert(*pts == 0); // we've never encounter multi component streams
+					splice_time = scte35dec_parse_splice_time(bs);
+					*pts = splice_time + pts_adjustment;
+				}
+			}
+		}
+		if (duration_flag == 1) {
+			//break_duration()
+			/*Bool auto_return = */gf_bs_write_int(bs, 1);
+			/*reserved = */gf_bs_write_int(bs, 6);
+			*dur = gf_bs_read_long_int(bs, 33);
+		}
+	}
+#endif
+}
+
+static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
+{
+	u32 i = 0, j = 0;
+	GF_XMLNode *node = NULL;
+	GF_XMLAttribute *att = NULL;
+	char xmlns[256] = "http://www.scte.org/schemas/35";
+	u32 sap_type = 0;
+	u32 protocol_version = 0;
+	u64 pts_adjustment = 0;
+	u32 tier = 0;
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
+		if (!strcmp(att->name, "xmlns")) {
+			snprintf(xmlns, 255, att->value);
+		} else if (!strcmp(att->name, "sapType")) {
+			XML_SCAN_INT("%u", sap_type);
+		} else if (!strcmp(att->name, "protocolVersion")) {
+			XML_SCAN_INT("%u", protocol_version);
+		} else if (!strcmp(att->name, "ptsAdjustment")) {
+			XML_SCAN_INT(LLU, pts_adjustment);
+		} else if (!strcmp(att->name, "tier")) {
+			XML_SCAN_INT("%u", tier);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceInfoSection\n", att->name));
+		}
+	}
+
+	gf_bs_write_u8(bs, 0xFC); //table_id
+	gf_bs_write_int(bs, 0/*section_syntax_indicator*/, 1);
+	gf_bs_write_int(bs, 0/*private_indicator*/, 1);
+	gf_bs_write_int(bs, sap_type, 2);
+	u64 section_length_pos = gf_bs_get_position(bs);
+	gf_bs_write_int(bs, 0, 12); //placeholder
+
+	gf_bs_write_u8(bs, protocol_version);
+	gf_bs_write_int(bs, 0/*encrypted_packet*/, 1);
+	gf_bs_write_int(bs, 0/*encryption_algorithm*/, 6);
+	gf_bs_write_long_int(bs, pts_adjustment, 33);
+	gf_bs_write_u8(bs, 0/*cw_index*/);
+	gf_bs_write_int(bs, tier, 12);
+	u64 splice_command_length_pos = gf_bs_get_position(bs);
+	gf_bs_write_int(bs, 0, 12); //placeholder
+
+#define WRITE_CMD_LEN() {                               \
+		u64 pos = gf_bs_get_position(bs);               \
+		int splice_command_length = pos - splice_command_length_pos - 3; \
+		gf_bs_seek(bs, splice_command_length_pos + 1);  \
+		gf_bs_write_int(bs, splice_command_length, 8); \
+		gf_bs_seek(bs, pos);                            \
+	}
+
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		if (!strcmp(node->name, "TimeSignal")) {
+			gf_bs_write_u8(bs, 0x06);
+			xml_scte35_parse_time_signal(node, bs);
+			//RomainWRITE_CMD_LEN();
+			                        \
+		u64 pos = gf_bs_get_position(bs);               \
+		int splice_command_length = pos - splice_command_length_pos - 3;
+		gf_bs_seek(bs, splice_command_length_pos + 1); 
+		gf_bs_write_int(bs, splice_command_length, 8);
+		gf_bs_seek(bs, pos);  
+			continue;
+		} else if (!strcmp(node->name, "SpliceInsert")) {
+			gf_bs_write_u8(bs, 0x05);
+			xml_scte35_parse_splice_insert(node, bs);
+			WRITE_CMD_LEN();
+			break;
+		} else if (!strcmp(node->name, "SegmentationDescriptor")) { //Romain: written after the rest, cf unit tests
+			xml_scte35_parse_segmentation_descriptor(node, bs);
+			break;
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceInfoSection\n", node->name));
+		}
+	}
+
+	// post write section length
+	u64 pos = gf_bs_get_position(bs);
+	int section_length = gf_bs_get_position(bs) - section_length_pos - 4;
+	gf_assert(section_length < 256); // we only write the 8 lower bits
+	gf_bs_seek(bs, section_length_pos + 1);
+	gf_bs_write_int(bs, section_length, 8);
+	gf_bs_seek(bs, pos);
+
+#undef WRITE_CMD_LEN
+}
+
+static void xml_scte35_parse(GF_XMLNode *root, GF_BitStream *bs)
+{
+	u32 i=0;
+	GF_XMLNode *node = NULL;
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
+		if (node->type) continue;
+		if (!strcmp(node->name, "SpliceInfoSection")) {
+			xml_scte35_parse_splice_info(node, bs);
+			continue;
+		}
+	}
 }
