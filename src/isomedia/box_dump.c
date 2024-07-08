@@ -1602,7 +1602,7 @@ static const char *get_comp_type_name(u32 ctype)
 {
 	u32 nb_cnames = GF_ARRAY_LENGTH(ctyp_names);
 	if (ctype<nb_cnames) return ctyp_names[ctype];
-	return "unknwon";
+	return "unknown";
 }
 
 static GF_Err dump_cmpd(GF_UnknownBox *u, FILE * trace)
@@ -1653,7 +1653,7 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 	types = gf_malloc(sizeof(CompInfo) * nb_comps);
 	if (!types) {
 		gf_bs_del(bs);
-		gf_isom_box_dump_done("ComponentDefinitionBox", (GF_Box *)u, trace);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
 		return GF_OUT_OF_MEM;
 	}
 	for (i=0; i<nb_comps; i++) {
@@ -1701,7 +1701,7 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 
 	gf_bs_del(bs);
 	gf_free(types);
-	gf_isom_box_dump_done("ComponentDefinitionBox", (GF_Box *)u, trace);
+	gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
 	return GF_OK;
 
 }
@@ -1781,7 +1781,7 @@ static GF_Err dump_sbpm(GF_UnknownBox *u, FILE * trace)
 	}
 	gf_fprintf(trace, ">\n");
 	gf_bs_del(bs);
-	gf_isom_box_dump_done("ComponentPatternBox", (GF_Box *)u, trace);
+	gf_isom_box_dump_done("SensorBrokenPixelMap", (GF_Box *)u, trace);
 	return GF_OK;
 }
 
@@ -1798,6 +1798,24 @@ static GF_Err dump_cloc(GF_UnknownBox *u, FILE * trace)
 	gf_fprintf(trace, ">\n");
 	gf_bs_del(bs);
 	gf_isom_box_dump_done("ChromaLocationBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+static GF_Err dump_cmpc(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "CompressionConfigurationBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_4cc_and_print("compression_type", 32)
+	get_and_print("must_decompress_individual_entities", 1)
+	get_and_print("compressed_entity_type", 7)
+	gf_fprintf(trace, ">\n");
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("CompressionConfigurationBox", (GF_Box *)u, trace);
 	return GF_OK;
 }
 
@@ -1842,6 +1860,34 @@ static GF_Err dump_gmcc(GF_UnknownBox *u, FILE * trace)
 	return GF_OK;
 }
 
+static GF_Err dump_icbr(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, nb_comps, i;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "GenericallyCompressedItemExtentsInfoBox", trace);
+
+	//full box
+	u8 version = gf_bs_read_u8(bs);
+	gf_fprintf(trace, " \"version\"=\"%u\"", version);
+	get_and_print("flags", 24)
+	nb_comps = gf_bs_read_u32(bs);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<nb_comps; i++) {
+		u64 extent_offset = 0;
+		u64 extent_size = 0;
+		if (version == 0) {
+			extent_offset = gf_bs_read_u32(bs);
+			extent_size = gf_bs_read_u32(bs);
+		} else if (version == 1) {
+			extent_offset = gf_bs_read_u64(bs);
+			extent_size = gf_bs_read_u64(bs);
+		}
+		gf_fprintf(trace, "<CompressedGcExtentInfo extent_offset=\"%u\" extent_size=\"%u\"/>\n", extent_offset, extent_size);
+	}
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("GenericallyCompressedItemExtentsInfoBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
 static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val, pos;
@@ -1910,6 +1956,10 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_gmcc(u, trace);
 	} else if (u->original_4cc==GF_4CC('d','v','c','1')) {
 		return dump_dvc1(u, trace);
+	} else if (u->original_4cc==GF_4CC('c','m','p','C')) {
+		return dump_cmpc(u, trace);
+	} else if (u->original_4cc==GF_4CC('i','c','b','r')) {
+		return dump_icbr(u, trace);
 	} else {
 #ifdef GPAC_HAS_QJS
 		const char *opt = gf_opts_get_key("core", "boxdir");

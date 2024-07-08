@@ -1792,6 +1792,8 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_4CC('d','i','s','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('d','e','p','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('i','l','c','p'), unkn, "ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('c','m','p','C'), unkn, "schi ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('i','c','b','r'), unkn, "ipco", "rawff"),
 
 
 	FBOX_DEFINE_S(GF_GPAC_BOX_TYPE_SREF, sref, "stbl traf", 0, "GPAC"),
