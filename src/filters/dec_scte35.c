@@ -38,6 +38,7 @@ typedef struct {
 typedef struct {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
+	Bool native; // using pck data instead of properties
 
 	// override gf_filter_*() calls for testability
 	GF_FilterPacket* (*pck_new_shared)(GF_FilterPid *pid, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
@@ -136,6 +137,10 @@ static GF_Err scte35dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	if (ctx->pass) return GF_OK;
+
+	const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
+	if (p && p->value.uint == GF_CODECID_SCTE35)
+		ctx->native = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_METADATA) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_SCTE35) );
@@ -515,13 +520,13 @@ static void scte35dec_process_timing(SCTE35DecCtx *ctx, u64 dts, u32 timescale, 
 	ctx->clock = MAX(ctx->clock, dts);
 }
 
-static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *emsg, u64 dts)
+static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const u8 *data, u32 size, u64 dts)
 {
 	u64 pts = 0;
 	u32 dur = 0xFFFFFFFF;
 	Bool needs_idr = GF_FALSE;
 	// parsing is incomplete so we only check the first splice command ...
-	scte35dec_get_timing(emsg->value.data.ptr, emsg->value.data.size, &pts, &dur, &ctx->last_event_id, &needs_idr);
+	scte35dec_get_timing(data, size, &pts, &dur, &ctx->last_event_id, &needs_idr);
 
 	GF_EventMessageBox *emib = (GF_EventMessageBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
 	if (!emib) return GF_OUT_OF_MEM;
@@ -535,10 +540,10 @@ static GF_Err scte35dec_process_emsg(SCTE35DecCtx *ctx, const GF_PropertyValue *
 	emib->event_id = ctx->last_event_id++;
 	emib->scheme_id_uri = gf_strdup("urn:scte:scte35:2013:bin");
 	emib->value = gf_strdup("1001");
-	emib->message_data_size = emsg->value.data.size;
+	emib->message_data_size = size;
 	emib->message_data = gf_malloc(emib->message_data_size);
 	if (!emib->message_data) return GF_OUT_OF_MEM;
-	memcpy(emib->message_data, emsg->value.data.ptr, emib->message_data_size);
+	memcpy(emib->message_data, data, emib->message_data_size);
 
 	GF_Err e = gf_isom_box_size((GF_Box*)emib);
 	if (e) {
@@ -634,9 +639,19 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 	u64 dts = gf_filter_pck_get_dts(pck);
 	scte35dec_process_timing(ctx, dts, gf_filter_pck_get_timescale(pck), gf_filter_pck_get_duration(pck));
 
-	const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
-	if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
-		GF_Err e = scte35dec_process_emsg(ctx, emsg, dts);
+	u32 size = 0;
+	const u8 *data = NULL;
+	if (ctx->native) {
+		data = gf_filter_pck_get_data(pck, &size);
+	} else {
+		const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "scte35");
+		if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
+			data = emsg->value.data.ptr;
+			size = emsg->value.data.size;
+		}
+	}
+	if (data && size) {
+		GF_Err e = scte35dec_process_emsg(ctx, data, size, dts);
 		if (e) GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Detected error while 'emsg' at dts="LLU"\n", dts));
 	}
 
@@ -654,11 +669,12 @@ static GF_Err scte35dec_process(GF_Filter *filter)
 
 static const GF_FilterCapability SCTE35DecCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 };
 
 #define OFFS(_n)	#_n, offsetof(SCTE35DecCtx, _n)
@@ -675,9 +691,9 @@ static const GF_FilterArgs SCTE35DecArgs[] =
 GF_FilterRegister SCTE35DecRegister = {
 	.name = "scte35dec",
 	GF_FS_SET_DESCRIPTION("SCTE35 decoder")
-	GF_FS_SET_HELP("This filter extracts SCTE-35 markers attached as properties to audio and video\n"
-	               "packets as 23001-18 'emib' boxes. It also creates empty 'emeb' box in between\n"
-	               "following segmentation as hinted by the graph.")
+	GF_FS_SET_HELP("This filter writes the SCTE-35 markers attached as properties to audio and video\n"
+	               "packets or inside a dedicated stream, as 23001-18 'emib' boxes. It also creates\n"
+				   "empty 'emeb' box in between following segmentation as hinted by the graph.")
 	.private_size = sizeof(SCTE35DecCtx),
 	.args = SCTE35DecArgs,
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
