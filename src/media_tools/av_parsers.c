@@ -10855,6 +10855,9 @@ static s32 gf_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bool sto
 static s32 vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 listIdx, u32 rplsIdx, VVC_RefPicList *rpl)
 {
 	u32 i;
+	Bool is_first = GF_TRUE;
+	s32 prev_delta = 0;
+
 	memset(rpl, 0, sizeof(VVC_RefPicList));
 	rpl->num_ref_entries = gf_bs_read_ue_log_idx2(bs, "num_ref_entries", listIdx, rplsIdx);
 	if (rpl->num_ref_entries>=VVC_MAX_REF_PICS) {
@@ -10875,7 +10878,7 @@ static s32 vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 lis
 			inter_layer_ref_pic_flag = gf_bs_read_int_log_idx3(bs, 1, "inter_layer_ref_pic_flag", listIdx, rplsIdx, i);
 		}
 		if (!inter_layer_ref_pic_flag) {
-			u32 AbsDeltaPocSt;
+			s32 AbsDeltaPocSt;
 			Bool st_ref_pic_flag = 1;
 			if (sps->long_term_ref_pics_flag) {
 				st_ref_pic_flag = gf_bs_read_int_log_idx3(bs, 1, "st_ref_pic_flag", listIdx, rplsIdx, i);
@@ -10888,9 +10891,20 @@ static s32 vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 lis
 				} else {
 					AbsDeltaPocSt = abs_delta_poc_st + 1;
 				}
+
 				if (AbsDeltaPocSt>0) {
-					gf_bs_read_int_log_idx3(bs, 1, "strp_entry_sign_flag", listIdx, rplsIdx, i);
+					if (gf_bs_read_int_log_idx3(bs, 1, "strp_entry_sign_flag", listIdx, rplsIdx, i))
+						AbsDeltaPocSt = -AbsDeltaPocSt;
 				}
+				if (is_first) {
+					is_first = GF_FALSE;
+					prev_delta = AbsDeltaPocSt;
+				} else {
+					AbsDeltaPocSt = prev_delta + AbsDeltaPocSt;
+					prev_delta  = AbsDeltaPocSt;
+				}
+				rpl->poc_delta[i] = AbsDeltaPocSt;
+
 				rpl->nb_short_term_pictures++;
 				rpl->ref_pic_type[i] = VVC_RPL_ST;
 			} else if( !rpl->ltrp_in_header_flag) {
@@ -11849,6 +11863,8 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 {
 	s32 pps_id;
 
+	si->nb_lt_or_il_pics = si->nb_reference_pocs = 0;
+
 	si->irap_or_gdr_pic = gf_bs_read_int_log(bs, 1, "irap_or_gdr_pic");
 	si->non_ref_pic = gf_bs_read_int_log(bs, 1, "non_ref_pic");
 	if (si->irap_or_gdr_pic)
@@ -12057,23 +12073,49 @@ static s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInf
 
 static s32 vvc_get_ctb_info_in_slice(VVCSliceInfo *si, u32 sh_slice_address, u32 sh_num_tiles_in_slice, s32 ctu_index)
 {
+	u32 ctb_y, ctb_x;
 	if (si->pps->rect_slice_flag) {
-/*
-	TODO
-		u32 picLevelSliceIdx = sh_slice_address;
-		for (j=0; j<CurrSubpicIdx; j++) {
-			picLevelSliceIdx += NumSlicesInSubpic[j];
+		if (!si->sps->subpic_info_present) {
+			u32 i, j, NumCtusInCurrSlice=0;
+			u32 tcolw_bd[VVC_MAX_TILE_COLS+1];
+			tcolw_bd[0] = 0;
+			for (i=0; i<si->pps->num_tile_cols; i++) {
+				tcolw_bd[i+1] = tcolw_bd[i] + si->pps->tile_cols_width_ctb[i];
+			}
+			u32 trowh_bd[VVC_MAX_TILE_ROWS+1];
+			trowh_bd[0] = 0;
+			for (i=0; i<si->pps->num_tile_rows; i++) {
+				trowh_bd[i+1] = trowh_bd[i] + si->pps->tile_rows_height_ctb[i];
+			}
 
-		u32 NumCtusInCurrSlice = NumCtusInSlice[picLevelSliceIdx];
-		for (i=0; i<NumCtusInCurrSlice; i++)
-			CtbAddrInCurrSlice[i] = CtbAddrInSlice[ picLevelSliceIdx ][ i ]
-*/
+			for (j=0; j<si->pps->num_tile_rows; j++) {
+				for (i=0; i<si->pps->num_tile_cols; i++) {
+					u32 min_ctbx = tcolw_bd[i];
+					u32 max_ctbx = tcolw_bd[i+1];
+					u32 min_ctby = trowh_bd[j];
+					u32 max_ctby = trowh_bd[j+1];
+					for (ctb_y=min_ctby; ctb_y < max_ctby; ctb_y++) {
+						for (ctb_x=min_ctbx; ctb_x < max_ctbx; ctb_x++) {
+							if (ctu_index>=0) {
+								if (ctu_index == NumCtusInCurrSlice)
+									return ctb_y * si->pps->pic_width_in_ctbsY + ctb_x;
+							}
+							NumCtusInCurrSlice++;
+						}
+					}
+				}
+			}
+			return NumCtusInCurrSlice;
+		}
+		/*
+			TODO for tiles in subpic !
+		*/
+		return -1;
 
 	} else {
 		u32 i, tidx, NumCtusInCurrSlice = 0;
 
 		for (tidx=sh_slice_address; tidx < sh_slice_address + sh_num_tiles_in_slice; tidx++) {
-			u32 ctb_y, ctb_x;
 			u32 tileX = tidx % si->pps->num_tile_cols;
 			u32 tileY = tidx / si->pps->num_tile_cols;
 			u32 min_ctbx=0;
@@ -12136,16 +12178,18 @@ static u32 vvc_ctb_to_tile_col_bd(VVCSliceInfo *si, u32 ctb_addr_x)
 	return 0;
 }
 
-static u32 vvc_get_num_entry_points(VVCSliceInfo *si, u32 sh_slice_address, u32 sh_num_tiles_in_slice)
+static s32 vvc_get_num_entry_points(VVCSliceInfo *si, u32 sh_slice_address, u32 sh_num_tiles_in_slice)
 {
 	if (!si->sps->entry_point_offsets_present_flag) return 0;
 
-	u32 nb_entry_points = 0;
+	s32 nb_entry_points = 0;
 	u32 prev_ctb_addr_y=0;
 	u32 prev_ctb_to_tile_row_bd, prev_ctb_to_tile_col_bd;
 	s32 i;
+	if (!si->pps->num_tile_rows || !si->pps->num_tile_cols) return 0;
+
 	s32 nb_ctus_in_slice = vvc_get_ctb_info_in_slice(si, sh_slice_address, sh_num_tiles_in_slice, -1);
-	if (nb_ctus_in_slice<0) return 0;
+	if (nb_ctus_in_slice<0) return -1;
 
 	for (i=0; i < nb_ctus_in_slice; i++ ) {
 		s32 addr;
@@ -12153,24 +12197,22 @@ static u32 vvc_get_num_entry_points(VVCSliceInfo *si, u32 sh_slice_address, u32 
 		u32 ctb_to_tile_row_bd, ctb_to_tile_col_bd;
 
 		addr = vvc_get_ctb_info_in_slice(si, sh_slice_address, sh_num_tiles_in_slice, i);
-		if (addr<0) return 0;
+		if (addr<0) return -1;
 		ctb_addr_x = (u32) ( addr % si->pps->pic_width_in_ctbsY );
 		ctb_addr_y = (u32) ( addr / si->pps->pic_width_in_ctbsY );
 
 		ctb_to_tile_row_bd = vvc_ctb_to_tile_row_bd(si, ctb_addr_y);
 		ctb_to_tile_col_bd = vvc_ctb_to_tile_col_bd(si, ctb_addr_x);
 
+		//ignore first CTU, not an entry point
 		if (i) {
-
 			if ( ctb_to_tile_row_bd != prev_ctb_to_tile_row_bd
 				|| ctb_to_tile_col_bd != prev_ctb_to_tile_col_bd
 				|| ((ctb_addr_y != prev_ctb_addr_y) && si->sps->entropy_coding_sync_enabled_flag)
 			) {
 				nb_entry_points++;
 			}
-
 		}
-
 		prev_ctb_addr_y = ctb_addr_y;
 		prev_ctb_to_tile_row_bd = ctb_to_tile_row_bd;
 		prev_ctb_to_tile_col_bd = ctb_to_tile_col_bd;
@@ -12223,7 +12265,8 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		}
 	}
 
-	gf_bs_read_int_log(bs, si->sps->sh_num_extra_bits, "num_extra_bits");
+	if (si->sps->sh_num_extra_bits)
+		gf_bs_read_int_log(bs, si->sps->sh_num_extra_bits, "num_extra_bits");
 
 	if (!si->pps->rect_slice_flag && (si->pps->num_tiles_in_pic - slice_address > 1)) {
 		num_tiles_in_slice = 1 + gf_bs_read_ue_log(bs, "sh_num_tiles_in_slice_minus1");
@@ -12293,7 +12336,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		if (res<0) return (vvc->parse_mode==1) ? res : 0;
 	}
 
-	u32 num_ref_idx_active[2] = {0, 0};
+	si->num_ref_idx_active[0] = si->num_ref_idx_active[1] = 0;
 
 	if (
 		((si->slice_type != GF_VVC_SLICE_TYPE_I) && (si->rpl[0].num_ref_entries > 1) )
@@ -12305,36 +12348,36 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 			if (si->rpl[0].num_ref_entries>1) {
 				nb_active = 1 + gf_bs_read_ue_log_idx(bs, "sh_num_ref_idx_active_minus1", 0);
 			}
-			num_ref_idx_active[0] = nb_active;
+			si->num_ref_idx_active[0] = nb_active;
 			//L1
 			if (si->slice_type == GF_VVC_SLICE_TYPE_B) {
 				nb_active = 0;
 				if (si->rpl[1].num_ref_entries>1) {
 					nb_active = 1 + gf_bs_read_ue_log_idx(bs, "sh_num_ref_idx_active_minus1", 1);
 				}
-				num_ref_idx_active[1] = nb_active;
+				si->num_ref_idx_active[1] = nb_active;
 			} else {
-				num_ref_idx_active[1] = 0;
+				si->num_ref_idx_active[1] = 0;
 			}
 		} else {
 			if (si->rpl[0].num_ref_entries >= si->pps->num_ref_idx_default_active[0]) {
-				num_ref_idx_active[0] = si->pps->num_ref_idx_default_active[0];
+				si->num_ref_idx_active[0] = si->pps->num_ref_idx_default_active[0];
 			} else {
-				num_ref_idx_active[0] = si->rpl[0].num_ref_entries;
+				si->num_ref_idx_active[0] = si->rpl[0].num_ref_entries;
 			}
 			if (si->slice_type == GF_VVC_SLICE_TYPE_B) {
 				if (si->rpl[1].num_ref_entries >= si->pps->num_ref_idx_default_active[1]) {
-					num_ref_idx_active[1] = si->pps->num_ref_idx_default_active[1];
+					si->num_ref_idx_active[1] = si->pps->num_ref_idx_default_active[1];
 				} else {
-					num_ref_idx_active[1] = si->rpl[1].num_ref_entries;
+					si->num_ref_idx_active[1] = si->rpl[1].num_ref_entries;
 				}
 			} else {
-				num_ref_idx_active[1] = 0;
+				si->num_ref_idx_active[1] = 0;
 			}
 		}
 	} else {
-        num_ref_idx_active[0] = (si->slice_type == GF_VVC_SLICE_TYPE_I) ? 0 : 1;
-        num_ref_idx_active[1] = (si->slice_type == GF_VVC_SLICE_TYPE_B) ? 1 : 0;
+        si->num_ref_idx_active[0] = (si->slice_type == GF_VVC_SLICE_TYPE_I) ? 0 : 1;
+        si->num_ref_idx_active[1] = (si->slice_type == GF_VVC_SLICE_TYPE_B) ? 1 : 0;
 	}
 
 	if (si->slice_type != GF_VVC_SLICE_TYPE_I) {
@@ -12345,9 +12388,12 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 			u8 collocated_from_l0_flag = 0;
 			if (si->slice_type == GF_VVC_SLICE_TYPE_B) {
 				collocated_from_l0_flag = gf_bs_read_int_log(bs, 1, "sh_collocated_from_l0_flag");
+			} else {
+				//(sh_slice_type is equal to P), the value of sh_collocated_from_l0_flag is inferred to be equal to 1
+				collocated_from_l0_flag = 1;
 			}
-			if ( (collocated_from_l0_flag && (num_ref_idx_active[0] > 1))
-				|| (!collocated_from_l0_flag && (num_ref_idx_active[1] > 1))
+			if ( (collocated_from_l0_flag && (si->num_ref_idx_active[0] > 1))
+				|| (!collocated_from_l0_flag && (si->num_ref_idx_active[1] > 1))
 			) {
 				gf_bs_read_ue_log(bs, "sh_collocated_ref_idx");
 			}
@@ -12358,7 +12404,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 				|| (si->pps->weighted_bipred_flag && (si->slice_type == GF_VVC_SLICE_TYPE_B))
 			)
 		) {
-			s32 res = vvc_pred_weight_table(bs, vvc, si, si->pps, si->sps, num_ref_idx_active);
+			s32 res = vvc_pred_weight_table(bs, vvc, si, si->pps, si->sps, si->num_ref_idx_active);
 			if (res<0) return (vvc->parse_mode==1) ? res : 0;
 		}
 	}
@@ -12381,11 +12427,12 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 
 	if (si->pps->deblocking_filter_override_enabled_flag && !si->pps->dbf_info_in_ph_flag) {
 		if (gf_bs_read_int_log(bs, 1, "sh_deblocking_params_present_flag")) {
-			u8 deblocking_params_present_flag=0;
+			u8 deblocking_params_disabled_flag=0;
 			if (!si->pps->deblocking_filter_disabled_flag) {
-				deblocking_params_present_flag = gf_bs_read_int_log(bs, 1, "sh_deblocking_filter_disabled_flag");
+				deblocking_params_disabled_flag = gf_bs_read_int_log(bs, 1, "sh_deblocking_filter_disabled_flag");
 			}
-			if (deblocking_params_present_flag) {
+
+			if (!deblocking_params_disabled_flag) {
 				gf_bs_read_se_log(bs, "sh_luma_beta_offset_div2");
 				gf_bs_read_se_log(bs, "sh_luma_tc_offset_div2");
 				if (si->pps->chroma_tool_offsets_present_flag) {
@@ -12424,21 +12471,19 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		}
 	}
 
-	if (!si->pps->rect_slice_flag && !si->pps->num_tile_cols && !si->pps->num_tile_rows) {
-	} else {
-		if (si->sps->entry_point_offsets_present_flag && si->pps->rect_slice_flag) {
+	if (si->sps->entry_point_offsets_present_flag) {
+		s32 nb_entry_points = vvc_get_num_entry_points(si, slice_address, num_tiles_in_slice);
+		if (nb_entry_points<0) {
 			if (vvc->parse_mode==1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] Entry point offsets parsing for sub-picture not yet implemented, wrong slice header size estimation (result might be non-compliant) - patch welcome\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VVC] Entry point offsets parsing for tiled sub-picture not yet implemented, wrong slice header size estimation (result might be non-compliant) - patch welcome\n"));
 
 				gf_bs_align(bs);
 				si->payload_start_offset = (u32) gf_bs_get_position(bs);
 				return -2;
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[VVC] Entry point offsets parsing for sub-picture not yet implemented, aborting slice header parsing - patch welcome\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[VVC] Entry point offsets parsing for tiled sub-picture not yet implemented, aborting slice header parsing - patch welcome\n"));
 			return 0;
 		}
-
-		u32 nb_entry_points = vvc_get_num_entry_points(si, slice_address, num_tiles_in_slice);
 		if (nb_entry_points) {
 			u32 nb_bits = 1 + gf_bs_read_ue_log(bs, "sh_entry_offset_len_minus1");
 			for (i=0; i<nb_entry_points; i++) {
@@ -12481,6 +12526,55 @@ static void vvc_compute_poc(VVCSliceInfo *si, Bool poc_reset)
 	si->poc = si->poc_msb + si->poc_lsb;
 }
 
+static void vvc_push_ref_poc(VVCSliceInfo *si, s32 poc)
+{
+	u32 i;
+	for (i=0;i<si->nb_reference_pocs; i++) {
+		if (si->reference_pocs[i]==poc) return;
+	}
+	if (si->nb_reference_pocs==30) return;
+	si->reference_pocs[si->nb_reference_pocs] = poc;
+	si->nb_reference_pocs++;
+}
+
+static void vvc_compute_refs(VVCState *vvc, VVCSliceInfo *si)
+{
+	u32 lidx, ridx;
+
+	if (si->slice_type==GF_VVC_SLICE_TYPE_I) {
+		si->nb_reference_pocs = 0;
+		return;
+	}
+
+	for (lidx=0; lidx<2; lidx++) {
+		VVC_RefPicList *rpl = &si->rpl[lidx];
+		u32 num_active_refs = si->num_ref_idx_active[lidx];
+
+		for (ridx=0; ridx < rpl->num_ref_entries; ridx++) {
+			Bool is_active_ref = ridx < num_active_refs ? GF_TRUE : GF_FALSE;
+			s32 refPOC=0;
+			//bool       isLongTerm  = false;
+			if (rpl->ref_pic_type[ridx] == VVC_RPL_IL) {
+				//TODO interlayer
+				if (!si->nb_lt_or_il_pics) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] Inter-Layer pictures in RefPicList not supported, patch welcome\n"));
+				}
+				si->nb_lt_or_il_pics ++;
+			} else if (rpl->ref_pic_type[ridx] == VVC_RPL_ST) {
+				refPOC = si->poc + rpl->poc_delta[ridx];
+			} else {
+				//TODO LongTerm
+				if (!si->nb_lt_or_il_pics) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] Long-Term pictures in RefPicList not supported, patch welcome\n"));
+				}
+				si->nb_lt_or_il_pics ++;
+			}
+
+			if (!is_active_ref) continue;
+			vvc_push_ref_poc(si, refPOC);
+		}
+	}
+}
 
 GF_EXPORT
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
@@ -12529,6 +12623,9 @@ s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 
 			n_state.compute_poc_defer = 0;
 
 			vvc_compute_poc(&n_state, poc_reset);
+			if (vvc->parse_mode)
+				vvc_compute_refs(vvc, &n_state);
+
 			if (vvc->s_info.poc != n_state.poc) {
 				ret = 1;
 				break;

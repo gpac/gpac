@@ -1286,6 +1286,16 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				gf_bs_set_logger(bs, NULL, NULL);
 		}
 
+		if (!gf_sys_is_test_mode() && (type <= GF_VVC_NALU_SLICE_GDR) && vvc->s_info.nb_reference_pocs) {
+			u32 i;
+			inspect_printf(dump, " POC=\"%d\" referencePOCs=\"", vvc->s_info.poc);
+			for (i=0; i<vvc->s_info.nb_reference_pocs; i++) {
+				if (i) inspect_printf(dump, " ");
+				inspect_printf(dump, "%d", vvc->s_info.reference_pocs[i]);
+			}
+			inspect_printf(dump, "\"");
+		}
+
 		if ((type == GF_VVC_NALU_SEI_PREFIX) || (type == GF_VVC_NALU_SEI_SUFFIX)) {
 			inspect_printf(dump, ">\n");
 			if (pctx) {

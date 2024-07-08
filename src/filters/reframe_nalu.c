@@ -362,8 +362,8 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (ctx->avc_state) { gf_free(ctx->avc_state); ctx->avc_state = NULL; }
 		if (!ctx->vvc_state) GF_SAFEALLOC(ctx->vvc_state, VVCState);
 		if (ctx->refs) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] reference picture list parsing not supported, patch welcome\n", ctx->log_name));
-			ctx->refs = 0;
+			//use parse mode 2 as we don't need the exact slice header length
+			ctx->vvc_state->parse_mode = 2;
 		}
 	} else {
 		ctx->log_name = "AVC|H264";
@@ -2413,6 +2413,13 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 					refs = ctx->hevc_state->s_info.reference_pocs;
 				}
 			}
+			if (ctx->vvc_state) {
+				if (!ctx->vvc_state->s_info.nb_lt_or_il_pics) {
+					POC = ctx->vvc_state->s_info.poc;
+					nb_refs = ctx->vvc_state->s_info.nb_reference_pocs;
+					refs = ctx->vvc_state->s_info.reference_pocs;
+				}
+			}
 
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_ID, &PROP_SINT(POC));
 			if (refs && nb_refs) {
@@ -4358,7 +4365,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(nal_length), "set number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "import sample dependency information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(refs), "import sample reference picture list (currently only for HEVC)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(refs), "import sample reference picture list (currently only for HEVC and VVC)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keep Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
