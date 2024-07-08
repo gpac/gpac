@@ -2564,13 +2564,10 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 	u32 i, count;
 	if (ctx->dvb_mabr_config) return;
 
-	const char *src_ip;
-	char szIP[GF_MAX_IP_NAME_LEN];
-	src_ip = ctx->ifce;
-	if (!src_ip) {
-		if (gf_sk_get_local_ip(ctx->sock_dvb_mabr, szIP) != GF_OK)
-			strcpy(szIP, "127.0.0.1");
-		src_ip = szIP;
+	char szHost[GF_MAX_IP_NAME_LEN];
+	if (gf_sk_get_host_name(szHost) != GF_OK) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("Cannot get host name, using 127.0.0.1\n"));
+		strcpy(szHost, "127.0.0.1");
 	}
 
 	count = gf_list_count(ctx->services);
@@ -2595,7 +2592,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, "\" protocolVersion=\"1\"/>\n", NULL);
 		gf_dynstrcat(&payload_text, "<EndpointAddress>\n<NetworkSourceAddress>", NULL);
 
-		gf_dynstrcat(&payload_text, src_ip, NULL);
+		gf_dynstrcat(&payload_text, szHost, NULL);
 		gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n<NetworkDestinationGroupAddress>", NULL);
 		//- for FLUTE we use the main port to deliver FDT, manifests and init - we could split by service as done for ROUTE
 		//- for ROUTE we must send the STSID, on the session port
@@ -2702,7 +2699,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			}
 			gf_dynstrcat(&payload_text, "<EndpointAddress>\n<NetworkSourceAddress>", NULL);
 
-			gf_dynstrcat(&payload_text, src_ip, NULL);
+			gf_dynstrcat(&payload_text, szHost, NULL);
 			gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n<NetworkDestinationGroupAddress>", NULL);
 			gf_dynstrcat(&payload_text, rpid->rlct->ip, NULL);
 			gf_dynstrcat(&payload_text, "</NetworkDestinationGroupAddress>\n<TransportDestinationPort>", NULL);
@@ -2986,7 +2983,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- no: do not send checksum\n"
 		"- meta: only send checksum for configuration files, manifests and init segments\n"
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
-	{ OFFS(recv_obj_timeout), "timeout period in ms before resorting to unicast repair", GF_PROP_UINT, "50", NULL, 0},
+	{ OFFS(recv_obj_timeout), "set timeout period in ms before client resorts to unicast repair", GF_PROP_UINT, "50", NULL, 0},
 	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
 	{0}
 };
