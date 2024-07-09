@@ -1640,9 +1640,13 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	if (!is_flute) ctx->lct_buffer[0] |= 0x02;
 	//S=b1|b0, O=b01|b00, h=b0|b1, res=b00, A=b0, B=X
 	ctx->lct_buffer[1] = short_h ? 0x10 : 0xA0;
-	//set close flag only if total_len is known
-	if (total_size && (offset + send_payl_size == len))
-		ctx->lct_buffer[1] |= 1;
+
+	//We should set the close flag (only when total_len is known). However some
+	//receivers break because our implementation doesn't change the TOI.
+	//Therefore therefore if some packets in the first carousel presentation are
+	//missed) then it is ignored by these receiver forever. Disabling.
+	//if (total_size && (offset + send_payl_size == len))
+	//	ctx->lct_buffer[1] |= 1;
 
 	ctx->lct_buffer[2] = hdr_len;
 	ctx->lct_buffer[3] = (u8) codepoint;

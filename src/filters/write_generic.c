@@ -1073,7 +1073,6 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 				}
 			}
 			gf_list_insert(div_global->content, p_pck, idx);
-
 		}
 	}
 
