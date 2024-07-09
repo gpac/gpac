@@ -1636,7 +1636,8 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	} else {
 		send_payl_size = len - offset;
 	}
-	ctx->lct_buffer[0] = 0x12; //V=b0001, C=b00, PSI=b10
+	ctx->lct_buffer[0] = 0x10; //V=b0001, C=b00, PSI=b00 or b10 with ROUTE
+	if (!is_flute) ctx->lct_buffer[0] |= 0x02;
 	//S=b1|b0, O=b01|b00, h=b0|b1, res=b00, A=b0, B=X
 	ctx->lct_buffer[1] = short_h ? 0x10 : 0xA0;
 	//set close flag only if total_len is known
