@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
- *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) demuxer
+ *  This file is part of GPAC / ROUTE (ATSC3, DVB-MABR) and DVB-MABR demuxer
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -36,13 +36,13 @@ extern "C" {
 
 /*!
 \file <gpac/route.h>
-\brief Specific extensions for ROUTE ( ATSC3, DVB-I) protocol
+\brief Specific extensions for ROUTE (ATSC3, DVB-I) protocol
 */
 
 /*!
 \addtogroup route_grp ROUTE
 \ingroup media_grp
-\brief ROUTE ATSC 3.0 reciever
+\brief ROUTE ATSC 3.0 receiver
 
 The ROUTE receiver implements part of the ATSC 3.0 specification, mostly low-level signaling and ROUTE reception.
 It gathers objects from a ROUTE session and sends them back to the user through a callback, or deletes them if no callback is sent.
@@ -63,22 +63,26 @@ typedef struct __gf_routedmx GF_ROUTEDmx;
 /*!The types of events used to communicate withe the demuxer user.*/
 typedef enum
 {
-	/*! A new service detected, service ID is in evt_param, no file info*/
+	/*! A new service is detected, service ID is in evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_FOUND = 0,
 	/*! Service scan completed, no evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_SCAN,
-	/*! New MPD available for service, service ID is in evt_param, no file info*/
+	/*! New MPD or HLS master playlist available for service, service ID is in evt_param, file info carries manifest info*/
 	GF_ROUTE_EVT_MPD,
+	/*! HLS variant update for service, service ID is in evt_param, file info carries variant info*/
+	GF_ROUTE_EVT_HLS_VARIANT,
 	/*! static file update (with predefined TOI), service ID is in evt_param*/
 	GF_ROUTE_EVT_FILE,
 	/*! Segment reception, identified through a file template, service ID is in evt_param*/
 	GF_ROUTE_EVT_DYN_SEG,
     /*! fragment reception (part of a segment), identified through a file template, service ID is in evt_param
-     \note The data is always beginning at the start of the object
+     \note The data always begins at the start of the object
     */
     GF_ROUTE_EVT_DYN_SEG_FRAG,
     /*! Object deletion (only for dynamic TOIs), used to notify the cache that an object is no longer available. File info only contains the filename being removed*/
     GF_ROUTE_EVT_FILE_DELETE,
+	/*! Delayed data reception */
+	GF_ROUTE_EVT_LATE_DATA,
 } GF_ROUTEEventType;
 
 enum
@@ -111,12 +115,25 @@ typedef struct
 } GF_LCTFragInfo;
 
 
+/*! Type of partial event*/
+typedef enum
+{
+	/* object is done receiving*/
+	GF_LCTO_PARTIAL_NONE=0,
+	/* object data being notfied is the begining of the payload*/
+	GF_LCTO_PARTIAL_BEGIN,
+	/* object data being notfied is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
+	GF_LCTO_PARTIAL_ANY,
+} GF_LCTObjectPartial;
+
 /*! Structure used to communicate file objects properties to the user*/
 typedef struct
 {
 	/*! original file name*/
 	const char *filename;
-	/*! blob data pointer*/
+	/*! mime type if known, NULL otherwise*/
+	const char *mime;
+	/*! blob data pointer - the route user is responsible for setting the blob flags if desired*/
 	GF_Blob *blob;
     /*! total size of object if known, 0 otherwise*/
     u32 total_size;
@@ -128,12 +145,25 @@ typedef struct
 	u32 download_ms;
 	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/
 	Bool updated;
-    
-    /*! number of fragments, only set for GF_ROUTE_EVT_DYN_SEG*/
-    u32 nb_frags;
-    /*! fragment info, only set for GF_ROUTE_EVT_DYN_SEG*/
-    GF_LCTFragInfo *frags;
+	/*! flag set if first segment has been received for the given TSI - not set for init segments*/
+	Bool first_toi_received;
+
+	/*! number of fragments, only set for GF_ROUTE_EVT_DYN_SEG*/
+	u32 nb_frags;
+	/*! fragment info, set for all file events - this info is shared with the LCT object being reassembled and should not be modified concurrently from route demux
+	Any reallocation of the fragment info SHALL be done using  \ref gf_route_dmx_patch_frag_info
+	*/
+	GF_LCTFragInfo *frags;
 	
+	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
+	u32 late_fragment_offset;
+
+	/*partial state used for all calls
+		if event indicates a file transfer completion (GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG), this relects the corrupted state
+		of the reception
+	*/
+	GF_LCTObjectPartial partial;
+
 	/*! user data set to current object after callback, and passed back on next callbacks on same object
 	 Only used for GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG, GF_ROUTE_EVT_DYN_SEG_FRAG and GF_ROUTE_EVT_FILE_DELETE
 	 */
@@ -143,22 +173,59 @@ typedef struct
 /*! Creates a new ROUTE ATSC3.0 demultiplexer
 \param ifce network interface to monitor, NULL for INADDR_ANY
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
- \param on_event the user callback function
- \param udta the user data passed back by the callback
+\param on_event the user callback function
+\param udta the user data passed back by the callback
 \return the ROUTE demultiplexer created
 */
 GF_ROUTEDmx *gf_route_atsc_dmx_new(const char *ifce, u32 sock_buffer_size, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
+
+/*! Creates a new ROUTE ATSC3.0 demultiplexer
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\param on_event the user callback function
+\param udta the user data passed back by the callback
+\return the ROUTE demultiplexer created
+*/
+GF_ROUTEDmx *gf_route_atsc_dmx_new_ex(const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
 
 /*! Creates a new ROUTE demultiplexer
 \param ip IP address of ROUTE session
 \param port port of ROUTE session
 \param ifce network interface to monitor, NULL for INADDR_ANY
 \param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
- \param on_event the user callback function
- \param udta the user data passed back by the callback
+\param on_event the user callback function
+\param udta the user data passed back by the callback
 \return the ROUTE demultiplexer created
 */
 GF_ROUTEDmx *gf_route_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
+
+/*! Creates a new ROUTE demultiplexer
+\param ip IP address of ROUTE session
+\param port port of ROUTE session
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\param on_event the user callback function
+\param udta the user data passed back by the callback
+\return the ROUTE demultiplexer created
+*/
+GF_ROUTEDmx *gf_route_dmx_new_ex(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
+
+/*! Creates a new DVB MABR Flute demultiplexer
+\param ip IP address of LCT session carrying the initial FDT
+\param port port of LCT session carrying the initial FDT
+\param ifce network interface to monitor, NULL for INADDR_ANY
+\param sock_buffer_size default buffer size for the udp sockets. If 0, uses 0x2000
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\param on_event the user callback function
+\param udta the user data passed back by the callback
+\return the demultiplexer created
+*/
+GF_ROUTEDmx *gf_dvb_mabr_dmx_new(const char *ip, u32 port, const char *ifce, u32 sock_buffer_size, const char *netcap_id, void (*on_event)(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo), void *udta);
 
 /*! Deletes an ROUTE demultiplexer
 \param routedmx the ROUTE demultiplexer to delete
@@ -174,21 +241,32 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
-\param force_reorder if TRUE, the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
-\param timeout_ms maximum delay to wait before considering the object is done when ROUTE/LCT order is not used. A value of 0 implies waiting forever (default value is 5s).
+\param reorder_needed if TRUE, the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
+\param timeout_us maximum delay in microseconds to wait before considering the object is done when ROUTE/LCT order is not used. A value of 0 implies any out-of-order packet triggers a download completion  (default value is 1 ms).
 \return error code if any
  */
-GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms);
+GF_Err gf_route_dmx_set_reorder(GF_ROUTEDmx *routedmx, Bool reorder_needed, u32 timeout_us);
+
+/*! Progressive dispatch mode for LCT objects*/
+typedef enum
+{
+	/*! notification is only sent once the entire object is received*/
+	GF_ROUTE_DISPATCH_FULL = 0,
+	/*! notifications are sent whenever the first byte-range starting at 0 changes, in which case the partial field is set to GF_LCTO_PARTIAL_BEGIN*/
+	GF_ROUTE_DISPATCH_PROGRESSIVE,
+	/*! notifications are sent whenever a new packet is received, in which case the partial field is set to GF_LCTO_PARTIAL_ANY*/
+	GF_ROUTE_DISPATCH_OUT_OF_ORDER,
+} GF_RouteProgressiveDispatch;
 
 /*! Allow segments to be sent while being downloaded.
  
 \note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the beginning of the file in that case.
  
 \param routedmx the ROUTE demultiplexer
-\param allow_progressive if TRUE,  fragments of segments will be sent during download
+\param dispatch_mode set dispatch mode
 \return error code if any
  */
-GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive);
+GF_Err gf_route_set_dispatch_mode(GF_ROUTEDmx *routedmx, GF_RouteProgressiveDispatch dispatch_mode);
 
 /*! Sets the service ID to tune into for ATSC 3.0
 \param routedmx the ROUTE demultiplexer
@@ -288,6 +366,34 @@ void gf_route_dmx_set_service_udta(GF_ROUTEDmx *routedmx, u32 service_id, void *
 \return the user data associated with the service
  */
 void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
+
+
+/*! Patch fragment info of object after a repair
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param finfo file info event as passed to the caller. Only tsi and toi info are used to loacate the object. The frags and nb_frags fileds are updated by this function
+\param br_start start offset of byte range being patched
+\param br_end end offset of byte range being patched
+\return error if any
+ */
+GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
+
+/*! Set active status of a representation
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param period_id ID of the DASH period containing the representation, may be NULL
+\param as_id ID of the DASH adaptation set containing the representation, may be 0
+\param rep_id ID of the period containing the representation or HLS variant playlist URL, shall not be NULL
+\param is_selected representation status
+\return error if any
+ */
+GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected);
+
+/*! Cancel all current transfer on  all services
+\param routedmx the ROUTE demultiplexer
+ */
+void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
+
 
 /*! @} */
 #ifdef __cplusplus

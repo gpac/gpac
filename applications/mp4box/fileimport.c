@@ -107,7 +107,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 extern u32 swf_flags;
 #endif
 
-extern Float swf_flatten_angle;
+extern Double swf_flatten_angle;
 extern Bool keep_sys_tracks;
 extern u32 fs_dump_flags;
 
@@ -547,7 +547,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 
 	//get dur and timescale to compute fps
 	//we don't divide mdur by nb_samples but rather multiple timescale with nb_samples
-	//this avoid rounding errors with non FPS-aligned input timescale (eg mkv using 1000 regardless of FPS)
+	//this avoids rounding errors with non FPS-aligned input timescale (eg mkv using 1000 regardless of FPS)
 	u64 mdur;
 	u64 timescale = gf_isom_get_media_timescale(dest, track);
 	mdur = gf_isom_get_media_duration(dest, track);
@@ -589,8 +589,7 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 			if (e) goto error;
 		}
 		else if (edits[0]=='e') {
-			u64 movie_t, media_t, edur;
-			u32 rate;
+			u64 movie_t, edur;
 			GF_Fraction64 movie_time, media_time, media_rate, edit_dur;
 			char *mtime_sep;
 
@@ -628,29 +627,43 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 			}
 			movie_t = movie_time.num * movie_ts / movie_time.den;
 			if (!edit_dur.den || !edit_dur.num) {
-				edur = media_dur;
-				edur *= movie_ts;
-				edur /= media_ts;
+				edur = gf_timestamp_rescale(media_dur, media_ts, movie_ts);
 			} else {
-				edur = edit_dur.num;
-				edur *= movie_ts;
-				edur /= edit_dur.den;
-				if (edur>media_dur)
-					edur = media_dur;
+				edur = gf_timestamp_rescale(edit_dur.num, edit_dur.den, movie_ts);
 			}
+			//empty edit
 			if (!media_time.den) {
 				e = gf_isom_set_edit(dest, track, movie_t, edur, 0, GF_ISOM_EDIT_EMPTY);
 			} else {
-				rate = 0;
+				//adjust media duration based on media time
+				u64 media_t = media_time.num * media_ts / media_time.den;
+				if (media_dur<media_t) {
+					fprintf(stderr, "Media time "LLU" larger than duration "LLU", using last media frame\n", media_t, media_dur);
+					media_t = media_dur;
+					media_dur = 0;
+				} else {
+					media_dur -= media_t;
+				}
+				u32 rate = 0;
 				if (media_rate.den) {
 					u64 frac;
 					rate = (u32) ( media_rate.num / media_rate.den );
 					frac = media_rate.num - rate*media_rate.den;
 					frac *= 0xFFFF;
 					frac /= media_rate.den;
-					rate = (rate<<16) | (u32) frac;
+					rate = (rate<<16) | (u16) frac;
+					//adjust media dur if rate > 1
+					if (media_rate.num > (s64) media_rate.den) {
+						media_dur = media_dur*media_rate.den / media_rate.num;
+					}
 				}
-				media_t = media_time.num * media_ts / media_time.den;
+				//clamp edit dur to available media time
+				if (gf_timestamp_greater(edur, movie_ts, media_dur, media_ts)) {
+					u64 ndur = gf_timestamp_rescale(media_dur, media_ts, movie_ts);
+					fprintf(stderr, "Clamping edit duration from "LLU"/%u to "LLU"/%u due to available media duration "LLU"/%u\n", edur, movie_ts, ndur, movie_ts, media_dur, media_ts);
+					edur = ndur;
+				}
+
 				e = gf_isom_set_edit_with_rate(dest, track, movie_t, edur, media_t, rate);
 			}
 			if (e==GF_EOS) {
@@ -816,8 +829,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 #define GOTO_EXIT(_msg) if (e) { fail_msg = _msg; goto exit; }
 
-#define CHECK_FAKEIMPORT(_opt) if (fake_import) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
-#define CHECK_FAKEIMPORT_2(_opt) if (fake_import==1) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
+#define CHECK_FAKEIMPORT(_opt) if (fake_import) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for cat or self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
+#define CHECK_FAKEIMPORT_2(_opt) if (fake_import==1) { M4_LOG(GF_LOG_ERROR, ("Option %s not available for cat or self-reference import\n", _opt)); e = GF_BAD_PARAM; goto exit; }
 
 
 	handler_name = NULL;
@@ -1846,7 +1859,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			e = gf_file_load_data(rvc_config, (u8 **) &data, &size);
 			GOTO_EXIT("loading RVC config file")
 
-			gf_gz_compress_payload(&data, size, &size);
+			gf_gz_compress_payload_ex (&data, size, &size, 0, GF_FALSE, NULL, GF_TRUE);
 			e |= gf_isom_set_rvc_config(dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
 			gf_free(data);
 			GOTO_EXIT("compressing and assigning RVC config")
@@ -2866,6 +2879,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			if (gf_isom_get_sample_description_count(orig, i+1) != gf_isom_get_sample_description_count(dest, dst_tk)) dst_tk = 0;
 			/*if not forcing cat, check the media codec config is the same*/
 			if (!gf_isom_is_same_sample_description(orig, i+1, 0, dest, dst_tk, 0)) {
+				//we will need to merge the same descriptions
+				if (!force_cat && !dst_tk_sample_entry) dst_tk_sample_entry = dst_tk;
 				dst_tk = 0;
 			}
 			/*we force the same visual resolution*/

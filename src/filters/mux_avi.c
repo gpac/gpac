@@ -188,13 +188,13 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		if (type==GF_STREAM_VISUAL) {
 			if (pf != GF_PIXEL_BGR) {
-				gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_BGR));
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_BGR));
 				return GF_OK;
 			}
 		} else if (type==GF_STREAM_AUDIO) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
 			if (!p || (p->value.uint != GF_AUDIO_FMT_S16) ) {
-				gf_filter_pid_negociate_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
+				gf_filter_pid_negotiate_property(pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16));
 				return GF_OK;
 			}
 			wfmt = WAVE_FORMAT_PCM;

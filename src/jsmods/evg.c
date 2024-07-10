@@ -1633,7 +1633,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 				}
 				continue;
 			} else if (op->op_type == EVG_OP_END) {
-				assert(nif_level || if_level);
+				gf_assert(nif_level || if_level);
 				if (nif_level) nif_level--;
 				else if (if_level) if_level--;
 				continue;
@@ -1751,7 +1751,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 
 					right_val = &tmpr;
 					right_val->x = right_val->y = right_val->z = right_val->q = 0;
-					assert(va->nb_comp<=4);
+					gf_assert(va->nb_comp<=4);
 					for (j=0; j<va->nb_comp; j++) {
 						((Float *)right_val)[j] = va->values[va_idx+j];
 					}
@@ -6037,7 +6037,7 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 		e = gf_evg_stencil_set_texture_planes(tx->stencil, tx->width, tx->height, tx->pf, data, tx->stride, p_u, p_v, tx->stride_uv, p_a, tx->stride);
 		 if (e) return js_throw_err(c, e);
 	} else {
-		assert(data);
+		gf_assert(data);
 		e = gf_evg_stencil_set_texture(tx->stencil, tx->data, tx->width, tx->height, tx->stride, tx->pf);
 		if (e) return js_throw_err(c, e);
 	}

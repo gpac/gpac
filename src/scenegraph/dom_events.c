@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2022
+ *			Copyright (c) Telecom ParisTech 2004-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / DOM 3 Events sub-project
@@ -416,7 +416,7 @@ Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGr
 					/*delete listener*/
 					//gf_dom_listener_del(listen, et);
 				} else if (n) {
-					assert(n->sgprivate->num_instances);
+					gf_assert(n->sgprivate->num_instances);
 					/*protect node*/
 					n->sgprivate->num_instances++;
 					/*exec event*/
@@ -962,7 +962,7 @@ GF_DOMEventTarget *gf_dom_event_target_new(GF_DOMEventTargetType type, void *obj
 
 void gf_dom_event_target_del(GF_DOMEventTarget *target)
 {
-	assert(gf_list_count(target->listeners) == 0);
+	gf_assert(gf_list_count(target->listeners) == 0);
 	gf_list_del(target->listeners);
 	gf_free(target);
 }

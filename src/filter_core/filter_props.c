@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -43,7 +43,8 @@ static struct {
 	{GF_PROP_PCMFMT, (cst_parse_proto) gf_audio_fmt_parse, (cst_name_proto) gf_audio_fmt_name, gf_audio_fmt_all_names},
 	{GF_PROP_CICP_COL_PRIM, gf_cicp_parse_color_primaries, gf_cicp_color_primaries_name, gf_cicp_color_primaries_all_names},
 	{GF_PROP_CICP_COL_TFC, gf_cicp_parse_color_transfer, gf_cicp_color_transfer_name, gf_cicp_color_transfer_all_names},
-	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names}
+	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names},
+	{GF_PROP_CICP_LAYOUT, gf_audio_fmt_get_cicp_from_name, gf_audio_fmt_get_cicp_name, gf_audio_fmt_cicp_all_names}
 };
 
 GF_EXPORT
@@ -88,9 +89,108 @@ Bool gf_props_type_is_enum(GF_PropType type)
 	return GF_FALSE;
 }
 
+static void parse_data_format(GF_PropertyValue *p, char list_sep_char, const char *name, const char *value, const char *prefix, const char *scode, u32 size)
+{
+	u32 nb_items=1;
+	Bool is_string = GF_FALSE;
+	char *str_val = NULL;
+	u32 str_val_len = 0;
+	const char *v = value;
+	while (1) {
+		char *sep = strchr(v, list_sep_char);
+		if (!sep) break;
+		nb_items++;
+		v = sep+1;
+	}
+	if (!strcmp(scode, "%s"))
+		is_string = GF_TRUE;
+	else
+		p->value.data.ptr = gf_malloc(nb_items*size);
+
+	u32 res = 0;
+	if (is_string || p->value.data.ptr) {
+		char *vdup = gf_strdup(value);
+		const char *v = vdup;
+		nb_items = 0;
+		while (1) {
+			u32 lres;
+			char *sep = strchr(v, list_sep_char);
+			if (sep) sep[0] = 0;
+
+			if (!strcmp(prefix, "u8@")) {
+				u32 _val;
+				lres = sscanf(v, scode, &_val);
+				if (lres) p->value.data.ptr[nb_items] = (u8) _val;
+			}
+			else if (!strcmp(prefix, "s8@")) {
+				u32 _val;
+				lres = sscanf(v, scode, &_val);
+				if (lres) p->value.data.ptr[nb_items] = (s8) _val;
+			} else if (is_string) {
+				//copy also the trailing 0
+				u32 slen = 1 + (u32) strlen(v);
+				str_val = gf_realloc(str_val, str_val_len+slen);
+				memcpy(str_val+str_val_len, str_val, slen);
+				str_val_len += slen;
+				lres = 1;
+			} else {
+				lres = sscanf(value, scode, &p->value.data.ptr[nb_items*size]);
+			}
+			nb_items++;
+			res += lres;
+			if (!sep) break;
+			if (!lres) break;
+			v = sep+1;
+		}
+		gf_free(vdup);
+	}
+	if (str_val)
+		p->value.data.ptr = str_val;
+
+	if (res==nb_items) {
+		p->value.data.size = str_val ? str_val_len : (nb_items*size);
+		p->type = GF_PROP_DATA;
+	} else {
+		if (p->value.data.ptr) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Invalid value %s for %s syntax of property %s, parsed only %d for %d items\n", value, prefix, name, res, nb_items));
+			gf_free(p->value.data.ptr);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate data for value %s%s of property %s\n", prefix, value, name));
+		}
+		p->value.data.size = 0;
+		p->value.data.ptr = NULL;
+		p->type=GF_PROP_FORBIDDEN;
+	}
+}
+static Bool parse_time(const char *str, u64 *val)
+{
+	u32 h=0, m=0, s=0, ms=0;
+	if (!str) return GF_FALSE;
+	if ((str[0]!='t') && (str[0]!='T')) return GF_FALSE;
+	str += 1;
+	if (sscanf(str, "%02u:%02u:%02u.%02u", &h, &m, &s, &ms) == 4) {
+	}
+	else if (sscanf(str, "%02u:%02u:%02u", &h, &m, &s) == 3) {
+		ms=0;
+	}
+	else if (sscanf(str, "%02u:%02u.%02u", &m, &s, &ms) == 3) {
+		h=0;
+	}
+	else if (sscanf(str, "%02u:%02u", &m, &s) == 2) {
+		h=ms=0;
+	}
+	*val = 3600*h;
+	*val += 60*m;
+	*val += s;
+	*val = *val * 1000 + ms;
+	return GF_TRUE;
+}
+
+GF_EXPORT
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values, char list_sep_char)
 {
 	GF_PropertyValue p;
+	u64 tval;
 	char *unit_sep=NULL;
 	s32 unit = 0;
 	memset(&p, 0, sizeof(GF_PropertyValue));
@@ -135,6 +235,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_SINT:
 		if (value && !strcmp(value, "+I")) p.value.sint = GF_INT_MAX;
 		else if (value && !strcmp(value, "-I")) p.value.sint = GF_INT_MIN;
+		else if (parse_time(value, &tval)) p.value.sint = (s32) tval;
 		else if (!value || (sscanf(value, "%d", &p.value.sint)!=1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for int arg %s - using 0\n", value, name));
 			p.value.sint = 0;
@@ -199,7 +300,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.uint *= unit;
 			}
 		} else if (value) {
-			if (sscanf(value, "%d", &p.value.uint)!=1) {
+			if (parse_time(value, &tval)) p.value.uint = (u32) tval;
+			else if (sscanf(value, "%d", &p.value.uint)!=1) {
 				if (strlen(value)==4) {
 					p.value.uint = GF_4CC(value[0],value[1],value[2],value[3]);
 				} else {
@@ -224,6 +326,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_LSINT:
 		if (value && !strcmp(value, "+I")) p.value.longsint = 0x7FFFFFFFFFFFFFFFUL;
 		else if (value && !strcmp(value, "-I")) p.value.longsint = 0x8000000000000000UL;
+		else if (parse_time(value, &tval)) p.value.longsint = (s64) tval;
 		else if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
@@ -233,6 +336,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_LUINT:
 		if (value && !strcmp(value, "+I")) p.value.longuint = 0xFFFFFFFFFFFFFFFFUL;
+		else if (parse_time(value, &tval)) p.value.longuint = (u64) tval;
 		else if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
@@ -241,14 +345,22 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_FRACTION:
-		if (gf_parse_frac(value, &p.value.frac)==GF_FALSE) {
+		if (parse_time(value, &tval)) {
+			p.value.frac.num = (s32) tval;
+			p.value.frac.den = 1000;
+		}
+		else if (gf_parse_frac(value, &p.value.frac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 			p.value.frac.num = 0;
 			p.value.frac.den = 1;
 		}
 		break;
 	case GF_PROP_FRACTION64:
-		if (gf_parse_lfrac(value, &p.value.lfrac)==GF_FALSE) {
+		if (parse_time(value, &tval)) {
+			p.value.lfrac.num = (s64) tval;
+			p.value.lfrac.den = 1000;
+		}
+		else if (gf_parse_lfrac(value, &p.value.lfrac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 			p.value.lfrac.num = 0;
 			p.value.lfrac.den = 1;
@@ -257,6 +369,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_FLOAT:
 		if (value && !strcmp(value, "+I")) p.value.fnumber = FIX_MAX;
 		else if (value && !strcmp(value, "-I")) p.value.fnumber = FIX_MIN;
+		else if (parse_time(value, &tval)) p.value.fnumber = INT2FIX(tval);
 		else if (!value) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for float arg %s - using 0\n", value, name));
 			p.value.fnumber = 0;
@@ -274,6 +387,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_DOUBLE:
 		if (value && !strcmp(value, "+I")) p.value.number = GF_MAX_DOUBLE;
 		else if (value && !strcmp(value, "-I")) p.value.number = GF_MIN_DOUBLE;
+		else if (parse_time(value, &tval)) p.value.number = (Double) tval;
 		else if (value && (value[0]=='T')) {
 			u32 h=0, m=0, s=0, ms=0;
 			if (sscanf(value+1, "%u:%u:%u.%u", &h, &m, &s, &ms)==4) {
@@ -471,6 +585,30 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.size = 0;
 				p.type=GF_PROP_FORBIDDEN;
 			}
+		} else if (!strnicmp(value, "u8@", 3) ) {
+			parse_data_format(&p, list_sep_char, name, value+3, "u8@", "%c", 1);
+		} else if (!strnicmp(value, "s8@", 3) ) {
+			parse_data_format(&p, list_sep_char, name, value+3, "s8@", "%c", 1);
+		} else if (!strnicmp(value, "u16@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "u16@", "%hu", 2);
+		} else if (!strnicmp(value, "s16@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "s16@", "%hd", 2);
+		} else if (!strnicmp(value, "u32@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "u32@", "%u", 4);
+		} else if (!strnicmp(value, "s32@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "s32@", "%d", 4);
+		} else if (!strnicmp(value, "u64@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "u64@", LLU, 8);
+		} else if (!strnicmp(value, "s64@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "s64@", LLD, 8);
+		} else if (!strnicmp(value, "flt@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "flt@", "%f", 4);
+		} else if (!strnicmp(value, "dbl@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "dbl@", "%g", 8);
+		} else if (!strnicmp(value, "hex@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "hex@", "%X", 4);
+		} else if (!strnicmp(value, "str@", 4) ) {
+			parse_data_format(&p, list_sep_char, name, value+4, "str@", "%s", 4);
 		} else {
 			p.value.data.size = (u32) strlen(value);
 			if (p.value.data.size)
@@ -680,6 +818,9 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 			if (!strcmp(p1->value.string, "*")) return GF_TRUE;
 			if (!strcmp(p2->value.string, "*")) return GF_TRUE;
 		}
+		if (!strcmp(p1->value.string, p2->value.string))
+			return GF_TRUE;
+
 		if (strchr(p2->value.string, '|')) {
 			u32 len = (u32) strlen(p1->value.string);
 			char *cur = p2->value.string;
@@ -704,8 +845,7 @@ Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue 
 			}
 			return GF_FALSE;
 		}
-		assert(strchr(p1->value.string, '|')==NULL);
-		return !strcmp(p1->value.string, p2->value.string) ? GF_TRUE : GF_FALSE;
+		return GF_FALSE;
 
 	case GF_PROP_DATA:
 	case GF_PROP_DATA_NO_COPY:
@@ -807,7 +947,7 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 		map->properties = gf_list_new();
 #endif
 	}
-	assert(!map->reference_count);
+	gf_assert(!map->reference_count);
 	map->reference_count = 1;
 	return map;
 }
@@ -843,7 +983,7 @@ void gf_props_reset_single(GF_PropertyValue *p)
 }
 void gf_props_del_property(GF_PropertyEntry *it)
 {
-	assert(it->reference_count);
+	gf_assert(it->reference_count);
 	if (safe_int_dec(&it->reference_count) == 0 ) {
 		if (it->pname && it->name_alloc)
 			gf_free(it->pname);
@@ -855,7 +995,7 @@ void gf_props_del_property(GF_PropertyEntry *it)
 			it->prop.value.string = NULL;
 		}
 		else if (it->prop.type==GF_PROP_DATA) {
-			assert(it->alloc_size);
+			gf_assert(it->alloc_size);
 			//DATA props are collected at session level for future reuse
 		}
 		//string list are destroyed
@@ -878,7 +1018,7 @@ void gf_props_del_property(GF_PropertyEntry *it)
 		}
 		it->prop.value.data.size = 0;
 		if (it->alloc_size) {
-			assert(it->prop.type==GF_PROP_DATA);
+			gf_assert(it->prop.type==GF_PROP_DATA);
 			if (gf_fq_res_add(it->session->prop_maps_entry_data_alloc_reservoir, it)) {
 				if (it->prop.value.data.ptr) gf_free(it->prop.value.data.ptr);
 				gf_free(it);
@@ -927,7 +1067,7 @@ void gf_props_reset(GF_PropertyMap *prop)
 
 void gf_props_del(GF_PropertyMap *map)
 {
-	assert(!map->pckrefs_reference_count || !map->reference_count);
+	gf_assert(!map->pckrefs_reference_count || !map->reference_count);
 	//we still have a ref
 	if (map->pckrefs_reference_count || map->reference_count) return;
 
@@ -1012,13 +1152,13 @@ static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyVal
 				prop->alloc_size = 0;
 				return GF_OUT_OF_MEM;
 			}
-			assert(prop->alloc_size);
+			gf_assert(prop->alloc_size);
 		}
 		memcpy(prop->prop.value.data.ptr, value->value.data.ptr, value->value.data.size);
 	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
 		prop->prop.type = GF_PROP_DATA;
 		prop->alloc_size = value->value.data.size;
-		assert(prop->alloc_size);
+		gf_assert(prop->alloc_size);
 	}
 	//use uint_list as base type for list
 	else if ((prop->prop.type == GF_PROP_UINT_LIST) || (prop->prop.type == GF_PROP_4CC_LIST) || (prop->prop.type == GF_PROP_SINT_LIST) || (prop->prop.type == GF_PROP_VEC2I_LIST)) {
@@ -1073,7 +1213,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 			for (i=0; i<count; i++) {
 				GF_PropertyEntry *prop_c = gf_list_get(map->hash_table[hash], i);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
-				assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
+				gf_assert(!prop_c->p4cc || (prop_c->p4cc != p4cc));
 			}
 		}
 	}
@@ -1210,7 +1350,7 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 			count = gf_list_count(list);
 			for (i=0; i<count; i++) {
 				GF_PropertyEntry *prop = gf_list_get(list, i);
-				assert(prop->reference_count);
+				gf_assert(prop->reference_count);
 				if (!filter_prop || filter_prop(cbk, prop->p4cc, prop->pname, &prop->prop)) {
 					safe_int_inc(&prop->reference_count);
 
@@ -1326,7 +1466,8 @@ GF_PropTypeDef PropTypes[] =
 	{GF_PROP_PCMFMT, "afmt", "raw audio format"},
 	{GF_PROP_CICP_COL_PRIM, "cprm", "color primaries, string or int value from ISO/IEC 23091-2"},
 	{GF_PROP_CICP_COL_TFC, "ctfc", "color transfer characteristics, string or int value from ISO/IEC 23091-2"},
-	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"}
+	{GF_PROP_CICP_COL_MX, "cmxc", "color matrix coefficients, string or int value from ISO/IEC 23091-2"},
+	{GF_PROP_CICP_LAYOUT, "alay", "channel layout configuration, string or int value from ISO/IEC 23091-3"}
 };
 
 GF_EXPORT
@@ -1406,7 +1547,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_TIME, "TimeshiftTime", "Time in the timeshift buffer in seconds - changes are signaled through PID info (no reconfigure)", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_STATE, "TimeshiftState", "State of timeshift buffer: 0 is OK, 1 is underflow, 2 is overflow - changes are signaled through PID info (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP( GF_PROP_PID_TIMESCALE, "Timescale", "Media timescale (a timestamp delta of N is N/timescale seconds)", GF_PROP_UINT),
-	DEC_PROP_F( GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "Profile and level indication", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP( GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "Decoder configuration data", GF_PROP_DATA),
 	DEC_PROP( GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, "DecoderConfigEnhancement", "Decoder configuration data of the enhancement layer(s). Also used by 3GPP/Apple text streams to give the full sample description table used in SDP.", GF_PROP_DATA),
 	DEC_PROP( GF_PROP_PID_DSI_SUPERSET, "DSISuperset", "Decoder config is a superset of previous decoder config", GF_PROP_BOOL),
@@ -1431,7 +1572,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_BIT_DEPTH_UV, "BitDepthChroma", "Bit depth for chroma components", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION),
 	DEC_PROP( GF_PROP_PID_INTERLACED, "Interlaced", "Video is interlaced", GF_PROP_BOOL),
-	DEC_PROP( GF_PROP_PID_SAR, "SAR", "Sample (i.e. pixel) aspect ratio", GF_PROP_FRACTION),
+	DEC_PROP( GF_PROP_PID_SAR, "SAR", "Sample (i.e. pixel) aspect ratio (negative values mean no SAR and removal of info in containers)", GF_PROP_FRACTION),
 	DEC_PROP( GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Maximum width (video / text / graphics) of all enhancement layers", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_HEIGHT_MAX, "MaxHeight", "Maximum height (video / text / graphics) of all enhancement layers", GF_PROP_UINT),
 	DEC_PROP( GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_SINT),
@@ -1564,6 +1705,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_CLAMP_DUR, "ClampDur", "Max media duration to process from PID in DASH mode", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "Name of the HLS variant playlist for this media", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_GROUPID, "HLSGroup", "Name of HLS Group of a stream", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_HLS_FORCE_INF, "HLSForce", "Force writing EXT-X-STREAM-INF if stream is in a rendition group, value is the name of associated groups (can be empty)", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_EXT_MASTER, "HLSMExt", "List of extensions to add to the master playlist for this PID", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_HLS_EXT_VARIANT, "HLSVExt", "List of extensions to add to the variant playlist for this PID", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_DASH_CUE, "DCue", "Name of a cue list file for this PID - see dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
@@ -1632,7 +1774,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_SCENE_NODE, "SceneNode", "PID is a scene node decoder (AFX BitWrapper in BIFS)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_ORIG_CRYPT_SCHEME, "OrigCryptoScheme", "Original crypto scheme on a decrypted PID", GF_PROP_4CC),
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_SEGS, "TSBSegs", "Time shift in number of segments for HAS streams, only set by dashin and dasher filters", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest\n"
+	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest (MSB=1 if live)\n"
 	"- 0: not a manifest\n"
 	"- 1: DASH manifest\n"
 	"- 2: HLS manifest\n"
@@ -1650,6 +1792,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	DEC_PROP_F( GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from beginning of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_SKIP_PRES, "SkipPres", "Packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_ORIG_DUR, "OriginalDuration", "Elapsed time (.num) and original duration (.den, 0 if last copy of packet) for redundant packets", GF_PROP_FRACTION, GF_PROP_FLAG_PCK),
 
 	DEC_PROP_F( GF_PROP_PCK_HLS_REF, "HLSRef", "HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_LLHLS, "LLHLS", "HLS low latency mode", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
@@ -1658,6 +1801,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_HAS_TEMI, "HasTemi", "TEMI present flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_XPS_MASK, "XPSMask", "Parameter set mask", GF_PROP_UINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_END_RANGE, "RangeEnd", "Signal packet is the last in the desired play range", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_ID, "RefID", "packet identifier for dependency (usually POC for video)", GF_PROP_SINT, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_REFS, "Refs", "list of packet identifier this packet depends on", GF_PROP_SINT_LIST, GF_PROP_FLAG_PCK),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
@@ -1949,7 +2094,6 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		else if (att->value.uint == GF_PLAYBACK_MODE_FASTFORWARD) return "forward";
 		else return "none";
 
-
 	case GF_PROP_PCK_SENDER_NTP:
 	case GF_PROP_PCK_RECEIVER_NTP:
 	case GF_PROP_PCK_UTC_TIME:
@@ -1973,6 +2117,14 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 	}
 		return dump;
 
+	case GF_PROP_PID_CHANNEL_LAYOUT:
+		if (!gf_sys_is_test_mode()) {
+			u32 cicp = gf_audio_fmt_get_cicp_from_layout(att->value.longuint);
+			const char *name = gf_audio_fmt_get_cicp_name(cicp);
+			if (name) return name;
+		}
+		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
+
 	default:
 		if (att->type==GF_PROP_UINT) {
 			u32 type = gf_props_4cc_get_type(p4cc);
@@ -1984,6 +2136,14 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 	return "";
 }
 
+GF_EXPORT
+char *gf_props_dump_alloc(u32 p4cc, const GF_PropertyValue *att, GF_PropDumpDataMode dump_data_mode)
+{
+	char dump[GF_PROP_DUMP_ARG_SIZE];
+	const char *res = gf_props_dump(p4cc, att, dump, dump_data_mode);
+	if (!res) return NULL;
+	return gf_strdup(res);
+}
 
 GF_Err gf_prop_matrix_decompose(const GF_PropertyValue *p, u32 *flip_mode, u32 *rot_mode)
 {

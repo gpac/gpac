@@ -399,8 +399,8 @@ static GF_Err IS_ProcessData(GF_InputSensorCtx *is_ctx, const char *inBuffer, u3
 	/*apply it*/
 	i=0;
 	while ((st = (ISStack*)gf_list_enum(is_ctx->is_nodes, &i))) {
-		assert(st->is);
-		assert(st->mo);
+		gf_assert(st->is);
+		gf_assert(st->mo);
 		if (!st->is->enabled) continue;
 
 		count = gf_list_count(st->is->buffer.commandList);
@@ -432,8 +432,7 @@ static void InputSensorUnregister(GF_Node *node, ISStack *st)
 
 	odm = st->mo->odm;
 	if (!odm) return;
-
-	assert(odm->type == GF_STREAM_INTERACT);
+	if (odm->type != GF_STREAM_INTERACT) return;
 
 	/*get IS dec*/
 	is_ctx = locate_is_ctx_for_odm(odm->parentscene, odm);
@@ -459,8 +458,6 @@ static void InputSensorRegister(GF_Node *n)
 	ISStack *st = (ISStack *)gf_node_get_private(n);
 	odm = st->mo->odm;
 	if (!odm || (odm->type != GF_STREAM_INTERACT)) return;
-
-	assert(odm->type == GF_STREAM_INTERACT);
 
 	/*get IS dec*/
 	is_ctx = locate_is_ctx_for_odm(odm->parentscene, odm);

@@ -369,7 +369,7 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 		if (!pck) return GF_OK;
 		gf_filter_pck_get_framing(pck, &start, &end);
 		//for now we only work with complete files
-		assert(end);
+		gf_assert(end);
 
 		e = vobsubdmx_parse_idx(filter, ctx);
 		ctx->idx_parsed = GF_TRUE;
@@ -403,7 +403,7 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 	/*data =*/ gf_filter_pck_get_data(pck, &pkt_size);
 	gf_filter_pck_get_framing(pck, &start, &end);
 	//for now we only work with complete files
-	assert(end);
+	gf_assert(end);
 
 	nb_eos = 0;
 	count = gf_filter_get_opid_count(filter);

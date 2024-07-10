@@ -171,7 +171,7 @@ static GF_Err fileout_open_close(GF_FileOutCtx *ctx, const char *filename, const
 		if (ctx->use_templates) {
 			GF_Err e;
 			char szName[GF_MAX_PATH];
-			assert(ctx->dst);
+			gf_assert(ctx->dst);
 			if (!strcmp(filename, ctx->dst)) {
 				strcpy(szName, szFinalName);
 				e = gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, file_suffix);

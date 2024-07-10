@@ -163,7 +163,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	}
 	gf_filter_override_caps(filter, ctx->in_caps, 2);
 
-	/*create our ourput socket*/
+	/*create our output socket*/
 
 	if (!strnicmp(ctx->dst, "udp://", 6)) {
 		sock_type = GF_SOCK_TYPE_UDP;
@@ -185,8 +185,9 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 	//skip ://
 	url = strchr(ctx->dst, ':');
 	url += 3;
+	if (!url[0]) return GF_IP_ADDRESS_NOT_FOUND;
 
-	ctx->socket = gf_sk_new(sock_type);
+	ctx->socket = gf_sk_new_ex(sock_type, gf_filter_get_netcap_id(filter));
 	if (! ctx->socket ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Failed to open socket for %s\n", ctx->dst));
 		return GF_IO_ERR;

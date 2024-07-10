@@ -210,7 +210,10 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 					if (!header_written) {
 						ref_nalu_size = gf_bs_read_int(mdia->extracted_bs, 8*nal_unit_size_field);
 
-						assert(data_length>nal_unit_size_field);
+						if (data_length<nal_unit_size_field) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Extractor size is larger than remaining bytes - skipping.\n"));
+							continue;
+						}
 						data_length -= nal_unit_size_field;
 						if (data_length > gf_bs_available(mdia->extracted_bs)) {
 							data_length = (u32)gf_bs_available(mdia->extracted_bs);
@@ -231,7 +234,10 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 						else
 							gf_bs_write_int(mdia->nalu_out_bs, ref_nalu_size, 8*nal_unit_size_field);
 					}
-					assert(data_length >= ref_nalu_size);
+					if (data_length < ref_nalu_size) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Extractor size is larger than referred sample size - skipping.\n"));
+						continue;
+					}
 					gf_bs_write_data(mdia->nalu_out_bs, mdia->tmp_nal_copy_buffer, ref_nalu_size);
 					data_length -= ref_nalu_size;
 
@@ -3229,7 +3235,10 @@ GF_Err av1c_box_read(GF_Box *s, GF_BitStream *bs)
 	pos = gf_bs_get_position(bs);
 
 	ptr->config = gf_odf_av1_cfg_read_bs_size(bs, (u32) ptr->size);
-
+	if (!ptr->config) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AV1ConfigurationBox invalid config\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	read = gf_bs_get_position(bs) - pos;
 
 	if (read < ptr->size)

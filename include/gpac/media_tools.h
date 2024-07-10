@@ -738,7 +738,7 @@ typedef enum
 	/*! out of band parameter sets except PPS and APS, used for VVC */
 	GF_DASH_BSMODE_INBAND_PPS,
 	/*! both inband and out of band parameter sets */
-	GF_DASH_BSMODE_BOTH, //Romain
+	GF_DASH_BSMODE_BOTH,
 	/*! attempts to merge parameter sets in a single sample entry */
 	GF_DASH_BSMODE_MERGED,
 	/*! parameter sets are in different sample entries */

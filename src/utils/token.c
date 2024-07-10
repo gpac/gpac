@@ -39,6 +39,8 @@ GF_EXPORT
 s32 gf_token_get(const char *Buffer, s32 Start,  const char *Separator,  char *Container, s32 ContainerSize)
 {
 	s32 i, start, end, Len;
+	Container[0]=0;
+	if (Start<0) return -1;
 
 	Len = (s32) strlen( Buffer );
 	for (i=Start; i<Len; i++ ) {
@@ -86,7 +88,7 @@ GF_EXPORT
 s32 gf_token_get_line(const char *Buffer, u32 Start, u32 Size, char *LineBuffer, u32 LineBufferSize)
 {
 	u32 offset;
-	s32 i, End, Total;
+	s32 End, Total;
 	LineBuffer[0] = 0;
 	if (Start >= Size) return -1;
 
@@ -100,9 +102,9 @@ s32 gf_token_get_line(const char *Buffer, u32 Start, u32 Size, char *LineBuffer,
 	}
 
 	Total = End - Start + offset;
-	if ((u32) Total >= LineBufferSize) Total = LineBufferSize;
-	for (i=0; i<Total; i++) LineBuffer[i] = Buffer[Start+i];
-	LineBuffer[i] = 0;
+	if ((u32) Total >= LineBufferSize) Total = LineBufferSize-1;
+	memcpy(LineBuffer, Buffer + Start, Total);
+	LineBuffer[Total] = 0;
 	return (End + offset);
 }
 

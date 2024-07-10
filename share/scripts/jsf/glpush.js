@@ -1,5 +1,6 @@
 import {WebGLContext} from 'webgl'
 import {Texture, Matrix} from 'evg'
+import { Sys as sys } from 'gpaccore'
 
 
 //metadata
@@ -15,7 +16,10 @@ filter.set_cap({id: "CodecID", value: "raw", inout: true} );
 
 let gl=null;
 filter.initialize = function() {
-  gl = new WebGLContext(16, 16);
+  let gpac_help = sys.get_opt("temp", "gpac-help");
+  let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
+  //don't initialize gl if doc gen or help
+  if (gpac_help || gpac_doc) return;
 }
 
 let pids=[];
@@ -23,13 +27,19 @@ let pids=[];
 function cleanup_texture(pid)
 {
   pid.o_textures.forEach( t => {
-    gl.deleteTexture(t.id);
+    if (t.id) gl.deleteTexture(t.id);
 
   });
   pid.o_textures = [];  
 }
 filter.configure_pid = function(pid)
 {
+  //init gl only when configuring input - doing it at init may result in uninitialized GL
+  if (!gl) {
+    gl = new WebGLContext(16, 16);
+    if (!gl) return GF_SERVICE_ERROR;
+  }
+
   if (typeof pid.o_pid == 'undefined') {
       pid.o_pid = this.new_pid();
       pid.o_pid.i_pid = pid;
@@ -50,13 +60,16 @@ filter.configure_pid = function(pid)
   let i_pf = pid.get_prop('PixelFormat');
   let i_stride = pid.get_prop('Stride');
   let i_stride_uv = pid.get_prop('StrideUV');
+  //not ready yet
+  if (!i_w || !i_h || !i_pf) return;
+  //same config
   if ((i_w == pid.o_w) && (i_h == pid.o_h) && (i_pf == pid.o_pf)) return;
 
   pid.o_w = i_w;
   pid.o_h = i_h;
   pid.o_pf = i_pf;
   cleanup_texture(pid);
-  print('Configure pid ' + pid.o_w + 'x' + pid.o_h + '@' + pid.o_pf);
+  print(GF_LOG_DEBUG, 'Configure pid ' + pid.o_w + 'x' + pid.o_h + '@' + pid.o_pf);
 
     if (!i_stride) i_stride = i_w;
 

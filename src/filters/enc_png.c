@@ -121,7 +121,7 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ctx->png_type = PNG_COLOR_TYPE_RGB_ALPHA;
 		break;
 	default:
-		gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
+		gf_filter_pid_negotiate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
 		break;
 	}
 	if (ctx->height > ctx->nb_alloc_rows) {

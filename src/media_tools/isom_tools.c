@@ -1393,7 +1393,13 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_HEVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_hevc_cfg_write(((GF_HEVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_HEVCConfigurationBox *hvcc = props.config;
+			if (hvcc->type==GF_ISOM_BOX_TYPE_HVCC) {
+				gf_odf_hevc_cfg_write(hvcc->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -1415,7 +1421,13 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_AVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_avc_cfg_write(((GF_AVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_AVCConfigurationBox *avcc = props.config;
+			if (avcc->type==GF_ISOM_BOX_TYPE_AVCC) {
+				gf_odf_avc_cfg_write(avcc->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -1436,7 +1448,13 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_AV1;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_av1_cfg_write( ((GF_AV1ConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_AV1ConfigurationBox *av1c = props.config;
+			if (av1c->type==GF_ISOM_BOX_TYPE_AV1C) {
+				gf_odf_av1_cfg_write(av1c->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -1502,13 +1520,44 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_VVC;
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
 		if (e == GF_OK && props.config) {
-			gf_odf_vvc_cfg_write(((GF_VVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_VVCConfigurationBox *vvcc = props.config;
+			if (vvcc->type == GF_ISOM_BOX_TYPE_VVCC) {
+				gf_odf_vvc_cfg_write(vvcc->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			} else {
+				gf_odf_desc_del((GF_Descriptor*)esd);
+				return NULL;
+			}
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
 	}
+	if (item_type == GF_4CC('j','2','k','1')) {
+		GF_ImageItemProperties props;
+		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
+
+		if (item_id > (1 << 16)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
+		}
+		esd->ESID = (u16)item_id;
+		esd->OCRESID = esd->ESID;
+		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_J2K;
+		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props, NULL);
+		if (e == GF_OK && props.config) {
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_isom_box_write((GF_Box*)props.config, bs);
+			gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_del(bs);
+		}
+		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+		esd->slConfig->useTimestampsFlag = 1;
+		esd->slConfig->timestampResolution = 1000;
+		return esd;
+	}
+
 	if ((item_type == GF_ISOM_SUBTYPE_UNCV) || (item_type == GF_ISOM_ITEM_TYPE_UNCI)) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
@@ -1751,7 +1800,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 	}
 	/*for testing*/
-	assert(count == num_subseq);
+	gf_assert(count == num_subseq);
 	/*read all pps*/
 	pps =  (s32 *) gf_malloc(num_pps * sizeof(s32));
 	for (j = 0; j < num_pps; j++)
@@ -2809,7 +2858,7 @@ reparse:
 
 				//don't touch base layer
 				if (!layer_id) {
-					assert(base_layer_pass);
+					gf_assert(base_layer_pass);
 					continue;
 				}
 
@@ -3926,7 +3975,7 @@ GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size
 
 GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc)
 {
-	assert(avcc);
+	gf_assert(avcc);
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 	return GF_OK;
 }
@@ -3935,7 +3984,7 @@ GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc)
 {
 	u8 c;
 	char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
-	assert(hvcc);
+	gf_assert(hvcc);
 
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
 	if (hvcc->profile_space==1) strcat(szCodec, "A");
@@ -4002,7 +4051,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 	GF_Err e;
 	u32 i = 0;
 	AV1State av1_state;
-	assert(av1c);
+	gf_assert(av1c);
 
 	gf_av1_init_state(&av1_state);
 	av1_state.config = av1c;
@@ -4052,7 +4101,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 
 GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COLR colr)
 {
-	assert(vpcc);
+	gf_assert(vpcc);
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
 		vpcc->profile,
 		vpcc->level,
@@ -4075,7 +4124,7 @@ static char base32_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 {
-	assert(vvcc);
+	gf_assert(vvcc);
 	u32 i, pos, len;
 
 	if ( (subtype==GF_4CC('v','v','c','N')) || (subtype==GF_4CC('v','v','s','1')) ) {

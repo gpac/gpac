@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS reframer filter
@@ -442,7 +442,7 @@ static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void latm_dmx_update_cts(GF_LATMDmxCtx *ctx)
 {
-	assert(ctx->dts_inc);
+	gf_assert(ctx->dts_inc);
 
 	if (ctx->timescale) {
 		u64 inc = ctx->dts_inc;
@@ -596,11 +596,18 @@ restart:
 
 	if (pck) {
 		pos = (u32) gf_bs_get_position(ctx->bs);
-		assert(ctx->latm_buffer_size >= pos);
-		memmove(ctx->latm_buffer, ctx->latm_buffer+pos, ctx->latm_buffer_size - pos);
-		ctx->latm_buffer_size -= pos;
+		if (ctx->latm_buffer_size >= pos) {
+			memmove(ctx->latm_buffer, ctx->latm_buffer+pos, ctx->latm_buffer_size - pos);
+			ctx->latm_buffer_size -= pos;
+		} else {
+			ctx->latm_buffer_size = 0;
+		}
+		if (!ctx->src_pck) {
+			ctx->src_pck = pck;
+			gf_filter_pck_ref_props(&ctx->src_pck);
+		}
 		gf_filter_pid_drop_packet(ctx->ipid);
-		assert(!ctx->resume_from);
+		gf_assert(!ctx->resume_from);
 	} else {
 		ctx->latm_buffer_size = 0;
 		//avoid recursive call
@@ -615,6 +622,7 @@ static void latm_dmx_finalize(GF_Filter *filter)
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->indexes) gf_free(ctx->indexes);
 	if (ctx->latm_buffer) gf_free(ctx->latm_buffer);
+	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 }
 
 static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -626,7 +634,7 @@ static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	while (1) {
 		u32 nb_skipped = 0;
 		if (!latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL, &nb_skipped)) break;
-		if (acfg.base_sr_index > sizeof(GF_M4ASampleRates) / sizeof(GF_M4ASampleRates[0]) || GF_M4ASampleRates[acfg.base_sr_index] == 0) {
+		if (acfg.base_sr_index >= GF_ARRAY_LENGTH(GF_M4ASampleRates) || GF_M4ASampleRates[acfg.base_sr_index] == 0) {
 			nb_frames = 0;
 			break;
 		}

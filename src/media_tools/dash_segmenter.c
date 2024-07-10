@@ -115,6 +115,7 @@ struct __gf_dash_segmenter
 	s32 dash_filter_idx_plus_one;
 	u32 last_prog;
 	Bool keep_utc;
+	Bool skip_profile;
 };
 
 
@@ -135,15 +136,31 @@ GF_EXPORT
 GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile, const char *tmp_dir, u32 dash_timescale, const char *dasher_context_file)
 {
 	GF_DASHSegmenter *dasher;
+	const char *mpd_profile = strstr(mpdName, ":profile=");
+	if (!mpd_profile) {
+		u32 i, nb_args = gf_sys_get_argc();
+		for (i=1;i<nb_args;i++) {
+			const char *arg = gf_sys_get_arg(i);
+			if (!strncmp(arg, "--profile=", 10)) {
+				mpd_profile = arg;
+				break;
+			}
+		}
+	}
+	if (mpd_profile && (dash_profile!=GF_DASH_PROFILE_FULL)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot specify both mp4box -profile and dasher :profile option\n"));
+		return NULL;
+	}
+
 	GF_SAFEALLOC(dasher, GF_DASHSegmenter);
 	if (!dasher) return NULL;
 
 	dasher->mpd_name = gf_strdup(mpdName);
-
 	dasher->dash_scale = dash_timescale ? dash_timescale : 1000;
 	dasher->profile = dash_profile;
 	dasher->dash_state = dasher_context_file;
 	dasher->inputs = gf_list_new();
+	if (mpd_profile) dasher->skip_profile = GF_TRUE;
 	return dasher;
 }
 
@@ -549,7 +566,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		return GF_OUT_OF_MEM;
 	}
 
-
 	sep_ext = strstr(dasher->mpd_name, ":gpac:");
 	if (sep_ext) {
 		sep_ext[0] = 0;
@@ -636,34 +652,37 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		sprintf(szArg, "asto=%d", -dasher->ast_offset_ms);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
-	switch (dasher->profile) {
-	case GF_DASH_PROFILE_AUTO:
-		break;
-	case GF_DASH_PROFILE_LIVE:
-		e |= gf_dynstrcat(&args, "profile=live", ":");
-		break;
- 	case GF_DASH_PROFILE_ONDEMAND:
-		e |= gf_dynstrcat(&args, "profile=onDemand", ":");
-		break;
-	case GF_DASH_PROFILE_MAIN:
-		e |= gf_dynstrcat(&args, "profile=main", ":");
-		break;
-	case GF_DASH_PROFILE_FULL:
-		e |= gf_dynstrcat(&args, "profile=full", ":");
-		if (!dasher->segments_start_with_rap) e |= gf_dynstrcat(&args, "!sap", ":");
-		break;
-	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
-		e |= gf_dynstrcat(&args, "profile=hbbtv1.5.live", ":");
-		break;
-	case GF_DASH_PROFILE_AVC264_LIVE:
-		e |= gf_dynstrcat(&args, "profile=dashavc264.live", ":");
-		break;
-	case GF_DASH_PROFILE_AVC264_ONDEMAND:
-		e |= gf_dynstrcat(&args, "profile=dashavc264.onDemand", ":");
-		break;
-	case GF_DASH_PROFILE_DASHIF_LL:
-		e |= gf_dynstrcat(&args, "profile=dashif.ll", ":");
-		break;
+
+	if (!dasher->skip_profile) {
+		switch (dasher->profile) {
+		case GF_DASH_PROFILE_AUTO:
+			break;
+		case GF_DASH_PROFILE_LIVE:
+			e |= gf_dynstrcat(&args, "profile=live", ":");
+			break;
+		case GF_DASH_PROFILE_ONDEMAND:
+			e |= gf_dynstrcat(&args, "profile=onDemand", ":");
+			break;
+		case GF_DASH_PROFILE_MAIN:
+			e |= gf_dynstrcat(&args, "profile=main", ":");
+			break;
+		case GF_DASH_PROFILE_FULL:
+			e |= gf_dynstrcat(&args, "profile=full", ":");
+			if (!dasher->segments_start_with_rap) e |= gf_dynstrcat(&args, "!sap", ":");
+			break;
+		case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
+			e |= gf_dynstrcat(&args, "profile=hbbtv1.5.live", ":");
+			break;
+		case GF_DASH_PROFILE_AVC264_LIVE:
+			e |= gf_dynstrcat(&args, "profile=dashavc264.live", ":");
+			break;
+		case GF_DASH_PROFILE_AVC264_ONDEMAND:
+			e |= gf_dynstrcat(&args, "profile=dashavc264.onDemand", ":");
+			break;
+		case GF_DASH_PROFILE_DASHIF_LL:
+			e |= gf_dynstrcat(&args, "profile=dashif.ll", ":");
+			break;
+		}
 	}
 	if (dasher->cp_location_mode==GF_DASH_CPMODE_REPRESENTATION) e |= gf_dynstrcat(&args, "cp=rep", ":");
 	else if (dasher->cp_location_mode==GF_DASH_CPMODE_BOTH) e |= gf_dynstrcat(&args, "cp=both", ":");
@@ -776,6 +795,16 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 
 	if (dasher->samplegroups_in_traf) e |= gf_dynstrcat(&args, "sgpd_traf", ":");
+	//if llhls or asto is specified in manifest name or globally, disable subsegs_per_sidx
+	if (sep_ext && !dasher->subsegs_per_sidx && (
+		strstr(sep_ext+1, "llhls")
+		|| strstr(sep_ext+1, "asto")
+		|| gf_sys_find_global_arg("llhls")
+		|| gf_sys_find_global_arg("asto")
+	)) {
+		dasher->enable_sidx = 0;
+	}
+
 	if (dasher->enable_sidx) {
 		sprintf(szArg, "subs_sidx=%d", dasher->subsegs_per_sidx );
 		e |= gf_dynstrcat(&args, szArg, ":");
@@ -903,7 +932,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	for (i=0; i<count; i++) {
 		u32 j;
-		char szSourceID[100];
+		char szSourceID[100], *source_id=NULL;
 		GF_Filter *src = NULL;
 		GF_Filter *rt = NULL;
 		const char *url = NULL;
@@ -942,15 +971,18 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			else {
 				sprintf(szSourceID, "%s", frag_val);
 			}
-			//we need tkid for demuxers able to fetch specific tracks (eg isobmf)
-			sprintf(szArg, "tkid=%s", frag_val);
-			e |= gf_dynstrcat(&args, szArg, ":");
+			if (fID || !strcmp(frag_val, "audio") || !strcmp(frag_val, "video") || (strlen(frag_val)==4)) {
+				//we set tkid for demuxers able to fetch specific tracks (eg isobmf)
+				sprintf(szArg, "tkid=%s", frag_val);
+				e |= gf_dynstrcat(&args, szArg, ":");
+			}
 		} else if (di->track_id) {
 			sprintf(szSourceID, "PID=%d", di->track_id);
-			//we need tkid for isobmf
+			//we set tkid for isobmf
 			sprintf(szArg, "tkid=%d", di->track_id);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
+		if (szSourceID[0]) source_id = szSourceID;
 
 		if (di->source_opts) {
 			e |= gf_dynstrcat(&args, di->source_opts, ":");
@@ -1092,14 +1124,17 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			return e;
 		}
 
+		//source_id fragment only applies to first filter in chain, reset it after each set_source
+
 		if (rt) {
-			gf_filter_set_source(rt, src, NULL);
+			gf_filter_set_source(rt, src, source_id);
 			src = rt;
+			source_id = NULL;
 		}
 
 		if (!di->filter_chain) {
 			//assign this source 
-			gf_filter_set_source(dasher->output, src, szSourceID[0] ? szSourceID : NULL);
+			gf_filter_set_source(dasher->output, src, source_id);
 			continue;
 		}
 		//create the filter chain between source (or rt if it was set) and dasher
@@ -1132,7 +1167,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 				return e;
 			}
 			if (prev_filter) {
-				gf_filter_set_source(f, prev_filter, NULL);
+				gf_filter_set_source(f, prev_filter, source_id);
+				source_id=NULL;
 			}
 			prev_filter = f;
 			if (!sep) break;
@@ -1140,15 +1176,16 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			if (old_syntax || end_of_sub_chain) {
 				fargs = sep+2;
 				if (end_of_sub_chain && prev_filter) {
-					gf_filter_set_source(dasher->output, prev_filter, NULL);
+					gf_filter_set_source(dasher->output, prev_filter, source_id);
 					prev_filter = src;
+					source_id = NULL;
 				}
 			} else {
 				fargs = sep+1;
 			}
 		}
 		if (prev_filter) {
-			gf_filter_set_source(dasher->output, prev_filter, szSourceID[0] ? szSourceID : NULL);
+			gf_filter_set_source(dasher->output, prev_filter, source_id);
 		}
 	}
 

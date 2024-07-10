@@ -446,8 +446,8 @@ void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_
 		u32 a, a11, a12, a21, a22;
 		u32 idx1 = 3*i;
 		u32 idx2 = idx1 + 3;
-		assert(idx1 < surf->uv_alpha_alloc );
-		assert(idx2 < surf->uv_alpha_alloc );
+		gf_assert(idx1 < surf->uv_alpha_alloc );
+		gf_assert(idx2 < surf->uv_alpha_alloc );
 		//get alpha
 		a11 = (u32)rctx->uv_alpha[idx1];
 		a12 = (u32)rctx->uv_alpha[idx2];
@@ -594,7 +594,7 @@ GF_Err evg_surface_clear_yuv420p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 
 	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
-	if (!rc.x && !rc.y && (rc.width==_surf->width) && (rc.height==_surf->height)) {
+	if (!rc.x && !rc.y && ((u32) rc.width==_surf->width) && ((u32) rc.height==_surf->height)) {
 		memset(pY, cy, _surf->pitch_y * _surf->height);
 		memset(pU, cb, _surf->pitch_y/2 * _surf->height/2);
 		memset(pV, cr, _surf->pitch_y/2 * _surf->height/2);
@@ -891,7 +891,7 @@ GF_Err evg_surface_clear_yuv422p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 
 	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
-	if (!rc.x && !rc.y && (rc.width==_surf->width) && (rc.height==_surf->height)) {
+	if (!rc.x && !rc.y && ((u32) rc.width==_surf->width) && ((u32) rc.height==_surf->height)) {
 		memset(pY, cy, _surf->pitch_y * _surf->height);
 		memset(pU, cb, _surf->pitch_y/2 * _surf->height);
 		memset(pV, cr, _surf->pitch_y/2 * _surf->height);
@@ -1074,7 +1074,7 @@ GF_Err evg_surface_clear_yuv444p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 
 	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
-	if (!rc.x && !rc.y && (rc.width==_surf->width) && (rc.height==_surf->height)) {
+	if (!rc.x && !rc.y && ((u32) rc.width==_surf->width) && ((u32) rc.height==_surf->height)) {
 		memset(pY, cy, _surf->pitch_y * _surf->height);
 		memset(pU, cb, _surf->pitch_y * _surf->height);
 		memset(pV, cr, _surf->pitch_y * _surf->height);

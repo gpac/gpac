@@ -38,7 +38,7 @@ filter.set_help(
 +"\n"
 +"When [-adjust]() is set, the first video frame is adjusted such that a full circle happens at each exact second according to the system UTC clock.\n"
 +"By default, video UTC and date are computed at each frame generation from current clock and not from frame number.\n"
-+"This will result in broken timing when playing at speeds other than 1.0.\n"
++"This will result in broken UTC timing text when playing at speeds other than 1.0.\n"
 +"This can be changed using [-lock]().\n"
 +"\n"
 +"Audio beep is generated every second, with octave (2xfreq) of even beep used every 10 seconds.\n"
@@ -82,7 +82,7 @@ filter.set_arg({ name: "ntp", desc: "send NTP along with packets", type: GF_PROP
 filter.set_arg({ name: "copy", desc: "copy the framebuffer into each video packet instead of using packet references", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "dur", desc: "run for the given time in second", type: GF_PROP_FRACTION, def: "0/0"} );
 filter.set_arg({ name: "adjust", desc: "adjust start time to synchronize counter and UTC", type: GF_PROP_BOOL, def: "true"} );
-filter.set_arg({ name: "pack", desc: "packing mode for stereo views\n - no: no packing\n - ss: side by side packing, forces [-views]() to 2\n - tb: top-bottom packing, forces [-views]() to 2", type: GF_PROP_UINT, def: "no", minmax_enum: "no|ss|tb"} );
+filter.set_arg({ name: "pack", desc: "packing mode for stereo views\n- no: no packing\n- ss: side by side packing, forces [-views]() to 2\n- tb: top-bottom packing, forces [-views]() to 2", type: GF_PROP_UINT, def: "no", minmax_enum: "no|ss|tb"} );
 filter.set_arg({ name: "disparity", desc: "disparity in pixels between left-most and right-most views", type: GF_PROP_UINT, def: "20"} );
 filter.set_arg({ name: "views", desc: "number of views", type: GF_PROP_UINT, def: "1"} );
 filter.set_arg({ name: "rates", desc: "number of target bitrates to assign, one per size", type: GF_PROP_STRING_LIST} );
@@ -114,12 +114,7 @@ let utc_init = 0;
 let ntp_init = 0;
 
 /*create a text*/
-let text = new evg.Text();
-text.font = 'SANS';
-text.fontsize = 20;
-text.baseline = GF_TEXT_BASELINE_HANGING;
-text.align=GF_TEXT_ALIGN_CENTER;
-text.lineSpacing=0;
+let text = null;
 
 filter.frame_pending = 0;
 
@@ -132,6 +127,18 @@ filter.initialize = function() {
 		this.set_cap({id: "StreamType", value: "Video", output: true} );
 	}
 	this.set_cap({id: "CodecID", value: "raw", output: true} );
+
+	let gpac_help = sys.get_opt("temp", "gpac-help");
+	let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
+	if (gpac_help || gpac_doc) return;
+
+	text = new evg.Text();
+	text.font = 'SANS';
+	text.fontsize = 20;
+	text.baseline = GF_TEXT_BASELINE_HANGING;
+	text.align=GF_TEXT_ALIGN_CENTER;
+	text.lineSpacing=0;
+
 
 	//setup audio
 	if (filter.type != 1) {
@@ -355,7 +362,11 @@ function put_image(vsrc, tx, is_testcard, is_first)
 	else fps = Math.floor(100*fps) / 100;
 
 	vprop += '' + fps + ' FPS';
-	text.set_text(['GPAC AV Generator', 'v'+sys.version_full, ' ',  'UTC Locked: ' + (filter.lock ? 'yes' : 'no'), ' ', vprop]);
+	try {
+		text.set_text(['GPAC AV Generator', 'v'+sys.version_full, ' ',  'UTC Locked: ' + (filter.lock ? 'yes' : 'no'), ' ', vprop]);
+	} catch (e) {
+		print(GF_LOG_WARNING, "Fonts disabled");
+	}
 
 	mmx.identity = true;
 	mmx.translate(t_x+10, oy-rh/5);

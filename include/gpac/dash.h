@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2012-2023
+ *			Copyright (c) Telecom ParisTech 2012-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming sub-project
@@ -861,6 +861,8 @@ typedef struct
 	Double average_duration;
 	/*! list of segmentURLs if known, NULL otherwise. Used for onDemand profile to get segment sizes*/
 	const GF_List *seg_urls;
+	/*! URL (relative) of variant playlist*/
+	const char *hls_variant_url;
 } GF_DASHQualityInfo;
 
 /*! gets information on  a given quality
@@ -1081,12 +1083,12 @@ void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_i
 */
 void gf_dash_set_suggested_presentation_delay(GF_DashClient *dash, s32 spd);
 
-/*! sets availabilityStartTime shift for ROUTE. By default the ROUTE tune-in is done by matching the last received segment name
-to the segment template and deriving the ROUTE UTC reference from that. The function allows shifting the computed value by a given amount.
+/*! sets availabilityStartTime shift for multicast (ROUTE, FLUTE). By default the multicast tune-in is done by matching the last received segment name
+to the segment template and deriving the UTC reference from that. The function allows shifting the computed value by a given amount.
 \param dash the target dash client
-\param ast_shift clock shift in milliseconds of the ROUTE receiver tune-in. Positive values shift the clock in the future, negative ones in the past
+\param ast_shift clock shift in milliseconds of the multicast receiver tune-in. Positive values shift the clock in the future, negative ones in the past
 */
-void gf_dash_set_route_ast_shift(GF_DashClient *dash, s32 ast_shift);
+void gf_dash_set_mcast_ast_shift(GF_DashClient *dash, s32 ast_shift);
 
 /*! gets the minimum wait time before calling \ref gf_dash_process again for unthreaded mode
 \param dash the target dash client

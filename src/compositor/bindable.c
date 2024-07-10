@@ -299,7 +299,6 @@ void BindableStackDelete(GF_List *stack)
 		bind_stack_list = Bindable_GetStack(bindable);
 		if (bind_stack_list) {
 			gf_list_del_item(bind_stack_list, stack);
-			assert(gf_list_find(bind_stack_list, stack)<0);
 		}
 	}
 	gf_list_del(stack);

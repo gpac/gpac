@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC FAAD2 decoder filter
@@ -293,13 +293,9 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	if (!pck) {
 		buffer = NeAACDecDecode(ctx->codec, &ctx->info, NULL, 0);
 	} else {
-		Bool start, end;
 		u32 size;
 		const char *data = gf_filter_pck_get_data(pck, &size);
 		buffer = NeAACDecDecode(ctx->codec, &ctx->info, (char *) data, size);
-
-		gf_filter_pck_get_framing(pck, &start, &end);
-		assert(start && end);
 	}
 
 	if (ctx->info.error>0) {

@@ -70,7 +70,7 @@ static void test_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 {
 	PIDCtx *stack = (PIDCtx *) gf_filter_pid_get_udta(pid);
 	stack->pck_del++;
-	assert(stack->nb_packets >= stack->pck_del);
+	gf_assert(stack->nb_packets >= stack->pck_del);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_APP, ("%s: Packet deleted - %d out there (%d sent %d destroyed)\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del, stack->nb_packets, stack->pck_del));
 }
 
@@ -179,8 +179,8 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 		u32 data_offset=0;
 		PIDCtx *pidctx = gf_list_get(stack->pids, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
-		assert (pck);
-		assert(pidctx == gf_filter_pid_get_udta(pidctx->src_pid));
+		gf_assert (pck);
+		gf_assert(pidctx == gf_filter_pid_get_udta(pidctx->src_pid));
 
 		data = gf_filter_pck_get_data(pck, &size);
 		gf_sha1_update(pidctx->sha_ctx, (u8*)data, size);
@@ -512,7 +512,7 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!pidctx) return GF_OUT_OF_MEM;
 	pidctx->src_pid = pid;
 	gf_list_add(stack->pids, pidctx);
-	assert(pidctx->src_pid);
+	gf_assert(pidctx->src_pid);
 	
 	//coverage mode
 	if (stack->cov) {

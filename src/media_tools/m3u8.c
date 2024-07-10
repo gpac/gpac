@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Pierre Souchay, Jean Le Feuvre, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2010-2022
+ *			Copyright (c) Telecom ParisTech 2010-2023
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -131,7 +131,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 	case TYPE_MEDIA:
 		break;
 	case TYPE_PLAYLIST:
-		assert(e->element.playlist.elements);
+		gf_assert(e->element.playlist.elements);
 		result |= cleanup_list_of_elements(e->element.playlist.elements);
 	default:
 		break;
@@ -186,7 +186,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	e->utc_start_time = attribs->playlist_utc_timestamp;
 	e->discontinuity = attribs->discontinuity;
 
-	assert(url);
+	gf_assert(url);
 	e->url = gf_strdup(url);
 	e->bandwidth = 0;
 	e->element_type = element_type;
@@ -231,8 +231,8 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	} else {
 		/* Nothing to do, media is an empty structure */
 	}
-	assert(e->bandwidth == 0);
-	assert(e->url);
+	gf_assert(e->bandwidth == 0);
+	gf_assert(e->url);
 	return e;
 }
 
@@ -282,7 +282,7 @@ static GFINLINE int string2num(const char *s) {
 	u64 ret=0, i, shift=2;
 	u8 hash[GF_SHA1_DIGEST_SIZE];
 	gf_sha1_csum((u8*)s, (u32)strlen(s), hash);
-	assert(shift*GF_SHA1_DIGEST_SIZE < 64);
+	gf_assert(shift*GF_SHA1_DIGEST_SIZE < 64);
 	for (i=0; i<GF_SHA1_DIGEST_SIZE; ++i)
 		ret += (ret << shift) + hash[i];
 	return (int)(ret % MEDIA_TYPE_AUDIO);
@@ -327,6 +327,9 @@ static char** extract_attributes(const char *name, const char *line, const int n
 	if (!safe_start_equals(name, line))
 		return NULL;
 	ret = gf_calloc((num_attributes + 1), sizeof(char*));
+	if (!ret) return NULL;
+	if (!num_attributes) return ret;
+
 	curr_attribute = 0;
 	for (i=start; i<=len; i++) {
 		if (line[i] == '\0' || (!quote && line[i] == ',')  || (line[i] == quote)) {
@@ -374,6 +377,15 @@ static char** extract_attributes(const char *name, const char *line, const int n
 	if (v > attributes->compatibility_version) \
 		attributes->compatibility_version = v;
 
+static void free_attrs(char** attributes)
+{
+	u32 i = 0;
+	while (attributes[i] != NULL) {
+		gf_free(attributes[i]);
+		i++;
+	}
+	gf_free(attributes);
+}
 /**
  * Parses the attributes and accumulate into the attributes structure
  */
@@ -592,13 +604,13 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 				}
 				M3U8_COMPATIBILITY_VERSION(2);
 			} else if (safe_start_equals("AUDIO=", ret[i])) {
-				assert(attributes->type == MEDIA_TYPE_UNKNOWN);
+				gf_assert(attributes->type == MEDIA_TYPE_UNKNOWN);
 				attributes->type = MEDIA_TYPE_AUDIO;
 				if (attributes->group.audio) gf_free(attributes->group.audio);
 				attributes->group.audio = gf_strdup(ret[i] + 6);
 				M3U8_COMPATIBILITY_VERSION(4);
 			} else if (safe_start_equals("VIDEO=", ret[i])) {
-				assert(attributes->type == MEDIA_TYPE_UNKNOWN);
+				gf_assert(attributes->type == MEDIA_TYPE_UNKNOWN);
 				attributes->type = MEDIA_TYPE_VIDEO;
 				if (attributes->group.video) gf_free(attributes->group.video);
 				attributes->group.video = gf_strdup(ret[i] + 6);
@@ -608,6 +620,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		}
 		if (!attributes->bandwidth) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-STREAM-INF: no BANDWIDTH found. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 		return ret;
@@ -618,7 +631,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		M3U8_COMPATIBILITY_VERSION(1);
 		return ret;
 	}
-	ret = extract_attributes("#EXT-X-DISCONTINUITY-SEQUENCE", line, 0);
+	ret = extract_attributes("#EXT-X-DISCONTINUITY-SEQUENCE", line, 1);
 	if (ret) {
 		if (ret[0]) {
 			int_value = (s32)strtol(ret[0], &end_ptr, 10);
@@ -694,6 +707,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(CLOSED_CAPTIONS, attributes->group.closed_captions);
 				} else if (attributes->type == MEDIA_TYPE_UNKNOWN) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:GROUP-ID=%s. Ignoring the line.\n", ret[i]+9));
+					free_attrs(ret);
 					return NULL;
 				}
 			} else if (safe_start_equals("LANGUAGE=\"", ret[i])) {
@@ -706,7 +720,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Misformed #EXT-X-MEDIA:LANGUAGE=%s. Quotes are incorrect.\n", ret[i]+5));
 				}
-			} else if (safe_start_equals("NAME=", ret[i])) {
+			} else if (safe_start_equals("NAME=\"", ret[i])) {
 				if (attributes->name) gf_free(attributes->name);
 				attributes->name = gf_strdup(ret[i]+5+1);
 				u32 len = (u32) strlen(attributes->name);
@@ -739,6 +753,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 
 		if (attributes->type == MEDIA_TYPE_UNKNOWN) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: TYPE is missing. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 		if (attributes->type == MEDIA_TYPE_CLOSED_CAPTIONS && attributes->mediaURL) {
@@ -749,10 +764,12 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		if ((attributes->type == MEDIA_TYPE_AUDIO && !attributes->group.audio)
 		        || (attributes->type == MEDIA_TYPE_VIDEO && !attributes->group.video)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: missing GROUP-ID attribute. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 		if (!attributes->stream_id) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: no ID was computed. Check previous errors. Ignoring the line.\n"));
+			free_attrs(ret);
 			return NULL;
 		}
 
@@ -765,6 +782,10 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 	}
 	if (!strncmp(line, "#EXT-X-I-FRAME-STREAM-INF", strlen("#EXT-X-I-FRAME-STREAM-INF") )) {
 		//todo extract I/intra rate for speed adaptation
+		return NULL;
+	}
+	//ignored for now
+	if (!strncmp(line, "#EXT-X-BITRATE", strlen("#EXT-X-BITRATE") )) {
 		return NULL;
 	}
 	if (!strncmp(line, "#EXT-X-PART-INF", strlen("#EXT-X-PART-INF") )) {
@@ -814,13 +835,12 @@ MasterPlaylist* master_playlist_new()
 GF_Err gf_m3u8_master_playlist_del(MasterPlaylist **playlist) {
 	if ((playlist == NULL) || (*playlist == NULL))
 		return GF_OK;
-	assert((*playlist)->streams);
+	gf_assert((*playlist)->streams);
 	while (gf_list_count((*playlist)->streams)) {
 		Stream *p = gf_list_get((*playlist)->streams, 0);
-		assert(p);
-		while (gf_list_count(p->variants)) {
+		while (p && gf_list_count(p->variants)) {
 			PlaylistElement *pl = gf_list_get(p->variants, 0);
-			assert(pl);
+			if (!pl) break;
 			playlist_element_del(pl);
 			gf_list_rem(p->variants, 0);
 		}
@@ -839,13 +859,13 @@ GF_Err gf_m3u8_master_playlist_del(MasterPlaylist **playlist) {
 
 static Stream* master_playlist_find_matching_stream(const MasterPlaylist *pl, const u32 stream_id) {
 	u32 count, i;
-	assert(pl);
-	assert(pl->streams);
-	assert(stream_id >= 0);
+	gf_assert(pl);
+	gf_assert(pl->streams);
+	gf_assert(stream_id >= 0);
 	count = gf_list_count(pl->streams);
 	for (i=0; i<count; i++) {
 		Stream *cur = gf_list_get(pl->streams, i);
-		assert(cur);
+		gf_assert(cur);
 		if (stream_id == cur->stream_id) {
 			/* We found the program */
 			return cur;
@@ -875,6 +895,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 	u32 i, count;
 
 	char *fullURL = currentLine;
+	if (!fullURL) return GF_BAD_PARAM;
 
 	if (attribs->is_master_playlist && attribs->is_media_segment) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Media segment tag MUST NOT appear in a Master Playlist\n"));
@@ -904,14 +925,14 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 		}
 
 		/* OK, we have a stream, we have to choose the elements within the same stream variant */
-		assert(stream);
-		assert(stream->variants);
+		gf_assert(stream);
+		gf_assert(stream->variants);
 		count = gf_list_count(stream->variants);
 
 		if (!curr_playlist) {
 			for (i=0; i<(s32)count; i++) {
 				PlaylistElement *i_playlist_element = gf_list_get(stream->variants, i);
-				assert(i_playlist_element);
+				gf_assert(i_playlist_element);
 				if (stream->stream_id < MEDIA_TYPE_AUDIO) {
 					/* regular stream (EXT-X-STREAM-INF) */
 					// Two stream are identical only if they have the same URL
@@ -938,7 +959,6 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				gf_m3u8_master_playlist_del(playlist);
 				return GF_OUT_OF_MEM;
 			}
-			assert(fullURL);
 			if (curr_playlist->url)
 				gf_free(curr_playlist->url);
 			curr_playlist->url = gf_strdup(fullURL);
@@ -960,21 +980,20 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 			curr_playlist->channels = attribs->channels;
 		} else {
 			/* Normal Playlist */
-			assert((*playlist)->streams);
+			gf_assert((*playlist)->streams);
 			if (curr_playlist == NULL) {
 
 				/* This is a "normal" playlist without any element in it */
 				PlaylistElement *subElement;
-				assert(baseURL);
+				gf_assert(baseURL);
 				curr_playlist = playlist_element_new(TYPE_PLAYLIST, baseURL, attribs);
 				if (curr_playlist == NULL) {
 					/* out of memory */
 					gf_m3u8_master_playlist_del(playlist);
 					return GF_OUT_OF_MEM;
 				}
-				assert(curr_playlist->element.playlist.elements);
-				assert(fullURL);
-				assert(curr_playlist->url && !curr_playlist->codecs);
+				gf_assert(curr_playlist->element.playlist.elements);
+				gf_assert(curr_playlist->url && !curr_playlist->codecs);
 				curr_playlist->codecs = NULL;
 
 				subElement = playlist_element_new(TYPE_UNKNOWN, fullURL, attribs);
@@ -990,9 +1009,9 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				gf_list_add(curr_playlist->element.playlist.elements, subElement);
 				gf_list_add(stream->variants, curr_playlist);
 				curr_playlist->element.playlist.computed_duration += subElement->duration_info;
-				assert(stream);
-				assert(stream->variants);
-				assert(curr_playlist);
+				gf_assert(stream);
+				gf_assert(stream->variants);
+				gf_assert(curr_playlist);
 			} else {
 				PlaylistElement *subElement = playlist_element_new(TYPE_UNKNOWN, fullURL, attribs);
 				if (curr_playlist->element_type != TYPE_PLAYLIST) {
@@ -1083,9 +1102,10 @@ static void reset_attribs(s_accumulated_attributes *attribs, Bool is_cleanup)
 	RST_ATTR(group.audio)
 	RST_ATTR(language)
 	RST_ATTR(title)
-	if (is_cleanup)
+	if (is_cleanup) {
 		RST_ATTR(key_url)
-
+		RST_ATTR(name)
+	}
 	RST_ATTR(init_url)
 	RST_ATTR(mediaURL)
 }
@@ -1146,7 +1166,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 			if (m3u8pos >= m3u8_size)
 				break;
 			while (1) {
-				assert(__idx < M3U8_BUF_SIZE);
+				if (__idx >= M3U8_BUF_SIZE) break;
 
 				currentLine[__idx] = m3u8_payload[m3u8pos];
 				__idx++;

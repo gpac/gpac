@@ -48,7 +48,6 @@
 [Rr]eleases/
 x64/
 x86/
-build/
 bld/
 [Bb]in/
 [Oo]bj/
@@ -88,6 +87,12 @@ gpac.pc
 tests/external_media/
 tests/results/
 tests/hash_refs/
+
+*doxygen_warnings.txt
+*/nodejs/node_modules/
+*/nodejs/package-lock.json
+applications/deprecated/
+
 
 # nix output
 result

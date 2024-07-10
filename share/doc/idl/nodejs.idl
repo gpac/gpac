@@ -71,6 +71,11 @@ void set_args(Array args);
 */
 void set_rmt_fun(function callback);
 
+/*! send log message to profiler (Remotery) - see \ref gf_sys_profiler_log
+\param text text to send
+*/
+void rmt_log(DOMString text);
+
 /*! send message to profiler (Remotery) - see \ref gf_sys_profiler_send
 \param text text to send
 */
@@ -153,7 +158,7 @@ const FilterSessionPromise = (fs_run_task) => {
 
 const run_task = () => {
 	return new Promise((resolve, reject) => {
-	  resolve( fs.run_step() );
+	  resolve( fs.run() );
 	});
 }
 FilterSessionPromise(run_task).then( ).finally( ()=> { console.log('session is done'); } ) );
@@ -171,7 +176,7 @@ However it is currently not capable of running asynchronous callbacks into Node.
 The consequences are:
 - any custom JS filter will run on the main thread (EventLoop or worker thread)
 - any packet dispatched by a custom filter and requiring a JS callback upon packet destruction (shared data dispatch) will force filters consuming these packets to run on the main thread as well.
-- any filter assigned with a JS binding (only `dashin` for now) will be scheduled on the main thread
+- any filter assigned with a JS binding will be scheduled on the main thread
 
 For better multithreaded usage, it is therefore not recommended to use packets with shared JS data.
 
@@ -295,11 +300,13 @@ boolean is_supported_source(DOMString url, DOMString parent=null);
 
 \note Custom filters are always created with the flag GF_FS_REG_MAIN_THREAD set, so that they always run in the main thread
 
+\note If the custom filter is a source, it must be initially scheduled using reschedule
+
 \param name name for the filter
 \param flags filter flags
 \return new custom filter
 */
-CustomFilter new_filter(DOMString name="Custom", unsigend long flags=0);
+CustomFilter new_filter(DOMString name="Custom", unsigned long flags=0);
 
 };
 
@@ -361,6 +368,25 @@ void set_source_restricted(_Filter src, DOMString link_args=null);
 \param link_args link options
 */
 void insert(_Filter f, long pid_idx=-1, DOMString link_args=null);
+
+
+/*! reconnect the filter output - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
+\param pid_idx index of output pid to reconnect, -1 for all pids
+*/
+void reconnect(long pid_idx=-1);
+
+/*! Resolves link from given output pid of filter to a filter description. The described filter is not loaded in the graph - see \ref gf_filter_probe_link
+\param pid_idx 0-based index of the output pid
+\param name filter description to link to; this can be any filter description
+\return comma-spearated string list of the filter names in the resolved chain from current filter to destination
+*/
+DOMString probe_link(long pid_idx, DOMString name);
+
+/*! Gets all possible destination filter for this filter or one of its output PID - see \ref gf_filter_get_possible_destinations
+\param pid_idx 0-based index of the output pid, use -1 to check all output pids
+\return None if no possible connections to known filter, or a comma-separated string list containing all possible direct connections
+*/
+DOMString get_destinations(long pid_idx=-1);
 
 /*! get an input pid property by name
 \param idx index of input pid
@@ -434,9 +460,10 @@ FilterStatistics get_statistics();
 /*! enforces sourceID to be present for output pids of this filter - see \ref gf_filter_require_source_id*/
 void require_source_id();
 
-/*!  Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
+/*!  Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer and httpout  for the current time
 
-For DASH, the object must derive implement the methods of the \ref _DASHCustomAlgorithm interface
+For DASH, the object must implement the methods of the \ref _DASHCustomAlgorithm interface
+For DASH, the object must implement the methods of the \ref _HTTPRequestHandler interface
 
 \param interf interface object to bind
 */
@@ -538,7 +565,7 @@ A custom filter must implement the \ref CustomFilter class, and optionally provi
 - configure_pid: callback for PID configuration, mandatory if your filter is not a source
 - process: callback for processing
 - process_event: callback for processing and event
-- reconfigure_output: callback for output reconfiguration (PID capability negociation)
+- reconfigure_output: callback for output reconfiguration (PID capability negotiation)
 
 A custom filter must also declare its capabilities, input and output, using push_cap method 
 \code
@@ -838,7 +865,7 @@ void forward(_FilterPacket ipck);
 \param prop property value to set, or null to remove property
 \param custom_type type of property if user-defined property. If not set and user-defined, property is a string
 */
-void set_prop(DOMString pcode, PropertyValue prop, unsigend long custom_type);
+void set_prop(DOMString pcode, PropertyValue prop, unsigned long custom_type);
 
 /*! set a info property the current pid - see \ref gf_filter_pid_set_info and \ref gf_filter_pid_set_info_str
 \param pcode property type
@@ -914,12 +941,12 @@ void recompute_dts(boolean do_compute);
 */
 PropertyValue query_cap(DOMString pcode);
 
-/*! negociates a capability property on input PID - see \ref gf_filter_pid_negociate_property and \ref gf_filter_pid_negociate_property_dyn
+/*! negotiates a capability property on input PID - see \ref gf_filter_pid_negotiate_property and \ref gf_filter_pid_negotiate_property_dyn
 \param pcode property to negotiate
 \param prop property to negotiate
 \param custom_type type of property if user-defined property. If not set and user-defined, property is a string
 */
-void negociate_cap(DOMString pcode, PropertyValue prop, unsigned long custom_type=0);
+void negotiate_cap(DOMString pcode, PropertyValue prop, unsigned long custom_type=0);
 
 /*! resolves a template string - see \ref gf_filter_pid_resolve_file_template
 \param template the template string
@@ -1143,7 +1170,7 @@ interface _FilterEvent
 \brief DASH and HLS user-defined rate adaptation algorithms
 
 
-The DASH demuxer can be provided with a custom JS algorithm, provided as an object implementing the the DASHAlgorithm interface.
+The DASH demuxer can be provided with a custom JS algorithm, provided as an object implementing the DASHAlgorithm interface.
 
 When running the session in multithreaded mode, the dash demuxer will always be scheduled on the main thread if a custom algorithm is bound.
 
@@ -1517,6 +1544,106 @@ boolean exists(DOMString URL);
 
 };
 
+/*! @} */
+
+
+
+/*!
+
+\defgroup nodehttp_grp HTTPRequestHandler interface
+\ingroup nodejs_grp
+\brief HTTP server user-defined request handler
+
+
+The httpout server can use a custom request handler, provided as an object implementing the HTTPRequestHandler interface.
+
+When running the session in multithreaded mode, the httpout filter  will always be scheduled on the main thread if a custom request handler is bound.
+
+@{
+
+*/
+
+/*! interface for HTTP custom request handler
+*/
+interface _HTTPRequestHandler
+{
+
+/*! Callback called upon a period reset.
+\param request the request to process
+*/
+void on_request(_HTTPRequest request);
+
+};
+
+
+/*! interface for HTTP request */
+interface _HTTPRequest
+{
+
+/*! send the response to the request*/
+attribute void send();
+
+/*! HTTP reply code to use. If 0, the request is handled by GPAC as usual. Otherwise, the request is handled by your script if the reply does not indicate an error*/
+attribute unsigned long reply;
+
+/*! HTTP method of the request */
+attribute readonly DOMString method;
+
+/*! HTTP URL of the request */
+attribute readonly DOMString url;
+
+/*! Authentication reply code - requests are pre-identified using GPAC credentials: a value of 401 indicates no identification, 200 indicates identification OK, 403 indicates failure */
+attribute readonly unsigned long auth_code;
+
+/*! HTTP headers of the request, array of _HTTPHeader objects*/
+attribute readonly Array headers_in;
+
+/*! HTTP headers to set on the response, array of _HTTPHeader objects (initialized as empty)*/
+attribute Array headers_out;
+
+/*! reply body. It is undefined by default
+ - if reply is 0, this can be set to a file path to serve. If not set, usual URL resolving of httpout is done
+ - if reply is not 0, this can be set to a string containing the body. To deliver a binary file or a large file, use the read function
+*/
+attribute DOMString body
+
+
+/*! callback function used to throttle the download, can be used even if the request is handled by gpac. It is undefined by default
+\param done amount of bytes already sent in request
+\param total total amount of bytes in request
+\return a delay for next send in milliseconds
+*/
+attribute unsigned long throttle(unsigned long long done, unsigned long long total);
+
+/*! callback function used to get data (GET requests). It is undefined by default
+\param buffer array buffer to fill (shared array, do NOT keep)
+\return the number of bytes read, negative value means no data available yet, 0 means end of file
+*/
+attribute signed long read(ArrayBuffer buffer);
+
+/*! callback function used to receive data (PUT/POST requests). It is undefined by default
+\param buffer array buffer received. If null, end of stream is reached
+\return the number of bytes written (informative only)
+*/
+attribute unsigned long write(ArrayBuffer buffer);
+
+/*! callback function used to monitor end of session. It is undefined by default
+\param error GPAC error code for the session
+*/
+attribute void close(unsigned long error);
+
+};
+
+/*! interface for HTTP header */
+interface _HTTPHeader
+{
+
+/*! header name */
+attribute readonly DOMString name;
+
+/*! header value */
+attribute readonly DOMString value;
+};
 
 /*! @} */
 

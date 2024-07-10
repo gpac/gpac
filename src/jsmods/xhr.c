@@ -637,7 +637,7 @@ static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char
 	if (par) {
 		gf_node_list_add_child(&par->children, (GF_Node*)node);
 	} else {
-		assert(!ctx->document->RootNode);
+		gf_assert(!ctx->document->RootNode);
 		ctx->document->RootNode = (GF_Node*)node;
 	}
 	gf_list_add(ctx->node_stack, node);
@@ -719,7 +719,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 
 	if (!ctx->isFile) {
-		assert( locked );
+		gf_assert( locked );
 		gf_js_lock(ctx->c, GF_FALSE);
 		locked = GF_FALSE;
 	}
@@ -789,7 +789,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		        || strstr(parameter->value, "/xml")
 //			|| !strncmp(parameter->value, "text/plain", 10)
 		   ) {
-			assert(!ctx->sax);
+			gf_assert(!ctx->sax);
 			ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
 			ctx->node_stack = gf_list_new();
 			ctx->document = gf_sg_new();

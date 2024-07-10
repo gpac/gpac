@@ -60,7 +60,7 @@ typedef struct
 
 	GF_Fraction64 duration;
 	Bool first;
-	Bool uncompress, is_dims, is_stpp;
+	Bool uncompress, is_dims, is_stpp, is_scte35;
 
 	GF_BitStream *bs_w, *bs_r;
 	u8 *nhml_buffer;
@@ -314,6 +314,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	ctx->first = GF_TRUE;
 	ctx->is_stpp = (cid==GF_CODECID_SUBS_XML) ? GF_TRUE : GF_FALSE;
+	ctx->is_scte35 = (cid==GF_CODECID_EVTE) ? GF_TRUE : GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p && (p->value.lfrac.num>0)) ctx->duration = p->value.lfrac;
@@ -479,7 +480,7 @@ static GF_Err nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 			gf_filter_pck_send(dst_pck);
 		}
 	}
-	
+
 	NHML_PRINT_STRING(0, "meta:encoding", "encoding")
 	NHML_PRINT_STRING(0, "meta:contentEncoding", "content_encoding")
 	ctx->uncompress = GF_FALSE;
@@ -858,13 +859,37 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 		sprintf(nhml, "]]></NHNTSubSample>\n");
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 	}
-	sprintf(nhml, "</NHNTSample>\n");
-	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+
+	if (!ctx->filep) {
+		sprintf(nhml, "</NHNTSample>\n");
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	}
 
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->nhml_buffer, &size, &ctx->nhml_buffer_size);
 
 	if (ctx->filep) {
+		// dump sample opening tag
 		if (gf_fwrite(ctx->nhml_buffer, size, ctx->filep) != size) return GF_IO_ERR;
+
+		// these dumps only happens with file descriptors
+		if (ctx->is_scte35 && ctx->nhmlonly) {
+			GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+			GF_Err e = GF_OK;
+			while (gf_bs_available(bs) > 0) {
+				GF_Box *a = NULL;
+				e = gf_isom_box_parse(&a, bs);
+				if (e) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[NHMLMx] Event Track / SCTE-35: error while parsing data boxes\n"));
+					break; //don't parse any further
+				}
+				gf_isom_box_dump(a, ctx->filep);
+				data += a->size;
+			}
+			gf_bs_del(bs);
+		}
+
+		// close sample tag
+		fprintf(ctx->filep, "</NHNTSample>\n");
 		return GF_OK;
 	}
 
@@ -1024,7 +1049,7 @@ GF_FilterRegister NHMLDumpRegister = {
 	.name = "nhmlw",
 	GF_FS_SET_DESCRIPTION("NHML writer")
 	GF_FS_SET_HELP("This filter converts a single stream to an NHML output file.\n"
-	"NHML documentation is available at https://wiki.gpac.io/NHML-Format\n")
+	"NHML documentation is available at https://wiki.gpac.io/xmlformats/NHML-Format\n")
 	.private_size = sizeof(GF_NHMLDumpCtx),
 	.args = NHMLDumpArgs,
 	.initialize = nhmldump_initialize,
@@ -1044,5 +1069,3 @@ const GF_FilterRegister *nhmlw_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_NHMLW
-
-

@@ -134,7 +134,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool revert, sigcues, fdel, keepts;
+	Bool revert, sigcues, fdel, keepts, flush;
 	u32 raw;
 	s32 floop;
 	u32 fsort;
@@ -180,6 +180,7 @@ typedef struct
 
 	char *unknown_params;
 	char *pid_props;
+	Bool flushed;
 
 	GF_Fraction64 splice_start, splice_end;
 	u32 flags_splice_start, flags_splice_end;
@@ -210,6 +211,7 @@ typedef struct
 	//for isobmf cat mode in sigfrag
 	char *rel_url, *abs_url, *init_url;
 
+	Bool src_has_seen_eos;
 
 	GF_PropUIntList chap_times;
 	GF_PropStringList chap_names;
@@ -414,7 +416,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		//check matching stream types if out pit not connected, and reuse if matching
 		if (!iopid->ipid) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-			assert(p);
+			if (!p) return GF_NOT_SUPPORTED;
 			if (p->value.uint == iopid->stream_type) {
 				iopid->ipid = pid;
 				prev_timescale = iopid->timescale;
@@ -448,7 +450,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!iopid->opid) {
 		iopid->opid = gf_filter_pid_new(filter);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-		assert(p);
+		if (!p) return GF_NOT_SUPPORTED;
 		iopid->stream_type = p->value.uint;
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
@@ -854,15 +856,26 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
 		char *l = gf_fgets(szURL, GF_MAX_PATH, f);
-		url_crc = 0;
 		if (!l || (gf_feof(f) && !szURL[0]) ) {
 			if (ctx->floop != 0) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
+				if (last_found) {
+					if (!ctx->floop) return GF_FALSE;
+					if (ctx->floop>0) ctx->floop--;
+					ctx->last_url_crc=0;
+				}
 				last_found = GF_TRUE;
 				lineno=0;
 				continue;
 			}
+			if (ctx->ka && !is_end && !last_found && url_crc) {
+				gf_fseek(f, 0, SEEK_SET);
+				last_found = GF_TRUE;
+				lineno=0;
+				continue;
+			}
+
 			gf_fclose(f);
 			if (is_end) {
 				ctx->ka = 0;
@@ -872,6 +885,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 			}
 			return GF_FALSE;
 		}
+		url_crc = 0;
 
 		len = (u32) strlen(szURL);
 		//in keep-alive mode, each line shall end with \n, of not consider the file is not yet ready
@@ -955,10 +969,13 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 					if (aval)
 						sscanf(aval, LLU, &end_range);
 				} else if (!strcmp(args, "end")) {
-					if (ctx->ka)
+					if (ctx->ka) {
 						is_end = GF_TRUE;
+						ctx->ka=0;
+					}
 				} else if (!strcmp(args, "ka")) {
-					sscanf(aval, "%u", &ctx->ka);
+					if (aval)
+						sscanf(aval, "%u", &ctx->ka);
 				} else if (!strcmp(args, "raw")) {
 					u32 raw_type = 0;
 					if (aval) {
@@ -989,8 +1006,10 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 					if (ctx->splice_props) gf_free(ctx->splice_props);
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
 				} else if (!strcmp(args, "chap") && aval) {
-					strncpy(chap_name, aval, 1023);
-					chap_name[1023]=0;
+					if (aval) {
+						strncpy(chap_name, aval, 1023);
+						chap_name[1023]=0;
+					}
 				} else {
 					if (!ctx->unknown_params || !strstr(ctx->unknown_params, args)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Unrecognized directive %s, ignoring\n", args));
@@ -1171,13 +1190,25 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 	char szURL[GF_MAX_PATH];
 	Bool next_url_ok;
 
+	ctx->src_has_seen_eos = GF_FALSE;
 	next_url_ok = filelist_next_url(filter, ctx, szURL, GF_FALSE);
 
 	if (!next_url_ok && ctx->ka) {
 		gf_filter_ask_rt_reschedule(filter, ctx->ka*1000);
+		if (ctx->flush && !ctx->flushed) {
+			count = gf_list_count(ctx->io_pids);
+			for (i=0; i<count; i++) {
+				iopid = gf_list_get(ctx->io_pids, i);
+				gf_filter_pid_send_flush(iopid->opid);
+				if (iopid->opid_aux)
+					gf_filter_pid_send_flush(iopid->opid_aux);
+			}
+			ctx->flushed = GF_TRUE;
+		}
 		return GF_OK;
 	}
 	count = gf_list_count(ctx->io_pids);
+	ctx->flushed = GF_FALSE;
 
 	if (ctx->wait_splice_start) {
 		if (!next_url_ok) {
@@ -1494,8 +1525,8 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 	GF_FilterSAPType sap;
 	GF_FilterPid *ipid;
 	Bool is_raw_audio;
-	assert(ctx->splice_ctrl);
-	assert(ctx->splice_state);
+	gf_assert(ctx->splice_ctrl);
+	gf_assert(ctx->splice_state);
 
 	ipid = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ipid : ctx->splice_ctrl->ipid;
 	is_raw_audio = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ra_info.is_raw : ctx->splice_ctrl->ra_info.is_raw;
@@ -1581,7 +1612,7 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 				ctx->splice_state = FL_SPLICE_ACTIVE;
 				ctx->splice_start_cts = filelist_translate_splice_cts(ctx->splice_ctrl, cts);
 				//we just activate splice, iopid->dts_sub_splice is not set yet !!
-				assert(!ctx->splice_ctrl->dts_sub_splice);
+				gf_assert(!ctx->splice_ctrl->dts_sub_splice);
 				ctx->splice_start_cts -= ctx->splice_ctrl->dts_sub;
 
 				if (ctx->flags_splice_end & FL_SPLICE_DELTA) {
@@ -1727,11 +1758,11 @@ static void filelist_forward_splice_pck(FileListPid *iopid, GF_FilterPacket *pck
 static void filelist_purge_slice(GF_FileListCtx *ctx)
 {
 	u32 i, count = gf_list_count(ctx->io_pids);
-	assert(ctx->splice_ctrl);
+	gf_assert(ctx->splice_ctrl);
 
 	if (ctx->mark_only)
 		return;
-	assert(ctx->splice_ctrl->splice_ipid);
+	gf_assert(ctx->splice_ctrl->splice_ipid);
 
 	for (i=0; i<count; i++) {
 		FileListPid *iopid = gf_list_get(ctx->io_pids, i);
@@ -2159,6 +2190,7 @@ restart:
 						iopid->splice_ready = GF_TRUE;
 					} else {
 						iopid->is_eos = GF_TRUE;
+						ctx->src_has_seen_eos = GF_TRUE;
 						if (ctx->splice_state==FL_SPLICE_ACTIVE)
 							purge_splice = GF_TRUE;
 					}
@@ -2168,8 +2200,9 @@ restart:
 					nb_done++;
 				break;
 			}
-
-			if (gf_filter_pid_would_block(iopid->opid) && (!iopid->opid_aux || gf_filter_pid_would_block(iopid->opid_aux))) {
+			//if EOS has been seen on one input, do not regulate as the consumer(s) could wait for the next packet in
+			//the next file on one of the EOS stream (eg dasher consumer)
+			if (!ctx->src_has_seen_eos && gf_filter_pid_would_block(iopid->opid) && (!iopid->opid_aux || gf_filter_pid_would_block(iopid->opid_aux))) {
 				break;
 			}
 
@@ -2522,7 +2555,7 @@ restart:
 		nb_inactive = 0;
 		nb_done = count;
 
-		assert(!ctx->splice_pid_props);
+		gf_assert(!ctx->splice_pid_props);
 		ctx->splice_pid_props = ctx->pid_props;
 		ctx->pid_props = NULL;
 
@@ -2915,7 +2948,7 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 				if (!c) return NULL;
 				if ( isalnum(c)) continue;
 				//valid URL chars plus backslash for win path
-				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\", c)) {
+				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\ ", c)) {
 					line_empty = GF_FALSE;
 					continue;
 				}
@@ -2965,6 +2998,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	"- av: force decoding of audio and video inputs\n"
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(flush), "send a flush signal once playlist is done before entering keepalive", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

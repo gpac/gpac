@@ -216,8 +216,8 @@ static GF_Err uncv_load_profile(UNCVConfig *uncv)
 	uncv->comps[2].idx = 2;
 	uncv->comps[2].bits = 8;
 	if (nb_comps>3) {
-		uncv->comps[4].idx = 3;
-		uncv->comps[4].bits = 8;
+		uncv->comps[3].idx = 3;
+		uncv->comps[3].bits = 8;
 	}
 	uncv->interleave = 1;
 	return GF_OK;
@@ -236,6 +236,9 @@ static UNCVConfig *uncv_parse_config(u8 *dsi, u32 dsi_size, GF_Err *out_err)
 	}
 	UNCVConfig *uncv;
 	GF_SAFEALLOC(uncv, UNCVConfig);
+
+	uncv->num_tile_cols = uncv->num_tile_rows = 1; // defaults to prevent FPE
+
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		s32 size = gf_bs_read_u32(bs);
@@ -578,7 +581,7 @@ static u32 uncv_get_compat(UNCVDecCtx *ctx)
 	uncv_check_comps_type(cfg->comps, cfg->nb_comps, &has_mono, &has_yuv, &has_rgb, &has_alpha, &has_depth, &has_disp, &has_pal, &has_fa, &has_pad, &has_non_int);
 
 	if (has_pal) {
-		assert(cfg->palette);
+		gf_assert(cfg->palette);
 		uncv_check_comps_type(cfg->palette->comps, cfg->palette->nb_comps, &has_mono, &has_yuv, &has_rgb, &has_alpha, &has_depth, &has_disp, &has_pal, &has_fa, &has_pad, &has_non_int);
 	}
 	if (cfg->fa_map) {
@@ -736,6 +739,7 @@ static u32 uncv_get_line_size(UNCVDecCtx *ctx, u32 *comp_bits, u32 clen)
 	}
 	//block size, figure out how many blocks
 	u32 nb_bits = 0;
+	u32 nb_blocks_in_pattern = 0;
 	for (u32 i=0; i<ctx->tile_width; i++) {
 		for (u32 c=0; c<clen; c+=2) {
 			u32 cbits = comp_bits[c];
@@ -747,17 +751,20 @@ static u32 uncv_get_line_size(UNCVDecCtx *ctx, u32 *comp_bits, u32 clen)
 
 			if (nb_bits + cbits > ctx->blocksize_bits) {
 				nb_bits=0;
+				nb_blocks_in_pattern++;
 				size += config->block_size;
 				//if first comp in block is first comp, pattern is done
+				//compute number of remaining patterns and skip whole patterns
 				if (c==0) {
-					u32 nb_pix = i+1;
-					u32 nb_blocks = 1;
-					while ((nb_blocks+1) * nb_pix < ctx->tile_width)
-						nb_blocks++;
+					u32 nb_pix_in_pattern = i;
+					u32 nb_patterns = 1;
+					while ((nb_patterns+1) * nb_pix_in_pattern < ctx->tile_width)
+						nb_patterns++;
 
-					size *= nb_blocks;
+					size = config->block_size * nb_blocks_in_pattern * nb_patterns;
 					//jump to last non-full pattern
-					i += nb_pix * (nb_blocks-1);
+					i = nb_pix_in_pattern * nb_patterns;
+					nb_blocks_in_pattern = 0;
 				}
 			}
 			nb_bits += cbits;
@@ -1181,7 +1188,7 @@ static void uncv_start_frame(UNCVDecCtx *ctx, const u8 *data, u32 size)
 {
 	UNCVConfig *config = ctx->cfg;
 
-	if (ctx->nb_bsrs>1) {
+	if ((ctx->nb_bsrs>1) || (ctx->cfg->nb_comps==1)) {
 		u32 offset = 0;
 		u32 comp_row_size=0;
 		for (u32 i=0; i<config->nb_comps; i++) {
@@ -1319,7 +1326,7 @@ static u8 uncv_get_val(GF_BitStream *bs, UNCVComponentInfo *comp, UNCVDecCtx *ct
 	return (u8) c;
 }
 
-static void uncv_pull_block(UNCVDecCtx *ctx, UNCVConfig *config, BSRead *bsr, u32 comp_idx)
+static void uncv_pull_block(UNCVDecCtx *ctx, UNCVConfig *config, BSRead *bsr, u32 comp_idx, u32 x)
 {
 	u32 i, bits=0, nb_vals=0, bk_idx=0;
 
@@ -1344,8 +1351,14 @@ static void uncv_pull_block(UNCVDecCtx *ctx, UNCVConfig *config, BSRead *bsr, u3
 			if (i==config->nb_comps) {
 				//interleave mode with pixel size, do not loop over components
 				if (config->pixel_size) break;
+				//end of line
+				if ((x+1) % ctx->tile_width == 0) break;
 				i=0;
+				x++;
 			}
+		} else {
+			//end of line
+			if ((x+bk_idx) % ctx->tile_width == 0) break;
 		}
 	}
 
@@ -1423,7 +1436,7 @@ static void uncv_pull_val(UNCVDecCtx *ctx, UNCVConfig *config, BSRead *bsr, UNCV
 			bsr->loaded_comps = 0;
 
 		if (!bsr->loaded_comps)
-			uncv_pull_block(ctx, config, bsr, comp->comp_idx);
+			uncv_pull_block(ctx, config, bsr, comp->comp_idx, x);
 
 		BlockComp *bcomp = &bsr->block_comps[ bsr->first_comp_idx ];
 

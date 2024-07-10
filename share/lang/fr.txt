@@ -83,31 +83,31 @@ La valeur peut être omise pour les booléens, la valeur par défaut étant true
 Le nom peut être omis pour les énumérations (par exemple :disp=pbo est équivalent à :pbo), à condition que les développeurs de filtres fassent attention à ne pas réutiliser les noms d'énumérations dans un même filtre!
 
 Lorsque des paramètres textes sont utilisés (par exemple, des URL), il est recommandé d'utiliser le mot-clé "gpac" pour séparer les arguments.
-EX: filtre: ARG=http://foo/bar?yes:gpac:opt=VAL
+EX filtre: ARG=http://foo/bar?yes:gpac:opt=VAL
 Cela permettra d'extraire correctement l'URL
-EX: filtre: ARG=http://foo/bar?yes:opt=VAL
+EX filtre: ARG=http://foo/bar?yes:opt=VAL
 Cela ne parviendra pas à l'extraire l'option et conservera :opt=VAL dans l'URL
 Remarque: le mécanisme d'échappement n'est pas nécessaire pour les sources locales, pour lesquelles l'existence du fichier est recherchée lors de l'analyse des arguments
 Il n'est également pas nécessaire pour les procotoles intégrés (avin://, video://, audio://, pipe://)
 Pour les protocoles tcp:// et udp://, l'échappement n'est pas nécessaire si un / final est ajouté après le port
-EX: -i tcp: //127.0.0.1: 1234:OPT
+EX -i tcp: //127.0.0.1: 1234:OPT
 Cela n'arrivera pas à extraire l'URL et les options
-EX: -i tcp: //127.0.0.1: 1234/:OPT
+EX -i tcp: //127.0.0.1: 1234/:OPT
 Cela va extraire l'URL et les options
 Remarque: une astuce pour éviter la séquence d'échappement consiste à déclarer l'option urls à la fin, par exemple, f1:opt1=foo:url=http:// bar, à condition que vous n'ayez qu'une seule URL. Voir les arguments héritant ci-dessous.
 
 Les filtres source et destination n'ont pas besoin d'être adressés par le nom du filtre, il suffit de spécifier src= ou dst=.
 Vous pouvez également utiliser la syntaxe -src URL ou -i URL pour les sources et -dst URL ou -o URL pour les destinations.
 Cela permet d'utiliser la complétion automatique de votre invite de commande.
-EX: src=fichier.mp4 EX: -src fichier.mp4 EX: -i fichier.mp4
+EX src=fichier.mp4 EX -src fichier.mp4 EX -i fichier.mp4
 Ceci trouvera un filtre (par exemple "fin") capable de charger fichier.mp4
 Le même résultat peut être obtenu en utilisant "fin:src=fichier.mp4"
-EX: src=fichier.mp4 dst=dump.yuv
+EX src=fichier.mp4 dst=dump.yuv
 Cela décodera le contenu vidéo de file.mp4 et l'écrira dans dump.yuv
 Des filtres source ou destination spécifiques peuvent également être spécifiés à l'aide de filterName:src=URL ou filterName:dst=URL.
 
 Il existe une option spéciale appelée "gfreg" qui permet de spécifier les filtres à utiliser lors de la gestion des URL.
-EX: src=fichier.mp4:gfreg=ffdmx,ffdec
+EX src=fichier.mp4:gfreg=ffdmx,ffdec
 Cela utilisera ffdmx pour gérer le fichier et ffdec pour décoder
 Cela peut être utilisé pour tester un filtre spécifique lorsque d'autres chaînes de filtres sont possibles.
 
@@ -118,11 +118,11 @@ g=UINT ou gop=UINT indique la taille du groupe d'images dans les cadres
 pfmt=4CC indique le format de pixel cible de la source, si supporté par le codec
 all_intra=BOOL indique que toutes les images doivent être intra-images, si supporté par le codec
 D'autres options peuvent être transmises aux filtres acceptant des arguments génériques (comme c'est le cas pour ffmpeg).
-EX: src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264
+EX src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264
 Cela encode un ficher YUV 25 fps en AVC à 175 kbps avec une durée de GOP de 2 secondes, en utilisant des paramètres de codage fast et GOP fermé de ffmpeg.
 
 Note: l'opération inverse (forcer un décodage) est possible en utilisant le filtre reframer:
-EX: src=fichier.mp4 reframer:raw=av @ -o null
+EX src=fichier.mp4 reframer:raw=av @ -o null
 Cela forcera le décodage du média à partir du fichier et jettera le résultat (par exemple, pour un benchmark du décodeur)
 
 Expliciter des liens entre les filtres [LINK]
@@ -130,9 +130,9 @@ Expliciter des liens entre les filtres [LINK]
 Le lien entre les filtres peut être spécifié manuellement. La syntaxe est un caractère '@' optionnellement suivi d'un entier (0 si omis).
 Cela indique quels filtres spécifiés antérieurement (le précédent étant associé à 0) doivent être liés au prochain filtre indiqué.
 Seule la dernière directive de liaison avant un filtre est utilisée pour configurer des liens pour ce filtre.
-EX: fA fB @1 fC
+EX fA fB @1 fC
 Ceci indique de diriger les sorties fA vers fC
-EX: fA fB @1 @0 fC
+EX fA fB @1 @0 fC
 Cela indique de diriger les sorties du fB vers le fC, @1 est ignoré
 
 Si aucune directive de lien n'est donnée, les liens seront résolus dynamiquement pour générer autant de connexions que possible.
@@ -142,11 +142,11 @@ La directive LINK est juste un raccourci rapide pour définir des arguments de f
 - FID=nom, qui définit l'ID de filtre
 - SID=nom1[,nom2...], qui définit les ID sources restreignant la liste des entrées possibles pour un filtre.
 
-EX: fA fB @1 fC
+EX fA fB @1 fC
 Ceci est équivalent à "fA fB:FID=1 fC:SID=1"
-EX: fA: FID = 1 fB fC: SID = 1
+EX fA: FID = 1 fB fC: SID = 1
 Ceci indique de diriger les sorties fA vers fC
-EX: fA:FID=1 fB:FID=2 fC:SID=1 fD:SID=1,2
+EX fA:FID=1 fB:FID=2 fC:SID=1 fD:SID=1,2
 Cela indique de diriger les sorties fA vers fC et les sorties fA et fB vers fD
 
 REMARQUE: Un filtre avec ID source défini ne peut pas être connecté en entrée de filtres sans ID.
@@ -166,42 +166,42 @@ nom#P4CC-VAL: accepte uniquement les pids dont la propriété est strictement in
 nom#P4CC+​​VAL: accepte uniquement les pids avec une propriété strictement supérieure à VAL (uniquement pour les propriétés à 1 dimension).
 
 Un ID source peut aussi utiliser le charactère * pour faire correspondre une ou plusieurs propriétés, quel que soit le filtre source:\n"
-EX: fA fB:SID=*#ServiceID=2
+EX fA fB:SID=*#ServiceID=2
 Ceci indique fB n'accepte comme entrée que des pids avec une propriété ServiceID égale à 2, indépendemment des identifiant de filtres de ces pids.
 
 REMARQUE: Ces extensions fonctionnent également avec le raccourci LINK:
-EX: fA fB @1#video fC
+EX fA fB @1#video fC
 Ceci indique de diriger les sorties vidéo fA vers fC
 
-EX: src=img.heif @#ItemID=200 vout
+EX src=img.heif @#ItemID=200 vout
 Cela indique de connecter à vout uniquement les pids avec une propriété ItemID égale à 200.
-EX: src=vid.mp4 @#PID=1 vout
+EX src=vid.mp4 @#PID=1 vout
 Cela indique de connecter à vout uniquement les pids avec une propriété ID égale à 1.
-EX: src=vid.mp4 @#Width=640 vout
+EX src=vid.mp4 @#Width=640 vout
 Cela indique de connecter à vout uniquement les pids avec une propriété Width égale à 640.
-EX: src=vid.mp4 @#Width-640 vout
+EX src=vid.mp4 @#Width-640 vout
 Cela indique de connecter à vout uniquement les pids dont la propriété Width est inférieure à 640.
 
 Plusieurs fragments peuvent être spécifiés pour tester plusieurs propriétés de pid
-EX: src=vid.mp4 @#Width=640#Height+380 vout
+EX src=vid.mp4 @#Width=640#Height+380 vout
 Cela indique de connecter à vout uniquement les pids avec une largeur égale à 640 et une hauteur supérieure à 380.
 
 Notez que si un pid est connecté à un filtre chargé explicitement, aucune résolution de lien dynamique supplémentaire ne sera effectuée pour le connecter à d'autres filtres. Les directives de liaison doivent être soigneusement établies
-EX: src=fichier.mp4 @ reframer dst=dump.mp4
+EX src=fichier.mp4 @ reframer dst=dump.mp4
 Cela connectera le pid src (type fichier) à dst (type fichier) car dst n'a pas de sourceID et acceptera donc l'entrée de src. Comme le pid est connecté, le moteur de filtres n'essaiera pas de résoudre le lien entre src et reframer. Le résultat est une copie directe du fichier source, le reframer étant inutilisé
-EX: src=fichier.mp4 reframer @ dst=dump.mp4
+EX src=fichier.mp4 reframer @ dst=dump.mp4
 Cela forcera dst à n'accepter que les pids de reframer, un multiplexeur sera chargé pour résoudre ce lien et src pid sera connecté à reframer (aucun ID de source), chargeant un démultiplexeur pour résoudre le lien. Le résultat est un remux complet du fichier source
 
 
 Héritage d'arguments
 
 Sauf si explicitement désactivé (option -max-chain), le moteur de filtres résoudra les connexions implicites ou explicites (LINK) entre les filtres et allouera toute chaîne de filtres intermédiaires nécessaires à la connexion des filtres. Ce faisant, il charge de nouveaux filtres avec des arguments hérités à la fois de la source et de la destination.
-EX: src=fichier.mp4:OPT dst=fichier.aac dst=fichier.264
+EX src=fichier.mp4:OPT dst=fichier.aac dst=fichier.264
 Ceci passera les arguments ":OPT" à tous les filtres chargés entre la source et les deux destinations
-EX: src=fichier.mp4 dst=fichier.aac:OPT dst=fichier.264
+EX src=fichier.mp4 dst=fichier.aac:OPT dst=fichier.264
 Cela passera les arguments ":OPT" à tous les filtres chargés entre la source et la destination file.aac
 REMARQUE: les arguments de destination hérités sont les arguments placés APRÈS l'option dst=
-EX: src=fichier.mp4 fout:OPTFOO:dst=fichier.aac:OPTBAR
+EX src=fichier.mp4 fout:OPTFOO:dst=fichier.aac:OPTBAR
 Cela passera les arguments ":OPTBAR" à tous les filtres chargés entre la source et la destination file.aac, mais pas ":OPTFOO"
 
 Modèles d'URL de destination
@@ -221,17 +221,17 @@ pname=VAL: utilise la propriété du pid avec le nom VAL
 AUTRE: utilise la propriété du pid dont le nom correspond au nom donné (résolution de 4CC ou nom donné si aucune correspondance 4CC).
 
 L'utilisation de modèles d'URL peut être utile lors du codage de plusieurs qualités en une seule passe:
-EX: src=dump.yuv:taille=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264
+EX src=dump.yuv:taille=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264
 Cela créera une version recadrée de la source, codée en AVC à 1M et une version non recadrée en AVC à 750 Ko. Les sorties sont dump_0x0x320x180.264 pour la version recadrée et dump_0x0x640x360.264 pour la version non recadrée.
 
 Duplication de filtres
 
 Lorsqu'un filtre accepte une seule connexion et possède une entrée connectée, la résolution dynamique n'est plus possible pour cette destination. Il peut y avoir des cas où ce comportement est indésirable. Soit un fichier HEIF avec N items:
-EX: src=img.heif dst=dump_$ItemID$.jpg
+EX src=img.heif dst=dump_$ItemID$.jpg
 Dans ce cas, un seul item (probablement le premier déclaré dans le fichier) se connectera à la destination.
 Les autres items ne seront pas connectés car la destination n'accepte qu'un seul pid d'entrée.
 Il existe une option spéciale "clone" permettant de cloner les filtres de destination avec les mêmes arguments:
-EX: src=img.heif dst=dump_$ItemID$.jpg:clone
+EX src=img.heif dst=dump_$ItemID$.jpg:clone
 Dans ce cas, la destination sera clonée pour chaque item et tous seront exportés vers différents fichiers JPEG grâce au modèle d'URL.
 
 Modèles de chaînes de filtres
@@ -239,7 +239,7 @@ Modèles de chaînes de filtres
 Dans certains cas, le nombre de sorties désirées dépend de la source; par exemple, extraire N fichiers d'un multiplex de N services.
 Il est possible d'utiliser un nom de propriété de pid dans l'ID source d'un filtre avec la valeur '*'.
 Dans ce cas, chaque fois qu'un nouveau PID avec une nouvelle valeur pour la propriété est trouvé, le filtre avec un tel ID source sera automatiquement cloné.
-EX: src=source.ts dst=fichier_$ServiceID$.mp4:SID=*#ServiceID=*
+EX src=source.ts dst=fichier_$ServiceID$.mp4:SID=*#ServiceID=*
 Dans cet example, chaque nouvelle valeur ServiceID trouvée lors de la connexion des PID à la destination créera un nouveau fichier de destination.
 AVERTISSEMENT: cette fonctionnalité ne doit être utilisée qu'avec une seule propriétéà '*' par ID source, les résultats ne sont pas définis sinon.
 
@@ -248,7 +248,7 @@ Assigner des propriétés aux PID
 Il est possible de définir des propriétés sur des pids de sortie déclarés par un filtre. Cela permet de marquer des parties du graphe avec des propriétés différentes de celles des autres parties (par exemple, ServiceID). La syntaxe utilise le séparateur de fragments pour identifier les propriétés, par exemple #Nom=Valeur, afin de définir la propriété voulue (4cc, nom intégré ou tout nom) avec une valeur donnée.
 Si une propriété non prédéfinie est utilisée, la valeur sera définie sous forme de chaîne.
 AVERTISSEMENT: les propriétés ne sont pas filtrées et remplacent les propriétés source. Veillez à ne pas corrompre la session en substituant des propriétés essentielles telles que Width, Height, SampleRate !
-EX: -i v1.mp4:# ServiceID=4 -i v2.mp4:# ServiceID=2 -o dump.ts
+EX -i v1.mp4:# ServiceID=4 -i v2.mp4:# ServiceID=2 -o dump.ts
 Cela multiplexera les flux dans dump.ts, en utilisant ServiceID 4 pour les pids de v1.mp4 et ServiceID 2 pour les pids de v2.mp4.
 
 Filtres externes
@@ -298,11 +298,11 @@ toolX peut être l'un des suivants:
 	module: GPAC modules (av out, font engine, 2D rasterizer)
 	filter: gestionnaire de filtres
 	sched: ordonnanceur des filtres
-	mutex: mutex calls
+	mutEX mutex calls
 	all: tous les outils enregistrés - d'autres outils peuvent être spécifiés ultérieurement.
 Le mot clé spécial "ncl" peut être défini pour désactiver les couleurs.
 Le mot clé spécial "strict" peut être défini pour quitter à la première erreur.
-	EX: -logs all@info:dash@debug:ncl
+	EX -logs all@info:dash@debug:ncl
 Cela passe tous les outils en niveau information, dash en niveau débogage et désactive les couleurs.@
 logs_crc=3235072836
 noprog=désactive les messages de progression
@@ -373,7 +373,7 @@ no-reg_crc=4238392638
 sched=@définir le mode de l'ordonnanceur de filtres. Les modes possibles sont:
 	free: utilise des files d'attente sans mutex, sauf pour la liste des tâches (par défaut)
 	lock: utilise des mutex pour les files d'attente lorsque plusieurs threads
-	freex: utilise des files d'attente sans mutex, y compris pour les listes de tâches (expérimental)
+	freEX utilise des files d'attente sans mutex, y compris pour les listes de tâches (expérimental)
 	flock: utilise des mutex pour les files d'attente même sans thread (mode débogage)
 	direct: pas de threads et éxecution directe des tâches autant que possible (mode débogage)@
 sched_crc=2961967838
@@ -765,7 +765,7 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 	pid.P4CC: PID property 4CC
 	pid.PropName: PID property name
 
-EX: fmt="PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$" dumps packet number, cts and dts, eg "PID 1 packet 10 DTS 100 CTS 108 \n" 
+EX fmt="PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$" dumps packet number, cts and dts, eg "PID 1 packet 10 DTS 100 CTS 108 \n"
 
 An unrecognized keywork or missing property will resolve to an empty string
 
@@ -1268,7 +1268,7 @@ speed_crc=4202574190
 desc=CENC, ISMA and adobe decryptor
 desc_crc=3286015280
 help=@The CENC/ISMA decryptor uses a configuration file for retrieving keys. The syntax is available at:
-https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+https://gpac.io/mp4box/encryption/common-encryption/
 The file can be set per PID using the property DecryptFile (highest priority), CryptFile (lower priority)
 or set at the filter option level (lowest priority).
 When the file set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.@
@@ -1279,7 +1279,7 @@ cfile_crc=3044696728
 desc=CENC and ISMA encryptor
 desc_crc=2608147056
 help=@The CENC/ISMA encryptor uses a configuration file for declaring keys. The syntax is available at:
-https://gpac.wp.imt.fr/mp4box/encryption/common-encryption/
+https://gpac.io/mp4box/encryption/common-encryption/
 The file can be set per PID using the property CryptFile, or set at the filter option level.
 When the file is set per PID, the first CrypTrack with the same ID is used, otherwise the first CrypTrack is used.@
 help_crc=1527605354
@@ -1885,9 +1885,9 @@ desc_crc=839712355
 help=@GPAC DASH and HLS segmenter
 The segmenter uses template strings to derive output file names, regardless of the DASH mode (even when templates are not used)
 The default template is $File$_dash for ondemand and single file modes, and $File$_$Number$ for seperate segment files
-	EX: template=Great_$File$_$Width$_$Number$
+	EX template=Great_$File$_$Width$_$Number$
 If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template
-	EX: template=Great_$File$_$Width$
+	EX template=Great_$File$_$Width$
 If source is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case
 
 Standard DASH replacement strings
@@ -1917,28 +1917,28 @@ To assign PIDs into periods and adaptation sets and configure the session, the d
 	DashDur: overrides dasher segment duration for this PID
 	StartNumber: sets the start number for the first segment in the PID, default is 1
 	Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced. These properties are used to setup each representation and can be overriden on input PIDs using the general PID property settings (cf global help).
-	EX: src=test.mp4:#Bitrate=1M dst=test.mpd
+	EX src=test.mp4:#Bitrate=1M dst=test.mpd
 This will force declaring a bitrate of 1M for the representation, regardless of actual source bitrate
-	EX: src=muxav.mp4 dst=test.mpd
+	EX src=muxav.mp4 dst=test.mpd
 This will create unmuxed DASH segments
-	EX: src=muxav.mp4:#Representation=1 dst=test.mpd
+	EX src=muxav.mp4:#Representation=1 dst=test.mpd
 This will create muxed DASH segments
-	EX: src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd
+	EX src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd
 This will put src m1.mp4 in first period, m2.mp4 in second period
-	EX: src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd
+	EX src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd
 This will assign a base URL to src m1.mp4
-	EX: src=m1.mp4:#ASCDesc=<ElemName val="attval">text</ElemName> dst=test.mpd
+	EX src=m1.mp4:#ASCDesc=<ElemName val="attval">text</ElemName> dst=test.mpd
 This will assign the specified XML descriptor to the adaptation set.
 		Note that this can be used to inject most DASH descriptors not natively handled by the dasher
 		The dasher handles the XML descriptor as a string and does not attempt to validate it.
 		Descriptors, as well as some dasher filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:
-	EX: src=m1.mp4:#RDesc=<Elem attribute="1"/>,<Elem2>text</Elem2> dst=test.mpd
+	EX src=m1.mp4:#RDesc=<Elem attribute="1"/>,<Elem2>text</Elem2> dst=test.mpd
 This will insert two descriptors in the representation(s) of m1.mp4
-	EX: src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd
+	EX src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd
 This will assign different templates to the audio and video sources.
-	EX: src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1
+	EX src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1
 This will insert an create an MPD with first a remote period then a regular one
-	EX: src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4
+	EX src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4
 This will insert an create an MPD with first a regular period, dashing ony 6s of content, then a remote one
 
 The dasher will request muxing filter chains for each representation and will reassign PID IDs
@@ -2191,7 +2191,7 @@ The IV is constant to avoid packet overhead, randomly generated if not set and s
 
 The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the minp option can be used: this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.
 The skp option may also be used to specify which property to drop:
-	EX: skp="4CC1,Name2
+	EX skp="4CC1,Name2
 This will remove properties of type 4CC1 and properties (built-in or not) of name Name2
 
 @
@@ -2252,9 +2252,9 @@ Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME
 The socket output can be configured to drop or revert packet order for test purposes. In both cases, a window size in packets is specified
 as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator
 If the numerator is 0, a packet is randomly chosen in that window
-	EX: :pckd=4/10
+	EX :pckd=4/10
 This drops every 4th packet of each 10 packet window
-	EX: :pckr=0/100
+	EX :pckr=0/100
 This reverts the send order of one random packet in each 100 packet window
 
 @

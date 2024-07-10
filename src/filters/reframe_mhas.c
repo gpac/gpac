@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2023
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS reframer filter
@@ -323,6 +323,7 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY( data, (dsi_size+5) ) );
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_MHAS ) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT( PL ) );
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->sample_rate));
@@ -725,12 +726,12 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			if (!has_cfg)
 				mhas_sap = 0;
 
-			if (mhas_sap) {
-				gf_filter_pck_set_sap(dst, GF_FILTER_SAP_1);
-			}
+			gf_filter_pck_set_sap(dst, mhas_sap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+
 			gf_filter_pck_set_dts(dst, ctx->cts);
 			gf_filter_pck_set_cts(dst, ctx->cts);
 			gf_filter_pck_set_duration(dst, (u32) pck_dur);
+			gf_filter_pck_set_framing(dst, GF_TRUE, GF_TRUE);
 			if (ctx->byte_offset != GF_FILTER_NO_BO) {
 				u64 offset = (u64) (start - ctx->mhas_buffer);
 				offset += ctx->byte_offset + au_start;
@@ -773,9 +774,12 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		}
 	}
 	if (consumed) {
-		assert(remain>=consumed);
-		remain -= consumed;
-		start += consumed;
+		if (remain>=consumed) {
+			remain -= consumed;
+			start += consumed;
+		} else {
+			remain=0;
+		}
 	}
 
 skip:
@@ -793,10 +797,15 @@ skip:
 	if (!ctx->mhas_buffer_size) {
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 		ctx->src_pck = NULL;
+	} else if (in_pck && !ctx->src_pck) {
+		ctx->src_pck = in_pck;
+		gf_filter_pck_ref_props(&ctx->src_pck);
 	}
 
-	if (in_pck)
+
+	if (in_pck) {
 		gf_filter_pid_drop_packet(ctx->ipid);
+	}
 
 	return GF_OK;
 }
@@ -836,6 +845,8 @@ static const char *mhas_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		u32 pos = (u32) (ptr - data);
 		const u8 *sync_start = memchr(ptr, 0xC0, size - pos);
 		if (!sync_start) return NULL;
+		u32 remain = size - (u32) (sync_start-data);
+		if (remain<2) return NULL;
 		if ((sync_start[1]== 0x01) && (sync_start[2]==0xA5)) {
 			sync_pos = pos;
 			break;

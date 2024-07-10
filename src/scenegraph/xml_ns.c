@@ -531,7 +531,7 @@ const char*gf_svg_get_attribute_name(GF_Node *node, u32 tag)
 
 			xmlns = (char *) gf_xml_get_namespace_qname((GF_DOMNode*)node, xml_attributes[i].xmlns);
 			if (xmlns) {
-				sprintf(node->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, xml_attributes[i].name);
+				snprintf(node->sgprivate->scenegraph->szNameBuffer, 99, "%s:%s", xmlns, xml_attributes[i].name);
 				return node->sgprivate->scenegraph->szNameBuffer;
 			}
 			return xml_attributes[i].name;
@@ -664,7 +664,7 @@ const char *gf_xml_get_element_name(GF_Node *n)
 
 			xmlns = (char *) gf_sg_get_namespace_qname(n->sgprivate->scenegraph, xml_elements[i].xmlns);
 			if (xmlns) {
-				sprintf(n->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, xml_elements[i].name);
+				snprintf(n->sgprivate->scenegraph->szNameBuffer, 99, "%s:%s", xmlns, xml_elements[i].name);
 				return n->sgprivate->scenegraph->szNameBuffer;
 			}
 			return xml_elements[i].name;
@@ -760,7 +760,7 @@ GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, 
 
 		while (att) {
 			if (((u32) att->tag == TAG_DOM_ATT_any) &&
-			        ((!ns && !strcmp(name, att->name)) || (ns && !strncmp(att->name, ns, len) && !strcmp(att->name+len+1, name)))
+			        ((!ns && !strcmp(name, att->name)) || (ns && !strncmp(att->name, ns, len) && att->name[len] && !strcmp(att->name+len+1, name)))
 			   ) {
 				field->fieldIndex = att->tag;
 				field->fieldType = att->data_type;
@@ -982,7 +982,7 @@ void gf_node_unregister_iri(GF_SceneGraph *sg, XMLRI *target)
 #endif
 }
 
-GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep)
+GF_Node *gf_sg_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id, Bool deep)
 {
 	GF_DOMAttribute *att;
 	GF_Node *clone;

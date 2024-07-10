@@ -60,7 +60,7 @@ void gf_bifs_dec_qp14_set_length(GF_BifsDecoder * codec, u32 NbElements)
 
 GF_Err gf_bifs_dec_qp_set(GF_BifsDecoder *codec, GF_Node *qp)
 {
-	assert(gf_node_get_tag(qp) == TAG_MPEG4_QuantizationParameter);
+	gf_assert(gf_node_get_tag(qp) == TAG_MPEG4_QuantizationParameter);
 
 	/*if we have an active QP, push it into the stack*/
 	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scenegraph->global_qp) )

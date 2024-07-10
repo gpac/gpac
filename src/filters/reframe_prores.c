@@ -284,8 +284,8 @@ static Bool proresdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 static GFINLINE void proresdmx_update_cts(GF_ProResDmxCtx *ctx)
 {
 	u64 inc;
-	assert(ctx->cur_fps.num);
-	assert(ctx->cur_fps.den);
+	gf_assert(ctx->cur_fps.num);
+	gf_assert(ctx->cur_fps.den);
 
 	if (ctx->timescale) {
 		inc = ctx->cur_fps.den;
@@ -479,8 +479,7 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u
 		if (ctx->rewind) {
 			ctx->buf_size = 0;
 			last_frame_end = 0;
-			assert(ctx->cur_frame);
-			ctx->cur_frame--;
+			if (ctx->cur_frame) ctx->cur_frame--;
 			if (!ctx->cur_frame) {
 				if (ctx->opid)
 					gf_filter_pid_set_eos(ctx->opid);
@@ -499,7 +498,7 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u
 	}
 
 	if (is_copy && last_frame_end) {
-		assert(ctx->buf_size >= last_frame_end);
+		gf_assert(ctx->buf_size >= last_frame_end);
 		memmove(ctx->buffer, ctx->buffer+last_frame_end, sizeof(char) * (ctx->buf_size-last_frame_end));
 		ctx->buf_size -= last_frame_end;
 	}
@@ -605,7 +604,7 @@ GF_Err proresdmx_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
-		assert(start && end);
+		gf_assert(start && end);
 		//process
 		e = proresdmx_process_buffer(filter, ctx, data, pck_size, GF_FALSE);
 

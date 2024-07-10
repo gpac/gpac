@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -163,14 +163,14 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	hdr->seekFlag = 0;
 	hdr->compositionTimeStamp += stream->ts_adjust;
 	if (stream->first_rtp_ts) {
-		assert(hdr->compositionTimeStamp >= stream->first_rtp_ts - 1);
+		gf_assert(hdr->compositionTimeStamp >= stream->first_rtp_ts - 1);
 		hdr->compositionTimeStamp -= stream->first_rtp_ts - 1;
 	}
 
 	if (hdr->decodingTimeStamp) {
 		hdr->decodingTimeStamp += stream->ts_adjust;
 		if (stream->first_rtp_ts) {
-			assert(hdr->decodingTimeStamp >= stream->first_rtp_ts - 1);
+			gf_assert(hdr->decodingTimeStamp >= stream->first_rtp_ts - 1);
 			hdr->decodingTimeStamp -= stream->first_rtp_ts - 1;
 		}
 	}
@@ -178,7 +178,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	if (gf_rtp_is_disc(stream->rtp_ch)) {
 		s64 delta = stream->prev_cts + stream->min_dur_rtp;
 		delta -= hdr->compositionTimeStamp;
-		stream->ts_offset -= delta;
+		stream->ts_offset -= (s32) delta;
 
 		stream->prev_cts = (u32) hdr->compositionTimeStamp;
 	}
@@ -248,7 +248,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 		}
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_MEDIA_TIME, &PROP_DOUBLE(media_time) );
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d Media Time %g - rtp info seq %d TS %d\n",
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %u Media Time %g - rtp info seq %d TS %u\n",
 										 hdr->packetSequenceNumber, cts, media_time, stream->rtp_ch->rtp_first_SN, stream->rtp_ch->rtp_time
 										));
 		stream->map_media_time = GF_FALSE;
@@ -282,7 +282,7 @@ GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, 
 	tmp->buffer = gf_malloc(sizeof(char) * rtp->block_size);
 
 	/*create an RTP channel*/
-	tmp->rtp_ch = gf_rtp_new();
+	tmp->rtp_ch = gf_rtp_new_ex(gf_filter_get_netcap_id(rtp->filter));
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = "RTP/AVP";
@@ -423,7 +423,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 	}
 
 	/*create an RTP channel*/
-	tmp->rtp_ch = gf_rtp_new();
+	tmp->rtp_ch = gf_rtp_new_ex(gf_filter_get_netcap_id(rtp->filter));
 	if (ctrl) tmp->control = gf_strdup(ctrl);
 	tmp->ES_ID = ESID;
 	tmp->OD_ID = ODID;
@@ -502,7 +502,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 				gf_free(rvc_data);
 				return NULL;
 #else
-				gf_gz_decompress_payload(rvc_data, rvc_size, &tmp->depacketizer->sl_map.rvc_config, &tmp->depacketizer->sl_map.rvc_config_size);
+				gf_gz_decompress_payload_ex(rvc_data, rvc_size, &tmp->depacketizer->sl_map.rvc_config, &tmp->depacketizer->sl_map.rvc_config_size, GF_TRUE);
 				gf_free(rvc_data);
 #endif
 			} else {
@@ -607,7 +607,7 @@ void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
 			if (sn_diff<0) sn_diff = -sn_diff;
 			if (ts_diff<0) ts_diff = -ts_diff;
 			if ((sn_diff > 100) || ((u32) ts_diff > stream->rtp_ch->TimeScale)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Rejecting too early packet (TS %d vs signaled rtp time %d - diff %d ms)\n",
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Rejecting too early packet (TS %u vs signaled rtp time %u - diff %d ms)\n",
 			                                    hdr.TimeStamp, stream->rtp_ch->rtp_time, ((hdr.TimeStamp - stream->rtp_ch->rtp_time)*1000) / stream->rtp_ch->TimeScale));
 				return;
 			}

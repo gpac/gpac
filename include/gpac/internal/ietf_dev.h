@@ -185,7 +185,7 @@ struct __tag_rtp_channel
 	GF_RTCP_Report rtcp_rr[MAX_RTCP_RR];
 	u32 nb_rctp_rr;
 
-
+	const char *netcap_id;
 	const char **ssm, **ssmx;
 	u32 nb_ssm, nb_ssmx;
 	u8 disc_state;
@@ -303,6 +303,8 @@ struct _tag_rtsp_session
 	GF_Socket *http;
 	char *HTTP_Cookie;
 	u32 tunnel_state;
+
+	const char *netcap_id;
 
 	/*RTSP CHANNEL*/
 	GF_Socket *connection;

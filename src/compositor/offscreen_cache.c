@@ -489,7 +489,7 @@ static Bool gf_cache_remove_entry(GF_Compositor *compositor, GF_Node *node, Grou
 
 	if (bytes_remove == 0) return 0;
 
-	assert(compositor->video_cache_current_size >= bytes_remove);
+	gf_fatal_assert(compositor->video_cache_current_size >= bytes_remove);
 	compositor->video_cache_current_size -= bytes_remove;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Removing cache %s:\t Objects: %d\tSlope: %g\tBytes: %d\tTime: %d\n",
@@ -521,7 +521,7 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 	/*draw mode*/
 	if (tr_state->traversing_mode == TRAVERSE_DRAW_2D) {
 		/*shall never happen*/
-		assert(group->cache);
+		gf_fatal_assert(group->cache);
 		/*draw it*/
 		group_cache_draw(group->cache, tr_state);
 		return 1;

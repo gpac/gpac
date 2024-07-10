@@ -70,7 +70,7 @@ typedef struct
 
 	GF_Filter *filter_src;
 
-	char *rep_id, *res_url;
+	char *rep_id, *res_url, *check_res_url;
 	u32 track_id, pid_timescale, mpd_timescale, sample_duration, first_frag_start_offset;
 	s32 first_cts_offset;
 	u32 props_size, props_offset, rep_flags, nb_segs;
@@ -258,6 +258,8 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 				st = NULL;
 				continue;
 			}
+			//make sure this comes from the same source, otherwise we could match tracks with same IDs in different files - cf #2840
+			if (!st->check_res_url || strcmp(st->check_res_url, url->value.string)) continue;
 			if (!st->track_id) break;
 			if (st->track_id == p_id->value.uint) break;
 			st = NULL;
@@ -268,6 +270,7 @@ GF_Err ghi_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		}
 		if (st->inactive) {
 			GF_FilterEvent evt;
+			gf_filter_pid_set_discard(pid, GF_TRUE);
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 			evt.play.initial_broadcast_play = 2;
 			gf_filter_pid_send_event(pid, &evt);
@@ -1000,8 +1003,18 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 		e = ghi_dmx_init_bin(filter, ctx, bs);
 		if (!e && gf_bs_is_overflow(bs)) e = GF_NON_COMPLIANT_BITSTREAM;
+	} else if (gf_utf8_is_legal(data, size)) {
+		char *str = gf_malloc(size+1);
+		if (str) {
+			memcpy(str, data, size);
+			str[size]=0;
+			e = ghi_dmx_init_xml(filter, ctx, str);
+			gf_free(str);
+		} else {
+			e = GF_OUT_OF_MEM;
+		}
 	} else {
-		e = ghi_dmx_init_xml(filter, ctx, data);
+		e = GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (e) {
 		if (bs) gf_bs_del(bs);
@@ -1025,6 +1038,11 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 				break;
 			}
 		}
+		if (!st->check_res_url) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_URL);
+			st->check_res_url = gf_url_concatenate (p ? p->value.string : "./", st->res_url);
+		}
+
 		if (st->inactive) continue;
 		nb_active++;
 		if (st->filter_src) continue;
@@ -1040,8 +1058,8 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 				ghi_dmx_declare_opid_xml(filter, ctx, st);
 			continue;
 		}
-		const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_URL);
-		char *args = gf_url_concatenate (p ? p->value.string : "./", st->res_url);
+
+		char *args = gf_strdup(st->check_res_url);
 
 		if (st->first_frag_start_offset) {
 			char szRange[100];
@@ -1096,7 +1114,7 @@ GF_Err ghi_dmx_init(GF_Filter *filter, GHIDmxCtx *ctx)
 GF_Err ghi_dmx_process(GF_Filter *filter)
 {
 	GHIDmxCtx *ctx = gf_filter_get_udta(filter);
-	u32 i, count;
+	u32 i, count, nb_inactive=0;
 	GF_FilterPacket *pck;
 
 	if (!ctx->init) {
@@ -1106,13 +1124,17 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 	count = gf_list_count(ctx->streams);
 	for (i=0; i<count; i++) {
 		GHIStream *st = gf_list_get(ctx->streams, i);
-		if (st->inactive || !st->ipid || st->empty_seg) continue;
-
+		if (st->inactive || !st->ipid || st->empty_seg) {
+			nb_inactive++;
+			continue;
+		}
 		GF_FilterPid *opid = gf_list_get(st->opids, 0);
 		pck = gf_filter_pid_get_packet(st->ipid);
 		if (!pck) {
-			if (gf_filter_pid_is_eos(st->ipid))
+			if (gf_filter_pid_is_eos(st->ipid)) {
+				nb_inactive++;
 				gf_filter_pid_set_eos(opid);
+			}
 			continue;
 		}
 		u64 dts = gf_filter_pck_get_dts(pck);
@@ -1155,7 +1177,7 @@ GF_Err ghi_dmx_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(st->ipid);
 	}
 
-	return GF_OK;
+	return (nb_inactive==count) ? GF_EOS : GF_OK;
 }
 
 GF_Err ghi_dmx_initialize(GF_Filter *filter)
@@ -1214,6 +1236,7 @@ void ghi_dmx_finalize(GF_Filter *filter)
 		gf_list_del(st->opids);
 		if (st->rep_id) gf_free(st->rep_id);
 		if (st->res_url) gf_free(st->res_url);
+		if (st->check_res_url) gf_free(st->check_res_url);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);
@@ -1306,7 +1329,7 @@ GF_FilterRegister GHIDXDmxRegister = {
 	"The filter outputs are PIDs using framed packets marked with segment boundaries and can be chained to other filters before entering the dasher (e.g. for encryption, transcode...).\n"
 	"\n"
 	"If representation IDs are not assigned during index creation, they default to the 1-based index of the source. You can check them using:\n"
-	"EX: `gpac -i src.ghi inspect:full`\n"
+	"EX gpac -i src.ghi inspect:full\n"
 	"\n"
 	"# Muxed Representations\n"
 	"The filter can be used to generate muxed representations, either at manifest generation time or when generating a segment.\n"
