@@ -3916,7 +3916,12 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	inspect_printf(dump, "PID");
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-	if (p) inspect_printf(dump, " %d", p->value.uint);
+	if (p) {
+		if (!gf_sys_is_test_mode())
+			inspect_printf(dump, " %u ID %d", pid_idx, p->value.uint);
+		else
+			inspect_printf(dump, " %d", p->value.uint);
+	}
 
 	if (is_remove) {
 		inspect_printf(dump, " removed\n");
