@@ -1596,7 +1596,7 @@ static void update_error_simulation_state(GF_ROUTEOutCtx *ctx) {
 #undef ERRSIM_ACCURACY
 }
 
-u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute)
+u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute, Bool can_set_close)
 {
 	u32 max_size = ctx->mtu;
 	u32 send_payl_size;
@@ -1641,12 +1641,12 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	//S=b1|b0, O=b01|b00, h=b0|b1, res=b00, A=b0, B=X
 	ctx->lct_buffer[1] = short_h ? 0x10 : 0xA0;
 
-	//We should set the close flag (only when total_len is known). However some
-	//receivers break because our implementation doesn't change the TOI.
-	//Therefore therefore if some packets in the first carousel presentation are
-	//missed) then it is ignored by these receiver forever. Disabling.
-	//if (total_size && (offset + send_payl_size == len))
-	//	ctx->lct_buffer[1] |= 1;
+	//Set the close flag (only when total_len is known) only if asked for
+	//Typically:
+	//- carrousel files (raw, manifests, init segments) will never set this as they are resent with the same TOI
+	//- segments will, as they will never be resent
+	if (can_set_close && total_size && (offset + send_payl_size == len))
+		ctx->lct_buffer[1] |= 1;
 
 	ctx->lct_buffer[2] = hdr_len;
 	ctx->lct_buffer[3] = (u8) codepoint;
@@ -1749,7 +1749,7 @@ static void routeout_send_file(GF_ROUTEOutCtx *ctx, ROUTEService *serv, GF_Socke
 {
 	u32 offset=0;
 	while (offset<size) {
-		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset, fdt_instance_id, is_flute);
+		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset, fdt_instance_id, is_flute, GF_FALSE);
 	}
 }
 
@@ -2315,9 +2315,9 @@ next_packet:
 			codepoint = rpid->raw_file ? rpid->fmtp : 8;
 			//ll mode in flute, each packet is sent as an object so use packet offset instead of file offset
 			if (ctx->dvb_mabr && ctx->llmode) {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset, 0, serv->use_flute);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset, 0, serv->use_flute, GF_TRUE);
 			} else {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset, 0, serv->use_flute);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset, 0, serv->use_flute, GF_TRUE);
 			}
 			rpid->pck_offset += sent;
 			if (ctx->reporting_on) {
