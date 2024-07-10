@@ -202,6 +202,10 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			}
 #endif
 			if (do_uncompress) {
+				if (size<=8) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload size invalid (%u)\n", size));
+					return GF_NOT_SUPPORTED;
+				}
 				if (size>100000000) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload too large (%u)\n", size));
 					return GF_NOT_SUPPORTED;
