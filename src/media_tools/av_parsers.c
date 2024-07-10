@@ -5628,7 +5628,7 @@ static s32 SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHea
 	return 1;
 }
 
-static void ref_pic_list_modification(GF_BitStream *bs, u32 slice_type) {
+static void avc_ref_pic_list_modification(GF_BitStream *bs, u32 slice_type, Bool is_mvc) {
 	if (slice_type % 5 != 2 && slice_type % 5 != 4) {
 		if (gf_bs_read_int_log(bs, 1, "ref_pic_list_modification_flag_l0")) {
 			u32 idx=0, modification_of_pic_nums_idc;
@@ -5639,6 +5639,9 @@ static void ref_pic_list_modification(GF_BitStream *bs, u32 slice_type) {
 				}
 				else if (modification_of_pic_nums_idc == 2) {
 					gf_bs_read_ue_log_idx(bs, "long_term_pic_num", idx);
+				}
+				else if (is_mvc && ((modification_of_pic_nums_idc == 4) || (modification_of_pic_nums_idc == 5))) {
+					gf_bs_read_ue_log_idx(bs, "abs_diff_view_idx_minus1", idx);
 				}
 				idx++;
 			} while ((modification_of_pic_nums_idc != 3) && gf_bs_available(bs));
@@ -5654,6 +5657,9 @@ static void ref_pic_list_modification(GF_BitStream *bs, u32 slice_type) {
 				}
 				else if (modification_of_pic_nums_idc == 2) {
 					gf_bs_read_ue_log_idx(bs, "long_term_pic_num", idx);
+				}
+				else if (is_mvc && ((modification_of_pic_nums_idc == 4) || (modification_of_pic_nums_idc == 5))) {
+					gf_bs_read_ue_log_idx(bs, "abs_diff_view_idx_minus1", idx);
 				}
 				idx++;
 			} while ((modification_of_pic_nums_idc != 3) && gf_bs_available(bs));
@@ -5788,13 +5794,9 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	}
 
 	if (si->nal_unit_type == 20 || si->nal_unit_type == 21) {
-		//ref_pic_list_mvc_modification(); /* specified in Annex H */
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] unimplemented ref_pic_list_mvc_modification() in slide header\n"));
-		gf_assert(0);
-		return -1;
-	}
-	else {
-		ref_pic_list_modification(bs, si->slice_type);
+		avc_ref_pic_list_modification(bs, si->slice_type, GF_TRUE);
+	} else {
+		avc_ref_pic_list_modification(bs, si->slice_type, GF_FALSE);
 	}
 
 	if ((si->pps->weighted_pred_flag && (si->slice_type % 5 == GF_AVC_TYPE_P || si->slice_type % 5 == GF_AVC_TYPE_SP))
