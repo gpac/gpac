@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS reframer filter
@@ -542,7 +542,7 @@ static Bool adts_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GFINLINE void adts_dmx_update_cts(GF_ADTSDmxCtx *ctx)
 {
-	assert(ctx->dts_inc);
+	gf_assert(ctx->dts_inc);
 
 	if (ctx->timescale) {
 		u64 inc = ctx->dts_inc;
@@ -832,7 +832,7 @@ restart:
 
 		if (!ctx->in_seek) {
 
-			if (sync_pos + offset + size > remain) {
+			if (size > GF_UINT_MAX - sync_pos - offset || sync_pos + offset + size > remain) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ADTSDmx] truncated frame\n"));
 				break;
 			}
@@ -895,6 +895,10 @@ drop_byte:
 	} else {
 		if (remain) {
 			memmove(ctx->adts_buffer, start, remain);
+		}
+		if (!ctx->src_pck) {
+			ctx->src_pck = pck;
+			gf_filter_pck_ref_props(&ctx->src_pck);
 		}
 		ctx->adts_buffer_size = remain;
 		gf_filter_pid_drop_packet(ctx->ipid);
@@ -1054,4 +1058,3 @@ const GF_FilterRegister *rfadts_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFADTS)
-

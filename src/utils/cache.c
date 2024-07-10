@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Pierre Souchay
- *			Copyright (c) Telecom ParisTech 2010-2023
+ *			Copyright (c) Telecom ParisTech 2010-2024
  *					All rights reserved
  *
  *   This file is part of GPAC / common tools sub-project
@@ -185,9 +185,9 @@ void gf_cache_entry_set_persistent(const DownloadedCacheEntry entry)
 Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info) {
 	const char * startPattern;
 	int sz;
-	assert( cbck );
-	assert( item_name );
-	assert( item_path);
+	gf_assert( cbck );
+	gf_assert( item_name );
+	gf_assert( item_path);
 	startPattern = (const char *) cbck;
 	sz = (u32) strlen( startPattern );
 	if (!strncmp(startPattern, item_name, sz)) {
@@ -460,7 +460,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 		char name[1024];
 		snprintf(name, sizeof(name), "CachedEntryWriteMx=%p, url=%s", (void*) entry, url);
 		entry->write_mutex = gf_mx_new(name);
-		assert(entry->write_mutex);
+		gf_assert(entry->write_mutex);
 	}
 #endif
 
@@ -589,7 +589,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	CHECK_ENTRY;
 	if (!sess || !entry->write_session || entry->write_session != sess)
 		return GF_OK;
-	assert( sess == entry->write_session );
+	gf_assert( sess == entry->write_session );
 	if (entry->writeFilePtr) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CACHE,
 		       ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
@@ -649,7 +649,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 #endif
 	entry->write_session = sess;
 	if (!entry->continue_file) {
-		assert( ! entry->writeFilePtr);
+		gf_assert( ! entry->writeFilePtr);
 
 		entry->written_in_cache = 0;
 	}
@@ -709,7 +709,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	if (entry->memory_stored) {
 		if (!entry->cache_blob.mx)
 			entry->cache_blob.mx = mx;
-		assert(mx);
+		gf_assert(mx);
 		gf_mx_p(entry->cache_blob.mx);
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
@@ -844,7 +844,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     }
 	entry->dm = NULL;
 	if (entry->sessions) {
-		assert( gf_list_count(entry->sessions) == 0);
+		gf_assert( gf_list_count(entry->sessions) == 0);
 		gf_list_del(entry->sessions);
 		entry->sessions = NULL;
 	}
@@ -995,35 +995,48 @@ u32 gf_cache_get_downtime(const DownloadedCacheEntry entry)
 	if (!entry) return 0;
 	return entry->downtime;
 }
-Bool gf_cache_is_done(const DownloadedCacheEntry entry)
+u32 gf_cache_is_done(const DownloadedCacheEntry entry)
 {
-    Bool res = GF_TRUE;
+    u32 res = 1;
     if (entry && entry->external_blob) {
         gf_mx_p(entry->external_blob->mx);
-        res = (entry->external_blob->flags & GF_BLOB_IN_TRANSFER) ? GF_FALSE : GF_TRUE;
+        res = (entry->external_blob->flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;
+        if (res && (entry->external_blob->flags & GF_BLOB_CORRUPTED))
+			res = 2;
         gf_mx_v(entry->external_blob->mx);
     } else if (entry) {
-        res = (entry->cache_blob.flags & GF_BLOB_IN_TRANSFER) ? GF_FALSE : GF_TRUE;
+        res = (entry->cache_blob.flags & GF_BLOB_IN_TRANSFER) ? 0 : 1;
     }
     return res;
 }
-const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size)
+const u8 *gf_cache_get_content(const DownloadedCacheEntry entry, u32 *size, u32 *max_valid_size, Bool *was_modified)
 {
     if (!entry) return NULL;
+	*was_modified = GF_FALSE;
     if (entry->external_blob) {
         u8 *data;
-       GF_Err  e = gf_blob_get(entry->cache_filename, &data, size, NULL);
+		GF_Err e = gf_blob_get_ex(entry->external_blob, &data, size, NULL);
         if (e) return NULL;
+        *max_valid_size = *size;
+		if (entry->external_blob->range_valid) {
+			gf_mx_p(entry->external_blob->mx);
+			entry->external_blob->range_valid(entry->external_blob, 0, max_valid_size);
+			gf_mx_v(entry->external_blob->mx);
+		}
+		if (entry->external_blob->last_modification_time != entry->cache_blob.last_modification_time) {
+			*was_modified = GF_TRUE;
+			entry->cache_blob.last_modification_time = entry->external_blob->last_modification_time;
+		}
         return data;
     }
-    *size = entry->cache_blob.size;
+    *max_valid_size = *size = entry->cache_blob.size;
     return entry->cache_blob.data;
 }
 void gf_cache_release_content(const DownloadedCacheEntry entry)
 {
     if (!entry) return;
     if (!entry->external_blob) return;
-    gf_blob_release(entry->cache_filename);
+    gf_blob_release_ex(entry->external_blob);
 }
 Bool gf_cache_is_deleted(const DownloadedCacheEntry entry)
 {

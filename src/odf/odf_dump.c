@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -36,7 +36,7 @@
 #define OD_FORMAT_INDENT( ind_buf, indent ) \
 	{ \
 		u32 z;	\
-		assert(OD_MAX_TREE>indent);	\
+		gf_assert(OD_MAX_TREE>indent);	\
 		for (z=0; z<indent; z++) ind_buf[z] = ' '; \
 		ind_buf[z] = 0; \
 	} \

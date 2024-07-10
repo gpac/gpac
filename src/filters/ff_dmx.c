@@ -513,9 +513,11 @@ restart:
 		}
 		return GF_OK;
 	}
-	assert(pkt->stream_index>=0);
-	assert(pkt->stream_index < (s32) ctx->demuxer->nb_streams);
-
+	if (pkt->stream_index<0) {
+		GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Packet not associated to any stream in file %s, discarding\n", ctx->fname));
+		FF_FREE_PCK(pkt);
+		return GF_OK;
+	}
 	if (pkt->stream_index >= (s32) ctx->nb_streams) {
 		GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] More streams (%d) than initialy declared (%d), buggy source demux or not supported, ignoring packet in stream %d\n", ctx->fname, ctx->demuxer->nb_streams, ctx->nb_streams, pkt->stream_index+1 ));
 		FF_FREE_PCK(pkt);
@@ -597,6 +599,7 @@ restart:
 				GF_BitStream *bs = gf_bs_new(sd->data, sd->size, GF_BITSTREAM_READ);
 
 				u32 flags = gf_bs_read_u32_le(bs);
+#ifdef FFMPEG_OLD_CHLAYOUT
 				if (flags & AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_COUNT) {
 					u32 new_ch = gf_bs_read_u32_le(bs);
 					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(new_ch) );
@@ -606,6 +609,10 @@ restart:
 					new_lay = ffmpeg_channel_layout_to_gpac(new_lay);
 					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(new_lay) );
 				}
+#else
+				//no message for ch layout/count change in latest API
+#endif
+
 				if (flags & AV_SIDE_DATA_PARAM_CHANGE_SAMPLE_RATE) {
 					u32 new_sr = gf_bs_read_u32_le(bs);
 					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(new_sr) );
@@ -700,12 +707,15 @@ restart:
 			ts = (pctx->fake_dts_plus_one-1 - pctx->fake_dts_orig + pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
 			if (!pctx->fake_dts_set) {
+				//this is NOT a PID delay, CTS=0 means 0, we simply dispatch in negctts mode
+#if 0
 				if (pctx->fake_dts_plus_one) {
 					s64 offset = pctx->fake_dts_plus_one-1;
 					offset -= pctx->fake_dts_orig;
 					if (offset)
 						gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -offset) );
 				}
+#endif
 				pctx->fake_dts_set = GF_TRUE;
 				if (pctx->pck_queue) {
 					while (gf_list_count(pctx->pck_queue)) {
@@ -976,7 +986,11 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		u32 exdata_size = stream->codecpar->extradata_size;
 		u32 codec_sample_rate = stream->codecpar->sample_rate;
 		u32 codec_frame_size = stream->codecpar->frame_size;
+#ifdef FFMPEG_OLD_CHLAYOUT
 		u32 codec_channels = stream->codecpar->channels;
+#else
+		u32 codec_channels = stream->codecpar->ch_layout.nb_channels;
+#endif
 		u32 codec_width = stream->codecpar->width;
 		u32 codec_height = stream->codecpar->height;
 		u32 codec_field_order = stream->codecpar->field_order;
@@ -1066,8 +1080,16 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (grab_type)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_RAWGRAB, &PROP_UINT(grab_type) );
 		else if (ctx->demuxer->iformat) {
-			if ((ctx->demuxer->iformat->flags & AVFMT_SEEK_TO_PTS) || ctx->demuxer->iformat->read_seek)
+			if ((ctx->demuxer->iformat->flags & AVFMT_SEEK_TO_PTS)
+#if (LIBAVFORMAT_VERSION_MAJOR < 59)
+				|| ctx->demuxer->iformat->read_seek
+#else
+				|| (ctx->demuxer->iformat->flags & AVFMT_GENERIC_INDEX)
+				|| !(ctx->demuxer->iformat->flags & AVFMT_NOBINSEARCH)
+#endif
+			) {
 				gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
+			}
 		}
 
 
@@ -1726,9 +1748,9 @@ static const GF_FilterCapability FFDmxCaps[] =
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG demultiplexer")
-	GF_FS_SET_HELP("This filter demultiplexes an input file or open a source protocol using FFMPEG.\n"
-	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	GF_FS_SET_DESCRIPTION("FFmpeg demultiplexer")
+	GF_FS_SET_HELP("This filter demultiplexes an input file or open a source protocol using FFmpeg.\n"
+	"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported demultiplexers for your GPAC build, use `gpac -h ffdmx:*`.\n"
 	"This will list both supported input formats and protocols.\n"
 	"Input protocols are listed with `Description: Input protocol`, and the subclass name identifies the protocol scheme.\n"
@@ -1811,7 +1833,7 @@ static void ffdmxpid_finalize(GF_Filter *filter)
 const GF_FilterRegister FFDemuxPidRegister = {
 	.name = "ffdmxpid",
 	.version=LIBAVFORMAT_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG demultiplexer")
+	GF_FS_SET_DESCRIPTION("FFmpeg demultiplexer")
 	GF_FS_SET_HELP("Alias of ffdmx for GPAC pid demultiplexing, same options as ffdmx.\n")
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFPidDmxCaps),
@@ -1882,7 +1904,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 			dev_fmt = NULL;
 		}
 #else
-		//not supported for old FFMPEG versions
+		//not supported for old FFmpeg versions
 #endif
 	}
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
@@ -2114,9 +2136,9 @@ static const GF_FilterCapability FFAVInCaps[] =
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.version = LIBAVDEVICE_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG AV Capture")
-	GF_FS_SET_HELP("Reads from audio/video capture devices using FFMPEG.\n"
-	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
+	GF_FS_SET_DESCRIPTION("FFmpeg AV Capture")
+	GF_FS_SET_HELP("Reads from audio/video capture devices using FFmpeg.\n"
+	"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported grabbers for your GPAC build, use `gpac -h ffavin:*`.\n"
 	"\n"
 	"# Device identification\n"

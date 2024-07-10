@@ -122,6 +122,11 @@ typedef struct
 	u32 last_log_time;
 	Bool pmt_update_pending;
 
+	//SCTE-35 data is conveyed by packet properties
+	GF_M2TS_Mux_Stream *scte35_stream;
+	u8 *scte35_payload;
+	u32 scte35_size;
+
 	u32 dash_mode;
 	Bool init_dash;
 	u32 dash_seg_num;
@@ -228,11 +233,11 @@ typedef struct __tsmx_pid
 	Bool is_sparse;
 } M2Pid;
 
-static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
+static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
 {
 	u32 len;
 	u32 last_time;
-	if (ntp) {
+	if (ntp && is_realtime) {
 		last_time = 1000*(ntp>>32);
 		last_time += 1000*(ntp&0xFFFFFFFF)/0xFFFFFFFF;
 	} else {
@@ -363,7 +368,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 				GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, od_index);
 				esd_index = 0;
 				while ( (esd = gf_list_enum(od->ESDescriptors, &esd_index)) ) {
-					assert(esd->slConfig);
+					gf_assert(esd->slConfig);
 					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
 				}
 			}
@@ -372,7 +377,7 @@ static void tsmux_rewrite_odf(GF_TSMuxCtx *ctx, GF_ESIPacket *es_pck)
 			esdU = (GF_ESDUpdate*)com;
 			esd_index = 0;
 			while ( (esd = gf_list_enum(esdU->ESDescriptors, &esd_index)) ) {
-					assert(esd->slConfig);
+					gf_assert(esd->slConfig);
 					esd->slConfig = tsmux_get_sl_config(ctx, esd->slConfig->timestampResolution, esd->slConfig);
 			}
 			break;
@@ -395,6 +400,27 @@ static void tsmux_check_mpd_start_time(GF_TSMuxCtx *ctx, GF_FilterPacket *pck)
 		ctx->dash_seg_start.num = 0;
 		ctx->dash_seg_start.den = 0;
 	}
+}
+
+static u32 tsmux_stream_process_scte35(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
+{
+	if (stream->table_needs_update) { /* generate table payload */
+		GF_TSMuxCtx *ctx = ((M2Pid*)stream->ifce->input_udta)->ctx;
+		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_SCTE35_SPLICE_INFO, stream->program->number,
+			ctx->scte35_payload+3, ctx->scte35_size-3, // remove redundancy since payload already contains an entire SCTE 35 splice_info_section
+			GF_FALSE, GF_FALSE);
+		ctx->scte35_size = 0;
+		gf_free(ctx->scte35_payload);
+		ctx->scte35_payload = NULL;
+
+		stream->table_needs_update = GF_FALSE;
+		stream->table_needs_send = GF_TRUE;
+	}
+	if (stream->table_needs_send)
+		return 1;
+	if (stream->refresh_rate_ms)
+		return 1;
+	return 0;
 }
 
 static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
@@ -627,12 +653,23 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					ntp <<= 32;
 					ntp |= frac;
 				}
-				tsmux_format_af_descriptor(tspid->temi_af_bs, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url);
+				tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url);
 			}
 			gf_bs_get_content_no_truncate(tspid->temi_af_bs, &tspid->af_data, &es_pck.mpeg2_af_descriptors_size, &tspid->af_data_alloc);
 			es_pck.mpeg2_af_descriptors = tspid->af_data;
 		}
 		es_pck.cts += tspid->max_media_skip + tspid->media_delay;
+
+		p = gf_filter_pck_get_property_str(pck, "scte35");
+		if (p) {
+			gf_assert(tspid->ctx->scte35_stream);
+			gf_assert(!tspid->ctx->scte35_payload);
+			tspid->ctx->scte35_payload = gf_malloc(p->value.data.size);
+			memcpy(tspid->ctx->scte35_payload, p->value.data.ptr, p->value.data.size);
+			tspid->ctx->scte35_size = p->value.data.size;
+			tspid->ctx->scte35_stream->table_needs_update = GF_TRUE;
+			tspid->ctx->scte35_stream->table_needs_send = GF_TRUE;
+		}
 
 		if (tspid->nb_repeat_last) {
 			es_pck.cts += tspid->nb_repeat_last * ifce->timescale * tspid->ctx->repeat_img / 1000;
@@ -656,7 +693,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				//we don't have reliable dts - double the diff should make sure we don't try to adjust too often
 				diff = cts_diff = 2*(es_pck.dts - es_pck.cts);
 				diff = gf_timestamp_rescale(diff, tspid->esi.timescale, 1000000);
-				assert(tspid->prog->cts_offset <= diff);
+				gf_assert(tspid->prog->cts_offset <= diff);
 				tspid->prog->cts_offset += (u32) diff;
 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSMux] Packet CTS "LLU" is less than packet DTS "LLU", adjusting all CTS by %d / %d!\n", es_pck.cts, es_pck.dts, cts_diff, tspid->esi.timescale));
@@ -1264,6 +1301,48 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			prog->force_first_pts = GF_FILTER_NO_TS;
 		}
 
+		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_SCTE35_PID);
+		if (p && !tspid->ctx->scte35_stream) {
+			M2Pid *m2pid;
+			GF_SAFEALLOC(m2pid, M2Pid);
+			if (!m2pid) return GF_OUT_OF_MEM;
+
+			m2pid->sid = service_id; // belongs to the same service
+			m2pid->ipid = pid;       // attach to parent pid
+			m2pid->ctx = ctx;
+			m2pid->codec_id = GF_CODECID_SCTE35;
+			m2pid->is_sparse = GF_TRUE;
+			m2pid->prog = prog;
+
+			m2pid->esi.stream_type = GF_STREAM_METADATA;
+			m2pid->esi.codecid = GF_CODECID_SCTE35;
+			m2pid->esi.timescale = 90000;
+			m2pid->esi.caps = GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS|GF_ESI_STREAM_SPARSE;
+			//m2pid->esi.input_ctrl = tsmux_esi_ctrl;
+			m2pid->esi.input_udta = m2pid;
+
+			gf_list_add(tspid->ctx->pids, m2pid);
+
+			int scte35_pid = gf_m2ts_mux_program_get_pmt_pid(m2pid->prog);
+			scte35_pid += 1 + gf_m2ts_mux_program_get_stream_count(m2pid->prog);
+			m2pid->ctx->scte35_stream = gf_m2ts_program_stream_add(m2pid->prog, &m2pid->esi, scte35_pid, GF_FALSE, GF_FALSE, GF_FALSE);
+
+			GF_M2TSDescriptor *scte35_desc;
+			GF_SAFEALLOC(scte35_desc, GF_M2TSDescriptor);
+			if (!scte35_desc) return GF_OUT_OF_MEM;
+			scte35_desc->tag = GF_M2TS_REGISTRATION_DESCRIPTOR;
+			scte35_desc->data = gf_strdup("CUEI");
+			if (!scte35_desc->data) return GF_OUT_OF_MEM;
+			scte35_desc->data_len = 4;
+			gf_list_add(m2pid->prog->loop_descriptors, scte35_desc);
+
+			m2pid->ctx->scte35_stream->process = tsmux_stream_process_scte35;
+
+			m2pid->prog->pmt->table_needs_update = GF_TRUE;
+			m2pid->ctx->pmt_update_pending = GF_TRUE;
+			m2pid->ctx->update_mux = GF_TRUE;
+		}
+
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
 	if (tspid->esi.stream_type != streamtype)
@@ -1274,7 +1353,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		Bool is_pcr=GF_FALSE;
 		Bool force_pes=GF_FALSE;
 		u32 pes_pid;
-		assert(!tspid->esi.stream_type);
+		gf_assert(!tspid->esi.stream_type);
 		tspid->codec_id = codec_id;
 		tspid->esi.stream_type = streamtype;
 
@@ -1458,7 +1537,8 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	}
 	if (!tspid) tspid = gf_list_get(ctx->pids, 0);
 
-	if (ctx->nb_sidx_entries) {
+	//in MP4Box HLS mode, sub_sidx can be 0 (single sidx per segment) but not produced (ctx->idx_file_name is empty)
+	if (ctx->nb_sidx_entries && ctx->idx_file_name[0]) {
 		GF_FilterPacket *idx_pck;
 		u8 *output;
 		Bool large_sidx = GF_FALSE;
@@ -1905,7 +1985,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 0);
 	}
 	//PMT update management is still under progress...
-	ctx->pmt_update_pending = 0;
+	ctx->pmt_update_pending = GF_FALSE;
 
 	return GF_OK;
 }

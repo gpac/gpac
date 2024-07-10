@@ -465,8 +465,8 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 	else gf_bs_reassign_buffer(ctx->bs_nal_out, ctx->output_no_epb, ctx->output_no_epb_alloc);
 
 
-	assert(hevc->s_info.header_size_bits >= 0);
-	assert(hevc->s_info.entry_point_start_bits >= 0);
+	gf_assert(hevc->s_info.header_size_bits >= 0);
+	gf_assert(hevc->s_info.entry_point_start_bits >= 0);
 	header_end = (u64) hevc->s_info.header_size_bits;
 
 	num_entry_point_start = (u32) hevc->s_info.entry_point_start_bits;
@@ -789,7 +789,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			u32 tile_idx = i * cols + j;
 			HEVCTilePid *tpid = gf_list_get(ctx->outputs, tile_idx);
 			if (!tpid) {
-				assert(gf_list_count(ctx->outputs) == tile_idx);
+				gf_assert(gf_list_count(ctx->outputs) == tile_idx);
 
 				GF_SAFEALLOC(tpid, HEVCTilePid);
 				if (!tpid) return GF_OUT_OF_MEM;

@@ -408,6 +408,17 @@ Constructs a socket object
 \return the socket object or NULL if network initialization failure
  */
 GF_Socket *gf_sk_new(u32 SocketType);
+
+/*!
+\brief socket constructor
+
+Constructs a socket object with a specific netcap configuration ID
+\param SocketType the socket type to create, either UDP or TCP
+\param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
+\return the socket object or NULL if network initialization failure
+ */
+GF_Socket *gf_sk_new_ex(u32 SocketType, const char *netcap_id);
+
 /*!
 \brief socket destructor
 
@@ -594,10 +605,10 @@ Performs multicast setup (BIND and JOIN) for the socket object
 \param multi_port the multicast port number
 \param TTL the multicast TTL (Time-To-Live)
 \param no_bind if sets, only join the multicast
-\param local_interface_ip the local interface IP address if desired. If NULL, the default interface will be used.
+\param ifce_ip_or_name the local interface IP address or name if desired. If NULL, the default interface will be used.
 \return error if any
  */
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip);
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, const char *ifce_ip_or_name);
 
 /*!
 \brief source-specific multicast setup
@@ -608,14 +619,14 @@ Performs multicast setup (BIND and JOIN) for the socket object using allowed and
 \param multi_port the multicast port number
 \param TTL the multicast TTL (Time-To-Live)
 \param no_bind if sets, only join the multicast
-\param local_interface_ip the local interface IP address if desired. If NULL, the default interface will be used.
+\param ifce_ip_or_name the local interface IP address or name if desired. If NULL, the default interface will be used.
 \param src_ip_inc IP of sources to receive from
 \param nb_src_ip_inc number of sources to receive from
 \param src_ip_exc IP of sources to exclude
 \param nb_src_ip_exc number of sources to exclude
 \return error if any
  */
-GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc);
+GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, const char *ifce_ip_or_name, const char **src_ip_inc, u32 nb_src_ip_inc, const char **src_ip_exc, u32 nb_src_ip_exc);
 
 /*!
  \brief multicast address test
@@ -715,7 +726,7 @@ Performs a select (wait) on the socket group
 \param sg socket group object
 \param wait_usec microseconds to wait (must be less than one second)
 \param mode the operation mode desired
-\return error if any
+\return error if any - if using a capture file and the capture is done, returns GF_IP_CONNECTION_CLOSED if TCP sockets are present, otherwise GF_EOS
  */
 GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 wait_usec, GF_SockSelectMode mode);
 

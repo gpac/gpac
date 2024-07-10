@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -2815,7 +2815,7 @@ GF_IPMPX_Data *gf_bt_parse_ipmpx(GF_BTParser *parser, char *name)
 		switch (type) {
 		/*single descriptor*/
 		case GF_ODF_FT_OD:
-			assert(desc->tag==GF_IPMPX_CONNECT_TOOL_TAG);
+			gf_assert(desc->tag==GF_IPMPX_CONNECT_TOOL_TAG);
 			str = gf_bt_get_next(parser, 0);
 			oddesc = gf_bt_parse_descriptor(parser, str);
 			if (!oddesc) {
@@ -2823,12 +2823,12 @@ GF_IPMPX_Data *gf_bt_parse_ipmpx(GF_BTParser *parser, char *name)
 				gf_ipmpx_data_del(desc);
 				return NULL;
 			}
-			assert(oddesc->tag==GF_ODF_IPMP_TAG);
+			gf_assert(oddesc->tag==GF_ODF_IPMP_TAG);
 			((GF_IPMPX_ConnectTool *)desc)->toolDescriptor = (GF_IPMP_Descriptor *)oddesc;
 			break;
 		/*descriptor list*/
 		case GF_ODF_FT_OD_LIST:
-			assert(desc->tag==GF_IPMPX_GET_TOOLS_RESPONSE_TAG);
+			gf_assert(desc->tag==GF_IPMPX_GET_TOOLS_RESPONSE_TAG);
 			if (gf_bt_check_code(parser, '[')) {
 				while (!gf_bt_check_code(parser, ']')) {
 					GF_Descriptor *ipmp_t = gf_bt_parse_descriptor(parser, NULL);
@@ -2837,7 +2837,7 @@ GF_IPMPX_Data *gf_bt_parse_ipmpx(GF_BTParser *parser, char *name)
 						parser->last_error = GF_BAD_PARAM;
 						return NULL;
 					}
-					assert(ipmp_t->tag==GF_ODF_IPMP_TOOL_TAG);
+					gf_assert(ipmp_t->tag==GF_ODF_IPMP_TOOL_TAG);
 					gf_list_add( ((GF_IPMPX_GetToolsResponse *)desc)->ipmp_tools, ipmp_t);
 				}
 			}
@@ -3474,8 +3474,8 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 				if (init_com) init_com->node = node;
 				else if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
 					GF_Command *com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
-					assert(!parser->bifs_au);
-					assert(parser->bifs_es);
+					gf_assert(!parser->bifs_au);
+					gf_assert(parser->bifs_es);
 					parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
 					gf_list_add(parser->bifs_au->commands, com);
 					com->node = node;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -70,7 +70,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 
 	if (read->pid) {
 		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);
-		assert(prop);
+		gf_fatal_assert(prop);
 		src = prop->value.string;
 	} else {
 		src = read->src;
@@ -212,6 +212,32 @@ static void isoffin_disconnect(ISOMReader *read)
 	read->pid = NULL;
 }
 
+static void isoffin_set_channel_ctso(ISOMReader *read, ISOMChannel *ch)
+{
+	s32 min_neg_cts_offset = gf_isom_get_min_negative_cts_offset(ch->owner->mov, ch->track, (read->ctso==-2) ? GF_ISOM_MIN_NEGCTTS_SAMPLES : GF_ISOM_MIN_NEGCTTS_ANY);
+	if (min_neg_cts_offset>=0) return;
+	if (ch->has_edit_list) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Track has complex edit list, cannot use ctso option (try adding `edits=no` option to demuxer)\n"));
+		read->ctso = 0;
+		return;
+	}
+
+	if (read->ctso<0) {
+		ch->cts_offset = MAX(ch->cts_offset, (u32) -min_neg_cts_offset);
+		ch->has_edit_list = GF_FALSE;
+	} else {
+		if (-min_neg_cts_offset > read->ctso) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] requested CTS offset %d less than %d in track, adjusting\n"));
+			ch->cts_offset = (u32) -min_neg_cts_offset;
+		} else {
+			ch->cts_offset = (u32) read->ctso;
+		}
+	}
+	//send PID delay
+	ch->ts_offset = - (s32) ch->cts_offset;
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( ch->ts_offset) );
+}
+
 static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const char *next_url)
 {
 	const GF_PropertyValue *prop;
@@ -264,6 +290,10 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 				u32 nb_samples = gf_isom_get_sample_count(read->mov, ch->track);
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(nb_samples));
 			}
+			if (read->ctso) {
+				isoffin_set_channel_ctso(read, ch);
+			}
+
 		}
 
 #ifndef GPAC_DISABLE_LOG
@@ -331,7 +361,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	gf_filter_post_process_task(filter);
 
 	count = gf_list_count(read->channels);
-	
+
 	if (e<0) {
 		count = gf_list_count(read->channels);
         read->invalid_segment = GF_TRUE;
@@ -460,7 +490,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		read->end_range = er;
 		read->input_loaded = GF_FALSE;
 		read->eos_signaled = GF_FALSE;
-		
+
 		//we need to reconfigure
 		return isoffin_reconfigure(filter, read, next_url);
 	}
@@ -748,6 +778,8 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 		else
 			ch->has_edit_list = 0;
 	}
+	if (read->ctso)
+		isoffin_set_channel_ctso(read, ch);
 
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? 1 : 0;
 	gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );
@@ -1101,7 +1133,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				//send a seek request
 				read->is_partial_download = GF_TRUE;
 				read->wait_for_source = GF_TRUE;
-				read->refresh_fragmented = GF_TRUE;
+				if (read->frag_type)
+					read->refresh_fragmented = GF_TRUE;
 
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = max_offset;
@@ -1191,6 +1224,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 {
 	u64 bytes_missing;
 	GF_Err e;
+	if (!data_size) return;
 
 	if (!read->mem_url) {
 		read->mem_url = gf_blob_register(&read->mem_blob);
@@ -1269,10 +1303,10 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	}
 	read->last_min_offset = min_offset;
 
-	assert(min_offset>=read->bytes_removed);
+	gf_assert(min_offset>=read->bytes_removed);
 	//min_offset is given in absolute file position
 	nb_bytes_to_purge = (u32) (min_offset - read->bytes_removed);
-	assert(nb_bytes_to_purge<=read->mem_blob.size);
+	gf_assert(nb_bytes_to_purge<=read->mem_blob.size);
 	if (!nb_bytes_to_purge) {
 		read->force_fetch = GF_TRUE;
 		return;
@@ -1307,7 +1341,7 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 			ch->sample_num = 1;
 
 		num_samples = gf_isom_get_sample_count(read->mov, ch->track);
-		assert(ch->sample_num<=num_samples);
+		gf_assert(ch->sample_num<=num_samples);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d samples now in track %d (prev %d)\n", num_samples, ch->track_id, prev_samples));
 	}
 }
@@ -1352,6 +1386,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					return GF_OK;
 				}
 				break;
+			}
+			if (read->is_partial_download && read->wait_for_source && !read->mem_load_mode) {
+				const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_DOWNLOAD_SESSION);
+				if (prop && prop->type==GF_PROP_POINTER) {
+					const char *new_url = gf_dm_sess_get_cache_name(prop->value.ptr);
+					if (new_url)
+						gf_isom_switch_source(read->mov, new_url);
+				}
 			}
 			read->wait_for_source = GF_FALSE;
 
@@ -1498,12 +1540,19 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				isor_reader_release_sample(ch);
 				continue;
 			}
+
 			if (ch->sample) {
 				u32 sample_dur;
 				u8 dep_flags;
 				u8 *subs_buf;
 				u32 subs_buf_size;
 				GF_FilterPacket *pck;
+
+				if (!read->keepc && ch->sample->corrupted) {
+					isor_reader_release_sample(ch);
+					continue;
+				}
+
 				if (ch->needs_pid_reconfig) {
 					isor_update_channel_config(ch);
 					ch->needs_pid_reconfig = 0;
@@ -1538,10 +1587,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
 					if (!pck) return GF_OUT_OF_MEM;
 
-					memcpy(data, ch->sample->data, ch->sample->dataLength);
+					if (ch->sample->data)
+						memcpy(data, ch->sample->data, ch->sample->dataLength);
 				}
 				gf_filter_pck_set_dts(pck, ch->dts);
-				gf_filter_pck_set_cts(pck, ch->cts);
+				gf_filter_pck_set_cts(pck, ch->cts + ch->cts_offset);
 				if (ch->sample->IsRAP==-1) {
 					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 					ch->redundant = 1;
@@ -1566,6 +1616,20 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (ch->xps_mask && !gf_filter_pck_get_sap(pck) ) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_XPS_MASK, &PROP_UINT(ch->xps_mask) );
 				}
+				if (!ch->item_id) {
+					u32 ID, nb_refs=0;
+					const u32 *refs=NULL;
+					if (gf_isom_get_sample_references(read->mov, ch->track, ch->sample_num, &ID, &nb_refs, &refs)==GF_OK) {
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_ID, &PROP_SINT(ID));
+						if (refs && nb_refs) {
+							GF_PropertyValue p;
+							p.type = GF_PROP_SINT_LIST;
+							p.value.sint_list.nb_items = nb_refs;
+							p.value.sint_list.vals = (u32*) refs;
+							gf_filter_pck_set_property(pck, GF_PROP_PCK_REFS, &p);
+						}
+					}
+				}
 
 				dep_flags = ch->isLeading;
 				dep_flags <<= 2;
@@ -1577,6 +1641,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				if (dep_flags)
 					gf_filter_pck_set_dependency_flags(pck, dep_flags);
+				if (ch->sample->corrupted)
+					gf_filter_pck_set_corrupted(pck, GF_TRUE);
 
 				gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);
 				gf_filter_pck_set_seq_num(pck, ch->sample_num);
@@ -1682,11 +1748,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			} else if (ch->last_state==GF_ISOM_INVALID_FILE) {
-				ch->nb_empty_retry++;
 				if (!ch->eos_sent) {
 					ch->eos_sent = 1;
 					read->eos_signaled = GF_TRUE;
 					gf_filter_pid_set_eos(ch->pid);
+					ch->playing = GF_FALSE;
 				}
 				return ch->last_state;
 			} else {
@@ -1782,6 +1848,11 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- fake: allocate sample but no data copy", GF_PROP_UINT, "no", "no|yes|fake", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lightp), "load minimal set of properties", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(initseg), "local init segment name when input is a single ISOBMFF segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ctso), "value to add to CTS offset for tracks using negative ctts\n"
+	"- set to `-1` to use the `cslg` box info or the minimum cts offset present in the track\n"
+	"- set to `-2` to use the minimum cts offset present in the track (`cslg` ignored)", GF_PROP_SINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(norw), "skip reformating of samples - should only be used when rewriting fragments", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(keepc), "keep corrupted samples - should only be used in multicast modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1854,4 +1925,3 @@ const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_MP4DMX)
-

@@ -520,8 +520,8 @@ static Bool gf_unregister_file_handle(FILE *ptr)
 {
 	u32 i, count;
 	Bool res = GF_FALSE;
-	assert(gpac_file_handles);
-	gpac_file_handles--;
+	if (gpac_file_handles)
+		gpac_file_handles--;
 
 	if (!gpac_open_files)
 		return GF_FALSE;
@@ -1524,7 +1524,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("FileIO %s is not read-enabled and open mode %s was requested\n", file_name, mode));
 			return NULL;
 		}
-		if ((strchr(mode, 'w') || strchr(mode, 'a'))  && !gf_fileio_write_mode(gfio_ref)) {
+		if (strpbrk(mode, "wa") && !gf_fileio_write_mode(gfio_ref)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("FileIO %s is not write-enabled and open mode %s was requested\n", file_name, mode));
 			return NULL;
 		}
@@ -1605,7 +1605,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file \"%s\" opened in mode \"%s\" - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else if (!no_warn) {
-		if (strchr(mode, 'w') || strchr(mode, 'a')) {
+		if (strpbrk(mode, "wa")) {
 #if defined(WIN32)
 			u32 err = GetLastError();
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of \"%s\" in mode \"%s\": 0x%08x\n", file_name, mode, err));
@@ -1797,6 +1797,8 @@ int gf_fflush(FILE *stream)
 GF_EXPORT
 int gf_feof(FILE *stream)
 {
+	if (!stream) return 1;
+
 	if (gf_fileio_check(stream)) {
 		return gf_fileio_eof((GF_FileIO *)stream) ? 1 : 0;
 	}
@@ -1875,11 +1877,18 @@ char* gf_file_ext_start(const char* filename)
 
 	if (basename) {
 		char *ext = strrchr(basename, '.');
-		if (ext && !strcmp(ext, ".gz")) {
+		if (!ext) return NULL;
+		if (!strcmp(ext, ".gz")) {
 			ext[0] = 0;
 			char *ext2 = strrchr(basename, '.');
 			ext[0] = '.';
 			if (ext2) return ext2;
+		}
+		//consider that if we have a space after a dot and before any common separator, we have no file extension
+		u32 i;
+		for (i=1; ext[i] ; i++) {
+			if ((ext[i]==':') || (ext[i]=='@') || (ext[i]=='#') || (ext[i]=='?')) break;
+			if (ext[i]==' ') return NULL;
 		}
 		return ext;
 	}

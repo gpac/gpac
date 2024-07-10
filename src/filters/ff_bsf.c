@@ -407,9 +407,9 @@ static const GF_FilterCapability FFBSFCaps[] =
 GF_FilterRegister FFBSFRegister = {
 	.name = "ffbsf",
 	.version = LIBAVUTIL_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG BitStream filter")
+	GF_FS_SET_DESCRIPTION("FFmpeg BitStream filter")
 	GF_FS_SET_HELP("This filter provides bitstream filters (BSF) for compressed audio and video formats.\n"
-		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details\n"
+		"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details\n"
 		"To list all supported bitstream filters for your GPAC build, use `gpac -h ffbsf:*`.\n"
 		"\n"
 		"Several BSF may be specified in [-f]() for different coding types. BSF not matching the coding type are silently ignored.\n"

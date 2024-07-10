@@ -457,19 +457,26 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
 
 		swf_svg_print(read, "</g>\n");
 	}
-	read->add_sample(read->user, read->svg_data, read->svg_data_size, read->current_frame*1000/read->frame_rate, (read->current_frame == 0));
-	gf_free(read->svg_data);
-	read->svg_data = NULL;
+
+	if (read->svg_data && read->svg_data_size)
+		read->add_sample(read->user, read->svg_data, read->svg_data_size, read->current_frame*1000/read->frame_rate, (read->current_frame == 0));
+
+	if (read->svg_data) {
+		gf_free(read->svg_data);
+		read->svg_data = NULL;
+	}
 	read->svg_data_size = 0;
 
 	read->empty_frame = GF_TRUE;
 	return GF_OK;
 }
 
-static void swf_svg_finalize(SWFReader *read)
+static void swf_svg_finalize(SWFReader *read, Bool is_destroy)
 {
-	swf_svg_print(read, "</svg>\n");
-	read->add_header(read->user, read->svg_data, read->svg_data_size, GF_FALSE);
+	if (!is_destroy) {
+		swf_svg_print(read, "</svg>\n");
+		read->add_header(read->user, read->svg_data, read->svg_data_size, GF_FALSE);
+	}
 	gf_free(read->svg_data);
 	read->svg_data = NULL;
 	read->svg_data_size = 0;

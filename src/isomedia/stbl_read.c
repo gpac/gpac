@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -221,6 +221,8 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 
 	//no ent, this is really weird. Let's assume the DTS is then what is written in the table
 	if (!ent || (i == count)) {
+		if (SampleNumber>stts->r_FirstSampleInEntry)
+			return GF_ISOM_INVALID_FILE;
 		(*DTS) = stts->r_CurrentDTS;
 		if (duration) *duration = ent ? ent->sampleDelta : 0;
 	}
@@ -272,8 +274,8 @@ GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, GF_ISOSAPType
 GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, GF_ISOSAPType *IsRAP, u32 *prevRAP, u32 *nextRAP)
 {
 	u32 i, j, count, count2;
-	assert(prevRAP);
-	assert(nextRAP);
+	gf_assert(prevRAP);
+	gf_assert(nextRAP);
 	(*prevRAP) = 0;
 	(*nextRAP) = 0;
 	(*IsRAP) = RAP_NO;
@@ -456,7 +458,7 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 
 	//first get the chunk
 	for (; i < stbl->SampleToChunk->nb_entries; i++) {
-		assert(stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber);
+		gf_assert(stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber);
 		//corrupted file (less sample2chunk info than sample count
 		if (k > stbl->SampleToChunk->ghostNumber) {
 			return GF_ISOM_INVALID_FILE;
@@ -605,7 +607,7 @@ GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *sdep, u32 SampleNumber,
 {
 	u8 flag;
 
-	assert(dependsOn && dependedOn && redundant);
+	gf_assert(dependsOn && dependedOn && redundant);
 	*dependsOn = *dependedOn = *redundant = 0;
 
 	if (SampleNumber > sdep->sampleCount) {

@@ -716,7 +716,11 @@ u32 gf_svg_get_system_paint_server_type(const char *name)
 static void svg_parse_color(SVG_Color *col, char *attribute_content, GF_Err *out_e)
 {
 	char *str = attribute_content;
-	while (str[strlen(attribute_content)-1] == ' ') str[strlen(attribute_content)-1] = 0;
+	u32 len = (u32) strlen(attribute_content);
+	while (len && (str[strlen(attribute_content)-1] == ' ')) {
+		str[len-1] = 0;
+		len--;
+	}
 	while (*str != 0 && (*str == ' ' || *str == ',' || *str == ';')) str++;
 
 	if (!strcmp(str, "currentColor")) {
@@ -919,7 +923,7 @@ static GF_Err svg_parse_clock_value(char *d, Double *clock_value)
 		'+-2s'
 		'1++s' even though sscanf returns the right values
 	*/
-	if (strchr(d, '+') || strchr(d, '-')) return GF_BAD_PARAM;
+	if (strpbrk(d, "+-")) return GF_BAD_PARAM;
 
 	/* No embedded white space is allowed in clock values,
 	   although leading and trailing white space characters will be ignored.*/
@@ -3173,6 +3177,7 @@ void svg_parse_anim_values(GF_Node *n, SMIL_AnimateValues *anim_values, char *an
 	char *str;
 	s32 psemi = -1;
 	GF_FieldInfo info;
+	info.name = NULL;
 	info.fieldType = anim_value_type;
 	anim_values->type = anim_value_type;
 
@@ -3426,7 +3431,8 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		svg_parse_idref(n, (XMLRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
-		((SMIL_AttributeName *)info->far_ptr)->name = gf_strdup(attribute_content);
+		if (! ((SMIL_AttributeName *)info->far_ptr)->name)
+			((SMIL_AttributeName *)info->far_ptr)->name = gf_strdup(attribute_content);
 		break;
 	case SMIL_Times_datatype:
 		smil_parse_time_list(n, *(GF_List **)info->far_ptr, attribute_content);

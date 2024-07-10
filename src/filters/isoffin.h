@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -63,16 +63,18 @@ typedef struct
 	u32 smode, edits;
 	u32 stsd;
 	Bool expart;
-	Bool alltk;
+	Bool alltk, keepc;
 	u32 frame_size;
 	char* tkid;
-	Bool analyze;
+	u32 analyze;
+	Bool norw;
 	u32 xps_check;
 	char *catseg;
 	Bool sigfrag;
 	Bool nocrypt, strtxt, lightp;
 	u32 nodata;
 	u32 mstore_purge, mstore_samples, mstore_size;
+	s32 ctso;
 
 	//internal
 
@@ -151,6 +153,7 @@ typedef struct
 	GF_ISOSampleRollType sap_4_type;
 	s32 roll;
 	u32 xps_mask;
+	u32 cts_offset;
 	
 	u32 sample_num, sample_last;
 	s64 ts_offset;
@@ -188,7 +191,7 @@ typedef struct
 	u32 last_sample_desc_index;
 	u32 isLeading, dependsOn, dependedOn, redundant;
 	u64 dts, cts;
-	u8 skip_byte_block, crypt_byte_block;
+	u32 skip_byte_block, crypt_byte_block;
 	u32 au_seq_num;
 	u64 sender_ntp, ntp_at_server_ntp;
 

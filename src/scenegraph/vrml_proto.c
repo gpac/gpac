@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -440,8 +440,8 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		/*get target ptr*/
 		gf_node_get_field(node, i, &field);
 
-		assert(field.eventType==field_orig.eventType);
-		assert(field.fieldType==field_orig.fieldType);
+		gf_assert(field.eventType==field_orig.eventType);
+		gf_assert(field.fieldType==field_orig.fieldType);
 
 		/*duplicate it*/
 		switch (field.fieldType) {
@@ -550,7 +550,7 @@ static GF_Proto *find_proto_by_interface(GF_SceneGraph *sg, GF_Proto *extern_pro
 	GF_Proto *proto;
 	u32 i, count;
 
-	assert(sg);
+	gf_assert(sg);
 
 	/*browse all top-level */
 	i=0;
@@ -654,7 +654,7 @@ void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 	while ((orig = (GF_Node*)gf_list_enum(proto->node_code, &i))) {
 		/*node is cloned in the new scenegraph and its parent is NULL */
 		node = gf_node_clone(proto_node->sgprivate->scenegraph, orig, NULL, "", 1);
-		assert(node);
+		gf_assert(node);
 
 		/*assign first rendering node*/
 		if (i==1) proto_node->RenderingNode = node;
@@ -695,7 +695,7 @@ void gf_sg_proto_instantiate(GF_ProtoInstance *proto_node)
 	i=0;
 	while ((route = (GF_Route*)gf_list_enum(proto_node->sgprivate->scenegraph->Routes, &i))) {
 		if (!route->IS_route || !route->ToNode) continue;
-		/*		assert(route->is_setup);
+		/*		gf_assert(route->is_setup);
 				if ((route->FromField.eventType == GF_SG_EVENT_OUT) || (route->FromField.eventType == GF_SG_EVENT_IN) ) continue;
 		*/
 
@@ -883,7 +883,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 
 	gf_free((char *) inst->proto_name);
 	gf_list_del(inst->node_code);
-	assert(!gf_list_count(inst->scripts_to_load));
+	gf_assert(!gf_list_count(inst->scripts_to_load));
 	gf_list_del(inst->scripts_to_load);
 
 	if (inst->proto_interface && inst->proto_interface->instances) gf_list_del_item(inst->proto_interface->instances, inst);
@@ -1118,7 +1118,7 @@ GF_Err gf_sg_proto_get_field_index(GF_ProtoInstance *proto, u32 index, u32 code_
 
 	i=0;
 	while ((proto_field = (GF_ProtoFieldInterface*)gf_list_enum(proto->proto_interface->proto_fields, &i))) {
-		assert(proto_field);
+		gf_assert(proto_field);
 		switch (code_mode) {
 		case GF_SG_FIELD_CODING_IN:
 			if (proto_field->IN_index == index) {

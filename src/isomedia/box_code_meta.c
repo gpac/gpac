@@ -315,8 +315,21 @@ GF_Err iloc_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4)
 		item_count = gf_bs_read_u32(bs);
 	}
+	u32 base_size;
+	if (ptr->version < 2) {
+		base_size=2;
+	} else {
+		base_size=4;
+	}
+	if (ptr->version == 1 || ptr->version == 2) {
+		base_size+=2;
+	}
+	if ((u64)base_size*item_count>ptr->size) {
+		ISOM_DECREASE_SIZE(ptr, (u64)base_size*item_count)
+	}
 
 	for (i = 0; i < item_count; i++) {
+		u32 bpe;
 		GF_ItemLocationEntry *location_entry;
 		GF_SAFEALLOC(location_entry, GF_ItemLocationEntry);
 		if (!location_entry) return GF_OUT_OF_MEM;
@@ -346,6 +359,13 @@ GF_Err iloc_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 2)
 		extent_count = gf_bs_read_u16(bs);
 		location_entry->extent_entries = gf_list_new();
+		bpe = (ptr->offset_size+ptr->length_size);
+		if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0)
+			bpe = ptr->index_size;
+		if ((u64)bpe * extent_count > ptr->size) {
+			ISOM_DECREASE_SIZE(ptr, (u64)bpe * extent_count)
+		}
+
 		for (j = 0; j < extent_count; j++) {
 			GF_ItemExtentEntry *extent_entry;
 			GF_SAFEALLOC(extent_entry, GF_ItemExtentEntry);

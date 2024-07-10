@@ -876,6 +876,7 @@ INPUT                  = ../../include/gpac/ \
                          ../../share/doc/idl/webgl.idl \
                          ../../share/doc/idl/filtersession.idl \
                          ../../share/doc/idl/dash_algo.idl \
+                         ../../share/doc/idl/httpout.idl \
                          ../../share/doc/idl/nodejs.idl \
                          ../../share/python/libgpac/libgpac.py
 

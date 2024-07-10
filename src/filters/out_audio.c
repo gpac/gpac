@@ -102,10 +102,11 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output %u channels %u Hz: %s, defaulting to stereo @ 441000 Hz\n", nb_ch, sr, gf_error_to_string(e) ));
 		afmt = GF_AUDIO_FMT_S16;
 		sr = 44100;
 		nb_ch = 2;
+		e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	}
 	if (ctx->speed == FIX_ONE) ctx->speed_set = 1;
 
@@ -129,15 +130,15 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	if ((sr != ctx->sr) || (nb_ch!=ctx->nb_ch) || (afmt!=old_afmt) || !ctx->speed_set) {
 		if (ctx->sr != sr)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
 
 		if (ctx->afmt != afmt)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt));
 
 		if (ctx->nb_ch != nb_ch)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
 		if (!ctx->speed_set)
-			gf_filter_pid_negociate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
+			gf_filter_pid_negotiate_property(ctx->pid, GF_PROP_PID_AUDIO_SPEED, &PROP_DOUBLE(ctx->speed));
 
 		ctx->speed_set = (ctx->speed==1.0) ? 1 : 2;
 		ctx->needs_recfg = GF_FALSE;
@@ -438,7 +439,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_AudioOutCtx *ctx = (GF_AudioOutCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		assert(ctx->pid == pid);
+		gf_assert(ctx->pid == pid);
 		ctx->do_rem_pid = GF_TRUE;
 		//set a NULL clock hint in case other sinks using clock hints are still running
 		GF_Fraction64 mtime;
@@ -447,7 +448,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_hint_single_clock(filter, 0, mtime);
 		return GF_OK;
 	}
-	assert(!ctx->pid || (ctx->pid==pid));
+	gf_assert(!ctx->pid || (ctx->pid==pid));
 	ctx->do_rem_pid = GF_FALSE;
 
 	if (!gf_filter_pid_check_caps(pid))
@@ -788,7 +789,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
 	GF_FS_SET_DESCRIPTION("Audio output")
-	GF_FS_SET_HELP("This filter writes a single uncompressed audio input PID to a sound card or other audio output device.\n"
+	GF_FS_SET_HELP("This filter writes a single PCM (uncompressed) audio input PID to a sound card or other audio output device.\n"
 	"\n"
 	"The longer the audio buffering [-bdur]() is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degraded when using large audio buffers.\n"
 	"\n"

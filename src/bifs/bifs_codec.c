@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2023
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -130,19 +130,18 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, u8 *De
 	Bool new_cfg = GF_FALSE;
 	GF_Err e;
 
+	if (!codec) return GF_BAD_PARAM;
 	if (!DecoderSpecificInfo) {
+		if (!codec->streamInfo) return GF_BAD_PARAM;
 		/* Hack for T-DMB non compliant streams */
 		GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 		if (!pInfo) return GF_OUT_OF_MEM;
 		pInfo->ESID = ESID;
 		pInfo->config.PixelMetrics = GF_TRUE;
 		pInfo->config.version = (objectTypeIndication==2) ? 1 : 2;
-		assert( codec );
-		assert( codec->streamInfo );
 		return gf_list_add(codec->streamInfo, pInfo);
 	}
 
-	assert( codec );
 	pInfo = gf_bifs_dec_get_stream(codec, ESID);
 	//we allow reconfigure of the BIFS stream
 	if (pInfo == NULL) {
@@ -172,7 +171,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, u8 *De
 	}
 	gf_bs_del(bs);
 
-	assert( codec->streamInfo );
+	gf_assert( codec->streamInfo );
 	//first stream, configure size
 	if (!codec->ignore_size && !gf_list_count(codec->streamInfo)) {
 		gf_sg_set_scene_size_info(codec->scenegraph, pInfo->config.Width, pInfo->config.Height, pInfo->config.PixelMetrics);
@@ -225,7 +224,7 @@ void command_buffers_del(GF_List *command_buffers)
 GF_EXPORT
 void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 {
-	assert(gf_list_count(codec->QPs)==0);
+	gf_assert(gf_list_count(codec->QPs)==0);
 	gf_list_del(codec->QPs);
 
 	/*destroy all config*/
@@ -293,9 +292,11 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const u8 *data, u32 da
 
 GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID)
 {
-	if (codec->current_proto_graph) return gf_sg_find_node(codec->current_proto_graph, nodeID);
-	assert(codec->scene_graph);
-	return gf_sg_find_node(codec->scene_graph, nodeID);
+	if (codec->current_proto_graph)
+		return gf_sg_find_node(codec->current_proto_graph, nodeID);
+	if (codec->scene_graph)
+		return gf_sg_find_node(codec->scene_graph, nodeID);
+	return NULL;
 }
 
 
@@ -328,7 +329,7 @@ static BIFSStreamInfo *BE_GetStream(GF_BifsEncoder * codec, u16 ESID)
 GF_EXPORT
 void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 {
-	assert(gf_list_count(codec->QPs)==0);
+	gf_assert(gf_list_count(codec->QPs)==0);
 	gf_list_del(codec->QPs);
 	/*destroy all config*/
 	while (gf_list_count(codec->streamInfo)) {
@@ -501,14 +502,14 @@ GF_Err gf_bifs_encoder_set_source_url(GF_BifsEncoder *codec, const char *src_url
 GF_EXPORT
 u32 gf_bifs_get_child_table(GF_Node *Node)
 {
-	assert(Node);
+	if (!Node) return 0;
 	return gf_sg_mpeg4_node_get_child_ndt(Node);
 }
 
 
 GF_Err gf_bifs_get_field_index(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField)
 {
-	assert(Node);
+	if (!Node) return GF_BAD_PARAM;
 	switch (Node->sgprivate->tag) {
 	case TAG_ProtoNode:
 		return gf_sg_proto_get_field_ind_static(Node, inField, IndexMode, allField);

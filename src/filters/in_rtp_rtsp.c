@@ -257,6 +257,7 @@ GF_RTPInRTSP *rtpin_rtsp_new(GF_RTPIn *rtp, char *session_control)
 	gf_free(szCtrl);
 
 	if (!rtsp) return NULL;
+	gf_rtsp_session_set_netcap_id(rtsp, gf_filter_get_netcap_id(rtp->filter));
 
 	GF_SAFEALLOC(tmp, GF_RTPInRTSP);
 	if (!tmp) return NULL;

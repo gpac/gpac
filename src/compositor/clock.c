@@ -177,11 +177,8 @@ void gf_clock_pause(GF_Clock *ck)
 void gf_clock_resume(GF_Clock *ck)
 {
 	gf_mx_p(ck->mx);
-	assert(ck->nb_paused);
-	if (!ck->nb_paused) {
-		assert(!ck->nb_buffering);
-	}
-	ck->nb_paused -= 1;
+	if (ck->nb_paused)
+		ck->nb_paused -= 1;
 	//in player mode, increment the start time to reflect how long we have been buffering
 	//in non-player mode, since we don't care about real-time, don't update the clock start time
 	//this avoids cases where the first composed frame is dispatched while the object(s) are buffering
@@ -195,7 +192,7 @@ void gf_clock_resume(GF_Clock *ck)
 u32 gf_clock_real_time(GF_Clock *ck)
 {
 	u32 time;
-	assert(ck);
+	if (!ck) return 0;
 	if (!ck->clock_init) return ck->start_time;
 	time = ck->nb_paused > 0 ? ck->pause_time : gf_sc_get_clock(ck->compositor);
 
@@ -276,7 +273,7 @@ void gf_clock_buffer_on(GF_Clock *ck)
 void gf_clock_buffer_off(GF_Clock *ck)
 {
 	gf_mx_p(ck->mx);
-	//assert(ck->nb_buffering);
+
 	if (ck->nb_buffering) {
 		ck->nb_buffering -= 1;
 		if (!ck->nb_buffering)

@@ -467,6 +467,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 	SDLVID();
 	GF_Event evt;
 
+	if (!width || !height) return GF_BAD_PARAM;
+
 	/*lock X mutex to make sure the event queue is not being processed*/
 	gf_mx_p(ctx->evt_mx);
 
@@ -506,9 +508,6 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, nb_bits);
-
-		assert(width);
-		assert(height);
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 		if (ctx->hidden)
@@ -776,12 +775,11 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	{
 		SDL_Rect** modes;
 		modes = SDL_ListModes(NULL, SDL_FULLSCREEN|SDL_HWSURFACE);
-		assert( (modes != (SDL_Rect**)0));
 		if ( modes == (SDL_Rect**)-1 ) {
 			fprintf(stderr, "SDL : DONT KNOW WHICH MODE TO USE, using 640x480\n");
 			dr->max_screen_width = 640;
 			dr->max_screen_height = 480;
-		} else {
+		} else if (modes) {
 			int i;
 			dr->max_screen_width = 0;
 			for (i=0; modes[i]; ++i) {
@@ -992,14 +990,14 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		case SDL_TEXTINPUT: /* Since SDL 1.3, text-input is handled in a specific event */
 		{
 			u32 len = (u32) strlen( sdl_evt.text.text);
-			u32 ucs4_len;
-			assert( len < 5 );
-			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, (unsigned char*)(sdl_evt.text.text));
-			if (ucs4_len) {
-				gpac_evt.type = GF_EVENT_TEXTINPUT;
-				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			if (len < 5 ) {
+				gpac_evt.character.window_id = dr->window_id;
+				u32 ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, (unsigned char*)(sdl_evt.text.text));
+				if (ucs4_len) {
+					gpac_evt.type = GF_EVENT_TEXTINPUT;
+					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				}
 			}
-			gpac_evt.character.window_id = dr->window_id;
 			break;
 		}
 #endif /* SDL_TEXTINPUTEVENT_TEXT_SIZE */

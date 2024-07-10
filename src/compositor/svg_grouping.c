@@ -63,7 +63,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 	Fixed scale, vp_w, vp_h;
 	Fixed parent_width, parent_height, doc_width, doc_height;
 
-	/*canvas size negociation has already been done when attaching the scene to the compositor*/
+	/*canvas size negotiation has already been done when attaching the scene to the compositor*/
 	if (atts->width && (atts->width->type==SVG_NUMBER_PERCENTAGE) ) {
 		parent_width = gf_mulfix(tr_state->vp_size.x, atts->width->value/100);
 		doc_width = 0;
@@ -922,7 +922,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 
 	if (event->event_phase & GF_DOM_EVENT_PHASE_PREVENT) return;
 
-	assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_a);
+	gf_assert(gf_node_get_tag((GF_Node*)event->currentTarget->ptr)==TAG_SVG_a);
 	a = (SVG_Element *) event->currentTarget->ptr;
 	gf_svg_flatten_attributes(a, &all_atts);
 

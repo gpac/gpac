@@ -185,6 +185,16 @@ When reloading the playlist:
 - raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using a dedicated gpac process, ignored otherwise
 
 ### Notes
+The special URL scheme \`ipid://\` can be used to locate an input pid by link directives.
+EX in=ipid://#foo=bar
+This will use pids having property \`foo\` with value \`bar\`, regardless of source filter ID.
+
+EX in=ipid://TEST#foo=bar
+This will use pids having property \`foo\` with value \`bar\` coming from filter with ID \`TEST\`.
+
+When using the \`ipid://\` scheme, filter chains cannot be specified (in accepts a single argument) and \`port\` is ignored.
+The syntax for link directive is the same as in gpac. However, if a listed property is not found on the input pid, the matching will fail.
+
 When launching a child process, the input filter is created first and the child process launched afterwards.
 
 Warning: When launching a child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
@@ -284,7 +294,7 @@ The \`tr\` parameter is an object containing the following variables that the co
 
 The \`JSFun\` may return false to indicate that the scene should be considered as inactive. Any other return value (undefined or not false) will mark the scene as active.
 
-EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
+EX "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
 
 
 ## Grouping
@@ -421,7 +431,7 @@ Script objects allow read and write access to the playlist from script. They cur
 
 The \`JSFun\` function specified by \`fun\` has no input parameter. The return value (default 0) is the number of seconds (float) to wait until next evaluation of the script.
 
-EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
+EX { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
 This will change scene \`s1\` rotation every 2 seconds 
 
 

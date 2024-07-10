@@ -1561,7 +1561,7 @@ function media(etype, uri, w, h) {
     child.setAttribute('width', w);
     child.setAttribute('height', h);
     if (etype == 'animation') {
-        child.setAttributeNS('http://gpac.io/svg-extensions', 'use-as-primary', 'false');
+        child.setAttributeNS('https://gpac.io/svg-extensions', 'use-as-primary', 'false');
     }
     return child;
 }

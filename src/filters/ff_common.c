@@ -256,7 +256,7 @@ enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt, Bool no_warn)
 		i++;
 	}
 	if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
 	}
 	return AV_PIX_FMT_NONE;
 }
@@ -266,7 +266,7 @@ u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn)
 	const AVPixFmtDescriptor *ffdesc = av_pix_fmt_desc_get(pfmt);
 	if (!ffdesc) {
 		if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unrecognized FFMPEG pixel format %d\n", pfmt ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFmpeg] Unrecognized FFmpeg pixel format %d\n", pfmt ));
 		}
 		return 0;
 	}
@@ -277,7 +277,7 @@ u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn)
 		i++;
 	}
 	if (!no_warn && (pfmt!=AV_PIX_FMT_NONE)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg pixel format %s, patch welcome\n", ffdesc->name));
 	}
 	return 0;
 }
@@ -340,7 +340,7 @@ u32 ffmpeg_audio_fmt_from_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].ff_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC audio format %s, patch welcome\n", gf_4cc_to_str(sfmt) ));
 	return 0;
 }
 
@@ -352,7 +352,7 @@ u32 ffmpeg_audio_fmt_to_gpac(u32 sfmt)
 			return FF2GPAC_AudioFormats[i].gpac_sf;
 		i++;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG audio format %d, patch welcome\n", sfmt ));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg audio format %d, patch welcome\n", sfmt ));
 	return 0;
 }
 
@@ -529,7 +529,9 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_DVB_TELETEXT, GF_CODECID_DVB_TELETEXT, 0},
 	{AV_CODEC_ID_MSMPEG4V3, GF_CODECID_MSPEG4_V3, 0},
 	{AV_CODEC_ID_DTS, GF_CODECID_DTS_CA, 0},
+	{AV_CODEC_ID_DTS, GF_CODECID_DTS_EXPRESS_LBR, 0},
 	{AV_CODEC_ID_ALAC, GF_CODECID_ALAC, 0},
+	{AV_CODEC_ID_DNXHD, GF_CODECID_DNXHD, 0},
 	{0}
 };
 
@@ -553,7 +555,7 @@ u32 ffmpeg_codecid_from_gpac(u32 codec_id, u32 *ff_codectag)
 		if (c) return c->id;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC codec %s\n", gf_codecid_name(codec_id) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC codec %s\n", gf_codecid_name(codec_id) ));
 	return 0;
 }
 
@@ -565,7 +567,7 @@ u32 ffmpeg_codecid_to_gpac(u32 codec_id)
 			return FF2GPAC_CodecIDs[i].gpac_codec_id;
 		i++;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG codec ID %s\n", avcodec_get_name(codec_id) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg codec ID %s\n", avcodec_get_name(codec_id) ));
 	return 0;
 }
 
@@ -605,7 +607,7 @@ u32 ffmpeg_stream_type_from_gpac(u32 streamtype)
 			return FF2GPAC_StreamTypes[i].ff_st;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC stream type %s, assuming data\n", gf_stream_type_name(streamtype) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFmpeg] Unmapped GPAC stream type %s, assuming data\n", gf_stream_type_name(streamtype) ));
 	return AVMEDIA_TYPE_DATA;
 }
 
@@ -618,7 +620,7 @@ u32 ffmpeg_stream_type_to_gpac(u32 streamtype)
 			return FF2GPAC_StreamTypes[i].gpac_st;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG stream type %d, assuming data\n", streamtype ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFmpeg] Unmapped FFmpeg stream type %d, assuming data\n", streamtype ));
 	return GF_STREAM_METADATA;
 }
 
@@ -799,16 +801,24 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	arg.arg_desc = opt->help;
 	arg.offset_in_private=-1;
 	arg.flags = GF_FS_ARG_META;
-	if (opt->name[0] == 0)
-		arg.flags = GF_FS_ARG_META;
 
 	if (!(opt->flags & AV_OPT_FLAG_READONLY))
 		arg.flags |= GF_FS_ARG_UPDATE;
 
-	switch (opt->type) {
+#if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) > AV_VERSION_INT(59,0, 0)
+	u32 type = opt->type & ~AV_OPT_TYPE_FLAG_ARRAY;
+	if (opt->type & AV_OPT_TYPE_FLAG_ARRAY)
+		arg.flags |= GF_FS_ARG_META_ARRAY;
+#else
+	u32 type = opt->type;
+#endif
+
+	switch (type) {
 	case AV_OPT_TYPE_INT64:
 	case AV_OPT_TYPE_INT:
+#ifdef FFMPEG_OLD_CHLAYOUT
 	case AV_OPT_TYPE_CHANNEL_LAYOUT:
+#endif
 		if (opt->type==AV_OPT_TYPE_INT64) arg.arg_type = GF_PROP_LSINT;
 		else if (opt->type==AV_OPT_TYPE_INT) arg.arg_type = GF_PROP_SINT;
 		else arg.arg_type = GF_PROP_UINT; //channel layout, map to int
@@ -913,7 +923,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 #endif
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unknown ffmpeg option type %d\n", opt->type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unknown ffmpeg option type %d\n", opt->type));
 		break;
 	}
 	return arg;
@@ -1460,7 +1470,7 @@ second_pass:
 							par_arg->arg_desc = par_arg->arg_desc ? gf_strdup(par_arg->arg_desc) : NULL;
 							par_arg->flags |= GF_FS_ARG_META_ALLOC;
 						}
-						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n - ");
+						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n- ");
 						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_desc, ": ");
 
 						if (an_arg.arg_default_val)
@@ -1646,7 +1656,7 @@ GF_FilterRegister *ffmpeg_build_register(GF_FilterSession *session, GF_FilterReg
 					continue;
 				}
 			}
-			assert(nb_args>i);
+			gf_assert(nb_args>i);
 			args[i] = ffmpeg_arg_translate(opt);
 			i++;
 		}
@@ -2069,7 +2079,7 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (p) {
+		if (p && (p->value.frac.num>0)) {
 			codecpar->sample_aspect_ratio.num = p->value.frac.num;
 			codecpar->sample_aspect_ratio.den = p->value.frac.den;
 		}
@@ -2090,12 +2100,21 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 	}
 	else if (streamtype==GF_STREAM_AUDIO) {
 		u64 ch_layout;
-		u32 samplerate=0;
+		u32 nb_ch=0, samplerate=0;
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 		if (p) codecpar->sample_rate = samplerate = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-		if (p) codecpar->channels = p->value.uint;
+		if (p) {
+			nb_ch = p->value.uint;
+#ifdef FFMPEG_OLD_CHLAYOUT
+			codecpar->channels = p->value.uint;
+#else
+			codecpar->ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
+			codecpar->ch_layout.nb_channels = p->value.uint;
+#endif
+		}
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLES_PER_FRAME);
 		if (p) codecpar->frame_size = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_BPS);
@@ -2109,10 +2128,13 @@ GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p)
 			ch_layout = p->value.longuint;
-		else if (codecpar->channels==2)
+		else if (nb_ch==2)
 			ch_layout = GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT;
+#ifdef FFMPEG_OLD_CHLAYOUT
 		codecpar->channel_layout = ffmpeg_channel_layout_from_gpac(ch_layout);
-
+#else
+		codecpar->ch_layout.u.mask = ffmpeg_channel_layout_from_gpac(ch_layout);
+#endif
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 		if (p && (p->value.sint<0) && samplerate) {
 			s64 pad = -p->value.longsint;
@@ -2142,7 +2164,7 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SAR, &PROP_FRAC_INT(codecpar->sample_aspect_ratio.num, codecpar->sample_aspect_ratio.den));
 	}
 	//not supported by all versions of ffmpeg
-	if (!gf_sys_is_test_mode()) {
+	if (codecpar->width && !gf_sys_is_test_mode()) {
 		if (codecpar->color_range==AVCOL_RANGE_JPEG)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
 		else if (codecpar->color_range==AVCOL_RANGE_MPEG)
@@ -2154,7 +2176,7 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 		if (codecpar->color_trc)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(codecpar->color_trc));
 
-		if (codecpar->color_space)
+		if (codecpar->color_space!=AVCOL_SPC_UNSPECIFIED)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_COLR_MX, &PROP_UINT(codecpar->color_space));
 
 		if (codecpar->chroma_location)
@@ -2172,10 +2194,19 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 	if (codecpar->sample_rate)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codecpar->sample_rate));
 
-	if (codecpar->channels) {
-		gf_filter_pid_set_property(opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(codecpar->channels));
-		if (codecpar->channel_layout) {
-			gf_filter_pid_set_property(opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT( ffmpeg_channel_layout_to_gpac(codecpar->channel_layout) ));
+	u32 nb_ch=0;
+	u64 ch_layout=0;
+#ifdef FFMPEG_OLD_CHLAYOUT
+	nb_ch = codecpar->channels;
+	ch_layout = codecpar->channel_layout;
+#else
+	nb_ch = codecpar->ch_layout.nb_channels;
+	ch_layout = (codecpar->ch_layout.order>=AV_CHANNEL_ORDER_CUSTOM) ? 0 : codecpar->ch_layout.u.mask;
+#endif
+	if (nb_ch) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_ch));
+		if (ch_layout) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT( ffmpeg_channel_layout_to_gpac(ch_layout) ));
 		}
 
 		if (codecpar->frame_size)
@@ -2242,10 +2273,10 @@ void ffmpeg_check_threads(GF_Filter *filter, AVDictionary *options, AVCodecConte
 		codecctx->thread_count = 0;
 		codecctx->thread_type = 0;
 		if (num_threads>0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("Using FFMPEG threads on main thread would deadlock, disabling threading (use -threads=1 to have one extra gpac thread)\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("Using FFmpeg threads on main thread would deadlock, disabling threading (use -threads=1 to have one extra gpac thread)\n"));
 		}
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("FFMPEG threads (%d type %d) enabled\n", num_threads, codecctx->thread_type));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("FFmpeg threads (%d type %d) enabled\n", num_threads, codecctx->thread_type));
 	}
 #elif defined(GPAC_CONFIG_EMSCRIPTEN)
 	//no thread support in build, disable ffmpeg threading

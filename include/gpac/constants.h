@@ -528,10 +528,13 @@ typedef enum
 
 	GF_CODECID_DVB_SUBS = GF_4CC( 'd', 'v', 'b', 's' ),
 	GF_CODECID_DVB_TELETEXT = GF_4CC( 'd', 'v', 'b', 't' ),
+
+	GF_CODECID_SCTE35 = GF_4CC( 's', 'c', '3', '5' ),
+
 	/*!
 		\brief OGG DecoderConfig
 
-	 The DecoderConfig for theora, vorbis and speek contains all intitialization ogg packets for the codec
+	 The DecoderConfig for theora, vorbis and speek contains all initialization ogg packets for the codec
 	  and is formatted as follows:\n
 	 \code
 	  while (dsi_size) {
@@ -612,6 +615,9 @@ typedef enum
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
+	/*Event Message Track*/
+	GF_CODECID_EVTE = GF_4CC('e','v','t','e'),
+
 	/*! codecid for FFV1*/
 	GF_CODECID_FFV1 = GF_4CC('f','f','v','1'),
 
@@ -630,6 +636,7 @@ typedef enum
 	GF_CODECID_MSPEG4_V3 = GF_4CC('D','I','V','3'),
 
 	GF_CODECID_ALAC = GF_4CC('A','L','A','C'),
+	GF_CODECID_DNXHD = GF_4CC('D','N','x','H'),
 
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
@@ -994,12 +1001,36 @@ u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout);
 */
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 
+/*! get dloby chanmap value from channel layout
+\param channel_layout channel layout mask
+\return dolby chanmap
+*/
+u16 gf_audio_fmt_get_dolby_chanmap_from_layout(u64 channel_layout);
+
 /*! enumerates CICP channel layout
 \param idx index of cicp layout value to query
 \param short_name set t o CICP name as used in GPAC - may be NULL
 \param ch_mask set t o audio channel mask, as used in GPAC - may be NULL
 \return CICP code point, or 0 if no more to enumerate*/
 u32 gf_audio_fmt_cicp_enum(u32 idx, const char **short_name, u64 *ch_mask);
+
+/*! get CICP code  from name
+\param name channel layout name
+\return channel CICP code
+*/
+u32 gf_audio_fmt_get_cicp_from_name(const char *name);
+
+/*! get CICP name from code
+\param cicp_code channel cicp code
+\return channel CICP name
+*/
+const char *gf_audio_fmt_get_cicp_name(u32 cicp_code);
+
+/*! get all CICP layout names
+\return CICP names separated with '|'
+*/
+const char *gf_audio_fmt_cicp_all_names();
+
 
 /*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
   */

@@ -40,7 +40,12 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	count = gf_isom_get_chapter_count(file, 0);
 	if (count) {
 		times.vals = gf_malloc(sizeof(u32)*count);
+		if (!times.vals) return;
 		names.vals = gf_malloc(sizeof(char *)*count);
+		if (!names.vals) {
+			gf_free(times.vals);
+			return;
+		}
 		times.nb_items = names.nb_items = count;
 
 		for (i=0; i<count; i++) {
@@ -48,7 +53,7 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 			u64 start;
 			gf_isom_get_chapter(file, 0, i+1, &start, &name);
 			times.vals[i] = (u32) start;
-			names.vals[i] = gf_strdup(name);
+			names.vals[i] = gf_strdup(name ? name : "");
 		}
 		p.type = GF_PROP_UINT_LIST;
 		p.value.uint_list = times;
@@ -78,13 +83,22 @@ static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 	if (!chap_tk) return;
 
 	times.vals = gf_malloc(sizeof(u32)*count);
+	if (!times.vals) return;
 	names.vals = gf_malloc(sizeof(char *)*count);
+	if (!names.vals) {
+		gf_free(times.vals);
+		return;
+	}
 	times.nb_items = names.nb_items = count;
 
 	for (i=0; i<count; i++) {
 		u32 di;
 		GF_ISOSample *s = gf_isom_get_sample(file, chap_tk, i+1, &di);
-		if (!s) continue;
+		if (!s) {
+			times.vals[i] = 0;
+			names.vals[i] = gf_strdup("");
+			continue;
+		}
 		GF_BitStream *bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		GF_TextSample *txt = gf_isom_parse_text_sample(bs);
 		if (txt) {
@@ -142,6 +156,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	Double track_dur=0;
 	u32 srd_id=0, srd_indep=0, srd_x=0, srd_y=0, srd_w=0, srd_h=0;
 	u32 base_tile_track=0;
+	u32 ch_layout=0;
 	Bool srd_full_frame=GF_FALSE;
 	u32 mtype, m_subtype;
 	GF_GenericSampleDescription *udesc = NULL;
@@ -409,6 +424,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = (m_subtype==GF_ISOM_SUBTYPE_AC3) ? GF_CODECID_AC3 : GF_CODECID_EAC3;
 			if (ac3cfg) {
 				gf_odf_ac3_cfg_write(ac3cfg, &dsi, &dsi_size);
+				if (!gf_sys_is_test_mode()) {
+					ch_layout = gf_ac3_get_channel_layout(ac3cfg);
+				}
 				gf_free(ac3cfg);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d missing AC3/EC3 configuration !\n", track));
@@ -448,6 +466,11 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			load_default = GF_TRUE;
 			break;
 
+		case GF_4CC('e','v','t','e'):
+			codec_id = m_subtype;
+			load_default = GF_TRUE;
+			break;
+
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id || (codec_id==GF_CODECID_RAW)) {
@@ -478,8 +501,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 		if (load_default) {
 			if (!codec_id) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", track, gf_4cc_to_str(m_subtype) ));
-
+				if (!read->allt || !read->alltk || !read->mov) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not natively handled\n", track, gf_4cc_to_str(m_subtype) ));
+				}
 				codec_id = m_subtype;
 			}
 			udesc = gf_isom_get_generic_sample_description(read->mov, track, stsd_idx);
@@ -1333,9 +1357,9 @@ props_done:
 					u64 lay = gf_audio_fmt_get_layout_from_cicp(layout.definedLayout);
 					gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(lay));
 				}
-
+			} else if (ch_layout) {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 			}
-
 		}
 
 		if (first_config ) {
@@ -1398,7 +1422,11 @@ props_done:
 	if (m_subtype)
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_SUBTYPE, &PROP_4CC(m_subtype) );
 
-	if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
+	if (stxtcfg) {
+		//copy mem to make sure we have a null-terminated string
+		char *dupm = gf_strdup((char *)stxtcfg);
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dupm, (u32) strlen(stxtcfg) ));
+	}
 
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE)
@@ -1471,6 +1499,12 @@ props_done:
 				gf_isom_sample_del(&samp);
 			}
 #endif
+		}
+	} else if (codec_id==GF_CODECID_DTS_X) {
+		GF_UDTSConfig cfg;
+		if (gf_isom_get_udts_config(ch->owner->mov, ch->track, 1, &cfg) == GF_OK) {
+			u64 ch_layout = cfg.ChannelMask;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 		}
 	}
 
@@ -1657,10 +1691,18 @@ GF_Err isor_declare_objects(ISOMReader *read)
 		case GF_ISOM_MEDIA_TIMECODE:
 			streamtype = GF_STREAM_METADATA;
 			break;
-		/*hint tracks are never exported*/
+		/*hint tracks are never exported except when dumping from file*/
 		case GF_ISOM_MEDIA_HINT:
+			if (read->allt && read->alltk && read->mov) {
+				streamtype = GF_STREAM_METADATA;
+				break;
+			}
 			continue;
 		default:
+			if (read->allt && read->alltk && read->mov) {
+				streamtype = GF_STREAM_METADATA;
+				break;
+			}
 			if (!read->allt) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d type %s not supported, ignoring track - you may retry by specifying allt option\n", i+1, gf_4cc_to_str(mtype) ));
 				continue;
@@ -1755,7 +1797,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 
 		/*write cover data*/
-		assert(!(tlen & 0x80000000));
+		if (tlen & 0x80000000) return GF_NON_COMPLIANT_BITSTREAM;
 		tlen &= 0x7FFFFFFF;
 
 		if (read->expart && !isom_contains_video) {

@@ -586,7 +586,7 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 
 		span = raster->gray_spans;
 	} else {
-		if (count==raster->alloc_gray_spans) {
+		if ((u32) count==raster->alloc_gray_spans) {
 			raster->alloc_gray_spans*=2;
 			raster->gray_spans = gf_realloc(raster->gray_spans, sizeof(EVG_Span)*raster->alloc_gray_spans);
 			span = raster->gray_spans + count - 1;
@@ -620,7 +620,7 @@ void gray_sweep_line(EVGRasterCtx *raster, AAScanline *sl, int y, u32 fill_rule)
 		x      = start->x;
 		area   = start->area;
 		cover += start->cover;
-		assert(sl->num);
+
 		/* accumulate all start cells */
 		while(--sl->num) {
 			++cur ;

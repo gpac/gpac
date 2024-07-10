@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2023
+ *			Copyright (c) Telecom ParisTech 2010-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -171,6 +171,8 @@ typedef struct
 
 	/*!GPAC internal: redirection for that URL */
 	char *redirection;
+	/*!GPAC internal: original URL relative to HLS  variant playlist  */
+	const char *hls_vp_rel_url;
 } GF_MPD_BaseURL;
 
 /*! MPD URL*/
@@ -234,6 +236,7 @@ WARNING: duration is expressed in GF_MPD_SEGMENT_BASE timescale unit
 	u64 duration;	\
 	u32 start_number;	\
 	GF_MPD_SegmentTimeline *segment_timeline;	\
+	u32 tsb_first_entry;	\
 	GF_MPD_URL *bitstream_switching_url;	\
 
 /*! Multiple segment base*/
@@ -627,6 +630,7 @@ typedef struct {
 	GF_DASH_SegmenterContext *dasher_ctx;
 	/*! list of segment states*/
 	GF_List *state_seg_list;
+	s32 tsb_first_entry;
 	/*! segment timescale (for HLS)*/
 	u32 timescale;
 	/*! stream type (for HLS)*/
@@ -676,6 +680,7 @@ typedef struct {
 	u32 trackID;
 
 	Bool sub_forced;
+	const char *hls_forced;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -986,7 +991,6 @@ GF_MPD_Period *gf_mpd_period_new();
 \param _item the MPD Period to free*/
 void gf_mpd_period_free(void *_item);
 /*! writes an MPD to a file stream
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param out the target file object
 \param compact if set, removes all new line and indentation in the output
@@ -994,7 +998,6 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 */
 GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 /*! writes an MPD to a local file
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param file_name the target file name
 \return error if any
@@ -1013,7 +1016,6 @@ typedef enum
 } GF_M3U8WriteMode;
 
 /*! writes an MPD to a m3u8 playlist
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param out the target file object
 \param m3u8_name the base m3u8 name to use (needed when generating variant playlist file names)
@@ -1025,7 +1027,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 
 /*! parses an MPD Period and appends it to the MPD period list
-GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact);
 \param mpd the target MPD to write
 \param root the DOM element describing the period
 \return error if any

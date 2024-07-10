@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2023
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -792,10 +792,9 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 	case GF_EVENT_AUTHORIZATION:
 	{
 		u32 nb_retry = 4;
-		assert( evt->type == GF_EVENT_AUTHORIZATION);
-		assert( evt->auth.user);
-		assert( evt->auth.password);
-		assert( evt->auth.site_url);
+		gf_fatal_assert( evt->auth.user);
+		gf_fatal_assert( evt->auth.password);
+		gf_assert( evt->auth.site_url);
 		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (nb_retry > 0) ) {
 			nb_retry--;
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
@@ -1036,10 +1035,8 @@ void load_compositor(GF_Filter *filter)
 	}
 #endif
 
-	if (gf_opts_get_bool("core", "proxy-on")) {
-		str = gf_opts_get_key("core", "proxy-name");
-		if (str) fprintf(stderr, "HTTP Proxy %s enabled\n", str);
-	}
+	str = gf_opts_get_key("core", "proxy");
+	if (str) fprintf(stderr, "HTTP Proxy %s enabled\n", str);
 
 	if (rti_file) {
 		update_rti("At GPAC load time\n");
