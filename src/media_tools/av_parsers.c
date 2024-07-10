@@ -7135,12 +7135,20 @@ static Bool hevc_parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u
 	}
 	else {
 		s32 prev = 0, poc, offset;
+		Bool nb_pics_valid = GF_TRUE;
 		sps->rps[idx_rps].num_negative_pics = gf_bs_read_ue_log_idx(bs, "num_negative_pics", idx_rps);
 		sps->rps[idx_rps].num_positive_pics = gf_bs_read_ue_log_idx(bs, "num_positive_pics", idx_rps);
-		if (sps->rps[idx_rps].num_negative_pics > 16)
+		if (sps->rps[idx_rps].num_negative_pics > 16) {
+			sps->rps[idx_rps].num_negative_pics = 0;
+			nb_pics_valid = GF_FALSE;
+		}
+		if (sps->rps[idx_rps].num_positive_pics > 16) {
+			sps->rps[idx_rps].num_positive_pics = 0;
+			nb_pics_valid = GF_FALSE;
+		}
+		if (!nb_pics_valid)
 			return GF_FALSE;
-		if (sps->rps[idx_rps].num_positive_pics > 16)
-			return GF_FALSE;
+
 		for (i = 0; i < sps->rps[idx_rps].num_negative_pics; i++) {
 			u32 delta_poc_s0_minus1 = gf_bs_read_ue_log_idx2(bs, "delta_poc_s0_minus1", idx_rps, i);
 			poc = prev - delta_poc_s0_minus1 - 1;
@@ -7588,14 +7596,18 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 		}
 		assert(nb_poc_l1 == num_poc_total);
 	}
-    for (i=0; i<si->num_ref_idx_l0_active; i++) {
-		u32 idx = rps->modif_flag_l0 ? rps->modif_idx_l0[i] : (i%num_poc_total);
-		gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
-    }
-    for (i=0; i<si->num_ref_idx_l1_active; i++) {
-		u32 idx = rps->modif_flag_l1 ? rps->modif_idx_l1[i] : (i%num_poc_total);
-		gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
-    }
+	if (rps->modif_flag_l0 || num_poc_total) {
+		for (i=0; i<si->num_ref_idx_l0_active; i++) {
+			u32 idx = rps->modif_flag_l0 ? rps->modif_idx_l0[i] : (i%num_poc_total);
+			gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
+		}
+	}
+	if (rps->modif_flag_l1 || num_poc_total) {
+		for (i=0; i<si->num_ref_idx_l1_active; i++) {
+			u32 idx = rps->modif_flag_l1 ? rps->modif_idx_l1[i] : (i%num_poc_total);
+			gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
+		}
+	}
 }
 
 static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, VVCState *vvc)
