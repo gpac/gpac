@@ -270,8 +270,15 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		sprintf(szPath, "http://gmcast/service%d/%s", evt_param, finfo->filename);
 		mime = finfo->mime ? (char*)finfo->mime : "application/dash+xml";
 		//also set x-mcast header to all manifest and variant
+		//if a clock info is present, also add it
 		cache_entry = gf_dm_add_cache_entry(ctx->dm, szPath, finfo->blob, 0, 0, mime, GF_TRUE, 0);
-		gf_dm_force_headers(ctx->dm, cache_entry, "x-mcast: yes\r\n");
+		if (ctx->clock_init_seg) {
+			char szHdr[GF_MAX_PATH];
+			sprintf(szHdr, "x-mcast: yes\r\nx-mcast-first-seg: %s\r\n", ctx->clock_init_seg);
+			gf_dm_force_headers(ctx->dm, cache_entry, szHdr);
+		} else {
+			gf_dm_force_headers(ctx->dm, cache_entry, "x-mcast: yes\r\n");
+		}
 
 		if (evt==GF_ROUTE_EVT_MPD) {
 			char *fext = finfo->filename ? gf_file_ext_start(finfo->filename) : NULL;
@@ -294,9 +301,6 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			ctx->last_toi = 0;
 			ctx->tune_service_id = evt_param;
 		}
-		//reset clock sync at each manifest or HLS variant
-		if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
-		ctx->clock_init_seg = NULL;
 		break;
 	case GF_ROUTE_EVT_DYN_SEG:
 
@@ -308,6 +312,9 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			routein_send_file(ctx, evt_param, finfo, evt);
 			break;
 		}
+		//reset clock sync at each new full file
+		if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
+		ctx->clock_init_seg = NULL;
 		//fallthrough
 
     case GF_ROUTE_EVT_DYN_SEG_FRAG:
@@ -320,10 +327,13 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 			//if full seg push of previsously advertized init, reset x-mcast-ll header
 			|| ((evt==GF_ROUTE_EVT_DYN_SEG) && !strcmp(ctx->clock_init_seg, finfo->filename))
 		) {
+			//store current seg if LL mode or full seg - MPD cache entry may still be null
+			//if MPD is sent after segment in the broadcast
+			if (!ctx->clock_init_seg && ((evt==GF_ROUTE_EVT_DYN_SEG) || ctx->llmode))
+				ctx->clock_init_seg = gf_strdup(finfo->filename);
+
 			DownloadedCacheEntry mpd_cache_entry = gf_route_dmx_get_service_udta(ctx->route_dmx, evt_param);
 			if (mpd_cache_entry) {
-				if (!ctx->clock_init_seg)
-					ctx->clock_init_seg = gf_strdup(finfo->filename);
 				sprintf(szPath, "x-mcast: yes\r\nx-mcast-first-seg: %s\r\n", ctx->clock_init_seg);
 				if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG)
 					strcat(szPath, "x-mcast-ll: yes\r\n");
@@ -526,6 +536,8 @@ static GF_Err routein_process(GF_Filter *filter)
 			break;
 		} else if (!e) {
 			ctx->last_timeout = 0;
+			if (!ctx->tune_time) ctx->start_time = gf_sys_clock();
+
 			if (ctx->evt_interrupt) break;
 			//uncomment these to slow down demuxer (useful when debugging low latency mode)
 //			gf_filter_ask_rt_reschedule(filter, 10000);
