@@ -14108,7 +14108,7 @@ GF_Err sref_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 bits = 8;
 	if (ptr->flags & (1<<1)) bits = 32;
 	else if (ptr->flags & (1)) bits = 16;
-	u32 max_val = (1<<bits) - 1;
+	u32 max_val = (u32)(((u64)1<<bits) - 1);
 	u32 i, nb_entries = gf_bs_read_u32(bs);
 	if (nb_entries * bits / 8 > s->size) return GF_ISOM_INVALID_FILE;
 	for (i=0; i<nb_entries; i++) {

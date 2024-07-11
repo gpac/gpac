@@ -1596,7 +1596,7 @@ static void update_error_simulation_state(GF_ROUTEOutCtx *ctx) {
 #undef ERRSIM_ACCURACY
 }
 
-u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute)
+u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute, Bool can_set_close)
 {
 	u32 max_size = ctx->mtu;
 	u32 send_payl_size;
@@ -1636,11 +1636,16 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	} else {
 		send_payl_size = len - offset;
 	}
-	ctx->lct_buffer[0] = 0x12; //V=b0001, C=b00, PSI=b10
+	ctx->lct_buffer[0] = 0x10; //V=b0001, C=b00, PSI=b00 or b10 with ROUTE
+	if (!is_flute) ctx->lct_buffer[0] |= 0x02;
 	//S=b1|b0, O=b01|b00, h=b0|b1, res=b00, A=b0, B=X
 	ctx->lct_buffer[1] = short_h ? 0x10 : 0xA0;
-	//set close flag only if total_len is known
-	if (total_size && (offset + send_payl_size == len))
+
+	//Set the close flag (only when total_len is known) only if asked for
+	//Typically:
+	//- carrousel files (raw, manifests, init segments) will never set this as they are resent with the same TOI
+	//- segments will, as they will never be resent
+	if (can_set_close && total_size && (offset + send_payl_size == len))
 		ctx->lct_buffer[1] |= 1;
 
 	ctx->lct_buffer[2] = hdr_len;
@@ -1744,7 +1749,7 @@ static void routeout_send_file(GF_ROUTEOutCtx *ctx, ROUTEService *serv, GF_Socke
 {
 	u32 offset=0;
 	while (offset<size) {
-		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset, fdt_instance_id, is_flute);
+		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset, fdt_instance_id, is_flute, GF_FALSE);
 	}
 }
 
@@ -2366,9 +2371,9 @@ next_packet:
 			codepoint = rpid->raw_file ? rpid->fmtp : 8;
 			//ll mode in flute, each packet is sent as an object so use packet offset instead of file offset
 			if (ctx->dvb_mabr && ctx->llmode) {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset, 0, serv->use_flute);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset, 0, serv->use_flute, GF_TRUE);
 			} else {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset, 0, serv->use_flute);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset, 0, serv->use_flute, GF_TRUE);
 			}
 			rpid->pck_offset += sent;
 			if (ctx->reporting_on) {
@@ -2620,13 +2625,10 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 	u32 i, count;
 	if (ctx->dvb_mabr_config) return;
 
-	const char *src_ip;
-	char szIP[GF_MAX_IP_NAME_LEN];
-	src_ip = ctx->ifce;
-	if (!src_ip) {
-		if (gf_sk_get_local_ip(ctx->sock_dvb_mabr, szIP) != GF_OK)
-			strcpy(szIP, "127.0.0.1");
-		src_ip = szIP;
+	char szHost[GF_MAX_IP_NAME_LEN];
+	if (gf_sk_get_host_name(szHost) != GF_OK) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("Cannot get host name, using 127.0.0.1\n"));
+		strcpy(szHost, "127.0.0.1");
 	}
 
 	count = gf_list_count(ctx->services);
@@ -2651,7 +2653,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, "\" protocolVersion=\"1\"/>\n", NULL);
 		gf_dynstrcat(&payload_text, "<EndpointAddress>\n<NetworkSourceAddress>", NULL);
 
-		gf_dynstrcat(&payload_text, src_ip, NULL);
+		gf_dynstrcat(&payload_text, szHost, NULL);
 		gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n<NetworkDestinationGroupAddress>", NULL);
 		//- for FLUTE we use the main port to deliver FDT, manifests and init - we could split by service as done for ROUTE
 		//- for ROUTE we must send the STSID, on the session port
@@ -2758,7 +2760,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			}
 			gf_dynstrcat(&payload_text, "<EndpointAddress>\n<NetworkSourceAddress>", NULL);
 
-			gf_dynstrcat(&payload_text, src_ip, NULL);
+			gf_dynstrcat(&payload_text, szHost, NULL);
 			gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n<NetworkDestinationGroupAddress>", NULL);
 			gf_dynstrcat(&payload_text, rpid->rlct->ip, NULL);
 			gf_dynstrcat(&payload_text, "</NetworkDestinationGroupAddress>\n<TransportDestinationPort>", NULL);
@@ -3042,7 +3044,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- no: do not send checksum\n"
 		"- meta: only send checksum for configuration files, manifests and init segments\n"
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
-	{ OFFS(recv_obj_timeout), "timeout period in ms before resorting to unicast repair", GF_PROP_UINT, "50", NULL, 0},
+	{ OFFS(recv_obj_timeout), "set timeout period in ms before client resorts to unicast repair", GF_PROP_UINT, "50", NULL, 0},
 	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
 	{ OFFS(flute_inband_mani_init), "DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session", GF_PROP_BOOL, "false", NULL, 0},
 	{0}

@@ -641,7 +641,7 @@ typedef struct
 
 	u8 ref_pic_type[VVC_MAX_REF_PICS];
 //	u32 ref_pic_id[VVC_MAX_REF_PICS];
-//	s32 poc[VVC_MAX_REF_PICS];
+	s32 poc_delta[VVC_MAX_REF_PICS];
 //	u32 nb_active_pics;
 //	u8 delta_poc_msb_present[VVC_MAX_REF_PICS];
 //	s32 delta_poc_msb_cycle_lt[VVC_MAX_REF_PICS];
@@ -816,12 +816,17 @@ typedef struct
 	VVC_RefPicList ph_rpl[2];
 	s32 ph_rpl_idx[2];
 
-	//slive RPL state
+	//slice RPL state
 	VVC_RefPicList rpl[2];
 	s32 rpl_idx[2];
+	u32 num_ref_idx_active[2];
 
 	//slice header size in bytes
 	u32 payload_start_offset;
+
+	u32 nb_lt_or_il_pics;
+	u32 nb_reference_pocs;
+	u32 reference_pocs[17];
 } VVCSliceInfo;
 
 /*TODO once we add HLS parsing (FDIS) */
