@@ -991,6 +991,13 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					media_pid->hld_child_pl_crc = crc;
 					//we need a new TOI since manifest changed
 					media_pid->hls_child_toi = 0;
+					//for route we alternate MAX_INT-1 and MAX_INT-2 and update S-TSID each time
+					//NOTE: ROUTE spec is not really designed for HLS with variant playlist updates
+					//in particular is silent about what happens when FDT-Instance changes during updates
+					//we assume than any file removed from the FDT-nstance by an update is no longer available
+					media_pid->hld_child_pl_version = media_pid->hld_child_pl_version ? 0 : 1;
+					if (!serv->use_flute)
+						serv->needs_reconfig = GF_TRUE;
 
 					if (!media_pid->hld_child_pl_name || strcmp(media_pid->hld_child_pl_name, file_name)) {
 						if (media_pid->hld_child_pl_name) gf_free(media_pid->init_seg_name);
@@ -1363,7 +1370,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 			if (rpid->hld_child_pl_name) {
-				snprintf(temp, 1000, "      <fdt:File Content-Location=\"%s\" TOI=\"%u\"/>\n", rpid->hld_child_pl_name, ROUTE_INIT_TOI - 1);
+				snprintf(temp, 1000, "      <fdt:File Content-Location=\"%s\" TOI=\"%u\"/>\n", rpid->hld_child_pl_name, ROUTE_INIT_TOI - 1 - rpid->hld_child_pl_version);
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 			if (rpid->raw_file) {
@@ -2083,6 +2090,7 @@ retry:
 			rpid->clock_at_frame_start = ctx->clock;
 			rpid->cts_us_at_frame_start = rpid->current_cts_us;
 			rpid->cts_at_frame_start = ts;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Segment %s init send time to "LLU" CTS "LLU" us source TS "LLU"/%u\n", rpid->route->log_name, rpid->seg_name, rpid->cts_us_at_frame_start, rpid->current_cts_us, ts, rpid->timescale));
 		}
 
 		rpid->current_dur_us = pck_dur;
@@ -2260,12 +2268,13 @@ next_packet:
 		if (send_hls_child && rpid->hld_child_pl) {
 			u32 hls_len = (u32) strlen(rpid->hld_child_pl);
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending HLS sub playlist %s\n", rpid->route->log_name, rpid->hld_child_pl_name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] HLS sub playlist content:\n%s\n", rpid->route->log_name, rpid->hld_child_pl));
 
 			if (serv->use_flute) {
 				routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0, 0, GF_TRUE);
 			} else {
 				//we use codepoint 1 (NRT - file mode) for subplaylists
-				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, rpid->hld_child_pl, hls_len, 1, 0, GF_FALSE);
+				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1-rpid->hld_child_pl_version, rpid->hld_child_pl, hls_len, 1, 0, GF_FALSE);
 			}
 
 			if (ctx->reporting_on) {
@@ -2368,7 +2377,7 @@ next_packet:
 					}
 					//otherwise we've been pushing too slowly
 					else if (ctx->clock > 1000 + seg_clock) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Segment %s pushed too late by "LLU" us\n", rpid->route->log_name, rpid->seg_name, ctx->clock - seg_clock));
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Segment %s pushed too late by "LLU" us (target push duration %u us)\n", rpid->route->log_name, rpid->seg_name, ctx->clock - seg_clock, target_push_dur));
 					}
 
 					if (rpid->pck_dur_at_frame_start && ctx->llmode) {
