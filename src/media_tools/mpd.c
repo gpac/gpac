@@ -5201,9 +5201,6 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 			start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
 			start_time -= pto;
 		}
-		else if (duration) {
-			start_time = in_segment_index * duration;
-		}
 		else if (seglist && (in_segment_index >= 0)) {
 			u32 i;
 			start_time = 0;
@@ -5214,6 +5211,9 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 				if (i < (u32)in_segment_index)
 					start_time += url->duration;
 			}
+		}
+		else if (duration) {
+			start_time = in_segment_index * duration;
 		}
 		if (out_opt_segment_duration) *out_opt_segment_duration = duration;
 		if (out_opt_scale) *out_opt_scale = timescale;
