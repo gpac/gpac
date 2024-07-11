@@ -140,7 +140,7 @@ u32 gf_sys_clock()
 {
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	return (u32) ( ( (now.tv_sec)*1000 + (now.tv_usec) / 1000) - sys_start_time );
+	return (u32) ( ( (u64)(now.tv_sec)*1000 + (now.tv_usec) / 1000) - sys_start_time );
 }
 
 GF_EXPORT
@@ -148,7 +148,7 @@ u64 gf_sys_clock_high_res()
 {
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	return (now.tv_sec)*1000000 + (now.tv_usec) - sys_start_time_hr;
+	return (u64)(now.tv_sec)*1000000 + (now.tv_usec) - sys_start_time_hr;
 }
 
 #endif

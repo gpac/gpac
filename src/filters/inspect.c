@@ -1286,6 +1286,16 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				gf_bs_set_logger(bs, NULL, NULL);
 		}
 
+		if (!gf_sys_is_test_mode() && (type <= GF_VVC_NALU_SLICE_GDR) && vvc->s_info.nb_reference_pocs) {
+			u32 i;
+			inspect_printf(dump, " POC=\"%d\" referencePOCs=\"", vvc->s_info.poc);
+			for (i=0; i<vvc->s_info.nb_reference_pocs; i++) {
+				if (i) inspect_printf(dump, " ");
+				inspect_printf(dump, "%d", vvc->s_info.reference_pocs[i]);
+			}
+			inspect_printf(dump, "\"");
+		}
+
 		if ((type == GF_VVC_NALU_SEI_PREFIX) || (type == GF_VVC_NALU_SEI_SUFFIX)) {
 			inspect_printf(dump, ">\n");
 			if (pctx) {
@@ -3906,7 +3916,12 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	inspect_printf(dump, "PID");
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-	if (p) inspect_printf(dump, " %d", p->value.uint);
+	if (p) {
+		if (!gf_sys_is_test_mode())
+			inspect_printf(dump, " %u ID %d", pid_idx, p->value.uint);
+		else
+			inspect_printf(dump, " %d", p->value.uint);
+	}
 
 	if (is_remove) {
 		inspect_printf(dump, " removed\n");
