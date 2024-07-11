@@ -6494,7 +6494,6 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 	nb_eos=0;
 	nb_done = 0;
 	nb_suspended = 0;
-	ctx->id3_id_sequence=0;
 	for (i=0; i<count; i++) {
 		u64 cts, dts, ncts;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
@@ -7760,6 +7759,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	gf_filter_set_max_extra_input_pids(filter, -1);
 	ctx->filter = filter;
+	ctx->id3_id_sequence=0;
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ctx->store>=MP4MX_MODE_FRAG) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use fragmented mode, disabled in build\n"));
