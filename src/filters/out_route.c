@@ -2163,6 +2163,10 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 	if (!rpid->current_toi)
 		rpid->current_toi = 1;
 
+	//update current toi with value of next toi available since we sent mani and init
+	if (rpid->current_toi !=1 && rpid->current_toi  < ctx->next_toi_avail)
+		rpid->current_toi = ctx->next_toi_avail;
+
 	const u8 *pck_data;
 	if (!rpid->frag_idx && (ctx->csum==DVB_CSUM_ALL))
 		pck_data = rpid->pck_data;
