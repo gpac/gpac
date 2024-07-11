@@ -2125,6 +2125,9 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 		u32 j, nb_pids = gf_list_count(serv->pids);
 		for (j=0; j<nb_pids; j++) {
 			ROUTEPid *pid = gf_list_get(serv->pids, j);
+
+			if (pid->tsi != rpid->tsi) continue;
+
 			if (pid->raw_file) {
 				if (!pid->current_toi || !pid->full_frame_size)
 					continue;
