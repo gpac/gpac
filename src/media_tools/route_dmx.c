@@ -223,8 +223,8 @@ struct __gf_routedmx {
 	u32 buffer_size;
 	u8 *unz_buffer;
 	u32 unz_buffer_size;
-
-	u64 reorder_timeout;
+	//reordering time in us
+	u64 reorder_timeout_us;
 	Bool force_in_order;
 	GF_RouteProgressiveDispatch dispatch_mode;
 	u32 nrt_max_seg;
@@ -420,7 +420,7 @@ static GF_ROUTEDmx *gf_route_dmx_new_internal(const char *ifce, u32 sock_buffer_
 	//create static bs
 	routedmx->bs = gf_bs_new((char*)&e, 1, GF_BITSTREAM_READ);
 
-	routedmx->reorder_timeout = 1000;
+	routedmx->reorder_timeout_us = 100000;
 
 	routedmx->on_event = on_event;
 	routedmx->udta = udta;
@@ -646,10 +646,10 @@ GF_Err gf_route_atsc3_tune_in(GF_ROUTEDmx *routedmx, u32 serviceID, Bool tune_al
 }
 
 GF_EXPORT
-GF_Err gf_route_dmx_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_ms)
+GF_Err gf_route_dmx_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeout_us)
 {
 	if (!routedmx) return GF_BAD_PARAM;
-	routedmx->reorder_timeout = timeout_ms;
+	routedmx->reorder_timeout_us = timeout_us;
 	routedmx->force_in_order = !force_reorder;
 	return GF_OK;
 }
@@ -1925,9 +1925,9 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 					continue;
 				}
 				//packets not in order and timeout used
-				else if (!in_order && routedmx->reorder_timeout) {
+				else if (!in_order && routedmx->reorder_timeout_us) {
 					u64 elapsed = gf_sys_clock_high_res() - o->last_gather_time;
-					if (elapsed < routedmx->reorder_timeout)
+					if (elapsed < routedmx->reorder_timeout_us)
 						continue;
 
 					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d us - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
@@ -2166,7 +2166,6 @@ static GF_Err gf_route_service_setup_dash(GF_ROUTEDmx *routedmx, GF_ROUTEService
 		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Received MPD file %s\n", s->log_name, content_location));
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] MPD Content %s\n", s->log_name, content));
 		routedmx->on_event(routedmx->udta, evt_type, s->service_id, &finfo);
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Received MPD file %s content:\n%s\n", s->log_name, content_location, content ));
@@ -2235,6 +2234,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				gf_list_add(remove_channels, gf_list_get(rsess->channels, j));
 			}
 		}
+		s->stsid_crc = crc;
 	} else {
 		return GF_OK;
 	}
