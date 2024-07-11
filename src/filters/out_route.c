@@ -2101,14 +2101,8 @@ retry:
 	return GF_OK;
 }
 
-void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
-{
-	char *payload = NULL;
-	char szName[GF_MAX_PATH], *seg_name;
 
-	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
-	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
-	//todo: inject manifest, init seg and child playlist ?
+void inject_mani_init_hls_varient_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid, char **payload) {
 	//inject manifest
 	if (serv->manifest && serv->manifest_type) {
 		u32 len = (u32) strlen(serv->manifest);
@@ -2116,7 +2110,7 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 			serv->mani_toi = ctx->next_toi_avail;
 			ctx->next_toi_avail++;
 		}
-		inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name,
+		inject_fdt_file_desc(ctx, payload, serv, serv->manifest_name,
 		(serv->manifest_type==2) ? "application/vnd.apple.mpegURL" : "application/dash+xml",
 					serv->manifest, len, serv->mani_toi, ctx->furl);
 		}
@@ -2138,7 +2132,7 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 				} else {
 					mime = "application/octet-string";
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi, ctx->furl);
+				inject_fdt_file_desc(ctx, payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi, ctx->furl);
 				continue;
 			}
 
@@ -2147,26 +2141,37 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 					pid->init_toi = ctx->next_toi_avail;
 					ctx->next_toi_avail++;
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
+				inject_fdt_file_desc(ctx, payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
 			}
 			if (pid->hld_child_pl) {
 				if (!pid->hls_child_toi) {
 					pid->hls_child_toi = ctx->next_toi_avail;
 					ctx->next_toi_avail++;
 				}
-				inject_fdt_file_desc(ctx, &payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi, ctx->furl);
+				inject_fdt_file_desc(ctx, payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi, ctx->furl);
 			}
 		}
+}
 
+
+void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
+{
+	char *payload = NULL;
+	char szName[GF_MAX_PATH], *seg_name;
+
+	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
+	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
+	//todo: inject manifest, init seg and child playlist ?
+	if (ctx->flute_inband_mani_init){
+		inject_mani_init_hls_varient_fdt(ctx, serv, rpid, &payload);
+		//update current toi with value of next toi available since we sent mani and init
+		if (rpid->current_toi !=1 && rpid->current_toi  < ctx->next_toi_avail)
+		rpid->current_toi = ctx->next_toi_avail;
+	}	
 
 	//cannot use TOI 0 for anything else than FDT
 	if (!rpid->current_toi)
 		rpid->current_toi = 1;
-
-	//update current toi with value of next toi available since we sent mani and init
-	if (rpid->current_toi !=1 && rpid->current_toi  < ctx->next_toi_avail)
-		rpid->current_toi = ctx->next_toi_avail;
-
 	const u8 *pck_data;
 	if (!rpid->frag_idx && (ctx->csum==DVB_CSUM_ALL))
 		pck_data = rpid->pck_data;
