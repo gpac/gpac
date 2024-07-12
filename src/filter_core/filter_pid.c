@@ -3877,8 +3877,11 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				af->source_ids = gf_strdup(dst->source_ids);
 
 			//remember our target filter
-			if (prev_af)
+			if (prev_af) {
 				gf_list_add(prev_af->destination_filters, af);
+				//we added dst to destination_filters (cf below) but we still want to resolve the link to the next in chain, so set dst_filter
+				prev_af->dst_filter = af;
+			}
 
 			//last in chain, add dst
 			if (i+2==count) {
@@ -4717,6 +4720,7 @@ single_retry:
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed || filter_dst->disabled || filter_dst->marked_for_removal || filter_dst->no_inputs) continue;
 		if (filter_dst->target_filter == pid->filter) continue;
+		if (filter_dst == pid->filter) continue;
 		//PID requires a sourceID on target filter and none is set, ignore
 		if (pid->require_source_id && !filter_dst->source_ids) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s requires source ID, not set for filter %s\n", pid->name, filter_dst->name));
@@ -4811,7 +4815,7 @@ single_retry:
 				}
 
 				pid->filter->dst_filter = NULL;
-			} else {
+			} else if (!pid->filter->dst_filter) {
 				filter_dst->in_link_resolution = 0;
 				pid->filter->dst_filter = filter_dst;
 				//for mux->output case, the filter ID may be NULL but we still want to link
