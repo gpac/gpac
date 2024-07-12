@@ -51,7 +51,7 @@ typedef struct
 	//options
 	char *dst, *ext, *mime, *ifce, *ip;
 	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
-	Bool korean, llmode, noreg, nozip, furl, flute, flute_inband_mani_init;
+	Bool korean, llmode, noreg, nozip, furl, flute, use_inband;
 	u32 csum;
 	u32 recv_obj_timeout;
 
@@ -1533,7 +1533,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	nb_serv = gf_list_count(ctx->services);
 	for (i=0; i<nb_serv; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
-		if (!serv->use_flute || ctx->flute_inband_mani_init) continue;
+		if (!serv->use_flute || ctx->use_inband) continue;
 		//inject manifest
 		if (serv->manifest && serv->manifest_type) {
 			u32 len = (u32) strlen(serv->manifest);
@@ -2169,8 +2169,8 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
 	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
-	//todo: inject manifest, init seg and child playlist ?
-	if (ctx->flute_inband_mani_init){
+	//if use_inband: inject manifest, init seg and child playlis
+	if (ctx->use_inband){
 		inject_mani_init_hls_varient_fdt(ctx, serv, rpid, &payload);
 		//update current toi with value of next toi available since we sent mani and init
 		if (rpid->current_toi !=1 && rpid->current_toi  < ctx->next_toi_avail)
@@ -2295,13 +2295,13 @@ next_packet:
 					if (!manifest_sent) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
 						manifest_sent = GF_TRUE;
-						if (ctx->flute_inband_mani_init) {
+						if (ctx->use_inband) {
 							routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
 						} else {
 							routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
 							}
 					}
-					if (ctx->flute_inband_mani_init) {
+					if (ctx->use_inband) {
 						init_sock = rpid->rlct->sock;
 						init_tsi = rpid->tsi;
 						} else {
@@ -3067,7 +3067,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
 	{ OFFS(recv_obj_timeout), "set timeout period in ms before client resorts to unicast repair", GF_PROP_UINT, "50", NULL, 0},
 	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
-	{ OFFS(flute_inband_mani_init), "DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(use_inband), "DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
