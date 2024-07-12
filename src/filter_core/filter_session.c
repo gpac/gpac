@@ -1422,6 +1422,21 @@ static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char
 				}
 			}
 		}
+		if (file_exists) {
+			FILE *f = gf_fopen(szPath, "r");
+			char szVal[1000];
+			szVal[0] = szVal[999] = 0;
+			if (f) {
+				gf_fread(szVal, 999, f);
+				gf_fclose(f);
+			} else {
+				file_exists = GF_FALSE;
+			}
+			if (strstr(szVal, "import") && strstr(szVal, "from") ) {}
+			else if (strstr(szVal, "filter.") || strstr(szVal, "session.") ) {}
+			else
+				file_exists = GF_FALSE;
+		}
 
 		if (file_exists) {
 			if (probe_only) {
