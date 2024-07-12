@@ -945,6 +945,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 	char *header = NULL;
 	u32 header_len = 0;
 	Bool had_marks = GF_FALSE;
+	u32 is_resume = ext_file ? 1 : 9;
 
 	if (!parser) return GF_BAD_PARAM;
 	parser->suspend = GF_FALSE;
@@ -961,6 +962,9 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		sOK = gf_text_get_utf8_line(szLine, 2048, ext_file ? ext_file : parser->vtt_in, parser->unicode_type, &in_progress);
 		if (in_progress) {
 			parser->suspend = GF_TRUE;
+			if (ext_file && cue && !cue->text) {
+				gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
+			}
 			break;
 		}
 		REM_TRAIL_MARKS(szLine, "\r\n")
@@ -1077,7 +1081,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		case WEBVTT_PARSER_STATE_WAITING_CUE_TIMESTAMP:
 			if (sOK && len) {
 				if (cue == NULL) {
-					cue   = gf_webvtt_cue_new();
+					cue = gf_webvtt_cue_new();
 				}
 				if (prevLine) {
 					gf_webvtt_cue_add_property(cue, WEBVTT_ID, prevLine, (u32) strlen(prevLine));
@@ -1107,6 +1111,11 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			}
 			break;
 		case WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD:
+			if ((is_resume==1) && !cue) {
+				GF_WebVTTSample *sample = (GF_WebVTTSample *)gf_list_last(parser->samples);
+				cue = sample ? gf_list_last(sample->cues) : NULL;
+				is_resume = 2;
+			}
 			if (sOK && len) {
 				if (!strncmp(szLine, "NOTE ", 5)) {
 					if (had_marks) {
@@ -1120,17 +1129,23 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 					parser->in_comment = GF_FALSE;
 				}
 			}
-			if (sOK && len) {
+			//special case when injecting multiple times the header, ignore it
+			if (ext_file && !strcmp(szLine, "WEBVTT")) {
+			}
+			else if (sOK && len) {
 				if (had_marks) {
 					szLine[len] = '\n';
 					len++;
 				}
+				assert(cue);
 				gf_webvtt_cue_add_property(cue, parser->in_comment ? WEBVTT_POSTCUE_TEXT : WEBVTT_PAYLOAD, szLine, len);
 				/* remain in the same state as a cue payload can have multiple lines */
 				break;
 			} else {
 				/* end of the current cue */
-				gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
+				if (is_resume!=2) {
+					gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
+				}
 				cue = NULL;
 				parser->in_comment = GF_FALSE;
 
