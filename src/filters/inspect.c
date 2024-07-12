@@ -4046,9 +4046,11 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		return;
 	}
 
-	inspect_printf(dump, " codec");
-	if (szCodec[0] && strcmp(szCodec, "unkn"))
-		inspect_printf(dump, " %s", szCodec);
+	if (codec_id) {
+		inspect_printf(dump, " codec");
+		if (szCodec[0] && strcmp(szCodec, "unkn"))
+			inspect_printf(dump, " %s", szCodec);
+	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if ((codec_id==GF_CODECID_HEVC) || (codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC_TILES)) {
@@ -4220,7 +4222,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 				if (p && (p->type==GF_PROP_UINT)) codec_id = p->value.uint;
 				inspect_printf(dump, " FFmpeg %d", codec_id);
 			}
-		} else {
+		} else if (codec_id) {
 			inspect_printf(dump, " %s", gf_codecid_name(codec_id));
 		}
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROFILE_LEVEL);
@@ -5348,6 +5350,15 @@ static const GF_FilterCapability InspecterReframeCaps[] =
 	{0},
 };
 
+static const GF_FilterCapability InspecterRawCaps[] =
+{
+	//accept any stream but files, framed
+	CAP_UINT(GF_CAPS_INPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_MIME, "*"),
+	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_FILE_EXT, "*"),
+	{0},
+};
+
 static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
 {
 	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
@@ -5401,12 +5412,13 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	if (ctx->xml || ctx->analyze || gf_sys_is_test_mode() || ctx->fmt) {
 		ctx->full = GF_TRUE;
 	}
-	if (!ctx->full) {
+	if (!ctx->full && (ctx->mode!=INSPECT_MODE_RAW)) {
 		ctx->mode = INSPECT_MODE_REFRAME;
 	}
 
 	switch (ctx->mode) {
 	case INSPECT_MODE_RAW:
+		gf_filter_override_caps(filter, InspecterRawCaps,  sizeof(InspecterRawCaps)/sizeof(GF_FilterCapability) );
 		break;
 	case INSPECT_MODE_REFRAME:
 		gf_filter_override_caps(filter, InspecterReframeCaps,  sizeof(InspecterReframeCaps)/sizeof(GF_FilterCapability) );
