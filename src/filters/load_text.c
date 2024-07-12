@@ -4415,6 +4415,8 @@ force_format:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_id) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE))
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	}
 
 	Bool gen_ttxt_dsi = GF_FALSE;
