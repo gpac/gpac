@@ -10380,7 +10380,8 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx, u32 *segment_time
 		if (!last_non_num || (last_num>=last_non_num+1)) {
 			u32 num;
 			char szVal[100];
-			solved_template[last_num+1] = 0;
+			if (len > last_num + 1)
+				solved_template[last_num+1] = 0;
 			num = atoi(solved_template + (last_non_num ? (last_non_num+1) : 0));
 			snprintf(szVal, 100, "%u", num);
 			len = (u32) strlen(szVal);
