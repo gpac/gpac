@@ -7398,7 +7398,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 					si->num_ref_idx_l1_active = 1 + gf_bs_read_ue_log(bs, "num_ref_idx_l1_active");
 			}
 
-			if (pps->lists_modification_present_flag) {
+			if (pps->lists_modification_present_flag && si->st_rps) {
 				u32 NumPicTotalCurr = 0;
 				HEVC_ReferencePictureSets *rps = si->st_rps;
 				for (i=0; i < rps->num_negative_pics; i++) {
