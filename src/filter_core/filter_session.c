@@ -2328,7 +2328,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					gf_fq_add(fsess->main_thread_tasks, task);
 
 #ifndef GPAC_DISABLE_THREADS
-					//FIXME, we sometimes miss a sema notfiy resulting in secondary tasks being locked
+					//FIXME, we sometimes miss a sema notify resulting in secondary tasks being locked
 					//until we find the cause, notify secondary sema if non-main-thread tasks are scheduled and we are the only task in main
 					if (use_main_sema && (thid==0) && fsess->threads && (gf_fq_count(fsess->main_thread_tasks)==1) && gf_fq_count(fsess->tasks)) {
 						gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
