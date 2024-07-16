@@ -12564,7 +12564,7 @@ static void vvc_compute_refs(VVCState *vvc, VVCSliceInfo *si)
 		VVC_RefPicList *rpl = &si->rpl[lidx];
 		u32 num_active_refs = si->num_ref_idx_active[lidx];
 
-		for (ridx=0; ridx < rpl->num_ref_entries; ridx++) {
+		for (ridx=0; ridx < MIN(rpl->num_ref_entries, VVC_MAX_REF_PICS); ridx++) {
 			Bool is_active_ref = ridx < num_active_refs ? GF_TRUE : GF_FALSE;
 			s32 refPOC=0;
 			//bool       isLongTerm  = false;
