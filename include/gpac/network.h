@@ -670,6 +670,22 @@ Checks if connection has been closed by remote peer
  */
 GF_Err gf_sk_probe(GF_Socket *sock);
 
+/*!
+Bumps lower part of IP adress by the given increment eg X.X.X.Y -> X.X.X.Z with Z=Y+increment
+\param in_ip the input IP v4 or v6 address
+\param increment the increment to apply
+\return the newly computed address or NULL if error - must be freed bu user
+ */
+char *gf_net_bump_ip_address(const char *in_ip, u32 increment);
+
+/*!
+Gets IP associated with an interface
+\param ip_or_name the input interface name or IP v4 or v6 address
+\param ipv4 set t o v4 address - can be NULL but shall be freed by user
+\param ipv6 set t o v6 address - can be NULL but shall be freed by user
+\return GF_TRUE if success
+ */
+Bool gf_net_get_adapter_ip(const char *ip_or_name, char **ipv4, char **ipv6);
 
 /*! socket selection mode*/
 typedef enum
