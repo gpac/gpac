@@ -865,7 +865,20 @@ static void gf_route_lct_removed(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_R
 	count = gf_list_count(s->route_sessions);
 	for (i=0; i<count; i++) {
 		GF_ROUTESession *rsess = gf_list_get(s->route_sessions, i);
-		gf_list_del_item(rsess->channels, lc);
+		if (gf_list_del_item(rsess->channels, lc)>=0) {
+			if (rsess->mcast_addr) {
+				rsess->nb_active--;
+				if (!rsess->nb_active) {
+					gf_sk_group_unregister(routedmx->active_sockets, rsess->sock);
+					gf_sk_del(rsess->sock);
+					rsess->sock = NULL;
+					s->secondary_sockets--;
+				}
+			} else {
+				s->nb_active--;
+				//keep service socket active
+			}
+		}
 	}
 	gf_route_static_files_del(lc->static_files);
 	if (lc->toi_template) gf_free(lc->toi_template);
@@ -1334,7 +1347,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 		} else if (strcmp(mcast_sess->name, "MulticastSession"))
 			continue;
 
-		GF_ROUTEService *new_s = NULL;
+		GF_ROUTEService *new_service = NULL;
 		GF_List *old_sessions = NULL;
 		GF_List *old_channels = NULL;
 		GF_LCTObject *mani_obj = NULL;
@@ -1388,13 +1401,13 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			if (!dst_add || !dst_port_str) continue;
 			u16 dst_port = atoi(dst_port_str);
 
-			if (!new_s) {
+			if (!new_service) {
 				//config session same as our bootstrap adress, do not process
 				if (!strcmp(dst_add, parent_s->dst_ip) && (parent_s->port == dst_port)) {
 					gf_list_del_item(old_services, parent_s);
 					if (is_cfg_session) continue;
-					new_s = parent_s;
-					old_sessions = gf_list_clone(new_s->route_sessions);
+					new_service = parent_s;
+					old_sessions = gf_list_clone(new_service->route_sessions);
 				} else {
 					GF_ROUTEService *existing = NULL;
 					for (j=0; j<gf_list_count(routedmx->services); j++) {
@@ -1409,17 +1422,17 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 					}
 					if (!existing) {
 						u32 service_id = gf_list_count(routedmx->services);
-						new_s = gf_route_create_service(routedmx, dst_add, dst_port, service_id, proto_id);
-						if (!new_s) continue;
-						new_s->service_identifier = gf_strdup(service_id_uri);
+						new_service = gf_route_create_service(routedmx, dst_add, dst_port, service_id, proto_id);
+						if (!new_service) continue;
+						new_service->service_identifier = gf_strdup(service_id_uri);
 					} else {
 						gf_list_del_item(old_services, existing);
-						new_s = existing;
-						old_sessions = gf_list_clone(new_s->route_sessions);
+						new_service = existing;
+						old_sessions = gf_list_clone(new_service->route_sessions);
 						old_channels = gf_list_new();
-						for (j=0; j<gf_list_count(new_s->route_sessions); j++) {
+						for (j=0; j<gf_list_count(new_service->route_sessions); j++) {
 							u32 k;
-							GF_ROUTESession *s = gf_list_get(new_s->route_sessions, j);
+							GF_ROUTESession *s = gf_list_get(new_service->route_sessions, j);
 							for (k=0; k<gf_list_count(s->channels); k++) {
 								GF_ROUTELCTChannel *ch = gf_list_get(s->channels, k);
 								gf_list_add(old_channels, ch);
@@ -1435,11 +1448,11 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			}
 
 			GF_ROUTESession *rsess=NULL;
-			for (j=0; j<gf_list_count(new_s->route_sessions); j++) {
-				rsess = gf_list_get(new_s->route_sessions, j);
+			for (j=0; j<gf_list_count(new_service->route_sessions); j++) {
+				rsess = gf_list_get(new_service->route_sessions, j);
 				if (rsess->mcast_addr && !strcmp(rsess->mcast_addr, dst_add) && (rsess->mcast_port==dst_port))
 					break;
-				if (!rsess->mcast_addr && !strcmp(new_s->dst_ip, dst_add) && (new_s->port==dst_port))
+				if (!rsess->mcast_addr && !strcmp(new_service->dst_ip, dst_add) && (new_service->port==dst_port))
 					break;
 				rsess = NULL;
 			}
@@ -1459,7 +1472,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				rsess->channels = gf_list_new();
 
 				//need a new socket for the session
-				if ((strcmp(new_s->dst_ip, dst_add)) || (new_s->port != dst_port) ) {
+				if ((strcmp(new_service->dst_ip, dst_add)) || (new_service->port != dst_port) ) {
 					rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
 					if (gf_sk_has_nrt_netcap(rsess->sock))
 						routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
@@ -1467,7 +1480,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 					gf_sk_set_usec_wait(rsess->sock, 1);
 					e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
 					if (e) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_s->log_name, dst_add, dst_port));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_service->log_name, dst_add, dst_port));
 						gf_list_del(rsess->channels);
 						gf_free(rsess);
 						gf_list_del(old_sessions);
@@ -1475,16 +1488,14 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 					}
 					gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
 					//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
-					new_s->secondary_sockets++;
-					if (new_s->tune_mode == GF_ROUTE_TUNE_ON)
+					new_service->secondary_sockets++;
+					if (new_service->tune_mode == GF_ROUTE_TUNE_ON)
 						gf_sk_group_register(routedmx->active_sockets, rsess->sock);
 
 					rsess->mcast_addr = gf_strdup(dst_add);
 					rsess->mcast_port = dst_port;
-				} else {
-					new_s->nb_active++;
 				}
-				gf_list_add(new_s->route_sessions, rsess);
+				gf_list_add(new_service->route_sessions, rsess);
 			}
 
 			if (!rlct) {
@@ -1495,16 +1506,20 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				}
 				gf_list_add(rsess->channels, rlct);
 				rlct->is_active = GF_TRUE;
-				rsess->nb_active ++;
-				if (new_s->protocol==GF_SERVICE_ROUTE)
+				if (rsess->mcast_addr)
+					rsess->nb_active ++;
+				else
+					new_service->nb_active ++;
+
+				if (new_service->protocol==GF_SERVICE_ROUTE)
 					rlct->static_files = gf_list_new();
 			}
 
-			new_s->nb_media_streams -= rlct->num_components;
+			new_service->nb_media_streams -= rlct->num_components;
 			rlct->num_components = _xml_get_child_count(tr_sess, "ServiceComponentIdentifier");
-			new_s->nb_media_streams += rlct->num_components;
+			new_service->nb_media_streams += rlct->num_components;
 
-			rlct->flute_parent_service = new_s;
+			rlct->flute_parent_service = new_service;
 			if (dst_tsi) {
 				rlct->tsi = atoi(dst_tsi);
 				rlct->tsi_probe = GF_FALSE;
@@ -1522,8 +1537,8 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			//associate manifest object with first channel we use
 			if (mani_obj && !mani_obj->rlct) {
 				mani_obj->rlct = rlct;
-				if ((mani_obj->status>=GF_LCT_OBJ_RECEPTION) && (new_s->tune_mode==GF_ROUTE_TUNE_ON))
-					gf_route_service_setup_dash(routedmx, new_s, mani_obj->payload, mani_obj->rlct_file->filename, mani_obj->flute_type);
+				if ((mani_obj->status>=GF_LCT_OBJ_RECEPTION) && (new_service->tune_mode==GF_ROUTE_TUNE_ON))
+					gf_route_service_setup_dash(routedmx, new_service, mani_obj->payload, mani_obj->rlct_file->filename, mani_obj->flute_type);
 			}
 
 			trp = _xml_get_child(tr_sess, "ServiceComponentIdentifier");
@@ -1556,7 +1571,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 		//purge old LCT channels
 		while (gf_list_count(old_channels)) {
 			GF_ROUTELCTChannel *lc = gf_list_pop_back(old_channels);
-			gf_route_lct_removed(routedmx, new_s, lc);
+			gf_route_lct_removed(routedmx, new_service, lc);
 		}
 		gf_list_del(old_channels);
 
@@ -1567,8 +1582,8 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 		}
 		gf_list_del(old_sessions);
 
-		if (new_s && (new_s->tune_mode != GF_ROUTE_TUNE_ON))
-			gf_route_register_service_sockets(routedmx, new_s, GF_FALSE);
+		if (new_service && (new_service->tune_mode != GF_ROUTE_TUNE_ON))
+			gf_route_register_service_sockets(routedmx, new_service, GF_FALSE);
 	}
 
 exit:
@@ -2489,7 +2504,11 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				rlct->static_files = gf_list_new();
 				rlct->tsi = tsi;
 				rlct->is_active = GF_TRUE;
-				rsess->nb_active ++;
+				if (rsess->mcast_addr)
+					rsess->nb_active ++;
+				else
+					s->nb_active ++;
+
 				gf_list_add(rsess->channels, rlct);
 			}
 			GF_List *purge_rlct = gf_list_clone(rlct->static_files);
@@ -3740,7 +3759,7 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 
 GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected)
 {
-	u32 count, i=0;
+	u32 count, i=0, rlct_tsi=0;
 	if (!routedmx || !rep_id) return GF_BAD_PARAM;
 	GF_ROUTEService *s=NULL;
 	while ((s = gf_list_enum(routedmx->services, &i))) {
@@ -3748,8 +3767,6 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 		s = NULL;
 	}
 	if (!s) return GF_BAD_PARAM;
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] %s rep %s\n", s->log_name, is_selected ? "Activating" : "Dectivating", rep_id));
 
 	GF_ROUTESession *mcast_sess=NULL;
 	GF_ROUTELCTChannel *rlct=NULL;
@@ -3767,12 +3784,20 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 
 			if (rep_id && rlct->dash_rep_id && !strcmp(rep_id, rlct->dash_rep_id)) {
 				mcast_sess = rsess;
+				rlct_tsi = rlct->tsi;
 				break;
 			}
 		}
 		if (mcast_sess) break;
 	}
 	if (!mcast_sess) return GF_OK;
+	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] %s rep %s MCAST %s:%d TSI %u\n", s->log_name,
+		is_selected ? "Activating" : "Deactivating",
+		rep_id,
+		mcast_sess->mcast_addr ? mcast_sess->mcast_addr : s->dst_ip,
+		mcast_sess->mcast_addr ? mcast_sess->mcast_port : s->port,
+		rlct_tsi
+	));
 
 	GF_Socket **sock = mcast_sess->mcast_addr ? &mcast_sess->sock : &s->sock;
 	u32 *nb_active = mcast_sess->mcast_addr ? &mcast_sess->nb_active : &s->nb_active;
