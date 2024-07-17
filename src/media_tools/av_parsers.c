@@ -1177,6 +1177,7 @@ GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *
 	}
 	gf_bs_align(bs);
 	cfg->comment_field_bytes = gf_bs_read_int_log(bs, 8, "comment_field_bytes");
+	if (gf_bs_available(bs) < cfg->comment_field_bytes) return GF_NON_COMPLIANT_BITSTREAM;
 	gf_bs_read_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
 
 	cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
@@ -1254,7 +1255,8 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		ext_flag = gf_bs_read_int_log(bs, 1, "extension_flag");
 
 		if (!cfg->chan_cfg) {
-			gf_m4a_parse_program_config_element(bs, cfg);
+			e = gf_m4a_parse_program_config_element(bs, cfg);
+			if(e) return e;
 		}
 
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
