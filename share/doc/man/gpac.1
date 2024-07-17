@@ -4072,29 +4072,29 @@ View index for multiview (1 being left)
 Fragment URL (without '#') of original URL (used by some filters to set the property on media PIDs)
 .br
 .TP
-.B ROUTEIP (RSIP,str,D )
+.B MCASTIP (MSIP,str,D )
 .br
-ROUTE session IP address
-.br
-.TP
-.B ROUTEPort (RSPN,uint,D )
-.br
-ROUTE session port number
+session Multicast IP address for ROUTE/MABR
 .br
 .TP
-.B ROUTEName (RSFN,str,D )
+.B MCASTPort (MSPN,uint,D )
 .br
-Name (location) of raw file to advertise in ROUTE session
-.br
-.TP
-.B ROUTECarousel (RSCR,frac,D )
-.br
-Carousel period in seconds of raw file in ROUTE session
+session port number for ROUTE/MABR
 .br
 .TP
-.B ROUTEUpload (RSST,frac,D )
+.B MCASTName (MSFN,str,D )
 .br
-Upload time in seconds of raw file in ROUTE session
+Name (location) of raw file to advertise in ROUTE/MABR session
+.br
+.TP
+.B MCASTCarousel (MSCR,frac,D )
+.br
+Carousel period in seconds of raw file or low-latency manifest/init segments for ROUTE/MABR sessions
+.br
+.TP
+.B MCASTUpload (MSST,frac,D )
+.br
+Upload time in seconds of raw files for ROUTE/MABR sessions
 .br
 .TP
 .B Stereo (PSTT,uint,D )
