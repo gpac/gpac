@@ -1255,7 +1255,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		ext_flag = gf_bs_read_int_log(bs, 1, "extension_flag");
 
 		if (!cfg->chan_cfg) {
-			e = gf_m4a_parse_program_config_element(bs, cfg);
+			GF_Err e = gf_m4a_parse_program_config_element(bs, cfg);
 			if(e) return e;
 		}
 
