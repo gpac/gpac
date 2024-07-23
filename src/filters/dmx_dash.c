@@ -136,6 +136,9 @@ typedef struct
 	Bool load_file;
 	GF_FileIO *fio;
 	GF_FilterPacket *mpd_pck_ref;
+
+	char *keep_burl; // Option to control <BaseURL>
+	char *relative_url; // Relative string to inject before <BaseURL> if keep_base_url is set to inject
 } GF_DASHDmxCtx;
 
 typedef struct
@@ -990,16 +993,30 @@ static void dashdmx_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 #endif
 }
 
-void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_name, const char *cache_url, s32 group_idx)
+void process_base_url(char *manifest_payload, u32 manifest_payload_len, const char *keep_base_url, const char *relative_url)
 {
-	u8 *manifest_payload;
-	u32 manifest_payload_len;
-	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
-
-	if (gf_file_load_data(cache_url, &manifest_payload, &manifest_payload_len) == GF_OK) {
-		u8 *output;
-
-		//strip baseURL since we are recording, links are already resolved
+	if (strcmp(keep_base_url, "true") == 0) {
+		// Do nothing, keep BaseURL as is
+		return;
+	} else if (strcmp(keep_base_url, "inject") == 0) {
+		char *man_pay_start = manifest_payload;
+		while (1) {
+			u32 end_len, offset;
+			char *base_url_start = strstr(man_pay_start, "<BaseURL>");
+			if (!base_url_start) break;
+			char *base_url_end = strstr(base_url_start, "</BaseURL>");
+			if (!base_url_end) break;
+			offset = 10;
+			while (base_url_end[offset] == '\n')
+				offset++;
+			end_len = (u32) strlen(base_url_end + offset);
+			u32 inject_len = strlen(relative_url);
+			memmove(base_url_start + 9 + inject_len, base_url_start + 9, end_len);
+			memcpy(base_url_start + 9, relative_url, inject_len);
+			man_pay_start = base_url_start + 9 + inject_len + end_len;
+		}
+	} else {
+		// Default is to strip the BaseURL
 		char *man_pay_start = manifest_payload;
 		while (1) {
 			u32 end_len, offset;
@@ -1011,11 +1028,27 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 			offset = 10;
 			while (base_url_end[offset] == '\n')
 				offset++;
-			end_len = (u32) strlen(base_url_end+offset);
-			memmove(base_url_start, base_url_end+offset, end_len);
-			base_url_start[end_len]=0;
+			end_len = (u32) strlen(base_url_end + offset);
+			memmove(base_url_start, base_url_end + offset, end_len);
+			base_url_start[end_len] = 0;
 			man_pay_start = base_url_start;
 		}
+	}
+}
+
+
+void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_name, const char *cache_url, s32 group_idx)
+{
+	u8 *manifest_payload;
+	u32 manifest_payload_len;
+	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx *)dashio->udta;
+
+	if (gf_file_load_data(cache_url, &manifest_payload, &manifest_payload_len) == GF_OK) {
+		u8 *output;
+
+
+		// Process <BaseURL> based on the keep_base_url option
+		process_base_url(manifest_payload,manifest_payload_len, ctx->keep_burl, ctx->relative_url);
 
 		if ((ctx->forward==DFWD_FILE) && ctx->output_mpd_pid) {
 			//for routeout
@@ -3616,6 +3649,11 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	"- error: use MPD chaining once over or if error (MPD or segment download)", GF_PROP_UINT, "on", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(asloop), "when auto switch is enabled, iterates back and forth from highest to lowest qualities", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(bsmerge), "allow merging of video bitstreams (only HEVC for now)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(keep_burl), "control BaseURL in manifest\n"
+		"- false: strip BaseURL (default)\n"
+		"- true: keep BaseURL\n"
+		"- inject: inject local relative URL before BaseURL value specified by relative_url option.", GF_PROP_STRING, "false", "false|true|inject", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(relative_url), "relative string to inject before BaseURL when keep_base_url is set to inject", GF_PROP_STRING, "./", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
