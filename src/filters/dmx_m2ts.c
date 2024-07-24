@@ -32,19 +32,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/thread.h>
 #include <gpac/internal/media_dev.h>
-
-// First 36 bytes of a Nielsen ID3 tag: "ID3\x04\x00 \x00\x00\x02\x05PRIV\x00\x00\x01{\x00\x00www.nielsen.com/"
-static const u32 NIELSEN_ID3_TAG_PREFIX_LEN = 36;
-static const u8 NIELSEN_ID3_TAG_PREFIX[] = {0x49, 0x44, 0x33, 0x04, 0x00, 0x20,
-											0x00, 0x00, 0x02, 0x05, 0x50, 0x52,
-											0x49, 0x56, 0x00, 0x00, 0x01, 0x7B,
-											0x00, 0x00, 0x77, 0x77, 0x77, 0x2E,
-											0x6E, 0x69, 0x65, 0x6C, 0x73, 0x65,
-											0x6E, 0x2E, 0x63, 0x6F, 0x6D, 0x2F};
-
-static const char *ID3_PROP_SCHEME_URI = "https://aomedia.org/emsg/ID3";
-static const char *ID3_PROP_VALUE_URI_NIELSEN = "www.nielsen.com:id3:v1";
-static const char *ID3_PROP_VALUE_URI_DEFAULT = "https://aomedia.org/emsg/ID3";
+#include <gpac/id3.h>
 
 typedef struct {
 	char *fragment;
@@ -119,6 +107,13 @@ typedef struct
 	u32 nb_stopped_at_init;
 } GF_M2TSDmxCtx;
 
+static void m2tsdmx_prop_free(GF_M2TS_Prop *prop) {
+
+	if (prop->type == M2TS_ID3) {
+		gf_id3_tag_free((GF_ID3_TAG*) prop->data);
+	}
+	gf_free(prop->data);
+}
 
 static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 {
@@ -662,9 +657,13 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
 {
 	if (stream->props) {
+		Bool insert_immediately = GF_TRUE;
+		GF_List *id3_tag_list = NULL;
+
 		char szID[100];
 		while (gf_list_count(stream->props)) {
 			GF_M2TS_Prop *p = gf_list_pop_front(stream->props);
+			insert_immediately = GF_TRUE;
 			switch(p->type) {
 				case M2TS_TEMI_INFO: {
 					GF_M2TS_Prop_TEMIInfo *t = (GF_M2TS_Prop_TEMIInfo*)p;
@@ -674,18 +673,57 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 				case M2TS_SCTE35:
 					snprintf(szID, 100, "scte35");
 					break;
-				case M2TS_ID3:
-					snprintf(szID, 100, "id3");
+				case M2TS_ID3: {
+					insert_immediately = GF_FALSE;
+					if (!id3_tag_list) {
+						id3_tag_list = gf_list_new();
+					}
+
+					// transfer ownership to the ID3 tag to the list
+					gf_list_add(id3_tag_list, p->data);
 					break;
+				}
 				default:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] unknown property %d - skipping\n", p->type) );
 					gf_free(p);
 					continue;
 			}
 
-			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			if (insert_immediately) {
+				gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			}
+
 			gf_free(p);
 		}
+
+		if (id3_tag_list) {
+			snprintf(szID, 100, "id3");
+
+			// Serialize all tags using a single bitstream
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+			GF_Err err = gf_id3_list_to_bitstream(id3_tag_list, bs);
+			if (err != GF_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] Error serializing list of ID3 tags: %s\n", gf_error_to_string(err)));
+			}
+
+			u8 *data_ptr;
+			u32 data_length;
+
+			gf_bs_get_content(bs, &data_ptr, &data_length);
+			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(data_ptr, data_length));
+
+			// free resources
+			gf_bs_del(bs);
+			GF_ID3_TAG *tag = gf_list_pop_front(id3_tag_list);
+			while(tag) {
+				gf_id3_tag_free(tag);
+				gf_free(tag);
+				tag = gf_list_pop_front(id3_tag_list);
+			}
+			gf_list_del(id3_tag_list);
+		}
+
 		gf_list_del(stream->props);
 		stream->props = NULL;
 
@@ -1183,7 +1221,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_ID3:
 	{
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
-		GF_BitStream *bs;
 		GF_M2TS_Prop *t;
 		u32 count = gf_list_count(pck->stream->program->streams);
 		for (i=0; i<count; i++) {
@@ -1204,35 +1241,22 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			if (!t) break;
 			t->type = M2TS_ID3;
 
-			u32 value_uri_len = 0;
-			const char *value_uri = NULL;
-
-			// test if the data is a Nielsen ID3 tag
-			if (memcmp(pck->data, NIELSEN_ID3_TAG_PREFIX, NIELSEN_ID3_TAG_PREFIX_LEN) == 0)
-			{
-				value_uri_len = strlen(ID3_PROP_VALUE_URI_NIELSEN) + 1; // plus null character
-				value_uri = ID3_PROP_VALUE_URI_NIELSEN;
-			}
-			else
-			{
-				value_uri_len = strlen(ID3_PROP_VALUE_URI_DEFAULT) + 1; // plus null character
-				value_uri = ID3_PROP_VALUE_URI_DEFAULT;
+			GF_ID3_TAG *id3_tag_ptr = NULL;
+			GF_SAFEALLOC(id3_tag_ptr, GF_ID3_TAG);
+			if (!id3_tag_ptr) {
+				gf_free(t);
+				break;
 			}
 
-			const u32 id3_scheme_uri_len = (u32)strlen(ID3_PROP_SCHEME_URI) + 1; // plus null character
+			if (gf_id3_tag_new(id3_tag_ptr, 90000, pck->PTS, pck->data, pck->data_len) != GF_OK)
+			{
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDMx] Error creating ID3 tag"));
+				break;
+			}
 
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, 90000);												   // timescale
-			gf_bs_write_u64(bs, pck->PTS);											   // pts
-			gf_bs_write_u32(bs, id3_scheme_uri_len);								   // scheme URI length
-			gf_bs_write_data(bs, (const u8 *)ID3_PROP_SCHEME_URI, id3_scheme_uri_len); // scheme URI
-			gf_bs_write_u32(bs, value_uri_len);										   // value URI length
-			gf_bs_write_data(bs, (const u8 *)value_uri, value_uri_len);				   // value URI
-			gf_bs_write_u32(bs, pck->data_len);										   // data length (bytes)
-			gf_bs_write_data(bs, pck->data, pck->data_len);							   // data
-
-			gf_bs_get_content(bs, &t->data, &t->len);
-			gf_bs_del(bs);
+			// data will point to the first byte of the ID3 tag struct. See m2tdmx_merge_props
+			// for the serialization process and m2tsdmx_prop_free for freeing up prop resources
+			t->data = (u8*)id3_tag_ptr;
 
 			if (!es->props) {
 				es->props = gf_list_new();
@@ -1288,7 +1312,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (es && es->props) {
 			while (gf_list_count(es->props)) {
 				GF_M2TS_Prop *t = gf_list_pop_back(es->props);
-				gf_free(t->data);
+				m2tsdmx_prop_free(t);
 				gf_free(t);
 			}
 			gf_list_del(es->props);
