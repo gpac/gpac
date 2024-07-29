@@ -7522,7 +7522,7 @@ static void gf_hevc_push_ref_poc(HEVCSliceInfo *si, s32 poc)
 	for (i=0;i<si->nb_reference_pocs; i++) {
 		if (si->reference_pocs[i]==poc) return;
 	}
-	if (si->nb_reference_pocs==30) return;
+	if (si->nb_reference_pocs==GF_ARRAY_LENGTH(si->reference_pocs)) return;
 	si->reference_pocs[si->nb_reference_pocs] = poc;
 	si->nb_reference_pocs++;
 }
@@ -12548,7 +12548,7 @@ static void vvc_push_ref_poc(VVCSliceInfo *si, s32 poc)
 	for (i=0;i<si->nb_reference_pocs; i++) {
 		if (si->reference_pocs[i]==poc) return;
 	}
-	if (si->nb_reference_pocs==30) return;
+	if (si->nb_reference_pocs==GF_ARRAY_LENGTH(si->reference_pocs)) return;
 	si->reference_pocs[si->nb_reference_pocs] = poc;
 	si->nb_reference_pocs++;
 }
