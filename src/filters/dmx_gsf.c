@@ -1249,7 +1249,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 					}
 
 					if (append) {
-						if (block_offset + pck_len > gpck->full_block_size) {
+						if ( (block_offset >= GF_UINT_MAX - pck_len) || (block_offset + pck_len > gpck->full_block_size) ) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] packet fragment out of bounds of current frame (offset %d size %d max size %d)\n", block_offset,  pck_len, gpck->full_block_size));
 							e = GF_NON_COMPLIANT_BITSTREAM;
 						} else {
