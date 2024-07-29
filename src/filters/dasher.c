@@ -3417,6 +3417,16 @@ static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const c
 	}
 }
 
+static void dasher_inject_scte35_processor(GF_Filter *filter, GF_DashStream *ds, char *szSRC) {
+		GF_Err e;
+		GF_Filter *scte35dec = gf_filter_load_filter(filter, "scte35dec", &e);
+		gf_filter_set_source(scte35dec, filter, NULL);
+
+		sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
+		gf_filter_reset_source(ds->dst_filter);
+		gf_filter_set_source(ds->dst_filter, scte35dec, szSRC);
+}
+
 static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, GF_List *multi_pids, Bool init_trashed)
 {
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
@@ -3613,6 +3623,9 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_set_source(ds->dst_filter, ttml_agg, szSRC);
 	}
 
+	//inject scte35dec filter
+	if (ds->codec_id==GF_CODECID_SCTE35)
+		dasher_inject_scte35_processor(filter, ds, szSRC);
 }
 
 static void dasher_set_content_components(GF_DashStream *ds)
