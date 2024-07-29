@@ -680,7 +680,6 @@ GF_FilterRegister SCTE35DecRegister = {
 	               "following segmentation as hinted by the graph.")
 	.private_size = sizeof(SCTE35DecCtx),
 	.args = SCTE35DecArgs,
-	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS(SCTE35DecCaps),
 	.process = scte35dec_process,
 	.process_event = scte35dec_process_event,
