@@ -138,6 +138,8 @@ typedef struct
 	u64 start_time;
 	/*! duration in representation's MPD timescale - mandatory*/
 	u32 duration; /*MANDATORY*/
+	/* number of partial segments */
+	u32 nb_parts;
 	/*! may be 0xFFFFFFFF (-1) (\warning this needs further testing)*/
 	u32 repeat_count;
 } GF_MPD_SegmentTimelineEntry;
