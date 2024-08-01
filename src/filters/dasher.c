@@ -2900,6 +2900,11 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 	if (ctx->sseg) set->subsegment_alignment = ctx->align;
 	else set->segment_alignment = ctx->align;
 
+	if (ctx->llhls>1) {
+		set->subsegment_alignment = ctx->align;
+		set->segment_alignment = ctx->align;
+	}
+
 	//startWithSAP is set when the first packet comes in
 
 	//the rest depends on the various profiles/iop, to check
@@ -4475,6 +4480,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
+					if (ctx->do_mpd && ctx->llhls>1)
+						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -4513,6 +4520,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
+					if (ctx->do_mpd && ctx->llhls>1)
+						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -7521,6 +7530,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (!s) return;
 	s->start_time = ds->seg_start_time + pto;
 	s->duration = (u32) duration;
+	s->nb_parts = gf_ceil((ctx->segdur.num * ctx->cdur.den) / ((Double) ctx->segdur.den * ctx->cdur.num)); 
 	gf_list_add(tl->entries, s);
 }
 
@@ -9159,6 +9169,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 							} else {
 								ds->set->starts_with_sap = sap_type;
 							}
+
+							if (ctx->llhls>1)
+							{
+								ds->set->starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
+								ds->set->subsegment_starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
+							}
 						}
 					}
 					else if (set_start_with_sap != sap_type) {
@@ -9460,6 +9476,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->subsegment_starts_with_sap = sap_type;
 						else
 							ds->set->starts_with_sap = sap_type;
+
+						if (ctx->llhls>1)
+						{
+							ds->set->starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
+							ds->set->subsegment_starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
+						}
 					}
 
 
@@ -9618,6 +9640,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->subsegment_starts_with_sap = MAX(ds->set->subsegment_starts_with_sap, sap_type);
 						else
 							ds->set->starts_with_sap = MAX(ds->set->starts_with_sap, sap_type);
+					}
+
+					if (ctx->llhls>1)
+					{
+						ds->set->starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
+						ds->set->subsegment_starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
 					}
 
 					seg_over = GF_TRUE;
