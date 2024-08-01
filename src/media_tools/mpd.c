@@ -2804,6 +2804,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	gf_fprintf(out, "<S");
 	gf_fprintf(out, " t=\""LLD"\"", prev->start_time);
 	if (prev->duration) gf_fprintf(out, " d=\"%d\"", prev->duration);
+	if (prev->nb_parts) gf_fprintf(out, " k=\"%d\"", prev->nb_parts);
 	rcount = prev->repeat_count;
 	start_time = prev->start_time + (prev->repeat_count+1) * prev->duration;
 
@@ -2822,6 +2823,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 				start_time = se->start_time;
 			}
 			if (se->duration) gf_fprintf(out, " d=\"%d\"", se->duration);
+			if (se->nb_parts) gf_fprintf(out, " k=\"%d\"", se->nb_parts);
 			rcount=0;
 		} else {
 			rcount++;
