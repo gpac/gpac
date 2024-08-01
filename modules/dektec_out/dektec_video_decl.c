@@ -62,7 +62,7 @@ GF_FilterRegister DTOutRegister;
 GPAC_MODULE_EXPORT
 GF_FilterRegister *RegisterFilter(GF_FilterSession *session)
 #else
-GF_FilterRegister *dtout_register(GF_FilterSession *session)
+const GF_FilterRegister *dtout_register(GF_FilterSession *session)
 #endif
 {
 	memset(DTOutCaps, 0, sizeof(DTOutCaps));
