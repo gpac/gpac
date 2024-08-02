@@ -2813,7 +2813,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	for (i = tsb_first_entry+1; i<count && prev; i++) {
 		se = gf_list_get(tl->entries, i);
 		//close entry
-		if ((se->start_time != start_time) || (prev->duration!=se->duration)) {
+		if ((se->start_time != start_time) || (prev->duration!=se->duration) || (prev->nb_parts!=se->nb_parts)) {
 			if (rcount) gf_fprintf(out, " r=\"%d\"", rcount);
 			gf_fprintf(out, "/>");
 			gf_mpd_lf(out, indent);
