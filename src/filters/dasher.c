@@ -2873,11 +2873,6 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 	if (ctx->sseg) set->subsegment_alignment = ctx->align;
 	else set->segment_alignment = ctx->align;
 
-	if (ctx->llhls>1) {
-		set->subsegment_alignment = ctx->align;
-		set->segment_alignment = ctx->align;
-	}
-
 	//startWithSAP is set when the first packet comes in
 
 	//the rest depends on the various profiles/iop, to check
@@ -9106,12 +9101,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 							} else {
 								ds->set->starts_with_sap = sap_type;
 							}
-
-							if (ctx->llhls>1)
-							{
-								ds->set->starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
-								ds->set->subsegment_starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
-							}
 						}
 					}
 					else if (set_start_with_sap != sap_type) {
@@ -9413,12 +9402,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->subsegment_starts_with_sap = sap_type;
 						else
 							ds->set->starts_with_sap = sap_type;
-
-						if (ctx->llhls>1)
-						{
-							ds->set->starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
-							ds->set->subsegment_starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
-						}
 					}
 
 
@@ -9577,12 +9560,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->subsegment_starts_with_sap = MAX(ds->set->subsegment_starts_with_sap, sap_type);
 						else
 							ds->set->starts_with_sap = MAX(ds->set->starts_with_sap, sap_type);
-					}
-
-					if (ctx->llhls>1)
-					{
-						ds->set->starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
-						ds->set->subsegment_starts_with_sap = ctx->sseg ? ds->set->subsegment_starts_with_sap : ds->set->starts_with_sap;
 					}
 
 					seg_over = GF_TRUE;
