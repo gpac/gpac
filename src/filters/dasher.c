@@ -7304,12 +7304,13 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	Bool is_first = GF_FALSE;
 	Bool seg_align = GF_FALSE;
 	GF_MPD_SegmentTimeline *tl=NULL;
+	GF_DASH_SegmentContext *sctx;
 
 	//we only store segment timeline for the main component in the representation
 	if (ds->muxed_base) return;
 
 	if (ds->rep && ds->rep->state_seg_list) {
-		GF_DASH_SegmentContext *sctx = gf_list_last(ds->rep->state_seg_list);
+		sctx = gf_list_last(ds->rep->state_seg_list);
 		if (sctx)
 			sctx->dur = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 	}
@@ -7453,7 +7454,11 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 
 	//add to last entry ONLY if not keeping segments
-	if (!ctx->keep_segs && s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)) {
+	u32 last_part_count = ctx->dashll && s ? s->nb_parts : 0;
+	Bool same_parts = sctx ? (sctx->nb_frags + 1 == last_part_count) : GF_TRUE;
+	if (!ctx->keep_segs && s && (s->duration == duration) && same_parts
+		&& (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)
+	) {
 		s->repeat_count++;
 		return;
 	}
@@ -7463,8 +7468,9 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (!s) return;
 	s->start_time = ds->seg_start_time + pto;
 	s->duration = (u32) duration;
-	s->nb_parts = gf_ceil((ctx->segdur.num * ctx->cdur.den) / ((Double) ctx->segdur.den * ctx->cdur.num)); 
+	if (ctx->dashll) s->nb_parts = sctx->nb_frags + 1;
 	gf_list_add(tl->entries, s);
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for %s, start %llu, dur %llu, nb_parts %d\n", ds->src_url, s->start_time, s->duration, s->nb_parts));
 }
 
 static void dasher_copy_segment_timelines(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
