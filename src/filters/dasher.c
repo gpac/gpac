@@ -216,6 +216,7 @@ typedef struct
 	char *ckurl;
 	GF_PropStringList hlsx;
 	u32 llhls;
+	u32 dashll;
 	Bool hlsiv;
 	//inherited from mp4mx
 	GF_Fraction cdur;
@@ -4475,7 +4476,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (ctx->do_mpd && ctx->llhls>1)
+					if (ctx->dashll)
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 
 					seg_template->timescale = ds->mpd_timescale;
@@ -4515,7 +4516,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (ctx->do_mpd && ctx->llhls>1)
+					if (ctx->dashll)
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
@@ -10601,6 +10602,14 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 		}
 	}
 
+	if (ctx->dashll) {
+		if (!ctx->stl) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH with partial segments require Segment Timeline, enabling it\n"));
+			ctx->stl = GF_TRUE;
+		}
+		ctx->llhls = 2; // enable llhls=sf
+	}
+
 	if (!ctx->sap || ctx->sigfrag || ctx->cues)
 		ctx->sbound = DASHER_BOUNDS_OUT;
 
@@ -10841,6 +10850,10 @@ static const GF_FilterArgs DasherArgs[] =
 		"- br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)\n"
 		"- sf: use separate files for segment parts (post-fixed .1, .2 etc.)\n"
 		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dashll), "DASH Low Latency type\n"
+		" - cte: use Chunked Transfer Encoding for segments\n"
+		" - sf: use separate files for segment parts (post-fixed .1, .2 etc.)\n",
+		GF_PROP_UINT, "cte", "cte|sf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(hlsx), "list of string to append to master HLS header before variants with `['#foo','#bar=val']` added as `#foo \\n #bar=val`", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
