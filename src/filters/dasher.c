@@ -10607,7 +10607,10 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH with partial segments require Segment Timeline, enabling it\n"));
 			ctx->stl = GF_TRUE;
 		}
-		ctx->llhls = 2; // enable llhls=sf
+		if (ctx->llhls==1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH with partial segments require LL-HLS with seperate files mode, enabling it\n"));
+		}
+		if (ctx->llhls<2) ctx->llhls = 2;
 	}
 
 	if (!ctx->sap || ctx->sigfrag || ctx->cues)
