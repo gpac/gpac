@@ -10795,7 +10795,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dashll), "DASH Low Latency type\n"
 		" - cte: use Chunked Transfer Encoding for segments\n"
-		" - sf: use separate files for segment parts (post-fixed .1, .2 etc.)\n",
+		" - sf: use Segment Sequence Representation. Separate files for segment parts (post-fixed .1, .2 etc.)\n",
 		GF_PROP_UINT, "cte", "cte|sf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
