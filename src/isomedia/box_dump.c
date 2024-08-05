@@ -1884,6 +1884,7 @@ static GF_Err dump_gmcc(GF_UnknownBox *u, FILE * trace)
 static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val, pos;
+	if (!u || !u->data || !u->dataSize) return GF_BAD_PARAM;
 	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
 	gf_isom_box_dump_start((GF_Box *)u, "VC1ConfigurationBox", trace);
 
