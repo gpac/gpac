@@ -411,9 +411,9 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 	(*chunkNumber) = (*descIndex) = 0;
 	if (out_ent) (*out_ent) = NULL;
 	if (!stbl || !sampleNumber) return GF_BAD_PARAM;
-	if (!stbl->ChunkOffset || !stbl->SampleToChunk || !stbl->SampleSize) return GF_ISOM_INVALID_FILE;
+	if (!stbl->ChunkOffset || !stbl->SampleToChunk || !stbl->SampleSize || !stbl->SampleToChunk->entries) return GF_ISOM_INVALID_FILE;
 
-	if (stbl->SampleSize && stbl->SampleToChunk->nb_entries == stbl->SampleSize->sampleCount && stbl->SampleToChunk->entries) {
+	if (stbl->SampleSize && stbl->SampleToChunk->nb_entries == stbl->SampleSize->sampleCount) {
 		ent = &stbl->SampleToChunk->entries[sampleNumber-1];
 		if (!ent) return GF_BAD_PARAM;
 		(*descIndex) = ent->sampleDescriptionIndex;
