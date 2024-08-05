@@ -1580,7 +1580,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 	get_and_print("num_tile_rows_minus_one", 32)
 
 	gf_fprintf(trace, ">\n");
-	gf_bs_seek(bs, 10);
+	gf_bs_seek(bs, 12);
 	for (i=0; i<nb_comps; i++) {
 		gf_fprintf(trace, "<ComponentInfo");
 		get_and_print("index", 16)
