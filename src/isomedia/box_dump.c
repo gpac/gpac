@@ -487,7 +487,7 @@ GF_Err chpl_box_dump(GF_Box *a, FILE * trace)
 	if (p->size) {
 		count = gf_list_count(p->list);
 		for (i=0; i<count; i++) {
-			char szDur[20];
+			char szDur[50];
 			GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
 			gf_fprintf(trace, "<Chapter name=\"");
 			dump_escape_string(trace, ce->name);
@@ -4346,7 +4346,7 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 		if (!txt->len) continue;
 
 		if (dump_type==GF_TEXTDUMPTYPE_OGG_CHAP) {
-			char szDur[20];
+			char szDur[50];
 			fprintf(dump, "CHAPTER%02d=%s\n", i+1, format_duration(start, ts, szDur));
 			fprintf(dump, "CHAPTER%02dNAME=%s\n", i+1, txt->text);
 		} else {
