@@ -111,6 +111,7 @@ typedef struct
 	GF_FilterPid *idx_opid;
 	GF_Filter *idx_filter;
 	GF_M2TS_Mux *mux;
+	Bool ssr;
 
 	GF_List *pids;
 
@@ -1215,6 +1216,8 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				ctx->force_seg_sync = GF_TRUE;
 		}
 	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SSR);
+	ctx->ssr = p ? GF_TRUE : GF_FALSE;
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_LLHLS, &pe);
 	ctx->llhls = p ? p->value.uint : 0;
 
@@ -1246,7 +1249,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 	}
 
-	if (ctx->llhls && (!ctx->ref_pid || (streamtype == GF_STREAM_VISUAL)) ) {
+	if ((ctx->llhls || ctx->ssr) && (!ctx->ref_pid || (streamtype == GF_STREAM_VISUAL)) ) {
 		ctx->ref_pid = tspid;
 	}
 
@@ -1782,7 +1785,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				ctx->next_is_start = ctx->dash_file_switch;
 				ctx->dash_file_switch = GF_FALSE;
 
-				if (ctx->llhls) {
+				if (ctx->llhls || ctx->ssr) {
 					tsmux_flush_frag_hls(ctx, GF_TRUE);
 					ctx->frag_offset = 0;
 				}
@@ -1858,15 +1861,16 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 			ctx->dash_file_name[0] = 0;
 			ctx->next_is_start = GF_FALSE;
-			if (ctx->llhls>1) {
+			if (ctx->llhls>1 || ctx->ssr) {
 				ctx->frag_num=1;
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
 			}
 		}
 		else if (ctx->next_is_llhls_start) {
-			if (ctx->llhls>1) {
-				ctx->frag_num++;
+			if (ctx->llhls>1 || ctx->ssr) {
+				if (ctx->llhls>1) ctx->frag_num++;
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
+				if (ctx->ssr) ctx->frag_num++;
 			}
 			ctx->next_is_llhls_start = GF_FALSE;
 		}
@@ -1892,7 +1896,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		ctx->nb_pck_in_file += nb_pck_in_pack;
 		nb_pck_in_call += nb_pck_in_pack;
 		nb_pck_in_pack = 0;
-		if (ctx->llhls)
+		if (ctx->llhls || ctx->ssr)
 			ctx->frag_size += osize;
 
 		if (is_pack_flush)

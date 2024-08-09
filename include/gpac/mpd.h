@@ -716,6 +716,8 @@ typedef struct
 	GF_MPD_Fractional min_framerate;
 	/*! max framerate*/
 	GF_MPD_Fractional max_framerate;
+	/*! set if sub-segment represenation is used*/
+	Bool ssr;
 	/*! set if segment boundaries are time-aligned across qualities*/
 	Bool segment_alignment;
 	/*! set if a single init segment is needed (no reinit at quality switch)*/
