@@ -327,6 +327,7 @@ typedef struct
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
 	Bool track_removed;
+	Bool ssr;
 
 	GF_List *tracks;
 
@@ -1286,10 +1287,13 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		ctx->dash_mode = MP4MX_DASH_ON;
 	}
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SSR);
+	ctx->ssr = p ? GF_TRUE : GF_FALSE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHLS);
 	ctx->llhls_mode = p ? p->value.uint : 0;
+
 	//insert tfdt in each traf for LL-HLS so that correct timing can be found when doing in-segment tune-in
-	if (ctx->llhls_mode) {
+	if (ctx->llhls_mode || ctx->ssr) {
 		ctx->tfdt_traf = GF_TRUE;
 		ctx->store = MP4MX_MODE_SFRAG;
 	}
@@ -5763,7 +5767,7 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		if (signal_flush)
 			gf_filter_pid_send_flush(ctx->opid);
 	}
-	if (!is_init && ctx->llhls_mode && ctx->frag_size) {
+	if (!is_init && (ctx->llhls_mode || ctx->ssr) && ctx->frag_size) {
 		mp4_mux_flush_frag_hls(ctx);
 	}
 	if (ctx->dash_mode) {
@@ -6762,7 +6766,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					break;
 				}
 				tkw->dur_in_frag += dur;
-				if (ctx->llhls_mode && (ctx->frag_duration * tkw->src_timescale <= tkw->dur_in_frag * ctx->frag_timescale)) {
+				if ((ctx->llhls_mode || ctx->ssr) && (ctx->frag_duration * tkw->src_timescale <= tkw->dur_in_frag * ctx->frag_timescale)) {
 					ctx->frag_duration = tkw->dur_in_frag;
 					ctx->frag_timescale = tkw->src_timescale;
 				}
@@ -6988,11 +6992,11 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 
 			//we need to wait for packet to be written
 			if (ctx->seg_flush_state) {
-				if (ctx->llhls_mode) ctx->flush_ll_hls = GF_TRUE;
+				if (ctx->llhls_mode || ctx->ssr) ctx->flush_ll_hls = GF_TRUE;
 				return GF_OK;
 			}
 
-			if (ctx->llhls_mode) {
+			if (ctx->llhls_mode || ctx->ssr) {
 				mp4_mux_flush_frag_hls(ctx);
 			}
 
@@ -7791,9 +7795,10 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			gf_filter_pck_set_duration(ctx->dst_pck, 1);
 	}
 
-	if ((ctx->llhls_mode>1) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
-		ctx->frag_num++;
+	if ((ctx->llhls_mode>1 || ctx->ssr) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
+		if (ctx->llhls_mode>1) ctx->frag_num++;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
+		if (ctx->ssr) ctx->frag_num++;
 	}
 	ctx->frag_size += block_size;
 

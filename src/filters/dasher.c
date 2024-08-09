@@ -216,7 +216,6 @@ typedef struct
 	char *ckurl;
 	GF_PropStringList hlsx;
 	u32 llhls;
-	u32 dashll;
 	Bool hlsiv;
 	//inherited from mp4mx
 	GF_Fraction cdur;
@@ -4476,7 +4475,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (ctx->dashll)
+					if (set->ssr)
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 
 					seg_template->timescale = ds->mpd_timescale;
@@ -4516,7 +4515,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (ctx->dashll)
+					if (set->ssr)
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
@@ -7288,6 +7287,53 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] MPD Availability start time initialized to "LLU" ms\n", ctx->mpd->availabilityStartTime));
 	}
 
+	//set SSR related descriptors
+	const GF_PropertyValue *p;
+	s32 tune_in_asid = -1;
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->owns_set) continue;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
+		if (p && p->value.sint >= 0) {
+			tune_in_asid = ds->as_id;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, tune-in ASID set to %d\n", ds->src_url, tune_in_asid));
+			break;
+		}
+	}
+
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->owns_set) continue;
+
+		GF_MPD_Descriptor *desc_ssr = NULL;
+		GF_MPD_Descriptor *desc_ass = NULL;
+
+		char value[256];
+		if (tune_in_asid > 0 && ds->as_id != tune_in_asid) {
+			sprintf(value, "%d", tune_in_asid);
+			desc_ass = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:adaptation-set-switching:2016", value);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the main AS\n", ds->src_url, ds->as_id));
+		}
+
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
+		if (p) {
+			ds->set->ssr = GF_TRUE;
+			if (p->value.sint < 0) {
+				// LL-HLS compatibility mode
+				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", NULL);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is using SSR with LL-HLS compatibility mode\n", ds->src_url, ds->as_id));
+			} else {
+				sprintf(value, "%d", p->value.sint);
+				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", value);
+				desc_ass = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:adaptation-set-switching:2016", value);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the tune-in AS\n", ds->src_url, ds->as_id));
+			}
+		}
+
+		if (desc_ssr != NULL) gf_list_add(ds->set->essential_properties, desc_ssr);
+		if (desc_ass != NULL) gf_list_add(ds->set->supplemental_properties, desc_ass);
+	}
+
 	//setup adaptation sets bitstream switching
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -7517,7 +7563,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 
 	//add to last entry ONLY if not keeping segments
-	u32 last_part_count = ctx->dashll && s ? s->nb_parts : 0;
+	u32 last_part_count = ds->set->ssr && s ? s->nb_parts : 0;
 	Bool same_parts = sctx ? (sctx->nb_frags + 1 == last_part_count) : GF_TRUE;
 	if (!ctx->keep_segs && s && (s->duration == duration) && same_parts
 		&& (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)
@@ -7531,7 +7577,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (!s) return;
 	s->start_time = ds->seg_start_time + pto;
 	s->duration = (u32) duration;
-	if (ctx->dashll) s->nb_parts = sctx->nb_frags + 1;
+	if (ds->set->ssr) s->nb_parts = sctx->nb_frags + 1;
 	gf_list_add(tl->entries, s);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for %s, start %llu, dur %llu, nb_parts %d\n", ds->src_url, s->start_time, s->duration, s->nb_parts));
 }
@@ -8085,7 +8131,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (!seg_state) return;
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
-		seg_state->llhls_mode = ctx->llhls;
+		seg_state->llhls_mode = ctx->llhls || ds->set->ssr;
 		ds->current_seg_state = seg_state;
 		seg_state->encrypted = GF_FALSE;
 
@@ -10608,17 +10654,6 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 		}
 	}
 
-	if (ctx->dashll) {
-		if (!ctx->stl) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH with partial segments require Segment Timeline, enabling it\n"));
-			ctx->stl = GF_TRUE;
-		}
-		if (ctx->llhls==1) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] DASH with partial segments require LL-HLS with seperate files mode, enabling it\n"));
-		}
-		if (ctx->llhls<2) ctx->llhls = 2;
-	}
-
 	if (!ctx->sap || ctx->sigfrag || ctx->cues)
 		ctx->sbound = DASHER_BOUNDS_OUT;
 
@@ -10859,10 +10894,6 @@ static const GF_FilterArgs DasherArgs[] =
 		"- br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)\n"
 		"- sf: use separate files for segment parts (post-fixed .1, .2 etc.)\n"
 		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dashll), "DASH Low Latency type\n"
-		" - cte: use Chunked Transfer Encoding for segments\n"
-		" - sf: use Segment Sequence Representation. Separate files for segment parts (post-fixed .1, .2 etc.)\n",
-		GF_PROP_UINT, "cte", "cte|sf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(hlsx), "list of string to append to master HLS header before variants with `['#foo','#bar=val']` added as `#foo \\n #bar=val`", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
