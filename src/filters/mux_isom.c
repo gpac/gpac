@@ -7759,9 +7759,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 	}
 
 	if ((ctx->llhls_mode>1 || ctx->ssr) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
-		if (ctx->llhls_mode>1) ctx->frag_num++;
+		ctx->frag_num++;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
-		if (ctx->ssr) ctx->frag_num++;
 	}
 	ctx->frag_size += block_size;
 
