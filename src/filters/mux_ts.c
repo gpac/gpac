@@ -1940,9 +1940,8 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		}
 		else if (ctx->next_is_llhls_start) {
 			if (ctx->llhls>1 || ctx->ssr) {
-				if (ctx->llhls>1) ctx->frag_num++;
+				ctx->frag_num++;
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
-				if (ctx->ssr) ctx->frag_num++;
 			}
 			ctx->next_is_llhls_start = GF_FALSE;
 		}
