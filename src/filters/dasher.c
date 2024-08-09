@@ -4430,6 +4430,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
+					if (set->ssr)
+						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -4468,6 +4470,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
+					if (set->ssr)
+						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -7220,6 +7224,53 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] MPD Availability start time initialized to "LLU" ms\n", ctx->mpd->availabilityStartTime));
 	}
 
+	//set SSR related descriptors
+	const GF_PropertyValue *p;
+	s32 tune_in_asid = -1;
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->owns_set) continue;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
+		if (p && p->value.sint >= 0) {
+			tune_in_asid = ds->as_id;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, tune-in ASID set to %d\n", ds->src_url, tune_in_asid));
+			break;
+		}
+	}
+
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->owns_set) continue;
+
+		GF_MPD_Descriptor *desc_ssr = NULL;
+		GF_MPD_Descriptor *desc_ass = NULL;
+
+		char value[256];
+		if (tune_in_asid > 0 && ds->as_id != tune_in_asid) {
+			sprintf(value, "%d", tune_in_asid);
+			desc_ass = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:adaptation-set-switching:2016", value);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the main AS\n", ds->src_url, ds->as_id));
+		}
+
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
+		if (p) {
+			ds->set->ssr = GF_TRUE;
+			if (p->value.sint < 0) {
+				// LL-HLS compatibility mode
+				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", NULL);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is using SSR with LL-HLS compatibility mode\n", ds->src_url, ds->as_id));
+			} else {
+				sprintf(value, "%d", p->value.sint);
+				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", value);
+				desc_ass = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:adaptation-set-switching:2016", value);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the tune-in AS\n", ds->src_url, ds->as_id));
+			}
+		}
+
+		if (desc_ssr != NULL) gf_list_add(ds->set->essential_properties, desc_ssr);
+		if (desc_ass != NULL) gf_list_add(ds->set->supplemental_properties, desc_ass);
+	}
+
 	//setup adaptation sets bitstream switching
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -7299,12 +7350,13 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	Bool is_first = GF_FALSE;
 	Bool seg_align = GF_FALSE;
 	GF_MPD_SegmentTimeline *tl=NULL;
+	GF_DASH_SegmentContext *sctx;
 
 	//we only store segment timeline for the main component in the representation
 	if (ds->muxed_base) return;
 
 	if (ds->rep && ds->rep->state_seg_list) {
-		GF_DASH_SegmentContext *sctx = gf_list_last(ds->rep->state_seg_list);
+		sctx = gf_list_last(ds->rep->state_seg_list);
 		if (sctx)
 			sctx->dur = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 	}
@@ -7448,7 +7500,11 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 
 	//add to last entry ONLY if not keeping segments
-	if (!ctx->keep_segs && s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)) {
+	u32 last_part_count = ds->set->ssr && s ? s->nb_parts : 0;
+	Bool same_parts = sctx ? (sctx->nb_frags + 1 == last_part_count) : GF_TRUE;
+	if (!ctx->keep_segs && s && (s->duration == duration) && same_parts
+		&& (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)
+	) {
 		s->repeat_count++;
 		return;
 	}
@@ -7458,7 +7514,9 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (!s) return;
 	s->start_time = ds->seg_start_time + pto;
 	s->duration = (u32) duration;
+	if (ds->set->ssr) s->nb_parts = sctx->nb_frags + 1;
 	gf_list_add(tl->entries, s);
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for %s, start %llu, dur %llu, nb_parts %d\n", ds->src_url, s->start_time, s->duration, s->nb_parts));
 }
 
 static void dasher_copy_segment_timelines(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
@@ -8010,7 +8068,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (!seg_state) return;
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
-		seg_state->llhls_mode = ctx->llhls;
+		seg_state->llhls_mode = ctx->llhls || ds->set->ssr;
 		ds->current_seg_state = seg_state;
 		seg_state->encrypted = GF_FALSE;
 

@@ -138,6 +138,8 @@ typedef struct
 	u64 start_time;
 	/*! duration in representation's MPD timescale - mandatory*/
 	u32 duration; /*MANDATORY*/
+	/* number of partial segments */
+	u32 nb_parts;
 	/*! may be 0xFFFFFFFF (-1) (\warning this needs further testing)*/
 	u32 repeat_count;
 } GF_MPD_SegmentTimelineEntry;
@@ -714,6 +716,8 @@ typedef struct
 	GF_MPD_Fractional min_framerate;
 	/*! max framerate*/
 	GF_MPD_Fractional max_framerate;
+	/*! set if sub-segment represenation is used*/
+	Bool ssr;
 	/*! set if segment boundaries are time-aligned across qualities*/
 	Bool segment_alignment;
 	/*! set if a single init segment is needed (no reinit at quality switch)*/
