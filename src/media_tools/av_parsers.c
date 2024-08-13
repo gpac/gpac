@@ -7225,7 +7225,7 @@ static void hevc_ref_pic_lists_modification(GF_BitStream *bs, HEVC_ReferencePict
 	while ( val >>= 1) nb_bits++;
 
 	if (rps->modif_flag_l0) {
-		for (i=0; i<num_ref_idx_l0_active; i++) {
+		for (i=0; i<MIN(num_ref_idx_l0_active, GF_ARRAY_LENGTH(rps->modif_idx_l0)); i++) {
 			rps->modif_idx_l0[i] = gf_bs_read_int(bs, nb_bits);
 		}
 	}
