@@ -7289,15 +7289,22 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 
 	//set SSR related descriptors
 	const GF_PropertyValue *p;
-	s32 tune_in_asid = -1;
+	GF_List *ssr_mappings = gf_list_new();
+	struct ssr_map {
+		u32 main_as;
+		u32 tune_in_as;
+	};
+
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		if (!ds->owns_set) continue;
 		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
 		if (p && p->value.sint >= 0) {
-			tune_in_asid = ds->as_id;
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, tune-in ASID set to %d\n", ds->src_url, tune_in_asid));
-			break;
+			struct ssr_map *map = gf_malloc(sizeof(struct ssr_map));
+			map->main_as = p->value.sint;
+			map->tune_in_as = ds->as_id;
+			gf_list_add(ssr_mappings, map);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, tune-in ASID set to %d\n", ds->src_url, map->tune_in_as));
 		}
 	}
 
@@ -7308,11 +7315,19 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		GF_MPD_Descriptor *desc_ssr = NULL;
 		GF_MPD_Descriptor *desc_ass = NULL;
 
+		// Check if this AS has tune-in AS
+		struct ssr_map *map = NULL;
+		for (int j = 0; j < gf_list_count(ssr_mappings); j++) {
+			map = gf_list_get(ssr_mappings, j);
+			if (map->main_as == ds->as_id) break;
+			else map = NULL;
+		}
+
 		char value[256];
-		if (tune_in_asid > 0 && ds->as_id != tune_in_asid) {
-			sprintf(value, "%d", tune_in_asid);
+		if (map != NULL) {
+			sprintf(value, "%d", map->tune_in_as);
 			desc_ass = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:adaptation-set-switching:2016", value);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the main AS\n", ds->src_url, ds->as_id));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the main AS of %d\n", ds->src_url, ds->as_id, map->tune_in_as));
 		}
 
 		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
