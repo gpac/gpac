@@ -884,6 +884,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 			gf_cfg_set_key(cfg, "core", "startup-file", gui_path);
 		}
 
+		sprintf(gui_path, "%s%cres%cca-bundle.crt", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "core", "ca-bundle-default", gui_path);
+
 		/*shaders are at the same location*/
 		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		gf_cfg_set_key(cfg, "filter@compositor", "vertshader", gui_path);
@@ -1177,6 +1180,18 @@ static GF_Config *gf_cfg_init(const char *profile)
 			}
 			if (rescan_fonts)
 				gf_opts_set_key("core", "rescan-fonts", "yes");
+
+			// if ca-bundle is not set or explicitly disabled (empty string), set to default
+			const char* ca_bundle = gf_cfg_get_key(cfg, "core", "ca-bundle-default");
+			if (!ca_bundle) {
+				char szShare[GF_MAX_PATH];
+				if (get_default_install_path(szShare, GF_PATH_SHARE)) {
+					char gui_path[GF_MAX_PATH + 100];
+
+					sprintf(gui_path, "%s%cres%cca-bundle.crt", szShare, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+					gf_cfg_set_key(cfg, "core", "ca-bundle-default", gui_path);
+				}
+			}
 		}
 	}
 	//no config file found
@@ -1522,6 +1537,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("req-timeout", NULL, "time in milliseconds to wait on HTTP/RTSP request before error (0 disables timeout)", "10000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-timeout", NULL, "ignore HTTP 1.1 timeout in keep-alive", "false", NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("broken-cert", NULL, "enable accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("ca-bundle", NULL, "path to a custom CA certificates bundle file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT | GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-agent", "ua", "set user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-profileid", NULL, "set user profile ID (through **X-UserProfileID** entity header) in HTTP requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-profile", NULL, "set user profile filename. Content of file is appended as body to HTTP HEAD/GET requests, associated Mime is **text/xml**", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
