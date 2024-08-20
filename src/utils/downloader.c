@@ -4908,7 +4908,7 @@ static void dm_sess_update_download_rate(GF_DownloadSession * sess)
 static void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload)
 {
 	u32 nbBytes, remaining, hdr_size;
-	u8 *data;
+	u8* data = NULL;
 	Bool first_chunk_in_payload = GF_TRUE;
 	Bool flush_chunk = GF_FALSE;
 	GF_NETIO_Parameter par;
@@ -6041,7 +6041,7 @@ static u32 http_parse_method(const char *comp)
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 {
 	GF_NETIO_Parameter par;
-	s32 bytesRead, BodyStart=0;
+	s32 bytesRead=0, BodyStart=0;
 	u32 res, i, buf_size = sess->http_buf_size;
 	s32 LinePos, Pos;
 	u32 method=0;
