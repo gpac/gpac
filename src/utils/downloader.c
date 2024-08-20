@@ -49,6 +49,11 @@
 #ifndef CURLPIPE_MULTIPLEX
 #define CURLPIPE_MULTIPLEX 0
 #endif
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#pragma comment(lib, "libcurl")
+# endif
+#endif
 #else
 #undef GPAC_HAS_CURL
 #endif
