@@ -264,6 +264,10 @@ struct __gf_download_session
 	//0: not PUT/POST, 1: waiting for body to be completed, 2: body done
 	u32 put_state;
 
+	void* holdback_data;
+	u32 holdback_data_size;
+	Bool holdback_data_complete;
+
 	u64 last_cap_rate_time;
 	u64 last_cap_rate_bytes;
 	u32 last_cap_rate_bytes_per_sec;
@@ -4355,7 +4359,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 					go = GF_FALSE;
 				}
 			} else if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
-				if (sess->last_error==GF_IP_NETWORK_EMPTY)
+				if (sess->last_error==GF_IP_NETWORK_EMPTY || gf_opts_get_bool("core", "no-cte"))
 					go = GF_FALSE;
 			}
 			break;
@@ -5578,6 +5582,12 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	) {
 		PUSH_HDR("Transfer-Encoding", "chunked");
 		sess->chunked = GF_TRUE;
+	}
+
+	if (gf_opts_get_bool("core", "no-cte") && sess->holdback_data_size) {
+		char size[12];
+		sprintf(size, "%d", sess->holdback_data_size);
+		PUSH_HDR("Content-Length", size);
 	}
 
 	if (!has_range && sess->needs_range) {
@@ -7065,7 +7075,7 @@ void http_do_requests(GF_DownloadSession *sess)
 	case GF_NETIO_CONNECTED:
 		if (sess->server_mode) {
 			wait_for_header_and_parse(sess, sHTTP);
-		} else {
+		} else if (!gf_opts_get_bool("core", "no-cte") || sess->holdback_data_complete) {
 			http_send_headers(sess, sHTTP);
 		}
 		break;
@@ -7715,6 +7725,28 @@ u32 gf_dm_sess_async_pending(GF_DownloadSession *sess)
 		sess = sess->h2_sess->net_sess;
 #endif
 	return sess ? sess->async_buf_size : 0;
+}
+
+GF_Err gf_dm_sess_accumulate(GF_DownloadSession *sess, const u8 *data, u32 size)
+{
+	if (size == 0) {
+		GF_Err e = gf_dm_sess_send(sess, sess->holdback_data, sess->holdback_data_size);
+		gf_free(sess->holdback_data);
+		sess->holdback_data = NULL;
+		sess->holdback_data_size = 0;
+		sess->holdback_data_complete = GF_FALSE;
+		return e;
+	}
+
+	if (!data) {
+		sess->holdback_data_complete = GF_TRUE;
+		return GF_OK;
+	}
+
+	sess->holdback_data_size += size;
+	sess->holdback_data = gf_realloc(sess->holdback_data, sess->holdback_data_size);
+	memcpy(sess->holdback_data + sess->holdback_data_size - size, data, size);
+	return GF_OK;
 }
 
 GF_EXPORT

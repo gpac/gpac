@@ -2334,6 +2334,13 @@ static void httpout_in_io_ex(void *usr_cbk, GF_NETIO_Parameter *parameter, Bool 
 
 		if (in->is_delete) return;
 
+		if (gf_opts_get_bool("core", "no-cte") && cur_header == HTTP_PUT_HEADER_ENCODING) {
+			if (in->mime)
+				*cur_header = HTTP_PUT_HEADER_MIME;
+			else
+				*cur_header = in->write_start_range ? HTTP_PUT_HEADER_RANGE : HTTP_PUT_HEADER_DONE;
+		}
+
 		switch (*cur_header) {
 		case HTTP_PUT_HEADER_ENCODING:
 			parameter->name = "Transfer-Encoding";
@@ -3701,7 +3708,34 @@ session_done:
 static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool for_llhls)
 {
 	Bool res = GF_TRUE;
-	GF_Err e = gf_dm_sess_process(for_llhls ? in->llhls_upload : in->upload);
+	GF_Err e;
+
+	if (!gf_opts_get_bool("core", "no-cte")) {
+		GF_DownloadSession *dls = for_llhls ? in->llhls_upload : in->upload;
+		e = gf_dm_sess_accumulate(dls, NULL, 1); // don't send the data yet
+
+		// write headers
+		e = gf_dm_sess_process(dls);
+		if (e) {
+			if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
+				res = GF_FALSE;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Failed to close output %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+			}
+		}
+
+		// write data
+		e = gf_dm_sess_accumulate(dls, NULL, 0); // now send it
+		if (e) {
+			if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
+				res = GF_FALSE;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Failed to close accumulated output %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+			}
+		}
+	}
+
+	e = gf_dm_sess_process(for_llhls ? in->llhls_upload : in->upload);
 	if (e) {
 		if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
 			res = GF_FALSE;
@@ -3970,14 +4004,15 @@ static void httpout_close_input_llhls(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	in->llhls_is_open = GF_FALSE;
 	//close prev session
-	if (!in->is_h2) {
+	if (!in->is_h2 && !gf_opts_get_bool("core", "no-cte")) {
 		e = gf_dm_sess_send(in->llhls_upload, "0\r\n\r\n", 5);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk of LLHLS part %s: %s\n", in->llhls_url, gf_error_to_string(e) ));
 		}
 	}
 	//signal we're done sending the body
-	gf_dm_sess_send(in->llhls_upload, NULL, 0);
+	if (!gf_opts_get_bool("core", "no-cte"))
+		gf_dm_sess_send(in->llhls_upload, NULL, 0);
 
 	httpout_close_upload(ctx, in, GF_TRUE);
 }
@@ -3994,7 +4029,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	if (in->upload) {
 		GF_Err e;
-		if (!in->is_h2) {
+		if (!in->is_h2 && !gf_opts_get_bool("core", "no-cte")) {
 			e = gf_dm_sess_send(in->upload, "0\r\n\r\n", 5);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk to %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
@@ -4005,7 +4040,8 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 			}
 		}
 		//signal we're done sending the body
-		gf_dm_sess_send(in->upload, NULL, 0);
+		if (!gf_opts_get_bool("core", "no-cte"))
+			gf_dm_sess_send(in->upload, NULL, 0);
 
 		httpout_close_upload(ctx, in, GF_FALSE);
 
@@ -4118,8 +4154,14 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 		if (in->llhls_upload && in->llhls_is_open)
 			max_out = 2;
 
+
 		for (s_idx=0; s_idx<max_out; s_idx++) {
 			GF_DownloadSession *up_sess = s_idx ? in->llhls_upload : in->upload;
+
+			if (gf_opts_get_bool("core", "no-cte")) {
+				gf_dm_sess_accumulate(up_sess, pck_data, pck_size);
+				return pck_size;
+			}
 retry:
 			if (!in->is_h2) {
 				e = gf_dm_sess_send(up_sess, szChunkHdr, chunk_hdr_len);

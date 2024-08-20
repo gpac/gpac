@@ -1538,6 +1538,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("h2-copy", NULL, "enable intermediate copy of data in nghttp2 (default is disabled but may report as broken frames in wireshark)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
 #endif
 
+ GF_DEF_ARG("no-cte", NULL, "disable chunk-transfer encoding", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+
 #ifdef GPAC_HAS_CURL
  GF_DEF_ARG("curl", NULL, "use CURL instead of GPAC HTTP stack", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-h3", NULL, "disable HTTP3 (CURL only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
