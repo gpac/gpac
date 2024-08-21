@@ -5485,7 +5485,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	} else if (!strcmp(req_name, "HEAD")) sess->http_read_type = HEAD;
 	else sess->http_read_type = OTHER;
 
-	if (!strcmp(req_name, "PUT") || !strcmp(req_name, "POST"))
+	if ((!strcmp(req_name, "PUT") || !strcmp(req_name, "POST")) && !gf_opts_get_bool("core", "no-cte"))
 		sess->put_state = 1;
 
 	//note that url is not used for CURL, already setup together with proxy
