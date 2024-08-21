@@ -3874,6 +3874,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 					&& (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
 					&& !sess->dm->disable_http2
 					&& !gf_opts_get_bool("core", "no-h2c")
+					&& 0
 				) {
 					sess->connect_pending = 1;
 					SET_LAST_ERR(GF_IP_NETWORK_EMPTY)
@@ -7738,7 +7739,7 @@ GF_Err gf_dm_sess_accumulate(GF_DownloadSession *sess, const u8 *data, u32 size)
 		return e;
 	}
 
-	if (!data) {
+	if (data == NULL) {
 		sess->holdback_data_complete = GF_TRUE;
 		return GF_OK;
 	}

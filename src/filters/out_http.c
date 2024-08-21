@@ -2334,7 +2334,7 @@ static void httpout_in_io_ex(void *usr_cbk, GF_NETIO_Parameter *parameter, Bool 
 
 		if (in->is_delete) return;
 
-		if (gf_opts_get_bool("core", "no-cte") && cur_header == HTTP_PUT_HEADER_ENCODING) {
+		if (gf_opts_get_bool("core", "no-cte") && *cur_header == HTTP_PUT_HEADER_ENCODING) {
 			if (in->mime)
 				*cur_header = HTTP_PUT_HEADER_MIME;
 			else
@@ -3710,7 +3710,7 @@ static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool f
 	Bool res = GF_TRUE;
 	GF_Err e;
 
-	if (!gf_opts_get_bool("core", "no-cte")) {
+	if (gf_opts_get_bool("core", "no-cte")) {
 		GF_DownloadSession *dls = for_llhls ? in->llhls_upload : in->upload;
 		e = gf_dm_sess_accumulate(dls, NULL, 1); // don't send the data yet
 
