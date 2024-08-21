@@ -267,6 +267,7 @@ struct __gf_download_session
 	void* holdback_data;
 	u32 holdback_data_size;
 	Bool holdback_data_complete;
+	Bool should_holdback_data;
 
 	u64 last_cap_rate_time;
 	u64 last_cap_rate_bytes;
@@ -4358,7 +4359,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 				} else if (sess->status==GF_NETIO_DISCONNECTED) {
 					go = GF_FALSE;
 				}
-			} else if (gf_opts_get_bool("core", "no-cte")) {
+			} else if (sess->should_holdback_data) {
 				go = GF_FALSE;
 			} else if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
 				if (sess->last_error==GF_IP_NETWORK_EMPTY)
@@ -5381,6 +5382,23 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 	}
 }
 
+static Bool http_request_has_body(GF_DownloadSession *sess) {
+	if (sess->user_proc) {
+		GF_NETIO_Parameter par;
+		par.error = GF_OK;
+		par.msg_type = GF_NETIO_GET_METHOD;
+		par.name = NULL;
+		gf_dm_sess_user_io(sess, &par);
+
+		if (!par.name) return GF_FALSE;
+		if (!strcmp(par.name, "GET") || !strcmp(par.name, "HEAD")) return GF_FALSE;
+		return GF_TRUE;
+	}
+
+	if (sess->http_read_type == GET || sess->http_read_type == HEAD) return GF_FALSE;
+	return GF_TRUE;
+}
+
 /*!
  * Sends the HTTP headers
 \param sess The GF_DownloadSession
@@ -5403,7 +5421,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	GF_HTTPHeader *hdr;
 	Bool has_accept, has_connection, has_range, has_agent, has_language, send_profile, has_mime, has_chunk_transfer;
 
-	if (gf_opts_get_bool("core", "no-cte"))
+	if (sess->should_holdback_data)
 		assert (sess->status == GF_NETIO_WAIT_FOR_REPLY);
 	else
 		assert (sess->status == GF_NETIO_CONNECTED);
@@ -5485,7 +5503,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	} else if (!strcmp(req_name, "HEAD")) sess->http_read_type = HEAD;
 	else sess->http_read_type = OTHER;
 
-	if ((!strcmp(req_name, "PUT") || !strcmp(req_name, "POST")) && !gf_opts_get_bool("core", "no-cte"))
+	if ((!strcmp(req_name, "PUT") || !strcmp(req_name, "POST")) && !sess->should_holdback_data)
 		sess->put_state = 1;
 
 	//note that url is not used for CURL, already setup together with proxy
@@ -5580,7 +5598,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		PUSH_HDR("Connection", "Keep-Alive");
 	}
 
-	if (gf_opts_get_bool("core", "no-cte")) {
+	if (sess->should_holdback_data) {
 		gf_assert(sess->holdback_data_size > 0);
 		has_chunk_transfer = GF_FALSE;
 		char size[12];
@@ -7078,12 +7096,16 @@ void http_do_requests(GF_DownloadSession *sess)
 		return;
 	}
 
+	// Check if the request requires holding back the body
+	if (http_request_has_body(sess) && gf_opts_get_bool("core", "no-cte"))
+		sess->should_holdback_data = GF_TRUE;
+
 	switch (sess->status) {
 	case GF_NETIO_CONNECTED:
 		if (sess->server_mode) {
 			wait_for_header_and_parse(sess, sHTTP);
 		} else {
-			if (gf_opts_get_bool("core", "no-cte"))
+			if (sess->should_holdback_data)
 				SET_LAST_ERR(GF_OK)
 			else
 				http_send_headers(sess, sHTTP);
@@ -7094,7 +7116,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			http_send_headers(sess, sHTTP);
 		} else {
 			// We should be done with the request now, so send headers, body and proceed
-			if (gf_opts_get_bool("core", "no-cte") && sess->holdback_data_complete) {
+			if (sess->should_holdback_data && sess->holdback_data_complete) {
 				http_send_headers(sess, sHTTP);
 				gf_dm_sess_send(sess, sess->holdback_data, sess->holdback_data_size);
 			}
@@ -7799,7 +7821,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 	}
 #endif
 
-	if (gf_opts_get_bool("core", "no-cte") && !sess->holdback_data_complete) {
+	if (sess->should_holdback_data && !sess->holdback_data_complete) {
 		if (!data || !size)
 			sess->holdback_data_complete = GF_TRUE;
 
@@ -7837,7 +7859,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 	}
 
 finish:
-	if (gf_opts_get_bool("core", "no-cte")) {
+	if (sess->should_holdback_data) {
 		if (sess->holdback_data) {
 			gf_free(sess->holdback_data);
 			sess->holdback_data = NULL;
