@@ -3874,7 +3874,6 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 					&& (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
 					&& !sess->dm->disable_http2
 					&& !gf_opts_get_bool("core", "no-h2c")
-					&& 0
 				) {
 					sess->connect_pending = 1;
 					SET_LAST_ERR(GF_IP_NETWORK_EMPTY)
@@ -4359,8 +4358,10 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 				} else if (sess->status==GF_NETIO_DISCONNECTED) {
 					go = GF_FALSE;
 				}
+			} else if (gf_opts_get_bool("core", "no-cte")) {
+				go = GF_FALSE;
 			} else if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
-				if (sess->last_error==GF_IP_NETWORK_EMPTY || gf_opts_get_bool("core", "no-cte"))
+				if (sess->last_error==GF_IP_NETWORK_EMPTY)
 					go = GF_FALSE;
 			}
 			break;
@@ -5401,7 +5402,11 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	u32 i, count;
 	GF_HTTPHeader *hdr;
 	Bool has_accept, has_connection, has_range, has_agent, has_language, send_profile, has_mime, has_chunk_transfer;
-	assert (sess->status == GF_NETIO_CONNECTED);
+
+	if (gf_opts_get_bool("core", "no-cte"))
+		assert (sess->status == GF_NETIO_WAIT_FOR_REPLY);
+	else
+		assert (sess->status == GF_NETIO_CONNECTED);
 
 	gf_dm_sess_clear_headers(sess);
 	gf_assert(sess->remaining_data_size == 0);
@@ -5575,6 +5580,13 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		PUSH_HDR("Connection", "Keep-Alive");
 	}
 
+	if (gf_opts_get_bool("core", "no-cte")) {
+		gf_assert(sess->holdback_data_size > 0);
+		has_chunk_transfer = GF_FALSE;
+		char size[12];
+		sprintf(size, "%d", sess->holdback_data_size);
+		PUSH_HDR("Content-Length", size);
+	}
 
 	if (has_chunk_transfer
 #ifdef GPAC_HAS_HTTP2
@@ -5583,12 +5595,6 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	) {
 		PUSH_HDR("Transfer-Encoding", "chunked");
 		sess->chunked = GF_TRUE;
-	}
-
-	if (gf_opts_get_bool("core", "no-cte") && sess->holdback_data_size) {
-		char size[12];
-		sprintf(size, "%d", sess->holdback_data_size);
-		PUSH_HDR("Content-Length", size);
 	}
 
 	if (!has_range && sess->needs_range) {
@@ -7076,14 +7082,22 @@ void http_do_requests(GF_DownloadSession *sess)
 	case GF_NETIO_CONNECTED:
 		if (sess->server_mode) {
 			wait_for_header_and_parse(sess, sHTTP);
-		} else if (!gf_opts_get_bool("core", "no-cte") || sess->holdback_data_complete) {
-			http_send_headers(sess, sHTTP);
+		} else {
+			if (gf_opts_get_bool("core", "no-cte"))
+				SET_LAST_ERR(GF_OK)
+			else
+				http_send_headers(sess, sHTTP);
 		}
 		break;
 	case GF_NETIO_WAIT_FOR_REPLY:
 		if (sess->server_mode) {
 			http_send_headers(sess, sHTTP);
 		} else {
+			// We should be done with the request now, so send headers, body and proceed
+			if (gf_opts_get_bool("core", "no-cte") && sess->holdback_data_complete) {
+				http_send_headers(sess, sHTTP);
+				gf_dm_sess_send(sess, sess->holdback_data, sess->holdback_data_size);
+			}
 			wait_for_header_and_parse(sess, sHTTP);
 		}
 		break;
@@ -7728,28 +7742,6 @@ u32 gf_dm_sess_async_pending(GF_DownloadSession *sess)
 	return sess ? sess->async_buf_size : 0;
 }
 
-GF_Err gf_dm_sess_accumulate(GF_DownloadSession *sess, const u8 *data, u32 size)
-{
-	if (size == 0) {
-		GF_Err e = gf_dm_sess_send(sess, sess->holdback_data, sess->holdback_data_size);
-		gf_free(sess->holdback_data);
-		sess->holdback_data = NULL;
-		sess->holdback_data_size = 0;
-		sess->holdback_data_complete = GF_FALSE;
-		return e;
-	}
-
-	if (data == NULL) {
-		sess->holdback_data_complete = GF_TRUE;
-		return GF_OK;
-	}
-
-	sess->holdback_data_size += size;
-	sess->holdback_data = gf_realloc(sess->holdback_data, sess->holdback_data_size);
-	memcpy(sess->holdback_data + sess->holdback_data_size - size, data, size);
-	return GF_OK;
-}
-
 GF_EXPORT
 GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 {
@@ -7807,8 +7799,20 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 	}
 #endif
 
+	if (gf_opts_get_bool("core", "no-cte") && !sess->holdback_data_complete) {
+		if (!data || !size)
+			sess->holdback_data_complete = GF_TRUE;
+
+		if (!sess->holdback_data_complete) {
+			sess->holdback_data_size += size;
+			sess->holdback_data = gf_realloc(sess->holdback_data, sess->holdback_data_size);
+			memcpy(sess->holdback_data + sess->holdback_data_size - size, data, size);
+			return GF_OK;
+		}
+	}
+
 	if (!data || !size) {
-		if (sess->put_state) {
+		if (sess->put_state || sess->holdback_data_complete) {
 			sess->put_state = 2;
 			sess->status = GF_NETIO_WAIT_FOR_REPLY;
 			return GF_OK;
@@ -7821,14 +7825,27 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 	if (e==GF_IP_CONNECTION_CLOSED) {
 		sess_connection_closed(sess);
 		sess->status = GF_NETIO_STATE_ERROR;
-		return e;
+		goto finish;
 	}
 	else if (e==GF_IP_NETWORK_EMPTY) {
-		if (sess->flags & GF_NETIO_SESSION_NO_BLOCK)
-			return GF_OK;
+		if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
+			e = GF_OK;
+			goto finish;
+		}
 
 		return gf_dm_sess_send(sess, data, size);
 	}
+
+finish:
+	if (gf_opts_get_bool("core", "no-cte")) {
+		if (sess->holdback_data) {
+			gf_free(sess->holdback_data);
+			sess->holdback_data = NULL;
+			sess->holdback_data_size = 0;
+		}
+		sess->holdback_data_complete = GF_FALSE;
+	}
+
 	return e;
 }
 

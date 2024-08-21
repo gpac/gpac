@@ -400,16 +400,6 @@ Fetches the session object (process all headers and data transfer). This is only
 GF_Err gf_dm_sess_process(GF_DownloadSession *sess);
 
 /*!
-\brief accumulate data in session
-
-Accumulates data in the session. This is only usable if the session is not using CTE
-\param sess the download session
-\param data the data to accumulate
-\param size the size of the data
-\return the last error in the session or 0 if none*/
-GF_Err gf_dm_sess_accumulate(GF_DownloadSession *sess, const u8 *data, u32 size);
-
-/*!
 \brief fetch session object headers
 
 Fetch the session object headers and stops after that. This is only usable if the session is not threaded
