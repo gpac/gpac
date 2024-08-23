@@ -9,14 +9,14 @@ extern "C" {
 #include <gpac/list.h>
 
 typedef struct {
-    u32 timescale;
-    u64 pts;
-    u32 scheme_uri_length;
-    char* scheme_uri;
-    u32 value_uri_length;
-    char* value_uri;
-    u32 data_length;
-    u8* data;
+	u32 timescale;
+	u64 pts;
+	u32 scheme_uri_length;
+	char* scheme_uri;
+	u32 value_uri_length;
+	char* value_uri;
+	u32 data_length;
+	u8* data;
 } GF_ID3_TAG;
 
 GF_Err gf_id3_tag_new(GF_ID3_TAG *tag, u32 timescale, u64 pts, u8 *data, u32 data_length);

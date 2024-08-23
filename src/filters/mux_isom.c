@@ -417,7 +417,8 @@ typedef struct
 	Bool has_chap_tracks;
 
 	GF_List *ref_pcks;
-	//create id3 secuence
+
+	//create id3 sequence
 	u32 id3_id_sequence;
 	GF_PropertyValue *last_id3_processed;
 } GF_MP4MuxCtx;
