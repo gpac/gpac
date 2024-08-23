@@ -573,6 +573,21 @@ static GF_Err gf_mpd_parse_content_component(GF_List *comps, GF_XMLNode *root)
 	return GF_OK;
 }
 
+static GF_Err gf_mpd_parse_inband_event(GF_List *comps, GF_XMLNode *root) {
+    u32 i;
+    GF_XMLAttribute *att;
+    GF_MPD_Inband_Event *ibe;
+    GF_SAFEALLOC(ibe, GF_MPD_Inband_Event);
+    if (!ibe) return GF_OUT_OF_MEM;
+    i = 0;
+    while ((att = gf_list_enum(root->attributes, &i))) {
+        if (!strcmp(att->name, "schemeIdUri")) ibe->scheme_id_uri = gf_strdup(att->value);
+        else if (!strcmp(att->name, "value")) ibe->value = gf_strdup(att->value);
+
+    }
+    gf_list_add(comps, ibe);
+    return GF_OK;
+}
 
 static GF_Err gf_mpd_parse_descriptor_ex(GF_List *container, GF_MPD_Descriptor **out_ptr, GF_XMLNode *root)
 {
@@ -895,6 +910,7 @@ GF_MPD_AdaptationSet *gf_mpd_adaptation_set_new() {
 	set->rating = gf_list_new();
 	set->viewpoint = gf_list_new();
 	set->content_component = gf_list_new();
+    set->inband_event = gf_list_new();
 	set->base_URLs = gf_list_new();
 	set->representations = gf_list_new();
 	GF_SAFEALLOC(set->par, GF_MPD_Fractional);
@@ -975,8 +991,10 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(child->name, "ContentComponent")) {
 			e = gf_mpd_parse_content_component(set->content_component, child);
 			if (e) return e;
-		}
-		else if (!strcmp(child->name, "SegmentBase")) {
+		} else if(!strcmp(child->name, "InbandEventStream")) {
+            e = gf_mpd_parse_inband_event(set->inband_event, child);
+            if (e) return e;
+        } else if (!strcmp(child->name, "SegmentBase")) {
 			set->segment_base = gf_mpd_parse_segment_base(mpd, child);
 		}
 		else if (!strcmp(child->name, "SegmentList")) {
@@ -1228,6 +1246,13 @@ void gf_mpd_content_component_free(void *item)
 	gf_free(item);
 }
 
+void gf_mpd_inband_event_free(void *item) {
+    GF_MPD_Inband_Event *inband_event_desc = (GF_MPD_Inband_Event *) item;
+    if (inband_event_desc->scheme_id_uri) gf_free(inband_event_desc->scheme_id_uri);
+    if (inband_event_desc->value) gf_free(inband_event_desc->value);
+    gf_free(item);
+}
+
 void gf_mpd_producer_reftime_free(void *item)
 {
 	GF_MPD_ProducerReferenceTime *pref=(GF_MPD_ProducerReferenceTime*) item;
@@ -1326,6 +1351,7 @@ void gf_mpd_adaptation_set_free(void *_item)
 	gf_mpd_del_list(ptr->rating, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->viewpoint, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->content_component, gf_mpd_content_component_free, 0);
+    if (ptr->inband_event) gf_mpd_del_list(ptr->inband_event, gf_mpd_inband_event_free, 0);
 	if (ptr->segment_base) gf_mpd_segment_base_free(ptr->segment_base);
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
@@ -1620,6 +1646,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 		set->rating = gf_list_new();
 		set->viewpoint = gf_list_new();
 		set->content_component = gf_list_new();
+        set->inband_event = gf_list_new();
 		set->base_URLs = gf_list_new();
 		set->representations = gf_list_new();
 		/*assign default ID and group*/
@@ -3066,6 +3093,16 @@ static void gf_mpd_print_content_component(FILE *out, GF_List *content_component
 	}
 }
 
+static void gf_mpd_print_inband_event(FILE *out, GF_List *inband_event, s32 indent) {
+    u32 i = 0;
+    GF_MPD_Inband_Event *ibe;
+    while ((ibe = gf_list_enum(inband_event, &i))) {
+        gf_mpd_nl(out, indent);
+        gf_fprintf(out, "<InbandEventStream schemeIdUri=\"%s\" value=\"%s\"/>", ibe->scheme_id_uri, ibe->value);
+        gf_mpd_lf(out, indent);
+    }
+}
+
 static void gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *ca)
 {
 	if (ca->profiles) {
@@ -3418,6 +3455,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet *as, FILE *out, Boo
 	gf_mpd_print_descriptors(out, as->rating, "Rating", indent+1, as->x_children, &child_idx);
 	gf_mpd_print_descriptors(out, as->viewpoint, "Viewpoint", indent+1, as->x_children, &child_idx);
 	gf_mpd_print_content_component(out, as->content_component, indent+1);
+    gf_mpd_print_inband_event(out, as->inband_event, indent + 1);
 
 	if (as->segment_base) {
 		gf_mpd_extensible_print_nodes(out, as->x_children, indent, &child_idx, GF_FALSE);
@@ -5551,6 +5589,7 @@ static GF_Err smooth_parse_stream_index(GF_MPD *mpd, GF_List *container, GF_XMLN
     set->rating = gf_list_new();
     set->viewpoint = gf_list_new();
     set->content_component = gf_list_new();
+    set->inband_event = gf_list_new();
     set->base_URLs = gf_list_new();
     set->representations = gf_list_new();
     set->segment_alignment = GF_TRUE;
