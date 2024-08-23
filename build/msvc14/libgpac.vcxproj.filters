@@ -201,6 +201,9 @@
     <ClInclude Include="..\..\src\compositor\visual_manager_3d.h">
       <Filter>compositor</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\media_tools\id3.h">
+      <Filter>media_tools</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\media_tools\mpeg2_ps.h">
       <Filter>media_tools</Filter>
     </ClInclude>
@@ -813,6 +816,9 @@
       <Filter>media_tools</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\gpac_ogg.c">
+      <Filter>media_tools</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\media_tools\id3.c">
       <Filter>media_tools</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\img.c">
