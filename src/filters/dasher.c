@@ -3011,7 +3011,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 		}
 
 		//add custom inband event in manifest 
-		if (ctx->inband_event ) {
+		if (ctx->inband_event) {
 			dasher_add_inband_event(ds);
 		}
 	}

@@ -420,7 +420,7 @@ typedef struct
 
 	//create id3 sequence
 	u32 id3_id_sequence;
-	GF_PropertyValue *last_id3_processed;
+	const GF_PropertyValue *last_id3_processed;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
