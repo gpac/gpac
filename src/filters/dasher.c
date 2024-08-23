@@ -316,6 +316,7 @@ typedef struct
 
 	Bool move_to_static;
 	Bool explicit_mode;
+    Bool inband_event;
 } GF_DasherCtx;
 
 typedef enum
@@ -2865,6 +2866,24 @@ static void dasher_add_descriptors(GF_List **p_dst_list, const GF_PropertyValue 
 	}
 }
 
+static void dasher_set_inband_event(GF_DashStream *ds) {
+	GF_MPD_Inband_Event *nielsen_event;
+	GF_MPD_Inband_Event *custom_event;
+	if(ds->stream_type == GF_STREAM_AUDIO) {
+		GF_SAFEALLOC(custom_event, GF_MPD_Inband_Event);
+		custom_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
+		custom_event->value = gf_strdup("https://aomedia.org/emsg/ID3");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] insertign in band event with scheme: %s and value: %s\n", custom_event->scheme_id_uri,custom_event->value))
+		GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
+		nielsen_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
+		nielsen_event->value = gf_strdup("www.nielsen.com:id3:v1");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] insertign in band event with scheme: %s and value: %s\n", nielsen_event->scheme_id_uri,nielsen_event->value))
+		gf_list_add(ds->set->inband_event, nielsen_event);
+		gf_list_add(ds->set->inband_event, custom_event);
+	}
+
+}
+
 static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, count;
@@ -2987,6 +3006,9 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->supplemental_properties, desc);
 			}
+		}
+		if (ctx->inband_event ) {
+			dasher_set_inband_event(ds);
 		}
 	}
 	if (ctx->check_main_role && !main_role_set) {
@@ -4046,6 +4068,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if ((ds->codec_id==GF_CODECID_VVC) && (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS))
 				ds->inband_params = 2;
 		}
+
 
 		//if bitstream switching and templating, only set for the first one
 		if (i && set->bitstream_switching && ds->stl && single_template) continue;
@@ -10826,6 +10849,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+    { OFFS(inband_event), "testing: insert a default inband event stream in the DASh manifest", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
