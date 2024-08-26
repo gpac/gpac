@@ -10073,6 +10073,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 	void *new_frags = gf_realloc(sctx->frags, sizeof (GF_DASH_FragmentContext) * (sctx->nb_frags+1));
 	if (!new_frags) {
 		gf_free(sctx->frags);
+		sctx->frags = NULL;
 		sctx->nb_frags = 0;
 		return;
 	}
