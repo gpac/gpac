@@ -10083,11 +10083,14 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received segment size info event but no pending segments\n"));
 		return;
 	}
-	sctx->frags = gf_realloc(sctx->frags, sizeof (GF_DASH_FragmentContext) * (sctx->nb_frags+1));
-	if (!sctx->frags) {
+	void *new_frags = gf_realloc(sctx->frags, sizeof (GF_DASH_FragmentContext) * (sctx->nb_frags+1));
+	if (!new_frags) {
+		gf_free(sctx->frags);
+		sctx->frags = NULL;
 		sctx->nb_frags = 0;
 		return;
 	}
+	sctx->frags = (GF_DASH_FragmentContext *)new_frags;
 	sctx->frags[sctx->nb_frags].size = evt->frag_size.size;
 	sctx->frags[sctx->nb_frags].offset = evt->frag_size.offset;
 	if (evt->frag_size.duration.den) {
