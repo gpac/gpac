@@ -3240,6 +3240,11 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 			GF_CENCSampleAuxInfo *sai = gf_list_pop_front(trak->sample_encryption->samp_aux_info);
 			gf_isom_cenc_samp_aux_info_del(sai);
 		}
+		if (stbl->SampleRefs) {
+			GF_SampleRefEntry *ent = gf_list_pop_front(stbl->SampleRefs->entries);
+			if (ent->sample_refs) gf_free(ent->sample_refs);
+			gf_free(ent);
+		}
 		nb_samples--;
 	}
 	return GF_OK;
@@ -3317,6 +3322,10 @@ static void gf_isom_recreate_tables(GF_TrackBox *trak)
 		stbl->TimeToSample->r_FirstSampleInEntry = 0;
 		stbl->TimeToSample->r_currentEntryIndex = 0;
 		stbl->TimeToSample->r_CurrentDTS = 0;
+	}
+	if (stbl->SampleRefs) {
+		gf_isom_box_del_parent(&stbl->child_boxes, (GF_Box *)stbl->SampleRefs);
+		stbl->SampleRefs = NULL;
 	}
 
 	gf_isom_box_array_del_parent(&stbl->child_boxes, stbl->sai_offsets);
@@ -3652,7 +3661,7 @@ static void gf_isom_gen_desc_get_dsi(GF_GenericSampleDescription *udesc, GF_List
 		if (a->type == GF_ISOM_BOX_TYPE_UNKNOWN) break;
 		a = NULL;
 	}
-	if (!a) return;
+	if (!a || !a->data || !a->dataSize) return;
 	udesc->extension_buf = (char*)gf_malloc(sizeof(char) * a->dataSize);
 	if (udesc->extension_buf) {
 		udesc->extension_buf_size = a->dataSize;
@@ -6533,4 +6542,25 @@ GF_Err gf_isom_switch_source(GF_ISOFile *the_file, const char *new_file)
 	return gf_isom_datamap_new(new_file, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &the_file->movieFileMap);
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_sample_references(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *ID, u32 *nb_refs, const u32 **refs)
+{
+	GF_TrackBox *trak;
+	*ID = *nb_refs = 0;
+	*refs = NULL;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !sampleNumber) return GF_BAD_PARAM;
+	if (!trak->Media->information->sampleTable->SampleRefs) return GF_NOT_FOUND;
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNumber <= trak->sample_count_at_seg_start)
+		return GF_BAD_PARAM;
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
+	GF_SampleRefEntry *ent = gf_list_get(trak->Media->information->sampleTable->SampleRefs->entries, sampleNumber-1);
+	*ID = ent->sampleID;
+	*nb_refs = ent->nb_refs;
+	*refs = ent->sample_refs;
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM*/

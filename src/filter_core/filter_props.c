@@ -1758,11 +1758,11 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_VIEW_IDX, "ViewIdx", "View index for multiview (1 being left)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_ORIG_FRAG_URL, "FragURL", "Fragment URL (without '#') of original URL (used by some filters to set the property on media PIDs)", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 
-	DEC_PROP_F( GF_PROP_PID_ROUTE_IP, "ROUTEIP", "ROUTE session IP address", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_ROUTE_PORT, "ROUTEPort", "ROUTE session port number", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_ROUTE_NAME, "ROUTEName", "Name (location) of raw file to advertise in ROUTE session", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_ROUTE_CAROUSEL, "ROUTECarousel", "Carousel period in seconds of raw file in ROUTE session", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_ROUTE_SENDTIME, "ROUTEUpload", "Upload time in seconds of raw file in ROUTE session", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_MCAST_IP, "MCASTIP", "session Multicast IP address for ROUTE/MABR", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_MCAST_PORT, "MCASTPort", "session port number for ROUTE/MABR", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_MCAST_NAME, "MCASTName", "Name (location) of raw file to advertise in ROUTE/MABR session", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_MCAST_CAROUSEL, "MCASTCarousel", "Carousel period in seconds of raw file or low-latency manifest/init segments for ROUTE/MABR sessions", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_MCAST_SENDTIME, "MCASTUpload", "Upload time in seconds of raw files for ROUTE/MABR sessions", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM),
 
 	DEC_PROP_F( GF_PROP_PID_STEREO_TYPE, "Stereo", "Stereo type of video", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_PROJECTION_TYPE, "Projection", "Projection type of video", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
@@ -1801,6 +1801,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_HAS_TEMI, "HasTemi", "TEMI present flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_XPS_MASK, "XPSMask", "Parameter set mask", GF_PROP_UINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PCK_END_RANGE, "RangeEnd", "Signal packet is the last in the desired play range", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_ID, "RefID", "packet identifier for dependency (usually POC for video)", GF_PROP_SINT, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_REFS, "Refs", "list of packet identifier this packet depends on", GF_PROP_SINT_LIST, GF_PROP_FLAG_PCK),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);

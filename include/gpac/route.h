@@ -63,7 +63,7 @@ typedef struct __gf_routedmx GF_ROUTEDmx;
 /*!The types of events used to communicate withe the demuxer user.*/
 typedef enum
 {
-	/*! A new service detected, service ID is in evt_param, no file info*/
+	/*! A new service is detected, service ID is in evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_FOUND = 0,
 	/*! Service scan completed, no evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_SCAN,
@@ -76,7 +76,7 @@ typedef enum
 	/*! Segment reception, identified through a file template, service ID is in evt_param*/
 	GF_ROUTE_EVT_DYN_SEG,
     /*! fragment reception (part of a segment), identified through a file template, service ID is in evt_param
-     \note The data is always beginning at the start of the object
+     \note The data always begins at the start of the object
     */
     GF_ROUTE_EVT_DYN_SEG_FRAG,
     /*! Object deletion (only for dynamic TOIs), used to notify the cache that an object is no longer available. File info only contains the filename being removed*/
@@ -120,9 +120,9 @@ typedef enum
 {
 	/* object is done receiving*/
 	GF_LCTO_PARTIAL_NONE=0,
-	/* object data being notfied is the begining of the payload*/
+	/* object data being notified is the begining of the payload*/
 	GF_LCTO_PARTIAL_BEGIN,
-	/* object data being notfied is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
+	/* object data being notified is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
 	GF_LCTO_PARTIAL_ANY,
 } GF_LCTObjectPartial;
 
@@ -347,7 +347,7 @@ u64 gf_route_dmx_get_nb_packets(GF_ROUTEDmx *routedmx);
  */
 u64 gf_route_dmx_get_recv_bytes(GF_ROUTEDmx *routedmx);
 
-/*! Gather only  objects with given TSI (for debug purposes)
+/*! Gather only objects with given TSI (for debug purposes)
 \param routedmx the ROUTE demultiplexer
 \param tsi the target TSI, 0 for no filtering
  */

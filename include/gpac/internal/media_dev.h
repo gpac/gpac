@@ -367,7 +367,11 @@ typedef struct
 {
 	u32 num_negative_pics;
 	u32 num_positive_pics;
-	s32 delta_poc[16];
+	s32 delta_poc[32];
+	u8 used_by_curr_pic[32];
+	u32 modif_idx_l0[32];
+	u32 modif_idx_l1[32];
+	u8 modif_flag_l0, modif_flag_l1;
 } HEVC_ReferencePictureSets;
 
 typedef struct
@@ -392,7 +396,7 @@ typedef struct
 	u32 bitsSliceSegmentAddress;
 
 	u32 num_short_term_ref_pic_sets, num_long_term_ref_pic_sps;
-	HEVC_ReferencePictureSets rps[64];
+	HEVC_ReferencePictureSets rps[65];
 
 
 	Bool aspect_ratio_info_present_flag, long_term_ref_pics_present_flag, temporal_mvp_enable_flag, sample_adaptive_offset_enabled_flag;
@@ -448,7 +452,7 @@ typedef struct
 
 	Bool deblocking_filter_control_present_flag, pic_disable_deblocking_filter_flag, pic_scaling_list_data_present_flag;
 	u32 beta_offset_div2, tc_offset_div2, log2_parallel_merge_level_minus2;
-
+	Bool curr_pic_ref_enabled_flag;
 } HEVC_PPS;
 
 typedef struct RepFormat
@@ -545,6 +549,13 @@ typedef struct
 
 	HEVC_SPS *sps;
 	HEVC_PPS *pps;
+
+	HEVC_ReferencePictureSets *st_rps;
+	u32 num_ref_idx_l0_active, num_ref_idx_l1_active;
+	u32 nb_lt_ref_pics;
+
+	u32 nb_reference_pocs;
+	s32 reference_pocs[30];
 } HEVCSliceInfo;
 
 typedef struct _hevc_state
@@ -630,7 +641,7 @@ typedef struct
 
 	u8 ref_pic_type[VVC_MAX_REF_PICS];
 //	u32 ref_pic_id[VVC_MAX_REF_PICS];
-//	s32 poc[VVC_MAX_REF_PICS];
+	s32 poc_delta[VVC_MAX_REF_PICS];
 //	u32 nb_active_pics;
 //	u8 delta_poc_msb_present[VVC_MAX_REF_PICS];
 //	s32 delta_poc_msb_cycle_lt[VVC_MAX_REF_PICS];
@@ -805,12 +816,17 @@ typedef struct
 	VVC_RefPicList ph_rpl[2];
 	s32 ph_rpl_idx[2];
 
-	//slive RPL state
+	//slice RPL state
 	VVC_RefPicList rpl[2];
 	s32 rpl_idx[2];
+	u32 num_ref_idx_active[2];
 
 	//slice header size in bytes
 	u32 payload_start_offset;
+
+	u32 nb_lt_or_il_pics;
+	u32 nb_reference_pocs;
+	u32 reference_pocs[17];
 } VVCSliceInfo;
 
 /*TODO once we add HLS parsing (FDIS) */

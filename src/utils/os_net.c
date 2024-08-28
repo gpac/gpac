@@ -3032,7 +3032,7 @@ static u32 inet_addr_from_name(const char *local_interface)
 		return 0xFFFFFFFF;
 	}
 	if (!ret) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] Interface %s found but has no IPv4 addressing, using INADRR_ANY\n", local_interface));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] Interface %s found but has no IPv4 addressing, using INADDR_ANY\n", local_interface));
 		return htonl(INADDR_ANY);
 	}
 	return ret;
@@ -3116,6 +3116,41 @@ Bool gf_net_enum_interfaces(gf_net_ifce_enum do_enum, void *enum_cbk)
 	return GF_TRUE;
 #endif
 	return GF_FALSE;
+}
+
+typedef struct
+{
+	const char *ip_or_name;
+	char *res_v6, *res_v4;
+} GetIPInfo;
+
+static Bool get_ifce_enum(void *cbk, const char *name, const char *IP, u32 flags)
+{
+	GetIPInfo *info = (GetIPInfo*)cbk;
+	if (strcmp(info->ip_or_name, name) && strcmp(info->ip_or_name, IP)) return GF_FALSE;
+	if (flags & GF_NETIF_IPV6) {
+		if (!info->res_v6) info->res_v6 = gf_strdup(IP);
+	} else {
+		if (!info->res_v4) info->res_v4 = gf_strdup(IP);
+	}
+	return GF_FALSE;
+}
+
+Bool gf_net_get_adapter_ip(const char *ip_or_name, char **ipv4, char **ipv6)
+{
+	GetIPInfo info;
+	info.ip_or_name = ip_or_name;
+	info.res_v4 = info.res_v6 = NULL;
+	if (ipv4) *ipv4 = NULL;
+	if (ipv6) *ipv6 = NULL;
+	if (!ip_or_name) return GF_FALSE;
+	Bool res = gf_net_enum_interfaces(get_ifce_enum, &info);
+	if (!res) return GF_FALSE;
+	if (ipv4) *ipv4 = info.res_v4;
+	else if (info.res_v4) gf_free(info.res_v4);
+	if (ipv6) *ipv6 = info.res_v6;
+	else if (info.res_v6) gf_free(info.res_v6);
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -4222,6 +4257,64 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 #endif
 
 	return GF_OK;
+}
+
+
+GF_EXPORT
+char *gf_net_bump_ip_address(const char *in_ip, u32 increment)
+{
+	if (!in_ip) return NULL;
+	if (!gf_sk_is_multicast_address(in_ip)) return NULL;
+	if (!increment) return gf_strdup(in_ip);
+
+	u32 new_range=0;
+	
+	char *alloc_ip=NULL;
+	if (!strnicmp(in_ip, "ff", 2)) {
+		char *add_end = strstr(in_ip, "::");
+		if (!add_end) add_end = 1 + strrchr(in_ip, ':');
+		else add_end+=2;
+		char *sep2 = strrchr(add_end, '/');
+		if (sep2) sep2[0] = 0;
+		u32 inc;
+		if (!add_end[0]) {
+			inc = 0;
+			gf_dynstrcat(&alloc_ip, in_ip, NULL);
+		} else {
+			char c = add_end[0];
+			add_end[0] = 0;
+			gf_dynstrcat(&alloc_ip, in_ip, NULL);
+			add_end[0] = c;
+			inc = atoi(add_end);
+		}
+		new_range = inc + increment;
+		char val[10];
+		sprintf(val, ".%u", new_range);
+		add_end[0] = 0;
+		gf_dynstrcat(&alloc_ip, val, NULL);
+		if (sep2) {
+			sep2[0] = '/';
+			gf_dynstrcat(&alloc_ip, sep2, NULL);
+		}
+	} else {
+		char *sep = strrchr(in_ip, '.');
+		sep[0]  =0;
+		u32 inc = atoi(sep+1);
+		new_range = inc + increment;
+		char val[10];
+		sep[0] = 0;
+		gf_dynstrcat(&alloc_ip, in_ip, NULL);
+		sep[0] = '.';
+		sprintf(val, ".%u", new_range);
+		gf_dynstrcat(&alloc_ip, val, NULL);
+	}
+	if (!alloc_ip) return NULL;
+	if (new_range>0xFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IP] Dumping IP address beyond 0xFF is not supported\n"));
+		gf_free(alloc_ip);
+		return NULL;
+	}
+	return alloc_ip;
 }
 
 #else

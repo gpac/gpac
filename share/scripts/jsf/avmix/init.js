@@ -1024,7 +1024,7 @@ filter.process = function()
 		}
 		//audio ahead of next video frame, don't do audio - if not generating video, do nothing 
 		if (!do_video && (!audio_playing || (audio_time * video_timescale > (video_time+video_time_inc) * audio_timescale))) {
-			//notfiy we are still alive
+			//notify we are still alive
 			filter.reschedule(0);
 			if (filter.live) {
 				let now = sys.clock_us();

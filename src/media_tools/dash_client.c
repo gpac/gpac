@@ -451,6 +451,8 @@ struct __dash_group
 	u32 sidx_start;
 	GF_MPD_Representation *pending_sidx_rep;
 	u32 last_error_time;
+
+	u32 hls_start_num;
 };
 
 //wait time before requesting again a M3U8 child playlist update when something goes wrong during the update: either same file or the expected next segment is not there
@@ -1863,6 +1865,11 @@ static u64 gf_dash_get_segment_start_time_with_timescale(GF_DASH_Group *group, u
 		period, set, rep,
 		&start_time, segment_duration, scale);
 
+	//adjust start time for HLS, assuming roughly constant duration
+	if (group->hls_start_num && segment_duration) {
+		start_time += group->hls_start_num * (*segment_duration);
+	}
+
 	if (current_pto) {
 		u32 pto_ts=1;
 		if (period->segment_list && period->segment_list->presentation_time_offset) {
@@ -3150,6 +3157,7 @@ process_m3u8_manifest:
 						//it is recomputed below for low-latency cases
 						if (group->download_segment_index) {
 							group->download_segment_index--;
+							group->hls_start_num++;
 						}
 					}
 				} else {
@@ -3514,8 +3522,13 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		return e;
 	}
 	//hacky, HLS does not carry startNumber info which can be needed when forwarding files - assume 1
-	if (group->dash->is_m3u8 && out_start_number && ! *out_start_number)
-		*out_start_number = 1;
+	if (group->dash->is_m3u8 && out_start_number && ! *out_start_number) {
+		if (!group->hls_start_num) {
+			char *template = gf_dash_group_get_template(group->dash, gf_list_find(group->dash->groups, group), NULL, NULL, NULL);
+			if (template) gf_free(template);
+		}
+		*out_start_number = group->hls_start_num ? group->hls_start_num : 1;
+	}
 
 	if (*out_url && data_url_process && !strncmp(*out_url, "data:", 5)) {
 		char *sep;
@@ -7152,10 +7165,17 @@ llhls_rety:
 							dash->force_mpd_update = GF_TRUE;
 							group->time_at_first_reload_required = now;
 						}
+						if (dash->mcast_clock_state) {
+							const char *hdr = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-mcast-over");
+							if (hdr && !strcmp(hdr, "yes")) {
+								gf_dash_mark_group_done(group);
+							}
+							return GF_DASH_DownloadCancel;
+						}
 
 						//use group last modification time
 						timer = now - group->last_mpd_change_time;
-						if (timer < group->segment_duration * 4000) {
+						if (timer < group->segment_duration * 2000) {
 							//no more segment, force a manifest update now
 							dash->force_mpd_update = GF_TRUE;
 						} else {
@@ -10360,10 +10380,20 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx, u32 *segment_time
 		if (!last_non_num || (last_num>=last_non_num+1)) {
 			u32 num;
 			char szVal[100];
-			solved_template[last_num] = 0;
-			num = atoi(solved_template+last_non_num+1);
+			if (len > last_num + 1)
+				solved_template[last_num+1] = 0;
+			num = atoi(solved_template + (last_non_num ? (last_non_num+1) : 0));
 			snprintf(szVal, 100, "%u", num);
 			len = (u32) strlen(szVal);
+
+			if (!group->hls_start_num)
+				group->hls_start_num = num;
+
+			if (!last_non_num)
+				solved_template[0] = 0;
+			else
+				solved_template[last_non_num+1] = 0;
+
 			if (len < last_num - last_non_num) {
 				u32 pad = last_num - last_non_num - len;
 				snprintf(szVal, 100, "$Number%%0%dd$", pad);

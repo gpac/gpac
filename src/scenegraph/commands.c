@@ -729,6 +729,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		/*attribute modif*/
 		else if (inf->field_ptr) {
 			GF_FieldInfo a, b;
+			memset(&a, 0, sizeof(GF_FieldInfo));
+			memset(&b, 0, sizeof(GF_FieldInfo));
 			if (inf->fieldIndex==(u32) -2) {
 				GF_Point2D scale, translate;
 				Fixed rotate;
@@ -817,6 +819,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			}
 		} else if (com->fromNodeID) {
 			GF_FieldInfo a, b;
+			memset(&a, 0, sizeof(GF_FieldInfo));
+			memset(&b, 0, sizeof(GF_FieldInfo));
 			GF_Node *fromNode = gf_sg_find_node(graph, com->fromNodeID);
 			if (!fromNode) return GF_NON_COMPLIANT_BITSTREAM;
 			if (gf_node_get_field(fromNode, com->fromFieldIndex, &b) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;

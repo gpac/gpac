@@ -9222,5 +9222,61 @@ GF_Err gf_isom_set_sample_description_restricted(GF_ISOFile *movie, u32 trackNum
 	return GF_OK;
 }
 
+GF_Err isom_sample_refs_push(GF_SampleReferences *sref, s32 refID, u32 nb_refs, s32 *refs)
+{
+	GF_SampleRefEntry *ent;
+	GF_SAFEALLOC(ent, GF_SampleRefEntry);
+	if (!ent) return GF_OUT_OF_MEM;
+	refID += sref->id_shift;
+	if (refID<0) {
+		u32 new_shift = -refID;
+		sref->id_shift += -refID;
+		refID = 0;
+		u32 i, j, count = gf_list_count(sref->entries);
+		for (i=0; i<count; i++) {
+			GF_SampleRefEntry *a = gf_list_get(sref->entries, i);
+			a->sampleID += new_shift;
+			for (j=0; j<a->nb_refs; j++)
+				a->sample_refs[j] += new_shift;
+		}
+	}
+
+	ent->sampleID = refID;
+	if (nb_refs) {
+		u32 j;
+		ent->nb_refs = nb_refs;
+		ent->sample_refs = gf_malloc(sizeof(u32)*nb_refs);
+		memcpy(ent->sample_refs, refs, sizeof(s32)*nb_refs);
+		if (sref->id_shift) {
+			for (j=0; j<ent->nb_refs; j++)
+				ent->sample_refs[j] += sref->id_shift;
+		}
+	}
+	return gf_list_add(sref->entries, ent);
+}
+
+GF_Err gf_isom_set_sample_references(GF_ISOFile *file, u32 track, u32 sampleNumber, s32 refID, u32 nb_refs, s32 *refs)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleTableBox *stbl;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+	stbl = trak->Media->information->sampleTable;
+	if (sampleNumber != stbl->SampleSize->sampleCount)
+		return GF_BAD_PARAM;
+
+	if (!stbl->SampleRefs) {
+		stbl->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&stbl->child_boxes, GF_GPAC_BOX_TYPE_SREF);
+		if (!stbl->SampleRefs) return GF_OUT_OF_MEM;
+	}
+	return isom_sample_refs_push(stbl->SampleRefs, refID, nb_refs, refs);
+
+}
+
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/

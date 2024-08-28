@@ -3513,4 +3513,25 @@ Bool gf_isom_is_fragmented(GF_ISOFile *movie)
 	return GF_FALSE;
 }
 
+
+GF_Err isom_sample_refs_push(GF_SampleReferences *sref, s32 refID, u32 nb_refs, s32 *refs);
+
+GF_EXPORT
+GF_Err gf_isom_fragment_add_sample_references(GF_ISOFile *movie, GF_ISOTrackID TrackID, s32 refID, u32 nb_refs, s32 *refs)
+{
+	GF_TrackFragmentBox *traf;
+	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY))
+		return GF_BAD_PARAM;
+
+	traf = gf_isom_get_traf(movie, TrackID);
+	if (!traf)
+		return GF_BAD_PARAM;
+
+	if (!traf->SampleRefs) {
+		traf->SampleRefs =  (GF_SampleReferences *)gf_isom_box_new_parent(&traf->child_boxes, GF_GPAC_BOX_TYPE_SREF);
+		if (!traf->SampleRefs) return GF_OUT_OF_MEM;
+	}
+	return isom_sample_refs_push(traf->SampleRefs, refID, nb_refs, refs);
+}
+
 #endif /*GPAC_DISABLE_ISOM*/
