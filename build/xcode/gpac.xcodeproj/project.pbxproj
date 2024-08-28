@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F1E2C7EAC5D00C58257 /* id3.c */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
 		920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8C18D5A444003D1ACA /* bifs_node_tables.c */; };
@@ -645,6 +646,7 @@
 		28C5AA781A15FF3600372C59 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		28C5AA7A1A15FF4700372C59 /* libiconv.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.dylib; path = usr/lib/libiconv.2.dylib; sourceTree = SDKROOT; };
 		28C5AA7C1A15FF5700372C59 /* libiconv.2.4.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.4.0.dylib; path = usr/lib/libiconv.2.4.0.dylib; sourceTree = SDKROOT; };
+		3F5F3F1E2C7EAC5D00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
 		9201000018D5A444003D1ACA /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		9201000118D5A444003D1ACA /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
 		9201000218D5A444003D1ACA /* isom_store.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_store.c; sourceTree = "<group>"; };
@@ -1292,6 +1294,7 @@
 				9201002918D5A444003D1ACA /* dsmcc.c */,
 				9201002A18D5A444003D1ACA /* dvb_mpe.c */,
 				9201002C18D5A444003D1ACA /* gpac_ogg.c */,
+				3F5F3F1E2C7EAC5D00C58257 /* id3.c */,
 				9201002F18D5A444003D1ACA /* img.c */,
 				9201003118D5A444003D1ACA /* isom_hinter.c */,
 				9201003218D5A444003D1ACA /* isom_tools.c */,
@@ -2704,6 +2707,7 @@
 				9201015118D5A445003D1ACA /* m2ts_mux.c in Sources */,
 				9201015218D5A445003D1ACA /* m3u8.c in Sources */,
 				92256CCD20E0DA26004EB243 /* encrypt_cenc_isma.c in Sources */,
+				3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */,
 				926998B41FEACE8F00AA759D /* dmx_vobsub.c in Sources */,
 				9201015318D5A445003D1ACA /* media_export.c in Sources */,
 				9201015418D5A445003D1ACA /* media_import.c in Sources */,
