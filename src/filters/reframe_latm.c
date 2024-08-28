@@ -130,7 +130,8 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 
 						if (!same_cfg) {
 							if (amux_version==1) gf_latm_get_value(bs);
-							gf_m4a_parse_config(bs, acfg, GF_FALSE);
+							GF_Err e = gf_m4a_parse_config(bs, acfg, GF_FALSE);
+							if (e) return GF_FALSE;
 						}
 						frameLengthType = gf_bs_read_int(bs, 3);
 						if (!frameLengthType) {

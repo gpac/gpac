@@ -487,7 +487,7 @@ GF_Err chpl_box_dump(GF_Box *a, FILE * trace)
 	if (p->size) {
 		count = gf_list_count(p->list);
 		for (i=0; i<count; i++) {
-			char szDur[20];
+			char szDur[50];
 			GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
 			gf_fprintf(trace, "<Chapter name=\"");
 			dump_escape_string(trace, ce->name);
@@ -1580,7 +1580,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 	get_and_print("num_tile_rows_minus_one", 32)
 
 	gf_fprintf(trace, ">\n");
-	gf_bs_seek(bs, 10);
+	gf_bs_seek(bs, 12);
 	for (i=0; i<nb_comps; i++) {
 		gf_fprintf(trace, "<ComponentInfo");
 		get_and_print("index", 16)
@@ -1602,7 +1602,7 @@ static const char *get_comp_type_name(u32 ctype)
 {
 	u32 nb_cnames = GF_ARRAY_LENGTH(ctyp_names);
 	if (ctype<nb_cnames) return ctyp_names[ctype];
-	return "unknwon";
+	return "unknown";
 }
 
 static GF_Err dump_cmpd(GF_UnknownBox *u, FILE * trace)
@@ -1653,7 +1653,7 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 	types = gf_malloc(sizeof(CompInfo) * nb_comps);
 	if (!types) {
 		gf_bs_del(bs);
-		gf_isom_box_dump_done("ComponentDefinitionBox", (GF_Box *)u, trace);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
 		return GF_OUT_OF_MEM;
 	}
 	for (i=0; i<nb_comps; i++) {
@@ -1701,7 +1701,7 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 
 	gf_bs_del(bs);
 	gf_free(types);
-	gf_isom_box_dump_done("ComponentDefinitionBox", (GF_Box *)u, trace);
+	gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
 	return GF_OK;
 
 }
@@ -1736,7 +1736,7 @@ static GF_Err dump_sbpm(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val, i, nb_comp, nb_r, nb_c, nb_p;
 	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
-	gf_isom_box_dump_start((GF_Box *)u, "SensorBrokenPixelMap", trace);
+	gf_isom_box_dump_start((GF_Box *)u, "SensorBadPixelsMap", trace);
 
 	//full box
 	get_and_print("version", 8)
@@ -1781,7 +1781,7 @@ static GF_Err dump_sbpm(GF_UnknownBox *u, FILE * trace)
 	}
 	gf_fprintf(trace, ">\n");
 	gf_bs_del(bs);
-	gf_isom_box_dump_done("ComponentPatternBox", (GF_Box *)u, trace);
+	gf_isom_box_dump_done("SensorBadPixelsMap", (GF_Box *)u, trace);
 	return GF_OK;
 }
 
@@ -1798,6 +1798,45 @@ static GF_Err dump_cloc(GF_UnknownBox *u, FILE * trace)
 	gf_fprintf(trace, ">\n");
 	gf_bs_del(bs);
 	gf_isom_box_dump_done("ChromaLocationBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+static GF_Err dump_taic(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "TAIClockInfoBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_and_print("time_uncertainty", 64)
+	get_and_print("clock_resolution", 32)
+	s32 clock_drift_rate = (s32)(gf_bs_read_int(bs, 32));
+	gf_fprintf(trace, " \"clock_drift_rate\"%d\"", clock_drift_rate);
+	get_and_print("clock_type", 2)
+	gf_fprintf(trace, ">\n");
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("TAIClockInfoBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
+static GF_Err dump_itai(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "TAITimestampBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_and_print("TAI_timestamp", 64)
+	get_and_print("synchronization_state", 1)
+	get_and_print("timestamp_generation_failure", 1)
+	get_and_print("timestamp_is_modified", 1)
+	gf_fprintf(trace, ">\n");
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("TAITimestampBox", (GF_Box *)u, trace);
 	return GF_OK;
 }
 
@@ -1845,6 +1884,7 @@ static GF_Err dump_gmcc(GF_UnknownBox *u, FILE * trace)
 static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val, pos;
+	if (!u || !u->data || !u->dataSize) return GF_BAD_PARAM;
 	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
 	gf_isom_box_dump_start((GF_Box *)u, "VC1ConfigurationBox", trace);
 
@@ -1904,6 +1944,10 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_cloc(u, trace);
 	} else if (u->original_4cc==GF_4CC('s','b','p','m')) {
 		return dump_sbpm(u, trace);
+	} else if (u->original_4cc==GF_4CC('t','a','i','c')) {
+		return dump_taic(u, trace);
+	} else if (u->original_4cc==GF_4CC('i','t','a','i')) {
+		return dump_itai(u, trace);
 	} else if (u->original_4cc==GF_4CC('f','p','a','c')) {
 		return dump_fpac(u, trace);
 	} else if (u->original_4cc==GF_4CC('G','M','C','C')) {
@@ -4303,7 +4347,7 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 		if (!txt->len) continue;
 
 		if (dump_type==GF_TEXTDUMPTYPE_OGG_CHAP) {
-			char szDur[20];
+			char szDur[50];
 			fprintf(dump, "CHAPTER%02d=%s\n", i+1, format_duration(start, ts, szDur));
 			fprintf(dump, "CHAPTER%02dNAME=%s\n", i+1, txt->text);
 		} else {
@@ -7233,6 +7277,28 @@ GF_Err keys_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, "/>\n");
 	}
 	gf_isom_box_dump_done("KeysBox", NULL, trace);
+	return GF_OK;
+}
+GF_Err sref_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SampleReferences *ptr = (GF_SampleReferences*)a;
+	u32 i, nb_entries = gf_list_count(ptr->entries);
+
+	gf_isom_box_dump_start(a, "SampleReferences", trace);
+	gf_fprintf(trace, ">\n");
+
+	for (i=0; i<nb_entries; i++) {
+		u32 j;
+		GF_SampleRefEntry *ent = gf_list_get(ptr->entries, i);
+		gf_fprintf(trace, "<SampleReferenceEntry sampleID=\"%u\" refs=\"", ent->sampleID);
+		for (j=0; j<ent->nb_refs; j++) {
+			if (j) gf_fprintf(trace, " ");
+			gf_fprintf(trace, "%u", ent->sample_refs[j]);
+		}
+		gf_fprintf(trace, "\"/>\n");
+	}
+
+	gf_isom_box_dump_done("SampleReferences", NULL, trace);
 	return GF_OK;
 }
 

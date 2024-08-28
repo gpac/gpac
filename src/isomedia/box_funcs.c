@@ -202,6 +202,10 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			}
 #endif
 			if (do_uncompress) {
+				if (size<=8) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload size invalid (%u)\n", size));
+					return GF_NOT_SUPPORTED;
+				}
 				if (size>100000000) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Compressed payload too large (%u)\n", size));
 					return GF_NOT_SUPPORTED;
@@ -976,6 +980,10 @@ ISOM_BOX_IMPL_DECL(proj_type)
 //ISOM_BOX_IMPL_DECL(mesh)
 
 ISOM_BOX_IMPL_DECL(keys)
+
+ISOM_BOX_IMPL_DECL(sref)
+
+
 
 #if defined(GPAC_DISABLE_ISOM_DUMP) && defined(GPAC_DISABLE_ISOM_WRITE)
 
@@ -1784,11 +1792,15 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_4CC('s','n','u','c'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('s','b','p','m'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('c','l','o','c'), unkn, "video_sample_entry ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('i','t','a','i'), unkn, "ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('t','a','i','c'), unkn, "sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('f','p','a','c'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('d','i','s','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('d','e','p','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('i','l','c','p'), unkn, "ipco", "rawff"),
 
+
+	FBOX_DEFINE_S(GF_GPAC_BOX_TYPE_SREF, sref, "stbl traf", 0, "GPAC"),
 
 /*
 	GF_ISOM_BOX_TYPE_CBMP	= GF_4CC( 'c', 'b', 'm', 'p' ),

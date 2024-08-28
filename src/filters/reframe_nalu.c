@@ -71,7 +71,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime;
+	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime, refs;
 	u32 nal_length;
 	u32 strict_poc;
 	u32 bsdbg;
@@ -354,16 +354,26 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (ctx->vvc_state) { gf_free(ctx->vvc_state); ctx->vvc_state = NULL; }
 		if (!ctx->hevc_state) GF_SAFEALLOC(ctx->hevc_state, HEVCState);
 		ctx->min_layer_id = 0xFF;
+		if (ctx->refs)
+			ctx->hevc_state->full_slice_header_parse = GF_TRUE;
 	} else if (ctx->codecid==GF_CODECID_VVC) {
 		ctx->log_name = "VVC";
 		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
 		if (ctx->avc_state) { gf_free(ctx->avc_state); ctx->avc_state = NULL; }
 		if (!ctx->vvc_state) GF_SAFEALLOC(ctx->vvc_state, VVCState);
+		if (ctx->refs) {
+			//use parse mode 2 as we don't need the exact slice header length
+			ctx->vvc_state->parse_mode = 2;
+		}
 	} else {
 		ctx->log_name = "AVC|H264";
 		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
 		if (ctx->vvc_state) { gf_free(ctx->vvc_state); ctx->vvc_state = NULL; }
 		if (!ctx->avc_state) GF_SAFEALLOC(ctx->avc_state, AVCState);
+		if (ctx->refs) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] reference picture list parsing not supported, patch welcome\n", ctx->log_name));
+			ctx->refs = 0;
+		}
 	}
 	if (ctx->timescale && !ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -802,7 +812,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 					dts += dts_inc;
 				}
 				//poc is stored as diff to adjusted POC (poc_shift) of last IDR
-				cts = ( ((s32) poc ) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
+				cts = ( ((s64) poc ) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
@@ -2349,7 +2359,6 @@ static void naludmx_update_nalu_maxsize(GF_NALUDmxCtx *ctx, u32 size)
 	}
 }
 
-
 GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_nal_field, Bool *au_start, u8 **pck_data)
 {
 	GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, nal_size + (skip_nal_field ? 0 : ctx->nal_length), pck_data);
@@ -2392,6 +2401,36 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 		naludmx_update_time(ctx);
 		*au_start = GF_FALSE;
 		ctx->nb_frames++;
+
+		if (ctx->refs) {
+			s32 POC = GF_INT_MAX;
+			u32 nb_refs=0;
+			s32 *refs = NULL;
+			if (ctx->hevc_state) {
+				if (!ctx->hevc_state->s_info.nb_lt_ref_pics) {
+					POC = ctx->hevc_state->s_info.poc;
+					nb_refs = ctx->hevc_state->s_info.nb_reference_pocs;
+					refs = ctx->hevc_state->s_info.reference_pocs;
+				}
+			}
+			if (ctx->vvc_state) {
+				if (!ctx->vvc_state->s_info.nb_lt_or_il_pics) {
+					POC = ctx->vvc_state->s_info.poc;
+					nb_refs = ctx->vvc_state->s_info.nb_reference_pocs;
+					refs = ctx->vvc_state->s_info.reference_pocs;
+				}
+			}
+
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_ID, &PROP_SINT(POC));
+			if (refs && nb_refs) {
+				GF_PropertyValue p;
+				p.type = GF_PROP_SINT_LIST;
+				p.value.sint_list.nb_items = nb_refs;
+				p.value.sint_list.vals = refs;
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_REFS, &p);
+			}
+
+		}
 	} else {
 		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	}
@@ -4326,6 +4365,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(nal_length), "set number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "import sample dependency information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(refs), "import sample reference picture list (currently only for HEVC and VVC)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keep Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},

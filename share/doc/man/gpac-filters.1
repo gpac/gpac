@@ -2761,6 +2761,8 @@ subsamples (bool, default: false): import subsamples information
 .br
 deps (bool, default: false):   import sample dependency information
 .br
+refs (bool, default: false):   import sample reference picture list (currently only for HEVC and VVC)
+.br
 seirw (bool, default: true):   rewrite AVC sei messages for ISOBMFF constraints
 .br
 audelim (bool, default: false): keep Access Unit delimiter in payload
@@ -6905,7 +6907,7 @@ reorder (bool, default: true): consider packets are not always in order - if fal
 .br
 cloop (bool, default: false):  check for loops based on TOI (used for capture replay)
 .br
-rtimeout (uint, default: 1000): default timeout in us to wait when gathering out-of-order packets
+rtimeout (uint, default: 100000): default timeout in us to wait when gathering out-of-order packets
 .br
 fullseg (bool, default: false): only dispatch full segments in cache mode (always true for other modes)
 .br
@@ -8966,11 +8968,11 @@ The filter only accepts input PIDs of type FILE.
 .br
 For raw file PIDs, the filter will look for the following properties:
 .br
-* `ROUTEName`: set resource name. If not found, uses basename of URL
+* `MCASTName`: set resource name. If not found, uses basename of URL
 .br
-* `ROUTECarousel`: set repeat period. If not found, uses .I carousel. If 0, the file is only sent once
+* `MCASTCarousel`: set repeat period. If not found, uses .I carousel. If 0, the file is only sent once
 .br
-* `ROUTEUpload`: set resource upload time. If not found, uses .I carousel. If 0, the file will be sent as fast as possible.
+* `MCASTUpload`: set resource upload time. If not found, uses .I carousel. If 0, the file will be sent as fast as possible.
 .br
 
 .br
@@ -9008,6 +9010,10 @@ Warning: When forwarding an existing DASH/HLS session, do NOT set any extension 
 .br
 
 .br
+The filter will look for MCASTIP and MCASTPort properties on the incoming PID to setup multicast of each service. If not found, the default .I ip and port will be used, with port incremented by one for each new multicast stream.
+.br
+
+.br
 By default, all streams in a service are assigned to a single multicast session, and differentiated by TSI (see .I splitlct).
 .br
 TSI are assigned as follows:
@@ -9020,6 +9026,18 @@ TSI are assigned as follows:
 .br
 
 .br
+When .I splitlct is set to mcast, the IP multicast adress is computed as follows:
+.br
+ - if MCASTIP is set on the PID and is different from the service multicast IP, it is used
+.br
+ - otherwise the service multicast IP plus one is used
+.br
+The multicast port used is set as follows:
+.br
+- if MCASTPort is set on the PID, it is used
+.br
+- otherwise the same port as the service one is used.
+.br
 Init segments and HLS child playlists are sent before each new segment, independently of .I carousel.
 .br
 .SH ATSC 3.0 mode
@@ -9029,7 +9047,7 @@ In this mode, the filter allows multiple service multiplexing, identified throug
 .br
 By default, a single multicast IP is used for route sessions, each service will be assigned a different port.
 .br
-The filter will look for ROUTEIP and ROUTEPort properties on the incoming PID. If not found, the default .I ip and .I port will be used.
+The filter will look for MCASTIP and MCASTPort properties on the incoming PID. If not found, the default .I ip and .I port will be used.
 .br
 
 .br
@@ -9073,8 +9091,6 @@ Note: .I ip and .I first_port are used to send the multicast gateway configurati
 .br
 The session will carry DVB-MABR gateway configuration, maifests and init segments on TSI=1
 .br
-The filter will look for ROUTEIP and ROUTEPort properties on the incoming PID to setup multicast of each service. If not found, the default .I ip and port will be used, with port incremented by one for each new multicast stream.
-.br
 
 .br
 The FLUTE session always uses a symbol length of .I mtu minus 44 bytes.
@@ -9096,9 +9112,9 @@ Note: The LCT objects are sent with no length (TOL header) assigned until the fi
 .br
 
 .br
-In this mode, init segments and manifests are sent at the frequency given by property ROUTECarousel of the source PID if set or by (-carousel)[] option.
+In this mode, init segments and manifests are sent at the frequency given by property MCASTCarousel of the source PID if set or by (-carousel)[] option.
 .br
-Indicating ROUTECarousel=0 will disable mid-segment repeating of manifests and init segments.
+Indicating MCASTCarousel=0 will disable mid-segment repeating of manifests and init segments.
 .br
 .SH Examples
 .LP
@@ -9149,7 +9165,7 @@ Sending a single file in ROUTE using half a second upload time, 2 seconds carous
 .br
 Example
 .br
-gpac -i URL:#ROUTEUpload=0.5:#ROUTECarousel=2 -o route://225.1.1.0:6000/
+gpac -i URL:#MCASTUpload=0.5:#MCASTCarousel=2 -o route://225.1.1.0:6000/
 .br
 
 .br
@@ -9231,6 +9247,8 @@ splitlct (enum, default: off): split mode for LCT channels
 .br
 * all: all streams are in dedicated LCT channel, the first stream being used for STSID signaling
 .br
+* mcast: all streams are in dedicated multicast groups
+.br
 
 .br
 korean (bool, default: false): use Korean version of ATSC 3.0 spec instead of US
@@ -9259,9 +9277,13 @@ csum (enum, default: meta):    send MD5 checksum for DVB flute
 .br
 
 .br
-recv_obj_timeout (uint, default: 50): timeout period in ms before resorting to unicast repair
+recv_obj_timeout (uint, default: 50): set timeout period in ms before client resorts to unicast repair
 .br
 errsim (v2d, default: 0.0x100.0): simulate errors using a 2-state Markov chain. Value are percentages
+.br
+use_inband (bool, default: false): DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session
+.br
+ssm (bool, default: false):    indicate source-specific multicast for DVB-MABR, requires ifce to be set
 .br
 
 .br

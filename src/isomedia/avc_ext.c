@@ -634,7 +634,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		mdia->in_sample_buffer_alloc = sample->dataLength;
 		mdia->in_sample_buffer = gf_realloc(mdia->in_sample_buffer, sample->dataLength);
 	}
-	memcpy(mdia->in_sample_buffer, sample->data, sample->dataLength);
+	if (sample->data && sample->dataLength)
+		memcpy(mdia->in_sample_buffer, sample->data, sample->dataLength);
 
 	if (!mdia->nalu_parser) {
 		mdia->nalu_parser = gf_bs_new(mdia->in_sample_buffer, sample->dataLength, GF_BITSTREAM_READ);
@@ -657,7 +658,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		gf_bs_get_content(mdia->nalu_out_bs, &output, &outSize);
 	}
 
-	gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
+	if (sample->data && sample->dataLength)
+		gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
 
 	/*rewrite start code with NALU delim*/
 	if (rewrite_start_codes) {
