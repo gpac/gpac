@@ -264,7 +264,7 @@ struct __gf_download_session
 	//0: not PUT/POST, 1: waiting for body to be completed, 2: body done
 	u32 put_state;
 
-	void* holdback_data;
+	u8* holdback_data;
 	u32 holdback_data_size;
 	Bool holdback_data_complete;
 	Bool should_holdback_data;
@@ -7827,7 +7827,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 
 		if (!sess->holdback_data_complete) {
 			sess->holdback_data_size += size;
-			sess->holdback_data = gf_realloc(sess->holdback_data, sess->holdback_data_size);
+			sess->holdback_data = (u8*)gf_realloc(sess->holdback_data, sess->holdback_data_size);
 			memcpy(sess->holdback_data + sess->holdback_data_size - size, data, size);
 			return GF_OK;
 		}
