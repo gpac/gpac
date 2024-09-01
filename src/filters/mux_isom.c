@@ -1282,7 +1282,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		ctx->dash_mode = MP4MX_DASH_ON;
 	}
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SSR);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SSR_MODE);
 	ctx->ssr = p ? GF_TRUE : GF_FALSE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHLS);
 	ctx->llhls_mode = p ? p->value.uint : 0;

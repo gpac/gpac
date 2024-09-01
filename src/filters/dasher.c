@@ -3600,6 +3600,12 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		}
 	}
 
+	if (ds->set->ssr) {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_SSR_MODE, &PROP_SINT(ds->set->ssr));
+	} else {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_SSR_MODE, NULL);
+	}
+
 	if (ctx->llhls) {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHLS, &PROP_UINT(ctx->llhls) );
 	}
@@ -7544,7 +7550,12 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	s->duration = (u32) duration;
 	if (ds->set->ssr) s->nb_parts = sctx->nb_frags + 1;
 	gf_list_add(tl->entries, s);
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for %s, start %llu, dur %llu, nb_parts %d\n", ds->src_url, s->start_time, s->duration, s->nb_parts));
+
+	if (ds->set->ssr) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for AS#%d, start %llu, dur %llu, nb_parts %d\n", ds->as_id, s->start_time, s->duration, s->nb_parts));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for AS#%d, start %llu, dur %llu\n", ds->as_id, s->start_time, s->duration));
+	}
 }
 
 static void dasher_copy_segment_timelines(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
@@ -10176,7 +10187,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 	sctx->nb_frags++;
 	if (evt->frag_size.is_last) {
 		sctx->llhls_done = GF_TRUE;
-	} else {
+	} else if (!ds->set->ssr) {
 		ctx->force_hls_ll_manifest = GF_TRUE;
 	}
 }
