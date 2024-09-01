@@ -1251,6 +1251,7 @@ enum
 	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
 	GF_PROP_PID_REP_ID = GF_4CC('D','R','I','D'),
 	GF_PROP_PID_SSR = GF_4CC('S','S','R',' '),
+	GF_PROP_PID_SSR_MODE = GF_4CC('S','S','R','M'),
 	GF_PROP_PID_AS_ID = GF_4CC('D','A','I','D'),
 	GF_PROP_PID_MUX_SRC = GF_4CC('M','S','R','C'),
 	GF_PROP_PID_DASH_MODE = GF_4CC('D','M','O','D'),
