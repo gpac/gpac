@@ -1216,7 +1216,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				ctx->force_seg_sync = GF_TRUE;
 		}
 	}
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SSR);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SSR_MODE);
 	ctx->ssr = p ? GF_TRUE : GF_FALSE;
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_LLHLS, &pe);
 	ctx->llhls = p ? p->value.uint : 0;
