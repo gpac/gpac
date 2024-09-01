@@ -7225,7 +7225,7 @@ static void hevc_ref_pic_lists_modification(GF_BitStream *bs, HEVC_ReferencePict
 	while ( val >>= 1) nb_bits++;
 
 	if (rps->modif_flag_l0) {
-		for (i=0; i<num_ref_idx_l0_active; i++) {
+		for (i=0; i<MIN(num_ref_idx_l0_active, GF_ARRAY_LENGTH(rps->modif_idx_l0)); i++) {
 			rps->modif_idx_l0[i] = gf_bs_read_int(bs, nb_bits);
 		}
 	}
@@ -7549,12 +7549,16 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	u32 nb_poc_lt_curr=0;
 	s32 poc_lt_curr[16];
 	for (i=0; i < rps->num_negative_pics; i++) {
+		if (i>=GF_ARRAY_LENGTH(rps->used_by_curr_pic) || i>=GF_ARRAY_LENGTH(rps->delta_poc) || nb_poc_st_curr0>=GF_ARRAY_LENGTH(poc_st_curr0))
+			break;
 		if (!rps->used_by_curr_pic[i]) continue;
 		poc_st_curr0[nb_poc_st_curr0] = si->poc + rps->delta_poc[i];
 		nb_poc_st_curr0++;
 	}
 
 	for (; i < rps->num_negative_pics+rps->num_positive_pics; i++) {
+		if (i>=GF_ARRAY_LENGTH(rps->used_by_curr_pic) || i>=GF_ARRAY_LENGTH(rps->delta_poc) || nb_poc_st_curr1>=GF_ARRAY_LENGTH(poc_st_curr1))
+			break;
 		if (!rps->used_by_curr_pic[i]) continue;
 		poc_st_curr1[nb_poc_st_curr1] = si->poc + rps->delta_poc[i];
 		nb_poc_st_curr1++;
@@ -7563,6 +7567,8 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	u32 num_long_term_pictures = 0;
 	u32 num_interlayer_ref_idx = 0;
 	for (i = rps->num_negative_pics + rps->num_positive_pics + num_long_term_pictures - 1; i >rps->num_negative_pics + rps->num_positive_pics-1 ; i--) {
+		if (i>=GF_ARRAY_LENGTH(rps->used_by_curr_pic) || nb_poc_lt_curr>=GF_ARRAY_LENGTH(poc_lt_curr))
+			break;
 		if (!rps->used_by_curr_pic[i]) continue;
 		poc_lt_curr[nb_poc_lt_curr] = 0; //todo, get LT from SH
 		nb_poc_lt_curr++;
@@ -7588,12 +7594,18 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	u32 nb_poc_l1 = 0;
 	if (si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 		for ( i=0; i<nb_poc_st_curr1; i++, nb_poc_l1++) {
+			if (i>=GF_ARRAY_LENGTH(poc_st_curr1) || nb_poc_l1>=GF_ARRAY_LENGTH(ref_pocs_l1))
+				break;
 			ref_pocs_l1[nb_poc_l1] = poc_st_curr1[i];
 		}
 		for ( i=0; i<nb_poc_st_curr0; i++, nb_poc_l1++) {
+			if (i>=GF_ARRAY_LENGTH(poc_st_curr0) || nb_poc_l1>=GF_ARRAY_LENGTH(ref_pocs_l1))
+				break;
 			ref_pocs_l1[nb_poc_l1] = poc_st_curr0[i];
 		}
 		for ( i=0; i<nb_poc_lt_curr;  i++, nb_poc_l1++) {
+			if (i>=GF_ARRAY_LENGTH(poc_lt_curr) || nb_poc_l1>=GF_ARRAY_LENGTH(ref_pocs_l1))
+				break;
 			ref_pocs_l1[nb_poc_l1] = poc_lt_curr[i];
 		}
 		assert(nb_poc_l1 == num_poc_total);
