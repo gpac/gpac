@@ -137,7 +137,8 @@ enum REQUEST_TYPE
 {
 	GET = 0,
 	HEAD = 1,
-	OTHER = 2
+	DELETE = 2,
+	OTHER = 3
 };
 
 /*!the structure used to store an HTTP header*/
@@ -5391,11 +5392,15 @@ static Bool http_request_has_body(GF_DownloadSession *sess) {
 		gf_dm_sess_user_io(sess, &par);
 
 		if (!par.name) return GF_FALSE;
-		if (!strcmp(par.name, "GET") || !strcmp(par.name, "HEAD")) return GF_FALSE;
+		if (!strcmp(par.name, "GET") || !strcmp(par.name, "HEAD") || !strcmp(par.name, "DELETE"))
+			return GF_FALSE;
+
 		return GF_TRUE;
 	}
 
-	if (sess->http_read_type == GET || sess->http_read_type == HEAD) return GF_FALSE;
+	if (sess->http_read_type == GET || sess->http_read_type == HEAD || sess->http_read_type == DELETE)
+		return GF_FALSE;
+
 	return GF_TRUE;
 }
 
