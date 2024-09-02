@@ -834,6 +834,8 @@ setup_multicast_clock:
 
 				dyn_period->duration = dur;
 
+				size_t seg_url_len = strlen(seg_url);
+
 				sep = seg_url ? strstr(seg_url, "987") : NULL;
 				if (!sep) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Failed to resolve template for segment #9876 on rep #%d\n", j+1));
@@ -847,7 +849,7 @@ setup_multicast_clock:
 				len = (u32) strlen(seg_url);
 				if (!strncmp(val, seg_url, len)) {
 					u64 number=0;
-					int template_len = strlen(seg_url) + 20; // Allocate extra space for "%"
+					int template_len = seg_url_len + 20; // Allocate extra space for "%"
 					char *szTemplate;
 					GF_SAFE_ALLOC_N(szTemplate, template_len, char);
 
