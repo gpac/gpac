@@ -2969,9 +2969,8 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 	{
 		u64 pos = gf_bs_get_position(bs);
 		int section_length = pos + 4 /*CRC32*/ - section_length_pos - 2;
-		gf_assert(section_length < 256); // we only write the 8 lower bits
-		gf_bs_seek(bs, section_length_pos + 1);
-		gf_bs_write_int(bs, section_length, 8);
+		gf_bs_seek(bs, section_length_pos);
+		gf_bs_write_u16(bs, (sap_type << 12) | section_length);
 		gf_bs_seek(bs, pos);
 	}
 
