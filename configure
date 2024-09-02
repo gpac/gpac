@@ -972,8 +972,8 @@ EOF
                 alt_macosx_dir="/opt/local"
             fi
             if test "$alt_macosx_dir" != "" ; then
-                CFLAGS_DIR="-I$alt_macosx_dir $CFLAGS_DIR"
-                LDFLAGS="-L$alt_macosx_dir $LDFLAGS"
+                CFLAGS_DIR="-I$alt_macosx_dir -I$alt_macosx_dir/include $CFLAGS_DIR"
+                LDFLAGS="-L$alt_macosx_dir -L$alt_macosx_dir/lib $LDFLAGS"
             fi
         fi
 

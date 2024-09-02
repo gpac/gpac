@@ -3661,7 +3661,7 @@ static void gf_isom_gen_desc_get_dsi(GF_GenericSampleDescription *udesc, GF_List
 		if (a->type == GF_ISOM_BOX_TYPE_UNKNOWN) break;
 		a = NULL;
 	}
-	if (!a) return;
+	if (!a || !a->data || !a->dataSize) return;
 	udesc->extension_buf = (char*)gf_malloc(sizeof(char) * a->dataSize);
 	if (udesc->extension_buf) {
 		udesc->extension_buf_size = a->dataSize;

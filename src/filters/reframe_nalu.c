@@ -812,7 +812,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 					dts += dts_inc;
 				}
 				//poc is stored as diff to adjusted POC (poc_shift) of last IDR
-				cts = ( ((s32) poc ) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
+				cts = ( ((s64) poc ) * ctx->cur_fps.den ) / ctx->poc_diff + ctx->dts_last_IDR;
 				gf_filter_pck_set_cts(q_pck, cts);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
