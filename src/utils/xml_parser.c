@@ -2223,7 +2223,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		if (node->type) continue;
 
 		if (!stricmp(node->name, "SCTE35")) {
-			xml_scte35_parse(node, bs); //Romain: do we also need to add the SCTE35 pck property?
+			xml_scte35_parse(node, bs);
 			continue;
 		} else if (stricmp(node->name, "BS") ) {
 			e = gf_xml_parse_bit_sequence_bs(node, parent_url, base_media_file, bs);
@@ -2730,7 +2730,7 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 		} else if (!strcmp(att->name, "subSegmentsExpected")) {
 			subSegmentsExpected = atoi(att->value);
 		} else {
-			GF_LOG(GF_LOG_ERROR/*Romain: stop at execution*/, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SegmentationDescriptor\n", att->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SegmentationDescriptor\n", att->name));
 		}
 	}
 
@@ -2856,7 +2856,7 @@ static void xml_scte35_parse_splice_insert(GF_XMLNode *root, GF_BitStream *bs)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceInsert\n", node->name));
 		}
 	}
-#if 0 //Romain
+#if 0 //not implemented
 	u64 splice_time = 0;
 	*splice_event_id = gf_bs_read_u32(bs);
 	Bool splice_event_cancel_indicator = gf_bs_write_int(bs, 1);
