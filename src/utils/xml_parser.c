@@ -2966,12 +2966,26 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 	}
 
 	// post write section length
-	u64 pos = gf_bs_get_position(bs);
-	int section_length = gf_bs_get_position(bs) - section_length_pos - 2;
-	gf_assert(section_length < 256); // we only write the 8 lower bits
-	gf_bs_seek(bs, section_length_pos + 1);
-	gf_bs_write_int(bs, section_length, 8);
-	gf_bs_seek(bs, pos);
+	{
+		u64 pos = gf_bs_get_position(bs);
+		int section_length = pos + 4 /*CRC32*/ - section_length_pos - 2;
+		gf_assert(section_length < 256); // we only write the 8 lower bits
+		gf_bs_seek(bs, section_length_pos + 1);
+		gf_bs_write_int(bs, section_length, 8);
+		gf_bs_seek(bs, pos);
+	}
+
+	// write CRC32
+	{
+		u8 *data = NULL;
+		u32 size = 0;
+		GF_BitStream *bs_tmp = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_transfer(bs_tmp, bs, GF_TRUE);
+		gf_bs_get_content(bs_tmp, &data, &size);
+		gf_bs_seek(bs, gf_bs_get_size(bs));
+		gf_bs_write_u32(bs, gf_crc_32(data, size));
+		gf_bs_del(bs_tmp);
+	}
 
 #undef WRITE_CMD_LEN
 }
