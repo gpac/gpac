@@ -62,11 +62,13 @@ enum {
 	FLAG_FIRST_IN_SEG = 1<<2,
 };
 
-typedef enum {
-    BASEURL_STRIP,
-    BASEURL_KEEP,
-    BASEURL_INJECT
-} BaseURLOption;
+
+
+enum {
+    strip,
+    keep,
+    inject,
+};
 
 typedef struct
 {
@@ -143,7 +145,7 @@ typedef struct
 	GF_FileIO *fio;
 	GF_FilterPacket *mpd_pck_ref;
 
-	BaseURLOption keep_burl; // Option to control <BaseURL>
+	u32 keep_burl; // Option to control <BaseURL>
 	char *relative_url; // Relative string to inject before <BaseURL> if keep_base_url is set to inject
 } GF_DASHDmxCtx;
 
@@ -999,12 +1001,12 @@ static void dashdmx_declare_group(GF_DASHDmxCtx *ctx, u32 group_idx)
 #endif
 }
 
-void process_base_url(char *manifest_payload, u32 manifest_payload_len,BaseURLOption keep_base_url, const char *relative_url)
+void process_base_url(char *manifest_payload, u32 manifest_payload_len,u32 keep_base_url, const char *relative_url)
 {
-	if (keep_base_url == BASEURL_KEEP) {
+	if (keep_base_url == keep) {
 		// Do nothing, keep BaseURL as is
 		return;
-	} else if (keep_base_url == BASEURL_INJECT) {
+	} else if (keep_base_url == inject) {
 		char *man_pay_start = manifest_payload;
 		while (1) {
 			u32 end_len, offset;
@@ -3656,9 +3658,9 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(asloop), "when auto switch is enabled, iterates back and forth from highest to lowest qualities", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(bsmerge), "allow merging of video bitstreams (only HEVC for now)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keep_burl), "control BaseURL in manifest\n"
-        "- 0: strip BaseURL (default)\n"
-        "- 1: keep BaseURL\n"
-        "- 2: inject local relative URL before BaseURL value specified by relative_url option.", GF_PROP_UINT, "0", "0|1|2", GF_FS_ARG_HINT_EXPERT},
+        "- strip: strip BaseURL (default)\n"
+        "- keep: keep BaseURL\n"
+        "- inject: inject local relative URL before BaseURL value specified by relative_url option.", GF_PROP_UINT, "strip", "strip|keep|inject", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(relative_url), "relative string to inject before BaseURL when keep_base_url is set to inject", GF_PROP_STRING, "./", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
