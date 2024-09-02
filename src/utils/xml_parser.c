@@ -2223,7 +2223,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		if (node->type) continue;
 
 		if (!stricmp(node->name, "SCTE35")) {
-			xml_scte35_parse(node, bs); //Romain: we also need to add the SCTE35 pck property?
+			xml_scte35_parse(node, bs); //Romain: do we also need to add the SCTE35 pck property?
 			continue;
 		} else if (stricmp(node->name, "BS") ) {
 			e = gf_xml_parse_bit_sequence_bs(node, parent_url, base_media_file, bs);
@@ -2677,10 +2677,11 @@ static void xml_scte35_parse_time_signal(GF_XMLNode *root, GF_BitStream *bs)
 
 static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStream *bs)
 {
-	gf_bs_write_u16(bs, 0/*descriptor_loop_length*/); //placeholder//Romain
-	//Romain: for (u16 i=0; i<descriptor_loop_length; i++) {
+	u64 descriptor_loop_length_pos = gf_bs_get_position(bs);
+	gf_bs_write_u16(bs, 0/*descriptor_loop_length*/); //placeholder
+	//for (u16 i=0; i<descriptor_loop_length; i++) {
 	gf_bs_write_u8(bs, 0x02/*splice_descriptor_tag*/);
-	gf_bs_write_u8(bs, 0/*descriptor_length*/);
+	gf_bs_write_u8(bs, 0/*descriptor_length*/); //placeholder
 	gf_bs_write_u32(bs, GF_4CC('C', 'U', 'E', 'I'));
 
 	u32 i = 0, j = 0;
@@ -2692,6 +2693,8 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 	Bool programSegmentationFlag = GF_FALSE, segmentationDurationFlag = GF_FALSE, deliveryNotRestrictedFlag = GF_FALSE;
 	u8 deviceRestrictions = 0;
 	u8 segmentationTypeId = 0, segmentNum = 0, segmentsExpected = 0;
+	u8 subSegmentNum = 0, subSegmentsExpected = 0;
+	u64 segmentationDuration = 0;
 
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
 		if (!strcmp(att->name, "segmentationEventId")) {
@@ -2716,8 +2719,18 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 			segmentsExpected = atoi(att->value);
 		} else if (!strcmp(att->name, "programSegmentationFlag")) {
 			programSegmentationFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentationDurationFlag")) {
+			segmentationDurationFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "deliveryNotRestrictedFlag")) {
+			deliveryNotRestrictedFlag = atoi(att->value);
+		} else if (!strcmp(att->name, "segmentationDuration")) {
+			segmentationDuration = atoi(att->value);
+		} else if (!strcmp(att->name, "subSegmentNum")) {
+			subSegmentNum = atoi(att->value);
+		} else if (!strcmp(att->name, "subSegmentsExpected")) {
+			subSegmentsExpected = atoi(att->value);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in TimeSignal\n", att->name));
+			GF_LOG(GF_LOG_ERROR/*Romain: stop at execution*/, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SegmentationDescriptor\n", att->name));
 		}
 	}
 
@@ -2725,7 +2738,7 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 
 	gf_bs_write_int(bs, segmentationEventCancelIndicator, 1);
 	gf_bs_write_int(bs, segmentationEventIdComplianceIndicator, 1);
-	gf_bs_write_int(bs, 0/*reserved*/, 6);
+	gf_bs_write_int(bs, 0x3F/*reserved*/, 6);
 	if (segmentationEventCancelIndicator == 0) {
 		gf_bs_write_int(bs, programSegmentationFlag, 1);
 		gf_bs_write_int(bs, segmentationDurationFlag, 1);
@@ -2736,7 +2749,7 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 			gf_bs_write_int(bs, archiveAllowedFlag, 1);
 			gf_bs_write_int(bs, deviceRestrictions, 2);
 		} else {
-			gf_bs_write_int(bs, 0/*reserved*/, 5);
+			gf_bs_write_int(bs, 0x1F/*reserved*/, 5);
 		}
 		if (programSegmentationFlag == 0) {
 			assert(0);
@@ -2751,10 +2764,20 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 #endif
 		}
 		if (segmentationDurationFlag == 1) {
-			assert(0);
-#if 0 //not implemented
 			gf_bs_write_long_int(bs, segmentationDuration, 40);
-#endif
+		}
+
+		gf_bs_write_u8(bs, 0/*u8 segmentation_upid_type*/);
+		gf_bs_write_u8(bs, 0/*u8 segmentation_upid_length*/);
+
+		gf_bs_write_u8(bs, segmentationTypeId);
+		gf_bs_write_u8(bs, segmentNum);
+		gf_bs_write_u8(bs, segmentsExpected);
+		if (segmentationTypeId == 0x34 || segmentationTypeId == 0x30 || segmentationTypeId == 0x32
+		 || segmentationTypeId == 0x36 || segmentationTypeId == 0x38 || segmentationTypeId == 0x3A
+		 || segmentationTypeId == 0x44 || segmentationTypeId == 0x46) {
+			gf_bs_write_u8(bs, subSegmentNum);
+			gf_bs_write_u8(bs, subSegmentsExpected);
 		}
 	}
 
@@ -2767,33 +2790,7 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 				gf_bs_write_u8(bs, segmentationTypeId);
 				gf_bs_write_u8(bs, segmentNum);
 				gf_bs_write_u8(bs, segmentsExpected);
-#if 0 //not implemented //Romain: we should add this if it is in the XML, not depending on conditions
-		gf_bs_write_u8(bs, segmentationUpidType);
-		gf_bs_write_u8(bs, segmentationUpidLength);
-		gf_assert(segmentationUpidLength == 0);
-
-		gf_bs_write_u8(bs, segmentationTypeId);
-		gf_bs_write_u8(bs, segmentNum);
-		gf_bs_write_u8(bs, segmentsExpected);
-		if (segmentationTypeId == 0x34 || segmentationTypeId == 0x30 || segmentationTypeId == 0x32
-		 || segmentationTypeId == 0x36 || segmentationTypeId == 0x38 || segmentationTypeId == 0x3A
-		 || segmentationTypeId == 0x44 || segmentationTypeId == 0x46) {
-			gf_bs_write_u8(bs, subSegmentNum);
-			gf_bs_write_u8(bs, subSegmentsExpected);
-		}
-
-
-		if (segmentationTypeId == 0x34 || segmentationTypeId == 0x30 || segmentationTypeId == 0x32
-		 || segmentationTypeId == 0x36 || segmentationTypeId == 0x38 || segmentationTypeId == 0x3A
-		 || segmentationTypeId == 0x44 || segmentationTypeId == 0x46) {
-			assert(0);
-#if 0 //not implemented
-			gf_bs_write_u8(bs, subSegmentNum);
-			gf_bs_write_u8(bs, subSegmentsExpected);
-#endif
-		}
-#endif
-#if 0 //Romain: seen at the end of TimeSignal
+#if 0 //not implemented: seen at the end of TimeSignal
    <SegmentationDescriptor segmentationEventId="1207959603" segmentationEventCancelIndicator="0" segmentationEventIdComplianceIndicator="1"
     webDeliveryAllowedFlag="1" noRegionalBlackoutFlag="1" archiveAllowedFlag="1" deviceRestrictions="3"
 	segmentationTypeId="53" segmentNum="0" segmentsExpected="0">
@@ -2807,6 +2804,17 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in TimeSignal\n", node->name));
 		}
+	}
+
+	// write descriptor_loop_length and descriptor_length
+	{
+		u64 pos = gf_bs_get_position(bs);
+		int descriptor_length = pos - descriptor_loop_length_pos - 2;
+		gf_bs_seek(bs, descriptor_loop_length_pos + 1);
+		gf_bs_write_int(bs, descriptor_length, 8);   //descriptor_loop_length
+		gf_bs_seek(bs, descriptor_loop_length_pos + 3);
+		gf_bs_write_int(bs, descriptor_length-2, 8); //descriptor_length
+		gf_bs_seek(bs, pos);
 	}
 }
 
@@ -2942,20 +2950,14 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 		if (!strcmp(node->name, "TimeSignal")) {
 			gf_bs_write_u8(bs, 0x06);
 			xml_scte35_parse_time_signal(node, bs);
-			//RomainWRITE_CMD_LEN();
-			                        \
-		u64 pos = gf_bs_get_position(bs);               \
-		int splice_command_length = pos - splice_command_length_pos - 3;
-		gf_bs_seek(bs, splice_command_length_pos + 1); 
-		gf_bs_write_int(bs, splice_command_length, 8);
-		gf_bs_seek(bs, pos);  
+			WRITE_CMD_LEN();
 			continue;
 		} else if (!strcmp(node->name, "SpliceInsert")) {
 			gf_bs_write_u8(bs, 0x05);
 			xml_scte35_parse_splice_insert(node, bs);
 			WRITE_CMD_LEN();
 			break;
-		} else if (!strcmp(node->name, "SegmentationDescriptor")) { //Romain: written after the rest, cf unit tests
+		} else if (!strcmp(node->name, "SegmentationDescriptor")) {
 			xml_scte35_parse_segmentation_descriptor(node, bs);
 			break;
 		} else {
@@ -2965,7 +2967,7 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 
 	// post write section length
 	u64 pos = gf_bs_get_position(bs);
-	int section_length = gf_bs_get_position(bs) - section_length_pos - 4;
+	int section_length = gf_bs_get_position(bs) - section_length_pos - 2;
 	gf_assert(section_length < 256); // we only write the 8 lower bits
 	gf_bs_seek(bs, section_length_pos + 1);
 	gf_bs_write_int(bs, section_length, 8);
