@@ -12323,6 +12323,54 @@ GF_Err jp2p_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *jsub_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_JP2SubSamplingBox, GF_ISOM_BOX_TYPE_JSUB);
+	return (GF_Box *)tmp;
+}
+
+void jsub_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err jsub_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_JP2SubSamplingBox *ptr = (GF_JP2SubSamplingBox *) s;
+	ISOM_DECREASE_SIZE(s, 4)
+	ptr->horizontal_sub = gf_bs_read_u8(bs);
+	ptr->vertical_sub = gf_bs_read_u8(bs);
+	ptr->horizontal_offset = gf_bs_read_u8(bs);
+	ptr->vertical_offset = gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err jsub_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_JP2SubSamplingBox *ptr = (GF_JP2SubSamplingBox *) s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->horizontal_sub);
+	gf_bs_write_u8(bs, ptr->vertical_sub);
+	gf_bs_write_u8(bs, ptr->horizontal_offset);
+	gf_bs_write_u8(bs, ptr->vertical_offset);
+
+	return GF_OK;
+}
+
+GF_Err jsub_box_size(GF_Box *s)
+{
+	s->size += 4;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 void ihdr_box_del(GF_Box *s)
 {
 	gf_free(s);

@@ -956,6 +956,7 @@ ISOM_BOX_IMPL_DECL(grptype)
 
 ISOM_BOX_IMPL_DECL_CHILD(jp2h)
 ISOM_BOX_IMPL_DECL(jp2p)
+ISOM_BOX_IMPL_DECL(jsub)
 ISOM_BOX_IMPL_DECL(ihdr)
 ISOM_BOX_IMPL_DECL(load)
 
@@ -1739,6 +1740,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_IHDR, ihdr, "jp2h", "j2k"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CDEF, unkn, "j2kH", "j2k"),
 	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2P, jp2p, "mjp2", 0, "j2k"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JSUB, jsub, "mjp2", "j2k"),
 
 	/* Image tracks */
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_JPEG, video_sample_entry, "stsd", "apple"),
