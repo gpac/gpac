@@ -6839,6 +6839,21 @@ GF_Err jp2h_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err jp2p_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2ProfileBox *p = (GF_JP2ProfileBox *) a;
+	u32 i, count = gf_list_count(p->compatible_brands);
+
+	gf_isom_box_dump_start(a, "JP2ProfileBox", trace);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<count; i++) {
+		u32 *brand = (u32 *)gf_list_get(p->compatible_brands, i);
+		gf_fprintf(trace, "<CompatibleBrand brand=\"%s\"/>\n", gf_4cc_to_str(*brand));
+	}
+	gf_isom_box_dump_done("JP2ProfileBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err ihdr_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_J2KImageHeaderBox  *p = (GF_J2KImageHeaderBox *) a;
