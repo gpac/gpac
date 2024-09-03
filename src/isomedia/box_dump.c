@@ -6854,6 +6854,17 @@ GF_Err jp2p_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err jsub_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2SubSamplingBox *p = (GF_JP2SubSamplingBox *) a;
+
+	gf_isom_box_dump_start(a, "JP2SubSamplingBox", trace);
+	gf_fprintf(trace, "HorizontalSub=\"%d\" VerticalSub=\"%d\" ", p->horizontal_sub, p->vertical_sub);
+	gf_fprintf(trace, "HorizontalOffset=\"%d\" VerticalOffset=\"%d\">\n", p->horizontal_offset, p->vertical_offset);
+	gf_isom_box_dump_done("JP2SubSamplingBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err ihdr_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_J2KImageHeaderBox  *p = (GF_J2KImageHeaderBox *) a;
