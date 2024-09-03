@@ -6865,6 +6865,16 @@ GF_Err jsub_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err orfo_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2OriginalFormatBox *p = (GF_JP2OriginalFormatBox *) a;
+
+	gf_isom_box_dump_start(a, "JP2OriginalFormatBox", trace);
+	gf_fprintf(trace, "FieldCount=\"%d\" FieldOrder=\"%d\">\n", p->original_fieldcount, p->original_fieldorder);
+	gf_isom_box_dump_done("JP2OriginalFormatBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err ihdr_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_J2KImageHeaderBox  *p = (GF_J2KImageHeaderBox *) a;
