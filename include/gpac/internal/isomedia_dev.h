@@ -483,6 +483,7 @@ enum
 	GF_ISOM_BOX_TYPE_JP2H	= GF_4CC('j','p','2','h'),
 	GF_ISOM_BOX_TYPE_JP2P	= GF_4CC('j','p','2','p'),
 	GF_ISOM_BOX_TYPE_JSUB	= GF_4CC('j','s','u','b'),
+	GF_ISOM_BOX_TYPE_ORFO	= GF_4CC('o','r','f','o'),
 	GF_ISOM_BOX_TYPE_JP2K	= GF_4CC('j','p','2','k'),
 	GF_ISOM_BOX_TYPE_J2KH	= GF_4CC('j','2','k','H'),
 	GF_ISOM_BOX_TYPE_CDEF	= GF_4CC('c','d','e','f'),
@@ -1593,6 +1594,13 @@ typedef struct
 	u8 horizontal_offset;
 	u8 vertical_offset;
 } GF_JP2SubSamplingBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u8 original_fieldcount;
+	u8 original_fieldorder;
+} GF_JP2OriginalFormatBox;
 
 typedef struct __full_video_sample_entry
 {
