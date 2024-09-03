@@ -12267,6 +12267,61 @@ GF_Err jp2h_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *jp2p_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_JP2ProfileBox, GF_ISOM_BOX_TYPE_JP2P);
+	tmp->compatible_brands = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+void jp2p_box_del(GF_Box *s)
+{
+	GF_JP2ProfileBox *ptr = (GF_JP2ProfileBox *) s;
+	gf_list_del(ptr->compatible_brands);
+	gf_free(s);
+}
+
+GF_Err jp2p_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_JP2ProfileBox *ptr = (GF_JP2ProfileBox *) s;
+	while (ptr->size) {
+		ISOM_DECREASE_SIZE_NO_ERR(s, 4)
+		u32 *brand = (u32 *)gf_malloc(sizeof(u32));
+		if (!brand) return GF_OUT_OF_MEM;
+		*brand = gf_bs_read_u32(bs);
+		if (gf_list_add(ptr->compatible_brands, brand) != GF_OK)
+			return GF_OUT_OF_MEM;
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err jp2p_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_JP2ProfileBox *ptr = (GF_JP2ProfileBox *) s;
+	u32 i, count = gf_list_count(ptr->compatible_brands);
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	for (i=0; i<count; i++) {
+		u32 *brand = (u32 *)gf_list_get(ptr->compatible_brands, i);
+		gf_bs_write_u32(bs, *brand);
+	}
+	return GF_OK;
+}
+
+GF_Err jp2p_box_size(GF_Box *s)
+{
+	GF_JP2ProfileBox *ptr = (GF_JP2ProfileBox *) s;
+	u32 count = gf_list_count(ptr->compatible_brands);
+	s->size += 4 * count;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void ihdr_box_del(GF_Box *s)
 {

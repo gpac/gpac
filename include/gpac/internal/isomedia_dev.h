@@ -481,6 +481,7 @@ enum
 	GF_ISOM_BOX_TYPE_IHDR	= GF_4CC('i','h','d','r'),
 	GF_ISOM_BOX_TYPE_JP  	= GF_4CC('j','P',' ',' '),
 	GF_ISOM_BOX_TYPE_JP2H	= GF_4CC('j','p','2','h'),
+	GF_ISOM_BOX_TYPE_JP2P	= GF_4CC('j','p','2','p'),
 	GF_ISOM_BOX_TYPE_JP2K	= GF_4CC('j','p','2','k'),
 	GF_ISOM_BOX_TYPE_J2KH	= GF_4CC('j','2','k','H'),
 	GF_ISOM_BOX_TYPE_CDEF	= GF_4CC('c','d','e','f'),
@@ -1576,6 +1577,12 @@ typedef struct
 	GF_J2KImageHeaderBox *ihdr;
 	GF_ColourInformationBox *colr;
 } GF_J2KHeaderBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	GF_List *compatible_brands;
+} GF_JP2ProfileBox;
 
 typedef struct __full_video_sample_entry
 {
