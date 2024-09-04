@@ -2608,7 +2608,7 @@ static void xml_scte35_parse_splice_time(GF_XMLNode *root, GF_BitStream *bs)
 		if (!strcmp(att->name, "ptsTime")) {
 			u64 ptsTime = 0;
 			if (sscanf(att->value, LLU, &ptsTime) != 1)
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Invalid value for ptsTime=\"%s\"\n", att->value));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for ptsTime=\"%s\"\n", att->value));
 
 			Bool time_specified_flag = GF_TRUE;
 			gf_bs_write_int(bs, time_specified_flag, 1);
@@ -2619,13 +2619,13 @@ static void xml_scte35_parse_splice_time(GF_XMLNode *root, GF_BitStream *bs)
 				gf_bs_write_int(bs, 0xFF/*reserved*/, 7);
 			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceTime\n", att->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in SpliceTime\n", att->name));
 		}
 	}
 
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		if (node->type) continue;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceTime\n", node->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown node \"%s\" in SpliceTime\n", node->name));
 	}
 }
 
@@ -2639,19 +2639,19 @@ static void xml_scte35_parse_break_duration(GF_XMLNode *root, GF_BitStream *bs)
 		if (!strcmp(att->name, "duration")) {
 			u64 duration = 0;
 			if (sscanf(att->value, LLU, &duration) != 1)
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Invalid value for duration=\"%s\"\n", att->value));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for duration=\"%s\"\n", att->value));
 
 			gf_bs_write_int(bs, 0/*auto_return*/, 1);
 			gf_bs_write_int(bs, 0/*reserved*/, 6);
 			gf_bs_write_long_int(bs, duration, 33);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceTime\n", att->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in SpliceTime\n", att->name));
 		}
 	}
 
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		if (node->type) continue;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceTime\n", node->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown node \"%s\" in SpliceTime\n", node->name));
 	}
 }
 
@@ -2662,7 +2662,7 @@ static void xml_scte35_parse_time_signal(GF_XMLNode *root, GF_BitStream *bs)
 	GF_XMLAttribute *att = NULL;
 
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in TimeSignal\n", att->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in TimeSignal\n", att->name));
 	}
 
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
@@ -2670,7 +2670,7 @@ static void xml_scte35_parse_time_signal(GF_XMLNode *root, GF_BitStream *bs)
 		if (!strcmp(node->name, "SpliceTime")) {
 			xml_scte35_parse_splice_time(node, bs);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in TimeSignal\n", node->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown node \"%s\" in TimeSignal\n", node->name));
 		}
 	}
 }
@@ -2730,7 +2730,7 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 		} else if (!strcmp(att->name, "subSegmentsExpected")) {
 			subSegmentsExpected = atoi(att->value);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SegmentationDescriptor\n", att->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in SegmentationDescriptor\n", att->name));
 		}
 	}
 
@@ -2798,11 +2798,11 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
    </SegmentationDescriptor>
 #endif
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SegmentationUpid\n", attx->name));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in SegmentationUpid\n", attx->name));
 				}
 			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in TimeSignal\n", node->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown node \"%s\" in TimeSignal\n", node->name));
 		}
 	}
 
@@ -2842,7 +2842,7 @@ static void xml_scte35_parse_splice_insert(GF_XMLNode *root, GF_BitStream *bs)
 		} else if (!strcmp(att->name, "spliceImmediateFlag")) {
 			spliceImmediateFlag = atoi(att->value);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceInsert\n", att->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in SpliceInsert\n", att->name));
 		}
 	}
 
@@ -2853,7 +2853,7 @@ static void xml_scte35_parse_splice_insert(GF_XMLNode *root, GF_BitStream *bs)
 		} else if (!strcmp(node->name, "BreakDuration")) {
 			xml_scte35_parse_break_duration(node, bs);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceInsert\n", node->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown node \"%s\" in SpliceInsert\n", node->name));
 		}
 	}
 
@@ -2926,7 +2926,7 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 		} else if (!strcmp(att->name, "tier")) {
 			XML_SCAN_INT("%u", tier);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown attribute \"%s\" in SpliceInfoSection\n", att->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in SpliceInfoSection\n", att->name));
 		}
 	}
 
@@ -2970,7 +2970,7 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 			xml_scte35_parse_segmentation_descriptor(node, bs);
 			break;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceInfoSection\n", node->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown node \"%s\" in SpliceInfoSection\n", node->name));
 		}
 	}
 
