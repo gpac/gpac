@@ -7034,8 +7034,7 @@ Bool gf_filter_pid_is_flush_eos(GF_FilterPid *pid)
 }
 
 
-GF_EXPORT
-void gf_filter_pid_set_eos(GF_FilterPid *pid)
+static void gf_filter_pid_set_eos_internal(GF_FilterPid *pid, Bool is_flush)
 {
 	GF_FilterPacket *pck;
 	//allow NULL as input (most filters blindly call set_eos on output even if no output)
@@ -7061,6 +7060,8 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		}
 		gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 		pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
+		if (is_flush)
+			pck->pck->info.flags |= GF_PCKF_IS_FLUSH;
 		gf_filter_pck_send(pck);
 	}
 
@@ -7074,6 +7075,12 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		}
 	}
 	gf_mx_v(pid->filter->tasks_mx);
+}
+
+GF_EXPORT
+void gf_filter_pid_set_eos(GF_FilterPid *pid)
+{
+	gf_filter_pid_set_eos_internal(pid, GF_FALSE);
 }
 
 GF_EXPORT
@@ -9648,7 +9655,7 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 	if (pid->eos_keepalive)
 		return;
 
-	gf_filter_pid_set_eos(pid);
+	gf_filter_pid_set_eos_internal(pid, GF_TRUE);
 	//set keepalive once eos has been called
 	pid->eos_keepalive = GF_TRUE;
 }
