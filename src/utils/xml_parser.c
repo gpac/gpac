@@ -2759,10 +2759,10 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 		if (programSegmentationFlag == 0) {
 			assert(0);
 #if 0 //not implemented
-			u8 component_count = gf_bs_write_u8(bs);
+			gf_bs_write_u8(bs, component_count);
 			for (u8 i=0; i<component_count; i++) {
 				gf_bs_write_u8(bs, componentTag);
-				gf_bs_write_int(bs, 0/*reserved*/, 7);
+				gf_bs_write_int(bs, 7, 0x7F/*reserved*/);
 				gf_bs_write_u8(bs, componentTag);
 				gf_bs_write_long_int(bs, ptsOffset, 33);
 			}
@@ -2864,38 +2864,37 @@ static void xml_scte35_parse_splice_insert(GF_XMLNode *root, GF_BitStream *bs)
 
 #if 0 //not implemented
 	u64 splice_time = 0;
-	*splice_event_id = gf_bs_read_u32(bs);
-	Bool splice_event_cancel_indicator = gf_bs_write_int(bs, 1);
-	/*reserved = */gf_bs_write_int(bs, 7);
-	if (splice_event_cancel_indicator == 0) {
-		/*Bool out_of_network_indicator = */gf_bs_write_int(bs, 1);
-		Bool program_splice_flag = gf_bs_write_int(bs, 1);
-		Bool duration_flag = gf_bs_write_int(bs, 1);
-		Bool splice_immediate_flag = gf_bs_write_int(bs, 1);
-		/*reserved = */gf_bs_write_int(bs, 4);
+	gf_bs_write_u32(bs, spliceEventId);
+	gf_bs_write_int(bs, 1, spliceEventCancelIndicator);
+	/*reserved = */gf_bs_write_int(bs, 7, 0x7F);
+	if (spliceEventCancelIndicator == 0) {
+		gf_bs_write_int(bs, 1, outOfNetworkIndicator);
+		gf_bs_write_int(bs, 1, programSpliceFlag);
+		gf_bs_write_int(bs, 1, durationFlag);
+		gf_bs_write_int(bs, 1, spliceImmediateFlag);
+		/*reserved = */gf_bs_write_int(bs, 4, 0xF);
 
-		if ((program_splice_flag == 1) && (splice_immediate_flag == 0)) {
+		if ((programSpliceFlag == 1) && (spliceImmediateFlag == 0)) {
 			splice_time = scte35dec_parse_splice_time(bs);
 			*pts = splice_time + pts_adjustment;
 		}
 
-		if (program_splice_flag == 0) {
+		if (programSpliceFlag == 0) {
 			u32 i;
 			u32 component_count = gf_bs_read_u8(bs);
 			for (i=0; i<component_count; i++) {
 				/*u8 component_tag = */gf_bs_read_u8(bs);
-				if (splice_immediate_flag == 0) {
-					gf_assert(*pts == 0); // we've never encounter multi component streams
+				if (spliceImmediateFlag == 0) {
 					splice_time = scte35dec_parse_splice_time(bs);
 					*pts = splice_time + pts_adjustment;
 				}
 			}
 		}
-		if (duration_flag == 1) {
+		if (durationFlag == 1) {
 			//break_duration()
-			/*Bool auto_return = */gf_bs_write_int(bs, 1);
-			/*reserved = */gf_bs_write_int(bs, 6);
-			*dur = gf_bs_read_long_int(bs, 33);
+			/*Bool auto_return = */gf_bs_write_int(bs, 1, 0);
+			/*reserved = */gf_bs_write_int(bs, 6, 0x3F);
+			gf_bs_write_long_int(bs, 33, dur);
 		}
 	}
 #else
