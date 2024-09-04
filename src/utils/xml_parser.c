@@ -26,6 +26,7 @@
 #include <gpac/xml.h>
 #include <gpac/utf.h>
 #include <gpac/network.h>
+#include <gpac/internal/isomedia_dev.h> //GF_EventMessageBox
 
 #ifndef GPAC_DISABLE_ZLIB
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
@@ -2190,6 +2191,7 @@ GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name)
 	}\
 
 static void xml_scte35_parse(GF_XMLNode *node, GF_BitStream *bs);
+static void xml_emib_parse(GF_XMLNode *node, GF_BitStream *bs);
 
 GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, const char *base_media_file, GF_BitStream *bs_orig)
 {
@@ -2224,6 +2226,9 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 
 		if (!stricmp(node->name, "SCTE35")) {
 			xml_scte35_parse(node, bs);
+			continue;
+		} else if (!stricmp(node->name, "EventMessageInstanceBox")) {
+			xml_emib_parse(node, bs);
 			continue;
 		} else if (stricmp(node->name, "BS") ) {
 			e = gf_xml_parse_bit_sequence_bs(node, parent_url, base_media_file, bs);
@@ -2991,13 +2996,14 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 		gf_bs_transfer(bs_tmp, bs, GF_TRUE);
 		gf_bs_get_content(bs_tmp, &data, &size);
 		gf_bs_seek(bs, gf_bs_get_size(bs));
-		gf_bs_write_u32(bs, gf_crc_32(data, size));
+		gf_bs_write_u32(bs, gf_crc_32(data+(section_length_pos-1), size-(section_length_pos-1)));
 		gf_bs_del(bs_tmp);
 	}
 
 #undef WRITE_CMD_LEN
 }
 
+// raw SCTE-35 payload
 static void xml_scte35_parse(GF_XMLNode *root, GF_BitStream *bs)
 {
 	u32 i=0;
@@ -3009,4 +3015,48 @@ static void xml_scte35_parse(GF_XMLNode *root, GF_BitStream *bs)
 			continue;
 		}
 	}
+}
+
+// SCTE-35 encapsulated in an EMIB box
+static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
+{
+	int i = 0;
+	GF_XMLAttribute *att = NULL;
+	GF_EventMessageBox *emib = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMIB);
+
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
+		if (!stricmp(att->name, "version")) {
+			if (sscanf(att->value, "%hu", &emib->version) != 1)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for version=\"%s\"\n", att->value));
+		} else if (!stricmp(att->name, "flags")) {
+			if (sscanf(att->value, "%u", &emib->flags) != 1)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for flags=\"%s\"\n", att->value));
+		} else if (!stricmp(att->name, "scheme_id_uri")) {
+			emib->scheme_id_uri = gf_strdup(att->value);
+		} else if (!stricmp(att->name, "value")) {
+			emib->value = gf_strdup(att->value);
+		} else if (!stricmp(att->name, "presentation_time_delta")) {
+			if (sscanf(att->value, LLD, &emib->presentation_time_delta) != 1)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for presentation_time_delta=\"%s\"\n", att->value));
+		} else if (!stricmp(att->name, "event_duration")) {
+			if (sscanf(att->value, "%u", &emib->event_duration) != 1)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for event_duration=\"%s\"\n", att->value));
+		} else if (!stricmp(att->name, "event_id")) {
+			if (sscanf(att->value, "%u", &emib->event_id) != 1)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for event_id=\"%s\"\n", att->value));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in EventMessageInstanceBox parsing\n", att->name));
+		}
+	}
+
+	GF_Err emib_box_size(GF_Box *s);
+	emib_box_size((GF_Box*)emib);
+
+	GF_Err emib_box_write(GF_Box *s, GF_BitStream *bs);
+	if (emib_box_write((GF_Box*)emib, bs) != GF_OK)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] EventMessageInstanceBox serialization failed\n"));
+	gf_isom_box_del((GF_Box*)emib);
+
+	// de-facto appending emib->message_data
+	xml_scte35_parse(root, bs);
 }
