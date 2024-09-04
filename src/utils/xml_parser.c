@@ -2856,6 +2856,7 @@ static void xml_scte35_parse_splice_insert(GF_XMLNode *root, GF_BitStream *bs)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Scte35Dec] Unknown node \"%s\" in SpliceInsert\n", node->name));
 		}
 	}
+
 #if 0 //not implemented
 	u64 splice_time = 0;
 	*splice_event_id = gf_bs_read_u32(bs);
@@ -2892,6 +2893,14 @@ static void xml_scte35_parse_splice_insert(GF_XMLNode *root, GF_BitStream *bs)
 			*dur = gf_bs_read_long_int(bs, 33);
 		}
 	}
+#else
+	(void)spliceEventId;
+	(void)spliceEventCancelIndicator;
+	(void)outOfNetworkIndicator;
+	(void)segmentationEventId;
+	(void)programSpliceFlag;
+	(void)durationFlag;
+	(void)spliceImmediateFlag;
 #endif
 }
 
