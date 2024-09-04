@@ -954,7 +954,11 @@ ISOM_BOX_IMPL_DECL(mhap)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
+ISOM_BOX_IMPL_DECL(jp)
 ISOM_BOX_IMPL_DECL_CHILD(jp2h)
+ISOM_BOX_IMPL_DECL(jp2p)
+ISOM_BOX_IMPL_DECL(jsub)
+ISOM_BOX_IMPL_DECL(orfo)
 ISOM_BOX_IMPL_DECL(ihdr)
 ISOM_BOX_IMPL_DECL(load)
 
@@ -1732,11 +1736,15 @@ static struct box_registry_entry {
 
 
 	//J2K boxes
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP, jp, "file", "j2k"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_MJP2, video_sample_entry, "stsd", "j2k"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_JP2H, jp2h, "mjp2 encv", "j2k"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_J2KH, jp2h, "ipco", "j2k"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_IHDR, ihdr, "jp2h", "j2k"),
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CDEF, unkn, "j2kH", "j2k"),
+	FBOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2P, jp2p, "mjp2", 0, "j2k"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JSUB, jsub, "mjp2", "j2k"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_ORFO, orfo, "mjp2", "j2k"),
 
 	/* Image tracks */
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_JPEG, video_sample_entry, "stsd", "apple"),
@@ -1798,6 +1806,8 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_4CC('d','i','s','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('d','e','p','i'), unkn, "video_sample_entry ipco", "rawff"),
 	BOX_DEFINE_S(GF_4CC('i','l','c','p'), unkn, "ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('c','m','p','C'), unkn, "schi ipco", "rawff"),
+	BOX_DEFINE_S(GF_4CC('i','c','e','f'), unkn, "ipco", "rawff"),
 
 
 	FBOX_DEFINE_S(GF_GPAC_BOX_TYPE_SREF, sref, "stbl traf", 0, "GPAC"),

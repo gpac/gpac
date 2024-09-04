@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / http server and output filter
@@ -87,7 +87,6 @@ enum
 	CORS_ON,
 };
 
-
 typedef struct
 {
 	char *name;
@@ -107,7 +106,7 @@ typedef struct
 	char *js;
 #endif
 	GF_PropStringList rdirs;
-	Bool close, hold, quit, post, dlist, ice, reopen, blockio;
+	Bool close, hold, quit, post, dlist, ice, reopen, blockio, cte;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka, zmax;
 	s32 max_cache_segs;
 	GF_PropStringList hdrs;
@@ -167,6 +166,7 @@ typedef struct __httpout_input
 	char *mime;
 	u32 nb_dest;
 	Bool hold, write_not_ready;
+	u32 file_size;
 
 	Bool is_open, done, is_delete;
 	Bool patch_blocks;
@@ -175,7 +175,7 @@ typedef struct __httpout_input
 	//for PUT mode, NULL in server mode
 	GF_DownloadSession *upload;
 	GF_Socket *upload_sock;
-	Bool is_h2;
+	Bool is_h2, use_cte;
 	u32 cur_header;
 
 	u64 offset_at_seg_start;
@@ -1780,7 +1780,6 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (e) {
 				sess->reply_code = 500;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Error deleting file %s (full path %s)\n", url, full_path));
-				sess->reply_code = 500;
 				gf_dynstrcat(&response_body, "Error while deleting ", NULL);
 				gf_dynstrcat(&response_body, url, NULL);
 				gf_dynstrcat(&response_body, ": ", NULL);
@@ -1809,7 +1808,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		source_pid->hold = GF_FALSE;
 
 		sess->file_pos = sess->file_size = 0;
-		sess->use_chunk_transfer = GF_TRUE;
+		sess->use_chunk_transfer = source_pid->use_cte;
 	}
 	/*we have matching etag*/
 	else if (etag && !strcmp(etag, szETag) && !sess->ctx->no_etag) {
@@ -1839,7 +1838,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				full_path = gf_strdup(source_pid->hls_chunk_local_path);
 			else
 				full_path = gf_strdup(source_pid->local_path);
-			sess->use_chunk_transfer = GF_TRUE;
+			sess->use_chunk_transfer = source_pid->use_cte;
 			sess->file_size = 0;
 		}
 		sess->path = full_path;
@@ -1900,6 +1899,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			if (source_sess) {
 				//use uploaded size on source as max file size for this request
 				sess->file_size = source_sess->file_pos;
+				//we cannot disable CTE in this case for now as the source is still uploading
+				//we would need to postpone the request until upload is done
 				sess->use_chunk_transfer = GF_TRUE;
 				sess->put_in_progress = 1;
 			} else if (sess->resource) {
@@ -2326,6 +2327,7 @@ static void httpout_in_io_ex(void *usr_cbk, GF_NETIO_Parameter *parameter, Bool 
 			parameter->name = "DELETE";
 		else
 			parameter->name = in->ctx->post ? "POST" : "PUT";
+
 		*cur_header = HTTP_PUT_HEADER_ENCODING;
 		return;
 	}
@@ -2336,8 +2338,16 @@ static void httpout_in_io_ex(void *usr_cbk, GF_NETIO_Parameter *parameter, Bool 
 
 		switch (*cur_header) {
 		case HTTP_PUT_HEADER_ENCODING:
-			parameter->name = "Transfer-Encoding";
-			parameter->value = "chunked";
+
+			if (!in->use_cte) {
+				parameter->name = "Content-Length";
+				sprintf(in->range_hdr, "%u", in->file_size);
+				parameter->value = in->range_hdr;
+			} else {
+				parameter->name = "Transfer-Encoding";
+				parameter->value = "chunked";
+			}
+
 			if (in->mime)
 				*cur_header = HTTP_PUT_HEADER_MIME;
 			else
@@ -2525,6 +2535,14 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_udta(pid, pctx);
 		gf_list_add(ctx->inputs, pctx);
 
+		//disable chunked transfer-encoding
+		if (!ctx->cte) {
+			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+			pctx->use_cte = GF_FALSE;
+		} else {
+			pctx->use_cte = GF_TRUE;
+		}
+			
 		gf_filter_pid_init_play_event(pid, &evt, 0.0, 1.0, "HTTPOut");
 		gf_filter_pid_send_event(pid, &evt);
 
@@ -3179,6 +3197,8 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		memcpy(buffer, data, size);
 		gf_filter_pck_set_framing(pck, is_first, GF_FALSE);
 		gf_filter_pck_send(pck);
+		sess->nb_bytes += size;
+		sess->file_pos += size;
 		return GF_OK;
 	}
 	if (!sess->resource) {
@@ -3314,6 +3334,15 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 				sess->last_active_time = gf_sys_clock_high_res();
 				//reschedule asap
 				ctx->next_wake_us = 1;
+
+				//if PUT/POST does not use chunk-transfer, monitor content length if set
+				if (!sess->use_chunk_transfer && sess->content_length) {
+					if (sess->nb_bytes==sess->content_length)
+						e = GF_EOS;
+					else if (sess->nb_bytes>sess->content_length)
+						e = GF_REMOTE_SERVICE_ERROR;
+				}
+
 				//we way be in end of stream
 				if (e==GF_OK)
 					return;
@@ -3701,7 +3730,10 @@ session_done:
 static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool for_llhls)
 {
 	Bool res = GF_TRUE;
-	GF_Err e = gf_dm_sess_process(for_llhls ? in->llhls_upload : in->upload);
+	GF_DownloadSession *sess = for_llhls ? in->llhls_upload : in->upload;
+	//flush async/h2 in case we have pending data
+	GF_Err e = gf_dm_sess_flush_async(sess, GF_TRUE);
+	if (!e) e = gf_dm_sess_process(sess);
 	if (e) {
 		if (!ctx->blockio && (e==GF_IP_NETWORK_EMPTY)) {
 			res = GF_FALSE;
@@ -3715,6 +3747,7 @@ static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool f
 		if (for_llhls) in->flush_llhls_open = GF_FALSE;
 		else in->flush_open = GF_FALSE;
 	}
+
 
 	if (!for_llhls && in->is_delete && res) {
 		in->done = GF_TRUE;
@@ -3970,7 +4003,7 @@ static void httpout_close_input_llhls(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	in->llhls_is_open = GF_FALSE;
 	//close prev session
-	if (!in->is_h2) {
+	if (!in->is_h2 && in->use_cte) {
 		e = gf_dm_sess_send(in->llhls_upload, "0\r\n\r\n", 5);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk of LLHLS part %s: %s\n", in->llhls_url, gf_error_to_string(e) ));
@@ -3994,7 +4027,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	if (in->upload) {
 		GF_Err e;
-		if (!in->is_h2) {
+		if (!in->is_h2 && in->use_cte) {
 			e = gf_dm_sess_send(in->upload, "0\r\n\r\n", 5);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk to %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
@@ -4051,7 +4084,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 				if (sess->in_source != in) continue;
 				//if we sent bytes, flush - otherwise session has just started
 				if (sess->nb_bytes) {
-					if (!sess->is_h2)
+					if (!sess->is_h2 && in->use_cte)
 						gf_dm_sess_send(sess->http_sess, "0\r\n\r\n", 5);
 
 					//signal we're done sending the body
@@ -4111,7 +4144,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 		u32 nb_retry = 0;
 		out = pck_size;
 
-		if (!in->is_h2) {
+		if (!in->is_h2 && in->use_cte) {
 			sprintf(szChunkHdr, "%X\r\n", pck_size);
 			chunk_hdr_len = (u32) strlen(szChunkHdr);
 		}
@@ -4121,7 +4154,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 		for (s_idx=0; s_idx<max_out; s_idx++) {
 			GF_DownloadSession *up_sess = s_idx ? in->llhls_upload : in->upload;
 retry:
-			if (!in->is_h2) {
+			if (!in->is_h2 && in->use_cte) {
 				e = gf_dm_sess_send(up_sess, szChunkHdr, chunk_hdr_len);
 				e |= gf_dm_sess_send(up_sess, (u8 *) pck_data, pck_size);
 				e |= gf_dm_sess_send(up_sess, "\r\n", 2);
@@ -4207,7 +4240,7 @@ retry:
 			if (sess->done) continue;
 
 			if (sess->send_init_data && in->tunein_data_size && !sess->file_in_progress) {
-				if (!sess->is_h2) {
+				if (!sess->is_h2 && in->use_cte) {
 					char szHdrInit[100];
 					sprintf(szHdrInit, "%X\r\n", in->tunein_data_size);
 					u32 len_hdr = (u32) strlen(szHdrInit);
@@ -4229,7 +4262,7 @@ retry:
 			/*source is not read from disk, write data*/
 			else {
 				GF_Err e;
-				if (!sess->is_h2) {
+				if (!sess->is_h2 && in->use_cte) {
 					if (!chunk_hdr_len) {
 						sprintf(szChunkHdr, "%X\r\n", pck_size);
 						chunk_hdr_len = (u32) strlen(szChunkHdr);
@@ -4424,6 +4457,9 @@ next_pck:
 
 
 		gf_filter_pck_get_framing(pck, &start, &end);
+		if (end) {
+			gf_filter_pck_get_data(pck, &in->file_size);
+		}
 
 		if (in->dash_mode) {
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
@@ -5022,6 +5058,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(js), "javascript logic for server", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 #endif
 	{ OFFS(zmax), "maximum uncompressed size allowed for gzip or deflate compression for text files (only enabled if client indicates it), 0 will disable compression", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cte), "use chunked transfer-encoding mode when possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
