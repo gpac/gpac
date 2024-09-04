@@ -319,7 +319,10 @@ restart:
 		j=0;
 		while ( (bs_child = (GF_XMLNode *)gf_list_enum(childnode->content, &j))) {
 			if (bs_child->type) continue;
-			if (!stricmp(bs_child->name, "BS") || !stricmp(bs_child->name, "SCTE35")) has_bs = GF_TRUE;
+			if (!stricmp(bs_child->name, "BS") ||
+			    !stricmp(bs_child->name, "SCTE35") ||
+			    !stricmp(bs_child->name, "EventMessageInstanceBox"))
+				has_bs = GF_TRUE;
 		}
 
 
@@ -1479,7 +1482,9 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (!stricmp(childnode->name, "SAI")) {
 				has_sai_child = GF_TRUE;
 			}
-			if (!stricmp(childnode->name, "BS") || !stricmp(childnode->name, "SCTE35")) {
+			if (!stricmp(childnode->name, "BS") ||
+			    !stricmp(childnode->name, "SCTE35") || 
+				!stricmp(childnode->name, "EventMessageInstanceBox")) {
 				has_subbs = GF_TRUE;
 			}
 			if (!stricmp(childnode->name, "Properties")) {
