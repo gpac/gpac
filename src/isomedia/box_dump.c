@@ -6901,12 +6901,56 @@ GF_Err chan_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err jp_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2SignatureBox *p = (GF_JP2SignatureBox *) a;
+	gf_isom_box_dump_start(a, "JP2SignatureBox", trace);
+	gf_fprintf(trace, "signature=\"0x%.8X\">\n", p->signature);
+	gf_isom_box_dump_done("JP2SignatureBox", a, trace);
+	return GF_OK;
+}
 
 GF_Err jp2h_box_dump(GF_Box *a, FILE * trace)
 {
 	gf_isom_box_dump_start(a, "JP2HeaderBox", trace);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("JP2HeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err jp2p_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2ProfileBox *p = (GF_JP2ProfileBox *) a;
+	u32 i, count = gf_list_count(p->compatible_brands);
+
+	gf_isom_box_dump_start(a, "JP2ProfileBox", trace);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<count; i++) {
+		u32 *brand = (u32 *)gf_list_get(p->compatible_brands, i);
+		gf_fprintf(trace, "<CompatibleBrand brand=\"%s\"/>\n", gf_4cc_to_str(*brand));
+	}
+	gf_isom_box_dump_done("JP2ProfileBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err jsub_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2SubSamplingBox *p = (GF_JP2SubSamplingBox *) a;
+
+	gf_isom_box_dump_start(a, "JP2SubSamplingBox", trace);
+	gf_fprintf(trace, "HorizontalSub=\"%d\" VerticalSub=\"%d\" ", p->horizontal_sub, p->vertical_sub);
+	gf_fprintf(trace, "HorizontalOffset=\"%d\" VerticalOffset=\"%d\">\n", p->horizontal_offset, p->vertical_offset);
+	gf_isom_box_dump_done("JP2SubSamplingBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err orfo_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2OriginalFormatBox *p = (GF_JP2OriginalFormatBox *) a;
+
+	gf_isom_box_dump_start(a, "JP2OriginalFormatBox", trace);
+	gf_fprintf(trace, "FieldCount=\"%d\" FieldOrder=\"%d\">\n", p->original_fieldcount, p->original_fieldorder);
+	gf_isom_box_dump_done("JP2OriginalFormatBox", a, trace);
 	return GF_OK;
 }
 
