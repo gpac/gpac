@@ -3044,6 +3044,21 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 		} else if (!stricmp(att->name, "event_id")) {
 			if (sscanf(att->value, "%u", &emib->event_id) != 1)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Invalid value for event_id=\"%s\"\n", att->value));
+		} else if (!stricmp(att->name, "message_data")) {
+			u8 *ptr = att->value;
+			if (!strnicmp(ptr, "0x", 2)) ptr +=2;
+			u32 len = (u32)strlen(ptr)/2;
+			emib->message_data = gf_malloc(len);
+			emib->message_data_size = len;
+			for (u32 i=0; i<len; ++i, ptr+=2) {
+				int val=0;
+				sscanf(ptr, "%02x", &val);
+				emib->message_data[i] = (u8)val;
+			}
+		} else if (!stricmp(att->name, "Size")) {
+		} else if (!stricmp(att->name, "Type")) {
+		} else if (!stricmp(att->name, "Specification")) {
+		} else if (!stricmp(att->name, "Container")) {
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] Unknown attribute \"%s\" in EventMessageInstanceBox parsing\n", att->name));
 		}
@@ -3055,8 +3070,11 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 	GF_Err emib_box_write(GF_Box *s, GF_BitStream *bs);
 	if (emib_box_write((GF_Box*)emib, bs) != GF_OK)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] EventMessageInstanceBox serialization failed\n"));
-	gf_isom_box_del((GF_Box*)emib);
 
-	// de-facto appending emib->message_data
-	xml_scte35_parse(root, bs);
+	if (!emib->message_data) {
+		// de-facto appending emib->message_data
+		xml_scte35_parse(root, bs);
+	}
+
+	gf_isom_box_del((GF_Box*)emib);
 }
