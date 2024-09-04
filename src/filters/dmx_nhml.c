@@ -1606,10 +1606,6 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (!base_media_file) base_media_file = ctx->media_file;
 			gf_xml_parse_bit_sequence_bs(sample_child ? sample_child : node, ctx->src_url, base_media_file, bs_tmp);
 			gf_bs_get_content(bs_tmp, &output, &ctx->samp_buffer_size);
-			printf("\n");
-			for(int i=0; i<ctx->samp_buffer_size; i++)
-				printf(" %02X", output[i]);
-			printf("\n");
 			gf_bs_del(bs_tmp);
 
 			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc) {
