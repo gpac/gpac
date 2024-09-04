@@ -391,8 +391,6 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XML
 					seg_tl_ent->start_time = gf_mpd_parse_long_int(att->value);
 				else if (!strcmp(att->name, "d"))
 					seg_tl_ent->duration = gf_mpd_parse_int(att->value);
-				else if (!strcmp(att->name, "k"))
-					seg_tl_ent->nb_parts = gf_mpd_parse_int(att->value);
 				else if (!strcmp(att->name, "r")) {
 					seg_tl_ent->repeat_count = gf_mpd_parse_int(att->value);
 					if (seg_tl_ent->repeat_count == (u32)-1)
@@ -2806,14 +2804,13 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	gf_fprintf(out, "<S");
 	gf_fprintf(out, " t=\""LLD"\"", prev->start_time);
 	if (prev->duration) gf_fprintf(out, " d=\"%d\"", prev->duration);
-	if (prev->nb_parts) gf_fprintf(out, " k=\"%d\"", prev->nb_parts);
 	rcount = prev->repeat_count;
 	start_time = prev->start_time + (prev->repeat_count+1) * prev->duration;
 
 	for (i = tsb_first_entry+1; i<count && prev; i++) {
 		se = gf_list_get(tl->entries, i);
 		//close entry
-		if ((se->start_time != start_time) || (prev->duration!=se->duration) || (prev->nb_parts!=se->nb_parts)) {
+		if ((se->start_time != start_time) || (prev->duration!=se->duration)) {
 			if (rcount) gf_fprintf(out, " r=\"%d\"", rcount);
 			gf_fprintf(out, "/>");
 			gf_mpd_lf(out, indent);
@@ -2825,7 +2822,6 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 				start_time = se->start_time;
 			}
 			if (se->duration) gf_fprintf(out, " d=\"%d\"", se->duration);
-			if (se->nb_parts) gf_fprintf(out, " k=\"%d\"", se->nb_parts);
 			rcount=0;
 		} else {
 			rcount++;
@@ -2954,6 +2950,7 @@ static void gf_mpd_print_segment_template(FILE *out, GF_MPD_SegmentTemplate *s, 
 	if (s->index) gf_fprintf(out, " index=\"%s\"", s->index);
 	if (s->initialization) gf_xml_dump_string(out, " initialization=\"", s->initialization, "\"");
 	if (s->bitstream_switching) gf_fprintf(out, " bitstreamSwitching=\"%s\"", s->bitstream_switching);
+	if (s->nb_parts) gf_fprintf(out, " k=\"%d\"", s->nb_parts);
 
 	if (gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent, GF_TRUE))
 		return;
