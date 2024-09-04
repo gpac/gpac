@@ -504,6 +504,9 @@ typedef struct _dash_stream
 
 	Bool transcode_detected;
 
+	//HLS seperate file mode or SSR
+	u32 max_nb_parts;
+
 	//HLS full seg encryption
 	GF_CryptInfo *cinfo;
 	GF_TrackCryptInfo *tci;
@@ -7384,13 +7387,12 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	Bool is_first = GF_FALSE;
 	Bool seg_align = GF_FALSE;
 	GF_MPD_SegmentTimeline *tl=NULL;
-	GF_DASH_SegmentContext *sctx;
 
 	//we only store segment timeline for the main component in the representation
 	if (ds->muxed_base) return;
 
 	if (ds->rep && ds->rep->state_seg_list) {
-		sctx = gf_list_last(ds->rep->state_seg_list);
+		GF_DASH_SegmentContext *sctx = gf_list_last(ds->rep->state_seg_list);
 		if (sctx)
 			sctx->dur = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 	}
@@ -7534,11 +7536,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 
 	//add to last entry ONLY if not keeping segments
-	u32 last_part_count = ds->set->ssr && s ? s->nb_parts : 0;
-	Bool same_parts = sctx ? (sctx->nb_frags + 1 == last_part_count) : GF_TRUE;
-	if (!ctx->keep_segs && s && (s->duration == duration) && same_parts
-		&& (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)
-	) {
+	if (!ctx->keep_segs && s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)) {
 		s->repeat_count++;
 		return;
 	}
@@ -7548,14 +7546,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (!s) return;
 	s->start_time = ds->seg_start_time + pto;
 	s->duration = (u32) duration;
-	if (ds->set->ssr) s->nb_parts = sctx->nb_frags + 1;
 	gf_list_add(tl->entries, s);
-
-	if (ds->set->ssr) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for AS#%d, start %llu, dur %llu, nb_parts %d\n", ds->as_id, s->start_time, s->duration, s->nb_parts));
-	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Inserting segment timeline entry for AS#%d, start %llu, dur %llu\n", ds->as_id, s->start_time, s->duration));
-	}
 }
 
 static void dasher_copy_segment_timelines(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
@@ -7754,6 +7745,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 			set_ds->nb_rep_done = 0;
 		}
 	}
+
+	// SSR mode, set @k to the number of parts
+	if (ds->set->ssr) ds->set->segment_template->nb_parts = ds->max_nb_parts;
 
 	if (ctx->subdur && (ds->cumulated_dur >= 0.8 * (ds->cumulated_subdur + ctx->subdur) * ds->timescale))
 		ds->subdur_done = GF_TRUE;
@@ -10185,6 +10179,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 
 	sctx->frags[sctx->nb_frags].independent = evt->frag_size.independent;
 	sctx->nb_frags++;
+	ds->max_nb_parts = MAX(ds->max_nb_parts, sctx->nb_frags);
 	if (evt->frag_size.is_last) {
 		sctx->llhls_done = GF_TRUE;
 	} else if (!ds->set->ssr) {
