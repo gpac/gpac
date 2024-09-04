@@ -12223,6 +12223,43 @@ GF_Err mhap_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *jp_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_JP2SignatureBox, GF_ISOM_BOX_TYPE_JP);
+	return (GF_Box *)tmp;
+}
+
+void jp_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err jp_box_read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_JP2SignatureBox *ptr = (GF_JP2SignatureBox *) s;
+	ISOM_DECREASE_SIZE(s, 4)
+	ptr->signature = gf_bs_read_u32(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err jp_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_JP2SignatureBox *ptr = (GF_JP2SignatureBox *) s;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->signature);
+	return GF_OK;
+}
+
+GF_Err jp_box_size(GF_Box *s)
+{
+	s->size += 4;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void jp2h_box_del(GF_Box *s)
 {

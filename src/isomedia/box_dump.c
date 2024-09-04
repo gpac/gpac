@@ -6830,6 +6830,14 @@ GF_Err chan_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err jp_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2SignatureBox *p = (GF_JP2SignatureBox *) a;
+	gf_isom_box_dump_start(a, "JP2SignatureBox", trace);
+	gf_fprintf(trace, "signature=\"0x%.8X\">\n", p->signature);
+	gf_isom_box_dump_done("JP2SignatureBox", a, trace);
+	return GF_OK;
+}
 
 GF_Err jp2h_box_dump(GF_Box *a, FILE * trace)
 {

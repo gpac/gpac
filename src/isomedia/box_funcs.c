@@ -954,6 +954,7 @@ ISOM_BOX_IMPL_DECL(mhap)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
+ISOM_BOX_IMPL_DECL(jp)
 ISOM_BOX_IMPL_DECL_CHILD(jp2h)
 ISOM_BOX_IMPL_DECL(jp2p)
 ISOM_BOX_IMPL_DECL(jsub)
@@ -1735,6 +1736,7 @@ static struct box_registry_entry {
 
 
 	//J2K boxes
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP, jp, "file", "j2k"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_MJP2, video_sample_entry, "stsd", "j2k"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_JP2H, jp2h, "mjp2 encv", "j2k"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_J2KH, jp2h, "ipco", "j2k"),
