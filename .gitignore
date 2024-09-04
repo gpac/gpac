@@ -4,6 +4,7 @@
 *.user
 *.userosscache
 *.sln.docstates
+.vscode
 *.userprefs
 *_i.c
 *_p.c
@@ -88,6 +89,7 @@ tests/external_media/
 tests/results/
 tests/hash_refs/
 
+src/modules/**/*.dep
 *doxygen_warnings.txt
 */nodejs/node_modules/
 */nodejs/package-lock.json

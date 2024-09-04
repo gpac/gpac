@@ -119,7 +119,9 @@ typedef enum
 /*!protocol I/O parameter*/
 typedef struct
 {
-	/*!parameter message type*/
+	/*!parameter message type
+		If value is GF_NETIO_GET_HEADER and callback resets the value to 0, aborts headers query
+	*/
 	GF_NetIOStatus msg_type;
 	/*error code if any. Valid for all message types.*/
 	GF_Err error;
@@ -127,9 +129,13 @@ typedef struct
 	const u8 *data;
 	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
 	u32 size;
-	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
+	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD
+		if NULL for GF_NETIO_GET_HEADER, ignored
+	*/
 	const char *name;
-	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
+	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY
+		if NULL for GF_NETIO_GET_HEADER, aborts headers query
+	*/
 	char *value;
 	/*message-dependend
 		for GF_NETIO_PARSE_REPLY, response code
