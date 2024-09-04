@@ -1576,6 +1576,12 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
+	u32 signature;
+} GF_JP2SignatureBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
 	GF_J2KImageHeaderBox *ihdr;
 	GF_ColourInformationBox *colr;
 } GF_J2KHeaderBox;
