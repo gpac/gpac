@@ -722,8 +722,15 @@ static int h2_stream_close_callback(nghttp2_session *session, int32_t stream_id,
 		SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) closed\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
-		//keep status in DATA_EXCHANGE as this frame might have been pushed while processing another session
+		//except for PUT/POST, keep status in DATA_EXCHANGE as this frame might have been pushed while processing another session
+
+		if (sess->put_state==2) {
+			sess->put_state = 0;
+			sess->status = GF_NETIO_DATA_TRANSFERED;
+			sess->last_error = GF_OK;
+		}
 	}
+
 	//stream closed
 	sess->h2_stream_id = 0;
 	gf_mx_v(sess->mx);
@@ -5498,6 +5505,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		par.value = NULL;
 		gf_dm_sess_user_io(sess, &par);
 		if (!par.value) break;
+		//if name is not set, skip this header
+		if (!par.name) continue;
 
 		if (!stricmp(par.name, "Connection")) {
 			if (!stricmp(par.value, "close"))
@@ -7689,6 +7698,10 @@ GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
 		}
 		sess->local_buf_len = 0;
 		sess->h2_is_eos = 0;
+		if (sess->put_state==1) {
+			sess->put_state = 2;
+			sess->status = GF_NETIO_WAIT_FOR_REPLY;
+		}
 	}
 #endif
 
