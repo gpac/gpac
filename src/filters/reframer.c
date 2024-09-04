@@ -1064,7 +1064,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		if (ctx->rmseek)
 			gf_filter_pck_set_seek_flag(new_pck, GF_FALSE);
 
-		// foward SAPs as cue points
+		// forward SAPs as cue points
 		u32 sap = gf_filter_pck_get_sap(new_pck);
 		if (sap > GF_FILTER_SAP_NONE && ctx->sapcue)
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
@@ -1077,7 +1077,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			if (ctx->rmseek)
 				gf_filter_pck_set_seek_flag(dst, GF_FALSE);
 
-			// foward SAPs as cue points
+			// forward SAPs as cue points
 			u32 sap = gf_filter_pck_get_sap(dst);
 			if (sap > GF_FILTER_SAP_NONE && ctx->sapcue)
 				gf_filter_pck_set_property(dst, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
