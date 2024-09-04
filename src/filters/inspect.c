@@ -2527,10 +2527,7 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 	} else {
 		inspect_printf(dump, " SCTE35");
 	}
-inspect_printf(dump, "\n"); //Romain
-for(int i=0; i<att->value.data.size; i++)
-		inspect_printf(dump, " %02X", att->value.data.ptr[i]);
-inspect_printf(dump, "\n");
+
 	if (!pctx->bs)
 		pctx->bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
 	else
