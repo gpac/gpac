@@ -12340,7 +12340,7 @@ GF_Err jp2p_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_JP2ProfileBox *ptr = (GF_JP2ProfileBox *) s;
 	u32 i, count = gf_list_count(ptr->compatible_brands);
 
-	e = gf_isom_box_write_header(s, bs);
+	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
 	for (i=0; i<count; i++) {
