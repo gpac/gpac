@@ -1707,6 +1707,52 @@ GF_Err gf_odf_opus_cfg_parse(u8 *dsi, u32 dsi_len, GF_OpusConfig *cfg);
 */
 GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg);
 
+/*! Used for storing IAMF OBUs */
+typedef struct
+{
+        u64 obu_length;
+        int obu_type;  /* IamfObuType */
+        u8* raw_obu_bytes;
+} GF_IamfObu;
+
+/*! Used for storing the IAMF configuration from the `iacb` box */
+typedef struct
+{
+        u8 configurationVersion;
+        u32 configOBUs_size;
+        GF_List *configOBUs;  /* GF_IamfObu */
+} GF_IAConfig;
+
+/*! IAMF config constructor
+\return the created config
+*/
+GF_IAConfig *gf_odf_ia_cfg_new();
+
+/*! Writes the IAMF config to bitstream
+\param cfg the IAMF config to write
+\param bs the bitstream object
+\return error code if any
+*/
+GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs);
+
+/*! IAMF config destructor
+\param cfg the IAMF config to destroy
+*/
+void gf_odf_ia_cfg_del(GF_IAConfig *cfg);
+
+/*! Reads the IAMF config from the bitstream
+ \param bs bitstream containing the encoded IAMF descriptors
+ \return the IAMF config
+ */
+GF_IAConfig *gf_odf_ia_cfg_read_bs(GF_BitStream *bs);
+
+/*! Reads the IAMF config from the bitstream
+ \param bs bitstream containing the encoded IAMF descriptors
+ \param size size of the encoded structure in the bitstream. A value of 0 means "until the end", equivalent to gf_odf_ia_cfg_read_bs
+ \return the IAMF config
+ */
+GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size);
+
 /*! destroy the descriptors in a list but not the list
 \param descList descriptor list to destroy
 \return error if any
