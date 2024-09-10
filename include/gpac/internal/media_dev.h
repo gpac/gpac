@@ -1077,6 +1077,15 @@ typedef struct
 
 u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header);
 
+/*parses one IAMF OBU
+\param bs bitstream object
+\param obu_type OBU type
+\param obu_size As an input the size of the input OBU (needed when obu_size is not coded). As an output the coded obu_size value.
+*/
+GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size);
+
+GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size);
+
 typedef struct
 {
 	u32 picture_size;

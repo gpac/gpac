@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/internal/media_dev.h>
 
 
 
@@ -12713,6 +12714,67 @@ GF_Err dOps_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *iacb_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_IAConfigurationBox, GF_ISOM_BOX_TYPE_IACB);
+	return (GF_Box *)tmp;
+}
+
+void iacb_box_del(GF_Box *s)
+{
+        GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+        if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
+        gf_free(ptr);
+}
+
+GF_Err iacb_box_read(GF_Box *s, GF_BitStream *bs)
+{
+        u64 pos, read;
+        GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+
+        if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
+
+        pos = gf_bs_get_position(bs);
+
+        ptr->cfg = gf_odf_ia_cfg_read_bs_size(bs, (u32)ptr->size);
+
+        read = gf_bs_get_position(bs) - pos;
+
+        if (read < ptr->size)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] IAConfigurationBox: read only "LLU" bytes (expected "LLU").\n", read, ptr->size));
+        if (read > ptr->size)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] IAConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", read, ptr->size));
+
+        return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err iacb_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+        if (!s) return GF_BAD_PARAM;
+        if (!ptr->cfg) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+        return gf_odf_ia_cfg_write_bs(ptr->cfg, bs);
+}
+
+GF_Err iacb_box_size(GF_Box *s)
+{
+        GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+        if (!ptr->cfg) {
+            ptr->size = 0;
+            return GF_BAD_PARAM;
+        }
+        ptr->size += 1;  // configurationVersion
+        ptr->size += gf_av1_leb128_size(ptr->cfg->configOBUs_size);
+        ptr->size += ptr->cfg->configOBUs_size;
+        return GF_OK;
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void dfla_box_del(GF_Box *s)
 {

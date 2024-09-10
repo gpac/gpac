@@ -5068,6 +5068,27 @@ GF_Err dOps_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err iacb_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_IAConfigurationBox *p = (GF_IAConfigurationBox *)a;
+	gf_isom_box_dump_start(a, "IAConfigurationBox", trace);
+
+        if (p->cfg) {
+                u32 i;
+                u32 obu_count = gf_list_count(p->cfg->configOBUs);
+                gf_fprintf(trace, "configurationVersion=\"%u\" configOBUs_size=\"%u\">\n",
+                           (u32)p->cfg->configurationVersion, (u32)p->cfg->configOBUs_size);
+                for (i = 0; i < obu_count; ++i) {
+                        GF_IamfObu *config_obu = gf_list_get(p->cfg->configOBUs, i);
+                        gf_fprintf(trace, "<IAConfig obu_type=\"%u\" name=\"%s\" size=\"%d\" />\n",
+                                   config_obu->obu_type, gf_iamf_get_obu_name(config_obu->obu_type), (u32)config_obu->obu_length);
+                }
+        }
+
+	gf_isom_box_dump_done("IAConfigurationBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_AC3ConfigBox *p = (GF_AC3ConfigBox *)a;

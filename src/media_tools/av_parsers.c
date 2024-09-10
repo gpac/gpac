@@ -4386,6 +4386,133 @@ GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_fra
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 GF_EXPORT
+const char *gf_iamf_get_obu_name(IamfObuType obu_type)
+{
+        switch (obu_type) {
+                case OBU_IA_CODEC_CONFIG: return "codec_config";
+                case OBU_IA_AUDIO_ELEMENT: return "audio_element";
+                case OBU_IA_MIX_PRESENTATION: return "mix_presentation";
+                case OBU_IA_PARAMETER_BLOCK: return "parameter_block";
+                case OBU_IA_TEMPORAL_DELIMITER: return "temporal_delimiter";
+                case OBU_IA_AUDIO_FRAME: return "audio_frame";
+                case OBU_IA_AUDIO_FRAME_ID0: return "audio_frame_id0";
+                case OBU_IA_AUDIO_FRAME_ID1: return "audio_frame_id1";
+                case OBU_IA_AUDIO_FRAME_ID2: return "audio_frame_id2";
+                case OBU_IA_AUDIO_FRAME_ID3: return "audio_frame_id3";
+                case OBU_IA_AUDIO_FRAME_ID4: return "audio_frame_id4";
+                case OBU_IA_AUDIO_FRAME_ID5: return "audio_frame_id5";
+                case OBU_IA_AUDIO_FRAME_ID6: return "audio_frame_id6";
+                case OBU_IA_AUDIO_FRAME_ID7: return "audio_frame_id7";
+                case OBU_IA_AUDIO_FRAME_ID8: return "audio_frame_id8";
+                case OBU_IA_AUDIO_FRAME_ID9: return "audio_frame_id9";
+                case OBU_IA_AUDIO_FRAME_ID10: return "audio_frame_id10";
+                case OBU_IA_AUDIO_FRAME_ID11: return "audio_frame_id11";
+                case OBU_IA_AUDIO_FRAME_ID12: return "audio_frame_id12";
+                case OBU_IA_AUDIO_FRAME_ID13: return "audio_frame_id13";
+                case OBU_IA_AUDIO_FRAME_ID14: return "audio_frame_id14";
+                case OBU_IA_AUDIO_FRAME_ID15: return "audio_frame_id15";
+                case OBU_IA_AUDIO_FRAME_ID16: return "audio_frame_id16";
+                case OBU_IA_AUDIO_FRAME_ID17: return "audio_frame_id17";
+                case OBU_IA_RESERVED_24:
+                case OBU_IA_RESERVED_25:
+                case OBU_IA_RESERVED_26:
+                case OBU_IA_RESERVED_27:
+                case OBU_IA_RESERVED_28:
+                case OBU_IA_RESERVED_29:
+                case OBU_IA_RESERVED_30:
+                        return "reserved";
+                case OBU_IA_SEQUENCE_HEADER: return "ia_sequence_header";
+                default: return "unknown";
+        }
+}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
+GF_EXPORT
+GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
+{
+        GF_Err e = GF_OK;
+        u64 pos = gf_bs_get_position(bs);
+
+        if (!bs || !obu_type) {
+              return GF_BAD_PARAM;
+        }
+
+        gf_bs_mark_overflow(bs, GF_TRUE);
+
+        e = gf_iamf_parse_obu_header(bs, obu_type, obu_size);
+
+        if (gf_bs_is_overflow(bs)) {
+              GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
+              e = GF_NON_COMPLIANT_BITSTREAM;
+        }
+        gf_bs_seek(bs, pos + *obu_size);
+        return e;
+}
+
+GF_EXPORT
+GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
+{
+        Bool obu_redundant_copy;
+        Bool obu_trimming_status_flag;
+        Bool obu_extension_flag;
+        u32 extension_header_size;
+        u8 leb128_size;
+        int i;
+
+        *obu_type = gf_bs_read_int(bs, 5);
+
+        obu_redundant_copy = gf_bs_read_int(bs, 1);
+        if (obu_redundant_copy) {
+            if (*obu_type == OBU_IA_TEMPORAL_DELIMITER ||
+                (*obu_type >= OBU_IA_AUDIO_FRAME && *obu_type <= OBU_IA_AUDIO_FRAME_ID17)) {
+                  GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_redundant_copy set to 0, but got 1.\n",
+                                                       gf_iamf_get_obu_name(*obu_type)));
+                  return GF_NON_COMPLIANT_BITSTREAM;
+            }
+
+        }
+
+        obu_trimming_status_flag = gf_bs_read_int(bs, 1);
+        if (obu_trimming_status_flag) {
+              if (*obu_type < OBU_IA_AUDIO_FRAME || *obu_type > OBU_IA_AUDIO_FRAME_ID17) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_trimming_status_flag set to 0, but got 1.\n",
+                                                       gf_iamf_get_obu_name(*obu_type)));
+                    return GF_NON_COMPLIANT_BITSTREAM;
+              }
+        }
+        obu_extension_flag = gf_bs_read_int(bs, 1);
+
+
+        /* gpac's `obu_size` includes the header and payload, which is different
+         * from the `obu_size` field in the IAMF bitstream. The latter includes the
+         * partial header size and payload size.
+         * The size of the header read so far is 1 byte. */
+        *obu_size = 1;
+
+        /* Add the remaining size of the OBU, carried in the `obu_size` field in
+         * the OBU header, plus the number of bytes used the encode that leb128 field. */
+        *obu_size += (u32)gf_av1_leb128_read(bs, &leb128_size);
+        *obu_size += leb128_size;
+
+        if (obu_trimming_status_flag) {
+              /*num_samples_to_trim_at_end=*/gf_av1_leb128_read(bs, NULL);
+              /*num_samples_to_trim_at_start=*/gf_av1_leb128_read(bs, NULL);
+        }
+
+        if (obu_extension_flag) {
+              extension_header_size = (u32)gf_av1_leb128_read(bs, NULL);
+              for (i = 0; i < extension_header_size; ++i) {
+                    /*extension_header_bytes=*/gf_bs_read_u8(bs);
+              }
+        }
+
+        return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+GF_EXPORT
 u8 gf_mp3_version(u32 hdr)
 {
 	return ((hdr >> 19) & 0x3);

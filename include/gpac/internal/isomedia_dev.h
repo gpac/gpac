@@ -215,6 +215,10 @@ enum
 	GF_ISOM_BOX_TYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
 	GF_ISOM_BOX_TYPE_DOPS = GF_4CC('d', 'O', 'p', 's'),
 
+	/*IAMF*/
+	GF_ISOM_BOX_TYPE_IAMF = GF_4CC('i', 'a', 'm', 'f'),
+	GF_ISOM_BOX_TYPE_IACB = GF_4CC('i', 'a', 'c', 'b'),
+
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
 	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
@@ -1763,6 +1767,13 @@ typedef struct
 
 typedef struct
 {
+        GF_ISOM_BOX
+        GF_IAConfig *cfg;
+} GF_IAConfigurationBox;
+
+
+typedef struct
+{
 	GF_ISOM_BOX
 	GF_DTSConfig cfg;
 } GF_DTSSpecificBox;
@@ -1825,6 +1836,9 @@ typedef struct __full_audio_sample_entry
 
 	//for FLAC
 	GF_FLACConfigBox *cfg_flac;
+
+        //for IAMF
+        GF_IAConfigurationBox *cfg_iamf;
 
 	//for generic audio sample entry
 	//box type as specified in the file (not this box's type!!)
