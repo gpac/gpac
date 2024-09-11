@@ -3077,11 +3077,8 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 		}
 	}
 
-	GF_Err emib_box_size(GF_Box *s);
-	emib_box_size((GF_Box*)emib);
-
-	GF_Err emib_box_write(GF_Box *s, GF_BitStream *bs);
-	if (emib_box_write((GF_Box*)emib, bs) != GF_OK)
+	gf_isom_box_size((GF_Box*)emib);
+	if (gf_isom_box_write((GF_Box*)emib, bs) != GF_OK)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] EventMessageInstanceBox serialization failed\n"));
 
 	if (!emib->message_data) {
