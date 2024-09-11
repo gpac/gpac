@@ -2191,6 +2191,7 @@ GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name)
 	}\
 
 static void xml_scte35_parse(GF_XMLNode *node, GF_BitStream *bs);
+static void xml_emeb_parse(GF_XMLNode *node, GF_BitStream *bs);
 static void xml_emib_parse(GF_XMLNode *node, GF_BitStream *bs);
 
 GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, const char *base_media_file, GF_BitStream *bs_orig)
@@ -2226,6 +2227,9 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 
 		if (!stricmp(node->name, "SCTE35")) {
 			xml_scte35_parse(node, bs);
+			continue;
+		} else if (!stricmp(node->name, "EventMessageEmptyBox")) {
+			xml_emeb_parse(node, bs);
 			continue;
 		} else if (!stricmp(node->name, "EventMessageInstanceBox")) {
 			xml_emib_parse(node, bs);
@@ -3014,6 +3018,16 @@ static void xml_scte35_parse(GF_XMLNode *root, GF_BitStream *bs)
 			continue;
 		}
 	}
+}
+
+// SCTE-35 encapsulated in an EMEB box
+static void xml_emeb_parse(GF_XMLNode *root, GF_BitStream *bs)
+{
+	GF_EventMessageBox *emeb = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMEB);
+	gf_isom_box_size((GF_Box*)emeb);
+	if (gf_isom_box_write((GF_Box*)emeb, bs) != GF_OK)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] EventMessageEmptyBox serialization failed\n"));
+	gf_isom_box_del((GF_Box*)emeb);
 }
 
 // SCTE-35 encapsulated in an EMIB box
