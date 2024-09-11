@@ -336,12 +336,14 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 				gf_hevc_parse_nalu(data+pos, nal_size, ctx->hevc_state, &nut, &tid, &lid);
 				u32 flags=0;
 
-				switch (ctx->hevc_state->s_info.slice_type) {
-				case GF_HEVC_SLICE_TYPE_P: flags|=1; break;
-				case GF_HEVC_SLICE_TYPE_B: flags|=2; break;
-				case GF_HEVC_SLICE_TYPE_I: break;
+				if (ctx->hevc_state) {
+					switch (ctx->hevc_state->s_info.slice_type) {
+					case GF_HEVC_SLICE_TYPE_P: flags|=1; break;
+					case GF_HEVC_SLICE_TYPE_B: flags|=2; break;
+					case GF_HEVC_SLICE_TYPE_I: break;
+					}
+					*delim_flags |= flags;
 				}
-				*delim_flags |= flags;
 			}
 #endif
 			break;
