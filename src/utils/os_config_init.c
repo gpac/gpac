@@ -1958,7 +1958,11 @@ void gf_sys_print_arg(FILE *helpout, GF_SysPrintArgFlags flags, const GF_GPACArg
 		if (flags&GF_PRINTARG_NO_DASH) {
 			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", arg_name ? arg_name : arg->name);
 		} else {
-			gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
+			if (arg->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT)) {
+				gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
+			} else {
+				gf_sys_format_help(helpout, flags, "<a id=\"%s\" data-level=\"basic\">", arg_name ? arg_name : arg->name);
+			}
 			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
 			gf_sys_format_help(helpout, flags, "</a>");
 		}
@@ -2255,7 +2259,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 
 			if (gen_doc==1) {
 				header_string = "Example\n```\n";
-				footer_string = "\n```";
+				footer_string = "\n```\n";
 			} else if (gen_doc==2) {
 				header_string = "Example\n.br\n";
 				footer_string = "\n.br\n";
