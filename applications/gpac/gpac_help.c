@@ -1580,7 +1580,11 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 	}
 
 	if (gen_doc==1) {
-		gf_sys_format_help(helpout, help_flags, "<a id=\"%s\">", a->arg_name);
+		if (a->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT)) {
+			gf_sys_format_help(helpout, help_flags, "<a id=\"%s\">", a->arg_name);
+		} else {
+			gf_sys_format_help(helpout, help_flags, "<a id=\"%s\" data-level=\"basic\">", a->arg_name);
+		}
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", a->arg_name);
 		gf_sys_format_help(helpout, help_flags, "</a> (%s", is_enum ? "enum" : gf_props_get_type_name(a->arg_type));
 	} else {
@@ -1844,7 +1848,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	if (args && !jsmod_help) {
 		idx=0;
 		if (gen_doc==1) {
-			gf_sys_format_help(helpout, help_flags, "# Options  \n");
+			gf_sys_format_help(helpout, help_flags, "# Options  {.no-collapse}\n");
 		} else {
 			switch (argmode) {
 			case GF_ARGMODE_ALL:
