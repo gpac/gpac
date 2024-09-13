@@ -999,7 +999,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				}
 			}
 			if (!ctx->xots) {
-				ts += st->tk_delay;
+				ts += st->tk_delay == 0 ? -((s64)st->ts_sub) : st->tk_delay;
 				ts += st->ts_at_range_end;
 				ts -= st->ts_at_range_start_plus_one - 1;
 
