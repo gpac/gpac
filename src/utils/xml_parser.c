@@ -3077,13 +3077,26 @@ static void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 		}
 	}
 
+	u64 start = gf_bs_get_position(bs);
 	gf_isom_box_size((GF_Box*)emib);
 	if (gf_isom_box_write((GF_Box*)emib, bs) != GF_OK)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML] EventMessageInstanceBox serialization failed\n"));
 
 	if (!emib->message_data) {
-		// de-facto appending emib->message_data
+		// append emib->message_data as it is the last field
+		u64 before = gf_bs_get_position(bs);
 		xml_scte35_parse(root, bs);
+		u64 end = gf_bs_get_position(bs);
+
+		gf_bs_seek(bs, start);
+		emib->message_data = (u8*)before;          //dumb non-null pointer
+		emib->message_data_size = end - before;
+		gf_isom_box_size((GF_Box*)emib);
+		gf_isom_full_box_write((GF_Box*)emib, bs); //rewrite size
+		gf_bs_seek(bs, end);
+
+		emib->message_data = NULL;
+		emib->message_data_size = 0;
 	}
 
 	gf_isom_box_del((GF_Box*)emib);
