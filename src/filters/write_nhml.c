@@ -60,6 +60,7 @@ typedef struct
 
 	GF_Fraction64 duration;
 	Bool first;
+	s64 delay;
 	Bool uncompress, is_dims, is_stpp, is_scte35;
 
 	GF_BitStream *bs_w, *bs_r;
@@ -113,6 +114,9 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 
 	if (!ctx->opid_mdia && !ctx->nhmlonly)
 		ctx->opid_mdia = gf_filter_pid_new(filter);
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.longsint : 0;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 	if (p) {
@@ -523,7 +527,9 @@ static GF_Err nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size,
 	u64 cts = gf_filter_pck_get_cts(pck);
 
 	if (dts==GF_FILTER_NO_TS) dts = cts;
+	else dts += ctx->delay;
 	if (cts==GF_FILTER_NO_TS) cts = dts;
+	else cts += ctx->delay;
 
 	if (!ctx->bs_r) ctx->bs_r = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs_r, data, data_size);
@@ -683,7 +689,9 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 	u64 cts = gf_filter_pck_get_cts(pck);
 
 	if (dts==GF_FILTER_NO_TS) dts = cts;
+	else dts += ctx->delay;
 	if (cts==GF_FILTER_NO_TS) cts = dts;
+	else cts += ctx->delay;
 
 	ctx->pck_num++;
 	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\""LLU"\" dataLength=\"%d\" ", ctx->pck_num, dts, data_size);
