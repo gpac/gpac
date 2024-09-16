@@ -2172,34 +2172,36 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		/*read alpha map and decompress it*/
 		if (size<AlphaPlaneSize) buf = gf_realloc(buf, sizeof(u8)*AlphaPlaneSize);
-		swf_read_data(read, (char *) buf, AlphaPlaneSize);
 
-		osize = w*h;
-		dst = gf_malloc(sizeof(char)*osize);
-		destLen = (uLongf)osize;
-		uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
-		/*write alpha channel*/
-		for (j=0; j<(u32)destLen; j++) {
-			raw[4*j + 3] = dst[j];
+		if (swf_read_data(read, (char *) buf, AlphaPlaneSize) == AlphaPlaneSize) {
+
+			osize = w*h;
+			dst = gf_malloc(sizeof(char)*osize);
+			destLen = (uLongf)osize;
+			uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
+			/*write alpha channel*/
+			for (j=0; j<(u32)destLen; j++) {
+				raw[4*j + 3] = dst[j];
+			}
+			gf_free(dst);
+
+			/*write png*/
+			if (read->localPath) {
+				sprintf(szName, "%s/swf_png_%d.png", read->localPath, ID);
+			} else {
+				sprintf(szName, "swf_png_%d.png", ID);
+			}
+
+			osize = w*h*4;
+			buf = gf_realloc(buf, sizeof(char)*osize);
+			gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (char *)buf, &osize);
+
+			file = gf_fopen(szName, "wb");
+			if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
+			gf_fclose(file);
+
+			gf_free(raw);
 		}
-		gf_free(dst);
-
-		/*write png*/
-		if (read->localPath) {
-			sprintf(szName, "%s/swf_png_%d.png", read->localPath, ID);
-		} else {
-			sprintf(szName, "swf_png_%d.png", ID);
-		}
-
-		osize = w*h*4;
-		buf = gf_realloc(buf, sizeof(char)*osize);
-		gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (char *)buf, &osize);
-
-		file = gf_fopen(szName, "wb");
-		if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
-		gf_fclose(file);
-
-		gf_free(raw);
 #endif //GPAC_DISABLE_AV_PARSERS
 	}
 	gf_free(buf);
