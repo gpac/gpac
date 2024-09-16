@@ -8628,6 +8628,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
 	//peek payload, check if m3u8 - MPD and SmoothStreaming are checked after
 	char szLine[100];
+	memset(&szLine, 0, 100);
 	FILE *f = gf_fopen(local_url, "r");
 	if (f) {
 		gf_fread(szLine, 100, f);
