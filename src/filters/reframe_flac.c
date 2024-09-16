@@ -520,6 +520,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 	u32 pck_size, remain, prev_pck_size;
 	u64 cts;
 	FLACHeader hdr;
+	memset(&hdr, 0, sizeof(FLACHeader));
 
 restart:
 	cts = GF_FILTER_NO_TS;
@@ -882,4 +883,3 @@ const GF_FilterRegister *rfflac_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_RFFLAC
-
