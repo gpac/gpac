@@ -2485,7 +2485,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 {
 	s32 ps_idx = 0;
 	s32 res;
-	u8 nal_unit_type, temporal_id, layer_id;
+	u8 nal_unit_type=0, temporal_id=0, layer_id=0;
 	*skip_nal = GF_FALSE;
 
 	if (size<2) return -1;
@@ -2666,7 +2666,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 {
 	s32 ps_idx = 0;
 	s32 res;
-	u8 nal_unit_type, temporal_id, layer_id;
+	u8 nal_unit_type=0, temporal_id=0, layer_id=0;
 	*skip_nal = GF_FALSE;
 
 	if (size<2) return -1;
