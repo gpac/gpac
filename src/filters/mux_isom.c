@@ -8475,7 +8475,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvsingle), "ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chapm), "chapter storage mode\n"
 	"- off: disable chapters\n"
 	"- tk: use chapter track (QT-style)\n"
