@@ -2094,8 +2094,11 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		sprintf(szName, "swf_jpeg_%d.jpg", ID);
 	}
 
-	if (version!=3)
+	if (version!=3) {
 		file = gf_fopen(szName, "wb");
+		if (!file)
+			return GF_IO_ERR;
+	}
 
 	if (version==1 && read->jpeg_hdr_size >= 2) {
 		/*remove JPEG EOI*/
@@ -2107,27 +2110,31 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	}
 	buf = gf_malloc(sizeof(u8)*size);
 	if (!buf) return GF_OUT_OF_MEM;
-	swf_read_data(read, (char *) buf, size);
-	if (version==1) {
-		if (gf_fwrite(buf, size, file)!=size)
-			e = GF_IO_ERR;
-	} else {
-		u32 i;
-		for (i=0; i<size; i++) {
-			if ((i+4<size)
-			        && (buf[i]==0xFF) && (buf[i+1]==0xD9)
-			        && (buf[i+2]==0xFF) && (buf[i+3]==0xD8)
-			   ) {
-				memmove(buf+i, buf+i+4, sizeof(char)*(size-i-4));
-				size -= 4;
-				break;
+
+	if (swf_read_data(read, (char *) buf, size) != size)
+		e = GF_IO_ERR;
+	else {
+		if (version==1) {
+			if (gf_fwrite(buf, size, file)!=size)
+				e = GF_IO_ERR;
+		} else {
+			u32 i;
+			for (i=0; i<size; i++) {
+				if ((i+4<size)
+						&& (buf[i]==0xFF) && (buf[i+1]==0xD9)
+						&& (buf[i+2]==0xFF) && (buf[i+3]==0xD8)
+				) {
+					memmove(buf+i, buf+i+4, sizeof(char)*(size-i-4));
+					size -= 4;
+					break;
+				}
 			}
-		}
-		if ((size>3) && (buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
-			skip = 2;
-		}
-		if (version==2) {
-			if (gf_fwrite(buf+skip, size-skip, file) != size-skip) e = GF_IO_ERR;
+			if ((size>3) && (buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
+				skip = 2;
+			}
+			if (version==2) {
+				if (gf_fwrite(buf+skip, size-skip, file) != size-skip) e = GF_IO_ERR;
+			}
 		}
 	}
 	if (version!=3)
