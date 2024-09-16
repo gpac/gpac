@@ -1561,6 +1561,8 @@ props_done:
 
 	if (streamtype==GF_STREAM_VISUAL) {
 		u32 cwn, cwd, chn, chd, cxn, cxd, cyn, cyd;
+		cwn=cwd=chn=chd=cxn=cxd=cyn=cyd=0;
+
 		gf_isom_get_clean_aperture(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1, &cwn, &cwd, &chn, &chd, &cxn, &cxd, &cyn, &cyd);
 
 		if (cwd && chd && cxd && cyd) {
