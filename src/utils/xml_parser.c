@@ -63,7 +63,7 @@ GF_STATIC char *xml_translate_xml_string(char *str)
 			if (str[i+1]=='#') {
 				char szChar[20], *end;
 				u16 wchar[2];
-				u32 val, _len;
+				u32 val=0, _len;
 				const unsigned short *srcp;
 				strncpy(szChar, str+i, 10);
 				szChar[10] = 0;

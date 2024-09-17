@@ -114,13 +114,23 @@ static void swf_init_decompress(SWFReader *read)
 	gf_bs_read_data(read->bs, src, size);
 	dst_size -= 8;
 	destLen = (uLongf)dst_size;
-	uncompress((Bytef *) dst+8, &destLen, (Bytef *) src, size);
-	dst_size += 8;
-	gf_free(src);
-	read->mem = dst;
-	gf_bs_del(read->bs);
-	read->bs = gf_bs_new(read->mem, dst_size, GF_BITSTREAM_READ);
-	gf_bs_skip_bytes(read->bs, 8);
+	int uncompress_res = uncompress((Bytef *) dst+8, &destLen, (Bytef *) src, size) ;
+	if ( uncompress_res==Z_OK ) {
+		dst_size += 8;
+		gf_free(src);
+		read->mem = dst;
+		gf_bs_del(read->bs);
+		read->bs = gf_bs_new(read->mem, dst_size, GF_BITSTREAM_READ);
+		gf_bs_skip_bytes(read->bs, 8);
+	}
+	else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SWF Parsing] Fail to uncompress data (%s)\n", zError(uncompress_res)));
+		gf_free(src);
+		gf_free(dst);
+		gf_bs_del(read->bs);
+		read->mem = NULL;
+		read->bs = NULL; // signal error to caller since we return void
+	}
 }
 
 
@@ -2094,8 +2104,11 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		sprintf(szName, "swf_jpeg_%d.jpg", ID);
 	}
 
-	if (version!=3)
+	if (version!=3) {
 		file = gf_fopen(szName, "wb");
+		if (!file)
+			return GF_IO_ERR;
+	}
 
 	if (version==1 && read->jpeg_hdr_size >= 2) {
 		/*remove JPEG EOI*/
@@ -2107,27 +2120,31 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	}
 	buf = gf_malloc(sizeof(u8)*size);
 	if (!buf) return GF_OUT_OF_MEM;
-	swf_read_data(read, (char *) buf, size);
-	if (version==1) {
-		if (gf_fwrite(buf, size, file)!=size)
-			e = GF_IO_ERR;
-	} else {
-		u32 i;
-		for (i=0; i<size; i++) {
-			if ((i+4<size)
-			        && (buf[i]==0xFF) && (buf[i+1]==0xD9)
-			        && (buf[i+2]==0xFF) && (buf[i+3]==0xD8)
-			   ) {
-				memmove(buf+i, buf+i+4, sizeof(char)*(size-i-4));
-				size -= 4;
-				break;
+
+	if (swf_read_data(read, (char *) buf, size) != size)
+		e = GF_IO_ERR;
+	else {
+		if (version==1) {
+			if (gf_fwrite(buf, size, file)!=size)
+				e = GF_IO_ERR;
+		} else {
+			u32 i;
+			for (i=0; i<size; i++) {
+				if ((i+4<size)
+						&& (buf[i]==0xFF) && (buf[i+1]==0xD9)
+						&& (buf[i+2]==0xFF) && (buf[i+3]==0xD8)
+				) {
+					memmove(buf+i, buf+i+4, sizeof(char)*(size-i-4));
+					size -= 4;
+					break;
+				}
 			}
-		}
-		if ((size>3) && (buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
-			skip = 2;
-		}
-		if (version==2) {
-			if (gf_fwrite(buf+skip, size-skip, file) != size-skip) e = GF_IO_ERR;
+			if ((size>3) && (buf[0]==0xFF) && (buf[1]==0xD8) && (buf[2]==0xFF) && (buf[3]==0xD8)) {
+				skip = 2;
+			}
+			if (version==2) {
+				if (gf_fwrite(buf+skip, size-skip, file) != size-skip) e = GF_IO_ERR;
+			}
 		}
 	}
 	if (version!=3)
@@ -2165,34 +2182,36 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		/*read alpha map and decompress it*/
 		if (size<AlphaPlaneSize) buf = gf_realloc(buf, sizeof(u8)*AlphaPlaneSize);
-		swf_read_data(read, (char *) buf, AlphaPlaneSize);
 
-		osize = w*h;
-		dst = gf_malloc(sizeof(char)*osize);
-		destLen = (uLongf)osize;
-		uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
-		/*write alpha channel*/
-		for (j=0; j<(u32)destLen; j++) {
-			raw[4*j + 3] = dst[j];
+		if (swf_read_data(read, (char *) buf, AlphaPlaneSize) == AlphaPlaneSize) {
+
+			osize = w*h;
+			dst = gf_malloc(sizeof(char)*osize);
+			destLen = (uLongf)osize;
+			uncompress((Bytef *) dst, &destLen, buf, AlphaPlaneSize);
+			/*write alpha channel*/
+			for (j=0; j<(u32)destLen; j++) {
+				raw[4*j + 3] = dst[j];
+			}
+			gf_free(dst);
+
+			/*write png*/
+			if (read->localPath) {
+				sprintf(szName, "%s/swf_png_%d.png", read->localPath, ID);
+			} else {
+				sprintf(szName, "swf_png_%d.png", ID);
+			}
+
+			osize = w*h*4;
+			buf = gf_realloc(buf, sizeof(char)*osize);
+			gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (char *)buf, &osize);
+
+			file = gf_fopen(szName, "wb");
+			if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
+			gf_fclose(file);
+
+			gf_free(raw);
 		}
-		gf_free(dst);
-
-		/*write png*/
-		if (read->localPath) {
-			sprintf(szName, "%s/swf_png_%d.png", read->localPath, ID);
-		} else {
-			sprintf(szName, "swf_png_%d.png", ID);
-		}
-
-		osize = w*h*4;
-		buf = gf_realloc(buf, sizeof(char)*osize);
-		gf_img_png_enc(raw, w, h, w*4, GF_PIXEL_RGBA, (char *)buf, &osize);
-
-		file = gf_fopen(szName, "wb");
-		if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
-		gf_fclose(file);
-
-		gf_free(raw);
 #endif //GPAC_DISABLE_AV_PARSERS
 	}
 	gf_free(buf);
