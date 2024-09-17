@@ -523,8 +523,8 @@ static void copy_bytes_to_pes_buffer (mpeg2ps_stream_t *sptr,
 			sptr->pes_buffer_size_max = to_move + pes_len + 2048;
 		}
 	}
-	file_read_bytes(sptr->m_fd, sptr->pes_buffer + sptr->pes_buffer_size, pes_len);
-	sptr->pes_buffer_size += pes_len;
+	u32 size_read = (u32) gf_fread(sptr->pes_buffer + sptr->pes_buffer_size, pes_len, sptr->m_fd);
+	sptr->pes_buffer_size += size_read;
 }
 
 /*
