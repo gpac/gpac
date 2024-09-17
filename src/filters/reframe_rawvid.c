@@ -297,7 +297,7 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 				else if (data[0] == 'H') ctx->size.y = atoi(data+1);
 				else if (data[0] == 'F') sscanf(data+1, "%d:%d", &ctx->fps.num, &ctx->fps.den);
 				else if (data[0] == 'A') {
-					GF_Fraction sar;
+					GF_Fraction sar = {0,1};
 					sscanf(data+1, "%d:%d", &sar.num, &sar.den);
 					gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar));
 				}
@@ -401,7 +401,7 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 			data += remain;
 			byte_offset += remain;
 			offset_in_pck += remain;
-			
+
 			ctx->out_pck = NULL;
 			ctx->nb_bytes_in_frame = 0;
 
@@ -505,5 +505,3 @@ const GF_FilterRegister *rfrawvid_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_RFRAWVID
-
-

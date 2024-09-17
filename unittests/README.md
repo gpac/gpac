@@ -2,7 +2,7 @@
 
 ## Build and run
 
-Unit tests can be activate with ```configure --enable-unittests```.
+Unit tests can be activate with ```configure --unittests```.
 
 Unit tests require extra visibility of symbols. That's why a second build is required. This is done automatically.
 
