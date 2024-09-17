@@ -4410,7 +4410,7 @@ If the source packet uses a frame interface object or has no associated data, re
 If the source packet is referenced more than once (ie more than just the caller), a new packet on the output PID is allocated with source data copied.
 Otherwise, the source data is assigned to the output packet.
 
-This is typically called by filters requiring read access to data for packets using frame interfaces
+This is typically called by filters requiring read access to data for packets using frame interfaces.
 
 \param pck_source the target source packet
 \param cached_pck if not NULL, will try to reuse this packet if possible (if not possible, this packet will be destroyed)
@@ -4423,7 +4423,7 @@ GF_FilterPacket *gf_filter_pck_dangling_copy(GF_FilterPacket *pck_source, GF_Fil
 If the source packet uses a frame interface object or has no associated data, returns a copy of the packet.
 Otherwise, the source data is copied in the output packet.
 
-This is typically called by filters reaggregating packets on their own
+This is typically called by filters reaggregating packets on their own.
 
 \param pck_source the target source packet
 \param cached_pck if not NULL, will try to reuse this packet if possible (if not possible, this packet will be destroyed)
