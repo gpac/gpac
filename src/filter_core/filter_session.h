@@ -269,6 +269,7 @@ struct __gf_filter_pck
 	//for shared memory packets: 0: cloned mem, 1: read/write mem from source filter, 2: read-only mem from filter
 	//note that packets with frame_ifce are always considered as read-only memory
 	u8 filter_owns_mem;
+	//0: regular packet, 1: dangling packet with copied mem, 2: dangling packet with shared mem
 	u8 is_dangling;
 };
 
