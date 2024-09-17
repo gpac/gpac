@@ -152,7 +152,7 @@ typedef struct
 	GF_PropStringList props;
 	Bool copy, rmseek;
 	u32 cues;
-	Bool sapcue;
+	u32 sapcue;
 
 	//internal
 	Bool filter_sap1;
@@ -1066,7 +1066,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 		// forward SAPs as cue points
 		u32 sap = gf_filter_pck_get_sap(new_pck);
-		if (sap > GF_FILTER_SAP_NONE && ctx->sapcue)
+		if (sap > 0 && sap <= ctx->sapcue)
 			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
 		gf_filter_pck_send(new_pck);
@@ -1079,7 +1079,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 			// forward SAPs as cue points
 			u32 sap = gf_filter_pck_get_sap(dst);
-			if (sap > GF_FILTER_SAP_NONE && ctx->sapcue)
+			if (sap > 0 && sap <= ctx->sapcue)
 				gf_filter_pck_set_property(dst, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 
 			gf_filter_pck_send(dst);
@@ -2787,7 +2787,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- no: do no filter frames based on cue info\n"
 	"- segs: only forward frames marked as segment start\n"
 	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
-	{ OFFS(sapcue), "treat SAPs as cue points", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT },
+	{ OFFS(sapcue), "treat SAPs smaller than or equal to this value as cue points", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(rmseek), "remove seek flag of all sent packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
