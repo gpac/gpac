@@ -729,7 +729,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	u64 frame_size = 0, pts = GF_FILTER_NO_TS;
 	GF_FilterPacket *pck;
 	u64 pos=0, pos_ivf_hdr=0;
-	u8 *output;
+	u8 *output=NULL;
 
 	if (ctx->bsmode==IVF) {
 		pos_ivf_hdr = gf_bs_get_position(ctx->bs);
@@ -787,9 +787,8 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	gf_bs_seek(ctx->bs, pos);
-	gf_bs_read_data(ctx->bs, output, pck_size);
 
-	if (output[0] & 0x80)
+	if (gf_bs_read_data(ctx->bs, output, pck_size) && (output[0] & 0x80))
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	else
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_NONE);
@@ -1404,4 +1403,3 @@ const GF_FilterRegister *rfav1_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFAV1)
-

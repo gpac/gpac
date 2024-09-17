@@ -631,6 +631,7 @@ static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	u32 nb_frames=0;
 	u32 nb_skip=0;
 	GF_M4ADecSpecInfo acfg;
+	acfg.base_sr_index = (u32)-1;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	while (1) {
 		u32 nb_skipped = 0;
