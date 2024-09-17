@@ -412,7 +412,7 @@ ifeq ($(UNIT_TESTS),yes)
 		-o ../bin/gcc/unittests \
 		../bin/gcc/unittests.c \
 		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
-		-Wl,-rpath=$(realpath ../bin/gcc) -L../bin/gcc -lgpac
+		-Wl,-rpath,$(realpath ../bin/gcc) -L../bin/gcc -lgpac
 endif
 
 

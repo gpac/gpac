@@ -12314,6 +12314,11 @@ GF_Box *jp2p_box_new()
 void jp2p_box_del(GF_Box *s)
 {
 	GF_JP2ProfileBox *ptr = (GF_JP2ProfileBox *) s;
+	u32 i, count = gf_list_count(ptr->compatible_brands);
+	for (i=0; i<count; i++) {
+		u32 *brand = (u32 *)gf_list_get(ptr->compatible_brands, i);
+		gf_free(brand);
+	}
 	gf_list_del(ptr->compatible_brands);
 	gf_free(s);
 }
@@ -12340,7 +12345,7 @@ GF_Err jp2p_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_JP2ProfileBox *ptr = (GF_JP2ProfileBox *) s;
 	u32 i, count = gf_list_count(ptr->compatible_brands);
 
-	e = gf_isom_box_write_header(s, bs);
+	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
 	for (i=0; i<count; i++) {

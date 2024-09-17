@@ -783,12 +783,11 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 		u32 font_style = 0;
 		u32 style_nb_chars = 0;
 		u32 style_def_type = 0;
-
-		if ( (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
+		if ( (i+2<len) && (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
 			style_nb_chars = 3;
 			style_def_type = 1;
 		}
-		else if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
+		else if ( (i+3<len) && (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
 			style_def_type = 2;
 			style_nb_chars = 4;
 		}
