@@ -3447,7 +3447,9 @@ void gf_dm_sess_server_reset(GF_DownloadSession *sess)
 	//DO NOT clear headers if H2: the underlying h2 session could have been ended (stream_id=0) and then reassigned
 	//when processsing another session, so the headers would be the ones of the new stream_id
 	//for H2, the reset is done when reassigning sessions
+#ifdef GPAC_HAS_HTTP2
 	if (!sess->h2_sess)
+#endif
 		gf_dm_sess_clear_headers(sess);
 
 	sess->total_size = sess->bytes_done = 0;
@@ -8816,4 +8818,3 @@ void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id)
 }
 
 #endif // GPAC_CONFIG_EMSCRIPTEN
-
