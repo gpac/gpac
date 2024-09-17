@@ -10819,7 +10819,7 @@ static const GF_FilterArgs DasherArgs[] =
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pswitch), "period switch control mode\n"
 		"- single: change period if PID configuration changes\n"
-		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)\n"
+		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or ad insertion not using periodID)\n"
 		"- stsd: change period if PID configuration changes unless new configuration was advertised in initial config", GF_PROP_UINT, "single", "single|force|stsd", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
