@@ -2341,21 +2341,18 @@ next_packet:
 					routeout_send_fdt(ctx, serv, rpid);
 					rpid->push_frag_name = GF_FALSE;
 
-					if (!manifest_sent) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
-						manifest_sent = GF_TRUE;
-						if (ctx->use_inband) {
-							routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
-						} else {
-							routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
-						}
-					}
 					if (ctx->use_inband) {
 						init_sock = rpid->rlct->sock;
 						init_tsi = rpid->tsi;
 					} else {
 						init_sock = ctx->sock_dvb_mabr;
 						init_tsi = ctx->dvb_mabr_tsi;
+					}
+
+					if (!manifest_sent) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
+						manifest_sent = GF_TRUE;
+						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
 					}
 					init_toi = rpid->init_toi;
 				}
@@ -2387,7 +2384,10 @@ next_packet:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] HLS sub playlist content:\n%s\n", rpid->route->log_name, rpid->hld_child_pl));
 
 			if (serv->use_flute) {
-				routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0, 0, GF_TRUE);
+				GF_Socket *hls_sock = ctx->use_inband ? rpid->rlct->sock : ctx->sock_dvb_mabr;
+				u32 hls_tsi = ctx->use_inband ? rpid->tsi : ctx->dvb_mabr_tsi;
+
+				routeout_send_file(ctx, serv, hls_sock, hls_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0, 0, GF_TRUE);
 			} else {
 				//we use codepoint 1 (NRT - file mode) for subplaylists
 				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1-rpid->hld_child_pl_version, rpid->hld_child_pl, hls_len, 1, 0, GF_FALSE);
