@@ -114,13 +114,23 @@ static void swf_init_decompress(SWFReader *read)
 	gf_bs_read_data(read->bs, src, size);
 	dst_size -= 8;
 	destLen = (uLongf)dst_size;
-	uncompress((Bytef *) dst+8, &destLen, (Bytef *) src, size);
-	dst_size += 8;
-	gf_free(src);
-	read->mem = dst;
-	gf_bs_del(read->bs);
-	read->bs = gf_bs_new(read->mem, dst_size, GF_BITSTREAM_READ);
-	gf_bs_skip_bytes(read->bs, 8);
+	int uncompress_res = uncompress((Bytef *) dst+8, &destLen, (Bytef *) src, size) ;
+	if ( uncompress_res==Z_OK ) {
+		dst_size += 8;
+		gf_free(src);
+		read->mem = dst;
+		gf_bs_del(read->bs);
+		read->bs = gf_bs_new(read->mem, dst_size, GF_BITSTREAM_READ);
+		gf_bs_skip_bytes(read->bs, 8);
+	}
+	else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SWF Parsing] Fail to uncompress data (%s)\n", zError(uncompress_res)));
+		gf_free(src);
+		gf_free(dst);
+		gf_bs_del(read->bs);
+		read->mem = NULL;
+		read->bs = NULL; // signal error to caller since we return void
+	}
 }
 
 
