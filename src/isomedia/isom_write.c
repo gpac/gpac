@@ -4250,6 +4250,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	GF_SampleTableBox *stbl, *stbl_temp;
 	GF_SampleEncryptionBox *senc;
 
+
 	e = CanAccessMovie(dest_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	e = gf_isom_insert_moov(dest_file);
@@ -4432,6 +4433,11 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 
 	if (dest_file->moov->mvhd->nextTrackID <= new_tk->Header->trackID)
 		dest_file->moov->mvhd->nextTrackID = new_tk->Header->trackID+1;
+
+        /*if it contains IAMF, add the iamf brand to ftyp*/
+        if (gf_isom_get_media_subtype(dest_file, new_tk->Header->trackID, 1) == GF_ISOM_BOX_TYPE_IAMF) {
+                gf_isom_modify_alternate_brand(dest_file, GF_ISOM_BRAND_IAMF, GF_TRUE);
+        }
 
 	return GF_OK;
 }

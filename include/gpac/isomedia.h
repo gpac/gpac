@@ -487,6 +487,8 @@ enum
 
 	GF_ISOM_BRAND_OPUS = GF_4CC( 'O', 'p', 'u', 's'),
 
+        GF_ISOM_BRAND_IAMF = GF_4CC( 'i', 'a', 'm', 'f'),
+
 	GF_ISOM_BRAND_ISMA = GF_4CC( 'I', 'S', 'M', 'A' ),
 
 	/* dash related brands (ISO/IEC 23009-1) */
