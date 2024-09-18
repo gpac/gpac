@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -1392,6 +1392,8 @@ enum
 
 	/*is zip compression used in DIMS unit ?*/
 	GP_RTP_DIMS_COMPRESSED =	(1<<12),
+	/* static RTP payloadID must be used, throw error if not defined*/
+	GP_RTP_PCK_FORCE_STATIC_ID =	(1<<13),
 };
 
 

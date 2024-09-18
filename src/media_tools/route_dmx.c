@@ -2180,10 +2180,10 @@ static GF_Err gf_route_service_setup_dash(GF_ROUTEDmx *routedmx, GF_ROUTEService
 			break;
 		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Received MPD file %s\n", s->log_name, content_location));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Received Manifest file %s\n", s->log_name, content_location));
 		routedmx->on_event(routedmx->udta, evt_type, s->service_id, &finfo);
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Received MPD file %s content:\n%s\n", s->log_name, content_location, content ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Received Manifest file %s content:\n%s\n", s->log_name, content_location, content ));
 	}
 	return GF_OK;
 }

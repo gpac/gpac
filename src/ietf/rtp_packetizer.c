@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -563,6 +563,11 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 	case GF_RTP_PAYT_VVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H266");
+		return GF_TRUE;
+
+	case GF_RTP_PAYT_MP2T:
+		strcpy(szMediaName, "video");
+		strcpy(szPayloadName, "MP2T");
 		return GF_TRUE;
 	default:
 		strcpy(szMediaName, "");

@@ -7250,17 +7250,17 @@ GF_Err gf_isom_set_sample_references(GF_ISOFile *isom_file, u32 trackNumber, u32
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleNumber the target sample number
-\param ID ID for the sample
+\param refID ID for the sample
 \param nb_refs number of references for this sample, may be 0 if none (IDR)
 \param refs IDs of samples this sample depends on. Do NOT modify
 \return error if any, GF_NOT_FOUND if no such info*/
-GF_Err gf_isom_get_sample_references(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *ID, u32 *nb_refs, const u32 **refs);
+GF_Err gf_isom_get_sample_references(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *refID, u32 *nb_refs, const u32 **refs);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*! sets sample references for fragmented mode
 \param isom_file the target ISO file
 \param TrackID the target track ID
-\param ID ID for the sample
+\param refID ID for the sample
 \param nb_refs number of references for this sample, may be 0 if none (IDR)
 \param refs IDs of samples this sample depends on
 \return error if any*/
