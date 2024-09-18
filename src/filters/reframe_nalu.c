@@ -1990,6 +1990,8 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
 			ctx->cts = ctx->dts = 0;
+			ctx->prev_cts = ctx->prev_dts = 0;
+			ctx->prev_sap = 0;
 		}
 		if (! ctx->is_file) {
 			if (!ctx->initial_play_done) {
@@ -2049,11 +2051,20 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		//don't cancel event
+		//reset parsing state
 		ctx->is_playing = GF_FALSE;
 		ctx->nal_store_size = 0;
 		ctx->resume_from = 0;
 		ctx->cts = 0;
+
+		while (gf_list_count(ctx->pck_queue)) {
+			GF_FilterPacket *pck = gf_list_pop_back(ctx->pck_queue);
+			gf_filter_pck_discard(pck);
+		}
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = NULL;
+		ctx->prev_sap = ctx->first_pck_in_au = NULL;
+		//don't cancel event
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
