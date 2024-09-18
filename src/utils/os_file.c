@@ -683,7 +683,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	struct stat st;
 #endif
 
-	if (!dir || !enum_dir_fct) return GF_BAD_PARAM;
+	if (!dir || !strlen(dir) || !enum_dir_fct) return GF_BAD_PARAM;
 
 	if (filter && (!strcmp(filter, "*") || !filter[0])) filter=NULL;
 
@@ -768,8 +768,16 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	}
 
 #else
-	strcpy(path, dir);
-	if (path[strlen(path)-1] != '/') strcat(path, "/");
+	size_t dir_len = strlen(dir);
+	if (dir_len < GF_ARRAY_LENGTH(path)) {
+		strcpy(path, dir);
+	}
+	else {
+		memcpy(path, dir, GF_ARRAY_LENGTH(path));
+		path[ GF_ARRAY_LENGTH(path) - 1] = 0;
+	}
+	size_t path_len = strlen(path);
+	if (path_len && path[path_len-1] != '/') strcat(path, "/");
 #endif
 
 #ifdef WIN32
@@ -777,9 +785,10 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	if (SearchH == INVALID_HANDLE_VALUE) return GF_IO_ERR;
 
 #if defined (_WIN32_WCE)
-	_path[strlen(_path)-1] = 0;
+	_path[strlen(_path) ? strlen(_path)-1:0] = 0;
 #else
-	path[wcslen(path)-1] = 0;
+	size_t path_len = wcslen(path);
+	path[ path_len ? path_len-1 : 0] = 0;
 #endif
 
 	while (SearchH != INVALID_HANDLE_VALUE) {
