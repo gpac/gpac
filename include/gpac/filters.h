@@ -1777,7 +1777,7 @@ typedef struct
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
 	*/
 	u8 timestamp_based;
-	/*! GF_FEVT_PLAY only, indicates the consumer only cares for the full file, not packets*/
+	/*! GF_FEVT_PLAY / GF_FEVT_PLAY_HINT, indicates the consumer only cares for the full file, not packets*/
 	u8 full_file_only;
 	/*!
 	 for GF_FEVT_PLAY: indicates any current download should be aborted
@@ -2162,6 +2162,8 @@ enum
 	GF_CAPFLAG_STATIC = 1<<5,
 	/*! Currently only used for output  capabilities, indicates that this capability is optional in the  PID */
 	GF_CAPFLAG_OPTIONAL = 1<<6,
+	/*! Only checks presence of capability */
+	GF_CAPFLAG_PRESENT = 1<<7,
 };
 
 /*! Shortcut macro to set for input capability flags*/
