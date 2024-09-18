@@ -3316,7 +3316,7 @@ static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_
 {
 	GF_Err e;
 	Bool key_frame = GF_FALSE;
-	u32 width = 0, height = 0, renderWidth, renderHeight;
+	u32 width = 0, height = 0, renderWidth=0, renderHeight=0;
 	u32 num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 	u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 	gf_bs_reassign_buffer(pctx->bs, ptr, frame_size);

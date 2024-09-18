@@ -4017,6 +4017,7 @@ static GF_Err gf_isom_get_trex_props(GF_ISOFile *file, GF_TrackBox *trak, GF_Tra
 {
 	u32 i;
 	if (!file->moov->mvex) return GF_NOT_FOUND;
+	*trex = NULL;
 	for (i=0; i<gf_list_count(file->moov->mvex->TrackExList); i++) {
 		*trex = gf_list_get(file->moov->mvex->TrackExList, i);
 		if ((*trex)->trackID == trak->Header->trackID) break;
@@ -4091,7 +4092,7 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	//get CSLG from trex if not in stbl
 	GF_CompositionToDecodeBox *trex_cslg=NULL;
 	if (!stbl_temp->CompositionToDecode) {
-		GF_TrackExtendsBox *trex;
+		GF_TrackExtendsBox *trex=NULL;
 		GF_TrackExtensionPropertiesBox *trexprop=NULL;
 		gf_isom_get_trex_props(file, trak, &trex, &trexprop);
 		if (trexprop) {

@@ -109,6 +109,7 @@
 static int wsa_init = 0;
 
 /*end-win32*/
+#define SOCKET_INVALID(_s) (_s==INVALID_SOCKET)
 
 #else
 /*non-win32*/
@@ -141,7 +142,9 @@ static int wsa_init = 0;
 #endif
 
 
-#define INVALID_SOCKET -1
+#define SOCKET_INVALID(_s) (_s<0)
+#define INVALID_SOCKET	-1
+
 #define SOCKET_ERROR -1
 #define LASTSOCKERROR errno
 
@@ -361,12 +364,6 @@ static const char * inet_ntop6(const unsigned char *src, char *dst, size_t size)
 
 #ifdef GPAC_HAS_IPV6
 static u32 ipv6_check_state = 0;
-#endif
-
-#ifdef _LP64
-#define NULL_SOCKET 0
-#else
-#define NULL_SOCKET (SOCKET)NULL
 #endif
 
 #ifdef GPAC_HAS_SOCK_UN
@@ -1978,6 +1975,7 @@ GF_Socket *gf_sk_new_ex(u32 SocketType, const char *netcap_id)
 #ifdef WIN32
 	wsa_init ++;
 #endif
+	tmp->socket = INVALID_SOCKET;
 
 #ifndef GPAC_DISABLE_NETCAP
 	GF_NetcapFilter *nf = gf_net_filter_get(netcap_id);
@@ -2006,7 +2004,7 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 {
 	u32 nsize=0, psize;
 	s32 res;
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 
 	if (SendBuffer) {
 		res = setsockopt(sock->socket, SOL_SOCKET, SO_SNDBUF, (char *) &NewSize, sizeof(u32) );
@@ -2037,12 +2035,12 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn)
 	s32 res;
 #ifdef WIN32
 	long val = NonBlockingOn;
-	if (sock->socket) {
+	if (!SOCKET_INVALID(sock->socket)) {
 		res = ioctlsocket(sock->socket, FIONBIO, &val);
 		if (res) return GF_SERVICE_ERROR;
 	}
 #else
-	if (sock->socket) {
+	if (!SOCKET_INVALID(sock->socket)) {
 		s32 flags = fcntl(sock->socket, F_GETFL, 0);
 		if (NonBlockingOn)
 			flags |= O_NONBLOCK;
@@ -2066,21 +2064,21 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn)
 #ifndef GPAC_DISABLE_NETCAP
 #define sock_close(_s) \
 	closesocket(_s->socket);\
-	_s->socket = NULL_SOCKET;\
+	_s->socket = INVALID_SOCKET;\
 	if (_s->cap_info) _s->cap_info->host_port = 0; \
 
 #else
 
 #define sock_close(_s) \
 	closesocket(_s->socket);\
-	_s->socket = NULL_SOCKET;
+	_s->socket = INVALID_SOCKET;
 
 #endif
 
 static void gf_sk_free(GF_Socket *sock)
 {
 	gf_assert( sock );
-	if (!sock->socket) return;
+	if (SOCKET_INVALID(sock->socket)) return;
 
 	/*leave multicast*/
 	if (sock->flags & GF_SOCK_IS_MULTICAST) {
@@ -2177,7 +2175,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	if (sock->flags & GF_SOCK_IS_UN) {
 #ifdef GPAC_HAS_SOCK_UN
 		struct sockaddr_un server_add;
-		if (!sock->socket) {
+		if (SOCKET_INVALID(sock->socket)) {
 			sock->socket = socket(AF_UNIX, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
 			if (sock->flags & GF_SOCK_NON_BLOCKING)
 				gf_sk_set_block_mode(sock, GF_TRUE);
@@ -2243,10 +2241,9 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			}
 		}
 #endif
-		if (!sock->socket) {
+		if (SOCKET_INVALID(sock->socket)) {
 			sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
-			if (sock->socket == INVALID_SOCKET) {
-				sock->socket = NULL_SOCKET;
+			if (SOCKET_INVALID(sock->socket)) {
 				continue;
 			}
 			if (sock->flags & GF_SOCK_IS_TCP) {
@@ -2352,7 +2349,7 @@ conn_ok:
 	}
 #endif
 
-	if (!sock->socket) {
+	if (SOCKET_INVALID(sock->socket)) {
 		sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
 		if (sock->flags & GF_SOCK_NON_BLOCKING)
 			gf_sk_set_block_mode(sock, GF_TRUE);
@@ -2467,18 +2464,17 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	s32 ret = 0;
 	s32 optval;
 
-	if (!sock || sock->socket) return GF_BAD_PARAM;
+	//socket must not be created
+	if (!sock || !SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	if (ifce_ip_or_name && !strcmp(ifce_ip_or_name, "127.0.0.1"))
 		ifce_ip_or_name = NULL;
 
 	if (sock->flags & GF_SOCK_IS_UN) {
 #ifdef GPAC_HAS_SOCK_UN
 		struct sockaddr_un server_un;
-		if (!sock->socket) {
-			sock->socket = socket(AF_UNIX, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
-			if (sock->flags & GF_SOCK_NON_BLOCKING)
-				gf_sk_set_block_mode(sock, GF_TRUE);
-		}
+		sock->socket = socket(AF_UNIX, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
+		if (sock->flags & GF_SOCK_NON_BLOCKING)
+			gf_sk_set_block_mode(sock, GF_TRUE);
 		server_un.sun_family = AF_UNIX;
 		strncpy(server_un.sun_path, peer_name, sizeof(server_un.sun_path)-1);
 		server_un.sun_path[sizeof(server_un.sun_path)-1]=0;
@@ -2564,8 +2560,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 		}
 #endif
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
-		if (sock->socket == INVALID_SOCKET) {
-			sock->socket = NULL_SOCKET;
+		if (SOCKET_INVALID(sock->socket)) {
 			continue;
 		}
 		if (options & GF_SOCK_REUSE_PORT) {
@@ -2786,7 +2781,7 @@ GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written
 #endif
 
 	//the socket must be bound or connected
-	if (!sock || !sock->socket)
+	if (!sock || SOCKET_INVALID(sock->socket))
 		return GF_BAD_PARAM;
 
 	if (! (sock->flags & GF_SOCK_NON_BLOCKING)) {
@@ -2833,6 +2828,7 @@ GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written
 		}
 		count += res;
 		if (written) *written += res;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] sent %u bytes\n", count ));
 	}
 	return GF_OK;
 }
@@ -2847,7 +2843,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const u8 *buffer, u32 length)
 GF_Err gf_sk_select(GF_Socket *sock, GF_SockSelectMode mode)
 {
 	//the socket must be bound or connected
-	if (!sock || !sock->socket)
+	if (!sock || SOCKET_INVALID(sock->socket))
 		return GF_BAD_PARAM;
 
 	//check write and read
@@ -3169,7 +3165,8 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 	GF_Err e;
 	u32 local_add_id;
 
-	if (!sock || sock->socket) return GF_BAD_PARAM;
+	//socket must not be created
+	if (!sock || !SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 
 	if (TTL > 255) TTL = 255;
 
@@ -3308,8 +3305,7 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 				if ((aip->ai_family==PF_INET) && aip->ai_next && (aip->ai_next->ai_family==PF_INET6)) continue;
 			}
 			sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
-			if (sock->socket == INVALID_SOCKET) {
-				sock->socket = NULL_SOCKET;
+			if (SOCKET_INVALID(sock->socket)) {
 				continue;
 			}
 
@@ -3342,7 +3338,7 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 		}
 		freeaddrinfo(res);
 
-		if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
+		if (SOCKET_INVALID(sock->socket) ) return GF_IP_CONNECTION_FAILURE;
 
 		/*TODO: copy over other properties (recption buffer size & co)*/
 		if (sock->flags & GF_SOCK_NON_BLOCKING)
@@ -3497,6 +3493,8 @@ GF_Err gf_sk_setup_multicast_ex(GF_Socket *sock, const char *multi_IPAdd, u16 Mu
 
 	//IPv4 setup
 	sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
+	if (SOCKET_INVALID(sock->socket)) return GF_IP_NETWORK_FAILURE;
+
 	if (sock->flags & GF_SOCK_NON_BLOCKING)
 		gf_sk_set_block_mode(sock, GF_TRUE);
 	sock->flags &= ~GF_SOCK_IS_IPV6;
@@ -3637,7 +3635,7 @@ void gf_sk_group_register(GF_SockGroup *sg, GF_Socket *sk)
 	sg->fds[sg->nb_fds].events = sg->last_mask;
 	sg->fds[sg->nb_fds].revents = 0;
 	sk->poll_idx = sg->nb_fds+1;
-	gf_assert(sg->fds[sg->nb_fds].fd != 0);
+	gf_assert(! SOCKET_INVALID(sg->fds[sg->nb_fds].fd) );
 	sg->nb_fds++;
 #endif
 }
@@ -3754,7 +3752,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 			sg->last_mask = mask;
 			for (i=0; i<sg->nb_fds; i++) {
 				sg->fds[i].events = mask;
-				gf_assert(sg->fds[i].fd != 0);
+				gf_assert(! SOCKET_INVALID(sg->fds[i].fd) );
 			}
 		}
 		int res = poll(sg->fds, sg->nb_fds, usec_wait/1000);
@@ -3922,7 +3920,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		return GF_OK;
 	}
 #endif
-	if (!sock->socket) return GF_BAD_PARAM;
+	if (SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 
 	if (do_select && !(sock->flags & GF_SOCK_NON_BLOCKING)) {
 		//check read
@@ -3981,6 +3979,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 #endif
 
 	if (!res) return GF_IP_NETWORK_EMPTY;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] read %u bytes\n", res ));
 
 	if (BytesRead)
 		*BytesRead = res;
@@ -4003,7 +4002,7 @@ GF_EXPORT
 GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 {
 	s32 i;
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 
 #ifndef GPAC_DISABLE_NETCAP
 	if (sock->cap_info && sock->cap_info->nf->cap_mode) {
@@ -4016,7 +4015,8 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 		MaxConnection = SOMAXCONN;
 	}
 	i = listen(sock->socket, MaxConnection);
-	if (i == SOCKET_ERROR) return GF_IP_NETWORK_FAILURE;
+	if (i == SOCKET_ERROR)
+		return GF_IP_NETWORK_FAILURE;
 	sock->flags |= GF_SOCK_IS_LISTENING;
 	return GF_OK;
 }
@@ -4041,7 +4041,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	sk = accept(sock->socket, (struct sockaddr *) &sock->dest_addr, &client_address_size);
 
 	//we either have an error or we have no connections
-	if (sk == INVALID_SOCKET) {
+	if (SOCKET_INVALID(sk)) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
 			return GF_IP_NETWORK_EMPTY;
@@ -4086,7 +4086,7 @@ GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 #endif
 	u32 size;
 
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 
 	if (Port) {
 #ifdef GPAC_HAS_IPV6
@@ -4117,7 +4117,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 {
 	u32 one;
 
-	if (!sock || !(sock->flags & GF_SOCK_IS_TCP) || !sock->socket)
+	if (!sock || !(sock->flags & GF_SOCK_IS_TCP) || SOCKET_INVALID(sock->socket))
 		return GF_BAD_PARAM;
 
 	one = serverOn ? 1 : 0;
@@ -4135,14 +4135,14 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 	char clienthost[NI_MAXHOST];
 	char servname[NI_MAXHOST];
 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->dest_addr);
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	my_inet_ntop(AF_INET, addrptr, clienthost, NI_MAXHOST);
 	strcpy(buf, clienthost);
 	if (getnameinfo((struct sockaddr *)addrptr, sock->dest_addr_len, clienthost, NI_MAXHOST, servname, NI_MAXHOST, NI_NUMERICHOST) == 0) {
 		strcpy(buf, clienthost);
 	}
 #else
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	strcpy(buf, inet_ntoa(sock->dest_addr.sin_addr));
 #endif
 	return GF_OK;
@@ -4165,7 +4165,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 #endif
 
 	//the socket must be bound or connected
-	if (!sock || !sock->socket) return GF_BAD_PARAM;
+	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	if (remoteHost && !remotePort) return GF_BAD_PARAM;
 
 	//check write

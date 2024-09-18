@@ -8628,11 +8628,15 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
 	//peek payload, check if m3u8 - MPD and SmoothStreaming are checked after
 	char szLine[100];
+	szLine[0] = 0;
 	FILE *f = gf_fopen(local_url, "r");
 	if (f) {
-		gf_fread(szLine, 100, f);
+		u32 read_count = gf_fread(szLine, 100, f);
+		if (read_count < 99)
+			szLine[read_count] = 0;
 		gf_fclose(f);
 	}
+
 	szLine[99] = 0;
 	if (strstr(szLine, "#EXTM3U"))
 		dash->is_m3u8 = 1;
