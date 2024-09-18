@@ -1729,7 +1729,9 @@ typedef enum
 	/*! NTP source clock send by other services (eg from TS to dash using TEMI) */
 	GF_FEVT_NTP_REF,
 	/*! Event sent by DASH/HLS demux to source to notify a quality change  - used for ROUTE/MABR only */
-	GF_FEVT_DASH_QUALITY_SELECT
+	GF_FEVT_DASH_QUALITY_SELECT,
+	/*! Hint for network transmission event */
+	GF_FEVT_NETWORK_HINT
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1982,6 +1984,16 @@ typedef struct
 	GF_QualtitySelectionState select_type;
 } GF_FEVT_DASHQualitySelection;
 
+/*! Event structure for GF_FEVT_NETWORK_HINT*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	/*! MTU size  */
+	u32 mtu_size;
+
+} GF_FEVT_NetworkHint;
+
 /*!
 Filter Event object
  */
@@ -2001,6 +2013,7 @@ union __gf_filter_event
 	GF_FEVT_EncodeHints encode_hints;
 	GF_FEVT_NTPRef ntp;
 	GF_FEVT_DASHQualitySelection dash_select;
+	GF_FEVT_NetworkHint net_hint;
 };
 
 /*! Gets readable name for event type
