@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP input module
@@ -1972,9 +1972,16 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 				nb_chan = 1;
 		} else {
 			payt = gf_rtp_get_payload_type(map, media);
-			if (!payt) return NULL;
-			clock_rate = map->ClockRate;
-			nb_chan = map->AudioChannels;
+			if (payt) {
+				clock_rate = map->ClockRate;
+				nb_chan = map->AudioChannels;
+			} else {
+				static_map = gf_rtp_is_valid_static_payt(map->PayloadType);
+				if (!static_map) return NULL;
+				clock_rate = static_map->clock_rate;
+				if (static_map->stream_type==GF_STREAM_AUDIO)
+					nb_chan = 1;
+			}
 		}
 	}
 

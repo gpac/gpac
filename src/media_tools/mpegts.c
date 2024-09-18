@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -2552,6 +2552,13 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 	/*PAT*/
 	if (hdr.pid == GF_M2TS_PID_PAT) {
+		if (ts->split_mode==2) {
+			GF_M2TS_TSPCK tspck;
+			memset(&tspck, 0, sizeof(GF_M2TS_TSPCK));
+			tspck.data = data - pos;
+			ts->on_event(ts, GF_M2TS_EVT_PCK, &tspck);
+			return GF_OK;
+		}
 		gf_m2ts_gather_section(ts, ts->pat, NULL, &hdr, data, payload_size);
 		return GF_OK;
 	}
@@ -2566,9 +2573,13 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			if (ses->sec) gf_m2ts_gather_section(ts, ses->sec, ses, &hdr, data, payload_size);
 		}
 		//and forward every packet other than PAT
+		memset(&tspck, 0, sizeof(GF_M2TS_TSPCK));
 		tspck.stream = es;
 		tspck.pid = hdr.pid;
 		tspck.data = data - pos;
+		if (paf && paf->PCR_flag) {
+			tspck.pcr_plus_one = paf->PCR_base * 300 + paf->PCR_ext;
+		}
 		ts->on_event(ts, GF_M2TS_EVT_PCK, &tspck);
 		return GF_OK;
 	}
