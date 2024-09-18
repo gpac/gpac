@@ -749,7 +749,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 
 	//orig_net_id = (data[0] << 8) | data[1];
 	pos = 3;
-	while (pos < data_size) {
+	while (pos+4 < data_size) {
 		GF_M2TS_SDT *sdt;
 		u32 descs_size, d_pos, ulen;
 
