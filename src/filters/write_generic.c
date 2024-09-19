@@ -1463,6 +1463,8 @@ GF_Err writegen_process(GF_Filter *filter)
 					goto no_output;
 				}
 				empty_seg=GF_TRUE;
+			} else if (ctx->webvtt) {
+				empty_seg=GF_TRUE;
 			} else {
 				ctx->sample_num--;
 				goto no_output;
