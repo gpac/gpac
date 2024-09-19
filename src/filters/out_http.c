@@ -106,7 +106,7 @@ typedef struct
 	char *js;
 #endif
 	GF_PropStringList rdirs;
-	Bool close, hold, quit, post, dlist, ice, reopen, blockio, cte;
+	Bool close, hold, quit, post, dlist, ice, reopen, blockio, cte, norange;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_async_buf, ka, zmax, maxs;
 	s32 max_cache_segs;
 	GF_PropStringList hdrs;
@@ -1765,7 +1765,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 	}
 
-	range = gf_dm_sess_get_header(sess->http_sess, "Range");
+	range = sess->ctx->norange ? NULL : gf_dm_sess_get_header(sess->http_sess, "Range");
 
 	if (sess->in_source) {
 		sess->in_source->nb_dest--;
@@ -5190,6 +5190,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(zmax), "maximum uncompressed size allowed for gzip or deflate compression for text files (only enabled if client indicates it), 0 will disable compression", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cte), "use chunked transfer-encoding mode when possible", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(maxs), "maximum upload size allowed in bytes", GF_PROP_UINT, "50M", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(norange), "disable byte range support in GET (reply 200 on partial requests)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
