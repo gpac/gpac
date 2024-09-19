@@ -4428,29 +4428,7 @@ const char *gf_iamf_get_obu_name(IamfObuType obu_type)
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-GF_EXPORT
-GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
-{
-        GF_Err e = GF_OK;
-        u64 pos = gf_bs_get_position(bs);
-
-        if (!bs || !obu_type) {
-              return GF_BAD_PARAM;
-        }
-
-        gf_bs_mark_overflow(bs, GF_TRUE);
-
-        e = gf_iamf_parse_obu_header(bs, obu_type, obu_size);
-
-        if (gf_bs_is_overflow(bs)) {
-              GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
-              e = GF_NON_COMPLIANT_BITSTREAM;
-        }
-        gf_bs_seek(bs, pos + *obu_size);
-        return e;
-}
-
-GF_EXPORT
+static
 GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
 {
         Bool obu_redundant_copy;
@@ -4508,6 +4486,28 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
         }
 
         return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
+{
+        GF_Err e = GF_OK;
+        u64 pos = gf_bs_get_position(bs);
+
+        if (!bs || !obu_type) {
+              return GF_BAD_PARAM;
+        }
+
+        gf_bs_mark_overflow(bs, GF_TRUE);
+
+        e = gf_iamf_parse_obu_header(bs, obu_type, obu_size);
+
+        if (gf_bs_is_overflow(bs)) {
+              GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
+              e = GF_NON_COMPLIANT_BITSTREAM;
+        }
+        gf_bs_seek(bs, pos + *obu_size);
+        return e;
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
