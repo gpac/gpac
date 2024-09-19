@@ -1580,6 +1580,7 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 	}
 
 	if (gen_doc==1) {
+		  gf_sys_format_help(helpout, help_flags, "<div markdown class=\"option\">\n");
 		if (a->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT)) {
 			gf_sys_format_help(helpout, help_flags, "<a id=\"%s\">", a->arg_name);
 		} else {
@@ -1618,6 +1619,9 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 	} else {
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
 	}
+	   if (gen_doc == 1) {
+        gf_sys_format_help(helpout, help_flags, "</div>\n");
+    }
 
 	//check syntax
 	if (gen_doc) {
