@@ -12740,11 +12740,6 @@ GF_Err iacb_box_read(GF_Box *s, GF_BitStream *bs)
 
         read = gf_bs_get_position(bs) - pos;
 
-        if (read < ptr->size)
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOBMFF] IAConfigurationBox: read only "LLU" bytes (expected "LLU").\n", read, ptr->size));
-        if (read > ptr->size)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] IAConfigurationBox overflow read "LLU" bytes, of box size "LLU".\n", read, ptr->size));
-
         return GF_OK;
 }
 
