@@ -352,7 +352,7 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 	u32 tier = 0;
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &j))) {
 		if (!strcmp(att->name, "xmlns")) {
-			snprintf(xmlns, 255, att->value);
+			snprintf(xmlns, 255, "%s", att->value);
 		} else if (!strcmp(att->name, "sapType")) {
 			XML_SCAN_INT("%u", sap_type);
 		} else if (!strcmp(att->name, "protocolVersion")) {
