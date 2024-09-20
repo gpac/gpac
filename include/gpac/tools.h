@@ -208,7 +208,7 @@ typedef enum
 	/*! filter PID config cannot be supported by this filter, no use trying to find an alternate input filter chain*/
 	GF_FILTER_NOT_SUPPORTED = -57,
 	/*! server does not support range requests: response with status=200 to a request with byte range*/
-	GF_NETIO_PROFILE_NOT_SUPPORTED = -58,
+	GF_IO_BYTE_RANGE_NOT_SUPPORTED = -58,
 } GF_Err;
 
 /*!

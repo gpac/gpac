@@ -363,7 +363,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		return;
 	}
 	//TODO, pass any repair URL info coming from broadcast
-	if (!ctx->repair_urls.nb_items) {
+	if (!ctx->repair_servers) {
 		routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 		return;
 	}
@@ -499,7 +499,7 @@ restart:
 
 		for(i=0; i< gf_list_count(ctx->repair_servers); i++) {
 			repair_server = gf_list_get(ctx->repair_servers, i);
-			if(repair_server && repair_server->url && repair_server->accept_ranges && repair_server->is_up && repair_server->support_h2) {
+			if(repair_server && repair_server->url && repair_server->accept_ranges && repair_server->is_up) {
 				url = gf_url_concatenate(repair_server->url, rsi->finfo.filename);
 				break;
 			}
@@ -539,7 +539,7 @@ restart:
 	} else {
 		e = gf_dm_sess_fetch_data(rsess->dld, http_buf, REPAIR_BUF_SIZE, &nb_read);
 		if (e==GF_IP_NETWORK_EMPTY) return;
-		if (e==GF_NETIO_PROFILE_NOT_SUPPORTED) {
+		if (e==GF_IO_BYTE_RANGE_NOT_SUPPORTED) {
 			rsess->server->accept_ranges = GF_FALSE;
 			gf_dm_sess_abort(rsess->dld);
 		}
