@@ -7268,7 +7268,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		//in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
 		//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
 		//to the intra interval, we need to take into account the skip samples
-		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT)
+		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT) && ds->stream_type==GF_STREAM_AUDIO
 			&& (ds->pts_minus_cts<0) && (ds->next_seg_start > (u32) -ds->pts_minus_cts)
 		) {
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
