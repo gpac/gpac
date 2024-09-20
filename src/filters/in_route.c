@@ -686,7 +686,20 @@ static GF_Err routein_initialize(GF_Filter *filter)
 
 	ctx->nb_playing = 1;
 	ctx->initial_play_forced = GF_TRUE;
-	if (ctx->repair_url) ctx->repair = ROUTEIN_REPAIR_FULL;
+	if (ctx->repair_urls.nb_items > 0) {
+		u8 i;
+		ctx->repair = ROUTEIN_REPAIR_FULL;
+		ctx->repair_servers = gf_list_new();
+		for(i=0; i<ctx->repair_urls.nb_items; i++) {
+			RouteRepairServer* server = gf_malloc(sizeof(RouteRepairServer)*ctx->max_sess);
+			server->accept_ranges = GF_TRUE;
+			server->is_up = GF_TRUE;
+			server->latency = server->support_h2, server->nb_bytes = 0;
+			server->url = ctx->repair_urls.vals[i];
+			server->support_h2 = GF_TRUE;
+			gf_list_add(ctx->repair_servers, server);
+		}
+	}
 
 	if (ctx->repair == ROUTEIN_REPAIR_FULL) {
 		if (!ctx->max_sess) ctx->max_sess = 1;
@@ -745,7 +758,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 		"- strict: incomplete mdat boxes will be lost as well as preceding `moof` boxes\n"
 		"- full: HTTP-based repair of all lost packets"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(repair_url), "repair url", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(repair_urls), "repair servers urls", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(max_sess), "max number of concurrent HTTP repair sessions", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(llmode), "enable low-latency access", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(dynsel), "dynamically enable and disable multicast groups based on their selection state", GF_PROP_BOOL, "true", NULL, 0},
