@@ -5130,6 +5130,18 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		e = GF_IP_NETWORK_EMPTY;
 	} else if (sess->status < GF_NETIO_DATA_EXCHANGE) {
 		sess->do_requests(sess);
+		if(sess->headers && sess->needs_range) {
+			u32 i;
+			for (i=0; i<gf_list_count(sess->headers); i++) {
+				GF_HTTPHeader *hdr = (GF_HTTPHeader*)gf_list_get(sess->headers, i);
+				if (!stricmp(hdr->name, ":status") ) {
+					if((u32) atoi(hdr->value) == 200) {
+						return GF_NETIO_PROFILE_NOT_SUPPORTED;
+					}
+					break;
+				}
+			}
+		}
 		e = sess->last_error ? sess->last_error : GF_IP_NETWORK_EMPTY;
 	}
 	/*we're running but we had data previously*/

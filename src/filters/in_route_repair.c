@@ -539,6 +539,10 @@ restart:
 	} else {
 		e = gf_dm_sess_fetch_data(rsess->dld, http_buf, REPAIR_BUF_SIZE, &nb_read);
 		if (e==GF_IP_NETWORK_EMPTY) return;
+		if (e==GF_NETIO_PROFILE_NOT_SUPPORTED) {
+			rsess->server->accept_ranges = GF_FALSE;
+			gf_dm_sess_abort(rsess->dld);
+		}
 	}
 
 	if (offset + nb_read > rsess->range->br_end)
