@@ -251,6 +251,9 @@ enum
 	GF_ISOM_SUBTYPE_OPUS = GF_4CC('O', 'p', 'u', 's'),
 	GF_ISOM_SUBTYPE_FLAC = GF_4CC( 'f', 'L', 'a', 'C' ),
 
+        /*IAMF media type*/
+        GF_ISOM_SUBTYPE_IAMF = GF_4CC('i', 'a', 'm', 'f'),
+
 	/* VP */
 	GF_ISOM_SUBTYPE_VP08 = GF_4CC('v', 'p', '0', '8'),
 	GF_ISOM_SUBTYPE_VP09 = GF_4CC('v', 'p', '0', '9'),
