@@ -426,6 +426,9 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	if (!rsi->removed)
 		gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
 
+	rsess->server->nb_bytes += rsess->range->done;
+	rsess->server->nb_req_success += (rsess->range->done==rsess->range->br_end-rsess->range->br_start)?1:0;
+
 	rsess->current_si = NULL;
 	gf_list_add(ctx->seg_range_reservoir, rsess->range);
 	rsess->range = NULL;
