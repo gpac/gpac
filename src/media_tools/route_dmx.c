@@ -680,7 +680,7 @@ static GF_BlobRangeStatus routedmx_check_blob_range(GF_Blob *blob, u64 start_off
 		}
 		//start is in fragment but exceeds it
 		if ((frag->offset <= start_offset) && (start_offset <= frag->offset + frag->size)) {
-			*io_size = frag->offset + frag->size - start_offset;
+			*io_size = (u32) (frag->offset + frag->size - start_offset);
 			break;
 		}
 	}
@@ -1706,7 +1706,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 		in_order = GF_FALSE;
 
 	if (fdt_symbol_length) {
-		u32 fdt_symbols = total_len / fdt_symbol_length;
+		s32 fdt_symbols = total_len / fdt_symbol_length;
 		if (fdt_symbols * fdt_symbol_length < total_len)
 			fdt_symbols++;
 
@@ -1798,7 +1798,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 			}
 			return GF_NOT_FOUND;
 		}
-		u32 flute_nb_symbols = ll_map ? ll_map->flute_nb_symbols : obj->flute_nb_symbols;
+		s32 flute_nb_symbols = ll_map ? ll_map->flute_nb_symbols : obj->flute_nb_symbols;
 		u32 flute_symbol_size = ll_map ? ll_map->flute_symbol_size : obj->flute_symbol_size;
 		if (flute_nb_symbols) {
 			if (flute_nb_symbols <= flute_esi) {
@@ -2994,7 +2994,7 @@ static GF_Err dmx_process_service_route(GF_ROUTEDmx *routedmx, GF_ROUTEService *
 
 	//parse extensions
 	while (hdr_len) {
-		u32 h_pos = gf_bs_get_position(routedmx->bs);
+		u32 h_pos = (u32) gf_bs_get_position(routedmx->bs);
 		u8 het = gf_bs_read_u8(routedmx->bs);
 		u8 hel =0 ;
 
@@ -3038,8 +3038,8 @@ static GF_Err dmx_process_service_route(GF_ROUTEDmx *routedmx, GF_ROUTEService *
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Wrong HEL %d for LCT extension %d, remaining header size %d\n", s->log_name, hel, het, hdr_len));
 			continue;
 		}
-		h_pos = gf_bs_get_position(routedmx->bs) - h_pos;
-		while (hel*4 > h_pos) {
+		h_pos = (u32) (gf_bs_get_position(routedmx->bs) - h_pos);
+		while ((u32) hel*4 > h_pos) {
 			h_pos++;
 			gf_bs_read_u8(routedmx->bs);
 		}
@@ -3158,7 +3158,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Wrong LCT header O, only 16 and 32 bits supported\n", s->log_name));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	if (hdr_len < (H ? 3 : 4)) {
+	if (hdr_len < (u32) (H ? 3 : 4)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Wrong LCT header len %d, should be at least %u\n", s->log_name, hdr_len, (H ? 3 : 4)));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -3176,7 +3176,7 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 
 	//parse extensions
 	while (hdr_len) {
-		u32 h_pos = gf_bs_get_position(routedmx->bs);
+		u32 h_pos = (u32) gf_bs_get_position(routedmx->bs);
 		u8 het = gf_bs_read_u8(routedmx->bs);
 		u8 hel =0 ;
 
@@ -3207,8 +3207,8 @@ static GF_Err dmx_process_service_dvb_flute(GF_ROUTEDmx *routedmx, GF_ROUTEServi
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Wrong HEL %d for LCT extension %d, remaining header size %d\n", s->log_name, hel, het, hdr_len));
 			continue;
 		}
-		h_pos = gf_bs_get_position(routedmx->bs) - h_pos;
-		while (hel*4 > h_pos) {
+		h_pos = (u32) (gf_bs_get_position(routedmx->bs) - h_pos);
+		while ((u32) hel*4 > h_pos) {
 			h_pos++;
 			gf_bs_read_u8(routedmx->bs);
 		}

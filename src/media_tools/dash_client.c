@@ -849,7 +849,7 @@ setup_multicast_clock:
 				len = (u32) strlen(seg_url);
 				if (!strncmp(val, seg_url, len)) {
 					u64 number=0;
-					int template_len = seg_url_len + 20; // Allocate extra space for "%"
+					u32 template_len = (u32) (seg_url_len + 20); // Allocate extra space for "%"
 					char *szTemplate;
 					GF_SAFE_ALLOC_N(szTemplate, template_len, char);
 
@@ -8631,7 +8631,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	szLine[0] = 0;
 	FILE *f = gf_fopen(local_url, "r");
 	if (f) {
-		u32 read_count = gf_fread(szLine, 100, f);
+		u32 read_count = (u32) gf_fread(szLine, 100, f);
 		if (read_count < 99)
 			szLine[read_count] = 0;
 		gf_fclose(f);

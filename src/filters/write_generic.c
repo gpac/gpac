@@ -99,7 +99,7 @@ typedef struct
 	Bool unframe_only;
 	Bool vc1_ilaced;
 	Bool ttml_merger;
-	u32 ttml_first_cts;
+	u64 ttml_first_cts;
 	GF_FilterPacket *ttml_first_pck;
 } GF_GenDumpCtx;
 
@@ -1137,7 +1137,7 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 		gf_filter_pck_set_cts(pck, ctx->ttml_first_cts);
 		u64 last_cts = gf_filter_pck_get_cts(ctx->ttml_first_pck);
 		last_cts += gf_filter_pck_get_duration(ctx->ttml_first_pck);
-		gf_filter_pck_set_duration(pck, last_cts - ctx->ttml_first_cts);
+		gf_filter_pck_set_duration(pck, (u32) (last_cts - ctx->ttml_first_cts));
 
 		gf_filter_pck_unref(ctx->ttml_first_pck);
 		ctx->ttml_first_pck = NULL;

@@ -9766,7 +9766,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 				if (dst) {
 					GF_Fraction pck_orig_dur;
-					pck_orig_dur.num = split_dur_next;
+					pck_orig_dur.num = (s32) split_dur_next;
 					pck_orig_dur.den = split_dur ? gf_filter_pck_get_duration(pck) : 0;
 					gf_filter_pck_set_property(dst, GF_PROP_PCK_ORIG_DUR, &PROP_FRAC(pck_orig_dur));
 
