@@ -365,9 +365,7 @@ enum
 	/*!Reuses port.*/
 	GF_SOCK_REUSE_PORT = 1,
 	/*!Forces IPV6 if available.*/
-	GF_SOCK_FORCE_IPV6 = 1<<1,
-	/*!Does not perfom the actual bind, only keeps address and port.*/
-	GF_SOCK_FAKE_BIND = 1<<2
+	GF_SOCK_FORCE_IPV6 = 1<<1
 };
 
 /*!
