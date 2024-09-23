@@ -1073,6 +1073,9 @@
     <ClCompile Include="..\..\src\utils\utf.c">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\xml_bin_custom.c">
+      <Filter>utils</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\utils\xml_parser.c">
       <Filter>utils</Filter>
     </ClCompile>

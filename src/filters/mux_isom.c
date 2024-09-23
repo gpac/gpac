@@ -4692,7 +4692,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u32 min_pck_dur = gf_filter_pid_get_min_pck_duration(tkw->ipid);
 			if (min_pck_dur) {
 				tkw->sample.DTS = prev_dts;
-				//transform back to inpput timescale
+				//transform back to input timescale
 				if (timescale != tkw->tk_timescale) {
 					tkw->sample.DTS = gf_timestamp_rescale(tkw->sample.DTS, tkw->tk_timescale, timescale);
 				}
@@ -8475,7 +8475,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvsingle), "ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chapm), "chapter storage mode\n"
 	"- off: disable chapters\n"
 	"- tk: use chapter track (QT-style)\n"

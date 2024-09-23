@@ -431,6 +431,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/unicode.c \
 	../../../../src/utils/url.c \
 	../../../../src/utils/utf.c \
+	../../../../src/utils/xml_bin_custom.c \
 	../../../../src/utils/xml_parser.c \
 	../../../../src/utils/zutil.c
 

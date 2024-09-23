@@ -2248,11 +2248,11 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 	gf_bs_read_int(bs, 6); //reserved
 	if (segmentation_event_cancel_indicator == 0) {
 		u32 program_segmentation_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
+		inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
 		u32 segmentation_duration_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
+		inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
 		u32 delivery_not_restricted_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
+		inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
 		if (delivery_not_restricted_flag == 0) {
 			inspect_printf(dump, " webDeliveryAllowedFlag=\"%u\"", gf_bs_read_int(bs, 1));
 			inspect_printf(dump, " noRegionalBlackoutFlag=\"%u\"", gf_bs_read_int(bs, 1));
