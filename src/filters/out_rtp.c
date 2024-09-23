@@ -284,7 +284,7 @@ static Bool check_mime_ext(const char *string, const char *pattern)
 	strncpy(szLwr, pattern, 99);
 	szLwr[99]=0;
 	strlwr(szLwr);
-	u32 len = strlen(szLwr);
+	u32 len = (u32) strlen(szLwr);
 	char *sep = strstr(string, szLwr);
 	if (!sep) return GF_FALSE;
 	if (!sep[len] || (sep[len] == '|')) return GF_TRUE;

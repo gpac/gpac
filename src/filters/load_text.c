@@ -322,7 +322,7 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *io_progress)
 {
 	u32 i, j, len;
-	u32 start_pos = gf_ftell(txt_in);
+	u32 start_pos = (u32) gf_ftell(txt_in);
 	char *sOK;
 	char szLineConv[2048];
 	unsigned short *sptr;
@@ -4176,7 +4176,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 
 		//purge data from our blob
 		if (ctx->src) {
-			u32 pos = gf_ftell(ctx->src);
+			u32 pos = (u32) gf_ftell(ctx->src);
 			u32 remain = ctx->tmp_blob.size - pos;
 			gf_fclose(ctx->src);
 			ctx->src = NULL;

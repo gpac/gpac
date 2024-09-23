@@ -4950,8 +4950,8 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 			u64 rate = pctx->bytes_in_wnd*8;
 			rate *= pctx->timescale ;
 			rate /= dts - pctx->prev_dts;
-			if (pctx->max_rate<rate)
-				pctx->max_rate = rate;
+			if (pctx->max_rate < (u32) rate)
+				pctx->max_rate = (u32) rate;
 			pctx->prev_dts = dts;
 			pctx->bytes_in_wnd = 0;
 		}
@@ -4966,7 +4966,7 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 	if (!pctx->last_sap_cts) {
 		pctx->last_sap_cts = cts;
 	} else {
-		u64 sap_diff = cts - pctx->last_sap_cts;
+		u32 sap_diff = (u32) (cts - pctx->last_sap_cts);
 		if (!pctx->min_sap_diff || (sap_diff<pctx->min_sap_diff)) pctx->min_sap_diff = sap_diff;
 		if (!pctx->max_sap_diff || (sap_diff>pctx->max_sap_diff)) pctx->max_sap_diff = sap_diff;
 		pctx->avg_sap_diff += sap_diff;

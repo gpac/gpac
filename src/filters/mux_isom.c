@@ -6453,8 +6453,8 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	gf_bs_del(bs);
 
 	// insert only if its presentation time is not already present
-	u32 insert_emsg = GF_TRUE;
-	for (int i=0; i<gf_list_count(moof->emsgs); ++i)
+	u32 i, insert_emsg = GF_TRUE;
+	for (i=0; i<gf_list_count(moof->emsgs); ++i)
 	{
 		GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
 		if (!strcmp(existing_emsg->scheme_id_uri, "https://aomedia.org/emsg/ID3") && !strcpy(existing_emsg->value, "www.nielsen.com:id3:v1")) {

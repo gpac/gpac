@@ -12516,7 +12516,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		}
 		if (nb_entry_points) {
 			u32 nb_bits = 1 + gf_bs_read_ue_log(bs, "sh_entry_offset_len_minus1");
-			for (i=0; i<nb_entry_points; i++) {
+			for (i=0; i<(u32) nb_entry_points; i++) {
 				gf_bs_read_int_log_idx(bs, nb_bits, "sh_entry_point_offset_minus1", i);
 			}
 		}

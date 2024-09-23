@@ -247,11 +247,11 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 	// write descriptor_loop_length and descriptor_length
 	{
 		u64 pos = gf_bs_get_position(bs);
-		int descriptor_length = pos - descriptor_loop_length_pos - 2;
+		u32 descriptor_length = (u32) (pos - descriptor_loop_length_pos - 2);
 		gf_bs_seek(bs, descriptor_loop_length_pos + 1);
-		gf_bs_write_int(bs, descriptor_length, 8);   //descriptor_loop_length
+		gf_bs_write_u8(bs, descriptor_length);   //descriptor_loop_length
 		gf_bs_seek(bs, descriptor_loop_length_pos + 3);
-		gf_bs_write_int(bs, descriptor_length-2, 8); //descriptor_length
+		gf_bs_write_u8(bs, descriptor_length-2); //descriptor_length
 		gf_bs_seek(bs, pos);
 	}
 }
@@ -385,9 +385,9 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 
 #define WRITE_CMD_LEN() {                               \
 		u64 pos = gf_bs_get_position(bs);               \
-		int splice_command_length = pos - splice_command_length_pos - 3; \
+		u32 splice_command_length = (u32) (pos - splice_command_length_pos - 3); \
 		gf_bs_seek(bs, splice_command_length_pos + 1);  \
-		gf_bs_write_int(bs, splice_command_length, 8); \
+		gf_bs_write_u8(bs, splice_command_length); \
 		gf_bs_seek(bs, pos);                            \
 	}
 
@@ -414,7 +414,7 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 	// post write section length
 	{
 		u64 pos = gf_bs_get_position(bs);
-		int section_length = pos + 4 /*CRC32*/ - section_length_pos - 2;
+		u32 section_length = (u32) (pos + 4 /*CRC32*/ - section_length_pos - 2);
 		gf_bs_seek(bs, section_length_pos);
 		gf_bs_write_u16(bs, (sap_type << 12) | section_length);
 		gf_bs_seek(bs, pos);
@@ -428,7 +428,7 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 		gf_bs_transfer(bs_tmp, bs, GF_TRUE);
 		gf_bs_get_content(bs_tmp, &data, &size);
 		gf_bs_seek(bs, gf_bs_get_size(bs));
-		gf_bs_write_u32(bs, gf_crc_32(data+(section_length_pos-1), size-(section_length_pos-1)));
+		gf_bs_write_u32(bs, gf_crc_32(data+(section_length_pos-1), size - (u32) (section_length_pos-1)));
 		gf_bs_del(bs_tmp);
 	}
 
@@ -519,7 +519,7 @@ void xml_emib_parse(GF_XMLNode *root, GF_BitStream *bs)
 
 		gf_bs_seek(bs, start);
 		emib->message_data = (u8*)before;          //dumb non-null pointer
-		emib->message_data_size = end - before;
+		emib->message_data_size = (u32) (end - before);
 		gf_isom_box_size((GF_Box*)emib);
 		gf_isom_full_box_write((GF_Box*)emib, bs); //rewrite size
 		gf_bs_seek(bs, end);

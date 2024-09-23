@@ -897,7 +897,7 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 				gf_fseek(f, 0, SEEK_SET);
 				while (sz > 0) {
 					size_t read = gf_fread(nhml, sizeof(nhml), f);
-					gf_bs_write_data(ctx->bs_w, nhml, read);
+					gf_bs_write_data(ctx->bs_w, nhml, (u32) read);
 					sz -= read;
 				}
 				gf_fclose(f);
