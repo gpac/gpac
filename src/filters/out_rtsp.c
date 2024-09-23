@@ -129,7 +129,7 @@ typedef struct __rtspout_session
 	char *service_name;
 	char *sessionID;
 	char peer_address[GF_MAX_IP_NAME_LEN];
-	char ctrl_name[10];
+	char ctrl_name[20];
 
 	u32 play_state;
 	Double start_range;
@@ -211,11 +211,11 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 		//setup on resource not loaded, reassign control string based on setup query
 		//this typically happen after a seek when we teardown the session right away
 		if (!sess->sessionID || !sess->ctrl_name[0]) {
-			char *sep = strchr(sess->setup_ctrl, '=');
+			char *sep = strchr(sess->setup_ctrl, '_');
 			if (sep) sep[0] = 0;
 			strncpy(sess->ctrl_name, sess->setup_ctrl+1, 9);
 			sess->ctrl_name[9] = 0;
-			if (sep) sep[0] = '=';
+			if (sep) sep[0] = '_';
 		}
 		e = rtspout_process_setup(sess->ctx, sess, sess->setup_ctrl);
 		gf_free(sess->setup_ctrl);
@@ -246,10 +246,12 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 	gf_rtsp_response_reset(sess->response);
 	sess->response->ResponseCode = NC_RTSP_OK;
 	sess->response->CSeq = sess->command->CSeq;
+	sess->response->Content_Type = "application/sdp";
 	sess->response->body = sdp_output;
 
 	rtspout_send_response(sess->ctx, sess);
 	sess->response->body = NULL;
+	sess->response->Content_Type = NULL;
 	gf_free(sdp_output);
 
 	return GF_OK;
@@ -460,16 +462,17 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	sess->streams = gf_list_new();
 	sess->filter_srcs = gf_list_new();
 	if (gf_sys_is_test_mode()) {
-		strcpy(sess->ctrl_name, "trackID");
+		strcpy(sess->ctrl_name, "/trackID");
 	} else {
-		u32 seed = gf_rand();
+		u64 seed = gf_rand();
+		seed <<= 32;
 #ifndef GPAC_64_BITS
 		seed |= (u32) sess;
 #else
-		seed |= (u32) (u64) sess;
+		seed |= (u64) sess;
 #endif
 		seed |= gf_sys_clock();
-		sprintf(sess->ctrl_name, "s%08X", seed);
+		sprintf(sess->ctrl_name, "/s"LLX"", seed);
 	}
 
 	if (new_sess) {
@@ -739,7 +742,7 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 		if (rtpi) {
 			u32 timescale;
 			rtpi->url = gf_malloc(sizeof(char) * (strlen(sess->service_name)+50));
-			sprintf(rtpi->url, "%s/%s=%d", sess->service_name, sess->ctrl_name, stream->ctrl_id);
+			sprintf(rtpi->url, "%s_%d", sess->ctrl_name, stream->ctrl_id);
 			rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
 			rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
 
@@ -1098,8 +1101,8 @@ static u32 rtspout_get_ctrl_id(GF_RTSPOutSession *sess, char *ctrl)
 	u32 stream_ctrl_id=0;
 	if (ctrl && (ctrl[0]=='/')) {
 		u32 len = (u32) strlen(sess->ctrl_name);
-		if (!strncmp(ctrl+1, sess->ctrl_name, len)) {
-			if (sscanf(ctrl+1+len, "=%d", &stream_ctrl_id)<1) {
+		if (!strncmp(ctrl, sess->ctrl_name, len)) {
+			if (sscanf(ctrl+len, "_%d", &stream_ctrl_id)<1) {
 				stream_ctrl_id=0;
 			}
 		}
@@ -1118,15 +1121,6 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 	Bool reset_transport_dest = GF_FALSE;
 
 	u32 stream_ctrl_id = rtspout_get_ctrl_id(sess, ctrl);
-
-	if (ctrl && (ctrl[0]=='/')) {
-		u32 len = (u32) strlen(sess->ctrl_name);
-		if (!strncmp(ctrl+1, sess->ctrl_name, len)) {
-			if (sscanf(ctrl+1+len, "=%d", &stream_ctrl_id)<1) {
-				stream_ctrl_id=0;
-			}
-		}
-	}
 
 	if (!ctrl || !transport) {
 		rsp_code = NC_RTSP_Bad_Request;
@@ -1598,15 +1592,8 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 	}
 
 	//extract control string if any
-	if (sess->service_name) {
-		char *sep = strstr(sess->service_name, "://");
-		if (sep) sep = strchr(sep+3, '/');
-		if (sep) sep = strstr(sess->command->service_name, sep);
-
-		if (sep) {
-			ctrl = strrchr(sess->command->service_name, '/');
-		}
-	} else {
+	ctrl = NULL;
+	if (sess->command->service_name) {
 		ctrl = strrchr(sess->command->service_name, '/');
 	}
 

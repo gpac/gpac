@@ -267,7 +267,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		}
 
 		if (is_rtsp) {
-			gf_fprintf(sdp_out, "a=control:%s=%d\n", stream->ctrl_name ? stream->ctrl_name : "trackID", stream->ctrl_id);
+			gf_fprintf(sdp_out, "a=control:%s_%d\n", stream->ctrl_name ? stream->ctrl_name : "trackID", stream->ctrl_id);
 		}
 	}
 	gf_fprintf(sdp_out, "\n");
