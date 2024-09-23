@@ -753,14 +753,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 				filter->detached_pid_inst = NULL;
 			}
 
-			if (filter->postponed_packets) {
-				while (gf_list_count(filter->postponed_packets)) {
-					GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
-					gf_filter_packet_destroy(pck);
-				}
-				gf_list_del(filter->postponed_packets);
-				filter->postponed_packets = NULL;
-			}
+			gf_filter_reset_pending_packets(filter);
+
 			gf_mx_p(filter->tasks_mx);
 			for (j=0; j<filter->num_input_pids; j++) {
 				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, j);
