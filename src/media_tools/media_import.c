@@ -662,6 +662,11 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
 			if (!samp) {
 				/*couldn't get the sample, but still move on*/
+				e = gf_isom_last_error(import->orig);
+				if (e==GF_ISOM_INCOMPLETE_FILE) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOM import] Incomplete file detected, aborting track #%d import after %d / %d samples\n", track_in, i+1, num_samples));
+					e = GF_OK;
+				}
 				goto exit;
 			}
 			samp->DTS -= dts_offset;
