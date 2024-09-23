@@ -73,6 +73,11 @@ static void routein_finalize(GF_Filter *filter)
 	}
 	gf_list_transfer(ctx->seg_repair_reservoir, ctx->seg_repair_queue);
 	gf_list_del(ctx->seg_repair_queue);
+	while (gf_list_count(ctx->repair_servers)) {
+		char *tmp = gf_list_get(ctx->repair_servers, 0);
+		gf_free(tmp);
+		gf_list_rem(ctx->repair_servers, 0);
+	}
 	gf_list_del(ctx->repair_servers);
 	while (gf_list_count(ctx->seg_repair_reservoir)) {
 		RepairSegmentInfo *rsi = gf_list_pop_back(ctx->seg_repair_reservoir);
