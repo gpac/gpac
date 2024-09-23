@@ -1085,6 +1085,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "Requires a new instance of the filter to be supported";
 	case GF_FILTER_NOT_SUPPORTED:
 		return "Not supported by any filter chain";
+	case GF_IO_BYTE_RANGE_NOT_SUPPORTED:
+		return "Repair server does not support byte range";
 	default:
 		sprintf(szErrMsg, "Unknown Error (%d)", e);
 		return szErrMsg;
