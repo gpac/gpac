@@ -6867,6 +6867,9 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 		if (!ctx->segment_started && !ctx->fragment_started)
 			goto check_eos;
 
+		if (!ctx->ref_tkw)
+			goto check_eos;
+
 		Bool is_eos = (count == nb_eos) ? GF_TRUE : GF_FALSE;
 		u32 ref_timescale;
 		Bool flush_refs = ctx->dash_mode ? GF_FALSE : GF_TRUE;
