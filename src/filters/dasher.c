@@ -6153,6 +6153,10 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			if (ds->rep) gf_mpd_representation_free(ds->rep);
 			ds->rep = rep;
+
+			if (ds->rep_id) gf_free(ds->rep_id);
+			ds->rep_id = gf_strdup(rep->id);
+
 			ds->set = set;
 			rep->playback.udta = ds;
 			if (ds->owns_set)
