@@ -1595,7 +1595,10 @@ restart:
 			if (ctx->nb_playing) {
 				gf_filter_ask_rt_reschedule(filter, 0);
 			}
-			if (ctx->nb_stopped_at_init==nb_streams) {
+			if ((ctx->nb_stopped_at_init==nb_streams)
+				//this can happen if outputs are all blocking and a stop was issued
+				|| (ctx->nb_stop_pending==nb_streams)
+			) {
 				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				return GF_EOS;
 			}
