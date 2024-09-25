@@ -1586,9 +1586,9 @@ void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_fla
 			if (f->ref_bytes)
 				fprintf(stderr, " "LLU" KBytes of detached packets in destinations\n", f->ref_bytes/1000);
 			if (nb_in_eos)
-				fprintf(stderr, " %u in PIds in EOS", nb_in_eos);
+				fprintf(stderr, " %u in PIDs in EOS", nb_in_eos);
 			if (nb_out_eos)
-				fprintf(stderr, " %u out PIds have seen EOS", nb_out_eos);
+				fprintf(stderr, " %u out PIDs have seen EOS", nb_out_eos);
 			if (nb_in_eos || nb_out_eos)
 				fprintf(stderr, "\n");
 		}
