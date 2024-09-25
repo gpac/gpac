@@ -2210,8 +2210,8 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 			if (gf_fwrite(buf, osize, file)!=osize) e = GF_IO_ERR;
 			gf_fclose(file);
 
-			gf_free(raw);
 		}
+		gf_free(raw);
 #endif //GPAC_DISABLE_AV_PARSERS
 	}
 	gf_free(buf);
