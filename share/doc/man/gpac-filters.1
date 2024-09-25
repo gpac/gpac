@@ -4958,6 +4958,10 @@ Inserts an external TEMI with ID 4 and timescale 30000, NTP injection and carous
 .br
 Warning: multipliers (k,m,g) are not supported in TEMI options.
 .br
+
+.br
+When input TEMI properties are found, they can be removed using .I drop_temi. When rewritten, any NTP information present is rewritten to the current NTP.
+.br
 .SH Adaptive Streaming
 .LP
 .br
@@ -5070,6 +5074,16 @@ latm (bool, default: false):   use LATM AAC encapsulation instead of regular ADT
 subs_sidx (sint, default: -1): number of subsegments per sidx (negative value disables sidx)
 .br
 keepts (bool, default: false): keep cts/dts untouched and adjust PCR accordingly, used to keep TS unmodified when dashing
+.br
+temi_fwd (enum, default: fwd): input TEMI properties when remuwing
+.br
+* drop: remove input descriptors
+.br
+* fwd: forward input descriptors
+.br
+* ntp: forward input descriptors after NTP rewriting
+.br
+
 .br
 
 .br
