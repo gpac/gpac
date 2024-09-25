@@ -359,8 +359,11 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		return GF_OK;
 	}
-	if (!sess) return GF_SERVICE_ERROR;
 	stream = gf_filter_pid_get_udta(pid);
+	//session not found, fail silently if we had a stream - it is likely that TEARDOWWN was received and we posted a filter remove
+	//but still get a reconfigure on trailing packets
+	if (!sess)
+		return stream ? GF_OK : GF_SERVICE_ERROR;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	streamType = p ? p->value.uint : 0;
