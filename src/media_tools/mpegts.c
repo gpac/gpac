@@ -499,6 +499,11 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		if (section_valid) {
 			GF_M2TS_Section *section;
 
+			if (sec->length <= section_start) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] section length invalid\n"));
+				return;
+			}
+
 			GF_SAFEALLOC(section, GF_M2TS_Section);
 			if (!section) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Fail to create section\n"));
@@ -1151,7 +1156,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		len = (u32) data[5];
 		while (info_length > first_loop_len) {
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
-				if ((len>2) && (len - 2 <= info_length)) {
+				if ((len>2) && (len - 2 <= info_length) && (data_size>8) && (data_size-8 > (u32)len-2)) {
 					u32 size;
 					GF_BitStream *iod_bs;
 					iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);
@@ -1199,7 +1204,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					/* don't know what to do with it for now, delete */
 					gf_m2ts_metadata_pointer_descriptor_del(metapd);
 				}
-			} else if(tag == GF_M2TS_REGISTRATION_DESCRIPTOR && len >= 4) {
+			} else if(tag == GF_M2TS_REGISTRATION_DESCRIPTOR && len >= 4 && data_size>9) {
 				u32 reg_desc_format = GF_4CC(data[6], data[7], data[8], data[9]);
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Registration descriptor with format_identifier \"%s\"\n", gf_4cc_to_str(reg_desc_format)));
 			} else {
