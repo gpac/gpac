@@ -1747,8 +1747,12 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 			if (pe->codecs && (pe->codecs[0] == '\"')) {
 				u32 len = (u32) strlen(pe->codecs);
-				memmove(pe->codecs, pe->codecs+1, len-1);
-				pe->codecs[len-2] = 0;
+				if (len>1) {
+					memmove(pe->codecs, pe->codecs+1, len-1);
+					pe->codecs[len-2] = 0;
+				} else {
+					pe->codecs[0] = 0;
+				}
 			}
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (pe->bandwidth && pe->codecs && pe->width && pe->height) {
