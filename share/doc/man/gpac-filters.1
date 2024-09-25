@@ -2567,7 +2567,7 @@ force_dv (bool, default: false): force DV sample entry types even when AVC/HEVC 
 .br
 dvsingle (bool, default: false): ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set
 .br
-tsalign (bool, default: true): enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)
+tsalign (bool, default: true): enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin
 .br
 chapm (enum, default: both):   chapter storage mode
 .br
@@ -2736,6 +2736,8 @@ fps (frac, default: 0/1000):   import frame rate (0 default to FPS from bitstrea
 index (dbl, default: -1.0):    indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued
 .br
 explicit (bool, default: false): use explicit layered (SVC/LHVC) import
+.br
+force_sync (bool, default: false): force sync points on non-IDR samples with I slices (not compliant)
 .br
 strict_poc (enum, default: off): delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes
 .br
@@ -3780,6 +3782,8 @@ cues (enum, default: no, updatable): cue filtering mode
 .br
 
 .br
+sapcue (uint, default: 0):     treat SAPs smaller than or equal to this value as cue points
+.br
 rmseek (bool, default: false, updatable): remove seek flag of all sent packets
 .br
 
@@ -3914,6 +3918,8 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .br
 merge_cues (bool, default: true): merge VTT cues (undo ISOBMFF cue split)
 .br
+noempty (bool, default: true): do not create an empty file if no VTT cues are present
+.br
 
 .br
 .SH nhntw
@@ -3964,6 +3970,8 @@ nhmlonly (bool, default: false): only dump NHML info, not media
 .br
 pckp (bool, default: false):   full NHML dump
 .br
+payload (bool, default: false): dump payload (scte35 only at the moment), should be combined with ǹhmlonly
+.br
 chksum (enum, default: none):  insert frame checksum
 .br
 * none: no checksum
@@ -3991,6 +3999,8 @@ This filter parses VobSub files/data to produce media PIDs and frames.
 .LP
 .br
 blankframe (bool, default: true): force inserting a blank frame if first subpic is not at 0
+.br
+keepempty (bool, default: false): declare VobSub tracks with no frames
 .br
 
 .br
@@ -6992,7 +7002,7 @@ ip (str):                      destination IP address (NULL is 127.0.0.1)
 .br
 port (uint, default: 7000):    port for first stream in session
 .br
-loop (bool, default: true):    loop all streams in session (not always possible depending on source type)
+loop (bool, default: false):   loop all streams in session (not always possible depending on source type)
 .br
 mpeg4 (bool, default: false):  send all streams using MPEG-4 generic payload format if possible
 .br
@@ -7021,6 +7031,10 @@ dst (cstr):                    URL for direct RTP mode
 ext (str):                     file extension for direct RTP mode
 .br
 mime (cstr):                   set mime type for direct RTP mode
+.br
+speed (dbl, default: 1.0):     set streaming speed. If negative and start is 0, start is set to -1
+.br
+start (dbl, default: 0.0):     set streaming start offset. A negative value means percent of media duration with -1 equal to duration
 .br
 
 .br
@@ -7216,7 +7230,7 @@ user_agent (str, default: $GUA): user agent string, by default solved from GPAC 
 .br
 close (bool, default: false):  close RTSP connection after each request, except when RTP over RTSP is used
 .br
-loop (bool, default: true):    loop all streams in session (not always possible depending on source type)
+loop (bool, default: false):   loop all streams in session (not always possible depending on source type)
 .br
 dynurl (bool, default: false): allow dynamic service assembly
 .br
@@ -7629,6 +7643,8 @@ cte (bool, default: true):     use chunked transfer-encoding mode when possible
 .br
 maxs (uint, default: 50M):     maximum upload size allowed in bytes
 .br
+norange (bool, default: false): disable byte range support in GET (reply 200 on partial requests)
+.br
 
 .br
 .SH hevcsplit
@@ -7864,6 +7880,30 @@ mux_id (sint, default: -1):    set initial ID of output mux; the first program w
 avonly (bool, default: true):  do not forward programs with no AV component
 .br
 nb_pack (uint, default: 10):   pack N packets before sending
+.br
+gendts (bool, default: false): generate timestamps on output packets based on PCR
+.br
+kpad (bool, default: false):   keep padding (null) TS packets
+.br
+
+.br
+.SH tsgendts
+.LP
+.br
+Description: MPEG Transport Stream reframer
+.br
+
+.br
+This filter restamps input MPEG-2 transport stream based on PCR.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+nb_pack (uint, default: 10):   pack N packets before sending
+.br
+kpad (bool, default: false):   keep padding (null) TS packets
 .br
 
 .br
@@ -9872,11 +9912,11 @@ Description: SCTE35 decoder
 .br
 
 .br
-This filter extracts SCTE-35 markers attached as properties to audio and video
+This filter writes the SCTE-35 markers attached as properties to audio and video
 .br
-packets as 23001-18 'emib' boxes. It also creates empty 'emeb' box in between
+packets or inside a dedicated stream, as 23001-18 'emib' boxes. It also creates
 .br
-following segmentation as hinted by the graph.
+empty 'emeb' box in between following segmentation as hinted by the graph.
 .br
 
 .br
