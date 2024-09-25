@@ -1032,7 +1032,7 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 		d->ts_id = gf_bs_read_u16(bs);
 		size += 4;
 	}
-	if (length-size > 0) {
+	if (length > size) {
 		d->data_size = length-size;
 		d->data = (char *)gf_malloc(d->data_size);
 		gf_bs_read_data(bs, d->data, d->data_size);
@@ -1690,7 +1690,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				        && (o_es->mpeg4_es_id == es->mpeg4_es_id)
 				        && ((o_es->flags & GF_M2TS_ES_IS_SECTION) || ((GF_M2TS_PES *)o_es)->lang == ((GF_M2TS_PES *)es)->lang)
 				   ) {
-					gf_free(es);
+					gf_m2ts_es_del(es, ts);
 					es = NULL;
 				} else {
 					gf_m2ts_es_del(o_es, ts);
