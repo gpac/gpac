@@ -4385,6 +4385,18 @@ GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_fra
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+Bool gf_media_probe_iamf(GF_BitStream *bs)
+{
+	const int obu_type_bit_count = 5;
+	u32 dw = 0;
+	if (gf_bs_available(bs) < obu_type_bit_count) return GF_FALSE;
+	dw = gf_bs_peek_bits(bs, 5, 0);
+	if (dw != OBU_IA_SEQUENCE_HEADER) {
+		return GF_FALSE;
+	}
+	return GF_TRUE;
+}
+
 GF_EXPORT
 const char *gf_iamf_get_obu_name(IamfObuType obu_type)
 {

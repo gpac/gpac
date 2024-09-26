@@ -47,6 +47,8 @@ typedef enum {
 	IVF,
 	//input is raw VPX
 	RAW_VPX,
+	//input is IAMF
+	IAMF,
 	UNSUPPORTED
 } AV1BitstreamSyntax;
 
@@ -86,6 +88,7 @@ typedef struct
 
 	Bool is_av1;
 	Bool is_vp9;
+	Bool is_iamf;
 	u32 codecid;
 	u32 num_frames;
 	GF_VPConfig *vp_cfg;
@@ -162,7 +165,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	if (!ctx->state.config)
 		ctx->state.config = gf_odf_av1_cfg_new();
 
-	ctx->is_av1 = ctx->is_vp9 = GF_FALSE;
+	ctx->is_av1 = ctx->is_vp9 = ctx->is_iamf = GF_FALSE;
 	ctx->codecid = 0;
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 	ctx->vp_cfg = NULL;
@@ -173,6 +176,12 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	}
 
 	ctx->pts_from_file = GF_FALSE;
+	if (gf_media_probe_iamf(bs)) {
+		ctx->bsmode = IAMF;
+		ctx->is_iamf = GF_TRUE;
+		ctx->codecid = GF_CODECID_IAMF;
+		return GF_OK;
+	}
 	if (gf_media_probe_ivf(bs)) {
 		u32 width = 0, height = 0;
 		u32 codec_fourcc = 0, timebase_den = 0, timebase_num = 0, num_frames = 0;
@@ -231,7 +240,6 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		return GF_OK;
 	}
 
-	ctx->codecid = 0;
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	if (p && (p->value.uint!=GF_CODECID_AV1)) {
 		switch (p->value.uint) {
@@ -345,7 +353,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (!p || (p->value.longuint > 20000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AV1/VP9] Source file larger than 20M, skipping indexing\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AV1/VP9/IAMF] Source file larger than 20M, skipping indexing\n"));
 				if (!gf_sys_is_test_mode())
 					probe_size = 20000000;
 			} else {
@@ -1089,7 +1097,7 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 		gf_bs_set_logger(ctx->bs, av1dmx_bs_log, ctx);
 #endif
 
-	//check ivf vs obu vs annexB
+	//check ivf vs obu vs annexB vs iamf
 	e = av1dmx_check_format(filter, ctx, ctx->bs, &last_obu_end);
 	if (e==GF_BUFFER_TOO_SMALL) return GF_OK;
 	else if (e) return e;
@@ -1279,10 +1287,17 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	lt = gf_log_get_tool_level(GF_LOG_CODING);
 	gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
 
-	res = gf_media_probe_ivf(bs);
-	if (res) {
+	if (gf_media_probe_iamf(bs)) {
+		res = GF_TRUE;
+		*score = GF_FPROBE_SUPPORTED;
+		mime = "audio/iamf";
+	} else if (gf_media_probe_ivf(bs)) {
+		res = GF_TRUE;
 		*score = GF_FPROBE_SUPPORTED;
 		mime = "video/x-ivf";
+	} else if (gf_media_aom_probe_annexb(bs)) {
+		res = GF_TRUE;
+		*score = GF_FPROBE_SUPPORTED;
 	} else {
 		res = gf_media_aom_probe_annexb(bs);
 		if (res) {
@@ -1337,6 +1352,8 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			gf_av1_reset_state(av1_state, GF_TRUE);
 			gf_free(av1_state);
 		}
+		gf_odf_av1_cfg_del(state.config);
+		gf_av1_reset_state(&state, GF_TRUE);
 	}
 
 	gf_log_set_tool_level(GF_LOG_CODING, lt);
@@ -1349,21 +1366,26 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 static const GF_FilterCapability AV1DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ivf|obu|av1b|av1"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-ivf|video/av1"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ivf|obu|av1b|av1|av1"),
+        /* we don't have an official mime registered for IAMF bitstream yet */
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-ivf|video/av1|audio/iamf"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AV1),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VP8),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VP9),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_VP10),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_IAMF),
 	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AV1),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VP8),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VP9),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VP10),
-	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AV1),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VP8),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VP9),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VP10),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_IAMF),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_AV1DmxCtx, _n)
@@ -1388,8 +1410,9 @@ static const GF_FilterArgs AV1DmxArgs[] =
 
 GF_FilterRegister AV1DmxRegister = {
 	.name = "rfav1",
-	GF_FS_SET_DESCRIPTION("AV1/IVF/VP9 reframer")
-	GF_FS_SET_HELP("This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames.")
+	GF_FS_SET_DESCRIPTION("AV1/IVF/VP9/IAMF reframer")
+	GF_FS_SET_HELP("This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames. "
+		       "It also parses IAMF OBU and outputs corresponding temporal units containing audio frames and parameter blocks.")
 	.private_size = sizeof(GF_AV1DmxCtx),
 	.args = AV1DmxArgs,
 	.initialize = av1dmx_initialize,
