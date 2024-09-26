@@ -639,7 +639,10 @@ typedef enum
 	GF_CODECID_DNXHD = GF_4CC('D','N','x','H'),
 
 	//fake codec IDs for RTP
-	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
+	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T'),
+
+	/*! codecid for IAMF*/
+	GF_CODECID_IAMF = GF_4CC('i','a','m','f')
 } GF_CodecID;
 
 /*! Gets a textual description for the given codecID

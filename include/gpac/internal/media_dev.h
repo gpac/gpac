@@ -1077,6 +1077,11 @@ typedef struct
 
 u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header);
 
+/*checks if the input is an IAMF bitstream
+\param bs bitstream object
+*/
+Bool gf_media_probe_iamf(GF_BitStream *bs);
+
 /*parses one IAMF OBU
 \param bs bitstream object
 \param obu_type OBU type
