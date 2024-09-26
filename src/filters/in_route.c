@@ -74,9 +74,8 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_transfer(ctx->seg_repair_reservoir, ctx->seg_repair_queue);
 	gf_list_del(ctx->seg_repair_queue);
 	while (gf_list_count(ctx->repair_servers)) {
-		char *tmp = gf_list_get(ctx->repair_servers, 0);
+		char *tmp = gf_list_pop_back(ctx->repair_servers);
 		gf_free(tmp);
-		gf_list_rem(ctx->repair_servers, 0);
 	}
 	gf_list_del(ctx->repair_servers);
 	while (gf_list_count(ctx->seg_repair_reservoir)) {
@@ -702,7 +701,6 @@ static GF_Err routein_initialize(GF_Filter *filter)
 			server->accept_ranges = GF_TRUE;
 			server->is_up = GF_TRUE;
 			server->support_h2 = GF_TRUE;
-			server->latency = server->nb_req_success = server->nb_bytes = 0;
 			server->url = ctx->repair_urls.vals[i];
 			gf_list_add(ctx->repair_servers, server);
 		}

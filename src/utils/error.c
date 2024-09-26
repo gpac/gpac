@@ -1086,7 +1086,7 @@ const char *gf_error_to_string(GF_Err e)
 	case GF_FILTER_NOT_SUPPORTED:
 		return "Not supported by any filter chain";
 	case GF_IO_BYTE_RANGE_NOT_SUPPORTED:
-		return "Repair server does not support byte range";
+		return "Byte Range request not supported by server";
 	default:
 		sprintf(szErrMsg, "Unknown Error (%d)", e);
 		return szErrMsg;
