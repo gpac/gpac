@@ -7092,7 +7092,7 @@ static void del_service_info(GF_List *services)
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust)
 {
 	//compute offsets
-	s64 dts_diff = ctx->tsalign ? gf_timestamp_rescale(min_ts_service, 1000000, tkw->src_timescale) : 0;
+	s64 dts_diff = ctx->tsalign ? gf_timestamp_rescale(min_ts_service, (ctx->moovts ? ctx->moovts : 1000000), tkw->src_timescale) : 0;
 
 	if (!skip_adjust) {
 		dts_diff = (s64) tkw->ts_shift - dts_diff;
@@ -7136,7 +7136,7 @@ retry_all:
 
 	//compute min dts of first packet on each track - this assume all tracks are synchronized, might need adjustment for MPEG4 Systems
 	for (i=0; i<count; i++) {
-		u64 ts, dts_min;
+		u64 ts, ts_min;
 		GF_FilterPacket *pck;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		if (tkw->fake_track) continue;
@@ -7145,10 +7145,10 @@ retry_all:
 
 		//already setup (happens when new PIDs are declared after a packet has already been written on other PIDs)
 		if (tkw->nb_samples) {
-			dts_min = gf_timestamp_rescale(tkw->ts_shift, tkw->src_timescale, 1000000);
+			ts_min = gf_timestamp_rescale(tkw->ts_shift, tkw->src_timescale, (ctx->moovts ? ctx->moovts : 1000000) );
 
-			if (si->first_ts_min > dts_min) {
-				si->first_ts_min = (u64) dts_min;
+			if (si->first_ts_min > ts_min) {
+				si->first_ts_min = (u64) ts_min;
 			}
 			continue;
 		}
@@ -7244,16 +7244,16 @@ retry_pck:
 		if (gf_list_find(ctx->tracks, tkw) != i) {
 			goto retry_all;
 		}
-		ts = gf_filter_pck_get_dts(pck);
+		//align timelines based on CTS otherwise we could add extra delay on other pids (audio, etc) when video with dts<cts appears first
+		ts = gf_filter_pck_get_cts(pck);
 		if (ts==GF_FILTER_NO_TS)
-			ts = gf_filter_pck_get_cts(pck);
+			ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
 			ts=0;
 
-		dts_min = gf_timestamp_rescale(ts, tkw->src_timescale, 1000000);
-
-		if (si->first_ts_min > dts_min) {
-			si->first_ts_min = (u64) dts_min;
+		ts_min = gf_timestamp_rescale(ts, tkw->src_timescale, (ctx->moovts ? ctx->moovts : 1000000) );
+		if (si->first_ts_min > ts_min) {
+			si->first_ts_min = (u64) ts_min;
 			has_ready = GF_TRUE;
 		}
 
@@ -7266,8 +7266,11 @@ retry_pck:
 			si->nb_sparse_ready++;
 			break;
 		}
+		//ts_shift must be the first dts
+		tkw->ts_shift = gf_filter_pck_get_dts(pck);
+		if (tkw->ts_shift==GF_FILTER_NO_TS)
+			tkw->ts_shift = ts;
 
-		tkw->ts_shift = ts;
 		tkw->si_min_ts_plus_one = 0;
 	}
 
