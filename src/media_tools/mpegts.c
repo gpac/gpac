@@ -496,13 +496,8 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			section_start = 3;
 		}
 		/*process section*/
-		if (section_valid) {
+		if (section_valid && sec->length > section_start) {
 			GF_M2TS_Section *section;
-
-			if (sec->length <= section_start) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] section length invalid (length %d - start %d)\n", sec->length, section_start));
-				return;
-			}
 
 			GF_SAFEALLOC(section, GF_M2TS_Section);
 			if (!section) {
