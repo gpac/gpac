@@ -2050,12 +2050,13 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
-GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, Bool skip_init, Bool skip_samples)
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, const char *init_seg, Bool skip_samples)
 {
 	char szFileName[1024];
 	GF_Err e;
 	FILE *dump = stdout;
-	Bool do_close=GF_FALSE;
+	Bool do_close = GF_FALSE;
+	Bool skip_init = init_seg ? GF_TRUE : GF_FALSE;
 	if (!file) return GF_ISOM_INVALID_FILE;
 
 	if (inName) {
@@ -2085,6 +2086,11 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 		u32 i;
 		//because of dump mode we need to reopen in regular read mode to avoid mem leaks
 		GF_ISOFile *the_file = gf_isom_open(gf_isom_get_filename(file), GF_ISOM_OPEN_READ, NULL);
+		if (skip_init) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			gf_isom_open_segment(the_file, init_seg, 0, 0, 0);
+#endif
+		}
 		u32 tcount = gf_isom_get_track_count(the_file);
 		fprintf(dump, "<Tracks>\n");
 
