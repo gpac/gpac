@@ -163,6 +163,7 @@ static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 		for (i=0; i<nb_streams; i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 		}
 	}
 }
@@ -554,6 +555,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (ctx->duration.num>1) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 	}
 	/*indicate our coding dependencies if any*/
 	if (!m4sys_stream) {
@@ -1077,6 +1079,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
 				if (stream->user) {
 					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION, & PROP_FRAC64_INT(duration, 1000) );
+					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 				}
 			}
 		}

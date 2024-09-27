@@ -710,10 +710,11 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			duration *= filesize/probe_size;
 		}
 		ctx->duration.num = (s32) duration;
-		if (probe_size) ctx->duration.num = -ctx->duration.num;
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+		if (probe_size)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 
 		if (duration && ctx->duration.num && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
 			filesize *= 8 * ctx->duration.den;
