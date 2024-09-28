@@ -517,6 +517,8 @@ static GF_Err h2_session_send(GF_DownloadSession *sess)
 	return GF_OK;
 }
 
+void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
+
 static GF_DownloadSession *h2_get_session(void *user_data, s32 stream_id, Bool can_reassign)
 {
 	u32 i, nb_sess;
@@ -537,9 +539,16 @@ static GF_DownloadSession *h2_get_session(void *user_data, s32 stream_id, Bool c
 		first_not_assigned->h2_stream_id = stream_id;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] reassigning old server session to new stream %d\n", stream_id));
 		gf_assert(first_not_assigned->data_io.source.ptr);
-		first_not_assigned->total_size = first_not_assigned->bytes_done = 0;
 		first_not_assigned->status = GF_NETIO_CONNECTED;
+
+		first_not_assigned->total_size = first_not_assigned->bytes_done = 0;
 		first_not_assigned->h2_data_done = 0;
+		if (first_not_assigned->remote_path) gf_free(first_not_assigned->remote_path);
+		first_not_assigned->remote_path = NULL;
+		//reset internal reaggregation buffer
+		first_not_assigned->h2_buf.size = 0;
+
+		gf_dm_sess_clear_headers(first_not_assigned);
 		return first_not_assigned;
 	}
 	return NULL;
@@ -641,6 +650,7 @@ static int h2_frame_recv_callback(nghttp2_session *session, const nghttp2_frame 
 		if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) data done\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
 			sess->h2_data_done = 1;
+			sess->h2_is_eos = GF_FALSE;
 			sess->h2_send_data = NULL;
 			sess->h2_send_data_len = 0;
 		}
@@ -689,7 +699,7 @@ static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, 
 	}
 	memcpy(sess->h2_buf.data + sess->h2_buf.size, data, len);
 	sess->h2_buf.size += (u32) len;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d received %d bytes (%d/%d total) - flags %d\n", sess->h2_stream_id, len, sess->bytes_done, sess->total_size, flags));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d received %d bytes (%d/%d total) - flags %d\n", sess->h2_stream_id, len, sess->h2_buf.size, sess->total_size, flags));
 	return 0;
 }
 
@@ -720,10 +730,18 @@ static int h2_stream_close_callback(nghttp2_session *session, int32_t stream_id,
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) closed with error_code=%d\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, error_code));
 		sess->status = GF_NETIO_STATE_ERROR;
 		SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
+		sess->put_state = 0;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) closed\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
-		//keep status in DATA_EXCHANGE as this frame might have been pushed while processing another session
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) closed (put state)\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, sess->put_state));
+		//except for PUT/POST, keep status in DATA_EXCHANGE as this frame might have been pushed while processing another session
+
+		if (sess->put_state) {
+			sess->put_state = 0;
+			sess->status = GF_NETIO_DATA_TRANSFERED;
+			sess->last_error = GF_OK;
+		}
 	}
+
 	//stream closed
 	sess->h2_stream_id = 0;
 	gf_mx_v(sess->mx);
@@ -780,9 +798,10 @@ static ssize_t h2_data_source_read_callback(nghttp2_session *session, int32_t st
 
 	if (!sess->h2_send_data_len) {
 		sess->h2_send_data = NULL;
-		if (sess->h2_is_eos) {
+		if (!sess->local_buf_len && sess->h2_is_eos) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send EOS for stream_id %d\n", sess->h2_stream_id));
 			*data_flags = NGHTTP2_DATA_FLAG_EOF;
+			sess->h2_is_eos = GF_FALSE;
 			return 0;
 		}
 		sess->h2_data_paused = 1;
@@ -2150,13 +2169,13 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 			no_body = GF_FALSE;
 			sess->h2_send_data = (u8 *) response_body;
 			sess->h2_send_data_len = body_len;
-			sess->h2_is_eos = 1;
+			sess->h2_is_eos = GF_TRUE;
 		} else if (!no_body) {
 			switch (reply_code) {
 			case 200:
 			case 206:
 				no_body = GF_FALSE;
-				sess->h2_is_eos = 0;
+				sess->h2_is_eos = GF_FALSE;
 				break;
 			default:
 				no_body = GF_TRUE;
@@ -2302,7 +2321,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, HTTPCloseType close_type)
 			do_close = (close_type==HTTP_RESET_CONN) ? GF_TRUE : GF_FALSE;
 		}
 		//if H2 stream is still valid, issue a reset stream
-		if (sess->h2_sess && sess->h2_stream_id)
+		if (sess->h2_sess && sess->h2_stream_id && (sess->put_state!=2))
 			nghttp2_submit_rst_stream(sess->h2_sess->ng_sess, NGHTTP2_FLAG_NONE, sess->h2_stream_id, NGHTTP2_NO_ERROR);
 #endif
 
@@ -2897,6 +2916,7 @@ static GF_Err curl_setup_session(GF_DownloadSession *sess)
 		sess->do_requests  = http_do_requests;
 		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_FOLLOWLOCATION, 1L);
 		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_TCP_KEEPALIVE, 1L);
+		if (sess->log_name) gf_free("CURL");
 		sess->log_name = gf_strdup("CURL");
 	}
 
@@ -3282,6 +3302,7 @@ static GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, cons
 	sess->user_proc = user_io;
 	sess->usr_cbk = usr_cbk;
 	sess->creds = NULL;
+	sess->log_name = gf_strdup("HTTP");
 
 	sess->conn_timeout = gf_opts_get_int("core", "tcp-timeout");
 	if (!sess->conn_timeout) sess->conn_timeout = 5000;
@@ -3423,8 +3444,14 @@ u32 gf_dm_sess_subsession_count(GF_DownloadSession *sess)
 void gf_dm_sess_server_reset(GF_DownloadSession *sess)
 {
 	if (!sess->server_mode) return;
+	//DO NOT clear headers if H2: the underlying h2 session could have been ended (stream_id=0) and then reassigned
+	//when processsing another session, so the headers would be the ones of the new stream_id
+	//for H2, the reset is done when reassigning sessions
+#ifdef GPAC_HAS_HTTP2
+	if (!sess->h2_sess)
+#endif
+		gf_dm_sess_clear_headers(sess);
 
-	gf_dm_sess_clear_headers(sess);
 	sess->total_size = sess->bytes_done = 0;
 	sess->chunk_bytes = 0;
 	sess->chunk_header_bytes = 0;
@@ -4342,6 +4369,9 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 			break;
 		case GF_NETIO_WAIT_FOR_REPLY:
 		case GF_NETIO_CONNECTED:
+			if (!sess->last_error)
+				sess->last_error = GF_IP_NETWORK_EMPTY;
+
 			sess->do_requests(sess);
 			if (sess->server_mode) {
 				if (sess->status == GF_NETIO_STATE_ERROR) {
@@ -4374,6 +4404,8 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 				gf_dm_sess_flush_input(sess);
 				h2_session_send(sess);
 			}
+			//in put and waiting for EOS flush
+			if ((sess->put_state==1) && sess->h2_is_eos) return GF_IP_NETWORK_EMPTY;
 #endif
 			go = GF_FALSE;
 			break;
@@ -5498,6 +5530,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		par.value = NULL;
 		gf_dm_sess_user_io(sess, &par);
 		if (!par.value) break;
+		//if name is not set, skip this header
+		if (!par.name) continue;
 
 		if (!stricmp(par.name, "Connection")) {
 			if (!stricmp(par.value, "close"))
@@ -5666,6 +5700,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 		gf_mx_p(sess->mx);
 
+		sess->h2_is_eos = GF_FALSE;
 		sess->h2_send_data = NULL;
 		if (par.data && par.size) {
 			has_body = GF_TRUE;
@@ -5677,6 +5712,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		}
 
 		e = h2_submit_request(sess, req_name, url, param_string, has_body);
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] Sending request %s %s%s\n", req_name, sess->server_name, url));
 
 		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 		if (!e)
@@ -5687,7 +5723,6 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 		gf_mx_v(sess->mx);
 
-		sess->h2_is_eos = GF_FALSE;
 		goto req_sent;
 	}
 #endif // GPAC_HAS_HTTP2
@@ -5778,7 +5813,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 		e = dm_sess_write(sess, tmp_buf, len+par.size);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request at UTC "LLD" %s\n\n", sess->log_name, gf_net_get_utc(), tmp_buf));
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request to %s %s\n\n", sess->log_name, sess->server_name, tmp_buf));
 		gf_free(tmp_buf);
 	} else {
 		u32 len = (u32) strlen(sHTTP);
@@ -5792,7 +5827,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[%s] Error sending request %s\n", sess->log_name, gf_error_to_string(e) ));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request at UTC "LLU" %s\n\n", sess->log_name, gf_net_get_utc(), sHTTP));
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[%s] Sending request to %s %s\n\n", sess->log_name, sess->server_name, sHTTP));
 		}
 #endif
 	}
@@ -6538,6 +6573,9 @@ process_reply:
 		) {
 			sess->connection_timeout_ms = connection_timeout*1000;
 		}
+	} else {
+		//server mode, start timers as soon as we see the request headers
+		sess->last_fetch_time = sess->request_start_time = gf_sys_clock_high_res();
 	}
 
 	par.msg_type = GF_NETIO_PARSE_REPLY;
@@ -7664,8 +7702,11 @@ GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
 	if (!no_select && (gf_sk_select(sess->sock, GF_SK_SELECT_WRITE)!=GF_OK)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
+	GF_Err ret = GF_OK;
+
 #ifdef GPAC_HAS_HTTP2
-	if (sess->local_buf_len) {
+	//we need to flush if some data left or if EOS is not yet sent
+	if (sess->local_buf_len || sess->h2_is_eos) {
 		u8 was_eos = sess->h2_is_eos;
 		gf_assert(sess->h2_send_data==NULL);
 		sess->h2_send_data = sess->local_buf;
@@ -7685,10 +7726,19 @@ GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
 			sess->h2_send_data = NULL;
 			sess->h2_send_data_len = 0;
 			sess->h2_is_eos = was_eos;
-			return GF_IP_NETWORK_EMPTY;
+			//we will return empty to avoid pushing data too fast, but we also need to flush the async buffer
+			ret = GF_IP_NETWORK_EMPTY;
+		} else {
+			sess->local_buf_len = 0;
+			sess->h2_send_data = NULL;
+			sess->h2_send_data_len = 0;
+			if (was_eos && !sess->h2_is_eos) {
+				if (sess->put_state==1) {
+					sess->put_state = 2;
+					sess->status = GF_NETIO_WAIT_FOR_REPLY;
+				}
+			}
 		}
-		sess->local_buf_len = 0;
-		sess->h2_is_eos = 0;
 	}
 #endif
 
@@ -7703,7 +7753,7 @@ GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
 		if (e) return e;
 		if (sess->async_buf_size) return GF_IP_NETWORK_EMPTY;
 	}
-	return GF_OK;
+	return ret;
 }
 
 u32 gf_dm_sess_async_pending(GF_DownloadSession *sess)
@@ -7746,25 +7796,28 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 				if (sess->h2_is_eos) {
 					return GF_IP_NETWORK_EMPTY;
 				}
-				sess->h2_is_eos = 1;
+				sess->h2_is_eos = GF_TRUE;
+				h2_session_send(sess);
 				return GF_OK;
 			}
-			sess->h2_is_eos = 1;
+			sess->h2_is_eos = GF_TRUE;
 			h2_session_send(sess);
 			//stream_id is not yet 0 in case of PUT/PUSH, stream is closed once we get reply from server
 		} else {
-			sess->h2_is_eos = 0;
+			sess->h2_is_eos = GF_FALSE;
 			//send the data
 			h2_flush_send(sess, GF_FALSE);
 		}
-		sess->h2_is_eos = 0;
 
 		gf_mx_v(sess->mx);
 
 		if (!data || !size) {
 			if (sess->put_state) {
-				sess->put_state = 2;
-				sess->status = GF_NETIO_WAIT_FOR_REPLY;
+				//we are done sending
+				if (!sess->local_buf_len) {
+					sess->put_state = 2;
+					sess->status = GF_NETIO_WAIT_FOR_REPLY;
+				}
 				return GF_OK;
 			}
 		}
@@ -8765,4 +8818,3 @@ void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id)
 }
 
 #endif // GPAC_CONFIG_EMSCRIPTEN
-

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -1445,14 +1445,14 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		}
 
 		ctx->nb_stop_pending = 0;
+		ctx->map_time_on_prog_id = pes->program->number;
+		ctx->media_start_range = is_source_seek ? 0 : com->play.start_range;
+
 		//not file, don't cancel the event
 		if (!ctx->is_file) {
 			ctx->initial_play_done = GF_TRUE;
 			return GF_FALSE;
 		}
-
-		ctx->map_time_on_prog_id = pes->program->number;
-		ctx->media_start_range = is_source_seek ? 0 : com->play.start_range;
 
 		if (is_source_seek) {
 			file_pos = com->play.hint_start_offset;
@@ -1463,6 +1463,9 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			file_pos /= ctx->duration.num;
 			if (file_pos > ctx->file_size) return GF_TRUE;
 		}
+		//round down to packet boundary
+		file_pos /= ctx->ts->prefix_present ? 192 : 188;
+		file_pos *= ctx->ts->prefix_present ? 192 : 188;
 
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
@@ -1592,7 +1595,10 @@ restart:
 			if (ctx->nb_playing) {
 				gf_filter_ask_rt_reschedule(filter, 0);
 			}
-			if (ctx->nb_stopped_at_init==nb_streams) {
+			if ((ctx->nb_stopped_at_init==nb_streams)
+				//this can happen if outputs are all blocking and a stop was issued
+				|| (ctx->nb_stop_pending==nb_streams)
+			) {
 				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				return GF_EOS;
 			}

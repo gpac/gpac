@@ -526,7 +526,7 @@ static GF_Err routein_process(GF_Filter *filter)
 				else {
 					u32 diff = gf_sys_clock() - ctx->last_timeout;
 					if (diff > ctx->timeout) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] No data for %d ms, aborting\n", ctx->log_name, diff));
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] No data for %u ms, aborting\n", ctx->log_name, diff));
 						routein_set_eos(filter, ctx);
 						return GF_EOS;
 					}
@@ -554,7 +554,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	if (!ctx->tune_time) {
 	 	u32 diff = gf_sys_clock() - ctx->start_time;
 	 	if (diff>ctx->timeout) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] No data for %d ms, aborting\n", ctx->log_name, diff));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] No data for %u ms, aborting\n", ctx->log_name, diff));
 			gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
 			routein_set_eos(filter, ctx);
 			return GF_EOS;
@@ -737,7 +737,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(odir), "output directory for standalone mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder), "consider packets are not always in order - if false, this will evaluate an LCT object as done when TOI changes", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cloop), "check for loops based on TOI (used for capture replay)", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repair), "repair mode for corrupted files\n"
 		"- no: no repair is performed\n"

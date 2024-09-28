@@ -156,7 +156,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	Double track_dur=0;
 	u32 srd_id=0, srd_indep=0, srd_x=0, srd_y=0, srd_w=0, srd_h=0;
 	u32 base_tile_track=0;
-	u32 ch_layout=0;
+	u64 ch_layout=0;
 	Bool srd_full_frame=GF_FALSE;
 	u32 mtype, m_subtype;
 	GF_GenericSampleDescription *udesc = NULL;
@@ -1561,6 +1561,8 @@ props_done:
 
 	if (streamtype==GF_STREAM_VISUAL) {
 		u32 cwn, cwd, chn, chd, cxn, cxd, cyn, cyd;
+		cwn=cwd=chn=chd=cxn=cxd=cyn=cyd=0;
+
 		gf_isom_get_clean_aperture(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1, &cwn, &cwd, &chn, &chd, &cxn, &cxd, &cyn, &cyd);
 
 		if (cwd && chd && cxd && cyd) {

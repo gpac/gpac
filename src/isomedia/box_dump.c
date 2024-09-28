@@ -487,7 +487,7 @@ GF_Err chpl_box_dump(GF_Box *a, FILE * trace)
 	if (p->size) {
 		count = gf_list_count(p->list);
 		for (i=0; i<count; i++) {
-			char szDur[20];
+			char szDur[50];
 			GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
 			gf_fprintf(trace, "<Chapter name=\"");
 			dump_escape_string(trace, ce->name);
@@ -1580,7 +1580,7 @@ static GF_Err dump_uncc(GF_UnknownBox *u, FILE * trace)
 	get_and_print("num_tile_rows_minus_one", 32)
 
 	gf_fprintf(trace, ">\n");
-	gf_bs_seek(bs, 10);
+	gf_bs_seek(bs, 12);
 	for (i=0; i<nb_comps; i++) {
 		gf_fprintf(trace, "<ComponentInfo");
 		get_and_print("index", 16)
@@ -1840,6 +1840,25 @@ static GF_Err dump_itai(GF_UnknownBox *u, FILE * trace)
 	return GF_OK;
 }
 
+static GF_Err dump_cmpc(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "CompressionConfigurationBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	get_4cc_and_print("compression_type", 32)
+	// Check if this is in the final must_decompress_individual_units
+	get_and_print("must_decompress_individual_units", 1);
+	get_and_print("compressed_unit_type", 7)
+	gf_fprintf(trace, ">\n");
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("CompressionConfigurationBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
 static GF_Err dump_fpac(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val;
@@ -1881,9 +1900,58 @@ static GF_Err dump_gmcc(GF_UnknownBox *u, FILE * trace)
 	return GF_OK;
 }
 
+static GF_Err dump_icef(GF_UnknownBox *u, FILE * trace)
+{
+	u32 val, num_compressed_units, unit_offset_code, unit_size_code, i;
+	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
+	gf_isom_box_dump_start((GF_Box *)u, "GenericallyCompressedUnitsItemInfoBox", trace);
+
+	//full box
+	get_and_print("version", 8)
+	get_and_print("flags", 24)
+	unit_offset_code = gf_bs_read_int(bs, 3);
+	unit_size_code = gf_bs_read_int(bs, 3);
+	gf_bs_read_int(bs, 2);
+	num_compressed_units = gf_bs_read_u32(bs);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<num_compressed_units; i++) {
+		u64 extent_offset = 0;
+		u64 extent_size = 0;
+		if (unit_offset_code == 1) {
+			extent_offset = gf_bs_read_u16(bs);
+		} else if (unit_offset_code == 2) {
+			extent_offset = gf_bs_read_u24(bs);
+		} else if (unit_offset_code == 3) {
+			extent_offset = gf_bs_read_u32(bs);
+		} else if (unit_offset_code == 4) {
+			extent_offset = gf_bs_read_u64(bs);
+		}
+		if (unit_size_code == 0) {
+			extent_size = gf_bs_read_u8(bs);
+		} else if (unit_size_code == 1) {
+			extent_size = gf_bs_read_u16(bs);
+		} else if (unit_size_code == 2) {
+			extent_size = gf_bs_read_u24(bs);
+		} else if (unit_size_code == 3) {
+			extent_size = gf_bs_read_u32(bs);
+		} else if (unit_size_code == 4) {
+			extent_size = gf_bs_read_u64(bs);
+		}
+		if (unit_offset_code == 0) {
+			gf_fprintf(trace, "<compressed_unit_info extent_size=\"%u\"/>\n", extent_size);
+		} else {
+			gf_fprintf(trace, "<compressed_unit_info extent_offset=\"%u\" extent_size=\"%u\"/>\n", extent_offset, extent_size);
+		}
+	}
+	gf_bs_del(bs);
+	gf_isom_box_dump_done("GenericallyCompressedUnitsItemInfoBox", (GF_Box *)u, trace);
+	return GF_OK;
+}
+
 static GF_Err dump_dvc1(GF_UnknownBox *u, FILE * trace)
 {
 	u32 val, pos;
+	if (!u || !u->data || !u->dataSize) return GF_BAD_PARAM;
 	GF_BitStream *bs = gf_bs_new(u->data, u->dataSize, GF_BITSTREAM_READ);
 	gf_isom_box_dump_start((GF_Box *)u, "VC1ConfigurationBox", trace);
 
@@ -1953,6 +2021,10 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_gmcc(u, trace);
 	} else if (u->original_4cc==GF_4CC('d','v','c','1')) {
 		return dump_dvc1(u, trace);
+	} else if (u->original_4cc==GF_4CC('c','m','p','C')) {
+		return dump_cmpc(u, trace);
+	} else if (u->original_4cc==GF_4CC('i','c','e','f')) {
+		return dump_icef(u, trace);
 	} else {
 #ifdef GPAC_HAS_QJS
 		const char *opt = gf_opts_get_key("core", "boxdir");
@@ -4346,7 +4418,7 @@ static GF_Err gf_isom_dump_ogg_chap(GF_ISOFile *the_file, u32 track, FILE *dump,
 		if (!txt->len) continue;
 
 		if (dump_type==GF_TEXTDUMPTYPE_OGG_CHAP) {
-			char szDur[20];
+			char szDur[50];
 			fprintf(dump, "CHAPTER%02d=%s\n", i+1, format_duration(start, ts, szDur));
 			fprintf(dump, "CHAPTER%02dNAME=%s\n", i+1, txt->text);
 		} else {
@@ -6829,12 +6901,56 @@ GF_Err chan_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err jp_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2SignatureBox *p = (GF_JP2SignatureBox *) a;
+	gf_isom_box_dump_start(a, "JP2SignatureBox", trace);
+	gf_fprintf(trace, "signature=\"0x%.8X\">\n", p->signature);
+	gf_isom_box_dump_done("JP2SignatureBox", a, trace);
+	return GF_OK;
+}
 
 GF_Err jp2h_box_dump(GF_Box *a, FILE * trace)
 {
 	gf_isom_box_dump_start(a, "JP2HeaderBox", trace);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("JP2HeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err jp2p_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2ProfileBox *p = (GF_JP2ProfileBox *) a;
+	u32 i, count = gf_list_count(p->compatible_brands);
+
+	gf_isom_box_dump_start(a, "JP2ProfileBox", trace);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<count; i++) {
+		u32 *brand = (u32 *)gf_list_get(p->compatible_brands, i);
+		gf_fprintf(trace, "<CompatibleBrand brand=\"%s\"/>\n", gf_4cc_to_str(*brand));
+	}
+	gf_isom_box_dump_done("JP2ProfileBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err jsub_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2SubSamplingBox *p = (GF_JP2SubSamplingBox *) a;
+
+	gf_isom_box_dump_start(a, "JP2SubSamplingBox", trace);
+	gf_fprintf(trace, "HorizontalSub=\"%d\" VerticalSub=\"%d\" ", p->horizontal_sub, p->vertical_sub);
+	gf_fprintf(trace, "HorizontalOffset=\"%d\" VerticalOffset=\"%d\">\n", p->horizontal_offset, p->vertical_offset);
+	gf_isom_box_dump_done("JP2SubSamplingBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err orfo_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_JP2OriginalFormatBox *p = (GF_JP2OriginalFormatBox *) a;
+
+	gf_isom_box_dump_start(a, "JP2OriginalFormatBox", trace);
+	gf_fprintf(trace, "FieldCount=\"%d\" FieldOrder=\"%d\">\n", p->original_fieldcount, p->original_fieldorder);
+	gf_isom_box_dump_done("JP2OriginalFormatBox", a, trace);
 	return GF_OK;
 }
 

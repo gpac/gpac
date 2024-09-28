@@ -21,7 +21,7 @@ endif
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o utils/gzio.o utils/xml_parser.o
+LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o utils/gzio.o utils/xml_parser.o utils/xml_bin_custom.o
 LIBGPAC_UTILS+=utils/sha1.o utils/sha256.o utils/md5.o utils/base_encoding.o utils/math.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/cache.o utils/downloader.o utils/utf.o utils/token.o utils/color.o utils/Remotery.o
 
 # ifeq ($(DISABLE_PLAYER),no)
@@ -329,36 +329,43 @@ filters/dec_j2k.o: filters/dec_j2k.c
 
 filters/dec_mad.o: CFLAGS += $(mad_cflags)
 filters/dec_mad.o: filters/dec_mad.c
+.deps/filters/dec_mad.dep: CFLAGS += $(mad_cflags)
 
 filters/dec_ac52.o: CFLAGS += $(a52_cflags)
 filters/dec_ac52.o: filters/dec_ac52.c
+.deps/filters/dec_ac52.dep: CFLAGS += $(a52_cflags)
 
 filters/dec_xvid.o: CFLAGS += $(xvid_cflags)
 filters/dec_xvid.o: filters/dec_xvid.c
+.deps/filters/dec_xvid.dep: CFLAGS += $(xvid_cflags)
 
 filters/dec_faad.o: CFLAGS += $(faad_cflags)
 filters/dec_faad.o: filters/dec_faad.c
-
-filters/dec_faad.o: CFLAGS += $(faad_cflags)
-filters/dec_faad.o: filters/dec_faad.c
+.deps/filters/dec_faad.dep: CFLAGS += $(faad_cflags)
 
 filters/dec_theora.o: CFLAGS += $(ogg_cflags) $(theora_cflags)
 filters/dec_theora.o: filters/dec_theora.c
+.deps/filters/dec_theora.dep: CFLAGS += $(ogg_cflags) $(theora_cflags)
 
 filters/dec_vorbis.o: CFLAGS += $(ogg_cflags) $(vorbis_cflags)
 filters/dec_vorbis.o: filters/dec_vorbis.c
+.deps/filters/dec_vorbis.dep: CFLAGS += $(ogg_cflags) $(vorbis_cflags)
 
 filters/dec_vtb.o: CFLAGS += $(vtb_cflags)
 filters/dec_vtb.o: filters/dec_vtb.c
+.deps/filters/dec_vtb.dep: CFLAGS += $(vtb_cflags)
 
 filters/enc_jpg.o: CFLAGS += $(jpeg_cflags)
 filters/enc_jpg.o: filters/enc_jpg.c
+.deps/filters/enc_jpg.dep: CFLAGS += $(jpeg_cflags)
 
 filters/enc_png.o: CFLAGS += $(zlib_cflags) $(png_cflags)
 filters/enc_png.o: filters/enc_png.c
+.deps/filters/enc_png.dep: CFLAGS += $(zlib_cflags) $(png_cflags)
 
 media_tools/img.o: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 media_tools/img.o: media_tools/img.c
+.deps/media_tools/img.dep: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
 
 utils/downloader.o: CFLAGS += $(nghttp2_cflags) $(ssl_cflags)
 utils/downloader.o: utils/downloader.c
@@ -366,6 +373,7 @@ utils/downloader.o: utils/downloader.c
 
 crypto/g_crypt_openssl.o: CFLAGS += $(ssl_cflags)
 crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
+.deps/crypto/g_crypt_openssl.dep: CFLAGS += $(ssl_cflags)
 
 
 ../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) compositor scenegraph media_tools crypto filters filters_ffmpeg filters_libcaption filters_mpeghdec filters_ohevc jsmods $(OBJS)
@@ -404,7 +412,7 @@ ifeq ($(UNIT_TESTS),yes)
 		-o ../bin/gcc/unittests \
 		../bin/gcc/unittests.c \
 		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
-		-Wl,-rpath=$(realpath ../bin/gcc) -L../bin/gcc -lgpac
+		-Wl,-rpath,$(realpath ../bin/gcc) -L../bin/gcc -lgpac
 endif
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2022
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / rtsp output filter
@@ -129,7 +129,7 @@ typedef struct __rtspout_session
 	char *service_name;
 	char *sessionID;
 	char peer_address[GF_MAX_IP_NAME_LEN];
-	char ctrl_name[10];
+	char ctrl_name[20];
 
 	u32 play_state;
 	Double start_range;
@@ -158,6 +158,7 @@ typedef struct __rtspout_session
 	u32 sdp_state;
 
 	u32 next_stream_id;
+	Bool needs_reconfig;
 
 	u64 pause_sys_clock;
 	Bool request_pending;
@@ -210,11 +211,11 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 		//setup on resource not loaded, reassign control string based on setup query
 		//this typically happen after a seek when we teardown the session right away
 		if (!sess->sessionID || !sess->ctrl_name[0]) {
-			char *sep = strchr(sess->setup_ctrl, '=');
+			char *sep = strchr(sess->setup_ctrl, '_');
 			if (sep) sep[0] = 0;
 			strncpy(sess->ctrl_name, sess->setup_ctrl+1, 9);
 			sess->ctrl_name[9] = 0;
-			if (sep) sep[0] = '=';
+			if (sep) sep[0] = '_';
 		}
 		e = rtspout_process_setup(sess->ctx, sess, sess->setup_ctrl);
 		gf_free(sess->setup_ctrl);
@@ -245,10 +246,12 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 	gf_rtsp_response_reset(sess->response);
 	sess->response->ResponseCode = NC_RTSP_OK;
 	sess->response->CSeq = sess->command->CSeq;
+	sess->response->Content_Type = "application/sdp";
 	sess->response->body = sdp_output;
 
 	rtspout_send_response(sess->ctx, sess);
 	sess->response->body = NULL;
+	sess->response->Content_Type = NULL;
 	gf_free(sdp_output);
 
 	return GF_OK;
@@ -356,17 +359,32 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		return GF_OK;
 	}
-	if (!sess) return GF_SERVICE_ERROR;
 	stream = gf_filter_pid_get_udta(pid);
+	//session not found, fail silently if we had a stream - it is likely that TEARDOWWN was received and we posted a filter remove
+	//but still get a reconfigure on trailing packets
+	if (!sess)
+		return stream ? GF_OK : GF_SERVICE_ERROR;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	streamType = p ? p->value.uint : 0;
+	Bool is_m2ts=0;
 
 	switch (streamType) {
 	case GF_STREAM_VISUAL:
 	case GF_STREAM_AUDIO:
 		break;
 	case GF_STREAM_FILE:
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (p && p->value.string && !strcmp(p->value.string, "video/mpeg-2")) {
+			is_m2ts = GF_TRUE;
+		} else {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+			if (p && p->value.string && !strcmp(p->value.string, "ts")) {
+				is_m2ts = GF_TRUE;
+			}
+		}
+		if (is_m2ts) break;
+		//fallthrough
 	case GF_STREAM_UNKNOWN:
 		if (stream) {
 			if (sess->active_stream==stream) sess->active_stream = NULL;
@@ -392,19 +410,31 @@ static GF_Err rtspout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			rtspout_on_rtcp(stream->on_rtcp_udta);
 #endif
 	 	gf_filter_pid_set_udta(pid, stream);
+
+		stream->ctrl_id = sess->next_stream_id+1;
+		sess->next_stream_id++;
 	}
-	stream->ctrl_id = sess->next_stream_id+1;
-	sess->next_stream_id++;
 	stream->ctrl_name = sess->ctrl_name;
 
 	payt = ctx->payt + gf_list_find(sess->streams, stream);
 
-	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id, 0, gf_filter_get_netcap_id(filter));
-	if (e) return e;
-
+	e = rtpout_init_streamer(stream, ctx->ifce ? ctx->ifce : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_TRUE, &sess->base_pid_id, gf_filter_get_netcap_id(filter));
+	if (e) {
+		if (e==GF_NOT_READY) {
+			if (!stream->do_probe) {
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+				gf_filter_pid_send_event(pid, &evt);
+				sess->needs_reconfig++;
+				stream->do_probe = GF_TRUE;
+			}
+			return GF_OK;
+		}
+		return e;
+	}
 	if (ctx->loop) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
-		if (!p || (p->value.uint<GF_PLAYBACK_MODE_FASTFORWARD)) {
+		if (!p || (p->value.uint<GF_PLAYBACK_MODE_SEEK)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPOut] PID %s cannot be seek, disabling loop\n", gf_filter_pid_get_name(pid) ));
 
 			sess->loop_disabled = GF_TRUE;
@@ -435,16 +465,17 @@ static GF_Err rtspout_check_new_session(GF_RTSPOutCtx *ctx, Bool single_session)
 	sess->streams = gf_list_new();
 	sess->filter_srcs = gf_list_new();
 	if (gf_sys_is_test_mode()) {
-		strcpy(sess->ctrl_name, "trackID");
+		strcpy(sess->ctrl_name, "/trackID");
 	} else {
-		u32 seed = gf_rand();
+		u64 seed = gf_rand();
+		seed <<= 32;
 #ifndef GPAC_64_BITS
 		seed |= (u32) sess;
 #else
-		seed |= (u32) (u64) sess;
+		seed |= (u64) sess;
 #endif
 		seed |= gf_sys_clock();
-		sprintf(sess->ctrl_name, "s%08X", seed);
+		sprintf(sess->ctrl_name, "/s"LLX"", seed);
 	}
 
 	if (new_sess) {
@@ -714,7 +745,7 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 		if (rtpi) {
 			u32 timescale;
 			rtpi->url = gf_malloc(sizeof(char) * (strlen(sess->service_name)+50));
-			sprintf(rtpi->url, "%s/%s=%d", sess->service_name, sess->ctrl_name, stream->ctrl_id);
+			sprintf(rtpi->url, "%s_%d", sess->ctrl_name, stream->ctrl_id);
 			rtpi->seq = gf_rtp_streamer_get_next_rtp_sn(stream->rtp);
 			rtpi->rtp_time = (u32) (stream->current_cts + stream->ts_offset + stream->rtp_ts_offset);
 
@@ -1073,8 +1104,8 @@ static u32 rtspout_get_ctrl_id(GF_RTSPOutSession *sess, char *ctrl)
 	u32 stream_ctrl_id=0;
 	if (ctrl && (ctrl[0]=='/')) {
 		u32 len = (u32) strlen(sess->ctrl_name);
-		if (!strncmp(ctrl+1, sess->ctrl_name, len)) {
-			if (sscanf(ctrl+1+len, "=%d", &stream_ctrl_id)<1) {
+		if (!strncmp(ctrl, sess->ctrl_name, len)) {
+			if (sscanf(ctrl+len, "_%d", &stream_ctrl_id)<1) {
 				stream_ctrl_id=0;
 			}
 		}
@@ -1093,15 +1124,6 @@ static GF_Err rtspout_process_setup(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess,
 	Bool reset_transport_dest = GF_FALSE;
 
 	u32 stream_ctrl_id = rtspout_get_ctrl_id(sess, ctrl);
-
-	if (ctrl && (ctrl[0]=='/')) {
-		u32 len = (u32) strlen(sess->ctrl_name);
-		if (!strncmp(ctrl+1, sess->ctrl_name, len)) {
-			if (sscanf(ctrl+1+len, "=%d", &stream_ctrl_id)<1) {
-				stream_ctrl_id=0;
-			}
-		}
-	}
 
 	if (!ctrl || !transport) {
 		rsp_code = NC_RTSP_Bad_Request;
@@ -1573,15 +1595,8 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 	}
 
 	//extract control string if any
-	if (sess->service_name) {
-		char *sep = strstr(sess->service_name, "://");
-		if (sep) sep = strchr(sep+3, '/');
-		if (sep) sep = strstr(sess->command->service_name, sep);
-
-		if (sep) {
-			ctrl = strrchr(sess->command->service_name, '/');
-		}
-	} else {
+	ctrl = NULL;
+	if (sess->command->service_name) {
 		ctrl = strrchr(sess->command->service_name, '/');
 	}
 
@@ -1739,6 +1754,25 @@ static GF_Err rtspout_process(GF_Filter *filter)
 		GF_RTSPOutSession *sess = gf_list_get(ctx->sessions, i);
 		if (!sess) break;
 
+		if (sess->needs_reconfig) {
+			u32 k, nb_st = gf_list_count(sess->streams);
+			for (k=0; k<nb_st; k++) {
+				GF_RTPOutStream *st = gf_list_get(sess->streams, k);
+				if (!st->do_probe) continue;
+				st->do_probe = GF_FALSE;
+				GF_FilterPacket *pck = gf_filter_pid_get_packet(st->pid);
+				if (pck && !st->do_probe) {
+					sess->needs_reconfig --;
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, st->pid);
+					gf_filter_pid_send_event(st->pid, &evt);
+				} else {
+					st->do_probe = GF_TRUE;
+				}
+			}
+			continue;
+		}
+
 		sess_err = rtspout_process_session_signaling(filter, ctx, &sess);
 		if ((s32)sess_err == GF_RTSP_TUNNEL_POST) {
 			gf_list_rem(ctx->sessions, i);
@@ -1807,6 +1841,11 @@ static const GF_FilterCapability RTSPOutCaps[] =
 	{0},
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "*"),
+	//but only file streals that have a timescale set
+	CAP_UINT(GF_CAPS_INPUT|GF_CAPFLAG_PRESENT, GF_PROP_PID_TIMESCALE, 0),
 };
 
 
@@ -1833,7 +1872,7 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(timeout), "timeout in seconds for inactive sessions (0 disable timeout)", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(close), "close RTSP connection after each request, except when RTP over RTSP is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dynurl), "allow dynamic service assembly", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mcast), "control multicast setup of a session\n"
 				"- off: clients are never allowed to create a multicast\n"

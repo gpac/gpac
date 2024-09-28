@@ -1177,6 +1177,7 @@ GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *
 	}
 	gf_bs_align(bs);
 	cfg->comment_field_bytes = gf_bs_read_int_log(bs, 8, "comment_field_bytes");
+	if (gf_bs_available(bs) < cfg->comment_field_bytes) return GF_NON_COMPLIANT_BITSTREAM;
 	gf_bs_read_data(bs, (char *)cfg->comments, cfg->comment_field_bytes);
 
 	cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
@@ -1254,7 +1255,8 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		ext_flag = gf_bs_read_int_log(bs, 1, "extension_flag");
 
 		if (!cfg->chan_cfg) {
-			gf_m4a_parse_program_config_element(bs, cfg);
+			GF_Err e = gf_m4a_parse_program_config_element(bs, cfg);
+			if(e) return e;
 		}
 
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
@@ -7223,14 +7225,14 @@ static void hevc_ref_pic_lists_modification(GF_BitStream *bs, HEVC_ReferencePict
 	while ( val >>= 1) nb_bits++;
 
 	if (rps->modif_flag_l0) {
-		for (i=0; i<num_ref_idx_l0_active; i++) {
+		for (i=0; i<MIN(num_ref_idx_l0_active, GF_ARRAY_LENGTH(rps->modif_idx_l0)); i++) {
 			rps->modif_idx_l0[i] = gf_bs_read_int(bs, nb_bits);
 		}
 	}
 	if (slice_type == GF_HEVC_SLICE_TYPE_B) {
 		rps->modif_flag_l1 = gf_bs_read_int_log(bs, 1, "ref_pic_list_modification_flag_l1");
 		if (rps->modif_flag_l1) {
-			for (i=0; i<num_ref_idx_l1_active; i++) {
+			for (i=0; i<MIN(num_ref_idx_l1_active, GF_ARRAY_LENGTH(rps->modif_idx_l1)); i++) {
 				rps->modif_idx_l1[i] = gf_bs_read_int(bs, nb_bits);
 			}
 		}
@@ -7398,7 +7400,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 					si->num_ref_idx_l1_active = 1 + gf_bs_read_ue_log(bs, "num_ref_idx_l1_active");
 			}
 
-			if (pps->lists_modification_present_flag) {
+			if (pps->lists_modification_present_flag && si->st_rps) {
 				u32 NumPicTotalCurr = 0;
 				HEVC_ReferencePictureSets *rps = si->st_rps;
 				for (i=0; i < rps->num_negative_pics; i++) {
@@ -7520,7 +7522,7 @@ static void gf_hevc_push_ref_poc(HEVCSliceInfo *si, s32 poc)
 	for (i=0;i<si->nb_reference_pocs; i++) {
 		if (si->reference_pocs[i]==poc) return;
 	}
-	if (si->nb_reference_pocs==30) return;
+	if (si->nb_reference_pocs==GF_ARRAY_LENGTH(si->reference_pocs)) return;
 	si->reference_pocs[si->nb_reference_pocs] = poc;
 	si->nb_reference_pocs++;
 }
@@ -7547,12 +7549,16 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	u32 nb_poc_lt_curr=0;
 	s32 poc_lt_curr[16];
 	for (i=0; i < rps->num_negative_pics; i++) {
+		if (i>=GF_ARRAY_LENGTH(rps->used_by_curr_pic) || i>=GF_ARRAY_LENGTH(rps->delta_poc) || nb_poc_st_curr0>=GF_ARRAY_LENGTH(poc_st_curr0))
+			break;
 		if (!rps->used_by_curr_pic[i]) continue;
 		poc_st_curr0[nb_poc_st_curr0] = si->poc + rps->delta_poc[i];
 		nb_poc_st_curr0++;
 	}
 
 	for (; i < rps->num_negative_pics+rps->num_positive_pics; i++) {
+		if (i>=GF_ARRAY_LENGTH(rps->used_by_curr_pic) || i>=GF_ARRAY_LENGTH(rps->delta_poc) || nb_poc_st_curr1>=GF_ARRAY_LENGTH(poc_st_curr1))
+			break;
 		if (!rps->used_by_curr_pic[i]) continue;
 		poc_st_curr1[nb_poc_st_curr1] = si->poc + rps->delta_poc[i];
 		nb_poc_st_curr1++;
@@ -7561,6 +7567,8 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	u32 num_long_term_pictures = 0;
 	u32 num_interlayer_ref_idx = 0;
 	for (i = rps->num_negative_pics + rps->num_positive_pics + num_long_term_pictures - 1; i >rps->num_negative_pics + rps->num_positive_pics-1 ; i--) {
+		if (i>=GF_ARRAY_LENGTH(rps->used_by_curr_pic) || nb_poc_lt_curr>=GF_ARRAY_LENGTH(poc_lt_curr))
+			break;
 		if (!rps->used_by_curr_pic[i]) continue;
 		poc_lt_curr[nb_poc_lt_curr] = 0; //todo, get LT from SH
 		nb_poc_lt_curr++;
@@ -7570,13 +7578,13 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	//build L0
 	s32 ref_pocs_l0[32];
 	u32 nb_poc_l0 = 0;
-	for (i=0; i<nb_poc_st_curr0; i++, nb_poc_l0++) {
+	for (i=0; i<MIN(nb_poc_st_curr0, GF_ARRAY_LENGTH(ref_pocs_l0)); i++, nb_poc_l0++) {
 		ref_pocs_l0[nb_poc_l0] = poc_st_curr0[i];
 	}
-	for ( i=0; i<nb_poc_st_curr1; i++, nb_poc_l0++) {
+	for ( i=0; i<MIN(nb_poc_st_curr1, GF_ARRAY_LENGTH(ref_pocs_l0)); i++, nb_poc_l0++) {
 		ref_pocs_l0[nb_poc_l0] = poc_st_curr1[i];
 	}
-	for (i=0; i<nb_poc_lt_curr;  i++, nb_poc_l0++) {
+	for (i=0; i<MIN(nb_poc_lt_curr, GF_ARRAY_LENGTH(ref_pocs_l0));  i++, nb_poc_l0++) {
 		ref_pocs_l0[nb_poc_l0] = poc_lt_curr[i];
 	}
 	assert(nb_poc_l0 == num_poc_total);
@@ -7586,26 +7594,34 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	u32 nb_poc_l1 = 0;
 	if (si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 		for ( i=0; i<nb_poc_st_curr1; i++, nb_poc_l1++) {
+			if (i>=GF_ARRAY_LENGTH(poc_st_curr1) || nb_poc_l1>=GF_ARRAY_LENGTH(ref_pocs_l1))
+				break;
 			ref_pocs_l1[nb_poc_l1] = poc_st_curr1[i];
 		}
 		for ( i=0; i<nb_poc_st_curr0; i++, nb_poc_l1++) {
+			if (i>=GF_ARRAY_LENGTH(poc_st_curr0) || nb_poc_l1>=GF_ARRAY_LENGTH(ref_pocs_l1))
+				break;
 			ref_pocs_l1[nb_poc_l1] = poc_st_curr0[i];
 		}
 		for ( i=0; i<nb_poc_lt_curr;  i++, nb_poc_l1++) {
+			if (i>=GF_ARRAY_LENGTH(poc_lt_curr) || nb_poc_l1>=GF_ARRAY_LENGTH(ref_pocs_l1))
+				break;
 			ref_pocs_l1[nb_poc_l1] = poc_lt_curr[i];
 		}
 		assert(nb_poc_l1 == num_poc_total);
 	}
 	if (rps->modif_flag_l0 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l0_active; i++) {
-			u32 idx = rps->modif_flag_l0 ? rps->modif_idx_l0[i] : (i%num_poc_total);
-			gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
+			u32 idx = (rps->modif_flag_l0 && i<GF_ARRAY_LENGTH(rps->modif_idx_l0)) ? rps->modif_idx_l0[i] : (i%num_poc_total);
+			if (idx < GF_ARRAY_LENGTH(ref_pocs_l0))
+				gf_hevc_push_ref_poc(si, ref_pocs_l0[idx]);
 		}
 	}
 	if (rps->modif_flag_l1 || num_poc_total) {
 		for (i=0; i<si->num_ref_idx_l1_active; i++) {
-			u32 idx = rps->modif_flag_l1 ? rps->modif_idx_l1[i] : (i%num_poc_total);
-			gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
+			u32 idx = (rps->modif_flag_l1 && i<GF_ARRAY_LENGTH(rps->modif_idx_l1)) ? rps->modif_idx_l1[i] : (i%num_poc_total);
+			if (idx < GF_ARRAY_LENGTH(ref_pocs_l1))
+				gf_hevc_push_ref_poc(si, ref_pocs_l1[idx]);
 		}
 	}
 }
@@ -12500,7 +12516,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		}
 		if (nb_entry_points) {
 			u32 nb_bits = 1 + gf_bs_read_ue_log(bs, "sh_entry_offset_len_minus1");
-			for (i=0; i<nb_entry_points; i++) {
+			for (i=0; i<(u32) nb_entry_points; i++) {
 				gf_bs_read_int_log_idx(bs, nb_bits, "sh_entry_point_offset_minus1", i);
 			}
 		}
@@ -12546,7 +12562,7 @@ static void vvc_push_ref_poc(VVCSliceInfo *si, s32 poc)
 	for (i=0;i<si->nb_reference_pocs; i++) {
 		if (si->reference_pocs[i]==poc) return;
 	}
-	if (si->nb_reference_pocs==30) return;
+	if (si->nb_reference_pocs==GF_ARRAY_LENGTH(si->reference_pocs)) return;
 	si->reference_pocs[si->nb_reference_pocs] = poc;
 	si->nb_reference_pocs++;
 }
@@ -12564,7 +12580,7 @@ static void vvc_compute_refs(VVCState *vvc, VVCSliceInfo *si)
 		VVC_RefPicList *rpl = &si->rpl[lidx];
 		u32 num_active_refs = si->num_ref_idx_active[lidx];
 
-		for (ridx=0; ridx < rpl->num_ref_entries; ridx++) {
+		for (ridx=0; ridx < MIN(rpl->num_ref_entries, VVC_MAX_REF_PICS); ridx++) {
 			Bool is_active_ref = ridx < num_active_refs ? GF_TRUE : GF_FALSE;
 			s32 refPOC=0;
 			//bool       isLongTerm  = false;

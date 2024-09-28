@@ -192,7 +192,7 @@ static void qcpdmx_check_dur(GF_Filter *filter, GF_QCPDmxCtx *ctx)
 			gf_fseek(stream, size, SEEK_CUR);
 		}
 		data_chunk_size-= size;
-		
+
 		duration += ctx->block_size;
 		cur_dur += ctx->block_size;
 		if (cur_dur > ctx->index * ctx->sample_rate) {
@@ -680,19 +680,26 @@ static void qcpdmx_finalize(GF_Filter *filter)
 
 static const char *qcpdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
+	if (size < 4)
+		return NULL;
+
 	char magic[5];
 	Bool is_qcp = GF_TRUE;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 
 	magic[4] = 0;
-	gf_bs_read_data(bs, magic, 4);
-	if (strnicmp(magic, "RIFF", 4)) {
+	if (gf_bs_read_data(bs, magic, 4) != 4) {
 		is_qcp = GF_FALSE;
-	} else {
-		/*riff_size = */gf_bs_read_u32_le(bs);
-		gf_bs_read_data(bs, magic, 4);
-		if (strnicmp(magic, "QLCM", 4)) {
+	}
+	else {
+		if (strnicmp(magic, "RIFF", 4)) {
 			is_qcp = GF_FALSE;
+		} else {
+			/*riff_size = */gf_bs_read_u32_le(bs);
+			gf_bs_read_data(bs, magic, 4);
+			if (strnicmp(magic, "QLCM", 4)) {
+				is_qcp = GF_FALSE;
+			}
 		}
 	}
 	gf_bs_del(bs);
@@ -748,4 +755,3 @@ const GF_FilterRegister *rfqcp_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif //#ifndef GPAC_DISABLE_RFQCP
-

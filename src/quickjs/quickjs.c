@@ -30410,12 +30410,13 @@ static void add_eval_variables(JSContext *ctx, JSFunctionDef *s)
         is_arg_scope = (scope_idx == ARG_SCOPE_END);
         if (!is_arg_scope) {
             /* add unscoped variables */
+             /* XXX: propagate is_const and var_kind too ? */
             for(i = 0; i < fd->arg_count; i++) {
                 vd = &fd->args[i];
                 if (vd->var_name != JS_ATOM_NULL) {
                     get_closure_var(ctx, s, fd,
-                                    TRUE, i, vd->var_name, FALSE, FALSE,
-                                    JS_VAR_NORMAL);
+                                    TRUE, i, vd->var_name, FALSE,
+                                    vd->is_lexical, JS_VAR_NORMAL);
                 }
             }
             for(i = 0; i < fd->var_count; i++) {
@@ -30425,8 +30426,8 @@ static void add_eval_variables(JSContext *ctx, JSFunctionDef *s)
                     vd->var_name != JS_ATOM__ret_ &&
                     vd->var_name != JS_ATOM_NULL) {
                     get_closure_var(ctx, s, fd,
-                                    FALSE, i, vd->var_name, FALSE, FALSE,
-                                    JS_VAR_NORMAL);
+                                    FALSE, i, vd->var_name, FALSE,
+                                    vd->is_lexical, JS_VAR_NORMAL);
                 }
             }
         } else {

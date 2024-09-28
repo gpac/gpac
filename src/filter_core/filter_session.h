@@ -192,11 +192,13 @@ enum
 	//2 bits for crypt type
 	GF_PCK_CRYPT_POS = 15,
 	GF_PCK_CRYPT_MASK = 0x3 << GF_PCK_CRYPT_POS,
-	//2 bits for crypt type
+	//2 bits for command type
 	GF_PCK_CMD_POS = 13,
 	GF_PCK_CMD_MASK = 0x3 << GF_PCK_CMD_POS,
 	GF_PCKF_FORCE_MAIN = 1<<12,
-	//RESERVED bits [8,11]
+	//only valid when GF_PCK_CMD_PID_EOS is set
+	GF_PCKF_IS_FLUSH = 1<<11,
+	//RESERVED bits [8,10]
 
 	//2 bits for is_leading
 	GF_PCK_ISLEADING_POS = 6,
@@ -267,6 +269,7 @@ struct __gf_filter_pck
 	//for shared memory packets: 0: cloned mem, 1: read/write mem from source filter, 2: read-only mem from filter
 	//note that packets with frame_ifce are always considered as read-only memory
 	u8 filter_owns_mem;
+	//0: regular packet, 1: dangling packet with copied mem, 2: dangling packet with shared mem
 	u8 is_dangling;
 };
 

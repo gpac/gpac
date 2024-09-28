@@ -900,7 +900,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	//since we send the output to our reframers we should be fine
 	if (pkt->flags & AV_PKT_FLAG_KEY) {
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] frame %d is SAP\n", ctx->nb_frames_out));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] frame %d is SAP\n", ctx->nb_frames_out-1));
 	}
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
@@ -2205,14 +2205,14 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static const GF_FilterCapability FFEncodeCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_TILE_BASE, GF_TRUE),
 	//some video encoding dumps in unframe mode, we declare the pid property at runtime
 	{0},
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / media tools sub-project
@@ -337,6 +337,12 @@ u32 gf_rtp_streamer_get_ssrc(GF_RTPStreamer *streamer);
 \return timescale
 */
 u32 gf_rtp_streamer_get_timescale(GF_RTPStreamer *streamer);
+
+/*! gets codecid of this streamer
+\param streamer the target RTP streamer
+\return CodecID
+*/
+u32 gf_rtp_streamer_get_codecid(GF_RTPStreamer *streamer);
 
 /*! @} */
 

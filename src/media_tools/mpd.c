@@ -1747,8 +1747,12 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 			if (pe->codecs && (pe->codecs[0] == '\"')) {
 				u32 len = (u32) strlen(pe->codecs);
-				memmove(pe->codecs, pe->codecs+1, len-1);
-				pe->codecs[len-2] = 0;
+				if (len>1) {
+					memmove(pe->codecs, pe->codecs+1, len-1);
+					pe->codecs[len-2] = 0;
+				} else {
+					pe->codecs[0] = 0;
+				}
 			}
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (pe->bandwidth && pe->codecs && pe->width && pe->height) {
@@ -5201,9 +5205,6 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 			start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
 			start_time -= pto;
 		}
-		else if (duration) {
-			start_time = in_segment_index * duration;
-		}
 		else if (seglist && (in_segment_index >= 0)) {
 			u32 i;
 			start_time = 0;
@@ -5214,6 +5215,9 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 				if (i < (u32)in_segment_index)
 					start_time += url->duration;
 			}
+		}
+		else if (duration) {
+			start_time = in_segment_index * duration;
 		}
 		if (out_opt_segment_duration) *out_opt_segment_duration = duration;
 		if (out_opt_scale) *out_opt_scale = timescale;
@@ -5754,7 +5758,11 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 		if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 			char_template += 18;
-			strcat(segment_name, rep_id);
+			if (rep_id)
+				strcat(segment_name, rep_id);
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] representation id is null when trying to format segment name\n"));
+			}
 			needs_init = GF_FALSE;
 		}
 		else if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$Bandwidth", 10)) {

@@ -2567,7 +2567,7 @@ force_dv (bool, default: false): force DV sample entry types even when AVC/HEVC 
 .br
 dvsingle (bool, default: false): ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set
 .br
-tsalign (bool, default: true): enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)
+tsalign (bool, default: true): enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin
 .br
 chapm (enum, default: both):   chapter storage mode
 .br
@@ -2736,6 +2736,8 @@ fps (frac, default: 0/1000):   import frame rate (0 default to FPS from bitstrea
 index (dbl, default: -1.0):    indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued
 .br
 explicit (bool, default: false): use explicit layered (SVC/LHVC) import
+.br
+force_sync (bool, default: false): force sync points on non-IDR samples with I slices (not compliant)
 .br
 strict_poc (enum, default: off): delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes
 .br
@@ -3780,6 +3782,8 @@ cues (enum, default: no, updatable): cue filtering mode
 .br
 
 .br
+sapcue (uint, default: 0):     treat SAPs smaller than or equal to this value as cue points
+.br
 rmseek (bool, default: false, updatable): remove seek flag of all sent packets
 .br
 
@@ -3914,6 +3918,8 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .br
 merge_cues (bool, default: true): merge VTT cues (undo ISOBMFF cue split)
 .br
+noempty (bool, default: true): do not create an empty file if no VTT cues are present
+.br
 
 .br
 .SH nhntw
@@ -3964,6 +3970,8 @@ nhmlonly (bool, default: false): only dump NHML info, not media
 .br
 pckp (bool, default: false):   full NHML dump
 .br
+payload (bool, default: false): dump payload (scte35 only at the moment), should be combined with ǹhmlonly
+.br
 chksum (enum, default: none):  insert frame checksum
 .br
 * none: no checksum
@@ -3991,6 +3999,8 @@ This filter parses VobSub files/data to produce media PIDs and frames.
 .LP
 .br
 blankframe (bool, default: true): force inserting a blank frame if first subpic is not at 0
+.br
+keepempty (bool, default: false): declare VobSub tracks with no frames
 .br
 
 .br
@@ -4948,6 +4958,10 @@ Inserts an external TEMI with ID 4 and timescale 30000, NTP injection and carous
 .br
 Warning: multipliers (k,m,g) are not supported in TEMI options.
 .br
+
+.br
+When input TEMI properties are found, they can be removed using .I drop_temi. When rewritten, any NTP information present is rewritten to the current NTP.
+.br
 .SH Adaptive Streaming
 .LP
 .br
@@ -5060,6 +5074,16 @@ latm (bool, default: false):   use LATM AAC encapsulation instead of regular ADT
 subs_sidx (sint, default: -1): number of subsegments per sidx (negative value disables sidx)
 .br
 keepts (bool, default: false): keep cts/dts untouched and adjust PCR accordingly, used to keep TS unmodified when dashing
+.br
+temi_fwd (enum, default: fwd): input TEMI properties when remuwing
+.br
+* drop: remove input descriptors
+.br
+* fwd: forward input descriptors
+.br
+* ntp: forward input descriptors after NTP rewriting
+.br
+
 .br
 
 .br
@@ -6907,7 +6931,7 @@ reorder (bool, default: true): consider packets are not always in order - if fal
 .br
 cloop (bool, default: false):  check for loops based on TOI (used for capture replay)
 .br
-rtimeout (uint, default: 1000): default timeout in us to wait when gathering out-of-order packets
+rtimeout (uint, default: 100000): default timeout in us to wait when gathering out-of-order packets
 .br
 fullseg (bool, default: false): only dispatch full segments in cache mode (always true for other modes)
 .br
@@ -6992,7 +7016,7 @@ ip (str):                      destination IP address (NULL is 127.0.0.1)
 .br
 port (uint, default: 7000):    port for first stream in session
 .br
-loop (bool, default: true):    loop all streams in session (not always possible depending on source type)
+loop (bool, default: false):   loop all streams in session (not always possible depending on source type)
 .br
 mpeg4 (bool, default: false):  send all streams using MPEG-4 generic payload format if possible
 .br
@@ -7021,6 +7045,10 @@ dst (cstr):                    URL for direct RTP mode
 ext (str):                     file extension for direct RTP mode
 .br
 mime (cstr):                   set mime type for direct RTP mode
+.br
+speed (dbl, default: 1.0):     set streaming speed. If negative and start is 0, start is set to -1
+.br
+start (dbl, default: 0.0):     set streaming start offset. A negative value means percent of media duration with -1 equal to duration
 .br
 
 .br
@@ -7216,7 +7244,7 @@ user_agent (str, default: $GUA): user agent string, by default solved from GPAC 
 .br
 close (bool, default: false):  close RTSP connection after each request, except when RTP over RTSP is used
 .br
-loop (bool, default: true):    loop all streams in session (not always possible depending on source type)
+loop (bool, default: false):   loop all streams in session (not always possible depending on source type)
 .br
 dynurl (bool, default: false): allow dynamic service assembly
 .br
@@ -7625,6 +7653,12 @@ js (str):                      javascript logic for server
 .br
 zmax (uint, default: 50000):   maximum uncompressed size allowed for gzip or deflate compression for text files (only enabled if client indicates it), 0 will disable compression
 .br
+cte (bool, default: true):     use chunked transfer-encoding mode when possible
+.br
+maxs (uint, default: 50M):     maximum upload size allowed in bytes
+.br
+norange (bool, default: false): disable byte range support in GET (reply 200 on partial requests)
+.br
 
 .br
 .SH hevcsplit
@@ -7860,6 +7894,30 @@ mux_id (sint, default: -1):    set initial ID of output mux; the first program w
 avonly (bool, default: true):  do not forward programs with no AV component
 .br
 nb_pack (uint, default: 10):   pack N packets before sending
+.br
+gendts (bool, default: false): generate timestamps on output packets based on PCR
+.br
+kpad (bool, default: false):   keep padding (null) TS packets
+.br
+
+.br
+.SH tsgendts
+.LP
+.br
+Description: MPEG Transport Stream reframer
+.br
+
+.br
+This filter restamps input MPEG-2 transport stream based on PCR.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+nb_pack (uint, default: 10):   pack N packets before sending
+.br
+kpad (bool, default: false):   keep padding (null) TS packets
 .br
 
 .br
@@ -8968,11 +9026,11 @@ The filter only accepts input PIDs of type FILE.
 .br
 For raw file PIDs, the filter will look for the following properties:
 .br
-* `ROUTEName`: set resource name. If not found, uses basename of URL
+* `MCASTName`: set resource name. If not found, uses basename of URL
 .br
-* `ROUTECarousel`: set repeat period. If not found, uses .I carousel. If 0, the file is only sent once
+* `MCASTCarousel`: set repeat period. If not found, uses .I carousel. If 0, the file is only sent once
 .br
-* `ROUTEUpload`: set resource upload time. If not found, uses .I carousel. If 0, the file will be sent as fast as possible.
+* `MCASTUpload`: set resource upload time. If not found, uses .I carousel. If 0, the file will be sent as fast as possible.
 .br
 
 .br
@@ -9010,6 +9068,10 @@ Warning: When forwarding an existing DASH/HLS session, do NOT set any extension 
 .br
 
 .br
+The filter will look for MCASTIP and MCASTPort properties on the incoming PID to setup multicast of each service. If not found, the default .I ip and port will be used, with port incremented by one for each new multicast stream.
+.br
+
+.br
 By default, all streams in a service are assigned to a single multicast session, and differentiated by TSI (see .I splitlct).
 .br
 TSI are assigned as follows:
@@ -9022,6 +9084,18 @@ TSI are assigned as follows:
 .br
 
 .br
+When .I splitlct is set to mcast, the IP multicast adress is computed as follows:
+.br
+ - if MCASTIP is set on the PID and is different from the service multicast IP, it is used
+.br
+ - otherwise the service multicast IP plus one is used
+.br
+The multicast port used is set as follows:
+.br
+- if MCASTPort is set on the PID, it is used
+.br
+- otherwise the same port as the service one is used.
+.br
 Init segments and HLS child playlists are sent before each new segment, independently of .I carousel.
 .br
 .SH ATSC 3.0 mode
@@ -9031,7 +9105,7 @@ In this mode, the filter allows multiple service multiplexing, identified throug
 .br
 By default, a single multicast IP is used for route sessions, each service will be assigned a different port.
 .br
-The filter will look for ROUTEIP and ROUTEPort properties on the incoming PID. If not found, the default .I ip and .I port will be used.
+The filter will look for MCASTIP and MCASTPort properties on the incoming PID. If not found, the default .I ip and .I port will be used.
 .br
 
 .br
@@ -9075,8 +9149,6 @@ Note: .I ip and .I first_port are used to send the multicast gateway configurati
 .br
 The session will carry DVB-MABR gateway configuration, maifests and init segments on TSI=1
 .br
-The filter will look for ROUTEIP and ROUTEPort properties on the incoming PID to setup multicast of each service. If not found, the default .I ip and port will be used, with port incremented by one for each new multicast stream.
-.br
 
 .br
 The FLUTE session always uses a symbol length of .I mtu minus 44 bytes.
@@ -9098,9 +9170,9 @@ Note: The LCT objects are sent with no length (TOL header) assigned until the fi
 .br
 
 .br
-In this mode, init segments and manifests are sent at the frequency given by property ROUTECarousel of the source PID if set or by (-carousel)[] option.
+In this mode, init segments and manifests are sent at the frequency given by property MCASTCarousel of the source PID if set or by (-carousel)[] option.
 .br
-Indicating ROUTECarousel=0 will disable mid-segment repeating of manifests and init segments.
+Indicating MCASTCarousel=0 will disable mid-segment repeating of manifests and init segments.
 .br
 .SH Examples
 .LP
@@ -9151,7 +9223,7 @@ Sending a single file in ROUTE using half a second upload time, 2 seconds carous
 .br
 Example
 .br
-gpac -i URL:#ROUTEUpload=0.5:#ROUTECarousel=2 -o route://225.1.1.0:6000/
+gpac -i URL:#MCASTUpload=0.5:#MCASTCarousel=2 -o route://225.1.1.0:6000/
 .br
 
 .br
@@ -9233,6 +9305,8 @@ splitlct (enum, default: off): split mode for LCT channels
 .br
 * all: all streams are in dedicated LCT channel, the first stream being used for STSID signaling
 .br
+* mcast: all streams are in dedicated multicast groups
+.br
 
 .br
 korean (bool, default: false): use Korean version of ATSC 3.0 spec instead of US
@@ -9261,9 +9335,13 @@ csum (enum, default: meta):    send MD5 checksum for DVB flute
 .br
 
 .br
-recv_obj_timeout (uint, default: 50): timeout period in ms before resorting to unicast repair
+recv_obj_timeout (uint, default: 50): set timeout period in ms before client resorts to unicast repair
 .br
 errsim (v2d, default: 0.0x100.0): simulate errors using a 2-state Markov chain. Value are percentages
+.br
+use_inband (bool, default: false): DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session
+.br
+ssm (bool, default: false):    indicate source-specific multicast for DVB-MABR, requires ifce to be set
 .br
 
 .br
@@ -9848,11 +9926,11 @@ Description: SCTE35 decoder
 .br
 
 .br
-This filter extracts SCTE-35 markers attached as properties to audio and video
+This filter writes the SCTE-35 markers attached as properties to audio and video
 .br
-packets as 23001-18 'emib' boxes. It also creates empty 'emeb' box in between
+packets or inside a dedicated stream, as 23001-18 'emib' boxes. It also creates
 .br
-following segmentation as hinted by the graph.
+empty 'emeb' box in between following segmentation as hinted by the graph.
 .br
 
 .br

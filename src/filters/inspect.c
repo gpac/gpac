@@ -2248,11 +2248,11 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 	gf_bs_read_int(bs, 6); //reserved
 	if (segmentation_event_cancel_indicator == 0) {
 		u32 program_segmentation_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
+		inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
 		u32 segmentation_duration_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
+		inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
 		u32 delivery_not_restricted_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
+		inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
 		if (delivery_not_restricted_flag == 0) {
 			inspect_printf(dump, " webDeliveryAllowedFlag=\"%u\"", gf_bs_read_int(bs, 1));
 			inspect_printf(dump, " noRegionalBlackoutFlag=\"%u\"", gf_bs_read_int(bs, 1));
@@ -3316,7 +3316,7 @@ static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_
 {
 	GF_Err e;
 	Bool key_frame = GF_FALSE;
-	u32 width = 0, height = 0, renderWidth, renderHeight;
+	u32 width = 0, height = 0, renderWidth=0, renderHeight=0;
 	u32 num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 	u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 	gf_bs_reassign_buffer(pctx->bs, ptr, frame_size);
@@ -4046,9 +4046,11 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		return;
 	}
 
-	inspect_printf(dump, " codec");
-	if (szCodec[0] && strcmp(szCodec, "unkn"))
-		inspect_printf(dump, " %s", szCodec);
+	if (codec_id) {
+		inspect_printf(dump, " codec");
+		if (szCodec[0] && strcmp(szCodec, "unkn"))
+			inspect_printf(dump, " %s", szCodec);
+	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if ((codec_id==GF_CODECID_HEVC) || (codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC_TILES)) {
@@ -4220,7 +4222,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 				if (p && (p->type==GF_PROP_UINT)) codec_id = p->value.uint;
 				inspect_printf(dump, " FFmpeg %d", codec_id);
 			}
-		} else {
+		} else if (codec_id) {
 			inspect_printf(dump, " %s", gf_codecid_name(codec_id));
 		}
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROFILE_LEVEL);
@@ -4948,8 +4950,8 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 			u64 rate = pctx->bytes_in_wnd*8;
 			rate *= pctx->timescale ;
 			rate /= dts - pctx->prev_dts;
-			if (pctx->max_rate<rate)
-				pctx->max_rate = rate;
+			if (pctx->max_rate < (u32) rate)
+				pctx->max_rate = (u32) rate;
 			pctx->prev_dts = dts;
 			pctx->bytes_in_wnd = 0;
 		}
@@ -4964,7 +4966,7 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 	if (!pctx->last_sap_cts) {
 		pctx->last_sap_cts = cts;
 	} else {
-		u64 sap_diff = cts - pctx->last_sap_cts;
+		u32 sap_diff = (u32) (cts - pctx->last_sap_cts);
 		if (!pctx->min_sap_diff || (sap_diff<pctx->min_sap_diff)) pctx->min_sap_diff = sap_diff;
 		if (!pctx->max_sap_diff || (sap_diff>pctx->max_sap_diff)) pctx->max_sap_diff = sap_diff;
 		pctx->avg_sap_diff += sap_diff;
@@ -5348,6 +5350,15 @@ static const GF_FilterCapability InspecterReframeCaps[] =
 	{0},
 };
 
+static const GF_FilterCapability InspecterRawCaps[] =
+{
+	//accept any stream but files, framed
+	CAP_UINT(GF_CAPS_INPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_MIME, "*"),
+	CAP_STRING(GF_CAPS_INPUT,  GF_PROP_PID_FILE_EXT, "*"),
+	{0},
+};
+
 static GF_Err inspect_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)
 {
 	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
@@ -5401,12 +5412,13 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	if (ctx->xml || ctx->analyze || gf_sys_is_test_mode() || ctx->fmt) {
 		ctx->full = GF_TRUE;
 	}
-	if (!ctx->full) {
+	if (!ctx->full && (ctx->mode!=INSPECT_MODE_RAW)) {
 		ctx->mode = INSPECT_MODE_REFRAME;
 	}
 
 	switch (ctx->mode) {
 	case INSPECT_MODE_RAW:
+		gf_filter_override_caps(filter, InspecterRawCaps,  sizeof(InspecterRawCaps)/sizeof(GF_FilterCapability) );
 		break;
 	case INSPECT_MODE_REFRAME:
 		gf_filter_override_caps(filter, InspecterReframeCaps,  sizeof(InspecterReframeCaps)/sizeof(GF_FilterCapability) );
