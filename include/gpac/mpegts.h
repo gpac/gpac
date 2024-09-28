@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2006-2023
+ *			Copyright (c) Telecom ParisTech 2006-2024
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -1076,6 +1076,8 @@ typedef struct
 	u32 pid;
 	/*parent stream if any/already declared*/
 	GF_M2TS_ES *stream;
+	//PCR plus one, 0 if no pcr
+	u64 pcr_plus_one;
 } GF_M2TS_TSPCK;
 
 typedef struct
@@ -1170,8 +1172,11 @@ struct tag_m2ts_demux
 
 	/*! raw mode only parses PAT and PMT, and forward each packet as a GF_M2TS_EVT_PCK event, except PAT packets which must be recreated
 	if set, on_event shall be non-null
+		0: regular mode
+		1: split mode
+		2: passthrough mode with GF_M2TS_EVT_PCK for all packets
 	*/
-	Bool split_mode;
+	u32 split_mode;
 };
 
 //! @endcond

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3F5F3F1F2C7EAC5D00C58257 /* id3.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F5F3F1E2C7EAC5D00C58257 /* id3.c */; };
+		3F04FCBC2C9CB179002BC889 /* xml_bin_custom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
 		920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8C18D5A444003D1ACA /* bifs_node_tables.c */; };
@@ -647,6 +648,7 @@
 		28C5AA7A1A15FF4700372C59 /* libiconv.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.dylib; path = usr/lib/libiconv.2.dylib; sourceTree = SDKROOT; };
 		28C5AA7C1A15FF5700372C59 /* libiconv.2.4.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.4.0.dylib; path = usr/lib/libiconv.2.4.0.dylib; sourceTree = SDKROOT; };
 		3F5F3F1E2C7EAC5D00C58257 /* id3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = id3.c; sourceTree = "<group>"; };
+		3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = xml_bin_custom.c; sourceTree = "<group>"; };
 		9201000018D5A444003D1ACA /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		9201000118D5A444003D1ACA /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
 		9201000218D5A444003D1ACA /* isom_store.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_store.c; sourceTree = "<group>"; };
@@ -1387,6 +1389,7 @@
 		9201008C18D5A444003D1ACA /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				3F04FCBB2C9CB179002BC889 /* xml_bin_custom.c */,
 				929DE7462417DC020056AFA7 /* gzio.c */,
 				9298677C235A146D008A2CC6 /* gltools.c */,
 				9201008D18D5A444003D1ACA /* alloc.c */,
@@ -2801,6 +2804,7 @@
 				9296BF2222CF7F5300DC9742 /* reframe_flac.c in Sources */,
 				9201017718D5A445003D1ACA /* swf_svg.c in Sources */,
 				92BB857F1F7C30AF009BC9C8 /* dec_j2k.c in Sources */,
+				3F04FCBC2C9CB179002BC889 /* xml_bin_custom.c in Sources */,
 				923E89CE20B6F04600F299B2 /* tiny_aes.c in Sources */,
 				92B9A5071F83FD7800A24FE4 /* in_dvb4linux.c in Sources */,
 				92B9A5761F8660D700A24FE4 /* mpeg4_background2d.c in Sources */,

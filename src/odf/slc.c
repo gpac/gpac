@@ -166,6 +166,8 @@ GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 		e = gf_odf_slc_set_pref(sl);
 		if (e) return e;
 	} else {
+		if (gf_bs_available(bs) < 15) return GF_ODF_INVALID_DESCRIPTOR;
+
 		sl->useAccessUnitStartFlag = gf_bs_read_int(bs, 1);
 		sl->useAccessUnitEndFlag = gf_bs_read_int(bs, 1);
 		sl->useRandomAccessPointFlag = gf_bs_read_int(bs, 1);
@@ -179,13 +181,10 @@ GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 
 		sl->timestampLength = gf_bs_read_int(bs, 8);
 		if (sl->timestampLength > 64) return GF_ODF_INVALID_DESCRIPTOR;
-
 		sl->OCRLength = gf_bs_read_int(bs, 8);
 		if (sl->OCRLength > 64) return GF_ODF_INVALID_DESCRIPTOR;
-
 		sl->AULength = gf_bs_read_int(bs, 8);
 		if (sl->AULength > 32) return GF_ODF_INVALID_DESCRIPTOR;
-
 		sl->instantBitrateLength = gf_bs_read_int(bs, 8);
 		sl->degradationPriorityLength = gf_bs_read_int(bs, 4);
 		sl->AUSeqNumLength = gf_bs_read_int(bs, 5);

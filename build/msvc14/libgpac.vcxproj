@@ -594,6 +594,7 @@
     <ClCompile Include="..\..\src\utils\uni_bidi.c" />
     <ClCompile Include="..\..\src\utils\url.c" />
     <ClCompile Include="..\..\src\utils\utf.c" />
+    <ClCompile Include="..\..\src\utils\xml_bin_custom.c" />
     <ClCompile Include="..\..\src\utils\xml_parser.c" />
   </ItemGroup>
   <ItemGroup>

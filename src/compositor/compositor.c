@@ -512,7 +512,10 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 	compositor->passthrough_pfmt = pfmt;
 	stride=0;
 	stride_uv = 0;
-	gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, &stride, &stride_uv, NULL, NULL);
+	if (!gf_pixel_get_size_info(pfmt, evt->setup.width, evt->setup.height, &compositor->framebuffer_size, &stride, &stride_uv, NULL, NULL)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Cannot get proper size info for pixel format %s and hxw %dx%d\n", gf_pixel_fmt_name(pfmt), evt->setup.height, evt->setup.width));
+		return GF_NOT_SUPPORTED;
+	}
 
 	if (compositor->vout) {
 		gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt));
