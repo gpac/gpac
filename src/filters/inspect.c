@@ -2248,11 +2248,11 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 	gf_bs_read_int(bs, 6); //reserved
 	if (segmentation_event_cancel_indicator == 0) {
 		u32 program_segmentation_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
+		inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
 		u32 segmentation_duration_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
+		inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
 		u32 delivery_not_restricted_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
+		inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
 		if (delivery_not_restricted_flag == 0) {
 			inspect_printf(dump, " webDeliveryAllowedFlag=\"%u\"", gf_bs_read_int(bs, 1));
 			inspect_printf(dump, " noRegionalBlackoutFlag=\"%u\"", gf_bs_read_int(bs, 1));
@@ -2599,6 +2599,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_PID_CENC_HAS_ROLL:
 	case GF_PROP_PID_DSI_SUPERSET:
 	case GF_PROP_PID_PREMUX_STREAM_TYPE:
+	case GF_PROP_PID_DURATION_AVG:
 		if (gf_sys_is_test_mode())
 			return;
 		break;
@@ -3316,7 +3317,7 @@ static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_
 {
 	GF_Err e;
 	Bool key_frame = GF_FALSE;
-	u32 width = 0, height = 0, renderWidth, renderHeight;
+	u32 width = 0, height = 0, renderWidth=0, renderHeight=0;
 	u32 num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 	u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 	gf_bs_reassign_buffer(pctx->bs, ptr, frame_size);
@@ -3943,9 +3944,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	if (p) {
 		inspect_printf(dump, " service %d", p->value.uint);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
-		if (p) inspect_printf(dump, " \"%s\"", p->value.string);
+		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " \"%s\"", p->value.string);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
-		if (p) inspect_printf(dump, " (%s)", p->value.string);
+		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " (%s)", p->value.string);
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLED);
@@ -3961,7 +3962,11 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	if (p && stricmp(p->value.string, "und")) inspect_printf(dump, " language \"%s\"", p->value.string);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump, GF_FALSE);
+	if (p) {
+		sr = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION_AVG);
+		if (sr && sr->value.boolean) inspect_printf(dump, " estimated");
+		format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump, GF_FALSE);
+	}
 
 	sr = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
@@ -4950,8 +4955,8 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 			u64 rate = pctx->bytes_in_wnd*8;
 			rate *= pctx->timescale ;
 			rate /= dts - pctx->prev_dts;
-			if (pctx->max_rate<rate)
-				pctx->max_rate = rate;
+			if (pctx->max_rate < (u32) rate)
+				pctx->max_rate = (u32) rate;
 			pctx->prev_dts = dts;
 			pctx->bytes_in_wnd = 0;
 		}
@@ -4966,7 +4971,7 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 	if (!pctx->last_sap_cts) {
 		pctx->last_sap_cts = cts;
 	} else {
-		u64 sap_diff = cts - pctx->last_sap_cts;
+		u32 sap_diff = (u32) (cts - pctx->last_sap_cts);
 		if (!pctx->min_sap_diff || (sap_diff<pctx->min_sap_diff)) pctx->min_sap_diff = sap_diff;
 		if (!pctx->max_sap_diff || (sap_diff>pctx->max_sap_diff)) pctx->max_sap_diff = sap_diff;
 		pctx->avg_sap_diff += sap_diff;

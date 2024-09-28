@@ -1412,6 +1412,7 @@ static void gsfdmx_finalize(GF_Filter *filter)
 
 	while (gf_list_count(ctx->pck_res)) {
 		GSF_Packet *gsp = gf_list_pop_back(ctx->pck_res);
+		gf_list_del_item(ctx->pck_res, gsp);
 		if (gsp->frags) gf_free(gsp->frags);
 		gf_free(gsp);
 	}

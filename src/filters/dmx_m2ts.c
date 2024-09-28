@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -171,6 +171,7 @@ static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 		for (i=0; i<nb_streams; i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 		}
 	}
 }
@@ -562,6 +563,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (ctx->duration.num>1) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 	}
 	/*indicate our coding dependencies if any*/
 	if (!m4sys_stream) {
@@ -1128,6 +1130,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
 				if (stream->user) {
 					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION, & PROP_FRAC64_INT(duration, 1000) );
+					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 				}
 			}
 		}
@@ -1507,14 +1510,14 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		}
 
 		ctx->nb_stop_pending = 0;
+		ctx->map_time_on_prog_id = pes->program->number;
+		ctx->media_start_range = is_source_seek ? 0 : com->play.start_range;
+
 		//not file, don't cancel the event
 		if (!ctx->is_file) {
 			ctx->initial_play_done = GF_TRUE;
 			return GF_FALSE;
 		}
-
-		ctx->map_time_on_prog_id = pes->program->number;
-		ctx->media_start_range = is_source_seek ? 0 : com->play.start_range;
 
 		if (is_source_seek) {
 			file_pos = com->play.hint_start_offset;
@@ -1525,6 +1528,9 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			file_pos /= ctx->duration.num;
 			if (file_pos > ctx->file_size) return GF_TRUE;
 		}
+		//round down to packet boundary
+		file_pos /= ctx->ts->prefix_present ? 192 : 188;
+		file_pos *= ctx->ts->prefix_present ? 192 : 188;
 
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
@@ -1654,7 +1660,10 @@ restart:
 			if (ctx->nb_playing) {
 				gf_filter_ask_rt_reschedule(filter, 0);
 			}
-			if (ctx->nb_stopped_at_init==nb_streams) {
+			if ((ctx->nb_stopped_at_init==nb_streams)
+				//this can happen if outputs are all blocking and a stop was issued
+				|| (ctx->nb_stop_pending==nb_streams)
+			) {
 				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				return GF_EOS;
 			}

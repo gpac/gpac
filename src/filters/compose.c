@@ -1203,6 +1203,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"- If the URL gives less views than rendered, the views will be repeated\n"
 	"- If the URL gives more views than rendered, the extra views will be ignored\n"
 	"\n"
+	"\n"
 	"The compositor can act as a source filter when the [-src]() option is explicitly set, independently from the operating mode:\n"
 	"EX gpac compositor:src=source.mp4 vout\n"
 	"\n"

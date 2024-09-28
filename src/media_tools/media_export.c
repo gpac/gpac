@@ -1259,7 +1259,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (dumper->flags & GF_EXPORT_NHML_FULL)
 			e |= gf_dynstrcat(&args, ":pckp", NULL);
 		if (dumper->dump_file) {
-			sprintf(szSubArgs, ":nhmlonly:filep=%p", dumper->dump_file);
+			sprintf(szSubArgs, ":nhmlonly:payload:filep=%p", dumper->dump_file);
 			e |= gf_dynstrcat(&args, szSubArgs, NULL);
 		}
 		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);

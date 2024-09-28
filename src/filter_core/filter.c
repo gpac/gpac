@@ -647,14 +647,7 @@ void gf_filter_del(GF_Filter *filter)
 #endif
 
 	//may happen when a filter is removed from the chain
-	if (filter->postponed_packets) {
-		while (gf_list_count(filter->postponed_packets)) {
-			GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
-			gf_filter_packet_destroy(pck);
-		}
-		gf_list_del(filter->postponed_packets);
-		filter->postponed_packets = NULL;
-	}
+	gf_filter_reset_pending_packets(filter);
 
 	//delete output pids before the packet reservoir
 	while (gf_list_count(filter->output_pids)) {
@@ -3528,6 +3521,9 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s task failure callback on already removed filter!\n", f->name));
 	}
 
+	//we will detach output pids, so drop any pending packets before
+	gf_filter_reset_pending_packets(f);
+
 	gf_mx_v(f->session->filters_mx);
 
 	gf_mx_p(f->tasks_mx);
@@ -3998,12 +3994,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 	GF_Err e;
 	const GF_FilterArgs *src_arg=NULL;
 
-	while (gf_list_count(filter->postponed_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
-		gf_filter_packet_destroy(pck);
-	}
-	gf_list_del(filter->postponed_packets);
-	filter->postponed_packets = NULL;
+	gf_filter_reset_pending_packets(filter);
 
 	while (gf_list_count(filter->output_pids)) {
 		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);

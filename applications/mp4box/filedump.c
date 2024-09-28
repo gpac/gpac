@@ -161,7 +161,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 		load.swf_import_flags |= GF_SM_SWF_USE_SVG;
 		load.svgOutFile = inName;
 	}
-	load.swf_flatten_limit = swf_flatten_angle;
+	load.swf_flatten_limit = (Float) swf_flatten_angle;
 
 	ftype = get_file_type_by_ext(file);
 	if (ftype == GF_FILE_TYPE_ISO_MEDIA) {
@@ -4502,7 +4502,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	FILE *src;
 
 	if (!prog_num && !out_name) {
-		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated.");
+		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated\n.");
 	}
 
 	src = gf_fopen(mpeg2ts_file, "rb");

@@ -6179,6 +6179,10 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			if (ds->rep) gf_mpd_representation_free(ds->rep);
 			ds->rep = rep;
+
+			if (ds->rep_id) gf_free(ds->rep_id);
+			ds->rep_id = gf_strdup(rep->id);
+
 			ds->set = set;
 			rep->playback.udta = ds;
 			if (ds->owns_set)
@@ -7294,7 +7298,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		//in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
 		//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
 		//to the intra interval, we need to take into account the skip samples
-		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT)
+		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT) && ds->stream_type==GF_STREAM_AUDIO
 			&& (ds->pts_minus_cts<0) && (ds->next_seg_start > (u32) -ds->pts_minus_cts)
 		) {
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
@@ -9792,7 +9796,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 				if (dst) {
 					GF_Fraction pck_orig_dur;
-					pck_orig_dur.num = split_dur_next;
+					pck_orig_dur.num = (s32) split_dur_next;
 					pck_orig_dur.den = split_dur ? gf_filter_pck_get_duration(pck) : 0;
 					gf_filter_pck_set_property(dst, GF_PROP_PCK_ORIG_DUR, &PROP_FRAC(pck_orig_dur));
 
@@ -10089,7 +10093,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 		return;
 
 	if (!ctx->store_seg_states) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received fragment size info event but no associated segment state\n"));
+		GF_LOG(ctx->do_m3u8 ? GF_LOG_ERROR : GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Received LL-HLS fragment size info event but no segment state\n"));
 		return;
 	}
 	for (i=0; i<count; i++) {

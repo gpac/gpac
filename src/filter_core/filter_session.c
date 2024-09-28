@@ -753,14 +753,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 				filter->detached_pid_inst = NULL;
 			}
 
-			if (filter->postponed_packets) {
-				while (gf_list_count(filter->postponed_packets)) {
-					GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
-					gf_filter_packet_destroy(pck);
-				}
-				gf_list_del(filter->postponed_packets);
-				filter->postponed_packets = NULL;
-			}
+			gf_filter_reset_pending_packets(filter);
+
 			gf_mx_p(filter->tasks_mx);
 			for (j=0; j<filter->num_input_pids; j++) {
 				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, j);
@@ -1592,9 +1586,9 @@ void gf_fs_print_debug_info(GF_FilterSession *fsess, GF_SessionDebugFlag dbg_fla
 			if (f->ref_bytes)
 				fprintf(stderr, " "LLU" KBytes of detached packets in destinations\n", f->ref_bytes/1000);
 			if (nb_in_eos)
-				fprintf(stderr, " %u in PIds in EOS", nb_in_eos);
+				fprintf(stderr, " %u in PIDs in EOS", nb_in_eos);
 			if (nb_out_eos)
-				fprintf(stderr, " %u out PIds have seen EOS", nb_out_eos);
+				fprintf(stderr, " %u out PIDs have seen EOS", nb_out_eos);
 			if (nb_in_eos || nb_out_eos)
 				fprintf(stderr, "\n");
 		}

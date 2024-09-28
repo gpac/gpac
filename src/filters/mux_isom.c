@@ -3435,7 +3435,6 @@ multipid_stsd_setup:
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 		if (p && p->value.lfrac.den) {
 			tkw->pid_dur = p->value.lfrac;
-			if (tkw->pid_dur.num<0) tkw->pid_dur.num = -tkw->pid_dur.num;
 		}
 
 	} else if (codec_id==GF_CODECID_HEVC_TILES) {
@@ -4697,7 +4696,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u32 min_pck_dur = gf_filter_pid_get_min_pck_duration(tkw->ipid);
 			if (min_pck_dur) {
 				tkw->sample.DTS = prev_dts;
-				//transform back to inpput timescale
+				//transform back to input timescale
 				if (timescale != tkw->tk_timescale) {
 					tkw->sample.DTS = gf_timestamp_rescale(tkw->sample.DTS, tkw->tk_timescale, timescale);
 				}
@@ -5880,7 +5879,6 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 		if (p && p->value.lfrac.den) {
 			tkw->pid_dur = p->value.lfrac;
-			if (tkw->pid_dur.num<0) tkw->pid_dur.num = -tkw->pid_dur.num;
 			if (gf_timestamp_less(max_dur.num, max_dur.den, tkw->pid_dur.num, tkw->pid_dur.den)) {
 				max_dur.num = tkw->pid_dur.num;
 				max_dur.den = tkw->pid_dur.den;
@@ -6462,8 +6460,8 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 		memcpy(emsg->message_data, id3_tag.data, id3_tag.data_length);
 
 		// insert only if its presentation time is not already present
-		u32 insert_emsg = GF_TRUE;
-		for (int i = 0; i < gf_list_count(moof->emsgs); ++i)
+		u32 i, insert_emsg = GF_TRUE;
+		for (i = 0; i < gf_list_count(moof->emsgs); ++i)
 		{
 			GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
 			if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta)
@@ -6892,6 +6890,9 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 		if (!ctx->segment_started && !ctx->fragment_started)
 			goto check_eos;
 
+		if (!ctx->ref_tkw)
+			goto check_eos;
+
 		Bool is_eos = (count == nb_eos) ? GF_TRUE : GF_FALSE;
 		u32 ref_timescale;
 		Bool flush_refs = ctx->dash_mode ? GF_FALSE : GF_TRUE;
@@ -7114,7 +7115,7 @@ static void del_service_info(GF_List *services)
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust)
 {
 	//compute offsets
-	s64 dts_diff = ctx->tsalign ? gf_timestamp_rescale(min_ts_service, 1000000, tkw->src_timescale) : 0;
+	s64 dts_diff = ctx->tsalign ? gf_timestamp_rescale(min_ts_service, (ctx->moovts ? ctx->moovts : 1000000), tkw->src_timescale) : 0;
 
 	if (!skip_adjust) {
 		dts_diff = (s64) tkw->ts_shift - dts_diff;
@@ -7158,7 +7159,7 @@ retry_all:
 
 	//compute min dts of first packet on each track - this assume all tracks are synchronized, might need adjustment for MPEG4 Systems
 	for (i=0; i<count; i++) {
-		u64 ts, dts_min;
+		u64 ts, ts_min;
 		GF_FilterPacket *pck;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		if (tkw->fake_track) continue;
@@ -7167,10 +7168,10 @@ retry_all:
 
 		//already setup (happens when new PIDs are declared after a packet has already been written on other PIDs)
 		if (tkw->nb_samples) {
-			dts_min = gf_timestamp_rescale(tkw->ts_shift, tkw->src_timescale, 1000000);
+			ts_min = gf_timestamp_rescale(tkw->ts_shift, tkw->src_timescale, (ctx->moovts ? ctx->moovts : 1000000) );
 
-			if (si->first_ts_min > dts_min) {
-				si->first_ts_min = (u64) dts_min;
+			if (si->first_ts_min > ts_min) {
+				si->first_ts_min = (u64) ts_min;
 			}
 			continue;
 		}
@@ -7266,16 +7267,16 @@ retry_pck:
 		if (gf_list_find(ctx->tracks, tkw) != i) {
 			goto retry_all;
 		}
-		ts = gf_filter_pck_get_dts(pck);
+		//align timelines based on CTS otherwise we could add extra delay on other pids (audio, etc) when video with dts<cts appears first
+		ts = gf_filter_pck_get_cts(pck);
 		if (ts==GF_FILTER_NO_TS)
-			ts = gf_filter_pck_get_cts(pck);
+			ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
 			ts=0;
 
-		dts_min = gf_timestamp_rescale(ts, tkw->src_timescale, 1000000);
-
-		if (si->first_ts_min > dts_min) {
-			si->first_ts_min = (u64) dts_min;
+		ts_min = gf_timestamp_rescale(ts, tkw->src_timescale, (ctx->moovts ? ctx->moovts : 1000000) );
+		if (si->first_ts_min > ts_min) {
+			si->first_ts_min = (u64) ts_min;
 			has_ready = GF_TRUE;
 		}
 
@@ -7288,8 +7289,11 @@ retry_pck:
 			si->nb_sparse_ready++;
 			break;
 		}
+		//ts_shift must be the first dts
+		tkw->ts_shift = gf_filter_pck_get_dts(pck);
+		if (tkw->ts_shift==GF_FILTER_NO_TS)
+			tkw->ts_shift = ts;
 
-		tkw->ts_shift = ts;
 		tkw->si_min_ts_plus_one = 0;
 	}
 
@@ -8502,7 +8506,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvsingle), "ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chapm), "chapter storage mode\n"
 	"- off: disable chapters\n"
 	"- tk: use chapter track (QT-style)\n"

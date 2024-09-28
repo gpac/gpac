@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / rtp output filter
@@ -54,6 +54,7 @@ typedef struct
 	char *info, *url, *email;
 	s32 runfor, tso;
 	Bool latm;
+	Double start, speed;
 
 	/*timeline origin of our session (all tracks) in microseconds*/
 	u64 sys_clock_at_init;
@@ -74,9 +75,7 @@ typedef struct
 
 	Bool wait_for_loop;
 	u64 microsec_ts_init;
-	//0: not single stream, 1: input is raw media, 2: input is TS
-	u32 single_stream;
-	GF_FilterCapability in_caps[2];
+	GF_FilterCapability in_caps[3];
 	char szExt[10];
 } GF_RTPOutCtx;
 
@@ -153,7 +152,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 				if (dur>max_dur) max_dur = dur;
 			}
 			p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_PLAYBACK_MODE);
-			if (!p || (p->value.uint<GF_PLAYBACK_MODE_FASTFORWARD))
+			if (!p || (p->value.uint<GF_PLAYBACK_MODE_SEEK))
 				disable_seek = GF_TRUE;
 		}
 
@@ -268,14 +267,31 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		}
 
 		if (is_rtsp) {
-			gf_fprintf(sdp_out, "a=control:%s=%d\n", stream->ctrl_name ? stream->ctrl_name : "trackID", stream->ctrl_id);
+			gf_fprintf(sdp_out, "a=control:%s_%d\n", stream->ctrl_name ? stream->ctrl_name : "trackID", stream->ctrl_id);
 		}
 	}
 	gf_fprintf(sdp_out, "\n");
 	return GF_OK;
 }
 
-GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id, u32 file_mode, const char *netcap_id)
+#define M2TS_MIME_TYPES	"video/mpeg-2|video/mp2t|video/mpeg"
+#define M2TS_FILE_EXTS	"ts|m2t|mts|dmb|trp"
+static Bool check_mime_ext(const char *string, const char *pattern)
+{
+	char szLwr[100];
+	if (!pattern) return GF_FALSE;
+
+	strncpy(szLwr, pattern, 99);
+	szLwr[99]=0;
+	strlwr(szLwr);
+	u32 len = (u32) strlen(szLwr);
+	char *sep = strstr(string, szLwr);
+	if (!sep) return GF_FALSE;
+	if (!sep[len] || (sep[len] == '|')) return GF_TRUE;
+	return GF_FALSE;
+}
+
+GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool inject_xps, Bool use_mpeg4_signaling, Bool use_latm, u32 payt, u32 mtu, u32 ttl, const char *ifce, Bool is_rtsp, u32 *base_pid_id, const char *netcap_id)
 {
 	Bool disable_mpeg4 = GF_FALSE;
 	u32 flags, average_size, max_size, max_tsdelta, codecid, const_dur, nb_ch, samplerate, max_cts_offset, bandwidth, IV_length, KI_length, dsi_len, max_ptime, au_sn_len;
@@ -360,9 +376,17 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	case GF_STREAM_VISUAL:
 		break;
 	case GF_STREAM_FILE:
-		if (file_mode==2) {
+
+		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_MIME);
+		if (p && check_mime_ext(M2TS_MIME_TYPES, p->value.string)) {
 			stream->codecid = codecid = GF_CODECID_FAKE_MP2T;
-			stream->timescale = 90000;
+		} else {
+			p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_FILE_EXT);
+			if (p && check_mime_ext(M2TS_FILE_EXTS, p->value.string) ) {
+				stream->codecid = codecid = GF_CODECID_FAKE_MP2T;
+			} else {
+				return GF_FILTER_NOT_SUPPORTED;
+			}
 		}
 		break;
 	default:
@@ -405,6 +429,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 				else
 					gf_odf_avc_cfg_del(avcc);
 			}
+		} else {
+			return GF_NOT_READY;
 		}
 		break;
 	case GF_CODECID_HEVC:
@@ -465,6 +491,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 					if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 				}
 			}
+		} else {
+			return GF_NOT_READY;
 		}
 		break;
 	case GF_CODECID_AAC_MPEG4:
@@ -481,6 +509,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 		}
 		if (use_latm)
 			flags |= GP_RTP_PCK_USE_LATM_AAC;
+		if (!dsi)
+			return GF_NOT_READY;
 		break;
 	}
 
@@ -501,7 +531,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_BITRATE);
 	bandwidth = p ? p->value.uint : 0;
 
-	if (codecid==GF_CODECID_AAC_MPEG4)
+	if (codecid==GF_CODECID_AAC_MPEG4) {}
 
 	if (is_crypted) {
 		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_ISMA_SELECTIVE_ENC);
@@ -516,6 +546,12 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DEPENDENCY_ID);
 	if (p) stream->depends_on = p->value.uint;
+
+	if (!payt)
+		flags |= GP_RTP_PCK_FORCE_STATIC_ID;
+	//prefer pre-defined payload types
+	else
+		flags |= GP_RTP_PCK_USE_STATIC_ID;
 
 	GF_RTPStreamerConfig cfg;
 	memset(&cfg, 0, sizeof(GF_RTPStreamerConfig));
@@ -546,7 +582,11 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	cfg.au_sn_len = au_sn_len;
 	cfg.netcap_id = netcap_id;
 
-	stream->rtp = gf_rtp_streamer_new_ex(&cfg, is_rtsp);
+	if (!stream->rtp)
+		stream->rtp = gf_rtp_streamer_new_ex(&cfg, is_rtsp);
+	//we cannot change codec on the fly in an RTP session
+	else if (gf_rtp_streamer_get_codecid(stream->rtp) != codecid)
+		return GF_FILTER_NOT_SUPPORTED;
 
 	if (!stream->rtp) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Could not initialize RTP for stream %s:  not supported\n", gf_filter_pid_get_name(stream->pid) ));
@@ -573,6 +613,10 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 		*base_pid_id = p->value.uint;
 		gf_rtp_streamer_disable_auto_rtcp(stream->rtp);
 	}
+	GF_FilterEvent evt;
+	GF_FEVT_INIT(evt, GF_FEVT_NETWORK_HINT, stream->pid);
+	evt.net_hint.mtu_size = mtu;
+	gf_filter_pid_send_event(stream->pid, &evt);
 	return GF_OK;
 }
 
@@ -586,7 +630,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 	const char *ip = ctx->ip;
 	if (!ip) ip = "127.0.0.1";
 
-	if (ctx->single_stream) return GF_OK;
+	if (ctx->dst) return GF_OK;
 
 	e = rtpout_create_sdp(ctx->streams, GF_FALSE, ip, ctx->info, "livesession", ctx->url, ctx->email, ctx->base_pid_id, &sdp_out, &sess_id);
 	if (e) return e;
@@ -646,14 +690,11 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_RTPOutCtx *ctx = (GF_RTPOutCtx *) gf_filter_get_udta(filter);
 	GF_Err e = GF_OK;
 	GF_RTPOutStream *stream;
-	u16 first_port;
-	u32 streamType, payt;
+	u32 streamType, dyn_payt;
 	const GF_PropertyValue *p;
 
-	first_port = ctx->port;
-
 	if (is_remove) {
-		GF_RTPOutStream *t =gf_filter_pid_get_udta(pid);
+		GF_RTPOutStream *t = gf_filter_pid_get_udta(pid);
 		if (t) {
 			if (ctx->active_stream==t) ctx->active_stream = NULL;
 			gf_list_del_item(ctx->streams, t);
@@ -681,20 +722,8 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_list_del_item(ctx->streams, stream);
 			rtpout_del_stream(stream);
 		}
-		if (!ctx->dst)
-			return GF_FILTER_NOT_SUPPORTED;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
-		if (p && p->value.string && !strcmp(p->value.string, "video/mpeg-2")) {
-			ctx->single_stream = 2;
-		} else {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-			if (p && p->value.string && !strcmp(p->value.string, "ts")) {
-				ctx->single_stream = 2;
-			} else {
-				return GF_FILTER_NOT_SUPPORTED;
-			}
-		}
-
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		if (!p) return GF_FILTER_NOT_SUPPORTED;
 		break;
 	default:
 		break;
@@ -707,13 +736,15 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		stream->streamtype = streamType;
 		stream->min_dts = GF_FILTER_NO_TS;
 	 	gf_filter_pid_set_udta(pid, stream);
-		if (ctx->single_stream) {
+		if (ctx->dst) {
 			GF_FilterEvent evt;
-			gf_filter_pid_init_play_event(pid, &evt, 0, 1.0, "RTPOut");
+			gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "RTPOut");
 			gf_filter_pid_send_event(pid, &evt);
 		}
+
+		stream->port = rtpout_check_next_port(ctx, ctx->port);
 	}
-	if (!ctx->single_stream) {
+	if (!ctx->dst) {
 		if (!ctx->opid) {
 			ctx->opid = gf_filter_pid_new(filter);
 		}
@@ -723,30 +754,25 @@ static GF_Err rtpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, NULL );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("sdp") );
 		gf_filter_pid_set_name(ctx->opid, "SDP");
-	} else {
-		char *dst = ctx->dst+6;
-		char *sep = strchr(dst, ':');
-		if (sep) {
-			first_port = ctx->port = atoi(sep+1);
-			sep[0] = 0;
-			if (ctx->ip) gf_free(ctx->ip);
-			ctx->ip = gf_strdup(dst);
-			sep[0] = ':';
-		}
 	}
 
-	stream->port = rtpout_check_next_port(ctx, first_port);
+	//if direct rtp stream, force no dynamic payload type
+	if (ctx->dst)
+		dyn_payt = 0;
+	else
+		dyn_payt = ctx->payt + gf_list_find(ctx->streams, stream);
 
-	payt = ctx->payt + gf_list_find(ctx->streams, stream);
 	//init rtp
-	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id, ctx->single_stream, gf_filter_get_netcap_id(filter));
-	if (e) return e;
-
+	e = rtpout_init_streamer(stream,  ctx->ip ? ctx->ip : "127.0.0.1", ctx->xps, ctx->mpeg4, ctx->latm, dyn_payt, ctx->mtu, ctx->ttl, ctx->ifce, GF_FALSE, &ctx->base_pid_id, gf_filter_get_netcap_id(filter));
+	if (e) {
+		if (e==GF_NOT_READY) return GF_OK;
+		return e;
+	}
 	stream->selected = GF_TRUE;
 
 	if (ctx->loop) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAYBACK_MODE);
-		if (!p || (p->value.uint<GF_PLAYBACK_MODE_FASTFORWARD)) {
+		if (!p || (p->value.uint<GF_PLAYBACK_MODE_SEEK)) {
 			ctx->loop = GF_FALSE;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] PID %s cannot be seek, disabling loop\n", gf_filter_pid_get_name(pid) ));
 		}
@@ -763,6 +789,18 @@ static GF_Err rtpout_initialize(GF_Filter *filter)
 	if (ctx->payt<96) ctx->payt = 96;
 	if (ctx->payt>127) ctx->payt = 127;
 	ctx->streams = gf_list_new();
+
+	if (ctx->dst) {
+		char *dst = ctx->dst+6;
+		char *sep = strchr(dst, ':');
+		if (sep) {
+			ctx->port = atoi(sep+1);
+			sep[0] = 0;
+			if (ctx->ip) gf_free(ctx->ip);
+			ctx->ip = gf_strdup(dst);
+			sep[0] = ':';
+		}
+	}
 
 	if (ctx->dst && (ctx->ext || ctx->mime) ) {
 		//static cap, streamtype = file
@@ -782,9 +820,12 @@ static GF_Err rtpout_initialize(GF_Filter *filter)
 			ctx->in_caps[1].val = PROP_NAME( ctx->szExt );
 			ctx->in_caps[1].flags = GF_CAPS_INPUT;
 		}
-		gf_filter_override_caps(filter, ctx->in_caps, 2);
+		ctx->in_caps[2].code = GF_PROP_PID_TIMESCALE;
+		ctx->in_caps[2].val = PROP_UINT( 0 );
+		ctx->in_caps[2].flags = GF_CAPS_INPUT|GF_CAPFLAG_PRESENT;
+
+		gf_filter_override_caps(filter, ctx->in_caps, 3);
 		gf_filter_set_max_extra_input_pids(filter, 0);
-		ctx->single_stream = GF_TRUE;
 	}
 	return GF_OK;
 }
@@ -1088,7 +1129,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 
 		for (i=0; i<count; i++) {
 			GF_RTPOutStream *astream = gf_list_get(streams, i);
-			if (!astream->has_pck) break;
+			if (!astream->selected || !astream->has_pck) break;
 
 			u32 ts = (u32) (astream->current_cts + astream->ts_offset + astream->rtp_ts_offset);
 			gf_rtp_streamer_send_rtcp(stream->rtp, GF_TRUE, ts, ntp_type, ntp_sec, ntp_frac);
@@ -1201,9 +1242,11 @@ static GF_FilterProbeScore rtpout_probe_url(const char *url, const char *mime)
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
+//regular caps when solving to sdp
+//for direct rtp:// scheme invocation, caps are overriden in rtpin_initialize
 static const GF_FilterCapability RTPOutCaps[] =
 {
-	//anything else (not file and framed) result in manifest PID
+	//media stream (not file and framed) result in SDP
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
@@ -1212,13 +1255,18 @@ static const GF_FilterCapability RTPOutCaps[] =
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "sdp"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/sdp"),
 	{0},
-	//anything else (not file and framed) result in media pids not file
+	//restamped files result in SDP (only media type for now for this mode)
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT,GF_PROP_PID_FILE_EXT, "*"),
+	CAP_UINT(GF_CAPS_INPUT|GF_CAPFLAG_PRESENT, GF_PROP_PID_TIMESCALE, 0),
+
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "sdp"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/sdp"),
+	{0},
+	//accept anything not file-based from loaded filters
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	{0},
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
 };
 
 
@@ -1227,7 +1275,7 @@ static const GF_FilterArgs RTPOutArgs[] =
 {
 	{ OFFS(ip), "destination IP address (NULL is 127.0.0.1)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(port), "port for first stream in session", GF_PROP_UINT, "7000", NULL, 0},
-	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if possible", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
 	{ OFFS(ttl), "time-to-live for multicast packets", GF_PROP_UINT, "2", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1242,6 +1290,8 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(dst), "URL for direct RTP mode", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ext), "file extension for direct RTP mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mime), "set mime type for direct RTP mode", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(speed), "set streaming speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "set streaming start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{0}
 };
 

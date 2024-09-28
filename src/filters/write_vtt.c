@@ -35,7 +35,7 @@
 typedef struct
 {
 	//opts
-	Bool exporter, merge_cues;
+	Bool exporter, merge_cues, noempty;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -54,7 +54,7 @@ typedef struct
 	GF_WebVTTParser *parser;
 
 	GF_FilterPacket *src_pck;
-	Bool dash_mode;
+	Bool dash_mode, first;
 	u32 seg_pck_in, seg_pck_out;
 } GF_WebVTTMxCtx;
 
@@ -80,6 +80,7 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	if (!p) return GF_NOT_SUPPORTED;
 	ctx->codecid = p->value.uint;
 	ctx->ipid = pid;
+	ctx->first = GF_TRUE;
 
 
 	if (!ctx->opid) {
@@ -234,6 +235,14 @@ GF_Err vttmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			if (!ctx->noempty && ctx->first) {
+				// send empty packet to init the file
+				GF_FilterPacket *dst = gf_filter_pck_new_alloc(ctx->opid, 0, NULL);
+				gf_filter_pck_set_sap(dst, GF_FILTER_SAP_1);
+				gf_filter_pck_set_byte_offset(dst, GF_FILTER_NO_BO);
+				gf_filter_pck_send(dst);
+				ctx->first = GF_FALSE;
+			}
 			gf_filter_pid_set_eos(ctx->opid);
 			if (ctx->parser) {
 				vttmx_parser_flush(ctx);
@@ -247,6 +256,7 @@ GF_Err vttmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	ctx->first = GF_FALSE;
 
 	start_ts = gf_filter_pck_get_cts(pck);
 	end_ts = start_ts + gf_filter_pck_get_duration(pck);
@@ -333,6 +343,7 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(merge_cues), "merge VTT cues (undo ISOBMFF cue split)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noempty), "do not create an empty file if no VTT cues are present", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

@@ -1773,8 +1773,12 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 			if (pe->codecs && (pe->codecs[0] == '\"')) {
 				u32 len = (u32) strlen(pe->codecs);
-				memmove(pe->codecs, pe->codecs+1, len-1);
-				pe->codecs[len-2] = 0;
+				if (len>1) {
+					memmove(pe->codecs, pe->codecs+1, len-1);
+					pe->codecs[len-2] = 0;
+				} else {
+					pe->codecs[0] = 0;
+				}
 			}
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (pe->bandwidth && pe->codecs && pe->width && pe->height) {
@@ -5792,7 +5796,11 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 		if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 			char_template += 18;
-			strcat(segment_name, rep_id);
+			if (rep_id)
+				strcat(segment_name, rep_id);
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] representation id is null when trying to format segment name\n"));
+			}
 			needs_init = GF_FALSE;
 		}
 		else if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$Bandwidth", 10)) {
