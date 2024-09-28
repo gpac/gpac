@@ -3417,6 +3417,16 @@ static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const c
 	}
 }
 
+static void dasher_inject_scte35_processor(GF_Filter *filter, GF_DashStream *ds, char *szSRC) {
+		GF_Err e;
+		GF_Filter *scte35dec = gf_filter_load_filter(filter, "scte35dec", &e);
+		gf_filter_set_source(scte35dec, filter, NULL);
+
+		sprintf(szSRC, "MuxSrc%cdasher_%p", gf_filter_get_sep(filter, GF_FS_SEP_NAME), ds->dst_filter);
+		gf_filter_reset_source(ds->dst_filter);
+		gf_filter_set_source(ds->dst_filter, scte35dec, szSRC);
+}
+
 static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, GF_List *multi_pids, Bool init_trashed)
 {
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
@@ -3613,6 +3623,9 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_set_source(ds->dst_filter, ttml_agg, szSRC);
 	}
 
+	//inject scte35dec filter
+	if (ds->codec_id==GF_CODECID_SCTE35)
+		dasher_inject_scte35_processor(filter, ds, szSRC);
 }
 
 static void dasher_set_content_components(GF_DashStream *ds)
@@ -6140,6 +6153,10 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			if (ds->rep) gf_mpd_representation_free(ds->rep);
 			ds->rep = rep;
+
+			if (ds->rep_id) gf_free(ds->rep_id);
+			ds->rep_id = gf_strdup(rep->id);
+
 			ds->set = set;
 			rep->playback.udta = ds;
 			if (ds->owns_set)
@@ -7255,7 +7272,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		//in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
 		//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
 		//to the intra interval, we need to take into account the skip samples
-		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT)
+		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT) && ds->stream_type==GF_STREAM_AUDIO
 			&& (ds->pts_minus_cts<0) && (ds->next_seg_start > (u32) -ds->pts_minus_cts)
 		) {
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
@@ -9753,7 +9770,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 				if (dst) {
 					GF_Fraction pck_orig_dur;
-					pck_orig_dur.num = split_dur_next;
+					pck_orig_dur.num = (s32) split_dur_next;
 					pck_orig_dur.den = split_dur ? gf_filter_pck_get_duration(pck) : 0;
 					gf_filter_pck_set_property(dst, GF_PROP_PCK_ORIG_DUR, &PROP_FRAC(pck_orig_dur));
 
@@ -10050,7 +10067,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 		return;
 
 	if (!ctx->store_seg_states) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received fragment size info event but no associated segment state\n"));
+		GF_LOG(ctx->do_m3u8 ? GF_LOG_ERROR : GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Received LL-HLS fragment size info event but no segment state\n"));
 		return;
 	}
 	for (i=0; i<count; i++) {
@@ -10070,11 +10087,14 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received segment size info event but no pending segments\n"));
 		return;
 	}
-	sctx->frags = gf_realloc(sctx->frags, sizeof (GF_DASH_FragmentContext) * (sctx->nb_frags+1));
-	if (!sctx->frags) {
+	void *new_frags = gf_realloc(sctx->frags, sizeof (GF_DASH_FragmentContext) * (sctx->nb_frags+1));
+	if (!new_frags) {
+		gf_free(sctx->frags);
+		sctx->frags = NULL;
 		sctx->nb_frags = 0;
 		return;
 	}
+	sctx->frags = (GF_DASH_FragmentContext *)new_frags;
 	sctx->frags[sctx->nb_frags].size = evt->frag_size.size;
 	sctx->frags[sctx->nb_frags].offset = evt->frag_size.offset;
 	if (evt->frag_size.duration.den) {
@@ -10799,7 +10819,7 @@ static const GF_FilterArgs DasherArgs[] =
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pswitch), "period switch control mode\n"
 		"- single: change period if PID configuration changes\n"
-		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)\n"
+		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or ad insertion not using periodID)\n"
 		"- stsd: change period if PID configuration changes unless new configuration was advertised in initial config", GF_PROP_UINT, "single", "single|force|stsd", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},

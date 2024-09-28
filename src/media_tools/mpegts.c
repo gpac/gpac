@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -499,6 +499,11 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		if (section_valid) {
 			GF_M2TS_Section *section;
 
+			if (sec->length <= section_start) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] section length invalid (length %d - start %d)\n", sec->length, section_start));
+				return;
+			}
+
 			GF_SAFEALLOC(section, GF_M2TS_Section);
 			if (!section) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Fail to create section\n"));
@@ -651,7 +656,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 			sec->section = (char*)gf_realloc(sec->section, sizeof(char)*sec->length);
 		}
 
-		if (sec->length && sec->received + ptr_field >= sec->length) {
+		if (sec->length && sec->received < sec->length && data_size >= 1 + sec->length - sec->received) {
 			u32 len = sec->length - sec->received;
 			memcpy(sec->section + sec->received, data+1, sizeof(char)*len);
 			sec->received += len;
@@ -749,7 +754,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 
 	//orig_net_id = (data[0] << 8) | data[1];
 	pos = 3;
-	while (pos < data_size) {
+	while (pos+4 < data_size) {
 		GF_M2TS_SDT *sdt;
 		u32 descs_size, d_pos, ulen;
 
@@ -1027,7 +1032,7 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 		d->ts_id = gf_bs_read_u16(bs);
 		size += 4;
 	}
-	if (length-size > 0) {
+	if (length > size) {
 		d->data_size = length-size;
 		d->data = (char *)gf_malloc(d->data_size);
 		gf_bs_read_data(bs, d->data, d->data_size);
@@ -1151,7 +1156,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		len = (u32) data[5];
 		while (info_length > first_loop_len) {
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
-				if ((len>2) && (len - 2 <= info_length)) {
+				if ((len>2) && (len - 2 <= info_length) && (data_size>8) && (data_size-8 > (u32)len-2)) {
 					u32 size;
 					GF_BitStream *iod_bs;
 					iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);
@@ -1199,7 +1204,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					/* don't know what to do with it for now, delete */
 					gf_m2ts_metadata_pointer_descriptor_del(metapd);
 				}
-			} else if(tag == GF_M2TS_REGISTRATION_DESCRIPTOR && len >= 4) {
+			} else if(tag == GF_M2TS_REGISTRATION_DESCRIPTOR && len >= 4 && data_size>9) {
 				u32 reg_desc_format = GF_4CC(data[6], data[7], data[8], data[9]);
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Registration descriptor with format_identifier \"%s\"\n", gf_4cc_to_str(reg_desc_format)));
 			} else {
@@ -1685,7 +1690,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				        && (o_es->mpeg4_es_id == es->mpeg4_es_id)
 				        && ((o_es->flags & GF_M2TS_ES_IS_SECTION) || ((GF_M2TS_PES *)o_es)->lang == ((GF_M2TS_PES *)es)->lang)
 				   ) {
-					gf_free(es);
+					gf_m2ts_es_del(es, ts);
 					es = NULL;
 				} else {
 					gf_m2ts_es_del(o_es, ts);
@@ -2552,6 +2557,13 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 	/*PAT*/
 	if (hdr.pid == GF_M2TS_PID_PAT) {
+		if (ts->split_mode==2) {
+			GF_M2TS_TSPCK tspck;
+			memset(&tspck, 0, sizeof(GF_M2TS_TSPCK));
+			tspck.data = data - pos;
+			ts->on_event(ts, GF_M2TS_EVT_PCK, &tspck);
+			return GF_OK;
+		}
 		gf_m2ts_gather_section(ts, ts->pat, NULL, &hdr, data, payload_size);
 		return GF_OK;
 	}
@@ -2566,9 +2578,13 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			if (ses->sec) gf_m2ts_gather_section(ts, ses->sec, ses, &hdr, data, payload_size);
 		}
 		//and forward every packet other than PAT
+		memset(&tspck, 0, sizeof(GF_M2TS_TSPCK));
 		tspck.stream = es;
 		tspck.pid = hdr.pid;
 		tspck.data = data - pos;
+		if (paf && paf->PCR_flag) {
+			tspck.pcr_plus_one = paf->PCR_base * 300 + paf->PCR_ext;
+		}
 		ts->on_event(ts, GF_M2TS_EVT_PCK, &tspck);
 		return GF_OK;
 	}

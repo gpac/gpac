@@ -357,7 +357,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 		tmp->stream = gf_file_temp(&tmp->temp_file);
 	} else {
 		char szPath[GF_MAX_PATH];
-		if ((sPath[strlen(sPath)-1] != '\\') && (sPath[strlen(sPath)-1] != '/')) {
+		if (strlen(sPath) && (sPath[strlen(sPath)-1] != '\\') && (sPath[strlen(sPath)-1] != '/')) {
 			sprintf(szPath, "%s%c%p_isotmp", sPath, GF_PATH_SEPARATOR, (void*) tmp);
 		} else {
 			sprintf(szPath, "%s%p_isotmp", sPath, (void*) tmp);

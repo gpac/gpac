@@ -322,7 +322,7 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *io_progress)
 {
 	u32 i, j, len;
-	u32 start_pos = gf_ftell(txt_in);
+	u32 start_pos = (u32) gf_ftell(txt_in);
 	char *sOK;
 	char szLineConv[2048];
 	unsigned short *sptr;
@@ -783,12 +783,11 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 		u32 font_style = 0;
 		u32 style_nb_chars = 0;
 		u32 style_def_type = 0;
-
-		if ( (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
+		if ( (i+2<len) && (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
 			style_nb_chars = 3;
 			style_def_type = 1;
 		}
-		else if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
+		else if ( (i+3<len) && (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
 			style_def_type = 2;
 			style_nb_chars = 4;
 		}
@@ -4177,7 +4176,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 
 		//purge data from our blob
 		if (ctx->src) {
-			u32 pos = gf_ftell(ctx->src);
+			u32 pos = (u32) gf_ftell(ctx->src);
 			u32 remain = ctx->tmp_blob.size - pos;
 			gf_fclose(ctx->src);
 			ctx->src = NULL;
@@ -4415,6 +4414,8 @@ force_format:
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codec_id) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE))
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	}
 
 	Bool gen_ttxt_dsi = GF_FALSE;

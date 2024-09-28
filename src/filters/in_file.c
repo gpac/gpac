@@ -734,7 +734,7 @@ static const GF_FilterArgs FileInArgs[] =
 
 static const GF_FilterCapability FileInCaps[] =
 {
-	CAP_UINT(GF_CAPS_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 };
 
 GF_FilterRegister FileInRegister = {

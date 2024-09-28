@@ -920,7 +920,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 
 	/*QP 14 is a special quant mode for IndexFace/Line(2D)Set to quantize the
 	coordonate(2D) child, based on the first field parsed
-	we must check the type of the node and notfy the QP*/
+	we must check the type of the node and notify the QP*/
 	switch (node_tag) {
 	case TAG_MPEG4_Coordinate:
 	case TAG_MPEG4_Coordinate2D:

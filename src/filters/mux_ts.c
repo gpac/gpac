@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-2 TS mux filter
@@ -80,6 +80,12 @@ enum
 	TEMI_TC64_ALWAYS,
 };
 
+enum
+{
+	IN_TEMI_DROP=0,
+	IN_TEMI_FWD,
+	IN_TEMI_NTP
+};
 
 typedef struct
 {
@@ -105,6 +111,7 @@ typedef struct
 	s32 subs_sidx;
 	Bool keepts;
 	GF_Fraction cdur;
+	u32 temi_fwd;
 
 	//internal
 	GF_FilterPid *opid;
@@ -233,14 +240,14 @@ typedef struct __tsmx_pid
 	Bool is_sparse;
 } M2Pid;
 
-static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time)
+static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32 timeline_id, u64 timecode, u32 timescale, u32 mode_64bits, u64 ntp, const char *temi_url, u32 temi_delay, u32 *last_url_time, Bool is_reload, Bool is_splicing, GF_Fraction *announce, Bool is_paused, Bool is_discontinuity)
 {
 	u32 len;
-	u32 last_time;
+	u32 last_time=0;
 	if (ntp && is_realtime) {
 		last_time = 1000*(ntp>>32);
 		last_time += 1000*(ntp&0xFFFFFFFF)/0xFFFFFFFF;
-	} else {
+	} else if (timescale) {
 		last_time = (u32) (1000*timecode/timescale);
 	}
 	if (temi_url && (!*last_url_time || (last_time - *last_url_time + 1 >= temi_delay)) ) {
@@ -251,12 +258,16 @@ static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32
 		gf_bs_write_int(bs,	GF_M2TS_AFDESC_LOCATION_DESCRIPTOR, 8);
 		gf_bs_write_int(bs,	len, 8);
 
-		gf_bs_write_int(bs,	0, 1); //force_reload
-		gf_bs_write_int(bs,	0, 1); //is_announcement
-		gf_bs_write_int(bs,	0, 1); //splicing_flag
-		gf_bs_write_int(bs,	0, 1); //use_base_temi_url
+		gf_bs_write_int(bs,	is_reload, 1); //force_reload
+		gf_bs_write_int(bs,	announce ? 1 : 0, 1); //is_announcement
+		gf_bs_write_int(bs,	is_splicing, 1); //splicing_flag
+		gf_bs_write_int(bs,	temi_url[0] ? 0 : 1, 1); //use_base_temi_url
 		gf_bs_write_int(bs,	0xFF, 5); //reserved
 		gf_bs_write_int(bs,	timeline_id, 7); //timeline_id
+		if (announce) {
+			gf_bs_write_u32(bs, announce->den);
+			gf_bs_write_u32(bs, announce->num);
+		}
 
 		if (strlen(temi_url)) {
 			char *url = (char *)temi_url;
@@ -271,8 +282,8 @@ static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32
 			}
 			gf_bs_write_u8(bs, (u32) strlen(url)); //url_path_len
 			gf_bs_write_data(bs, url, (u32) strlen(url) ); //url
-			gf_bs_write_u8(bs, 0); //nb_addons
 		}
+		gf_bs_write_u8(bs, 0); //nb_addons
 		//rewrite len
 		end = gf_bs_get_position(bs);
 		len = (u32) (end - start - 2);
@@ -292,7 +303,6 @@ static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32
 			while (timecode > 0xFFFFFFFFUL) {
 				timecode -= 0xFFFFFFFFUL;
 			}
-
 		}
 
 		len = 3; //3 bytes flags
@@ -308,9 +318,9 @@ static GF_Err tsmux_format_af_descriptor(GF_BitStream *bs, Bool is_realtime, u32
 		gf_bs_write_int(bs,	ntp ? 1 : 0, 1); //has_ntp
 		gf_bs_write_int(bs,	0, 1); //has_ptp
 		gf_bs_write_int(bs,	0, 2); //has_timecode
-		gf_bs_write_int(bs,	0, 1); //force_reload
-		gf_bs_write_int(bs,	0, 1); //paused
-		gf_bs_write_int(bs,	0, 1); //discontinuity
+		gf_bs_write_int(bs,	is_reload, 1); //force_reload
+		gf_bs_write_int(bs,	is_paused, 1); //paused
+		gf_bs_write_int(bs,	is_discontinuity, 1); //discontinuity
 		gf_bs_write_int(bs,	0xFF, 7); //reserved
 		gf_bs_write_int(bs,	timeline_id, 8); //timeline_id
 		if (timescale) {
@@ -604,11 +614,12 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			es_pck.cts = 0;
 		}
 
+		//prepare for adaptation field descriptors
+		if (!tspid->temi_af_bs) tspid->temi_af_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		else gf_bs_reassign_buffer(tspid->temi_af_bs, tspid->af_data, tspid->af_data_alloc);
+
 		if (tspid->temi_descs) {
 			u32 i, count=gf_list_count(tspid->temi_descs);
-
-			if (!tspid->temi_af_bs) tspid->temi_af_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			else gf_bs_reassign_buffer(tspid->temi_af_bs, tspid->af_data, tspid->af_data_alloc);
 
 			for (i=0; i<count; i++) {
 				TEMIDesc *temi = gf_list_get(tspid->temi_descs, i);
@@ -647,17 +658,77 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				}
 
 				if (temi->ntp) {
-					u32 sec, frac;
-					gf_net_get_ntp(&sec, &frac);
-					ntp = sec;
-					ntp <<= 32;
-					ntp |= frac;
+					ntp = gf_net_get_ntp_ts();
 				}
-				tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url);
+				tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, temi->id, tc, timescale, temi->mode_64bits, ntp, temi->url, temi->delay, &tspid->last_temi_url, GF_FALSE, GF_FALSE, NULL, GF_FALSE, GF_FALSE);
 			}
-			gf_bs_get_content_no_truncate(tspid->temi_af_bs, &tspid->af_data, &es_pck.mpeg2_af_descriptors_size, &tspid->af_data_alloc);
-			es_pck.mpeg2_af_descriptors = tspid->af_data;
 		}
+
+		u32 pidx = 0;
+		//rewrite temi descriptors present in source
+		while (tspid->ctx->temi_fwd) {
+			u32 p4cc;
+			const char *pname;
+			const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &pidx, &p4cc, &pname);
+			if (!p) break;
+			if (pname && !strncmp(pname, "temi_l", 6)) {
+				GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+				while (1) {
+					u8 achar =  gf_bs_read_u8(bs);
+					if (!achar) break;
+				}
+				GF_Fraction time;
+				u32 timeline_id  = atoi(pname+7);
+				const char *temi_url = p->value.data.ptr;
+				u8 is_announce = gf_bs_read_int(bs, 1);
+				u8 is_splicing = gf_bs_read_int(bs, 1);
+				u8 is_reload = gf_bs_read_int(bs, 1);
+				gf_bs_read_int(bs, 5);
+				if (is_announce) {
+					time.den = gf_bs_read_u32(bs);
+					time.num = gf_bs_read_u32(bs);
+				}
+				Bool invalid = gf_bs_is_overflow(bs);
+				gf_bs_del(bs);
+				//rewrite
+				u32 last_t=0;
+				if (!invalid)
+					tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, timeline_id, 0, 0, 0, 0, temi_url, 0, &last_t, is_splicing, is_reload, is_announce ? &time : NULL, GF_FALSE, GF_FALSE);
+			}
+			else if (pname && !strncmp(pname, "temi_t", 6)) {
+				u32 timeline_id = atoi(pname+7);
+				GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+
+				u32 timescale = gf_bs_read_u32(bs);
+				u64 timestamp = gf_bs_read_u64(bs);
+				/*u64 media_pts = */gf_bs_read_u64(bs);
+				u8 is_reload = gf_bs_read_int(bs, 1);
+				u8 is_paused = gf_bs_read_int(bs, 1);
+				u8 is_discontinuity = gf_bs_read_int(bs, 1);
+				u8 has_ntp = gf_bs_read_int(bs, 1);
+				gf_bs_read_int(bs, 4);
+
+				u64 ntp = 0;
+				if (has_ntp) {
+					ntp = gf_bs_read_u64(bs);
+					if (tspid->ctx->temi_fwd==IN_TEMI_NTP)
+						ntp = gf_net_get_ntp_ts();
+				}
+				Bool invalid = gf_bs_is_overflow(bs);
+				gf_bs_del(bs);
+
+				u32 last_t=0;
+				if (!invalid)
+					tsmux_format_af_descriptor(tspid->temi_af_bs, tspid->ctx->realtime, timeline_id, timestamp, timescale, 0, ntp, NULL, 0, &last_t, GF_FALSE, is_reload, NULL, is_paused, is_discontinuity);
+			}
+		}
+
+		gf_bs_get_content_no_truncate(tspid->temi_af_bs, &tspid->af_data, &es_pck.mpeg2_af_descriptors_size, &tspid->af_data_alloc);
+		if (es_pck.mpeg2_af_descriptors_size)
+			es_pck.mpeg2_af_descriptors = tspid->af_data;
+		else
+			es_pck.mpeg2_af_descriptors = NULL;
+
 		es_pck.cts += tspid->max_media_skip + tspid->media_delay;
 
 		p = gf_filter_pck_get_property_str(pck, "scte35");
@@ -1180,6 +1251,8 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_set_name(ctx->opid, "ts_mux");
+		//we are muxing, prevent m2tsdmx from trying to probe the file
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILEPATH, NULL);
 	}
 	//set output properties at init or reconfig
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
@@ -1190,7 +1263,6 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_NO_TS_LOOP, &PROP_BOOL(GF_TRUE));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DASH_MODE, NULL);
-
 	mux_assign_mime_file_ext(pid, ctx->opid, M2TS_FILE_EXTS, M2TS_MIMES, "ts");
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_DASH_MODE, &pe);
@@ -2104,6 +2176,7 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_FILE_EXT, M2TS_FILE_EXTS),
 	CAP_STRING(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_MIME, M2TS_MIMES),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC|GF_CAPFLAG_PRESENT|GF_CAPFLAG_OPTIONAL, GF_PROP_PID_TIMESCALE, 0),
 	{0},
 
 	//for now don't accept files as input, although we could store them as items, to refine
@@ -2178,7 +2251,11 @@ static const GF_FilterArgs TSMuxArgs[] =
 	{ OFFS(subs_sidx), "number of subsegments per sidx (negative value disables sidx)", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(keepts), "keep cts/dts untouched and adjust PCR accordingly, used to keep TS unmodified when dashing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
-
+	{ OFFS(temi_fwd), "input TEMI properties when remuwing\n"
+		"- drop: remove input descriptors\n"
+		"- fwd: forward input descriptors\n"
+		"- ntp: forward input descriptors after NTP rewriting"
+		, GF_PROP_UINT, "fwd", "drop|fwd|ntp", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -2232,6 +2309,8 @@ GF_FilterRegister TSMuxRegister = {
 		"Inserts an external TEMI with ID 4 and timescale 30000, NTP injection and carousel of 500 ms in the video stream of all programs.\n"
 		"\n"
 		"Warning: multipliers (k,m,g) are not supported in TEMI options.\n"
+		"\n"
+		"When input TEMI properties are found, they can be removed using [-drop_temi](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
 		"# Adaptive Streaming\n"
 		"In DASH and HLS mode:\n"
 		"- the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"

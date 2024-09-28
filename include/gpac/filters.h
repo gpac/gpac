@@ -1309,11 +1309,11 @@ enum
 	GF_PROP_PID_COVER_ART = GF_4CC('P','C','O','V'),
 	GF_PROP_PID_ORIG_FRAG_URL = GF_4CC('O','F','R','A'),
 
-	GF_PROP_PID_ROUTE_IP = GF_4CC('R','S','I','P'),
-	GF_PROP_PID_ROUTE_PORT = GF_4CC('R','S','P','N'),
-	GF_PROP_PID_ROUTE_NAME = GF_4CC('R','S','F','N'),
-	GF_PROP_PID_ROUTE_CAROUSEL = GF_4CC('R','S','C','R'),
-	GF_PROP_PID_ROUTE_SENDTIME = GF_4CC('R','S','S','T'),
+	GF_PROP_PID_MCAST_IP = GF_4CC('M','S','I','P'),
+	GF_PROP_PID_MCAST_PORT = GF_4CC('M','S','P','N'),
+	GF_PROP_PID_MCAST_NAME = GF_4CC('M','S','F','N'),
+	GF_PROP_PID_MCAST_CAROUSEL = GF_4CC('M','S','C','R'),
+	GF_PROP_PID_MCAST_SENDTIME = GF_4CC('M','S','S','T'),
 
 	GF_PROP_PID_STEREO_TYPE = GF_4CC('P','S','T','T'),
 	GF_PROP_PID_PROJECTION_TYPE = GF_4CC('P','P','J','T'),
@@ -1729,7 +1729,9 @@ typedef enum
 	/*! NTP source clock send by other services (eg from TS to dash using TEMI) */
 	GF_FEVT_NTP_REF,
 	/*! Event sent by DASH/HLS demux to source to notify a quality change  - used for ROUTE/MABR only */
-	GF_FEVT_DASH_QUALITY_SELECT
+	GF_FEVT_DASH_QUALITY_SELECT,
+	/*! Hint for network transmission event */
+	GF_FEVT_NETWORK_HINT
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1777,7 +1779,7 @@ typedef struct
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
 	*/
 	u8 timestamp_based;
-	/*! GF_FEVT_PLAY only, indicates the consumer only cares for the full file, not packets*/
+	/*! GF_FEVT_PLAY / GF_FEVT_PLAY_HINT, indicates the consumer only cares for the full file, not packets*/
 	u8 full_file_only;
 	/*!
 	 for GF_FEVT_PLAY: indicates any current download should be aborted
@@ -1982,6 +1984,16 @@ typedef struct
 	GF_QualtitySelectionState select_type;
 } GF_FEVT_DASHQualitySelection;
 
+/*! Event structure for GF_FEVT_NETWORK_HINT*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	/*! MTU size  */
+	u32 mtu_size;
+
+} GF_FEVT_NetworkHint;
+
 /*!
 Filter Event object
  */
@@ -2001,6 +2013,7 @@ union __gf_filter_event
 	GF_FEVT_EncodeHints encode_hints;
 	GF_FEVT_NTPRef ntp;
 	GF_FEVT_DASHQualitySelection dash_select;
+	GF_FEVT_NetworkHint net_hint;
 };
 
 /*! Gets readable name for event type
@@ -2162,6 +2175,8 @@ enum
 	GF_CAPFLAG_STATIC = 1<<5,
 	/*! Currently only used for output  capabilities, indicates that this capability is optional in the  PID */
 	GF_CAPFLAG_OPTIONAL = 1<<6,
+	/*! Only checks presence of capability */
+	GF_CAPFLAG_PRESENT = 1<<7,
 };
 
 /*! Shortcut macro to set for input capability flags*/
@@ -4395,14 +4410,26 @@ If the source packet uses a frame interface object or has no associated data, re
 If the source packet is referenced more than once (ie more than just the caller), a new packet on the output PID is allocated with source data copied.
 Otherwise, the source data is assigned to the output packet.
 
-This is typically called by filters requiring read access to data for packets using frame interfaces
-\warning The cloned packet will not have any dynamic properties set.
+This is typically called by filters requiring read access to data for packets using frame interfaces.
 
 \param pck_source the target source packet
 \param cached_pck if not NULL, will try to reuse this packet if possible (if not possible, this packet will be destroyed)
 \return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_dangling_copy(GF_FilterPacket *pck_source, GF_FilterPacket *cached_pck);
+
+/*! Creates a detached clone of a packet from a source packet and copy all source properties to output.
+
+If the source packet uses a frame interface object or has no associated data, returns a copy of the packet.
+Otherwise, the source data is copied in the output packet.
+
+This is typically called by filters reaggregating packets on their own.
+
+\param pck_source the target source packet
+\param cached_pck if not NULL, will try to reuse this packet if possible (if not possible, this packet will be destroyed)
+\return new packet or NULL if allocation error or not an output PID
+*/
+GF_FilterPacket *gf_filter_pck_dangling_clone(GF_FilterPacket *pck_source, GF_FilterPacket *cached_pck);
 
 /*! Marks memory of a shared packet as non-writable. By default \ref gf_filter_pck_new_shared and \ref gf_filter_pck_new_ref allow
 write access to internal memory in case the packet can be cloned (single reference used). If your filter relies on the content of the shared

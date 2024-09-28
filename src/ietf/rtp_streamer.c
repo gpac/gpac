@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -428,8 +428,16 @@ GF_RTPStreamer *gf_rtp_streamer_new_ex(const GF_RTPStreamerConfig *cfg, Bool for
 		break;
 	}
 
+	if (flags & GP_RTP_PCK_FORCE_STATIC_ID) {
+		if (!OfficialPayloadType) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Codec type %s requires SDP output\n",  gf_codecid_name(codecid) ));
+			gf_rtp_streamer_del(stream);
+			return NULL;
+		}
+		PayloadType = OfficialPayloadType;
+	}
 	/*override hinter type if requested and possible*/
-	if (has_mpeg4_mapping && (flags & GP_RTP_PCK_FORCE_MPEG4)) {
+	else if (has_mpeg4_mapping && (flags & GP_RTP_PCK_FORCE_MPEG4)) {
 		rtp_type = GF_RTP_PAYT_MPEG4;
 	}
 	/*use static payload ID if enabled*/
@@ -975,6 +983,12 @@ GF_EXPORT
 u32 gf_rtp_streamer_get_timescale(GF_RTPStreamer *streamer)
 {
 	return (streamer && streamer->packetizer) ? streamer->packetizer->sl_config.timestampResolution : 0;
+}
+
+GF_EXPORT
+u32 gf_rtp_streamer_get_codecid(GF_RTPStreamer *streamer)
+{
+	return (streamer && streamer->packetizer) ? streamer->packetizer->slMap.CodecID : 0 ;
 }
 
 #endif /*GPAC_DISABLE_STREAMING && GPAC_DISABLE_ISOM*/

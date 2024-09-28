@@ -110,10 +110,10 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		}
 	}
 
-	if (filePath && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
+	if (filePath && strlen(filePath) && ((filePath[strlen(filePath)-1] == '/') || (filePath[strlen(filePath)-1] == '\\')) ) {
 		strcpy(fileName, filePath);
 		strcat(fileName, file_name);
-	} else if (filePath) {
+	} else if (filePath && strlen(filePath)) {
 		sprintf(fileName, "%s%c%s", filePath, GF_PATH_SEPARATOR, file_name);
 	} else {
 		strcpy(fileName, file_name);
@@ -594,5 +594,3 @@ GF_Err gf_cfg_set_filename(GF_Config *iniFile, const char * fileName)
 	iniFile->fileName = gf_strdup(fileName);
 	return iniFile->fileName ? GF_OK : GF_OUT_OF_MEM;
 }
-
-

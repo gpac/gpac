@@ -4692,7 +4692,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u32 min_pck_dur = gf_filter_pid_get_min_pck_duration(tkw->ipid);
 			if (min_pck_dur) {
 				tkw->sample.DTS = prev_dts;
-				//transform back to inpput timescale
+				//transform back to input timescale
 				if (timescale != tkw->tk_timescale) {
 					tkw->sample.DTS = gf_timestamp_rescale(tkw->sample.DTS, tkw->tk_timescale, timescale);
 				}
@@ -6453,8 +6453,8 @@ static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *e
 	gf_bs_del(bs);
 
 	// insert only if its presentation time is not already present
-	u32 insert_emsg = GF_TRUE;
-	for (int i=0; i<gf_list_count(moof->emsgs); ++i)
+	u32 i, insert_emsg = GF_TRUE;
+	for (i=0; i<gf_list_count(moof->emsgs); ++i)
 	{
 		GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
 		if (!strcmp(existing_emsg->scheme_id_uri, "https://aomedia.org/emsg/ID3") && !strcpy(existing_emsg->value, "www.nielsen.com:id3:v1")) {
@@ -6865,6 +6865,9 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 	if (nb_done==count) {
 		//nothing open (this happens when flushing segments/fragments)
 		if (!ctx->segment_started && !ctx->fragment_started)
+			goto check_eos;
+
+		if (!ctx->ref_tkw)
 			goto check_eos;
 
 		Bool is_eos = (count == nb_eos) ? GF_TRUE : GF_FALSE;
@@ -8475,7 +8478,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dvsingle), "ignore DolbyVision profile 8 in xps inband mode if profile 5 is already set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample - if false, this will keep original timing with empty edit (possibly long) at begin", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chapm), "chapter storage mode\n"
 	"- off: disable chapters\n"
 	"- tk: use chapter track (QT-style)\n"

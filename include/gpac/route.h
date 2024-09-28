@@ -120,9 +120,9 @@ typedef enum
 {
 	/* object is done receiving*/
 	GF_LCTO_PARTIAL_NONE=0,
-	/* object data being notfied is the begining of the payload*/
+	/* object data being notified is the begining of the payload*/
 	GF_LCTO_PARTIAL_BEGIN,
-	/* object data being notfied is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
+	/* object data being notified is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
 	GF_LCTO_PARTIAL_ANY,
 } GF_LCTObjectPartial;
 
@@ -347,7 +347,7 @@ u64 gf_route_dmx_get_nb_packets(GF_ROUTEDmx *routedmx);
  */
 u64 gf_route_dmx_get_recv_bytes(GF_ROUTEDmx *routedmx);
 
-/*! Gather only  objects with given TSI (for debug purposes)
+/*! Gather only objects with given TSI (for debug purposes)
 \param routedmx the ROUTE demultiplexer
 \param tsi the target TSI, 0 for no filtering
  */

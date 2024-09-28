@@ -53,7 +53,7 @@ void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize
 	for (i=0; i<count; i++) {
 		samp = gf_isom_get_sample_info(file, Track, i+1, NULL, NULL);
 		if (!samp) break;
-		
+
 		//get the size
 		*avgSize += samp->dataLength;
 		if (*MaxSize < samp->dataLength) *MaxSize = samp->dataLength;
@@ -459,6 +459,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			PL_ID = 0x0F;
 			gf_odf_avc_cfg_del(avcc);
 			gf_odf_avc_cfg_del(svcc);
+			gf_odf_avc_cfg_del(mvcc);
 		}
 		break;
 		case GF_ISOM_SUBTYPE_HVC1:

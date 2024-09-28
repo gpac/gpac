@@ -161,7 +161,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 		load.swf_import_flags |= GF_SM_SWF_USE_SVG;
 		load.svgOutFile = inName;
 	}
-	load.swf_flatten_limit = swf_flatten_angle;
+	load.swf_flatten_limit = (Float) swf_flatten_angle;
 
 	ftype = get_file_type_by_ext(file);
 	if (ftype == GF_FILE_TYPE_ISO_MEDIA) {
@@ -816,7 +816,7 @@ u32 PrintBuiltInNodes(char *arg_val, u32 dump_type)
 u32 PrintBuiltInBoxes(char *argval, u32 do_cov)
 {
 	u32 i, count=gf_isom_get_num_supported_boxes();
-	
+
 	fprintf(stdout, "<Boxes>\n");
 	//index 0 is our internal unknown box handler
 	for (i=1; i<count; i++) {
@@ -1692,7 +1692,7 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 		Bool traf_start = 0;
 		u32 sap_type = 0;
 		u64 doffset;
-		
+
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2405,7 +2405,7 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	}
 
 	for (i=0; i<count; i++) {
-		char szDur[20];
+		char szDur[50];
 		u64 chapter_time;
 		const char *name;
 		gf_isom_get_chapter(file, 0, i+1, &chapter_time, &name);
@@ -4502,7 +4502,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	FILE *src;
 
 	if (!prog_num && !out_name) {
-		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated.");
+		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated\n.");
 	}
 
 	src = gf_fopen(mpeg2ts_file, "rb");
