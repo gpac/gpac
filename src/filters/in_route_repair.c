@@ -363,7 +363,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 		return;
 	}
 	//TODO, pass any repair URL info coming from broadcast
-	if (!ctx->repair_url) {
+	if (!ctx->repair_servers) {
 		routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
 		return;
 	}
@@ -426,6 +426,9 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 	if (!rsi->removed)
 		gf_route_dmx_patch_frag_info(ctx->route_dmx, rsi->service_id, &rsi->finfo, rsess->range->br_start, rsess->range->br_end);
 
+	rsess->server->nb_bytes += rsess->range->done;
+	rsess->server->nb_req_success += (rsess->range->done==rsess->range->br_end-rsess->range->br_start)?1:0;
+
 	rsess->current_si = NULL;
 	gf_list_add(ctx->seg_range_reservoir, rsess->range);
 	rsess->range = NULL;
@@ -475,6 +478,8 @@ restart:
 	if (!rsi) {
 		RouteRepairRange *rr = NULL;
 		u32 i, count;
+		RouteRepairServer* repair_server = NULL;
+		char *url = NULL;
 		count = gf_list_count(ctx->seg_repair_queue);
 		for (i=0; i<count;i++) {
 			u32 j, nb_ranges;
@@ -495,7 +500,19 @@ restart:
 		gf_assert(rsi->finfo.filename);
 		gf_assert(rsi->finfo.filename[0]);
 
-		char *url = gf_url_concatenate(ctx->repair_url, rsi->finfo.filename);
+		for(i=0; i< gf_list_count(ctx->repair_servers); i++) {
+			repair_server = gf_list_get(ctx->repair_servers, i);
+			if(repair_server && repair_server->url && repair_server->accept_ranges && repair_server->is_up) {
+				url = gf_url_concatenate(repair_server->url, rsi->finfo.filename);
+				break;
+			}
+		}
+
+		if(!url) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server - Repair abort \n"));
+			repair_session_done(ctx, rsess, e);
+			return;
+		}
 
 		if (!rsess->dld) {
 			GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
@@ -511,6 +528,7 @@ restart:
 			repair_session_done(ctx, rsess, e);
 			return;
 		}
+		rsess->server = repair_server;
 		gf_dm_sess_set_range(rsess->dld, rsess->range->br_start, rsess->range->br_end-1, GF_TRUE);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s byte range %u-%u\n", url, rsess->range->br_start, rsess->range->br_end-1));
 		gf_free(url);
@@ -524,6 +542,10 @@ restart:
 	} else {
 		e = gf_dm_sess_fetch_data(rsess->dld, http_buf, REPAIR_BUF_SIZE, &nb_read);
 		if (e==GF_IP_NETWORK_EMPTY) return;
+		if (e==GF_IO_BYTE_RANGE_NOT_SUPPORTED) {
+			rsess->server->accept_ranges = GF_FALSE;
+			gf_dm_sess_abort(rsess->dld);
+		}
 	}
 
 	if (offset + nb_read > rsess->range->br_end)
