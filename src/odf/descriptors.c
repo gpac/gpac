@@ -2056,6 +2056,20 @@ GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
 }
 
 GF_EXPORT
+GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize) {
+	GF_Err e;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	*outSize = 0;
+	*outData = NULL;
+	e = gf_odf_ia_cfg_write_bs(cfg, bs);
+	if (e == GF_OK)
+		gf_bs_get_content(bs, outData, outSize);
+
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_EXPORT
 u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg)
 {
         if (!cfg) return 0;

@@ -1710,6 +1710,10 @@ GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg);
 /*! Used for storing IAMF OBUs */
 typedef struct
 {
+        /* Size of raw_obu_bytes, including the header and payload.
+         * This is different from `obu_size` in the IAMF spec Section 3.2, 
+         * which includes only the partial header size and the payload.
+         */
         u64 obu_length;
         int obu_type;  /* IamfObuType */
         u8* raw_obu_bytes;
@@ -1727,6 +1731,14 @@ typedef struct
 \return the created config
 */
 GF_IAConfig *gf_odf_ia_cfg_new();
+
+/*! writes IAMF config to buffer
+\param cfg the IAMF config to write
+\param outData set to an allocated encoded buffer - it is the caller responsibility to free this
+\param outSize set to the encoded dsi buffer size
+\return error if any
+*/
+GF_Err gf_odf_ia_cfg_write(GF_IAConfig *cfg, u8 **outData, u32 *outSize);
 
 /*! Writes the IAMF config to bitstream
 \param cfg the IAMF config to write
