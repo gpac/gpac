@@ -4107,7 +4107,7 @@ void gf_iamf_init_state(IAMFState *state)
 	if (!state)
 		return;
 
-	memset(&state, 0, sizeof(IAMFState));
+	memset(state, 0, sizeof(IAMFState));
 	state->num_samples_per_frame = 0;
 	state->sample_size = 0;
 	state->sample_rate = 0;
@@ -4118,6 +4118,7 @@ void gf_iamf_init_state(IAMFState *state)
 	state->frame_state.seen_ia_seq_header = GF_FALSE;
 	state->frame_state.previous_obu_is_descriptor = GF_FALSE;
 
+	state->frame_state.found_full_temporal_unit = GF_FALSE;
 	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
 	state->frame_state.num_audio_frames_in_temporal_unit = 0;
 
@@ -4153,7 +4154,8 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	l1 = state->frame_state.temporal_unit_obus;
 	l2 = state->frame_state.descriptor_obus;
 
-	gf_iamf_init_state(state);
+	// Reset temporal unit status, now that it has been flushed.
+	state->frame_state.found_full_temporal_unit = GF_FALSE;
 
 	if (is_destroy)
 	{
@@ -4818,6 +4820,7 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 		if (state->frame_state.num_audio_frames_in_temporal_unit == state->total_substreams)
 		{
 			// All audio frames seen for this temporal unit. Proceed to the next.
+			state->frame_state.found_full_temporal_unit = GF_TRUE;
 			state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
 			state->frame_state.num_audio_frames_in_temporal_unit = 0;
 			break;

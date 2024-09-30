@@ -917,6 +917,7 @@ typedef struct
 	Bool previous_obu_is_descriptor;
 
 	// Track state while parsing temporal units.
+	Bool found_full_temporal_unit;
 	Bool seen_first_obu_in_temporal_unit;
 	int num_audio_frames_in_temporal_unit;
 
