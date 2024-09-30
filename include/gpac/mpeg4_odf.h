@@ -1052,7 +1052,7 @@ typedef struct
 } GF_VVCConfig;
 
 
-/*! used for storing AV1 OBUs*/
+/*! used for storing AV1 or IAMF OBUs*/
 typedef struct
 {
 	u64 obu_length;

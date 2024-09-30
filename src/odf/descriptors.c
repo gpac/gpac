@@ -1948,8 +1948,10 @@ GF_IAConfig *gf_odf_ia_cfg_new()
 GF_EXPORT
 GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 #ifndef GPAC_DISABLE_AV_PARSERS
+		IAMFState state;
         GF_IAConfig *cfg;
         u8 leb128_size;
+		gf_iamf_init_state(&state);
 
         if (!size) size = (u32) gf_bs_available(bs);
         if (!size) {
@@ -1976,7 +1978,7 @@ GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 
                 pos = gf_bs_get_position(bs);
                 obu_size = 0;
-                if (gf_iamf_parse_obu(bs, &obu_type, &obu_size) != GF_OK) {
+                if (gf_iamf_parse_obu(bs, &obu_type, &obu_size, &state) != GF_OK) {
                       GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] could not parse configOBUs at position "LLU". Leaving parsing.\n", pos));
                       break;
                 }
