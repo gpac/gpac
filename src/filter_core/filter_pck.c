@@ -1179,6 +1179,11 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		if (dst->requires_full_data_block && !dst->last_block_ended && (pck->info.flags & GF_PCKF_IS_FLUSH)) {
 			continue;
 		}
+		//stop forwarding clock packets when in EOS
+		if (dst->is_end_of_stream && cktype) {
+			continue;
+		}
+
 		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
 		if (!inst) {
 			GF_SAFEALLOC(inst, GF_FilterPacketInstance);
@@ -1327,7 +1332,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				safe_int64_add(&dst->buffer_duration, us_duration);
 			}
 			safe_int_inc(&dst->filter->pending_packets);
-//
+
 			gf_fq_add(dst->packets, inst);
 			post_task = GF_TRUE;
 		}

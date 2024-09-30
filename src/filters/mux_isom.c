@@ -7459,6 +7459,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	}
 
 	//regular mode
+	Bool do_flush=GF_FALSE;
+force_flush:
 	nb_suspended = 0;
 	for (i=0; i<count; i++) {
 		GF_Err e;
@@ -7477,6 +7479,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tkw->ipid) && !gf_filter_pid_is_flush_eos(tkw->ipid)) {
 				tkw->suspended = GF_FALSE;
+				if (!do_flush) {
+					do_flush=GF_TRUE;
+					goto force_flush;
+				}
 				nb_eos++;
 			}
 			if (tkw->aborted) {
@@ -7521,7 +7527,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 		//basic regulation in case we do on-the-fly interleaving
 		//we need to regulate because sources do not produce packets at the same rate
-		if (ctx->store==MP4MX_MODE_FASTSTART) {
+		if ((ctx->store==MP4MX_MODE_FASTSTART) && !do_flush) {
 			u64 cts = gf_filter_pck_get_cts(pck);
 			if (ctx->is_rewind)
 				cts = tkw->ts_shift - cts;
