@@ -2455,6 +2455,35 @@ static Bool av1_is_obu_frame(AV1State *state, ObuType obu_type)
 	}
 }
 
+Bool iamf_is_audio_frame_obu(IamfObuType obu_type)
+{
+	return OBU_IA_AUDIO_FRAME <= obu_type && obu_type <= OBU_IA_AUDIO_FRAME_ID17;
+}
+
+Bool iamf_is_temporal_unit_obu(IamfObuType obu_type)
+{
+	if (iamf_is_audio_frame_obu(obu_type) || obu_type == OBU_IA_PARAMETER_BLOCK || obu_type == OBU_IA_TEMPORAL_DELIMITER)
+	{
+		return GF_TRUE;
+	}
+
+	return GF_FALSE;
+}
+
+Bool iamf_is_descriptor_obu(IamfObuType obu_type)
+{
+	switch (obu_type)
+	{
+	case OBU_IA_CODEC_CONFIG:
+	case OBU_IA_AUDIO_ELEMENT:
+	case OBU_IA_MIX_PRESENTATION:
+	case OBU_IA_SEQUENCE_HEADER:
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
+}
+
 GF_EXPORT
 u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes) {
 	u64 value = 0;
@@ -4072,6 +4101,70 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 	}
 }
 
+GF_EXPORT
+void gf_iamf_init_state(IAMFState *state)
+{
+	if (!state)
+		return;
+
+	memset(&state, 0, sizeof(IAMFState));
+	state->num_samples_per_frame = 0;
+	state->sample_size = 0;
+	state->sample_rate = 0;
+	state->total_substreams = 0;
+	state->bitstream_has_temporal_delimiters = GF_FALSE;
+
+	state->frame_state.seen_first_frame = GF_FALSE;
+	state->frame_state.seen_ia_seq_header = GF_FALSE;
+	state->frame_state.previous_obu_is_descriptor = GF_FALSE;
+
+	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
+	state->frame_state.num_audio_frames_in_temporal_unit = 0;
+}
+
+GF_EXPORT
+void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
+{
+	GF_List *l1, *l2;
+
+	if (state->frame_state.descriptor_obus)
+	{
+		while (gf_list_count(state->frame_state.descriptor_obus))
+		{
+			GF_IamfObu *a = (GF_IamfObu *)gf_list_pop_back(state->frame_state.descriptor_obus);
+			if (a->raw_obu_bytes)
+				gf_free(a->raw_obu_bytes);
+			gf_free(a);
+		}
+	}
+
+	if (state->frame_state.temporal_unit_obus)
+	{
+		while (gf_list_count(state->frame_state.temporal_unit_obus))
+		{
+			GF_IamfObu *a = (GF_IamfObu *)gf_list_pop_back(state->frame_state.temporal_unit_obus);
+			if (a->raw_obu_bytes)
+				gf_free(a->raw_obu_bytes);
+			gf_free(a);
+		}
+	}
+	l1 = state->frame_state.temporal_unit_obus;
+	l2 = state->frame_state.descriptor_obus;
+
+	gf_iamf_init_state(state);
+
+	if (is_destroy)
+	{
+		gf_list_del(l1);
+		gf_list_del(l2);
+	}
+	else
+	{
+		state->frame_state.temporal_unit_obus = l1;
+		state->frame_state.descriptor_obus = l2;
+	}
+}
+
 static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_start, u64 obu_size)
 {
 	u32 TileNum, tg_start = 0, tg_end = 0;
@@ -4454,24 +4547,22 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 
         obu_redundant_copy = gf_bs_read_int(bs, 1);
         if (obu_redundant_copy) {
-            if (*obu_type == OBU_IA_TEMPORAL_DELIMITER ||
-                (*obu_type >= OBU_IA_AUDIO_FRAME && *obu_type <= OBU_IA_AUDIO_FRAME_ID17)) {
-                  GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_redundant_copy set to 0, but got 1.\n",
-                                                       gf_iamf_get_obu_name(*obu_type)));
-                  return GF_NON_COMPLIANT_BITSTREAM;
-            }
+			if (iamf_is_temporal_unit_obu(*obu_type))
+			{
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_redundant_copy set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		}
 
-        }
-
-        obu_trimming_status_flag = gf_bs_read_int(bs, 1);
+		obu_trimming_status_flag = gf_bs_read_int(bs, 1);
         if (obu_trimming_status_flag) {
-              if (*obu_type < OBU_IA_AUDIO_FRAME || *obu_type > OBU_IA_AUDIO_FRAME_ID17) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_trimming_status_flag set to 0, but got 1.\n",
-                                                       gf_iamf_get_obu_name(*obu_type)));
-                    return GF_NON_COMPLIANT_BITSTREAM;
-              }
-        }
-        obu_extension_flag = gf_bs_read_int(bs, 1);
+			if (iamf_is_audio_frame_obu(*obu_type))
+			{
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_trimming_status_flag set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		}
+		obu_extension_flag = gf_bs_read_int(bs, 1);
 
 
         /* gpac's `obu_size` includes the header and payload, which is different
@@ -4500,8 +4591,62 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
         return GF_OK;
 }
 
+static void iamf_parse_ia_sequence_header(GF_BitStream *bs, IAMFState *state)
+{
+	state->frame_state.seen_ia_seq_header = GF_TRUE;
+	gf_bs_read_int_log(bs, 32, "ia_code");
+	gf_bs_read_int_log(bs, 8, "primary_profile");
+	gf_bs_read_int_log(bs, 8, "additional_profile");
+}
+
+static void iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
+{
+	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
+	u32 codec_id = gf_bs_read_int_log(bs, 32, "codec_id");
+	state->num_samples_per_frame = gf_av1_leb128_read(bs, NULL);
+	gf_bs_read_int_log(bs, 16, "roll_distance");
+	// TODO: Update style of 4cc constants.
+	switch (codec_id)
+	{
+	// Opus
+	case 0x4f707573:
+		state->sample_rate = 48000;
+		state->sample_size = 16;
+		break;
+	// FLAC
+	case 0x664c6143:
+		// TODO: Determine `sample_rate` and `sample_size` for FLAC.
+		break;
+	// LPCM
+	case 0x6970636d:
+		gf_bs_read_int_log(bs, 8, "sample_format_flags");
+		state->sample_size = gf_bs_read_int_log(bs, 8, "sample_size");
+		state->sample_rate = gf_bs_read_int_log(bs, 8, "sample_rate");
+		break;
+	// AAC-LC
+	case 0x6d703461:
+		// TODO: Determine `sample_rate` and `sample_size` for AAC.
+		break;
+	default:
+		// TODO: Error. Codec is unknown.
+		break;
+	}
+}
+
+static void iamf_parse_audio_element(GF_BitStream *bs, IAMFState *state)
+{
+	gf_av1_leb128_read(bs, NULL); // `audio_element_id`.
+	gf_bs_read_int_log(bs, 3, "audio_element_type");
+	gf_bs_read_int_log(bs, 5, "reserved_for_future_use");
+	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
+	const u64 num_substreams = gf_av1_leb128_read(bs, NULL);
+	state->total_substreams += num_substreams;
+	// OK to skip over the rest.
+	return;
+}
+
 GF_EXPORT
-GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
+GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size, IAMFState *state)
 {
         GF_Err e = GF_OK;
         u64 pos = gf_bs_get_position(bs);
@@ -4518,8 +4663,166 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
               GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
               e = GF_NON_COMPLIANT_BITSTREAM;
         }
-        gf_bs_seek(bs, pos + *obu_size);
-        return e;
+		switch (*obu_type)
+		{
+		case OBU_IA_SEQUENCE_HEADER:
+			iamf_parse_ia_sequence_header(bs, state);
+			break;
+		case OBU_IA_CODEC_CONFIG:
+			iamf_parse_codec_config(bs, state);
+			break;
+		case OBU_IA_AUDIO_ELEMENT:
+			iamf_parse_audio_element(bs, state);
+			break;
+		default:
+			break;
+		}
+		if (iamf_is_descriptor_obu(*obu_type))
+		{
+			state->frame_state.previous_obu_is_descriptor = GF_TRUE;
+		}
+		else if (iamf_is_temporal_unit_obu(*obu_type))
+		{
+			state->frame_state.previous_obu_is_descriptor = GF_FALSE;
+		}
+		// Reserved OBUs get treated as neither descriptor nor temporal unit OBUs.
+
+		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) > pos + *obu_size))
+		{
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] Parsing OBU type %s parsing consumed too many bytes !\n", gf_iamf_get_obu_name(*obu_type)));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+		}
+		// Skip over to the end of the OBU.
+		gf_bs_seek(bs, pos + *obu_size);
+
+		return e;
+}
+
+static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfObuType obu_type, GF_List **obu_list, IAMFState *state)
+{
+	GF_IamfObu *a = NULL;
+
+	GF_SAFEALLOC(a, GF_IamfObu);
+	if (!a)
+	{
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Failed to allocate OBU\n"));
+		return;
+	}
+
+	gf_bs_seek(bs, pos);
+	gf_iamf_parse_obu_header(bs, &obu_type, &obu_size);
+	gf_bs_seek(bs, pos);
+
+	a->raw_obu_bytes = gf_malloc((size_t)obu_size);
+	gf_bs_read_data(bs, a->raw_obu_bytes, (u32)obu_size);
+	a->obu_length = obu_size;
+
+	if (!obu_list)
+	{
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] internal error, no OBU list cannot add\n"));
+		gf_free(a->raw_obu_bytes);
+		gf_free(a);
+		return;
+	}
+	a->obu_type = obu_type;
+	if (!*obu_list)
+		*obu_list = gf_list_new();
+	gf_list_add(*obu_list, a);
+}
+
+static void iamf_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, IAMFState *state)
+{
+	GF_List **list;
+	if (iamf_is_descriptor_obu(obu_type))
+	{
+		list = &state->frame_state.descriptor_obus;
+	}
+	else if (iamf_is_temporal_unit_obu(obu_type))
+	{
+		list = &state->frame_state.temporal_unit_obus;
+	}
+	// Treat reserved OBUs based on the most recent OBU seen.
+	else if(state->frame_state.previous_obu_is_descriptor)
+	{
+		list = &state->frame_state.descriptor_obus;	
+	} else {
+		list = &state->frame_state.temporal_unit_obus;
+	}
+	iamf_add_obu_internal(bs, pos, obu_length, obu_type, list, state);
+}
+
+GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
+{
+	if (!state)
+		return GF_BAD_PARAM;
+
+	IamfObuType obu_type;
+	while (1)
+	{
+		GF_Err e;
+		if (!gf_bs_available(bs))
+			return GF_BUFFER_TOO_SMALL;
+
+		u64 pos = gf_bs_get_position(bs), obu_size = 0;
+
+		e = gf_iamf_parse_obu(bs, &obu_type, &obu_size, state);
+		if (e)
+			return e;
+
+		if (obu_size != gf_bs_get_position(bs) - pos)
+		{
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU size " LLU " different from consumed bytes " LLU ".\n", obu_size, gf_bs_get_position(bs) - pos));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		if (obu_type == OBU_IA_TEMPORAL_DELIMITER)
+		{
+			if (!state->frame_state.seen_first_frame)
+			{
+				// IAMF requires all or no temporal units to have temporal delimiters. Determine it from the first frame.
+				state->bitstream_has_temporal_delimiters = GF_TRUE;
+			}
+			if (!state->bitstream_has_temporal_delimiters)
+			{
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] Expected all or no frames to have temporal delimiters.\n"));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+			if (state->frame_state.num_audio_frames_in_temporal_unit)
+			{
+				if (state->frame_state.num_audio_frames_in_temporal_unit != state->total_substreams)
+				{
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] Failed to find enough audio frames in a temporal unit.\n"));
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
+				// Read into the next temporal unit! Seek back to the end.
+				gf_bs_seek(bs, pos);
+				break;
+			}
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[IAMF] OBU detected (size " LLU ")\n", obu_size));
+		iamf_populate_state_from_obu(bs, pos, obu_size, obu_type, state);
+
+		if (iamf_is_temporal_unit_obu(obu_type))
+		{
+			// Made it passed the descriptors. We are now in the first frame.
+			state->frame_state.seen_first_frame = GF_TRUE;
+			state->frame_state.seen_first_obu_in_temporal_unit = GF_TRUE;
+			if (iamf_is_audio_frame_obu(obu_type))
+			{
+				state->frame_state.num_audio_frames_in_temporal_unit++;
+			}
+		}
+
+		if (state->frame_state.num_audio_frames_in_temporal_unit == state->total_substreams)
+		{
+			// All audio frames seen for this temporal unit. Proceed to the next.
+			state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
+			state->frame_state.num_audio_frames_in_temporal_unit = 0;
+			break;
+		}
+	}
+
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/

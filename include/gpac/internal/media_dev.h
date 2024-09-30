@@ -910,7 +910,36 @@ typedef struct
 	u16 uncompressed_header_bytes;
 } AV1StateFrame;
 
-#define AV1_NUM_REF_FRAMES	8
+typedef struct
+{
+	Bool seen_ia_seq_header;
+	Bool seen_first_frame;
+	Bool previous_obu_is_descriptor;
+
+	// Track state while parsing temporal units.
+	Bool seen_first_obu_in_temporal_unit;
+	int num_audio_frames_in_temporal_unit;
+
+	GF_List *descriptor_obus, *temporal_unit_obus; /*GF_IamfObu*/
+} IamfStateFrame;
+
+typedef struct
+{
+	// Determined based on Codec Config OBU.
+	int num_samples_per_frame;
+	int sample_size;
+	int sample_rate;
+	// Determined based on Audio Element OBUs.
+	int total_substreams;
+	// Determined based on the first Temporal Unit.
+	// TODO: Init once the first temporal unit is processed.
+	Bool bitstream_has_temporal_delimiters;
+
+	/*frame parsing state*/
+	IamfStateFrame frame_state;
+} IAMFState;
+
+#define AV1_NUM_REF_FRAMES 8
 
 typedef struct
 {
@@ -922,9 +951,9 @@ typedef struct
 	/*importing options*/
 	Bool keep_temporal_delim;
 	/*parser config*/
-	//if set only header frames are stored
+	// if set only header frames are stored
 	Bool skip_frames;
-	//if set, frame OBUs are not pushed to the frame_obus OBU list but are written in the below bitstream
+	// if set, frame OBUs are not pushed to the frame_obus OBU list but are written in the below bitstream
 	Bool mem_mode;
 	/*bitstream object for mem mode - this bitstream is NOT destroyed by gf_av1_reset_state(state, GF_TRUE) */
 	GF_BitStream *bs;
@@ -1003,12 +1032,11 @@ typedef struct
 	/*layer sizes for AVIF a1lx*/
 	u32 layer_size[4];
 
-
 	u8 clli_data[4];
 	u8 mdcv_data[24];
 	u8 clli_valid, mdcv_valid;
 
-	//set to one if a temporal delim is found when calling aom_av1_parse_temporal_unit_from_section5
+	// set to one if a temporal delim is found when calling aom_av1_parse_temporal_unit_from_section5
 	u8 has_temporal_delim;
 	u8 has_frame_data;
 } AV1State;
@@ -1016,6 +1044,7 @@ typedef struct
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
+GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state);
 
 /*may return GF_BUFFER_TOO_SMALL if not enough bytes*/
 GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size, u64 *pts);
@@ -1039,11 +1068,22 @@ Bool av1_is_obu_header(ObuType obu_type);
 */
 void gf_av1_init_state(AV1State *state);
 
+/*! init IAMF frame parsing state
+\param state the frame parser
+*/
+void gf_iamf_init_state(IAMFState *state);
+
 /*! reset av1 frame parsing state - this does not destroy the structure.
 \param state the frame parser
 \param is_destroy if TRUE, destroy internal reference picture lists
 */
 void gf_av1_reset_state(AV1State *state, Bool is_destroy);
+
+/*! reset IAMF frame parsing state - this does not destroy the structure.
+\param state the frame parser
+\param is_destroy if TRUE, destroy internal reference picture lists
+*/
+void gf_iamf_reset_state(IAMFState *state, Bool is_destroy);
 
 u64 gf_av1_leb128_read(GF_BitStream *bs, u8 *opt_Leb128Bytes);
 u32 gf_av1_leb128_size(u64 value);
@@ -1053,26 +1093,26 @@ GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_ex
 /*! OPUS packet header*/
 typedef struct
 {
-    Bool self_delimited;
+	Bool self_delimited;
 
-    // parsed header size
-    u8 size;
+	// parsed header size
+	u8 size;
 
-    u16 self_delimited_length;
-    u8 TOC_config;
-    u8 TOC_stereo;
-    u8 TOC_code;
-    u16 code2_frame_length;
-    u8 code3_vbr;
-    u8 code3_padding;
-    u16 code3_padding_length;
+	u16 self_delimited_length;
+	u8 TOC_config;
+	u8 TOC_stereo;
+	u8 TOC_code;
+	u16 code2_frame_length;
+	u8 code3_vbr;
+	u8 code3_padding;
+	u16 code3_padding_length;
 
-    u8 nb_frames;
-    // either explicitly coded (e.g. self_delimited) or computer (e.g. cbr)
-    u16 frame_lengths[255];
+	u8 nb_frames;
+	// either explicitly coded (e.g. self_delimited) or computer (e.g. cbr)
+	u16 frame_lengths[255];
 
-    // computed packet size
-    u32 packet_size;
+	// computed packet size
+	u32 packet_size;
 } GF_OpusPacketHeader;
 
 u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header);
@@ -1086,8 +1126,9 @@ Bool gf_media_probe_iamf(GF_BitStream *bs);
 \param bs bitstream object
 \param obu_type OBU type
 \param obu_size As an input the size of the input OBU (needed when obu_size is not coded). As an output the coded obu_size value.
+\param state State of the frame parser
 */
-GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size);
+GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size, IAMFState *state);
 
 typedef struct
 {

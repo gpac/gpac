@@ -331,6 +331,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	GF_BitStream *bs;
 	u64 duration, cur_dur, last_cdur, file_size, max_pts, last_pts, probe_size=0;
 	AV1State *av1state=NULL;
+	IAMFState *iamfstate=NULL;;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
@@ -387,9 +388,14 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_bs_seek(bs, ctx->file_hdr_size);
 	}
 	file_size = gf_bs_available(bs);
-	gf_av1_init_state(av1state);
-	av1state->skip_frames = GF_TRUE;
-	av1state->config = gf_odf_av1_cfg_new();
+
+	if (ctx->bsmode == IAMF) {
+		gf_iamf_init_state(iamfstate);
+	} else {
+		gf_av1_init_state(av1state);
+		av1state->skip_frames = GF_TRUE;
+		av1state->config = gf_odf_av1_cfg_new();
+	}
 
 	max_pts = last_pts = 0;
 	duration = 0;
@@ -422,6 +428,9 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		 		is_sap = GF_TRUE;
 		 		pts *= ctx->cur_fps.den;
 			}
+			break;
+		case IAMF:
+			e = aom_iamf_parse_temporal_unit(bs, iamfstate);
 			break;
 		default:
 			e = GF_NOT_SUPPORTED;
