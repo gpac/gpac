@@ -937,6 +937,12 @@ typedef struct
 
 	/*frame parsing state*/
 	IamfStateFrame frame_state;
+
+	/* The temporal units (audio frame + parameter block OBUs) are written to this bitstrea*/
+	GF_BitStream *bs;
+
+	/*IAMF config record - shall not be null when parsing - this is NOT destroyed by gf_iamf_reset_state(state, GF_TRUE) */
+	GF_IAConfig *config;
 } IAMFState;
 
 #define AV1_NUM_REF_FRAMES 8

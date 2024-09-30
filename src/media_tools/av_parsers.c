@@ -4120,6 +4120,8 @@ void gf_iamf_init_state(IAMFState *state)
 
 	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
 	state->frame_state.num_audio_frames_in_temporal_unit = 0;
+
+	state->config = gf_odf_ia_cfg_new();
 }
 
 GF_EXPORT
