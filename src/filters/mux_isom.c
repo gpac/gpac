@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/id3.h>
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MP4MX)
 
@@ -416,6 +417,10 @@ typedef struct
 	Bool has_chap_tracks;
 
 	GF_List *ref_pcks;
+
+	//create id3 sequence
+	u32 id3_id_sequence;
+	const GF_PropertyValue *last_id3_processed;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
@@ -6423,50 +6428,65 @@ GF_Err mp4mx_reload_output(GF_MP4MuxCtx *ctx)
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *emsg_prop)
+static void mp4_process_id3(GF_MovieFragmentBox *moof, const GF_PropertyValue *emsg_prop, u32 id_sequence)
 {
+	GF_Err err = GF_OK;
+	GF_ID3_TAG id3_tag;
 	GF_BitStream *bs = gf_bs_new(emsg_prop->value.data.ptr, emsg_prop->value.data.size, GF_BITSTREAM_READ);
-	GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
 
-	u32 timescale = gf_bs_read_u32(bs);   // timescale
-	u64 pts_delta = gf_bs_read_u64(bs);   // presentation time delta
-	u32 data_length = gf_bs_read_u32(bs); // message data length
+	// first, read the number of tags serialized in the bitstream
+	u32 tag_count = gf_bs_read_u32(bs);
+	for (u32 i = 0; i < tag_count; ++i) {
+		memset(&id3_tag, 0, sizeof(GF_ID3_TAG));
+		err = gf_id3_from_bitstream(&id3_tag, bs);
+		if (err != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error deserializing ID3 tag: %s", gf_error_to_string(err)));
+			gf_id3_tag_free(&id3_tag);
+			gf_bs_del(bs);
+			return;
+		}
 
-	emsg->version = 1;
+		GF_EventMessageBox *emsg = (GF_EventMessageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_EMSG);
 
-	emsg->timescale = timescale;
-	emsg->presentation_time_delta = pts_delta;
-	emsg->event_duration = 0xFFFFFFFF;
-	emsg->event_id = 0;
-	emsg->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
-	emsg->value = gf_strdup("www.nielsen.com:id3:v1");
+		emsg->version = 1;
+		emsg->timescale = id3_tag.timescale;
+		emsg->presentation_time_delta = id3_tag.pts;
+		emsg->event_duration = 0xFFFFFFFF;
+		emsg->event_id = id_sequence;
+		emsg->scheme_id_uri = gf_strdup(id3_tag.scheme_uri);
+		emsg->value = gf_strdup(id3_tag.value_uri);
+		emsg->message_data_size = id3_tag.data_length;
+		emsg->message_data = (u8 *)gf_malloc(id3_tag.data_length);
+		memcpy(emsg->message_data, id3_tag.data, id3_tag.data_length);
 
-	emsg->message_data_size = data_length;
-	emsg->message_data = (u8 *)gf_malloc(emsg->message_data_size);
-
-	u32 read = gf_bs_read_data(bs, emsg->message_data, emsg->message_data_size);
-	if (read != emsg->message_data_size)
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Got less bytes than expected when reading ID3 data, expecting %u, got %u\n", emsg->message_data_size, read))
-
-	gf_bs_del(bs);
-
-	// insert only if its presentation time is not already present
-	u32 i, insert_emsg = GF_TRUE;
-	for (i=0; i<gf_list_count(moof->emsgs); ++i)
-	{
-		GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
-		if (!strcmp(existing_emsg->scheme_id_uri, "https://aomedia.org/emsg/ID3") && !strcpy(existing_emsg->value, "www.nielsen.com:id3:v1")) {
-			if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta) {
-				insert_emsg = GF_FALSE;
-				break;
+		// insert only if its presentation time is not already present
+		u32 i, insert_emsg = GF_TRUE;
+		for (i = 0; i < gf_list_count(moof->emsgs); ++i)
+		{
+			GF_EventMessageBox *existing_emsg = gf_list_get(moof->emsgs, i);
+			if (existing_emsg->presentation_time_delta == emsg->presentation_time_delta)
+			{
+				if (!strcmp(existing_emsg->scheme_id_uri, id3_tag.scheme_uri) && !strcmp(existing_emsg->value, id3_tag.value_uri))
+				{
+					if (existing_emsg->message_data_size == emsg->message_data_size && !memcmp(existing_emsg->message_data, emsg->message_data, emsg->message_data_size))
+						insert_emsg = GF_FALSE;
+					break;
+				}
 			}
 		}
+
+		if (insert_emsg == GF_TRUE) {
+			if (!moof->emsgs)
+				moof->emsgs = gf_list_new();
+			gf_list_add(moof->emsgs, emsg);
+		} else {
+			gf_isom_box_del((GF_Box*)emsg);
+		}
+
+		gf_id3_tag_free(&id3_tag);
 	}
 
-	if (insert_emsg == GF_TRUE) {
-		if (!moof->emsgs) moof->emsgs = gf_list_new();
-		gf_list_add(moof->emsgs, emsg);
-	}
+	gf_bs_del(bs);
 }
 #endif
 
@@ -6644,8 +6664,13 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 
 			//push ID3 packet properties as emsg
 			const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "id3");
-			if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.data.ptr) {
-				mp4_process_id3(ctx->file->moof, emsg);
+			if (emsg && (emsg->type == GF_PROP_DATA) && emsg->value.ptr) {
+				if (emsg != ctx->last_id3_processed) {
+					mp4_process_id3(ctx->file->moof, emsg, ctx->id3_id_sequence);
+					ctx->id3_id_sequence = ctx->id3_id_sequence + 1;
+				}
+
+				ctx->last_id3_processed = emsg;
 			}
 
 			if (ctx->dash_mode) {
@@ -7792,6 +7817,8 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	gf_filter_set_max_extra_input_pids(filter, -1);
 	ctx->filter = filter;
+	time_t current_time =time(NULL);
+	ctx->id3_id_sequence=(long)current_time;
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ctx->store>=MP4MX_MODE_FRAG) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot use fragmented mode, disabled in build\n"));

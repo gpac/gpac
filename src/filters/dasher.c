@@ -316,6 +316,7 @@ typedef struct
 
 	Bool move_to_static;
 	Bool explicit_mode;
+	Bool inband_event;
 } GF_DasherCtx;
 
 typedef enum
@@ -1553,8 +1554,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					if (ac3.streams[0].nb_dep_sub) {
 						_nb_ch += gf_eac3_get_chan_loc_count(ac3.streams[0].chan_loc);
 					}
-                    if (ds->nb_lfe) _nb_ch++;
-                    ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
+					if (ds->nb_lfe) _nb_ch++;
+					ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
 				}
 				break;
 #endif
@@ -2865,6 +2866,26 @@ static void dasher_add_descriptors(GF_List **p_dst_list, const GF_PropertyValue 
 	}
 }
 
+static void dasher_add_inband_event(GF_DashStream *ds)
+{
+	GF_MPD_Inband_Event *nielsen_event;
+	GF_MPD_Inband_Event *custom_event;
+	if(ds->stream_type == GF_STREAM_AUDIO) {
+		GF_SAFEALLOC(custom_event, GF_MPD_Inband_Event);
+		custom_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
+		custom_event->value = gf_strdup("https://aomedia.org/emsg/ID3");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", custom_event->scheme_id_uri, custom_event->value))
+
+		GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
+		nielsen_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
+		nielsen_event->value = gf_strdup("www.nielsen.com:id3:v1");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", nielsen_event->scheme_id_uri, nielsen_event->value))
+
+		gf_list_add(ds->set->inband_event, nielsen_event);
+		gf_list_add(ds->set->inband_event, custom_event);
+	}
+}
+
 static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, count;
@@ -2906,8 +2927,8 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				char *uri=NULL;
 				//all roles defined by dash 5th edition
 				if (!strcmp(role, "caption") || !strcmp(role, "subtitle") || !strcmp(role, "main")
-			        || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")
-			        || !strcmp(role, "dub") || !strcmp(role, "description") || !strcmp(role, "sign")
+				    || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")
+				    || !strcmp(role, "dub") || !strcmp(role, "description") || !strcmp(role, "sign")
 					 || !strcmp(role, "metadata") || !strcmp(role, "enhanced-audio-inteligibility")
 					 || !strcmp(role, "emergency") || !strcmp(role, "forced-subtitle")
 					 || !strcmp(role, "easyreader") || !strcmp(role, "karaoke")
@@ -2987,6 +3008,11 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->supplemental_properties, desc);
 			}
+		}
+
+		//add custom inband event in manifest 
+		if (ctx->inband_event) {
+			dasher_add_inband_event(ds);
 		}
 	}
 	if (ctx->check_main_role && !main_role_set) {
@@ -10833,6 +10859,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(inband_event), "insert a default inband event stream in the DASH manifest", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
