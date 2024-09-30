@@ -194,6 +194,7 @@ struct __gf_download_session
 	//mime type, only used when the session is not cached.
 	char *mime_type;
 	GF_List *headers;
+	u32 rsp_code;
 
 	const char *netcap_id;
 	GF_Socket *sock;
@@ -5130,6 +5131,9 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		e = GF_IP_NETWORK_EMPTY;
 	} else if (sess->status < GF_NETIO_DATA_EXCHANGE) {
 		sess->do_requests(sess);
+		if(sess->headers && sess->needs_range && sess->rsp_code==200) {
+			return GF_IO_BYTE_RANGE_NOT_SUPPORTED;
+		}
 		e = sess->last_error ? sess->last_error : GF_IP_NETWORK_EMPTY;
 	}
 	/*we're running but we had data previously*/
@@ -6016,7 +6020,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	u32 res, i, buf_size;
 	s32 LinePos, Pos;
 	u32 method=0;
-	u32 rsp_code=0, ContentLength, first_byte, last_byte, total_size, range, no_range;
+	u32 ContentLength, first_byte, last_byte, total_size, range, no_range;
 	Bool connection_closed = GF_FALSE;
 	Bool connection_keep_alive = GF_FALSE;
 	u32 connection_timeout=0;
@@ -6103,7 +6107,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			//eg FTP may need extra round trips before we get OK/ not found.
 			//We assume by default OK and will throw an error in curl_flush
 			// curl_fake_hcode can be set in curl_flush to force reprocessing the reply (eg on authentication failure)
-			rsp_code = sess->curl_fake_hcode ? sess->curl_fake_hcode : 200;
+			sess->rsp_code = sess->curl_fake_hcode ? sess->curl_fake_hcode : 200;
 			sess->curl_fake_hcode = 0;
 			long cl=0;
 			curl_easy_getinfo(sess->curl_hnd, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &cl);
@@ -6112,7 +6116,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		} else {
 			long rsp=505;
 			curl_easy_getinfo(sess->curl_hnd, CURLINFO_RESPONSE_CODE, &rsp);
-			rsp_code = rsp;
+			sess->rsp_code = rsp;
 			if (gf_log_tool_level_on(GF_LOG_HTTP, GF_LOG_INFO)) {
 				long http_version;
 				const char *version="unknown";
@@ -6300,7 +6304,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 	}
 
-	no_range = range = ContentLength = first_byte = last_byte = total_size = rsp_code = 0;
+	no_range = range = ContentLength = first_byte = last_byte = total_size = sess->rsp_code = 0;
 
 	if (sess->flags & GF_NETIO_SESSION_NO_BLOCK) {
 		sHTTP = sess->async_req_reply;
@@ -6342,9 +6346,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			}
 			//flush potential body except for PUT/POST
 			if ((method==GF_HTTP_PUT) || (method==GF_HTTP_POST))
-				rsp_code = 200;
+				sess->rsp_code = 200;
 			else
-				rsp_code = 300;
+				sess->rsp_code = 300;
 		} else {
 
 			if (!strncmp("ICY", comp, 3)) {
@@ -6361,7 +6365,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				e = GF_REMOTE_SERVICE_ERROR;
 				goto exit;
 			}
-			rsp_code = (u32) atoi(comp);
+			sess->rsp_code = (u32) atoi(comp);
 			/*Pos = */gf_token_get(buf, Pos, " \r\n", comp, 400);
 
 		}
@@ -6421,13 +6425,13 @@ process_reply:
 
 #ifdef GPAC_HAS_HTTP2
 			if (!stricmp(hdr->name, ":status") ) {
-				rsp_code = (u32) atoi(hdr->value);
+				sess->rsp_code = (u32) atoi(hdr->value);
 			} else
 #endif
 			if (!stricmp(hdr->name, "Content-Length") ) {
 				ContentLength = (u32) atoi(hdr->value);
 
-				if ((rsp_code<300) && sess->cache_entry)
+				if ((sess->rsp_code<300) && sess->cache_entry)
 					gf_cache_set_content_length(sess->cache_entry, ContentLength);
 
 			}
@@ -6446,7 +6450,7 @@ process_reply:
 				if (val) val[0] = 0;
 
 				strlwr(mime);
-				if (rsp_code<300) {
+				if (sess->rsp_code<300) {
 					if (sess->cache_entry) {
 						gf_cache_set_mime_type(sess->cache_entry, mime);
 					} else {
@@ -6489,11 +6493,11 @@ process_reply:
 				}
 			}
 			else if (!stricmp(hdr->name, "ETag")) {
-				if (rsp_code<300)
+				if (sess->rsp_code<300)
 					gf_cache_set_etag_on_server(sess->cache_entry, hdr->value);
 			}
 			else if (!stricmp(hdr->name, "Last-Modified")) {
-				if (rsp_code<300)
+				if (sess->rsp_code<300)
 					gf_cache_set_last_modified_on_server(sess->cache_entry, hdr->value);
 			}
 			else if (!stricmp(hdr->name, "Transfer-Encoding")) {
@@ -6539,7 +6543,7 @@ process_reply:
 			if (sess->status==GF_NETIO_DISCONNECTED) return GF_OK;
 		}
 
-		if ((sess->flags & GF_NETIO_SESSION_AUTO_CACHE) && !ContentLength && (rsp_code>=200) && (rsp_code<300) ) {
+		if ((sess->flags & GF_NETIO_SESSION_AUTO_CACHE) && !ContentLength && (sess->rsp_code>=200) && (sess->rsp_code<300) ) {
 			sess->use_cache_file = GF_FALSE;
 			if (sess->cache_entry) {
 				gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
@@ -6548,7 +6552,7 @@ process_reply:
 		}
 
 		if (cache_no_store) {
-			if (sess->cache_entry && !ContentLength && !sess->chunked && (rsp_code<300)
+			if (sess->cache_entry && !ContentLength && !sess->chunked && (sess->rsp_code<300)
 #ifdef GPAC_HAS_HTTP2
 				&& !sess->h2_sess
 #endif
@@ -6580,16 +6584,16 @@ process_reply:
 
 	par.msg_type = GF_NETIO_PARSE_REPLY;
 	par.error = GF_OK;
-	par.reply = rsp_code;
+	par.reply = sess->rsp_code;
 	par.value = comp;
 	/*
 	 * If response is correct, it means our credentials are correct
 	 */
-	if (sess->creds && rsp_code != 304)
+	if (sess->creds && sess->rsp_code != 304)
 		sess->creds->valid = GF_TRUE;
 
 #ifdef GPAC_HAS_HTTP2
-	if ((rsp_code == 101) && upgrade_to_http2) {
+	if ((sess->rsp_code == 101) && upgrade_to_http2) {
 		int rv;
 		u8 settings[HTTP2_BUFFER_SETTINGS_SIZE];
 		u32 settings_len;
@@ -6630,7 +6634,7 @@ process_reply:
 
 
 	/*try to flush body */
-	if ((rsp_code>=300)
+	if ((sess->rsp_code>=300)
 #ifdef GPAC_HAS_HTTP2
 		&& !sess->h2_sess
 #endif
@@ -6673,7 +6677,7 @@ process_reply:
 			GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
 			if (!stricmp(hdr->name, ":method")) {
 				method = http_parse_method(hdr->value);
-				rsp_code = 200;
+				sess->rsp_code = 200;
 			}
 			else if (!stricmp(hdr->name, ":path")) {
 				if (sess->orig_url) gf_free(sess->orig_url);
@@ -6730,9 +6734,9 @@ process_reply:
 	}
 	//remember if we can keep the session alive after the transfer is done
 	sess->connection_close = connection_closed;
-	gf_assert(rsp_code);
+	gf_assert(sess->rsp_code);
 
-	switch (rsp_code) {
+	switch (sess->rsp_code) {
 	//100 continue
 	case 100:
 		break;
@@ -6930,7 +6934,7 @@ process_reply:
 		}
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
 
-		switch (rsp_code) {
+		switch (sess->rsp_code) {
 		case 204: e = GF_EOS; break;
 		/* File not found */
 		case 404:
@@ -6943,7 +6947,7 @@ process_reply:
 		case 416: e = GF_SERVICE_ERROR; break;
 		case 504: e = GF_URL_ERROR; break;
 		default:
-			if (rsp_code>=500) e = GF_REMOTE_SERVICE_ERROR;
+			if (sess->rsp_code>=500) e = GF_REMOTE_SERVICE_ERROR;
 			else e = GF_SERVICE_ERROR;
 			break;
 		}
@@ -7052,7 +7056,7 @@ process_reply:
 exit:
 	if (e) {
 		if (e<0) {
-			GF_LOG((e==GF_URL_ERROR) ? GF_LOG_INFO : GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Error parsing reply for URL %s: %s (code %d)\n", sess->log_name, sess->orig_url,  gf_error_to_string(e), rsp_code ));
+			GF_LOG((e==GF_URL_ERROR) ? GF_LOG_INFO : GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Error parsing reply for URL %s: %s (code %d)\n", sess->log_name, sess->orig_url,  gf_error_to_string(e), sess->rsp_code ));
 		} else {
 			e = GF_OK;
 		}
