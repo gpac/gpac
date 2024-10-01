@@ -4121,8 +4121,6 @@ void gf_iamf_init_state(IAMFState *state)
 	state->frame_state.found_full_temporal_unit = GF_FALSE;
 	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
 	state->frame_state.num_audio_frames_in_temporal_unit = 0;
-
-	state->config = gf_odf_ia_cfg_new();
 }
 
 GF_EXPORT
@@ -4161,11 +4159,22 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 	{
 		gf_list_del(l1);
 		gf_list_del(l2);
+		if (state->bs) {
+			if (state->temporal_unit_obus) {
+				gf_free(state->temporal_unit_obus);
+				state->temporal_unit_obus = NULL;
+				state->temporal_unit_obus_alloc = 0;
+			}
+			gf_bs_del(state->bs);
+			state->bs = NULL;
+		}
 	}
 	else
 	{
 		state->frame_state.temporal_unit_obus = l1;
 		state->frame_state.descriptor_obus = l2;
+		if (state->bs)
+			gf_bs_seek(state->bs, 0);
 	}
 }
 
@@ -4560,7 +4569,7 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
 
 		obu_trimming_status_flag = gf_bs_read_int(bs, 1);
         if (obu_trimming_status_flag) {
-			if (iamf_is_audio_frame_obu(*obu_type))
+			if (!iamf_is_audio_frame_obu(*obu_type))
 			{
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] An OBU with obu_type = %s must have obu_trimming_status_flag set to 0, but got 1.\n", gf_iamf_get_obu_name(*obu_type)));
 				return GF_NON_COMPLIANT_BITSTREAM;
@@ -4625,7 +4634,7 @@ static void iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 	case 0x6970636d:
 		gf_bs_read_int_log(bs, 8, "sample_format_flags");
 		state->sample_size = gf_bs_read_int_log(bs, 8, "sample_size");
-		state->sample_rate = gf_bs_read_int_log(bs, 8, "sample_rate");
+		state->sample_rate = gf_bs_read_int_log(bs, 32, "sample_rate");
 		break;
 	// AAC-LC
 	case 0x6d703461:
@@ -4713,6 +4722,14 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 		return;
 	}
 
+	if (!state->bs) {
+		state->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	} else {
+		gf_bs_reassign_buffer(state->bs, state->temporal_unit_obus, state->temporal_unit_obus_alloc);
+		//make sure we don't attempt at freeing this buffer while assigned to the bitstream - cf gf_iamf_reset_state
+		state->temporal_unit_obus = NULL;
+	}
+
 	gf_bs_seek(bs, pos);
 	gf_iamf_parse_obu_header(bs, &obu_type, &obu_size);
 	gf_bs_seek(bs, pos);
@@ -4720,6 +4737,11 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 	a->raw_obu_bytes = gf_malloc((size_t)obu_size);
 	gf_bs_read_data(bs, a->raw_obu_bytes, (u32)obu_size);
 	a->obu_length = obu_size;
+
+	if (iamf_is_temporal_unit_obu(obu_type))
+	{
+		gf_bs_write_data(state->bs, a->raw_obu_bytes, (u32)obu_size);
+	}
 
 	if (!obu_list)
 	{
@@ -4815,15 +4837,15 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 			{
 				state->frame_state.num_audio_frames_in_temporal_unit++;
 			}
-		}
 
-		if (state->frame_state.num_audio_frames_in_temporal_unit == state->total_substreams)
-		{
-			// All audio frames seen for this temporal unit. Proceed to the next.
-			state->frame_state.found_full_temporal_unit = GF_TRUE;
-			state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
-			state->frame_state.num_audio_frames_in_temporal_unit = 0;
-			break;
+			if (state->frame_state.num_audio_frames_in_temporal_unit == state->total_substreams)
+			{
+				// All audio frames seen for this temporal unit. Proceed to the next.
+				state->frame_state.found_full_temporal_unit = GF_TRUE;
+				state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
+				state->frame_state.num_audio_frames_in_temporal_unit = 0;
+				break;
+			}
 		}
 	}
 
