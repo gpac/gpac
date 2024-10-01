@@ -2563,7 +2563,7 @@ static void av1_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_length, ObuT
 		}
 		else {
 			u32 remain = (u32)obu_length;
-			while (remain) {
+while (remain) {
 				u32 block_size = OBU_BLOCK_SIZE;
 				if (block_size > remain) block_size = remain;
 				gf_bs_read_data(bs, block, block_size);
@@ -4671,6 +4671,10 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
         gf_bs_mark_overflow(bs, GF_TRUE);
 
         e = gf_iamf_parse_obu_header(bs, obu_type, obu_size);
+		if (gf_bs_is_overflow(bs) || (gf_bs_available(bs) < *obu_size) ) {
+			gf_bs_seek(bs, pos);
+			return GF_BUFFER_TOO_SMALL;
+		}
 
         if (gf_bs_is_overflow(bs)) {
               GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
@@ -4708,8 +4712,8 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
 		// Skip over to the end of the OBU.
 		gf_bs_seek(bs, pos + *obu_size);
 
-		return e;
-}
+			return e;
+		}
 
 static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfObuType obu_type, GF_List **obu_list, IAMFState *state)
 {
@@ -4756,7 +4760,7 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 	gf_list_add(*obu_list, a);
 }
 
-static void iamf_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, ObuType obu_type, IAMFState *state)
+static void iamf_populate_state_from_obu(GF_BitStream *bs, u64 pos, u64 obu_length, IamfObuType obu_type, IAMFState *state)
 {
 	GF_List **list;
 	if (iamf_is_descriptor_obu(obu_type))
