@@ -2293,7 +2293,7 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 
 		inspect_printf(dump, ">\n");
 
-		if (segmentation_upid_length) {
+		if (segmentation_upid_type !=0 && segmentation_upid_length) {
 			// jump back to SegmentUpid to dump values
 			gf_bs_seek(bs, segmentation_upid_pos);
 
