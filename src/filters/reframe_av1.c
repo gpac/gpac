@@ -183,8 +183,9 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	if (gf_media_probe_iamf(bs)) {
 		ctx->bsmode = IAMF;
 		ctx->is_iamf = GF_TRUE;
-		// TODO: should this be the underlying audio element codec ID?
+		// TODO(IAMF): should this be the underlying audio element codec ID?
 		ctx->codecid = GF_CODECID_IAMF;
+		if (last_obu_end) (*last_obu_end) = (u32) gf_bs_get_position(bs);
 
 		return GF_OK;
 	}
@@ -712,7 +713,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			ctx->iamfstate.config->configOBUs_size += a->obu_length;
 			gf_list_rem(ctx->iamfstate.frame_state.descriptor_obus, 0);
 		}
-
+	
 		gf_odf_ia_cfg_write(ctx->iamfstate.config, &dsi, &dsi_size);
 
 		// Compute the CRC of the entire iacb box.
@@ -1175,10 +1176,15 @@ GF_Err av1dmx_parse_iamf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	//first TU loaded !
-        if (ctx->iamfstate.frame_state.found_full_temporal_unit) {
+	u64 start = gf_bs_get_position(ctx->bs);
+    if (ctx->iamfstate.frame_state.found_full_temporal_unit) {
 		e = GF_OK;
-        } else {
+    } else {
 		e = aom_iamf_parse_temporal_unit(ctx->bs, &ctx->iamfstate);
+		if (e==GF_BUFFER_TOO_SMALL) {
+			gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
+			gf_bs_seek(ctx->bs, start);
+		}
 	}
 
 	//check pid state
