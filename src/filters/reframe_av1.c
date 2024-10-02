@@ -183,7 +183,6 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	if (gf_media_probe_iamf(bs)) {
 		ctx->bsmode = IAMF;
 		ctx->is_iamf = GF_TRUE;
-		// TODO(IAMF): should this be the underlying audio element codec ID?
 		ctx->codecid = GF_CODECID_IAMF;
 		if (last_obu_end) (*last_obu_end) = (u32) gf_bs_get_position(bs);
 

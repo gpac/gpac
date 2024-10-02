@@ -953,6 +953,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool use_vvc = GF_FALSE;
 	Bool use_hvt1 = GF_FALSE;
 	Bool use_av1 = GF_FALSE;
+	Bool use_iamf = GF_FALSE;
 	Bool use_vpX = GF_FALSE;
 	Bool use_mj2 = GF_FALSE;
 	Bool use_opus = GF_FALSE;
@@ -2162,7 +2163,12 @@ sample_entry_setup:
 		use_av1 = GF_TRUE;
 		comp_name = "AOM AV1 Video";
 		break;
-
+	case GF_CODECID_IAMF:
+		use_gen_sample_entry = GF_FALSE;
+		m_subtype = GF_ISOM_SUBTYPE_IAMF;
+		use_iamf = GF_TRUE;
+		comp_name = "AOM IAMF Audio";
+		break;
 	case GF_CODECID_VP8:
 		use_gen_sample_entry = GF_FALSE;
 		m_subtype = GF_ISOM_SUBTYPE_VP08;
@@ -2824,7 +2830,32 @@ sample_entry_setup:
 		}
 
 		gf_odf_av1_cfg_del(av1c);
-	} else if (use_vpX) {
+	} else if (use_iamf) {
+		GF_IAConfig *iacb;
+
+		if (!dsi) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for IAMF\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		iacb = gf_odf_ia_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!iacb) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to parser IAMF decoder specific info\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		e = gf_isom_ia_config_new(ctx->file, tkw->track_num, iacb, (char *) src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new IAMF sample description: %s\n", gf_error_to_string(e) ));
+			return e;
+		}
+
+		if (!tkw->has_brands) {
+			gf_isom_set_brand_info(ctx->file, GF_ISOM_BRAND_MP42, 1);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, GF_TRUE);
+			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_IAMF, GF_TRUE);
+		}
+	}
+	else if (use_vpX) {
 		GF_VPConfig *vpc;
 
 		if (!dsi) {
@@ -5464,7 +5495,6 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		break;
 	case GF_CODECID_AV1:
 		if (!dsi) return GF_OK;
-
 		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AV1C);
 		((GF_AV1ConfigurationBox *)config_box)->config = gf_odf_av1_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
@@ -5484,6 +5514,15 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 			image_props.bits_per_channel[2] = depth;
 		}
 		media_brand = GF_ISOM_BRAND_AVIF;
+		break;
+	case GF_CODECID_IAMF:
+		if (!dsi) return GF_OK;
+		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_IAMF);
+		((GF_IAConfigurationBox *)config_box)->cfg = gf_odf_ia_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (! ((GF_IAConfigurationBox *)config_box)->cfg) return GF_NON_COMPLIANT_BITSTREAM;
+
+		item_type = GF_ISOM_SUBTYPE_IAMF;
+		media_brand = GF_ISOM_BRAND_IAMF;
 		break;
 	case GF_CODECID_JPEG:
 		item_type = GF_ISOM_SUBTYPE_JPEG;

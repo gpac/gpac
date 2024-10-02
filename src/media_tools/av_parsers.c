@@ -4671,7 +4671,8 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
         gf_bs_mark_overflow(bs, GF_TRUE);
 
         e = gf_iamf_parse_obu_header(bs, obu_type, obu_size);
-		if (gf_bs_is_overflow(bs) || (gf_bs_available(bs) < *obu_size) ) {
+		u64 header_size = gf_bs_get_position(bs) - pos; 
+		if (gf_bs_is_overflow(bs) || (gf_bs_available(bs) < (*obu_size - header_size)) ) {
 			gf_bs_seek(bs, pos);
 			return GF_BUFFER_TOO_SMALL;
 		}
