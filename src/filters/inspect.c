@@ -3713,6 +3713,15 @@ props_done:
 		case GF_CODECID_EVTE:
 			inspect_dump_boxes(ctx, pctx, (char *) data, size, dump);
 			break;
+		case GF_CODECID_SCTE35:
+		{
+			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+			inspect_printf(dump, " <SCTE35>\n");
+			scte35_dump(ctx, dump, bs);
+			inspect_printf(dump, " </SCTE35>\n");
+			gf_bs_del(bs);
+		}
+			break;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
 		case GF_CODECID_SIMPLE_TEXT:
@@ -4642,6 +4651,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MPEG_AUDIO_L1:
 	case GF_CODECID_TMCD:
 	case GF_CODECID_EVTE:
+	case GF_CODECID_SCTE35:
 		inspect_printf(dump, "/>\n");
 		return;
 	case GF_CODECID_SUBS_XML:
