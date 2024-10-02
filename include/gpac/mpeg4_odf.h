@@ -1752,6 +1752,13 @@ GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs);
 */
 void gf_odf_ia_cfg_del(GF_IAConfig *cfg);
 
+/*! gets GF_IAConfig from MPEG-4 DSI
+\param dsi encoded IA decoder specific info
+\param dsi_size encoded IA decoder specific info size
+\return the decoded IAMF config
+ */
+GF_IAConfig *gf_odf_ia_cfg_read(u8 *dsi, u32 dsi_size);
+
 /*! Reads the IAMF config from the bitstream
  \param bs bitstream containing the encoded IAMF descriptors
  \return the IAMF config
