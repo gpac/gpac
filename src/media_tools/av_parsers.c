@@ -4113,10 +4113,13 @@ void gf_iamf_init_state(IAMFState *state)
 	state->sample_rate = 0;
 	state->total_substreams = 0;
 	state->bitstream_has_temporal_delimiters = GF_FALSE;
+	state->pre_skip = 0;
 
 	state->frame_state.seen_first_frame = GF_FALSE;
 	state->frame_state.seen_ia_seq_header = GF_FALSE;
 	state->frame_state.previous_obu_is_descriptor = GF_FALSE;
+	state->frame_state.pre_skip_is_finalized = GF_FALSE;
+	state->frame_state.previous_num_samples_to_trim_at_start = 0;
 
 	state->frame_state.found_full_temporal_unit = GF_FALSE;
 	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
@@ -4547,7 +4550,7 @@ const char *gf_iamf_get_obu_name(IamfObuType obu_type)
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 static
-GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size)
+GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size, u64 *num_samples_to_trim_at_start)
 {
         Bool obu_redundant_copy;
         Bool obu_trimming_status_flag;
@@ -4589,10 +4592,14 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
         *obu_size += (u32)gf_av1_leb128_read(bs, &leb128_size);
         *obu_size += leb128_size;
 
+		u64 read_num_samples_to_trim_at_start = 0;
         if (obu_trimming_status_flag) {
               /*num_samples_to_trim_at_end=*/gf_av1_leb128_read(bs, NULL);
-              /*num_samples_to_trim_at_start=*/gf_av1_leb128_read(bs, NULL);
+			  read_num_samples_to_trim_at_start = gf_av1_leb128_read(bs, NULL);
         }
+		if(num_samples_to_trim_at_start) {
+			*num_samples_to_trim_at_start = read_num_samples_to_trim_at_start;
+		}
 
         if (obu_extension_flag) {
               extension_header_size = (u32)gf_av1_leb128_read(bs, NULL);
@@ -4670,7 +4677,7 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
 
         gf_bs_mark_overflow(bs, GF_TRUE);
 
-        e = gf_iamf_parse_obu_header(bs, obu_type, obu_size);
+        e = gf_iamf_parse_obu_header(bs, obu_type, obu_size, &state->frame_state.previous_num_samples_to_trim_at_start);
 		u64 header_size = gf_bs_get_position(bs) - pos; 
 		if (gf_bs_is_overflow(bs) || (gf_bs_available(bs) < (*obu_size - header_size)) ) {
 			gf_bs_seek(bs, pos);
@@ -4736,7 +4743,7 @@ static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfO
 	}
 
 	gf_bs_seek(bs, pos);
-	gf_iamf_parse_obu_header(bs, &obu_type, &obu_size);
+	gf_iamf_parse_obu_header(bs, &obu_type, &obu_size, NULL);
 	gf_bs_seek(bs, pos);
 
 	a->raw_obu_bytes = gf_malloc((size_t)obu_size);
@@ -4845,6 +4852,18 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 
 			if (state->frame_state.num_audio_frames_in_temporal_unit == state->total_substreams)
 			{
+				// Track the cumulative trimming information from the state.
+				if(state->frame_state.pre_skip_is_finalized && state->frame_state.previous_num_samples_to_trim_at_start) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] Cannot have frames trimmed from start after the first frame with samples.\n"));
+					return GF_NON_COMPLIANT_BITSTREAM;
+				} else if (!state->frame_state.pre_skip_is_finalized) {
+					// IAMF requires all audio frames to have the same pre-skip; infer it from the final frame.
+					state->pre_skip += state->frame_state.previous_num_samples_to_trim_at_start;
+					if(state->frame_state.previous_num_samples_to_trim_at_start < state->num_samples_per_frame) {
+						state->frame_state.pre_skip_is_finalized = GF_TRUE;
+					}
+				}
+
 				// All audio frames seen for this temporal unit. Proceed to the next.
 				state->frame_state.found_full_temporal_unit = GF_TRUE;
 				state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;

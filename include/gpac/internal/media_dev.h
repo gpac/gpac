@@ -920,6 +920,9 @@ typedef struct
 	Bool found_full_temporal_unit;
 	Bool seen_first_obu_in_temporal_unit;
 	int num_audio_frames_in_temporal_unit;
+	// True when enough samples have been seen to determine the pre-skip.
+	Bool pre_skip_is_finalized;
+	u64 previous_num_samples_to_trim_at_start;
 
 	GF_List *descriptor_obus, *temporal_unit_obus; /*GF_IamfObu*/
 } IamfStateFrame;
@@ -935,6 +938,8 @@ typedef struct
 	// Determined based on the first Temporal Unit.
 	// TODO: Init once the first temporal unit is processed.
 	Bool bitstream_has_temporal_delimiters;
+	// Determined based on the initial Temporal Units. Only valid when `pre_skip_is_finalized`.
+	u64 pre_skip;
 
 	/*frame parsing state*/
 	IamfStateFrame frame_state;
