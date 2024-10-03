@@ -4157,6 +4157,8 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 
 	// Reset temporal unit status, now that it has been flushed.
 	state->frame_state.found_full_temporal_unit = GF_FALSE;
+	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
+	state->frame_state.num_audio_frames_in_temporal_unit = 0;
 
 	if (is_destroy)
 	{
@@ -4692,6 +4694,7 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
 		{
 		case OBU_IA_SEQUENCE_HEADER:
 			iamf_parse_ia_sequence_header(bs, state);
+			state->total_substreams = 0;
 			break;
 		case OBU_IA_CODEC_CONFIG:
 			iamf_parse_codec_config(bs, state);

@@ -744,6 +744,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (!ctx->timescale) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
 	}
+
 	//if we have a FPS prop, use it
 	if (!gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS))
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
@@ -1183,9 +1184,9 @@ GF_Err av1dmx_parse_iamf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	//first TU loaded !
 	u64 start = gf_bs_get_position(ctx->bs);
-    if (ctx->iamfstate.frame_state.found_full_temporal_unit) {
+	if (ctx->iamfstate.frame_state.found_full_temporal_unit) {
 		e = GF_OK;
-    } else {
+	} else {
 		e = aom_iamf_parse_temporal_unit(ctx->bs, &ctx->iamfstate);
 		if (e==GF_BUFFER_TOO_SMALL) {
 			gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
