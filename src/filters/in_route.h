@@ -47,13 +47,13 @@ typedef struct
 	char *seg_name;
 } SegInfo;
 
-enum
+typedef enum
 {
 	ROUTEIN_REPAIR_NO = 0,
 	ROUTEIN_REPAIR_SIMPLE,
 	ROUTEIN_REPAIR_STRICT,
 	ROUTEIN_REPAIR_FULL,
-};
+} RouteRepairType;
 
 typedef struct _route_repair_seg_info RepairSegmentInfo;
 
@@ -86,7 +86,8 @@ typedef struct
 	//options
 	char *src, *ifce, *odir;
 	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel;
-	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
+	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached;
+	RouteRepairType repair;
 	u32 max_sess;
 	s32 tunein, stsi;
 	GF_PropStringList repair_urls;
