@@ -333,7 +333,8 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (nal_size && (*delim_flags != 3) && (nal_type<=GF_HEVC_NALU_SLICE_CRA) && ctx->hevc_state) {
 				u8 nut, tid, lid;
-				gf_hevc_parse_nalu(data+pos, nal_size, ctx->hevc_state, &nut, &tid, &lid);
+				s32 ret = gf_hevc_parse_nalu(data+pos, nal_size, ctx->hevc_state, &nut, &tid, &lid);
+				if (ret) break;
 				u32 flags=0;
 
 				switch (ctx->hevc_state->s_info.slice_type) {
