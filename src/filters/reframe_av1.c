@@ -646,7 +646,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	//no config or no config change
 	if (ctx->is_av1 && !gf_list_count(ctx->state.frame_state.header_obus)) return;
-	if (ctx->is_iamf && ctx->iamfstate.frame_state.pre_skip_is_finalized && !gf_list_count(ctx->iamfstate.frame_state.descriptor_obus)) return;
+	if (ctx->is_iamf && (!ctx->iamfstate.frame_state.pre_skip_is_finalized || !gf_list_count(ctx->iamfstate.frame_state.descriptor_obus))) return;
 
 	if (ctx->is_iamf) {
 		ctx->cur_fps.num = ctx->iamfstate.sample_rate;
@@ -1207,7 +1207,7 @@ GF_Err av1dmx_parse_iamf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (!ctx->opid) {
 		switch (ctx->bsmode) {
 		case IAMF:
-			if (ctx->iamfstate.frame_state.seen_first_frame) {
+			if (ctx->iamfstate.frame_state.pre_skip_is_finalized) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1Dmx] output pid not configured (no IAMF Descriptors yet?), skipping OBUs\n"));
 			}
 			gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);

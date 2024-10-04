@@ -23,6 +23,7 @@
  *
  */
 
+#include <include/gpac/internal/odf_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 #include <gpac/mpeg4_odf.h>
@@ -4116,7 +4117,7 @@ void gf_iamf_init_state(IAMFState *state)
 	state->pre_skip = 0;
 
 	state->frame_state.seen_first_frame = GF_FALSE;
-	state->frame_state.seen_ia_seq_header = GF_FALSE;
+	state->frame_state.seen_valid_ia_seq_header = GF_FALSE;
 	state->frame_state.previous_obu_is_descriptor = GF_FALSE;
 	state->frame_state.pre_skip_is_finalized = GF_FALSE;
 	state->frame_state.previous_num_samples_to_trim_at_start = 0;
@@ -4124,6 +4125,8 @@ void gf_iamf_init_state(IAMFState *state)
 	state->frame_state.found_full_temporal_unit = GF_FALSE;
 	state->frame_state.seen_first_obu_in_temporal_unit = GF_FALSE;
 	state->frame_state.num_audio_frames_in_temporal_unit = 0;
+
+	state->frame_state.cache_descriptor_obus = GF_FALSE;
 }
 
 GF_EXPORT
@@ -4131,7 +4134,7 @@ void gf_iamf_reset_state(IAMFState *state, Bool is_destroy)
 {
 	GF_List *l1, *l2;
 
-	if (state->frame_state.descriptor_obus)
+	if (state->frame_state.descriptor_obus && (!state->frame_state.cache_descriptor_obus || is_destroy))
 	{
 		while (gf_list_count(state->frame_state.descriptor_obus))
 		{
@@ -4496,18 +4499,6 @@ GF_Err gf_media_prores_parse_bs(GF_BitStream *bs, GF_ProResFrameInfo *prores_fra
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
-Bool gf_media_probe_iamf(GF_BitStream *bs)
-{
-	const int obu_type_bit_count = 5;
-	u32 dw = 0;
-	if (gf_bs_available(bs) < obu_type_bit_count) return GF_FALSE;
-	dw = gf_bs_peek_bits(bs, 5, 0);
-	if (dw != OBU_IA_SEQUENCE_HEADER) {
-		return GF_FALSE;
-	}
-	return GF_TRUE;
-}
-
 GF_EXPORT
 const char *gf_iamf_get_obu_name(IamfObuType obu_type)
 {
@@ -4613,46 +4604,96 @@ GF_Err gf_iamf_parse_obu_header(GF_BitStream *bs, IamfObuType *obu_type, u64 *ob
         return GF_OK;
 }
 
-static void iamf_parse_ia_sequence_header(GF_BitStream *bs, IAMFState *state)
+static Bool iamf_is_profile_supported(u8 profile)
 {
-	state->frame_state.seen_ia_seq_header = GF_TRUE;
-	gf_bs_read_int_log(bs, 32, "ia_code");
-	gf_bs_read_int_log(bs, 8, "primary_profile");
-	gf_bs_read_int_log(bs, 8, "additional_profile");
+	return profile == 0 || profile == 1 || profile == 2;
 }
 
-static void iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
+static GF_Err iamf_parse_ia_sequence_header(GF_BitStream *bs)
 {
+	u32 ia_code = gf_bs_read_int_log(bs, 32, "ia_code");
+	if (ia_code != GF_4CC('i', 'a', 'm', 'f'))
+	{
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	u8 primary_profile = gf_bs_read_int_log(bs, 8, "primary_profile");
+	u8 additional_profile = gf_bs_read_int_log(bs, 8, "additional_profile");
+	if (iamf_is_profile_supported(primary_profile) || iamf_is_profile_supported(additional_profile))
+	{
+		return GF_OK;
+	}
+
+	// Maybe this is a future version of IAMF, which claims some backwards incompatibility.
+	return GF_NOT_SUPPORTED;
+}
+
+static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
+{
+	GF_Descriptor *desc = NULL;
+	GF_Err e = GF_OK;
 	gf_av1_leb128_read(bs, NULL); // `codec_config_id`.
 	u32 codec_id = gf_bs_read_int_log(bs, 32, "codec_id");
 	state->num_samples_per_frame = gf_av1_leb128_read(bs, NULL);
 	gf_bs_read_int_log(bs, 16, "roll_distance");
-	// TODO: Update style of 4cc constants.
 	switch (codec_id)
 	{
-	// Opus
-	case 0x4f707573:
+	case GF_4CC('O', 'p', 'u', 's'):
 		state->sample_rate = 48000;
 		state->sample_size = 16;
 		break;
-	// FLAC
-	case 0x664c6143:
-		// TODO: Determine `sample_rate` and `sample_size` for FLAC.
+	case GF_4CC('f', 'L', 'a', 'C'):
+		gf_bs_read_int_log(bs, 1, "last_metadata_block_flag");
+		gf_bs_read_int_log(bs, 7, "block_type");
+		gf_bs_read_int_log(bs, 24, "block_length");
+		gf_bs_read_int_log(bs, 16, "minimum_block_size");
+		gf_bs_read_int_log(bs, 16, "maximum_block_size");
+		gf_bs_read_int_log(bs, 24, "minimum_frame_size");
+		gf_bs_read_int_log(bs, 24, "maximum_frame_size");
+		state->sample_rate = gf_bs_read_int_log(bs, 24, "sample_rate");
+		gf_bs_read_int_log(bs, 3, "num_of_channels");
+		state->sample_size = gf_bs_read_int_log(bs, 5, "bits_per_sample");
 		break;
-	// LPCM
-	case 0x6970636d:
+	// LPCM.
+	case GF_4CC('i', 'p', 'c', 'm'):
 		gf_bs_read_int_log(bs, 8, "sample_format_flags");
 		state->sample_size = gf_bs_read_int_log(bs, 8, "sample_size");
 		state->sample_rate = gf_bs_read_int_log(bs, 32, "sample_rate");
 		break;
-	// AAC-LC
-	case 0x6d703461:
-		// TODO: Determine `sample_rate` and `sample_size` for AAC.
+	// AAC-LC.
+	case GF_4CC('m', 'p', '4', 'a'):
+		// Read `DecoderConfig`.
+		u32 unused_size;
+		e = gf_odf_parse_descriptor(bs, &desc, &unused_size);
+		if (!desc || desc->tag != GF_ODF_DCD_TAG)
+		{
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
+		// Check that the `DecoderSpecificInfo` is `AudioSpecificConfig.
+		GF_DecoderConfig *decoder_config = (GF_DecoderConfig *)desc;
+		if (!decoder_config->decoderSpecificInfo || decoder_config->decoderSpecificInfo->tag != GF_ODF_DSI_TAG)
+		{
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
+		// Read the `AacDecoderConfig`.
+		GF_BitStream *aac_decoder_config_bs = gf_bs_new(decoder_config->decoderSpecificInfo->data, decoder_config->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+		GF_M4ADecSpecInfo aac_config;
+		e = gf_m4a_parse_config(aac_decoder_config_bs, &aac_config, GF_FALSE);
+		// All we care about is the sample rate.
+		state->sample_rate = aac_config.base_sr;
+		state->sample_size = 16;
+		gf_bs_del(aac_decoder_config_bs);
 		break;
 	default:
-		// TODO: Error. Codec is unknown.
+		e = GF_NON_COMPLIANT_BITSTREAM;
 		break;
 	}
+
+	if (desc)
+		gf_odf_delete_descriptor(desc);
+
+	return e;
 }
 
 static void iamf_parse_audio_element(GF_BitStream *bs, IAMFState *state)
@@ -4665,6 +4706,27 @@ static void iamf_parse_audio_element(GF_BitStream *bs, IAMFState *state)
 	state->total_substreams += num_substreams;
 	// OK to skip over the rest.
 	return;
+}
+
+Bool gf_media_probe_iamf(GF_BitStream *bs)
+{
+	u64 start;
+	GF_Err e;
+	IamfObuType obu_type;
+	u64 obu_size;
+
+	start = gf_bs_get_position(bs);
+	e = gf_iamf_parse_obu_header(bs, &obu_type, &obu_size, NULL);
+	if (e || obu_type != OBU_IA_SEQUENCE_HEADER)
+	{
+		gf_bs_seek(bs, start);
+		return GF_FALSE;
+	}
+
+	// Likely IAMF. Check the IA Sequence header is valid.
+	e = iamf_parse_ia_sequence_header(bs);
+	gf_bs_seek(bs, start);
+	return !e;
 }
 
 GF_EXPORT
@@ -4690,14 +4752,18 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
               GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] OBU parsing consumed too many bytes.\n"));
               e = GF_NON_COMPLIANT_BITSTREAM;
         }
+		if (e)
+			return e;
 		switch (*obu_type)
 		{
 		case OBU_IA_SEQUENCE_HEADER:
-			iamf_parse_ia_sequence_header(bs, state);
+			e = iamf_parse_ia_sequence_header(bs);
+			if (!e)
+				state->frame_state.seen_valid_ia_seq_header = GF_TRUE;
 			state->total_substreams = 0;
 			break;
 		case OBU_IA_CODEC_CONFIG:
-			iamf_parse_codec_config(bs, state);
+			e = iamf_parse_codec_config(bs, state);
 			break;
 		case OBU_IA_AUDIO_ELEMENT:
 			iamf_parse_audio_element(bs, state);
@@ -4723,8 +4789,8 @@ GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size,
 		// Skip over to the end of the OBU.
 		gf_bs_seek(bs, pos + *obu_size);
 
-			return e;
-		}
+		return e;
+}
 
 static void iamf_add_obu_internal(GF_BitStream *bs, u64 pos, u64 obu_size, IamfObuType obu_type, GF_List **obu_list, IAMFState *state)
 {
@@ -4863,7 +4929,11 @@ GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state)
 					// IAMF requires all audio frames to have the same pre-skip; infer it from the final frame.
 					state->pre_skip += state->frame_state.previous_num_samples_to_trim_at_start;
 					if(state->frame_state.previous_num_samples_to_trim_at_start < state->num_samples_per_frame) {
+						state->frame_state.cache_descriptor_obus = GF_FALSE;
 						state->frame_state.pre_skip_is_finalized = GF_TRUE;
+					} else {
+						// Cache the descriptor OBUs until we determine the pre-skip.
+						state->frame_state.cache_descriptor_obus = GF_TRUE;
 					}
 				}
 
