@@ -912,7 +912,7 @@ typedef struct
 
 typedef struct
 {
-	Bool seen_ia_seq_header;
+	Bool seen_valid_ia_seq_header;
 	Bool seen_first_frame;
 	Bool previous_obu_is_descriptor;
 
@@ -924,6 +924,7 @@ typedef struct
 	Bool pre_skip_is_finalized;
 	u64 previous_num_samples_to_trim_at_start;
 
+	Bool cache_descriptor_obus;
 	GF_List *descriptor_obus, *temporal_unit_obus; /*GF_IamfObu*/
 } IamfStateFrame;
 
