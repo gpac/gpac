@@ -1619,9 +1619,9 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 	} else {
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
 	}
-	   if (gen_doc == 1) {
-        gf_sys_format_help(helpout, help_flags, "</div>\n");
-    }
+	if (gen_doc==1) {
+		gf_sys_format_help(helpout, help_flags, "</div>\n");
+	}
 
 	//check syntax
 	if (gen_doc) {
