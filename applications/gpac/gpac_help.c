@@ -1644,7 +1644,7 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname, GF_Filter *filter_inst)
 {
 	u32 idx=0;
-	Bool found = GF_FALSE;
+	Bool found = GF_FALSE, all_opt = !strcmp(optname, "*") || !strcmp(optname, "@");
 	const GF_FilterArgs *args = NULL;
 	if (filter_inst)
 		args = gf_filter_get_args(filter_inst);
@@ -1653,15 +1653,14 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 
 	if (!args) return;
 
-	while (1) {
+	while (!found || all_opt) {
 		const GF_FilterArgs *a = & args[idx];
 		if (!a || !a->arg_name) break;
 		idx++;
-		if (strcmp(a->arg_name, optname)) continue;
+		if (!all_opt && strcmp(a->arg_name, optname)) continue;
 
 		print_filter_arg(a, 0);
 		found = GF_TRUE;
-		break;
 	}
 	if (found) return;
 
