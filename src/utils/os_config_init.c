@@ -2017,7 +2017,9 @@ void gf_sys_print_arg(FILE *helpout, GF_SysPrintArgFlags flags, const GF_GPACArg
 			gf_sys_format_help(helpout, flags | GF_PRINTARG_OPT_DESC, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
 		}
 		gf_sys_format_help(helpout, flags, "\n");
-		fprintf(helpout, "</div>\n");
+		if(gen_doc==1) {
+			fprintf(helpout, "</div>\n");
+		}
 	}
 
 	if ((gen_doc==1) && arg->description && strstr(arg->description, "- "))
