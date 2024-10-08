@@ -1054,7 +1054,7 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		memcpy(output, ctx->iamfstate.temporal_unit_obus, pck_size);
 		if(ctx->iamfstate.frame_state.pre_skip_is_finalized && ctx->iamfstate.pre_skip > 0) {
 			gf_filter_pck_set_roll_info(pck, ctx->iamfstate.pre_skip);
-			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4_PROL);
+			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
 		}
 	} else {
 		memcpy(output, ctx->state.frame_obus, pck_size);
