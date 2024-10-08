@@ -719,13 +719,15 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 	if (ctx->pckp) {
 		u64 bo;
 		u32 duration, idx;
-		sprintf(nhml, "mediaOffset=\""LLU"\" ", ctx->mdia_pos);
-		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-
-		bo = gf_filter_pck_get_byte_offset(pck);
-		if (bo!=GF_FILTER_NO_BO) {
-			sprintf(nhml, "sourceByteOffset=\""LLU"\" ", bo);
+		if (!ctx->nhmlonly) {
+			sprintf(nhml, "mediaOffset=\""LLU"\" ", ctx->mdia_pos);
 			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+
+			bo = gf_filter_pck_get_byte_offset(pck);
+			if (bo!=GF_FILTER_NO_BO) {
+				sprintf(nhml, "sourceByteOffset=\""LLU"\" ", bo);
+				gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+			}
 		}
 		duration = gf_filter_pck_get_duration(pck);
 		if (duration) {
