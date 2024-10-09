@@ -774,7 +774,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		}
 
 		d_pos = 0;
-		while (d_pos < descs_size) {
+		while (d_pos+1 < descs_size) {
 			u8 d_tag = data[pos+d_pos];
 			u8 d_len = data[pos+d_pos+1];
 
