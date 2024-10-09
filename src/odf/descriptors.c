@@ -1931,3 +1931,123 @@ GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size)
 	gf_bs_del(bs);
 	return e;
 }
+
+GF_EXPORT
+GF_IAConfig *gf_odf_ia_cfg_new()
+{
+        GF_IAConfig *cfg;
+        GF_SAFEALLOC(cfg, GF_IAConfig);
+        if (!cfg) return NULL;
+        cfg->configurationVersion = 1;
+        cfg->configOBUs_size = 0;
+        cfg->configOBUs = gf_list_new();
+        return cfg;
+}
+
+GF_EXPORT
+GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
+#ifndef GPAC_DISABLE_AV_PARSERS
+        GF_IAConfig *cfg;
+        u8 leb128_size;
+
+        if (!size) size = (u32) gf_bs_available(bs);
+        if (!size) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown IAConfigurationBox size to read\n"));
+                return NULL;
+        }
+
+        cfg = gf_odf_ia_cfg_new();
+
+        cfg->configurationVersion = gf_bs_read_u8(bs);
+        if (cfg->configurationVersion != 1) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown configurationVersion %d\n", cfg->configurationVersion));
+                return NULL;
+        }
+        size--;
+
+        cfg->configOBUs_size = (u32)gf_av1_leb128_read(bs, &leb128_size);
+        size -= leb128_size;
+
+        while(size) {
+                u64 pos, obu_size;
+                IamfObuType obu_type;
+                GF_IamfObu *config_obu;
+
+                pos = gf_bs_get_position(bs);
+                obu_size = 0;
+                if (gf_iamf_parse_obu(bs, &obu_type, &obu_size) != GF_OK) {
+                      GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] could not parse configOBUs at position "LLU". Leaving parsing.\n", pos));
+                      break;
+                }
+                gf_assert(obu_size == gf_bs_get_position(bs) - pos);
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[IAMF] parsed OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
+
+                GF_SAFEALLOC(config_obu, GF_IamfObu);
+                if (!config_obu) break;
+                config_obu->raw_obu_bytes = gf_malloc((size_t)obu_size);
+                if (!config_obu->raw_obu_bytes) {
+                      gf_free(config_obu);
+                      break;
+                }
+                gf_bs_seek(bs, pos);
+                gf_bs_read_data(bs, (char *)config_obu->raw_obu_bytes, (u32)obu_size);
+                config_obu->obu_length = obu_size;
+                config_obu->obu_type = obu_type;
+                gf_list_add(cfg->configOBUs, config_obu);
+
+                if (size < obu_size) {
+                      GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[IAMF] IAMF config misses %d bytes to fit the entire OBU\n", obu_size - size));
+                      break;
+                }
+                size -= (u32) obu_size;
+        }
+        gf_bs_align(bs);
+        return cfg;
+
+#else
+        return NULL;
+#endif
+}
+
+GF_EXPORT
+GF_IAConfig *gf_odf_ia_cfg_read_bs(GF_BitStream *bs) {
+        return gf_odf_ia_cfg_read_bs_size(bs, 0);
+}
+
+GF_EXPORT
+GF_IAConfig *gf_odf_ia_cfg_read(u8 *dsi, u32 dsi_size)
+{
+        GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
+        GF_IAConfig *cfg = gf_odf_ia_cfg_read_bs(bs);
+        gf_bs_del(bs);
+        return cfg;
+}
+
+GF_EXPORT
+void gf_odf_ia_cfg_del(GF_IAConfig *cfg)
+{
+        if (!cfg) return;
+        while (gf_list_count(cfg->configOBUs)) {
+                GF_IamfObu *configOBU = (GF_IamfObu*)gf_list_get(cfg->configOBUs, 0);
+                if (configOBU->raw_obu_bytes) gf_free(configOBU->raw_obu_bytes);
+                gf_list_rem(cfg->configOBUs, 0);
+                gf_free(configOBU);
+        }
+        gf_list_del(cfg->configOBUs);
+        gf_free(cfg);
+}
+
+GF_EXPORT
+GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
+{
+        if (!cfg || !bs) return GF_BAD_PARAM;
+
+        gf_bs_write_u8(bs, cfg->configurationVersion);
+        gf_av1_leb128_write(bs, cfg->configOBUs_size);
+        for (int i = 0; i < gf_list_count(cfg->configOBUs); ++i) {
+                GF_IamfObu *configOBU = gf_list_get(cfg->configOBUs, i);
+                gf_bs_write_data(bs, configOBU->raw_obu_bytes, (u32)configOBU->obu_length);
+        }
+
+        return GF_OK;
+}
