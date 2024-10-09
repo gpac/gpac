@@ -6328,7 +6328,7 @@ int mp4box_main(int argc, char **argv)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, NULL);
 			}
 			if (!crypt && use_init_seg) {
-				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, NULL);
+				file = gf_isom_open(use_init_seg, omode, NULL);
 				if (file) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 					e = gf_isom_open_segment(file, inName, 0, 0, 0);
