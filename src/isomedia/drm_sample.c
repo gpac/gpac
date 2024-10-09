@@ -1559,7 +1559,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		}
 		if ((nb_saio==1) && !saio_cenc->total_size) {
 			for (j = 0; j < saiz->sample_count; j++) {
-				saio_cenc->total_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+				saio_cenc->total_size += (saiz->default_sample_info_size || !saiz->sample_info_size) ? saiz->default_sample_info_size : saiz->sample_info_size[j];
 			}
 		}
 		if (saiz->cached_sample_num+1== sampleNumber) {
@@ -1569,7 +1569,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 				return GF_ISOM_INVALID_FILE;
 
 			for (j = 0; j < sampleNumber-1; j++)
-				prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+				prev_sai_size += (saiz->default_sample_info_size || !saiz->sample_info_size) ? saiz->default_sample_info_size : saiz->sample_info_size[j];
 		}
 		if (saiz->default_sample_info_size) {
 			size = saiz->default_sample_info_size;
@@ -1622,7 +1622,8 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 			(*out_buffer) = gf_realloc((*out_buffer), sizeof(char)*(size) );
 			if (! *out_buffer) return GF_OUT_OF_MEM;
 		}
-		gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer), size);
+		if ((*out_buffer) && size)
+			gf_bs_read_data(mdia->information->dataHandler->bs, (*out_buffer), size);
 	}
 	(*out_size) = size;
 
