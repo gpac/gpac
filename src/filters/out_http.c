@@ -518,6 +518,12 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 
 static void log_request_done(GF_HTTPOutSession *sess);
 
+static void httpout_mark_session_done(GF_HTTPOutSession *sess)
+{
+	sess->done = GF_TRUE;
+	sess->async_pending = 0;
+}
+
 static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session)
 {
 	if (!sess->ctx->blockio) {
@@ -535,7 +541,7 @@ static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session
 		sess->ctx->nb_sess_flush_pending--;
 	}
 	log_request_done(sess);
-	sess->done = GF_TRUE;
+	httpout_mark_session_done(sess);
 
 	if (close_session) {
 		httpout_close_session(sess, GF_OK);
@@ -1189,7 +1195,8 @@ static JSValue httpout_js_send(JSContext *c, JSValueConst this_val, int argc, JS
 		sess->reply = 500;
 	JS_FreeValue(c, ret);
 
-
+	sess->content_length = 0;
+	sess->use_chunk_transfer = GF_FALSE;
 	JSValue hdrs = JS_GetPropertyStr(c, sess->obj, "headers_out");
 	u32 i, nb_hdrs=0;
 	ret = JS_GetPropertyStr(c, hdrs, "length");
@@ -1206,6 +1213,10 @@ static JSValue httpout_js_send(JSContext *c, JSValueConst this_val, int argc, JS
 			if (!sess->headers) sess->headers = gf_list_new();
 			gf_list_add(sess->headers, gf_strdup(n));
 			gf_list_add(sess->headers, gf_strdup(v));
+			if (!stricmp(n, "Content-Length"))
+				sess->content_length = atoi(v);
+			if (!stricmp(n, "Transfer-Encoding") && !stricmp(v, "chunked") && !sess->is_h2)
+				sess->use_chunk_transfer=GF_TRUE;
 		}
 		if (n) JS_FreeCString(c, n);
 		if (v) JS_FreeCString(c, v);
@@ -1264,6 +1275,7 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 	JS_SetPropertyStr(c, obj, "auth_code", JS_NewInt32(c, auth_code ));
 	JS_SetPropertyStr(c, obj, "send", JS_NewCFunction(c, httpout_js_send, "send", 0) );
 	JS_SetPropertyStr(c, obj, "reply", JS_NewInt32(c, 0));
+	JS_SetPropertyStr(c, obj, "tls", JS_NewBool(c, sess->ctx->ssl_ctx ? 1 : 0));
 
 	JS_FreeValue(c, sess->obj);
 	sess->obj = obj;
@@ -1446,6 +1458,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			hdrs[nb_hdrs+1] = (char*)val;
 			nb_hdrs+=2;
 		}
+		sess->nb_bytes = sess->bytes_in_req = 0;
 
 		u32 auth_code = httpout_auth_check(NULL, gf_dm_sess_get_header(sess->http_sess, "Authorization"), GF_FALSE);
 		s32 ret = sess->ctx->on_request(sess->ctx->rt_udta, sess, get_method_name(parameter->reply), url, auth_code, nb_hdrs, (const char**)hdrs);
@@ -2222,9 +2235,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 	if (response_body) {
 		gf_free(response_body);
-		sess->done = GF_TRUE;
+		httpout_mark_session_done(sess);
 	} else if (parameter->reply == GF_HTTP_DELETE) {
-		sess->done = GF_TRUE;
+		httpout_mark_session_done(sess);
 	} else if (parameter->reply == GF_HTTP_HEAD) {
 		sess->done = GF_FALSE;
 		sess->file_pos = sess->file_size;
@@ -2235,13 +2248,13 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_sk_group_register(sess->ctx->sg, sess->socket);
 		}
 		if (not_modified) {
-			sess->done = GF_TRUE;
+			httpout_mark_session_done(sess);
 		}
 	}
 
 	if (e<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending reply: %s\n", gf_error_to_string(e)));
-		sess->done = GF_TRUE;
+		httpout_mark_session_done(sess);
 	}
 
 	if (sess->done)
@@ -2316,7 +2329,7 @@ exit:
 	}
 
 	if (sess->cbk_read || sess->cbk_write) {
-		if (sess->cbk_read) {
+		if (sess->cbk_read && !sess->content_length) {
 			gf_dm_sess_set_header(sess->http_sess, "Transfer-Encoding", "chunked");
 			sess->use_chunk_transfer=GF_TRUE;
 		}
@@ -2623,7 +2636,7 @@ static void httpout_check_connection(GF_HTTPOutSession *sess)
 	GF_Err e = gf_sk_probe(sess->socket);
 	if (e==GF_IP_CONNECTION_CLOSED) {
 		sess->last_active_time = gf_sys_clock_high_res();
-		sess->done = GF_TRUE;
+		httpout_mark_session_done(sess);
 		sess->canceled = GF_FALSE;
 		sess->upload_type = 0;
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Client %s disconnected, destroying session\n", sess->peer_address));
@@ -3433,7 +3446,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			return;
 		} else if (e==GF_IP_CONNECTION_CLOSED) {
 			sess->last_active_time = gf_sys_clock_high_res();
-			sess->done = GF_TRUE;
+			httpout_mark_session_done(sess);
 			sess->canceled = GF_FALSE;
 			sess->upload_type = 0;
 			httpout_close_session(sess, e);
@@ -3732,7 +3745,7 @@ resend:
 		if (e) {
 			if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_URL_REMOVED)) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Connection to %s for %s closed\n", sess->peer_address, sess->path));
-				sess->done = GF_TRUE;
+				httpout_mark_session_done(sess);
 				sess->canceled = GF_FALSE;
 				httpout_close_session(sess, e);
 				log_request_done(sess);
@@ -5540,6 +5553,8 @@ GF_Err gf_httpout_send_request(GF_HTTPOutSession *sess, void *udta,
 		nb_headers--;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Not enough values in header list, truncating to %u\n", nb_headers));
 	}
+	sess->nb_bytes = 0;
+	sess->bytes_in_req = 0;
 	if (nb_headers) {
 		if (!sess->headers) sess->headers = gf_list_new();
 		u32 i;
@@ -5547,6 +5562,9 @@ GF_Err gf_httpout_send_request(GF_HTTPOutSession *sess, void *udta,
 			if (headers[i] && headers[i+1]) {
 				gf_list_add(sess->headers, gf_strdup(headers[i]));
 				gf_list_add(sess->headers, gf_strdup(headers[i+1]));
+				if (!stricmp(headers[i], "Content-Length")) {
+					sess->bytes_in_req = atoi(headers[i+1]);
+				}
 			}
 		}
 	}

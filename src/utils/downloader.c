@@ -5501,8 +5501,9 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 	if (!strcmp(req_name, "PUT") || !strcmp(req_name, "POST"))
 		sess->put_state = 1;
 
+	//url is the remote path event if proxy (Host header will point to desired host)
 	//note that url is not used for CURL, already setup together with proxy
-	url = (sess->proxy_enabled==1) ? sess->orig_url : sess->remote_path;
+	url = sess->remote_path;
 
 	/*get all headers*/
 	gf_dm_sess_clear_headers(sess);
