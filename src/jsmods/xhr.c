@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2023
+ *			Copyright (c) Telecom ParisTech 2007-2024
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript XmlHttpRequest bindings
@@ -132,7 +132,6 @@ struct __xhr_context
 	/*header/header-val, terminated by NULL*/
 	char **headers;
 	u32 cur_header;
-	char **recv_headers;
 
 	char *method, *url;
 	GF_DownloadSession *sess;
@@ -172,32 +171,6 @@ GF_SceneGraph *xml_http_get_scenegraph(XMLHTTPContext *ctx)
 	return ctx->owning_graph;
 }
 #endif
-
-static void xml_http_reset_recv_hdr(XMLHTTPContext *ctx)
-{
-	u32 nb_hdr = 0;
-	if (ctx->recv_headers) {
-		while (ctx->recv_headers[nb_hdr]) {
-			gf_free(ctx->recv_headers[nb_hdr]);
-			gf_free(ctx->recv_headers[nb_hdr+1]);
-			nb_hdr+=2;
-		}
-		gf_free(ctx->recv_headers);
-		ctx->recv_headers = NULL;
-	}
-}
-
-static void xml_http_append_recv_header(XMLHTTPContext *ctx, const char *hdr, const char *val)
-{
-	u32 nb_hdr = 0;
-	if (ctx->recv_headers) {
-		while (ctx->recv_headers[nb_hdr]) nb_hdr+=2;
-	}
-	ctx->recv_headers = (char **)gf_realloc(ctx->recv_headers, sizeof(char*)*(nb_hdr+3));
-	ctx->recv_headers[nb_hdr] = gf_strdup(hdr);
-	ctx->recv_headers[nb_hdr+1] = gf_strdup(val ? val : "");
-	ctx->recv_headers[nb_hdr+2] = NULL;
-}
 
 static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *val)
 {
@@ -263,7 +236,6 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 			}
 		}
 	}
-	xml_http_append_recv_header(ctx, hdr, val);
 }
 
 static void xml_http_del_data(XMLHTTPContext *ctx)
@@ -282,7 +254,6 @@ static void xml_http_del_data(XMLHTTPContext *ctx)
 
 static void xml_http_reset_partial(XMLHTTPContext *ctx)
 {
-	xml_http_reset_recv_hdr(ctx);
 	xml_http_del_data(ctx);
 	if (ctx->mime) {
 		gf_free(ctx->mime);
@@ -291,6 +262,15 @@ static void xml_http_reset_partial(XMLHTTPContext *ctx)
 	if (ctx->statusText) {
 		gf_free(ctx->statusText);
 		ctx->statusText = NULL;
+	}
+	if (ctx->headers) {
+		u32 i=0;
+		while (ctx->headers[i]) {
+			gf_free(ctx->headers[i]);
+			i++;
+		}
+		gf_free(ctx->headers);
+		ctx->headers = NULL;
 	}
 	ctx->cur_header = 0;
 	ctx->html_status = 0;
@@ -733,8 +713,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_WAIT_FOR_REPLY:
 		/*reset send() state (data, current header) and prepare recv headers*/
 		xml_http_reset_partial(ctx);
-		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
-		xml_http_state_change(ctx);
+//		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
+//		xml_http_state_change(ctx);
 		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
 		if (JS_IsFunction(ctx->c, ctx->onprogress) ) {
 			JSValue rval = JS_Call(ctx->c, ctx->onprogress, ctx->_this, 0, NULL);
@@ -748,8 +728,6 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (parameter->value) {
 			ctx->statusText = gf_strdup(parameter->value);
 		}
-		ctx->readyState = XHR_READYSTATE_LOADING;
-		xml_http_state_change(ctx);
 		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
 		xml_http_state_change(ctx);
 		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
@@ -777,7 +755,6 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 		goto exit;
 	case GF_NETIO_PARSE_HEADER:
-		xml_http_append_recv_header(ctx, parameter->name, parameter->value);
 		/*prepare SAX parser*/
 		if (ctx->responseType != XHR_RESPONSETYPE_SAX) goto exit;
 		if (strcmp(parameter->name, "Content-Type")) goto exit;
@@ -800,6 +777,10 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 		goto exit;
 	case GF_NETIO_DATA_EXCHANGE:
+		if (ctx->readyState == XHR_READYSTATE_HEADERS_RECEIVED) {
+			ctx->readyState = XHR_READYSTATE_LOADING;
+			xml_http_state_change(ctx);
+		}
 		if (parameter->data && parameter->size) {
 			if (ctx->sax) {
 				GF_Err e;
@@ -1073,20 +1054,20 @@ static JSValue xml_http_get_all_headers(JSContext *c, JSValueConst obj, int argc
 {
 	u32 nb_hdr;
 	char *szVal = NULL;
+	const char *hdr_name, *hdr_val;
 	JSValue res;
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	/*must be received or loaded*/
-	if (ctx->readyState<XHR_READYSTATE_LOADING) return GF_JS_EXCEPTION(c);
+	if (ctx->readyState<XHR_READYSTATE_HEADERS_RECEIVED) return GF_JS_EXCEPTION(c);
 	nb_hdr = 0;
-	if (ctx->recv_headers) {
-		while (ctx->recv_headers[nb_hdr]) {
-			if (szVal) gf_dynstrcat(&szVal, "\r\n", NULL);
-			gf_dynstrcat(&szVal, ctx->recv_headers[nb_hdr], NULL);
-			gf_dynstrcat(&szVal, ctx->recv_headers[nb_hdr+1], ": ");
-			nb_hdr+=2;
-		}
+	while (1) {
+		GF_Err e = gf_dm_sess_enum_headers(ctx->sess, &nb_hdr, &hdr_name, &hdr_val);
+		if (e) break;
+		if (szVal) gf_dynstrcat(&szVal, "\r\n", NULL);
+		gf_dynstrcat(&szVal, hdr_name, NULL);
+		gf_dynstrcat(&szVal, hdr_val, ": ");
 	}
 
 	if (!szVal) {
@@ -1099,32 +1080,19 @@ static JSValue xml_http_get_all_headers(JSContext *c, JSValueConst obj, int argc
 
 static JSValue xml_http_get_header(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
-	u32 nb_hdr;
 	const char *hdr;
-	char *szVal = NULL;
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 	/*must be received or loaded*/
-	if (ctx->readyState<XHR_READYSTATE_LOADING) return GF_JS_EXCEPTION(c);
+	if (ctx->readyState<XHR_READYSTATE_HEADERS_RECEIVED) return GF_JS_EXCEPTION(c);
 	hdr = JS_ToCString(c, argv[0]);
-
-	nb_hdr = 0;
-	if (ctx->recv_headers) {
-		while (ctx->recv_headers[nb_hdr]) {
-			if (!strcmp(ctx->recv_headers[nb_hdr], hdr)) {
-				gf_dynstrcat(&szVal, ctx->recv_headers[nb_hdr+1], ", ");
-			}
-			nb_hdr+=2;
-		}
-	}
+	const char *hdr_val = gf_dm_sess_get_header(ctx->sess, hdr);
 	JS_FreeCString(c, hdr);
-	if (!szVal) {
-		return JS_NULL;
-	}
-	JSValue res = JS_NewString(c, szVal);
-	gf_free(szVal);
+	if (!hdr_val) return JS_NULL;
+
+	JSValue res = JS_NewString(c, hdr_val);
 	return res;
 }
 

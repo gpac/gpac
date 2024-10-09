@@ -357,26 +357,34 @@ static JSClassDef jsf_pck_class = {
 	.gc_mark = jsf_filter_pck_mark
 };
 
+#ifndef GPAC_DISABLE_FONTS
+GF_FilterSession *jsff_get_session(JSContext *c, JSValue this_val);
+struct _gf_ft_mgr *gf_fs_get_font_manager(GF_FilterSession *fsess);
+#endif
+GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs);
+
 #ifdef GPAC_USE_DOWNLOADER
 GF_DownloadManager *jsf_get_download_manager(JSContext *c)
 {
 	GF_JSFilterCtx *jsf;
 	JSValue global = JS_GetGlobalObject(c);
 
-	JSValue filter_obj = JS_GetPropertyStr(c, global, "filter");
+	JSValue obj = JS_GetPropertyStr(c, global, "filter");
 	JS_FreeValue(c, global);
-	if (JS_IsNull(filter_obj) || JS_IsException(filter_obj)) return NULL;
-	jsf = JS_GetOpaque(filter_obj, jsf_filter_class_id);
-	JS_FreeValue(c, filter_obj);
-	if (!jsf) return NULL;
-	return gf_filter_get_download_manager(jsf->filter);
+	if (JS_IsNull(obj) || JS_IsException(obj)) return NULL;
+	jsf = JS_GetOpaque(obj, jsf_filter_class_id);
+	JS_FreeValue(c, obj);
+	if (jsf) return gf_filter_get_download_manager(jsf->filter);
+
+	obj = JS_GetPropertyStr(c, global, "session");
+	if (JS_IsNull(obj) || JS_IsException(obj)) return NULL;
+	GF_FilterSession *fs = jsff_get_session(c, obj);
+	JS_FreeValue(c, obj);
+	if (fs) return gf_fs_get_download_manager(fs);
+
+	return NULL;
 }
 #endif //GPAC_USE_DOWNLOADER
-
-#ifndef GPAC_DISABLE_FONTS
-GF_FilterSession *jsff_get_session(JSContext *c, JSValue this_val);
-struct _gf_ft_mgr *gf_fs_get_font_manager(GF_FilterSession *fsess);
-#endif
 
 struct _gf_ft_mgr *jsf_get_font_manager(JSContext *c)
 {
@@ -1737,6 +1745,7 @@ static JSValue jsf_filter_abort(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+GF_Filter *jsff_get_filter(JSContext *c, JSValue this_val);
 
 
 static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool use_restricted)
@@ -1747,9 +1756,20 @@ static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_
 	GF_JSFilterInstanceCtx *jsfi = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
     if (!jsf && !jsfi) return GF_JS_EXCEPTION(ctx);
 
-	GF_JSFilterCtx *f_from = JS_GetOpaque(argv[0], jsf_filter_class_id);
-	GF_JSFilterInstanceCtx *fi_from = JS_GetOpaque(argv[0], jsf_filter_inst_class_id);
-    if (!f_from && !fi_from)  return GF_JS_EXCEPTION(ctx);
+	GF_Filter *src = NULL;
+	if (!src) {
+		GF_JSFilterCtx *f_from = JS_GetOpaque(argv[0], jsf_filter_class_id);
+		if (f_from) src = f_from->filter;
+	}
+	if (!src) {
+		GF_JSFilterInstanceCtx *fi_from = JS_GetOpaque(argv[0], jsf_filter_inst_class_id);
+		if (fi_from) src = fi_from->filter;
+	}
+	if (!src) {
+		src = jsff_get_filter(ctx, argv[0]);
+	}
+
+    if (!src)  return GF_JS_EXCEPTION(ctx);
 
     source_id = NULL;
     if (argc>1) {
@@ -1762,9 +1782,9 @@ static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_
 	}
 
 	if (use_restricted)
-		e = gf_filter_set_source_restricted(jsfi ? jsfi->filter : jsf->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
+		e = gf_filter_set_source_restricted(jsfi ? jsfi->filter : jsf->filter, src, source_id);
 	else
-		e = gf_filter_set_source(jsfi ? jsfi->filter : jsf->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
+		e = gf_filter_set_source(jsfi ? jsfi->filter : jsf->filter, src, source_id);
 
 	JS_FreeCString(ctx, source_id);
 	if (e) return js_throw_err(ctx, e);
