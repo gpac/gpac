@@ -4080,7 +4080,7 @@ static Bool gf_fsess_get_user_pass(void *usr_cbk, Bool secure, const char *site_
 }
 #endif
 
-static GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs)
+GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs)
 {
 #ifdef GPAC_USE_DOWNLOADER
 	if (!fs->download_manager) {
