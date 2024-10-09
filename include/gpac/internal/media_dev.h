@@ -923,6 +923,7 @@ typedef struct
 	// True when enough samples have been seen to determine the pre-skip.
 	Bool pre_skip_is_finalized;
 	u64 previous_num_samples_to_trim_at_start;
+        u64 num_samples_to_trim_at_end;
 
 	Bool cache_descriptor_obus;
 	GF_List *descriptor_obus, *temporal_unit_obus; /*GF_IamfObu*/
@@ -934,6 +935,7 @@ typedef struct
 	int num_samples_per_frame;
 	int sample_size;
 	int sample_rate;
+        s16 audio_roll_distance;
 	// Determined based on Audio Element OBUs.
 	int total_substreams;
 	// Determined based on the first Temporal Unit.

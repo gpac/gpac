@@ -695,7 +695,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	} else if (ctx->is_iamf) {
 		//IAMF Descriptors changed, compute dsi
 
-		//Clear any existing configOBUs - these will be written to the `iacb` box.
+		//Clear any old configOBUs - these will be repopulated from the descriptor OBUs below.
 		while (gf_list_count(ctx->iamfstate.config->configOBUs)) {
 			GF_IamfObu *a = (GF_IamfObu*) gf_list_pop_back(ctx->iamfstate.config->configOBUs);
 			if (a->raw_obu_bytes) gf_free(a->raw_obu_bytes);
@@ -734,7 +734,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->is_iamf) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_AUDIO));
 		if(ctx->iamfstate.pre_skip > 0) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY,  &PROP_LONGSINT(ctx->iamfstate.pre_skip));
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY,  &PROP_LONGSINT(-ctx->iamfstate.pre_skip));
 		}
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
@@ -1052,9 +1052,13 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	if (ctx->is_iamf) {
 		memcpy(output, ctx->iamfstate.temporal_unit_obus, pck_size);
-		if(ctx->iamfstate.frame_state.pre_skip_is_finalized && ctx->iamfstate.pre_skip > 0) {
-			gf_filter_pck_set_roll_info(pck, ctx->iamfstate.pre_skip);
+                if (ctx->iamfstate.audio_roll_distance != 0) {
+			gf_filter_pck_set_roll_info(pck, ctx->iamfstate.audio_roll_distance);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_4);
+                }
+		if (ctx->iamfstate.frame_state.num_samples_to_trim_at_end > 0) {
+			u64 trimmed_duration = ctx->iamfstate.num_samples_per_frame - ctx->iamfstate.frame_state.num_samples_to_trim_at_end;
+			gf_filter_pck_set_duration(pck, trimmed_duration);
 		}
 	} else {
 		memcpy(output, ctx->state.frame_obus, pck_size);
