@@ -2154,12 +2154,8 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 			sepe = gf_file_basename(arg);
 			if (sepe) sepe = strchr(sepe, '.');
 			if (sepe) {
-				if (!strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
-				else if (!strcmp(sepe, ".js")) sepe = NULL;
-				if (sepe) {
-					sepe[0] = 0;
-					optname = sepe+1;
-				}
+				sepe[0] = 0;
+				optname = sepe+1;
 			}
 			fname = arg;
 			sepo = strchr(arg, ':');
@@ -2191,6 +2187,16 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 			if (found_freg || found_filter) {
 				found = GF_TRUE;
 			} else /*if (!strchr(arg, ':')) */ {
+				if (sepe) {
+					optname = NULL;
+					sepe[0] = '.';
+					if (!strncmp(sepe, ".js.", 4)) sepe += 3;  // go to next dot
+					else if (!strcmp(sepe, ".js")) sepe = NULL;
+					if (sepe) {
+						sepe[0] = 0;
+						optname = sepe+1;
+					}
+				}
 				GF_SysArgMode _argmode = argmode;
 				char *js_opt = sepo;
 				if (js_opt) {
