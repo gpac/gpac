@@ -173,6 +173,7 @@ typedef struct
 	//if cur_start.den is 0, cur_start.num is UTC start time
 	//if cur_end.den is 0, cur_start.num is UTC stop time, only if cur_start uses UTC
 	GF_Fraction64 cur_start, cur_end;
+	Bool cur_start_is_tc, cur_end_is_tc;
 	u64 start_frame_idx_plus_one, end_frame_idx_plus_one;
 
 	Bool in_range;
@@ -392,7 +393,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	return GF_OK;
 }
 
-static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode, Bool *is_dur)
+static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode, Bool *is_dur, Bool *is_timecode)
 {
 	u64 v;
 	value->num  =0;
@@ -402,7 +403,22 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		*extract_mode = EXTRACT_RANGE;
 	if (is_dur)
 		*is_dur = GF_FALSE;
+	if (is_timecode)
+		*is_timecode = GF_FALSE;
 
+	if (strlen(date)>2 && date[0]=='T' && date[1]=='C') {
+		u32 h=0, m=0, s=0, n_frames=0;
+		if (sscanf(date, "TC%u:%u:%u:%u", &h, &m, &s, &n_frames) != 4) {
+			goto exit;
+		}
+		v = h*3600 + m*60 + s;
+		v *= 1000;
+		v += n_frames;
+		value->num = v;
+		value->den = 1000;
+		*is_timecode = GF_TRUE;
+		return GF_TRUE;
+	}
 	if (date[0] == 'T') {
 		u32 h=0, m=0, s=0, ms=0;
 		if (strchr(date, '.')) {
@@ -484,7 +500,7 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 	}
 
 exit:
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Unrecognized date format %s, expecting THH:MM:SS[.ms], TMM:SS[.ms], TSS[.ms], INT or FRAC\n", date));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Unrecognized date format %s, expecting TCHH:MM:SS:FFF, THH:MM:SS[.ms], TMM:SS[.ms], TSS[.ms], INT or FRAC\n", date));
 	if (extract_mode)
 		*extract_mode = EXTRACT_NONE;
 	return GF_FALSE;
@@ -546,7 +562,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (!end_date) ctx->range_type = RANGE_OPEN;
 	else ctx->range_type = RANGE_CLOSED;
 
-	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode, NULL)) {
+	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode, NULL, &ctx->cur_start_is_tc)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse start date, assuming end of ranges\n"));
 		//done
 		ctx->range_type = RANGE_DONE;
@@ -577,6 +593,11 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	}
 	if (!ctx->cur_start.den)
 		do_seek = GF_FALSE;
+
+	if (ctx->cur_start_is_tc && do_seek) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] ranges not in order and timecode is used, aborting extraction\n"));
+		goto range_done;
+	}
 
 	if (!ctx->seekable && do_seek) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] ranges not in order and input not seekable, aborting extraction\n"));
@@ -613,10 +634,14 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (end_date) {
 		Bool is_dur = GF_FALSE;
 		ctx->end_frame_idx_plus_one = 0;
-		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur)) {
+		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur, &ctx->cur_end_is_tc)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse end date, assuming open range\n"));
 			ctx->range_type = RANGE_OPEN;
 		} else {
+			if (is_dur && ctx->cur_start_is_tc) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] duration range with timecode start, aborting extraction\n"));
+				goto range_done;
+			}
 			if (is_dur) {
 				ctx->cur_end.num = gf_timestamp_rescale(ctx->cur_end.num, ctx->cur_end.den, ctx->cur_start.den);
 				ctx->cur_end.den = ctx->cur_start.den;
@@ -1245,6 +1270,33 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 				*nb_audio_samples_to_keep = (u32)nb_samp;
 			}
 			after = GF_TRUE;
+		}
+		// check timecodes
+		if (ctx->cur_start_is_tc) {
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			if (p && p->value.uint_list.nb_items) {
+				before = GF_TRUE;
+				for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
+					u32 tc = p->value.uint_list.vals[i];
+					if (tc >= ctx->cur_start.num) {
+						before = GF_FALSE;
+						break;
+					}
+				}
+			}
+		}
+		if ((ctx->range_type!=RANGE_OPEN) && ctx->cur_end_is_tc) {
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			if (p && p->value.uint_list.nb_items) {
+				after = GF_TRUE;
+				for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
+					u32 tc = p->value.uint_list.vals[i];
+					if (tc <= ctx->cur_end.num) {
+						after = GF_FALSE;
+						break;
+					}
+				}
+			}
 		}
 	}
 
@@ -1945,8 +1997,25 @@ refetch_streams:
 							st->sap_ts_plus_one = st->prev_sap_ts+1;
 
 							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
-								u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
-								if (ts + ts_adj == start_range_ts) {
+								Bool at_frame = GF_FALSE;
+
+								if (ctx->cur_start_is_tc) {
+									const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+									if (p && p->value.uint_list.nb_items) {
+										for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
+											u32 tc = p->value.uint_list.vals[i];
+											if (tc == ctx->cur_start.num) {
+												at_frame = GF_TRUE;
+												break;
+											}
+										}
+									}
+								} else {
+									u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
+									at_frame = (ts+ts_adj == start_range_ts);
+								}
+
+								if (at_frame) {
 									st->sap_ts_plus_one = ts+ts_adj+1;
 									st->nb_frames_until_start = 0;
 								}
@@ -2824,6 +2893,7 @@ GF_FilterRegister ReframerRegister = {
 		"# Range extraction\n"
 		"The filter can perform time range extraction of the source using [-xs]() and [-xe]() options.\n"
 		"The formats allowed for times specifiers are:\n"
+		"- 'TC'HH:MM:SS:FF specify time in timecode\n"
 		"- 'T'H:M:S, 'T'M:S: specify time in hours, minutes, seconds\n"
 		"- 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds\n"
 		"- INT, FLOAT, NUM/DEN: specify time in seconds (number or fraction)\n"
