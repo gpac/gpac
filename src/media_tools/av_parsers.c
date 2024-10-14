@@ -5938,19 +5938,19 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 				Bool full_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "full_timestamp_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
-				tc->n_frames = gf_bs_read_int(bs, 8);
+				tc->n_frames = gf_bs_read_int_log_idx(bs, 8, "n_frames", i);
 				if (full_timestamp_flag) {
-					tc->seconds = gf_bs_read_int(bs, 6);
-					tc->minutes = gf_bs_read_int(bs, 6);
-					tc->hours = gf_bs_read_int(bs, 5);
+					tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
+					tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
+					tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
 				}
 				else {
 					if (gf_bs_read_int_log_idx(bs, 1, "seconds_flag", i)) {
-						tc->seconds = gf_bs_read_int(bs, 6);
+						tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
 						if (gf_bs_read_int_log_idx(bs, 1, "minutes_flag", i)) {
-							tc->minutes = gf_bs_read_int(bs, 6);
+							tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
 							if (gf_bs_read_int_log_idx(bs, 1, "hours_flag", i)) {
-								tc->hours = gf_bs_read_int(bs, 5);
+								tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
 							}
 						}
 					}
@@ -5982,16 +5982,16 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 
 			tc->n_frames = gf_bs_read_int(bs, 9);
 			if (full_timestamp_flag) {
-				tc->seconds = gf_bs_read_int(bs, 6);
-				tc->minutes = gf_bs_read_int(bs, 6);
-				tc->hours = gf_bs_read_int(bs, 5);
+				tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
+				tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
+				tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
 			} else {
 				if (gf_bs_read_int_log_idx(bs, 1, "seconds_flag", i)) {
-					tc->seconds = gf_bs_read_int(bs, 6);
+					tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
 					if (gf_bs_read_int_log_idx(bs, 1, "minutes_flag", i)) {
-						tc->minutes = gf_bs_read_int(bs, 6);
+						tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
 						if (gf_bs_read_int_log_idx(bs, 1, "hours_flag", i)) {
-							tc->hours = gf_bs_read_int(bs, 5);
+							tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
 						}
 					}
 				}
