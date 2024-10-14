@@ -297,6 +297,7 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
 
 		if (pes->metadata_descriptor) gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
+		if (pes->gpac_meta_dsi) gf_free(pes->gpac_meta_dsi);
 
 	}
 	if (es->slcfg) gf_free(es->slcfg);
