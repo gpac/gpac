@@ -301,6 +301,11 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 
 	}
 	if (es->slcfg) gf_free(es->slcfg);
+	for (u32 i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		if (ts->ess[i]==es) {
+			ts->ess[i] = NULL;
+		}
+	}
 	gf_free(es);
 }
 
