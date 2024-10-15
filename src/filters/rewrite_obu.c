@@ -671,7 +671,7 @@ static const GF_FilterCapability OBUMxCaps[] =
 static const GF_FilterArgs OBUMxArgs[] =
 {
 	{ OFFS(rcfg), "force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(tc),   "inject metadata timecodes", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(tc),   "inject metadata timecodes", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
