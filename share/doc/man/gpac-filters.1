@@ -2086,6 +2086,8 @@ allc (bool):                   throw error if no DRM config file is found for a 
 .br
 bk_stats (bool):               print number of encrypted blocks to stdout upon exit
 .br
+bk_skip (bool):                skip encryption but performs all other tasks (test mode)
+.br
 
 .br
 .SH mp4mx
@@ -6113,7 +6115,7 @@ pswitch (enum, default: single): period switch control mode
 .br
 * single: change period if PID configuration changes
 .br
-* force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)
+* force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or ad insertion not using periodID)
 .br
 * stsd: change period if PID configuration changes unless new configuration was advertised in initial config
 .br
@@ -6142,6 +6144,8 @@ dkid (enum, default: auto):    control injection of default KID in MPD
 
 .br
 tpl_force (bool, default: false): use template string as is without trying to add extension or solve conflicts in names
+.br
+inband_event (bool, default: false): insert a default inband event stream in the DASH manifest
 .br
 ttml_agg (bool, default: false): force aggregation of TTML samples of a DASH segment into a single sample
 .br
@@ -6699,6 +6703,8 @@ This filter rewrites VPx or AV1 bitstreams into a IVF, annexB or OBU sequence.
 .br
 The temporal delimiter OBU is re-inserted in annexB (.av1 and .av1bfiles, with obu_size set) and OBU sequences (.obufiles, without obu_size)
 .br
+Timecode metadata optionally inserted
+.br
 Note: VP8/9 codecs will only use IVF output (equivalent to file extension .ivf or :ext=ivf set on output).
 .br
 
@@ -6707,6 +6713,8 @@ Note: VP8/9 codecs will only use IVF output (equivalent to file extension .ivf o
 .LP
 .br
 rcfg (bool, default: true):    force repeating decoder config at each I-frame
+.br
+tc (bool, default: true):      inject metadata timecodes
 .br
 
 .br
@@ -6947,7 +6955,7 @@ repair (enum, default: simple): repair mode for corrupted files
 .br
 
 .br
-repair_url (cstr):             repair url
+repair_urls (strl):            repair servers urls
 .br
 max_sess (uint, default: 1):   max number of concurrent HTTP repair sessions
 .br
