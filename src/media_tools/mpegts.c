@@ -3198,7 +3198,8 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 }
 #endif
 
-#define M2TS_PROBE_SIZE	188000
+//50 packets max
+#define M2TS_PROBE_SIZE	188*50
 static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 {
 	GF_Err e;
