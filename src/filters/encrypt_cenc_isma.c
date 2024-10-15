@@ -132,7 +132,7 @@ typedef struct
 {
 	//options
 	const char *cfile;
-	Bool allc, bk_stats;
+	Bool allc, bk_stats, bk_skip;
 
 	//internal
 	GF_CryptInfo *cinfo;
@@ -1436,7 +1436,9 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 				gf_crypt_decrypt(cstr->keys[0].crypt, dummy, remain);
 			}
 		}
-		gf_crypt_encrypt(cstr->keys[0].crypt, output+isma_hdr_size, size);
+		if (!ctx->bk_skip)
+			gf_crypt_encrypt(cstr->keys[0].crypt, output+isma_hdr_size, size);
+
 		cstr->prev_pck_encrypted = GF_TRUE;
 		cstr->num_block_crypted += size/16;
 	} else {
@@ -1524,7 +1526,9 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 
 		memset(output+adobe_hdr_size+size, padding_bytes, sizeof(char)*padding_bytes);
 
-		gf_crypt_encrypt(cstr->keys[0].crypt, output+adobe_hdr_size, len);
+		if (!ctx->bk_skip)
+			gf_crypt_encrypt(cstr->keys[0].crypt, output+adobe_hdr_size, len);
+
 		cstr->num_block_crypted += len/16;
 
 		/*write encrypted AU header*/
@@ -2024,7 +2028,11 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						while (res) {
 							u32 to_crypt = (res >= (u32) (16*cstr->crypt_byte_block)) ? 16*cstr->crypt_byte_block : res;
 
-							e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+pos, to_crypt);
+							if (ctx->bk_skip)
+								e = GF_OK;
+							else
+								e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+pos, to_crypt);
+
 							cstr->num_block_crypted += to_crypt/16;
 
 							if (res >= (u32) (16 * (cstr->crypt_byte_block + cstr->skip_byte_block))) {
@@ -2040,7 +2048,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						//clear_bytes_at_end is 0 unless NALU-based cbcs without pattern (not defined in CENC)
 						//in this case, we must only encrypt a multiple of 16-byte blocks
 						u32 to_crypt = nalu_size - clear_bytes - clear_bytes_at_end;
-						e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, to_crypt);
+						if (ctx->bk_skip)
+							e = GF_OK;
+						else
+							e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, to_crypt);
 						cstr->num_block_crypted += to_crypt/16;
 					}
 				}
@@ -2134,7 +2145,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		//CTR full sample
 		else if (cstr->ctr_mode) {
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
-			e = gf_crypt_encrypt(cstr->keys[0].crypt, output, pck_size);
+			if (ctx->bk_skip)
+				e = GF_OK;
+			else
+				e = gf_crypt_encrypt(cstr->keys[0].crypt, output, pck_size);
 			cstr->num_block_crypted += pck_size/16;
 		}
 		//CBC full sample with padding
@@ -2152,7 +2166,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 			if (pck_size >= 16) {
 				u32 to_crypt = pck_size - clear_header - clear_trailing;
-				gf_crypt_encrypt(cstr->keys[0].crypt, output+clear_header, to_crypt);
+				if (ctx->bk_skip)
+					e = GF_OK;
+				else
+					e = gf_crypt_encrypt(cstr->keys[0].crypt, output+clear_header, to_crypt);
 				cstr->num_block_crypted += to_crypt/16;
 			}
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
@@ -2695,6 +2712,7 @@ static const GF_FilterArgs GF_CENCEncArgs[] =
 	{ OFFS(cfile), "crypt file location", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(allc), "throw error if no DRM config file is found for a PID", GF_PROP_BOOL, NULL, NULL, 0},
 	{ OFFS(bk_stats), "print number of encrypted blocks to stdout upon exit", GF_PROP_BOOL, NULL, NULL, 0},
+	{ OFFS(bk_skip), "skip encryption but performs all other tasks (test mode)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
