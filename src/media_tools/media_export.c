@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -830,14 +830,18 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	u32 size;
 	Bool is_stdout = 0;
 	FILE *saf_f;
-	SAFInfo safs[1024];
 	GF_Err e=GF_OK;
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 
 	s_count = tot_samp = 0;
-
 	mux = gf_saf_mux_new();
 	count = gf_isom_get_track_count(dumper->file);
+
+	SAFInfo *safs;
+	safs = gf_malloc(sizeof(SAFInfo) * count);
+	if (!safs) return GF_OUT_OF_MEM;
+	memset(safs, 0, sizeof(SAFInfo) * count);
+
 	for (i=0; i<count; i++) {
 		u32 time_scale, mtype, stream_id = 0;
 		GF_ESD *esd;
@@ -901,6 +905,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	if (!s_count) {
 		gf_export_message(dumper, GF_OK, "No tracks available for SAF muxing");
 		gf_saf_mux_del(mux);
+		gf_free(safs);
 		return GF_OK;
 	}
 	gf_export_message(dumper, GF_OK, "SAF: Multiplexing %d tracks", s_count);
@@ -919,6 +924,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 			samp = gf_isom_get_sample(dumper->file, safs[i].track_num, safs[i].last_sample + 1, &di);
 			if (!samp) {
 				gf_saf_mux_del(mux);
+				gf_free(safs);
 				return gf_isom_last_error(dumper->file);
 			}
 
@@ -946,6 +952,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		gf_fclose(saf_f);
 
 	gf_saf_mux_del(mux);
+	gf_free(safs);
 	return e;
 #else
 	return GF_NOT_SUPPORTED;

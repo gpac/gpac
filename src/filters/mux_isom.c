@@ -3922,18 +3922,20 @@ sample_entry_done:
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (tkw->svcc) {
-			AVCState avc;
-			memset(&avc, 0, sizeof(AVCState));
-			count = gf_list_count(tkw->svcc->sequenceParameterSets);
-			for (i=0; i<count; i++) {
-				GF_NALUFFParam *sl = gf_list_get(tkw->svcc->sequenceParameterSets, i);
-				u8 nal_type = sl->data[0] & 0x1F;
-				Bool is_subseq = (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM) ? GF_TRUE : GF_FALSE;
-				s32 ps_idx = gf_avc_read_sps(sl->data, sl->size, &avc, is_subseq, NULL);
-				if (ps_idx>=0) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("SVC Detected - SSPS ID %d - frame size %d x %d\n", ps_idx-GF_SVC_SSPS_ID_SHIFT, avc.sps[ps_idx].width, avc.sps[ps_idx].height ));
-
+			AVCState *avc_state;
+			GF_SAFEALLOC(avc_state, AVCState);
+			if (avc_state) {
+				count = gf_list_count(tkw->svcc->sequenceParameterSets);
+				for (i=0; i<count; i++) {
+					GF_NALUFFParam *sl = gf_list_get(tkw->svcc->sequenceParameterSets, i);
+					u8 nal_type = sl->data[0] & 0x1F;
+					Bool is_subseq = (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM) ? GF_TRUE : GF_FALSE;
+					s32 ps_idx = gf_avc_read_sps(sl->data, sl->size, avc_state, is_subseq, NULL);
+					if (ps_idx>=0) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("SVC Detected - SSPS ID %d - frame size %d x %d\n", ps_idx-GF_SVC_SSPS_ID_SHIFT, avc_state->sps[ps_idx].width, avc_state->sps[ps_idx].height ));
+					}
 				}
+				gf_free(avc_state);
 			}
 		}
 #endif
