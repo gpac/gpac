@@ -2204,7 +2204,6 @@ char *dev_desc = NULL;
 static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 {
 	const AVInputFormat *fmt;
-	AVFormatContext *ctx;
 
     if (!dev_name) return;
     fmt = av_find_input_format(dev_name);
@@ -2213,42 +2212,31 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
     if (!fmt || !fmt->priv_class || !AV_IS_INPUT_DEVICE(fmt->priv_class->category)) {
 		return;
 	}
-    ctx = avformat_alloc_context();
-    if (!ctx) return;
-    ctx->iformat = (AVInputFormat *)fmt;
-    if (ctx->iformat->priv_data_size > 0) {
-        ctx->priv_data = av_mallocz(ctx->iformat->priv_data_size);
-        if (!ctx->priv_data) {
-			avformat_free_context(ctx);
-            return;
-        }
-        if (ctx->iformat->priv_class) {
-            *(const AVClass**)ctx->priv_data = ctx->iformat->priv_class;
-            av_opt_set_defaults(ctx->priv_data);
-        }
-    } else {
-        ctx->priv_data = NULL;
-	}
 
 	AVDeviceInfoList *dev_list = NULL;
-
-    AVDictionary *tmp = NULL;
-	av_dict_set(&tmp, "list_devices", "1", 0);
-    av_opt_set_dict2(ctx, &tmp, AV_OPT_SEARCH_CHILDREN);
-	if (tmp)
-		av_dict_free(&tmp);
-
-	int res = avdevice_list_devices(ctx, &dev_list);
+	int res = avdevice_list_input_sources(fmt, dev_name, NULL, &dev_list);
 	if (res<0) {
 		//device doesn't implement avdevice_list_devices, try loading the context using "list_devices=1" option
 		if (-res == ENOSYS) {
+			AVFormatContext *ctx = avformat_alloc_context();
+			if (!ctx) return;
+
 			AVDictionary *opts = NULL;
 			av_dict_set(&opts, "list_devices", "1", 0);
 			res = avformat_open_input(&ctx, "dummy", FF_IFMT_CAST fmt, &opts);
 			if (opts)
 				av_dict_free(&opts);
+
+#if !defined(__DARWIN__) && !defined(__APPLE__)
+			// FIXME: no-op, permission issues on macOS Sonoma+
+			if (res>=0) avdevice_list_devices(ctx, &dev_list);
+#endif
+
+			if (res>=0) avformat_close_input(&ctx);
+			avformat_free_context(ctx);
 		}
-	} else if (!res && dev_list->nb_devices) {
+	}
+	if (!res && dev_list && dev_list->nb_devices) {
 		if (!dev_desc) {
 			gf_dynstrcat(&dev_desc, "# Detected devices\n", NULL);
 		}
@@ -2265,7 +2253,6 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 	}
 
 	if (dev_list) avdevice_free_list_devices(&dev_list);
-	avformat_free_context(ctx);
 }
 
 static void ffavin_log_none(void *avcl, int level, const char *fmt, va_list vl)
