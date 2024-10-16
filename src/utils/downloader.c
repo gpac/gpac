@@ -5131,7 +5131,11 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		e = GF_IP_NETWORK_EMPTY;
 	} else if (sess->status < GF_NETIO_DATA_EXCHANGE) {
 		sess->do_requests(sess);
-		if(sess->headers && sess->needs_range && sess->rsp_code==200) {
+		if (!sess->server_mode
+			&& (sess->status > GF_NETIO_WAIT_FOR_REPLY)
+			&& sess->needs_range
+			&& (sess->rsp_code==200)
+		) {
 			return GF_IO_BYTE_RANGE_NOT_SUPPORTED;
 		}
 		e = sess->last_error ? sess->last_error : GF_IP_NETWORK_EMPTY;

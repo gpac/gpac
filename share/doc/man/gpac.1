@@ -1882,7 +1882,7 @@ For each filter DST accepting a connection from the PID, directly or with interm
 .br
 - if DST filter has link directives, use them to allow or reject PID connection.
 .br
-- otherwise, if complete mode is enabled, allow connection..
+- otherwise, if complete mode is enabled, allow connection.
 .br
 - otherwise (implicit mode):
 .br
@@ -4169,11 +4169,11 @@ Character set for input text PID
 .br
 PID or Packet is forced sub
 .br
-0: not forced
+* 0: not forced
 .br
-1: forced frame
+* 1: forced frame
 .br
-2: all frames are forced (PID only)
+* 2: all frames are forced (PID only)
 .br
 .TP
 .B ChapTimes (CHPT,uintl,D )
