@@ -139,10 +139,10 @@ static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, char *
 	}
 }
 
-static void isor_setup_channel(ISOMReader *read, ISOMChannel *ch, u32 track, u32 streamtype, Bool use_iod, u32 esid, u32 depends_on_id, u32 ocr_es_id)
+static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamtype, Bool use_iod, u32 esid, u32 depends_on_id, u32 ocr_es_id, Bool set_lang)
 {
+	ISOMChannel *ch=NULL;
 	u32 base_track;
-	GF_Language *lang_desc = NULL;
 	//first setup, creation of PID and channel
 	Bool use_sidx_dur = GF_FALSE;
 	Bool external_base = GF_FALSE;
@@ -159,7 +159,7 @@ static void isor_setup_channel(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	gf_isom_get_reference(read->mov, track, GF_ISOM_REF_BASE, 1, &base_track);
 
 	//pass on all configs to detect scalability presence and TX3G as we need to export some vars for all configs
-	for (u32 stsd_idx=0; stsd_idx<gf_isom_get_sample_description_count(read->mov, track); stsd_idx++) {
+	for (u32 stsd_idx=1; stsd_idx<=gf_isom_get_sample_description_count(read->mov, track); stsd_idx++) {
 		u32 m_subtype = gf_isom_get_media_subtype(read->mov, track, stsd_idx);
 		if (m_subtype == GF_ISOM_SUBTYPE_TX3G) use_tx3g = GF_TRUE;
 
@@ -276,14 +276,12 @@ static void isor_setup_channel(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	//create our channel
 	ch = isor_create_channel(read, pid, track, 0, (use_lhvc) ? GF_TRUE : GF_FALSE);
 
-	if (lang_desc) {
+	if (set_lang) {
 		char *lang=NULL;
 		gf_isom_get_media_language(read->mov, track, &lang);
 		//s32 idx = gf_lang_find(lang);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang ));
 		if (lang) gf_free(lang);
-		gf_odf_desc_del((GF_Descriptor *)lang_desc);
-		lang_desc = NULL;
 	}
 
 	ch->streamType = streamtype;
@@ -674,6 +672,7 @@ props_done:
 			gf_filter_pid_set_property_str(ch->pid, "nofrag", &PROP_BOOL(GF_TRUE));
 		}
 	}
+	return ch;
 }
 
 static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32 stsd_idx, u32 streamtype, Bool use_iod)
@@ -684,7 +683,6 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	GF_Language *lang_desc = NULL;
 	u8 *dsi = NULL, *enh_dsi = NULL;
 	u32 dsi_size = 0, enh_dsi_size = 0;
-	Double track_dur=0;
 	u32 srd_id=0, srd_indep=0, srd_x=0, srd_y=0, srd_w=0, srd_h=0;
 	u32 base_tile_track=0;
 	u64 ch_layout=0;
@@ -1079,7 +1077,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	//first setup, creation of PID and channel
 	if (!ch) {
 		first_config = GF_TRUE;
-		isor_setup_channel(read, ch, track, streamtype, use_iod, esid, depends_on_id, ocr_es_id);
+		ch = isor_setup_channel(read, track, streamtype, use_iod, esid, depends_on_id, ocr_es_id, lang_desc ? GF_TRUE : GF_FALSE);
 	}
 
 
@@ -1416,6 +1414,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 	if (!avg_rate) {
 		if (first_config && ch->duration) {
+			Double track_dur = (Double) (s64) ch->duration; //in media timescale
+			track_dur /= ch->timescale;
 			u64 avgrate = 8 * gf_isom_get_media_data_size(read->mov, ch->track);
 			avgrate = (u64) (avgrate / track_dur);
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_BITRATE, &PROP_UINT((u32) avgrate));
