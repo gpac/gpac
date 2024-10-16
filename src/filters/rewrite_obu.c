@@ -496,6 +496,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		}
 		av1b_frame_size = size;
 		size += gf_av1_leb128_size(size);
+		if (ctx->tc) size += 8;
 	} else {
 		if (sap_type && ctx->av1b_cfg_size) size += ctx->av1b_cfg_size;
 	}
