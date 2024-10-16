@@ -324,6 +324,7 @@ static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 per
 	return rtpch;
 }
 
+char szBuf[8192];
 int live_session(int argc, char **argv)
 {
 	GF_Err e;
@@ -332,7 +333,6 @@ int live_session(int argc, char **argv)
 	char *dst = NULL;
 	const char *ifce_addr = NULL;
 	char *sdp_name = "session.sdp";
-	char szBuf[8192];
 	u16 dst_port = 7000;
 	u32 load_type=0;
 	u32 check;

@@ -1185,22 +1185,24 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	GF_ISOSample *samp;
 	Bool remove_ocr;
 	u8 *buffer;
-	char buf64[5000], sdpLine[5100];
+	char tmp_buf[201];
+//	char buf64[5000], sdpLine[5100];
 
 
 	gf_isom_sdp_clean(file);
 
+	tmp_buf[200] = 0;
 	if (bandwidth) {
-		sprintf(buf64, "b=AS:%d", bandwidth);
-		gf_isom_sdp_add_line(file, buf64);
+		snprintf(tmp_buf, 200, "b=AS:%d", bandwidth);
+		gf_isom_sdp_add_line(file, tmp_buf);
 	}
     //xtended attribute for copyright
     if (gf_sys_is_test_mode()) {
-        sprintf(buf64, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)");
+        snprintf(tmp_buf, 200, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)");
     } else {
-        sprintf(buf64, "a=x-copyright: MP4/3GP File hinted with GPAC %s - %s", gf_gpac_version(), gf_gpac_copyright() );
+        snprintf(tmp_buf, 200, "a=x-copyright: MP4/3GP File hinted with GPAC %s - %s", gf_gpac_version(), gf_gpac_copyright() );
     }
-	gf_isom_sdp_add_line(file, buf64);
+	gf_isom_sdp_add_line(file, tmp_buf);
 
 	if (IOD_Profile == GF_SDP_IOD_NONE) return GF_OK;
 
@@ -1256,18 +1258,18 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 					//set the SL for future extraction
 					gf_isom_set_extraction_slc(file, odT, 1, &slc);
 
-					size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);
-					buf64[size64] = 0;
-					sprintf(sdpLine, "data:application/mpeg4-od-au;base64,%s", buf64);
-
+					u32 len_prfx = (u32) strlen("data:application/mpeg4-od-au;base64,");
+					esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
+					if (esd->URLString) {
+						strcpy(esd->URLString, "data:application/mpeg4-od-au;base64,");
+						size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
+						esd->URLString[len_prfx + size64] = 0;
+					}
 					if (esd->decoderConfig) {
 						esd->decoderConfig->avgBitrate = 0;
 						esd->decoderConfig->bufferSizeDB = samp->dataLength;
 						esd->decoderConfig->maxBitrate = 0;
 					}
-					size64 = (u32) strlen(sdpLine)+1;
-					esd->URLString = (char*)gf_malloc(sizeof(char) * size64);
-					strcpy(esd->URLString, sdpLine);
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp hinter] OD sample too large to be embedded in IOD - ISMA disabled\n"));
 					is_ok = 0;
@@ -1293,17 +1295,18 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				//set the SL for future extraction
 				gf_isom_set_extraction_slc(file, sceneT, 1, &slc);
 				//encode in Base64 the sample
-				size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);
-				buf64[size64] = 0;
-				sprintf(sdpLine, "data:application/mpeg4-bifs-au;base64,%s", buf64);
-
+				u32 len_prfx = (u32) strlen("data:application/mpeg4-bifs-au;base64,");
+				esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
+				if (esd->URLString) {
+					strcpy(esd->URLString, "data:application/mpeg4-bifs-au;base64,");
+					size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
+					esd->URLString[len_prfx + size64] = 0;
+				}
 				if (esd->decoderConfig) {
 					esd->decoderConfig->avgBitrate = 0;
 					esd->decoderConfig->bufferSizeDB = samp->dataLength;
 					esd->decoderConfig->maxBitrate = 0;
 				}
-				esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));
-				strcpy(esd->URLString, sdpLine);
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Scene description sample too large to be embedded in IOD - ISMA disabled\n"));
 				is_ok = 0;
@@ -1337,8 +1340,8 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 			}
 			/*only 1 MPEG-4 visual max and 1 MPEG-4 audio max for ISMA compliancy*/
 			if (!has_v && !has_a && (has_i_v<=1) && (has_i_a<=1)) {
-				sprintf(sdpLine, "a=isma-compliance:1,1.0,1");
-				gf_isom_sdp_add_line(file, sdpLine);
+				snprintf(tmp_buf, 200, "a=isma-compliance:1,1.0,1");
+				gf_isom_sdp_add_line(file, tmp_buf);
 			}
 		}
 	}
@@ -1350,12 +1353,17 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	gf_odf_desc_del((GF_Descriptor *)iod);
 
 	//encode in Base64 the iod
-	size64 = gf_base64_encode(buffer, size, buf64, 2000);
-	buf64[size64] = 0;
+	u32 len_prfx = (u32) strlen("a=mpeg4-iod:\"data:application/mpeg4-iod;base64,");
+	u8 *buf64 = gf_malloc(size*3+4+len_prfx);
+	if (buf64) {
+		strcpy(buf64, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,");
+		size64 = gf_base64_encode(buffer, size, buf64+len_prfx, size*3);
+		buf64[len_prfx + size64] = '"';
+		buf64[len_prfx + size64+1] = 0;
+		gf_isom_sdp_add_line(file, buf64);
+		gf_free(buf64);
+	}
 	gf_free(buffer);
-
-	sprintf(sdpLine, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"", buf64);
-	gf_isom_sdp_add_line(file, sdpLine);
 
 	return GF_OK;
 }

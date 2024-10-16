@@ -3323,11 +3323,11 @@ GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_F
 
 	e = GF_OK;
 	while (!feof(pl)) {
-		char szLine[10000];
+		char szLine[1000];
 		char *url;
 		u32 len;
 		szLine[0] = 0;
-		if (gf_fgets(szLine, 10000, pl) == NULL) break;
+		if (gf_fgets(szLine, 1000, pl) == NULL) break;
 		if (szLine[0]=='#') continue;
 		len = (u32) strlen(szLine);
 		while (len && strchr("\r\n \t", szLine[len-1])) {
