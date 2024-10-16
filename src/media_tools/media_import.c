@@ -871,6 +871,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	Bool found_chap = GF_FALSE;
 	u32 i, h, m, s, ms, fr, fps;
 	char line[1024];
+	char szTemp[1025];
 	char szTitle[1024];
 	FILE *f = gf_fopen(import->in_name, "rt");
 	if (!f) return GF_URL_ERROR;
@@ -1022,7 +1023,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 				ts = (h*3600 + m*60+s)*1000;
 			}
 			else {
-				char szTS[1025], *tok;
+				char *tok, *szTS = szTemp;
 				strncpy(szTS, sL, 1024);
 				szTS[1024]=0;
 				tok = strrchr(szTS, ' ');
@@ -1060,7 +1061,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		/*CHAPTERX= and CHAPTERXNAME=*/
 		else if (!strnicmp(sL, "CHAPTER", 7)) {
 			u32 idx;
-			char szTemp[1025], *str;
+			char *str;
 			strncpy(szTemp, sL, 1024);
 			szTemp[1024] = 0;
 			str = strrchr(szTemp, '=');
@@ -1130,7 +1131,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, GF_Fraction i
 {
 	GF_Err e;
 	u32 i;
-	GF_MediaImporter import;
+	GF_MediaImporter *import = NULL;
 	//remove all chapter info
 	gf_isom_remove_chapter(file, 0, 0);
 
@@ -1147,17 +1148,18 @@ restart_check:
 		}
 	}
 
-	memset(&import, 0, sizeof(GF_MediaImporter));
-	import.dest = file;
-	import.in_name = chap_file;
-	import.video_fps = import_fps;
-	import.streamFormat = "CHAP";
-	e = gf_media_import(&import);
-	if (e) return e;
-
-	if (!import.final_trackID) return GF_OK;
+	GF_SAFEALLOC(import, GF_MediaImporter);
+	import->dest = file;
+	import->in_name = chap_file;
+	import->video_fps = import_fps;
+	import->streamFormat = "CHAP";
+	e = gf_media_import(import);
+	if (e || !import->final_trackID) {
+		gf_free(import);
+		return e;
+	}
 	if (use_qt) {
-		u32 chap_track = gf_isom_get_track_by_id(file, import.final_trackID);
+		u32 chap_track = gf_isom_get_track_by_id(file, import->final_trackID);
 		u32 nb_sdesc = gf_isom_get_sample_description_count(file, chap_track);
 		for (i=0; i<nb_sdesc; i++) {
 			gf_isom_set_media_subtype(file, chap_track, i+1, GF_ISOM_SUBTYPE_TEXT);
@@ -1171,10 +1173,11 @@ restart_check:
 		case GF_ISOM_MEDIA_AUXV:
 		case GF_ISOM_MEDIA_PICT:
 		case GF_ISOM_MEDIA_AUDIO:
-			gf_isom_set_track_reference(file, i+1, GF_ISOM_REF_CHAP, import.final_trackID);
+			gf_isom_set_track_reference(file, i+1, GF_ISOM_REF_CHAP, import->final_trackID);
 			break;
 		}
 	}
+	gf_free(import);
 	return GF_OK;
 }
 

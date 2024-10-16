@@ -1225,9 +1225,10 @@ Bool mp4c_task()
 	return GF_FALSE;
 }
 
+static char szBuf[8192];
+
 Bool mp4c_handle_prompt(u8 char_val)
 {
-	char szBuf[8192];
 	MP4C_Command cmdtype = get_gui_cmd(char_val);
 	switch (cmdtype) {
 	case MP4C_OPEN:

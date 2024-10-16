@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS codec sub-project
@@ -94,7 +94,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	case GF_SG_VRML_SFSTRING:
 		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
 			u32 size, val;
-			char buf[4096];
+			char buf[2048];
 			char *res_src = NULL;
 			const char *src = ((SFString*)field->far_ptr)->buffer;
 			FILE *f;

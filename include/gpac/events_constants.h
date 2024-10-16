@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Events management
@@ -706,9 +706,6 @@ typedef enum {
 	/*non-dom keys, used in LASeR*/
 	GF_KEY_CELL_SOFT1,	/*soft1 key of cell phones*/
 	GF_KEY_CELL_SOFT2,	/*soft2 key of cell phones*/
-
-	/*for joystick handling*/
-	GF_KEY_JOYSTICK
 } GF_KeyCode;
 
 

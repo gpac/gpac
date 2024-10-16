@@ -1099,16 +1099,20 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 #ifdef GPAC_DISABLE_MEDIA_IMPORT
 				return GF_NOT_SUPPORTED;
 #else
-				GF_MediaImporter import;
-				memset(&import, 0, sizeof(GF_MediaImporter));
-				import.flags = GF_IMPORT_PROBE_ONLY;
-				import.in_name = dumper->in_name;
-				e = gf_media_import(&import);
-				if (e) return e;
+				GF_MediaImporter *import;
+				GF_SAFEALLOC(import, GF_MediaImporter);
+				if (!import) return GF_OUT_OF_MEM;
+				import->flags = GF_IMPORT_PROBE_ONLY;
+				import->in_name = dumper->in_name;
+				e = gf_media_import(import);
+				if (e) {
+					gf_free(import);
+					return e;
+				}
 				Bool found = GF_FALSE;
 				u32 i;
-				for (i=0; i<import.nb_tracks; i++) {
-					struct __track_import_info *tki = &import.tk_info[i];
+				for (i=0; i<import->nb_tracks; i++) {
+					struct __track_import_info *tki = &import->tk_info[i];
 					if (!tki->codecid) continue;
 					if (dumper->trackID) {
 						if (dumper->trackID != tki->track_num) continue;
@@ -1136,6 +1140,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 					dumper->track_type = 0;
 					break;
 				}
+				gf_free(import);
 				if (!found) return GF_NOT_FOUND;
 #endif
 			}
