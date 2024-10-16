@@ -1663,7 +1663,7 @@ GF_FEVT_PLAY and GF_FEVT_SET_SPEED events will trigger larger (abs(speed)>1) or 
 
 GF_FEVT_STOP and GF_FEVT_SOURCE_SEEK events are filtered to reset the PID buffers.
 
-The following events may be used globally on a filter, e.g. without a  PID associated to the event:
+The following events may be used globally on a filter, e.g. without a PID associated to the event:
 
 GF_FEVT_FILE_DELETE: used for source and sinks, indicata a file deletion
 
@@ -1673,7 +1673,7 @@ GF_FEVT_QUALITY_SWITCH: globally change quality of of the filters for all pids (
 
 GF_FEVT_USER:
 
-The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data wgile paused.
+The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data while paused.
 The GF_FEVT_PAUSE and GF_FEVT_RESUME events are only used to trigger pause and resume on interactive channels such as an RTSP session, i.e. to tell the remote peer to stop and resume.
 
 @{
@@ -4300,7 +4300,7 @@ reassign output packet properties changed by the filter.
 In order to handle reordering of packets, it is possible to keep references to either packets (may block the filter chain), or packet properties.
 
 Packets shall always be dispatched in their processing order (decode order). If reordering upon reception is needed, or AU interleaving is used, a filter SHALL do the reordering.
-However, packets do not have to be send in their creation order: a created packet is not assigned to PID buffers until it is sent.
+However, packets do not have to be sent in their creation order: a created packet is not assigned to PID buffers until it is sent.
 
 @{
  */
