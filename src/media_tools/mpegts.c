@@ -297,9 +297,15 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
 
 		if (pes->metadata_descriptor) gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
+		if (pes->gpac_meta_dsi) gf_free(pes->gpac_meta_dsi);
 
 	}
 	if (es->slcfg) gf_free(es->slcfg);
+	for (u32 i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		if (ts->ess[i]==es) {
+			ts->ess[i] = NULL;
+		}
+	}
 	gf_free(es);
 }
 
@@ -774,7 +780,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		}
 
 		d_pos = 0;
-		while (d_pos < descs_size) {
+		while (d_pos+1 < descs_size) {
 			u8 d_tag = data[pos+d_pos];
 			u8 d_len = data[pos+d_pos+1];
 
@@ -1598,6 +1604,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							pes->metadata_descriptor = metad;
 							pes->stream_type = GF_M2TS_METADATA_ID3_HLS;
 						}
+						else {
+							gf_m2ts_metadata_descriptor_del(metad);
+						}
 					} else if (metad->format_identifier == GF_M2TS_META_KLVA) {
 						/*ID3 with KLVA generic encoding (https://en.wikipedia.org/wiki/KLV)*/
 						if (pes) {
@@ -1605,6 +1614,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 								gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
 							pes->metadata_descriptor = metad;
 							pes->stream_type = GF_M2TS_METADATA_ID3_KLVA;
+						}
+						else {
+							gf_m2ts_metadata_descriptor_del(metad);
 						}
 					} else {
 						/* don't know what to do with it for now, delete */

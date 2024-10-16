@@ -496,6 +496,7 @@ GF_Err obumx_process(GF_Filter *filter)
 		}
 		av1b_frame_size = size;
 		size += gf_av1_leb128_size(size);
+		if (ctx->tc) size += 8;
 	} else {
 		if (sap_type && ctx->av1b_cfg_size) size += ctx->av1b_cfg_size;
 	}
@@ -671,7 +672,7 @@ static const GF_FilterCapability OBUMxCaps[] =
 static const GF_FilterArgs OBUMxArgs[] =
 {
 	{ OFFS(rcfg), "force repeating decoder config at each I-frame", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(tc),   "inject metadata timecodes", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(tc),   "inject metadata timecodes", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
