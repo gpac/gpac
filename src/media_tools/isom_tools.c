@@ -2297,6 +2297,7 @@ exit:
 	if (first_DTS_track) gf_free(first_DTS_track);
 	if (buffer) gf_free(buffer);
 	if (is_subseq_pps) gf_free(is_subseq_pps);
+	if (avc_state) gf_free(avc_state);
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 	return e;
 #else
