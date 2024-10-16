@@ -695,9 +695,11 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 
 	ctx->pck_num++;
 	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\""LLU"\" ", ctx->pck_num, dts);
-	if (!ctx->nhmlonly)
-		sprintf(nhml, "dataLength=\"%d\" ", data_size);
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	if (!ctx->nhmlonly) {
+		sprintf(nhml, "dataLength=\"%d\" ", data_size);
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	}
 	if (ctx->pckp || (cts != dts) ) {
 		sprintf(nhml, "CTSOffset=\"%d\" ", (s32) ((s64)cts - (s64)dts));
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
