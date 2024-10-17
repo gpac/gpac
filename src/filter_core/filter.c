@@ -2005,7 +2005,7 @@ skip_date:
 				is_my_arg = GF_TRUE;
 				reverse_bool = GF_TRUE;
 			}
-			//little optim here, if no value check if argument nale is exactly one of the possible enums
+			//little optim here: if no value provided, check if argument name is exactly one of the possible enums
 			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
 				const char *enums = a->min_max_enum;
 				while (enums) {
