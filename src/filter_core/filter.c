@@ -2023,14 +2023,14 @@ skip_date:
 				}
 			}
 
-			if (is_my_arg) restricted = gf_opts_get_key_restricted(szSecName, a->arg_name);
-			if (restricted) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is restricted to %s by system-wide configuration, ignoring\n", szArg, filter->freg->name, restricted));
-				found=GF_TRUE;
-				break;
-			}
-
 			if (is_my_arg) {
+				restricted = gf_opts_get_key_restricted(szSecName, a->arg_name);
+				if (restricted) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is restricted to %s by system-wide configuration, ignoring\n", szArg, filter->freg->name, restricted));
+					found=GF_TRUE;
+					break;
+				}
+
 				GF_PropertyValue argv;
 				found=GF_TRUE;
 
