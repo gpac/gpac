@@ -1835,9 +1835,10 @@ retry_import:
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 			if (elt && import_file) {
-				GF_MediaImporter import;
 				char *elt_url = elt->init_segment_url ? elt->init_segment_url : elt->url;
 				char *tmp_file = NULL;
+				GF_MediaImporter *import = gf_malloc(sizeof(GF_MediaImporter));
+				if (!import) return GF_OUT_OF_MEM;
 
 #ifndef GPAC_DISABLE_NETWORK
 				u64 br_start = elt->init_segment_url ? elt->init_byte_range_start : elt->byte_range_start;
@@ -1847,9 +1848,9 @@ retry_import:
 				elt_url = gf_url_concatenate(par_url, elt_url);
 				gf_free(par_url);
 
-				memset(&import, 0, sizeof(GF_MediaImporter));
-				import.trackID = 0;
-				import.flags = GF_IMPORT_PROBE_ONLY;
+				memset(import, 0, sizeof(GF_MediaImporter));
+				import->trackID = 0;
+				import->flags = GF_IMPORT_PROBE_ONLY;
 
 				if (strstr(elt_url, "://") && !strstr(elt_url, "file://")) {
 					tmp_file = strrchr(elt_url, '/');
@@ -1860,12 +1861,12 @@ retry_import:
 #ifndef GPAC_DISABLE_NETWORK
 						e = gf_dm_wget(elt_url, tmp_file, br_start, br_end, NULL);
 						if (e == GF_OK) {
-							import.in_name = tmp_file;
+							import->in_name = tmp_file;
 						}
 #endif
 					}
 				} else {
-					import.in_name = elt_url;
+					import->in_name = elt_url;
 				}
 
 				if (!strstr(elt_url, "://") && !gf_file_exists(elt_url)) {
@@ -1873,19 +1874,20 @@ retry_import:
 					if (elt_url) gf_free(elt_url);
 					goto retry_import;
 				}
-				e = gf_media_import(&import);
+				e = gf_media_import(import);
 
 				if (e != GF_OK) {
 					k++;
 					if (elt_url) gf_free(elt_url);
+					gf_free(import);
 					goto try_next_segment;
 				}
 
-				if (import.in_name && !pe->bandwidth && !elt->init_segment_url && pe->duration_info) {
+				if (import->in_name && !pe->bandwidth && !elt->init_segment_url && pe->duration_info) {
 					u64 pos = 0;
 
 					Double bw;
-					FILE *t = gf_fopen(import.in_name, "rb");
+					FILE *t = gf_fopen(import->in_name, "rb");
 					if (t) {
 						pos = gf_fsize(t);
 						gf_fclose(t);
@@ -1904,26 +1906,27 @@ retry_import:
 
 				if (!pe->codecs) {
 					char *codecs = NULL;
-					for (k=0; k<import.nb_tracks; k++) {
-						if (strlen(import.tk_info[k].szCodecProfile)) {
-							gf_dynstrcat(&codecs, import.tk_info[k].szCodecProfile, ",");
+					for (k=0; k<import->nb_tracks; k++) {
+						if (strlen(import->tk_info[k].szCodecProfile)) {
+							gf_dynstrcat(&codecs, import->tk_info[k].szCodecProfile, ",");
 						}
 					}
 					pe->codecs = codecs;
 				}
-				for (k=0; k<import.nb_tracks; k++) {
-					switch (import.tk_info[k].stream_type) {
+				for (k=0; k<import->nb_tracks; k++) {
+					switch (import->tk_info[k].stream_type) {
 					case GF_STREAM_VISUAL:
-						width = import.tk_info[k].video_info.width;
-						height = import.tk_info[k].video_info.height;
+						width = import->tk_info[k].video_info.width;
+						height = import->tk_info[k].video_info.height;
 						break;
 					case GF_STREAM_AUDIO:
-						samplerate = import.tk_info[k].audio_info.sample_rate;
-						num_channels = import.tk_info[k].audio_info.nb_channels;
+						samplerate = import->tk_info[k].audio_info.sample_rate;
+						num_channels = import->tk_info[k].audio_info.nb_channels;
 						break;
 					}
 				}
 				if (elt_url) gf_free(elt_url);
+				gf_free(import);
 			}
 #endif
 			GF_SAFEALLOC(rep, GF_MPD_Representation);

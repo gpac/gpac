@@ -3714,7 +3714,8 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 
 	gf_fprintf(dump, " xml:space=\"preserve\">");
 	if (s_txt->len) {
-		unsigned short utf16Line[10000];
+		unsigned short *utf16Line = gf_malloc( sizeof(u16) * s_txt->len);
+		if (!utf16Line) return;
 		/*UTF16*/
 		if ((s_txt->len>2) && ((unsigned char) s_txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) s_txt->text[1] == (unsigned char) 0xFF)) {
 			/*copy 2 more chars because the lib always add 2 '0' at the end for UTF16 end of string*/
@@ -3764,6 +3765,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 				}
 			}
 		}
+		if (utf16Line) gf_free(utf16Line);
 	}
 
 	if (box_dump) {
@@ -3976,112 +3978,114 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 	u32 len, j, k;
 	if (!txt || !txt->len) {
 		gf_fprintf(dump, "\n");
-	} else {
-		u32 styles, char_num, new_styles, color, new_color;
-		u16 utf16Line[10000];
-
-		/*UTF16*/
-		if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
-			memcpy(utf16Line, txt->text+2, sizeof(char)*txt->len);
-			( ((char *)utf16Line)[txt->len] ) = 0;
-			len = txt->len;
-		} else {
-			u8 *str = (u8 *) (txt->text);
-			len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
-			if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
-			utf16Line[len] = 0;
-		}
-		char_num = 0;
-		styles = 0;
-		new_styles = txtd->default_style.style_flags;
-		color = new_color = txtd->default_style.text_color;
-
-		for (j=0; j<len; j++) {
-			Bool is_new_line;
-
-			if (txt->styles) {
-				new_styles = txtd->default_style.style_flags;
-				new_color = txtd->default_style.text_color;
-				for (k=0; k<txt->styles->entry_count; k++) {
-					if (txt->styles->styles[k].startCharOffset>char_num) continue;
-					if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
-
-					if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH))
-						new_styles = txt->styles->styles[k].style_flags;
-					if (txt->styles->styles[k].text_color)
-						new_color = txt->styles->styles[k].text_color;
-
-					break;
-				}
-			}
-			if (new_styles != styles) {
-				if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "<b>");
-				if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "<i>");
-				if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "<u>");
-				if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "<strike>");
-
-				if ((styles & GF_TXT_STYLE_STRIKETHROUGH) && !(new_styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "</strike>");
-				if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "</u>");
-				if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "</i>");
-				if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "</b>");
-
-				styles = new_styles;
-			}
-			if (!vtt_dump && (new_color != color)) {
-				if (new_color ==txtd->default_style.text_color) {
-					gf_fprintf(dump, "</font>");
-				} else {
-					const char *cname = gf_color_get_name(new_color);
-					if (cname) {
-						gf_fprintf(dump, "<font color=\"%s\">", cname);
-					} else {
-						if (new_color >> 24 < 0xFF)
-							gf_fprintf(dump, "<font color=\"#%X\">", new_color);
-						else
-							gf_fprintf(dump, "<font color=\"#%06X\">", new_color&0x00FFFFFF);
-					}
-				}
-				color = new_color;
-			}
-
-			/*not sure if styles must be reseted at line breaks in srt...*/
-			is_new_line = GF_FALSE;
-			if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') ) {
-				if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) j++;
-				gf_fprintf(dump, "\n");
-				is_new_line = GF_TRUE;
-			}
-
-			if (!is_new_line) {
-				u32 sl;
-				char szChar[30];
-				s16 swT[2], *swz;
-				swT[0] = utf16Line[j];
-				swT[1] = 0;
-				swz= (s16 *)swT;
-				sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
-				if (sl == GF_UTF8_FAIL) sl=0;
-				szChar[sl]=0;
-				gf_fprintf(dump, "%s", szChar);
-			}
-			char_num++;
-		}
-		new_styles = 0;
-		if (new_styles != styles) {
-			if (styles & GF_TXT_STYLE_STRIKETHROUGH) gf_fprintf(dump, "</strike>");
-			if (styles & GF_TXT_STYLE_UNDERLINED) gf_fprintf(dump, "</u>");
-			if (styles & GF_TXT_STYLE_ITALIC) gf_fprintf(dump, "</i>");
-			if (styles & GF_TXT_STYLE_BOLD) gf_fprintf(dump, "</b>");
-
-//				styles = 0;
-		}
-
-		if (color != txtd->default_style.text_color) {
-			gf_fprintf(dump, "</font>");
-//				color = txtd->default_style.text_color;
-		}
-		gf_fprintf(dump, "\n");
+		return GF_OK;
 	}
+
+	u32 styles, char_num, new_styles, color, new_color;
+	u16 *utf16_buf = gf_malloc(sizeof(u16)*txt->len);
+	if (!utf16_buf) return GF_OUT_OF_MEM;
+
+	/*UTF16*/
+	if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)
+	) {
+		memcpy(utf16_buf, txt->text+2, txt->len);
+		( ((char *)utf16_buf)[txt->len] ) = 0;
+		len = txt->len;
+	} else {
+		u8 *str = (u8 *) (txt->text);
+		len = gf_utf8_mbstowcs(utf16_buf, txt->len, (const char **) &str);
+		if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
+		utf16_buf[len] = 0;
+	}
+	char_num = 0;
+	styles = 0;
+	new_styles = txtd->default_style.style_flags;
+	color = new_color = txtd->default_style.text_color;
+
+	for (j=0; j<len; j++) {
+		Bool is_new_line;
+
+		if (txt->styles) {
+			new_styles = txtd->default_style.style_flags;
+			new_color = txtd->default_style.text_color;
+			for (k=0; k<txt->styles->entry_count; k++) {
+				if (txt->styles->styles[k].startCharOffset>char_num) continue;
+				if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
+
+				if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH))
+					new_styles = txt->styles->styles[k].style_flags;
+				if (txt->styles->styles[k].text_color)
+					new_color = txt->styles->styles[k].text_color;
+
+				break;
+			}
+		}
+		if (new_styles != styles) {
+			if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "<b>");
+			if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "<i>");
+			if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "<u>");
+			if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "<strike>");
+
+			if ((styles & GF_TXT_STYLE_STRIKETHROUGH) && !(new_styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "</strike>");
+			if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "</u>");
+			if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "</i>");
+			if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "</b>");
+
+			styles = new_styles;
+		}
+		if (!vtt_dump && (new_color != color)) {
+			if (new_color ==txtd->default_style.text_color) {
+				gf_fprintf(dump, "</font>");
+			} else {
+				const char *cname = gf_color_get_name(new_color);
+				if (cname) {
+					gf_fprintf(dump, "<font color=\"%s\">", cname);
+				} else {
+					if (new_color >> 24 < 0xFF)
+						gf_fprintf(dump, "<font color=\"#%X\">", new_color);
+					else
+						gf_fprintf(dump, "<font color=\"#%06X\">", new_color&0x00FFFFFF);
+				}
+			}
+			color = new_color;
+		}
+
+		/*not sure if styles must be reseted at line breaks in srt...*/
+		is_new_line = GF_FALSE;
+		if ((utf16_buf[j]=='\n') || (utf16_buf[j]=='\r') ) {
+			if ((utf16_buf[j]=='\r') && (utf16_buf[j+1]=='\n')) j++;
+			gf_fprintf(dump, "\n");
+			is_new_line = GF_TRUE;
+		}
+
+		if (!is_new_line) {
+			u32 sl;
+			char szChar[30];
+			s16 swT[2], *swz;
+			swT[0] = utf16_buf[j];
+			swT[1] = 0;
+			swz= (s16 *)swT;
+			sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
+			if (sl == GF_UTF8_FAIL) sl=0;
+			szChar[sl]=0;
+			gf_fprintf(dump, "%s", szChar);
+		}
+		char_num++;
+	}
+	new_styles = 0;
+	if (new_styles != styles) {
+		if (styles & GF_TXT_STYLE_STRIKETHROUGH) gf_fprintf(dump, "</strike>");
+		if (styles & GF_TXT_STYLE_UNDERLINED) gf_fprintf(dump, "</u>");
+		if (styles & GF_TXT_STYLE_ITALIC) gf_fprintf(dump, "</i>");
+		if (styles & GF_TXT_STYLE_BOLD) gf_fprintf(dump, "</b>");
+	}
+
+	if (color != txtd->default_style.text_color) {
+		gf_fprintf(dump, "</font>");
+	}
+	gf_fprintf(dump, "\n");
+	gf_free(utf16_buf);
+
 	return GF_OK;
 }
 #else
