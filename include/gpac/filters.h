@@ -1228,6 +1228,7 @@ enum
 	GF_PROP_PCK_MPD_SEGSTART = GF_4CC('F','M','S','S'),
 	GF_PROP_PCK_ID = GF_4CC('P','K','I','D'),
 	GF_PROP_PCK_REFS = GF_4CC('P','R','F','S'),
+	GF_PROP_PCK_TIMECODES = GF_4CC('T','C','O','D'),
 
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 	GF_PROP_PID_AVG_FRAME_SIZE = GF_4CC('A','F','R','S'),
