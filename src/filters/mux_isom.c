@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/id3.h>
+#include <gpac/internal/id3.h>
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MP4MX)
 
@@ -8627,7 +8627,8 @@ GF_FilterRegister MP4MuxRegister = {
 	SETCAPS(MP4MuxCaps),
 	.configure_pid = mp4_mux_configure_pid,
 	.process = mp4_mux_process,
-	.process_event = mp4_mux_process_event
+	.process_event = mp4_mux_process_event,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 

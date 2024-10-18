@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / libpng encoder filter
@@ -385,6 +385,7 @@ GF_FilterRegister PNGEncRegister = {
 	SETCAPS(PNGEncCaps),
 	.configure_pid = pngenc_configure_pid,
 	.process = pngenc_process,
+	.hint_class_type = GF_FS_CLASS_ENCODER
 };
 
 #endif

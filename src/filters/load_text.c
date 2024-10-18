@@ -4789,7 +4789,8 @@ GF_FilterRegister TXTInRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = txtin_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 
@@ -4848,7 +4849,8 @@ GF_FilterRegister VTTTX3GRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = vtt2tx3g_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 const GF_FilterRegister *vtt2tx3g_register(GF_FilterSession *session)
@@ -4902,7 +4904,8 @@ GF_FilterRegister RFSRTRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = rfsrt_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 const GF_FilterRegister *rfsrt_register(GF_FilterSession *session)

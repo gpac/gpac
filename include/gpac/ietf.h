@@ -1597,7 +1597,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 /*! formats the "fmtp: " attribute for the MPEG-4 generic packetizer. sdpline shall be at least 2000 char
 \param builder the target RTP packetizer
 \param payload_name name of the payload to use (profile of RFC 3640)
-\param sdp_line SDP line buffer produced - must be freed by caller
+\param out_sdp_line SDP line buffer produced - must be freed by caller
 \param dsi decoder config of stream if any, or NULL
 \param dsi_size size of the decoder config
 \return error if any

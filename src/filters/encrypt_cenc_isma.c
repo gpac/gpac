@@ -2756,8 +2756,8 @@ GF_FilterRegister CENCEncRegister = {
 	.configure_pid = cenc_enc_configure_pid,
 	.initialize = cenc_enc_initialize,
 	.finalize = cenc_enc_finalize,
-	.process = cenc_enc_process
-
+	.process = cenc_enc_process,
+	.hint_class_type = GF_FS_CLASS_CRYPTO
 };
 
 #endif /*GPAC_DISABLE_CRYPTO*/

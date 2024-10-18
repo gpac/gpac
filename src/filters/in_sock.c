@@ -665,7 +665,8 @@ GF_FilterRegister SockInRegister = {
 	.finalize = sockin_finalize,
 	.process = sockin_process,
 	.process_event = sockin_process_event,
-	.probe_url = sockin_probe_url
+	.probe_url = sockin_probe_url,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2022-2023
+ *			Copyright (c) Telecom Paris 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / restamper filter
@@ -637,7 +637,7 @@ static const GF_FilterCapability RestampCaps[] =
 
 const GF_FilterRegister RestampRegister = {
 	.name = "restamp",
-	GF_FS_SET_DESCRIPTION("Packet timestamp rewriter")
+	GF_FS_SET_DESCRIPTION("Timestamp rewriter")
 	GF_FS_SET_HELP("This filter rewrites timing (offsets and rate) of packets.\n"
 	"\n"
 	"The delays (global or per stream class) can be either positive (stream presented later) or negative (stream presented sooner).\n"
@@ -665,7 +665,8 @@ const GF_FilterRegister RestampRegister = {
 	.finalize = restamp_finalize,
 	.configure_pid = restamp_configure_pid,
 	.process = restamp_process,
-	.update_arg = restamp_update_arg
+	.update_arg = restamp_update_arg,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister *restamp_register(GF_FilterSession *session)

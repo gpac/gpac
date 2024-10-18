@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE output filter
@@ -998,7 +998,8 @@ GF_FilterRegister FileOutRegister = {
 	.finalize = fileout_finalize,
 	.configure_pid = fileout_configure_pid,
 	.process = fileout_process,
-	.process_event = fileout_process_event
+	.process_event = fileout_process_event,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

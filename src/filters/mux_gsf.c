@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -1274,7 +1274,7 @@ static const GF_FilterArgs GSFMxArgs[] =
 
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfmx",
-	GF_FS_SET_DESCRIPTION("GSF Multiplexer")
+	GF_FS_SET_DESCRIPTION("GSF multiplexer")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter provides GSF (__GPAC Serialized Format__) multiplexing.\n"
 			"It serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "
@@ -1326,7 +1326,8 @@ GF_FilterRegister GSFMxRegister = {
 	.configure_pid = gsfmx_configure_pid,
 	.process = gsfmx_process,
 	.process_event = gsfmx_process_event,
-	.use_alias = gsfmx_use_alias
+	.use_alias = gsfmx_use_alias,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 

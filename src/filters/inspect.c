@@ -5553,7 +5553,7 @@ static const GF_FilterCapability InspectCaps[] =
 
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
-	GF_FS_SET_DESCRIPTION("Inspect packets")
+	GF_FS_SET_DESCRIPTION("Packet inspector")
 	GF_FS_SET_HELP("The inspect filter can be used to dump PID and packets. It may also be used to check parts of payload of the packets.\n"
 	"\n"
 	"The default options inspect only PID changes.\n"
@@ -5637,6 +5637,7 @@ const GF_FilterRegister InspectRegister = {
 	.process_event = inspect_process_event,
 	.configure_pid = inspect_config_input,
 	.update_arg = inspect_update_arg,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 static const GF_FilterCapability ProberCaps[] =
@@ -5678,7 +5679,7 @@ static const GF_FilterArgs ProbeArgs[] =
 
 const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
-	GF_FS_SET_DESCRIPTION("Probe source")
+	GF_FS_SET_DESCRIPTION("Source prober")
 	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demultiplexed PIDs (audio, video, ...) available in a source chain.\n\n"
 	"The filter outputs the number of input PIDs in the file specified by [-log]().\n"
 	"It is up to the app developer to query input PIDs of the prober and take appropriated decisions.")
@@ -5691,6 +5692,7 @@ const GF_FilterRegister ProbeRegister = {
 	.finalize = inspect_finalize,
 	.process = inspect_process,
 	.configure_pid = inspect_config_input,
+	.hint_class_type = GF_FS_CLASS_TOOL,
 };
 
 const GF_FilterRegister *inspect_register(GF_FilterSession *session)

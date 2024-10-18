@@ -1534,6 +1534,7 @@ GF_FilterRegister TTXTDecRegister = {
 	.process = ttd_process,
 	.configure_pid = ttd_configure_pid,
 	.process_event = ttd_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif
