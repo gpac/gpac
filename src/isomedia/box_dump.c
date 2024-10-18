@@ -3982,7 +3982,7 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 	}
 
 	u32 styles, char_num, new_styles, color, new_color;
-	u16 *utf16_buf = gf_malloc(sizeof(u16)*txt->len);
+	u16 *utf16_buf = gf_malloc(sizeof(u16)*(txt->len+1));
 	if (!utf16_buf) return GF_OUT_OF_MEM;
 
 	/*UTF16*/
