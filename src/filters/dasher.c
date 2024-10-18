@@ -505,6 +505,9 @@ typedef struct _dash_stream
 
 	Bool transcode_detected;
 
+	//HLS seperate file mode or SSR
+	u32 max_nb_parts;
+
 	//HLS full seg encryption
 	GF_CryptInfo *cinfo;
 	GF_TrackCryptInfo *tci;
@@ -3632,6 +3635,12 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		}
 	}
 
+	if (ds->set->ssr) {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_SSR_MODE, &PROP_SINT(ds->set->ssr));
+	} else {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_SSR_MODE, NULL);
+	}
+
 	if (ctx->llhls) {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHLS, &PROP_UINT(ctx->llhls) );
 	}
@@ -4475,6 +4484,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
+					if (set->ssr)
+						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -4513,6 +4524,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
+					if (set->ssr)
+						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
 					seg_template->start_number = start_number;
@@ -7269,6 +7282,68 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] MPD Availability start time initialized to "LLU" ms\n", ctx->mpd->availabilityStartTime));
 	}
 
+	//set SSR related descriptors
+	const GF_PropertyValue *p;
+	GF_List *ssr_mappings = gf_list_new();
+	struct ssr_map {
+		u32 main_as;
+		u32 tune_in_as;
+	};
+
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->owns_set) continue;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
+		if (p && p->value.sint >= 0) {
+			struct ssr_map *map = gf_malloc(sizeof(struct ssr_map));
+			map->main_as = p->value.sint;
+			map->tune_in_as = ds->as_id;
+			gf_list_add(ssr_mappings, map);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, tune-in ASID set to %d\n", ds->src_url, map->tune_in_as));
+		}
+	}
+
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (!ds->owns_set) continue;
+
+		GF_MPD_Descriptor *desc_ssr = NULL;
+		GF_MPD_Descriptor *desc_ass = NULL;
+
+		// Check if this AS has tune-in AS
+		struct ssr_map *map = NULL;
+		for (int j = 0; j < gf_list_count(ssr_mappings); j++) {
+			map = gf_list_get(ssr_mappings, j);
+			if (map->main_as == ds->as_id) break;
+			else map = NULL;
+		}
+
+		char value[256];
+		if (map != NULL) {
+			sprintf(value, "%d", map->tune_in_as);
+			desc_ass = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:adaptation-set-switching:2016", value);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the main AS of %d\n", ds->src_url, ds->as_id, map->tune_in_as));
+		}
+
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
+		if (p) {
+			ds->set->ssr = GF_TRUE;
+			if (p->value.sint < 0) {
+				// LL-HLS compatibility mode
+				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", NULL);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is using SSR with LL-HLS compatibility mode\n", ds->src_url, ds->as_id));
+			} else {
+				sprintf(value, "%d", p->value.sint);
+				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", value);
+				desc_ass = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:adaptation-set-switching:2016", value);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is the tune-in AS\n", ds->src_url, ds->as_id));
+			}
+		}
+
+		if (desc_ssr != NULL) gf_list_add(ds->set->essential_properties, desc_ssr);
+		if (desc_ass != NULL) gf_list_add(ds->set->supplemental_properties, desc_ass);
+	}
+
 	//setup adaptation sets bitstream switching
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -7707,6 +7782,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		}
 	}
 
+	// SSR mode, set @k to the number of parts
+	if (ds->set->ssr) ds->set->segment_template->nb_parts = ds->max_nb_parts;
+
 	if (ctx->subdur && (ds->cumulated_dur >= 0.8 * (ds->cumulated_subdur + ctx->subdur) * ds->timescale))
 		ds->subdur_done = GF_TRUE;
 
@@ -8059,7 +8137,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (!seg_state) return;
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
-		seg_state->llhls_mode = ctx->llhls;
+		seg_state->llhls_mode = ctx->llhls || ds->set->ssr;
 		ds->current_seg_state = seg_state;
 		seg_state->encrypted = GF_FALSE;
 
@@ -10137,9 +10215,10 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 
 	sctx->frags[sctx->nb_frags].independent = evt->frag_size.independent;
 	sctx->nb_frags++;
+	ds->max_nb_parts = MAX(ds->max_nb_parts, sctx->nb_frags);
 	if (evt->frag_size.is_last) {
 		sctx->llhls_done = GF_TRUE;
-	} else {
+	} else if (!ds->set->ssr) {
 		ctx->force_hls_ll_manifest = GF_TRUE;
 	}
 }
