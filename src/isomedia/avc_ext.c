@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2835,16 +2835,19 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(ptr->config->sequenceParameterSets, 0);
 		if (sl) {
-			AVCState avc;
+			AVCState *avc_state;
 			s32 idx;
-			memset(&avc, 0, sizeof(AVCState));
-			idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
-			if (idx>=0) {
-				ptr->config->chroma_format = avc.sps[idx].chroma_format;
-				ptr->config->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
-				ptr->config->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+			GF_SAFEALLOC(avc_state, AVCState);
+			if (avc_state) {
+				idx = gf_avc_read_sps(sl->data, sl->size, avc_state, 0, NULL);
+				if (idx>=0) {
+					ptr->config->chroma_format = avc_state->sps[idx].chroma_format;
+					ptr->config->luma_bit_depth = 8 + avc_state->sps[idx].luma_bit_depth_m8;
+					ptr->config->chroma_bit_depth = 8 + avc_state->sps[idx].chroma_bit_depth_m8;
+				}
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, patching using SPS.\n"));
+				gf_free(avc_state);
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, patching using SPS.\n"));
 		} else
 #endif
 		{

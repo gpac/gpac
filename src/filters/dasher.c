@@ -1476,40 +1476,46 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 				if (hevccfg) {
 					Bool is_interlaced;
-					HEVCState hevc;
+					HEVCState *hvc_state;
 					HEVC_SPS* sps;
-					memset(&hevc, 0, sizeof(HEVCState));
-					gf_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
-					gf_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
-					sps = &hevc.sps[hevc.sps_active_idx];
-					if (sps && sps->colour_description_present_flag) {
-						DasherHDRType old_hdr_type = ds->hdr_type;
-						if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
-							if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
-							if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
+					GF_SAFEALLOC(hvc_state, HEVCState);
+					if (hvc_state) {
+						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_VID_PARAM);
+						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_SEQ_PARAM);
+						sps = &hvc_state->sps[hvc_state->sps_active_idx];
+						if (sps && sps->colour_description_present_flag) {
+							DasherHDRType old_hdr_type = ds->hdr_type;
+							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
+								if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
+								if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
+							}
+							if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
 						}
-						if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
-					}
-					is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
-					if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
-					ds->interlaced = is_interlaced;
+						is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
+						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+						ds->interlaced = is_interlaced;
 
-					gf_odf_hevc_cfg_del(hevccfg);
+						gf_odf_hevc_cfg_del(hevccfg);
+						gf_free(hvc_state);
+					}
 				}
 			}
 			else if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
-				AVCState avc;
 				GF_AVCConfig* avccfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 				if (avccfg) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avccfg->sequenceParameterSets, 0);
 					if (sl) {
 						s32 idx;
-						memset(&avc, 0, sizeof(AVCState));
-						idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
-						if (idx>=0) {
-							Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
-							if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
-							ds->interlaced = is_interlaced;
+						AVCState *avc_state;
+						GF_SAFEALLOC(avc_state, AVCState);
+						if (avc_state) {
+							idx = gf_avc_read_sps(sl->data, sl->size, avc_state, 0, NULL);
+							if (idx>=0) {
+								Bool is_interlaced = avc_state->sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
+								if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+								ds->interlaced = is_interlaced;
+							}
+							gf_free(avc_state);
 						}
 					}
 					gf_odf_avc_cfg_del(avccfg);

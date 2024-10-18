@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1433,7 +1433,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #endif
 	Bool from_buffer;
 	Bool dobreak=GF_FALSE;
-	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
+	char *szLine1, *szLine2, *szLine, *cur_line, *sep, *start, first_c, *result;
 
 
 #define CPYCAT_ALLOC(__str, __is_copy) _len = (u32) strlen(__str);\
@@ -1454,6 +1454,13 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 
 	result = NULL;
 
+	szLine1 = gf_malloc(sizeof(char)*(XML_INPUT_SIZE+2));
+	if (!szLine1) return NULL;
+	szLine2 = gf_malloc(sizeof(char)*(XML_INPUT_SIZE+2));
+	if (!szLine2) {
+		gf_free(szLine1);
+		return NULL;
+	}
 	szLine1[0] = szLine2[0] = 0;
 	pos=0;
 	if (!from_buffer) {
@@ -1467,6 +1474,11 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	alloc_size = att_len;
 	szLine = (char *) gf_malloc(sizeof(char)*alloc_size);
+	if (!szLine) {
+		gf_free(szLine1);
+		gf_free(szLine2);
+		return NULL;
+	}
 	strcpy(szLine, parser->buffer + parser->att_name_start);
 	cur_line = szLine;
 	att_len = (u32) strlen(att_value);
@@ -1591,6 +1603,8 @@ fetch_attr:
 	}
 exit:
 	gf_free(szLine);
+	gf_free(szLine1);
+	gf_free(szLine2);
 
 	if (!from_buffer) {
 #ifdef NO_GZIP
