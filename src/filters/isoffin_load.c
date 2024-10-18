@@ -801,7 +801,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (base_tile_track) {
 				depends_on_id = gf_isom_get_track_id(read->mov, base_tile_track);
 			}
-			gf_isom_get_tile_info(read->mov, track, 1, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
+			gf_isom_get_tile_info(read->mov, track, stsd_idx, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
 			break;
 		case GF_ISOM_SUBTYPE_TEXT:
 		case GF_ISOM_SUBTYPE_TX3G:
@@ -943,7 +943,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				return;
 			}
 			codec_id = GF_CODECID_VVC_SUBPIC;
-			gf_isom_get_tile_info(read->mov, track, 1, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
+			gf_isom_get_tile_info(read->mov, track, stsd_idx, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
 			break;
 
 		case GF_ISOM_SUBTYPE_AC3:
@@ -1524,7 +1524,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 	} else if (codec_id==GF_CODECID_DTS_X) {
 		GF_UDTSConfig cfg;
-		if (gf_isom_get_udts_config(ch->owner->mov, ch->track, 1, &cfg) == GF_OK) {
+		if (gf_isom_get_udts_config(ch->owner->mov, ch->track, stsd_idx, &cfg) == GF_OK) {
 			u64 ch_layout = cfg.ChannelMask;
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ch_layout));
 		}
