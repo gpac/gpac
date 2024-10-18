@@ -991,6 +991,7 @@ GF_FilterRegister OGGDmxRegister = {
 	.process = oggdmx_process,
 	.process_event = oggdmx_process_event,
 	.probe_data = oggdmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER,
 };
 
 #endif // !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)

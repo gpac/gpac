@@ -5197,7 +5197,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 
 GF_FilterRegister HTTPOutRegister = {
 	.name = "httpout",
-	GF_FS_SET_DESCRIPTION("HTTP Server")
+	GF_FS_SET_DESCRIPTION("HTTP server")
 
 	GF_FS_SET_HELP("The HTTP output filter can act as:\n"
 		"- a simple HTTP server\n"
@@ -5325,7 +5325,8 @@ GF_FilterRegister HTTPOutRegister = {
 	.process = httpout_process,
 	.process_event = httpout_process_event,
 	.use_alias = httpout_use_alias,
-	.flags = GF_FS_REG_TEMP_INIT|GF_FS_REG_USE_SYNC_READ
+	.flags = GF_FS_REG_TEMP_INIT|GF_FS_REG_USE_SYNC_READ,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

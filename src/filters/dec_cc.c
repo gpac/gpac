@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023
+ *			Copyright (c) Telecom ParisTech 2023-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Closed captions decode filter
@@ -586,6 +586,7 @@ GF_FilterRegister CCDecRegister = {
 	.process = ccdec_process,
 	.configure_pid = ccdec_configure_pid,
 	.process_event = ccdec_process_event,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 const GF_FilterRegister *ccdec_register(GF_FilterSession *session)

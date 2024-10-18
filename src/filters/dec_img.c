@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / libjpeg and libpng decoder filter
@@ -172,6 +172,7 @@ GF_FilterRegister ImgDecRegister = {
 	SETCAPS(ImgDecCaps),
 	.configure_pid = imgdec_configure_pid,
 	.process = imgdec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 const GF_FilterRegister *imgdec_register(GF_FilterSession *session)

@@ -1328,7 +1328,8 @@ GF_FilterRegister RTPOutRegister = {
 	SETCAPS(RTPOutCaps),
 	.configure_pid = rtpout_configure_pid,
 	.probe_url = rtpout_probe_url,
-	.process = rtpout_process
+	.process = rtpout_process,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

@@ -10876,7 +10876,7 @@ static const GF_FilterArgs DasherArgs[] =
 
 GF_FilterRegister DasherRegister = {
 	.name = "dasher",
-	GF_FS_SET_DESCRIPTION("DASH and HLS segmenter")
+	GF_FS_SET_DESCRIPTION("DASH & HLS segmenter")
 	GF_FS_SET_HELP(
 "This filter provides segmentation and manifest generation for MPEG-DASH and HLS formats.\n"
 "The segmenter currently supports:\n"
@@ -11163,6 +11163,7 @@ GF_FilterRegister DasherRegister = {
 	.configure_pid = dasher_configure_pid,
 	.process = dasher_process,
 	.process_event = dasher_process_event,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

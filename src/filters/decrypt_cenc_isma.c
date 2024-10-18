@@ -2528,8 +2528,8 @@ GF_FilterRegister CENCDecRegister = {
 	.initialize = cenc_dec_initialize,
 	.finalize = cenc_dec_finalize,
 	.process = cenc_dec_process,
-	.process_event = cenc_dec_process_event
-	//for now only one PID per CENC decryptor instance, could be further optimized
+	.process_event = cenc_dec_process_event,
+	.hint_class_type = GF_FS_CLASS_CRYPTO
 };
 
 #endif /*GPAC_DISABLE_CRYPTO*/

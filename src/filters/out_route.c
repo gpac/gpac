@@ -3131,7 +3131,7 @@ static const GF_FilterCapability ROUTEOutCaps[] =
 
 GF_FilterRegister ROUTEOutRegister = {
 	.name = "routeout",
-	GF_FS_SET_DESCRIPTION("ROUTE output")
+	GF_FS_SET_DESCRIPTION("MABR & ROUTE output")
 	GF_FS_SET_HELP("The ROUTE output filter is used to distribute a live file-based session using ROUTE or DVB-MABR.\n"
 		"The filter supports DASH and HLS inputs, ATSC3.0 signaling and generic ROUTE or DVB-MABR signaling.\n"
 		"\n"
@@ -3254,7 +3254,8 @@ GF_FilterRegister ROUTEOutRegister = {
 	.configure_pid = routeout_configure_pid,
 	.process = routeout_process,
 	.use_alias = routeout_use_alias,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 const GF_FilterRegister *routeout_register(GF_FilterSession *session)

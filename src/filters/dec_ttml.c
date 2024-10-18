@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2023
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / TTML decoder filter
@@ -580,7 +580,8 @@ GF_FilterRegister TTMLDecRegister = {
 	.process = ttmldec_process,
 	.configure_pid = ttmldec_configure_pid,
 	.process_event = ttmldec_process_event,
-	.update_arg = ttmldec_update_arg
+	.update_arg = ttmldec_update_arg,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

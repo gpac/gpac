@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / pipe input filter
@@ -668,7 +668,7 @@ static const GF_FilterCapability PipeInCaps[] =
 
 GF_FilterRegister PipeInRegister = {
 	.name = "pin",
-	GF_FS_SET_DESCRIPTION("pipe input")
+	GF_FS_SET_DESCRIPTION("Pipe input")
 	GF_FS_SET_HELP( "This filter handles generic input pipes (mono-directional) in blocking or non blocking mode.\n"
 		"Warning: Input pipes cannot seek.\n"
 		"Data format of the pipe may be specified using extension (either in file name or through [-ext]()) or MIME type through [-mime]().\n"
@@ -719,7 +719,8 @@ GF_FilterRegister PipeInRegister = {
 	.finalize = pipein_finalize,
 	.process = pipein_process,
 	.process_event = pipein_process_event,
-	.probe_url = pipein_probe_url
+	.probe_url = pipein_probe_url,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

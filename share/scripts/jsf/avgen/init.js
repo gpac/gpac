@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AVGenerator filter
@@ -29,6 +29,7 @@ import { Sys as sys } from 'gpaccore'
 filter.pids = [];
 
 filter.set_name("avgen");
+filter.set_class_hint(GF_FS_CLASS_MM_IO);
 filter.set_desc("AV Counter Generator");
 filter.set_version("1.0");
 filter.set_author("GPAC Team");

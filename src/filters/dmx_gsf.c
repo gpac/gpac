@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream format reader filter
@@ -1478,6 +1478,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	.process = gsfdmx_process,
 	.process_event = gsfdmx_process_event,
 	.probe_data = gsfdmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 

@@ -1806,7 +1806,8 @@ GF_FilterRegister NHMLDmxRegister = {
 	SETCAPS(NHMLDmxCaps),
 	.configure_pid = nhmldmx_configure_pid,
 	.process = nhmldmx_process,
-	.process_event = nhmldmx_process_event
+	.process_event = nhmldmx_process_event,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 const GF_FilterRegister *nhmlr_register(GF_FilterSession *session)

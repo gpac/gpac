@@ -860,6 +860,7 @@ struct __gf_filter
 	Bool report_updated;
 
 	char *instance_description, *instance_version, *instance_author, *instance_help;
+	GF_ClassTypeHint instance_class_hint;
 	GF_FilterArgs *instance_args;
 
 	GF_Filter *multi_sink_target;

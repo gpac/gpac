@@ -1,4 +1,4 @@
-#include <gpac/id3.h>
+#include <gpac/internal/id3.h>
 
 // First 36 bytes of a Nielsen ID3 tag: "ID3\x04\x00 \x00\x00\x02\x05PRIV\x00\x00\x01{\x00\x00www.nielsen.com/"
 static const u32 NIELSEN_ID3_TAG_PREFIX_LEN = 36;

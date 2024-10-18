@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2023
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / OGG muxer filter
@@ -558,6 +558,7 @@ GF_FilterRegister OGGMuxRegister = {
 	.configure_pid = oggmux_configure_pid,
 	.process = oggmux_process,
 	.process_event = oggmux_process_event,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 #endif

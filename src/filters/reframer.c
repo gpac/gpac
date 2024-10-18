@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / force reframer filter
@@ -2794,7 +2794,7 @@ static const GF_FilterArgs ReframerArgs[] =
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
-	GF_FS_SET_DESCRIPTION("Media Reframer")
+	GF_FS_SET_DESCRIPTION("Media reframer")
 	GF_FS_SET_HELP("This filter provides various tools on inputs:\n"
 		"- ensure reframing (1 packet = 1 Access Unit)\n"
 		"- optionally force decoding\n"
@@ -2907,7 +2907,8 @@ GF_FilterRegister ReframerRegister = {
 	.configure_pid = reframer_configure_pid,
 	.process = reframer_process,
 	.process_event = reframer_process_event,
-	.update_arg = reframer_update_arg
+	.update_arg = reframer_update_arg,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 

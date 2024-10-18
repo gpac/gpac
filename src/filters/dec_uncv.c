@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023
+ *			Copyright (c) Telecom ParisTech 2023-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / uncv pixel format translator filter
@@ -1690,6 +1690,7 @@ GF_FilterRegister UNCVDecRegister = {
 	.finalize = uncvdec_finalize,
 	.configure_pid = uncvdec_configure_pid,
 	.process = uncvdec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 const GF_FilterRegister *uncvdec_register(GF_FilterSession *session)
