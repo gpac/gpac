@@ -3162,7 +3162,7 @@ void dump_all_proto_schemes(GF_SysArgMode argmode)
 		}
 		for (k=0; k<2; k++) {
 			GF_List *list = k ? pe->out : pe->in;
-			const char *lab = k ? "in" : "out";
+			const char *lab = k ? "out" : "in";
 			c2 = gf_list_count(list);
 			if (c2) {
 				if (gen_doc!=1)
