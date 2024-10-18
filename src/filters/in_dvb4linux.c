@@ -426,7 +426,7 @@ GF_FilterRegister DVBLinuxRegister = {
 	.finalize = dvblin_finalize,
 	.process = dvblin_process,
 	.process_event = dvblin_process_event,
-	.probe_url = dvblin_probe_url
+	.probe_url = dvblin_probe_url,
 #else
 	.process = dvblin_process,
 #endif
