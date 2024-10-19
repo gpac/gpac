@@ -635,7 +635,7 @@ MP4BoxArg m4b_split_args[] =
  	MP4BOX_ARG("split", "split in files of given max duration (float number) in seconds. A trailing unit can be specified:\n"
 	"- `M`, `m`: duration is in minutes\n"
 	"- `H`, `h`: size is in hours", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
-	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_STRING, 0, parse_split, 1, ARG_IS_FUN),
+	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_BOOL, 0, parse_split, 1, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (integer number) in kilobytes. A trailing unit can be specified:\n"
 	"- `M`, `m`: size is in megabytes\n"
 	"- `G`, `g`: size is in gigabytes", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
