@@ -595,10 +595,8 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			gf_fprintf(sdump->trace, "\"%s\"", str);
 		}
 		else {
-			u16 *uniLine;
-
-			uniLine = (u16*)gf_malloc(sizeof(short) * (len + 1));
-			len = gf_utf8_mbstowcs(uniLine, len, (const char **)&str);
+			u16 *uniLine = (u16*)gf_malloc(sizeof(u16) * ((len/2)*2 + 2));
+			len = gf_utf8_mbstowcs(uniLine, len+1, (const char **)&str);
 
 			if (len != GF_UTF8_FAIL) {
 				for (i = 0; i<len; i++) {

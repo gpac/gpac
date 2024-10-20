@@ -3714,7 +3714,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 
 	gf_fprintf(dump, " xml:space=\"preserve\">");
 	if (s_txt->len) {
-		unsigned short *utf16Line = gf_malloc( sizeof(u16) * s_txt->len);
+		unsigned short *utf16Line = gf_malloc( sizeof(u16) * (s_txt->len/2)*2 + 2 );
 		if (!utf16Line) return;
 		/*UTF16*/
 		if ((s_txt->len>2) && ((unsigned char) s_txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) s_txt->text[1] == (unsigned char) 0xFF)) {
@@ -3724,7 +3724,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 		} else {
 			char *str;
 			str = s_txt->text;
-			len = gf_utf8_mbstowcs((u16*)utf16Line, 10000, (const char **) &str);
+			len = gf_utf8_mbstowcs((u16*)utf16Line, s_txt->len+1, (const char **) &str);
 		}
 		if (len != GF_UTF8_FAIL) {
 			utf16Line[len] = 0;
@@ -3982,7 +3982,7 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 	}
 
 	u32 styles, char_num, new_styles, color, new_color;
-	u16 *utf16_buf = gf_malloc(sizeof(u16)*(txt->len+1));
+	u16 *utf16_buf = gf_malloc(sizeof(u16)*((txt->len/2)*2+2));
 	if (!utf16_buf) return GF_OUT_OF_MEM;
 
 	/*UTF16*/
@@ -3993,7 +3993,7 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 		len = txt->len;
 	} else {
 		u8 *str = (u8 *) (txt->text);
-		len = gf_utf8_mbstowcs(utf16_buf, txt->len, (const char **) &str);
+		len = gf_utf8_mbstowcs(utf16_buf, txt->len+1, (const char **) &str);
 		if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
 		utf16_buf[len] = 0;
 	}
