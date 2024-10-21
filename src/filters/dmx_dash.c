@@ -69,11 +69,12 @@ typedef struct
 	u32 max_buffer, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 auto_switch;
 	s32 init_timeshift;
-	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode, chain_mode, asloop;
+	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode, asloop;
+	u32 chain_mode;
 	u32 forward;
 	GF_PropUIntList debug_as;
-	GF_DASHInitialSelectionMode start_with;
-	GF_DASHTileAdaptationMode tile_mode;
+	u32 start_with;
+	u32 tile_mode;
 	char *algo;
 	Bool max_res, abort;
 	u32 use_bmin;

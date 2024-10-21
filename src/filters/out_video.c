@@ -93,7 +93,7 @@ typedef struct
 {
 	//options
 	char *drv;
-	GF_VideoOutMode disp;
+	u32 disp;
 	Bool vsync, linear, fullscreen, drop, hide, step, vjs, async;
 	GF_Fraction64 dur;
 	Double speed, hold;
