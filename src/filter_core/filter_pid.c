@@ -6915,7 +6915,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 
 	//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
-	//if one thread (the caller here) consumes one packet while the dispatching thread is still upddating the state for that pid
+	//if one thread (the caller here) consumes one packet while the dispatching thread is still updating the state for that pid
 	gf_mx_p(pid->filter->tasks_mx);
 	nb_pck = gf_fq_count(pidinst->packets);
 
