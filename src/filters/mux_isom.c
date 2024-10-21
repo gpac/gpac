@@ -8464,7 +8464,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"
 			"- v1qt: use v1 signaling, QTFF style\n"
 			"- v2qt: use v2 signaling, QTFF style (lpcm entry type)"
-		, GF_PROP_UINT, "v0", "v0|v0s|v1|v1qt|v2qt", 0},
+		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt|v2qt", 0},
 	{ OFFS(ssix), "create `ssix` box when `sidx` box is present, level 1 mapping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
