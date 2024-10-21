@@ -2432,6 +2432,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 						char *_url = URL;
 						u8 scheme = gf_bs_read_int(bs, 8);
 						u8 url_len = gf_bs_read_int(bs, 8);
+						if (url_len + 4 > desc_len) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Invalid AF Location descriptor (size=%u) found (scheme=%u, url_len=%u))\n", pid, desc_len, scheme, url_len));
+							break;
+						}
 						u8 scheme_len = 0;
 						switch (scheme) {
 						case 1:
