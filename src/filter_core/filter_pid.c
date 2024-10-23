@@ -6886,7 +6886,13 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	//remove pck instance
 	pcki = gf_fq_pop(pidinst->packets);
-
+#if 0
+	if ((pcki == (void *)0x000060300004a9b0)
+	&& !(
+		(pcki->pck->info.flags & GF_PCK_CMD_MASK) || ((pcki->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS)
+	))
+		pcki=pcki;
+#endif
 	if (!pcki) {
 		if (pidinst->filter && !pidinst->filter->finalized && !pidinst->discard_packets) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to discard a packet already discarded in filter %s\n", pid->filter->name));
