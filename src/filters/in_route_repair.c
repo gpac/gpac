@@ -472,6 +472,7 @@ static void repair_session_run(ROUTEInCtx *ctx, RouteRepairSession *rsess)
 	GF_Err e;
 	RepairSegmentInfo *rsi;
 	char http_buf[REPAIR_BUF_SIZE];
+	Bool full_seg_repair = GF_FALSE;
 
 restart:
 	rsi = rsess->current_si;
@@ -479,7 +480,7 @@ restart:
 		RouteRepairRange *rr = NULL;
 		u32 i, count;
 		RouteRepairServer* repair_server = NULL;
-		char *url = NULL;
+		char *url = NULL, *url_full_seg_repair = NULL;
 		count = gf_list_count(ctx->seg_repair_queue);
 		for (i=0; i<count;i++) {
 			u32 j, nb_ranges;
@@ -500,15 +501,47 @@ restart:
 		gf_assert(rsi->finfo.filename);
 		gf_assert(rsi->finfo.filename[0]);
 
-		for(i=0; i< gf_list_count(ctx->repair_servers); i++) {
+		for (i=0; i< gf_list_count(ctx->repair_servers); i++) {
 			repair_server = gf_list_get(ctx->repair_servers, i);
-			if(repair_server && repair_server->url && repair_server->accept_ranges && repair_server->is_up) {
-				url = gf_url_concatenate(repair_server->url, rsi->finfo.filename);
-				break;
+			if (repair_server && repair_server->url && repair_server->is_up) {
+				if (repair_server->accept_ranges) {
+					url = gf_url_concatenate(repair_server->url, rsi->finfo.filename);
+					break;
+				}
+				url_full_seg_repair = repair_server->url;
 			}
 		}
 
-		if(!url) {
+		if (!url && url_full_seg_repair) {
+			u32 j, nb_ranges = gf_list_count(rsi->ranges);
+			double percent_lost = rsess->range->br_end - rsess->range->br_start;
+			for (j=0; j<nb_ranges; j++) {
+				rr = gf_list_get(rsi->ranges, j);
+				percent_lost += rr->br_end - rr->br_start;
+			}
+			percent_lost = (percent_lost / rsi->finfo.total_size) * 100;
+			if(percent_lost > 80) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Segment %s has lost more than 80 percent of its data - attempting full repair \n", rsi->finfo.filename));
+				url = gf_url_concatenate(url_full_seg_repair, rsi->finfo.filename);
+				full_seg_repair = GF_TRUE;
+				// free all ranges and keep only one that represents the entire segment
+				gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
+				RouteRepairRange *rr = gf_list_pop_back(ctx->seg_range_reservoir);
+				if (!rr) {
+					GF_SAFEALLOC(rr, RouteRepairRange);
+					if (!rr) {
+						rsi->nb_errors++;
+					}
+				} else {
+					memset(rr, 0, sizeof(RouteRepairRange));
+				}
+				rr->br_start = 0;
+				rr->br_end = rsi->finfo.total_size;
+				gf_list_add(rsi->ranges, rr);
+				rsess->range = rr;
+			} 
+		}
+		if (!url) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server - Repair abort \n"));
 			rsi->nb_errors++;
 			repair_session_done(ctx, rsess, e);
@@ -530,8 +563,12 @@ restart:
 			return;
 		}
 		rsess->server = repair_server;
-		gf_dm_sess_set_range(rsess->dld, rsess->range->br_start, rsess->range->br_end-1, GF_TRUE);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s byte range %u-%u\n", url, rsess->range->br_start, rsess->range->br_end-1));
+		if(!full_seg_repair) {
+			gf_dm_sess_set_range(rsess->dld, rsess->range->br_start, rsess->range->br_end-1, GF_TRUE);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s: byte range %u-%u\n", url, rsess->range->br_start, rsess->range->br_end-1));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] Queue request for %s: entire segment\n", url));
+		}
 		gf_free(url);
 	}
 
