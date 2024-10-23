@@ -2147,20 +2147,24 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 		u32 k;
 		//all good to go, load filters
 		for (k=1; k<(u32) argc; k++) {
-			char *arg = argv[k], *sepe, *sepo, *optname=NULL;
+			char *arg = argv[k], *sepe=NULL, *sepo, *optname=NULL;
 			Bool found_freg = GF_FALSE, found_filter = GF_FALSE;
 
 			if (arg[0]=='-') continue;
-			sepe = gf_file_basename(arg);
-			if (sepe) sepe = strchr(sepe, '.');
-			if (sepe) {
-				if (!strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
-				else if (!strcmp(sepe, ".js")) sepe = NULL;
-				if (sepe) {
-					sepe[0] = 0;
-					optname = sepe+1;
-				}
+			optname = gf_file_basename(arg);
+			sepe = optname ? strchr(optname, '.') : optname;
+			if (sepe && !strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
+			//special case to allow -h jsf:js=FILE.js[.arg]
+			else if (sepe && !strcmp(sepe, ".js")) {
+				char *jsopt = strstr(optname, "js=");
+				if (jsopt && (jsopt<sepe)) sepe = NULL;
 			}
+			optname = NULL;
+			if (sepe) {
+				sepe[0] = 0;
+				optname = sepe+1;
+			}
+
 			fname = arg;
 			sepo = strchr(arg, ':');
 			for (i=0; i<count && !found_filter; i++) {
@@ -2193,6 +2197,7 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 			} else /*if (!strchr(arg, ':')) */ {
 				GF_SysArgMode _argmode = argmode;
 				char *js_opt = sepo;
+				if (js_opt && !strncmp(js_opt+1, "js", 2)) js_opt = strrchr(js_opt+1, ':');
 				if (js_opt) {
 					js_opt[0] = 0;
 					gf_opts_set_key("temp", "gpac-js-help", js_opt+1);
