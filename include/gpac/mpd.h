@@ -140,6 +140,8 @@ typedef struct
 	u32 duration; /*MANDATORY*/
 	/*! may be 0xFFFFFFFF (-1) (\warning this needs further testing)*/
 	u32 repeat_count;
+	/*! for DASH SSR*/
+	u32 nb_parts;
 } GF_MPD_SegmentTimelineEntry;
 
 /*! Segment Timeline*/
@@ -586,6 +588,11 @@ typedef struct
 	char *hls_key_uri;
 	/*! HLS IV*/
 	bin128 hls_iv;
+
+	/*! index of segment timeline entry */
+	u32 stl_start;
+	/*! repeat count of segment timeline */
+	u32 stl_rcount;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
