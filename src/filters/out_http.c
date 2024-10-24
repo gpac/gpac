@@ -3062,6 +3062,7 @@ static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Boo
 
 	gf_fclose(in->hls_chunk);
 	in->hls_chunk = NULL;
+	in->llhls_is_open = GF_FALSE;
 
 	if (!final_flush) {
 		u32 i, count;
@@ -4027,7 +4028,7 @@ static void httpout_input_in_error(GF_HTTPOutInput *in, GF_Err e)
 static void httpout_close_input_llhls(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 {
 	GF_Err e;
-	if (!in->llhls_is_open) return;
+	if (!in->llhls_is_open || !in->llhls_upload) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Closing LL-HLS %s upload\n", in->llhls_url));
 
@@ -4251,15 +4252,19 @@ retry:
 		u32 chunk_hdr_len=0;
 		u32 i, count = gf_list_count(ctx->active_sessions);
 
-		if (in->resource) {
-			out = (u32) gf_fwrite(pck_data, pck_size, in->resource);
-			gf_fflush(in->resource);
+		if (in->resource || in->hls_chunk) {
 
-			if (in->hls_chunk) {
+			if (in->resource) {
+				out = (u32) gf_fwrite(pck_data, pck_size, in->resource);
+				gf_fflush(in->resource);
+			}
+			if (in->hls_chunk && !no_llhls) {
 				u32 wb = (u32) gf_fwrite(pck_data, pck_size, in->hls_chunk);
 				if (wb != pck_size) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Write error for HLS chunk, wrote %d bytes but had %d to write\n", wb, pck_size));
 					out = 0; //to trigger IO err in process
+				} else if (!in->resource) {
+					out = pck_size;
 				}
 				gf_fflush(in->hls_chunk);
 			}
@@ -4452,6 +4457,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		Bool no_cte_flush;
 		Bool no_cte_fake_open;
 		Bool no_cte_no_llhls;
+		Bool no_cte_frag_push;
 		GF_FilterPacket *pck;
 		GF_HTTPOutInput *in = gf_list_get(ctx->inputs, i);
 
@@ -4527,6 +4533,7 @@ next_pck:
 		//in non-CTE mode, we must push fragments before the segment. Therefore
 		//- we fake an open() on the segment to setup paths without opening / writing (variable no_cte_fake_open)
 		//- when flushing the segment (all fragments are written), we don't write anything on the LLHLS (variable no_cte_no_llhls)
+		no_cte_frag_push = GF_FALSE;
 		if (!in->use_cte) {
 			p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM) : NULL;
 			//new LLHLS fragment or EOS, flush previous
@@ -4535,6 +4542,7 @@ next_pck:
 				in->file_size = in->no_cte_llhls_cache_size;
 				ctx->next_wake_us = 1;
 				start = end = GF_FALSE;
+				no_cte_frag_push = GF_TRUE;
 				p = gf_filter_pck_get_property(in->no_cte_llhls_cache, GF_PROP_PCK_HLS_FRAG_NUM);
 				//we always push LLHLS frag first, so we will need to fake an open on the regular fragment to properly setup segment name
 				if (p && (p->value.uint==1) && !in->llhls_is_open)
@@ -4722,7 +4730,7 @@ next_pck:
 		}
 
 		p = no_cte_no_llhls ? NULL : gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM);
-		if (p && in->resource) {
+		if (p && (in->resource||no_cte_frag_push) ) {
 			char szHLSChunk[GF_MAX_PATH];
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
@@ -4731,6 +4739,7 @@ next_pck:
 			in->hls_chunk_local_path = gf_strdup(szHLSChunk);
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
 			in->hls_chunk_path = gf_strdup(szHLSChunk);
+			in->llhls_is_open = GF_TRUE;
 
 			if (ctx->mem_url && in->hls_chunk) {
 				GF_HTTPFileIO *hio = gf_fileio_get_udta((GF_FileIO *) in->hls_chunk);
@@ -4801,7 +4810,7 @@ next_pck:
 		}
 
 		pck_data = gf_filter_pck_get_data(pck, &pck_size);
-		if (in->upload || ctx->single_mode || in->resource) {
+		if (in->upload || ctx->single_mode || (in->resource||no_cte_frag_push) ) {
 			GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
 			if (pck_data && pck_size) {
 
