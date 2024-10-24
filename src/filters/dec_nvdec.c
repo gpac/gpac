@@ -68,8 +68,7 @@ typedef enum
 typedef struct _nv_dec_ctx
 {
 	u32 unload;
-	NVDecFrameMode fmode;
-	NVDecVideoMode vmode;
+	u32 vmode, fmode;
 	u32 num_surfaces;
 
 	GF_FilterPid *ipid, *opid;
