@@ -27,7 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/id3.h>
+#include <gpac/internal/id3.h>
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MP4MX)
 
