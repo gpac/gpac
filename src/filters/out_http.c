@@ -4535,7 +4535,7 @@ next_pck:
 		//- when flushing the segment (all fragments are written), we don't write anything on the LLHLS (variable no_cte_no_llhls)
 		no_cte_frag_push = GF_FALSE;
 		if (!in->use_cte) {
-			p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM) : NULL;
+			p = pck ? gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM) : NULL;
 			//new LLHLS fragment or EOS, flush previous
 			if ((p || no_cte_flush) && in->no_cte_llhls_cache_size) {
 				pck = in->no_cte_llhls_cache;
@@ -4543,7 +4543,7 @@ next_pck:
 				ctx->next_wake_us = 1;
 				start = end = GF_FALSE;
 				no_cte_frag_push = GF_TRUE;
-				p = gf_filter_pck_get_property(in->no_cte_llhls_cache, GF_PROP_PCK_HLS_FRAG_NUM);
+				p = gf_filter_pck_get_property(in->no_cte_llhls_cache, GF_PROP_PCK_LLHAS_FRAG_NUM);
 				//we always push LLHLS frag first, so we will need to fake an open on the regular fragment to properly setup segment name
 				if (p && (p->value.uint==1) && !in->llhls_is_open)
 					no_cte_fake_open = GF_TRUE;
@@ -4729,7 +4729,7 @@ next_pck:
 			}
 		}
 
-		p = no_cte_no_llhls ? NULL : gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM);
+		p = no_cte_no_llhls ? NULL : gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM);
 		if (p && (in->resource||no_cte_frag_push) ) {
 			char szHLSChunk[GF_MAX_PATH];
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);

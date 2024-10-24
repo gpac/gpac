@@ -660,7 +660,7 @@ restart:
 		}
 	}
 
-	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_HLS_FRAG_NUM);
+	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM);
 	if (p) {
 		char szHLSChunk[GF_MAX_PATH+21];
 		snprintf(szHLSChunk, GF_MAX_PATH+20, "%s.%d", ctx->szFileName, p->value.uint);
