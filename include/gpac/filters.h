@@ -1250,11 +1250,13 @@ enum
 	GF_PROP_PID_PERIOD_START = GF_4CC('P','E','S','T'),
 	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
 	GF_PROP_PID_REP_ID = GF_4CC('D','R','I','D'),
+	GF_PROP_PID_SSR = GF_4CC('S','S','R',' '),
 	GF_PROP_PID_AS_ID = GF_4CC('D','A','I','D'),
 	GF_PROP_PID_MUX_SRC = GF_4CC('M','S','R','C'),
 	GF_PROP_PID_DASH_MODE = GF_4CC('D','M','O','D'),
 	GF_PROP_PID_FORCE_SEG_SYNC = GF_4CC('D','F','S','S'),
 	GF_PROP_PID_DASH_DUR = GF_4CC('D','D','U','R'),
+	GF_PROP_PID_DASH_FDUR = GF_4CC('F','D','U','R'),
 	GF_PROP_PID_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
 	GF_PROP_PID_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
 	GF_PROP_PID_DASH_MULTI_TRACK = GF_4CC('D','M','T','K'),
@@ -1341,9 +1343,13 @@ enum
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
-	//internal for HLS low latency
-	GF_PROP_PID_LLHLS = GF_4CC('H','L','S','L'),
-	GF_PROP_PCK_HLS_FRAG_NUM = GF_4CC('H','L','S','N'),
+	//internal for low latency HLS abd DASH:
+	//0 or not present: no low latency
+	//1: LL-HLS byte-range mode
+	//2: LL-HLS or DASH SSR seperate parts mode
+	GF_PROP_PID_LLHAS_MODE = GF_4CC('H','L','H','S'),
+	//for GF_PROP_PID_LLHAS_MODE=2 only, indicates the part number
+	GF_PROP_PCK_LLHAS_FRAG_NUM = GF_4CC('H','L','S','N'),
 	//we also use this property on PID to signal sample-accurate seek info is present
 	GF_PROP_PCK_SKIP_BEGIN = GF_4CC('P','C','K','S'),
 	GF_PROP_PCK_SKIP_PRES = GF_4CC('P','C','K','D'),

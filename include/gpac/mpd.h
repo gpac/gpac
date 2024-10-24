@@ -140,6 +140,8 @@ typedef struct
 	u32 duration; /*MANDATORY*/
 	/*! may be 0xFFFFFFFF (-1) (\warning this needs further testing)*/
 	u32 repeat_count;
+	/*! for DASH SSR*/
+	u32 nb_parts;
 } GF_MPD_SegmentTimelineEntry;
 
 /*! Segment Timeline*/
@@ -317,6 +319,8 @@ typedef struct
 	char *initialization;
 	/*! bitstream switching segment template*/
 	char *bitstream_switching;
+	/*! part count for sub-segment representations*/
+	u32 nb_parts;
 
 	/*! internal, for HLS generation*/
 	const char *hls_init_name;
@@ -584,6 +588,11 @@ typedef struct
 	char *hls_key_uri;
 	/*! HLS IV*/
 	bin128 hls_iv;
+
+	/*! index of segment timeline entry */
+	u32 stl_start;
+	/*! repeat count of segment timeline */
+	u32 stl_rcount;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -714,6 +723,8 @@ typedef struct
 	GF_MPD_Fractional min_framerate;
 	/*! max framerate*/
 	GF_MPD_Fractional max_framerate;
+	/*! set if sub-segment represenation is used*/
+	Bool ssr;
 	/*! set if segment boundaries are time-aligned across qualities*/
 	Bool segment_alignment;
 	/*! set if a single init segment is needed (no reinit at quality switch)*/

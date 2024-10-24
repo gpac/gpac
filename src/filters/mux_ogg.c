@@ -69,6 +69,7 @@ typedef struct
 	u32 seg_num, next_seg_num;
 	Bool wait_dash, copy_props;
 	u64 seg_start, seg_size;
+	Bool cdur_overwrite;
 
 	Bool force_seg_sync;
 	u32 packets_pending;
@@ -241,6 +242,14 @@ static GF_Err oggmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+
+		if (!ctx->cdur_overwrite) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_FDUR);
+			if (p && p->value.frac.den) {
+				ctx->cdur = p->value.frac;
+				ctx->cdur_overwrite = GF_TRUE;
+			}
+		}
 	}
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_name(ctx->opid, "ogg_mux");

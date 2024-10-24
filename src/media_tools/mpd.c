@@ -2845,6 +2845,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 		//close entry
 		if ((se->start_time != start_time) || (prev->duration!=se->duration)) {
 			if (rcount) gf_fprintf(out, " r=\"%d\"", rcount);
+			if (prev->nb_parts) gf_fprintf(out, " k=\"%d\"", prev->nb_parts);
 			gf_fprintf(out, "/>");
 			gf_mpd_lf(out, indent);
 			//start new one
@@ -2865,6 +2866,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	}
 	//close last entry
 	if (rcount) gf_fprintf(out, " r=\"%d\"", rcount);
+	if (prev->nb_parts) gf_fprintf(out, " k=\"%d\"", prev->nb_parts);
 	gf_fprintf(out, "/>");
 	gf_mpd_lf(out, indent);
 
@@ -2983,6 +2985,7 @@ static void gf_mpd_print_segment_template(FILE *out, GF_MPD_SegmentTemplate *s, 
 	if (s->index) gf_fprintf(out, " index=\"%s\"", s->index);
 	if (s->initialization) gf_xml_dump_string(out, " initialization=\"", s->initialization, "\"");
 	if (s->bitstream_switching) gf_fprintf(out, " bitstreamSwitching=\"%s\"", s->bitstream_switching);
+	if (s->nb_parts) gf_fprintf(out, " k=\"%d\"", s->nb_parts);
 
 	if (gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent, GF_TRUE))
 		return;
