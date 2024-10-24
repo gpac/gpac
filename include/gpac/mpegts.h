@@ -1087,6 +1087,19 @@ typedef struct
 	u16 ex_table_id;
 } GF_M2TS_SectionInfo;
 
+/*! raw TS demux options*/
+typedef enum
+{
+	/*! regular demux mode */
+	GF_M2TS_RAW_NONE = 0,
+	/*! split mode: only demux PAT and create streams, forward all other packets */
+	GF_M2TS_RAW_SPLIT,
+	/*! forward mode: forward all TS packets after PCR extraction */
+	GF_M2TS_RAW_FORWARD,
+	/*! probe mode: only parse header */
+	GF_M2TS_RAW_PROBE,
+} GF_M2TSRawMode;
+
 /*! MPEG-2 TS demuxer*/
 struct tag_m2ts_demux
 {
@@ -1170,13 +1183,8 @@ struct tag_m2ts_demux
 	/*! triggers all table reset*/
 	Bool table_reset;
 
-	/*! raw mode only parses PAT and PMT, and forward each packet as a GF_M2TS_EVT_PCK event, except PAT packets which must be recreated
-	if set, on_event shall be non-null
-		0: regular mode
-		1: split mode
-		2: passthrough mode with GF_M2TS_EVT_PCK for all packets
-	*/
-	u32 split_mode;
+	/*! raw demux mode */
+	GF_M2TSRawMode raw_mode;
 };
 
 //! @endcond
