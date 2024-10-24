@@ -596,9 +596,9 @@ linegl (bool, default: false, updatable): indicate that outlining shall be done 
 .br
 epow2 (bool, default: true, updatable): emulate power-of-2 textures for OpenGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled
 .br
-* yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations
+* true: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations
 .br
-* no: video is resized to a power of 2 texture when mapping to a shape
+* false: video is resized to a power of 2 texture when mapping to a shape
 .br
 
 .br
@@ -3746,6 +3746,8 @@ xadjust (bool, default: false): adjust end time of extraction range to be before
 .br
 xots (bool, default: false):   keep original timestamps after extraction
 .br
+xdts (bool, default: false):   compute start times based on DTS and not CTS
+.br
 nosap (bool, default: false):  do not cut at SAP when extracting range (may result in broken streams)
 .br
 splitrange (bool, default: false): signal file boundary at each extraction first packet for template-base file generation
@@ -5616,7 +5618,7 @@ This will allow the encrypter to locate dash boundaries and roll keys at segment
 .br
 Example
 .br
-gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd
+gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=2 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd
 .br
 
 .br
@@ -6714,7 +6716,7 @@ Note: VP8/9 codecs will only use IVF output (equivalent to file extension .ivf o
 .br
 rcfg (bool, default: true):    force repeating decoder config at each I-frame
 .br
-tc (bool, default: true):      inject metadata timecodes
+tc (bool, default: false):     inject metadata timecodes
 .br
 
 .br

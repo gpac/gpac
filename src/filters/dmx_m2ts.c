@@ -32,7 +32,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/thread.h>
 #include <gpac/internal/media_dev.h>
-#include <gpac/id3.h>
+#include <gpac/internal/id3.h>
 
 typedef struct {
 	char *fragment;
