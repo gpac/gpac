@@ -4683,6 +4683,19 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
 				evt.file_del.url = sctx->filepath;
 				gf_filter_pid_send_event(ds->opid, &evt);
+				//purge LLHLS frags
+				if (sctx->frags && (ctx->llhls>1)) {
+					u32 k;
+					for (k=0; k<sctx->nb_frags; k++) {
+						char szTmp[10];
+						sprintf(szTmp, ".%u", k+1);
+						char *frag_url = gf_strdup(sctx->filepath);
+						gf_dynstrcat(&frag_url, szTmp, NULL);
+						evt.file_del.url = frag_url;
+						gf_filter_pid_send_event(ds->opid, &evt);
+						gf_free(frag_url);
+					}
+				}
 				gf_free(sctx->filepath);
 			}
 
@@ -4728,6 +4741,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			gf_fatal_assert(gf_list_find(ds->pending_segment_states, sctx)<0);
 			if (sctx->filename) gf_free(sctx->filename);
 			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
+			if (sctx->frags) gf_free(sctx->frags);
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
