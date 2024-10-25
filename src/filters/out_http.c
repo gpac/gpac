@@ -87,6 +87,13 @@ enum
 	CORS_ON,
 };
 
+enum
+{
+	SKIP_RES_NO=0,
+	SKIP_RES_FILE,
+	SKIP_RES_PUSH,
+};
+
 typedef struct
 {
 	char *name;
@@ -167,6 +174,7 @@ typedef struct __httpout_input
 	u32 nb_dest;
 	Bool hold, write_not_ready;
 	u32 file_size;
+	u32 llhas_mode;
 
 	Bool is_open, done, is_delete;
 	Bool patch_blocks;
@@ -191,6 +199,7 @@ typedef struct __httpout_input
 	//for server mode, recording
 	char *local_path;
 	FILE *resource;
+	u32 skip_resource;
 
 	FILE *hls_chunk;
 	char *hls_chunk_path, *hls_chunk_local_path;
@@ -2550,6 +2559,9 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
 		if (p && p->value.string) pctx->mime = gf_strdup(p->value.string);
 
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHAS_MODE);
+		pctx->llhas_mode = p ? p->value.uint : GF_LLHAS_NONE;
+
 		gf_filter_pid_set_udta(pid, pctx);
 		gf_list_add(ctx->inputs, pctx);
 
@@ -3755,6 +3767,17 @@ session_done:
 static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool for_llhls)
 {
 	Bool res = GF_TRUE;
+	if (!for_llhls && in->skip_resource) {
+		//res was not opened
+		in->skip_resource = SKIP_RES_NO;
+		in->flush_open = GF_FALSE;
+		in->done = GF_TRUE;
+		in->is_open = GF_FALSE;
+		in->is_delete = GF_FALSE;
+		in->write_not_ready = GF_FALSE;
+		return GF_TRUE;
+	}
+
 	GF_DownloadSession *sess = for_llhls ? in->llhls_upload : in->upload;
 	//flush async/h2 in case we have pending data
 	GF_Err e = gf_dm_sess_flush_async(sess, GF_TRUE);
@@ -3775,7 +3798,6 @@ static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool f
 		else in->flush_open = GF_FALSE;
 	}
 
-
 	if (!for_llhls && in->is_delete && res) {
 		in->done = GF_TRUE;
 		in->is_open = GF_FALSE;
@@ -3786,7 +3808,7 @@ static Bool httpout_close_upload(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool f
 }
 
 
-static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const char *name, Bool is_delete, Bool is_static, Bool is_fake)
+static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const char *name, Bool is_delete, Bool is_static, Bool is_fake, Bool check_no_open)
 {
 //	Bool reassign_clients = GF_TRUE;
 	u32 len = 0;
@@ -3883,6 +3905,12 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (is_fake) return GF_TRUE;
 
 		in->is_open = GF_TRUE;
+		if (check_no_open && (in->llhas_mode==GF_LLHAS_SUBSEG)) {
+			in->flush_open = GF_FALSE;
+			in->is_h2 = GF_FALSE;
+			in->skip_resource = SKIP_RES_PUSH;
+			return GF_TRUE;
+		}
 		if (in->upload_sock) {
 			gf_sk_group_unregister(ctx->sg, in->upload_sock);
 			in->upload_sock = NULL;
@@ -3960,6 +3988,12 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 
 	in->done = GF_FALSE;
 	in->is_open = GF_TRUE;
+	in->skip_resource = 0;
+	if (check_no_open && (in->llhas_mode==GF_LLHAS_SUBSEG)) {
+		in->skip_resource = GF_TRUE;
+		in->resource = NULL;
+		return GF_TRUE;
+	}
 
 	//for mem mode, pass the parent gfio for fileIO construction
 	in->resource = gf_fopen_ex(in->local_path, ctx->mem_url, "wb", GF_FALSE);
@@ -4058,7 +4092,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 
 	if (in->upload) {
 		GF_Err e;
-		if (!in->is_h2 && in->use_cte) {
+		if (!in->is_h2 && in->use_cte && !in->skip_resource) {
 			e = gf_dm_sess_send(in->upload, "0\r\n\r\n", 5);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk to %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
@@ -4069,7 +4103,8 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 			}
 		}
 		//signal we're done sending the body
-		gf_dm_sess_send(in->upload, NULL, 0);
+		if (!in->skip_resource)
+			gf_dm_sess_send(in->upload, NULL, 0);
 
 		httpout_close_upload(ctx, in, GF_FALSE);
 
@@ -4080,7 +4115,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] Closing output file %s\n", in->local_path ? in->local_path : in->path));
 		}
 
-		if (in->resource) {
+		if (in->resource || in->skip_resource) {
 			gf_assert(in->local_path);
 			//close all LL-HLS chunks before closing session
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
@@ -4096,17 +4131,22 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 					httpout_check_mem_path(sess, sess->in_source);
 					sess->in_source->nb_dest--;
 					sess->in_source = NULL;
-					if (!sess->resource && sess->path) {
+					if (!sess->resource && sess->path && in->resource) {
 						sess->resource = gf_fopen(sess->path, "rb");
 					}
 				}
 				//get final size by forcing a seek
-				sess->file_size = gf_fsize(sess->resource);
-				gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
+				if (sess->resource) {
+					sess->file_size = gf_fsize(sess->resource);
+					gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
+				}
 				sess->file_in_progress = GF_FALSE;
 			}
-			gf_fclose(in->resource);
-			in->resource = NULL;
+			if (in->resource) {
+				gf_fclose(in->resource);
+				in->resource = NULL;
+			}
+			in->skip_resource = SKIP_RES_NO;
 		} else {
 			count = gf_list_count(ctx->active_sessions);
 			for (i=0; i<count; i++) {
@@ -4185,6 +4225,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 		for (s_idx=0; s_idx<max_out; s_idx++) {
 			GF_DownloadSession *up_sess = s_idx ? in->llhls_upload : in->upload;
 			if (!s_idx && !in->is_open) continue;
+			if (!s_idx && in->skip_resource) continue;
 			if (s_idx && !in->llhls_is_open) continue;
 
 retry:
@@ -4216,7 +4257,7 @@ retry:
 								goto retry;
 						}
 					} else {
-						if (httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE, GF_FALSE)) {
+						if (httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE, GF_FALSE, GF_TRUE)) {
 							//force sync
 							while (in->flush_open) {
 								e = gf_dm_sess_process(in->upload);
@@ -4410,7 +4451,7 @@ static void httpout_prune_files(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	if (!in->is_open && in->file_deletes && !in->flush_close) {
 		while (gf_list_count(in->file_deletes)) {
 			char *url = gf_list_pop_front(in->file_deletes);
-			httpout_open_input(ctx, in, url, GF_TRUE, GF_FALSE, GF_FALSE);
+			httpout_open_input(ctx, in, url, GF_TRUE, GF_FALSE, GF_FALSE, GF_FALSE);
 			//URL may be queued for later delete, remove it
 			if (in->past_files) {
 				u32 i, count = gf_list_count(in->past_files);
@@ -4647,6 +4688,7 @@ next_pck:
 
 		if ((start && !skip_start) || no_cte_fake_open) {
 			Bool is_static = in->is_manifest;
+			Bool is_init = GF_FALSE;
 			const GF_PropertyValue *fnum, *fname;
 			const char *name = NULL;
 			fname = NULL;
@@ -4675,7 +4717,10 @@ next_pck:
 			if (fname) name = fname->value.string;
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_INIT);
-			if (p && p->value.boolean) is_static = GF_TRUE;
+			if (p && p->value.boolean) {
+				is_static = GF_TRUE;
+				is_init = GF_TRUE;
+			}
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_REL);
 			Bool use_rel = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
@@ -4701,7 +4746,7 @@ next_pck:
 				dyn_name = gf_url_concatenate(ctx->dst, name);
 			}
 
-			httpout_open_input(ctx, in, dyn_name ? dyn_name : name, GF_FALSE, is_static, no_cte_fake_open);
+			httpout_open_input(ctx, in, dyn_name ? dyn_name : name, GF_FALSE, is_static, no_cte_fake_open, !is_init);
 			if (dyn_name) gf_free(dyn_name);
 
 			if (!no_cte_fake_open) {
@@ -4730,7 +4775,7 @@ next_pck:
 		}
 
 		p = no_cte_no_llhls ? NULL : gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM);
-		if (p && (in->resource||no_cte_frag_push) ) {
+		if (p && (in->resource || (in->skip_resource==SKIP_RES_FILE) || no_cte_frag_push) ) {
 			char szHLSChunk[GF_MAX_PATH];
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
@@ -4810,7 +4855,7 @@ next_pck:
 		}
 
 		pck_data = gf_filter_pck_get_data(pck, &pck_size);
-		if (in->upload || ctx->single_mode || (in->resource||no_cte_frag_push) ) {
+		if (in->upload || ctx->single_mode || (in->resource || in->skip_resource || no_cte_frag_push) ) {
 			GF_FilterFrameInterface *hwf = gf_filter_pck_get_frame_interface(pck);
 			if (pck_data && pck_size) {
 
@@ -4843,7 +4888,7 @@ next_pck:
 								in->write_start_range = bo;
 								in->write_end_range = bo + pck_size - 1;
 								//we muse use sync open here
-								httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE, GF_FALSE);
+								httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE, GF_FALSE, GF_FALSE);
 								if (in->flush_open) continue;
 							}
 
@@ -4870,7 +4915,7 @@ next_pck:
 								continue;
 							}
 						} else {
-							httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE, GF_FALSE);
+							httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE, GF_FALSE, GF_FALSE);
 							if (in->flush_open) continue;
 						}
 					}

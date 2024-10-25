@@ -1297,7 +1297,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 	}
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_LLHAS_MODE, &pe);
-	ctx->llhas_mode = p ? p->value.uint : 0;
+	ctx->llhas_mode = p ? p->value.uint : GF_LLHAS_NONE;
 
 	gf_filter_release_property(pe);
 
@@ -1939,13 +1939,13 @@ static GF_Err tsmux_process(GF_Filter *filter)
 
 			ctx->dash_file_name[0] = 0;
 			ctx->next_is_start = GF_FALSE;
-			if (ctx->llhas_mode>1) {
+			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
 				ctx->frag_num=1;
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
 			}
 		}
 		else if (ctx->next_is_llhas_start) {
-			if (ctx->llhas_mode>1) {
+			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
 				ctx->frag_num++;
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
 			}
