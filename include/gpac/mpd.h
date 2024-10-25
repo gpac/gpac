@@ -768,6 +768,7 @@ typedef struct
 	Double hls_ll_target_frag_dur;
 } GF_MPD_AdaptationSet;
 
+/*! structure used to signal inband events*/
 typedef struct {
 	/* Scheme ID Uri of the inband event */
 	char *scheme_id_uri;

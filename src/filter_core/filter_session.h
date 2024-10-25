@@ -584,6 +584,16 @@ typedef enum
 	GF_FILTER_DISABLED_HIDE,
 } GF_FilterDisableType;
 
+typedef enum
+{
+	//filter is not scheduled
+	GF_FILTER_NOT_SCHEDULED = 0,
+	//filter is scheduled by main scheduler
+	GF_FILTER_SCHEDULED,
+	//filter is scheduled by a direct dispatch call
+	GF_FILTER_DIRECT_SCHEDULED,
+} GF_FilterScheduledType;
+
 //#define DEBUG_BLOCKMODE
 
 struct __gf_filter
@@ -636,7 +646,7 @@ struct __gf_filter
 	GF_FilterQueue *tasks;
 	//set to true when the filter is present or to be added in the main task list
 	//this variable is unset in a zone protected by task_mx
-	volatile Bool scheduled_for_next_task;
+	volatile GF_FilterScheduledType scheduled_for_next_task;
 	//set to true when the filter is being processed by a thread
 	volatile Bool in_process;
 	u32 process_th_id, restrict_th_idx;
