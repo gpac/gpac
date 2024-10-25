@@ -3631,8 +3631,8 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		}
 	}
 
-	if (ds->set->ssr) {
-		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHAS_MODE, &PROP_UINT(2));
+	if (ds->set->ssr_mode) {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHAS_MODE, &PROP_UINT((ds->set->ssr_mode==1) ? GF_LLHAS_PARTS : GF_LLHAS_SUBSEG) );
 	} else if (!ctx->llhls) {
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHAS_MODE, NULL);
 	}
@@ -4480,7 +4480,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (set->ssr)
+					if (set->ssr_mode)
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 
 					seg_template->timescale = ds->mpd_timescale;
@@ -4520,7 +4520,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (set->ssr)
+					if (set->ssr_mode)
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
@@ -6813,13 +6813,14 @@ static GF_Err dasher_setup_ssr(GF_DasherCtx *ctx)
 
 		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_SSR);
 		if (p) {
-			ds->set->ssr = GF_TRUE;
 			if (p->value.sint < 0) {
+				ds->set->ssr_mode = 1;
 				// LL-HLS compatibility mode
 				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", NULL);
 				if (!desc_ssr) e = GF_OUT_OF_MEM;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] Stream %s, ASID %d is using SSR with LL-HLS compatibility mode\n", ds->src_url, ds->as_id));
 			} else {
+				ds->set->ssr_mode = 2;
 				sprintf(value, "%d", p->value.sint);
 				desc_ssr = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:ssr:2023", value);
 				if (!desc_ssr) e = GF_OUT_OF_MEM;
@@ -6831,6 +6832,10 @@ static GF_Err dasher_setup_ssr(GF_DasherCtx *ctx)
 
 		if (desc_ssr != NULL) gf_list_add(ds->set->essential_properties, desc_ssr);
 		if (desc_ass != NULL) gf_list_add(ds->set->supplemental_properties, desc_ass);
+
+		if (desc_ssr)
+			ctx->store_seg_states = GF_TRUE;
+
 		if (e) break;
 	}
 	while (gf_list_count(ssr_mappings)) {
@@ -8249,8 +8254,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (!seg_state) return;
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
-		seg_state->llhls_mode = ctx->llhls;
-		if (ds->set->ssr) seg_state->llhls_mode = 2;
+		if (ctx->llhls) seg_state->llhls_mode = ctx->llhls;
+		else if (ds->set->ssr_mode) seg_state->llhls_mode = 3;
 		ds->current_seg_state = seg_state;
 		seg_state->encrypted = GF_FALSE;
 
@@ -9862,7 +9867,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (base_ds->nb_comp_done == base_ds->nb_comp) {
 					dasher_flush_segment(ctx, base_ds, GF_FALSE);
 					//do not flush manifest in DASH+ssr until we get at least one fragment
-					if (!base_ds->set->ssr)
+					if (!base_ds->set->ssr_mode)
 						a_segment_is_done = GF_TRUE;
 				}
 				break;
@@ -10334,7 +10339,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 	if (evt->frag_size.is_last) {
 		sctx->llhls_done = GF_TRUE;
 		// SSR mode, set @k to the number of parts
-		if (ds->set->ssr) {
+		if (ds->set->ssr_mode) {
 			if (ctx->stl) {
 				dasher_set_timeline_parts(ctx, ds, sctx);
 			} else {
@@ -10352,7 +10357,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 		ctx->force_hls_ll_manifest = GF_TRUE;
 	}
 	//if HLS or DASH without SSR, flush now. If dash with ssr we wait for last subsegment
-	else if (!ds->set->ssr || ctx->do_m3u8) {
+	else if (!ds->set->ssr_mode || ctx->do_m3u8) {
 		ctx->force_hls_ll_manifest = GF_TRUE;
 	}
 }
@@ -10458,7 +10463,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 						break;
 
 					//send file delete events
-					if (prev_sctx->llhls_mode>1) {
+					if (prev_sctx->llhls_mode==2) {
 						u32 k;
 						for (k=0; k<prev_sctx->nb_frags; k++) {
 							GF_FilterEvent anevt;

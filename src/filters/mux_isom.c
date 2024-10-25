@@ -445,7 +445,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 	}
 	ctx->dash_mode = MP4MX_DASH_VOD;
-	ctx->llhas_mode = 0;
+	ctx->llhas_mode = GF_LLHAS_NONE;
 	if ((ctx->vodcache==MP4MX_VODCACHE_ON) && !ctx->tmp_store) {
 		ctx->tmp_store = gf_file_temp(NULL);
 		if (!ctx->tmp_store) {
@@ -1295,7 +1295,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHAS_MODE);
-	ctx->llhas_mode = p ? p->value.uint : 0;
+	ctx->llhas_mode = p ? p->value.uint : GF_LLHAS_NONE;
 
 	//insert tfdt in each traf for LLHAS so that correct timing can be found when doing in-segment tune-in
 	if (ctx->llhas_mode) {
@@ -7800,7 +7800,7 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			gf_filter_pck_set_duration(ctx->dst_pck, 1);
 	}
 
-	if ((ctx->llhas_mode>1) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
+	if ((ctx->llhas_mode>GF_LLHAS_BYTERANGES) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
 		ctx->frag_num++;
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
 	}
