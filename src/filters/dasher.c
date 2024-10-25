@@ -4683,6 +4683,19 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
 				evt.file_del.url = sctx->filepath;
 				gf_filter_pid_send_event(ds->opid, &evt);
+				//purge LLHLS frags
+				if (sctx->frags && (ctx->llhls>1)) {
+					u32 k;
+					for (k=0; k<sctx->nb_frags; k++) {
+						char szTmp[10];
+						sprintf(szTmp, ".%u", k+1);
+						char *frag_url = gf_strdup(sctx->filepath);
+						gf_dynstrcat(&frag_url, szTmp, NULL);
+						evt.file_del.url = frag_url;
+						gf_filter_pid_send_event(ds->opid, &evt);
+						gf_free(frag_url);
+					}
+				}
 				gf_free(sctx->filepath);
 			}
 
@@ -4728,6 +4741,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			gf_fatal_assert(gf_list_find(ds->pending_segment_states, sctx)<0);
 			if (sctx->filename) gf_free(sctx->filename);
 			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
+			if (sctx->frags) gf_free(sctx->frags);
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
@@ -11081,7 +11095,7 @@ GF_FilterRegister DasherRegister = {
 "This mode can be used to pre-segment the streams for later processing that must take place before final dashing.\n"
 "EX gpac -i source.mp4 dasher:gencues cecrypt:cfile=roll_seg.xml -o live.mpd\n"
 "This will allow the encrypter to locate dash boundaries and roll keys at segment boundaries.\n"
-"EX gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd\n"
+"EX gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=2 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd\n"
 "If the DRM file uses `keyRoll=period`, this will generate:\n"
 "- first period crypted with one key\n"
 "- second period clear\n"

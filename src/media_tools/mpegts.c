@@ -2537,6 +2537,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			//error
 			return GF_CORRUPTED_DATA;
 		}
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
 		if (af_size) gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
@@ -2550,6 +2551,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d AF size is %d when it must be 183 for AF type 2\n", ts->pck_number, af_size));
 			return GF_CORRUPTED_DATA;
 		}
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
 		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
@@ -2562,13 +2564,14 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	case 0:
 		return GF_OK;
 	default:
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
 		break;
 	}
 	data += pos;
 
 	/*PAT*/
 	if (hdr.pid == GF_M2TS_PID_PAT) {
-		if (ts->split_mode==2) {
+		if (ts->raw_mode==GF_M2TS_RAW_FORWARD) {
 			GF_M2TS_TSPCK tspck;
 			memset(&tspck, 0, sizeof(GF_M2TS_TSPCK));
 			tspck.data = data - pos;
@@ -2581,7 +2584,9 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 	es = ts->ess[hdr.pid];
 	//we work in split mode
-	if (ts->split_mode) {
+	if (ts->raw_mode) {
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
+
 		GF_M2TS_TSPCK tspck;
 		//process PMT table
 		if (es && (es->flags & GF_M2TS_ES_IS_PMT)) {
@@ -3214,6 +3219,7 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 	gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_QUIET);
 
 	ts = gf_m2ts_demux_new();
+	ts->raw_mode = GF_M2TS_RAW_PROBE;
 	e = gf_m2ts_process_data(ts, buf, size);
 
 	if (!ts->pck_number) {
