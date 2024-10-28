@@ -3636,13 +3636,27 @@ Bool gpac_expand_alias(int o_argc, char **o_argv)
 void parse_sep_set(const char *arg, Bool *override_seps)
 {
 	if (!arg) return;
-	u32 len = (u32) strlen(arg);
+	u32 len = (u32) strlen(arg), i;
 	if (!len) return;
+	char save_seps[sizeof(separator_set)];
+	strcpy(save_seps, separator_set);
+	Bool save_override_seps=*override_seps;
 	*override_seps = GF_TRUE;
-	if (len>=1) separator_set[0] = arg[0];
-	if (len>=2) separator_set[1] = arg[1];
-	if (len>=3) separator_set[2] = arg[2];
-	if (len>=4) separator_set[3] = arg[3];
-	if (len>=5) separator_set[4] = arg[4];
-	if (len>=6) separator_set[5] = arg[5];
+
+	if (len+1>sizeof(separator_set)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Separator set too long (%s): ", arg));
+	}
+	strncpy(separator_set, arg, MIN(len, sizeof(separator_set)-1));
+	if (len+1>sizeof(separator_set)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("truncating to (%s)\n", separator_set));
+	}
+
+	for(i=0; i+1 < sizeof(separator_set); i++) {
+		if(strchr(separator_set+i+1, separator_set[i])) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Invalid separator set (%s): duplicate characters found. Reverting to previous set (%s)\n", separator_set, save_seps));
+			*override_seps = save_override_seps;
+			strcpy(separator_set, save_seps);
+			return;
+		}
+	}
 }
