@@ -537,13 +537,14 @@ restart:
 				}
 				rr->br_start = 0;
 				rr->br_end = rsi->finfo.total_size;
-				gf_list_add(rsi->ranges, rr);
 				rsess->range = rr;
 			} 
 		}
 		if (!url) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server - Repair abort \n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server for segment %s - Repair abort \n", rsi->finfo.filename));
 			rsi->nb_errors++;
+			// ignore all other ranges for this segment
+			gf_list_transfer(ctx->seg_range_reservoir, rsi->ranges);
 			repair_session_done(ctx, rsess, e);
 			return;
 		}
