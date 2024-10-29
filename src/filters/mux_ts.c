@@ -1940,14 +1940,22 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			ctx->dash_file_name[0] = 0;
 			ctx->next_is_start = GF_FALSE;
 			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
-				ctx->frag_num=1;
-				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
+				ctx->frag_num=0;
+				u32 fnum = ctx->frag_num;
+				//we'll need to redo all LLHLS tests
+				if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
+					fnum++;
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 			}
 		}
 		else if (ctx->next_is_llhas_start) {
 			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
+				u32 fnum = ctx->frag_num;
 				ctx->frag_num++;
-				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
+				//we'll need to redo all LLHLS tests
+				if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
+					fnum++;
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 			}
 			ctx->next_is_llhas_start = GF_FALSE;
 		}

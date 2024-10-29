@@ -396,6 +396,8 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XML
 					if (seg_tl_ent->repeat_count == (u32)-1)
 						seg_tl_ent->repeat_count--;
 				}
+				else if (!strcmp(att->name, "k"))
+					seg_tl_ent->nb_parts = gf_mpd_parse_int(att->value);
 			}
 			if (seg_tl_ent->start_time)
 				curr_start_time = seg_tl_ent->start_time;
@@ -551,6 +553,8 @@ static GF_MPD_SegmentTemplate *gf_mpd_parse_segment_template(GF_MPD *mpd, GF_XML
 			seg->initialization = gf_mpd_parse_string(att->value);
 		}
 		else if (!strcmp(att->name, "bitstreamSwitching")) seg->bitstream_switching = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "k"))
+			seg->nb_parts = gf_mpd_parse_int(att->value);
 	}
 	gf_mpd_parse_multiple_segment_base(mpd, (GF_MPD_MultipleSegmentBase *)seg, root);
 	return seg;
@@ -3938,7 +3942,10 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 						next_br_start_plus_one = 1 + sctx->frags[k].offset + sctx->frags[k].size;
 					} else {
 						next_seg_idx = k+2;
-						gf_fprintf(out, ".%d\"", k+1);
+						u32 frag_idx = k;
+						//we'll need to redo all LLHLS tests
+						if (gf_sys_is_test_mode()) frag_idx++;
+						gf_fprintf(out, ".%d\"", frag_idx);
 					}
 
 					if (sctx->frags[k].independent)
@@ -4666,7 +4673,7 @@ static char *gf_mpd_get_base_url(GF_List *baseURLs, char *parent_url, u32 *base_
 }
 
 GF_EXPORT
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv, u32 *out_start_number)
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv, u32 *out_start_number, s32 subseg_index)
 {
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	u32 start_number = 1;
@@ -5006,6 +5013,27 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 				gf_free(solved_template);
 				second_sep[0] = '$';
 				return GF_EOS;
+			}
+		}
+		else if (!strcmp(first_sep+1, "SubNumber")) {
+			if ((resolve_type!=GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE) && (subseg_index<0)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Invalid SubNumber template identifier with no SSR subsegment index\n"));
+				gf_free(url);
+				gf_free(solved_template);
+				second_sep[0] = '$';
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+			if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE) {
+				strcat(solved_template, "$SubNumber");
+				if (format_tag)
+					strcat(solved_template, szPrintFormat);
+				strcat(solved_template, "$");
+			} else if (resolve_type==GF_MPD_RESOLVE_URL_MEDIA_NOSTART) {
+				sprintf(szFormat, szPrintFormat, subseg_index);
+				strcat(solved_template, szFormat);
+			} else {
+				sprintf(szFormat, szPrintFormat, subseg_index);
+				strcat(solved_template, szFormat);
 			}
 		}
 		else if (!strcmp(first_sep+1, "Index")) {
@@ -5349,7 +5377,7 @@ static GF_Err mpd_seek_periods(Double seek_time, GF_MPD const * const in_mpd, GF
 GF_EXPORT
 GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
-	u32 *out_segment_index, Double *out_opt_seek_time)
+	u32 *out_segment_index, Double *out_opt_seek_time, Double *out_seg_dur)
 {
 	Double seg_start = 0.0;
 	u32 segment_idx = 0;
@@ -5369,6 +5397,7 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 			return e;
 		segment_duration = segment_duration_in_scale / (Double)timescale;
 
+		if (out_seg_dur) *out_seg_dur = segment_duration;
 		if (seek_mode == MPD_SEEK_PREV) {
 			if ((seek_time >= seg_start) && (seek_time < seg_start + segment_duration)) {
 				if (out_opt_seek_time) *out_opt_seek_time = seg_start;
@@ -5387,7 +5416,6 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 				break;
 			}
 		} else {
-			gf_assert(0);
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -5398,29 +5426,6 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 	*out_segment_index = segment_idx;
 	return GF_OK;
 }
-
-#if 0 //unused
-GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
-	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
-	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time)
-{
-	GF_Err e = GF_OK;
-
-	if (!out_period || !out_segment_index) {
-		return GF_BAD_PARAM;
-	}
-
-	e = mpd_seek_periods(seek_time, in_mpd, out_period);
-	if (e)
-		return e;
-
-	e = gf_mpd_seek_in_period(seek_time, seek_mode, *out_period, in_set, in_rep, out_segment_index, out_opt_seek_time);
-	if (e)
-		return e;
-
-	return GF_OK;
-}
-#endif
 
 /*
 	smooth streaming 2.1 support

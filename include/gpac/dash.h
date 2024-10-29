@@ -369,21 +369,15 @@ Bool gf_dash_group_init_segment_is_media(GF_DashClient *dash, u32 group_idx);
 */
 void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_5646);
 
-/*! returns the mime type of the media resources in this group
-\param dash the target dash client
-\param group_idx the 0-based index of the target group
-\return the mime type of the segments in this group
-*/
-const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 group_idx);
-
 /*! returns the URL of the first media resource to play (init segment or first media segment depending on format). start_range and end_range are optional
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
 \param start_range set to the byte start offset in the init segment
 \param end_range set to the byte end offset in the init segment
+\param mime the mime type of the init segment
 \return URL of the init segment (can be a relative path if manifest is a local file)
 */
-const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 group_idx, u64 *start_range, u64 *end_range);
+const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 group_idx, u64 *start_range, u64 *end_range, const char **mime);
 
 /*! returns the URL and IV associated with the first media segment if any (init segment or first media segment depending on format).
 This is used for full segment encryption modes of MPEG-2 TS segments. key_IV is optional
@@ -519,6 +513,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
 \param seg_time  set to the segment start time  - optional, may be NULL
 \param seg_dur_ms  set to the segment estimated duration in ms  - optional, may be NULL
 \param init_segment set to the init segment name, without base url  - optional, may be NULL
+\param ssr_info set to the SSR info, den set to 0 if no SSR  - optional, may be NULL
 \return error if any, GF_BUFFER_TOO_SMALL if no segments queued for download
 */
 GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 dependent_representation_index, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment);
@@ -782,12 +777,33 @@ Errors will be thrown if these are not met on future parts and merging will be d
 */
 void gf_dash_enable_single_range_llhls(GF_DashClient *dash, Bool enable_single_range);
 
-/*! create a new DASH client
+/*! enable auto-switch mode
 \param dash the target dash cleint
 \param auto_switch_count forces representation switching (quality up if positive, down if negative) every auto_switch_count segments, set to 0 to disable
 \param auto_switch_loop if false (default when creating dasher), restart at lowest quality when higher quality is reached and vice-versa. If true, quality switches decreases then increase in loop
 */
 void gf_dash_set_auto_switch(GF_DashClient *dash, s32 auto_switch_count, Bool auto_switch_loop);
+
+/*! Cross Adaptation-set switching mdoe */
+typedef enum
+{
+	/*! cross adaptation set is disabled*/
+	GF_DASH_XAS_NONE = 0,
+	/*! cross adaptation set is enabled and only switches on the same codec*/
+	GF_DASH_XAS_CODEC,
+	/*! cross adaptation set is enabled and can switch to any codec*/
+	GF_DASH_XAS_ALL,
+} GF_DASHCrossASMode;
+
+/*! enable switching across adaptation sets
+
+When switching across adaptation sets is enabled and such sets are declared in the manifest, a single group will be declared for all sets in
+the switching set, and switching will be handled by the client.
+
+\param dash the target dash cleint
+\param cross_as_enabled enable or disable
+*/
+void gf_dash_enable_cross_as_switch(GF_DashClient *dash, GF_DASHCrossASMode cross_as_mode);
 
 /*! returns active period start
 \param dash the target dash client
@@ -863,6 +879,8 @@ typedef struct
 	const GF_List *seg_urls;
 	/*! URL (relative) of variant playlist*/
 	const char *hls_variant_url;
+	/*! SSR flag, set to estimated num parts in SSR */
+	u32 ssr;
 } GF_DASHQualityInfo;
 
 /*! gets information on  a given quality
