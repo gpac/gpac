@@ -7801,8 +7801,12 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 	}
 
 	if ((ctx->llhas_mode>GF_LLHAS_BYTERANGES) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
+		u32 fnum = ctx->frag_num;
+		//we'll need to redo all LLHLS tests
+		if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
+			fnum++;
+		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 		ctx->frag_num++;
-		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
 	}
 	ctx->frag_size += block_size;
 
