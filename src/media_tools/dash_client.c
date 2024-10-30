@@ -239,8 +239,8 @@ struct __dash_client
 	u32 pending_utc_idx;
 
 	GF_DASHCrossASMode cross_as_mode;
+	//max segment start time in period, reset after seek/chaining/period switch
 	Double max_last_seg_start;
-
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
@@ -8399,6 +8399,7 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 
 				(*cache_is_full) = GF_FALSE;
 				dash->request_period_switch = 0;
+				dash->max_last_seg_start = 0;
 				dash->period_groups_setup = GF_FALSE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Switching to period #%d\n", dash->active_period_index+1));
 				dash->dash_state = GF_DASH_STATE_SETUP;
@@ -8958,6 +8959,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	dash->time_in_tsb = dash->prev_time_in_tsb = 0;
 	dash->reinit_period_index = 0;
 	dash->seek_pending = -1;
+	dash->max_last_seg_start = 0;
 
 	if (dash->base_url) gf_free(dash->base_url);
 	sep_cgi = strrchr(manifest_url, '?');
