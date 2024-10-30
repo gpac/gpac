@@ -1568,6 +1568,34 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 	 than examining the error stack after a failed SSL_connect.  */
 	SSL_CTX_set_verify(dm->ssl_ctx, SSL_VERIFY_NONE, NULL);
 
+	if (!gf_opts_get_bool("core", "broken-cert")) {
+
+		const char* ca_bundle = gf_opts_get_key("core", "ca-bundle");
+
+		if (ca_bundle && gf_file_exists(ca_bundle)) {
+			SSL_CTX_load_verify_locations(dm->ssl_ctx, ca_bundle, NULL);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] Using CA bundle at %s\n", ca_bundle));
+		}
+		else {
+			const char* ossl_bundle = X509_get_default_cert_file_env();
+			ossl_bundle = getenv(ossl_bundle);
+			if (!ossl_bundle)
+				ossl_bundle = X509_get_default_cert_file();
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] OpenSSL CA bundle location: %s\n", ossl_bundle));
+
+			if (!ossl_bundle || !gf_file_exists(ossl_bundle)) {
+
+				const char* ca_bundle_default = gf_opts_get_key("core", "ca-bundle-default");
+
+				if (ca_bundle_default) {
+					SSL_CTX_load_verify_locations(dm->ssl_ctx, ca_bundle_default, NULL);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[SSL] Using default CA bundle at %s\n", ca_bundle_default));
+				}
+			}
+		}
+	}
+
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG) ) {
 		SSL_CTX_set_msg_callback(dm->ssl_ctx, ssl_on_log);
@@ -2859,7 +2887,7 @@ static size_t curl_on_data(char *ptr, size_t size, size_t nmemb, void *clientp)
 #endif
 
 #ifdef GPAC_HAS_CURL
-static GF_Err curl_setup_session(GF_DownloadSession *sess)
+static GF_Err curl_setup_session(GF_DownloadSession* sess)
 {
 	CURLcode res;
 	sess->curl_hnd = curl_easy_init();
@@ -2893,10 +2921,40 @@ static GF_Err curl_setup_session(GF_DownloadSession *sess)
 	if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_CONNECTTIMEOUT_MS, sess->conn_timeout);
 	if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_ACCEPTTIMEOUT_MS, sess->conn_timeout);
 	if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_NOSIGNAL, 1);
-	if ( gf_opts_get_bool("core", "broken-cert")) {
-		if (!res) res = curl_easy_setopt(sess->curl_hnd,  CURLOPT_SSL_VERIFYPEER, 0);
-		if (!res) res = curl_easy_setopt(sess->curl_hnd,  CURLOPT_SSL_VERIFYHOST, 0);
+	if (gf_opts_get_bool("core", "broken-cert")) {
+		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_SSL_VERIFYPEER, 0);
+		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_SSL_VERIFYHOST, 0);
 	}
+	else {
+
+		const char* ca_bundle = gf_opts_get_key("core", "ca-bundle");
+
+		if (ca_bundle && gf_file_exists(ca_bundle)) {
+			curl_easy_setopt(sess->curl_hnd, CURLOPT_CAINFO, ca_bundle);
+			curl_easy_setopt(sess->curl_hnd, CURLOPT_CAPATH, NULL);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[CURL] Using CA bundle at %s\n", ca_bundle));
+		}
+#if CURL_AT_LEAST_VERSION(7,84,0)
+		else {
+			const char* curl_bundle = NULL;
+			curl_easy_getinfo(sess->curl_hnd, CURLINFO_CAINFO, &curl_bundle);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[CURL] libcurl CA bundle location: %s\n", curl_bundle));
+
+			if (!curl_bundle || !gf_file_exists(curl_bundle)) {
+
+				const char* ca_bundle_default = gf_opts_get_key("core", "ca-bundle-default");
+
+				if (ca_bundle_default) {
+					curl_easy_setopt(sess->curl_hnd, CURLOPT_CAINFO, ca_bundle_default);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[CURL] using default CA bundle at %s\n", ca_bundle_default));
+				}
+
+			}
+		}
+#endif
+	}
+
 	//set HTTP version
 	if (!res) {
 		curl_version_info_data *ver = curl_version_info(CURLVERSION_NOW);
@@ -3753,81 +3811,21 @@ static Bool rfc2818_match(const char *pattern, const char *string)
 #ifdef GPAC_HAS_SSL
 Bool gf_ssl_check_cert(SSL *ssl, const char *server_name)
 {
-	Bool success;
-	X509 *cert = SSL_get_peer_certificate(ssl);
-	if (!cert) return GF_TRUE;
 
-	long vresult;
-	SSL_set_verify_result(ssl, 0);
-	vresult = SSL_get_verify_result(ssl);
+	long vresult = SSL_get_verify_result(ssl);
+	Bool success = (vresult == X509_V_OK);
 
-	if (vresult == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] Cannot locate issuer's certificate on the local system, will not attempt to validate\n"));
-		SSL_set_verify_result(ssl, 0);
-		vresult = SSL_get_verify_result(ssl);
+	if (!success) {
+		int level = GF_LOG_ERROR;
+		if (gf_opts_get_bool("core", "broken-cert")) {
+			success = GF_TRUE;
+			level = GF_LOG_WARNING;
+		}
+		GF_LOG(level, GF_LOG_HTTP, ("[SSL] Certificate verification failed for domain %s: %s. %s\n", server_name, ERR_error_string(vresult, NULL), (level == GF_LOG_ERROR ? "Use -broken-cert to bypass." : "")));
 	}
 
-	if (vresult == X509_V_OK) {
-		char common_name[256];
-		STACK_OF(GENERAL_NAME) *altnames;
-		GF_List* valid_names;
-		int i;
-
-		valid_names = gf_list_new();
-
-		common_name[0] = 0;
-		X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
-		gf_list_add(valid_names, common_name);
-
-		altnames = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
-		if (altnames) {
-			for (i = 0; i < sk_GENERAL_NAME_num(altnames); ++i) {
-				const GENERAL_NAME *altname = sk_GENERAL_NAME_value(altnames, i);
-				if (altname->type == GEN_DNS)
-				{
-					#if OPENSSL_VERSION_NUMBER < 0x10100000L
-						unsigned char *altname_str = ASN1_STRING_data(altname->d.ia5);
-					#else
-						unsigned char *altname_str = (unsigned char *)ASN1_STRING_get0_data(altname->d.ia5);
-					#endif
-					gf_list_add(valid_names, altname_str);
-				}
-			}
-		}
-
-		success = GF_FALSE;
-		for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
-			const char *valid_name = (const char*) gf_list_get(valid_names, i);
-			if (rfc2818_match(valid_name, server_name)) {
-				success = GF_TRUE;
-				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[SSL] Hostname %s matches %s\n", server_name, valid_name));
-				break;
-			}
-		}
-		if (!success) {
-			if ( gf_opts_get_bool("core", "broken-cert")) {
-				success = GF_TRUE;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names: expected %s\n", server_name));
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Mismatch in certificate names, try using -broken-cert: expected %s\n", 	server_name));
-			}
-#ifndef GPAC_DISABLE_LOG
-			for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
-				const char *valid_name = (const char*) gf_list_get(valid_names, i);
-				GF_LOG(success ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Tried name: %s\n", valid_name));
-			}
-#endif
-		}
-
-		gf_list_del(valid_names);
-		GENERAL_NAMES_free(altnames);
-	} else {
-		success = GF_FALSE;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Error verifying certificate %x\n", vresult));
-	}
-
-	X509_free(cert);
 	return success;
+
 }
 
 #endif
