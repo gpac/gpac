@@ -4079,9 +4079,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				ds->inband_params = 2;
 		}
 
-		//if bitstream switching and templating, only set for the first one
-		if (i && set->bitstream_switching && ds->stl && single_template) continue;
-
 		if (!set_timescale) set_timescale = ds->timescale;
 
 		if (ctx->timescale<0) ds->mpd_timescale = ds->timescale;
@@ -9758,6 +9755,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				dst = gf_filter_pck_new_ref(ds->opid, 0, 0, pck);
 				if (!dst) {
 					if (ds && ds->rep) {
+						gf_list_del_item(ds->set->representations, ds->rep);
 						gf_mpd_representation_free(ds->rep);
 						ds->rep = NULL;
 					}
