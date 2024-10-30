@@ -1359,16 +1359,29 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 		gf_filter_post_remove(task->filter);
 		if (direct_mode) {
 			gf_mx_v(task->filter->tasks_mx);
+			//release filter removal prevention on both source and destination
+			safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
+			safe_int_dec(&task->filter->detach_pid_tasks_pending);
 			task->filter = NULL;
 			return;
 		}
 	}
 	gf_mx_v(task->filter->tasks_mx);
+	//release filter removal prevention on both source and destination
+	safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
+	safe_int_dec(&task->filter->detach_pid_tasks_pending);
 }
 
 void gf_fs_post_disconnect_task(GF_FilterSession *session, GF_Filter *filter, GF_FilterPid *pid)
 {
+	//if source or dest filters are finalized or session is being destroyed mode, do not disconnect
+	if (filter->finalized || pid->pid->filter->finalized || (session->run_status!=GF_OK)) return;
+
 	safe_int_inc(&session->remove_tasks);
+	//prevent filter removal on both source and destination
+	safe_int_inc(&pid->pid->filter->detach_pid_tasks_pending);
+	safe_int_inc(&filter->detach_pid_tasks_pending);
+
 	gf_fs_post_task(session, gf_filter_pid_disconnect_task, filter, pid, "pidinst_disconnect", NULL);
 }
 
