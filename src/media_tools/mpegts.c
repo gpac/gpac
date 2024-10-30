@@ -657,7 +657,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 			sec->section = (char*)gf_realloc(sec->section, sizeof(char)*sec->length);
 		}
 
-		if (sec->length && sec->received < sec->length && data_size >= 1 + sec->length - sec->received) {
+		if (sec->length && (sec->received < sec->length) && (data_size >= (u32) (1 + sec->length - sec->received))) {
 			u32 len = sec->length - sec->received;
 			memcpy(sec->section + sec->received, data+1, sizeof(char)*len);
 			sec->received += len;

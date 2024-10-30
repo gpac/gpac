@@ -366,7 +366,7 @@ static void obumx_write_metadata_timecode(GF_BitStream *bs, u64 cts, GF_Fraction
 	cts /= 60;
 	u8 m = cts % 60;
 	cts /= 60;
-	u8 h = cts;
+	u8 h = (u8) cts;
 	gf_bs_write_int(bs, 0/*counting_type*/, 5);
 	gf_bs_write_int(bs, 1/*full_timestamp_flag*/, 1);
 	gf_bs_write_int(bs, 0/*discontinuity_flag*/, 1);
