@@ -5837,6 +5837,10 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			strcat(segment_name, tmp);
 			has_number = GF_TRUE;
 		}
+		else if (!strnicmp(& seg_rad_name[char_template], "$SubNumber", 10)) {
+			EXTRACT_FORMAT(10);
+			//remove it, we always append to segment name
+		}
 		else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Number", 7)) {
 			EXTRACT_FORMAT(7);
 
