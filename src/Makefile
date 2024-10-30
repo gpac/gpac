@@ -21,7 +21,7 @@ endif
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o utils/gzio.o utils/xml_parser.o
+LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/constants.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o utils/gltools.o utils/gzio.o utils/xml_parser.o utils/xml_bin_custom.o
 LIBGPAC_UTILS+=utils/sha1.o utils/sha256.o utils/md5.o utils/base_encoding.o utils/math.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/cache.o utils/downloader.o utils/utf.o utils/token.o utils/color.o utils/Remotery.o
 
 # ifeq ($(DISABLE_PLAYER),no)
@@ -91,7 +91,7 @@ endif
 LIBGPAC_EVG=evg/ftgrays.o evg/raster3d.o evg/raster_565.o evg/raster_argb.o evg/raster_rgb.o evg/raster_yuv.o evg/stencil.o evg/surface.o
 
 ## libgpac objects gathering: src/media tools
-LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o media_tools/route_dmx.o
+LIBGPAC_MEDIATOOLS=media_tools/isom_tools.o media_tools/dash_segmenter.o media_tools/av_parsers.o media_tools/route_dmx.o media_tools/id3.o
 
 ifeq ($(DISABLE_AV_PARSERS),no)
 LIBGPAC_MEDIATOOLS+=media_tools/img.o
@@ -412,7 +412,7 @@ ifeq ($(UNIT_TESTS),yes)
 		-o ../bin/gcc/unittests \
 		../bin/gcc/unittests.c \
 		$(shell find $(SRC_PATH) -path "*/unittests/*.c" | grep -v bin | sort) \
-		-Wl,-rpath=$(realpath ../bin/gcc) -L../bin/gcc -lgpac
+		-Wl,-rpath,$(realpath ../bin/gcc) -L../bin/gcc -lgpac
 endif
 
 

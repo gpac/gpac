@@ -94,7 +94,7 @@ The filter management in GPAC is built using the following core objects:
 
 
 GPAC comes with a set of built-in filters in libgpac. It is also possible to define external filters in dynamic libraries. GPAC will look for such libraries
- in default module folder and  folders listed in GPAC config file section core, key mod-dirs. The files SHALL be named gf_* and export a function called RegisterFilter
+ in default module folder and folders listed in GPAC config file section core, key mod-dirs. The files SHALL be named gf_* and export a function called RegisterFilter
  with the following prototype:
 
 
@@ -1101,6 +1101,7 @@ enum
 	GF_PROP_PID_UNFRAMED = GF_4CC('P','F','R','M'),
 	GF_PROP_PID_UNFRAMED_FULL_AU = GF_4CC('P','F','R','F'),
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
+	GF_PROP_PID_DURATION_AVG = GF_4CC('E','D','U','R'),
 	GF_PROP_PID_NB_FRAMES = GF_4CC('N','F','R','M'),
 	GF_PROP_PID_FRAME_OFFSET = GF_4CC('F','R','M','O'),
 	GF_PROP_PID_FRAME_SIZE = GF_4CC('C','F','R','S'),
@@ -1662,7 +1663,7 @@ GF_FEVT_PLAY and GF_FEVT_SET_SPEED events will trigger larger (abs(speed)>1) or 
 
 GF_FEVT_STOP and GF_FEVT_SOURCE_SEEK events are filtered to reset the PID buffers.
 
-The following events may be used globally on a filter, e.g. without a  PID associated to the event:
+The following events may be used globally on a filter, e.g. without a PID associated to the event:
 
 GF_FEVT_FILE_DELETE: used for source and sinks, indicata a file deletion
 
@@ -1672,7 +1673,7 @@ GF_FEVT_QUALITY_SWITCH: globally change quality of of the filters for all pids (
 
 GF_FEVT_USER:
 
-The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data wgile paused.
+The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data while paused.
 The GF_FEVT_PAUSE and GF_FEVT_RESUME events are only used to trigger pause and resume on interactive channels such as an RTSP session, i.e. to tell the remote peer to stop and resume.
 
 @{
@@ -1729,7 +1730,9 @@ typedef enum
 	/*! NTP source clock send by other services (eg from TS to dash using TEMI) */
 	GF_FEVT_NTP_REF,
 	/*! Event sent by DASH/HLS demux to source to notify a quality change  - used for ROUTE/MABR only */
-	GF_FEVT_DASH_QUALITY_SELECT
+	GF_FEVT_DASH_QUALITY_SELECT,
+	/*! Hint for network transmission event */
+	GF_FEVT_NETWORK_HINT
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1777,7 +1780,7 @@ typedef struct
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
 	*/
 	u8 timestamp_based;
-	/*! GF_FEVT_PLAY only, indicates the consumer only cares for the full file, not packets*/
+	/*! GF_FEVT_PLAY / GF_FEVT_PLAY_HINT, indicates the consumer only cares for the full file, not packets*/
 	u8 full_file_only;
 	/*!
 	 for GF_FEVT_PLAY: indicates any current download should be aborted
@@ -1982,6 +1985,16 @@ typedef struct
 	GF_QualtitySelectionState select_type;
 } GF_FEVT_DASHQualitySelection;
 
+/*! Event structure for GF_FEVT_NETWORK_HINT*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	/*! MTU size  */
+	u32 mtu_size;
+
+} GF_FEVT_NetworkHint;
+
 /*!
 Filter Event object
  */
@@ -2001,6 +2014,7 @@ union __gf_filter_event
 	GF_FEVT_EncodeHints encode_hints;
 	GF_FEVT_NTPRef ntp;
 	GF_FEVT_DASHQualitySelection dash_select;
+	GF_FEVT_NetworkHint net_hint;
 };
 
 /*! Gets readable name for event type
@@ -2162,6 +2176,8 @@ enum
 	GF_CAPFLAG_STATIC = 1<<5,
 	/*! Currently only used for output  capabilities, indicates that this capability is optional in the  PID */
 	GF_CAPFLAG_OPTIONAL = 1<<6,
+	/*! Only checks presence of capability */
+	GF_CAPFLAG_PRESENT = 1<<7,
 };
 
 /*! Shortcut macro to set for input capability flags*/
@@ -4284,7 +4300,7 @@ reassign output packet properties changed by the filter.
 In order to handle reordering of packets, it is possible to keep references to either packets (may block the filter chain), or packet properties.
 
 Packets shall always be dispatched in their processing order (decode order). If reordering upon reception is needed, or AU interleaving is used, a filter SHALL do the reordering.
-However, packets do not have to be send in their creation order: a created packet is not assigned to PID buffers until it is sent.
+However, packets do not have to be sent in their creation order: a created packet is not assigned to PID buffers until it is sent.
 
 @{
  */
@@ -4395,14 +4411,26 @@ If the source packet uses a frame interface object or has no associated data, re
 If the source packet is referenced more than once (ie more than just the caller), a new packet on the output PID is allocated with source data copied.
 Otherwise, the source data is assigned to the output packet.
 
-This is typically called by filters requiring read access to data for packets using frame interfaces
-\warning The cloned packet will not have any dynamic properties set.
+This is typically called by filters requiring read access to data for packets using frame interfaces.
 
 \param pck_source the target source packet
 \param cached_pck if not NULL, will try to reuse this packet if possible (if not possible, this packet will be destroyed)
 \return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_dangling_copy(GF_FilterPacket *pck_source, GF_FilterPacket *cached_pck);
+
+/*! Creates a detached clone of a packet from a source packet and copy all source properties to output.
+
+If the source packet uses a frame interface object or has no associated data, returns a copy of the packet.
+Otherwise, the source data is copied in the output packet.
+
+This is typically called by filters reaggregating packets on their own.
+
+\param pck_source the target source packet
+\param cached_pck if not NULL, will try to reuse this packet if possible (if not possible, this packet will be destroyed)
+\return new packet or NULL if allocation error or not an output PID
+*/
+GF_FilterPacket *gf_filter_pck_dangling_clone(GF_FilterPacket *pck_source, GF_FilterPacket *cached_pck);
 
 /*! Marks memory of a shared packet as non-writable. By default \ref gf_filter_pck_new_shared and \ref gf_filter_pck_new_ref allow
 write access to internal memory in case the packet can be cloned (single reference used). If your filter relies on the content of the shared

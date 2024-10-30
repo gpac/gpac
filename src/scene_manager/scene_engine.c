@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -290,8 +290,6 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	GF_SceneDumper *dumper = NULL;
 #endif
 	GF_Err e;
-	char rad_name[4096];
-	char file_name[4096+100];
 	u32 fsize;
 	u8 *buffer = NULL;
 	GF_BitStream *bs = NULL;
@@ -302,11 +300,16 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	u32 buffer_len;
 	const char *cache_dir;
 	char *dump_name;
+	char *base_name = NULL;
+	char p_sep[2];
 
 	if (!data) return GF_BAD_PARAM;
 
 	if (!seng->dump_path) cache_dir = gf_get_default_cache_directory();
 	else cache_dir = seng->dump_path;
+
+	p_sep[0] = GF_PATH_SEPARATOR;
+	p_sep[1] = 0;
 
 	dump_name = "gpac_scene_engine_dump";
 
@@ -314,11 +317,20 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 start:
 #endif
 
+	if (base_name) {
+		gf_free(base_name);
+		base_name=NULL;
+	}
+
 	if (commands && gf_list_count(commands)) {
-		sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
+		gf_dynstrcat(&base_name, cache_dir, NULL);
+		gf_dynstrcat(&base_name, dump_name, p_sep);
+		gf_dynstrcat(&base_name, "_update", NULL);
 	} else {
 #ifndef DUMP_DIMS_LOG_WITH_TIME
-		sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
+		gf_dynstrcat(&base_name, cache_dir, NULL);
+		gf_dynstrcat(&base_name, "rap_", p_sep);
+		gf_dynstrcat(&base_name, dump_name, NULL);
 #else
 		char date_str[100], time_str[100];
 		time_t now;
@@ -327,14 +339,18 @@ start:
 		tm_tot = localtime(&now);
 		strftime(date_str, 100, "%Yy%mm%dd", tm_tot);
 		strftime(time_str, 100, "%Hh%Mm%Ss", tm_tot);
-		sprintf(rad_name, "%s%c%s-%s-%s%s", cache_dir, GF_PATH_SEPARATOR, date_str, time_str, "rap_", dump_name);
+		//format as cache_dir / date_str - time_str -rap_ dump_name);
+		gf_dynstrcat(&base_name, cache_dir, NULL);
+		gf_dynstrcat(&base_name, date_str, p_sep);
+		gf_dynstrcat(&base_name, time_str, "-");
+		gf_dynstrcat(&base_name, dump_name, "-rap_");
 #endif
 	}
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
-	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
+	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, base_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
 	if (!dumper) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", base_name));
 		e = GF_IO_ERR;
 		goto exit;
 	}
@@ -350,12 +366,17 @@ start:
 #if 0 //unused
 	if(seng->dump_rap) {
 		GF_SceneDumper *dumper = NULL;
+		if (base_name) {
+			gf_free(base_name);
+			base_name = NULL;
+		}
+		gf_dynstrcat(&base_name, cache_dir, NULL);
+		gf_dynstrcat(&base_name, "rap_", p_sep);
+		gf_dynstrcat(&base_name, dump_name, NULL);
 
-		sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
-
-		dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
+		dumper = gf_sm_dumper_new(seng->ctx->scene_graph, base_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
 		if (!dumper) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", base_name));
 			e = GF_IO_ERR;
 			goto exit;
 		}
@@ -377,11 +398,11 @@ start:
 	}
 #endif
 
-	sprintf(file_name, "%s.svg", rad_name);
+	gf_dynstrcat(&base_name, ".svg", NULL);
 
-	e = gf_file_load_data(file_name, (u8 **) &buffer, &fsize);
+	e = gf_file_load_data(base_name, (u8 **) &buffer, &fsize);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Error loading SVG dump file %s\n", file_name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Error loading SVG dump file %s\n", base_name));
 		goto exit;
 	}
 
@@ -440,6 +461,7 @@ start:
 	gf_bs_del(bs);
 
 exit:
+	if (base_name) gf_free(base_name);
 	if (buffer) gf_free(buffer);
 	return e;
 }

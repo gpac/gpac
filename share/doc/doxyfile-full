@@ -45,7 +45,7 @@ PROJECT_NUMBER         =
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "Open Source Multimedia Framework. For more information, check out http://gpac.wp.mines-telecom.fr"
+PROJECT_BRIEF          = "Open Source Multimedia Framework. For more information, check out https://gpac.io"
 
 # With the PROJECT_LOGO tag one can specify an logo or icon that is included in
 # the documentation. The maximum height of the logo should not exceed 55 pixels

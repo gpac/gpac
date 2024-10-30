@@ -1259,7 +1259,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	if (trun_ref_size) {
 		//this may happen when starting a new fragments without explicitly flushing previous one
 		if (!movie->moof->mdat_size)
-			movie->moof->mdat_size = 8 + trun_ref_size;
+			movie->moof->mdat_size = 8 + (u32) trun_ref_size;
 		gf_bs_write_u32(bs, movie->moof->mdat_size);
 		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
 	}

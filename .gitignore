@@ -4,6 +4,7 @@
 *.user
 *.userosscache
 *.sln.docstates
+.vscode
 *.userprefs
 *_i.c
 *_p.c
@@ -51,6 +52,8 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
+__pycache__/
+*.py[cod]
 
 
 .DS_Store .AppleDouble .LSOverride
@@ -88,6 +91,7 @@ tests/external_media/
 tests/results/
 tests/hash_refs/
 
+src/modules/**/*.dep
 *doxygen_warnings.txt
 */nodejs/node_modules/
 */nodejs/package-lock.json

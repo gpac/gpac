@@ -33,6 +33,8 @@
 #include <pulse/simple.h>
 #include <gpac/modules/audio_out.h>
 
+#define BUFF_SIZE 8192
+
 typedef struct
 {
 	pa_simple *playback_handle;
@@ -41,6 +43,7 @@ typedef struct
 	const char *output_description;
 	u32 errors;
 	u32 consecutive_zero_reads;
+	char data[BUFF_SIZE];
 } PulseAudioContext;
 
 static void
@@ -137,12 +140,9 @@ PulseAudio_Configure(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *
 	return GF_OK;
 }
 
-#define BUFF_SIZE 8192
-
 static void
 PulseAudio_WriteAudio (GF_AudioOutput * dr)
 {
-	char data[BUFF_SIZE];
 	int written = 0;
 	int pa_error = 0;
 	PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
@@ -157,7 +157,7 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 		}
 		return;
 	}
-	written = dr->FillBuffer (dr->audio_renderer, data, BUFF_SIZE / 4);
+	written = dr->FillBuffer (dr->audio_renderer, ctx->data, BUFF_SIZE / 4);
 	if (written <= 0)
 	{
 		ctx->consecutive_zero_reads++;
@@ -171,7 +171,7 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 		return;
 	}
 	ctx->consecutive_zero_reads = 0;
-	/*written = */pa_simple_write (ctx->playback_handle, data, written, &pa_error);
+	/*written = */pa_simple_write (ctx->playback_handle, ctx->data, written, &pa_error);
 	if (pa_error != 0)
 	{
 		if (ctx->errors < 1)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -147,6 +147,7 @@ REG_DEC(hevcmerge)
 
 REG_DEC(jsf)
 REG_DEC(tssplit)
+REG_DEC(tsgendts)
 REG_DEC(httpout)
 REG_DEC(uncvdec)
 
@@ -315,6 +316,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(rfmhas),
 	REG_IT(rfprores),
 	REG_IT(tssplit),
+	REG_IT(tsgendts),
 	REG_IT(bsrw),
 	REG_IT(bssplit),
 	REG_IT(bsagg),

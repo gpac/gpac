@@ -2251,6 +2251,12 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 			continue;
 		}
 
+		//only check for cap presence
+		if (cap->flags & GF_CAPFLAG_PRESENT) {
+			if (!pid_cap)
+				all_caps_matched = GF_FALSE;
+			continue;
+		}
 
 		//we found a property of that type and it is equal
 		if (pid_cap) {
@@ -2315,7 +2321,9 @@ Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid_or_ipid, const GF_FilterRegi
 			if (ext_not_trusted && prop_equal && (cap->code==GF_PROP_PID_MIME))
 				mime_matched = GF_TRUE;
 		}
-		else if (! (cap->flags & (GF_CAPFLAG_EXCLUDED | GF_CAPFLAG_OPTIONAL) ) ) {
+		else if (! (cap->flags & (GF_CAPFLAG_EXCLUDED | GF_CAPFLAG_OPTIONAL) )
+			|| (cap->flags & GF_CAPFLAG_PRESENT)
+		) {
 			all_caps_matched=GF_FALSE;
 		}
 	}
@@ -2576,14 +2584,20 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 
 			u32 nb_matched = 0;
 			u32 nb_caps_in_dst_bundle = dst_cap ? dst_cap->nb_vals : 0;
+
 			//check all input caps of dst filter, count ones that are matched
 			for (j=0; j<nb_caps_in_dst_bundle; j++) {
 				const GF_FilterCapability *in_cap = dst_cap->vals[j];
 				u32 in_cap_flags = in_cap->flags;
 				register Bool in_cap_flags_excl = in_cap_flags & GF_CAPFLAG_EXCLUDED;
 
+				if ((out_cap_flags & GF_CAPFLAG_PRESENT) && (in_cap_flags & GF_CAPFLAG_PRESENT)) {
+					prop_matched = GF_TRUE;
+					if (in_cap_flags & GF_CAPFLAG_LOADED_FILTER)
+						cap_loaded_filter_only = 1;
+				}
 				//we found a property of that type , check if equal equal
-				if (in_cap_flags_excl && !out_cap_flags_excl) {
+				else if (in_cap_flags_excl && !out_cap_flags_excl) {
 					Bool prop_equal;
 					//special case for excluded output caps marked for loaded filter only and optional:
 					//always consider no match, the actual pid link resolving will sort this out
@@ -2812,7 +2826,7 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 
 	note that it is still possible to use a mux or demux in the chain, but they have to be explicitly loaded
 	*/
-	if ((rlevel>1) && (dst_stream_type==GF_STREAM_FILE))
+	if ((rlevel>1) && (dst_stream_type==GF_STREAM_FILE) && !(reg_desc->freg->flags&GF_FS_REG_HIDE_WEIGHT))
 		return 0;
 
 	reg_desc->in_edges_enabling = 1;
@@ -5229,9 +5243,25 @@ single_retry:
 		//otherwise we could link directly to destination (due to caps mismatch) while a valid path could be found to a previously
 		//specified filter
 		//see testsuite restamp-fps
-		if (!num_pass && possible_link_found_implicit_mode
-			&& (is_sink || !filter_dst->dynamic_filter || !(filter_dst->freg->flags & GF_FS_REG_DYNAMIC_REUSE)) ) {
-			cap_matched = GF_FALSE;
+		if (!num_pass && possible_link_found_implicit_mode && cap_matched
+			&& (is_sink || !filter_dst->dynamic_filter || !(filter_dst->freg->flags & GF_FS_REG_DYNAMIC_REUSE))
+		) {
+			Bool do_skip = GF_TRUE;
+			//if the tested destination filter accepts several pid:
+			//- check if this filter's destination links contain one of the possible destinations
+			//- if so check if the tested destination filter has the possible destination as a target
+			//- if so accept linking to that filter
+			//this is needed when solving muxers in-middle of a chain, eg -i MP4 tsgendts -o TS
+			u32 dstidx, nb_imp_dst = filter_dst->max_extra_pids ? gf_list_count(possible_linked_resolutions) : 0;
+			for (dstidx=0; dstidx<nb_imp_dst; dstidx++) {
+				GF_Filter *possible_dst = gf_list_get(possible_linked_resolutions, dstidx);
+				if (gf_list_find(filter->destination_links, possible_dst)<0) continue;
+				if (gf_list_find(filter_dst->destination_filters, possible_dst)<0) continue;
+				do_skip = GF_FALSE;
+				break;
+			}
+			if (do_skip)
+				cap_matched = GF_FALSE;
 		}
 
 		if (!cap_matched) {
@@ -6856,7 +6886,13 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	//remove pck instance
 	pcki = gf_fq_pop(pidinst->packets);
-
+#if 0
+	if ((pcki == (void *)0x000060300004a9b0)
+	&& !(
+		(pcki->pck->info.flags & GF_PCK_CMD_MASK) || ((pcki->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS)
+	))
+		pcki=pcki;
+#endif
 	if (!pcki) {
 		if (pidinst->filter && !pidinst->filter->finalized && !pidinst->discard_packets) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to discard a packet already discarded in filter %s\n", pid->filter->name));
@@ -6885,7 +6921,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 
 	//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
-	//if one thread (the caller here) consumes one packet while the dispatching thread is still upddating the state for that pid
+	//if one thread (the caller here) consumes one packet while the dispatching thread is still updating the state for that pid
 	gf_mx_p(pid->filter->tasks_mx);
 	nb_pck = gf_fq_count(pidinst->packets);
 
@@ -7034,8 +7070,7 @@ Bool gf_filter_pid_is_flush_eos(GF_FilterPid *pid)
 }
 
 
-GF_EXPORT
-void gf_filter_pid_set_eos(GF_FilterPid *pid)
+static void gf_filter_pid_set_eos_internal(GF_FilterPid *pid, Bool is_flush)
 {
 	GF_FilterPacket *pck;
 	//allow NULL as input (most filters blindly call set_eos on output even if no output)
@@ -7061,6 +7096,8 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		}
 		gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 		pck->pck->info.flags |= GF_PCK_CMD_PID_EOS;
+		if (is_flush)
+			pck->pck->info.flags |= GF_PCKF_IS_FLUSH;
 		gf_filter_pck_send(pck);
 	}
 
@@ -7074,6 +7111,12 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		}
 	}
 	gf_mx_v(pid->filter->tasks_mx);
+}
+
+GF_EXPORT
+void gf_filter_pid_set_eos(GF_FilterPid *pid)
+{
+	gf_filter_pid_set_eos_internal(pid, GF_FALSE);
 }
 
 GF_EXPORT
@@ -7345,6 +7388,7 @@ const char *gf_filter_event_name(GF_FEventType type)
 	case GF_FEVT_PLAY_HINT: return "PLAY_HINT";
 	case GF_FEVT_ENCODE_HINTS: return "ENCODE_HINTS";
 	case GF_FEVT_NTP_REF: return "NTP_REF";
+	case GF_FEVT_NETWORK_HINT: return "NETWORK_HINT";
 	default:
 		return "UNKNOWN";
 	}
@@ -9648,7 +9692,7 @@ void gf_filter_pid_send_flush(GF_FilterPid *pid)
 	if (pid->eos_keepalive)
 		return;
 
-	gf_filter_pid_set_eos(pid);
+	gf_filter_pid_set_eos_internal(pid, GF_TRUE);
 	//set keepalive once eos has been called
 	pid->eos_keepalive = GF_TRUE;
 }

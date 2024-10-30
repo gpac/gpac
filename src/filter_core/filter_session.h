@@ -192,11 +192,13 @@ enum
 	//2 bits for crypt type
 	GF_PCK_CRYPT_POS = 15,
 	GF_PCK_CRYPT_MASK = 0x3 << GF_PCK_CRYPT_POS,
-	//2 bits for crypt type
+	//2 bits for command type
 	GF_PCK_CMD_POS = 13,
 	GF_PCK_CMD_MASK = 0x3 << GF_PCK_CMD_POS,
 	GF_PCKF_FORCE_MAIN = 1<<12,
-	//RESERVED bits [8,11]
+	//only valid when GF_PCK_CMD_PID_EOS is set
+	GF_PCKF_IS_FLUSH = 1<<11,
+	//RESERVED bits [8,10]
 
 	//2 bits for is_leading
 	GF_PCK_ISLEADING_POS = 6,
@@ -267,6 +269,7 @@ struct __gf_filter_pck
 	//for shared memory packets: 0: cloned mem, 1: read/write mem from source filter, 2: read-only mem from filter
 	//note that packets with frame_ifce are always considered as read-only memory
 	u8 filter_owns_mem;
+	//0: regular packet, 1: dangling packet with copied mem, 2: dangling packet with shared mem
 	u8 is_dangling;
 };
 
@@ -581,6 +584,16 @@ typedef enum
 	GF_FILTER_DISABLED_HIDE,
 } GF_FilterDisableType;
 
+typedef enum
+{
+	//filter is not scheduled
+	GF_FILTER_NOT_SCHEDULED = 0,
+	//filter is scheduled by main scheduler
+	GF_FILTER_SCHEDULED,
+	//filter is scheduled by a direct dispatch call
+	GF_FILTER_DIRECT_SCHEDULED,
+} GF_FilterScheduledType;
+
 //#define DEBUG_BLOCKMODE
 
 struct __gf_filter
@@ -633,7 +646,7 @@ struct __gf_filter
 	GF_FilterQueue *tasks;
 	//set to true when the filter is present or to be added in the main task list
 	//this variable is unset in a zone protected by task_mx
-	volatile Bool scheduled_for_next_task;
+	volatile GF_FilterScheduledType scheduled_for_next_task;
 	//set to true when the filter is being processed by a thread
 	volatile Bool in_process;
 	u32 process_th_id, restrict_th_idx;

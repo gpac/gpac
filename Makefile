@@ -346,11 +346,15 @@ dmg:
 endif
 
 ifeq ($(CONFIG_LINUX),yes)
+
+# strip illegal debian version string characters
+DHBRANCH:=$(shell echo "$(BRANCH)" | sed 's/[^-+:.0-9a-zA-Z~]/-/g' )
+
 deb:
 	git checkout --	debian/changelog
 	fakeroot debian/rules clean
 	# add version to changelog for final filename
-	sed -i -r "s/^(\w+) \(([0-9\.]+)(-[A-Z]+)?\)/\1 (\2\3-rev$(VERSION)-$(BRANCH))/" debian/changelog
+	sed -i -r "s/^(\w+) \(([0-9\.]+)(-[A-Z]+)?\)/\1 (\2\3-rev$(VERSION)-$(DHBRANCH))/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/

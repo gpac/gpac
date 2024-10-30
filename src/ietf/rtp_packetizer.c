@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -564,6 +564,11 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H266");
 		return GF_TRUE;
+
+	case GF_RTP_PAYT_MP2T:
+		strcpy(szMediaName, "video");
+		strcpy(szPayloadName, "MP2T");
+		return GF_TRUE;
 	default:
 		strcpy(szMediaName, "");
 		strcpy(szPayloadName, "");
@@ -574,32 +579,35 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 
 
 GF_EXPORT
-GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size)
+GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char **out_sdp_line, char *dsi, u32 dsi_size)
 {
-	char buffer[20100], dsiString[20000];
-	u32 i, k;
+	char buffer[100];
+	u32 i;
 	Bool is_first = GF_TRUE;
-	char *sdp = NULL;
 	GF_Err e = GF_OK;
+	if (!out_sdp_line) return GF_BAD_PARAM;
+	if (*out_sdp_line)
+		(*out_sdp_line)[0] = 0;
 
 	if ((builder->rtp_payt!=GF_RTP_PAYT_MPEG4) && (builder->rtp_payt!=GF_RTP_PAYT_LATM) ) return GF_BAD_PARAM;
 
 #define SDP_ADD_INT(_name, _val) {\
-		if (!is_first) gf_dynstrcat(&sdp, "; ", NULL); \
-		sprintf(buffer, "%s=%d", _name, _val);\
-		gf_dynstrcat(&sdp, buffer, NULL);\
+		if (!is_first) gf_dynstrcat(out_sdp_line, "; ", NULL); \
+		gf_dynstrcat(out_sdp_line, _name, NULL);\
+		sprintf(buffer, "%d", _val);\
+		gf_dynstrcat(out_sdp_line, buffer, "=");\
 		is_first = 0;\
 	}
 
 #define SDP_ADD_STR(_name, _val) {\
-		if (!is_first) gf_dynstrcat(&sdp, "; ", NULL);\
-		sprintf(buffer, "%s=%s", _name, _val);\
-		gf_dynstrcat(&sdp, buffer, NULL);\
+		if (!is_first) gf_dynstrcat(out_sdp_line, "; ", NULL);\
+		gf_dynstrcat(out_sdp_line, _name, NULL);\
+		gf_dynstrcat(out_sdp_line, _val, "=");\
 		is_first = 0;\
 	}
 
 	sprintf(buffer, "a=fmtp:%d ", builder->PayloadType);
-	gf_dynstrcat(&sdp, buffer, NULL);
+	gf_dynstrcat(out_sdp_line, buffer, NULL);
 
 	/*mandatory fields*/
 	if (builder->slMap.PL_ID) SDP_ADD_INT("profile-level-id", builder->slMap.PL_ID);
@@ -607,17 +615,18 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	if (builder->rtp_payt == GF_RTP_PAYT_LATM) SDP_ADD_INT("cpresent", 0);
 
 	if (dsi && dsi_size) {
-		k = 0;
 		if (dsi_size>10000) {
 			e = GF_OUT_OF_MEM;
 			goto exit;
 		}
+		if (!is_first) gf_dynstrcat(out_sdp_line, "; ", NULL);
+		gf_dynstrcat(out_sdp_line, "config=", NULL);
+		buffer[2]=0;
 		for (i=0; i<dsi_size; i++) {
-			sprintf(&dsiString[k], "%02x", (unsigned char) dsi[i]);
-			k+=2;
+			sprintf(buffer, "%02x", (unsigned char) dsi[i]);
+			gf_dynstrcat(out_sdp_line, buffer, NULL);
 		}
-		dsiString[k] = 0;
-		SDP_ADD_STR("config", dsiString);
+		is_first = 0;
 	}
 	if (!strcmp(payload_name, "MP4V-ES") || (builder->rtp_payt == GF_RTP_PAYT_LATM) ) {
 		e = GF_OK;
@@ -658,17 +667,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	}
 
 exit:
-	sdpLine[0] = 0;
-	if (sdp) {
-		k = (u32) strlen(sdp);
-		if (k<20000)
-			strcpy(sdpLine, sdp);
-		else
-			e = GF_OUT_OF_MEM;
-		gf_free(sdp);
-	} else {
-		e = GF_OUT_OF_MEM;
-	}
+	if (!out_sdp_line) return GF_OUT_OF_MEM;
 	return e;
 }
 

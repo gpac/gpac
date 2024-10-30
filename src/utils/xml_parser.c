@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -25,7 +25,6 @@
 
 #include <gpac/xml.h>
 #include <gpac/utf.h>
-#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_ZLIB
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
@@ -63,7 +62,7 @@ GF_STATIC char *xml_translate_xml_string(char *str)
 			if (str[i+1]=='#') {
 				char szChar[20], *end;
 				u16 wchar[2];
-				u32 val, _len;
+				u32 val=0, _len;
 				const unsigned short *srcp;
 				strncpy(szChar, str+i, 10);
 				szChar[10] = 0;
@@ -1434,7 +1433,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #endif
 	Bool from_buffer;
 	Bool dobreak=GF_FALSE;
-	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
+	char *szLine1, *szLine2, *szLine, *cur_line, *sep, *start, first_c, *result;
 
 
 #define CPYCAT_ALLOC(__str, __is_copy) _len = (u32) strlen(__str);\
@@ -1455,6 +1454,13 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 
 	result = NULL;
 
+	szLine1 = gf_malloc(sizeof(char)*(XML_INPUT_SIZE+2));
+	if (!szLine1) return NULL;
+	szLine2 = gf_malloc(sizeof(char)*(XML_INPUT_SIZE+2));
+	if (!szLine2) {
+		gf_free(szLine1);
+		return NULL;
+	}
 	szLine1[0] = szLine2[0] = 0;
 	pos=0;
 	if (!from_buffer) {
@@ -1468,6 +1474,11 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	alloc_size = att_len;
 	szLine = (char *) gf_malloc(sizeof(char)*alloc_size);
+	if (!szLine) {
+		gf_free(szLine1);
+		gf_free(szLine2);
+		return NULL;
+	}
 	strcpy(szLine, parser->buffer + parser->att_name_start);
 	cur_line = szLine;
 	att_len = (u32) strlen(att_value);
@@ -1592,6 +1603,8 @@ fetch_attr:
 	}
 exit:
 	gf_free(szLine);
+	gf_free(szLine1);
+	gf_free(szLine2);
 
 	if (!from_buffer) {
 #ifdef NO_GZIP
@@ -2178,298 +2191,6 @@ GF_XMLNode *gf_xml_dom_node_new(const char* ns, const char* name)
 		node->type = GF_XML_TEXT_TYPE;
 	}
 	return node;
-}
-
-#include <gpac/base_coding.h>
-
-#define XML_SCAN_INT(_fmt, _value)	\
-	{\
-	if (strstr(att->value, "0x")) { u32 __i; sscanf(att->value+2, "%x", &__i); _value = __i; }\
-	else if (strstr(att->value, "0X")) { u32 __i; sscanf(att->value+2, "%X", &__i); _value = __i; }\
-	else sscanf(att->value, _fmt, &_value); \
-	}\
-
-
-GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, const char *base_media_file, GF_BitStream *bs_orig)
-{
-	u32 i, j;
-	GF_Err e = GF_OK;
-	GF_XMLNode *node;
-	GF_XMLAttribute *att;
-	GF_BitStream *bs = bs_orig;
-	u32 enc_base64 = 0;
-
-	i=0;
-	while ((node = (GF_XMLNode *) gf_list_enum(bsroot->content, &i))) {
-		u32 nb_bits = 0;
-		u32 size = 0;
-		u64 offset = 0;
-		s64 value = 0;
-		Bool use_file = GF_FALSE;
-		bin128 word128;
-		Float val_float = 0;
-		Double val_double = 0;
-		Bool use_word128 = GF_FALSE;
-		Bool use_text = GF_FALSE;
-		Bool base64_prefix_bits = 0;
-		Bool big_endian = GF_TRUE;
-		Bool has_float = GF_FALSE;
-		Bool has_double = GF_FALSE;
-		const char *szFile = NULL;
-		const char *szString = NULL;
-		const char *szBase64 = NULL;
-		const char *szData = NULL;
-		if (node->type) continue;
-
-		if (stricmp(node->name, "BS") ) {
-			e = gf_xml_parse_bit_sequence_bs(node, parent_url, base_media_file, bs);
-			if (e) goto exit;
-			continue;
-		}
-
-		j=0;
-		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
-			if (!stricmp(att->name, "bits")) {
-				XML_SCAN_INT("%d", nb_bits);
-			} else if (!stricmp(att->name, "value")) {
-				XML_SCAN_INT(LLD, value);
-			} else if (!stricmp(att->name, "float")) {
-				sscanf(att->value, "%f", &val_float);
-				has_float = GF_TRUE;
-			} else if (!stricmp(att->name, "double")) {
-				sscanf(att->value, "%lf", &val_double);
-				has_double = GF_TRUE;
-			} else if (!stricmp(att->name, "mediaOffset") || !stricmp(att->name, "dataOffset")) {
-				XML_SCAN_INT(LLU, offset);
-				use_file = GF_TRUE;
-			} else if (!stricmp(att->name, "dataLength")) {
-				XML_SCAN_INT("%u", size);
-				use_file = GF_TRUE;
-			} else if (!stricmp(att->name, "mediaFile") || !stricmp(att->name, "dataFile")) {
-				szFile = att->value;
-				use_file = GF_TRUE;
-			} else if (!stricmp(att->name, "text") || !stricmp(att->name, "string")) {
-				szString = att->value;
-			} else if (!stricmp(att->name, "fcc")) {
-				value = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
-				nb_bits = 32;
-			} else if (!stricmp(att->name, "ID128")) {
-				e = gf_bin128_parse(att->value, word128);
-                if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Cannot parse ID128\n"));
-                    goto exit;
-                }
-				use_word128 = GF_TRUE;
-			} else if (!stricmp(att->name, "textmode")) {
-				if (!strcmp(att->value, "yes")) use_text = GF_TRUE;
-			} else if (!stricmp(att->name, "data64")) {
-				szBase64 = att->value;
-			} else if (!stricmp(att->name, "data")) {
-				szData = att->value;
-				if (!strnicmp(szData, "0x", 2)) szData += 2;
-			} else if (!stricmp(att->name, "endian") && !stricmp(att->value, "little")) {
-				big_endian = GF_FALSE;
-			} else if (!stricmp(att->name, "base64")) {
-				if (!stricmp(att->value, "yes") || !stricmp(att->value, "true") ) {
-					if (!enc_base64) enc_base64 = 1;
-				} else if (!stricmp(att->value, "start")) {
-					if (!enc_base64) enc_base64 = 2;
-				} else if (!stricmp(att->value, "end")) {
-					if (enc_base64==2) enc_base64 = 3;
-				} else {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Invalid base64 attribute \"%s\", expecting yes/no, start or end\n", att->value));
-                    e = GF_NON_COMPLIANT_BITSTREAM;
-                    goto exit;
-				}
-			} else if (!stricmp(att->name, "base64Prefix")) {
-				base64_prefix_bits = atoi(att->value);
-			} else if (!stricmp(att->name, "id")) {
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Unknown attribute \"%s\", ignoring\n", att->name));
-			}
-		}
-
-		if (enc_base64 && (enc_base64<3)) {
-			if (bs == bs_orig) {
-				bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-				if (!bs) {
-					e = GF_OUT_OF_MEM;
-					goto exit;
-				}
-			}
-		}
-
-		if (use_file && !szFile)
-			szFile = base_media_file;
-
-		if (szString) {
-			u32 len = (u32) strlen(szString);
-			if (nb_bits)
-				gf_bs_write_int(bs, len, nb_bits);
-
-			gf_bs_write_data(bs, szString, len);
-		} else if (szBase64) {
-			u32 len = (u32) strlen(szBase64);
-			char *data = (char *) gf_malloc(sizeof(char)*len);
-			u32 ret;
-			if (!data) {
-				e = GF_OUT_OF_MEM;
-				goto exit;
-			}
-
-			ret = (u32) gf_base64_decode((char *)szBase64, len, data, len);
-			if ((s32) ret >=0) {
-				gf_bs_write_int(bs, ret, nb_bits);
-				gf_bs_write_data(bs, data, ret);
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error decoding base64 \"%s\"\n", att->value));
-				gf_free(data);
-				e = GF_BAD_PARAM;
-				goto exit;
-			}
-			gf_free(data);
-		} else if (szData) {
-			u32 len = (u32) strlen(szData);
-			char *data = (char *) gf_malloc(sizeof(char)*len/2);
-			if (!data) {
-				e = GF_OUT_OF_MEM;
-				goto exit;
-			}
-
-			for (j=0; j<len; j+=2) {
-				u32 v;
-				char szV[5];
-				sprintf(szV, "%c%c", szData[j], szData[j+1]);
-				sscanf(szV, "%x", &v);
-				data[j/2] = v;
-			}
-			gf_bs_write_int(bs, len/2, nb_bits);
-			gf_bs_write_data(bs, data, len/2);
-			gf_free(data);
-		} else if (has_float) {
-			gf_bs_write_float(bs, val_float);
-		} else if (has_double) {
-			gf_bs_write_double(bs, val_double);
-		} else if (nb_bits) {
-			if (!big_endian) {
-				if (nb_bits == 16)
-					gf_bs_write_u16_le(bs, (u32)value);
-				else if (nb_bits == 32)
-					gf_bs_write_u32_le(bs, (u32)value);
-				else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Little-endian values can only be 16 or 32-bit\n"));
-					e = GF_BAD_PARAM;
-					goto exit;
-				}
-			}
-			else {
-				if (nb_bits<33) gf_bs_write_int(bs, (s32) value, nb_bits);
-				else gf_bs_write_long_int(bs, value, nb_bits);
-			}
-		} else if (szFile) {
-			u32 read, remain;
-			char block[1024];
-			FILE *_tmp = NULL;
-			if (parent_url) {
-				char *f_url = gf_url_concatenate(parent_url, szFile);
-				_tmp = gf_fopen(f_url, use_text ? "rt" : "rb");
-				gf_free(f_url);
-			} else {
-				_tmp = gf_fopen(szFile, use_text ? "rt" : "rb");
-			}
-
-			if (!_tmp) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error opening file \"%s\"\n", szFile));
-				e = GF_URL_ERROR;
-				goto exit;
-			}
-
-			if (!size) {
-				size = (u32) gf_fsize(_tmp);
-				//if offset only copy from offset until end
-				if ((u64) size > offset)
-					size -= (u32) offset;
-			}
-			remain = size;
-			gf_fseek(_tmp, offset, SEEK_SET);
-			while (remain) {
-				u32 bsize = remain;
-				if (bsize>1024) bsize=1024;
-				read = (u32) gf_fread(block, bsize, _tmp);
-				if ((s32) read < 0) {
-					gf_fclose(_tmp);
-					e = GF_IO_ERR;
-					goto exit;
-				}
-
-				gf_bs_write_data(bs, block, read);
-				remain -= bsize;
-			}
-			gf_fclose(_tmp);
-		} else if (use_word128) {
-			gf_bs_write_data(bs, (char *)word128, 16);
-		}
-
-		if ((enc_base64==1) || (enc_base64==3)) {
-			u8 *bs_data;
-			u32 bs_data_size;
-			assert (bs != bs_orig);
-			gf_bs_get_content(bs, &bs_data, &bs_data_size);
-			gf_bs_del(bs);
-			enc_base64 = 0;
-			bs = bs_orig;
-			if (bs_data) {
-				u8 *bs_data_out;
-				u32 res = 2*bs_data_size + 3;
-				bs_data_out = gf_malloc(sizeof(char) * res);
-				if (!bs_data_out) {
-					e = GF_OUT_OF_MEM;
-					goto exit;
-				}
-				res = gf_base64_encode(bs_data, bs_data_size, bs_data_out, res);
-				bs_data_out[res] = 0;
-				if (base64_prefix_bits) {
-					if (base64_prefix_bits % 8) {
-						gf_bs_write_int(bs, res, base64_prefix_bits);
-					} else {
-						u32 nb_bytes = base64_prefix_bits/8;
-						if (!big_endian && (nb_bytes==8)) gf_bs_write_u64_le(bs, res);
-						else if (!big_endian && (nb_bytes==4)) gf_bs_write_u32_le(bs, res);
-						else if (!big_endian && (nb_bytes==2)) gf_bs_write_u16_le(bs, res);
-						else
-							gf_bs_write_int(bs, res, base64_prefix_bits);
-					}
-				}
-				gf_bs_write_data(bs, bs_data_out, res);
-				gf_free(bs_data);
-				gf_free(bs_data_out);
-			}
-		}
-	}
-
-exit:
-	if (bs != bs_orig) {
-		if (!e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] base64 encoding context not closed\n"));
-			e = GF_NON_COMPLIANT_BITSTREAM;
-		}
-		gf_bs_del(bs);
-	}
-	return e;
-}
-
-GF_EXPORT
-GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, u8 **data, u32 *data_size)
-{
-	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (!bs) return GF_OUT_OF_MEM;
-
-	gf_xml_parse_bit_sequence_bs(bsroot, parent_url, NULL, bs);
-
-	gf_bs_align(bs);
-	gf_bs_get_content(bs, data, data_size);
-	gf_bs_del(bs);
-	return GF_OK;
 }
 
 GF_Err gf_xml_dom_node_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix) {
