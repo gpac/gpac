@@ -66,6 +66,11 @@ typedef struct
 
 typedef struct
 {
+	u32 clear, encrypted;
+} OBURange;
+
+typedef struct
+{
 	Bool passthrough;
 
 	GF_CryptInfo *cinfo;
@@ -113,7 +118,10 @@ typedef struct
 	AVCState *avc_state;
 	HEVCState *hevc_state;
 	AV1State *av1_state;
+	OBURange *av1_vpx_ranges; //[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
+
 	GF_VPConfig *vp9_cfg;
+	u32 *vpx_frame_sizes; //[VP9_MAX_FRAMES_IN_SUPERFRAME];
 
 	VVCState *vvc_state;
 #endif
@@ -132,7 +140,7 @@ typedef struct
 {
 	//options
 	const char *cfile;
-	Bool allc, bk_stats;
+	Bool allc, bk_stats, bk_skip;
 
 	//internal
 	GF_CryptInfo *cinfo;
@@ -616,6 +624,10 @@ static void cenc_pid_reset_codec_states(GF_CENCStream *cstr)
 		gf_free(cstr->av1_state);
 		cstr->av1_state = NULL;
 	}
+	if (cstr->av1_vpx_ranges) {
+		gf_free(cstr->av1_vpx_ranges);
+		cstr->av1_vpx_ranges = NULL;
+	}
 	if (cstr->avc_state) {
 		gf_free(cstr->avc_state);
 		cstr->avc_state = NULL;
@@ -631,6 +643,10 @@ static void cenc_pid_reset_codec_states(GF_CENCStream *cstr)
 	if (cstr->vp9_cfg) {
 		gf_odf_vp_cfg_del(cstr->vp9_cfg);
 		cstr->vp9_cfg = NULL;
+	}
+	if (cstr->vpx_frame_sizes) {
+		gf_free(cstr->vpx_frame_sizes);
+		cstr->vpx_frame_sizes = NULL;
 	}
 #endif
 }
@@ -723,7 +739,16 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			case CENC_AV1:
 				GF_SAFEALLOC(cstr->av1_state, AV1State);
 				if (!cstr->av1_state) return GF_OUT_OF_MEM;
+				if (!cstr->av1_vpx_ranges) cstr->av1_vpx_ranges = gf_malloc(sizeof(OBURange) * AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS);
+				if (!cstr->av1_vpx_ranges) return GF_OUT_OF_MEM;
 				break;
+			case CENC_VPX:
+				if (!cstr->vpx_frame_sizes) cstr->vpx_frame_sizes = gf_malloc(sizeof(u32) * VP9_MAX_FRAMES_IN_SUPERFRAME);
+				if (!cstr->vpx_frame_sizes) return GF_OUT_OF_MEM;
+				if (!cstr->av1_vpx_ranges) cstr->av1_vpx_ranges = gf_malloc(sizeof(OBURange) * AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS);
+				if (!cstr->av1_vpx_ranges) return GF_OUT_OF_MEM;
+				break;
+
 #endif
 			}
 		}
@@ -1436,7 +1461,9 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 				gf_crypt_decrypt(cstr->keys[0].crypt, dummy, remain);
 			}
 		}
-		gf_crypt_encrypt(cstr->keys[0].crypt, output+isma_hdr_size, size);
+		if (!ctx->bk_skip)
+			gf_crypt_encrypt(cstr->keys[0].crypt, output+isma_hdr_size, size);
+
 		cstr->prev_pck_encrypted = GF_TRUE;
 		cstr->num_block_crypted += size/16;
 	} else {
@@ -1524,7 +1551,9 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 
 		memset(output+adobe_hdr_size+size, padding_bytes, sizeof(char)*padding_bytes);
 
-		gf_crypt_encrypt(cstr->keys[0].crypt, output+adobe_hdr_size, len);
+		if (!ctx->bk_skip)
+			gf_crypt_encrypt(cstr->keys[0].crypt, output+adobe_hdr_size, len);
+
 		cstr->num_block_crypted += len/16;
 
 		/*write encrypted AU header*/
@@ -1743,10 +1772,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 #ifndef GPAC_DISABLE_AV_PARSERS
 			ObuType obut = 0;
 			u32 num_frames_in_superframe = 0, superframe_index_size = 0;
-			u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
-			struct {
-				int clear, encrypted;
-			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 			u64 obu_size = 0;
 			u32 hdr_size = 0;
 #else
@@ -1792,14 +1817,14 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					} else {
 						nb_ranges = cstr->av1_state->frame_state.nb_tiles_in_obu;
 
-						ranges[0].clear = cstr->av1_state->frame_state.tiles[0].obu_start_offset;
-						ranges[0].encrypted = cstr->av1_state->frame_state.tiles[0].size;
+						cstr->av1_vpx_ranges[0].clear = cstr->av1_state->frame_state.tiles[0].obu_start_offset;
+						cstr->av1_vpx_ranges[0].encrypted = cstr->av1_state->frame_state.tiles[0].size;
 						for (i = 1; i < nb_ranges; ++i) {
-							ranges[i].clear = cstr->av1_state->frame_state.tiles[i].obu_start_offset - (cstr->av1_state->frame_state.tiles[i - 1].obu_start_offset + cstr->av1_state->frame_state.tiles[i - 1].size);
-							ranges[i].encrypted = cstr->av1_state->frame_state.tiles[i].size;
+							cstr->av1_vpx_ranges[i].clear = cstr->av1_state->frame_state.tiles[i].obu_start_offset - (cstr->av1_state->frame_state.tiles[i - 1].obu_start_offset + cstr->av1_state->frame_state.tiles[i - 1].size);
+							cstr->av1_vpx_ranges[i].encrypted = cstr->av1_state->frame_state.tiles[i].size;
 						}
-						clear_bytes = ranges[0].clear;
-						nalu_size = clear_bytes + ranges[0].encrypted;
+						clear_bytes = cstr->av1_vpx_ranges[0].clear;
+						nalu_size = clear_bytes + cstr->av1_vpx_ranges[0].encrypted;
 
 						/* A subsample SHALL be created for each tile even if less than 16 bytes
 							see https://github.com/AOMediaCodec/av1-isobmff/pull/116#discussion_r340176740
@@ -1833,7 +1858,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 
 				pos = gf_bs_get_position(ctx->bs_r);
-				e = gf_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+				e = gf_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, cstr->vpx_frame_sizes, &superframe_index_size);
 				if (e) return e;
 				gf_bs_seek(ctx->bs_r, pos);
 
@@ -1849,10 +1874,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						return e;
 					}
 
-					ranges[i].clear = (int)(gf_bs_get_position(ctx->bs_r) - pos2);
-					ranges[i].encrypted = frame_sizes[i] - ranges[i].clear;
+					cstr->av1_vpx_ranges[i].clear = (int)(gf_bs_get_position(ctx->bs_r) - pos2);
+					cstr->av1_vpx_ranges[i].encrypted = cstr->vpx_frame_sizes[i] - cstr->av1_vpx_ranges[i].clear;
 
-					gf_bs_seek(ctx->bs_r, pos2 + frame_sizes[i]);
+					gf_bs_seek(ctx->bs_r, pos2 + cstr->vpx_frame_sizes[i]);
 				}
 				if (gf_bs_get_position(ctx->bs_r) + superframe_index_size != pos + pck_size) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Inconsistent VP9 size %u (parsed "LLU") at DTS "LLU". Re-import raw VP9/IVF for more details.\n",
@@ -1860,19 +1885,19 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 				gf_bs_seek(ctx->bs_r, pos);
 
-				clear_bytes = ranges[0].clear;
-				gf_assert(frame_sizes[0] == ranges[0].clear + ranges[0].encrypted);
-				nalu_size = frame_sizes[0];
+				clear_bytes = cstr->av1_vpx_ranges[0].clear;
+				gf_assert(cstr->vpx_frame_sizes[0] == cstr->av1_vpx_ranges[0].clear + cstr->av1_vpx_ranges[0].encrypted);
+				nalu_size = cstr->vpx_frame_sizes[0];
 
 				//final superframe index must be in clear
 				if (superframe_index_size > 0) {
-					ranges[nb_ranges].clear = superframe_index_size;
-					ranges[nb_ranges].encrypted = 0;
+					cstr->av1_vpx_ranges[nb_ranges].clear = superframe_index_size;
+					cstr->av1_vpx_ranges[nb_ranges].encrypted = 0;
 					nb_ranges++;
 				}
 
 				//not clearly defined in the spec (so we do the same as in AV1 which is more clearly defined):
-				if (frame_sizes[0] - clear_bytes >= 16) {
+				if (cstr->vpx_frame_sizes[0] - clear_bytes >= 16) {
 					//A subsample SHALL be created for each tile >= 16 bytes. If previous range had encrypted bytes, create a new one, otherwise merge in prev
 					if (prev_entry_bytes_crypt) {
 						if (!nb_subsamples) gf_bs_write_int(sai_bs, 0, nb_subsamples_bits);
@@ -2024,7 +2049,11 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						while (res) {
 							u32 to_crypt = (res >= (u32) (16*cstr->crypt_byte_block)) ? 16*cstr->crypt_byte_block : res;
 
-							e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+pos, to_crypt);
+							if (ctx->bk_skip)
+								e = GF_OK;
+							else
+								e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+pos, to_crypt);
+
 							cstr->num_block_crypted += to_crypt/16;
 
 							if (res >= (u32) (16 * (cstr->crypt_byte_block + cstr->skip_byte_block))) {
@@ -2040,7 +2069,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						//clear_bytes_at_end is 0 unless NALU-based cbcs without pattern (not defined in CENC)
 						//in this case, we must only encrypt a multiple of 16-byte blocks
 						u32 to_crypt = nalu_size - clear_bytes - clear_bytes_at_end;
-						e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, to_crypt);
+						if (ctx->bk_skip)
+							e = GF_OK;
+						else
+							e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, to_crypt);
 						cstr->num_block_crypted += to_crypt/16;
 					}
 				}
@@ -2112,16 +2144,16 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 #endif
 				switch (cstr->cenc_codec) {
 				case CENC_AV1:
-					clear_bytes = ranges[range_idx].clear;
-					nalu_size = clear_bytes + ranges[range_idx].encrypted;
+					clear_bytes = cstr->av1_vpx_ranges[range_idx].clear;
+					nalu_size = clear_bytes + cstr->av1_vpx_ranges[range_idx].encrypted;
 					break;
 				case CENC_VPX:
 					if (nb_ranges > 1) {
-						clear_bytes = ranges[range_idx].clear;
-						nalu_size = clear_bytes + ranges[range_idx].encrypted;
+						clear_bytes = cstr->av1_vpx_ranges[range_idx].clear;
+						nalu_size = clear_bytes + cstr->av1_vpx_ranges[range_idx].encrypted;
 					} else { /*last*/
-						nalu_size = clear_bytes = ranges[range_idx].clear;
-						gf_assert(ranges[range_idx].encrypted == 0);
+						nalu_size = clear_bytes = cstr->av1_vpx_ranges[range_idx].clear;
+						gf_assert(cstr->av1_vpx_ranges[range_idx].encrypted == 0);
 					}
 					break;
 				default:
@@ -2134,7 +2166,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		//CTR full sample
 		else if (cstr->ctr_mode) {
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
-			e = gf_crypt_encrypt(cstr->keys[0].crypt, output, pck_size);
+			if (ctx->bk_skip)
+				e = GF_OK;
+			else
+				e = gf_crypt_encrypt(cstr->keys[0].crypt, output, pck_size);
 			cstr->num_block_crypted += pck_size/16;
 		}
 		//CBC full sample with padding
@@ -2152,7 +2187,10 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 			if (pck_size >= 16) {
 				u32 to_crypt = pck_size - clear_header - clear_trailing;
-				gf_crypt_encrypt(cstr->keys[0].crypt, output+clear_header, to_crypt);
+				if (ctx->bk_skip)
+					e = GF_OK;
+				else
+					e = gf_crypt_encrypt(cstr->keys[0].crypt, output+clear_header, to_crypt);
 				cstr->num_block_crypted += to_crypt/16;
 			}
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
@@ -2695,6 +2733,7 @@ static const GF_FilterArgs GF_CENCEncArgs[] =
 	{ OFFS(cfile), "crypt file location", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(allc), "throw error if no DRM config file is found for a PID", GF_PROP_BOOL, NULL, NULL, 0},
 	{ OFFS(bk_stats), "print number of encrypted blocks to stdout upon exit", GF_PROP_BOOL, NULL, NULL, 0},
+	{ OFFS(bk_skip), "skip encryption but performs all other tasks (test mode)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -32,6 +32,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/thread.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/id3.h>
 
 typedef struct {
 	char *fragment;
@@ -106,6 +107,13 @@ typedef struct
 	u32 nb_stopped_at_init;
 } GF_M2TSDmxCtx;
 
+static void m2tsdmx_prop_free(GF_M2TS_Prop *prop) {
+
+	if (prop->type == M2TS_ID3) {
+		gf_id3_tag_free((GF_ID3_TAG*) prop->data);
+	}
+	gf_free(prop->data);
+}
 
 static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 {
@@ -163,6 +171,7 @@ static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
 		for (i=0; i<nb_streams; i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 		}
 	}
 }
@@ -554,6 +563,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (ctx->duration.num>1) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 	}
 	/*indicate our coding dependencies if any*/
 	if (!m4sys_stream) {
@@ -649,9 +659,13 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
 {
 	if (stream->props) {
+		Bool insert_immediately = GF_TRUE;
+		GF_List *id3_tag_list = NULL;
+
 		char szID[100];
 		while (gf_list_count(stream->props)) {
 			GF_M2TS_Prop *p = gf_list_pop_front(stream->props);
+			insert_immediately = GF_TRUE;
 			switch(p->type) {
 				case M2TS_TEMI_INFO: {
 					GF_M2TS_Prop_TEMIInfo *t = (GF_M2TS_Prop_TEMIInfo*)p;
@@ -661,18 +675,57 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 				case M2TS_SCTE35:
 					snprintf(szID, 100, "scte35");
 					break;
-				case M2TS_ID3:
-					snprintf(szID, 100, "id3");
+				case M2TS_ID3: {
+					insert_immediately = GF_FALSE;
+					if (!id3_tag_list) {
+						id3_tag_list = gf_list_new();
+					}
+
+					// transfer ownership to the ID3 tag to the list
+					gf_list_add(id3_tag_list, p->data);
 					break;
+				}
 				default:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] unknown property %d - skipping\n", p->type) );
 					gf_free(p);
 					continue;
 			}
 
-			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			if (insert_immediately) {
+				gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(p->data, p->len));
+			}
+
 			gf_free(p);
 		}
+
+		if (id3_tag_list) {
+			snprintf(szID, 100, "id3");
+
+			// Serialize all tags using a single bitstream
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+			GF_Err err = gf_id3_list_to_bitstream(id3_tag_list, bs);
+			if (err != GF_OK) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] Error serializing list of ID3 tags: %s\n", gf_error_to_string(err)));
+			}
+
+			u8 *data_ptr;
+			u32 data_length;
+
+			gf_bs_get_content(bs, &data_ptr, &data_length);
+			gf_filter_pck_set_property_dyn(pck, szID, &PROP_DATA_NO_COPY(data_ptr, data_length));
+
+			// free resources
+			gf_bs_del(bs);
+			GF_ID3_TAG *tag = gf_list_pop_front(id3_tag_list);
+			while(tag) {
+				gf_id3_tag_free(tag);
+				gf_free(tag);
+				tag = gf_list_pop_front(id3_tag_list);
+			}
+			gf_list_del(id3_tag_list);
+		}
+
 		gf_list_del(stream->props);
 		stream->props = NULL;
 
@@ -1077,6 +1130,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
 				if (stream->user) {
 					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION, & PROP_FRAC64_INT(duration, 1000) );
+					gf_filter_pid_set_property(stream->user, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 				}
 			}
 		}
@@ -1170,7 +1224,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_ID3:
 	{
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
-		GF_BitStream *bs;
 		GF_M2TS_Prop *t;
 		u32 count = gf_list_count(pck->stream->program->streams);
 		for (i=0; i<count; i++) {
@@ -1190,13 +1243,25 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_SAFEALLOC(t, GF_M2TS_Prop);
 			if (!t) break;
 			t->type = M2TS_ID3;
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, 90000);                     // timescale
-			gf_bs_write_u64(bs, pck->PTS);                  // pts
-			gf_bs_write_u32(bs, pck->data_len);				// data length (bytes)
-			gf_bs_write_data(bs, pck->data, pck->data_len); // data
-			gf_bs_get_content(bs, &t->data, &t->len);
-			gf_bs_del(bs);
+
+			GF_ID3_TAG *id3_tag_ptr = NULL;
+			GF_SAFEALLOC(id3_tag_ptr, GF_ID3_TAG);
+			if (!id3_tag_ptr) {
+				gf_free(t);
+				break;
+			}
+
+			if (gf_id3_tag_new(id3_tag_ptr, 90000, pck->PTS, pck->data, pck->data_len) != GF_OK)
+			{
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDMx] Error creating ID3 tag"));
+				gf_free(id3_tag_ptr);
+				gf_free(t);
+				break;
+			}
+
+			// data will point to the first byte of the ID3 tag struct. See m2tdmx_merge_props
+			// for the serialization process and m2tsdmx_prop_free for freeing up prop resources
+			t->data = (u8*)id3_tag_ptr;
 
 			if (!es->props) {
 				es->props = gf_list_new();
@@ -1255,7 +1320,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (es && es->props) {
 			while (gf_list_count(es->props)) {
 				GF_M2TS_Prop *t = gf_list_pop_back(es->props);
-				gf_free(t->data);
+				m2tsdmx_prop_free(t);
 				gf_free(t);
 			}
 			gf_list_del(es->props);
@@ -1445,14 +1510,14 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		}
 
 		ctx->nb_stop_pending = 0;
+		ctx->map_time_on_prog_id = pes->program->number;
+		ctx->media_start_range = is_source_seek ? 0 : com->play.start_range;
+
 		//not file, don't cancel the event
 		if (!ctx->is_file) {
 			ctx->initial_play_done = GF_TRUE;
 			return GF_FALSE;
 		}
-
-		ctx->map_time_on_prog_id = pes->program->number;
-		ctx->media_start_range = is_source_seek ? 0 : com->play.start_range;
 
 		if (is_source_seek) {
 			file_pos = com->play.hint_start_offset;
@@ -1463,6 +1528,9 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			file_pos /= ctx->duration.num;
 			if (file_pos > ctx->file_size) return GF_TRUE;
 		}
+		//round down to packet boundary
+		file_pos /= ctx->ts->prefix_present ? 192 : 188;
+		file_pos *= ctx->ts->prefix_present ? 192 : 188;
 
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
@@ -1541,10 +1609,13 @@ static void m2tsdmx_finalize(GF_Filter *filter)
 
 }
 
+#define M2TS_MAX_LOOPS	50
+
 static GF_Err m2tsdmx_process(GF_Filter *filter)
 {
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
+	u32 nb_loops=M2TS_MAX_LOOPS;
 	Bool check_block = GF_TRUE;
 	const char *data;
 	u32 size;
@@ -1592,7 +1663,10 @@ restart:
 			if (ctx->nb_playing) {
 				gf_filter_ask_rt_reschedule(filter, 0);
 			}
-			if (ctx->nb_stopped_at_init==nb_streams) {
+			if ((ctx->nb_stopped_at_init==nb_streams)
+				//this can happen if outputs are all blocking and a stop was issued
+				|| (ctx->nb_stop_pending==nb_streams)
+			) {
 				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				return GF_EOS;
 			}
@@ -1614,7 +1688,10 @@ restart:
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
 		ctx->mux_tune_state = DMX_TUNE_DONE;
 		gf_m2ts_reset_parsers(ctx->ts);
-	} else {
+	}
+	//don't run more than max_loops as we could end up blocking until eos in direct dispatch mode
+	else if (nb_loops) {
+		nb_loops--;
 		goto restart;
 	}
 	return GF_OK;

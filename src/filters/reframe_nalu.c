@@ -710,10 +710,11 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			duration *= filesize/probe_size;
 		}
 		ctx->duration.num = (s32) duration;
-		if (probe_size) ctx->duration.num = -ctx->duration.num;
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+		if (probe_size)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION_AVG, &PROP_BOOL(GF_TRUE) );
 
 		if (duration && ctx->duration.num && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
 			filesize *= 8 * ctx->duration.den;
@@ -859,12 +860,14 @@ static void naludmx_add_param_nalu(GF_List *param_list, GF_NALUFFParam *sl, u8 n
 static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc_cfg)
 {
 	u32 use_tiles, use_wpp, nb_pps, i, count;
-	HEVCState hevc;
+	HEVCState *hvc_state;
 
 	count = gf_list_count(ctx->pps);
 
-	memset(&hevc, 0, sizeof(HEVCState));
-	hevc.sps_active_idx = -1;
+	GF_SAFEALLOC(hvc_state, HEVCState);
+	if (!hvc_state) return;
+	
+	hvc_state->sps_active_idx = -1;
 
 	use_tiles = 0;
 	use_wpp = 0;
@@ -872,12 +875,12 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *slc = (GF_NALUFFParam*)gf_list_get(ctx->pps, i);
-		s32 idx = gf_hevc_read_pps(slc->data, slc->size, &hevc);
+		s32 idx = gf_hevc_read_pps(slc->data, slc->size, hvc_state);
 
 		if (idx>=0) {
 			HEVC_PPS *pps;
 			nb_pps++;
-			pps = &hevc.pps[idx];
+			pps = &hvc_state->pps[idx];
 			if (!pps->entropy_coding_sync_enabled_flag && pps->tiles_enabled_flag)
 				use_tiles++;
 			else if (pps->entropy_coding_sync_enabled_flag && !pps->tiles_enabled_flag)
@@ -888,6 +891,7 @@ static void naludmx_hevc_set_parall_type(GF_NALUDmxCtx *ctx, GF_HEVCConfig *hevc
 	else if (!use_wpp && (use_tiles==nb_pps) ) hevc_cfg->parallelismType = 2;
 	else if (!use_tiles && (use_wpp==nb_pps) ) hevc_cfg->parallelismType = 3;
 	else hevc_cfg->parallelismType = 0;
+	gf_free(hvc_state);
 }
 
 GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
@@ -1990,6 +1994,8 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
 			ctx->cts = ctx->dts = 0;
+			ctx->prev_cts = ctx->prev_dts = 0;
+			ctx->prev_sap = 0;
 		}
 		if (! ctx->is_file) {
 			if (!ctx->initial_play_done) {
@@ -2049,11 +2055,20 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
-		//don't cancel event
+		//reset parsing state
 		ctx->is_playing = GF_FALSE;
 		ctx->nal_store_size = 0;
 		ctx->resume_from = 0;
 		ctx->cts = 0;
+
+		while (gf_list_count(ctx->pck_queue)) {
+			GF_FilterPacket *pck = gf_list_pop_back(ctx->pck_queue);
+			gf_filter_pck_discard(pck);
+		}
+		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
+		ctx->src_pck = NULL;
+		ctx->prev_sap = ctx->first_pck_in_au = NULL;
+		//don't cancel event
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -2485,7 +2500,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 {
 	s32 ps_idx = 0;
 	s32 res;
-	u8 nal_unit_type, temporal_id, layer_id;
+	u8 nal_unit_type=0, temporal_id=0, layer_id=0;
 	*skip_nal = GF_FALSE;
 
 	if (size<2) return -1;
@@ -2666,7 +2681,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 {
 	s32 ps_idx = 0;
 	s32 res;
-	u8 nal_unit_type, temporal_id, layer_id;
+	u8 nal_unit_type=0, temporal_id=0, layer_id=0;
 	*skip_nal = GF_FALSE;
 
 	if (size<2) return -1;
@@ -4353,6 +4368,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
 	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 20M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(force_sync), "force sync points on non-IDR samples with I slices (not compliant)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes\n"
 		"- off: disable GOP buffering\n"
 		"- on: enable GOP buffering, assuming no error in POC\n"

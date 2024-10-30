@@ -1225,21 +1225,22 @@ Bool mp4c_task()
 	return GF_FALSE;
 }
 
+static char szBuf[8192];
+
 Bool mp4c_handle_prompt(u8 char_val)
 {
 	MP4C_Command cmdtype = get_gui_cmd(char_val);
 	switch (cmdtype) {
 	case MP4C_OPEN:
 	{
-		char szURL[2000];
 		gf_sc_disconnect(compositor);
 		fprintf(stderr, "Enter the absolute URL\n");
-		if (1 > scanf("%1999s", szURL)) {
+		if (1 > scanf("%8191s", szBuf)) {
 			fprintf(stderr, "Cannot read absolute URL, aborting\n");
 			break;
 		}
 		if (rti_file) init_rti_logs(rti_file, use_rtix);
-		gf_sc_connect_from_time(compositor, szURL, 0, 0, 0, NULL);
+		gf_sc_connect_from_time(compositor, szBuf, 0, 0, 0, NULL);
 	}
 		break;
 	case MP4C_RELOAD:
@@ -1333,21 +1334,21 @@ Bool mp4c_handle_prompt(u8 char_val)
 
 	case MP4C_DUMPSCENE:
 		if (is_connected) {
-			char radname[GF_MAX_PATH], *sExt;
+			char *sExt;
 			Bool xml_dump, std_out;
-			radname[0] = 0;
+			szBuf[0] = 0;
 			do {
 				fprintf(stderr, "Enter file radical name (+\'.x\' for XML dumping) - \"std\" for stderr: ");
 				fflush(stderr);
-			} while( 1 > scanf("%1023s", radname));
-			sExt = strrchr(radname, '.');
+			} while( 1 > scanf("%8191s", szBuf));
+			sExt = strrchr(szBuf, '.');
 			xml_dump = 0;
 			if (sExt) {
 				if (!stricmp(sExt, ".x")) xml_dump = 1;
 				sExt[0] = 0;
 			}
-			std_out = strnicmp(radname, "std", 3) ? 0 : 1;
-			GF_Err e = gf_sc_dump_scene(compositor, std_out ? NULL : radname, NULL, xml_dump, 0);
+			std_out = strnicmp(szBuf, "std", 3) ? 0 : 1;
+			GF_Err e = gf_sc_dump_scene(compositor, std_out ? NULL : szBuf, NULL, xml_dump, 0);
 			if (e<0)
 				fprintf(stderr, "Dump failed: %s\n", gf_error_to_string(e));
 			else
@@ -1395,42 +1396,41 @@ Bool mp4c_handle_prompt(u8 char_val)
 		break;
 	case MP4C_UPDATE:
 	{
-		char szCom[8192];
 		fprintf(stderr, "Enter command to send:\n");
-		szCom[0] = 0;
-		if (1 > scanf("%8191[^\t\n]", szCom)) {
+		szBuf[0] = 0;
+		if (1 > scanf("%8191[^\t\n]", szBuf)) {
 			fprintf(stderr, "Cannot read command to send, aborting.\n");
 			break;
 		}
-		GF_Err e = gf_sc_scene_update(compositor, NULL, szCom);
+		GF_Err e = gf_sc_scene_update(compositor, NULL, szBuf);
 		if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 	}
 	break;
 	case MP4C_EVALJS:
 	{
-		char jsCode[8192];
 		fprintf(stderr, "Enter JavaScript code to evaluate:\n");
-		jsCode[0] = 0;
-		if (1 > scanf("%8191[^\t\n]", jsCode)) {
+		szBuf[0] = 0;
+		if (1 > scanf("%8191[^\t\n]", szBuf)) {
 			fprintf(stderr, "Cannot read code to evaluate, aborting.\n");
 			break;
 		}
-		GF_Err e = gf_sc_scene_update(compositor, "application/ecmascript", jsCode);
+		GF_Err e = gf_sc_scene_update(compositor, "application/ecmascript", szBuf);
 		if (e) fprintf(stderr, "Processing JS code failed: %s\n", gf_error_to_string(e));
 	}
 	break;
 
 	case MP4C_LOGS:
 	{
-		char szLog[1024], *cur_logs;
+		char *cur_logs;
 		cur_logs = gf_log_get_tools_levels();
 		fprintf(stderr, "Enter new log level (current tools %s):\n", cur_logs);
 		gf_free(cur_logs);
-		if (scanf("%1023s", szLog) < 1) {
+		szBuf[0] = 0;
+		if (scanf("%8191s", szBuf) < 1) {
 			fprintf(stderr, "Cannot read new log level, aborting.\n");
 			break;
 		}
-		gf_log_modify_tools_levels(szLog);
+		gf_log_modify_tools_levels(szBuf);
 	}
 	break;
 

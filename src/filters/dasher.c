@@ -316,6 +316,7 @@ typedef struct
 
 	Bool move_to_static;
 	Bool explicit_mode;
+	Bool inband_event;
 } GF_DasherCtx;
 
 typedef enum
@@ -1475,40 +1476,46 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 				if (hevccfg) {
 					Bool is_interlaced;
-					HEVCState hevc;
+					HEVCState *hvc_state;
 					HEVC_SPS* sps;
-					memset(&hevc, 0, sizeof(HEVCState));
-					gf_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_VID_PARAM);
-					gf_hevc_parse_ps(hevccfg, &hevc, GF_HEVC_NALU_SEQ_PARAM);
-					sps = &hevc.sps[hevc.sps_active_idx];
-					if (sps && sps->colour_description_present_flag) {
-						DasherHDRType old_hdr_type = ds->hdr_type;
-						if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
-							if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
-							if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
+					GF_SAFEALLOC(hvc_state, HEVCState);
+					if (hvc_state) {
+						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_VID_PARAM);
+						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_SEQ_PARAM);
+						sps = &hvc_state->sps[hvc_state->sps_active_idx];
+						if (sps && sps->colour_description_present_flag) {
+							DasherHDRType old_hdr_type = ds->hdr_type;
+							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
+								if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
+								if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
+							}
+							if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
 						}
-						if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
-					}
-					is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
-					if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
-					ds->interlaced = is_interlaced;
+						is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
+						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+						ds->interlaced = is_interlaced;
 
-					gf_odf_hevc_cfg_del(hevccfg);
+						gf_odf_hevc_cfg_del(hevccfg);
+						gf_free(hvc_state);
+					}
 				}
 			}
 			else if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
-				AVCState avc;
 				GF_AVCConfig* avccfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 				if (avccfg) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avccfg->sequenceParameterSets, 0);
 					if (sl) {
 						s32 idx;
-						memset(&avc, 0, sizeof(AVCState));
-						idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
-						if (idx>=0) {
-							Bool is_interlaced = avc.sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
-							if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
-							ds->interlaced = is_interlaced;
+						AVCState *avc_state;
+						GF_SAFEALLOC(avc_state, AVCState);
+						if (avc_state) {
+							idx = gf_avc_read_sps(sl->data, sl->size, avc_state, 0, NULL);
+							if (idx>=0) {
+								Bool is_interlaced = avc_state->sps[idx].frame_mbs_only_flag ? GF_FALSE : GF_TRUE;
+								if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+								ds->interlaced = is_interlaced;
+							}
+							gf_free(avc_state);
 						}
 					}
 					gf_odf_avc_cfg_del(avccfg);
@@ -1553,8 +1560,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					if (ac3.streams[0].nb_dep_sub) {
 						_nb_ch += gf_eac3_get_chan_loc_count(ac3.streams[0].chan_loc);
 					}
-                    if (ds->nb_lfe) _nb_ch++;
-                    ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
+					if (ds->nb_lfe) _nb_ch++;
+					ds->ch_layout = gf_ac3_get_channel_layout(&ac3);
 				}
 				break;
 #endif
@@ -2865,6 +2872,26 @@ static void dasher_add_descriptors(GF_List **p_dst_list, const GF_PropertyValue 
 	}
 }
 
+static void dasher_add_inband_event(GF_DashStream *ds)
+{
+	GF_MPD_Inband_Event *nielsen_event;
+	GF_MPD_Inband_Event *custom_event;
+	if(ds->stream_type == GF_STREAM_AUDIO) {
+		GF_SAFEALLOC(custom_event, GF_MPD_Inband_Event);
+		custom_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
+		custom_event->value = gf_strdup("https://aomedia.org/emsg/ID3");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", custom_event->scheme_id_uri, custom_event->value))
+
+		GF_SAFEALLOC(nielsen_event, GF_MPD_Inband_Event);
+		nielsen_event->scheme_id_uri = gf_strdup("https://aomedia.org/emsg/ID3");
+		nielsen_event->value = gf_strdup("www.nielsen.com:id3:v1");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] inserting inband event with scheme: %s and value: %s\n", nielsen_event->scheme_id_uri, nielsen_event->value))
+
+		gf_list_add(ds->set->inband_event, nielsen_event);
+		gf_list_add(ds->set->inband_event, custom_event);
+	}
+}
+
 static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, count;
@@ -2906,8 +2933,8 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				char *uri=NULL;
 				//all roles defined by dash 5th edition
 				if (!strcmp(role, "caption") || !strcmp(role, "subtitle") || !strcmp(role, "main")
-			        || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")
-			        || !strcmp(role, "dub") || !strcmp(role, "description") || !strcmp(role, "sign")
+				    || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")
+				    || !strcmp(role, "dub") || !strcmp(role, "description") || !strcmp(role, "sign")
 					 || !strcmp(role, "metadata") || !strcmp(role, "enhanced-audio-inteligibility")
 					 || !strcmp(role, "emergency") || !strcmp(role, "forced-subtitle")
 					 || !strcmp(role, "easyreader") || !strcmp(role, "karaoke")
@@ -2987,6 +3014,11 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->supplemental_properties, desc);
 			}
+		}
+
+		//add custom inband event in manifest 
+		if (ctx->inband_event) {
+			dasher_add_inband_event(ds);
 		}
 	}
 	if (ctx->check_main_role && !main_role_set) {
@@ -4651,6 +4683,19 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, ds->opid);
 				evt.file_del.url = sctx->filepath;
 				gf_filter_pid_send_event(ds->opid, &evt);
+				//purge LLHLS frags
+				if (sctx->frags && (ctx->llhls>1)) {
+					u32 k;
+					for (k=0; k<sctx->nb_frags; k++) {
+						char szTmp[10];
+						sprintf(szTmp, ".%u", k+1);
+						char *frag_url = gf_strdup(sctx->filepath);
+						gf_dynstrcat(&frag_url, szTmp, NULL);
+						evt.file_del.url = frag_url;
+						gf_filter_pid_send_event(ds->opid, &evt);
+						gf_free(frag_url);
+					}
+				}
 				gf_free(sctx->filepath);
 			}
 
@@ -4696,6 +4741,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			gf_fatal_assert(gf_list_find(ds->pending_segment_states, sctx)<0);
 			if (sctx->filename) gf_free(sctx->filename);
 			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
+			if (sctx->frags) gf_free(sctx->frags);
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
@@ -6153,6 +6199,10 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 
 			if (ds->rep) gf_mpd_representation_free(ds->rep);
 			ds->rep = rep;
+
+			if (ds->rep_id) gf_free(ds->rep_id);
+			ds->rep_id = gf_strdup(rep->id);
+
 			ds->set = set;
 			rep->playback.udta = ds;
 			if (ds->owns_set)
@@ -7268,7 +7318,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		//in sbound=0 mode, if stream has sync and non-sync and uses skip samples, allow spliting
 		//slightly before - typically needed for audio with sync points (usac, mpegh) where the segment duration is set
 		//to the intra interval, we need to take into account the skip samples
-		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT)
+		if (!ctx->sbound && !ds->cues && (ds->sync_points_type==DASHER_SYNC_PRESENT) && ds->stream_type==GF_STREAM_AUDIO
 			&& (ds->pts_minus_cts<0) && (ds->next_seg_start > (u32) -ds->pts_minus_cts)
 		) {
 			ds->next_seg_start -= (u32) -ds->pts_minus_cts;
@@ -9766,7 +9816,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				}
 				if (dst) {
 					GF_Fraction pck_orig_dur;
-					pck_orig_dur.num = split_dur_next;
+					pck_orig_dur.num = (s32) split_dur_next;
 					pck_orig_dur.den = split_dur ? gf_filter_pck_get_duration(pck) : 0;
 					gf_filter_pck_set_property(dst, GF_PROP_PCK_ORIG_DUR, &PROP_FRAC(pck_orig_dur));
 
@@ -10063,7 +10113,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 		return;
 
 	if (!ctx->store_seg_states) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Received fragment size info event but no associated segment state\n"));
+		GF_LOG(ctx->do_m3u8 ? GF_LOG_ERROR : GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Received LL-HLS fragment size info event but no segment state\n"));
 		return;
 	}
 	for (i=0; i<count; i++) {
@@ -10815,7 +10865,7 @@ static const GF_FilterArgs DasherArgs[] =
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pswitch), "period switch control mode\n"
 		"- single: change period if PID configuration changes\n"
-		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)\n"
+		"- force: force period switch at each PID reconfiguration instead of absorbing PID reconfiguration (for splicing or ad insertion not using periodID)\n"
 		"- stsd: change period if PID configuration changes unless new configuration was advertised in initial config", GF_PROP_UINT, "single", "single|force|stsd", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -10829,6 +10879,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- auto: default KID only injected if no key roll is detected (as per DASH-IF guidelines)"
 		, GF_PROP_UINT, "auto", "off|on|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tpl_force), "use template string as is without trying to add extension or solve conflicts in names", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(inband_event), "insert a default inband event stream in the DASH manifest", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(ttml_agg), "force aggregation of TTML samples of a DASH segment into a single sample", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(force_flush), "deprecated - use sflush instead", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
@@ -11044,7 +11095,7 @@ GF_FilterRegister DasherRegister = {
 "This mode can be used to pre-segment the streams for later processing that must take place before final dashing.\n"
 "EX gpac -i source.mp4 dasher:gencues cecrypt:cfile=roll_seg.xml -o live.mpd\n"
 "This will allow the encrypter to locate dash boundaries and roll keys at segment boundaries.\n"
-"EX gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd\n"
+"EX gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=2 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd\n"
 "If the DRM file uses `keyRoll=period`, this will generate:\n"
 "- first period crypted with one key\n"
 "- second period clear\n"

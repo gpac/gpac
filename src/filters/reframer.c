@@ -146,12 +146,13 @@ typedef struct
 	Double speed;
 	u32 raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots;
+	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
 	u32 xround, utc_ref, utc_probe;
 	Double seeksafe;
 	GF_PropStringList props;
 	Bool copy, rmseek;
 	u32 cues;
+	u32 sapcue;
 
 	//internal
 	Bool filter_sap1;
@@ -1062,6 +1063,12 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		}
 		if (ctx->rmseek)
 			gf_filter_pck_set_seek_flag(new_pck, GF_FALSE);
+
+		// forward SAPs as cue points
+		u32 sap = gf_filter_pck_get_sap(new_pck);
+		if (sap > 0 && sap <= ctx->sapcue)
+			gf_filter_pck_set_property(new_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+
 		gf_filter_pck_send(new_pck);
 	} else {
 		GF_FilterPacket *dst = ctx->copy ? gf_filter_pck_new_copy(st->opid, pck, NULL) : gf_filter_pck_new_ref(st->opid, 0, 0, pck);
@@ -1069,6 +1076,12 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_merge_properties(pck, dst);
 			if (ctx->rmseek)
 				gf_filter_pck_set_seek_flag(dst, GF_FALSE);
+
+			// forward SAPs as cue points
+			u32 sap = gf_filter_pck_get_sap(dst);
+			if (sap > 0 && sap <= ctx->sapcue)
+				gf_filter_pck_set_property(dst, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+
 			gf_filter_pck_send(dst);
 		}
 	}
@@ -1803,8 +1816,11 @@ refetch_streams:
 			}
 
 			st->nb_frames_range++;
+			if (ctx->xdts) {
+				check_ts = gf_filter_pck_get_dts(pck);
+			}
 			//in range extraction we target the presentation time, use CTS and apply delay
-			if (ctx->is_range_extraction) {
+			else if (ctx->is_range_extraction) {
 				check_ts = gf_filter_pck_get_cts(pck) + st->tk_delay;
 				if (check_ts > st->ts_sub) check_ts -= st->ts_sub;
 				else check_ts = 0;
@@ -1929,7 +1945,7 @@ refetch_streams:
 								st->sap_ts_plus_one = st->prev_sap_ts + 1;
 							}
 						} else if (ctx->xround<=REFRAME_ROUND_SEEK) {
-							st->sap_ts_plus_one = st->prev_sap_ts+1;
+							st->sap_ts_plus_one = (ctx->nosap ? ts : st->prev_sap_ts) + 1;
 
 							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
 								u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
@@ -2757,6 +2773,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- closest: use I-frame closest to range start", GF_PROP_UINT, "before", "before|seek|after|closest", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xadjust), "adjust end time of extraction range to be before next I-frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xots), "keep original timestamps after extraction", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(xdts), "compute start times based on DTS and not CTS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sure the I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -2774,6 +2791,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- no: do no filter frames based on cue info\n"
 	"- segs: only forward frames marked as segment start\n"
 	"- frags: only forward frames marked as fragment start", GF_PROP_UINT, "no", "no|segs|frags", GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(sapcue), "treat SAPs smaller than or equal to this value as cue points", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(rmseek), "remove seek flag of all sent packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };

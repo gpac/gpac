@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP input module
@@ -1040,7 +1040,7 @@ static void gf_rtp_parse_latm(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 #endif
 
 #if GPAC_ENABLE_3GPP_DIMS_RTP
-static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
 {
 	u32 du_size, offset, dsize, hdr_size;
 	char *data, dhdr[6];
@@ -1090,7 +1090,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 		case 3:
 			if (!rtp->inter_bs) return;
 			gf_bs_write_data(rtp->inter_bs, payload+offset, size-offset);
-			gf_bs_get_content(rtp->inter_bs, &data, &dsize);
+			gf_bs_get_content(rtp->inter_bs, (u8**)&data, &dsize);
 			gf_bs_del(rtp->inter_bs);
 
 			/*send unit header - if dims size is >0xFFFF, use our internal hack for large units*/
@@ -1972,9 +1972,16 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 				nb_chan = 1;
 		} else {
 			payt = gf_rtp_get_payload_type(map, media);
-			if (!payt) return NULL;
-			clock_rate = map->ClockRate;
-			nb_chan = map->AudioChannels;
+			if (payt) {
+				clock_rate = map->ClockRate;
+				nb_chan = map->AudioChannels;
+			} else {
+				static_map = gf_rtp_is_valid_static_payt(map->PayloadType);
+				if (!static_map) return NULL;
+				clock_rate = static_map->clock_rate;
+				if (static_map->stream_type==GF_STREAM_AUDIO)
+					nb_chan = 1;
+			}
 		}
 	}
 

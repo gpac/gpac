@@ -322,7 +322,7 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *io_progress)
 {
 	u32 i, j, len;
-	u32 start_pos = gf_ftell(txt_in);
+	u32 start_pos = (u32) gf_ftell(txt_in);
 	char *sOK;
 	char szLineConv[2048];
 	unsigned short *sptr;
@@ -766,13 +766,19 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	u32 i, char_line, j, rem_styles, len;
 	Bool rem_color;
 	char *ptr = szLine;
-	unsigned short uniLine[5000], uniText[5000], *sptr;
+	unsigned short *uniLine, *uniText, *sptr;
 	char szText[2048];
 
-	len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+	len = (u32)(strlen(szLine)/2)*2+2;
+	uniLine = gf_malloc(sizeof(u16)*len);
+	uniText = gf_malloc(sizeof(u16)*len);
+
+	len = gf_utf8_mbstowcs(uniLine, len+1, (const char **) &ptr);
 	if (len == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 		ctx->state = 0;
+		if (uniLine) gf_free(uniLine);
+		if (uniText) gf_free(uniText);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -783,12 +789,11 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 		u32 font_style = 0;
 		u32 style_nb_chars = 0;
 		u32 style_def_type = 0;
-
-		if ( (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
+		if ( (i+2<len) && (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
 			style_nb_chars = 3;
 			style_def_type = 1;
 		}
-		else if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
+		else if ( (i+3<len) && (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
 			style_def_type = 2;
 			style_nb_chars = 4;
 		}
@@ -991,6 +996,9 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	gf_isom_text_add_text(ctx->samp, szText, len);
 	if (ctx->forced_sub) gf_isom_text_set_forced(ctx->samp, GF_TRUE);
 	*char_l += char_line;
+
+	if (uniLine) gf_free(uniLine);
+	if (uniText) gf_free(uniText);
 	return GF_OK;
 }
 
@@ -4177,7 +4185,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 
 		//purge data from our blob
 		if (ctx->src) {
-			u32 pos = gf_ftell(ctx->src);
+			u32 pos = (u32) gf_ftell(ctx->src);
 			u32 remain = ctx->tmp_blob.size - pos;
 			gf_fclose(ctx->src);
 			ctx->src = NULL;

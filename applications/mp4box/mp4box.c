@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -635,7 +635,7 @@ MP4BoxArg m4b_split_args[] =
  	MP4BOX_ARG("split", "split in files of given max duration (float number) in seconds. A trailing unit can be specified:\n"
 	"- `M`, `m`: duration is in minutes\n"
 	"- `H`, `h`: size is in hours", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
-	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_STRING, 0, parse_split, 1, ARG_IS_FUN),
+	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_BOOL, 0, parse_split, 1, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (integer number) in kilobytes. A trailing unit can be specified:\n"
 	"- `M`, `m`: size is in megabytes\n"
 	"- `G`, `g`: size is in gigabytes", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
@@ -4392,20 +4392,27 @@ static u32 do_import_sub()
 	   possibly for later export (e.g. when converting SRT to TTXT, ...) */
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 	GF_Err e;
-	GF_MediaImporter import;
+	GF_MediaImporter *import;
+
 	/* Prepare the importer */
+	GF_SAFEALLOC(import, GF_MediaImporter);
+	if (!import) {
+		M4_LOG(GF_LOG_ERROR, ("Allocation failed for importer\n"));
+		return mp4box_cleanup(1);
+	}
+
 	file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
 	if (timescale && file) gf_isom_set_timescale(file, timescale);
 
-	memset(&import, 0, sizeof(GF_MediaImporter));
-	import.dest = file;
-	import.in_name = inName;
+	import->dest = file;
+	import->in_name = inName;
 	/* Start the import */
-	e = gf_media_import(&import);
+	e = gf_media_import(import);
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Error importing %s: %s\n", inName, gf_error_to_string(e)));
 		gf_isom_delete(file);
 		gf_file_delete("ttxt_convert");
+		gf_free(import);
 		return mp4box_cleanup(1);
 	}
 	/* Prepare the export */
@@ -4424,6 +4431,7 @@ static u32 do_import_sub()
 	/* Clean the importer */
 	gf_isom_delete(file);
 	gf_file_delete("ttxt_convert");
+	gf_free(import);
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Error converting %s: %s\n", inName, gf_error_to_string(e)));
 		return mp4box_cleanup(1);
@@ -6328,7 +6336,7 @@ int mp4box_main(int argc, char **argv)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, NULL);
 			}
 			if (!crypt && use_init_seg) {
-				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, NULL);
+				file = gf_isom_open(use_init_seg, omode, NULL);
 				if (file) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 					e = gf_isom_open_segment(file, inName, 0, 0, 0);
@@ -6398,17 +6406,22 @@ int mp4box_main(int argc, char **argv)
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 				if(dvbhdemux)
 				{
-					GF_MediaImporter import;
+					GF_MediaImporter *import;
 					file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
-					memset(&import, 0, sizeof(GF_MediaImporter));
-					import.dest = file;
-					import.in_name = inName;
-					import.flags = GF_IMPORT_MPE_DEMUX;
-					e = gf_media_import(&import);
+					GF_SAFEALLOC(import, GF_MediaImporter);
+					if (import) {
+						import->dest = file;
+						import->in_name = inName;
+						import->flags = GF_IMPORT_MPE_DEMUX;
+						e = gf_media_import(import);
+					} else {
+						e = GF_OUT_OF_MEM;
+					}
 					if (e) {
 						M4_LOG(GF_LOG_ERROR, ("Error importing %s: %s\n", inName, gf_error_to_string(e)));
 						gf_isom_delete(file);
 						gf_file_delete("ttxt_convert");
+						if (import) gf_free(import);
 						return mp4box_cleanup(1);
 					}
 				}
@@ -6543,7 +6556,7 @@ int mp4box_main(int argc, char **argv)
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) {
-		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE, merge_vtt_cues, use_init_seg ? GF_TRUE : GF_FALSE, (dump_isom==3) ? GF_TRUE : GF_FALSE);
+		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE, merge_vtt_cues, use_init_seg ? inName : NULL, (dump_isom==3) ? GF_TRUE : GF_FALSE);
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
