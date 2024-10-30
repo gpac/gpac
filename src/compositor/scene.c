@@ -2155,6 +2155,13 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		return;
 	}
 
+	//if same service jump at current media time
+	if (scene->selected_service_id == odm->ServiceID)
+		scene->root_od->media_start_time = gf_clock_media_time(odm->ck);
+	else
+		scene->root_od->media_start_time = 0;
+	scene->selected_service_id = odm->ServiceID;
+
 	if (odm->type == GF_STREAM_AUDIO) {
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO1");
 		if (!ac) return;
@@ -2192,9 +2199,8 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 			mt->url.vals[0].url = gf_strdup(url);
 		}
 		mt->startTime = gf_scene_get_time(scene);
-		gf_node_changed((GF_Node *)mt, NULL);
 		if (odm->mo) gf_scene_force_size_to_video(scene, odm->mo);
-		scene->selected_service_id = odm->ServiceID;
+		gf_node_changed((GF_Node *)mt, NULL);
 		return;
 	}
 
