@@ -631,8 +631,9 @@ void gf_mx_v(GF_Mutex *mx)
 			if (!ret) {
 #ifndef GPAC_DISABLE_LOG
 				if (mx->log_name) {
+					char szName[100];
 					DWORD err = GetLastError();
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s, error %d)\n", log_th_name(mx->Holder), err));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] Couldn't release mutex (thread %s, error %d)\n", log_th_name(mx->Holder, szName), err));
 				}
 #endif
 
@@ -744,7 +745,8 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 	case WAIT_TIMEOUT:
 #ifndef GPAC_DISABLE_LOG
 		if (mx->log_name) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
+			char szName1[100], szName2[100];
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller, szName1), log_th_name(mx->Holder, szName2) ));
 		}
 #endif
 		return GF_FALSE;
