@@ -1671,27 +1671,27 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 			szTmp[0] = 0;
 			switch (types[i].type) {
 			case 0:
-				sprintf(szTmp, " C%d=\"%u\"", i+1, gf_bs_read_int(bs, types[i].bits));
+				snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%u\"", i+1, gf_bs_read_int(bs, types[i].bits));
 				break;
 			case 1:
 				if (types[i].bits==32)
-					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_float(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g\"", i+1, gf_bs_read_float(bs));
 				else if (types[i].bits==64)
-					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_double(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g\"", i+1, gf_bs_read_double(bs));
 				else
-					sprintf(szTmp, " C%d=\"0x%X\"", i+1, gf_bs_read_int(bs, types[i].bits));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"0x%X\"", i+1, gf_bs_read_int(bs, types[i].bits));
 				break;
 			case 2:
 				if (types[i].bits==64)
-					sprintf(szTmp, " C%d=\"%f + %fi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g + %gi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
 				else if (types[i].bits==128) {
-					sprintf(szTmp, " C%d=\"%g + %gi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g + %gi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
 				}
 				else
-					sprintf(szTmp, " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
 				break;
 			default:
-				sprintf(szTmp, " C%d=\"invalid", i+1);
+				snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"invalid", i+1);
 				break;
 			}
 			gf_fprintf(trace, "%s", szTmp);
