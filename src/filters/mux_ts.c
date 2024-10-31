@@ -146,6 +146,8 @@ typedef struct
 
 	char dash_file_name[GF_MAX_PATH];
 	char idx_file_name[GF_MAX_PATH];
+	char llhas_template[GF_MAX_PATH];
+
 
 	//dash indexing
 	u32 nb_sidx_entries, nb_sidx_alloc;
@@ -490,6 +492,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					tspid->ctx->wait_dash_flush = GF_TRUE;
 				tspid->ctx->dash_seg_num = p->value.uint;
 				tspid->ctx->dash_file_name[0] = 0;
+				tspid->ctx->llhas_template[0] = 0;
 				tsmux_check_mpd_start_time(tspid->ctx, pck);
 			}
 
@@ -504,6 +507,10 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 						strcpy(tspid->ctx->dash_file_name, p->value.string);
 						tspid->ctx->dash_file_switch = GF_TRUE;
 					}
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+					if (p) {
+						strcpy(tspid->ctx->llhas_template, p->value.string);
+					}
 					return GF_OK;
 				}
 				else if (tspid->ctx->last_is_eods_flush) {
@@ -511,6 +518,9 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					if (p2) {
 						strcpy(tspid->ctx->dash_file_name, p2->value.string);
 						tspid->ctx->next_is_start = GF_TRUE;
+						p2 = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+						if (p2)
+							strcpy(tspid->ctx->llhas_template, p2->value.string);
 					}
 				}
 			}
@@ -1813,6 +1823,9 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (p)
 				strcpy(tspid->ctx->dash_file_name, p->value.string);
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+			if (p)
+				strcpy(tspid->ctx->llhas_template, p->value.string);
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_IDXFILENAME);
 			if (p)
 				strcpy(tspid->ctx->idx_file_name, p->value.string);
@@ -1936,8 +1949,11 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->dash_file_name) ) ;
 			if (ctx->dash_seg_start.den)
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) ) ;
+			if (ctx->llhas_template[0])
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE, &PROP_STRING(ctx->llhas_template) ) ;
 
 			ctx->dash_file_name[0] = 0;
+			ctx->llhas_template[0] = 0;
 			ctx->next_is_start = GF_FALSE;
 			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
 				ctx->frag_num=0;

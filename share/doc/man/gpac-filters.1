@@ -1986,6 +1986,16 @@ llhls_merge (bool, default: yes): merge LL-HLS byte range parts into a single op
 .br
 groupsel (bool, default: no):  select groups based on language (by default all playable groups are exposed)
 .br
+xas (enum, default: codec):    enable cross adaptation set switching (disabled if .I split_as is set)
+.br
+* no: disabled
+.br
+* codec: switching across sets only allowed for same codec
+.br
+* all: switching across sets allowed across any representation types
+.br
+
+.br
 chain_mode (enum, default: on): MPD chaining mode
 .br
 * off: do not use MPD chaining
@@ -3830,7 +3840,7 @@ decinfo (enum, default: auto): decoder config insert mode
 .br
 
 .br
-split (bool, default: false):  force one file per decoded frame
+split (bool, default: false):  force one file per frame
 .br
 frame (bool, default: false):  force single frame dump with no rewrite. In this mode, all codec types are supported
 .br
@@ -5157,6 +5167,8 @@ Standard DASH replacement strings:
 * $Time$: replaced by segment start time
 .br
 * $Bandwidth$: replaced by representation bandwidth.
+.br
+* $SubNumber[%%0Nd]$: replaced by the segment number in the segment sequence, possibly prefixed with 0
 .br
 Note: these strings are not replaced in the manifest templates elements.
 .br

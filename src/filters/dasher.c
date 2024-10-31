@@ -4479,7 +4479,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (set->ssr_mode)
+					if (set->ssr_mode && !strstr(seg_template->media, "$SubNumber"))
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 
 					seg_template->timescale = ds->mpd_timescale;
@@ -4519,7 +4519,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					seg_template->media = dasher_cat_mpd_url(ctx, ds, szSegmentName);
 					if (ds->idx_template)
 						seg_template->index = dasher_cat_mpd_url(ctx, ds, szIndexSegmentName);
-					if (set->ssr_mode)
+					if (set->ssr_mode && !strstr(seg_template->media, "$SubNumber"))
 						gf_dynstrcat(&seg_template->media, "$SubNumber$", ".");
 					seg_template->duration = seg_duration;
 					seg_template->timescale = ds->mpd_timescale;
@@ -4750,6 +4750,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 			if (sctx->filename) gf_free(sctx->filename);
 			if (sctx->hls_key_uri) gf_free(sctx->hls_key_uri);
 			if (sctx->frags) gf_free(sctx->frags);
+			if (sctx->llhas_template) gf_free(sctx->llhas_template);
 			gf_free(sctx);
 			gf_list_rem(ds->rep->state_seg_list, 0);
 		}
@@ -8101,7 +8102,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 {
 	Bool no_concat;
 	GF_DASH_SegmentContext *seg_state=NULL;
-	char szSegmentName[GF_MAX_PATH], szSegmentFullPath[GF_MAX_PATH], szIndexName[GF_MAX_PATH];
+	char szSegmentName[GF_MAX_PATH], szSegmentFullPath[GF_MAX_PATH], szIndexName[GF_MAX_PATH], szLLHASTemplate[GF_MAX_PATH];
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 
 	if (ctx->forward_mode) {
@@ -8501,6 +8502,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		}
 	}
 
+	szLLHASTemplate[0] = 0;
 	if (!ctx->forward_mode) {
 		/*get final segment template - output file name is NULL, we already have solved this in source_setup
 		segment time must be PTO-adjusted !*/
@@ -8511,6 +8513,14 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time + pto, base_ds->rep->bandwidth, base_ds->seg_number, ds->stl, ctx->tpl_force);
 
+		//generate LLHAS template for SubNumber even in LLHLS
+		if (ds->set->ssr_mode || (ctx->llhls>1)) {
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT_SUBNUMBER, ds->set->bitstream_switching, szLLHASTemplate, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time + pto, base_ds->rep->bandwidth, base_ds->seg_number, ds->stl, ctx->tpl_force);
+
+			//no template used
+			if (szLLHASTemplate[0] && !strstr(szLLHASTemplate, "$SubNumber"))
+				szLLHASTemplate[0] = 0;
+		}
 	}
 
 
@@ -8552,6 +8562,8 @@ send_packet:
 	if (seg_state && !ctx->sigfrag) {
 		seg_state->filepath = gf_strdup(szSegmentFullPath);
 		seg_state->filename = gf_strdup(szSegmentName);
+		if (szLLHASTemplate[0])
+			seg_state->llhas_template = gf_strdup(szLLHASTemplate);
 	}
 
 	if (ds->rep->segment_list && (ctx->forward_mode!=DASHER_FWD_ALL) && !ctx->gencues) {
@@ -8590,8 +8602,11 @@ send_packet:
 				seg_url->index = dasher_cat_mpd_url(ctx, ds, szIndexName);
 		}
 	}
-	if (pck)
+	if (pck) {
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(szSegmentFullPath) );
+		if (szLLHASTemplate[0])
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE, &PROP_STRING(szLLHASTemplate) );
+	}
 }
 
 static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
@@ -11121,6 +11136,7 @@ GF_FilterRegister DasherRegister = {
 "- $RepresentationID$: replaced by representation name\n"
 "- $Time$: replaced by segment start time\n"
 "- $Bandwidth$: replaced by representation bandwidth.\n"
+"- $SubNumber[%%0Nd]$: replaced by the segment number in the segment sequence, possibly prefixed with 0\n"
 "Note: these strings are not replaced in the manifest templates elements.\n"
 "\n"
 "Additional replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):\n"

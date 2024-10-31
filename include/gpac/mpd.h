@@ -68,6 +68,8 @@ typedef enum
 	GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT,
 	/*! same as GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE but skip default "init" concatenation*/
 	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT,
+	/*! resolve template for segment but keep $SubNumber$*/
+	GF_DASH_TEMPLATE_SEGMENT_SUBNUMBER,
 } GF_DashTemplateSegmentType;
 
 /*! formats the segment name according to its template
@@ -595,6 +597,8 @@ typedef struct
 	u32 stl_start;
 	/*! repeat count of segment timeline */
 	u32 stl_rcount;
+	/*! LLHAS template*/
+	char *llhas_template;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -1320,7 +1324,16 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 */
 GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id);
 
-/*! @} */
 #endif /*GPAC_DISABLE_MPD*/
+
+/*! resolve the SubNumber template, utility function used by some output filters
+\param llhas_template template for the segment, or NULL if none
+\param segment_filename segment filename
+\param part_idx index of part to use
+\return resolved file name for the given part of the segment
+*/
+char *gf_mpd_resolve_subnumber(char *llhas_template, char *segment_filename, u32 part_idx);
+
+/*! @} */
 
 #endif // _MPD_H_

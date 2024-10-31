@@ -35,12 +35,12 @@
 #include <gpac/config_file.h>
 #include <gpac/base_coding.h>
 #include <gpac/network.h>
+#include <gpac/mpd.h>
 
 #ifdef GPAC_HAS_QJS
 #include "../quickjs/quickjs.h"
 #include "../scenegraph/qjs_common.h"
 #endif
-
 
 //socket and SSL context ownership is transfered to the download session object
 GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
@@ -203,6 +203,7 @@ typedef struct __httpout_input
 
 	FILE *hls_chunk;
 	char *hls_chunk_path, *hls_chunk_local_path;
+	char *llhas_template;
 
 	u8 *tunein_data;
 	u32 tunein_data_size;
@@ -3165,6 +3166,7 @@ static void httpout_finalize(GF_Filter *filter)
 		}
 		if (in->no_cte_llhls_cache) gf_filter_pck_discard(in->no_cte_llhls_cache);
 		if (in->no_cte_cache) gf_filter_pck_discard(in->no_cte_cache);
+		if (in->llhas_template) gf_free(in->llhas_template);
 
 		gf_free(in);
 	}
@@ -4721,6 +4723,12 @@ next_pck:
 				is_init = GF_TRUE;
 			}
 
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+			if (p) {
+				if (in->llhas_template) gf_free(in->llhas_template);
+				in->llhas_template = gf_strdup(p->value.string);
+			}
+
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILE_REL);
 			Bool use_rel = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
 			char *dyn_name=NULL;
@@ -4775,14 +4783,15 @@ next_pck:
 
 		p = no_cte_no_llhls ? NULL : gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM);
 		if (p && (in->resource || (in->skip_resource==SKIP_RES_FILE) || no_cte_frag_push) ) {
-			char szHLSChunk[GF_MAX_PATH];
-			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);
+			char *llhas_chunkname = gf_mpd_resolve_subnumber(in->llhas_template, in->local_path, p->value.uint);
+
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
 			//for mem mode, pass the parent gfio for fileIO construction
-			in->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->mem_url, "wb", GF_FALSE);
-			in->hls_chunk_local_path = gf_strdup(szHLSChunk);
-			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
-			in->hls_chunk_path = gf_strdup(szHLSChunk);
+			in->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->mem_url, "wb", GF_FALSE);
+			in->hls_chunk_local_path = llhas_chunkname;
+
+			llhas_chunkname = gf_mpd_resolve_subnumber(in->llhas_template, in->path, p->value.uint);
+			in->hls_chunk_path = llhas_chunkname;
 			in->llhls_is_open = GF_TRUE;
 
 			if (ctx->mem_url && in->hls_chunk) {
@@ -4793,8 +4802,6 @@ next_pck:
 			}
 		} else if (p && in->upload) {
 			GF_Err e;
-			char szHLSChunk[GF_MAX_PATH];
-			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
 
 			if (!in->llhls_upload) {
 				u32 flags = GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT;
@@ -4826,7 +4833,9 @@ next_pck:
 					if (in->flush_close_llhls)
 						continue;
 
-					httpout_open_input_llhls(ctx, in, szHLSChunk);
+					char *llhas_chunkname = gf_mpd_resolve_subnumber(in->llhas_template, in->path, p->value.uint);
+					httpout_open_input_llhls(ctx, in, llhas_chunkname);
+					gf_free(llhas_chunkname);
 					if (in->flush_llhls_open) continue;
 				}
 			}
