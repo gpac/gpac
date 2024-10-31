@@ -716,6 +716,7 @@ MP4BoxArg m4b_dash_args[] =
 	        "- $Init=NAME$ is replaced by NAME for init segment, ignored otherwise\n"
 	        "- $Index=NAME$ is replaced by NAME for index segments, ignored otherwise\n"
 	        "- $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise\n"
+	        "- $SubNumber[%%0Nd]$ is replaced by the segment subnumber in segment sequences, possibly prefixed with 0\n"
 	        "- $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments", GF_ARG_STRING, 0, &seg_name, 0, 0),
 	{"segment-ext", NULL, "set the segment extension, `null` means no extension", "m4s", NULL, GF_ARG_STRING, 0, &seg_ext, 0, 0},
 	{"init-segment-ext", NULL, "set the segment extension for init, index and bitstream switching segments, `null` means no extension\n", "mp4", NULL, GF_ARG_STRING, 0, &init_seg_ext, 0, 0},

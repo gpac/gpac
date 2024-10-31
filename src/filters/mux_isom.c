@@ -343,7 +343,7 @@ typedef struct
 	u32 nb_segs, nb_frags, nb_frags_in_seg;
 
 	GF_FilterPacket *dst_pck;
-	char *seg_name;
+	char *seg_name, *llhas_template;
 	u32 dash_seg_num_plus_one;
 	GF_Fraction64 dash_seg_start;
 
@@ -6707,6 +6707,11 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 						if (ctx->seg_name) gf_free(ctx->seg_name);
 						ctx->seg_name = gf_strdup(p->value.string);
 					}
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+					if (p && p->value.string) {
+						if (ctx->llhas_template) gf_free(ctx->llhas_template);
+						ctx->llhas_template = gf_strdup(p->value.string);
+					}
 					//store PRFT only for reference track at segment start
 					if (tkw==ctx->ref_tkw) {
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
@@ -7784,6 +7789,9 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num_plus_one-1) );
 		if (ctx->dash_seg_start.den)
 			gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) );
+
+		if (ctx->llhas_template)
+			gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_TEMPLATE, &PROP_STRING(ctx->llhas_template) );
 	}
 
 	if (ctx->min_cts_plus_one) {
@@ -8363,6 +8371,7 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	gf_list_del(ctx->ref_pcks);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->seg_name) gf_free(ctx->seg_name);
+	if (ctx->llhas_template) gf_free(ctx->llhas_template);
 	if (ctx->tmp_store) gf_fclose(ctx->tmp_store);
 	if (ctx->seg_sizes) gf_free(ctx->seg_sizes);
 

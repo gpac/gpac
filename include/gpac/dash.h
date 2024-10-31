@@ -513,7 +513,6 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_id
 \param seg_time  set to the segment start time  - optional, may be NULL
 \param seg_dur_ms  set to the segment estimated duration in ms  - optional, may be NULL
 \param init_segment set to the init segment name, without base url  - optional, may be NULL
-\param ssr_info set to the SSR info, den set to 0 if no SSR  - optional, may be NULL
 \return error if any, GF_BUFFER_TOO_SMALL if no segments queued for download
 */
 GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 dependent_representation_index, const char **seg_name, u32 *seg_number, GF_Fraction64 *seg_time, u32 *seg_dur_ms, const char **init_segment);
@@ -801,7 +800,7 @@ When switching across adaptation sets is enabled and such sets are declared in t
 the switching set, and switching will be handled by the client.
 
 \param dash the target dash cleint
-\param cross_as_enabled enable or disable
+\param cross_as_mode enable or disable
 */
 void gf_dash_enable_cross_as_switch(GF_DashClient *dash, GF_DASHCrossASMode cross_as_mode);
 

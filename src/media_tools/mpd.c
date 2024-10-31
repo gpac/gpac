@@ -1329,6 +1329,7 @@ void gf_mpd_representation_free(void *_item)
 			GF_DASH_SegmentContext *s = gf_list_pop_back(ptr->state_seg_list);
 			if (s->filename) gf_free(s->filename);
 			if (s->filepath) gf_free(s->filepath);
+			if (s->llhas_template) gf_free(s->llhas_template);
 			if (s->frags) gf_free(s->frags);
 			if (s->hls_key_uri) gf_free(s->hls_key_uri);
 			gf_free(s);
@@ -3924,8 +3925,23 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					dur = sctx->frags[k].duration;
 					dur /= rep->timescale;
 
+					if (mpd->force_llhls_mode==1) write_br = GF_TRUE;
+					else if (mpd->force_llhls_mode==2) write_br = GF_FALSE;
+					else if (sctx->llhls_mode==1) write_br = GF_TRUE;
+
 					if (force_base_url)
 						force_url = gf_url_concatenate(force_base_url, sctx->filename);
+
+					if (!write_br) {
+						u32 frag_idx = k;
+						//we'll need to redo all LLHLS tests
+						if (gf_sys_is_test_mode()) frag_idx++;
+
+						char *res = gf_mpd_resolve_subnumber(sctx->llhas_template, force_url ? force_url : sctx->filename, frag_idx);
+						if (force_url ) gf_free(force_url);
+						force_url = res;
+						next_seg_idx = k+1;
+					}
 
 					gf_fprintf(out, "#EXT-X-PART:DURATION=%g,URI=\"%s", dur, force_url ? force_url : sctx->filename);
 					if (force_url ) {
@@ -3933,19 +3949,11 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 						force_url = NULL;
 					}
 
-					if (mpd->force_llhls_mode==1) write_br = GF_TRUE;
-					else if (mpd->force_llhls_mode==2) write_br = GF_FALSE;
-					else if (sctx->llhls_mode==1) write_br = GF_TRUE;
-
 					if (write_br) {
 						gf_fprintf(out, "\",BYTERANGE=\""LLU"@"LLU"\"", sctx->frags[k].size, sctx->frags[k].offset );
 						next_br_start_plus_one = 1 + sctx->frags[k].offset + sctx->frags[k].size;
 					} else {
-						next_seg_idx = k+2;
-						u32 frag_idx = k;
-						//we'll need to redo all LLHLS tests
-						if (gf_sys_is_test_mode()) frag_idx++;
-						gf_fprintf(out, ".%d\"", frag_idx);
+						gf_fprintf(out, "\"");
 					}
 
 					if (sctx->frags[k].independent)
@@ -3974,9 +3982,12 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					if (force_base_url)
 						force_url = gf_url_concatenate(force_base_url, sctx->filename);
 
-					if (next_seg_idx)
-						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s.%d\"\n", force_url ? force_url : sctx->filename, next_seg_idx);
-					else if (next_br_start_plus_one)
+					if (next_seg_idx) {
+						char *res = gf_mpd_resolve_subnumber(sctx->llhas_template, force_url ? force_url : sctx->filename, next_seg_idx);
+						if (force_url ) gf_free(force_url);
+						force_url = res;;
+						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s\"\n", force_url);
+					} else if (next_br_start_plus_one)
 						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s\",BYTERANGE-START="LLU"\n", force_url ? force_url : sctx->filename, next_br_start_plus_one-1);
 
 					if (force_url) {
@@ -5838,8 +5849,22 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			has_number = GF_TRUE;
 		}
 		else if (!strnicmp(& seg_rad_name[char_template], "$SubNumber", 10)) {
-			EXTRACT_FORMAT(10);
-			//remove it, we always append to segment name
+			char *sep = strchr(seg_rad_name + char_template+10, '$');
+			if (!sep) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Missing final `$` separator\n"));
+				return GF_BAD_PARAM;
+			}
+			if ( (seg_type==GF_DASH_TEMPLATE_TEMPLATE)
+				|| (seg_type==GF_DASH_TEMPLATE_SEGMENT_SUBNUMBER)
+			) {
+				sep[0] = 0;
+				strcat(segment_name, seg_rad_name + char_template);
+				strcat(segment_name, "$");
+				sep[0] = '$';
+				char_template += 1 +(u32) (sep - (seg_rad_name + char_template));
+			} else {
+				char_template += 1 +(u32) (sep - (seg_rad_name + char_template));
+			}
 		}
 		else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Number", 7)) {
 			EXTRACT_FORMAT(7);
@@ -6178,5 +6203,33 @@ GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id)
 	return NULL;
 }
 
+char *gf_mpd_resolve_subnumber(char *llhas_template, char *segment_filename, u32 part_idx)
+{
+	char *res = NULL;
+	char szTmp[20];
+	sprintf(szTmp, "%d", part_idx);
+	res = gf_strdup(segment_filename);
+	if (!llhas_template) {
+		gf_dynstrcat(&res, szTmp, ".");
+		return res;
+	}
+	char *sep = strchr(llhas_template, '$');
+	u32 subnum_len = (u32) (sep - llhas_template);
+	sep[0] = 0;
+	char *name = strstr(res, llhas_template);
+	name[subnum_len] = 0;
+	sep[0] = '$';
+	char *sep_fmt = strchr(sep, '%');
+	if (sep_fmt) {
+		char *final = strchr(sep_fmt, '$');
+		if (final) final[0] = 0;
+		sprintf(szTmp, sep_fmt, part_idx);
+		if (final) final[0] = '$';
+	}
+	gf_dynstrcat(&res, szTmp, NULL);
+	sep = strchr(sep+1, '$');
+	gf_dynstrcat(&res, sep+1, NULL);
+	return res;
+}
 
 #endif /*GPAC_DISABLE_MPD*/

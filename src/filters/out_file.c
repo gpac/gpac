@@ -28,6 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/xml.h>
 #include <gpac/network.h>
+#include <gpac/mpd.h>
 
 #ifndef GPAC_DISABLE_FOUT
 
@@ -65,6 +66,7 @@ typedef struct
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
 	char szFileName[GF_MAX_PATH];
+	char *llhas_template;
 
 	Bool patch_blocks;
 	Bool is_null;
@@ -440,6 +442,7 @@ static void fileout_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->past_files);
 	}
+	if (ctx->llhas_template) gf_free(ctx->llhas_template);
 }
 
 static GF_Err fileout_process(GF_Filter *filter)
@@ -650,6 +653,12 @@ restart:
 			ctx->gfio_pending = GF_TRUE;
 		}
 
+		fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+		if (fname) {
+			if (ctx->llhas_template) gf_free(ctx->llhas_template);
+			ctx->llhas_template = gf_strdup(fname->value.string);
+		}
+
 		if (ctx->max_segs) {
 			while (gf_list_count(ctx->past_files)>ctx->max_segs) {
 				char *url = gf_list_pop_front(ctx->past_files);
@@ -664,12 +673,12 @@ restart:
 	}
 	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM);
 	if (p) {
-		char szHLSChunk[GF_MAX_PATH+21];
-		snprintf(szHLSChunk, GF_MAX_PATH+20, "%s.%d", ctx->szFileName, p->value.uint);
+		char *llhas_chunkname = gf_mpd_resolve_subnumber(ctx->llhas_template, ctx->szFileName, p->value.uint);
 		//for now we only use buffered IO for hls chunks, too small to really benefit from direct write
 		if (ctx->hls_chunk) gf_fclose(ctx->hls_chunk);
-		ctx->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->original_url, "w+b", GF_FALSE);
+		ctx->hls_chunk = gf_fopen_ex(llhas_chunkname, ctx->original_url, "w+b", GF_FALSE);
 		ctx->gfio_pending = GF_TRUE;
+		gf_free(llhas_chunkname);
 	}
 
 check_gfio:
