@@ -198,6 +198,8 @@ typedef struct
 
 	GF_FilterPacket *dgl_copy;
 	u32 all_stsd_crc;
+
+	Bool has_deps;
 } TrackWriter;
 
 enum
@@ -5182,11 +5184,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 	if (ctx->deps) {
 		u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
-		if (dep_flags) {
+		if (dep_flags || tkw->has_deps) {
 			u32 is_leading = (dep_flags>>6) & 0x3;
 			u32 depends_on = (dep_flags>>4) & 0x3;
 			u32 depended_on = (dep_flags>>2) & 0x3;
 			u32 redundant = (dep_flags) & 0x3;
+			//once we start signaling deps (usually on first iframe), always signal them
+			tkw->has_deps = GF_TRUE;
 			if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				gf_isom_fragment_set_sample_flags(ctx->file, tkw->track_id, is_leading, depends_on, depended_on, redundant);
