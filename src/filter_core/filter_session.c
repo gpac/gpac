@@ -213,10 +213,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 	u32 i;
 	GF_FilterSession *fsess, *a_sess;
 
-	//safety check: all built-in properties shall have unique 4CCs
-	if (gf_sys_is_test_mode() && ! gf_props_4cc_check_props())
-		return NULL;
-
 	GF_SAFEALLOC(fsess, GF_FilterSession);
 	if (!fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
@@ -409,6 +405,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->default_pid_buffer_max_units = gf_opts_get_int("core", "buffer-units");
 	fsess->max_resolve_chain_len = 6;
 	fsess->auto_inc_nums = gf_list_new();
+	if (gf_opts_get_bool("core", "check-props"))
+		fsess->check_props = GF_TRUE;
 
 	if (nb_threads)
 		fsess->links_mx = gf_mx_new("FilterRegistryGraph");

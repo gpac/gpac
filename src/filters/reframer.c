@@ -241,7 +241,7 @@ static void reframer_push_props(GF_ReframerCtx *ctx, RTStream *st)
 
 	//seek mode, signal we have sample-accurate seek info for the pid
 	if (st->seek_mode)
-		gf_filter_pid_set_property(st->opid, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(1));
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_HAS_SKIP_BEGIN, &PROP_BOOL(GF_TRUE));
 
 	//for old arch compat, signal we must remove edits
 	if (gf_sys_old_arch_compat()) {

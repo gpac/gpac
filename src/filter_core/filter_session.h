@@ -107,8 +107,6 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
-Bool gf_props_4cc_check_props();
-
 void gf_props_del_property(GF_PropertyEntry *it);
 
 
@@ -532,6 +530,7 @@ struct __gf_filter_session
 
 
 	u32 dbg_flags;
+	Bool check_props;
 };
 
 #ifdef GPAC_HAS_QJS

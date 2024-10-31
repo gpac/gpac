@@ -829,11 +829,23 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 			}
 		} else if (is_frac) {
 			if (is_frac==2) {
-				prop->type = GF_PROP_FRACTION;
-				prop->value.frac = frac;
+				if (type==GF_PROP_FRACTION64) {
+					prop->type = GF_PROP_FRACTION64;
+					prop->value.lfrac.num = frac.num;
+					prop->value.lfrac.den = frac.den;
+				} else {
+					prop->type = GF_PROP_FRACTION;
+					prop->value.frac = frac;
+				}
 			} else {
-				prop->type = GF_PROP_FRACTION64;
-				prop->value.lfrac = frac_l;
+				if (type==GF_PROP_FRACTION) {
+					prop->type = GF_PROP_FRACTION;
+					prop->value.frac.num = (s32) frac_l.num;
+					prop->value.frac.den = (u32) frac_l.den;
+				} else {
+					prop->type = GF_PROP_FRACTION64;
+					prop->value.lfrac = frac_l;
+				}
 			}
 		}
 		//try array buffer
