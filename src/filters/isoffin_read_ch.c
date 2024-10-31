@@ -1144,7 +1144,7 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 
 		switch (grp_type) {
 		case GF_4CC('P','S','S','H'):
-			gf_filter_pck_set_property(pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA_NO_COPY((u8*)grp_data, grp_size) );
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_PSSH, &PROP_DATA_NO_COPY((u8*)grp_data, grp_size) );
 			break;
 		default:
 			gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(grp_data, grp_size) );

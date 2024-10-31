@@ -279,7 +279,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 					if (group->url_changed && group->current_url) {
 						gf_filter_pck_set_property(ref, GF_PROP_PCK_FRAG_RANGE, NULL);
-						gf_filter_pck_set_property(ref, GF_PROP_PID_URL, &PROP_STRING(group->current_url));
+						gf_filter_pck_set_property(ref, GF_PROP_PCK_SEG_URL, &PROP_STRING(group->current_url));
 						group->url_changed = GF_FALSE;
 					}
 
@@ -309,7 +309,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 		u32 flags = gf_filter_pid_get_udta_flags(out_pid);
 		if (flags & FLAG_PERIOD_SWITCH) {
 			gf_filter_pid_set_udta_flags(out_pid, flags & ~FLAG_PERIOD_SWITCH);
-			gf_filter_pck_set_property(ref, GF_PROP_PID_DASH_PERIOD_START, &PROP_LONGUINT(0) );
+			gf_filter_pck_set_property(ref, GF_PROP_PCK_DASH_PERIOD_START, &PROP_BOOL(GF_TRUE) );
 		}
 		gf_filter_pck_send(ref);
 		return;
@@ -1742,7 +1742,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		//for routeout
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PREMUX_STREAM_TYPE, &PROP_UINT(stream_type) );
 
-		gf_filter_pid_set_property(opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) 1+group->idx) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_HLS_REF, &PROP_LONGUINT( (u64) 1+group->idx) );
 
 		if (!gf_dash_group_has_init_segment(ctx->dash, group_idx)) {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_NO_INIT, &PROP_BOOL(GF_TRUE) );
@@ -1775,8 +1775,13 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	title = NULL;
 	gf_dash_group_enum_descriptor(ctx->dash, group_idx, GF_MPD_DESC_ROLE, 0, NULL, NULL, &title);
-	if (title)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_ROLE, &PROP_STRING(title) );
+	if (title) {
+		GF_PropertyValue pr;
+		pr.type = GF_PROP_STRING_LIST_COPY;
+		pr.value.string_list.nb_items = 1;
+		pr.value.string_list.vals = (char **) &title;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_ROLE, &pr);
+	}
 
 	title = NULL;
 	gf_dash_group_enum_descriptor(ctx->dash, group_idx, GF_MPD_DESC_ACCESSIBILITY, 0, NULL, NULL, &title);
@@ -1889,7 +1894,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 		gf_dash_group_next_seg_info(ctx->dash, group->idx, group->current_dependent_rep_idx, NULL, NULL, NULL, NULL, &str);
 		if (str) {
-			gf_filter_pid_set_property(opid, GF_PROP_PCK_FILENAME, &PROP_STRING(str) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_INIT_NAME, &PROP_STRING(str) );
 		}
 
 		//forward representation ID so that dasher will match muxed streams and identify streams in the MPD

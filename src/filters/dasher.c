@@ -1798,15 +1798,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_filter_pid_copy_properties(ds->opid, pid);
 			//for route out
 			if (ctx->do_m3u8)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 			if (ctx->llhls)
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHAS_MODE, &PROP_UINT(ctx->llhls) );
 			if (ds->rep && ds->rep->segment_template)
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->rep->segment_template->media));
 			else if (ds->set && ds->set->segment_template)
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->set->segment_template->media));
-			if (ctx->do_m3u8)
-				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_REP_ID, &PROP_STRING( ds->rep_id ) );
 			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC( ds->dash_dur ) );
 			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_PREMUX_STREAM_TYPE, &PROP_UINT(ds->stream_type) );
@@ -2616,6 +2614,10 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 				case GF_PROP_PID_CHAP_NAMES:
 				case GF_PROP_PID_ISOM_UDTA:
 					continue;
+				case GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT:
+					//for text streams, only used for SDP config by tx3g and we don't need it
+					if (ds->stream_type==GF_STREAM_TEXT)
+						continue;
 				default:
 					break;
 				}
@@ -3534,7 +3536,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	}
 	//for route out
 	if (ctx->do_m3u8)
-		gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_REP_ID, &PROP_STRING( ds->rep_id ) );
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC( ds->dash_dur ) );
 	//end route_out
@@ -3592,7 +3594,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(ds->set->segment_template->media));
 
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_BITRATE, &PROP_UINT(ds->bitrate));
-	gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_FILENAME, &PROP_STRING(ds->init_seg));
+	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_INIT_NAME, &PROP_STRING(ds->init_seg));
 
 	if (ds->rep && ds->rep->codecs)
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_CODEC, &PROP_STRING(ds->rep->codecs));
@@ -4391,7 +4393,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ctx->forward_mode) {
 			u32 k, nb_pids = gf_list_count(ctx->pids);
 			char *src = NULL;
-			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PCK_FILENAME);
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_INIT_NAME);
 
 			if (!p || !p->value.string) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't fetch source URL in forward mode, cannot forward\n"));
@@ -4405,7 +4407,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				if (ds == a_ds) continue;
 				if (!a_ds->dst_filter) continue;
 
-				p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PCK_FILENAME);
+				p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_INIT_NAME);
 				if (!p || !p->value.string) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't fetch source URL in forward mode, cannot forward\n"));
 					ctx->in_error = GF_TRUE;
@@ -4918,7 +4920,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name, 
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 	}
 	if (is_rel_url)
-		gf_filter_pck_set_property(pck, GF_PROP_PID_FILE_REL, &PROP_BOOL( GF_TRUE ) );
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILE_REL, &PROP_BOOL( GF_TRUE ) );
 	gf_filter_pck_send(pck);
 }
 
@@ -8184,7 +8186,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 			if (ds->set_period_switch) {
 				ds->set_period_switch = GF_FALSE;
-				gf_filter_pck_set_property(pck, GF_PROP_PID_DASH_PERIOD_START, &PROP_LONGUINT(0) );
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_DASH_PERIOD_START, &PROP_BOOL(GF_TRUE) );
 			}
 		}
 	}
@@ -8323,7 +8325,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		gf_list_add(ds->rep->state_seg_list, seg_state);
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *frag_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
-			const GF_PropertyValue *frag_url = gf_filter_pck_get_property(in_pck, GF_PROP_PID_URL);
+			const GF_PropertyValue *frag_url = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SEG_URL);
 			const GF_PropertyValue *frag_name = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FILENAME);
 
 			if (frag_url && frag_name) {
@@ -8388,7 +8390,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 
 		if (ctx->sigfrag) {
 			Bool has_root_sidx = GF_TRUE;
-			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PCK_SIDX_RANGE);
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_VOD_SIDX_RANGE);
 			if (!p) {
 				p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SIDX_RANGE);
 				has_root_sidx = GF_FALSE;
@@ -8438,7 +8440,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *frag_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
-			const GF_PropertyValue *frag_url = gf_filter_pck_get_property(in_pck, GF_PROP_PID_URL);
+			const GF_PropertyValue *frag_url = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SEG_URL);
 			const GF_PropertyValue *frag_name = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FILENAME);
 			if (frag_url && frag_name) {
 				seg_url->media = dasher_strip_base(ctx, ds, frag_url->value.string, frag_name->value.string);

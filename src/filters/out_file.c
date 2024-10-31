@@ -272,11 +272,8 @@ static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 		}
 	}
 	if (ctx->dynext) {
-		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
-		if (!p) {
-			if (ext && ext->value.string) {
-				fileout_open_close(ctx, dst, ext->value.string, 0, explicit_overwrite, NULL, GF_FALSE);
-			}
+		if (ext && ext->value.string) {
+			fileout_open_close(ctx, dst, ext->value.string, 0, explicit_overwrite, NULL, GF_FALSE);
 		}
 	} else if (ctx->dst) {
 		fileout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite, NULL, GF_FALSE);
@@ -616,8 +613,6 @@ restart:
 		}
 		//filename change at packet start, open new file
 		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
-		if (!ext) ext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
 
 		fsuf = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILESUF);
@@ -629,7 +624,7 @@ restart:
 			Bool use_rel = GF_FALSE;
 			if (ctx->dst) {
 				use_rel = ctx->use_rel;
-				rel = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_REL);
+				rel = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILE_REL);
 				if (rel && rel->value.boolean) use_rel = GF_TRUE;
 			}
 			if (use_rel) {

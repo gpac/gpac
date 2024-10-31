@@ -4713,7 +4713,6 @@ next_pck:
 				if (fname) in->force_dst_name = GF_FALSE;
 			}
 
-			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
 			if (fname) name = fname->value.string;
 
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_INIT);
@@ -4722,7 +4721,7 @@ next_pck:
 				is_init = GF_TRUE;
 			}
 
-			p = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_REL);
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILE_REL);
 			Bool use_rel = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
 			char *dyn_name=NULL;
 

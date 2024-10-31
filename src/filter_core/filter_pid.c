@@ -5875,6 +5875,31 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	}
 
 	if (prop_4cc) {
+		if (value && pid->filter->session->check_props) {
+			u32 ptype = gf_props_4cc_get_type(prop_4cc);
+			u8 c = prop_4cc>>24;
+			if ((c>='A') && (c<='Z')) {
+				if (gf_props_get_base_type(ptype) != gf_props_get_base_type(value->type)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning PID property %s of type %s in filter %s but expecting %s\n",
+						gf_props_4cc_get_name(prop_4cc),
+						gf_props_get_type_name(value->type),
+						pid->filter->freg->name,
+						gf_props_get_type_name(ptype)
+					));
+					if (gf_sys_is_test_mode())
+						exit(5);
+				}
+				u32 flags = gf_props_4cc_get_flags(prop_4cc);
+				if (flags & GF_PROP_FLAG_PCK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning PID property %s in filter %s but this is a packet property\n",
+						gf_props_4cc_get_name(prop_4cc),
+						pid->filter->freg->name
+					));
+					if (gf_sys_is_test_mode())
+						exit(5);
+				}
+			}
+		}
 		oldp = gf_filter_pid_get_property(pid, prop_4cc);
 	} else {
 		oldp = gf_filter_pid_get_property_str(pid, prop_name ? prop_name : dyn_name);
@@ -6121,12 +6146,29 @@ static GFINLINE const GF_PropertyValue *pid_check_prop(GF_FilterPid *pid, u32 pr
 #define pid_check_prop(_a, _b, _str, c) c
 #endif
 
+static void check_prop_type(GF_FilterPid *pid, u32 prop_4cc)
+{
+	u32 flags = gf_props_4cc_get_flags(prop_4cc);
+	if (flags & GF_PROP_FLAG_PCK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Fetching PID property %s in filter %s but this is a packet property\n",
+			gf_props_4cc_get_name(prop_4cc),
+			pid->filter->freg->name
+		));
+		if (gf_sys_is_test_mode())
+			exit(5);
+	}
+}
+
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc)
 {
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_FALSE);
 	if (!map)
 		return NULL;
+
+	if (pid->filter->session->check_props && gf_props_4cc_get_type(prop_4cc)) {
+		check_prop_type(pid, prop_4cc);
+	}
 	return pid_check_prop(pid, prop_4cc, NULL, gf_props_get_property(map, prop_4cc, NULL) );
 }
 
@@ -6135,6 +6177,10 @@ const GF_PropertyValue *gf_filter_pid_get_property_first(GF_FilterPid *pid, u32 
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_TRUE);
 	if (!map)
 		return NULL;
+
+	if (pid->filter->session->check_props && gf_props_4cc_get_type(prop_4cc)) {
+		check_prop_type(pid, prop_4cc);
+	}
 	return pid_check_prop(pid, prop_4cc, NULL, gf_props_get_property(map, prop_4cc, NULL) );
 }
 
