@@ -2575,16 +2575,24 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 		if (sock->flags & GF_SOCK_NON_BLOCKING)
 			gf_sk_set_block_mode(sock, GF_TRUE);
 
-		if (peer_name && peer_port)
+		if (peer_name && peer_port) {
 			sock->flags |= GF_SOCK_HAS_PEER;
-
-		ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
-		if (ret == SOCKET_ERROR) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
-			sock_close(sock);
-			continue;
 		}
 
+#ifdef GPAC_CONFIG_LINUX
+		//weird bug in linux  (at least on our VMs) when reusing UDP port and binding,
+		//poll/select for read fails in the other program reusing the port
+		if (peer_name && !strcmp(peer_name, "127.0.0.1") && (options & GF_SOCK_IS_SENDER)) {
+		} else
+#endif
+		{
+			ret = bind(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
+			if (ret == SOCKET_ERROR) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] bind failed: %s\n", gf_errno_str(LASTSOCKERROR) ));
+				sock_close(sock);
+				continue;
+			}
+		}
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
 
@@ -2649,10 +2657,17 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	}
 
 	/*bind the socket*/
-	ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, (int) addrlen);
-	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
-		ret = GF_IP_CONNECTION_FAILURE;
+#ifdef GPAC_CONFIG_LINUX
+	//see above comment
+	if (peer_name && !strcmp(peer_name, "127.0.0.1") && (options & GF_SOCK_IS_SENDER) ) {
+	} else
+#endif
+	{
+		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, (int) addrlen);
+		if (ret == SOCKET_ERROR) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket: %s\n", gf_errno_str(LASTSOCKERROR) ));
+			ret = GF_IP_CONNECTION_FAILURE;
+		}
 	}
 
 	if (peer_name && peer_port) {
