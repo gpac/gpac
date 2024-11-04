@@ -212,7 +212,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		|| (sock_type == GF_SOCK_TYPE_UDP_UN)
 #endif
 	) {
-		e = gf_sk_bind(ctx->socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT);
+		e = gf_sk_bind(ctx->socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT|GF_SOCK_IS_SENDER);
 		ctx->listen = GF_FALSE;
 	} else if (ctx->listen) {
 		e = gf_sk_bind(ctx->socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);

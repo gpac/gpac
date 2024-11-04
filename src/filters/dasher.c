@@ -4695,7 +4695,7 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 				if (sctx->frags && (ctx->llhls>1)) {
 					u32 k;
 					for (k=0; k<sctx->nb_frags; k++) {
-						char szTmp[10];
+						char szTmp[100];
 						sprintf(szTmp, ".%u", k+1);
 						char *frag_url = gf_strdup(sctx->filepath);
 						gf_dynstrcat(&frag_url, szTmp, NULL);
