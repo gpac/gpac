@@ -482,7 +482,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 
 					i=0;
 					if (sei_type == 4) {
-						//queuue
+						//queue
 						u32 pos = (u32) gf_bs_get_position(ctx->bs);
 						u32 country_code = gf_bs_read_u8(ctx->bs);
 						i++;
