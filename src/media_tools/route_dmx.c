@@ -1974,7 +1974,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	gf_assert((ll_map ? ll_map->toi : obj->toi) == toi);
 	gf_assert(obj->tsi == tsi);
 
-	//ignore if we are done with errors
+	//ignore if we are done without errors
 	if (obj->status == GF_LCT_OBJ_DONE) {
 		return GF_EOS;
 	}
@@ -3700,7 +3700,7 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 
 	for (i=0; i<obj->nb_frags; i++) {
 		if (br_start < obj->frags[i].offset) {
-			//we patched until begining of this fragment, merge
+			//we patched until beginning of this fragment, merge
 			if (br_end >= obj->frags[i].offset) {
 				u32 last_end = i ? (obj->frags[i-1].offset+obj->frags[i-1].size) : 0;
 				obj->frags[i].offset = (last_end > br_start) ? last_end : br_start;
