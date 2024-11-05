@@ -911,7 +911,9 @@ Bool gf_sema_wait(GF_Semaphore *sm)
 	}
 
 #else
+retry:
 	if (sem_wait(sm->hSemaphore) < 0) {
+		if (errno == EINTR) goto retry;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore: %d\n", errno));
 		return GF_FALSE;
 	}
