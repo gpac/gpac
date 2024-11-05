@@ -1650,6 +1650,11 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 	gf_fprintf(trace, ">\n");
 
 	nb_comps = gf_bs_read_u16(bs);
+	if (16*nb_comps > gf_bs_available(bs)) {
+		gf_bs_del(bs);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
+		return GF_ISOM_INVALID_MEDIA;
+	}
 	types = gf_malloc(sizeof(CompInfo) * nb_comps);
 	if (!types) {
 		gf_bs_del(bs);
@@ -1664,6 +1669,12 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 		gf_fprintf(trace, " bit_depth=\"%u\" type=\"%u\" name=\"%s\"/>\n", types[i].bits, types[i].type, get_comp_type_name(types[i].type) );
 	}
 	nb_vals = gf_bs_read_u32(bs);
+	if (nb_vals/8 > gf_bs_available(bs)) {
+		gf_free(types);
+		gf_bs_del(bs);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
+		return GF_ISOM_INVALID_MEDIA;
+	}
 	for (j=0; j<nb_vals; j++) {
 		gf_fprintf(trace, "<ComponentValue");
 		for (i=0; i<nb_comps; i++) {
