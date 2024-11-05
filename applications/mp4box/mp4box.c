@@ -224,7 +224,7 @@ Bool hls_clock, do_mpd_rip, merge_vtt_cues, get_nb_tracks, no_inplace, merge_las
 Bool insert_utc, chunk_mode, HintCopy, hint_no_offset, do_bin_xml, frag_real_time, force_co64, live_scene, use_mfra, dump_iod, samplegroups_in_traf;
 Bool mvex_after_traks, daisy_chain_sidx, use_ssix, single_segment, single_file, segment_timeline, has_add_image;
 Bool strict_cues, use_url_template, seg_at_rap, frag_at_rap, memory_frags, keep_utc, has_next_arg, no_cache, no_loop;
-Bool conv_type_from_ext;
+Bool conv_type_from_ext, dump_keep_comp;
 
 u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
 u32 nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, minor_version, conv_type, nb_tsel_acts;
@@ -286,7 +286,7 @@ static void init_global_vars()
 	use_mfra = dump_iod = samplegroups_in_traf = mvex_after_traks = daisy_chain_sidx = use_ssix = single_segment = single_file = GF_FALSE;
 	segment_timeline = has_add_image = strict_cues = use_url_template = seg_at_rap = frag_at_rap = memory_frags = keep_utc = GF_FALSE;
 	has_next_arg = no_cache = no_loop = GF_FALSE;
-	conv_type_from_ext = GF_FALSE;
+	conv_type_from_ext = dump_keep_comp = GF_FALSE;
 
 	/*align cat is the new default behavior for -cat*/
 	align_cat=GF_TRUE;
@@ -1276,6 +1276,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG_ALT("diso", "dmp4", "dump IsoMedia file boxes in XML output", GF_ARG_BOOL, 0, &dump_isom, 1, 0),
  	MP4BOX_ARG("dxml", "dump IsoMedia file boxes and known track samples in XML output", GF_ARG_BOOL, 0, &dump_isom, 2, 0),
  	MP4BOX_ARG("disox", "dump IsoMedia file boxes except sample tables in XML output", GF_ARG_BOOL, 0, &dump_isom, 3, 0),
+	MP4BOX_ARG("keep-comp", "do not decompress boxes when dumping", GF_ARG_BOOL, 0, &dump_keep_comp, 3, 0),
  	MP4BOX_ARG("keep-ods", "do not translate ISOM ODs and ESDs tags (debug purpose only)", GF_ARG_BOOL, 0, &no_odf_conf, 0, 0),
 #ifndef GPAC_DISABLE_SCENE_DUMP
  	MP4BOX_ARG("bt", "dump scene to BT format", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_BT, ARG_HAS_VALUE),
@@ -6328,7 +6329,9 @@ int mp4box_main(int argc, char **argv)
 		}
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
-			omode =  (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
+			omode = (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
+			if ((dump_isom>0) && dump_keep_comp)
+				omode = GF_ISOM_OPEN_READ_DUMP_NO_COMP;
 
 			if (crypt) {
 				//keep fragment signaling in moov

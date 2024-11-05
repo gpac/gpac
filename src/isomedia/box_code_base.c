@@ -3950,8 +3950,13 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		}
 		return gf_list_add(ptr->trackList, a);
 	case GF_QT_BOX_TYPE_CMVD:
-		ptr->has_cmvd = GF_TRUE;
+		ptr->has_cmvd = 1;
 		break;
+	case GF_ISOM_BOX_TYPE_UNKNOWN:
+		if (((GF_UnknownBox*)a)->original_4cc == GF_QT_BOX_TYPE_CMOV) {
+			ptr->has_cmvd = 2;
+			break;
+		}
 	}
 	return GF_OK;
 }
