@@ -7455,6 +7455,7 @@ const char *gf_filter_event_name(GF_FEventType type)
 	case GF_FEVT_ENCODE_HINTS: return "ENCODE_HINTS";
 	case GF_FEVT_NTP_REF: return "NTP_REF";
 	case GF_FEVT_NETWORK_HINT: return "NETWORK_HINT";
+	case GF_FEVT_DASH_QUALITY_SELECT: return "QUALITY_SELECT";
 	default:
 		return "UNKNOWN";
 	}
