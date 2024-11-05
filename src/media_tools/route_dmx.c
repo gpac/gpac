@@ -1058,13 +1058,13 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		u32 a_idx=0;
 
 		while ( (att = gf_list_enum(fdt->attributes, &a_idx)) ) {
-			if (!att->name) continue;
+			if (!att->name || !att->value) continue;
 			if (!strcmp(att->name, "Content-Location")) content_location = att->value;
 			else if (!strcmp(att->name, "Content-Type")) content_type = att->value;
 			else if (!strcmp(att->name, "Transfer-Length")) transfer_length = atoi(att->value);
 			else if (!strcmp(att->name, "Content-Length")) content_length = atoi(att->value);
 			else if (!strcmp(att->name, "FEC-OTI-Encoding-Symbol-Length")) flute_symbol_size = atoi(att->value);
-			else if (!strcmp(att->name, "TOI")) toi = atoi(att->value);
+			else if (!strcmp(att->name, "TOI")) sscanf(att->value, "%u", &toi);
 		}
 		if (!toi) continue;
 		//some tools only signal content_length
@@ -1396,10 +1396,12 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 
 			const char *dst_add = _xml_get_child_text(trp, "NetworkDestinationGroupAddress");
 			const char *dst_port_str = _xml_get_child_text(trp, "TransportDestinationPort");
-			const char *dst_tsi = _xml_get_child_text(trp, "MediaTransportSessionIdentifier");
+			const char *_dst_tsi = _xml_get_child_text(trp, "MediaTransportSessionIdentifier");
 			//dst_tsi can be NULL for some FLUTE config, in which case we must probe incoming TSIs
 			if (!dst_add || !dst_port_str) continue;
 			u16 dst_port = atoi(dst_port_str);
+			u32 dst_tsi = 0;
+			if (_dst_tsi) sscanf(_dst_tsi, "%u", &dst_tsi);
 
 			if (!new_service) {
 				//config session same as our bootstrap adress, do not process
@@ -1461,7 +1463,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 				gf_list_del_item(old_sessions, rsess);
 				for (j=0; j<gf_list_count(rsess->channels); j++) {
 					rlct = gf_list_get(rsess->channels, j);
-					if (dst_tsi && (rlct->tsi == atoi(dst_tsi))) break;
+					if (dst_tsi && (rlct->tsi == dst_tsi)) break;
 					if (!dst_tsi && rlct->tsi_probe) break;
 					rlct = NULL;
 				}
@@ -1521,7 +1523,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 
 			rlct->flute_parent_service = new_service;
 			if (dst_tsi) {
-				rlct->tsi = atoi(dst_tsi);
+				rlct->tsi = dst_tsi;
 				rlct->tsi_probe = GF_FALSE;
 			} else {
 				rlct->tsi = 0;
@@ -2515,7 +2517,8 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 			for (k=0; k<gf_list_count(fdt_files); k++) {
 				u32 l;
 				GF_XMLNode *fdt = gf_list_get(fdt_files, k);
-				u32 toi = atoi( _xml_get_attr(fdt, "TOI") );
+				u32 toi;
+				sscanf(_xml_get_attr(fdt, "TOI"), "%u", &toi);
 				const char *location = _xml_get_attr(fdt, "Content-Location");
 				GF_ROUTELCTFile *fdt_file = NULL;
 				for (l=0; l<gf_list_count(purge_rlct); l++) {
