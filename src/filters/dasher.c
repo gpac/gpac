@@ -6790,6 +6790,7 @@ static GF_Err dasher_setup_ssr(GF_DasherCtx *ctx)
 	if (e) count = 0;
 
 	for (i=0; i<count; i++) {
+		u32 j;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		if (!ds->owns_set) continue;
 
@@ -6798,7 +6799,7 @@ static GF_Err dasher_setup_ssr(GF_DasherCtx *ctx)
 
 		// Check if this AS has tune-in AS
 		struct ssr_map *map = NULL;
-		for (int j = 0; j < gf_list_count(ssr_mappings); j++) {
+		for (j = 0; j < gf_list_count(ssr_mappings); j++) {
 			map = gf_list_get(ssr_mappings, j);
 			if (map->main_as == ds->as_id) break;
 			else map = NULL;

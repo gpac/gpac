@@ -7747,7 +7747,7 @@ llhls_rety:
 	cache_entry->seg_name_start = dash_strip_base_url(cache_entry->url, base_url);
 	group->loop_detected = GF_FALSE;
 	if (!base_group->nb_cached_segments) {
-		Double mtime = cache_entry->time.num;
+		Double mtime = (Double) cache_entry->time.num;
 		mtime /= cache_entry->time.den;
 		if (dash->max_last_seg_start < mtime) dash->max_last_seg_start = mtime;
 	}

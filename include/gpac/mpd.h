@@ -593,8 +593,8 @@ typedef struct
 	/*! HLS IV*/
 	bin128 hls_iv;
 
-	/*! index of segment timeline entry */
-	u32 stl_start;
+	/*! start time of segment timeline entry */
+	u64 stl_start;
 	/*! repeat count of segment timeline */
 	u32 stl_rcount;
 	/*! LLHAS template*/
