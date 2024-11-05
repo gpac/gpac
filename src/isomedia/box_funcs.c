@@ -92,7 +92,7 @@ u64 unused_bytes = 0;
 
 #define GF_SKIP_BOX 10
 
-GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box, u64 parent_size)
+GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, u32 is_root_box, u64 parent_size)
 {
 	u32 type, otype, uuid_type, hdr_size, restore_type;
 	u64 size, start, comp_start, end;
@@ -141,16 +141,20 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				return GF_ISOM_INVALID_FILE;
 			}
 		}
-		if ((is_root_box && (size>=8))
-			|| (type==GF_QT_BOX_TYPE_CMOV)
-		) {
+		Bool do_uncompress = GF_FALSE;
+		if (is_root_box && (size>=8) && ! (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_DECOMP))
+			do_uncompress = GF_TRUE;
+		else if ((type==GF_QT_BOX_TYPE_CMOV) && ! (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_DECOMP))
+			do_uncompress = GF_TRUE;
+
+		if (do_uncompress) {
 			u32 do_uncompress = 0;
 			u8 *compb = NULL;
 			u32 extra_bytes = 0;
 			u32 osize = 0;
 			u32 otype = type;
 
-			if (type==GF_4CC('!', 'm', 'o', 'v')) {
+			if (type==GF_ISOM_BOX_TYPE_CMOV) {
 				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_MOOV;
 			}
@@ -188,15 +192,15 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				type = cbtype;
 			}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-			else if (type==GF_4CC('!', 'm', 'o', 'f')) {
+			else if (type==GF_ISOM_BOX_TYPE_CMOF) {
 				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_MOOF;
 			}
-			else if (type==GF_4CC('!', 's', 'i', 'x')) {
+			else if (type==GF_ISOM_BOX_TYPE_CSIX) {
 				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_SIDX;
 			}
-			else if (type==GF_4CC('!', 's', 's', 'x')) {
+			else if (type==GF_ISOM_BOX_TYPE_CSSX) {
 				do_uncompress = 1;
 				type = GF_ISOM_BOX_TYPE_SSIX;
 			}
@@ -1923,9 +1927,20 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 				}
 
 				if (is_root_box) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown top-level box type %s\n", gf_4cc_to_str(boxType)));
+					switch (boxType) {
+					case GF_ISOM_BOX_TYPE_CMOV:
+					case GF_ISOM_BOX_TYPE_CMOF:
+					case GF_ISOM_BOX_TYPE_CSIX:
+					case GF_ISOM_BOX_TYPE_CSSX:
+						break;
+					default:
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown top-level box type %s\n", gf_4cc_to_str(boxType)));
+						break;
+					}
 				} else if (parentType) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s in parent %s\n", gf_4cc_to_str(boxType), gf_4cc_to_str(parentType) ));
+					if (boxType != GF_QT_BOX_TYPE_CMOV) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s in parent %s\n", gf_4cc_to_str(boxType), gf_4cc_to_str(parentType) ));
+					}
 				} else {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s\n", gf_4cc_to_str(boxType)));
 				}
@@ -2300,7 +2315,7 @@ u32 gf_isom_get_supported_box_type(u32 idx)
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
-GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool force_version)
+GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool force_version, const char *spec, const char *container)
 {
 	gf_fprintf(trace, "<%s ", name);
 	if (a->size > 0xFFFFFFFF) {
@@ -2324,20 +2339,23 @@ GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool
 		gf_fprintf(trace, "}\" ");
 	}
 
-	if (a->registry->max_version_plus_one || force_version) {
+	if ((a->registry && a->registry->max_version_plus_one) || force_version) {
 		gf_fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ((GF_FullBox*)a)->version,((GF_FullBox*)a)->flags);
 	}
-	gf_fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
+	gf_fprintf(trace, "Specification=\"%s\" ", spec ? spec : a->registry->spec);
 
 	//don't write containers in test mode, that would require rewriting hashes whenever spec changes
 	if (!gf_sys_is_test_mode()) {
-		gf_fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
+		if (container)
+			gf_fprintf(trace, "Container=\"%s\" ", container);
+		else
+			gf_fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
 	}
 	return GF_OK;
 }
 GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 {
-	return gf_isom_box_dump_start_ex(a, name, trace, GF_FALSE);
+	return gf_isom_box_dump_start_ex(a, name, trace, GF_FALSE, NULL, NULL);
 }
 
 GF_Err gf_isom_box_dump(void *ptr, FILE * trace)

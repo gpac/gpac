@@ -134,7 +134,16 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 
 	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
 		if (box->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
-			gf_fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
+			switch (((GF_UnknownBox*)box)->original_4cc) {
+			case GF_ISOM_BOX_TYPE_CMOV:
+			case GF_ISOM_BOX_TYPE_CMOF:
+			case GF_ISOM_BOX_TYPE_CSIX:
+			case GF_ISOM_BOX_TYPE_CSSX:
+			case GF_QT_BOX_TYPE_CMOV:
+				break;
+			default:
+				gf_fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
+			}
 		} else if (box->type==GF_ISOM_BOX_TYPE_UUID) {
 		} else if (!gf_isom_box_is_file_level(box)) {
 			gf_fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
@@ -2036,6 +2045,23 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_cmpc(u, trace);
 	} else if (u->original_4cc==GF_4CC('i','c','e','f')) {
 		return dump_icef(u, trace);
+	} else if ((u->original_4cc==GF_ISOM_BOX_TYPE_CMOV)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CMOF)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CSIX)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CSSX)
+		|| (u->original_4cc==GF_QT_BOX_TYPE_CMOV)
+	) {
+		char *bname = "CompressedMovieBox";
+		char *spec = "p12";
+		if (u->original_4cc==GF_ISOM_BOX_TYPE_CMOF) bname = "CompressedMovieFragmentBox";
+		else if (u->original_4cc==GF_ISOM_BOX_TYPE_CSIX) bname = "CompressedSegmentIndexBox";
+		else if (u->original_4cc==GF_ISOM_BOX_TYPE_CSSX) bname = "CompressedSubSegmentIndexBox";
+		else if (u->original_4cc==GF_QT_BOX_TYPE_CMOV)  spec = "apple";
+
+		gf_isom_box_dump_start_ex(a, bname, trace, GF_FALSE, spec, "file");
+		gf_fprintf(trace, ">\n");
+		gf_isom_box_dump_done(bname, a, trace);
+		return GF_OK;
 	} else {
 #ifdef GPAC_HAS_QJS
 		const char *opt = gf_opts_get_key("core", "boxdir");
@@ -2698,7 +2724,7 @@ GF_Err twrp_box_dump(GF_Box *a, FILE * trace)
 GF_Err meta_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_MetaBox *ptr = (GF_MetaBox *)a;
-	gf_isom_box_dump_start_ex(a, "MetaBox", trace, ptr->is_qt ? GF_FALSE : GF_TRUE);
+	gf_isom_box_dump_start_ex(a, "MetaBox", trace, ptr->is_qt ? GF_FALSE : GF_TRUE, NULL, NULL);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MetaBox", a, trace);
 	return GF_OK;
