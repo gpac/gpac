@@ -526,6 +526,7 @@ typedef struct _dash_stream
 
 	u64 frag_start_offset, frag_first_ftdt;
 	u32 tpl_use_time;
+	Bool last_stl_is_ll;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
@@ -7464,7 +7465,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	return GF_OK;
 }
 
-static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
+static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_ll_anouncement)
 {
 	GF_MPD_SegmentTimelineEntry *s;
 	u64 duration, pto, prev_patch_dur=0;
@@ -7475,7 +7476,8 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	//we only store segment timeline for the main component in the representation
 	if (ds->muxed_base) return;
 
-	if (ds->rep && ds->rep->state_seg_list) {
+
+	if (ds->rep && ds->rep->state_seg_list && !is_ll_anouncement) {
 		GF_DASH_SegmentContext *sctx = gf_list_last(ds->rep->state_seg_list);
 		if (sctx)
 			sctx->dur = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
@@ -7483,16 +7485,21 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	//we only use segment timeline with templates
 	if (!ds->stl && !ctx->do_index) return;
 
-	if (gf_list_find(ds->set->representations, ds->rep)==0) is_first = GF_TRUE;
-	if (ds->first_cts_in_next_seg > ds->first_cts_in_seg)
+	if (gf_list_find(ds->set->representations, ds->rep)==0)
+		is_first = GF_TRUE;
+
+	if (ds->first_cts_in_next_seg > ds->first_cts_in_seg) {
 		duration = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
-	else {
+	}
+	//low latency live edge, use target duration
+	else if (is_ll_anouncement) {
+		duration = gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->mpd_timescale);
+	} else {
 		duration = 0;
-		gf_assert(0);
 	}
 
 	//handle sap time adjustment (first_cts_in_seg is the SAP cts, we may have lower cts whith sap 2 or 3)
-	if (ds->min_cts_in_seg_plus_one && (ds->min_cts_in_seg_plus_one-1 < ds->first_cts_in_seg)) {
+	if (!is_ll_anouncement && ds->min_cts_in_seg_plus_one && (ds->min_cts_in_seg_plus_one-1 < ds->first_cts_in_seg)) {
 		prev_patch_dur = ds->first_cts_in_seg - (ds->min_cts_in_seg_plus_one-1);
 		if (ds->timescale != ds->mpd_timescale)
 			prev_patch_dur = gf_timestamp_rescale(prev_patch_dur, ds->timescale, ds->mpd_timescale);
@@ -7509,13 +7516,14 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	}
 	seg_align = (ds->set->segment_alignment || ds->set->subsegment_alignment) ? GF_TRUE : GF_FALSE;
 	//not first and segment alignment, ignore
-	if (!is_first && seg_align) {
+	if (!is_first && seg_align && !is_ll_anouncement) {
 		return;
 	}
 	if (ctx->do_index) {
 		GF_MPD_SegmentURL *surl = gf_list_last(ds->rep->segment_list->segment_URLs);
 		surl->duration = duration;
 	}
+
 	if (!ds->stl) return;
 
 	//no segment alignment store in each rep
@@ -7586,6 +7594,24 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 				if (arep && arep->segment_list) arep->segment_list->duration = 0;
 			}
 		}
+	}
+
+	//live edge, always inject an entry and remember we just did
+	if (is_ll_anouncement) {
+		GF_SAFEALLOC(s, GF_MPD_SegmentTimelineEntry);
+		if (!s) return;
+
+		s->start_time = ds->seg_start_time + pto;
+		s->duration = (u32) duration;
+		gf_list_add(tl->entries, s);
+		ds->last_stl_is_ll = GF_TRUE;
+		return;
+	}
+	//purge live edge entry
+	else if (ds->last_stl_is_ll) {
+		s = gf_list_pop_back(tl->entries);
+		if (s) gf_free(s);
+		ds->last_stl_is_ll = GF_FALSE;
 	}
 
 	//append to previous entry if possible
@@ -7840,7 +7866,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Segment %d duration %g more than 3/2 DASH duration, consider reencoding or using segment timeline\n", ds->seg_number, seg_duration));
 			}
 		}
-		dasher_insert_timeline_entry(ctx, base_ds);
+		dasher_insert_timeline_entry(ctx, base_ds, GF_FALSE);
 
 		if (ctx->do_m3u8) {
 			u64 segdur = base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
@@ -8205,6 +8231,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 
 	if (ds->last_min_segment_start_time > ctx->min_segment_start_time)
 		ctx->min_segment_start_time = ds->last_min_segment_start_time;
+
+	if (ctx->asto>0)
+		dasher_insert_timeline_entry(ctx, base_ds, GF_TRUE);
 
 	if (ctx->store_seg_states) {
 		char *kms_uri;
@@ -8949,7 +8978,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	u32 i, count, nb_init, has_init, nb_reg_done;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
-	Bool a_segment_is_done = GF_FALSE;
+	Bool force_flush_manifest = GF_FALSE;
 	u32 nb_seg_waiting = 0;
 	u32 nb_seg_active = 0;
 
@@ -9219,7 +9248,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 					if (!ds->done) ds->done = ds_done;
 					ds->seg_done = GF_TRUE;
-					a_segment_is_done = GF_TRUE;
+					force_flush_manifest = GF_TRUE;
 					ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
 					ds->est_first_cts_in_next_seg = 0;
 					if (base_ds->nb_comp_done < base_ds->nb_comp) {
@@ -9504,7 +9533,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			else if (base_ds->forced_period_switch) {
 				ds->seg_done = GF_TRUE;
 				dasher_inject_eods(ctx, ds, GF_FALSE);
-				a_segment_is_done = GF_TRUE;
+				force_flush_manifest = GF_TRUE;
 				dasher_stream_period_changed(filter, ctx, ds, GF_FALSE);
 				i--;
 				count--;
@@ -9882,7 +9911,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					dasher_flush_segment(ctx, base_ds, GF_FALSE);
 					//do not flush manifest in DASH+ssr until we get at least one fragment
 					if (!base_ds->set->ssr_mode)
-						a_segment_is_done = GF_TRUE;
+						force_flush_manifest = GF_TRUE;
 				}
 				break;
 			}
@@ -9999,6 +10028,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 					gf_assert(gf_filter_pck_get_duration(pck) > split_dur_next);
 					ds->rep->segment_list->use_split_dur = GF_TRUE;
 				}
+				//low latency live edge has been added, flush MPD
+				if (ds->stl && ctx->asto)
+					force_flush_manifest = GF_TRUE;
 			}
 			//prev packet was split
 			if (is_packet_split) {
@@ -10142,7 +10174,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 	dasher_format_report(filter, ctx);
 
-	if (a_segment_is_done) {
+	if (force_flush_manifest) {
 		Bool update_period = GF_FALSE;
 		Bool update_manifest = GF_FALSE;
 		if (ctx->purge_segments) update_period = GF_TRUE;
