@@ -2242,20 +2242,24 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 		u32 k;
 		//all good to go, load filters
 		for (k=1; k<(u32) argc; k++) {
-			char *arg = argv[k], *sepe, *sepo, *optname=NULL;
+			char *arg = argv[k], *sepe=NULL, *sepo, *optname=NULL;
 			Bool found_freg = GF_FALSE, found_filter = GF_FALSE;
 
 			if (arg[0]=='-') continue;
-			sepe = gf_file_basename(arg);
-			if (sepe) sepe = strchr(sepe, '.');
-			if (sepe) {
-				if (!strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
-				else if (!strcmp(sepe, ".js")) sepe = NULL;
-				if (sepe) {
-					sepe[0] = 0;
-					optname = sepe+1;
-				}
+			optname = gf_file_basename(arg);
+			sepe = optname ? strchr(optname, '.') : optname;
+			if (sepe && !strncmp(sepe, ".js.", 4)) sepe = strchr(sepe+1, '.');
+			//special case to allow -h jsf:js=FILE.js[.arg]
+			else if (sepe && !strcmp(sepe, ".js")) {
+				char *jsopt = strstr(optname, "js=");
+				if (jsopt && (jsopt<sepe)) sepe = NULL;
 			}
+			optname = NULL;
+			if (sepe) {
+				sepe[0] = 0;
+				optname = sepe+1;
+			}
+
 			fname = arg;
 			sepo = strchr(arg, ':');
 			for (i=0; i<count && !found_filter; i++) {
@@ -2288,6 +2292,7 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 			} else /*if (!strchr(arg, ':')) */ {
 				GF_SysArgMode _argmode = argmode;
 				char *js_opt = sepo;
+				if (js_opt && !strncmp(js_opt+1, "js", 2)) js_opt = strrchr(js_opt+1, ':');
 				if (js_opt) {
 					js_opt[0] = 0;
 					gf_opts_set_key("temp", "gpac-js-help", js_opt+1);
@@ -2411,6 +2416,36 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 	if (gpac_suggest_filter(fname, GF_TRUE, GF_FALSE))
 		return GF_TRUE;
 	return GF_FALSE;
+}
+
+void check_prop_def(char *pname)
+{
+	u32 pname_len = pname ? (u32) strlen(pname) : 0;
+	if (pname_len==4) {
+		u32 i;
+		Bool is_p4cc = GF_TRUE;
+		for (i=0; i<4;i++) {
+			if ((pname[i]>='0') && (pname[i]<'9')) {}
+			else if ((pname[i]>='A') && (pname[i]<='Z')) {}
+			else if ((pname[i]>='a') && (pname[i]<='z')) {}
+			else {
+				is_p4cc = GF_FALSE;
+			}
+		}
+		if (is_p4cc) {
+			u32 p4cc = GF_4CC(pname[0],pname[1],pname[2],pname[3]);
+			const char *name = gf_props_4cc_get_name(p4cc);
+			if (name) return;
+			fprintf(stdout, "UNKNOWN '%c','%c','%c','%c'\n", pname[0], pname[1], pname[2], pname[3]);
+			return;
+		}
+	}
+	if (!strcmp(pname, "check")) {
+		gf_props_sanity_check();
+		return;
+	}
+
+	fprintf(stdout, "INVALID %s\n", pname);
 }
 
 void dump_all_props(char *pname)

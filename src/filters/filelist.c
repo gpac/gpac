@@ -1942,7 +1942,7 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 	}
 
 	if (ctx->sigfrag_mode && ctx->abs_url) {
-		gf_filter_pck_set_property(dst_pck, GF_PROP_PID_URL, &PROP_STRING(ctx->abs_url));
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SEG_URL, &PROP_STRING(ctx->abs_url));
 		if (ctx->rel_url) {
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->rel_url));
 		}

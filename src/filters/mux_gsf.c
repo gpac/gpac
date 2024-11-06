@@ -496,6 +496,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 	const char *force_fext=NULL;
 	const char *force_mime=NULL;
 	const char *force_url=NULL;
+	u32 premux_type=0;
 	u32 nb_4cc_props=0;
 	u32 nb_str_props=0;
 	u32 idx=0;
@@ -525,6 +526,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 
 	//file, send mime, url, ext and streamtype
 	if (gst->is_file) {
+		const GF_PropertyValue *p;
 		GSFMxCtx *alias_ctx = gf_filter_pid_get_alias_udta(gst->pid);
 		if (alias_ctx) {
 			force_fext = gf_file_ext_start(alias_ctx->dst);
@@ -532,7 +534,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 			force_url = alias_ctx->dst ? alias_ctx->dst : NULL;
 			force_mime = alias_ctx->mime;
 		} else {
-			const GF_PropertyValue *p = gf_filter_pid_get_property(gst->pid, GF_PROP_PID_FILE_EXT);
+			p = gf_filter_pid_get_property(gst->pid, GF_PROP_PID_FILE_EXT);
 			force_fext = (p && p->value.string) ? p->value.string : ctx->ext;
 			p = gf_filter_pid_get_property(gst->pid, GF_PROP_PID_MIME);
 			force_mime = (p && p->value.string) ? p->value.string : ctx->mime;
@@ -546,6 +548,12 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 			nb_4cc_props++;
 		if (force_fext)
 			nb_4cc_props++;
+
+		p = gf_filter_pid_get_property(gst->pid, GF_PROP_PID_PREMUX_STREAM_TYPE);
+		if (p) {
+			premux_type = p->value.uint;
+			nb_4cc_props++;
+		}
 	}
 	gf_bs_write_u8(ctx->bs_w, gst->config_version);
 	gsfmx_write_vlen(ctx, nb_4cc_props);
@@ -576,6 +584,12 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 			gf_bs_write_u32(ctx->bs_w, GF_PROP_PID_FILE_EXT);
 			prop.type = GF_PROP_STRING;
 			prop.value.string = (char *) force_fext;
+			gsfmx_write_prop(ctx, &prop);
+		}
+		if (premux_type) {
+			gf_bs_write_u32(ctx->bs_w, GF_PROP_PID_PREMUX_STREAM_TYPE);
+			prop.type = GF_PROP_UINT;
+			prop.value.uint = premux_type;
 			gsfmx_write_prop(ctx, &prop);
 		}
 	}

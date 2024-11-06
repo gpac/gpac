@@ -103,6 +103,8 @@ extension.view_stats = function () {
                 label += 'Bandwidth: ' + q.bandwidth;
                 label += '\n';
                 label += 'Enabled: ' + !q.disabled;
+                if (q.ssr)
+                    label += ' - SSR Parts ' + q.ssr;
                 label += '\n';
                 if (q.width) {
                     label += 'Size ' + q.width + 'x' + q.height + (q.interlaced ? ' interlaced @' : ' progressive @') + q.fps + ' FPS - SAR ' + q.par_num + '/' + q.par_den;

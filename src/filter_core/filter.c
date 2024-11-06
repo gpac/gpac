@@ -3418,13 +3418,14 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_TRUE, TASK_TYPE_NONE);
 	} else if (safe_int_inc(&filter->process_task_queued) <= 1) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s added to scheduler\n", filter->name));
-		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+//		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE);
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s skip post process task\n", filter->name));
 		gf_assert(filter->session->run_status
 		 		|| filter->session->in_final_flush
 		 		|| filter->disabled
-				|| filter->scheduled_for_next_task
+				|| (filter->scheduled_for_next_task==GF_FILTER_SCHEDULED)
 				|| filter->session->direct_mode
 		 		|| gf_fq_count(filter->tasks)
 		);

@@ -1943,7 +1943,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 	//set interlaced or remove interlaced property
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, ctx->interlaced ? & PROP_UINT(GF_TRUE) : NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, ctx->interlaced ? & PROP_BOOL(GF_TRUE) : NULL);
 
 	if (ctx->codecid==GF_CODECID_HEVC) {
 		HEVC_SPS *sps = &ctx->hevc_state->sps[ctx->hevc_state->sps_active_idx];

@@ -596,9 +596,9 @@ linegl (bool, default: false, updatable): indicate that outlining shall be done 
 .br
 epow2 (bool, default: true, updatable): emulate power-of-2 textures for OpenGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled
 .br
-* yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations
+* true: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations
 .br
-* no: video is resized to a power of 2 texture when mapping to a shape
+* false: video is resized to a power of 2 texture when mapping to a shape
 .br
 
 .br
@@ -1985,6 +1985,16 @@ skip_lqt (bool, default: no):  disable decoding of tiles with highest degradatio
 llhls_merge (bool, default: yes): merge LL-HLS byte range parts into a single open byte range request
 .br
 groupsel (bool, default: no):  select groups based on language (by default all playable groups are exposed)
+.br
+xas (enum, default: codec):    enable cross adaptation set switching (disabled if .I split_as is set)
+.br
+* no: disabled
+.br
+* codec: switching across sets only allowed for same codec
+.br
+* all: switching across sets allowed across any representation types
+.br
+
 .br
 chain_mode (enum, default: on): MPD chaining mode
 .br
@@ -3746,6 +3756,8 @@ xadjust (bool, default: false): adjust end time of extraction range to be before
 .br
 xots (bool, default: false):   keep original timestamps after extraction
 .br
+xdts (bool, default: false):   compute start times based on DTS and not CTS
+.br
 nosap (bool, default: false):  do not cut at SAP when extracting range (may result in broken streams)
 .br
 splitrange (bool, default: false): signal file boundary at each extraction first packet for template-base file generation
@@ -3828,7 +3840,7 @@ decinfo (enum, default: auto): decoder config insert mode
 .br
 
 .br
-split (bool, default: false):  force one file per decoded frame
+split (bool, default: false):  force one file per frame
 .br
 frame (bool, default: false):  force single frame dump with no rewrite. In this mode, all codec types are supported
 .br
@@ -5156,6 +5168,8 @@ Standard DASH replacement strings:
 .br
 * $Bandwidth$: replaced by representation bandwidth.
 .br
+* $SubNumber[%%0Nd]$: replaced by the segment number in the segment sequence, possibly prefixed with 0
+.br
 Note: these strings are not replaced in the manifest templates elements.
 .br
 
@@ -5616,7 +5630,7 @@ This will allow the encrypter to locate dash boundaries and roll keys at segment
 .br
 Example
 .br
-gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd
+gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=2 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd
 .br
 
 .br
@@ -6714,7 +6728,7 @@ Note: VP8/9 codecs will only use IVF output (equivalent to file extension .ivf o
 .br
 rcfg (bool, default: true):    force repeating decoder config at each I-frame
 .br
-tc (bool, default: true):      inject metadata timecodes
+tc (bool, default: false):     inject metadata timecodes
 .br
 
 .br

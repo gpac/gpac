@@ -213,12 +213,9 @@ static GF_Err pipeout_setup_file(GF_PipeOutCtx *ctx, Bool explicit_overwrite)
 	if (p && p->value.string) {
 		return pipeout_open_close(ctx, p->value.string, NULL, 0, explicit_overwrite);
 	} else if (ctx->dynext) {
-		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
-		if (!p) {
-			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
-			if (p && p->value.string) {
-				return pipeout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
-			}
+		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
+		if (p && p->value.string) {
+			return pipeout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
 		}
 	} else {
 		return pipeout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite);
@@ -383,8 +380,6 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		}
 		//filename change at packet start, open new file
 		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
-		if (!fext) fext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
 
 		if (end && gf_filter_pck_get_seek_flag(pck))

@@ -2922,7 +2922,7 @@ static GF_Err curl_setup_session(GF_DownloadSession *sess)
 		sess->do_requests  = http_do_requests;
 		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_FOLLOWLOCATION, 1L);
 		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_TCP_KEEPALIVE, 1L);
-		if (sess->log_name) gf_free("CURL");
+		if (sess->log_name) gf_free(sess->log_name);
 		sess->log_name = gf_strdup("CURL");
 	}
 

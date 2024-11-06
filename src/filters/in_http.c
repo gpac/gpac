@@ -223,6 +223,9 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	//we only check PLAY for full_file_only hint
 	case GF_FEVT_PLAY:
 		ctx->full_file_only = evt->play.full_file_only;
+		if (ctx->pid) {
+			gf_filter_pid_set_info_str(ctx->pid, "aborted", NULL);
+		}
 		//do NOT reset is_end to false, restarting the session is always done via a source_seek event
 		return GF_TRUE;
 	case GF_FEVT_STOP:
@@ -234,6 +237,10 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_dm_sess_abort(ctx->sess);
 				gf_dm_sess_del(ctx->sess);
 				ctx->sess = NULL;
+
+				if (ctx->pid) {
+					gf_filter_pid_set_info_str(ctx->pid, "aborted", &PROP_BOOL(GF_TRUE));
+				}
 			}
 			httpin_set_eos(ctx);
 		}
