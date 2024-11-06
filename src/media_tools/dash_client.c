@@ -3780,7 +3780,7 @@ retry_pending:
 
 		if (e) {
 			if (group->dash->dash_state != GF_DASH_STATE_RUNNING) {
-				if (e == GF_URL_ERROR) {
+				if (e == GF_URL_REMOVED) {
 					rep->playback.disabled = GF_TRUE;
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] XLINK %s does not exist, disabling representation\n", (rep->segment_list && rep->segment_list->xlink_href) ? rep->segment_list->xlink_href : ""));
 					return;

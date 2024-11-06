@@ -2520,7 +2520,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 	} else  if (gf_url_is_local(full_url)) {
 		if (!gf_file_exists(full_url)) {
 			gf_free(full_url);
-			return GF_URL_ERROR;
+			return GF_URL_REMOVED;
 		}
 		loc_file = full_url;
 		gf_sha1_file(loc_file, signature);
