@@ -2423,6 +2423,7 @@ conn_ok:
 
 		switch (res) {
 		case EAGAIN:
+		case EINTR:
 #if defined(WIN32) || defined(_WIN32_WCE)
 		case WSAEWOULDBLOCK:
 #endif
@@ -2711,6 +2712,7 @@ static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec, Boo
 		if (ready<0) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
+			case EINTR:
 				return GF_IP_NETWORK_EMPTY;
 			default:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot poll: %s\n", gf_errno_str(LASTSOCKERROR) ));
@@ -2749,6 +2751,7 @@ static GF_Err poll_select(GF_Socket *sock, GF_SockSelectMode mode, u32 usec, Boo
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
+		case EINTR:
 			return GF_IP_NETWORK_EMPTY;
 		default:
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] select failure: %s\n", gf_errno_str(LASTSOCKERROR)));
@@ -2817,6 +2820,7 @@ GF_Err gf_sk_send_ex(GF_Socket *sock, const u8 *buffer, u32 length, u32 *written
 		if (res == SOCKET_ERROR) {
 			switch (res = LASTSOCKERROR) {
 			case EAGAIN:
+			case EINTR:
 				return GF_IP_NETWORK_EMPTY;
 #ifndef __SYMBIAN32__
 			case ENOTCONN:
@@ -3771,6 +3775,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 		if (res<0) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
+			case EINTR:
 				return GF_IP_NETWORK_EMPTY;
 			default:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot poll: %s\n", gf_errno_str(LASTSOCKERROR) ));
@@ -3822,10 +3827,7 @@ GF_Err gf_sk_group_select(GF_SockGroup *sg, u32 usec_wait, GF_SockSelectMode mod
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select, BAD descriptor\n"));
 			return GF_IP_CONNECTION_CLOSED;
 		case EAGAIN:
-			return GF_IP_NETWORK_EMPTY;
 		case EINTR:
-			/* Interrupted system call*/
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] network is lost\n"));
 			return GF_IP_NETWORK_EMPTY;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select: %s\n", gf_errno_str(LASTSOCKERROR) ));
@@ -3953,6 +3955,7 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		res = LASTSOCKERROR;
 		switch (res) {
 		case EAGAIN:
+		case EINTR:
 			return GF_IP_NETWORK_EMPTY;
 
 #if defined(WIN32) || defined(_WIN32_WCE)
@@ -4056,6 +4059,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	if (SOCKET_INVALID(sk)) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
+		case EINTR:
 			return GF_IP_NETWORK_EMPTY;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] accept error: %s\n", gf_errno_str(LASTSOCKERROR)));
@@ -4224,6 +4228,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 		if (res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
+			case EINTR:
 				return GF_IP_NETWORK_EMPTY;
 			default:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] sendto error: %s\n", gf_errno_str(LASTSOCKERROR)));
@@ -4259,6 +4264,7 @@ GF_Err gf_sk_probe(GF_Socket *sock)
 	switch (res) {
 	case 0:
 	case EAGAIN:
+	case EINTR:
 		return GF_IP_NETWORK_EMPTY;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] probe error: %s\n", gf_errno_str(res)));
