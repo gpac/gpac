@@ -3780,6 +3780,11 @@ retry_pending:
 
 		if (e) {
 			if (group->dash->dash_state != GF_DASH_STATE_RUNNING) {
+				if (e == GF_URL_ERROR) {
+					rep->playback.disabled = GF_TRUE;
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] XLINK %s does not exist, disabling representation\n", (rep->segment_list && rep->segment_list->xlink_href) ? rep->segment_list->xlink_href : ""));
+					return;
+				}
 				group->dash->force_period_reload = 1;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Could not reslove XLINK %s of initial rep, will retry\n", (rep->segment_list && rep->segment_list->xlink_href) ? rep->segment_list->xlink_href : "", gf_error_to_string(e) ));
 			} else {
@@ -7662,9 +7667,9 @@ llhls_rety:
 		if (llhls_live_edge_type==2) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next segment: %s (live edge merged range: "LLU" -> END)\n", gf_file_basename(new_base_seg_url), start_range));
 		} else if (use_byterange) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next %s: %s (range: "LLU" -> "LLU")\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment",  gf_file_basename(new_base_seg_url), start_range, end_range));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next %s (%u): %s (range: "LLU" -> "LLU")\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment", group->download_segment_index, gf_file_basename(new_base_seg_url), start_range, end_range));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next %s: %s\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment", gf_file_basename(new_base_seg_url)));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queuing next %s (%u): %s\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment", group->download_segment_index, gf_file_basename(new_base_seg_url)));
 		}
 	}
 #endif
@@ -9083,6 +9088,17 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, M3U8_TO_MPD_USE_SEGTIMELINE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
 		}
 
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Translated M3U8 to MPD:\n"));
+			if (!dash->mpd->x_attributes) dash->mpd->x_attributes = gf_list_new();
+			dash->mpd->write_context=GF_TRUE;
+			gf_list_add(dash->mpd->x_attributes, gf_xml_dom_create_attribute("xmlns:xlink", "http://www.w3.org/1999/xlink"));
+			gf_mpd_write(dash->mpd, stderr, GF_FALSE);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("\n"));
+		}
+#endif //GPAC_DISABLE_LOG
+
 		if (!e && dash->split_adaptation_set)
 			gf_mpd_split_adaptation_sets(dash->mpd);
 
@@ -9792,13 +9808,13 @@ const char*gf_dash_get_period_id(GF_DashClient *dash)
 GF_EXPORT
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 {
-	Bool needs_resetup = GF_FALSE;
+	//Bool needs_resetup = GF_FALSE;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return;
 	if (group->selection == GF_DASH_GROUP_NOT_SELECTABLE)
 		return;
 
-	if ((group->selection==GF_DASH_GROUP_NOT_SELECTED) && select) needs_resetup = 1;
+	//if ((group->selection==GF_DASH_GROUP_NOT_SELECTED) && select) needs_resetup = 1;
 
 	group->selection = select ? GF_DASH_GROUP_SELECTED : GF_DASH_GROUP_NOT_SELECTED;
 	if (!select) {
@@ -9820,10 +9836,6 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 				agroup->selection = GF_DASH_GROUP_NOT_SELECTED;
 			}
 		}
-	}
-
-	if (needs_resetup && (dash->max_last_seg_start>0.2)) {
-		gf_dash_group_seek(dash, idx, dash->max_last_seg_start);
 	}
 }
 

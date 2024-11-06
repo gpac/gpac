@@ -1563,6 +1563,64 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 	return gf_mpd_complete_from_dom(root, mpd, default_base_url);
 }
 
+//locate codec in renditions and try to extract bandwidth (we can't really)
+static char *group_to_codecs(MasterPlaylist *pl, PlaylistElement *pe, u32 *bandwidth)
+{
+	PlaylistElement *par_pe=NULL;
+	u32 stidx, k, nb_streams = gf_list_count(pl->streams);;
+	for (stidx=0; stidx<nb_streams; stidx++) {
+		Stream *astream = gf_list_get(pl->streams, stidx);
+		for (k=0; k<gf_list_count(astream->variants); k++) {
+			par_pe = gf_list_get(astream->variants, k);
+			if (par_pe->main_codecs && par_pe->audio_group && strstr(par_pe->audio_group, pe->audio_group))
+				break;
+			par_pe = NULL;
+		}
+		if (par_pe) break;
+	}
+	if (!par_pe) return NULL;
+
+	u32 grp_idx=0, target_idx=0;
+	char *group = par_pe->audio_group;
+	while (group) {
+		char *sep = strchr(group, ',');
+		if (sep) sep[0] = 0;
+		grp_idx++;
+		if (!strcmp(group, pe->audio_group)) target_idx = grp_idx;
+		if (sep) sep[0] = ',';
+		if (!sep || target_idx) break;
+		group = sep+1;
+	}
+	if (!target_idx) return NULL;
+
+	if (par_pe->alt_bandwidths && bandwidth && (target_idx<=par_pe->nb_alt_bandwidths)) {
+		u32 min_bw = par_pe->alt_bandwidths[0];
+		for (k=1; k<par_pe->nb_alt_bandwidths; k++) {
+			if (min_bw > par_pe->alt_bandwidths[k])
+				min_bw = par_pe->alt_bandwidths[k];
+		}
+		//assume default audio bandwidth is 64k
+		*bandwidth = 64000 + par_pe->alt_bandwidths[target_idx-1]-min_bw;
+	}
+	grp_idx = 0;
+	group = par_pe->codecs;
+	while (group) {
+		char *sep = strchr(group, ',');
+		if (sep) sep[0] = 0;
+		if (!strstr(par_pe->main_codecs, group)) {
+			grp_idx++;
+			if (grp_idx == target_idx) {
+				char *res = gf_strdup(group);
+				if (sep) sep[0] = ',';
+				return res;
+			}
+		}
+		if (sep) sep[0] = ',';
+		if (!sep) break;
+		group = sep+1;
+	}
+	return NULL;
+}
 static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file, const char *src_base_url, const char *mpd_file, char *title, Double update_interval, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool use_segment_timeline, Bool is_end, u32 max_dur, GF_MPD *mpd, Bool parse_sub_playlist)
 {
 	char *sep, *template_base=NULL, *template_ext;
@@ -1958,14 +2016,23 @@ retry_import:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Unknown mime-type when converting from M3U8 HLS playlist, setting %s\n", mimeTypeForM3U8Segments));
 			}
 			char *fext = (elt && elt->init_segment_url) ? gf_file_ext_start(elt->init_segment_url) : NULL;
-			if (fext && (!stricmp(fext, ".mp4") || !stricmp(fext, ".m4s")) ) {
+			if ((fext && (!stricmp(fext, ".mp4") || !stricmp(fext, ".m4s")) )
+				//default to MP4 for v6 or above
+				|| (pl->version>=6)
+			) {
 				rep->mime_type = gf_strdup(samplerate ? "audio/mp4" : "video/mp4");
 			} else {
 				rep->mime_type = gf_strdup(mimeTypeForM3U8Segments);
 			}
-			if (pe->codecs) {
+			if (pe->main_codecs ) {
+				rep->codecs = gf_strdup(pe->main_codecs);
+			} else if (pe->codecs) {
 				rep->codecs = gf_strdup(pe->codecs);
 			}
+			else if (pe->audio_group) {
+				rep->codecs = group_to_codecs(pl, pe, &rep->bandwidth);
+			}
+
 			if (pe->language && !set->lang) {
 				set->lang = pe->language;
 				pe->language = NULL;
@@ -1994,6 +2061,13 @@ retry_import:
 					if (!rep->audio_channels) rep->audio_channels = gf_list_new();
 					gf_list_add(rep->audio_channels, desc);
 				}
+				//audio bandwidth not announced ...
+				if (!pe->bandwidth && !rep->bandwidth)
+					rep->bandwidth = 64000 * num_channels/2;
+			}
+			if (pe->media_type==MEDIA_TYPE_SUBTITLES) {
+				//subs bandwidth not announced ...
+				if (!pe->bandwidth) rep->bandwidth = 10000;
 			}
 
 			//if parsing subplaylist with a MPD, we translate HLS to MPD directly
@@ -2444,6 +2518,10 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 
 		gf_sha1_csum(m3u8_payload, m3u8_size, signature);
 	} else  if (gf_url_is_local(full_url)) {
+		if (!gf_file_exists(full_url)) {
+			gf_free(full_url);
+			return GF_URL_ERROR;
+		}
 		loc_file = full_url;
 		gf_sha1_file(loc_file, signature);
 	} else {
