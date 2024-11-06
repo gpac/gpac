@@ -951,6 +951,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		//reset to FALSE since we now play
+		read->input_is_stop = GF_FALSE;
+
 		if (ch->skip_next_play) {
 			ch->skip_next_play = 0;
 			return GF_TRUE;
@@ -967,8 +970,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ch->speed = is_byte_range ? 1 : evt->play.speed;
 		ch->initial_play_seen = 1;
 		read->reset_frag_state = 1;
-		//reset to FALSE since we now play
-		read->input_is_stop = GF_FALSE;
 		if (read->frag_type)
 			read->frag_type = 1;
 
@@ -1367,6 +1368,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	if (read->in_error)
 		return read->in_error;
 
+	read->was_aborted = GF_FALSE;
 	if (read->pid) {
 		Bool fetch_input = GF_TRUE;
 
@@ -1427,7 +1429,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				//check if aborted info was set, in which case the source was excplicitly canceled by the dash client
 				//this avoids throwing warnings and errors if we miss a sample
 				const GF_PropertyValue *p = gf_filter_pid_get_info_str(read->pid, "aborted", &pe);
-				if (p && p->value.boolean) read->input_is_stop = GF_TRUE;
+				if (p && p->value.boolean) read->was_aborted = GF_TRUE;
 				gf_filter_release_property(pe);
 			} else {
 				in_is_flush = GF_TRUE;
@@ -1436,6 +1438,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (read->input_is_stop) {
 			read->input_loaded = GF_TRUE;
 			in_is_eos = GF_TRUE;
+			read->was_aborted = GF_TRUE;
 		}
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;
@@ -1500,7 +1503,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			}
 #endif
 
-			if (!read->refresh_fragmented && !read->input_is_stop && (e==GF_ISOM_INCOMPLETE_FILE) && !gf_filter_end_of_session(filter)) {
+			if (!read->refresh_fragmented && !read->was_aborted && (e==GF_ISOM_INCOMPLETE_FILE) && !gf_filter_end_of_session(filter)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received on PID %s - "LLU" bytes missing but EOF found\n", gf_filter_pid_get_name(read->pid), bytesMissing ));
 			}
 
@@ -1757,7 +1760,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL);
 						ch->last_has_tfrf = 0;
 					}
-
 					gf_filter_pid_set_eos(ch->pid);
 				}
 				break;
