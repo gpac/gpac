@@ -53,7 +53,7 @@ typedef struct
 {
 	//options
 	char *src;
-	u32 block_size;
+	u32 block_size, idelay;
 	GF_HTTPInStoreMode cache;
 	GF_Fraction64 range;
 	char *ext;
@@ -82,6 +82,7 @@ typedef struct
 	GF_Err last_state;
 	Bool is_source_switch;
 	Bool prev_was_init_segment;
+	u32 start_time;
 } GF_HTTPInCtx;
 
 static void httpin_notify_error(GF_Filter *filter, GF_HTTPInCtx *ctx, GF_Err e)
@@ -137,6 +138,9 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	if (server && strncmp(ctx->src, "http://gmcast", 13) && strstr(server, "://")) {
 		ctx->is_end = GF_TRUE;
 		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
+	}
+	if (ctx->idelay) {
+		ctx->start_time = gf_sys_clock();
 	}
 
 	ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
@@ -409,6 +413,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 			return GF_OK;
 	}
 
+	if (ctx->start_time) {
+		u32 diff = gf_sys_clock() - ctx->start_time;
+		if (diff < ctx->idelay) {
+			gf_filter_ask_rt_reschedule(filter, 1000*diff);
+			return GF_OK;
+		}
+		ctx->start_time=0;
+	}
 	is_start = ctx->nb_read ? GF_FALSE : GF_TRUE;
 	ctx->is_end = GF_FALSE;
 
@@ -652,6 +664,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(blockio), "use blocking IO", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(idelay), "delay first request by the given number of ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
