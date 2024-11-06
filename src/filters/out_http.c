@@ -778,20 +778,33 @@ static void httpout_set_local_path(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
         gf_dynstrcat(&in->local_path, in->path, NULL);
 }
 
-static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
+typedef enum
+{
+	RANGE_OK = 0,
+	RANGE_BAD_FORMAT,
+	RANGE_INVALID_FORMAT,
+	RANGE_NOT_ALLOWED,
+
+} RangeState;
+
+static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range, char **response_body)
 {
 	Bool request_ok = GF_TRUE;
 	u32 i;
 	Bool has_open_start=GF_FALSE;
 	Bool has_file_end=GF_FALSE;
 	u64 known_file_size;
+	RangeState rst = RANGE_OK;
+
 	sess->nb_ranges = 0;
 	sess->nb_bytes = 0;
 	sess->range_idx = 0;
 	if (!range) return GF_TRUE;
 
-	if (sess->in_source && !sess->ctx->has_read_dir)
-		return GF_FALSE;
+	if (sess->in_source && !sess->ctx->has_read_dir) {
+		rst = RANGE_NOT_ALLOWED;
+		goto exit;
+	}
 
 	while (range) {
 		char *sep;
@@ -804,7 +817,8 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 
 		//unsupported unit
 		if (strncmp(range, "bytes=", 6)) {
-			return GF_FALSE;
+			rst = RANGE_INVALID_FORMAT;
+			goto exit;
 		}
 		range += 6;
 		sep = strchr(range, '/');
@@ -855,12 +869,18 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 		range = next+1;
 		if (!request_ok) break;
 	}
-	if (!request_ok) return GF_FALSE;
+	if (!request_ok) {
+		rst = RANGE_BAD_FORMAT;
+		goto exit;
+	}
 
 	known_file_size = 0;
 	if (sess->in_source && !sess->resource) {
 		//cannot fetch end of file it is not yet known !
-		if (has_file_end) return GF_FALSE;
+		if (has_file_end) {
+			rst = RANGE_NOT_ALLOWED;
+			goto exit;
+		}
 		known_file_size = sess->in_source->nb_write;
 	} else {
 		//HTTP does not allow for "range: X-" to resolve in "content-range: X-/*"
@@ -919,8 +939,10 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 		sess->nb_ranges = 0;
 
 	if (!request_ok) {
-		if (!sess->in_source || (sess->nb_ranges>1))
-			return GF_FALSE;
+		if (!sess->in_source || (sess->nb_ranges>1)) {
+			rst = RANGE_NOT_ALLOWED;
+			goto exit;
+		}
 		//source in progress, we accept single range - note that this could be further refined by postponing the request until the source
 		//is done or has written the requested byte range, however this will delay sending chunk in LLHAS byterange ...
 		//for now, since we use chunk transfer in this case, we will send less data than asked and close resource using last 0-size chunk
@@ -928,7 +950,27 @@ static Bool httpout_sess_parse_range(GF_HTTPOutSession *sess, char *range)
 	sess->file_pos = sess->ranges[0].start;
 	if (sess->resource)
 		gf_fseek(sess->resource, sess->file_pos, SEEK_SET);
+
 	return GF_TRUE;
+
+exit:
+	switch (rst) {
+	case RANGE_BAD_FORMAT:
+		gf_dynstrcat(response_body, "Range format not valid: ", NULL);
+		break;
+	case RANGE_INVALID_FORMAT:
+		gf_dynstrcat(response_body, "Range format is not supported, only \"bytes\" units allowed: ", NULL);
+		break;
+	case RANGE_NOT_ALLOWED:
+		gf_dynstrcat(response_body, "Range request not satisfiable: ", NULL);
+		break;
+	case RANGE_OK:
+		return GF_TRUE;
+	}
+	sess->reply_code = 416;
+	gf_dynstrcat(response_body, range, NULL);
+	GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] %s\n", *response_body));
+	return GF_FALSE;
 }
 
 static u32 httpout_do_log(GF_HTTPOutSession *sess, u32 method)
@@ -1558,11 +1600,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->file_pos = 0;
 
 		range = gf_dm_sess_get_header(sess->http_sess, "Range");
-		if (! httpout_sess_parse_range(sess, (char *) range) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Unsupported Range format: %s\n", range));
-			sess->reply_code = 416;
-			gf_dynstrcat(&response_body, "Range format is not supported, only \"bytes\" units allowed: ", NULL);
-			gf_dynstrcat(&response_body, range, NULL);
+		if (!httpout_sess_parse_range(sess, (char *) range, &response_body)) {
 			goto exit;
 		}
 		if (!sess->buffer) {
@@ -1944,11 +1982,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	}
 
 	//parse byte range except if associated input in single mode where byte ranges are ignored
-	if ( (!sess->in_source || !sess->ctx->single_mode) && ! httpout_sess_parse_range(sess, (char *) range) ) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Unsupported Range format: %s\n", range));
-		sess->reply_code = 416;
-		gf_dynstrcat(&response_body, "Range format is not supported, only \"bytes\" units allowed: ", NULL);
-		gf_dynstrcat(&response_body, range, NULL);
+	if ((!sess->in_source || !sess->ctx->single_mode) && !httpout_sess_parse_range(sess, (char *) range, &response_body)) {
 		goto exit;
 	}
 
@@ -4146,6 +4180,8 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 					if (!sess->resource && sess->path && in->resource) {
 						sess->resource = gf_fopen(sess->path, "rb");
 					}
+					//reset last modif time to avoid rematching the session when doing byte-range access
+					sess->last_file_modif = 0;
 				}
 				//get final size by forcing a seek
 				if (sess->resource) {
