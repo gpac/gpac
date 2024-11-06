@@ -769,11 +769,11 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	unsigned short *uniLine, *uniText, *sptr;
 	char szText[2048];
 
-	len = (u32)strlen(szLine)+1;
+	len = (u32)(strlen(szLine)/2)*2+2;
 	uniLine = gf_malloc(sizeof(u16)*len);
 	uniText = gf_malloc(sizeof(u16)*len);
 
-	len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+	len = gf_utf8_mbstowcs(uniLine, len+1, (const char **) &ptr);
 	if (len == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 		ctx->state = 0;

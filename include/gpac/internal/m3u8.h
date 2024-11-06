@@ -81,11 +81,14 @@ struct s_playlistElement {
 	char *video_group;
 	char *url;
 	char *init_segment_url;
+	char *main_codecs;
 	u64 init_byte_range_start, init_byte_range_end;
 	//informative UTC start time
 	u64 utc_start_time;
 	u32 discontinuity;
 	u32 channels;
+	u32 *alt_bandwidths;
+	u32 nb_alt_bandwidths;
 	PlaylistElementDRMMethod drm_method;
 	char *key_uri;
 	bin128 key_iv;
@@ -110,6 +113,7 @@ typedef struct s_stream Stream;
  */
 struct s_masterPlaylist {
 	GF_List *streams; /*Stream*/
+	u32 version;
 	int current_stream;
 	Bool playlist_needs_refresh;
 	Bool independent_segments, low_latency;

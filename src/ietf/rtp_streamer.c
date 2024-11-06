@@ -132,7 +132,7 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 	if (!rtp->channel) return GF_OUT_OF_MEM;
 	rtp->channel->TimeScale = rtp->packetizer->sl_config.timestampResolution;
 
-	gf_rtp_set_ports(rtp->channel, 0);
+	//gf_rtp_set_ports(rtp->channel, 0);
 	memset(&tr, 0, sizeof(GF_RTSPTransport));
 
 	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? GF_FALSE : GF_TRUE;

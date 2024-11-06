@@ -763,6 +763,9 @@ int gpac_main(int _argc, char **_argv)
 					dump_all_props(NULL);
 				}
 				gpac_exit(0);
+			} else if (!strncmp(argv[i+1], "props.", 6)) {
+				check_prop_def(argv[i+1] + 6);
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "colors")) {
 				dump_all_colors();
 				gpac_exit(0);

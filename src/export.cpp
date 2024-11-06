@@ -2220,7 +2220,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_switch_quality) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_time_shift_buffer_depth) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_keys) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_select) )
@@ -2398,6 +2397,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_4cc_get_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_4cc_get_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_sanity_check) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_type_is_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_parse_enum) )

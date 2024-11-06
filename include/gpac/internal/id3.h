@@ -31,4 +31,3 @@ GF_Err gf_id3_from_bitstream(GF_ID3_TAG *tag, GF_BitStream *bs);
 
 #endif // _GF_ID3_H_
 
-

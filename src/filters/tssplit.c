@@ -227,10 +227,10 @@ void m2ts_split_estimate_duration(GF_M2TSSplitCtx *ctx, GF_FilterPid *pid)
 	ctx->duration.num = gf_timestamp_rescale(dur, size, ctx->filesize);
 	ctx->duration.den = 27000000;
 
-	u32 mode = ctx->dmx->split_mode;
+	GF_M2TSRawMode mode = ctx->dmx->raw_mode;
 	gf_m2ts_demux_del(ctx->dmx);
 	ctx->dmx = gf_m2ts_demux_new();
-	ctx->dmx->split_mode = mode;
+	ctx->dmx->raw_mode = mode;
 	ctx->dmx->user = ctx;
 	ctx->dmx->on_event = m2tssplit_on_event;
 }
@@ -257,7 +257,7 @@ GF_Err m2tssplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		m2ts_split_estimate_duration(ctx, pid);
 
 	ctx->ipid = pid;
-	if (ctx->dmx->split_mode==2) {
+	if (ctx->dmx->raw_mode==GF_M2TS_RAW_FORWARD) {
 		GF_M2TSSplit_SPTS *stream;
 		GF_SAFEALLOC(stream, GF_M2TSSplit_SPTS);
 		if (!stream) return GF_OUT_OF_MEM;
@@ -646,7 +646,7 @@ GF_Err m2tssplit_initialize(GF_Filter *filter)
 	ctx->streams = gf_list_new();
 	ctx->dmx = gf_m2ts_demux_new();
 	ctx->dmx->on_event = m2tssplit_on_event;
-	ctx->dmx->split_mode = 1;
+	ctx->dmx->raw_mode = GF_M2TS_RAW_SPLIT;
 	ctx->dmx->user = ctx;
 	ctx->filter = filter;
 	ctx->bsw = gf_bs_new(ctx->tsbuf, 192, GF_BITSTREAM_WRITE);
@@ -736,7 +736,7 @@ GF_Err m2ts_gendts_initialize(GF_Filter *filter)
 	if (e) return e;
 	GF_M2TSSplitCtx *ctx = gf_filter_get_udta(filter);
 	ctx->gendts = GF_TRUE;
-	ctx->dmx->split_mode = 2;
+	ctx->dmx->raw_mode = GF_M2TS_RAW_FORWARD;
 	return GF_OK;
 }
 

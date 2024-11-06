@@ -281,7 +281,7 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 		len = txt->len;
 	} else {
 		u8 *str = (u8 *) (txt->text);
-		len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
+		len = gf_utf8_mbstowcs(utf16Line, txt->len+1, (const char **) &str);
 		if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
 		utf16Line[len] = 0;
 	}

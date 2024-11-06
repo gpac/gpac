@@ -410,7 +410,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->moov = (GF_MovieBox *)a;
-			if (mov->moov->has_cmvd) {
+			if (mov->moov->has_cmvd==1) {
 				GF_Box *cmvd = gf_isom_box_find_child(a->child_boxes, GF_QT_BOX_TYPE_CMVD);
 				mov->moov = (GF_MovieBox *) (cmvd ? gf_isom_box_find_child(cmvd->child_boxes, GF_ISOM_BOX_TYPE_MOOV) : NULL);
 				if (!mov->moov) {
@@ -439,9 +439,11 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			if (e) return e;
 
             if (!mov->moov->mvhd) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MovieHeaderBox\n"));
-                return GF_ISOM_INVALID_FILE;
-            }
+				if (mov->moov->has_cmvd!=2) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MovieHeaderBox\n"));
+					return GF_ISOM_INVALID_FILE;
+				}
+			}
 
             if (mov->meta) {
 				gf_isom_meta_restore_items_ref(mov, mov->meta);
@@ -841,7 +843,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 	}
 	/*we MUST have movie header*/
 	if (!gf_opts_get_bool("core", "no-check")) {
-		if (mov->moov && !mov->moov->mvhd) {
+		if (mov->moov && !mov->moov->mvhd && (mov->moov->has_cmvd!=2)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MVHD in MOOV!\n"));
 			return GF_ISOM_INVALID_FILE;
 		}
@@ -857,7 +859,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 	if (mov->moov) {
 		/*set the default interleaving time*/
-		mov->interleavingTime = mov->moov->mvhd->timeScale;
+		mov->interleavingTime = mov->moov->mvhd ? mov->moov->mvhd->timeScale : 0;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		/*in edit mode with successfully loaded fragments, delete all fragment signaling since
@@ -947,7 +949,11 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 		mov->store_traf_map = GF_TRUE;
 #endif
 
-	if ( (OpenMode == GF_ISOM_OPEN_READ) || (OpenMode == GF_ISOM_OPEN_READ_DUMP) || (OpenMode == GF_ISOM_OPEN_READ_EDIT) ) {
+	if ( (OpenMode == GF_ISOM_OPEN_READ)
+		|| (OpenMode == GF_ISOM_OPEN_READ_DUMP)
+		|| (OpenMode == GF_ISOM_OPEN_READ_DUMP_NO_COMP)
+		|| (OpenMode == GF_ISOM_OPEN_READ_EDIT)
+	) {
 		if (OpenMode == GF_ISOM_OPEN_READ_EDIT) {
 			mov->openMode = GF_ISOM_OPEN_READ_EDIT;
 
@@ -977,6 +983,10 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);
 			return NULL;
+		}
+		if (OpenMode == GF_ISOM_OPEN_READ_DUMP_NO_COMP) {
+			OpenMode = GF_ISOM_OPEN_READ_DUMP;
+			gf_bs_set_cookie(mov->movieFileMap->bs, GF_ISOM_BS_COOKIE_NO_DECOMP);
 		}
 
 		if (OpenMode == GF_ISOM_OPEN_READ_DUMP) {

@@ -146,7 +146,7 @@ typedef struct
 	Double speed;
 	u32 raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots;
+	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
 	u32 xround, utc_ref, utc_probe;
 	Double seeksafe;
 	GF_PropStringList props;
@@ -241,7 +241,7 @@ static void reframer_push_props(GF_ReframerCtx *ctx, RTStream *st)
 
 	//seek mode, signal we have sample-accurate seek info for the pid
 	if (st->seek_mode)
-		gf_filter_pid_set_property(st->opid, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(1));
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_HAS_SKIP_BEGIN, &PROP_BOOL(GF_TRUE));
 
 	//for old arch compat, signal we must remove edits
 	if (gf_sys_old_arch_compat()) {
@@ -1816,8 +1816,11 @@ refetch_streams:
 			}
 
 			st->nb_frames_range++;
+			if (ctx->xdts) {
+				check_ts = gf_filter_pck_get_dts(pck);
+			}
 			//in range extraction we target the presentation time, use CTS and apply delay
-			if (ctx->is_range_extraction) {
+			else if (ctx->is_range_extraction) {
 				check_ts = gf_filter_pck_get_cts(pck) + st->tk_delay;
 				if (check_ts > st->ts_sub) check_ts -= st->ts_sub;
 				else check_ts = 0;
@@ -1942,7 +1945,7 @@ refetch_streams:
 								st->sap_ts_plus_one = st->prev_sap_ts + 1;
 							}
 						} else if (ctx->xround<=REFRAME_ROUND_SEEK) {
-							st->sap_ts_plus_one = st->prev_sap_ts+1;
+							st->sap_ts_plus_one = (ctx->nosap ? ts : st->prev_sap_ts) + 1;
 
 							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
 								u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
@@ -2770,6 +2773,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- closest: use I-frame closest to range start", GF_PROP_UINT, "before", "before|seek|after|closest", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xadjust), "adjust end time of extraction range to be before next I-frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xots), "keep original timestamps after extraction", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(xdts), "compute start times based on DTS and not CTS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sure the I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},

@@ -213,10 +213,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 	u32 i;
 	GF_FilterSession *fsess, *a_sess;
 
-	//safety check: all built-in properties shall have unique 4CCs
-	if (gf_sys_is_test_mode() && ! gf_props_4cc_check_props())
-		return NULL;
-
 	GF_SAFEALLOC(fsess, GF_FilterSession);
 	if (!fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
@@ -409,6 +405,8 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->default_pid_buffer_max_units = gf_opts_get_int("core", "buffer-units");
 	fsess->max_resolve_chain_len = 6;
 	fsess->auto_inc_nums = gf_list_new();
+	if (gf_opts_get_bool("core", "check-props"))
+		fsess->check_props = GF_TRUE;
 
 	if (nb_threads)
 		fsess->links_mx = gf_mx_new("FilterRegistryGraph");
@@ -742,7 +740,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 			u32 j;
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
 			filter->process_th_id = 0;
-			filter->scheduled_for_next_task = GF_TRUE;
+			filter->scheduled_for_next_task = GF_FILTER_SCHEDULED;
 
 			if (filter->detached_pid_inst) {
 				while (gf_list_count(filter->detached_pid_inst)) {
@@ -761,7 +759,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 				gf_filter_pid_inst_reset(pidi);
 			}
 			gf_mx_v(filter->tasks_mx);
-			filter->scheduled_for_next_task = GF_FALSE;
+			filter->scheduled_for_next_task = GF_FILTER_NOT_SCHEDULED;
 		}
 		//second pass, finalize all
 		for (pass=0; pass<2; pass++) {
@@ -936,6 +934,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		&& (!filter || !filter->in_process)
 		&& fsess->tasks_in_process
 		&& (gf_th_id()==fsess->main_th.th_id)
+		&& (class_type!=TASK_TYPE_EVENT)
 	) {
 		GF_FSTask atask;
 		u64 task_time = gf_sys_clock_high_res();
@@ -946,17 +945,19 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		atask.log_name = log_name;
 		atask.udta = udta;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter ? filter->name : "none", log_name, fsess->tasks_pending));
-		if (filter)
-			filter->scheduled_for_next_task = GF_TRUE;
+		if (filter && !filter->scheduled_for_next_task)
+			filter->scheduled_for_next_task = GF_FILTER_DIRECT_SCHEDULED;
 		task_fun(&atask);
 		filter = atask.filter;
 		if (filter) {
 			filter->time_process += gf_sys_clock_high_res() - task_time;
-			filter->scheduled_for_next_task = GF_FALSE;
+			if (filter->scheduled_for_next_task == GF_FILTER_DIRECT_SCHEDULED)
+				filter->scheduled_for_next_task = GF_FILTER_NOT_SCHEDULED;
 			filter->nb_tasks_done++;
 		}
-		if (!atask.requeue_request)
+		if (!atask.requeue_request) {
 			return;
+		}
 		//asked to requeue the task, post it
 	}
 
@@ -1002,7 +1003,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		gf_mx_p(filter->tasks_mx);
 
 		//no tasks and not scheduled
-		if (! filter->scheduled_for_next_task && !gf_fq_count(filter->tasks)) {
+		if ((filter->scheduled_for_next_task!=GF_FILTER_SCHEDULED) && !gf_fq_count(filter->tasks)) {
 			notified = task->notified = GF_TRUE;
 
 			if (!force_main_thread)
@@ -1047,7 +1048,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 		gf_assert(task->run_task);
 		if (filter) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u posting filter task, scheduled_for_next_task %d\n", gf_th_id(), filter->scheduled_for_next_task));
-			gf_assert(!filter->scheduled_for_next_task);
+			gf_assert(filter->scheduled_for_next_task!=GF_FILTER_SCHEDULED);
 		}
 
 		//notify/count tasks posted on the main task or regular task lists
@@ -1822,7 +1823,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					break;
 			}
 			if (current_filter) {
-				current_filter->scheduled_for_next_task = GF_FALSE;
+				current_filter->scheduled_for_next_task = GF_FILTER_NOT_SCHEDULED;
 				current_filter->process_th_id = 0;
 				gf_assert(current_filter->in_process);
 				current_filter->in_process = GF_FALSE;
@@ -2140,7 +2141,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		next_task_schedule_time = 0;
 
 		if (current_filter) {
-			current_filter->scheduled_for_next_task = GF_TRUE;
+			current_filter->scheduled_for_next_task = GF_FILTER_SCHEDULED;
 			gf_assert(!current_filter->in_process);
 			current_filter->in_process = GF_TRUE;
 			current_filter->process_th_id = gf_th_id();
@@ -2247,7 +2248,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 #endif
 				} else {
 					//no requeue, filter no longer scheduled and drop task
-					current_filter->scheduled_for_next_task = GF_FALSE;
+					current_filter->scheduled_for_next_task = GF_FILTER_NOT_SCHEDULED;
 
 					//drop task from filter task list
 					gf_fq_pop(current_filter->tasks);
@@ -2274,7 +2275,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				if (!requeue && !gf_fq_count(current_filter->tasks)) {
 					current_filter->process_th_id = 0;
 					current_filter->in_process = GF_FALSE;
-					current_filter->scheduled_for_next_task = GF_FALSE;
+					current_filter->scheduled_for_next_task = GF_FILTER_NOT_SCHEDULED;
 					gf_mx_v(current_filter->tasks_mx);
 #ifndef GPAC_DISABLE_LOG
 					gf_log_pop_extra(current_filter->logs);
