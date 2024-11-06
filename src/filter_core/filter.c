@@ -5199,6 +5199,7 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 		u32 j;
 		GF_Filter *f = gf_list_get(filter->session->filters, i);
 		if (!f || f->removed || f->finalized) continue;
+		if (f->subsession_id != filter->subsession_id) continue;
 
 		gf_mx_v(filter->session->filters_mx);
 		gf_mx_p(f->tasks_mx);

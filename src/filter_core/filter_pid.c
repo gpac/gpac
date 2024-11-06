@@ -5114,6 +5114,10 @@ single_retry:
 					use_explicit_link = GF_TRUE;
 			}
 			//if no source ID on the dst filter, this means the dst filter accepts any possible connections from out filter
+			else if (filter->subsession_id != filter_dst->subsession_id) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s and filter %s not in same subsession and no links directive\n", pid->name, filter_dst->name));
+				continue;
+			}
 
 #if 0	//this is now checked above regardless of whether a filterID is set
 			//unless prevented for this pid
