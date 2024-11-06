@@ -2161,7 +2161,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->req_id = ++sess->ctx->req_id;
 		sess->method_type = parameter->reply;
 		sess->req_start_time = gf_sys_clock_high_res();
-#ifndef GPAC_DISABLE_LOGS
+#ifndef GPAC_DISABLE_LOG
 		u32 log_level = (sess->reply_code>=400) ? GF_LOG_WARNING : GF_LOG_INFO;
 #endif
 		if (not_modified) {

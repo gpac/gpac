@@ -967,7 +967,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ch->speed = is_byte_range ? 1 : evt->play.speed;
 		ch->initial_play_seen = 1;
 		read->reset_frag_state = 1;
-		//it can happen that input_is_stop is still TRUE because we did not get called back after the stop - reset to FALSE since we now play
+		//reset to FALSE since we now play
 		read->input_is_stop = GF_FALSE;
 		if (read->frag_type)
 			read->frag_type = 1;
@@ -1421,8 +1421,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
 			if (!gf_filter_pid_is_flush_eos(read->pid)) {
+				GF_PropertyEntry *pe=NULL;
 				read->input_loaded = GF_TRUE;
 				in_is_eos = GF_TRUE;
+				//check if aborted info was set, in which case the source was excplicitly canceled by the dash client
+				//this avoids throwing warnings and errors if we miss a sample
+				const GF_PropertyValue *p = gf_filter_pid_get_info_str(read->pid, "aborted", &pe);
+				if (p && p->value.boolean) read->input_is_stop = GF_TRUE;
+				gf_filter_release_property(pe);
 			} else {
 				in_is_flush = GF_TRUE;
 			}
@@ -1430,7 +1436,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (read->input_is_stop) {
 			read->input_loaded = GF_TRUE;
 			in_is_eos = GF_TRUE;
-			read->input_is_stop = GF_FALSE;
 		}
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;
@@ -1495,7 +1500,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			}
 #endif
 
-			if (!read->refresh_fragmented && (e==GF_ISOM_INCOMPLETE_FILE) && !gf_filter_end_of_session(filter)) {
+			if (!read->refresh_fragmented && !read->input_is_stop && (e==GF_ISOM_INCOMPLETE_FILE) && !gf_filter_end_of_session(filter)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received on PID %s - "LLU" bytes missing but EOF found\n", gf_filter_pid_get_name(read->pid), bytesMissing ));
 			}
 
