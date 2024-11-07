@@ -3228,6 +3228,24 @@ GF_Err gf_isom_purge_samples(GF_ISOFile *the_file, u32 trackNumber, u32 nb_sampl
 			}
 		}
 	}
+	//also purge tmap
+	if (stbl->traf_map) {
+		u32 i;
+		for (i=0; i<stbl->traf_map->nb_entries; i++) {
+			GF_TrafMapEntry *tmap_ent = &stbl->traf_map->frag_starts[i];
+			if (tmap_ent->sample_num <= nb_samples) {
+				if (tmap_ent->moof_template) gf_free(tmap_ent->moof_template);
+				memmove(&stbl->traf_map->frag_starts[i],
+					&stbl->traf_map->frag_starts[i+1],
+					sizeof(GF_TrafMapEntry) * (stbl->traf_map->nb_entries-1)
+				);
+				i--;
+				stbl->traf_map->nb_entries--;
+				continue;
+			}
+			tmap_ent->sample_num -= nb_samples;
+		}
+	}
 	//then remove sample per sample for the rest, which is either
 	//- sparse data
 	//- allocated structure rather than memmove-able array
