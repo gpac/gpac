@@ -361,7 +361,7 @@ const char *gpac_doc =
 "- cts, dts, dur, sap: uses properties of first packet in PID at template resolution time\n"
 "- OTHER: locates property 4CC for the given name, or property name if no 4CC matches.\n"
 "  \n"
-"`$$` is an escape for $\n"
+"`$$` is an escape for `$`. For shells automatically replacing `$$` with `$`, the syntax `$;$` can be used to express `$$`.\n"
 "\n"
 "Templating can be useful when encoding several qualities in one pass.\n"
 "EX gpac -i dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 c=avc:b=1M @2 c=avc:b=750k -o dump_$CropOrigin$x$Width$x$Height$.264\n"
