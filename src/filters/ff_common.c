@@ -833,7 +833,6 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 #if LIBAVCODEC_VERSION_MAJOR >= 57
 	case AV_OPT_TYPE_UINT64:
-//	case AV_OPT_TYPE_UINT:
 		arg.arg_type = GF_PROP_LUINT;
 		sprintf(szDef, LLU, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
@@ -846,6 +845,16 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	case AV_OPT_TYPE_BOOL:
 		arg.arg_type = GF_PROP_BOOL;
 		arg.arg_default_val = gf_strdup(opt->default_val.i64 ? "true" : "false");
+		break;
+	case AV_OPT_TYPE_UINT:
+		arg.arg_type = GF_PROP_UINT;
+		sprintf(szDef, "%u", (u32) opt->default_val.i64);
+		arg.arg_default_val = gf_strdup(szDef);
+		if (opt->max>=(Double) GF_INT_MAX)
+			sprintf(szDef, "%u-I", (u32) opt->min);
+		else
+			sprintf(szDef, "%u-%u", (u32) opt->min, (u32) opt->max);
+		arg.min_max_enum = gf_strdup(szDef);
 		break;
 #endif
 	case AV_OPT_TYPE_FLOAT:
@@ -923,7 +932,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 #endif
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unknown ffmpeg option type %d\n", opt->type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unknown ffmpeg option type %d\n", type));
 		break;
 	}
 	return arg;
