@@ -904,6 +904,7 @@ static Bool dasher_template_use_source_url(const char *template)
 static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool period_switch = GF_FALSE;
+	Bool is_reconfigure = GF_FALSE;
 	const GF_PropertyValue *p, *dsi=NULL;
 	u32 dc_crc, dc_enh_crc;
 	GF_Err e;
@@ -1130,6 +1131,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_filter_pid_copy_properties(ds->opid, pid);
 			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("inband") );
 		}
+	} else {
+		is_reconfigure = GF_TRUE;
 	}
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
@@ -1679,6 +1682,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!ds->rep && (gf_list_find(ctx->current_period->streams, ds)>=0))
 		period_switch = GF_FALSE;
 
+	//some demux update properties before sending the first packet, don't switch if we didn't send any packet
+	if (is_reconfigure && !ds->nb_pck) {
+		period_switch = GF_FALSE;
+	}
 	old_period_switch = period_switch;
 	period_switch = GF_FALSE;
 	CHECK_PROP_STR(GF_PROP_PID_PERIOD_ID, ds->period_id, GF_EOS)
