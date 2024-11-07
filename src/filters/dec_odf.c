@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / OD decoder filter
@@ -511,6 +511,7 @@ GF_FilterRegister ODFDecRegister = {
 	.process = odf_dec_process,
 	.configure_pid = odf_dec_configure_pid,
 	.process_event = odf_dec_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 const GF_FilterRegister *odfdec_register(GF_FilterSession *session)

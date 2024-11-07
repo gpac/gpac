@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ProRes reframer filter
@@ -431,7 +431,7 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(finfo->matrix_coefficients) );
 
 	//set interlaced or remove interlaced property
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, ctx->cur_cfg.interlaced_mode ? & PROP_UINT(GF_TRUE) : NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_INTERLACED, ctx->cur_cfg.interlaced_mode ? & PROP_BOOL(GF_TRUE) : NULL);
 }
 
 
@@ -689,7 +689,8 @@ GF_FilterRegister ProResDmxRegister = {
 	.configure_pid = proresdmx_configure_pid,
 	.process = proresdmx_process,
 	.probe_data = proresdmx_probe_data,
-	.process_event = proresdmx_process_event
+	.process_event = proresdmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

@@ -193,7 +193,7 @@ GF_Err gf_crypt_decrypt_openssl_ctr(GF_Crypt* td, u8 *ciphertext, u32 len)
 
 /* ECB */
 typedef struct {
-	AES_KEY key;
+	AES_KEY enc_key, dec_key;
 } Openssl_ctx_ecb;
 
 /** CBC STUFF **/
@@ -216,8 +216,8 @@ void gf_crypt_deinit_openssl_ecb(GF_Crypt* td)
 void gf_set_key_openssl_ecb(GF_Crypt* td, void *key)
 {
 	Openssl_ctx_ecb* ctx = (Openssl_ctx_ecb*)td->context;
-	AES_set_encrypt_key(key, 128, &(ctx->key));
-	AES_set_decrypt_key(key, 128, &(ctx->key));
+	AES_set_encrypt_key(key, 128, &(ctx->enc_key));
+	AES_set_decrypt_key(key, 128, &(ctx->dec_key));
 }
 
 GF_Err gf_crypt_set_IV_openssl_ecb(GF_Crypt* td, const u8 *iv, u32 iv_size)
@@ -242,7 +242,7 @@ GF_Err gf_crypt_crypt_openssl_ecb(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_
 	}
 
 	for (iteration = 0; iteration < numberOfIterations; ++iteration) {
-		AES_ecb_encrypt(plaintext + iteration*AES_BLOCK_SIZE, plaintext + iteration*AES_BLOCK_SIZE, &ctx->key, aes_crypt_type);
+		AES_ecb_encrypt(plaintext + iteration*AES_BLOCK_SIZE, plaintext + iteration*AES_BLOCK_SIZE, aes_crypt_type ? &ctx->enc_key : &ctx->dec_key, aes_crypt_type);
 	}
 	return GF_OK;
 }

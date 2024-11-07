@@ -769,11 +769,11 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	unsigned short *uniLine, *uniText, *sptr;
 	char szText[2048];
 
-	len = (u32)strlen(szLine)+1;
+	len = (u32)(strlen(szLine)/2)*2+2;
 	uniLine = gf_malloc(sizeof(u16)*len);
 	uniText = gf_malloc(sizeof(u16)*len);
 
-	len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+	len = gf_utf8_mbstowcs(uniLine, len+1, (const char **) &ptr);
 	if (len == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 		ctx->state = 0;
@@ -4789,7 +4789,8 @@ GF_FilterRegister TXTInRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = txtin_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 
@@ -4848,7 +4849,8 @@ GF_FilterRegister VTTTX3GRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = vtt2tx3g_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 const GF_FilterRegister *vtt2tx3g_register(GF_FilterSession *session)
@@ -4902,7 +4904,8 @@ GF_FilterRegister RFSRTRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = rfsrt_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 const GF_FilterRegister *rfsrt_register(GF_FilterSession *session)

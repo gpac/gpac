@@ -815,9 +815,9 @@ u32 DD_WindowThread(void *par)
 				wchar_t *wcaption;
 				size_t len;
 				size_t len_res;
-				len = (strlen(str_src) + 1)*sizeof(wchar_t);
+				len = ((strlen(str_src)/2)*2 + 2) * sizeof(wchar_t);
 				wcaption = (wchar_t *)gf_malloc(len);
-				len_res = gf_utf8_mbstowcs(wcaption, len, &str_src);
+				len_res = gf_utf8_mbstowcs(wcaption, len+1, &str_src);
 				if (len_res != -1) {
 					SetWindowTextW(ctx->os_hwnd, wcaption);
 				}

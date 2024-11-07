@@ -365,7 +365,9 @@ enum
 	/*!Reuses port.*/
 	GF_SOCK_REUSE_PORT = 1,
 	/*!Forces IPV6 if available.*/
-	GF_SOCK_FORCE_IPV6 = 1<<1
+	GF_SOCK_FORCE_IPV6 = 1<<1,
+	/*! Indicates the socket will be used to send , only used in test modes*/
+	GF_SOCK_IS_SENDER = 1<<2
 };
 
 /*!

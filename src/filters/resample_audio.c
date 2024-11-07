@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / audio resample filter
@@ -484,6 +484,7 @@ GF_FilterRegister ResamplerRegister = {
 	.process = resample_process,
 	.reconfigure_output = resample_reconfigure_output,
 	.process_event = resample_process_event,
+	.hint_class_type = GF_FS_CLASS_AV
 };
 
 const GF_FilterRegister *resample_register(GF_FilterSession *session)

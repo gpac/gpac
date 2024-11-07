@@ -829,11 +829,23 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 			}
 		} else if (is_frac) {
 			if (is_frac==2) {
-				prop->type = GF_PROP_FRACTION;
-				prop->value.frac = frac;
+				if (type==GF_PROP_FRACTION64) {
+					prop->type = GF_PROP_FRACTION64;
+					prop->value.lfrac.num = frac.num;
+					prop->value.lfrac.den = frac.den;
+				} else {
+					prop->type = GF_PROP_FRACTION;
+					prop->value.frac = frac;
+				}
 			} else {
-				prop->type = GF_PROP_FRACTION64;
-				prop->value.lfrac = frac_l;
+				if (type==GF_PROP_FRACTION) {
+					prop->type = GF_PROP_FRACTION;
+					prop->value.frac.num = (s32) frac_l.num;
+					prop->value.frac.den = (u32) frac_l.den;
+				} else {
+					prop->type = GF_PROP_FRACTION64;
+					prop->value.lfrac = frac_l;
+				}
 			}
 		}
 		//try array buffer
@@ -1278,6 +1290,16 @@ static JSValue jsf_filter_set_desc(JSContext *ctx, JSValueConst this_val, int ar
     if (!str) return GF_JS_EXCEPTION(ctx);
 	gf_filter_set_description(jsf->filter, str);
 	JS_FreeCString(ctx, str);
+    return JS_UNDEFINED;
+}
+
+static JSValue jsf_filter_set_class_hint(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+    if (!jsf) return GF_JS_EXCEPTION(ctx);
+	u32 hint;
+	JS_ToInt32(ctx, &hint, argv[0]);
+	gf_filter_set_class_hint(jsf->filter, hint);
     return JS_UNDEFINED;
 }
 
@@ -1842,6 +1864,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("set_version", 0, jsf_filter_set_version),
     JS_CFUNC_DEF("set_author", 0, jsf_filter_set_author),
     JS_CFUNC_DEF("set_help", 0, jsf_filter_set_help),
+    JS_CFUNC_DEF("set_class_hint", 0, jsf_filter_set_class_hint),
     JS_CFUNC_DEF("set_arg", 0, jsf_filter_set_arg),
     JS_CFUNC_DEF("set_cap", 0, jsf_filter_set_cap),
     JS_CFUNC_DEF("set_name", 0, jsf_filter_set_name),
@@ -4639,6 +4662,19 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_KEY_EXT_LEFT)
 	DEF_CONST(GF_KEY_EXT_RIGHT)
 
+	DEF_CONST(GF_FS_CLASS_DEMULTIPLEXER)
+	DEF_CONST(GF_FS_CLASS_MULTIPLEXER)
+	DEF_CONST(GF_FS_CLASS_DECODER)
+	DEF_CONST(GF_FS_CLASS_ENCODER)
+	DEF_CONST(GF_FS_CLASS_CRYPTO)
+	DEF_CONST(GF_FS_CLASS_MM_IO)
+	DEF_CONST(GF_FS_CLASS_NETWORK_IO)
+	DEF_CONST(GF_FS_CLASS_SUBTITLE)
+	DEF_CONST(GF_FS_CLASS_AV)
+	DEF_CONST(GF_FS_CLASS_STREAM)
+	DEF_CONST(GF_FS_CLASS_FRAMING)
+	DEF_CONST(GF_FS_CLASS_TOOL)
+
 
     JS_SetPropertyStr(ctx, global_obj, "print", JS_NewCFunction(ctx, js_print, "print", 1));
     JS_SetPropertyStr(ctx, global_obj, "alert", JS_NewCFunction(ctx, js_print, "alert", 1));
@@ -5079,6 +5115,7 @@ GF_FilterRegister JSFilterRegister = {
 //	.probe_url = jsfilter_probe_url,
 //	.probe_data = jsfilter_probe_data
 //	.reconfigure_output = jsfilter_reconfigure_output
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 

@@ -3,7 +3,7 @@
 *
 *			Authors: Romain Bouqueau, Jean Le Feuvre
 *			Copyright (c) 2014-2022 GPAC Licensing
-*			Copyright (c) 2016-2020 Telecom Paris
+*			Copyright (c) 2016-2024 Telecom Paris
 *					All rights reserved
 *
 *  This file is part of GPAC / Dektec SDI video output filter
@@ -95,13 +95,14 @@ const GF_FilterRegister *dtout_register(GF_FilterSession *session)
 
 	DTOutRegister.name = "dtout";
 #ifndef GPAC_DISABLE_DOC
-	DTOutRegister.description = "DekTec SDIOut";
+	DTOutRegister.description = "DekTec SDI output";
 	DTOutRegister.help = "This filter provides SDI output to be used with __DTA 2174__ or __DTA 2154__ cards.";
 #endif
 	DTOutRegister.private_size = sizeof(GF_DTOutCtx);
 	DTOutRegister.args = DTOutArgs;
 	DTOutRegister.caps = DTOutCaps;
 	DTOutRegister.nb_caps = 3;
+	DTOutRegister.hint_class_type = GF_FS_CLASS_MM_IO;
 
 #if defined(GPAC_HAS_DTAPI) && !defined(FAKE_DT_API)
 	DTOutRegister.initialize = dtout_initialize;

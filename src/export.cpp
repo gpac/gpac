@@ -126,7 +126,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_check_error) )
 #endif
 
-#pragma comment (linker, EXPORT_SYMBOL(gf_fsize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_get_udta) )
@@ -151,6 +150,16 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ftell) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fread) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fgets) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fsize) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fgetc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fputc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fputs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fprintf) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_vfprintf) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fflush) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_feof) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ferror) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_exists) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_basename) )
@@ -2220,7 +2229,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_switch_quality) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_time_shift_buffer_depth) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_keys) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_select) )
@@ -2398,6 +2406,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_4cc_get_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_4cc_get_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_props_sanity_check) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_type_is_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_parse_enum) )
@@ -2552,6 +2561,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_probe_link ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_probe_links ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_possible_destinations ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_class_hint ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )

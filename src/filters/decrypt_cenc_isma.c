@@ -1633,7 +1633,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		return GF_SERVICE_ERROR;
 	}
 
-	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PID_CENC_PSSH);
+	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_CENC_PSSH);
 	if (prop && (prop->type==GF_PROP_DATA) && prop->value.data.ptr) {
 		cenc_dec_load_pssh(ctx, cstr, prop, GF_TRUE, NULL);
 	}
@@ -2528,8 +2528,8 @@ GF_FilterRegister CENCDecRegister = {
 	.initialize = cenc_dec_initialize,
 	.finalize = cenc_dec_finalize,
 	.process = cenc_dec_process,
-	.process_event = cenc_dec_process_event
-	//for now only one PID per CENC decryptor instance, could be further optimized
+	.process_event = cenc_dec_process_event,
+	.hint_class_type = GF_FS_CLASS_CRYPTO
 };
 
 #endif /*GPAC_DISABLE_CRYPTO*/

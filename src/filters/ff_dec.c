@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -1531,8 +1531,8 @@ GF_FilterRegister FFDecodeRegister = {
 	.flags = GF_FS_REG_META|GF_FS_REG_BLOCK_MAIN,
 	//use middle priorty, so that hardware decs/other native impl in gpac can take over if needed
 	//don't use lowest one since we use this for scalable codecs
-	.priority = 128
-
+	.priority = 128,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 

@@ -1,3 +1,28 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2022-2024
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / AVGenerator filter
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
 import { Bitstream as BS } from 'gpaccore'
 import { Sys as sys } from 'gpaccore'
 import * as evg from 'evg'
@@ -18,7 +43,8 @@ const INTERLEAVE_MULTIY=5;
 
 //metadata
 filter.set_name("uncvg");
-filter.set_desc("Uncompressed Video File Format Generator Utility");
+filter.set_class_hint(GF_FS_CLASS_MM_IO);
+filter.set_desc("Uncompressed Video Generator");
 filter.set_version("1.0");
 filter.set_author("GPAC team - (c) Telecom ParisTech 2023 - license LGPL v2");
 filter.set_help("This filter provides generation of test images for ISO/IEC 23001-17\n"

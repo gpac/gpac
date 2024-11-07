@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2023
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / TTML to SRT converter filter
@@ -323,7 +323,8 @@ GF_FilterRegister TTMLConvRegister = {
 	.configure_pid = ttmlconv_configure_pid,
 	.process = ttmlconv_process,
 	//lower priority so that we always favor ttml2srt when converting ttml to tx3g
-	.priority = 128
+	.priority = 128,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 
@@ -363,7 +364,8 @@ GF_FilterRegister TTMLConv2Register = {
 	.finalize = ttmlconv_finalize,
 	SETCAPS(TTMLConv2Caps),
 	.configure_pid = ttmlconv_configure_pid,
-	.process = ttmlconv_process
+	.process = ttmlconv_process,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 

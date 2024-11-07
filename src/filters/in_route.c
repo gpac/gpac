@@ -777,7 +777,7 @@ static const GF_FilterCapability ROUTEInCaps[] =
 
 GF_FilterRegister ROUTEInRegister = {
 	.name = "routein",
-	GF_FS_SET_DESCRIPTION("ROUTE input")
+	GF_FS_SET_DESCRIPTION("MABR & ROUTE input")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter is a receiver for file delivery over multicast. It currently supports ATSC 3.0, generic ROUTE and DVB-MABR flute.\n"
 	"- ATSC 3.0 mode is identified by the URL `atsc://`.\n"
@@ -839,7 +839,8 @@ GF_FilterRegister ROUTEInRegister = {
 	SETCAPS(ROUTEInCaps),
 	.process = routein_process,
 	.process_event = routein_process_event,
-	.probe_url = routein_probe_url
+	.probe_url = routein_probe_url,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 const GF_FilterRegister *routein_register(GF_FilterSession *session)

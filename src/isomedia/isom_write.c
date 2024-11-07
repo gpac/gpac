@@ -6420,10 +6420,10 @@ GF_Err gf_isom_wma_set_tag(GF_ISOFile *mov, char *name, char *value)
 	}
 
 	u32 len = (u32) strlen(value);
-	tag->prop_value = gf_malloc(sizeof(u16) * (len+1) );
-	memset(tag->prop_value, 0, sizeof(u16) * (len+1) );
+	tag->prop_value = gf_malloc(sizeof(u16) * ((len/2)*2+2) );
+	memset(tag->prop_value, 0, sizeof(u16) * ((len/2)*2+2) );
 	if (len) {
-		u32 _len = gf_utf8_mbstowcs((u16 *) tag->prop_value, len, (const char **) &value);
+		u32 _len = gf_utf8_mbstowcs((u16 *) tag->prop_value, len+1, (const char **) &value);
 		if (_len == GF_UTF8_FAIL) _len = 0;
 		tag->prop_value[2 * _len] = 0;
 		tag->prop_value[2 * _len + 1] = 0;

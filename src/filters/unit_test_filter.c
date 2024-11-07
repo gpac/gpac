@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / unit test filters
@@ -968,7 +968,8 @@ const GF_FilterRegister UTSourceRegister = {
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
 	.process = ut_filter_process_source,
-	.update_arg = ut_filter_update_arg
+	.update_arg = ut_filter_update_arg,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 

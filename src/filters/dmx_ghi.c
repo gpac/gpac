@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023
+ *			Copyright (c) Telecom ParisTech 2023-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / GHI demuxer filter
@@ -1366,6 +1366,7 @@ GF_FilterRegister GHIDXDmxRegister = {
 	.probe_data = ghi_dmx_probe_data,
 	//we accept as many input pids as loaded by the session
 	.max_extra_pids = (u32) -1,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 const GF_FilterRegister *ghidmx_register(GF_FilterSession *session)

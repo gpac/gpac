@@ -128,6 +128,7 @@ typedef struct
 	Bool init_buffering;
 	u32 last_log_time;
 	Bool pmt_update_pending;
+	Bool cdur_overwrite;
 
 	//SCTE-35 data is conveyed by packet properties
 	GF_M2TS_Mux_Stream *scte35_stream;
@@ -145,6 +146,8 @@ typedef struct
 
 	char dash_file_name[GF_MAX_PATH];
 	char idx_file_name[GF_MAX_PATH];
+	char llhas_template[GF_MAX_PATH];
+
 
 	//dash indexing
 	u32 nb_sidx_entries, nb_sidx_alloc;
@@ -161,10 +164,10 @@ typedef struct
 	Double start_range;
 
 	struct __tsmx_pid *ref_pid;
-	Bool wait_llhls_flush;
+	Bool wait_llhas_flush;
 
-	u32 llhls;
-	Bool next_is_llhls_start;
+	u32 llhas_mode;
+	Bool next_is_llhas_start;
 	u32 frag_num;
 
 	u32 frag_offset, frag_size, frag_duration;
@@ -194,8 +197,8 @@ enum
 	M2TS_EODS_FOUND,
 	//forced end of DASH segment (found empty packet with EODS set)
 	M2TS_EODS_FORCED,
-	//end of LL-HLS part
-	M2TS_EODS_LLHLS,
+	//end of LLHAS part
+	M2TS_EODS_LLHAS,
 };
 
 typedef struct __tsmx_pid
@@ -236,7 +239,7 @@ typedef struct __tsmx_pid
 	u8 *pck_data_buf;
 
 	u32 suspended;
-	u64 llhls_dts_init;
+	u64 llhas_dts_init;
 	Bool is_sparse;
 } M2Pid;
 
@@ -489,6 +492,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					tspid->ctx->wait_dash_flush = GF_TRUE;
 				tspid->ctx->dash_seg_num = p->value.uint;
 				tspid->ctx->dash_file_name[0] = 0;
+				tspid->ctx->llhas_template[0] = 0;
 				tsmux_check_mpd_start_time(tspid->ctx, pck);
 			}
 
@@ -503,6 +507,10 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 						strcpy(tspid->ctx->dash_file_name, p->value.string);
 						tspid->ctx->dash_file_switch = GF_TRUE;
 					}
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+					if (p) {
+						strcpy(tspid->ctx->llhas_template, p->value.string);
+					}
 					return GF_OK;
 				}
 				else if (tspid->ctx->last_is_eods_flush) {
@@ -510,6 +518,9 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					if (p2) {
 						strcpy(tspid->ctx->dash_file_name, p2->value.string);
 						tspid->ctx->next_is_start = GF_TRUE;
+						p2 = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+						if (p2)
+							strcpy(tspid->ctx->llhas_template, p2->value.string);
 					}
 				}
 			}
@@ -561,20 +572,20 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (tspid->ctx->ref_pid) {
 			dts = gf_filter_pck_get_dts(pck);
 
-			if (!tspid->llhls_dts_init) {
-				tspid->llhls_dts_init = dts+1;
+			if (!tspid->llhas_dts_init) {
+				tspid->llhas_dts_init = dts+1;
 				if (tspid->ctx->ref_pid == tspid) {
 					if (gf_filter_pck_get_sap(pck))
 						tspid->ctx->frag_has_intra = GF_TRUE;
 				}
 			} else {
-				u64 dur = dts - tspid->llhls_dts_init + 1;
+				u64 dur = dts - tspid->llhas_dts_init + 1;
 				if (gf_timestamp_greater_or_equal(dur, ifce->timescale, tspid->ctx->cdur.num, tspid->ctx->cdur.den)) {
 					if (tspid->ctx->ref_pid == tspid) {
-						tspid->ctx->wait_llhls_flush = GF_TRUE;
+						tspid->ctx->wait_llhas_flush = GF_TRUE;
 						tspid->ctx->frag_duration = (u32) dur;
 					}
-					tspid->has_seen_eods = M2TS_EODS_LLHLS;
+					tspid->has_seen_eods = M2TS_EODS_LLHAS;
 					return GF_OK;
 				}
 				if (tspid->ctx->ref_pid == tspid) {
@@ -1253,6 +1264,14 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		gf_filter_pid_set_name(ctx->opid, "ts_mux");
 		//we are muxing, prevent m2tsdmx from trying to probe the file
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILEPATH, NULL);
+
+		if (!ctx->cdur_overwrite) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_FDUR);
+			if (p && p->value.frac.den) {
+				ctx->cdur = p->value.frac;
+				ctx->cdur_overwrite = GF_TRUE;
+			}
+		}
 	}
 	//set output properties at init or reconfig
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
@@ -1287,8 +1306,8 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				ctx->force_seg_sync = GF_TRUE;
 		}
 	}
-	p = gf_filter_pid_get_info(pid, GF_PROP_PID_LLHLS, &pe);
-	ctx->llhls = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_info(pid, GF_PROP_PID_LLHAS_MODE, &pe);
+	ctx->llhas_mode = p ? p->value.uint : GF_LLHAS_NONE;
 
 	gf_filter_release_property(pe);
 
@@ -1318,7 +1337,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 	}
 
-	if (ctx->llhls && (!ctx->ref_pid || (streamtype == GF_STREAM_VISUAL)) ) {
+	if (ctx->llhas_mode && (!ctx->ref_pid || (streamtype == GF_STREAM_VISUAL)) ) {
 		ctx->ref_pid = tspid;
 	}
 
@@ -1738,7 +1757,7 @@ static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 	tsidx->offset = (ctx->nb_sidx_entries>1) ? 0 : ctx->nb_pck_first_sidx;
 }
 
-static void tsmux_flush_frag_hls(GF_TSMuxCtx *ctx, Bool is_last)
+static void tsmux_flush_frag_llhas(GF_TSMuxCtx *ctx, Bool is_last)
 {
 	GF_FilterEvent evt;
 
@@ -1804,6 +1823,9 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (p)
 				strcpy(tspid->ctx->dash_file_name, p->value.string);
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+			if (p)
+				strcpy(tspid->ctx->llhas_template, p->value.string);
 			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_IDXFILENAME);
 			if (p)
 				strcpy(tspid->ctx->idx_file_name, p->value.string);
@@ -1818,12 +1840,12 @@ static GF_Err tsmux_process(GF_Filter *filter)
 	}
 
 
-	if (ctx->wait_dash_flush || ctx->wait_llhls_flush) {
+	if (ctx->wait_dash_flush || ctx->wait_llhas_flush) {
 		//we are waiting for all packets to be flushed
 		if (ctx->pending_packets)
 			return GF_OK;
 
-		Bool is_llhls_flush = GF_FALSE;
+		Bool is_llhas_flush = GF_FALSE;
 		Bool is_eods_flush = GF_FALSE;
 		u32 i, done=0, count = gf_list_count(ctx->pids);
 		for (i=0; i<count; i++) {
@@ -1836,26 +1858,26 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				M2Pid *tspid = gf_list_get(ctx->pids, i);
 				if (tspid->has_seen_eods==M2TS_EODS_FORCED)
 					is_eods_flush = GF_TRUE;
-				else if (tspid->has_seen_eods==M2TS_EODS_LLHLS) {
-					is_llhls_flush = GF_TRUE;
+				else if (tspid->has_seen_eods==M2TS_EODS_LLHAS) {
+					is_llhas_flush = GF_TRUE;
 				}
 				tspid->has_seen_eods = 0;
-				tspid->llhls_dts_init = 0;
+				tspid->llhas_dts_init = 0;
 			}
 			ctx->wait_dash_flush = GF_FALSE;
 			ctx->mux->force_pat = GF_TRUE;
 
-			if (is_llhls_flush) {
-				ctx->wait_llhls_flush = GF_FALSE;
-				ctx->next_is_llhls_start = GF_TRUE;
+			if (is_llhas_flush) {
+				ctx->wait_llhas_flush = GF_FALSE;
+				ctx->next_is_llhas_start = GF_TRUE;
 
-				tsmux_flush_frag_hls(ctx, GF_FALSE);
+				tsmux_flush_frag_llhas(ctx, GF_FALSE);
 			} else {
 				ctx->next_is_start = ctx->dash_file_switch;
 				ctx->dash_file_switch = GF_FALSE;
 
-				if (ctx->llhls) {
-					tsmux_flush_frag_hls(ctx, GF_TRUE);
+				if (ctx->llhas_mode) {
+					tsmux_flush_frag_llhas(ctx, GF_TRUE);
 					ctx->frag_offset = 0;
 				}
 
@@ -1927,20 +1949,31 @@ static GF_Err tsmux_process(GF_Filter *filter)
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->dash_file_name) ) ;
 			if (ctx->dash_seg_start.den)
 				gf_filter_pck_set_property(pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) ) ;
+			if (ctx->llhas_template[0])
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE, &PROP_STRING(ctx->llhas_template) ) ;
 
 			ctx->dash_file_name[0] = 0;
+			ctx->llhas_template[0] = 0;
 			ctx->next_is_start = GF_FALSE;
-			if (ctx->llhls>1) {
-				ctx->frag_num=1;
-				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
+			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
+				ctx->frag_num=0;
+				u32 fnum = ctx->frag_num;
+				//we'll need to redo all LLHLS tests
+				if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
+					fnum++;
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 			}
 		}
-		else if (ctx->next_is_llhls_start) {
-			if (ctx->llhls>1) {
+		else if (ctx->next_is_llhas_start) {
+			if (ctx->llhas_mode>GF_LLHAS_BYTERANGES) {
+				u32 fnum = ctx->frag_num;
 				ctx->frag_num++;
-				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
+				//we'll need to redo all LLHLS tests
+				if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
+					fnum++;
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 			}
-			ctx->next_is_llhls_start = GF_FALSE;
+			ctx->next_is_llhas_start = GF_FALSE;
 		}
 
 		pck_ts = gf_m2ts_get_ts_clock_90k(ctx->mux);
@@ -1964,7 +1997,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		ctx->nb_pck_in_file += nb_pck_in_pack;
 		nb_pck_in_call += nb_pck_in_pack;
 		nb_pck_in_pack = 0;
-		if (ctx->llhls)
+		if (ctx->llhas_mode)
 			ctx->frag_size += osize;
 
 		if (is_pack_flush)
@@ -1977,7 +2010,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			break;
 	}
 
-	if (ctx->wait_dash_flush || ctx->wait_llhls_flush) {
+	if (ctx->wait_dash_flush || ctx->wait_llhas_flush) {
 		u32 i, done=0, count = gf_list_count(ctx->pids);
 		for (i=0; i<count; i++) {
 			M2Pid *tspid = gf_list_get(ctx->pids, i);
@@ -2333,6 +2366,7 @@ GF_FilterRegister TSMuxRegister = {
 	.configure_pid = tsmux_configure_pid,
 	.process = tsmux_process,
 	.process_event = tsmux_process_event,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 

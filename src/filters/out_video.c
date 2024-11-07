@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -2367,7 +2367,8 @@ GF_FilterRegister VideoOutRegister = {
 	.configure_pid = vout_configure_pid,
 	.process = vout_process,
 	.process_event = vout_process_event,
-	.update_arg = vout_update_arg
+	.update_arg = vout_update_arg,
+	.hint_class_type = GF_FS_CLASS_MM_IO
 };
 
 const GF_FilterRegister *vout_register(GF_FilterSession *session)

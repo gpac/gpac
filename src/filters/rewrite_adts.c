@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS write filter
@@ -405,14 +405,15 @@ static const GF_FilterArgs ADTSMxArgs[] =
 
 GF_FilterRegister ADTSMxRegister = {
 	.name = "ufadts",
-	GF_FS_SET_DESCRIPTION("ADTS writer")
+	GF_FS_SET_DESCRIPTION("ADTS rewriter")
 	GF_FS_SET_HELP("This filter converts AAC streams into ADTS encapsulated data.")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = ADTSMxArgs,
 	.finalize = adtsmx_finalize,
 	SETCAPS(ADTSMxCaps),
 	.configure_pid = adtsmx_configure_pid,
-	.process = adtsmx_process
+	.process = adtsmx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 
@@ -450,7 +451,7 @@ static const GF_FilterCapability LATMMxCaps[] =
 
 GF_FilterRegister LATMMxRegister = {
 	.name = "uflatm",
-	GF_FS_SET_DESCRIPTION("Raw AAC to LATM writer")
+	GF_FS_SET_DESCRIPTION("LATM rewriter")
 	GF_FS_SET_HELP("This filter converts AAC streams into LATM encapsulated data.")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = LATMMxArgs,
@@ -458,7 +459,8 @@ GF_FilterRegister LATMMxRegister = {
 	.finalize = adtsmx_finalize,
 	SETCAPS(LATMMxCaps),
 	.configure_pid = adtsmx_configure_pid,
-	.process = adtsmx_process
+	.process = adtsmx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 
