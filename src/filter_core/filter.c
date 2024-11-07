@@ -2012,6 +2012,7 @@ skip_date:
 				save_a = a;
 			}
 			//little optim here: if no value provided, check if argument name is exactly one of the possible enums
+			//only do this for explicit filters, not for inheritance
 			else if (a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
 				const char *enums = a->min_max_enum;
 				while (enums) {
@@ -2030,13 +2031,16 @@ skip_date:
 				}
 			}
 
-			if(is_my_arg || count_enum_val>1) break;		
+			if (is_my_arg || count_enum_val>1) break;
 		}
 
 		if(is_my_arg && count_enum_val>0) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Ambiguous argument %s in filter %s: both an argument and an enum value share the name \"%s\", ignoring\n", szArg, filter->freg->name, szArg));
 		} else if(count_enum_val>1) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is ambiguous (multiple enum arguments have \"%s\" as possible value), ignoring\n", szArg, filter->freg->name, szArg));
+			//only warn for explicit filters
+			if (!filter->dynamic_filter) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is ambiguous (multiple enum arguments have \"%s\" as possible value), ignoring\n", szArg, filter->freg->name, szArg));
+			}
 		} else if (is_my_arg || count_enum_val==1) {
 			restricted = gf_opts_get_key_restricted(szSecName, save_a->arg_name);
 			found=GF_TRUE;
