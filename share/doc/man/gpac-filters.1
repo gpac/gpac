@@ -8409,6 +8409,8 @@ To list all supported decoders for your GPAC build, use gpac -h ffdec:*.
 .br
 Options can be passed from prompt using --OPT=VAL
 .br
+Decoder flags can be passed directly as :FLAGNAME.
+.br
 The default threading mode is to let libavcodec decide how many threads to use. To enforce single thread, use --threads=1
 .br
 
@@ -8686,6 +8688,14 @@ If not found, it will consider the name to be a GPAC codec name and find a codec
 
 .br
 Options can be passed from prompt using --OPT=VAL (global options) or appending ::OPT=VAL to the desired encoder filter.
+.br
+Encoder flags can be passed directly as :FLAGNAME.
+.br
+
+.br
+Note
+.br
+Setting the :low_delay flag will set by default profile=baseline, preset=ultrafast and tune=zerolatency options as well as x264-params for AVC|H264. If one or more of these options are set as filter arguments, no defaulting is used for all these options.
 .br
 
 .br

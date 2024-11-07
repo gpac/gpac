@@ -1508,6 +1508,7 @@ GF_FilterRegister FFDecodeRegister = {
 	"To list all supported decoders for your GPAC build, use `gpac -h ffdec:*`.\n"
 	"\n"
 	"Options can be passed from prompt using `--OPT=VAL`\n"
+	"Decoder flags can be passed directly as `:FLAGNAME`.\n"
 	"The default threading mode is to let libavcodec decide how many threads to use. To enforce single thread, use `--threads=1`\n"
 	"\n"
 	"# Codec Map\n"
