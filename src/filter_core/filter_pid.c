@@ -8811,7 +8811,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		}
 		sep = strchr(name+1, '$');
 		if (!sep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] broken file template expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] broken file template `%s` expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
 			strcpy(szFinalName, szTemplate);
 			return GF_BAD_PARAM;
 		}
@@ -8990,10 +8990,11 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			szFinalName[k] = '$';
 			k++;
 			name++;
-
+			//allow $;$ to delimit $$ (may be required with some shells)
+			if ((name[0]==';') && (name[1]=='$'))
+				name++;
 
 			continue;
-
 		}
 
 
@@ -9082,6 +9083,10 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		if (!sep) break;
 		sep[0] = '$';
 		name = sep+1;
+		//allow $;$ to delimit $$ (may be required with some shells)
+		if ((name[0]==';') && (name[1]=='$'))
+			name++;
+
 	}
 	szFinalName[k] = 0;
 	return GF_OK;
