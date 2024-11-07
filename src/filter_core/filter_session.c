@@ -457,9 +457,10 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 	if (session->flags & GF_FS_FLAG_NO_ARG_CHECK)
 		return;
 
-	//ignore any meta argument reported (found or not) that is not already present
+	//ignore any meta argument reported unfound that is not already present
 	//if sub_opt_name, we must create an entry
-	if (!sub_opt_name && (type==GF_ARGTYPE_META_REPORTING)) {
+	//if meta and found, remember the option was valid as it could get pushed by an inheritance chain
+	if (!sub_opt_name && (type==GF_ARGTYPE_META_REPORTING) && !was_found) {
 		create_if_not_found = GF_FALSE;
 	}
 	if (!session->parsed_args) session->parsed_args = gf_list_new();
