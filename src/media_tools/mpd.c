@@ -1336,6 +1336,7 @@ void gf_mpd_representation_free(void *_item)
 		}
 		gf_list_del(ptr->state_seg_list);
 	}
+	if (ptr->m3u8_name) gf_free(ptr->m3u8_name);
 	if (ptr->m3u8_var_name) gf_free(ptr->m3u8_var_name);
 	if (ptr->m3u8_var_file) gf_fclose(ptr->m3u8_var_file);
 	if (ptr->res_url) gf_free(ptr->res_url);
@@ -4095,7 +4096,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 								if (!o_sctx || !o_sctx->nb_frags) continue;
 							}
 
-							char *o_name = (char *) o_rep->m3u8_name;
+							char *o_name = o_rep->m3u8_name;
 							if (!o_name) {
 								o_name = gf_file_basename(o_rep->m3u8_var_name);
 							}
@@ -4395,7 +4396,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			}
 			if (mode==GF_M3U8_WRITE_MASTER) break;
 
-			char *name = (char *) rep->m3u8_name;
+			char *name = rep->m3u8_name;
 			if (!name) {
 				name = gf_file_basename(rep->m3u8_var_name);
 			}
@@ -4461,7 +4462,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
 			char szSuffixName[GF_MAX_PATH+1];
-			char *name = (char *) rep->m3u8_name;
+			char *name = rep->m3u8_name;
 			if (!mpd->allow_empty_reps && (!rep->state_seg_list || !gf_list_count(rep->state_seg_list)) ) {
 				continue;
 			}
