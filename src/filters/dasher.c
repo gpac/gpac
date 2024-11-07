@@ -5631,7 +5631,7 @@ resend:
 					Bool do_free = GF_FALSE;
 
 					if (rep->m3u8_name) {
-						outfile = (char *) rep->m3u8_name;
+						outfile = rep->m3u8_name;
 						if (ctx->out_path && (ctx->from_index<=IDXMODE_ALL) && !ctx->explicit_mode) {
 							outfile = gf_url_concatenate(ctx->out_path, rep->m3u8_name);
 							do_free = GF_TRUE;
@@ -8274,7 +8274,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			}
 			ds->rep->nb_chan = ds->nb_ch;
-			ds->rep->m3u8_name = ds->hls_vp_name;
+			//we need a copy when flushing MPD after a period switch
+			if (ds->rep->m3u8_name) gf_free(ds->rep->m3u8_name);
+			ds->rep->m3u8_name = ds->hls_vp_name ? gf_strdup(ds->hls_vp_name) : NULL;
 			if (ds->fps.den) {
 				ds->rep->fps = ds->fps.num;
 				ds->rep->fps /= ds->fps.den;

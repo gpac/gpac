@@ -664,7 +664,7 @@ typedef struct {
 	const char *groupID;
 
 	/*! user assigned m3u8 name for this representation*/
-	const char *m3u8_name;
+	char *m3u8_name;
 	/*! generated m3u8 name if no user-assigned one*/
 	char *m3u8_var_name;
 	/*! temp file for m3u8 generation*/
