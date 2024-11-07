@@ -25,6 +25,7 @@
 
 #include <gpac/tools.h>
 #include <gpac/thread.h>
+#include <gpac/utf.h>
 
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
@@ -46,6 +47,25 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 		if ( ch >= 0x20 && ch <= 0x7E ) {
 			*name = ch;
 			name++;
+		} else if (!gf_sys_is_test_mode() ) {
+			char szTmp[2];
+			szTmp[0] = 0xc2;
+			szTmp[1] = ch;
+			if (gf_utf8_is_legal(szTmp, 2)) {
+				name[0] = 0xc2;
+				name[1] = ch;
+				name+=2;
+			} else {
+				szTmp[0] = 0xc3;
+				if (gf_utf8_is_legal(szTmp, 2)) {
+					name[0] = 0xc2;
+					name[1] = ch;
+					name+=2;
+				} else {
+					sprintf(name, "%02X", ch);
+					name += 2;
+				}
+			}
 		} else {
 			sprintf(name, "%02X", ch);
 			name += 2;
