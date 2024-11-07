@@ -134,7 +134,16 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 
 	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
 		if (box->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
-			gf_fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
+			switch (((GF_UnknownBox*)box)->original_4cc) {
+			case GF_ISOM_BOX_TYPE_CMOV:
+			case GF_ISOM_BOX_TYPE_CMOF:
+			case GF_ISOM_BOX_TYPE_CSIX:
+			case GF_ISOM_BOX_TYPE_CSSX:
+			case GF_QT_BOX_TYPE_CMOV:
+				break;
+			default:
+				gf_fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
+			}
 		} else if (box->type==GF_ISOM_BOX_TYPE_UUID) {
 		} else if (!gf_isom_box_is_file_level(box)) {
 			gf_fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
@@ -1650,6 +1659,11 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 	gf_fprintf(trace, ">\n");
 
 	nb_comps = gf_bs_read_u16(bs);
+	if (16*nb_comps > gf_bs_available(bs)) {
+		gf_bs_del(bs);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
+		return GF_ISOM_INVALID_MEDIA;
+	}
 	types = gf_malloc(sizeof(CompInfo) * nb_comps);
 	if (!types) {
 		gf_bs_del(bs);
@@ -1664,6 +1678,12 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 		gf_fprintf(trace, " bit_depth=\"%u\" type=\"%u\" name=\"%s\"/>\n", types[i].bits, types[i].type, get_comp_type_name(types[i].type) );
 	}
 	nb_vals = gf_bs_read_u32(bs);
+	if (nb_vals/8 > gf_bs_available(bs)) {
+		gf_free(types);
+		gf_bs_del(bs);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
+		return GF_ISOM_INVALID_MEDIA;
+	}
 	for (j=0; j<nb_vals; j++) {
 		gf_fprintf(trace, "<ComponentValue");
 		for (i=0; i<nb_comps; i++) {
@@ -1671,27 +1691,27 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 			szTmp[0] = 0;
 			switch (types[i].type) {
 			case 0:
-				sprintf(szTmp, " C%d=\"%u\"", i+1, gf_bs_read_int(bs, types[i].bits));
+				snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%u\"", i+1, gf_bs_read_int(bs, types[i].bits));
 				break;
 			case 1:
 				if (types[i].bits==32)
-					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_float(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g\"", i+1, gf_bs_read_float(bs));
 				else if (types[i].bits==64)
-					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_double(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g\"", i+1, gf_bs_read_double(bs));
 				else
-					sprintf(szTmp, " C%d=\"0x%X\"", i+1, gf_bs_read_int(bs, types[i].bits));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"0x%X\"", i+1, gf_bs_read_int(bs, types[i].bits));
 				break;
 			case 2:
 				if (types[i].bits==64)
-					sprintf(szTmp, " C%d=\"%f + %fi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g + %gi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
 				else if (types[i].bits==128) {
-					sprintf(szTmp, " C%d=\"%g + %gi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g + %gi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
 				}
 				else
-					sprintf(szTmp, " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
 				break;
 			default:
-				sprintf(szTmp, " C%d=\"invalid", i+1);
+				snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"invalid", i+1);
 				break;
 			}
 			gf_fprintf(trace, "%s", szTmp);
@@ -2025,6 +2045,23 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_cmpc(u, trace);
 	} else if (u->original_4cc==GF_4CC('i','c','e','f')) {
 		return dump_icef(u, trace);
+	} else if ((u->original_4cc==GF_ISOM_BOX_TYPE_CMOV)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CMOF)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CSIX)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CSSX)
+		|| (u->original_4cc==GF_QT_BOX_TYPE_CMOV)
+	) {
+		char *bname = "CompressedMovieBox";
+		char *spec = "p12";
+		if (u->original_4cc==GF_ISOM_BOX_TYPE_CMOF) bname = "CompressedMovieFragmentBox";
+		else if (u->original_4cc==GF_ISOM_BOX_TYPE_CSIX) bname = "CompressedSegmentIndexBox";
+		else if (u->original_4cc==GF_ISOM_BOX_TYPE_CSSX) bname = "CompressedSubSegmentIndexBox";
+		else if (u->original_4cc==GF_QT_BOX_TYPE_CMOV)  spec = "apple";
+
+		gf_isom_box_dump_start_ex(a, bname, trace, GF_FALSE, spec, "file");
+		gf_fprintf(trace, ">\n");
+		gf_isom_box_dump_done(bname, a, trace);
+		return GF_OK;
 	} else {
 #ifdef GPAC_HAS_QJS
 		const char *opt = gf_opts_get_key("core", "boxdir");
@@ -2687,7 +2724,7 @@ GF_Err twrp_box_dump(GF_Box *a, FILE * trace)
 GF_Err meta_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_MetaBox *ptr = (GF_MetaBox *)a;
-	gf_isom_box_dump_start_ex(a, "MetaBox", trace, ptr->is_qt ? GF_FALSE : GF_TRUE);
+	gf_isom_box_dump_start_ex(a, "MetaBox", trace, ptr->is_qt ? GF_FALSE : GF_TRUE, NULL, NULL);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MetaBox", a, trace);
 	return GF_OK;

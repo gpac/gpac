@@ -643,6 +643,8 @@ typedef enum
 	Samples may be added to the file in this mode, they will be stored in memory
 	*/
 	GF_ISOM_OPEN_READ_EDIT,
+	/*! same as GF_ISOM_OPEN_READ_DUMP but does not decompress boxes*/
+	GF_ISOM_OPEN_READ_DUMP_NO_COMP
 } GF_ISOOpenMode;
 
 /*! indicates if target file is an IsoMedia file

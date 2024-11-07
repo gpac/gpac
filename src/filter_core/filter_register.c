@@ -159,12 +159,11 @@ REG_DEC(dtout)
 REG_DEC(mcdec)
 #endif
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)
 REG_DEC(wcdec)
 REG_DEC(wcenc)
 REG_DEC(webgrab)
 #endif
-
 
 REG_DEC(rfflac)
 REG_DEC(rfprores)
@@ -356,7 +355,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ccdec),
 	REG_IT(scte35dec),
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)
 	REG_IT(wcdec),
 	REG_IT(wcenc),
 	REG_IT(webgrab),

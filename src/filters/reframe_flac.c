@@ -859,7 +859,8 @@ GF_FilterRegister FLACDmxRegister = {
 	.configure_pid = flac_dmx_configure_pid,
 	.process = flac_dmx_process,
 	.probe_data = flac_dmx_probe_data,
-	.process_event = flac_dmx_process_event
+	.process_event = flac_dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

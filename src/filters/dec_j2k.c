@@ -623,6 +623,7 @@ GF_FilterRegister J2KRegister = {
 	.initialize = j2kdec_initialize,
 	.configure_pid = j2kdec_configure_pid,
 	.process = j2kdec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Context loader filter
@@ -989,7 +989,7 @@ static const GF_FilterArgs CTXLoadArgs[] =
 
 GF_FilterRegister CTXLoadRegister = {
 	.name = "btplay",
-	GF_FS_SET_DESCRIPTION("BT/XMT/X3D loader")
+	GF_FS_SET_DESCRIPTION("BT/XMT/X3D decoder")
 	GF_FS_SET_HELP("This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files directly into the scene graph of the compositor.\n"
 	"\n"
 	"When [-sax_dur=N]() is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than `N`.\n")
@@ -1002,6 +1002,7 @@ GF_FilterRegister CTXLoadRegister = {
 	.configure_pid = ctxload_configure_pid,
 	.process_event = ctxload_process_event,
 	.probe_data = ctxload_probe_data,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif //defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)

@@ -41,7 +41,15 @@ extern GF_List *args_used;
 extern GF_List *args_alloc;
 extern u32 compositor_mode;
 
-GF_List *sorted_filters = NULL;
+GF_List *filter_classes = NULL;
+typedef struct
+{
+	GF_ClassTypeHint type;
+	const char *name;
+	GF_List *filter_names;
+	GF_List *filter_descs;
+} FilterCategory;
+
 #define SEP_LIST	3
 
 
@@ -353,7 +361,7 @@ const char *gpac_doc =
 "- cts, dts, dur, sap: uses properties of first packet in PID at template resolution time\n"
 "- OTHER: locates property 4CC for the given name, or property name if no 4CC matches.\n"
 "  \n"
-"`$$` is an escape for $\n"
+"`$$` is an escape for `$`. For shells automatically replacing `$$` with `$`, the syntax `$;$` can be used to express `$$`.\n"
 "\n"
 "Templating can be useful when encoding several qualities in one pass.\n"
 "EX gpac -i dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 c=avc:b=1M @2 c=avc:b=750k -o dump_$CropOrigin$x$Width$x$Height$.264\n"
@@ -1684,9 +1692,51 @@ static void print_filter_single_opt(const GF_FilterRegister *reg, char *optname,
 	fprintf(stderr, "No such option %s for filter %s\n", optname, filter_inst ? gf_filter_get_name(filter_inst) : reg->name);
 }
 
+static FilterCategory *get_filter_class(GF_ClassTypeHint hint)
+{
+	FilterCategory *c;
+	if (!filter_classes) filter_classes = gf_list_new();
+	if (hint>=GF_FS_CLASS_LAST_DEFINED) hint = GF_FS_CLASS_UNSPECIFIED;
+	u32 i, count = gf_list_count(filter_classes);
+	for (i=0; i<count; i++) {
+		c = gf_list_get(filter_classes, i);
+		if (c->type == hint) return c;
+	}
+	GF_SAFEALLOC(c, FilterCategory);
+	c->type = hint;
+	c->filter_names = gf_list_new();
+	c->filter_descs = gf_list_new();
+	switch (hint) {
+	case GF_FS_CLASS_DEMULTIPLEXER: c->name = "Demultiplexers"; break;
+	case GF_FS_CLASS_MULTIPLEXER: c->name = "Mulitplexers"; break;
+	case GF_FS_CLASS_DECODER: c->name = "Decoders"; break;
+	case GF_FS_CLASS_ENCODER: c->name = "Encoders"; break;
+	case GF_FS_CLASS_CRYPTO: c->name = "Cryptography"; break;
+	case GF_FS_CLASS_MM_IO: c->name = "Multimedia I/O"; break;
+	case GF_FS_CLASS_NETWORK_IO: c->name = "Protocols I/O"; break;
+	case GF_FS_CLASS_SUBTITLE: c->name = "Text & Subtitles"; break;
+	case GF_FS_CLASS_AV: c->name = "Audio & Video Processing"; break;
+	case GF_FS_CLASS_STREAM: c->name = "Stream Manipulation"; break;
+	case GF_FS_CLASS_FRAMING: c->name = "Bitstream Framing"; break;
+	case GF_FS_CLASS_TOOL: c->name = "Utilities & Tools"; break;
+	default: c->name = "Unclassified"; break;
+	}
+
+	for (i=0; i<count; i++) {
+		FilterCategory *ac = gf_list_get(filter_classes, i);
+		if (c->type < ac->type) {
+			gf_list_insert(filter_classes, c, i);
+			return c;
+		}
+	}
+	gf_list_add(filter_classes, c);
+	return c;
+}
+
 static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF_Filter *filter_inst, char *inst_name)
 {
 	u32 idx=0;
+	GF_ClassTypeHint hint_type = GF_FS_CLASS_UNSPECIFIED;
 	const GF_FilterArgs *args = NULL;
 	const char *reg_name, *reg_desc=NULL;
 #ifndef GPAC_DISABLE_DOC
@@ -1697,11 +1747,14 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	if (filter_inst) {
 		reg_name = inst_name;
 		reg_desc = gf_filter_get_description(filter_inst);
+		hint_type = gf_filter_get_class_hint(filter_inst);
 #ifndef GPAC_DISABLE_DOC
 		reg_help = gf_filter_get_help(filter_inst);
 #endif
 	} else if (reg) {
 		reg_name = reg->name;
+		hint_type = reg->hint_class_type;
+		reg_desc = reg->name;
 #ifndef GPAC_DISABLE_DOC
 		reg_desc = reg->description;
 		reg_help = reg->help;
@@ -1723,17 +1776,25 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		helpout = gf_fopen(szName, "w");
 		fprintf(helpout, "%s", auto_gen_md_warning);
 
-		if (!sorted_filters) sorted_filters = gf_list_new();
-		u32 idx, count = gf_list_count(sorted_filters);
+		if (hint_type==GF_FS_CLASS_UNSPECIFIED) {
+			fprintf(stderr, "filter %s without class, forbidden\n", reg_name);
+			exit(1);
+		}
+		FilterCategory *help_class = get_filter_class(hint_type);
+
+		u32 idx, count = gf_list_count(help_class->filter_descs);
 		for (idx=0; idx<count; idx++) {
-			const char *areg_name = gf_list_get(sorted_filters, idx);
-			if (strcmp(reg_name, areg_name)<0) {
-				gf_list_insert(sorted_filters, gf_strdup(reg_name), idx);
+			const char *areg_desc = gf_list_get(help_class->filter_descs, idx);
+			if (strcmp(reg_desc, areg_desc)<0) {
+				gf_list_insert(help_class->filter_names, gf_strdup(reg_name), idx);
+				gf_list_insert(help_class->filter_descs, gf_strdup(reg_desc), idx);
 				break;
 			}
 		}
-		if (idx==count)
-			gf_list_add(sorted_filters, gf_strdup(reg_name));
+		if (idx==count) {
+			gf_list_add(help_class->filter_names, gf_strdup(reg_name));
+			gf_list_add(help_class->filter_descs, gf_strdup(reg_desc));
+		}
 
 #ifndef GPAC_DISABLE_DOC
 
@@ -2071,11 +2132,18 @@ static Bool jsinfo_dir_enum(void *cbck, char *item_name, char *item_path, GF_Fil
 
 static void patch_mkdocs_yml()
 {
-	if (!gf_file_exists("../../mkdocs.yml")) goto exit;
+	const char *yml_src = "../../mkdocs.yml";
+	if (!gf_file_exists("../../mkdocs.yml")) {
+		yml_src = "mkdocs.yml";
+		FILE *t = gf_fopen(yml_src, "w");
+		gf_fprintf(t, "    - All filters:\n");
+		gf_fclose(t);
+	}
+
 	char szLine[1024];
 	Bool in_filter_list=GF_FALSE;
 	char *oyml = NULL;
-	FILE *yml = gf_fopen("../../mkdocs.yml", "r");
+	FILE *yml = gf_fopen(yml_src, "r");
 	while (!feof(yml)) {
 		char *read = gf_fgets(szLine, 1024, yml);
 		if (!read) break;
@@ -2086,11 +2154,29 @@ static void patch_mkdocs_yml()
 			gf_dynstrcat(&oyml, szLine, NULL);
 			in_filter_list = GF_TRUE;
 
-			while (gf_list_count(sorted_filters)) {
-				char *fname = gf_list_pop_front(sorted_filters);
-				sprintf(szLine, "      - %s: Filters/%s.md\r\n", fname, fname);
+			while (gf_list_count(filter_classes)) {
+				FilterCategory *fclass = gf_list_pop_front(filter_classes);
+				sprintf(szLine, "      - %s:\r\n", fclass->name);
 				gf_dynstrcat(&oyml, szLine, NULL);
-				gf_free(fname);
+				while (gf_list_count(fclass->filter_names)) {
+					char *fname = gf_list_pop_front(fclass->filter_names);
+					char *fdesc = gf_list_pop_front(fclass->filter_descs);
+					char *sep = NULL;
+					if (fclass->type == GF_FS_CLASS_DEMULTIPLEXER) sep = strstr(fdesc, " demultiplexer");
+					else if (fclass->type == GF_FS_CLASS_MULTIPLEXER) sep = strstr(fdesc, " multiplexer");
+					else if (fclass->type == GF_FS_CLASS_DECODER) sep = strstr(fdesc, " decoder");
+					else if (fclass->type == GF_FS_CLASS_ENCODER) sep = strstr(fdesc, " encoder");
+
+					if (sep) sep[0] = 0;
+					sprintf(szLine, "        - %s: Filters/%s.md\r\n", fdesc, fname);
+					gf_dynstrcat(&oyml, szLine, NULL);
+					if (sep) sep[0] = ' ';
+					gf_free(fname);
+					gf_free(fdesc);
+				}
+				gf_list_del(fclass->filter_names);
+				gf_list_del(fclass->filter_descs);
+				gf_free(fclass);
 			}
 			continue;
 		}
@@ -2101,17 +2187,26 @@ static void patch_mkdocs_yml()
 	}
 	gf_fclose(yml);
 	if (oyml) {
-		FILE *yml = gf_fopen("../../mkdocs.yml", "w");
+		FILE *yml = gf_fopen(yml_src, "w");
 		gf_fwrite(oyml, (u32) strlen(oyml), yml);
 		gf_fclose(yml);
 		gf_free(oyml);
 	}
 
-exit:
-	while (gf_list_count(sorted_filters)) {
-		gf_free(gf_list_pop_back(sorted_filters));
+	while (gf_list_count(filter_classes)) {
+		FilterCategory *fclass = gf_list_pop_back(filter_classes);
+		while (gf_list_count(fclass->filter_names)) {
+			gf_free(gf_list_pop_back(fclass->filter_names));
+		}
+		gf_list_del(fclass->filter_names);
+
+		while (gf_list_count(fclass->filter_descs)) {
+			gf_free(gf_list_pop_back(fclass->filter_descs));
+		}
+		gf_list_del(fclass->filter_descs);
+		gf_free(fclass);
 	}
-	gf_list_del(sorted_filters);
+	gf_list_del(filter_classes);
 }
 
 Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
@@ -2321,6 +2416,36 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 	if (gpac_suggest_filter(fname, GF_TRUE, GF_FALSE))
 		return GF_TRUE;
 	return GF_FALSE;
+}
+
+void check_prop_def(char *pname)
+{
+	u32 pname_len = pname ? (u32) strlen(pname) : 0;
+	if (pname_len==4) {
+		u32 i;
+		Bool is_p4cc = GF_TRUE;
+		for (i=0; i<4;i++) {
+			if ((pname[i]>='0') && (pname[i]<'9')) {}
+			else if ((pname[i]>='A') && (pname[i]<='Z')) {}
+			else if ((pname[i]>='a') && (pname[i]<='z')) {}
+			else {
+				is_p4cc = GF_FALSE;
+			}
+		}
+		if (is_p4cc) {
+			u32 p4cc = GF_4CC(pname[0],pname[1],pname[2],pname[3]);
+			const char *name = gf_props_4cc_get_name(p4cc);
+			if (name) return;
+			fprintf(stdout, "UNKNOWN '%c','%c','%c','%c'\n", pname[0], pname[1], pname[2], pname[3]);
+			return;
+		}
+	}
+	if (!strcmp(pname, "check")) {
+		gf_props_sanity_check();
+		return;
+	}
+
+	fprintf(stdout, "INVALID %s\n", pname);
 }
 
 void dump_all_props(char *pname)
@@ -3636,13 +3761,27 @@ Bool gpac_expand_alias(int o_argc, char **o_argv)
 void parse_sep_set(const char *arg, Bool *override_seps)
 {
 	if (!arg) return;
-	u32 len = (u32) strlen(arg);
+	u32 len = (u32) strlen(arg), i;
 	if (!len) return;
+	char save_seps[sizeof(separator_set)];
+	strcpy(save_seps, separator_set);
+	Bool save_override_seps=*override_seps;
 	*override_seps = GF_TRUE;
-	if (len>=1) separator_set[0] = arg[0];
-	if (len>=2) separator_set[1] = arg[1];
-	if (len>=3) separator_set[2] = arg[2];
-	if (len>=4) separator_set[3] = arg[3];
-	if (len>=5) separator_set[4] = arg[4];
-	if (len>=6) separator_set[5] = arg[5];
+
+	if (len+1>sizeof(separator_set)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Separator set too long (%s): ", arg));
+	}
+	strncpy(separator_set, arg, MIN(len, sizeof(separator_set)-1));
+	if (len+1>sizeof(separator_set)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("truncating to (%s)\n", separator_set));
+	}
+
+	for(i=0; i+1 < sizeof(separator_set); i++) {
+		if(strchr(separator_set+i+1, separator_set[i])) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Invalid separator set (%s): duplicate characters found. Reverting to previous set (%s)\n", separator_set, save_seps));
+			*override_seps = save_override_seps;
+			strcpy(separator_set, save_seps);
+			return;
+		}
+	}
 }

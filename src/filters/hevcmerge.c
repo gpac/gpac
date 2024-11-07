@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile merger filter
@@ -1688,6 +1688,7 @@ GF_FilterRegister HEVCMergeRegister = {
 	.process = hevcmerge_process,
 	.process_event = hevcmerge_process_event,
 	.max_extra_pids = -1,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister *hevcmerge_register(GF_FilterSession *session)

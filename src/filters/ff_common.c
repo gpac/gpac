@@ -1701,7 +1701,10 @@ void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx)
 		while (ctx->av_class->option) {
 			const struct AVOption *opt = &ctx->av_class->option[idx];
 			if (!opt || !opt->name) break;
-			if (opt->name && !strcmp(opt->name, de->key) && (!stricmp(de->value, "true") || !stricmp(de->value, "yes") || !stricmp(de->value, "1") )) {
+			if ((opt->name && !strcmp(opt->name, de->key) && (!stricmp(de->value, "true") || !stricmp(de->value, "yes") || !stricmp(de->value, "1") ))
+
+				|| (opt->unit && !strcmp(de->key, opt->unit) && !strcmp(opt->name, de->value))
+			) {
 				if (opt->unit && !strcmp(opt->unit, "flags"))
 					ctx->flags |= (int) opt->default_val.i64;
 				else if (opt->unit && !strcmp(opt->unit, "flags2"))

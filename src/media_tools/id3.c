@@ -26,7 +26,7 @@ GF_Err gf_id3_tag_new(GF_ID3_TAG *tag, u32 timescale, u64 pts, u8 *data, u32 dat
     tag->timescale = timescale;
     tag->pts = pts;
     tag->scheme_uri = gf_strdup(ID3_PROP_SCHEME_URI);
-    tag->scheme_uri_length = strlen(ID3_PROP_SCHEME_URI) + 1; // plus null character
+    tag->scheme_uri_length = (u32) strlen(ID3_PROP_SCHEME_URI) + 1; // plus null character
 
     // test if the data is a Nielsen ID3 tag
     if (memcmp(data, NIELSEN_ID3_TAG_PREFIX, NIELSEN_ID3_TAG_PREFIX_LEN) == 0)
@@ -38,7 +38,7 @@ GF_Err gf_id3_tag_new(GF_ID3_TAG *tag, u32 timescale, u64 pts, u8 *data, u32 dat
         tag->value_uri = gf_strdup(ID3_PROP_VALUE_URI_DEFAULT);
     }
 
-    tag->value_uri_length = strlen(tag->value_uri) + 1; // plus null character
+    tag->value_uri_length = (u32) strlen(tag->value_uri) + 1; // plus null character
 
     tag->data_length = data_length;
     tag->data = gf_malloc(data_length);

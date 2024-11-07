@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT stream unframer filter
@@ -350,14 +350,15 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 
 GF_FilterRegister WebVTTMxRegister = {
 	.name = "ufvtt",
-	GF_FS_SET_DESCRIPTION("WebVTT unframer")
+	GF_FS_SET_DESCRIPTION("WebVTT rewriter")
 	GF_FS_SET_HELP("This filter converts a single ISOBMFF WebVTT stream to its unframed format.")
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,
 	.finalize = vttmx_finalize,
 	SETCAPS(WebVTTMxCaps),
 	.configure_pid = vttmx_configure_pid,
-	.process = vttmx_process
+	.process = vttmx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

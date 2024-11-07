@@ -514,7 +514,8 @@ static ISOMChannel *isor_setup_channel(ISOMReader *read, u32 track, u32 streamty
 			}
 		}
 		if (tx3g_config_sdp) {
-			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_STRING_NO_COPY(tx3g_config_sdp) );
+			u32 tx3g_config_len = (u32) strlen(tx3g_config_sdp)+1;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(tx3g_config_sdp, tx3g_config_len) );
 		}
 	}
 
@@ -665,7 +666,7 @@ props_done:
 		u64 start, end;
 		if (gf_isom_get_root_sidx_offsets(read->mov, &start, &end)) {
 			if (end)
-				gf_filter_pid_set_property(ch->pid, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(start , end));
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_VOD_SIDX_RANGE, &PROP_FRAC64_INT(start , end));
 		}
 #endif
 		if (!read->frag_type) {

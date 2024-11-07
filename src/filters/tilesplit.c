@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2023
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / tile splitting filter
@@ -562,7 +562,7 @@ static const GF_FilterArgs TileSplitArgs[] =
 GF_FilterRegister TileSplitRegister = {
 	.name = "tilesplit",
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
-	GF_FS_SET_DESCRIPTION("HEVC tile bitstream splitter")
+	GF_FS_SET_DESCRIPTION("HEVC Tile splitter")
 	GF_FS_SET_HELP("This filter splits an HEVC tiled stream into tiled HEVC streams (`hvt1` or `hvt2` in ISOBMFF)."
 	"\n"
 	"The filter will move to passthrough mode if the bitstream is not tiled.\n"
@@ -585,6 +585,7 @@ GF_FilterRegister TileSplitRegister = {
 	.configure_pid = tilesplit_configure_pid,
 #endif
 	.process = tilesplit_process,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 
