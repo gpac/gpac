@@ -527,6 +527,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, GF_ISOOpenMode OpenMode, const ch
 
 	switch (OpenMode & 0xFF) {
 	case GF_ISOM_OPEN_READ_DUMP:
+	case GF_ISOM_OPEN_READ_DUMP_NO_COMP:
 	case GF_ISOM_OPEN_READ:
 		movie = gf_isom_open_file(fileName, OpenMode, NULL);
 		break;

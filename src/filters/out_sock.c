@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / generic socket output filter
@@ -212,7 +212,7 @@ static GF_Err sockout_initialize(GF_Filter *filter)
 		|| (sock_type == GF_SOCK_TYPE_UDP_UN)
 #endif
 	) {
-		e = gf_sk_bind(ctx->socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT);
+		e = gf_sk_bind(ctx->socket, ctx->ifce, port, url, port, GF_SOCK_REUSE_PORT|GF_SOCK_IS_SENDER);
 		ctx->listen = GF_FALSE;
 	} else if (ctx->listen) {
 		e = gf_sk_bind(ctx->socket, NULL, port, url, 0, GF_SOCK_REUSE_PORT);
@@ -616,7 +616,8 @@ GF_FilterRegister SockOutRegister = {
 	.finalize = sockout_finalize,
 	.configure_pid = sockout_configure_pid,
 	.process = sockout_process,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023
+ *			Copyright (c) Telecom ParisTech 2023-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-H Audio decoder using IIS MPEGHDecoder filter
@@ -344,6 +344,7 @@ GF_FilterRegister MPEGHDRegister = {
 	.finalize = mpegh_dec_finalize,
 	.process = mpegh_dec_process,
 	.process_event = mpegh_dec_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 const GF_FilterRegister *mpeghdec_register(GF_FilterSession *session)

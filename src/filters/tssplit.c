@@ -692,7 +692,7 @@ static const GF_FilterArgs M2TSSplitArgs[] =
 
 GF_FilterRegister M2TSSplitRegister = {
 	.name = "tssplit",
-	GF_FS_SET_DESCRIPTION("MPEG Transport Stream splitter")
+	GF_FS_SET_DESCRIPTION("MPEG-2 TS splitter")
 	GF_FS_SET_HELP("This filter splits an MPEG-2 transport stream into several single program transport streams.\n"
 	"Only the PAT table is rewritten, other tables (PAT, PMT) and streams (PES) are forwarded as is.\n"
 	"If [-dvb]() is set, global DVB tables of the input multiplex are forwarded to each output mux; otherwise these tables are discarded.")
@@ -705,6 +705,7 @@ GF_FilterRegister M2TSSplitRegister = {
 	.configure_pid = m2tssplit_configure_pid,
 	.process = m2tssplit_process,
 	.process_event = m2tssplit_process_event,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister *tssplit_register(GF_FilterSession *session)
@@ -742,7 +743,7 @@ GF_Err m2ts_gendts_initialize(GF_Filter *filter)
 
 GF_FilterRegister M2TSRestampRegister = {
 	.name = "tsgendts",
-	GF_FS_SET_DESCRIPTION("MPEG Transport Stream reframer")
+	GF_FS_SET_DESCRIPTION("MPEG-2 TS timestamper")
 	GF_FS_SET_HELP("This filter restamps input MPEG-2 transport stream based on PCR.\n")
 	.flags = GF_FS_REG_HIDE_WEIGHT,
 	.private_size = sizeof(GF_M2TSSplitCtx),
@@ -753,6 +754,7 @@ GF_FilterRegister M2TSRestampRegister = {
 	.configure_pid = m2tssplit_configure_pid,
 	.process = m2tssplit_process,
 	.process_event = m2tssplit_process_event,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister *tsgendts_register(GF_FilterSession *session)

@@ -698,7 +698,8 @@ GF_FilterRegister LATMDmxRegister = {
 	.configure_pid = latm_dmx_configure_pid,
 	.process = latm_dmx_process,
 	.probe_data = latm_dmx_probe_data,
-	.process_event = latm_dmx_process_event
+	.process_event = latm_dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / RAW PCM reframer filter
@@ -532,7 +532,8 @@ GF_FilterRegister PCMReframeRegister = {
 	.configure_pid = pcmreframe_configure_pid,
 	.process = pcmreframe_process,
 	.process_event = pcmreframe_process_event,
-	.probe_data = pcmreframe_probe_data
+	.probe_data = pcmreframe_probe_data,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 OBU rewrite filter
@@ -366,7 +366,7 @@ static void obumx_write_metadata_timecode(GF_BitStream *bs, u64 cts, GF_Fraction
 	cts /= 60;
 	u8 m = cts % 60;
 	cts /= 60;
-	u8 h = cts;
+	u8 h = (u8) cts;
 	gf_bs_write_int(bs, 0/*counting_type*/, 5);
 	gf_bs_write_int(bs, 1/*full_timestamp_flag*/, 1);
 	gf_bs_write_int(bs, 0/*discontinuity_flag*/, 1);
@@ -678,7 +678,7 @@ static const GF_FilterArgs OBUMxArgs[] =
 
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
-	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB writer")
+	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB rewriter")
 	GF_FS_SET_HELP("This filter rewrites VPx or AV1 bitstreams into a IVF, annexB or OBU sequence.\n"
 	"The temporal delimiter OBU is re-inserted in annexB (`.av1` and `.av1b`files, with obu_size set) and OBU sequences (`.obu`files, without obu_size)\n"
 	"Timecode metadata optionally inserted\n"
@@ -689,7 +689,8 @@ GF_FilterRegister OBUMxRegister = {
 	SETCAPS(OBUMxCaps),
 	.finalize = obumx_finalize,
 	.configure_pid = obumx_configure_pid,
-	.process = obumx_process
+	.process = obumx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

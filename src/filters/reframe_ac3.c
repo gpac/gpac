@@ -679,7 +679,8 @@ GF_FilterRegister AC3DmxRegister = {
 	.configure_pid = ac3dmx_configure_pid,
 	.process = ac3dmx_process,
 	.probe_data = ac3dmx_probe_data,
-	.process_event = ac3dmx_process_event
+	.process_event = ac3dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

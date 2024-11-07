@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2022-2023
+ *			Copyright (c) Telecom Paris 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / unframer filter
@@ -113,7 +113,7 @@ static const GF_FilterCapability UnframerCaps[] =
 
 const GF_FilterRegister UnframerRegister = {
 	.name = "unframer",
-	GF_FS_SET_DESCRIPTION("Stream unframer")
+	GF_FS_SET_DESCRIPTION("Stream rewriter")
 	GF_FS_SET_HELP("This filter is used to force reframing of input sources using the same internal framing as GPAC (e.g. ISOBMFF) but with broken framing or signaling.\n"
 	"EX gpac -i src.mp4 unframer -o dst.mp4\n"
 	"This will:\n"
@@ -126,6 +126,7 @@ const GF_FilterRegister UnframerRegister = {
 	SETCAPS(UnframerCaps),
 	.configure_pid = unframer_configure_pid,
 	.process = unframer_process,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 const GF_FilterRegister *unframer_register(GF_FilterSession *session)

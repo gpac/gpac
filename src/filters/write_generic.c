@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / generic stream to file filter
@@ -493,12 +493,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	//avoid creating a file when dumping individual samples
 	if (ctx->split) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
-		if (!p || (p->value.uint>1))
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PCK_FILENUM, &PROP_UINT(0) );
-		else
+		if (p && (p->value.uint<=1))
 			ctx->split = GF_FALSE;
-	} else if (ctx->frame) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PCK_FILENUM, &PROP_UINT(0) );
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
@@ -1982,7 +1978,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	"- first: inserted on first packet\n"
 	"- sap: inserted at each SAP\n"
 	"- auto: selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(split), "force one file per decoded frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(split), "force one file per frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame), "force single frame dump with no rewrite. In this mode, all codec types are supported", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(sstart), "start number of frame to forward. If 0, all samples are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(send), "end number of frame to forward. If less than start frame, all samples after start are forwarded", GF_PROP_UINT, "0", NULL, 0},
@@ -2013,7 +2009,7 @@ void writegen_finalize(GF_Filter *filter)
 
 GF_FilterRegister GenDumpRegister = {
 	.name = "writegen",
-	GF_FS_SET_DESCRIPTION("Stream to file")
+	GF_FS_SET_DESCRIPTION("Stream to File converter")
 	GF_FS_SET_HELP("Generic single stream to file converter, used when extracting/converting PIDs.\n"
 	"The writegen filter should usually not be explicitly loaded without a source ID specified, since the filter would likely match any PID connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
@@ -2023,7 +2019,8 @@ GF_FilterRegister GenDumpRegister = {
 	SETCAPS(GenDumpCaps),
 	.configure_pid = writegen_configure_pid,
 	.process = writegen_process,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 static const GF_FilterCapability FrameDumpCaps[] =
@@ -2081,14 +2078,15 @@ static GF_FilterCapability GenDumpXCaps[] =
 
 const GF_FilterRegister WriteUFRegister = {
 	.name = "writeuf",
-	GF_FS_SET_DESCRIPTION("Stream to unframed format")
+	GF_FS_SET_DESCRIPTION("Framed to Unframed converter")
 	GF_FS_SET_HELP("Generic single stream to unframed format converter, used when converting PIDs. This filter should not be explicitly loaded.\n")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.initialize = writeuf_initialize,
 	.finalize = writegen_finalize,
 	SETCAPS(GenDumpXCaps),
 	.configure_pid = writegen_configure_pid,
-	.process = writegen_process
+	.process = writegen_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 const GF_FilterRegister *writeuf_register(GF_FilterSession *session)
 {
@@ -2125,7 +2123,8 @@ const GF_FilterRegister TTMLMergeRegister = {
 	.finalize = writegen_finalize,
 	SETCAPS(TTMLMergeCaps),
 	.configure_pid = writegen_configure_pid,
-	.process = writegen_process
+	.process = writegen_process,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 const GF_FilterRegister *ttmlmerge_register(GF_FilterSession *session)
 {

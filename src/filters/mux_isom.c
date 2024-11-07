@@ -198,6 +198,8 @@ typedef struct
 
 	GF_FilterPacket *dgl_copy;
 	u32 all_stsd_crc;
+
+	Bool has_deps;
 } TrackWriter;
 
 enum
@@ -327,6 +329,7 @@ typedef struct
 	GF_FilterPid *opid;
 	Bool first_pck_sent;
 	Bool track_removed;
+	Bool cdur_overwrite;
 
 	GF_List *tracks;
 
@@ -342,7 +345,7 @@ typedef struct
 	u32 nb_segs, nb_frags, nb_frags_in_seg;
 
 	GF_FilterPacket *dst_pck;
-	char *seg_name;
+	char *seg_name, *llhas_template;
 	u32 dash_seg_num_plus_one;
 	GF_Fraction64 dash_seg_start;
 
@@ -354,7 +357,7 @@ typedef struct
 	FILE *tmp_store;
 	u64 flush_size, flush_done;
 
-	u32 dash_mode, llhls_mode;
+	u32 dash_mode, llhas_mode;
 	GF_Fraction dash_dur;
 	Double media_dur;
 	u32 sidx_max_size, sidx_chunk_offset;
@@ -408,7 +411,7 @@ typedef struct
 	u32 seg_flush_state;
 	u32 last_block_in_segment;
 	u64 flush_idx_start_range, flush_idx_end_range;
-	Bool flush_ll_hls;
+	Bool flush_llhas;
 
 	Bool has_def_vid, has_def_aud, has_def_txt;
 
@@ -444,7 +447,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 	}
 	ctx->dash_mode = MP4MX_DASH_VOD;
-	ctx->llhls_mode = 0;
+	ctx->llhas_mode = GF_LLHAS_NONE;
 	if ((ctx->vodcache==MP4MX_VODCACHE_ON) && !ctx->tmp_store) {
 		ctx->tmp_store = gf_file_temp(NULL);
 		if (!ctx->tmp_store) {
@@ -1123,6 +1126,13 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				ctx->config_timing = GF_TRUE;
 				ctx->update_report = GF_TRUE;
 			}
+			if (!ctx->cdur_overwrite) {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_FDUR);
+				if (p && p->value.frac.den) {
+					ctx->cdur = p->value.frac;
+					ctx->cdur_overwrite = GF_TRUE;
+				}
+			}
 		}
 	}
 
@@ -1286,10 +1296,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		ctx->dash_mode = MP4MX_DASH_ON;
 	}
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHLS);
-	ctx->llhls_mode = p ? p->value.uint : 0;
-	//insert tfdt in each traf for LL-HLS so that correct timing can be found when doing in-segment tune-in
-	if (ctx->llhls_mode) {
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LLHAS_MODE);
+	ctx->llhas_mode = p ? p->value.uint : GF_LLHAS_NONE;
+
+	//insert tfdt in each traf for LLHAS so that correct timing can be found when doing in-segment tune-in
+	if (ctx->llhas_mode) {
 		ctx->tfdt_traf = GF_TRUE;
 		ctx->store = MP4MX_MODE_SFRAG;
 	}
@@ -3427,8 +3438,8 @@ multipid_stsd_setup:
 		}
 
 		//check if we have sample-accurate seek info for the pid. If so, enable seek ts checking
-		p = gf_filter_pid_get_property(pid, GF_PROP_PCK_SKIP_BEGIN);
-		if (p && p->value.sint)
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HAS_SKIP_BEGIN);
+		if (p && p->value.boolean)
 			tkw->check_seek_ts = GF_TRUE;
 
 
@@ -4207,7 +4218,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 		if (!tkw->dyn_pssh) return;
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (pck) {
-			pssh = gf_filter_pck_get_property(pck, GF_PROP_PID_CENC_PSSH);
+			pssh = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_PSSH);
 			//change of dynamic pssh is pending, don't inject the old one
 			if (pssh) return;
 		}
@@ -4223,7 +4234,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 			if (dyn_pssh_mode) {
 				GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 				if (pck) {
-					p = gf_filter_pck_get_property(pck, GF_PROP_PID_CENC_PSSH);
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_PSSH);
 				}
 			}
 			if (!p)
@@ -4467,7 +4478,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 		return e;
 	}
 
-	p = gf_filter_pck_get_property(pck, GF_PROP_PID_CENC_PSSH);
+	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_PSSH);
 	if (p && (p->type == GF_PROP_DATA) && p->value.data.ptr) {
 		if (ctx->store>=MP4MX_MODE_FRAG) {
 			mp4_mux_cenc_insert_pssh(ctx, tkw, p, 0);
@@ -5173,11 +5184,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 	if (ctx->deps) {
 		u8 dep_flags = gf_filter_pck_get_dependency_flags(pck);
-		if (dep_flags) {
+		if (dep_flags || tkw->has_deps) {
 			u32 is_leading = (dep_flags>>6) & 0x3;
 			u32 depends_on = (dep_flags>>4) & 0x3;
 			u32 depended_on = (dep_flags>>2) & 0x3;
 			u32 redundant = (dep_flags) & 0x3;
+			//once we start signaling deps (usually on first iframe), always signal them
+			tkw->has_deps = GF_TRUE;
 			if (for_fragment) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 				gf_isom_fragment_set_sample_flags(ctx->file, tkw->track_id, is_leading, depends_on, depended_on, redundant);
@@ -5697,7 +5710,7 @@ static void mp4mux_send_output(GF_MP4MuxCtx *ctx)
 	}
 }
 
-static void mp4_mux_flush_frag_hls(GF_MP4MuxCtx *ctx)
+static void mp4_mux_flush_frag_llhas(GF_MP4MuxCtx *ctx)
 {
 	GF_FilterEvent evt;
 	TrackWriter *tkw = NULL;
@@ -5763,8 +5776,8 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		if (signal_flush)
 			gf_filter_pid_send_flush(ctx->opid);
 	}
-	if (!is_init && ctx->llhls_mode && ctx->frag_size) {
-		mp4_mux_flush_frag_hls(ctx);
+	if (!is_init && (ctx->llhas_mode) && ctx->frag_size) {
+		mp4_mux_flush_frag_llhas(ctx);
 	}
 	if (ctx->dash_mode) {
 		//send event on first track only
@@ -6698,6 +6711,11 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 						if (ctx->seg_name) gf_free(ctx->seg_name);
 						ctx->seg_name = gf_strdup(p->value.string);
 					}
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_LLHAS_TEMPLATE);
+					if (p && p->value.string) {
+						if (ctx->llhas_template) gf_free(ctx->llhas_template);
+						ctx->llhas_template = gf_strdup(p->value.string);
+					}
 					//store PRFT only for reference track at segment start
 					if (tkw==ctx->ref_tkw) {
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SENDER_NTP);
@@ -6762,7 +6780,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 					break;
 				}
 				tkw->dur_in_frag += dur;
-				if (ctx->llhls_mode && (ctx->frag_duration * tkw->src_timescale <= tkw->dur_in_frag * ctx->frag_timescale)) {
+				if ((ctx->llhas_mode) && (ctx->frag_duration * tkw->src_timescale <= tkw->dur_in_frag * ctx->frag_timescale)) {
 					ctx->frag_duration = tkw->dur_in_frag;
 					ctx->frag_timescale = tkw->src_timescale;
 				}
@@ -6786,7 +6804,7 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 			}
 
 			if ((ctx->store>=MP4MX_MODE_FRAG) && tkw->samples_in_frag) {
-				p = gf_filter_pck_get_property(pck, GF_PROP_PID_CENC_PSSH);
+				p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CENC_PSSH);
 				if (p && (p->type == GF_PROP_DATA) && p->value.data.ptr && !ctx->flush_seg && !ctx->dash_mode) {
 					tkw->fragment_done = GF_TRUE;
 					tkw->samples_in_frag = 0;
@@ -6988,12 +7006,12 @@ static GF_Err mp4_mux_process_fragmented(GF_MP4MuxCtx *ctx)
 
 			//we need to wait for packet to be written
 			if (ctx->seg_flush_state) {
-				if (ctx->llhls_mode) ctx->flush_ll_hls = GF_TRUE;
+				if (ctx->llhas_mode) ctx->flush_llhas = GF_TRUE;
 				return GF_OK;
 			}
 
-			if (ctx->llhls_mode) {
-				mp4_mux_flush_frag_hls(ctx);
+			if (ctx->llhas_mode) {
+				mp4_mux_flush_frag_llhas(ctx);
 			}
 
 			if (!ctx->dash_mode || ctx->flush_seg) {
@@ -7635,8 +7653,8 @@ static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 fil
 
 static void mp4_mux_flush_seg_events(GF_MP4MuxCtx *ctx)
 {
-	if (ctx->flush_ll_hls) {
-		mp4_mux_flush_frag_hls(ctx);
+	if (ctx->flush_llhas) {
+		mp4_mux_flush_frag_llhas(ctx);
 	}
 
 	if (!ctx->dash_mode || ctx->flush_seg) {
@@ -7655,7 +7673,7 @@ static void mp4_mux_flush_seg_events(GF_MP4MuxCtx *ctx)
 	ctx->seg_flush_state = 0;
 	ctx->flush_idx_start_range = 0;
 	ctx->flush_idx_end_range = 0;
-	ctx->flush_ll_hls = GF_FALSE;
+	ctx->flush_llhas = GF_FALSE;
 }
 
 static void mp4_mux_on_packet_destruct(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck)
@@ -7775,6 +7793,9 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->dash_seg_num_plus_one-1) );
 		if (ctx->dash_seg_start.den)
 			gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_MPD_SEGSTART, &PROP_FRAC64(ctx->dash_seg_start) );
+
+		if (ctx->llhas_template)
+			gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_TEMPLATE, &PROP_STRING(ctx->llhas_template) );
 	}
 
 	if (ctx->min_cts_plus_one) {
@@ -7791,9 +7812,13 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size, void *cbk_dat
 			gf_filter_pck_set_duration(ctx->dst_pck, 1);
 	}
 
-	if ((ctx->llhls_mode>1) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
+	if ((ctx->llhas_mode>GF_LLHAS_BYTERANGES) && ctx->fragment_started && !ctx->frag_size && ctx->dst_pck) {
+		u32 fnum = ctx->frag_num;
+		//we'll need to redo all LLHLS tests
+		if (gf_sys_is_test_mode() && (ctx->llhas_mode == GF_LLHAS_PARTS))
+			fnum++;
+		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_LLHAS_FRAG_NUM, &PROP_UINT(fnum));
 		ctx->frag_num++;
-		gf_filter_pck_set_property(ctx->dst_pck, GF_PROP_PCK_HLS_FRAG_NUM, &PROP_UINT(ctx->frag_num));
 	}
 	ctx->frag_size += block_size;
 
@@ -8350,6 +8375,7 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	gf_list_del(ctx->ref_pcks);
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->seg_name) gf_free(ctx->seg_name);
+	if (ctx->llhas_template) gf_free(ctx->llhas_template);
 	if (ctx->tmp_store) gf_fclose(ctx->tmp_store);
 	if (ctx->seg_sizes) gf_free(ctx->seg_sizes);
 
@@ -8627,7 +8653,8 @@ GF_FilterRegister MP4MuxRegister = {
 	SETCAPS(MP4MuxCaps),
 	.configure_pid = mp4_mux_configure_pid,
 	.process = mp4_mux_process,
-	.process_event = mp4_mux_process_event
+	.process_event = mp4_mux_process_event,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 

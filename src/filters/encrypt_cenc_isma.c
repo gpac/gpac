@@ -2426,7 +2426,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			u32 pssh_len;
 			gf_bs_get_content(bs, &pssh, &pssh_len);
 			gf_bs_del(bs);
-			gf_filter_pck_set_property(dst_pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA_NO_COPY(pssh, pssh_len) );
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_PSSH, &PROP_DATA_NO_COPY(pssh, pssh_len) );
 		}
 	}
 
@@ -2581,7 +2581,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 					new_idx = (cstr->nb_segments / cstr->tci->keyRoll) % nb_keys;
 				}
 			} else if (cstr->tci->roll_type == GF_KEYROLL_PERIODS) {
-				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PID_DASH_PERIOD_START);
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_DASH_PERIOD_START);
 				if (p) {
 					cstr->nb_periods++;
 					new_idx = (cstr->nb_periods / cstr->tci->keyRoll) % nb_keys;
@@ -2756,8 +2756,8 @@ GF_FilterRegister CENCEncRegister = {
 	.configure_pid = cenc_enc_configure_pid,
 	.initialize = cenc_enc_initialize,
 	.finalize = cenc_enc_finalize,
-	.process = cenc_enc_process
-
+	.process = cenc_enc_process,
+	.hint_class_type = GF_FS_CLASS_CRYPTO
 };
 
 #endif /*GPAC_DISABLE_CRYPTO*/

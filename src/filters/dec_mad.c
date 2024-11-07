@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2022
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MP3 libmad decoder filter
@@ -366,6 +366,7 @@ GF_FilterRegister MADRegister = {
 	.finalize = maddec_finalize,
 	.configure_pid = maddec_configure_pid,
 	.process = maddec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

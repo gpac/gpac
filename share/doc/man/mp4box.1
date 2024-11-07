@@ -667,6 +667,8 @@ set the segment name for generated segments. If not set (default), segments are 
 .br
 - $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise
 .br
+- $SubNumber[%%0Nd]$ is replaced by the segment subnumber in segment sequences, possibly prefixed with 0
+.br
 - $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments
 .br
 .TP
@@ -1137,6 +1139,11 @@ dump IsoMedia file boxes and known track samples in XML output
 .B \-disox
 .br
 dump IsoMedia file boxes except sample tables in XML output
+.br
+.TP
+.B \-keep-comp
+.br
+do not decompress boxes when dumping
 .br
 .TP
 .B \-keep-ods

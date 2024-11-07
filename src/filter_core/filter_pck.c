@@ -1395,6 +1395,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 GF_EXPORT
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
+	if (PCK_IS_INPUT(pck)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to send a received packet in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
 	if (!pck || !pck->pid) return GF_BAD_PARAM;
 
 	//dangling packet
@@ -1513,6 +1517,33 @@ static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc
 	}
 	//get true packet pointer
 	pck=pck->pck;
+
+	if (prop_4cc && value && pck->pid && pck->pid->filter->session->check_props) {
+		u32 ptype = gf_props_4cc_get_type(prop_4cc);
+		u8 c = prop_4cc>>24;
+		if ((c>='A') && (c<='Z')) {
+			if (gf_props_get_base_type(ptype) != gf_props_get_base_type(value->type)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning packet property %s of type %s in filter %s but expecting %s\n",
+					gf_props_4cc_get_name(prop_4cc),
+					gf_props_get_type_name(value->type),
+					pck->pid->filter->freg->name,
+					gf_props_get_type_name(ptype)
+				));
+				if (gf_sys_is_test_mode())
+					exit(5);
+			}
+			u32 flags = gf_props_4cc_get_flags(prop_4cc);
+			if (!(flags & GF_PROP_FLAG_PCK)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning packet property %s in filter %s but this is a PID property\n",
+					gf_props_4cc_get_name(prop_4cc),
+					pck->pid->filter->freg->name
+				));
+				if (gf_sys_is_test_mode())
+					exit(5);
+			}
+		}
+	}
+
 	hash = gf_props_hash_djb2(prop_4cc, prop_name ? prop_name : dyn_name);
 
 	if (!pck->props) {
@@ -1589,12 +1620,25 @@ static GFINLINE const GF_PropertyValue *pck_check_prop(GF_FilterPacket *pck, u32
 #else
 #define pck_check_prop(_a, _b, _str, c) c
 #endif
+
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *_pck, u32 prop_4cc)
 {
 	//get true packet pointer
 	GF_FilterPacket *pck = _pck->pck;
 	if (!pck->props) return NULL;
+	if (pck->pid && pck->pid->filter->session->check_props && gf_props_4cc_get_type(prop_4cc)) {
+		u32 flags = gf_props_4cc_get_flags(prop_4cc);
+		if (!(flags & GF_PROP_FLAG_PCK)) {
+			GF_Filter *f = (_pck == pck) ? pck->pid->filter : ((GF_FilterPacketInstance*)_pck)->pid->filter;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Fetching packet property %s in filter %s but this is a PID property\n",
+				gf_props_4cc_get_name(prop_4cc),
+				f->freg->name
+			));
+			if (gf_sys_is_test_mode())
+				exit(5);
+		}
+	}
 	return pck_check_prop(_pck, prop_4cc, NULL, gf_props_get_property(pck->props, prop_4cc, NULL));
 }
 

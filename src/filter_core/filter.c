@@ -1991,29 +1991,36 @@ skip_date:
 		if (for_script)
 		 	f_args = filter->instance_args;
 
+		Bool is_my_arg = GF_FALSE;
+		u32 count_enum_val = 0;
+		const char *restricted=NULL;
+		Bool reverse_bool = GF_FALSE;
+		const GF_FilterArgs *save_a = NULL;
+
 		while (filter->filter_udta && f_args) {
-			Bool is_my_arg = GF_FALSE;
-			Bool reverse_bool = GF_FALSE;
-			const char *restricted=NULL;
+
 			const GF_FilterArgs *a = &f_args[i];
 			i++;
 			if (!a || !a->arg_name) break;
 
-			if (!strcmp(a->arg_name, szArg))
+			if (!strcmp(a->arg_name, szArg)) {
 				is_my_arg = GF_TRUE;
-			else if ( (szArg[0]==filter->session->sep_neg) && !strcmp(a->arg_name, szArg+1)) {
+				save_a = a;
+			} else if ((szArg[0]==filter->session->sep_neg) && !strcmp(a->arg_name, szArg+1)) {
 				is_my_arg = GF_TRUE;
 				reverse_bool = GF_TRUE;
+				save_a = a;
 			}
-			//little optim here, if no value check if argument nale is exactly one of the possible enums
-			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
+			//little optim here: if no value provided, check if argument name is exactly one of the possible enums
+			else if (a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
 				const char *enums = a->min_max_enum;
 				while (enums) {
 					if (!strncmp(enums, szArg, len)) {
 						char c = enums[len];
 						if (!c || (c=='|')) {
-							is_my_arg = GF_TRUE;
+							count_enum_val++;
 							value = szArg;
+							save_a = a;
 							break;
 						}
 					}
@@ -2023,36 +2030,39 @@ skip_date:
 				}
 			}
 
-			if (is_my_arg) restricted = gf_opts_get_key_restricted(szSecName, a->arg_name);
+			if(is_my_arg || count_enum_val>1) break;		
+		}
+
+		if(is_my_arg && count_enum_val>0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Ambiguous argument %s in filter %s: both an argument and an enum value share the name \"%s\", ignoring\n", szArg, filter->freg->name, szArg));
+		} else if(count_enum_val>1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is ambiguous (multiple enum arguments have \"%s\" as possible value), ignoring\n", szArg, filter->freg->name, szArg));
+		} else if (is_my_arg || count_enum_val==1) {
+			restricted = gf_opts_get_key_restricted(szSecName, save_a->arg_name);
+			found=GF_TRUE;
 			if (restricted) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is restricted to %s by system-wide configuration, ignoring\n", szArg, filter->freg->name, restricted));
-				found=GF_TRUE;
-				break;
-			}
-
-			if (is_my_arg) {
+			} else {
 				GF_PropertyValue argv;
-				found=GF_TRUE;
-
-				argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, (a->flags & GF_FS_ARG_META) ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
+				argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, (save_a->flags & GF_FS_ARG_META) ? GF_PROP_STRING : save_a->arg_type, save_a->arg_name, value, save_a->min_max_enum);
 
 				if (reverse_bool && (argv.type==GF_PROP_BOOL))
 					argv.value.boolean = !argv.value.boolean;
 
 				if (argv.type != GF_PROP_FORBIDDEN) {
-					if (!for_script && (a->offset_in_private>=0)) {
-						gf_filter_set_arg(filter, a, &argv);
+					if (!for_script && (save_a->offset_in_private>=0)) {
+						gf_filter_set_arg(filter, save_a, &argv);
 					} else if (filter->freg->update_arg) {
 						FSESS_CHECK_THREAD(filter)
-						filter->freg->update_arg(filter, a->arg_name, &argv);
+						filter->freg->update_arg(filter, save_a->arg_name, &argv);
 						opaque_arg = GF_FALSE;
 						if ((argv.type==GF_PROP_STRING) || (argv.type==GF_PROP_STRING_LIST))
 							gf_props_reset_single(&argv);
 					}
 				}
-				break;
 			}
 		}
+	
 		GF_Filter *meta_filter = NULL;
 		if (!strlen(szArg)) {
 			found = GF_TRUE;
@@ -5089,10 +5099,21 @@ GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc)
 	filter->instance_description = new_desc ? gf_strdup(new_desc) : NULL;
 	return GF_OK;
 }
+GF_Err gf_filter_set_class_hint(GF_Filter *filter, GF_ClassTypeHint class_hint)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->instance_class_hint = class_hint;
+	return GF_OK;
+}
 GF_EXPORT
 const char *gf_filter_get_description(GF_Filter *filter)
 {
 	return filter ? filter->instance_description : NULL;
+}
+GF_EXPORT
+GF_ClassTypeHint gf_filter_get_class_hint(GF_Filter *filter)
+{
+	return filter ? filter->instance_class_hint : 0;
 }
 
 GF_Err gf_filter_set_version(GF_Filter *filter, const char *new_desc)
@@ -5199,6 +5220,7 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 		u32 j;
 		GF_Filter *f = gf_list_get(filter->session->filters, i);
 		if (!f || f->removed || f->finalized) continue;
+		if (f->subsession_id != filter->subsession_id) continue;
 
 		gf_mx_v(filter->session->filters_mx);
 		gf_mx_p(f->tasks_mx);

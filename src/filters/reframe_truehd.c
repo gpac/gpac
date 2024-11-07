@@ -819,7 +819,8 @@ GF_FilterRegister TrueHDDmxRegister = {
 	.configure_pid = truehd_configure_pid,
 	.process = truehd_process,
 	.probe_data = truehd_probe_data,
-	.process_event = truehd_process_event
+	.process_event = truehd_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 
