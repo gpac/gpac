@@ -1845,6 +1845,7 @@ const GF_FilterRegister FFDemuxPidRegister = {
 	.process_event = ffdmx_process_event,
 	.flags = GF_FS_REG_META,
 	.args = FFDemuxPidArgs,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER,
 	//also set lower priority
 	.priority = 128
 };
