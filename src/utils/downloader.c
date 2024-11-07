@@ -323,13 +323,14 @@ static GF_Err dm_sess_write(GF_DownloadSession *sess, const u8 *buffer, u32 size
 
 struct __gf_download_manager
 {
+	//mutex protecting cache access and all_sessions list
 	GF_Mutex *cache_mx;
 	char *cache_directory;
 
 	gf_dm_get_usr_pass get_user_password;
 	void *usr_cbk;
 
-	GF_List *sessions;
+	GF_List *all_sessions;
 	Bool disable_cache, simulate_no_connection, allow_offline_cache, clean_cache;
 	u32 limit_data_rate, read_buf_size;
 	u64 max_cache_size;
@@ -1996,9 +1997,10 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 		}
 		sess->cache_entry = entry;
 		sess->reused_cache_entry = 	gf_cache_is_in_progress(entry);
-		count = gf_list_count(sess->dm->sessions);
+		gf_mx_p(sess->dm->cache_mx);
+		count = gf_list_count(sess->dm->all_sessions);
 		for (i=0; i<count; i++) {
-			GF_DownloadSession *a_sess = (GF_DownloadSession*)gf_list_get(sess->dm->sessions, i);
+			GF_DownloadSession *a_sess = (GF_DownloadSession*)gf_list_get(sess->dm->all_sessions, i);
 			gf_assert(a_sess);
 			if (a_sess==sess) continue;
 			if (a_sess->cache_entry==entry) {
@@ -2006,6 +2008,7 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 				break;
 			}
 		}
+		gf_mx_v(sess->dm->cache_mx);
 		if (!found) {
 			sess->reused_cache_entry = GF_FALSE;
 			if (sess->cache_entry)
@@ -2393,7 +2396,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 	if (sess->dm) {
 		gf_mx_p(sess->dm->cache_mx);
-		gf_list_del_item(sess->dm->sessions, sess);
+		gf_list_del_item(sess->dm->all_sessions, sess);
 		gf_mx_v(sess->dm->cache_mx);
 	}
 
@@ -3497,7 +3500,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 	if (sess && dm) {
 		sess->dm = dm;
 		gf_mx_p(dm->cache_mx);
-		gf_list_add(dm->sessions, sess);
+		gf_list_add(dm->all_sessions, sess);
 		gf_mx_v(dm->cache_mx);
 	}
 	return sess;
@@ -3884,9 +3887,10 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	}
 
 	if (sess->dm && !sess->dm->disable_http2 && !sess->sock && (sess->h2_upgrade_state<3)) {
-		u32 i, count = gf_list_count(sess->dm->sessions);
+		gf_mx_p(sess->dm->cache_mx);
+		u32 i, count = gf_list_count(sess->dm->all_sessions);
 		for (i=0; i<count; i++) {
-			GF_DownloadSession *a_sess = gf_list_get(sess->dm->sessions, i);
+			GF_DownloadSession *a_sess = gf_list_get(sess->dm->all_sessions, i);
 			if (strcmp(a_sess->server_name, sess->server_name)) continue;
 			if (!a_sess->h2_sess) {
 				//we already ahd a connection to this server with H2 failure, do not try h2
@@ -3908,6 +3912,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				) {
 					sess->connect_pending = 1;
 					SET_LAST_ERR(GF_IP_NETWORK_EMPTY)
+					gf_mx_v(sess->dm->cache_mx);
 					return;
 				}
 				continue;
@@ -3936,15 +3941,20 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 			if (sess->allow_direct_reuse) {
 				gf_dm_configure_cache(sess);
-				if (sess->from_cache_only) return;
+				if (sess->from_cache_only) {
+					gf_mx_v(sess->dm->cache_mx);
+					return;
+				}
 			}
 
 			sess->connect_time = 0;
 			sess->status = GF_NETIO_CONNECTED;
 			gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
 			gf_dm_configure_cache(sess);
+			gf_mx_v(sess->dm->cache_mx);
 			return;
 		}
+		gf_mx_v(sess->dm->cache_mx);
 	}
 #endif
 
@@ -4522,7 +4532,7 @@ GF_DownloadManager *gf_dm_new(GF_FilterSession *fsess)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[Downloader] Failed to allocate downloader\n"));
 		return NULL;
 	}
-	dm->sessions = gf_list_new();
+	dm->all_sessions = gf_list_new();
 	dm->cache_entries = gf_list_new();
 	dm->credentials = gf_list_new();
 	dm->skip_proxy_servers = gf_list_new();
@@ -4635,7 +4645,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 {
 	if (!dm)
 		return;
-	gf_assert( dm->sessions);
+	gf_assert( dm->all_sessions);
 	gf_assert( dm->cache_mx );
 	gf_mx_p( dm->cache_mx );
 
@@ -4651,12 +4661,12 @@ void gf_dm_del(GF_DownloadManager *dm)
 	}
 
 	/*destroy all pending sessions*/
-	while (gf_list_count(dm->sessions)) {
-		GF_DownloadSession *sess = (GF_DownloadSession *) gf_list_get(dm->sessions, 0);
+	while (gf_list_count(dm->all_sessions)) {
+		GF_DownloadSession *sess = (GF_DownloadSession *) gf_list_get(dm->all_sessions, 0);
 		gf_dm_sess_del(sess);
 	}
-	gf_list_del(dm->sessions);
-	dm->sessions = NULL;
+	gf_list_del(dm->all_sessions);
+	dm->all_sessions = NULL;
 	gf_assert( dm->skip_proxy_servers );
 	while (gf_list_count(dm->skip_proxy_servers)) {
 		char *serv = (char*)gf_list_get(dm->skip_proxy_servers, 0);
@@ -5017,13 +5027,14 @@ static void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 paylo
 static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 {
 	u32 cumul_rate = 0;
-//	u32 nb_sess = 0;
-	u64 now = gf_sys_clock_high_res();
-	u32 i, count = gf_list_count(dm->sessions);
+	u32 i, count;
 
+	gf_mx_p(dm->cache_mx);
+	u64 now = gf_sys_clock_high_res();
+	count = gf_list_count(dm->all_sessions);
 	//check if this fits with all other sessions
 	for (i=0; i<count; i++) {
-		GF_DownloadSession * sess = (GF_DownloadSession*)gf_list_get(dm->sessions, i);
+		GF_DownloadSession * sess = (GF_DownloadSession*)gf_list_get(dm->all_sessions, i);
 
 		//session not running done
 		if (sess->status != GF_NETIO_DATA_EXCHANGE) continue;
@@ -5052,11 +5063,13 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 				sess->last_cap_rate_time = now;
 			}
 		} else {
+			gf_mx_v(dm->cache_mx);
 			return GF_TRUE;
 		}
 		cumul_rate += sess->last_cap_rate_bytes_per_sec;
 		//nb_sess ++;
 	}
+	gf_mx_v(dm->cache_mx);
 	if ( cumul_rate >= dm->limit_data_rate)
 		return GF_TRUE;
 
@@ -7343,10 +7356,10 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm)
 	u32 i, count;
 	if (!dm) return 0;
 	gf_mx_p(dm->cache_mx);
-	count = gf_list_count(dm->sessions);
+	count = gf_list_count(dm->all_sessions);
 
 	for (i=0; i<count; i++) {
-		GF_DownloadSession *sess = (GF_DownloadSession*)gf_list_get(dm->sessions, i);
+		GF_DownloadSession *sess = (GF_DownloadSession*)gf_list_get(dm->all_sessions, i);
 		if (sess->status >= GF_NETIO_DATA_TRANSFERED) {
 			if (sess->total_size==sess->bytes_done) {
 				//do not aggregate session if done/interrupted since more than 1/2 a sec
@@ -7488,9 +7501,9 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 		return GF_BAD_PARAM;
 	gf_mx_p(dm->cache_mx);
 	res = gf_cache_set_headers(entry, headers);
-	count = gf_list_count(dm->sessions);
+	count = gf_list_count(dm->all_sessions);
 	for (i=0; i<count; i++) {
-		GF_DownloadSession *sess = gf_list_get(dm->sessions, i);
+		GF_DownloadSession *sess = gf_list_get(dm->all_sessions, i);
 		if (sess->cache_entry != entry) continue;
 		gf_dm_sess_reload_cached_headers(sess);
 	}
@@ -7776,7 +7789,7 @@ GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess)
 	if (!tmp) return NULL;
 	tmp->fsess = fsess;
 	tmp->all_sessions = gf_list_new();
-	tmp->mx = gf_mx_new("cache");
+	tmp->mx = gf_mx_new("Downloader");
 	return tmp;
 }
 void gf_dm_del(GF_DownloadManager *dm)
