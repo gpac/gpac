@@ -846,6 +846,9 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.arg_type = GF_PROP_BOOL;
 		arg.arg_default_val = gf_strdup(opt->default_val.i64 ? "true" : "false");
 		break;
+#endif
+
+#if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) >= AV_VERSION_INT(59,17, 0)
 	case AV_OPT_TYPE_UINT:
 		arg.arg_type = GF_PROP_UINT;
 		sprintf(szDef, "%u", (u32) opt->default_val.i64);
@@ -857,6 +860,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.min_max_enum = gf_strdup(szDef);
 		break;
 #endif
+
 	case AV_OPT_TYPE_FLOAT:
 		arg.arg_type = GF_PROP_FLOAT;
 		sprintf(szDef, "%g", opt->default_val.dbl);
