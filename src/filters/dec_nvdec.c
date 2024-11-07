@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NVidia Hardware decoder filter
@@ -1606,7 +1606,8 @@ GF_FilterRegister NVDecRegister = {
 	.args = NVDecArgs,
 	.configure_pid = nvdec_configure_pid,
 	.process = nvdec_process,
-	.process_event = nvdec_process_event
+	.process_event = nvdec_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 static void nvdec_register_free(GF_FilterSession *session, GF_FilterRegister *freg)

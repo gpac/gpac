@@ -379,7 +379,8 @@ GF_FilterRegister CryptFinRegister = {
 	.finalize = cryptfile_finalize,
 	.configure_pid = cryptfile_configure_pid,
 	.process = cryptfin_process,
-	.probe_url = cryptfile_probe_url
+	.probe_url = cryptfile_probe_url,
+	.hint_class_type = GF_FS_CLASS_CRYPTO
 };
 
 
@@ -655,7 +656,8 @@ GF_FilterRegister CryptFoutRegister = {
 	.finalize = cryptfile_finalize,
 	.configure_pid = cryptfile_configure_pid,
 	.process = cryptfout_process,
-	.probe_url = cryptfile_probe_url
+	.probe_url = cryptfile_probe_url,
+	.hint_class_type = GF_FS_CLASS_CRYPTO
 };
 
 

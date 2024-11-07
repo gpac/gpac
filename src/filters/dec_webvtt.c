@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2013-2023
+ *			Copyright (c) Telecom ParisTech 2013-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT decoder filter
@@ -587,7 +587,8 @@ GF_FilterRegister VTTDecRegister = {
 	.process = vttd_process,
 	.configure_pid = vttd_configure_pid,
 	.process_event = vttd_process_event,
-	.update_arg = vtt_update_arg
+	.update_arg = vtt_update_arg,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

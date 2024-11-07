@@ -951,19 +951,25 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		//reset to FALSE since we now play
+		read->input_is_stop = GF_FALSE;
+
 		if (ch->skip_next_play) {
 			ch->skip_next_play = 0;
 			return GF_TRUE;
 		}
 		is_byte_range = (evt->play.hint_start_offset || evt->play.hint_end_offset) ? GF_TRUE : GF_FALSE;
 
+		//if we are in dash mode and first pid to play, force input to be unloaded
+		//not doing so could trigger EOS before seeing the first bytes of the input
+		if (!read->nb_playing && evt->play.no_byterange_forward)
+			read->input_loaded = GF_FALSE;
+
 		isor_reset_reader(ch);
 		ch->eos_sent = 0;
 		ch->speed = is_byte_range ? 1 : evt->play.speed;
 		ch->initial_play_seen = 1;
 		read->reset_frag_state = 1;
-		//it can happen that input_is_stop is still TRUE because we did not get called back after the stop - reset to FALSE since we now play
-		read->input_is_stop = GF_FALSE;
 		if (read->frag_type)
 			read->frag_type = 1;
 
@@ -1183,7 +1189,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
  		if (read->nb_playing) read->nb_playing--;
+		//reset everything but don't mark as to init
 		isor_reset_reader(ch);
+		ch->to_init = 0;
 
 		//stop is due to a deconnection, mark channel as not active
 		if (evt->play.initial_broadcast_play==2)
@@ -1360,6 +1368,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	if (read->in_error)
 		return read->in_error;
 
+	read->was_aborted = GF_FALSE;
 	if (read->pid) {
 		Bool fetch_input = GF_TRUE;
 
@@ -1414,8 +1423,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
 			if (!gf_filter_pid_is_flush_eos(read->pid)) {
+				GF_PropertyEntry *pe=NULL;
 				read->input_loaded = GF_TRUE;
 				in_is_eos = GF_TRUE;
+				//check if aborted info was set, in which case the source was excplicitly canceled by the dash client
+				//this avoids throwing warnings and errors if we miss a sample
+				const GF_PropertyValue *p = gf_filter_pid_get_info_str(read->pid, "aborted", &pe);
+				if (p && p->value.boolean) read->was_aborted = GF_TRUE;
+				gf_filter_release_property(pe);
 			} else {
 				in_is_flush = GF_TRUE;
 			}
@@ -1423,7 +1438,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (read->input_is_stop) {
 			read->input_loaded = GF_TRUE;
 			in_is_eos = GF_TRUE;
-			read->input_is_stop = GF_FALSE;
+			read->was_aborted = GF_TRUE;
 		}
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;
@@ -1479,15 +1494,17 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);
 
 			if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
+				if (!gf_filter_end_of_session(filter)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
+				}
 				read->refresh_fragmented = GF_FALSE;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refreshing current segment at UTC "LLU" - "LLU" bytes still missing - input is EOS %d\n", gf_net_get_utc(), bytesMissing, in_is_eos));
 			}
 #endif
 
-			if (!read->refresh_fragmented && (e==GF_ISOM_INCOMPLETE_FILE)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received - "LLU" bytes missing but EOF found\n", bytesMissing ));
+			if (!read->refresh_fragmented && !read->was_aborted && (e==GF_ISOM_INCOMPLETE_FILE) && !gf_filter_end_of_session(filter)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received on PID %s - "LLU" bytes missing but EOF found\n", gf_filter_pid_get_name(read->pid), bytesMissing ));
 			}
 
 #ifndef GPAC_DISABLE_LOG
@@ -1743,7 +1760,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL);
 						ch->last_has_tfrf = 0;
 					}
-
 					gf_filter_pid_set_eos(ch->pid);
 				}
 				break;
@@ -1912,7 +1928,8 @@ GF_FilterRegister ISOFFInRegister = {
 	.configure_pid = isoffin_configure_pid,
 	SETCAPS(ISOFFInCaps),
 	.process_event = isoffin_process_event,
-	.probe_data = isoffin_probe_data
+	.probe_data = isoffin_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)

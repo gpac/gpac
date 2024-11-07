@@ -5227,6 +5227,8 @@ void dashbind_new_group(void *udta, u32 group_idx, void *_dash)
 		QSET_BOOL(is_selected)
 		QSET_DOUBLE(ast_offset)
 		QSET_DOUBLE(average_duration)
+		QSET_STR(hls_variant_url)
+		QSET_U32(ssr)
 
 		p_desc.utf8name = "sizes";
 		napi_create_array(env, &p_desc.value);

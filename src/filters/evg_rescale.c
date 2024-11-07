@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023
+ *			Copyright (c) Telecom ParisTech 2023-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / EVG rescaler filter
@@ -523,6 +523,7 @@ GF_FilterRegister EVGSRegister = {
 	.reconfigure_output = evgs_reconfigure_output,
 	//use low priority in case we have other scalers (ffsws is faster)
 	.priority = 128,
+	.hint_class_type = GF_FS_CLASS_AV
 };
 
 #endif //GPAC_DISABLE_EVG

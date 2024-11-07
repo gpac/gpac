@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -1766,8 +1766,8 @@ GF_FilterRegister FFDemuxRegister = {
 	.probe_data = ffdmx_probe_data,
 	.process_event = ffdmx_process_event,
 	.flags = GF_FS_REG_META | GF_FS_REG_USE_SYNC_READ,
-	.priority = 128
-
+	.priority = 128,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 
@@ -2136,7 +2136,7 @@ static const GF_FilterCapability FFAVInCaps[] =
 GF_FilterRegister FFAVInRegister = {
 	.name = "ffavin",
 	.version = LIBAVDEVICE_IDENT,
-	GF_FS_SET_DESCRIPTION("FFmpeg AV Capture")
+	GF_FS_SET_DESCRIPTION("FFmpeg AV capture")
 	GF_FS_SET_HELP("Reads from audio/video capture devices using FFmpeg.\n"
 	"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported grabbers for your GPAC build, use `gpac -h ffavin:*`.\n"
@@ -2169,6 +2169,7 @@ GF_FilterRegister FFAVInRegister = {
 	.probe_url = ffavin_probe_url,
 	.process_event = ffdmx_process_event,
 	.flags = GF_FS_REG_META,
+	.hint_class_type = GF_FS_CLASS_MM_IO
 };
 
 

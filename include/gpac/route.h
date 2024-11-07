@@ -120,7 +120,7 @@ typedef enum
 {
 	/* object is done receiving*/
 	GF_LCTO_PARTIAL_NONE=0,
-	/* object data being notified is the begining of the payload*/
+	/* object data being notified is the beginning of the payload*/
 	GF_LCTO_PARTIAL_BEGIN,
 	/* object data being notified is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
 	GF_LCTO_PARTIAL_ANY,

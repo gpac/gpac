@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS decoder filter
@@ -277,6 +277,7 @@ GF_FilterRegister BIFSDecRegister = {
 	.process = bifs_dec_process,
 	.configure_pid = bifs_dec_configure_pid,
 	.process_event = bifs_dec_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif //!defined(GPAC_DISABLE_BIFS) && !defined(GPAC_DISABLE_COMPOSITOR)

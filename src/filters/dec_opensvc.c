@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2023
+ *			Copyright (c) Telecom ParisTech 2010-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenSVC Decoder filter
@@ -610,7 +610,8 @@ GF_FilterRegister OSVCDecRegister = {
 	.process_event = osvcdec_process_event,
 	.max_extra_pids = (SVC_MAX_STREAMS-1),
 #endif
-	.priority = 255
+	.priority = 255,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 const GF_FilterRegister *osvcdec_register(GF_FilterSession *session)

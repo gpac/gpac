@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2023
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream splitter filter
@@ -1434,7 +1434,7 @@ static const GF_FilterCapability BSSplitCaps[] =
 
 GF_FilterRegister BSSplitRegister = {
 	.name = "bssplit",
-	GF_FS_SET_DESCRIPTION("Compressed layered bitstream splitter")
+	GF_FS_SET_DESCRIPTION("Layered bitstream splitter")
 	GF_FS_SET_HELP("This filter splits input stream by layers and sublayers\n"
 	"\n"
 	"The filter supports AVC|H264, HEVC and VVC stream splitting and is pass-through for other codec types.\n"
@@ -1477,7 +1477,8 @@ GF_FilterRegister BSSplitRegister = {
 	.initialize = bs_split_initialize,
 	.finalize = bs_split_finalize,
 	.configure_pid = bs_split_configure_pid,
-	.process = bs_split_process
+	.process = bs_split_process,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 #endif

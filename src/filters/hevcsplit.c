@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile split and rewrite filter
@@ -982,7 +982,7 @@ static const GF_FilterArgs HEVCSplitArgs[] =
 
 GF_FilterRegister HEVCSplitRegister = {
 	.name = "hevcsplit",
-	GF_FS_SET_DESCRIPTION("HEVC tile splitter")
+	GF_FS_SET_DESCRIPTION("HEVC Tile extractor")
 	GF_FS_SET_HELP("This filter splits a motion-constrained tiled HEVC PID into N independent HEVC PIDs.\n"
 			"Use hevcmerge filter to merge initially motion-constrained tiled HEVC PID in a single output.")
 	.private_size = sizeof(GF_HEVCSplitCtx),
@@ -994,6 +994,7 @@ GF_FilterRegister HEVCSplitRegister = {
 	.args = HEVCSplitArgs,
 	.configure_pid = hevcsplit_configure_pid,
 	.process = hevcsplit_process,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister* hevcsplit_register(GF_FilterSession *session)

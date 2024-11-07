@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 visual p2 xvid decoder filter
@@ -459,7 +459,8 @@ GF_FilterRegister XVIDRegister = {
 	.process = xviddec_process,
 	//use low priorty, below ffmpeg one, so that hardware decs/other native impl in gpac can take over if needed
 	//don't use lowest one since we use this for scalable codecs
-	.priority = 100
+	.priority = 100,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif
