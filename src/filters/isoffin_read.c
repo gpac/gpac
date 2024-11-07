@@ -1081,7 +1081,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else if (evt->play.no_byterange_forward) {
 			//new segment will be loaded, reset
 			gf_isom_reset_tables(read->mov, GF_TRUE);
-			gf_isom_reset_data_offset(read->mov, NULL);
+			//do NOT reset offsets if not in mem mode, otherwise we could reparse boxes already parsed during initialization
+			if (read->mem_load_mode)
+				gf_isom_reset_data_offset(read->mov, NULL);
 			read->refresh_fragmented = GF_TRUE;
 			read->mem_blob.size = 0;
 			//send play event
