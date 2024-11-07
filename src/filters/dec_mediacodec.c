@@ -1268,6 +1268,7 @@ GF_FilterRegister GF_MCDecCtxRegister = {
 #endif
 	.configure_pid = mcdec_configure_pid,
 	.process = mcdec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 

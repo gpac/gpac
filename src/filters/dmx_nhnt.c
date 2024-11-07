@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -518,7 +518,8 @@ GF_FilterRegister NHNTDmxRegister = {
 	SETCAPS(NHNTDmxCaps),
 	.configure_pid = nhntdmx_configure_pid,
 	.process = nhntdmx_process,
-	.process_event = nhntdmx_process_event
+	.process_event = nhntdmx_process_event,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 const GF_FilterRegister *nhntr_register(GF_FilterSession *session)

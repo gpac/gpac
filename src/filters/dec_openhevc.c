@@ -1431,7 +1431,8 @@ GF_FilterRegister OHEVCDecRegister = {
 	.flags = GF_FS_REG_BLOCK_MAIN,
 	.max_extra_pids = (HEVC_MAX_STREAMS-1),
 	//by default take over FFmpeg
-	.priority = 100
+	.priority = 100,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif // defined(GPAC_HAS_OPENHEVC) && !defined(GPAC_DISABLE_AV_PARSERS)

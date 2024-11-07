@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH Theora decoder filter
@@ -303,6 +303,7 @@ GF_FilterRegister TheoraDecRegister = {
 	.finalize = theoradec_finalize,
 	.configure_pid = theoradec_configure_pid,
 	.process = theoradec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

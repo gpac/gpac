@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Samir Mustapha - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2023
+ *			Copyright (c) Telecom ParisTech 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / video flip filter
@@ -490,7 +490,7 @@ static const GF_FilterCapability VFlipCaps[] =
 
 GF_FilterRegister VFlipRegister = {
 		.name = "vflip",
-		GF_FS_SET_DESCRIPTION("Video flip")
+		GF_FS_SET_DESCRIPTION("Video flipper")
 		GF_FS_SET_HELP("This filter flips uncompressed video frames vertically, horizontally, in both directions or no flip")
 		.private_size = sizeof(GF_VFlipCtx),
 		.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC,
@@ -499,6 +499,7 @@ GF_FilterRegister VFlipRegister = {
 		SETCAPS(VFlipCaps),
 		.process = vflip_process,
 		.finalize = vflip_finalize,
+		.hint_class_type = GF_FS_CLASS_AV
 };
 
 

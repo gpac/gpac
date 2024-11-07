@@ -3654,7 +3654,7 @@ static const GF_FilterCapability DASHDmxCaps[] =
 
 GF_FilterRegister DASHDmxRegister = {
 	.name = "dashin",
-	GF_FS_SET_DESCRIPTION("MPEG-DASH and HLS client")
+	GF_FS_SET_DESCRIPTION("DASH & HLS client")
 	GF_FS_SET_HELP("This filter reads MPEG-DASH, HLS and MS Smooth manifests.\n"
 	"\n"
 	"# Regular mode\n"
@@ -3728,6 +3728,7 @@ GF_FilterRegister DASHDmxRegister = {
 	.probe_data = dashdmx_probe_data,
 	//we accept as many input pids as loaded by the session
 	.max_extra_pids = (u32) -1,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

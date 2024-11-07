@@ -1044,7 +1044,9 @@ GF_FilterRegister ADTSDmxRegister = {
 	.configure_pid = adts_dmx_configure_pid,
 	.process = adts_dmx_process,
 	.probe_data = adts_dmx_probe_data,
-	.process_event = adts_dmx_process_event
+	.process_event = adts_dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
+
 };
 
 

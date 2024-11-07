@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR decoder filter
@@ -260,6 +260,7 @@ GF_FilterRegister LSRDecRegister = {
 	.process = lsrdec_process,
 	.configure_pid = lsrdec_configure_pid,
 	.process_event = lsrdec_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif //!defined(GPAC_DISABLE_LASER) && !defined(GPAC_DISABLE_COMPOSITOR)

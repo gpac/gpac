@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / generic pipe output filter
@@ -540,7 +540,7 @@ static const GF_FilterCapability PipeOutCaps[] =
 
 GF_FilterRegister PipeOutRegister = {
 	.name = "pout",
-	GF_FS_SET_DESCRIPTION("pipe output")
+	GF_FS_SET_DESCRIPTION("Pipe output")
 	GF_FS_SET_HELP("This filter handles generic output pipes (mono-directional) in blocking mode only.\n"
 		"Warning: Output pipes do not currently support non blocking mode.\n"
 		"The associated protocol scheme is `pipe://` when loaded as a generic output (e.g. -o `pipe://URL` where URL is a relative or absolute pipe name).\n"
@@ -570,7 +570,8 @@ GF_FilterRegister PipeOutRegister = {
 	.finalize = pipeout_finalize,
 	.configure_pid = pipeout_configure_pid,
 	.process = pipeout_process,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

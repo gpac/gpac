@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / audio output filter
@@ -807,7 +807,8 @@ GF_FilterRegister AudioOutRegister = {
 	.configure_pid = aout_configure_pid,
 	.process = aout_process,
 	.process_event = aout_process_event,
-	.update_arg = aout_update_arg
+	.update_arg = aout_update_arg,
+	.hint_class_type = GF_FS_CLASS_MM_IO
 };
 
 const GF_FilterRegister *aout_register(GF_FilterSession *session)

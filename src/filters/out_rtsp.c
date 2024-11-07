@@ -1893,7 +1893,7 @@ static const GF_FilterArgs RTSPOutArgs[] =
 
 GF_FilterRegister RTSPOutRegister = {
 	.name = "rtspout",
-	GF_FS_SET_DESCRIPTION("RTSP Server")
+	GF_FS_SET_DESCRIPTION("RTSP server")
 	GF_FS_SET_HELP("The RTSP server partially implements RTSP 1.0, with support for OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE and TEARDOWN.\n"
 		"Multiple PLAY ranges are not supported, PLAY range end is not supported, PAUSE range is not supported.\n"
 		"Only aggregated control is supported for PLAY and PAUSE, PAUSE/PLAY on single stream is not supported.\n"
@@ -1961,7 +1961,8 @@ GF_FilterRegister RTSPOutRegister = {
 	.finalize = rtspout_finalize,
 	SETCAPS(RTSPOutCaps),
 	.configure_pid = rtspout_configure_pid,
-	.process = rtspout_process
+	.process = rtspout_process,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

@@ -4426,6 +4426,7 @@ GF_FilterRegister NALUDmxRegister = {
 	.process = naludmx_process,
 	.process_event = naludmx_process_event,
 	.probe_data = naludmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

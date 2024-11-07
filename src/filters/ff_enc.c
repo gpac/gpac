@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -2256,7 +2256,8 @@ GF_FilterRegister FFEncodeRegister = {
 	.update_arg = ffenc_update_arg,
 	.flags = GF_FS_REG_META | GF_FS_REG_TEMP_INIT | GF_FS_REG_BLOCK_MAIN,
 	//use middle priority in case we have other encoders
-	.priority = 128
+	.priority = 128,
+	.hint_class_type = GF_FS_CLASS_ENCODER
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFEncodeCtx, _n)

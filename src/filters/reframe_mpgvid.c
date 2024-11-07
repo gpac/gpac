@@ -1405,7 +1405,8 @@ GF_FilterRegister MPGVidDmxRegister = {
 	.configure_pid = mpgviddmx_configure_pid,
 	.process = mpgviddmx_process,
 	.probe_data = mpgvdmx_probe_data,
-	.process_event = mpgviddmx_process_event
+	.process_event = mpgviddmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

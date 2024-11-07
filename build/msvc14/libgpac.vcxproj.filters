@@ -1517,6 +1517,15 @@
     <ClCompile Include="..\..\src\filters\out_rtp.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\dec_webcodec.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\enc_webcodec.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\avin_web.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\evg\raster_565.c">
       <Filter>evg</Filter>
     </ClCompile>
