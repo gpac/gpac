@@ -112,7 +112,7 @@ typedef struct
 
 	Bool corrupted;
 	Bool file_pids;
-	Bool stop_pending;
+	Bool stop_pending, pid_pending;
 } GSF_DemuxCtx;
 
 
@@ -172,13 +172,15 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		ctx->stop_pending = GF_FALSE;
+		if (ctx->pid_pending)
+			ctx->pid_pending--;
 		if (ctx->nb_playing && (ctx->start_range == evt->play.start_range)) {
 			ctx->nb_playing++;
 			return GF_TRUE;
 		}
 		ctx->nb_playing++;
 		ctx->wait_for_play = GF_FALSE;
-		ctx->stop_pending = GF_FALSE;
 
 		if (! ctx->is_file) {
 			return GF_FALSE;
@@ -451,6 +453,7 @@ static GSF_Stream *gsfdmx_get_stream(GF_Filter *filter, GSF_DemuxCtx *ctx, u32 i
 		gst->idx = idx;
 		gf_list_add(ctx->streams, gst);
 		gst->opid = gf_filter_pid_new(filter);
+		ctx->pid_pending++;
 		return gst;
 	}
 
@@ -1285,7 +1288,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		memmove(ctx->buffer, ctx->buffer+last_pck_end, sizeof(char) * (ctx->buf_size-last_pck_end));
 		ctx->buf_size -= last_pck_end;
 	}
-	if (ctx->stop_pending) {
+	if (ctx->stop_pending && !ctx->pid_pending) {
 		GF_FilterEvent evt;
 		ctx->stop_pending = GF_FALSE;
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
