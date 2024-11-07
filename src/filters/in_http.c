@@ -693,7 +693,8 @@ GF_FilterRegister HTTPInRegister = {
 	.finalize = httpin_finalize,
 	.process = httpin_process,
 	.process_event = httpin_process_event,
-	.probe_url = httpin_probe_url
+	.probe_url = httpin_probe_url,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

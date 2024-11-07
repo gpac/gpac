@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2022
+ *			Copyright (c) Telecom Paris 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg avbitstreamfilter filter
@@ -407,7 +407,7 @@ static const GF_FilterCapability FFBSFCaps[] =
 GF_FilterRegister FFBSFRegister = {
 	.name = "ffbsf",
 	.version = LIBAVUTIL_IDENT,
-	GF_FS_SET_DESCRIPTION("FFmpeg BitStream filter")
+	GF_FS_SET_DESCRIPTION("FFmpeg bitstream filter")
 	GF_FS_SET_HELP("This filter provides bitstream filters (BSF) for compressed audio and video formats.\n"
 		"See FFmpeg documentation (https://ffmpeg.org/documentation.html) for more details\n"
 		"To list all supported bitstream filters for your GPAC build, use `gpac -h ffbsf:*`.\n"
@@ -429,7 +429,8 @@ GF_FilterRegister FFBSFRegister = {
 	.configure_pid = ffbsf_configure_pid,
 	.process = ffbsf_process,
 	.update_arg = ffbsf_update_arg,
-	.process_event = ffbsf_process_event
+	.process_event = ffbsf_process_event,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFBSFCtx, _n)

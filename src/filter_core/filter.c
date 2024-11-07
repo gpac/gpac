@@ -5089,10 +5089,21 @@ GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc)
 	filter->instance_description = new_desc ? gf_strdup(new_desc) : NULL;
 	return GF_OK;
 }
+GF_Err gf_filter_set_class_hint(GF_Filter *filter, GF_ClassTypeHint class_hint)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->instance_class_hint = class_hint;
+	return GF_OK;
+}
 GF_EXPORT
 const char *gf_filter_get_description(GF_Filter *filter)
 {
 	return filter ? filter->instance_description : NULL;
+}
+GF_EXPORT
+GF_ClassTypeHint gf_filter_get_class_hint(GF_Filter *filter)
+{
+	return filter ? filter->instance_class_hint : 0;
 }
 
 GF_Err gf_filter_set_version(GF_Filter *filter, const char *new_desc)

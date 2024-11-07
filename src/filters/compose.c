@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / compositor filter
@@ -1224,6 +1224,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.reconfigure_output = compose_reconfig_output,
 	.update_arg = compose_update_arg,
 	.probe_url = compose_probe_url,
+	.hint_class_type = GF_FS_CLASS_AV
 };
 
 const GF_FilterRegister *compositor_register(GF_FilterSession *session)

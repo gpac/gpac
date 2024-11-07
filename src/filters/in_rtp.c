@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -1004,7 +1004,8 @@ GF_FilterRegister RTPInRegister = {
 	.process = rtpin_process,
 	.process_event = rtpin_process_event,
 	.probe_url = rtpin_probe_url,
-	.probe_data = rtpin_probe_data
+	.probe_data = rtpin_probe_data,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 #endif

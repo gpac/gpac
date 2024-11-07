@@ -1754,6 +1754,7 @@ GF_FilterRegister M2TSDmxRegister = {
 	.process = m2tsdmx_process,
 	.process_event = m2tsdmx_process_event,
 	.probe_data = m2tsdmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 

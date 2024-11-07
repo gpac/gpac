@@ -704,6 +704,7 @@ GF_FilterRegister SCTE35DecRegister = {
 	.configure_pid = scte35dec_configure_pid,
 	.initialize = scte35dec_initialize,
 	.finalize = scte35dec_finalize,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 const GF_FilterRegister *scte35dec_register(GF_FilterSession *session)

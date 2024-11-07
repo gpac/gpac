@@ -467,7 +467,8 @@ GF_FilterRegister SAFDmxRegister = {
 	.configure_pid = safdmx_configure_pid,
 	.process = safdmx_process,
 	.process_event = safdmx_process_event,
-	.probe_data = safdmx_probe_data
+	.probe_data = safdmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 const GF_FilterRegister *safdmx_register(GF_FilterSession *session)

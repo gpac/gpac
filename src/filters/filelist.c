@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -3205,7 +3205,8 @@ GF_FilterRegister FileListRegister = {
 	.configure_pid = filelist_configure_pid,
 	.process = filelist_process,
 	.process_event = filelist_process_event,
-	.probe_data = filelist_probe_data
+	.probe_data = filelist_probe_data,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister *flist_register(GF_FilterSession *session)

@@ -791,9 +791,9 @@ typedef struct
 
 /*! structure used to signal inband events*/
 typedef struct {
-	/* Scheme ID Uri of the inband event */
+	/*! Scheme ID Uri of the inband event */
 	char *scheme_id_uri;
-	/* Value of the inband event */
+	/*! Value of the inband event */
 	char *value;
 } GF_MPD_Inband_Event;
 

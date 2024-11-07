@@ -921,7 +921,8 @@ GF_FilterRegister MHASDmxRegister = {
 	.configure_pid = mhas_dmx_configure_pid,
 	.process = mhas_dmx_process,
 	.probe_data = mhas_dmx_probe_data,
-	.process_event = mhas_dmx_process_event
+	.process_event = mhas_dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

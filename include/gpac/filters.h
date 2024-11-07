@@ -2413,6 +2413,40 @@ typedef enum
 	GF_FS_REG_CUSTOM = 0x40000000,
 } GF_FSRegisterFlags;
 
+/*! Filter class type hint - these are only informative, used to generate documentation - the order of the enum corresponds to order of section in wki*/
+typedef enum
+{
+	/*! unspecified class type */
+	GF_FS_CLASS_UNSPECIFIED = 0,
+	/*! filter is a stream manipulation tool */
+	GF_FS_CLASS_STREAM,
+	/*! filter is a multimedia input/input  tool */
+	GF_FS_CLASS_MM_IO,
+	/*! filter is a file/network/protocols input/output  tool */
+	GF_FS_CLASS_NETWORK_IO,
+	/*! filter is a text and subtitle tool */
+	GF_FS_CLASS_SUBTITLE,
+	/*! filter is a raw audio/video tool */
+	GF_FS_CLASS_AV,
+	/*! filter is a generic tool */
+	GF_FS_CLASS_TOOL,
+	/*! filter is a cryptographic tool */
+	GF_FS_CLASS_CRYPTO,
+	/*! filter is a bitstream framing/unframing tool */
+	GF_FS_CLASS_FRAMING,
+	/*! filter is a demultiplexer */
+	GF_FS_CLASS_DEMULTIPLEXER,
+	/*! filter is a multiplexer */
+	GF_FS_CLASS_MULTIPLEXER,
+	/*! filter is a decoder */
+	GF_FS_CLASS_DECODER,
+	/*! filter is an encoder */
+	GF_FS_CLASS_ENCODER,
+	/*! any  value above this is considered as unknown */
+	GF_FS_CLASS_LAST_DEFINED,
+
+} GF_ClassTypeHint;
+
 /*! The filter register. Registries are loaded once at the start of the session and shall never be modified after that.
 If capabilities need to be changed for a specific filter, use \ref gf_filter_override_caps*/
 struct __gf_filter_register
@@ -2534,6 +2568,9 @@ struct __gf_filter_register
 	/*! for filters having the same match of input capabilities for a PID, the filter with priority at the lowest value will be used
 	\note Scalable decoders should use high values, so that they are only selected when enhancement layers are present*/
 	u8 priority;
+
+	/*! hint class type for doc generation, one of GF_ClassTypeHint */
+	u8 hint_class_type;
 
 	/*! optional for dynamic filter registries. Dynamic registries may declare any number of registries. The register_free function will be called to cleanup any allocated memory
 
@@ -3257,6 +3294,19 @@ GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc);
 \return the filter instance description, NULL otherwise
 */
 const char *gf_filter_get_description(GF_Filter *filter);
+
+/*! used by script to set a per-instance class hint
+\param filter target filter
+\param class_hint theclass hint to set
+\return error if any
+*/
+GF_Err gf_filter_set_class_hint(GF_Filter *filter, GF_ClassTypeHint class_hint);
+
+/*! get a per-instance class hint
+\param filter target filter
+\return the filter instance description, NULL otherwise
+*/
+GF_ClassTypeHint gf_filter_get_class_hint(GF_Filter *filter);
 
 /*! used by script to set a per-instance version
 \param filter target filter

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg video rescaler filter
@@ -1087,6 +1087,7 @@ GF_FilterRegister FFSWSRegister = {
 	.finalize = ffsws_finalize,
 	.process = ffsws_process,
 	.reconfigure_output = ffsws_reconfigure_output,
+	.hint_class_type = GF_FS_CLASS_AV
 };
 
 #else

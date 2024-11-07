@@ -1398,7 +1398,8 @@ GF_FilterRegister AV1DmxRegister = {
 	.configure_pid = av1dmx_configure_pid,
 	.process = av1dmx_process,
 	.probe_data = av1dmx_probe_data,
-	.process_event = av1dmx_process_event
+	.process_event = av1dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

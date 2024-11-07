@@ -2366,6 +2366,7 @@ GF_FilterRegister TSMuxRegister = {
 	.configure_pid = tsmux_configure_pid,
 	.process = tsmux_process,
 	.process_event = tsmux_process_event,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 

@@ -1928,7 +1928,8 @@ GF_FilterRegister ISOFFInRegister = {
 	.configure_pid = isoffin_configure_pid,
 	SETCAPS(ISOFFInCaps),
 	.process_event = isoffin_process_event,
-	.probe_data = isoffin_probe_data
+	.probe_data = isoffin_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)
