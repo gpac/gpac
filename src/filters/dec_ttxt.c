@@ -1024,7 +1024,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 		ctx->tr_scroll = NULL;
 	}
 
-	u16 *utf16_text = gf_malloc(sizeof(u16) * ((txt->len/2)*2 + 2) );
+	u16 *utf16_text = gf_malloc(sizeof(u16) * ((txt->len/2)*2 + 4) );
 	if (is_utf_16) {
 		memcpy((char *) utf16_text, txt->text, sizeof(char) * txt->len);
 		((char *) utf16_text)[txt->len] = 0;

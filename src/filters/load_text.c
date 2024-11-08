@@ -751,9 +751,10 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	}
 	ctx->has_forced |= 4;
 
-	ts = gf_timestamp_rescale(ts, 1000, ctx->timescale);
-	duration = (u32) gf_timestamp_rescale(duration, 1000, ctx->timescale);
-
+	if (!ctx->pid_framed) {
+		ts = gf_timestamp_rescale(ts, 1000, ctx->timescale);
+		duration = (u32) gf_timestamp_rescale(duration, 1000, ctx->timescale);
+	}
 	gf_filter_pck_set_sap(dst_pck, is_rap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	gf_filter_pck_set_cts(dst_pck, ts);
 	gf_filter_pck_set_duration(dst_pck, duration);
