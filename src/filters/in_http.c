@@ -53,8 +53,7 @@ typedef struct
 {
 	//options
 	char *src;
-	u32 block_size, idelay;
-	GF_HTTPInStoreMode cache;
+	u32 block_size, cache, idelay;
 	GF_Fraction64 range;
 	char *ext;
 	char *mime;

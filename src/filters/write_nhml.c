@@ -36,11 +36,19 @@
 #include <zlib.h>
 #endif
 
+typedef enum
+{
+	NO_CHKSUM,
+	CRC32_CHKSUM,
+	SHA1_CHKSUM,
+} GF_NHMLChksum;
+
 typedef struct
 {
 	//opts
 	const char *name;
-	Bool exporter, dims, pckp, nhmlonly, payload, chksum;
+	Bool exporter, dims, pckp, nhmlonly, payload;
+	u32 chksum;
 	FILE *filep;
 
 
@@ -775,8 +783,8 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 		}
 	}
 
-	if (ctx->chksum) {
-		if (ctx->chksum==1) {
+	if (ctx->chksum!=NO_CHKSUM) {
+		if (ctx->chksum==CRC32_CHKSUM) {
 			u32 crc = gf_crc_32(data, data_size);
 			sprintf(nhml, "crc=\"%08X\" ", crc);
 			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
