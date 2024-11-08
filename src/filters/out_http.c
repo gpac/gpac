@@ -1921,6 +1921,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			}
 		} else {
 			GF_FilterProbeScore probe_score=GF_FPROBE_NOT_SUPPORTED;
+
+			if (sess->resource) gf_fclose(sess->resource);
 			//no need to use gf_fopen_ex in mem mode, since the fullpath is the gfio:// URL of the mem resource
 			sess->resource = gf_fopen(full_path, "rb");
 			//we may not have the file if it is currently being created
@@ -4042,6 +4044,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 	}
 
 	//for mem mode, pass the parent gfio for fileIO construction
+	gf_assert(in->resource == NULL);
 	in->resource = gf_fopen_ex(in->local_path, ctx->mem_url, "wb", GF_FALSE);
 	if (!in->resource)
 		in->is_open = GF_FALSE;
@@ -4607,6 +4610,9 @@ next_pck:
 			if (!no_cte_flush) {
 				nb_nopck++;
 				ctx->next_wake_us = 100;
+				//test mode, don't destroy too early
+				if (ctx->hold && gf_sys_is_test_mode() && (gf_list_count(ctx->sessions)==1))
+					ctx->next_wake_us = 50000;
 				continue;
 			}
 		}
@@ -4839,6 +4845,7 @@ next_pck:
 			char *llhas_chunkname = gf_mpd_resolve_subnumber(in->llhas_template, in->local_path, p->value.uint);
 
 			httpout_close_llhas_part(ctx, in, GF_FALSE);
+			gf_assert(in->llhas_part == NULL);
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[HTTPOut] Opening output %s\n", llhas_chunkname));
 			//for mem mode, pass the parent gfio for fileIO construction
 			in->llhas_part = gf_fopen_ex(llhas_chunkname, ctx->mem_url, "wb", GF_FALSE);

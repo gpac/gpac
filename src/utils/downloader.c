@@ -363,7 +363,7 @@ struct __gf_download_manager
 
 };
 
-void dm_sess_sk_del(GF_DownloadSession *sess)
+static void dm_sess_sk_del(GF_DownloadSession *sess)
 {
 #ifdef GPAC_HAS_CURL
 	if (sess->curl_hnd) {
