@@ -2012,6 +2012,18 @@ asloop (bool, default: false): when auto switch is enabled, iterates back and fo
 .br
 bsmerge (bool, default: true): allow merging of video bitstreams (only HEVC for now)
 .br
+keep_burl (enum, default: BURL_STRIP): control BaseURL in manifest
+.br
+* strip: strip BaseURL (default)
+.br
+* keep: keep BaseURL
+.br
+* inject: inject local relative URL before BaseURL value specified by relative_url option
+.br
+
+.br
+relative_url (str, default: ./): relative string to inject before BaseURL when keep_base_url is set to inject
+.br
 
 .br
 .SH cdcrypt
@@ -8357,7 +8369,7 @@ cicp_idx (uint, default: 2):   target output layout CICP index (see gpac -h layo
 .br
 Description: FFmpeg demultiplexer
 .br
-Version: Lavf61.3.100
+Version: Lavf61.9.100
 .br
 
 .br
@@ -8395,7 +8407,7 @@ strbuf_min (uint, default: 1MB): internal buffer size when demuxing from GPAC's 
 .br
 Description: FFmpeg decoder
 .br
-Version: Lavc61.5.101
+Version: Lavc61.24.100
 .br
 
 .br
@@ -8456,7 +8468,7 @@ c (str):                       codec name (GPAC or ffmpeg), only used to query p
 .br
 Description: FFmpeg AV capture
 .br
-Version: Lavd61.2.100
+Version: Lavd61.4.100
 .br
 
 .br
@@ -8549,7 +8561,7 @@ probes (uint, default: 10, minmax: 0-100): probe a given number of video frames 
 .br
 Description: FFmpeg video rescaler
 .br
-Version: SwS8.2.100
+Version: SwS8.9.101
 .br
 
 .br
@@ -8669,7 +8681,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFmpeg encoder
 .br
-Version: Lavc61.5.101
+Version: Lavc61.24.100
 .br
 
 .br
@@ -8755,7 +8767,7 @@ rld (bool, default: false, updatable): force reloading of encoder when arguments
 .br
 Description: FFmpeg multiplexer
 .br
-Version: Lavf61.3.100
+Version: Lavf61.9.100
 .br
 
 .br
@@ -8819,7 +8831,7 @@ keepts (bool, default: true):  do not shift input timeline back to 0
 .br
 Description: FFmpeg AV Filter
 .br
-Version: Lavfi10.2.101
+Version: Lavfi10.6.101
 .br
 
 .br
@@ -8962,7 +8974,7 @@ dump (bool, default: false, updatable): dump graph as log media@info or stderr i
 .br
 Description: FFmpeg bitstream filter
 .br
-Version: Lavu59.13.100
+Version: Lavu59.46.100
 .br
 
 .br
