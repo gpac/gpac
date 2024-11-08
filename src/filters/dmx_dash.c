@@ -3673,9 +3673,9 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(asloop), "when auto switch is enabled, iterates back and forth from highest to lowest qualities", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(bsmerge), "allow merging of video bitstreams (only HEVC for now)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keep_burl), "control BaseURL in manifest\n"
-        "- BURL_STRIP: strip BaseURL (default)\n"
-        "- BURL_KEEP: keep BaseURL\n"
-        "- BURL_INJECT: inject local relative URL before BaseURL value specified by relative_url option.", GF_PROP_UINT, "BURL_STRIP", "BURL_STRIP|BURL_KEEP|BURL_INJECT", GF_FS_ARG_HINT_EXPERT},
+        "- strip: strip BaseURL (default)\n"
+        "- keep: keep BaseURL\n"
+        "- inject: inject local relative URL before BaseURL value specified by relative_url option", GF_PROP_UINT, "BURL_STRIP", "strip|keep|inject", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(relative_url), "relative string to inject before BaseURL when keep_base_url is set to inject", GF_PROP_STRING, "./", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
