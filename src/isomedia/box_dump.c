@@ -3751,7 +3751,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 
 	gf_fprintf(dump, " xml:space=\"preserve\">");
 	if (s_txt->len) {
-		unsigned short *utf16Line = gf_malloc( sizeof(u16) * (s_txt->len/2)*2 + 2 );
+		unsigned short *utf16Line = gf_malloc( sizeof(u16) * (s_txt->len/2)*2 + 4 );
 		if (!utf16Line) return;
 		/*UTF16*/
 		if ((s_txt->len>2) && ((unsigned char) s_txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) s_txt->text[1] == (unsigned char) 0xFF)) {
@@ -4019,7 +4019,7 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 	}
 
 	u32 styles, char_num, new_styles, color, new_color;
-	u16 *utf16_buf = gf_malloc(sizeof(u16)*((txt->len/2)*2+2));
+	u16 *utf16_buf = gf_malloc(sizeof(u16)*((txt->len/2)*2 + 4));
 	if (!utf16_buf) return GF_OUT_OF_MEM;
 
 	/*UTF16*/
