@@ -31,11 +31,18 @@
 
 #include <gpac/avparse.h>
 
+enum
+{
+	AAC_MPEG2_NO=0,
+	AAC_MPEG2_YES,
+	AAC_MPEG2_AUTO,
+};
 
 typedef struct
 {
 	//opts
-	Bool exporter, mpeg2;
+	Bool exporter;
+	u32 mpeg2;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -61,6 +68,8 @@ typedef struct
 	GF_Fraction fdsi;
 	u64 last_cts;
 	u32 timescale;
+
+	u32 signal_mpeg2;
 } GF_ADTSMxCtx;
 
 
@@ -87,6 +96,21 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
 	ctx->codecid = p->value.uint;
+
+	if (ctx->mpeg2==AAC_MPEG2_AUTO) {
+		switch(ctx->codecid) {
+		case GF_CODECID_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
+			ctx->signal_mpeg2 = GF_TRUE;
+			break;
+		default:
+			ctx->signal_mpeg2 = GF_FALSE;
+			break;
+		}
+	} else {
+		ctx->signal_mpeg2 = ctx->mpeg2 ? GF_TRUE : GF_FALSE;
+	}
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -139,7 +163,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		if (chan_cfg==8)
 			chan_cfg = 7;
 
-		if (!ctx->mpeg2) {
+		if (!ctx->signal_mpeg2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 			if (p) {
@@ -336,7 +360,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		else gf_bs_reassign_buffer(ctx->bs_w, output, size);
 
 		gf_bs_write_int(ctx->bs_w, 0xFFF, 12);/*sync*/
-		gf_bs_write_int(ctx->bs_w, (ctx->mpeg2==1) ? 1 : 0, 1);/*mpeg2 aac*/
+		gf_bs_write_int(ctx->bs_w, ctx->signal_mpeg2 ? 1 : 0, 1);/*mpeg2 aac*/
 		gf_bs_write_int(ctx->bs_w, 0, 2); /*layer*/
 		gf_bs_write_int(ctx->bs_w, 1, 1); /* protection_absent*/
 		gf_bs_write_int(ctx->bs_w, ctx->aac_type, 2);
@@ -398,7 +422,7 @@ static const GF_FilterArgs ADTSMxArgs[] =
 	"- auto: selects based on AAC profile\n"
 	"- no: always signals as MPEG-4 AAC\n"
 	"- yes: always signals as MPEG-2 AAC"
-	"", GF_PROP_UINT, "auto", "auto|no|yes", GF_FS_ARG_HINT_ADVANCED},
+	"", GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

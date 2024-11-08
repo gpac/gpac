@@ -6038,11 +6038,11 @@ static u32 http_parse_method(const char *comp)
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 {
 	GF_NETIO_Parameter par;
-	s32 bytesRead, BodyStart;
-	u32 res, i, buf_size;
+	s32 bytesRead, BodyStart=0;
+	u32 res, i, buf_size = sess->http_buf_size;
 	s32 LinePos, Pos;
 	u32 method=0;
-	u32 ContentLength, first_byte, last_byte, total_size, range, no_range;
+	u32 ContentLength=0, first_byte, last_byte, total_size, range, no_range;
 	Bool connection_closed = GF_FALSE;
 	Bool connection_keep_alive = GF_FALSE;
 	u32 connection_timeout=0;
@@ -6160,8 +6160,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 		goto process_reply;
 	}
 #endif
-
-	buf_size = sess->http_buf_size;
 
 	//always set start time to the time at last attempt reply parsing
 	sess->start_time = gf_sys_clock_high_res();
