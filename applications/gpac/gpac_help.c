@@ -2420,7 +2420,17 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 
 void check_prop_def(char *pname)
 {
+	while (pname && pname[0]) {
+		if (pname[0]=='\n') pname++;
+		else if (pname[0]=='\r') pname++;
+		else break;
+	}
 	u32 pname_len = pname ? (u32) strlen(pname) : 0;
+	while (pname_len) {
+		if (pname[pname_len-1]=='\n') pname_len--;
+		else if (pname[pname_len-1]=='\r') pname_len--;
+		else break;
+	}
 	if (pname_len==4) {
 		u32 i;
 		Bool is_p4cc = GF_TRUE;
