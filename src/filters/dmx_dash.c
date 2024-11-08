@@ -3675,7 +3675,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(keep_burl), "control BaseURL in manifest\n"
         "- strip: strip BaseURL (default)\n"
         "- keep: keep BaseURL\n"
-        "- inject: inject local relative URL before BaseURL value specified by relative_url option", GF_PROP_UINT, "BURL_STRIP", "strip|keep|inject", GF_FS_ARG_HINT_EXPERT},
+        "- inject: inject local relative URL before BaseURL value specified by relative_url option", GF_PROP_UINT, "strip", "strip|keep|inject", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(relative_url), "relative string to inject before BaseURL when keep_base_url is set to inject", GF_PROP_STRING, "./", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
