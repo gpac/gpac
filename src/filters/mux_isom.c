@@ -295,7 +295,7 @@ typedef struct
 	Bool ssix;
 	Bool ccst;
 	s32 mediats;
-	GF_AudioSampleEntryImportMode ase;
+	u32 ase;
 	char *styp;
 	Bool sseg;
 	Bool noroll, norap;

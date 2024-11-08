@@ -103,7 +103,7 @@ typedef struct
 	u32 pmt_id, pmt_rate, pmt_version, sdt_rate, breq, mpeg4;
 	u64 pcr_offset, first_pts;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes;
-	GF_M2TS_PackMode pes_pack;
+	u32 pes_pack;
 	Bool flush_rap, realtime, pcr_only, disc, latm;
 	s64 pcr_init;
 	char *name, *provider, *temi;

@@ -665,7 +665,7 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(pspace), "profile space for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_UINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
+	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
 	{0}
 };
 
