@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML stream to file filter
@@ -36,11 +36,19 @@
 #include <zlib.h>
 #endif
 
+typedef enum
+{
+	NO_CHKSUM,
+	CRC32_CHKSUM,
+	SHA1_CHKSUM,
+} GF_NHMLChksum;
+
 typedef struct
 {
 	//opts
 	const char *name;
-	Bool exporter, dims, pckp, nhmlonly, payload, chksum;
+	Bool exporter, dims, pckp, nhmlonly, payload;
+	u32 chksum;
 	FILE *filep;
 
 
@@ -694,8 +702,12 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 	else cts += ctx->delay;
 
 	ctx->pck_num++;
-	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\""LLU"\" dataLength=\"%d\" ", ctx->pck_num, dts, data_size);
+	sprintf(nhml, "<NHNTSample number=\"%d\" DTS=\""LLU"\" ", ctx->pck_num, dts);
 	gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	if (!ctx->nhmlonly) {
+		sprintf(nhml, "dataLength=\"%d\" ", data_size);
+		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+	}
 	if (ctx->pckp || (cts != dts) ) {
 		sprintf(nhml, "CTSOffset=\"%d\" ", (s32) ((s64)cts - (s64)dts));
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
@@ -719,13 +731,15 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 	if (ctx->pckp) {
 		u64 bo;
 		u32 duration, idx;
-		sprintf(nhml, "mediaOffset=\""LLU"\" ", ctx->mdia_pos);
-		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-
-		bo = gf_filter_pck_get_byte_offset(pck);
-		if (bo!=GF_FILTER_NO_BO) {
-			sprintf(nhml, "sourceByteOffset=\""LLU"\" ", bo);
+		if (!ctx->nhmlonly) {
+			sprintf(nhml, "mediaOffset=\""LLU"\" ", ctx->mdia_pos);
 			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+
+			bo = gf_filter_pck_get_byte_offset(pck);
+			if (bo!=GF_FILTER_NO_BO) {
+				sprintf(nhml, "sourceByteOffset=\""LLU"\" ", bo);
+				gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+			}
 		}
 		duration = gf_filter_pck_get_duration(pck);
 		if (duration) {
@@ -769,8 +783,8 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 		}
 	}
 
-	if (ctx->chksum) {
-		if (ctx->chksum==1) {
+	if (ctx->chksum!=NO_CHKSUM) {
+		if (ctx->chksum==CRC32_CHKSUM) {
 			u32 crc = gf_crc_32(data, data_size);
 			sprintf(nhml, "crc=\"%08X\" ", crc);
 			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
@@ -1080,7 +1094,8 @@ GF_FilterRegister NHMLDumpRegister = {
 	.finalize = nhmldump_finalize,
 	SETCAPS(NHMLDumpCaps),
 	.configure_pid = nhmldump_configure_pid,
-	.process = nhmldump_process
+	.process = nhmldump_process,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 const GF_FilterRegister *nhmlw_register(GF_FilterSession *session)

@@ -297,9 +297,15 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
 
 		if (pes->metadata_descriptor) gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
+		if (pes->gpac_meta_dsi) gf_free(pes->gpac_meta_dsi);
 
 	}
 	if (es->slcfg) gf_free(es->slcfg);
+	for (u32 i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		if (ts->ess[i]==es) {
+			ts->ess[i] = NULL;
+		}
+	}
 	gf_free(es);
 }
 
@@ -651,7 +657,7 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 			sec->section = (char*)gf_realloc(sec->section, sizeof(char)*sec->length);
 		}
 
-		if (sec->length && sec->received < sec->length && data_size >= 1 + sec->length - sec->received) {
+		if (sec->length && (sec->received < sec->length) && (data_size >= (u32) (1 + sec->length - sec->received))) {
 			u32 len = sec->length - sec->received;
 			memcpy(sec->section + sec->received, data+1, sizeof(char)*len);
 			sec->received += len;
@@ -2426,6 +2432,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 						char *_url = URL;
 						u8 scheme = gf_bs_read_int(bs, 8);
 						u8 url_len = gf_bs_read_int(bs, 8);
+						if (url_len + 4 > desc_len) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Invalid AF Location descriptor (size=%u) found (scheme=%u, url_len=%u))\n", pid, desc_len, scheme, url_len));
+							break;
+						}
 						u8 scheme_len = 0;
 						switch (scheme) {
 						case 1:
@@ -2527,6 +2537,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			//error
 			return GF_CORRUPTED_DATA;
 		}
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
 		if (af_size) gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
@@ -2540,6 +2551,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d AF size is %d when it must be 183 for AF type 2\n", ts->pck_number, af_size));
 			return GF_CORRUPTED_DATA;
 		}
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
 		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
@@ -2552,13 +2564,14 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	case 0:
 		return GF_OK;
 	default:
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
 		break;
 	}
 	data += pos;
 
 	/*PAT*/
 	if (hdr.pid == GF_M2TS_PID_PAT) {
-		if (ts->split_mode==2) {
+		if (ts->raw_mode==GF_M2TS_RAW_FORWARD) {
 			GF_M2TS_TSPCK tspck;
 			memset(&tspck, 0, sizeof(GF_M2TS_TSPCK));
 			tspck.data = data - pos;
@@ -2571,7 +2584,9 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 	es = ts->ess[hdr.pid];
 	//we work in split mode
-	if (ts->split_mode) {
+	if (ts->raw_mode) {
+		if (ts->raw_mode==GF_M2TS_RAW_PROBE) return GF_OK;
+
 		GF_M2TS_TSPCK tspck;
 		//process PMT table
 		if (es && (es->flags & GF_M2TS_ES_IS_PMT)) {
@@ -3192,7 +3207,8 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 }
 #endif
 
-#define M2TS_PROBE_SIZE	188000
+//20 packets max
+#define M2TS_PROBE_SIZE	188*20
 static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 {
 	GF_Err e;
@@ -3203,6 +3219,7 @@ static Bool gf_m2ts_probe_buffer(char *buf, u32 size)
 	gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_QUIET);
 
 	ts = gf_m2ts_demux_new();
+	ts->raw_mode = GF_M2TS_RAW_PROBE;
 	e = gf_m2ts_process_data(ts, buf, size);
 
 	if (!ts->pck_number) {

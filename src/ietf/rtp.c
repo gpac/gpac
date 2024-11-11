@@ -253,7 +253,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			//else bind and set remote destination
 			else {
 				if (!ch->net_info.port_first) ch->net_info.port_first = ch->net_info.client_port_first;
-				e = gf_sk_bind(ch->rtp, local_ip,ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtp, local_ip,ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT|GF_SOCK_IS_SENDER);
 				if (e) return e;
 			}
 		} else {
@@ -290,7 +290,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.client_port_last, ch->net_info.source, port, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			} else {
-				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT|GF_SOCK_IS_SENDER);
 				if (e) return e;
 			}
 		} else {

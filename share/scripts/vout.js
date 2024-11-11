@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2023
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / vout default ui
@@ -397,7 +397,7 @@ function update_help()
 	shortcuts.forEach( (key, index) => {
 		if (use_libcaca && (index>10))
 			return;
-		args.push( '' + sys.keyname(key.code) + ': ' + key.desc);
+		args.push( key.code + ': ' + key.desc);
 	});
 	if (audio_only)
 		text.fontsize = 20;
@@ -992,20 +992,20 @@ function toggle_overlay()
 }
 
 let shortcuts = [
-	{ "code": GF_KEY_B, "desc": "speeds up by 2"},
-	{ "code": GF_KEY_V, "desc": "speeds down by 2"},
-	{ "code": GF_KEY_N, "desc": "normal play speed"},
-	{ "code": GF_KEY_SPACE, "desc": "pause/resume"},
-	{ "code": GF_KEY_S, "desc": "step one frame"},
-	{ "code": GF_KEY_RIGHT, "desc": "seek forward by 1%, 10% if alt down, 30% if ctrl down"},
-	{ "code": GF_KEY_LEFT, "desc": "seek backward "},
-	{ "code": GF_KEY_UP, "desc": "seek forward by 30s, 10m if alt down, 30m if ctrl down"},
-	{ "code": GF_KEY_DOWN, "desc": "seek backward"},
-	{ "code": GF_KEY_I, "desc": "show info and statistics"},
-	{ "code": GF_KEY_P, "desc": "show playback info"},
-	{ "code": GF_KEY_F, "desc": "fullscreen mode"},
-	{ "code": GF_KEY_M, "desc": "flip video"},
-	{ "code": GF_KEY_R, "desc": "rotate video by 90 degree"},
+	{ "code": "B", "desc": "speeds up by 2"},
+	{ "code": "V", "desc": "speeds down by 2"},
+	{ "code": "N", "desc": "normal play speed"},
+	{ "code": "space", "desc": "pause/resume"},
+	{ "code": "S", "desc": "step one frame"},
+	{ "code": "Right", "desc": "seek forward by 1%, 10% if alt down, 30% if ctrl down"},
+	{ "code": "Left", "desc": "seek backward "},
+	{ "code": "Up", "desc": "seek forward by 30s, 10m if alt down, 30m if ctrl down"},
+	{ "code": "Down", "desc": "seek backward"},
+	{ "code": "I", "desc": "show info and statistics"},
+	{ "code": "P", "desc": "show playback info"},
+	{ "code": "F", "desc": "fullscreen mode"},
+	{ "code": "M", "desc": "flip video"},
+	{ "code": "R", "desc": "rotate video by 90 degree"},
 ];
 
 function set_speed(speed)
@@ -1030,55 +1030,55 @@ function process_keyboard(evt)
 	}
 	if(evt.window != win_id) return true;
 
-	switch (evt.keycode) {
-	case GF_KEY_B:
+	switch (sys.keyname(evt.keycode)) {
+	case 'B':
 		if (evt.keymods & GF_KEY_MOD_SHIFT) speed *= 1.2;
 		else speed *= 2;
 		set_speed(speed);
 		return true;
-	case GF_KEY_V:
+	case 'V':
 		if (evt.keymods & GF_KEY_MOD_SHIFT) speed /= 1.2;
 		else speed /= 2;
 		set_speed(speed);
 		return true;
-	case GF_KEY_N:
+	case 'N':
 		speed = 1;
 		set_speed(speed);
 		return true;
-	case GF_KEY_SPACE:
+	case 'space':
 		paused = !paused;
 		set_speed(paused ? 0 : speed);
 		return true;
-	case GF_KEY_S:
+	case 'S':
 		paused = 2;
 		vout.update('step', '1');
 		if (aout) aout.update('speed', '0');
 		check_duration();
 		return true;
-	case GF_KEY_RIGHT:
+	case 'Right':
 		if (interactive_scene) return false;
 		do_seek(1, evt.keymods, false);
 		return true;
-	case GF_KEY_LEFT:
+	case 'Left':
 		if (interactive_scene) return false;
 		do_seek(-1, evt.keymods, false);
 		return true;
-	case GF_KEY_UP:
+	case 'Up':
 		if (interactive_scene) return false;
 		do_seek(1, evt.keymods, true);
 		return true;
-	case GF_KEY_DOWN:
+	case 'Down':
 		if (interactive_scene) return false;
 		do_seek(-1, evt.keymods, true);
 		return true;
 
-	case GF_KEY_F:
+	case 'F':
 		if (audio_only) return;
 		fullscreen = !fullscreen;
 		vout.update('fullscreen', ''+fullscreen);
 		return true;
 
-	case GF_KEY_H:
+	case 'H':
 		if (overlay_type==OL_AUTH) break;
 		//hide player
 		if (audio_only && (overlay_type==OL_PLAY)) {
@@ -1092,7 +1092,7 @@ function process_keyboard(evt)
 			toggle_overlay();
 		}
 		return true;
-	case GF_KEY_I:
+	case 'I':
 		if (overlay_type==OL_AUTH) break;
 		//hide player
 		if (audio_only && (overlay_type==OL_PLAY)) {
@@ -1106,7 +1106,7 @@ function process_keyboard(evt)
 			toggle_overlay();
 		}
 		return true;
-	case GF_KEY_P:
+	case 'P':
 		if (overlay_type==OL_AUTH) break;
 		//do not untoggle for audio only
 		if (audio_only) return;
@@ -1114,7 +1114,7 @@ function process_keyboard(evt)
 		if (!ol_visible) init_wnd=true;
 		toggle_overlay();
 		return true;
-	case GF_KEY_R:
+	case 'R':
 		if (audio_only) return;
 		rot = vout.get_arg('vrot');
 		rot++;
@@ -1124,7 +1124,7 @@ function process_keyboard(evt)
 		else if (rot==2) vout.update('vrot', '180');
 		else vout.update('vrot', '270');
 		return true;
-	case GF_KEY_M:
+	case 'M':
 		if (audio_only) return;
 		flip = vout.get_arg('vflip');
 		flip++;

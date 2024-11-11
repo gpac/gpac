@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2023
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream metadata rewrite filter
@@ -665,7 +665,7 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(pspace), "profile space for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(gpcflags), "general compatibility flags for HEVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rmsei), "remove SEI messages from bitstream for AVC|H264, HEVC and VVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_UINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
+	{ OFFS(vidfmt), "video format for AVC|H264, HEVC and VVC", GF_PROP_SINT, "-1", "component|pal|ntsc|secam|mac|undef", GF_FS_ARG_UPDATE},
 	{0}
 };
 
@@ -703,7 +703,7 @@ static const GF_FilterCapability BSRWCaps[] =
 
 GF_FilterRegister BSRWRegister = {
 	.name = "bsrw",
-	GF_FS_SET_DESCRIPTION("Compressed bitstream rewriter")
+	GF_FS_SET_DESCRIPTION("Bitstream metadata rewriter")
 	GF_FS_SET_HELP("This filter rewrites some metadata of various bitstream formats.\n"
 	"The filter can currently modify the following properties in video bitstreams:\n"
 	"- MPEG-4 Visual:\n"
@@ -736,7 +736,8 @@ GF_FilterRegister BSRWRegister = {
 	.finalize = bsrw_finalize,
 	.configure_pid = bsrw_configure_pid,
 	.process = bsrw_process,
-	.update_arg = bsrw_update_arg
+	.update_arg = bsrw_update_arg,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister *bsrw_register(GF_FilterSession *session)

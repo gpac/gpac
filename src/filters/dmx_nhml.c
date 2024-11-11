@@ -321,6 +321,7 @@ restart:
 			if (bs_child->type) continue;
 			if (!stricmp(bs_child->name, "BS") ||
 			    !stricmp(bs_child->name, "SCTE35") ||
+			    !stricmp(bs_child->name, "EventMessageEmptyBox") ||
 			    !stricmp(bs_child->name, "EventMessageInstanceBox"))
 				has_bs = GF_TRUE;
 		}
@@ -1484,6 +1485,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			}
 			if (!stricmp(childnode->name, "BS") ||
 			    !stricmp(childnode->name, "SCTE35") || 
+			    !stricmp(childnode->name, "EventMessageEmptyBox") || 
 				!stricmp(childnode->name, "EventMessageInstanceBox")) {
 				has_subbs = GF_TRUE;
 			}
@@ -1804,7 +1806,8 @@ GF_FilterRegister NHMLDmxRegister = {
 	SETCAPS(NHMLDmxCaps),
 	.configure_pid = nhmldmx_configure_pid,
 	.process = nhmldmx_process,
-	.process_event = nhmldmx_process_event
+	.process_event = nhmldmx_process_event,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 const GF_FilterRegister *nhmlr_register(GF_FilterSession *session)

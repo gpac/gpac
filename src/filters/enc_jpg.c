@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / libjpeg encoder filter
@@ -403,6 +403,7 @@ GF_FilterRegister JPGEncRegister = {
 	.initialize = jpgenc_initialize,
 	.configure_pid = jpgenc_configure_pid,
 	.process = jpgenc_process,
+	.hint_class_type = GF_FS_CLASS_ENCODER
 };
 
 #endif

@@ -374,6 +374,9 @@
     <ClCompile Include="..\..\src\filters\write_qcp.c" />
     <ClCompile Include="..\..\src\filters\write_tx3g.c" />
     <ClCompile Include="..\..\src\filters\write_vtt.c" />
+    <ClCompile Include="..\..\src\filters\dec_webcodec.c" />
+    <ClCompile Include="..\..\src\filters\enc_webcodec.c" />
+    <ClCompile Include="..\..\src\filters\avin_web.c" />
     <ClCompile Include="..\..\src\filter_core\filter.c" />
     <ClCompile Include="..\..\src\filter_core\filter_pck.c" />
     <ClCompile Include="..\..\src\filter_core\filter_pid.c" />

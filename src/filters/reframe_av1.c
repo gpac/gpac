@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Romain Bouqueau, Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 IVF/OBU/annexB reframer filter
@@ -322,7 +322,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	GF_Err e;
 	GF_BitStream *bs;
 	u64 duration, cur_dur, last_cdur, file_size, max_pts, last_pts, probe_size=0;
-	AV1State av1state;
+	AV1State *av1state=NULL;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
@@ -364,6 +364,10 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	ctx->index_size = 0;
+	GF_SAFEALLOC(av1state, AV1State);
+	if (!av1state) {
+		return;
+	}
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 #ifndef GPAC_DISABLE_LOG
@@ -375,9 +379,9 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_bs_seek(bs, ctx->file_hdr_size);
 	}
 	file_size = gf_bs_available(bs);
-	gf_av1_init_state(&av1state);
-	av1state.skip_frames = GF_TRUE;
-	av1state.config = gf_odf_av1_cfg_new();
+	gf_av1_init_state(av1state);
+	av1state->skip_frames = GF_TRUE;
+	av1state->config = gf_odf_av1_cfg_new();
 
 	max_pts = last_pts = 0;
 	duration = 0;
@@ -390,19 +394,19 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		if (probe_size && (frame_start>probe_size))
 			break;
 
-		gf_av1_reset_state(&av1state, GF_FALSE);
+		gf_av1_reset_state(av1state, GF_FALSE);
 
 		/*we process each TU and extract only the necessary OBUs*/
 		switch (ctx->bsmode) {
 		case OBUs:
-			e = aom_av1_parse_temporal_unit_from_section5(bs, &av1state);
+			e = aom_av1_parse_temporal_unit_from_section5(bs, av1state);
 			break;
 		case AnnexB:
-			e = aom_av1_parse_temporal_unit_from_annexb(bs, &av1state);
+			e = aom_av1_parse_temporal_unit_from_annexb(bs, av1state);
 			break;
 		case IVF:
 			if (ctx->is_av1) {
-				e = aom_av1_parse_temporal_unit_from_ivf(bs, &av1state);
+				e = aom_av1_parse_temporal_unit_from_ivf(bs, av1state);
 			} else {
 				u64 frame_size;
 				e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts);
@@ -430,7 +434,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			duration += ctx->cur_fps.den;
 			cur_dur += ctx->cur_fps.den;
 		}
-		if (av1state.frame_state.key_frame)
+		if (av1state->frame_state.key_frame)
 		 	is_sap = GF_TRUE;
 
 		//only index at I-frame start
@@ -450,8 +454,9 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		probe_size = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
-	gf_odf_av1_cfg_del(av1state.config);
-	gf_av1_reset_state(&av1state, GF_TRUE);
+	if (av1state->config) gf_odf_av1_cfg_del(av1state->config);
+	gf_av1_reset_state(av1state, GF_TRUE);
+	gf_free(av1state);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->cur_fps.num != duration * ctx->duration.den)) {
 		if (probe_size) {
@@ -1283,18 +1288,20 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		if (res) {
 			*score = GF_FPROBE_SUPPORTED;
 		} else {
-			AV1State state;
+			AV1State *av1_state;
 			Bool has_seq_header = GF_FALSE;
 			GF_Err e;
 			u32 nb_units = 0;
+			GF_SAFEALLOC(av1_state, AV1State);
+			if (!av1_state) return NULL;
 
-			gf_av1_init_state(&state);
-			state.config = gf_odf_av1_cfg_new();
+			gf_av1_init_state(av1_state);
+			av1_state->config = gf_odf_av1_cfg_new();
 			while (gf_bs_available(bs)) {
-				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
+				e = aom_av1_parse_temporal_unit_from_section5(bs, av1_state);
 				if ((e==GF_OK) || (nb_units && (e==GF_BUFFER_TOO_SMALL) ) ) {
-					if (!nb_units || gf_list_count(state.frame_state.header_obus) || gf_list_count(state.frame_state.frame_obus)) {
-						if (gf_list_count(state.frame_state.header_obus)) {
+					if (!nb_units || gf_list_count(av1_state->frame_state.header_obus) || gf_list_count(av1_state->frame_state.frame_obus)) {
+						if (gf_list_count(av1_state->frame_state.header_obus)) {
 							has_seq_header = GF_TRUE;
 						}
 						nb_units++;
@@ -1311,7 +1318,7 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 				}
 				//very large frame
 				else if (!nb_units && (e==GF_BUFFER_TOO_SMALL)) {
-					if (gf_list_count(state.frame_state.header_obus) && state.width && state.height) {
+					if (gf_list_count(av1_state->frame_state.header_obus) && av1_state->width && av1_state->height) {
 						res = GF_TRUE;
 						*score = GF_FPROBE_MAYBE_SUPPORTED;
 					}
@@ -1319,15 +1326,16 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 				} else {
 					break;
 				}
-				gf_av1_reset_state(&state, GF_FALSE);
+				gf_av1_reset_state(av1_state, GF_FALSE);
 				if (nb_units>2) {
 					res = GF_TRUE;
 					*score = GF_FPROBE_SUPPORTED;
 					break;
 				}
 			}
-			gf_odf_av1_cfg_del(state.config);
-			gf_av1_reset_state(&state, GF_TRUE);
+			gf_odf_av1_cfg_del(av1_state->config);
+			gf_av1_reset_state(av1_state, GF_TRUE);
+			gf_free(av1_state);
 		}
 	}
 
@@ -1390,7 +1398,8 @@ GF_FilterRegister AV1DmxRegister = {
 	.configure_pid = av1dmx_configure_pid,
 	.process = av1dmx_process,
 	.probe_data = av1dmx_probe_data,
-	.process_event = av1dmx_process_event
+	.process_event = av1dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

@@ -16299,7 +16299,7 @@ typedef enum {
 /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
 static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                                JSValueConst this_obj, JSValueConst new_target,
-                               int argc, JSValue *argv, int flags)
+                               int argc, JSValue *argv, int in_flags)
 {
     JSRuntime *rt = caller_ctx->rt;
     JSContext *ctx;
@@ -16311,6 +16311,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     JSValue *local_buf, *stack_buf, *var_buf, *arg_buf, *sp, ret_val, *pval;
     JSVarRef **var_refs;
     size_t alloca_size;
+    JSValue val;
+    JSAtom atom;
+	JSValue op1, op2;
+	int ival;
+	int iflags;
 
 #if !DIRECT_DISPATCH
 #define SWITCH(pc)      switch (opcode = *pc++)
@@ -16337,7 +16342,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     if (js_poll_interrupts(caller_ctx))
         return JS_EXCEPTION;
     if (unlikely(JS_VALUE_GET_TAG(func_obj) != JS_TAG_OBJECT)) {
-        if (flags & JS_CALL_FLAG_GENERATOR) {
+        if (in_flags & JS_CALL_FLAG_GENERATOR) {
             JSAsyncFunctionState *s = JS_VALUE_GET_PTR(func_obj);
             /* func_obj get contains a pointer to JSFuncAsyncState */
             /* the stack frame is already allocated */
@@ -16371,11 +16376,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             return JS_ThrowTypeError(caller_ctx, "not a function");
         }
         return call_func(caller_ctx, func_obj, this_obj, argc,
-                         (JSValueConst *)argv, flags);
+                         (JSValueConst *)argv, in_flags);
     }
     b = p->u.func.function_bytecode;
 
-    if (unlikely(argc < b->arg_count || (flags & JS_CALL_FLAG_COPY_ARGV))) {
+    if (unlikely(argc < b->arg_count || (in_flags & JS_CALL_FLAG_COPY_ARGV))) {
         arg_allocated_size = b->arg_count;
     } else {
         arg_allocated_size = 0;
@@ -16468,8 +16473,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_get_length):
             {
-                JSValue val;
-
                 val = JS_GetProperty(ctx, sp[-1], JS_ATOM_length);
                 if (unlikely(JS_IsException(val)))
                     goto exception;
@@ -16491,7 +16494,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_push_this):
             /* OP_push_this is only called at the start of a function */
             {
-                JSValue val;
                 if (!(b->js_mode & JS_MODE_STRICT)) {
                     uint32_t tag = JS_VALUE_GET_TAG(this_obj);
                     if (likely(tag == JS_TAG_OBJECT))
@@ -16635,87 +16637,78 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_perm3): /* obj a b -> a obj b (213) */
             {
-                JSValue tmp;
-                tmp = sp[-2];
+                val = sp[-2];
                 sp[-2] = sp[-3];
-                sp[-3] = tmp;
+                sp[-3] = val;
             }
             BREAK;
         CASE(OP_rot3l): /* x a b -> a b x (231) */
             {
-                JSValue tmp;
-                tmp = sp[-3];
+                val = sp[-3];
                 sp[-3] = sp[-2];
                 sp[-2] = sp[-1];
-                sp[-1] = tmp;
+                sp[-1] = val;
             }
             BREAK;
         CASE(OP_rot4l): /* x a b c -> a b c x */
             {
-                JSValue tmp;
-                tmp = sp[-4];
+                val = sp[-4];
                 sp[-4] = sp[-3];
                 sp[-3] = sp[-2];
                 sp[-2] = sp[-1];
-                sp[-1] = tmp;
+                sp[-1] = val;
             }
             BREAK;
         CASE(OP_rot5l): /* x a b c d -> a b c d x */
             {
-                JSValue tmp;
-                tmp = sp[-5];
+                val = sp[-5];
                 sp[-5] = sp[-4];
                 sp[-4] = sp[-3];
                 sp[-3] = sp[-2];
                 sp[-2] = sp[-1];
-                sp[-1] = tmp;
+                sp[-1] = val;
             }
             BREAK;
         CASE(OP_rot3r): /* a b x -> x a b (312) */
             {
-                JSValue tmp;
-                tmp = sp[-1];
+                val = sp[-1];
                 sp[-1] = sp[-2];
                 sp[-2] = sp[-3];
-                sp[-3] = tmp;
+                sp[-3] = val;
             }
             BREAK;
         CASE(OP_perm4): /* obj prop a b -> a obj prop b */
             {
-                JSValue tmp;
-                tmp = sp[-2];
+                val = sp[-2];
                 sp[-2] = sp[-3];
                 sp[-3] = sp[-4];
-                sp[-4] = tmp;
+                sp[-4] = val;
             }
             BREAK;
         CASE(OP_perm5): /* this obj prop a b -> a this obj prop b */
             {
-                JSValue tmp;
-                tmp = sp[-2];
+                val = sp[-2];
                 sp[-2] = sp[-3];
                 sp[-3] = sp[-4];
                 sp[-4] = sp[-5];
-                sp[-5] = tmp;
+                sp[-5] = val;
             }
             BREAK;
         CASE(OP_swap): /* a b -> b a */
             {
-                JSValue tmp;
-                tmp = sp[-2];
+                val = sp[-2];
                 sp[-2] = sp[-1];
-                sp[-1] = tmp;
+                sp[-1] = val;
             }
             BREAK;
         CASE(OP_swap2): /* a b c d -> c d a b */
             {
-                JSValue tmp1, tmp2;
-                tmp1 = sp[-4];
-                tmp2 = sp[-3];
+                op1 = sp[-4];
+                op2 = sp[-3];
                 sp[-4] = sp[-2];
                 sp[-3] = sp[-1];
-                sp[-2] = tmp1;
-                sp[-1] = tmp2;
+                sp[-2] = op1;
+                sp[-1] = op2;
             }
             BREAK;
 
@@ -16882,7 +16875,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 #define JS_THROW_ERROR_DELETE_SUPER   3
 #define JS_THROW_ERROR_ITERATOR_THROW 4
             {
-                JSAtom atom;
                 int type;
                 atom = get_u32(pc);
                 type = pc[4];
@@ -16989,7 +16981,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_import):
             {
-                JSValue val;
                 val = js_dynamic_import(ctx, sp[-1]);
                 if (JS_IsException(val))
                     goto exception;
@@ -17001,7 +16992,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_check_var):
             {
                 int ret;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17015,8 +17005,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_get_var_undef):
         CASE(OP_get_var):
             {
-                JSValue val;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17031,7 +17019,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_put_var_init):
             {
                 int ret;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17045,7 +17032,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_put_var_strict):
             {
                 int ret;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17063,34 +17049,28 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_check_define_var):
             {
-                JSAtom atom;
-                int flags;
                 atom = get_u32(pc);
-                flags = pc[4];
+                iflags = pc[4];
                 pc += 5;
-                if (JS_CheckDefineGlobalVar(ctx, atom, flags))
+                if (JS_CheckDefineGlobalVar(ctx, atom, iflags))
                     goto exception;
             }
             BREAK;
         CASE(OP_define_var):
             {
-                JSAtom atom;
-                int flags;
                 atom = get_u32(pc);
-                flags = pc[4];
+                iflags = pc[4];
                 pc += 5;
-                if (JS_DefineGlobalVar(ctx, atom, flags))
+                if (JS_DefineGlobalVar(ctx, atom, iflags))
                     goto exception;
             }
             BREAK;
         CASE(OP_define_func):
             {
-                JSAtom atom;
-                int flags;
                 atom = get_u32(pc);
-                flags = pc[4];
+                iflags = pc[4];
                 pc += 5;
-                if (JS_DefineGlobalFunction(ctx, atom, sp[-1], flags))
+                if (JS_DefineGlobalFunction(ctx, atom, sp[-1], iflags))
                     goto exception;
                 JS_FreeValue(ctx, sp[-1]);
                 sp--;
@@ -17196,7 +17176,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_get_var_ref):
             {
                 int idx;
-                JSValue val;
                 idx = get_u16(pc);
                 pc += 2;
                 val = *var_refs[idx]->pvalue;
@@ -17224,7 +17203,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_get_var_ref_check):
             {
                 int idx;
-                JSValue val;
                 idx = get_u16(pc);
                 pc += 2;
                 val = *var_refs[idx]->pvalue;
@@ -17324,7 +17302,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             {
                 JSVarRef *var_ref;
                 JSProperty *pr;
-                JSAtom atom;
                 int idx;
                 atom = get_u32(pc);
                 idx = get_u16(pc + 4);
@@ -17352,7 +17329,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_make_var_ref):
             {
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17382,7 +17358,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_if_true):
             {
                 int res;
-                JSValue op1;
 
                 op1 = sp[-1];
                 pc += 4;
@@ -17402,7 +17377,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_if_false):
             {
                 int res;
-                JSValue op1;
 
                 op1 = sp[-1];
                 pc += 4;
@@ -17423,7 +17397,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_if_true8):
             {
                 int res;
-                JSValue op1;
 
                 op1 = sp[-1];
                 pc += 1;
@@ -17443,7 +17416,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_if_false8):
             {
                 int res;
-                JSValue op1;
 
                 op1 = sp[-1];
                 pc += 1;
@@ -17482,7 +17454,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_ret):
             {
-                JSValue op1;
                 uint32_t pos;
                 op1 = sp[-1];
                 if (unlikely(JS_VALUE_GET_TAG(op1) != JS_TAG_INT))
@@ -17593,16 +17564,15 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             {
                 JSValue method, ret;
                 BOOL ret_flag;
-                int flags;
-                flags = *pc++;
-                method = JS_GetProperty(ctx, sp[-4], (flags & 1) ?
+                iflags = *pc++;
+                method = JS_GetProperty(ctx, sp[-4], (iflags & 1) ?
                                         JS_ATOM_throw : JS_ATOM_return);
                 if (JS_IsException(method))
                     goto exception;
                 if (JS_IsUndefined(method) || JS_IsNull(method)) {
                     ret_flag = TRUE;
                 } else {
-                    if (flags & 2) {
+                    if (iflags & 2) {
                         /* no argument */
                         ret = JS_CallFree(ctx, method, sp[-4],
                                           0, NULL);
@@ -17624,7 +17594,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_lnot):
             {
                 int res;
-                JSValue op1;
 
                 op1 = sp[-1];
                 if ((uint32_t)JS_VALUE_GET_TAG(op1) <= JS_TAG_UNDEFINED) {
@@ -17638,8 +17607,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_field):
             {
-                JSValue val;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17653,8 +17620,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_field2):
             {
-                JSValue val;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17668,7 +17633,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_put_field):
             {
                 int ret;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17683,9 +17647,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_private_symbol):
             {
-                JSAtom atom;
-                JSValue val;
-
                 atom = get_u32(pc);
                 pc += 4;
                 val = JS_NewSymbolFromAtom(ctx, atom, JS_ATOM_TYPE_PRIVATE);
@@ -17697,7 +17658,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_private_field):
             {
-                JSValue val;
 
                 val = JS_GetPrivateField(ctx, sp[-2], sp[-1]);
                 JS_FreeValue(ctx, sp[-1]);
@@ -17735,7 +17695,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_define_field):
             {
                 int ret;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17750,7 +17709,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_set_name):
             {
                 int ret;
-                JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
@@ -17787,8 +17745,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             {
                 JSValue getter, setter, value;
                 JSValueConst obj;
-                JSAtom atom;
-                int flags, ret, op_flags;
+                int ret, op_flags;
                 BOOL is_computed;
 #define OP_DEFINE_METHOD_METHOD 0
 #define OP_DEFINE_METHOD_GETTER 1
@@ -17808,28 +17765,28 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 op_flags = *pc++;
 
                 obj = sp[-2 - is_computed];
-                flags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_CONFIGURABLE |
+                iflags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_CONFIGURABLE |
                     JS_PROP_HAS_ENUMERABLE | JS_PROP_THROW;
                 if (op_flags & OP_DEFINE_METHOD_ENUMERABLE)
-                    flags |= JS_PROP_ENUMERABLE;
+                    iflags |= JS_PROP_ENUMERABLE;
                 op_flags &= 3;
                 value = JS_UNDEFINED;
                 getter = JS_UNDEFINED;
                 setter = JS_UNDEFINED;
                 if (op_flags == OP_DEFINE_METHOD_METHOD) {
                     value = sp[-1];
-                    flags |= JS_PROP_HAS_VALUE | JS_PROP_HAS_WRITABLE | JS_PROP_WRITABLE;
+                    iflags |= JS_PROP_HAS_VALUE | JS_PROP_HAS_WRITABLE | JS_PROP_WRITABLE;
                 } else if (op_flags == OP_DEFINE_METHOD_GETTER) {
                     getter = sp[-1];
-                    flags |= JS_PROP_HAS_GET;
+                    iflags |= JS_PROP_HAS_GET;
                 } else {
                     setter = sp[-1];
-                    flags |= JS_PROP_HAS_SET;
+                    iflags |= JS_PROP_HAS_SET;
                 }
-                ret = js_method_set_properties(ctx, sp[-1], atom, flags, obj);
+                ret = js_method_set_properties(ctx, sp[-1], atom, iflags, obj);
                 if (ret >= 0) {
                     ret = JS_DefineProperty(ctx, obj, atom, value,
-                                            getter, setter, flags);
+                                            getter, setter, iflags);
                 }
                 JS_FreeValue(ctx, sp[-1]);
                 if (is_computed) {
@@ -17845,13 +17802,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_define_class):
         CASE(OP_define_class_computed):
             {
-                int class_flags;
-                JSAtom atom;
-
                 atom = get_u32(pc);
-                class_flags = pc[4];
+                iflags = pc[4];
                 pc += 5;
-                if (js_op_define_class(ctx, sp, atom, class_flags,
+                if (js_op_define_class(ctx, sp, atom, iflags,
                                        var_refs, sf,
                                        (opcode == OP_define_class_computed)) < 0)
                     goto exception;
@@ -17860,7 +17814,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_array_el):
             {
-                JSValue val;
 
                 val = JS_GetPropertyValue(ctx, sp[-2], sp[-1]);
                 JS_FreeValue(ctx, sp[-2]);
@@ -17873,7 +17826,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_array_el2):
             {
-                JSValue val;
 
                 val = JS_GetPropertyValue(ctx, sp[-2], sp[-1]);
                 sp[-1] = val;
@@ -17884,9 +17836,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_ref_value):
             {
-                JSValue val;
                 if (unlikely(JS_IsUndefined(sp[-2]))) {
-                    JSAtom atom = JS_ValueToAtom(ctx, sp[-1]);
+                    atom = JS_ValueToAtom(ctx, sp[-1]);
                     if (atom != JS_ATOM_NULL) {
                         JS_ThrowReferenceErrorNotDefined(ctx, atom);
                         JS_FreeAtom(ctx, atom);
@@ -17904,8 +17855,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_super_value):
             {
-                JSValue val;
-                JSAtom atom;
                 atom = JS_ValueToAtom(ctx, sp[-1]);
                 if (unlikely(atom == JS_ATOM_NULL))
                     goto exception;
@@ -17935,11 +17884,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_put_ref_value):
             {
-                int ret, flags;
-                flags = JS_PROP_THROW_STRICT;
+                int ret;
+                iflags = JS_PROP_THROW_STRICT;
                 if (unlikely(JS_IsUndefined(sp[-3]))) {
                     if (is_strict_mode(ctx)) {
-                        JSAtom atom = JS_ValueToAtom(ctx, sp[-2]);
+                        atom = JS_ValueToAtom(ctx, sp[-2]);
                         if (atom != JS_ATOM_NULL) {
                             JS_ThrowReferenceErrorNotDefined(ctx, atom);
                             JS_FreeAtom(ctx, atom);
@@ -17950,9 +17899,9 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     }
                 } else {
                     if (is_strict_mode(ctx))
-                        flags |= JS_PROP_NO_ADD;
+                        iflags |= JS_PROP_NO_ADD;
                 }
-                ret = JS_SetPropertyValue(ctx, sp[-3], sp[-2], sp[-1], flags);
+                ret = JS_SetPropertyValue(ctx, sp[-3], sp[-2], sp[-1], iflags);
                 JS_FreeValue(ctx, sp[-3]);
                 sp -= 3;
                 if (unlikely(ret < 0))
@@ -17963,7 +17912,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_put_super_value):
             {
                 int ret;
-                JSAtom atom;
                 if (JS_VALUE_GET_TAG(sp[-3]) != JS_TAG_OBJECT) {
                     JS_ThrowTypeErrorNotAnObject(ctx);
                     goto exception;
@@ -18020,7 +17968,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_add):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18059,7 +18006,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     *pv = JS_NewInt32(ctx, r);
                     sp--;
                 } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING) {
-                    JSValue op1;
                     op1 = sp[-1];
                     sp--;
                     op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);
@@ -18085,7 +18031,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_sub):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18106,7 +18051,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_mul):
             {
-                JSValue op1, op2;
                 double d;
                 op1 = sp[-2];
                 op2 = sp[-1];
@@ -18148,7 +18092,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_div):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18169,7 +18112,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_math_mod):
 #endif
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18197,7 +18139,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_plus):
             {
-                JSValue op1;
                 uint32_t tag;
                 op1 = sp[-1];
                 tag = JS_VALUE_GET_TAG(op1);
@@ -18210,24 +18151,22 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_neg):
             {
-                JSValue op1;
                 uint32_t tag;
-                int val;
                 double d;
                 op1 = sp[-1];
                 tag = JS_VALUE_GET_TAG(op1);
                 if (tag == JS_TAG_INT) {
-                    val = JS_VALUE_GET_INT(op1);
+                    ival = JS_VALUE_GET_INT(op1);
                     /* Note: -0 cannot be expressed as integer */
-                    if (unlikely(val == 0)) {
+                    if (unlikely(ival == 0)) {
                         d = -0.0;
                         goto neg_fp_res;
                     }
-                    if (unlikely(val == INT32_MIN)) {
-                        d = -(double)val;
+                    if (unlikely(ival == INT32_MIN)) {
+                        d = -(double)ival;
                         goto neg_fp_res;
                     }
-                    sp[-1] = JS_NewInt32(ctx, -val);
+                    sp[-1] = JS_NewInt32(ctx, -ival);
                 } else if (JS_TAG_IS_FLOAT64(tag)) {
                     d = -JS_VALUE_GET_FLOAT64(op1);
                 neg_fp_res:
@@ -18240,14 +18179,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_inc):
             {
-                JSValue op1;
-                int val;
                 op1 = sp[-1];
                 if (JS_VALUE_GET_TAG(op1) == JS_TAG_INT) {
-                    val = JS_VALUE_GET_INT(op1);
-                    if (unlikely(val == INT32_MAX))
+                    ival = JS_VALUE_GET_INT(op1);
+                    if (unlikely(ival == INT32_MAX))
                         goto inc_slow;
-                    sp[-1] = JS_NewInt32(ctx, val + 1);
+                    sp[-1] = JS_NewInt32(ctx, ival + 1);
                 } else {
                 inc_slow:
                     if (js_unary_arith_slow(ctx, sp, opcode))
@@ -18257,14 +18194,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_dec):
             {
-                JSValue op1;
-                int val;
                 op1 = sp[-1];
                 if (JS_VALUE_GET_TAG(op1) == JS_TAG_INT) {
-                    val = JS_VALUE_GET_INT(op1);
-                    if (unlikely(val == INT32_MIN))
+                    ival = JS_VALUE_GET_INT(op1);
+                    if (unlikely(ival == INT32_MIN))
                         goto dec_slow;
-                    sp[-1] = JS_NewInt32(ctx, val - 1);
+                    sp[-1] = JS_NewInt32(ctx, ival - 1);
                 } else {
                 dec_slow:
                     if (js_unary_arith_slow(ctx, sp, opcode))
@@ -18280,18 +18215,16 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_inc_loc):
             {
-                JSValue op1;
-                int val;
                 int idx;
                 idx = *pc;
                 pc += 1;
 
                 op1 = var_buf[idx];
                 if (JS_VALUE_GET_TAG(op1) == JS_TAG_INT) {
-                    val = JS_VALUE_GET_INT(op1);
-                    if (unlikely(val == INT32_MAX))
+                    ival = JS_VALUE_GET_INT(op1);
+                    if (unlikely(ival == INT32_MAX))
                         goto inc_loc_slow;
-                    var_buf[idx] = JS_NewInt32(ctx, val + 1);
+                    var_buf[idx] = JS_NewInt32(ctx, ival + 1);
                 } else {
                 inc_loc_slow:
                     /* must duplicate otherwise the variable value may
@@ -18305,18 +18238,16 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_dec_loc):
             {
-                JSValue op1;
-                int val;
                 int idx;
                 idx = *pc;
                 pc += 1;
 
                 op1 = var_buf[idx];
                 if (JS_VALUE_GET_TAG(op1) == JS_TAG_INT) {
-                    val = JS_VALUE_GET_INT(op1);
-                    if (unlikely(val == INT32_MIN))
+                    ival = JS_VALUE_GET_INT(op1);
+                    if (unlikely(ival == INT32_MIN))
                         goto dec_loc_slow;
-                    var_buf[idx] = JS_NewInt32(ctx, val - 1);
+                    var_buf[idx] = JS_NewInt32(ctx, ival - 1);
                 } else {
                 dec_loc_slow:
                     /* must duplicate otherwise the variable value may
@@ -18330,7 +18261,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_not):
             {
-                JSValue op1;
                 op1 = sp[-1];
                 if (JS_VALUE_GET_TAG(op1) == JS_TAG_INT) {
                     sp[-1] = JS_NewInt32(ctx, ~JS_VALUE_GET_INT(op1));
@@ -18343,7 +18273,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_shl):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18380,7 +18309,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_shr):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18401,7 +18329,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_sar):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18432,7 +18359,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_and):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18449,7 +18375,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_or):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18466,7 +18391,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_xor):
             {
-                JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
@@ -18486,7 +18410,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 #define OP_CMP(opcode, binary_op, slow_call)              \
             CASE(opcode):                                 \
                 {                                         \
-                JSValue op1, op2;                         \
                 op1 = sp[-2];                             \
                 op2 = sp[-1];                                   \
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {           \
@@ -18528,8 +18451,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_typeof):
             {
-                JSValue op1;
-                JSAtom atom;
 
                 op1 = sp[-1];
                 atom = js_operator_typeof(ctx, op1);
@@ -18544,7 +18465,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_delete_var):
             {
-                JSAtom atom;
                 int ret;
 
                 atom = get_u32(pc);
@@ -18621,9 +18541,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_with_get_ref):
         CASE(OP_with_get_ref_undef):
             {
-                JSAtom atom;
                 int32_t diff;
-                JSValue obj, val;
+                JSValue obj;
                 int ret, is_with;
                 atom = get_u32(pc);
                 diff = get_u32(pc + 4);
@@ -18774,7 +18693,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     }
     if (!JS_IsUncatchableError(ctx, rt->current_exception)) {
         while (sp > stack_buf) {
-            JSValue val = *--sp;
+            val = *--sp;
             JS_FreeValue(ctx, val);
             if (JS_VALUE_GET_TAG(val) == JS_TAG_CATCH_OFFSET) {
                 int pos = JS_VALUE_GET_INT(val);
