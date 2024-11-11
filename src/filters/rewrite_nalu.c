@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU video AnnexB write filter
@@ -733,7 +733,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 
 GF_FilterRegister NALUMxRegister = {
 	.name = "ufnalu",
-	GF_FS_SET_DESCRIPTION("AVC/HEVC to AnnexB writer")
+	GF_FS_SET_DESCRIPTION("AVC/HEVC to AnnexB rewriter")
 	GF_FS_SET_HELP("This filter converts AVC|H264 and HEVC streams into AnnexB format, with inband parameter sets and start codes.")
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
@@ -741,7 +741,8 @@ GF_FilterRegister NALUMxRegister = {
 	.initialize = nalumx_initialize,
 	SETCAPS(NALUMxCaps),
 	.configure_pid = nalumx_configure_pid,
-	.process = nalumx_process
+	.process = nalumx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

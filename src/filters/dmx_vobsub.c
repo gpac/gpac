@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
- *  This file is part of GPAC / NHNT demuxer filter
+ *  This file is part of GPAC / vobsub demuxer filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -464,7 +464,7 @@ static const GF_FilterCapability VOBSubDmxCaps[] =
 
 GF_FilterRegister VOBSubDmxRegister = {
 	.name = "vobsubdmx",
-	GF_FS_SET_DESCRIPTION("VobSub parser")
+	GF_FS_SET_DESCRIPTION("VobSub demultiplexer")
 	GF_FS_SET_HELP("This filter parses VobSub files/data to produce media PIDs and frames.")
 	.private_size = sizeof(GF_VOBSubDmxCtx),
 	.flags = GF_FS_REG_USE_SYNC_READ,
@@ -475,7 +475,8 @@ GF_FilterRegister VOBSubDmxRegister = {
 	.configure_pid = vobsubdmx_configure_pid,
 	.process = vobsubdmx_process,
 	.probe_data = vobsubdmx_probe_data,
-	.process_event = vobsubdmx_process_event
+	.process_event = vobsubdmx_process_event,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 #endif

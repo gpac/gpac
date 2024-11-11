@@ -68,6 +68,8 @@ typedef enum
 	GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT,
 	/*! same as GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE but skip default "init" concatenation*/
 	GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE_SKIPINIT,
+	/*! resolve template for segment but keep $SubNumber$*/
+	GF_DASH_TEMPLATE_SEGMENT_SUBNUMBER,
 } GF_DashTemplateSegmentType;
 
 /*! formats the segment name according to its template
@@ -140,6 +142,8 @@ typedef struct
 	u32 duration; /*MANDATORY*/
 	/*! may be 0xFFFFFFFF (-1) (\warning this needs further testing)*/
 	u32 repeat_count;
+	/*! for DASH SSR*/
+	u32 nb_parts;
 } GF_MPD_SegmentTimelineEntry;
 
 /*! Segment Timeline*/
@@ -317,6 +321,8 @@ typedef struct
 	char *initialization;
 	/*! bitstream switching segment template*/
 	char *bitstream_switching;
+	/*! part count for sub-segment representations*/
+	u32 nb_parts;
 
 	/*! internal, for HLS generation*/
 	const char *hls_init_name;
@@ -465,6 +471,8 @@ typedef struct
 	u8 xlink_digest[GF_SHA1_DIGEST_SIZE];
 	/*! set to TRUE if not modified in the update of an xlink*/
 	Bool not_modified;
+	/*! representation uses SSR, value is estimated nb parts*/
+	u32 use_ssr;
 } GF_DASH_RepresentationPlayback;
 
 /*! segment context used by the dasher, GPAC internal*/
@@ -584,6 +592,13 @@ typedef struct
 	char *hls_key_uri;
 	/*! HLS IV*/
 	bin128 hls_iv;
+
+	/*! start time of segment timeline entry */
+	u64 stl_start;
+	/*! repeat count of segment timeline */
+	u32 stl_rcount;
+	/*! LLHAS template*/
+	char *llhas_template;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -649,7 +664,7 @@ typedef struct {
 	const char *groupID;
 
 	/*! user assigned m3u8 name for this representation*/
-	const char *m3u8_name;
+	char *m3u8_name;
 	/*! generated m3u8 name if no user-assigned one*/
 	char *m3u8_var_name;
 	/*! temp file for m3u8 generation*/
@@ -714,6 +729,12 @@ typedef struct
 	GF_MPD_Fractional min_framerate;
 	/*! max framerate*/
 	GF_MPD_Fractional max_framerate;
+	/*! set if sub-segment represenation is used
+		0: not used
+		1: LL-HLS compatibiliity
+		2: regular SSR
+	*/
+	u32 ssr_mode;
 	/*! set if segment boundaries are time-aligned across qualities*/
 	Bool segment_alignment;
 	/*! set if a single init segment is needed (no reinit at quality switch)*/
@@ -768,10 +789,11 @@ typedef struct
 	Double hls_ll_target_frag_dur;
 } GF_MPD_AdaptationSet;
 
+/*! structure used to signal inband events*/
 typedef struct {
-	/* Scheme ID Uri of the inband event */
+	/*! Scheme ID Uri of the inband event */
 	char *scheme_id_uri;
-	/* Value of the inband event */
+	/*! Value of the inband event */
 	char *value;
 } GF_MPD_Inband_Event;
 
@@ -1193,11 +1215,12 @@ typedef enum
 \param out_key_url set to the key URL for the segment for HLS (optional, may be NULL)
 \param key_iv set to the key IV for the segment for HLS (optional, may be NULL)
 \param out_start_number set to the start_number used (optional, may be NULL)
+\param subseg_index index of subseg, -1 means no SSR is used
 
 \return error if any
 */
 GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
-                          char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv, u32 *out_start_number);
+                          char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv, u32 *out_start_number, s32 subseg_index);
 
 /*! get duration of the presentation
 \param mpd the target MPD
@@ -1246,11 +1269,12 @@ typedef enum {
 \param in_rep the target Representation
 \param out_segment_index the corresponding segment index
 \param out_opt_seek_time the corresponding seek time (start time of segment in seconds) (optional, may be NULL)
+\param out_seg_dur the corresponding segment duration in seconds, may be null
 \return error if any
 */
 GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
-	u32 *out_segment_index, Double *out_opt_seek_time);
+	u32 *out_segment_index, Double *out_opt_seek_time, Double *out_seg_dur);
 
 /*! deletes a GF_MPD_BaseURL structure (type-casted to void *)
 \param _item the GF_MPD_BaseURL to free
@@ -1300,7 +1324,16 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 */
 GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id);
 
-/*! @} */
 #endif /*GPAC_DISABLE_MPD*/
+
+/*! resolve the SubNumber template, utility function used by some output filters
+\param llhas_template template for the segment, or NULL if none
+\param segment_filename segment filename
+\param part_idx index of part to use
+\return resolved file name for the given part of the segment
+*/
+char *gf_mpd_resolve_subnumber(char *llhas_template, char *segment_filename, u32 part_idx);
+
+/*! @} */
 
 #endif // _MPD_H_

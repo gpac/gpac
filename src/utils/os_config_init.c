@@ -1573,6 +1573,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("buffer-dec", NULL, "default buffer size in microseconds for decoder input pids", "1000000", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("buffer-units", NULL, "default buffer size in frames when timing is not available", "1", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
 
+ GF_DEF_ARG("check-props", NULL, "check known property types upon assignment and PID vs packet types upon fetch (in test mode, exit with error code 5 if mismatch)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
+
  GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in OpenGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in OpenGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-doublebuf", NULL, "enable OpenGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
@@ -2195,6 +2197,8 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 		GF_ConsoleCodes console_code = GF_CONSOLE_RESET;
 		Bool line_before = GF_FALSE;
 		Bool line_after = GF_FALSE;
+		Bool add_backquote = GF_FALSE;
+
 		const char *footer_string = NULL;
 		const char *header_string = NULL;
 		char *next_line = strchr(line, '\n');
@@ -2311,6 +2315,11 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 				else if (list_depth==2)
 					fprintf(helpout, "    - ");
 				else fprintf(helpout, "- ");
+				//for MD avoid "- #" which corrupts heading levels, enclose with backquote
+				if (tok_sep && ((line[2]=='#') || (line[3]=='#') || (line[4]=='#'))) {
+					fprintf(helpout, "`");
+					add_backquote=GF_TRUE;
+				}
 			} else {
 				fprintf(helpout, "* ");
 			}
@@ -2320,6 +2329,10 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			if (tok_sep) {
 				tok_sep[0] = 0;
 				fprintf(helpout, "%s", line+2);
+				if (add_backquote) {
+					fprintf(helpout, "`");
+					add_backquote = GF_FALSE;
+				}
 				line_pos += (u32) strlen(line+2);
 				tok_sep[0] = ':';
 				line = tok_sep;

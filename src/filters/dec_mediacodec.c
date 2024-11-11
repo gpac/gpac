@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / mediacodec decoder filter
@@ -696,10 +696,7 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->mime = "video/hevc";
         GF_HEVCConfig *hvcc;
 	    GF_NALUFFParam *sl;
-	    HEVCState hevc;
 	    u32 j;
-
-	    memset(&hevc, 0, sizeof(HEVCState));
 
 	    hvcc = gf_odf_hevc_cfg_read(dcd->value.data.ptr, dcd->value.data.size, GF_FALSE);
 	    if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
@@ -1271,6 +1268,7 @@ GF_FilterRegister GF_MCDecCtxRegister = {
 #endif
 	.configure_pid = mcdec_configure_pid,
 	.process = mcdec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / force reframer filter
@@ -146,7 +146,7 @@ typedef struct
 	Double speed;
 	u32 raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots;
+	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
 	u32 xround, utc_ref, utc_probe;
 	Double seeksafe;
 	GF_PropStringList props;
@@ -242,7 +242,7 @@ static void reframer_push_props(GF_ReframerCtx *ctx, RTStream *st)
 
 	//seek mode, signal we have sample-accurate seek info for the pid
 	if (st->seek_mode)
-		gf_filter_pid_set_property(st->opid, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(1));
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_HAS_SKIP_BEGIN, &PROP_BOOL(GF_TRUE));
 
 	//for old arch compat, signal we must remove edits
 	if (gf_sys_old_arch_compat()) {
@@ -1023,7 +1023,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				}
 			}
 			if (!ctx->xots) {
-				ts += st->tk_delay == 0 ? -((s64)st->ts_sub) : st->tk_delay;
+				ts += st->tk_delay;
 				ts += st->ts_at_range_end;
 				ts -= st->ts_at_range_start_plus_one - 1;
 
@@ -1866,8 +1866,11 @@ refetch_streams:
 			}
 
 			st->nb_frames_range++;
+			if (ctx->xdts) {
+				check_ts = gf_filter_pck_get_dts(pck);
+			}
 			//in range extraction we target the presentation time, use CTS and apply delay
-			if (ctx->is_range_extraction) {
+			else if (ctx->is_range_extraction) {
 				check_ts = gf_filter_pck_get_cts(pck) + st->tk_delay;
 				if (check_ts > st->ts_sub) check_ts -= st->ts_sub;
 				else check_ts = 0;
@@ -1992,7 +1995,7 @@ refetch_streams:
 								st->sap_ts_plus_one = st->prev_sap_ts + 1;
 							}
 						} else if (ctx->xround<=REFRAME_ROUND_SEEK) {
-							st->sap_ts_plus_one = st->prev_sap_ts+1;
+							st->sap_ts_plus_one = (ctx->nosap ? ts : st->prev_sap_ts) + 1;
 
 							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
 								Bool at_frame = GF_FALSE;
@@ -2837,6 +2840,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- closest: use I-frame closest to range start", GF_PROP_UINT, "before", "before|seek|after|closest", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xadjust), "adjust end time of extraction range to be before next I-frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xots), "keep original timestamps after extraction", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(xdts), "compute start times based on DTS and not CTS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sure the I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -2861,7 +2865,7 @@ static const GF_FilterArgs ReframerArgs[] =
 
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
-	GF_FS_SET_DESCRIPTION("Media Reframer")
+	GF_FS_SET_DESCRIPTION("Media reframer")
 	GF_FS_SET_HELP("This filter provides various tools on inputs:\n"
 		"- ensure reframing (1 packet = 1 Access Unit)\n"
 		"- optionally force decoding\n"
@@ -2975,7 +2979,8 @@ GF_FilterRegister ReframerRegister = {
 	.configure_pid = reframer_configure_pid,
 	.process = reframer_process,
 	.process_event = reframer_process_event,
-	.update_arg = reframer_update_arg
+	.update_arg = reframer_update_arg,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 

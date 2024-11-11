@@ -125,7 +125,7 @@ static void xml_scte35_parse_segmentation_descriptor(GF_XMLNode *root, GF_BitStr
 	u32 i = 0, j = 0;
 	GF_XMLNode *node = NULL;
 	GF_XMLAttribute *att = NULL;
-	int segmentationEventId;
+	int segmentationEventId=0;
 	Bool segmentationEventCancelIndicator = GF_FALSE, webDeliveryAllowedFlag = GF_FALSE, noRegionalBlackoutFlag = GF_FALSE, archiveAllowedFlag = GF_FALSE;
 	Bool segmentationEventIdComplianceIndicator = GF_FALSE;
 	Bool programSegmentationFlag = GF_FALSE, segmentationDurationFlag = GF_FALSE, deliveryNotRestrictedFlag = GF_FALSE;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -224,7 +224,7 @@ Bool hls_clock, do_mpd_rip, merge_vtt_cues, get_nb_tracks, no_inplace, merge_las
 Bool insert_utc, chunk_mode, HintCopy, hint_no_offset, do_bin_xml, frag_real_time, force_co64, live_scene, use_mfra, dump_iod, samplegroups_in_traf;
 Bool mvex_after_traks, daisy_chain_sidx, use_ssix, single_segment, single_file, segment_timeline, has_add_image;
 Bool strict_cues, use_url_template, seg_at_rap, frag_at_rap, memory_frags, keep_utc, has_next_arg, no_cache, no_loop;
-Bool conv_type_from_ext;
+Bool conv_type_from_ext, dump_keep_comp;
 
 u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
 u32 nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, minor_version, conv_type, nb_tsel_acts;
@@ -286,7 +286,7 @@ static void init_global_vars()
 	use_mfra = dump_iod = samplegroups_in_traf = mvex_after_traks = daisy_chain_sidx = use_ssix = single_segment = single_file = GF_FALSE;
 	segment_timeline = has_add_image = strict_cues = use_url_template = seg_at_rap = frag_at_rap = memory_frags = keep_utc = GF_FALSE;
 	has_next_arg = no_cache = no_loop = GF_FALSE;
-	conv_type_from_ext = GF_FALSE;
+	conv_type_from_ext = dump_keep_comp = GF_FALSE;
 
 	/*align cat is the new default behavior for -cat*/
 	align_cat=GF_TRUE;
@@ -635,7 +635,7 @@ MP4BoxArg m4b_split_args[] =
  	MP4BOX_ARG("split", "split in files of given max duration (float number) in seconds. A trailing unit can be specified:\n"
 	"- `M`, `m`: duration is in minutes\n"
 	"- `H`, `h`: size is in hours", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
-	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_STRING, 0, parse_split, 1, ARG_IS_FUN),
+	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_BOOL, 0, parse_split, 1, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (integer number) in kilobytes. A trailing unit can be specified:\n"
 	"- `M`, `m`: size is in megabytes\n"
 	"- `G`, `g`: size is in gigabytes", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
@@ -716,6 +716,7 @@ MP4BoxArg m4b_dash_args[] =
 	        "- $Init=NAME$ is replaced by NAME for init segment, ignored otherwise\n"
 	        "- $Index=NAME$ is replaced by NAME for index segments, ignored otherwise\n"
 	        "- $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise\n"
+	        "- $SubNumber[%%0Nd]$ is replaced by the segment subnumber in segment sequences, possibly prefixed with 0\n"
 	        "- $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments", GF_ARG_STRING, 0, &seg_name, 0, 0),
 	{"segment-ext", NULL, "set the segment extension, `null` means no extension", "m4s", NULL, GF_ARG_STRING, 0, &seg_ext, 0, 0},
 	{"init-segment-ext", NULL, "set the segment extension for init, index and bitstream switching segments, `null` means no extension\n", "mp4", NULL, GF_ARG_STRING, 0, &init_seg_ext, 0, 0},
@@ -1275,6 +1276,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG_ALT("diso", "dmp4", "dump IsoMedia file boxes in XML output", GF_ARG_BOOL, 0, &dump_isom, 1, 0),
  	MP4BOX_ARG("dxml", "dump IsoMedia file boxes and known track samples in XML output", GF_ARG_BOOL, 0, &dump_isom, 2, 0),
  	MP4BOX_ARG("disox", "dump IsoMedia file boxes except sample tables in XML output", GF_ARG_BOOL, 0, &dump_isom, 3, 0),
+	MP4BOX_ARG("keep-comp", "do not decompress boxes when dumping", GF_ARG_BOOL, 0, &dump_keep_comp, 3, 0),
  	MP4BOX_ARG("keep-ods", "do not translate ISOM ODs and ESDs tags (debug purpose only)", GF_ARG_BOOL, 0, &no_odf_conf, 0, 0),
 #ifndef GPAC_DISABLE_SCENE_DUMP
  	MP4BOX_ARG("bt", "dump scene to BT format", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_BT, ARG_HAS_VALUE),
@@ -4392,20 +4394,27 @@ static u32 do_import_sub()
 	   possibly for later export (e.g. when converting SRT to TTXT, ...) */
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 	GF_Err e;
-	GF_MediaImporter import;
+	GF_MediaImporter *import;
+
 	/* Prepare the importer */
+	GF_SAFEALLOC(import, GF_MediaImporter);
+	if (!import) {
+		M4_LOG(GF_LOG_ERROR, ("Allocation failed for importer\n"));
+		return mp4box_cleanup(1);
+	}
+
 	file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
 	if (timescale && file) gf_isom_set_timescale(file, timescale);
 
-	memset(&import, 0, sizeof(GF_MediaImporter));
-	import.dest = file;
-	import.in_name = inName;
+	import->dest = file;
+	import->in_name = inName;
 	/* Start the import */
-	e = gf_media_import(&import);
+	e = gf_media_import(import);
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Error importing %s: %s\n", inName, gf_error_to_string(e)));
 		gf_isom_delete(file);
 		gf_file_delete("ttxt_convert");
+		gf_free(import);
 		return mp4box_cleanup(1);
 	}
 	/* Prepare the export */
@@ -4424,6 +4433,7 @@ static u32 do_import_sub()
 	/* Clean the importer */
 	gf_isom_delete(file);
 	gf_file_delete("ttxt_convert");
+	gf_free(import);
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Error converting %s: %s\n", inName, gf_error_to_string(e)));
 		return mp4box_cleanup(1);
@@ -6319,7 +6329,9 @@ int mp4box_main(int argc, char **argv)
 		}
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
-			omode =  (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
+			omode = (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
+			if ((dump_isom>0) && dump_keep_comp)
+				omode = GF_ISOM_OPEN_READ_DUMP_NO_COMP;
 
 			if (crypt) {
 				//keep fragment signaling in moov
@@ -6328,7 +6340,7 @@ int mp4box_main(int argc, char **argv)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, NULL);
 			}
 			if (!crypt && use_init_seg) {
-				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, NULL);
+				file = gf_isom_open(use_init_seg, omode, NULL);
 				if (file) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 					e = gf_isom_open_segment(file, inName, 0, 0, 0);
@@ -6398,17 +6410,22 @@ int mp4box_main(int argc, char **argv)
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 				if(dvbhdemux)
 				{
-					GF_MediaImporter import;
+					GF_MediaImporter *import;
 					file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
-					memset(&import, 0, sizeof(GF_MediaImporter));
-					import.dest = file;
-					import.in_name = inName;
-					import.flags = GF_IMPORT_MPE_DEMUX;
-					e = gf_media_import(&import);
+					GF_SAFEALLOC(import, GF_MediaImporter);
+					if (import) {
+						import->dest = file;
+						import->in_name = inName;
+						import->flags = GF_IMPORT_MPE_DEMUX;
+						e = gf_media_import(import);
+					} else {
+						e = GF_OUT_OF_MEM;
+					}
 					if (e) {
 						M4_LOG(GF_LOG_ERROR, ("Error importing %s: %s\n", inName, gf_error_to_string(e)));
 						gf_isom_delete(file);
 						gf_file_delete("ttxt_convert");
+						if (import) gf_free(import);
 						return mp4box_cleanup(1);
 					}
 				}

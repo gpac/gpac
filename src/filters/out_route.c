@@ -626,7 +626,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TIMESCALE);
 		if (p) rpid->timescale = p->value.uint;
 
-		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PCK_HLS_REF);
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_HLS_REF);
 		if (p) rpid->hls_ref_id = p->value.longuint;
 
 		rpid->tsi = gf_list_find(rserv->pids, rpid) * 10;
@@ -957,7 +957,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						rpid->current_toi = 0;
 
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-						if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PCK_FILENAME);
+						if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_INIT_NAME);
 						if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
 						rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
 					}
@@ -1916,29 +1916,6 @@ retry:
 		goto retry;
 	}
 
-	p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PID_HLS_PLAYLIST);
-	if (p && p->value.string) {
-		u32 crc;
-		gf_assert(start && end);
-		crc = gf_crc_32(rpid->pck_data, rpid->pck_size);
-		//whenever init seg changes, bump stsid version
-		if (crc != rpid->hld_child_pl_crc) {
-			rpid->hld_child_pl_crc = crc;
-			if (rpid->hld_child_pl) gf_free(rpid->hld_child_pl);
-			rpid->hld_child_pl = gf_malloc(rpid->pck_size+1);
-			memcpy(rpid->hld_child_pl, rpid->pck_data, rpid->pck_size);
-			rpid->hld_child_pl[rpid->pck_size] = 0;
-
-			if (!rpid->hld_child_pl_name || strcmp(rpid->hld_child_pl_name, p->value.string)) {
-				rpid->route->needs_reconfig = GF_TRUE;
-				if (rpid->hld_child_pl_name) gf_free(rpid->hld_child_pl_name);
-				rpid->hld_child_pl_name = routeout_strip_base(rpid->route, p->value.string);
-			}
-		}
-		gf_filter_pck_unref(rpid->current_pck);
-		rpid->current_pck = NULL;
-		goto retry;
-	}
 	if (rpid->route->dash_mode) {
 		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENUM);
 		if (p) {
@@ -3131,7 +3108,7 @@ static const GF_FilterCapability ROUTEOutCaps[] =
 
 GF_FilterRegister ROUTEOutRegister = {
 	.name = "routeout",
-	GF_FS_SET_DESCRIPTION("ROUTE output")
+	GF_FS_SET_DESCRIPTION("MABR & ROUTE output")
 	GF_FS_SET_HELP("The ROUTE output filter is used to distribute a live file-based session using ROUTE or DVB-MABR.\n"
 		"The filter supports DASH and HLS inputs, ATSC3.0 signaling and generic ROUTE or DVB-MABR signaling.\n"
 		"\n"
@@ -3254,7 +3231,8 @@ GF_FilterRegister ROUTEOutRegister = {
 	.configure_pid = routeout_configure_pid,
 	.process = routeout_process,
 	.use_alias = routeout_use_alias,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 const GF_FilterRegister *routeout_register(GF_FilterSession *session)

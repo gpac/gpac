@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / generic pipe output filter
@@ -213,12 +213,9 @@ static GF_Err pipeout_setup_file(GF_PipeOutCtx *ctx, Bool explicit_overwrite)
 	if (p && p->value.string) {
 		return pipeout_open_close(ctx, p->value.string, NULL, 0, explicit_overwrite);
 	} else if (ctx->dynext) {
-		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PCK_FILENUM);
-		if (!p) {
-			p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
-			if (p && p->value.string) {
-				return pipeout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
-			}
+		p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
+		if (p && p->value.string) {
+			return pipeout_open_close(ctx, ctx->dst, p->value.string, 0, explicit_overwrite);
 		}
 	} else {
 		return pipeout_open_close(ctx, ctx->dst, NULL, 0, explicit_overwrite);
@@ -383,8 +380,6 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		}
 		//filename change at packet start, open new file
 		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-		if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
-		if (!fext) fext = gf_filter_pck_get_property(pck, GF_PROP_PID_FILE_EXT);
 		if (fname) name = fname->value.string;
 
 		if (end && gf_filter_pck_get_seek_flag(pck))
@@ -545,7 +540,7 @@ static const GF_FilterCapability PipeOutCaps[] =
 
 GF_FilterRegister PipeOutRegister = {
 	.name = "pout",
-	GF_FS_SET_DESCRIPTION("pipe output")
+	GF_FS_SET_DESCRIPTION("Pipe output")
 	GF_FS_SET_HELP("This filter handles generic output pipes (mono-directional) in blocking mode only.\n"
 		"Warning: Output pipes do not currently support non blocking mode.\n"
 		"The associated protocol scheme is `pipe://` when loaded as a generic output (e.g. -o `pipe://URL` where URL is a relative or absolute pipe name).\n"
@@ -575,7 +570,8 @@ GF_FilterRegister PipeOutRegister = {
 	.finalize = pipeout_finalize,
 	.configure_pid = pipeout_configure_pid,
 	.process = pipeout_process,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2023
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / TX3G to SRT/VTT/TTML convert filter
@@ -281,7 +281,7 @@ static GF_Err dump_ttxt_sample_ttml(TX3GMxCtx *ctx, FILE *dump, GF_TextSample *t
 		len = txt->len;
 	} else {
 		u8 *str = (u8 *) (txt->text);
-		len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
+		len = gf_utf8_mbstowcs(utf16Line, txt->len+1, (const char **) &str);
 		if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
 		utf16Line[len] = 0;
 	}
@@ -581,7 +581,7 @@ static const GF_FilterArgs TX3GMxArgs[] =
 
 GF_FilterRegister TTXTMxRegister = {
 	.name = "ufttxt",
-	GF_FS_SET_DESCRIPTION("TX3G unframer")
+	GF_FS_SET_DESCRIPTION("TX3G rewriter")
 	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to TTXT (xml format) unframed stream.")
 	.private_size = sizeof(TX3GMxCtx),
 	.args = TX3GMxArgs,
@@ -589,7 +589,8 @@ GF_FilterRegister TTXTMxRegister = {
 	.finalize = tx3gmx_finalize,
 	SETCAPS(TX3GMxCaps),
 	.configure_pid = tx3gmx_configure_pid,
-	.process = tx3gmx_process
+	.process = tx3gmx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 const GF_FilterRegister *ufttxt_register(GF_FilterSession *session)
@@ -627,7 +628,8 @@ GF_FilterRegister TX3G2SRTRegister = {
 	.finalize = tx3gmx_finalize,
 	SETCAPS(TX3G2SRTCaps),
 	.configure_pid = tx3gmx_configure_pid,
-	.process = tx3gmx_process
+	.process = tx3gmx_process,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 const GF_FilterRegister *tx3g2srt_register(GF_FilterSession *session)
@@ -666,7 +668,8 @@ GF_FilterRegister TTX2VTTRegister = {
 	.finalize = tx3gmx_finalize,
 	SETCAPS(TX3G2VTTCaps),
 	.configure_pid = tx3gmx_configure_pid,
-	.process = tx3gmx_process
+	.process = tx3gmx_process,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 const GF_FilterRegister *tx3g2vtt_register(GF_FilterSession *session)
@@ -706,7 +709,8 @@ GF_FilterRegister TX3G2TTMLRegister = {
 	.finalize = tx3gmx_finalize,
 	SETCAPS(TX3G2TTMLCaps),
 	.configure_pid = tx3gmx_configure_pid,
-	.process = tx3gmx_process
+	.process = tx3gmx_process,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 

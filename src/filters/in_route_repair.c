@@ -510,6 +510,7 @@ restart:
 
 		if(!url) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[REPAIR] Failed to find an adequate repair server - Repair abort \n"));
+			rsi->nb_errors++;
 			repair_session_done(ctx, rsess, e);
 			return;
 		}
@@ -544,7 +545,16 @@ restart:
 		if (e==GF_IP_NETWORK_EMPTY) return;
 		if (e==GF_IO_BYTE_RANGE_NOT_SUPPORTED) {
 			rsess->server->accept_ranges = GF_FALSE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Server \"%s\" does not support byte range requests: Server is blacklisted for partial repair \n", rsess->server->url));
 			gf_dm_sess_abort(rsess->dld);
+			gf_dm_sess_del(rsess->dld);
+			//try with another server if there is one
+			rsess->dld = NULL;
+			rsi->pending--;
+			rsess->current_si = NULL;
+			gf_list_add(rsi->ranges, rsess->range);
+			rsess->range = NULL;
+			goto restart;
 		}
 	}
 

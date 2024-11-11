@@ -52,6 +52,8 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
+__pycache__/
+*.py[cod]
 
 
 .DS_Store .AppleDouble .LSOverride

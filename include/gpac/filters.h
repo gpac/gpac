@@ -1072,6 +1072,9 @@ typedef enum
 
 /*! Built-in property types
 See gpac help (gpac -h props) for codes, types, formats and and meaning
+
+All these property must use capital alpha-numerical code, no space or special charcters allowed.
+
 	\hideinitializer
 */
 enum
@@ -1146,7 +1149,7 @@ enum
 	GF_PROP_PID_HIDDEN = GF_4CC('H','I','D','E'),
 	GF_PROP_PID_CROP_POS = GF_4CC('V','C','X','Y'),
 	GF_PROP_PID_ORIG_SIZE = GF_4CC('V','O','W','H'),
-	GF_PROP_PID_SRD = GF_4CC('S','R','D',' '),
+	GF_PROP_PID_SRD = GF_4CC('S','R','D','I'),
 	GF_PROP_PID_SRD_REF = GF_4CC('S','R','D','R'),
 	GF_PROP_PID_SRD_MAP = GF_4CC('S','R','D','M'),
 	GF_PROP_PID_ALPHA = GF_4CC('V','A','L','P'),
@@ -1195,7 +1198,6 @@ enum
 	GF_PROP_PID_ISMA_SELECTIVE_ENC = GF_4CC('I','S','S','E'),
 	GF_PROP_PID_ISMA_IV_LENGTH = GF_4CC('I','S','I','V'),
 	GF_PROP_PID_ISMA_KI_LENGTH = GF_4CC('I','S','K','I'),
-	GF_PROP_PID_ISMA_KI = GF_4CC('I','K','E','Y'),
 	GF_PROP_PID_OMA_CRYPT_TYPE = GF_4CC('O','M','C','T'),
 	GF_PROP_PID_OMA_CID = GF_4CC('O','M','I','D'),
 	GF_PROP_PID_OMA_TXT_HDR = GF_4CC('O','M','T','H'),
@@ -1228,6 +1230,7 @@ enum
 	GF_PROP_PCK_MPD_SEGSTART = GF_4CC('F','M','S','S'),
 	GF_PROP_PCK_ID = GF_4CC('P','K','I','D'),
 	GF_PROP_PCK_REFS = GF_4CC('P','R','F','S'),
+	GF_PROP_PCK_LLHAS_TEMPLATE = GF_4CC('P','S','R','T'),
 	GF_PROP_PCK_TIMECODES = GF_4CC('T','C','O','D'),
 
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
@@ -1251,11 +1254,13 @@ enum
 	GF_PROP_PID_PERIOD_START = GF_4CC('P','E','S','T'),
 	GF_PROP_PID_PERIOD_DUR = GF_4CC('P','E','D','U'),
 	GF_PROP_PID_REP_ID = GF_4CC('D','R','I','D'),
+	GF_PROP_PID_SSR = GF_4CC('S','S','R','R'),
 	GF_PROP_PID_AS_ID = GF_4CC('D','A','I','D'),
 	GF_PROP_PID_MUX_SRC = GF_4CC('M','S','R','C'),
 	GF_PROP_PID_DASH_MODE = GF_4CC('D','M','O','D'),
 	GF_PROP_PID_FORCE_SEG_SYNC = GF_4CC('D','F','S','S'),
 	GF_PROP_PID_DASH_DUR = GF_4CC('D','D','U','R'),
+	GF_PROP_PID_DASH_FDUR = GF_4CC('F','D','U','R'),
 	GF_PROP_PID_DASH_MULTI_PID = GF_4CC('D','M','S','D'),
 	GF_PROP_PID_DASH_MULTI_PID_IDX = GF_4CC('D','M','S','I'),
 	GF_PROP_PID_DASH_MULTI_TRACK = GF_4CC('D','M','T','K'),
@@ -1310,6 +1315,7 @@ enum
 	GF_PROP_PID_KEEP_AFTER_EOS = GF_4CC('P','K','A','E'),
 	GF_PROP_PID_COVER_ART = GF_4CC('P','C','O','V'),
 	GF_PROP_PID_ORIG_FRAG_URL = GF_4CC('O','F','R','A'),
+	GF_PROP_PID_VOD_SIDX_RANGE = GF_4CC('P','R','S','R'),
 
 	GF_PROP_PID_MCAST_IP = GF_4CC('M','S','I','P'),
 	GF_PROP_PID_MCAST_PORT = GF_4CC('M','S','P','N'),
@@ -1333,18 +1339,22 @@ enum
 	GF_PROP_PID_CHAP_TIMES = GF_4CC('C','H','P','T'),
 	GF_PROP_PID_CHAP_NAMES = GF_4CC('C','H','P','N'),
 	GF_PROP_PID_IS_CHAP = GF_4CC('P','C','H','P'),
-	//internal prop indicating the (main) streamtype of a PID before mux, only used for route setup
 	GF_PROP_PID_PREMUX_STREAM_TYPE = GF_4CC('P','P','S','T'),
 
 	GF_PROP_PID_CODEC_MERGEABLE = GF_4CC('P','C','M','B'),
-	GF_PROP_PID_FILE_REL = GF_4CC('F','N','R','L'),
+	GF_PROP_PCK_FILE_REL = GF_4CC('F','N','R','L'),
 
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
-	//internal for HLS low latency
-	GF_PROP_PID_LLHLS = GF_4CC('H','L','S','L'),
-	GF_PROP_PCK_HLS_FRAG_NUM = GF_4CC('H','L','S','N'),
+	GF_PROP_PID_HLS_REF = GF_4CC('P','H','L','R'),
+	//internal for low latency HLS abd DASH:
+	//0 or not present: no low latency
+	//1: LL-HLS byte-range mode
+	//2: LL-HLS or DASH SSR seperate parts mode
+	GF_PROP_PID_LLHAS_MODE = GF_4CC('H','L','H','S'),
+	// part number for LLHLS or DSH-SSR
+	GF_PROP_PCK_LLHAS_FRAG_NUM = GF_4CC('H','L','S','N'),
 	//we also use this property on PID to signal sample-accurate seek info is present
 	GF_PROP_PCK_SKIP_BEGIN = GF_4CC('P','C','K','S'),
 	GF_PROP_PCK_SKIP_PRES = GF_4CC('P','C','K','D'),
@@ -1358,21 +1368,19 @@ enum
 	GF_PROP_PID_HLS_KMS = GF_4CC('H','L','S','K'),
 	GF_PROP_PID_HLS_IV = GF_4CC('H','L','S','I'),
 	GF_PROP_PID_CLEARKEY_URI = GF_4CC('C','C','K','U'),
-	//internal
 	GF_PROP_PID_CLEARKEY_KID = GF_4CC('C','C','K','I'),
-	//internal, indicate DASH segments are generated in sparse mode (from context)
 	GF_PROP_PID_DASH_SPARSE = GF_4CC('D','S','S','G'),
-	//internal, indicate DASH dependency group
 	GF_PROP_PID_DASH_DEP_GROUP = GF_4CC('D','G','D','I'),
+	GF_PROP_PCK_DASH_PERIOD_START = GF_4CC('P','D','P','S'),
+
+	GF_PROP_PID_HAS_SKIP_BEGIN = GF_4CC('P','S','B','P'),
 
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
 
 	//PID has temi information
 	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M'),
-	//PID has SCTE35 information and PID number
 	GF_PROP_PID_SCTE35_PID = GF_4CC('S','C','3','5'),
-	//PID has no init segment associated (file forward mode of dasher)
 	GF_PROP_PID_NO_INIT = GF_4CC('P','N','I','N'),
 
 	//PID carries a manifest
@@ -1381,12 +1389,14 @@ enum
 	GF_PROP_PCK_XPS_MASK = GF_4CC('P','X','P','M'),
 	GF_PROP_PCK_END_RANGE = GF_4CC('P','C','E','R'),
 
-	//internal, force creation of rewriter filter (only used for forcing reparse of NALU-based codecs)
 	GF_PROP_PID_FORCE_UNFRAME = GF_4CC('P','F','U','F'),
 
 	GF_PROP_PCK_SPLIT_START = GF_4CC('P','S','P','S'),
 	GF_PROP_PCK_SPLIT_END = GF_4CC('P','S','P','E'),
+	GF_PROP_PID_INIT_NAME = GF_4CC('P','I','N','M'),
 
+	GF_PROP_PCK_SEG_URL = GF_4CC('S','U','R','L'),
+	GF_PROP_PCK_CENC_PSSH = GF_4CC('P','S','H','P'),
 
 	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec ID
 
@@ -1395,8 +1405,6 @@ enum
 	- uint: AVCODEC_ID_*  ffdmx with newer versions or ffenc output
 	*/
 	GF_PROP_PID_META_DEMUX_CODEC_ID = GF_4CC('M','D','C','I'),
-
-	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec name*/
 	GF_PROP_PID_META_DEMUX_CODEC_NAME = GF_4CC('M','D','C','N'),
 
 	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec opaque data, u32*/
@@ -1499,6 +1507,11 @@ const char *gf_props_enum_all_names(u32 type);
 */
 u32 gf_props_get_base_type(u32 type);
 
+/*! Checks consistency of defined properties
+\return GF_TRUE if OK, GF_FALSE otherwise
+*/
+Bool gf_props_sanity_check();
+
 /*! Maximum string size to use when dumping a property*/
 #define GF_PROP_DUMP_ARG_SIZE	100
 
@@ -1538,7 +1551,7 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 */
 void gf_props_reset_single(GF_PropertyValue *prop);
 
-/*! Property aplies only to packets */
+/*! Property applies only to packets - if not set, property only applies to PID*/
 #define GF_PROP_FLAG_PCK 1
 /*! Property is optional for GPAC GSF serialization (not transmitted over network when property removal is enabled) */
 #define GF_PROP_FLAG_GSF_REM 1<<1
@@ -1664,7 +1677,7 @@ GF_FEVT_PLAY and GF_FEVT_SET_SPEED events will trigger larger (abs(speed)>1) or 
 
 GF_FEVT_STOP and GF_FEVT_SOURCE_SEEK events are filtered to reset the PID buffers.
 
-The following events may be used globally on a filter, e.g. without a  PID associated to the event:
+The following events may be used globally on a filter, e.g. without a PID associated to the event:
 
 GF_FEVT_FILE_DELETE: used for source and sinks, indicata a file deletion
 
@@ -1674,7 +1687,7 @@ GF_FEVT_QUALITY_SWITCH: globally change quality of of the filters for all pids (
 
 GF_FEVT_USER:
 
-The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data wgile paused.
+The filter session does not maintain a notion of paused or resume streams, it is up to the consummer to stop processing the data while paused.
 The GF_FEVT_PAUSE and GF_FEVT_RESUME events are only used to trigger pause and resume on interactive channels such as an RTSP session, i.e. to tell the remote peer to stop and resume.
 
 @{
@@ -2401,6 +2414,40 @@ typedef enum
 	GF_FS_REG_CUSTOM = 0x40000000,
 } GF_FSRegisterFlags;
 
+/*! Filter class type hint - these are only informative, used to generate documentation - the order of the enum corresponds to order of section in wki*/
+typedef enum
+{
+	/*! unspecified class type */
+	GF_FS_CLASS_UNSPECIFIED = 0,
+	/*! filter is a stream manipulation tool */
+	GF_FS_CLASS_STREAM,
+	/*! filter is a multimedia input/input  tool */
+	GF_FS_CLASS_MM_IO,
+	/*! filter is a file/network/protocols input/output  tool */
+	GF_FS_CLASS_NETWORK_IO,
+	/*! filter is a text and subtitle tool */
+	GF_FS_CLASS_SUBTITLE,
+	/*! filter is a raw audio/video tool */
+	GF_FS_CLASS_AV,
+	/*! filter is a generic tool */
+	GF_FS_CLASS_TOOL,
+	/*! filter is a cryptographic tool */
+	GF_FS_CLASS_CRYPTO,
+	/*! filter is a bitstream framing/unframing tool */
+	GF_FS_CLASS_FRAMING,
+	/*! filter is a demultiplexer */
+	GF_FS_CLASS_DEMULTIPLEXER,
+	/*! filter is a multiplexer */
+	GF_FS_CLASS_MULTIPLEXER,
+	/*! filter is a decoder */
+	GF_FS_CLASS_DECODER,
+	/*! filter is an encoder */
+	GF_FS_CLASS_ENCODER,
+	/*! any  value above this is considered as unknown */
+	GF_FS_CLASS_LAST_DEFINED,
+
+} GF_ClassTypeHint;
+
 /*! The filter register. Registries are loaded once at the start of the session and shall never be modified after that.
 If capabilities need to be changed for a specific filter, use \ref gf_filter_override_caps*/
 struct __gf_filter_register
@@ -2522,6 +2569,9 @@ struct __gf_filter_register
 	/*! for filters having the same match of input capabilities for a PID, the filter with priority at the lowest value will be used
 	\note Scalable decoders should use high values, so that they are only selected when enhancement layers are present*/
 	u8 priority;
+
+	/*! hint class type for doc generation, one of GF_ClassTypeHint */
+	u8 hint_class_type;
 
 	/*! optional for dynamic filter registries. Dynamic registries may declare any number of registries. The register_free function will be called to cleanup any allocated memory
 
@@ -3245,6 +3295,19 @@ GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc);
 \return the filter instance description, NULL otherwise
 */
 const char *gf_filter_get_description(GF_Filter *filter);
+
+/*! used by script to set a per-instance class hint
+\param filter target filter
+\param class_hint theclass hint to set
+\return error if any
+*/
+GF_Err gf_filter_set_class_hint(GF_Filter *filter, GF_ClassTypeHint class_hint);
+
+/*! get a per-instance class hint
+\param filter target filter
+\return the filter instance description, NULL otherwise
+*/
+GF_ClassTypeHint gf_filter_get_class_hint(GF_Filter *filter);
 
 /*! used by script to set a per-instance version
 \param filter target filter
@@ -4301,7 +4364,7 @@ reassign output packet properties changed by the filter.
 In order to handle reordering of packets, it is possible to keep references to either packets (may block the filter chain), or packet properties.
 
 Packets shall always be dispatched in their processing order (decode order). If reordering upon reception is needed, or AU interleaving is used, a filter SHALL do the reordering.
-However, packets do not have to be send in their creation order: a created packet is not assigned to PID buffers until it is sent.
+However, packets do not have to be sent in their creation order: a created packet is not assigned to PID buffers until it is sent.
 
 @{
  */
