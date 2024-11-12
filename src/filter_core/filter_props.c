@@ -1937,10 +1937,12 @@ Bool gf_props_sanity_check()
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s has no name\n", gf_4cc_to_str(GF_BuiltInProps[i].type)  ));
 			res = GF_FALSE;
 		}
+#ifndef GPAC_DISABLE_DOC
 		if (! GF_BuiltInProps[i].description) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s has no description\n", gf_4cc_to_str(GF_BuiltInProps[i].type)  ));
 			res = GF_FALSE;
 		}
+#endif
 		for (j=i+1; j<gf_num_props; j++) {
 			if (GF_BuiltInProps[i].type==GF_BuiltInProps[j].type) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s and %s have the same code %s\n", GF_BuiltInProps[i].name, GF_BuiltInProps[j].name, gf_4cc_to_str(GF_BuiltInProps[i].type) ));
