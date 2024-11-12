@@ -1529,8 +1529,10 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 			ap = gf_props_parse_value(GF_PROP_UINT, "FBD", opt, NULL, filter->session->sep_list);
 			filter->pid_decode_buffer_max_us = ap.value.uint;
 		}
+#ifndef GPAC_DISABLE_LOG
 		opt = gf_opts_get_key(sec_name, "LT");
 		if (opt) filter_parse_logs(filter, opt);
+#endif
 	}
 
 	//ifce (used by socket and other filters), use core default
