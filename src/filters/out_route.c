@@ -2711,7 +2711,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, "</MediaTransportSessionIdentifier>\n</EndpointAddress>\n", NULL);
 
 		u32 carousel_size=0;
-
+		u32 tot_rate = 0;
 		if (serv->manifest) carousel_size += (u32) strlen(serv->manifest);
 		u32 j, nb_pids=gf_list_count(serv->pids);
 		for (j=0;j<nb_pids; j++) {
@@ -2719,9 +2719,19 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			carousel_size += rpid->init_seg_size;
 			if (rpid->hld_child_pl)
 				carousel_size += (u32) strlen(rpid->hld_child_pl);
-			if (rpid->raw_file)
+			if (rpid->raw_file) {
 				carousel_size += rpid->pck_size;
+				if (rpid->carousel_time_us) {
+					tot_rate += rpid->pck_size * 8000000 / rpid->carousel_time_us;
+				}
+			} else if (!rpid->manifest_type) {
+				tot_rate += rpid->bitrate;
+			}
 		}
+		//add bitrate info
+		sprintf(tmp, "<BitRate average=\"%u\" maximum=\"%u\"/>\n", tot_rate, tot_rate);
+		gf_dynstrcat(&payload_text, tmp, NULL);
+
 		//carousel info
 		gf_dynstrcat(&payload_text, "<ObjectCarousel aggregateTransportSize=\"", NULL);
 		sprintf(tmp, "%u", carousel_size);
