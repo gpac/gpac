@@ -2763,7 +2763,7 @@ static char *mabr_get_carousel_info(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Boo
 
 		gf_dynstrcat(&carousel_text, "<InitSegments serviceIdRef=\"", NULL);
 		gf_dynstrcat(&carousel_text, serv->service_name, NULL);
-		gf_dynstrcat(&carousel_text, " targetAcquisitionLatency=\"PT", NULL);
+		gf_dynstrcat(&carousel_text, "\" targetAcquisitionLatency=\"PT", NULL);
 		gf_dynstrcat(&carousel_text, tmp, NULL);
 		gf_dynstrcat(&carousel_text, "S\"/>\n", NULL);
 	}
