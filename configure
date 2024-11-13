@@ -696,6 +696,7 @@ for opt do
         --disable-all) disable_all_features
             ;;
         --isomedia-only) disable_all_features
+            isomedia_only="yes"
             #disable all packages except first one "zlib"
             disabled_packages=`echo $opt | cut -c6-`
             append disabled_packages "x11 sdl directx "
@@ -2974,6 +2975,7 @@ echo "DISABLE_M2PS=$disable_m2ps" >> config.mak
 echo "DISABLE_OGG=$disable_ogg" >> config.mak
 echo "DISABLE_ISOFF=$disable_isoff" >> config.mak
 echo "DISABLE_ISOFF_HINT=$disable_isoff_hint" >> config.mak
+echo "ISOMEDIA_ONLY=$isomedia_only" >> config.mak
 echo "DISABLE_VOBSUB=$disable_vobsub" >> config.mak
 echo "DISABLE_TTXT=$disable_ttxt" >> config.mak
 echo "DISABLE_TTML=$disable_ttml" >> config.mak

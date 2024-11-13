@@ -7,6 +7,10 @@ else ifeq ($(DISABLE_ISOFF),no)
 APPDIRS+=mp4box 
 endif
 
+ifeq ($(ISOMEDIA_ONLY),yes)
+APPDIRS:=
+endif
+
 ALLDIRS=$(APPDIRS)
 
 all: apps
