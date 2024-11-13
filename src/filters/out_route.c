@@ -171,11 +171,13 @@ typedef struct
 	u32 manifest_version, manifest_crc;
 	//TOI for manifest in FLUTE mode
 	u32 manifest_toi;
+	u32 manifest_server_port;
 
 	//same for dual HLS/DASH, storage for alt manifest
 	char *manifest_alt, *manifest_alt_name, *manifest_alt_mime, *manifest_alt_server, *manifest_alt_url;
 	u32 manifest_alt_version, manifest_alt_crc;
 	u32 manifest_alt_toi;
+	u32 manifest_alt_server_port;
 
 	//for route
 	u32 stsid_version;
@@ -1077,6 +1079,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 				u32 *manifest_toi = &serv->manifest_toi;
 				u32 *manifest_crc = &serv->manifest_crc;
 				u32 *manifest_version = &serv->manifest_version;
+				u32 *manifest_port = &serv->manifest_server_port;
 
 				if ((serv->manifest_type & 1) && (serv->manifest_type & 2) && (rpid->manifest_type==2)) {
 					manifest = &serv->manifest_alt;
@@ -1087,6 +1090,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					manifest_toi = &serv->manifest_alt_toi;
 					manifest_crc = &serv->manifest_alt_crc;
 					manifest_version = &serv->manifest_alt_version;
+					manifest_port = &serv->manifest_alt_server_port;
 				}
 
 				if (man_crc != *manifest_crc) {
@@ -1124,7 +1128,12 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 							*manifest_url = gf_strdup(sep+1);
 							sep[0] = 0;
 							sep = strchr(*manifest_server + 8, ':');
-							if (sep) sep[0] = 0;
+							if (sep) {
+								*manifest_port = atoi(sep+1);
+								sep[0] = 0;
+							} else {
+								*manifest_port = 0;
+							}
 						} else {
 							gf_free(*manifest_url);
 							*manifest_url = NULL;
@@ -2856,12 +2865,22 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			char *man_url = NULL;
 			if (serv->manifest_server) {
 				gf_dynstrcat(&man_url, serv->manifest_server, NULL);
+				if (serv->manifest_server_port) {
+					char szPort[100];
+					sprintf(szPort, ":%u", serv->manifest_server_port);
+					gf_dynstrcat(&man_url, szPort, NULL);
+				}
 				gf_dynstrcat(&man_url, serv->manifest_url, "/");
 				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
+				if (ctx->furl) {
+					gf_dynstrcat(&man_uri, serv->manifest_server, NULL);
+					gf_dynstrcat(&man_uri, serv->manifest_url, "/");
+					gf_dynstrcat(&man_uri, serv->manifest_name, NULL);
+				}
 			} else {
 				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
 			}
-			man_uri = gf_strdup(ctx->furl ? man_url : serv->manifest_name);
+			if (!man_uri) man_uri = gf_strdup(serv->manifest_name);
 
 			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
 			sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
@@ -2883,23 +2902,36 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			char *manifest_mime = serv->manifest_mime;
 			char *manifest_name = serv->manifest_name;
 			char *manifest_url = serv->manifest_url;
+			u32 manifest_port = serv->manifest_server_port;
+
 			if (serv->manifest_type & 1) {
 				manifest_server = serv->manifest_alt_server;
 				manifest_mime = serv->manifest_alt_mime;
 				manifest_name = serv->manifest_alt_name;
 				manifest_url = serv->manifest_alt_url;
+				manifest_port = serv->manifest_alt_server_port;
 			}
 
 			char *man_uri = NULL;
 			char *man_url = NULL;
 			if (manifest_server) {
 				gf_dynstrcat(&man_url, manifest_server, NULL);
-				gf_dynstrcat(&man_url, manifest_url, "/");
-				gf_dynstrcat(&man_url, manifest_name, NULL);
+				if (serv->manifest_server_port) {
+					char szPort[100];
+					sprintf(szPort, ":%u", serv->manifest_server_port);
+					gf_dynstrcat(&man_url, szPort, NULL);
+				}
+				gf_dynstrcat(&man_url, serv->manifest_url, "/");
+				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
+				if (ctx->furl) {
+					gf_dynstrcat(&man_uri, manifest_server, NULL);
+					gf_dynstrcat(&man_uri, manifest_url, "/");
+					gf_dynstrcat(&man_uri, manifest_name, NULL);
+				}
 			} else {
 				gf_dynstrcat(&man_url, manifest_name, NULL);
 			}
-			man_uri = gf_strdup(ctx->furl ? man_url : manifest_name);
+			if (!man_uri) man_uri = gf_strdup(manifest_name);
 
 			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
 			sprintf(tmp, "gpac_mani_serv_%u_hls", serv->service_id);
