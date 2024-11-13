@@ -584,7 +584,14 @@ void gf_mx_del(GF_Mutex *mx)
 #endif
 	}
 #else
+	int max_retries = 10;
+retry:
 	err = pthread_mutex_destroy(&mx->hMutex);
+	if (err == EBUSY && max_retries > 0) {
+		gf_sleep(10);
+		max_retries--;
+		goto retry;
+	}
 	if (err) {
 #ifndef GPAC_DISABLE_LOG
 		if (mx->log_name) {
@@ -689,7 +696,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 	}
 #else
 	retCode = pthread_mutex_lock(&mx->hMutex);
-	if (retCode != 0 ) {
+	if (retCode != 0) {
 #ifndef GPAC_DISABLE_LOG
 		if (mx->log_name) {
 			if (retCode == EINVAL)
