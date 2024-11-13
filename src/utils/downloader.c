@@ -3775,51 +3775,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 
 
 #ifdef GPAC_HAS_SSL
-
-#define LWR(x) ('A' <= (x) && (x) <= 'Z' ? (x) - 32 : (x))
-
-static Bool rfc2818_match(const char *pattern, const char *string)
-{
-	char d;
-	u32 i=0, k=0;
-	while (1) {
-		char c = LWR(pattern[i]);
-		if (c == '\0') break;
-
-		if (c=='*') {
-			/*remove *** patterns*/
-			while (c == '*') {
-				i++;
-				c = LWR(pattern[i]);
-			}
-			/*look for same c character*/
-			while (1) {
-				d = LWR(string[k]);
-				if (d == '\0') break;
-				/*matched c character, check following substrings*/
-				if ((d == c) && rfc2818_match (&pattern[i], &string[k]))
-					return GF_TRUE;
-				else if (d == '.')
-					return GF_FALSE;
-
-				k++;
-			}
-			return (c == '\0') ? GF_TRUE : GF_FALSE;
-		} else {
-			if (c != LWR(string[k]))
-				return GF_FALSE;
-		}
-		i++;
-		k++;
-	}
-	return (string[k]=='\0') ? GF_TRUE : GF_FALSE;
-}
-#undef LWR
-
-#endif
-
-
-#ifdef GPAC_HAS_SSL
 Bool gf_ssl_check_cert(SSL *ssl, const char *server_name)
 {
 
