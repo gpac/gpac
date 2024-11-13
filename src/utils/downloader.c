@@ -2988,7 +2988,10 @@ static GF_Err curl_setup_session(GF_DownloadSession* sess)
 		sess->do_requests  = http_do_requests;
 		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_FOLLOWLOCATION, 1L);
 		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_TCP_KEEPALIVE, 1L);
-		if (sess->log_name) gf_free(sess->log_name);
+		if (sess->log_name) {
+			gf_free(sess->log_name);
+			sess->log_name = NULL;
+		}
 		sess->log_name = gf_strdup("CURL");
 	}
 
@@ -3107,7 +3110,10 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			sess->cache_entry = NULL;
 		}
 	}
-	if (sess->log_name) gf_free(sess->log_name);
+	if (sess->log_name) {
+		gf_free(sess->log_name);
+		sess->log_name = NULL;
+	}
 	if (!strcmp("http", info.protocol) || !strcmp("https", info.protocol)) {
 		sess->log_name = gf_strdup("HTTP");
 		if (sess->do_requests != http_do_requests) {
