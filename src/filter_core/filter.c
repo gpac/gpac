@@ -1325,6 +1325,7 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 	if (filter->logs) {
 		if (filter->logs->tools) gf_free(filter->logs->tools);
 		if (filter->logs->levels) gf_free(filter->logs->levels);
+		gf_log_pop_extra(filter->logs);
 		gf_free(filter->logs);
 	}
 	GF_SAFEALLOC(filter->logs, GF_LogExtra);
@@ -2066,7 +2067,7 @@ skip_date:
 				}
 			}
 		}
-	
+
 		GF_Filter *meta_filter = NULL;
 		if (!strlen(szArg)) {
 			found = GF_TRUE;
