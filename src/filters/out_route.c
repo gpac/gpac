@@ -2719,6 +2719,58 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	ctx->bytes_sent += ctx->lls_slt_table_len;
 }
 
+static char *mabr_get_carousel_info(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Bool inject_names, u32 *out_tot_rate)
+{
+	char tmp[2000];
+	u32 carousel_size=0, tot_rate=0;
+	char *carousel_text = NULL;
+	if (serv->manifest) carousel_size += (u32) strlen(serv->manifest);
+	if (serv->manifest_alt) carousel_size += (u32) strlen(serv->manifest_alt);
+
+	u32 carousel_us = ctx->carousel;
+	u32 j, nb_pids=gf_list_count(serv->pids);
+	for (j=0;j<nb_pids; j++) {
+		ROUTEPid *rpid = gf_list_get(serv->pids, j);
+		carousel_size += rpid->init_seg_size;
+		if (rpid->hld_child_pl)
+			carousel_size += (u32) strlen(rpid->hld_child_pl);
+		if (rpid->raw_file) {
+			carousel_size += rpid->pck_size;
+			if (rpid->carousel_time_us) {
+				tot_rate += rpid->pck_size * 8000000 / rpid->carousel_time_us;
+			}
+		} else if (!rpid->manifest_type) {
+			tot_rate += rpid->bitrate;
+		}
+		if (rpid->carousel_time_us && (rpid->carousel_time_us < carousel_us))
+			carousel_us = rpid->carousel_time_us;
+	}
+	if (out_tot_rate) *out_tot_rate = tot_rate;
+
+	gf_dynstrcat(&carousel_text, "<ObjectCarousel aggregateTransportSize=\"", NULL);
+	sprintf(tmp, "%u", carousel_size);
+	gf_dynstrcat(&carousel_text, tmp, NULL);
+	gf_dynstrcat(&carousel_text, "\">\n", NULL);
+
+	if (inject_names) {
+		//announce manifest and init segs
+		gf_dynstrcat(&carousel_text, "<PresentationManifests serviceIdRef=\"", NULL);
+		gf_dynstrcat(&carousel_text, serv->service_name, NULL);
+		gf_dynstrcat(&carousel_text, "\" targetAcquisitionLatency=\"PT", NULL);
+		sprintf(tmp, "%u", (u32) (carousel_us/1000000));
+		gf_dynstrcat(&carousel_text, tmp, NULL);
+		gf_dynstrcat(&carousel_text, "S\"/>\n", NULL);
+
+		gf_dynstrcat(&carousel_text, "<InitSegments serviceIdRef=\"", NULL);
+		gf_dynstrcat(&carousel_text, serv->service_name, NULL);
+		gf_dynstrcat(&carousel_text, " targetAcquisitionLatency=\"PT", NULL);
+		gf_dynstrcat(&carousel_text, tmp, NULL);
+		gf_dynstrcat(&carousel_text, "S\"/>\n", NULL);
+	}
+	gf_dynstrcat(&carousel_text, "</ObjectCarousel>\n", NULL);
+	return carousel_text;
+}
+
 static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 {
 	char *payload_text = NULL;
@@ -2764,51 +2816,19 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		gf_dynstrcat(&payload_text, "</MediaTransportSessionIdentifier>\n</EndpointAddress>\n", NULL);
 
-		u32 carousel_size=0;
 		u32 tot_rate = 0;
-		if (serv->manifest) carousel_size += (u32) strlen(serv->manifest);
-		if (serv->manifest_alt) carousel_size += (u32) strlen(serv->manifest_alt);
-		u32 j, nb_pids=gf_list_count(serv->pids);
-		for (j=0;j<nb_pids; j++) {
-			ROUTEPid *rpid = gf_list_get(serv->pids, j);
-			carousel_size += rpid->init_seg_size;
-			if (rpid->hld_child_pl)
-				carousel_size += (u32) strlen(rpid->hld_child_pl);
-			if (rpid->raw_file) {
-				carousel_size += rpid->pck_size;
-				if (rpid->carousel_time_us) {
-					tot_rate += rpid->pck_size * 8000000 / rpid->carousel_time_us;
-				}
-			} else if (!rpid->manifest_type) {
-				tot_rate += rpid->bitrate;
-			}
-		}
+		char *carousel_text = mabr_get_carousel_info(ctx, serv, serv->dash_mode, &tot_rate);
+
 		//add bitrate info
 		sprintf(tmp, "<BitRate average=\"%u\" maximum=\"%u\"/>\n", tot_rate, tot_rate);
 		gf_dynstrcat(&payload_text, tmp, NULL);
 
 		//carousel info
-		gf_dynstrcat(&payload_text, "<ObjectCarousel aggregateTransportSize=\"", NULL);
-		sprintf(tmp, "%u", carousel_size);
-		gf_dynstrcat(&payload_text, tmp, NULL);
-		gf_dynstrcat(&payload_text, "\">\n", NULL);
-
-		if (serv->dash_mode) {
-			//announce manifest and init segs
-			gf_dynstrcat(&payload_text, "<PresentationManifests serviceIdRef=\"", NULL);
-			gf_dynstrcat(&payload_text, serv->service_name, NULL);
-			gf_dynstrcat(&payload_text, "\" targetAcquisitionLatency=\"", NULL);
-			sprintf(tmp, "%u", (u32) ctx->carousel/100000);
-			gf_dynstrcat(&payload_text, tmp, NULL);
-			gf_dynstrcat(&payload_text, "\"/>\n", NULL);
-
-			gf_dynstrcat(&payload_text, "<InitSegments serviceIdRef=\"", NULL);
-			gf_dynstrcat(&payload_text, serv->service_name, NULL);
-			gf_dynstrcat(&payload_text, " targetAcquisitionLatency=\"", NULL);
-			gf_dynstrcat(&payload_text, tmp, NULL);
-			gf_dynstrcat(&payload_text, "\"/>\n", NULL);
+		if (carousel_text) {
+			gf_dynstrcat(&payload_text, carousel_text, NULL);
+			gf_free(carousel_text);
 		}
-		gf_dynstrcat(&payload_text, "</ObjectCarousel>\n</MulticastGatewayConfigurationTransportSession>\n", NULL);
+		gf_dynstrcat(&payload_text, "</MulticastGatewayConfigurationTransportSession>\n", NULL);
 	}
 
 
@@ -2978,6 +2998,13 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				gf_dynstrcat(&payload_text, id, NULL);
 				gf_dynstrcat(&payload_text, "\"", NULL);
 				gf_dynstrcat(&payload_text, "/>\n", NULL);
+			}
+			if (ctx->use_inband) {
+				char *carousel_text = mabr_get_carousel_info(ctx, serv, GF_TRUE, NULL);
+				if (carousel_text) {
+					gf_dynstrcat(&payload_text, carousel_text, NULL);
+					gf_free(carousel_text);
+				}
 			}
 			gf_dynstrcat(&payload_text, "</MulticastTransportSession>\n", NULL);
 			rpid->init_cfg_done = GF_TRUE;
