@@ -196,8 +196,11 @@ static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_ty
 	if (!strnicmp(url, "file://", 7) ) return GF_FPROBE_NOT_SUPPORTED;
 	//libcurl handling of RTSP has lower priority
 	if (!strnicmp(url, "rtsp://", 7) ) return GF_FPROBE_MAYBE_SUPPORTED;
-	if (gf_dm_can_handle_url(url))
+	if (gf_dm_can_handle_url(url)) {
+		//TODO: investigate why curl support of rtmp seems problematic, lower priority in favor of ffdmx
+		if (!strnicmp(url, "rtmp://", 7) ) return GF_FPROBE_MAYBE_NOT_SUPPORTED;
 		return GF_FPROBE_SUPPORTED;
+	}
 #endif
 
 	return GF_FPROBE_NOT_SUPPORTED;
@@ -356,7 +359,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
             e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
-		
+
         if (e) {
 			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
 			//but recovered later, so we let DASH report the error
@@ -773,4 +776,3 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_USE_DOWNLOADER
-
