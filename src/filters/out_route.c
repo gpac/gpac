@@ -2852,22 +2852,31 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, ">\n", NULL);
 
 		if (serv->manifest_type & 1) {
+			char *man_uri = NULL;
+			char *man_url = NULL;
+			if (serv->manifest_server) {
+				gf_dynstrcat(&man_url, serv->manifest_server, NULL);
+				gf_dynstrcat(&man_url, serv->manifest_url, "/");
+				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
+			} else {
+				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
+			}
+			man_uri = gf_strdup(ctx->furl ? man_url : serv->manifest_name);
+
 			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
 			sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 			gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
 			gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
-			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"tag:abr.gpac.io;2024/", NULL);
-			gf_dynstrcat(&payload_text, tmp, NULL);
+			//set transportObjectURI to the URI advertised in FDT - cf discussion in #3030
+			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"", NULL);
+			gf_dynstrcat(&payload_text, man_uri, NULL);
 			gf_dynstrcat(&payload_text, "\">", NULL);
-			if (ctx->furl && serv->manifest_server) {
-				gf_dynstrcat(&payload_text, serv->manifest_server, NULL);
-				gf_dynstrcat(&payload_text, serv->manifest_url, "/");
-				gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
-			} else {
-				gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
-			}
+			//we set as content the original location
+			gf_dynstrcat(&payload_text, man_url, NULL);
 			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
+			gf_free(man_uri);
+			gf_free(man_url);
 		}
 		if (serv->manifest_type & 2) {
 			char *manifest_server = serv->manifest_server;
@@ -2881,22 +2890,30 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				manifest_url = serv->manifest_alt_url;
 			}
 
+			char *man_uri = NULL;
+			char *man_url = NULL;
+			if (manifest_server) {
+				gf_dynstrcat(&man_url, manifest_server, NULL);
+				gf_dynstrcat(&man_url, manifest_url, "/");
+				gf_dynstrcat(&man_url, manifest_name, NULL);
+			} else {
+				gf_dynstrcat(&man_url, manifest_name, NULL);
+			}
+			man_uri = gf_strdup(ctx->furl ? man_url : manifest_name);
+
 			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
 			sprintf(tmp, "gpac_mani_serv_%u_hls", serv->service_id);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 			gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
 			gf_dynstrcat(&payload_text, manifest_mime, NULL);
-			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"tag:abr.gpac.io;2024/", NULL);
-			gf_dynstrcat(&payload_text, tmp, NULL);
+			//see notes above
+			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"", NULL);
+			gf_dynstrcat(&payload_text, man_uri, NULL);
 			gf_dynstrcat(&payload_text, "\">", NULL);
-			if (ctx->furl && manifest_server) {
-				gf_dynstrcat(&payload_text, manifest_server, NULL);
-				gf_dynstrcat(&payload_text, manifest_url, "/");
-				gf_dynstrcat(&payload_text, manifest_name, NULL);
-			} else {
-				gf_dynstrcat(&payload_text, manifest_name, NULL);
-			}
+			gf_dynstrcat(&payload_text, man_url, NULL);
 			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
+			gf_free(man_uri);
+			gf_free(man_url);
 		}
 
 		u32 j, nb_pids = gf_list_count(serv->pids);

@@ -1360,12 +1360,19 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			u32 j;
 			if (!tr_sess || !tr_sess->name) continue;
 			if (!strcmp(tr_sess->name, "PresentationManifestLocator") && !is_cfg_session) {
+				const char *trp_obj_uri = _xml_get_attr(tr_sess, "transportObjectURI");
 				tr_sess = gf_list_get(tr_sess->content, 0);
 				if (!tr_sess || !tr_sess->name) continue;
 				u32 i, count=gf_list_count(parent_s->objects);
 				for (i=0;i<count; i++) {
 					GF_LCTObject *obj = gf_list_get(parent_s->objects, i);
-					if (obj->rlct_file && !strcmp(obj->rlct_file->filename, tr_sess->name)) {
+					if (!obj->rlct_file) continue;
+					if (
+						//use URI indicated in transportObjectURI
+						(trp_obj_uri && !strcmp(obj->rlct_file->filename, trp_obj_uri))
+						//otherwise try to match using content type (repair url) - cf #3030 and DVB MABR A176 section 10.2.2.2.
+						|| !strcmp(obj->rlct_file->filename, tr_sess->name)
+					) {
 						mani_obj=obj;
 						break;
 					}
