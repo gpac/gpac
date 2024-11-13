@@ -26,6 +26,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_WEBCODEC
 
 typedef struct
 {
@@ -669,9 +670,11 @@ GF_FilterRegister GF_WCDecCtxRegister = {
 	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
+#endif //GPAC_DISABLE_WEBCODEC
 
 const GF_FilterRegister *wcdec_register(GF_FilterSession *session)
 {
+#ifndef GPAC_DISABLE_WEBCODEC
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
 	int has_webv_decode = EM_ASM_INT({
 		if (typeof VideoDecoder == 'undefined') return 0;
@@ -700,4 +703,7 @@ const GF_FilterRegister *wcdec_register(GF_FilterSession *session)
 	GF_WCDecCtxRegister.version = "! Warning: WebCodec NOT AVAILABLE IN THIS BUILD !";
 #endif
 	return &GF_WCDecCtxRegister;
+#else
+	return NULL;
+#endif
 }
