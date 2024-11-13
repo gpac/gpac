@@ -169,6 +169,13 @@ typedef struct
 	//HLS sub-playlists are stored on their related PID to be pushed at each new seg
 	char *manifest, *manifest_name, *manifest_mime, *manifest_server, *manifest_url;
 	u32 manifest_version, manifest_crc;
+	//TOI for manifest in FLUTE mode
+	u32 manifest_toi;
+
+	//same for dual HLS/DASH, storage for alt manifest
+	char *manifest_alt, *manifest_alt_name, *manifest_alt_mime, *manifest_alt_server, *manifest_alt_url;
+	u32 manifest_alt_version, manifest_alt_crc;
+	u32 manifest_alt_toi;
 
 	//for route
 	u32 stsid_version;
@@ -179,8 +186,6 @@ typedef struct
 
 	//service name for DVB MABR
 	char *service_name;
-	//TOI for manifest in FLUTE mode
-	u32 mani_toi;
 
 	Bool use_flute;
 } ROUTEService;
@@ -414,8 +419,14 @@ void routeout_delete_service(ROUTEService *serv)
 	if (serv->manifest_name) gf_free(serv->manifest_name);
 	if (serv->manifest_server) gf_free(serv->manifest_server);
 	if (serv->manifest_url) gf_free(serv->manifest_url);
-
 	if (serv->manifest) gf_free(serv->manifest);
+
+	if (serv->manifest_alt_mime) gf_free(serv->manifest_alt_mime);
+	if (serv->manifest_alt_name) gf_free(serv->manifest_alt_name);
+	if (serv->manifest_alt_server) gf_free(serv->manifest_alt_server);
+	if (serv->manifest_alt_url) gf_free(serv->manifest_alt_url);
+	if (serv->manifest_alt) gf_free(serv->manifest_alt);
+
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
 	if (serv->service_name) gf_free(serv->service_name);
 	if (serv->log_name) gf_free(serv->log_name);
@@ -544,8 +555,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		rserv->dash_mode = pid_dash_mode;
 	}
 
-	if (!rserv->manifest_type)
-		rserv->manifest_type = manifest_type;
+	rserv->manifest_type |= manifest_type;
 
 	if (rserv->dash_mode != pid_dash_mode){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Mix of raw and muxed files should never happen - please report bug !\n", rserv->log_name));
@@ -969,7 +979,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			}
 			if (rpid->init_seg_data || rpid->no_init_seg) {
 				nb_media_init ++;
-				if (serv->manifest_type==2) {
+				if (serv->manifest_type & 2) {
 					if (!rpid->hld_child_pl_name)
 						nb_media_init --;
 				}
@@ -1007,7 +1017,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			}
 
 			if (!file_name) {
-				snprintf(szLocManfest, 100, "manifest.%s", (serv->manifest_type==2) ? "m3u8" : "mpd");
+				snprintf(szLocManfest, 100, "manifest.%s", (rpid->manifest_type&2) ? "m3u8" : "mpd");
 				file_name = szLocManfest;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] No manifest name assigned, will use %s\n", serv->log_name, file_name));
 			}
@@ -1058,52 +1068,73 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			} else {
 				const u8 *man_data = gf_filter_pck_get_data(pck, &man_size);
 				man_crc = gf_crc_32(man_data, man_size);
-				if (man_crc != serv->manifest_crc) {
-					serv->manifest_crc = man_crc;
-					if (serv->manifest) gf_free(serv->manifest);
-					serv->manifest = gf_malloc(man_size+1);
-					memcpy(serv->manifest, man_data, man_size);
-					serv->manifest[man_size] = 0;
-					serv->manifest_version++;
-					if (serv->manifest_name) {
-						if (strcmp(serv->manifest_name, file_name)) serv->needs_reconfig = GF_TRUE;
-						gf_free(serv->manifest_name);
+
+				char **manifest = &serv->manifest;
+				char **manifest_name = &serv->manifest_name;
+				char **manifest_server = &serv->manifest_server;
+				char **manifest_url = &serv->manifest_url;
+				char **manifest_mime = &serv->manifest_mime;
+				u32 *manifest_toi = &serv->manifest_toi;
+				u32 *manifest_crc = &serv->manifest_crc;
+				u32 *manifest_version = &serv->manifest_version;
+
+				if ((serv->manifest_type & 1) && (serv->manifest_type & 2) && (rpid->manifest_type==2)) {
+					manifest = &serv->manifest_alt;
+					manifest_name = &serv->manifest_alt_name;
+					manifest_server = &serv->manifest_alt_server;
+					manifest_url = &serv->manifest_alt_url;
+					manifest_mime = &serv->manifest_alt_mime;
+					manifest_toi = &serv->manifest_alt_toi;
+					manifest_crc = &serv->manifest_alt_crc;
+					manifest_version = &serv->manifest_alt_version;
+				}
+
+				if (man_crc != *manifest_crc) {
+					*manifest_crc = man_crc;
+					if (*manifest) gf_free(*manifest);
+					(*manifest) = gf_malloc(man_size+1);
+					memcpy(*manifest, man_data, man_size);
+					(*manifest) [man_size] = 0;
+					(*manifest_version) ++;
+					if (*manifest_name) {
+						if (strcmp(*manifest_name, file_name)) serv->needs_reconfig = GF_TRUE;
+						gf_free(*manifest_name);
 					}
 					if (file_name[0])
-						serv->manifest_name = gf_strdup(file_name);
+						*manifest_name = gf_strdup(file_name);
 					else
-						serv->manifest_name = gf_strdup((serv->manifest_type==2) ? "live.m3u8" : "live.mpd");
+						*manifest_name = gf_strdup((rpid->manifest_type==2) ? "live.m3u8" : "live.mpd");
 					manifest_updated = GF_TRUE;
 					//we need a new TOI since manifest changed
-					serv->mani_toi = 0;
+					*manifest_toi = 0;
 
-					if (serv->manifest_server) gf_free(serv->manifest_server);
-					if (serv->manifest_url) gf_free(serv->manifest_url);
-					serv->manifest_server = serv->manifest_url = NULL;
+					if (*manifest_server) gf_free(*manifest_server);
+					if (*manifest_url) gf_free(*manifest_url);
+					*manifest_server = *manifest_url = NULL;
 
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
-					serv->manifest_url = p ? gf_strdup(p->value.string) : NULL;
-					if (serv->manifest_url) {
-						char *sep = strstr(serv->manifest_url, file_name);
+					*manifest_url = p ? gf_strdup(p->value.string) : NULL;
+					if (*manifest_url) {
+						char *sep = strstr(*manifest_url, file_name);
 						if (sep) sep[0] = 0;
-						sep = strstr(serv->manifest_url, "://");
+						sep = strstr(*manifest_url, "://");
 						if (sep) sep = strchr(sep + 3, '/');
 						if (sep) {
-							serv->manifest_server = serv->manifest_url;
-							serv->manifest_url = gf_strdup(sep+1);
+							*manifest_server = *manifest_url;
+							*manifest_url = gf_strdup(sep+1);
 							sep[0] = 0;
-							sep = strchr(serv->manifest_server + 8, ':');
+							sep = strchr(*manifest_server + 8, ':');
 							if (sep) sep[0] = 0;
 						} else {
-							gf_free(serv->manifest_url);
-							serv->manifest_url = NULL;
+							gf_free(*manifest_url);
+							*manifest_url = NULL;
 						}
 					}
 
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MIME);
 					if (p) {
-						if (serv->manifest_mime) gf_free(serv->manifest_mime);
-						serv->manifest_mime = gf_strdup(p->value.string);
+						if (*manifest_mime) gf_free(*manifest_mime);
+						*manifest_mime = gf_strdup(p->value.string);
 					}
 				}
 			}
@@ -1584,13 +1615,21 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		//inject manifest
 		if (serv->manifest && serv->manifest_type) {
 			u32 len = (u32) strlen(serv->manifest);
-			if (!serv->mani_toi) {
-				serv->mani_toi = ctx->next_toi_avail;
+			if (!serv->manifest_toi) {
+				serv->manifest_toi = ctx->next_toi_avail;
 				ctx->next_toi_avail++;
 			}
-			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name,
-				(serv->manifest_type==2) ? "application/vnd.apple.mpegURL" : "application/dash+xml",
-					serv->manifest, len, serv->mani_toi, ctx->furl);
+			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name, serv->manifest_mime, serv->manifest, len, serv->manifest_toi, ctx->furl);
+
+			//inject alt manifest
+			if (serv->manifest_alt) {
+				len = (u32) strlen(serv->manifest_alt);
+				if (!serv->manifest_alt_toi) {
+					serv->manifest_alt_toi = ctx->next_toi_avail;
+					ctx->next_toi_avail++;
+				}
+				inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime, serv->manifest_alt, len, serv->manifest_alt_toi, ctx->furl);
+			}
 		}
 
 		//inject init segs and HLS variant or RAW info
@@ -2139,14 +2178,24 @@ void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, R
 	//inject manifest
 	if (serv->manifest && serv->manifest_type) {
 		u32 len = (u32) strlen(serv->manifest);
-		if (!serv->mani_toi) {
-			serv->mani_toi = ctx->next_toi_avail;
+		if (!serv->manifest_toi) {
+			serv->manifest_toi = ctx->next_toi_avail;
 			ctx->next_toi_avail++;
 		}
-		inject_fdt_file_desc(ctx, payload, serv, serv->manifest_name,
-			(serv->manifest_type==2) ? "application/vnd.apple.mpegURL" : "application/dash+xml",
-			serv->manifest, len, serv->mani_toi, ctx->furl
+		inject_fdt_file_desc(ctx, payload, serv, serv->manifest_name, serv->manifest_mime,
+			serv->manifest, len, serv->manifest_toi, ctx->furl
 		);
+
+		if (serv->manifest_alt) {
+			len = (u32) strlen(serv->manifest_alt);
+			if (!serv->manifest_alt_toi) {
+				serv->manifest_alt_toi = ctx->next_toi_avail;
+				ctx->next_toi_avail++;
+			}
+			inject_fdt_file_desc(ctx, payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime,
+				serv->manifest_alt, len, serv->manifest_alt_toi, ctx->furl
+			);
+		}
 	}
 
 	//inject init segs and HLS variant or RAW info
@@ -2329,7 +2378,12 @@ next_packet:
 					if (!manifest_sent) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
 						manifest_sent = GF_TRUE;
-						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+
+						if (serv->manifest_alt) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Alternative Manifest %s\n", serv->log_name, serv->manifest_alt_name));
+							routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
+						}
 					}
 					init_toi = rpid->init_toi;
 				}
@@ -2713,6 +2767,7 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		u32 carousel_size=0;
 		u32 tot_rate = 0;
 		if (serv->manifest) carousel_size += (u32) strlen(serv->manifest);
+		if (serv->manifest_alt) carousel_size += (u32) strlen(serv->manifest_alt);
 		u32 j, nb_pids=gf_list_count(serv->pids);
 		for (j=0;j<nb_pids; j++) {
 			ROUTEPid *rpid = gf_list_get(serv->pids, j);
@@ -2776,20 +2831,53 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		gf_dynstrcat(&payload_text, ">\n", NULL);
 
-		gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
-		sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
-		gf_dynstrcat(&payload_text, tmp, NULL);
-		gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
-		gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
-		gf_dynstrcat(&payload_text, "\">", NULL);
-		if (ctx->furl && serv->manifest_server) {
-			gf_dynstrcat(&payload_text, serv->manifest_server, NULL);
-			gf_dynstrcat(&payload_text, serv->manifest_url, "/");
-			gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
-		} else {
-			gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
+		if (serv->manifest_type & 1) {
+			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
+			sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
+			gf_dynstrcat(&payload_text, tmp, NULL);
+			gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
+			gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
+			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"tag:abr.gpac.io;2024/", NULL);
+			gf_dynstrcat(&payload_text, tmp, NULL);
+			gf_dynstrcat(&payload_text, "\">", NULL);
+			if (ctx->furl && serv->manifest_server) {
+				gf_dynstrcat(&payload_text, serv->manifest_server, NULL);
+				gf_dynstrcat(&payload_text, serv->manifest_url, "/");
+				gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
+			} else {
+				gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
+			}
+			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
 		}
-		gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
+		if (serv->manifest_type & 2) {
+			char *manifest_server = serv->manifest_server;
+			char *manifest_mime = serv->manifest_mime;
+			char *manifest_name = serv->manifest_name;
+			char *manifest_url = serv->manifest_url;
+			if (serv->manifest_type & 1) {
+				manifest_server = serv->manifest_alt_server;
+				manifest_mime = serv->manifest_alt_mime;
+				manifest_name = serv->manifest_alt_name;
+				manifest_url = serv->manifest_alt_url;
+			}
+
+			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
+			sprintf(tmp, "gpac_mani_serv_%u_hls", serv->service_id);
+			gf_dynstrcat(&payload_text, tmp, NULL);
+			gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
+			gf_dynstrcat(&payload_text, manifest_mime, NULL);
+			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"tag:abr.gpac.io;2024/", NULL);
+			gf_dynstrcat(&payload_text, tmp, NULL);
+			gf_dynstrcat(&payload_text, "\">", NULL);
+			if (ctx->furl && manifest_server) {
+				gf_dynstrcat(&payload_text, manifest_server, NULL);
+				gf_dynstrcat(&payload_text, manifest_url, "/");
+				gf_dynstrcat(&payload_text, manifest_name, NULL);
+			} else {
+				gf_dynstrcat(&payload_text, manifest_name, NULL);
+			}
+			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
+		}
 
 		u32 j, nb_pids = gf_list_count(serv->pids);
 		for (j=0; j<nb_pids; j++) {
@@ -2834,17 +2922,25 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			sprintf(tmp, "<UnicastRepairParameters transportObjectReceptionTimeout=\"%u\" fixedBackOffPeriod=\"10\" randomBackOffPeriod=\"20\"/>\n", ctx->recv_obj_timeout);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
-			gf_dynstrcat(&payload_text, "<ServiceComponentIdentifier xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" manifestIdRef=\"", NULL);
-			sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
-			gf_dynstrcat(&payload_text, tmp, NULL);
-			gf_dynstrcat(&payload_text, "\"", NULL);
-
-			if (serv->manifest_type==2) {
+			//HLS
+			if (serv->manifest_type&2) {
+				gf_dynstrcat(&payload_text, "<ServiceComponentIdentifier xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" manifestIdRef=\"", NULL);
+				sprintf(tmp, "gpac_mani_serv_%u_hls", serv->service_id);
+				gf_dynstrcat(&payload_text, tmp, NULL);
+				gf_dynstrcat(&payload_text, "\"", NULL);
 				gf_dynstrcat(&payload_text, " xsi:type=\"HLSComponentIdentifierType\" mediaPlaylistLocator=\"", NULL);
 				gf_dynstrcat(&payload_text, rpid->hld_child_pl_name, NULL);
 				gf_dynstrcat(&payload_text, "\"", NULL);
-			} else {
+				gf_dynstrcat(&payload_text, "/>\n", NULL);
+			}
+			//DASH
+			if (serv->manifest_type & 1) {
 				const char *id;
+				gf_dynstrcat(&payload_text, "<ServiceComponentIdentifier xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" manifestIdRef=\"", NULL);
+				sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
+				gf_dynstrcat(&payload_text, tmp, NULL);
+				gf_dynstrcat(&payload_text, "\"", NULL);
+
 				gf_dynstrcat(&payload_text, " xsi:type=\"DASHComponentIdentifierType\" periodIdentifier=\"", NULL);
 				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_PERIOD_ID);
 				if (p && p->value.string) {
@@ -2881,8 +2977,9 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				}
 				gf_dynstrcat(&payload_text, id, NULL);
 				gf_dynstrcat(&payload_text, "\"", NULL);
+				gf_dynstrcat(&payload_text, "/>\n", NULL);
 			}
-			gf_dynstrcat(&payload_text, "/>\n</MulticastTransportSession>\n", NULL);
+			gf_dynstrcat(&payload_text, "</MulticastTransportSession>\n", NULL);
 			rpid->init_cfg_done = GF_TRUE;
 		}
 		gf_dynstrcat(&payload_text, "</MulticastSession>\n", NULL);
