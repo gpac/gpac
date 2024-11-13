@@ -512,7 +512,8 @@ struct __tag_mutex
 #endif
 	/* We filter recursive calls (1 thread calling Lock several times in a row only locks
 	ONCE the mutex. Holder is the current ThreadID of the mutex holder*/
-	u32 Holder, HolderCount;
+	volatile u32 Holder;
+	u32 HolderCount;
 #ifndef GPAC_DISABLE_LOG
 	char *log_name;
 #endif
@@ -701,8 +702,8 @@ u32 gf_mx_p(GF_Mutex *mx)
 		return 0;
 	}
 #endif /* NOT WIN32 */
-	mx->HolderCount = 1;
 	mx->Holder = caller;
+	mx->HolderCount = 1;
 #ifndef GPAC_DISABLE_LOG
 	if (mx->log_name) {
 		char szName[100];
