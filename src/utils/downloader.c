@@ -5516,6 +5516,14 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		gf_list_add(sess->headers, hdr);\
 		}
 
+
+	if ((sess->port!=80) && (sess->port!=443)) {
+		sprintf(sHTTP, "%s:%u", sess->server_name, sess->port);
+		PUSH_HDR("Host", sHTTP);
+	} else {
+		PUSH_HDR("Host", sess->server_name);
+	}
+
 	has_agent = has_accept = has_connection = has_range = has_language = has_mime = has_chunk_transfer = GF_FALSE;
 	while (1) {
 		par.msg_type = GF_NETIO_GET_HEADER;
@@ -5591,7 +5599,9 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		inject_icy = GF_FALSE;
 	} else
 #endif
-	if (sess->proxy_enabled==1) PUSH_HDR("Proxy-Connection", "Keep-alive")
+	if ((sess->proxy_enabled==1) && !sess->h2_sess) {
+		PUSH_HDR("Proxy-Connection", "Keep-alive")
+	}
 	else if (!has_connection) {
 		PUSH_HDR("Connection", "Keep-Alive");
 	}
@@ -5729,12 +5739,12 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 
 		if (param_string) {
 			if (strchr(sess->remote_path, '?')) {
-				sprintf(sHTTP, "%s %s&%s HTTP/1.1\r\nHost: %s\r\n", req_name, url, param_string, sess->server_name);
+				sprintf(sHTTP, "%s %s&%s HTTP/1.1\r\n", req_name, url, param_string);
 			} else {
-				sprintf(sHTTP, "%s %s?%s HTTP/1.1\r\nHost: %s\r\n", req_name, url, param_string, sess->server_name);
+				sprintf(sHTTP, "%s %s?%s HTTP/1.1\r\n", req_name, url, param_string);
 			}
 		} else {
-			sprintf(sHTTP, "%s %s HTTP/1.1\r\nHost: %s\r\n", req_name, url, sess->server_name);
+			sprintf(sHTTP, "%s %s HTTP/1.1\r\n", req_name, url);
 		}
 	}
 
