@@ -290,7 +290,6 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 		if (!t->_signal) return GF_IO_ERR;
 	}
 
-
 	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] Starting\n", t->log_name));
 
 #ifdef WIN32
@@ -559,6 +558,7 @@ GF_Mutex *gf_mx_new(const char *name)
 	return tmp;
 }
 
+
 GF_EXPORT
 void gf_mx_del(GF_Mutex *mx)
 {
@@ -566,7 +566,6 @@ void gf_mx_del(GF_Mutex *mx)
 	int err;
 #endif
 	if (!mx) return;
-
 #ifndef GPAC_DISABLE_LOG
 	if (mx->Holder && (gf_th_id() != mx->Holder) && mx->log_name) {
 		char szName1[100], szName2[100];
@@ -698,12 +697,16 @@ u32 gf_mx_p(GF_Mutex *mx)
 	retCode = pthread_mutex_lock(&mx->hMutex);
 	if (retCode != 0) {
 #ifndef GPAC_DISABLE_LOG
-		if (mx->log_name) {
-			if (retCode == EINVAL)
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Not properly initialized.\n", mx, mx->log_name));
-			if (retCode == EDEADLK)
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Deadlock detected.\n", mx, mx->log_name));
-		}
+		char name[100] = {0};
+		if (mx->log_name)
+			strncpy(name, mx->log_name, sizeof(name)-1);
+		else
+			sprintf(name, "id=%u", gf_th_id());
+
+		if (retCode == EINVAL)
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p:%s] Not properly initialized:\n", mx, name));
+		if (retCode == EDEADLK)
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p:%s] Deadlock detected.\n", mx, name));
 #endif /* GPAC_DISABLE_LOG */
 		gf_assert(0);
 		return 0;
