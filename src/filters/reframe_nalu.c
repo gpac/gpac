@@ -2473,6 +2473,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 				pv.type = GF_PROP_UINT_LIST;
 				pv.value.uint_list = p;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
+				gf_free(p.vals);
 			}
 		}
 	} else {
