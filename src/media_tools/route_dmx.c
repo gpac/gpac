@@ -1075,11 +1075,13 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		u32 prev_flute_type = 0;
 		u32 prev_flute_crc = 0;
 		u32 i;
+		Bool no_remove = GF_FALSE;
 		for (i=0; i<gf_list_count(s->objects); i++) {
 			obj = gf_list_get(s->objects, i);
 			if ((obj->toi==toi) && (obj->tsi==tsi)) break;
 			if ((obj->tsi==tsi) && obj->rlct_file && !strcmp(obj->rlct_file->filename, content_location)) {
 				obj->toi = toi;
+				no_remove = !strstr(obj->rlct_file->filename, ".mpd") && !strstr(obj->rlct_file->filename, ".m3u8");
 				break;
 			}
 			obj=NULL;
@@ -1089,7 +1091,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 			flute_nb_symbols++;
 
 		//found, we assume the same content if same size
-		if (obj && (obj->total_length==content_length)) {
+		if (obj && (obj->total_length==content_length) && no_remove) {
 			if (obj->rlct_file) obj->rlct_file->can_remove = GF_FALSE;
 			continue;
 		}
