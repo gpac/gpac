@@ -69,7 +69,7 @@ GF_FilterQueue *gf_fq_new(const GF_Mutex *mx)
 	if (!q) return NULL;
 
 	q->mx = (GF_Mutex *) mx;
-	if (mx || gf_opts_get_bool("core", "no-mx")) q->use_mx = 1;
+	if (mx || !gf_opts_get_bool("core", "no-mx")) q->use_mx = 1;
 	if (q->use_mx) return q;
 
 
