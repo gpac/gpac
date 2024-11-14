@@ -73,7 +73,7 @@ GF_FilterQueue *gf_fq_new(const GF_Mutex *mx)
 	if (q->use_mx) return q;
 
 
-	//lock-free mode, create dummuy slot for head
+	//lock-free mode, create dummy slot for head
 	GF_SAFEALLOC(q->head, GF_LFQItem);
 	if (!q->head) {
 		gf_free(q);
@@ -81,7 +81,7 @@ GF_FilterQueue *gf_fq_new(const GF_Mutex *mx)
 	}
 	q->tail = q->head;
 
-	//lock-free mode, create dummuy slot for reservoir head
+	//lock-free mode, create dummy slot for reservoir head
 	GF_SAFEALLOC(q->res_head, GF_LFQItem);
 	if (!q->res_head) {
 		gf_free(q->head);
@@ -97,7 +97,7 @@ void gf_fq_del(GF_FilterQueue *q, void (*item_delete)(void *) )
 {
 	GF_LFQItem *it = q->head;
 	//first item is dummy if lock-free mode, doesn't hold a valid pointer
-	if (! q->use_mx) it->data=NULL;
+	if (!q->use_mx) it->data = NULL;
 
 	while (it) {
 		GF_LFQItem *ptr = it;
@@ -144,7 +144,7 @@ static void *gf_fq_lockfree_dequeue(GF_LFQItem **head_ptr, GF_LFQItem **tail_ptr
 	next = NULL;
 	*prev_head = NULL;
 
-	while (1 ) {
+	while (1) {
 		GF_LFQItem *tail;
 		head = *head_ptr;
 		tail = *tail_ptr;
