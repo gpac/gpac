@@ -857,7 +857,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	ctx->clock_init = gf_sys_clock_high_res();
 	ctx->clock_stats = ctx->clock_init;
 	ctx->lct_bs = gf_bs_new(ctx->lct_buffer, ctx->mtu, GF_BITSTREAM_WRITE);
-	ctx->flute_msize = ctx->mtu - 11*4; //max size of headers and extensins
+	ctx->flute_msize = ctx->mtu - 14*4; //max size of headers and extensins
 
 	if (!ctx->carousel) ctx->carousel = 1000;
 	//move to microseconds
@@ -1448,7 +1448,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					max_size *= 2;
 				}
 
-				snprintf(temp, 1000, " Expires=\"4000000000\" afdt:maxTransportSize=\"%d\">\n", max_size);
+				snprintf(temp, 1000, " Expires=\"4294944000\" afdt:maxTransportSize=\"%d\">\n", max_size);
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 
@@ -1609,7 +1609,7 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	if (serv && ctx->dvb_mabr_fdt && !serv->needs_reconfig) return GF_OK;
 	char *payload=NULL;
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
-	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
+	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"4294944000\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
 
 	if (!ctx->dvb_mabr_config_toi) {
 		ctx->dvb_mabr_config_toi = ctx->next_toi_avail;
@@ -1716,9 +1716,9 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 		} else {
 			hdr_len+=2;
 		}
-		//add ext for FDT
+		//add extensions for FDT: EXT_FDT (1x 32bits), EXT_FTI (4x 32bits) and EXT_TIME (3x 32bits, we only send NTP)
 		if (!toi) {
-			hdr_len+=5;
+			hdr_len += 8;
 		}
 	} else {
 		hdr_len = 4;
@@ -1799,6 +1799,16 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 			//32bits of max source block length
 			gf_bs_write_u32(ctx->lct_bs, ctx->mtu);
 			hpos+=16; //4 32bit words
+
+			//set TIME
+			gf_bs_write_u8(ctx->lct_bs, GF_LCT_EXT_TIME); //TOH
+			gf_bs_write_u8(ctx->lct_bs, 3); //TOL
+			gf_bs_write_u16(ctx->lct_bs, 0xC000); //use bits, set SCT high and low
+			u32 ntp_s, ntp_f;
+			gf_net_get_ntp(&ntp_s, &ntp_f);
+			gf_bs_write_u32(ctx->lct_bs, ntp_s);
+			gf_bs_write_u32(ctx->lct_bs, ntp_f);
+			hpos+=12; //3 32bit words
 		}
 		PUT_U16(0)
 		PUT_U16(ESI)
@@ -2252,7 +2262,7 @@ void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 	char szName[GF_MAX_PATH], *seg_name;
 
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
-	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
+	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"4294944000\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
 	//if use_inband: inject manifest, init seg and child playlis
 	if (ctx->use_inband){
 		inject_mani_init_hls_variant_fdt(ctx, serv, rpid, &payload);
@@ -2916,9 +2926,9 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			char *man_url = NULL;
 			if (manifest_server) {
 				gf_dynstrcat(&man_url, manifest_server, NULL);
-				if (serv->manifest_server_port) {
+				if (manifest_port) {
 					char szPort[100];
-					sprintf(szPort, ":%u", serv->manifest_server_port);
+					sprintf(szPort, ":%u", manifest_port);
 					gf_dynstrcat(&man_url, szPort, NULL);
 				}
 				gf_dynstrcat(&man_url, serv->manifest_url, "/");
