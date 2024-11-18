@@ -664,11 +664,11 @@ for opt do
             ;;
         --dxsdk-path=*) dxsdk_path=`echo $opt | cut -d '=' -f 2`
             ;;
-        --disable-pulseaudio) has_pulseaudio="no"
+        --disable-pulseaudio) append disabled_packages "pulseaudio"
             ;;
-        --disable-jack) has_jack="no"
+        --disable-jack) append disabled_packages "jack"
             ;;
-        --disable-alsa) has_alsa="no"
+        --disable-alsa) append disabled_packages "alsa"
             ;;
         --enable-gprof) gprof_build="yes";
             ;;
