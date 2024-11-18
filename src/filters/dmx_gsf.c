@@ -1017,7 +1017,9 @@ static void gsfdmx_stream_del(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool is_flush)
 			}
 		}
 		gsfdmx_pck_reset(gpck);
-		gf_list_add(ctx->pck_res, gpck);
+		if (gf_list_find(ctx->pck_res, gpck) == -1)
+			gf_list_add(ctx->pck_res, gpck);
+
 	}
 	if (is_flush && gst->opid)
 		gf_filter_pid_remove(gst->opid);
