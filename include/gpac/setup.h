@@ -429,7 +429,7 @@ typedef u8 bin128[16];
 #define MAX(X, Y) ((X)>(Y)?(X):(Y))
 #endif
 
-/*! get the absolute difference betwee two numbers*/
+/*! get the absolute difference between two numbers*/
 #define ABSDIFF(a, b)	( ( (a) > (b) ) ? ((a) - (b)) : ((b) - (a)) )
 
 #ifndef ABS
