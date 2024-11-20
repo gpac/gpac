@@ -44,8 +44,7 @@ typedef struct
 	GF_MPD_Period *period;
 } GF_DasherPeriod;
 
-enum
-{
+GF_ENUM (DasherBSSwitchingMode,
 	DASHER_BS_SWITCH_DEF=0,
 	DASHER_BS_SWITCH_OFF,
 	DASHER_BS_SWITCH_ON,
@@ -54,7 +53,10 @@ enum
 	DASHER_BS_SWITCH_BOTH,
 	DASHER_BS_SWITCH_FORCE,
 	DASHER_BS_SWITCH_MULTI,
-};
+);
+/**
+ * ssss
+ */
 
 typedef enum
 {
@@ -66,30 +68,26 @@ typedef enum
 	DASHER_UTCREF_INBAND,
 } DasherUTCTimingType;
 
-enum
-{
+GF_ENUM (DasherNTPClockMode,
 	DASHER_NTP_REM=0,
 	DASHER_NTP_YES,
 	DASHER_NTP_KEEP,
-};
+);
 
-enum
-{
+GF_ENUM (DasherSAPStrictMode,
 	DASHER_SAP_OFF=0,
 	DASHER_SAP_SIG,
 	DASHER_SAP_ON,
 	DASHER_SAP_INTRA_ONLY,
-};
+);
 
-enum
-{
+GF_ENUM (DasherTSSHandlingMode,
 	DASHER_BOUNDS_OUT=0,
 	DASHER_BOUNDS_CLOSEST,
 	DASHER_BOUNDS_IN,
-};
+);
 
-enum
-{
+GF_ENUM (DasherMuxType,
 	DASHER_MUX_ISOM=0,
 	DASHER_MUX_TS,
 	DASHER_MUX_MKV,
@@ -97,14 +95,14 @@ enum
 	DASHER_MUX_OGG,
 	DASHER_MUX_RAW,
 	DASHER_MUX_AUTO,
-};
+);
 
-enum
-{
+GF_ENUM (DasherAdaptSetGenMode,
+
 	DASHER_MPHA_NO=0,
 	DASHER_MPHA_COMP_ONLY,
-	DASHER_MPHA_ALL
-};
+	DASHER_MPHA_ALL,
+);
 
 enum
 {
@@ -123,32 +121,35 @@ enum
 	DASHER_SYNC_PRESENT,
 };
 
-enum
-{
+
+/*!
+ * This enum represents the mode values for the application.
+ * value1: Description of value1
+ * value2: Description of value2
+ */
+GF_ENUM (DasherCMAFMode, 
 	DASHER_CMAF_NONE=0,
 	DASHER_CMAF_CMFC,
-	DASHER_CMAF_CMF2
-};
+	DASHER_CMAF_CMF2,
+);
 
-enum
-{
+GF_ENUM (DasherDefaultKIDInjection,
 	DASHER_DEFKID_OFF=0,
 	DASHER_DEFKID_ON,
-	DASHER_DEFKID_AUTO
-};
+	DASHER_DEFKID_AUTO,
+);
 
-enum
-{
+GF_ENUM (DasherPeriodSwitchMode, 
 	DASHER_PSWITCH_SINGLE=0,
 	DASHER_PSWITCH_FORCE,
-	DASHER_PSWITCH_STSD
-};
-enum
-{
+	DASHER_PSWITCH_STSD,
+);
+
+GF_ENUM (DasherWaitLastPktCtrl,
 	DASHER_SEGSYNC_NO=0,
 	DASHER_SEGSYNC_YES,
-	DASHER_SEGSYNC_AUTO
-};
+	DASHER_SEGSYNC_AUTO,
+);
 
 enum
 {
@@ -160,12 +161,11 @@ enum
 	IDXMODE_SEG,
 };
 
-enum
-{
+GF_ENUM (DasherSegFlushMode,
 	SFLUSH_OFF=0,
 	SFLUSH_SINGLE,
-	SFLUSH_END
-};
+	SFLUSH_END,
+);
 
 //these are not exported for now
 //get destination name by index
@@ -179,21 +179,26 @@ void gf_filter_pid_disable_clone(GF_FilterPid *pid);
 
 typedef struct
 {
-	u32 bs_switch, profile, spd, cp, ntp;
+	DasherBSSwitchingMode bs_switch;
+	GF_DashProfile profile;
+	u32 spd;
+	DasherNTPClockMode ntp;
+	GF_DASH_ContentLocationMode cp;
 	s32 subs_sidx;
 	s32 buf, timescale;
 	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge, keep_ts;
-	u32 mha_compat, sflush;
-	u32 strict_sap;
-	u32 pssh;
-	u32 cmaf;
-	u32 dkid;
+	DasherAdaptSetGenMode mha_compat;
+	DasherSegFlushMode sflush;
+	DasherSAPStrictMode strict_sap;
+	GF_DASHPSSHMode pssh;
+	DasherCMAFMode cmaf;
+	DasherDefaultKIDInjection dkid;
 	GF_Fraction segdur;
-	u32 dmode;
+	GF_DashDynamicMode dmode;
 	char *template;
 	char *segext;
 	char *initext;
-	u32 muxtype;
+	DasherMuxType muxtype;
 	Bool rawsub;
 	char *profX;
 	Double asto;
@@ -209,20 +214,22 @@ typedef struct
 	Bool cmpd, dual, sreg, ttml_agg;
 	char *styp;
 	Bool sigfrag;
-	u32 sbound, pswitch;
+	DasherTSSHandlingMode sbound;
+	DasherPeriodSwitchMode pswitch;
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
 	char *ckurl;
 	GF_PropStringList hlsx;
-	u32 llhls;
+	GF_DashHLSLowLatencyType llhls;
 	Bool hlsiv;
 	//inherited from mp4mx
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
 	Bool gencues, force_init, gxns;
 	Double ll_part_hb;
-	u32 hls_absu, seg_sync;
+	GF_DashAbsoluteURLMode hls_absu;
+	DasherWaitLastPktCtrl seg_sync;
 	Bool hls_ap;
 
 	//internal
@@ -491,7 +498,7 @@ typedef struct _dash_stream
 	GF_Fraction64 duration;
 	GF_List *packet_queue;
 	u32 nb_sap_in_queue;
-	u32 sbound;
+	DasherTSSHandlingMode sbound;
 
 	u32 request_period_switch;
 
@@ -5444,7 +5451,7 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 		ctx->mpd->hls_abs_url = ctx->hls_absu;
 		ctx->mpd->hls_audio_primary = ctx->hls_ap;
 
-		if (ctx->llhls==3)
+		if (ctx->llhls==GF_DASH_LL_HLS_BRSF)
 			ctx->mpd->force_llhls_mode = m3u8_second_pass ? 2 : 1;
 		else
 			ctx->mpd->force_llhls_mode = 0;
@@ -5597,7 +5604,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		if (do_m3u8 && for_mpd_only) {
 			continue;
 		}
-		if ((ctx->llhls==3) && do_m3u8)
+		if ((ctx->llhls==GF_DASH_LL_HLS_BRSF) && do_m3u8)
 			ctx->mpd->force_llhls_mode = 1;
 		e = dasher_write_and_send_manifest(ctx, last_period_dur, do_m3u8, GF_FALSE, opid, NULL);
 		if (e) return e;
@@ -5671,7 +5678,7 @@ resend:
 			}
 		}
 
-		if ((ctx->llhls==3) && !m3u8_second_pass && ctx->out_path) {
+		if ((ctx->llhls==GF_DASH_LL_HLS_BRSF) && !m3u8_second_pass && ctx->out_path) {
 			char *sep;
 			char szAltName[GF_MAX_PATH];
 			strcpy(szAltName, ctx->out_path);
@@ -8297,7 +8304,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		seg_state->time = ds->seg_start_time;
 		seg_state->seg_num = ds->seg_number;
 		if (ctx->llhls) seg_state->llhls_mode = ctx->llhls;
-		else if (ds->set->ssr_mode) seg_state->llhls_mode = 3;
+		else if (ds->set->ssr_mode) seg_state->llhls_mode = GF_DASH_LL_HLS_BRSF;
 		ds->current_seg_state = seg_state;
 		seg_state->encrypted = GF_FALSE;
 
@@ -10523,7 +10530,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 						break;
 
 					//send file delete events
-					if (prev_sctx->llhls_mode==2) {
+					if (prev_sctx->llhls_mode==GF_DASH_LL_HLS_SF) {
 						u32 k;
 						for (k=0; k<prev_sctx->nb_frags; k++) {
 							GF_FilterEvent anevt;
@@ -10534,7 +10541,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 							gf_filter_pid_send_event(ds->opid, &anevt);
 						}
 					}
-					prev_sctx->llhls_mode = 0;
+					prev_sctx->llhls_mode = GF_DASH_LL_HLS_OFF;
 				}
 				ctx->force_hls_ll_manifest = GF_TRUE;
 			}
