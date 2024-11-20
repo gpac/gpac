@@ -48,15 +48,14 @@ enum
 	DECRYPT_STATE_PLAY,
 };
 
-enum
-{
+GF_ENUM (CENCDecDecryptMode, 
 	DECRYPT_FULL=0,
 	DECRYPT_NOKEY,
 	DECRYPT_SKIP,
 	DECRYPT_PAD0,
 	DECRYPT_PAD1,
 	DECRYPT_PADSC,
-};
+);
 
 typedef struct
 {
@@ -68,7 +67,7 @@ typedef struct
 typedef struct
 {
 	const char *cfile;
-	u32 decrypt;
+	CENCDecDecryptMode decrypt;
 	GF_PropUIntList drop_keys;
 	GF_PropStringList kids;
 	GF_PropStringList keys;
