@@ -72,6 +72,24 @@ typedef enum
 	GF_DASH_TEMPLATE_SEGMENT_SUBNUMBER,
 } GF_DashTemplateSegmentType;
 
+GF_ENUM (GF_DashAbsoluteURLMode,
+	/*! do not use absolute URL*/
+    GF_DASH_ABS_URL_NO,
+	/*! use absolute URL only in variant playlists*/
+    GF_DASH_ABS_URL_VARIANT,
+	/*! use absolute URL only in master playlist*/
+    GF_DASH_ABS_URL_MASTER,
+	/*! use absolute URL everywhere*/
+    GF_DASH_ABS_URL_BOTH,
+);
+
+GF_ENUM (GF_DashHLSLowLatencyType,
+    GF_DASH_LL_HLS_OFF,
+    GF_DASH_LL_HLS_BR,
+    GF_DASH_LL_HLS_SF,
+    GF_DASH_LL_HLS_BRSF,
+);
+
 /*! formats the segment name according to its template
 \param seg_type the desired format mode
 \param is_bs_switching set to GF_TRUE to indicate the target segment is a bitstream switching segment
@@ -583,7 +601,7 @@ typedef struct
 	/*! number of fragment infos */
 	GF_DASH_FragmentContext *frags;
 	/*! HLS LL signaling - 0: disabled, 1: byte range, 2: files */
-	u32 llhls_mode;
+	GF_DashHLSLowLatencyType llhls_mode;
 	/*! HLS LL segment done */
 	Bool llhls_done;
 	/*! HLS set to TRUE if encrypted */
@@ -960,7 +978,7 @@ typedef struct {
 	/*! user-defined  PART-HOLD-BACK, auto computed if <=0*/
 	Double llhls_part_holdback;
 	//als absolute url flag
-	u32 hls_abs_url;
+	GF_DashAbsoluteURLMode hls_abs_url;
 	Bool m3u8_use_repid;
 	Bool hls_audio_primary;
 
