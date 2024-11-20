@@ -445,7 +445,6 @@ typedef enum {
 } Bool;
 #endif
 
-/*! Macro to define an enum and a corresponding u32 type*/
 #define GF_ENUM(name, ...)                         \
         typedef enum { __VA_ARGS__ } name##_t;     \
         typedef u32 name
