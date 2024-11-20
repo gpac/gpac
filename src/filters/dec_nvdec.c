@@ -51,24 +51,29 @@ GLDECL_EXTERN(glBufferData);
 
 typedef struct _nv_dec_inst NVDecInstance;
 
-typedef enum
-{
+GF_ENUM (NVDecUnloadMode,
+	DEC_UNLOAD_NO = 0,
+    DEC_UNLOAD_DESTROY,
+    DEC_UNLOAD_REUSE,
+);
+
+GF_ENUM (NVDecFrameMode,
 	NVDEC_COPY = 0,
 	NVDEC_SINGLE,
-	NVDEC_GL
-} NVDecFrameMode ;
+	NVDEC_GL,
+);
 
-typedef enum
-{
+GF_ENUM (NVDecVideoMode,
 	NVDEC_CUVID = 0,
 	NVDEC_CUDA,
-	NVDEC_DXVA
-} NVDecVideoMode;
+	NVDEC_DXVA,
+);
 
 typedef struct _nv_dec_ctx
 {
-	u32 unload;
-	u32 vmode, fmode;
+	NVDecUnloadMode unload;
+	NVDecVideoMode vmode;
+	NVDecFrameMode fmode;
 	u32 num_surfaces;
 
 	GF_FilterPid *ipid, *opid;
@@ -599,7 +604,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 		ctx->ipid = NULL;
 
-		if (ctx->unload == 2) {
+		if (ctx->unload == DEC_UNLOAD_REUSE) {
 			global_nb_loaded_nvdec--;
 			if (ctx->dec_inst) {
 				gf_assert(global_unactive_decoders);
@@ -741,7 +746,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	else
 		ctx->prefer_dec_mode = cudaVideoCreate_PreferCUVID;
 
-	if (ctx->unload == 2) {
+	if (ctx->unload == DEC_UNLOAD_REUSE) {
 		global_nb_loaded_nvdec++;
 		if (!global_inst_mutex ) global_inst_mutex  = gf_mx_new("NVDecGlobal");
 		gf_mx_p(global_inst_mutex);
@@ -769,7 +774,7 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			NVDecFrame *f = gf_list_pop_back(ctx->frames);
 			gf_list_add(ctx->frames_res, f);
 		}
-		if (ctx->unload == 2) {
+		if (ctx->unload == DEC_UNLOAD_REUSE) {
 			if (ctx->dec_inst) {
 				gf_assert(global_unactive_decoders);
 				gf_mx_p(global_inst_mutex);
@@ -808,7 +813,7 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			memset(f, 0, sizeof(NVDecFrame));
 			gf_list_add(ctx->frames_res, f);
 		}
-		if (ctx->unload == 2) {
+		if (ctx->unload == DEC_UNLOAD_REUSE) {
 			if (ctx->dec_inst) {
 				gf_assert(global_unactive_decoders);
 				gf_mx_p(global_inst_mutex);
@@ -825,7 +830,7 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 			ctx->needs_resetup = 1;
 			ctx->dec_create_error = CUDA_SUCCESS;
-		} else if (ctx->unload == 1) {
+		} else if (ctx->unload == DEC_UNLOAD_DESTROY) {
 			if (ctx->dec_inst) {
 				nvdec_destroy_decoder(ctx->dec_inst);
 			}
