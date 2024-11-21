@@ -97,16 +97,14 @@ typedef struct
 	u32 bytes_in_wnd, max_rate;
 } PidCtx;
 
-enum
-{
+GF_ENUM (GF_InspectDumpMode,
 	INSPECT_MODE_PCK=0,
 	INSPECT_MODE_BLOCK,
 	INSPECT_MODE_REFRAME,
-	INSPECT_MODE_RAW
-};
+	INSPECT_MODE_RAW,
+);
 
-enum
-{
+GF_ENUM (GF_InspectSkipPropsMode,
 	INSPECT_TEST_NO=0,
 	INSPECT_TEST_NOPROP,
 	INSPECT_TEST_NETWORK,
@@ -114,16 +112,15 @@ enum
 	INSPECT_TEST_ENCODE,
 	INSPECT_TEST_ENCX,
 	INSPECT_TEST_NOCRC,
-	INSPECT_TEST_NOBR
-};
+	INSPECT_TEST_NOBR,
+);
 
-enum
-{
+GF_ENUM (GF_InspectSampleAnalyzeMode,
 	INSPECT_ANALYZE_OFF=0,
 	INSPECT_ANALYZE_ON,
 	INSPECT_ANALYZE_BS,
 	INSPECT_ANALYZE_BS_BITS,
-};
+);
 
 typedef struct
 {
@@ -134,10 +131,10 @@ typedef struct
 	Bool stats;
 	char *log;
 	char *fmt;
-	u32 analyze;
+	GF_InspectSampleAnalyzeMode analyze;
 	Bool props, hdr, allp, info, pcr, xml, full;
 	Double speed, start;
-	u32 test;
+	GF_InspectSkipPropsMode test;
 	GF_Fraction dur;
 	Bool crc, dtype;
 	Bool fftmcd;
@@ -816,7 +813,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, AVCState *avc, HEVCState *hev
 }
 
 
-static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, u32 full_bs_dump, PidCtx *pctx)
+static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, VVCState *vvc, u32 nalh_size, Bool dump_crc, Bool is_encrypted, GF_InspectSampleAnalyzeMode full_bs_dump, PidCtx *pctx)
 {
 	s32 res = 0;
 	u8 type, nal_ref_idc;
@@ -1539,7 +1536,7 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 	inspect_printf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
 }
 
-static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
+static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, GF_InspectSampleAnalyzeMode full_dump)
 {
 	//when the pid context is not set, obu_size (which includes the header size in gpac) must be set
 	if (!pctx && (obu_size <= 1))
