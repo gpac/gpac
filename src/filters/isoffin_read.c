@@ -30,12 +30,6 @@
 #include <gpac/crypt_tools.h>
 #include <gpac/media_tools.h>
 
-enum
-{
-	EDITS_AUTO=0,
-	EDITS_NO,
-	EDITS_STRICT
-};
 
 ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid)
 {
