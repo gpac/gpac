@@ -1792,15 +1792,14 @@ struct __m2ts_mux_program {
 };
 
 /*! AU packing per pes configuration*/
-typedef enum
-{
+GF_ENUM (GF_M2TS_PackMode,
 	/*! only audio AUs are packed in a single PES, video and systems are not (recommended default)*/
 	GF_M2TS_PACK_AUDIO_ONLY=0,
 	/*! never pack AUs in a single PES*/
 	GF_M2TS_PACK_NONE,
 	/*! always try to pack AUs in a single PES*/
-	GF_M2TS_PACK_ALL
-} GF_M2TS_PackMode;
+	GF_M2TS_PACK_ALL,
+);
 
 /*! MPEG-2 TS muxer*/
 struct __m2ts_mux {

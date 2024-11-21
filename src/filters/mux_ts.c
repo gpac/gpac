@@ -80,12 +80,11 @@ enum
 	TEMI_TC64_ALWAYS,
 };
 
-enum
-{
+GF_ENUM (GF_TSMuxInputDescriptorAction,
 	IN_TEMI_DROP=0,
 	IN_TEMI_FWD,
-	IN_TEMI_NTP
-};
+	IN_TEMI_NTP,
+);
 
 typedef struct
 {
@@ -103,7 +102,7 @@ typedef struct
 	u32 pmt_id, pmt_rate, pmt_version, sdt_rate, breq, mpeg4;
 	u64 pcr_offset, first_pts;
 	u32 rate, pat_rate, repeat_rate, repeat_img, max_pcr, nb_pack, sid, bifs_pes;
-	u32 pes_pack;
+	GF_M2TS_PackMode pes_pack;
 	Bool flush_rap, realtime, pcr_only, disc, latm;
 	s64 pcr_init;
 	char *name, *provider, *temi;
@@ -111,7 +110,7 @@ typedef struct
 	s32 subs_sidx;
 	Bool keepts;
 	GF_Fraction cdur;
-	u32 temi_fwd;
+	GF_TSMuxInputDescriptorAction temi_fwd;
 
 	//internal
 	GF_FilterPid *opid;
