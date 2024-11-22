@@ -37,14 +37,13 @@
 GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
 
-enum
-{
+GF_ENUM (GF_DolbyVisionSignalingMode,
 	DVMODE_NONE=0,
 	DVMODE_AUTO,
 	DVMODE_FORCE,
 	DVMODE_CLEAN,
 	DVMODE_SINGLE,
-};
+);
 
 typedef struct
 {
@@ -60,11 +59,11 @@ typedef struct
 	u32 min_temporal_id, max_temporal_id;
 } LHVCLayerInfo;
 
-enum {
+GF_ENUM (GF_GOPBufferingMode,
 	STRICT_POC_OFF = 0,
 	STRICT_POC_ON,
 	STRICT_POC_ERROR,
-};
+);
 
 typedef struct
 {
@@ -73,10 +72,11 @@ typedef struct
 	Double index;
 	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime, refs;
 	u32 nal_length;
-	u32 strict_poc;
+	GF_GOPBufferingMode strict_poc;
 	u32 bsdbg;
 	GF_Fraction dur;
-	u32 dv_mode, dv_profile, dv_compatid;
+	GF_DolbyVisionSignalingMode dv_mode;
+	u32 dv_profile, dv_compatid;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
