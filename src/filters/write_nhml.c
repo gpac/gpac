@@ -36,19 +36,18 @@
 #include <zlib.h>
 #endif
 
-typedef enum
-{
+GF_ENUM (GF_NHMLChksum,
 	NO_CHKSUM,
 	CRC32_CHKSUM,
 	SHA1_CHKSUM,
-} GF_NHMLChksum;
+);
 
 typedef struct
 {
 	//opts
 	const char *name;
 	Bool exporter, dims, pckp, nhmlonly, payload;
-	u32 chksum;
+	GF_NHMLChksum chksum;
 	FILE *filep;
 
 
