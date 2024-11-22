@@ -7157,6 +7157,16 @@ GF_Err chnl_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err srat_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SamplingRateBox *p = (GF_SamplingRateBox *) a;
+
+	gf_isom_box_dump_start(a, "SamplingRateBox", trace);
+	gf_fprintf(trace, " sampling_rate=\"%u\">\n", p->sampling_rate);
+	gf_isom_box_dump_done("SamplingRateBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err load_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackLoadBox *p = (GF_TrackLoadBox *) a;
@@ -7206,9 +7216,11 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 		dump_data_attribute(trace, " message_data", p->message_data, p->message_data_size);
 		gf_fprintf(trace, ">\n");
 
+#ifndef GPAC_DISABLE_INSPECT
 		GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
 		scte35_dump_xml(trace, bs);
 		gf_bs_del(bs);
+#endif
 	} else {
 		gf_fprintf(trace, ">\n");
 	}

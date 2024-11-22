@@ -3181,10 +3181,12 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 		sep = strchr(name, fsess->sep_name);
 		if (sep) sep[0] = 0;
 	}
+#ifndef GPAC_DISABLE_LOG
 	if (!strcmp(name, "LT")) {
 		filter_parse_logs(filter, val);
 		return;
 	}
+#endif
 
 	//find arg and check if it is only a sync update - if so do it now
 	i=0;
