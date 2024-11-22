@@ -2625,6 +2625,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_is_blocking_ref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_readonly) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_udta) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_dangling_copy) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_check_realloc) )
 

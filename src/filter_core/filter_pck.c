@@ -540,6 +540,18 @@ GF_Err gf_filter_pck_set_readonly(GF_FilterPacket *pck)
 }
 
 GF_EXPORT
+void gf_filter_pck_set_udta(GF_FilterPacket *pck, void *udta)
+{
+	pck->udta = udta;
+}
+
+GF_EXPORT
+void *gf_filter_pck_get_udta(GF_FilterPacket *pck)
+{
+	return pck->udta;
+}
+
+GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_frame_interface(GF_FilterPid *pid, GF_FilterFrameInterface *frame_ifce, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck;
