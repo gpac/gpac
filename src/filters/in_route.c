@@ -329,7 +329,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
         }
 			
 		if (!ctx->clock_init_seg
-			//if full seg push of previsously advertized init, reset x-mcast-ll header
+			//if full seg push of previously advertized init, reset x-mcast-ll header
 			|| ((evt==GF_ROUTE_EVT_DYN_SEG) && !strcmp(ctx->clock_init_seg, finfo->filename))
 		) {
 			//store current seg if LL mode or full seg - MPD cache entry may still be null
