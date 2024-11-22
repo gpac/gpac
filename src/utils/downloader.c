@@ -7712,7 +7712,7 @@ void gf_dm_sess_detach_async(GF_DownloadSession *sess)
 		gf_sk_set_block_mode(sess->sock, GF_TRUE);
 	}
 	sess->flags |= GF_NETIO_SESSION_NO_BLOCK;
-	//FOR TEST INLY
+	//FOR TEST ONLY
 	sess->flags &= ~GF_NETIO_SESSION_NOT_THREADED;
 	//mutex may already be created for H2 sessions
 	if (!sess->mx)
