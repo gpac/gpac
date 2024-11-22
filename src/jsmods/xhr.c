@@ -989,7 +989,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 
 	JS_FreeCString(c, data);
 
-	if (!strncmp(ctx->url, "http://", 7)) {
+	if (!strncmp(ctx->url, "http://", 7) || !strncmp(ctx->url, "https://", 8)) {
 		u32 flags = GF_NETIO_SESSION_NOTIFY_DATA;
 		//disable sync XHR in emscripten
 #ifdef GPAC_CONFIG_EMSCRIPTEN
