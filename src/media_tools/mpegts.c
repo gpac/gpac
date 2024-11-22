@@ -2183,8 +2183,9 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 					ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
 			}
 
-			if (!ts->seek_mode)
+			if (!ts->seek_mode && pes->pck_data_len > offset) {
 				remain = pes->reframe(ts, pes, same_pts, pes->pck_data+offset, pes->pck_data_len-offset, &pesh);
+			}
 
 			//CLEANUP alloc stuff
 			if (pes->prev_data) gf_free(pes->prev_data);
