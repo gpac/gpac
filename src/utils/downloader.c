@@ -961,9 +961,13 @@ static void h2_initialize_session(GF_DownloadSession *sess)
 	sess->h2_sess->net_sess = sess;
 	gf_list_add(sess->h2_sess->sessions, sess);
 
-	sprintf(szMXName, "http2_%p", sess->h2_sess);
-	sess->h2_sess->mx = gf_mx_new(szMXName);
-	sess->mx = sess->h2_sess->mx;
+	if (!sess->mx) {
+		sprintf(szMXName, "http2_%p", sess->h2_sess);
+		sess->h2_sess->mx = gf_mx_new(szMXName);
+		sess->mx = sess->h2_sess->mx;
+	} else {
+		sess->h2_sess->mx = sess->mx;
+	}
 	sess->chunked = GF_FALSE;
 
 	sess->data_io.read_callback = h2_data_source_read_callback;
