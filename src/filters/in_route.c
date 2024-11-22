@@ -47,7 +47,7 @@ static void routein_finalize(GF_Filter *filter)
     if (gf_sys_is_cov_mode())
         gf_route_dmx_purge_objects(ctx->route_dmx, 1);
 #endif
-    
+
     if (ctx->clock_init_seg) gf_free(ctx->clock_init_seg);
 	if (ctx->route_dmx) gf_route_dmx_del(ctx->route_dmx);
 
@@ -94,7 +94,7 @@ static void routein_finalize(GF_Filter *filter)
 	gf_list_del(ctx->seg_range_reservoir);
 
 	for (i=0; i<ctx->max_sess; i++) {
-		if (ctx->http_repair_sessions[i].dld)
+		if (ctx->http_repair_sessions && ctx->http_repair_sessions[i].dld)
 			gf_dm_sess_del(ctx->http_repair_sessions[i].dld);
 	}
 	gf_free(ctx->http_repair_sessions);
@@ -327,7 +327,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
         if (!ctx->gcache || ctx->odir) {
             break;
         }
-			
+
 		if (!ctx->clock_init_seg
 			//if full seg push of previously advertized init, reset x-mcast-ll header
 			|| ((evt==GF_ROUTE_EVT_DYN_SEG) && !strcmp(ctx->clock_init_seg, finfo->filename))
@@ -349,7 +349,7 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 
 		if ((finfo->blob->flags & GF_BLOB_CORRUPTED) && !ctx->kc)
             break;
-            
+
 		is_init = GF_FALSE;
 		if (!ctx->sync_tsi) {
 			ctx->sync_tsi = finfo->tsi;
@@ -400,13 +400,13 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 				finfo->udta = cache_entry;
 			}
 		}
-			
+
         if (evt==GF_ROUTE_EVT_DYN_SEG_FRAG) {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Pushing fragment from file %s to cache\n", ctx->log_name, finfo->filename));
 			break;
         }
 		finfo->blob->flags &=~ GF_BLOB_IN_TRANSFER;
-			
+
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushing file %s to cache\n", ctx->log_name, finfo->filename));
 		if (ctx->max_segs && (evt==GF_ROUTE_EVT_DYN_SEG))
 			push_seg_info(ctx, ctx->opid, finfo);
@@ -859,4 +859,3 @@ const GF_FilterRegister *routein_register(GF_FilterSession *session)
 }
 
 #endif /* GPAC_DISABLE_ROUTE */
-
