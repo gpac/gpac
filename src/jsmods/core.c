@@ -1752,6 +1752,220 @@ static JSValue js_sys_rect_intersect(JSContext *ctx, JSValueConst this_val, int 
 	return js_sys_rect_union_ex(ctx, this_val, argc, argv, GF_TRUE);
 }
 
+#include <gpac/xml.h>
+#include <gpac/mpd.h>
+static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	if (argc<1) return GF_JS_EXCEPTION(ctx);
+	size_t ab_size;
+	const char *data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
+	if (!data || !gf_utf8_is_legal(data, ab_size)) {
+		return JS_NULL;
+	}
+	char *str = gf_malloc(sizeof(char)*(ab_size+1));
+	memcpy(str, data, ab_size);
+	str[ab_size]=0;
+	//HLS playlist
+	if (strstr(str, "#EXTM3U")) {
+		JSValue mpdo = JS_NewObject(ctx);
+		Bool is_master = GF_FALSE;
+		JSValue reps = JS_NewArray(ctx);
+		JS_SetPropertyStr(ctx, mpdo, "m3u8", JS_TRUE);
+		if (strstr(str, "#EXT-X-STREAM-INF")) {
+			is_master = GF_TRUE;
+			JS_SetPropertyStr(ctx, mpdo, "m3u8_variant", JS_FALSE);
+			JS_SetPropertyStr(ctx, mpdo, "variants", reps);
+		} else {
+			JS_SetPropertyStr(ctx, mpdo, "m3u8_variant", JS_TRUE);
+			JS_SetPropertyStr(ctx, mpdo, "segments", reps);
+		}
+		u32 vidx=0;
+		char *cur = str;
+		while (cur[0]) {
+			while (cur[0] && strchr(" \n\t\r", cur[0]))
+				cur++;
+
+			char *sep = strchr(cur, '\n');
+			if (cur[0] != '#') {
+				if (sep) sep[0] = 0;
+				if (is_master) {
+					JSValue var = JS_NewObject(ctx);
+					JS_SetPropertyUint32(ctx, reps, vidx, var);
+					JS_SetPropertyStr(ctx, var, "url", JS_NewString(ctx, cur) );
+				} else {
+					JS_SetPropertyUint32(ctx, reps, vidx, JS_NewString(ctx, cur));
+				}
+				vidx++;
+				cur = sep+1;
+				continue;
+			}
+			if (!is_master) {
+				cur = sep+1;
+				continue;
+			}
+			char *uri = strstr(cur, "URI=\"");
+			if (uri) {
+				uri += 5;
+				char *end = strchr(uri, '\"');
+				if (end) {
+					end[0] = 0;
+					JSValue var = JS_NewObject(ctx);
+					JS_SetPropertyUint32(ctx, reps, vidx, var);
+					vidx++;
+					JS_SetPropertyStr(ctx, var, "url", JS_NewString(ctx, uri) );
+					end[0] = '\n';
+				}
+			}
+			//do we need to extract codec info ?
+			if (!sep) break;
+			cur = sep+1;
+		}
+		gf_free(str);
+		return mpdo;
+	} else if (!strstr(str, "<MPD ")) {
+		gf_free(str);
+		return JS_NULL;
+	}
+	GF_DOMParser *parser = gf_xml_dom_new();
+	GF_Err e = gf_xml_dom_parse_string(parser, str);
+	GF_MPD *mpd = gf_mpd_new();
+	e = gf_mpd_init_from_dom(gf_xml_dom_get_root(parser), mpd, NULL);
+	gf_free(str);
+	gf_xml_dom_del(parser);
+
+	u32 i, count = gf_list_count(mpd->periods);
+	JSValue mpdo = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, mpdo, "m3u8", JS_FALSE);
+	JS_SetPropertyStr(ctx, mpdo, "ast", JS_NewInt64(ctx, mpd->availabilityStartTime) );
+	JS_SetPropertyStr(ctx, mpdo, "tsb", JS_NewInt32(ctx, mpd->time_shift_buffer_depth) );
+	JS_SetPropertyStr(ctx, mpdo, "live", JS_NewBool(ctx, mpd->type==GF_MPD_TYPE_DYNAMIC) );
+	JSValue periods = JS_NewArray(ctx);
+	JS_SetPropertyStr(ctx, mpdo, "periods", periods);
+
+	u32 period_idx=0;
+	u64 now = gf_net_get_utc();
+	u64 mpd_time = mpd->availabilityStartTime;
+	for (i=0; i<count; i++) {
+		u32 j, nb_sets, cur_rep=0;
+		GF_MPD_Period *p = gf_list_get(mpd->periods, i);
+		//closed period, don't add if end less than now
+		if (mpd->type && p->duration) {
+			//add 10s margin
+			if (mpd_time + p->start + p->duration + 10000 < now) continue;
+			//we could also supress period announcements ?
+		}
+
+		JSValue po = JS_NewObject(ctx);
+		JS_SetPropertyUint32(ctx, periods, period_idx, po);
+		period_idx++;
+
+		JS_SetPropertyStr(ctx, po, "start", JS_NewInt64(ctx, p->start) );
+		JS_SetPropertyStr(ctx, po, "duration", JS_NewInt64(ctx, p->duration) );
+		JS_SetPropertyStr(ctx, po, "ID", p->ID ? JS_NewString(ctx, p->ID) : JS_NULL );
+		JSValue reps = JS_NewArray(ctx);
+		JS_SetPropertyStr(ctx, po, "reps", reps );
+
+		u32 mpd_timescale = 0;
+		u32 seg_duration = 0;
+		char *template = NULL;
+		GF_MPD_SegmentTimeline *mpd_stl = NULL;
+		if (p->segment_template) {
+			if (p->segment_template->duration) seg_duration = p->segment_template->duration;
+			if (p->segment_template->timescale) mpd_timescale = p->segment_template->timescale;
+			if (p->segment_template->media) template = p->segment_template->media;
+			if (p->segment_template->segment_timeline) mpd_stl = p->segment_template->segment_timeline;
+		}
+
+		nb_sets = gf_list_count(p->adaptation_sets);
+		for (j=0; j<nb_sets; j++) {
+			u32 k, nb_reps;
+			GF_MPD_AdaptationSet *set = gf_list_get(p->adaptation_sets, j);
+
+			if (set->segment_template) {
+				if (set->segment_template->duration) seg_duration = set->segment_template->duration;
+				if (set->segment_template->timescale) mpd_timescale = set->segment_template->timescale;
+				if (set->segment_template->media) template = set->segment_template->media;
+				if (set->segment_template->segment_timeline) mpd_stl = set->segment_template->segment_timeline;
+			}
+
+			nb_reps = gf_list_count(set->representations);
+			for (k=0; k<nb_reps; k++) {
+				u32 bidx;
+				GF_MPD_Representation *rep = gf_list_get(set->representations, k);
+				char *seg_url = NULL;
+
+				if (rep->segment_template) {
+					if (rep->segment_template->duration) seg_duration = rep->segment_template->duration;
+					if (rep->segment_template->timescale) mpd_timescale = rep->segment_template->timescale;
+					if (rep->segment_template->media) template = rep->segment_template->media;
+					if (rep->segment_template->segment_timeline) mpd_stl = rep->segment_template->segment_timeline;
+				}
+				JSValue repo = JS_NewObject(ctx);
+				JS_SetPropertyUint32(ctx, reps, cur_rep, repo);
+				cur_rep++;
+
+				JS_SetPropertyStr(ctx, repo, "ID", rep->id ? JS_NewString(ctx, rep->id) : JS_NULL);
+				JS_SetPropertyStr(ctx, repo, "ASID", JS_NewInt32(ctx, set->id) );
+				JSValue urls_o = JS_NewArray(ctx);
+				JS_SetPropertyStr(ctx, repo, "URLs", urls_o );
+				u32 el_idx, js_idx=0;
+				for (el_idx=0;el_idx<4; el_idx++) {
+					GF_List *urls = rep->base_URLs;
+					if (el_idx==0) urls = mpd->base_URLs;
+					else if (el_idx==1) urls = p->base_URLs;
+					else if (el_idx==2) urls = set->base_URLs;
+
+					for (bidx=0; bidx < gf_list_count(urls); bidx++) {
+						GF_MPD_BaseURL *burl = gf_list_get(urls, bidx);
+						if (burl->URL) {
+							JS_SetPropertyUint32(ctx, urls_o, js_idx, JS_NewString(ctx, burl->URL) );
+							js_idx++;
+						}
+					}
+				}
+				JS_SetPropertyStr(ctx, repo, "timescale", JS_NewInt32(ctx, mpd_timescale ? mpd_timescale : 1) );
+
+				if (!mpd_stl) {
+					u64 start_range, end_range, segdur_ms;
+					gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, 0, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
+				}
+				JS_SetPropertyStr(ctx, repo, "template", seg_url ? JS_NewString(ctx, seg_url) : JS_NULL );
+				if (seg_url) gf_free(seg_url);
+
+				JSValue segs = JS_NewArray(ctx);
+				JS_SetPropertyStr(ctx, repo, "segments", segs );
+
+				if (!mpd_stl) {
+					u64 seg_idx = now - p->start - mpd->availabilityStartTime;
+					seg_idx /= 1000;
+					if (mpd_timescale) seg_idx /= mpd_timescale;
+					seg_idx /= seg_duration;
+					JS_SetPropertyStr(ctx, repo, "live_utc", JS_NewInt64(ctx, now) );
+					JS_SetPropertyStr(ctx, repo, "live_seg_num", JS_NewInt64(ctx, seg_idx) );
+				} else {
+					u32 sidx, re, cur_seg=0;
+					u64 start = mpd->availabilityStartTime + p->start;
+					for (sidx=0; sidx<gf_list_count(mpd_stl->entries); sidx++) {
+						GF_MPD_SegmentTimelineEntry *e = gf_list_get(mpd_stl->entries, sidx);
+						if (e->start_time) start = e->start_time;
+						for (re=0; re<e->repeat_count+1; re++) {
+
+							u64 start_range, end_range, segdur_ms;
+							gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, cur_seg, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
+							JS_SetPropertyUint32(ctx, segs, cur_seg, JS_NewString(ctx, seg_url) );
+							cur_seg++;
+							gf_free(seg_url);
+						}
+					}
+				}
+			}
+		}
+	}
+	gf_mpd_del(mpd);
+	return mpdo;
+}
+
+
 enum
 {
 	OPT_RMDIR,
@@ -2605,6 +2819,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("url_cat", 0, js_sys_url_cat),
 	JS_CFUNC_DEF("rect_union", 0, js_sys_rect_union),
 	JS_CFUNC_DEF("rect_intersect", 0, js_sys_rect_intersect),
+	JS_CFUNC_DEF("mpd_parse", 0, js_sys_mpd_parse),
 
 	JS_CFUNC_DEF("_avmix_audio", 0, js_audio_mix),
 };
