@@ -7206,9 +7206,11 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 		dump_data_attribute(trace, " message_data", p->message_data, p->message_data_size);
 		gf_fprintf(trace, ">\n");
 
+#ifndef GPAC_DISABLE_INSPECT
 		GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
 		scte35_dump_xml(trace, bs);
 		gf_bs_del(bs);
+#endif
 	} else {
 		gf_fprintf(trace, ">\n");
 	}
