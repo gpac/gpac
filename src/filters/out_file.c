@@ -32,19 +32,17 @@
 
 #ifndef GPAC_DISABLE_FOUT
 
-enum
-{
+GF_ENUM (GF_FileOutConcatMode,
 	FOUT_CAT_NONE = 0,
 	FOUT_CAT_AUTO,
-	FOUT_CAT_ALL
-};
+	FOUT_CAT_ALL,
+);
 
-enum
-{
+GF_ENUM (GF_FileOutOverwriteMode,
 	FOUT_OW_YES = 0,
 	FOUT_OW_NO,
-	FOUT_OW_ASK
-};
+	FOUT_OW_ASK,
+);
 
 typedef struct
 {
@@ -52,7 +50,8 @@ typedef struct
 	Double start, speed;
 	char *dst, *mime, *ext;
 	Bool append, dynext, redund, noinitraw, force_null;
-	u32 cat, ow;
+	GF_FileOutConcatMode cat;
+	GF_FileOutOverwriteMode ow;
 	u32 mvbk;
 	s32 max_cache_segs;
 
