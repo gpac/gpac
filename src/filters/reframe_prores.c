@@ -446,7 +446,7 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u
 
 	while (gf_bs_available(ctx->bs)) {
 		u8 *output;
-		GF_FilterPacket *pck;
+		GF_FilterPacket *pck=NULL;
 		GF_ProResFrameInfo finfo;
 		e = gf_media_prores_parse_bs(ctx->bs, &finfo);
 
@@ -461,7 +461,8 @@ GF_Err proresdmx_process_buffer(GF_Filter *filter, GF_ProResDmxCtx *ctx, const u
 		if (gf_bs_available(ctx->bs)<finfo.frame_size)
 			break;
 
-		pck = gf_filter_pck_new_alloc(ctx->opid, finfo.frame_size, &output);
+		if (ctx->opid)
+			pck = gf_filter_pck_new_alloc(ctx->opid, finfo.frame_size, &output);
 		if (!pck) break;
 		gf_bs_read_data(ctx->bs, output, finfo.frame_size);
 
@@ -704,4 +705,3 @@ const GF_FilterRegister *rfprores_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_RFPRORES
-

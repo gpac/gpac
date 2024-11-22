@@ -4306,6 +4306,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 	if (ctx->test==INSPECT_TEST_NOPROP) return;
 	if (!ctx->dump_log && !dump) return;
+	if (!pid) return;
 
 	if (ctx->stats) {
 		char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
