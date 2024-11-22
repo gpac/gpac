@@ -28,7 +28,7 @@
 #ifndef GPAC_DISABLE_EVG
 #include <gpac/evg.h>
 
-GF_ENUM (EVGScaleAspectRatioMode,
+GF_OPT_ENUM (EVGScaleAspectRatioMode,
 	EVGS_KEEPAR_OFF=0,
 	EVGS_KEEPAR_FULL,
 	EVGS_KEEPAR_NOSRC,

@@ -32,13 +32,13 @@
 
 #if !defined(GPAC_DISABLE_ROUTE)
 
-GF_ENUM (DVBFluteChecksumMode, 
+GF_OPT_ENUM (DVBFluteChecksumMode, 
 	DVB_CSUM_NO=0,
 	DVB_CSUM_META,
 	DVB_CSUM_ALL,
 );
 
-GF_ENUM (LCTChannelSplitMode,
+GF_OPT_ENUM (LCTChannelSplitMode,
 	LCT_SPLIT_NONE=0,
 	LCT_SPLIT_TYPE,
 	LCT_SPLIT_ALL,

@@ -29,13 +29,13 @@
 
 #ifndef GPAC_DISABLE_REFRAMER
 
-GF_ENUM (GF_RealTimeRegulationMode,
+GF_OPT_ENUM (GF_RealTimeRegulationMode,
 	REFRAME_RT_OFF = 0,
 	REFRAME_RT_ON,
 	REFRAME_RT_SYNC,
 );
 
-GF_ENUM (GF_ExtractionStartAdjustment,
+GF_OPT_ENUM (GF_ExtractionStartAdjustment,
 	REFRAME_ROUND_BEFORE=0,
 	REFRAME_ROUND_SEEK,
 	REFRAME_ROUND_AFTER,
@@ -50,7 +50,7 @@ enum
 	RANGE_DONE
 };
 
-GF_ENUM (GF_UTCReferenceMode,
+GF_OPT_ENUM (GF_UTCReferenceMode,
 	UTCREF_LOCAL=0,
 	UTCREF_ANY,
 	UTCREF_MEDIA,
@@ -66,7 +66,7 @@ enum
 	EXTRACT_DUR,
 };
 
-GF_ENUM (GF_ForceInputDecodingMode,
+GF_OPT_ENUM (GF_ForceInputDecodingMode,
 	RAW_AV=0,
 	RAW_AUDIO,
 	RAW_VIDEO,

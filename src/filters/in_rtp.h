@@ -43,7 +43,7 @@
 typedef struct _rtsp_session GF_RTPInRTSP;
 typedef struct __rtpin_stream GF_RTPInStream;
 
-GF_ENUM (GF_RTPInRTSP_Mode,
+GF_OPT_ENUM (GF_RTPInRTSP_Mode,
 	RTP_TRANSPORT_AUTO=0,
 	RTP_TRANSPORT_TCP_ONLY,
 	RTP_TRANSPORT_UDP_ONLY,

@@ -31,7 +31,7 @@
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
-GF_ENUM (GF_HTTPInStoreMode,
+GF_OPT_ENUM (GF_HTTPInStoreMode,
 	GF_HTTPIN_STORE_AUTO=0,
 	GF_HTTPIN_STORE_DISK,
 	GF_HTTPIN_STORE_DISK_KEEP,

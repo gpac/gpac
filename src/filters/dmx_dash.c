@@ -39,7 +39,7 @@
 
 #define DASHIN_FILE_EXT "mpd|m3u8|3gm|ism"
 
-GF_ENUM (GF_DASHSegmentForwardMode,
+GF_OPT_ENUM (GF_DASHSegmentForwardMode,
 	DFWD_OFF = 0,
 	DFWD_FILE,
 	//all modes below forward frames, not files
@@ -48,7 +48,7 @@ GF_ENUM (GF_DASHSegmentForwardMode,
 );
 
 
-GF_ENUM (GF_DASHPlayoutBufferMode,
+GF_OPT_ENUM (GF_DASHPlayoutBufferMode,
 	BMIN_NO = 0,
 	BMIN_AUTO,
 	BMIN_MPD,
@@ -62,7 +62,7 @@ enum {
 
 
 
-GF_ENUM (GF_DASHBaseURLControlMode,
+GF_OPT_ENUM (GF_DASHBaseURLControlMode,
     BURL_STRIP = 0,
     BURL_KEEP,
     BURL_INJECT,

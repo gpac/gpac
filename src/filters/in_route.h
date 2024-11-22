@@ -47,7 +47,7 @@ typedef struct
 	char *seg_name;
 } SegInfo;
 
-GF_ENUM (ROUTEInRepairMode,
+GF_OPT_ENUM (ROUTEInRepairMode,
 	ROUTEIN_REPAIR_NO = 0,
 	ROUTEIN_REPAIR_SIMPLE,
 	ROUTEIN_REPAIR_STRICT,

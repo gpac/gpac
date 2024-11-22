@@ -36,7 +36,7 @@
 #include <zlib.h>
 #endif
 
-GF_ENUM (GF_NHMLChksum,
+GF_OPT_ENUM (GF_NHMLChksum,
 	NO_CHKSUM,
 	CRC32_CHKSUM,
 	SHA1_CHKSUM,

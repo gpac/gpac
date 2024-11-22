@@ -72,7 +72,7 @@ typedef enum
 	GF_DASH_TEMPLATE_SEGMENT_SUBNUMBER,
 } GF_DashTemplateSegmentType;
 
-GF_ENUM (GF_DashAbsoluteURLMode,
+GF_OPT_ENUM (GF_DashAbsoluteURLMode,
 	/*! do not use absolute URL*/
     GF_DASH_ABS_URL_NO,
 	/*! use absolute URL only in variant playlists*/
@@ -83,7 +83,7 @@ GF_ENUM (GF_DashAbsoluteURLMode,
     GF_DASH_ABS_URL_BOTH,
 );
 
-GF_ENUM (GF_DashHLSLowLatencyType,
+GF_OPT_ENUM (GF_DashHLSLowLatencyType,
     GF_DASH_LL_HLS_OFF,
     GF_DASH_LL_HLS_BR,
     GF_DASH_LL_HLS_SF,

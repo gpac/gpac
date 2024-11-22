@@ -51,19 +51,19 @@ GLDECL_EXTERN(glBufferData);
 
 typedef struct _nv_dec_inst NVDecInstance;
 
-GF_ENUM (NVDecUnloadMode,
+GF_OPT_ENUM (NVDecUnloadMode,
 	DEC_UNLOAD_NO = 0,
-    DEC_UNLOAD_DESTROY,
-    DEC_UNLOAD_REUSE,
+	DEC_UNLOAD_DESTROY,
+	DEC_UNLOAD_REUSE,
 );
 
-GF_ENUM (NVDecFrameMode,
+GF_OPT_ENUM (NVDecFrameMode,
 	NVDEC_COPY = 0,
 	NVDEC_SINGLE,
 	NVDEC_GL,
 );
 
-GF_ENUM (NVDecVideoMode,
+GF_OPT_ENUM (NVDecVideoMode,
 	NVDEC_CUVID = 0,
 	NVDEC_CUDA,
 	NVDEC_DXVA,
