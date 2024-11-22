@@ -54,7 +54,7 @@ enum
 	SDP_LOADED
 };
 
-GF_ENUM(GF_RTSPOutMulticastMode,
+GF_OPT_ENUM(GF_RTSPOutMulticastMode,
 	MCAST_OFF = 0,
 	MCAST_ON,
 	MCAST_MIRROR,
@@ -62,7 +62,7 @@ GF_ENUM(GF_RTSPOutMulticastMode,
 	MCAST_AUTHENTICATE_SETUP,
 );
 
-GF_ENUM (GF_RTSPOutTransportMode,
+GF_OPT_ENUM (GF_RTSPOutTransportMode,
 	TRP_BOTH=0,
 	TRP_UDP_ONLY,
 	TRP_TCP_ONLY,

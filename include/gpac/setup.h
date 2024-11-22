@@ -445,8 +445,8 @@ typedef enum {
 } Bool;
 #endif
 
-#define GF_ENUM(name, ...)                         \
-        typedef enum { __VA_ARGS__ } name##_t;     \
+#define GF_OPT_ENUM(name, ...)						\
+        typedef enum { __VA_ARGS__ } name##_t;		\
         typedef u32 name
 
 /*! 32 bit fraction*/

@@ -54,7 +54,7 @@ typedef struct
 	GF_List *packets;
 } RestampPid;
 
-GF_ENUM (GF_VideoFrameCopyMode,
+GF_OPT_ENUM (GF_VideoFrameCopyMode,
 	RESTAMP_RAWV_NO=0,
 	RESTAMP_RAWV_FORCE,
 	RESTAMP_RAWV_DYN,

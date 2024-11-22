@@ -95,7 +95,7 @@ typedef struct
 	u64 file_size;
 } FileListEntry;
 
-GF_ENUM (GF_FileListFileSortMode,
+GF_OPT_ENUM (GF_FileListFileSortMode,
 	FL_SORT_NONE=0,
 	FL_SORT_NAME,
 	FL_SORT_SIZE,
@@ -115,7 +115,7 @@ enum
 	FL_SPLICE_AFTER,
 };
 
-GF_ENUM (GF_FileListForceRawMode,
+GF_OPT_ENUM (GF_FileListForceRawMode,
 	FL_RAW_AV=0,
 	FL_RAW_AUDIO,
 	FL_RAW_VIDEO,

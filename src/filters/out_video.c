@@ -69,7 +69,7 @@ static char *default_glsl_vertex = "\
 
 #endif
 
-GF_ENUM (GF_VideoOutMode,
+GF_OPT_ENUM (GF_VideoOutMode,
 	MODE_GL,
 	MODE_GL_PBO,
 	MODE_2D,
@@ -77,7 +77,7 @@ GF_ENUM (GF_VideoOutMode,
 );
 
 
-GF_ENUM (GF_VideoFlipMode,
+GF_OPT_ENUM (GF_VideoFlipMode,
 	FLIP_NO,
 	FLIP_VERT,
 	FLIP_HORIZ,

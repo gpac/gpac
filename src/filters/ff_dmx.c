@@ -38,7 +38,7 @@
 #define FFMPEG_NO_DOVI
 #endif
 
-GF_ENUM(GF_FFDemuxRawFrameCopyMode,
+GF_OPT_ENUM(GF_FFDemuxRawFrameCopyMode,
 	COPY_NO,
 	COPY_A,
 	COPY_V,

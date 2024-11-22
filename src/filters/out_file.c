@@ -32,13 +32,13 @@
 
 #ifndef GPAC_DISABLE_FOUT
 
-GF_ENUM (GF_FileOutConcatMode,
+GF_OPT_ENUM (GF_FileOutConcatMode,
 	FOUT_CAT_NONE = 0,
 	FOUT_CAT_AUTO,
 	FOUT_CAT_ALL,
 );
 
-GF_ENUM (GF_FileOutOverwriteMode,
+GF_OPT_ENUM (GF_FileOutOverwriteMode,
 	FOUT_OW_YES = 0,
 	FOUT_OW_NO,
 	FOUT_OW_ASK,

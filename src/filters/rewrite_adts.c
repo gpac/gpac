@@ -31,7 +31,7 @@
 
 #include <gpac/avparse.h>
 
-GF_ENUM (GF_Mpeg2AACSignalMode,
+GF_OPT_ENUM (GF_Mpeg2AACSignalMode,
 	AAC_MPEG2_NO=0,
 	AAC_MPEG2_YES,
 	AAC_MPEG2_AUTO,

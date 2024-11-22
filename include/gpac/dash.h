@@ -161,7 +161,7 @@ struct _gf_dash_io
 typedef struct __dash_client GF_DashClient;
 
 /*! Quality selection mode of initial segments*/
-GF_ENUM (GF_DASHInitialSelectionMode,
+GF_OPT_ENUM (GF_DASHInitialSelectionMode,
 	/*! selects the lowest quality when starting - if one of the representation does not have video (HLS), it may be selected*/
 	GF_DASH_SELECT_QUALITY_LOWEST=0,
 	/*! selects the highest quality when starting*/
@@ -731,7 +731,7 @@ void gf_dash_debug_groups(GF_DashClient *dash, const u32 *groups_idx, u32 nb_gro
 void gf_dash_split_adaptation_sets(GF_DashClient *dash);
 
 /*! low latency mode of dash client*/
-GF_ENUM (GF_DASHLowLatencyMode,
+GF_OPT_ENUM (GF_DASHLowLatencyMode,
 	/*! disable low latency*/
 	GF_DASH_LL_DISABLE = 0,
 	/*! strict respect of segment availability start time*/
@@ -785,7 +785,7 @@ void gf_dash_enable_single_range_llhls(GF_DashClient *dash, Bool enable_single_r
 void gf_dash_set_auto_switch(GF_DashClient *dash, s32 auto_switch_count, Bool auto_switch_loop);
 
 /*! Cross Adaptation-set switching mdoe */
-GF_ENUM (GF_DASHCrossASMode,
+GF_OPT_ENUM (GF_DASHCrossASMode,
 	/*! cross adaptation set is disabled*/
 	GF_DASH_XAS_NONE = 0,
 	/*! cross adaptation set is enabled and only switches on the same codec*/
@@ -938,7 +938,7 @@ void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp);
 /*! Tile adaptation mode
 This mode specifies how bitrate is allocated across tiles of the same video
 */
-GF_ENUM(GF_DASHTileAdaptationMode,
+GF_OPT_ENUM(GF_DASHTileAdaptationMode,
 	/*! each tile receives the same amount of bitrate (default strategy)*/
 	GF_DASH_ADAPT_TILE_NONE=0,
 	/*! bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row*/

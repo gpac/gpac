@@ -73,13 +73,13 @@ Bool gf_ssl_init_lib();
 
 #endif
 
-GF_ENUM (GF_HTTPOutFilterOperationMode,
+GF_OPT_ENUM (GF_HTTPOutFilterOperationMode,
 	MODE_DEFAULT=0,
 	MODE_PUSH,
 	MODE_SOURCE,
 );
 
-GF_ENUM (GF_HTTPOutCORSMode,
+GF_OPT_ENUM (GF_HTTPOutCORSMode,
 	CORS_AUTO=0,
 	CORS_OFF,
 	CORS_ON,

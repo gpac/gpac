@@ -97,14 +97,14 @@ typedef struct
 	u32 bytes_in_wnd, max_rate;
 } PidCtx;
 
-GF_ENUM (GF_InspectDumpMode,
+GF_OPT_ENUM (GF_InspectDumpMode,
 	INSPECT_MODE_PCK=0,
 	INSPECT_MODE_BLOCK,
 	INSPECT_MODE_REFRAME,
 	INSPECT_MODE_RAW,
 );
 
-GF_ENUM (GF_InspectSkipPropsMode,
+GF_OPT_ENUM (GF_InspectSkipPropsMode,
 	INSPECT_TEST_NO=0,
 	INSPECT_TEST_NOPROP,
 	INSPECT_TEST_NETWORK,
@@ -115,7 +115,7 @@ GF_ENUM (GF_InspectSkipPropsMode,
 	INSPECT_TEST_NOBR,
 );
 
-GF_ENUM (GF_InspectSampleAnalyzeMode,
+GF_OPT_ENUM (GF_InspectSampleAnalyzeMode,
 	INSPECT_ANALYZE_OFF=0,
 	INSPECT_ANALYZE_ON,
 	INSPECT_ANALYZE_BS,

@@ -53,7 +53,7 @@
 
 typedef struct __txtin_ctx GF_TXTIn;
 
-GF_ENUM (GF_TXTInTextStreamMode,
+GF_OPT_ENUM (GF_TXTInTextStreamMode,
 	STXT_MODE_STXT=0,
 	STXT_MODE_SBTT,
 	STXT_MODE_TX3G,

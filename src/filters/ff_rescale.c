@@ -30,7 +30,7 @@
 #include "ff_common.h"
 #include <gpac/evg.h>
 
-GF_ENUM (GF_FFSWScaleAspectRatioMode,
+GF_OPT_ENUM (GF_FFSWScaleAspectRatioMode,
 	FFSWS_KEEPAR_OFF=0,
 	FFSWS_KEEPAR_FULL,
 	FFSWS_KEEPAR_NOSRC,

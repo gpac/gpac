@@ -37,7 +37,7 @@
 GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
 
-GF_ENUM (GF_DolbyVisionSignalingMode,
+GF_OPT_ENUM (GF_DolbyVisionSignalingMode,
 	DVMODE_NONE=0,
 	DVMODE_AUTO,
 	DVMODE_FORCE,
@@ -59,7 +59,7 @@ typedef struct
 	u32 min_temporal_id, max_temporal_id;
 } LHVCLayerInfo;
 
-GF_ENUM (GF_GOPBufferingMode,
+GF_OPT_ENUM (GF_GOPBufferingMode,
 	STRICT_POC_OFF = 0,
 	STRICT_POC_ON,
 	STRICT_POC_ERROR,

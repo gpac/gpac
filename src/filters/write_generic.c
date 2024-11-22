@@ -33,14 +33,14 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-GF_ENUM (GF_DecoderConfigInsertMode,
+GF_OPT_ENUM (GF_DecoderConfigInsertMode,
 	DECINFO_NO=0,
 	DECINFO_FIRST,
 	DECINFO_SAP,
 	DECINFO_AUTO,
 );
 
-GF_ENUM (GF_VttHeaderInjectionMode,
+GF_OPT_ENUM (GF_VttHeaderInjectionMode,
 	VTTH_SINGLE=0,
 	VTTH_SEG,
 	VTTH_ALL,

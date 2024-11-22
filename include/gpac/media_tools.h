@@ -699,7 +699,7 @@ DASH profile constants
 
 Matches profile enum of dasher module: auto|live|onDemand|main|full|hbbtv1.5.live|dashavc264.live|dashavc264.onDemand
  */
-GF_ENUM (GF_DashProfile,
+GF_OPT_ENUM (GF_DashProfile,
 	/*! auto profile, internal use only*/
 	GF_DASH_PROFILE_AUTO = 0,
 	/*! Live dash profile for: live for ISOFF, SIMPLE for M2TS */
@@ -751,7 +751,7 @@ typedef enum
 DASH media presentation type
 \hideinitializer
  */
-GF_ENUM (GF_DashDynamicMode,
+GF_OPT_ENUM (GF_DashDynamicMode,
 	/*! DASH Presentation is static*/
 	GF_DASH_STATIC = 0,
 	/*! DASH Presentation is dynamic*/
@@ -766,7 +766,7 @@ GF_ENUM (GF_DashDynamicMode,
 DASH selector for content protection descriptor location
 \hideinitializer
  */
-GF_ENUM (GF_DASH_ContentLocationMode,
+GF_OPT_ENUM (GF_DASH_ContentLocationMode,
 	/*! content protection descriptor is at the adaptation set level*/
 	GF_DASH_CPMODE_ADAPTATION_SET=0,
 	/*! content protection descriptor is at the representation level*/
@@ -957,7 +957,7 @@ GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_s
 
 
 /*! DASH PSSH storage mode*/
-GF_ENUM (GF_DASHPSSHMode,
+GF_OPT_ENUM (GF_DASHPSSHMode,
 	//! PSSH box in moov only
 	GF_DASH_PSSH_MOOV = 0,
 	//! PSSH box in moof only

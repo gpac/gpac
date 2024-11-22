@@ -80,7 +80,7 @@ enum
 	TEMI_TC64_ALWAYS,
 };
 
-GF_ENUM (GF_TSMuxInputDescriptorAction,
+GF_OPT_ENUM (GF_TSMuxInputDescriptorAction,
 	IN_TEMI_DROP=0,
 	IN_TEMI_FWD,
 	IN_TEMI_NTP,

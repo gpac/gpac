@@ -44,7 +44,7 @@ typedef struct
 	GF_MPD_Period *period;
 } GF_DasherPeriod;
 
-GF_ENUM (DasherBSSwitchingMode,
+GF_OPT_ENUM (DasherBSSwitchingMode,
 	DASHER_BS_SWITCH_DEF=0,
 	DASHER_BS_SWITCH_OFF,
 	DASHER_BS_SWITCH_ON,
@@ -68,26 +68,26 @@ typedef enum
 	DASHER_UTCREF_INBAND,
 } DasherUTCTimingType;
 
-GF_ENUM (DasherNTPClockMode,
+GF_OPT_ENUM (DasherNTPClockMode,
 	DASHER_NTP_REM=0,
 	DASHER_NTP_YES,
 	DASHER_NTP_KEEP,
 );
 
-GF_ENUM (DasherSAPStrictMode,
+GF_OPT_ENUM (DasherSAPStrictMode,
 	DASHER_SAP_OFF=0,
 	DASHER_SAP_SIG,
 	DASHER_SAP_ON,
 	DASHER_SAP_INTRA_ONLY,
 );
 
-GF_ENUM (DasherTSSHandlingMode,
+GF_OPT_ENUM (DasherTSSHandlingMode,
 	DASHER_BOUNDS_OUT=0,
 	DASHER_BOUNDS_CLOSEST,
 	DASHER_BOUNDS_IN,
 );
 
-GF_ENUM (DasherMuxType,
+GF_OPT_ENUM (DasherMuxType,
 	DASHER_MUX_ISOM=0,
 	DASHER_MUX_TS,
 	DASHER_MUX_MKV,
@@ -97,7 +97,7 @@ GF_ENUM (DasherMuxType,
 	DASHER_MUX_AUTO,
 );
 
-GF_ENUM (DasherAdaptSetGenMode,
+GF_OPT_ENUM (DasherAdaptSetGenMode,
 
 	DASHER_MPHA_NO=0,
 	DASHER_MPHA_COMP_ONLY,
@@ -127,25 +127,25 @@ enum
  * value1: Description of value1
  * value2: Description of value2
  */
-GF_ENUM (DasherCMAFMode, 
+GF_OPT_ENUM (DasherCMAFMode, 
 	DASHER_CMAF_NONE=0,
 	DASHER_CMAF_CMFC,
 	DASHER_CMAF_CMF2,
 );
 
-GF_ENUM (DasherDefaultKIDInjection,
+GF_OPT_ENUM (DasherDefaultKIDInjection,
 	DASHER_DEFKID_OFF=0,
 	DASHER_DEFKID_ON,
 	DASHER_DEFKID_AUTO,
 );
 
-GF_ENUM (DasherPeriodSwitchMode, 
+GF_OPT_ENUM (DasherPeriodSwitchMode, 
 	DASHER_PSWITCH_SINGLE=0,
 	DASHER_PSWITCH_FORCE,
 	DASHER_PSWITCH_STSD,
 );
 
-GF_ENUM (DasherWaitLastPktCtrl,
+GF_OPT_ENUM (DasherWaitLastPktCtrl,
 	DASHER_SEGSYNC_NO=0,
 	DASHER_SEGSYNC_YES,
 	DASHER_SEGSYNC_AUTO,
@@ -161,7 +161,7 @@ enum
 	IDXMODE_SEG,
 };
 
-GF_ENUM (DasherSegFlushMode,
+GF_OPT_ENUM (DasherSegFlushMode,
 	SFLUSH_OFF=0,
 	SFLUSH_SINGLE,
 	SFLUSH_END,

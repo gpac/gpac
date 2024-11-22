@@ -30,7 +30,7 @@
 
 #ifndef GPAC_DISABLE_VFLIP
 
-GF_ENUM (GF_FlipMode,
+GF_OPT_ENUM (GF_FlipMode,
 	VFLIP_OFF = 0,
 	VFLIP_VERT,
 	VFLIP_HORIZ,

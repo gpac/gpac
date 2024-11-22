@@ -41,19 +41,19 @@
 
 //#define DASH_USE_PULL
 
-GF_ENUM (ISOMReaderScalableTileLoadMode,
+GF_OPT_ENUM (ISOMReaderScalableTileLoadMode,
 	MP4DMX_SPLIT=0,
 	MP4DMX_SPLIT_EXTRACTORS,
 	MP4DMX_SINGLE,
 );
 
-GF_ENUM (ISOMReaderParamSetsExtractMode,
+GF_OPT_ENUM (ISOMReaderParamSetsExtractMode,
 	MP4DMX_XPS_AUTO=0,
 	MP4DMX_XPS_KEEP,
 	MP4DMX_XPS_REMOVE,
 );
 
-GF_ENUM (ISOMReaderEditListMode,
+GF_OPT_ENUM (ISOMReaderEditListMode,
 	EDITS_AUTO=0,
 	EDITS_NO,
 	EDITS_STRICT,
