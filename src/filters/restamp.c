@@ -54,18 +54,17 @@ typedef struct
 	GF_List *packets;
 } RestampPid;
 
-enum
-{
+GF_ENUM (GF_VideoFrameCopyMode,
 	RESTAMP_RAWV_NO=0,
 	RESTAMP_RAWV_FORCE,
 	RESTAMP_RAWV_DYN,
-};
+);
 
 typedef struct
 {
 	GF_Fraction fps, delay, delay_v, delay_a, delay_t, delay_o;
 	GF_Fraction64 tsinit;
-	u32 rawv;
+	GF_VideoFrameCopyMode rawv;
 	u32 align;
 	Bool reorder;
 
