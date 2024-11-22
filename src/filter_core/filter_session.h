@@ -258,7 +258,9 @@ struct __gf_filter_pck
 	struct __gf_filter_pck *reference;
 
 	GF_FilterFrameInterface *frame_ifce;
-	
+
+	void *udta;
+
 	//properties applying to this packet
 	GF_PropertyMap *props;
 	//pid properties applying to this packet
