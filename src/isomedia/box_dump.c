@@ -7157,6 +7157,16 @@ GF_Err chnl_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err srat_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SamplingRateBox *p = (GF_SamplingRateBox *) a;
+
+	gf_isom_box_dump_start(a, "SamplingRateBox", trace);
+	gf_fprintf(trace, " sampling_rate=\"%u\">\n", p->sampling_rate);
+	gf_isom_box_dump_done("SamplingRateBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err load_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackLoadBox *p = (GF_TrackLoadBox *) a;

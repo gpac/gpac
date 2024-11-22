@@ -3884,6 +3884,9 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 			sr |= entry->samplerate_lo;
 			(*SampleRate) = sr;
 		}
+
+		GF_SamplingRateBox *srat = (GF_SamplingRateBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_SRAT);
+		if (srat) *SampleRate = srat->sampling_rate;
 	}
 	if (Channels) (*Channels) = entry->channel_count;
 	if (bitsPerSample) (*bitsPerSample) = (u8) entry->bitspersample;
