@@ -3725,7 +3725,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (!CodedLossless && !allow_intrabc) {
 		u8 loop_filter_level_0 = gf_bs_read_int_log(bs, 6, "loop_filter_level_0");
 		u8 loop_filter_level_1 = gf_bs_read_int_log(bs, 6, "loop_filter_level_1");
-		if (!state->config->monochrome) {
+		if (state && state->config && !state->config->monochrome) {
 			if (loop_filter_level_0 || loop_filter_level_1) {
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_2");
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_3");
