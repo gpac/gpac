@@ -1614,7 +1614,8 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		ctx->dvb_mabr_config_toi = ctx->next_toi_avail;
 		ctx->next_toi_avail++;
 	}
-	inject_fdt_file_desc(ctx, &payload, NULL, "dvb_mabr_config.xml", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, ctx->dvb_mabr_config_toi, GF_FALSE);
+	//TS 103 769 section 8.3.5
+	inject_fdt_file_desc(ctx, &payload, NULL, "urn:dvb:metadata:cs:MulticastTransportObjectTypeCS:2021:gateway-configuration", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, ctx->dvb_mabr_config_toi, GF_FALSE);
 
 	nb_serv = gf_list_count(ctx->services);
 	for (i=0; i<nb_serv; i++) {
