@@ -122,6 +122,8 @@ enum
 	GF_ISOM_BOX_TYPE_AKEY	= GF_4CC( 'a', 'k', 'e', 'y' ),
 	GF_ISOM_BOX_TYPE_FLXS	= GF_4CC( 'f', 'l', 'x', 's' ),
 
+	GF_ISOM_BOX_TYPE_SRAT	= GF_4CC( 's', 'r', 'a', 't' ),
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*Movie Fragments*/
 	GF_ISOM_BOX_TYPE_MVEX	= GF_4CC( 'm', 'v', 'e', 'x' ),
@@ -1708,6 +1710,11 @@ typedef struct
 	GF_AC3Config cfg;
 } GF_AC3ConfigBox;
 
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 sampling_rate;
+} GF_SamplingRateBox;
 
 
 typedef struct
@@ -1832,7 +1839,7 @@ typedef struct __full_audio_sample_entry
 
 	//for FLAC
 	GF_FLACConfigBox *cfg_flac;
-
+	
 	//for generic audio sample entry
 	//box type as specified in the file (not this box's type!!)
 	u32 EntryType;
