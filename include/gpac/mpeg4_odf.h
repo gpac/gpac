@@ -1753,6 +1753,12 @@ GF_IAConfig *gf_odf_ia_cfg_read_bs(GF_BitStream *bs);
  */
 GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size);
 
+/*! Returns the size of the IAMF config
+ \param cfg the IAMF config
+ \return 0 if error, otherwise the IAMF config size
+ */
+u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg);
+
 /*! destroy the descriptors in a list but not the list
 \param descList descriptor list to destroy
 \return error if any

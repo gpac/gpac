@@ -27,10 +27,7 @@
 #include <gpac/constants.h>
 
 #include <gpac/avparse.h>
-
-#ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/internal/media_dev.h>
-#endif
 
 s32 gf_odf_size_field_size(u32 size_desc)
 {
@@ -2050,4 +2047,15 @@ GF_Err gf_odf_ia_cfg_write_bs(GF_IAConfig *cfg, GF_BitStream *bs)
         }
 
         return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_odf_ia_cfg_size(GF_IAConfig *cfg)
+{
+        if (!cfg) return 0;
+
+        u32 cfg_size = 1; // configurationVersion
+        cfg_size += gf_av1_leb128_size(cfg->configOBUs_size);
+        cfg_size += cfg->configOBUs_size;
+        return cfg_size;
 }

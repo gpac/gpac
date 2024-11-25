@@ -24,8 +24,6 @@
  */
 
 #include <gpac/internal/isomedia_dev.h>
-#include <gpac/internal/media_dev.h>
-
 
 
 #ifndef GPAC_DISABLE_ISOM
@@ -12729,17 +12727,9 @@ void iacb_box_del(GF_Box *s)
 
 GF_Err iacb_box_read(GF_Box *s, GF_BitStream *bs)
 {
-        u64 pos, read;
         GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
-
         if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
-
-        pos = gf_bs_get_position(bs);
-
         ptr->cfg = gf_odf_ia_cfg_read_bs_size(bs, (u32)ptr->size);
-
-        read = gf_bs_get_position(bs) - pos;
-
         return GF_OK;
 }
 
@@ -12764,9 +12754,7 @@ GF_Err iacb_box_size(GF_Box *s)
             ptr->size = 0;
             return GF_BAD_PARAM;
         }
-        ptr->size += 1;  // configurationVersion
-        ptr->size += gf_av1_leb128_size(ptr->cfg->configOBUs_size);
-        ptr->size += ptr->cfg->configOBUs_size;
+        ptr->size += gf_odf_ia_cfg_size(ptr->cfg);
         return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
