@@ -4504,17 +4504,6 @@ Note that packets created with \ref gf_filter_pck_new_frame_interface are always
 */
 GF_Err gf_filter_pck_set_readonly(GF_FilterPacket *pck);
 
-/*! Sets user data pointer for a packet
-\param pck the target filter packet
-\param udta user data pointer
-*/
-void gf_filter_pck_set_udta(GF_FilterPacket *pck, void *udta);
-
-/*! Gets user data pointer for a packet
-\param pck the target filter packet
-\return udta user data pointer
-*/
-void *gf_filter_pck_get_udta(GF_FilterPacket *pck);
 
 /*! Checks if packet data has been reallocated
 
