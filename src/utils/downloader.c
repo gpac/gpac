@@ -5539,8 +5539,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		gf_list_add(sess->headers, hdr);\
 		}
 
-
-	if ((sess->port!=80) && (sess->port!=443)) {
+	//always put port number when proxy is enabled
+	if (sess->proxy_enabled || ((sess->port!=80) && (sess->port!=443))) {
 		sprintf(sHTTP, "%s:%u", sess->server_name, sess->port);
 		PUSH_HDR("Host", sHTTP);
 	} else {
