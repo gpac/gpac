@@ -125,6 +125,7 @@ struct __xhr_context
 
 	XHR_ReadyState readyState;
 	Bool async;
+	Bool in_send;
 
 	/* GPAC extension to control the caching of XHR-downloaded resources */
 	XHR_CacheType  cache;
@@ -276,7 +277,7 @@ static void xml_http_reset_partial(XMLHTTPContext *ctx)
 	ctx->html_status = 0;
 }
 
-static void xml_http_reset(XMLHTTPContext *ctx)
+static void xml_http_reset(XMLHTTPContext *ctx, Bool delete_conn)
 {
 	if (ctx->method) {
 		gf_free(ctx->method);
@@ -289,7 +290,7 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 
 	xml_http_reset_partial(ctx);
 
-	if (ctx->sess) {
+	if (ctx->sess && delete_conn) {
 		GF_DownloadSession *tmp = ctx->sess;
 		ctx->sess = NULL;
 		gf_dm_sess_abort(tmp);
@@ -329,6 +330,7 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 	ctx->async = GF_FALSE;
 	ctx->readyState = XHR_READYSTATE_UNSENT;
 	ctx->ret_code = GF_OK;
+	ctx->in_send = GF_FALSE;
 }
 
 static void xml_http_finalize(JSRuntime *rt, JSValue obj)
@@ -343,7 +345,7 @@ static void xml_http_finalize(JSRuntime *rt, JSValue obj)
 	JS_FreeValueRT(rt, ctx->onprogress);
 	JS_FreeValueRT(rt, ctx->onreadystatechange);
 	JS_FreeValueRT(rt, ctx->ontimeout);
-	xml_http_reset(ctx);
+	xml_http_reset(ctx, GF_TRUE);
 
 #if !defined(GPAC_DISABLE_SVG) && !defined(GPAC_DISABLE_VRML)
 	if (ctx->event_target) {
@@ -487,7 +489,7 @@ static JSValue xml_http_open(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	/*reset*/
-	if (ctx->readyState) xml_http_reset(ctx);
+	if (ctx->readyState) xml_http_reset(ctx, GF_FALSE);
 
 	if (argc<2) return GF_JS_EXCEPTION(c);
 	/*method is a string*/
@@ -495,7 +497,7 @@ static JSValue xml_http_open(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	/*url is a string*/
 	if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 
-	xml_http_reset(ctx);
+	xml_http_reset(ctx, GF_FALSE);
 	val = JS_ToCString(c, argv[0]);
 	if (strcmp(val, "GET") && strcmp(val, "POST") && strcmp(val, "HEAD")
 	        && strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") ) {
@@ -656,7 +658,7 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 {
 	/*if we get here, destroy downloader*/
-	if (ctx->sess) {
+	if (ctx->sess && error && (error!=GF_URL_ERROR) && (error!=GF_URL_REMOVED)) {
 		gf_dm_sess_del(ctx->sess);
 		ctx->sess = NULL;
 	}
@@ -673,6 +675,11 @@ static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 	}
 	if (JS_IsFunction(ctx->c, ctx->onloadend)) {
 		JSValue rval = JS_Call(ctx->c, ctx->onloadend, ctx->_this, 0, NULL);
+		if (JS_IsException(rval)) js_dump_error(ctx->c);
+		JS_FreeValue(ctx->c, rval);
+	}
+	if (error && JS_IsFunction(ctx->c, ctx->onerror) ) {
+		JSValue rval = JS_Call(ctx->c, ctx->onerror, ctx->_this, 0, NULL);
 		if (JS_IsException(rval)) js_dump_error(ctx->c);
 		JS_FreeValue(ctx->c, rval);
 	}
@@ -952,7 +959,8 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	if (ctx->readyState!=XHR_READYSTATE_OPENED) return GF_JS_EXCEPTION(c);
-	if (ctx->sess) return GF_JS_EXCEPTION(c);
+	if (ctx->in_send) return GF_JS_EXCEPTION(c);
+	ctx->in_send = GF_TRUE;
 
 	scene = xml_get_scenegraph(c);
 	if (scene) {
@@ -963,7 +971,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		par.dnld_man = jsf_get_download_manager(c);
 	}
 #ifndef GPAC_DISABLE_NETWORKING
-	if (!par.dnld_man) return GF_JS_EXCEPTION(c);
+	if (!par.dnld_man && !ctx->sess) return GF_JS_EXCEPTION(c);
 #endif
 
 	if (argc) {
@@ -1007,8 +1015,23 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 				flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 			}
 		}
-		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, flags, xml_http_on_data, ctx, &e);
-		if (!ctx->sess) return GF_JS_EXCEPTION(c);
+		//allow connetion reuse
+		if (ctx->sess) {
+			e = gf_dm_sess_setup_from_url(ctx->sess, ctx->url, GF_FALSE);
+			if (e) {
+				gf_dm_sess_del(ctx->sess);
+				ctx->sess = NULL;
+			} else {
+				GF_NetIOStatus status;
+				gf_dm_sess_get_stats(ctx->sess, NULL, NULL, 0, 0, 0, &status);
+				assert(status<=GF_NETIO_CONNECTED);
+			}
+		}
+
+		if (!ctx->sess) {
+			ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, flags, xml_http_on_data, ctx, &e);
+			if (!ctx->sess) return GF_JS_EXCEPTION(c);
+		}
 
 		/*start our download (whether the session is threaded or not)*/
 		e = gf_dm_sess_process(ctx->sess);
@@ -1039,11 +1062,10 @@ static JSValue xml_http_abort(JSContext *c, JSValueConst obj, int argc, JSValueC
 	if (sess) {
 		//abort first, so that on HTTP/2 this results in RST_STREAM
 		gf_dm_sess_abort(sess);
-		gf_dm_sess_del(sess);
 	}
 
 	xml_http_fire_event(ctx, GF_EVENT_ABORT);
-	xml_http_reset(ctx);
+	xml_http_reset(ctx, GF_TRUE);
 	if (JS_IsFunction(c, ctx->onabort)) {
 		return JS_Call(ctx->c, ctx->onabort, ctx->_this, 0, NULL);
 	}
