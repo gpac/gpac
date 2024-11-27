@@ -593,7 +593,6 @@ httpout.on_request = (req) =>
 			}); 
 			print(GF_LOG_DEBUG, `Sending reply to ${req.url} code ${req.xhr.status}`);
 			req.reply = req.xhr.status;
-			print('replying with code ' + req.reply);
 			req.send();
 
 			if (req.cache_file) {
@@ -715,7 +714,8 @@ function create_service(http_url)
 
 	s.manifest = null;
 	//do we have a mcast service for this ?
-	let mabr_cfg = services_defs.find(e => e.http == http_url);
+	let url_noport = http_url.replace(/([^\/\:]+):\/\/([^\/]+):([0-9]+)\//, "$1://$2/");
+	let mabr_cfg = services_defs.find(e => e.http == url_noport);
 	if (mabr_cfg) {
 		s.mabr = mabr_cfg.mcast;
 		s.unload = mabr_cfg.unload;
@@ -738,7 +738,10 @@ function create_service(http_url)
 		for (let i=0; i<this.mem_cache.length; i++) {
 			let f = this.mem_cache[i];
 			if (f.aborted) continue;
-			if (f.url.indexOf(url)<0) continue;
+			if (f.url.indexOf(url)>=0) {}
+			//in case the whole server path was not sent in mabr
+			else if (f.mabr && (url.indexOf(f.url)>=0)) {}
+			else continue;
 			//only deal with exact byte ranges - we could optimize to allow sub-ranges
 			if (f.start==start && f.end==end) return f;
 		}
@@ -767,13 +770,19 @@ function create_service(http_url)
 		//get any pending request(s) for this file
 		while (true) {
 			//we use req.url , eg server path, and not target_url which includes server name
-			let pending = this.pending_reqs.find (r => url.indexOf(r.url)>=0 );
+			let pending = this.pending_reqs.find (r =>{
+				if (url.indexOf(r.url)>=0) return true;
+				//in case the whole server path was not sent in mabr
+				if (from_mabr &&  (r.url.indexOf(url)>=0) ) return true;
+				return false;
+			});
 			if (!pending) break;
 			this.pending_reqs.splice(this.pending_reqs.indexOf(pending), 1);
 			pending.waiting_mabr = 0;
 			pending.set_cache_file(file);
+			print(GF_LOG_DEBUG, `Found pending request for ${file.url}, canceling timeout`);
 		}
-		print(GF_LOG_DEBUG, `Start reception of ${file.url} mime ${file.mime} - ${this.mem_cache.length} files in service cache`);
+		print(GF_LOG_DEBUG, `Start ${file.mabr ? 'MABR ' : ''}reception of ${file.url} mime ${file.mime} - ${this.mem_cache.length} files in service cache`);
 		return file;
 	};
 
@@ -904,13 +913,16 @@ function create_service(http_url)
 			let file = this.mem_cache.find(f => f.url===pid.url);
 			if (!file) file = this.create_cache_file(pid.url, pid.mime, 0, 0, true);
 			//TODO: for now we only get full files from routein, we should patch to get chunks after repair for low latency
-			print(GF_LOG_DEBUG, `Service ${this.id} Receiving MABR packet for ${pid.url} size ${pck.size} end ${pck.end}`);
+			print(GF_LOG_DEBUG, `Service ${this.id} receiving MABR packet for ${pid.url} size ${pck.size} end ${pck.end}`);
 	
 			//reagregate packet 
 			if (pck.size)
 				file.data = cat_buffer(file.data, pck.data);
 
-			if (pck.end) file.done = true;
+			if (pck.end) {
+				print(GF_LOG_INFO, `Service ${this.id} received MABR file ${pid.url}`);
+				file.done = true;
+			}
 		};
 	
 		this.sink.process = function(pid)
@@ -927,7 +939,7 @@ function create_service(http_url)
 		};
 		//don't use dash client, we just need to get the files
 		this.sink.set_source(this.source);
-		print(GF_LOG_INFO, `Service ${this.id} loaded MABR for ${this.mabr}`);
+		print(GF_LOG_INFO, `Service ${this.id} loaded MABR for ${this.mabr}${this.repair ? ' with repair' : ''}`);
 	};
 
 	all_services.push(s);
@@ -1064,6 +1076,8 @@ filter.initialize = function() {
 				if (typeof sd.timeshift != 'number') sd.timeshift = filter.timeshift;
 				if (typeof sd.mcache != 'boolean') sd.mcache = false;
 				if (typeof sd.repair != 'boolean') sd.repair = true;
+
+				sd.http = sd.http.replace(/([^\/\:]+):\/\/([^\/]+):([0-9]+)\//, "$1://$2/");
 			});
 		} catch (e) {
 			print(`Failed to load services configuration ${filter.sdesc}: ${e}`);
