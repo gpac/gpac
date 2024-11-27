@@ -1114,7 +1114,7 @@ cache directory location
 .TP
 .B \-proxy (string)
 .br
-set HTTP proxy server address and port
+set HTTP proxy server address and port (if no protocol scheme is set, use same as target)
 .br
 .TP
 .B \-maxrate (int)
@@ -1160,6 +1160,11 @@ ignore HTTP 1.1 timeout in keep-alive
 .B \-broken-cert
 .br
 enable accepting broken SSL certificates
+.br
+.TP
+.B \-ca-bundle (string)
+.br
+path to a custom CA certificates bundle file
 .br
 .TP
 .B \-user-agent,-ua (string)
@@ -5111,7 +5116,7 @@ DRA Audio
 G719 Audio
 .br
 .TP
-.B dstc
+.B dtsc
 .br
 DTS Coherent Acoustics and Digital Surround Audio
 .br
@@ -5121,7 +5126,7 @@ DTS Coherent Acoustics and Digital Surround Audio
 DTS-HD High Resolution Audio and DTS-Master Audio
 .br
 .TP
-.B dstl
+.B dtsl
 .br
 DTS-HD Substream containing only XLLAudio
 .br

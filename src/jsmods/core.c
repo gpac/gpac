@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2023
+ *			Copyright (c) Telecom ParisTech 2007-2024
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript libgpac Core bindings
@@ -1769,17 +1769,37 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	if (strstr(str, "#EXTM3U")) {
 		JSValue mpdo = JS_NewObject(ctx);
 		Bool is_master = GF_FALSE;
+		Bool is_live = GF_TRUE;
 		JSValue reps = JS_NewArray(ctx);
-		JS_SetPropertyStr(ctx, mpdo, "m3u8", JS_TRUE);
 		if (strstr(str, "#EXT-X-STREAM-INF")) {
 			is_master = GF_TRUE;
-			JS_SetPropertyStr(ctx, mpdo, "m3u8_variant", JS_FALSE);
-			JS_SetPropertyStr(ctx, mpdo, "variants", reps);
+			JS_SetPropertyStr(ctx, mpdo, "m3u8", JS_NewInt32(ctx, 1));
+			//unused for HLS
+			JS_SetPropertyStr(ctx, mpdo, "ast", JS_NewInt64(ctx, 0) );
+			//unknown until first variant is parsed ...
+			JS_SetPropertyStr(ctx, mpdo, "tsb", JS_NewInt32(ctx, 0) );
+			JS_SetPropertyStr(ctx, mpdo, "live", JS_FALSE);
+
+			JSValue periods = JS_NewArray(ctx);
+			JS_SetPropertyStr(ctx, mpdo, "periods", periods);
+			JSValue po = JS_NewObject(ctx);
+			JS_SetPropertyUint32(ctx, periods, 0, po);
+
+			JS_SetPropertyStr(ctx, po, "start", JS_NewInt64(ctx, 0) );
+			JS_SetPropertyStr(ctx, po, "duration", JS_NewInt64(ctx, 0) );
+			JS_SetPropertyStr(ctx, po, "ID", JS_NULL );
+
+			JS_SetPropertyStr(ctx, po, "reps", reps);
 		} else {
-			JS_SetPropertyStr(ctx, mpdo, "m3u8_variant", JS_TRUE);
+			JS_SetPropertyStr(ctx, mpdo, "m3u8", JS_NewInt32(ctx,2));
 			JS_SetPropertyStr(ctx, mpdo, "segments", reps);
 		}
+		Double target_dur=0;
+		Double cur_dur=0;
+		u32 media_seq = 0;
 		u32 vidx=0;
+		u32 ASID = 1;
+		u32 cur_bandwidth=0;
 		char *cur = str;
 		while (cur[0]) {
 			while (cur[0] && strchr(" \n\t\r", cur[0]))
@@ -1788,23 +1808,68 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 			char *sep = strchr(cur, '\n');
 			if (cur[0] != '#') {
 				if (sep) sep[0] = 0;
+				JSValue var = JS_NewObject(ctx);
+				JS_SetPropertyUint32(ctx, reps, vidx, var);
 				if (is_master) {
-					JSValue var = JS_NewObject(ctx);
-					JS_SetPropertyUint32(ctx, reps, vidx, var);
-					JS_SetPropertyStr(ctx, var, "url", JS_NewString(ctx, cur) );
+					JS_SetPropertyStr(ctx, var, "xlink", JS_NewString(ctx, cur) );
+					JS_SetPropertyStr(ctx, var, "ID", JS_NewString(ctx, gf_file_basename(cur) ) );
+					JS_SetPropertyStr(ctx, var, "ASID", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "as_idx", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "URLs", JS_NewArray(ctx) );
+					JS_SetPropertyStr(ctx, var, "segments", JS_NewArray(ctx) );
+					JS_SetPropertyStr(ctx, var, "template", JS_NULL );
+					JS_SetPropertyStr(ctx, var, "timescale", JS_NewInt32(ctx, 1) );
+					JS_SetPropertyStr(ctx, var, "duration", JS_NewInt32(ctx, 0) ); //not known yet
+					JS_SetPropertyStr(ctx, var, "bandwidth", JS_NewInt32(ctx, cur_bandwidth) );
+					JS_SetPropertyStr(ctx, var, "live_seg_num", JS_NewInt64(ctx, 0) );
 				} else {
-					JS_SetPropertyUint32(ctx, reps, vidx, JS_NewString(ctx, cur));
+					JS_SetPropertyStr(ctx, var, "url", JS_NewString(ctx, cur) );
+					JS_SetPropertyStr(ctx, var, "duration", JS_NewFloat64(ctx, cur_dur ? cur_dur : target_dur) );
 				}
 				vidx++;
+				if (!sep) break;
 				cur = sep+1;
 				continue;
 			}
+			if (strstr(cur, "EXT-X-ENDLIST")) is_live = GF_FALSE;
+
+			//for variant, extract target duration and segment duration
 			if (!is_master) {
+				if (sep) sep[0] = 0;
+				char *tdur = strstr(cur, "EXT-X-TARGETDURATION:");
+				if (tdur) target_dur = atof(tdur+21);
+
+				char *mseq = strstr(cur, "EXT-X-MEDIA-SEQUENCE:");
+				if (mseq) media_seq = atoi(mseq+21);
+
+				char *extinf = strstr(cur, "EXT-INF:");
+				if (extinf) {
+					char *last_c = strchr(extinf, ',');
+					if (last_c) last_c[0] = 0;
+					cur_dur = atof(extinf+8);
+					if (last_c) last_c[0] = ',';
+				}
+
+				if (!sep) break;
+				if (sep) sep[0] = '\n';
 				cur = sep+1;
 				continue;
 			}
+			//for master, extract URI ad bandwidth
+			if (sep) sep[0] = 0;
+
+			char *bw = strstr(cur, "BANDWIDTH=");
+			if (bw) {
+				bw += 10;
+				char *end = strchr(bw, ',');
+				if (end) end[0] = 0;
+				cur_bandwidth = atoi(bw);
+				if (end) end[0] = ',';
+			}
+
 			char *uri = strstr(cur, "URI=\"");
 			if (uri) {
+				ASID++;
 				uri += 5;
 				char *end = strchr(uri, '\"');
 				if (end) {
@@ -1812,13 +1877,29 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					JSValue var = JS_NewObject(ctx);
 					JS_SetPropertyUint32(ctx, reps, vidx, var);
 					vidx++;
-					JS_SetPropertyStr(ctx, var, "url", JS_NewString(ctx, uri) );
+					JS_SetPropertyStr(ctx, var, "xlink", JS_NewString(ctx, uri) );
+					JS_SetPropertyStr(ctx, var, "ID", JS_NewString(ctx, gf_file_basename(uri) ) );
+					JS_SetPropertyStr(ctx, var, "ASID", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "as_idx", JS_NewInt32(ctx, ASID) );
+					JS_SetPropertyStr(ctx, var, "URLs", JS_NewArray(ctx) );
+					JS_SetPropertyStr(ctx, var, "segments", JS_NewArray(ctx) );
+					JS_SetPropertyStr(ctx, var, "template", JS_NULL );
+					JS_SetPropertyStr(ctx, var, "timescale", JS_NewInt32(ctx, 1) );
+					JS_SetPropertyStr(ctx, var, "duration", JS_NewInt32(ctx, 0) ); //not known yet
+					JS_SetPropertyStr(ctx, var, "bandwidth", JS_NewInt32(ctx, 0) );
+					JS_SetPropertyStr(ctx, var, "live_seg_num", JS_NewInt64(ctx, 0) );
 					end[0] = '\n';
 				}
 			}
 			//do we need to extract codec info ?
 			if (!sep) break;
+			sep[0] = '\n';
 			cur = sep+1;
+		}
+		JS_SetPropertyStr(ctx, mpdo, "live", is_live ? JS_TRUE : JS_FALSE);
+		if (media_seq) {
+			JS_SetPropertyStr(ctx, mpdo, "seq_start", JS_NewInt32(ctx, media_seq) );
+			JS_SetPropertyStr(ctx, mpdo, "live_seg_num", JS_NewInt32(ctx, media_seq+vidx) );
 		}
 		gf_free(str);
 		return mpdo;
@@ -1828,22 +1909,32 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 	GF_DOMParser *parser = gf_xml_dom_new();
 	GF_Err e = gf_xml_dom_parse_string(parser, str);
+	if (e) {
+		gf_xml_dom_del(parser);
+		gf_free(str);
+		return JS_NULL;
+	}
 	GF_MPD *mpd = gf_mpd_new();
 	e = gf_mpd_init_from_dom(gf_xml_dom_get_root(parser), mpd, NULL);
 	gf_free(str);
 	gf_xml_dom_del(parser);
+	if (e) {
+		gf_mpd_del(mpd);
+		return JS_NULL;
+	}
 
 	u32 i, count = gf_list_count(mpd->periods);
 	JSValue mpdo = JS_NewObject(ctx);
-	JS_SetPropertyStr(ctx, mpdo, "m3u8", JS_FALSE);
+	JS_SetPropertyStr(ctx, mpdo, "m3u8", JS_NewInt32(ctx, 0));
 	JS_SetPropertyStr(ctx, mpdo, "ast", JS_NewInt64(ctx, mpd->availabilityStartTime) );
 	JS_SetPropertyStr(ctx, mpdo, "tsb", JS_NewInt32(ctx, mpd->time_shift_buffer_depth) );
 	JS_SetPropertyStr(ctx, mpdo, "live", JS_NewBool(ctx, mpd->type==GF_MPD_TYPE_DYNAMIC) );
+
+	u64 now = gf_net_get_utc();
+	JS_SetPropertyStr(ctx, mpdo, "live_utc", JS_NewInt64(ctx, now) );
 	JSValue periods = JS_NewArray(ctx);
 	JS_SetPropertyStr(ctx, mpdo, "periods", periods);
-
 	u32 period_idx=0;
-	u64 now = gf_net_get_utc();
 	u64 mpd_time = mpd->availabilityStartTime;
 	for (i=0; i<count; i++) {
 		u32 j, nb_sets, cur_rep=0;
@@ -1867,12 +1958,10 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 
 		u32 mpd_timescale = 0;
 		u32 seg_duration = 0;
-		char *template = NULL;
 		GF_MPD_SegmentTimeline *mpd_stl = NULL;
 		if (p->segment_template) {
 			if (p->segment_template->duration) seg_duration = p->segment_template->duration;
 			if (p->segment_template->timescale) mpd_timescale = p->segment_template->timescale;
-			if (p->segment_template->media) template = p->segment_template->media;
 			if (p->segment_template->segment_timeline) mpd_stl = p->segment_template->segment_timeline;
 		}
 
@@ -1884,12 +1973,12 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 			if (set->segment_template) {
 				if (set->segment_template->duration) seg_duration = set->segment_template->duration;
 				if (set->segment_template->timescale) mpd_timescale = set->segment_template->timescale;
-				if (set->segment_template->media) template = set->segment_template->media;
 				if (set->segment_template->segment_timeline) mpd_stl = set->segment_template->segment_timeline;
 			}
 
 			nb_reps = gf_list_count(set->representations);
 			for (k=0; k<nb_reps; k++) {
+				u64 start_range, end_range, segdur_ms;
 				u32 bidx;
 				GF_MPD_Representation *rep = gf_list_get(set->representations, k);
 				char *seg_url = NULL;
@@ -1897,7 +1986,6 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 				if (rep->segment_template) {
 					if (rep->segment_template->duration) seg_duration = rep->segment_template->duration;
 					if (rep->segment_template->timescale) mpd_timescale = rep->segment_template->timescale;
-					if (rep->segment_template->media) template = rep->segment_template->media;
 					if (rep->segment_template->segment_timeline) mpd_stl = rep->segment_template->segment_timeline;
 				}
 				JSValue repo = JS_NewObject(ctx);
@@ -1906,6 +1994,8 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 
 				JS_SetPropertyStr(ctx, repo, "ID", rep->id ? JS_NewString(ctx, rep->id) : JS_NULL);
 				JS_SetPropertyStr(ctx, repo, "ASID", JS_NewInt32(ctx, set->id) );
+				JS_SetPropertyStr(ctx, repo, "as_idx", JS_NewInt32(ctx, j+1) );
+				JS_SetPropertyStr(ctx, repo, "xlink", JS_NULL);
 				JSValue urls_o = JS_NewArray(ctx);
 				JS_SetPropertyStr(ctx, repo, "URLs", urls_o );
 				u32 el_idx, js_idx=0;
@@ -1924,35 +2014,39 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					}
 				}
 				JS_SetPropertyStr(ctx, repo, "timescale", JS_NewInt32(ctx, mpd_timescale ? mpd_timescale : 1) );
+				JS_SetPropertyStr(ctx, repo, "duration", JS_NewInt32(ctx, seg_duration) );
+				JS_SetPropertyStr(ctx, repo, "bandwidth", JS_NewInt32(ctx, rep->bandwidth) );
 
-				if (!mpd_stl) {
-					u64 start_range, end_range, segdur_ms;
-					gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, 0, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
-				}
+				gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE, 0, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
+
 				JS_SetPropertyStr(ctx, repo, "template", seg_url ? JS_NewString(ctx, seg_url) : JS_NULL );
 				if (seg_url) gf_free(seg_url);
 
+				u64 seg_idx = 0;
+				if (seg_duration) {
+					seg_idx = now - p->start - mpd->availabilityStartTime;
+					seg_idx /= 1000;
+					if (mpd_timescale) seg_idx *= mpd_timescale;
+					seg_idx /= seg_duration;
+				}
+				JS_SetPropertyStr(ctx, repo, "live_seg_num", JS_NewInt64(ctx, seg_idx) );
+
 				JSValue segs = JS_NewArray(ctx);
 				JS_SetPropertyStr(ctx, repo, "segments", segs );
-
-				if (!mpd_stl) {
-					u64 seg_idx = now - p->start - mpd->availabilityStartTime;
-					seg_idx /= 1000;
-					if (mpd_timescale) seg_idx /= mpd_timescale;
-					seg_idx /= seg_duration;
-					JS_SetPropertyStr(ctx, repo, "live_utc", JS_NewInt64(ctx, now) );
-					JS_SetPropertyStr(ctx, repo, "live_seg_num", JS_NewInt64(ctx, seg_idx) );
-				} else {
+				if (mpd_stl) {
 					u32 sidx, re, cur_seg=0;
-					u64 start = mpd->availabilityStartTime + p->start;
+					//u64 start = mpd->availabilityStartTime + p->start;
 					for (sidx=0; sidx<gf_list_count(mpd_stl->entries); sidx++) {
 						GF_MPD_SegmentTimelineEntry *e = gf_list_get(mpd_stl->entries, sidx);
-						if (e->start_time) start = e->start_time;
+						//if (e->start_time) start = e->start_time;
 						for (re=0; re<e->repeat_count+1; re++) {
-
-							u64 start_range, end_range, segdur_ms;
+							JSValue sego = JS_NewObject(ctx);
 							gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, cur_seg, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
-							JS_SetPropertyUint32(ctx, segs, cur_seg, JS_NewString(ctx, seg_url) );
+
+							JS_SetPropertyStr(ctx, sego, "url", JS_NewString(ctx, seg_url) );
+							JS_SetPropertyStr(ctx, sego, "duration", JS_NewInt32(ctx, segdur_ms) );
+
+							JS_SetPropertyUint32(ctx, segs, cur_seg, sego );
 							cur_seg++;
 							gf_free(seg_url);
 						}
