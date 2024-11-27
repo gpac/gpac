@@ -439,6 +439,20 @@ void gf_fs_send_deferred_play(GF_FilterSession *session);
 */
 GF_Err gf_fs_post_user_task(GF_FilterSession *session, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name);
 
+
+/*! Posts a user task to the session
+\param session filter session
+\param task_execute the callback function for the task. The callback can return:
+ - GF_FALSE to cancel the task
+ - GF_TRUE to reschedule the task, in which case the task will be rescheduled immediately or after reschedule_ms.
+\param udta_callback callback user data passed back to the task_execute function
+\param log_name log name of the task. If NULL, default is "user_task"
+\param delay delay in milliseconds before calling the task
+\return the error code if any
+*/
+GF_Err gf_fs_post_user_task_delay(GF_FilterSession *session, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name, u32 delay);
+
+
 /*! Posts a user task to the session main thread only
 \param session filter session
 \param task_execute the callback function for the task. The callback can return:
@@ -2005,6 +2019,9 @@ typedef struct
 
 	/*! MTU size  */
 	u32 mtu_size;
+
+	/*! output type , 4CC (currently only MABR defined */
+	u32 sink_type;
 
 } GF_FEVT_NetworkHint;
 

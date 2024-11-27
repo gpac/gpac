@@ -282,6 +282,7 @@ typedef struct
 	Bool purge_segments;
 
 	Bool is_playing;
+	Bool use_mabr;
 
 	Bool no_seg_dur;
 
@@ -3550,6 +3551,16 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_REP_ID, &PROP_STRING( ds->rep_id ) );
 	gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC( ds->dash_dur ) );
+
+	if (ctx->current_period->period->ID)
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_PERIOD_ID, &PROP_STRING( ctx->current_period->period->ID ) );
+	if (ds->owns_set && ctx->use_mabr) {
+		if (!ds->as_id) {
+			ds->as_id = gf_list_find(ctx->current_period->streams, ds)+1;
+			ds->set->id = ds->as_id;
+		}
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_AS_ID, &PROP_SINT( ds->as_id ) );
+	}
 	//end route_out
 
 	gf_filter_pid_require_source_id(ds->opid);
@@ -10444,6 +10455,12 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->opid_alt)
 			gf_filter_pid_set_eos(ctx->opid_alt);
 		return GF_TRUE;
+	}
+
+	if (evt->base.type == GF_FEVT_NETWORK_HINT) {
+		if (evt->net_hint.sink_type == GF_4CC('M','A','B','R')) {
+			ctx->use_mabr = GF_TRUE;
+		}
 	}
 
 	if (evt->base.type == GF_FEVT_PLAY) {
