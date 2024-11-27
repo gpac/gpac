@@ -242,6 +242,7 @@ struct __httpout_session {
 	GF_Socket *socket;
 	GF_DownloadSession *http_sess;
 	char peer_address[GF_MAX_IP_NAME_LEN];
+	u32 peer_port;
 
 	Bool headers_done;
 
@@ -1276,6 +1277,9 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 	JS_SetPropertyStr(c, obj, "send", JS_NewCFunction(c, httpout_js_send, "send", 0) );
 	JS_SetPropertyStr(c, obj, "reply", JS_NewInt32(c, 0));
 	JS_SetPropertyStr(c, obj, "tls", JS_NewBool(c, sess->ctx->ssl_ctx ? 1 : 0));
+	JS_SetPropertyStr(c, obj, "netid", JS_NewInt64(c, sess->socket ? (s64) sess->socket : 0));
+	JS_SetPropertyStr(c, obj, "IP", JS_NewString(c, sess->peer_address));
+	JS_SetPropertyStr(c, obj, "port", JS_NewInt32(c, sess->peer_port));
 
 	JS_FreeValue(c, sess->obj);
 	sess->obj = obj;
@@ -2648,6 +2652,7 @@ static void httpout_check_connection(GF_HTTPOutSession *sess)
 static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 {
 	char peer_address[GF_MAX_IP_NAME_LEN];
+	u32 peer_port;
 	GF_HTTPOutSession *sess;
 	GF_Err e;
 	void *ssl_c;
@@ -2671,7 +2676,7 @@ check_next_conn:
 		gf_sk_del(new_conn);
 		return;
 	}
-	gf_sk_get_remote_address(new_conn, peer_address);
+	gf_sk_get_remote_address_port(new_conn, peer_address, &peer_port);
 	if (ctx->maxp) {
 		u32 i, nb_conn=0, count = gf_list_count(ctx->sessions);
 		for (i=0; i<count; i++) {
@@ -2732,6 +2737,7 @@ check_next_conn:
 	gf_sk_set_buffer_size(new_conn, GF_FALSE, ctx->block_size);
 	gf_sk_set_buffer_size(new_conn, GF_TRUE, ctx->block_size);
 	strcpy(sess->peer_address, peer_address);
+	sess->peer_port = peer_port;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Accepting new connection from %s\n", sess->peer_address));
 	//ask immediate reschedule
@@ -3094,6 +3100,13 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	if (s->opid) gf_filter_pid_remove(s->opid);
 	if (s->resource) gf_fclose(s->resource);
 	if (s->ranges) gf_free(s->ranges);
+
+#ifdef GPAC_HAS_QJS
+	if (!JS_IsUndefined(s->obj)) {
+		JS_SetOpaque(s->obj, NULL);
+	};
+#endif
+
 	gf_free(s);
 }
 
@@ -3568,7 +3581,8 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		//check we have something to read if not http2
 		//if http2, data might have been received on this session while processing another session
 		if (!sess->is_h2 && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
-			ctx->next_wake_us = 100;
+			//session is in progress, reschedule asap
+			if (!sess->done) ctx->next_wake_us = 1;
 			return;
 		}
 		e = gf_dm_sess_process(sess->http_sess);
@@ -3693,7 +3707,7 @@ resend:
 		s32 nb_read = sess->cbk_read(sess->rt_udta, sess->buffer, sess->ctx->block_size);
 
 		if (nb_read<0) {
-			ctx->next_wake_us = 1;
+			ctx->next_wake_us = 1000;
 			sess->last_active_time = gf_sys_clock_high_res();
 			return;
 		}
