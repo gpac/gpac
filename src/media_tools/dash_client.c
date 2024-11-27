@@ -1376,7 +1376,10 @@ setup_multicast_clock:
 
 			repeat = 1+ent->repeat_count;
 			while (repeat) {
-				if ((current_time_rescale >= segtime) && (current_time_rescale < segtime + ent->duration)) {
+				Bool is_last = GF_FALSE;
+				if ((repeat==1) && (i+1==count)) is_last = GF_TRUE;
+
+				if ((current_time_rescale >= segtime) && (is_last || (current_time_rescale < segtime + ent->duration))) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found segment %d for current time "LLU" is in SegmentTimeline ["LLU"-"LLU"] (timecale %d - current index %d - startNumber %d)\n", seg_idx, current_time_rescale, start_segtime, segtime + ent->duration, timescale, group->download_segment_index, start_number));
 
 					group->download_segment_index = seg_idx;
@@ -1389,6 +1392,15 @@ setup_multicast_clock:
 					if (group->dash->utc_drift_estimate<0) {
 						group->ast_at_init -= (timeline_duration - (segtime-start_segtime)) *1000/timescale;
 					}
+
+					if ((current_time_rescale > segtime + ent->duration) /* <=> is_last*/) {
+						group->start_playback_range = 0;
+						u32 diff = current_time_rescale - segtime - ent->duration;
+						if (diff>ent->duration) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Last segment end time is %u sec less than current time, using last entry in timekine\n", diff/timescale));
+						}
+					}
+
 					if (ent->nb_parts) {
 						dash_ssr_adjust_group_start(group, ((Double)ent->duration) / timescale, ent->nb_parts);
 					}
@@ -2589,7 +2601,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			dash->manifest_pending = 0;
 
 			if (!dash->in_error) {
-				if (e==GF_URL_ERROR) {
+				if ((e==GF_URL_ERROR) || (e==GF_REMOTE_SERVICE_ERROR)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update manifest: %s, aborting\n", gf_error_to_string(e)));
 					dash->in_error = GF_TRUE;
 				} else {
