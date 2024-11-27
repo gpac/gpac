@@ -728,7 +728,7 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	}
 
 	if (group_idx<-1) {
-		flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+		flags |= GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_NO_PROXY;
 	} else {
 		if (!ctx->segstore) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 		if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
