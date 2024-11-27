@@ -707,6 +707,11 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	gf_filter_pid_init_play_event(pid, &evt, 0, 1.0, "ROUTEOut");
 	gf_filter_pid_send_event(pid, &evt);
+	if (rpid->manifest_type) {
+		GF_FEVT_INIT(evt, GF_FEVT_NETWORK_HINT, pid);
+		evt.net_hint.sink_type = GF_4CC('M','A','B','R');
+		gf_filter_pid_send_event(pid, &evt);
+	}
 
 	if (ctx->llmode && !rpid->raw_file) {
 		rpid->carousel_time_us = ctx->carousel;
