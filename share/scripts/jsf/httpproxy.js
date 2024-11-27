@@ -32,6 +32,7 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +" - mcast: (string, default null) multicast address for this service\n"
 +" - unload: (integer, default 10) multicast unload policy\n"
 +" - activate: (integer, default 1) multicast activation policy\n"
++" - repair: (boolean, default true) enable unicast repair in MABR stack\n"
 +" - mcache: (boolean, default false) cache manifest files (experimental)\n"
 +" - timeshift: (integer) override [–timeshift]() for this service\n"
 +"\n"
@@ -370,19 +371,19 @@ httpout.on_request = (req) =>
 			req.send('Invalid host name');
 			return;
 		}
+		let hport = req.tls ? 443 : 80;
+		let splith = host.split(':');
+		if (splith.length>1) {
+			hport = parseInt(splith[splith.length-1]);
+		}
 		if ((host.indexOf("127.0.0.1")>=0) || (host.indexOf("localhost")>=0)) {
-			let hport = req.tls ? 443 : 80;
-			let splith = host.split(':');
-			if (splith.length>1) {
-				hport = parseInt(splith[splith.length-1]);
-			}
 			if (hport === use_port) {
 				req.reply = 405;
 				req.send('Invalid host pointing to this proxy');
 				return;
 			}
 		}
-		req.target_url = (req.tls ? 'https://' : 'http://') + host + req.url;
+		req.target_url = ((hport==443) ? 'https://' : 'http://') + host + req.url;
 	}
 	print(GF_LOG_INFO, `Proxying request ${req.method} for ${req.target_url}`);
 	print(GF_LOG_DEBUG, `\tRequest details ${ JSON.stringify(req) }`);
@@ -721,6 +722,7 @@ function create_service(http_url)
 		s.mabr_min_active = mabr_cfg.activate;
 		s.purge_delay = 1000 * mabr_cfg.timeshift;
 		s.mani_cache = mabr_cfg.mcache;
+		s.repair = mabr_cfg.repair;
 		print(GF_LOG_DEBUG, `Service ${http_url} has custom config${ (mabr_cfg.mcast ? ' and MABR' : '')}`);
 	}
 
@@ -851,6 +853,8 @@ function create_service(http_url)
 		args += ':gcache=0:stsi';
 		//multicast is dynamically enabled/disabled, start with all services tuned but disabled
 		if (this.mabr_min_active>0) args += ':tunein=-3';
+		//add repair option last and escape it
+		if (this.repair) args += '::repair_urls='+this.url;
 		
 		this.source = session.add_filter(args);
 		if (!this.source) {
@@ -1059,6 +1063,7 @@ filter.initialize = function() {
 				if (typeof sd.activate != 'number') sd.activate = 1;
 				if (typeof sd.timeshift != 'number') sd.timeshift = filter.timeshift;
 				if (typeof sd.mcache != 'boolean') sd.mcache = false;
+				if (typeof sd.repair != 'boolean') sd.repair = true;
 			});
 		} catch (e) {
 			print(`Failed to load services configuration ${filter.sdesc}: ${e}`);
