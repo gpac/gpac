@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -583,6 +583,17 @@ Gets the remote address of a peer. The socket MUST be connected.
 \return error if any
  */
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buffer);
+
+/*!
+\brief get remote address
+
+Gets the remote address and port of a peer. The socket MUST be connected.
+\param sock the socket object
+\param buffer destination buffer for IP address. Buffer must be GF_MAX_IP_NAME_LEN long
+\param port set to the remote port, may be NULL
+\return error if any
+ */
+GF_Err gf_sk_get_remote_address_port(GF_Socket *sock, char *buffer, u32 *port);
 
 /*!
 \brief set remote address

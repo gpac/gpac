@@ -4145,7 +4145,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 }
 
 GF_EXPORT
-GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
+GF_Err gf_sk_get_remote_address_port(GF_Socket *sock, char *buf, u32 *port)
 {
 #ifdef GPAC_HAS_IPV6
 	char clienthost[NI_MAXHOST];
@@ -4154,16 +4154,26 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	my_inet_ntop(AF_INET, addrptr, clienthost, NI_MAXHOST);
 	strcpy(buf, clienthost);
+	if (port) {
+		*port = ntohs(addrptr->sin6_port);
+	}
 	if (getnameinfo((struct sockaddr *)addrptr, sock->dest_addr_len, clienthost, NI_MAXHOST, servname, NI_MAXHOST, NI_NUMERICHOST) == 0) {
 		strcpy(buf, clienthost);
 	}
 #else
 	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	strcpy(buf, inet_ntoa(sock->dest_addr.sin_addr));
+	if (port) {
+		*port = ntohs(sock->dest_addr.sin_port);
+	}
 #endif
 	return GF_OK;
 }
-
+GF_EXPORT
+GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
+{
+	return gf_sk_get_remote_address_port(sock, buf, NULL);
+}
 
 
 #if 0 //unused
