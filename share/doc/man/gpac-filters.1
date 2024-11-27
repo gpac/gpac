@@ -2012,7 +2012,7 @@ asloop (bool, default: false): when auto switch is enabled, iterates back and fo
 .br
 bsmerge (bool, default: true): allow merging of video bitstreams (only HEVC for now)
 .br
-keep_burl (enum, default: BURL_STRIP): control BaseURL in manifest
+keep_burl (enum, default: strip): control BaseURL in manifest
 .br
 * strip: strip BaseURL (default)
 .br
@@ -6859,8 +6859,6 @@ If .I max_segs is set, file deletion event will be triggered in the filter chain
 .br
 In source mode, the filter outputs files on a single output PID of type file. The files are dispatched once fully received, the output PID carries a sequence of complete files. Repeated files are not sent unless requested.
 .br
-If needed, one PID per TSI can be used rather than a single PID. This avoids mixing files of different mime types on the same PID (e.g. HAS manifest and ISOBMFF).
-.br
 Example
 .br
 gpac -i atsc://gcache=false -o $ServiceID$/$File$:dynext
@@ -6868,6 +6866,10 @@ gpac -i atsc://gcache=false -o $ServiceID$/$File$:dynext
 
 .br
 This will grab the files and forward them as output PIDs, consumed by the fout filter.
+.br
+
+.br
+If needed, one PID per TSI can be used rather than a single PID using .I stsi. This avoids mixing files of different mime types on the same PID (e.g. HAS manifest and ISOBMFF). In this mode, each packet starting a new file carries the file name as a property.
 .br
 
 .br
@@ -6941,7 +6943,17 @@ ifce (str):                    default interface to use for multicast. If NULL, 
 .br
 gcache (bool, default: true):  indicate the files should populate GPAC HTTP cache
 .br
-tunein (sint, default: -2):    service ID to bootstrap on for ATSC 3.0 mode (0 means tune to no service, -1 tune all services -2 means tune on first service found)
+tunein (sint, default: -2):    service ID to bootstrap on. Special values:
+.br
+* 0: tune to no service
+.br
+* -1: tune all services
+.br
+* -2: tune on first service found
+.br
+* -3: detect all services and do not join multicast
+.br
+
 .br
 buffer (uint, default: 0x80000): receive buffer size to use in bytes
 .br
@@ -8049,7 +8061,7 @@ gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
 .br
 rmsei (bool, default: false, updatable): remove SEI messages from bitstream for AVC|H264, HEVC and VVC
 .br
-vidfmt (enum, default: -1, updatable): video format for AVC|H264, HEVC and VVC (component|pal|ntsc|secam|mac|undef)
+vidfmt (sint, default: -1, Enum: component|pal|ntsc|secam|mac|undef, updatable): video format for AVC|H264, HEVC and VVC
 .br
 
 .br
@@ -10142,6 +10154,121 @@ seek_reset (bool, default: false): reset decoder when seeking
 force_stereo (bool, default: true): use stereo output for multiview (top-bottom only)
 .br
 reset_switch (bool, default: false): reset decoder at config change
+.br
+
+.br
+.SH httpproxy
+.LP
+.br
+Description: HTTP Proxy
+.br
+Version: 1.0
+.br
+Author: GPAC team - (c) Telecom Paris 2024 - license LGPL v2
+.br
+
+.br
+This filter is an HTTP proxy for GET and HEAD requests supporting Multicast ABR sources.
+.br
+
+.br
+This filter does not produce PIDs, it attaches to HTTP output filter. If no HTTP server is specified in the session, the filter will create a server running on the specified .I port. If more options need to be specified for the HTTP server, it is recommended to specify the server explicitly.
+.br
+Example
+.br
+gpac http_proxy httpout:OPTS
+.br
+
+.br
+
+.br
+.SH Services Configuration
+.LP
+.br
+The service configuration is set using .I sdesc. It shall be a JSON file containing a single array of services.
+.br
+Each service is a JSON object which shall have the following properties:
+.br
+ * http: (string) URL of root manifest (MPD for DASH or master m3u8 for HLS)
+.br
+ * mcast: (string, default null) multicast address for this service
+.br
+ * unload: (integer, default 10) multicast unload policy
+.br
+ * activate: (integer, default 1) multicast activation policy
+.br
+ * mcache: (boolean, default false) cache manifest files (experimental)
+.br
+ * timeshift: (integer) override –timeshift for this service
+.br
+
+.br
+.SH HTTP Streaming Cache
+.LP
+.br
+The proxy will cache live edge segments in HTTP streaming sessions for –timeshift seconds. This caching is always done in memory.
+.br
+A service with a –timeshift value of 0 will disable this functionality, and N clients asking from the same segment will result in N requests being forwarded.
+.br
+
+.br
+Manifests files fetched from origin can be cached using the mcache service configuration option but this is currently not recommended for low latency services.
+.br
+
+.br
+.SH Multicast ABR cache
+.LP
+.br
+The proxy can be configured to use a multicast source as an alternate data source for a given service through the mcast service description file.
+.br
+The multicast source can be DBB-MABR (e.g. mabr://235.0.0.1:1234/), ATSC3.0 (e.g. atsc://) or ROUTE (e.g. route://235.0.0.1:1234/).
+.br
+If the multicast is replayed from a file, netcap ID shall be set in this multicast URL (e.g. NCID=N).
+.br
+
+.br
+The multicast service can be dynamically loaded at run-time using the unload service configuration option:
+.br
+- if 0, the multicast is started when loading the proxy and never ended,
+.br
+- otherwise, the multicast is started dynamically and ended unload seconds after last deactivation.
+.br
+
+.br
+The qualities in the multicast service can be dynamically activated or deactivated using the activate service configuration option:
+.br
+- if 0, multicast is never deactivated,
+.br
+- otherwise, a multicast representation is activated only if at least active clients are consuming it, and deactivated otherwise.
+.br
+
+.br
+The number of active clients on a given quality is computed using the client connection state: any disconnect/reconnect from a client for the same quality will trigger a deactivate+activate sequence.
+.br
+If .I checkip is used, the remote IP address+port are used instead of the connection. This however assumes that each client has a unique IP/port which may not always be true (NATs).
+.br
+
+.br
+If –timeshift is 0 for the service, multicast segments will be trashed as soon as not in use (potentially before the client request).
+.br
+
+.br
+Manifests files coming from multicast are currently never cached.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+port (uint, default: 80):      port to use when no server HTTP is specified
+.br
+sdesc (str):                   service configuration file
+.br
+gcache (bool, default: false): use gpac cache when fetching media
+.br
+timeshift (uint, default: 10): timeshift buffer in seconds for HTTP streaming services
+.br
+checkip (bool, default: false): monitor IP address for activation
 .br
 
 .br
