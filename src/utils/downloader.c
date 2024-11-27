@@ -2338,7 +2338,6 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, HTTPCloseType close_type)
 	if (sess->connection_close) close_type = HTTP_RESET_CONN;
 	sess->connection_close = GF_FALSE;
 	sess->remaining_data_size = 0;
-	sess->start_time = 0;
 	if (sess->async_req_reply) gf_free(sess->async_req_reply);
 	sess->async_req_reply = NULL;
 	sess->async_req_reply_size = 0;
@@ -2500,7 +2499,8 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 	if (sess->ftask) {
 		sess->ftask->sess = NULL;
-		sess->ftask = NULL;
+		if (gf_fs_is_last_task(sess->dm->filter_session))
+			gf_free(sess->ftask);
 	}
 
 	gf_free(sess);
@@ -3077,6 +3077,11 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 
 	gf_fatal_assert(sess->status != GF_NETIO_WAIT_FOR_REPLY);
 	gf_fatal_assert(sess->status != GF_NETIO_DATA_EXCHANGE);
+	//always detach task if any
+	if (sess->ftask) {
+		sess->ftask->sess	 = NULL;
+		sess->ftask = NULL;
+	}
 
 	//strip fragment
 	sep_frag = strchr(url, '#');
@@ -3124,7 +3129,17 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			sess->do_requests = http_do_requests;
 			socket_changed = GF_TRUE;
 		}
-		if (!strcmp("https", info.protocol)) {
+		Bool use_ssl = !strcmp("https", info.protocol) ? GF_TRUE : GF_FALSE;
+		//if proxy, check scheme and port
+		const char *proxy = gf_opts_get_key("core", "proxy");
+		if (proxy) {
+			if (!strnicmp(proxy, "http://", 7)) use_ssl = GF_FALSE;
+			else if (!strnicmp(proxy, "https://", 8)) use_ssl = GF_TRUE;
+			else if (strstr(proxy, ":80")) use_ssl = GF_FALSE;
+			else if (strstr(proxy, ":443")) use_ssl = GF_TRUE;
+		}
+
+		if (use_ssl) {
 			if (!(sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)) {
 				sess->flags |= GF_DOWNLOAD_SESSION_USE_SSL;
 				socket_changed = GF_TRUE;
@@ -3892,6 +3907,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			u32 nb_locks=0;
 			if (sess->mx) {
 				nb_locks = gf_mx_get_num_locks(sess->mx);
+				if (nb_locks) gf_mx_v(sess->mx);
 				gf_mx_del(sess->mx);
 			}
 			sess->h2_sess = a_sess->h2_sess;
@@ -5296,6 +5312,9 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 					SET_LAST_ERR(GF_IP_CONNECTION_CLOSED)
 					sess_connection_closed(sess);
 				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP,
+					       ("[%s] Session timeout for %s after %u ms, aborting\n", sess->log_name, sess->orig_url, sess->request_timeout));
+
 					SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
 				}
 				sess->status = GF_NETIO_STATE_ERROR;
@@ -6182,6 +6201,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 					&& sess->request_timeout
 					&& (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout)
 				) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP,
+					       ("[%s] Session timeout for %s after %u ms, aborting\n", sess->log_name, sess->orig_url, sess->request_timeout));
 					SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
 					sess->status = GF_NETIO_STATE_ERROR;
 					return GF_IP_NETWORK_FAILURE;
