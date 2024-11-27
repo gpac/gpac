@@ -39,6 +39,8 @@ typedef struct
 	u32 sid;
 	u32 tsi;
 	GF_FilterPid *opid;
+	u32 current_toi;
+	u32 bytes_sent;
 } TSI_Output;
 
 typedef struct

@@ -174,17 +174,50 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		(*p_pid) = pid;
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
 	}
-	gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(tsio ? tsio->tsi : service_id));
-	gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
-	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(finfo->filename));
-	ext = gf_file_ext_start(finfo->filename);
-	gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
 
-	pck = gf_filter_pck_new_alloc(pid, finfo->blob->size, &output);
-	if (pck) {
-		memcpy(output, finfo->blob->data, finfo->blob->size);
-		if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
-		gf_filter_pck_send(pck);
+	if (!tsio && (evt_type==GF_ROUTE_EVT_DYN_SEG_FRAG))
+		return;
+
+	if (!tsio || (tsio->current_toi != finfo->toi)) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(tsio ? tsio->tsi : service_id));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(finfo->filename));
+		ext = gf_file_ext_start(finfo->filename);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
+		if (tsio) {
+			tsio->current_toi = finfo->toi;
+			tsio->bytes_sent = 0;
+		}
+	}
+	u32 offset=0;
+	u32 to_write = finfo->blob->size;
+	if (tsio && tsio->bytes_sent) {
+		gf_fatal_assert(tsio->bytes_sent<=finfo->blob->size);
+		offset = tsio->bytes_sent;
+		to_write = finfo->blob->size - tsio->bytes_sent;
+	}
+	if (to_write) {
+		pck = gf_filter_pck_new_alloc(pid, to_write, &output);
+		if (pck) {
+			memcpy(output, finfo->blob->data + offset, to_write);
+			if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
+
+			Bool start = offset==0 ? GF_TRUE : GF_FALSE;
+			Bool end = (evt_type==GF_ROUTE_EVT_DYN_SEG_FRAG) ? GF_FALSE : GF_TRUE;
+			gf_filter_pck_set_framing(pck, start, end);
+			if (tsio && start)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_STRING(finfo->filename));
+
+			gf_filter_pck_send(pck);
+		}
+		if (tsio) tsio->bytes_sent += to_write;
+	} else if (evt_type!=GF_ROUTE_EVT_DYN_SEG_FRAG) {
+		if (tsio->bytes_sent) {
+			pck = gf_filter_pck_new_alloc(pid, 0, &output);
+			gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
+			gf_filter_pck_send(pck);
+
+		}
 	}
 
 	if (ctx->max_segs && (evt_type==GF_ROUTE_EVT_DYN_SEG))
@@ -323,11 +356,17 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 		//fallthrough
 
     case GF_ROUTE_EVT_DYN_SEG_FRAG:
-        //for now we only push complete files
-        if (!ctx->gcache || ctx->odir) {
+        //for now we only write complete files
+        if (ctx->odir) {
             break;
         }
-			
+        //no cache, write complete files unless stsi is set (for low latency file forwarding)
+        if (!ctx->gcache) {
+			if (ctx->stsi)
+				routein_send_file(ctx, evt_param, finfo, evt);
+            break;
+        }
+
 		if (!ctx->clock_init_seg
 			//if full seg push of previously advertized init, reset x-mcast-ll header
 			|| ((evt==GF_ROUTE_EVT_DYN_SEG) && !strcmp(ctx->clock_init_seg, finfo->filename))
@@ -537,7 +576,11 @@ static GF_Err routein_process(GF_Filter *filter)
 					}
 				}
 			}
-			gf_filter_ask_rt_reschedule(filter, 1000);
+
+			if (gf_route_dmx_last_num_active(ctx->route_dmx))
+				gf_filter_ask_rt_reschedule(filter, 1000);
+			else
+				gf_filter_ask_rt_reschedule(filter, 50000);
 			break;
 		} else if (!e) {
 			ctx->last_timeout = 0;
@@ -664,6 +707,12 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	}
 	if (!ctx->route_dmx) return GF_SERVICE_ERROR;
 
+	//not using cache, we must dispatch in a progressive way for now.
+	//TODO: add repair to allow out of order disptach
+	if (!ctx->gcache && ctx->llmode) {
+		ctx->llmode = GF_FALSE;
+	}
+
 	gf_route_set_dispatch_mode(ctx->route_dmx, ctx->llmode ? GF_ROUTE_DISPATCH_OUT_OF_ORDER :
 		(ctx->fullseg ? GF_ROUTE_DISPATCH_FULL : GF_ROUTE_DISPATCH_PROGRESSIVE)
 	);
@@ -742,7 +791,11 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gcache), "indicate the files should populate GPAC HTTP cache", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tunein), "service ID to bootstrap on for ATSC 3.0 mode (0 means tune to no service, -1 tune all services -2 means tune on first service found)", GF_PROP_SINT, "-2", NULL, 0},
+	{ OFFS(tunein), "service ID to bootstrap on. Special values:\n"
+	"- 0: tune to no service\n"
+	"- -1: tune all services\n"
+	"- -2: tune on first service found\n"
+	"- -3: detect all services and do not join multicast", GF_PROP_SINT, "-2", NULL, 0},
 	{ OFFS(buffer), "receive buffer size to use in bytes", GF_PROP_UINT, "0x80000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
     { OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -804,9 +857,10 @@ GF_FilterRegister ROUTEInRegister = {
 	"# Source mode\n"
 	"In source mode, the filter outputs files on a single output PID of type `file`. "
 	"The files are dispatched once fully received, the output PID carries a sequence of complete files. Repeated files are not sent unless requested.\n"
-	"If needed, one PID per TSI can be used rather than a single PID. This avoids mixing files of different mime types on the same PID (e.g. HAS manifest and ISOBMFF).\n"
 	"EX gpac -i atsc://gcache=false -o $ServiceID$/$File$:dynext\n"
 	"This will grab the files and forward them as output PIDs, consumed by the [fout](fout) filter.\n"
+	"\n"
+	"If needed, one PID per TSI can be used rather than a single PID using [-stsi](). This avoids mixing files of different mime types on the same PID (e.g. HAS manifest and ISOBMFF). In this mode, each packet starting a new file carries the file name as a property.\n"
 	"\n"
 	"If [-max_segs]() is set, file deletion event will be triggered in the filter chain.\n"
 	"\n"
