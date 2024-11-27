@@ -254,6 +254,8 @@ struct __gf_routedmx {
     GF_Mutex *blob_mx;
 
 	Bool dvb_mabr;
+	Bool start_inactive;
+	u32 last_nb_active;
 };
 
 static GF_Err dmx_process_service_route(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_ROUTESession *route_sess);
@@ -323,6 +325,7 @@ static void gf_route_service_del(GF_ROUTEDmx *routedmx, GF_ROUTEService *s)
 	if (s->dst_ip) gf_free(s->dst_ip);
 	if (s->log_name) gf_free(s->log_name);
 	if (s->service_identifier) gf_free(s->service_identifier);
+	gf_list_del_item(routedmx->services, s);
 	gf_free(s);
 }
 
@@ -503,28 +506,28 @@ static GF_ROUTEService *gf_route_create_service(GF_ROUTEDmx *routedmx, const cha
 		service->process_service = dmx_process_service_dvb_flute;
 	}
 	service->log_name = gf_strdup(log_name);
-
-	service->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
-	if (gf_sk_has_nrt_netcap(service->sock))
-		routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
-
-	gf_sk_set_usec_wait(service->sock, 1);
-	e = gf_sk_setup_multicast(service->sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup multicast on %s:%d\n", service->log_name, dst_ip, dst_port));
-		gf_route_service_del(routedmx, service);
-		return NULL;
-	}
-
-	gf_sk_set_buffer_size(service->sock, GF_FALSE, routedmx->unz_buffer_size);
-	//gf_sk_set_block_mode(service->sock, GF_TRUE);
-
 	service->dst_ip = gf_strdup(dst_ip);
 	service->port = dst_port;
 	service->objects = gf_list_new();
 	service->route_sessions = gf_list_new();
-
 	gf_list_add(routedmx->services, service);
+
+	Bool is_mabr_root = (protocol_type == GF_SERVICE_DVB_FLUTE) && !service_id;
+	if (!routedmx->start_inactive || is_mabr_root) {
+
+		service->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+		if (!routedmx->nrt_max_seg && gf_sk_has_nrt_netcap(service->sock))
+			routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
+
+		gf_sk_set_usec_wait(service->sock, 1);
+		e = gf_sk_setup_multicast(service->sock, dst_ip, dst_port, 0, GF_FALSE, (char*) routedmx->ip_ifce);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup multicast on %s:%d\n", service->log_name, dst_ip, dst_port));
+			gf_route_service_del(routedmx, service);
+			return NULL;
+		}
+		gf_sk_set_buffer_size(service->sock, GF_FALSE, routedmx->unz_buffer_size);
+	}
 
 	//flute default service for root FDT carrying DVB MABR manifest + other static (depending on muxers)
 	//always on
@@ -544,14 +547,15 @@ static GF_ROUTEService *gf_route_create_service(GF_ROUTEDmx *routedmx, const cha
 		else if (routedmx->tune_all_sls) service->tune_mode = GF_ROUTE_TUNE_SLS_ONLY;
 
 		//we are tuning, register socket
-        if (service->tune_mode != GF_ROUTE_TUNE_OFF) {
+        if (!routedmx->start_inactive && (service->tune_mode != GF_ROUTE_TUNE_OFF)) {
 			//call gf_route_register_service_sockets rather than gf_sk_group_register for coverage purpose only
             gf_route_register_service_sockets(routedmx, service, GF_TRUE);
         }
 	} else {
 		service->tune_mode = GF_ROUTE_TUNE_ON;
 		routedmx->service_autotune = service_id;
-		gf_sk_group_register(routedmx->active_sockets, service->sock);
+		if (!routedmx->start_inactive)
+			gf_sk_group_register(routedmx->active_sockets, service->sock);
 	}
 	if (routedmx->on_event)
 		routedmx->on_event(routedmx->udta, GF_ROUTE_EVT_SERVICE_FOUND, service_id, NULL);
@@ -611,6 +615,12 @@ GF_Err gf_route_atsc3_tune_in(GF_ROUTEDmx *routedmx, u32 serviceID, Bool tune_al
 	u32 i;
 	GF_ROUTEService *s;
 	if (!routedmx) return GF_BAD_PARAM;
+	if ((s32)serviceID==-3) {
+		serviceID = 0xFFFFFFFF;
+		routedmx->start_inactive = GF_TRUE;
+	} else {
+		routedmx->start_inactive = GF_FALSE;
+	}
 	routedmx->service_autotune = serviceID;
 	if (routedmx->dvb_mabr) tune_all_sls = GF_FALSE;
 	routedmx->tune_all_sls = tune_all_sls;
@@ -1484,27 +1494,29 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 
 				//need a new socket for the session
 				if ((strcmp(new_service->dst_ip, dst_add)) || (new_service->port != dst_port) ) {
-					rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
-					if (gf_sk_has_nrt_netcap(rsess->sock))
-						routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
-
-					gf_sk_set_usec_wait(rsess->sock, 1);
-					e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
-					if (e) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_service->log_name, dst_add, dst_port));
-						gf_list_del(rsess->channels);
-						gf_free(rsess);
-						gf_list_del(old_sessions);
-						goto exit;
-					}
-					gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
-					//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
-					new_service->secondary_sockets++;
-					if (new_service->tune_mode == GF_ROUTE_TUNE_ON)
-						gf_sk_group_register(routedmx->active_sockets, rsess->sock);
 
 					rsess->mcast_addr = gf_strdup(dst_add);
 					rsess->mcast_port = dst_port;
+
+					if (!routedmx->start_inactive) {
+						rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+						if (gf_sk_has_nrt_netcap(rsess->sock))
+							routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
+
+						gf_sk_set_usec_wait(rsess->sock, 1);
+						e = gf_sk_setup_multicast(rsess->sock, dst_add, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+						if (e) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", new_service->log_name, dst_add, dst_port));
+							gf_list_del(rsess->channels);
+							gf_free(rsess);
+							gf_list_del(old_sessions);
+							goto exit;
+						}
+						gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
+						new_service->secondary_sockets++;
+						if (new_service->tune_mode == GF_ROUTE_TUNE_ON)
+							gf_sk_group_register(routedmx->active_sockets, rsess->sock);
+					}
 				}
 				gf_list_add(new_service->route_sessions, rsess);
 			}
@@ -1516,11 +1528,13 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 					continue;
 				}
 				gf_list_add(rsess->channels, rlct);
-				rlct->is_active = GF_TRUE;
-				if (rsess->mcast_addr)
-					rsess->nb_active ++;
-				else
-					new_service->nb_active ++;
+				rlct->is_active = routedmx->start_inactive ? GF_FALSE : GF_TRUE;
+				if (rlct->is_active) {
+					if (rsess->mcast_addr)
+						rsess->nb_active ++;
+					else
+						new_service->nb_active ++;
+				}
 
 				if (new_service->protocol==GF_SERVICE_ROUTE)
 					rlct->static_files = gf_list_new();
@@ -2333,29 +2347,30 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 
 			//need a new socket for the session
 			if ((strcmp(s->dst_ip, dst_ip)) || (s->port != dst_port) ) {
-				rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
-				if (gf_sk_has_nrt_netcap(rsess->sock))
-					routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
-
-				gf_sk_set_usec_wait(rsess->sock, 1);
-				e = gf_sk_setup_multicast(rsess->sock, dst_ip, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
-				if (e) {
-					gf_sk_del(rsess->sock);
-					gf_list_del(rsess->channels);
-					gf_list_del_item(s->route_sessions, rsess);
-					gf_list_del(remove_sessions);
-					gf_list_del(remove_channels);
-					gf_free(rsess);
-					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", s->log_name, dst_ip, dst_port));
-					return e;
-				}
-				gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
-				//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
-				s->secondary_sockets++;
-				if (s->tune_mode == GF_ROUTE_TUNE_ON) gf_sk_group_register(routedmx->active_sockets, rsess->sock);
-
 				rsess->mcast_addr = gf_strdup(dst_ip);
 				rsess->mcast_port = dst_port;
+				if (!routedmx->start_inactive) {
+					rsess->sock = gf_sk_new_ex(GF_SOCK_TYPE_UDP, routedmx->netcap_id);
+					if (gf_sk_has_nrt_netcap(rsess->sock))
+						routedmx->nrt_max_seg = MAX_SEG_IN_NRT;
+
+					gf_sk_set_usec_wait(rsess->sock, 1);
+					e = gf_sk_setup_multicast(rsess->sock, dst_ip, dst_port, 0, GF_FALSE, (char *) routedmx->ip_ifce);
+					if (e) {
+						gf_sk_del(rsess->sock);
+						gf_list_del(rsess->channels);
+						gf_list_del_item(s->route_sessions, rsess);
+						gf_list_del(remove_sessions);
+						gf_list_del(remove_channels);
+						gf_free(rsess);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to setup mcast for route session on %s:%d\n", s->log_name, dst_ip, dst_port));
+						return e;
+					}
+					gf_sk_set_buffer_size(rsess->sock, GF_FALSE, routedmx->unz_buffer_size);
+					//gf_sk_set_block_mode(rsess->sock, GF_TRUE);
+					s->secondary_sockets++;
+					if (s->tune_mode == GF_ROUTE_TUNE_ON) gf_sk_group_register(routedmx->active_sockets, rsess->sock);
+				}
 			}
 		}
 
@@ -2514,11 +2529,13 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 				}
 				rlct->static_files = gf_list_new();
 				rlct->tsi = tsi;
-				rlct->is_active = GF_TRUE;
-				if (rsess->mcast_addr)
-					rsess->nb_active ++;
-				else
-					s->nb_active ++;
+				rlct->is_active = routedmx->start_inactive ? GF_FALSE : GF_TRUE;
+				if (rlct->is_active) {
+					if (rsess->mcast_addr)
+						rsess->nb_active ++;
+					else
+						s->nb_active ++;
+				}
 
 				gf_list_add(rsess->channels, rlct);
 			}
@@ -3364,6 +3381,7 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 	u32 i, j, count, nb_obj=0;
 	GF_Err e;
 
+	routedmx->last_nb_active = 0;
 	//check all active sockets
 	e = gf_sk_group_select(routedmx->active_sockets, 10, GF_SK_SELECT_READ);
 	if (e) {
@@ -3398,6 +3416,8 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 		GF_ROUTESession *rsess;
 		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
 		if (s->tune_mode==GF_ROUTE_TUNE_OFF) continue;
+		routedmx->last_nb_active += s->nb_active;
+
 		nb_obj_service = gf_list_count(s->objects);
 		if (s->nb_media_streams) nb_obj_service /= s->nb_media_streams;
 		//except for flute
@@ -3416,6 +3436,7 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 
 		j=0;
 		while ((rsess = (GF_ROUTESession *)gf_list_enum(s->route_sessions, &j) )) {
+			routedmx->last_nb_active += rsess->nb_active;
 			if (gf_sk_group_sock_is_set(routedmx->active_sockets, rsess->sock, GF_SK_SELECT_READ)) {
 				e = s->process_service(routedmx, s, rsess);
 				if (e) return e;
@@ -3425,6 +3446,10 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 	if (routedmx->nrt_max_seg && (nb_obj>routedmx->nrt_max_seg))
 		return GF_IP_NETWORK_EMPTY;
 	return GF_OK;
+}
+u32 gf_route_dmx_last_num_active(GF_ROUTEDmx *routedmx)
+{
+	return routedmx->last_nb_active;
 }
 
 GF_EXPORT
@@ -3788,10 +3813,10 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 		u32 j, nb_chan = gf_list_count(rsess->channels);
 		for (j=0; j<nb_chan; j++) {
 			rlct = gf_list_get(rsess->channels, j);
-			//if periodID is set, amke sure they match
+			//if periodID is set, make sure they match
 			if (period_id && rlct->dash_period_id && strcmp(period_id, rlct->dash_period_id))
 				continue;
-			if (rlct->dash_as_id && (rlct->dash_as_id!=as_id))
+			if (rlct->dash_as_id && as_id && (rlct->dash_as_id!=as_id))
 				continue;
 
 			if (rep_id && rlct->dash_rep_id && !strcmp(rep_id, rlct->dash_rep_id)) {
@@ -3838,7 +3863,7 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 		(*nb_active) ++;
 	} else {
 		if (!rlct->is_active) return GF_OK;
-		rlct->is_active = 0;
+		rlct->is_active = GF_FALSE;
 		if (s->last_active_obj && (s->last_active_obj->rlct==rlct))
 			s->last_active_obj = NULL;
 

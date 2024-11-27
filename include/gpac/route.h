@@ -239,6 +239,12 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx);
 GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 
+/*! Gets number of active TSIs (except signaling ones) that where checked during the last call to \ref gf_route_dmx_process
+\param routedmx the ROUTE demultiplexer
+\return number of multicast sockets active in last process
+ */
+u32 gf_route_dmx_last_num_active(GF_ROUTEDmx *routedmx);
+
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
 \param reorder_needed if TRUE, the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
