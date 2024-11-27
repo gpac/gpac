@@ -2980,7 +2980,7 @@ static GF_Err curl_setup_session(GF_DownloadSession* sess)
 		if (res==CURLE_UNSUPPORTED_PROTOCOL)
 			res = curl_easy_setopt(sess->curl_hnd, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_1_1);
 	}
-	const char *proxy = gf_opts_get_key("core", "proxy");
+	const char *proxy = (sess->flags & GF_NETIO_SESSION_NO_PROXY) ? NULL : gf_opts_get_key("core", "proxy");
 	if (proxy) {
 		sess->proxy_enabled = 1;
 		if (!res) res = curl_easy_setopt(sess->curl_hnd, CURLOPT_PROXY, proxy);
@@ -3131,7 +3131,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		}
 		Bool use_ssl = !strcmp("https", info.protocol) ? GF_TRUE : GF_FALSE;
 		//if proxy, check scheme and port
-		const char *proxy = gf_opts_get_key("core", "proxy");
+		const char *proxy = (sess->flags & GF_NETIO_SESSION_NO_PROXY) ? NULL : gf_opts_get_key("core", "proxy");
 		if (proxy) {
 			if (!strnicmp(proxy, "http://", 7)) use_ssl = GF_FALSE;
 			else if (!strnicmp(proxy, "https://", 8)) use_ssl = GF_TRUE;
@@ -3958,7 +3958,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 	/*PROXY setup*/
 	if (sess->proxy_enabled!=2) {
-		proxy = gf_opts_get_key("core", "proxy");
+		proxy = (sess->flags & GF_NETIO_SESSION_NO_PROXY) ? NULL : gf_opts_get_key("core", "proxy");
 		if (proxy) {
 			u32 i;
 			proxy_port = 80;

@@ -6414,7 +6414,7 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to get download manager, cannot sync to remote UTC clock\n"));
 			return;
 		}
-		ctx->utc_sess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_MEMORY_CACHE, NULL, NULL, &e);
+		ctx->utc_sess = gf_dm_sess_new(dm, url, GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_NO_PROXY, NULL, NULL, &e);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to create session for remote UTC source %s: %s - local clock will be used instead\n", url, gf_error_to_string(e) ));
 			return;

@@ -113,6 +113,8 @@ typedef enum
 	GF_NETIO_SESSION_NO_BLOCK = 1<<8,
 	/*! session must be able to share underlying GF_Socket */
 	GF_NETIO_SESSION_SHARE_SOCKET = 1<<9,
+	/*! disable proxy for this session */
+	GF_NETIO_SESSION_NO_PROXY = 1<<10,
 } GF_NetIOFlags;
 
 
