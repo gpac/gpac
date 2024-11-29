@@ -1954,6 +1954,12 @@ retry:
 	}
 
 	rpid->pck_data = gf_filter_pck_get_data(rpid->current_pck, &rpid->pck_size);
+	//this can happen with httpin and chunks
+	if (!rpid->pck_size || !rpid->pck_data) {
+		gf_filter_pck_unref(rpid->current_pck);
+		rpid->current_pck = NULL;
+		goto retry;
+	}
 	rpid->pck_offset = 0;
 
 	p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_INIT);
