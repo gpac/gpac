@@ -5546,12 +5546,17 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		gf_list_add(sess->headers, hdr);\
 		}
 
-	//always put port number when proxy is enabled
-	if (sess->proxy_enabled || ((sess->port!=80) && (sess->port!=443))) {
-		sprintf(sHTTP, "%s:%u", sess->server_name, sess->port);
-		PUSH_HDR("Host", sHTTP);
-	} else {
-		PUSH_HDR("Host", sess->server_name);
+#ifdef GPAC_HAS_HTTP2
+	if (!sess->h2_sess)
+#endif
+	{
+		//always put port number when proxy is enabled
+		if (sess->proxy_enabled || ((sess->port!=80) && (sess->port!=443))) {
+			sprintf(sHTTP, "%s:%u", sess->server_name, sess->port);
+			PUSH_HDR("Host", sHTTP);
+		} else {
+			PUSH_HDR("Host", sess->server_name);
+		}
 	}
 
 	has_agent = has_accept = has_connection = has_range = has_language = has_mime = has_chunk_transfer = GF_FALSE;
@@ -5629,8 +5634,11 @@ static GF_Err http_send_headers(GF_DownloadSession *sess) {
 		inject_icy = GF_FALSE;
 	} else
 #endif
-	if ((sess->proxy_enabled==1) && !sess->h2_sess) {
-		PUSH_HDR("Proxy-Connection", "Keep-alive")
+	if (sess->proxy_enabled==1) {
+#ifdef GPAC_HAS_HTTP2
+		if (!sess->h2_sess)
+#endif
+			PUSH_HDR("Proxy-Connection", "Keep-alive")
 	}
 	else if (!has_connection) {
 		PUSH_HDR("Connection", "Keep-Alive");

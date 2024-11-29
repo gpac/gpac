@@ -384,8 +384,10 @@ httpout.on_request = (req) =>
 	} else {
 		let host = null;
 		req.headers_in.forEach(h => {
-			if (h.name.toLowerCase() == "host") host = h.value;
-			if (h.name.toLowerCase() == "range") {
+			let hlwr = h.name.toLowerCase();
+			if (hlwr == "host") host = h.value;
+			else if (hlwr == ":authority") host = h.value;
+			if (hlwr == "range") {
 				let hdr_range = h.value.split('=');
 				let range = [1];
 				if (range.indexOf(',')>=0) {
