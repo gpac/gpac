@@ -1422,6 +1422,8 @@ enum
 
 	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec opaque data, u32*/
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
+
+	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
