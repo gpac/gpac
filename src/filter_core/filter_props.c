@@ -1854,6 +1854,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_CENC_PSSH, "DynPSSH", "PSSH blob for CENC, same format as `CENC_PSSH`, used when using master key and roll keys, signaled on first packet of segment where the PSSH changes", GF_PROP_DATA, GF_PROP_FLAG_PCK),
 
 	DEC_PROP_F( GF_PROP_PCK_LLHAS_TEMPLATE, "LLHASTemplate", "Template for DASH-SSR and LLHLS sub-segments", GF_PROP_STRING, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_PARTIAL_REPAIR, "PartialRepair", "indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);

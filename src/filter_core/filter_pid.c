@@ -805,6 +805,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 	gf_assert(filter->freg->configure_pid);
 	if (filter->finalized) {
+		if (ctype == GF_PID_CONF_REMOVE) return GF_OK;
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to configure PID %s in finalized filter %s\n",  pid->name, filter->name));
 		if (ctype==GF_PID_CONF_CONNECT) {
 			gf_assert(pid->filter->out_pid_connection_pending);
@@ -1354,7 +1356,7 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 
 	gf_mx_p(task->filter->tasks_mx);
 	//if the filter has no more connected ins and outs, remove it
-	if (task->filter->removed && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
+	if (task->filter->removed && !task->filter->finalized && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
 		Bool direct_mode = task->filter->session->direct_mode;
 		gf_filter_post_remove(task->filter);
 		if (direct_mode) {
