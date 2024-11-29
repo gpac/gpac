@@ -805,6 +805,8 @@ static int h2_before_frame_send_callback(nghttp2_session *session, const nghttp2
 static ssize_t h2_data_source_read_callback(nghttp2_session *session, int32_t stream_id, uint8_t *buf, size_t length, uint32_t *data_flags, nghttp2_data_source *source, void *user_data)
 {
 	GF_DownloadSession *sess = (GF_DownloadSession *) source->ptr;
+	if (!sess)
+		return NGHTTP2_ERR_EOF;
 
 	if (!sess->h2_send_data_len) {
 		sess->h2_send_data = NULL;
@@ -875,8 +877,10 @@ static void h2_flush_send(GF_DownloadSession *sess, Bool flush_local_buf)
 				break;
 			}
 		}
-		memcpy(sess->local_buf + sess->local_buf_len, sess->h2_send_data, nb_bytes);
-		sess->local_buf_len+=nb_bytes;
+		if (nb_bytes) {
+			memcpy(sess->local_buf + sess->local_buf_len, sess->h2_send_data, nb_bytes);
+			sess->local_buf_len+=nb_bytes;
+		}
 		sess->h2_send_data = NULL;
 		sess->h2_send_data_len = 0;
 	}
@@ -888,6 +892,8 @@ static int h2_send_data_callback(nghttp2_session *session, nghttp2_frame *frame,
 {
 	ssize_t rv;
 	GF_DownloadSession *sess = (GF_DownloadSession *) source->ptr;
+	if (!sess)
+		return NGHTTP2_ERR_EOF;
 
 	gf_assert(sess->h2_send_data_len);
 	gf_assert(sess->h2_send_data_len >= length);
@@ -2458,6 +2464,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		h2_detach_session(sess->h2_sess, sess);
 		gf_mx_v(sess->mx);
 	}
+	sess->data_io.source.ptr = NULL;
 
 	if (sess->h2_upgrade_settings)
 		gf_free(sess->h2_upgrade_settings);
@@ -3759,7 +3766,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 			e = GF_IP_NETWORK_EMPTY;
 		else {
 			e = GF_OK;
-			data[size] = 0;
 			*out_read = size;
 		}
 	} else
@@ -3919,6 +3925,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 			sess->ssl = a_sess->ssl;
 #endif
+			sess->proxy_enabled = a_sess->proxy_enabled;
 			sess->data_io.read_callback = h2_data_source_read_callback;
 			sess->data_io.source.ptr = sess;
 			gf_list_add(sess->h2_sess->sessions, sess);
