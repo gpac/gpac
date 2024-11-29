@@ -67,6 +67,7 @@ typedef enum
 	DASHER_UTCREF_INBAND,
 } DasherUTCTimingType;
 
+// NTP clock handling as a packet property
 enum
 {
 	DASHER_NTP_REM=0,
@@ -74,6 +75,7 @@ enum
 	DASHER_NTP_KEEP,
 };
 
+// Sample Access Point signalling (SAP 1 also being called 'sync' as it has been called in ISOBMFF)
 enum
 {
 	DASHER_SAP_OFF=0,
@@ -82,6 +84,7 @@ enum
 	DASHER_SAP_INTRA_ONLY,
 };
 
+// Values for the 'sbound' option
 enum
 {
 	DASHER_BOUNDS_OUT=0,
@@ -100,6 +103,7 @@ enum
 	DASHER_MUX_AUTO,
 };
 
+// MPEG-H 3D Audio flags
 enum
 {
 	DASHER_MPHA_NO=0,
@@ -107,6 +111,7 @@ enum
 	DASHER_MPHA_ALL
 };
 
+// DASHer 'forward_mode' option values
 enum
 {
 	DASHER_FWD_NO = 0,
@@ -138,12 +143,15 @@ enum
 	DASHER_DEFKID_AUTO
 };
 
+// Period switching
 enum
 {
 	DASHER_PSWITCH_SINGLE=0,
 	DASHER_PSWITCH_FORCE,
 	DASHER_PSWITCH_STSD
 };
+
+// Segment force sync
 enum
 {
 	DASHER_SEGSYNC_NO=0,
@@ -151,6 +159,7 @@ enum
 	DASHER_SEGSYNC_AUTO
 };
 
+// Index mode as used from a GHI (GPAC HTTP Streaming index) demuxer
 enum
 {
 	IDXMODE_NONE=0,
@@ -161,6 +170,7 @@ enum
 	IDXMODE_SEG,
 };
 
+// 'sflush' option (ex 'force_flush' option)
 enum
 {
 	SFLUSH_OFF=0,
@@ -575,7 +585,7 @@ static GF_Err dasher_get_audio_info_with_m4a_sbr_ps(GF_DashStream *ds, const GF_
 #endif
 
 
-static void dasher_check_outpath(GF_DasherCtx *ctx)
+static void dasher_ensure_outpath(GF_DasherCtx *ctx)
 {
 	if (!ctx->out_path) {
 		ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
@@ -1018,7 +1028,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			//for routeout
 			gf_filter_pid_set_property(opid, GF_PROP_PID_PREMUX_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
-			dasher_check_outpath(ctx);
+			dasher_ensure_outpath(ctx);
 
 			p = gf_filter_pid_caps_query(pid, GF_PROP_PID_FILE_EXT);
 			if (p) {
@@ -6501,7 +6511,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	if (!ctx->gencues) {
 		if (!ctx->out_path) {
-			dasher_check_outpath(ctx);
+			dasher_ensure_outpath(ctx);
 		}
 		if (ctx->current_period->period) {
 			if (ctx->dyn_rate)
