@@ -132,11 +132,6 @@ static void routein_cleanup_objects(ROUTEInCtx *ctx, u32 service_id)
 
 static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 evt_type)
 {
-	if (ctx->kc && (finfo->blob->flags & GF_BLOB_CORRUPTED)) {
-		routein_cleanup_objects(ctx, service_id);
-		return;
-	}
-
 	u8 *output;
 	char *ext;
 	GF_FilterPid *pid, **p_pid;
@@ -175,12 +170,17 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
 	}
 
-	if (!tsio && (evt_type==GF_ROUTE_EVT_DYN_SEG_FRAG))
-		return;
+	//we should never be called in non-progressive mode - assertions failing means broken file repair code
+	if (evt_type>=GF_ROUTE_EVT_FILE) {
+		gf_assert(finfo->nb_frags == 1);
+		gf_assert(finfo->frags[0].offset == 0);
+		gf_assert(finfo->frags[0].size == finfo->blob->size);
+	}
 
 	if (!tsio || (tsio->current_toi != finfo->toi)) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(tsio ? tsio->tsi : service_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
+		assert(finfo->filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(finfo->filename));
 		ext = gf_file_ext_start(finfo->filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
@@ -189,6 +189,18 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 			tsio->bytes_sent = 0;
 		}
 	}
+	//if we split TSIs we need to signal corrupted packets
+	if (!tsio && ctx->kc && (finfo->blob->flags & (GF_BLOB_CORRUPTED|GF_BLOB_PARTIAL_REPAIR) )) {
+		routein_cleanup_objects(ctx, service_id);
+		return;
+	}
+
+/*
+	//uncomment to disable progressive dispatch
+	if (tsio && (evt_type==GF_ROUTE_EVT_DYN_SEG_FRAG))
+		return;
+*/
+
 	u32 offset=0;
 	u32 to_write = finfo->blob->size;
 	if (tsio && tsio->bytes_sent) {
@@ -200,7 +212,11 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		pck = gf_filter_pck_new_alloc(pid, to_write, &output);
 		if (pck) {
 			memcpy(output, finfo->blob->data + offset, to_write);
-			if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
+			if (finfo->blob->flags & (GF_BLOB_CORRUPTED|GF_BLOB_PARTIAL_REPAIR)) {
+				gf_filter_pck_set_corrupted(pck, GF_TRUE);
+				if (finfo->blob->flags & GF_BLOB_PARTIAL_REPAIR)
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_PARTIAL_REPAIR, &PROP_BOOL(GF_TRUE) );
+			}
 
 			Bool start = offset==0 ? GF_TRUE : GF_FALSE;
 			Bool end = (evt_type==GF_ROUTE_EVT_DYN_SEG_FRAG) ? GF_FALSE : GF_TRUE;
@@ -214,9 +230,14 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 	} else if (evt_type!=GF_ROUTE_EVT_DYN_SEG_FRAG) {
 		if (tsio->bytes_sent) {
 			pck = gf_filter_pck_new_alloc(pid, 0, &output);
+			if (finfo->blob->flags & (GF_BLOB_CORRUPTED|GF_BLOB_PARTIAL_REPAIR)) {
+				gf_filter_pck_set_corrupted(pck, GF_TRUE);
+				if (finfo->blob->flags & GF_BLOB_PARTIAL_REPAIR)
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_PARTIAL_REPAIR, &PROP_BOOL(GF_TRUE) );
+			}
+
 			gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
 			gf_filter_pck_send(pck);
-
 		}
 	}
 
@@ -576,9 +597,9 @@ static GF_Err routein_process(GF_Filter *filter)
 					}
 				}
 			}
-
-			if (gf_route_dmx_last_num_active(ctx->route_dmx))
-				gf_filter_ask_rt_reschedule(filter, 1000);
+			//with decent buffer size >=50kB we should sustain at least 80 mbps per stream with 5ms reschedule
+			if (gf_route_dmx_has_active_multicast(ctx->route_dmx))
+				gf_filter_ask_rt_reschedule(filter, 5000);
 			else
 				gf_filter_ask_rt_reschedule(filter, 50000);
 			break;
