@@ -249,7 +249,7 @@ struct __httpout_session {
 	Double start_range;
 
 	FILE *resource;
-	char *path, *mime;
+	char *path, *mime, *req_url;
 	u64 file_size, file_pos, nb_bytes, bytes_in_req;
 	u8 *buffer;
 	Bool done;
@@ -1288,12 +1288,14 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 	JS_SetPropertyStr(c, obj, "headers_out", hdrs);
 	hdrs = JS_NewArray(c);
 	JS_SetPropertyStr(c, obj, "headers_in", hdrs);
-	u32 i;
+	u32 i, k=0;
 	for (i=0; i<nb_hdrs; i+=2) {
+		if (!headers[i] || !headers[i+1]) continue;
 		JSValue h = JS_NewObject(c);
 		JS_SetPropertyStr(c, h, "name", JS_NewString(c, headers[i] ));
 		JS_SetPropertyStr(c, h, "value", JS_NewString(c, headers[i+1] ));
-		JS_SetPropertyUint32(c, hdrs, i, h);
+		JS_SetPropertyUint32(c, hdrs, k, h);
+		k++;
 	}
 
 	JSValue ret = JS_Call(c, sess->ctx->request_fun, sess->ctx->js_obj, 1, &obj);
@@ -1464,6 +1466,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 		sess->nb_bytes = sess->bytes_in_req = 0;
 
+		if (sess->req_url) gf_free(sess->req_url);
+		sess->req_url = gf_strdup(url);
 		u32 auth_code = httpout_auth_check(NULL, gf_dm_sess_get_header(sess->http_sess, "Authorization"), GF_FALSE);
 		s32 ret = sess->ctx->on_request(sess->ctx->rt_udta, sess, get_method_name(parameter->reply), url, auth_code, nb_hdrs, (const char**)hdrs);
 		gf_free(hdrs);
@@ -3006,7 +3010,8 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (!ctx->port)
 		ctx->port = 80;
 
-	gf_filter_set_blocking(filter, GF_TRUE);
+	gf_filter_set_blocking(filter, ctx->blockio);
+
 	//load DM if we are pushing (for rate limit)
 	if (ctx->hmode==MODE_SOURCE)
 		gf_filter_get_download_manager(ctx->filter);
@@ -3097,6 +3102,7 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	if (s->buffer) gf_free(s->buffer);
 	if (s->path) gf_free(s->path);
 	if (s->mime) gf_free(s->mime);
+	if (s->req_url) gf_free(s->req_url);
 	if (s->opid) gf_filter_pid_remove(s->opid);
 	if (s->resource) gf_fclose(s->resource);
 	if (s->ranges) gf_free(s->ranges);
@@ -3104,7 +3110,7 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 #ifdef GPAC_HAS_QJS
 	if (!JS_IsUndefined(s->obj)) {
 		JS_SetOpaque(s->obj, NULL);
-	};
+	}
 #endif
 
 	gf_free(s);
@@ -3434,12 +3440,12 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 					if (sess->nb_bytes==sess->content_length)
 						e = GF_EOS;
 					else if (sess->nb_bytes>sess->content_length) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Too many bytes for uploaded content %s: %u vs %u announced\n", sess->path, sess->nb_bytes, sess->content_length));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Too many bytes for uploaded content %s: %u vs %u announced\n", sess->path ? sess->path : sess->req_url, sess->nb_bytes, sess->content_length));
 						e = GF_REMOTE_SERVICE_ERROR;
 					}
 				}
 				if (ctx->maxs && (sess->nb_bytes > ctx->maxs)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Too many bytes for uploaded content %s: %u vs %u max\n", sess->path, sess->nb_bytes, ctx->maxs));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Too many bytes for uploaded content %s: %u vs %u max\n", sess->path ? sess->path : sess->req_url, sess->nb_bytes, ctx->maxs));
 					e = GF_REMOTE_SERVICE_ERROR;
 				}
 
@@ -3709,6 +3715,7 @@ resend:
 		if (nb_read<0) {
 			ctx->next_wake_us = 1000;
 			sess->last_active_time = gf_sys_clock_high_res();
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sess %s no data\n", sess->path ? sess->path : sess->req_url));
 			return;
 		}
 		to_read = (u32) nb_read;
@@ -3758,16 +3765,16 @@ resend:
 
 		if (e) {
 			if ((e==GF_IP_CONNECTION_CLOSED) || (e==GF_URL_REMOVED)) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Connection to %s for %s closed\n", sess->peer_address, sess->path));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Connection to %s for %s closed\n", sess->peer_address, sess->path ? sess->path : sess->req_url));
 				httpout_mark_session_done(sess);
 				sess->canceled = GF_FALSE;
 				httpout_close_session(sess, e);
 				log_request_done(sess);
 				return;
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s for %s: %s\n", sess->peer_address, sess->path, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending data to %s for %s: %s\n", sess->peer_address, sess->path ? sess->path : sess->req_url, gf_error_to_string(e) ));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sending data to %s for %s: "LLU"/"LLU" bytes\n", sess->peer_address, sess->path, sess->nb_bytes, sess->bytes_in_req));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sending data to %s for %s: "LLU"/"LLU" bytes\n", sess->peer_address, sess->path ? sess->path : sess->req_url, sess->nb_bytes, sess->bytes_in_req));
 
 			//not in progress and we are done, notify (for chunk-transfer or h2) right away
 			if (!file_in_progress && last_range && (remain==read))
@@ -3810,7 +3817,7 @@ session_done:
 		sess->comp_data = NULL;
 
 		if (sess->nb_bytes) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Done sending %s to %s ("LLU"/"LLU" bytes)\n", sess->path, sess->peer_address, sess->nb_bytes, sess->bytes_in_req));
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Done sending %s to %s ("LLU"/"LLU" bytes)\n", sess->path ? sess->path : sess->req_url, sess->peer_address, sess->nb_bytes, sess->bytes_in_req));
 		}
 
 		//keep resource active
@@ -5188,7 +5195,7 @@ static GF_Err httpout_process(GF_Filter *filter)
 
 			diff_sec = (u32) (gf_sys_clock_high_res() - sess->last_active_time)/1000000;
 			if (diff_sec>ctx->timeout) {
-				GF_LOG(sess->done ? GF_LOG_INFO : GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeout for peer %s after %d sec, closing connection (last request %s)\n", sess->peer_address, diff_sec, sess->in_source ? sess->in_source->path : sess->path ));
+				GF_LOG(sess->done ? GF_LOG_INFO : GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeout for peer %s after %d sec, closing connection (last request %s)\n", sess->peer_address, diff_sec, sess->in_source ? sess->in_source->path : (sess->path ? sess->path : sess->req_url) ));
 
 				httpout_close_session(sess, GF_IP_UDP_TIMEOUT);
 
