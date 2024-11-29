@@ -255,7 +255,7 @@ struct __gf_routedmx {
 
 	Bool dvb_mabr;
 	Bool start_inactive;
-	u32 last_nb_active;
+	u32 nb_active;
 };
 
 static GF_Err dmx_process_service_route(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_ROUTESession *route_sess);
@@ -841,6 +841,7 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 	gf_mx_v(obj->blob.mx);
 	obj->status = GF_LCT_OBJ_INIT;
 	gf_list_del_item(s->objects, obj);
+	gf_assert(gf_list_find(routedmx->object_reservoir, obj)<0);
 	gf_list_add(routedmx->object_reservoir, obj);
 
 #ifndef GPAC_DISABLE_LOG
@@ -888,6 +889,7 @@ static void gf_route_lct_removed(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_R
 				s->nb_active--;
 				//keep service socket active
 			}
+			routedmx->nb_active--;
 		}
 	}
 	gf_route_static_files_del(lc->static_files);
@@ -1084,6 +1086,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		GF_ROUTELCTChannel *prev_rlct=NULL;
 		u32 prev_flute_type = 0;
 		u32 prev_flute_crc = 0;
+		Bool is_obj_update = GF_FALSE;
 		u32 i;
 		Bool no_remove = GF_FALSE;
 		for (i=0; i<gf_list_count(s->objects); i++) {
@@ -1169,8 +1172,11 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 			}
 		}
 
+		if (obj)
+			is_obj_update = GF_TRUE;
+
 		//gathering for flute LL, try to find a preallocated obj with an allocated ll map
-		if (frag_sep) {
+		if (!obj && frag_sep) {
 			for (i=0; i<gf_list_count(routedmx->object_reservoir); i++) {
 				obj = gf_list_get(routedmx->object_reservoir, i);
 				if (obj->ll_maps_alloc) {
@@ -1247,7 +1253,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 			GF_SAFEALLOC(obj->rlct_file, GF_ROUTELCTFile);
 			obj->rlct_file->filename = gf_strdup(content_location);
 			obj->rlct_file->toi = toi;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Added object %s TSI %u TOI %u size %u\n", s->log_name, content_location, tsi, toi, obj->total_length));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Added object %s TSI %u TOI %u size %u (is update %d)\n", s->log_name, content_location, tsi, toi, obj->total_length, is_obj_update));
 			obj->rlct_file->fdt_tsi = fdt_obj->tsi;
 			obj->rlct_file->crc = prev_flute_crc;
 
@@ -1271,7 +1277,11 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		}
 		if (query_sep) query_sep[0] = 0;
 		else if (frag_sep) frag_sep[0] = 0;
-		gf_list_add(s->objects, obj);
+
+		if (!is_obj_update) {
+			gf_assert(gf_list_find(s->objects, obj)<0);
+			gf_list_add(s->objects, obj);
+		}
 	}
 	return GF_OK;
 }
@@ -1534,6 +1544,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 						rsess->nb_active ++;
 					else
 						new_service->nb_active ++;
+					routedmx->nb_active++;
 				}
 
 				if (new_service->protocol==GF_SERVICE_ROUTE)
@@ -1892,6 +1903,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 		}
 		obj->start_time_ms = gf_sys_clock();
+		gf_assert(gf_list_find(s->objects, obj)<0);
 		gf_list_add(s->objects, obj);
 	} else if (!obj->total_length && total_len) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u was started without total-length assigned, assigning to %u\n", s->log_name, tsi, toi, total_len));
@@ -2535,6 +2547,7 @@ static GF_Err gf_route_service_setup_stsid(GF_ROUTEDmx *routedmx, GF_ROUTEServic
 						rsess->nb_active ++;
 					else
 						s->nb_active ++;
+					routedmx->nb_active++;
 				}
 
 				gf_list_add(rsess->channels, rlct);
@@ -3381,7 +3394,6 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 	u32 i, j, count, nb_obj=0;
 	GF_Err e;
 
-	routedmx->last_nb_active = 0;
 	//check all active sockets
 	e = gf_sk_group_select(routedmx->active_sockets, 10, GF_SK_SELECT_READ);
 	if (e) {
@@ -3403,20 +3415,23 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 		}
 		return e;
 	}
+
+	//do NOT return if error on one of the sockets, make sure we flush all sockets first
+	//otherwise we could get NETWORK_EMPTY on first socket while there is data incoming on other ones
+	GF_Err out_err = GF_OK;
 	if (routedmx->atsc_sock) {
 		if (gf_sk_group_sock_is_set(routedmx->active_sockets, routedmx->atsc_sock, GF_SK_SELECT_READ)) {
-			e = gf_route_dmx_process_lls(routedmx);
-			if (e) return e;
+			out_err = gf_route_dmx_process_lls(routedmx);
 		}
 	}
 
+	Bool has_network_empty = GF_FALSE;
 	count = gf_list_count(routedmx->services);
 	for (i=0; i<count; i++) {
 		u32 nb_obj_service;
 		GF_ROUTESession *rsess;
 		GF_ROUTEService *s = (GF_ROUTEService *)gf_list_get(routedmx->services, i);
 		if (s->tune_mode==GF_ROUTE_TUNE_OFF) continue;
-		routedmx->last_nb_active += s->nb_active;
 
 		nb_obj_service = gf_list_count(s->objects);
 		if (s->nb_media_streams) nb_obj_service /= s->nb_media_streams;
@@ -3428,7 +3443,12 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 		}
 		if (gf_sk_group_sock_is_set(routedmx->active_sockets, s->sock, GF_SK_SELECT_READ)) {
 			e = s->process_service(routedmx, s, NULL);
-			if (e) return e;
+
+			if (e==GF_IP_NETWORK_EMPTY) {
+				has_network_empty = GF_TRUE;
+			} else if (e && !out_err) {
+				out_err = e;
+			}
 		}
 		if (s->tune_mode!=GF_ROUTE_TUNE_ON) continue;
 
@@ -3436,20 +3456,27 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx)
 
 		j=0;
 		while ((rsess = (GF_ROUTESession *)gf_list_enum(s->route_sessions, &j) )) {
-			routedmx->last_nb_active += rsess->nb_active;
 			if (gf_sk_group_sock_is_set(routedmx->active_sockets, rsess->sock, GF_SK_SELECT_READ)) {
 				e = s->process_service(routedmx, s, rsess);
-				if (e) return e;
+				if (e==GF_IP_NETWORK_EMPTY) {
+					has_network_empty = GF_TRUE;
+				} else if (e && !out_err) {
+					out_err = e;
+				}
 			}
 		}
 	}
-	if (routedmx->nrt_max_seg && (nb_obj>routedmx->nrt_max_seg))
+	if (has_network_empty
+		|| (routedmx->nrt_max_seg && (nb_obj>routedmx->nrt_max_seg))
+	) {
 		return GF_IP_NETWORK_EMPTY;
-	return GF_OK;
+	}
+	return out_err;
 }
-u32 gf_route_dmx_last_num_active(GF_ROUTEDmx *routedmx)
+
+Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx)
 {
-	return routedmx->last_nb_active;
+	return routedmx->nb_active ? GF_TRUE : GF_FALSE;
 }
 
 GF_EXPORT
@@ -3739,8 +3766,10 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 		if (br_start < obj->frags[i].offset) {
 			//we patched until beginning of this fragment, merge
 			if (br_end >= obj->frags[i].offset) {
+				u32 frag_end = obj->frags[i].offset + obj->frags[i].size;
 				u32 last_end = i ? (obj->frags[i-1].offset+obj->frags[i-1].size) : 0;
 				obj->frags[i].offset = (last_end > br_start) ? last_end : br_start;
+				obj->frags[i].size = frag_end - obj->frags[i].offset;
 				is_patched = GF_TRUE;
 				break;
 			}
@@ -3827,7 +3856,8 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 		}
 		if (mcast_sess) break;
 	}
-	if (!mcast_sess) return GF_OK;
+	if (!mcast_sess)
+		return GF_OK;
 	GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] %s rep %s MCAST %s:%d TSI %u\n", s->log_name,
 		is_selected ? "Activating" : "Deactivating",
 		rep_id,
@@ -3861,6 +3891,7 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 		}
 
 		(*nb_active) ++;
+		routedmx->nb_active++;
 	} else {
 		if (!rlct->is_active) return GF_OK;
 		rlct->is_active = GF_FALSE;
@@ -3868,6 +3899,7 @@ GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, c
 			s->last_active_obj = NULL;
 
 		(*nb_active) --;
+		routedmx->nb_active--;
 		//we cannot deactivate service socket in ROUTE, we need to get MPD and STSID updates
 		//for mabr (flute or route) we can
 		if (! (*nb_active) && (mcast_sess->mcast_addr || routedmx->dvb_mabr) ) {

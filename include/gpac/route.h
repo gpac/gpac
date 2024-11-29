@@ -239,11 +239,11 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx);
 GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 
-/*! Gets number of active TSIs (except signaling ones) that where checked during the last call to \ref gf_route_dmx_process
+/*! Checks if there are some active multicast sockets
 \param routedmx the ROUTE demultiplexer
-\return number of multicast sockets active in last process
+\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
  */
-u32 gf_route_dmx_last_num_active(GF_ROUTEDmx *routedmx);
+Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx);
 
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer

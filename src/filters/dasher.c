@@ -3559,7 +3559,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 			ds->as_id = gf_list_find(ctx->current_period->streams, ds)+1;
 			ds->set->id = ds->as_id;
 		}
-		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_AS_ID, &PROP_SINT( ds->as_id ) );
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_AS_ID, &PROP_UINT( ds->as_id ) );
 	}
 	//end route_out
 

@@ -1133,6 +1133,8 @@ enum
     GF_BLOB_IN_TRANSFER = 1,
 	/*! blob is corrupted */
     GF_BLOB_CORRUPTED = 1<<1,
+	/*! blob is parsable (valid mux format) but had partial repair only (media holes) */
+    GF_BLOB_PARTIAL_REPAIR = 1<<2
 };
 
 /*!

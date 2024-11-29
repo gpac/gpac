@@ -182,13 +182,17 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
         u32 type = next_top_level_box(finfo, data, size, &pos, &box_size);
         //no more top-level found, patch from current pos until end of payload
         if (!type) {
-			if (patch_first_range_size)
+			if (patch_first_range_size) {
+				gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
 				return;
-
+			}
             u32 remain = size - pos;
             gf_assert(remain);
             if (remain<8) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Failed to patch end of corrupted segment, segment size not big enough to hold the final box header, something really corrupted in source data\n"));
+                if (finfo->blob)
+					finfo->blob->flags |= GF_BLOB_CORRUPTED;
+				gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
                 return;
             }
             data[pos] = (remain>>24) & 0xFF;
@@ -201,6 +205,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
             data[pos+7] = 'e';
 			//remove corrupted flag
 			finfo->partial = GF_LCTO_PARTIAL_NONE;
+			gf_route_dmx_patch_frag_info(ctx->route_dmx, service_id, finfo, 0, size);
             return;
         }
         //we missed a box header, insert one at previous pos, indicating a free box !!
@@ -348,17 +353,25 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 
 	if (fast_repair) {
 		Bool drop_if_first = GF_FALSE;
-		if (finfo->blob->mx)
+		Bool in_transfer = GF_FALSE;
+		if (finfo->blob->mx) {
 			gf_mx_p(finfo->blob->mx);
-
+			finfo->blob->flags &= ~GF_BLOB_CORRUPTED;
+			if (finfo->blob->flags & GF_BLOB_IN_TRANSFER) in_transfer = GF_TRUE;
+			else finfo->blob->flags |= GF_BLOB_IN_TRANSFER;
+		}
 		if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
 			drop_if_first = routein_repair_segment_ts_local(ctx, evt_param, finfo, (fast_repair==2) ? GF_TRUE : GF_FALSE);
 		} else {
 			routein_repair_segment_isobmf_local(ctx, evt_param, finfo, (fast_repair==2) ? GF_TRUE : GF_FALSE);
 		}
 
-		if (finfo->blob->mx)
+		if (finfo->blob->mx) {
+			finfo->blob->flags |= GF_BLOB_PARTIAL_REPAIR;
+			if (!in_transfer)
+				finfo->blob->flags &= ~GF_BLOB_IN_TRANSFER;
 			gf_mx_v(finfo->blob->mx);
+		}
 		routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, drop_if_first);
 		return;
 	}
@@ -598,6 +611,8 @@ void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filen
 		if ((rsi->service_id==service_id) && !strcmp(rsi->finfo.filename, filename)) {
 			//we don't cancel sessions now, this should be done in session_done
 			if (is_delete) {
+				//log is set as warning for now as this is work in progress
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[REPAIR] Repair canceled for object %s (TSI=%u, TOI=%u)\n", rsi->finfo.filename, rsi->finfo.tsi, rsi->finfo.toi));
 				rsi->removed = GF_TRUE;
 			} else {
 				//TODO: decide if we need to be more agressive ?
