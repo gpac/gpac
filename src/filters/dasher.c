@@ -40,10 +40,11 @@ typedef struct
 {
 	GF_List *streams;
 
-	//period element we will fill
+	//DASH Period XML element we will fill
 	GF_MPD_Period *period;
 } GF_DasherPeriod;
 
+//bitstream switching modes
 enum
 {
 	DASHER_BS_SWITCH_DEF=0,
