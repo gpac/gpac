@@ -254,6 +254,7 @@ typedef struct
 	Bool on_demand_done;
 	Bool subdur_done;
 	char *out_path;
+	char *out_path_alt;
 
 	GF_Err setup_failure;
 
@@ -594,7 +595,7 @@ static void dasher_check_outpath(GF_DasherCtx *ctx)
 	if (ctx->opid)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_URL, &PROP_STRING(ctx->out_path) );
 	if (ctx->opid_alt)
-		gf_filter_pid_set_property(ctx->opid_alt, GF_PROP_PID_URL, &PROP_STRING(ctx->out_path) );
+		gf_filter_pid_set_property(ctx->opid_alt, GF_PROP_PID_URL, &PROP_STRING(ctx->out_path_alt) );
 }
 
 
@@ -982,7 +983,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					gf_free(out_path);
 					break;
 				}
-				gf_free(out_path);
+				if (ctx->out_path_alt) gf_free(ctx->out_path_alt);
+				ctx->out_path_alt = out_path;
 
 				//reset any sourceID given in the dst_arg and assign sourceID to be the dasher filter
 				gf_filter_reset_source(ctx->alt_dst);
@@ -1047,8 +1049,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						gf_filter_pid_disable_clone(opid);
 
 					//override URL/path when loaded dynamically in case output filter(s) do not set a manifest name
-					gf_filter_pid_set_property(opid, GF_PROP_PID_URL, ctx->out_path ? &PROP_STRING(ctx->out_path) : NULL );
-					gf_filter_pid_set_property(opid, GF_PROP_PID_FILEPATH, ctx->out_path ? &PROP_STRING(ctx->out_path) : NULL );
+					char *path = (opid==ctx->opid_alt) ? ctx->out_path_alt : ctx->out_path;
+					gf_filter_pid_set_property(opid, GF_PROP_PID_URL, path ? &PROP_STRING(path) : NULL );
+					gf_filter_pid_set_property(opid, GF_PROP_PID_FILEPATH, path ? &PROP_STRING(path) : NULL );
 				}
 
 				if (!strcmp(segext, "m3u8")) {
@@ -10913,6 +10916,7 @@ static void dasher_finalize(GF_Filter *filter)
 	gf_list_del(ctx->next_period->streams);
 	gf_free(ctx->next_period);
 	if (ctx->out_path) gf_free(ctx->out_path);
+	if (ctx->out_path_alt) gf_free(ctx->out_path_alt);
 	gf_list_del(ctx->postponed_pids);
 #ifndef GPAC_DISABLE_CRYPTO
 	if (ctx->cinfo) gf_crypt_info_del(ctx->cinfo);
@@ -11166,7 +11170,7 @@ GF_FilterRegister DasherRegister = {
 "If you need per-frame real-time regulation on non-real-time inputs, insert a [reframer](reframer) before to perform real-time regulation.\n"
 "EX gpac -i file.mp4 reframer:rt=on -o live.mpd:dmode=dynamic\n"
 "## Template strings\n"
-"The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). "
+"The segmenter uses templates to derive output file names and folder, regardless of the DASH mode (even when templates are not used). "
 "The default one is `$File$_dash` for ondemand and single file modes, and `$File$_$Number$` for separate segment files\n"
 "EX template=Great_$File$_$Width$_$Number$\n"
 "If input is `foo.mp4` with `640x360` video resolution, this will resolve in `Great_foo_640_$Number$` for the DASH template.\n"
@@ -11191,6 +11195,8 @@ GF_FilterRegister DasherRegister = {
 "- $SegExt=EXT$: replaced by EXT for media segment file extensions, ignored for init segments\n"
 "- $FS$ (FileSuffix): replaced by `_trackN` in case the input is an AV multiplex, or kept empty otherwise\n"
 "Note: these strings are replaced in the manifest templates elements.\n"
+"\n"
+"Other properties can also be set, see below.\n"
 "\n"
 "## PID assignment and configuration\n"
 "To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input PID:\n"

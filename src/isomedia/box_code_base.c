@@ -4324,6 +4324,11 @@ GF_Err audio_sample_entry_box_size(GF_Box *s)
 	if (ptr->qtff_mode)
 		return GF_OK;
 
+	if (ptr->version) {
+		gf_isom_check_position(s, gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_SRAT), &pos);
+		gf_isom_check_position(s, gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_CHNL), &pos);
+	}
+
 	gf_isom_check_position(s, (GF_Box *)ptr->esd, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_mha, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_3gpp, &pos);
@@ -4331,6 +4336,11 @@ GF_Err audio_sample_entry_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_ac3, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_flac, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->cfg_mlp, &pos);
+
+	if (!ptr->version) {
+		gf_isom_check_position(s, gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_SRAT), &pos);
+		gf_isom_check_position(s, gf_isom_box_find_child(ptr->child_boxes, GF_ISOM_BOX_TYPE_CHNL), &pos);
+	}
 	return GF_OK;
 }
 
@@ -14391,5 +14401,44 @@ GF_Err sref_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+GF_Box *srat_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_SamplingRateBox, GF_ISOM_BOX_TYPE_SRAT);
+	return (GF_Box *)tmp;
+}
+
+void srat_box_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err srat_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_SamplingRateBox *ptr = (GF_SamplingRateBox *)s;
+	ISOM_DECREASE_SIZE(ptr, 4)
+	ptr->sampling_rate = gf_bs_read_u32(bs);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err srat_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SamplingRateBox *ptr = (GF_SamplingRateBox *)s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->sampling_rate);
+	return GF_OK;
+}
+
+GF_Err srat_box_size(GF_Box *s)
+{
+	s->size += 4;
+	return GF_OK;
+}
+#endif // GPAC_DISABLE_ISOM_WRITE
 
 #endif /*GPAC_DISABLE_ISOM*/

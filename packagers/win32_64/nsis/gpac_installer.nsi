@@ -230,6 +230,7 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_BIN}\postproc-*.dll"
   File "${GPAC_BIN}\libx264-*.dll"
   File "${GPAC_BIN}\OpenSVCDecoder.dll"
+  File "${GPAC_BIN}\libcurl*.dll"
 
   ;copy shared resources
   SetOutPath $INSTDIR\share

@@ -1401,8 +1401,8 @@ setup_multicast_clock:
 				segdur_in_timeline += ent->duration;
 			}
 		}
-		//check if we're ahead of time but "reasonnably" ahead (max 1 min) - otherwise consider the timing is broken
-		if ((current_time_rescale + last_s_dur >= segtime) && (current_time_rescale <= segtime + 60*timescale)) {
+		//check if we're ahead of time but "reasonably" ahead (max 1.5 seg) - otherwise consider the timing is broken
+		if ((current_time_rescale + last_s_dur >= segtime*3/2) && (current_time_rescale <= segtime + 60*timescale)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] current time "LLU" is greater than last SegmentTimeline end "LLU" by %g sec - defaulting to last entry in SegmentTimeline\n", current_time_rescale, segtime, (Double) (current_time_rescale - segtime)/timescale ));
 			group->download_segment_index = (seg_idx > 2) ? (seg_idx-2) : 0;
 			group->nb_segments_in_rep = seg_idx;

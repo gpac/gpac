@@ -3725,7 +3725,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (!CodedLossless && !allow_intrabc) {
 		u8 loop_filter_level_0 = gf_bs_read_int_log(bs, 6, "loop_filter_level_0");
 		u8 loop_filter_level_1 = gf_bs_read_int_log(bs, 6, "loop_filter_level_1");
-		if (!state->config->monochrome) {
+		if (state && state->config && !state->config->monochrome) {
 			if (loop_filter_level_0 || loop_filter_level_1) {
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_2");
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_3");
@@ -13007,23 +13007,25 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 	u8 profile=12;
 	u8 *sqhdr = memchr(seq_hdr+1, 0x0F, seq_hdr_len);
 	if (sqhdr) {
-		u32 skip = (u32) (sqhdr - seq_hdr - 3);
+		u32 skip = (u32) (sqhdr - seq_hdr);
 		seq_hdr+=skip;
 		seq_hdr_len-=skip;
-		bs = gf_bs_new(seq_hdr+4, seq_hdr_len-4, GF_BITSTREAM_READ);
-		profile = gf_bs_read_int(bs, 2);
-		if (profile==3) {
-			level = gf_bs_read_int(bs, 3);
-			/*cfmt*/gf_bs_read_int(bs, 2);
-			/*fps*/gf_bs_read_int(bs, 3);
-			/*btrt*/gf_bs_read_int(bs, 5);
-			gf_bs_read_int(bs, 1);
-			/*mw*/gf_bs_read_int(bs, 12);
-			/*mh*/gf_bs_read_int(bs, 12);
-			/*bcast*/gf_bs_read_int(bs, 1);
-			interlace = gf_bs_read_int(bs, 1);
+		if (seq_hdr_len > 1) {
+			bs = gf_bs_new(seq_hdr+1, seq_hdr_len-1, GF_BITSTREAM_READ);
+			profile = gf_bs_read_int(bs, 2);
+			if (profile==3) {
+				level = gf_bs_read_int(bs, 3);
+				/*cfmt*/gf_bs_read_int(bs, 2);
+				/*fps*/gf_bs_read_int(bs, 3);
+				/*btrt*/gf_bs_read_int(bs, 5);
+				gf_bs_read_int(bs, 1);
+				/*mw*/gf_bs_read_int(bs, 12);
+				/*mh*/gf_bs_read_int(bs, 12);
+				/*bcast*/gf_bs_read_int(bs, 1);
+				interlace = gf_bs_read_int(bs, 1);
+			}
+			gf_bs_del(bs);
 		}
-		gf_bs_del(bs);
 	}
 	*dsi_size = seq_hdr_len+7;
 	*dsi = gf_malloc(seq_hdr_len+7);
