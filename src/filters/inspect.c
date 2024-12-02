@@ -4306,6 +4306,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 	if (ctx->test==INSPECT_TEST_NOPROP) return;
 	if (!ctx->dump_log && !dump) return;
+	if (!pid) return;
 
 	if (ctx->stats) {
 		char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
@@ -4604,20 +4605,22 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		inspect_printf(dump, ">\n");
 		inspect_printf(dump, " <OBUConfig>\n");
 
-		idx = 1;
-		for (i=0; i<gf_list_count(pctx->av1_state->config->obu_array); i++) {
-			ObuType obu_type=0;
-			u64 obu_size = 0;
-			u32 hdr_size = 0;
-			GF_AV1_OBUArrayEntry *obu = gf_list_get(pctx->av1_state->config->obu_array, i);
+		if (pctx && pctx->av1_state && pctx->av1_state->config) {
+			idx = 1;
+			for (i=0; i<gf_list_count(pctx->av1_state->config->obu_array); i++) {
+				ObuType obu_type=0;
+				u64 obu_size = 0;
+				u32 hdr_size = 0;
+				GF_AV1_OBUArrayEntry *obu = gf_list_get(pctx->av1_state->config->obu_array, i);
 
-			if (!pctx->bs)
-				pctx->bs = gf_bs_new((const u8 *) obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
-			else
-				gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
+				if (!pctx->bs)
+					pctx->bs = gf_bs_new((const u8 *) obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+				else
+					gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
 
-			gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
-			idx++;
+				gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+				idx++;
+			}
 		}
 #endif
 		inspect_printf(dump, " </OBUConfig>\n");

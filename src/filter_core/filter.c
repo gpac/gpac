@@ -1325,6 +1325,7 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 	if (filter->logs) {
 		if (filter->logs->tools) gf_free(filter->logs->tools);
 		if (filter->logs->levels) gf_free(filter->logs->levels);
+		gf_log_pop_extra(filter->logs);
 		gf_free(filter->logs);
 	}
 	GF_SAFEALLOC(filter->logs, GF_LogExtra);
@@ -1529,8 +1530,10 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 			ap = gf_props_parse_value(GF_PROP_UINT, "FBD", opt, NULL, filter->session->sep_list);
 			filter->pid_decode_buffer_max_us = ap.value.uint;
 		}
+#ifndef GPAC_DISABLE_LOG
 		opt = gf_opts_get_key(sec_name, "LT");
 		if (opt) filter_parse_logs(filter, opt);
+#endif
 	}
 
 	//ifce (used by socket and other filters), use core default
@@ -2067,7 +2070,7 @@ skip_date:
 				}
 			}
 		}
-	
+
 		GF_Filter *meta_filter = NULL;
 		if (!strlen(szArg)) {
 			found = GF_TRUE;

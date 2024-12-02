@@ -2398,10 +2398,12 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	}
 
 	aud_entry->compression_id = 0;
-
+	GF_SamplingRateBox *srat = NULL;
 	//check for wave+children and chan for QTFF or remove them for isobmff
 	for (i=0; i<gf_list_count(aud_entry->child_boxes); i++) {
 		GF_Box *b = gf_list_get(aud_entry->child_boxes, i);
+		if (b->type == GF_ISOM_BOX_TYPE_SRAT) srat = (GF_SamplingRateBox *)b;
+
 		if ((b->type != GF_QT_BOX_TYPE_WAVE) && (b->type != GF_QT_BOX_TYPE_CHAN) ) continue;
 		if (asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) {
 			if (b->type == GF_QT_BOX_TYPE_WAVE) wave_box = b;
@@ -2413,6 +2415,13 @@ GF_Err gf_isom_set_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 			gf_isom_box_del_parent(&aud_entry->child_boxes, b);
 			i--;
 		}
+	}
+
+	if (sampleRate>0xFFFF) {
+		if (!srat) {
+			srat = (GF_SamplingRateBox *) gf_isom_box_new_parent(&aud_entry->child_boxes, GF_ISOM_BOX_TYPE_SRAT);
+		}
+		if (srat) srat->sampling_rate = sampleRate;
 	}
 
 	//TODO: insert channelLayout for ISOBMFF

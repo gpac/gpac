@@ -681,6 +681,7 @@ ISOM_BOX_IMPL_DECL(pdin)
 ISOM_BOX_IMPL_DECL(def_parent)
 ISOM_BOX_IMPL_DECL(def_parent_full)
 ISOM_BOX_IMPL_DECL(csgp)
+ISOM_BOX_IMPL_DECL(srat)
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -1407,6 +1408,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_IPCM, audio_sample_entry, "stsd", "23003_5"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_FPCM, audio_sample_entry, "stsd", "23003_5"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_PCMC, pcmC, "ipcm fpcm", 0, "23003_5"),
+
+
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_SRAT, srat, "audio_sample_entry", 0, "p12"),
+
 
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),

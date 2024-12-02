@@ -789,7 +789,9 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			if (ctx->dec_inst) {
 				nvdec_destroy_decoder(ctx->dec_inst);
-				ctx->dec_inst=0;
+				if (ctx->dec_inst->cu_parser) cuvidDestroyVideoParser(ctx->dec_inst->cu_parser);
+				gf_free(ctx->dec_inst);
+				ctx->dec_inst = NULL;
 			}
 			ctx->needs_resetup = 1;
 			ctx->dec_create_error = CUDA_SUCCESS;
@@ -1530,6 +1532,7 @@ static void nvdec_finalize(GF_Filter *filter)
 		nvdec_destroy_decoder(ctx->dec_inst);
 		if (ctx->dec_inst->cu_parser) cuvidDestroyVideoParser(ctx->dec_inst->cu_parser);
 		gf_free(ctx->dec_inst);
+		ctx->dec_inst = NULL;
 	}
 
 	while (gf_list_count(ctx->frames)) {
