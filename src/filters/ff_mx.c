@@ -701,7 +701,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 		Bool all_ready = GF_TRUE;
 		Bool needs_reinit = (ctx->status==FFMX_STATE_ALLOC) ? GF_TRUE : GF_FALSE;
 
-		//potpone until no pending connections so that we don't write header before all streams are declared
+		//postpone until no pending connections so that we don't write header before all streams are declared
 		if (gf_filter_connections_pending(filter))
 			return GF_OK;
 
