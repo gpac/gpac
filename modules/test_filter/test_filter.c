@@ -27,6 +27,7 @@
 #include <gpac/filters.h>
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
+#include <gpac/module.h>    // GPAC_MODULE_EXPORT
 
 
 typedef struct

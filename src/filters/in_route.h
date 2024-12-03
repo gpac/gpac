@@ -39,6 +39,9 @@ typedef struct
 	u32 sid;
 	u32 tsi;
 	GF_FilterPid *opid;
+	u32 current_toi;
+	u32 bytes_sent;
+	GF_List *pending_repairs;
 } TSI_Output;
 
 typedef struct
@@ -65,6 +68,12 @@ typedef struct
 	u32 priority;
 } RouteRepairRange;
 
+typedef struct 
+{
+	char *url;
+	Bool accept_ranges, is_up, support_h2;
+	u32 nb_req_success, nb_bytes, latency;
+} RouteRepairServer;
 
 typedef struct
 {
@@ -72,16 +81,18 @@ typedef struct
 	RepairSegmentInfo *current_si;
 
 	RouteRepairRange *range;
+	RouteRepairServer *server;
 } RouteRepairSession;
 
 typedef struct
 {
 	//options
-	char *src, *ifce, *odir, *repair_url;
-	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode;
+	char *src, *ifce, *odir;
+	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
 	u32 max_sess;
 	s32 tunein, stsi;
+	GF_PropStringList repair_urls;
 	
 	//internal
 	GF_Filter *filter;
@@ -109,6 +120,7 @@ typedef struct
 	GF_List *seg_repair_queue;
 	GF_List *seg_repair_reservoir;
 	GF_List *seg_range_reservoir;
+	GF_List *repair_servers;
 
 	const char *log_name;
 } ROUTEInCtx;
@@ -117,18 +129,19 @@ struct _route_repair_seg_info
 {
 	//copy of finfo event, valid until associated object is removed
 	GF_ROUTEEventFileInfo finfo;
+	//copy of filename which is not guaranteed to be kept outside the event callback
+	char *filename;
 	GF_ROUTEEventType evt;
 	u32 service_id;
 	Bool removed;
 	u32 pending;
 	GF_List *ranges;
 	u32 nb_errors;
-	Bool was_partial;
+	TSI_Output *tsio;
 };
 
 
 
-Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo);
 void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filename, Bool is_delete);
 void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTEEventFileInfo *finfo);
 
@@ -136,6 +149,8 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 
 //return GF_EOS if nothing active, GF_OK otherwise
 GF_Err routein_do_repair(ROUTEInCtx *ctx);
+
+TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo);
 
 #endif /* GPAC_DISABLE_ROUTE */
 

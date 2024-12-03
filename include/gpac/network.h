@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -366,8 +366,8 @@ enum
 	GF_SOCK_REUSE_PORT = 1,
 	/*!Forces IPV6 if available.*/
 	GF_SOCK_FORCE_IPV6 = 1<<1,
-	/*!Does not perfom the actual bind, only keeps address and port.*/
-	GF_SOCK_FAKE_BIND = 1<<2
+	/*! Indicates the socket will be used to send , only used in test modes*/
+	GF_SOCK_IS_SENDER = 1<<2
 };
 
 /*!
@@ -585,6 +585,17 @@ Gets the remote address of a peer. The socket MUST be connected.
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buffer);
 
 /*!
+\brief get remote address
+
+Gets the remote address and port of a peer. The socket MUST be connected.
+\param sock the socket object
+\param buffer destination buffer for IP address. Buffer must be GF_MAX_IP_NAME_LEN long
+\param port set to the remote port, may be NULL
+\return error if any
+ */
+GF_Err gf_sk_get_remote_address_port(GF_Socket *sock, char *buffer, u32 *port);
+
+/*!
 \brief set remote address
 
 Sets the remote address of a socket. This is used by connectionless sockets using SendTo and ReceiveFrom
@@ -670,6 +681,22 @@ Checks if connection has been closed by remote peer
  */
 GF_Err gf_sk_probe(GF_Socket *sock);
 
+/*!
+Bumps lower part of IP adress by the given increment eg X.X.X.Y -> X.X.X.Z with Z=Y+increment
+\param in_ip the input IP v4 or v6 address
+\param increment the increment to apply
+\return the newly computed address or NULL if error - must be freed bu user
+ */
+char *gf_net_bump_ip_address(const char *in_ip, u32 increment);
+
+/*!
+Gets IP associated with an interface
+\param ip_or_name the input interface name or IP v4 or v6 address
+\param ipv4 set t o v4 address - can be NULL but shall be freed by user
+\param ipv6 set t o v6 address - can be NULL but shall be freed by user
+\return GF_TRUE if success
+ */
+Bool gf_net_get_adapter_ip(const char *ip_or_name, char **ipv4, char **ipv6);
 
 /*! socket selection mode*/
 typedef enum

@@ -951,19 +951,25 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		//reset to FALSE since we now play
+		read->input_is_stop = GF_FALSE;
+
 		if (ch->skip_next_play) {
 			ch->skip_next_play = 0;
 			return GF_TRUE;
 		}
 		is_byte_range = (evt->play.hint_start_offset || evt->play.hint_end_offset) ? GF_TRUE : GF_FALSE;
 
+		//if we are in dash mode and first pid to play, force input to be unloaded
+		//not doing so could trigger EOS before seeing the first bytes of the input
+		if (!read->nb_playing && evt->play.no_byterange_forward)
+			read->input_loaded = GF_FALSE;
+
 		isor_reset_reader(ch);
 		ch->eos_sent = 0;
 		ch->speed = is_byte_range ? 1 : evt->play.speed;
 		ch->initial_play_seen = 1;
 		read->reset_frag_state = 1;
-		//it can happen that input_is_stop is still TRUE because we did not get called back after the stop - reset to FALSE since we now play
-		read->input_is_stop = GF_FALSE;
 		if (read->frag_type)
 			read->frag_type = 1;
 
@@ -1075,7 +1081,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else if (evt->play.no_byterange_forward) {
 			//new segment will be loaded, reset
 			gf_isom_reset_tables(read->mov, GF_TRUE);
-			gf_isom_reset_data_offset(read->mov, NULL);
+			//do NOT reset offsets if not in mem mode, otherwise we could reparse boxes already parsed during initialization
+			if (read->mem_load_mode)
+				gf_isom_reset_data_offset(read->mov, NULL);
 			read->refresh_fragmented = GF_TRUE;
 			read->mem_blob.size = 0;
 			//send play event
@@ -1133,7 +1141,8 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				//send a seek request
 				read->is_partial_download = GF_TRUE;
 				read->wait_for_source = GF_TRUE;
-				read->refresh_fragmented = GF_TRUE;
+				if (read->frag_type)
+					read->refresh_fragmented = GF_TRUE;
 
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
 				fevt.seek.start_offset = max_offset;
@@ -1182,7 +1191,9 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
  		if (read->nb_playing) read->nb_playing--;
+		//reset everything but don't mark as to init
 		isor_reset_reader(ch);
+		ch->to_init = 0;
 
 		//stop is due to a deconnection, mark channel as not active
 		if (evt->play.initial_broadcast_play==2)
@@ -1223,6 +1234,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 {
 	u64 bytes_missing;
 	GF_Err e;
+	if (!data_size) return;
 
 	if (!read->mem_url) {
 		read->mem_url = gf_blob_register(&read->mem_blob);
@@ -1358,6 +1370,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	if (read->in_error)
 		return read->in_error;
 
+	read->was_aborted = GF_FALSE;
 	if (read->pid) {
 		Bool fetch_input = GF_TRUE;
 
@@ -1385,6 +1398,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				break;
 			}
+			if (read->is_partial_download && read->wait_for_source && !read->mem_load_mode) {
+				const GF_PropertyValue *prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_DOWNLOAD_SESSION);
+				if (prop && prop->type==GF_PROP_POINTER) {
+					const char *new_url = gf_dm_sess_get_cache_name(prop->value.ptr);
+					if (new_url)
+						gf_isom_switch_source(read->mov, new_url);
+				}
+			}
 			read->wait_for_source = GF_FALSE;
 
 			if (read->mem_load_mode) {
@@ -1404,8 +1425,14 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		}
 		if (gf_filter_pid_is_eos(read->pid)) {
 			if (!gf_filter_pid_is_flush_eos(read->pid)) {
+				GF_PropertyEntry *pe=NULL;
 				read->input_loaded = GF_TRUE;
 				in_is_eos = GF_TRUE;
+				//check if aborted info was set, in which case the source was excplicitly canceled by the dash client
+				//this avoids throwing warnings and errors if we miss a sample
+				const GF_PropertyValue *p = gf_filter_pid_get_info_str(read->pid, "aborted", &pe);
+				if (p && p->value.boolean) read->was_aborted = GF_TRUE;
+				gf_filter_release_property(pe);
 			} else {
 				in_is_flush = GF_TRUE;
 			}
@@ -1413,7 +1440,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (read->input_is_stop) {
 			read->input_loaded = GF_TRUE;
 			in_is_eos = GF_TRUE;
-			read->input_is_stop = GF_FALSE;
+			read->was_aborted = GF_TRUE;
 		}
 		if (!read->frag_type && read->input_loaded) {
 			in_is_eos = GF_TRUE;
@@ -1469,15 +1496,17 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);
 
 			if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
+				if (!gf_filter_end_of_session(filter)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
+				}
 				read->refresh_fragmented = GF_FALSE;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refreshing current segment at UTC "LLU" - "LLU" bytes still missing - input is EOS %d\n", gf_net_get_utc(), bytesMissing, in_is_eos));
 			}
 #endif
 
-			if (!read->refresh_fragmented && (e==GF_ISOM_INCOMPLETE_FILE)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received - "LLU" bytes missing but EOF found\n", bytesMissing ));
+			if (!read->refresh_fragmented && !read->was_aborted && (e==GF_ISOM_INCOMPLETE_FILE) && !gf_filter_end_of_session(filter)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Incomplete Segment received on PID %s - "LLU" bytes missing but EOF found\n", gf_filter_pid_get_name(read->pid), bytesMissing ));
 			}
 
 #ifndef GPAC_DISABLE_LOG
@@ -1606,6 +1635,20 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if (ch->xps_mask && !gf_filter_pck_get_sap(pck) ) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_XPS_MASK, &PROP_UINT(ch->xps_mask) );
 				}
+				if (!ch->item_id) {
+					u32 ID, nb_refs=0;
+					const u32 *refs=NULL;
+					if (gf_isom_get_sample_references(read->mov, ch->track, ch->sample_num, &ID, &nb_refs, &refs)==GF_OK) {
+						gf_filter_pck_set_property(pck, GF_PROP_PCK_ID, &PROP_SINT(ID));
+						if (refs && nb_refs) {
+							GF_PropertyValue p;
+							p.type = GF_PROP_SINT_LIST;
+							p.value.sint_list.nb_items = nb_refs;
+							p.value.sint_list.vals = (u32*) refs;
+							gf_filter_pck_set_property(pck, GF_PROP_PCK_REFS, &p);
+						}
+					}
+				}
 
 				dep_flags = ch->isLeading;
 				dep_flags <<= 2;
@@ -1719,7 +1762,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL);
 						ch->last_has_tfrf = 0;
 					}
-
 					gf_filter_pid_set_eos(ch->pid);
 				}
 				break;
@@ -1852,7 +1894,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 	{0},
 	//also declare generic file output for embedded files (cover art & co), but explicit to skip this cap in chain resolution
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_OUTPUT | GF_CAPFLAG_LOADED_FILTER ,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE)
+	CAP_UINT(GF_CAPS_OUTPUT | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE)
 };
 
 GF_FilterRegister ISOFFInRegister = {
@@ -1891,7 +1933,8 @@ GF_FilterRegister ISOFFInRegister = {
 	.configure_pid = isoffin_configure_pid,
 	SETCAPS(ISOFFInCaps),
 	.process_event = isoffin_process_event,
-	.probe_data = isoffin_probe_data
+	.probe_data = isoffin_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 const GF_FilterRegister *mp4dmx_register(GF_FilterSession *session)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -634,7 +634,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		mdia->in_sample_buffer_alloc = sample->dataLength;
 		mdia->in_sample_buffer = gf_realloc(mdia->in_sample_buffer, sample->dataLength);
 	}
-	memcpy(mdia->in_sample_buffer, sample->data, sample->dataLength);
+	if (sample->data && sample->dataLength)
+		memcpy(mdia->in_sample_buffer, sample->data, sample->dataLength);
 
 	if (!mdia->nalu_parser) {
 		mdia->nalu_parser = gf_bs_new(mdia->in_sample_buffer, sample->dataLength, GF_BITSTREAM_READ);
@@ -657,7 +658,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		gf_bs_get_content(mdia->nalu_out_bs, &output, &outSize);
 	}
 
-	gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
+	if (sample->data && sample->dataLength)
+		gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
 
 	/*rewrite start code with NALU delim*/
 	if (rewrite_start_codes) {
@@ -2833,16 +2835,19 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_NALUFFParam *sl = (GF_NALUFFParam*)gf_list_get(ptr->config->sequenceParameterSets, 0);
 		if (sl) {
-			AVCState avc;
+			AVCState *avc_state;
 			s32 idx;
-			memset(&avc, 0, sizeof(AVCState));
-			idx = gf_avc_read_sps(sl->data, sl->size, &avc, 0, NULL);
-			if (idx>=0) {
-				ptr->config->chroma_format = avc.sps[idx].chroma_format;
-				ptr->config->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
-				ptr->config->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+			GF_SAFEALLOC(avc_state, AVCState);
+			if (avc_state) {
+				idx = gf_avc_read_sps(sl->data, sl->size, avc_state, 0, NULL);
+				if (idx>=0) {
+					ptr->config->chroma_format = avc_state->sps[idx].chroma_format;
+					ptr->config->luma_bit_depth = 8 + avc_state->sps[idx].luma_bit_depth_m8;
+					ptr->config->chroma_bit_depth = 8 + avc_state->sps[idx].chroma_bit_depth_m8;
+				}
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, patching using SPS.\n"));
+				gf_free(avc_state);
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, patching using SPS.\n"));
 		} else
 #endif
 		{
@@ -3235,7 +3240,10 @@ GF_Err av1c_box_read(GF_Box *s, GF_BitStream *bs)
 	pos = gf_bs_get_position(bs);
 
 	ptr->config = gf_odf_av1_cfg_read_bs_size(bs, (u32) ptr->size);
-
+	if (!ptr->config) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] AV1ConfigurationBox invalid config\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	read = gf_bs_get_position(bs) - pos;
 
 	if (read < ptr->size)

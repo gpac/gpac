@@ -161,7 +161,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 		load.swf_import_flags |= GF_SM_SWF_USE_SVG;
 		load.svgOutFile = inName;
 	}
-	load.swf_flatten_limit = swf_flatten_angle;
+	load.swf_flatten_limit = (Float) swf_flatten_angle;
 
 	ftype = get_file_type_by_ext(file);
 	if (ftype == GF_FILE_TYPE_ISO_MEDIA) {
@@ -816,7 +816,7 @@ u32 PrintBuiltInNodes(char *arg_val, u32 dump_type)
 u32 PrintBuiltInBoxes(char *argval, u32 do_cov)
 {
 	u32 i, count=gf_isom_get_num_supported_boxes();
-	
+
 	fprintf(stdout, "<Boxes>\n");
 	//index 0 is our internal unknown box handler
 	for (i=1; i<count; i++) {
@@ -1523,7 +1523,7 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 	GF_Err e = GF_OK;
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_INSPECT)
 	u32 i, count, track, timescale;
-	AV1State av1;
+	AV1State *av1_state;
 	ObuType obu_type = 0;
 	u64 obu_size = 0;
 	u32 hdr_size = 0;
@@ -1532,10 +1532,13 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 
 	track = gf_isom_get_track_by_id(file, trackID);
 
-	gf_av1_init_state(&av1);
-	av1.config = gf_isom_av1_config_get(file, track, 1);
-	if (!av1.config) {
+	GF_SAFEALLOC(av1_state, AV1State);
+	if (!av1_state) return GF_OUT_OF_MEM;
+	gf_av1_init_state(av1_state);
+	av1_state->config = gf_isom_av1_config_get(file, track, 1);
+	if (!av1_state->config) {
 		M4_LOG(GF_LOG_ERROR, ("Error: Track #%d is not AV1!\n", trackID));
+		gf_free(av1_state);
 		return GF_ISOM_INVALID_FILE;
 	}
 
@@ -1546,16 +1549,17 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 
 	fprintf(dump, " <OBUConfig>\n");
 
-	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
-		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
+	for (i=0; i<gf_list_count(av1_state->config->obu_array); i++) {
+		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1_state->config->obu_array, i);
 		bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
-		e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, av1_state);
 		if (e<GF_OK) {
-			if (av1.config) gf_odf_av1_cfg_del(av1.config);
-			gf_av1_reset_state(&av1, GF_TRUE);
+			if (av1_state->config) gf_odf_av1_cfg_del(av1_state->config);
+			gf_av1_reset_state(av1_state, GF_TRUE);
+			gf_free(av1_state);
 			return e;
 		}
-		gf_inspect_dump_obu(dump, &av1, obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
+		gf_inspect_dump_obu(dump, av1_state, obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
 		gf_bs_del(bs);
 	}
 	fprintf(dump, " </OBUConfig>\n");
@@ -1584,14 +1588,14 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 
 		bs = gf_bs_new(ptr, size, GF_BITSTREAM_READ);
 		while (size) {
-			e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+			e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, av1_state);
 			if (e<GF_OK) break;
 
 			if (obu_size > size) {
 				fprintf(dump, "   <!-- OBU number %d is corrupted: size is %d but only %d remains -->\n", idx, (u32) obu_size, size);
 				break;
 			}
-			gf_inspect_dump_obu(dump, &av1, ptr, obu_size, obu_type, obu_size, hdr_size, dump_crc);
+			gf_inspect_dump_obu(dump, av1_state, ptr, obu_size, obu_type, obu_size, hdr_size, dump_crc);
 			ptr += obu_size;
 			size -= (u32)obu_size;
 			idx++;
@@ -1608,8 +1612,9 @@ static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump,
 	fprintf(dump, " </OBUSamples>\n");
 	fprintf(dump, "</OBUTrack>\n");
 
-	if (av1.config) gf_odf_av1_cfg_del(av1.config);
-	gf_av1_reset_state(&av1, GF_TRUE);
+	if (av1_state->config) gf_odf_av1_cfg_del(av1_state->config);
+	gf_av1_reset_state(av1_state, GF_TRUE);
+	gf_free(av1_state);
 #endif
 	return e;
 }
@@ -1692,7 +1697,7 @@ void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode,
 		Bool traf_start = 0;
 		u32 sap_type = 0;
 		u64 doffset;
-		
+
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &doffset);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2050,12 +2055,13 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
-GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, Bool skip_init, Bool skip_samples)
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, const char *init_seg, Bool skip_samples)
 {
 	char szFileName[1024];
 	GF_Err e;
 	FILE *dump = stdout;
-	Bool do_close=GF_FALSE;
+	Bool do_close = GF_FALSE;
+	Bool skip_init = init_seg ? GF_TRUE : GF_FALSE;
 	if (!file) return GF_ISOM_INVALID_FILE;
 
 	if (inName) {
@@ -2085,6 +2091,11 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 		u32 i;
 		//because of dump mode we need to reopen in regular read mode to avoid mem leaks
 		GF_ISOFile *the_file = gf_isom_open(gf_isom_get_filename(file), GF_ISOM_OPEN_READ, NULL);
+		if (skip_init) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			gf_isom_open_segment(the_file, init_seg, 0, 0, 0);
+#endif
+		}
 		u32 tcount = gf_isom_get_track_count(the_file);
 		fprintf(dump, "<Tracks>\n");
 
@@ -2406,7 +2417,7 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	}
 
 	for (i=0; i<count; i++) {
-		char szDur[20];
+		char szDur[50];
 		u64 chapter_time;
 		const char *name;
 		gf_isom_get_chapter(file, 0, i+1, &chapter_time, &name);
@@ -2986,9 +2997,10 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 					GF_HEVCConfig *hevccfg, *lhvccfg;
 					GF_OperatingPointsInformation *oinf;
 #if !defined(GPAC_DISABLE_AV_PARSERS)
-					HEVCState hevc_state;
-					memset(&hevc_state, 0, sizeof(HEVCState));
-					hevc_state.sps_active_idx = -1;
+					HEVCState *hvc_state;
+					GF_SAFEALLOC(hvc_state, HEVCState);
+					if (!hvc_state) return;
+					hvc_state->sps_active_idx = -1;
 #endif
 
 					gf_isom_get_visual_info(file, trackNum, stsd_idx, &w, &h);
@@ -3019,7 +3031,7 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 					if (hevccfg) {
 						dump_hevc_track_info(file, trackNum, hevccfg
 #if !defined(GPAC_DISABLE_AV_PARSERS)
-							, &hevc_state
+							, hvc_state
 #endif
 						);
 						gf_odf_hevc_cfg_del(hevccfg);
@@ -3028,12 +3040,14 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 					if (lhvccfg) {
 						dump_hevc_track_info(file, trackNum, lhvccfg
 #if !defined(GPAC_DISABLE_AV_PARSERS)
-							, &hevc_state
+							, hvc_state
 #endif
 						);
 						gf_odf_hevc_cfg_del(lhvccfg);
 					}
-
+#if !defined(GPAC_DISABLE_AV_PARSERS)
+					gf_free(hvc_state);
+#endif
 					if (gf_isom_get_oinf_info(file, trackNum, &oinf)) {
 						fprintf(stderr, "\n\tOperating Points Information -");
 						fprintf(stderr, " scalability_mask %d (", oinf->scalability_mask);
@@ -3462,7 +3476,6 @@ static void DumpStsdInfo(GF_ISOFile *file, u32 trackNum, Bool full_dump, Bool du
 #endif
 			);
 			gf_odf_vvc_cfg_del(vvccfg);
-			fprintf(stderr, "\n");
 		}
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 		if (vvc_state) gf_free(vvc_state);
@@ -3891,6 +3904,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	for (i=0; i<count; i++) {
 		DumpStsdInfo(file, trackNum, full_dump, dump_m4sys, mtype, i+1, &is_od_track);
 	}
+	fprintf(stderr, "\n");
 
 	switch (gf_isom_has_sync_points(file, trackNum)) {
 	case 0:
@@ -4533,7 +4547,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	FILE *src;
 
 	if (!prog_num && !out_name) {
-		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated.");
+		fprintf(stderr, "No program number nor output filename specified. No timestamp file will be generated\n.");
 	}
 
 	src = gf_fopen(mpeg2ts_file, "rb");
@@ -4830,7 +4844,7 @@ GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 				}
 				if (rep->segment_base) segment_base=GF_TRUE;
 
-				e = gf_mpd_resolve_url(mpd, rep, as, period, mpd_src, 0, GF_MPD_RESOLVE_URL_INIT, 0, 0, &seg_url, &out_range_start, &out_range_end, &segment_duration, &is_in_base_url, NULL, NULL, NULL);
+				e = gf_mpd_resolve_url(mpd, rep, as, period, mpd_src, 0, GF_MPD_RESOLVE_URL_INIT, 0, 0, &seg_url, &out_range_start, &out_range_end, &segment_duration, &is_in_base_url, NULL, NULL, NULL, -1);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Error resolving init segment name : %s\n", gf_error_to_string(e)));
 					continue;
@@ -4858,7 +4872,7 @@ GF_Err rip_mpd(const char *mpd_src, const char *output_dir)
 				if (segment_base) continue;
 
 				while (1) {
-					e = gf_mpd_resolve_url(mpd, rep, as, period, mpd_src, 0, GF_MPD_RESOLVE_URL_MEDIA, seg_idx, 0, &seg_url, &out_range_start, &out_range_end, &segment_duration, NULL, NULL, NULL, NULL);
+					e = gf_mpd_resolve_url(mpd, rep, as, period, mpd_src, 0, GF_MPD_RESOLVE_URL_MEDIA, seg_idx, 0, &seg_url, &out_range_start, &out_range_end, &segment_duration, NULL, NULL, NULL, NULL, -1);
 					if (e) {
 						if (e<0) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Error resolving segment name : %s\n", gf_error_to_string(e)));

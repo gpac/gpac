@@ -647,14 +647,7 @@ void gf_filter_del(GF_Filter *filter)
 #endif
 
 	//may happen when a filter is removed from the chain
-	if (filter->postponed_packets) {
-		while (gf_list_count(filter->postponed_packets)) {
-			GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
-			gf_filter_packet_destroy(pck);
-		}
-		gf_list_del(filter->postponed_packets);
-		filter->postponed_packets = NULL;
-	}
+	gf_filter_reset_pending_packets(filter);
 
 	//delete output pids before the packet reservoir
 	while (gf_list_count(filter->output_pids)) {
@@ -662,13 +655,19 @@ void gf_filter_del(GF_Filter *filter)
 	}
 	gf_list_del(filter->output_pids);
 
+	//delete input pids not yet destroyed (may happen upon setup failure)
+	while (gf_list_count(filter->input_pids)) {
+		gf_filter_pid_inst_del(gf_list_pop_back(filter->input_pids));
+	}
+	gf_list_del(filter->input_pids);
+
+
 	gf_list_del(filter->blacklisted);
 	gf_list_del(filter->destination_filters);
 	gf_list_del(filter->destination_links);
 	gf_list_del(filter->source_filters);
 	gf_list_del(filter->temp_input_pids);
 
-	gf_list_del(filter->input_pids);
 	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
 
@@ -1326,6 +1325,7 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 	if (filter->logs) {
 		if (filter->logs->tools) gf_free(filter->logs->tools);
 		if (filter->logs->levels) gf_free(filter->logs->levels);
+		gf_log_pop_extra(filter->logs);
 		gf_free(filter->logs);
 	}
 	GF_SAFEALLOC(filter->logs, GF_LogExtra);
@@ -1441,6 +1441,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 				flen++;
 				arg += flen;
 			}
+			gf_sys_mark_arg_used(i, GF_TRUE);
 
 			if (sep) {
 				len = (u32) (sep - (arg));
@@ -1529,8 +1530,10 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 			ap = gf_props_parse_value(GF_PROP_UINT, "FBD", opt, NULL, filter->session->sep_list);
 			filter->pid_decode_buffer_max_us = ap.value.uint;
 		}
+#ifndef GPAC_DISABLE_LOG
 		opt = gf_opts_get_key(sec_name, "LT");
 		if (opt) filter_parse_logs(filter, opt);
+#endif
 	}
 
 	//ifce (used by socket and other filters), use core default
@@ -1991,29 +1994,37 @@ skip_date:
 		if (for_script)
 		 	f_args = filter->instance_args;
 
+		Bool is_my_arg = GF_FALSE;
+		u32 count_enum_val = 0;
+		const char *restricted=NULL;
+		Bool reverse_bool = GF_FALSE;
+		const GF_FilterArgs *save_a = NULL;
+
 		while (filter->filter_udta && f_args) {
-			Bool is_my_arg = GF_FALSE;
-			Bool reverse_bool = GF_FALSE;
-			const char *restricted=NULL;
+
 			const GF_FilterArgs *a = &f_args[i];
 			i++;
 			if (!a || !a->arg_name) break;
 
-			if (!strcmp(a->arg_name, szArg))
+			if (!strcmp(a->arg_name, szArg)) {
 				is_my_arg = GF_TRUE;
-			else if ( (szArg[0]==filter->session->sep_neg) && !strcmp(a->arg_name, szArg+1)) {
+				save_a = a;
+			} else if ((szArg[0]==filter->session->sep_neg) && !strcmp(a->arg_name, szArg+1)) {
 				is_my_arg = GF_TRUE;
 				reverse_bool = GF_TRUE;
+				save_a = a;
 			}
-			//little optim here, if no value check if argument nale is exactly one of the possible enums
-			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
+			//little optim here: if no value provided, check if argument name is exactly one of the possible enums
+			//only do this for explicit filters, not for inheritance
+			else if (a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
 				const char *enums = a->min_max_enum;
 				while (enums) {
 					if (!strncmp(enums, szArg, len)) {
 						char c = enums[len];
 						if (!c || (c=='|')) {
-							is_my_arg = GF_TRUE;
+							count_enum_val++;
 							value = szArg;
+							save_a = a;
 							break;
 						}
 					}
@@ -2023,36 +2034,42 @@ skip_date:
 				}
 			}
 
-			if (is_my_arg) restricted = gf_opts_get_key_restricted(szSecName, a->arg_name);
+			if (is_my_arg || count_enum_val>1) break;
+		}
+
+		if(is_my_arg && count_enum_val>0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Ambiguous argument %s in filter %s: both an argument and an enum value share the name \"%s\", ignoring\n", szArg, filter->freg->name, szArg));
+		} else if(count_enum_val>1) {
+			//only warn for explicit filters
+			if (!filter->dynamic_filter) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is ambiguous (multiple enum arguments have \"%s\" as possible value), ignoring\n", szArg, filter->freg->name, szArg));
+			}
+		} else if (is_my_arg || count_enum_val==1) {
+			restricted = gf_opts_get_key_restricted(szSecName, save_a->arg_name);
+			found=GF_TRUE;
 			if (restricted) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is restricted to %s by system-wide configuration, ignoring\n", szArg, filter->freg->name, restricted));
-				found=GF_TRUE;
-				break;
-			}
-
-			if (is_my_arg) {
+			} else {
 				GF_PropertyValue argv;
-				found=GF_TRUE;
-
-				argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, (a->flags & GF_FS_ARG_META) ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
+				argv = gf_filter_parse_prop_solve_env_var(filter->session, filter, (save_a->flags & GF_FS_ARG_META) ? GF_PROP_STRING : save_a->arg_type, save_a->arg_name, value, save_a->min_max_enum);
 
 				if (reverse_bool && (argv.type==GF_PROP_BOOL))
 					argv.value.boolean = !argv.value.boolean;
 
 				if (argv.type != GF_PROP_FORBIDDEN) {
-					if (!for_script && (a->offset_in_private>=0)) {
-						gf_filter_set_arg(filter, a, &argv);
+					if (!for_script && (save_a->offset_in_private>=0)) {
+						gf_filter_set_arg(filter, save_a, &argv);
 					} else if (filter->freg->update_arg) {
 						FSESS_CHECK_THREAD(filter)
-						filter->freg->update_arg(filter, a->arg_name, &argv);
+						filter->freg->update_arg(filter, save_a->arg_name, &argv);
 						opaque_arg = GF_FALSE;
 						if ((argv.type==GF_PROP_STRING) || (argv.type==GF_PROP_STRING_LIST))
 							gf_props_reset_single(&argv);
 					}
 				}
-				break;
 			}
 		}
+
 		GF_Filter *meta_filter = NULL;
 		if (!strlen(szArg)) {
 			found = GF_TRUE;
@@ -2194,7 +2211,7 @@ skip_date:
 			}
 			//temporary filter
 			else if (!strcmp("_GFTMP", szArg)) {
-				filter->removed = GF_TRUE;
+				filter->removed = 1;
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
@@ -3415,16 +3432,17 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 
 	if (use_direct_dispatch) {
 		safe_int_inc(&filter->process_task_queued);
-		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_TRUE, TASK_TYPE_NONE);
+		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_TRUE, TASK_TYPE_NONE, 0);
 	} else if (safe_int_inc(&filter->process_task_queued) <= 1) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s added to scheduler\n", filter->name));
-		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+//		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE, 0);
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s skip post process task\n", filter->name));
 		gf_assert(filter->session->run_status
 		 		|| filter->session->in_final_flush
 		 		|| filter->disabled
-				|| filter->scheduled_for_next_task
+				|| (filter->scheduled_for_next_task==GF_FILTER_SCHEDULED)
 				|| filter->session->direct_mode
 		 		|| gf_fq_count(filter->tasks)
 		);
@@ -3521,6 +3539,9 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s task failure callback on already removed filter!\n", f->name));
 	}
 
+	//we will detach output pids, so drop any pending packets before
+	gf_filter_reset_pending_packets(f);
+
 	gf_mx_v(f->session->filters_mx);
 
 	gf_mx_p(f->tasks_mx);
@@ -3534,9 +3555,21 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 		u32 j;
 		GF_FilterPid *pid = gf_list_pop_back(f->output_pids);
 		for (j=0; j<pid->num_destinations; j++) {
-			GF_FilterPid *pidinst = gf_list_get(pid->destinations, j);
-			pidinst->pid = NULL;
+			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, j);
+			//pid instance already detached, remove it
+			if (!pidinst->filter) {
+				gf_list_rem(pid->destinations, j);
+				pid->num_destinations--;
+				j--;
+				gf_filter_pid_inst_del(pidinst);
+			}
+			//marked as detached
+			else {
+				pidinst->pid = NULL;
+			}
 		}
+		gf_list_reset(pid->destinations);
+		gf_filter_pid_del(pid);
 	}
 	gf_mx_v(f->tasks_mx);
 	//avoid destruction of the current task (ourselves)
@@ -3720,7 +3753,7 @@ void gf_filter_post_remove(GF_Filter *filter)
 	filter->finalized = GF_TRUE;
 	safe_int_inc(&filter->session->remove_tasks);
 	//post remove task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
-	gf_fs_post_task_ex(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL, GF_FALSE, filter->session->force_main_thread_tasks, GF_FALSE, TASK_TYPE_NONE);
+	gf_fs_post_task_ex(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL, GF_FALSE, filter->session->force_main_thread_tasks, GF_FALSE, TASK_TYPE_NONE, 0);
 }
 
 static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF_Filter *until_filter, Bool keep_end_connections)
@@ -3940,6 +3973,7 @@ static void gf_filter_remove_local(GF_FSTask *task)
 GF_EXPORT
 void gf_filter_remove(GF_Filter *filter)
 {
+	if (!filter) return;
 	safe_int_inc(&filter->session->remove_tasks);
 	//always post a task for remove, this allows users to do remove() followed by add filter() without triggering stops
 	gf_fs_post_task(filter->session, gf_filter_remove_local, filter, NULL, "filter_remove", NULL);
@@ -3978,12 +4012,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 	GF_Err e;
 	const GF_FilterArgs *src_arg=NULL;
 
-	while (gf_list_count(filter->postponed_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
-		gf_filter_packet_destroy(pck);
-	}
-	gf_list_del(filter->postponed_packets);
-	filter->postponed_packets = NULL;
+	gf_filter_reset_pending_packets(filter);
 
 	while (gf_list_count(filter->output_pids)) {
 		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
@@ -5112,10 +5141,21 @@ GF_Err gf_filter_set_description(GF_Filter *filter, const char *new_desc)
 	filter->instance_description = new_desc ? gf_strdup(new_desc) : NULL;
 	return GF_OK;
 }
+GF_Err gf_filter_set_class_hint(GF_Filter *filter, GF_ClassTypeHint class_hint)
+{
+	if (!filter) return GF_BAD_PARAM;
+	filter->instance_class_hint = class_hint;
+	return GF_OK;
+}
 GF_EXPORT
 const char *gf_filter_get_description(GF_Filter *filter)
 {
 	return filter ? filter->instance_description : NULL;
+}
+GF_EXPORT
+GF_ClassTypeHint gf_filter_get_class_hint(GF_Filter *filter)
+{
+	return filter ? filter->instance_class_hint : 0;
 }
 
 GF_Err gf_filter_set_version(GF_Filter *filter, const char *new_desc)
@@ -5222,6 +5262,7 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 		u32 j;
 		GF_Filter *f = gf_list_get(filter->session->filters, i);
 		if (!f || f->removed || f->finalized) continue;
+		if (f->subsession_id != filter->subsession_id) continue;
 
 		gf_mx_v(filter->session->filters_mx);
 		gf_mx_p(f->tasks_mx);

@@ -41,7 +41,6 @@ GF_List *args_used = NULL;
 GF_List *args_alloc = NULL;
 u32 gen_doc = 0;
 u32 help_flags = 0;
-FILE *sidebar_md=NULL;
 FILE *helpout = NULL;
 const char *auto_gen_md_warning = "<!-- automatically generated - do not edit, patch gpac/applications/gpac/gpac.c -->\n";
 
@@ -250,11 +249,6 @@ static int gpac_exit_fun(GF_Err code)
 		gf_fclose(helpout);
 	}
 
-	if (sidebar_md) {
-		gf_fclose(sidebar_md);
-		sidebar_md = NULL;
-	}
-
 	cleanup_logs();
 
 	gf_sys_close();
@@ -264,10 +258,10 @@ static int gpac_exit_fun(GF_Err code)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (!code && (gf_memory_size() || gf_file_handles_count() )) {
+	if (gf_memory_size() || gf_file_handles_count() ) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
-		code = 2;
+		if (!code) code = 2;
 	}
 #endif
 
@@ -769,6 +763,9 @@ int gpac_main(int _argc, char **_argv)
 					dump_all_props(NULL);
 				}
 				gpac_exit(0);
+			} else if (!strncmp(argv[i+1], "props.", 6)) {
+				check_prop_def(argv[i+1] + 6);
+				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "colors")) {
 				dump_all_colors();
 				gpac_exit(0);
@@ -1065,8 +1062,8 @@ int gpac_main(int _argc, char **_argv)
 			defer_mode=GF_TRUE;
 		} else if (!strcmp(arg, "-np")) {
 			sflags |= GF_FS_FLAG_PREVENT_PLAY;
-		} else if (!strncmp(arg, "-rl", 2)
-			|| !strncmp(arg, "-wl", 2)
+		} else if (!strncmp(arg, "-rl", 3)
+			|| !strncmp(arg, "-wl", 3)
 			|| !strcmp(arg, "-f")
 			|| !strcmp(arg, "-s")
 			|| !strcmp(arg, "-g")
@@ -1097,6 +1094,7 @@ int gpac_main(int _argc, char **_argv)
 				}
 			}
 #endif
+
 		} else if (!strcmp(arg, "-xopt")) {
 			has_xopt = GF_TRUE;
 #ifdef GPAC_CONFIG_IOS

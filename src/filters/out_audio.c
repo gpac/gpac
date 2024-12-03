@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / audio output filter
@@ -102,10 +102,11 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output: %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioOut] Failed to configure audio output %u channels %u Hz: %s, defaulting to stereo @ 441000 Hz\n", nb_ch, sr, gf_error_to_string(e) ));
 		afmt = GF_AUDIO_FMT_S16;
 		sr = 44100;
 		nb_ch = 2;
+		e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	}
 	if (ctx->speed == FIX_ONE) ctx->speed_set = 1;
 
@@ -788,7 +789,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
 	GF_FS_SET_DESCRIPTION("Audio output")
-	GF_FS_SET_HELP("This filter writes a single uncompressed audio input PID to a sound card or other audio output device.\n"
+	GF_FS_SET_HELP("This filter writes a single PCM (uncompressed) audio input PID to a sound card or other audio output device.\n"
 	"\n"
 	"The longer the audio buffering [-bdur]() is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degraded when using large audio buffers.\n"
 	"\n"
@@ -806,7 +807,8 @@ GF_FilterRegister AudioOutRegister = {
 	.configure_pid = aout_configure_pid,
 	.process = aout_process,
 	.process_event = aout_process_event,
-	.update_arg = aout_update_arg
+	.update_arg = aout_update_arg,
+	.hint_class_type = GF_FS_CLASS_MM_IO
 };
 
 const GF_FilterRegister *aout_register(GF_FilterSession *session)

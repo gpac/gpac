@@ -531,6 +531,7 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_DTS, GF_CODECID_DTS_CA, 0},
 	{AV_CODEC_ID_DTS, GF_CODECID_DTS_EXPRESS_LBR, 0},
 	{AV_CODEC_ID_ALAC, GF_CODECID_ALAC, 0},
+	{AV_CODEC_ID_DNXHD, GF_CODECID_DNXHD, 0},
 	{0}
 };
 
@@ -832,7 +833,6 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 #if LIBAVCODEC_VERSION_MAJOR >= 57
 	case AV_OPT_TYPE_UINT64:
-//	case AV_OPT_TYPE_UINT:
 		arg.arg_type = GF_PROP_LUINT;
 		sprintf(szDef, LLU, opt->default_val.i64);
 		arg.arg_default_val = gf_strdup(szDef);
@@ -847,6 +847,20 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		arg.arg_default_val = gf_strdup(opt->default_val.i64 ? "true" : "false");
 		break;
 #endif
+
+#if AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, LIBAVUTIL_VERSION_MINOR, 0) >= AV_VERSION_INT(59,17, 0)
+	case AV_OPT_TYPE_UINT:
+		arg.arg_type = GF_PROP_UINT;
+		sprintf(szDef, "%u", (u32) opt->default_val.i64);
+		arg.arg_default_val = gf_strdup(szDef);
+		if (opt->max>=(Double) GF_INT_MAX)
+			sprintf(szDef, "%u-I", (u32) opt->min);
+		else
+			sprintf(szDef, "%u-%u", (u32) opt->min, (u32) opt->max);
+		arg.min_max_enum = gf_strdup(szDef);
+		break;
+#endif
+
 	case AV_OPT_TYPE_FLOAT:
 		arg.arg_type = GF_PROP_FLOAT;
 		sprintf(szDef, "%g", opt->default_val.dbl);
@@ -922,7 +936,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		break;
 #endif
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unknown ffmpeg option type %d\n", opt->type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFmpeg] Unknown ffmpeg option type %d\n", type));
 		break;
 	}
 	return arg;
@@ -1469,7 +1483,7 @@ second_pass:
 							par_arg->arg_desc = par_arg->arg_desc ? gf_strdup(par_arg->arg_desc) : NULL;
 							par_arg->flags |= GF_FS_ARG_META_ALLOC;
 						}
-						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n - ");
+						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n- ");
 						gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_desc, ": ");
 
 						if (an_arg.arg_default_val)
@@ -1700,7 +1714,10 @@ void ffmpeg_set_enc_dec_flags(const AVDictionary *options, AVCodecContext *ctx)
 		while (ctx->av_class->option) {
 			const struct AVOption *opt = &ctx->av_class->option[idx];
 			if (!opt || !opt->name) break;
-			if (opt->name && !strcmp(opt->name, de->key) && (!stricmp(de->value, "true") || !stricmp(de->value, "yes") || !stricmp(de->value, "1") )) {
+			if ((opt->name && !strcmp(opt->name, de->key) && (!stricmp(de->value, "true") || !stricmp(de->value, "yes") || !stricmp(de->value, "1") ))
+
+				|| (opt->unit && !strcmp(de->key, opt->unit) && !strcmp(opt->name, de->value))
+			) {
 				if (opt->unit && !strcmp(opt->unit, "flags"))
 					ctx->flags |= (int) opt->default_val.i64;
 				else if (opt->unit && !strcmp(opt->unit, "flags2"))

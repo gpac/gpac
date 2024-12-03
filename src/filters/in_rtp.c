@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -922,9 +922,9 @@ static const char *rtpin_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 
 static const GF_FilterCapability RTPInCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "sdp"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/sdp"),
+	CAP_UINT(GF_CAPS_INPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT_STATIC, GF_PROP_PID_FILE_EXT, "sdp"),
+	CAP_STRING(GF_CAPS_INPUT_STATIC, GF_PROP_PID_MIME, "application/sdp"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
@@ -1004,7 +1004,8 @@ GF_FilterRegister RTPInRegister = {
 	.process = rtpin_process,
 	.process_event = rtpin_process_event,
 	.probe_url = rtpin_probe_url,
-	.probe_data = rtpin_probe_data
+	.probe_data = rtpin_probe_data,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 #endif

@@ -644,7 +644,7 @@ uniform float _gf_%s_width;\
 uniform float _gf_%s_gpu_width;\
 ";
 
-//uploaded as RGBA describing 2 bits lost (in A, last byte) + 3 * 10 bit {U,Y,V} , pattern reapeating 6 times
+//uploaded as RGBA describing 2 bits lost (in A, last byte) + 3 * 10 bit {U,Y,V} , pattern repeating 6 times
 //first pattern (x%6==0) is {00b, Cr, Y, Cb} in {A, B, G, R} bytes
 //we decompose RGBA pixel x and x+1 as follows
 //.R: 8 bit R + 2 bits G

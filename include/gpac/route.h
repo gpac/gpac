@@ -63,7 +63,7 @@ typedef struct __gf_routedmx GF_ROUTEDmx;
 /*!The types of events used to communicate withe the demuxer user.*/
 typedef enum
 {
-	/*! A new service detected, service ID is in evt_param, no file info*/
+	/*! A new service is detected, service ID is in evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_FOUND = 0,
 	/*! Service scan completed, no evt_param, no file info*/
 	GF_ROUTE_EVT_SERVICE_SCAN,
@@ -76,7 +76,7 @@ typedef enum
 	/*! Segment reception, identified through a file template, service ID is in evt_param*/
 	GF_ROUTE_EVT_DYN_SEG,
     /*! fragment reception (part of a segment), identified through a file template, service ID is in evt_param
-     \note The data is always beginning at the start of the object
+     \note The data always begins at the start of the object
     */
     GF_ROUTE_EVT_DYN_SEG_FRAG,
     /*! Object deletion (only for dynamic TOIs), used to notify the cache that an object is no longer available. File info only contains the filename being removed*/
@@ -115,6 +115,17 @@ typedef struct
 } GF_LCTFragInfo;
 
 
+/*! Type of partial event*/
+typedef enum
+{
+	/* object is done receiving*/
+	GF_LCTO_PARTIAL_NONE=0,
+	/* object data being notified is the beginning of the payload*/
+	GF_LCTO_PARTIAL_BEGIN,
+	/* object data being notified is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
+	GF_LCTO_PARTIAL_ANY,
+} GF_LCTObjectPartial;
+
 /*! Structure used to communicate file objects properties to the user*/
 typedef struct
 {
@@ -122,7 +133,7 @@ typedef struct
 	const char *filename;
 	/*! mime type if known, NULL otherwise*/
 	const char *mime;
-	/*! blob data pointer*/
+	/*! blob data pointer - the route user is responsible for setting the blob flags if desired*/
 	GF_Blob *blob;
     /*! total size of object if known, 0 otherwise*/
     u32 total_size;
@@ -134,14 +145,25 @@ typedef struct
 	u32 download_ms;
 	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/
 	Bool updated;
-    
-    /*! number of fragments, only set for GF_ROUTE_EVT_DYN_SEG*/
-    u32 nb_frags;
-    /*! fragment info, only set for GF_ROUTE_EVT_DYN_SEG*/
-    GF_LCTFragInfo *frags;
+	/*! flag set if first segment has been received for the given TSI - not set for init segments*/
+	Bool first_toi_received;
+
+	/*! number of fragments, only set for GF_ROUTE_EVT_DYN_SEG*/
+	u32 nb_frags;
+	/*! fragment info, set for all file events - this info is shared with the LCT object being reassembled and should not be modified concurrently from route demux
+	Any reallocation of the fragment info SHALL be done using  \ref gf_route_dmx_patch_frag_info
+	*/
+	GF_LCTFragInfo *frags;
 	
 	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
 	u32 late_fragment_offset;
+
+	/*partial state used for all calls
+		if event indicates a file transfer completion (GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG), this relects the corrupted state
+		of the reception
+	*/
+	GF_LCTObjectPartial partial;
+
 	/*! user data set to current object after callback, and passed back on next callbacks on same object
 	 Only used for GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG, GF_ROUTE_EVT_DYN_SEG_FRAG and GF_ROUTE_EVT_FILE_DELETE
 	 */
@@ -217,23 +239,40 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx);
 GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 
+/*! Checks if there are some active multicast sockets
+\param routedmx the ROUTE demultiplexer
+\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
+ */
+Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx);
+
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
 \param reorder_needed if TRUE, the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
 \param timeout_us maximum delay in microseconds to wait before considering the object is done when ROUTE/LCT order is not used. A value of 0 implies any out-of-order packet triggers a download completion  (default value is 1 ms).
 \return error code if any
  */
-GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool reorder_needed, u32 timeout_us);
+GF_Err gf_route_dmx_set_reorder(GF_ROUTEDmx *routedmx, Bool reorder_needed, u32 timeout_us);
+
+/*! Progressive dispatch mode for LCT objects*/
+typedef enum
+{
+	/*! notification is only sent once the entire object is received*/
+	GF_ROUTE_DISPATCH_FULL = 0,
+	/*! notifications are sent whenever the first byte-range starting at 0 changes, in which case the partial field is set to GF_LCTO_PARTIAL_BEGIN*/
+	GF_ROUTE_DISPATCH_PROGRESSIVE,
+	/*! notifications are sent whenever a new packet is received, in which case the partial field is set to GF_LCTO_PARTIAL_ANY*/
+	GF_ROUTE_DISPATCH_OUT_OF_ORDER,
+} GF_RouteProgressiveDispatch;
 
 /*! Allow segments to be sent while being downloaded.
  
 \note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the beginning of the file in that case.
  
 \param routedmx the ROUTE demultiplexer
-\param allow_progressive if TRUE,  fragments of segments will be sent during download
+\param dispatch_mode set dispatch mode
 \return error code if any
  */
-GF_Err gf_route_set_allow_progressive_dispatch(GF_ROUTEDmx *routedmx, Bool allow_progressive);
+GF_Err gf_route_set_dispatch_mode(GF_ROUTEDmx *routedmx, GF_RouteProgressiveDispatch dispatch_mode);
 
 /*! Sets the service ID to tune into for ATSC 3.0
 \param routedmx the ROUTE demultiplexer
@@ -267,6 +306,16 @@ GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id,
 \return error if any, GF_NOT_FOUND if no such object
  */
 GF_Err gf_route_dmx_force_keep_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName);
+
+/*! Set force-keep flag on object by TSI and TOI - typically used for repair
+\param routedmx the ROUTE demultiplexer
+\param service_id ID of the service to query
+\param tsi transport service identifier
+\param toi transport object identifier
+\param force_keep force_keep flag. When set back to false, this does not trigger a cleanup, it is up to the application to do so
+\return error if any, GF_NOT_FOUND if no such object
+ */
+GF_Err gf_route_dmx_force_keep_object(GF_ROUTEDmx *routedmx, u32 service_id, u32 tsi, u32 toi, Bool force_keep);
 
 /*! Removes the first object loaded in the service
 \param routedmx the ROUTE demultiplexer
@@ -314,7 +363,7 @@ u64 gf_route_dmx_get_nb_packets(GF_ROUTEDmx *routedmx);
  */
 u64 gf_route_dmx_get_recv_bytes(GF_ROUTEDmx *routedmx);
 
-/*! Gather only  objects with given TSI (for debug purposes)
+/*! Gather only objects with given TSI (for debug purposes)
 \param routedmx the ROUTE demultiplexer
 \param tsi the target TSI, 0 for no filtering
  */
@@ -343,7 +392,7 @@ void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
 \param br_end end offset of byte range being patched
 \return error if any
  */
-GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
+GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
 
 /*! Set active status of a representation
 \param routedmx the ROUTE demultiplexer
@@ -354,7 +403,12 @@ GF_Err gf_routedmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROU
 \param is_selected representation status
 \return error if any
  */
-GF_Err gf_routedmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected);
+GF_Err gf_route_dmx_mark_active_quality(GF_ROUTEDmx *routedmx, u32 service_id, const char *period_id, s32 as_id, const char *rep_id, Bool is_selected);
+
+/*! Cancel all current transfer on  all services
+\param routedmx the ROUTE demultiplexer
+ */
+void gf_route_dmx_reset_all(GF_ROUTEDmx *routedmx);
 
 
 /*! @} */

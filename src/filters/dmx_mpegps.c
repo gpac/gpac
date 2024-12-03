@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Program Stream demuxer filter
@@ -488,7 +488,8 @@ GF_FilterRegister M2PSDmxRegister = {
 	.process_event = m2psdmx_process_event,
 	.probe_data = m2psdmx_probe_data,
 	//this filter is not very reliable, prefer ffmpeg when available
-	.priority = 255
+	.priority = 255,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 #endif // GPAC_DISABLE_MPEG2PS

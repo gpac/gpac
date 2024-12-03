@@ -59,7 +59,7 @@ load test-unit filters (used for for unit tests only)
 .TP
 .B \-sloop (int)
 .br
-loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever
+loop execution of session, creating a session at each loop, mainly used for testing, breaking at first error. If no value is given, loops forever
 .br
 .TP
 .B \-runfor (int)
@@ -425,6 +425,11 @@ default buffer size in microseconds for decoder input pids
 .B \-buffer-units (int, default: 1)
 .br
 default buffer size in frames when timing is not available
+.br
+.TP
+.B \-check-props
+.br
+check known property types upon assignment and PID vs packet types upon fetch (in test mode, exit with error code 5 if mismatch)
 .br
 .SH Using Aliases
 .PL
@@ -1109,7 +1114,7 @@ cache directory location
 .TP
 .B \-proxy (string)
 .br
-set HTTP proxy server address and port
+set HTTP proxy server address and port (if no protocol scheme is set, use same as target)
 .br
 .TP
 .B \-maxrate (int)
@@ -1155,6 +1160,11 @@ ignore HTTP 1.1 timeout in keep-alive
 .B \-broken-cert
 .br
 enable accepting broken SSL certificates
+.br
+.TP
+.B \-ca-bundle (string)
+.br
+path to a custom CA certificates bundle file
 .br
 .TP
 .B \-user-agent,-ua (string)
@@ -1326,6 +1336,11 @@ default buffer size in microseconds for decoder input pids
 .B \-buffer-units (int, default: 1)
 .br
 default buffer size in frames when timing is not available
+.br
+.TP
+.B \-check-props
+.br
+check known property types upon assignment and PID vs packet types upon fetch (in test mode, exit with error code 5 if mismatch)
 .br
 .TP
 .B \-gl-bits-comp (int, default: 8)
@@ -1858,7 +1873,7 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .br
 Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values that must be matched or excluded by connecting PIDs.
 .br
-To check the possible sources and destination for a filter FNAME, use gpac -h links FNAME
+To check the possible sources and destinations for a filter FNAME, use gpac -h links FNAME
 .br
 
 .br
@@ -1882,7 +1897,7 @@ For each filter DST accepting a connection from the PID, directly or with interm
 .br
 - if DST filter has link directives, use them to allow or reject PID connection.
 .br
-- otherwise, if complete mode is enabled, allow connection..
+- otherwise, if complete mode is enabled, allow connection.
 .br
 - otherwise (implicit mode):
 .br
@@ -2350,7 +2365,7 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 .br
   
 .br
-$$ is an escape for $
+$$ is an escape for $. For shells automatically replacing $$ with $, the syntax $;$ can be used to express $$.
 .br
 
 .br
@@ -3052,7 +3067,12 @@ Media is unframed AAC in LATM format
 .TP
 .B Duration (PDUR,lfrac,  )
 .br
-Media duration (a negative value means an estimated duration based on rate)
+Media duration
+.br
+.TP
+.B EstimatedDuration (EDUR,bool,  )
+.br
+Media duration is an estimated duration based on rate
 .br
 .TP
 .B NumFrames (NFRM,uint,D )
@@ -3092,7 +3112,7 @@ Media timescale (a timestamp delta of N is N/timescale seconds)
 .TP
 .B ProfileLevel (PRPL,uint,D )
 .br
-MPEG-4 profile and level
+Profile and level indication
 .br
 .TP
 .B DecoderConfig (DCFG,mem,  )
@@ -3270,7 +3290,7 @@ Position in source window, X,Y indicate coordinates in source (0,0 for top-left)
 Original resolution of video
 .br
 .TP
-.B SRD (SRD ,v4di,  )
+.B SRD (SRDI,v4di,  )
 .br
 Position and size of the video in the referential given by SRDRef
 .br
@@ -3627,7 +3647,7 @@ Mode for CENC sample description when using clear samples:
 ModeSet for AMR and AMR-WideBand
 .br
 .TP
-.B SubSampleInfo (SUBS,mem,  )
+.B SubSampleInfo (SUBS,mem, P)
 .br
 Binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)codec_param(u8)priority(u8) discardable]. Subsamples for a given flag MUST appear in order, however flags can be interleaved
 .br
@@ -3667,7 +3687,7 @@ End of DASH segment
 Set on packets marking the beginning of a DASH/HLS segment for cue-driven segmentation - see dasher help
 .br
 .TP
-.B MediaTime (MTIM,dbl,D )
+.B MediaTime (MTIM,dbl,DP)
 .br
 Corresponding media time of the parent packet (0 being the origin)
 .br
@@ -3709,7 +3729,7 @@ ISOBMFF serialized trex box for this PID
 .TP
 .B STSDTemplate (ISTD,mem,D )
 .br
-ISOBMFF serialized sample description box (stsd entry) for this PID
+ISOBMFF serialized sample description entry for this PID
 .br
 .TP
 .B MovieUserData (IMUD,mem,D )
@@ -3769,7 +3789,18 @@ ID of DASH representation
 .TP
 .B ASID (DAID,uint,D )
 .br
-ID of parent DASH AS
+ID of parent DASH Adaptation Set
+.br
+.TP
+.B SSR (SSRR,sint,D )
+.br
+ID of Adaptation Set:
+.br
+* same value as ASID: regular SSR not used for cross-AS switching
+.br
+* ID of another AdaptationSet: enable cross-AS switching between this AS and the referenced one
+.br
+* negative value: LL-HLS compatability mode
 .br
 .TP
 .B MuxSrc (MSRC,str,D )
@@ -3790,6 +3821,26 @@ Indicate segment must be completely flushed before sending segment/fragment size
 .B DashDur (DDUR,frac,D )
 .br
 DASH target segment duration in seconds
+.br
+.TP
+.B FragDur (FDUR,frac,D )
+.br
+DASH target fragment duration in seconds
+.br
+.TP
+.B DashMultiPid (DMSD,ptr,D )
+.br
+Pointer to the GF_List of input PIDs for multi-stsd entries segments, set by dasher
+.br
+.TP
+.B DashMultiPidIdx (DMSI,uint,D )
+.br
+1-based index of PID in the multi PID list, set by dasher
+.br
+.TP
+.B DashMultiTrack (DMTK,ptr,D )
+.br
+Pointer to the GF_List of input PIDs for multi-tracks segments, set by dasher
 .br
 .TP
 .B Role (ROLE,strl,D )
@@ -3902,24 +3953,29 @@ Primary item in ISOBMFF
 DASH forward mode is used for this PID. If 2, the manifest is also carried in packet propery
 .br
 .TP
-.B DFManifest (DMPD,str,D )
+.B DFManifest (DMPD,str,DP)
 .br
 Value of manifest in forward mode
 .br
 .TP
-.B DFVariant (DHLV,strl,D )
+.B DFVariant (DHLV,strl,DP)
 .br
 Value of variant playlist in forward mode
 .br
 .TP
-.B DFVariantName (DHLN,strl,D )
+.B DFVariantName (DHLN,strl,DP)
 .br
 Value of variant playlist name in forward mode
 .br
 .TP
 .B DFPStart (DPST,luint,D )
 .br
-Value of active period start time in forward mode
+Value of active period start time in ms in forward mode
+.br
+.TP
+.B DFPckPStart (PDPS,bool,DP)
+.br
+Indicate new period start (only set on first packets of non-first periods)
 .br
 .TP
 .B HLSKey (HLSK,str,  )
@@ -4019,7 +4075,12 @@ Decode time of first packet in fragmentt
 .TP
 .B SIDXRange (PFSR,lfrac,DP)
 .br
-Start and end position in bytes of sidx if packet is a fragment or segment start
+Start and end position in bytes of sidx in segment if any
+.br
+.TP
+.B VODSIDXRange (PRSR,lfrac,D )
+.br
+Start and end position in bytes of root sidx
 .br
 .TP
 .B MoofTemplate (MFTP,mem,DP)
@@ -4072,29 +4133,29 @@ View index for multiview (1 being left)
 Fragment URL (without '#') of original URL (used by some filters to set the property on media PIDs)
 .br
 .TP
-.B ROUTEIP (RSIP,str,D )
+.B MCASTIP (MSIP,str,D )
 .br
-ROUTE session IP address
-.br
-.TP
-.B ROUTEPort (RSPN,uint,D )
-.br
-ROUTE session port number
+session Multicast IP address for ROUTE/MABR
 .br
 .TP
-.B ROUTEName (RSFN,str,D )
+.B MCASTPort (MSPN,uint,D )
 .br
-Name (location) of raw file to advertise in ROUTE session
-.br
-.TP
-.B ROUTECarousel (RSCR,frac,D )
-.br
-Carousel period in seconds of raw file in ROUTE session
+session port number for ROUTE/MABR
 .br
 .TP
-.B ROUTEUpload (RSST,frac,D )
+.B MCASTName (MSFN,str,D )
 .br
-Upload time in seconds of raw file in ROUTE session
+Name (location) of raw file to advertise in ROUTE/MABR session
+.br
+.TP
+.B MCASTCarousel (MSCR,frac,D )
+.br
+Carousel period in seconds of raw file or low-latency manifest/init segments for ROUTE/MABR sessions
+.br
+.TP
+.B MCASTUpload (MSST,frac,D )
+.br
+Upload time in seconds of raw files for ROUTE/MABR sessions
 .br
 .TP
 .B Stereo (PSTT,uint,D )
@@ -4164,11 +4225,11 @@ Character set for input text PID
 .br
 PID or Packet is forced sub
 .br
-0: not forced
+* 0: not forced
 .br
-1: forced frame
+* 1: forced frame
 .br
-2: all frames are forced (PID only)
+* 2: all frames are forced (PID only)
 .br
 .TP
 .B ChapTimes (CHPT,uintl,D )
@@ -4188,7 +4249,7 @@ Subtitle PID is chapter (for QT-like chapters)
 .TP
 .B SkipBegin (PCKS,uint, P)
 .br
-Amount of media to skip from beginning of packet in PID timescale
+Amount of media to skip from beginning of packet in PID timescale (when set o PID, indicate packets with skip will be present)
 .br
 .TP
 .B SkipPres (PCKD,bool, P)
@@ -4201,19 +4262,29 @@ Packet and any following with CTS greater than this packet shall not be presente
 Elapsed time (.num) and original duration (.den, 0 if last copy of packet) for redundant packets
 .br
 .TP
-.B HLSRef (HPLR,luint,DP)
+.B HasSkipBegin (PSBP,bool,  )
+.br
+Indicate if PID will carry packets with SkipBegin properties
+.br
+.TP
+.B HLSRef (PHLR,luint,D )
 .br
 HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 .br
 .TP
-.B LLHLS (HLSL,uint,D )
+.B PckHLSRef (HPLR,luint,DP)
 .br
-HLS low latency mode
+Same as HLSRef but carried on packets for ROUTE/MABR file transfer
 .br
 .TP
-.B LLHLSFragNum (HLSN,uint, P)
+.B LLHAS (HLHS,uint,D )
 .br
-LLHLS fragment number
+DASH/HLS low latency mode
+.br
+.TP
+.B LLHASFragNum (HLSN,uint,DP)
+.br
+DASH-SSR/LLHLS fragment number
 .br
 .TP
 .B DownloadSession (GHTT,ptr,D )
@@ -4234,6 +4305,141 @@ Parameter set mask
 .B RangeEnd (PCER,bool, P)
 .br
 Signal packet is the last in the desired play range
+.br
+.TP
+.B RefID (PKID,sint, P)
+.br
+packet identifier for dependency (usually POC for video)
+.br
+.TP
+.B Refs (PRFS,sintl, P)
+.br
+list of packet identifier this packet depends on
+.br
+.TP
+.B DOVI (DOVI,mem,  )
+.br
+DolbyVision configuration
+.br
+.TP
+.B OutPath (FDST,str,  )
+.br
+Output file name of PID used by some filters creating additional raw PIDs
+.br
+.TP
+.B ACrypMeta (AMET,mem,  )
+.br
+Meta-data for Adobe encryption
+.br
+.TP
+.B HasCRoll (CROL,bool,  )
+.br
+Indicates if key roll is used in CENC
+.br
+.TP
+.B STSDAllTemplates (ISTA,mem,D )
+.br
+ISOBMFF serialized sample description box for this PID
+.br
+.TP
+.B STSDTemplateIdx (ISTI,uint,D )
+.br
+Index of corresponding STSDAllTemplates
+.br
+.TP
+.B PremuxType (PPST,uint,  )
+.br
+Main streamtype of the PID before mux, only used for ROUTE/MABR setup
+.br
+.TP
+.B CodecMerge (PCMB,uint,D )
+.br
+Indicate the PID can be merged with other streams with same value for single decoding  (HEVC only for now)
+.br
+.TP
+.B RelativePath (FNRL,bool,DP)
+.br
+Indicate the packet file name uses relative path
+.br
+.TP
+.B ClearKeyID (CCKI,mem,D )
+.br
+Key ID for ClearKey scheme
+.br
+.TP
+.B DashSparse (DSSG,bool,D )
+.br
+indicate DASH segments are generated in sparse mode (from context)
+.br
+.TP
+.B DashDepGroup (DGDI,uint,D )
+.br
+indicate DASH dependency group ID
+.br
+.TP
+.B SC35Ref (SC35,uint,D )
+.br
+PID has SCTE35 information carried on indicated PID number
+.br
+.TP
+.B NoInit (PNIN,bool,D )
+.br
+PID does not use any init segment in DASH (file forward mode of dasher, only used for ROUTE/MABR)
+.br
+.TP
+.B ForceUnframe (PFUF,bool,D )
+.br
+force creation of rewriter filter (only used for forcing reparse of NALU-based codecs)
+.br
+.TP
+.B MetaCodecID (MDCI,uint,D )
+.br
+identifier for meta codecs (FFmpeg, ...)
+.br
+.TP
+.B MetaCodecName (MDCN,str,D )
+.br
+Name used by for meta codecs (FFmpeg, ...)
+.br
+.TP
+.B MetaCodecOpaque (MDOP,uint,D )
+.br
+Internal property used for meta demuxers ( FFmpeg, ...) codec opaque data
+.br
+.TP
+.B HASSegStart (FMSS,lfrac,DP)
+.br
+Start time of segment for ROUTE/MABR scheduling
+.br
+.TP
+.B SplitStart (PSPS,uint,DP)
+.br
+split start time of packet in PID timescale, for index-based dashing
+.br
+.TP
+.B SplitEnd (PSPE,uint,DP)
+.br
+split end time of packet in PID timescale, for index-based dashing
+.br
+.TP
+.B InitName (PINM,str,D )
+.br
+Name of init segment when dashing, used for ROUTE/MABR
+.br
+.TP
+.B SegURL (SURL,str,DP)
+.br
+URL of source segment (when forwarding fragment boundaries)
+.br
+.TP
+.B DynPSSH (PSHP,mem, P)
+.br
+PSSH blob for CENC, same format as CENC_PSSH, used when using master key and roll keys, signaled on first packet of segment where the PSSH changes
+.br
+.TP
+.B LLHASTemplate (PSRT,str, P)
+.br
+Template for DASH-SSR and LLHLS sub-segments
 .br
 .SH Pixel formats
 .LP
@@ -4910,7 +5116,7 @@ DRA Audio
 G719 Audio
 .br
 .TP
-.B dstc
+.B dtsc
 .br
 DTS Coherent Acoustics and Digital Surround Audio
 .br
@@ -4920,7 +5126,7 @@ DTS Coherent Acoustics and Digital Surround Audio
 DTS-HD High Resolution Audio and DTS-Master Audio
 .br
 .TP
-.B dstl
+.B dtsl
 .br
 DTS-HD Substream containing only XLLAudio
 .br
@@ -5238,6 +5444,11 @@ MS-MPEG4 V3
 .B caf
 .br
 Apple Lossless Audio
+.br
+.TP
+.B dnx
+.br
+AViD DNxHD
 .br
 .SH Stream types
 .LP

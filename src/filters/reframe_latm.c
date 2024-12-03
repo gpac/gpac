@@ -77,6 +77,8 @@ typedef struct
 	u32 bitrate;
 	GF_Err in_error;
 	Bool copy_props;
+
+	u8 latm_dmx_buffer[LATM_DMX_MAX_SIZE];
 } GF_LATMDmxCtx;
 
 
@@ -130,7 +132,8 @@ static Bool latm_dmx_sync_frame_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u3
 
 						if (!same_cfg) {
 							if (amux_version==1) gf_latm_get_value(bs);
-							gf_m4a_parse_config(bs, acfg, GF_FALSE);
+							GF_Err e = gf_m4a_parse_config(bs, acfg, GF_FALSE);
+							if (e) return GF_FALSE;
 						}
 						frameLengthType = gf_bs_read_int(bs, 3);
 						if (!frameLengthType) {
@@ -527,9 +530,8 @@ restart:
 
 	while (1) {
 		pos = (u32) gf_bs_get_position(ctx->bs);
-		u8 latm_buffer[LATM_DMX_MAX_SIZE];
 		u32 latm_frame_size = LATM_DMX_MAX_SIZE;
-		if (!latm_dmx_sync_frame_bs(ctx->bs,&ctx->acfg, &latm_frame_size, latm_buffer, NULL)) break;
+		if (!latm_dmx_sync_frame_bs(ctx->bs,&ctx->acfg, &latm_frame_size, ctx->latm_dmx_buffer, NULL)) break;
 
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = (u64) (ctx->start_range * GF_M4ASampleRates[ctx->sr_idx]);
@@ -557,7 +559,7 @@ restart:
 
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
-			memcpy(output, latm_buffer, latm_frame_size);
+			memcpy(output, ctx->latm_dmx_buffer, latm_frame_size);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			if (ctx->timescale && (ctx->timescale!=ctx->sample_rate))
@@ -630,6 +632,7 @@ static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	u32 nb_frames=0;
 	u32 nb_skip=0;
 	GF_M4ADecSpecInfo acfg;
+	acfg.base_sr_index = (u32)-1;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	while (1) {
 		u32 nb_skipped = 0;
@@ -695,7 +698,8 @@ GF_FilterRegister LATMDmxRegister = {
 	.configure_pid = latm_dmx_configure_pid,
 	.process = latm_dmx_process,
 	.probe_data = latm_dmx_probe_data,
-	.process_event = latm_dmx_process_event
+	.process_event = latm_dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

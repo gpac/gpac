@@ -1783,6 +1783,8 @@ void gf_node_init(GF_Node *node)
 	gf_assert(pSG);
 	/*no user-defined init, consider the scenegraph is only used for parsing/encoding/decoding*/
 	if (!pSG->NodeCallback) return;
+	//some broken content may trigger twice an update
+	if (node->sgprivate->UserPrivate) return;
 
 	/*internal nodes*/
 #ifndef GPAC_DISABLE_VRML
@@ -1944,7 +1946,7 @@ const char *gf_node_get_class_name(GF_Node *node)
 		if (ns == full->ns) return full->name;
 		xmlns = (char *) gf_sg_get_namespace_qname(node->sgprivate->scenegraph, full->ns);
 		if (!xmlns) return full->name;
-		sprintf(node->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, full->name);
+		snprintf(node->sgprivate->scenegraph->szNameBuffer, 99, "%s:%s", xmlns, full->name);
 		return node->sgprivate->scenegraph->szNameBuffer;
 	}
 #ifndef GPAC_DISABLE_SVG

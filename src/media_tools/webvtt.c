@@ -669,6 +669,9 @@ static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *sam
 	u64 cue_end;
 	u64 sample_end;
 
+	if (!cue)
+		return GF_BAD_PARAM;
+
 	sample_end = 0;
 	cue_start = gf_webvtt_timestamp_get(&cue->start);
 	cue_end   = gf_webvtt_timestamp_get(&cue->end);
@@ -874,32 +877,32 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 	while (pos < len && line[pos] != ' ' && line[pos] != '\t') pos++;
 	if (pos == len) {
 		e = GF_CORRUPTED_DATA;
-		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in", line);
 		return e;
 	}
 	line[pos] = 0;
 	e = gf_webvtt_parse_timestamp(parser, &cue->start, timestamp_string);
 	if (e) {
-		parser->report_message(parser->user, e, "Bad VTT timestamp formatting %s", timestamp_string);
+		parser->report_message(parser->user, e, "Bad VTT timestamp formatting", timestamp_string);
 		return e;
 	}
 	line[pos] = ' ';
 	SKIP_WHITESPACE
 	if (pos == len) {
 		e = GF_CORRUPTED_DATA;
-		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing", line);
 		return e;
 	}
 	if ( (pos+2)>= len || line[pos] != '-' || line[pos+1] != '-' || line[pos+2] != '>') {
 		e = GF_CORRUPTED_DATA;
-		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+		parser->report_message(parser->user, e, "Error scanning WebVTT cue timing", line);
 		return e;
 	} else {
 		pos += 3;
 		SKIP_WHITESPACE
 		if (pos == len) {
 			e = GF_CORRUPTED_DATA;
-			parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in %s", line);
+			parser->report_message(parser->user, e, "Error scanning WebVTT cue timing in", line);
 			return e;
 		}
 		timestamp_string = line + pos;
@@ -909,7 +912,7 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 		}
 		e = gf_webvtt_parse_timestamp(parser, &cue->end, timestamp_string);
 		if (e) {
-			parser->report_message(parser->user, e, "Bad VTT timestamp formatting %s", timestamp_string);
+			parser->report_message(parser->user, e, "Bad VTT timestamp formatting", timestamp_string);
 			return e;
 		}
 		if (pos < len) {
@@ -942,6 +945,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 	char *header = NULL;
 	u32 header_len = 0;
 	Bool had_marks = GF_FALSE;
+	u32 is_resume = ext_file ? 1 : 9;
 
 	if (!parser) return GF_BAD_PARAM;
 	parser->suspend = GF_FALSE;
@@ -958,6 +962,9 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		sOK = gf_text_get_utf8_line(szLine, 2048, ext_file ? ext_file : parser->vtt_in, parser->unicode_type, &in_progress);
 		if (in_progress) {
 			parser->suspend = GF_TRUE;
+			if (ext_file && cue && !cue->text) {
+				gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
+			}
 			break;
 		}
 		REM_TRAIL_MARKS(szLine, "\r\n")
@@ -970,7 +977,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		case WEBVTT_PARSER_STATE_WAITING_SIGNATURE:
 			if (!sOK || len < 6 || strnicmp(szLine, "WEBVTT", 6) || (len > 6 && szLine[6] != ' ' && szLine[6] != '\t')) {
 				e = GF_CORRUPTED_DATA;
-				parser->report_message(parser->user, e, "Bad WEBVTT file signature %s", szLine);
+				parser->report_message(parser->user, e, "Bad WEBVTT file signature", szLine);
 				goto exit;
 			} else {
 				if (had_marks) {
@@ -1074,7 +1081,7 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 		case WEBVTT_PARSER_STATE_WAITING_CUE_TIMESTAMP:
 			if (sOK && len) {
 				if (cue == NULL) {
-					cue   = gf_webvtt_cue_new();
+					cue = gf_webvtt_cue_new();
 				}
 				if (prevLine) {
 					gf_webvtt_cue_add_property(cue, WEBVTT_ID, prevLine, (u32) strlen(prevLine));
@@ -1104,6 +1111,11 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			}
 			break;
 		case WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD:
+			if ((is_resume==1) && !cue) {
+				GF_WebVTTSample *sample = (GF_WebVTTSample *)gf_list_last(parser->samples);
+				cue = sample ? gf_list_last(sample->cues) : NULL;
+				is_resume = 2;
+			}
 			if (sOK && len) {
 				if (!strncmp(szLine, "NOTE ", 5)) {
 					if (had_marks) {
@@ -1117,17 +1129,23 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 					parser->in_comment = GF_FALSE;
 				}
 			}
-			if (sOK && len) {
+			//special case when injecting multiple times the header, ignore it
+			if (ext_file && !strcmp(szLine, "WEBVTT")) {
+			}
+			else if (sOK && len) {
 				if (had_marks) {
 					szLine[len] = '\n';
 					len++;
 				}
+				assert(cue);
 				gf_webvtt_cue_add_property(cue, parser->in_comment ? WEBVTT_POSTCUE_TEXT : WEBVTT_PAYLOAD, szLine, len);
 				/* remain in the same state as a cue payload can have multiple lines */
 				break;
 			} else {
 				/* end of the current cue */
-				gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
+				if (is_resume!=2) {
+					gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
+				}
 				cue = NULL;
 				parser->in_comment = GF_FALSE;
 
@@ -1394,18 +1412,18 @@ void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value)
 	if (!ts) return;
 	tmp = value;
 	ts->hour = (u32)(tmp/(3600*1000));
-	tmp -= ts->hour*3600*1000;
+	tmp -= (u64) ts->hour*3600*1000;
 	ts->min  = (u32)(tmp/(60*1000));
-	tmp -= ts->min*60*1000;
+	tmp -= (u64) ts->min*60*1000;
 	ts->sec  = (u32)(tmp/1000);
-	tmp -= ts->sec*1000;
+	tmp -= (u64) ts->sec*1000;
 	ts->ms   = (u32)tmp;
 }
 
 u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts)
 {
 	if (!ts) return 0;
-	return (3600*ts->hour + 60*ts->min + ts->sec)*1000 + ts->ms;
+	return (u64)(3600*ts->hour + 60*ts->min + ts->sec)*1000 + ts->ms;
 }
 
 void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour)

@@ -333,6 +333,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/dsmcc.c \
 	../../../../src/media_tools/dvb_mpe.c \
 	../../../../src/media_tools/gpac_ogg.c \
+	../../../../src/media_tools/id3.c \
 	../../../../src/media_tools/img.c \
 	../../../../src/media_tools/isom_hinter.c \
 	../../../../src/media_tools/isom_tools.c \
@@ -431,6 +432,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/unicode.c \
 	../../../../src/utils/url.c \
 	../../../../src/utils/utf.c \
+	../../../../src/utils/xml_bin_custom.c \
 	../../../../src/utils/xml_parser.c \
 	../../../../src/utils/zutil.c
 

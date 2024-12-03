@@ -113,13 +113,17 @@ typedef enum
 	GF_NETIO_SESSION_NO_BLOCK = 1<<8,
 	/*! session must be able to share underlying GF_Socket */
 	GF_NETIO_SESSION_SHARE_SOCKET = 1<<9,
+	/*! disable proxy for this session */
+	GF_NETIO_SESSION_NO_PROXY = 1<<10,
 } GF_NetIOFlags;
 
 
 /*!protocol I/O parameter*/
 typedef struct
 {
-	/*!parameter message type*/
+	/*!parameter message type
+		If value is GF_NETIO_GET_HEADER and callback resets the value to 0, aborts headers query
+	*/
 	GF_NetIOStatus msg_type;
 	/*error code if any. Valid for all message types.*/
 	GF_Err error;
@@ -127,9 +131,13 @@ typedef struct
 	const u8 *data;
 	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
 	u32 size;
-	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
+	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD
+		if NULL for GF_NETIO_GET_HEADER, ignored
+	*/
 	const char *name;
-	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
+	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY
+		if NULL for GF_NETIO_GET_HEADER, aborts headers query
+	*/
 	char *value;
 	/*message-dependend
 		for GF_NETIO_PARSE_REPLY, response code

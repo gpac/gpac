@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / compositor filter
@@ -127,6 +127,7 @@ static GF_Err compose_process(GF_Filter *filter)
 				gf_filter_abort(filter);
 			} else if (!ret && ctx->vfr && !ctx->check_eos_state && !nb_sys_streams_active && ctx->scene_sampled_clock && !ctx->validator_mode) {
 				ctx->check_eos_state = 1;
+				ctx->last_check_pass = 0;
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
 			}
@@ -1028,8 +1029,8 @@ static GF_FilterArgs CompositorArgs[] =
 	"", GF_PROP_UINT, "none", "none|walk|fly|pan|game|slide|exam|orbit|vr", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(linegl), "indicate that outlining shall be done through OpenGL pen width rather than vectorial outlining", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(epow2), "emulate power-of-2 textures for OpenGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled\n"
-	"- yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"
-	"- no: video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	"- true: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations\n"
+	"- false: video is resized to a power of 2 texture when mapping to a shape", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(paa), "indicate whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(bcull), "indicate whether backface culling shall be disable or not\n"
 				"- on: enables backface culling\n"
@@ -1202,6 +1203,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"- If the URL gives less views than rendered, the views will be repeated\n"
 	"- If the URL gives more views than rendered, the extra views will be ignored\n"
 	"\n"
+	"\n"
 	"The compositor can act as a source filter when the [-src]() option is explicitly set, independently from the operating mode:\n"
 	"EX gpac compositor:src=source.mp4 vout\n"
 	"\n"
@@ -1222,6 +1224,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.reconfigure_output = compose_reconfig_output,
 	.update_arg = compose_update_arg,
 	.probe_url = compose_probe_url,
+	.hint_class_type = GF_FS_CLASS_AV
 };
 
 const GF_FilterRegister *compositor_register(GF_FilterSession *session)

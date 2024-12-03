@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2023
+ *			Copyright (c) Telecom ParisTech 2020-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS write filter
@@ -262,7 +262,7 @@ static const GF_FilterArgs MHASMxArgs[] =
 
 GF_FilterRegister MHASMxRegister = {
 	.name = "ufmhas",
-	GF_FS_SET_DESCRIPTION("MHAS writer")
+	GF_FS_SET_DESCRIPTION("MHAS rewriter")
 	GF_FS_SET_HELP("This filter converts MPEG-H Audio streams into MHAS encapsulated data.")
 	.private_size = sizeof(GF_MHASMxCtx),
 	.args = MHASMxArgs,
@@ -270,7 +270,8 @@ GF_FilterRegister MHASMxRegister = {
 	.finalize = mhasmx_finalize,
 	SETCAPS(MHASMxCaps),
 	.configure_pid = mhasmx_configure_pid,
-	.process = mhasmx_process
+	.process = mhasmx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -130,7 +130,6 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	char szName[1024];
 	char *ext;
 	GF_Descriptor *d;
-	GF_MediaImporter import;
 	GF_MuxInfo *mux = NULL;
 
 	if (od_sample_rap && src->ESID && gf_isom_get_track_by_id(mp4, src->ESID) ) {
@@ -218,13 +217,15 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 		track = gf_isom_get_track_by_id(mp4, src->ESID);
 		if (track) return GF_OK;
 		if (mediaSource) {
-			memset(&import, 0, sizeof(GF_MediaImporter));
-			import.dest = mp4;
-			import.trackID = src->ESID;
-			import.orig = gf_isom_open(mediaSource, GF_ISOM_OPEN_READ, NULL);
-			if (import.orig) {
-				e = gf_media_import(&import);
-				gf_isom_delete(import.orig);
+			GF_MediaImporter *import;
+			GF_SAFEALLOC(import, GF_MediaImporter);
+			if (!import) return GF_OUT_OF_MEM;
+			import->dest = mp4;
+			import->trackID = src->ESID;
+			import->orig = gf_isom_open(mediaSource, GF_ISOM_OPEN_READ, NULL);
+			if (import->orig) {
+				e = gf_media_import(import);
+				gf_isom_delete(import->orig);
 				return e;
 			}
 		}
@@ -233,7 +234,10 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 
 	if (!mux->file_name) return GF_OK;
 
-	memset(&import, 0, sizeof(GF_MediaImporter));
+	GF_MediaImporter *import;
+	GF_SAFEALLOC(import, GF_MediaImporter);
+	if (!import) return GF_OUT_OF_MEM;
+
 	if (mux->src_url) {
 		ext = gf_url_concatenate(mux->src_url, mux->file_name);
 		strcpy(szName, ext ? ext : mux->file_name);
@@ -256,8 +260,8 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] missing track specifier for AVI import (file#audio, file#video)\n"));
 			return GF_NOT_SUPPORTED;
 		}
-		if (isVideo) import.trackID = 1;
-		else import.trackID = 2;
+		if (isVideo) import->trackID = 1;
+		else import->trackID = 2;
 		ext = strchr(ext, '#');
 		if (ext) ext[0] = 0;
 	}
@@ -265,31 +269,35 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	if (ext) {
 		ext = strchr(ext, '#');
 		if (ext) {
-			import.trackID = atoi(ext+1);
+			import->trackID = atoi(ext+1);
 			ext[0] = 0;
 		}
 	}
 
-	import.streamFormat = mux->streamFormat;
-	import.dest = mp4;
-	import.esd = src;
+	import->streamFormat = mux->streamFormat;
+	import->dest = mp4;
+	import->esd = src;
 	if (mux->duration) {
-		import.duration.num = mux->duration;
-		import.duration.den = 1000;
+		import->duration.num = mux->duration;
+		import->duration.den = 1000;
 	}
-	import.flags = mux->import_flags | GF_IMPORT_FORCE_MPEG4;
-	import.video_fps.num = (s32) (1000*mux->frame_rate);
-	import.video_fps.den = 1000;
-	import.in_name = szName;
-	import.initial_time_offset = imp_time;
-	e = gf_media_import(&import);
-	if (e) return e;
-
+	import->flags = mux->import_flags | GF_IMPORT_FORCE_MPEG4;
+	import->video_fps.num = (s32) (1000*mux->frame_rate);
+	import->video_fps.den = 1000;
+	import->in_name = szName;
+	import->initial_time_offset = imp_time;
+	e = gf_media_import(import);
+	if (e) {
+		gf_free(import);
+		return e;
+	}
 	if (src->OCRESID) {
-		gf_isom_set_track_reference(mp4, gf_isom_get_track_by_id(mp4, import.final_trackID), GF_ISOM_REF_OCR, src->OCRESID);
+		gf_isom_set_track_reference(mp4, gf_isom_get_track_by_id(mp4, import->final_trackID), GF_ISOM_REF_OCR, src->OCRESID);
 	}
 
-	track = gf_isom_get_track_by_id(mp4, import.final_trackID);
+	track = gf_isom_get_track_by_id(mp4, import->final_trackID);
+	gf_free(import);
+
 	i=0;
 	while ((d = gf_list_enum(src->extensionDescriptors, &i))) {
 		Bool do_del = GF_FALSE;
