@@ -275,6 +275,7 @@ typedef struct
 	Bool push_frag_name;
 	Bool init_cfg_done;
 	u32 fdt_instance_id;
+	s32 diff_send_at_frame_start, diff_recv_at_frame_start;
 } ROUTEPid;
 
 
@@ -2106,6 +2107,17 @@ retry:
 		rpid->cumulated_frag_size = rpid->pck_size;
 		rpid->push_init = GF_TRUE;
 		rpid->frag_offset = 0;
+
+		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_SENDER_NTP);
+		if (p) {
+			u64 ntp = gf_net_get_ntp_ts();
+			rpid->diff_send_at_frame_start = gf_net_ntp_diff_ms(ntp, p->value.longuint);
+			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_RECEIVER_NTP);
+			rpid->diff_recv_at_frame_start = p ? gf_net_ntp_diff_ms(ntp, p->value.longuint) : -1;
+		} else {
+			rpid->diff_send_at_frame_start = -1;
+			rpid->diff_recv_at_frame_start = -1;
+		}
 	} else {
 		rpid->frag_idx++;
 		if (ctx->dvb_mabr) {
@@ -2522,7 +2534,7 @@ next_packet:
 #ifndef GPAC_DISABLE_LOG
 			//print full object push info
 			if (rpid->full_frame_size && (gf_log_get_tool_level(GF_LOG_ROUTE)>=GF_LOG_INFO)) {
-				char szFInfo[1000], szSID[31];
+				char szFInfo[1000], szSID[31], szDelay[100];
 				u64 seg_clock, target_push_dur;
 
 				if (rpid->pck_dur_at_frame_start) {
@@ -2537,12 +2549,18 @@ next_packet:
 				else
 					szSID[0] = 0;
 
+				if (rpid->diff_send_at_frame_start>=0) {
+					sprintf(szDelay, " started %d ms after request (%d ms after reception)", rpid->diff_send_at_frame_start, rpid->diff_recv_at_frame_start);
+				} else {
+					szDelay[0] = 0;
+				}
+
 				if (rpid->frag_idx)
 					snprintf(szFInfo, 100, "%s%s (%d frags %d bytes)", szSID, rpid->seg_name, rpid->frag_idx+1, rpid->full_frame_size);
 				else
 					snprintf(szFInfo, 100, "%s%s (%d bytes)", szSID, rpid->seg_name, rpid->full_frame_size);
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in "LLU" us - target push "LLU" us\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur));
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in "LLU" us - target push "LLU" us%s\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur, szDelay));
 
 				//real-time stream, check we are not out of sync
 				if (!rpid->raw_file) {
