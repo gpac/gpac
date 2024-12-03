@@ -41,6 +41,7 @@ typedef struct
 	GF_FilterPid *opid;
 	u32 current_toi;
 	u32 bytes_sent;
+	GF_List *pending_repairs;
 } TSI_Output;
 
 typedef struct
@@ -136,6 +137,7 @@ struct _route_repair_seg_info
 	u32 pending;
 	GF_List *ranges;
 	u32 nb_errors;
+	TSI_Output *tsio;
 };
 
 
@@ -147,6 +149,8 @@ void routein_on_event_file(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param
 
 //return GF_EOS if nothing active, GF_OK otherwise
 GF_Err routein_do_repair(ROUTEInCtx *ctx);
+
+TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo);
 
 #endif /* GPAC_DISABLE_ROUTE */
 

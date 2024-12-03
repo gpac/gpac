@@ -54,6 +54,7 @@ static void routein_finalize(GF_Filter *filter)
 	if (ctx->tsi_outs) {
 		while (gf_list_count(ctx->tsi_outs)) {
 			TSI_Output *tsio = gf_list_pop_back(ctx->tsi_outs);
+			gf_list_del(tsio->pending_repairs);
 			gf_free(tsio);
 		}
 		gf_list_del(ctx->tsi_outs);
@@ -130,7 +131,28 @@ static void routein_cleanup_objects(ROUTEInCtx *ctx, u32 service_id)
 
 }
 
-static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 evt_type)
+TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo)
+{
+	TSI_Output *tsio;
+	if (!finfo->tsi || !ctx->stsi) return NULL;
+	u32 i, count = gf_list_count(ctx->tsi_outs);
+	for (i=0; i<count; i++) {
+		tsio = gf_list_get(ctx->tsi_outs, i);
+		if ((tsio->sid==service_id) && (tsio->tsi==finfo->tsi)) {
+			return tsio;
+		}
+	}
+	GF_SAFEALLOC(tsio, TSI_Output);
+	if (!tsio) return NULL;
+
+	tsio->tsi = finfo->tsi;
+	tsio->sid = service_id;
+	tsio->pending_repairs = gf_list_new();
+	gf_list_add(ctx->tsi_outs, tsio);
+	return tsio;
+}
+
+static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileInfo *finfo, GF_ROUTEEventType evt_type)
 {
 	u8 *output;
 	char *ext;
@@ -139,23 +161,8 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 	TSI_Output *tsio = NULL;
 
 	p_pid = &ctx->opid;
-	if (finfo->tsi && ctx->stsi) {
-		u32 i, count = gf_list_count(ctx->tsi_outs);
-		for (i=0; i<count; i++) {
-			tsio = gf_list_get(ctx->tsi_outs, i);
-			if ((tsio->sid==service_id) && (tsio->tsi==finfo->tsi)) {
-				break;
-			}
-			tsio=NULL;
-		}
-		if (!tsio) {
-			GF_SAFEALLOC(tsio, TSI_Output);
-			if (!tsio) return;
-
-			tsio->tsi = finfo->tsi;
-			tsio->sid = service_id;
-			gf_list_add(ctx->tsi_outs, tsio);
-		}
+	if (finfo && finfo->tsi && ctx->stsi) {
+		tsio = routein_get_tsio(ctx, service_id, finfo);
 		p_pid = &tsio->opid;
 
 		if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD) || (evt_type==GF_ROUTE_EVT_HLS_VARIANT)) {
@@ -180,6 +187,8 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 	if (!tsio || (tsio->current_toi != finfo->toi)) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(tsio ? tsio->tsi : service_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
+		if (!finfo) return;
+
 		assert(finfo->filename);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(finfo->filename));
 		ext = gf_file_ext_start(finfo->filename);
@@ -496,6 +505,10 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 	//events without finfo
 	if (evt==GF_ROUTE_EVT_SERVICE_FOUND) {
 		if (!ctx->tune_time) ctx->tune_time = gf_sys_clock();
+		//special case when not using cache, create output pid to announce service ID asap
+		if (ctx->stsi) {
+			routein_send_file(ctx, evt_param, NULL, evt);
+		}
 		return;
 	}
 	if (evt==GF_ROUTE_EVT_SERVICE_SCAN) {
@@ -517,7 +530,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 	}
 
 	//partial, try to repair
-	if (ctx->repair && finfo->partial) {
+	if (ctx->repair && (finfo->partial || ctx->stsi)) {
 		//blob flags are set there
 		routein_queue_repair(ctx, evt, evt_param, finfo);
 	} else {
@@ -733,6 +746,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 	if (!ctx->gcache && ctx->llmode) {
 		ctx->llmode = GF_FALSE;
 	}
+	if (ctx->gcache) ctx->stsi = GF_FALSE;
 
 	gf_route_set_dispatch_mode(ctx->route_dmx, ctx->llmode ? GF_ROUTE_DISPATCH_OUT_OF_ORDER :
 		(ctx->fullseg ? GF_ROUTE_DISPATCH_FULL : GF_ROUTE_DISPATCH_PROGRESSIVE)
@@ -829,7 +843,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(odir), "output directory for standalone mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder), "consider packets are not always in order - if false, this will evaluate an LCT object as done when TOI changes", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cloop), "check for loops based on TOI (used for capture replay)", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repair), "repair mode for corrupted files\n"
 		"- no: no repair is performed\n"
