@@ -498,6 +498,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 #ifdef GPAC_HAS_QJS
 	if (sess->ctx->jsc) {
 		gf_js_lock(sess->ctx->jsc, GF_TRUE);
+		JS_SetOpaque(sess->obj, NULL);
 		JS_FreeValue(sess->ctx->jsc, sess->obj);
 		sess->obj = JS_UNDEFINED;
 		gf_js_lock(sess->ctx->jsc, GF_FALSE);
@@ -1269,25 +1270,26 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 		return 0;
 	}
 	gf_js_lock(c, GF_TRUE);
-	JSValue obj = JS_NewObject(c);
-	JS_SetOpaque(obj, sess);
-	JS_SetPropertyStr(c, obj, "method", JS_NewString(c, method ));
-	JS_SetPropertyStr(c, obj, "url", JS_NewString(c, url));
-	JS_SetPropertyStr(c, obj, "auth_code", JS_NewInt32(c, auth_code ));
-	JS_SetPropertyStr(c, obj, "send", JS_NewCFunction(c, httpout_js_send, "send", 0) );
-	JS_SetPropertyStr(c, obj, "reply", JS_NewInt32(c, 0));
-	JS_SetPropertyStr(c, obj, "tls", JS_NewBool(c, sess->ctx->ssl_ctx ? 1 : 0));
-	JS_SetPropertyStr(c, obj, "netid", JS_NewInt64(c, sess->socket ? (s64) sess->socket : 0));
-	JS_SetPropertyStr(c, obj, "IP", JS_NewString(c, sess->peer_address));
-	JS_SetPropertyStr(c, obj, "port", JS_NewInt32(c, sess->peer_port));
 
-	JS_FreeValue(c, sess->obj);
-	sess->obj = obj;
+	if (!JS_IsUndefined(sess->obj))
+		JS_FreeValue(c, sess->obj);
+
+	sess->obj = JS_NewObject(c);
+	JS_SetOpaque(sess->obj, sess);
+	JS_SetPropertyStr(c, sess->obj, "method", JS_NewString(c, method ));
+	JS_SetPropertyStr(c, sess->obj, "url", JS_NewString(c, url));
+	JS_SetPropertyStr(c, sess->obj, "auth_code", JS_NewInt32(c, auth_code ));
+	JS_SetPropertyStr(c, sess->obj, "send", JS_NewCFunction(c, httpout_js_send, "send", 0) );
+	JS_SetPropertyStr(c, sess->obj, "reply", JS_NewInt32(c, 0));
+	JS_SetPropertyStr(c, sess->obj, "tls", JS_NewBool(c, sess->ctx->ssl_ctx ? 1 : 0));
+	JS_SetPropertyStr(c, sess->obj, "netid", JS_NewInt64(c, sess->socket ? (s64) sess->socket : 0));
+	JS_SetPropertyStr(c, sess->obj, "IP", JS_NewString(c, sess->peer_address));
+	JS_SetPropertyStr(c, sess->obj, "port", JS_NewInt32(c, sess->peer_port));
 
 	JSValue hdrs = JS_NewArray(c);
-	JS_SetPropertyStr(c, obj, "headers_out", hdrs);
+	JS_SetPropertyStr(c, sess->obj, "headers_out", hdrs);
 	hdrs = JS_NewArray(c);
-	JS_SetPropertyStr(c, obj, "headers_in", hdrs);
+	JS_SetPropertyStr(c, sess->obj, "headers_in", hdrs);
 	u32 i, k=0;
 	for (i=0; i<nb_hdrs; i+=2) {
 		if (!headers[i] || !headers[i+1]) continue;
@@ -1298,10 +1300,11 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 		k++;
 	}
 
-	JSValue ret = JS_Call(c, sess->ctx->request_fun, sess->ctx->js_obj, 1, &obj);
+	JSValue ret = JS_Call(c, sess->ctx->request_fun, sess->ctx->js_obj, 1, &sess->obj);
 	if (JS_IsException(ret)) {
 		js_dump_error(c);
 		JS_FreeValue(c, ret);
+		JS_SetOpaque(sess->obj, NULL);
 		JS_FreeValue(c, sess->obj);
 		sess->obj = JS_UNDEFINED;
 		gf_js_lock(c, GF_FALSE);
@@ -3108,9 +3111,8 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	if (s->ranges) gf_free(s->ranges);
 
 #ifdef GPAC_HAS_QJS
-	if (!JS_IsUndefined(s->obj)) {
-		JS_SetOpaque(s->obj, NULL);
-	}
+	JS_SetOpaque(s->obj, NULL);
+	s->obj = JS_UNDEFINED;
 #endif
 
 	gf_free(s);
