@@ -307,6 +307,16 @@ GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id,
  */
 GF_Err gf_route_dmx_force_keep_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName);
 
+/*! Set force-keep flag on object by TSI and TOI - typically used for repair
+\param routedmx the ROUTE demultiplexer
+\param service_id ID of the service to query
+\param tsi transport service identifier
+\param toi transport object identifier
+\param force_keep force_keep flag. When set back to false, this does not trigger a cleanup, it is up to the application to do so
+\return error if any, GF_NOT_FOUND if no such object
+ */
+GF_Err gf_route_dmx_force_keep_object(GF_ROUTEDmx *routedmx, u32 service_id, u32 tsi, u32 toi, Bool force_keep);
+
 /*! Removes the first object loaded in the service
 \param routedmx the ROUTE demultiplexer
 \param service_id ID of the service to query

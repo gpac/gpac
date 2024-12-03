@@ -1280,6 +1280,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 
 		if (!is_obj_update) {
 			gf_assert(gf_list_find(s->objects, obj)<0);
+			obj->start_time_ms = gf_sys_clock();
 			gf_list_add(s->objects, obj);
 		}
 	}
@@ -3617,6 +3618,31 @@ GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id,
 {
 	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, fileName, purge_previous, GF_TRUE);
 }
+
+GF_EXPORT
+GF_Err gf_route_dmx_force_keep_object(GF_ROUTEDmx *routedmx, u32 service_id, u32 tsi, u32 toi, Bool force_keep)
+{
+	u32 i=0;
+	Bool found = GF_FALSE;
+	GF_ROUTEService *s=NULL;
+	GF_LCTObject *obj = NULL;
+	while ((s = gf_list_enum(routedmx->services, &i))) {
+		if (s->service_id == service_id) break;
+		s = NULL;
+	}
+	if (!s) return GF_NOT_FOUND;
+	i=0;
+	while ((obj = gf_list_enum(s->objects, &i))) {
+		if (obj->tsi != tsi) continue;
+		if (obj->toi != toi) continue;
+		obj->force_keep = force_keep;
+		found = GF_TRUE;
+		break;
+	}
+	if (!found) return GF_NOT_FOUND;
+	return GF_OK;
+}
+
 
 GF_EXPORT
 Bool gf_route_dmx_remove_first_object(GF_ROUTEDmx *routedmx, u32 service_id)
