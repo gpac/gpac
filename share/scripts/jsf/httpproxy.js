@@ -42,7 +42,7 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +" - timeshift: (integer) override [–timeshift]() for this service\n"
 +" - unload: (integer, default "+DEFAULT_UNLOAD_SEC+") multicast unload policy\n"
 +" - activate: (integer, default "+DEFAULT_ACTIVATE_CLIENTS+") multicast activation policy\n"
-+" - repair: (boolean, default "+DEFAULT_REPAIR+") enable unicast repair in MABR stack (experimental)\n"
++" - repair: (boolean, default "+DEFAULT_REPAIR+") enable unicast repair in MABR stack\n"
 +" - mcache: (boolean, default "+DEFAULT_MCACHE+") cache manifest files (experimental)\n"
 +" - corrupted: (boolean, default "+DEFAULT_CORRUPTED+") forward corrupted files if parsable (valid container syntax, broken media)\n"
 +"\n"
@@ -67,9 +67,8 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +"- otherwise, a multicast representation is activated only if at least `active` clients are consuming it, and deactivated otherwise.\n"
 +"\n"
 +"The multicast service can use repair options of the MABR stack using `repair` service configuration option:\n"
-+"- if false, the file will not be sent until completely received. This increases latency,\n"
-+"- otherwise, file will be send as soon as new data arrived\n"
-+"Using `repair=true` is experimental, the repair stack does yet support this feature for the moment. Only use if you're sure you don't have any multicast losses (local tests).\n"
++"- if false, the file will not be sent until completely received (this increases latency),\n"
++"- otherwise, file data will be pushed as soon as available in order (after reception or repair).\n"
 +"\n"
 +"The number of active clients on a given quality is computed using the client connection state: any disconnect/reconnect from a client for the same quality will trigger a deactivate+activate sequence.\n"
 +"If [-checkip]() is used, the remote IP address+port are used instead of the connection. This however assumes that each client has a unique IP/port which may not always be true (NATs).\n"
@@ -997,19 +996,21 @@ function create_service(http_url, force_mcast_activate)
 				if (!s.repair) pid.framing = true;
 			}
 
-			//get new URL for this pid	
-			pid.url = pid.get_prop('URL');
-			if (pid.url && (pid.url.charAt(0) != '/')) pid.url = '/' + pid.url;
-			pid.mime = pid.get_prop('MIMEType');
 			if (!s.mabr_service_id) {
 				s.mabr_service_id = pid.get_prop('ServiceID');
 				print(GF_LOG_INFO, `MABR configured for service ${s.mabr_service_id}`);
 			}
+			//get new URL for this pid	- can be null when service is just being announced
+			pid.url = pid.get_prop('URL');
+			if (pid.url && (pid.url.charAt(0) != '/')) pid.url = '/' + pid.url;
+			pid.mime = pid.get_prop('MIMEType');
 			pid.corrupted = false;
-			let purl = pid.url.toLowerCase();
-			//do not cache HLS/DASH manifests
-			if ((purl.indexOf('.m3u8')>=0)|| (purl.indexOf('.mpd')>=0)) pid.do_skip  = true;
-			else pid.do_skip = false;
+			if (pid.url) {
+				let purl = pid.url.toLowerCase();
+				//do not cache HLS/DASH manifests
+				if ((purl.indexOf('.m3u8')>=0)|| (purl.indexOf('.mpd')>=0)) pid.do_skip  = true;
+				else pid.do_skip = false;
+			}
 		};
 	
 		this.push_to_cache = function (pid, pck) {
