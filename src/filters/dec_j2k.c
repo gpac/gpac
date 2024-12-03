@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2024
 *					All rights reserved
 *
 *  This file is part of GPAC / openjpeg2k decoder filter
@@ -90,6 +90,7 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+skip_dsi:
 	if (p && p->value.data.ptr && p->value.data.size) {
 		GF_BitStream *bs;
 		u32 d4cc;
@@ -117,6 +118,8 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				}
 				gf_bs_skip_bytes(bs, bsize-8);
 			}
+		} else if (d4cc==GF_4CC('j','2','k','H')) {
+			dsi_ok=GF_FALSE;
 		} else {
 			dsi_ok=GF_TRUE;
 		}
@@ -128,9 +131,10 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 		gf_bs_del(bs);
 
+		//unrecognized DSI, setup from PID info
 		if (!dsi_ok) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[OpenJPEG] Broken decoder config in j2k stream, cannot decode\n"));
-			return GF_NON_COMPLIANT_BITSTREAM;
+			p = NULL;
+			goto skip_dsi;
 		}
 
 		ctx->out_size = ctx->width * ctx->height * ctx->nb_comp /* * ctx->bpp / 8 */;
@@ -279,7 +283,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 {
 	u32 i, w, wr, h, hr, wh, size, pf;
 	u8 *data, *buffer;
-	opj_dparameters_t parameters;	/* decompression parameters */
+	opj_dparameters_t *parameters;	/* decompression parameters */
 #if OPENJP2
 	s32 res;
 	opj_codec_t *codec = NULL;
@@ -313,8 +317,10 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 			start_offset = 8;
 	}
 
+	GF_SAFEALLOC(parameters, opj_dparameters_t);
+	if (!parameters) return GF_OUT_OF_MEM;
 	/* set decoding parameters to default values */
-	opj_set_default_decoder_parameters(&parameters);
+	opj_set_default_decoder_parameters(parameters);
 
 #if OPENJP2
 	codec = opj_create_decompress(OPJ_CODEC_J2K);
@@ -325,7 +331,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	if (res) res = opj_set_warning_handler(codec, warning_callback, NULL);
 	if (res) res = opj_set_error_handler(codec, error_callback, NULL);
 
-	if (res) res = opj_setup_decoder(codec, &parameters);
+	if (res) res = opj_setup_decoder(codec, parameters);
 
 	stream = opj_stream_default_create(OPJ_STREAM_READ);
     opj_stream_set_read_function(stream, j2kdec_stream_read);
@@ -363,13 +369,14 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 	opj_set_event_mgr((opj_common_ptr)dinfo, &event_mgr, stderr);
 
 	/* setup the decoder decoding parameters using the current image and user parameters */
-	opj_setup_decoder(dinfo, &parameters);
+	opj_setup_decoder(dinfo, parameters);
 
 	cio = opj_cio_open((opj_common_ptr)dinfo, data+start_offset, size-start_offset);
 	/* decode the stream and fill the image structure */
 	image = opj_decode_with_info(dinfo, cio, &cinfo);
 #endif
 
+	gf_free(parameters);
 	if (!image) {
 #if OPENJP2
 		opj_stream_destroy(stream);
@@ -616,6 +623,7 @@ GF_FilterRegister J2KRegister = {
 	.initialize = j2kdec_initialize,
 	.configure_pid = j2kdec_configure_pid,
 	.process = j2kdec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

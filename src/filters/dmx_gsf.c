@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream format reader filter
@@ -112,7 +112,7 @@ typedef struct
 
 	Bool corrupted;
 	Bool file_pids;
-	Bool stop_pending;
+	Bool stop_pending, pid_pending;
 } GSF_DemuxCtx;
 
 
@@ -172,13 +172,15 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		ctx->stop_pending = GF_FALSE;
+		if (ctx->pid_pending)
+			ctx->pid_pending--;
 		if (ctx->nb_playing && (ctx->start_range == evt->play.start_range)) {
 			ctx->nb_playing++;
 			return GF_TRUE;
 		}
 		ctx->nb_playing++;
 		ctx->wait_for_play = GF_FALSE;
-		ctx->stop_pending = GF_FALSE;
 
 		if (! ctx->is_file) {
 			return GF_FALSE;
@@ -328,7 +330,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	case GF_PROP_NAME:
 		p->type = GF_PROP_STRING_NO_COPY;
 		len = gsfdmx_read_vlen(bs);
-		if (len >= GF_UINT_MAX-1) {
+		if (len >= 0x1000000) {
 			p->value.string = NULL;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in string property\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -344,6 +346,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		p->type = GF_PROP_DATA_NO_COPY;
 		p->value.data.size = gsfdmx_read_vlen(bs);
 		if (!p->value.data.size) return GF_NON_COMPLIANT_BITSTREAM;
+		if (p->value.data.size >= 0x1000000) {
+			p->value.data.size = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in data property\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		p->value.data.ptr = gf_malloc(sizeof(char) * p->value.data.size);
 		gf_bs_read_data(bs, p->value.data.ptr, p->value.data.size);
 		break;
@@ -351,10 +358,15 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	case GF_PROP_STRING_LIST:
 		len2 = gsfdmx_read_vlen(bs);
 		p->value.string_list.nb_items = len2;
+		if (p->value.string_list.nb_items >= 0x1000000) {
+			p->value.string_list.nb_items = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in string list property\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		p->value.string_list.vals = gf_malloc(sizeof(char*) * len2);
 		for (i=0; i<len2; i++) {
 			len = gsfdmx_read_vlen(bs);
-			if (len >= GF_UINT_MAX-1) {
+			if (len >= 0x1000000) {
 				for (u32 j=0; j<i; j++) {
 					gf_free(p->value.string_list.vals[j]);
 					p->value.string_list.vals[j] = NULL;
@@ -374,6 +386,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	case GF_PROP_UINT_LIST:
 	case GF_PROP_SINT_LIST:
 		p->value.uint_list.nb_items = len = gsfdmx_read_vlen(bs);
+		if (p->value.uint_list.nb_items >= 0x1000000) {
+			p->value.uint_list.nb_items = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in list property\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		p->value.uint_list.vals = gf_malloc(sizeof(u32)*len);
 		for (i=0; i<len; i++) {
 			p->value.uint_list.vals[i] = gsfdmx_read_vlen(bs);
@@ -381,6 +398,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		break;
 	case GF_PROP_4CC_LIST:
 		p->value.uint_list.nb_items = len = gsfdmx_read_vlen(bs);
+		if (p->value.uint_list.nb_items >= 0x1000000) {
+			p->value.uint_list.nb_items = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in 4CC list property\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		p->value.uint_list.vals = gf_malloc(sizeof(u32)*len);
 		for (i=0; i<len; i++) {
 			p->value.uint_list.vals[i] = gf_bs_read_u32(bs);
@@ -388,6 +410,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		break;
 	case GF_PROP_VEC2I_LIST:
 		p->value.v2i_list.nb_items = len = gsfdmx_read_vlen(bs);
+		if (p->value.v2i_list.nb_items >= 0x1000000) {
+			p->value.v2i_list.nb_items = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] invalid length in vec2i list property\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		p->value.v2i_list.vals = gf_malloc(sizeof(GF_PropVec2i)*len);
 		for (i=0; i<len; i++) {
 			p->value.v2i_list.vals[i].x = gsfdmx_read_vlen(bs);
@@ -426,6 +453,7 @@ static GSF_Stream *gsfdmx_get_stream(GF_Filter *filter, GSF_DemuxCtx *ctx, u32 i
 		gst->idx = idx;
 		gf_list_add(ctx->streams, gst);
 		gst->opid = gf_filter_pid_new(filter);
+		ctx->pid_pending++;
 		return gst;
 	}
 
@@ -513,7 +541,7 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		GF_PropertyValue p;
 
 		u32 len = gsfdmx_read_vlen(bs);
-		if (len >= GF_UINT_MAX-1)
+		if (len >=0x1000000)
 			return GF_BAD_PARAM;
 
 		char *pname = gf_malloc(sizeof(char)*(len+1));
@@ -531,6 +559,16 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		if (is_info_update) gf_filter_pid_set_info_dyn(gst->opid, pname, &p);
 		else gf_filter_pid_set_property_dyn(gst->opid, pname, &p);
 		gf_free(pname);
+		switch (p.type) {
+		case GF_PROP_STRING_LIST:
+		case GF_PROP_DATA:
+		case GF_PROP_DATA_NO_COPY:
+		case GF_PROP_CONST_DATA:
+			break;
+		default:
+			gf_props_reset_single(&p);
+			break;
+		}
 	}
 	return GF_OK;
 }
@@ -591,6 +629,11 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 	len = gsfdmx_read_vlen(bs);
 	if (len) {
 		Bool wrongm=GF_FALSE;
+		if (len>0x100000) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] wrong magic word size %u in stream config\n", len));
+			ctx->tune_error = GF_TRUE;
+			return GF_NOT_SUPPORTED;
+		}
 		char *magic = gf_malloc(sizeof(char)*len);
 		gf_bs_read_data(bs, magic, len);
 
@@ -629,9 +672,18 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 	if ((frame_sn>=0) || pck_frag) {
 		while (( gpck = gf_list_enum(gst->packets, &i))) {
 			if (gpck->frame_sn == frame_sn) {
-				gf_assert(gpck->pck_type == pkt_type);
-				gf_assert(gpck->full_block_size == frame_size);
-
+				if ((gpck->pck_type == pkt_type) && (gpck->full_block_size == frame_size))
+					break;
+				if (gpck->pck) {
+					gf_filter_pck_discard(gpck->pck);
+					gpck->pck=NULL;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFDemux] Corrupted packet SN %u - discarding\n", frame_sn));
+				gf_list_rem(gst->packets, i-1);
+				gsfdmx_pck_reset(gpck);
+				if (gf_list_find(ctx->pck_res, gpck) == -1)
+					gf_list_add(ctx->pck_res, gpck);
+				gpck = NULL;
 				break;
 			}
 			gpck = NULL;
@@ -652,7 +704,8 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 		gpck->pck = gf_filter_pck_new_alloc(gst->opid, frame_size, &gpck->output);
 		if (!gpck->pck) {
 			gsfdmx_pck_reset(gpck);
-			gf_list_add(ctx->pck_res, gpck);
+			if (gf_list_find(ctx->pck_res, gpck) == -1)
+				gf_list_add(ctx->pck_res, gpck);
 			return NULL;
 		}
 		memset(gpck->output, (u8) ctx->pad, sizeof(char) * gpck->full_block_size);
@@ -863,11 +916,20 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 		while (nb_props) {
 			GF_Err e;
 			GF_PropertyValue p;
-			char *pname;
+			char *pname=NULL;
 			memset(&p, 0, sizeof(GF_PropertyValue));
 			u32 len = gsfdmx_read_vlen(bs);
-			pname = gf_malloc(sizeof(char)*(len+1) );
-			gf_bs_read_data(bs, pname, len);
+			if (len<=0x1000000) {
+				pname = gf_malloc(sizeof(char)*(len+1) );
+				if (pname)
+					gf_bs_read_data(bs, pname, len);
+			}
+			if (!pname) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Invalid property size %d\n", len ));
+				gf_filter_pck_discard(gpck->pck);
+				gpck->pck = NULL;
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			pname[len] = 0;
 			p.type = gf_bs_read_u8(bs);
 			if (p.type==GF_PROP_FORBIDDEN) {
@@ -957,7 +1019,9 @@ static void gsfdmx_stream_del(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool is_flush)
 			}
 		}
 		gsfdmx_pck_reset(gpck);
-		gf_list_add(ctx->pck_res, gpck);
+		if (gf_list_find(ctx->pck_res, gpck) == -1)
+			gf_list_add(ctx->pck_res, gpck);
+
 	}
 	if (is_flush && gst->opid)
 		gf_filter_pid_remove(gst->opid);
@@ -1043,13 +1107,19 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 			gpck->pck = NULL;
 			break;
 		default:
+			if (gpck->pck) {
+				gf_filter_pck_discard(gpck->pck);
+				gpck->pck=NULL;
+			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFDemux] unknown packet type %d ignoring\n", gpck->pck_type));
 			e = GF_OK;
 			break;
 		}
 
 		gf_list_rem(gst->packets, 0);
 		gsfdmx_pck_reset(gpck);
-		gf_list_add(ctx->pck_res, gpck);
+		if (gf_list_find(ctx->pck_res, gpck) == -1)
+			gf_list_add(ctx->pck_res, gpck);
 		if (e>GF_OK) e = GF_OK;
 		if (e) return e;
 	}
@@ -1187,7 +1257,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 					}
 
 					if (append) {
-						if (block_offset + pck_len > gpck->full_block_size) {
+						if ( (block_offset >= GF_UINT_MAX - pck_len) || (block_offset + pck_len > gpck->full_block_size) ) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] packet fragment out of bounds of current frame (offset %d size %d max size %d)\n", block_offset,  pck_len, gpck->full_block_size));
 							e = GF_NON_COMPLIANT_BITSTREAM;
 						} else {
@@ -1203,7 +1273,8 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 						gf_list_del_item(gst->packets, gpck);
 						if (gpck->pck) gf_filter_pck_discard(gpck->pck);
 						gsfdmx_pck_reset(gpck);
-						gf_list_add(ctx->pck_res, gpck);
+						if (gf_list_find(ctx->pck_res, gpck) == -1)
+							gf_list_add(ctx->pck_res, gpck);
 					}
 				}
 			}
@@ -1223,7 +1294,7 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		memmove(ctx->buffer, ctx->buffer+last_pck_end, sizeof(char) * (ctx->buf_size-last_pck_end));
 		ctx->buf_size -= last_pck_end;
 	}
-	if (ctx->stop_pending) {
+	if (ctx->stop_pending && !ctx->pid_pending) {
 		GF_FilterEvent evt;
 		ctx->stop_pending = GF_FALSE;
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
@@ -1350,6 +1421,7 @@ static void gsfdmx_finalize(GF_Filter *filter)
 
 	while (gf_list_count(ctx->pck_res)) {
 		GSF_Packet *gsp = gf_list_pop_back(ctx->pck_res);
+		gf_list_del_item(ctx->pck_res, gsp);
 		if (gsp->frags) gf_free(gsp->frags);
 		gf_free(gsp);
 	}
@@ -1415,6 +1487,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	.process = gsfdmx_process,
 	.process_event = gsfdmx_process_event,
 	.probe_data = gsfdmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 

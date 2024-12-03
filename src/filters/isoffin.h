@@ -93,6 +93,7 @@ typedef struct
 	//fragmented file to be refreshed before processing it
 	Bool refresh_fragmented;
 	Bool input_is_stop;
+	Bool was_aborted;
 	u64 missing_bytes, last_size;
 
 	Bool seg_name_changed;

@@ -25,6 +25,7 @@
 
 #include <gpac/tools.h>
 #include <gpac/thread.h>
+#include <gpac/utf.h>
 
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
@@ -46,6 +47,25 @@ const char *gf_4cc_to_str_safe(u32 type, char szType[GF_4CC_MSIZE])
 		if ( ch >= 0x20 && ch <= 0x7E ) {
 			*name = ch;
 			name++;
+		} else if (!gf_sys_is_test_mode() ) {
+			char szTmp[2];
+			szTmp[0] = 0xc2;
+			szTmp[1] = ch;
+			if (gf_utf8_is_legal(szTmp, 2)) {
+				name[0] = 0xc2;
+				name[1] = ch;
+				name+=2;
+			} else {
+				szTmp[0] = 0xc3;
+				if (gf_utf8_is_legal(szTmp, 2)) {
+					name[0] = 0xc2;
+					name[1] = ch;
+					name+=2;
+				} else {
+					sprintf(name, "%02X", ch);
+					name += 2;
+				}
+			}
 		} else {
 			sprintf(name, "%02X", ch);
 			name += 2;
@@ -1085,6 +1105,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "Requires a new instance of the filter to be supported";
 	case GF_FILTER_NOT_SUPPORTED:
 		return "Not supported by any filter chain";
+	case GF_IO_BYTE_RANGE_NOT_SUPPORTED:
+		return "Byte Range request not supported by server";
 	default:
 		sprintf(szErrMsg, "Unknown Error (%d)", e);
 		return szErrMsg;
@@ -2227,7 +2249,6 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 	if (all_num) {
 		u32 div_trail_zero = 1;
 		sscanf(value, LLD"."LLU, &frac->num, &frac->den);
-
 		i=0;
 		frac->den = 1;
 		while (i<len) {
@@ -2244,9 +2265,8 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 			i--;
 		}
 
-
 		frac->num *= frac->den / div_trail_zero;
-		frac->num += atoi(sep+1) / div_trail_zero;
+		frac->num += atoll(sep+1) / div_trail_zero;
 		frac->den /= div_trail_zero;
 
 		return GF_TRUE;
@@ -2267,7 +2287,7 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 	Bool res;
 	if (!frac) return GF_FALSE;
 	res = gf_parse_lfrac(value, &r);
-	while ((r.num >= 0x80000000) && (r.den > 1000)) {
+	while ((r.num >= 0x80000000) && (r.den >= 1000)) {
 		r.num /= 1000;
 		r.den /= 1000;
 	}

@@ -103,9 +103,9 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TRUEHD, 0, GF_STREAM_AUDIO, "Dolby TrueHD", "mlp", "mlpa", "audio/truehd", .unframe=GF_TRUE},
 	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL, "audio/dra"},
 	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL, "audio/g719"},
-	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics and Digital Surround Audio", "dstc", NULL, "audio/dts"},
+	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics and Digital Surround Audio", "dtsc", NULL, "audio/dts"},
 	{GF_CODECID_DTS_HD_HR_MASTER, 0xAA, GF_STREAM_AUDIO, "DTS-HD High Resolution Audio and DTS-Master Audio", "dtsh", NULL, "audio/dts"},
-	{GF_CODECID_DTS_HD_LOSSLESS, 0xAB, GF_STREAM_AUDIO, "DTS-HD Substream containing only XLLAudio", "dstl", NULL, "audio/dts"},
+	{GF_CODECID_DTS_HD_LOSSLESS, 0xAB, GF_STREAM_AUDIO, "DTS-HD Substream containing only XLLAudio", "dtsl", NULL, "audio/dts"},
 	{GF_CODECID_DTS_EXPRESS_LBR, 0xAC, GF_STREAM_AUDIO, "DTS Express low bit rate Audio", "dtse", NULL, "audio/dts"},
 	{GF_CODECID_DTS_X, 0xB2, GF_STREAM_AUDIO, "DTS-X UHD Audio Profile 2", "dtsx", NULL, "audio/dts"},
 	{GF_CODECID_DTS_Y, 0xB3, GF_STREAM_AUDIO, "DTS-X UHD Audio Profile 3", "dtsy", NULL, "audio/dts"},
@@ -175,6 +175,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_MSPEG4_V3, 0, GF_STREAM_VISUAL, "MS-MPEG4 V3", "div3", NULL, NULL, GF_CODECID_MSPEG4_V3},
 
 	{GF_CODECID_ALAC, 0, GF_STREAM_AUDIO, "Apple Lossless Audio", "caf", NULL, NULL},
+	{GF_CODECID_DNXHD, 0, GF_STREAM_VISUAL, "AViD DNxHD", "dnx", "AVdn", "video/dnx"},
 
 };
 
@@ -320,6 +321,12 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_SMPTE_VC1;
 	default:
 		break;
+	}
+	const char *c4cc = gf_4cc_to_str(isobmftype);
+	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
+	for (i=0; i<count; i++) {
+		if (CodecRegistry[i].rfc_4cc && !strncmp(CodecRegistry[i].rfc_4cc, c4cc, 4))
+			return CodecRegistry[i].codecid;
 	}
 	return 0;
 }
@@ -1319,12 +1326,16 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	switch (pixfmt) {
 	case GF_PIXEL_GREYSCALE:
 		stride = no_in_stride ? width : *out_stride;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = stride * height;
 		planes=1;
 		break;
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
 		stride = no_in_stride ? 2*width : *out_stride;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = stride * height;
 		planes=1;
 		break;
@@ -1332,6 +1343,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_RGB_555:
 	case GF_PIXEL_RGB_565:
 		stride = no_in_stride ? 2*width : *out_stride;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = stride * height;
 		planes=1;
 		break;
@@ -1346,18 +1359,24 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
 		stride = no_in_stride ? 4*width : *out_stride;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = stride * height;
 		planes=1;
 		break;
 	case GF_PIXEL_RGB_DEPTH:
 		stride = no_in_stride ? 3*width : *out_stride;
 		stride_uv = no_in_stride_uv ? width : *out_stride_uv;
+		if (stride && height >= GF_UINT_MAX / (4*width))
+			return GF_FALSE;
 		size = 4 * width * height;
 		planes=1;
 		break;
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
 		stride = no_in_stride ? 3*width : *out_stride;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = stride * height;
 		planes=1;
 		break;
@@ -1370,6 +1389,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		if ((stride && height >= GF_UINT_MAX / stride) || height * stride >= GF_UINT_MAX - stride_uv * uv_height * 2)
+			return GF_FALSE;
 		size = stride * height + stride_uv * uv_height * 2;
 		break;
 	case GF_PIXEL_YUVA:
@@ -1381,6 +1402,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=4;
+		if ((stride && height >= GF_UINT_MAX / (2*stride)) || height * 2*stride >= GF_UINT_MAX - stride_uv * uv_height * 2)
+			return GF_FALSE;
 		size = 2*stride * height + stride_uv * uv_height * 2;
 		break;
 	case GF_PIXEL_YUV_10:
@@ -1391,6 +1414,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		if ((stride && height >= GF_UINT_MAX / stride) || height * stride >= GF_UINT_MAX - stride_uv * uv_height * 2)
+			return GF_FALSE;
 		size = stride * height + stride_uv * uv_height * 2;
 		break;
 	case GF_PIXEL_YUV422:
@@ -1400,6 +1425,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		if ((stride && height >= GF_UINT_MAX / stride) || height * stride >= GF_UINT_MAX - stride_uv * uv_height * 2)
+			return GF_FALSE;
 		size = stride * height + stride_uv * height * 2;
 		break;
 	case GF_PIXEL_YUV422_10:
@@ -1409,6 +1436,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		if (no_in_stride_uv && (stride%2) )
 		 	stride_uv+=1;
 		planes=3;
+		if ((stride && height >= GF_UINT_MAX / stride) || height * stride >= GF_UINT_MAX - stride_uv * uv_height * 2)
+			return GF_FALSE;
 		size = stride * height + stride_uv * height * 2;
 		break;
 	case GF_PIXEL_YUV444:
@@ -1416,6 +1445,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=3;
+		if (stride && height >= GF_UINT_MAX / (3*stride))
+			return GF_FALSE;
 		size = stride * height * 3;
 		break;
 	case GF_PIXEL_YUVA444:
@@ -1423,6 +1454,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=4;
+		if (stride && height >= GF_UINT_MAX / (4*stride))
+			return GF_FALSE;
 		size = stride * height * 4;
 		break;
 	case GF_PIXEL_YUV444_10:
@@ -1430,11 +1463,15 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		uv_height = height;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=3;
+		if (stride && height >= GF_UINT_MAX / (3*stride))
+			return GF_FALSE;
 		size = stride * height * 3;
 		break;
 	case GF_PIXEL_NV12:
 	case GF_PIXEL_NV21:
 		stride = no_in_stride ? width : *out_stride;
+		if (stride && height/2 >= GF_UINT_MAX / (3*stride))
+			return GF_FALSE;
 		size = 3 * stride * height / 2;
 		uv_height = height/2;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
@@ -1447,6 +1484,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		if (height % 2) uv_height++;
 		stride_uv = no_in_stride_uv ? stride : *out_stride_uv;
 		planes=2;
+		if (stride && height/2 >= GF_UINT_MAX / (3*stride))
+			return GF_FALSE;
 		size = 3 * stride * height / 2;
 		break;
 	case GF_PIXEL_UYVY:
@@ -1455,6 +1494,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_YVYU:
 		stride = no_in_stride ? 2*width : *out_stride;
 		planes=1;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = height * stride;
 		break;
 	case GF_PIXEL_UYVY_10:
@@ -1463,23 +1504,31 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_YVYU_10:
 		stride = no_in_stride ? 4*width : *out_stride;
 		planes=1;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = height * stride;
 		break;
 	case GF_PIXEL_YUV444_PACK:
 	case GF_PIXEL_VYU444_PACK:
 		stride = no_in_stride ? 3 * width : *out_stride;
 		planes=1;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = height * stride;
 		break;
 	case GF_PIXEL_YUVA444_PACK:
 	case GF_PIXEL_UYVA444_PACK:
 		stride = no_in_stride ? 4 * width : *out_stride;
 		planes=1;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = height * stride;
 		break;
 	case GF_PIXEL_YUV444_10_PACK:
 		stride = no_in_stride ? 4 * width : *out_stride;
 		planes = 1;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = height * stride;
 		break;
 
@@ -1499,6 +1548,8 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 			stride = *out_stride;
 		}
 		planes=1;
+		if (stride && height >= GF_UINT_MAX / stride)
+			return GF_FALSE;
 		size = height * stride;
 		break;
 	default:

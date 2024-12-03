@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / generic stream to file filter
@@ -99,7 +99,7 @@ typedef struct
 	Bool unframe_only;
 	Bool vc1_ilaced;
 	Bool ttml_merger;
-	u32 ttml_first_cts;
+	u64 ttml_first_cts;
 	GF_FilterPacket *ttml_first_pck;
 } GF_GenDumpCtx;
 
@@ -493,12 +493,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	//avoid creating a file when dumping individual samples
 	if (ctx->split) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
-		if (!p || (p->value.uint>1))
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PCK_FILENUM, &PROP_UINT(0) );
-		else
+		if (p && (p->value.uint<=1))
 			ctx->split = GF_FALSE;
-	} else if (ctx->frame) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PCK_FILENUM, &PROP_UINT(0) );
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
@@ -1073,7 +1069,6 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 				}
 			}
 			gf_list_insert(div_global->content, p_pck, idx);
-
 		}
 	}
 
@@ -1138,7 +1133,7 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 		gf_filter_pck_set_cts(pck, ctx->ttml_first_cts);
 		u64 last_cts = gf_filter_pck_get_cts(ctx->ttml_first_pck);
 		last_cts += gf_filter_pck_get_duration(ctx->ttml_first_pck);
-		gf_filter_pck_set_duration(pck, last_cts - ctx->ttml_first_cts);
+		gf_filter_pck_set_duration(pck, (u32) (last_cts - ctx->ttml_first_cts));
 
 		gf_filter_pck_unref(ctx->ttml_first_pck);
 		ctx->ttml_first_pck = NULL;
@@ -1463,6 +1458,8 @@ GF_Err writegen_process(GF_Filter *filter)
 					gf_filter_pck_forward(pck, ctx->opid);
 					goto no_output;
 				}
+				empty_seg=GF_TRUE;
+			} else if (ctx->webvtt) {
 				empty_seg=GF_TRUE;
 			} else {
 				ctx->sample_num--;
@@ -1981,7 +1978,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	"- first: inserted on first packet\n"
 	"- sap: inserted at each SAP\n"
 	"- auto: selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(split), "force one file per decoded frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(split), "force one file per frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame), "force single frame dump with no rewrite. In this mode, all codec types are supported", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(sstart), "start number of frame to forward. If 0, all samples are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(send), "end number of frame to forward. If less than start frame, all samples after start are forwarded", GF_PROP_UINT, "0", NULL, 0},
@@ -2012,7 +2009,7 @@ void writegen_finalize(GF_Filter *filter)
 
 GF_FilterRegister GenDumpRegister = {
 	.name = "writegen",
-	GF_FS_SET_DESCRIPTION("Stream to file")
+	GF_FS_SET_DESCRIPTION("Stream to File converter")
 	GF_FS_SET_HELP("Generic single stream to file converter, used when extracting/converting PIDs.\n"
 	"The writegen filter should usually not be explicitly loaded without a source ID specified, since the filter would likely match any PID connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
@@ -2022,7 +2019,8 @@ GF_FilterRegister GenDumpRegister = {
 	SETCAPS(GenDumpCaps),
 	.configure_pid = writegen_configure_pid,
 	.process = writegen_process,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 static const GF_FilterCapability FrameDumpCaps[] =
@@ -2080,14 +2078,15 @@ static GF_FilterCapability GenDumpXCaps[] =
 
 const GF_FilterRegister WriteUFRegister = {
 	.name = "writeuf",
-	GF_FS_SET_DESCRIPTION("Stream to unframed format")
+	GF_FS_SET_DESCRIPTION("Framed to Unframed converter")
 	GF_FS_SET_HELP("Generic single stream to unframed format converter, used when converting PIDs. This filter should not be explicitly loaded.\n")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.initialize = writeuf_initialize,
 	.finalize = writegen_finalize,
 	SETCAPS(GenDumpXCaps),
 	.configure_pid = writegen_configure_pid,
-	.process = writegen_process
+	.process = writegen_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 const GF_FilterRegister *writeuf_register(GF_FilterSession *session)
 {
@@ -2124,7 +2123,8 @@ const GF_FilterRegister TTMLMergeRegister = {
 	.finalize = writegen_finalize,
 	SETCAPS(TTMLMergeCaps),
 	.configure_pid = writegen_configure_pid,
-	.process = writegen_process
+	.process = writegen_process,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 const GF_FilterRegister *ttmlmerge_register(GF_FilterSession *session)
 {

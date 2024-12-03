@@ -1253,6 +1253,48 @@ static Bool gf_m2ts_adjust_next_stream_time_for_pcr(GF_M2TS_Mux *muxer, GF_M2TS_
 }
 
 
+static void id3_write_size(GF_BitStream *bs, u32 len)
+{
+	u32 size;
+
+	size = (len>>21) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+
+	size = (len>>14) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+
+	size = (len>>7) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+
+	size = (len) & 0x7F;
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, size, 7);
+}
+
+static void m2ts_id3_tag_create(u8 **input, u32 *len)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_u8(bs, 'I');
+	gf_bs_write_u8(bs, 'D');
+	gf_bs_write_u8(bs, '3');
+	gf_bs_write_u8(bs, 4); //major
+	gf_bs_write_u8(bs, 0); //minor
+	gf_bs_write_u8(bs, 0); //flags
+
+	id3_write_size(bs, *len + 10);
+
+	gf_bs_write_u32(bs, GF_ID3V2_FRAME_TXXX);
+	id3_write_size(bs, *len); /* size of the text */
+	gf_bs_write_u8(bs, 0);
+	gf_bs_write_u8(bs, 0);
+	gf_bs_write_data(bs, *input, *len);
+	gf_free(*input);
+	gf_bs_get_content(bs, input, len);
+	gf_bs_del(bs);
+}
 
 static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
@@ -1608,8 +1650,11 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 		/*since we reallocated the packet data buffer, force a discard in pull mode*/
 		stream->discard_data = GF_TRUE;
 		break;
-	case GF_M2TS_METADATA_PES:
 	case GF_M2TS_METADATA_ID3_HLS:
+		m2ts_id3_tag_create(&stream->curr_pck.data, &stream->curr_pck.data_len);
+		stream->discard_data = GF_TRUE;
+		break;
+	case GF_M2TS_METADATA_PES:
 	case GF_M2TS_METADATA_ID3_KLVA:
 	case GF_M2TS_SCTE35_SPLICE_INFO_SECTIONS:
 		// nothing to do
@@ -1944,7 +1989,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 	}
 
 	/*PES packet length: number of bytes in the PES packet following the last byte of the field "pes packet length"*/
-	gf_assert(stream->pes_data_len);
+	//we allow 0-length PES packet as some media streams may have a signification for this
 	pes_len = stream->pes_data_len + 3; // 3 = header size
 	if (use_pts) pes_len += 5;
 	if (use_dts) pes_len += 5;

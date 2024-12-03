@@ -56,11 +56,11 @@ GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_Filter
 	//restore internal props flags of packet
 	pck_dst->info.flags |= iflags;
 
-	if (!pck_src->props || pck_dst->is_dangling) {
+	if (!pck_src->props || (!pck_dst->pid && !pck_src->pid)) {
 		return GF_OK;
 	}
 	if (!pck_dst->props) {
-		pck_dst->props = gf_props_new(pck_dst->pid->filter);
+		pck_dst->props = gf_props_new(pck_dst->pid ? pck_dst->pid->filter : pck_src->pid->filter);
 
 		if (!pck_dst->props) return GF_OUT_OF_MEM;
 	}
@@ -216,6 +216,14 @@ static GF_FilterPacket *gf_filter_pck_new_dangling_packet(GF_FilterPacket *cache
 			}
 		}
 		cached_pck->data_length = data_length;
+		if (cached_pck->props) {
+			GF_PropertyMap *props = cached_pck->props;
+			cached_pck->props=NULL;
+			gf_assert(props->reference_count);
+			if (safe_int_dec(&props->reference_count) == 0) {
+				gf_props_del(props);
+			}
+		}
 		return cached_pck;
 	}
 
@@ -376,7 +384,7 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 		dst->data_length = pck_source->data_length;
 		dst->reference = pck_source;
 		dst->pck = dst;
-		dst->is_dangling = 1;
+		dst->is_dangling = 2;
 
 		//cf gf_filter_pck_new_ref for these
 		safe_int_inc(&pck_source->reference_count);
@@ -400,6 +408,13 @@ GF_FilterPacket *gf_filter_pck_dangling_copy(GF_FilterPacket *pck_source, GF_Fil
 {
 	return gf_filter_pck_new_clone_internal(NULL, pck_source, NULL, GF_FALSE, GF_TRUE, cached_pck);
 }
+
+GF_EXPORT
+GF_FilterPacket *gf_filter_pck_dangling_clone(GF_FilterPacket *pck_source, GF_FilterPacket *cached_pck)
+{
+	return gf_filter_pck_new_clone_internal(NULL, pck_source, NULL, GF_TRUE, GF_TRUE, cached_pck);
+}
+
 
 GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
@@ -853,7 +868,11 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 #endif
 
 
-	if (!pck->src_filter) return GF_BAD_PARAM;
+	if (!pck->src_filter || (pck->src_filter->removed==1)) {
+		gf_filter_pck_discard(pck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Packet sent on already removed filter, ignoring\n"));
+		return GF_OK;
+	}
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (pck->pid->filter->nb_process_since_reset)
@@ -866,6 +885,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	if (PCK_IS_INPUT(pck)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to dispatch input packet on output PID in filter %s\n", pck->pid->filter->name));
+		gf_filter_pck_discard(pck);
 		return GF_BAD_PARAM;
 	}
 
@@ -1155,6 +1175,14 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				continue;
 			}
 		}
+		//ignore flush packets if destination requires full blocks and block is in progress
+		if (dst->requires_full_data_block && !dst->last_block_ended && (pck->info.flags & GF_PCKF_IS_FLUSH)) {
+			continue;
+		}
+		//stop forwarding clock packets when in EOS
+		if (dst->is_end_of_stream && cktype) {
+			continue;
+		}
 
 		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
 		if (!inst) {
@@ -1304,7 +1332,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				safe_int64_add(&dst->buffer_duration, us_duration);
 			}
 			safe_int_inc(&dst->filter->pending_packets);
-//
+
 			gf_fq_add(dst->packets, inst);
 			post_task = GF_TRUE;
 		}
@@ -1318,7 +1346,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			}
 
 			//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
-			//if one thread consumes one packet while the dispatching thread  (the caller here) is still upddating the state for that pid
+			//if one thread consumes one packet while the dispatching thread  (the caller here) is still updating the state for that pid
 			gf_mx_p(pid->filter->tasks_mx);
 			u32 nb_pck = gf_fq_count(dst->packets);
 			//update buffer occupancy before dispatching the task - if target pid is processed before we are done disptching his packet, pid buffer occupancy
@@ -1367,6 +1395,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 GF_EXPORT
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 {
+	if (PCK_IS_INPUT(pck)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to send a received packet in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
 	if (!pck || !pck->pid) return GF_BAD_PARAM;
 
 	//dangling packet
@@ -1485,6 +1517,33 @@ static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc
 	}
 	//get true packet pointer
 	pck=pck->pck;
+
+	if (prop_4cc && value && pck->pid && pck->pid->filter->session->check_props) {
+		u32 ptype = gf_props_4cc_get_type(prop_4cc);
+		u8 c = prop_4cc>>24;
+		if ((c>='A') && (c<='Z')) {
+			if (gf_props_get_base_type(ptype) != gf_props_get_base_type(value->type)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning packet property %s of type %s in filter %s but expecting %s\n",
+					gf_props_4cc_get_name(prop_4cc),
+					gf_props_get_type_name(value->type),
+					pck->pid->filter->freg->name,
+					gf_props_get_type_name(ptype)
+				));
+				if (gf_sys_is_test_mode())
+					exit(5);
+			}
+			u32 flags = gf_props_4cc_get_flags(prop_4cc);
+			if (!(flags & GF_PROP_FLAG_PCK)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning packet property %s in filter %s but this is a PID property\n",
+					gf_props_4cc_get_name(prop_4cc),
+					pck->pid->filter->freg->name
+				));
+				if (gf_sys_is_test_mode())
+					exit(5);
+			}
+		}
+	}
+
 	hash = gf_props_hash_djb2(prop_4cc, prop_name ? prop_name : dyn_name);
 
 	if (!pck->props) {
@@ -1561,12 +1620,25 @@ static GFINLINE const GF_PropertyValue *pck_check_prop(GF_FilterPacket *pck, u32
 #else
 #define pck_check_prop(_a, _b, _str, c) c
 #endif
+
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *_pck, u32 prop_4cc)
 {
 	//get true packet pointer
 	GF_FilterPacket *pck = _pck->pck;
 	if (!pck->props) return NULL;
+	if (pck->pid && pck->pid->filter->session->check_props && gf_props_4cc_get_type(prop_4cc)) {
+		u32 flags = gf_props_4cc_get_flags(prop_4cc);
+		if (!(flags & GF_PROP_FLAG_PCK)) {
+			GF_Filter *f = (_pck == pck) ? pck->pid->filter : ((GF_FilterPacketInstance*)_pck)->pid->filter;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Fetching packet property %s in filter %s but this is a PID property\n",
+				gf_props_4cc_get_name(prop_4cc),
+				f->freg->name
+			));
+			if (gf_sys_is_test_mode())
+				exit(5);
+		}
+	}
 	return pck_check_prop(_pck, prop_4cc, NULL, gf_props_get_property(pck->props, prop_4cc, NULL));
 }
 
@@ -1871,7 +1943,7 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reallocate input packet on output PID in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	if (! pck->src_filter) {
+	if (! pck->src_filter && (pck->is_dangling!=1)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reallocate an already sent packet in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
 	}
@@ -1886,7 +1958,8 @@ GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, u8 **data
 		pck->alloc_size = pck->data_length + nb_bytes_to_add;
 		pck->data = gf_realloc(pck->data, pck->alloc_size);
 #ifdef GPAC_MEMORY_TRACKING
-		pck->pid->filter->session->nb_realloc_pck++;
+		if (!pck->is_dangling)
+			pck->pid->filter->session->nb_realloc_pck++;
 #endif
 	}
 	pck->info.byte_offset = GF_FILTER_NO_BO;

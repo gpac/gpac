@@ -734,6 +734,26 @@ Fixed gf_angle_diff(Fixed angle1, Fixed angle2)
 	2D MATRIX TOOLS
  */
 
+//sanity checker
+#if 0
+void do_check_mx(GF_Matrix2D *_this)
+{
+	if (
+		(ABS(_this->m[0])>1000000)
+		|| (ABS(_this->m[1])>100000)
+		|| (ABS(_this->m[2])>100000)
+		|| (ABS(_this->m[3])>100000)
+		|| (ABS(_this->m[4])>100000)
+		|| (ABS(_this->m[5])>100000)
+	) {
+		exit(120);
+	}
+}
+#define CHECK_MATRIX do_check_mx(_this);
+#else
+#define CHECK_MATRIX
+#endif
+
 GF_EXPORT
 void gf_mx2d_add_matrix(GF_Matrix2D *_this, GF_Matrix2D *from)
 {
@@ -752,6 +772,8 @@ void gf_mx2d_add_matrix(GF_Matrix2D *_this, GF_Matrix2D *from)
 	_this->m[3] = gf_mulfix(from->m[3], bck.m[0]) + gf_mulfix(from->m[4], bck.m[3]);
 	_this->m[4] = gf_mulfix(from->m[3], bck.m[1]) + gf_mulfix(from->m[4], bck.m[4]);
 	_this->m[5] = gf_mulfix(from->m[3], bck.m[2]) + gf_mulfix(from->m[4], bck.m[5]) + from->m[5];
+
+	CHECK_MATRIX
 }
 
 
@@ -773,6 +795,8 @@ void gf_mx2d_pre_multiply(GF_Matrix2D *_this, GF_Matrix2D *with)
 	_this->m[3] = gf_mulfix(bck.m[3], with->m[0]) + gf_mulfix(bck.m[4], with->m[3]);
 	_this->m[4] = gf_mulfix(bck.m[3], with->m[1]) + gf_mulfix(bck.m[4], with->m[4]);
 	_this->m[5] = gf_mulfix(bck.m[3], with->m[2]) + gf_mulfix(bck.m[4], with->m[5]) + bck.m[5];
+
+	CHECK_MATRIX
 }
 
 
@@ -785,6 +809,8 @@ void gf_mx2d_add_translation(GF_Matrix2D *_this, Fixed cx, Fixed cy)
 	tmp.m[2] = cx;
 	tmp.m[5] = cy;
 	gf_mx2d_add_matrix(_this, &tmp);
+
+	CHECK_MATRIX
 }
 
 
@@ -803,6 +829,8 @@ void gf_mx2d_add_rotation(GF_Matrix2D *_this, Fixed cx, Fixed cy, Fixed angle)
 	tmp.m[1] = -1 * tmp.m[3];
 	gf_mx2d_add_matrix(_this, &tmp);
 	gf_mx2d_add_translation(_this, cx, cy);
+
+	CHECK_MATRIX
 }
 
 GF_EXPORT
@@ -814,6 +842,8 @@ void gf_mx2d_add_scale(GF_Matrix2D *_this, Fixed scale_x, Fixed scale_y)
 	tmp.m[0] = scale_x;
 	tmp.m[4] = scale_y;
 	gf_mx2d_add_matrix(_this, &tmp);
+
+	CHECK_MATRIX
 }
 
 GF_EXPORT
@@ -829,6 +859,8 @@ void gf_mx2d_add_scale_at(GF_Matrix2D *_this, Fixed scale_x, Fixed scale_y, Fixe
 	tmp.m[4] = scale_y;
 	gf_mx2d_add_matrix(_this, &tmp);
 	if (angle) gf_mx2d_add_rotation(_this, cx, cy, angle);
+
+	CHECK_MATRIX
 }
 
 GF_EXPORT
@@ -840,6 +872,8 @@ void gf_mx2d_add_skew(GF_Matrix2D *_this, Fixed skew_x, Fixed skew_y)
 	tmp.m[1] = skew_x;
 	tmp.m[3] = skew_y;
 	gf_mx2d_add_matrix(_this, &tmp);
+
+	CHECK_MATRIX
 }
 
 GF_EXPORT
@@ -851,6 +885,8 @@ void gf_mx2d_add_skew_x(GF_Matrix2D *_this, Fixed angle)
 	tmp.m[1] = gf_tan(angle);
 	tmp.m[3] = 0;
 	gf_mx2d_add_matrix(_this, &tmp);
+
+	CHECK_MATRIX
 }
 
 GF_EXPORT
@@ -862,6 +898,8 @@ void gf_mx2d_add_skew_y(GF_Matrix2D *_this, Fixed angle)
 	tmp.m[1] = 0;
 	tmp.m[3] = gf_tan(angle);
 	gf_mx2d_add_matrix(_this, &tmp);
+
+	CHECK_MATRIX
 }
 
 
@@ -920,6 +958,8 @@ void gf_mx2d_inverse(GF_Matrix2D *_this)
 #endif
 
 	gf_mx2d_copy(*_this, tmp);
+
+	CHECK_MATRIX
 }
 
 #endif
@@ -992,8 +1032,8 @@ void gf_mx2d_apply_rect(GF_Matrix2D *_this, GF_Rect *rc)
 	rc->height = MIN(c1.y, MIN(c2.y, MIN(c3.y, c4.y)));
 	rc->y = MAX(c1.y, MAX(c2.y, MAX(c3.y, c4.y)));
 	rc->height = rc->y - rc->height;
-	gf_assert(rc->height>=0);
-	gf_assert(rc->width>=0);
+//	gf_assert(rc->height>=0);
+//	gf_assert(rc->width>=0);
 }
 
 /*

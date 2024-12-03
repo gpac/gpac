@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH Vorbis decoder filter
@@ -310,6 +310,7 @@ GF_FilterRegister VorbisDecRegister = {
 	.finalize = vorbisdec_finalize,
 	.configure_pid = vorbisdec_configure_pid,
 	.process = vorbisdec_process,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

@@ -107,8 +107,6 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
-Bool gf_props_4cc_check_props();
-
 void gf_props_del_property(GF_PropertyEntry *it);
 
 
@@ -192,11 +190,13 @@ enum
 	//2 bits for crypt type
 	GF_PCK_CRYPT_POS = 15,
 	GF_PCK_CRYPT_MASK = 0x3 << GF_PCK_CRYPT_POS,
-	//2 bits for crypt type
+	//2 bits for command type
 	GF_PCK_CMD_POS = 13,
 	GF_PCK_CMD_MASK = 0x3 << GF_PCK_CMD_POS,
 	GF_PCKF_FORCE_MAIN = 1<<12,
-	//RESERVED bits [8,11]
+	//only valid when GF_PCK_CMD_PID_EOS is set
+	GF_PCKF_IS_FLUSH = 1<<11,
+	//RESERVED bits [8,10]
 
 	//2 bits for is_leading
 	GF_PCK_ISLEADING_POS = 6,
@@ -267,6 +267,7 @@ struct __gf_filter_pck
 	//for shared memory packets: 0: cloned mem, 1: read/write mem from source filter, 2: read-only mem from filter
 	//note that packets with frame_ifce are always considered as read-only memory
 	u8 filter_owns_mem;
+	//0: regular packet, 1: dangling packet with copied mem, 2: dangling packet with shared mem
 	u8 is_dangling;
 };
 
@@ -318,7 +319,7 @@ typedef enum
 /* extended version of gf_fs_post_task
 force_direct_call shall only be true for gf_filter_process_task
 */
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, GF_TaskClassType class_type);
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, GF_TaskClassType class_type, u32 delay_ms);
 
 void gf_fs_post_task_class(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, GF_TaskClassType class_type);
 
@@ -529,6 +530,7 @@ struct __gf_filter_session
 
 
 	u32 dbg_flags;
+	Bool check_props;
 };
 
 #ifdef GPAC_HAS_QJS
@@ -580,6 +582,16 @@ typedef enum
 	GF_FILTER_DISABLED,
 	GF_FILTER_DISABLED_HIDE,
 } GF_FilterDisableType;
+
+typedef enum
+{
+	//filter is not scheduled
+	GF_FILTER_NOT_SCHEDULED = 0,
+	//filter is scheduled by main scheduler
+	GF_FILTER_SCHEDULED,
+	//filter is scheduled by a direct dispatch call
+	GF_FILTER_DIRECT_SCHEDULED,
+} GF_FilterScheduledType;
 
 //#define DEBUG_BLOCKMODE
 
@@ -633,7 +645,7 @@ struct __gf_filter
 	GF_FilterQueue *tasks;
 	//set to true when the filter is present or to be added in the main task list
 	//this variable is unset in a zone protected by task_mx
-	volatile Bool scheduled_for_next_task;
+	volatile GF_FilterScheduledType scheduled_for_next_task;
 	//set to true when the filter is being processed by a thread
 	volatile Bool in_process;
 	u32 process_th_id, restrict_th_idx;
@@ -857,6 +869,7 @@ struct __gf_filter
 	Bool report_updated;
 
 	char *instance_description, *instance_version, *instance_author, *instance_help;
+	GF_ClassTypeHint instance_class_hint;
 	GF_FilterArgs *instance_args;
 
 	GF_Filter *multi_sink_target;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2006-2023
+ *			Copyright (c) Telecom ParisTech 2006-2024
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -1076,6 +1076,8 @@ typedef struct
 	u32 pid;
 	/*parent stream if any/already declared*/
 	GF_M2TS_ES *stream;
+	//PCR plus one, 0 if no pcr
+	u64 pcr_plus_one;
 } GF_M2TS_TSPCK;
 
 typedef struct
@@ -1084,6 +1086,19 @@ typedef struct
 	u8 table_id;
 	u16 ex_table_id;
 } GF_M2TS_SectionInfo;
+
+/*! raw TS demux options*/
+typedef enum
+{
+	/*! regular demux mode */
+	GF_M2TS_RAW_NONE = 0,
+	/*! split mode: only demux PAT and create streams, forward all other packets */
+	GF_M2TS_RAW_SPLIT,
+	/*! forward mode: forward all TS packets after PCR extraction */
+	GF_M2TS_RAW_FORWARD,
+	/*! probe mode: only parse header */
+	GF_M2TS_RAW_PROBE,
+} GF_M2TSRawMode;
 
 /*! MPEG-2 TS demuxer*/
 struct tag_m2ts_demux
@@ -1168,10 +1183,8 @@ struct tag_m2ts_demux
 	/*! triggers all table reset*/
 	Bool table_reset;
 
-	/*! raw mode only parses PAT and PMT, and forward each packet as a GF_M2TS_EVT_PCK event, except PAT packets which must be recreated
-	if set, on_event shall be non-null
-	*/
-	Bool split_mode;
+	/*! raw demux mode */
+	GF_M2TSRawMode raw_mode;
 };
 
 //! @endcond

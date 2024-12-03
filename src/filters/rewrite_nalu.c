@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU video AnnexB write filter
@@ -331,9 +331,10 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, u32 nal_siz
 		default:
 			if (layer_id) is_layer = GF_TRUE;
 #ifndef GPAC_DISABLE_AV_PARSERS
-			if (nal_size && (*delim_flags != 3) && (nal_type<=GF_HEVC_NALU_SLICE_CRA)) {
+			if (nal_size && (*delim_flags != 3) && (nal_type<=GF_HEVC_NALU_SLICE_CRA) && ctx->hevc_state) {
 				u8 nut, tid, lid;
-				gf_hevc_parse_nalu(data+pos, nal_size, ctx->hevc_state, &nut, &tid, &lid);
+				s32 ret = gf_hevc_parse_nalu(data+pos, nal_size, ctx->hevc_state, &nut, &tid, &lid);
+				if (ret) break;
 				u32 flags=0;
 
 				switch (ctx->hevc_state->s_info.slice_type) {
@@ -732,7 +733,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 
 GF_FilterRegister NALUMxRegister = {
 	.name = "ufnalu",
-	GF_FS_SET_DESCRIPTION("AVC/HEVC to AnnexB writer")
+	GF_FS_SET_DESCRIPTION("AVC/HEVC to AnnexB rewriter")
 	GF_FS_SET_HELP("This filter converts AVC|H264 and HEVC streams into AnnexB format, with inband parameter sets and start codes.")
 	.private_size = sizeof(GF_NALUMxCtx),
 	.args = NALUMxArgs,
@@ -740,7 +741,8 @@ GF_FilterRegister NALUMxRegister = {
 	.initialize = nalumx_initialize,
 	SETCAPS(NALUMxCaps),
 	.configure_pid = nalumx_configure_pid,
-	.process = nalumx_process
+	.process = nalumx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

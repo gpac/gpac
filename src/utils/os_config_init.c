@@ -884,6 +884,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 			gf_cfg_set_key(cfg, "core", "startup-file", gui_path);
 		}
 
+		sprintf(gui_path, "%s%cres%cca-bundle.crt", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "core", "ca-bundle-default", gui_path);
+
 		/*shaders are at the same location*/
 		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		gf_cfg_set_key(cfg, "filter@compositor", "vertshader", gui_path);
@@ -1177,6 +1180,18 @@ static GF_Config *gf_cfg_init(const char *profile)
 			}
 			if (rescan_fonts)
 				gf_opts_set_key("core", "rescan-fonts", "yes");
+
+			// if ca-bundle is not set or explicitly disabled (empty string), set to default
+			const char* ca_bundle = gf_cfg_get_key(cfg, "core", "ca-bundle-default");
+			if (!ca_bundle) {
+				char szShare[GF_MAX_PATH];
+				if (get_default_install_path(szShare, GF_PATH_SHARE)) {
+					char gui_path[GF_MAX_PATH + 100];
+
+					sprintf(gui_path, "%s%cres%cca-bundle.crt", szShare, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+					gf_cfg_set_key(cfg, "core", "ca-bundle-default", gui_path);
+				}
+			}
 		}
 	}
 	//no config file found
@@ -1512,7 +1527,7 @@ GF_GPACArg GPAC_Args[] = {
 #endif
 
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("proxy", NULL, "set HTTP proxy server address and port", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy", NULL, "set HTTP proxy server address and port (if no protocol scheme is set, use same as target)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("maxrate", NULL, "set max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-cache", NULL, "disable HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("offline-cache", NULL, "enable offline HTTP caching (no re-validation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
@@ -1522,6 +1537,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("req-timeout", NULL, "time in milliseconds to wait on HTTP/RTSP request before error (0 disables timeout)", "10000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-timeout", NULL, "ignore HTTP 1.1 timeout in keep-alive", "false", NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("broken-cert", NULL, "enable accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("ca-bundle", NULL, "path to a custom CA certificates bundle file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT | GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-agent", "ua", "set user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-profileid", NULL, "set user profile ID (through **X-UserProfileID** entity header) in HTTP requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-profile", NULL, "set user profile filename. Content of file is appended as body to HTTP HEAD/GET requests, associated Mime is **text/xml**", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
@@ -1572,6 +1588,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("buffer-gen", NULL, "default buffer size in microseconds for generic pids", "1000", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("buffer-dec", NULL, "default buffer size in microseconds for decoder input pids", "1000000", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("buffer-units", NULL, "default buffer size in frames when timing is not available", "1", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
+
+ GF_DEF_ARG("check-props", NULL, "check known property types upon assignment and PID vs packet types upon fetch (in test mode, exit with error code 5 if mismatch)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in OpenGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in OpenGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
@@ -1955,10 +1973,15 @@ void gf_sys_print_arg(FILE *helpout, GF_SysPrintArgFlags flags, const GF_GPACArg
 		fprintf(helpout, ".TP\n.B %s%s", (flags&GF_PRINTARG_NO_DASH) ? "" : "\\-", arg_name ? arg_name : arg->name);
 	}
 	else if (gen_doc==1) {
+		fprintf(helpout,"<div markdown class=\"option\">\n");
 		if (flags&GF_PRINTARG_NO_DASH) {
 			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s", arg_name ? arg_name : arg->name);
 		} else {
-			gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
+			if (arg->flags & (GF_ARG_HINT_ADVANCED|GF_ARG_HINT_EXPERT)) {
+				gf_sys_format_help(helpout, flags, "<a id=\"%s\">", arg_name ? arg_name : arg->name);
+			} else {
+				gf_sys_format_help(helpout, flags, "<a id=\"%s\" data-level=\"basic\">", arg_name ? arg_name : arg->name);
+			}
 			gf_sys_format_help(helpout, flags | GF_PRINTARG_HIGHLIGHT_FIRST, "-%s", arg_name ? arg_name : arg->name);
 			gf_sys_format_help(helpout, flags, "</a>");
 		}
@@ -2012,6 +2035,9 @@ void gf_sys_print_arg(FILE *helpout, GF_SysPrintArgFlags flags, const GF_GPACArg
 			gf_sys_format_help(helpout, flags | GF_PRINTARG_OPT_DESC, ": %s", gf_sys_localized(arg_subsystem, arg->name, arg->description) );
 		}
 		gf_sys_format_help(helpout, flags, "\n");
+		if(gen_doc==1) {
+			fprintf(helpout, "</div>\n");
+		}
 	}
 
 	if ((gen_doc==1) && arg->description && strstr(arg->description, "- "))
@@ -2137,6 +2163,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 	Bool escape_pipe = GF_FALSE;
 	Bool prev_was_example = GF_FALSE;
 	Bool prev_has_line_after = GF_FALSE;
+	u32 list_depth = 0;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
 	if (flags & GF_PRINTARG_MD) {
@@ -2186,6 +2213,8 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 		GF_ConsoleCodes console_code = GF_CONSOLE_RESET;
 		Bool line_before = GF_FALSE;
 		Bool line_after = GF_FALSE;
+		Bool add_backquote = GF_FALSE;
+
 		const char *footer_string = NULL;
 		const char *header_string = NULL;
 		char *next_line = strchr(line, '\n');
@@ -2200,6 +2229,22 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			continue;
 		}
 		if (!line[0]) flags &= ~GF_PRINTARG_HIGHLIGHT_FIRST;
+
+		//detect list start/end for mkdocs
+		if (gen_doc==1) {
+			u32 llev = 0;
+			if (!strncmp(line, "- ", 2)) llev=1;
+			else if (!strncmp(line, " - ", 3) || !strncmp(line, "  - ", 3)) llev=2;
+			else if (!strncmp(line, "    - ", 6)) llev=3;
+			if (llev>list_depth) {
+				list_depth = llev;
+				fprintf(helpout, "\n");
+			}
+			else if (llev<list_depth) {
+				list_depth = llev;
+				fprintf(helpout, "\n");
+			}
+		}
 
 		if ((line[0]=='#') && (line[1]==' ')) {
 			if (!gen_doc)
@@ -2238,7 +2283,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 
 			if (gen_doc==1) {
 				header_string = "Example\n```\n";
-				footer_string = "\n```";
+				footer_string = "\n```\n";
 			} else if (gen_doc==2) {
 				header_string = "Example\n.br\n";
 				footer_string = "\n.br\n";
@@ -2268,25 +2313,48 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			)
 
 			//look for ": "
-			&& ((tok_sep=strstr(line, ": ")) != NULL )
+			&& ( ((tok_sep=strstr(line, ": ")) != NULL ) || list_depth)
 		) {
 			if (!gen_doc)
 				fprintf(helpout, "\t");
 			while (line[0] != '-') {
-				fprintf(helpout, " ");
+				if (!list_depth) {
+					fprintf(helpout, " ");
+				}
 				line++;
 				line_pos++;
 
 			}
-			fprintf(helpout, "* ");
+			if (list_depth && (gen_doc==1)) {
+				if (list_depth==3)
+					fprintf(helpout, "        - ");
+				else if (list_depth==2)
+					fprintf(helpout, "    - ");
+				else fprintf(helpout, "- ");
+				//for MD avoid "- #" which corrupts heading levels, enclose with backquote
+				if (tok_sep && ((line[2]=='#') || (line[3]=='#') || (line[4]=='#'))) {
+					fprintf(helpout, "`");
+					add_backquote=GF_TRUE;
+				}
+			} else {
+				fprintf(helpout, "* ");
+			}
 			line_pos+=2;
 			if (!gen_doc)
 				gf_sys_set_console_code(helpout, GF_CONSOLE_YELLOW);
-			tok_sep[0] = 0;
-			fprintf(helpout, "%s", line+2);
-			line_pos += (u32) strlen(line+2);
-			tok_sep[0] = ':';
-			line = tok_sep;
+			if (tok_sep) {
+				tok_sep[0] = 0;
+				fprintf(helpout, "%s", line+2);
+				if (add_backquote) {
+					fprintf(helpout, "`");
+					add_backquote = GF_FALSE;
+				}
+				line_pos += (u32) strlen(line+2);
+				tok_sep[0] = ':';
+				line = tok_sep;
+			} else {
+				line += 2;
+			}
 			if (!gen_doc)
 				gf_sys_set_console_code(helpout, GF_CONSOLE_RESET);
 		} else if (flags & (GF_PRINTARG_HIGHLIGHT_FIRST | GF_PRINTARG_OPT_DESC)) {

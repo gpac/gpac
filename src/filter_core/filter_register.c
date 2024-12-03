@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -147,6 +147,7 @@ REG_DEC(hevcmerge)
 
 REG_DEC(jsf)
 REG_DEC(tssplit)
+REG_DEC(tsgendts)
 REG_DEC(httpout)
 REG_DEC(uncvdec)
 
@@ -158,12 +159,11 @@ REG_DEC(dtout)
 REG_DEC(mcdec)
 #endif
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)
 REG_DEC(wcdec)
 REG_DEC(wcenc)
 REG_DEC(webgrab)
 #endif
-
 
 REG_DEC(rfflac)
 REG_DEC(rfprores)
@@ -315,6 +315,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(rfmhas),
 	REG_IT(rfprores),
 	REG_IT(tssplit),
+	REG_IT(tsgendts),
 	REG_IT(bsrw),
 	REG_IT(bssplit),
 	REG_IT(bsagg),
@@ -354,7 +355,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ccdec),
 	REG_IT(scte35dec),
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)
 	REG_IT(wcdec),
 	REG_IT(wcenc),
 	REG_IT(webgrab),

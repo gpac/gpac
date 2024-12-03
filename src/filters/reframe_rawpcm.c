@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / RAW PCM reframer filter
@@ -369,6 +369,10 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Samplerate %d invalid in wave\n", ctx->sr));
 			wav_ok = GF_FALSE;
 		}
+		if (!ctx->safmt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Audio format unrecognized in wave\n"));
+			wav_ok = GF_FALSE;
+		}
 
 		ctx->wav_hdr_size = (u32) gf_bs_get_position(bs);
 
@@ -528,7 +532,8 @@ GF_FilterRegister PCMReframeRegister = {
 	.configure_pid = pcmreframe_configure_pid,
 	.process = pcmreframe_process,
 	.process_event = pcmreframe_process_event,
-	.probe_data = pcmreframe_probe_data
+	.probe_data = pcmreframe_probe_data,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

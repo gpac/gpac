@@ -795,6 +795,16 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 
 	if (dasher->samplegroups_in_traf) e |= gf_dynstrcat(&args, "sgpd_traf", ":");
+	//if llhls or asto is specified in manifest name or globally, disable subsegs_per_sidx
+	if (sep_ext && !dasher->subsegs_per_sidx && (
+		strstr(sep_ext+1, "llhls")
+		|| strstr(sep_ext+1, "asto")
+		|| gf_sys_find_global_arg("llhls")
+		|| gf_sys_find_global_arg("asto")
+	)) {
+		dasher->enable_sidx = 0;
+	}
+
 	if (dasher->enable_sidx) {
 		sprintf(szArg, "subs_sidx=%d", dasher->subsegs_per_sidx );
 		e |= gf_dynstrcat(&args, szArg, ":");

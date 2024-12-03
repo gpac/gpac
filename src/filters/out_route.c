@@ -44,6 +44,7 @@ enum
 	LCT_SPLIT_NONE=0,
 	LCT_SPLIT_TYPE,
 	LCT_SPLIT_ALL,
+	LCT_SPLIT_MCAST,
 };
 
 typedef struct
@@ -51,8 +52,9 @@ typedef struct
 	//options
 	char *dst, *ext, *mime, *ifce, *ip;
 	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
-	Bool korean, llmode, noreg, nozip, furl, flute;
+	Bool korean, llmode, noreg, nozip, furl, flute, use_inband, ssm;
 	u32 csum;
+	u32 recv_obj_timeout;
 
 	//caps, overloaded at init
 	GF_FilterCapability in_caps[2];
@@ -81,6 +83,7 @@ typedef struct
 	u32 nb_resources;
 	u64 bytes_sent;
 
+	char *ifce_ip;
 	const char *log_name;
 
 	//ATSC3
@@ -116,6 +119,12 @@ typedef struct
 	u32 dvb_mabr_fdt_instance_id;
 
 	u32 next_toi_avail;
+	Bool check_pending;
+	u32 check_init_clock;
+
+	//simulate errors based on a 2-state Markov chain
+	Bool state_is_error;
+	GF_PropVec2 errsim; //{error->ok, ok->error}
 } GF_ROUTEOutCtx;
 
 typedef struct
@@ -160,6 +169,15 @@ typedef struct
 	//HLS sub-playlists are stored on their related PID to be pushed at each new seg
 	char *manifest, *manifest_name, *manifest_mime, *manifest_server, *manifest_url;
 	u32 manifest_version, manifest_crc;
+	//TOI for manifest in FLUTE mode
+	u32 manifest_toi;
+	u32 manifest_server_port;
+
+	//same for dual HLS/DASH, storage for alt manifest
+	char *manifest_alt, *manifest_alt_name, *manifest_alt_mime, *manifest_alt_server, *manifest_alt_url;
+	u32 manifest_alt_version, manifest_alt_crc;
+	u32 manifest_alt_toi;
+	u32 manifest_alt_server_port;
 
 	//for route
 	u32 stsid_version;
@@ -170,8 +188,6 @@ typedef struct
 
 	//service name for DVB MABR
 	char *service_name;
-	//TOI for manifest in FLUTE mode
-	u32 mani_toi;
 
 	Bool use_flute;
 } ROUTEService;
@@ -251,7 +267,7 @@ typedef struct
 	u64 clock_at_pck;
 	//target send rate
 	u32 bitrate;
-
+	u64 last_init_push;
 	Bool use_time_tpl;
 	//for flute
 	u32 init_toi, hls_child_toi;
@@ -259,6 +275,7 @@ typedef struct
 	Bool push_frag_name;
 	Bool init_cfg_done;
 	u32 fdt_instance_id;
+	s32 diff_send_at_frame_start, diff_recv_at_frame_start;
 } ROUTEPid;
 
 
@@ -405,8 +422,14 @@ void routeout_delete_service(ROUTEService *serv)
 	if (serv->manifest_name) gf_free(serv->manifest_name);
 	if (serv->manifest_server) gf_free(serv->manifest_server);
 	if (serv->manifest_url) gf_free(serv->manifest_url);
-
 	if (serv->manifest) gf_free(serv->manifest);
+
+	if (serv->manifest_alt_mime) gf_free(serv->manifest_alt_mime);
+	if (serv->manifest_alt_name) gf_free(serv->manifest_alt_name);
+	if (serv->manifest_alt_server) gf_free(serv->manifest_alt_server);
+	if (serv->manifest_alt_url) gf_free(serv->manifest_alt_url);
+	if (serv->manifest_alt) gf_free(serv->manifest_alt);
+
 	if (serv->stsid_bundle) gf_free(serv->stsid_bundle);
 	if (serv->service_name) gf_free(serv->service_name);
 	if (serv->log_name) gf_free(serv->log_name);
@@ -428,6 +451,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	rpid = gf_filter_pid_get_udta(pid);
 	if (is_remove) {
 		if (rpid) routeout_remove_pid(rpid, GF_FALSE);
+		ctx->check_pending = GF_TRUE;
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -519,11 +543,11 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			return GF_FILTER_NOT_SUPPORTED;
 		}
 
-		if (ctx->sock_atsc_lls) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ROUTE_IP);
+		if (ctx->sock_atsc_lls || ctx->sock_dvb_mabr) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_MCAST_IP);
 			if (p && p->value.string) service_ip = p->value.string;
 
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ROUTE_PORT);
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_MCAST_PORT);
 			if (p && p->value.uint) port = p->value.uint;
 			else ctx->first_port++;
 		}
@@ -534,8 +558,7 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		rserv->dash_mode = pid_dash_mode;
 	}
 
-	if (!rserv->manifest_type)
-		rserv->manifest_type = manifest_type;
+	rserv->manifest_type |= manifest_type;
 
 	if (rserv->dash_mode != pid_dash_mode){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Mix of raw and muxed files should never happen - please report bug !\n", rserv->log_name));
@@ -616,13 +639,13 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_TIMESCALE);
 		if (p) rpid->timescale = p->value.uint;
 
-		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PCK_HLS_REF);
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_HLS_REF);
 		if (p) rpid->hls_ref_id = p->value.longuint;
 
 		rpid->tsi = gf_list_find(rserv->pids, rpid) * 10;
 
 		//do we put this on the main LCT of the service or do we split ?
-		if (ctx->splitlct==LCT_SPLIT_ALL) {
+		if (ctx->splitlct>=LCT_SPLIT_ALL) {
 			if (gf_list_count(rserv->pids)>1)
 				do_split = GF_TRUE;
 		}
@@ -643,10 +666,34 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		if (do_split) {
 			GF_Err e;
-			rpid->rlct = route_create_lct_channel(filter, ctx, NULL, rserv->next_port, &e);
+			char *alloc_ip = NULL;
+			u32 port = rserv->next_port;
+			const char *ip = NULL;
+			if (ctx->splitlct==LCT_SPLIT_MCAST) {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_MCAST_IP);
+				if (p && p->value.string) ip = p->value.string;
+				if (ip && !strcmp(ip, rserv->rlct_base->ip))
+					ip = NULL;
+				if (!ip) {
+					alloc_ip = gf_net_bump_ip_address(rserv->rlct_base->ip, gf_list_count(rserv->pids)-1);
+					ip = alloc_ip;
+				}
+				if (!ip) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to assign new IP address to PID, using service one\n", rserv->log_name));
+				} else {
+					p = gf_filter_pid_get_property(pid, GF_PROP_PID_MCAST_PORT);
+					if (p) port = p->value.uint;
+				}
+			}
+			rpid->rlct = route_create_lct_channel(filter, ctx, ip, port, &e);
+			if (alloc_ip) {
+				gf_free(alloc_ip);
+			} else if (!e) {
+				rserv->next_port++;
+				ctx->first_port++;
+			}
+
 			if (e) return e;
-			rserv->next_port++;
-			ctx->first_port++;
 			if (rpid->rlct) {
 				gf_list_add(rserv->rlcts, rpid->rlct);
 			}
@@ -657,9 +704,24 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_free(ctx->dvb_mabr_config);
 		ctx->dvb_mabr_config = NULL;
 	}
+	ctx->check_pending = GF_TRUE;
 
 	gf_filter_pid_init_play_event(pid, &evt, 0, 1.0, "ROUTEOut");
 	gf_filter_pid_send_event(pid, &evt);
+	if (rpid->manifest_type) {
+		GF_FEVT_INIT(evt, GF_FEVT_NETWORK_HINT, pid);
+		evt.net_hint.sink_type = GF_4CC('M','A','B','R');
+		gf_filter_pid_send_event(pid, &evt);
+	}
+
+	if (ctx->llmode && !rpid->raw_file) {
+		rpid->carousel_time_us = ctx->carousel;
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MCAST_CAROUSEL);
+		if (p) {
+			//can be 0
+			rpid->carousel_time_us = gf_timestamp_rescale(p->value.frac.num, p->value.frac.den, 1000000);
+		}
+	}
 
 	rserv->wait_for_inputs = GF_TRUE;
 	//low-latency mode, consume media segment files as they are received (don't wait for full segment reconstruction)
@@ -680,6 +742,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	GF_ROUTEOutCtx *ctx = (GF_ROUTEOutCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx || !ctx->dst) return GF_BAD_PARAM;
+
 	ctx->log_name = "ROUTE";
 	if (!strnicmp(ctx->dst, "route://", 8)) {
 		is_atsc = GF_FALSE;
@@ -691,6 +754,26 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		ctx->log_name = "DVB-FLUTE";
 	} else if (strnicmp(ctx->dst, "atsc://", 7))  {
 		return GF_NOT_SUPPORTED;
+	}
+	if (ctx->ssm) {
+		if (!ctx->ifce) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Cannot use source-specific multicast if `-ifce` is not set\n", ctx->log_name));
+			return GF_BAD_PARAM;
+		}
+	}
+	if (ctx->ifce) {
+		char *v4, *v6;
+		gf_net_get_adapter_ip(ctx->ifce, &v4, &v6);
+		if (v4) {
+			ctx->ifce_ip = v4;
+			if (v6) gf_free(v6);
+		} else {
+			ctx->ifce_ip = v6;
+		}
+		if (!ctx->ifce_ip && ctx->ssm) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Cannot get IP address for %s\n", ctx->log_name, ctx->ifce));
+			return GF_BAD_PARAM;
+		}
 	}
 
 	if (ctx->ext) {
@@ -780,7 +863,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	ctx->clock_init = gf_sys_clock_high_res();
 	ctx->clock_stats = ctx->clock_init;
 	ctx->lct_bs = gf_bs_new(ctx->lct_buffer, ctx->mtu, GF_BITSTREAM_WRITE);
-	ctx->flute_msize = ctx->mtu - 11*4; //max size of headers and extensins
+	ctx->flute_msize = ctx->mtu - 14*4; //max size of headers and extensins
 
 	if (!ctx->carousel) ctx->carousel = 1000;
 	//move to microseconds
@@ -791,6 +874,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Low-latency mode is activated but `csum=all`set, using `csum=meta`\n", ctx->log_name));
 		ctx->csum = DVB_CSUM_META;
 	}
+	ctx->check_pending = GF_TRUE;
 	return GF_OK;
 }
 
@@ -817,6 +901,7 @@ static void routeout_finalize(GF_Filter *filter)
 	if (ctx->lls_time_table) gf_free(ctx->lls_time_table);
 	if (ctx->dvb_mabr_config) gf_free(ctx->dvb_mabr_config);
 	if (ctx->dvb_mabr_fdt) gf_free(ctx->dvb_mabr_fdt);
+	if (ctx->ifce_ip) gf_free(ctx->ifce_ip);
 	if (ctx->lct_bs) gf_bs_del(ctx->lct_bs);
 }
 
@@ -890,7 +975,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 						rpid->current_toi = 0;
 
 						p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-						if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PCK_FILENAME);
+						if (!p) p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_INIT_NAME);
 						if (rpid->init_seg_name) gf_free(rpid->init_seg_name);
 						rpid->init_seg_name = p ? routeout_strip_base(rpid->route, p->value.string) : NULL;
 					}
@@ -902,7 +987,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			}
 			if (rpid->init_seg_data || rpid->no_init_seg) {
 				nb_media_init ++;
-				if (serv->manifest_type==2) {
+				if (serv->manifest_type & 2) {
 					if (!rpid->hld_child_pl_name)
 						nb_media_init --;
 				}
@@ -940,7 +1025,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			}
 
 			if (!file_name) {
-				snprintf(szLocManfest, 100, "manifest.%s", (serv->manifest_type==2) ? "m3u8" : "mpd");
+				snprintf(szLocManfest, 100, "manifest.%s", (rpid->manifest_type&2) ? "m3u8" : "mpd");
 				file_name = szLocManfest;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] No manifest name assigned, will use %s\n", serv->log_name, file_name));
 			}
@@ -972,6 +1057,13 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					media_pid->hld_child_pl_crc = crc;
 					//we need a new TOI since manifest changed
 					media_pid->hls_child_toi = 0;
+					//for route we alternate MAX_INT-1 and MAX_INT-2 and update S-TSID each time
+					//NOTE: ROUTE spec is not really designed for HLS with variant playlist updates
+					//in particular is silent about what happens when FDT-Instance changes during updates
+					//we assume than any file removed from the FDT-nstance by an update is no longer available
+					media_pid->hld_child_pl_version = media_pid->hld_child_pl_version ? 0 : 1;
+					if (!serv->use_flute)
+						serv->needs_reconfig = GF_TRUE;
 
 					if (!media_pid->hld_child_pl_name || strcmp(media_pid->hld_child_pl_name, file_name)) {
 						if (media_pid->hld_child_pl_name) gf_free(media_pid->init_seg_name);
@@ -984,52 +1076,80 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			} else {
 				const u8 *man_data = gf_filter_pck_get_data(pck, &man_size);
 				man_crc = gf_crc_32(man_data, man_size);
-				if (man_crc != serv->manifest_crc) {
-					serv->manifest_crc = man_crc;
-					if (serv->manifest) gf_free(serv->manifest);
-					serv->manifest = gf_malloc(man_size+1);
-					memcpy(serv->manifest, man_data, man_size);
-					serv->manifest[man_size] = 0;
-					serv->manifest_version++;
-					if (serv->manifest_name) {
-						if (strcmp(serv->manifest_name, file_name)) serv->needs_reconfig = GF_TRUE;
-						gf_free(serv->manifest_name);
+
+				char **manifest = &serv->manifest;
+				char **manifest_name = &serv->manifest_name;
+				char **manifest_server = &serv->manifest_server;
+				char **manifest_url = &serv->manifest_url;
+				char **manifest_mime = &serv->manifest_mime;
+				u32 *manifest_toi = &serv->manifest_toi;
+				u32 *manifest_crc = &serv->manifest_crc;
+				u32 *manifest_version = &serv->manifest_version;
+				u32 *manifest_port = &serv->manifest_server_port;
+
+				if ((serv->manifest_type & 1) && (serv->manifest_type & 2) && (rpid->manifest_type==2)) {
+					manifest = &serv->manifest_alt;
+					manifest_name = &serv->manifest_alt_name;
+					manifest_server = &serv->manifest_alt_server;
+					manifest_url = &serv->manifest_alt_url;
+					manifest_mime = &serv->manifest_alt_mime;
+					manifest_toi = &serv->manifest_alt_toi;
+					manifest_crc = &serv->manifest_alt_crc;
+					manifest_version = &serv->manifest_alt_version;
+					manifest_port = &serv->manifest_alt_server_port;
+				}
+
+				if (man_crc != *manifest_crc) {
+					*manifest_crc = man_crc;
+					if (*manifest) gf_free(*manifest);
+					(*manifest) = gf_malloc(man_size+1);
+					memcpy(*manifest, man_data, man_size);
+					(*manifest) [man_size] = 0;
+					(*manifest_version) ++;
+					if (*manifest_name) {
+						if (strcmp(*manifest_name, file_name)) serv->needs_reconfig = GF_TRUE;
+						gf_free(*manifest_name);
 					}
 					if (file_name[0])
-						serv->manifest_name = gf_strdup(file_name);
+						*manifest_name = gf_strdup(file_name);
 					else
-						serv->manifest_name = gf_strdup((serv->manifest_type==2) ? "live.m3u8" : "live.mpd");
+						*manifest_name = gf_strdup((rpid->manifest_type==2) ? "live.m3u8" : "live.mpd");
 					manifest_updated = GF_TRUE;
 					//we need a new TOI since manifest changed
-					serv->mani_toi = 0;
+					*manifest_toi = 0;
 
-					if (serv->manifest_server) gf_free(serv->manifest_server);
-					if (serv->manifest_url) gf_free(serv->manifest_url);
-					serv->manifest_server = serv->manifest_url = NULL;
+					if (*manifest_server) gf_free(*manifest_server);
+					if (*manifest_url) gf_free(*manifest_url);
+					*manifest_server = *manifest_url = NULL;
 
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_URL);
-					serv->manifest_url = p ? gf_strdup(p->value.string) : NULL;
-					if (serv->manifest_url) {
-						char *sep = strstr(serv->manifest_url, file_name);
+					*manifest_url = p ? gf_strdup(p->value.string) : NULL;
+					if (*manifest_url) {
+						char *sep = strstr(*manifest_url, file_name);
 						if (sep) sep[0] = 0;
-						sep = strstr(serv->manifest_url, "://");
+						sep = strstr(*manifest_url, "://");
 						if (sep) sep = strchr(sep + 3, '/');
 						if (sep) {
-							serv->manifest_server = serv->manifest_url;
-							serv->manifest_url = gf_strdup(sep+1);
+							*manifest_server = *manifest_url;
+							*manifest_url = gf_strdup(sep+1);
 							sep[0] = 0;
-							sep = strchr(serv->manifest_server + 8, ':');
-							if (sep) sep[0] = 0;
+							sep = strchr(*manifest_server + 8, ':');
+							if (sep) {
+								*manifest_port = atoi(sep+1);
+								sep[0] = 0;
+							} else {
+								*manifest_port = 0;
+							}
 						} else {
-							gf_free(serv->manifest_url);
-							serv->manifest_url = NULL;
+							gf_free(*manifest_url);
+							*manifest_url = NULL;
 						}
 					}
 
 					p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MIME);
 					if (p) {
-						if (serv->manifest_mime) gf_free(serv->manifest_mime);
-						serv->manifest_mime = gf_strdup(p->value.string);
+						if (*manifest_mime) gf_free(*manifest_mime);
+						*manifest_mime = gf_strdup(p->value.string);
 					}
 				}
 			}
@@ -1232,11 +1352,10 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 		ROUTELCT *rlct = gf_list_get(serv->rlcts, j);
 		Bool has_rs_hdr=GF_FALSE;
 
-		const char *src_ip;
+		const char *src_ip = ctx->ifce_ip;
 		char szIP[GF_MAX_IP_NAME_LEN];
-		src_ip = ctx->ifce;
 		if (!src_ip) {
-			if (gf_sk_get_local_ip(rlct->sock, szIP) != GF_OK)
+			if (gf_sk_get_local_ip(serv->rlct_base->sock, szIP)!=GF_OK)
 				strcpy(szIP, "127.0.0.1");
 			src_ip = szIP;
 		}
@@ -1335,7 +1454,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 					max_size *= 2;
 				}
 
-				snprintf(temp, 1000, " Expires=\"4000000000\" afdt:maxTransportSize=\"%d\">\n", max_size);
+				snprintf(temp, 1000, " Expires=\"4294944000\" afdt:maxTransportSize=\"%d\">\n", max_size);
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 
@@ -1344,7 +1463,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 			if (rpid->hld_child_pl_name) {
-				snprintf(temp, 1000, "      <fdt:File Content-Location=\"%s\" TOI=\"%u\"/>\n", rpid->hld_child_pl_name, ROUTE_INIT_TOI - 1);
+				snprintf(temp, 1000, "      <fdt:File Content-Location=\"%s\" TOI=\"%u\"/>\n", rpid->hld_child_pl_name, ROUTE_INIT_TOI - 1 - rpid->hld_child_pl_version);
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 			if (rpid->raw_file) {
@@ -1355,7 +1474,7 @@ static GF_Err routeout_update_stsid_bundle(GF_ROUTEOutCtx *ctx, ROUTEService *se
 				else {
 					mime = "application/octet-string";
 				}
-				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ROUTE_NAME);
+				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MCAST_NAME);
 				if (p && p->value.string)
 					url = p->value.string;
 				else {
@@ -1496,28 +1615,37 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	if (serv && ctx->dvb_mabr_fdt && !serv->needs_reconfig) return GF_OK;
 	char *payload=NULL;
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
-	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
+	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"4294944000\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
 
 	if (!ctx->dvb_mabr_config_toi) {
 		ctx->dvb_mabr_config_toi = ctx->next_toi_avail;
 		ctx->next_toi_avail++;
 	}
-	inject_fdt_file_desc(ctx, &payload, NULL, "dvb_mabr_config.xml", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, ctx->dvb_mabr_config_toi, GF_FALSE);
+	//TS 103 769 section 8.3.5
+	inject_fdt_file_desc(ctx, &payload, NULL, "urn:dvb:metadata:cs:MulticastTransportObjectTypeCS:2021:gateway-configuration", "application/xml+dvb-mabr-session-configuration", ctx->dvb_mabr_config, ctx->dvb_mabr_config_len, ctx->dvb_mabr_config_toi, GF_FALSE);
 
 	nb_serv = gf_list_count(ctx->services);
 	for (i=0; i<nb_serv; i++) {
 		ROUTEService *serv = gf_list_get(ctx->services, i);
-		if (!serv->use_flute) continue;
+		if (!serv->use_flute || ctx->use_inband) continue;
 		//inject manifest
 		if (serv->manifest && serv->manifest_type) {
 			u32 len = (u32) strlen(serv->manifest);
-			if (!serv->mani_toi) {
-				serv->mani_toi = ctx->next_toi_avail;
+			if (!serv->manifest_toi) {
+				serv->manifest_toi = ctx->next_toi_avail;
 				ctx->next_toi_avail++;
 			}
-			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name,
-				(serv->manifest_type==2) ? "application/vnd.apple.mpegURL" : "application/dash+xml",
-					serv->manifest, len, serv->mani_toi, ctx->furl);
+			inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_name, serv->manifest_mime, serv->manifest, len, serv->manifest_toi, ctx->furl);
+
+			//inject alt manifest
+			if (serv->manifest_alt) {
+				len = (u32) strlen(serv->manifest_alt);
+				if (!serv->manifest_alt_toi) {
+					serv->manifest_alt_toi = ctx->next_toi_avail;
+					ctx->next_toi_avail++;
+				}
+				inject_fdt_file_desc(ctx, &payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime, serv->manifest_alt, len, serv->manifest_alt_toi, ctx->furl);
+			}
 		}
 
 		//inject init segs and HLS variant or RAW info
@@ -1568,8 +1696,16 @@ static GF_Err routeout_update_dvb_mabr_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *se
 	return GF_OK;
 }
 
+static void update_error_simulation_state(GF_ROUTEOutCtx *ctx) {
+#define ERRSIM_ACCURACY 100
+	Double p = (gf_rand() % (100 * ERRSIM_ACCURACY)) / (Double)ERRSIM_ACCURACY;
+	Double t = ctx->state_is_error ? ctx->errsim.y : ctx->errsim.x;
+	if (p < t)
+		ctx->state_is_error = !ctx->state_is_error;
+#undef ERRSIM_ACCURACY
+}
 
-u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute)
+u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u32 codepoint, u8 *payload, u32 len, u32 offset, ROUTEService *serv, u32 total_size, u32 offset_in_frame, u32 fdt_instance_id, Bool is_flute, Bool can_set_close)
 {
 	u32 max_size = ctx->mtu;
 	u32 send_payl_size;
@@ -1587,9 +1723,9 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 		} else {
 			hdr_len+=2;
 		}
-		//add ext for FDT
+		//add extensions for FDT: EXT_FDT (1x 32bits), EXT_FTI (4x 32bits) and EXT_TIME (3x 32bits, we only send NTP)
 		if (!toi) {
-			hdr_len+=5;
+			hdr_len += 8;
 		}
 	} else {
 		hdr_len = 4;
@@ -1609,11 +1745,16 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 	} else {
 		send_payl_size = len - offset;
 	}
-	ctx->lct_buffer[0] = 0x12; //V=b0001, C=b00, PSI=b10
+	ctx->lct_buffer[0] = 0x10; //V=b0001, C=b00, PSI=b00 or b10 with ROUTE
+	if (!is_flute) ctx->lct_buffer[0] |= 0x02;
 	//S=b1|b0, O=b01|b00, h=b0|b1, res=b00, A=b0, B=X
 	ctx->lct_buffer[1] = short_h ? 0x10 : 0xA0;
-	//set close flag only if total_len is known
-	if (total_size && (offset + send_payl_size == len))
+
+	//Set the close flag (only when total_len is known) only if asked for
+	//Typically:
+	//- carrousel files (raw, manifests, init segments) will never set this as they are resent with the same TOI
+	//- segments will, as they will never be resent
+	if (can_set_close && total_size && (offset + send_payl_size == len))
 		ctx->lct_buffer[1] |= 1;
 
 	ctx->lct_buffer[2] = hdr_len;
@@ -1665,6 +1806,16 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 			//32bits of max source block length
 			gf_bs_write_u32(ctx->lct_bs, ctx->mtu);
 			hpos+=16; //4 32bit words
+
+			//set TIME
+			gf_bs_write_u8(ctx->lct_bs, GF_LCT_EXT_TIME); //TOH
+			gf_bs_write_u8(ctx->lct_bs, 3); //TOL
+			gf_bs_write_u16(ctx->lct_bs, 0xC000); //use bits, set SCT high and low
+			u32 ntp_s, ntp_f;
+			gf_net_get_ntp(&ntp_s, &ntp_f);
+			gf_bs_write_u32(ctx->lct_bs, ntp_s);
+			gf_bs_write_u32(ctx->lct_bs, ntp_f);
+			hpos+=12; //3 32bit words
 		}
 		PUT_U16(0)
 		PUT_U16(ESI)
@@ -1695,11 +1846,18 @@ u32 routeout_lct_send(GF_ROUTEOutCtx *ctx, GF_Socket *sock, u32 tsi, u32 toi, u3
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] LCT TSI %u TOI %u size %u (frag %u total %u) offset %u (%u in obj)\n", serv ? serv->log_name : ctx->log_name, tsi, toi, send_payl_size, len, total_size, offset, offset_in_frame));
 
-	memcpy(ctx->lct_buffer + hpos, payload + offset, send_payl_size);
-	e = gf_sk_send(sock, ctx->lct_buffer, send_payl_size + hpos);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to send LCT object TSI %u TOI %u fragment: %s\n", serv ? serv->log_name : ctx->log_name, tsi, toi, gf_error_to_string(e) ));
+	update_error_simulation_state(ctx);
+	if (!ctx->state_is_error) {
+		memcpy(ctx->lct_buffer + hpos, payload + offset, send_payl_size);
+		e = gf_sk_send(sock, ctx->lct_buffer, send_payl_size + hpos);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] Failed to send LCT object TSI %u TOI %u fragment: %s\n", serv ? serv->log_name : ctx->log_name, tsi, toi, gf_error_to_string(e) ));
+		}
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Simulated error loss for LCT object TSI %u TOI %u service_name %s size %u (frag %u total %u) offset %u (%u in obj)\n",
+			serv ? serv->log_name : ctx->log_name, tsi, toi, serv ? serv->service_name : "N/A", send_payl_size, len, total_size, offset, offset_in_frame));
 	}
+
 	//store what we actually sent including header for rate estimation
 	ctx->bytes_sent += send_payl_size + hpos;
 	//but return what we sent from the source
@@ -1710,7 +1868,7 @@ static void routeout_send_file(GF_ROUTEOutCtx *ctx, ROUTEService *serv, GF_Socke
 {
 	u32 offset=0;
 	while (offset<size) {
-		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset, fdt_instance_id, is_flute);
+		offset += routeout_lct_send(ctx, sock, tsi, toi, codepoint, payload, size, offset, serv, size, offset, fdt_instance_id, is_flute, GF_FALSE);
 	}
 }
 
@@ -1797,6 +1955,12 @@ retry:
 	}
 
 	rpid->pck_data = gf_filter_pck_get_data(rpid->current_pck, &rpid->pck_size);
+	//this can happen with httpin and chunks
+	if (!rpid->pck_size || !rpid->pck_data) {
+		gf_filter_pck_unref(rpid->current_pck);
+		rpid->current_pck = NULL;
+		goto retry;
+	}
 	rpid->pck_offset = 0;
 
 	p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_INIT);
@@ -1823,29 +1987,6 @@ retry:
 		goto retry;
 	}
 
-	p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PID_HLS_PLAYLIST);
-	if (p && p->value.string) {
-		u32 crc;
-		gf_assert(start && end);
-		crc = gf_crc_32(rpid->pck_data, rpid->pck_size);
-		//whenever init seg changes, bump stsid version
-		if (crc != rpid->hld_child_pl_crc) {
-			rpid->hld_child_pl_crc = crc;
-			if (rpid->hld_child_pl) gf_free(rpid->hld_child_pl);
-			rpid->hld_child_pl = gf_malloc(rpid->pck_size+1);
-			memcpy(rpid->hld_child_pl, rpid->pck_data, rpid->pck_size);
-			rpid->hld_child_pl[rpid->pck_size] = 0;
-
-			if (!rpid->hld_child_pl_name || strcmp(rpid->hld_child_pl_name, p->value.string)) {
-				rpid->route->needs_reconfig = GF_TRUE;
-				if (rpid->hld_child_pl_name) gf_free(rpid->hld_child_pl_name);
-				rpid->hld_child_pl_name = routeout_strip_base(rpid->route, p->value.string);
-			}
-		}
-		gf_filter_pck_unref(rpid->current_pck);
-		rpid->current_pck = NULL;
-		goto retry;
-	}
 	if (rpid->route->dash_mode) {
 		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_FILENUM);
 		if (p) {
@@ -1878,7 +2019,7 @@ retry:
 
 		if (rpid->seg_name) gf_free(rpid->seg_name);
 		rpid->seg_name = "unknown";
-		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ROUTE_NAME);
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MCAST_NAME);
 		if (p)
 			rpid->seg_name = p->value.string;
 		else {
@@ -1889,15 +2030,13 @@ retry:
 
 		//setup carousel period
 		rpid->carousel_time_us = ctx->carousel;
-		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ROUTE_CAROUSEL);
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MCAST_CAROUSEL);
 		if (p) {
-			rpid->carousel_time_us = p->value.frac.num;
-			rpid->carousel_time_us *= 1000000;
-			rpid->carousel_time_us /= p->value.frac.den;
+			rpid->carousel_time_us = gf_timestamp_rescale(p->value.frac.num, p->value.frac.den, 1000000);
 		}
 		//setup upload time
 		rpid->current_dur_us = ctx->carousel;
-		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_ROUTE_SENDTIME);
+		p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_MCAST_SENDTIME);
 		if (p) {
 			rpid->current_dur_us = p->value.frac.num;
 			rpid->current_dur_us *= 1000000;
@@ -1968,6 +2107,17 @@ retry:
 		rpid->cumulated_frag_size = rpid->pck_size;
 		rpid->push_init = GF_TRUE;
 		rpid->frag_offset = 0;
+
+		p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_SENDER_NTP);
+		if (p) {
+			u64 ntp = gf_net_get_ntp_ts();
+			rpid->diff_send_at_frame_start = gf_net_ntp_diff_ms(ntp, p->value.longuint);
+			p = gf_filter_pck_get_property(rpid->current_pck, GF_PROP_PCK_RECEIVER_NTP);
+			rpid->diff_recv_at_frame_start = p ? gf_net_ntp_diff_ms(ntp, p->value.longuint) : -1;
+		} else {
+			rpid->diff_send_at_frame_start = -1;
+			rpid->diff_recv_at_frame_start = -1;
+		}
 	} else {
 		rpid->frag_idx++;
 		if (ctx->dvb_mabr) {
@@ -2046,6 +2196,7 @@ retry:
 			rpid->clock_at_frame_start = ctx->clock;
 			rpid->cts_us_at_frame_start = rpid->current_cts_us;
 			rpid->cts_at_frame_start = ts;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Segment %s init send time to "LLU" CTS "LLU" us source TS "LLU"/%u\n", rpid->route->log_name, rpid->seg_name, rpid->cts_us_at_frame_start, rpid->current_cts_us, ts, rpid->timescale));
 		}
 
 		rpid->current_dur_us = pck_dur;
@@ -2064,19 +2215,89 @@ retry:
 	return GF_OK;
 }
 
+
+void inject_mani_init_hls_variant_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid, char **payload)
+{
+	//inject manifest
+	if (serv->manifest && serv->manifest_type) {
+		u32 len = (u32) strlen(serv->manifest);
+		if (!serv->manifest_toi) {
+			serv->manifest_toi = ctx->next_toi_avail;
+			ctx->next_toi_avail++;
+		}
+		inject_fdt_file_desc(ctx, payload, serv, serv->manifest_name, serv->manifest_mime,
+			serv->manifest, len, serv->manifest_toi, ctx->furl
+		);
+
+		if (serv->manifest_alt) {
+			len = (u32) strlen(serv->manifest_alt);
+			if (!serv->manifest_alt_toi) {
+				serv->manifest_alt_toi = ctx->next_toi_avail;
+				ctx->next_toi_avail++;
+			}
+			inject_fdt_file_desc(ctx, payload, serv, serv->manifest_alt_name, serv->manifest_alt_mime,
+				serv->manifest_alt, len, serv->manifest_alt_toi, ctx->furl
+			);
+		}
+	}
+
+	//inject init segs and HLS variant or RAW info
+	u32 j, nb_pids = gf_list_count(serv->pids);
+	for (j=0; j<nb_pids; j++) {
+		ROUTEPid *pid = gf_list_get(serv->pids, j);
+		if (pid->tsi != rpid->tsi) continue;
+
+		if (pid->raw_file) {
+			if (!pid->current_toi || !pid->full_frame_size)
+				continue;
+
+			char *mime;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(pid->pid, GF_PROP_PID_MIME);
+			if (p && p->value.string && strcmp(p->value.string, "*")) {
+				mime = p->value.string;
+			} else {
+				mime = "application/octet-string";
+			}
+			inject_fdt_file_desc(ctx, payload, serv, pid->seg_name, mime, pid->pck_data, pid->full_frame_size, pid->current_toi, ctx->furl);
+			continue;
+		}
+
+		if (pid->init_seg_data) {
+			if (!pid->init_toi) {
+				pid->init_toi = ctx->next_toi_avail;
+				ctx->next_toi_avail++;
+			}
+			inject_fdt_file_desc(ctx, payload, serv, pid->init_seg_name, "video/mp4", pid->init_seg_data, pid->init_seg_size, pid->init_toi, ctx->furl);
+		}
+		if (pid->hld_child_pl) {
+			if (!pid->hls_child_toi) {
+				pid->hls_child_toi = ctx->next_toi_avail;
+				ctx->next_toi_avail++;
+			}
+			inject_fdt_file_desc(ctx, payload, serv, pid->hld_child_pl_name, "application/vnd.apple.mpegURL", pid->hld_child_pl, (u32) strlen(pid->hld_child_pl), pid->hls_child_toi, ctx->furl);
+		}
+	}
+}
+
+
 void routeout_send_fdt(GF_ROUTEOutCtx *ctx, ROUTEService *serv, ROUTEPid *rpid)
 {
 	char *payload = NULL;
 	char szName[GF_MAX_PATH], *seg_name;
 
 	gf_dynstrcat(&payload, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n", NULL);
-	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"3916741152\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
-	//todo: inject manifest, init seg and child playlist ?
+	gf_dynstrcat(&payload, "<FDT-Instance Expires=\"4294944000\" xmlns=\"urn:IETF:metadata:2005:FLUTE:FDT\">\n", NULL);
+	//if use_inband: inject manifest, init seg and child playlis
+	if (ctx->use_inband){
+		inject_mani_init_hls_variant_fdt(ctx, serv, rpid, &payload);
+		//update current toi with value of next toi available since we sent mani and init
+		if (rpid->current_toi !=1 && rpid->current_toi  < ctx->next_toi_avail)
+		rpid->current_toi = ctx->next_toi_avail;
+	}	
 
 	//cannot use TOI 0 for anything else than FDT
 	if (!rpid->current_toi)
 		rpid->current_toi = 1;
-
 	const u8 *pck_data;
 	if (!rpid->frag_idx && (ctx->csum==DVB_CSUM_ALL))
 		pck_data = rpid->pck_data;
@@ -2146,6 +2367,7 @@ static GF_Err routeout_process_service(GF_ROUTEOutCtx *ctx, ROUTEService *serv)
 next_packet:
 
 		if (!rpid->current_pck) {
+			Bool push_init;
 			GF_Err e = routeout_fetch_packet(ctx, rpid);
 			if (e) return e;
 
@@ -2165,7 +2387,18 @@ next_packet:
 				ctx->nb_resources++;
 			}
 
-			if (rpid->push_init) {
+			//in low-latency mode, push manifest and child playlists
+			push_init = rpid->push_init;
+			if (ctx->llmode && !push_init
+				&& rpid->carousel_time_us
+				&& (gf_sys_clock_high_res() - rpid->last_init_push > rpid->carousel_time_us)
+			) {
+				push_init = GF_TRUE;
+				if (rpid->hld_child_pl)
+					send_hls_child = GF_TRUE;
+			}
+
+			if (push_init) {
 				GF_Socket *init_sock = rpid->rlct->sock;
 				u32 init_tsi = rpid->tsi;
 				u32 init_toi = ROUTE_INIT_TOI;
@@ -2177,13 +2410,24 @@ next_packet:
 					routeout_send_fdt(ctx, serv, rpid);
 					rpid->push_frag_name = GF_FALSE;
 
+					if (ctx->use_inband) {
+						init_sock = rpid->rlct->sock;
+						init_tsi = rpid->tsi;
+					} else {
+						init_sock = ctx->sock_dvb_mabr;
+						init_tsi = ctx->dvb_mabr_tsi;
+					}
+
 					if (!manifest_sent) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Manifest %s\n", serv->log_name, serv->manifest_name));
 						manifest_sent = GF_TRUE;
-						routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, serv->mani_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+						routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_toi, serv->manifest, (u32) strlen(serv->manifest), 0, 0, GF_TRUE);
+
+						if (serv->manifest_alt) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending Alternative Manifest %s\n", serv->log_name, serv->manifest_alt_name));
+							routeout_send_file(ctx, serv, init_sock, init_tsi, serv->manifest_alt_toi, serv->manifest_alt, (u32) strlen(serv->manifest_alt), 0, 0, GF_TRUE);
+						}
 					}
-					init_sock = ctx->sock_dvb_mabr;
-					init_tsi = ctx->dvb_mabr_tsi;
 					init_toi = rpid->init_toi;
 				}
 
@@ -2203,18 +2447,24 @@ next_packet:
 					ctx->total_bytes = rpid->init_seg_size;
 					ctx->nb_resources++;
 				}
+				if (ctx->llmode)
+					rpid->last_init_push = gf_sys_clock_high_res();
 			}
 		}
 		//send child m3u8 asap
 		if (send_hls_child && rpid->hld_child_pl) {
 			u32 hls_len = (u32) strlen(rpid->hld_child_pl);
 			GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Sending HLS sub playlist %s\n", rpid->route->log_name, rpid->hld_child_pl_name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] HLS sub playlist content:\n%s\n", rpid->route->log_name, rpid->hld_child_pl));
 
 			if (serv->use_flute) {
-				routeout_send_file(ctx, serv, ctx->sock_dvb_mabr, ctx->dvb_mabr_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0, 0, GF_TRUE);
+				GF_Socket *hls_sock = ctx->use_inband ? rpid->rlct->sock : ctx->sock_dvb_mabr;
+				u32 hls_tsi = ctx->use_inband ? rpid->tsi : ctx->dvb_mabr_tsi;
+
+				routeout_send_file(ctx, serv, hls_sock, hls_tsi, rpid->hls_child_toi, rpid->hld_child_pl, hls_len, 0, 0, GF_TRUE);
 			} else {
 				//we use codepoint 1 (NRT - file mode) for subplaylists
-				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1, rpid->hld_child_pl, hls_len, 1, 0, GF_FALSE);
+				routeout_send_file(ctx, serv, rpid->rlct->sock, rpid->tsi, ROUTE_INIT_TOI-1-rpid->hld_child_pl_version, rpid->hld_child_pl, hls_len, 1, 0, GF_FALSE);
 			}
 
 			if (ctx->reporting_on) {
@@ -2264,9 +2514,9 @@ next_packet:
 			codepoint = rpid->raw_file ? rpid->fmtp : 8;
 			//ll mode in flute, each packet is sent as an object so use packet offset instead of file offset
 			if (ctx->dvb_mabr && ctx->llmode) {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset, 0, serv->use_flute);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->pck_size, rpid->pck_offset, 0, serv->use_flute, GF_TRUE);
 			} else {
-				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset, 0, serv->use_flute);
+				sent = routeout_lct_send(ctx, rpid->rlct->sock, rpid->tsi, rpid->current_toi, codepoint, (u8 *) rpid->pck_data, rpid->pck_size, rpid->pck_offset, serv, rpid->full_frame_size, rpid->pck_offset + rpid->frag_offset, 0, serv->use_flute, GF_TRUE);
 			}
 			rpid->pck_offset += sent;
 			if (ctx->reporting_on) {
@@ -2284,7 +2534,7 @@ next_packet:
 #ifndef GPAC_DISABLE_LOG
 			//print full object push info
 			if (rpid->full_frame_size && (gf_log_get_tool_level(GF_LOG_ROUTE)>=GF_LOG_INFO)) {
-				char szFInfo[1000], szSID[31];
+				char szFInfo[1000], szSID[31], szDelay[100];
 				u64 seg_clock, target_push_dur;
 
 				if (rpid->pck_dur_at_frame_start) {
@@ -2299,12 +2549,18 @@ next_packet:
 				else
 					szSID[0] = 0;
 
+				if (rpid->diff_send_at_frame_start>=0) {
+					sprintf(szDelay, " started %d ms after request (%d ms after reception)", rpid->diff_send_at_frame_start, rpid->diff_recv_at_frame_start);
+				} else {
+					szDelay[0] = 0;
+				}
+
 				if (rpid->frag_idx)
 					snprintf(szFInfo, 100, "%s%s (%d frags %d bytes)", szSID, rpid->seg_name, rpid->frag_idx+1, rpid->full_frame_size);
 				else
 					snprintf(szFInfo, 100, "%s%s (%d bytes)", szSID, rpid->seg_name, rpid->full_frame_size);
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in "LLU" us - target push "LLU" us\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur));
+				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Pushed %s in "LLU" us - target push "LLU" us%s\n", rpid->route->log_name, szFInfo, ctx->clock - rpid->clock_at_frame_start, target_push_dur, szDelay));
 
 				//real-time stream, check we are not out of sync
 				if (!rpid->raw_file) {
@@ -2317,7 +2573,7 @@ next_packet:
 					}
 					//otherwise we've been pushing too slowly
 					else if (ctx->clock > 1000 + seg_clock) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Segment %s pushed too late by "LLU" us\n", rpid->route->log_name, rpid->seg_name, ctx->clock - seg_clock));
+						GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[%s] Segment %s pushed too late by "LLU" us (target push duration %u us)\n", rpid->route->log_name, rpid->seg_name, ctx->clock - seg_clock, target_push_dur));
 					}
 
 					if (rpid->pck_dur_at_frame_start && ctx->llmode) {
@@ -2470,12 +2726,13 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 				" <Service serviceId=\"%d\" globalServiceID=\"urn:atsc:gpac:%d:%d\" sltSvcSeqNum=\"0\" protected=\"false\" majorChannelNo=\"%d\" minorChannelNo=\"%d\" serviceCategory=\"%d\" shortServiceName=\"%s\" hidden=\"%s\" hideInGuide=\"%s\" broadbandAccessRequired=\"false\" configuration=\"%s\"> \n", sid, ctx->bsid, sid, major, minor, service_cat, szIP, hidden, hideInESG, configuration);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
-			src_ip = ctx->ifce;
+			src_ip = ctx->ifce_ip;
 			if (!src_ip) {
 				if (gf_sk_get_local_ip(serv->rlct_base->sock, szIP)!=GF_OK)
 					strcpy(szIP, "127.0.0.1");
 				src_ip = szIP;
 			}
+
 			int res = snprintf(tmp, 1000, "  <BroadcastSvcSignaling slsProtocol=\"1\" slsDestinationIpAddress=\"%s\" slsDestinationUdpPort=\"%d\" slsSourceIpAddress=\"%s\"/>\n"
 				" </Service>\n", serv->rlct_base->ip, serv->rlct_base->port, src_ip);
 			if (res<0) {
@@ -2511,21 +2768,64 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 	ctx->bytes_sent += ctx->lls_slt_table_len;
 }
 
+static char *mabr_get_carousel_info(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Bool inject_names, u32 *out_tot_rate)
+{
+	char tmp[2000];
+	u32 carousel_size=0, tot_rate=0;
+	char *carousel_text = NULL;
+	if (serv->manifest) carousel_size += (u32) strlen(serv->manifest);
+	if (serv->manifest_alt) carousel_size += (u32) strlen(serv->manifest_alt);
+
+	u32 carousel_us = ctx->carousel;
+	u32 j, nb_pids=gf_list_count(serv->pids);
+	for (j=0;j<nb_pids; j++) {
+		ROUTEPid *rpid = gf_list_get(serv->pids, j);
+		carousel_size += rpid->init_seg_size;
+		if (rpid->hld_child_pl)
+			carousel_size += (u32) strlen(rpid->hld_child_pl);
+		if (rpid->raw_file) {
+			carousel_size += rpid->pck_size;
+			if (rpid->carousel_time_us) {
+				tot_rate += rpid->pck_size * 8000000 / rpid->carousel_time_us;
+			}
+		} else if (!rpid->manifest_type) {
+			tot_rate += rpid->bitrate;
+		}
+		if (rpid->carousel_time_us && (rpid->carousel_time_us < carousel_us))
+			carousel_us = rpid->carousel_time_us;
+	}
+	if (out_tot_rate) *out_tot_rate = tot_rate;
+
+	gf_dynstrcat(&carousel_text, "<ObjectCarousel aggregateTransportSize=\"", NULL);
+	sprintf(tmp, "%u", carousel_size);
+	gf_dynstrcat(&carousel_text, tmp, NULL);
+	gf_dynstrcat(&carousel_text, "\">\n", NULL);
+
+	if (inject_names) {
+		//announce manifest and init segs
+		gf_dynstrcat(&carousel_text, "<PresentationManifests serviceIdRef=\"", NULL);
+		gf_dynstrcat(&carousel_text, serv->service_name, NULL);
+		gf_dynstrcat(&carousel_text, "\" targetAcquisitionLatency=\"PT", NULL);
+		sprintf(tmp, "%u", (u32) (carousel_us/1000000));
+		gf_dynstrcat(&carousel_text, tmp, NULL);
+		gf_dynstrcat(&carousel_text, "S\"/>\n", NULL);
+
+		gf_dynstrcat(&carousel_text, "<InitSegments serviceIdRef=\"", NULL);
+		gf_dynstrcat(&carousel_text, serv->service_name, NULL);
+		gf_dynstrcat(&carousel_text, "\" targetAcquisitionLatency=\"PT", NULL);
+		gf_dynstrcat(&carousel_text, tmp, NULL);
+		gf_dynstrcat(&carousel_text, "S\"/>\n", NULL);
+	}
+	gf_dynstrcat(&carousel_text, "</ObjectCarousel>\n", NULL);
+	return carousel_text;
+}
+
 static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 {
 	char *payload_text = NULL;
 	char tmp[2000];
 	u32 i, count;
 	if (ctx->dvb_mabr_config) return;
-
-	const char *src_ip;
-	char szIP[GF_MAX_IP_NAME_LEN];
-	src_ip = ctx->ifce;
-	if (!src_ip) {
-		if (gf_sk_get_local_ip(ctx->sock_dvb_mabr, szIP) != GF_OK)
-			strcpy(szIP, "127.0.0.1");
-		src_ip = szIP;
-	}
 
 	count = gf_list_count(ctx->services);
 	snprintf(tmp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<MulticastGatewayConfiguration xmlns=\"urn:dvb:metadata:MulticastSessionConfiguration:2023\"");
@@ -2547,10 +2847,13 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, "<TransportProtocol protocolIdentifier=\"urn:dvb:metadata:cs:MulticastTransportProtocolCS:2019:", NULL);
 		gf_dynstrcat(&payload_text, serv->use_flute ? "FLUTE" : "ROUTE", NULL);
 		gf_dynstrcat(&payload_text, "\" protocolVersion=\"1\"/>\n", NULL);
-		gf_dynstrcat(&payload_text, "<EndpointAddress>\n<NetworkSourceAddress>", NULL);
-
-		gf_dynstrcat(&payload_text, src_ip, NULL);
-		gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n<NetworkDestinationGroupAddress>", NULL);
+		gf_dynstrcat(&payload_text, "<EndpointAddress>\n", NULL);
+		if (ctx->ifce_ip && ctx->ssm) {
+			gf_dynstrcat(&payload_text, "<NetworkSourceAddress>", NULL);
+			gf_dynstrcat(&payload_text, ctx->ifce_ip, NULL);
+			gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n", NULL);
+		}
+		gf_dynstrcat(&payload_text, "<NetworkDestinationGroupAddress>", NULL);
 		//- for FLUTE we use the main port to deliver FDT, manifests and init - we could split by service as done for ROUTE
 		//- for ROUTE we must send the STSID, on the session port
 		gf_dynstrcat(&payload_text, serv->use_flute ? ctx->ip : serv->rlct_base->ip, NULL);
@@ -2562,40 +2865,19 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		gf_dynstrcat(&payload_text, "</MediaTransportSessionIdentifier>\n</EndpointAddress>\n", NULL);
 
-		u32 carousel_size=0;
+		u32 tot_rate = 0;
+		char *carousel_text = mabr_get_carousel_info(ctx, serv, serv->dash_mode, &tot_rate);
 
-		if (serv->manifest) carousel_size += (u32) strlen(serv->manifest);
-		u32 j, nb_pids=gf_list_count(serv->pids);
-		for (j=0;j<nb_pids; j++) {
-			ROUTEPid *rpid = gf_list_get(serv->pids, j);
-			carousel_size += rpid->init_seg_size;
-			if (rpid->hld_child_pl)
-				carousel_size += (u32) strlen(rpid->hld_child_pl);
-			if (rpid->raw_file)
-				carousel_size += rpid->pck_size;
-		}
-		//carousel info
-		gf_dynstrcat(&payload_text, "<ObjectCarousel aggregateTransportSize=\"", NULL);
-		sprintf(tmp, "%u", carousel_size);
+		//add bitrate info
+		sprintf(tmp, "<BitRate average=\"%u\" maximum=\"%u\"/>\n", tot_rate, tot_rate);
 		gf_dynstrcat(&payload_text, tmp, NULL);
-		gf_dynstrcat(&payload_text, "\">\n", NULL);
 
-		if (serv->dash_mode) {
-			//announce manifest and init segs
-			gf_dynstrcat(&payload_text, "<PresentationManifests serviceIdRef=\"", NULL);
-			gf_dynstrcat(&payload_text, serv->service_name, NULL);
-			gf_dynstrcat(&payload_text, "\" targetAcquisitionLatency=\"", NULL);
-			sprintf(tmp, "%u", (u32) ctx->carousel/100000);
-			gf_dynstrcat(&payload_text, tmp, NULL);
-			gf_dynstrcat(&payload_text, "\"/>\n", NULL);
-
-			gf_dynstrcat(&payload_text, "<InitSegments serviceIdRef=\"", NULL);
-			gf_dynstrcat(&payload_text, serv->service_name, NULL);
-			gf_dynstrcat(&payload_text, " targetAcquisitionLatency=\"", NULL);
-			gf_dynstrcat(&payload_text, tmp, NULL);
-			gf_dynstrcat(&payload_text, "\"/>\n", NULL);
+		//carousel info
+		if (carousel_text) {
+			gf_dynstrcat(&payload_text, carousel_text, NULL);
+			gf_free(carousel_text);
 		}
-		gf_dynstrcat(&payload_text, "</ObjectCarousel>\n</MulticastGatewayConfigurationTransportSession>\n", NULL);
+		gf_dynstrcat(&payload_text, "</MulticastGatewayConfigurationTransportSession>\n", NULL);
 	}
 
 
@@ -2618,20 +2900,93 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 		gf_dynstrcat(&payload_text, tmp, NULL);
 		gf_dynstrcat(&payload_text, ">\n", NULL);
 
-		gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
-		sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
-		gf_dynstrcat(&payload_text, tmp, NULL);
-		gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
-		gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
-		gf_dynstrcat(&payload_text, "\">", NULL);
-		if (ctx->furl && serv->manifest_server) {
-			gf_dynstrcat(&payload_text, serv->manifest_server, NULL);
-			gf_dynstrcat(&payload_text, serv->manifest_url, "/");
-			gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
-		} else {
-			gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
+		if (serv->manifest_type & 1) {
+			char *man_uri = NULL;
+			char *man_url = NULL;
+			if (serv->manifest_server) {
+				gf_dynstrcat(&man_url, serv->manifest_server, NULL);
+				if (serv->manifest_server_port) {
+					char szPort[100];
+					sprintf(szPort, ":%u", serv->manifest_server_port);
+					gf_dynstrcat(&man_url, szPort, NULL);
+				}
+				gf_dynstrcat(&man_url, serv->manifest_url, "/");
+				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
+				if (ctx->furl) {
+					gf_dynstrcat(&man_uri, serv->manifest_server, NULL);
+					gf_dynstrcat(&man_uri, serv->manifest_url, "/");
+					gf_dynstrcat(&man_uri, serv->manifest_name, NULL);
+				}
+			} else {
+				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
+			}
+			if (!man_uri) man_uri = gf_strdup(serv->manifest_name);
+
+			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
+			sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
+			gf_dynstrcat(&payload_text, tmp, NULL);
+			gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
+			gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
+			//set transportObjectURI to the URI advertised in FDT - cf discussion in #3030
+			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"", NULL);
+			gf_dynstrcat(&payload_text, man_uri, NULL);
+			gf_dynstrcat(&payload_text, "\">", NULL);
+			//we set as content the original location
+			gf_dynstrcat(&payload_text, man_url, NULL);
+			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
+			gf_free(man_uri);
+			gf_free(man_url);
 		}
-		gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
+		if (serv->manifest_type & 2) {
+			char *manifest_server = serv->manifest_server;
+			char *manifest_mime = serv->manifest_mime;
+			char *manifest_name = serv->manifest_name;
+			char *manifest_url = serv->manifest_url;
+			u32 manifest_port = serv->manifest_server_port;
+
+			if (serv->manifest_type & 1) {
+				manifest_server = serv->manifest_alt_server;
+				manifest_mime = serv->manifest_alt_mime;
+				manifest_name = serv->manifest_alt_name;
+				manifest_url = serv->manifest_alt_url;
+				manifest_port = serv->manifest_alt_server_port;
+			}
+
+			char *man_uri = NULL;
+			char *man_url = NULL;
+			if (manifest_server) {
+				gf_dynstrcat(&man_url, manifest_server, NULL);
+				if (manifest_port) {
+					char szPort[100];
+					sprintf(szPort, ":%u", manifest_port);
+					gf_dynstrcat(&man_url, szPort, NULL);
+				}
+				gf_dynstrcat(&man_url, serv->manifest_url, "/");
+				gf_dynstrcat(&man_url, serv->manifest_name, NULL);
+				if (ctx->furl) {
+					gf_dynstrcat(&man_uri, manifest_server, NULL);
+					gf_dynstrcat(&man_uri, manifest_url, "/");
+					gf_dynstrcat(&man_uri, manifest_name, NULL);
+				}
+			} else {
+				gf_dynstrcat(&man_url, manifest_name, NULL);
+			}
+			if (!man_uri) man_uri = gf_strdup(manifest_name);
+
+			gf_dynstrcat(&payload_text, "<PresentationManifestLocator manifestId=\"", NULL);
+			sprintf(tmp, "gpac_mani_serv_%u_hls", serv->service_id);
+			gf_dynstrcat(&payload_text, tmp, NULL);
+			gf_dynstrcat(&payload_text, "\" contentType=\"", NULL);
+			gf_dynstrcat(&payload_text, manifest_mime, NULL);
+			//see notes above
+			gf_dynstrcat(&payload_text, "\" transportObjectURI=\"", NULL);
+			gf_dynstrcat(&payload_text, man_uri, NULL);
+			gf_dynstrcat(&payload_text, "\">", NULL);
+			gf_dynstrcat(&payload_text, man_url, NULL);
+			gf_dynstrcat(&payload_text, "</PresentationManifestLocator>\n", NULL);
+			gf_free(man_uri);
+			gf_free(man_url);
+		}
 
 		u32 j, nb_pids = gf_list_count(serv->pids);
 		for (j=0; j<nb_pids; j++) {
@@ -2654,10 +3009,13 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			} else {
 				gf_dynstrcat(&payload_text, "<TransportProtocol protocolIdentifier=\"urn:dvb:metadata:cs:MulticastTransportProtocolCS:2019:ROUTE\" protocolVersion=\"1\"/>\n", NULL);
 			}
-			gf_dynstrcat(&payload_text, "<EndpointAddress>\n<NetworkSourceAddress>", NULL);
-
-			gf_dynstrcat(&payload_text, src_ip, NULL);
-			gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n<NetworkDestinationGroupAddress>", NULL);
+			gf_dynstrcat(&payload_text, "<EndpointAddress>\n", NULL);
+			if (ctx->ssm && ctx->ifce_ip) {
+				gf_dynstrcat(&payload_text, "<NetworkSourceAddress>", NULL);
+				gf_dynstrcat(&payload_text, ctx->ifce_ip, NULL);
+				gf_dynstrcat(&payload_text, "</NetworkSourceAddress>\n", NULL);
+			}
+			gf_dynstrcat(&payload_text, "<NetworkDestinationGroupAddress>", NULL);
 			gf_dynstrcat(&payload_text, rpid->rlct->ip, NULL);
 			gf_dynstrcat(&payload_text, "</NetworkDestinationGroupAddress>\n<TransportDestinationPort>", NULL);
 			sprintf(tmp, "%u", rpid->rlct->port);
@@ -2669,17 +3027,29 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 			sprintf(tmp, "<BitRate average=\"%u\" maximum=\"%u\"/>\n", rpid->bitrate, rpid->bitrate);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
-			gf_dynstrcat(&payload_text, "<ServiceComponentIdentifier xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" manifestIdRef=\"", NULL);
-			sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
+			// Insert UnicastRepairParameters
+			sprintf(tmp, "<UnicastRepairParameters transportObjectReceptionTimeout=\"%u\" fixedBackOffPeriod=\"10\" randomBackOffPeriod=\"20\"/>\n", ctx->recv_obj_timeout);
 			gf_dynstrcat(&payload_text, tmp, NULL);
-			gf_dynstrcat(&payload_text, "\"", NULL);
 
-			if (serv->manifest_type==2) {
+			//HLS
+			if (serv->manifest_type&2) {
+				gf_dynstrcat(&payload_text, "<ServiceComponentIdentifier xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" manifestIdRef=\"", NULL);
+				sprintf(tmp, "gpac_mani_serv_%u_hls", serv->service_id);
+				gf_dynstrcat(&payload_text, tmp, NULL);
+				gf_dynstrcat(&payload_text, "\"", NULL);
 				gf_dynstrcat(&payload_text, " xsi:type=\"HLSComponentIdentifierType\" mediaPlaylistLocator=\"", NULL);
 				gf_dynstrcat(&payload_text, rpid->hld_child_pl_name, NULL);
 				gf_dynstrcat(&payload_text, "\"", NULL);
-			} else {
+				gf_dynstrcat(&payload_text, "/>\n", NULL);
+			}
+			//DASH
+			if (serv->manifest_type & 1) {
 				const char *id;
+				gf_dynstrcat(&payload_text, "<ServiceComponentIdentifier xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" manifestIdRef=\"", NULL);
+				sprintf(tmp, "gpac_mani_serv_%u", serv->service_id);
+				gf_dynstrcat(&payload_text, tmp, NULL);
+				gf_dynstrcat(&payload_text, "\"", NULL);
+
 				gf_dynstrcat(&payload_text, " xsi:type=\"DASHComponentIdentifierType\" periodIdentifier=\"", NULL);
 				p = gf_filter_pid_get_property(rpid->pid, GF_PROP_PID_PERIOD_ID);
 				if (p && p->value.string) {
@@ -2716,8 +3086,16 @@ static void routeout_update_mabr_manifest(GF_ROUTEOutCtx *ctx)
 				}
 				gf_dynstrcat(&payload_text, id, NULL);
 				gf_dynstrcat(&payload_text, "\"", NULL);
+				gf_dynstrcat(&payload_text, "/>\n", NULL);
 			}
-			gf_dynstrcat(&payload_text, "/>\n</MulticastTransportSession>\n", NULL);
+			if (ctx->use_inband) {
+				char *carousel_text = mabr_get_carousel_info(ctx, serv, GF_TRUE, NULL);
+				if (carousel_text) {
+					gf_dynstrcat(&payload_text, carousel_text, NULL);
+					gf_free(carousel_text);
+				}
+			}
+			gf_dynstrcat(&payload_text, "</MulticastTransportSession>\n", NULL);
 			rpid->init_cfg_done = GF_TRUE;
 		}
 		gf_dynstrcat(&payload_text, "</MulticastSession>\n", NULL);
@@ -2801,6 +3179,19 @@ static GF_Err routeout_process(GF_Filter *filter)
 			}
 			return GF_EOS;
 		}
+	}
+
+	if (ctx->check_pending) {
+		if (gf_filter_connections_pending(filter)) {
+			if (!ctx->check_init_clock) ctx->check_init_clock = gf_sys_clock();
+			else if (gf_sys_clock() - ctx->check_init_clock > 2000) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] PIDs still pending after 2s, starting broadcast but will need to update signaling\n", ctx->log_name));
+				ctx->check_pending = GF_FALSE;
+			}
+			if (ctx->check_pending) return GF_OK;
+		}
+		ctx->check_pending = GF_FALSE;
+		ctx->check_init_clock = 0;
 	}
 
 	if (ctx->sock_atsc_lls)
@@ -2908,8 +3299,9 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 	{ OFFS(splitlct), "split mode for LCT channels\n"
 		"- off: all streams are in the same LCT channel\n"
 		"- type: each new stream type results in a new LCT channel\n"
-		"- all: all streams are in dedicated LCT channel, the first stream being used for STSID signaling"
-		, GF_PROP_UINT, "off", "off|type|all", 0},
+		"- all: all streams are in dedicated LCT channel, the first stream being used for STSID signaling\n"
+		"- mcast: all streams are in dedicated multicast groups"
+		, GF_PROP_UINT, "off", "off|type|all|mcast", 0},
 	{ OFFS(korean), "use Korean version of ATSC 3.0 spec instead of US", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(llmode), "use low-latency mode", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(brinc), "bitrate increase in percent when estimating timing in low latency mode", GF_PROP_UINT, "10", NULL, GF_ARG_HINT_EXPERT},
@@ -2923,6 +3315,10 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		"- no: do not send checksum\n"
 		"- meta: only send checksum for configuration files, manifests and init segments\n"
 		"- all: send checksum for everything", GF_PROP_UINT, "meta", "no|meta|all", 0},
+	{ OFFS(recv_obj_timeout), "set timeout period in ms before client resorts to unicast repair", GF_PROP_UINT, "50", NULL, 0},
+	{ OFFS(errsim), "simulate errors using a 2-state Markov chain. Value are percentages", GF_PROP_VEC2, "0.0x100.0", NULL, 0},
+	{ OFFS(use_inband), "DVB mabr option: If true send the mani and init segment in content transport sessions instead of configuration transport session", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(ssm), "indicate source-specific multicast for DVB-MABR, requires `ifce` to be set", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
@@ -2935,7 +3331,7 @@ static const GF_FilterCapability ROUTEOutCaps[] =
 
 GF_FilterRegister ROUTEOutRegister = {
 	.name = "routeout",
-	GF_FS_SET_DESCRIPTION("ROUTE output")
+	GF_FS_SET_DESCRIPTION("MABR & ROUTE output")
 	GF_FS_SET_HELP("The ROUTE output filter is used to distribute a live file-based session using ROUTE or DVB-MABR.\n"
 		"The filter supports DASH and HLS inputs, ATSC3.0 signaling and generic ROUTE or DVB-MABR signaling.\n"
 		"\n"
@@ -2950,9 +3346,9 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- A PID without `OrigStreamType` property set is delivered as a regular LCT object file (called `raw` hereafter).\n"
 		"  \n"
 		"For `raw` file PIDs, the filter will look for the following properties:\n"
-		"- `ROUTEName`: set resource name. If not found, uses basename of URL\n"
-		"- `ROUTECarousel`: set repeat period. If not found, uses [-carousel](). If 0, the file is only sent once\n"
-		"- `ROUTEUpload`: set resource upload time. If not found, uses [-carousel](). If 0, the file will be sent as fast as possible.\n"
+		"- `MCASTName`: set resource name. If not found, uses basename of URL\n"
+		"- `MCASTCarousel`: set repeat period. If not found, uses [-carousel](). If 0, the file is only sent once\n"
+		"- `MCASTUpload`: set resource upload time. If not found, uses [-carousel](). If 0, the file will be sent as fast as possible.\n"
 		"\n"
 		"When DASHing for ROUTE, DVB-MABR or single service ATSC, a file extension, either in [-dst]() or in [-ext](), may be used to identify the HAS session type (DASH or HLS).\n"
 		"EX \"route://IP:PORT/manifest.mpd\", \"route://IP:PORT/:ext=mpd\"\n"
@@ -2965,17 +3361,26 @@ GF_FilterRegister ROUTEOutRegister = {
 		"\n"
 		"Warning: When forwarding an existing DASH/HLS session, do NOT set any extension or manifest name.\n"
 		"\n"
+		"The filter will look for `MCASTIP` and `MCASTPort` properties on the incoming PID to setup multicast of each service. If not found, the default [-ip]() and port will be used, with port incremented by one for each new multicast stream.\n"
+		"\n"
 		"By default, all streams in a service are assigned to a single multicast session, and differentiated by TSI (see [-splitlct]()).\n"
 		"TSI are assigned as follows:\n"
 		"- signaling TSI is always 0 for ROUTE, 1 for DVB+Flute\n"
 		"- raw files are assigned TSI 1 and increasing number of TOI\n"
 		"- otherwise, the first PID found is assigned TSI 10, the second TSI 20 etc ...\n"
 		"\n"
+		"When [-splitlct]() is set to `mcast`, the IP multicast adress is computed as follows:\n"
+		" - if `MCASTIP` is set on the PID and is different from the service multicast IP, it is used\n"
+		" - otherwise the service multicast IP plus one is used\n"
+		"The multicast port used is set as follows:\n"
+		"- if `MCASTPort` is set on the PID, it is used\n"
+		"- otherwise the same port as the service one is used."
+		"\n"
 		"Init segments and HLS child playlists are sent before each new segment, independently of [-carousel]().\n"
 		"# ATSC 3.0 mode\n"
 		"In this mode, the filter allows multiple service multiplexing, identified through the `ServiceID` property.\n"
 		"By default, a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
-		"The filter will look for `ROUTEIP` and `ROUTEPort` properties on the incoming PID. If not found, the default [-ip]() and [-port]() will be used.\n"
+		"The filter will look for `MCASTIP` and `MCASTPort` properties on the incoming PID. If not found, the default [-ip]() and [-port]() will be used.\n"
 		"\n"
 		"ATSC 3.0 attributes set by using the following PID properties:\n"
 		"- ATSC3ShortServiceName: set the short service name, maxiumu of 7 characters.  If not found, `ServiceName` is checked, otherwise default to `GPAC`.\n"
@@ -2996,17 +3401,18 @@ GF_FilterRegister ROUTEOutRegister = {
 		"Note: [-ip]() and [-first_port]() are used to send the multicast gateway configuration, init segments and manifests. [-first_port]() is used only if no port is specified in [-dst]().\n"
 		"\n"
 		"The session will carry DVB-MABR gateway configuration, maifests and init segments on `TSI=1`\n"
-		"The filter will look for `ROUTEIP` and `ROUTEPort` properties on the incoming PID to setup multicast of each service. If not found, the default [-ip]() and port will be used, with port incremented by one for each new multicast stream.\n"
 		"\n"
 		"The FLUTE session always uses a symbol length of [-mtu]() minus 44 bytes.\n"
 		"\n"
 		"# Low latency mode\n"
-		"When using low-latency mode, the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
+		"When using low-latency mode (-llmode)(), the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
 		"In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.\n"
 		"If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by [-brinc]() percent for safety.\n"
 		"If this fails, the filter will trigger warnings and send as fast as possible.\n"
 		"Note: The LCT objects are sent with no length (TOL header) assigned until the final segment size is known, potentially leading to a final 0-size LCT fragment signaling only the final size.\n"
 		"\n"
+		"In this mode, init segments and manifests are sent at the frequency given by property `MCASTCarousel` of the source PID if set or by (-carousel)[] option.\n"
+		"Indicating `MCASTCarousel=0` will disable mid-segment repeating of manifests and init segments.\n"
 		"# Examples\n"
 		"Since the ROUTE filter only consumes files, it is required to insert:\n"
 		"- the dash demultiplexer in file forwarding mode when loading a DASH session\n"
@@ -3022,7 +3428,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"EX gpac -i source.mp4 dasher -o route://225.1.1.0:6000/manifest.mpd:profile=live:cdur=0.2:llmode\n"
 		"\n"
 		"Sending a single file in ROUTE using half a second upload time, 2 seconds carousel:\n"
-		"EX gpac -i URL:#ROUTEUpload=0.5:#ROUTECarousel=2 -o route://225.1.1.0:6000/\n"
+		"EX gpac -i URL:#MCASTUpload=0.5:#MCASTCarousel=2 -o route://225.1.1.0:6000/\n"
 		"\n"
 		"Common mistakes:\n"
 		"EX gpac -i source.mpd -o route://225.1.1.0:6000/\n"
@@ -3032,6 +3438,11 @@ GF_FilterRegister ROUTEOutRegister = {
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/manifest.mpd\n"
 		"These will demultiplex the input, re-dash it and send the output of the dasher to ROUTE\n"
+		"\n"
+		"# Error simulation\n"
+		"It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:\n"
+		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0\n"
+		"for a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 to transition from error back to OK.\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),
 	.max_extra_pids = -1,
@@ -3043,7 +3454,8 @@ GF_FilterRegister ROUTEOutRegister = {
 	.configure_pid = routeout_configure_pid,
 	.process = routeout_process,
 	.use_alias = routeout_use_alias,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 const GF_FilterRegister *routeout_register(GF_FilterSession *session)

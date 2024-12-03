@@ -785,7 +785,13 @@ u32 gf_bs_read_data(GF_BitStream *bs, u8 *data, u32 nbBytes)
 {
 	u64 orig = bs->position;
 
-	if (bs->position+nbBytes > bs->size) return 0;
+	if (bs->position+nbBytes > bs->size) {
+		if (!bs->overflow_state) {
+			bs->overflow_state = 1;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overread bitstream\n"));
+		}
+		return 0;
+	}
 
 	if (gf_bs_is_align(bs) ) {
 		s32 bytes_read, bytes_read_cache;

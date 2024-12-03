@@ -13,10 +13,10 @@ static Bool fatal_ut = GF_TRUE;
 #define assert_true(expr)                                            \
     do {                                                             \
         if (expr) {                                                  \
-            if (verbose_ut) printf("Assertion passed: \"%s\", File: \"%s\", Line: %d, Function: \"%s\"\n", #expr, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+            if (verbose_ut) printf("Assertion passed: \"%s\", File: \"%s\", Line: %d, Function: \"%s\"\n", #expr, __FILE__, __LINE__, __func__); \
             checks_passed++;                                         \
         } else {                                                     \
-            printf("Assertion failed: \"%s\", File: \"%s\", Line: %d, Function: \"%s\"\n", #expr, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+            printf("Assertion failed: \"%s\", File: \"%s\", Line: %d, Function: \"%s\"\n", #expr, __FILE__, __LINE__, __func__); \
             checks_failed++;                                         \
             if (fatal_ut) checks_failed|=0x8000000;                  \
         }                                                            \

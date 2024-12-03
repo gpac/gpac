@@ -849,6 +849,7 @@ static GF_Err store_meta_item_references(GF_ISOFile *movie, GF_List *writers, GF
 
 GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Emulation, u64 baseOffset, u64 *mdatSize)
 {
+	char cache_data[4096];
 	GF_ItemExtentEntry *entry;
 	u64 maxExtendOffset, maxExtendSize;
 	u32 i, j, count;
@@ -927,7 +928,6 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 					if (iinf->tk_id && iinf->sample_num) {
 					}
 					else if (src) {
-						char cache_data[4096];
 						u64 remain = entry->extent_length;
 						while (remain) {
 							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
@@ -957,7 +957,6 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 
 					/*Reading from the input file*/
 					if (!Emulation) {
-						char cache_data[4096];
 						u64 remain = entry->extent_length;
 						gf_bs_seek(file->movieFileMap->bs, entry->original_extent_offset + iloc->original_base_offset);
 						while (remain) {

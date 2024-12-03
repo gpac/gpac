@@ -1,3 +1,28 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2020-2024
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / AVGenerator filter
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
 import * as evg from 'evg'
 import { Sys as sys } from 'gpaccore'
 import { AudioMixer as amix } from 'gpaccore'
@@ -262,16 +287,17 @@ globalThis.mouse_over = mouse_over_mod;
 
 //metadata
 filter.set_name("AVMix");
-filter.set_desc("Audio Video Mixer");
+filter.set_class_hint(GF_FS_CLASS_AV);
+filter.set_desc("Audio Video mixer");
 filter.set_author("GPAC team");
 
 //global options
 filter.set_arg({ name: "pl", desc: "local playlist file to load", type: GF_PROP_STRING, def: "avmix.json" } );
 filter.set_arg({ name: "live", desc: "live mode", type: GF_PROP_BOOL, def: "true"} );
 filter.set_arg({ name: "gpu", desc: `enable GPU usage
-  - off: no GPU
-  - mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
-  - all: try to use GPU for everything`, type: GF_PROP_UINT, def: "off", minmax_enum: 'off|mix|all', hint:"advanced"} );
+- off: no GPU
+- mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
+- all: try to use GPU for everything`, type: GF_PROP_UINT, def: "off", minmax_enum: 'off|mix|all', hint:"advanced"} );
 filter.set_arg({ name: "thread", desc: "use threads for software rasterizer (-1 for all available cores)", type: GF_PROP_SINT, def: "-1", hint:"expert"} );
 filter.set_arg({ name: "lwait", desc: "timeout in ms before considering no signal is present", type: GF_PROP_UINT, def: "1000", hint:"expert"} );
 filter.set_arg({ name: "ltimeout", desc: "timeout in ms before restarting child processes", type: GF_PROP_UINT, def: "4000", hint:"expert"} );
@@ -284,9 +310,9 @@ filter.set_arg({ name: "vsize", desc: "output video size, 0 disable video output
 filter.set_arg({ name: "fps", desc: "output video frame rate", type: GF_PROP_FRACTION, def: "25"} );
 filter.set_arg({ name: "pfmt", desc: "output pixel format. Use \`rgba\` in GPU mode to force alpha channel", type: GF_PROP_PIXFMT, def: "yuv"} );
 filter.set_arg({ name: "dynpfmt", desc: `allow dynamic change of output pixel format in software mode
-  - off: pixel format is forced to desired value
-  - init: pixel format is forced to format of fullscreen input in first generated frame
-  - all: pixel format changes each time a full-screen input PID at same resolution is used`, type: GF_PROP_UINT, def: "init", minmax_enum: 'off|init|all', hint:"expert"} );
+- off: pixel format is forced to desired value
+- init: pixel format is forced to format of fullscreen input in first generated frame
+- all: pixel format changes each time a full-screen input PID at same resolution is used`, type: GF_PROP_UINT, def: "init", minmax_enum: 'off|init|all', hint:"expert"} );
 
 //audio output options
 filter.set_arg({ name: "sr", desc: "output audio sample rate, 0 disable audio output", type: GF_PROP_UINT, def: "44100"} );
@@ -1024,7 +1050,7 @@ filter.process = function()
 		}
 		//audio ahead of next video frame, don't do audio - if not generating video, do nothing 
 		if (!do_video && (!audio_playing || (audio_time * video_timescale > (video_time+video_time_inc) * audio_timescale))) {
-			//notfiy we are still alive
+			//notify we are still alive
 			filter.reschedule(0);
 			if (filter.live) {
 				let now = sys.clock_us();

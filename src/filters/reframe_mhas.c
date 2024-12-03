@@ -323,6 +323,7 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY( data, (dsi_size+5) ) );
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_MHAS ) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT( PL ) );
 	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->sample_rate));
@@ -920,7 +921,8 @@ GF_FilterRegister MHASDmxRegister = {
 	.configure_pid = mhas_dmx_configure_pid,
 	.process = mhas_dmx_process,
 	.probe_data = mhas_dmx_probe_data,
-	.process_event = mhas_dmx_process_event
+	.process_event = mhas_dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

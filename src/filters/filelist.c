@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -270,6 +270,16 @@ static const GF_FilterCapability FileListCapsSrc_RAW_V[] =
 
 static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 prev_timescale, Bool is_reassign)
 {
+	//PID is stoped, send a ply/stop sequence to reset all buffers and ignore
+	if (iopid->play_state==FLIST_STATE_STOP) {
+		iopid->is_eos = GF_TRUE;
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, iopid->ipid);
+		gf_filter_pid_send_event(iopid->ipid, &evt);
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid);
+		gf_filter_pid_send_event(iopid->ipid, &evt);
+		return;
+	}
 	iopid->is_eos = GF_FALSE;
 
 	if (is_reassign && !ctx->do_cat) {
@@ -296,7 +306,7 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 	} else {
 		iopid->cts_o = 0;
 	}
-	
+
 	if (is_reassign && prev_timescale) {
 		u64 dts, cts;
 
@@ -659,9 +669,32 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else if (evt->base.type==GF_FEVT_STOP) {
 			iopid->play_state = FLIST_STATE_STOP;
 			iopid->is_eos = GF_TRUE;
+			//reset all timing info
+			iopid->dts_sub = 0;
+			iopid->first_dts_plus_one = 0;
+			iopid->prev_max_dts = iopid->prev_cts_o = iopid->prev_dts_o = 0;
+			iopid->max_cts = iopid->max_dts = 0;
+			iopid->cts_o = iopid->dts_o = 0;
+			iopid->skip_dts_init = 0;
 		}
 		gf_filter_pid_send_event(iopid->ipid, &fevt);
 	}
+	//restart of playlist after EOS, reinit timing
+	if ((evt->base.type==GF_FEVT_PLAY) && ctx->is_eos) {
+		ctx->is_eos = GF_FALSE;
+		ctx->load_next = GF_TRUE;
+		ctx->last_url_crc = 0;
+		ctx->file_list_idx = ctx->revert ? gf_list_count(ctx->file_list) : -1;
+		ctx->cts_offset.num = ctx->cts_offset.den = 0;
+		ctx->dts_offset = ctx->cts_offset;
+		ctx->prev_cts_offset = ctx->cts_offset;
+		ctx->prev_dts_offset = ctx->cts_offset;
+		ctx->wait_dts_plus_one = ctx->cts_offset;
+		ctx->dts_sub_plus_one = ctx->cts_offset;
+		ctx->sync_init_time = 0;;
+		gf_filter_post_process_task(filter);
+	}
+
 	//and cancel
 	return GF_TRUE;
 }
@@ -1525,8 +1558,8 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 	GF_FilterSAPType sap;
 	GF_FilterPid *ipid;
 	Bool is_raw_audio;
-	gf_assert(ctx->splice_ctrl);
-	gf_assert(ctx->splice_state);
+	gf_fatal_assert(ctx->splice_ctrl);
+	gf_fatal_assert(ctx->splice_state);
 
 	ipid = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ipid : ctx->splice_ctrl->ipid;
 	is_raw_audio = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ra_info.is_raw : ctx->splice_ctrl->ra_info.is_raw;
@@ -1909,7 +1942,7 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 	}
 
 	if (ctx->sigfrag_mode && ctx->abs_url) {
-		gf_filter_pck_set_property(dst_pck, GF_PROP_PID_URL, &PROP_STRING(ctx->abs_url));
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SEG_URL, &PROP_STRING(ctx->abs_url));
 		if (ctx->rel_url) {
 			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->rel_url));
 		}
@@ -2012,10 +2045,15 @@ restart:
             pck = gf_filter_pid_get_packet(iopid->ipid);
 
 			if (!pck) {
-				if (gf_filter_pid_is_eos(iopid->ipid) || (iopid->play_state==FLIST_STATE_STOP)) {
+				//still waiting for EOS on source
+				if (gf_filter_pid_is_eos(iopid->ipid)) {
 					nb_eos++;
 					continue;
 				}
+				//PID is stoped, don't check for EOS
+				if (iopid->play_state==FLIST_STATE_STOP)
+					continue;
+
 				if ((iopid->stream_type==GF_STREAM_AUDIO) || (iopid->stream_type==GF_STREAM_VISUAL))
 					nb_not_ready_av++;
 				else
@@ -2091,12 +2129,14 @@ restart:
 		ctx->sync_init_time = 0;
 	 	ctx->src_error = GF_FALSE;
 	 	if (nb_eos) {
+			//all sources in EOS before initializing clock, likely broken source, load next
 			if (nb_eos==count) {
 				//force load
 				ctx->load_next = GF_TRUE;
 				//avoid recursive call
 				goto restart;
 			}
+			//wait for all sources to be in EOS
 			return GF_OK;
 		}
 
@@ -2604,7 +2644,8 @@ restart:
 		if (gf_filter_end_of_session(filter) || (nb_stop + nb_inactive == count) ) {
 			for (i=0; i<count; i++) {
 				iopid = gf_list_get(ctx->io_pids, i);
-				gf_filter_pid_set_eos(iopid->opid);
+				if (iopid->play_state!=FLIST_STATE_STOP)
+					gf_filter_pid_set_eos(iopid->opid);
 			}
 			ctx->is_eos = GF_TRUE;
 			return GF_EOS;
@@ -2618,6 +2659,7 @@ restart:
 			iopid = gf_list_get(ctx->io_pids, i);
 			iopid->send_cue = ctx->sigcues;
 			if (!iopid->ipid) continue;
+			if (iopid->play_state==FLIST_STATE_STOP) continue;
 			iopid->prev_max_dts = iopid->max_dts;
 			iopid->prev_cts_o = iopid->cts_o;
 			iopid->prev_dts_o = iopid->dts_o;
@@ -3163,7 +3205,8 @@ GF_FilterRegister FileListRegister = {
 	.configure_pid = filelist_configure_pid,
 	.process = filelist_process,
 	.process_event = filelist_process_event,
-	.probe_data = filelist_probe_data
+	.probe_data = filelist_probe_data,
+	.hint_class_type = GF_FS_CLASS_STREAM
 };
 
 const GF_FilterRegister *flist_register(GF_FilterSession *session)
@@ -3176,4 +3219,3 @@ const GF_FilterRegister *flist_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_FLIST
-

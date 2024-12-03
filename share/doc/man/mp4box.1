@@ -667,6 +667,8 @@ set the segment name for generated segments. If not set (default), segments are 
 .br
 - $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise
 .br
+- $SubNumber[%%0Nd]$ is replaced by the segment subnumber in segment sequences, possibly prefixed with 0
+.br
 - $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments
 .br
 .TP
@@ -1035,7 +1037,7 @@ split in files of given max duration (float number) in seconds. A trailing unit 
 * `H`, `h`: size is in hours
 .br
 .TP
-.B \-split-rap,-splitr (string)
+.B \-split-rap,-splitr
 .br
 split in files at each new RAP
 .br
@@ -1137,6 +1139,11 @@ dump IsoMedia file boxes and known track samples in XML output
 .B \-disox
 .br
 dump IsoMedia file boxes except sample tables in XML output
+.br
+.TP
+.B \-keep-comp
+.br
+do not decompress boxes when dumping
 .br
 .TP
 .B \-keep-ods
@@ -2729,29 +2736,29 @@ The tag_value can also be formatted as:
 .br
 .SS Supported tag names (name, value, type, aliases)
 .br
-title (A9nam) string (alias name)
+title (©nam) string (alias name)
 .br
-artist (A9ART) string
+artist (©ART) string
 .br
 album_artist (aART) string (alias albumArtist)
 .br
-album (A9alb) string
+album (©alb) string
 .br
-group (A9grp) string (alias grouping)
+group (©grp) string (alias grouping)
 .br
-composer (A9com) string
+composer (©com) string
 .br
-writer (A9wrt) string
+writer (©wrt) string
 .br
-conductor (A9con) string
+conductor (©con) string
 .br
-comment (A9cmt) string (alias comments)
+comment (©cmt) string (alias comments)
 .br
 genre (gnre) string (ID3 genre tag)
 .br
-created (A9day) string (alias releaseDate)
+created (©day) string (alias releaseDate)
 .br
-track (A9trk) string
+track (©trk) string
 .br
 tracknum (trkn) fraction (syntax: A/B or A, B will be 0)
 .br
@@ -2775,7 +2782,7 @@ sdesc (desc) string (alias description)
 .br
 ldesc (ldes) string (alias longDescription)
 .br
-lyrics (A9lyr) string
+lyrics (©lyr) string
 .br
 sort_name (sonm) string (alias sortName)
 .br
@@ -2793,9 +2800,9 @@ cover (covr) file path (alias artwork)
 .br
 copyright (cprt) string
 .br
-tool (A9too) string (alias encodingTool)
+tool (©too) string (alias encodingTool)
 .br
-encoder (A9enc) string (alias encodedBy)
+encoder (©enc) string (alias encodedBy)
 .br
 pdate (purd) string (alias purchaseDate)
 .br
@@ -2815,49 +2822,49 @@ rating (rtng) integer (alias contentRating)
 .br
 gapless (pgap) bool (yes or no)
 .br
-art_director (A9ard) string
+art_director (©ard) string
 .br
-arranger (A9arg) string
+arranger (©arg) string
 .br
-lyricist (A9aut) string
+lyricist (©aut) string
 .br
-acknowledgement (A9cak) string
+acknowledgement (©cak) string
 .br
-song_description (A9des) string
+song_description (©des) string
 .br
-director (A9dir) string
+director (©dir) string
 .br
-equalizer (A9equ) string
+equalizer (©equ) string
 .br
-liner (A9lnt) string
+liner (©lnt) string
 .br
-record_company (A9mak) string
+record_company (©mak) string
 .br
-original_artist (A9ope) string
+original_artist (©ope) string
 .br
-phono_rights (A9phg) string
+phono_rights (©phg) string
 .br
-producer (A9prd) string
+producer (©prd) string
 .br
-performer (A9prf) string
+performer (©prf) string
 .br
-publisher (A9pub) string
+publisher (©pub) string
 .br
-sound_engineer (A9sne) string
+sound_engineer (©sne) string
 .br
-soloist (A9sol) string
+soloist (©sol) string
 .br
-credits (A9src) string
+credits (©src) string
 .br
-thanks (A9thx) string
+thanks (©thx) string
 .br
-online_info (A9url) string
+online_info (©url) string
 .br
-exec_producer (A9xpd) string
+exec_producer (©xpd) string
 .br
-genre (A9gen) string (ID3 genre tag)
+genre (©gen) string (ID3 genre tag)
 .br
-location (A9xyz) string
+location (©xyz) string
 .br
 .SH Live Scene Encoder Options
 .LP

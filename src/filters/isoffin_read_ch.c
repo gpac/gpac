@@ -299,7 +299,8 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 	ch->sample->IsRAP = RAP;
 	ch->sample->duration = 1000;
 	ch->dts = ch->cts = 1000 * ch->au_seq_num;
-	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
+	GF_Err e = gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
+	if ((e<0) && ch->sample) ch->sample->corrupted = GF_TRUE;
 
 	if (ch->is_encrypted && ch->is_cenc) {
 		isor_update_cenc_info(ch, GF_TRUE);
@@ -545,11 +546,15 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					ch->sample_num--;
 			} else {
 				if (ch->to_init && ch->sample_num) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to fetch initial sample %d for track %d\n", ch->sample_num, ch->track));
-					ch->last_state = GF_ISOM_INVALID_FILE;
+					if (!ch->owner->was_aborted && !gf_filter_end_of_session(ch->owner->filter)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to fetch initial sample %d for track %d\n", ch->sample_num, ch->track));
+						ch->last_state = GF_ISOM_INVALID_FILE;
+					} else {
+						ch->last_state = GF_EOS;
+					}
 				} else {
-					if (!ch->eos_sent) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] File truncated, aborting read for track %d\n", ch->track));
+					if (!ch->eos_sent && !ch->owner->was_aborted && !gf_filter_end_of_session(ch->owner->filter)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] File truncated, aborting read for track %d after %d / %d samples\n", ch->track, ch->sample_num, sample_count));
 					}
 					ch->last_state = GF_EOS;
 				}
@@ -1143,7 +1148,7 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 
 		switch (grp_type) {
 		case GF_4CC('P','S','S','H'):
-			gf_filter_pck_set_property(pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA_NO_COPY((u8*)grp_data, grp_size) );
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_PSSH, &PROP_DATA_NO_COPY((u8*)grp_data, grp_size) );
 			break;
 		default:
 			gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(grp_data, grp_size) );

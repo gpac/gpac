@@ -263,6 +263,7 @@ static Bool jsfs_task_exec(GF_FilterSession *fs, void *udta, u32 *timeout_ms)
 static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSFS_Task *task;
+	u32 delay=0;
 	const char *tname = NULL;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
     if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
@@ -273,13 +274,19 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 	task->ctx = ctx;
 
 	if (argc>1) {
-		tname = JS_ToCString(ctx, argv[1]);
+		if (JS_IsString(argv[1])) {
+			tname = JS_ToCString(ctx, argv[1]);
+			if (tname && (argc>2))
+				JS_ToInt32(ctx, &delay, argv[2]);
+		} else {
+			JS_ToInt32(ctx, &delay, argv[1]);
+		}
 	}
 	task->fun = JS_DupValue(ctx, argv[0]);
 	task->_obj = JS_DupValue(ctx, this_val);
 	gf_list_add(fs->jstasks, task);
 
-	gf_fs_post_user_task(fs, jsfs_task_exec, task, tname ? tname : "task");
+	gf_fs_post_user_task_delay(fs, jsfs_task_exec, task, tname ? tname : "task", delay);
 	if (tname)
 		JS_FreeCString(ctx, tname);
 
@@ -1817,6 +1824,7 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	Bool upstream = GF_FALSE;
+	Bool force = GF_FALSE;
 	GF_Filter *f = NULL;
 	Bool ret=GF_FALSE;
 	GF_FilterEvent *jsf_get_event(JSContext *ctx, JSValueConst this_val);
@@ -1831,8 +1839,14 @@ static JSValue jsfs_fire_event(JSContext *ctx, JSValueConst this_val, int argc, 
 	if (argc>1) {
 		f = jsff_get_filter(ctx, argv[1]);
 		if (argc>2) upstream = JS_ToBool(ctx, argv[2]);
+		if (argc>3) force = JS_ToBool(ctx, argv[3]);
 	}
-	ret = gf_fs_fire_event(fs, f, evt, upstream);
+	if (force) {
+		gf_filter_send_event(f, evt, upstream);
+		ret = GF_TRUE;
+	} else {
+		ret = gf_fs_fire_event(fs, f, evt, upstream);
+	}
 	return JS_NewBool(ctx, ret);
 }
 

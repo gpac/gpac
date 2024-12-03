@@ -1157,7 +1157,7 @@ GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumbe
 
 	entry = (GF_MetaDataSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
- 
+
 	if ((entry->type!=GF_ISOM_BOX_TYPE_STPP) && (entry->type!=GF_ISOM_BOX_TYPE_METX)) {
 		return GF_BAD_PARAM;
 	}
@@ -1655,7 +1655,7 @@ GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDesc
 			}
 			continue;
 		}
-		
+
 		//using BTRT
 		if (!max_bitrate && average_bitrate) max_bitrate = average_bitrate;
 		a = gf_isom_sample_entry_get_bitrate(ent, max_bitrate ? GF_TRUE : GF_FALSE);
@@ -1730,7 +1730,7 @@ GF_Err gf_isom_tmcd_config_new(GF_ISOFile *the_file, u32 trackNumber, u32 fps_nu
 	entry->timescale = fps_num;
 	entry->frame_duration = fps_den;
 	entry->frames_per_counter_tick = (u8) frames_per_counter_tick;
-	
+
 	entry->dataReferenceIndex = dataRefIndex;
 	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
@@ -1819,6 +1819,9 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 
 	if (dsi) {
+		if (dsi_size <=5)
+			return GF_BAD_PARAM;
+
 		mpa->cfg_mha = (GF_MHAConfigBox *) gf_isom_box_new_parent(&mpa->child_boxes, GF_ISOM_BOX_TYPE_MHAC);
 		if (!mpa->cfg_mha) return GF_OUT_OF_MEM;
 		mpa->cfg_mha->configuration_version = dsi[0];
@@ -1827,6 +1830,10 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *movie, u32 trackNumber, const ch
 		mpa->cfg_mha->mha_config_size = dsi[3];
 		mpa->cfg_mha->mha_config_size <<= 8;
 		mpa->cfg_mha->mha_config_size |= dsi[4];
+
+		if (mpa->cfg_mha->mha_config_size < dsi_size-5)
+			return GF_BAD_PARAM;
+
 		mpa->cfg_mha->mha_config = gf_malloc(sizeof(u8) * mpa->cfg_mha->mha_config_size);
 		if (!mpa->cfg_mha->mha_config) return GF_OUT_OF_MEM;
 		memcpy(mpa->cfg_mha->mha_config, dsi+5, dsi_size-5);
