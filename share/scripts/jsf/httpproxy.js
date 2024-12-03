@@ -39,6 +39,7 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +"Each service is a JSON object which shall have the following properties:\n"
 +" - http: (string) URL of root manifest (MPD for DASH or master m3u8 for HLS)\n"
 +" - mcast: (string, default null) multicast address for this service\n"
++" - local: (string, default null) local mount point of this service\n"
 +" - timeshift: (integer) override [–timeshift]() for this service\n"
 +" - unload: (integer, default "+DEFAULT_UNLOAD_SEC+") multicast unload policy\n"
 +" - activate: (integer, default "+DEFAULT_ACTIVATE_CLIENTS+") multicast activation policy\n"
@@ -76,6 +77,12 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +"If [–timeshift]() is 0 for the service, multicast segments will be trashed as soon as not in use (potentially before the client request).\n"
 +"\n"
 +"Manifests files coming from multicast are currently never cached.\n"
++"\n"
++"# URL remapping\n"
++"A service can be exposed by the proxy without exposing the origin URL. To enable this mode:\n"
++"- the `local` service configuration option must be set to the exposed server path\n"
++"- the `http` service configuration option must not contain any resource name\n"
++"If `local` is `/service1/` and `http` is `https://test.com/live/dash/`, the proxy will translate any request `/service1/foo/bar.ext` into `https://test.com/live/dash/foo/bar.ext`\n"
 );
 
 filter.set_arg({ name: "port", desc: "port to use when no server HTTP is specified", type: GF_PROP_UINT, def: "80"} );
@@ -373,14 +380,29 @@ httpout.on_request = (req) =>
 	print(GF_LOG_DEBUG, `Got request ${req.method} for ${req.url}`);
 	req.target_url = null;
 	req.xhr = null;
-	if (req.url.startsWith('/http://') || req.url.startsWith('/https://')) {
+	//support http://myhost/http://url - not really standard
+	if (req.url.startsWith('/http://')
+		|| req.url.startsWith('/http%3A%2F%2F')
+		|| req.url.startsWith('/https://')
+		|| req.url.startsWith('/https%3A%2F%2F')
+	) {
 		req.target_url = req.url.substring(1);
 		if ((target_url.indexOf("127.0.0.1")>=0) || (target_url.indexOf("localhost")>=0)) {
 			req.reply = 405;
 			req.send('Must use Host for localhost proxying');
 			return;
 		}
-	} else {
+	}
+	//look in mount points
+	if (!req.target_url) {
+		let host = null;
+		let service_def = services_defs.find( s => (s.local && (req.url.indexOf(s.local)==0) ) );
+		if (service_def) {
+			req.target_url = req.url.replace(service_def.local, service_def.http);
+		}
+	}
+	//running as real proxy, check host
+	if (!req.target_url) {
 		let host = null;
 		req.headers_in.forEach(h => {
 			let hlwr = h.name.toLowerCase();
@@ -760,7 +782,7 @@ httpout.on_request = (req) =>
 			print(GF_LOG_INFO, `Rep ${active_rep.ID} seg ${req.url} num ${active_rep.seg_num} is not on live edge ${active_rep.live_seg_num}, going for HTTP`);
 		} else if (req.service.mabr_service_id) {
 			print(GF_LOG_INFO, `Rep ${active_rep.ID} seg ${req.url} has no active multicast, going for HTTP`);
-		} else {
+		} else if (req.service.mabr) {
 			print(GF_LOG_INFO, `Rep ${active_rep.ID} seg ${req.url} waiting for multicast bootstrap, going for HTTP`);
 		}
 	}
@@ -774,6 +796,7 @@ function create_service(http_url, force_mcast_activate)
 	let s = {};
 	s.url = http_url;
 	s.mabr = null;
+	s.local = null;
 	s.mabr_loaded = false;
 	s.mem_cache = [];
 	s.id = all_services.length+1;
@@ -794,16 +817,17 @@ function create_service(http_url, force_mcast_activate)
 	s.manifest = null;
 	//do we have a mcast service for this ?
 	let url_noport = http_url.replace(/([^\/\:]+):\/\/([^\/]+):([0-9]+)\//, "$1://$2/");
-	let mabr_cfg = services_defs.find(e => e.http == url_noport);
-	if (mabr_cfg) {
-		s.mabr = mabr_cfg.mcast;
-		s.unload = mabr_cfg.unload;
-		s.mabr_min_active = mabr_cfg.activate;
-		s.purge_delay = 1000 * mabr_cfg.timeshift;
-		s.mani_cache = mabr_cfg.mcache;
-		s.repair = mabr_cfg.repair;
-		s.corrupted = mabr_cfg.corrupted;
-		print(GF_LOG_DEBUG, `Service ${http_url} has custom config${ (mabr_cfg.mcast ? ' and MABR' : '')}`);
+	let serv_cfg = services_defs.find(e => e.http == url_noport);
+	if (serv_cfg) {
+		s.mabr = serv_cfg.mcast;
+		s.unload = serv_cfg.unload;
+		s.mabr_min_active = serv_cfg.activate;
+		s.purge_delay = 1000 * serv_cfg.timeshift;
+		s.mani_cache = serv_cfg.mcache;
+		s.repair = serv_cfg.repair;
+		s.corrupted = serv_cfg.corrupted;
+		s.local = serv_cfg.local;
+		print(GF_LOG_DEBUG, `Service ${http_url} has custom config${ (serv_cfg.mcast ? ' and MABR' : '')}`);
 	}
 
 	//remove cgi and remove resource name
@@ -1239,6 +1263,9 @@ filter.initialize = function() {
 				if (typeof sd.mcast == 'undefined') sd.mcast = null;
 				else if (typeof sd.mcast != 'string') throw "Missing or invalid mabr property, expecting string got "+typeof sd.mcast;
 				
+				if (typeof sd.local == 'undefined') sd.local = null;
+				else if (typeof sd.local != 'string') throw "Missing or invalid local property, expecting string got "+typeof sd.local;
+
 				if (typeof sd.unload != 'number') sd.unload = DEFAULT_UNLOAD_SEC;
 				if (typeof sd.activate != 'number') sd.activate = DEFAULT_ACTIVATE_CLIENTS;
 				if (typeof sd.timeshift != 'number') sd.timeshift = filter.timeshift;
