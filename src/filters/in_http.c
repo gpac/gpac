@@ -279,8 +279,12 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
 		if (evt->seek.source_switch) {
-			gf_fatal_assert(ctx->is_end);
-			gf_fatal_assert(!ctx->pck_out);
+			if (!ctx->is_end || ctx->pck_out) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Scheduling error: switch to %s requested but input %s still in progress\n",  gf_file_basename(evt->seek.source_switch), gf_file_basename(ctx->src) ));
+
+				gf_filter_notification_failure(filter, GF_BAD_PARAM, GF_FALSE);
+				return GF_TRUE;
+			}
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !ctx->prev_was_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
