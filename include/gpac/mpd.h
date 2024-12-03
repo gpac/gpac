@@ -729,7 +729,7 @@ typedef struct
 	GF_MPD_Fractional min_framerate;
 	/*! max framerate*/
 	GF_MPD_Fractional max_framerate;
-	/*! set if sub-segment represenation is used
+	/*! set if sub-segment representation is used
 		0: not used
 		1: LL-HLS compatibiliity
 		2: regular SSR
