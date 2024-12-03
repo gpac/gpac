@@ -29,6 +29,7 @@
 #ifndef GPAC_DISABLE_DASHIN
 
 #include <gpac/dash.h>
+#include <gpac/network.h>
 
 #ifdef GPAC_HAS_QJS
 #include "../quickjs/quickjs.h"
@@ -197,6 +198,7 @@ typedef struct
 
 	char *current_url;
 	Bool url_changed;
+	u64 queue_ntp_ts;
 } GF_DASHGroup;
 
 static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group);
@@ -249,6 +251,12 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				is_end = GF_TRUE;
 
 			gf_filter_pck_set_framing(ref, is_start, is_end);
+
+			if (group->queue_ntp_ts) {
+				gf_filter_pck_set_property(ref, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(group->queue_ntp_ts ) );
+				gf_filter_pck_set_property(ref, GF_PROP_PCK_RECEIVER_NTP, &PROP_LONGUINT(gf_net_get_ntp_ts() ) );
+				group->queue_ntp_ts = 0;
+			}
 			is_filemode = GF_TRUE;
 		} else {
 			const GF_PropertyValue *p;
@@ -3155,6 +3163,8 @@ fetch_next:
 
 		group->signal_seg_name = (ctx->forward==DFWD_FILE) ? GF_TRUE : GF_FALSE;
 		group->init_switch_seg_sent = GF_TRUE;
+		if (ctx->forward)
+			group->queue_ntp_ts = gf_net_get_ntp_ts();
 		gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
 		return;
 	}
@@ -3195,6 +3205,7 @@ fetch_next:
 			group->current_url = gf_strdup(next_url);
 			group->url_changed = GF_TRUE;
 		}
+		group->queue_ntp_ts = gf_net_get_ntp_ts();
 	}
 
 	GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH, NULL);
