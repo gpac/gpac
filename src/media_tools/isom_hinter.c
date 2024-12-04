@@ -1245,7 +1245,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 		/*get OD esd, and embbed stream data if possible*/
 		if (odT) {
 			esd = gf_isom_get_esd(file, odT, 1);
-			if (gf_isom_get_sample_count(file, odT)==1) {
+			if (esd && gf_isom_get_sample_count(file, odT)==1) {
 				samp = gf_isom_get_sample(file, odT, 1, &descIndex);
 				if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {
 					InitSL_NULL(&slc);
@@ -1276,15 +1276,17 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				}
 				gf_isom_sample_del(&samp);
 			}
-			if (remove_ocr) esd->OCRESID = 0;
-			else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
+			if (esd) {
+				if (remove_ocr) esd->OCRESID = 0;
+				else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
 
-			//OK, add this to our IOD
-			gf_list_add(iod->ESDescriptors, esd);
+				//OK, add this to our IOD
+				gf_list_add(iod->ESDescriptors, esd);
+			}
 		}
 
 		esd = gf_isom_get_esd(file, sceneT, 1);
-		if (gf_isom_get_sample_count(file, sceneT)==1) {
+		if (esd && gf_isom_get_sample_count(file, sceneT)==1) {
 			samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);
 			if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {
 				InitSL_NULL(&slc);
