@@ -4006,7 +4006,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 					if (mpd->force_llhls_mode==1) write_br = GF_TRUE;
 					else if (mpd->force_llhls_mode==2) write_br = GF_FALSE;
-					else if (sctx->llhls_mode==1) write_br = GF_TRUE;
+					else if (sctx->llhls_mode==GF_DASH_LL_HLS_BR) write_br = GF_TRUE;
 
 					if (force_base_url)
 						force_url = gf_url_concatenate(force_base_url, sctx->filename);
@@ -4054,7 +4054,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					//last seg has no parts yet, we just started it (live edge), advertise first part
 					if (!sctx->nb_frags) {
 						gf_assert(sctx->filename);
-						if (sctx->llhls_mode==2) next_seg_idx = 1;
+						if (sctx->llhls_mode==GF_DASH_LL_HLS_SF) next_seg_idx = 1;
 						else next_br_start_plus_one = 1;
 					}
 
@@ -4402,7 +4402,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			}
 
 			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version, max_part_dur_session,
-				((mpd->hls_abs_url==1) || (mpd->hls_abs_url==3)) ? force_base_url : NULL);
+				((mpd->hls_abs_url==GF_DASH_ABS_URL_VARIANT) || (mpd->hls_abs_url==GF_DASH_ABS_URL_BOTH)) ? force_base_url : NULL);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
 				return GF_IO_ERR;
@@ -4483,7 +4483,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 
 			char *force_url = NULL;
-			if (force_base_url && ((mpd->hls_abs_url==2) || (mpd->hls_abs_url==3)))
+			if (force_base_url && ((mpd->hls_abs_url==GF_DASH_ABS_URL_MASTER) || (mpd->hls_abs_url==GF_DASH_ABS_URL_BOTH)))
 				force_url = gf_url_concatenate(force_base_url, name);
 
 			gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, force_url ? force_url : name, is_primary ? period : NULL, nb_alt_streams, nb_subs, nb_cc, 0, hls_version);

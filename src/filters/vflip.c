@@ -29,10 +29,18 @@
 #include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_VFLIP
+
+GF_OPT_ENUM (GF_FlipMode,
+	VFLIP_OFF = 0,
+	VFLIP_VERT,
+	VFLIP_HORIZ,
+	VFLIP_BOTH,
+);
+
 typedef struct
 {
 	//options
-	u32 mode;
+	GF_FlipMode mode;
 
 	//internal data
 	Bool initialized;
@@ -57,13 +65,6 @@ typedef struct
 
 } GF_VFlipCtx;
 
-enum
-{
-	VFLIP_OFF = 0,
-	VFLIP_VERT,
-	VFLIP_HORIZ,
-	VFLIP_BOTH,
-};
 
 
 

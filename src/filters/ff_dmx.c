@@ -38,13 +38,12 @@
 #define FFMPEG_NO_DOVI
 #endif
 
-enum
-{
+GF_OPT_ENUM(GF_FFDemuxRawFrameCopyMode,
 	COPY_NO,
 	COPY_A,
 	COPY_V,
-	COPY_AV
-};
+	COPY_AV,
+);
 
 typedef struct
 {
@@ -62,7 +61,8 @@ typedef struct
 	//options
 	const char *src;
 	u32 block_size;
-	u32 copy, probes;
+	GF_FFDemuxRawFrameCopyMode copy;
+	u32 probes;
 	Bool sclock;
 	const char *fmt, *dev;
 	Bool reparse;

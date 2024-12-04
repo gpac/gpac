@@ -95,14 +95,13 @@ typedef struct
 	u64 file_size;
 } FileListEntry;
 
-enum
-{
+GF_OPT_ENUM (GF_FileListFileSortMode,
 	FL_SORT_NONE=0,
 	FL_SORT_NAME,
 	FL_SORT_SIZE,
 	FL_SORT_DATE,
 	FL_SORT_DATEX,
-};
+);
 
 enum
 {
@@ -116,13 +115,12 @@ enum
 	FL_SPLICE_AFTER,
 };
 
-enum
-{
+GF_OPT_ENUM (GF_FileListForceRawMode,
 	FL_RAW_AV=0,
 	FL_RAW_AUDIO,
 	FL_RAW_VIDEO,
-	FL_RAW_NO
-};
+	FL_RAW_NO,
+);
 
 
 enum
@@ -135,9 +133,9 @@ typedef struct
 {
 	//opts
 	Bool revert, sigcues, fdel, keepts, flush;
-	u32 raw;
+	GF_FileListForceRawMode raw;
 	s32 floop;
-	u32 fsort;
+	GF_FileListFileSortMode fsort;
 	u32 ka;
 	u64 timeout;
 	GF_PropStringList srcs;

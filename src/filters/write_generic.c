@@ -33,27 +33,27 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-enum
-{
+GF_OPT_ENUM (GF_DecoderConfigInsertMode,
 	DECINFO_NO=0,
 	DECINFO_FIRST,
 	DECINFO_SAP,
-	DECINFO_AUTO
-};
+	DECINFO_AUTO,
+);
 
-enum
-{
+GF_OPT_ENUM (GF_VttHeaderInjectionMode,
 	VTTH_SINGLE=0,
 	VTTH_SEG,
 	VTTH_ALL,
-};
+);
 
 typedef struct
 {
 	//opts
 	Bool exporter, frame, split, merge_region;
-	u32 sstart, send, vtth;
-	u32 pfmt, afmt, decinfo;
+	u32 sstart, send;
+	GF_VttHeaderInjectionMode vtth;
+	u32 pfmt, afmt;
+	GF_DecoderConfigInsertMode decinfo;
 	GF_Fraction dur;
 
 	//only one input pid declared

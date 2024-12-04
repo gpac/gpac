@@ -31,8 +31,7 @@
 #include <gpac/constants.h>
 #include <gpac/download.h>
 
-typedef enum
-{
+GF_OPT_ENUM (GF_HTTPInStoreMode,
 	GF_HTTPIN_STORE_AUTO=0,
 	GF_HTTPIN_STORE_DISK,
 	GF_HTTPIN_STORE_DISK_KEEP,
@@ -40,7 +39,7 @@ typedef enum
 	GF_HTTPIN_STORE_MEM_KEEP,
 	GF_HTTPIN_STORE_NONE,
 	GF_HTTPIN_STORE_NONE_KEEP,
-} GF_HTTPInStoreMode;
+);
 
 enum
 {
@@ -53,7 +52,8 @@ typedef struct
 {
 	//options
 	char *src;
-	u32 block_size, cache, idelay;
+	u32 block_size, idelay;
+	GF_HTTPInStoreMode cache;
 	GF_Fraction64 range;
 	char *ext;
 	char *mime;

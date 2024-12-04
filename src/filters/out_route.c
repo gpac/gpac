@@ -32,28 +32,27 @@
 
 #if !defined(GPAC_DISABLE_ROUTE)
 
-enum
-{
+GF_OPT_ENUM (DVBFluteChecksumMode, 
 	DVB_CSUM_NO=0,
 	DVB_CSUM_META,
 	DVB_CSUM_ALL,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (LCTChannelSplitMode,
 	LCT_SPLIT_NONE=0,
 	LCT_SPLIT_TYPE,
 	LCT_SPLIT_ALL,
 	LCT_SPLIT_MCAST,
-};
+);
 
 typedef struct
 {
 	//options
 	char *dst, *ext, *mime, *ifce, *ip;
-	u32 carousel, first_port, bsid, mtu, splitlct, ttl, brinc, runfor;
+	u32 carousel, first_port, bsid, mtu, ttl, brinc, runfor;
+	LCTChannelSplitMode splitlct;
 	Bool korean, llmode, noreg, nozip, furl, flute, use_inband, ssm;
-	u32 csum;
+	DVBFluteChecksumMode csum;
 	u32 recv_obj_timeout;
 
 	//caps, overloaded at init

@@ -30,12 +30,11 @@
 #include "ff_common.h"
 #include <gpac/evg.h>
 
-enum
-{
+GF_OPT_ENUM (GF_FFSWScaleAspectRatioMode,
 	FFSWS_KEEPAR_OFF=0,
 	FFSWS_KEEPAR_FULL,
 	FFSWS_KEEPAR_NOSRC,
-};
+);
 
 typedef struct
 {
@@ -49,7 +48,7 @@ typedef struct
 	//internal data
 	Bool initialized;
 	char *padclr;
-	u32 keepar;
+	GF_FFSWScaleAspectRatioMode keepar;
 	GF_Fraction osar;
 
 	GF_FilterPid *ipid, *opid;
