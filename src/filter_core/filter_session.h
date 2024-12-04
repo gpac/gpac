@@ -844,7 +844,7 @@ struct __gf_filter
 	rmtU32 rmt_hash;
 #endif
 
-	//signals tha pid info has changed, to notify the filter chain
+	//signals that pid info has changed, to notify the filter chain
 	Bool pid_info_changed;
 
 	//set to 1 when one or more input pid to the filter is on end of state, set to 2 if the filter dispatch a packet while in this state
