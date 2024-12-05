@@ -1711,7 +1711,7 @@ GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg);
 typedef struct
 {
         /* Size of raw_obu_bytes, including the header and payload.
-         * This is different from `obu_size` in the IAMF spec Section 3.2, 
+         * This is different from `obu_size` in the IAMF spec Section 3.2,
          * which includes only the partial header size and the payload.
          */
         u64 obu_length;

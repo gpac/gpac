@@ -246,6 +246,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		return GF_OK;
 	}
 
+        ctx->codecid = 0;
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	if (p && (p->value.uint!=GF_CODECID_AV1)) {
 		switch (p->value.uint) {
@@ -337,7 +338,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	GF_BitStream *bs;
 	u64 duration, cur_dur, last_cdur, file_size, max_pts, last_pts, probe_size=0;
 	AV1State *av1state=NULL;
-	IAMFState *iamfstate=NULL;;
+	IAMFState *iamfstate=NULL;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
@@ -380,7 +381,8 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	ctx->index_size = 0;
 	GF_SAFEALLOC(av1state, AV1State);
-	if (!av1state) {
+	GF_SAFEALLOC(iamfstate, IAMFState);
+	if (!av1state || !iamfstate) {
 		return;
 	}
 
@@ -712,7 +714,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			ctx->iamfstate.config->configOBUs_size += a->obu_length;
 			gf_list_rem(ctx->iamfstate.frame_state.descriptor_obus, 0);
 		}
-	
+
 		gf_odf_ia_cfg_write(ctx->iamfstate.config, &dsi, &dsi_size);
 
 		// Compute the CRC of the entire iacb box.
@@ -730,7 +732,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	ctx->copy_props = GF_FALSE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
-	
+
 	if (ctx->is_iamf) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_AUDIO));
 		if(ctx->iamfstate.pre_skip > 0) {
@@ -1181,11 +1183,6 @@ GF_Err av1dmx_parse_iamf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	GF_Err e = GF_OK;
 
-	if (!ctx->is_playing) {
-		/* TODO - make a separate "first audio frame" equivalent? */
-		//ctx->state.frame_state.is_first_frame = GF_TRUE;
-	}
-
 	//first TU loaded !
 	u64 start = gf_bs_get_position(ctx->bs);
 	if (ctx->iamfstate.frame_state.found_full_temporal_unit) {
@@ -1209,30 +1206,14 @@ GF_Err av1dmx_parse_iamf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	if (!ctx->opid) {
-		switch (ctx->bsmode) {
-		case IAMF:
-			if (ctx->iamfstate.frame_state.pre_skip_is_finalized) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1Dmx] output pid not configured (no IAMF Descriptors yet?), skipping OBUs\n"));
-			}
-			gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
-			return GF_OK;
-		default:
-			if (ctx->state.obu_type != OBU_TEMPORAL_DELIMITER) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1Dmx] output pid not configured (no sequence header yet ?), skipping OBU\n"));
-			}
-			gf_av1_reset_state(&ctx->state, GF_FALSE);
-			return GF_OK;
+		if (ctx->iamfstate.frame_state.pre_skip_is_finalized) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1Dmx] output pid not configured (no IAMF Descriptors yet?), skipping OBUs\n"));
 		}
-	}
-
-	if (!ctx->is_playing) {
-		//don't reset state we would skip seq header obu in first frame
-		//gf_av1_reset_state(&ctx->state, GF_FALSE);
+		gf_iamf_reset_state(&ctx->iamfstate, GF_FALSE);
 		return GF_OK;
 	}
 
 	e = av1dmx_parse_flush_sample(filter, ctx);
-	ctx->state.clli_valid = ctx->state.mdcv_valid = 0;
 	return e;
 }
 
@@ -1507,8 +1488,6 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			gf_av1_reset_state(av1_state, GF_TRUE);
 			gf_free(av1_state);
 		}
-		gf_odf_av1_cfg_del(state.config);
-		gf_av1_reset_state(&state, GF_TRUE);
 	}
 
 	gf_log_set_tool_level(GF_LOG_CODING, lt);
@@ -1521,8 +1500,7 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 static const GF_FilterCapability AV1DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ivf|obu|av1b|av1|av1"),
-        /* we don't have an official mime registered for IAMF bitstream yet */
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ivf|obu|av1b|av1|iamf"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-ivf|video/av1|audio/iamf"),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
