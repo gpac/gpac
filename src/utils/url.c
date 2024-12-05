@@ -190,6 +190,12 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	while (!strncmp(pathName, "./.", 3) || !strncmp(pathName, ".\\.", 3)) {
 		pathName += 2;
 	}
+	//empty path
+	if (pathName[0]=='#') {
+		outPath = gf_strdup(parentName);
+		gf_dynstrcat(&outPath, pathName, NULL);
+		goto check_spaces;
+	}
 
 	prot_type = URL_GetProtocolType(pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) {

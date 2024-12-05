@@ -107,8 +107,6 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
-Bool gf_props_4cc_check_props();
-
 void gf_props_del_property(GF_PropertyEntry *it);
 
 
@@ -321,7 +319,7 @@ typedef enum
 /* extended version of gf_fs_post_task
 force_direct_call shall only be true for gf_filter_process_task
 */
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, GF_TaskClassType class_type);
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, GF_TaskClassType class_type, u32 delay_ms);
 
 void gf_fs_post_task_class(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, GF_TaskClassType class_type);
 
@@ -532,6 +530,7 @@ struct __gf_filter_session
 
 
 	u32 dbg_flags;
+	Bool check_props;
 };
 
 #ifdef GPAC_HAS_QJS
@@ -583,6 +582,16 @@ typedef enum
 	GF_FILTER_DISABLED,
 	GF_FILTER_DISABLED_HIDE,
 } GF_FilterDisableType;
+
+typedef enum
+{
+	//filter is not scheduled
+	GF_FILTER_NOT_SCHEDULED = 0,
+	//filter is scheduled by main scheduler
+	GF_FILTER_SCHEDULED,
+	//filter is scheduled by a direct dispatch call
+	GF_FILTER_DIRECT_SCHEDULED,
+} GF_FilterScheduledType;
 
 //#define DEBUG_BLOCKMODE
 
@@ -636,7 +645,7 @@ struct __gf_filter
 	GF_FilterQueue *tasks;
 	//set to true when the filter is present or to be added in the main task list
 	//this variable is unset in a zone protected by task_mx
-	volatile Bool scheduled_for_next_task;
+	volatile GF_FilterScheduledType scheduled_for_next_task;
 	//set to true when the filter is being processed by a thread
 	volatile Bool in_process;
 	u32 process_th_id, restrict_th_idx;
@@ -835,7 +844,7 @@ struct __gf_filter
 	rmtU32 rmt_hash;
 #endif
 
-	//signals tha pid info has changed, to notify the filter chain
+	//signals that pid info has changed, to notify the filter chain
 	Bool pid_info_changed;
 
 	//set to 1 when one or more input pid to the filter is on end of state, set to 2 if the filter dispatch a packet while in this state
@@ -860,6 +869,7 @@ struct __gf_filter
 	Bool report_updated;
 
 	char *instance_description, *instance_version, *instance_author, *instance_help;
+	GF_ClassTypeHint instance_class_hint;
 	GF_FilterArgs *instance_args;
 
 	GF_Filter *multi_sink_target;

@@ -2248,11 +2248,11 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 	gf_bs_read_int(bs, 6); //reserved
 	if (segmentation_event_cancel_indicator == 0) {
 		u32 program_segmentation_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
+		inspect_printf(dump, " programSegmentationFlag=\"%u\"", program_segmentation_flag);
 		u32 segmentation_duration_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
+		inspect_printf(dump, " segmentationDurationFlag=\"%u\"", segmentation_duration_flag);
 		u32 delivery_not_restricted_flag = gf_bs_read_int(bs, 1);
-		//inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
+		inspect_printf(dump, " deliveryNotRestrictedFlag=\"%u\"", delivery_not_restricted_flag);
 		if (delivery_not_restricted_flag == 0) {
 			inspect_printf(dump, " webDeliveryAllowedFlag=\"%u\"", gf_bs_read_int(bs, 1));
 			inspect_printf(dump, " noRegionalBlackoutFlag=\"%u\"", gf_bs_read_int(bs, 1));
@@ -2293,13 +2293,14 @@ static void scte35_parse_segmentation_descriptor(FILE *dump, GF_BitStream *bs)
 
 		inspect_printf(dump, ">\n");
 
-		if (segmentation_upid_length) {
+		if (segmentation_upid_type != 0 && segmentation_upid_length) {
 			// jump back to SegmentUpid to dump values
+			u64 pos = gf_bs_get_position(bs);
 			gf_bs_seek(bs, segmentation_upid_pos);
 
 			inspect_printf(dump, "    <SegmentationUpid segmentationUpidType=\"%u\">", segmentation_upid_type);
 			for (u8 i=0; i<segmentation_upid_length; ++i)
-				printf("%02X", gf_bs_read_u8(bs));
+				inspect_printf(dump, "%02X", gf_bs_read_u8(bs));
 			inspect_printf(dump, "</SegmentationUpid>\n");
 
 #if 0 //TODO: identify segmentationUpidType as per the example below (we don't have any sample):
@@ -2318,6 +2319,8 @@ segmentsExpected="1"
 <SegmentationUpid segmentationUpidType="3">414243443233385130303048</SegmentationUpid>
 </SegmentationDescriptor>
 #endif
+
+			gf_bs_seek(bs, pos);
 		}
 
 		inspect_printf(dump, "   </SegmentationDescriptor>\n");
@@ -2599,6 +2602,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_PID_CENC_HAS_ROLL:
 	case GF_PROP_PID_DSI_SUPERSET:
 	case GF_PROP_PID_PREMUX_STREAM_TYPE:
+	case GF_PROP_PID_DURATION_AVG:
 		if (gf_sys_is_test_mode())
 			return;
 		break;
@@ -3712,6 +3716,15 @@ props_done:
 		case GF_CODECID_EVTE:
 			inspect_dump_boxes(ctx, pctx, (char *) data, size, dump);
 			break;
+		case GF_CODECID_SCTE35:
+		{
+			GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+			inspect_printf(dump, " <SCTE35>\n");
+			scte35_dump(ctx, dump, bs);
+			inspect_printf(dump, " </SCTE35>\n");
+			gf_bs_del(bs);
+		}
+			break;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
 		case GF_CODECID_SIMPLE_TEXT:
@@ -3943,9 +3956,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	if (p) {
 		inspect_printf(dump, " service %d", p->value.uint);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
-		if (p) inspect_printf(dump, " \"%s\"", p->value.string);
+		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " \"%s\"", p->value.string);
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
-		if (p) inspect_printf(dump, " (%s)", p->value.string);
+		if (p && p->value.string && p->value.string[0]) inspect_printf(dump, " (%s)", p->value.string);
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLED);
@@ -3961,7 +3974,11 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	if (p && stricmp(p->value.string, "und")) inspect_printf(dump, " language \"%s\"", p->value.string);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump, GF_FALSE);
+	if (p) {
+		sr = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION_AVG);
+		if (sr && sr->value.boolean) inspect_printf(dump, " estimated");
+		format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump, GF_FALSE);
+	}
 
 	sr = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
@@ -4289,6 +4306,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 	if (ctx->test==INSPECT_TEST_NOPROP) return;
 	if (!ctx->dump_log && !dump) return;
+	if (!pid) return;
 
 	if (ctx->stats) {
 		char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
@@ -4587,20 +4605,22 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		inspect_printf(dump, ">\n");
 		inspect_printf(dump, " <OBUConfig>\n");
 
-		idx = 1;
-		for (i=0; i<gf_list_count(pctx->av1_state->config->obu_array); i++) {
-			ObuType obu_type=0;
-			u64 obu_size = 0;
-			u32 hdr_size = 0;
-			GF_AV1_OBUArrayEntry *obu = gf_list_get(pctx->av1_state->config->obu_array, i);
+		if (pctx && pctx->av1_state && pctx->av1_state->config) {
+			idx = 1;
+			for (i=0; i<gf_list_count(pctx->av1_state->config->obu_array); i++) {
+				ObuType obu_type=0;
+				u64 obu_size = 0;
+				u32 hdr_size = 0;
+				GF_AV1_OBUArrayEntry *obu = gf_list_get(pctx->av1_state->config->obu_array, i);
 
-			if (!pctx->bs)
-				pctx->bs = gf_bs_new((const u8 *) obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
-			else
-				gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
+				if (!pctx->bs)
+					pctx->bs = gf_bs_new((const u8 *) obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+				else
+					gf_bs_reassign_buffer(pctx->bs, (const u8 *)obu->obu, (u32) obu->obu_length);
 
-			gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
-			idx++;
+				gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char*)obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
+				idx++;
+			}
 		}
 #endif
 		inspect_printf(dump, " </OBUConfig>\n");
@@ -4637,6 +4657,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_MPEG_AUDIO_L1:
 	case GF_CODECID_TMCD:
 	case GF_CODECID_EVTE:
+	case GF_CODECID_SCTE35:
 		inspect_printf(dump, "/>\n");
 		return;
 	case GF_CODECID_SUBS_XML:
@@ -4950,8 +4971,8 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 			u64 rate = pctx->bytes_in_wnd*8;
 			rate *= pctx->timescale ;
 			rate /= dts - pctx->prev_dts;
-			if (pctx->max_rate<rate)
-				pctx->max_rate = rate;
+			if (pctx->max_rate < (u32) rate)
+				pctx->max_rate = (u32) rate;
 			pctx->prev_dts = dts;
 			pctx->bytes_in_wnd = 0;
 		}
@@ -4966,7 +4987,7 @@ static void inspect_stats_packet(GF_InspectCtx *ctx, PidCtx *pctx, GF_FilterPack
 	if (!pctx->last_sap_cts) {
 		pctx->last_sap_cts = cts;
 	} else {
-		u64 sap_diff = cts - pctx->last_sap_cts;
+		u32 sap_diff = (u32) (cts - pctx->last_sap_cts);
 		if (!pctx->min_sap_diff || (sap_diff<pctx->min_sap_diff)) pctx->min_sap_diff = sap_diff;
 		if (!pctx->max_sap_diff || (sap_diff>pctx->max_sap_diff)) pctx->max_sap_diff = sap_diff;
 		pctx->avg_sap_diff += sap_diff;
@@ -5535,7 +5556,7 @@ static const GF_FilterCapability InspectCaps[] =
 
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
-	GF_FS_SET_DESCRIPTION("Inspect packets")
+	GF_FS_SET_DESCRIPTION("Packet inspector")
 	GF_FS_SET_HELP("The inspect filter can be used to dump PID and packets. It may also be used to check parts of payload of the packets.\n"
 	"\n"
 	"The default options inspect only PID changes.\n"
@@ -5619,6 +5640,7 @@ const GF_FilterRegister InspectRegister = {
 	.process_event = inspect_process_event,
 	.configure_pid = inspect_config_input,
 	.update_arg = inspect_update_arg,
+	.hint_class_type = GF_FS_CLASS_TOOL
 };
 
 static const GF_FilterCapability ProberCaps[] =
@@ -5660,7 +5682,7 @@ static const GF_FilterArgs ProbeArgs[] =
 
 const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
-	GF_FS_SET_DESCRIPTION("Probe source")
+	GF_FS_SET_DESCRIPTION("Source prober")
 	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demultiplexed PIDs (audio, video, ...) available in a source chain.\n\n"
 	"The filter outputs the number of input PIDs in the file specified by [-log]().\n"
 	"It is up to the app developer to query input PIDs of the prober and take appropriated decisions.")
@@ -5673,6 +5695,7 @@ const GF_FilterRegister ProbeRegister = {
 	.finalize = inspect_finalize,
 	.process = inspect_process,
 	.configure_pid = inspect_config_input,
+	.hint_class_type = GF_FS_CLASS_TOOL,
 };
 
 const GF_FilterRegister *inspect_register(GF_FilterSession *session)

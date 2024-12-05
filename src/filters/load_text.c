@@ -322,7 +322,7 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type, Bool *io_progress)
 {
 	u32 i, j, len;
-	u32 start_pos = gf_ftell(txt_in);
+	u32 start_pos = (u32) gf_ftell(txt_in);
 	char *sOK;
 	char szLineConv[2048];
 	unsigned short *sptr;
@@ -751,9 +751,10 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	}
 	ctx->has_forced |= 4;
 
-	ts = gf_timestamp_rescale(ts, 1000, ctx->timescale);
-	duration = (u32) gf_timestamp_rescale(duration, 1000, ctx->timescale);
-
+	if (!ctx->pid_framed) {
+		ts = gf_timestamp_rescale(ts, 1000, ctx->timescale);
+		duration = (u32) gf_timestamp_rescale(duration, 1000, ctx->timescale);
+	}
 	gf_filter_pck_set_sap(dst_pck, is_rap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	gf_filter_pck_set_cts(dst_pck, ts);
 	gf_filter_pck_set_duration(dst_pck, duration);
@@ -766,13 +767,19 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	u32 i, char_line, j, rem_styles, len;
 	Bool rem_color;
 	char *ptr = szLine;
-	unsigned short uniLine[5000], uniText[5000], *sptr;
+	unsigned short *uniLine, *uniText, *sptr;
 	char szText[2048];
 
-	len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+	len = (u32)(strlen(szLine)/2)*2+2;
+	uniLine = gf_malloc(sizeof(u16)*len);
+	uniText = gf_malloc(sizeof(u16)*len);
+
+	len = gf_utf8_mbstowcs(uniLine, len+1, (const char **) &ptr);
 	if (len == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 		ctx->state = 0;
+		if (uniLine) gf_free(uniLine);
+		if (uniText) gf_free(uniText);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -990,6 +997,9 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 	gf_isom_text_add_text(ctx->samp, szText, len);
 	if (ctx->forced_sub) gf_isom_text_set_forced(ctx->samp, GF_TRUE);
 	*char_l += char_line;
+
+	if (uniLine) gf_free(uniLine);
+	if (uniText) gf_free(uniText);
 	return GF_OK;
 }
 
@@ -4176,7 +4186,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 
 		//purge data from our blob
 		if (ctx->src) {
-			u32 pos = gf_ftell(ctx->src);
+			u32 pos = (u32) gf_ftell(ctx->src);
 			u32 remain = ctx->tmp_blob.size - pos;
 			gf_fclose(ctx->src);
 			ctx->src = NULL;
@@ -4780,7 +4790,8 @@ GF_FilterRegister TXTInRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = txtin_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 
@@ -4839,7 +4850,8 @@ GF_FilterRegister VTTTX3GRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = vtt2tx3g_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_SUBTITLE
 };
 
 const GF_FilterRegister *vtt2tx3g_register(GF_FilterSession *session)
@@ -4893,7 +4905,8 @@ GF_FilterRegister RFSRTRegister = {
 	.process_event = txtin_process_event,
 	.probe_data = txtin_probe_data,
 	.initialize = rfsrt_initialize,
-	.finalize = txtin_finalize
+	.finalize = txtin_finalize,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 const GF_FilterRegister *rfsrt_register(GF_FilterSession *session)

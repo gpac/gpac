@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023
+ *			Copyright (c) Telecom ParisTech 2023-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Camera/Mic/Canvas grabber filter
@@ -27,7 +27,8 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
+#ifndef GPAC_DISABLE_WEBCODEC
+
 #include <gpac/network.h>
 
 typedef struct
@@ -55,6 +56,8 @@ typedef struct
 	GF_List *video_pcks;
 	GF_List *audio_pcks;
 } GF_WebGrab;
+
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
 
 EM_JS(int, webgrab_next_video, (int wg_ctx),
 {
@@ -491,6 +494,8 @@ static GF_FilterProbeScore webgrab_probe_url(const char *url, const char *mime)
 	if (!strncmp(url, "canvas://", 9)) return GF_FPROBE_MAYBE_SUPPORTED;
 	return GF_FPROBE_NOT_SUPPORTED;
 }
+#endif
+
 
 static GF_FilterCapability WebGrabCaps[] =
 {
@@ -514,9 +519,17 @@ static const GF_FilterArgs WebGrabArgs[] =
 	{0}
 };
 
+#ifndef GPAC_CONFIG_EMSCRIPTEN
+static GF_Err webgrab_process_dummy(GF_Filter *filter)
+{
+	return GF_NOT_SUPPORTED;
+}
+#endif
+
+
 GF_FilterRegister GF_WebGrabRegister = {
 	.name = "webgrab",
-	GF_FS_SET_DESCRIPTION("Frame grabber for web audio and video")
+	GF_FS_SET_DESCRIPTION("Web-based AV capture")
 	GF_FS_SET_HELP("This filter grabs audio and video streams MediaStreamTrackProcessor of the browser\n"
 	"\n"
 	"Supported URL schemes:\n"
@@ -530,17 +543,24 @@ GF_FilterRegister GF_WebGrabRegister = {
 	//getUserMedia only available on main thread
 	.flags = GF_FS_REG_MAIN_THREAD|GF_FS_REG_ASYNC_BLOCK,
 	.private_size = sizeof(GF_WebGrab),
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
 	.initialize = webgrab_initialize,
 	.finalize = webgrab_finalize,
 	.process = webgrab_process,
 	.process_event = webgrab_process_event,
 	.probe_url = webgrab_probe_url,
+#else
+	.process = webgrab_process_dummy,
+#endif
+	.hint_class_type = GF_FS_CLASS_MM_IO
 };
 
+#endif //GPAC_DISABLE_WEBCODEC
 
 const GF_FilterRegister *webgrab_register(GF_FilterSession *session)
 {
-	
+#ifndef GPAC_DISABLE_WEBCODEC
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
 	int has_media_track_processor = EM_ASM_INT({
 		if (typeof MediaStreamTrackProcessor == 'undefined') return 0;
 		return 1;
@@ -549,6 +569,13 @@ const GF_FilterRegister *webgrab_register(GF_FilterSession *session)
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[WebGrab] No MediaStreamTrackProcessor support\n"));
 		return NULL;
 	}
-	return &GF_WebGrabRegister;
-}
+#else
+	if (!gf_opts_get_bool("temp", "gendoc"))
+		return NULL;
+	GF_WebGrabRegister.version = "! Warning: Web APIs NOT AVAILABLE IN THIS BUILD !";
 #endif
+	return &GF_WebGrabRegister;
+#else
+	return NULL;
+#endif
+}

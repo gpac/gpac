@@ -134,7 +134,16 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace, Bool skip_init, Bool skip_sam
 
 	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
 		if (box->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
-			gf_fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
+			switch (((GF_UnknownBox*)box)->original_4cc) {
+			case GF_ISOM_BOX_TYPE_CMOV:
+			case GF_ISOM_BOX_TYPE_CMOF:
+			case GF_ISOM_BOX_TYPE_CSIX:
+			case GF_ISOM_BOX_TYPE_CSSX:
+			case GF_QT_BOX_TYPE_CMOV:
+				break;
+			default:
+				gf_fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
+			}
 		} else if (box->type==GF_ISOM_BOX_TYPE_UUID) {
 		} else if (!gf_isom_box_is_file_level(box)) {
 			gf_fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
@@ -566,14 +575,14 @@ GF_Err iods_box_dump(GF_Box *a, FILE * trace)
 GF_Err trak_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackBox *p;
-
 	p = (GF_TrackBox *)a;
-	gf_isom_box_dump_start(a, "TrackBox", trace);
+	const char *name = p->extl ? "ExternalTrackBox" : "TrackBox";
+	gf_isom_box_dump_start(a, name, trace);
 	gf_fprintf(trace, ">\n");
 	if (p->size && !p->Header) {
 		gf_fprintf(trace, "<!--INVALID FILE: Missing Track Header-->\n");
 	}
-	gf_isom_box_dump_done("TrackBox", a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -1650,6 +1659,11 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 	gf_fprintf(trace, ">\n");
 
 	nb_comps = gf_bs_read_u16(bs);
+	if (16*nb_comps > gf_bs_available(bs)) {
+		gf_bs_del(bs);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
+		return GF_ISOM_INVALID_MEDIA;
+	}
 	types = gf_malloc(sizeof(CompInfo) * nb_comps);
 	if (!types) {
 		gf_bs_del(bs);
@@ -1664,6 +1678,12 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 		gf_fprintf(trace, " bit_depth=\"%u\" type=\"%u\" name=\"%s\"/>\n", types[i].bits, types[i].type, get_comp_type_name(types[i].type) );
 	}
 	nb_vals = gf_bs_read_u32(bs);
+	if (nb_vals/8 > gf_bs_available(bs)) {
+		gf_free(types);
+		gf_bs_del(bs);
+		gf_isom_box_dump_done("ComponentPaletteBox", (GF_Box *)u, trace);
+		return GF_ISOM_INVALID_MEDIA;
+	}
 	for (j=0; j<nb_vals; j++) {
 		gf_fprintf(trace, "<ComponentValue");
 		for (i=0; i<nb_comps; i++) {
@@ -1671,27 +1691,27 @@ static GF_Err dump_cpal(GF_UnknownBox *u, FILE * trace)
 			szTmp[0] = 0;
 			switch (types[i].type) {
 			case 0:
-				sprintf(szTmp, " C%d=\"%u\"", i+1, gf_bs_read_int(bs, types[i].bits));
+				snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%u\"", i+1, gf_bs_read_int(bs, types[i].bits));
 				break;
 			case 1:
 				if (types[i].bits==32)
-					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_float(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g\"", i+1, gf_bs_read_float(bs));
 				else if (types[i].bits==64)
-					sprintf(szTmp, " C%d=\"%f\"", i+1, gf_bs_read_double(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g\"", i+1, gf_bs_read_double(bs));
 				else
-					sprintf(szTmp, " C%d=\"0x%X\"", i+1, gf_bs_read_int(bs, types[i].bits));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"0x%X\"", i+1, gf_bs_read_int(bs, types[i].bits));
 				break;
 			case 2:
 				if (types[i].bits==64)
-					sprintf(szTmp, " C%d=\"%f + %fi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g + %gi\"", i+1, gf_bs_read_float(bs), gf_bs_read_float(bs));
 				else if (types[i].bits==128) {
-					sprintf(szTmp, " C%d=\"%g + %gi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"%g + %gi\"", i+1, gf_bs_read_double(bs), gf_bs_read_double(bs));
 				}
 				else
-					sprintf(szTmp, " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
+					snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"0x%X + 0x%Xi\"", i+1, gf_bs_read_int(bs, types[i].bits/2), gf_bs_read_int(bs, types[i].bits/2) );
 				break;
 			default:
-				sprintf(szTmp, " C%d=\"invalid", i+1);
+				snprintf(szTmp, GF_ARRAY_LENGTH(szTmp), " C%d=\"invalid", i+1);
 				break;
 			}
 			gf_fprintf(trace, "%s", szTmp);
@@ -2025,6 +2045,23 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 		return dump_cmpc(u, trace);
 	} else if (u->original_4cc==GF_4CC('i','c','e','f')) {
 		return dump_icef(u, trace);
+	} else if ((u->original_4cc==GF_ISOM_BOX_TYPE_CMOV)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CMOF)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CSIX)
+		|| (u->original_4cc==GF_ISOM_BOX_TYPE_CSSX)
+		|| (u->original_4cc==GF_QT_BOX_TYPE_CMOV)
+	) {
+		char *bname = "CompressedMovieBox";
+		char *spec = "p12";
+		if (u->original_4cc==GF_ISOM_BOX_TYPE_CMOF) bname = "CompressedMovieFragmentBox";
+		else if (u->original_4cc==GF_ISOM_BOX_TYPE_CSIX) bname = "CompressedSegmentIndexBox";
+		else if (u->original_4cc==GF_ISOM_BOX_TYPE_CSSX) bname = "CompressedSubSegmentIndexBox";
+		else if (u->original_4cc==GF_QT_BOX_TYPE_CMOV)  spec = "apple";
+
+		gf_isom_box_dump_start_ex(a, bname, trace, GF_FALSE, spec, "file");
+		gf_fprintf(trace, ">\n");
+		gf_isom_box_dump_done(bname, a, trace);
+		return GF_OK;
 	} else {
 #ifdef GPAC_HAS_QJS
 		const char *opt = gf_opts_get_key("core", "boxdir");
@@ -2687,7 +2724,7 @@ GF_Err twrp_box_dump(GF_Box *a, FILE * trace)
 GF_Err meta_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_MetaBox *ptr = (GF_MetaBox *)a;
-	gf_isom_box_dump_start_ex(a, "MetaBox", trace, ptr->is_qt ? GF_FALSE : GF_TRUE);
+	gf_isom_box_dump_start_ex(a, "MetaBox", trace, ptr->is_qt ? GF_FALSE : GF_TRUE, NULL, NULL);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MetaBox", a, trace);
 	return GF_OK;
@@ -3714,7 +3751,8 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 
 	gf_fprintf(dump, " xml:space=\"preserve\">");
 	if (s_txt->len) {
-		unsigned short utf16Line[10000];
+		unsigned short *utf16Line = gf_malloc( sizeof(u16) * (s_txt->len/2)*2 + 4 );
+		if (!utf16Line) return;
 		/*UTF16*/
 		if ((s_txt->len>2) && ((unsigned char) s_txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) s_txt->text[1] == (unsigned char) 0xFF)) {
 			/*copy 2 more chars because the lib always add 2 '0' at the end for UTF16 end of string*/
@@ -3723,7 +3761,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 		} else {
 			char *str;
 			str = s_txt->text;
-			len = gf_utf8_mbstowcs((u16*)utf16Line, 10000, (const char **) &str);
+			len = gf_utf8_mbstowcs((u16*)utf16Line, s_txt->len+1, (const char **) &str);
 		}
 		if (len != GF_UTF8_FAIL) {
 			utf16Line[len] = 0;
@@ -3764,6 +3802,7 @@ void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u
 				}
 			}
 		}
+		if (utf16Line) gf_free(utf16Line);
 	}
 
 	if (box_dump) {
@@ -3976,112 +4015,114 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 	u32 len, j, k;
 	if (!txt || !txt->len) {
 		gf_fprintf(dump, "\n");
-	} else {
-		u32 styles, char_num, new_styles, color, new_color;
-		u16 utf16Line[10000];
-
-		/*UTF16*/
-		if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
-			memcpy(utf16Line, txt->text+2, sizeof(char)*txt->len);
-			( ((char *)utf16Line)[txt->len] ) = 0;
-			len = txt->len;
-		} else {
-			u8 *str = (u8 *) (txt->text);
-			len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
-			if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
-			utf16Line[len] = 0;
-		}
-		char_num = 0;
-		styles = 0;
-		new_styles = txtd->default_style.style_flags;
-		color = new_color = txtd->default_style.text_color;
-
-		for (j=0; j<len; j++) {
-			Bool is_new_line;
-
-			if (txt->styles) {
-				new_styles = txtd->default_style.style_flags;
-				new_color = txtd->default_style.text_color;
-				for (k=0; k<txt->styles->entry_count; k++) {
-					if (txt->styles->styles[k].startCharOffset>char_num) continue;
-					if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
-
-					if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH))
-						new_styles = txt->styles->styles[k].style_flags;
-					if (txt->styles->styles[k].text_color)
-						new_color = txt->styles->styles[k].text_color;
-
-					break;
-				}
-			}
-			if (new_styles != styles) {
-				if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "<b>");
-				if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "<i>");
-				if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "<u>");
-				if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "<strike>");
-
-				if ((styles & GF_TXT_STYLE_STRIKETHROUGH) && !(new_styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "</strike>");
-				if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "</u>");
-				if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "</i>");
-				if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "</b>");
-
-				styles = new_styles;
-			}
-			if (!vtt_dump && (new_color != color)) {
-				if (new_color ==txtd->default_style.text_color) {
-					gf_fprintf(dump, "</font>");
-				} else {
-					const char *cname = gf_color_get_name(new_color);
-					if (cname) {
-						gf_fprintf(dump, "<font color=\"%s\">", cname);
-					} else {
-						if (new_color >> 24 < 0xFF)
-							gf_fprintf(dump, "<font color=\"#%X\">", new_color);
-						else
-							gf_fprintf(dump, "<font color=\"#%06X\">", new_color&0x00FFFFFF);
-					}
-				}
-				color = new_color;
-			}
-
-			/*not sure if styles must be reseted at line breaks in srt...*/
-			is_new_line = GF_FALSE;
-			if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') ) {
-				if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) j++;
-				gf_fprintf(dump, "\n");
-				is_new_line = GF_TRUE;
-			}
-
-			if (!is_new_line) {
-				u32 sl;
-				char szChar[30];
-				s16 swT[2], *swz;
-				swT[0] = utf16Line[j];
-				swT[1] = 0;
-				swz= (s16 *)swT;
-				sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
-				if (sl == GF_UTF8_FAIL) sl=0;
-				szChar[sl]=0;
-				gf_fprintf(dump, "%s", szChar);
-			}
-			char_num++;
-		}
-		new_styles = 0;
-		if (new_styles != styles) {
-			if (styles & GF_TXT_STYLE_STRIKETHROUGH) gf_fprintf(dump, "</strike>");
-			if (styles & GF_TXT_STYLE_UNDERLINED) gf_fprintf(dump, "</u>");
-			if (styles & GF_TXT_STYLE_ITALIC) gf_fprintf(dump, "</i>");
-			if (styles & GF_TXT_STYLE_BOLD) gf_fprintf(dump, "</b>");
-
-//				styles = 0;
-		}
-
-		if (color != txtd->default_style.text_color) {
-			gf_fprintf(dump, "</font>");
-//				color = txtd->default_style.text_color;
-		}
-		gf_fprintf(dump, "\n");
+		return GF_OK;
 	}
+
+	u32 styles, char_num, new_styles, color, new_color;
+	u16 *utf16_buf = gf_malloc(sizeof(u16)*((txt->len/2)*2 + 4));
+	if (!utf16_buf) return GF_OUT_OF_MEM;
+
+	/*UTF16*/
+	if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)
+	) {
+		memcpy(utf16_buf, txt->text+2, txt->len);
+		( ((char *)utf16_buf)[txt->len] ) = 0;
+		len = txt->len;
+	} else {
+		u8 *str = (u8 *) (txt->text);
+		len = gf_utf8_mbstowcs(utf16_buf, txt->len+1, (const char **) &str);
+		if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
+		utf16_buf[len] = 0;
+	}
+	char_num = 0;
+	styles = 0;
+	new_styles = txtd->default_style.style_flags;
+	color = new_color = txtd->default_style.text_color;
+
+	for (j=0; j<len; j++) {
+		Bool is_new_line;
+
+		if (txt->styles) {
+			new_styles = txtd->default_style.style_flags;
+			new_color = txtd->default_style.text_color;
+			for (k=0; k<txt->styles->entry_count; k++) {
+				if (txt->styles->styles[k].startCharOffset>char_num) continue;
+				if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
+
+				if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH))
+					new_styles = txt->styles->styles[k].style_flags;
+				if (txt->styles->styles[k].text_color)
+					new_color = txt->styles->styles[k].text_color;
+
+				break;
+			}
+		}
+		if (new_styles != styles) {
+			if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "<b>");
+			if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "<i>");
+			if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "<u>");
+			if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "<strike>");
+
+			if ((styles & GF_TXT_STYLE_STRIKETHROUGH) && !(new_styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "</strike>");
+			if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "</u>");
+			if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "</i>");
+			if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "</b>");
+
+			styles = new_styles;
+		}
+		if (!vtt_dump && (new_color != color)) {
+			if (new_color ==txtd->default_style.text_color) {
+				gf_fprintf(dump, "</font>");
+			} else {
+				const char *cname = gf_color_get_name(new_color);
+				if (cname) {
+					gf_fprintf(dump, "<font color=\"%s\">", cname);
+				} else {
+					if (new_color >> 24 < 0xFF)
+						gf_fprintf(dump, "<font color=\"#%X\">", new_color);
+					else
+						gf_fprintf(dump, "<font color=\"#%06X\">", new_color&0x00FFFFFF);
+				}
+			}
+			color = new_color;
+		}
+
+		/*not sure if styles must be reseted at line breaks in srt...*/
+		is_new_line = GF_FALSE;
+		if ((utf16_buf[j]=='\n') || (utf16_buf[j]=='\r') ) {
+			if ((utf16_buf[j]=='\r') && (utf16_buf[j+1]=='\n')) j++;
+			gf_fprintf(dump, "\n");
+			is_new_line = GF_TRUE;
+		}
+
+		if (!is_new_line) {
+			u32 sl;
+			char szChar[30];
+			s16 swT[2], *swz;
+			swT[0] = utf16_buf[j];
+			swT[1] = 0;
+			swz= (s16 *)swT;
+			sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
+			if (sl == GF_UTF8_FAIL) sl=0;
+			szChar[sl]=0;
+			gf_fprintf(dump, "%s", szChar);
+		}
+		char_num++;
+	}
+	new_styles = 0;
+	if (new_styles != styles) {
+		if (styles & GF_TXT_STYLE_STRIKETHROUGH) gf_fprintf(dump, "</strike>");
+		if (styles & GF_TXT_STYLE_UNDERLINED) gf_fprintf(dump, "</u>");
+		if (styles & GF_TXT_STYLE_ITALIC) gf_fprintf(dump, "</i>");
+		if (styles & GF_TXT_STYLE_BOLD) gf_fprintf(dump, "</b>");
+	}
+
+	if (color != txtd->default_style.text_color) {
+		gf_fprintf(dump, "</font>");
+	}
+	gf_fprintf(dump, "\n");
+	gf_free(utf16_buf);
+
 	return GF_OK;
 }
 #else
@@ -6521,7 +6562,10 @@ GF_Err grptype_box_dump(GF_Box *a, FILE * trace)
 		a->type = GF_4CC('u','k','n','w');
 	gf_isom_box_dump_start(a, "EntityToGroupTypeBox", trace);
 	a->type = GF_ISOM_BOX_TYPE_GRPT;
-	gf_fprintf(trace, "group_id=\"%d\">\n", ptr->group_id);
+	gf_fprintf(trace, "group_id=\"%d\"", ptr->group_id);
+	if (ptr->data) dump_data_attribute(trace, "data", ptr->data, ptr->data_len);
+	else if (!ptr->size) gf_fprintf(trace, " data=\"\"");
+	gf_fprintf(trace, ">\n");
 
 	for (i=0; i<ptr->entity_id_count ; i++)
 		gf_fprintf(trace, "<EntityToGroupTypeBoxEntry EntityID=\"%d\"/>\n", ptr->entity_ids[i]);
@@ -7137,6 +7181,16 @@ GF_Err chnl_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err srat_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SamplingRateBox *p = (GF_SamplingRateBox *) a;
+
+	gf_isom_box_dump_start(a, "SamplingRateBox", trace);
+	gf_fprintf(trace, " sampling_rate=\"%u\">\n", p->sampling_rate);
+	gf_isom_box_dump_done("SamplingRateBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err load_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackLoadBox *p = (GF_TrackLoadBox *) a;
@@ -7186,9 +7240,11 @@ GF_Err emib_box_dump(GF_Box *a, FILE * trace)
 		dump_data_attribute(trace, " message_data", p->message_data, p->message_data_size);
 		gf_fprintf(trace, ">\n");
 
+#ifndef GPAC_DISABLE_INSPECT
 		GF_BitStream *bs = gf_bs_new(p->message_data, p->message_data_size, GF_BITSTREAM_READ);
 		scte35_dump_xml(trace, bs);
 		gf_bs_del(bs);
+#endif
 	} else {
 		gf_fprintf(trace, ">\n");
 	}
@@ -7448,6 +7504,18 @@ GF_Err empty_box_dump(GF_Box *a, FILE * trace)
 	}
 	gf_isom_box_dump_start(a, name, trace);
 	gf_isom_box_dump_done(name, a, trace);
+	return GF_OK;
+}
+
+GF_Err extl_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ExternalTrackLocationBox *ptr = (GF_ExternalTrackLocationBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ExternalTrackLocationBox", trace);
+	gf_fprintf(trace, " referenced_trackID=\"%u\" referenced_type=\"%s\"", ptr->referenced_track_ID, gf_4cc_to_str(ptr->referenced_handler_type));
+	gf_fprintf(trace, " media_timescale=\"%u\"", ptr->media_timescale);
+	gf_fprintf(trace, " location=\"%s\">\n", ptr->location ? ptr->location : "NONE");
+	gf_isom_box_dump_done("ExternalTrackLocationBox", a, trace);
 	return GF_OK;
 }
 

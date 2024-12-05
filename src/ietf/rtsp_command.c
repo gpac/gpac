@@ -331,23 +331,11 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	} else {
 		rad = (sess->ConnectionType == GF_SOCK_TYPE_TCP) ? "rtsp" : "rtspu";
 		if (sCtrl) {
-			//if both server and service names are included in the control, just
-			//use the control
-			if (strstr(sCtrl, sess->Server) && strstr(sCtrl, sess->Service)) {
-				sprintf(buffer, "%s %s %s\r\n", com->method, sCtrl, GF_RTSP_VERSION);
-			}
-			//if service is specified in ctrl, do not rewrite it
-			else if (strstr(sCtrl, sess->Service)) {
-				sprintf(buffer, "%s %s://%s:%d/%s %s\r\n", com->method, rad, sess->Server, sess->Port, sCtrl, GF_RTSP_VERSION);
-			}
-			else if (!strnicmp(sCtrl, "rtsp", 4)) {
-				sprintf(buffer, "%s %s %s\r\n", com->method, sCtrl, GF_RTSP_VERSION);
-			}
-			//otherwise rewrite full URL
-			else {
-				sprintf(buffer, "%s %s://%s/%s/%s %s\r\n", com->method, rad, sess->Server, sess->Service, sCtrl, GF_RTSP_VERSION);
-//				sprintf(buffer, "%s %s://%s:%d/%s/%s %s\r\n", com->method, rad, sess->Server, sess->Port, sess->Service, sCtrl, GF_RTSP_VERSION);
-			}
+			char szServURL[1024];
+			sprintf(szServURL, "%s://%s:%d/%s", rad, sess->Server, sess->Port, sess->Service);
+			char *ctrl_url = gf_url_concatenate(szServURL, sCtrl);
+			sprintf(buffer, "%s %s %s\r\n", com->method, ctrl_url, GF_RTSP_VERSION);
+			gf_free(ctrl_url);
 		} else {
 			sprintf(buffer, "%s %s://%s:%d/%s %s\r\n", com->method, rad, sess->Server, sess->Port, sess->Service, GF_RTSP_VERSION);
 		}

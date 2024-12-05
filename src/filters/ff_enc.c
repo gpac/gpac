@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -67,7 +67,7 @@ typedef struct _gf_ffenc_ctx
 	u32 nb_frames_out, nb_frames_in;
 	u64 time_spent;
 
-	Bool low_delay;
+	u32 low_delay_mode;
 
 	GF_Err (*process)(GF_Filter *filter, struct _gf_ffenc_ctx *ctx);
 	//gpac one
@@ -900,7 +900,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	//since we send the output to our reframers we should be fine
 	if (pkt->flags & AV_PKT_FLAG_KEY) {
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] frame %d is SAP\n", ctx->nb_frames_out));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] frame %d is SAP\n", ctx->nb_frames_out-1));
 	}
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
@@ -1856,12 +1856,16 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 		}
 
-		if (ctx->low_delay) {
+		if (ctx->low_delay_mode==1) {
 			av_dict_set(&ctx->options, "profile", "baseline", 0);
 			av_dict_set(&ctx->options, "preset", "ultrafast", 0);
 			av_dict_set(&ctx->options, "tune", "zerolatency", 0);
 			if (ctx->codecid==GF_CODECID_AVC) {
-				av_dict_set(&ctx->options, "x264opts", "no-mbtree:sliced-threads:sync-lookahead=0", 0);
+				if (av_opt_find((void*)&codec->priv_class, "x264-params", NULL, 0, 0) != NULL) {
+					av_dict_set(&ctx->options, "x264-params", "no-mbtree=1:sliced-threads=1:sync-lookahead=0", 0);
+				} else {
+					av_dict_set(&ctx->options, "x264opts", "no-mbtree:sliced-threads:sync-lookahead=0", 0);
+				}
 			}
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 			ctx->encoder->flags |= AV_CODEC_FLAG_LOW_DELAY;
@@ -2112,15 +2116,24 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 	if (!strcmp(arg_name, "global_header"))	return GF_OK;
 	else if (!strcmp(arg_name, "local_header"))	return GF_OK;
-	else if (!strcmp(arg_name, "low_delay"))	ctx->low_delay = GF_TRUE;
+	//activate opts for low delay
+	else if (!strcmp(arg_name, "flags")
+		&& arg_val && arg_val->value.string && strstr(arg_val->value.string, "low_delay")
+		&& !ctx->low_delay_mode
+	)
+		ctx->low_delay_mode = 1;
+	//activate opts for low delay
+	else if (!strcmp(arg_name, "low_delay") && !ctx->low_delay_mode)
+		ctx->low_delay_mode = 1;
 	//remap some options
 	else if (!strcmp(arg_name, "bitrate") || !strcmp(arg_name, "rate"))	arg_name = "b";
 //	else if (!strcmp(arg_name, "gop")) arg_name = "g";
 	//disable low delay if these options are set
-	else if (!strcmp(arg_name, "x264opts")) ctx->low_delay = GF_FALSE;
-	else if (!strcmp(arg_name, "profile")) ctx->low_delay = GF_FALSE;
-	else if (!strcmp(arg_name, "preset")) ctx->low_delay = GF_FALSE;
-	else if (!strcmp(arg_name, "tune")) ctx->low_delay = GF_FALSE;
+	else if (!strcmp(arg_name, "x264opts")) ctx->low_delay_mode = 2;
+	else if (!strcmp(arg_name, "x264-params")) ctx->low_delay_mode = 2;
+	else if (!strcmp(arg_name, "profile")) ctx->low_delay_mode = 2;
+	else if (!strcmp(arg_name, "preset")) ctx->low_delay_mode = 2;
+	else if (!strcmp(arg_name, "tune")) ctx->low_delay_mode = 2;
 
 	if (!strcmp(arg_name, "g") || !strcmp(arg_name, "gop"))
 		ctx->gop_size = arg_val->value.string ? atoi(arg_val->value.string) : 25;
@@ -2205,14 +2218,14 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static const GF_FilterCapability FFEncodeCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_TILE_BASE, GF_TRUE),
 	//some video encoding dumps in unframe mode, we declare the pid property at runtime
 	{0},
-	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
@@ -2230,6 +2243,10 @@ GF_FilterRegister FFEncodeRegister = {
 		"If not found, it will consider the name to be a GPAC codec name and find a codec for it. In that case, if no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
 		"\n"
 		"Options can be passed from prompt using `--OPT=VAL` (global options) or appending `::OPT=VAL` to the desired encoder filter.\n"
+		"Encoder flags can be passed directly as `:FLAGNAME`.\n"
+		"\n"
+		"Note\n"
+		"Setting the `:low_delay` flag will set by default `profile=baseline`, `preset=ultrafast` and `tune=zerolatency` options as well as `x264-params` for AVC|H264. If one or more of these options are set as filter arguments, no defaulting is used for all these options.\n"
 		"\n"
 		"The filter will look for property `TargetRate` on input PID to set the desired bitrate per PID.\n"
 		"\n"
@@ -2256,7 +2273,8 @@ GF_FilterRegister FFEncodeRegister = {
 	.update_arg = ffenc_update_arg,
 	.flags = GF_FS_REG_META | GF_FS_REG_TEMP_INIT | GF_FS_REG_BLOCK_MAIN,
 	//use middle priority in case we have other encoders
-	.priority = 128
+	.priority = 128,
+	.hint_class_type = GF_FS_CLASS_ENCODER
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFEncodeCtx, _n)

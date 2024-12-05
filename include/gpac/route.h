@@ -120,7 +120,7 @@ typedef enum
 {
 	/* object is done receiving*/
 	GF_LCTO_PARTIAL_NONE=0,
-	/* object data being notified is the begining of the payload*/
+	/* object data being notified is the beginning of the payload*/
 	GF_LCTO_PARTIAL_BEGIN,
 	/* object data being notified is the complete reception buffer (for low latency mode), POTENTIALLY with holes in it*/
 	GF_LCTO_PARTIAL_ANY,
@@ -239,6 +239,12 @@ void gf_route_dmx_del(GF_ROUTEDmx *routedmx);
 GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 
+/*! Checks if there are some active multicast sockets
+\param routedmx the ROUTE demultiplexer
+\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
+ */
+Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx);
+
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
 \param reorder_needed if TRUE, the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
@@ -300,6 +306,16 @@ GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id,
 \return error if any, GF_NOT_FOUND if no such object
  */
 GF_Err gf_route_dmx_force_keep_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName);
+
+/*! Set force-keep flag on object by TSI and TOI - typically used for repair
+\param routedmx the ROUTE demultiplexer
+\param service_id ID of the service to query
+\param tsi transport service identifier
+\param toi transport object identifier
+\param force_keep force_keep flag. When set back to false, this does not trigger a cleanup, it is up to the application to do so
+\return error if any, GF_NOT_FOUND if no such object
+ */
+GF_Err gf_route_dmx_force_keep_object(GF_ROUTEDmx *routedmx, u32 service_id, u32 tsi, u32 toi, Bool force_keep);
 
 /*! Removes the first object loaded in the service
 \param routedmx the ROUTE demultiplexer

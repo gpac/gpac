@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *			Authors: Jean Le Feuvre
@@ -324,6 +324,7 @@ static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 per
 	return rtpch;
 }
 
+char szBuf[8192];
 int live_session(int argc, char **argv)
 {
 	GF_Err e;
@@ -504,16 +505,15 @@ int live_session(int argc, char **argv)
 				case 'U':
 				case 'u':
 				{
-					char szCom[8192];
 					fprintf(stderr, "Enter command to send:\n");
-					szCom[0] = 0;
-					if (1 > scanf("%8191[^\t\n]", szCom)) {
+					szBuf[0] = 0;
+					if (1 > scanf("%8191[^\t\n]", szBuf)) {
 						fprintf(stderr, "No command entered properly, aborting.\n");
 						break;
 					}
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
-					e = gf_seng_encode_from_string(livesess.seng, 0, 0, szCom, live_session_callback);
+					e = gf_seng_encode_from_string(livesess.seng, 0, 0, szBuf, live_session_callback);
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					e = gf_seng_aggregate_context(livesess.seng, 0);
 					if (e) fprintf(stderr, "Aggregating context failed: %s\n", gf_error_to_string(e));
@@ -524,16 +524,15 @@ int live_session(int argc, char **argv)
 				case 'E':
 				case 'e':
 				{
-					char szCom[8192];
 					fprintf(stderr, "Enter command to send:\n");
-					szCom[0] = 0;
-					if (1 > scanf("%8191[^\t\n]", szCom)) {
+					szBuf[0] = 0;
+					if (1 > scanf("%8191[^\t\n]", szBuf)) {
 						printf("No command entered properly, aborting.\n");
 						break;
 					}
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
-					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szCom, live_session_callback);
+					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szBuf, live_session_callback);
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					livesess.critical = (c=='E') ? 1 : 0;
 					e = gf_seng_aggregate_context(livesess.seng, 0);
@@ -544,13 +543,13 @@ int live_session(int argc, char **argv)
 
 				case 'p':
 				{
-					char rad[GF_MAX_PATH];
+					szBuf[0] = 0;
 					fprintf(stderr, "Enter output file name - \"std\" for stderr: ");
-					if (1 > scanf("%1023s", rad)) {
+					if (1 > scanf("%8191s", szBuf)) {
 						fprintf(stderr, "No output file name entered, aborting.\n");
 						break;
 					}
-					e = gf_seng_save_context(livesess.seng, !strcmp(rad, "std") ? NULL : rad);
+					e = gf_seng_save_context(livesess.seng, !strcmp(szBuf, "std") ? NULL : szBuf);
 					fprintf(stderr, "Dump done (%s)\n", gf_error_to_string(e));
 				}
 				break;

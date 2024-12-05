@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
- *  This file is part of GPAC / NHNT demuxer filter
+ *  This file is part of GPAC / vobsub demuxer filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -37,7 +37,7 @@
 typedef struct
 {
 	//opts
-	Bool blankframe;
+	Bool blankframe, keepempty;
 
 	GF_FilterPid *idx_pid, *sub_pid;
 	GF_Filter *sub_filter;
@@ -219,12 +219,15 @@ GF_Err vobsubdmx_parse_idx(GF_Filter *filter, GF_VOBSubDmxCtx *ctx)
 
 		for (i=0; i<ctx->vobsub->num_langs; i++) {
 			vobsub_pos *pos = (vobsub_pos*)gf_list_last(ctx->vobsub->langs[i].subpos);
-			if ((u64) ctx->duration.num < pos->start*90)
+			if (pos && ((u64) ctx->duration.num < pos->start*90))
 				ctx->duration.num = (s64) (pos->start*90);
 		}
 		ctx->duration.den = 90000;
 
 		for (i=0; i<ctx->vobsub->num_langs; i++) {
+			//ignore empty tracks
+			if (!ctx->keepempty && !gf_list_count(ctx->vobsub->langs[i].subpos))
+				continue;
 			GF_FilterPid *opid = gf_filter_pid_new(filter);
 
 			//copy properties from idx pid
@@ -444,6 +447,7 @@ static const char * vobsubdmx_probe_data(const u8 *data, u32 size, GF_FilterProb
 static const GF_FilterArgs GF_VOBSubDmxArgs[] =
 {
 	{ OFFS(blankframe), "force inserting a blank frame if first subpic is not at 0", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(keepempty), "declare VobSub tracks with no frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -460,7 +464,7 @@ static const GF_FilterCapability VOBSubDmxCaps[] =
 
 GF_FilterRegister VOBSubDmxRegister = {
 	.name = "vobsubdmx",
-	GF_FS_SET_DESCRIPTION("VobSub parser")
+	GF_FS_SET_DESCRIPTION("VobSub demultiplexer")
 	GF_FS_SET_HELP("This filter parses VobSub files/data to produce media PIDs and frames.")
 	.private_size = sizeof(GF_VOBSubDmxCtx),
 	.flags = GF_FS_REG_USE_SYNC_READ,
@@ -471,7 +475,8 @@ GF_FilterRegister VOBSubDmxRegister = {
 	.configure_pid = vobsubdmx_configure_pid,
 	.process = vobsubdmx_process,
 	.probe_data = vobsubdmx_probe_data,
-	.process_event = vobsubdmx_process_event
+	.process_event = vobsubdmx_process_event,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 #endif

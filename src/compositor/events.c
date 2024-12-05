@@ -145,8 +145,8 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 
 	gf_sc_lock(compositor, GF_TRUE);
 
-	conv_buf = (u16*)gf_malloc(sizeof(u16)*(len+1));
-	len = gf_utf8_mbstowcs(conv_buf, len, &text);
+	conv_buf = (u16*)gf_malloc(sizeof(u16)*((len/2)*2+2));
+	len = gf_utf8_mbstowcs(conv_buf, len+1, &text);
 	if (len == GF_UTF8_FAIL) return GF_IO_ERR;
 
 	compositor->sel_buffer_alloc += len;

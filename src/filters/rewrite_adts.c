@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS write filter
@@ -31,11 +31,18 @@
 
 #include <gpac/avparse.h>
 
+enum
+{
+	AAC_MPEG2_NO=0,
+	AAC_MPEG2_YES,
+	AAC_MPEG2_AUTO,
+};
 
 typedef struct
 {
 	//opts
-	Bool exporter, mpeg2;
+	Bool exporter;
+	u32 mpeg2;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -61,6 +68,8 @@ typedef struct
 	GF_Fraction fdsi;
 	u64 last_cts;
 	u32 timescale;
+
+	u32 signal_mpeg2;
 } GF_ADTSMxCtx;
 
 
@@ -87,6 +96,21 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!p) return GF_NOT_SUPPORTED;
 	ctx->codecid = p->value.uint;
+
+	if (ctx->mpeg2==AAC_MPEG2_AUTO) {
+		switch(ctx->codecid) {
+		case GF_CODECID_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
+			ctx->signal_mpeg2 = GF_TRUE;
+			break;
+		default:
+			ctx->signal_mpeg2 = GF_FALSE;
+			break;
+		}
+	} else {
+		ctx->signal_mpeg2 = ctx->mpeg2 ? GF_TRUE : GF_FALSE;
+	}
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -139,7 +163,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		if (chan_cfg==8)
 			chan_cfg = 7;
 
-		if (!ctx->mpeg2) {
+		if (!ctx->signal_mpeg2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 			if (p) {
@@ -336,7 +360,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		else gf_bs_reassign_buffer(ctx->bs_w, output, size);
 
 		gf_bs_write_int(ctx->bs_w, 0xFFF, 12);/*sync*/
-		gf_bs_write_int(ctx->bs_w, (ctx->mpeg2==1) ? 1 : 0, 1);/*mpeg2 aac*/
+		gf_bs_write_int(ctx->bs_w, ctx->signal_mpeg2 ? 1 : 0, 1);/*mpeg2 aac*/
 		gf_bs_write_int(ctx->bs_w, 0, 2); /*layer*/
 		gf_bs_write_int(ctx->bs_w, 1, 1); /* protection_absent*/
 		gf_bs_write_int(ctx->bs_w, ctx->aac_type, 2);
@@ -398,21 +422,22 @@ static const GF_FilterArgs ADTSMxArgs[] =
 	"- auto: selects based on AAC profile\n"
 	"- no: always signals as MPEG-4 AAC\n"
 	"- yes: always signals as MPEG-2 AAC"
-	"", GF_PROP_UINT, "auto", "auto|no|yes", GF_FS_ARG_HINT_ADVANCED},
+	"", GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 
 GF_FilterRegister ADTSMxRegister = {
 	.name = "ufadts",
-	GF_FS_SET_DESCRIPTION("ADTS writer")
+	GF_FS_SET_DESCRIPTION("ADTS rewriter")
 	GF_FS_SET_HELP("This filter converts AAC streams into ADTS encapsulated data.")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = ADTSMxArgs,
 	.finalize = adtsmx_finalize,
 	SETCAPS(ADTSMxCaps),
 	.configure_pid = adtsmx_configure_pid,
-	.process = adtsmx_process
+	.process = adtsmx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 
@@ -450,7 +475,7 @@ static const GF_FilterCapability LATMMxCaps[] =
 
 GF_FilterRegister LATMMxRegister = {
 	.name = "uflatm",
-	GF_FS_SET_DESCRIPTION("Raw AAC to LATM writer")
+	GF_FS_SET_DESCRIPTION("LATM rewriter")
 	GF_FS_SET_HELP("This filter converts AAC streams into LATM encapsulated data.")
 	.private_size = sizeof(GF_ADTSMxCtx),
 	.args = LATMMxArgs,
@@ -458,7 +483,8 @@ GF_FilterRegister LATMMxRegister = {
 	.finalize = adtsmx_finalize,
 	SETCAPS(LATMMxCaps),
 	.configure_pid = adtsmx_configure_pid,
-	.process = adtsmx_process
+	.process = adtsmx_process,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

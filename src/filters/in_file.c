@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2023
+ *			Copyright (c) Telecom ParisTech 2017-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE input filter
@@ -734,7 +734,7 @@ static const GF_FilterArgs FileInArgs[] =
 
 static const GF_FilterCapability FileInCaps[] =
 {
-	CAP_UINT(GF_CAPS_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 };
 
 GF_FilterRegister FileInRegister = {
@@ -764,7 +764,8 @@ GF_FilterRegister FileInRegister = {
 	.finalize = filein_finalize,
 	.process = filein_process,
 	.process_event = filein_process_event,
-	.probe_url = filein_probe_url
+	.probe_url = filein_probe_url,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

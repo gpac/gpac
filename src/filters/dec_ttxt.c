@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG4 text renderer filter
@@ -601,7 +601,7 @@ typedef struct
 	layout to handle new lines and proper scrolling*/
 } TTDTextChunk;
 
-static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_Form *form, u16 *utf16_txt, TTDTextChunk *tc)
+static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_Form *form, u16 *utf16_txt, u32 utf_alloc_size, TTDTextChunk *tc)
 {
 	GF_Node *txt_model, *n2, *txt_material;
 	M_Text *text;
@@ -730,9 +730,8 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 			if (i+1==tc->end_char) i++;
 
 			if (i!=start_char) {
-				char szLine[5000];
 				u32 len;
-				s16 wsChunk[5000], *sp;
+				s16 *sp;
 
 				/*splitting lines, duplicate node*/
 
@@ -755,17 +754,23 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 				if (tc->has_blink && txt_material) gf_list_add(ctx->blink_nodes, txt_material);
 
 
-				memcpy(wsChunk, &utf16_txt[start_char], sizeof(s16)*(i-start_char));
-				wsChunk[i-start_char] = 0;
-				sp = &wsChunk[0];
-				len = gf_utf8_wcstombs(szLine, 5000, (const unsigned short **) &sp);
-				if (len == GF_UTF8_FAIL) len = 0;
-				szLine[len] = 0;
-				if (len && (szLine[len-1]=='\r'))
-					szLine[len-1] = 0;
+				s16 *wsChunk = gf_malloc(sizeof(s16)*utf_alloc_size);
+				char *szLine = gf_malloc(utf_alloc_size*2);
+				if (wsChunk && szLine) {
+					memcpy(wsChunk, &utf16_txt[start_char], sizeof(s16)*(i-start_char));
+					wsChunk[i-start_char] = 0;
+					sp = &wsChunk[0];
+					len = gf_utf8_wcstombs(szLine, utf_alloc_size*2, (const unsigned short **) &sp);
+					if (len == GF_UTF8_FAIL) len = 0;
+					szLine[len] = 0;
+					if (len && (szLine[len-1]=='\r'))
+						szLine[len-1] = 0;
 
-				gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
-				st->buffer = gf_strdup(szLine);
+					gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
+					st->buffer = gf_strdup(szLine);
+				}
+				if (szLine) gf_free(szLine);
+				if (wsChunk) gf_free(wsChunk);
 			}
 			start_char = i+1;
 			if (new_line) {
@@ -856,7 +861,6 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 	GF_BoxRecord br;
 	M_Material2D *n;
 	M_Form *form;
-	u16 utf16_text[5000];
 	u32 char_offset, char_count;
 	GF_List *chunks;
 	TTDTextChunk *tc;
@@ -1020,6 +1024,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 		ctx->tr_scroll = NULL;
 	}
 
+	u16 *utf16_text = gf_malloc(sizeof(u16) * ((txt->len/2)*2 + 4) );
 	if (is_utf_16) {
 		memcpy((char *) utf16_text, txt->text, sizeof(char) * txt->len);
 		((char *) utf16_text)[txt->len] = 0;
@@ -1027,7 +1032,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 		char_count = txt->len / 2;
 	} else {
 		char *p = txt->text;
-		char_count = gf_utf8_mbstowcs(utf16_text, 2500, (const char **) &p);
+		char_count = gf_utf8_mbstowcs(utf16_text, txt->len+1, (const char **) &p);
 		if (char_count == GF_UTF8_FAIL) char_count = 0;
 	}
 
@@ -1090,10 +1095,11 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 	while (gf_list_count(chunks)) {
 		tc = (TTDTextChunk*)gf_list_get(chunks, 0);
 		gf_list_rem(chunks, 0);
-		ttd_new_text_chunk(ctx, td, form, utf16_text, tc);
+		ttd_new_text_chunk(ctx, td, form, utf16_text, (u32) sizeof(u16)*(txt->len+1), tc);
 		gf_free(tc);
 	}
 	gf_list_del(chunks);
+	gf_free(utf16_text);
 
 	if (form->groupsIndex.count && (form->groupsIndex.vals[form->groupsIndex.count-1] != -1))
 		ttd_add_line(form);
@@ -1528,6 +1534,7 @@ GF_FilterRegister TTXTDecRegister = {
 	.process = ttd_process,
 	.configure_pid = ttd_configure_pid,
 	.process_event = ttd_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2022
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH OGG demux filter
@@ -413,7 +413,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	recompute_ts = 0;
 	max_gran = 0;
 	while (1) {
-		char buf[10000];
+		char buf[2000];
 		while (ogg_sync_pageout(&oy, &oggpage) != 1 ) {
 			char *buffer;
 			u32 bytes;
@@ -421,7 +421,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			if (gf_feof(stream))
 				break;
 
-			bytes = (u32) gf_fread(buf, 10000, stream);
+			bytes = (u32) gf_fread(buf, 2000, stream);
 			if (!bytes) break;
 			buffer = ogg_sync_buffer(&oy, bytes);
 			memcpy(buffer, buf, bytes);
@@ -991,6 +991,7 @@ GF_FilterRegister OGGDmxRegister = {
 	.process = oggdmx_process,
 	.process_event = oggdmx_process_event,
 	.probe_data = oggdmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER,
 };
 
 #endif // !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)

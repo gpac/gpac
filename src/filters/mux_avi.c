@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / AVI output filter
@@ -660,7 +660,8 @@ GF_FilterRegister AVIMuxRegister = {
 	.finalize = avimux_finalize,
 	.configure_pid = avimux_configure_pid,
 	.process = avimux_process,
-	.flags = GF_FS_REG_TEMP_INIT
+	.flags = GF_FS_REG_TEMP_INIT,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 static GF_Err avimux_initialize(GF_Filter *filter)

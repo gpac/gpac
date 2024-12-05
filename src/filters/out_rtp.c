@@ -267,7 +267,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		}
 
 		if (is_rtsp) {
-			gf_fprintf(sdp_out, "a=control:%s=%d\n", stream->ctrl_name ? stream->ctrl_name : "trackID", stream->ctrl_id);
+			gf_fprintf(sdp_out, "a=control:%s_%d\n", stream->ctrl_name ? stream->ctrl_name : "trackID", stream->ctrl_id);
 		}
 	}
 	gf_fprintf(sdp_out, "\n");
@@ -284,7 +284,7 @@ static Bool check_mime_ext(const char *string, const char *pattern)
 	strncpy(szLwr, pattern, 99);
 	szLwr[99]=0;
 	strlwr(szLwr);
-	u32 len = strlen(szLwr);
+	u32 len = (u32) strlen(szLwr);
 	char *sep = strstr(string, szLwr);
 	if (!sep) return GF_FALSE;
 	if (!sep[len] || (sep[len] == '|')) return GF_TRUE;
@@ -1328,7 +1328,8 @@ GF_FilterRegister RTPOutRegister = {
 	SETCAPS(RTPOutCaps),
 	.configure_pid = rtpout_configure_pid,
 	.probe_url = rtpout_probe_url,
-	.process = rtpout_process
+	.process = rtpout_process,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 

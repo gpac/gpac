@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / VideoToolBox decoder filter
@@ -2096,6 +2096,7 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	.configure_pid = vtbdec_configure_pid,
 	.process = vtbdec_process,
 	.process_event = vtbdec_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #else

@@ -72,6 +72,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id);
 #endif
 
 Bool mp4box_check_isom_fileopt(char *opt);
+Bool mp4box_check_non_extk_fileopt(char *opt);
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -118,7 +119,7 @@ u32 PrintBuiltInNodes(char *arg_val, u32 dump_type);
 u32 PrintBuiltInBoxes(char *arg_val, u32 do_cov);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, Bool skip_init, Bool skip_samples);
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, const char *init_seg, Bool skip_samples);
 #endif
 
 
