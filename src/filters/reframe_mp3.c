@@ -921,7 +921,8 @@ GF_FilterRegister MP3DmxRegister = {
 	.configure_pid = mp3_dmx_configure_pid,
 	.process = mp3_dmx_process,
 	.probe_data = mp3_dmx_probe_data,
-	.process_event = mp3_dmx_process_event
+	.process_event = mp3_dmx_process_event,
+	.hint_class_type = GF_FS_CLASS_FRAMING
 };
 
 

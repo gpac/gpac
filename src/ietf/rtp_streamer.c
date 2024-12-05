@@ -132,7 +132,7 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 	if (!rtp->channel) return GF_OUT_OF_MEM;
 	rtp->channel->TimeScale = rtp->packetizer->sl_config.timestampResolution;
 
-	gf_rtp_set_ports(rtp->channel, 0);
+	//gf_rtp_set_ports(rtp->channel, 0);
 	memset(&tr, 0, sizeof(GF_RTSPTransport));
 
 	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? GF_FALSE : GF_TRUE;
@@ -575,20 +575,26 @@ void gf_rtp_streamer_del(GF_RTPStreamer *streamer)
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 
-void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, u32 w, u32 h, s32 tx, s32 ty, s16 l, u32 max_w, u32 max_h, char *tx3g_base64)
+void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char **out_sdp_line, u32 w, u32 h, s32 tx, s32 ty, s16 l, u32 max_w, u32 max_h, char *tx3g_base64)
 {
-	char buffer[2000];
-	sprintf(sdpLine, "a=fmtp:%d sver=60; ", builder->PayloadType);
+	char tmp_buf[101];
+	if (!out_sdp_line) return;
+	if (*out_sdp_line)
+		(*out_sdp_line)[0] = 0;
 
-	sprintf(buffer, "width=%d; height=%d; tx=%d; ty=%d; layer=%d; ", w, h, tx, ty, l);
-	strcat(sdpLine, buffer);
+	tmp_buf[100] = 0;
+	snprintf(tmp_buf, 100, "a=fmtp:%d sver=60; ", builder->PayloadType);
+	gf_dynstrcat(out_sdp_line, tmp_buf, NULL);
 
-	sprintf(buffer, "max-w=%d; max-h=%d", max_w, max_h);
-	strcat(sdpLine, buffer);
+	snprintf(tmp_buf, 100, "width=%d; height=%d; tx=%d; ty=%d; layer=%d; ", w, h, tx, ty, l);
+	gf_dynstrcat(out_sdp_line, tmp_buf, NULL);
+
+	snprintf(tmp_buf, 100, "max-w=%d; max-h=%d", max_w, max_h);
+	gf_dynstrcat(out_sdp_line, tmp_buf, NULL);
 
 	if (tx3g_base64) {
-		strcat(sdpLine, "; tx3g=");
-		strcat(sdpLine, tx3g_base64);
+		gf_dynstrcat(out_sdp_line, "; tx3g=", NULL);
+		gf_dynstrcat(out_sdp_line, tx3g_base64, NULL);
 	}
 }
 
@@ -598,11 +604,11 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 GF_EXPORT
 GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const u8 *dsi, u32 dsi_len, const u8 *dsi_enh, u32 dsi_enh_len, char *KMS_URI, u32 width, u32 height, u32 tw, u32 th, s32 tx, s32 ty, s16 tl, u32 nb_channels, Bool for_rtsp, char **out_sdp_buffer)
 {
-	u32 size;
 	u16 port=0;
 	char mediaName[30], payloadName[30];
-	char sdp[20000], sdpLine[10000];
+	char tmp_buf[101];
 
+	tmp_buf[100]=0;
 	if (!out_sdp_buffer) return GF_BAD_PARAM;
 
 	gf_rtp_builder_get_payload_name(rtp->packetizer, payloadName, mediaName);
@@ -612,12 +618,13 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		gf_rtp_get_ports(rtp->channel, &port, NULL);
 	}
 
-	sprintf(sdp, "m=%s %d RTP/%s %u\n", mediaName, for_rtsp ? 0 : port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
+	snprintf(tmp_buf, 100, "m=%s %d RTP/%s %u\n", mediaName, for_rtsp ? 0 : port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
+	gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 	if (nb_channels > 1)
-		sprintf(sdpLine, "a=rtpmap:%u %s/%u/%u\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution, nb_channels);
+		snprintf(tmp_buf, 100, "a=rtpmap:%u %s/%u/%u\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution, nb_channels);
 	else
-		sprintf(sdpLine, "a=rtpmap:%u %s/%u\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution);
-	strcat(sdp, sdpLine);
+		snprintf(tmp_buf, 100, "a=rtpmap:%u %s/%u\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution);
+	gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 
 	if (ESID
 #if GPAC_ENABLE_3GPP_DIMS_RTP
@@ -625,67 +632,73 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 #endif
 		&& (rtp->packetizer->rtp_payt != GF_RTP_PAYT_OPUS)
 	 ) {
-		sprintf(sdpLine, "a=mpeg4-esid:%d\n", ESID);
-		strcat(sdp, sdpLine);
+		snprintf(tmp_buf, 100, "a=mpeg4-esid:%d\n", ESID);
+		gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 	}
 
 	if (width && height) {
 		if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H263) {
-			sprintf(sdpLine, "a=cliprect:0,0,%d,%d\n", height, width);
-			strcat(sdp, sdpLine);
+			snprintf(tmp_buf, 100, "a=cliprect:0,0,%d,%d\n", height, width);
+			gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 		}
 		/*extensions for some mobile phones*/
-		sprintf(sdpLine, "a=framesize:%d %d-%d\n", rtp->packetizer->PayloadType, width, height);
-		strcat(sdp, sdpLine);
+		snprintf(tmp_buf, 100, "a=framesize:%d %d-%d\n", rtp->packetizer->PayloadType, width, height);
+		gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 	}
-
-	strcpy(sdpLine, "");
 
 	/*AMR*/
 	if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_AMR) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_AMR_WB)) {
-		sprintf(sdpLine, "a=fmtp:%d octet-align=1\n", rtp->packetizer->PayloadType);
+		snprintf(tmp_buf, 100, "a=fmtp:%d octet-align=1\n", rtp->packetizer->PayloadType);
+		gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 	}
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 	/*Text*/
 	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
-		gf_media_format_ttxt_sdp(rtp->packetizer, payloadName, sdpLine, tw, th, tx, ty, tl, width, height, (u8 *)dsi_enh);
-		strcat(sdpLine, "\n");
+		char *sdp = NULL;
+		gf_media_format_ttxt_sdp(rtp->packetizer, payloadName, &sdp, tw, th, tx, ty, tl, width, height, (u8 *)dsi_enh);
+		gf_dynstrcat(out_sdp_buffer, sdp, NULL);
+		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
+		if (sdp) gf_free(sdp);
 	}
 #endif
 	/*EVRC/SMV in non header-free mode*/
 	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_EVRC_SMV) && (rtp->packetizer->auh_size>1)) {
-		sprintf(sdpLine, "a=fmtp:%d maxptime=%d\n", rtp->packetizer->PayloadType, rtp->packetizer->auh_size*20);
+		snprintf(tmp_buf, 100, "a=fmtp:%d maxptime=%d\n", rtp->packetizer->PayloadType, rtp->packetizer->auh_size*20);
+		gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 	}
 	/*H264/AVC*/
 	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_AVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_H264_SVC)) {
 		GF_AVCConfig *avcc = dsi ? gf_odf_avc_cfg_read((u8*)dsi, dsi_len) : NULL;
 
 		if (avcc) {
-			sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", rtp->packetizer->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			snprintf(tmp_buf, 100, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", rtp->packetizer->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
+
 			if (gf_list_count(avcc->pictureParameterSets) || gf_list_count(avcc->sequenceParameterSets)) {
 				u32 i, count, b64s;
 				char b64[200];
-				strcat(sdpLine, "; sprop-parameter-sets=");
+				gf_dynstrcat(out_sdp_buffer, "; sprop-parameter-sets=", NULL);
+
 				count = gf_list_count(avcc->sequenceParameterSets);
 				for (i=0; i<count; i++) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->sequenceParameterSets, i);
 					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 					b64[b64s]=0;
-					strcat(sdpLine, b64);
-					if (i+1<count) strcat(sdpLine, ",");
+					gf_dynstrcat(out_sdp_buffer, b64, NULL);
+					if (i+1<count) gf_dynstrcat(out_sdp_buffer, ",", NULL);
 				}
-				if (i) strcat(sdpLine, ",");
+				if (i) gf_dynstrcat(out_sdp_buffer, ",", NULL);
 				count = gf_list_count(avcc->pictureParameterSets);
 				for (i=0; i<count; i++) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(avcc->pictureParameterSets, i);
 					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 					b64[b64s]=0;
-					strcat(sdpLine, b64);
-					if (i+1<count) strcat(sdpLine, ",");
+					gf_dynstrcat(out_sdp_buffer, b64, NULL);
+					if (i+1<count) gf_dynstrcat(out_sdp_buffer, ",", NULL);
 				}
 			}
 			gf_odf_avc_cfg_del(avcc);
-			strcat(sdpLine, "\n");
+			gf_dynstrcat(out_sdp_buffer, "\n", NULL);
 		}
 	}
 	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC)
@@ -717,53 +730,59 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		if (param_array) {
 			u32 count, i, j, b64s;
 			char b64[200];
-			sprintf(sdpLine, "a=fmtp:%d", rtp->packetizer->PayloadType);
+			snprintf(tmp_buf, 100, "a=fmtp:%d", rtp->packetizer->PayloadType);
+			gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
+
 			count = gf_list_count(param_array);
 			for (i = 0; i < count; i++) {
 				GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *)gf_list_get(param_array, i);
 				if (ar->type==sps_nut) {
-					strcat(sdpLine, "; sprop-sps=");
+					gf_dynstrcat(out_sdp_buffer, "; sprop-sps=", NULL);
 				} else if (ar->type==pps_nut) {
-					strcat(sdpLine, "; sprop-pps=");
+					gf_dynstrcat(out_sdp_buffer, "; sprop-pps=", NULL);
 				} else if (ar->type==vps_nut) {
-					strcat(sdpLine, "; sprop-vps=");
+					gf_dynstrcat(out_sdp_buffer, "; sprop-vps=", NULL);
 				}
 				for (j = 0; j < gf_list_count(ar->nalus); j++) {
 					GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(ar->nalus, j);
 					b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 					b64[b64s]=0;
-					if (j) strcat(sdpLine, ", ");
-					strcat(sdpLine, b64);
+					if (j) gf_dynstrcat(out_sdp_buffer, ", ", NULL);
+					gf_dynstrcat(out_sdp_buffer, b64, NULL);
 				}
 			}
 			if (vvcc) gf_odf_vvc_cfg_del(vvcc);
 			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
-			strcat(sdpLine, "\n");
+			gf_dynstrcat(out_sdp_buffer, "\n", NULL);
 		}
 	}
 	/*MPEG-4 decoder config*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_MPEG4) {
-		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, sdpLine, (u8*)dsi, dsi_len);
-		strcat(sdpLine, "\n");
+		char *sdp = NULL;
+		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, &sdp, (u8*)dsi, dsi_len);
+		gf_dynstrcat(out_sdp_buffer, sdp, NULL);
+		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
+		if (sdp) gf_free(sdp);
 
 		if (rtp->packetizer->slMap.IV_length && KMS_URI) {
 			if (!strnicmp(KMS_URI, "(key)", 5) || !strnicmp(KMS_URI, "(ipmp)", 6) || !strnicmp(KMS_URI, "(uri)", 5)) {
-				strcat(sdpLine, "; ISMACrypKey=");
+				gf_dynstrcat(out_sdp_buffer, "; ISMACrypKey=", NULL);
 			} else {
-				strcat(sdpLine, "; ISMACrypKey=(uri)");
+				gf_dynstrcat(out_sdp_buffer, "; ISMACrypKey=(uri)", NULL);
 			}
-			strcat(sdpLine, KMS_URI);
-			strcat(sdpLine, "\n");
+			gf_dynstrcat(out_sdp_buffer, KMS_URI, NULL);
+			gf_dynstrcat(out_sdp_buffer, "\n", NULL);
 		}
 	}
 #if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*DIMS decoder config*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) {
-		sprintf(sdpLine, "a=fmtp:%d Version-profile=%d", rtp->packetizer->PayloadType, 10);
+		snprintf(tmp_buf, 100, "a=fmtp:%d Version-profile=%d", rtp->packetizer->PayloadType, 10);
+		gf_dynstrcat(out_sdp_buffer, tmp_buf, NULL);
 		if (rtp->packetizer->flags & GP_RTP_DIMS_COMPRESSED) {
-			strcat(sdpLine, ";content-coding=deflate");
+			gf_dynstrcat(out_sdp_buffer, ";content-coding=deflate", NULL);
 		}
-		strcat(sdpLine, "\n");
+		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
 	}
 #endif
 	/*MPEG-4 Audio LATM*/
@@ -791,22 +810,12 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		gf_bs_get_content(bs, &config_bytes, &config_size);
 		gf_bs_del(bs);
 
-		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, sdpLine, config_bytes, config_size);
+		char *sdp = NULL;
+		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, &sdp, config_bytes, config_size);
 		gf_free(config_bytes);
-		strcat(sdpLine, "\n");
-	}
-
-	strcat(sdp, sdpLine);
-
-	size = (u32) strlen(sdp) + (*out_sdp_buffer ? (u32) strlen(*out_sdp_buffer) : 0) + 1;
-	if ( !*out_sdp_buffer) {
-		*out_sdp_buffer = (char*)gf_malloc(sizeof(char)*size);
-		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
-		strcpy(*out_sdp_buffer, sdp);
-	} else {
-		*out_sdp_buffer = (char*)gf_realloc(*out_sdp_buffer, sizeof(char)*size);
-		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
-		strcat(*out_sdp_buffer, sdp);
+		gf_dynstrcat(out_sdp_buffer, sdp, NULL);
+		gf_dynstrcat(out_sdp_buffer, "\n", NULL);
+		if (sdp) gf_free(sdp);
 	}
 	return GF_OK;
 }

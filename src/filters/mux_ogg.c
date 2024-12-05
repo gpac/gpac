@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2022-2023
+ *			Copyright (c) Telecom ParisTech 2022-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / OGG muxer filter
@@ -69,6 +69,7 @@ typedef struct
 	u32 seg_num, next_seg_num;
 	Bool wait_dash, copy_props;
 	u64 seg_start, seg_size;
+	Bool cdur_overwrite;
 
 	Bool force_seg_sync;
 	u32 packets_pending;
@@ -241,6 +242,14 @@ static GF_Err oggmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+
+		if (!ctx->cdur_overwrite) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_FDUR);
+			if (p && p->value.frac.den) {
+				ctx->cdur = p->value.frac;
+				ctx->cdur_overwrite = GF_TRUE;
+			}
+		}
 	}
 	gf_filter_pid_copy_properties(ctx->opid, pid);
 	gf_filter_pid_set_name(ctx->opid, "ogg_mux");
@@ -558,6 +567,7 @@ GF_FilterRegister OGGMuxRegister = {
 	.configure_pid = oggmux_configure_pid,
 	.process = oggmux_process,
 	.process_event = oggmux_process_event,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 #endif

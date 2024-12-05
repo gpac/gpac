@@ -309,6 +309,7 @@ push_feature "unframer" "*Unframer"
 push_feature "vcrop" "*Video croping"
 push_feature "vflip" "*Video flip"
 push_feature "writegen" "*Generic rewriter"
+push_feature "webcodec" "*WebCodecs support"
 push_feature "nhmlw" "*NHML writer"
 push_feature "nhntw" "*NHNT writer"
 push_feature "writeqcp" "*QCP writer"
@@ -412,7 +413,7 @@ GPAC core configuration:
   --disable-x11-xv         disable X11 Xvideo support
   --enable-depth           enables depth handling in the compositor (experimental for stereoscopic rendering)
   --disable-all            disables all features in libgpac (see below)
-  --isomedia-only          disables all features except "parsers import export isom-dump isoff isoff-write isoff-hint isoff-frag isoff-hds ttxt ttml vtt mpd dash hevc"
+  --isomedia-only          disables all features except "parsers import export isom-dump isoff isoff-write isoff-hint isoff-frag isoff-hds ttxt ttml vtt txtin"
 
 
 Extra libraries configuration:
@@ -664,11 +665,11 @@ for opt do
             ;;
         --dxsdk-path=*) dxsdk_path=`echo $opt | cut -d '=' -f 2`
             ;;
-        --disable-pulseaudio) has_pulseaudio="no"
+        --disable-pulseaudio) append disabled_packages "pulseaudio"
             ;;
-        --disable-jack) has_jack="no"
+        --disable-jack) append disabled_packages "jack"
             ;;
-        --disable-alsa) has_alsa="no"
+        --disable-alsa) append disabled_packages "alsa"
             ;;
         --enable-gprof) gprof_build="yes";
             ;;
@@ -698,8 +699,8 @@ for opt do
             #disable all packages except first one "zlib"
             disabled_packages=`echo $opt | cut -c6-`
             append disabled_packages "x11 sdl directx "
-            #enable all parsers, dash and isobmff related
-            enable_features "parsers import export isom-dump isoff isoff-write isoff-hint isoff-frag isoff-hds ttxt ttml vtt mpd dash hevc"
+            #enable all parsers and isobmff related
+            enable_features "parsers import export isom-dump isoff isoff-write isoff-hint isoff-frag isoff-hds ttxt ttml vtt txtin"
             ;;
         --use-*) v=`echo $opt | cut -c7-`
         	set_package "$v"

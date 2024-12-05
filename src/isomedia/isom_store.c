@@ -159,6 +159,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 	for (i = 0; i < trackCount; i++) {
 		GF_SampleTableBox *stbl;
 		trak = gf_isom_get_track(movie->moov, i+1);
+		if (trak->extl) continue;
 
 		stbl = (trak->Media && trak->Media->information) ? trak->Media->information->sampleTable : NULL;
 		if (!stbl || !stbl->SampleSize || !stbl->ChunkOffset || !stbl->SampleToChunk || !stbl->SampleSize) {
@@ -848,6 +849,7 @@ static GF_Err store_meta_item_references(GF_ISOFile *movie, GF_List *writers, GF
 
 GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Emulation, u64 baseOffset, u64 *mdatSize)
 {
+	char cache_data[4096];
 	GF_ItemExtentEntry *entry;
 	u64 maxExtendOffset, maxExtendSize;
 	u32 i, j, count;
@@ -926,7 +928,6 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 					if (iinf->tk_id && iinf->sample_num) {
 					}
 					else if (src) {
-						char cache_data[4096];
 						u64 remain = entry->extent_length;
 						while (remain) {
 							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
@@ -956,7 +957,6 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 
 					/*Reading from the input file*/
 					if (!Emulation) {
-						char cache_data[4096];
 						u64 remain = entry->extent_length;
 						gf_bs_seek(file->movieFileMap->bs, entry->original_extent_offset + iloc->original_base_offset);
 						while (remain) {
@@ -2159,6 +2159,8 @@ static GF_Err inplace_shift_moov_meta_offsets(GF_ISOFile *movie, u32 shift_offse
 		if (trak->meta)
 			ShiftMetaOffset(trak->meta, shift_offset);
 
+		if (trak->extl) continue;
+
 		stbl = trak->Media->information->sampleTable;
 		e = shift_chunk_offsets(stbl->SampleToChunk, trak->Media, stbl->ChunkOffset, shift_offset, movie->force_co64, &new_stco);
 		if (e) return e;
@@ -2555,6 +2557,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			if (gf_sys_is_test_mode()) {
 				trak->Header->creationTime = 0;
 				trak->Header->modificationTime = 0;
+				if (trak->extl) continue;
 				if (trak->Media->handler && trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
 					gf_free(trak->Media->handler->nameUTF8);
 					trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");

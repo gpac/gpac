@@ -377,17 +377,19 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 
 GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc)
 {
-	u64 trackDuration;
+	u64 trackDuration=0xFFFFFFFF;
 	u32 i;
-	GF_Err e;
+	GF_Err e = GF_OK;
 
 	//the total duration is the media duration: adjust it in case...
-	e = Media_SetDuration(trak);
-	if (e) return e;
+	if (!trak->extl) {
+		e = Media_SetDuration(trak);
+		if (e) return e;
 
-	//assert the timeScales are non-NULL
-	if (!trak->moov->mvhd || !trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
-	trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
+		//assert the timeScales are non-NULL
+		if (!trak->moov->mvhd || !trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
+		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
+	}
 
 	//if we have an edit list, the duration is the sum of all the editList
 	//entries' duration (always expressed in MovieTimeScale)
@@ -400,10 +402,10 @@ GF_Err SetTrackDurationEx(GF_TrackBox *trak, Bool keep_utc)
 			trackDuration += ent->segmentDuration;
 		}
 	}
-	if (!trackDuration) {
+	if (!trackDuration && trak->Media) {
 		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
 	}
-	if (!trak->Header) {
+	if (!trak->Header || (trak->extl && (trackDuration==0xFFFFFFFF))) {
 		return GF_OK;
 	}
 	trak->Header->duration = trackDuration;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2023
+ *			Copyright (c) Telecom ParisTech 2023-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / WebCodec encoder filter
@@ -27,7 +27,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
-#if defined(GPAC_CONFIG_EMSCRIPTEN)
+#ifndef GPAC_DISABLE_WEBCODEC
 
 typedef struct
 {
@@ -54,6 +54,8 @@ typedef struct
 	u32 nb_forced, nb_frames_in;
 	char *pname;
 } GF_WCEncCtx;
+
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
 
 GF_EXPORT
 void wcenc_on_error(GF_WCEncCtx *ctx, int state, char *msg)
@@ -669,6 +671,17 @@ static GF_FilterCapability WCEncCapsA[] =
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
+#else
+
+static GF_Err wcenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	return GF_NOT_SUPPORTED;
+}
+static GF_Err wcenc_process(GF_Filter *filter)
+{
+	return GF_NOT_SUPPORTED;
+}
+#endif
 
 static GF_FilterCapability WCEncCapsAV[] =
 {
@@ -704,17 +717,22 @@ GF_FilterRegister GF_WCEncCtxRegister = {
 	.args = WCEncArgs,
 	SETCAPS(WCEncCapsAV),
 	.flags = GF_FS_REG_SINGLE_THREAD|GF_FS_REG_ASYNC_BLOCK,
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
 	.private_size = sizeof(GF_WCEncCtx),
 	.initialize = wcenc_initialize,
 	.finalize = wcenc_finalize,
+#endif
 	.configure_pid = wcenc_configure_pid,
 	.process = wcenc_process,
+	.hint_class_type = GF_FS_CLASS_ENCODER
 };
 
+#endif //GPAC_DISABLE_WEBCODEC
 
 const GF_FilterRegister *wcenc_register(GF_FilterSession *session)
 {
-	
+#ifndef GPAC_DISABLE_WEBCODEC
+#if defined(GPAC_CONFIG_EMSCRIPTEN)
 	int has_webv_encode = EM_ASM_INT({
 		if (typeof VideoEncoder == 'undefined') return 0;
 		return 1;
@@ -736,6 +754,13 @@ const GF_FilterRegister *wcenc_register(GF_FilterSession *session)
 		GF_WCEncCtxRegister.nb_caps = sizeof(WCEncCapsV)/sizeof(GF_FilterCapability);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[WebEnc] AudioEncoder %d - VideoEncoder %d\n", has_weba_encode, has_webv_encode));
-	return &GF_WCEncCtxRegister;
-}
+#else
+	if (!gf_opts_get_bool("temp", "gendoc"))
+		return NULL;
+	GF_WCEncCtxRegister.version = "! Warning: WebCodec NOT AVAILABLE IN THIS BUILD !";
 #endif
+	return &GF_WCEncCtxRegister;
+#else
+	return NULL;
+#endif
+}

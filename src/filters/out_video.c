@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2023
+ *			Copyright (c) Telecom ParisTech 2018-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -93,7 +93,7 @@ typedef struct
 {
 	//options
 	char *drv;
-	GF_VideoOutMode disp;
+	u32 disp;
 	Bool vsync, linear, fullscreen, drop, hide, step, vjs, async;
 	GF_Fraction64 dur;
 	Double speed, hold;
@@ -2367,7 +2367,8 @@ GF_FilterRegister VideoOutRegister = {
 	.configure_pid = vout_configure_pid,
 	.process = vout_process,
 	.process_event = vout_process_event,
-	.update_arg = vout_update_arg
+	.update_arg = vout_update_arg,
+	.hint_class_type = GF_FS_CLASS_MM_IO
 };
 
 const GF_FilterRegister *vout_register(GF_FilterSession *session)

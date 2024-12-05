@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -1621,16 +1621,18 @@ GF_EXPORT
 GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
-	AV1State state;
+	AV1State *av1_state;
 	u8 reserved;
 	GF_AV1Config *cfg;
 
 	if (!size) size = (u32) gf_bs_available(bs);
 	if (!size) return NULL;
 
+	GF_SAFEALLOC(av1_state, AV1State);
+	if (!av1_state) return NULL;
 	cfg = gf_odf_av1_cfg_new();
-	gf_av1_init_state(&state);
-	state.config = cfg;
+	gf_av1_init_state(av1_state);
+	av1_state->config = cfg;
 
 	cfg->marker = gf_bs_read_int(bs, 1);
 	cfg->version = gf_bs_read_int(bs, 7);
@@ -1657,6 +1659,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong av1C reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
 		gf_odf_av1_cfg_del(cfg);
+		gf_free(av1_state);
 		return NULL;
 	}
 
@@ -1668,7 +1671,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 
 		pos = gf_bs_get_position(bs);
 		obu_size = 0;
-		if (gf_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state) != GF_OK) {
+		if (gf_av1_parse_obu(bs, &obu_type, &obu_size, NULL, av1_state) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
@@ -1697,8 +1700,9 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		}
 		size -= (u32) obu_size;
 	}
-	gf_av1_reset_state(& state, GF_TRUE);
+	gf_av1_reset_state(av1_state, GF_TRUE);
 	gf_bs_align(bs);
+	gf_free(av1_state);
 	return cfg;
 #else
 	return NULL;

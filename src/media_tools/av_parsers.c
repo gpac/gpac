@@ -3725,7 +3725,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (!CodedLossless && !allow_intrabc) {
 		u8 loop_filter_level_0 = gf_bs_read_int_log(bs, 6, "loop_filter_level_0");
 		u8 loop_filter_level_1 = gf_bs_read_int_log(bs, 6, "loop_filter_level_1");
-		if (!state->config->monochrome) {
+		if (state && state->config && !state->config->monochrome) {
 			if (loop_filter_level_0 || loop_filter_level_1) {
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_2");
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_3");
@@ -7030,7 +7030,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 
 GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 {
-	AVCState avc;
+	AVCState *avc_state;
 	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_AVCConfigSlot *slc;
@@ -7038,15 +7038,16 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 	if (!avcc)
 		return GF_NON_COMPLIANT_BITSTREAM;
 
-	memset(&avc, 0, sizeof(AVCState));
-	avc.sps_active_idx = -1;
+	GF_SAFEALLOC(avc_state, AVCState);
+	if (!avc_state) return GF_OUT_OF_MEM;
+	avc_state->sps_active_idx = -1;
 
 	i=0;
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
 		GF_BitStream *orig, *mod;
 		u8 *no_emulation_buf = NULL;
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
-		idx = gf_avc_read_sps(slc->data, slc->size, &avc, 0, &bit_offset);
+		idx = gf_avc_read_sps(slc->data, slc->size, avc_state, 0, &bit_offset);
 		if (idx<0) {
 			continue;
 		}
@@ -7088,6 +7089,7 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
 	}
+	gf_free(avc_state);
 	return GF_OK;
 }
 
@@ -7125,22 +7127,25 @@ GF_Err gf_avc_change_color(GF_AVCConfig *avcc, s32 fullrange, s32 vidformat, s32
 GF_EXPORT
 GF_Err gf_avc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
 {
-	AVCState avc;
+	AVCState *avc_state;
 	s32 idx;
-	memset(&avc, 0, sizeof(AVCState));
-	avc.sps_active_idx = -1;
+	GF_SAFEALLOC(avc_state, AVCState);
+	if (!avc_state) return GF_OUT_OF_MEM;
+	avc_state->sps_active_idx = -1;
 
-	idx = gf_avc_read_sps(sps_data, sps_size, &avc, 0, NULL);
+	idx = gf_avc_read_sps(sps_data, sps_size, avc_state, 0, NULL);
 	if (idx < 0) {
+		gf_free(avc_state);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (sps_id) *sps_id = idx;
 
-	if (width) *width = avc.sps[idx].width;
-	if (height) *height = avc.sps[idx].height;
-	if (par_n) *par_n = avc.sps[idx].vui.par_num ? avc.sps[idx].vui.par_num : (u32)-1;
-	if (par_d) *par_d = avc.sps[idx].vui.par_den ? avc.sps[idx].vui.par_den : (u32)-1;
+	if (width) *width = avc_state->sps[idx].width;
+	if (height) *height = avc_state->sps[idx].height;
+	if (par_n) *par_n = avc_state->sps[idx].vui.par_num ? avc_state->sps[idx].vui.par_num : (u32)-1;
+	if (par_d) *par_d = avc_state->sps[idx].vui.par_den ? avc_state->sps[idx].vui.par_den : (u32)-1;
 
+	gf_free(avc_state);
 	return GF_OK;
 }
 
@@ -9349,15 +9354,16 @@ GF_EXPORT
 GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 {
 	GF_BitStream *orig, *mod;
-	HEVCState hevc;
+	HEVCState *hvc_state;
 	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_NALUFFParamArray *spss;
 	GF_NALUFFParam *slc;
 	orig = NULL;
 
-	memset(&hevc, 0, sizeof(HEVCState));
-	hevc.sps_active_idx = -1;
+	GF_SAFEALLOC(hvc_state, HEVCState);
+	if (!hvc_state) return GF_OUT_OF_MEM;
+	hvc_state->sps_active_idx = -1;
 
 	i = 0;
 	spss = NULL;
@@ -9366,7 +9372,10 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 			break;
 		spss = NULL;
 	}
-	if (!spss) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!spss) {
+		gf_free(hvc_state);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	i = 0;
 	while ((slc = (GF_NALUFFParam *)gf_list_enum(spss->nalus, &i))) {
@@ -9377,7 +9386,7 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 		no_emulation_buf = gf_malloc((slc->size) * sizeof(char));
 		no_emulation_buf_size = gf_media_nalu_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
 
-		idx = gf_hevc_read_sps_ex(no_emulation_buf, no_emulation_buf_size, &hevc, &bit_offset);
+		idx = gf_hevc_read_sps_ex(no_emulation_buf, no_emulation_buf_size, hvc_state, &bit_offset);
 		if (idx < 0) {
 			if (orig)
 				gf_bs_del(orig);
@@ -9417,6 +9426,7 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
 	}
+	gf_free(hvc_state);
 	return GF_OK;
 }
 
@@ -9472,10 +9482,13 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc, u8 *sps_data, u32 sps_si
 GF_EXPORT
 GF_Err gf_hevc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
 {
-	HEVCState hevc;
-	memset(&hevc, 0, sizeof(HEVCState));
-	hevc.sps_active_idx = -1;
-	return gf_hevc_get_sps_info_with_state(&hevc, sps_data, sps_size, sps_id, width, height, par_n, par_d);
+	HEVCState *hvc_state;
+	GF_SAFEALLOC(hvc_state, HEVCState);
+	if (!hvc_state) return GF_OUT_OF_MEM;
+	hvc_state->sps_active_idx = -1;
+	GF_Err res = gf_hevc_get_sps_info_with_state(hvc_state, sps_data, sps_size, sps_id, width, height, par_n, par_d);
+	gf_free(hvc_state);
+	return res;
 }
 
 static u32 AC3_FindSyncCode(u8 *buf, u32 buflen)
@@ -12643,7 +12656,7 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 		}
 		if (nb_entry_points) {
 			u32 nb_bits = 1 + gf_bs_read_ue_log(bs, "sh_entry_offset_len_minus1");
-			for (i=0; i<nb_entry_points; i++) {
+			for (i=0; i<(u32) nb_entry_points; i++) {
 				gf_bs_read_int_log_idx(bs, nb_bits, "sh_entry_point_offset_minus1", i);
 			}
 		}
@@ -13080,23 +13093,25 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 	u8 profile=12;
 	u8 *sqhdr = memchr(seq_hdr+1, 0x0F, seq_hdr_len);
 	if (sqhdr) {
-		u32 skip = (u32) (sqhdr - seq_hdr - 3);
+		u32 skip = (u32) (sqhdr - seq_hdr);
 		seq_hdr+=skip;
 		seq_hdr_len-=skip;
-		bs = gf_bs_new(seq_hdr+4, seq_hdr_len-4, GF_BITSTREAM_READ);
-		profile = gf_bs_read_int(bs, 2);
-		if (profile==3) {
-			level = gf_bs_read_int(bs, 3);
-			/*cfmt*/gf_bs_read_int(bs, 2);
-			/*fps*/gf_bs_read_int(bs, 3);
-			/*btrt*/gf_bs_read_int(bs, 5);
-			gf_bs_read_int(bs, 1);
-			/*mw*/gf_bs_read_int(bs, 12);
-			/*mh*/gf_bs_read_int(bs, 12);
-			/*bcast*/gf_bs_read_int(bs, 1);
-			interlace = gf_bs_read_int(bs, 1);
+		if (seq_hdr_len > 1) {
+			bs = gf_bs_new(seq_hdr+1, seq_hdr_len-1, GF_BITSTREAM_READ);
+			profile = gf_bs_read_int(bs, 2);
+			if (profile==3) {
+				level = gf_bs_read_int(bs, 3);
+				/*cfmt*/gf_bs_read_int(bs, 2);
+				/*fps*/gf_bs_read_int(bs, 3);
+				/*btrt*/gf_bs_read_int(bs, 5);
+				gf_bs_read_int(bs, 1);
+				/*mw*/gf_bs_read_int(bs, 12);
+				/*mh*/gf_bs_read_int(bs, 12);
+				/*bcast*/gf_bs_read_int(bs, 1);
+				interlace = gf_bs_read_int(bs, 1);
+			}
+			gf_bs_del(bs);
 		}
-		gf_bs_del(bs);
 	}
 	*dsi_size = seq_hdr_len+7;
 	*dsi = gf_malloc(seq_hdr_len+7);

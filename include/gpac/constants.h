@@ -1727,6 +1727,20 @@ enum
 	GF_PROJ360_MESH
 };
 
+/*! Low latency HTTP adaptive streaming mode, set by dasher filter and used by other filter */
+enum
+{
+	/*! no low-latency profile*/
+	GF_LLHAS_NONE = 0,
+	/*! LL-HLS using byte ranges */
+	GF_LLHAS_BYTERANGES = 1,
+	/*! LL-HLS using seperate parts  */
+	GF_LLHAS_PARTS = 2,
+	/*! DASH SSR mode (only sub-parts are generated  */
+	GF_LLHAS_SUBSEG = 3
+};
+
+
 /*! user data used by GPAC to store SRD info*/
 #define GF_ISOM_UDTA_GPAC_SRD	GF_4CC('G','S','R','D')
 

@@ -206,7 +206,9 @@ typedef enum
 	/*! filter PID config requires new instance of filter */
 	GF_REQUIRES_NEW_INSTANCE = -56,
 	/*! filter PID config cannot be supported by this filter, no use trying to find an alternate input filter chain*/
-	GF_FILTER_NOT_SUPPORTED = -57
+	GF_FILTER_NOT_SUPPORTED = -57,
+	/*! server does not support range requests: response with status=200 to a request with byte range*/
+	GF_IO_BYTE_RANGE_NOT_SUPPORTED = -58,
 } GF_Err;
 
 /*!
@@ -1131,6 +1133,8 @@ enum
     GF_BLOB_IN_TRANSFER = 1,
 	/*! blob is corrupted */
     GF_BLOB_CORRUPTED = 1<<1,
+	/*! blob is parsable (valid mux format) but had partial repair only (media holes) */
+    GF_BLOB_PARTIAL_REPAIR = 1<<2
 };
 
 /*!

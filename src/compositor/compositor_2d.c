@@ -900,7 +900,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	/*check if texture is ready - if not pretend we drew it*/
 	if (!ctx->aspect.fill_texture->data) return GF_TRUE;
 	if (ctx->transform.m[0]<0) return GF_FALSE;
-	/*check if the <0 value is due to a flip in he scene description or
+	/*check if the <0 value is due to a flip in the scene description or
 	due to bifs<->svg... context switching*/
 	if (ctx->transform.m[4]<0) {
 		if (!(ctx->flags & CTX_FLIPED_COORDS)) return GF_FALSE;

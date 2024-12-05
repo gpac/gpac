@@ -805,6 +805,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 	gf_assert(filter->freg->configure_pid);
 	if (filter->finalized) {
+		if (ctype == GF_PID_CONF_REMOVE) return GF_OK;
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to configure PID %s in finalized filter %s\n",  pid->name, filter->name));
 		if (ctype==GF_PID_CONF_CONNECT) {
 			gf_assert(pid->filter->out_pid_connection_pending);
@@ -1354,21 +1356,34 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 
 	gf_mx_p(task->filter->tasks_mx);
 	//if the filter has no more connected ins and outs, remove it
-	if (task->filter->removed && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
+	if (task->filter->removed && !task->filter->finalized && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
 		Bool direct_mode = task->filter->session->direct_mode;
 		gf_filter_post_remove(task->filter);
 		if (direct_mode) {
 			gf_mx_v(task->filter->tasks_mx);
+			//release filter removal prevention on both source and destination
+			safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
+			safe_int_dec(&task->filter->detach_pid_tasks_pending);
 			task->filter = NULL;
 			return;
 		}
 	}
 	gf_mx_v(task->filter->tasks_mx);
+	//release filter removal prevention on both source and destination
+	safe_int_dec(&task->pid->pid->filter->detach_pid_tasks_pending);
+	safe_int_dec(&task->filter->detach_pid_tasks_pending);
 }
 
 void gf_fs_post_disconnect_task(GF_FilterSession *session, GF_Filter *filter, GF_FilterPid *pid)
 {
+	//if source or dest filters are finalized or session is being destroyed mode, do not disconnect
+	if (filter->finalized || pid->pid->filter->finalized || (session->run_status!=GF_OK)) return;
+
 	safe_int_inc(&session->remove_tasks);
+	//prevent filter removal on both source and destination
+	safe_int_inc(&pid->pid->filter->detach_pid_tasks_pending);
+	safe_int_inc(&filter->detach_pid_tasks_pending);
+
 	gf_fs_post_task(session, gf_filter_pid_disconnect_task, filter, pid, "pidinst_disconnect", NULL);
 }
 
@@ -5101,6 +5116,10 @@ single_retry:
 					use_explicit_link = GF_TRUE;
 			}
 			//if no source ID on the dst filter, this means the dst filter accepts any possible connections from out filter
+			else if (filter->subsession_id != filter_dst->subsession_id) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s and filter %s not in same subsession and no links directive\n", pid->name, filter_dst->name));
+				continue;
+			}
 
 #if 0	//this is now checked above regardless of whether a filterID is set
 			//unless prevented for this pid
@@ -5685,7 +5704,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	gf_assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
-	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE, 0);
 }
 
 
@@ -5700,7 +5719,7 @@ void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
 	//for complex chains involving a lot of filters (typically gui loading icons)
 	Bool force_main_thread = GF_TRUE;
 
-	gf_fs_post_task_ex(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL, GF_FALSE, force_main_thread, GF_FALSE, TASK_TYPE_NONE);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL, GF_FALSE, force_main_thread, GF_FALSE, TASK_TYPE_NONE, 0);
 }
 
 GF_EXPORT
@@ -5862,6 +5881,31 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	}
 
 	if (prop_4cc) {
+		if (value && pid->filter->session->check_props) {
+			u32 ptype = gf_props_4cc_get_type(prop_4cc);
+			u8 c = prop_4cc>>24;
+			if ((c>='A') && (c<='Z')) {
+				if (gf_props_get_base_type(ptype) != gf_props_get_base_type(value->type)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning PID property %s of type %s in filter %s but expecting %s\n",
+						gf_props_4cc_get_name(prop_4cc),
+						gf_props_get_type_name(value->type),
+						pid->filter->freg->name,
+						gf_props_get_type_name(ptype)
+					));
+					if (gf_sys_is_test_mode())
+						exit(5);
+				}
+				u32 flags = gf_props_4cc_get_flags(prop_4cc);
+				if (flags & GF_PROP_FLAG_PCK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Assigning PID property %s in filter %s but this is a packet property\n",
+						gf_props_4cc_get_name(prop_4cc),
+						pid->filter->freg->name
+					));
+					if (gf_sys_is_test_mode())
+						exit(5);
+				}
+			}
+		}
 		oldp = gf_filter_pid_get_property(pid, prop_4cc);
 	} else {
 		oldp = gf_filter_pid_get_property_str(pid, prop_name ? prop_name : dyn_name);
@@ -6108,12 +6152,29 @@ static GFINLINE const GF_PropertyValue *pid_check_prop(GF_FilterPid *pid, u32 pr
 #define pid_check_prop(_a, _b, _str, c) c
 #endif
 
+static void check_prop_type(GF_FilterPid *pid, u32 prop_4cc)
+{
+	u32 flags = gf_props_4cc_get_flags(prop_4cc);
+	if (flags & GF_PROP_FLAG_PCK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Fetching PID property %s in filter %s but this is a packet property\n",
+			gf_props_4cc_get_name(prop_4cc),
+			pid->filter->freg->name
+		));
+		if (gf_sys_is_test_mode())
+			exit(5);
+	}
+}
+
 GF_EXPORT
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc)
 {
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_FALSE);
 	if (!map)
 		return NULL;
+
+	if (pid->filter->session->check_props && gf_props_4cc_get_type(prop_4cc)) {
+		check_prop_type(pid, prop_4cc);
+	}
 	return pid_check_prop(pid, prop_4cc, NULL, gf_props_get_property(map, prop_4cc, NULL) );
 }
 
@@ -6122,6 +6183,10 @@ const GF_PropertyValue *gf_filter_pid_get_property_first(GF_FilterPid *pid, u32 
 	GF_PropertyMap *map = filter_pid_get_prop_map(pid, GF_TRUE);
 	if (!map)
 		return NULL;
+
+	if (pid->filter->session->check_props && gf_props_4cc_get_type(prop_4cc)) {
+		check_prop_type(pid, prop_4cc);
+	}
 	return pid_check_prop(pid, prop_4cc, NULL, gf_props_get_property(map, prop_4cc, NULL) );
 }
 
@@ -6266,6 +6331,10 @@ static const GF_PropertyValue *gf_filter_pid_enum_info_local(GF_FilterPid *pid, 
 			*idx = cur_idx;
 			return prop;
 		}
+		if (!pid->filter->num_input_pids) {
+			*idx = cur_idx;
+			return NULL;
+		}
 		nb_in_pid = cur_idx;
 		cur_idx = *idx - nb_in_pid;
 		//remember we checked that pid to avoid counting it twice (demuxers...)
@@ -6273,7 +6342,9 @@ static const GF_PropertyValue *gf_filter_pid_enum_info_local(GF_FilterPid *pid, 
 		gf_list_add(*list, pid);
 	}
 
-	if (!pid->filter->num_input_pids) return NULL;
+	if (!pid->filter->num_input_pids) {
+		return NULL;
+	}
 
 	gf_mx_p(pid->filter->tasks_mx);
 	for (i=0; i<pid->filter->num_input_pids; i++) {
@@ -6297,6 +6368,7 @@ static const GF_PropertyValue *gf_filter_pid_enum_info_local(GF_FilterPid *pid, 
 		cur_idx = *idx - nb_in_pid;
 	}
 	gf_mx_v(pid->filter->tasks_mx);
+	*idx = nb_in_pid;
 	return NULL;
 }
 GF_EXPORT
@@ -6886,7 +6958,13 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	//remove pck instance
 	pcki = gf_fq_pop(pidinst->packets);
-
+#if 0
+	if ((pcki == (void *)0x000060300004a9b0)
+	&& !(
+		(pcki->pck->info.flags & GF_PCK_CMD_MASK) || ((pcki->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS)
+	))
+		pcki=pcki;
+#endif
 	if (!pcki) {
 		if (pidinst->filter && !pidinst->filter->finalized && !pidinst->discard_packets) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to discard a packet already discarded in filter %s\n", pid->filter->name));
@@ -6915,7 +6993,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 
 	//make sure we lock the tasks mutex before getting the packet count, otherwise we might end up with a wrong number of packets
-	//if one thread (the caller here) consumes one packet while the dispatching thread is still upddating the state for that pid
+	//if one thread (the caller here) consumes one packet while the dispatching thread is still updating the state for that pid
 	gf_mx_p(pid->filter->tasks_mx);
 	nb_pck = gf_fq_count(pidinst->packets);
 
@@ -7382,6 +7460,8 @@ const char *gf_filter_event_name(GF_FEventType type)
 	case GF_FEVT_PLAY_HINT: return "PLAY_HINT";
 	case GF_FEVT_ENCODE_HINTS: return "ENCODE_HINTS";
 	case GF_FEVT_NTP_REF: return "NTP_REF";
+	case GF_FEVT_NETWORK_HINT: return "NETWORK_HINT";
+	case GF_FEVT_DASH_QUALITY_SELECT: return "QUALITY_SELECT";
 	default:
 		return "UNKNOWN";
 	}
@@ -7937,6 +8017,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 		safe_int_inc(&pid->filter->num_events_queued);
 
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s queuing downstream event %s\n", pid->filter->name, pid->pid->name, gf_filter_event_name(evt->base.type)));
+
 		gf_fs_post_task_class(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? (GF_FilterPid *) pid_inst : NULL, "downstream_event", an_evt, TASK_TYPE_EVENT);
 	}
 	gf_mx_v(f->tasks_mx);
@@ -7998,7 +8080,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 		upstream = GF_TRUE;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s queuing %s event %s\n", pid->pid->filter->name, pid->pid->name, upstream ? "upstream" : "downstream", gf_filter_event_name(evt->base.type) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s queuing %s event %s\n", pid->pid->filter->name, pid->pid->name, upstream ? "upstream" : "downstream", gf_filter_event_name(evt->base.type)));
 
 	if (upstream) {
 		u32 i, j;
@@ -8161,6 +8243,10 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 		if (an_evt->base.on_pid) {
 			safe_int_inc(&an_evt->base.on_pid->filter->num_events_queued);
 		}
+
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s queuing %s event %s\n", filter->name, upstream ? "upstream" : "downstream", gf_filter_event_name(evt->base.type) ));
+
 		if (upstream)
 			gf_fs_post_task_class(filter->session, gf_filter_pid_send_event_upstream, filter, an_evt->base.on_pid, "upstream_event", an_evt, TASK_TYPE_EVENT);
 		else
@@ -8727,7 +8813,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		}
 		sep = strchr(name+1, '$');
 		if (!sep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] broken file template expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] broken file template `%s` expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
 			strcpy(szFinalName, szTemplate);
 			return GF_BAD_PARAM;
 		}
@@ -8906,10 +8992,11 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			szFinalName[k] = '$';
 			k++;
 			name++;
-
+			//allow $;$ to delimit $$ (may be required with some shells)
+			if ((name[0]==';') && (name[1]=='$'))
+				name++;
 
 			continue;
-
 		}
 
 
@@ -8998,6 +9085,10 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 		if (!sep) break;
 		sep[0] = '$';
 		name = sep+1;
+		//allow $;$ to delimit $$ (may be required with some shells)
+		if ((name[0]==';') && (name[1]=='$'))
+			name++;
+
 	}
 	szFinalName[k] = 0;
 	return GF_OK;

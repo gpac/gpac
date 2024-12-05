@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2023
+ *			Copyright (c) Telecom ParisTech 2000-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -858,7 +858,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	return GF_OK;
 }
 
-static u32 write_nalu_config_array(char *sdpLine, GF_List *nalus)
+static u32 write_nalu_config_array(char **sdpLine, GF_List *nalus)
 {
 	u32 i, count, b64s;
 	char b64[200];
@@ -868,13 +868,13 @@ static u32 write_nalu_config_array(char *sdpLine, GF_List *nalus)
 		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_list_get(nalus, i);
 		b64s = gf_base64_encode(sl->data, sl->size, b64, 200);
 		b64[b64s]=0;
-		strcat(sdpLine, b64);
-		if (i+1<count) strcat(sdpLine, ",");
+		gf_dynstrcat(sdpLine, b64, NULL);
+		if (i+1<count) gf_dynstrcat(sdpLine, ",", NULL);
 	}
 	return count;
 }
 
-static void write_avc_config(char *sdpLine, GF_AVCConfig *avcc, GF_AVCConfig *svcc)
+static void write_avc_config(char **sdpLine, GF_AVCConfig *avcc, GF_AVCConfig *svcc)
 {
 	u32 count = 0;
 
@@ -882,26 +882,26 @@ static void write_avc_config(char *sdpLine, GF_AVCConfig *avcc, GF_AVCConfig *sv
 	if (svcc) count += gf_list_count(svcc->sequenceParameterSets) + gf_list_count(svcc->pictureParameterSets);
 	if (!count) return;
 
-	strcat(sdpLine, "; sprop-parameter-sets=");
+	gf_dynstrcat(sdpLine, "; sprop-parameter-sets=", NULL);
 
 	if (avcc) {
 		count = write_nalu_config_array(sdpLine, avcc->sequenceParameterSets);
-		if (count) strcat(sdpLine, ",");
+		if (count) gf_dynstrcat(sdpLine, ",", NULL);
 		count = write_nalu_config_array(sdpLine, avcc->sequenceParameterSetExtensions);
-		if (count) strcat(sdpLine, ",");
+		if (count) gf_dynstrcat(sdpLine, ",", NULL);
 		count = write_nalu_config_array(sdpLine, avcc->pictureParameterSets);
-		if (count) strcat(sdpLine, ",");
+		if (count) gf_dynstrcat(sdpLine, ",", NULL);
 	}
 
 	if (svcc) {
 		count = write_nalu_config_array(sdpLine, svcc->sequenceParameterSets);
-		if (count) strcat(sdpLine, ",");
+		if (count) gf_dynstrcat(sdpLine, ",", NULL);
 		count = write_nalu_config_array(sdpLine, svcc->pictureParameterSets);
-		if (count) strcat(sdpLine, ",");
+		if (count) gf_dynstrcat(sdpLine, ",", NULL);
 	}
-	count = (u32) strlen(sdpLine);
-	if (sdpLine[count-1] == ',')
-		sdpLine[count-1] = 0;
+	count = (u32) strlen(*sdpLine);
+	if (count && (*sdpLine)[count-1] == ',')
+		(*sdpLine)[count-1] = 0;
 }
 
 GF_EXPORT
@@ -909,10 +909,11 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 {
 	u32 Width, Height;
 	GF_ESD *esd;
-	char sdpLine[20000];
+	char tmp_buf[101];
 	char mediaName[30], payloadName[30];
     u32 mtype;
 
+	tmp_buf[100]=0;
 	Width = Height = 0;
 	gf_isom_sdp_clean_track(tkHint->file, tkHint->TrackNum);
     mtype = gf_isom_get_media_type(tkHint->file, tkHint->TrackNum);
@@ -922,36 +923,36 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	gf_rtp_builder_get_payload_name(tkHint->rtp_p, payloadName, mediaName);
 
 	/*TODO- extract out of rtp_p for future live tools*/
-	sprintf(sdpLine, "m=%s 0 RTP/%s %d", mediaName, tkHint->rtp_p->slMap.IV_length ? "SAVP" : "AVP", tkHint->rtp_p->PayloadType);
-	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+	snprintf(tmp_buf, 100, "m=%s 0 RTP/%s %d", mediaName, tkHint->rtp_p->slMap.IV_length ? "SAVP" : "AVP", tkHint->rtp_p->PayloadType);
+	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	if (tkHint->bandwidth) {
-		sprintf(sdpLine, "b=AS:%d", tkHint->bandwidth);
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		snprintf(tmp_buf, 100, "b=AS:%d", tkHint->bandwidth);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	if (tkHint->nb_chan) {
-		sprintf(sdpLine, "a=rtpmap:%d %s/%d/%d", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution, tkHint->nb_chan);
+		snprintf(tmp_buf, 100, "a=rtpmap:%d %s/%d/%d", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution, tkHint->nb_chan);
 	} else {
-		sprintf(sdpLine, "a=rtpmap:%d %s/%d", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution);
+		snprintf(tmp_buf, 100, "a=rtpmap:%d %s/%d", tkHint->rtp_p->PayloadType, payloadName, tkHint->rtp_p->sl_config.timestampResolution);
 	}
-	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	/*control for MPEG-4*/
 	if (AddSystemInfo) {
-		sprintf(sdpLine, "a=mpeg4-esid:%d", gf_isom_get_track_id(tkHint->file, tkHint->TrackNum));
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		snprintf(tmp_buf, 100, "a=mpeg4-esid:%d", gf_isom_get_track_id(tkHint->file, tkHint->TrackNum));
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	/*control for QTSS/DSS*/
-	sprintf(sdpLine, "a=control:trackID=%d", gf_isom_get_track_id(tkHint->file, tkHint->HintTrack));
-	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+	snprintf(tmp_buf, 100, "a=control:trackID=%d", gf_isom_get_track_id(tkHint->file, tkHint->HintTrack));
+	gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 
 	/*H263 extensions*/
 	if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H263) {
-		sprintf(sdpLine, "a=cliprect:0,0,%d,%d", Height, Width);
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		snprintf(tmp_buf, 100, "a=cliprect:0,0,%d,%d", Height, Width);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	/*AMR*/
 	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_AMR) || (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_AMR_WB)) {
-		sprintf(sdpLine, "a=fmtp:%d octet-align=1", tkHint->rtp_p->PayloadType);
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		snprintf(tmp_buf, 100, "a=fmtp:%d octet-align=1", tkHint->rtp_p->PayloadType);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	/*Text*/
 	else if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
@@ -977,9 +978,9 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			}
 		}
 
-		gf_media_format_ttxt_sdp(tkHint->rtp_p, payloadName, sdpLine, w, h, tx, ty, l, m_w, m_h, NULL);
-
-		strcat(sdpLine, "; tx3g=");
+		char *sdp_line = NULL;
+		gf_media_format_ttxt_sdp(tkHint->rtp_p, payloadName, &sdp_line, w, h, tx, ty, l, m_w, m_h, NULL);
+		gf_dynstrcat(&sdp_line, "; tx3g=", NULL);
 		for (i=0; i<gf_isom_get_sample_description_count(tkHint->file, tkHint->TrackNum); i++) {
 			u8 *tx3g;
 			GF_Err e;
@@ -993,15 +994,16 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
 			gf_free(tx3g);
 			buffer[len] = 0;
-			if (i) strcat(sdpLine, ", ");
-			strcat(sdpLine, buffer);
+			if (i) gf_dynstrcat(&sdp_line, ", ", NULL);
+			gf_dynstrcat(&sdp_line, buffer, NULL);
 		}
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp_line);
+		gf_free(sdp_line);
 	}
 	/*EVRC/SMV in non header-free mode*/
 	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_EVRC_SMV) && (tkHint->rtp_p->auh_size>1)) {
-		sprintf(sdpLine, "a=fmtp:%d maxptime=%d", tkHint->rtp_p->PayloadType, tkHint->rtp_p->auh_size*20);
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		snprintf(tmp_buf, 100, "a=fmtp:%d maxptime=%d", tkHint->rtp_p->PayloadType, tkHint->rtp_p->auh_size*20);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	/*H264/AVC*/
 	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H264_AVC) || (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_H264_SVC))  {
@@ -1010,16 +1012,17 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		/*TODO - check syntax for SVC (might be some extra signaling)*/
 
 		if (avcc) {
-			sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			snprintf(tmp_buf, 100, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 		} else {
 			if (!svcc)
 				return GF_ISOM_INVALID_FILE;
-			sprintf(sdpLine, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, svcc->AVCProfileIndication, svcc->profile_compatibility, svcc->AVCLevelIndication);
+			snprintf(tmp_buf, 100, "a=fmtp:%d profile-level-id=%02X%02X%02X; packetization-mode=1", tkHint->rtp_p->PayloadType, svcc->AVCProfileIndication, svcc->profile_compatibility, svcc->AVCLevelIndication);
 		}
 
-		write_avc_config(sdpLine, avcc, svcc);
-
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		char *sdp_line = gf_strdup(tmp_buf);
+		write_avc_config(&sdp_line, avcc, svcc);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp_line);
+		gf_free(sdp_line);
 		gf_odf_avc_cfg_del(avcc);
 		gf_odf_avc_cfg_del(svcc);
 	}
@@ -1027,27 +1030,29 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_MPEG4) {
 		GF_Err e;
 		esd = gf_isom_get_esd(tkHint->file, tkHint->TrackNum, 1);
-
+		char *sdp = NULL;
 		if (esd && esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-			e = gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			e = gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, &sdp, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		} else {
-			e = gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, NULL, 0);
+			e = gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, &sdp, NULL, 0);
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
-		if (e) return e;
-
+		if (e) {
+			if (sdp) gf_free(sdp);
+			return e;
+		}
 		if (tkHint->rtp_p->slMap.IV_length) {
 			const char *kms;
 			gf_isom_get_ismacryp_info(tkHint->file, tkHint->TrackNum, 1, NULL, NULL, NULL, NULL, &kms, NULL, NULL, NULL);
 			if (!strnicmp(kms, "(key)", 5) || !strnicmp(kms, "(ipmp)", 6) || !strnicmp(kms, "(uri)", 5)) {
-				strcat(sdpLine, "; ISMACrypKey=");
+				gf_dynstrcat(&sdp, "; ISMACrypKey=", NULL);
 			} else {
-				strcat(sdpLine, "; ISMACrypKey=(uri)");
+				gf_dynstrcat(&sdp, "; ISMACrypKey=(uri)", NULL);
 			}
-			strcat(sdpLine, kms);
+			gf_dynstrcat(&sdp, kms, NULL);
 		}
-
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp);
+		if (sdp) gf_free(sdp);
 	}
 	/*MPEG-4 Audio LATM*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_LATM) {
@@ -1079,9 +1084,11 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_bs_get_content(bs, &config_bytes, &config_size);
 		gf_bs_del(bs);
 
-		gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, config_bytes, config_size);
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		char *sdp = NULL;
+		gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, &sdp, config_bytes, config_size);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp);
 		gf_free(config_bytes);
+		if (sdp) gf_free(sdp);
 	}
 #if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*3GPP DIMS*/
@@ -1090,51 +1097,53 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_isom_get_visual_info(tkHint->file, tkHint->TrackNum, 1, &Width, &Height);
 
 		gf_isom_get_dims_description(tkHint->file, tkHint->TrackNum, 1, &dims);
-		sprintf(sdpLine, "a=fmtp:%d Version-profile=%d", tkHint->rtp_p->PayloadType, dims.profile);
+		char *sdp = NULL;
+		sprintf(tmp_buf, "a=fmtp:%d Version-profile=%d", tkHint->rtp_p->PayloadType, dims.profile);
+		gf_dynstrcat(&sdp, tmp_buf, NULL);
 		if (! dims.fullRequestHost) {
-			char fmt[200];
-			strcat(sdpLine, ";useFullRequestHost=0");
-			sprintf(fmt, ";pathComponents=%d", dims.pathComponents);
-			strcat(sdpLine, fmt);
+			gf_dynstrcat(&sdp, ";useFullRequestHost=0", NULL);
+			sprintf(tmp_buf, ";pathComponents=%d", dims.pathComponents);
+			gf_dynstrcat(&sdp, tmp_buf, NULL);
 		}
-		if (!dims.streamType) strcat(sdpLine, ";stream-type=secondary");
-		if (dims.containsRedundant == 1) strcat(sdpLine, ";contains-redundant=main");
-		else if (dims.containsRedundant == 2) strcat(sdpLine, ";contains-redundant=redundant");
+		if (!dims.streamType) gf_dynstrcat(&sdp, ";stream-type=secondary", NULL);
+		if (dims.containsRedundant == 1) gf_dynstrcat(&sdp, ";contains-redundant=main", NULL);
+		else if (dims.containsRedundant == 2) gf_dynstrcat(&sdp, ";contains-redundant=redundant", NULL);
 
 		if (dims.textEncoding && strlen(dims.textEncoding)) {
-			strcat(sdpLine, ";text-encoding=");
-			strcat(sdpLine, dims.textEncoding);
+			gf_dynstrcat(&sdp, ";text-encoding=", NULL);
+			gf_dynstrcat(&sdp, dims.textEncoding, NULL);
 		}
 		if (dims.contentEncoding && strlen(dims.contentEncoding)) {
-			strcat(sdpLine, ";content-coding=");
-			strcat(sdpLine, dims.contentEncoding);
+			gf_dynstrcat(&sdp, ";content-coding=", NULL);
+			gf_dynstrcat(&sdp, dims.contentEncoding, NULL);
 		}
 		if (dims.contentEncoding && dims.content_script_types && strlen(dims.content_script_types) ) {
-			strcat(sdpLine, ";content-script-types=");
-			strcat(sdpLine, dims.contentEncoding);
+			gf_dynstrcat(&sdp, ";content-script-types=", NULL);
+			gf_dynstrcat(&sdp, dims.contentEncoding, NULL);
 		}
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdp);
+		if (sdp) gf_free(sdp);
 	}
 #endif
 	/*extensions for some mobile phones*/
 	if (Width && Height) {
-		sprintf(sdpLine, "a=framesize:%d %d-%d", tkHint->rtp_p->PayloadType, Width, Height);
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		snprintf(tmp_buf, 100, "a=framesize:%d %d-%d", tkHint->rtp_p->PayloadType, Width, Height);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 
 	esd = gf_isom_get_esd(tkHint->file, tkHint->TrackNum, 1);
 	if (esd && esd->decoderConfig && (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config)) {
 		if (esd->decoderConfig->predefined_rvc_config) {
-			sprintf(sdpLine, "a=rvc-config-predef:%d", esd->decoderConfig->predefined_rvc_config);
+			snprintf(tmp_buf, 100, "a=rvc-config-predef:%d", esd->decoderConfig->predefined_rvc_config);
 		} else {
 			/*temporary ...*/
 			if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC)) {
-				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_avc.xml");
+				snprintf(tmp_buf, 100, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_avc.xml");
 			} else {
-				sprintf(sdpLine, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_sp.xml");
+				snprintf(tmp_buf, 100, "a=rvc-config:%s", "http://download.tsi.telecom-paristech.fr/gpac/RVC/rvc_config_sp.xml");
 			}
 		}
-		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, tmp_buf);
 	}
 	if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
 
@@ -1176,22 +1185,24 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	GF_ISOSample *samp;
 	Bool remove_ocr;
 	u8 *buffer;
-	char buf64[5000], sdpLine[5100];
+	char tmp_buf[201];
+//	char buf64[5000], sdpLine[5100];
 
 
 	gf_isom_sdp_clean(file);
 
+	tmp_buf[200] = 0;
 	if (bandwidth) {
-		sprintf(buf64, "b=AS:%d", bandwidth);
-		gf_isom_sdp_add_line(file, buf64);
+		snprintf(tmp_buf, 200, "b=AS:%d", bandwidth);
+		gf_isom_sdp_add_line(file, tmp_buf);
 	}
     //xtended attribute for copyright
     if (gf_sys_is_test_mode()) {
-        sprintf(buf64, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)");
+        snprintf(tmp_buf, 200, "a=x-copyright: %s", "MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)");
     } else {
-        sprintf(buf64, "a=x-copyright: MP4/3GP File hinted with GPAC %s - %s", gf_gpac_version(), gf_gpac_copyright() );
+        snprintf(tmp_buf, 200, "a=x-copyright: MP4/3GP File hinted with GPAC %s - %s", gf_gpac_version(), gf_gpac_copyright() );
     }
-	gf_isom_sdp_add_line(file, buf64);
+	gf_isom_sdp_add_line(file, tmp_buf);
 
 	if (IOD_Profile == GF_SDP_IOD_NONE) return GF_OK;
 
@@ -1234,7 +1245,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 		/*get OD esd, and embbed stream data if possible*/
 		if (odT) {
 			esd = gf_isom_get_esd(file, odT, 1);
-			if (gf_isom_get_sample_count(file, odT)==1) {
+			if (esd && gf_isom_get_sample_count(file, odT)==1) {
 				samp = gf_isom_get_sample(file, odT, 1, &descIndex);
 				if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {
 					InitSL_NULL(&slc);
@@ -1247,33 +1258,35 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 					//set the SL for future extraction
 					gf_isom_set_extraction_slc(file, odT, 1, &slc);
 
-					size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);
-					buf64[size64] = 0;
-					sprintf(sdpLine, "data:application/mpeg4-od-au;base64,%s", buf64);
-
+					u32 len_prfx = (u32) strlen("data:application/mpeg4-od-au;base64,");
+					esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
+					if (esd->URLString) {
+						strcpy(esd->URLString, "data:application/mpeg4-od-au;base64,");
+						size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
+						esd->URLString[len_prfx + size64] = 0;
+					}
 					if (esd->decoderConfig) {
 						esd->decoderConfig->avgBitrate = 0;
 						esd->decoderConfig->bufferSizeDB = samp->dataLength;
 						esd->decoderConfig->maxBitrate = 0;
 					}
-					size64 = (u32) strlen(sdpLine)+1;
-					esd->URLString = (char*)gf_malloc(sizeof(char) * size64);
-					strcpy(esd->URLString, sdpLine);
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp hinter] OD sample too large to be embedded in IOD - ISMA disabled\n"));
 					is_ok = 0;
 				}
 				gf_isom_sample_del(&samp);
 			}
-			if (remove_ocr) esd->OCRESID = 0;
-			else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
+			if (esd) {
+				if (remove_ocr) esd->OCRESID = 0;
+				else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
 
-			//OK, add this to our IOD
-			gf_list_add(iod->ESDescriptors, esd);
+				//OK, add this to our IOD
+				gf_list_add(iod->ESDescriptors, esd);
+			}
 		}
 
 		esd = gf_isom_get_esd(file, sceneT, 1);
-		if (gf_isom_get_sample_count(file, sceneT)==1) {
+		if (esd && gf_isom_get_sample_count(file, sceneT)==1) {
 			samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);
 			if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {
 				InitSL_NULL(&slc);
@@ -1284,17 +1297,18 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				//set the SL for future extraction
 				gf_isom_set_extraction_slc(file, sceneT, 1, &slc);
 				//encode in Base64 the sample
-				size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);
-				buf64[size64] = 0;
-				sprintf(sdpLine, "data:application/mpeg4-bifs-au;base64,%s", buf64);
-
+				u32 len_prfx = (u32) strlen("data:application/mpeg4-bifs-au;base64,");
+				esd->URLString = gf_malloc(1 + len_prfx + samp->dataLength*3);
+				if (esd->URLString) {
+					strcpy(esd->URLString, "data:application/mpeg4-bifs-au;base64,");
+					size64 = gf_base64_encode(samp->data, samp->dataLength, esd->URLString+len_prfx, samp->dataLength*3);
+					esd->URLString[len_prfx + size64] = 0;
+				}
 				if (esd->decoderConfig) {
 					esd->decoderConfig->avgBitrate = 0;
 					esd->decoderConfig->bufferSizeDB = samp->dataLength;
 					esd->decoderConfig->maxBitrate = 0;
 				}
-				esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));
-				strcpy(esd->URLString, sdpLine);
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Scene description sample too large to be embedded in IOD - ISMA disabled\n"));
 				is_ok = 0;
@@ -1328,8 +1342,8 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 			}
 			/*only 1 MPEG-4 visual max and 1 MPEG-4 audio max for ISMA compliancy*/
 			if (!has_v && !has_a && (has_i_v<=1) && (has_i_a<=1)) {
-				sprintf(sdpLine, "a=isma-compliance:1,1.0,1");
-				gf_isom_sdp_add_line(file, sdpLine);
+				snprintf(tmp_buf, 200, "a=isma-compliance:1,1.0,1");
+				gf_isom_sdp_add_line(file, tmp_buf);
 			}
 		}
 	}
@@ -1341,12 +1355,17 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 	gf_odf_desc_del((GF_Descriptor *)iod);
 
 	//encode in Base64 the iod
-	size64 = gf_base64_encode(buffer, size, buf64, 2000);
-	buf64[size64] = 0;
+	u32 len_prfx = (u32) strlen("a=mpeg4-iod:\"data:application/mpeg4-iod;base64,");
+	u8 *buf64 = gf_malloc(size*3+4+len_prfx);
+	if (buf64) {
+		strcpy(buf64, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,");
+		size64 = gf_base64_encode(buffer, size, buf64+len_prfx, size*3);
+		buf64[len_prfx + size64] = '"';
+		buf64[len_prfx + size64+1] = 0;
+		gf_isom_sdp_add_line(file, buf64);
+		gf_free(buf64);
+	}
 	gf_free(buffer);
-
-	sprintf(sdpLine, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"", buf64);
-	gf_isom_sdp_add_line(file, sdpLine);
 
 	return GF_OK;
 }

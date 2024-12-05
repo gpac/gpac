@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / SAF demuxer filter
@@ -233,7 +233,6 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 	GF_BitStream *bs;
 	GF_Fraction64 dur;
 	const GF_PropertyValue *p;
-	StreamInfo si[1024];
 	FILE *stream;
 
 
@@ -259,6 +258,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	ctx->file_size = gf_bs_get_size(bs);
 
+	StreamInfo *si = NULL;
 	dur.num = 0;
 	dur.den = 1000;
 	nb_streams=0;
@@ -279,9 +279,12 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 				gf_bs_read_u16(bs);
 				ts_res = gf_bs_read_u24(bs);
 				au_size -= 5;
-				si[nb_streams].stream_id = stream_id;
-				si[nb_streams].ts_res = ts_res;
-				nb_streams++;
+				si = gf_realloc(si, sizeof(StreamInfo)*(nb_streams+1));
+				if (si) {
+					si[nb_streams].stream_id = stream_id;
+					si[nb_streams].ts_res = ts_res;
+					nb_streams++;
+				}
 			}
 		}
 		if (ts_res && (au_type==4)) {
@@ -291,6 +294,7 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 		}
 		gf_bs_skip_bytes(bs, au_size);
 	}
+	gf_free(si);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 
@@ -463,7 +467,8 @@ GF_FilterRegister SAFDmxRegister = {
 	.configure_pid = safdmx_configure_pid,
 	.process = safdmx_process,
 	.process_event = safdmx_process_event,
-	.probe_data = safdmx_probe_data
+	.probe_data = safdmx_probe_data,
+	.hint_class_type = GF_FS_CLASS_DEMULTIPLEXER
 };
 
 const GF_FilterRegister *safdmx_register(GF_FilterSession *session)

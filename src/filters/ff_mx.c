@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2023
+ *			Copyright (c) Telecom Paris 2019-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg muxer filter
@@ -701,7 +701,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 		Bool all_ready = GF_TRUE;
 		Bool needs_reinit = (ctx->status==FFMX_STATE_ALLOC) ? GF_TRUE : GF_FALSE;
 
-		//potpone until no pending connections so that we don't write header before all streams are declared
+		//postpone until no pending connections so that we don't write header before all streams are declared
 		if (gf_filter_connections_pending(filter))
 			return GF_OK;
 
@@ -1548,10 +1548,9 @@ GF_FilterRegister FFMuxRegister = {
 	.probe_url = ffmx_probe_url,
 	.flags = GF_FS_REG_META,
 	.max_extra_pids = (u32) -1,
-
-
 	//use lowest priorty, so that we still use our default built-in muxers
-	.priority = 255
+	.priority = 255,
+	.hint_class_type = GF_FS_CLASS_MULTIPLEXER
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_FFMuxCtx, _n)

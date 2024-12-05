@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2023
+ *			Copyright (c) Telecom ParisTech 2005-2024
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG loader filter
@@ -485,7 +485,7 @@ static const GF_FilterArgs SVGInArgs[] =
 };
 GF_FilterRegister SVGInRegister = {
 	.name = "svgplay",
-	GF_FS_SET_DESCRIPTION("SVG loader")
+	GF_FS_SET_DESCRIPTION("SVG decoder")
 	GF_FS_SET_HELP("This filter parses SVG files directly into the scene graph of the compositor.\n"
 	"\n"
 	"When [-sax_dur=N]() is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than `N`.\n")
@@ -496,6 +496,7 @@ GF_FilterRegister SVGInRegister = {
 	.process = svgin_process,
 	.configure_pid = svgin_configure_pid,
 	.process_event = svgin_process_event,
+	.hint_class_type = GF_FS_CLASS_DECODER
 };
 
 #endif

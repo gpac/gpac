@@ -53,8 +53,7 @@ typedef struct
 {
 	//options
 	char *src;
-	u32 block_size;
-	GF_HTTPInStoreMode cache;
+	u32 block_size, cache, idelay;
 	GF_Fraction64 range;
 	char *ext;
 	char *mime;
@@ -82,6 +81,7 @@ typedef struct
 	GF_Err last_state;
 	Bool is_source_switch;
 	Bool prev_was_init_segment;
+	u32 start_time;
 } GF_HTTPInCtx;
 
 static void httpin_notify_error(GF_Filter *filter, GF_HTTPInCtx *ctx, GF_Err e)
@@ -138,6 +138,9 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		ctx->is_end = GF_TRUE;
 		return gf_filter_pid_raw_new(filter, server, server, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 	}
+	if (ctx->idelay) {
+		ctx->start_time = gf_sys_clock();
+	}
 
 	ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
 	if (e) {
@@ -193,8 +196,11 @@ static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_ty
 	if (!strnicmp(url, "file://", 7) ) return GF_FPROBE_NOT_SUPPORTED;
 	//libcurl handling of RTSP has lower priority
 	if (!strnicmp(url, "rtsp://", 7) ) return GF_FPROBE_MAYBE_SUPPORTED;
-	if (gf_dm_can_handle_url(url))
+	if (gf_dm_can_handle_url(url)) {
+		//TODO: investigate why curl support of rtmp seems problematic, lower priority in favor of ffdmx
+		if (!strnicmp(url, "rtmp://", 7) ) return GF_FPROBE_MAYBE_NOT_SUPPORTED;
 		return GF_FPROBE_SUPPORTED;
+	}
 #endif
 
 	return GF_FPROBE_NOT_SUPPORTED;
@@ -223,6 +229,9 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	//we only check PLAY for full_file_only hint
 	case GF_FEVT_PLAY:
 		ctx->full_file_only = evt->play.full_file_only;
+		if (ctx->pid) {
+			gf_filter_pid_set_info_str(ctx->pid, "aborted", NULL);
+		}
 		//do NOT reset is_end to false, restarting the session is always done via a source_seek event
 		return GF_TRUE;
 	case GF_FEVT_STOP:
@@ -234,6 +243,10 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_dm_sess_abort(ctx->sess);
 				gf_dm_sess_del(ctx->sess);
 				ctx->sess = NULL;
+
+				if (ctx->pid) {
+					gf_filter_pid_set_info_str(ctx->pid, "aborted", &PROP_BOOL(GF_TRUE));
+				}
 			}
 			httpin_set_eos(ctx);
 		}
@@ -266,8 +279,12 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
 		if (evt->seek.source_switch) {
-			gf_fatal_assert(ctx->is_end);
-			gf_fatal_assert(!ctx->pck_out);
+			if (!ctx->is_end || ctx->pck_out) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Scheduling error: switch to %s requested but input %s still in progress\n",  gf_file_basename(evt->seek.source_switch), gf_file_basename(ctx->src) ));
+
+				gf_filter_notification_failure(filter, GF_BAD_PARAM, GF_FALSE);
+				return GF_TRUE;
+			}
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !ctx->prev_was_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
@@ -346,7 +363,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
             e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
-		
+
         if (e) {
 			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
 			//but recovered later, so we let DASH report the error
@@ -402,6 +419,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 			return GF_OK;
 	}
 
+	if (ctx->start_time) {
+		u32 diff = gf_sys_clock() - ctx->start_time;
+		if (diff < ctx->idelay) {
+			gf_filter_ask_rt_reschedule(filter, 1000*diff);
+			return GF_OK;
+		}
+		ctx->start_time=0;
+	}
 	is_start = ctx->nb_read ? GF_FALSE : GF_TRUE;
 	ctx->is_end = GF_FALSE;
 
@@ -645,6 +670,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(blockio), "use blocking IO", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(idelay), "delay first request by the given number of ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -673,7 +699,8 @@ GF_FilterRegister HTTPInRegister = {
 	.finalize = httpin_finalize,
 	.process = httpin_process,
 	.process_event = httpin_process_event,
-	.probe_url = httpin_probe_url
+	.probe_url = httpin_probe_url,
+	.hint_class_type = GF_FS_CLASS_NETWORK_IO
 };
 
 
@@ -753,4 +780,3 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_USE_DOWNLOADER
-

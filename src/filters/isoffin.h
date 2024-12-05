@@ -93,6 +93,7 @@ typedef struct
 	//fragmented file to be refreshed before processing it
 	Bool refresh_fragmented;
 	Bool input_is_stop;
+	Bool was_aborted;
 	u64 missing_bytes, last_size;
 
 	Bool seg_name_changed;
@@ -131,6 +132,11 @@ typedef struct
 	u64 last_min_offset;
 	GF_Err in_error;
 	Bool force_fetch;
+
+	u32 extkid, orig_id;
+	GF_ISOFile *extkmov;
+	u32 extk_flags;
+	Bool extk;
 } ISOMReader;
 
 typedef struct
