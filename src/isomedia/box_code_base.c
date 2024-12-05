@@ -12742,17 +12742,17 @@ GF_Box *iacb_box_new()
 
 void iacb_box_del(GF_Box *s)
 {
-        GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
-        if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
-        gf_free(ptr);
+	GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+	if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
+	gf_free(ptr);
 }
 
 GF_Err iacb_box_read(GF_Box *s, GF_BitStream *bs)
 {
-        GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
-        if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
-        ptr->cfg = gf_odf_ia_cfg_read_bs_size(bs, (u32)ptr->size);
-        return GF_OK;
+	GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
+	if (ptr->cfg) gf_odf_ia_cfg_del(ptr->cfg);
+	ptr->cfg = gf_odf_ia_cfg_read_bs_size(bs, (u32)ptr->size);
+	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -12760,21 +12760,21 @@ GF_Err iacb_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
-        if (!s) return GF_BAD_PARAM;
-        if (!ptr->cfg) return GF_BAD_PARAM;
+	if (!s) return GF_BAD_PARAM;
+	if (!ptr->cfg) return GF_BAD_PARAM;
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-        return gf_odf_ia_cfg_write_bs(ptr->cfg, bs);
+	return gf_odf_ia_cfg_write_bs(ptr->cfg, bs);
 }
 
 GF_Err iacb_box_size(GF_Box *s)
 {
         GF_IAConfigurationBox *ptr = (GF_IAConfigurationBox *)s;
         if (!ptr->cfg) {
-            ptr->size = 0;
-            return GF_BAD_PARAM;
+		ptr->size = 0;
+		return GF_BAD_PARAM;
         }
         ptr->size += gf_odf_ia_cfg_size(ptr->cfg);
         return GF_OK;
