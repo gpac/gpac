@@ -3993,7 +3993,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 			gf_sk_group_unregister(ctx->sg, in->upload_sock);
 			in->upload_sock = NULL;
 		}
-		e = gf_dm_sess_setup_from_url(in->upload, in->path, GF_TRUE);
+		e = gf_dm_sess_setup_from_url(in->upload, in->path, GF_FALSE);
 		if (!e) {
 			in->cur_header = 0;
 			e = gf_dm_sess_process(in->upload);
@@ -4262,7 +4262,7 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 //for upload of LLHAS in seperate file mode only
 static Bool httpout_open_input_llhas(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, char *dst)
 {
-	GF_Err e = gf_dm_sess_setup_from_url(in->llhas_upload, dst, GF_TRUE);
+	GF_Err e = gf_dm_sess_setup_from_url(in->llhas_upload, dst, GF_FALSE);
 	if (!e) {
 		in->llhas_cur_header = 0;
 		e = gf_dm_sess_process(in->llhas_upload);
