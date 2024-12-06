@@ -69,8 +69,6 @@ typedef enum
 	GF_NETIO_GET_CONTENT,
 	/*!signal that request is sent and waiting for server reply*/
 	GF_NETIO_WAIT_FOR_REPLY,
-	/*!signal a header to user. */
-	GF_NETIO_PARSE_HEADER,
 	/*!signal request reply to user. The reply is always sent after the headers*/
 	GF_NETIO_PARSE_REPLY,
 	/*!send data to the user*/
@@ -86,6 +84,8 @@ typedef enum
 	GF_NETIO_REQUEST_SESSION,
 	/*! stream has been canceled by remote peer*/
 	GF_NETIO_CANCEL_STREAM,
+	/* only for icy*/
+	GF_NETIO_ICY_META,
 } GF_NetIOStatus;
 
 /*!session download flags*/
@@ -127,16 +127,22 @@ typedef struct
 	GF_NetIOStatus msg_type;
 	/*error code if any. Valid for all message types.*/
 	GF_Err error;
-	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
+	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages
+		if error is set, payload is the server response body
+	*/
 	const u8 *data;
-	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
+	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages
+		if error is set, payload is the server response body size
+	*/
 	u32 size;
-	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD
+	/*protocol header. Only valid for GF_NETIO_GET_HEADER and GF_NETIO_GET_METHOD
 		if NULL for GF_NETIO_GET_HEADER, ignored
+		for GF_NETIO_ICY_META, set to "icy-meta"
 	*/
 	const char *name;
-	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY
+	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER and GF_NETIO_PARSE_REPLY
 		if NULL for GF_NETIO_GET_HEADER, aborts headers query
+		for GF_NETIO_ICY_META, set to inband ICY metadata found
 	*/
 	char *value;
 	/*message-dependend
@@ -144,6 +150,7 @@ typedef struct
 		for GF_NETIO_DATA_EXCHANGE
 			Set to 1 in to indicate end of chunk transfer
 			Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
+			if error is set, reply is set to HTTP code
 		for all other, usage is reserved
 	*/
 	u32 reply;

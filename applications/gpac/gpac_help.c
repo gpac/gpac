@@ -814,7 +814,17 @@ static GF_GPACArg gpac_args[] =
  	GF_DEF_ARG("alias", NULL, "assign a new alias or remove an alias. Can be specified several times. See [alias usage (-h alias)](#using-aliases)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
  	GF_DEF_ARG("aliasdoc", NULL, "assign documentation for a given alias (optional). Can be specified several times", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 
- 	GF_DEF_ARG("uncache", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("cache-info", NULL, "show cache info. Argument can be:\n"
+	"- absent: the entire cache is inspected\n"
+	"- B: filter entries created after `B`, with `B` a number of seconds prior to now or a date (0 means now)\n"
+	"- B;C: filter entries created after `B` but before `C`, with `B` and `C` either a number of seconds prior to now or a date\n"
+	"  - If `B` is 0, min time is UTC=0\n"
+	"  - If `C` is 0, max time is now\n"
+	"The argument syntax is the same for all cache options"
+	, NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("cache-unflat", NULL, "revert all items in GPAC cache directory to their original name and server path", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("cache-list", NULL, "list entries in cache", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("cache-clean", NULL, "clean cache", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("js", NULL, "specify javascript file to use as controller of filter session", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("wc", NULL, "write all core options in the config file unless already set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),

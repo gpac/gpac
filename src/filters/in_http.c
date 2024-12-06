@@ -659,7 +659,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
 	"- auto: cache to disk if content length is known, no cache otherwise\n"
-	"- disk: cache to disk,  discard once session is no longer used\n"
+	"- disk: cache to disk, discard once session is no longer used\n"
 	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
 	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"
