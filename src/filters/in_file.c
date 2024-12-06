@@ -68,7 +68,6 @@ typedef struct
 	Bool no_failure;
 } GF_FileInCtx;
 
-
 static GF_Err filein_initialize_ex(GF_Filter *filter)
 {
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
@@ -169,7 +168,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 	if ((ctx->fd<0) && strncmp(src, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")
 		&& (!prev_url || strncmp(prev_url, "gfio://", 7))
 	) {
-		ctx->fd = open(src, O_RDONLY | O_BINARY);
+		ctx->fd = gf_fd_open(src, O_RDONLY | O_BINARY, S_IRUSR | S_IWUSR);
 	} else
 #endif
 	if (!ctx->file) {

@@ -1879,6 +1879,16 @@ Checks if file with given name exists, for regular files or File IO wrapper
 \return GF_TRUE if file exists */
 Bool gf_file_exists_ex(const char *file_name, const char *par_name);
 
+/*!
+\brief Open file descriptor
+
+Opens a file descriptor - this is simply a wrapper aroun open taking care of UTF8 for windows
+\param file_name path of the file to check
+\param oflags same parameters as open flags for open
+\param pflags same parameters as permission flags for open
+\return file descriptor, -1 if error*/
+s32 gf_fd_open(const char *file_name, u32 oflags, u32 pflags);
+
 /*! File IO wrapper object*/
 typedef struct __gf_file_io GF_FileIO;
 
