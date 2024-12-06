@@ -2199,38 +2199,13 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 #endif
 
 
-static char *format_duration(u64 dur, u32 timescale, char *szDur)
+static const char *format_duration(u64 dur, u32 timescale, char *szDur)
 {
-	u32 h, m, s, ms;
 	if ((dur==(u64) -1) || (dur==(u32) -1))  {
 		strcpy(szDur, "Unknown");
 		return szDur;
 	}
-	if (!timescale) timescale = 1;
-	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
-	h = (u32) (dur / 3600000);
-	m = (u32) (dur/ 60000) - h*60;
-	s = (u32) (dur/1000) - h*3600 - m*60;
-	ms = (u32) (dur) - h*3600000 - m*60000 - s*1000;
-	if (h<=24) {
-		sprintf(szDur, "%02d:%02d:%02d.%03d", h, m, s, ms);
-	} else {
-		u32 d = (u32) (dur / 3600000 / 24);
-		h = (u32) (dur/3600000)-24*d;
-		if (d<=365) {
-			sprintf(szDur, "%d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
-		} else {
-			u32 y=0;
-			while (d>365) {
-				y++;
-				d-=365;
-				if (y%4) d--;
-			}
-			sprintf(szDur, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
-		}
-
-	}
-	return szDur;
+	return gf_format_duration(dur, timescale, szDur);
 }
 
 static char *format_date(u64 time, char *szTime)
@@ -2417,7 +2392,7 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	}
 
 	for (i=0; i<count; i++) {
-		char szDur[50];
+		char szDur[100];
 		u64 chapter_time;
 		const char *name;
 		gf_isom_get_chapter(file, 0, i+1, &chapter_time, &name);
@@ -3698,7 +3673,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	u64 time_slice, dur, size;
 	s32 cts_shift;
 	Bool is_extk;
-	char szDur[50];
+	char szDur[100];
 	char *lang;
 	GF_ISOTrackID extk_id;
 	u32 extk_type, extk_flags;
@@ -4021,7 +3996,7 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 	const u8 *data;
 	u64 create, modif;
 	Bool has_meta_tags = GF_FALSE;
-	char szDur[50];
+	char szDur[100];
 
 	DumpMetaItem(file, 1, 0, "# File Meta");
 	if (!gf_isom_has_movie(file)) {
