@@ -3925,14 +3925,17 @@ static void gf_filter_remove_local(GF_FSTask *task)
 	}
 	safe_int_dec(&filter->session->remove_tasks);
 
+	Bool can_unload = GF_TRUE;
 	//disconnect all output pids, this will remove all filters up the chain if no more inputs and outputs
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		gf_filter_pid_remove(pid);
+		can_unload = GF_FALSE;
 	}
 	//locate source filter(s)
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		can_unload = GF_FALSE;
 		//fanout, only disconnect this pid instance
 		if (pidi->pid->num_destinations>1) {
 			//post STOP and disconnect
@@ -3967,6 +3970,9 @@ static void gf_filter_remove_local(GF_FSTask *task)
 		}
 	}
 	filter->sticky = 0;
+	if (can_unload) {
+		gf_filter_post_remove(filter);
+	}
 	gf_mx_v(filter->tasks_mx);
 }
 
