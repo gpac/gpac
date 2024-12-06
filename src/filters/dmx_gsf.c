@@ -819,7 +819,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	u8 tsdiffmode = gf_bs_read_int(bs, 2);
 
 	u8 sap = gf_bs_read_int(bs, 3);
-	u8 crypt = gf_bs_read_int(bs, 2);
+	u8 pck_crypt = gf_bs_read_int(bs, 2);
 	u8 has_dep = gf_bs_read_int(bs, 1);
 	u8 has_4cc_props = gf_bs_read_int(bs, 1);
 	u8 has_ext = gf_bs_read_int(bs, 1);
@@ -982,7 +982,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	if (has_dep) gf_filter_pck_set_dependency_flags(gpck->pck, dep_flags);
 	if (cktype) gf_filter_pck_set_clock_type(gpck->pck, cktype);
 	if (seek) gf_filter_pck_set_seek_flag(gpck->pck, seek);
-	if (crypt) gf_filter_pck_set_crypt_flags(gpck->pck, crypt);
+	if (pck_crypt) gf_filter_pck_set_crypt_flags(gpck->pck, pck_crypt);
 	if (sap) gf_filter_pck_set_sap(gpck->pck, sap);
 	if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL))
 		gf_filter_pck_set_roll_info(gpck->pck, roll);

@@ -411,6 +411,16 @@ Validate and parse str into integer
 */
 Bool gf_strict_atoui(const char* str, u32* ans);
 
+/*!
+\brief formats a duration
+
+Formats a duration into a string
+\param dur duration expressed in timescale
+\param timescale number of ticks per second in duration
+\param szDur the buffer to format
+\return the formated input buffer
+*/
+const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
 
 /*! @} */
 
@@ -1361,6 +1371,38 @@ Gets ID of the process running this gpac instance.
 \return the ID of the main process
 */
 u32 gf_sys_get_process_id();
+
+
+/*! lockfile status*/
+typedef enum {
+	/*! lockfile creation failed*/
+	GF_LOCKFILE_FAILED=0,
+	/*! lockfile creation succeeded, creating a new lock file*/
+	GF_LOCKFILE_NEW,
+	/*! lockfile creation succeeded,  lock file was already present and created by this process*/
+	GF_LOCKFILE_REUSE
+} GF_LockStatus;
+
+/*!
+\brief Creates a lock file
+
+Creates a lock file for the current process. A lockfile contains a single string giving the creator process ID
+If a lock file exists with a process ID no longer running, the lock file will be granted to the caller.
+Lock files are removed using \ref gf_file_delete
+\param lockfile name of the lockfile
+\return return status
+*/
+GF_LockStatus gs_sys_create_lockfile(const char *lockfile);
+
+/*!
+\brief Checks a process is valid
+
+Checks if a process is running by its ID
+\param process_id process ID
+\return GF_TRUE if process is running, GF_FALSE otherwise
+*/
+Bool gf_sys_check_process_id(u32 process_id);
+
 
 /*!\brief run-time system info object
 

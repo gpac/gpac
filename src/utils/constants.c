@@ -2742,3 +2742,40 @@ done:
 	gf_bs_del(bs);
 	return GF_TRUE;
 }
+
+GF_EXPORT
+const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100])
+{
+	u64 h;
+	u32 m, s, ms;
+	szDur[0] = 0;
+	szDur[99] = 0;
+	if (!timescale) timescale = 1;
+	dur = gf_timestamp_rescale(dur, timescale, 1000);
+	h = (dur / 3600000);
+	dur -= h*3600000;
+	m = (u32) (dur / 60000);
+	dur -= m*60000;
+	s = (u32) (dur/1000);
+	dur -= s*1000;
+	ms = (u32) (dur);
+
+	if (h<=24) {
+		snprintf(szDur, 99, "%02d:%02d:%02d.%03d", (u32) h, m, s, ms);
+	} else {
+		u32 d = (u32) (h / 24);
+		h = (u32) (h-24*d);
+		if (d<=365) {
+			snprintf(szDur, 99, "%d Days, %02d:%02d:%02d.%03d", d, (u32) h, m, s, ms);
+		} else {
+			u32 y=0;
+			while (d>365) {
+				y++;
+				d-=365;
+				if (y%4) d--;
+			}
+			snprintf(szDur, 99, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, (u32) h, m, s, ms);
+		}
+	}
+	return szDur;
+}

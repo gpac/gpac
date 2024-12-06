@@ -227,7 +227,7 @@ Bool mvex_after_traks, daisy_chain_sidx, use_ssix, single_segment, single_file, 
 Bool strict_cues, use_url_template, seg_at_rap, frag_at_rap, memory_frags, keep_utc, has_next_arg, no_cache, no_loop;
 Bool conv_type_from_ext, dump_keep_comp;
 
-u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
+u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt_type, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
 u32 nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, minor_version, conv_type, nb_tsel_acts;
 u32 program_number, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps_mode, force_new, compress_moov;
 u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type, do_flat, print_info;
@@ -294,7 +294,7 @@ static void init_global_vars()
 
 	//u32
 	arg_parse_res = nb_mpd_base_urls = nb_dash_inputs = help_flags = 0;
-	stat_level = hint_flags = import_flags = nb_add = nb_cat = crypt = 0;
+	stat_level = hint_flags = import_flags = nb_add = nb_cat = crypt_type = 0;
 	agg_samples = nb_sdp_ex = max_ptime = split_size = nb_meta_act = nb_track_act = 0;
 	rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = old_interleave = minor_version = 0;
 	conv_type = nb_tsel_acts = program_number = time_shift_depth = initial_moof_sn = dump_std = 0;
@@ -2913,12 +2913,12 @@ u32 parse_cryp(char *arg_val, u32 opt)
 {
 	open_edit = GF_TRUE;
 	if (!opt) {
-		crypt = 1;
+		crypt_type = 1;
 		drm_file = arg_val;
 		open_edit = GF_TRUE;
 		return 0;
 	}
-	crypt = 2;
+	crypt_type = 2;
 	if (arg_val && get_file_type_by_ext(arg_val) != 1) {
 		drm_file = arg_val;
 		return 0;
@@ -4747,7 +4747,7 @@ static GF_Err do_dash()
 	u32 do_abort = 0;
 	GF_DASHSegmenter *dasher=NULL;
 
-	if (crypt) {
+	if (crypt_type) {
 		M4_LOG(GF_LOG_ERROR, ("MP4Box cannot use -crypt and -dash in the same pass. Please encrypt your content first, or specify encryption filters on dash sources.\n"));
 		return GF_BAD_PARAM;
 	}
@@ -6374,13 +6374,13 @@ int mp4box_main(int argc, char **argv)
 			if ((dump_isom>0) && dump_keep_comp)
 				omode = GF_ISOM_OPEN_READ_DUMP_NO_COMP;
 
-			if (crypt) {
+			if (crypt_type) {
 				//keep fragment signaling in moov
 				omode = GF_ISOM_OPEN_READ;
 				if (use_init_seg)
 					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, NULL);
 			}
-			if (!crypt && use_init_seg) {
+			if (!crypt_type && use_init_seg) {
 				file = gf_isom_open(use_init_seg, omode, NULL);
 				if (file) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -6775,7 +6775,7 @@ int mp4box_main(int argc, char **argv)
 		if ((conv_type == GF_ISOM_CONV_TYPE_ISMA) || (conv_type == GF_ISOM_CONV_TYPE_ISMA_EX)) {
 			M4_LOG(GF_LOG_INFO, ("Converting to ISMA Audio-Video MP4 file\n"));
 			/*keep ESIDs when doing ISMACryp*/
-			e = gf_media_make_isma(file, crypt ? 1 : 0, GF_FALSE, (conv_type==GF_ISOM_CONV_TYPE_ISMA_EX) ? 1 : 0);
+			e = gf_media_make_isma(file, crypt_type ? 1 : 0, GF_FALSE, (conv_type==GF_ISOM_CONV_TYPE_ISMA_EX) ? 1 : 0);
 			if (e) goto err_exit;
 			do_save = GF_TRUE;
 		}
@@ -6857,19 +6857,19 @@ int mp4box_main(int argc, char **argv)
 	}
 
 #ifndef GPAC_DISABLE_CRYPTO
-	if (crypt) {
-		if (!drm_file && (crypt==1) ) {
-			M4_LOG(GF_LOG_ERROR, ("Missing DRM file location - usage '-%s drm_file input_file\n", (crypt==1) ? "crypt" : "decrypt"));
+	if (crypt_type) {
+		if (!drm_file && (crypt_type==1) ) {
+			M4_LOG(GF_LOG_ERROR, ("Missing DRM file location - usage '-%s drm_file input_file\n", (crypt_type==1) ? "crypt" : "decrypt"));
 			e = GF_BAD_PARAM;
 			goto err_exit;
 		}
-		if (crypt == 1) {
+		if (crypt_type == 1) {
 			if (use_init_seg) {
 				e = gf_crypt_fragment(file, drm_file, outfile, inName, fs_dump_flags);
 			} else {
 				e = gf_crypt_file(file, drm_file, outfile, interleaving_time, fs_dump_flags);
 			}
-		} else if (crypt ==2) {
+		} else if (crypt_type ==2) {
 			if (use_init_seg) {
 				e = gf_decrypt_fragment(file, drm_file, outfile, inName, fs_dump_flags);
 			} else {
