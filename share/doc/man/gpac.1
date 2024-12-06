@@ -263,9 +263,36 @@ assign a new alias or remove an alias. Can be specified several times. See alias
 assign documentation for a given alias (optional). Can be specified several times
 .br
 .TP
-.B \-uncache
+.B \-cache-info
+.br
+show cache info. Argument can be:
+.br
+* absent: the entire cache is inspected
+.br
+* B: filter entries created after B, with B a number of seconds prior to now or a date (0 means now)
+.br
+* B;C: filter entries created after B but before C, with B and C either a number of seconds prior to now or a date
+.br
+  - If B is 0, min time is UTC=0
+.br
+  - If C is 0, max time is now
+.br
+The argument syntax is the same for all cache options
+.br
+.TP
+.B \-cache-unflat
 .br
 revert all items in GPAC cache directory to their original name and server path
+.br
+.TP
+.B \-cache-list
+.br
+list entries in cache
+.br
+.TP
+.B \-cache-clean (int)
+.br
+clean cache
 .br
 .TP
 .B \-js (string)
@@ -1139,7 +1166,12 @@ indicate if HTTP cache should be clean upon launch/exit
 .TP
 .B \-cache-size (int, default: 100M)
 .br
-specify cache size in bytes
+specify maximum cache size on disk in bytes
+.br
+.TP
+.B \-cache-check (int, default: 60)
+.br
+cache clean interval in seconds, 0 only clean cache at startup
 .br
 .TP
 .B \-tcp-timeout (int, default: 5000)
@@ -4317,6 +4349,11 @@ packet identifier for dependency (usually POC for video)
 list of packet identifier this packet depends on
 .br
 .TP
+.B UDTA (PUDT,ptr,DP)
+.br
+User data for the packet
+.br
+.TP
 .B DOVI (DOVI,mem,  )
 .br
 DolbyVision configuration
@@ -4440,6 +4477,11 @@ PSSH blob for CENC, same format as CENC_PSSH, used when using master key and rol
 .B LLHASTemplate (PSRT,str, P)
 .br
 Template for DASH-SSR and LLHLS sub-segments
+.br
+.TP
+.B PartialRepair (PCPR,bool, P)
+.br
+indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)
 .br
 .SH Pixel formats
 .LP
