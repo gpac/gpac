@@ -345,6 +345,9 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 
 	tmp->type = GF_ISOM_DATA_FILE;
 	tmp->mode = GF_ISOM_DATA_MAP_WRITE;
+#ifdef GPAC_HAS_FD
+	tmp->fd = -1;
+#endif
 
 	if (!sPath) {
 		tmp->stream = gf_file_temp(&tmp->temp_file);
@@ -423,7 +426,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	case GF_ISOM_DATA_MAP_READ:
 #ifdef GPAC_HAS_FD
 		if (strncmp(sPath, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")) {
-			tmp->fd = open(sPath, O_RDONLY | O_BINARY);
+			tmp->fd = gf_fd_open(sPath, O_RDONLY | O_BINARY, S_IRUSR | S_IWUSR);
 			if (tmp->fd<0) break;
 			tmp->bs = gf_bs_from_fd(tmp->fd, GF_BITSTREAM_READ);
 		} else
@@ -446,7 +449,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 			if (strncmp(sPath, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")) {
 				//make sure output dir exists
 				gf_fopen(sPath, "mkdir");
-				tmp->fd = open(sPath, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
+				tmp->fd = gf_fd_open(sPath, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 				if (tmp->fd<0) break;
 				tmp->bs = gf_bs_from_fd(tmp->fd, GF_BITSTREAM_WRITE);
 			} else

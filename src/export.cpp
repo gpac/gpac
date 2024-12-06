@@ -161,6 +161,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fflush) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_feof) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ferror) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fd_open) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_exists) )
