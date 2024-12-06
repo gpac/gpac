@@ -95,15 +95,6 @@ typedef struct
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
-
-#else //WIN32
-
-#ifdef GPAC_HAS_FD
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#endif
-
 #endif
 
 static void fileout_close_hls_chunk(GF_FileOutCtx *ctx, Bool final_flush)
@@ -490,7 +481,7 @@ restart:
 					evt.seg_size.media_range_start = ctx->offset_at_seg_start;
 #ifdef GPAC_HAS_FD
 					if (ctx->fd>=0) {
-						evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR);
+						evt.seg_size.media_range_end = lseek_64(ctx->fd, 0, SEEK_CUR);
 					} else
 #endif
 					if (ctx->file) {
@@ -576,7 +567,7 @@ restart:
 				evt.seg_size.media_range_start = ctx->offset_at_seg_start;
 #ifdef GPAC_HAS_FD
 				if (ctx->fd>=0) {
-					evt.seg_size.media_range_end = lseek(ctx->fd, 0, SEEK_CUR);
+					evt.seg_size.media_range_end = lseek_64(ctx->fd, 0, SEEK_CUR);
 				} else
 #endif
 				if (ctx->file) {
@@ -728,8 +719,8 @@ check_gfio:
 #ifdef GPAC_HAS_FD
 						if (ctx->fd>=0) {
 							nb_write = (u32) write(ctx->fd, pck_data, pck_size);
-							cur_w = lseek(ctx->fd, 0, SEEK_CUR);
-							lseek(ctx->fd, pos, SEEK_SET);
+							cur_w = lseek_64(ctx->fd, 0, SEEK_CUR);
+							lseek_64(ctx->fd, pos, SEEK_SET);
 						} else
 #endif
 						{
@@ -757,7 +748,7 @@ check_gfio:
 
 #ifdef GPAC_HAS_FD
 								if (ctx->fd>=0) {
-									lseek(ctx->fd, cur_r - move_bytes, SEEK_SET);
+									lseek_64(ctx->fd, cur_r - move_bytes, SEEK_SET);
 									nb_write = (u32) read(ctx->fd, block, (size_t) move_bytes);
 								} else
 #endif
@@ -773,7 +764,7 @@ check_gfio:
 
 #ifdef GPAC_HAS_FD
 								if (ctx->fd>=0) {
-									lseek(ctx->fd, cur_w - move_bytes, SEEK_SET);
+									lseek_64(ctx->fd, cur_w - move_bytes, SEEK_SET);
 									nb_write = (u32) write(ctx->fd, block, (size_t) move_bytes);
 								} else
 #endif
@@ -795,9 +786,9 @@ check_gfio:
 
 #ifdef GPAC_HAS_FD
 					if (ctx->fd>=0) {
-						lseek(ctx->fd, bo, SEEK_SET);
+						lseek_64(ctx->fd, bo, SEEK_SET);
 						nb_write = (u32) write(ctx->fd, pck_data, pck_size);
-						lseek(ctx->fd, pos, SEEK_SET);
+						lseek_64(ctx->fd, pos, SEEK_SET);
 					} else
 #endif
 					{
@@ -897,7 +888,7 @@ check_gfio:
 		if (ctx->dash_mode) {
 #ifdef GPAC_HAS_FD
 			if (ctx->fd>=0) {
-				ctx->last_file_size = lseek(ctx->fd, 0, SEEK_CUR);
+				ctx->last_file_size = lseek_64(ctx->fd, 0, SEEK_CUR);
 			} else
 #endif
 				ctx->last_file_size = gf_ftell(ctx->file);

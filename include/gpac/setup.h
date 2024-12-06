@@ -384,6 +384,35 @@ char * my_str_lwr(char *str);
 #define NULL 0
 #endif
 
+
+#ifdef GPAC_HAS_FD
+#ifndef WIN32
+#include <unistd.h>
+#define lseek_64 lseek
+#else
+#include <io.h>
+#define lseek_64 _lseeki64
+#endif
+#include <fcntl.h>
+#include <sys/stat.h>
+
+#if defined(WIN32) && !defined(open)
+#  define open _open
+#  define close _close
+#  define read _read
+#  define write _write
+#endif
+
+#if defined(WIN32) && !defined(S_IWUSR)
+#  define S_IWUSR _S_IWRITE
+#  define S_IRUSR _S_IREAD
+#  define S_IRGRP 0
+#  define S_IWGRP 0
+#  define S_IROTH 0
+# endif
+
+#endif
+
 //! @endcond
 
 

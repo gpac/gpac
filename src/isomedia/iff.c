@@ -774,10 +774,10 @@ GF_Err grptype_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	if (ptr->size) {
-		ptr->data = gf_malloc(ptr->size);
+		ptr->data = gf_malloc((u32) ptr->size);
 		if (!ptr->data) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->data, ptr->size);
-		ptr->data_len = ptr->size;
+		ptr->data_len = (u32) ptr->size;
+		gf_bs_read_data(bs, ptr->data, ptr->data_len);
 		ptr->size = 0;
 	}
 	return GF_OK;

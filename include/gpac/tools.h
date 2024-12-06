@@ -2269,7 +2269,7 @@ void gf_sha256_csum(const void *buf, u64 buflen, u8 digest[GF_SHA256_DIGEST_SIZE
 \param buflen size of input buffer in bytes
 \param digest buffer to store message digest
  */
-void gf_md5_csum(const void *buf, u64 buflen, u8 digest[GF_MD5_DIGEST_SIZE]);
+void gf_md5_csum(const void *buf, u32 buflen, u8 digest[GF_MD5_DIGEST_SIZE]);
 
 /*!
 \addtogroup libsys_grp

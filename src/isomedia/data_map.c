@@ -33,13 +33,6 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-#ifdef GPAC_HAS_FD
-#include <stdio.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#endif
-
 GF_BitStream *gf_bs_from_fd(int fd, u32 mode);
 
 void gf_isom_datamap_del(GF_DataMap *ptr)

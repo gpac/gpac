@@ -1026,7 +1026,7 @@ void process_base_url(char *manifest_payload, u32 manifest_payload_len,u32 keep_
 			while (base_url_end[offset] == '\n')
 				offset++;
 			end_len = (u32) strlen(base_url_end + offset);
-			u32 inject_len = strlen(relative_url);
+			u32 inject_len = (u32) strlen(relative_url);
 			memmove(base_url_start + 9 + inject_len, base_url_start + 9, end_len);
 			memcpy(base_url_start + 9, relative_url, inject_len);
 			man_pay_start = base_url_start + 9 + inject_len + end_len;

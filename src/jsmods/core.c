@@ -1759,7 +1759,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 	if (argc<1) return GF_JS_EXCEPTION(ctx);
 	size_t ab_size;
 	const char *data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
-	if (!data || !gf_utf8_is_legal(data, ab_size)) {
+	if (!data || !gf_utf8_is_legal(data, (u32) ab_size)) {
 		return JS_NULL;
 	}
 	char *str = gf_malloc(sizeof(char)*(ab_size+1));
@@ -1957,7 +1957,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 		JS_SetPropertyStr(ctx, po, "reps", reps );
 
 		u32 mpd_timescale = 0;
-		u32 seg_duration = 0;
+		u64 seg_duration = 0;
 		GF_MPD_SegmentTimeline *mpd_stl = NULL;
 		if (p->segment_template) {
 			if (p->segment_template->duration) seg_duration = p->segment_template->duration;
@@ -2014,7 +2014,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 					}
 				}
 				JS_SetPropertyStr(ctx, repo, "timescale", JS_NewInt32(ctx, mpd_timescale ? mpd_timescale : 1) );
-				JS_SetPropertyStr(ctx, repo, "duration", JS_NewInt32(ctx, seg_duration) );
+				JS_SetPropertyStr(ctx, repo, "duration", JS_NewInt64(ctx, seg_duration) );
 				JS_SetPropertyStr(ctx, repo, "bandwidth", JS_NewInt32(ctx, rep->bandwidth) );
 
 				gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE_NO_BASE, 0, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
@@ -2044,7 +2044,7 @@ static JSValue js_sys_mpd_parse(JSContext *ctx, JSValueConst this_val, int argc,
 							gf_mpd_resolve_url(mpd, rep, set, p, "./", 0, GF_MPD_RESOLVE_URL_MEDIA, cur_seg, 0, &seg_url, &start_range, &end_range, &segdur_ms, NULL, NULL, NULL, NULL, 0);
 
 							JS_SetPropertyStr(ctx, sego, "url", JS_NewString(ctx, seg_url) );
-							JS_SetPropertyStr(ctx, sego, "duration", JS_NewInt32(ctx, segdur_ms) );
+							JS_SetPropertyStr(ctx, sego, "duration", JS_NewInt32(ctx, (u32) segdur_ms) );
 
 							JS_SetPropertyUint32(ctx, segs, cur_seg, sego );
 							cur_seg++;

@@ -3217,7 +3217,81 @@ u32 gf_sys_get_process_id()
 {
 	return GetCurrentProcessId();
 }
+GF_EXPORT
+Bool gf_sys_check_process_id(u32 pid)
+{
+	HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+	Bool ret = GF_FALSE;
+	if (processHandle) {
+		CloseHandle(processHandle);
+		ret = GF_TRUE;
+	}
+	return ret;
+}
 #endif
+
+/*! lockfile status*/
+typedef enum {
+	/*! lockfile creation failed*/
+	GF_LOCKFILE_FAILED = 0,
+	/*! lockfile creation succeeded, creating a new lock file*/
+	GF_LOCKFILE_NEW,
+	/*! lockfile creation succeeded,  lock file was already present and created by this process*/
+	GF_LOCKFILE_REUSE
+} GF_LockStatus;
+
+GF_EXPORT
+GF_LockStatus gs_sys_create_lockfile(const char *lockname)
+{
+	char szPID[20];
+	sprintf(szPID, "%u", gf_sys_get_process_id());
+	u32 len = (u32)strlen(szPID);
+
+	while (1) {
+#ifdef GPAC_HAS_FD
+		s32 fd = open(lockname, O_CREAT | O_EXCL | O_WRONLY, S_IWUSR);
+		if (fd != -1) {
+			write(fd, szPID, len);
+			close(fd);
+			return GF_LOCKFILE_NEW;
+		}
+#elif defined(WIN32)
+		fd = _open(lockname, O_CREAT | O_EXCL | O_WRONLY, _S_IWRITE);
+		if (fd != -1) {
+			_write(fd, szPID, len);
+			_close(fd);
+			return GF_LOCKFILE_NEW;
+	}
+#else
+#if defined __STDC_VERSION__ 
+		FILE *f = fopen(lockname, "wx");
+#else
+		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
+#endif
+		if (f) {
+			fwrite(szPID, len, 1, f);
+			fclose(f);
+			return GF_LOCKFILE_NEW;
+		}
+#endif
+
+		//existing, check pid
+		u8 *data;
+		u32 size, pid;
+		gf_file_load_data(lockname, &data, &size);
+		if (!data || !size) continue;
+
+		sscanf(data, "%u", &pid);
+		gf_free(data);
+		//already locked by ourselves
+		if (pid == gf_sys_get_process_id()) return GF_LOCKFILE_REUSE;
+		//pid is alive, lock fail
+		if (gf_sys_check_process_id(pid)) return GF_LOCKFILE_FAILED;
+
+		//file exists but pid dead, grab the lock
+		gf_file_delete(lockname);
+	}
+}
 
 #ifndef WIN32
 #include <termios.h>

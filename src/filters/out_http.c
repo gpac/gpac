@@ -3734,7 +3734,7 @@ resend:
 			to_read = (u64) sess->ctx->block_size;
 
 		if (sess->comp_data) {
-			memcpy(sess->buffer, sess->comp_data+sess->file_pos, to_read);
+			memcpy(sess->buffer, sess->comp_data+(u32)sess->file_pos, (u32) to_read);
 			read = (u32) to_read;
 		}
 		else if (sess->resource) {
