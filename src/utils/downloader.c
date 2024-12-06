@@ -2931,7 +2931,7 @@ static size_t curl_on_header(char *buffer, size_t size, size_t nitems, void *cli
 static size_t curl_on_data(char *ptr, size_t size, size_t nmemb, void *clientp)
 {
 	GF_DownloadSession *sess = clientp;
-	u32 len = (u32) size*nmemb;
+	u32 len = (u32) (size*nmemb);
 	if (sess->local_buf_len + len > sess->local_buf_alloc) {
 		sess->local_buf_alloc = sess->local_buf_len + len;
 		sess->local_buf = gf_realloc(sess->local_buf, sizeof(u8) * sess->local_buf_alloc);
