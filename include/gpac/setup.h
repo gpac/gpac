@@ -389,6 +389,7 @@ char * my_str_lwr(char *str);
 #ifndef WIN32
 #include <unistd.h>
 #define lseek_64 lseek
+#define O_BINARY 0
 #else
 #include <io.h>
 #define lseek_64 _lseeki64

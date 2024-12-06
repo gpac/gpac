@@ -169,7 +169,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 	if ((ctx->fd<0) && strncmp(src, "gfio://", 7) && !gf_opts_get_bool("core", "no-fd")
 		&& (!prev_url || strncmp(prev_url, "gfio://", 7))
 	) {
-		ctx->fd = open(src, O_RDONLY);
+		ctx->fd = open(src, O_RDONLY | O_BINARY);
 	} else
 #endif
 	if (!ctx->file) {

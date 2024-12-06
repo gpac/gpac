@@ -2530,7 +2530,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 		}
 		*pid = '\0';
 	}
-	int fd = open(pidfile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+	int fd = open(pidfile, O_RDWR | O_CREAT , S_IRUSR | S_IWUSR);
 	if (fd == -1)
 		goto exit;
 	/* Get the flags */
@@ -3246,7 +3246,7 @@ GF_LockStatus gs_sys_create_lockfile(const char *lockname)
 
 	while (1) {
 #ifdef GPAC_HAS_FD
-		s32 fd = open(lockname, O_CREAT | O_EXCL | O_WRONLY, S_IWUSR);
+		s32 fd = open(lockname, O_CREAT | O_EXCL | O_WRONLY | O_BINARY, S_IWUSR);
 		if (fd != -1) {
 			write(fd, szPID, len);
 			close(fd);
