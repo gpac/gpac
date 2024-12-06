@@ -1637,14 +1637,15 @@ s32 gf_fd_open(const char *file_name, u32 oflags, u32 uflags)
 	if (!wname) return -1;
 	int res = _wopen(wname, oflags, uflags);
 	gf_free(wname);
-#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_CONFIG_ANDROID)
-	res = open(file_name, oflags, uflags);
-#elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
-	res = open(file_name, oflags, uflags);
-#else
-	res = open(file_name, oflags, uflags);
-#endif
 	return res;
+#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_CONFIG_ANDROID)
+	return open(file_name, oflags, uflags);
+#elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
+	return open(file_name, oflags, uflags);
+#else
+	return open(file_name, oflags, uflags);
+#endif
+	return -1;
 }
 
 GF_EXPORT
