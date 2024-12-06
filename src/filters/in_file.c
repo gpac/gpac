@@ -29,11 +29,6 @@
 
 #ifndef GPAC_DISABLE_FIN
 
-#ifdef GPAC_HAS_FD
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#endif
 
 enum{
 	FILE_RAND_NONE=0,
@@ -238,7 +233,7 @@ static GF_Err filein_initialize_ex(GF_Filter *filter)
 	}
 #ifdef GPAC_HAS_FD
 	if (ctx->fd>=0) {
-		lseek(ctx->fd, ctx->file_pos, SEEK_SET);
+		lseek_64(ctx->fd, ctx->file_pos, SEEK_SET);
 	} else
 #endif
 		gf_fseek(ctx->file, ctx->file_pos, SEEK_SET);
@@ -356,7 +351,7 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #ifdef GPAC_HAS_FD
 		res=0;
 		if (ctx->fd>=0) {
-			res = lseek(ctx->fd, evt->seek.start_offset, SEEK_SET);
+			res = lseek_64(ctx->fd, evt->seek.start_offset, SEEK_SET);
 			if (res>=0) res = 0;
 		} else
 #endif

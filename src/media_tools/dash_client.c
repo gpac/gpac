@@ -1395,7 +1395,7 @@ setup_multicast_clock:
 
 					if ((current_time_rescale > segtime + ent->duration) /* <=> is_last*/) {
 						group->start_playback_range = 0;
-						u32 diff = current_time_rescale - segtime - ent->duration;
+						u32 diff = (u32) (current_time_rescale - segtime - ent->duration);
 						if (diff>ent->duration) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Last segment end time is %u sec less than current time, using last entry in timeline\n", diff/timescale));
 						}

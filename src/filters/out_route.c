@@ -2786,13 +2786,13 @@ static char *mabr_get_carousel_info(GF_ROUTEOutCtx *ctx, ROUTEService *serv, Boo
 		if (rpid->raw_file) {
 			carousel_size += rpid->pck_size;
 			if (rpid->carousel_time_us) {
-				tot_rate += rpid->pck_size * 8000000 / rpid->carousel_time_us;
+				tot_rate += (u32) (rpid->pck_size * 8000000 / rpid->carousel_time_us);
 			}
 		} else if (!rpid->manifest_type) {
 			tot_rate += rpid->bitrate;
 		}
 		if (rpid->carousel_time_us && (rpid->carousel_time_us < carousel_us))
-			carousel_us = rpid->carousel_time_us;
+			carousel_us = (u32) rpid->carousel_time_us;
 	}
 	if (out_tot_rate) *out_tot_rate = tot_rate;
 
