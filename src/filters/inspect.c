@@ -3865,7 +3865,6 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 
 static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 {
-	u32 h, m, s, ms;
 	const char *name = "duration";
 	if (dur==-1) {
 		inspect_printf(dump, " duration unknown");
@@ -3879,35 +3878,15 @@ static void format_duration(s64 dur, u64 timescale, FILE *dump, Bool skip_name)
 		name = "estimated duration";
 	}
 
-	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
-	h = (u32) (dur / 3600000);
-	m = (u32) (dur/ 60000) - h*60;
-	s = (u32) (dur/1000) - h*3600 - m*60;
-	ms = (u32) (dur) - h*3600000 - m*60000 - s*1000;
+	char szDur[100];
+	gf_format_duration(dur, timescale, szDur);
 	if (skip_name)
 		inspect_printf(dump, " (");
 	else
 		inspect_printf(dump, " %s ", name);
-	if (h<=24) {
-		if (h)
-			inspect_printf(dump, "%02d:%02d:%02d.%03d", h, m, s, ms);
-		else
-			inspect_printf(dump, "%02d:%02d.%03d", m, s, ms);
-	} else {
-		u32 d = (u32) (dur / 3600000 / 24);
-		h = (u32) (dur/3600000)-24*d;
-		if (d<=365) {
-			inspect_printf(dump, "%d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
-		} else {
-			u32 y=0;
-			while (d>365) {
-				y++;
-				d-=365;
-				if (y%4) d--;
-			}
-			inspect_printf(dump, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
-		}
-	}
+
+	inspect_printf(dump, "%s", szDur);
+
 	if (skip_name)
 		inspect_printf(dump, ")");
 }
