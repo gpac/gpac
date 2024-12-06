@@ -2181,15 +2181,19 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		i--;
 		count--;
 	}
-	if (fs->js_ctx) {
-		gf_js_lock(fs->js_ctx, GF_TRUE);
-		JSValue global_obj = JS_GetGlobalObject(fs->js_ctx);
-		JSValue fsobj = JS_GetPropertyStr(fs->js_ctx, global_obj, "session");
+	if (fs->js_ctx || js_ctx) {
+		JSContext *c = fs->js_ctx ? fs->js_ctx : js_ctx;
+		gf_js_lock(c, GF_TRUE);
+		JSValue global_obj = JS_GetGlobalObject(c);
+		JSValue fsobj = JS_GetPropertyStr(c, global_obj, "session");
+		//detach since GC is likely not done now
 		JS_SetOpaque(fsobj, NULL);
-		JS_SetPropertyStr(fs->js_ctx, global_obj, "session", JS_NULL);
-		JS_FreeValue(fs->js_ctx, global_obj);
-		JS_FreeValue(fs->js_ctx, fsobj);
-		gf_js_lock(fs->js_ctx, GF_FALSE);
+		JS_SetPropertyStr(c, global_obj, "session", JS_NULL);
+		JS_FreeValue(c, global_obj);
+		JS_FreeValue(c, fsobj);
+		gf_js_lock(c, GF_FALSE);
+	}
+	if (fs->js_ctx) {
 		gf_js_delete_context(fs->js_ctx);
 		fs->js_ctx = NULL;
 	}
