@@ -4316,8 +4316,8 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	u32 data_size;
 	u32 i, count;
 	GF_Err e;
-	GF_SampleTableBox *stbl, *stbl_temp;
-	GF_SampleEncryptionBox *senc;
+	GF_SampleTableBox *stbl=NULL, *stbl_temp=NULL;
+	GF_SampleEncryptionBox *senc=NULL;
 
 	e = CanAccessMovie(dest_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
