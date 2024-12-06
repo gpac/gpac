@@ -4,6 +4,7 @@ import {XMLHttpRequest} from 'xhr'
 let use_port=0;
 let use_cache = false;
 let check_ip = false;
+let do_quit = false;
 
 const MANI_DASH = 1;
 const MANI_HLS = 2;
@@ -14,7 +15,8 @@ const DEACTIVATE_TIMEOUT_MS = 5000;
 //how long we will make the client wait - this should be refined depending on whether repair is used (fragments pushed on the fly) or not (full file loaded)
 const MABR_TIMEOUT_SAFETY = 1000;
 
-const DEFAULT_UNLOAD_SEC = 4;
+const DEFAULT_MABR_UNLOAD_SEC = 4;
+const DEFAULT_KEEPALIVE_SEC = 4;
 const DEFAULT_ACTIVATE_CLIENTS = 1;
 const DEFAULT_MCACHE = false;
 const DEFAULT_REPAIR = false;
@@ -41,11 +43,13 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +" - mcast: (string, default null) multicast address for this service\n"
 +" - local: (string, default null) local mount point of this service\n"
 +" - timeshift: (integer) override [–timeshift]() for this service\n"
-+" - unload: (integer, default "+DEFAULT_UNLOAD_SEC+") multicast unload policy\n"
++" - gcache: (integer) override [gcache]() for this service\n"
++" - unload: (integer, default "+DEFAULT_MABR_UNLOAD_SEC+") multicast unload policy\n"
 +" - activate: (integer, default "+DEFAULT_ACTIVATE_CLIENTS+") multicast activation policy\n"
 +" - repair: (boolean, default "+DEFAULT_REPAIR+") enable unicast repair in MABR stack\n"
 +" - mcache: (boolean, default "+DEFAULT_MCACHE+") cache manifest files (experimental)\n"
 +" - corrupted: (boolean, default "+DEFAULT_CORRUPTED+") forward corrupted files if parsable (valid container syntax, broken media)\n"
++" - keepalive: (integer, default "+DEFAULT_KEEPALIVE_SEC+") remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)\n"
 +"\n"
 +"# HTTP Streaming Cache\n"
 +"The proxy will cache live edge segments in HTTP streaming sessions for [–timeshift]() seconds. This caching is always done in memory.\n"
@@ -54,8 +58,8 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +"Manifests files fetched from origin can be cached using the `mcache` service configuration option but this is currently not recommended for low latency services.\n"
 +"\n"
 +"# Multicast ABR cache\n"
-+"The proxy can be configured to use a multicast source as an alternate data source for a given service through the `mcast` service description file.\n"
-+"The multicast source can be DBB-MABR (e.g. `mabr://235.0.0.1:1234/`), ATSC3.0 (e.g. `atsc://`) or ROUTE (e.g. `route://235.0.0.1:1234/`).\n"
++"The proxy can be configured to use a multicast source as an alternate data source for a given service through the `mcast` service description option.\n"
++"The multicast source can be DVB-MABR (e.g. `mabr://235.0.0.1:1234/`), ATSC3.0 (e.g. `atsc://`) or ROUTE (e.g. `route://235.0.0.1:1234/`).\n"
 +"If the multicast is replayed from a file, netcap ID shall be set in this multicast URL (e.g. `:NCID=N`).\n"
 +"If a specific IP interface is used, it can also be set in multicast URL (e.g. `:ifce=IP`).\n"
 +"\n"
@@ -79,10 +83,15 @@ filter.set_help("This filter is an HTTP proxy for GET and HEAD requests supporti
 +"Manifests files coming from multicast are currently never cached.\n"
 +"\n"
 +"# URL remapping\n"
-+"A service can be exposed by the proxy without exposing the origin URL. To enable this mode:\n"
-+"- the `local` service configuration option must be set to the exposed server path\n"
-+"- the `http` service configuration option must not contain any resource name\n"
-+"If `local` is `/service1/` and `http` is `https://test.com/live/dash/`, the proxy will translate any request `/service1/foo/bar.ext` into `https://test.com/live/dash/foo/bar.ext`\n"
++"A service can be exposed by the proxy without exposing the origin URL. To enable this mode, the `local` service configuration option must be set to:\n"
++"- the exposed server path, in which case manifest names are not rewritten\n"
++"- or the exposed manifest path, in which case  manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)\n"
++"\n"
++"If `local` is `/service1/` and `http` is `https://test.com/live/dash/live.mpd`, the proxy will translate any request `/service1/foo/bar.ext` into `https://test.com/live/dash/foo/bar.ext`\n"
++"\n"
++"If `local` is `/service1/manifest.mpd` and `http` is `https://test.com/live/dash/live.mpd`, the proxy will translate:\n"
++"- request `/service1/manifest.mpd` into `https://test.com/live/dash/live.mpd`\n"
++"- any request `/service1/foo/bar.ext` into `https://test.com/live/dash/foo/bar.ext`\n"
 );
 
 filter.set_arg({ name: "port", desc: "port to use when no server HTTP is specified", type: GF_PROP_UINT, def: "80"} );
@@ -90,6 +99,7 @@ filter.set_arg({ name: "sdesc", desc: "service configuration file", type: GF_PRO
 filter.set_arg({ name: "gcache", desc: "use gpac cache when fetching media", type: GF_PROP_BOOL, def: "false" } );
 filter.set_arg({ name: "timeshift", desc: "timeshift buffer in seconds for HTTP streaming services", type: GF_PROP_UINT, def: "10"} );
 filter.set_arg({ name: "checkip", desc: "monitor IP address for activation", type: GF_PROP_BOOL, def: "false"} );
+filter.set_arg({ name: "quit", desc: "exit proxy once last service has been deactivated", type: GF_PROP_BOOL, def: "false"} );
 
 let services_defs = [
 //	{'http': "http://127.0.0.1:8080/live.mpd", "mcast": "mabr://235.0.0.1:1234/", "start": false, "keep": false, "netcap": "" }
@@ -399,6 +409,15 @@ httpout.on_request = (req) =>
 		let service_def = services_defs.find( s => (s.local && (req.url.indexOf(s.local)==0) ) );
 		if (service_def) {
 			req.target_url = req.url.replace(service_def.local, service_def.http);
+		} else {
+			service_def = services_defs.find( s => (s.local_base && (req.url.indexOf(s.local_base)==0) ) );
+			if (service_def) {
+				req.target_url = req.url.replace(service_def.local_base, service_def.http_base);
+			}
+		}
+		if (req.target_url) {
+			//rewrite request url
+			req.url = req.target_url.substring(req.target_url.indexOf('/', 8));
 		}
 	}
 	//running as real proxy, check host
@@ -585,7 +604,11 @@ httpout.on_request = (req) =>
 			req.xhr = new XMLHttpRequest();
 
 		req.xhr.last_used = sys.clock_ms();
-		req.xhr.cache = (!req.cache_file && use_cache) ? "normal" : "none";
+		let do_cache = false;
+		if (!req.cache_file) {
+			do_cache = req.service ? req.service.gcache : use_cache;
+		}
+		req.xhr.cache = do_cache ? "normal" : "none";
 		req.xhr.responseType = "push";
 		req.xhr.onprogress = function (evt) {
 			if (!evt) return;
@@ -731,7 +754,10 @@ httpout.on_request = (req) =>
 		}
 	}
 
-	if (req.service && req.manifest_type && !req.service.mani_cache) not_cachable = true;
+	if (req.service) {
+		req.service.unload_timeout = 0;
+		if (req.manifest_type && !req.service.mani_cache) not_cachable = true;
+	}
 
 	//look in mem cache
 	if (req.service && !not_cachable) {
@@ -806,9 +832,12 @@ function create_service(http_url, force_mcast_activate)
 	s.pending_reqs=[];
 	s.active_reps_timeouts=[];
 	s.nb_mabr_active = 0;
+	s.mabr_unload_timeout = 0;
 	s.unload_timeout = 0;
 	s.purge_delay = def_purge_delay;
 	s.mani_cache = false;
+	s.gcache = use_cache;
+	s.keepalive = DEFAULT_KEEPALIVE_SEC;
 	s.xhr_cache = [];
 	s.pending_deactivate = [];
 	if (http_url.toLowerCase().startsWith('https://')) s.force_tls = true;
@@ -827,6 +856,8 @@ function create_service(http_url, force_mcast_activate)
 		s.repair = serv_cfg.repair;
 		s.corrupted = serv_cfg.corrupted;
 		s.local = serv_cfg.local;
+		s.keepalive = serv_cfg.keepalive;
+		s.gcache = serv_cfg.gcache;
 		print(GF_LOG_DEBUG, `Service ${http_url} has custom config${ (serv_cfg.mcast ? ' and MABR' : '')}`);
 	}
 
@@ -949,13 +980,13 @@ function create_service(http_url, force_mcast_activate)
 
 		if (do_activate) {
 			this.nb_mabr_active++;
-			this.unload_timeout = 0;
+			this.mabr_unload_timeout = 0;
 			print(GF_LOG_INFO, `Service ${this.id} MABR activated for Rep ${rep.ID} - active in service ${this.nb_mabr_active}`);
 		} else if (this.nb_mabr_active) {
 			this.nb_mabr_active--;
 			print(GF_LOG_INFO, `Service ${this.id} MABR deactivated for Rep ${rep.ID} - active in service ${this.nb_mabr_active}`);
 			if (!this.nb_mabr_active && this.unload) {
-				this.unload_timeout = sys.clock_ms() + 1000*this.unload;
+				this.mabr_unload_timeout = sys.clock_ms() + 1000*this.unload;
 			}
 		}
 
@@ -1104,6 +1135,16 @@ function create_service(http_url, force_mcast_activate)
 		this.sink.set_source(this.source);
 		print(GF_LOG_INFO, `Service ${this.id} loaded MABR for ${this.mabr}${this.repair ? ' with repair' : ''}`);
 	};
+	s.unload_mabr = function() {
+		if (this.source) {
+			print(GF_LOG_INFO, `Service ${this.id} stopping MABR`);
+			session.remove_filter(this.sink);
+			session.remove_filter(this.source);
+			this.sink = null;
+			this.source = null;
+			this.mabr_loaded = false;
+		}
+	};
 
 	all_services.push(s);
 	print(GF_LOG_INFO, `Created Service ID ${s.id} for ${http_url}${s.mabr ? ' with MABR' : ''}`);
@@ -1135,7 +1176,8 @@ function do_init()
 	session.post_task( () => {
 		let do_gc = false;
 		let now = sys.clock_ms();
-		all_services.forEach(s => {
+		for (let i=0; i<all_services.length; i++) {
+			let s = all_services[i];
 			//cleanup mem cache
 			for (let i=0; i<s.mem_cache.length; i++) {
 				let f = s.mem_cache[i];
@@ -1187,6 +1229,8 @@ function do_init()
 				active_rep.nb_active--;
 				if (!active_rep.nb_active) {
 					print(GF_LOG_INFO, `Service ${s.id} Rep ${active_rep.ID} is now inactive`);
+					if (s.keepalive)
+						s.unload_timeout = sys.clock_ms() + 1000*s.keepalive;
 				} else {
 					print(GF_LOG_DEBUG, `Service ${s.id} Rep ${active_rep.ID} is still active (active clients ${active_rep.nb_active})`);
 				}
@@ -1200,19 +1244,6 @@ function do_init()
 					}
 				}
 			}
-			//check timeout on MABR service deactivation
-			if (s.unload_timeout && (s.unload_timeout < now)) {
-				s.unload_timeout = 0;
-				if (!s.nb_mabr_active && s.source) {
-					print(GF_LOG_INFO, `Service ${s.id} stopping MABR`);
-					session.remove_filter(s.sink);
-					session.remove_filter(s.source);
-					s.sink = null;
-					s.source = null;
-					s.mabr_loaded = false;
-					do_gc = true;
-				}
-			}
 			//cleanup XHRs
 			for (let i=0; i<s.xhr_cache.length; i++) {
 				let xhr = s.xhr_cache[i];
@@ -1221,8 +1252,29 @@ function do_init()
 				i--;
 				do_gc = true;
 			}
+			//check timeout on MABR service deactivation
+			if (s.mabr_unload_timeout && (s.mabr_unload_timeout < now)) {
+				s.mabr_unload_timeout = 0;
+				if (!s.nb_mabr_active) {
+					s.unload_mabr();
+					do_gc = true;
+				}
+			}
+			//check service unload
+			if (s.unload_timeout && (s.unload_timeout < now)) {
+				s.unload_mabr();
+				print(GF_LOG_INFO, `Service ${s.id} unloading`);
+				all_services.splice(i, 1);
+				if (!all_services.length && do_quit) {
+					print("No more services, exiting");
+					session.remove_filter(http_out_f);
+					return false;
+				}
+				i--;
+				do_gc = true;
+			}
+		}
 
-		});
 		if (do_gc) sys.gc();
 		if (session.last_task) return false;
 		//perform cleanup every 100ms
@@ -1247,11 +1299,19 @@ session.post_task( () => {
 	return false;
 }, "init", 200);
 
+function get_base_url(url)
+{
+	let str = url.split('/');
+	str.pop();
+	return str.join('/') + '/';
+}
+
 filter.initialize = function() {
 	def_purge_delay = filter.timeshift * 1000;
 	use_port = filter.port;
 	use_cache = filter.gcache;
 	check_ip = filter.checkip;
+	do_quit = filter.quit;
 
 	if (filter.sdesc) {
 		try {
@@ -1266,12 +1326,17 @@ filter.initialize = function() {
 				if (typeof sd.local == 'undefined') sd.local = null;
 				else if (typeof sd.local != 'string') throw "Missing or invalid local property, expecting string got "+typeof sd.local;
 
-				if (typeof sd.unload != 'number') sd.unload = DEFAULT_UNLOAD_SEC;
+				if (typeof sd.unload != 'number') sd.unload = DEFAULT_MABR_UNLOAD_SEC;
 				if (typeof sd.activate != 'number') sd.activate = DEFAULT_ACTIVATE_CLIENTS;
 				if (typeof sd.timeshift != 'number') sd.timeshift = filter.timeshift;
 				if (typeof sd.mcache != 'boolean') sd.mcache = DEFAULT_MCACHE;
 				if (typeof sd.repair != 'boolean') sd.repair = DEFAULT_REPAIR;
 				if (typeof sd.corrupted != 'boolean') sd.corrupted = DEFAULT_CORRUPTED;
+				if (typeof sd.gcache != 'boolean') sd.gcache = filter.gcache;
+
+				if (typeof sd.keepalive != 'number') sd.keepalive = DEFAULT_KEEPALIVE_SEC;
+				if (!sd.unload) sd.keepalive = 0;
+				if (sd.unload>sd.keepalive) sd.keepalive = sd.unload;
 
 				sd.http = sd.http.replace(/([^\/\:]+):\/\/([^\/]+):([0-9]+)\//, "$1://$2/");
 				//remove default ports
@@ -1282,6 +1347,23 @@ filter.initialize = function() {
 				if (url_lwr.startsWith('http://')) {
 					sd.http = sd.http.replace(":80/", "/");
 				}
+				sd.local_base = null;
+				if (sd.local) {
+					sd.local = sd.local.split('?')[0];
+					if (!sd.local.length) sd.local = null;
+					else if (sd.local.charAt(sd.local.length-1) != '/') {
+						let str = sd.local.split('/')
+						str.pop();
+						sd.local_base = str.join('/') + '/';
+					} else {
+						sd.local_base = sd.local;
+						sd.local = null;
+					}
+				}
+				//http URL must point to a manifest
+				let str = sd.http.split('/')
+				str.pop();
+				sd.http_base = str.join('/') + '/';
 			});
 		} catch (e) {
 			print(`Failed to load services configuration ${filter.sdesc}: ${e}`);

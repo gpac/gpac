@@ -1102,7 +1102,7 @@ cache (enum, default: none):   set cache mode
 .br
 * auto: cache to disk if content length is known, no cache otherwise
 .br
-* disk: cache to disk,  discard once session is no longer used
+* disk: cache to disk, discard once session is no longer used
 .br
 * keep: cache to disk and keep
 .br
@@ -5154,7 +5154,7 @@ gpac -i file.mp4 reframer:rt=on -o live.mpd:dmode=dynamic
 .br
 .SS Template strings
 .br
-The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). The default one is $File$_dash for ondemand and single file modes, and $File$_$Number$ for separate segment files
+The segmenter uses templates to derive output file names and folder, regardless of the DASH mode (even when templates are not used). The default one is $File$_dash for ondemand and single file modes, and $File$_$Number$ for separate segment files
 .br
 Example
 .br
@@ -5209,6 +5209,10 @@ Additional replacement strings (not DASH, not generic GPAC replacements but may 
 * $FS$ (FileSuffix): replaced by _trackN in case the input is an AV multiplex, or kept empty otherwise
 .br
 Note: these strings are replaced in the manifest templates elements.
+.br
+
+.br
+Other properties can also be set, see below.
 .br
 
 .br
@@ -6981,7 +6985,7 @@ reorder (bool, default: true): consider packets are not always in order - if fal
 .br
 cloop (bool, default: false):  check for loops based on TOI (used for capture replay)
 .br
-rtimeout (uint, default: 100000): default timeout in us to wait when gathering out-of-order packets
+rtimeout (uint, default: 50000): default timeout in us to wait when gathering out-of-order packets
 .br
 fullseg (bool, default: false): only dispatch full segments in cache mode (always true for other modes)
 .br
@@ -10195,13 +10199,23 @@ Each service is a JSON object which shall have the following properties:
 .br
  * mcast: (string, default null) multicast address for this service
 .br
- * unload: (integer, default 10) multicast unload policy
+ * local: (string, default null) local mount point of this service
+.br
+ * timeshift: (integer) override –timeshift for this service
+.br
+ * gcache: (integer) override gcache for this service
+.br
+ * unload: (integer, default 4) multicast unload policy
 .br
  * activate: (integer, default 1) multicast activation policy
 .br
+ * repair: (boolean, default false) enable unicast repair in MABR stack
+.br
  * mcache: (boolean, default false) cache manifest files (experimental)
 .br
- * timeshift: (integer) override –timeshift for this service
+ * corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
+.br
+ * keepalive: (integer, default 4) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
 .br
 
 .br
@@ -10221,11 +10235,13 @@ Manifests files fetched from origin can be cached using the mcache service confi
 .SH Multicast ABR cache
 .LP
 .br
-The proxy can be configured to use a multicast source as an alternate data source for a given service through the mcast service description file.
+The proxy can be configured to use a multicast source as an alternate data source for a given service through the mcast service description option.
 .br
-The multicast source can be DBB-MABR (e.g. mabr://235.0.0.1:1234/), ATSC3.0 (e.g. atsc://) or ROUTE (e.g. route://235.0.0.1:1234/).
+The multicast source can be DVB-MABR (e.g. mabr://235.0.0.1:1234/), ATSC3.0 (e.g. atsc://) or ROUTE (e.g. route://235.0.0.1:1234/).
 .br
-If the multicast is replayed from a file, netcap ID shall be set in this multicast URL (e.g. NCID=N).
+If the multicast is replayed from a file, netcap ID shall be set in this multicast URL (e.g. :NCID=N).
+.br
+If a specific IP interface is used, it can also be set in multicast URL (e.g. :ifce=IP).
 .br
 
 .br
@@ -10239,9 +10255,17 @@ The multicast service can be dynamically loaded at run-time using the unload ser
 .br
 The qualities in the multicast service can be dynamically activated or deactivated using the activate service configuration option:
 .br
-- if 0, multicast is never deactivated,
+- if 0, multicast streams are never deactivated,
 .br
 - otherwise, a multicast representation is activated only if at least active clients are consuming it, and deactivated otherwise.
+.br
+
+.br
+The multicast service can use repair options of the MABR stack using repair service configuration option:
+.br
+- if false, the file will not be sent until completely received (this increases latency),
+.br
+- otherwise, file data will be pushed as soon as available in order (after reception or repair).
 .br
 
 .br
@@ -10259,6 +10283,29 @@ Manifests files coming from multicast are currently never cached.
 .br
 
 .br
+.SH URL remapping
+.LP
+.br
+A service can be exposed by the proxy without exposing the origin URL. To enable this mode, the local service configuration option must be set to:
+.br
+- the exposed server path, in which case manifest names are not rewritten
+.br
+- or the exposed manifest path, in which case  manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
+.br
+
+.br
+If local is /service1/ and http is https://test.com/live/dash/live.mpd, the proxy will translate any request /service1/foo/bar.ext into https://test.com/live/dash/foo/bar.ext
+.br
+
+.br
+If local is /service1/manifest.mpd and http is https://test.com/live/dash/live.mpd, the proxy will translate:
+.br
+- request /service1/manifest.mpd into https://test.com/live/dash/live.mpd
+.br
+- any request /service1/foo/bar.ext into https://test.com/live/dash/foo/bar.ext
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -10271,6 +10318,8 @@ gcache (bool, default: false): use gpac cache when fetching media
 timeshift (uint, default: 10): timeshift buffer in seconds for HTTP streaming services
 .br
 checkip (bool, default: false): monitor IP address for activation
+.br
+quit (bool, default: false):   exit proxy once last service has been deactivated
 .br
 
 .br
