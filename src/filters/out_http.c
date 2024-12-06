@@ -496,7 +496,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 	if (sess->cbk_close)
 		sess->cbk_close(sess->rt_udta, code);
 #ifdef GPAC_HAS_QJS
-	if (sess->ctx->jsc) {
+	if (sess->ctx->jsc && !JS_IsUndefined(sess->obj)) {
 		gf_js_lock(sess->ctx->jsc, GF_TRUE);
 		JS_SetOpaque(sess->obj, NULL);
 		JS_FreeValue(sess->ctx->jsc, sess->obj);
@@ -1134,6 +1134,11 @@ s32 js_sess_read(void *udta, u8 *buffer, u32 buffer_size)
 {
 	GF_HTTPOutSession *sess = (void *)udta;
 	gf_js_lock(sess->ctx->jsc, GF_TRUE);
+	//check we haven't been canceled
+	if (JS_IsUndefined(sess->obj)) {
+		gf_js_lock(sess->ctx->jsc, GF_FALSE);
+		return 0;
+	}
 	JSValue fun = JS_GetPropertyStr(sess->ctx->jsc, sess->obj, "read");
 	JSValue arg = JS_NewArrayBuffer(sess->ctx->jsc, sess->buffer, sess->ctx->block_size, NULL, NULL, 0);
 	JSValue ret = JS_Call(sess->ctx->jsc, fun, sess->obj, 1, &arg);
@@ -1146,6 +1151,12 @@ s32 js_sess_read(void *udta, u8 *buffer, u32 buffer_size)
 	JS_FreeValue(sess->ctx->jsc, ret);
 	JS_FreeValue(sess->ctx->jsc, fun);
 	JS_FreeValue(sess->ctx->jsc, arg);
+	//detach as soon as EOS
+	if (!nb_read) {
+		JS_SetOpaque(sess->obj, NULL);
+		JS_FreeValue(sess->ctx->jsc, sess->obj);
+		sess->obj = JS_UNDEFINED;
+	}
 	gf_js_lock(sess->ctx->jsc, GF_FALSE);
 	return nb_read;
 }
@@ -1232,21 +1243,25 @@ static JSValue httpout_js_send(JSContext *c, JSValueConst this_val, int argc, JS
 	sess->rt_udta = sess;
 	sess->next_process_clock = 0;
 	ret = JS_GetPropertyStr(c, sess->obj, "throttle");
+	sess->cbk_throttle = NULL;
 	if (JS_IsFunction(c, ret))
 		sess->cbk_throttle = js_sess_throttle;
 	JS_FreeValue(c, ret);
 
 	ret = JS_GetPropertyStr(c, sess->obj, "close");
+	sess->cbk_close = NULL;
 	if (JS_IsFunction(c, ret))
 		sess->cbk_close = js_sess_close;
 	JS_FreeValue(c, ret);
 
+	sess->cbk_read = NULL;
 	if (sess->method_type==GF_HTTP_GET) {
 		ret = JS_GetPropertyStr(c, sess->obj, "read");
 		if (JS_IsFunction(c, ret))
 			sess->cbk_read = js_sess_read;
 		JS_FreeValue(c, ret);
 	}
+	sess->cbk_write = NULL;
 	if (sess->reply && ((sess->method_type==GF_HTTP_PUT) || (sess->method_type==GF_HTTP_POST))) {
 		ret = JS_GetPropertyStr(c, sess->obj, "write");
 		sess->upload_type = 0;
@@ -1271,8 +1286,10 @@ static s32 httpout_js_on_request(void *udta, GF_HTTPOutSession *sess, const char
 	}
 	gf_js_lock(c, GF_TRUE);
 
-	if (!JS_IsUndefined(sess->obj))
+	if (!JS_IsUndefined(sess->obj)) {
+		JS_SetOpaque(sess->obj, NULL);
 		JS_FreeValue(c, sess->obj);
+	}
 
 	sess->obj = JS_NewObject(c);
 	JS_SetOpaque(sess->obj, sess);
@@ -3111,8 +3128,10 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	if (s->ranges) gf_free(s->ranges);
 
 #ifdef GPAC_HAS_QJS
-	JS_SetOpaque(s->obj, NULL);
-	s->obj = JS_UNDEFINED;
+	if (!JS_IsUndefined(s->obj)) {
+		JS_SetOpaque(s->obj, NULL);
+		s->obj = JS_UNDEFINED;
+	}
 #endif
 
 	gf_free(s);
