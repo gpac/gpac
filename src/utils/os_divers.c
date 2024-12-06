@@ -3205,10 +3205,17 @@ GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
 
 #ifndef WIN32
 #include <unistd.h>
+#include <fcntl.h>
+
 GF_EXPORT
 u32 gf_sys_get_process_id()
 {
 	return getpid ();
+}
+GF_EXPORT
+Bool gf_sys_check_process_id(u32 pid)
+{
+	return (getpgid(pid) == -1) ? GF_FALSE : GF_TRUE;
 }
 #else
 #include <windows.h>
@@ -3230,16 +3237,6 @@ Bool gf_sys_check_process_id(u32 pid)
 }
 #endif
 
-/*! lockfile status*/
-typedef enum {
-	/*! lockfile creation failed*/
-	GF_LOCKFILE_FAILED = 0,
-	/*! lockfile creation succeeded, creating a new lock file*/
-	GF_LOCKFILE_NEW,
-	/*! lockfile creation succeeded,  lock file was already present and created by this process*/
-	GF_LOCKFILE_REUSE
-} GF_LockStatus;
-
 GF_EXPORT
 GF_LockStatus gs_sys_create_lockfile(const char *lockname)
 {
@@ -3255,13 +3252,6 @@ GF_LockStatus gs_sys_create_lockfile(const char *lockname)
 			close(fd);
 			return GF_LOCKFILE_NEW;
 		}
-#elif defined(WIN32)
-		fd = _open(lockname, O_CREAT | O_EXCL | O_WRONLY, _S_IWRITE);
-		if (fd != -1) {
-			_write(fd, szPID, len);
-			_close(fd);
-			return GF_LOCKFILE_NEW;
-	}
 #else
 #if defined __STDC_VERSION__ 
 		FILE *f = fopen(lockname, "wx");
