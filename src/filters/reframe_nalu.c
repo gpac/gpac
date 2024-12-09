@@ -2444,7 +2444,37 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 				p.value.sint_list.vals = refs;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_REFS, &p);
 			}
+		}
 
+		if (ctx->hevc_state || ctx->avc_state) {
+			u8 num_clock_ts = 0;
+			AVCSeiPicTimingTimecode *tcs = NULL;
+
+			if (ctx->hevc_state) {
+				num_clock_ts = ctx->hevc_state->sei.pic_timing.num_clock_ts;
+				tcs = ctx->hevc_state->sei.pic_timing.timecodes;
+			} else if (ctx->avc_state) {
+				num_clock_ts = ctx->avc_state->sei.pic_timing.num_clock_ts;
+				tcs = ctx->avc_state->sei.pic_timing.timecodes;
+			}
+
+			if (num_clock_ts) {
+				GF_PropUIntList p;
+				p.nb_items = num_clock_ts;
+				p.vals = gf_malloc(sizeof(u32) * num_clock_ts);
+
+				for (u32 i=0; i<num_clock_ts; i++) {
+					AVCSeiPicTimingTimecode *tc = &tcs[i];
+					p.vals[i] = tc->hours*3600 + tc->minutes*60 + tc->seconds;
+					p.vals[i] = p.vals[i]*1000 + tc->n_frames;
+				}
+
+				GF_PropertyValue pv;
+				pv.type = GF_PROP_UINT_LIST;
+				pv.value.uint_list = p;
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_TIMECODES, &pv);
+				gf_free(p.vals);
+			}
 		}
 	} else {
 		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
