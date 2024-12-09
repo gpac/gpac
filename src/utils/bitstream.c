@@ -86,6 +86,7 @@ struct __tag_bitstream
 #endif
 };
 
+GF_NOT_EXPORTED
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
 {
 	if (!bs) return GF_BAD_PARAM;
