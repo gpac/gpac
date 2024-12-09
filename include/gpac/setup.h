@@ -899,6 +899,9 @@ size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
 #ifndef GF_STATIC
 #define GF_STATIC static
 #endif
+#ifndef GF_NOT_EXPORTED
+#define GF_NOT_EXPORTED
+#endif
 //! @endcond
 
 #ifdef __cplusplus
