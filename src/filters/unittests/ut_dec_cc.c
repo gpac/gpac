@@ -2,6 +2,7 @@
 #include "../dec_cc.c"
 #include "../../filter_core/filter_session.h" // GF_FilterPacket
 
+
 static GF_Err pck_truncate(GF_FilterPacket *pck, u32 size)
 {
     pck->data_length = size;
@@ -49,14 +50,14 @@ static void ccdec_test_template(int agg, Bool text_with_overlaps, GF_Err (*pck_s
     pck_send(NULL);
 }
 
+
 static GF_Err pck_send_default(GF_FilterPacket *pck)
 {
-    #define expected_calls 11
     static int calls = 0;
-    static const char* expected[expected_calls] = { "G", "GP", "GP\n", "GP\nA", "GP\nA ", "GP\nA C", "GP\nA C ", "GP\nA C \n", "GP\nA C \n1", "GP\nA C \n1 ", "GP\nA C \n1 2" };
+    static const char* expected[] = { "G", "GP", "GP\n", "GP\nA", "GP\nA ", "GP\nA C", "GP\nA C ", "GP\nA C \n", "GP\nA C \n1", "GP\nA C \n1 ", "GP\nA C \n1 2" };
     
     if (!pck) {
-        assert_equal(calls, expected_calls);
+        assert_equal(calls, sizeof(expected)/sizeof(const char*));
         return GF_OK;
     }
     
@@ -65,7 +66,6 @@ static GF_Err pck_send_default(GF_FilterPacket *pck)
     assert_equal_str(data, expected[calls]);
     calls++;
     assert_equal(size, calls);
-    #undef expected_calls
     return GF_OK;
 }
 
@@ -77,12 +77,11 @@ unittest(ccdec_default)
 
 static GF_Err pck_send_aggregation(GF_FilterPacket *pck)
 {
-    #define expected_calls 6
     static int calls = 0;
-    static const char* expected[expected_calls] = { "GP\n", "GP\nA", "GP\nA C", "GP\nA C \n", "GP\nA C \n1", "GP\nA C \n1 2" };
+    static const char* expected[] = { "GP\n", "GP\nA", "GP\nA C", "GP\nA C \n", "GP\nA C \n1", "GP\nA C \n1 2" };
 
     if (!pck) {
-        assert_equal(calls, expected_calls);
+        assert_equal(calls, sizeof(expected)/sizeof(const char*));
         return GF_OK;
     }
 
@@ -90,7 +89,6 @@ static GF_Err pck_send_aggregation(GF_FilterPacket *pck)
     const u8 *data = gf_filter_pck_get_data(pck, &size);
     assert_equal_str(data, expected[calls]);
     calls++;
-    #undef expected_calls
     return GF_OK;
 }
 
@@ -107,12 +105,11 @@ unittest(ccdec_aggregation_overlaps)
 
 static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
 {
-    #define expected_calls 2
     static int calls = 0;
-    static const char* expected[expected_calls] = { "GPAC", "ROCKS" };
+    static const char* expected[] = { "GPAC", "ROCKS" };
     
     if (!pck) {
-        assert_equal(calls, expected_calls);
+        assert_equal(calls, sizeof(expected)/sizeof(const char*));
         return GF_OK;
     }
     
@@ -121,7 +118,6 @@ static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
     assert_equal_str(data, expected[calls]);
     calls++;
     assert_equal(size, calls);
-    #undef expected_calls
     return GF_OK;
 }
 
@@ -135,10 +131,14 @@ unittest(ccdec_several_entries)
     ctx.pck_new_alloc = pck_new_alloc;
 
     u64 ts = 0;
-    text_aggregate_and_post(&ctx, "GPAC", ts++);
-    text_aggregate_and_post(&ctx, "ROCKS", ts++);
+    strcpy(ctx.txtdata, "GPAC");
+    text_aggregate_and_post(&ctx, strlen(ctx.txtdata), ts++);
+
+    strcpy(ctx.txtdata, "ROCKS");
+    ctx.txtlen = 0;
+    text_aggregate_and_post(&ctx, strlen(ctx.txtdata), ts++);
 
     //termination calls
     ccdec_flush(&ctx);
-    pck_send(NULL);
+    ctx.pck_send(NULL);
 }
