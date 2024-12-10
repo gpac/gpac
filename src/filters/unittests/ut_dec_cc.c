@@ -55,11 +55,14 @@ static GF_Err pck_send_default(GF_FilterPacket *pck)
 {
     static int calls = 0;
     static const char* expected[] = { "G", "GP", "GP\n", "GP\nA", "GP\nA ", "GP\nA C", "GP\nA C ", "GP\nA C \n", "GP\nA C \n1", "GP\nA C \n1 ", "GP\nA C \n1 2" };
+    const int num_expected = sizeof(expected)/sizeof(const char*);
     
     if (!pck) {
-        assert_equal(calls, sizeof(expected)/sizeof(const char*));
+        assert_equal(calls, num_expected);
         return GF_OK;
     }
+    if (calls >= num_expected)
+        assert_true(0);
     
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
@@ -79,11 +82,15 @@ static GF_Err pck_send_aggregation(GF_FilterPacket *pck)
 {
     static int calls = 0;
     static const char* expected[] = { "GP\n", "GP\nA", "GP\nA C", "GP\nA C \n", "GP\nA C \n1", "GP\nA C \n1 2" };
+    const int num_expected = sizeof(expected)/sizeof(const char*);
 
     if (!pck) {
-        assert_equal(calls, sizeof(expected)/sizeof(const char*));
+        assert_equal(calls, num_expected);
+        calls = 0;
         return GF_OK;
     }
+    if (calls >= num_expected)
+        assert_true(0);
 
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
@@ -107,22 +114,25 @@ static GF_Err pck_send_several_entries(GF_FilterPacket *pck)
 {
     static int calls = 0;
     static const char* expected[] = { "GPAC", "ROCKS" };
-    
+    const int num_expected = sizeof(expected)/sizeof(const char*);
+
     if (!pck) {
-        assert_equal(calls, sizeof(expected)/sizeof(const char*));
+        assert_equal(calls, num_expected);
         return GF_OK;
     }
+    if (calls >= num_expected)
+        assert_true(0);
     
     u32 size = 0;
     const u8 *data = gf_filter_pck_get_data(pck, &size);
     assert_equal_str(data, expected[calls]);
     calls++;
-    assert_equal(size, calls);
     return GF_OK;
 }
 
 unittest(ccdec_several_entries)
 {
+    u64 ts = 0;
     CCDecCtx ctx = {0};
     ctx.agg = 1;
 
@@ -130,13 +140,11 @@ unittest(ccdec_several_entries)
     ctx.pck_truncate = pck_truncate;
     ctx.pck_new_alloc = pck_new_alloc;
 
-    u64 ts = 0;
-    strcpy(ctx.txtdata, "GPAC");
-    text_aggregate_and_post(&ctx, strlen(ctx.txtdata), ts++);
+    strcpy(ctx.txtdata+ctx.txtlen, "GPAC");
+    text_aggregate_and_post(&ctx, strlen("GPAC"), ts++);
 
-    strcpy(ctx.txtdata, "ROCKS");
-    ctx.txtlen = 0;
-    text_aggregate_and_post(&ctx, strlen(ctx.txtdata), ts++);
+    strcpy(ctx.txtdata+ctx.txtlen, "ROCKS");
+    text_aggregate_and_post(&ctx, strlen("ROCKS"), ts++);
 
     //termination calls
     ccdec_flush(&ctx);
