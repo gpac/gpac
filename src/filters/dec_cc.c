@@ -609,6 +609,7 @@ static GF_Err ccdec_initialize(GF_Filter *filter)
 {
 	CCDecCtx *ctx = gf_filter_get_udta(filter);
 	ctx->pck_new_alloc = gf_filter_pck_new_alloc;
+	ctx->pck_truncate = gf_filter_pck_truncate;
 	ctx->pck_send = gf_filter_pck_send;
 	ctx->cc_queue = gf_list_new();
 	if (!ctx->cc_queue) return GF_OUT_OF_MEM;
