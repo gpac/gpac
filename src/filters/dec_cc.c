@@ -74,7 +74,7 @@ typedef struct
 
 	/*aggregation mode for dispatch*/
 	u32 agg;
-	u8 txtdata[CAPTION_FRAME_TEXT_BYTES+1];
+	u8 txtdata[2/*double for aggregation*/*CAPTION_FRAME_TEXT_BYTES+1];
 	u32 txtlen;
 
 	u32 timescale;
@@ -199,7 +199,7 @@ static GF_Err ccdec_post(CCDecCtx *ctx, u32 size, u64 ts)
 		GF_FilterPacket *pck = ctx->pck_new_alloc(ctx->opid, size+1, &output);
 		if (!pck) return GF_OUT_OF_MEM;
 		memcpy(output, ctx->txtdata, size);
-		output[size] = 0;printf("Romain: post %s, size=%u\n", output, size);
+		output[size] = 0;
 		ctx->pck_truncate(pck, size);
 		gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
@@ -215,15 +215,16 @@ static GF_Err ccdec_post(CCDecCtx *ctx, u32 size, u64 ts)
 u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v);
 void gf_m4v_parser_set_inspect(GF_M4VParser *m4v);
 
-static u32 find_separator(const char *input)
+static int find_last_separator(const char *input)
 {
-	char *ptr = strchr(input, ' ');
-	if (ptr)
-		return ptr-input;
-	ptr = strchr(input, '\n');
-	if (ptr)
-		return ptr-input;
-	return 0;
+	const char *space = strrchr(input, ' ');
+	const char *newline = strrchr(input, '\n');
+	if (!space && !newline)
+		return -1;
+	if (!space || space < newline)
+		return newline-input+1/*include the '\n'*/;
+	else
+		return space-input;
 }
 
 static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
@@ -243,47 +244,32 @@ static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
 
 static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 {
-	/*look for overlaps if case we aggregate: we couldn't rely on popon/painton/rollup reliably*/
-	Bool continuation = GF_FALSE;
+	// look for overlaps if case we aggregate: we couldn't rely on libcaption's popon/painton/rollup reliably
+	Bool overlap = GF_FALSE;
 	if (ctx->agg>0 && ctx->txtlen>0) {
 		if (!strncmp(ctx->txtdata, ctx->txtdata+ctx->txtlen, ctx->txtlen)) {
-			//overlap: remove previous
 			memmove(ctx->txtdata, ctx->txtdata+ctx->txtlen, size+1);
-			ctx->txtlen = 0; //size;
-			assert(size > 0); //Romain
-			continuation = GF_TRUE;
-		} else {
-			continuation = GF_FALSE;
-			//no overlap//Romain:
-			//assert(*txtlen == 0);
-			//*txtlen = size;
+			overlap = GF_TRUE;
 		}
 	}
-	printf("Romain input: %s\n", ctx->txtdata+ctx->txtlen);
-	//printf("Romain: %s (pop:%d|paint:%d|rollup:%d)\n", ctx->txtdata+ctx->txtlen,
-	//caption_frame_popon(ctx->ccframe), caption_frame_painton(ctx->ccframe), caption_frame_rollup(ctx->ccframe));
 
 	if (same_crc(ctx, size, ts))
 		return GF_OK;
 
-	//Romain TODO:
-	// - flush
-	// - check for overflows: double txtdata size + check we don't overrun?
-
 	if (ctx->agg == 0) {
-		// noa grgegation: dispatch
+		// no aggregation: dispatch now
 		return ccdec_post(ctx, size, ts);
 	} else {
-		if ( (ctx->txtlen = find_separator(ctx->txtdata+ctx->txtlen)) ) {
-			GF_Err e = ccdec_post(ctx, ctx->txtlen, ts);
+		int len = -1;
+		if ( (len = find_last_separator(ctx->txtdata+ctx->txtlen)) >= 0 ) {
+			GF_Err e = ccdec_post(ctx, ctx->txtlen+len, ts);
 			if (e) return e;
+		}
+
+		if (overlap) {
 			ctx->txtlen = size;
-			//Romain: memmove(*txtdata, *txtdata+*txtlen, size+1);
-			//*txtlen = size;
-			//*txtlen += size;
 		} else {
-			// aggregation: enqueue until next flush
-			ctx->txtlen += size;printf("Romain: inc *txtlen += size(%d)\n", size);
+			ctx->txtlen += size;
 		}
 	}
 
@@ -404,6 +390,15 @@ static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bo
 	return GF_OK;
 }
 
+static void ccdec_flush(CCDecCtx *ctx)
+{
+	if (ctx->agg == 0)
+		return;
+
+	if (strlen(ctx->txtdata))
+		ccdec_post(ctx, strlen(ctx->txtdata), ctx->last_ts_plus_one);
+}
+
 GF_Err ccdec_process(GF_Filter *filter)
 {
 	GF_Err e;
@@ -417,6 +412,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 			while (gf_list_count(ctx->cc_queue)) {
 				ccdec_flush_queue(ctx);
 			}
+			ccdec_flush(ctx);
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
