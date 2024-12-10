@@ -2696,6 +2696,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negotiate_property ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negotiate_property_str) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_negotiate_property_dyn) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_owner) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_source_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_enum_destinations) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_discard_block) )
