@@ -250,6 +250,13 @@ static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
 		if (!strncmp(ctx->txtdata, ctx->txtdata+ctx->txtlen, ctx->txtlen)) {
 			memmove(ctx->txtdata, ctx->txtdata+ctx->txtlen, size+1);
 			overlap = GF_TRUE;
+		} else if (size>1) {
+			char last = ctx->txtdata[ctx->txtlen];
+			ctx->txtdata[ctx->txtlen] = 0;
+			ccdec_post(ctx, ctx->txtlen, ts);
+			ctx->txtdata[0] = last;
+			memmove(ctx->txtdata+1, ctx->txtdata+ctx->txtlen+1, size/*includes termination*/);
+			ctx->txtlen = 0;
 		}
 	}
 
