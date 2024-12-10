@@ -513,6 +513,8 @@ u32 gf_stream_type_by_name(const char *val)
 	for (i=0; i<nb_st; i++) {
 		if (!stricmp(GF_StreamTypes[i].name, val))
 			return GF_StreamTypes[i].st;
+		if (GF_StreamTypes[i].sname && !stricmp(GF_StreamTypes[i].sname, val))
+			return GF_StreamTypes[i].st;
 		if (GF_StreamTypes[i].alt_name && !stricmp(GF_StreamTypes[i].alt_name, val))
 			return GF_StreamTypes[i].st;
 	}
