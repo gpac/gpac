@@ -662,7 +662,7 @@ static const GF_FilterCapability CCDecCaps[] =
 #define OFFS(_n)	#_n, offsetof(CCDecCtx, _n)
 static const GF_FilterArgs CCDecArgs[] =
 {
-	{ OFFS(agg), "output aggregation mode:\n"
+	{ OFFS(agg), "output aggregation mode\n"
 		"- none: forward data as decoded (default)\n"
 		"- word: aggregate words (separated by a space)", GF_PROP_UINT, "none", "none|word", 0},
 	{0}
