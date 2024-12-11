@@ -2470,7 +2470,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[Downloader] Destroy session URL %s\n", sess->orig_url));
 	/*self-destruction, let the download manager destroy us*/
-	if ((sess->th || sess->ftask) && sess->in_callback) {
+	if (sess->th || sess->ftask) {
 		sess->destroy = GF_TRUE;
 		return;
 	}
