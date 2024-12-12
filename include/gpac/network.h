@@ -682,7 +682,7 @@ Checks if connection has been closed by remote peer
 GF_Err gf_sk_probe(GF_Socket *sock);
 
 /*!
-Bumps lower part of IP adress by the given increment eg X.X.X.Y -> X.X.X.Z with Z=Y+increment
+Bumps lower part of IP address by the given increment eg X.X.X.Y -> X.X.X.Z with Z=Y+increment
 \param in_ip the input IP v4 or v6 address
 \param increment the increment to apply
 \return the newly computed address or NULL if error - must be freed bu user

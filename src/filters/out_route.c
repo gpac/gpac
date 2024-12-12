@@ -3369,7 +3369,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- raw files are assigned TSI 1 and increasing number of TOI\n"
 		"- otherwise, the first PID found is assigned TSI 10, the second TSI 20 etc ...\n"
 		"\n"
-		"When [-splitlct]() is set to `mcast`, the IP multicast adress is computed as follows:\n"
+		"When [-splitlct]() is set to `mcast`, the IP multicast address is computed as follows:\n"
 		" - if `MCASTIP` is set on the PID and is different from the service multicast IP, it is used\n"
 		" - otherwise the service multicast IP plus one is used\n"
 		"The multicast port used is set as follows:\n"
