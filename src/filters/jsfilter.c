@@ -88,6 +88,7 @@ enum
 	JSF_FILTER_SEP_ARGS,
 	JSF_FILTER_SEP_NAME,
 	JSF_FILTER_SEP_LIST,
+	JSF_FILTER_SRC_ARGS,
 	JSF_FILTER_DST_ARGS,
 	JSF_FILTER_DST_NAME,
 	JSF_FILTER_SINKS_DONE,
@@ -154,6 +155,7 @@ enum
 	JSF_PID_EOS,
 	JSF_PID_EOS_SEEN,
 	JSF_PID_EOS_RECEIVED,
+	JSF_PID_EOS_IS_FLUSH,
 	JSF_PID_WOULD_BLOCK,
 	JSF_PID_SPARSE,
 	JSF_PID_FILTER_NAME,
@@ -1052,9 +1054,12 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 		szSep[0] = gf_filter_get_sep(jsf->filter, GF_FS_SEP_LIST);
     	return JS_NewString(jsf->ctx, szSep);
 
+	case JSF_FILTER_SRC_ARGS:
+		str = (char *) gf_filter_get_src_args(jsf->filter);
+		return str ? JS_NewString(jsf->ctx, str) : JS_NULL;
 	case JSF_FILTER_DST_ARGS:
 		str = (char *) gf_filter_get_dst_args(jsf->filter);
-    	return str ? JS_NewString(jsf->ctx, str) : JS_NULL;
+		return str ? JS_NewString(jsf->ctx, str) : JS_NULL;
 	case JSF_FILTER_DST_NAME:
 		str = gf_filter_get_dst_name(jsf->filter);
 		res = str ? JS_NewString(jsf->ctx, str) : JS_NULL;
@@ -1822,8 +1827,7 @@ static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_
     source_id = NULL;
     if (argc>1) {
 		source_id = JS_ToCString(ctx, argv[1]);
-		if (!source_id) return GF_JS_EXCEPTION(ctx);
-		if (!source_id[0]) {
+		if (source_id && !source_id[0]) {
 			JS_FreeCString(ctx, source_id);
 			source_id = NULL;
 		}
@@ -1886,6 +1890,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("sep_args", jsf_filter_prop_get, NULL, JSF_FILTER_SEP_ARGS),
     JS_CGETSET_MAGIC_DEF("sep_name", jsf_filter_prop_get, NULL, JSF_FILTER_SEP_NAME),
     JS_CGETSET_MAGIC_DEF("sep_list", jsf_filter_prop_get, NULL, JSF_FILTER_SEP_LIST),
+    JS_CGETSET_MAGIC_DEF("src_args", jsf_filter_prop_get, NULL, JSF_FILTER_SRC_ARGS),
     JS_CGETSET_MAGIC_DEF("dst_args", jsf_filter_prop_get, NULL, JSF_FILTER_DST_ARGS),
     JS_CGETSET_MAGIC_DEF("dst_name", jsf_filter_prop_get, NULL, JSF_FILTER_DST_NAME),
     JS_CGETSET_MAGIC_DEF("sinks_done", jsf_filter_prop_get, NULL, JSF_FILTER_SINKS_DONE),
@@ -2163,6 +2168,8 @@ static JSValue jsf_pid_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		return JS_NewBool (ctx, gf_filter_pid_has_seen_eos(pctx->pid) );
 	case JSF_PID_EOS_RECEIVED:
 		return JS_NewBool (ctx, gf_filter_pid_eos_received(pctx->pid) );
+	case JSF_PID_EOS_IS_FLUSH:
+		return JS_NewBool (ctx, gf_filter_pid_is_flush_eos(pctx->pid) );
 	case JSF_PID_WOULD_BLOCK:
 		return JS_NewBool(ctx, gf_filter_pid_would_block(pctx->pid) );
 	case JSF_PID_SPARSE:
@@ -2234,7 +2241,11 @@ static JSValue jsf_pid_send_event(JSContext *ctx, JSValueConst this_val, int arg
     if (!evt) return GF_JS_EXCEPTION(ctx);
     evt->base.on_pid = pctx->pid;
     if (evt->base.type == GF_FEVT_PLAY) {
-		gf_filter_pid_init_play_event(pctx->pid, evt, evt->play.start_range, evt->play.speed, pctx->jsf->log_name);
+		GF_FilterEvent anevt;
+		gf_filter_pid_init_play_event(pctx->pid, &anevt, evt->play.start_range, evt->play.speed, pctx->jsf->log_name);
+		evt->play.speed = anevt.play.speed;
+		evt->play.start_range = anevt.play.start_range;
+		evt->play.end_range = anevt.play.end_range;
 	}
 	gf_filter_pid_send_event(pctx->pid, evt);
     return JS_UNDEFINED;
@@ -2334,7 +2345,7 @@ static JSValue jsf_pid_get_packet(JSContext *ctx, JSValueConst this_val, int arg
 	GF_JSPckCtx *pckctx;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
     if (!pctx) return GF_JS_EXCEPTION(ctx);
-	if (!pctx->jsf->filter->in_process)
+	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to query packet outside process callback not allowed!\n", pctx->jsf->filter->name);
 
     pck = gf_filter_pid_get_packet(pctx->pid);
@@ -2368,7 +2379,7 @@ static JSValue jsf_pid_drop_packet(JSContext *ctx, JSValueConst this_val, int ar
 	GF_JSPckCtx *pckctx;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
     if (!pctx) return GF_JS_EXCEPTION(ctx);
-	if (!pctx->jsf->filter->in_process)
+	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to drop packet outside process callback not allowed!\n", pctx->jsf->filter->name);
 
 	if (!pctx->pck_head) {
@@ -2670,7 +2681,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
 
     if (!pctx) return GF_JS_EXCEPTION(ctx);
-	if (!pctx->jsf->filter->in_process)
+	if (!pctx->jsf->is_custom && !pctx->jsf->filter->in_process)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to create a new packet outside process callback not allowed!\n", pctx->jsf->filter->name);
 
 
@@ -3016,6 +3027,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("eos", jsf_pid_get_prop, jsf_pid_set_prop, JSF_PID_EOS),
     JS_CGETSET_MAGIC_DEF("eos_seen", jsf_pid_get_prop, NULL, JSF_PID_EOS_SEEN),
     JS_CGETSET_MAGIC_DEF("eos_received", jsf_pid_get_prop, NULL, JSF_PID_EOS_RECEIVED),
+    JS_CGETSET_MAGIC_DEF("is_flush", jsf_pid_get_prop, NULL, JSF_PID_EOS_IS_FLUSH),
     JS_CGETSET_MAGIC_DEF("would_block", jsf_pid_get_prop, NULL, JSF_PID_WOULD_BLOCK),
     JS_CGETSET_MAGIC_DEF("sparse", jsf_pid_get_prop, NULL, JSF_PID_SPARSE),
     JS_CGETSET_MAGIC_DEF("filter_name", jsf_pid_get_prop, NULL, JSF_PID_FILTER_NAME),
@@ -4214,7 +4226,7 @@ static JSValue jsf_pck_send(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	GF_FilterPacket *pck;
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
     if (!pckctx || !pckctx->pck) return GF_JS_EXCEPTION(ctx);
-	if (! pckctx->jspid->jsf->filter->in_process)
+	if (!pckctx->jspid->jsf->is_custom && ! pckctx->jspid->jsf->filter->in_process)
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Filter %s attempt to send packet outside process callback not allowed!\n", pckctx->jspid->jsf->filter->name);
 
     pck = pckctx->pck;
