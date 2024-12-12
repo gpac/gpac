@@ -1434,7 +1434,7 @@ static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF
 			if (_dst_tsi) sscanf(_dst_tsi, "%u", &dst_tsi);
 
 			if (!new_service) {
-				//config session same as our bootstrap adress, do not process
+				//config session same as our bootstrap address, do not process
 				if (!strcmp(dst_add, parent_s->dst_ip) && (parent_s->port == dst_port)) {
 					gf_list_del_item(old_services, parent_s);
 					if (is_cfg_session) continue;
@@ -1669,8 +1669,10 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 	case GF_FLUTE_HLS_MANIFEST:
 		check_main = GF_TRUE;
 	case GF_FLUTE_HLS_VARIANT:
-		if (!obj->rlct || !obj->rlct->flute_parent_service) return GF_OK;
-		if (obj->rlct->flute_parent_service->tune_mode!=GF_ROUTE_TUNE_ON) return GF_OK;
+		if (!obj->rlct || !obj->rlct->flute_parent_service)
+			return GF_OK;
+		if (obj->rlct->flute_parent_service->tune_mode != GF_ROUTE_TUNE_ON)
+			return GF_OK;
 		crc = gf_crc_32(obj->payload, obj->total_length);
 		if (check_main) {
 			//for flute injecting inband manifest in each rep, only forward once
