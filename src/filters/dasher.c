@@ -590,7 +590,10 @@ static void dasher_ensure_outpath(GF_DasherCtx *ctx)
 {
 	if (!ctx->out_path) {
 		ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
-		if (!ctx->out_path) return;
+		if (!ctx->out_path) {
+			if (ctx->mname) ctx->out_path = gf_strdup(ctx->mname);
+			return;
+		}
 
 		// output manifest name for ATSC3
 		if (ctx->mname) {
@@ -1101,7 +1104,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				manifest_type = 1;
 			}
 			if (!gf_sys_is_test_mode() && (ctx->dmode>=GF_DASH_DYNAMIC))
-				manifest_type |= 0x80000000;
+				manifest_type |= (1<<8);
 
 			gf_filter_pid_set_property(opid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
 		}
