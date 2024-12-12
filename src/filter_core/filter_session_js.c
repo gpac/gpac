@@ -1782,6 +1782,10 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 		link_from = JS_GetOpaque(argv[1], fs_f_class_id);
 		if (argc>2) {
 			link_args = JS_ToCString(ctx, argv[2]);
+			if (link_args && !link_args[0]) {
+				JS_FreeCString(ctx, link_args);
+				link_args = NULL;
+			}
 		}
 		if (argc>3) {
 			relative_to_script = JS_ToBool(ctx, argv[3]);
@@ -1888,6 +1892,7 @@ static JSValue jsfs_new_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 static JSValue jsfs_remove_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_Filter *to_remove=NULL;
+	GF_Filter *src_filter=NULL;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
 	if (!fs || !argc) return GF_JS_EXCEPTION(ctx);
 	if (!JS_IsObject(argv[0]) ) return GF_JS_EXCEPTION(ctx);
@@ -1899,6 +1904,14 @@ static JSValue jsfs_remove_filter(JSContext *ctx, JSValueConst this_val, int arg
 	if (!to_remove)
 		return GF_JS_EXCEPTION(ctx);
 
+	if (argc>1) {
+		src_filter = JS_GetOpaque(argv[1], fs_f_class_id);
+		if (!src_filter)
+			src_filter = jsf_custom_filter_opaque(ctx, argv[1]);
+	}
+	if (src_filter && !src_filter->num_input_pids) {
+		gf_filter_remove_src(to_remove, src_filter);
+	}
 	gf_filter_remove(to_remove);
 	return JS_UNDEFINED;
 }
