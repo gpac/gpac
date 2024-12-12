@@ -1088,13 +1088,14 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		u32 prev_flute_crc = 0;
 		Bool is_obj_update = GF_FALSE;
 		u32 i;
-		Bool no_remove = GF_FALSE;
+		Bool is_manifest = GF_FALSE;
 		for (i=0; i<gf_list_count(s->objects); i++) {
 			obj = gf_list_get(s->objects, i);
 			if ((obj->toi==toi) && (obj->tsi==tsi)) break;
 			if ((obj->tsi==tsi) && obj->rlct_file && !strcmp(obj->rlct_file->filename, content_location)) {
 				obj->toi = toi;
-				no_remove = !strstr(obj->rlct_file->filename, ".mpd") && !strstr(obj->rlct_file->filename, ".m3u8");
+				if (strstr(obj->rlct_file->filename, ".mpd") || strstr(obj->rlct_file->filename, ".m3u8"))
+					is_manifest = GF_TRUE;
 				break;
 			}
 			obj=NULL;
@@ -1103,19 +1104,31 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 		if (flute_nb_symbols * flute_symbol_size < content_length)
 			flute_nb_symbols++;
 
-		//found, we assume the same content if same size
-		if (obj && (obj->total_length==content_length) && no_remove) {
+		//found, we assume the same content if same size except for manifests
+		if (obj && (obj->total_length==content_length) && !is_manifest) {
 			if (obj->rlct_file) obj->rlct_file->can_remove = GF_FALSE;
 			continue;
 		}
 		if (obj && !obj->ll_maps_count) {
-			gf_list_del_item(s->objects, obj);
 			prev_rlct = obj->rlct;
 			prev_flute_type = obj->flute_type;
 			if (obj->rlct_file)
 				prev_flute_crc = obj->rlct_file->crc;
-			gf_route_obj_to_reservoir(routedmx, s, obj);
-			obj=NULL;
+			//keep manifests in list of active objects, otherwise we could loose the link to the LCT channel established in mabr config
+			if (!is_manifest || !obj->rlct) {
+				gf_list_del_item(s->objects, obj);
+				gf_route_obj_to_reservoir(routedmx, s, obj);
+				obj=NULL;
+			} else {
+				//we reuse manifest object, reset total_length to reset status below
+				//this will force receiving agin the manifest, and we'll check for changes using CRC
+				obj->total_length = 0;
+			}
+		}
+		if (obj && is_manifest && !obj->rlct) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Reused manifest but no associated service, something went wrong! Reloading MABR configuration\n", s->log_name));
+			//force reload, this will resetup link between manifest object and LCT channel
+			s->dvb_mabr_cfg_crc = 0;
 		}
 
 		char *frag_sep = strrchr(content_location, '#');
@@ -1225,6 +1238,7 @@ static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF
 					obj->flute_type = GF_FLUTE_DASH_MANIFEST;
 				else
 					obj->flute_type = GF_FLUTE_HLS_MANIFEST;
+
 				if (prev_rlct)
 					obj->rlct = prev_rlct;
 			}
@@ -1669,13 +1683,16 @@ static GF_Err gf_route_dmx_process_object(GF_ROUTEDmx *routedmx, GF_ROUTEService
 	case GF_FLUTE_HLS_MANIFEST:
 		check_main = GF_TRUE;
 	case GF_FLUTE_HLS_VARIANT:
-		if (!obj->rlct || !obj->rlct->flute_parent_service) return GF_OK;
-		if (obj->rlct->flute_parent_service->tune_mode!=GF_ROUTE_TUNE_ON) return GF_OK;
+		if (!obj->rlct || !obj->rlct->flute_parent_service)
+			return GF_OK;
+		if (obj->rlct->flute_parent_service->tune_mode!=GF_ROUTE_TUNE_ON)
+			return GF_OK;
 		crc = gf_crc_32(obj->payload, obj->total_length);
 		if (check_main) {
 			//for flute injecting inband manifest in each rep, only forward once
 			if (crc == s->manifest_crc) {
-				gf_route_obj_to_reservoir(routedmx, s, obj);
+				//do NOT move to reservoir, we could loose the link to rlct established in MABR configuration
+				//we just keep the object as done and active
 				return GF_OK;
 			}
 			s->manifest_crc = crc;
@@ -1761,7 +1778,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 	if((rlct && (tsi==rlct->last_dispatched_tsi) && (toi==rlct->last_dispatched_toi))
 		|| (!fdt_symbol_length && !rlct && !tsi && (toi==s->last_dispatched_toi_on_tsi_zero))
 	) {
-		if(routedmx->on_event) {
+		if (routedmx->on_event) {
 			// Sending event about the delayed data received.
 			GF_ROUTEEventFileInfo finfo;
 			GF_Blob blob;
@@ -2014,6 +2031,7 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 	//ignore if we are done without errors
 	if (obj->status == GF_LCT_OBJ_DONE) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u received on object done, ignoring\n", s->log_name, tsi, toi));
 		return GF_EOS;
 	}
 	//keep receiving if we are done with errors
