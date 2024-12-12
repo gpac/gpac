@@ -276,6 +276,19 @@ struct __gf_filter_pck
  */
 typedef void (*gf_fs_task_callback)(GF_FSTask *task);
 
+//task type used to free up resources when a filter task is being canceled (configure error)
+typedef enum
+{
+	//no free required
+	TASK_TYPE_NONE=0,
+	//task udta is a GF_FilterEvent
+	TASK_TYPE_EVENT,
+	//task udta is a struct _gf_filter_setup_failure (simple free needed)
+	TASK_TYPE_SETUP,
+	//task udta is a GF_UserTask structure (simple free needed), and task logname shall be freed
+	TASK_TYPE_USER,
+} GF_TaskClassType;
+
 struct __gf_fs_task
 {
 	//flag set for tasks registered with main task list, eg having incremented the task_pending counter.
@@ -296,24 +309,11 @@ struct __gf_fs_task
 	GF_FilterPid *pid;
 	const char *log_name;
 	void *udta;
-	u32 class_type;
+	GF_TaskClassType class_type;
 	u32 thid;
 };
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
-
-//task type used to free up resources when a filter task is being canceled (configure error)
-typedef enum
-{
-	//no free required
-	TASK_TYPE_NONE=0,
-	//task udta is a GF_FilterEvent
-	TASK_TYPE_EVENT,
-	//task udta is a struct _gf_filter_setup_failure (simple free needed)
-	TASK_TYPE_SETUP,
-	//task udta is a GF_UserTask structure (simple free needed), and task logname shall be freed
-	TASK_TYPE_USER,
-} GF_TaskClassType;
 
 
 /* extended version of gf_fs_post_task

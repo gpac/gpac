@@ -577,7 +577,10 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 	if ((filter->freg->flags & GF_FS_REG_SCRIPT) && filter->freg->update_arg) {
 		GF_Err e;
 		gf_filter_parse_args(filter, args, arg_type, GF_TRUE);
+		char *next_args = strchr(args, filter->session->sep_args);
+		filter->orig_args = (char*)next_args;
 		e = filter->freg->update_arg(filter, NULL, NULL);
+		filter->orig_args = NULL;
 		if (e) return e;
 	}
 
@@ -777,6 +780,7 @@ void gf_filter_del(GF_Filter *filter)
 			}
 			gf_free( (void *) filter->forced_caps);
 		}
+		gf_filter_sess_reset_graph(filter->session, filter->freg);
 		gf_free( (char *) filter->freg->name);
 		gf_free( (void *) filter->freg);
 	}
@@ -3971,9 +3975,10 @@ static void gf_filter_remove_local(GF_FSTask *task)
 		}
 	}
 	filter->sticky = 0;
-	if (can_unload) {
+	if (can_unload && !filter->removed && !filter->finalized) {
 		gf_filter_post_remove(filter);
 	}
+	filter->removed = 1;
 	gf_mx_v(filter->tasks_mx);
 }
 

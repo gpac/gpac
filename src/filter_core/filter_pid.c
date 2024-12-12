@@ -861,6 +861,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	//first connection of this PID to this filter
 	if (!pidinst) {
 		if (ctype != GF_PID_CONF_CONNECT) {
+			if (filter->removed) return GF_OK;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to disconnect PID %s not present in filter %s inputs\n",  pid->name, filter->name));
 			return GF_SERVICE_ERROR;
 		}
@@ -1352,7 +1353,9 @@ static void gf_filter_pid_disconnect_task(GF_FSTask *task)
 	safe_int_dec(&task->filter->session->remove_tasks);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
-	gf_filter_pid_configure(task->filter, task->pid->pid, GF_PID_CONF_REMOVE);
+
+	if (!task->filter->removed)
+		gf_filter_pid_configure(task->filter, task->pid->pid, GF_PID_CONF_REMOVE);
 
 	gf_mx_p(task->filter->tasks_mx);
 	//if the filter has no more connected ins and outs, remove it
@@ -8836,11 +8839,13 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			has_val = GF_TRUE;
 		} else if (!strcmp(name, "URL")) {
 			if (!filename)
-				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
+				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEALIAS);
+				if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "File")) {
 			if (!filename) {
-				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEPATH);
+				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEALIAS);
+				if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEPATH);
 				//if filepath is a gmem:// wrapped, don't use it !
 				if (prop_val && !strncmp(prop_val->value.string, "gmem://", 7))
 					prop_val = NULL;
