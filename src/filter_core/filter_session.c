@@ -1494,6 +1494,7 @@ static void print_task(u32 *taskn, GF_FSTask *task, Bool for_filter)
 		break;
 	case TASK_TYPE_SETUP: fprintf(stderr, " SetupFailure"); break;
 	case TASK_TYPE_USER: fprintf(stderr, " UserData"); break;
+	case TASK_TYPE_NONE: break;
 	}
 
 	fprintf(stderr, "\n");
