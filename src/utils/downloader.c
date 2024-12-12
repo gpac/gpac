@@ -6223,6 +6223,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess)
 			break;
 		}
 #endif
+		//should not happen, but do it for safety
+		if (!res && !bytesRead && !e) e = GF_IP_NETWORK_EMPTY;
 
 		switch (e) {
 		case GF_IP_NETWORK_EMPTY:
