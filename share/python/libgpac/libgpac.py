@@ -2060,7 +2060,7 @@ class HTTPOutRequest:
         pass
 
     ## close callback for the request - if not overriden by subclass, not used
-    #\param reason GPAC error code of the end of session
+    #\param reason GPAC error code of the end of session. If 1 (GF_EOS), the session is ended but underlying network is kept alive, otherwise session is destroyed
     #\return
     def close(self, reason):
         pass
