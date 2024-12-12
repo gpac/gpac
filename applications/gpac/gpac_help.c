@@ -915,7 +915,7 @@ static const char *gpac_defer =
 "This mode can be used to test loading filters one by one and asking for link resolution explicitly.\n"
 "This is mostly used to reproduce how sessions are build in more complex applications.\n"
 "\n"
-"The options `rl`, `pi`, `pl` and `pd` allow adressing a filter by index `F` in a list.\n"
+"The options `rl`, `pi`, `pl` and `pd` allow addressing a filter by index `F` in a list.\n"
 "- if the option is suffixed with an `x` (e.g. `rlx=`), `F=0` means the last filter in the list of filters in the session\n"
 "- otherwise, `F=0` means the last filter declared before the option\n"
 "\n"
