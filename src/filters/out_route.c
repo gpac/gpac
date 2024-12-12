@@ -521,8 +521,8 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 	}
 	if (manifest_type) {
-		if (manifest_type & 0x80000000) {
-			manifest_type &= 0x7FFFFFFF;
+		if (manifest_type & (1<<8)) {
+			manifest_type &= ~(1<<8);
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Manifest file describes a static session, clients tune-in will likely fail !\n", ctx->log_name));
 		}

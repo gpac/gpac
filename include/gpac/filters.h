@@ -1185,6 +1185,7 @@ enum
 	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
 	GF_PROP_PID_REDIRECT_URL = GF_4CC('R','E','L','O'),
 	GF_PROP_PID_FILEPATH = GF_4CC('F','S','R','C'),
+	GF_PROP_PID_FILEALIAS = GF_4CC('F','A','L','I'),
 	GF_PROP_PID_MIME = GF_4CC('M','I','M','E'),
 	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
 	GF_PROP_PID_OUTPATH = GF_4CC('F','D','S','T'),
@@ -1809,6 +1810,7 @@ typedef struct
 		0: range is in media time
 		1: range is in timesatmps
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
+		3: range is in media time and seeking is disabled (closest RAP is used and no seek flags on packets)
 	*/
 	u8 timestamp_based;
 	/*! GF_FEVT_PLAY / GF_FEVT_PLAY_HINT, indicates the consumer only cares for the full file, not packets*/

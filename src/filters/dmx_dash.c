@@ -1070,7 +1070,7 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 			//for routeout
 			u32 manifest_type = gf_dash_is_m3u8(ctx->dash) ? 2 : 1;
 			if (gf_dash_is_dynamic_mpd(ctx->dash))
-				manifest_type |= 0x80000000;
+				manifest_type |= (1<<8);
 
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
 
