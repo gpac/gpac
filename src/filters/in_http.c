@@ -508,7 +508,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 					gf_dm_sess_get_stats(ctx->sess, NULL, NULL, NULL, NULL, &bytes_per_sec, NULL);
 					gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 				}
-				gf_filter_ask_rt_reschedule(filter, 1000);
+				gf_filter_ask_rt_reschedule(filter, gf_dm_sess_is_regulated(ctx->sess) ? 100000 : 1000);
 				return GF_OK;
 			}
 			if (! ctx->nb_read)

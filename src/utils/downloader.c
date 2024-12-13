@@ -219,7 +219,9 @@ struct __gf_download_session
 	u32 nb_redirect;
 
 	u32 bytes_per_sec;
+	u32 max_data_rate;
 	u64 start_time_utc;
+	Bool rate_regulated;
 	Bool last_chunk_found;
 	Bool connection_close;
 	Bool is_range_continuation;
@@ -3404,7 +3406,11 @@ Bool gf_dm_session_task(GF_FilterSession *fsess, void *callback, u32 *reschedule
 	}
 	Bool ret = gf_dm_session_do_task(sess);
 	if (ret) {
-		*reschedule_ms = 1;
+		if (sess->rate_regulated) {
+			*reschedule_ms = (sess->last_cap_rate_bytes_per_sec > sess->max_data_rate) ? 1000 : 100;
+		} else {
+			*reschedule_ms = 1;
+		};
 		return GF_TRUE;
 	}
 	gf_assert(sess->ftask);
@@ -3427,7 +3433,7 @@ static u32 gf_dm_session_thread(void *par)
 	while (!sess->destroy) {
 		Bool ret = gf_dm_session_do_task(sess);
 		if (!ret) break;
-		gf_sleep(0);
+		gf_sleep(sess->rate_regulated ? 100 : 0);
 	}
 	sess->flags |= GF_DOWNLOAD_SESSION_THREAD_DEAD;
 	if (sess->destroy)
@@ -5048,7 +5054,7 @@ static void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 paylo
 	}
 }
 
-static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
+static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm, GF_DownloadSession *for_sess)
 {
 	u32 cumul_rate = 0;
 	u32 i, count;
@@ -5059,6 +5065,7 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 	//check if this fits with all other sessions
 	for (i=0; i<count; i++) {
 		GF_DownloadSession * sess = (GF_DownloadSession*)gf_list_get(dm->all_sessions, i);
+		if (for_sess && (sess != for_sess)) continue;
 
 		//session not running done
 		if (sess->status != GF_NETIO_DATA_EXCHANGE) continue;
@@ -5091,11 +5098,15 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 			return GF_TRUE;
 		}
 		cumul_rate += sess->last_cap_rate_bytes_per_sec;
-		//nb_sess ++;
+		if (for_sess) break;
 	}
 	gf_mx_v(dm->cache_mx);
-	if ( cumul_rate >= dm->limit_data_rate)
+	if (for_sess) {
+		if (cumul_rate >= for_sess->max_data_rate)
+			return GF_TRUE;
+	} else if ( cumul_rate >= dm->limit_data_rate) {
 		return GF_TRUE;
+	}
 
 	return GF_FALSE;
 }
@@ -5248,8 +5259,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		gf_cache_release_content(sess->cache_entry);
 	} else {
 
-		if (sess->dm && sess->dm->limit_data_rate) {
-			if (dm_exceeds_cap_rate(sess->dm))
+		if (sess->dm && (sess->dm->limit_data_rate || sess->max_data_rate)) {
+			if (dm_exceeds_cap_rate(sess->dm, sess->max_data_rate ? sess : NULL))
 				return GF_IP_NETWORK_EMPTY;
 
 			if (buffer_size > sess->dm->read_buf_size)
@@ -5390,7 +5401,7 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
 	}
 	if (bytes_done) *bytes_done = sess->bytes_done;
 	if (bytes_per_sec) {
-		if (sess->dm && sess->dm->limit_data_rate && sess->last_cap_rate_bytes_per_sec) {
+		if (sess->dm && (sess->dm->limit_data_rate || sess->max_data_rate) && sess->last_cap_rate_bytes_per_sec) {
 			*bytes_per_sec = sess->last_cap_rate_bytes_per_sec;
 		} else {
 			*bytes_per_sec = sess->bytes_per_sec;
@@ -5952,9 +5963,10 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess)
 		if (sess->status>=GF_NETIO_DISCONNECTED)
 			return GF_REMOTE_SERVICE_ERROR;
 
-		if (sess->dm && sess->dm->limit_data_rate && sess->bytes_per_sec) {
-			if (dm_exceeds_cap_rate(sess->dm)) {
-				gf_sleep(1);
+		if (sess->dm && sess->bytes_per_sec && (sess->max_data_rate || sess->dm->limit_data_rate)) {
+			sess->rate_regulated = GF_FALSE;
+			if (dm_exceeds_cap_rate(sess->dm, sess->max_data_rate ? sess : NULL)) {
+				sess->rate_regulated = GF_TRUE;
 				return GF_OK;
 			}
 		}
@@ -7229,6 +7241,25 @@ void http_do_requests(GF_DownloadSession *sess)
 	}
 }
 
+GF_EXPORT
+void gf_dm_sess_set_max_rate(GF_DownloadSession *sess, u32 max_rate)
+{
+	if (sess) {
+		sess->max_data_rate = max_rate/8;
+		sess->rate_regulated = GF_FALSE;
+	}
+}
+GF_EXPORT
+u32 gf_dm_sess_get_max_rate(GF_DownloadSession *sess)
+{
+	return sess ? 8*sess->max_data_rate : 0;
+}
+GF_EXPORT
+Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess)
+{
+	return sess ? sess->rate_regulated : GF_FALSE;
+}
+
 
 /**
  * NET IO for MPD, we don't need this anymore since mime-type can be given by session
@@ -7614,15 +7645,18 @@ GF_Err gf_dm_sess_flush_async(GF_DownloadSession *sess, Bool no_select)
 		h2_flush_send(sess, GF_TRUE);
 		gf_mx_v(sess->mx);
 		if (sess->h2_send_data_len) {
+			//we will return empty to avoid pushing data too fast, but we also need to flush the async buffer
+			ret = GF_IP_NETWORK_EMPTY;
 			if (sess->h2_send_data_len<sess->local_buf_len) {
 				memmove(sess->local_buf, sess->h2_send_data, sess->h2_send_data_len);
 				sess->local_buf_len = sess->h2_send_data_len;
+			} else {
+				//nothing sent, check socket
+				ret = gf_sk_probe(sess->sock);
 			}
 			sess->h2_send_data = NULL;
 			sess->h2_send_data_len = 0;
 			sess->h2_is_eos = was_eos;
-			//we will return empty to avoid pushing data too fast, but we also need to flush the async buffer
-			ret = GF_IP_NETWORK_EMPTY;
 		} else {
 			sess->local_buf_len = 0;
 			sess->h2_send_data = NULL;
@@ -7669,8 +7703,12 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 
 #ifdef GPAC_HAS_HTTP2
 	if (sess->h2_sess) {
-		if (sess->h2_send_data)
+		if (sess->h2_send_data) {
+			e = gf_sk_probe(sess->sock);
+			if (e) return e;
 			return GF_SERVICE_ERROR;
+		}
+
 		if (!sess->h2_stream_id)
 			return GF_URL_REMOVED;
 
@@ -8710,6 +8748,19 @@ void gf_dm_sess_detach_async(GF_DownloadSession *sess)
 void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id)
 {
 
+}
+
+void gf_dm_sess_set_max_rate(GF_DownloadSession *sess, u32 max_rate)
+{
+}
+
+u32 gf_dm_sess_get_max_rate(GF_DownloadSession *sess)
+{
+	return 0;
+}
+Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess)
+{
+	return GF_FALSE;
 }
 
 #endif // GPAC_CONFIG_EMSCRIPTEN
