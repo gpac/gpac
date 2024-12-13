@@ -2313,7 +2313,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	"- 0: no rounding\n"
 	"- 1: round up to match codec YUF format requirements\n"
 	"- -1: round down to match codec YUF format requirements\n"
-	"- other: round to lower (negative value) or higher (positive value), for example CTU size\n"
+	"- other: round to lower (negative value) or higher (positive value), for example CTU size"
 	, GF_PROP_SINT, "1", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 
 	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. see `gpac -hx ffenc` and `gpac -hx ffenc:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
