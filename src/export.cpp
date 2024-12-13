@@ -2391,6 +2391,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_to_qt_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_is_wide_depth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_probe) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_downsampling) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
