@@ -2627,7 +2627,12 @@ void gf_filter_renegotiate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 	gf_assert(filter);
 
 	if (!filter_dst) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
+		//if no destinations, the filter was removed while negociating
+		//this happens for example when doing 'src enc_audio enc_video VIDEOONLY_DST'
+		//the removal of enc_audio is triggered after potential capacity negotiation with an adaptation filter
+		if (pid->num_destinations) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Internal error, lost destination for pid %s in filter %s while negotiating caps !!\n", pid->name, filter->name));
+		}
 		return;
 	}
 

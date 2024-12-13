@@ -5203,7 +5203,8 @@ single_retry:
 					GF_Err e;
 					GF_Filter *f = gf_fs_load_filter(filter->session, "reframer", &e);
 					gf_filter_set_id(f, filter_dst->id);
-					gf_filter_set_name(f, filter_dst->name);
+					if (strcmp(filter_dst->name, filter_dst->freg->name))
+						gf_filter_set_name(f, filter_dst->name);
 					if (filter_dst->source_ids) f->source_ids = gf_strdup(filter_dst->source_ids);
 					f->cloned_from = filter_dst;
 					f->max_extra_pids = 0;
@@ -5660,7 +5661,8 @@ single_retry:
 		}
 
 		if (!(filter->session->flags & GF_FS_FLAG_FORCE_DEFER_LINK) && !filter->deferred_link) {
-			GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
+			const char *msg = (pid->filter->num_input_pids==1) ? "Will try to remove" : "NOT CONNECTED";
+			GF_LOG((pid->filter->is_pid_adaptation_filter || pid->not_connected_ok) ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - %s\n", pid->name, pid->filter->name, msg));
 		}
 		if (pid->filter->freg->process_event) {
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
@@ -5677,6 +5679,7 @@ single_retry:
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 	gf_filter_pid_set_eos(pid);
+	Bool remove_filter = GF_FALSE;
 	if (!pid->not_connected_ok
 		&& !parent_chain_has_dyn_pids(pid->filter)
 		&& (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)
@@ -5686,6 +5689,7 @@ single_retry:
 		if (can_reassign_filter) {
 			gf_filter_setup_failure(pid->filter, GF_FILTER_NOT_FOUND);
 		}
+		if (pid->filter->num_input_pids==1) remove_filter = GF_TRUE;
 	}
 
 	if (!filter_found_but_pid_excluded && !pid->not_connected_ok && !filter->session->max_resolve_chain_len) {
@@ -5694,7 +5698,19 @@ single_retry:
 
 	gf_assert(pid->init_task_pending);
 	safe_int_dec(&pid->init_task_pending);
-	return;
+
+	if (remove_filter) {
+		while (1) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, 0);
+			if (!pidi->pid) break;
+			gf_fs_post_disconnect_task(filter->session, pid->filter, pidi->pid);
+			if (pidi->pid->filter->num_input_pids==1) {
+				pid = pidi->pid;
+				continue;
+			}
+			break;
+		}
+	}
 }
 
 void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
