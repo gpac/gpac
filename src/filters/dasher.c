@@ -591,7 +591,9 @@ static void dasher_ensure_outpath(GF_DasherCtx *ctx)
 	if (!ctx->out_path) {
 		ctx->out_path = gf_filter_pid_get_destination(ctx->opid);
 		if (!ctx->out_path) {
-			if (ctx->mname) ctx->out_path = gf_strdup(ctx->mname);
+			//special case when connecting to filters without a dst set (eg custom filters), get output name from mname
+			GF_Filter *adst = gf_filter_pid_enum_destinations(ctx->opid, 0);
+			if (adst && ctx->mname) ctx->out_path = gf_strdup(ctx->mname);
 			return;
 		}
 
