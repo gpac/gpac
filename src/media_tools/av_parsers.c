@@ -4720,15 +4720,20 @@ Bool gf_media_probe_iamf(GF_BitStream *bs)
 	IamfObuType obu_type;
 	u64 obu_size;
 
-	start = gf_bs_get_position(bs);
-	e = gf_iamf_parse_obu_header(bs, &obu_type, &obu_size, NULL, NULL);
-	if (e || obu_type != OBU_IA_SEQUENCE_HEADER)
+	obu_type = gf_bs_peek_bits(bs, 5, 0);
+	if (obu_type != OBU_IA_SEQUENCE_HEADER)
 	{
-		gf_bs_seek(bs, start);
 		return GF_FALSE;
 	}
 
 	// Likely IAMF. Check the IA Sequence header is valid.
+	start = gf_bs_get_position(bs);
+	e = gf_iamf_parse_obu_header(bs, &obu_type, &obu_size, NULL, NULL);
+	if (e) {
+		gf_bs_seek(bs, start);
+		return GF_FALSE;
+	}
+
 	e = iamf_parse_ia_sequence_header(bs);
 	gf_bs_seek(bs, start);
 	return !e;
