@@ -827,7 +827,14 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				}
 
 				JSValue rval = JS_Call(ctx->c, ctx->onprogress, ctx->_this, 1, &prog_evt);
-				if (JS_IsException(rval)) js_dump_error(ctx->c);
+				if (JS_IsException(rval)) {
+					js_dump_error(ctx->c);
+				} else if (JS_IsNumber(rval)) {
+					s32 throttle;
+					JS_ToInt32(ctx->c, &throttle, rval);
+					if (throttle>=0)
+						gf_dm_sess_set_max_rate(ctx->sess, (u32) throttle);
+				}
 				JS_FreeValue(ctx->c, rval);
 				if (ctx->responseType==XHR_RESPONSETYPE_PUSH) {
 					JS_DetachArrayBuffer(ctx->c, buffer_ab);

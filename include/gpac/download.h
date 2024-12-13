@@ -494,6 +494,34 @@ Sets ID of netcap rules for this session
 \param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
  */
 void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id);
+
+/*!
+\brief sets max rate for a session
+
+Sets the maximum rate for a session without throtling other sessions.
+\param sess the download session object
+\param rate_in_bits_per_sec the new rate in bits per sec. If 0, HTTP rate will not be limited
+ */
+void gf_dm_sess_set_max_rate(GF_DownloadSession *sess, u32 rate_in_bits_per_sec);
+
+/*!
+\brief sets max rate for a session
+
+Gets the maximum rate for a session
+\param sess the download session object
+\return the current rate in bits per sec, 0 if no limitation
+ */
+u32 gf_dm_sess_get_max_rate(GF_DownloadSession *sess);
+
+/*!
+\brief Checks  session regulation state
+
+Checks if last session fetch has been skiped due to rate limitation
+\param dm the download manager object
+\return GF_TRUE if last call to \ref gf_dm_sess_fetch_data was skipped because of rate regulation
+ */
+Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess);
+
 /*!
 \brief sets download manager max rate per session
 

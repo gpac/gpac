@@ -536,8 +536,9 @@ static Bool httpout_sess_flush_close(GF_HTTPOutSession *sess, Bool close_session
 			sess->flush_close = close_session ? 2 : 1;
 			sess->ctx->nb_sess_flush_pending++;
 		}
-		if (gf_dm_sess_flush_async(sess->http_sess, GF_TRUE) == GF_IP_NETWORK_EMPTY)
+		if (gf_dm_sess_flush_async(sess->http_sess, GF_TRUE) == GF_IP_NETWORK_EMPTY) {
 			return GF_FALSE;
+		}
 		//done closing, restore close_session flag
 		if (sess->flush_close == 2)
 			close_session = GF_TRUE;
