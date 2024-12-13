@@ -1766,6 +1766,42 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	return 0;
 }
 
+GF_EXPORT
+void gf_pixel_get_downsampling(GF_PixelFormat pixfmt, u32 *downsample_w, u32 *downsample_h)
+{
+	*downsample_w=0;
+	*downsample_h=0;
+	switch (pixfmt) {
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
+	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVD:
+		*downsample_h = 2;
+		//fallthrough
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_VYUY:
+	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+		*downsample_w = 2;
+		break;
+	default:
+		*downsample_w = 1;
+		*downsample_h = 1;
+		break;
+	}
+}
+
 static struct pixfmt_to_qt
 {
 	GF_PixelFormat pfmt;
