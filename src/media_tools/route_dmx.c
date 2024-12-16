@@ -866,11 +866,14 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 static void gf_route_lct_removed(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_ROUTELCTChannel *lc)
 {
 	u32 i, count = gf_list_count(s->objects);
-	for (i=0; i<count; i++) {
+	for (i=0; i<count;) {
 		GF_LCTObject *o = gf_list_get(s->objects, i);
 		if (o->rlct == lc) {
 			o->rlct = NULL;
 			gf_route_obj_to_reservoir(routedmx, s, o);
+			count--;
+		} else {
+			i++;
 		}
 	}
 	count = gf_list_count(s->route_sessions);
