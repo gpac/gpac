@@ -1936,7 +1936,7 @@ GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size)
 GF_EXPORT
 GF_IAConfig *gf_odf_ia_cfg_new()
 {
-        GF_IAConfig *cfg;
+        GF_IAConfig *cfg = NULL;
         GF_SAFEALLOC(cfg, GF_IAConfig);
         if (!cfg) return NULL;
         cfg->configurationVersion = 1;
@@ -1948,10 +1948,9 @@ GF_IAConfig *gf_odf_ia_cfg_new()
 GF_EXPORT
 GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-		IAMFState state;
-        GF_IAConfig *cfg;
+	IAMFState *state = NULL;
+	GF_IAConfig *cfg = NULL;
         u8 leb128_size;
-		gf_iamf_init_state(&state);
 
         if (!size) size = (u32) gf_bs_available(bs);
         if (!size) {
@@ -1959,11 +1958,16 @@ GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
                 return NULL;
         }
 
-        cfg = gf_odf_ia_cfg_new();
+	GF_SAFEALLOC(state, IAMFState);
+	if (!state) return NULL;
+	cfg = gf_odf_ia_cfg_new();
+	gf_iamf_init_state(state);
 
         cfg->configurationVersion = gf_bs_read_u8(bs);
         if (cfg->configurationVersion != 1) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] Unknown configurationVersion %d\n", cfg->configurationVersion));
+		gf_odf_ia_cfg_del(cfg);
+		gf_free(state);
                 return NULL;
         }
         size--;
@@ -1978,7 +1982,7 @@ GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
 
                 pos = gf_bs_get_position(bs);
                 obu_size = 0;
-                if (gf_iamf_parse_obu(bs, &obu_type, &obu_size, &state) != GF_OK) {
+                if (gf_iamf_parse_obu(bs, &obu_type, &obu_size, state) != GF_OK) {
                       GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[IAMF] could not parse configOBUs at position "LLU". Leaving parsing.\n", pos));
                       break;
                 }
@@ -2004,7 +2008,10 @@ GF_IAConfig *gf_odf_ia_cfg_read_bs_size(GF_BitStream *bs, u32 size) {
                 }
                 size -= (u32) obu_size;
         }
-        gf_bs_align(bs);
+
+	gf_iamf_reset_state(state, GF_TRUE);
+	gf_bs_align(bs);
+	gf_free(state);
         return cfg;
 
 #else
