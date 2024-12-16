@@ -712,6 +712,8 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
 GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
 void gf_dm_del(GF_DownloadManager *dm);
 void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id);
+void gf_dm_sess_set_max_rate(GF_DownloadSession *sess, u32 rate_in_bits_per_sec);
+Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess);
 
 
 #endif //GPAC_CONFIG_EMSCRIPTEN
@@ -732,4 +734,3 @@ typedef void GF_DownloadSession;
 
 
 #endif		/*_GF_DOWNLOAD_H_*/
-

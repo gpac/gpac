@@ -2205,7 +2205,7 @@ char *dev_desc = NULL;
 
 static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 {
-	const AVInputFormat *fmt;
+	AVInputFormat *fmt;
 
     if (!dev_name) return;
     fmt = av_find_input_format(dev_name);
