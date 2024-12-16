@@ -380,10 +380,18 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	ctx->index_size = 0;
-	GF_SAFEALLOC(av1state, AV1State);
-	GF_SAFEALLOC(iamfstate, IAMFState);
-	if (!av1state || !iamfstate) {
-		return;
+	switch (ctx->bsmode) {
+	case IAMF:
+		GF_SAFEALLOC(iamfstate, IAMFState);
+		if (!iamfstate) {
+			return;
+		}
+		break;
+	default:
+		GF_SAFEALLOC(av1state, AV1State);
+		if (!av1state) {
+			return;
+		}
 	}
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
@@ -1412,6 +1420,11 @@ static void av1dmx_finalize(GF_Filter *filter)
 	if (ctx->buffer) gf_free(ctx->buffer);
 
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
+
+	gf_iamf_reset_state(&ctx->iamfstate, GF_TRUE);
+	if (ctx->iamfstate.config) gf_odf_ia_cfg_del(ctx->iamfstate.config);
+	if (ctx->iamfstate.bs) gf_bs_del(ctx->iamfstate.bs);
+	if (ctx->iamfstate.temporal_unit_obus) gf_free(ctx->iamfstate.temporal_unit_obus);
 }
 
 static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
