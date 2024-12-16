@@ -8,9 +8,9 @@ then
     exit 0
 fi
 
-if [ !  -e "$1" ]
+if [ !  -f "$1" ]
 then
-    echo "File $1 does not exist"
+    echo "$1 does not exist or is not a file"
     exit 1
 fi
 
@@ -49,18 +49,7 @@ echo
 git checkout -b $branchName
 
 # create the duplicate file(s)
-if [ -d  "$originalFileLoc" ]
-then
-    files="$originalFileLoc/*"
-    mkdir -p "$newFileLoc"
-
-    for file in $files
-    do
-      copy_git_history "$file" "$newFileLoc"
-    done
-else
-  copy_git_history "$originalFileLoc" "$newFileLoc"
-fi
+copy_git_history "$originalFileLoc" "$newFileLoc"
 
 # switch back to source branch
 git checkout -
