@@ -23,7 +23,7 @@
  *
  */
 
-#include <include/gpac/internal/odf_dev.h>
+#include <gpac/internal/odf_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 #include <gpac/mpeg4_odf.h>
@@ -4666,6 +4666,7 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 		break;
 	// AAC-LC.
 	case GF_4CC('m', 'p', '4', 'a'):
+	{
 		// Read `DecoderConfig`.
 		u32 unused_size;
 		e = gf_odf_parse_descriptor(bs, &desc, &unused_size);
@@ -4690,6 +4691,7 @@ static GF_Err iamf_parse_codec_config(GF_BitStream *bs, IAMFState *state)
 		state->sample_size = 16;
 		gf_bs_del(aac_decoder_config_bs);
 		break;
+	}
 	default:
 		e = GF_NON_COMPLIANT_BITSTREAM;
 		break;
