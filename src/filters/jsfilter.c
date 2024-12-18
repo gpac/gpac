@@ -5252,6 +5252,19 @@ GF_Filter *jsf_custom_filter_opaque(JSContext *ctx, JSValueConst this_val)
 	if (!jsf || !jsf->is_custom) return NULL;
 	return jsf->filter;
 }
+JSContext *jsf_custom_filter_context(GF_Filter *f)
+{
+	GF_JSFilterCtx *jsf = (GF_JSFilterCtx *) gf_filter_get_udta(f);
+	if (!jsf || !jsf->is_custom) return NULL;
+	return jsf->ctx;
+}
+JSValue jsf_custom_filter_obj(GF_Filter *f)
+{
+	GF_JSFilterCtx *jsf = (GF_JSFilterCtx *) gf_filter_get_udta(f);
+	if (!jsf || !jsf->is_custom) return JS_NULL;
+	return jsf->filter_obj;
+}
+
 
 #else
 
