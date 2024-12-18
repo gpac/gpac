@@ -2183,6 +2183,7 @@ echo ""
 echo "** GPAC $version rev$revision Core Configuration **"
 echo "Unit Tests: $unit_tests ('make unit_tests')"
 echo "#define GF_STATIC static" >> $TMPH
+echo "#define GF_NOT_EXPORTED" >> $TMPH
 if test "$static_bin" = "yes" ; then
     echo "Static binaries enabled"
     echo "#define GPAC_STATIC_BIN" >> $TMPH

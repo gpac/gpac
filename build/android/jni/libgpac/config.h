@@ -4,6 +4,7 @@
 
 #define GPAC_CONFIG_LINUX 1
 #define GF_STATIC static
+#define GF_NOT_EXPORTED
 #define GPAC_HAS_QJS 1
 #define GPAC_HAS_MEDIACODEC
 #define GPAC_HAS_JPEG 1
