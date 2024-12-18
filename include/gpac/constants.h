@@ -332,7 +332,6 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt);
 \param pixfmt  pixel format code
 \param downsample_w set to horizontal downsampling, 1 if none
 \param downsample_h set to vertical downsampling, 1 if none
-\return number of bytes per pixel
 */
 void gf_pixel_get_downsampling(GF_PixelFormat pixfmt, u32 *downsample_w, u32 *downsample_h);
 

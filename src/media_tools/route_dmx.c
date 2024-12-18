@@ -991,8 +991,15 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         finfo.download_ms = obj->download_time_ms;
 		finfo.nb_frags = obj->nb_frags;
 		finfo.frags = obj->frags;
-		if (obj->rlct && !is_init) {
-			finfo.first_toi_received = obj->rlct->first_seg_received;
+		if (obj->rlct) {
+			if (!is_init) {
+				finfo.first_toi_received = obj->rlct->first_seg_received;
+			}
+			finfo.dash_period_id = obj->rlct->dash_period_id;
+			finfo.dash_as_id = obj->rlct->dash_as_id;
+			finfo.dash_rep_id = obj->rlct->dash_rep_id;
+		} else {
+			finfo.dash_as_id = -1;
 		}
 
         if (final_push) {

@@ -517,7 +517,7 @@ u32 gf_dm_sess_get_max_rate(GF_DownloadSession *sess);
 \brief Checks  session regulation state
 
 Checks if last session fetch has been skiped due to rate limitation
-\param dm the download manager object
+\param sess the download session object
 \return GF_TRUE if last call to \ref gf_dm_sess_fetch_data was skipped because of rate regulation
  */
 Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess);

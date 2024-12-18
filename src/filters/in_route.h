@@ -41,6 +41,7 @@ typedef struct
 	GF_FilterPid *opid;
 	u32 current_toi;
 	u32 bytes_sent;
+	char *dash_rep_id;
 	GF_List *pending_repairs;
 } TSI_Output;
 
