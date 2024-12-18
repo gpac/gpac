@@ -9363,6 +9363,12 @@ void *gf_filter_pid_get_alias_udta(GF_FilterPid *_pid)
 }
 
 GF_EXPORT
+GF_Filter *gf_filter_pid_get_owner(GF_FilterPid *pid)
+{
+	return pid->filter;
+}
+
+GF_EXPORT
 GF_Filter *gf_filter_pid_get_source_filter(GF_FilterPid *pid)
 {
 	if (PID_IS_OUTPUT(pid)) {
