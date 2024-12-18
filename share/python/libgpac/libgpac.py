@@ -1946,6 +1946,9 @@ _libgpac.gf_stream_type_name.restype = c_char_p
 _libgpac.gf_codecid_file_ext.argtypes = [c_uint]
 _libgpac.gf_codecid_file_ext.restype = c_char_p
 
+_libgpac.gf_filter_pid_get_owner.argtypes = [_gf_filter_pid]
+_libgpac.gf_filter_pid_get_owner.restype = _gf_filter
+
 _libgpac.gf_filter_pid_get_source_filter.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_get_source_filter.restype = _gf_filter
 

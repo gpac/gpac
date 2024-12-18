@@ -4315,6 +4315,12 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
 */
 void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
 
+/*! Gets the filter owning the PID
+\param PID the target filter PID
+\return the filter owning the PID or NULL if error
+*/
+GF_Filter *gf_filter_pid_get_owner(GF_FilterPid *pid);
+
 /*! Gets the filter owning the  input PID
 \param PID the target filter PID
 \return the filter owning the PID or NULL if error
