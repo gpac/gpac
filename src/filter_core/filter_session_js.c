@@ -369,6 +369,7 @@ void jsfs_on_filter_destroyed(GF_Filter *del_filter)
 			JSRuntime *rt = gf_js_get_rt();
 			if (rt) {
 				gf_js_lock(NULL, GF_TRUE);
+				JS_SetOpaque(del_filter->jsval, NULL);
 				JS_FreeValueRT(rt, del_filter->jsval);
 				gf_js_lock(NULL, GF_FALSE);
 			}
@@ -1470,6 +1471,48 @@ static JSValue jsff_get_destinations(JSContext *ctx, JSValueConst this_val, int 
 	gf_free(res);
 	return ret;
 }
+
+JSContext *jsf_custom_filter_context(GF_Filter *f);
+JSValue jsf_custom_filter_obj(GF_Filter *f);
+
+static Bool jsff_on_setup_error(GF_Filter *src_f, void *on_setup_error_udta, GF_Err e)
+{
+	GF_Filter *f = (GF_Filter *) on_setup_error_udta;
+	JSContext *ctx = f ? jsf_custom_filter_context(f) : NULL;
+	if (!ctx) return GF_TRUE;
+	if (JS_IsUndefined(f->jsval)) return GF_TRUE;
+
+	gf_js_lock(ctx, GF_TRUE);
+	JSValue this_obj = jsf_custom_filter_obj(f); //no dupValue here
+
+	JSValue fun = JS_GetPropertyStr(ctx, this_obj, "on_setup_error");
+	JSValue args[2];
+	args[0] = jsfs_new_filter_obj(ctx, src_f);
+	args[1] = JS_NewInt32(ctx, e);
+	JSValue ret = JS_Call(ctx, fun, this_obj, 2, args);
+	if (JS_IsException(ret)) js_dump_error(ctx);
+	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[1]);
+	JS_FreeValue(ctx, ret);
+	JS_FreeValue(ctx, fun);
+	js_std_loop(ctx);
+	gf_js_lock(ctx, GF_FALSE);
+	return GF_TRUE;
+}
+
+static JSValue jsff_watch_setup_failure(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Filter *f = jsf_custom_filter_opaque(ctx, this_val);
+	if (!f || !argc)
+		return GF_JS_EXCEPTION(ctx);
+
+	GF_Filter *src_f = JS_GetOpaque(argv[0], fs_f_class_id);
+	if (!src_f) return GF_JS_EXCEPTION(ctx);
+
+	gf_filter_set_setup_failure_callback(f, src_f, jsff_on_setup_error, f);
+	return JS_UNDEFINED;
+}
+
 static Bool jsfs_get_filter_args(JSContext *ctx, GF_FilterSession *fs, GF_FilterSession **meta_fs, char *regname, GF_Filter *finst, JSValue args);
 static void del_meta_fs(GF_FilterSession *metafs);
 
@@ -1886,7 +1929,11 @@ static JSValue jsfs_new_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	if (name) JS_FreeCString(ctx, name);
 	if (!f) return js_throw_err(ctx, e);
 
-	return jsfilter_initialize_custom(f, ctx);
+	JSValue ret = jsfilter_initialize_custom(f, ctx);
+	if (JS_IsException(ret) || JS_IsNull(ret) ) return ret;
+	//custom filters can monitor sources using this function
+	JS_SetPropertyStr(ctx, ret, "watch_setup_failure", JS_NewCFunction(ctx, jsff_watch_setup_failure, "watch_setup_failure", 1));
+	return ret;
 }
 
 static JSValue jsfs_remove_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
