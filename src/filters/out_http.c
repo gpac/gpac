@@ -2445,10 +2445,12 @@ exit:
 	sess->canceled = GF_FALSE;
 	sess->headers_done = GF_FALSE;
 
-	if (sess->cbk_read || sess->cbk_write) {
-		if (sess->cbk_read) sess->headers_done = GF_TRUE;
-		sess->done = GF_FALSE;
-		return;
+	if ((sess->reply_code>=200) && (sess->reply_code<300)) {
+		if (sess->cbk_read || sess->cbk_write) {
+			if (sess->cbk_read) sess->headers_done = GF_TRUE;
+			sess->done = GF_FALSE;
+			return;
+		}
 	}
 	sess->upload_type = 0;
 
@@ -3808,7 +3810,6 @@ resend:
 
 		if (nb_read<0) {
 			ctx->next_wake_us = 1000;
-			sess->last_active_time = gf_sys_clock_high_res();
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] sess %s no data\n", sess->path ? sess->path : sess->req_url));
 			return;
 		}
