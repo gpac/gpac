@@ -356,6 +356,10 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 	}
 
 	if (fast_repair) {
+		if (!finfo->partial) {
+			routein_on_event_file(ctx, evt, evt_param, finfo, GF_FALSE, GF_FALSE);
+			return;
+		}
 		Bool drop_if_first = GF_FALSE;
 		Bool in_transfer = GF_FALSE;
 		if (finfo->blob->mx) {

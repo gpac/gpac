@@ -158,6 +158,13 @@ typedef struct
 	/*! offset of late received data, only for GF_ROUTE_EVT_LATE_DATA*/
 	u32 late_fragment_offset;
 
+	/*! for DASH,period ID, NULL otherwise*/
+	char *dash_period_id;
+	/*! for DASH, AS ID, -1 otherwise*/
+	s32 dash_as_id;
+	/*! for DASH, Representation ID, for HLS variant name, NULL otherwise*/
+	char *dash_rep_id;
+
 	/*partial state used for all calls
 		if event indicates a file transfer completion (GF_ROUTE_EVT_FILE, GF_ROUTE_EVT_DYN_SEG), this relects the corrupted state
 		of the reception

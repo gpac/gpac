@@ -55,6 +55,7 @@ static void routein_finalize(GF_Filter *filter)
 		while (gf_list_count(ctx->tsi_outs)) {
 			TSI_Output *tsio = gf_list_pop_back(ctx->tsi_outs);
 			gf_list_del(tsio->pending_repairs);
+			if (tsio->dash_rep_id) gf_free(tsio->dash_rep_id);
 			gf_free(tsio);
 		}
 		gf_list_del(ctx->tsi_outs);
@@ -138,15 +139,20 @@ TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileI
 	u32 i, count = gf_list_count(ctx->tsi_outs);
 	for (i=0; i<count; i++) {
 		tsio = gf_list_get(ctx->tsi_outs, i);
-		if ((tsio->sid==service_id) && (tsio->tsi==finfo->tsi)) {
+		if (tsio->sid!=service_id) continue;
+		if (tsio->tsi!=finfo->tsi) continue;
+		if (!tsio->dash_rep_id && !finfo->dash_rep_id)
 			return tsio;
-		}
+		if (!tsio->dash_rep_id || !finfo->dash_rep_id) continue;
+		if (!strcmp(tsio->dash_rep_id, finfo->dash_rep_id))
+			return tsio;
 	}
 	GF_SAFEALLOC(tsio, TSI_Output);
 	if (!tsio) return NULL;
 
 	tsio->tsi = finfo->tsi;
 	tsio->sid = service_id;
+	tsio->dash_rep_id = finfo->dash_rep_id ? gf_strdup(finfo->dash_rep_id) : NULL;
 	tsio->pending_repairs = gf_list_new();
 	gf_list_add(ctx->tsi_outs, tsio);
 	return tsio;
@@ -196,6 +202,10 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		if (tsio) {
 			tsio->current_toi = finfo->toi;
 			tsio->bytes_sent = 0;
+
+			if (finfo->dash_period_id) gf_filter_pid_set_property(pid, GF_PROP_PID_PERIOD_ID, &PROP_STRING(finfo->dash_period_id));
+			if (finfo->dash_as_id>=0) gf_filter_pid_set_property(pid, GF_PROP_PID_AS_ID, &PROP_UINT(finfo->dash_as_id));
+			if (finfo->dash_rep_id) gf_filter_pid_set_property(pid, GF_PROP_PID_REP_ID, &PROP_STRING(finfo->dash_rep_id));
 		}
 	}
 	//if we split TSIs we need to signal corrupted packets
@@ -637,7 +647,7 @@ static GF_Err routein_process(GF_Filter *filter)
 	 	u32 diff = gf_sys_clock() - ctx->start_time;
 	 	if (diff>ctx->timeout) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] No data for %u ms, aborting\n", ctx->log_name, diff));
-			gf_filter_setup_failure(filter, GF_SERVICE_ERROR);
+			gf_filter_setup_failure(filter, GF_IP_UDP_TIMEOUT);
 			routein_set_eos(filter, ctx);
 			return GF_EOS;
 		}
@@ -815,6 +825,7 @@ static Bool routein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->nb_playing--;
 	} else if (evt->base.type==GF_FEVT_DASH_QUALITY_SELECT) {
 		if (!ctx->dynsel) return GF_TRUE;
+
 		gf_route_dmx_mark_active_quality(ctx->route_dmx, evt->dash_select.service_id, evt->dash_select.period_id, evt->dash_select.as_id, evt->dash_select.rep_id, (evt->dash_select.select_type==GF_QUALITY_SELECTED) ? GF_TRUE : GF_FALSE);
 	}
 	return GF_TRUE;
@@ -898,6 +909,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"If needed, one PID per TSI can be used rather than a single PID using [-stsi](). This avoids mixing files of different mime types on the same PID (e.g. HAS manifest and ISOBMFF). In this mode, each packet starting a new file carries the file name as a property.\n"
 	"\n"
 	"If [-max_segs]() is set, file deletion event will be triggered in the filter chain.\n"
+	"Note: The [-nbcached]() option is ignored in this mode.\n"
 	"\n"
 	"# Standalone mode\n"
 	"In standalone mode, the filter does not produce any output PID and writes received files to the [-odir]() directory.\n"
@@ -905,6 +917,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"This will grab the files and write them to `output` directory.\n"
 	"\n"
 	"If [-max_segs]() is set, old files will be deleted.\n"
+	"Note: The [-nbcached]() option is ignored in this mode.\n"
 	"\n"
 	"# File Repair\n"
 	"In case of losses or incomplete segment reception (during tune-in), the files are patched as follows:\n"
