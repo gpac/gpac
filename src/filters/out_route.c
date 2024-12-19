@@ -3442,7 +3442,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"# Error simulation\n"
 		"It is possible to simulate errors with (-errsim)(). In this mode the LCT network sender implements a 2-state Markov chain:\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0\n"
-		"for a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 to transition from error back to OK.\n"
+		"This will set a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 percent chance to transition from error back to OK.\n"
 	)
 	.private_size = sizeof(GF_ROUTEOutCtx),
 	.max_extra_pids = -1,
