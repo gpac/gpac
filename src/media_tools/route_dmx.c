@@ -1797,11 +1797,13 @@ static void gf_route_service_purge_old_objects(GF_ROUTEDmx *routedmx, GF_ROUTESe
 		}
 		//packets not in order and timeout used
 		else if (!in_order && routedmx->reorder_timeout_us) {
-			u64 elapsed = gf_sys_clock_high_res() - o->last_gather_time;
-			if (elapsed < routedmx->reorder_timeout_us)
-				continue;
+			if (o->last_gather_time) {
+				u64 elapsed = gf_sys_clock_high_res() - o->last_gather_time;
+				if (elapsed < routedmx->reorder_timeout_us)
+					continue;
 
-			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d us - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d us - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
+			}
 		} else if (tsi && o->rlct && !o->rlct->tsi_init) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u incomplete (tune-in) - forcing dispatch\n", s->log_name, o->tsi, o->toi, toi ));
 		}
