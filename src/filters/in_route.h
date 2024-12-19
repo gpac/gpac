@@ -69,13 +69,22 @@ typedef struct
 	u32 priority;
 } RouteRepairRange;
 
+typedef enum
+{
+	RANGE_SUPPORT_NO = 0,
+	RANGE_SUPPORT_PROBE,
+	RANGE_SUPPORT_YES,
+} RouteServerRangeSupport;
+
 typedef struct 
 {
 	char *url;
-	Bool accept_ranges, is_up, support_h2;
+	RouteServerRangeSupport accept_ranges;
+	Bool is_up, support_h2;
 	u32 nb_req_success, nb_bytes, latency;
 } RouteRepairServer;
 
+#define REPAIR_BUF_SIZE	50000
 typedef struct
 {
 	GF_DownloadSession *dld;
@@ -83,6 +92,8 @@ typedef struct
 
 	RouteRepairRange *range;
 	RouteRepairServer *server;
+	u32 initial_retry, retry_in;
+	char http_buf[REPAIR_BUF_SIZE];
 } RouteRepairSession;
 
 typedef struct
