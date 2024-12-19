@@ -1343,6 +1343,7 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 		u32 i, level = 0;
 		char *l_str=NULL;
 		char *l_tool=NULL;
+		char *l_strict=NULL;
 
 		char *sep = strchr(logs, '@');
 		char *next = sep ? strchr(sep, ':') : NULL;
@@ -1353,6 +1354,8 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 			sep[0] = 0;
 			l_str = sep+1;
 			l_tool = logs;
+			l_strict = strstr(l_str, "+strict");
+			if (l_strict) l_strict[0] = 0;
 		} else {
 			l_tool = "all";
 		}
@@ -1363,13 +1366,20 @@ void filter_parse_logs(GF_Filter *filter, const char *_logs)
 		else if (!strcmp(l_str, "debug")) level = GF_LOG_DEBUG;
 		else if (!strcmp(l_str, "quiet")) level = GF_LOG_QUIET;
 		else if (!strcmp(l_str, "ncl") || !strcmp(l_str, "cl")) {
-			if (!next) break;
+			if (!next) {
+				if (l_strict) l_strict[0] = '+';
+				break;
+			}
 			logs = next+1;
 		} else if (!strcmp(l_str, "strict")) {
 			lf->strict = GF_TRUE;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Unsupported log level %s, ignoring\n", l_str));
 			l_tool=NULL;
+		}
+		if (l_strict) {
+			lf->strict = GF_TRUE;
+			l_strict[0] = '+';
 		}
 
 		while (l_tool) {
