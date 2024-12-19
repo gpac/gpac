@@ -1423,6 +1423,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "- warning: logs error+warning messages\n"
 	        "- info: logs error+warning+info messages\n"
 	        "- debug: logs all messages\n"
+	        "- strict: exit if error for this log tool and use default log level if tool\n"
 	        "\n`toolX` can be one of:\n"
 	        "- core: libgpac core\n"
 	        "- mutex: log all mutex calls\n"
@@ -1450,9 +1451,10 @@ GF_GPACArg GPAC_Args[] = {
 	        "- ctime: media and SMIL timing info from composition engine\n"
 	        "- interact: interaction messages (UI events and triggered DOM events and VRML route)\n"
 	        "- rti: run-time stats of compositor\n"
-	        "- all: all tools logged - other tools can be specified afterwards.  \n"
-	        "The special keyword `ncl` can be set to disable color logs.  \n"
-	        "The special keyword `strict` can be set to exit at first error.  \n"
+	        "- all: all tools logged - other tools can be specified afterwards.\n"
+	        "The special keyword `ncl` can be set to disable color logs.\n"
+	        "The special keyword `strict` can be set to exit at first error on any tool.\n"
+	        "`levelX` can accept the suffix `+strict` to force strict error only for the given log tool(s).\n"
 	        "\nEX -logs=all@info:dash@debug:ncl\n"
 			"This moves all log to info level, dash to debug level and disable color logs"
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
@@ -1629,6 +1631,7 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
  GF_DEF_ARG("vvdec-annexb", NULL, "hack for old vvdec+libavcodec supporting only annexB format", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("heif-hevc-urn", NULL, "use HEVC URN for alpha and depth in HEIF instead of MPEG-B URN (HEIF first edition)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("boxdir", NULL, "use box definitions in the given directory for XML dump", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
+ GF_DEF_ARG("no-mabr-patch", NULL, "disable GPAC parsing of patched isom boxes from mabr (wll behave like most browsers/players)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
 
 
  {0}

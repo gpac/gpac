@@ -370,6 +370,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 		top_start -= mov->bytes_removed;
 	}
 	gf_bs_seek(mov->movieFileMap->bs, top_start);
+
+	if (gf_opts_get_bool("core", "no-mabr-patch")) {
+		gf_bs_set_cookie(mov->movieFileMap->bs, gf_bs_get_cookie(mov->movieFileMap->bs) | GF_ISOM_BS_COOKIE_NO_MABR_PATCH);
+	}
 #endif
 
 
