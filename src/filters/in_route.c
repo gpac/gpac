@@ -183,13 +183,6 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
 	}
 
-	//we should never be called in non-progressive mode - assertions failing means broken file repair code
-	if (evt_type>=GF_ROUTE_EVT_FILE) {
-		gf_assert(finfo->nb_frags == 1);
-		gf_assert(finfo->frags[0].offset == 0);
-		gf_assert(finfo->frags[0].size == finfo->blob->size);
-	}
-
 	if (!tsio || (tsio->current_toi != finfo->toi)) {
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(tsio ? tsio->tsi : service_id));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(service_id));
@@ -220,12 +213,23 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		return;
 */
 
-	u32 offset=0;
+	//we should never be called in non-progressive mode - assertions failing means broken file repair code
 	u32 to_write = finfo->blob->size;
+	if (evt_type>=GF_ROUTE_EVT_FILE) {
+		gf_assert(finfo->frags[0].offset == 0);
+		if (evt_type != GF_ROUTE_EVT_DYN_SEG_FRAG) {
+			gf_assert(finfo->frags[0].size == finfo->blob->size);
+		} else if (tsio) {
+			to_write = finfo->frags[0].size;
+			gf_assert(tsio->bytes_sent<= finfo->frags[0].size);
+		}
+	}
+
+	u32 offset=0;
 	if (tsio && tsio->bytes_sent) {
-		gf_fatal_assert(tsio->bytes_sent<=finfo->blob->size);
+		gf_fatal_assert(tsio->bytes_sent <= to_write);
 		offset = tsio->bytes_sent;
-		to_write = finfo->blob->size - tsio->bytes_sent;
+		to_write = to_write - tsio->bytes_sent;
 	}
 	if (to_write) {
 		pck = gf_filter_pck_new_alloc(pid, to_write, &output);
@@ -606,6 +610,7 @@ static GF_Err routein_process(GF_Filter *filter)
 
 	ctx->evt_interrupt = GF_FALSE;
 
+	u32 nb_calls=0;
 	while (1) {
 		GF_Err e = gf_route_dmx_process(ctx->route_dmx);
 		if (e == GF_IP_NETWORK_EMPTY) {
@@ -619,6 +624,9 @@ static GF_Err routein_process(GF_Filter *filter)
 						return GF_EOS;
 					}
 				}
+			}
+			if (nb_calls==0) {
+				gf_route_dmx_check_timeouts(ctx->route_dmx);
 			}
 			//with decent buffer size >=50kB we should sustain at least 80 mbps per stream with 5ms reschedule
 			if (gf_route_dmx_has_active_multicast(ctx->route_dmx))
@@ -642,6 +650,7 @@ static GF_Err routein_process(GF_Filter *filter)
 		} else {
 			break;
 		}
+		nb_calls++;
 	}
 	if (!ctx->tune_time) {
 	 	u32 diff = gf_sys_clock() - ctx->start_time;
@@ -715,8 +724,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		ctx->dm = gf_filter_get_download_manager(filter);
 		if (!ctx->dm) return GF_SERVICE_ERROR;
 		gf_dm_set_localcache_provider(ctx->dm, routein_local_cache_probe, ctx);
-	} else {
-		//for now progressive dispatch is only possible when populating cache
+	} else if (!ctx->stsi) {
 		ctx->fullseg = GF_TRUE;
 	}
 	if (!ctx->nbcached)
@@ -792,7 +800,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		for(i=0; i<ctx->repair_urls.nb_items; i++) {
 			RouteRepairServer* server;
 			GF_SAFEALLOC(server, RouteRepairServer);
-			server->accept_ranges = GF_TRUE;
+			server->accept_ranges = RANGE_SUPPORT_PROBE;
 			server->is_up = GF_TRUE;
 			server->support_h2 = GF_TRUE;
 			server->url = ctx->repair_urls.vals[i];
@@ -854,7 +862,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(odir), "output directory for standalone mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder), "consider packets are not always in order - if false, this will evaluate an LCT object as done when TOI changes", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cloop), "check for loops based on TOI (used for capture replay)", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(rtimeout), "default timeout in us to wait when gathering out-of-order packets", GF_PROP_UINT, "500000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fullseg), "only dispatch full segments in cache mode (always true for other modes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(repair), "repair mode for corrupted files\n"
 		"- no: no repair is performed\n"

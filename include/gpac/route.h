@@ -135,7 +135,7 @@ typedef struct
 	const char *mime;
 	/*! blob data pointer - the route user is responsible for setting the blob flags if desired*/
 	GF_Blob *blob;
-    /*! total size of object if known, 0 otherwise*/
+    /*! total size of object if known, 0 otherwise (TOL not received for route, last fragment not received for mabr+flute)*/
     u32 total_size;
 	/*! object TSI*/
 	u32 tsi;
@@ -251,6 +251,12 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 \return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
  */
 Bool gf_route_dmx_has_active_multicast(GF_ROUTEDmx *routedmx);
+
+/*! Checks for object being timouts - this should only be called when \ref gf_route_dmx_process returns GF_IP_NETWORK_EMPTY for the first time in a batch
+\param routedmx the ROUTE demultiplexer
+\return GF_TRUE if some multicast sockets are active, GF_FALSE otherwise
+ */
+void gf_route_dmx_check_timeouts(GF_ROUTEDmx *routedmx);
 
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
@@ -400,6 +406,15 @@ void *gf_route_dmx_get_service_udta(GF_ROUTEDmx *routedmx, u32 service_id);
 \return error if any
  */
 GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 br_start, u32 br_end);
+
+/*! Patch object size after a repair - this might be needed by repair when the file size was not knowni
+\param routedmx the ROUTE demultiplexer
+\param service_id the target service
+\param finfo file info event as passed to the caller. Only tsi and toi info are used to loacate the object. The frags and nb_frags fileds are updated by this function
+\param new_size the new size to set
+\return error if any
+ */
+GF_Err gf_route_dmx_patch_blob_size(GF_ROUTEDmx *routedmx, u32 service_id, GF_ROUTEEventFileInfo *finfo, u32 new_size);
 
 /*! Set active status of a representation
 \param routedmx the ROUTE demultiplexer

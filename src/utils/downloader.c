@@ -214,7 +214,7 @@ struct __gf_download_session
 	GF_NetIOStatus status;
 
 	u32 flags;
-	u32 total_size, bytes_done, icy_metaint, icy_count, icy_bytes;
+	u32 total_size, bytes_done, icy_metaint, icy_count, icy_bytes, full_resource_size;
 	u64 start_time;
 	u32 nb_redirect;
 
@@ -5188,6 +5188,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			&& sess->needs_range
 			&& (sess->rsp_code==200)
 		) {
+			//reset for next call to process if user wants so
+			sess->needs_range = GF_FALSE;
 			return GF_IO_BYTE_RANGE_NOT_SUPPORTED;
 		}
 		e = sess->last_error ? sess->last_error : GF_IP_NETWORK_EMPTY;
@@ -6548,6 +6550,7 @@ process_reply:
 					} else {
 						sscanf(val, "%u-%u/%u", &first_byte, &last_byte, &total_size);
 					}
+					sess->full_resource_size = total_size;
 				}
 			}
 			else if (!stricmp(hdr->name, "Accept-Ranges")) {
@@ -7473,6 +7476,13 @@ Bool gf_dm_sess_is_h2(GF_DownloadSession *sess)
 	if (sess->h2_sess) return GF_TRUE;
 #endif
 	return GF_FALSE;
+}
+
+u32 gf_dm_sess_get_resource_size(GF_DownloadSession * sess)
+{
+	if (!sess) return 0;
+	if (sess->full_resource_size) return sess->full_resource_size;
+	return sess->total_size;
 }
 
 GF_EXPORT
@@ -8762,5 +8772,10 @@ Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess)
 {
 	return GF_FALSE;
 }
+u32 gf_dm_sess_get_resource_size(GF_DownloadSession * sess)
+{
+	return sess ? sess->total_size : 0;
+}
+
 
 #endif // GPAC_CONFIG_EMSCRIPTEN
