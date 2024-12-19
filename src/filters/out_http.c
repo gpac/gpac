@@ -1549,6 +1549,22 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		if (url) gf_free(url);
 		return;
 	}
+
+	cors_origin = (char *) gf_dm_sess_get_header(sess->http_sess, "Origin");
+	switch (sess->ctx->cors) {
+	case CORS_ON:
+		send_cors = GF_TRUE;
+		break;
+	case CORS_AUTO:
+		if (cors_origin != NULL) {
+			send_cors = GF_TRUE;
+			break;
+		}
+	default:
+		send_cors = GF_FALSE;
+		break;
+	}
+
 	if (sess->async_pending==2) {
 		sess->async_pending = 3;
 		if (sess->reply) {
@@ -1827,20 +1843,6 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 	}
 
-	cors_origin = (char *) gf_dm_sess_get_header(sess->http_sess, "Origin");
-	switch (sess->ctx->cors) {
-	case CORS_ON:
-		send_cors = GF_TRUE;
-		break;
-	case CORS_AUTO:
-		if (cors_origin != NULL) {
-			send_cors = GF_TRUE;
-			break;
-		}
-	default:
-		send_cors = GF_FALSE;
-		break;
-	}
 	if (is_options && (!url || !strcmp(url, "*"))) {
 		sess->reply_code = 204;
 		goto exit;
@@ -2405,16 +2407,24 @@ exit:
 		gf_dm_sess_set_header(sess->http_sess, "Content-Length", "0");
 	}
 
-	if (sess->cbk_read || sess->cbk_write) {
-		if (sess->cbk_read && !sess->content_length) {
-			gf_dm_sess_set_header(sess->http_sess, "Transfer-Encoding", "chunked");
-			sess->use_chunk_transfer=GF_TRUE;
-		}
-		if (!sess->buffer) {
-			sess->buffer = gf_malloc(sizeof(u8)*sess->ctx->block_size);
-		}
-		sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
+	if (sess->ctx->sutc) {
+		sprintf(szFmt, LLU, gf_net_get_utc() );
+		gf_dm_sess_set_header(sess->http_sess, "Server-UTC", szFmt);
 	}
+
+	if ((sess->reply_code>=200) && (sess->reply_code<300)) {
+		if (sess->cbk_read || sess->cbk_write) {
+			if (sess->cbk_read && !sess->content_length) {
+				gf_dm_sess_set_header(sess->http_sess, "Transfer-Encoding", "chunked");
+				sess->use_chunk_transfer=GF_TRUE;
+			}
+			if (!sess->buffer) {
+				sess->buffer = gf_malloc(sizeof(u8)*sess->ctx->block_size);
+			}
+			sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
+		}
+	}
+
 	httpout_push_headers(sess);
 
 	//upload with custom IO, do not send reply
