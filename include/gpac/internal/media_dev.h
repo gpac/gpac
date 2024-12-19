@@ -1058,6 +1058,79 @@ u32 gf_av1_leb128_size(u64 value);
 u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value);
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id);
 
+typedef struct
+{
+	Bool seen_valid_ia_seq_header;
+	Bool seen_first_frame;
+	Bool previous_obu_is_descriptor;
+
+	// Track state while parsing temporal units.
+	Bool found_full_temporal_unit;
+	Bool seen_first_obu_in_temporal_unit;
+	int num_audio_frames_in_temporal_unit;
+	// True when enough samples have been seen to determine the pre-skip.
+	Bool pre_skip_is_finalized;
+	u64 previous_num_samples_to_trim_at_start;
+	u64 num_samples_to_trim_at_end;
+
+	Bool cache_descriptor_obus;
+	GF_List *descriptor_obus, *temporal_unit_obus; /*GF_IamfObu*/
+} IamfStateFrame;
+
+typedef struct
+{
+	// Determined based on Codec Config OBU.
+	int num_samples_per_frame;
+	int sample_size;
+	int sample_rate;
+	s16 audio_roll_distance;
+	// Determined based on Audio Element OBUs.
+	int total_substreams;
+	// Determined based on the first Temporal Unit.
+	Bool bitstream_has_temporal_delimiters;
+	// Determined based on the initial Temporal Units. Only valid when `pre_skip_is_finalized`.
+	u64 pre_skip;
+
+	/*frame parsing state*/
+	IamfStateFrame frame_state;
+
+	/* The temporal units (audio frame + parameter block OBUs) are written to this bitstream*/
+	GF_BitStream *bs;
+
+	u8 *temporal_unit_obus;
+	u32 temporal_unit_obus_alloc;
+
+	/*IAMF config record - shall not be null when parsing - this is NOT destroyed by gf_iamf_reset_state(state, GF_TRUE) */
+	GF_IAConfig *config;
+} IAMFState;
+
+/*parses one IAMF OBU
+\param bs bitstream object
+\param obu_type OBU type
+\param obu_size As an input the size of the input OBU (needed when obu_size is not coded). As an output the coded obu_size value.
+\param state State of the frame parser
+*/
+GF_Err gf_iamf_parse_obu(GF_BitStream *bs, IamfObuType *obu_type, u64 *obu_size, IAMFState *state);
+
+GF_Err aom_iamf_parse_temporal_unit(GF_BitStream *bs, IAMFState *state);
+
+/*checks if the input is an IAMF bitstream
+\param bs bitstream object
+*/
+Bool gf_media_probe_iamf(GF_BitStream *bs);
+
+/*! init IAMF frame parsing state
+\param state the frame parser
+*/
+void gf_iamf_init_state(IAMFState *state);
+
+/*! reset IAMF frame parsing state - this does not destroy the structure.
+\param state the frame parser
+\param is_destroy if TRUE, destroy the cached descriptor OBUs
+*/
+void gf_iamf_reset_state(IAMFState *state, Bool is_destroy);
+
+
 /*! OPUS packet header*/
 typedef struct
 {
