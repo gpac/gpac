@@ -98,14 +98,14 @@ static Bool routein_repair_segment_ts_local(ROUTEInCtx *ctx, u32 service_id, GF_
 
 //top boxes we look for in segments, by rough order of frequency
 static const u32 top_codes[] = {
-	GF_4CC_CSTR("moof"),
-	GF_4CC_CSTR("mdat"),
-	GF_4CC_CSTR("prft"),
-	GF_4CC_CSTR("emsg"),
-	GF_4CC_CSTR("styp"),
-	GF_4CC_CSTR("free"),
-	GF_4CC_CSTR("sidx"),
-	GF_4CC_CSTR("ssix")
+	GF_4CC('m', 'o', 'o', 'f'),
+	GF_4CC('m', 'd', 'a', 't'),
+	GF_4CC('p', 'r', 'f', 't'),
+	GF_4CC('e', 'm', 's', 'g'),
+	GF_4CC('s', 't', 'y', 'p'),
+	GF_4CC('f', 'r', 'e', 'e'),
+	GF_4CC('s', 'i', 'd', 'x'),
+	GF_4CC('s', 's', 'i', 'x')
 };
 static u32 nb_top_codes = GF_ARRAY_LENGTH(top_codes);
 
@@ -994,4 +994,3 @@ void routein_repair_mark_file(ROUTEInCtx *ctx, u32 service_id, const char *filen
 
 
 #endif /* GPAC_DISABLE_ROUTE */
-
