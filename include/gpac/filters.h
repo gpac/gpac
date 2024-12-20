@@ -4319,7 +4319,7 @@ void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
 \param PID the target filter PID
 \return the filter owning the PID or NULL if error
 */
-GF_Filter *gf_filter_pid_get_owner(GF_FilterPid *pid);
+GF_Filter *gf_filter_pid_get_owner(GF_FilterPid *PID);
 
 /*! Gets the filter owning the  input PID
 \param PID the target filter PID
