@@ -2539,7 +2539,7 @@ static void dump_scte35_info_m2ts_section(GF_InspectCtx *ctx, PidCtx *pctx, FILE
 	scte35_dump(ctx, dump, pctx->bs);
 
 	if (ctx->xml) {
-		inspect_printf(dump, " </SCTE35");
+		inspect_printf(dump, " </SCTE35>\n");
 	} else {
 		inspect_printf(dump, "\n");
 	}
@@ -2765,7 +2765,6 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			}
 			gf_free(pname_no_space);
 		} else if (!p4cc && !strncmp(pname, "scte35", 6)) {
-			inspect_printf(dump, ">\n");
 			dump_scte35_info_m2ts_section(ctx, pctx, dump, pname, att);
 		/*} else if (!p4cc && !strncmp(pname, "temi_l", 6)) {
 			dump_temi_loc(ctx, pctx, dump, pname, att);
@@ -3610,6 +3609,9 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		if (!p) break;
 		if (idx==0) inspect_printf(dump, "properties:\n");
 
+		//SCTE35 requires a specific description (e.g. a XML Element): process after Packet is fully described
+		if (!prop_4cc && !strncmp(prop_name, "scte35", 6)) continue;
+
 		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p, pctx);
 	}
 
@@ -3622,6 +3624,18 @@ props_done:
 		return;
 	}
 	inspect_printf(dump, ">\n");
+
+	// special props requiring specific description (e.g. a XML Element)
+	idx=0;
+	while (1) {
+		u32 prop_4cc;
+		const char *prop_name;
+		const GF_PropertyValue * p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
+		if (!p) break;
+		if (prop_4cc || strncmp(prop_name, "scte35", 6)) continue;
+
+		inspect_dump_property(ctx, dump, prop_4cc, prop_name, p, pctx);
+	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (pctx->hevc_state || pctx->avc_state || pctx->vvc_state) {
