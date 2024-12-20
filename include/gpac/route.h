@@ -141,6 +141,8 @@ typedef struct
 	u32 tsi;
 	/*! object TOI*/
 	u32 toi;
+	/*! start time in ms*/
+	u32 start_time;
 	/*! download time in ms*/
 	u32 download_ms;
 	/*! flag set if file content has been modified - not set for GF_ROUTE_EVT_DYN_SEG (always true)*/

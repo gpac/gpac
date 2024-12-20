@@ -971,6 +971,7 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
         GF_ROUTEEventFileInfo finfo;
         memset(&finfo, 0,sizeof(GF_ROUTEEventFileInfo));
         finfo.filename = filepath;
+        finfo.start_time = obj->start_time_ms;
         gf_mx_p(obj->blob.mx);
 		obj->blob.data = obj->payload;
 		if (final_push) {
@@ -1034,6 +1035,8 @@ static GF_Err gf_route_dmx_push_object(GF_ROUTEDmx *routedmx, GF_ROUTEService *s
 
 static GF_Err gf_route_dmx_process_dvb_flute_signaling(GF_ROUTEDmx *routedmx, GF_ROUTEService *s, GF_LCTObject *fdt_obj)
 {
+	if (fdt_obj->status==GF_LCT_OBJ_DONE_ERR) return GF_OK;
+
     u32 crc = gf_crc_32(fdt_obj->payload, fdt_obj->total_length);
     if (fdt_obj->rlct) {
 		if (crc == fdt_obj->rlct->flute_fdt_crc)
@@ -1372,6 +1375,7 @@ static u32 _xml_get_child_count(const GF_XMLNode *n, const char *child_name)
 }
 static GF_Err gf_route_dmx_process_dvb_mcast_signaling(GF_ROUTEDmx *routedmx, GF_ROUTEService *parent_s, GF_LCTObject *object)
 {
+	if (object->status==GF_LCT_OBJ_DONE_ERR) return GF_OK;
     u32 crc = gf_crc_32(object->payload, object->total_length);
     if (crc == parent_s->dvb_mabr_cfg_crc) return GF_OK;
 	parent_s->dvb_mabr_cfg_crc = crc;
@@ -1788,13 +1792,15 @@ static void gf_route_service_purge_old_objects(GF_ROUTEDmx *routedmx, GF_ROUTESe
 		if (!toi && (s->protocol==GF_SERVICE_DVB_FLUTE) ) {
 			continue;
 		}
+		//commented out since we could have no bytes on object received (heavy losses) - we need to cleanup
+#if 0
 		//object pushed by flute FDT with no bytes received or not last frag, keep alive
-		//this avoids
 		else if (o->rlct_file && !o->rlct_file->can_remove
 			&& (!o->nb_bytes || (o->ll_maps_count && !o->ll_map_last))
 		) {
 			continue;
 		}
+#endif
 		//packets not in order and timeout used
 		else if (!in_order && routedmx->reorder_timeout_us) {
 			if (o->last_gather_time) {
@@ -1805,10 +1811,10 @@ static void gf_route_service_purge_old_objects(GF_ROUTEDmx *routedmx, GF_ROUTESe
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u timeout after %d us - forcing dispatch\n", s->log_name, o->tsi, o->toi, elapsed ));
 			}
 		} else if (tsi && o->rlct && !o->rlct->tsi_init) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u incomplete (tune-in) - forcing dispatch\n", s->log_name, o->tsi, o->toi, toi ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[%s] Object TSI %u TOI %u incomplete (tune-in) - forcing dispatch\n", s->log_name, o->tsi, o->toi));
 		}
 		//do not warn if we received a last frag in seg - todo try to flush earlier
-		else if (!o->ll_map_last) {
+		else if (!o->ll_map_last && toi) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] object TSI %u TOI %u not completely received but in-order delivery signaled and new TOI %u - forcing dispatch\n", s->log_name, o->tsi, o->toi, toi ));
 		}
 
@@ -1881,10 +1887,14 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 
 	if((u64)start_offset + size > GF_UINT_MAX) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] TSI %u TOI %u Not supported: Offset (%u) + Size (%u) exceeds the maximum supported value (%u), skipping\n", s->log_name, tsi, toi, start_offset, size, GF_UINT_MAX));
+
+		gf_route_service_purge_old_objects(routedmx, s, tsi, toi, in_order, NULL);
 		return GF_NOT_SUPPORTED;
 	}
-	if(total_len && (start_offset + size > total_len)) {
+	if (total_len && (start_offset + size > total_len)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[%s] TSI %u TOI %u Corrupted data: Offset (%u) + Size (%u) exceeds Total Size of the object (%u), skipping\n", s->log_name, tsi, toi, start_offset, size, total_len));
+
+		gf_route_service_purge_old_objects(routedmx, s, tsi, toi, in_order, NULL);
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -3593,7 +3603,7 @@ void gf_route_dmx_print_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 #endif
 
 
-static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous, Bool is_remove)
+static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous, Bool is_remove, Bool is_locate)
 {
 	u32 i=0;
 	GF_ROUTEService *s=NULL;
@@ -3612,6 +3622,9 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 				u32 obj_start_time;
 				//GF_ROUTELCTChannel *rlct = obj->rlct;
 
+				if (is_locate) {
+					return GF_OK;
+				}
 				if (!is_remove) {
 					obj->force_keep = 1;
 					return GF_OK;
@@ -3655,6 +3668,9 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 			}
 		}
 		else if (obj->rlct_file && obj->rlct_file->filename && !strcmp(fileName, obj->rlct_file->filename)) {
+			if (is_locate) {
+				return GF_OK;
+			}
 			if (!is_remove) {
 				obj->force_keep = 1;
 			} else if (!obj->rlct_file->fdt_tsi || obj->rlct_file->can_remove) {
@@ -3662,10 +3678,18 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 			}
 			return GF_OK;
 		}
+		else if (is_locate && obj->rlct_file && obj->rlct_file->filename &&
+			(strstr(fileName, obj->rlct_file->filename) || strstr(obj->rlct_file->filename, fileName))
+		) {
+			return GF_OK;
+		}
 	}
 	//we are flute, check root service
 	if (routedmx->dvb_mabr && service_id) {
-		return gf_route_dmx_keep_or_remove_object_by_name(routedmx, 0, fileName, purge_previous, is_remove);
+		return gf_route_dmx_keep_or_remove_object_by_name(routedmx, 0, fileName, purge_previous, is_remove, is_locate);
+	}
+	if (is_locate) {
+		return GF_NOT_FOUND;
 	}
 	if (is_remove) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[%s] Failed to remove object %s from service, object not found\n", s->log_name, fileName));
@@ -3677,13 +3701,19 @@ static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, 
 GF_EXPORT
 GF_Err gf_route_dmx_force_keep_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName)
 {
-	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, fileName, GF_FALSE, GF_FALSE);
+	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, fileName, GF_FALSE, GF_FALSE, GF_FALSE);
 }
 
 GF_EXPORT
 GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous)
 {
-	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, fileName, purge_previous, GF_TRUE);
+	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, fileName, purge_previous, GF_TRUE, GF_FALSE);
+}
+
+GF_EXPORT
+GF_Err gf_route_dmx_has_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, const char *fileName)
+{
+	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, (char*)fileName, GF_FALSE, GF_FALSE, GF_TRUE);
 }
 
 GF_EXPORT
@@ -3866,8 +3896,15 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 				obj->frags[i].offset = (last_end > br_start) ? last_end : br_start;
 				obj->frags[i].size = frag_end - obj->frags[i].offset;
 				is_patched = GF_TRUE;
+				br_start = obj->frags[i].offset + obj->frags[i].size;
+				//patched range was over several holes, continue
+				if (br_start<br_end)
+					continue;
 				break;
 			}
+			if (is_patched)
+				break;
+
 			//we need a new fragment
 			if (obj->nb_frags+1>obj->nb_alloc_frags) {
 				obj->nb_alloc_frags = obj->nb_frags+1;
@@ -3909,7 +3946,12 @@ GF_Err gf_route_dmx_patch_frag_info(GF_ROUTEDmx *routedmx, u32 service_id, GF_RO
 				memmove(&obj->frags[i], &obj->frags[i+1], sizeof(GF_LCTFragInfo) * (obj->nb_frags - i - 1));
 			}
 			obj->nb_frags--;
+			i--;
 		}
+	}
+	//patch last range size in case the file size was not known
+	if (br_end > obj->frags[obj->nb_frags-1].offset + obj->frags[obj->nb_frags-1].size) {
+		obj->frags[obj->nb_frags-1].size = br_end - obj->frags[obj->nb_frags-1].offset;
 	}
 	finfo->nb_frags = obj->nb_frags;
 	finfo->frags = obj->frags;

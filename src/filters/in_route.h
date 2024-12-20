@@ -34,15 +34,24 @@
 
 #ifndef GPAC_DISABLE_ROUTE
 
+enum
+{
+	TSIO_FILE_PROGRESS = 1,
+	TSIO_REPAIR_SCHEDULED = (1<<1)
+};
+
 typedef struct
 {
 	u32 sid;
 	u32 tsi;
 	GF_FilterPid *opid;
+	//TOI of file being received - moved back to 0 once file is done being dispatched
 	u32 current_toi;
 	u32 bytes_sent;
 	char *dash_rep_id;
 	GF_List *pending_repairs;
+	u32 flags_progress;
+	Bool delete_first;
 } TSI_Output;
 
 typedef struct
@@ -102,7 +111,7 @@ typedef struct
 	char *src, *ifce, *odir;
 	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
-	u32 max_sess;
+	u32 max_sess, range_merge, minrecv;
 	s32 tunein, stsi;
 	GF_PropStringList repair_urls;
 	
@@ -134,6 +143,7 @@ typedef struct
 	GF_List *seg_range_reservoir;
 	GF_List *repair_servers;
 
+	Bool has_data;
 	const char *log_name;
 } ROUTEInCtx;
 
@@ -150,6 +160,10 @@ struct _route_repair_seg_info
 	GF_List *ranges;
 	u32 nb_errors;
 	TSI_Output *tsio;
+	//set to true if repair session is over but kept in list for TSIO reordering purposes
+	Bool done;
+	//if true this is a local repair, otherwise an http base one
+	Bool local_repair;
 };
 
 
