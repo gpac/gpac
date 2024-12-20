@@ -2169,7 +2169,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 			return;
 		}
 	}
-	/* If we are heren it means we did not found this URL in cache */
+	/* If we are here it means we did not found this URL in cache */
 	gf_mx_v( dm->cache_mx );
 	gf_free(realURL);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[CACHE] Cannot find URL %s, cache file won't be deleted.\n", url));
