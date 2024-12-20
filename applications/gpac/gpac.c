@@ -3083,11 +3083,12 @@ static void gpac_sig_handler(int sig)
 				char input;
 				GF_SessionDebugFlag flags=0;
 				in_sig_handler = GF_TRUE;
-				fprintf(stderr, "\nToggle reports (r), print state (s for short, e for extended [+ shift: sticky])\n"
+				fprintf(stderr, "\nToggle reports (r), change logs (l), print state (s for short, e for extended [+ shift: sticky])\n"
 					"\tor exit with fast (Y), full (f) or no (n) session flush ? \n");
 rescan:
 				input = gf_getch();
-				if (!input || input == 0x0A || input == 0x0D) input = 'Y'; // user pressed "return"
+				if (!prev_was_cmd)
+					if (!input || input == 0x0A || input == 0x0D) input = 'Y'; // user pressed "return"
 				switch (input) {
 				case 'Y':
 				case 'y':
@@ -3145,6 +3146,21 @@ rescan:
 					signal_catched = GF_FALSE;
 					signal_processed = GF_FALSE;
 					gf_fs_print_debug_info(session, flags|GF_FS_DEBUG_ALL);
+					break;
+				case 'L':
+				case 'l':
+				{
+					char szLogs[100];
+					prev_was_cmd = GF_TRUE;
+					signal_catched = GF_FALSE;
+					signal_processed = GF_FALSE;
+					fprintf(stdout, "Enter new logs settings:\n");
+					if (1 > scanf("%99s", szLogs)) {
+						fprintf(stderr, "Cannot read the logs !\n");
+						break;
+					}
+					gf_log_set_tools_levels(szLogs, GF_TRUE);
+				}
 					break;
 				default:
 					signal_processed = GF_TRUE;
