@@ -3551,6 +3551,8 @@ The filter can perform time range extraction of the source using .I xs and .I xe
 .br
 The formats allowed for times specifiers are:
 .br
+- 'TC'HH:MM:SS:FF specify time in timecode
+.br
 * 'T'H:M:S, 'T'M:S: specify time in hours, minutes, seconds
 .br
 * 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds
@@ -6875,11 +6877,15 @@ This will grab the files and forward them as output PIDs, consumed by the fout f
 .br
 
 .br
-If needed, one PID per TSI can be used rather than a single PID using .I stsi. This avoids mixing files of different mime types on the same PID (e.g. HAS manifest and ISOBMFF). In this mode, each packet starting a new file carries the file name as a property.
+If needed, one PID per TSI can be used rather than a single PID using .I stsi. This avoids mixing files of different mime types on the same PID (e.g. HAS manifest and ISOBMFF).
+.br
+In this mode, each packet starting a new file carries the file name as a property. If .I repair is enabled in this mode, progressive dispatch of files will be done.
 .br
 
 .br
 If .I max_segs is set, file deletion event will be triggered in the filter chain.
+.br
+Note: The .I nbcached option is ignored in this mode.
 .br
 
 .br
@@ -6898,7 +6904,13 @@ This will grab the files and write them to output directory.
 .br
 
 .br
+In this mode, files are always written once completely recieved, regardless of the .I repair option.
+.br
+
+.br
 If .I max_segs is set, old files will be deleted.
+.br
+Note: The .I nbcached option is ignored in this mode.
 .br
 
 .br
@@ -6909,7 +6921,11 @@ In case of losses or incomplete segment reception (during tune-in), the files ar
 .br
 * MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.
 .br
-* ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in free boxes, except mdat kept as is if .I repair is set to simple.
+* ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in free boxes, except mdat:
+.br
+ - if repair=simple, mdat is kept if incomplete (broken file),
+.br
+ - if repair=strict, mdat is moved to free if incomplete and the preceeding moof is also moved to free.
 .br
 
 .br
@@ -6985,11 +7001,11 @@ reorder (bool, default: true): consider packets are not always in order - if fal
 .br
 cloop (bool, default: false):  check for loops based on TOI (used for capture replay)
 .br
-rtimeout (uint, default: 50000): default timeout in us to wait when gathering out-of-order packets
+rtimeout (uint, default: 500000): default timeout in us to wait when gathering out-of-order packets
 .br
 fullseg (bool, default: false): only dispatch full segments in cache mode (always true for other modes)
 .br
-repair (enum, default: simple): repair mode for corrupted files
+repair (enum, default: strict): repair mode for corrupted files
 .br
 * no: no repair is performed
 .br
@@ -7008,6 +7024,10 @@ max_sess (uint, default: 1):   max number of concurrent HTTP repair sessions
 llmode (bool, default: true):  enable low-latency access
 .br
 dynsel (bool, default: true):  dynamically enable and disable multicast groups based on their selection state
+.br
+range_merge (uint, default: 10000): merge ranges in HTTP repair if distant from less than given amount of bytes
+.br
+minrecv (uint, default: 20):   redownload full file in HTTP repair if received bytes is less than given percentage of file size
 .br
 
 .br
@@ -7395,6 +7415,20 @@ Content RES of this directory is exposed as http://SERVER/bar/RES.
 .br
   
 .br
+To authenticate services handled by bindings, use a non-existing directory and a name describing the authentication.
+.br
+Example
+.br
+[NonExistingDir]
+.br
+name=service_root
+.br
+
+.br
+Requests in the form http://SERVER/service_root/* will be authenticated by this rule.
+.br
+  
+.br
 Listing can be enabled on server using .I dlist.
 .br
 When disabled, a GET on a directory will fail.
@@ -7625,7 +7659,7 @@ This will:
 .br
 dst (cstr):                    location of destination resource
 .br
-port (uint, default: 0):       server port
+port (uintl, default: 0):      server port
 .br
 ifce (str):                    default network interface to use
 .br
@@ -8776,6 +8810,18 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 rld (bool, default: false, updatable): force reloading of encoder when arguments are updated
 .br
+round (sint, default: 1, updatable): round video up or down
+.br
+* 0: no rounding
+.br
+* 1: round up to match codec YUF format requirements
+.br
+* -1: round down to match codec YUF format requirements
+.br
+* other: round to lower (negative value) or higher (positive value), for example CTU size
+.br
+
+.br
 * (str):                       any possible options defined for AVCodecContext and sub-classes. see gpac -hx ffenc and gpac -hx ffenc:*
 .br
 
@@ -9334,7 +9380,7 @@ gpac -i source.mpd dasher -o route://225.1.1.0:6000/:errsim=1.0x98.0
 .br
 
 .br
-for a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 to transition from error back to OK.
+This will set a 1.0 percent chance to transition to error (not sending data over the network) and 98.0 percent chance to transition from error back to OK.
 .br
 
 .br
@@ -10163,166 +10209,6 @@ reset_switch (bool, default: false): reset decoder at config change
 .br
 
 .br
-.SH httpproxy
-.LP
-.br
-Description: HTTP Proxy
-.br
-Version: 1.0
-.br
-Author: GPAC team - (c) Telecom Paris 2024 - license LGPL v2
-.br
-
-.br
-This filter is an HTTP proxy for GET and HEAD requests supporting Multicast ABR sources.
-.br
-
-.br
-This filter does not produce PIDs, it attaches to HTTP output filter. If no HTTP server is specified in the session, the filter will create a server running on the specified .I port. If more options need to be specified for the HTTP server, it is recommended to specify the server explicitly.
-.br
-Example
-.br
-gpac http_proxy httpout:OPTS
-.br
-
-.br
-
-.br
-.SH Services Configuration
-.LP
-.br
-The service configuration is set using .I sdesc. It shall be a JSON file containing a single array of services.
-.br
-Each service is a JSON object which shall have the following properties:
-.br
- * http: (string) URL of root manifest (MPD for DASH or master m3u8 for HLS)
-.br
- * mcast: (string, default null) multicast address for this service
-.br
- * local: (string, default null) local mount point of this service
-.br
- * timeshift: (integer) override –timeshift for this service
-.br
- * gcache: (integer) override gcache for this service
-.br
- * unload: (integer, default 4) multicast unload policy
-.br
- * activate: (integer, default 1) multicast activation policy
-.br
- * repair: (boolean, default false) enable unicast repair in MABR stack
-.br
- * mcache: (boolean, default false) cache manifest files (experimental)
-.br
- * corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
-.br
- * keepalive: (integer, default 4) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
-.br
-
-.br
-.SH HTTP Streaming Cache
-.LP
-.br
-The proxy will cache live edge segments in HTTP streaming sessions for –timeshift seconds. This caching is always done in memory.
-.br
-A service with a –timeshift value of 0 will disable this functionality, and N clients asking from the same segment will result in N requests being forwarded.
-.br
-
-.br
-Manifests files fetched from origin can be cached using the mcache service configuration option but this is currently not recommended for low latency services.
-.br
-
-.br
-.SH Multicast ABR cache
-.LP
-.br
-The proxy can be configured to use a multicast source as an alternate data source for a given service through the mcast service description option.
-.br
-The multicast source can be DVB-MABR (e.g. mabr://235.0.0.1:1234/), ATSC3.0 (e.g. atsc://) or ROUTE (e.g. route://235.0.0.1:1234/).
-.br
-If the multicast is replayed from a file, netcap ID shall be set in this multicast URL (e.g. :NCID=N).
-.br
-If a specific IP interface is used, it can also be set in multicast URL (e.g. :ifce=IP).
-.br
-
-.br
-The multicast service can be dynamically loaded at run-time using the unload service configuration option:
-.br
-- if 0, the multicast is started when loading the proxy and never ended,
-.br
-- otherwise, the multicast is started dynamically and ended unload seconds after last deactivation.
-.br
-
-.br
-The qualities in the multicast service can be dynamically activated or deactivated using the activate service configuration option:
-.br
-- if 0, multicast streams are never deactivated,
-.br
-- otherwise, a multicast representation is activated only if at least active clients are consuming it, and deactivated otherwise.
-.br
-
-.br
-The multicast service can use repair options of the MABR stack using repair service configuration option:
-.br
-- if false, the file will not be sent until completely received (this increases latency),
-.br
-- otherwise, file data will be pushed as soon as available in order (after reception or repair).
-.br
-
-.br
-The number of active clients on a given quality is computed using the client connection state: any disconnect/reconnect from a client for the same quality will trigger a deactivate+activate sequence.
-.br
-If .I checkip is used, the remote IP address+port are used instead of the connection. This however assumes that each client has a unique IP/port which may not always be true (NATs).
-.br
-
-.br
-If –timeshift is 0 for the service, multicast segments will be trashed as soon as not in use (potentially before the client request).
-.br
-
-.br
-Manifests files coming from multicast are currently never cached.
-.br
-
-.br
-.SH URL remapping
-.LP
-.br
-A service can be exposed by the proxy without exposing the origin URL. To enable this mode, the local service configuration option must be set to:
-.br
-- the exposed server path, in which case manifest names are not rewritten
-.br
-- or the exposed manifest path, in which case  manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
-.br
-
-.br
-If local is /service1/ and http is https://test.com/live/dash/live.mpd, the proxy will translate any request /service1/foo/bar.ext into https://test.com/live/dash/foo/bar.ext
-.br
-
-.br
-If local is /service1/manifest.mpd and http is https://test.com/live/dash/live.mpd, the proxy will translate:
-.br
-- request /service1/manifest.mpd into https://test.com/live/dash/live.mpd
-.br
-- any request /service1/foo/bar.ext into https://test.com/live/dash/foo/bar.ext
-.br
-
-.br
-.SH Options (expert):
-.LP
-.br
-port (uint, default: 80):      port to use when no server HTTP is specified
-.br
-sdesc (str):                   service configuration file
-.br
-gcache (bool, default: false): use gpac cache when fetching media
-.br
-timeshift (uint, default: 10): timeshift buffer in seconds for HTTP streaming services
-.br
-checkip (bool, default: false): monitor IP address for activation
-.br
-quit (bool, default: false):   exit proxy once last service has been deactivated
-.br
-
-.br
 .SH uncvg
 .LP
 .br
@@ -10668,6 +10554,507 @@ dropfirst (bool, default: false): drop first image
 list (str, default: null):     export json list of frame times and positions to given file
 .br
 lxy (bool, default: false):    add explicit x and y in json export
+.br
+
+.br
+.SH mediaserver
+.LP
+.br
+Description: Streaming Media Gateway and Server
+.br
+Version: 1.0
+.br
+Author: GPAC team - (c) Telecom Paris 2024 - license LGPL v2
+.br
+
+.br
+This filter is an HTTP server and proxy for GET and HEAD requests supporting Multicast ABR sources.
+.br
+
+.br
+This filter does not produce PIDs, it attaches to HTTP output filter.
+.br
+If no HTTP output filter is specified in the session, the filter will create one.
+.br
+The file .gpac_auth, if present in current working directory, will be used for authentication unless --rdirs is set.
+.br
+
+.br
+If more options need to be specified for the HTTP output filter, they can be passed as local options or using global options:
+.br
+Example
+.br
+gpac mediaserver:cors=on --user_agent=MyUser
+.br
+
+.br
+
+.br
+Although not recommended, a server may be specified explicitly.
+.br
+Example
+.br
+gpac mediaserver httpout:OPTS
+.br
+
+.br
+In this case, the first httpout filter created will be used.
+.br
+
+.br
+Default request handling of httpout filter through read / write directories is disabled.
+.br
+
+.br
+.SH Services Configuration
+.LP
+.br
+The service configuration is set using .I scfg. It shall be a JSON file containing a single array of services.
+.br
+Each service is a JSON object with one or more of the following properties:
+.br
+ * id: (string, default null) Service identifier used for logs
+.br
+ * active: (boolean, default true) service is ignored if false
+.br
+ * http: (string, default null) URL of remote service to proxy (either resource name or server path)
+.br
+ * gcache: (boolean, default false) use gpac local disk cache when fetching media from HTTP for this service
+.br
+ * local: (string, default null) local mount point of this service
+.br
+ * keepalive: (number, default 4) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
+.br
+ * mabr: (string, default null) address of multicast ABR source for this service
+.br
+ * timeshift: (number, default 10) time in seconds a cached file remains in memory
+.br
+ * unload: (number, default 4 multicast unload policy
+.br
+ * activate: (number, default 1) multicast activation policy
+.br
+ * repair: (boolean, default false) enable unicast repair in MABR stack
+.br
+ * mcache: (boolean, default false) cache manifest files (experimental)
+.br
+ * corrupted: (boolean, default false) forward corrupted files if parsable (valid container syntax, broken media)
+.br
+ * check_ip: (boolean, , default false monitor IP address and port rather than connection when tracking active clients
+.br
+ * noproxy: (boolean) disable proxy for service when local mount point is set. Default is true if both local and http are set, false otherwise
+.br
+ * sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
+.br
+  * name: name as used in resource path,
+.br
+  * url: local or remote URL to use for this resource.
+.br
+ * js: (string, default null) built-in or custom request resolver
+.br
+
+.br
+Any JSON object with the property comment set will be ignored.
+.br
+
+.br
+Not all properties are used for each type of service and other properties can be defined by custom request resolvers.
+.br
+
+.br
+.SH Proxy versus Server
+.LP
+.br
+All services using http option can be exposed by the server without exposing the origin URL, rather than being proxied. To enable this, the local service configuration option must be set to:
+.br
+- the exposed server path, in which case manifest names are not rewritten
+.br
+- or the exposed manifest path, in which case manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
+.br
+
+.br
+Example
+.br
+{ 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/'}
+.br
+
+.br
+The server will translate any request /service1/foo/bar.ext into https://test.com/live/dash/foo/bar.ext.
+.br
+
+.br
+Example
+.br
+{ 'http': 'https://test.com/live/dash/live.mpd', 'local': '/service1/manifest.mpd'}
+.br
+
+.br
+The server will translate:
+.br
+- request /service1/manifest.mpd into https://test.com/live/dash/live.mpd
+.br
+- any request /service1/foo/bar.ext into https://test.com/live/dash/foo/bar.ext
+.br
+
+.br
+Note: The URL must point to a self-contained subdirectory of the remote site. Any URLs outside this directory will either fail or be resolved as absolute path on the remote site.
+.br
+
+.br
+When local is not set, these services are always acting as proxies for the http URL.
+.br
+
+.br
+When noproxy is explicitly set to false for the services with both http and local, the remote URL will be available as a proxy service as well.
+.br
+
+.br
+.SH HTTP Proxy and Relay
+.LP
+.br
+The server can act as a proxy for HTTP requests, either for any requests or by domain or resource name.
+.br
+
+.br
+Service configuration parameters used : http (mandatory), gcache, local.
+.br
+
+.br
+Exemple configuration for activating proxy for a specific network path:
+.br
+Example
+.br
+{ 'http': 'https://test.com/video/'}
+.br
+
+.br
+
+.br
+Exemple configuration for activating proxy for any network path:
+.br
+Example
+.br
+{ 'http': '*'}
+.br
+
+.br
+
+.br
+Exemple configuration for a relay on a given path:
+.br
+Example
+.br
+{ 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
+.br
+
+.br
+
+.br
+This will resolve any request http://localhost/myvids/* to https://test.com/some/path/to/video/*
+.br
+
+.br
+Note: The requests are never cached in memory in this mode, but can be cached on disk if gcache is set.
+.br
+
+.br
+.SH HTTP Streaming Cache
+.LP
+.br
+The server can act as a cache for live HTTP streaming sessions. The live edge can be cached in memory for a given duration.
+.br
+
+.br
+Service configuration parameters used : http ( mandatory), timeshift, mcache, gcache, keepalive and local.
+.br
+
+.br
+Exemple configuration for proxying while caching a live HTTP streaming service:
+.br
+Example
+.br
+{ 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
+.br
+
+.br
+
+.br
+Exemple configuration for relay caching a live HTTP streaming service:
+.br
+Example
+.br
+{ 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
+.br
+
+.br
+
+.br
+The local service configuration option can be set to:
+.br
+- the exposed server path, in which case manifest names are not rewritten
+.br
+- or the exposed manifest path, in which case manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
+.br
+
+.br
+.SH Multicast ABR Gateway
+.LP
+.br
+The server can be configured to use a multicast ANR source for an HTP streaming service, without any HTTP source.
+.br
+
+.br
+Service configuration parameters used : mabr (mandatory), local (mandatory), corrupted, timeshift and keepalive.
+.br
+
+.br
+The multicast source can be DVB-MABR (e.g. mabr://235.0.0.1:1234/), ATSC3.0 (e.g. atsc://) or ROUTE (e.g. route://235.0.0.1:1234/).
+.br
+- If the multicast is replayed from a file, netcap ID shall be set in this multicast URL (e.g. :NCID=N).
+.br
+- If a specific IP interface is used, it can also be set in multicast URL (e.g. :ifce=IP).
+.br
+
+.br
+For example, with local set to /service/live.mpd with mabr set, the server will expose the multicast service as http://localhost/service/live.mpd.
+.br
+The manifest name can be omitted, in which case the exact manifest name used in the broadcast shall be used (and known to the client).
+.br
+
+.br
+Exemple configuration for exposing a MABR session:
+.br
+Example
+.br
+{ 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
+.br
+
+.br
+
+.br
+.SH Multicast ABR Gateway with HTTP cache
+.LP
+.br
+The server can be configured to use a multicast source as an alternate data source of a given HTTP streaming service.
+.br
+
+.br
+Service configuration parameters used : http (mandatory), mabr (mandatory), local, corrupted, timeshift, repair, gcache, mcache, unload, active and keepalive.
+.br
+
+.br
+The multicast service can be dynamically loaded at run-time using the unload service configuration option:
+.br
+- if 0, the multicast is started when loading the server and never ended,
+.br
+- otherwise, the multicast is started dynamically and ended unload seconds after last deactivation.
+.br
+
+.br
+The qualities in the multicast service can be dynamically activated or deactivated using the activate service configuration option:
+.br
+- if 0, multicast streams are never deactivated,
+.br
+- otherwise, a multicast representation is activated only if at least active clients are consuming it, and deactivated otherwise.
+.br
+
+.br
+The multicast service can use repair options of the MABR stack using repair service configuration option:
+.br
+- if false, the file will not be sent until completely received (this increases latency),
+.br
+- otherwise, file data will be pushed as soon as available in order (after reception or repair).
+.br
+
+.br
+If the corrupted option is set together with repair, HTTP-based repair is disabled and corrupted files are patched using the repair=strict mode of the routein filter.
+.br
+If files are completely lost, they will be fetched from httpsource.
+.br
+Warning: This may likely result in decoding/buffering pipeline errors and could fail with some players expecting no timeline holes (such as browsers). GPAC supports this.
+.br
+
+.br
+The number of active clients on a given quality is computed using the client connection state: any disconnect/reconnect from a client for the same quality will trigger a deactivate+activate sequence.
+.br
+If check_ip is set to true, the remote IP address+port are used instead of the connection. This however assumes that each client has a unique IP/port which may not always be true (NATs).
+.br
+
+.br
+If timeshift is 0 for the service, multicast segments will be trashed as soon as not in use (potentially before the client request).
+.br
+
+.br
+Note: Manifests files coming from multicast are currently never cached.
+.br
+
+.br
+Exemple configuration for caching a live HTTP streaming service with MABR backup:
+.br
+Example
+.br
+{ 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
+.br
+
+.br
+
+.br
+For such services, the custom HTTP header X-From-MABR is defined:
+.br
+- for client requests, a value of no will disable MABR cache for this request; if absent or value is yes, MABR cache will be used if available
+.br
+- for client response, a value of yes indicates the content comes from the MABR cache; if absent or value is no, the content comes from HTTP
+.br
+
+.br
+.SH File Services
+.LP
+.br
+A file system directory can be exposed as a service. 
+.br
+
+.br
+Service configuration parameters used : local (mandatory), sources (mandatory), gcache and keepalive.
+.br
+
+.br
+The local service configuration option must be set to the desired service path, and the sources service configuration option must one or more valid sources.
+.br
+Each source is either a file, a directory or a remote URL.
+.br
+
+.br
+Example configuration for exposing a directory
+.br
+Example
+.br
+{ 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
+.br
+
+.br
+This service will expose the content of directory my_dir/* as http://localhost/dserv/foo/*.
+.br
+
+.br
+In this mode, file serving is handled directly by httpout filter and no memory caching is used.
+.br
+If the source is a remote HTTP one, the gcache option will indicate if GPAC local cache shall be used.
+.br
+
+.br
+.SH Module development
+.LP
+.br
+
+.br
+A JS module can be specified using the js option in the service configuration. The module export functions are:
+.br
+.SS init (mandatory)
+.br
+The function is called once at the start of the server
+.br
+Parameter: the service configuration object
+.br
+return value must be true if configuration and initialization are successful, false otherwise
+.br
+
+.br
+.SS resolve (mandatory)
+.br
+Parameter: an HTTP request object from GPAC
+.br
+
+.br
+The function returns an array of two values:
+.br
+* result: null if error, a resolved string indicating either a local file or the reply body, or an object
+.br
+* delay: if true, the reply is being delayed by the module for later processing
+.br
+
+.br
+When an object is returned, the request is handled by the JS module in charge of sending the reply and reading the data. The object shall have the following properties:
+.br
+* read: same semantics as the request read method
+.br
+* on_close: optional function called when the request is closed
+.br
+
+.br
+.SH Built-in modules
+.LP
+.br
+
+.br
+.SS Source Remultiplexer
+.br
+Module is loaded when using js=remux
+.br
+
+.br
+This module remultiplexes the source files in a desired format without transcoding.
+.br
+
+.br
+Service configuration parameters used : local (mandatory), sources (mandatory).
+.br
+
+.br
+Service configuration additional parameters
+.br
+* fmt: default format to use (default is mp4). Supported formats are:
+.br
+  * `src`: no remultiplexing
+.br
+  * `mp4`: fragmented MP4
+.br
+  * `ts`: MPEG-2 TS
+.br
+  * `gsf`: GPAC streaming format
+.br
+  * `dash`: MPEG-DASH format, single quality
+.br
+  * `hls`: HLS format, single quality
+.br
+
+.br
+Sources are described using the sources array in the service configuration.
+.br
+
+.br
+CGI parameters for request are:
+.br
+* fmt: (string, same as service configuration fmt) multiplexing format. If src, all other CGI parameters are ignored.
+.br
+* start: (number, default 0) start time in second of re-multiplexed content.
+.br
+* speed: (number, default 1) speed (>=0), keep video stream only and remove non SAP frames.
+.br
+* media: (string, default av) media filtering type
+.br
+  * 'av': keep both audio and video
+.br
+  * 'a': keep only audio
+.br
+  * 'v': keep only video
+.br
+
+.br
+Exemple configuration for serving a directory with remultiplexing to mp4:
+.br
+Example
+.br
+{'local': '/service1/', 'js': 'remux', 'sources': ['name': 'vids', 'url': '/path/to/vids/'}], 'fmt': 'mp4'}
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+scfg (str):                    service configuration file
+.br
+quit (bool, default: false):   exit server once last service has been deactivated
 .br
 
 .br
