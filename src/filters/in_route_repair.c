@@ -191,7 +191,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 	/* walk through all possible top-level boxes in order
     - if box completely in a received byte range, keep as is
     - if incomplete mdat:
-		-  if strict mode, move to free and move previous moof to free as well
+		- if strict mode, move to free and move previous moof to free as well
 		- otherwise keep as is
     - if incomplete moof, move to free
     - if hole between two known boxes (some box headers where partially or totally lost), inject free box
@@ -885,7 +885,7 @@ restart:
 					error_type = 1;
 				} else {
 					//200 instead of 206 on server supporting byte-ranges: the content size is not yet known, cancel and postpone
-					//note: we're either in probe mode or know the server accept ranges so we can't figure out if the server doesn't accept
+					//note: we're either in probe mode or know the server accepts ranges so we can't figure out if the server doesn't accept
 					//by postponing we should get an answer soon...
 					error_type = 2;
 				}

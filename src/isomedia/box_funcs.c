@@ -125,7 +125,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		type = otype = gf_bs_read_u32(bs);
 		hdr_size += 4;
 
-		//check if free as top-leve is not a moof
+		//check if free as top-level is not a moof
 		if (is_root_box && (type==GF_ISOM_BOX_TYPE_FREE) && !(gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_MABR_PATCH)) {
 			u32 child_type = gf_bs_peek_bits(bs, 32, 4);
 			if (child_type==GF_ISOM_BOX_TYPE_MFHD) {

@@ -525,7 +525,7 @@ Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess);
 /*!
 \brief Gets associated ressource size
 
-Gets the resource size as announced by the server. If byte-range request was successfull, this size will be different from the total bytes expected in the session
+Gets the resource size as announced by the server. If byte-range request was , this size will be different from the total bytes expected in the session
 \param sess the download session object
 \return the resource size, 0 if unknown
 */

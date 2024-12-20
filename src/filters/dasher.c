@@ -11025,7 +11025,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- on: enables it if same decoder configuration is possible\n"
 	"- inband: moves decoder config inband if possible\n"
 	"- both: inband and outband parameter sets\n"
-	"- pps: moves PPS and APS inband, keep VPS,SPS and DCI out of band (used for VVC RPR)\n"
+	"- pps: moves PPS and APS inband, keep VPS, SPS and DCI out of band (used for VVC RPR)\n"
 	"- force: enables it even if only one representation\n"
 	"- multi: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|pps|both|force|multi", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "template string to use to generate segment name", GF_PROP_STRING, NULL, NULL, 0},
