@@ -6308,8 +6308,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 	return ret;
 }
 
-
-u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc)
+u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc, GF_PropUIntList seis)
 {
 	u32 ptype, psize, hdr, var;
 	u32 start;
@@ -6317,6 +6316,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 	GF_BitStream *bs_dest = NULL;
 	u8 nhdr;
 	Bool sei_removed = GF_FALSE;
+	Bool all_sei_removed = GF_TRUE;
 	char store;
 
 	hdr = buffer[0];
@@ -6347,10 +6347,15 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			if (v != 0xFF) break;
 		}
 
+		do_copy = seis.nb_items == 0;
+		for (u32 i = 0; i < seis.nb_items; i++) {
+			if (seis.vals[i] == ptype) {
+				do_copy = GF_TRUE;
+				break;
+			}
+		}
+
 		start = (u32)gf_bs_get_position(bs);
-
-		do_copy = 1;
-
 		if (start + psize >= nal_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] SEI user message type %d size error (%d but %d remain), keeping full SEI untouched\n", ptype, psize, nal_size - start));
 			if (bs_dest) gf_bs_del(bs_dest);
@@ -6363,8 +6368,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		case 10: /*sub_seq info*/
 		case 11: /*sub_seq_layer char*/
 		case 12: /*sub_seq char*/
-			do_copy = 0;
-			sei_removed = GF_TRUE;
+			do_copy = GF_FALSE;
 			break;
 		case 5: /*user unregistered */
 			store = buffer[start + psize];
@@ -6398,6 +6402,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		}
 
 		if (do_copy && bs_dest) {
+			all_sei_removed = GF_FALSE;
 			var = ptype;
 			while (var >= 255) {
 				gf_bs_write_int(bs_dest, 0xFF, 8);
@@ -6421,6 +6426,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			}
 		}
 		else {
+			if (!do_copy) sei_removed = GF_TRUE;
 			gf_bs_seek(bs, start);
 
 			//bs_skip_bytes does not skip EPB, skip byte per byte
@@ -6444,7 +6450,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 	}
 	gf_bs_del(bs);
 	//we cannot compare final size and original size since original may have EPB and final does not yet have them
-	if (bs_dest && sei_removed) {
+	if (bs_dest && sei_removed && !all_sei_removed) {
 		u8 *dst_no_epb = NULL;
 		u32 dst_no_epb_size = 0;
 		gf_bs_get_content(bs_dest, &dst_no_epb, &dst_no_epb_size);
@@ -6459,6 +6465,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		}
 	}
 	if (bs_dest) gf_bs_del(bs_dest);
+	if (all_sei_removed) return 0;
 	return nal_size;
 }
 
@@ -7668,6 +7675,124 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	}
 }
 
+u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVCState *hevc, VVCState *vvc, GF_PropUIntList seis)
+{
+	u32 ptype, psize, hdr, var;
+	u64 start;
+	GF_BitStream *bs;
+	GF_BitStream *bs_dest = NULL;
+	Bool sei_removed = GF_FALSE;
+	Bool all_sei_removed = GF_TRUE;
+
+	hdr = buffer[0];
+	if (((hdr & 0x7e) >> 1) != GF_HEVC_NALU_SEI_PREFIX && ((hdr & 0x7e) >> 1) != GF_VVC_NALU_SEI_PREFIX)
+		return nal_size;
+
+	if (isobmf_rewrite) bs_dest = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
+	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+
+	gf_bs_read_int(bs, 16);
+
+	/*parse SEI*/
+	while (gf_bs_available(bs)) {
+		Bool do_copy;
+		ptype = 0;
+		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
+			gf_bs_read_int(bs, 8);
+			ptype += 255;
+		}
+		ptype += gf_bs_read_int(bs, 8);
+		psize = 0;
+		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
+			gf_bs_read_int(bs, 8);
+			psize += 255;
+		}
+		psize += gf_bs_read_int(bs, 8);
+
+		do_copy = seis.nb_items == 0;
+		for (u32 i = 0; i < seis.nb_items; i++) {
+			if (seis.vals[i] == ptype) {
+				do_copy = GF_TRUE;
+				break;
+			}
+		}
+
+		start = gf_bs_get_position(bs);
+		if (start+psize >= nal_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] SEI user message type %d size error (%d but %d remain), skipping SEI message\n", hevc ? "HEVC" : "VVC", ptype, psize, nal_size-start));
+			break;
+		}
+
+		if (do_copy && bs_dest) {
+			all_sei_removed = GF_FALSE;
+			var = ptype;
+			while (var >= 255) {
+				gf_bs_write_int(bs_dest, 0xFF, 8);
+				var -= 255;
+			}
+			gf_bs_write_int(bs_dest, var, 8);
+
+			var = psize;
+			while (var >= 255) {
+				gf_bs_write_int(bs_dest, 0xFF, 8);
+				var -= 255;
+			}
+			gf_bs_write_int(bs_dest, var, 8);
+			gf_bs_seek(bs, start);
+
+			//bs_read_data does not skip EPB, read byte per byte
+			var = psize;
+			while (var) {
+				gf_bs_write_u8(bs_dest, gf_bs_read_u8(bs));
+				var--;
+			}
+		}
+		else {
+			if (!do_copy) sei_removed = GF_TRUE;
+			gf_bs_seek(bs, start);
+
+			//bs_skip_bytes does not skip EPB, skip byte per byte
+			while (psize) {
+				gf_bs_read_u8(bs);
+				psize--;
+			}
+		}
+
+		if (gf_bs_available(bs) <= 2) {
+			var = gf_bs_read_int(bs, 8);
+			if (var != 0x80) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] SEI user message has less than 2 bytes remaining but no end of sei found, keeping full SEI untouched\n", hevc ? "HEVC" : "VVC"));
+				if (bs_dest) gf_bs_del(bs_dest);
+				gf_bs_del(bs);
+				return nal_size;
+			}
+			if (bs_dest) gf_bs_write_int(bs_dest, 0x80, 8);
+			break;
+		}
+	}
+	gf_bs_del(bs);
+	//we cannot compare final size and original size since original may have EPB and final does not yet have them
+	if (bs_dest && sei_removed && !all_sei_removed) {
+		u8 *dst_no_epb = NULL;
+		u32 dst_no_epb_size = 0;
+		gf_bs_get_content(bs_dest, &dst_no_epb, &dst_no_epb_size);
+		if (dst_no_epb) {
+			u32 nb_bytes_add = gf_media_nalu_emulation_bytes_add_count(dst_no_epb, dst_no_epb_size);
+			//if result fits into source buffer, reformat
+			//otherwise ignore and return source (happens in some fuzzing cases, cf issue 1903)
+			if (dst_no_epb_size + nb_bytes_add <= nal_size)
+				nal_size = gf_media_nalu_add_emulation_bytes(dst_no_epb, buffer, dst_no_epb_size);
+
+			gf_free(dst_no_epb);
+		}
+	}
+	if (bs_dest) gf_bs_del(bs_dest);
+	if (all_sei_removed) return 0;
+	return nal_size;
+}
+
 static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, VVCState *vvc)
 {
 	u32 ptype, psize, hdr, i;
@@ -7774,6 +7899,11 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 void gf_hevc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc)
 {
 	gf_hevc_vvc_parse_sei(buffer, nal_size, hevc, NULL);
+}
+
+u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, HEVCState *hevc, GF_PropUIntList seis)
+{
+	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, hevc, NULL, seis);
 }
 
 static void hevc_compute_poc(HEVCSliceInfo *si)
@@ -10771,6 +10901,12 @@ GF_EXPORT
 void gf_vvc_parse_sei(char *buffer, u32 nal_size, VVCState *vvc)
 {
 	gf_hevc_vvc_parse_sei(buffer, nal_size, NULL, vvc);
+}
+
+GF_EXPORT
+u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, VVCState *vvc, GF_PropUIntList seis)
+{
+	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, NULL, vvc, seis);
 }
 
 static Bool vvc_parse_nal_header(GF_BitStream *bs, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
