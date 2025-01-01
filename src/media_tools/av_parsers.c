@@ -7686,7 +7686,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 	u64 start;
 	GF_BitStream *bs;
 	GF_BitStream *bs_dest = NULL;
-	u8 nhdr;
+	u16 nhdr;
 	Bool sei_removed = GF_FALSE;
 	Bool all_sei_removed = GF_TRUE;
 
