@@ -2535,7 +2535,7 @@ static Bool naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool ref
 	}
 
 finish:
-	ctx->sei_buffer_size += size + ctx->nal_length;
+	if (size) ctx->sei_buffer_size += size + ctx->nal_length;
 	return rw_sei_size > 0;
 }
 
@@ -2602,12 +2602,12 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		if (ctx->hevc_state->has_3d_ref_disp_info) {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEI_PREFIX, 0, temporal_id, layer_id);
 		}
-		Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
-		if (ctx->nosei || !still_has_sei) {
-			ctx->nb_nalus--;
-			ctx->sei_buffer_size = 0;
+		if (!ctx->nosei) {
+			Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
+			if (still_has_sei) ctx->nb_sei++;
+			else ctx->nb_nalus--;
 		} else {
-			ctx->nb_sei++;
+			ctx->nb_nalus--;
 		}
 		*skip_nal = GF_TRUE;
 		break;
@@ -2807,12 +2807,12 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		break;
 	case GF_VVC_NALU_SEI_PREFIX:
 		gf_vvc_parse_sei(data, size, ctx->vvc_state);
-		Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
-		if (ctx->nosei || !still_has_sei) {
-			ctx->nb_nalus--;
-			ctx->sei_buffer_size = 0;
+		if (!ctx->nosei) {
+			Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
+			if (still_has_sei) ctx->nb_sei++;
+			else ctx->nb_nalus--;
 		} else {
-			ctx->nb_sei++;
+			ctx->nb_nalus--;
 		}
 		*skip_nal = GF_TRUE;
 		break;
@@ -2958,11 +2958,9 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 
 	case GF_AVC_NALU_SEI:
 		if (ctx->avc_state->sps_active_idx != -1) {
-			Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
-			if (ctx->nosei || !still_has_sei) {
-				ctx->sei_buffer_size = 0;
-			} else {
-				ctx->nb_sei++;
+			if (!ctx->nosei) {
+				Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
+				if (still_has_sei) ctx->nb_sei++;
 			}
 			*skip_nal = GF_TRUE;
 		}
