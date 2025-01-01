@@ -6449,8 +6449,14 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		}
 	}
 	gf_bs_del(bs);
+
+	if (all_sei_removed) {
+		if (bs_dest) gf_bs_del(bs_dest);
+		return 0;
+	}
+
 	//we cannot compare final size and original size since original may have EPB and final does not yet have them
-	if (bs_dest && sei_removed && !all_sei_removed) {
+	if (bs_dest && sei_removed) {
 		u8 *dst_no_epb = NULL;
 		u32 dst_no_epb_size = 0;
 		gf_bs_get_content(bs_dest, &dst_no_epb, &dst_no_epb_size);
@@ -6465,7 +6471,6 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		}
 	}
 	if (bs_dest) gf_bs_del(bs_dest);
-	if (all_sei_removed) return 0;
 	return nal_size;
 }
 
@@ -7681,6 +7686,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 	u64 start;
 	GF_BitStream *bs;
 	GF_BitStream *bs_dest = NULL;
+	u8 nhdr;
 	Bool sei_removed = GF_FALSE;
 	Bool all_sei_removed = GF_TRUE;
 
@@ -7693,10 +7699,12 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
 
-	gf_bs_read_int(bs, 16);
+	nhdr = gf_bs_read_int(bs, 16);
+	if (bs_dest) gf_bs_write_int(bs_dest, nhdr, 16);
 
 	/*parse SEI*/
 	while (gf_bs_available(bs)) {
+		u32 consumed, nb_zeros;
 		Bool do_copy;
 		ptype = 0;
 		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
@@ -7725,6 +7733,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 			break;
 		}
 
+		nb_zeros = gf_bs_get_emulation_byte_removed(bs);
 		if (do_copy && bs_dest) {
 			all_sei_removed = GF_FALSE;
 			var = ptype;
@@ -7748,16 +7757,28 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 				gf_bs_write_u8(bs_dest, gf_bs_read_u8(bs));
 				var--;
 			}
-		}
-		else {
-			if (!do_copy) sei_removed = GF_TRUE;
+		} else if (!do_copy) {
+			sei_removed = GF_TRUE;
 			gf_bs_seek(bs, start);
 
 			//bs_skip_bytes does not skip EPB, skip byte per byte
-			while (psize) {
+			var = psize;
+			while (var) {
 				gf_bs_read_u8(bs);
-				psize--;
+				var--;
 			}
+		}
+
+		nb_zeros = gf_bs_get_emulation_byte_removed(bs) - nb_zeros;
+		gf_bs_align(bs);
+		if (bs_dest) gf_bs_align(bs_dest);
+		consumed = (u32) (gf_bs_get_position(bs) - start);
+		consumed -= nb_zeros;
+		psize -= consumed;
+		//do not use skip bytes due to possible EPB
+		while (psize) {
+			gf_bs_read_u8(bs);
+			psize--;
 		}
 
 		if (gf_bs_available(bs) <= 2) {
@@ -7773,8 +7794,14 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 		}
 	}
 	gf_bs_del(bs);
+
+	if (all_sei_removed) {
+		if (bs_dest) gf_bs_del(bs_dest);
+		return 0;
+	}
+
 	//we cannot compare final size and original size since original may have EPB and final does not yet have them
-	if (bs_dest && sei_removed && !all_sei_removed) {
+	if (bs_dest && sei_removed) {
 		u8 *dst_no_epb = NULL;
 		u32 dst_no_epb_size = 0;
 		gf_bs_get_content(bs_dest, &dst_no_epb, &dst_no_epb_size);
@@ -7789,7 +7816,6 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 		}
 	}
 	if (bs_dest) gf_bs_del(bs_dest);
-	if (all_sei_removed) return 0;
 	return nal_size;
 }
 
