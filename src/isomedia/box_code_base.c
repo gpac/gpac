@@ -494,13 +494,24 @@ GF_Err cslg_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_CompositionToDecodeBox *ptr = (GF_CompositionToDecodeBox *)s;
 
-	ISOM_DECREASE_SIZE(ptr, 20);
-	ptr->compositionToDTSShift = gf_bs_read_int(bs, 32);
-	ptr->leastDecodeToDisplayDelta = gf_bs_read_int(bs, 32);
-	ptr->greatestDecodeToDisplayDelta = gf_bs_read_int(bs, 32);
-	ptr->compositionStartTime = gf_bs_read_int(bs, 32);
-	ptr->compositionEndTime = gf_bs_read_int(bs, 32);
-	return GF_OK;
+	if (s->version == 0) {
+		ISOM_DECREASE_SIZE(ptr, 20);
+		ptr->compositionToDTSShift = gf_bs_read_int(bs, 32);
+		ptr->leastDecodeToDisplayDelta = gf_bs_read_int(bs, 32);
+		ptr->greatestDecodeToDisplayDelta = gf_bs_read_int(bs, 32);
+		ptr->compositionStartTime = gf_bs_read_int(bs, 32);
+		ptr->compositionEndTime = gf_bs_read_int(bs, 32);
+		return GF_OK;
+	} else if (s->version == 1) {
+		ISOM_DECREASE_SIZE(ptr, 40);
+		ptr->compositionToDTSShift = gf_bs_read_int(bs, 64);
+		ptr->leastDecodeToDisplayDelta = gf_bs_read_int(bs, 64);
+		ptr->greatestDecodeToDisplayDelta = gf_bs_read_int(bs, 64);
+		ptr->compositionStartTime = gf_bs_read_int(bs, 64);
+		ptr->compositionEndTime = gf_bs_read_int(bs, 64);
+		return GF_OK;
+	}
+	return GF_NOT_SUPPORTED;
 }
 
 GF_Box *cslg_box_new()
@@ -518,20 +529,36 @@ GF_Err cslg_box_write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_int(bs, ptr->compositionToDTSShift, 32);
-	gf_bs_write_int(bs, ptr->leastDecodeToDisplayDelta, 32);
-	gf_bs_write_int(bs, ptr->greatestDecodeToDisplayDelta, 32);
-	gf_bs_write_int(bs, ptr->compositionStartTime, 32);
-	gf_bs_write_int(bs, ptr->compositionEndTime, 32);
-	return GF_OK;
+	if (s->version == 0) {
+		gf_bs_write_int(bs, ptr->compositionToDTSShift, 32);
+		gf_bs_write_int(bs, ptr->leastDecodeToDisplayDelta, 32);
+		gf_bs_write_int(bs, ptr->greatestDecodeToDisplayDelta, 32);
+		gf_bs_write_int(bs, ptr->compositionStartTime, 32);
+		gf_bs_write_int(bs, ptr->compositionEndTime, 32);
+		return GF_OK;
+	} else if (s->version == 1) {
+		gf_bs_write_long_int(bs, ptr->compositionToDTSShift, 64);
+		gf_bs_write_long_int(bs, ptr->leastDecodeToDisplayDelta, 64);
+		gf_bs_write_long_int(bs, ptr->greatestDecodeToDisplayDelta, 64);
+		gf_bs_write_long_int(bs, ptr->compositionStartTime, 64);
+		gf_bs_write_long_int(bs, ptr->compositionEndTime, 64);
+		return GF_OK;
+	}
+	return GF_NOT_SUPPORTED;
 }
 
 GF_Err cslg_box_size(GF_Box *s)
 {
 	GF_CompositionToDecodeBox *ptr = (GF_CompositionToDecodeBox *)s;
+	if (s->version == 0) {
+		ptr->size += 20;
+		return GF_OK;
+	} else if (s->version == 1) {
+		ptr->size += 40;
+		return GF_OK;
+	}
+	return GF_NOT_SUPPORTED;
 
-	ptr->size += 20;
-	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
