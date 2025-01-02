@@ -97,7 +97,9 @@ ifeq ($(UNIT_TESTS),yes)
 		mv $(UT_CFG_PATH).mak.new $(UT_CFG_PATH).mak; \
 	fi
 
-	@sed 's/GF_STATIC static/GF_STATIC GF_EXPORT/' config.h > $(UT_CFG_PATH).h.new
+	@sed 's/GF_STATIC static/GF_STATIC GF_EXPORT/' config.h > $(UT_CFG_PATH).h.new.tmp
+	@sed 's/GF_NOT_EXPORTED/GF_NOT_EXPORTED GF_EXPORT/' $(UT_CFG_PATH).h.new.tmp > $(UT_CFG_PATH).h.new
+	@rm $(UT_CFG_PATH).h.new.tmp
 	@if [ -e $(UT_CFG_PATH).h ]; then \
 		if ! diff -q $(UT_CFG_PATH).h $(UT_CFG_PATH).h.new >/dev/null ; then \
 			mv $(UT_CFG_PATH).h.new $(UT_CFG_PATH).h; \
