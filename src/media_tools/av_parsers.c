@@ -7736,9 +7736,11 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 		}
 
 		start = gf_bs_get_position(bs);
-		if (start+psize >= nal_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] SEI user message type %d size error (%d but %d remain), skipping SEI message\n", hevc ? "HEVC" : "VVC", ptype, psize, nal_size-start));
-			break;
+		if (start + psize >= nal_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] SEI user message type %d size error (%d but %d remain), keeping full SEI untouched\n", hevc ? "HEVC" : "VVC", ptype, psize, nal_size-start));
+			if (bs_dest) gf_bs_del(bs_dest);
+			gf_bs_del(bs);
+			return nal_size;
 		}
 
 		nb_zeros = gf_bs_get_emulation_byte_removed(bs);
