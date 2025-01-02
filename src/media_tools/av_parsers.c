@@ -7691,8 +7691,16 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 	Bool all_sei_removed = GF_TRUE;
 
 	hdr = buffer[0];
-	if (((hdr & 0x7e) >> 1) != GF_HEVC_NALU_SEI_PREFIX && ((hdr & 0x7e) >> 1) != GF_VVC_NALU_SEI_PREFIX)
+	switch ((hdr & 0x7e) >> 1)
+	{
+	case GF_HEVC_NALU_SEI_PREFIX:
+	case GF_HEVC_NALU_SEI_SUFFIX:
+	case GF_VVC_NALU_SEI_PREFIX:
+	case GF_VVC_NALU_SEI_SUFFIX:
+		break;
+	default:
 		return nal_size;
+	}
 
 	if (isobmf_rewrite) bs_dest = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 

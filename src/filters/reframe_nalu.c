@@ -3513,7 +3513,16 @@ naldmx_flush:
 			if (!ctx->opid) skip_nal = GF_TRUE;
 		}
 
-		if (skip_nal) {
+		//reformat sei suffix
+		u32 original_nal_size = nal_size;
+		if (ctx->codecid==GF_CODECID_HEVC && nal_type==GF_HEVC_NALU_SEI_SUFFIX) {
+			nal_size = gf_hevc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->hevc_state, ctx->seis);
+		} else if (ctx->codecid==GF_CODECID_VVC && nal_type==GF_VVC_NALU_SEI_SUFFIX) {
+			nal_size = gf_vvc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->vvc_state, ctx->seis);
+		}
+
+		if (skip_nal || !nal_size) {
+			nal_size = original_nal_size;
 			nal_size += sc_size;
 			gf_assert((u32) remain >= nal_size);
 			start += nal_size;
