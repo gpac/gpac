@@ -29,7 +29,7 @@ static void ccdec_test_template(int agg, Bool text_with_overlaps, GF_Err (*pck_s
     CCDecCtx ctx = {0};
     ctx.agg = agg;
 
-	ctx.pck_send = pck_send;
+    ctx.pck_send = pck_send;
     ctx.pck_truncate = pck_truncate;
     ctx.pck_new_alloc = pck_new_alloc;
 
@@ -136,7 +136,7 @@ unittest(ccdec_several_entries)
     CCDecCtx ctx = {0};
     ctx.agg = 1;
 
-	ctx.pck_send = pck_send_several_entries;
+    ctx.pck_send = pck_send_several_entries;
     ctx.pck_truncate = pck_truncate;
     ctx.pck_new_alloc = pck_new_alloc;
 
