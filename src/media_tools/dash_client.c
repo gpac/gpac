@@ -1329,7 +1329,7 @@ setup_multicast_clock:
 		current_time_rescale = current_time;
 		current_time_rescale *= timescale;
 		current_time_rescale /= 1000;
-		//warning, MPD time in SegmentTimeline is (t-pto), so add pto to current time rescaled before comaring to t@s
+		//warning, MPD time in SegmentTimeline is (t-pto), so add pto to current time rescaled before comparing to t@s
 		current_time_rescale += rep_pto;
 
 		count = gf_list_count(timeline->entries);
