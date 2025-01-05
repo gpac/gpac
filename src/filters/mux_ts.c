@@ -1433,6 +1433,9 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			m2pid->ctx->pmt_update_pending = GF_TRUE;
 			m2pid->ctx->update_mux = GF_TRUE;
 		}
+		if (codec_id == GF_CODECID_SCTE35) {
+			streamtype = GF_STREAM_METADATA; // necessary when importing from NHML
+		}
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
