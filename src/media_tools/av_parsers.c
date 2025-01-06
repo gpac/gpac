@@ -6347,10 +6347,10 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			if (v != 0xFF) break;
 		}
 
-		do_copy = seis.nb_items == 0;
+		do_copy = GF_TRUE;
 		for (u32 i = 0; i < seis.nb_items; i++) {
 			if (seis.vals[i] == ptype) {
-				do_copy = GF_TRUE;
+				do_copy = GF_FALSE;
 				break;
 			}
 		}
@@ -7727,10 +7727,10 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 		}
 		psize += gf_bs_read_int(bs, 8);
 
-		do_copy = seis.nb_items == 0;
+		do_copy = GF_TRUE;
 		for (u32 i = 0; i < seis.nb_items; i++) {
 			if (seis.vals[i] == ptype) {
-				do_copy = GF_TRUE;
+				do_copy = GF_FALSE;
 				break;
 			}
 		}
