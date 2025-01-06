@@ -2602,7 +2602,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		if (ctx->hevc_state->has_3d_ref_disp_info) {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEI_PREFIX, 0, temporal_id, layer_id);
 		}
-		if (!ctx->nosei) {
+		if (!ctx->nosei || ctx->seis.nb_items) {
 			Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
 			if (still_has_sei) ctx->nb_sei++;
 			else ctx->nb_nalus--;
@@ -2613,11 +2613,11 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		break;
 	case GF_HEVC_NALU_SEI_SUFFIX:
 		if (! ctx->is_playing) return 0;
-		if (ctx->nosei) {
+		if (!ctx->nosei || ctx->seis.nb_items) {
+			ctx->nb_sei++;
+		} else {
 			*skip_nal = GF_TRUE;
 			ctx->nb_nalus--;
-		} else {
-			ctx->nb_sei++;
 		}
 		break;
 
@@ -2807,7 +2807,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		break;
 	case GF_VVC_NALU_SEI_PREFIX:
 		gf_vvc_parse_sei(data, size, ctx->vvc_state);
-		if (!ctx->nosei) {
+		if (!ctx->nosei || ctx->seis.nb_items) {
 			Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
 			if (still_has_sei) ctx->nb_sei++;
 			else ctx->nb_nalus--;
@@ -2819,11 +2819,11 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_SEI_SUFFIX:
 		if (! ctx->is_playing) return 0;
 		gf_vvc_parse_sei(data, size, ctx->vvc_state);
-		if (ctx->nosei) {
+		if (!ctx->nosei || ctx->seis.nb_items) {
+			ctx->nb_sei++;
+		} else {
 			*skip_nal = GF_TRUE;
 			ctx->nb_nalus--;
-		} else {
-			ctx->nb_sei++;
 		}
 		break;
 
@@ -2958,7 +2958,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 
 	case GF_AVC_NALU_SEI:
 		if (ctx->avc_state->sps_active_idx != -1) {
-			if (!ctx->nosei) {
+			if (!ctx->nosei || ctx->seis.nb_items) {
 				Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
 				if (still_has_sei) ctx->nb_sei++;
 			}
@@ -4422,8 +4422,8 @@ static const GF_FilterArgs NALUDmxArgs[] =
 		"- off: disable GOP buffering\n"
 		"- on: enable GOP buffering, assuming no error in POC\n"
 		"- error: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "off", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(seis), "list of message types (4,137,144,...) to forward, other messages are dropped", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(nosei), "remove all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(seis), "list of sei message types (4,137,144,...) to drop", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(nosei), "remove all sei messages or pair with `seis` option to filter specific messages out", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
