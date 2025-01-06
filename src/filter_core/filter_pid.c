@@ -4444,6 +4444,7 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	u32 i;
 	const GF_FilterCapability *caps;
 	u32 nb_caps;
+	Bool in_is_unframed_encrypted = GF_FALSE;
 	Bool dst_has_raw_cid_in = GF_FALSE;
 	const GF_PropertyValue *stream_type = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!stream_type) return GF_TRUE;
@@ -4452,6 +4453,9 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	if (stream_type->value.uint==GF_STREAM_ENCRYPTED) {
 		stream_type = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 		if (!stream_type) return GF_TRUE;
+		const GF_PropertyValue *unf = gf_filter_pid_get_property_first(pid, GF_PROP_PID_UNFRAMED);
+		if (unf && unf->value.boolean)
+			in_is_unframed_encrypted = GF_TRUE;
 	}
 
 	caps = dst->forced_caps ? dst->forced_caps : dst->freg->caps;
@@ -4513,6 +4517,8 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 		}
 	}
 	if (has_excluded_nomatch) return GF_FALSE;
+	//if input is unframed and encrypted, allow implicit filter for reframing
+	if (in_is_unframed_encrypted) return GF_FALSE;
 	
 	//no mathing type found, we will need an explicit filter to solve this link (ie the link will be to the explicit filter)
 	return GF_TRUE;
