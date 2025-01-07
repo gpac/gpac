@@ -599,6 +599,11 @@ typedef struct _hevc_state
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
 
+	u8 clli_data[4];
+	u8 mdcv_data[24];
+	u8 clli_valid, mdcv_valid;
+	u8 has_3d_ref_disp_info;	
+	u8 alternative_transfer_characteristics;
 } HEVCState;
 
 typedef struct hevc_combine{
@@ -868,6 +873,10 @@ typedef struct _vvc_state
 	//1: full parsing, error check: used to retrieve end of slice header
 	//2: full parsing, no error check (used by dumpers)
 	u32 parse_mode;
+	u8 clli_data[4];
+	u8 mdcv_data[24];
+	u8 clli_valid, mdcv_valid;
+	u8 alternative_transfer_characteristics;
 } VVCState;
 
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);

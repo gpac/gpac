@@ -8648,6 +8648,14 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 
 			sei->mdcv_valid = 1;
 			break;
+		// atc
+		case 147:
+			if (hevc){
+				hevc->alternative_transfer_characteristics = gf_bs_read_u8(bs);
+			} else {
+				vvc->alternative_transfer_characteristics = gf_bs_read_u8(bs);
+			}
+			break;
 		// three_dimensional_reference_displays_info
 		case 176:
 			sei->has_3d_ref_disp_info = 1;
