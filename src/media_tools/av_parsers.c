@@ -6308,7 +6308,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 	return ret;
 }
 
-u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc, GF_PropUIntList seis)
+u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc, GF_PropUIntList seis, Bool is_remove)
 {
 	u32 ptype, psize, hdr, var;
 	u32 start;
@@ -6347,10 +6347,10 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			if (v != 0xFF) break;
 		}
 
-		do_copy = GF_TRUE;
+		do_copy = is_remove;
 		for (u32 i = 0; i < seis.nb_items; i++) {
 			if (seis.vals[i] == ptype) {
-				do_copy = GF_FALSE;
+				do_copy = !do_copy;
 				break;
 			}
 		}
@@ -7680,7 +7680,7 @@ static void gf_hevc_compute_ref_list(HEVCState *hevc, HEVCSliceInfo *si)
 	}
 }
 
-u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVCState *hevc, VVCState *vvc, GF_PropUIntList seis)
+u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVCState *hevc, VVCState *vvc, GF_PropUIntList seis, Bool is_remove)
 {
 	u32 ptype, psize, hdr, var;
 	u64 start;
@@ -7727,10 +7727,10 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, HEVC
 		}
 		psize += gf_bs_read_int(bs, 8);
 
-		do_copy = GF_TRUE;
+		do_copy = is_remove;
 		for (u32 i = 0; i < seis.nb_items; i++) {
 			if (seis.vals[i] == ptype) {
-				do_copy = GF_FALSE;
+				do_copy = !do_copy;
 				break;
 			}
 		}
@@ -7937,9 +7937,9 @@ void gf_hevc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc)
 	gf_hevc_vvc_parse_sei(buffer, nal_size, hevc, NULL);
 }
 
-u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, HEVCState *hevc, GF_PropUIntList seis)
+u32 gf_hevc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, HEVCState *hevc, GF_PropUIntList seis, Bool is_remove)
 {
-	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, hevc, NULL, seis);
+	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, hevc, NULL, seis, is_remove);
 }
 
 static void hevc_compute_poc(HEVCSliceInfo *si)
@@ -10940,9 +10940,9 @@ void gf_vvc_parse_sei(char *buffer, u32 nal_size, VVCState *vvc)
 }
 
 GF_EXPORT
-u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, VVCState *vvc, GF_PropUIntList seis)
+u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, VVCState *vvc, GF_PropUIntList seis, Bool is_remove)
 {
-	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, NULL, vvc, seis);
+	return gf_hevc_vvc_reformat_sei(buffer, nal_size, isobmf_rewrite, NULL, vvc, seis, is_remove);
 }
 
 static Bool vvc_parse_nal_header(GF_BitStream *bs, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
