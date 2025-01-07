@@ -337,9 +337,9 @@ typedef struct
 typedef enum
 {
 	DASHER_HDR_NONE=0,
+	DASHER_SDR_BT2020,
 	DASHER_HDR_PQ10,
-	DASHER_HDR_HLG,
-	DASHER_SDR_BT2020
+	DASHER_HDR_HLG10
 } DasherHDRType;
 
 typedef struct _dash_stream
@@ -1532,38 +1532,66 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				ds->hls_vp_name = NULL;
 			}
 		}
+		
+		// HDR - try figuring out what media profile is used from pid properties
+		u32 cprim, trc, cmx;
+		DasherHDRType infered_hdr_type = DASHER_HDR_NONE;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
+		if(p){
+			cprim = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER);
+		if(p){
+			trc = p->value.uint;
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
+		if(p){
+			cmx = p->value.uint;
+		}
 
-		//HDR
+		if (cprim == GF_COLOR_PRIM_BT2020 && cmx == GF_COLOR_MX_BT2020_NCL) {
+			if (trc == GF_COLOR_TRC_SMPTE2084){
+				infered_hdr_type = DASHER_HDR_PQ10;
+			} else if (trc == GF_COLOR_TRC_ARIB_STD_B67){
+				infered_hdr_type = DASHER_HDR_HLG10;
+			} else {
+				// GF_COLOR_TRC_BT2020_10 & GF_COLOR_TRC_BT709 are functionnaly equivalent
+				infered_hdr_type = DASHER_SDR_BT2020;
+			}
+		}
+
 #if !defined(GPAC_DISABLE_AV_PARSERS)
 		if (dsi) {
 			if (ds->codec_id == GF_CODECID_LHVC || ds->codec_id == GF_CODECID_HEVC_TILES || ds->codec_id == GF_CODECID_HEVC) {
 				GF_HEVCConfig* hevccfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 				if (hevccfg) {
-					Bool is_interlaced;
-					HEVCState *hvc_state;
-					HEVC_SPS* sps;
-					GF_SAFEALLOC(hvc_state, HEVCState);
-					if (hvc_state) {
-						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_VID_PARAM);
-						gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_SEQ_PARAM);
-						sps = &hvc_state->sps[hvc_state->sps_active_idx];
-						if (sps && sps->colour_description_present_flag) {
-							DasherHDRType old_hdr_type = ds->hdr_type;
-							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
-								// TODO: parse alternative_transfer_characteristics SEI
-								if (sps->transfer_characteristic == 18) ds->hdr_type = DASHER_HDR_HLG;
-								// HDR10
-								if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
-							}
-							if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
-						}
-						is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
-						if (ds->interlaced != is_interlaced) period_switch = GF_TRUE;
+					Bool is_interlaced = hevccfg->interlaced_source_flag ? GF_TRUE : GF_FALSE;
+					if (ds->interlaced != is_interlaced){
 						ds->interlaced = is_interlaced;
-
-						gf_odf_hevc_cfg_del(hevccfg);
-						gf_free(hvc_state);
+						period_switch = GF_TRUE;
 					}
+					if (infered_hdr_type == DASHER_HDR_NONE){
+						HEVCState *hvc_state;
+						HEVC_SPS* sps;
+						GF_SAFEALLOC(hvc_state, HEVCState);
+						if (hvc_state) {
+							gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_VID_PARAM);
+							gf_hevc_parse_ps(hevccfg, hvc_state, GF_HEVC_NALU_SEQ_PARAM);
+							sps = &hvc_state->sps[hvc_state->sps_active_idx];
+							if ( sps && sps->colour_description_present_flag) {
+								if (sps->colour_primaries == GF_COLOR_PRIM_BT2020 
+									&& sps->matrix_coeffs == GF_COLOR_MX_BT2020_NCL) {
+									if (sps->transfer_characteristic == GF_COLOR_TRC_SMPTE2084){
+										infered_hdr_type = DASHER_HDR_HLG10;
+									} else if (sps->transfer_characteristic == GF_COLOR_TRC_ARIB_STD_B67){
+										infered_hdr_type = DASHER_HDR_PQ10;
+									}
+								}
+							}
+							gf_free(hvc_state);
+						}
+					}
+					gf_odf_hevc_cfg_del(hevccfg);
 				}
 			}
 			else if (ds->codec_id == GF_CODECID_AVC || ds->codec_id == GF_CODECID_SVC || ds->codec_id == GF_CODECID_MVC) {
@@ -1586,6 +1614,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					}
 					gf_odf_avc_cfg_del(avccfg);
 				}
+			}
+			if (ds->hdr_type != infered_hdr_type){
+				ds->hdr_type = infered_hdr_type;
+				period_switch = GF_TRUE;
 			}
 		}
 #endif /*!GPAC_DISABLE_AV_PARSERS*/
@@ -3050,8 +3082,8 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			}
 		}
 
-		// TODO: Add support for CUD1 media profiles
-		//set HDR
+		// HDR signaling according to ETSI TS 103 285
+		// TODO: add "urn:dvb:dash:profile:dvb-dash:2017" to profiles_string
 		if (ds->hdr_type > DASHER_HDR_NONE) {
 			char value[256];
 			GF_MPD_Descriptor* desc;
@@ -3067,8 +3099,8 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->essential_properties, desc);
 			}
-
-			if (ds->hdr_type == DASHER_HDR_HLG) {
+			
+			if (ds->hdr_type == DASHER_HDR_HLG10) {
 				sprintf(value, "14");
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->essential_properties, desc);
