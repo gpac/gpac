@@ -2521,11 +2521,11 @@ static Bool naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool ref
 		goto finish;
 
 	if (ctx->codecid==GF_CODECID_HEVC) {
-		rw_sei_size = gf_hevc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->hevc_state, ctx->seis);
+		rw_sei_size = gf_hevc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->hevc_state, ctx->seis, ctx->nosei);
 	} else if (ctx->codecid==GF_CODECID_VVC) {
-		rw_sei_size = gf_vvc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->vvc_state, ctx->seis);
+		rw_sei_size = gf_vvc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->vvc_state, ctx->seis, ctx->nosei);
 	} else {
-		rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state, ctx->seis);
+		rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state, ctx->seis, ctx->nosei);
 	}
 
 	if (rw_sei_size < size) {
@@ -3516,9 +3516,9 @@ naldmx_flush:
 		//reformat sei suffix
 		u32 original_nal_size = nal_size;
 		if (ctx->codecid==GF_CODECID_HEVC && nal_type==GF_HEVC_NALU_SEI_SUFFIX) {
-			nal_size = gf_hevc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->hevc_state, ctx->seis);
+			nal_size = gf_hevc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->hevc_state, ctx->seis, ctx->nosei);
 		} else if (ctx->codecid==GF_CODECID_VVC && nal_type==GF_VVC_NALU_SEI_SUFFIX) {
-			nal_size = gf_vvc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->vvc_state, ctx->seis);
+			nal_size = gf_vvc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->vvc_state, ctx->seis, ctx->nosei);
 		}
 
 		if (skip_nal || !nal_size) {
@@ -4422,8 +4422,8 @@ static const GF_FilterArgs NALUDmxArgs[] =
 		"- off: disable GOP buffering\n"
 		"- on: enable GOP buffering, assuming no error in POC\n"
 		"- error: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "off", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(seis), "list of sei message types (4,137,144,...) to drop", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(nosei), "remove all sei messages or pair with `seis` option to filter specific messages out", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(seis), "list of sei message types (4,137,144,...). If used with `nosei`, these types will be dropped. Otherwise, this acts as a whitelist to allow only the specified SEI message types", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(nosei), "removes all SEI messages. Combine with `seis` option to remove only specific sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
