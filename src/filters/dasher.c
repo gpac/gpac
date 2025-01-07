@@ -339,6 +339,7 @@ typedef enum
 	DASHER_HDR_NONE=0,
 	DASHER_HDR_PQ10,
 	DASHER_HDR_HLG,
+	DASHER_SDR_BT2020
 } DasherHDRType;
 
 typedef struct _dash_stream
@@ -1549,7 +1550,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						if (sps && sps->colour_description_present_flag) {
 							DasherHDRType old_hdr_type = ds->hdr_type;
 							if (sps->colour_primaries == 9 && sps->matrix_coeffs == 9) {
-								if (sps->transfer_characteristic == 14) ds->hdr_type = DASHER_HDR_HLG; //TODO: parse alternative_transfer_characteristics SEI
+								// TODO: parse alternative_transfer_characteristics SEI
+								if (sps->transfer_characteristic == 18) ds->hdr_type = DASHER_HDR_HLG;
+								// HDR10
 								if (sps->transfer_characteristic == 16) ds->hdr_type = DASHER_HDR_PQ10;
 							}
 							if (old_hdr_type != ds->hdr_type) period_switch = GF_TRUE;
@@ -3046,6 +3049,8 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				gf_list_add(set->supplemental_properties, desc);
 			}
 		}
+
+		// TODO: Add support for CUD1 media profiles
 		//set HDR
 		if (ds->hdr_type > DASHER_HDR_NONE) {
 			char value[256];
@@ -3071,6 +3076,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 				desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:mpegB:cicp:TransferCharacteristics", value);
 				gf_list_add(set->supplemental_properties, desc);
 			}
+
 		}
 
 		//add custom inband event in manifest
