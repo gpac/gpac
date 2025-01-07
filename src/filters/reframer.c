@@ -1276,7 +1276,7 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 				before = GF_TRUE;
 				for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
 					u32 tc = p->value.uint_list.vals[i];
-					if (tc >= ctx->cur_start.num) {
+					if (gf_timestamp_greater_or_equal(tc, 1000, ctx->cur_start.num, ctx->cur_start.den)) {
 						before = GF_FALSE;
 						break;
 					}
@@ -1289,7 +1289,7 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 				after = GF_TRUE;
 				for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
 					u32 tc = p->value.uint_list.vals[i];
-					if (tc <= ctx->cur_end.num) {
+					if (gf_timestamp_less_or_equal(tc, 1000, ctx->cur_end.num, ctx->cur_end.den)) {
 						after = GF_FALSE;
 						break;
 					}

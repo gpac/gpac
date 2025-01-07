@@ -3057,6 +3057,29 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 		else if (!strcmp(key, "fn")) {
 			inspect_printf(dump, "%s", gf_filter_get_name(filter) );
 		}
+		else if (!strcmp(key, "tmcd")) {
+			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
+			if (prop && prop->value.uint_list.nb_items) {
+				u32 i;
+				for (i=0; i<prop->value.uint_list.nb_items; i++) {
+					if (i) inspect_printf(dump, ", ");
+					u32 tc = prop->value.uint_list.vals[i]; // seconds * 1000 + frames
+					u32 frames = tc % 1000;
+					tc /= 1000;
+					u32 seconds = tc % 60;
+					tc /= 60;
+					u32 minutes = tc % 60;
+					u32 hours = tc / 60;
+
+					char *tc_str = gf_malloc(32);
+					snprintf(tc_str, 32, "%02d:%02d:%02d:%02d", hours, minutes, seconds, frames);
+					inspect_printf(dump, "%s", tc_str);
+					gf_free(tc_str);
+				}
+			} else {
+				inspect_printf(dump, "N/A");
+			}
+		}
 		else {
 			const GF_PropertyValue *prop = NULL;
 			u32 prop_4cc = gf_props_get_id(key);
@@ -5567,6 +5590,7 @@ const GF_FilterRegister InspectRegister = {
 	"- cts: composition time stamp in stream timescale, N/A if not available\n"
 	"- dcts: difference between current and previous packets composition time stamp in stream timescale, N/A if not available\n"
 	"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"
+	"- tmcd: timecode as provided in SEI, N/A if not available (requires reframer)\n"
 	"- dur: duration in stream timescale\n"
 	"- frame: framing status\n"
 	"  - interface: complete AU, interface object (no size info). Typically a GL texture\n"
