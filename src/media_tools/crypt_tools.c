@@ -623,6 +623,8 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		return GF_OUT_OF_MEM;
 	}
 
+	//we use implicit mode, don't set any filter ID
+
 	sprintf(an_arg, "mp4dmx:mov=%p", mp4);
 	gf_dynstrcat(&szArgs, an_arg, NULL);
 	if (fragment_name) {
@@ -639,7 +641,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		return e;
 	}
 
-	gf_dynstrcat(&szArgs, "cdcrypt:FID=1", NULL);
+	gf_dynstrcat(&szArgs, "cdcrypt", NULL);
 	if (drm_file) {
 		gf_dynstrcat(&szArgs, ":cfile=", NULL);
 		gf_dynstrcat(&szArgs, drm_file, NULL);
@@ -653,7 +655,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 		return e;
 	}
 
-	gf_dynstrcat(&szArgs, "SID=1", NULL);
+	gf_dynstrcat(&szArgs, "xps_inband=auto", NULL);
 	if (fragment_name) {
 		gf_dynstrcat(&szArgs, ":sseg:noinit:store=frag:refrag:cdur=1000000000", NULL);
 	} else {
@@ -664,8 +666,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 			gf_dynstrcat(&szArgs, ":store=flat", NULL);
 		}
 	}
-	gf_dynstrcat(&szArgs, ":xps_inband=auto", NULL);
-	
+
 	if (gf_isom_has_keep_utc_times(mp4))
 		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
