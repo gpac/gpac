@@ -3762,6 +3762,7 @@ props_done:
 			gf_bs_del(bs);
 		}
 			break;
+		case GF_CODECID_TX3G:
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
 		case GF_CODECID_SIMPLE_TEXT:
@@ -4689,6 +4690,24 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		}
 		inspect_printf(dump, "\n </XMLTextConfig>\n");
 		break;
+	case GF_CODECID_TX3G: {
+		GF_TextSampleDescriptor *tx3g = NULL;
+		if (dsi) tx3g = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
+		if (!tx3g) {
+			inspect_printf(dump, "/>\n");
+			return;
+		}
+		inspect_printf(dump, ">\n");
+		inspect_printf(dump, " <TextConfig displayFlags=\"%d\" horizontalJustification=\"%d\" verticalJustification=\"%d\" backgroundColor=\"%d\">\n", tx3g->displayFlags, tx3g->horiz_justif, tx3g->vert_justif, tx3g->back_color);
+		inspect_printf(dump, "  <BoxRecord top=\"%d\" left=\"%d\" bottom=\"%d\" right=\"%d\"/>\n", tx3g->default_pos.top, tx3g->default_pos.left, tx3g->default_pos.bottom, tx3g->default_pos.right);
+		inspect_printf(dump, "  <StyleRecord startCharOffset=\"%d\" endCharOffset=\"%d\" fontID=\"%d\" styleFlags=\"%d\" fontSize=\"%d\" textColor=\"%d\"/>\n", tx3g->default_style.startCharOffset, tx3g->default_style.endCharOffset, tx3g->default_style.fontID, tx3g->default_style.style_flags, tx3g->default_style.font_size, tx3g->default_style.text_color);
+		for (i=0; i<tx3g->font_count; i++) {
+			inspect_printf(dump, "  <FontRecord fontID=\"%d\" name=\"%s\"/>\n", tx3g->fonts[i].fontID, tx3g->fonts[i].fontName);
+		}
+		inspect_printf(dump, " </TextConfig>\n");
+		gf_odf_del_tx3g(tx3g);
+		break;
+	}
 	case GF_CODECID_WEBVTT:
 		dsi_is_text = GF_TRUE;
 	case GF_CODECID_SUBS_TEXT:
