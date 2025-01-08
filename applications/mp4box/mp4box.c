@@ -2919,7 +2919,7 @@ u32 parse_cryp(char *arg_val, u32 opt)
 		return 0;
 	}
 	crypt_type = 2;
-	if (arg_val && get_file_type_by_ext(arg_val) != 1) {
+	if (arg_val && get_file_type_by_ext(arg_val) != GF_FILE_TYPE_ISO_MEDIA) {
 		drm_file = arg_val;
 		return 0;
 	}
@@ -3964,11 +3964,14 @@ void remove_systems_tracks(GF_ISOFile *file)
 GF_FileType get_file_type_by_ext(char *inName)
 {
 	GF_FileType type = GF_FILE_TYPE_NOT_SUPPORTED;
-	char *ext = strrchr(inName, '.');
+	char *ext = gf_file_ext_start(inName);
+	char *sep_opt = ext ? strchr(ext, ':') : NULL;
+	if (sep_opt) sep_opt[0] = 0;
+
 	if (ext) {
 		char *sep;
-		if (!strcmp(ext, ".gz")) ext = strrchr(ext-1, '.');
 		ext+=1;
+		//remove .gz if any
 		sep = strchr(ext, '.');
 		if (sep) sep[0] = 0;
 
@@ -3986,6 +3989,7 @@ GF_FileType get_file_type_by_ext(char *inName)
 			type = GF_FILE_TYPE_SWF;
 		} else if (!stricmp(ext, "jp2")) {
 			if (sep) sep[0] = '.';
+			if (sep_opt) sep_opt[0] = ':';
 			return GF_FILE_TYPE_NOT_SUPPORTED;
 		}
 		else type = GF_FILE_TYPE_NOT_SUPPORTED;
@@ -3996,6 +4000,7 @@ GF_FileType get_file_type_by_ext(char *inName)
 
 	/*try open file in read mode*/
 	if (!type && gf_isom_probe_file(inName)) type = GF_FILE_TYPE_ISO_MEDIA;
+	if (sep_opt) sep_opt[0] = ':';
 	return type;
 }
 
@@ -4267,6 +4272,7 @@ static u32 do_raw_cat()
 
 	fout = gf_fopen(inName, "a+b");
 	if (!fout) {
+		fprintf(stderr, "Error opening file %s\n", inName);
 		gf_fclose(fin);
 		return mp4box_cleanup(1);
 	}
@@ -4278,7 +4284,7 @@ static u32 do_raw_cat()
 		u32 nb_bytes = (u32) gf_fread(chunk, 4096, fin);
 		if (gf_fwrite(chunk, nb_bytes, fout) != nb_bytes) {
 			ret = 1;
-			fprintf(stderr, "Error appengin file\n");
+			fprintf(stderr, "Error appending file\n");
 			break;
 		}
 		done += nb_bytes;
@@ -6361,6 +6367,13 @@ int mp4box_main(int argc, char **argv)
 
 	//need to open input
 	if (!file && !do_hash) {
+		char *ext = gf_file_ext_start(inName);
+		char *sep_opt = ext ? strchr(ext, ':') : NULL;
+		if (sep_opt) {
+			M4_LOG(GF_LOG_WARNING, ("Input name should not use options, ignoring %s\n", sep_opt));
+			sep_opt[0] = 0;
+		}
+
 		FILE *st = gf_fopen(inName, "rb");
 		Bool file_exists = 0;
 		GF_ISOOpenMode omode;
@@ -6369,7 +6382,7 @@ int mp4box_main(int argc, char **argv)
 			gf_fclose(st);
 		}
 		switch (get_file_type_by_ext(inName)) {
-		case 1:
+		case GF_FILE_TYPE_ISO_MEDIA:
 			omode = (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) );
 			if ((dump_isom>0) && dump_keep_comp)
 				omode = GF_ISOM_OPEN_READ_DUMP_NO_COMP;
@@ -6423,15 +6436,15 @@ int mp4box_main(int argc, char **argv)
 #endif
 			break;
 		/*allowed for bt<->xmt*/
-		case 2:
-		case 3:
+		case GF_FILE_TYPE_BT_WRL_X3DV:
+		case GF_FILE_TYPE_XMT_X3D:
 		/*allowed for svg->lsr**/
-		case 4:
+		case GF_FILE_TYPE_SVG:
 		/*allowed for swf->bt, swf->xmt, swf->svg*/
-		case 5:
+		case GF_FILE_TYPE_SWF:
 			break;
 		/*used for .saf / .lsr dump*/
-		case 6:
+		case GF_FILE_TYPE_LSR_SAF:
 #ifndef GPAC_DISABLE_SCENE_DUMP
 			if ((dump_mode==GF_SM_DUMP_LASER) || (dump_mode==GF_SM_DUMP_SVG)) {
 				break;
@@ -6444,13 +6457,12 @@ int mp4box_main(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */
 #ifndef GPAC_DISABLE_SCENE_DUMP
-			         && dump_mode == GF_SM_DUMP_NONE
+				 && dump_mode == GF_SM_DUMP_NONE
 #endif //GPAC_DISABLE_SCENE_DUMP
-			        ) {
+			) {
 				/*************************************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-				if(dvbhdemux)
-				{
+				if(dvbhdemux) {
 					GF_MediaImporter *import;
 					file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
 					GF_SAFEALLOC(import, GF_MediaImporter);
