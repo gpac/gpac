@@ -1969,13 +1969,12 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		HEVC_SPS *sps = &ctx->hevc_state->sps[ctx->hevc_state->sps_active_idx];
 		if (sps->colour_description_present_flag) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, & PROP_UINT(sps->colour_primaries) );
-			if (ctx->hevc_state->alternative_transfer_characteristics){
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(ctx->hevc_state->alternative_transfer_characteristics) );
-			} else {
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(sps->transfer_characteristic) );
-			}
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(sps->transfer_characteristic) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(sps->matrix_coeffs) );
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(sps->video_full_range_flag) );
+			if (ctx->hevc_state->alternative_transfer_characteristics){
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER_ALT, & PROP_UINT(ctx->hevc_state->alternative_transfer_characteristics) );
+			}
 			has_colr_info = GF_TRUE;
 		}
 	} else if (ctx->codecid==GF_CODECID_VVC) {
