@@ -1396,6 +1396,11 @@ GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *cfg, u8 **outData, u32 *outSiz
  */
 GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size);
 
+/*! GF_TextSampleDescriptor destructor
+\param cfg the text config to destroy
+ */
+GF_Err gf_odf_del_tx3g(GF_TextSampleDescriptor *cfg);
+
 /*! HEVC config constructor
 \return the created HEVC config*/
 GF_HEVCConfig *gf_odf_hevc_cfg_new();
