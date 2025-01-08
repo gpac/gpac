@@ -4705,7 +4705,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			inspect_printf(dump, "  <FontRecord fontID=\"%d\" name=\"%s\"/>\n", tx3g->fonts[i].fontID, tx3g->fonts[i].fontName);
 		}
 		inspect_printf(dump, " </TextConfig>\n");
-		gf_odf_del_tx3g(tx3g);
+		gf_odf_desc_del((GF_Descriptor *)tx3g);
 		break;
 	}
 	case GF_CODECID_WEBVTT:
