@@ -668,7 +668,7 @@ This is mostly used to reproduce how sessions are build in more complex applicat
 .br
 
 .br
-The options rl, pi, pl and pd allow adressing a filter by index F in a list.
+The options rl, pi, pl and pd allow addressing a filter by index F in a list.
 .br
 - if the option is suffixed with an x (e.g. rlx=), F=0 means the last filter in the list of filters in the session
 .br
@@ -918,6 +918,11 @@ This will set the timescale option on the playlists filters but not on the dashe
 .LP
 .br
 .TP
+.B \-tmp (string)
+.br
+specify directory for temporary file creation instead of OS-default temporary file management
+.br
+.TP
 .B \-noprog
 .br
 disable progress messages
@@ -1063,6 +1068,11 @@ disable all mutexes, threads and semaphores (do not use if unsure about threadin
 .B \-xml-max-csize (int, default: 100k)
 .br
 maximum XML content or attribute size
+.br
+.TP
+.B \-users (string)
+.br
+authentication configuration file for users and groups
 .br
 .TP
 .B \-netcap (string)
@@ -1515,7 +1525,7 @@ use box definitions in the given directory for XML dump
 .TP
 .B \-no-mabr-patch
 .br
-disable GPAC parsing of patched isom boxes from mabr (wll behave like most browsers/players)
+disable GPAC parsing of patched isom boxes from mabr (will behave like most browsers/players)
 .br
 .SH libgpac logs options:
 .LP
@@ -2425,7 +2435,6 @@ This will create a cropped version of the source, encoded in AVC at 1M, and a fu
 .br
 When a filter accepts a single connection and has a connected input, it is no longer available for dynamic resolution. There may be cases where this behavior is undesired. Take a HEIF file with N items and do:
 .br
-Example
 .br
 gpac -i img.heif -o dump_$ItemID$.jpg
 .br
@@ -2465,7 +2474,6 @@ The resampler filter will be cloned for each audio PID, and the encoder will be 
 .br
 You can explicitly deactivate the cloning instructions:
 .br
-Example
 .br
 gpac -i dual_audio resample:osr=48k:clone=0 c=aac -o dst
 .br
@@ -2498,7 +2506,6 @@ In this case, each new ServiceID value found when connecting PIDs to the destina
 .br
 Cloning in implicit linking mode applies to output as well:
 .br
-Example
 .br
 gpac -i dual_audio -o dst_$PID$.aac
 .br
@@ -2722,7 +2729,6 @@ Defined keywords:
 .br
 The $GINC construct can be used to dynamically assign numbers in filter chains:
 .br
-Example
 .br
 gpac -i source.ts tssplit @#ServiceID= -o dump_$GINC(10,2).ts
 .br
@@ -5457,7 +5463,7 @@ FFmpeg unmapped codec
 QT TimeCode
 .br
 .TP
-.B scte
+.B sc35
 .br
 SCTE35
 .br

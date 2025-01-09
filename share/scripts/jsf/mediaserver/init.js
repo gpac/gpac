@@ -33,8 +33,8 @@ const DEFAULT_CHECKIP = false;
 
 //metadata
 filter.set_name("mediaserver");
-filter.set_class_hint(GF_FS_CLASS_MM_IO);
-filter.set_desc("Streaming Media Gateway and Server");
+filter.set_class_hint(GF_FS_CLASS_NETWORK_IO);
+filter.set_desc("Media Server");
 filter.set_version("1.0");
 filter.set_author("GPAC team - (c) Telecom Paris 2024 - license LGPL v2");
 
@@ -47,34 +47,34 @@ The file \`.gpac_auth\`, if present in current working directory, will be used f
 If more options need to be specified for the HTTP output filter, they can be passed as local options or using global options:
 EX gpac mediaserver:cors=on --user_agent=MyUser
 
-Although not recommended, a server may be specified explicitly.
+Although not recommended, a server may be specified explicitly:
 EX gpac mediaserver httpout:OPTS
-In this case, the first httpout filter created will be used.
+In this case, the first \`httpout\` filter created will be used.
 
 Default request handling of \`httpout\` filter through read / write directories is disabled.
 
 # Services Configuration
 The service configuration is set using [-scfg](). It shall be a JSON file containing a single array of services.
 Each service is a JSON object with one or more of the following properties:
- - id: (string, default null) Service identifier used for logs
- - active: (boolean, default true) service is ignored if false
- - http: (string, default null) URL of remote service to proxy (either resource name or server path)
- - gcache: (boolean, default ${DEFAULT_GCACHE}) use gpac local disk cache when fetching media from HTTP for this service
- - local: (string, default null) local mount point of this service
- - keepalive: (number, default ${DEFAULT_KEEPALIVE_SEC}) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
- - mabr: (string, default null) address of multicast ABR source for this service
- - timeshift: (number, default ${DEFAULT_TIMESHIFT}) time in seconds a cached file remains in memory
- - unload: (number, default ${DEFAULT_MABR_UNLOAD_SEC} multicast unload policy
- - activate: (number, default ${DEFAULT_ACTIVATE_CLIENTS}) multicast activation policy
- - repair: (boolean, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
- - mcache: (boolean, default ${DEFAULT_MCACHE}) cache manifest files (experimental)
- - corrupted: (boolean, default ${DEFAULT_CORRUPTED}) forward corrupted files if parsable (valid container syntax, broken media)
- - check_ip: (boolean, , default ${DEFAULT_CHECKIP} monitor IP address and port rather than connection when tracking active clients
- - noproxy: (boolean) disable proxy for service when local mount point is set. Default is \`true\` if both \`local\` and \`http\` are set, \`false\` otherwise
- - sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
-  - name: name as used in resource path,
-  - url: local or remote URL to use for this resource.
- - js: (string, default null) built-in or custom request resolver
+- id: (string, default null) Service identifier used for logs
+- active: (boolean, default true) service is ignored if false
+- http: (string, default null) URL of remote service to proxy (either resource name or server path)
+- gcache: (boolean, default ${DEFAULT_GCACHE}) use gpac local disk cache when fetching media from HTTP for this service
+- local: (string, default null) local mount point of this service
+- keepalive: (number, default ${DEFAULT_KEEPALIVE_SEC}) remove the service if no request received for the indicated delay in seconds (0 force service to stay in memory forever)
+- mabr: (string, default null) address of multicast ABR source for this service
+- timeshift: (number, default ${DEFAULT_TIMESHIFT}) time in seconds a cached file remains in memory
+- unload: (number, default ${DEFAULT_MABR_UNLOAD_SEC} multicast unload policy
+- activate: (number, default ${DEFAULT_ACTIVATE_CLIENTS}) multicast activation policy
+- repair: (boolean, default ${DEFAULT_REPAIR}) enable unicast repair in MABR stack
+- mcache: (boolean, default ${DEFAULT_MCACHE}) cache manifest files (experimental)
+- corrupted: (boolean, default ${DEFAULT_CORRUPTED}) forward corrupted files if parsable (valid container syntax, broken media)
+- check_ip: (boolean, , default ${DEFAULT_CHECKIP} monitor IP address and port rather than connection when tracking active clients
+- noproxy: (boolean) disable proxy for service when local mount point is set. Default is \`true\` if both \`local\` and \`http\` are set, \`false\` otherwise
+- sources: (array, default null) list of sources objects for file-only services. Each source has the following property:
+- name: name as used in resource path,
+- url: local or remote URL to use for this resource.
+- js: (string, default null) built-in or custom request resolver
 
 Any JSON object with the property \`comment\` set will be ignored.
 
@@ -104,13 +104,13 @@ The server can act as a proxy for HTTP requests, either for any requests or by d
 
 __Service configuration parameters used :__ \`http\` (mandatory), \`gcache\`, \`local\`.
 
-Exemple configuration for activating proxy for a specific network path:
+Configuration for activating proxy for a specific network path:
 EX { 'http': 'https://test.com/video/'}
 
-Exemple configuration for activating proxy for any network path:
+Configuration for activating proxy for any network path:
 EX { 'http': '*'}
 
-Exemple configuration for a relay on a given path:
+Configuration for a relay on a given path:
 EX { 'http': 'https://test.com/some/path/to/video/', 'local': '/myvids/'}
 
 This will resolve any request \`http://localhost/myvids/*\` to \`https://test.com/some/path/to/video/*\`
@@ -122,10 +122,10 @@ The server can act as a cache for live HTTP streaming sessions. The live edge ca
 
 __Service configuration parameters used :__ \`http\` ( mandatory), \`timeshift\`, \`mcache\`, \`gcache\`, \`keepalive\` and \`local\`.
 
-Exemple configuration for proxying while caching a live HTTP streaming service:
+Configuration for proxying while caching a live HTTP streaming service:
 EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30' }
 
-Exemple configuration for relay caching a live HTTP streaming service:
+Configuration for relay caching a live HTTP streaming service:
 EX { 'http': 'https://test.com/dash/live.mpd', 'timeshift': '30', 'local': '/myservice/test.mpd'}
 
 The \`local\` service configuration option can be set to:
@@ -133,7 +133,7 @@ The \`local\` service configuration option can be set to:
 - or the exposed manifest path, in which case manifest names are rewritten, but only one manifest can be exposed (does not work with dual MPD and M3U8 services)
 
 # Multicast ABR Gateway
-The server can be configured to use a multicast ANR source for an HTP streaming service, without any HTTP source.
+The server can be configured to use a multicast ANR source for an HTTP streaming service, without any HTTP source.
 
 __Service configuration parameters used :__ \`mabr\` (mandatory), \`local\` (mandatory), \`corrupted\`, \`timeshift\` and \`keepalive\`.
 
@@ -144,7 +144,7 @@ The multicast source can be DVB-MABR (e.g. \`mabr://235.0.0.1:1234/\`), ATSC3.0 
 For example, with \`local\` set to \`/service/live.mpd\` with \`mabr\` set, the server will expose the multicast service as \`http://localhost/service/live.mpd\`.
 The manifest name can be omitted, in which case the exact manifest name used in the broadcast shall be used (and known to the client).
 
-Exemple configuration for exposing a MABR session:
+Configuration for exposing a MABR session:
 EX { 'mabr': 'mabr://234.0.0.1:1234', 'local': '/service1', 'timeshift': '30' }
 
 # Multicast ABR Gateway with HTTP cache
@@ -175,7 +175,7 @@ If \`timeshift\` is 0 for the service, multicast segments will be trashed as soo
 
 Note: Manifests files coming from multicast are currently never cached.
 
-Exemple configuration for caching a live HTTP streaming service with MABR backup:
+Configuration for caching a live HTTP streaming service with MABR backup:
 EX { 'http': 'https://test.com/dash/live.mpd', 'mabr': 'mabr://234.0.0.1:1234', 'timeshift': '30'}
 
 For such services, the custom HTTP header \`X-From-MABR\` is defined:
@@ -190,7 +190,7 @@ __Service configuration parameters used :__ \`local\` (mandatory), \`sources\` (
 The \`local\` service configuration option must be set to the desired service path, and the \`sources\` service configuration option must one or more valid sources.
 Each source is either a file, a directory or a remote URL.
 
-Example configuration for exposing a directory
+Configuration for exposing a directory:
 EX { 'local': '/dserv/', 'sources': [ { 'name': 'foo/', 'url': 'my_dir/' } ] }
 This service will expose the content of directory \`my_dir/*\` as \`http://localhost/dserv/foo/*\`.
 

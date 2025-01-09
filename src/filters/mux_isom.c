@@ -8596,7 +8596,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming PID.\n"
 	"The built-in tag names are indicated by `MP4Box -h tags`.\n"
 	"QT tags can be specified using `qtt_NAME` property names, and will be added using formatting specified in `MP4Box -h tags`.\n"
-	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-tags]() is set to `all` using:\n"
+	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-itags]() is set to `all` using:\n"
 	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
 	"- `NAME` as a box 4CC if `NAME` is 3 characters long, and will be prefixed by 0xA9\n"
 	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"
