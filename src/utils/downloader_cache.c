@@ -23,7 +23,7 @@
  *
  */
 
-#include <gpac/cache.h>
+#include "downloader.h"
 
 #ifndef GPAC_DISABLE_NETWORK
 
