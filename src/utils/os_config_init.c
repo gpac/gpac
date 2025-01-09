@@ -1407,7 +1407,7 @@ GF_Err gf_opts_save()
 #endif
 
 GF_GPACArg GPAC_Args[] = {
- GF_DEF_ARG("tmp", NULL, "specify directory for temporary file creation instead of OS-default temporary file management", NULL, NULL, GF_ARG_STRING, 0),
+ GF_DEF_ARG("tmp", NULL, "specify directory for temporary file creation instead of OS-default temporary file management", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("noprog", NULL, "disable progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("quiet", NULL, "disable all messages, including errors", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("log-file", "lf", LOGFILE_HELP, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
@@ -1501,6 +1501,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-fd", NULL, "use buffered IO instead of file descriptor for read/write - this can speed up operations on small files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-mx", NULL, "disable all mutexes, threads and semaphores (do not use if unsure about threading used)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("xml-max-csize", NULL, "maximum XML content or attribute size", "100k", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("users", NULL, "authentication configuration file for users and groups", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+
 
 #ifndef GPAC_DISABLE_NETCAP
  GF_DEF_ARG("netcap", NULL, "set packet capture and filtering rules formatted as [CFG][RULES]. Each `-netcap` argument will define a configuration\n"
@@ -2168,6 +2170,7 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 	Bool escape_pipe = GF_FALSE;
 	Bool prev_was_example = GF_FALSE;
 	Bool prev_has_line_after = GF_FALSE;
+	Bool prev_has_colon = GF_FALSE;
 	u32 list_depth = 0;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
@@ -2287,13 +2290,13 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 			console_code = GF_CONSOLE_YELLOW;
 
 			if (gen_doc==1) {
-				header_string = "Example\n```\n";
+				header_string = prev_has_colon ? "```\n" : "Example\n```\n";
 				footer_string = "\n```\n";
 			} else if (gen_doc==2) {
-				header_string = "Example\n.br\n";
+				header_string = prev_has_colon ? ".br\n" : "Example\n.br\n";
 				footer_string = "\n.br\n";
 			} else {
-				header_string = "Example:\n";
+				header_string = prev_has_colon ? NULL : "Example:\n";
 			}
 
 			if (prev_was_example) {
@@ -2598,6 +2601,9 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 					} else if (!strncmp(link, "MP4B_GEN", 8)) {
 						fprintf(helpout, "[-%s](mp4box-gen-opts/#%s)", line, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("mp4box-gen-opts");
+					} else if (!strncmp(link, "MP4B_IMP", 8)) {
+						fprintf(helpout, "[-%s](mp4box-import-opts/#%s)", line, line);
+						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen("mp4box-import-opts");
 					} else if (strlen(link)) {
 						fprintf(helpout, "[-%s](%s/#%s)", line, link, line);
 						line_pos+=7 + 2* (u32)strlen(line) + (u32)strlen(link);
@@ -2663,6 +2669,10 @@ void gf_sys_format_help(FILE *helpout, GF_SysPrintArgFlags flags, const char *fm
 		}
 
 		if (!next_line) break;
+		prev_has_colon = GF_FALSE;
+		if (line[0] && line[strlen(line)-1]==':')
+			prev_has_colon = GF_TRUE;
+
 		next_line[0]=0;
 		if (gen_doc==1) fprintf(helpout, "  ");
 		line = next_line+1;
