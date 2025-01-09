@@ -992,7 +992,7 @@ GF_FilterRegister CTXLoadRegister = {
 	GF_FS_SET_DESCRIPTION("BT/XMT/X3D decoder")
 	GF_FS_SET_HELP("This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files directly into the scene graph of the compositor.\n"
 	"\n"
-	"When [-sax_dur=N]() is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than `N`.\n")
+	"When [-sax_dur]() is set to `N`, the filter will do a progressive load of the source and cancel current loading when processing time is higher than `N`.\n")
 	.private_size = sizeof(CTXLoadPriv),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = CTXLoadArgs,

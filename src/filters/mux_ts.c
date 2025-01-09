@@ -2346,7 +2346,7 @@ GF_FilterRegister TSMuxRegister = {
 		"\n"
 		"Warning: multipliers (k,m,g) are not supported in TEMI options.\n"
 		"\n"
-		"When input TEMI properties are found, they can be removed using [-drop_temi](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
+		"When input TEMI properties are found, they can be removed using [-temi_fwd](). When rewritten, any NTP information present is rewritten to the current NTP.\n"
 		"# Adaptive Streaming\n"
 		"In DASH and HLS mode:\n"
 		"- the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"

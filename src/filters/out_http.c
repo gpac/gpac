@@ -5505,7 +5505,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"  \n"
 		"Custom headers can be specified using [-hdrs](), they apply to all requests. For more advanced control on requests, use a javascript binding (see [-js]() and howtos).\n"
 		"  \n"
-		"Text files are compressed using gzip or deflate if the client accepts these encodings, unless [-no_z]() is set.\n"
+		"Text files are compressed using gzip or deflate if the client accepts these encodings, unless [-zmax]() is set to 0.\n"
 		"  \n"
 		"# Simple HTTP server\n"
 		"In this mode, the filter does not need any input connection and exposes all files in the directories given by [-rdirs]().\n"

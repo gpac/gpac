@@ -866,7 +866,7 @@ void gpac_usage(GF_SysArgMode argmode)
 		"\n"
 		"The possible options for gpac are:\n\n",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
-			(gen_doc==1) ? "[gpac -h doc](filters_general#explicit-links-between-filters-link)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-linking-link)" : "`gpac -h doc`",
 			(gen_doc==1) ? "[gpac -hx](gpac_general#h)" : "`gpac -hx`",
 			(gen_doc==1) ? "[gpac -hx core](core_options)" : "`gpac -hx core`",
 			(gen_doc==1) ? "[gpac -h doc](core_config#global-filter-options)" : "`gpac -h doc`",
@@ -2146,7 +2146,7 @@ static void patch_mkdocs_yml()
 	if (!gf_file_exists("../../mkdocs.yml")) {
 		yml_src = "mkdocs.yml";
 		FILE *t = gf_fopen(yml_src, "w");
-		gf_fprintf(t, "    - All filters:\n");
+		gf_fprintf(t, "    - Filters:\n");
 		gf_fclose(t);
 	}
 
@@ -2160,7 +2160,7 @@ static void patch_mkdocs_yml()
 		if (in_filter_list && !strncmp(szLine, "  - ", 4))
 			in_filter_list = GF_FALSE;
 
-		if (!strncmp(szLine, "    - All filters:", 18)) {
+		if (!strncmp(szLine, "    - Filters:", 14)) {
 			gf_dynstrcat(&oyml, szLine, NULL);
 			in_filter_list = GF_TRUE;
 

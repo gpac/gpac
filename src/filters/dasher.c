@@ -11091,7 +11091,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(strict_cues), "strict mode for cues, complains if splitting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_sap), "strict mode for sap\n"
 	"- off: ignore SAP types for PID other than video, enforcing `AdaptationSet@startsWithSAP=1`\n"
-	"- sig: same as [-off]() but keep `AdaptationSet@startsWithSAP` to the true SAP value\n"
+	"- sig: same as `-off` but keep `AdaptationSet@startsWithSAP` to the true SAP value\n"
 	"- on: warn if any PID uses SAP 3 or 4 and switch to FULL profile\n"
 	"- intra: ignore SAP types greater than 3 on all media types"
 	, GF_PROP_UINT, "off", "off|sig|on|intra", GF_FS_ARG_HINT_EXPERT},
