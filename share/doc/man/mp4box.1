@@ -24,7 +24,7 @@ MP4Box stores by default the file with 0.5 second interleaving and meta-data (mo
 .br
   
 .br
-MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with .I tmp.
+MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with .I -tmp.
 .br
   
 .br
@@ -778,7 +778,7 @@ specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeO
 .TP
 .B \-dash-scale (int)
 .br
-specify that timing for .I dash,  .I dash-live, .I subdur and .I do_frag are expressed in given timescale (units per seconds) rather than ms
+specify that timing for .I dash,  .I dash-live, .I subdur and .I frag are expressed in given timescale (units per seconds) rather than ms
 .br
 .TP
 .B \-mem-frags
@@ -1423,7 +1423,7 @@ By default all imports are performed sequentially, and final interleaving is don
 .br
   
 .br
-If you wish to create an interleaved new file with no temporary storage, use the .I -newfs option. The interleaving might not be as precise as when using .I new since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: 
+If you wish to create an interleaved new file with no temporary storage, use the .I -newfs option. The interleaving might not be as precise as when using .I -new since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: 
 .br
  - Some multiplexing options (marked with X below) will be activated for all inputs (e.g. it is not possible to import one AVC track with xps_inband and another without).
 .br
@@ -1593,7 +1593,7 @@ C keep track reference when importing a single track
 .TP
 .B nodrop
 .br
-same as .I nodrop
+same as .I no-drop
 .br
 .TP
 .B packed
@@ -2025,7 +2025,7 @@ SE inject a single QT timecode. Value is formatted as:
 .TP
 .B edits (string)
 .br
-SE override edit list, same syntax as .I edits
+SE override edit list, same syntax as .I -edits
 .br
 .TP
 .B lastsampdur (string)
@@ -2297,7 +2297,7 @@ signal AU sequence numbers in RTP packets (MPEG-4 Systems)
 .TP
 .B \-iod
 .br
-prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with .I isma
+prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with .I -isma
 .br
 .SH MPEG-4 Scene Encoding Options
 .LP
@@ -2530,7 +2530,7 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * auxd=FILE: use data from FILE as auxiliary extensions (cf auxC box)
 .br
-- any other options will be passed as options to the media importer, see .I add
+- any other options will be passed as options to the media importer, see .I -add
 .br
 .TP
 .B \-add-derived-image (string)
