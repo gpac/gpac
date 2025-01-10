@@ -4503,13 +4503,6 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 		sprintf(opt, "%d", rate_in_bits_per_sec);
 		//temporary store of maxrate
 		gf_opts_set_key("temp", "maxrate", opt);
-
-#ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_cov_mode()) {
-			dm_exceeds_cap_rate(dm, NULL);
-		}
-#endif
-
 	}
 }
 

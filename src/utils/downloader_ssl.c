@@ -413,13 +413,6 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 		next_proto_list_len = 1 + NGHTTP2_PROTO_VERSION_ID_LEN;
 
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
-#ifdef GPAC_ENABLE_COVERAGE
-		if (gf_sys_is_cov_mode()) {
-			next_proto_cb(NULL, NULL, NULL, NULL);
-			h2_error_callback(NULL, NULL, 0, NULL);
-			on_user_pass(NULL, NULL, NULL, GF_FALSE);
-		}
-#endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
