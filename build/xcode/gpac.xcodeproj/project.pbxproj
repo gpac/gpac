@@ -232,6 +232,7 @@
 		925546A02D301D4700E0AAF9 /* downloader_emscripten.c in Sources */ = {isa = PBXBuildFile; fileRef = 9255469C2D301D4700E0AAF9 /* downloader_emscripten.c */; };
 		925546A32D314A9600E0AAF9 /* downloader_hmux.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546A22D314A9600E0AAF9 /* downloader_hmux.c */; };
 		925546A52D314BCA00E0AAF9 /* downloader_nghttp2.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546A42D314BCA00E0AAF9 /* downloader_nghttp2.c */; };
+		925546A72D3174DE00E0AAF9 /* downloader_ngtcp2.c in Sources */ = {isa = PBXBuildFile; fileRef = 925546A62D3174DE00E0AAF9 /* downloader_ngtcp2.c */; };
 		9256B38B208662FC00088537 /* mux_ts.c in Sources */ = {isa = PBXBuildFile; fileRef = 9256B38A208662FB00088537 /* mux_ts.c */; };
 		9257307F2056948D009DB328 /* rewrite_adts.c in Sources */ = {isa = PBXBuildFile; fileRef = 9257307D2056948D009DB328 /* rewrite_adts.c */; };
 		925730802056948D009DB328 /* rewrite_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 9257307E2056948D009DB328 /* rewrite_nalu.c */; };
@@ -876,6 +877,7 @@
 		9255469C2D301D4700E0AAF9 /* downloader_emscripten.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_emscripten.c; sourceTree = "<group>"; };
 		925546A22D314A9600E0AAF9 /* downloader_hmux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_hmux.c; sourceTree = "<group>"; };
 		925546A42D314BCA00E0AAF9 /* downloader_nghttp2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_nghttp2.c; sourceTree = "<group>"; };
+		925546A62D3174DE00E0AAF9 /* downloader_ngtcp2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader_ngtcp2.c; sourceTree = "<group>"; };
 		9256B38A208662FB00088537 /* mux_ts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_ts.c; path = filters/mux_ts.c; sourceTree = "<group>"; };
 		9257307D2056948D009DB328 /* rewrite_adts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_adts.c; path = filters/rewrite_adts.c; sourceTree = "<group>"; };
 		9257307E2056948D009DB328 /* rewrite_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_nalu.c; path = filters/rewrite_nalu.c; sourceTree = "<group>"; };
@@ -1704,6 +1706,7 @@
 				9255469C2D301D4700E0AAF9 /* downloader_emscripten.c */,
 				925546A22D314A9600E0AAF9 /* downloader_hmux.c */,
 				925546A42D314BCA00E0AAF9 /* downloader_nghttp2.c */,
+				925546A62D3174DE00E0AAF9 /* downloader_ngtcp2.c */,
 				9255469A2D301D4700E0AAF9 /* downloader_ssl.c */,
 			);
 			name = downloader;
@@ -2534,6 +2537,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				925546A72D3174DE00E0AAF9 /* downloader_ngtcp2.c in Sources */,
 				923E89D020B6F2D300F299B2 /* filter_props.c in Sources */,
 				9202FEB32048411D000EE9B1 /* dec_vorbis.c in Sources */,
 				9202FEB2204840FB000EE9B1 /* load_svg.c in Sources */,
