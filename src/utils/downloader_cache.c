@@ -1631,21 +1631,6 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 		gf_dm_sess_reload_cached_headers(sess);
 	}
 
-#ifdef GPAC_ENABLE_COVERAGE
-	if (!count && gf_sys_is_cov_mode()) {
-		gf_dm_sess_reload_cached_headers(NULL);
-		gf_dm_refresh_cache_entry(NULL);
-		gf_dm_session_thread(NULL);
-		gf_cache_are_headers_processed(NULL);
-		gf_cache_get_start_range(NULL);
-		gf_cache_get_end_range(NULL);
-		gf_cache_get_content_length(NULL);
-		gf_cache_set_end_range(NULL, 0);
-		gf_cache_get_forced_headers(NULL);
-		gf_cache_get_downtime(NULL);
-	}
-#endif
-
 	gf_mx_v(dm->cache_mx);
 	if (res) return GF_OK;
 	return GF_BAD_PARAM;
