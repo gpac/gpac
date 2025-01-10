@@ -495,6 +495,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess);
 
 //multiplexed HTTP support (H2, H3)
 #ifdef GPAC_HTTPMUX
+GF_DownloadSession *hmux_get_session(void *user_data, s32 stream_id, Bool can_reassign);
 void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess);
 void hmux_fetch_flush_data(GF_DownloadSession *sess, u8 *obuffer, u32 size, u32 *nb_bytes);
 
