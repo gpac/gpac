@@ -192,6 +192,7 @@ REG_DEC(ttmlmerge)
 REG_DEC(ghidmx)
 REG_DEC(evgs)
 REG_DEC(ccdec)
+REG_DEC(ccenc)
 REG_DEC(scte35dec)
 REG_DEC(mpeghdec)
 
@@ -353,6 +354,7 @@ BuiltinReg BuiltinFilters [] = {
 	REG_IT(ghidmx),
 	REG_IT(evgs),
 	REG_IT(ccdec),
+	REG_IT(ccenc),
 	REG_IT(scte35dec),
 
 #if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)

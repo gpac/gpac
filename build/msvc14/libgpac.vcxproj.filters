@@ -1259,6 +1259,9 @@
     <ClCompile Include="..\..\src\filters\dmx_vobsub.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\enc_cc.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\enc_jpg.c">
       <Filter>filters</Filter>
     </ClCompile>
