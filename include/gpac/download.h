@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2024
+ *			Copyright (c) Telecom ParisTech 2000-2025
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -176,7 +176,6 @@ typedef struct __gf_filter_session GF_DownloadFilterSession;
 #ifndef GPAC_DISABLE_NETWORK
 
 #include <gpac/config_file.h>
-#include <gpac/cache.h>
 
 /*! URL information object*/
 typedef struct GF_URL_Info_Struct {
@@ -592,6 +591,11 @@ Registers a local cache provider (bypassing the http session), used when populat
 \return error code if any
  */
 GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool is_cache_destroy), void *lc_udta);
+
+/**
+ * Handle for Cache Entries.
+ */
+typedef struct __DownloadedCacheEntryStruct * DownloadedCacheEntry;
 
 /*!
 Adds a local entry in the cache

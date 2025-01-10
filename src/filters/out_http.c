@@ -60,7 +60,7 @@ u32 gf_dm_sess_async_pending(GF_DownloadSession *sess);
 GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body);
 void gf_dm_sess_server_reset(GF_DownloadSession *sess);
 Bool gf_dm_sess_is_h2(GF_DownloadSession *sess);
-void gf_dm_sess_flush_h2(GF_DownloadSession *sess);
+void gf_dm_sess_close_hmux(GF_DownloadSession *sess);
 
 void gf_dm_sess_set_sock_group(GF_DownloadSession *sess, GF_SockGroup *sg);
 
@@ -476,7 +476,7 @@ static void httpout_close_session(GF_HTTPOutSession *sess, GF_Err code)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] %d sub-sessions still active in connection to %s, keeping alive\n", nb_sub_sess-1, sess->peer_address ));
 		}
 		else {
-			gf_dm_sess_flush_h2(sess->http_sess);
+			gf_dm_sess_close_hmux(sess->http_sess);
 		}
 	}
 	if (last_connection) {
