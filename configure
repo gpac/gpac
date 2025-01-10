@@ -1837,7 +1837,7 @@ int main( void ) { return 0; }'
     check_has_lib x11_glx "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
-int main( void ) { return 0; }'
+int main( void ) { glXSwapBuffers(NULL, 0); return 0; }'
 
 fi
 #end x11 test
