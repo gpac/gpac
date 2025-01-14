@@ -247,7 +247,7 @@ u64 gf_cache_cleanup(const char * directory, u32 max_size)
 {
 	char szLOCK[GF_MAX_PATH];
 	sprintf(szLOCK, "%s/.lock", directory);
-	if (!gs_sys_create_lockfile(szLOCK))
+	if (!gf_sys_create_lockfile(szLOCK))
 		return max_size;
 
 	CacheGather gci = {0};
@@ -390,7 +390,7 @@ static GF_LockStatus cache_entry_lock(const char *lockfile)
 	GF_LockStatus lock_type;
 	u32 start=gf_sys_clock();
 	while (1) {
-		lock_type = gs_sys_create_lockfile(lockfile);
+		lock_type = gf_sys_create_lockfile(lockfile);
 		if (lock_type) break;
 		if (gf_sys_clock()-start>50) break;
 	}
@@ -1181,7 +1181,7 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
     }
     if (blob->mx)
         gf_mx_p(blob->mx);
-	
+
     if (!copy) {
         if (entry->mem_allocated) gf_free(entry->mem_storage);
 		entry->mem_storage = (u8 *) blob->data;

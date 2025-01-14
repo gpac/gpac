@@ -70,7 +70,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_localized) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_process_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_check_process_id) )
-#pragma comment (linker, EXPORT_SYMBOL(gs_sys_create_lockfile) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_create_lockfile) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_console_code) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_format_help) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_word_match) )

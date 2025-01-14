@@ -3241,7 +3241,7 @@ Bool gf_sys_check_process_id(u32 pid)
 #endif
 
 GF_EXPORT
-GF_LockStatus gs_sys_create_lockfile(const char *lockname)
+GF_LockStatus gf_sys_create_lockfile(const char *lockname)
 {
 	char szPID[20];
 	u32 retry = 10;
@@ -3259,7 +3259,7 @@ GF_LockStatus gs_sys_create_lockfile(const char *lockname)
 			continue;
 		}
 #else
-#if defined __STDC_VERSION__ 
+#if defined __STDC_VERSION__
 		FILE *f = fopen(lockname, "wx");
 #else
 		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
@@ -3273,10 +3273,10 @@ GF_LockStatus gs_sys_create_lockfile(const char *lockname)
 #endif
 
 		//existing, check pid
-		u8 *data;
-		u32 size, pid;
-		gf_file_load_data(lockname, &data, &size);
-		if (!data || !size) continue;
+		u8 *data=NULL;
+		u32 size=0, pid;
+		GF_Err e = gf_file_load_data(lockname, &data, &size);
+		if (!data || !size || e!=GF_OK) continue;
 
 		sscanf(data, "%u", &pid);
 		gf_free(data);
