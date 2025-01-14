@@ -3333,6 +3333,8 @@ static void inspect_dump_boxes(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data,
 			}
 			gf_isom_box_dump(a, dump);
 			data += a->size;
+			gf_isom_box_del(a);
+			a=NULL;
 		}
 		gf_bs_del(bs);
 	}
