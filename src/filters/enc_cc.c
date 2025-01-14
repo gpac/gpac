@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Deniz Ugur
- *			Copyright (c) Telecom ParisTech 2023-2024
+ *			Copyright (c) Motion Spell 2025
  *					All rights reserved
  *
  *  This file is part of GPAC / Closed captions encoder filter
