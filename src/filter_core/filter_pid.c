@@ -8861,9 +8861,10 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			value = file_idx;
 			has_val = GF_TRUE;
 		} else if (!strcmp(name, "URL")) {
-			if (!filename)
+			if (!filename) {
 				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEALIAS);
 				if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
+			}
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "File")) {
 			if (!filename) {
