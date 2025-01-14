@@ -86,7 +86,7 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 }
 
 
-GF_DownloadSession *hmux_get_session(void *user_data, s32 stream_id, Bool can_reassign)
+GF_DownloadSession *hmux_get_session(void *user_data, s64 stream_id, Bool can_reassign)
 {
 	u32 i, nb_sess;
 	GF_DownloadSession *first_not_assigned = NULL;
@@ -362,7 +362,7 @@ void gf_dm_sess_close_hmux(GF_DownloadSession *sess)
 #endif
 }
 
-GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, u32 stream_id, void *usr_cbk, GF_Err *e)
+GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stream_id, void *usr_cbk, GF_Err *e)
 {
 #ifdef GPAC_HTTPMUX
 	GF_DownloadSession *sub_sess;

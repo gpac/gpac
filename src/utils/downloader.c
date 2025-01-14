@@ -1070,6 +1070,11 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
 		}
 	}
 
+#ifdef GPAC_HAS_NGTCP2
+	if (!dm->disable_http3)
+		sess->flags |= GF_NETIO_SESSION_TRY_QUIC;
+#endif
+
 	*e = gf_dm_sess_setup_from_url(sess, url, GF_FALSE);
 	if (*e) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[Downloader] failed to create session for %s: %s\n", url, gf_error_to_string(*e)));
@@ -1212,7 +1217,7 @@ GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 
 	*out_read = 0;
 
 #ifdef GPAC_HAS_SSL
-	if (sess->ssl) {
+	if (sess->ssl && !(sess->flags & GF_NETIO_SESSION_TRY_QUIC)) {
 		e = gf_ssl_read_data(sess, data, data_size, out_read);
 		if (e==GF_NOT_READY) {
 			gf_mx_v(sess->mx);
@@ -1244,6 +1249,7 @@ GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 
 static void gf_dm_connect(GF_DownloadSession *sess)
 {
 	GF_Err e;
+	Bool register_sock;
 	Bool allow_offline = sess->dm ? sess->dm->allow_offline_cache : GF_FALSE;
 	u16 proxy_port = 0;
 	char szProxy[GF_MAX_PATH];
@@ -1283,7 +1289,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			return;
 		}
 	}
-	if (sess->hmux_sess) {
+	if (sess->hmux_sess && sess->hmux_sess->connected) {
 		sess->connect_time = 0;
 		sess->status = GF_NETIO_CONNECTED;
 		sess->last_error = GF_OK;
@@ -1378,9 +1384,15 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	}
 #endif
 
-	Bool register_sock = GF_FALSE;
+resetup_socket:
+
+	register_sock = GF_FALSE;
 	if (!sess->sock) {
-		sess->sock = gf_sk_new_ex(GF_SOCK_TYPE_TCP, sess->netcap_id);
+		u32 sock_type = GF_SOCK_TYPE_TCP;
+		if (sess->flags & GF_NETIO_SESSION_TRY_QUIC)
+			sock_type = GF_SOCK_TYPE_UDP;
+
+		sess->sock = gf_sk_new_ex(sock_type, sess->netcap_id);
 
 		if (sess->sock && (sess->flags & GF_NETIO_SESSION_NO_BLOCK))
 			gf_sk_set_block_mode(sess->sock, GF_TRUE);
@@ -1450,7 +1462,12 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		if ((sess->flags & GF_NETIO_SESSION_NO_BLOCK) && !sess->start_time)
 			sess->start_time = now;
 
-		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, NULL);
+#ifdef GPAC_HAS_NGTCP2
+		if (sess->flags & GF_NETIO_SESSION_TRY_QUIC)
+			e = http3_connect(sess, (char *) proxy, proxy_port);
+		else
+#endif
+			e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, NULL);
 
 		/*retry*/
 		if (e == GF_IP_NETWORK_EMPTY) {
@@ -1484,6 +1501,20 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 		/*failed*/
 		if (e) {
+			if (sess->flags & GF_NETIO_SESSION_TRY_QUIC) {
+				sess->flags &= ~GF_NETIO_SESSION_TRY_QUIC;
+				sess->status = GF_NETIO_SETUP;
+				sess->connect_pending = 0;
+				gf_sk_del(sess->sock);
+				sess->sock = NULL;
+				if (sess->hmux_sess) {
+					sess->hmux_sess->destroy(sess->hmux_sess);
+					sess->hmux_sess = NULL;
+				}
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Failed to connect through QUIC (%s), retrying with TCP\n", sess->log_name, gf_error_to_string(e)));
+				gf_dm_connect(sess);
+				goto resetup_socket;
+			}
 			sess->status = GF_NETIO_STATE_ERROR;
 			SET_LAST_ERR(e)
 			gf_dm_sess_notify_state(sess, sess->status, e);
@@ -1836,6 +1867,10 @@ GF_DownloadManager *gf_dm_new(GF_FilterSession *fsess)
 
 #ifdef GPAC_HAS_HTTP2
 	dm->disable_http2 = gf_opts_get_bool("core", "no-h2");
+#endif
+
+#ifdef GPAC_HAS_NGTCP2
+	dm->disable_http3 = gf_opts_get_bool("core", "no-h3");
 #endif
 
 	opt = gf_opts_get_key("core", "cache");

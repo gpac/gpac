@@ -2450,7 +2450,8 @@ conn_ok:
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
 GF_EXPORT
-GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options)
+GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options,
+	u8 **dst_sock_addr, u32 *dst_sock_addr_len, u8 **src_sock_addr, u32 *src_sock_addr_len)
 {
 #ifdef GPAC_HAS_IPV6
 	struct addrinfo *res, *aip;
@@ -2465,6 +2466,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	s32 ret = 0;
 	s32 optval;
 
+	if (dst_sock_addr) {
+		*dst_sock_addr = NULL;
+		*dst_sock_addr_len = 0;
+		*src_sock_addr = NULL;
+		*src_sock_addr_len = 0;
+	}
 	//socket must not be created
 	if (!sock || !SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	if (ifce_ip_or_name && !strcmp(ifce_ip_or_name, "127.0.0.1"))
@@ -2520,6 +2527,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 		memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
 		sock->dest_addr_len = (u32) res->ai_addrlen;
 		freeaddrinfo(res);
+
+		if (dst_sock_addr) {
+			*dst_sock_addr = gf_malloc(sizeof(u8) * sock->dest_addr_len);
+			memcpy(*dst_sock_addr, &sock->dest_addr, sock->dest_addr_len);
+			*dst_sock_addr_len = sock->dest_addr_len;
+		}
 	}
 
 	res = gf_sk_get_ifce_ipv6_addr(ifce_ip_or_name, port, af, AI_PASSIVE, type);
@@ -2597,6 +2610,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
 
+		if (src_sock_addr) {
+			*src_sock_addr = gf_malloc(sizeof(u8) * res->ai_addrlen);
+			memcpy(*src_sock_addr, res->ai_addr, res->ai_addrlen);
+			*src_sock_addr_len = res->ai_addrlen;
+		}
+
 		freeaddrinfo(res);
 		return GF_OK;
 	}
@@ -2647,6 +2666,11 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	LocalAdd.sin_addr.s_addr = ip_add;
 	addrlen = sizeof(struct sockaddr_in);
 
+	if (src_sock_addr) {
+		*src_sock_addr = gf_malloc(sizeof(u8) * addrlen);
+		memcpy(*src_sock_addr, &LocalAdd, addrlen);
+		*src_sock_addr_len = addrlen;
+	}
 
 	if (options & GF_SOCK_REUSE_PORT) {
 		optval = 1;
@@ -2681,6 +2705,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 			else memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 		}
 		sock->flags |= GF_SOCK_HAS_PEER;
+
+		if (dst_sock_addr) {
+			*dst_sock_addr = gf_malloc(sizeof(u8) * sock->dest_addr_len);
+			memcpy(*dst_sock_addr, &sock->dest_addr, sock->dest_addr_len);
+			*dst_sock_addr_len = sock->dest_addr_len;
+		}
 	}
 	if (sock->flags & GF_SOCK_HAS_PEER) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] socket bound to %08X - port %d - remote peer: %s:%d\n", ip_add, port, peer_name, peer_port));
@@ -2689,6 +2719,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const 
 	}
 	return ret;
 #endif
+}
+
+GF_EXPORT
+GF_Err gf_sk_bind(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options)
+{
+	return gf_sk_bind_ex(sock, ifce_ip_or_name, port, peer_name, peer_port, options, NULL, NULL, NULL, NULL);
 }
 
 Bool gpac_use_poll=GF_TRUE;

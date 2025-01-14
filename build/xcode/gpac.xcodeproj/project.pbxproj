@@ -3171,8 +3171,8 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
-					/opt/local/include,
 					/usr/local/include,
+					/opt/local/include,
 					"/opt/local/include/openjpeg-2.5",
 					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
@@ -3275,6 +3275,9 @@
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
+					"-lngtcp2_crypto_quictls",
+					"-lnghttp3",
+					"-lngtcp2",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
@@ -3326,8 +3329,8 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					../../include,
-					/opt/local/include,
 					/usr/local/include,
+					/opt/local/include,
 					"/opt/local/include/openjpeg-2.5",
 					"/usr/local/include/openjpeg-2.5",
 					/opt/homebrew/include,
@@ -3430,6 +3433,9 @@
 					"-lXext",
 					"-lvvenc",
 					"-lcurl",
+					"-lngtcp2_crypto_quictls",
+					"-lnghttp3",
+					"-lngtcp2",
 					"-lcaca",
 				);
 				PRODUCT_NAME = gpac;
