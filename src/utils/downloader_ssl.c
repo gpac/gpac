@@ -227,6 +227,8 @@ static void ssl_on_log(int write_p, int version, int content_type, const void *b
 }
 #endif //GPAC_DISABLE_LOG
 
+static char ALPN_PROTOS[20];
+
 void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 {
 #if OPENSSL_VERSION_NUMBER > 0x00909000
@@ -276,8 +278,6 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 	dm->ssl_ctx = SSL_CTX_new(meth);
 	if (!dm->ssl_ctx) goto error;
 	SSL_CTX_set_options(dm->ssl_ctx, SSL_OP_ALL);
-//	SSL_CTX_set_max_proto_version(dm->ssl_ctx, 0);
-
 	SSL_CTX_set_default_verify_paths(dm->ssl_ctx);
 	SSL_CTX_load_verify_locations (dm->ssl_ctx, NULL, NULL);
 	/* SSL_VERIFY_NONE instructs OpenSSL not to abort SSL_connect if the
@@ -321,14 +321,31 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 #endif
 
 
+	ALPN_PROTOS[0] = 0;
 #ifdef GPAC_HAS_HTTP2
 	if (!dm->disable_http2) {
-		SSL_CTX_set_next_proto_select_cb(dm->ssl_ctx, h2_select_next_proto_cb, NULL);
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
-		SSL_CTX_set_alpn_protos(dm->ssl_ctx, (const unsigned char *)"\x02h2", 3);
-#endif
+		strcat(ALPN_PROTOS, "\x02h2");
 	}
 #endif
+
+	//configure H3
+#ifdef GPAC_HAS_NGTCP2
+	if (!dm->disable_http3) {
+		if (ngtcp2_crypto_quictls_configure_client_context(dm->ssl_ctx) != 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to initialize SSL context for QUIC, disabling HTTP3\n"));
+			dm->disable_http3 = GF_TRUE;
+		} else {
+			strcat(ALPN_PROTOS, "\x02h3");
+		}
+	}
+#endif
+
+	if (ALPN_PROTOS[0]) {
+		SSL_CTX_set_next_proto_select_cb(dm->ssl_ctx, h2_select_next_proto_cb, NULL);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+		SSL_CTX_set_alpn_protos(dm->ssl_ctx, ALPN_PROTOS, (u32) strlen(ALPN_PROTOS));
+#endif
+	}
 
 	/* Since fd_write unconditionally assumes partial writes (and handles them correctly),
 	allow them in OpenSSL.  */
@@ -405,22 +422,18 @@ void *gf_ssl_server_context_new(const char *cert, const char *key)
 	}
 #endif
 
-
+	//configure H2
 #ifdef GPAC_HAS_HTTP2
 	if (!gf_opts_get_bool("core", "no-h2")) {
 		next_proto_list[0] = NGHTTP2_PROTO_VERSION_ID_LEN;
 		memcpy(&next_proto_list[1], NGHTTP2_PROTO_VERSION_ID, NGHTTP2_PROTO_VERSION_ID_LEN);
 		next_proto_list_len = 1 + NGHTTP2_PROTO_VERSION_ID_LEN;
-
 		SSL_CTX_set_next_protos_advertised_cb(ctx, next_proto_cb, NULL);
-
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_select_cb(ctx, alpn_select_proto_cb, NULL);
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
 	}
-
 #endif
-
     return ctx;
 }
 
@@ -605,6 +618,9 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 		}
 #endif
 	}
+
+	if (sess->flags & GF_NETIO_SESSION_TRY_QUIC)
+		return SSL_CONNECT_RETRY;
 
 	sess->connect_pending = 0;
 	ret = SSL_connect(sess->ssl);

@@ -145,15 +145,20 @@ typedef struct
 		for GF_NETIO_ICY_META, set to inband ICY metadata found
 	*/
 	char *value;
-	/*message-dependend
-		for GF_NETIO_PARSE_REPLY, response code
-		for GF_NETIO_DATA_EXCHANGE
-			Set to 1 in to indicate end of chunk transfer
-			Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
-			if error is set, reply is set to HTTP code
-		for all other, usage is reserved
-	*/
-	u32 reply;
+	union {
+		/*message-dependend
+			for GF_NETIO_PARSE_REPLY, response code
+			for GF_NETIO_DATA_EXCHANGE
+				Set to 1 in to indicate end of chunk transfer
+				Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
+				if error is set, reply is set to HTTP code
+			for all other, usage is reserved
+		*/
+		u32 reply;
+		/* for GF_NETIO_REQUEST_SESSION*/
+		s64 stream_id;
+	};
+
 	/*download session for which the message is being sent*/
 	GF_DownloadSession *sess;
 } GF_NETIO_Parameter;

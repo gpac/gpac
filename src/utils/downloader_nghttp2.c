@@ -84,7 +84,7 @@ static int h2_begin_headers_callback(nghttp2_session *session, const nghttp2_fra
 			param.msg_type = GF_NETIO_REQUEST_SESSION;
 			par_sess->in_callback = GF_TRUE;
 			param.sess = par_sess;
-			param.reply = frame->hd.stream_id;
+			param.stream_id = frame->hd.stream_id;
 			par_sess->user_proc(par_sess->usr_cbk, &param);
 			par_sess->in_callback = GF_FALSE;
 
@@ -596,6 +596,7 @@ void h2_initialize_session(GF_DownloadSession *sess)
 	sess->hmux_sess->resume = h2_resume_stream;
 	sess->hmux_sess->data_received = h2_data_received;
 	sess->hmux_sess->setup_session = h2_setup_session;
+	sess->hmux_sess->connected = GF_TRUE;
 
 	gf_list_add(sess->hmux_sess->sessions, sess);
 

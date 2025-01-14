@@ -73,6 +73,13 @@ typedef SSIZE_T ssize_t;
 #endif
 
 
+#ifdef GPAC_HAS_NGTCP2
+#include <ngtcp2/ngtcp2.h>
+#include <ngtcp2/ngtcp2_crypto.h>
+#include <ngtcp2/ngtcp2_crypto_quictls.h>
+#endif
+
+
 
 #ifdef __USE_POSIX
 #include <unistd.h>
@@ -91,7 +98,7 @@ typedef SSIZE_T ssize_t;
 #define GF_DOWNLOAD_BUFFER_SIZE_LIMIT_RATE		GF_DOWNLOAD_BUFFER_SIZE/20
 
 
-#ifdef GPAC_HAS_HTTP2
+#if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
 #define GPAC_HTTPMUX
 #endif
 
@@ -109,6 +116,7 @@ typedef struct _http_mux_session
 	GF_DownloadSession *net_sess;
 	GF_Mutex *mx;
 	Bool copy;
+	Bool connected;
 
 	//underying implementation - all callbacks must be set
 
@@ -134,6 +142,7 @@ typedef struct _http_mux_session
 
 #endif
 
+#define GF_NETIO_SESSION_TRY_QUIC	(1<<29)
 #define GF_NETIO_SESSION_NO_STORE	(1<<30)
 
 void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload);
@@ -313,7 +322,7 @@ struct __gf_download_session
 	GF_HMUX_Session *hmux_sess;
 	hmux_reagg_buffer hmux_buf;
 
-	int32_t hmux_stream_id;
+	s64 hmux_stream_id;
 	u8 hmux_headers_seen, hmux_ready_to_send, hmux_is_eos, hmux_data_paused, hmux_data_done, hmux_switch_sess;
 	u8 *hmux_send_data;
 	u32 hmux_send_data_len;
@@ -390,6 +399,11 @@ struct __gf_download_manager
 #ifdef GPAC_HAS_HTTP2
 	Bool disable_http2;
 #endif
+
+#ifdef GPAC_HAS_NGTCP2
+	Bool disable_http3;
+#endif
+
 
 	Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool cache_destroy);
 	void *lc_udta;
@@ -495,7 +509,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess);
 
 //multiplexed HTTP support (H2, H3)
 #ifdef GPAC_HTTPMUX
-GF_DownloadSession *hmux_get_session(void *user_data, s32 stream_id, Bool can_reassign);
+GF_DownloadSession *hmux_get_session(void *user_data, s64 stream_id, Bool can_reassign);
 void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess);
 void hmux_fetch_flush_data(GF_DownloadSession *sess, u8 *obuffer, u32 size, u32 *nb_bytes);
 
@@ -511,6 +525,10 @@ GF_Err hmux_send_payload(GF_DownloadSession *sess, u8 *data, u32 size);
 GF_Err http2_check_upgrade(GF_DownloadSession *sess);
 void http2_set_upgrade_headers(GF_DownloadSession *sess);
 GF_Err http2_do_upgrade(GF_DownloadSession *sess, const char *body, u32 body_len);
+#endif
+
+#ifdef GPAC_HAS_NGTCP2
+GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port);
 #endif
 
 #ifdef GPAC_HAS_CURL

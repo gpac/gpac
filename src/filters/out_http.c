@@ -44,7 +44,7 @@
 
 //socket and SSL context ownership is transfered to the download session object
 GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, Bool async, GF_Err *e);
-GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, u32 stream_id, void *usr_cbk, GF_Err *e);
+GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, s64 stream_id, void *usr_cbk, GF_Err *e);
 u32 gf_dm_sess_subsession_count(GF_DownloadSession *);
 
 void gf_dm_sess_set_timeout(GF_DownloadSession *sess, u32 timeout);
@@ -1045,7 +1045,7 @@ static const char *get_method_name(u32 method)
 }
 #endif //GPAC_DISABLE_LOG
 
-GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, u32 stream_id)
+GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, s64 stream_id)
 {
 	GF_HTTPOutSession *sub_sess;
 	GF_Err e;
@@ -1438,7 +1438,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	HTTP_DIRInfo *the_dir=NULL;
 
 	if (parameter->msg_type == GF_NETIO_REQUEST_SESSION) {
-		parameter->error = httpout_new_subsession(sess, parameter->reply);
+		parameter->error = httpout_new_subsession(sess, parameter->stream_id);
 		return;
 	}
 	if (parameter->msg_type == GF_NETIO_CANCEL_STREAM) {
