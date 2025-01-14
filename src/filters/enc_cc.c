@@ -30,7 +30,6 @@
 
 #ifdef GPAC_HAS_LIBCAPTION
 #include <caption/mpeg.h>
-#include <caption/caption.h>
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #if !defined(__GNUC__)
@@ -248,6 +247,9 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	// Prepend the NALU to the video data
 	memcpy(new_data, nal_data, nal_size);
 	memcpy(new_data + nal_size, vdata, vsize);
+
+	// Send the new packet
+	gf_filter_pck_send(new_vpck);
 
 error:
 	if (nal_data) gf_free(nal_data);
