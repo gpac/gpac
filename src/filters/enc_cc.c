@@ -65,8 +65,6 @@ typedef struct
 	GF_List *frame_queue;
 
 	Bool is_cc_eos;
-
-	GF_BitStream *bs;
 } CCEncCtx;
 
 
@@ -414,7 +412,6 @@ static void ccenc_finalize(GF_Filter *filter)
 		sei_free(ctx->sei);
 		gf_free(ctx->sei);
 	}
-	if (ctx->bs) gf_bs_del(ctx->bs);
 }
 
 static const GF_FilterCapability CCEncCaps[] =
