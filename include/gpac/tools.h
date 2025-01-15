@@ -1397,7 +1397,7 @@ Lock files are removed using \ref gf_file_delete
 \param lockfile name of the lockfile
 \return return status
 */
-GF_LockStatus gs_sys_create_lockfile(const char *lockfile);
+GF_LockStatus gf_sys_create_lockfile(const char *lockfile);
 
 /*!
 \brief Checks a process is valid
