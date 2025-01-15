@@ -37,6 +37,8 @@
 #endif
 #endif
 
+#define GPAC_TX3G_DATA_OFFSET (2)
+
 enum
 {
 	CCTYPE_UNK=0,
@@ -56,7 +58,6 @@ typedef struct
 	u32 cctype;
 	caption_frame_t *ccframe;
 	sei_t *sei;
-	u32 cc_data_offset;
 
 	GF_Fraction vb_time;
 	u32 nalu_size_len;
@@ -106,18 +107,6 @@ GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		ctx->s_ts = prop ? prop->value.uint : 1000;
-
-		switch (codec_id)
-		{
-		case GF_CODECID_TX3G:
-			ctx->cc_data_offset = 2;
-			break;
-		case GF_CODECID_WEBVTT:
-			ctx->cc_data_offset = 16;
-			break;
-		default:
-			break;
-		}
 		return GF_OK;
 	}
 
@@ -185,17 +174,32 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 {
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err err = GF_OK;
-	GF_BitStream *bs;
-	libcaption_stauts_t status;
+	GF_BitStream *bs = NULL;
 	u8 *sei_data = NULL;
+	libcaption_stauts_t status;
 	u32 size;
 
 #define CHECK_OOM(_x) if (!_x) { err = GF_OUT_OF_MEM; goto error; }
 
-	// Create the caption frame
+	// Forward the video frame if there is no subtitle data
 	const u8 *data = gf_filter_pck_get_data(spck, &size);
+	gf_assert(size >= GPAC_TX3G_DATA_OFFSET);
+	u16 len = (data[0]<<8) | data[1];
+	if (!len) {
+		gf_filter_pck_forward(vpck, ctx->opid);
+		goto error;
+	}
+
+	// Create null-terminated text from the subtitle data
+	u8 *text = gf_malloc(len+1);
+	CHECK_OOM(text);
+	memcpy(text, data+GPAC_TX3G_DATA_OFFSET, len);
+	memset(text+len, 0, 1);
+
+	// Create the caption frame
 	if (!ctx->ccframe) GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
-	caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)data+ctx->cc_data_offset);
+	caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)text);
+	gf_free(text);
 
 	// Create the SEI from the caption frame
 	if (!ctx->sei) GF_SAFEALLOC(ctx->sei, sei_t);
@@ -405,7 +409,6 @@ GF_Err ccenc_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 
-	// TODO: gf_filter_pck_is_blocking_ref. If blocking, then try to pair the two here, otherwise warn and send the video frame
 	if ((vpck && gf_filter_pck_is_blocking_ref(vpck)) || (spck && gf_filter_pck_is_blocking_ref(spck))) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Blocking reference detected. This is not supported yet\n"));
 		return GF_NOT_SUPPORTED;
@@ -458,8 +461,7 @@ static const GF_FilterCapability CCEncCaps[] =
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_WEBVTT)
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G)
 };
 
 #define OFFS(_n)	#_n, offsetof(CCEncCtx, _n)
