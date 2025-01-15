@@ -1523,12 +1523,14 @@ resetup_socket:
 				gf_sk_group_unregister(sess->sock_group, sess->sock);
 				gf_sk_del(sess->sock);
 				sess->sock = NULL;
+#ifdef GPAC_HTTPMUX
 				if (sess->hmux_sess) {
 					sess->hmux_sess->destroy(sess->hmux_sess);
 					gf_list_del(sess->hmux_sess->sessions);
 					gf_free(sess->hmux_sess);
 					sess->hmux_sess = NULL;
 				}
+#endif
 				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Failed to connect through QUIC (%s), retrying with TCP\n", sess->log_name, gf_error_to_string(e)));
 				goto resetup_socket;
 			}
