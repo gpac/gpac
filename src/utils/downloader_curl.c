@@ -222,9 +222,11 @@ GF_Err curl_setup_session(GF_DownloadSession* sess)
 		res = CURLE_UNSUPPORTED_PROTOCOL;
 		//try H3
 		if ((ver->features & CURL_VERSION_HTTP3) && sess->dm && (sess->dm->h3_mode!=H3_MODE_NO)) {
+#ifdef CURL_HTTP_VERSION_3ONLY
 			if (sess->dm->h3_mode==H3_MODE_ONLY)
 				res = curl_easy_setopt(sess->curl_hnd, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_3ONLY);
 			else
+#endif
 				res = curl_easy_setopt(sess->curl_hnd, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_3);
 		}
 		//try H2
