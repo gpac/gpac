@@ -38,7 +38,8 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 
 	gf_list_del_item(hmux_sess->sessions, sess);
 	if (!gf_list_count(hmux_sess->sessions)) {
-		dm_sess_sk_del(sess);
+		if (hmux_sess->close)
+			hmux_sess->close(hmux_sess);
 
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
@@ -48,8 +49,9 @@ void hmux_detach_session(GF_HMUX_Session *hmux_sess, GF_DownloadSession *sess)
 			sess->ssl = NULL;
 		}
 #endif
-
-		if (hmux_sess->destroy) hmux_sess->destroy(hmux_sess);
+		dm_sess_sk_del(sess);
+		if (hmux_sess->destroy)
+			hmux_sess->destroy(hmux_sess);
 
 		gf_list_del(hmux_sess->sessions);
 		gf_mx_v(hmux_sess->mx);
