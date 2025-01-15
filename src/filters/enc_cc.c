@@ -40,9 +40,6 @@
 enum
 {
 	CCTYPE_UNK=0,
-	CCTYPE_M2V,
-	CCTYPE_M4V,
-	CCTYPE_OBU,
 	CCTYPE_AVC,
 	CCTYPE_HEVC,
 	CCTYPE_VVC,
@@ -55,16 +52,17 @@ typedef struct
 	GF_FilterPid *opid;
 	u32 v_ts, s_ts;
 
+	Bool is_cc_eos;
 	u32 cctype;
 	caption_frame_t *ccframe;
 	sei_t *sei;
+	u32 cc_data_offset;
 
 	GF_Fraction vb_time;
 	u32 nalu_size_len;
+
 	GF_List *cc_queue;
 	GF_List *frame_queue;
-
-	Bool is_cc_eos;
 } CCEncCtx;
 
 
@@ -92,6 +90,11 @@ GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gf_filter_pid_set_udta(pid, ctx->opid);
 	}
 
+	// get the codec id
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (!prop) return GF_BAD_PARAM;
+	u32 codec_id = prop->value.uint;
+
 	// get the stream type
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!prop) return GF_BAD_PARAM;
@@ -103,35 +106,30 @@ GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		ctx->s_ts = prop ? prop->value.uint : 1000;
+
+		switch (codec_id)
+		{
+		case GF_CODECID_TX3G:
+			ctx->cc_data_offset = 2;
+			break;
+		case GF_CODECID_WEBVTT:
+			ctx->cc_data_offset = 16;
+			break;
+		default:
+			break;
+		}
 		return GF_OK;
 	}
 
 	ctx->vipid = pid;
 	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	ctx->v_ts = prop ? prop->value.uint : 1000;
 
 	ctx->cctype = CCTYPE_UNK;
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (!prop) return GF_BAD_PARAM;
-	switch (prop->value.uint) {
-#ifndef GPAC_DISABLE_AV_PARSERS
-	case GF_CODECID_MPEG2_422:
-	case GF_CODECID_MPEG2_SNR:
-	case GF_CODECID_MPEG2_HIGH:
-	case GF_CODECID_MPEG2_MAIN:
-	case GF_CODECID_MPEG2_SIMPLE:
-	case GF_CODECID_MPEG2_SPATIAL:
-		ctx->cctype = CCTYPE_M2V;
-		break;
-	case GF_CODECID_MPEG4_PART2:
-		ctx->cctype = CCTYPE_M4V;
-		break;
-#endif
-	case GF_CODECID_AV1:
-		ctx->cctype = CCTYPE_OBU;
-		break;
+	switch (codec_id) {
 	case GF_CODECID_AVC:
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (prop) {
@@ -187,16 +185,17 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 {
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err err = GF_OK;
+	GF_BitStream *bs;
 	libcaption_stauts_t status;
+	u8 *sei_data = NULL;
+	u32 size;
+
+#define CHECK_OOM(_x) if (!_x) { err = GF_OUT_OF_MEM; goto error; }
 
 	// Create the caption frame
-	const u8 *data = gf_filter_pck_get_data(spck, NULL);
+	const u8 *data = gf_filter_pck_get_data(spck, &size);
 	if (!ctx->ccframe) GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
-	status = caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)data);
-	if (status != LIBCAPTION_OK) {
-		err = GF_BAD_PARAM;
-		goto error;
-	}
+	caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)data+ctx->cc_data_offset);
 
 	// Create the SEI from the caption frame
 	if (!ctx->sei) GF_SAFEALLOC(ctx->sei, sei_t);
@@ -208,49 +207,74 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 		goto error;
 	}
 
-	// Create the NALU from the SEI
+	// Render the SEI
+	sei_data = gf_malloc(sei_render_size(ctx->sei));
+	CHECK_OOM(sei_data);
+	size_t sei_render_size = sei_render(ctx->sei, sei_data);
+
+	// Prepare the NALU writer
 	u8 nhdr_extra = (ctx->cctype==CCTYPE_HEVC || ctx->cctype==CCTYPE_VVC) ? 1 : 0;
-	size_t nal_size = sei_render_size(ctx->sei) + nhdr_extra + ctx->nalu_size_len;
-	u8 *nal_data = gf_malloc(nal_size);
-	if (!nal_data) {
-		err = GF_OUT_OF_MEM;
-		goto error;
-	}
-	memset(nal_data, 0, nal_size);
-	sei_render(ctx->sei, nal_data + nhdr_extra + ctx->nalu_size_len);
+	size_t nal_size = sei_render_size + nhdr_extra + ctx->nalu_size_len;
+	bs = gf_bs_new(NULL, nal_size, GF_BITSTREAM_WRITE);
+	CHECK_OOM(bs);
 
-	// Modify the NALU header
-	((u32*)nal_data)[0] = (u32)(nal_size - ctx->nalu_size_len);
+	// Write the header
+	gf_bs_write_int(bs, nal_size - ctx->nalu_size_len, ctx->nalu_size_len*8);
 	if (ctx->cctype==CCTYPE_HEVC) {
-		((u16*)nal_data)[2] = (u16)GF_HEVC_NALU_SEI_PREFIX;
+		gf_bs_write_int(bs, 0, 1);
+		gf_bs_write_int(bs, GF_HEVC_NALU_SEI_PREFIX, 6);
+		gf_bs_write_int(bs, 0, 6);
+		gf_bs_write_int(bs, 1, 3);
 	} else if (ctx->cctype==CCTYPE_VVC) {
-		((u16*)nal_data)[2] = (u16)GF_VVC_NALU_SEI_PREFIX;
+		gf_bs_write_int(bs, 0, 1);
+		gf_bs_write_int(bs, GF_VVC_NALU_SEI_PREFIX, 6);
+		gf_bs_write_int(bs, 0, 6);
+		gf_bs_write_int(bs, 1, 3);
 	} else {
-		nal_data[4] = GF_AVC_NALU_SEI;
+		gf_bs_write_int(bs, 0, 1);
+		gf_bs_write_int(bs, 0, 2);
+		gf_bs_write_int(bs, GF_AVC_NALU_SEI, 5);
 	}
 
-	// Get the video data
-	u32 vsize;
-	const u8 *vdata = gf_filter_pck_get_data(vpck, &vsize);
+	// Write the SEI
+	gf_bs_write_data(bs, sei_data+1, sei_render_size-1); // sei_render_size includes nal_type (1 byte)
+	gf_free(sei_data);
+
+	// Write rest of the video data
+	const u8 *vdata = gf_filter_pck_get_data(vpck, &size);
+	gf_bs_write_data(bs, vdata, size);
+	gf_assert((nal_size + size) == gf_bs_get_position(bs));
+
+	// Get the content and calculate the number of emulation bytes to add
+	u8 *dst_no_epb = NULL;
+	u32 dst_no_epb_size = 0;
+	gf_bs_get_content(bs, &dst_no_epb, &dst_no_epb_size);
+	CHECK_OOM(dst_no_epb);
+	u32 nb_bytes_to_add = gf_media_nalu_emulation_bytes_add_count(dst_no_epb, dst_no_epb_size);
 
 	// Create the new video packet
-	u8* new_data = NULL;
-	GF_FilterPacket *new_vpck = gf_filter_pck_new_alloc(ctx->opid, vsize + nal_size, &new_data);
-	if (!new_vpck) {
-		err = GF_OUT_OF_MEM;
-		goto error;
-	}
+	u8 *new_data = NULL;
+	GF_FilterPacket *new_vpck = gf_filter_pck_new_alloc(ctx->opid, dst_no_epb_size + nb_bytes_to_add, &new_data);
+	CHECK_OOM(new_vpck);
 	gf_filter_pck_merge_properties(vpck, new_vpck);
 
-	// Prepend the NALU to the video data
-	memcpy(new_data, nal_data, nal_size);
-	memcpy(new_data + nal_size, vdata, vsize);
+	// Copy the data
+	gf_media_nalu_add_emulation_bytes(dst_no_epb, new_data, dst_no_epb_size);
+	gf_free(dst_no_epb);
 
 	// Send the new packet
-	gf_filter_pck_send(new_vpck);
+	static Bool sent = GF_FALSE;
+	if (!sent) {
+		gf_filter_pck_send(new_vpck);
+		sent = GF_TRUE;
+	} else {
+		gf_filter_pck_discard(new_vpck);
+	}
+
+#undef CHECK_OOM
 
 error:
-	if (nal_data) gf_free(nal_data);
+	if (bs) gf_bs_del(bs);
 
 	// if we have an error, just forward the video frame
 	if (err != GF_OK) {
@@ -271,11 +295,11 @@ retry:
 	// try to pair video and subtitle data, gracefully
 	while (gf_list_count(ctx->cc_queue) && gf_list_count(ctx->frame_queue)) {
 		// if we have a video frame with cts lower than the minimum subtitle cts, send it
-		u32 last_video_cts = gf_filter_pck_get_cts(gf_list_last(ctx->frame_queue));
-		u32 last_subtitle_cts = gf_filter_pck_get_cts(gf_list_last(ctx->cc_queue));
+		u32 last_video_cts = gf_filter_pck_get_cts(gf_list_get(ctx->frame_queue, 0));
+		u32 last_subtitle_cts = gf_filter_pck_get_cts(gf_list_get(ctx->cc_queue, 0));
 		if (gf_timestamp_less(last_video_cts, ctx->v_ts, last_subtitle_cts, ctx->s_ts)) {
 			// impossible to pair, send video frame
-			GF_FilterPacket *vpck = gf_list_pop_back(ctx->frame_queue);
+			GF_FilterPacket *vpck = gf_list_pop_front(ctx->frame_queue);
 			gf_filter_pck_forward(vpck, ctx->opid);
 			gf_filter_pck_unref(vpck);
 			continue;
@@ -283,11 +307,11 @@ retry:
 
 		// we might have a caption for the current video frame, search it
 		Bool found = GF_FALSE;
-		for (u32 i=gf_list_count(ctx->cc_queue); i--;) {
+		for (u32 i=0; i<gf_list_count(ctx->cc_queue);i++) {
 			GF_FilterPacket *spck = gf_list_get(ctx->cc_queue, i);
 			if (gf_timestamp_equal(last_video_cts, ctx->v_ts, gf_filter_pck_get_cts(spck), ctx->s_ts)) {
 				found = GF_TRUE;
-				ccenc_pair(filter, gf_list_pop_back(ctx->frame_queue), spck);
+				ccenc_pair(filter, gf_list_pop_front(ctx->frame_queue), spck);
 				gf_list_del_item(ctx->cc_queue, spck);
 				break;
 			}
@@ -301,11 +325,11 @@ retry:
 	if (gf_list_count(ctx->frame_queue)==0) return;
 
 	// flush the video frames based on buffer time
-	u32 last_dts = gf_filter_pck_get_dts(gf_list_last(ctx->frame_queue));
-	u32 first_dts = gf_filter_pck_get_dts(gf_list_get(ctx->frame_queue, 0));
-	if (gf_timestamp_greater_or_equal(first_dts-last_dts, ctx->v_ts, ctx->vb_time.num, ctx->vb_time.den)) {
+	u32 old_dts = gf_filter_pck_get_dts(gf_list_get(ctx->frame_queue, 0));
+	u32 new_dts = gf_filter_pck_get_dts(gf_list_last(ctx->frame_queue));
+	if (gf_timestamp_greater_or_equal(new_dts-old_dts, ctx->v_ts, ctx->vb_time.num, ctx->vb_time.den)) {
 		// we couldn't pair this video frame with a subtitle frame
-		GF_FilterPacket *vpck = gf_list_pop_back(ctx->frame_queue);
+		GF_FilterPacket *vpck = gf_list_pop_front(ctx->frame_queue);
 		gf_filter_pck_forward(vpck, ctx->opid);
 		gf_filter_pck_unref(vpck);
 
@@ -316,7 +340,7 @@ retry:
 	if (full_flush) {
 		// we've tried to pair all video frames with subtitle frames, but we still have video frames left
 		while (gf_list_count(ctx->frame_queue)) {
-			GF_FilterPacket *vpck = gf_list_pop_back(ctx->frame_queue);
+			GF_FilterPacket *vpck = gf_list_pop_front(ctx->frame_queue);
 			gf_filter_pck_forward(vpck, ctx->opid);
 			gf_filter_pck_unref(vpck);
 		}
@@ -340,9 +364,9 @@ GF_Err ccenc_process(GF_Filter *filter)
 	if (spck) {
 		if (!gf_filter_pck_is_blocking_ref(spck)) {
 			gf_filter_pck_ref(&spck);
-			gf_filter_pid_drop_packet(ctx->sipid);
 			gf_list_add(ctx->cc_queue, spck);
 		}
+		gf_filter_pid_drop_packet(ctx->sipid);
 	}
 	else if (gf_filter_pid_is_eos(ctx->sipid)) {
 		ctx->is_cc_eos = GF_TRUE;
@@ -354,15 +378,16 @@ GF_Err ccenc_process(GF_Filter *filter)
 		// if no more subtitle data, we can just forward video data
 		if (ctx->is_cc_eos && gf_list_count(ctx->cc_queue)==0) {
 			ccenc_flush(filter, GF_TRUE);
+			gf_filter_pck_forward(vpck, ctx->opid);
 			gf_filter_pid_drop_packet(ctx->vipid);
-			return gf_filter_pck_forward(vpck, ctx->opid);
+			return GF_OK;
 		}
 
 		if (!gf_filter_pck_is_blocking_ref(vpck)) {
 			gf_filter_pck_ref(&vpck);
-			gf_filter_pid_drop_packet(ctx->vipid);
 			gf_list_add(ctx->frame_queue, vpck);
 		}
+		gf_filter_pid_drop_packet(ctx->vipid);
 	}
 	else if (gf_filter_pid_is_eos(ctx->vipid)) {
 		ccenc_flush(filter, GF_TRUE);
@@ -430,12 +455,8 @@ static const GF_FilterCapability CCEncCaps[] =
 	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_TX3G),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SUBS_TEXT),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
-	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_WEBVTT)
 };
 
 #define OFFS(_n)	#_n, offsetof(CCEncCtx, _n)
