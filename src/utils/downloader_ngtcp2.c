@@ -25,18 +25,20 @@
 
 #include "downloader.h"
 
+/*
+	Functions prefixes:
+		h3_*: function used for hmux session function pointers
+		ngq_*: function callback for ngtcp2 lib (quic)
+		ngh3_*: function callback for nghttp3 lib
+*/
+
+
 #if !defined(GPAC_DISABLE_NETWORK) && defined(GPAC_HAS_NGTCP2)
 
-#include <nghttp3/nghttp3.h>
 #include <ngtcp2/ngtcp2.h>
-
-#define NV2_HDR(_hdr, _name, _value) { \
-		_hdr.name = (uint8_t *)_name;\
-		_hdr.value = (uint8_t *)_value;\
-		_hdr.namelen = (u32) strlen(_name);\
-		_hdr.valuelen = (u32) strlen(_value);\
-		_hdr.flags = NGHTTP2_NV_FLAG_NONE;\
-	}
+#include <ngtcp2/ngtcp2_crypto.h>
+#include <ngtcp2/ngtcp2_crypto_quictls.h>
+#include <nghttp3/nghttp3.h>
 
 GF_Err gf_sk_bind_ex(GF_Socket *sock, const char *ifce_ip_or_name, u16 port, const char *peer_name, u16 peer_port, u32 options,
 	u8 **dst_sock_addr, u32 *dst_sock_addr_len, u8 **src_sock_addr, u32 *src_sock_addr_len);
@@ -49,6 +51,8 @@ static u64 ngtcp2_timestamp()
 
 typedef struct
 {
+	//keep parent
+	GF_HMUX_Session *hmux;
 	ngtcp2_path path;
 	ngtcp2_conn *conn;
 	ngtcp2_crypto_conn_ref conn_ref;
@@ -57,7 +61,7 @@ typedef struct
 	u32 handshake_state; //0: pending, 1: done, 2: error
 } NGTCP2Priv;
 
-static void h3_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *rand_ctx)
+static void ngq_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *rand_ctx)
 {
 	size_t i;
 	(void)rand_ctx;
@@ -66,7 +70,7 @@ static void h3_rand_cb(uint8_t *dest, size_t destlen, const ngtcp2_rand_ctx *ran
 	}
 }
 
-static int h3_get_new_connection_id_cb(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t *token, size_t cidlen, void *user_data)
+static int ngq_get_new_connection_id_cb(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8_t *token, size_t cidlen, void *user_data)
 {
 	(void)conn;
 	(void)user_data;
@@ -81,14 +85,13 @@ static int h3_get_new_connection_id_cb(ngtcp2_conn *conn, ngtcp2_cid *cid, uint8
 	return 0;
 }
 
-static int h3_extend_max_local_streams_bidi(ngtcp2_conn *conn, uint64_t max_streams,
+static int ngq_extend_max_local_streams_bidi(ngtcp2_conn *conn, uint64_t max_streams,
                                   void *user_data)
 {
-	GF_HMUX_Session *hmux = user_data;
 	return 0;
 }
 
-static void h3_printf(void *user_data, const char *format, ...)
+static void ngq_printf(void *user_data, const char *format, ...)
 {
   va_list ap;
   (void)user_data;
@@ -99,8 +102,16 @@ static void h3_printf(void *user_data, const char *format, ...)
 
   fprintf(stderr, "\n");
 }
+static void ngq_debug_trace(const char *format, va_list args)
+{
+	vfprintf(stderr, format, args);
+	fprintf(stderr, "\n");
+}
+static void ngq_debug_trace_noop(const char *format, va_list args)
+{
+}
 
-static nghttp3_ssize h3_data_source_read_callback(
+static nghttp3_ssize ngh3_data_source_read_callback(
   nghttp3_conn *conn, int64_t stream_id, nghttp3_vec *vec, size_t veccnt,
   uint32_t *pflags, void *conn_user_data, void *stream_user_data)
 {
@@ -122,143 +133,217 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 		if (!sess->hmux_priv) return GF_OUT_OF_MEM;
 	}
 	nghttp3_data_reader *data_io = sess->hmux_priv;
-	data_io->read_data = h3_data_source_read_callback;
+	data_io->read_data = ngh3_data_source_read_callback;
 	return GF_OK;
 }
 
-#if 0
-static int http3_stream_close(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id,
-                 uint64_t app_error_code, void *user_data,
-                 void *stream_user_data)
+static int ngh3_recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *data,
+                   size_t datalen, void *conn_user_data, void *stream_user_data)
 {
-	GF_HMUX_Session *hmux = user_data;
-	if (!(flags & NGTCP2_STREAM_CLOSE_FLAG_APP_ERROR_CODE_SET)) {
-		app_error_code = NGHTTP3_H3_NO_ERROR;
+	NGTCP2Priv *qc = (NGTCP2Priv *)conn_user_data;
+	GF_DownloadSession *sess = stream_user_data;
+
+	ngtcp2_conn_extend_max_stream_offset(qc->conn, stream_id, datalen);
+	ngtcp2_conn_extend_max_offset(qc->conn, datalen);
+
+	if (!sess)
+		return NGHTTP3_ERR_CALLBACK_FAILURE;
+
+	if (sess->hmux_buf.size + datalen > sess->hmux_buf.alloc) {
+		sess->hmux_buf.alloc = sess->hmux_buf.size + (u32) datalen;
+		sess->hmux_buf.data = gf_realloc(sess->hmux_buf.data, sizeof(u8) * sess->hmux_buf.alloc);
+		if (!sess->hmux_buf.data) return NGHTTP3_ERR_NOMEM;
 	}
-
-/*	if (c->on_stream_close(stream_id, app_error_code) != 0) {
-		return NGTCP2_ERR_CALLBACK_FAILURE;
-	}
-*/
-	return 0;
-}
-#endif
-
-
-static int http3_recv_data(nghttp3_conn *conn, int64_t stream_id, const uint8_t *data,
-                   size_t datalen, void *user_data, void *stream_user_data)
-{
-	GF_HMUX_Session *hmux = user_data;
+	memcpy(sess->hmux_buf.data + sess->hmux_buf.size, data, datalen);
+	sess->hmux_buf.size += (u32) datalen;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" received %d bytes (%d/%d total)\n", sess->hmux_stream_id, (u32) datalen, sess->hmux_buf.size, sess->total_size));
 	return 0;
 }
 
-static int http3_deferred_consume(nghttp3_conn *conn, int64_t stream_id,
-                          size_t nconsumed, void *user_data,
+static int ngh3_deferred_consume(nghttp3_conn *conn, int64_t stream_id,
+                          size_t nconsumed, void *conn_user_data,
                           void *stream_user_data)
 {
-	GF_HMUX_Session *hmux = user_data;
+//	NGTCP2Priv *qc = (NGTCP2Priv *)user_data;
 	//c->http_consume(stream_id, nconsumed);
 	return 0;
 }
 
-static int http3_begin_headers(nghttp3_conn *conn, int64_t stream_id, void *user_data,
+static int ngh3_begin_headers(nghttp3_conn *conn, int64_t stream_id, void *conn_user_data,
                        void *stream_user_data)
 {
-  return 0;
+	GF_DownloadSession *sess = stream_user_data;
+	gf_dm_sess_clear_headers(sess);
+	return 0;
 }
 
-static int http3_recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
+static int ngh3_recv_header(nghttp3_conn *conn, int64_t stream_id, int32_t token,
                      nghttp3_rcbuf *name, nghttp3_rcbuf *value, uint8_t flags,
-                     void *user_data, void *stream_user_data)
+                     void *conn_user_data, void *stream_user_data)
+{
+	GF_DownloadSession *sess = stream_user_data;
+	GF_HTTPHeader *hdrp;
+
+	GF_SAFEALLOC(hdrp, GF_HTTPHeader);
+	if (hdrp) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id %d got header %s: %s\n", sess->hmux_stream_id, name, value));
+
+		nghttp3_vec v = nghttp3_rcbuf_get_buf(name);
+
+		hdrp->name = gf_malloc(v.len+1);
+		memcpy(hdrp->name,v.base,v.len+1);
+		hdrp->name[v.len]=0;
+
+		v = nghttp3_rcbuf_get_buf(value);
+		hdrp->value = gf_malloc(v.len+1);
+		memcpy(hdrp->value,v.base,v.len+1);
+		hdrp->value[v.len]=0;
+
+		gf_list_add(sess->headers, hdrp);
+	}
+	return 0;
+}
+
+static int ngh3_end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
+	void *conn_user_data, void *stream_user_data)
+{
+	GF_DownloadSession *sess = stream_user_data;
+	sess->hmux_headers_seen = 1;
+	if (sess->server_mode) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID %d\n", sess->hmux_stream_id));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] All headers received for stream ID %d\n", sess->hmux_stream_id));
+	}
+	if (fin) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) data done\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+		sess->hmux_data_done = 1;
+		sess->hmux_is_eos = GF_FALSE;
+		sess->hmux_send_data = NULL;
+		sess->hmux_send_data_len = 0;
+	}
+	return 0;
+}
+
+static int ngh3_begin_trailers(nghttp3_conn *conn, int64_t stream_id, void *conn_user_data, void *stream_user_data) {
+	return 0;
+}
+
+static int ngh3_recv_trailer(nghttp3_conn *conn, int64_t stream_id, int32_t token,
+	nghttp3_rcbuf *name, nghttp3_rcbuf *value, uint8_t flags,
+	void *conn_user_data, void *stream_user_data)
+{
+	return 0;
+}
+
+static int ngh3_end_trailers(nghttp3_conn *conn, int64_t stream_id, int fin,
+                      void *conn_user_data, void *stream_user_data)
 {
   return 0;
 }
 
-static int http3_end_headers(nghttp3_conn *conn, int64_t stream_id, int fin,
-                     void *user_data, void *stream_user_data)
+static int ngh3_stop_sending(nghttp3_conn *conn, int64_t stream_id, uint64_t app_error_code,
+	void *conn_user_data, void *stream_user_data)
 {
-  return 0;
-}
-
-static int http3_begin_trailers(nghttp3_conn *conn, int64_t stream_id, void *user_data,
-                        void *stream_user_data) {
+	NGTCP2Priv *qc = (NGTCP2Priv *)conn_user_data;
+	if (!qc->http_conn) return 0;
+	int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
+	if (rv != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_shutdown_stream_read failed %s\n", nghttp3_strerror(rv) ));
+		return NGHTTP3_ERR_CALLBACK_FAILURE;
+	}
+	//TODO : abort put/post or server mode
 	return 0;
 }
 
-static int http3_recv_trailer(nghttp3_conn *conn, int64_t stream_id, int32_t token,
-                      nghttp3_rcbuf *name, nghttp3_rcbuf *value, uint8_t flags,
-                      void *user_data, void *stream_user_data)
+static int ngh3_reset_stream(nghttp3_conn *conn, int64_t stream_id, uint64_t app_error_code,
+	void *conn_user_data, void *stream_user_data)
 {
+	NGTCP2Priv *qc = (NGTCP2Priv *)conn_user_data;
+	if (!qc->http_conn) return 0;
+	int rv = ngtcp2_conn_shutdown_stream_write(qc->conn, 0, stream_id, app_error_code);
+	if (rv != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_shutdown_stream_write failed %s\n", ngtcp2_strerror(rv) ));
+		return NGHTTP3_ERR_CALLBACK_FAILURE;
+	}
 	return 0;
 }
 
-static int http3_end_trailers(nghttp3_conn *conn, int64_t stream_id, int fin,
-                      void *user_data, void *stream_user_data)
+static int ngh3_stream_close(nghttp3_conn *conn, int64_t stream_id, uint64_t app_error_code,
+	void *conn_user_data, void *stream_user_data)
 {
-  return 0;
-}
+	Bool do_retry = GF_FALSE;
+	GF_DownloadSession *sess = stream_user_data;
+	if (!sess)
+		return 0;
 
-int http3_stop_sending(nghttp3_conn *conn, int64_t stream_id,
-                      uint64_t app_error_code, void *user_data,
-                      void *stream_user_data)
-{
+	if (!ngtcp2_is_bidi_stream(stream_id)) {
+		NGTCP2Priv *qc = (NGTCP2Priv *)conn_user_data;
+		assert(!ngtcp2_conn_is_local_stream(qc->conn, stream_id));
+		ngtcp2_conn_extend_max_streams_uni(qc->conn, 1);
+	}
 
-/*  if (c->stop_sending(stream_id, app_error_code) != 0) {
-    return NGHTTP3_ERR_CALLBACK_FAILURE;
-  }
-*/
+	gf_mx_p(sess->mx);
+
+	if ((app_error_code==NGHTTP3_H3_EXCESSIVE_LOAD)
+		|| (app_error_code==NGHTTP3_H3_REQUEST_REJECTED)
+	) {
+		do_retry = GF_TRUE;
+	} else if (sess->hmux_sess->do_shutdown && !sess->server_mode && !sess->bytes_done) {
+		do_retry = GF_TRUE;
+	}
+
+	if (do_retry) {
+		sess->hmux_sess->do_shutdown = GF_TRUE;
+		sess->hmux_switch_sess = GF_TRUE;
+		sess->status = GF_NETIO_SETUP;
+		SET_LAST_ERR(GF_OK)
+		gf_mx_v(sess->mx);
+		return 0;
+	}
+
+	if (app_error_code!=NGHTTP3_H3_NO_ERROR) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) closed with error_code=%d\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, app_error_code));
+		sess->status = GF_NETIO_STATE_ERROR;
+		SET_LAST_ERR(GF_IP_NETWORK_FAILURE)
+		sess->put_state = 0;
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/3] stream_id "LLU" (%s) closed (put state)\n", stream_id, sess->remote_path ? sess->remote_path : sess->orig_url, sess->put_state));
+
+		if (sess->put_state) {
+			sess->put_state = 0;
+			sess->status = GF_NETIO_DATA_TRANSFERED;
+			sess->last_error = GF_OK;
+		}
+	}
+
+	//stream closed
+	sess->hmux_stream_id = 0;
+	gf_mx_v(sess->mx);
 	return 0;
 }
 
-static int http3_reset_stream(nghttp3_conn *conn, int64_t stream_id,
-                      uint64_t app_error_code, void *user_data,
-                      void *stream_user_data)
+static GF_Err h3_setup_http3(GF_HMUX_Session *hmux_sess)
 {
-/*  if (c->reset_stream(stream_id, app_error_code) != 0) {
-    return NGHTTP3_ERR_CALLBACK_FAILURE;
-  }
-*/
-	return 0;
-}
+	NGTCP2Priv *qc = (NGTCP2Priv *)hmux_sess->hmux_udta;
+	if (qc->http_conn) return GF_OK;
 
-static int http3_stream_close(nghttp3_conn *conn, int64_t stream_id,
-                      uint64_t app_error_code, void *conn_user_data,
-                      void *stream_user_data)
-{
-
-/*  if (c->http_stream_close(stream_id, app_error_code) != 0) {
-    return NGHTTP3_ERR_CALLBACK_FAILURE;
-  }
-*/
-	return 0;
-}
-
-static int http3_recv_settings(nghttp3_conn *conn, const nghttp3_settings *settings, void *conn_user_data)
-{
-	return 0;
-}
-
-static GF_Err h3_setup_http3(GF_DownloadSession *sess)
-{
-	NGTCP2Priv *qc = (NGTCP2Priv *)sess->hmux_sess->hmux_udta;
 	if (ngtcp2_conn_get_streams_uni_left(qc->conn) < 3) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] peer does not allow at least 3 unidirectional streams.\n"));
 		return GF_REMOTE_SERVICE_ERROR;
 	}
 
 	nghttp3_callbacks callbacks = {
-		.stream_close = http3_stream_close,
-		.recv_data = http3_recv_data,
-		.deferred_consume = http3_deferred_consume,
-		.begin_headers = http3_begin_headers,
-		.recv_header = http3_recv_header,
-		.end_headers = http3_end_headers,
-		.begin_trailers = http3_begin_trailers,
-		.recv_trailer = http3_recv_trailer,
-		.end_trailers = http3_end_trailers,
-		.stop_sending = http3_stop_sending,
-		.reset_stream = http3_reset_stream,
-		.recv_settings = http3_recv_settings,
+		.stream_close = ngh3_stream_close,
+		.recv_data = ngh3_recv_data,
+		.deferred_consume = ngh3_deferred_consume,
+		.begin_headers = ngh3_begin_headers,
+		.recv_header = ngh3_recv_header,
+		.end_headers = ngh3_end_headers,
+		.begin_trailers = ngh3_begin_trailers,
+		.recv_trailer = ngh3_recv_trailer,
+		.end_trailers = ngh3_end_trailers,
+		.stop_sending = ngh3_stop_sending,
+		.reset_stream = ngh3_reset_stream,
 	};
 	nghttp3_settings settings;
 	nghttp3_settings_default(&settings);
@@ -267,7 +352,7 @@ static GF_Err h3_setup_http3(GF_DownloadSession *sess)
 
 	const nghttp3_mem *mem = nghttp3_mem_default();
 
-	int rv = nghttp3_conn_client_new(&qc->http_conn, &callbacks, &settings, mem, sess->hmux_sess);
+	int rv = nghttp3_conn_client_new(&qc->http_conn, &callbacks, &settings, mem, hmux_sess->hmux_udta);
 	if (rv != 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_client_new error %s\n", nghttp3_strerror(rv) ));
 		return GF_SERVICE_ERROR;
@@ -303,6 +388,16 @@ static GF_Err h3_setup_http3(GF_DownloadSession *sess)
 	}
 	return GF_OK;
 }
+
+#define NGH3_HDR(_hdr, _name, _value) { \
+		_hdr.name = (uint8_t *)_name;\
+		_hdr.value = (uint8_t *)_value;\
+		_hdr.namelen = (u32) strlen(_name);\
+		_hdr.valuelen = (u32) strlen(_value);\
+		_hdr.flags = NGHTTP2_NV_FLAG_NONE;\
+	}
+
+
 static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const char *url, const char *param_string, Bool has_body)
 {
 	NGTCP2Priv *qc = (NGTCP2Priv *)sess->hmux_sess->hmux_udta;
@@ -317,13 +412,13 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 	nb_hdrs = gf_list_count(sess->headers);
 	hdrs = gf_malloc(sizeof(nghttp3_nv) * (nb_hdrs + 4));
 
-	NV2_HDR(hdrs[0], ":method", req_name);
-	NV2_HDR(hdrs[1], ":scheme", "https");
+	NGH3_HDR(hdrs[0], ":method", req_name);
+	NGH3_HDR(hdrs[1], ":scheme", "https");
 
 	gf_dynstrcat(&hostport, sess->server_name, NULL);
 	sprintf(port, ":%d", sess->port);
 	gf_dynstrcat(&hostport, port, NULL);
-	NV2_HDR(hdrs[2], ":authority", hostport);
+	NGH3_HDR(hdrs[2], ":authority", hostport);
 
 	if (param_string) {
 		gf_dynstrcat(&path, url, NULL);
@@ -332,14 +427,14 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 		} else {
 			gf_dynstrcat(&path, param_string, "?");
 		}
-		NV2_HDR(hdrs[3], ":path", path);
+		NGH3_HDR(hdrs[3], ":path", path);
 	} else {
-		NV2_HDR(hdrs[3], ":path", url);
+		NGH3_HDR(hdrs[3], ":path", url);
 	}
 
 	for (i=0; i<nb_hdrs; i++) {
 		GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
-		NV2_HDR(hdrs[4+i], hdr->name, hdr->value);
+		NGH3_HDR(hdrs[4+i], hdr->name, hdr->value);
 	}
 	if (has_body) {
 		nghttp3_data_reader *data_io = (nghttp3_data_reader*)sess->hmux_priv;
@@ -379,8 +474,7 @@ static GF_Err h3_submit_request(GF_DownloadSession *sess, char *req_name, const 
 		return GF_IP_NETWORK_FAILURE;
 	}
 
-	sess->hmux_sess->send(sess);
-	return GF_OK;
+	return sess->hmux_sess->send(sess);
 }
 
 static GF_Err h3_send_reply(GF_DownloadSession *sess, u32 reply_code, const char *response_body, u32 body_len, Bool no_body)
@@ -413,15 +507,10 @@ static GF_Err h3_session_send(GF_DownloadSession *sess)
 			if (rv < 0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP3] nghttp3_conn_writev_stream error %s\n", nghttp3_strerror(rv) ));
 				ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
-
-//				disconnect();
 				return GF_IP_NETWORK_FAILURE;
 			}
 			nb_vec = (u32) rv;
 		}
-
-//		ngtcp2_vec src = {0};
-//		u32 src_len = 0;
 		ngtcp2_ssize ndatalen;
 		u32 flags = NGTCP2_WRITE_STREAM_FLAG_MORE;
 		if (fin) {
@@ -453,7 +542,6 @@ static GF_Err h3_session_send(GF_DownloadSession *sess)
 				if (rv != 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Error in nghttp3_conn_add_write_offset: %s\n", nghttp3_strerror(rv)));
 					ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
-//					disconnect();
 					if (!qc->handshake_state) qc->handshake_state = 2;
 					return GF_IP_NETWORK_FAILURE;
 				}
@@ -462,7 +550,6 @@ static GF_Err h3_session_send(GF_DownloadSession *sess)
 			assert(ndatalen == -1);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Error in ngtcp2_conn_write_stream: %s\n", ngtcp2_strerror(nwrite) ));
 			ngtcp2_ccerr_set_liberr(&qc->last_error, nwrite, NULL, 0);
-//			disconnect();
 			if (!qc->handshake_state) qc->handshake_state = 2;
 			return GF_IP_NETWORK_FAILURE;
 		}
@@ -472,14 +559,12 @@ static GF_Err h3_session_send(GF_DownloadSession *sess)
 			if (rv != 0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Error in nghttp3_conn_add_write_offset: %s\n", nghttp3_strerror(rv) ));
 				ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
-//				disconnect();
 				if (!qc->handshake_state) qc->handshake_state = 2;
 				return GF_IP_NETWORK_FAILURE;
 			}
 		}
 
 		if (nwrite == 0) {
-			// We are congestion limited.
 			ngtcp2_conn_update_pkt_tx_time(qc->conn, ts);
 			return 0;
 		}
@@ -496,14 +581,27 @@ static GF_Err h3_session_send(GF_DownloadSession *sess)
 
 static void h3_stream_reset(GF_DownloadSession *sess)
 {
+	NGTCP2Priv *qc = sess->hmux_sess->hmux_udta;
+	if (qc->http_conn && sess->hmux_stream_id)
+		nghttp3_conn_close_stream(qc->http_conn, sess->hmux_stream_id, NGHTTP3_H3_NO_ERROR);
 }
 
 static void h3_resume_stream(GF_DownloadSession *sess)
 {
+	NGTCP2Priv *qc = sess->hmux_sess->hmux_udta;
+	if (qc->http_conn && sess->hmux_stream_id)
+		nghttp3_conn_resume_stream(qc->http_conn, sess->hmux_stream_id);
 }
 
 static void h3_destroy(struct _http_mux_session *hmux)
 {
+	NGTCP2Priv *qc = hmux->hmux_udta;
+	if (qc->http_conn)
+		nghttp3_conn_del(qc->http_conn);
+	ngtcp2_conn_del(qc->conn);
+	if (qc->path.local.addr) gf_free(qc->path.local.addr);
+	if (qc->path.remote.addr) gf_free(qc->path.remote.addr);
+	gf_free(qc);
 }
 
 static GF_Err h3_data_received(GF_DownloadSession *sess, const u8 *data, u32 nb_bytes)
@@ -529,68 +627,140 @@ static GF_Err h3_data_received(GF_DownloadSession *sess, const u8 *data, u32 nb_
 	}
 	return GF_OK;
 }
-static ngtcp2_conn *h3_get_conn(ngtcp2_crypto_conn_ref *conn_ref)
+static ngtcp2_conn *ngq_get_conn(ngtcp2_crypto_conn_ref *conn_ref)
 {
 	NGTCP2Priv *qc = conn_ref->user_data;
 	return qc->conn;
 }
-static int h3_handshake_completed(ngtcp2_conn *conn, void *user_data)
+static int ngq_handshake_completed(ngtcp2_conn *conn, void *user_data)
 {
-	GF_HMUX_Session *hmux = user_data;
-	NGTCP2Priv *qc = hmux->hmux_udta;
+	NGTCP2Priv *qc = user_data;
 	if (!qc->handshake_state) qc->handshake_state = 1;
 	return 0;
 }
 
-int h3_recv_stream_data(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id,
+int ngq_recv_stream_data(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id,
                      uint64_t offset, const uint8_t *data, size_t datalen,
                      void *user_data, void *stream_user_data)
 {
-	GF_HMUX_Session *hmux = user_data;
-	NGTCP2Priv *qc = hmux->hmux_udta;
+	NGTCP2Priv *qc = user_data;
 	if (!qc->http_conn) return -1;
 
 	int rv = nghttp3_conn_read_stream(qc->http_conn, stream_id, data, datalen, flags & NGTCP2_STREAM_DATA_FLAG_FIN);
 	if (rv < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP3] nghttp3_conn_read_stream error %s\n", nghttp3_strerror(rv) ));
 		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
-		return -1;
+		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	ngtcp2_conn_extend_max_stream_offset(qc->conn, stream_id, rv);
 	ngtcp2_conn_extend_max_offset(qc->conn, rv);
 	return 0;
 }
 
-static int h3_acked_stream_data_offset(ngtcp2_conn *conn, int64_t stream_id,
+static int ngq_acked_stream_data_offset(ngtcp2_conn *conn, int64_t stream_id,
                              uint64_t offset, uint64_t datalen, void *user_data,
                              void *stream_user_data)
 {
-	GF_HMUX_Session *hmux = user_data;
-	NGTCP2Priv *qc = hmux->hmux_udta;
+	NGTCP2Priv *qc = user_data;
 	int rv = nghttp3_conn_add_ack_offset(qc->http_conn, stream_id, datalen);
 	if (rv != 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_add_ack_offset error %s\n", nghttp3_strerror(rv) ));
-		return -1;
+		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
+		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	return 0;
 }
 
-int h3_extend_max_stream_data(ngtcp2_conn *conn, int64_t stream_id,
+int ngq_extend_max_stream_data(ngtcp2_conn *conn, int64_t stream_id,
                            uint64_t max_data, void *user_data,
                            void *stream_user_data)
 {
-	GF_HMUX_Session *hmux = user_data;
-	NGTCP2Priv *qc = hmux->hmux_udta;
+	NGTCP2Priv *qc = user_data;
 	int rv = nghttp3_conn_unblock_stream(qc->http_conn, stream_id);
 	if (rv != 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_unblock_stream error %s\n", nghttp3_strerror(rv) ));
-		return -1;
+		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
+		return NGTCP2_ERR_CALLBACK_FAILURE;
+	}
+	return 0;
+}
+
+static int ngq_recv_rx_key(ngtcp2_conn *conn, ngtcp2_encryption_level level, void *user_data)
+{
+	NGTCP2Priv *qc = user_data;
+	if (level != NGTCP2_ENCRYPTION_LEVEL_1RTT) return 0;
+	if (qc->http_conn) return GF_OK;
+
+	GF_Err e = h3_setup_http3(qc->hmux);
+	if (e) return NGTCP2_ERR_CALLBACK_FAILURE;
+	return 0;
+}
+
+static int ngq_stream_stop_sending(ngtcp2_conn *conn, int64_t stream_id,
+                        uint64_t app_error_code, void *user_data,
+                        void *stream_user_data)
+{
+	NGTCP2Priv *qc = user_data;
+	if (!qc->http_conn) return 0;
+	int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
+	if (rv != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_shutdown_stream_read error %s\n", nghttp3_strerror(rv) ));
+		ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
+		return NGTCP2_ERR_CALLBACK_FAILURE;
 	}
 	return 0;
 }
 
 
-static GF_Err http3_initialize(GF_DownloadSession *sess, char *server, u32 server_port)
+static int ngq_stream_close(ngtcp2_conn *conn, uint32_t flags, int64_t stream_id,
+                 uint64_t app_error_code, void *user_data,
+                 void *stream_user_data)
+{
+	NGTCP2Priv *qc = user_data;
+//	GF_DownloadSession *sess = stream_user_data;
+	if (!(flags & NGTCP2_STREAM_CLOSE_FLAG_APP_ERROR_CODE_SET)) {
+		app_error_code = NGHTTP3_H3_NO_ERROR;
+	}
+
+	if (!qc->http_conn) return 0;
+
+	if (app_error_code == 0) {
+		app_error_code = NGHTTP3_H3_NO_ERROR;
+    }
+	int rv = nghttp3_conn_close_stream(qc->http_conn, stream_id, app_error_code);
+	switch (rv) {
+	case 0:
+		break;
+    case NGHTTP3_ERR_STREAM_NOT_FOUND:
+		if (!ngtcp2_is_bidi_stream(stream_id)) {
+			assert(!ngtcp2_conn_is_local_stream(qc->conn, stream_id));
+			ngtcp2_conn_extend_max_streams_uni(qc->conn, 1);
+		}
+		break;
+	default:
+      GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_close_stream error %s\n", nghttp3_strerror(rv) ));
+      ngtcp2_ccerr_set_application_error(&qc->last_error, nghttp3_err_infer_quic_app_error_code(rv), NULL, 0);
+      return NGTCP2_ERR_CALLBACK_FAILURE;
+	}
+	return 0;
+}
+
+int ngq_stream_reset(ngtcp2_conn *conn, int64_t stream_id, uint64_t final_size,
+                 uint64_t app_error_code, void *user_data,
+                 void *stream_user_data)
+{
+	NGTCP2Priv *qc = user_data;
+	if (!qc->http_conn) return 0;
+
+    int rv = nghttp3_conn_shutdown_stream_read(qc->http_conn, stream_id);
+    if (rv != 0) {
+      GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] nghttp3_conn_shutdown_stream_read error %s\n", nghttp3_strerror(rv) ));
+      return NGTCP2_ERR_CALLBACK_FAILURE;
+	}
+	return 0;
+}
+
+static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_port)
 {
 	NGTCP2Priv *ng_quic;
 
@@ -611,8 +781,9 @@ static GF_Err http3_initialize(GF_DownloadSession *sess, char *server, u32 serve
 		sess->hmux_sess = NULL;
 		return GF_OUT_OF_MEM;
 	}
+	ng_quic->hmux = sess->hmux_sess;
 	sess->hmux_sess->hmux_udta = ng_quic;
-	ng_quic->conn_ref.get_conn = h3_get_conn;
+	ng_quic->conn_ref.get_conn = ngq_get_conn;
 	ng_quic->conn_ref.user_data = ng_quic;
 	SSL_set_app_data(sess->ssl, &ng_quic->conn_ref);
 
@@ -630,34 +801,34 @@ static GF_Err http3_initialize(GF_DownloadSession *sess, char *server, u32 serve
 	//setup callbacks
 	ngtcp2_callbacks callbacks = {
 		.client_initial = ngtcp2_crypto_client_initial_cb,
-		.handshake_completed = h3_handshake_completed,
+		.handshake_completed = ngq_handshake_completed,
 		.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb,
 		.encrypt = ngtcp2_crypto_encrypt_cb,
 		.decrypt = ngtcp2_crypto_decrypt_cb,
 		.hp_mask = ngtcp2_crypto_hp_mask_cb,
-		.recv_stream_data = h3_recv_stream_data,
+		.recv_stream_data = ngq_recv_stream_data,
 		.recv_retry = ngtcp2_crypto_recv_retry_cb,
-		.acked_stream_data_offset = h3_acked_stream_data_offset,
-		.extend_max_local_streams_bidi = h3_extend_max_local_streams_bidi,
-		.rand = h3_rand_cb,
-		.extend_max_stream_data = h3_extend_max_stream_data,
-		.get_new_connection_id = h3_get_new_connection_id_cb,
+		.acked_stream_data_offset = ngq_acked_stream_data_offset,
+		.extend_max_local_streams_bidi = ngq_extend_max_local_streams_bidi,
+		.rand = ngq_rand_cb,
+		.extend_max_stream_data = ngq_extend_max_stream_data,
+		.get_new_connection_id = ngq_get_new_connection_id_cb,
 		.update_key = ngtcp2_crypto_update_key_cb,
 		.delete_crypto_aead_ctx = ngtcp2_crypto_delete_crypto_aead_ctx_cb,
 		.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb,
 		.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb,
 		.version_negotiation = ngtcp2_crypto_version_negotiation_cb,
+		.recv_rx_key = ngq_recv_rx_key,
+		.stream_close = ngq_stream_close,
+		.stream_reset = ngq_stream_reset,
+		.stream_stop_sending = ngq_stream_stop_sending
 	};
-
+	//todo ?
 //    .recv_version_negotiation = ::recv_version_negotiation,
-//    .stream_close = stream_close,
 //    .path_validation = path_validation,
 //    .select_preferred_addr = ::select_preferred_address,
-//    .stream_reset = stream_reset,
 //    .handshake_confirmed = ::handshake_confirmed,
 //    .recv_new_token = ::recv_new_token,
-//    .stream_stop_sending = stream_stop_sending,
-//    .recv_rx_key = ::recv_rx_key,
 //    .tls_early_data_rejected = ::early_data_rejected,
 
 
@@ -668,31 +839,51 @@ static GF_Err http3_initialize(GF_DownloadSession *sess, char *server, u32 serve
 
 	dcid.datalen = NGTCP2_MIN_INITIAL_DCIDLEN;
 	if (RAND_bytes(dcid.data, (int)dcid.datalen) != 1) {
-		fprintf(stderr, "RAND_bytes failed\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to get random data for destination connection ID\n"));
 		e = GF_IO_ERR;
 		goto err;
 	}
 
 	scid.datalen = 8;
 	if (RAND_bytes(scid.data, (int)scid.datalen) != 1) {
-		fprintf(stderr, "RAND_bytes failed\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] Failed to get random data for source connection ID\n"));
 		e = GF_IO_ERR;
 		goto err;
 	}
 
 	ngtcp2_settings_default(&settings);
 
+	if (gf_opts_get_bool("core", "h3-trace")) {
+		settings.log_printf = ngq_printf;
+		nghttp3_set_debug_vprintf_callback(ngq_debug_trace);
+	} else {
+		nghttp3_set_debug_vprintf_callback(ngq_debug_trace_noop);
+	}
+
 	settings.initial_ts = ngtcp2_timestamp();
-	settings.log_printf = h3_printf;
+	settings.cc_algo = NGTCP2_CC_ALGO_CUBIC;
+	settings.initial_rtt = NGTCP2_DEFAULT_INITIAL_RTT;
+	settings.max_window = 0;
+	settings.max_stream_window = 0;
+	settings.handshake_timeout = sess->conn_timeout*1000000;
+	settings.no_pmtud = 0;
+	settings.ack_thresh = 3;
 
 	ngtcp2_transport_params_default(&params);
 
 	params.initial_max_streams_uni = 3;
-	params.initial_max_stream_data_bidi_local = 128 * 1024;
+	params.initial_max_stream_data_bidi_local = 16777216;
 	params.initial_max_data = 1024 * 1024;
+	params.initial_max_stream_data_bidi_remote = 0;
+	params.initial_max_stream_data_uni = 16777216;
+	params.initial_max_streams_bidi = 0;
+	params.initial_max_streams_uni = 100;
+	params.max_idle_timeout = 30 * NGTCP2_SECONDS;
+	params.active_connection_id_limit = 7;
+	params.grease_quic_bit = 1;
 
 	rv = ngtcp2_conn_client_new(&ng_quic->conn, &dcid, &scid, &ng_quic->path, NGTCP2_PROTO_VER_V1,
-						   &callbacks, &settings, &params, NULL, sess->hmux_sess);
+						   &callbacks, &settings, &params, NULL, ng_quic);
 	if (rv != 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[QUIC] ngtcp2_conn_client_new error %s\n", ngtcp2_strerror(rv) ));
 		e = GF_IP_CONNECTION_FAILURE;
@@ -740,21 +931,23 @@ err:
 GF_Err http3_connect(GF_DownloadSession *sess, char *server, u32 server_port)
 {
 	if (!sess->hmux_sess) {
-		GF_Err e = http3_initialize(sess, server, server_port);
+		GF_Err e = h3_initialize(sess, server, server_port);
 		if (e) return e;
 		return GF_IP_NETWORK_EMPTY;
 	}
-	if (!sess->hmux_sess) return GF_IP_CONNECTION_CLOSED;
+	if (!sess->hmux_sess)
+		return GF_IP_CONNECTION_CLOSED;
 
 	u32 res;
 	GF_Err e = gf_dm_read_data(sess, sess->http_buf, sess->http_buf_size, &res);
 	if (e) return e;
 
 	NGTCP2Priv *qc = sess->hmux_sess->hmux_udta;
-	if (qc->handshake_state==2) return GF_IP_CONNECTION_FAILURE;
+	if (qc->handshake_state==2)
+		return GF_IP_CONNECTION_FAILURE;
 	if (!qc->handshake_state) return GF_IP_NETWORK_EMPTY;
 
-	return h3_setup_http3(sess);
+	return h3_setup_http3(sess->hmux_sess);
 }
 
 

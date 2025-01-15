@@ -1070,10 +1070,10 @@ GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, const char 
 		}
 	}
 
-#ifdef GPAC_HAS_NGTCP2
-	if (!dm->disable_http3)
-		sess->flags |= GF_NETIO_SESSION_TRY_QUIC;
-#endif
+	if ((dm->h3_mode == H3_MODE_FIRST) || (dm->h3_mode == H3_MODE_ONLY))
+		sess->flags |= GF_NETIO_SESSION_USE_QUIC;
+	else if (dm->h3_mode == H3_MODE_AUTO)
+		sess->flags |= GF_NETIO_SESSION_RETRY_QUIC;
 
 	*e = gf_dm_sess_setup_from_url(sess, url, GF_FALSE);
 	if (*e) {
@@ -1217,7 +1217,7 @@ GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 
 	*out_read = 0;
 
 #ifdef GPAC_HAS_SSL
-	if (sess->ssl && !(sess->flags & GF_NETIO_SESSION_TRY_QUIC)) {
+	if (sess->ssl && !(sess->flags & GF_NETIO_SESSION_USE_QUIC)) {
 		e = gf_ssl_read_data(sess, data, data_size, out_read);
 		if (e==GF_NOT_READY) {
 			gf_mx_v(sess->mx);
@@ -1389,7 +1389,7 @@ resetup_socket:
 	register_sock = GF_FALSE;
 	if (!sess->sock) {
 		u32 sock_type = GF_SOCK_TYPE_TCP;
-		if (sess->flags & GF_NETIO_SESSION_TRY_QUIC)
+		if (sess->flags & GF_NETIO_SESSION_USE_QUIC)
 			sock_type = GF_SOCK_TYPE_UDP;
 
 		sess->sock = gf_sk_new_ex(sock_type, sess->netcap_id);
@@ -1463,7 +1463,7 @@ resetup_socket:
 			sess->start_time = now;
 
 #ifdef GPAC_HAS_NGTCP2
-		if (sess->flags & GF_NETIO_SESSION_TRY_QUIC)
+		if (sess->flags & GF_NETIO_SESSION_USE_QUIC)
 			e = http3_connect(sess, (char *) proxy, proxy_port);
 		else
 #endif
@@ -1501,18 +1501,35 @@ resetup_socket:
 
 		/*failed*/
 		if (e) {
-			if (sess->flags & GF_NETIO_SESSION_TRY_QUIC) {
-				sess->flags &= ~GF_NETIO_SESSION_TRY_QUIC;
+			if ((sess->flags & GF_NETIO_SESSION_RETRY_QUIC) && !(sess->flags & GF_NETIO_SESSION_USE_QUIC)) {
 				sess->status = GF_NETIO_SETUP;
 				sess->connect_pending = 0;
+				sess->start_time = 0;
+				gf_sk_group_unregister(sess->sock_group, sess->sock);
+				gf_sk_del(sess->sock);
+				sess->sock = NULL;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Failed to connect through TCP (%s), retrying with QUIC\n", sess->log_name, gf_error_to_string(e)));
+				sess->flags |= GF_NETIO_SESSION_USE_QUIC;
+				goto resetup_socket;
+			}
+			if ((sess->flags & GF_NETIO_SESSION_USE_QUIC)
+				&& !(sess->flags & GF_NETIO_SESSION_RETRY_QUIC)
+				&& (sess->dm->h3_mode!=H3_MODE_ONLY)
+			) {
+				sess->flags &= ~GF_NETIO_SESSION_USE_QUIC;
+				sess->status = GF_NETIO_SETUP;
+				sess->connect_pending = 0;
+				sess->start_time = 0;
+				gf_sk_group_unregister(sess->sock_group, sess->sock);
 				gf_sk_del(sess->sock);
 				sess->sock = NULL;
 				if (sess->hmux_sess) {
 					sess->hmux_sess->destroy(sess->hmux_sess);
+					gf_list_del(sess->hmux_sess->sessions);
+					gf_free(sess->hmux_sess);
 					sess->hmux_sess = NULL;
 				}
 				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[%s] Failed to connect through QUIC (%s), retrying with TCP\n", sess->log_name, gf_error_to_string(e)));
-				gf_dm_connect(sess);
 				goto resetup_socket;
 			}
 			sess->status = GF_NETIO_STATE_ERROR;
@@ -1865,13 +1882,12 @@ GF_DownloadManager *gf_dm_new(GF_FilterSession *fsess)
 	}
 #endif
 
-#ifdef GPAC_HAS_HTTP2
 	dm->disable_http2 = gf_opts_get_bool("core", "no-h2");
-#endif
-
-#ifdef GPAC_HAS_NGTCP2
-	dm->disable_http3 = gf_opts_get_bool("core", "no-h3");
-#endif
+	opt = gf_opts_get_key("core", "h3");
+	if (!opt || !strcmp(opt, "auto")) dm->h3_mode = H3_MODE_AUTO;
+	else if (!strcmp(opt, "first")) dm->h3_mode = H3_MODE_FIRST;
+	else if (!strcmp(opt, "only")) dm->h3_mode = H3_MODE_ONLY;
+	else dm->h3_mode = H3_MODE_NO;
 
 	opt = gf_opts_get_key("core", "cache");
 
