@@ -200,7 +200,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	// Create the SEI from the caption frame
 	if (!ctx->sei) GF_SAFEALLOC(ctx->sei, sei_t);
 	sei_free(ctx->sei); // also inits the sei
-	ctx->sei->timestamp = gf_filter_pck_get_cts(vpck) / (double)ctx->v_ts;
+	ctx->sei->timestamp = gf_filter_pck_get_cts(spck) / (double)ctx->s_ts;
 	status = sei_from_caption_frame(ctx->sei, ctx->ccframe);
 	if (status != LIBCAPTION_OK) {
 		err = GF_BAD_PARAM;
@@ -263,13 +263,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	gf_free(dst_no_epb);
 
 	// Send the new packet
-	static Bool sent = GF_FALSE;
-	if (!sent) {
-		gf_filter_pck_send(new_vpck);
-		sent = GF_TRUE;
-	} else {
-		gf_filter_pck_discard(new_vpck);
-	}
+	gf_filter_pck_send(new_vpck);
 
 #undef CHECK_OOM
 
