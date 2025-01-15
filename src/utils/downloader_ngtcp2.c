@@ -128,6 +128,7 @@ static GF_Err h3_setup_session(GF_DownloadSession *sess, Bool is_destroy)
 		}
 		return GF_OK;
 	}
+
 	if (!sess->hmux_priv) {
 		GF_SAFEALLOC(sess->hmux_priv, nghttp3_data_reader);
 		if (!sess->hmux_priv) return GF_OUT_OF_MEM;
@@ -593,6 +594,28 @@ static void h3_resume_stream(GF_DownloadSession *sess)
 		nghttp3_conn_resume_stream(qc->http_conn, sess->hmux_stream_id);
 }
 
+static void h3_close(struct _http_mux_session *hmux)
+{
+	NGTCP2Priv *qc = hmux->hmux_udta;
+	if (!qc->conn || !hmux->net_sess || !hmux->net_sess->sock
+		|| ngtcp2_conn_in_closing_period(qc->conn)
+		|| ngtcp2_conn_in_draining_period(qc->conn)
+	) {
+		return;
+	}
+	ngtcp2_path_storage ps;
+	ngtcp2_path_storage_zero(&ps);
+	ngtcp2_pkt_info pi;
+	u8 buffer[NGTCP2_MAX_UDP_PAYLOAD_SIZE];
+
+	int nwrite = ngtcp2_conn_write_connection_close(qc->conn, &ps.path, &pi, buffer, NGTCP2_MAX_UDP_PAYLOAD_SIZE, &qc->last_error, ngtcp2_timestamp() );
+
+	if (nwrite > 0) {
+		u32 written;
+		gf_sk_send_ex(hmux->net_sess->sock, buffer, nwrite, &written);
+	}
+}
+
 static void h3_destroy(struct _http_mux_session *hmux)
 {
 	NGTCP2Priv *qc = hmux->hmux_udta;
@@ -900,6 +923,7 @@ static GF_Err h3_initialize(GF_DownloadSession *sess, char *server, u32 server_p
 	sess->hmux_sess->submit_request = h3_submit_request;
 	sess->hmux_sess->send_reply = h3_send_reply;
 	sess->hmux_sess->send = h3_session_send;
+	sess->hmux_sess->close = h3_close;
 	sess->hmux_sess->destroy = h3_destroy;
 	sess->hmux_sess->stream_reset = h3_stream_reset;
 	sess->hmux_sess->resume = h3_resume_stream;

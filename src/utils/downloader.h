@@ -130,6 +130,8 @@ typedef struct _http_mux_session
 	void (*stream_reset)(GF_DownloadSession *sess);
 	//move to active state if hmux_data_paused was set
 	void (*resume)(GF_DownloadSession *sess);
+	//close underlying connection (QUIC), can be NULL
+	void (*close)(struct _http_mux_session *hmux);
 	//destroy underlying muxed session object
 	void (*destroy)(struct _http_mux_session *hmux);
 	//notify that some data has been received for the parent muxed session
