@@ -72,15 +72,6 @@ typedef SSIZE_T ssize_t;
 #include <nghttp2/nghttp2.h>
 #endif
 
-
-#ifdef GPAC_HAS_NGTCP2
-#include <ngtcp2/ngtcp2.h>
-#include <ngtcp2/ngtcp2_crypto.h>
-#include <ngtcp2/ngtcp2_crypto_quictls.h>
-#endif
-
-
-
 #ifdef __USE_POSIX
 #include <unistd.h>
 #endif
@@ -101,6 +92,13 @@ typedef SSIZE_T ssize_t;
 #if defined(GPAC_HAS_HTTP2) || defined(GPAC_HAS_NGTCP2)
 #define GPAC_HTTPMUX
 #endif
+
+enum {
+	H3_MODE_NO=0,
+	H3_MODE_FIRST,
+	H3_MODE_AUTO,
+	H3_MODE_ONLY,
+};
 
 #ifdef GPAC_HTTPMUX
 typedef struct
@@ -142,7 +140,8 @@ typedef struct _http_mux_session
 
 #endif
 
-#define GF_NETIO_SESSION_TRY_QUIC	(1<<29)
+#define GF_NETIO_SESSION_USE_QUIC	(1<<28)
+#define GF_NETIO_SESSION_RETRY_QUIC	(1<<29)
 #define GF_NETIO_SESSION_NO_STORE	(1<<30)
 
 void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size, u8 *original_payload);
@@ -396,13 +395,8 @@ struct __gf_download_manager
 
 	GF_FilterSession *filter_session;
 
-#ifdef GPAC_HAS_HTTP2
 	Bool disable_http2;
-#endif
-
-#ifdef GPAC_HAS_NGTCP2
-	Bool disable_http3;
-#endif
+	u32 h3_mode;
 
 
 	Bool (*local_cache_url_provider_cbk)(void *udta, char *url, Bool cache_destroy);

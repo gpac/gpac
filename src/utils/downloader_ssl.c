@@ -26,6 +26,11 @@
 #include "downloader.h"
 #ifndef GPAC_DISABLE_NETWORK
 
+
+#ifdef GPAC_HAS_NGTCP2
+#include <ngtcp2/ngtcp2_crypto_quictls.h>
+#endif
+
 #ifdef GPAC_HAS_SSL
 static void init_prng (void)
 {
@@ -44,23 +49,20 @@ static void init_prng (void)
 }
 
 
-
-/*HTTP2 callbacks*/
-#ifdef GPAC_HAS_HTTP2
-
 /* NPN TLS extension client callback. We check that server advertised
    the HTTP/2 protocol the nghttp2 library supports. If not, exit
    the program. */
-static int h2_select_next_proto_cb(SSL *ssl , unsigned char **out,
+static int ssl_select_next_proto_cb(SSL *ssl , unsigned char **out,
                                 unsigned char *outlen, const unsigned char *in,
                                 unsigned int inlen, void *arg)
 {
+#ifdef GPAC_HAS_HTTP2
 	if (nghttp2_select_next_protocol(out, outlen, in, inlen) <= 0) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] Server did not advertise " NGHTTP2_PROTO_VERSION_ID));
 	}
+#endif
 	return SSL_TLSEXT_ERR_OK;
 }
-#endif
 
 
 static Bool _ssl_is_initialized = GF_FALSE;
@@ -329,19 +331,19 @@ void *gf_dm_ssl_init(GF_DownloadManager *dm, u32 mode)
 #endif
 
 	//configure H3
+	if (dm->h3_mode) {
 #ifdef GPAC_HAS_NGTCP2
-	if (!dm->disable_http3) {
 		if (ngtcp2_crypto_quictls_configure_client_context(dm->ssl_ctx) != 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unable to initialize SSL context for QUIC, disabling HTTP3\n"));
-			dm->disable_http3 = GF_TRUE;
+			dm->h3_mode = H3_MODE_NO;
 		} else {
 			strcat(ALPN_PROTOS, "\x02h3");
 		}
-	}
 #endif
+	}
 
 	if (ALPN_PROTOS[0]) {
-		SSL_CTX_set_next_proto_select_cb(dm->ssl_ctx, h2_select_next_proto_cb, NULL);
+		SSL_CTX_set_next_proto_select_cb(dm->ssl_ctx, ssl_select_next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 		SSL_CTX_set_alpn_protos(dm->ssl_ctx, ALPN_PROTOS, (u32) strlen(ALPN_PROTOS));
 #endif
@@ -617,9 +619,15 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 			SSL_set_alpn_protos(sess->ssl, NULL, 0);
 		}
 #endif
+
+#ifdef GPAC_HAS_NGTCP2
+		//if not using quic, reset quic methods in ssl
+		if (!(sess->flags & GF_NETIO_SESSION_USE_QUIC))
+			SSL_set_quic_method(sess->ssl, NULL);
+#endif
 	}
 
-	if (sess->flags & GF_NETIO_SESSION_TRY_QUIC)
+	if (sess->flags & GF_NETIO_SESSION_USE_QUIC)
 		return SSL_CONNECT_RETRY;
 
 	sess->connect_pending = 0;
@@ -645,11 +653,9 @@ SSLConnectStatus gf_ssl_try_connect(GF_DownloadSession *sess, const char *proxy)
 			ERR_error_string_n(ERR_get_error(), msg, 1023);
 			msg[1023]=0;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[SSL] Cannot connect, error %s\n", msg));
-#ifdef GPAC_HAS_HTTP2
 			if (!sess->dm->disable_http2) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("\tYou may want to retry with HTTP/2 support disabled (-no-h2)\n"));
 			}
-#endif
 			SET_LAST_ERR(GF_SERVICE_ERROR)
 		} else if ((ret==SSL_ERROR_WANT_READ) || (ret==SSL_ERROR_WANT_WRITE)) {
 			sess->status = GF_NETIO_SETUP;
