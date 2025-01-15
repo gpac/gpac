@@ -228,7 +228,6 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	CHECK_OOM(bs);
 
 	// Write the NALU header
-	gf_bs_write_int(bs, 1, 24); // start code
 	gf_bs_write_int(bs, nal_size - ctx->nalu_size_len, ctx->nalu_size_len*8); // nal_size
 
 	// Write the NALU type
@@ -257,7 +256,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	gf_bs_write_data(bs, vdata, size);
 
 	// Check the size
-	u32 new_size = 3 + nal_size + size;
+	u32 new_size = nal_size + size;
 	gf_assert(new_size == gf_bs_get_position(bs));
 
 	// Create the new video packet
