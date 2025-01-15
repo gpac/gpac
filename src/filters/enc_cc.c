@@ -212,14 +212,26 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	CHECK_OOM(sei_data);
 	size_t sei_render_size = sei_render(ctx->sei, sei_data);
 
+	// Add EBP to the SEI
+	// sei_render_size includes nal_type (1 byte)
+	u32 nb_bytes_to_add = gf_media_nalu_emulation_bytes_add_count(sei_data+1, sei_render_size-1);
+	u32 sei_payload_size = sei_render_size - 1 + nb_bytes_to_add;
+	u8 *sei_data_with_epb = gf_malloc(sei_payload_size);
+	CHECK_OOM(sei_data_with_epb);
+	gf_media_nalu_add_emulation_bytes(sei_data+1, sei_data_with_epb, sei_render_size-1);
+	gf_free(sei_data);
+
 	// Prepare the NALU writer
-	u8 nhdr_extra = (ctx->cctype==CCTYPE_HEVC || ctx->cctype==CCTYPE_VVC) ? 1 : 0;
-	size_t nal_size = sei_render_size + nhdr_extra + ctx->nalu_size_len;
-	bs = gf_bs_new(NULL, nal_size, GF_BITSTREAM_WRITE);
+	u8 nhdr_type_len = (ctx->cctype==CCTYPE_HEVC || ctx->cctype==CCTYPE_VVC) ? 2 : 1;
+	size_t nal_size = ctx->nalu_size_len + nhdr_type_len + sei_payload_size;
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	CHECK_OOM(bs);
 
-	// Write the header
-	gf_bs_write_int(bs, nal_size - ctx->nalu_size_len, ctx->nalu_size_len*8);
+	// Write the NALU header
+	gf_bs_write_int(bs, 1, 24); // start code
+	gf_bs_write_int(bs, nal_size - ctx->nalu_size_len, ctx->nalu_size_len*8); // nal_size
+
+	// Write the NALU type
 	if (ctx->cctype==CCTYPE_HEVC) {
 		gf_bs_write_int(bs, 0, 1);
 		gf_bs_write_int(bs, GF_HEVC_NALU_SEI_PREFIX, 6);
@@ -237,30 +249,26 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	}
 
 	// Write the SEI
-	gf_bs_write_data(bs, sei_data+1, sei_render_size-1); // sei_render_size includes nal_type (1 byte)
-	gf_free(sei_data);
+	gf_bs_write_data(bs, sei_data_with_epb, sei_payload_size);
+	gf_free(sei_data_with_epb);
 
 	// Write rest of the video data
 	const u8 *vdata = gf_filter_pck_get_data(vpck, &size);
 	gf_bs_write_data(bs, vdata, size);
-	gf_assert((nal_size + size) == gf_bs_get_position(bs));
 
-	// Get the content and calculate the number of emulation bytes to add
-	u8 *dst_no_epb = NULL;
-	u32 dst_no_epb_size = 0;
-	gf_bs_get_content(bs, &dst_no_epb, &dst_no_epb_size);
-	CHECK_OOM(dst_no_epb);
-	u32 nb_bytes_to_add = gf_media_nalu_emulation_bytes_add_count(dst_no_epb, dst_no_epb_size);
+	// Check the size
+	u32 new_size = 3 + nal_size + size;
+	gf_assert(new_size == gf_bs_get_position(bs));
 
 	// Create the new video packet
 	u8 *new_data = NULL;
-	GF_FilterPacket *new_vpck = gf_filter_pck_new_alloc(ctx->opid, dst_no_epb_size + nb_bytes_to_add, &new_data);
+	GF_FilterPacket *new_vpck = gf_filter_pck_new_alloc(ctx->opid, new_size, &new_data);
 	CHECK_OOM(new_vpck);
 	gf_filter_pck_merge_properties(vpck, new_vpck);
 
 	// Copy the data
-	gf_media_nalu_add_emulation_bytes(dst_no_epb, new_data, dst_no_epb_size);
-	gf_free(dst_no_epb);
+	gf_bs_get_content(bs, &new_data, &size);
+	gf_assert(size == new_size);
 
 	// Send the new packet
 	gf_filter_pck_send(new_vpck);
