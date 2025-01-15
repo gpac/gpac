@@ -228,7 +228,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	CHECK_OOM(bs);
 
 	// Write the NALU header
-	gf_bs_write_int(bs, nal_size - ctx->nalu_size_len, ctx->nalu_size_len*8); // nal_size
+	gf_bs_write_int(bs, nal_size - ctx->nalu_size_len, ctx->nalu_size_len*8);
 
 	// Write the NALU type
 	if (ctx->cctype==CCTYPE_HEVC) {
@@ -266,8 +266,10 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 	gf_filter_pck_merge_properties(vpck, new_vpck);
 
 	// Copy the data
-	gf_bs_get_content(bs, &new_data, &size);
+	u8 *bs_content = NULL;
+	gf_bs_get_content(bs, &bs_content, &size);
 	gf_assert(size == new_size);
+	memcpy(new_data, bs_content, new_size);
 
 	// Send the new packet
 	gf_filter_pck_send(new_vpck);
