@@ -242,10 +242,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
             data[pos+1] = (remain>>16) & 0xFF;
             data[pos+2] = (remain>>8) & 0xFF;
             data[pos+3] = (remain) & 0xFF;
-            data[pos+4] = 'f';
-            data[pos+5] = 'r';
-            data[pos+6] = 'e';
-            data[pos+7] = 'e';
+			strncpy(data+pos+4, "free", 4);
             remain-=8;
             if (remain>SAFETY_ERASE_BYTES) remain = SAFETY_ERASE_BYTES;
             memset(data+pos+8, 0, remain);
@@ -253,10 +250,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			//we have a previous moof but no mdat header after, consider we completely lost the fragment
 			//so reset moof to free and erase mvhd
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				memset(data+prev_moof_pos+8, 0, 16);
 				prev_moof_pos = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
@@ -282,10 +276,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
             data[prev_pos+1] = (missed_size>>16) & 0xFF;
             data[prev_pos+2] = (missed_size>>8) & 0xFF;
             data[prev_pos+3] = (missed_size) & 0xFF;
-            data[prev_pos+4] = 'f';
-            data[prev_pos+5] = 'r';
-            data[prev_pos+6] = 'e';
-            data[prev_pos+7] = 'e';
+			strncpy(data+prev_pos+4, "free", 4);
             missed_size -= 8;
             if (missed_size>SAFETY_ERASE_BYTES) missed_size = SAFETY_ERASE_BYTES;
             memset(data+prev_pos+8, 0, missed_size);
@@ -293,10 +284,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			//we have a previous moof but no mdat header anywere, consider we completely lost the fragment
 			//so reset moof to free and erase mvhd
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				memset(data+prev_moof_pos+8, 0, 16);
 				prev_moof_pos = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
@@ -341,26 +329,17 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 		//incomplete mdat (strict mode), discard previous moof
 		if (is_mdat) {
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching mdat (pos %u size %u) and last moof (pos %u) to free\n", finfo->filename, pos, box_size, prev_moof_pos));
 				prev_moof_pos = 0;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching mdat (pos %u size %u) to free\n", finfo->filename, pos, box_size));
 			}
-			data[pos+4] = 'f';
-			data[pos+5] = 'r';
-			data[pos+6] = 'e';
-			data[pos+7] = 'e';
+			strncpy(data+pos+4, "free", 4);
 			nb_patches++;
 		} else {
 			//incomplete box, move to free and erase begining of payload
-			data[pos+4] = 'f';
-			data[pos+5] = 'r';
-			data[pos+6] = 'e';
-			data[pos+7] = 'e';
+			strncpy(data+pos+4, "free", 4);
 			nb_patches++;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s erasing incomplete box %s payload - size %u pos %u\n", finfo->filename, gf_4cc_to_str(type), box_size, pos));
@@ -386,10 +365,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 		if (ctx->repair == ROUTEIN_REPAIR_STRICT) {
 
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				nb_patches++;
 				//moof without mdat, consider the fragment lost
 				if (!prev_mdat_pos) {
@@ -402,10 +378,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 			if (prev_mdat_pos) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching mdat (pos %u) to free\n", finfo->filename, pos));
-				data[prev_mdat_pos+4] = 'f';
-				data[prev_mdat_pos+5] = 'r';
-				data[prev_mdat_pos+6] = 'e';
-				data[prev_mdat_pos+7] = 'e';
+				strncpy(data+prev_mdat_pos+4, "free", 4);
 				nb_patches++;
 			}
 		}
