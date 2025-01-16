@@ -792,7 +792,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 }
 
 
-static void repair_session_unqueue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
+static void repair_session_dequeue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
 {
 	Bool unprotect;
 	TSI_Output *tsio;
@@ -850,9 +850,9 @@ restart:
 
 
 	if (!tsio) return;
-	//get next in list, if existing and done or if removed, unqueue
+	//get next in list, if existing and done or if removed, dequeue
 	rsi = gf_list_get(tsio->pending_repairs, 0);
-	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)) )
+	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)))
 		goto restart;
 }
 
@@ -923,17 +923,17 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 		rsi->local_repair = GF_FALSE;
 	}
 
-	//make sure we unqueue in order
+	//make sure we dequeue in order
 	if (rsi->tsio) {
 		s32 idx = gf_list_find(rsi->tsio->pending_repairs, rsi);
-		//not first in list, do not unqueue now
+		//not first in list, do not dequeue now
 		//this happens if multiple repair sessions are activated, they will likely not finish at the same time
 		if (idx > 0) {
 			rsi->done = GF_TRUE;
 			return;
 		}
 	}
-	repair_session_unqueue(ctx, rsess, rsi);
+	repair_session_dequeue(ctx, rsess, rsi);
 }
 
 static void repair_session_run(ROUTEInCtx *ctx, RouteRepairSession *rsess)
@@ -962,7 +962,7 @@ restart:
 
 			nb_ranges = gf_list_count(rsi->ranges);
 			//no more ranges, done with session
-			//this happens when enqued repair had no losses when using progressive dispatch
+			//this happens when enqueued repair had no losses when using progressive dispatch
 			if (!nb_ranges) {
 				rsess->current_si = rsi;
 				rsi->pending++;
@@ -970,7 +970,7 @@ restart:
 				rsess->current_si = NULL;
 				goto restart;
 			}
-			//if TSIO, always unqueue in order
+			//if TSIO, always dequeue in order
 			if (rsi->tsio) {
 				rr = gf_list_get(rsi->ranges, 0);
 			} else {
