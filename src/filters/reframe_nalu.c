@@ -71,7 +71,6 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	GF_PropUIntList seis;
 	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime, refs;
 	u32 nal_length;
 	u32 strict_poc;
@@ -2504,39 +2503,26 @@ void naludmx_add_subsample(GF_NALUDmxCtx *ctx, u32 subs_size, u8 subs_priority, 
 	ctx->subs_mapped_bytes += subs_size + ctx->nal_length;
 }
 
-static Bool naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool reformat)
+static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc_sei_rewrite)
 {
 	if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + size + ctx->nal_length) {
 		ctx->sei_buffer_alloc = ctx->sei_buffer_size + size + ctx->nal_length;
 		ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
 	}
-
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size);
 	gf_bs_write_int(ctx->bs_w, size, 8*ctx->nal_length);
 	memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
 
-	u32 rw_sei_size = size;
-	if (!reformat)
-		goto finish;
-
-	if (ctx->codecid==GF_CODECID_HEVC) {
-		rw_sei_size = gf_hevc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->hevc_state, ctx->seis, ctx->nosei);
-	} else if (ctx->codecid==GF_CODECID_VVC) {
-		rw_sei_size = gf_vvc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->vvc_state, ctx->seis, ctx->nosei);
-	} else {
-		rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state, ctx->seis, ctx->nosei);
+	if (avc_sei_rewrite) {
+		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state, NULL);
+		if (rw_sei_size < size) {
+			gf_bs_seek(ctx->bs_w, 0);
+			gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
+			size = rw_sei_size;
+		}
 	}
-
-	if (rw_sei_size < size) {
-		gf_bs_seek(ctx->bs_w, 0);
-		gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
-		size = rw_sei_size;
-	}
-
-finish:
-	if (size) ctx->sei_buffer_size += size + ctx->nal_length;
-	return rw_sei_size > 0;
+	ctx->sei_buffer_size += size + ctx->nal_length;
 }
 
 static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, u32 *is_slice, Bool *is_islice)
@@ -2602,10 +2588,9 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		if (ctx->hevc_state->has_3d_ref_disp_info) {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEI_PREFIX, 0, temporal_id, layer_id);
 		}
-		if (!ctx->nosei || ctx->seis.nb_items) {
-			Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
-			if (still_has_sei) ctx->nb_sei++;
-			else ctx->nb_nalus--;
+		if (!ctx->nosei) {
+			ctx->nb_sei++;
+			naludmx_push_prefix(ctx, data, size, GF_FALSE);
 		} else {
 			ctx->nb_nalus--;
 		}
@@ -2613,11 +2598,11 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		break;
 	case GF_HEVC_NALU_SEI_SUFFIX:
 		if (! ctx->is_playing) return 0;
-		if (!ctx->nosei || ctx->seis.nb_items) {
-			ctx->nb_sei++;
-		} else {
+		if (ctx->nosei) {
 			*skip_nal = GF_TRUE;
 			ctx->nb_nalus--;
+		} else {
+			ctx->nb_sei++;
 		}
 		break;
 
@@ -2807,10 +2792,10 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		break;
 	case GF_VVC_NALU_SEI_PREFIX:
 		gf_vvc_parse_sei(data, size, ctx->vvc_state);
-		if (!ctx->nosei || ctx->seis.nb_items) {
-			Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
-			if (still_has_sei) ctx->nb_sei++;
-			else ctx->nb_nalus--;
+		if (!ctx->nosei) {
+			ctx->nb_sei++;
+
+			naludmx_push_prefix(ctx, data, size, GF_FALSE);
 		} else {
 			ctx->nb_nalus--;
 		}
@@ -2819,11 +2804,11 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_SEI_SUFFIX:
 		if (! ctx->is_playing) return 0;
 		gf_vvc_parse_sei(data, size, ctx->vvc_state);
-		if (!ctx->nosei || ctx->seis.nb_items) {
-			ctx->nb_sei++;
-		} else {
+		if (ctx->nosei) {
 			*skip_nal = GF_TRUE;
 			ctx->nb_nalus--;
+		} else {
+			ctx->nb_sei++;
 		}
 		break;
 
@@ -2958,11 +2943,15 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 
 	case GF_AVC_NALU_SEI:
 		if (ctx->avc_state->sps_active_idx != -1) {
-			if (!ctx->nosei || ctx->seis.nb_items) {
-				Bool still_has_sei = naludmx_push_prefix(ctx, data, size, GF_TRUE);
-				if (still_has_sei) ctx->nb_sei++;
-			}
+			naludmx_push_prefix(ctx, data, size, GF_TRUE);
+
 			*skip_nal = GF_TRUE;
+
+			if (ctx->nosei) {
+				ctx->sei_buffer_size = 0;
+			} else {
+				ctx->nb_sei++;
+			}
 		}
 		return 0;
 
@@ -3513,16 +3502,7 @@ naldmx_flush:
 			if (!ctx->opid) skip_nal = GF_TRUE;
 		}
 
-		//reformat sei suffix
-		u32 original_nal_size = nal_size;
-		if (ctx->codecid==GF_CODECID_HEVC && nal_type==GF_HEVC_NALU_SEI_SUFFIX) {
-			nal_size = gf_hevc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->hevc_state, ctx->seis, ctx->nosei);
-		} else if (ctx->codecid==GF_CODECID_VVC && nal_type==GF_VVC_NALU_SEI_SUFFIX) {
-			nal_size = gf_vvc_reformat_sei(nal_data, nal_size, ctx->seirw, ctx->vvc_state, ctx->seis, ctx->nosei);
-		}
-
-		if (skip_nal || !nal_size) {
-			nal_size = original_nal_size;
+		if (skip_nal) {
 			nal_size += sc_size;
 			gf_assert((u32) remain >= nal_size);
 			start += nal_size;
@@ -4422,8 +4402,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 		"- off: disable GOP buffering\n"
 		"- on: enable GOP buffering, assuming no error in POC\n"
 		"- error: enable GOP buffering and try to detect lost frames", GF_PROP_UINT, "off", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(seis), "list of sei message types (4,137,144,...). If used with `nosei`, these types will be dropped. Otherwise, this acts as a whitelist to allow only the specified SEI message types", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(nosei), "removes all SEI messages. Combine with `seis` option to remove only specific sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(nosei), "remove all sei messages", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

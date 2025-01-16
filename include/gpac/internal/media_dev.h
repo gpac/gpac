@@ -279,6 +279,12 @@ typedef struct
 	u32 data_length;
 } SVC_Extractor;
 
+typedef struct
+{
+	Bool is_whitelist;
+	GF_PropUIntList seis;
+} SEI_Filter;
+
 
 /*return sps ID or -1 if error*/
 s32 gf_avc_read_sps(const u8 *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
@@ -297,7 +303,7 @@ Bool gf_avc_slice_is_intra(AVCState *avc);
 s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 /*nota: 'buffer' remains unmodified but cannot be set const*/
-u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc, GF_PropUIntList seis, Bool is_remove);
+u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState *avc, SEI_Filter *sei_filter);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
@@ -625,7 +631,7 @@ GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, u8 *sps_data, u32 
 
 /*parses HEVC SEI and fill state accordingly*/
 void gf_hevc_parse_sei(char* buffer, u32 nal_size, HEVCState *hevc);
-u32 gf_hevc_reformat_sei(char* buffer, u32 nal_size, Bool isobmf_rewrite, HEVCState *hevc, GF_PropUIntList seis, Bool is_remove);
+u32 gf_hevc_reformat_sei(char* buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
 
 
 
@@ -868,7 +874,7 @@ typedef struct _vvc_state
 
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 void gf_vvc_parse_sei(char* buffer, u32 nal_size, VVCState *vvc);
-u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, VVCState *vvc, GF_PropUIntList seis, Bool is_remove);
+u32 gf_vvc_reformat_sei(char *buffer, u32 nal_size, Bool isobmf_rewrite, SEI_Filter *sei_filter);
 Bool gf_vvc_slice_is_ref(VVCState *vvc);
 s32 gf_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 
