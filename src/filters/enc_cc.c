@@ -49,6 +49,13 @@ enum
 
 typedef struct
 {
+	u64 cts;
+	char *text;
+	Bool is_clear;
+} CCItem;
+
+typedef struct
+{
 	GF_FilterPid *vipid; // video input pid
 	GF_FilterPid *sipid; // subtitle input pid
 	GF_FilterPid *opid;
@@ -170,7 +177,7 @@ GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	return GF_OK;
 }
 
-static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket *spck)
+static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 {
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err err = GF_OK;
@@ -181,30 +188,15 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, GF_FilterPacket
 
 #define CHECK_OOM(_x) if (!_x) { err = GF_OUT_OF_MEM; goto error; }
 
-	// Forward the video frame if there is no subtitle data
-	const u8 *data = gf_filter_pck_get_data(spck, &size);
-	gf_assert(size >= GPAC_TX3G_DATA_OFFSET);
-	u16 len = (data[0]<<8) | data[1];
-	if (!len) {
-		gf_filter_pck_forward(vpck, ctx->opid);
-		goto error;
-	}
-
-	// Create null-terminated text from the subtitle data
-	u8 *text = gf_malloc(len+1);
-	CHECK_OOM(text);
-	memcpy(text, data+GPAC_TX3G_DATA_OFFSET, len);
-	memset(text+len, 0, 1);
-
 	// Create the caption frame
 	if (!ctx->ccframe) GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
-	caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)text);
-	gf_free(text);
+	caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)cc->text);
+	gf_free(cc->text);
 
 	// Create the SEI from the caption frame
 	if (!ctx->sei) GF_SAFEALLOC(ctx->sei, sei_t);
 	sei_free(ctx->sei); // also inits the sei
-	ctx->sei->timestamp = gf_filter_pck_get_cts(spck) / (double)ctx->s_ts;
+	ctx->sei->timestamp = cc->cts / (double)ctx->s_ts;
 	status = sei_from_caption_frame(ctx->sei, ctx->ccframe);
 	if (status != LIBCAPTION_OK) {
 		err = GF_BAD_PARAM;
@@ -290,7 +282,7 @@ error:
 	}
 
 	gf_filter_pck_unref(vpck);
-	gf_filter_pck_unref(spck);
+	gf_free(cc);
 }
 
 static void ccenc_flush(GF_Filter *filter, Bool full_flush)
@@ -303,7 +295,7 @@ retry:
 	while (gf_list_count(ctx->cc_queue) && gf_list_count(ctx->frame_queue)) {
 		// if we have a video frame with cts lower than the minimum subtitle cts, send it
 		u32 last_video_cts = gf_filter_pck_get_cts(gf_list_get(ctx->frame_queue, 0));
-		u32 last_subtitle_cts = gf_filter_pck_get_cts(gf_list_get(ctx->cc_queue, 0));
+		u32 last_subtitle_cts = ((CCItem*)gf_list_get(ctx->cc_queue, 0))->cts;
 		if (gf_timestamp_less(last_video_cts, ctx->v_ts, last_subtitle_cts, ctx->s_ts)) {
 			// impossible to pair, send video frame
 			GF_FilterPacket *vpck = gf_list_pop_front(ctx->frame_queue);
@@ -315,11 +307,11 @@ retry:
 		// we might have a caption for the current video frame, search it
 		Bool found = GF_FALSE;
 		for (u32 i=0; i<gf_list_count(ctx->cc_queue);i++) {
-			GF_FilterPacket *spck = gf_list_get(ctx->cc_queue, i);
-			if (gf_timestamp_equal(last_video_cts, ctx->v_ts, gf_filter_pck_get_cts(spck), ctx->s_ts)) {
+			CCItem *ccitem = gf_list_get(ctx->cc_queue, i);
+			if (gf_timestamp_equal(last_video_cts, ctx->v_ts, ccitem->cts, ctx->s_ts)) {
 				found = GF_TRUE;
-				ccenc_pair(filter, gf_list_pop_front(ctx->frame_queue), spck);
-				gf_list_del_item(ctx->cc_queue, spck);
+				ccenc_pair(filter, gf_list_pop_front(ctx->frame_queue), ccitem);
+				gf_list_del_item(ctx->cc_queue, ccitem);
 				break;
 			}
 		}
@@ -354,8 +346,40 @@ retry:
 	}
 }
 
+static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
+{
+	CCEncCtx *ctx = gf_filter_get_udta(filter);
+
+	u32 size;
+	const u8 *data = gf_filter_pck_get_data(pck, &size);
+	gf_assert(size >= GPAC_TX3G_DATA_OFFSET);
+	u16 len = (data[0]<<8) | data[1];
+	if (!len) return GF_OK;
+
+	// Allocate a new CC item
+	CCItem *cc;
+	GF_SAFEALLOC(cc, CCItem);
+	if (!cc) return GF_OUT_OF_MEM;
+	cc->cts = gf_filter_pck_get_cts(pck);
+	cc->is_clear = GF_FALSE;
+
+	// Create null-terminated text from the subtitle data
+	u8 *text = gf_malloc(len+1);
+	if (!text) {
+		gf_free(cc);
+		return GF_OUT_OF_MEM;
+	}
+	memcpy(text, data+GPAC_TX3G_DATA_OFFSET, len);
+	memset(text+len, 0, 1);
+
+	// Add the CC item to the queue
+	gf_list_add(ctx->cc_queue, cc);
+	return GF_OK;
+}
+
 GF_Err ccenc_process(GF_Filter *filter)
 {
+	GF_Err err;
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
 
 	if (gf_filter_connections_pending(filter))
@@ -369,11 +393,9 @@ GF_Err ccenc_process(GF_Filter *filter)
 	// check if we have subtitle data
 	GF_FilterPacket *spck = gf_filter_pid_get_packet(ctx->sipid);
 	if (spck) {
-		if (!gf_filter_pck_is_blocking_ref(spck)) {
-			gf_filter_pck_ref(&spck);
-			gf_list_add(ctx->cc_queue, spck);
-		}
+		err = ccenc_enqueue_cc(filter, spck);
 		gf_filter_pid_drop_packet(ctx->sipid);
+		if (err != GF_OK) return err;
 	}
 	else if (gf_filter_pid_is_eos(ctx->sipid)) {
 		ctx->is_cc_eos = GF_TRUE;
@@ -401,15 +423,16 @@ GF_Err ccenc_process(GF_Filter *filter)
 		if (gf_list_count(ctx->cc_queue)>0) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] EOS reached on video input, but subtitle data is still available. Discarding remaining subtitle data\n"));
 			while (gf_list_count(ctx->cc_queue)) {
-				GF_FilterPacket *pck = gf_list_pop_back(ctx->cc_queue);
-				gf_filter_pck_unref(pck);
+				CCItem *cc = gf_list_pop_back(ctx->cc_queue);
+				gf_free(cc->text);
+				gf_free(cc);
 			}
 		}
 		gf_filter_pid_set_eos(ctx->opid);
 		return GF_EOS;
 	}
 
-	if ((vpck && gf_filter_pck_is_blocking_ref(vpck)) || (spck && gf_filter_pck_is_blocking_ref(spck))) {
+	if (vpck && gf_filter_pck_is_blocking_ref(vpck)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Blocking reference detected. This is not supported yet\n"));
 		return GF_NOT_SUPPORTED;
 	}
