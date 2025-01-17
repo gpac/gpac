@@ -163,7 +163,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFmpeg unmapped codec", "ffmpeg", NULL, NULL},
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
-	{GF_CODECID_SCTE35, 0, GF_STREAM_METADATA, "SCTE35", "scte", "evte", NULL},
+	{GF_CODECID_SCTE35, 0, GF_STREAM_METADATA, "SCTE35", "sc35", "evte", NULL},
 	{GF_CODECID_EVTE, 0, GF_STREAM_METADATA, "Event Messages", "evte", "evte", NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc", .unframe=GF_TRUE},
 	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC, .unframe=GF_TRUE},

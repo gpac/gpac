@@ -1913,7 +1913,7 @@ Bool filter_source_id_match(GF_FilterPid *src_pid, const char *src_filter_id, GF
 		if (!src_filter_id)
 			return GF_FALSE;
 	}
-	
+
 sourceid_reassign:
 	source_ids = resolved_source_ids ? resolved_source_ids : (dst_filter ? dst_filter->source_ids : ext_source_ids);
 	if (!first_pass) {
@@ -4444,6 +4444,7 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	u32 i;
 	const GF_FilterCapability *caps;
 	u32 nb_caps;
+	Bool in_is_unframed_encrypted = GF_FALSE;
 	Bool dst_has_raw_cid_in = GF_FALSE;
 	const GF_PropertyValue *stream_type = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!stream_type) return GF_TRUE;
@@ -4452,6 +4453,9 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 	if (stream_type->value.uint==GF_STREAM_ENCRYPTED) {
 		stream_type = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
 		if (!stream_type) return GF_TRUE;
+		const GF_PropertyValue *unf = gf_filter_pid_get_property_first(pid, GF_PROP_PID_UNFRAMED);
+		if (unf && unf->value.boolean)
+			in_is_unframed_encrypted = GF_TRUE;
 	}
 
 	caps = dst->forced_caps ? dst->forced_caps : dst->freg->caps;
@@ -4513,7 +4517,9 @@ static Bool gf_filter_pid_needs_explicit_resolution(GF_FilterPid *pid, GF_Filter
 		}
 	}
 	if (has_excluded_nomatch) return GF_FALSE;
-	
+	//if input is unframed and encrypted, allow implicit filter for reframing
+	if (in_is_unframed_encrypted) return GF_FALSE;
+
 	//no mathing type found, we will need an explicit filter to solve this link (ie the link will be to the explicit filter)
 	return GF_TRUE;
 }
@@ -5791,6 +5797,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	return pid;
 }
 
+GF_NOT_EXPORTED
 void gf_filter_pid_del(GF_FilterPid *pid)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s destruction (%p)\n", pid->filter->name, pid->name, pid));
@@ -8854,9 +8861,10 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, const char szTe
 			value = file_idx;
 			has_val = GF_TRUE;
 		} else if (!strcmp(name, "URL")) {
-			if (!filename)
+			if (!filename) {
 				prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_FILEALIAS);
 				if (!prop_val) prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_URL);
+			}
 			is_file_str = GF_TRUE;
 		} else if (!strcmp(name, "File")) {
 			if (!filename) {

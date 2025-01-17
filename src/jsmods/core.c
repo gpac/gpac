@@ -132,7 +132,7 @@ void gf_js_call_gc(JSContext *c)
 	gf_js_lock(c, 0);
 }
 
-Bool gs_js_context_is_valid(JSContext *ctx)
+Bool gf_js_context_is_valid(JSContext *ctx)
 {
 	if (gf_list_find(js_rt->allocated_contexts, ctx) < 0)
 		return GF_FALSE;
@@ -4079,4 +4079,3 @@ static void qjs_uninit_runtime_libc(JSRuntime *rt)
 }
 
 #endif
-

@@ -4544,7 +4544,7 @@ GF_Err txtin_initialize(GF_Filter *filter)
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
 	ctx->has_forced = 2;
-	//WEBVTT name used for backward comaptibility with old :webvtt option
+	//WEBVTT name used for backward compatibility with old :webvtt option
 	if (ctx->stxtmod==STXT_MODE_WEBVTT) ctx->stxtmod = STXT_MODE_VTT;
 	return GF_OK;
 }

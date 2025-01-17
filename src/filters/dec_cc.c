@@ -62,9 +62,20 @@ typedef struct
 {
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
+	
+	// override gf_filter_*() calls for testability
+	GF_FilterPacket* (*pck_new_alloc)(GF_FilterPid *pid, u32 data_size, u8 **data);
+	GF_Err (*pck_truncate)(GF_FilterPacket *pck, u32 size);
+	GF_Err (*pck_send)(GF_FilterPacket *pck);
+
 	u32 cctype;
 	u32 nalu_size_len;
 	GF_List *cc_queue;
+
+	/*aggregation mode for dispatch*/
+	u32 agg;
+	u8 txtdata[2/*double for aggregation*/*CAPTION_FRAME_TEXT_BYTES+1];
+	u32 txtlen;
 
 	u32 timescale;
 #ifdef GPAC_HAS_LIBCAPTION
@@ -182,8 +193,95 @@ GF_Err ccdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	return GF_OK;
 }
 
+static GF_Err ccdec_post(CCDecCtx *ctx, u32 size, u64 ts)
+{
+		u8 *output;
+		GF_FilterPacket *pck = ctx->pck_new_alloc(ctx->opid, size+1, &output);
+		if (!pck) return GF_OUT_OF_MEM;
+		memcpy(output, ctx->txtdata, size);
+		output[size] = 0;
+		ctx->pck_truncate(pck, size);
+		gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+		gf_filter_pck_set_cts(pck, ctx->last_ts_plus_one-1);
+		gf_filter_pck_set_duration(pck, (u32) (ts - (ctx->last_ts_plus_one-1)));
+		ctx->last_ts_plus_one = ts+1;
+
+		ctx->pck_send(pck);
+
+		return GF_OK;
+}
+
 u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v);
 void gf_m4v_parser_set_inspect(GF_M4VParser *m4v);
+
+static int find_last_separator(const char *input)
+{
+	const char *space = strrchr(input, ' ');
+	const char *newline = strrchr(input, '\n');
+	if (!space && !newline)
+		return -1;
+	if (!space || space < newline)
+		return newline-input+1/*include the '\n'*/;
+	else
+		return space-input;
+}
+
+static Bool same_crc(CCDecCtx *ctx, u32 size, u64 ts)
+{
+	u32 crc = gf_crc_32(ctx->txtdata+ctx->txtlen, size);
+	if (crc!=ctx->cc_last_crc) {
+		ctx->cc_last_crc = crc;
+	} else {
+		size=0;
+	}
+	if (!size) {
+		ctx->last_ts_plus_one = ts+1;
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static GF_Err text_aggregate_and_post(CCDecCtx *ctx, u32 size, u64 ts)
+{
+	// look for overlaps if case we aggregate: we couldn't rely on libcaption's popon/painton/rollup reliably
+	Bool overlap = GF_FALSE;
+	if (ctx->agg>0 && ctx->txtlen>0) {
+		if (!strncmp(ctx->txtdata, ctx->txtdata+ctx->txtlen, ctx->txtlen)) {
+			memmove(ctx->txtdata, ctx->txtdata+ctx->txtlen, size+1);
+			overlap = GF_TRUE;
+		} else if (size>1) {
+			char last = ctx->txtdata[ctx->txtlen];
+			ctx->txtdata[ctx->txtlen] = 0;
+			ccdec_post(ctx, ctx->txtlen, ts);
+			ctx->txtdata[0] = last;
+			memmove(ctx->txtdata+1, ctx->txtdata+ctx->txtlen+1, size/*includes termination*/);
+			ctx->txtlen = 0;
+		}
+	}
+
+	if (same_crc(ctx, size, ts))
+		return GF_OK;
+
+	if (ctx->agg == 0) {
+		// no aggregation: dispatch now
+		return ccdec_post(ctx, size, ts);
+	} else {
+		int len = -1;
+		if ( (len = find_last_separator(ctx->txtdata+ctx->txtlen)) >= 0 ) {
+			GF_Err e = ccdec_post(ctx, ctx->txtlen+len, ts);
+			if (e) return e;
+		}
+
+		if (overlap) {
+			ctx->txtlen = size;
+		} else {
+			ctx->txtlen += size;
+		}
+	}
+
+	return GF_OK;
+}
 
 static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 {
@@ -229,32 +327,9 @@ static GF_Err ccdec_flush_queue(CCDecCtx *ctx)
 
 	if (!dump_frame) return GF_OK;
 
-	u8 txtdata[CAPTION_FRAME_TEXT_BYTES+1];
-	u32 size = (u32) caption_frame_to_text(ctx->ccframe, txtdata);
-	u32 crc = gf_crc_32(txtdata, size);
-	if (crc!=ctx->cc_last_crc) {
-		ctx->cc_last_crc = crc;
-	} else {
-		size=0;
-	}
-	if (!size) {
-		ctx->last_ts_plus_one = ts+1;
-		return GF_OK;
-	}
-	u8 *output;
-	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, size+1, &output);
-	if (!pck) return GF_OUT_OF_MEM;
-	memcpy(output, txtdata, size);
-	output[size] = 0;
-	gf_filter_pck_truncate(pck, size);
-	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
-	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-	gf_filter_pck_set_cts(pck, ctx->last_ts_plus_one-1);
-	gf_filter_pck_set_duration(pck, (u32) (ts - ctx->last_ts_plus_one+1));
-	ctx->last_ts_plus_one = ts+1;
+	u32 size = (u32) caption_frame_to_text(ctx->ccframe, ctx->txtdata+ctx->txtlen);
 
-	gf_filter_pck_send(pck);
-	return GF_OK;
+	return text_aggregate_and_post(ctx, size, ts);
 }
 
 static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bool m2v, Bool keep_data)
@@ -322,6 +397,14 @@ static GF_Err ccdec_queue_data(CCDecCtx *ctx, u64 ts, u8 *data, u32 max_size, Bo
 	return GF_OK;
 }
 
+static void ccdec_flush(CCDecCtx *ctx)
+{
+	if (ctx->agg == 0)
+		return;
+
+	if (strlen(ctx->txtdata))
+		ccdec_post(ctx, strlen(ctx->txtdata), ctx->last_ts_plus_one);
+}
 
 GF_Err ccdec_process(GF_Filter *filter)
 {
@@ -336,6 +419,7 @@ GF_Err ccdec_process(GF_Filter *filter)
 			while (gf_list_count(ctx->cc_queue)) {
 				ccdec_flush_queue(ctx);
 			}
+			ccdec_flush(ctx);
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
@@ -524,6 +608,9 @@ GF_Err ccdec_process(GF_Filter *filter)
 static GF_Err ccdec_initialize(GF_Filter *filter)
 {
 	CCDecCtx *ctx = gf_filter_get_udta(filter);
+	ctx->pck_new_alloc = gf_filter_pck_new_alloc;
+	ctx->pck_truncate = gf_filter_pck_truncate;
+	ctx->pck_send = gf_filter_pck_send;
 	ctx->cc_queue = gf_list_new();
 	if (!ctx->cc_queue) return GF_OUT_OF_MEM;
 	return GF_OK;
@@ -572,6 +659,15 @@ static const GF_FilterCapability CCDecCaps[] =
 	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
+#define OFFS(_n)	#_n, offsetof(CCDecCtx, _n)
+static const GF_FilterArgs CCDecArgs[] =
+{
+	{ OFFS(agg), "output aggregation mode\n"
+		"- none: forward data as decoded (default)\n"
+		"- word: aggregate words (separated by a space)", GF_PROP_UINT, "none", "none|word", 0},
+	{0}
+};
+
 GF_FilterRegister CCDecRegister = {
 	.name = "ccdec",
 	GF_FS_SET_DESCRIPTION("Closed-Caption decoder")
@@ -579,6 +675,7 @@ GF_FilterRegister CCDecRegister = {
 	"Supported video media types are MPEG2, AVC, HEVC, VVC and AV1 streams.\n"
 	"\nOnly a subset of CEA 608/708 is supported.")
 	.private_size = sizeof(CCDecCtx),
+	.args = CCDecArgs,
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	SETCAPS(CCDecCaps),
 	.initialize = ccdec_initialize,

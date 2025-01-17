@@ -235,7 +235,7 @@ except OSError:
             print('Failed to locate libgpac (.so/.dll/.dylib) - make sure it is in your system path')
             os._exit(1)
 
-#change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
+#change this to reflect API we encapsulate. An incompatibility in either of these will throw a warning
 GF_ABI_MAJOR=12
 GF_ABI_MINOR=16
 
