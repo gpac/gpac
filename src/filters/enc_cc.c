@@ -518,10 +518,8 @@ GF_Err ccenc_process(GF_Filter *filter)
 			return GF_OK;
 		}
 
-		if (!gf_filter_pck_is_blocking_ref(vpck)) {
-			gf_filter_pck_ref(&vpck);
-			gf_list_add(ctx->frame_queue, vpck);
-		}
+		gf_filter_pck_ref(&vpck);
+		gf_list_add(ctx->frame_queue, vpck);
 		gf_filter_pid_drop_packet(ctx->vipid);
 	} else if (gf_filter_pid_is_eos(ctx->vipid)) {
 		ccenc_flush(filter, GF_TRUE);
@@ -542,13 +540,14 @@ GF_Err ccenc_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 
-	if (vpck && gf_filter_pck_is_blocking_ref(vpck)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[ccenc] Blocking reference detected. This is not supported yet\n"));
-		return GF_NOT_SUPPORTED;
-	}
-
 	// Try to flush after we tried to get both video and subtitle data
 	ccenc_flush(filter, GF_FALSE);
+
+	// if we couldn't process the current "blocking" video frame, forward it
+	if (vpck && gf_filter_pck_is_blocking_ref(vpck)) {
+		if (gf_list_last(ctx->frame_queue) == vpck)
+			ccenc_forward_video(filter, gf_list_pop_back(ctx->frame_queue));
+	}
 
 	return GF_OK;
 }
