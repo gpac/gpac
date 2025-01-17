@@ -380,7 +380,7 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 	load.fileName = file;
 	load.ctx = ctx;
 
-	if (get_file_type_by_ext(file) == 1) {
+	if (get_file_type_by_ext(file) == GF_FILE_TYPE_ISO_MEDIA) {
 		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot open file: %s\n", gf_error_to_string(gf_isom_last_error(NULL))));
@@ -3796,8 +3796,15 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		u16 defaultDegradationPriority;
 		u32 frag_samples;
 		u64 frag_duration;
+		u64 tfdt = 0;
+		u32 j, traf_count = gf_isom_segment_get_track_fragment_count(file, 1);
+		for (j=0; j<traf_count; j++) {
+			u32 ID = gf_isom_segment_get_track_fragment_decode_time(file, 1, j+1, &tfdt);
+			if (ID == trackID) break;
+		}
+
 		gf_isom_get_fragmented_samples_info(file, trackID, &frag_samples, &frag_duration);
-		fprintf(stderr, "Fragmented track: %d samples - Media Duration %s\n", frag_samples, format_duration(frag_duration, timescale, szDur));
+		fprintf(stderr, "Fragmented track: %d samples - Media Duration %s - First TFDT "LLU"\n", frag_samples, format_duration(frag_duration, timescale, szDur), tfdt);
 
 		gf_isom_get_fragment_defaults(file, trackNum, &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 

@@ -180,8 +180,8 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 	u32 prev_mdat_pos = 0;
 	u32 last_box_size = 0;
 	u32 nb_patches = 0;
-	u32 was_partial = finfo->partial==GF_LCTO_PARTIAL_NONE ? GF_FALSE : GF_TRUE;
-	u32 patch_first_range_size = GF_FALSE;
+	Bool was_partial = finfo->partial!=GF_LCTO_PARTIAL_NONE;
+	u32 patch_first_range_size = 0;
 
 	if (repair_start_only) {
 		size = finfo->frags[0].offset + finfo->frags[0].size;
