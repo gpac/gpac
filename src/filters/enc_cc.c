@@ -50,6 +50,7 @@ enum
 typedef struct
 {
 	u64 cts;
+	u32 dur;
 	char *text;
 	Bool is_clear;
 } CCItem;
@@ -177,6 +178,74 @@ GF_Err ccenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	return GF_OK;
 }
 
+static GF_Err ccenc_enqueue_cc_clear(GF_Filter *filter, u64 cts)
+{
+	CCEncCtx *ctx = gf_filter_get_udta(filter);
+
+	// Find the insertion point
+	u32 pos;
+	CCItem *item;
+	while ((item = gf_list_enum(ctx->cc_queue, &pos))) {
+		// new caption would clear the previous one
+		if (item->cts == cts) return GF_OK;
+		if (item->cts > cts) break;
+	}
+
+	// Allocate a new CC item
+	CCItem *cc;
+	GF_SAFEALLOC(cc, CCItem);
+	if (!cc) return GF_OUT_OF_MEM;
+	cc->cts = cts;
+	cc->is_clear = GF_TRUE;
+
+	// Add the CC item to the queue
+	gf_list_insert(ctx->cc_queue, cc, pos);
+	return GF_OK;
+}
+
+static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
+{
+	CCEncCtx *ctx = gf_filter_get_udta(filter);
+
+	u32 size;
+	const u8 *data = gf_filter_pck_get_data(pck, &size);
+	gf_assert(size >= GPAC_TX3G_DATA_OFFSET);
+	u16 len = (data[0]<<8) | data[1];
+	if (!len) return GF_OK;
+
+	// Allocate a new CC item
+	CCItem *cc;
+	GF_SAFEALLOC(cc, CCItem);
+	if (!cc) return GF_OUT_OF_MEM;
+	cc->cts = gf_filter_pck_get_cts(pck);
+	cc->dur = gf_filter_pck_get_duration(pck);
+	cc->is_clear = GF_FALSE;
+
+	// Create null-terminated text from the subtitle data
+	cc->text = gf_malloc(len+1);
+	if (!cc->text) {
+		gf_free(cc);
+		return GF_OUT_OF_MEM;
+	}
+	memcpy(cc->text, data+GPAC_TX3G_DATA_OFFSET, len);
+	memset(cc->text+len, 0, 1);
+
+	// If there is a clear command with the same timestamp, remove it
+	u32 pos;
+	CCItem *item;
+	while ((item = gf_list_enum(ctx->cc_queue, &pos))) {
+		if (item->cts == cc->cts && item->is_clear) {
+			gf_list_rem(ctx->cc_queue, pos);
+			gf_free(item);
+			break;
+		}
+	}
+
+	// Add the CC item to the queue
+	gf_list_add(ctx->cc_queue, cc);
+	return GF_OK;
+}
+
 static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 {
 	CCEncCtx *ctx = gf_filter_get_udta(filter);
@@ -189,15 +258,17 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 #define CHECK_OOM(_x) if (!_x) { err = GF_OUT_OF_MEM; goto error; }
 
 	// Create the caption frame
-	if (!ctx->ccframe) GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
-	caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)cc->text);
-	gf_free(cc->text);
+	if (!cc->is_clear) {
+		if (!ctx->ccframe) GF_SAFEALLOC(ctx->ccframe, caption_frame_t);
+		caption_frame_from_text(ctx->ccframe, (const utf8_char_t*)cc->text);
+		gf_free(cc->text);
+	}
 
 	// Create the SEI from the caption frame
 	if (!ctx->sei) GF_SAFEALLOC(ctx->sei, sei_t);
 	sei_free(ctx->sei); // also inits the sei
 	ctx->sei->timestamp = cc->cts / (double)ctx->s_ts;
-	status = sei_from_caption_frame(ctx->sei, ctx->ccframe);
+	status = cc->is_clear ? sei_from_caption_clear(ctx->sei) : sei_from_caption_frame(ctx->sei, ctx->ccframe);
 	if (status != LIBCAPTION_OK) {
 		err = GF_BAD_PARAM;
 		goto error;
@@ -269,6 +340,11 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 
 	// Send the new packet
 	gf_filter_pck_send(new_vpck);
+
+	// Enqueue clear command
+	// it is assumed that cts+dur is not after any subsequent ccs
+	if (!cc->is_clear)
+		ccenc_enqueue_cc_clear(filter, cc->cts + cc->dur);
 
 #undef CHECK_OOM
 
@@ -344,37 +420,6 @@ retry:
 			gf_filter_pck_unref(vpck);
 		}
 	}
-}
-
-static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
-{
-	CCEncCtx *ctx = gf_filter_get_udta(filter);
-
-	u32 size;
-	const u8 *data = gf_filter_pck_get_data(pck, &size);
-	gf_assert(size >= GPAC_TX3G_DATA_OFFSET);
-	u16 len = (data[0]<<8) | data[1];
-	if (!len) return GF_OK;
-
-	// Allocate a new CC item
-	CCItem *cc;
-	GF_SAFEALLOC(cc, CCItem);
-	if (!cc) return GF_OUT_OF_MEM;
-	cc->cts = gf_filter_pck_get_cts(pck);
-	cc->is_clear = GF_FALSE;
-
-	// Create null-terminated text from the subtitle data
-	u8 *text = gf_malloc(len+1);
-	if (!text) {
-		gf_free(cc);
-		return GF_OUT_OF_MEM;
-	}
-	memcpy(text, data+GPAC_TX3G_DATA_OFFSET, len);
-	memset(text+len, 0, 1);
-
-	// Add the CC item to the queue
-	gf_list_add(ctx->cc_queue, cc);
-	return GF_OK;
 }
 
 GF_Err ccenc_process(GF_Filter *filter)
