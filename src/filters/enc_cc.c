@@ -199,7 +199,7 @@ static GF_Err ccenc_enqueue_cc_clear(GF_Filter *filter, u64 cts)
 	cc->is_clear = GF_TRUE;
 
 	// Add the CC item to the queue
-	gf_list_insert(ctx->cc_queue, cc, pos);
+	gf_list_insert(ctx->cc_queue, cc, pos-1);
 	return GF_OK;
 }
 
@@ -235,7 +235,7 @@ static GF_Err ccenc_enqueue_cc(GF_Filter *filter, GF_FilterPacket *pck)
 	CCItem *item;
 	while ((item = gf_list_enum(ctx->cc_queue, &pos))) {
 		if (item->cts == cc->cts && item->is_clear) {
-			gf_list_rem(ctx->cc_queue, pos);
+			gf_list_rem(ctx->cc_queue, pos-1);
 			gf_free(item);
 			break;
 		}
@@ -358,7 +358,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 		GF_FilterPacket *item;
 		while ((item = gf_list_enum(ctx->frame_queue, &pos)))
 			if (gf_filter_pck_get_dts(item) > cur_dts) break;
-		gf_list_insert(ctx->frame_queue, new_vpck, pos);
+		gf_list_insert(ctx->frame_queue, new_vpck, pos-1);
 		gf_filter_pck_ref(&new_vpck); // so that unreffing wouldn't error
 	} else gf_filter_pck_send(new_vpck);
 
