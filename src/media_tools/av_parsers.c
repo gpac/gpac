@@ -6351,6 +6351,7 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 		do_copy = GF_TRUE;
 		if (sei_filter) {
 			do_copy = !sei_filter->is_whitelist;
+			do_copy &= (sei_filter->seis.nb_items > 0); // if no SEI type specified, drop all
 			for (u32 i = 0; i < sei_filter->seis.nb_items; i++) {
 				if (sei_filter->seis.vals[i] == ptype) {
 					do_copy = !do_copy;
@@ -6382,11 +6383,11 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 			break;
 
 		case 6: /*recovery point*/
-			avc_parse_recovery_point_sei(bs, avc);
+			if (avc) avc_parse_recovery_point_sei(bs, avc);
 			break;
 
 		case 1: /*pic_timing*/
-			avc_parse_pic_timing_sei(bs, avc);
+			if (avc) avc_parse_pic_timing_sei(bs, avc);
 			break;
 
 		case 0: /*buffering period*/
@@ -7694,8 +7695,8 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 	Bool sei_removed = GF_FALSE;
 	Bool all_sei_removed = GF_TRUE;
 
-	hdr = buffer[0];
-	switch ((hdr & 0x7e) >> 1)
+	hdr = buffer[!is_hevc];
+	switch (is_hevc ? (hdr & 0x7e) >> 1 : hdr >> 3)
 	{
 	case GF_HEVC_NALU_SEI_PREFIX:
 	case GF_HEVC_NALU_SEI_SUFFIX:
@@ -7735,6 +7736,7 @@ u32 gf_hevc_vvc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, Bool
 		do_copy = GF_TRUE;
 		if (sei_filter) {
 			do_copy = !sei_filter->is_whitelist;
+			do_copy &= (sei_filter->seis.nb_items > 0); // if no SEI type specified, drop all
 			for (u32 i = 0; i < sei_filter->seis.nb_items; i++) {
 				if (sei_filter->seis.vals[i] == ptype) {
 					do_copy = !do_copy;
