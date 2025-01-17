@@ -256,7 +256,8 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 	u32 size;
 
 	// forward the video if we haven't yet received any captions
-	if (!ctx->sei && !cc) {
+	Bool is_sap = gf_filter_pck_get_sap(vpck) != GF_FILTER_SAP_NONE;
+	if (!cc && (!ctx->sei || !is_sap)) {
 		gf_filter_pck_forward(vpck, ctx->opid);
 		gf_filter_pck_unref(vpck);
 		return;
@@ -281,7 +282,7 @@ static void ccenc_pair(GF_Filter *filter, GF_FilterPacket *vpck, CCItem *cc)
 			err = GF_BAD_PARAM;
 			goto error;
 		}
-	}
+	} else gf_assert(ctx->sei);
 
 	// Render the SEI
 	sei_data = gf_malloc(sei_render_size(ctx->sei));
