@@ -2591,6 +2591,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	}
 
 	switch (p4cc) {
+	case GF_PROP_PCK_TIMECODES:
 	case GF_PROP_PID_DOWNLOAD_SESSION:
 	case GF_PROP_PID_MUX_INDEX:
 	case GF_PROP_PCK_END_RANGE:
@@ -3059,22 +3060,15 @@ static void inspect_dump_packet_fmt(GF_Filter *filter, GF_InspectCtx *ctx, FILE 
 		}
 		else if (!strcmp(key, "tmcd")) {
 			const GF_PropertyValue *prop = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-			if (prop && prop->value.uint_list.nb_items) {
-				u32 i;
-				for (i=0; i<prop->value.uint_list.nb_items; i++) {
-					if (i) inspect_printf(dump, ", ");
-					u32 tc = prop->value.uint_list.vals[i]; // seconds * 1000 + frames
-					u32 frames = tc % 1000;
-					tc /= 1000;
-					u32 seconds = tc % 60;
-					tc /= 60;
-					u32 minutes = tc % 60;
-					u32 hours = tc / 60;
-
-					char *tc_str = gf_malloc(32);
-					snprintf(tc_str, 32, "%02d:%02d:%02d:%02d", hours, minutes, seconds, frames);
-					inspect_printf(dump, "%s", tc_str);
-					gf_free(tc_str);
+			if (prop && prop->value.data.size) {
+				GF_TimeCode *tc = (GF_TimeCode *) prop->value.data.ptr;
+				u32 index = 0;
+				u32 num_timecodes = prop->value.data.size / sizeof(GF_TimeCode);
+				while (index < num_timecodes) {
+					if (index) inspect_printf(dump, ",");
+					char tcBuf[100];
+					inspect_printf(dump, "%s", gf_format_timecode(&tc[index], tcBuf));
+					index++;
 				}
 			} else {
 				inspect_printf(dump, "N/A");

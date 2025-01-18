@@ -427,6 +427,27 @@ Formats a duration into a string
 */
 const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
 
+/*!
+\brief timecode type
+ */
+typedef struct
+{
+	u8 hours, minutes, seconds;
+	u16 n_frames;
+	Bool drop_frame;
+	u32 as_timestamp;
+} GF_TimeCode;
+
+/*!
+\brief formats a timecode
+
+Formats a timecode into a string
+\param tc timecode to format
+\param szTimecode the buffer to format
+\return the formated input buffer
+*/
+const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100]);
+
 /*! @} */
 
 /*!
