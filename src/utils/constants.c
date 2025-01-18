@@ -2817,3 +2817,10 @@ const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100])
 	}
 	return szDur;
 }
+
+GF_EXPORT
+const char* gf_format_timecode(GF_TimeCode *tc, char szTimecode[100])
+{
+	snprintf(szTimecode, 99, "%02d:%02d:%02d%c%03d", tc->hours, tc->minutes, tc->seconds, tc->drop_frame ? ';' : ':', tc->n_frames);
+	return szTimecode;
+}

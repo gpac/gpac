@@ -173,7 +173,8 @@ typedef struct
 	//if cur_start.den is 0, cur_start.num is UTC start time
 	//if cur_end.den is 0, cur_start.num is UTC stop time, only if cur_start uses UTC
 	GF_Fraction64 cur_start, cur_end;
-	Bool cur_start_is_tc, cur_end_is_tc;
+	GF_TimeCode *cur_start_tc;
+	GF_TimeCode *cur_end_tc;
 	u64 start_frame_idx_plus_one, end_frame_idx_plus_one;
 
 	Bool in_range;
@@ -393,9 +394,10 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	return GF_OK;
 }
 
-static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode, Bool *is_dur, Bool *is_timecode)
+static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode, Bool *is_dur, GF_TimeCode **as_timecode)
 {
 	u64 v;
+	*as_timecode = NULL;
 	value->num  =0;
 	value->den = 0;
 
@@ -409,12 +411,23 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		if (sscanf(date, "TC%u:%u:%u:%u", &h, &m, &s, &n_frames) != 4) {
 			goto exit;
 		}
+
+		// Express timecode to timestamp
 		v = h*3600 + m*60 + s;
 		v *= 1000;
 		v += n_frames;
 		value->num = v;
 		value->den = 1000;
-		*is_timecode = GF_TRUE;
+
+		// Encode timecode as 4 bytes
+		GF_TimeCode *tc;
+		GF_SAFEALLOC(tc, GF_TimeCode);
+		tc->hours = h;
+		tc->minutes = m;
+		tc->seconds = s;
+		tc->n_frames = n_frames;
+		tc->as_timestamp = v;
+		*as_timecode = tc;
 		return GF_TRUE;
 	}
 	if (date[0] == 'T') {
@@ -560,7 +573,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (!end_date) ctx->range_type = RANGE_OPEN;
 	else ctx->range_type = RANGE_CLOSED;
 
-	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode, NULL, &ctx->cur_start_is_tc)) {
+	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode, NULL, &ctx->cur_start_tc)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse start date, assuming end of ranges\n"));
 		//done
 		ctx->range_type = RANGE_DONE;
@@ -592,7 +605,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (!ctx->cur_start.den)
 		do_seek = GF_FALSE;
 
-	if (ctx->cur_start_is_tc && do_seek) {
+	if (ctx->cur_start_tc && do_seek) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] ranges not in order and timecode is used, aborting extraction\n"));
 		goto range_done;
 	}
@@ -632,11 +645,11 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (end_date) {
 		Bool is_dur = GF_FALSE;
 		ctx->end_frame_idx_plus_one = 0;
-		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur, &ctx->cur_end_is_tc)) {
+		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur, &ctx->cur_end_tc)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse end date, assuming open range\n"));
 			ctx->range_type = RANGE_OPEN;
 		} else {
-			if (is_dur && ctx->cur_start_is_tc) {
+			if (is_dur && ctx->cur_start_tc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Reframer] duration range with timecode start, aborting extraction\n"));
 				goto range_done;
 			}
@@ -1270,29 +1283,35 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 			after = GF_TRUE;
 		}
 		// check timecodes
-		if (ctx->cur_start_is_tc) {
+		if (ctx->cur_start_tc) {
 			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-			if (p && p->value.uint_list.nb_items) {
+			if (p && p->value.data.size) {
 				before = GF_TRUE;
-				for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
-					u32 tc = p->value.uint_list.vals[i];
-					if (gf_timestamp_greater_or_equal(tc, 1000, ctx->cur_start.num, ctx->cur_start.den)) {
+				GF_TimeCode *tc = (GF_TimeCode *) p->value.data.ptr;
+				u32 index = 0;
+				u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
+				while (index < num_timecodes) {
+					if (gf_timestamp_greater_or_equal(tc[index].as_timestamp, 1000, ctx->cur_start.num, ctx->cur_start.den)) {
 						before = GF_FALSE;
 						break;
 					}
+					index++;
 				}
 			}
 		}
-		if ((ctx->range_type!=RANGE_OPEN) && ctx->cur_end_is_tc) {
+		if ((ctx->range_type!=RANGE_OPEN) && ctx->cur_end_tc) {
 			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-			if (p && p->value.uint_list.nb_items) {
+			if (p && p->value.data.size) {
 				after = GF_TRUE;
-				for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
-					u32 tc = p->value.uint_list.vals[i];
-					if (gf_timestamp_less_or_equal(tc, 1000, ctx->cur_end.num, ctx->cur_end.den)) {
+				GF_TimeCode *ptc = (GF_TimeCode *) p->value.data.ptr;
+				u32 index = 0;
+				u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
+				while (index < num_timecodes) {
+					if (gf_timestamp_less_or_equal(ptc[index].as_timestamp, 1000, ctx->cur_end.num, ctx->cur_end.den)) {
 						after = GF_FALSE;
 						break;
 					}
+					index++;
 				}
 			}
 		}
@@ -2000,15 +2019,18 @@ refetch_streams:
 							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
 								Bool at_frame = GF_FALSE;
 
-								if (ctx->cur_start_is_tc) {
+								if (ctx->cur_start_tc) {
 									const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_TIMECODES);
-									if (p && p->value.uint_list.nb_items) {
-										for (u32 i=0; i<p->value.uint_list.nb_items; i++) {
-											u32 tc = p->value.uint_list.vals[i];
-											if (tc == ctx->cur_start.num) {
+									if (p && p->value.data.size) {
+										GF_TimeCode *ptc = (GF_TimeCode *) p->value.data.ptr;
+										u32 index = 0;
+										u32 num_timecodes = p->value.data.size / sizeof(GF_TimeCode);
+										while (index < num_timecodes) {
+											if (ptc[index].as_timestamp == ctx->cur_start.num) {
 												at_frame = GF_TRUE;
 												break;
 											}
+											index++;
 										}
 									}
 								} else {
@@ -2223,7 +2245,12 @@ refetch_streams:
 			if (!min_ts) {
 				purge_all = GF_TRUE;
 				if (ctx->extract_mode==EXTRACT_RANGE) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] All streams in end of stream for desired start range "LLD"/"LLU"\n", ctx->cur_start.num, ctx->cur_start.den));
+					if (ctx->cur_start_tc) {
+						char tcBuf[100];
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] All streams in end of stream for desired start range %s\n", gf_format_timecode(ctx->cur_start_tc, tcBuf)));
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] All streams in end of stream for desired start range "LLD"/"LLU"\n", ctx->cur_start.num, ctx->cur_start.den));
+					}
 				}
 				ctx->eos_state = 1;
 			} else {
@@ -2782,6 +2809,10 @@ static void reframer_finalize(GF_Filter *filter)
 		reframer_reset_stream(ctx, st, GF_TRUE);
 	}
 	gf_list_del(ctx->streams);
+	if (ctx->cur_start_tc)
+		gf_free(ctx->cur_start_tc);
+	if (ctx->cur_end_tc)
+		gf_free(ctx->cur_end_tc);
 }
 
 static GF_Err reframer_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val)

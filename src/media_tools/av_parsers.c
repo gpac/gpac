@@ -5934,7 +5934,7 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 				AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
 				gf_bs_read_int_log_idx(bs, 2, "ct_type", i);
 				gf_bs_read_int_log_idx(bs, 1, "nuit_field_based_flag", i);
-				gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
+				tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
 				Bool full_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "full_timestamp_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
@@ -5975,7 +5975,7 @@ static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
 			gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
 
 			AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
-			gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
+			tc->counting_type = gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
 			Bool full_timestamp_flag = gf_bs_read_int(bs, 1);
 			gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
 			gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
