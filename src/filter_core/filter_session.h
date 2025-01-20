@@ -686,7 +686,7 @@ struct __gf_filter
 	//!this mutex protects:
 	//- the filter task queue, when reordering tasks for later processing while other threads try to post to the filter task queue
 	//- the list of input pid and output pid destinations, which can be added from different threads for a same pid (fan-out)
-	//-the blocking state of the filter
+	//- the blocking state of the filter
 	GF_Mutex *tasks_mx;
 
 	//list of output pids to be configured
