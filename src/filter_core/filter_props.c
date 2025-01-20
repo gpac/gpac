@@ -1613,6 +1613,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PID_REMOTE_URL, "RemoteURL", "Remote URL of source - used for MPEG-4 systems", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_REDIRECT_URL, "RedirectURL", "Redirection URL of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_FILEPATH, "SourcePath", "Path of source file on file system", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PID_FILEALIAS, "FileAlias", "Alias name for source file, replace $URL$ and $File$ in templates", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_MIME, "MIMEType", "MIME type of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_FILE_EXT, "Extension", "File extension of source", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM),
 	DEC_PROP_F( GF_PROP_PID_FILE_CACHED, "Cached", "File is completely cached", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM),
@@ -1787,7 +1788,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP( GF_PROP_PID_SCENE_NODE, "SceneNode", "PID is a scene node decoder (AFX BitWrapper in BIFS)", GF_PROP_BOOL),
 	DEC_PROP( GF_PROP_PID_ORIG_CRYPT_SCHEME, "OrigCryptoScheme", "Original crypto scheme on a decrypted PID", GF_PROP_4CC),
 	DEC_PROP_F( GF_PROP_PID_TIMESHIFT_SEGS, "TSBSegs", "Time shift in number of segments for HAS streams, only set by dashin and dasher filters", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM),
-	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest (MSB=1 if live)\n"
+	DEC_PROP_F( GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest (bit 9 set to 1 if live), lower 8 bits value can be\n"
 	"- 0: not a manifest\n"
 	"- 1: DASH manifest\n"
 	"- 2: HLS manifest\n"
@@ -1823,6 +1824,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_END_RANGE, "RangeEnd", "Signal packet is the last in the desired play range", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_ID, "RefID", "packet identifier for dependency (usually POC for video)", GF_PROP_SINT, GF_PROP_FLAG_PCK),
 	DEC_PROP_F( GF_PROP_PCK_REFS, "Refs", "list of packet identifier this packet depends on", GF_PROP_SINT_LIST, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_UDTA, "UDTA", "User data for the packet", GF_PROP_POINTER, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM),
+	DEC_PROP_F( GF_PROP_PCK_TIMECODES, "Timecodes", "list of timecodes as extracted from SEI (if present)", GF_PROP_UINT_LIST, GF_PROP_FLAG_PCK),
 
 	DEC_PROP_F( GF_PROP_PID_DOLBY_VISION, "DOVI", "DolbyVision configuration", GF_PROP_DATA, 0),
 	DEC_PROP_F( GF_PROP_PID_OUTPATH, "OutPath", "Output file name of PID used by some filters creating additional raw PIDs", GF_PROP_STRING, 0),
@@ -1854,6 +1857,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	DEC_PROP_F( GF_PROP_PCK_CENC_PSSH, "DynPSSH", "PSSH blob for CENC, same format as `CENC_PSSH`, used when using master key and roll keys, signaled on first packet of segment where the PSSH changes", GF_PROP_DATA, GF_PROP_FLAG_PCK),
 
 	DEC_PROP_F( GF_PROP_PCK_LLHAS_TEMPLATE, "LLHASTemplate", "Template for DASH-SSR and LLHLS sub-segments", GF_PROP_STRING, GF_PROP_FLAG_PCK),
+	DEC_PROP_F( GF_PROP_PCK_PARTIAL_REPAIR, "PartialRepair", "indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)", GF_PROP_BOOL, GF_PROP_FLAG_PCK),
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
@@ -1937,10 +1941,12 @@ Bool gf_props_sanity_check()
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s has no name\n", gf_4cc_to_str(GF_BuiltInProps[i].type)  ));
 			res = GF_FALSE;
 		}
+#ifndef GPAC_DISABLE_DOC
 		if (! GF_BuiltInProps[i].description) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s has no description\n", gf_4cc_to_str(GF_BuiltInProps[i].type)  ));
 			res = GF_FALSE;
 		}
+#endif
 		for (j=i+1; j<gf_num_props; j++) {
 			if (GF_BuiltInProps[i].type==GF_BuiltInProps[j].type) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s and %s have the same code %s\n", GF_BuiltInProps[i].name, GF_BuiltInProps[j].name, gf_4cc_to_str(GF_BuiltInProps[i].type) ));

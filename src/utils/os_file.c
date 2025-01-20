@@ -1626,6 +1626,28 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 	return res;
 }
 
+
+GF_EXPORT
+s32 gf_fd_open(const char *file_name, u32 oflags, u32 uflags)
+{
+	if (!file_name) return -1;
+
+#if defined(WIN32)
+	wchar_t *wname = gf_utf8_to_wcs(file_name);
+	if (!wname) return -1;
+	int res = _wopen(wname, oflags, uflags);
+	gf_free(wname);
+	return res;
+#elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_CONFIG_ANDROID)
+	return open(file_name, oflags, uflags);
+#elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
+	return open(file_name, oflags, uflags);
+#else
+	return open(file_name, oflags, uflags);
+#endif
+	return -1;
+}
+
 GF_EXPORT
 FILE *gf_fopen(const char *file_name, const char *mode)
 {

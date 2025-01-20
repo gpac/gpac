@@ -854,8 +854,8 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	//flags second byte: 3(sap) 2(encrypted) 1(has_sample_deps) 1(has builtin props) 1(has_ext)
 	u8 sap = gf_filter_pck_get_sap(pck);
 	gf_bs_write_int(ctx->bs_w, sap, 3);
-	u8 crypt = gf_filter_pck_get_crypt_flags(pck);
-	gf_bs_write_int(ctx->bs_w, crypt, 2);
+	u8 pck_crypt = gf_filter_pck_get_crypt_flags(pck);
+	gf_bs_write_int(ctx->bs_w, pck_crypt, 2);
 	u8 depflags = gf_filter_pck_get_dependency_flags(pck);
 	gf_bs_write_int(ctx->bs_w, depflags ? 1 : 0, 1);
 	gf_bs_write_int(ctx->bs_w, nb_4cc_props ? 1 : 0, 1);

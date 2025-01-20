@@ -789,7 +789,9 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			if (ctx->dec_inst) {
 				nvdec_destroy_decoder(ctx->dec_inst);
-				ctx->dec_inst=0;
+				if (ctx->dec_inst->cu_parser) cuvidDestroyVideoParser(ctx->dec_inst->cu_parser);
+				gf_free(ctx->dec_inst);
+				ctx->dec_inst = NULL;
 			}
 			ctx->needs_resetup = 1;
 			ctx->dec_create_error = CUDA_SUCCESS;
@@ -936,6 +938,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 	}
 
 	if (data && ctx->nal_size_length) {
+		u32 nb_nalsize_zero=0;
 		GF_BitStream *bs = gf_bs_new(ctx->nal_buffer, ctx->nal_buffer_alloc, GF_BITSTREAM_WRITE_DYN);
 		if (!bs) return GF_OUT_OF_MEM;
 
@@ -952,6 +955,12 @@ static GF_Err nvdec_process(GF_Filter *filter)
 				nal_size = (nal_size << 8) + ((u8)data[i]);
 			}
 			data += ctx->nal_size_length;
+			if (!nal_size) {
+				if (nb_nalsize_zero) break;
+				nb_nalsize_zero++;
+			} else {
+				nb_nalsize_zero=0;
+			}
 
 			if (pck_size < nal_size + ctx->nal_size_length) break;
 
@@ -1530,6 +1539,7 @@ static void nvdec_finalize(GF_Filter *filter)
 		nvdec_destroy_decoder(ctx->dec_inst);
 		if (ctx->dec_inst->cu_parser) cuvidDestroyVideoParser(ctx->dec_inst->cu_parser);
 		gf_free(ctx->dec_inst);
+		ctx->dec_inst = NULL;
 	}
 
 	while (gf_list_count(ctx->frames)) {

@@ -251,7 +251,7 @@ static GF_Err cryptfin_process(GF_Filter *filter)
 				}
 				ctx->key_sess = gf_dm_sess_new(dm, ctx->key_url, GF_NETIO_SESSION_NOT_CACHED, cryptfin_net_io, ctx, &e);
 			} else {
-				e = gf_dm_sess_setup_from_url(ctx->key_sess, ctx->key_url, GF_TRUE);
+				e = gf_dm_sess_setup_from_url(ctx->key_sess, ctx->key_url, GF_FALSE);
 			}
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] Failed to setup download session for key %s: %s\n", ctx->key_url, gf_error_to_string(e)))

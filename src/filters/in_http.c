@@ -196,8 +196,11 @@ static GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_ty
 	if (!strnicmp(url, "file://", 7) ) return GF_FPROBE_NOT_SUPPORTED;
 	//libcurl handling of RTSP has lower priority
 	if (!strnicmp(url, "rtsp://", 7) ) return GF_FPROBE_MAYBE_SUPPORTED;
-	if (gf_dm_can_handle_url(url))
+	if (gf_dm_can_handle_url(url)) {
+		//TODO: investigate why curl support of rtmp seems problematic, lower priority in favor of ffdmx
+		if (!strnicmp(url, "rtmp://", 7) ) return GF_FPROBE_MAYBE_NOT_SUPPORTED;
 		return GF_FPROBE_SUPPORTED;
+	}
 #endif
 
 	return GF_FPROBE_NOT_SUPPORTED;
@@ -276,8 +279,12 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
 		if (evt->seek.source_switch) {
-			gf_fatal_assert(ctx->is_end);
-			gf_fatal_assert(!ctx->pck_out);
+			if (!ctx->is_end || ctx->pck_out) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Scheduling error: switch to %s requested but input %s still in progress\n",  gf_file_basename(evt->seek.source_switch), gf_file_basename(ctx->src) ));
+
+				gf_filter_notification_failure(filter, GF_BAD_PARAM, GF_FALSE);
+				return GF_TRUE;
+			}
 			if (ctx->src && ctx->sess && (ctx->cache!=GF_HTTPIN_STORE_DISK_KEEP) && !ctx->prev_was_init_segment) {
 				gf_dm_delete_cached_file_entry_session(ctx->sess, ctx->src, GF_FALSE);
 			}
@@ -356,7 +363,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		if (!e && (evt->seek.start_offset || evt->seek.end_offset))
             e = gf_dm_sess_set_range(ctx->sess, evt->seek.start_offset, evt->seek.end_offset, GF_TRUE);
-		
+
         if (e) {
 			//use info and not error, as source switch is done by dashin and can be scheduled too early in live cases
 			//but recovered later, so we let DASH report the error
@@ -501,7 +508,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 					gf_dm_sess_get_stats(ctx->sess, NULL, NULL, NULL, NULL, &bytes_per_sec, NULL);
 					gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 				}
-				gf_filter_ask_rt_reschedule(filter, 1000);
+				gf_filter_ask_rt_reschedule(filter, gf_dm_sess_is_regulated(ctx->sess) ? 100000 : 1000);
 				return GF_OK;
 			}
 			if (! ctx->nb_read)
@@ -652,7 +659,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cache), "set cache mode\n"
 	"- auto: cache to disk if content length is known, no cache otherwise\n"
-	"- disk: cache to disk,  discard once session is no longer used\n"
+	"- disk: cache to disk, discard once session is no longer used\n"
 	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
 	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"
@@ -773,4 +780,3 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_USE_DOWNLOADER
-

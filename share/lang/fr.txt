@@ -847,7 +847,7 @@ textxt=specifies whether text shall be drawn to a texture and then rendered or d
 textxt_crc=621473674
 out8b=converts 10-bit video to 8 bit texture before GPU upload.
 out8b_crc=2444281991
-drop=drops late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed
+drop=drops late frame when drawing. By default frames are not dropped until a heavy desync of 1 sec is observed
 drop_crc=909051951
 sclock=forces synchronizing all streams on a single clock
 sclock_crc=423984299
@@ -2245,7 +2245,7 @@ desc_crc=706603685
 help=@This filter handles generic output sockets (mono-directionnal) in blocking mode only.
 The filter can work in server mode, waiting for source connections, or can directly connect
 In server mode, the filter can be instructed to keep running at the end of the stream
-In server mode, the default behavior is to keep input packets when no more clients are connected; this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.
+In server mode, the default behavior is to keep input packets when no more clients are connected; this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are dropped.
 If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send rate option
 
 Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME

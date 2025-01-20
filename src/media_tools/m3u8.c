@@ -52,8 +52,8 @@ typedef struct _s_accumulated_attributes {
 	int target_duration_in_seconds;
 	int min_media_sequence;
 	int current_media_seq;
-	int version;
-	int compatibility_version; /*compute version required by the M3U8 content*/
+	u32 version;
+	u32 compatibility_version; /*compute version required by the M3U8 content*/
 	Bool is_master_playlist;
 	Bool is_media_segment;
 	Bool is_playlist_ended;

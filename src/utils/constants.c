@@ -103,9 +103,9 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TRUEHD, 0, GF_STREAM_AUDIO, "Dolby TrueHD", "mlp", "mlpa", "audio/truehd", .unframe=GF_TRUE},
 	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL, "audio/dra"},
 	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL, "audio/g719"},
-	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics and Digital Surround Audio", "dstc", NULL, "audio/dts"},
+	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics and Digital Surround Audio", "dtsc", NULL, "audio/dts"},
 	{GF_CODECID_DTS_HD_HR_MASTER, 0xAA, GF_STREAM_AUDIO, "DTS-HD High Resolution Audio and DTS-Master Audio", "dtsh", NULL, "audio/dts"},
-	{GF_CODECID_DTS_HD_LOSSLESS, 0xAB, GF_STREAM_AUDIO, "DTS-HD Substream containing only XLLAudio", "dstl", NULL, "audio/dts"},
+	{GF_CODECID_DTS_HD_LOSSLESS, 0xAB, GF_STREAM_AUDIO, "DTS-HD Substream containing only XLLAudio", "dtsl", NULL, "audio/dts"},
 	{GF_CODECID_DTS_EXPRESS_LBR, 0xAC, GF_STREAM_AUDIO, "DTS Express low bit rate Audio", "dtse", NULL, "audio/dts"},
 	{GF_CODECID_DTS_X, 0xB2, GF_STREAM_AUDIO, "DTS-X UHD Audio Profile 2", "dtsx", NULL, "audio/dts"},
 	{GF_CODECID_DTS_Y, 0xB3, GF_STREAM_AUDIO, "DTS-X UHD Audio Profile 3", "dtsy", NULL, "audio/dts"},
@@ -163,7 +163,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_FFMPEG, 0, GF_STREAM_UNKNOWN, "FFmpeg unmapped codec", "ffmpeg", NULL, NULL},
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
-	{GF_CODECID_SCTE35, 0, GF_STREAM_METADATA, "SCTE35", "scte", "evte", NULL},
+	{GF_CODECID_SCTE35, 0, GF_STREAM_METADATA, "SCTE35", "sc35", "evte", NULL},
 	{GF_CODECID_EVTE, 0, GF_STREAM_METADATA, "Event Messages", "evte", "evte", NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc", .unframe=GF_TRUE},
 	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC, .unframe=GF_TRUE},
@@ -512,6 +512,8 @@ u32 gf_stream_type_by_name(const char *val)
 	u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
 	for (i=0; i<nb_st; i++) {
 		if (!stricmp(GF_StreamTypes[i].name, val))
+			return GF_StreamTypes[i].st;
+		if (GF_StreamTypes[i].sname && !stricmp(GF_StreamTypes[i].sname, val))
 			return GF_StreamTypes[i].st;
 		if (GF_StreamTypes[i].alt_name && !stricmp(GF_StreamTypes[i].alt_name, val))
 			return GF_StreamTypes[i].st;
@@ -1766,6 +1768,42 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	return 0;
 }
 
+GF_EXPORT
+void gf_pixel_get_downsampling(GF_PixelFormat pixfmt, u32 *downsample_w, u32 *downsample_h)
+{
+	*downsample_w=0;
+	*downsample_h=0;
+	switch (pixfmt) {
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
+	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVD:
+		*downsample_h = 2;
+		//fallthrough
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_VYUY:
+	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+		*downsample_w = 2;
+		break;
+	default:
+		*downsample_w = 1;
+		*downsample_h = 1;
+		break;
+	}
+}
+
 static struct pixfmt_to_qt
 {
 	GF_PixelFormat pfmt;
@@ -2741,4 +2779,41 @@ done:
 	gf_bs_get_content(bs, dsi, dsi_size);
 	gf_bs_del(bs);
 	return GF_TRUE;
+}
+
+GF_EXPORT
+const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100])
+{
+	u64 h;
+	u32 m, s, ms;
+	szDur[0] = 0;
+	szDur[99] = 0;
+	if (!timescale) timescale = 1;
+	dur = gf_timestamp_rescale(dur, timescale, 1000);
+	h = (dur / 3600000);
+	dur -= h*3600000;
+	m = (u32) (dur / 60000);
+	dur -= m*60000;
+	s = (u32) (dur/1000);
+	dur -= s*1000;
+	ms = (u32) (dur);
+
+	if (h<=24) {
+		snprintf(szDur, 99, "%02d:%02d:%02d.%03d", (u32) h, m, s, ms);
+	} else {
+		u32 d = (u32) (h / 24);
+		h = (u32) (h-24*d);
+		if (d<=365) {
+			snprintf(szDur, 99, "%d Days, %02d:%02d:%02d.%03d", d, (u32) h, m, s, ms);
+		} else {
+			u32 y=0;
+			while (d>365) {
+				y++;
+				d-=365;
+				if (y%4) d--;
+			}
+			snprintf(szDur, 99, "%d Years %d Days, %02d:%02d:%02d.%03d", y, d, (u32) h, m, s, ms);
+		}
+	}
+	return szDur;
 }

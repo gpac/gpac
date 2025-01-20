@@ -29,6 +29,7 @@
 #ifndef GPAC_DISABLE_DASHIN
 
 #include <gpac/dash.h>
+#include <gpac/network.h>
 
 #ifdef GPAC_HAS_QJS
 #include "../quickjs/quickjs.h"
@@ -197,6 +198,7 @@ typedef struct
 
 	char *current_url;
 	Bool url_changed;
+	u64 queue_ntp_ts;
 } GF_DASHGroup;
 
 static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group);
@@ -249,6 +251,12 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				is_end = GF_TRUE;
 
 			gf_filter_pck_set_framing(ref, is_start, is_end);
+
+			if (group->queue_ntp_ts) {
+				gf_filter_pck_set_property(ref, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(group->queue_ntp_ts ) );
+				gf_filter_pck_set_property(ref, GF_PROP_PCK_RECEIVER_NTP, &PROP_LONGUINT(gf_net_get_ntp_ts() ) );
+				group->queue_ntp_ts = 0;
+			}
 			is_filemode = GF_TRUE;
 		} else {
 			const GF_PropertyValue *p;
@@ -728,7 +736,7 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	}
 
 	if (group_idx<-1) {
-		flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+		flags |= GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_NO_PROXY;
 	} else {
 		if (!ctx->segstore) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 		if (persistent) flags |= GF_NETIO_SESSION_PERSISTENT;
@@ -1018,7 +1026,7 @@ void process_base_url(char *manifest_payload, u32 manifest_payload_len,u32 keep_
 			while (base_url_end[offset] == '\n')
 				offset++;
 			end_len = (u32) strlen(base_url_end + offset);
-			u32 inject_len = strlen(relative_url);
+			u32 inject_len = (u32) strlen(relative_url);
 			memmove(base_url_start + 9 + inject_len, base_url_start + 9, end_len);
 			memcpy(base_url_start + 9, relative_url, inject_len);
 			man_pay_start = base_url_start + 9 + inject_len + end_len;
@@ -1062,7 +1070,7 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 			//for routeout
 			u32 manifest_type = gf_dash_is_m3u8(ctx->dash) ? 2 : 1;
 			if (gf_dash_is_dynamic_mpd(ctx->dash))
-				manifest_type |= 0x80000000;
+				manifest_type |= (1<<8);
 
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_UINT(manifest_type));
 
@@ -3155,6 +3163,8 @@ fetch_next:
 
 		group->signal_seg_name = (ctx->forward==DFWD_FILE) ? GF_TRUE : GF_FALSE;
 		group->init_switch_seg_sent = GF_TRUE;
+		if (ctx->forward)
+			group->queue_ntp_ts = gf_net_get_ntp_ts();
 		gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
 		return;
 	}
@@ -3195,6 +3205,7 @@ fetch_next:
 			group->current_url = gf_strdup(next_url);
 			group->url_changed = GF_TRUE;
 		}
+		group->queue_ntp_ts = gf_net_get_ntp_ts();
 	}
 
 	GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH, NULL);

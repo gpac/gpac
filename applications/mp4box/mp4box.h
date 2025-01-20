@@ -72,6 +72,7 @@ GF_Err convert_file_info(char *inName, TrackIdentifier *track_id);
 #endif
 
 Bool mp4box_check_isom_fileopt(char *opt);
+Bool mp4box_check_non_extk_fileopt(char *opt);
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

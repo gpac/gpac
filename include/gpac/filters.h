@@ -439,6 +439,20 @@ void gf_fs_send_deferred_play(GF_FilterSession *session);
 */
 GF_Err gf_fs_post_user_task(GF_FilterSession *session, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name);
 
+
+/*! Posts a user task to the session
+\param session filter session
+\param task_execute the callback function for the task. The callback can return:
+ - GF_FALSE to cancel the task
+ - GF_TRUE to reschedule the task, in which case the task will be rescheduled immediately or after reschedule_ms.
+\param udta_callback callback user data passed back to the task_execute function
+\param log_name log name of the task. If NULL, default is "user_task"
+\param delay delay in milliseconds before calling the task
+\return the error code if any
+*/
+GF_Err gf_fs_post_user_task_delay(GF_FilterSession *session, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name, u32 delay);
+
+
 /*! Posts a user task to the session main thread only
 \param session filter session
 \param task_execute the callback function for the task. The callback can return:
@@ -1171,6 +1185,7 @@ enum
 	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
 	GF_PROP_PID_REDIRECT_URL = GF_4CC('R','E','L','O'),
 	GF_PROP_PID_FILEPATH = GF_4CC('F','S','R','C'),
+	GF_PROP_PID_FILEALIAS = GF_4CC('F','A','L','I'),
 	GF_PROP_PID_MIME = GF_4CC('M','I','M','E'),
 	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
 	GF_PROP_PID_OUTPATH = GF_4CC('F','D','S','T'),
@@ -1230,7 +1245,9 @@ enum
 	GF_PROP_PCK_MPD_SEGSTART = GF_4CC('F','M','S','S'),
 	GF_PROP_PCK_ID = GF_4CC('P','K','I','D'),
 	GF_PROP_PCK_REFS = GF_4CC('P','R','F','S'),
+	GF_PROP_PCK_UDTA = GF_4CC('P','U','D','T'),
 	GF_PROP_PCK_LLHAS_TEMPLATE = GF_4CC('P','S','R','T'),
+	GF_PROP_PCK_TIMECODES = GF_4CC('T','C','O','D'),
 
 	GF_PROP_PID_MAX_FRAME_SIZE = GF_4CC('M','F','R','S'),
 	GF_PROP_PID_AVG_FRAME_SIZE = GF_4CC('A','F','R','S'),
@@ -1408,6 +1425,8 @@ enum
 
 	/*! Internal property used for meta demuxers ( FFmpeg, ...) codec opaque data, u32*/
 	GF_PROP_PID_META_DEMUX_OPAQUE = GF_4CC('M','D','O','P'),
+
+	GF_PROP_PCK_PARTIAL_REPAIR = GF_4CC('P','C','P','R'),
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -1791,6 +1810,7 @@ typedef struct
 		0: range is in media time
 		1: range is in timesatmps
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
+		3: range is in media time and seeking is disabled (closest RAP is used and no seek flags on packets)
 	*/
 	u8 timestamp_based;
 	/*! GF_FEVT_PLAY / GF_FEVT_PLAY_HINT, indicates the consumer only cares for the full file, not packets*/
@@ -2005,6 +2025,9 @@ typedef struct
 
 	/*! MTU size  */
 	u32 mtu_size;
+
+	/*! output type , 4CC (currently only MABR defined */
+	u32 sink_type;
 
 } GF_FEVT_NetworkHint;
 
@@ -2800,6 +2823,18 @@ void gf_filter_block_eos(GF_Filter *filter, Bool do_block);
 \return the new source filter instance or NULL if error
 */
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err);
+
+/*! Connects a source to the session, copying FilterID and sourceID of this filter source..
+\note The loaded filter will not connect to the calling filter, and will have the same ID, subsession_id and source_id as the first source of the filter
+
+\param filter the target filter
+\param url url of source to connect to, with optional arguments.
+\param parent_url url of parent if any
+\param inherit_args if GF_TRUE, the source to connect will inherit arguments of the first source of the filter
+\param err return code - can be NULL
+\return the new source filter instance or NULL if error
+*/
+GF_Filter *gf_filter_add_source(GF_Filter *filter, const char *url, const char *parent_url, Bool inherit_args, GF_Err *err);
 
 /*! Connects a destination to this filter
 \param filter the target filter
@@ -3871,7 +3906,7 @@ typedef struct
 	/*! loss rate in per-thousand - input pid only */
 	u32 loss_rate;
 
-	/*! timestamp and timescale of last packet droped
+	/*! timestamp and timescale of last packet dropped
 		- For input PID, set to last packet dropped
 		- For output PID, set to maximum TS value of last packet dropped on all PID destinations
 	*/
@@ -4279,6 +4314,12 @@ GF_Err gf_filter_pid_allow_direct_dispatch(GF_FilterPid *PID);
 \return the temporary alias filter private stack, NULL otherwise
 */
 void *gf_filter_pid_get_alias_udta(GF_FilterPid *PID);
+
+/*! Gets the filter owning the PID
+\param PID the target filter PID
+\return the filter owning the PID or NULL if error
+*/
+GF_Filter *gf_filter_pid_get_owner(GF_FilterPid *PID);
 
 /*! Gets the filter owning the  input PID
 \param PID the target filter PID

@@ -1502,7 +1502,7 @@ writeonly boolean normalize;
 /*! Shader object common to vertex and fragment shaders
 
 Although QuickJS is an amazing piece of software, calling JavaScript for each fragment is just too costly. The shader object provides a simple
-set of tools to produce a vertex or fragment output at reasonnable speed, without interacting with JavaScript.
+set of tools to produce a vertex or fragment output at reasonable speed, without interacting with JavaScript.
 
 # Generic principles 
 

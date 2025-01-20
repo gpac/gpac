@@ -84,6 +84,8 @@ enum
 	GF_ISOM_BOX_TYPE_STRI	= GF_4CC( 's', 't', 'r', 'i' ),
 	GF_ISOM_BOX_TYPE_STRD	= GF_4CC( 's', 't', 'r', 'd' ),
 	GF_ISOM_BOX_TYPE_STSG	= GF_4CC( 's', 't', 's', 'g' ),
+	GF_ISOM_BOX_TYPE_EXTK	= GF_4CC( 'e', 'x', 't', 'k' ),
+	GF_ISOM_BOX_TYPE_EXTL	= GF_4CC( 'e', 'x', 't', 'l' ),
 
 	GF_ISOM_BOX_TYPE_UDTA	= GF_4CC( 'u', 'd', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_VMHD	= GF_4CC( 'v', 'm', 'h', 'd' ),
@@ -121,6 +123,8 @@ enum
 	GF_ISOM_BOX_TYPE_AEIB	= GF_4CC( 'a', 'e', 'i', 'b' ),
 	GF_ISOM_BOX_TYPE_AKEY	= GF_4CC( 'a', 'k', 'e', 'y' ),
 	GF_ISOM_BOX_TYPE_FLXS	= GF_4CC( 'f', 'l', 'x', 's' ),
+
+	GF_ISOM_BOX_TYPE_SRAT	= GF_4CC( 's', 'r', 'a', 't' ),
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*Movie Fragments*/
@@ -607,6 +611,7 @@ enum
 #define GF_ISOM_BS_COOKIE_CLONE_TRACK	(1<<3)
 #define GF_ISOM_BS_COOKIE_IN_UDTA		(1<<4)
 #define GF_ISOM_BS_COOKIE_NO_DECOMP		(1<<5)
+#define GF_ISOM_BS_COOKIE_NO_MABR_PATCH	(1<<6)
 
 
 #ifndef GPAC_DISABLE_ISOM
@@ -948,6 +953,16 @@ typedef struct {
 	u32 track_group_id;
 } GF_TrackGroupTypeBox;
 
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u32 referenced_track_ID;
+	u32 referenced_handler_type;
+	u32 media_timescale;
+	char *location;
+} GF_ExternalTrackLocationBox;
+
+
+
 typedef struct
 {
 	GF_ISOM_BOX
@@ -959,6 +974,8 @@ typedef struct
 	/*meta box if any*/
 	struct __tag_meta_box *meta;
 	GF_TrackGroupBox *groups;
+	/*external track location*/
+	GF_ExternalTrackLocationBox *extl;
 
 	GF_Box *Aperture;
 	
@@ -1202,7 +1219,7 @@ typedef struct
 } GF_TimeToSampleBox;
 
 
-/*TO CHECK - it could be reasonnable to only use 16bits for both count and offset*/
+/*TO CHECK - it could be reasonable to only use 16bits for both count and offset*/
 typedef struct
 {
 	u32 sampleCount;
@@ -1708,6 +1725,11 @@ typedef struct
 	GF_AC3Config cfg;
 } GF_AC3ConfigBox;
 
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 sampling_rate;
+} GF_SamplingRateBox;
 
 
 typedef struct
@@ -1832,7 +1854,7 @@ typedef struct __full_audio_sample_entry
 
 	//for FLAC
 	GF_FLACConfigBox *cfg_flac;
-
+	
 	//for generic audio sample entry
 	//box type as specified in the file (not this box's type!!)
 	u32 EntryType;
@@ -2078,16 +2100,16 @@ u32  gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sample
 GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
 #endif
 
-/* Use to relate the composition and decoding timeline when signed composition is used*/
+/* Use to relate the composition and decoding timeline when signed composition is used */
 typedef struct
 {
 	GF_ISOM_FULL_BOX
 
-	s32 compositionToDTSShift;
-	s32 leastDecodeToDisplayDelta;
-	s32 greatestDecodeToDisplayDelta;
-	s32 compositionStartTime;
-	s32 compositionEndTime;
+	s64 compositionToDTSShift;
+	s64 leastDecodeToDisplayDelta;
+	s64 greatestDecodeToDisplayDelta;
+	s64 compositionStartTime;
+	s64 compositionEndTime;
 } GF_CompositionToDecodeBox;
 
 typedef struct
@@ -2273,6 +2295,9 @@ typedef struct
 	u32 group_id;
 	u32 entity_id_count;
 	u32 *entity_ids;
+	u8 *data;
+	u32 data_len;
+
 } GF_EntityToGroupTypeBox;
 
 typedef struct
