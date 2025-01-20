@@ -74,6 +74,7 @@ readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
+check_stack_size="16384"
 debuginfo="no"
 sdl_path=""
 sdl_local="no"
@@ -379,6 +380,7 @@ GPAC build options:
   --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS [$LDFLAGS]
   --extra-libs=ELIBS       add ELIBS [$ELIBS]
   --cpu=CPU                force cpu to CPU  [$cpu]
+  --check-stack-size=SIZE  maximum stack size [$check_stack_size bytes]
   --enable-debug           produce debug version
   --enable-gprof           enable profiling
   --enable-gcov            enable coverage
@@ -627,6 +629,8 @@ for opt do
         --extra-libs=*) extralibs=${opt#--extra-libs=}
             ;;
         --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
+            ;;
+        --check-stack-size=*) check_stack_size=`echo $opt | cut -d '=' -f 2`
             ;;
         --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
             ;;
@@ -2078,6 +2082,10 @@ else
 
 fi
 
+if test "$check_stack_size" != "no" ; then
+    CFLAGS="$CFLAGS -Wstack-usage=$check_stack_size"
+fi
+
 if test "$debuginfo" = "no"; then
     CFLAGS="$CFLAGS -DNDEBUG"
 fi
@@ -2194,6 +2202,7 @@ elif test "$static_build" = "yes" ; then
 else
     echo "Static Modules: $static_modules"
 fi
+echo "max stack size: $check_stack_size"
 echo "debug version: $debuginfo"
 echo "GProf enabled: $gprof_build"
 echo "Memory tracking enabled: $use_memory_tracking"
