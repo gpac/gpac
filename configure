@@ -2083,7 +2083,7 @@ else
 fi
 
 if test "$check_stack_size" != "no" ; then
-    CFLAGS="$CFLAGS -Wstack-usage=$check_stack_size"
+    CFLAGS="$CFLAGS -Wframe-larger-than=$check_stack_size"
 fi
 
 if test "$debuginfo" = "no"; then
