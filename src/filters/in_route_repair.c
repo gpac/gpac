@@ -242,10 +242,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
             data[pos+1] = (remain>>16) & 0xFF;
             data[pos+2] = (remain>>8) & 0xFF;
             data[pos+3] = (remain) & 0xFF;
-            data[pos+4] = 'f';
-            data[pos+5] = 'r';
-            data[pos+6] = 'e';
-            data[pos+7] = 'e';
+			strncpy(data+pos+4, "free", 4);
             remain-=8;
             if (remain>SAFETY_ERASE_BYTES) remain = SAFETY_ERASE_BYTES;
             memset(data+pos+8, 0, remain);
@@ -253,10 +250,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			//we have a previous moof but no mdat header after, consider we completely lost the fragment
 			//so reset moof to free and erase mvhd
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				memset(data+prev_moof_pos+8, 0, 16);
 				prev_moof_pos = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
@@ -282,10 +276,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
             data[prev_pos+1] = (missed_size>>16) & 0xFF;
             data[prev_pos+2] = (missed_size>>8) & 0xFF;
             data[prev_pos+3] = (missed_size) & 0xFF;
-            data[prev_pos+4] = 'f';
-            data[prev_pos+5] = 'r';
-            data[prev_pos+6] = 'e';
-            data[prev_pos+7] = 'e';
+			strncpy(data+prev_pos+4, "free", 4);
             missed_size -= 8;
             if (missed_size>SAFETY_ERASE_BYTES) missed_size = SAFETY_ERASE_BYTES;
             memset(data+prev_pos+8, 0, missed_size);
@@ -293,10 +284,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 			//we have a previous moof but no mdat header anywere, consider we completely lost the fragment
 			//so reset moof to free and erase mvhd
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				memset(data+prev_moof_pos+8, 0, 16);
 				prev_moof_pos = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching last moof (pos %u) to free and erase mvhd\n", finfo->filename, pos, prev_moof_pos));
@@ -341,26 +329,17 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 		//incomplete mdat (strict mode), discard previous moof
 		if (is_mdat) {
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching mdat (pos %u size %u) and last moof (pos %u) to free\n", finfo->filename, pos, box_size, prev_moof_pos));
 				prev_moof_pos = 0;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching mdat (pos %u size %u) to free\n", finfo->filename, pos, box_size));
 			}
-			data[pos+4] = 'f';
-			data[pos+5] = 'r';
-			data[pos+6] = 'e';
-			data[pos+7] = 'e';
+			strncpy(data+pos+4, "free", 4);
 			nb_patches++;
 		} else {
 			//incomplete box, move to free and erase begining of payload
-			data[pos+4] = 'f';
-			data[pos+5] = 'r';
-			data[pos+6] = 'e';
-			data[pos+7] = 'e';
+			strncpy(data+pos+4, "free", 4);
 			nb_patches++;
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s erasing incomplete box %s payload - size %u pos %u\n", finfo->filename, gf_4cc_to_str(type), box_size, pos));
@@ -386,10 +365,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 		if (ctx->repair == ROUTEIN_REPAIR_STRICT) {
 
 			if (prev_moof_pos) {
-				data[prev_moof_pos+4] = 'f';
-				data[prev_moof_pos+5] = 'r';
-				data[prev_moof_pos+6] = 'e';
-				data[prev_moof_pos+7] = 'e';
+				strncpy(data+prev_moof_pos+4, "free", 4);
 				nb_patches++;
 				//moof without mdat, consider the fragment lost
 				if (!prev_mdat_pos) {
@@ -402,10 +378,7 @@ static void routein_repair_segment_isobmf_local(ROUTEInCtx *ctx, u32 service_id,
 
 			if (prev_mdat_pos) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[REPAIR] File %s patching mdat (pos %u) to free\n", finfo->filename, pos));
-				data[prev_mdat_pos+4] = 'f';
-				data[prev_mdat_pos+5] = 'r';
-				data[prev_mdat_pos+6] = 'e';
-				data[prev_mdat_pos+7] = 'e';
+				strncpy(data+prev_mdat_pos+4, "free", 4);
 				nb_patches++;
 			}
 		}
@@ -792,7 +765,7 @@ void routein_queue_repair(ROUTEInCtx *ctx, GF_ROUTEEventType evt, u32 evt_param,
 }
 
 
-static void repair_session_unqueue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
+static void repair_session_dequeue(ROUTEInCtx *ctx, RouteRepairSession *rsess, RepairSegmentInfo *rsi)
 {
 	Bool unprotect;
 	TSI_Output *tsio;
@@ -850,9 +823,9 @@ restart:
 
 
 	if (!tsio) return;
-	//get next in list, if existing and done or if removed, unqueue
+	//get next in list, if existing and done or if removed, dequeue
 	rsi = gf_list_get(tsio->pending_repairs, 0);
-	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)) )
+	if (rsi && (rsi->done || (rsi->removed && !rsi->pending)))
 		goto restart;
 }
 
@@ -923,17 +896,17 @@ static void repair_session_done(ROUTEInCtx *ctx, RouteRepairSession *rsess, GF_E
 		rsi->local_repair = GF_FALSE;
 	}
 
-	//make sure we unqueue in order
+	//make sure we dequeue in order
 	if (rsi->tsio) {
 		s32 idx = gf_list_find(rsi->tsio->pending_repairs, rsi);
-		//not first in list, do not unqueue now
+		//not first in list, do not dequeue now
 		//this happens if multiple repair sessions are activated, they will likely not finish at the same time
 		if (idx > 0) {
 			rsi->done = GF_TRUE;
 			return;
 		}
 	}
-	repair_session_unqueue(ctx, rsess, rsi);
+	repair_session_dequeue(ctx, rsess, rsi);
 }
 
 static void repair_session_run(ROUTEInCtx *ctx, RouteRepairSession *rsess)
@@ -962,7 +935,7 @@ restart:
 
 			nb_ranges = gf_list_count(rsi->ranges);
 			//no more ranges, done with session
-			//this happens when enqued repair had no losses when using progressive dispatch
+			//this happens when enqueued repair had no losses when using progressive dispatch
 			if (!nb_ranges) {
 				rsess->current_si = rsi;
 				rsi->pending++;
@@ -970,7 +943,7 @@ restart:
 				rsess->current_si = NULL;
 				goto restart;
 			}
-			//if TSIO, always unqueue in order
+			//if TSIO, always dequeue in order
 			if (rsi->tsio) {
 				rr = gf_list_get(rsi->ranges, 0);
 			} else {
