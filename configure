@@ -74,7 +74,7 @@ readelf="readelf"
 install="${INSTALL:=install}"
 instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
-check_stack_size="16384"
+check_stack_size="32768"
 debuginfo="no"
 sdl_path=""
 sdl_local="no"
