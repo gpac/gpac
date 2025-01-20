@@ -576,6 +576,8 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 	u32 movie_ts = gf_isom_get_timescale(dest);
 	u32 media_ts = gf_isom_get_media_timescale(dest, track);
 	u64 media_dur = gf_isom_get_media_duration(dest, track);
+	if (!movie_ts) movie_ts = 600;
+	if (!media_ts) media_ts = movie_ts;
 
 	while (edits) {
 		GF_Err e;
@@ -738,6 +740,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	char *edits = NULL;
 	const char *fail_msg = NULL;
 	char *hdr_file=NULL;
+	char *first_ext=NULL;
 	Bool set_ccst=GF_FALSE;
 	Bool has_last_sample_dur=GF_FALSE;
 	u32 fake_import = 0;
@@ -752,9 +755,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 tkgp_type=0;
 	s32 tkgp_id=0;
 	Bool tkgp_add = GF_TRUE;
+	u32 is_extk = 0;
 	u32 set_tk_idx=0;
 	u32 *reorder_tk_ids = NULL;
 	u32 reorder_tk_ids_count = 0;
+	Bool has_non_extk_opt=GF_FALSE;
 	GF_MediaImporter *import = NULL;
 
 	dv_profile[0] = 0;
@@ -833,6 +838,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	if (ext) ext[0] = c_sep;
 
+reparse_opts:
 	ext = gf_url_colon_suffix(final_name, '=');
 
 #define GOTO_EXIT(_msg) if (e) { fail_msg = _msg; goto exit; }
@@ -995,7 +1001,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!stricmp(ext+1, "nosei")) { CHECK_FAKEIMPORT("nosei") import_flags |= GF_IMPORT_NO_SEI; }
 		else if (!stricmp(ext+1, "svc") || !stricmp(ext+1, "lhvc") ) { CHECK_FAKEIMPORT("svc/lhvc") import_flags |= GF_IMPORT_SVC_EXPLICIT; }
 		else if (!stricmp(ext+1, "nosvc") || !stricmp(ext+1, "nolhvc")) { CHECK_FAKEIMPORT("nosvc/nolhvc") import_flags |= GF_IMPORT_SVC_NONE; }
-
+		else if (!stricmp(ext+1, "extk")) {
+			if (!src_is_isom) {
+				M4_LOG(GF_LOG_ERROR, ("extk option can only be used with ISOBMF/QT files\n"));
+				e = GF_BAD_PARAM;
+				goto exit;
+			}
+			if (!is_extk) is_extk = 1;
+		}
 		/*split SVC layers*/
 		else if (!strnicmp(ext+1, "svcmode=", 8) || !strnicmp(ext+1, "lhvcmode=", 9)) {
 			char *mode = ext+9;
@@ -1421,12 +1434,23 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (!mp4box_check_isom_fileopt(opt)) {
 				M4_LOG(GF_LOG_ERROR, ("\t! Import option `%s` not available for ISOBMFF/QT sources, ignoring !\n", ext+1));
 			}
+			if ((!has_non_extk_opt || (is_extk==2)) && mp4box_check_non_extk_fileopt(opt)) {
+				has_non_extk_opt = GF_TRUE;
+				if (is_extk==2) {
+					M4_LOG(GF_LOG_ERROR, ("\t! Import option `%s` not allowed for external ISOBMFF tracks !\n", ext+1));
+					e = GF_BAD_PARAM;
+					GOTO_EXIT(NULL)
+				}
+			}
 			if (sep_eq) sep_eq[0] = '=';
 		}
 
 		if (ext2) ext2[0] = ':';
 
-		ext[0] = 0;
+		if (!first_ext) {
+			first_ext = ext;
+			ext[0] = 0;
+		}
 
 		/* restart from where we stopped
 		 * if we didn't stop (ext2 null) then the end has been reached
@@ -1574,7 +1598,70 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	check_track_for_svc = check_track_for_lhvc = check_track_for_hevc = 0;
 
 	source_magic = (u64) gf_crc_32((u8 *)inName, (u32) strlen(inName));
-	if (!fake_import && (!fsess || mux_args_if_first_pass)) {
+
+	if (is_extk) {
+		u32 ext_tk=0;
+		GF_ISOFile *isom_in = gf_isom_open(final_name, GF_ISOM_OPEN_READ, NULL);
+		if (!isom_in) {
+			e = gf_isom_last_error(NULL);
+			GOTO_EXIT("opening source")
+		}
+		if (!track_id) {
+			if (gf_isom_get_track_count(isom_in)>1) {
+				gf_isom_delete(isom_in);
+				e = GF_BAD_PARAM;
+				M4_LOG(GF_LOG_ERROR, ("More than one track in source and no trackID specified\n"));
+				GOTO_EXIT("adding track");
+			}
+			ext_tk = 1;
+		} else {
+			ext_tk = gf_isom_get_track_by_id(isom_in, track_id);
+			if (!ext_tk) {
+				gf_isom_delete(isom_in);
+				e = GF_BAD_PARAM;
+				M4_LOG(GF_LOG_ERROR, ("No track with ID %u in source %s\n", track_id, final_name));
+				GOTO_EXIT("adding track");
+			}
+		}
+		if (has_non_extk_opt) {
+			is_extk=2;
+			if (first_ext) first_ext[0] = ':';
+
+			goto reparse_opts;
+		}
+		u32 new_tk = 0;
+		Bool src_is_extk = gf_isom_is_external_track(isom_in, ext_tk, NULL, NULL, NULL, NULL);
+		if (src_is_extk) {
+			e = gf_isom_clone_track(isom_in, ext_tk, dest, 0, &new_tk);
+			GOTO_EXIT("cloning external track");
+		} else {
+			u32 type = gf_isom_get_media_type(isom_in, ext_tk);
+			u32 timescale = gf_isom_get_media_timescale(isom_in, ext_tk);
+			new_tk = gf_isom_new_external_track(dest, 0, track_id, type, timescale, final_name);
+
+			u32 mvscale = gf_isom_get_timescale(dest);
+
+			if (new_tk) {
+				u32 w, h;
+				s32 tx, ty;
+				s16 layer;
+				if (gf_isom_get_track_layout_info(isom_in, ext_tk, &w, &h, &tx, &ty, &layer)==GF_OK) {
+					gf_isom_set_track_layout_info(dest, new_tk, w<<16, h<<16, tx<<16, ty<<16, layer);
+				}
+				if (import->duration.num>=0) {
+					u64 dur;
+					if (import->duration.num)
+						dur = gf_timestamp_rescale(import->duration.num, import->duration.den, mvscale);
+					else
+						dur = gf_timestamp_rescale(gf_isom_get_track_duration(isom_in, ext_tk), gf_isom_get_timescale(isom_in), mvscale);
+					gf_isom_force_track_duration(dest, new_tk, dur);
+				}
+			}
+		}
+		track_id = gf_isom_get_track_id(dest, new_tk);
+		fake_import = 1;
+		gf_isom_delete(isom_in);
+	} else if (!fake_import && (!fsess || mux_args_if_first_pass)) {
 		import->in_name = final_name;
 		import->dest = dest;
 		import->video_fps = force_fps;

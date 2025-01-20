@@ -1032,6 +1032,25 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ch->sample_last = evt->play.to_pck;
 			ch->sap_only = evt->play.drop_non_ref ? 1 : 0;
 
+			if (!read->nb_playing && !ch->sample_num && (evt->play.timestamp_based==3)) {
+				GF_Err e;
+				u32 sample_num, didx;
+				/*take care of seeking out of the track range*/
+				if (!read->frag_type && (ch->duration < ch->start)) {
+					e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, ch->duration, &didx, GF_ISOM_SEARCH_SYNC_BACKWARD, NULL, &sample_num, NULL);
+				} else {
+					e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, ch->start, &didx, GF_ISOM_SEARCH_SYNC_BACKWARD, NULL, &sample_num, NULL);
+				}
+				if (!e) {
+					GF_ISOSample s={0};
+					gf_isom_get_sample_info_ex(read->mov, ch->track, sample_num, NULL, NULL, &s);
+					ch->start = s.DTS+s.CTS_Offset;
+					start_range = ch->start;
+					start_range /= ch->timescale;
+					ch->sample_num = sample_num;
+				}
+			}
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, start_range, evt->play.end_range));
 		} else {
 			ch->end = 0;
@@ -1122,15 +1141,15 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					u64 data_offset;
 					GF_Err e;
 					u64 time;
-					ch = gf_list_get(read->channels, i);
+					ISOMChannel *ach = gf_list_get(read->channels, i);
 					mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
-					time = (u64) (evt->play.start_range * ch->timescale);
+					time = (u64) (evt->play.start_range * ach->timescale);
 
 					/*take care of seeking out of the track range*/
-					if (!read->frag_type && (ch->duration < time)) {
-						e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, ch->duration, 	&sample_desc_index, mode, NULL, &sample_num, &data_offset);
+					if (!read->frag_type && (ach->duration < time)) {
+						e = gf_isom_get_sample_for_movie_time(read->mov, ach->track, ach->duration, &sample_desc_index, mode, NULL, &sample_num, &data_offset);
 					} else {
-						e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, time, &sample_desc_index, mode, NULL, &sample_num, &data_offset);
+						e = gf_isom_get_sample_for_movie_time(read->mov, ach->track, time, &sample_desc_index, mode, NULL, &sample_num, &data_offset);
 					}
 					if ((e == GF_OK) && (data_offset<max_offset))
 						max_offset = data_offset;
@@ -1866,6 +1885,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- fake: allocate sample but no data copy", GF_PROP_UINT, "no", "no|yes|fake", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(lightp), "load minimal set of properties", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(initseg), "local init segment name when input is a single ISOBMFF segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(extk), "allow external track loading", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(extkmov), "original mov pointer for external tracks", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(extkid), "original trackID for external tracks", GF_PROP_UINT, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(ctso), "value to add to CTS offset for tracks using negative ctts\n"
 	"- set to `-1` to use the `cslg` box info or the minimum cts offset present in the track\n"
 	"- set to `-2` to use the minimum cts offset present in the track (`cslg` ignored)", GF_PROP_SINT, NULL, NULL, GF_FS_ARG_HINT_EXPERT},

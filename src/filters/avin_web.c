@@ -27,6 +27,8 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_WEBCODEC
+
 #include <gpac/network.h>
 
 typedef struct
@@ -553,10 +555,11 @@ GF_FilterRegister GF_WebGrabRegister = {
 	.hint_class_type = GF_FS_CLASS_MM_IO
 };
 
+#endif //GPAC_DISABLE_WEBCODEC
 
 const GF_FilterRegister *webgrab_register(GF_FilterSession *session)
 {
-	
+#ifndef GPAC_DISABLE_WEBCODEC
 #if defined(GPAC_CONFIG_EMSCRIPTEN)
 	int has_media_track_processor = EM_ASM_INT({
 		if (typeof MediaStreamTrackProcessor == 'undefined') return 0;
@@ -572,4 +575,7 @@ const GF_FilterRegister *webgrab_register(GF_FilterSession *session)
 	GF_WebGrabRegister.version = "! Warning: Web APIs NOT AVAILABLE IN THIS BUILD !";
 #endif
 	return &GF_WebGrabRegister;
+#else
+	return NULL;
+#endif
 }

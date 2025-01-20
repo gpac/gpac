@@ -858,7 +858,7 @@ static GF_Err gf_netcap_record(GF_NetcapFilter *nf)
 	if (!gf_opts_get_bool("core", "no-fd")) {
 		//make sure output dir exists
 		gf_fopen(nf->dst, "mkdir");
-		nf->fd = open(nf->dst, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
+		nf->fd = gf_fd_open(nf->dst, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 		if (nf->fd>=0) nf->cap_bs = gf_bs_from_fd(nf->fd, GF_BITSTREAM_WRITE);
 	} else
 #endif
@@ -1685,7 +1685,7 @@ static GF_Err gf_netcap_playback(GF_NetcapFilter *nf)
 {
 #ifdef GPAC_HAS_FD
 	if (!gf_opts_get_bool("core", "no-fd")) {
-		nf->fd = open(nf->src, O_RDONLY);
+		nf->fd = gf_fd_open(nf->src, O_RDONLY | O_BINARY , S_IRUSR | S_IWUSR);
 		if (nf->fd>=0) nf->cap_bs = gf_bs_from_fd(nf->fd, GF_BITSTREAM_READ);
 	} else
 #endif
@@ -4145,7 +4145,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 }
 
 GF_EXPORT
-GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
+GF_Err gf_sk_get_remote_address_port(GF_Socket *sock, char *buf, u32 *port)
 {
 #ifdef GPAC_HAS_IPV6
 	char clienthost[NI_MAXHOST];
@@ -4154,16 +4154,26 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	my_inet_ntop(AF_INET, addrptr, clienthost, NI_MAXHOST);
 	strcpy(buf, clienthost);
+	if (port) {
+		*port = ntohs(addrptr->sin6_port);
+	}
 	if (getnameinfo((struct sockaddr *)addrptr, sock->dest_addr_len, clienthost, NI_MAXHOST, servname, NI_MAXHOST, NI_NUMERICHOST) == 0) {
 		strcpy(buf, clienthost);
 	}
 #else
 	if (!sock || SOCKET_INVALID(sock->socket)) return GF_BAD_PARAM;
 	strcpy(buf, inet_ntoa(sock->dest_addr.sin_addr));
+	if (port) {
+		*port = ntohs(sock->dest_addr.sin_port);
+	}
 #endif
 	return GF_OK;
 }
-
+GF_EXPORT
+GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
+{
+	return gf_sk_get_remote_address_port(sock, buf, NULL);
+}
 
 
 #if 0 //unused

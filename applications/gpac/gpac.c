@@ -118,7 +118,15 @@ static const char *make_fileio(const char *inargs, const char **out_arg, u32 mod
 static void cleanup_file_io(void);
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e);
 static u32 gpac_unit_tests(GF_MemTrackerType mem_track);
-static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
+enum {
+	CACHE_OP_DELETE,
+	CACHE_OP_SHOW,
+	CACHE_OP_INFO,
+	CACHE_OP_UNFLATTEN,
+};
+
+static void do_cache_check(u32 op_type, char *argval);
+
 #ifdef GPAC_DEFER_MODE
 static GF_Err print_pid_props(char *arg);
 static GF_Err probe_pid_link(char *arg);
@@ -995,10 +1003,17 @@ int gpac_main(int _argc, char **_argv)
 		} else if (!strcmp(arg, "-runforl")) {
 			if (arg_val) runfor = 1000*get_u32(arg_val, "runforl");
 			exit_mode = 2;
-		} else if (!strcmp(arg, "-uncache")) {
-			const char *cache_dir = gf_opts_get_key("core", "cache");
-			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, ".txt");
-			fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
+		} else if (!strcmp(arg, "-cache-unflat")) {
+			do_cache_check(CACHE_OP_UNFLATTEN, arg_val);
+			gpac_exit(0);
+		} else if (!strcmp(arg, "-cache-list")) {
+			do_cache_check(CACHE_OP_SHOW, arg_val);
+			gpac_exit(0);
+		} else if (!strcmp(arg, "-cache-info")) {
+			do_cache_check(CACHE_OP_INFO, arg_val);
+			gpac_exit(0);
+		} else if (!strcmp(arg, "-cache-clean")) {
+			do_cache_check(CACHE_OP_DELETE, arg_val);
 			gpac_exit(0);
 		} else if (!strcmp(arg, "-cfg")) {
 			nothing_to_do = GF_FALSE;
@@ -2450,14 +2465,192 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fflush(stderr);
 }
 
-static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+
+typedef struct
+{
+	u32 op_type, nb_entries;
+	u32 total_size, min_size, max_size;
+	u64 min_created, max_created;
+	u64 min_expire, max_expire;
+	u64 min_hit, max_hit;
+	u32 min_nb_hit, max_nb_hit;
+	u64 date_min, date_max;
+} CacheInfo;
+
+
+#define TIMEFMT "%Y/%m/%dT%H:%M:%SZ"
+static GFINLINE const char *format_date(u64 time, char *szDate)
+{
+	time_t date = time;
+	strftime(szDate, 99, TIMEFMT, gmtime(&date)  );
+	return szDate;
+}
+
+static Bool cache_file_op(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 #ifndef GPAC_DISABLE_NETWORK
-	const char *url;
-	GF_Config *cached;
+	const char *url, *opt;
+	CacheInfo *ci = (CacheInfo *)cbck;
 	if (strncmp(item_name, "gpac_cache_", 11)) return GF_FALSE;
-	cached = gf_cfg_new(NULL, item_path);
+	GF_Config *cached = gf_cfg_new(NULL, item_path);
+	if (!cached) return GF_FALSE;
 	url = gf_cfg_get_key(cached, "cache", "url");
+	if (!url) {
+		gf_cfg_del(cached);
+		gf_file_delete(item_path);
+		char *sep = strstr(item_path, ".txt");
+		if (sep) {
+			sep[0] = 0;
+			gf_file_delete(item_path);
+			sep[0] = '.';
+		}
+		return GF_FALSE;
+	}
+	Bool in_range = GF_TRUE;
+
+	if (ci->date_min || ci->date_max) {
+		opt = gf_cfg_get_key(cached, "cache", "Created");
+		if (opt) {
+			u64 created;
+			sscanf(opt, LLU, &created);
+			//range
+			if (ci->date_max) {
+				if ((created >= ci->date_max) || (created <= ci->date_min)) in_range = GF_FALSE;
+			}
+			//exclude everything sooner than min time
+			else if (created <= ci->date_min) in_range = GF_FALSE;
+		}
+	}
+
+	if (ci->op_type==CACHE_OP_DELETE) {
+		u32 it_size=0;
+		opt = gf_cfg_get_key(cached, "cache", "Content-Length");
+		if (opt) it_size = atoi(opt);
+
+		if (!in_range) {
+			ci->max_size += it_size;
+			ci->total_size ++;
+			gf_cfg_del(cached);
+			return GF_FALSE;
+		}
+		ci->min_size += it_size;
+		ci->nb_entries++;
+		gf_file_delete(item_path);
+		char *sep = strstr(item_path, ".txt");
+		if (sep) {
+			sep[0] = 0;
+			gf_file_delete(item_path);
+			sep[0] = '.';
+		}
+		gf_cfg_del(cached);
+		return GF_FALSE;
+	}
+
+	if (ci->op_type==CACHE_OP_INFO) {
+		if (!in_range) {
+			gf_cfg_del(cached);
+			return GF_FALSE;
+		}
+		ci->nb_entries++;
+		u64 created=0, age;
+		opt = gf_cfg_get_key(cached, "cache", "Content-Length");
+		if (opt) {
+			u32 size = atoi(opt);
+			ci->total_size += size;
+			if (!ci->min_size) ci->min_size = ci->max_size = size;
+			if (ci->min_size>size) ci->min_size = size;
+			if (ci->max_size<size) ci->max_size = size;
+		}
+		opt = gf_cfg_get_key(cached, "cache", "Created");
+		if (opt) {
+			sscanf(opt, LLU, &created);
+			if (!ci->min_created) ci->min_created = ci->max_created = created;
+			if (ci->min_created>created) ci->min_created = created;
+			if (ci->max_created<created) ci->max_created = created;
+		}
+		opt = gf_cfg_get_key(cached, "cache", "MaxAge");
+		if (opt) {
+			sscanf(opt, LLU, &age);
+			if (!ci->min_expire) ci->min_expire = ci->max_expire = age;
+			if (ci->min_expire>age) ci->min_expire = age;
+			if (ci->max_expire<age) ci->max_expire = age;
+		}
+		opt = gf_cfg_get_key(cached, "cache", "NumHit");
+		if (opt) {
+			u32 nb_hits;
+			sscanf(opt, "%u", &nb_hits);
+			nb_hits--;
+			if (nb_hits) {
+				if (!ci->min_nb_hit) ci->min_nb_hit = ci->max_nb_hit = nb_hits;
+				if (ci->min_nb_hit>nb_hits) ci->min_nb_hit = nb_hits;
+				if (ci->max_nb_hit<nb_hits) ci->max_nb_hit = nb_hits;
+
+				//only get hit times if hit
+				opt = gf_cfg_get_key(cached, "cache", "LastHit");
+				if (opt) {
+					sscanf(opt, LLU, &age);
+					if (!ci->min_hit) ci->min_hit = ci->max_hit = age;
+					if (ci->min_hit>age) ci->min_hit = age;
+					if (ci->max_hit<age) ci->max_hit = age;
+				}
+			}
+		}
+		gf_cfg_del(cached);
+		return GF_FALSE;
+	}
+	if (!in_range) {
+		gf_cfg_del(cached);
+		return GF_FALSE;
+	}
+
+	//cache print
+	if (ci->op_type==CACHE_OP_SHOW) {
+		gf_fprintf(stdout, "URL %s:\n", url);
+		char *sep = strstr(item_path, ".txt");
+		sep[0] = 0;
+		gf_fprintf(stdout, "\tDisk path: %s\n", item_path);
+		sep[0] = '.';
+
+		u32 i, count = gf_cfg_get_key_count(cached, "cache");
+		for (i=0; i<count; i++) {
+			char szDate[100];
+			const char *name = gf_cfg_get_key_name(cached, "cache", i);
+			if (!name || !strcmp(name, "url")) continue;
+			const char *opt = gf_cfg_get_key(cached, "cache", name);
+			if (!opt) continue;
+			if (!strcmp(name, "MaxAge")) {
+				u64 expires;
+				char szDur[100];
+				sscanf(opt, LLU, &expires);
+				s64 now = expires;
+				now-=gf_net_get_utc()/1000;
+				if (now>0)
+					gf_fprintf(stdout, "\tExpires: %s (in %s)\n", format_date(expires, szDate), gf_format_duration(now, 1, szDur) );
+				continue;
+			}
+			if (!strcmp(name, "Created")) {
+				u64 created;
+				sscanf(opt, LLU, &created);
+				gf_fprintf(stdout, "\tCreated: %s\n", format_date(created, szDate));
+				continue;
+			}
+			if (!strcmp(name, "LastHit")) {
+				u64 hit;
+				sscanf(opt, LLU, &hit);
+				gf_fprintf(stdout, "\tLastHit: %s\n", format_date(hit, szDate) );
+				continue;
+			}
+
+			gf_fprintf(stdout, "\t%s: %s\n", name, opt);
+		}
+		gf_fprintf(stdout, "\n");
+		gf_cfg_del(cached);
+		return GF_FALSE;
+	}
+
+	if (ci->op_type!=CACHE_OP_UNFLATTEN) return GF_FALSE;
+
+	//cache unflatten
 	if (url) url = strstr(url, "://");
 	if (url) {
 		u32 i, len, dir_len=0, k=0;
@@ -2500,6 +2693,63 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 	gf_file_delete(item_path);
 #endif // GPAC_DISABLE_NETWORK
 	return GF_FALSE;
+}
+
+static void do_cache_check(u32 op_type, char *arg_val)
+{
+	const char *cache_dir = gf_opts_get_key("core", "cache");
+	CacheInfo ci = {0};
+	ci.op_type = op_type;
+
+	if (arg_val) {
+		u32 d_idx=0;
+		u64 now = gf_net_get_utc()/1000;
+		while (1) {
+			u64 date=0;
+			char *asep = strchr(arg_val, ';');
+			if (asep) asep[0] = 0;
+			if (strstr(arg_val, ":"))
+				date = gf_net_parse_date(arg_val)/1000;
+			else if (strcmp(arg_val, "0"))
+				date = now - atoi(arg_val);
+
+			if (!d_idx) ci.date_min = date ? date : 1;
+			else ci.date_max = date ? date : now;
+			d_idx++;
+
+			if (!asep) break;
+			asep[0] = ';';
+			arg_val=asep+1;
+		}
+	}
+
+	gf_enum_directory(cache_dir, GF_FALSE, cache_file_op, &ci, ".txt");
+
+	if (op_type==CACHE_OP_UNFLATTEN) {
+		fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
+	} else if (op_type==CACHE_OP_INFO) {
+		char szDate[100];
+		u32 csize = gf_opts_get_int("core", "cache-size");
+		if (!csize) csize = 1;
+
+		gf_fprintf(stdout, "Cache info:\n\tMax size: "LLU" bytes\n\tNumber of items: %u\n\tTotal Size: %u (used %u %%)\n\tMin Size: %u\n\tMax Size: %u\n", csize, ci.nb_entries, ci.total_size, (u32) (ci.total_size*100/csize), ci.min_size, ci.max_size);
+		if (!ci.nb_entries) return;
+		gf_fprintf(stdout, "\tOldest entry: %s\n", format_date(ci.min_created, szDate) );
+		gf_fprintf(stdout, "\tMost recent entry: %s\n", format_date(ci.max_created, szDate) );
+		if (ci.min_expire)
+			gf_fprintf(stdout, "\tShortest expiration time: %s\n", format_date(ci.min_expire, szDate) );
+		if (ci.max_expire)
+			gf_fprintf(stdout, "\tLongest expiration time: %s\n", format_date(ci.max_expire, szDate) );
+		gf_fprintf(stdout, "\tHits: min %u max %u\n", ci.min_nb_hit, ci.max_nb_hit);
+		if (ci.min_nb_hit) {
+			gf_fprintf(stdout, "\tOldest hit time: %s\n", format_date(ci.min_hit, szDate) );
+			gf_fprintf(stdout, "\tMost recent hit time: %s\n", format_date(ci.max_hit, szDate) );
+		}
+	} else if (op_type==CACHE_OP_DELETE) {
+		if (ci.date_min || ci.date_max) {
+			gf_fprintf(stdout, "Removed %u items freed %d bytes %u - items remaining %u bytes\n", ci.nb_entries, ci.min_size, ci.total_size, ci.max_size);
+		}
+	}
 }
 
 
@@ -2833,11 +3083,12 @@ static void gpac_sig_handler(int sig)
 				char input;
 				GF_SessionDebugFlag flags=0;
 				in_sig_handler = GF_TRUE;
-				fprintf(stderr, "\nToggle reports (r), print state (s for short, e for extended [+ shift: sticky])\n"
+				fprintf(stderr, "\nToggle reports (r), change logs (l), print state (s for short, e for extended [+ shift: sticky])\n"
 					"\tor exit with fast (Y), full (f) or no (n) session flush ? \n");
 rescan:
 				input = gf_getch();
-				if (!input || input == 0x0A || input == 0x0D) input = 'Y'; // user pressed "return"
+				if (!prev_was_cmd)
+					if (!input || input == 0x0A || input == 0x0D) input = 'Y'; // user pressed "return"
 				switch (input) {
 				case 'Y':
 				case 'y':
@@ -2895,6 +3146,21 @@ rescan:
 					signal_catched = GF_FALSE;
 					signal_processed = GF_FALSE;
 					gf_fs_print_debug_info(session, flags|GF_FS_DEBUG_ALL);
+					break;
+				case 'L':
+				case 'l':
+				{
+					char szLogs[100];
+					prev_was_cmd = GF_TRUE;
+					signal_catched = GF_FALSE;
+					signal_processed = GF_FALSE;
+					fprintf(stdout, "Enter new logs settings:\n");
+					if (1 > scanf("%99s", szLogs)) {
+						fprintf(stderr, "Cannot read the logs !\n");
+						break;
+					}
+					gf_log_set_tools_levels(szLogs, GF_TRUE);
+				}
 					break;
 				default:
 					signal_processed = GF_TRUE;

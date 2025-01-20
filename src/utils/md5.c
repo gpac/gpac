@@ -214,7 +214,7 @@ static void md5Step(u32 *buffer, u32 *input){
 #define GF_MD5_DIGEST_SIZE	16
 
 GF_EXPORT
-void gf_md5_csum(const void *data, u64 len, u8 output[GF_MD5_DIGEST_SIZE])
+void gf_md5_csum(const void *data, u32 len, u8 output[GF_MD5_DIGEST_SIZE])
 {
 	MD5Context ctx;
 	md5Init(&ctx);

@@ -1772,6 +1772,30 @@ GF_Err gf_isom_get_current_top_box_offset(GF_ISOFile *isom_file, u64 *current_to
 */
 GF_Err gf_isom_purge_samples(GF_ISOFile *isom_file, u32 trackNumber, u32 nb_samples);
 
+/*! External track flags*/
+enum
+{
+	/*! edit list override*/
+	GF_ISOM_EXTK_EDTS_SKIP=1,
+	/*! location is a URN */
+	GF_ISOM_EXTK_URN=1<<1,
+	/*! ignore source user data */
+	GF_ISOM_EXTK_NO_UDTA=1<<2,
+	/*! ignore source meta */
+	GF_ISOM_EXTK_NO_META=1<<3
+};
+
+/*! checks if a track is an external track
+\param isom_file the target ISO file
+\param trackNumber the desired track to purge
+\param tkid set to external track ID, may be NULL
+\param type set to external track handler type, may be NULL
+\param flags set to ExternalTrackLocation box flags, may be NULL
+\param location set to external file location, may be NULL
+\return GF_TRUE if track is an external track, GF_FALSE otherwise
+*/
+Bool gf_isom_is_external_track(GF_ISOFile *isom_file, u32 trackNumber, GF_ISOTrackID *tkid, u32 *type, u32 *flags, const char **location);
+
 /*! changes source URL, typically used when seeking operation change cache destination
 \param isom_file the target ISO file
 \param url the new url (local file path or gmem:// blob)
@@ -1918,6 +1942,17 @@ u32 gf_isom_new_track(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 MediaTyp
 \return the track number or 0 if error*/
 u32 gf_isom_new_track_from_template(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 MediaType, u32 TimeScale, u8 *tk_box, u32 tk_box_size, Bool udta_only);
 
+/*! creates a new external track
+\param isom_file the target ISO file
+\param trackID the ID of the track- if 0, the track ID is chosen by the API
+\param refTrakID the ID of the referenced  track (not checked by API)
+\param MediaType the handler type (four character code) of the media
+\param TimeScale the time scale of the media
+\param uri location of external file
+\return the track number or 0 if error
+*/
+u32 gf_isom_new_external_track(GF_ISOFile *movie, GF_ISOTrackID trakID, GF_ISOTrackID refTrakID, u32 MediaType, u32 TimeScale, const char *uri);
+
 /*! removes a track - internal cross dependencies will be updated.
 \warning Any OD streams with references to this track through  ODUpdate, ESDUpdate, ESDRemove commands
 will be rewritten
@@ -1934,6 +1969,14 @@ GF_Err gf_isom_remove_track(GF_ISOFile *isom_file, u32 trackNumber);
 \return error if any
 */
 GF_Err gf_isom_set_track_enabled(GF_ISOFile *isom_file, u32 trackNumber, Bool enableTrack);
+
+/*! forces the track duration - should only be used for external tracks
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param duration track duration in movie timescale
+\return error if any
+*/
+GF_Err gf_isom_force_track_duration(GF_ISOFile *isom_file, u32 trackNumber, u64 duration);
 
 /*! Track header flags operation type*/
 typedef enum

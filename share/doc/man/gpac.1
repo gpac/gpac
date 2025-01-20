@@ -263,9 +263,36 @@ assign a new alias or remove an alias. Can be specified several times. See alias
 assign documentation for a given alias (optional). Can be specified several times
 .br
 .TP
-.B \-uncache
+.B \-cache-info
+.br
+show cache info. Argument can be:
+.br
+* absent: the entire cache is inspected
+.br
+* B: filter entries created after B, with B a number of seconds prior to now or a date (0 means now)
+.br
+* B;C: filter entries created after B but before C, with B and C either a number of seconds prior to now or a date
+.br
+  - If B is 0, min time is UTC=0
+.br
+  - If C is 0, max time is now
+.br
+The argument syntax is the same for all cache options
+.br
+.TP
+.B \-cache-unflat
 .br
 revert all items in GPAC cache directory to their original name and server path
+.br
+.TP
+.B \-cache-list
+.br
+list entries in cache
+.br
+.TP
+.B \-cache-clean (int)
+.br
+clean cache
 .br
 .TP
 .B \-js (string)
@@ -1114,7 +1141,7 @@ cache directory location
 .TP
 .B \-proxy (string)
 .br
-set HTTP proxy server address and port
+set HTTP proxy server address and port (if no protocol scheme is set, use same as target)
 .br
 .TP
 .B \-maxrate (int)
@@ -1139,7 +1166,12 @@ indicate if HTTP cache should be clean upon launch/exit
 .TP
 .B \-cache-size (int, default: 100M)
 .br
-specify cache size in bytes
+specify maximum cache size on disk in bytes
+.br
+.TP
+.B \-cache-check (int, default: 60)
+.br
+cache clean interval in seconds, 0 only clean cache at startup
 .br
 .TP
 .B \-tcp-timeout (int, default: 5000)
@@ -1160,6 +1192,11 @@ ignore HTTP 1.1 timeout in keep-alive
 .B \-broken-cert
 .br
 enable accepting broken SSL certificates
+.br
+.TP
+.B \-ca-bundle (string)
+.br
+path to a custom CA certificates bundle file
 .br
 .TP
 .B \-user-agent,-ua (string)
@@ -1475,6 +1512,11 @@ use HEVC URN for alpha and depth in HEIF instead of MPEG-B URN (HEIF first editi
 .br
 use box definitions in the given directory for XML dump
 .br
+.TP
+.B \-no-mabr-patch
+.br
+disable GPAC parsing of patched isom boxes from mabr (wll behave like most browsers/players)
+.br
 .SH libgpac logs options:
 .LP
 .br
@@ -1525,6 +1567,8 @@ levelX can be one of:
 * info: logs error+warning+info messages
 .br
 * debug: logs all messages
+.br
+* strict: exit if error for this log tool and use default log level if tool
 .br
 
 .br
@@ -1582,11 +1626,13 @@ toolX can be one of:
 .br
 * rti: run-time stats of compositor
 .br
-* all: all tools logged - other tools can be specified afterwards.  
+* all: all tools logged - other tools can be specified afterwards
 .br
 The special keyword ncl can be set to disable color logs.  
 .br
-The special keyword strict can be set to exit at first error.  
+The special keyword strict can be set to exit at first error on any tool.  
+.br
+levelX can accept the suffix +strict to force strict error only for the given log tool(s).   
 .br
 
 .br
@@ -3394,6 +3440,11 @@ Redirection URL of source
 Path of source file on file system
 .br
 .TP
+.B FileAlias (FALI,str,D )
+.br
+Alias name for source file, replace $URL$ and $File$ in templates
+.br
+.TP
 .B MIMEType (MIME,str,D )
 .br
 MIME type of source
@@ -4195,7 +4246,7 @@ Time shift in number of segments for HAS streams, only set by dashin and dasher 
 .TP
 .B IsManifest (PHSM,uint,D )
 .br
-PID is a HAS manifest (MSB=1 if live)
+PID is a HAS manifest (bit 9 set to 1 if live), lower 8 bits value can be
 .br
 * 0: not a manifest
 .br
@@ -4310,6 +4361,16 @@ packet identifier for dependency (usually POC for video)
 .B Refs (PRFS,sintl, P)
 .br
 list of packet identifier this packet depends on
+.br
+.TP
+.B UDTA (PUDT,ptr,DP)
+.br
+User data for the packet
+.br
+.TP
+.B Timecodes (TCOD,uintl, P)
+.br
+list of timecodes as extracted from SEI (if present)
 .br
 .TP
 .B DOVI (DOVI,mem,  )
@@ -4435,6 +4496,11 @@ PSSH blob for CENC, same format as CENC_PSSH, used when using master key and rol
 .B LLHASTemplate (PSRT,str, P)
 .br
 Template for DASH-SSR and LLHLS sub-segments
+.br
+.TP
+.B PartialRepair (PCPR,bool, P)
+.br
+indicate the mux data in the associated data is parsable but contains errors (only set on corrupted packets)
 .br
 .SH Pixel formats
 .LP
@@ -5111,7 +5177,7 @@ DRA Audio
 G719 Audio
 .br
 .TP
-.B dstc
+.B dtsc
 .br
 DTS Coherent Acoustics and Digital Surround Audio
 .br
@@ -5121,7 +5187,7 @@ DTS Coherent Acoustics and Digital Surround Audio
 DTS-HD High Resolution Audio and DTS-Master Audio
 .br
 .TP
-.B dstl
+.B dtsl
 .br
 DTS-HD Substream containing only XLLAudio
 .br

@@ -847,6 +847,7 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "font-dirs", szPath);
 
 	gf_cfg_set_key(cfg, "core", "cache-size", "100M");
+	gf_cfg_set_key(cfg, "core", "cache-check", "0");
 
 #if defined(_WIN32_WCE)
 	gf_cfg_set_key(cfg, "core", "video-output", "gapi");
@@ -883,6 +884,9 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 		if (gf_file_exists(gui_path)) {
 			gf_cfg_set_key(cfg, "core", "startup-file", gui_path);
 		}
+
+		sprintf(gui_path, "%s%cres%cca-bundle.crt", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "core", "ca-bundle-default", gui_path);
 
 		/*shaders are at the same location*/
 		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
@@ -1177,6 +1181,18 @@ static GF_Config *gf_cfg_init(const char *profile)
 			}
 			if (rescan_fonts)
 				gf_opts_set_key("core", "rescan-fonts", "yes");
+
+			// if ca-bundle is not set or explicitly disabled (empty string), set to default
+			const char* ca_bundle = gf_cfg_get_key(cfg, "core", "ca-bundle-default");
+			if (!ca_bundle) {
+				char szShare[GF_MAX_PATH];
+				if (get_default_install_path(szShare, GF_PATH_SHARE)) {
+					char gui_path[GF_MAX_PATH + 100];
+
+					sprintf(gui_path, "%s%cres%cca-bundle.crt", szShare, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+					gf_cfg_set_key(cfg, "core", "ca-bundle-default", gui_path);
+				}
+			}
 		}
 	}
 	//no config file found
@@ -1407,6 +1423,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "- warning: logs error+warning messages\n"
 	        "- info: logs error+warning+info messages\n"
 	        "- debug: logs all messages\n"
+	        "- strict: exit if error for this log tool and use default log level if tool\n"
 	        "\n`toolX` can be one of:\n"
 	        "- core: libgpac core\n"
 	        "- mutex: log all mutex calls\n"
@@ -1434,9 +1451,10 @@ GF_GPACArg GPAC_Args[] = {
 	        "- ctime: media and SMIL timing info from composition engine\n"
 	        "- interact: interaction messages (UI events and triggered DOM events and VRML route)\n"
 	        "- rti: run-time stats of compositor\n"
-	        "- all: all tools logged - other tools can be specified afterwards.  \n"
+	        "- all: all tools logged - other tools can be specified afterwards\n"
 	        "The special keyword `ncl` can be set to disable color logs.  \n"
-	        "The special keyword `strict` can be set to exit at first error.  \n"
+	        "The special keyword `strict` can be set to exit at first error on any tool.  \n"
+	        "`levelX` can accept the suffix `+strict` to force strict error only for the given log tool(s).   \n"
 	        "\nEX -logs=all@info:dash@debug:ncl\n"
 			"This moves all log to info level, dash to debug level and disable color logs"
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
@@ -1512,16 +1530,18 @@ GF_GPACArg GPAC_Args[] = {
 #endif
 
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("proxy", NULL, "set HTTP proxy server address and port", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("proxy", NULL, "set HTTP proxy server address and port (if no protocol scheme is set, use same as target)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("maxrate", NULL, "set max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-cache", NULL, "disable HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("offline-cache", NULL, "enable offline HTTP caching (no re-validation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("clean-cache", NULL, "indicate if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("cache-size", NULL, "specify cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("cache-size", NULL, "specify maximum cache size on disk in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("cache-check", NULL, "cache clean interval in seconds, 0 only clean cache at startup", "60", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("tcp-timeout", NULL, "time in milliseconds to wait for HTTP/RTSP connect before error", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("req-timeout", NULL, "time in milliseconds to wait on HTTP/RTSP request before error (0 disables timeout)", "10000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-timeout", NULL, "ignore HTTP 1.1 timeout in keep-alive", "false", NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("broken-cert", NULL, "enable accepting broken SSL certificates", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("ca-bundle", NULL, "path to a custom CA certificates bundle file", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT | GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-agent", "ua", "set user agent name for HTTP/RTSP", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-profileid", NULL, "set user profile ID (through **X-UserProfileID** entity header) in HTTP requests", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("user-profile", NULL, "set user profile filename. Content of file is appended as body to HTTP HEAD/GET requests, associated Mime is **text/xml**", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
@@ -1611,6 +1631,7 @@ GF_DEF_ARG("charset", NULL, "set charset when not recognized from input. Possibl
  GF_DEF_ARG("vvdec-annexb", NULL, "hack for old vvdec+libavcodec supporting only annexB format", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("heif-hevc-urn", NULL, "use HEVC URN for alpha and depth in HEIF instead of MPEG-B URN (HEIF first edition)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
  GF_DEF_ARG("boxdir", NULL, "use box definitions in the given directory for XML dump", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
+ GF_DEF_ARG("no-mabr-patch", NULL, "disable GPAC parsing of patched isom boxes from mabr (will behave like most browsers/players)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
 
 
  {0}

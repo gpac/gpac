@@ -670,6 +670,11 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 				case M2TS_TEMI_INFO: {
 					GF_M2TS_Prop_TEMIInfo *t = (GF_M2TS_Prop_TEMIInfo*)p;
 					snprintf(szID, 100, "%s:%d", t->is_loc ? "temi_l" : "temi_t", t->timeline_id);
+
+					if (!(stream->flags & GF_M2TS_ES_TEMI_INFO)) {
+						stream->flags |= GF_M2TS_ES_TEMI_INFO;
+						gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_TEMI, &PROP_BOOL(GF_TRUE) );
+					}
 					break;
 				}
 				case M2TS_SCTE35:
@@ -728,11 +733,6 @@ static void m2tdmx_merge_props(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterP
 
 		gf_list_del(stream->props);
 		stream->props = NULL;
-
-		if (!(stream->flags & GF_M2TS_ES_TEMI_INFO)) {
-			stream->flags |= GF_M2TS_ES_TEMI_INFO;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_TEMI, &PROP_BOOL(GF_TRUE) );
-		}
 	}
 }
 

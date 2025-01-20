@@ -510,7 +510,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	t_info.name = "timestamp";
 
 	gf_js_lock(priv->js_ctx, 1);
-	
+
 	argv[1] = gf_sg_script_to_qjs_field(priv, &t_info, node, 1);
 	argv[0] = gf_sg_script_to_qjs_field(priv, &r->FromField, r->FromNode, 1);
 
@@ -997,7 +997,7 @@ static void JS_ObjectDestroyed(JSRuntime *rt, JSValue obj, GF_JSField *ptr, Bool
 	if (!JS_IsUndefined(ptr->obj) && is_js_call) {
 		if (ptr->js_ctx) {
 			GF_ScriptPriv *priv;
-			if (!gs_js_context_is_valid(ptr->js_ctx))
+			if (!gf_js_context_is_valid(ptr->js_ctx))
 				return;
 			priv = JS_GetScriptStack(ptr->js_ctx);
 			gf_list_del_item(priv->jsf_cache, ptr);
@@ -1173,7 +1173,7 @@ static void node_finalize_ex(JSRuntime *rt, JSValue obj, Bool is_js_call)
 static void node_finalize(JSRuntime *rt, JSValue val)
 {
 	node_finalize_ex(rt, val, GF_TRUE);
-	
+
 }
 
 static JSValue node_toString(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
@@ -3325,14 +3325,14 @@ static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSValue obj, 
 		jsf = NewJSField(priv->js_ctx);	\
 		jsf->owner = parent;	\
 		if(parent) gf_node_get_field(parent, field->fieldIndex, &jsf->field);	\
- 
+
 #define SETUP_MF_FIELD(_class)	\
 		obj = JS_CallConstructor(priv->js_ctx, priv->_class, 0, NULL);\
 		if (JS_IsException(obj) ) return obj; \
 		jsf = (GF_JSField *) JS_GetOpaque(obj, _class.class_id);	\
 		jsf->owner = parent;		\
 		if (parent) gf_node_get_field(parent, field->fieldIndex, &jsf->field);	\
- 
+
 
 static GF_JSClass *get_sf_class(u32 mftype)
 {

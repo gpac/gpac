@@ -4193,14 +4193,18 @@ GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 			nb_bits++;
 		}
 		char b32_char = base32_chars[c];
-		//should not happen, we use 100 bytes by default and max general_constraint_info is 63 bytes
-		if (len >= RFC6381_CODEC_NAME_SIZE_MAX) {
-			gf_bs_del(bs);
-			return GF_OUT_OF_MEM;
+
+		if (len<=RFC6381_CODEC_NAME_SIZE_MAX-2) {
+			szCodec[len] = b32_char;
+			len++;
+			szCodec[len] = 0;
 		}
-		szCodec[len] = b32_char;
-		len++;
-		szCodec[len] = 0;
+		else {
+			szCodec[RFC6381_CODEC_NAME_SIZE_MAX-1] = 0;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RFC6381] truncated codec string - current value: %s - trying to write: %c\n", szCodec, b32_char));
+			gf_bs_del(bs);
+			return GF_ISOM_INVALID_FILE;
+		}
 	}
 	gf_bs_del(bs);
 
