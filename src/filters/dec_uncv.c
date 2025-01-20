@@ -159,11 +159,9 @@ static u8 uncv_get_val(GF_BitStream *bs, UNCVComponentInfo *comp, UNCVDecCtx *ct
 
 static void read_pixel_interleave_comp_yuv_420(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
 static void read_pixel_interleave_comp_yuv(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
-static void read_pixel_interleave_comp(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
 static void read_pixel_interleave_pixel(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
 static void read_pixel_interleave_mixed(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
 static void read_pixel_interleave_multiy(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
-static void read_pixel_interleave_comp(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
 static void read_pixel_interleave_comp(UNCVDecCtx *ctx, UNCVConfig *config, u32 x, u32 y, u8 *output, u32 offset);
 
 static void uncv_del(UNCVConfig *cfg)
