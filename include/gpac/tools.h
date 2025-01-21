@@ -73,6 +73,11 @@ Macro formatting a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 #define GF_4CC(a,b,c,d) ((((u32)a)<<24)|(((u32)b)<<16)|(((u32)c)<<8)|((u32)d))
 #endif
 
+/*! Macro formating 4CC from compiler-constant string of 4 characters
+\hideinitializer
+ */
+#define GF_4CC_CSTR(s) GF_4CC(s[0],s[1],s[2],s[3])
+
 /*! minimum buffer size to hold any 4CC in string format*/
 #define GF_4CC_MSIZE	10
 
@@ -411,6 +416,16 @@ Validate and parse str into integer
 */
 Bool gf_strict_atoui(const char* str, u32* ans);
 
+/*!
+\brief formats a duration
+
+Formats a duration into a string
+\param dur duration expressed in timescale
+\param timescale number of ticks per second in duration
+\param szDur the buffer to format
+\return the formated input buffer
+*/
+const char *gf_format_duration(u64 dur, u32 timescale, char szDur[100]);
 
 /*! @} */
 
@@ -1133,6 +1148,8 @@ enum
     GF_BLOB_IN_TRANSFER = 1,
 	/*! blob is corrupted */
     GF_BLOB_CORRUPTED = 1<<1,
+	/*! blob is parsable (valid mux format) but had partial repair only (media holes) */
+    GF_BLOB_PARTIAL_REPAIR = 1<<2
 };
 
 /*!
@@ -1359,6 +1376,38 @@ Gets ID of the process running this gpac instance.
 \return the ID of the main process
 */
 u32 gf_sys_get_process_id();
+
+
+/*! lockfile status*/
+typedef enum {
+	/*! lockfile creation failed*/
+	GF_LOCKFILE_FAILED=0,
+	/*! lockfile creation succeeded, creating a new lock file*/
+	GF_LOCKFILE_NEW,
+	/*! lockfile creation succeeded,  lock file was already present and created by this process*/
+	GF_LOCKFILE_REUSE
+} GF_LockStatus;
+
+/*!
+\brief Creates a lock file
+
+Creates a lock file for the current process. A lockfile contains a single string giving the creator process ID
+If a lock file exists with a process ID no longer running, the lock file will be granted to the caller.
+Lock files are removed using \ref gf_file_delete
+\param lockfile name of the lockfile
+\return return status
+*/
+GF_LockStatus gf_sys_create_lockfile(const char *lockfile);
+
+/*!
+\brief Checks a process is valid
+
+Checks if a process is running by its ID
+\param process_id process ID
+\return GF_TRUE if process is running, GF_FALSE otherwise
+*/
+Bool gf_sys_check_process_id(u32 process_id);
+
 
 /*!\brief run-time system info object
 
@@ -1835,6 +1884,16 @@ Checks if file with given name exists, for regular files or File IO wrapper
 \return GF_TRUE if file exists */
 Bool gf_file_exists_ex(const char *file_name, const char *par_name);
 
+/*!
+\brief Open file descriptor
+
+Opens a file descriptor - this is simply a wrapper aroun open taking care of UTF8 for windows
+\param file_name path of the file to check
+\param oflags same parameters as open flags for open
+\param pflags same parameters as permission flags for open
+\return file descriptor, -1 if error*/
+s32 gf_fd_open(const char *file_name, u32 oflags, u32 pflags);
+
 /*! File IO wrapper object*/
 typedef struct __gf_file_io GF_FileIO;
 
@@ -2267,7 +2326,7 @@ void gf_sha256_csum(const void *buf, u64 buflen, u8 digest[GF_SHA256_DIGEST_SIZE
 \param buflen size of input buffer in bytes
 \param digest buffer to store message digest
  */
-void gf_md5_csum(const void *buf, u64 buflen, u8 digest[GF_MD5_DIGEST_SIZE]);
+void gf_md5_csum(const void *buf, u32 buflen, u8 digest[GF_MD5_DIGEST_SIZE]);
 
 /*!
 \addtogroup libsys_grp

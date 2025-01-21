@@ -2530,7 +2530,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
 		}
 		*pid = '\0';
 	}
-	int fd = open(pidfile, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+	int fd = open(pidfile, O_RDWR | O_CREAT , S_IRUSR | S_IWUSR);
 	if (fd == -1)
 		goto exit;
 	/* Get the flags */
@@ -2938,6 +2938,7 @@ u64 gf_net_parse_date(const char *val)
 	year = month = day = h = m = s = 0;
 	oh = om = 0;
 	secs = 0;
+	Bool has_sep = strchr(val, ':') ? GF_TRUE : GF_FALSE;
 
 	if (sscanf(val, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 		neg_time_zone = GF_TRUE;
@@ -2945,6 +2946,8 @@ u64 gf_net_parse_date(const char *val)
 	else if (sscanf(val, "%d-%d-%dT%d:%d:%g+%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 	}
 	else if (sscanf(val, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
+	}
+	else if (sscanf(val, "%d/%d/%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
 	}
 	else if (sscanf(val, "%3s, %d %3s %d %d:%d:%d", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
@@ -2955,10 +2958,10 @@ u64 gf_net_parse_date(const char *val)
 	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
-	else if ((sscanf(val, LLU, &current_time) == 1) && current_time > 1000000000000ULL && current_time < GF_INT_MAX * 1000ULL) {
+	else if (!has_sep && (sscanf(val, LLU, &current_time) == 1) && current_time > 1000000000000ULL && current_time < GF_INT_MAX * 1000ULL) {
 		return current_time; // guessed duration since UTC0 in milliseconds
 	}
-	else if ((sscanf(val, LLU, &current_time) == 1) && current_time < GF_INT_MAX) {
+	else if (!has_sep && (sscanf(val, LLU, &current_time) == 1) && current_time < GF_INT_MAX) {
 		return current_time * 1000; // guessed raw duration since UTC0 in seconds
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot parse date string %s\n", val));
@@ -3205,10 +3208,17 @@ GF_Err gf_file_load_data(const char *file_name, u8 **out_data, u32 *out_size)
 
 #ifndef WIN32
 #include <unistd.h>
+#include <fcntl.h>
+
 GF_EXPORT
 u32 gf_sys_get_process_id()
 {
 	return getpid ();
+}
+GF_EXPORT
+Bool gf_sys_check_process_id(u32 pid)
+{
+	return (getpgid(pid) == -1) ? GF_FALSE : GF_TRUE;
 }
 #else
 #include <windows.h>
@@ -3217,7 +3227,69 @@ u32 gf_sys_get_process_id()
 {
 	return GetCurrentProcessId();
 }
+GF_EXPORT
+Bool gf_sys_check_process_id(u32 pid)
+{
+	HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+	Bool ret = GF_FALSE;
+	if (processHandle) {
+		CloseHandle(processHandle);
+		ret = GF_TRUE;
+	}
+	return ret;
+}
 #endif
+
+GF_EXPORT
+GF_LockStatus gf_sys_create_lockfile(const char *lockname)
+{
+	char szPID[20];
+	u32 retry = 10;
+	sprintf(szPID, "%u", gf_sys_get_process_id());
+	u32 len = (u32)strlen(szPID);
+
+	while (retry) {
+		retry--;
+#ifdef GPAC_HAS_FD
+		s32 fd = open(lockname, O_CREAT | O_EXCL | O_WRONLY | O_BINARY, S_IRUSR|S_IWUSR);
+		if (fd != -1) {
+			s32 wlen = write(fd, szPID, len);
+			close(fd);
+			if (wlen == (s32)len) return GF_LOCKFILE_NEW;
+			continue;
+		}
+#else
+#if defined __STDC_VERSION__
+		FILE *f = fopen(lockname, "wx");
+#else
+		FILE *f = gf_file_exists(lockname) ? NULL : fopen(lockname, "w");
+#endif
+		if (f) {
+			s32 wlen = fwrite(szPID, 1, len, f);
+			fclose(f);
+			if (wlen == (s32)len) return GF_LOCKFILE_NEW;
+			continue;
+		}
+#endif
+
+		//existing, check pid
+		u8 *data=NULL;
+		u32 size=0, pid;
+		GF_Err e = gf_file_load_data(lockname, &data, &size);
+		if (!data || !size || e!=GF_OK) continue;
+
+		sscanf(data, "%u", &pid);
+		gf_free(data);
+		//already locked by ourselves
+		if (pid == gf_sys_get_process_id()) return GF_LOCKFILE_REUSE;
+		//pid is alive, lock fail
+		if (gf_sys_check_process_id(pid)) return GF_LOCKFILE_FAILED;
+
+		//file exists but pid dead, grab the lock
+		gf_file_delete(lockname);
+	}
+	return GF_LOCKFILE_FAILED;
+}
 
 #ifndef WIN32
 #include <termios.h>

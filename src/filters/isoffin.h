@@ -137,6 +137,11 @@ typedef struct
 	u64 last_min_offset;
 	GF_Err in_error;
 	Bool force_fetch;
+
+	u32 extkid, orig_id;
+	GF_ISOFile *extkmov;
+	u32 extk_flags;
+	Bool extk;
 } ISOMReader;
 
 typedef struct

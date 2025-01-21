@@ -3725,7 +3725,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (!CodedLossless && !allow_intrabc) {
 		u8 loop_filter_level_0 = gf_bs_read_int_log(bs, 6, "loop_filter_level_0");
 		u8 loop_filter_level_1 = gf_bs_read_int_log(bs, 6, "loop_filter_level_1");
-		if (!state->config->monochrome) {
+		if (state && state->config && !state->config->monochrome) {
 			if (loop_filter_level_0 || loop_filter_level_1) {
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_2");
 				gf_bs_read_int_log(bs, 6, "loop_filter_level_3");
@@ -5928,28 +5928,29 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 			return 1;
 		}
 
+		pt->num_clock_ts = NumClockTS[pt->pic_struct];
 		for (i = 0; i < NumClockTS[pt->pic_struct]; i++) {
 			if (gf_bs_read_int_log_idx(bs, 1, "clock_timestamp_flag", i)) {
-				Bool full_timestamp_flag;
+				AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
 				gf_bs_read_int_log_idx(bs, 2, "ct_type", i);
 				gf_bs_read_int_log_idx(bs, 1, "nuit_field_based_flag", i);
 				gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
-				full_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "full_timestamp_flag", i);
+				Bool full_timestamp_flag = gf_bs_read_int_log_idx(bs, 1, "full_timestamp_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
 				gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
-				gf_bs_read_int_log_idx(bs, 8, "n_frames", i);
+				tc->n_frames = gf_bs_read_int_log_idx(bs, 8, "n_frames", i);
 				if (full_timestamp_flag) {
-					gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
-					gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
-					gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
+					tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
+					tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
+					tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
 				}
 				else {
 					if (gf_bs_read_int_log_idx(bs, 1, "seconds_flag", i)) {
-						gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
+						tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
 						if (gf_bs_read_int_log_idx(bs, 1, "minutes_flag", i)) {
-							gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
+							tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
 							if (gf_bs_read_int_log_idx(bs, 1, "hours_flag", i)) {
-								gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
+								tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
 							}
 						}
 					}
@@ -5963,6 +5964,42 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 	return 0;
 }
 
+static s32 hevc_parse_pic_timing_sei(GF_BitStream *bs, HEVCState *hevc)
+{
+	AVCSeiPicTiming *pt = &hevc->sei.pic_timing;
+
+	pt->num_clock_ts = gf_bs_read_int(bs, 2);
+	for (int i = 0; i < pt->num_clock_ts; i++) {
+		Bool clock_timestamp_flag = gf_bs_read_int(bs, 1);
+		if (clock_timestamp_flag) {
+			gf_bs_read_int_log_idx(bs, 1, "units_field_based_flag", i);
+
+			AVCSeiPicTimingTimecode *tc = &pt->timecodes[i];
+			gf_bs_read_int_log_idx(bs, 5, "counting_type", i);
+			Bool full_timestamp_flag = gf_bs_read_int(bs, 1);
+			gf_bs_read_int_log_idx(bs, 1, "discontinuity_flag", i);
+			gf_bs_read_int_log_idx(bs, 1, "cnt_dropped_flag", i);
+
+			tc->n_frames = gf_bs_read_int(bs, 9);
+			if (full_timestamp_flag) {
+				tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
+				tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
+				tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
+			} else {
+				if (gf_bs_read_int_log_idx(bs, 1, "seconds_flag", i)) {
+					tc->seconds = gf_bs_read_int_log_idx(bs, 6, "seconds_value", i);
+					if (gf_bs_read_int_log_idx(bs, 1, "minutes_flag", i)) {
+						tc->minutes = gf_bs_read_int_log_idx(bs, 6, "minutes_value", i);
+						if (gf_bs_read_int_log_idx(bs, 1, "hours_flag", i)) {
+							tc->hours = gf_bs_read_int_log_idx(bs, 5, "hours_value", i);
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
 
 static void avc_parse_itu_t_t35_sei(GF_BitStream* bs, AVCSeiItuTT35DolbyVision *dovi)
 {
@@ -7709,6 +7746,10 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 			if (hevc) {
 				hevc->has_3d_ref_disp_info = 1;
 			}
+			break;
+		// time_code
+		case 136:
+			hevc_parse_pic_timing_sei(bs, hevc);
 			break;
 		default:
 			break;
@@ -12966,23 +13007,25 @@ GF_Err gf_media_vc1_seq_header_to_dsi(const u8 *seq_hdr, u32 seq_hdr_len, u8 **d
 	u8 profile=12;
 	u8 *sqhdr = memchr(seq_hdr+1, 0x0F, seq_hdr_len);
 	if (sqhdr) {
-		u32 skip = (u32) (sqhdr - seq_hdr - 3);
+		u32 skip = (u32) (sqhdr - seq_hdr);
 		seq_hdr+=skip;
 		seq_hdr_len-=skip;
-		bs = gf_bs_new(seq_hdr+4, seq_hdr_len-4, GF_BITSTREAM_READ);
-		profile = gf_bs_read_int(bs, 2);
-		if (profile==3) {
-			level = gf_bs_read_int(bs, 3);
-			/*cfmt*/gf_bs_read_int(bs, 2);
-			/*fps*/gf_bs_read_int(bs, 3);
-			/*btrt*/gf_bs_read_int(bs, 5);
-			gf_bs_read_int(bs, 1);
-			/*mw*/gf_bs_read_int(bs, 12);
-			/*mh*/gf_bs_read_int(bs, 12);
-			/*bcast*/gf_bs_read_int(bs, 1);
-			interlace = gf_bs_read_int(bs, 1);
+		if (seq_hdr_len > 1) {
+			bs = gf_bs_new(seq_hdr+1, seq_hdr_len-1, GF_BITSTREAM_READ);
+			profile = gf_bs_read_int(bs, 2);
+			if (profile==3) {
+				level = gf_bs_read_int(bs, 3);
+				/*cfmt*/gf_bs_read_int(bs, 2);
+				/*fps*/gf_bs_read_int(bs, 3);
+				/*btrt*/gf_bs_read_int(bs, 5);
+				gf_bs_read_int(bs, 1);
+				/*mw*/gf_bs_read_int(bs, 12);
+				/*mh*/gf_bs_read_int(bs, 12);
+				/*bcast*/gf_bs_read_int(bs, 1);
+				interlace = gf_bs_read_int(bs, 1);
+			}
+			gf_bs_del(bs);
 		}
-		gf_bs_del(bs);
 	}
 	*dsi_size = seq_hdr_len+7;
 	*dsi = gf_malloc(seq_hdr_len+7);

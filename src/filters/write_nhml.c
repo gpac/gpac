@@ -902,6 +902,8 @@ static GF_Err nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size
 				}
 				gf_isom_box_dump(a, f);
 				data += a->size;
+				gf_isom_box_del(a);
+				a=NULL;
 			}
 			gf_bs_del(bs);
 

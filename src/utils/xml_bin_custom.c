@@ -430,6 +430,7 @@ static void xml_scte35_parse_splice_info(GF_XMLNode *root, GF_BitStream *bs)
 		gf_bs_seek(bs, gf_bs_get_size(bs));
 		gf_bs_write_u32(bs, gf_crc_32(data+(section_length_pos-1), size - (u32) (section_length_pos-1)));
 		gf_bs_del(bs_tmp);
+		gf_free(data);
 	}
 
 #undef WRITE_CMD_LEN

@@ -753,6 +753,7 @@ static GF_Err mcdec_rewrite_annex_b(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBuffer
 	u32 i;
 	u8 *ptr = inBuffer;
 	u32 nal_size;
+	u32 nb_nalsize_zero=0;
 	GF_Err e = GF_OK;
 	GF_BitStream *bs = NULL;
 
@@ -773,6 +774,15 @@ static GF_Err mcdec_rewrite_annex_b(GF_MCDecCtx *ctx, u8 *inBuffer, u32 inBuffer
 		nal_size = 0;
 		for (i = 0; i<ctx->nalu_size_length; i++) {
 			nal_size = (nal_size << 8) + ((u8)ptr[i]);
+		}
+		if (!nal_size) {
+			if (nb_nalsize_zero) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
+			nb_nalsize_zero++;
+		} else {
+			nb_nalsize_zero=0;
 		}
 		ptr += ctx->nalu_size_length;
 

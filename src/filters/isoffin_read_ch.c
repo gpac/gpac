@@ -972,14 +972,14 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 		if (sai_size<6)
 			return;
 		u32 clear = ((u32) sai[0]) << 8 | sai[1];
-		u32 crypt = GF_4CC(sai[2], sai[3], sai[4], sai[5]);
+		u32 nb_crypt = GF_4CC(sai[2], sai[3], sai[4], sai[5]);
 		if (cur_pos + clear > pos) {
 			clear -= removed;
 			sai[0] = (clear>>8) & 0xFF;
 			sai[1] = (clear) & 0xFF;
 			return;
 		}
-		cur_pos += clear + crypt;
+		cur_pos += clear + nb_crypt;
 		sai += 6;
 		sai_size-=6;
 	}

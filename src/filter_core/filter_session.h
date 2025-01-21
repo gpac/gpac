@@ -276,6 +276,19 @@ struct __gf_filter_pck
  */
 typedef void (*gf_fs_task_callback)(GF_FSTask *task);
 
+//task type used to free up resources when a filter task is being canceled (configure error)
+typedef enum
+{
+	//no free required
+	TASK_TYPE_NONE=0,
+	//task udta is a GF_FilterEvent
+	TASK_TYPE_EVENT,
+	//task udta is a struct _gf_filter_setup_failure (simple free needed)
+	TASK_TYPE_SETUP,
+	//task udta is a GF_UserTask structure (simple free needed), and task logname shall be freed
+	TASK_TYPE_USER,
+} GF_TaskClassType;
+
 struct __gf_fs_task
 {
 	//flag set for tasks registered with main task list, eg having incremented the task_pending counter.
@@ -296,30 +309,17 @@ struct __gf_fs_task
 	GF_FilterPid *pid;
 	const char *log_name;
 	void *udta;
-	u32 class_type;
+	GF_TaskClassType class_type;
 	u32 thid;
 };
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
 
-//task type used to free up resources when a filter task is being canceled (configure error)
-typedef enum
-{
-	//no free required
-	TASK_TYPE_NONE=0,
-	//task udta is a GF_FilterEvent
-	TASK_TYPE_EVENT,
-	//task udta is a struct _gf_filter_setup_failure (simple free needed)
-	TASK_TYPE_SETUP,
-	//task udta is a GF_UserTask structure (simple free needed), and task logname shall be freed
-	TASK_TYPE_USER,
-} GF_TaskClassType;
-
 
 /* extended version of gf_fs_post_task
 force_direct_call shall only be true for gf_filter_process_task
 */
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, GF_TaskClassType class_type);
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, GF_TaskClassType class_type, u32 delay_ms);
 
 void gf_fs_post_task_class(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, GF_TaskClassType class_type);
 
@@ -686,7 +686,7 @@ struct __gf_filter
 	//!this mutex protects:
 	//- the filter task queue, when reordering tasks for later processing while other threads try to post to the filter task queue
 	//- the list of input pid and output pid destinations, which can be added from different threads for a same pid (fan-out)
-	//-the blocking state of the filter
+	//- the blocking state of the filter
 	GF_Mutex *tasks_mx;
 
 	//list of output pids to be configured
@@ -844,7 +844,7 @@ struct __gf_filter
 	rmtU32 rmt_hash;
 #endif
 
-	//signals tha pid info has changed, to notify the filter chain
+	//signals that pid info has changed, to notify the filter chain
 	Bool pid_info_changed;
 
 	//set to 1 when one or more input pid to the filter is on end of state, set to 2 if the filter dispatch a packet while in this state

@@ -69,8 +69,6 @@ typedef enum
 	GF_NETIO_GET_CONTENT,
 	/*!signal that request is sent and waiting for server reply*/
 	GF_NETIO_WAIT_FOR_REPLY,
-	/*!signal a header to user. */
-	GF_NETIO_PARSE_HEADER,
 	/*!signal request reply to user. The reply is always sent after the headers*/
 	GF_NETIO_PARSE_REPLY,
 	/*!send data to the user*/
@@ -86,6 +84,8 @@ typedef enum
 	GF_NETIO_REQUEST_SESSION,
 	/*! stream has been canceled by remote peer*/
 	GF_NETIO_CANCEL_STREAM,
+	/* only for icy*/
+	GF_NETIO_ICY_META,
 } GF_NetIOStatus;
 
 /*!session download flags*/
@@ -113,6 +113,8 @@ typedef enum
 	GF_NETIO_SESSION_NO_BLOCK = 1<<8,
 	/*! session must be able to share underlying GF_Socket */
 	GF_NETIO_SESSION_SHARE_SOCKET = 1<<9,
+	/*! disable proxy for this session */
+	GF_NETIO_SESSION_NO_PROXY = 1<<10,
 } GF_NetIOFlags;
 
 
@@ -125,16 +127,22 @@ typedef struct
 	GF_NetIOStatus msg_type;
 	/*error code if any. Valid for all message types.*/
 	GF_Err error;
-	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
+	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages
+		if error is set, payload is the server response body
+	*/
 	const u8 *data;
-	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
+	/*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages
+		if error is set, payload is the server response body size
+	*/
 	u32 size;
-	/*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD
+	/*protocol header. Only valid for GF_NETIO_GET_HEADER and GF_NETIO_GET_METHOD
 		if NULL for GF_NETIO_GET_HEADER, ignored
+		for GF_NETIO_ICY_META, set to "icy-meta"
 	*/
 	const char *name;
-	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY
+	/*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER and GF_NETIO_PARSE_REPLY
 		if NULL for GF_NETIO_GET_HEADER, aborts headers query
+		for GF_NETIO_ICY_META, set to inband ICY metadata found
 	*/
 	char *value;
 	/*message-dependend
@@ -142,6 +150,7 @@ typedef struct
 		for GF_NETIO_DATA_EXCHANGE
 			Set to 1 in to indicate end of chunk transfer
 			Set to 2 in GF_NETIO_DATA_EXCHANGE to indicate complete file is already received (replay of events from cache)
+			if error is set, reply is set to HTTP code
 		for all other, usage is reserved
 	*/
 	u32 reply;
@@ -485,6 +494,43 @@ Sets ID of netcap rules for this session
 \param netcap_id ID of netcap configuration to use, may be null (see gpac -h netcap)
  */
 void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id);
+
+/*!
+\brief sets max rate for a session
+
+Sets the maximum rate for a session without throtling other sessions.
+\param sess the download session object
+\param rate_in_bits_per_sec the new rate in bits per sec. If 0, HTTP rate will not be limited
+ */
+void gf_dm_sess_set_max_rate(GF_DownloadSession *sess, u32 rate_in_bits_per_sec);
+
+/*!
+\brief sets max rate for a session
+
+Gets the maximum rate for a session
+\param sess the download session object
+\return the current rate in bits per sec, 0 if no limitation
+ */
+u32 gf_dm_sess_get_max_rate(GF_DownloadSession *sess);
+
+/*!
+\brief Checks  session regulation state
+
+Checks if last session fetch has been skiped due to rate limitation
+\param sess the download session object
+\return GF_TRUE if last call to \ref gf_dm_sess_fetch_data was skipped because of rate regulation
+ */
+Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess);
+
+/*!
+\brief Gets associated ressource size
+
+Gets the resource size as announced by the server. If byte-range request was , this size will be different from the total bytes expected in the session
+\param sess the download session object
+\return the resource size, 0 if unknown
+*/
+u32 gf_dm_sess_get_resource_size(GF_DownloadSession * sess);
+
 /*!
 \brief sets download manager max rate per session
 
@@ -675,6 +721,8 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec);
 GF_DownloadManager *gf_dm_new(GF_DownloadFilterSession *fsess);
 void gf_dm_del(GF_DownloadManager *dm);
 void gf_dm_sess_set_netcap_id(GF_DownloadSession *sess, const char *netcap_id);
+void gf_dm_sess_set_max_rate(GF_DownloadSession *sess, u32 rate_in_bits_per_sec);
+Bool gf_dm_sess_is_regulated(GF_DownloadSession *sess);
 
 
 #endif //GPAC_CONFIG_EMSCRIPTEN
@@ -695,4 +743,3 @@ typedef void GF_DownloadSession;
 
 
 #endif		/*_GF_DOWNLOAD_H_*/
-

@@ -104,7 +104,7 @@ void set_rmt_fun(function callback);
 
 \param filter_to_add string describin the filter to add, can be in the form "src=" for sources, "dst=" for sinks or regular string for filters.
 \param link_from filter used as source for the created filters - see \ref gf_filter_set_source
-\param link_args arguments for the link (used to assign new filter SID - see \ref gf_filter_set_source
+\param link_args arguments for the link (used to assign new filter SID - see \ref gf_filter_set_source). An empty string means no arguments
 \param relative_to_script if false, URLs for source and sinks filters are relative to the current working directory, if true they are relative to the script path
 \return new filter created
 */
@@ -112,8 +112,9 @@ JSFSFilter add_filter(DOMString filter_to_add, optional JSFSFilter link_from=nul
 
 /*! removes a filter in the media session
 \param filter filter object to remove, can be a JSFSFilter object (in this case, function is equivalent to JSFSFilter.remove) or a JSFilter object
+\param src_filter source filter. If set, disconnect the chain between the source and the filter before removing the filter. The source must be a valid source (no input pids) - cf \ref gf_filter_remove_src
 */
-void remove_filter(Object filter);
+void remove_filter(Object filter, Object src_filter=null);
 
 
 /*! sets callback function to get notifications upon each new filter creation.

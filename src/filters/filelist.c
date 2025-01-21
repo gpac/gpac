@@ -304,7 +304,7 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 	} else {
 		iopid->cts_o = 0;
 	}
-	
+
 	if (is_reassign && prev_timescale) {
 		u64 dts, cts;
 
@@ -1556,8 +1556,8 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 	GF_FilterSAPType sap;
 	GF_FilterPid *ipid;
 	Bool is_raw_audio;
-	gf_assert(ctx->splice_ctrl);
-	gf_assert(ctx->splice_state);
+	gf_fatal_assert(ctx->splice_ctrl);
+	gf_fatal_assert(ctx->splice_state);
 
 	ipid = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ipid : ctx->splice_ctrl->ipid;
 	is_raw_audio = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ra_info.is_raw : ctx->splice_ctrl->ra_info.is_raw;
@@ -3217,4 +3217,3 @@ const GF_FilterRegister *flist_register(GF_FilterSession *session)
 	return NULL;
 }
 #endif // GPAC_DISABLE_FLIST
-

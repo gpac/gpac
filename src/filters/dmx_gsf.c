@@ -681,7 +681,8 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFDemux] Corrupted packet SN %u - discarding\n", frame_sn));
 				gf_list_rem(gst->packets, i-1);
 				gsfdmx_pck_reset(gpck);
-				gf_list_add(ctx->pck_res, gpck);
+				if (gf_list_find(ctx->pck_res, gpck) == -1)
+					gf_list_add(ctx->pck_res, gpck);
 				gpck = NULL;
 				break;
 			}
@@ -703,7 +704,8 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 		gpck->pck = gf_filter_pck_new_alloc(gst->opid, frame_size, &gpck->output);
 		if (!gpck->pck) {
 			gsfdmx_pck_reset(gpck);
-			gf_list_add(ctx->pck_res, gpck);
+			if (gf_list_find(ctx->pck_res, gpck) == -1)
+				gf_list_add(ctx->pck_res, gpck);
 			return NULL;
 		}
 		memset(gpck->output, (u8) ctx->pad, sizeof(char) * gpck->full_block_size);
@@ -817,7 +819,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	u8 tsdiffmode = gf_bs_read_int(bs, 2);
 
 	u8 sap = gf_bs_read_int(bs, 3);
-	u8 crypt = gf_bs_read_int(bs, 2);
+	u8 pck_crypt = gf_bs_read_int(bs, 2);
 	u8 has_dep = gf_bs_read_int(bs, 1);
 	u8 has_4cc_props = gf_bs_read_int(bs, 1);
 	u8 has_ext = gf_bs_read_int(bs, 1);
@@ -980,7 +982,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	if (has_dep) gf_filter_pck_set_dependency_flags(gpck->pck, dep_flags);
 	if (cktype) gf_filter_pck_set_clock_type(gpck->pck, cktype);
 	if (seek) gf_filter_pck_set_seek_flag(gpck->pck, seek);
-	if (crypt) gf_filter_pck_set_crypt_flags(gpck->pck, crypt);
+	if (pck_crypt) gf_filter_pck_set_crypt_flags(gpck->pck, pck_crypt);
 	if (sap) gf_filter_pck_set_sap(gpck->pck, sap);
 	if ((sap==GF_FILTER_SAP_4) || (sap==GF_FILTER_SAP_4_PROL))
 		gf_filter_pck_set_roll_info(gpck->pck, roll);
@@ -1116,7 +1118,8 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 
 		gf_list_rem(gst->packets, 0);
 		gsfdmx_pck_reset(gpck);
-		gf_list_add(ctx->pck_res, gpck);
+		if (gf_list_find(ctx->pck_res, gpck) == -1)
+			gf_list_add(ctx->pck_res, gpck);
 		if (e>GF_OK) e = GF_OK;
 		if (e) return e;
 	}
@@ -1270,7 +1273,8 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 						gf_list_del_item(gst->packets, gpck);
 						if (gpck->pck) gf_filter_pck_discard(gpck->pck);
 						gsfdmx_pck_reset(gpck);
-						gf_list_add(ctx->pck_res, gpck);
+						if (gf_list_find(ctx->pck_res, gpck) == -1)
+							gf_list_add(ctx->pck_res, gpck);
 					}
 				}
 			}
