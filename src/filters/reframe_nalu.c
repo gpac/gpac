@@ -2471,6 +2471,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 					tc_dst->minutes = tc->minutes;
 					tc_dst->seconds = tc->seconds;
 					tc_dst->n_frames = tc->n_frames;
+					tc_dst->max_fps = tc->max_fps;
 					tc_dst->drop_frame = tc->counting_type==4;
 
 					// store as timestamp as well
