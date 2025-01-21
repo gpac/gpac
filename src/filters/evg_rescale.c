@@ -28,12 +28,11 @@
 #ifndef GPAC_DISABLE_EVG
 #include <gpac/evg.h>
 
-enum
-{
+GF_OPT_ENUM (EVGScaleAspectRatioMode,
 	EVGS_KEEPAR_OFF=0,
 	EVGS_KEEPAR_FULL,
 	EVGS_KEEPAR_NOSRC,
-};
+);
 
 typedef struct
 {
@@ -42,7 +41,7 @@ typedef struct
 	u32 ofmt, nbth;
 	Bool ofr, hq;
 	char *padclr;
-	u32 keepar;
+	EVGScaleAspectRatioMode keepar;
 	GF_Fraction osar;
 
 	//internal data

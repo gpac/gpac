@@ -43,12 +43,11 @@
 typedef struct _rtsp_session GF_RTPInRTSP;
 typedef struct __rtpin_stream GF_RTPInStream;
 
-enum
-{
+GF_OPT_ENUM (GF_RTPInRTSP_Mode,
 	RTP_TRANSPORT_AUTO=0,
 	RTP_TRANSPORT_TCP_ONLY,
 	RTP_TRANSPORT_UDP_ONLY,
-};
+);
 
 enum
 {
@@ -72,7 +71,7 @@ typedef struct
 	u32 udp_timeout, rtcp_timeout, stats;
 	Bool forceagg;
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
-	u32 transport;
+	GF_RTPInRTSP_Mode transport;
 	s32 max_sleep, loss_rate;
 	Bool rtcpsync;
 	GF_PropStringList ssm, ssmx;
