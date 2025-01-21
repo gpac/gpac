@@ -29,20 +29,18 @@
 
 #ifndef GPAC_DISABLE_REFRAMER
 
-enum
-{
+GF_OPT_ENUM (GF_RealTimeRegulationMode,
 	REFRAME_RT_OFF = 0,
 	REFRAME_RT_ON,
 	REFRAME_RT_SYNC,
-};
+);
 
-enum
-{
+GF_OPT_ENUM (GF_ExtractionStartAdjustment,
 	REFRAME_ROUND_BEFORE=0,
 	REFRAME_ROUND_SEEK,
 	REFRAME_ROUND_AFTER,
 	REFRAME_ROUND_CLOSEST,
-};
+);
 
 enum
 {
@@ -52,12 +50,11 @@ enum
 	RANGE_DONE
 };
 
-enum
-{
+GF_OPT_ENUM (GF_UTCReferenceMode,
 	UTCREF_LOCAL=0,
 	UTCREF_ANY,
 	UTCREF_MEDIA,
-};
+);
 
 
 enum
@@ -69,13 +66,12 @@ enum
 	EXTRACT_DUR,
 };
 
-enum
-{
+GF_OPT_ENUM (GF_ForceInputDecodingMode,
 	RAW_AV=0,
 	RAW_AUDIO,
 	RAW_VIDEO,
 	RAW_NONE,
-};
+);
 
 #define RT_PRECISION_US	2000
 
@@ -142,12 +138,14 @@ typedef struct
 	GF_PropUIntList saps;
 	GF_PropIntList frames;
 	Bool refs;
-	u32 rt;
+	GF_RealTimeRegulationMode rt;
 	Double speed;
-	u32 raw;
+	GF_ForceInputDecodingMode raw;
 	GF_PropStringList xs, xe;
 	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots, xdts;
-	u32 xround, utc_ref, utc_probe;
+	GF_ExtractionStartAdjustment xround;
+	GF_UTCReferenceMode utc_ref;
+	u32 utc_probe;
 	Double seeksafe;
 	GF_PropStringList props;
 	Bool copy, rmseek;

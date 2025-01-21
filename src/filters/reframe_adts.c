@@ -29,12 +29,11 @@
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_RFADTS)
 
-enum
-{
+GF_OPT_ENUM (GF_PS_SBRSignalingMode,
 	AAC_SIGNAL_NONE=0,
 	AAC_SIGNAL_IMPLICIT,
-	AAC_SIGNAL_EXPLICIT
-};
+	AAC_SIGNAL_EXPLICIT,
+);
 
 typedef struct
 {
@@ -53,8 +52,8 @@ typedef struct
 	//filter args
 	u32 frame_size;
 	Double index;
-	u32 sbr;
-	u32 ps;
+	GF_PS_SBRSignalingMode sbr;
+	GF_PS_SBRSignalingMode ps;
 //	Bool mpeg4;
 	Bool ovsbr;
 	Bool expart;

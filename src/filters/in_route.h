@@ -60,13 +60,12 @@ typedef struct
 	char *seg_name;
 } SegInfo;
 
-enum
-{
+GF_OPT_ENUM (ROUTEInRepairMode,
 	ROUTEIN_REPAIR_NO = 0,
 	ROUTEIN_REPAIR_SIMPLE,
 	ROUTEIN_REPAIR_STRICT,
 	ROUTEIN_REPAIR_FULL,
-};
+);
 
 typedef struct _route_repair_seg_info RepairSegmentInfo;
 
@@ -85,7 +84,7 @@ typedef enum
 	RANGE_SUPPORT_YES,
 } RouteServerRangeSupport;
 
-typedef struct 
+typedef struct
 {
 	char *url;
 	RouteServerRangeSupport accept_ranges;
@@ -110,11 +109,12 @@ typedef struct
 	//options
 	char *src, *ifce, *odir;
 	Bool gcache, kc, skipr, reorder, fullseg, cloop, llmode, dynsel;
-	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
+	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached;
+	ROUTEInRepairMode repair;
 	u32 max_sess, range_merge, minrecv;
 	s32 tunein, stsi;
 	GF_PropStringList repair_urls;
-	
+
 	//internal
 	GF_Filter *filter;
 	GF_DownloadManager *dm;
@@ -181,4 +181,3 @@ TSI_Output *routein_get_tsio(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFileI
 #endif /* GPAC_DISABLE_ROUTE */
 
 #endif //#define IN_ROUTE_H
-
